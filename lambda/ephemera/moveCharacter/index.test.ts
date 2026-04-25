@@ -217,7 +217,8 @@ describe('moveCharacter', () => {
                 componentId: 'ROOM#TestTwo',
                 characterId: 'CHARACTER#Test',
                 perspective: { assetStack: ['ASSET#TownCenter'] },
-            })
+            }),
+            { useDefaultMessageBusLane: true }
         )
     })
 
@@ -298,7 +299,7 @@ describe('moveCharacter', () => {
         expect(mockSendRenderRequested).not.toHaveBeenCalled()
     })
 
-    it('does not kick passive render when filtered asset stack is empty', async () => {
+    it('kicks passive render with Canon-only perspective when character assets do not overlap', async () => {
         wrapMocks(
             [{ asset: 'primitives', RoomId: 'VORTEX' }],
             'ROOM#TestTwo',
@@ -308,7 +309,17 @@ describe('moveCharacter', () => {
             payloads: [{ type: 'MoveCharacter', characterId: 'CHARACTER#Test', roomId: 'ROOM#TestTwo' }],
             messageBus: messageBusMock,
         })
-        expect(mockSendRenderRequested).not.toHaveBeenCalled()
+        expect(mockSendRenderRequested).toHaveBeenCalledTimes(1)
+        expect(mockSendRenderRequested).toHaveBeenCalledWith(
+            messageBusMock,
+            'ROOM#TestTwo',
+            {
+                componentId: 'ROOM#TestTwo',
+                perspective: { assetStack: ['ASSET#TownCenter'] },
+                characterId: 'CHARACTER#Test',
+            },
+            { useDefaultMessageBusLane: true }
+        )
     })
 
     it('should replace items in RoomStack when moved in same asset', async () => {

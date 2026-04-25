@@ -444,7 +444,7 @@ export const enrichExampleEvent = async (params: {
     exampleId: ComponentUUID;
     eventAssetId: AssetUUID;
     component: StandardComponent;
-    eventType: 'Component Updated' | 'Component Removed';
+    eventType: 'Component Updated' | 'Component Republished' | 'Component Removed';
 }): Promise<EnrichedExampleEvent> => {
     const { exampleId, eventAssetId, eventType } = params
 

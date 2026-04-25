@@ -2,7 +2,7 @@ import type { MessageBus } from '../../messageBus/baseClasses'
 import * as perceptionSub from '../perception/subscribedEvents'
 import * as roSub from './subscribedEvents'
 import internalCache from '../../internalCache'
-import { resolveCanonAssetStackForRoom } from '../state/resolveAssetStackForRoom'
+import { resolveCanonAssetStackForRoom, resolveRoomAssetStackForRoom } from '../state/resolveAssetStackForRoom'
 import { filterRoomCanonStackByCharacterAssets } from './fanOutStateChangedToPassiveRenders'
 import {
     handleLookCommandRequestedForRenderOrchestration,
@@ -12,6 +12,7 @@ import {
 jest.mock('../../internalCache')
 jest.mock('../state/resolveAssetStackForRoom', () => ({
     resolveCanonAssetStackForRoom: jest.fn(),
+    resolveRoomAssetStackForRoom: jest.fn(),
 }))
 jest.mock('./fanOutStateChangedToPassiveRenders', () => ({
     filterRoomCanonStackByCharacterAssets: jest.fn(),
@@ -19,6 +20,7 @@ jest.mock('./fanOutStateChangedToPassiveRenders', () => ({
 
 const internalCacheMock = jest.mocked(internalCache, true as any)
 const mockResolveCanonAssetStackForRoom = resolveCanonAssetStackForRoom as jest.MockedFunction<typeof resolveCanonAssetStackForRoom>
+const mockResolveRoomAssetStackForRoom = resolveRoomAssetStackForRoom as jest.MockedFunction<typeof resolveRoomAssetStackForRoom>
 const mockFilterRoomCanonStackByCharacterAssets = filterRoomCanonStackByCharacterAssets as jest.MockedFunction<typeof filterRoomCanonStackByCharacterAssets>
 
 describe('handleLookCommandRequestedForRenderOrchestration', () => {
@@ -28,6 +30,7 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
+        mockResolveRoomAssetStackForRoom.mockResolvedValue(['ASSET#A', 'ASSET#B'])
         mockResolveCanonAssetStackForRoom.mockResolvedValue(['ASSET#A', 'ASSET#B'])
         internalCacheMock.CharacterMeta = {
             get: jest.fn().mockResolvedValue({ assets: ['ASSET#B'] }),
@@ -42,10 +45,14 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
             RoomAssets: internalCacheMock.RoomAssets,
             AssetMetaData: internalCacheMock.AssetMetaData,
         })
+        expect(mockResolveRoomAssetStackForRoom).toHaveBeenCalledWith('ROOM#X', {
+            RoomAssets: internalCacheMock.RoomAssets,
+        })
         expect(internalCacheMock.CharacterMeta.get).toHaveBeenCalledWith('CHARACTER#C')
         expect(mockFilterRoomCanonStackByCharacterAssets).toHaveBeenCalledWith(
             ['ASSET#A', 'ASSET#B'],
-            ['ASSET#B']
+            ['ASSET#B'],
+            ['ASSET#A', 'ASSET#B']
         )
         expect(result.roomId).toBe('ROOM#X')
         expect(result.perspective).toEqual({ assetStack: ['ASSET#A'] })

@@ -4,7 +4,7 @@ import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import internalCache from '../../internalCache'
 import type { StreamingEventMessage } from '../../messageBus/baseClasses'
 import type { PerceptionThreadRegisterCommand } from '../perception/localApiEvents'
-import { resolveCanonAssetStackForRoom } from '../state/resolveAssetStackForRoom'
+import { resolveCanonAssetStackForRoom, resolveRoomAssetStackForRoom } from '../state/resolveAssetStackForRoom'
 import { filterRoomCanonStackByCharacterAssets } from '../renderOrchestration/fanOutStateChangedToPassiveRenders'
 import { sendPerceptionThreadRegistered } from '../perception/subscribedEvents'
 import { sendRenderRequested } from '../renderOrchestration/subscribedEvents'
@@ -27,12 +27,15 @@ export async function prepareFullRoomDescriptionRenderForCharacter(
     characterId: EphemeraCharacterId,
     roomId: EphemeraRoomId,
 ): Promise<PreparedFullRoomDescriptionRender> {
+    const roomAssetStack = await resolveRoomAssetStackForRoom(roomId, {
+        RoomAssets: internalCache.RoomAssets,
+    })
     const roomCanonStack = await resolveCanonAssetStackForRoom(roomId, {
         RoomAssets: internalCache.RoomAssets,
         AssetMetaData: internalCache.AssetMetaData,
     })
     const { assets: characterAssets = [] } = await internalCache.CharacterMeta.get(characterId) || {}
-    const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomCanonStack, characterAssets)
+    const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomAssetStack, characterAssets, roomCanonStack)
     const perspective = { assetStack: filteredAssetStack }
     const perspectiveKey = computePerspectiveKey(perspective.assetStack)
     const threadRegisterCommand: PerceptionThreadRegisterCommand = {

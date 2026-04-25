@@ -92,7 +92,7 @@ export const reseedComponentExamplesFromDiagnostics = async (
                 component: room
             } as AssetsEventUpdate,
             streamKey: streamAssetId,
-            header: { type: 'Component Updated' }
+            header: { type: 'Component Republished' }
         })
     }
 }

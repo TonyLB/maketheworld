@@ -15,19 +15,26 @@ import type { MessageBus, PublishTarget } from '../../messageBus/baseClasses'
 import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
 import type { RenderOrchestrationPublishedPayload } from './publishedEvents'
 import type { StateChangedPayload } from '../state/events'
-import { resolveCanonAssetStackForRoom, type CanonAssetStackCache } from '../state/resolveAssetStackForRoom'
+import {
+    resolveCanonAssetStackForRoom,
+    resolveRoomAssetStackForRoom,
+    type CanonAssetStackCache,
+    type RoomAssetStackCache,
+} from '../state/resolveAssetStackForRoom'
 import type { CharacterMetaItem } from '../../internalCache/characterMeta'
 import type { RoomCharacterListItem } from '../../internalCache/baseClasses'
 import internalCache from '../../internalCache'
 import { defaultGetCacheRecordById, orchestrateRenderRequest } from './orchestrationHandler'
 
-/** Room canon stack order preserved; only assets also present on the character are kept. */
+/** Room stack order preserved; keep assets that are Canon or present on the character. */
 export const filterRoomCanonStackByCharacterAssets = (
-    roomCanonStack: AssetUUID[],
-    characterAssets: readonly string[]
+    roomAssetStack: AssetUUID[],
+    characterAssets: readonly string[],
+    roomCanonStack: readonly AssetUUID[] = roomAssetStack,
 ): AssetUUID[] => {
-    const set = new Set(characterAssets.map((a) => AssetKey(a)))
-    return roomCanonStack.filter((id) => set.has(AssetKey(id)))
+    const characterSet = new Set(characterAssets.map((a) => AssetKey(a)))
+    const canonSet = new Set(roomCanonStack.map((a) => AssetKey(a)))
+    return roomAssetStack.filter((id) => canonSet.has(AssetKey(id)) || characterSet.has(AssetKey(id)))
 }
 
 /** Room canon order preserved; only assets in `requiredAssetIds` are kept (for pointer-only fan-out). */
@@ -95,6 +102,7 @@ export const groupCharacterRowsByPerspective = (
 }
 
 export type FanOutStateChangedDependencies = {
+    resolveRoomAssetStackForRoom?: typeof resolveRoomAssetStackForRoom;
     resolveCanonAssetStackForRoom?: typeof resolveCanonAssetStackForRoom;
     canonStackCache?: CanonAssetStackCache;
     roomCharacterListGet?: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>;
@@ -123,6 +131,7 @@ export const fanOutStateChangedToPassiveRenders = async (
     },
     deps?: FanOutStateChangedDependencies
 ): Promise<void> => {
+    const resolveRoomStack = deps?.resolveRoomAssetStackForRoom ?? resolveRoomAssetStackForRoom
     const resolveCanon = deps?.resolveCanonAssetStackForRoom ?? resolveCanonAssetStackForRoom
     const cache: CanonAssetStackCache = deps?.canonStackCache ?? {
         RoomAssets: internalCache.RoomAssets,
@@ -132,6 +141,9 @@ export const fanOutStateChangedToPassiveRenders = async (
     const getCacheRecordById = deps?.getCacheRecordById ?? defaultGetCacheRecordById
     const roomId = stateChanged.componentId
 
+    const roomAssetStack = await resolveRoomStack(roomId, {
+        RoomAssets: cache.RoomAssets as RoomAssetStackCache['RoomAssets'],
+    })
     const roomCanonStack = await resolveCanon(roomId, cache)
     const listGet = deps?.roomCharacterListGet ?? ((id: EphemeraRoomId) => internalCache.RoomCharacterList.get(id))
     const characters = await listGet(roomId)
@@ -143,7 +155,7 @@ export const fanOutStateChangedToPassiveRenders = async (
         return { characterId, assets }
     }))
     const rows = characterMetaRows.reduce<CharacterPerspectiveRow[]>((previous, { characterId, assets }) => {
-        const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomCanonStack, assets)
+        const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomAssetStack, assets, roomCanonStack)
         if (filteredAssetStack.length === 0) {
             return previous
         }
@@ -187,7 +199,7 @@ export const fanOutStateChangedToPassiveRenders = async (
             roomId,
             perspectiveKey,
             cacheId,
-            roomCanonStack,
+            roomAssetStack,
             getCacheRecordById,
             computePk
         )

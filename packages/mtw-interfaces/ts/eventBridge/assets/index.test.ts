@@ -8,10 +8,12 @@ import {
     AssetsEventUpdate, 
     AssetsEventExternal,
     ComponentEventUpdate,
+    ComponentRepublishedEvent,
     ComponentUpdatedEvent,
     ComponentRemovedEvent,
     AssetLevelEventUpdate,
     AssetCachedEventUpdate,
+    isAssetsComponentRepublishedEvent,
     isAssetsComponentUpdatedEvent,
     isAssetsComponentRemovedEvent,
     isAssetsComponentEvent,
@@ -115,6 +117,35 @@ describe('AssetsEventSerializer', () => {
             expect(deserializedEvent).not.toBeNull()
             expect(isAssetsComponentUpdatedEvent(deserializedEvent!)).toBe(true)
             if (isAssetsComponentUpdatedEvent(deserializedEvent!)) {
+                expect(deserializedEvent.component.universalKey).toBe('CHARACTER#testcharacter')
+                expect(deserializedEvent.component).toBeInstanceOf(StandardCharacter)
+            }
+        })
+
+        it('should handle Component Republished round-trip correctly', async () => {
+            const originalCharacter = new StandardCharacter(deIndentWML(`
+                <Character key=(testcharacter) uuid=(testcharacter)>
+                    <DisplayName>Test Character</DisplayName>
+                </Character>
+            `))
+
+            const originalEvent: ComponentRepublishedEvent = {
+                component: originalCharacter
+            }
+
+            const externalEvent = serializer.serialize({
+                content: originalEvent,
+                header: makeAssetsHeader('Component Republished')
+            })
+
+            const deserializedEvent = await serializer.deserialize({
+                content: externalEvent,
+                header: makeAssetsHeader('Component Republished')
+            })
+
+            expect(deserializedEvent).not.toBeNull()
+            expect(isAssetsComponentRepublishedEvent(deserializedEvent!)).toBe(true)
+            if (isAssetsComponentRepublishedEvent(deserializedEvent!)) {
                 expect(deserializedEvent.component.universalKey).toBe('CHARACTER#testcharacter')
                 expect(deserializedEvent.component).toBeInstanceOf(StandardCharacter)
             }
@@ -391,6 +422,30 @@ describe('AssetsEventSerializer', () => {
                 expect(isAssetsComponentUpdatedEvent({})).toBe(false)
                 expect(isAssetsComponentUpdatedEvent({ zone: 'Canon' })).toBe(false)
                 expect(isAssetsComponentUpdatedEvent({ componentId: 'x', wml: 'y' })).toBe(false)
+            })
+        })
+
+        describe('isAssetsComponentRepublishedEvent', () => {
+            it('should return true for valid Component Republished events', () => {
+                const character = new StandardCharacter(deIndentWML(`
+                    <Character key=(testcharacter) uuid=(testcharacter)>
+                        <DisplayName>Test Character</DisplayName>
+                    </Character>
+                `))
+
+                const event = {
+                    component: character
+                }
+
+                expect(isAssetsComponentRepublishedEvent(event)).toBe(true)
+            })
+
+            it('should return false for invalid events', () => {
+                expect(isAssetsComponentRepublishedEvent(null)).toBe(false)
+                expect(isAssetsComponentRepublishedEvent(undefined)).toBe(false)
+                expect(isAssetsComponentRepublishedEvent({})).toBe(false)
+                expect(isAssetsComponentRepublishedEvent({ zone: 'Canon' })).toBe(false)
+                expect(isAssetsComponentRepublishedEvent({ componentId: 'x', wml: 'y' })).toBe(false)
             })
         })
 

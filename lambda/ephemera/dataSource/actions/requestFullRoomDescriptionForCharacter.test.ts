@@ -1,10 +1,11 @@
 import internalCache from '../../internalCache'
 import { prepareFullRoomDescriptionRenderForCharacter } from './requestFullRoomDescriptionForCharacter'
-import { resolveCanonAssetStackForRoom } from '../state/resolveAssetStackForRoom'
+import { resolveCanonAssetStackForRoom, resolveRoomAssetStackForRoom } from '../state/resolveAssetStackForRoom'
 import { filterRoomCanonStackByCharacterAssets } from '../renderOrchestration/fanOutStateChangedToPassiveRenders'
 
 jest.mock('../state/resolveAssetStackForRoom', () => ({
     resolveCanonAssetStackForRoom: jest.fn(),
+    resolveRoomAssetStackForRoom: jest.fn(),
 }))
 
 jest.mock('../renderOrchestration/fanOutStateChangedToPassiveRenders', () => ({
@@ -14,6 +15,9 @@ jest.mock('../renderOrchestration/fanOutStateChangedToPassiveRenders', () => ({
 const mockResolveCanonAssetStackForRoom = resolveCanonAssetStackForRoom as jest.MockedFunction<
     typeof resolveCanonAssetStackForRoom
 >
+const mockResolveRoomAssetStackForRoom = resolveRoomAssetStackForRoom as jest.MockedFunction<
+    typeof resolveRoomAssetStackForRoom
+>
 const mockFilterRoomCanonStackByCharacterAssets = filterRoomCanonStackByCharacterAssets as jest.MockedFunction<
     typeof filterRoomCanonStackByCharacterAssets
 >
@@ -21,6 +25,7 @@ const mockFilterRoomCanonStackByCharacterAssets = filterRoomCanonStackByCharacte
 describe('prepareFullRoomDescriptionRenderForCharacter', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        mockResolveRoomAssetStackForRoom.mockResolvedValue(['ASSET#Base'])
         mockResolveCanonAssetStackForRoom.mockResolvedValue(['ASSET#Base'])
         mockFilterRoomCanonStackByCharacterAssets.mockReturnValue(['ASSET#Base'])
         jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({

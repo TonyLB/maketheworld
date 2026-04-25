@@ -18,17 +18,17 @@ const C = 'ASSET#c' as AssetUUID
 
 describe('fanOutStateChangedToPassiveRenders', () => {
     describe('filterRoomCanonStackByCharacterAssets', () => {
-        it('preserves room order and keeps only assets present on the character', () => {
-            expect(filterRoomCanonStackByCharacterAssets([C, A, B], [B, A, 'draft[x]'])).toEqual([A, B])
-            expect(filterRoomCanonStackByCharacterAssets([C, A, B], [B])).toEqual([B])
+        it('preserves room order and keeps Canon or character assets', () => {
+            expect(filterRoomCanonStackByCharacterAssets([C, A, B], [B, A, 'draft[x]'], [A])).toEqual([A, B])
+            expect(filterRoomCanonStackByCharacterAssets([C, A, B], [B], [A])).toEqual([A, B])
         })
 
-        it('returns empty when there is no overlap', () => {
-            expect(filterRoomCanonStackByCharacterAssets([A, B], ['ASSET#other'])).toEqual([])
+        it('keeps Canon assets even when there is no overlap with character assets', () => {
+            expect(filterRoomCanonStackByCharacterAssets([A, B], ['ASSET#other'], [A])).toEqual([A])
         })
 
-        it('matches character slugs to canon stack via AssetKey', () => {
-            expect(filterRoomCanonStackByCharacterAssets([A, B, C], ['a', 'b'])).toEqual([A, B])
+        it('matches character slugs to room stack via AssetKey', () => {
+            expect(filterRoomCanonStackByCharacterAssets([A, B, C], ['a', 'b'], [A])).toEqual([A, B])
         })
     })
 
@@ -116,15 +116,16 @@ describe('fanOutStateChangedToPassiveRenders', () => {
     it('calls orchestrate once per perspective group with targets and merged getMetaRoom', async () => {
         const stateChanged = baseStateChanged()
         const orchestrateRenderRequestFn = jest.fn().mockResolvedValue(undefined)
-        const resolveCanonAssetStackForRoom = jest.fn().mockResolvedValue([A, B, C])
+        const resolveRoomAssetStackForRoom = jest.fn().mockResolvedValue([A, B, C])
+        const resolveCanonAssetStackForRoom = jest.fn().mockResolvedValue([A])
         const roomCharacterListGet = jest.fn().mockResolvedValue([
             { EphemeraId: 'CHARACTER#1' as EphemeraCharacterId, DisplayName: 'One', SessionIds: [] },
             { EphemeraId: 'CHARACTER#2' as EphemeraCharacterId, DisplayName: 'Two', SessionIds: [] },
         ])
         const characterMetaGet = jest
             .fn()
-            .mockResolvedValueOnce({ assets: [A, B] })
-            .mockResolvedValueOnce({ assets: [A] })
+            .mockResolvedValueOnce({ assets: [B] })
+            .mockResolvedValueOnce({ assets: [C] })
         const getMetaRoomBase = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => baseMetaRoom(roomId))
 
         const messageBus = { send: jest.fn() } as any
@@ -134,6 +135,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
             { stateChanged, messageBus, streamEvent },
             {
                 orchestrateRenderRequestFn,
+                resolveRoomAssetStackForRoom,
                 resolveCanonAssetStackForRoom,
                 roomCharacterListGet,
                 characterMetaGet,
@@ -162,7 +164,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
         const second = orchestrateRenderRequestFn.mock.calls[1][0]
         expect(second.payload).toMatchObject({
             type: 'RenderRequested',
-            perspective: { assetStack: [A] },
+            perspective: { assetStack: [A, C] },
             targets: ['CHARACTER#2'],
         })
 
@@ -175,6 +177,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
     it('dedupes two characters into one orchestrate call when perspectives match', async () => {
         const stateChanged = baseStateChanged()
         const orchestrateRenderRequestFn = jest.fn().mockResolvedValue(undefined)
+        const resolveRoomAssetStackForRoom = jest.fn().mockResolvedValue([A, B])
         const resolveCanonAssetStackForRoom = jest.fn().mockResolvedValue([A, B])
         const roomCharacterListGet = jest.fn().mockResolvedValue([
             { EphemeraId: 'CHARACTER#1' as EphemeraCharacterId, DisplayName: 'One', SessionIds: [] },
@@ -189,6 +192,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
             { stateChanged, messageBus, streamEvent },
             {
                 orchestrateRenderRequestFn,
+                resolveRoomAssetStackForRoom,
                 resolveCanonAssetStackForRoom,
                 roomCharacterListGet,
                 characterMetaGet,
@@ -205,7 +209,8 @@ describe('fanOutStateChangedToPassiveRenders', () => {
 
     it('no-op when every character has empty filtered stack and no meta pointers', async () => {
         const orchestrateRenderRequestFn = jest.fn().mockResolvedValue(undefined)
-        const resolveCanonAssetStackForRoom = jest.fn().mockResolvedValue([A])
+        const resolveRoomAssetStackForRoom = jest.fn().mockResolvedValue([A])
+        const resolveCanonAssetStackForRoom = jest.fn().mockResolvedValue([])
         const roomCharacterListGet = jest.fn().mockResolvedValue([
             { EphemeraId: 'CHARACTER#1' as EphemeraCharacterId, DisplayName: 'One', SessionIds: [] },
         ])
@@ -220,6 +225,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
             },
             {
                 orchestrateRenderRequestFn,
+                resolveRoomAssetStackForRoom,
                 resolveCanonAssetStackForRoom,
                 roomCharacterListGet,
                 characterMetaGet,
@@ -233,7 +239,8 @@ describe('fanOutStateChangedToPassiveRenders', () => {
     it('fans out pointer-only perspectives with allowGeneration false when no audience', async () => {
         const stateChanged = baseStateChanged()
         const orchestrateRenderRequestFn = jest.fn().mockResolvedValue(undefined)
-        const resolveCanonAssetStackForRoom = jest.fn().mockResolvedValue([A, B, C])
+        const resolveRoomAssetStackForRoom = jest.fn().mockResolvedValue([A, B, C])
+        const resolveCanonAssetStackForRoom = jest.fn().mockResolvedValue([A])
         const roomCharacterListGet = jest.fn().mockResolvedValue([])
         const pkAb = computePerspectiveKey([A, B])
         const getMetaRoomBase = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => ({
@@ -252,6 +259,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
             { stateChanged, messageBus, streamEvent },
             {
                 orchestrateRenderRequestFn,
+                resolveRoomAssetStackForRoom,
                 resolveCanonAssetStackForRoom,
                 roomCharacterListGet,
                 getMetaRoomBase,
@@ -272,6 +280,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
     it('does not duplicate orchestrate when meta pointer key matches audience perspective', async () => {
         const stateChanged = baseStateChanged()
         const orchestrateRenderRequestFn = jest.fn().mockResolvedValue(undefined)
+        const resolveRoomAssetStackForRoom = jest.fn().mockResolvedValue([A, B])
         const resolveCanonAssetStackForRoom = jest.fn().mockResolvedValue([A, B])
         const roomCharacterListGet = jest.fn().mockResolvedValue([
             { EphemeraId: 'CHARACTER#1' as EphemeraCharacterId, DisplayName: 'One', SessionIds: [] },
@@ -293,6 +302,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
             { stateChanged, messageBus, streamEvent },
             {
                 orchestrateRenderRequestFn,
+                resolveRoomAssetStackForRoom,
                 resolveCanonAssetStackForRoom,
                 roomCharacterListGet,
                 characterMetaGet,
@@ -312,7 +322,8 @@ describe('fanOutStateChangedToPassiveRenders', () => {
     it('fans out audience perspectives and an extra pointer-only perspective', async () => {
         const stateChanged = baseStateChanged()
         const orchestrateRenderRequestFn = jest.fn().mockResolvedValue(undefined)
-        const resolveCanonAssetStackForRoom = jest.fn().mockResolvedValue([A, B, C])
+        const resolveRoomAssetStackForRoom = jest.fn().mockResolvedValue([A, B, C])
+        const resolveCanonAssetStackForRoom = jest.fn().mockResolvedValue([A])
         const roomCharacterListGet = jest.fn().mockResolvedValue([
             { EphemeraId: 'CHARACTER#1' as EphemeraCharacterId, DisplayName: 'One', SessionIds: [] },
             { EphemeraId: 'CHARACTER#2' as EphemeraCharacterId, DisplayName: 'Two', SessionIds: [] },
@@ -345,6 +356,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
             { stateChanged, messageBus, streamEvent },
             {
                 orchestrateRenderRequestFn,
+                resolveRoomAssetStackForRoom,
                 resolveCanonAssetStackForRoom,
                 roomCharacterListGet,
                 characterMetaGet,

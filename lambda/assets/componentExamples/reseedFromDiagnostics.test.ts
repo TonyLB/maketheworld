@@ -47,7 +47,7 @@ describe('reseedComponentExamplesFromDiagnostics', () => {
         expect(streamEvent).toHaveBeenCalledWith({
             update: { type: 'Component Updated', component: room },
             streamKey: 'ASSET#primitives',
-            header: { type: 'Component Updated' }
+            header: { type: 'Component Republished' }
         })
     })
 
@@ -168,12 +168,12 @@ describe('reseedComponentExamplesFromDiagnostics', () => {
         expect(streamEvent).toHaveBeenNthCalledWith(1, {
             update: { type: 'Component Updated', component: room },
             streamKey: 'ASSET#primitives',
-            header: { type: 'Component Updated' }
+            header: { type: 'Component Republished' }
         })
         expect(streamEvent).toHaveBeenNthCalledWith(2, {
             update: { type: 'Component Updated', component: room },
             streamKey: 'ASSET#primitives',
-            header: { type: 'Component Updated' }
+            header: { type: 'Component Republished' }
         })
     })
 })

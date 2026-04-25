@@ -11,9 +11,13 @@ import { nodeFromWML } from '@tonylb/mtw-wml/ts/schema'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 
 // Internal types for component events (no type; discrimination by header)
-export type ComponentEventUpdate = ComponentUpdatedEvent | ComponentRemovedEvent
+export type ComponentEventUpdate = ComponentUpdatedEvent | ComponentRepublishedEvent | ComponentRemovedEvent
 
 export type ComponentUpdatedEvent = {
+    component: StandardComponent
+}
+
+export type ComponentRepublishedEvent = {
     component: StandardComponent
 }
 
@@ -28,6 +32,13 @@ export const isComponentUpdatedEvent = (event: ComponentEventUpdate): event is C
 
 export const isComponentRemovedEvent = (event: ComponentEventUpdate): event is ComponentRemovedEvent => {
     return 'component' in event && isStandardComponent((event as any).component)
+}
+
+export const isAssetsComponentRepublishedEvent = (event: any): event is ComponentRepublishedEvent => {
+    return event != null &&
+        typeof event === 'object' &&
+        'component' in event &&
+        isStandardComponent(event.component)
 }
 
 export const isAssetsComponentUpdatedEvent = (event: any): event is ComponentUpdatedEvent => {
@@ -45,7 +56,7 @@ export const isAssetsComponentRemovedEvent = (event: any): event is ComponentRem
 }
 
 export const isAssetsComponentEvent = (event: any): event is ComponentEventUpdate => {
-    return isAssetsComponentUpdatedEvent(event) || isAssetsComponentRemovedEvent(event)
+    return isAssetsComponentUpdatedEvent(event) || isAssetsComponentRepublishedEvent(event) || isAssetsComponentRemovedEvent(event)
 }
 
 export const isAssetsLevelEvent = (event: AssetsEventUpdate): event is AssetLevelEventUpdate => {
@@ -196,6 +207,8 @@ type AssetsDeserializeParams = ResolvedStreamingEnvelope<AssetsEventExternal, St
 // Envelope type guards for serialize (header.type narrows content)
 const isComponentUpdatedAssetsSerializeParams = (p: AssetsSerializeParams): p is AssetsSerializeParams & { header: StreamingEventHeader & { type: 'Component Updated' }; content: ComponentUpdatedEvent } =>
     p.header.type === 'Component Updated'
+const isComponentRepublishedAssetsSerializeParams = (p: AssetsSerializeParams): p is AssetsSerializeParams & { header: StreamingEventHeader & { type: 'Component Republished' }; content: ComponentRepublishedEvent } =>
+    p.header.type === 'Component Republished'
 const isComponentRemovedAssetsSerializeParams = (p: AssetsSerializeParams): p is AssetsSerializeParams & { header: StreamingEventHeader & { type: 'Component Removed' }; content: ComponentRemovedEvent } =>
     p.header.type === 'Component Removed'
 const isAssetUpdatedAssetsSerializeParams = (p: AssetsSerializeParams): p is AssetsSerializeParams & { header: StreamingEventHeader & { type: 'Asset Updated' }; content: AssetUpdatedEventUpdate } =>
@@ -216,6 +229,8 @@ const isZoneUpdatedAssetsSerializeParams = (p: AssetsSerializeParams): p is Asse
 // Envelope type guards for deserialize (header.type narrows content)
 const isComponentUpdatedAssetsDeserializeParams = (p: AssetsDeserializeParams): p is AssetsDeserializeParams & { header: StreamingEventHeader & { type: 'Component Updated' }; content: ComponentUpdatedEventExternal } =>
     p.header.type === 'Component Updated'
+const isComponentRepublishedAssetsDeserializeParams = (p: AssetsDeserializeParams): p is AssetsDeserializeParams & { header: StreamingEventHeader & { type: 'Component Republished' }; content: ComponentUpdatedEventExternal } =>
+    p.header.type === 'Component Republished'
 const isComponentRemovedAssetsDeserializeParams = (p: AssetsDeserializeParams): p is AssetsDeserializeParams & { header: StreamingEventHeader & { type: 'Component Removed' }; content: ComponentRemovedEventExternal } =>
     p.header.type === 'Component Removed'
 const isAssetUpdatedAssetsDeserializeParams = (p: AssetsDeserializeParams): p is AssetsDeserializeParams & { header: StreamingEventHeader & { type: 'Asset Updated' }; content: AssetUpdatedEventExternal } =>
@@ -246,6 +261,13 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
             throw new Error('AssetsEventSerializer does not support snapshot serialization')
         }
         if (isComponentUpdatedAssetsSerializeParams(params)) {
+            const { content } = params
+            return {
+                componentId: content.component.universalKey || '',
+                wml: schemaToWML([content.component.schema])
+            }
+        }
+        if (isComponentRepublishedAssetsSerializeParams(params)) {
             const { content } = params
             return {
                 componentId: content.component.universalKey || '',
@@ -295,6 +317,12 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
             return null
         }
         if (isComponentUpdatedAssetsDeserializeParams(params)) {
+            const { content } = params
+            return {
+                component: this.parseWMLToComponent(content.wml, content.componentId)
+            }
+        }
+        if (isComponentRepublishedAssetsDeserializeParams(params)) {
             const { content } = params
             return {
                 component: this.parseWMLToComponent(content.wml, content.componentId)
