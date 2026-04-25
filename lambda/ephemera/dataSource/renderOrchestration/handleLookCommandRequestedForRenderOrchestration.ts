@@ -4,9 +4,7 @@ import type { MessageBus } from '../../messageBus/baseClasses'
 import { sendPerceptionThreadRegistered } from '../perception/subscribedEvents'
 import { sendRenderRequested } from './subscribedEvents'
 import internalCache from '../../internalCache'
-import { mergeRoomShortNameLiteral } from '../../internalCache/componentStackMerge'
 import type { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -16,21 +14,16 @@ export async function provisionalGenerationContextWmlFromRoomShortName(
     roomId: EphemeraRoomId,
     assetStack: string[],
 ): Promise<string> {
-    const roomMetaByAsset = await internalCache.ComponentAssetMeta.getAcrossAssets(
+    const generationContext = await internalCache.GenerationContext.get(
         roomId as ComponentUUID,
         assetStack as AssetUUID[],
-    )
-    const mergedShortName = mergeRoomShortNameLiteral(
-        Object.values(roomMetaByAsset).flatMap((component) => (
-            component instanceof StandardRoom ? [component] : []
-        ))
     )
     const provisionalForm = new StandardForm([
         { tag: 'Asset', universalKey: 'ASSET#generationContext', key: 'generationContext' },
         {
             tag: 'Room',
             universalKey: roomId,
-            ...(mergedShortName ? { shortName: mergedShortName.toJSON() } : {}),
+            ...(generationContext ? { shortName: generationContext.shortName.toJSON() } : {}),
         },
     ])
     return schemaToWML([provisionalForm.schema])
@@ -49,7 +42,7 @@ export async function handleLookCommandRequestedForRenderOrchestration(
         payload.roomId,
         { includeGenerationContextWml: false },
     )
-    // Provisional ad-hoc context until structured internal cache lands:
+    // Provisional boundary adaptation while broader generation-context migration remains in flight:
     // taskPlanning/lambda/ephemera/internalCache/generationContext/AGENT.generationContextCache.planning.md
     const provisionalGenerationContextWml = await provisionalGenerationContextWmlFromRoomShortName(
         prepared.roomId,

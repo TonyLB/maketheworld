@@ -23,6 +23,9 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - [X] Generate lane with `uuidv4()` at point-of-use (only to bind `sendPerceptionThreadRegistered(...)` to `flush(laneId)`).
   - [X] Remove `lookCommandPerceptionThreadLaneId(...)` helper from `renderOrchestration/subscribedEvents.ts` and update docs/comments referencing "named" look lane semantics.
   - [X] Update/add tests to assert ordering behavior without depending on roomId/characterId-derived lane strings.
+- [X] Refactor `handleLookCommandRequestedForRenderOrchestration` to consume the first-draft `internalCache.GenerationContext` MVP once it lands.
+  - [X] Replace ad-hoc short-name derivation in `provisionalGenerationContextWmlFromRoomShortName` with reads from the MVP cache API.
+  - [X] Keep boundary behavior unchanged for now: convert MVP output to `generationContextWml` at orchestration boundary until broader generation-context migration completes.
 - [ ] Remove `generationContextWml` semantic drift from `prepareFullRoomDescriptionRenderForCharacter` default behavior.
   - [ ] Stop populating `renderCommand.generationContextWml` from `internalCache.ComponentRender.get(...)` in `requestFullRoomDescriptionForCharacter.ts`.
   - [ ] Define and use a generation-oriented context source (structured model or minimal provisional subset) for room look generation, rather than render-delivery-shaped `ComponentRender` output.
@@ -77,3 +80,5 @@ Scope: identify places where generation context is sourced from render-delivery 
   - `npm test -- dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.test.ts` (failed in this environment: npm resolved workspace script set without local `test` script).
   - `npx jest dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.test.ts` (failed before assertions: repo-wide duplicate manual mock warnings and TS parse setup mismatch in this environment).
   - `rg "lookCommandPerceptionThreadLaneId|lookCommand:perceptionThread" lambda/ephemera` (pass for helper removal; remaining matches are run-scoped lane generation and lane pass-through tests).
+- 2026-04-25 (slice line 26): Updated `handleLookCommandRequestedForRenderOrchestration.ts` to source provisional short-name context from `internalCache.GenerationContext.get(...)` and preserve boundary conversion to `generationContextWml`; updated `renderOrchestration/handleLookCommandRequestedForRenderOrchestration.test.ts` for GenerationContext mocks plus defined/undefined fallback coverage.
+  - `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/ephemera" run test -- dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.test.ts dataSource/renderOrchestration/index.test.ts internalCache/generationContext/index.test.ts` (pass: 3 suites, 10 tests).

@@ -4,6 +4,8 @@ import * as perceptionSub from '../perception/subscribedEvents'
 import * as roSub from './subscribedEvents'
 import internalCache from '../../internalCache'
 import { handleLookCommandRequestedForRenderOrchestration } from './handleLookCommandRequestedForRenderOrchestration'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 
 jest.mock('../actions/requestFullRoomDescriptionForCharacter', () => ({
     prepareFullRoomDescriptionRenderForCharacter: jest.fn(),
@@ -41,9 +43,9 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
     it('flushes only the perception lane, then sendRenderRequested with useDefaultMessageBusLane', async () => {
         const spt = jest.spyOn(perceptionSub, 'sendPerceptionThreadRegistered').mockImplementation(() => {})
         const srr = jest.spyOn(roSub, 'sendRenderRequested').mockImplementation(() => {})
-        const getAcrossAssetsSpy = jest
-            .spyOn(internalCache.ComponentAssetMeta, 'getAcrossAssets')
-            .mockResolvedValue({} as any)
+        const generationContextSpy = jest
+            .spyOn(internalCache.GenerationContext, 'get')
+            .mockResolvedValue(undefined)
 
         await handleLookCommandRequestedForRenderOrchestration(bus, {
             type: 'Look Command Requested',
@@ -59,7 +61,7 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
         expect(flushedLane).toMatch(/^lookCommand:perceptionThread:/)
         expect(flush.mock.calls.map((c) => c[0]).join(';')).not.toMatch(/renderOrchestration:/)
         expect(mockPrepare).toHaveBeenCalledWith('CHARACTER#C', 'ROOM#X', { includeGenerationContextWml: false })
-        expect(getAcrossAssetsSpy).toHaveBeenCalledWith('ROOM#X', ['ASSET#A'])
+        expect(generationContextSpy).toHaveBeenCalledWith('ROOM#X', ['ASSET#A'])
         expect(spt).toHaveBeenCalledWith(
             bus,
             'ROOM#X',
@@ -78,6 +80,51 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
 
         spt.mockRestore()
         srr.mockRestore()
-        getAcrossAssetsSpy.mockRestore()
+        generationContextSpy.mockRestore()
+    })
+
+    it('emits parseable generationContextWml with shortName when GenerationContext has data', async () => {
+        const srr = jest.spyOn(roSub, 'sendRenderRequested').mockImplementation(() => {})
+        const generationContextSpy = jest
+            .spyOn(internalCache.GenerationContext, 'get')
+            .mockResolvedValue({
+                componentId: 'ROOM#X',
+                shortName: new StandardLiteral('Room Name'),
+            })
+
+        await handleLookCommandRequestedForRenderOrchestration(bus, {
+            type: 'Look Command Requested',
+            characterId: 'CHARACTER#C',
+            roomId: 'ROOM#X',
+            confidence: 1,
+        })
+
+        const renderCommand = (srr.mock.calls[0][2] as { generationContextWml: string })
+        expect(renderCommand.generationContextWml).toMatch(/<ShortName>Room Name<\/ShortName>/)
+        expect(() => new StandardForm(renderCommand.generationContextWml)).not.toThrow()
+
+        srr.mockRestore()
+        generationContextSpy.mockRestore()
+    })
+
+    it('emits parseable generationContextWml fallback when GenerationContext has no data', async () => {
+        const srr = jest.spyOn(roSub, 'sendRenderRequested').mockImplementation(() => {})
+        const generationContextSpy = jest
+            .spyOn(internalCache.GenerationContext, 'get')
+            .mockResolvedValue(undefined)
+
+        await handleLookCommandRequestedForRenderOrchestration(bus, {
+            type: 'Look Command Requested',
+            characterId: 'CHARACTER#C',
+            roomId: 'ROOM#X',
+            confidence: 1,
+        })
+
+        const renderCommand = (srr.mock.calls[0][2] as { generationContextWml: string })
+        expect(renderCommand.generationContextWml).not.toMatch(/<ShortName>/)
+        expect(() => new StandardForm(renderCommand.generationContextWml)).not.toThrow()
+
+        srr.mockRestore()
+        generationContextSpy.mockRestore()
     })
 })

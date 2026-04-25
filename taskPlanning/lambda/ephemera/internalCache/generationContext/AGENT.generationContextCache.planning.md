@@ -1,6 +1,6 @@
 # Generation context cache (`internalCache/generationContext`)
 
-**Status:** In progress. Next step: lock the canonical structured shape and cache keys.
+**Status:** In progress. MVP short-name stub is landed. Next step: lock the canonical structured shape and `(roomId, perspectiveKey)` cache keys.
 
 Skim [`taskPlanning/AGENT.md`](../../../../../AGENT.md) once for durability expectations, what belongs
 in task plans vs durable package docs, and recommended-order checkbox conventions.
@@ -49,30 +49,34 @@ rather than relying on WML built from renderer-oriented `ComponentRender` output
 | --- | --- |
 | Durable contract doc created under `internalCache/generationContext` | Done |
 | Task-plan scaffold with status/progress/recommended order | Done |
-| Canonical TypeScript shape for generation-context cache value | |
-| Cache implementation (`internalCache/generationContext.ts`) | |
-| InternalCache wiring (`internalCache/index.ts`) | |
+| Canonical TypeScript shape for generation-context cache value | MVP short-name shape done |
+| Cache implementation (`internalCache/generationContext/index.ts`) | MVP stub done |
+| InternalCache wiring (`internalCache/index.ts`) | MVP wiring done |
 | Source extraction logic (room + marks + guidance by perspective) | |
 | Orchestration integration (replace `ComponentRender` dependency) | |
-| Tests (unit + integration) | |
+| Tests (unit + integration) | MVP-targeted tests done |
 | Durable docs touch-up outside task plan | |
 
 ## Recommended order
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` as you complete them.
 
-- [ ] Define cache value types (for example `GenerationContextValue`, `GenerationContextMark`, `GenerationContextGuidance`) in a new module under [`lambda/ephemera/internalCache/generationContext/`](../../../../../lambda/ephemera/internalCache/generationContext/).
+- [X] First-draft MVP: add stub `internalCache.GenerationContext` that derives room short-name context from `ComponentAssetMeta` (without introducing significant standalone cache storage yet).
+  - [X] Return the minimal typed shape needed for current look orchestration context, e.g. `{ componentId: ComponentUUID; shortName: StandardLiteral }`.
+  - [X] Implement it using standard `internalCache` construction patterns (new handler wired through `internalCache/index.ts`), with `ComponentAssetMeta` as its primary dependency/input source.
+  - [X] Keep this MVP focused on derivation and API shape; defer broader room/lens/guidance/marks caching behavior to follow-on items below.
+- [ ] Define second-iteration data shape by expanding the current minimal cache value to include additional structured fields (for example `lens` and `guidance`) under [`lambda/ephemera/internalCache/generationContext/`](../../../../../lambda/ephemera/internalCache/generationContext/).
 - [ ] Implement cache key helper for `(roomId, perspectiveKey)` and clear/invalidate behavior aligned to `DeferredCache` patterns in [`internalCache/AGENT.md`](../../../../../lambda/ephemera/internalCache/AGENT.md).
 - [ ] Implement source assembly for structured context:
 - [ ] Derive room-level labels (`shortName`, etc.) from stack/room metadata sources.
 - [ ] Derive mark dimensions/labels from world-state/lens sources so prompt labels are human-readable.
 - [ ] Derive guidance blocks as normalized plain text.
-- [ ] Wire new cache into [`internalCache/index.ts`](../../../../../lambda/ephemera/internalCache/index.ts) with `clear()`/`flush()` integration.
+- [X] Wire new cache into [`internalCache/index.ts`](../../../../../lambda/ephemera/internalCache/index.ts) with `clear()`/`flush()` integration.
 - [ ] Add orchestration-side consumer helper that requests structured context by `(roomId, perspectiveKey)` and encodes to `generationContextWml` only at boundary.
 - [ ] Update look/room generation path to use structured context instead of direct `ComponentRender` export.
 - [ ] Add tests:
-- [ ] Unit tests for cache keying, source extraction, and serialization boundary.
-- [ ] Orchestration tests that cover slow-path generation with new cache data.
+- [X] Unit tests for cache keying, source extraction, and serialization boundary (MVP short-name scope).
+- [X] Orchestration tests that cover slow-path generation with new cache data (MVP no-regression coverage on look orchestration path).
 - [ ] Regression test ensuring no dependency on render triplet (`displayName`/`summary`/`description`) for context semantics.
 - [ ] Update durable docs:
 - [ ] [`lambda/ephemera/internalCache/AGENT.md`](../../../../../lambda/ephemera/internalCache/AGENT.md) with new cache handler summary.
