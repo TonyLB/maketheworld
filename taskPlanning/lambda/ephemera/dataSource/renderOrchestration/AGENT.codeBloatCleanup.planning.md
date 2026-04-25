@@ -1,6 +1,6 @@
 # Render Orchestration Code Bloat Cleanup Plan
 
-**Status:** In progress. Inventory is underway; one bloat pattern is identified in render-orchestration `look`, and additional pattern discovery remains open.
+**Status:** In progress. Initial inventory pass is complete; cleanup implementation is next, with a later revisit inventory pass queued.
 
 ## Purpose
 
@@ -18,11 +18,11 @@ This is a task-scoped planning document and should be retired when cleanup is co
 
 Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish each sub-step.
 
-- [ ] Inventory bloat patterns in `handleLookCommandRequestedForRenderOrchestration`.
-- [ ] Replace deterministic `lookCommandPerceptionThreadLaneId(...)` usage with run-scoped unique lane IDs in `handleLookCommandRequestedForRenderOrchestration`.
-  - [ ] Generate lane with `uuidv4()` at point-of-use (only to bind `sendPerceptionThreadRegistered(...)` to `flush(laneId)`).
-  - [ ] Remove `lookCommandPerceptionThreadLaneId(...)` helper from `renderOrchestration/subscribedEvents.ts` and update docs/comments referencing "named" look lane semantics.
-  - [ ] Update/add tests to assert ordering behavior without depending on roomId/characterId-derived lane strings.
+- [X] Inventory bloat patterns in `handleLookCommandRequestedForRenderOrchestration`.
+- [X] Replace deterministic `lookCommandPerceptionThreadLaneId(...)` usage with run-scoped unique lane IDs in `handleLookCommandRequestedForRenderOrchestration`.
+  - [X] Generate lane with `uuidv4()` at point-of-use (only to bind `sendPerceptionThreadRegistered(...)` to `flush(laneId)`).
+  - [X] Remove `lookCommandPerceptionThreadLaneId(...)` helper from `renderOrchestration/subscribedEvents.ts` and update docs/comments referencing "named" look lane semantics.
+  - [X] Update/add tests to assert ordering behavior without depending on roomId/characterId-derived lane strings.
 - [ ] Remove `generationContextWml` semantic drift from `prepareFullRoomDescriptionRenderForCharacter` default behavior.
   - [ ] Stop populating `renderCommand.generationContextWml` from `internalCache.ComponentRender.get(...)` in `requestFullRoomDescriptionForCharacter.ts`.
   - [ ] Define and use a generation-oriented context source (structured model or minimal provisional subset) for room look generation, rather than render-delivery-shaped `ComponentRender` output.
@@ -30,6 +30,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - [ ] Update tests/docs that currently assume `ComponentRender`-derived generation context on this path.
 - [ ] Follow-up cleanup pass: check other lane+flush call sites for unnecessary semantic coupling as adjacent work is touched.
   - [ ] Keep `coyoteGame` run-scoped lane pattern (`uuidv4`-derived `hypothesisId`/`outcomeId`) unless a concrete requirement calls for different shape.
+- [ ] Revisit inventory after cleanup changes land; add newly discovered bloat patterns and follow-on tasks.
 
 ## Inventory: `await messageBus.flush(...)` in `lambda/ephemera`
 
@@ -72,3 +73,7 @@ Scope: identify places where generation context is sourced from render-delivery 
 
 - Keep this document updated as inventory findings are completed and as new cleanup tasks are added.
 - For each completed cleanup item added from the inventory, link the touched code paths and record verification commands/results inline.
+- 2026-04-25 (slice lines 22-25): Updated `handleLookCommandRequestedForRenderOrchestration.ts`, `renderOrchestration/subscribedEvents.ts`, `renderOrchestration/handleLookCommandRequestedForRenderOrchestration.test.ts`, `dataSource/perception/subscribedEvents.test.ts`, plus wording refresh in `renderOrchestration/AGENT.md`, `messageBus/AGENT.md`, `dataSource/actions/AGENT.md`, and `app.ts`.
+  - `npm test -- dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.test.ts` (failed in this environment: npm resolved workspace script set without local `test` script).
+  - `npx jest dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.test.ts` (failed before assertions: repo-wide duplicate manual mock warnings and TS parse setup mismatch in this environment).
+  - `rg "lookCommandPerceptionThreadLaneId|lookCommand:perceptionThread" lambda/ephemera` (pass for helper removal; remaining matches are run-scoped lane generation and lane pass-through tests).

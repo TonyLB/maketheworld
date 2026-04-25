@@ -52,9 +52,11 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
             confidence: 1,
         })
 
-        const expectedLane = roSub.lookCommandPerceptionThreadLaneId({ roomId: 'ROOM#X', characterId: 'CHARACTER#C' })
         expect(flush).toHaveBeenCalledTimes(1)
-        expect(flush).toHaveBeenCalledWith(expectedLane)
+        const flushedLane = flush.mock.calls[0][0]
+        expect(typeof flushedLane).toBe('string')
+        expect(flushedLane).not.toHaveLength(0)
+        expect(flushedLane).toMatch(/^lookCommand:perceptionThread:/)
         expect(flush.mock.calls.map((c) => c[0]).join(';')).not.toMatch(/renderOrchestration:/)
         expect(mockPrepare).toHaveBeenCalledWith('CHARACTER#C', 'ROOM#X', { includeGenerationContextWml: false })
         expect(getAcrossAssetsSpy).toHaveBeenCalledWith('ROOM#X', ['ASSET#A'])
@@ -62,7 +64,7 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
             bus,
             'ROOM#X',
             expect.objectContaining({ threadKind: 'roomDescription' }),
-            expectedLane
+            flushedLane
         )
         expect(srr).toHaveBeenCalledWith(
             bus,

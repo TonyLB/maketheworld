@@ -84,7 +84,7 @@ describe('perception subscribedEvents', () => {
 
     it('sendPerceptionThreadRegistered forwards optional bus lane for flush ordering', () => {
         const sent: { payload: unknown; lane?: string }[] = []
-        const lane = 'lookCommand:perceptionThread:ROOM#R:CHARACTER#C'
+        const lane = 'perceptionLane:test'
         sendPerceptionThreadRegistered(
             { send: (payload, id) => sent.push({ payload, lane: id }) },
             'ROOM#R',
