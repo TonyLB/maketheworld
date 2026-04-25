@@ -23,6 +23,35 @@ function isBareLookCommand(trimmed: string): boolean {
     return /^(?:look|l)$/i.test(trimmed)
 }
 
+function normalizeCommandToken(value: string): string {
+    return value.trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+function maybeDeterministicNavigationResult(input: ParseCommandInput): ParseCommandResult | null {
+    if (!input.roomExits || input.roomExits.length === 0) {
+        return null
+    }
+    const trimmed = input.command.trim()
+    if (!trimmed) {
+        return null
+    }
+    const goMatch = /^go\s+(.+)$/i.exec(trimmed)
+    const rawCandidate = goMatch ? goMatch[1] : trimmed
+    const normalizedCandidate = normalizeCommandToken(rawCandidate)
+    if (!normalizedCandidate) {
+        return null
+    }
+    const matchingTargets = [
+        ...new Set(input.roomExits
+            .filter(({ normalizedName }) => normalizedName === normalizedCandidate)
+            .map(({ targetId }) => targetId)),
+    ]
+    if (matchingTargets.length !== 1) {
+        return null
+    }
+    return { type: 'Navigation', targetId: matchingTargets[0], confidence: 1 }
+}
+
 /** Step B chain-of-reason Markdown only; use with {@link parseCommandWithEnrichReasoning} for harness review. */
 export type ParseCommandWithEnrichReasoningResult = {
     result: ParseCommandResult;
@@ -42,6 +71,11 @@ async function parseCommandCore(
 
     if (isBareLookCommand(input.command.trim())) {
         return { result: { type: 'LookRoom', confidence: 1 }, enrichReasoningMarkdown: '' }
+    }
+
+    const deterministicNavigation = maybeDeterministicNavigationResult(input)
+    if (deterministicNavigation) {
+        return { result: deterministicNavigation, enrichReasoningMarkdown: '' }
     }
 
     const invoke = deps.invokeBedrockParseCommandImpl ?? invokeBedrockParseCommand

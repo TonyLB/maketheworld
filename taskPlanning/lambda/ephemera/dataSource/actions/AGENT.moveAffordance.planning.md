@@ -85,11 +85,11 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
   - [X] Lock temporary dual-path behavior as event + imperative for this task.
   - [X] Record decisions in this plan and link lasting outcomes to durable docs.
 
-- [ ] Phase 2 - deterministic movement parse branch
-  - [ ] Add deterministic short-circuit parsing for direct exit commands in `parseCommand` pipeline.
-  - [ ] Reuse room-exit context source in actions flow (single source of truth for available exits).
-  - [ ] Keep behavior explicit for invalid exits and no-room cases.
-  - [ ] Add focused unit tests for deterministic matching variants and edge cases.
+- [X] Phase 2 - deterministic movement parse branch
+  - [X] Add deterministic short-circuit parsing for direct exit commands in `parseCommand` pipeline.
+  - [X] Reuse room-exit context source in actions flow (single source of truth for available exits).
+  - [X] Keep behavior explicit for invalid exits and no-room cases.
+  - [X] Add focused unit tests for deterministic matching variants and edge cases.
 
 - [ ] Phase 3 - optional Step A movement intent support
   - [ ] Extend Step A prompt/types/interpretation with movement intent label if Phase 1 selects LLM fallback.
@@ -126,7 +126,7 @@ Run from `lambda/ephemera/` unless noted otherwise.
 | --- | --- |
 | Create movement affordance task plan | Done |
 | Phase 1 contract decisions | Not started |
-| Deterministic movement parse branch | Not started |
+| Deterministic movement parse branch | Done |
 | Step A movement support (if selected) | Not started |
 | Event plus imperative movement bridge | Not started |
 | Handoff docs for later positions cutover | Not started |

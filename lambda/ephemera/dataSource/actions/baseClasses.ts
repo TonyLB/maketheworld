@@ -255,6 +255,10 @@ export function isParseCommandUnknownResult(
 
 export type ParseCommandInput = {
     command: string
+    roomExits?: {
+        normalizedName: string
+        targetId: EphemeraRoomId
+    }[]
     /** Coyote-wide **`stableKey`** occupancy for Step B enrich (omit or **[]** when unknown). */
     occupiedStableKeys?: readonly string[]
 }

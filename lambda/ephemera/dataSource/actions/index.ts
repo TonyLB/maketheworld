@@ -93,9 +93,16 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (event) => {
             const content = await event.getContent()
+            const roomExitContext = isEphemeraCharacterId(content.characterId)
+                ? await getRoomExitTargetsForCharacter(content.characterId)
+                : { fromRoomId: null, toRoomIds: [], exits: [] }
             const coyoteOccupiedStableKeys = await collectCoyoteOccupiedStableKeys()
             const parseResult = await parseCommand({
                 command: content.command,
+                roomExits: roomExitContext.exits.map(({ normalizedName, toRoomId }) => ({
+                    normalizedName,
+                    targetId: toRoomId,
+                })),
                 occupiedStableKeys: [...coyoteOccupiedStableKeys],
             })
             if (isEphemeraCharacterId(content.characterId) && isParseCommandErrorResult(parseResult)) {
@@ -108,7 +115,7 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                 })
             }
             else if (isEphemeraCharacterId(content.characterId) && isParseCommandNavigationResult(parseResult)) {
-                const { fromRoomId, toRoomIds } = await getRoomExitTargetsForCharacter(content.characterId)
+                const { fromRoomId, toRoomIds } = roomExitContext
                 if (!fromRoomId) {
                     messageBus.send({
                         type: 'PublishMessage',
@@ -139,7 +146,7 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                 }
             }
             else if (isEphemeraCharacterId(content.characterId) && isParseCommandLookRoomResult(parseResult)) {
-                const { fromRoomId } = await getRoomExitTargetsForCharacter(content.characterId)
+                const { fromRoomId } = roomExitContext
                 if (!fromRoomId) {
                     messageBus.send({
                         type: 'PublishMessage',

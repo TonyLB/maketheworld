@@ -64,6 +64,11 @@ describe('ephemeraActionsDataSource', () => {
         mockedRunCoyoteEngineTestHarness.mockResolvedValue(undefined)
         mockedRunAcmeOrderAffinitiesHarness.mockResolvedValue(undefined)
         mockedCollectCoyoteOccupiedStableKeys.mockResolvedValue(new Set<string>())
+        mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+            fromRoomId: null,
+            toRoomIds: [],
+            exits: [],
+        })
         mockedParseCommand.mockResolvedValue({
             type: 'Error',
             errorMessage: 'Parse error',
@@ -142,6 +147,7 @@ describe('ephemeraActionsDataSource', () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: from,
                 toRoomIds: [dest],
+                exits: [{ normalizedName: 'north', toRoomId: dest }],
             })
             const streamEvent = jest.fn(async () => {})
 
@@ -173,6 +179,9 @@ describe('ephemeraActionsDataSource', () => {
                     toRoomId: dest,
                 },
             })
+            expect(mockedParseCommand).toHaveBeenCalledWith(expect.objectContaining({
+                roomExits: [{ normalizedName: 'north', targetId: dest }],
+            }))
             expect(mockMessageBus.send).toHaveBeenCalledWith({
                 type: 'ReturnValue',
                 body: {
@@ -188,6 +197,7 @@ describe('ephemeraActionsDataSource', () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: null,
                 toRoomIds: [],
+                exits: [],
             })
 
             await ephemeraActionsDataSource.receiveEvents!({
@@ -220,6 +230,7 @@ describe('ephemeraActionsDataSource', () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: from,
                 toRoomIds: ['ROOM#other' as EphemeraRoomId],
+                exits: [{ normalizedName: 'north', toRoomId: 'ROOM#other' as EphemeraRoomId }],
             })
 
             await ephemeraActionsDataSource.receiveEvents!({
@@ -256,6 +267,7 @@ describe('ephemeraActionsDataSource', () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: null,
                 toRoomIds: [],
+                exits: [],
             })
 
             await ephemeraActionsDataSource.receiveEvents!({
@@ -288,6 +300,7 @@ describe('ephemeraActionsDataSource', () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: currentRoom,
                 toRoomIds: [],
+                exits: [],
             })
             const streamEvent = jest.fn(async () => {})
 
@@ -336,6 +349,7 @@ describe('ephemeraActionsDataSource', () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: currentRoom,
                 toRoomIds: [],
+                exits: [],
             })
             const streamEvent = jest.fn(async () => {})
 
@@ -400,6 +414,7 @@ describe('ephemeraActionsDataSource', () => {
             expect(mockedCollectCoyoteOccupiedStableKeys).toHaveBeenCalledTimes(1)
             expect(mockedParseCommand).toHaveBeenCalledWith({
                 command: 'order widget',
+                roomExits: [],
                 occupiedStableKeys: ['alpha', 'beta'],
             })
         })

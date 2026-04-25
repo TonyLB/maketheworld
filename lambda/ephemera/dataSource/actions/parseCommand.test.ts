@@ -308,6 +308,8 @@ describe('isCoyoteEngineTestSlashCommand', () => {
 })
 
 describe('parseCommand LLM path', () => {
+    const northRoom = 'ROOM#north' as EphemeraRoomId
+
     it('returns CoyoteEngineTest without Bedrock for /test generation', async () => {
         const invokeBedrockParseCommandImpl = jest.fn()
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
@@ -373,6 +375,55 @@ describe('parseCommand LLM path', () => {
         }
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns deterministic Navigation for exact exit name without Bedrock', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn()
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+
+        const result = await parseCommand(
+            {
+                command: 'north',
+                roomExits: [{ normalizedName: 'north', targetId: northRoom }],
+            },
+            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+        )
+
+        expect(result).toEqual({ type: 'Navigation', targetId: northRoom, confidence: 1 })
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns deterministic Navigation for go <exit> with casing and whitespace variants', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn()
+
+        const result = await parseCommand(
+            {
+                command: '  GO   NORTH  ',
+                roomExits: [{ normalizedName: 'north', targetId: northRoom }],
+            },
+            { invokeBedrockParseCommandImpl }
+        )
+
+        expect(result).toEqual({ type: 'Navigation', targetId: northRoom, confidence: 1 })
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+    })
+
+    it('falls through to Bedrock when deterministic navigation does not match an exit', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"Unknown","confidence":0.3}',
+        })
+
+        await parseCommand(
+            {
+                command: 'go south',
+                roomExits: [{ normalizedName: 'north', targetId: northRoom }],
+            },
+            { invokeBedrockParseCommandImpl }
+        )
+
+        expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
     })
 
     it('does not treat look at or long as bare look; still invokes Bedrock', async () => {
