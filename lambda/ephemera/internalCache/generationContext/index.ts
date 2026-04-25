@@ -44,10 +44,12 @@ export class GenerationContextData {
 
     async _getPromiseFactory(roomId: ComponentUUID, assetStack: AssetUUID[]): Promise<GenerationContextStoreRecord> {
         const roomMetaByAsset = await this._componentAssetMeta.getAcrossAssets(roomId, assetStack)
+        const roomsInAssetStackOrder = assetStack.flatMap((assetId) => {
+            const component = roomMetaByAsset[assetId]
+            return component instanceof StandardRoom ? [component] : []
+        })
         const mergedShortName = mergeRoomShortNameLiteral(
-            Object.values(roomMetaByAsset).flatMap((component) => (
-                component instanceof StandardRoom ? [component] : []
-            ))
+            roomsInAssetStackOrder
         )
         if (!mergedShortName) {
             return undefined

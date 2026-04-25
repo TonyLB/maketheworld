@@ -40,7 +40,6 @@ export async function handleLookCommandRequestedForRenderOrchestration(
     const prepared = await prepareFullRoomDescriptionRenderForCharacter(
         payload.characterId,
         payload.roomId,
-        { includeGenerationContextWml: false },
     )
     // Provisional boundary adaptation while broader generation-context migration remains in flight:
     // taskPlanning/lambda/ephemera/internalCache/generationContext/AGENT.generationContextCache.planning.md

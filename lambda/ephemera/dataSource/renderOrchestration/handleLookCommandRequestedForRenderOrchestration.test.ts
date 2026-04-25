@@ -60,7 +60,7 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
         expect(flushedLane).not.toHaveLength(0)
         expect(flushedLane).toMatch(/^lookCommand:perceptionThread:/)
         expect(flush.mock.calls.map((c) => c[0]).join(';')).not.toMatch(/renderOrchestration:/)
-        expect(mockPrepare).toHaveBeenCalledWith('CHARACTER#C', 'ROOM#X', { includeGenerationContextWml: false })
+        expect(mockPrepare).toHaveBeenCalledWith('CHARACTER#C', 'ROOM#X')
         expect(generationContextSpy).toHaveBeenCalledWith('ROOM#X', ['ASSET#A'])
         expect(spt).toHaveBeenCalledWith(
             bus,

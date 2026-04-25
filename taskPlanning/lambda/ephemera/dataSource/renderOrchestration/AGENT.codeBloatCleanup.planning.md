@@ -26,11 +26,11 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 - [X] Refactor `handleLookCommandRequestedForRenderOrchestration` to consume the first-draft `internalCache.GenerationContext` MVP once it lands.
   - [X] Replace ad-hoc short-name derivation in `provisionalGenerationContextWmlFromRoomShortName` with reads from the MVP cache API.
   - [X] Keep boundary behavior unchanged for now: convert MVP output to `generationContextWml` at orchestration boundary until broader generation-context migration completes.
-- [ ] Remove `generationContextWml` semantic drift from `prepareFullRoomDescriptionRenderForCharacter` default behavior.
-  - [ ] Stop populating `renderCommand.generationContextWml` from `internalCache.ComponentRender.get(...)` in `requestFullRoomDescriptionForCharacter.ts`.
-  - [ ] Define and use a generation-oriented context source (structured model or minimal provisional subset) for room look generation, rather than render-delivery-shaped `ComponentRender` output.
-  - [ ] Make provisional generation-context merge deterministic by iterating room metadata in `assetStack` order (not `Object.values(...)` order) in `handleLookCommandRequestedForRenderOrchestration.ts`.
-  - [ ] Update tests/docs that currently assume `ComponentRender`-derived generation context on this path.
+- [X] Remove `generationContextWml` semantic drift from `prepareFullRoomDescriptionRenderForCharacter` default behavior.
+  - [X] Stop populating `renderCommand.generationContextWml` from `internalCache.ComponentRender.get(...)` in `requestFullRoomDescriptionForCharacter.ts`.
+  - [X] Define and use a generation-oriented context source (structured model or minimal provisional subset) for room look generation, rather than render-delivery-shaped `ComponentRender` output.
+  - [X] Make generation-context merge deterministic in [`lambda/ephemera/internalCache/generationContext/index.ts`](../../../../../lambda/ephemera/internalCache/generationContext/index.ts) by iterating metadata in `assetStack` order (not `Object.values(...)` order).
+  - [X] Update tests/docs that currently assume `ComponentRender`-derived generation context on this path.
 - [ ] Follow-up cleanup pass: check other lane+flush call sites for unnecessary semantic coupling as adjacent work is touched.
   - [ ] Keep `coyoteGame` run-scoped lane pattern (`uuidv4`-derived `hypothesisId`/`outcomeId`) unless a concrete requirement calls for different shape.
 - [ ] Revisit inventory after cleanup changes land; add newly discovered bloat patterns and follow-on tasks.
@@ -82,3 +82,7 @@ Scope: identify places where generation context is sourced from render-delivery 
   - `rg "lookCommandPerceptionThreadLaneId|lookCommand:perceptionThread" lambda/ephemera` (pass for helper removal; remaining matches are run-scoped lane generation and lane pass-through tests).
 - 2026-04-25 (slice line 26): Updated `handleLookCommandRequestedForRenderOrchestration.ts` to source provisional short-name context from `internalCache.GenerationContext.get(...)` and preserve boundary conversion to `generationContextWml`; updated `renderOrchestration/handleLookCommandRequestedForRenderOrchestration.test.ts` for GenerationContext mocks plus defined/undefined fallback coverage.
   - `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/ephemera" run test -- dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.test.ts dataSource/renderOrchestration/index.test.ts internalCache/generationContext/index.test.ts` (pass: 3 suites, 10 tests).
+- 2026-04-25 (slice lines 29-33): Updated `dataSource/actions/requestFullRoomDescriptionForCharacter.ts` to remove default `ComponentRender`-derived `generationContextWml` population, `internalCache/generationContext/index.ts` to merge in explicit `assetStack` order, added `dataSource/actions/requestFullRoomDescriptionForCharacter.test.ts`, and extended `internalCache/generationContext/index.test.ts` with deterministic merge-order coverage.
+  - `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/ephemera" run test -- internalCache/generationContext/index.test.ts dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.test.ts dataSource/actions/requestFullRoomDescriptionForCharacter.test.ts` (pass: 3 suites, 9 tests).
+  - `rg "ComponentRender\.get\(|generationContextWml" lambda/ephemera/dataSource/actions/requestFullRoomDescriptionForCharacter.ts` (pass: no matches).
+  - `rg "Object\.values\(roomMetaByAsset\)|assetStack\.flatMap" lambda/ephemera/internalCache/generationContext/index.ts` (pass: `assetStack.flatMap` present; `Object.values(roomMetaByAsset)` removed).

@@ -1,6 +1,7 @@
 import internalCache from '..'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
+import { mergeRoomShortNameLiteral } from '../componentStackMerge'
 
 describe('GenerationContext cache handler', () => {
     beforeEach(() => {
@@ -36,6 +37,32 @@ describe('GenerationContext cache handler', () => {
         await expect(
             internalCache.GenerationContext.get('ROOM#TestRoom', ['ASSET#Base'])
         ).resolves.toBeUndefined()
+    })
+
+    it('merges shortName literals in assetStack order', async () => {
+        const baseRoom = new StandardRoom({
+            universalKey: 'ROOM#TestRoom',
+            tag: 'Room',
+            shortName: 'Base Room',
+            exits: [],
+        })
+        const overrideRoom = new StandardRoom({
+            universalKey: 'ROOM#TestRoom',
+            tag: 'Room',
+            shortName: 'Override Room',
+            exits: [],
+        })
+        jest.spyOn(internalCache.ComponentAssetMeta, 'getAcrossAssets').mockResolvedValue({
+            // Intentionally reverse insertion order to ensure merge logic follows assetStack, not object values
+            'ASSET#Override': overrideRoom,
+            'ASSET#Base': baseRoom,
+        })
+
+        const assetStack = ['ASSET#Base', 'ASSET#Override'] as const
+        const result = await internalCache.GenerationContext.get('ROOM#TestRoom', [...assetStack])
+        const expected = mergeRoomShortNameLiteral([baseRoom, overrideRoom])
+
+        expect(result?.shortName.toJSON()).toEqual(expected?.toJSON())
     })
 
     it('clears cached entries through InternalCache.clear lifecycle', async () => {
