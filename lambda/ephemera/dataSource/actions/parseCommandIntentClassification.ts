@@ -5,6 +5,7 @@ import type {
 import {
     isParseCommandAcmeOrderIntentResult,
     isParseCommandAwaitRoadrunnerResult,
+    isParseCommandLookRoomResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
 } from './baseClasses'
@@ -28,8 +29,8 @@ function extractJsonBody(raw: string): string {
 
 /**
  * Parses and validates LLM output for the intent-classification prompt.
- * Accepts **`AwaitRoadRunner`**, **`AcmeOrder`** (intent-only, no **`orders`**), **`Unimplemented`**, or **`Unknown`**; anything else becomes **`Error`**.
- * (**`CoyoteEngineTest`** is handled deterministically before Bedrock in **`parseCommand`**.)
+ * Accepts **`AwaitRoadRunner`**, **`AcmeOrder`** (intent-only, no **`orders`**), **`LookRoom`**, **`Unimplemented`**, or **`Unknown`**; anything else becomes **`Error`**.
+ * (**`CoyoteEngineTest`**, slash-only harness types, and **bare `look` / `l`** are handled deterministically before Bedrock in **`parseCommand`**.)
  */
 export function interpretParseCommandIntentClassificationBody(body: string): IntentClassificationResult {
     const toParse = extractJsonBody(body)
@@ -59,6 +60,16 @@ export function interpretParseCommandIntentClassificationBody(body: string): Int
             confidence: obj.confidence as number,
         }
         if (isParseCommandAwaitRoadrunnerResult(candidate)) {
+            return candidate
+        }
+    }
+
+    if (type === 'LookRoom') {
+        const candidate: IntentClassificationResult = {
+            type: 'LookRoom',
+            confidence: obj.confidence as number,
+        }
+        if (isParseCommandLookRoomResult(candidate)) {
             return candidate
         }
     }
@@ -108,6 +119,6 @@ export function interpretParseCommandIntentClassificationBody(body: string): Int
     return {
         type: 'Error',
         errorMessage:
-            'Model JSON must be a valid AwaitRoadRunner, AcmeOrder (confidence only), Unimplemented, or Unknown payload (see prompt)',
+            'Model JSON must be a valid AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, Unimplemented, or Unknown payload (see prompt)',
     }
 }

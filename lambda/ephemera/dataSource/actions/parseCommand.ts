@@ -6,6 +6,7 @@ import { invokeBedrockParseCommand } from '../../generateExample/invokeBedrockPa
 import type { ParseCommandDeps, ParseCommandInput, ParseCommandResult } from './baseClasses'
 import {
     isParseCommandAcmeOrderIntentResult,
+    isParseCommandLookRoomResult,
 } from './baseClasses'
 import { buildParseAcmeOrderEnrichPrompt } from './buildParseAcmeOrderEnrichPrompt'
 import { buildParseCommandIntentClassificationPrompt } from './buildParseCommandIntentClassificationPrompt'
@@ -16,6 +17,11 @@ import {
     interpretAcmeOrderEnrichBody,
 } from './mergeAcmeOrderEnrich'
 import { interpretParseCommandIntentClassificationBody } from './parseCommandIntentClassification'
+
+/** After trim, case-insensitive **look** or **l** as the whole line (legacy bare-look parity; no Step B). */
+function isBareLookCommand(trimmed: string): boolean {
+    return /^(?:look|l)$/i.test(trimmed)
+}
 
 /** Step B chain-of-reason Markdown only; use with {@link parseCommandWithEnrichReasoning} for harness review. */
 export type ParseCommandWithEnrichReasoningResult = {
@@ -32,6 +38,10 @@ async function parseCommandCore(
     }
     if (isCoyoteAffinitiesTestSlashCommand(input.command)) {
         return { result: { type: 'CoyoteAffinitiesTest', confidence: 1 }, enrichReasoningMarkdown: '' }
+    }
+
+    if (isBareLookCommand(input.command.trim())) {
+        return { result: { type: 'LookRoom', confidence: 1 }, enrichReasoningMarkdown: '' }
     }
 
     const invoke = deps.invokeBedrockParseCommandImpl ?? invokeBedrockParseCommand
@@ -82,7 +92,7 @@ async function parseCommandCore(
 }
 
 /**
- * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; both without Bedrock.
+ * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; **bare `look` / `l`** returns **`LookRoom`**: all without Bedrock.
  * Otherwise classifies via LLM (Step A), then runs Acme Step B when intent is **AcmeOrderIntent**.
  * Enrich chain-of-reason Markdown is not attached to **`AcmeOrder`**; use {@link parseCommandWithEnrichReasoning} when needed (e.g. affinities harness).
  */
@@ -91,11 +101,18 @@ export async function parseCommand(
     deps: ParseCommandDeps = {}
 ): Promise<ParseCommandResult> {
     const { result } = await parseCommandCore(input, deps)
+    if (isParseCommandLookRoomResult(result)) {
+        const preview = input.command.trim().slice(0, 120)
+        console.log('[mtw.ephemera.parseCommand] LookRoom', {
+            confidence: result.confidence,
+            commandPreview: preview,
+        })
+    }
     return result
 }
 
 /**
- * Same pipeline as **`parseCommand`**, plus Step B **`enrichReasoningMarkdown`** for manual review (affinities harness). Does not add that string to **`AcmeOrder`**.
+ * Same pipeline as **`parseCommand`** (including **bare `look` / `l`** and Coyote test shortcuts without Bedrock), plus Step B **`enrichReasoningMarkdown`** for manual review (affinities harness). Does not add that string to **`AcmeOrder`**.
  */
 export async function parseCommandWithEnrichReasoning(
     input: ParseCommandInput,

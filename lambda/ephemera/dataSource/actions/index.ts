@@ -22,6 +22,7 @@ import {
     isParseCommandCoyoteAffinitiesTestResult,
     isParseCommandCoyoteEngineTestResult,
     isParseCommandErrorResult,
+    isParseCommandLookRoomResult,
     isParseCommandNavigationResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
@@ -133,6 +134,29 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                             characterId: content.characterId,
                             fromRoomId,
                             toRoomId: parseResult.targetId,
+                        },
+                    })
+                }
+            }
+            else if (isEphemeraCharacterId(content.characterId) && isParseCommandLookRoomResult(parseResult)) {
+                const { fromRoomId } = await getRoomExitTargetsForCharacter(content.characterId)
+                if (!fromRoomId) {
+                    messageBus.send({
+                        type: 'PublishMessage',
+                        targets: [content.characterId],
+                        displayProtocol: 'WorldOOCMessage',
+                        message: ['You are not in a room, so you cannot go anywhere.'],
+                    })
+                }
+                else {
+                    await streamEvent({
+                        streamKey: content.characterId,
+                        header: { type: 'Look Command Requested' },
+                        update: {
+                            type: 'Look Command Requested',
+                            characterId: content.characterId,
+                            roomId: fromRoomId,
+                            confidence: parseResult.confidence,
                         },
                     })
                 }

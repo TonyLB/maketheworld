@@ -22,6 +22,14 @@ export type AwaitRoadRunnerPublishedPayload = {
     confidence: number;
 }
 
+/** Event-driven look: render orchestration registers `roomDescription` and runs the passive render pipeline. */
+export type LookCommandRequestedPublishedPayload = {
+    type: 'Look Command Requested';
+    characterId: EphemeraCharacterId;
+    roomId: EphemeraRoomId;
+    confidence: number;
+}
+
 /** One catalog line on the bus; aligns with EphemeraMetaRoomObject minus uuid. */
 export type AcmeOrderPublishedOrder = {
     shortName: string;
@@ -49,6 +57,28 @@ export const isAwaitRoadRunnerPublishedPayload = (
         return false
     }
     if (typeof v.characterId !== 'string') {
+        return false
+    }
+    if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {
+        return false
+    }
+    return true
+}
+
+export const isLookCommandRequestedPublishedPayload = (
+    value: unknown
+): value is LookCommandRequestedPublishedPayload => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (v.type !== 'Look Command Requested') {
+        return false
+    }
+    if (typeof v.characterId !== 'string') {
+        return false
+    }
+    if (typeof v.roomId !== 'string') {
         return false
     }
     if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {
@@ -107,3 +137,4 @@ export type ActionsPublishedPayload =
     | CharacterNavigatePublishedPayload
     | AcmeOrderPublishedPayload
     | AwaitRoadRunnerPublishedPayload
+    | LookCommandRequestedPublishedPayload

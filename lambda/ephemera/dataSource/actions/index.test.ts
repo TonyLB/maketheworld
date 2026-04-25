@@ -8,7 +8,26 @@ import { finalizeStableKeysDeterministic } from './finalizeStableKeysDeterminist
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
 import { runAcmeOrderAffinitiesHarness } from './runAcmeOrderAffinitiesHarness'
 import { runCoyoteEngineTestHarness } from '../coyoteGame/runCoyoteEngineTestHarness'
+import { sendPerceptionThreadRegistered } from '../perception/subscribedEvents'
+import { sendRenderRequested } from '../renderOrchestration/subscribedEvents'
 
+jest.mock('@tonylb/mtw-wml/ts/schema', () => ({
+    schemaToWML: jest.fn(() => '<Asset />'),
+}))
+jest.mock('../perception/subscribedEvents', () => {
+    const actual = jest.requireActual('../perception/subscribedEvents') as object
+    return {
+        ...actual,
+        sendPerceptionThreadRegistered: jest.fn(),
+    }
+})
+jest.mock('../renderOrchestration/subscribedEvents', () => {
+    const actual = jest.requireActual('../renderOrchestration/subscribedEvents') as object
+    return {
+        ...actual,
+        sendRenderRequested: jest.fn(),
+    }
+})
 jest.mock('../../messageBus')
 jest.mock('./roomExitTargetsForCharacter', () => ({
     getRoomExitTargetsForCharacter: jest.fn(),
@@ -28,6 +47,8 @@ jest.mock('./runAcmeOrderAffinitiesHarness', () => ({
 }))
 
 const mockMessageBus = messageBus as jest.Mocked<typeof messageBus>
+const mockSendPerceptionThreadRegistered = sendPerceptionThreadRegistered as jest.MockedFunction<typeof sendPerceptionThreadRegistered>
+const mockSendRenderRequested = sendRenderRequested as jest.MockedFunction<typeof sendRenderRequested>
 const mockedParseCommand = jest.mocked(parseCommand)
 const mockedCollectCoyoteOccupiedStableKeys = jest.mocked(collectCoyoteOccupiedStableKeys)
 const mockedGetRoomExitTargetsForCharacter = jest.mocked(getRoomExitTargetsForCharacter)
@@ -38,6 +59,8 @@ describe('ephemeraActionsDataSource', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockMessageBus.send.mockReturnValue(undefined)
+        mockSendPerceptionThreadRegistered.mockClear()
+        mockSendRenderRequested.mockClear()
         mockedRunCoyoteEngineTestHarness.mockResolvedValue(undefined)
         mockedRunAcmeOrderAffinitiesHarness.mockResolvedValue(undefined)
         mockedCollectCoyoteOccupiedStableKeys.mockResolvedValue(new Set<string>())
@@ -222,6 +245,129 @@ describe('ephemeraActionsDataSource', () => {
                 displayProtocol: 'WorldOOCMessage',
                 message: ['There is no exit to that place from here.'],
             })
+        })
+    })
+
+    describe('ParseCommandLookRoomResult', () => {
+        const currentRoom = 'ROOM#from' as EphemeraRoomId
+
+        it('publishes WorldOOCMessage when character has no current room', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'LookRoom', confidence: 1 })
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: null,
+                toRoomIds: [],
+            })
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'look',
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockMessageBus.send).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['You are not in a room, so you cannot go anywhere.'],
+            })
+        })
+
+        it('streams Look Command Requested when in a room (deterministic LookRoom)', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'LookRoom', confidence: 1 })
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: currentRoom,
+                toRoomIds: [],
+            })
+            const streamEvent = jest.fn(async () => {})
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'look',
+                        requestId: 'req-look',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Look Command Requested' },
+                update: {
+                    type: 'Look Command Requested',
+                    characterId: 'CHARACTER#123',
+                    roomId: currentRoom,
+                    confidence: 1,
+                },
+            })
+            expect(mockSendPerceptionThreadRegistered).not.toHaveBeenCalled()
+            expect(mockSendRenderRequested).not.toHaveBeenCalled()
+            expect(mockMessageBus.send).toHaveBeenCalledWith({
+                type: 'ReturnValue',
+                body: {
+                    messageType: 'Success',
+                    RequestId: 'req-look',
+                    message: 'Parse request accepted',
+                },
+            })
+        })
+
+        it('streams Look Command Requested for Step A LookRoom (paraphrase) with confidence from parse', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'LookRoom', confidence: 0.91 })
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: currentRoom,
+                toRoomIds: [],
+            })
+            const streamEvent = jest.fn(async () => {})
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'examine the room',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Look Command Requested' },
+                update: {
+                    type: 'Look Command Requested',
+                    characterId: 'CHARACTER#123',
+                    roomId: currentRoom,
+                    confidence: 0.91,
+                },
+            })
+            expect(mockSendPerceptionThreadRegistered).not.toHaveBeenCalled()
+            expect(mockSendRenderRequested).not.toHaveBeenCalled()
         })
     })
 

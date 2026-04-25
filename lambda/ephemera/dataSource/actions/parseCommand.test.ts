@@ -4,6 +4,7 @@ import {
     isParseCommandAcmeOrderResult,
     isParseCommandAwaitRoadrunnerResult,
     isParseCommandErrorResult,
+    isParseCommandLookRoomResult,
     isParseCommandNavigationResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
@@ -156,6 +157,13 @@ describe('parseCommand type guards', () => {
         expect(isParseCommandAwaitRoadrunnerResult({ type: 'AwaitRoadRunner' } as any)).toBe(false)
     })
 
+    it('isParseCommandLookRoomResult requires confidence in [0, 1]', () => {
+        expect(isParseCommandLookRoomResult({ type: 'LookRoom', confidence: 1 })).toBe(true)
+        expect(isParseCommandLookRoomResult({ type: 'LookRoom', confidence: 0.4 })).toBe(true)
+        expect(isParseCommandLookRoomResult({ type: 'LookRoom' } as any)).toBe(false)
+        expect(isParseCommandLookRoomResult({ type: 'LookRoom', confidence: 1.5 })).toBe(false)
+    })
+
     it('isParseCommandUnimplementedResult and isParseCommandUnknownResult require confidence', () => {
         expect(isParseCommandUnimplementedResult({ type: 'Unimplemented', confidence: 0.5 })).toBe(true)
         expect(isParseCommandUnimplementedResult({ type: 'Unimplemented' } as any)).toBe(false)
@@ -175,10 +183,12 @@ describe('buildParseCommandIntentClassificationPrompt', () => {
         expect(prompt).toContain('attack troll')
         expect(prompt).toContain('AwaitRoadRunner')
         expect(prompt).toContain('AcmeOrder')
+        expect(prompt).toContain('LookRoom')
         expect(prompt).toContain('Unimplemented')
         expect(prompt).toContain('Unknown')
         expect(prompt).toContain('"type": "AwaitRoadRunner"')
         expect(prompt).toContain('"type": "AcmeOrder"')
+        expect(prompt).toContain('"type": "LookRoom"')
         expect(prompt).toContain('"type": "Unimplemented"')
         expect(prompt).toContain('"type": "Unknown"')
         expect(prompt).toContain('later step')
@@ -191,10 +201,13 @@ describe('buildParseCommandIntentClassificationPrompt', () => {
 })
 
 describe('interpretParseCommandIntentClassificationBody', () => {
-    it('accepts bare JSON for AwaitRoadRunner, AcmeOrder intent only, Unimplemented, and Unknown', () => {
+    it('accepts bare JSON for AwaitRoadRunner, AcmeOrder intent only, LookRoom, Unimplemented, and Unknown', () => {
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"AwaitRoadRunner","confidence":0.95}'
         )).toEqual({ type: 'AwaitRoadRunner', confidence: 0.95 })
+        expect(interpretParseCommandIntentClassificationBody(
+            '{"type":"LookRoom","confidence":0.88}'
+        )).toEqual({ type: 'LookRoom', confidence: 0.88 })
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"AcmeOrder","confidence":0.9}'
         )).toEqual({
@@ -251,10 +264,13 @@ describe('interpretParseCommandIntentClassificationBody', () => {
             '{"type":"AcmeOrder","confidence":1.2}'
         ).type).toBe('Error')
         expect(interpretParseCommandIntentClassificationBody(
+            '{"type":"LookRoom","confidence":-0.1}'
+        ).type).toBe('Error')
+        expect(interpretParseCommandIntentClassificationBody(
             '{"type":"CoyoteEngineTest","confidence":0.9}'
         )).toEqual({
             type: 'Error',
-            errorMessage: 'Model JSON must be a valid AwaitRoadRunner, AcmeOrder (confidence only), Unimplemented, or Unknown payload (see prompt)',
+            errorMessage: 'Model JSON must be a valid AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, Unimplemented, or Unknown payload (see prompt)',
         })
     })
 })
@@ -344,6 +360,33 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
     })
 
+    it('returns LookRoom without Bedrock for bare look and l (case-insensitive, trim)', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn()
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+
+        for (const command of ['look', 'L', '  l  ', '  LOOK  ']) {
+            const result = await parseCommand(
+                { command },
+                { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+            )
+            expect(result).toEqual({ type: 'LookRoom', confidence: 1 })
+        }
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+    })
+
+    it('does not treat look at or long as bare look; still invokes Bedrock', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"Unknown","confidence":0.3}',
+        })
+
+        await parseCommand({ command: 'look at door' }, { invokeBedrockParseCommandImpl })
+        await parseCommand({ command: 'long' }, { invokeBedrockParseCommandImpl })
+
+        expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(2)
+    })
+
     it('returns interpreted body when Bedrock succeeds', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
@@ -359,6 +402,23 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
         const promptArg = invokeBedrockParseCommandImpl.mock.calls[0][0] as string
         expect(promptArg).toContain('use teleporter')
+    })
+
+    it('returns LookRoom from Step A without Acme Step B', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"LookRoom","confidence":0.91}',
+        })
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+
+        const result = await parseCommand(
+            { command: 'examine the room' },
+            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+        )
+
+        expect(result).toEqual({ type: 'LookRoom', confidence: 0.91 })
+        expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
+        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 
     it('returns Error when Bedrock fails', async () => {

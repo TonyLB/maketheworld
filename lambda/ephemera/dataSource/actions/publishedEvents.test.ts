@@ -1,4 +1,4 @@
-import { isAcmeOrderPublishedOrder } from './publishedEvents'
+import { isAcmeOrderPublishedOrder, isLookCommandRequestedPublishedPayload } from './publishedEvents'
 
 describe('isAcmeOrderPublishedOrder', () => {
     const minimal = {
@@ -25,5 +25,41 @@ describe('isAcmeOrderPublishedOrder', () => {
 
     it('rejects stableKey wrong type', () => {
         expect(isAcmeOrderPublishedOrder({ ...minimal, stableKey: 1 } as unknown)).toBe(false)
+    })
+})
+
+describe('isLookCommandRequestedPublishedPayload', () => {
+    const minimal = {
+        type: 'Look Command Requested' as const,
+        characterId: 'CHAR#test',
+        roomId: 'ROOM#test',
+        confidence: 1,
+    }
+
+    it('accepts a valid payload', () => {
+        expect(isLookCommandRequestedPublishedPayload(minimal)).toBe(true)
+    })
+
+    it('rejects wrong or missing type', () => {
+        expect(isLookCommandRequestedPublishedPayload({ ...minimal, type: 'Look Room' })).toBe(false)
+        expect(isLookCommandRequestedPublishedPayload({ ...minimal, type: 1 } as unknown)).toBe(false)
+        const { type: _t, ...rest } = minimal
+        expect(isLookCommandRequestedPublishedPayload(rest)).toBe(false)
+    })
+
+    it('rejects non-string characterId or roomId', () => {
+        expect(isLookCommandRequestedPublishedPayload({ ...minimal, characterId: 1 } as unknown)).toBe(
+            false,
+        )
+        expect(isLookCommandRequestedPublishedPayload({ ...minimal, roomId: null } as unknown)).toBe(
+            false,
+        )
+    })
+
+    it('rejects non-finite confidence', () => {
+        expect(isLookCommandRequestedPublishedPayload({ ...minimal, confidence: NaN })).toBe(false)
+        expect(isLookCommandRequestedPublishedPayload({ ...minimal, confidence: Infinity })).toBe(
+            false,
+        )
     })
 })

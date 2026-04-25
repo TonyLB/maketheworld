@@ -110,11 +110,25 @@ export const orchestrateRenderRequest = async (
         runWithSingleFlight: _deps?.runWithSingleFlight,
     }
 
+    const streamKey = payload.componentId
+    const perspectiveKeyIngress = orchDeps.computePerspectiveKey(payload.perspective.assetStack)
+    console.log('[mtw.ephemera.renderOrchestration] Render Requested', {
+        componentId: payload.componentId,
+        characterId: payload.characterId,
+        perspectiveKey: perspectiveKeyIngress,
+        allowGeneration: payload.allowGeneration,
+        hasGenerationContextWml: Boolean(payload.generationContextWml),
+    })
+
     const intake = await intakeRenderRequested(payload, _deps)
 
-    const streamKey = payload.componentId
     const intakeErr = getIntakeOrchestrationErrorIfAny(intake)
     if (intakeErr) {
+        console.log('[mtw.ephemera.renderOrchestration] Render Requested intake error', {
+            componentId: payload.componentId,
+            errorCode: intakeErr.errorCode,
+            errorMessage: intakeErr.errorMessage,
+        })
         const routing = buildOrchestrationRouting(payload.componentId, payload.perspective, orchDeps.computePerspectiveKey)
         await publishRenderOrchestrationStreamEvent(streamEvent, streamKey, {
             type: 'Orchestration Error',
@@ -126,8 +140,18 @@ export const orchestrateRenderRequest = async (
     }
 
     if (!isRenderResolveInputSuccess(intake)) {
+        console.log('[mtw.ephemera.renderOrchestration] Render Requested intake: unexpected non-success', {
+            componentId: payload.componentId,
+        })
         return
     }
+
+    const pkAfterIntake = orchDeps.computePerspectiveKey(intake.perspective.assetStack)
+    console.log('[mtw.ephemera.renderOrchestration] Render Requested intake ok', {
+        roomId: intake.roomId,
+        perspectiveKey: pkAfterIntake,
+        hasPointerHint: intake.pointerHint !== undefined,
+    })
 
     /**
      * Terminal / cache-resolution outbounds use the default lane so a single `flush()` at lambda boundary drains them.
