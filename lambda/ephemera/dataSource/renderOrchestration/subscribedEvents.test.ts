@@ -1,4 +1,5 @@
 import {
+    isLookCommandRequestedActionsEnvelope,
     isRenderOrchestrationIngressEnvelope,
     isRenderOrchestrationSubscribedEnvelope,
     renderOrchestrationIngressLaneId,
@@ -21,6 +22,21 @@ describe('renderOrchestration subscribedEvents', () => {
             componentId: 'ROOM#one',
             allowGeneration: false,
         })
+    })
+
+    it('sendRenderRequested with useDefaultMessageBusLane does not set a named lane', () => {
+        const calls: { payload: unknown; lane?: string }[] = []
+        sendRenderRequested(
+            { send: (payload, lane) => calls.push({ payload, lane }) },
+            'ROOM#one',
+            {
+                componentId: 'ROOM#one',
+                perspective: { assetStack: ['ASSET#one'] },
+            },
+            { useDefaultMessageBusLane: true }
+        )
+        expect(calls).toHaveLength(1)
+        expect(calls[0].lane).toBeUndefined()
     })
 
     it('isRenderOrchestrationIngressEnvelope accepts Render Requested and rejects unrelated', () => {
@@ -90,5 +106,24 @@ describe('renderOrchestration subscribedEvents', () => {
                 getContent: () => Promise.resolve({}),
             } as any)
         ).toBe(false)
+    })
+
+    it('isRenderOrchestrationSubscribedEnvelope accepts mtw.ephemera.actions Look Command Requested', () => {
+        const look = {
+            header: {
+                dataSourceKey: 'mtw.ephemera.actions',
+                streamKey: 'CHARACTER#c',
+                timestamp: Date.now(),
+                type: 'Look Command Requested',
+            },
+            getContent: () => Promise.resolve({
+                type: 'Look Command Requested',
+                characterId: 'CHARACTER#c',
+                roomId: 'ROOM#r',
+                confidence: 1,
+            }),
+        }
+        expect(isRenderOrchestrationSubscribedEnvelope(look as any)).toBe(true)
+        expect(isLookCommandRequestedActionsEnvelope(look as any)).toBe(true)
     })
 })

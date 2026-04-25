@@ -82,6 +82,24 @@ describe('perception subscribedEvents', () => {
         })
     })
 
+    it('sendPerceptionThreadRegistered forwards optional bus lane for flush ordering', () => {
+        const sent: { payload: unknown; lane?: string }[] = []
+        const lane = 'lookCommand:perceptionThread:ROOM#R:CHARACTER#C'
+        sendPerceptionThreadRegistered(
+            { send: (payload, id) => sent.push({ payload, lane: id }) },
+            'ROOM#R',
+            {
+                threadKind: 'roomDescription',
+                componentId: 'ROOM#R',
+                perspectiveKey: 'p',
+                characterId: 'CHARACTER#C',
+            },
+            lane
+        )
+        expect(sent).toHaveLength(1)
+        expect(sent[0].lane).toBe(lane)
+    })
+
     it('isPerceptionThreadRegisteredIngressEnvelope accepts Perception Thread Registered and rejects unrelated', () => {
         const accepted = {
             header: {

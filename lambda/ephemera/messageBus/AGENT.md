@@ -12,7 +12,7 @@ Partitioned drains (`flush()`, `flush(laneId)`), optional `send(payload, laneId)
 
 Ephemera-specific usage (for example **`renderOrchestration`** ingress lane and terminal outbounds on the default lane) lives next to those DataSources; see [`../dataSource/renderOrchestration/`](../dataSource/renderOrchestration/).
 
-Lambda exit drains the **default** lane in [`../app.ts`](../app.ts) (`messageBus.flush()`). Named-lane work is flushed where orchestration schedules it (see **`generateRoomPreview`** / **`flushOrchestrationLane`**).
+Lambda exit drains the **default** lane in [`../app.ts`](../app.ts) (`messageBus.flush()`). Named-lane work is flushed where orchestration schedules it (see **`generateRoomPreview`** / **`flushOrchestrationLane`**). Event-driven **`look`** also **`flush`es** **`lookCommandPerceptionThreadLaneId`** inside [`../dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts`](../dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts) before the default-lane **`Render Requested`**.
 
 ## Testing
 

@@ -4,6 +4,8 @@
 
 **Ingress:** **`api.ephemera`** **`Parse Requested`** (player command routing). See [`../apiEphemera.ts`](../apiEphemera.ts).
 
+**Outbound (room look):** In-room **`LookRoom`** results **`streamEvent`** a **`Look Command Requested`** payload (see [`publishedEvents.ts`](publishedEvents.ts)). **`mtw.ephemera.renderOrchestration`** subscribes as a sibling; [`handleLookCommandRequestedForRenderOrchestration`](../renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts) runs **`Perception Thread Registered`**, **`flush(lookCommandPerceptionThreadLaneId)`**, then default-lane **`Render Requested`** (docs in [`../renderOrchestration/AGENT.md`](../renderOrchestration/AGENT.md)).
+
 ## Role
 
 Parses slash-free and natural-language commands (**Bedrock**: intent classification + Acme enrich when applicable). Publishes internal bus streams such as **`Acme Order`**, **`Character Navigate`**, **`Await RoadRunner`**, and harness-only outcomes --- see [`publishedEvents.ts`](publishedEvents.ts); **`mtw.ephemera.objects`** subscribes via [`../objects/subscribedEvents.ts`](../objects/subscribedEvents.ts) (**`Acme Order`** envelope guard).

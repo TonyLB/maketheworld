@@ -3,7 +3,7 @@
  *
  * Canonical home for passive render orchestration. See ./AGENT.md for semantics and constraints.
  *
- * Ingress: api.ephemera envelopes and mtw.ephemera.state (`State Changed` passive fan-out).
+ * Ingress: api.ephemera envelopes, `mtw.ephemera.actions` `Look Command Requested` (room look), and `State Changed` (passive fan-out).
  * Outbounds: six-type stream on this DataSource via streamEvent (pass-through migration complete).
  * replayable: false today; replay is not a planned follow-up unless product asks (AGENT.md).
  */
@@ -12,7 +12,9 @@ import {
     isEphemeraStateStateChangedEnvelope,
     isStateChangedPayload,
 } from '../state/events'
+import { isLookCommandRequestedPublishedPayload } from '../actions/publishedEvents'
 import {
+    isLookCommandRequestedActionsEnvelope,
     isRenderOrchestrationIngressEnvelope,
     isRenderOrchestrationSubscribedEnvelope,
     isRenderRequestedIngressEnvelope,
@@ -20,6 +22,7 @@ import {
     type RenderOrchestrationSubscribedContent,
 } from './subscribedEvents'
 import { isRenderRequestedCommand } from './localApiEvents'
+import { handleLookCommandRequestedForRenderOrchestration } from './handleLookCommandRequestedForRenderOrchestration'
 import { orchestrateRenderRequest } from './orchestrationHandler'
 import { fanOutStateChangedToPassiveRenders } from './fanOutStateChangedToPassiveRenders'
 import type { RenderOrchestrationPublishedPayload } from './publishedEvents'
@@ -53,6 +56,14 @@ export const renderOrchestrationDataSource = new EphemeraDataSource<never, Rende
                     return
                 }
                 await fanOutStateChangedToPassiveRenders({ stateChanged: raw, messageBus, streamEvent })
+                return
+            }
+            if (isLookCommandRequestedActionsEnvelope(event)) {
+                const lookPayload = await event.getContent()
+                if (!isLookCommandRequestedPublishedPayload(lookPayload)) {
+                    return
+                }
+                await handleLookCommandRequestedForRenderOrchestration(messageBus, lookPayload)
                 return
             }
             if (!isRenderOrchestrationIngressEnvelope(event)) {

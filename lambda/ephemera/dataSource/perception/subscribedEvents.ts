@@ -96,7 +96,7 @@ export const isPerceptionSubscribedEnvelope = (
         || isEphemeraObjectsObjectsChangedEnvelope(envelope)
 )
 
-type Bus = { send: (payload: StreamingEventMessage) => void }
+type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }
 
 const apiEphemeraSerializer = {
     serialize: ({ content, header }: { content: object; header: StreamingEventHeader }) => ({
@@ -131,11 +131,13 @@ export function sendCharacterPerceptionRequested(
 
 /**
  * streamKey should be componentId (ROOM# / FEATURE# / KNOWLEDGE#), matching render-style per-component keys.
+ * Optional `laneId` scopes the message for `messageBus.flush(laneId)` ordering (e.g. event-driven look before render).
  */
 export function sendPerceptionThreadRegistered(
     bus: Bus,
     streamKey: string,
-    content: PerceptionThreadRegisterCommand
+    content: PerceptionThreadRegisterCommand,
+    laneId?: string
 ): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
@@ -145,12 +147,17 @@ export function sendPerceptionThreadRegistered(
         type: 'Perception Thread Registered',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
-    bus.send({
-        type: 'StreamingEvent',
+    const message = {
+        type: 'StreamingEvent' as const,
         dataSourceKey: 'api.ephemera',
         streamKey,
         header: envelope.header,
         getContent: envelope.getContent,
         timestamp,
-    })
+    }
+    if (laneId !== undefined && laneId !== '') {
+        bus.send(message, laneId)
+    } else {
+        bus.send(message)
+    }
 }

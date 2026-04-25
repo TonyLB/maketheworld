@@ -4,6 +4,7 @@
  * Part of mtw.ephemera.renderOrchestration (see ../AGENT.md).
  * Internal-only publish path uses dataSourceKey 'api.ephemera'; stream outbounds are defined in publishedEvents.ts.
  */
+import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
     StreamingEventEnvelope,
     StreamingEventHeader,
@@ -14,6 +15,7 @@ import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dat
 import type { StreamingEventMessage } from '../../messageBus/baseClasses'
 import { isEphemeraStateStateChangedEnvelope } from '../state/events'
 import type { StateChangedPayload } from '../state/events'
+import type { LookCommandRequestedPublishedPayload } from '../actions/publishedEvents'
 import type {
     RenderOrchestrationIngressCommand,
     RenderRequestedCommand,
@@ -49,13 +51,37 @@ export const isRenderOrchestrationIngressEnvelope = makeStreamingEnvelopeGuardFr
     RenderOrchestrationIngressHeader
 >(isRenderOrchestrationIngressHeader)
 
-/** Ingress (`api.ephemera` render commands) plus `mtw.ephemera.state` `State Changed` (passive fan-out). */
-export type RenderOrchestrationSubscribedContent = RenderOrchestrationIngressCommand | StateChangedPayload
+const isLookCommandRequestedHeader: HeaderGuard<
+    StreamingEventHeader & { dataSourceKey: 'mtw.ephemera.actions'; type: 'Look Command Requested' }
+> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.ephemera.actions'; type: 'Look Command Requested' } => (
+    h.dataSourceKey === 'mtw.ephemera.actions' && h.type === 'Look Command Requested'
+)
+
+export const isLookCommandRequestedActionsEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    LookCommandRequestedPublishedPayload,
+    StreamingEventHeader & { dataSourceKey: 'mtw.ephemera.actions'; type: 'Look Command Requested' }
+>(isLookCommandRequestedHeader)
+
+/** Perception thread registration for event-driven `look` before default-lane `Render Requested` (see handleLookCommandRequested). */
+export function lookCommandPerceptionThreadLaneId(args: {
+    roomId: EphemeraRoomId;
+    characterId: EphemeraCharacterId;
+}): string {
+    return `lookCommand:perceptionThread:${args.roomId}:${args.characterId}`
+}
+
+/** Ingress (`api.ephemera` render), `mtw.ephemera.actions` `Look Command Requested`, and `State Changed` (passive fan-out). */
+export type RenderOrchestrationSubscribedContent =
+    | RenderOrchestrationIngressCommand
+    | StateChangedPayload
+    | LookCommandRequestedPublishedPayload
 
 export const isRenderOrchestrationSubscribedEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
 ): envelope is StreamingEventEnvelope<RenderOrchestrationSubscribedContent> => (
-    isRenderOrchestrationIngressEnvelope(envelope) || isEphemeraStateStateChangedEnvelope(envelope)
+    isRenderOrchestrationIngressEnvelope(envelope)
+    || isEphemeraStateStateChangedEnvelope(envelope)
+    || isLookCommandRequestedActionsEnvelope(envelope)
 )
 
 type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }
@@ -72,7 +98,19 @@ const apiEphemeraSerializer = {
     }),
 }
 
-export function sendRenderRequested(bus: Bus, streamKey: string, content: RenderRequestedCommand): void {
+export type SendRenderRequestedOptions = {
+    /**
+     * When set, the message is on the default bus lane so an in-flight `flush` picks it up (e.g. event-driven look after `flush(lookCommandPerceptionThreadLaneId)`). Otherwise uses {@link renderOrchestrationIngressLaneId}.
+     */
+    useDefaultMessageBusLane?: boolean
+}
+
+export function sendRenderRequested(
+    bus: Bus,
+    streamKey: string,
+    content: RenderRequestedCommand,
+    options?: SendRenderRequestedOptions
+): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
         dataSourceKey: 'api.ephemera',
@@ -81,15 +119,20 @@ export function sendRenderRequested(bus: Bus, streamKey: string, content: Render
         type: 'Render Requested',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
-    bus.send(
-        {
-            type: 'StreamingEvent',
-            dataSourceKey: 'api.ephemera',
-            streamKey,
-            header: envelope.header,
-            getContent: envelope.getContent,
-            timestamp,
-        },
-        renderOrchestrationIngressLaneId(streamKey),
-    )
+    const message = {
+        type: 'StreamingEvent' as const,
+        dataSourceKey: 'api.ephemera',
+        streamKey,
+        header: envelope.header,
+        getContent: envelope.getContent,
+        timestamp,
+    }
+    if (options?.useDefaultMessageBusLane) {
+        bus.send(message)
+    } else {
+        bus.send(
+            message,
+            renderOrchestrationIngressLaneId(streamKey),
+        )
+    }
 }

@@ -1,6 +1,8 @@
+import messageBus from '../../messageBus'
 import { renderOrchestrationDataSource } from './index'
 import * as orchestrationHandler from './orchestrationHandler'
 import * as fanOutStateChanged from './fanOutStateChangedToPassiveRenders'
+import * as lookHandler from './handleLookCommandRequestedForRenderOrchestration'
 
 describe('mtw.ephemera.renderOrchestration DataSource', () => {
     beforeEach(() => {
@@ -35,6 +37,48 @@ describe('mtw.ephemera.renderOrchestration DataSource', () => {
             type: 'RenderRequested',
             componentId: 'ROOM#one',
         })
+        orchestrateSpy.mockRestore()
+    })
+
+    it('delegates mtw.ephemera.actions Look Command Requested to handleLookCommandRequestedForRenderOrchestration', async () => {
+        const lookSpy = jest
+            .spyOn(lookHandler, 'handleLookCommandRequestedForRenderOrchestration')
+            .mockResolvedValue(undefined)
+        const orchestrateSpy = jest.spyOn(orchestrationHandler, 'orchestrateRenderRequest').mockResolvedValue(undefined)
+        const events: any[] = [
+            {
+                header: {
+                    dataSourceKey: 'mtw.ephemera.actions',
+                    streamKey: 'CHARACTER#c',
+                    timestamp: Date.now(),
+                    type: 'Look Command Requested',
+                },
+                getContent: () => Promise.resolve({
+                    type: 'Look Command Requested',
+                    characterId: 'CHARACTER#c',
+                    roomId: 'ROOM#r',
+                    confidence: 0.9,
+                }),
+            },
+        ]
+
+        await renderOrchestrationDataSource.receiveEvents?.({
+            events,
+            streamEvent: jest.fn().mockResolvedValue(undefined),
+            streamEnvelope: jest.fn().mockResolvedValue(undefined),
+        })
+
+        expect(lookSpy).toHaveBeenCalledTimes(1)
+        expect(lookSpy).toHaveBeenCalledWith(
+            messageBus,
+            expect.objectContaining({
+                type: 'Look Command Requested',
+                characterId: 'CHARACTER#c',
+                roomId: 'ROOM#r',
+            })
+        )
+        expect(orchestrateSpy).not.toHaveBeenCalled()
+        lookSpy.mockRestore()
         orchestrateSpy.mockRestore()
     })
 
