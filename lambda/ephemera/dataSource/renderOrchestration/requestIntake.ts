@@ -1,18 +1,26 @@
 /**
- * Passive `RenderRequested` **A-phase only**: load `Meta::Room`, validate `state.marks`, build {@link RenderResolveInput}
- * (pointer hint from `currentCacheByPerspective`). B-phase and delivery live in `orchestrationHandler.ts`.
+ * Passive `RenderRequested` **A-phase only**: load `Meta::Room`, resolve {@link RenderResolveInputSuccess.markState},
+ * build {@link RenderResolveInput} (pointer hint from `currentCacheByPerspective`). B-phase and delivery live in
+ * `orchestrationHandler.ts`.
+ *
+ * When `Meta::Room.state.marks` is absent, {@link computeDefaultMarksForRoom} supplies lens defaults. If that yields no
+ * marks (no Lens on the merged room; primitives use **`SITUATION#DEFAULT`** as the authored example / cache key), intake
+ * uses empty **`markValue`** and sets **`allowGeneration: false`** so resolve is cache-only (no slow-path generation).
  * Planning notes: `AGENT.planning.md` (same package; *Input boundary*, open work).
  */
 import { isEphemeraRoomId, type EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../internalCache'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId, EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import type { RenderRequested } from './events'
 import type { RenderResolveInput, RenderResolveInputSuccess } from './baseClasses'
+import { computeDefaultMarksForRoom } from '../state/computeDefaultMarksForRoom'
 
 export type RequestIntakeDependencies = {
     getMetaRoom?: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>;
     computePerspectiveKey?: typeof computePerspectiveKey;
+    computeDefaultMarksForRoom?: typeof computeDefaultMarksForRoom;
 }
 
 const defaultGetMetaRoom = async (roomId: EphemeraRoomId): Promise<EphemeraMetaRoom | undefined> => (
@@ -39,6 +47,7 @@ export const intakeRenderRequested = async (
     const deps: RequestIntakeDepsResolved = {
         getMetaRoom: _deps?.getMetaRoom ?? defaultGetMetaRoom,
         computePerspectiveKey: _deps?.computePerspectiveKey ?? computePerspectiveKey,
+        computeDefaultMarksForRoom: _deps?.computeDefaultMarksForRoom ?? computeDefaultMarksForRoom,
     }
 
     const roomId = payload.componentId
@@ -46,11 +55,32 @@ export const intakeRenderRequested = async (
     const stateMarks = metaRoom?.state?.marks
     const perspective = payload.perspective
 
-    if (!stateMarks) {
-        return {
-            type: 'error',
-            errorCode: 'META_ROOM_MARKS_MISSING',
-            errorMessage: `RenderRequested requires Meta::Room.state.marks for ${payload.componentId}`,
+    let markState: EphemeraCacheMarkState
+    let allowGeneration: boolean | undefined
+    if (stateMarks) {
+        markState = stateMarks
+        allowGeneration = payload.allowGeneration
+    }
+    else {
+        let defaultMarks: EphemeraCacheMarkState
+        try {
+            defaultMarks = await deps.computeDefaultMarksForRoom({ roomId })
+        }
+        catch (err) {
+            const detail = err instanceof Error ? err.message : String(err)
+            return {
+                type: 'error',
+                errorCode: 'META_ROOM_MARKS_MISSING',
+                errorMessage: `RenderRequested could not resolve default marks for ${payload.componentId}: ${detail}`,
+            }
+        }
+        if (defaultMarks.markValue.length === 0) {
+            markState = { markValue: [] }
+            allowGeneration = false
+        }
+        else {
+            markState = defaultMarks
+            allowGeneration = payload.allowGeneration
         }
     }
 
@@ -61,9 +91,9 @@ export const intakeRenderRequested = async (
         type: 'success',
         roomId,
         perspective,
-        markState: stateMarks,
+        markState,
         markProvenance: 'meta',
-        allowGeneration: payload.allowGeneration,
+        allowGeneration,
         ...(pointerId !== undefined ? { pointerHint: pointerId } : {}),
     }
 
