@@ -97,8 +97,9 @@ export async function kickPassiveRenderRequestedForCharacterInRoom(options: {
     characterId: EphemeraCharacterId;
     assets: readonly string[];
     messageBus: MessageBus;
+    useDefaultMessageBusLane?: boolean;
 }): Promise<void> {
-    const { roomId, characterId, assets, messageBus } = options
+    const { roomId, characterId, assets, messageBus, useDefaultMessageBusLane } = options
     const roomAssetStack = await resolveRoomAssetStackForRoom(roomId, {
         RoomAssets: internalCache.RoomAssets,
     })
@@ -114,5 +115,5 @@ export async function kickPassiveRenderRequestedForCharacterInRoom(options: {
         componentId: roomId,
         perspective: { assetStack: filteredAssetStack },
         characterId,
-    })
+    }, useDefaultMessageBusLane ? { useDefaultMessageBusLane: true } : undefined)
 }

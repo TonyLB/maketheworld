@@ -231,6 +231,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                     characterId: payload.characterId,
                     assets: characterMeta.assets || [],
                     messageBus,
+                    useDefaultMessageBusLane: true,
                 })
             }
             messageBus.send({
