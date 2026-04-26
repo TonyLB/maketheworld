@@ -74,7 +74,7 @@ describe('handleObjectsChangedForHypothesis', () => {
         expect(messageBus.flush).not.toHaveBeenCalled()
     })
 
-    it('emits stream events and two WorldMessage publishes with shared messageId', async () => {
+    it('emits stream events and two CoyoteGameHypothesisMessage publishes with shared messageId', async () => {
         coyoteMock
             .mockResolvedValueOnce(['VORTEX', 'STRAIGHTAWAY'])
             .mockResolvedValueOnce({ intent: 'Hypothesis: Cached from CoyoteGame' })
@@ -92,11 +92,11 @@ describe('handleObjectsChangedForHypothesis', () => {
         const first = messageBus.send.mock.calls[0][0] as Record<string, unknown>
         const firstLane = messageBus.send.mock.calls[0][1]
         const second = messageBus.send.mock.calls[1][0] as Record<string, unknown>
-        expect(first.displayProtocol).toBe('WorldMessage')
+        expect(first.displayProtocol).toBe('CoyoteGameHypothesisMessage')
         expect(first.message).toEqual(['Hypothesis: Generating...'])
         expect(typeof firstLane).toBe('string')
         expect(firstLane).toMatch(/^hypothesisLane:MESSAGE#/)
-        expect(second.displayProtocol).toBe('WorldMessage')
+        expect(second.displayProtocol).toBe('CoyoteGameHypothesisMessage')
         expect(second.message).toEqual(['Hypothesis: Cached from CoyoteGame'])
         expect(first.messageId).toBe(second.messageId)
         expect(typeof first.messageId).toBe('string')

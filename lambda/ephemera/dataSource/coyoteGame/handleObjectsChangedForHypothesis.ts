@@ -54,7 +54,7 @@ export async function handleObjectsChangedForHypothesis(
         {
             type: 'PublishMessage',
             targets,
-            displayProtocol: 'WorldMessage',
+            displayProtocol: 'CoyoteGameHypothesisMessage',
             message: ['Hypothesis: Generating...'],
             messageId: stored.hypothesisId,
             createdTime: stored.t0,
@@ -96,7 +96,7 @@ export async function handleObjectsChangedForHypothesis(
         deps.messageBus.send({
             type: 'PublishMessage',
             targets,
-            displayProtocol: 'WorldMessage',
+            displayProtocol: 'CoyoteGameHypothesisMessage',
             message: renderTree,
             messageId: stored.hypothesisId,
             createdTime: t1,

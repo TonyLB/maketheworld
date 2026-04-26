@@ -1,6 +1,6 @@
 # Coyote compact hypothesis: dedicated `DisplayProtocol`
 
-**Status:** In progress. Wire, bus, publishMessage queue branch, and client routing shipped; next step: **`handleObjectsChangedForHypothesis`** protocol switch + tests, then durable **`coyoteGame/AGENT.md`** note.
+**Status:** In progress. Wire, bus, publishMessage queue branch, client routing, and **`handleObjectsChangedForHypothesis`** protocol switch + tests shipped; next step: durable **`coyoteGame/AGENT.md`** note.
 
 Skim [`taskPlanning/AGENT.md`](../../../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -45,7 +45,7 @@ Existing Coyote-specific protocol: **`CoyoteGameHelpMessage`** ([`packages/mtw-i
 | `mtw-interfaces`: type + `Message` union + `isMessage` | Done |
 | Ephemera `messageBus`: publish payload type + guards | Done |
 | `publishMessage`: queue branch for new protocol | Done |
-| `handleObjectsChangedForHypothesis` + unit tests | |
+| `handleObjectsChangedForHypothesis` + unit tests | Done |
 | `publishMessage` tests (if new branch) | Done |
 | Charcoal `Message` switch (+ optional dedicated component) | Done |
 | Durable `coyoteGame/AGENT.md` one-liner | |
@@ -62,8 +62,8 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
   - [X] Update [`publishMessage/index.test.ts`](../../../../../lambda/ephemera/publishMessage/index.test.ts) if fixtures assert **`DisplayProtocol`** lists.
 - [X] **`charcoal-client`**: Add **`case 'CoyoteGameHypothesisMessage':`** in [`Message/index.tsx`](../../../../../charcoal-client/src/components/Message/index.tsx) that renders a **dedicated** component (for example colocated **`CoyoteGameHypothesisMessage.tsx`** under **`Message/`**), **not** a thin wrapper around **`WorldMessage`**. The component should reuse the same body pipeline as world-line rows where it makes sense (**`MessageComponent`**, **`RenderTreeContent`** on **`message.Message`**, similar typography) but with **distinct chrome**: **rounded corners** and a **middling dark grey** **`linear-gradient`** background so hypothesis rows read separately from generic narration.
   - [X] Add or adjust a **client test** in **`Message.test.tsx`** (or equivalent): route **`DisplayProtocol: 'CoyoteGameHypothesisMessage'`** through **`Message`** and assert the dedicated surface (for example presence of hypothesis copy and/or a stable **`data-testid`** on the new component root).
-- [ ] **`handleObjectsChangedForHypothesis`**: Set **`displayProtocol: 'CoyoteGameHypothesisMessage'`** for both the generating and terminal **`PublishMessage`** rows.
-  - [ ] Update [`handleObjectsChangedForHypothesis.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handleObjectsChangedForHypothesis.test.ts) expectations.
+- [X] **`handleObjectsChangedForHypothesis`**: Set **`displayProtocol: 'CoyoteGameHypothesisMessage'`** for both the generating and terminal **`PublishMessage`** rows.
+  - [X] Update [`handleObjectsChangedForHypothesis.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handleObjectsChangedForHypothesis.test.ts) expectations.
 - [ ] **Durable doc**: Short note in [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) under stream / bus or WorldMessage section.
 - [ ] **Closeout**: Update **Progress** table and **Status** line in this file; run **Verification** commands.
 
