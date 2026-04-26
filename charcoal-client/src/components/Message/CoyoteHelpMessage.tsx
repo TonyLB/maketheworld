@@ -38,13 +38,13 @@ export const CoyoteHelpMessage = ({ message: _message, ...rest }: CoyoteHelpMess
                     You play a supra-genius coyote in the cartoon American Southwest. You are very intelligent and very hungry. There is a road runner. It is very fast, very stupid, and (you surmise) very delicious.
                 </Typography>
                 <Typography variant='body2' align='left' sx={{ marginBottom: '0.5em' }}>
-                    Move around by giving a direction or destination, like "go east" or "go to the canyon rim."
+                    Move around by giving a direction or destination: "east" or "climb up the cliff."
                 </Typography>
                 <Typography variant='body2' align='left' sx={{ marginBottom: '0.5em' }}>
-                    Order Acme products by describing what you want to buy from the catalog.
+                    Order Acme products by describing what you want to buy from the catalog: "order rocket power roller-skates" or "order a plate of birdseed and a cannister of ball bearings from Acme."
                 </Typography>
                 <Typography variant='body2' align='left'>
-                    Wait for the Road Runner when you want to pass time and see what opportunity appears.
+                    Wait for the Road Runner to put your plan into action: "wait for road runner."
                 </Typography>
             </Box>
         </MessageComponent>

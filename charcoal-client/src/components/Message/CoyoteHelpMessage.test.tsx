@@ -23,8 +23,8 @@ describe('CoyoteHelpMessage', () => {
 
         expect(screen.getByText('Welcome to the Coyote Game')).toBeDefined()
         expect(screen.getByText(/You play a supra-genius coyote in the cartoon American Southwest\./)).toBeDefined()
-        expect(screen.getByText(/Move around by giving a direction or destination/)).toBeDefined()
-        expect(screen.getByText(/Order Acme products by describing what you want to buy from the catalog\./)).toBeDefined()
-        expect(screen.getByText(/Wait for the Road Runner when you want to pass time/)).toBeDefined()
+        expect(screen.getByText(/Move around by giving a direction or destination: "east" or "climb up the cliff\."/)).toBeDefined()
+        expect(screen.getByText(/Order Acme products by describing what you want to buy from the catalog: "order rocket power roller-skates" or "order a plate of birdseed and a cannister of ball bearings from Acme\."/)).toBeDefined()
+        expect(screen.getByText(/Wait for the Road Runner to put your plan into action: "wait for road runner\."/)).toBeDefined()
     })
 })
