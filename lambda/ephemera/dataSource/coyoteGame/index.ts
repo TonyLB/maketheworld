@@ -21,6 +21,9 @@ export const ephemeraCoyoteGameDataSource = new EphemeraDataSource<
     dataSourceKey: 'mtw.ephemera.coyoteGame',
     replayable: false,
     publisherStrategy: 'busOnly',
+    // Run hypothesis generation after earlier bus work (e.g. PublishMessage/object cascades)
+    // so immediate player-facing updates are delivered before this late derived step.
+    subscriptionPriority: 20,
     subscribedEventTypeGuard: isCoyoteGameSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (event) => {

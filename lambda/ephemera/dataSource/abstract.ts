@@ -32,6 +32,7 @@ export class EphemeraDataSource<
         }) => Promise<void>;
         eventSerializer?: any;
         publisherStrategy?: DataSourcePublisherStrategy;
+        subscriptionPriority?: number;
     }) {
         super({
             dynamo: ephemeraDB,
