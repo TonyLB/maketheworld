@@ -8,7 +8,7 @@
 
 ## Role
 
-Parses slash-free and natural-language commands (**Bedrock**: intent classification + Acme enrich when applicable). Publishes internal bus streams such as **`Acme Order`**, **`Character Navigate`**, **`Await RoadRunner`**, and harness-only outcomes --- see [`publishedEvents.ts`](publishedEvents.ts); **`mtw.ephemera.objects`** subscribes via [`../objects/subscribedEvents.ts`](../objects/subscribedEvents.ts) (**`Acme Order`** envelope guard).
+Parses slash-free and natural-language commands (**Bedrock**: intent classification + Acme enrich when applicable). Publishes internal bus streams such as **`Acme Order`**, **`Character Navigate`**, **`Await RoadRunner`**, and harness-only outcomes --- see [`publishedEvents.ts`](publishedEvents.ts); for terminal parse lines that need no stream contract, **`index.ts`** may **`PublishMessage`** as **`WorldOOCMessage`** (including **`PromptInjectionAttempt`**, Step A meta-instruction / jailbreak-tone classification). **`mtw.ephemera.objects`** subscribes via [`../objects/subscribedEvents.ts`](../objects/subscribedEvents.ts) (**`Acme Order`** envelope guard).
 
 Related index: [`../AGENT.md`](../AGENT.md) (**DataSource instances** table).
 
@@ -35,6 +35,8 @@ Use this sequence when adding a new parse affordance to `mtw.ephemera.actions`:
 3. Keep the Step A label string, prompt enum, and interpretation guard aligned across [`buildParseCommandIntentClassificationPrompt.ts`](buildParseCommandIntentClassificationPrompt.ts), [`parseCommandIntentClassification.ts`](parseCommandIntentClassification.ts), and `baseClasses.ts`.
 4. In [`index.ts`](index.ts), branch on the affordance guard and either publish a stream event (preferred for multi-DataSource workflows) or apply local side effects for strictly local behavior.
 5. Add payload type + runtime guard in [`publishedEvents.ts`](publishedEvents.ts) for any new stream contract.
+
+**`PromptInjectionAttempt` (steady-state):** Step A returns JSON **`type`** **`PromptInjectionAttempt`** when the intent prompt (section **P**, evaluated before **A--D** in [`buildParseCommandIntentClassificationPrompt.ts`](buildParseCommandIntentClassificationPrompt.ts)) labels parser-manipulation tone; **`parseCommand`** skips Acme Step B like **`Unknown`**, and **`index.ts`** sends **`WorldOOCMessage`** only (no **`streamEvent`** / **`publishedEvents`** entry) because this is in-franchise player feedback, not a security boundary.
 
 ### Room look as reference implementation
 
