@@ -1,6 +1,6 @@
 # Coyote compact hypothesis: dedicated `DisplayProtocol`
 
-**Status:** Not started. Next step: add wire + bus types, then switch hypothesis publishes to the new protocol, then client routing.
+**Status:** In progress. Wire and bus types shipped; next step: **`lambda/ephemera/publishMessage`** queue branch for **`CoyoteGameHypothesisMessage`**, then **`handleObjectsChangedForHypothesis`**, then client routing.
 
 Skim [`taskPlanning/AGENT.md`](../../../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -23,9 +23,9 @@ Existing Coyote-specific protocol: **`CoyoteGameHelpMessage`** ([`packages/mtw-i
 | Area | Role |
 | --- | --- |
 | [`handleObjectsChangedForHypothesis.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handleObjectsChangedForHypothesis.ts) | Both **`PublishMessage`** sends today use **`displayProtocol: 'WorldMessage'`**; switch to **`CoyoteGameHypothesisMessage`**. |
-| [`lambda/ephemera/messageBus/baseClasses.ts`](../../../../../lambda/ephemera/messageBus/baseClasses.ts) | Add **`PublishCoyoteGameHypothesisMessage`**, extend **`PublishMessage`** union, add type guard(s). Decide whether **`isPublishWorldLineMessage`** should include the new protocol or a sibling guard is used in **`publishMessage`**. |
+| [`lambda/ephemera/messageBus/baseClasses.ts`](../../../../../lambda/ephemera/messageBus/baseClasses.ts) | **`PublishCoyoteGameHypothesisMessage`** and **`isPublishCoyoteGameHypothesisMessage`** added; next slice: **`publishMessage`** ORs this guard with the world-line branch (or a dedicated branch). |
 | [`lambda/ephemera/publishMessage/index.ts`](../../../../../lambda/ephemera/publishMessage/index.ts) | Queue path for world-line messages; extend so **`CoyoteGameHypothesisMessage`** maps to the same **`pushToQueues`** fields as **`WorldMessage`** (**`Message`**, **`MessageId`**, **`CreatedTime`**, **`DisplayProtocol`**). |
-| [`packages/mtw-interfaces/ts/messages.ts`](../../../../../packages/mtw-interfaces/ts/messages.ts) | New exported type, **`Message`** union, **`isMessage`** validation for **`RenderTree`** body. |
+| [`packages/mtw-interfaces/ts/messages.ts`](../../../../../packages/mtw-interfaces/ts/messages.ts) | **`CoyoteGameHypothesisMessage`**, extended **`Message`** / **`isMessage`**. |
 | [`charcoal-client/src/components/Message/index.tsx`](../../../../../charcoal-client/src/components/Message/index.tsx) | **`switch (DisplayProtocol)`** branch; initial implementation may delegate to **`WorldMessage`** for identical layout until bespoke UI lands. |
 | [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) | After behavior ships, one-line note that compact hypothesis uses **`CoyoteGameHypothesisMessage`** (link from this plan until the task plan is retired). |
 
@@ -42,8 +42,8 @@ Existing Coyote-specific protocol: **`CoyoteGameHelpMessage`** ([`packages/mtw-i
 
 | Area | State |
 | --- | --- |
-| `mtw-interfaces`: type + `Message` union + `isMessage` | |
-| Ephemera `messageBus`: publish payload type + guards | |
+| `mtw-interfaces`: type + `Message` union + `isMessage` | Done |
+| Ephemera `messageBus`: publish payload type + guards | Done |
 | `publishMessage`: queue branch for new protocol | |
 | `handleObjectsChangedForHypothesis` + unit tests | |
 | `publishMessage` tests (if new branch) | |
@@ -55,9 +55,9 @@ Existing Coyote-specific protocol: **`CoyoteGameHelpMessage`** ([`packages/mtw-i
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` as you complete them.
 
-- [ ] **`@tonylb/mtw-interfaces`**: Add **`CoyoteGameHypothesisMessage`** type (**`DisplayProtocol: 'CoyoteGameHypothesisMessage'`**, **`Message: RenderTree`**, same addressing fields as **`WorldMessage`**), extend **`Message`** union, extend **`isMessage`** **`switch`** with **`RenderTree`** validation for **`Message`**.
-  - [ ] Add or extend **unit tests** in [`messages.test.ts`](../../../../../packages/mtw-interfaces/ts/messages.test.ts) (and **`ephemera.test.ts`** if full message envelopes are asserted there).
-- [ ] **`lambda/ephemera/messageBus`**: Add **`PublishCoyoteGameHypothesisMessage`** (mirror **`PublishWorldMessage`** fields: **`message`**, **`messageId?`**, **`createdTime?`**), add to **`PublishMessage`** union, add **`isPublishCoyoteGameHypothesisMessage`** (and update **`isPublishWorldLineMessage`** or **`publishMessage`** consumer explicitly --- pick one approach and keep guards readable).
+- [X] **`@tonylb/mtw-interfaces`**: Add **`CoyoteGameHypothesisMessage`** type (**`DisplayProtocol: 'CoyoteGameHypothesisMessage'`**, **`Message: RenderTree`**, same addressing fields as **`WorldMessage`**), extend **`Message`** union, extend **`isMessage`** **`switch`** with **`RenderTree`** validation for **`Message`**.
+  - [X] Add or extend **unit tests** in [`messages.test.ts`](../../../../../packages/mtw-interfaces/ts/messages.test.ts) (and **`ephemera.test.ts`** if full message envelopes are asserted there).
+- [X] **`lambda/ephemera/messageBus`**: Add **`PublishCoyoteGameHypothesisMessage`** (mirror **`PublishWorldMessage`** fields: **`message`**, **`messageId?`**, **`createdTime?`**), add to **`PublishMessage`** union, add **`isPublishCoyoteGameHypothesisMessage`** (and update **`isPublishWorldLineMessage`** or **`publishMessage`** consumer explicitly --- pick one approach and keep guards readable).
 - [ ] **`lambda/ephemera/publishMessage`**: Handle the new payload in [`index.ts`](../../../../../lambda/ephemera/publishMessage/index.ts) with the same **`pushToQueues`** shape as world-line messages (**`Message`**, **`MessageId`**, **`CreatedTime`**, **`DisplayProtocol`**).
   - [ ] Update [`publishMessage/index.test.ts`](../../../../../lambda/ephemera/publishMessage/index.test.ts) if fixtures assert **`DisplayProtocol`** lists.
 - [ ] **`handleObjectsChangedForHypothesis`**: Set **`displayProtocol: 'CoyoteGameHypothesisMessage'`** for both the generating and terminal **`PublishMessage`** rows.

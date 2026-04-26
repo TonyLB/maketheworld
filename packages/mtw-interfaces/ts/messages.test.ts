@@ -35,6 +35,46 @@ describe('WorldOOCMessage', () => {
     })
 })
 
+describe('CoyoteGameHypothesisMessage', () => {
+    it('should validate through isMessage with render tree Message', () => {
+        expect(isMessage({
+            DisplayProtocol: 'CoyoteGameHypothesisMessage',
+            MessageId: 'MESSAGE#h1',
+            CreatedTime: 1,
+            Message: ['Hypothesis: Generating...']
+        })).toBe(true)
+    })
+
+    it('should reject invalid Message payload', () => {
+        expect(isMessage({
+            DisplayProtocol: 'CoyoteGameHypothesisMessage',
+            MessageId: 'MESSAGE#h1',
+            CreatedTime: 1,
+            Message: 'not a render tree'
+        })).toBe(false)
+    })
+
+    it('should validate with optional character Target', () => {
+        expect(isMessage({
+            DisplayProtocol: 'CoyoteGameHypothesisMessage',
+            MessageId: 'MESSAGE#h1',
+            CreatedTime: 1,
+            Target: 'CHARACTER#x',
+            Message: ['Test']
+        })).toBe(true)
+    })
+
+    it('should reject with malformed target', () => {
+        expect(isMessage({
+            DisplayProtocol: 'CoyoteGameHypothesisMessage',
+            MessageId: 'MESSAGE#h1',
+            CreatedTime: 1,
+            Target: 'TARGET#bad',
+            Message: ['Test']
+        })).toBe(false)
+    })
+})
+
 describe('CoyoteGameHelpMessage', () => {
     it('should validate through isMessage with addressing fields only', () => {
         expect(isMessage({
