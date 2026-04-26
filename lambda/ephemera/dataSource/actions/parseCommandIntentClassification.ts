@@ -8,6 +8,7 @@ import {
     isParseCommandAwaitRoadrunnerResult,
     isParseCommandLookRoomResult,
     isParseCommandNavigationIntentResult,
+    isParseCommandPromptInjectionAttemptResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
 } from './baseClasses'
@@ -48,7 +49,7 @@ function extractJsonBody(raw: string): string {
 
 /**
  * Parses and validates LLM output for the intent-classification prompt.
- * Accepts **`AwaitRoadRunner`**, **`AcmeOrder`** (intent-only, no **`orders`**), **`LookRoom`**,
+ * Accepts **`PromptInjectionAttempt`**, **`AwaitRoadRunner`**, **`AcmeOrder`** (intent-only, no **`orders`**), **`LookRoom`**,
  * **`NavigationIntent`**, **`Unimplemented`**, or **`Unknown`**; anything else becomes **`Error`**.
  * (**`CoyoteEngineTest`**, slash-only harness types, and **bare `look` / `l`** are handled deterministically before Bedrock in **`parseCommand`**.)
  */
@@ -156,9 +157,19 @@ export function interpretParseCommandIntentClassificationBody(body: string): Int
         }
     }
 
+    if (type === 'PromptInjectionAttempt') {
+        const candidate: IntentClassificationResult = {
+            type: 'PromptInjectionAttempt',
+            confidence: obj.confidence as number,
+        }
+        if (isParseCommandPromptInjectionAttemptResult(candidate)) {
+            return candidate
+        }
+    }
+
     return {
         type: 'Error',
         errorMessage:
-            'Model JSON must be a valid AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
+            'Model JSON must be a valid PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
     }
 }
