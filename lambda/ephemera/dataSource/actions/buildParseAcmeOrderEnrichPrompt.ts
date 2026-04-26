@@ -59,7 +59,7 @@ The **Coyote-wide keys already in use** list appears **after** these instruction
 
 ## Segment line items
 
-From that command, extract **one entry in \`lines[]\` per distinct product / line item** (split on commas, **and**, **also**, multiple verbs, etc.). Preserve **speaker intent** — do not drop items.
+From that command, extract **one entry in \`lines[]\` per distinct product / line item** (split on commas, **and**, **also**, or multiple **object-level** action verbs that name separate deliverables). Ignore the command verb itself (**order**, **get**, **send**, **mail order**) when segmenting. Example: **order glue and springs** → exactly two lines (**glue**, **springs**). Preserve **speaker intent** — do not drop items.
 
 ## Catalog validation per line
 
