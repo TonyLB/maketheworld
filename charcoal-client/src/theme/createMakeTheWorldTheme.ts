@@ -77,7 +77,8 @@
  * while maintaining theme-specific colors.
  */
 
-import { createTheme, Theme, ThemeOptions } from '@mui/material/styles'
+import { createTheme } from '@mui/material'
+import type { Theme, ThemeOptions } from '@mui/material'
 import { grey } from '@mui/material/colors'
 
 // Import theme extensions to ensure module augmentation is applied
@@ -177,6 +178,17 @@ export const createMakeTheWorldTheme = (options: MakeTheWorldThemeOptions): Them
             ),
             linear-gradient(white 70%, ${grey[100]})
         `,
+        /** Onboarding/system tutorial blocks; neutral grey with denser striping. */
+        stripedGradientCoyoteHelp: `
+            repeating-linear-gradient(
+                -35deg,
+                transparent,
+                transparent 6px,
+                ${grey[300]}50 6px,
+                ${grey[300]}50 12px
+            ),
+            linear-gradient(${grey[50]}, ${grey[200]})
+        `,
         
         // Workbench-specific colors (used in authoring workbench)
         // These use the primary color to maintain consistency
@@ -189,7 +201,7 @@ export const createMakeTheWorldTheme = (options: MakeTheWorldThemeOptions): Them
     }
     
     // Build the theme
-    const themeOptions: ThemeOptions = {
+    const themeOptions = {
         palette: {
             primary: primaryPalette,
             secondary: secondaryPalette,

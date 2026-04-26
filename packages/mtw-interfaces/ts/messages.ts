@@ -28,6 +28,10 @@ export type SpacerMessage = {
     DisplayProtocol: 'SpacerMessage';
 } & MessageAddressing
 
+export type CoyoteGameHelpMessage = {
+    DisplayProtocol: 'CoyoteGameHelpMessage';
+} & MessageAddressing
+
 const isRenderTree = (message: any): message is RenderTree | undefined => {
     if (typeof message === 'undefined') {
         return true
@@ -337,7 +341,7 @@ export const isPerceptionAssetMetaData = (metaData: PerceptionMessageMetaData): 
     return metaData.componentUUID.startsWith('ASSET#');
 }
 
-export type Message = SpacerMessage | WorldMessage | WorldOOCMessage | RoomUpdate | CharacterNarration | CharacterSpeech | OutOfCharacterMessage | PerceptionMessage
+export type Message = SpacerMessage | CoyoteGameHelpMessage | WorldMessage | WorldOOCMessage | RoomUpdate | CharacterNarration | CharacterSpeech | OutOfCharacterMessage | PerceptionMessage
 
 export const isMessage = (message: any): message is Message => {
     if (typeof message !== 'object') {
@@ -350,6 +354,8 @@ export const isMessage = (message: any): message is Message => {
         return false
     }
     switch(message.DisplayProtocol) {
+        case 'CoyoteGameHelpMessage':
+            return true
         case 'WorldMessage':
         case 'WorldOOCMessage':
             return isRenderTree(message.Message)

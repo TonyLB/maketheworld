@@ -35,6 +35,24 @@ describe('WorldOOCMessage', () => {
     })
 })
 
+describe('CoyoteGameHelpMessage', () => {
+    it('should validate through isMessage with addressing fields only', () => {
+        expect(isMessage({
+            DisplayProtocol: 'CoyoteGameHelpMessage',
+            MessageId: 'MESSAGE#help',
+            CreatedTime: 1,
+            Target: 'CHARACTER#x'
+        })).toBe(true)
+    })
+
+    it('should reject if required addressing fields are missing', () => {
+        expect(isMessage({
+            DisplayProtocol: 'CoyoteGameHelpMessage',
+            CreatedTime: 1
+        })).toBe(false)
+    })
+})
+
 describe('PerceptionMessage', () => {
     const validPerceptionMessage: PerceptionMessage = {
         DisplayProtocol: 'PerceptionMessage',
