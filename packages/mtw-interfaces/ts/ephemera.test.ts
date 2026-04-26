@@ -299,6 +299,18 @@ describe('EphemeraClientMessage typeguard', () => {
             })).toBe(true)
         })
 
+        it('should accept CoyoteGameHelpMessage without message body payload', () => {
+            expect(isEphemeraClientMessage({
+                messageType: 'Messages',
+                messages: [{
+                    DisplayProtocol: 'CoyoteGameHelpMessage',
+                    MessageId: 'TestID',
+                    CreatedTime: 5,
+                    Target: 'CHARACTER#TestABC',
+                }]
+            })).toBe(true)
+        })
+
     })
 
     describe('ConversationStep (generic envelope)', () => {

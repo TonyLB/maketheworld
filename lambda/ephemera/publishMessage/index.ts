@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { isCharacterMessage, isPublishWorldLineMessage, PublishMessage, MessageBus, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isPerceptionPublishMessage, isPublishTargetSession, isPublishTargetExcludeSession } from "../messageBus/baseClasses"
+import { isCharacterMessage, isPublishWorldLineMessage, PublishMessage, MessageBus, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isPerceptionPublishMessage, isPublishTargetSession, isPublishTargetExcludeSession, isPublishCoyoteGameHelpMessage } from "../messageBus/baseClasses"
 import getCurrentTimestamp from '../internalUtils/dateUtil'
 import { unique } from '@tonylb/mtw-utilities/ts/lists'
 import internalCache from '../internalCache'
@@ -292,6 +292,15 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 DisplayProtocol: payload.displayProtocol,
                 wmlContent: payload.wmlContent,
                 metaData: payload.metaData
+            })
+        }
+        if (isPublishCoyoteGameHelpMessage(payload)) {
+            const CreatedTime = payload.createdTime !== undefined ? payload.createdTime : computedCreatedTime
+            await pushToQueues({
+                Targets: payload.targets,
+                MessageId: payload.messageId ?? `MESSAGE#${uuidv4()}`,
+                CreatedTime,
+                DisplayProtocol: payload.displayProtocol,
             })
         }
     }))

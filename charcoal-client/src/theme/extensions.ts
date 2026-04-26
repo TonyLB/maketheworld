@@ -26,6 +26,7 @@ declare module '@mui/material/styles' {
             paleGradient?: string;
             stripedGradient?: string;
             stripedGradientGrey?: string;
+            stripedGradientCoyoteHelp?: string;
             
             // Workbench-specific colors (used in authoring workbench)
             sectionBorder?: string;
@@ -46,6 +47,7 @@ declare module '@mui/material/styles' {
             paleGradient?: string;
             stripedGradient?: string;
             stripedGradientGrey?: string;
+            stripedGradientCoyoteHelp?: string;
             
             // Workbench-specific colors (used in authoring workbench)
             sectionBorder?: string;

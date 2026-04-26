@@ -76,3 +76,55 @@ describe('Message component - PerceptionMessage routing', () => {
     })
 })
 
+describe('Message component - CoyoteGameHelpMessage routing', () => {
+    it('should render the coyote help header', () => {
+        const store = mockStore({
+            player: {
+                Players: {
+                    'CHARACTER#test': {
+                        Assets: []
+                    }
+                }
+            },
+            playerDataSource: {
+                publicData: {
+                    activeStreamKeys: [],
+                    subscribedStreams: {
+                        'test-player': {
+                            materializedView: {
+                                type: 'Snapshot',
+                                assets: [],
+                                characters: [],
+                                settings: { onboardCompleteTags: [] }
+                            }
+                        }
+                    }
+                }
+            },
+            personalAssets: { byId: {} },
+            activeCharacters: {
+                activeCharacter: 'CHARACTER#test'
+            },
+            settings: {
+                server: { ChatPrompt: 'What do you do?' },
+                client: { TextEntryLines: 1, ShowNeighborhoodHeaders: false, AlwaysShowOnboarding: false },
+                connection: { sessionId: '', playerName: 'test-player' }
+            },
+            lifeLine: {}
+        })
+        const message = {
+            DisplayProtocol: 'CoyoteGameHelpMessage',
+            MessageId: 'msg-help',
+            CreatedTime: Date.now()
+        } as const
+
+        render(
+            <Provider store={store}>
+                <Message message={message} />
+            </Provider>
+        )
+
+        expect(screen.getByText('Welcome to the Coyote Game')).toBeDefined()
+    })
+})
+
