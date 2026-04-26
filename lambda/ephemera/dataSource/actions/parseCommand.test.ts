@@ -7,6 +7,7 @@ import {
     isParseCommandLookRoomResult,
     isParseCommandNavigationIntentResult,
     isParseCommandNavigationResult,
+    isParseCommandPromptInjectionAttemptResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
 } from './baseClasses'
@@ -192,11 +193,14 @@ describe('parseCommand type guards', () => {
         expect(isParseCommandLookRoomResult({ type: 'LookRoom', confidence: 1.5 })).toBe(false)
     })
 
-    it('isParseCommandUnimplementedResult and isParseCommandUnknownResult require confidence', () => {
+    it('isParseCommandUnimplementedResult, isParseCommandUnknownResult, and isParseCommandPromptInjectionAttemptResult require confidence', () => {
         expect(isParseCommandUnimplementedResult({ type: 'Unimplemented', confidence: 0.5 })).toBe(true)
         expect(isParseCommandUnimplementedResult({ type: 'Unimplemented' } as any)).toBe(false)
         expect(isParseCommandUnknownResult({ type: 'Unknown', confidence: 0.2 })).toBe(true)
         expect(isParseCommandUnknownResult({ type: 'Unknown' } as any)).toBe(false)
+        expect(isParseCommandPromptInjectionAttemptResult({ type: 'PromptInjectionAttempt', confidence: 0.6 })).toBe(true)
+        expect(isParseCommandPromptInjectionAttemptResult({ type: 'PromptInjectionAttempt' } as any)).toBe(false)
+        expect(isParseCommandPromptInjectionAttemptResult({ type: 'PromptInjectionAttempt', confidence: 1.2 })).toBe(false)
     })
 
     it('isParseCommandErrorResult does not require confidence', () => {

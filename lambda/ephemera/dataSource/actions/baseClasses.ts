@@ -71,6 +71,7 @@ export type IntentClassificationResult =
     | ParseCommandLookRoomResult
     | ParseCommandUnimplementedResult
     | ParseCommandUnknownResult
+    | ParseCommandPromptInjectionAttemptResult
 
 /** Coyote Game: order from Acme (mail-order, catalog, or unspecified). One or more product lines. */
 export type ParseCommandAcmeOrderResult = {
@@ -114,6 +115,14 @@ export type ParseCommandUnknownResult = {
     confidence: ParseCommandConfidence
 }
 
+/**
+ * Step A / terminal parse: meta-instruction or jailbreak-style input (player-facing tone only; not a safety control).
+ */
+export type ParseCommandPromptInjectionAttemptResult = {
+    type: 'PromptInjectionAttempt'
+    confidence: ParseCommandConfidence
+}
+
 export type ParseCommandResult =
     | ParseCommandErrorResult
     | ParseCommandNavigationResult
@@ -124,6 +133,7 @@ export type ParseCommandResult =
     | ParseCommandCoyoteAffinitiesTestResult
     | ParseCommandUnimplementedResult
     | ParseCommandUnknownResult
+    | ParseCommandPromptInjectionAttemptResult
 
 export function isParseCommandErrorResult(
     result: ParseCommandResult
@@ -274,6 +284,15 @@ export function isParseCommandUnknownResult(
     result: ParseCommandResult | IntentClassificationResult
 ): result is ParseCommandUnknownResult {
     if (result.type !== 'Unknown') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
+export function isParseCommandPromptInjectionAttemptResult(
+    result: ParseCommandResult | IntentClassificationResult
+): result is ParseCommandPromptInjectionAttemptResult {
+    if (result.type !== 'PromptInjectionAttempt') {
         return false
     }
     return isParseConfidence(result.confidence)

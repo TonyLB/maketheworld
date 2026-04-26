@@ -1,6 +1,6 @@
 # Prompt-injection / jailbreak tone in parse Step A (`mtw.ephemera.actions`)
 
-**Status:** Not started. Next step is to add a dedicated Step A intent label, interpreter branch, and **`WorldOOCMessage`** copy when the classifier recognizes meta-instruction or jailbreak-style input.
+**Status:** In progress. **`baseClasses.ts`** types and guard are in place; next step is prompt, interpreter, **`parseCommand`** / **`index.ts`**, and tests for end-to-end behavior.
 
 ## Purpose
 
@@ -51,9 +51,9 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 
 - [X] JSON **`type`** string: **`PromptInjectionAttempt`** (agreed).
 - [X] OOC player message (ASCII punctuation; confirmed in Purpose).
-- [ ] **`baseClasses.ts`**
-  - [ ] Add variant to **`IntentClassificationResult`** and **`ParseCommandResult`**.
-  - [ ] Add **`isParseCommand...`** guard mirroring **`Unknown`** / **`Unimplemented`**.
+- [X] **`baseClasses.ts`**
+  - [X] Add variant to **`IntentClassificationResult`** and **`ParseCommandResult`**.
+  - [X] Add **`isParseCommand...`** guard mirroring **`Unknown`** / **`Unimplemented`**.
 - [ ] **`buildParseCommandIntentClassificationPrompt.ts`**
   - [ ] Add decision section and required JSON shape; extend the allowed **`type`** list in the closing reminder.
 - [ ] **`parseCommandIntentClassification.ts`**
@@ -86,7 +86,7 @@ Broader regression (optional): `npx jest dataSource/actions/ dataSource/objects/
 | Task plan authored | Done |
 | JSON `type` **`PromptInjectionAttempt`** agreed | Done |
 | OOC player message confirmed | Done |
-| Types + interpreter + prompt | Not started |
+| Types + interpreter + prompt | In progress (**`baseClasses.ts`** done; prompt + interpreter pending) |
 | `index.ts` OOC branch | Not started |
 | Tests + doc line | Not started |
 | Plan retired after merge | Not started |
