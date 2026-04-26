@@ -32,7 +32,7 @@ export const WorldOOCMessage = ({ message, ...rest }: WorldOOCMessageProps) => {
                 }}
             >
                 <Box sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
-                    Out of world
+                    Out of character
                 </Box>
                 <Typography variant='body1' align='left'>
                     <RenderTreeContent list={message.Message} onClickLink={() => {}} />

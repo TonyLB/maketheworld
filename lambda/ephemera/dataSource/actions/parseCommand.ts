@@ -187,7 +187,7 @@ async function parseCommandCore(
 
 /**
  * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; **bare `look` / `l`** returns **`LookRoom`**: all without Bedrock.
- * Otherwise classifies via LLM (Step A), then runs Acme Step B when intent is **AcmeOrderIntent**.
+ * Otherwise classifies via LLM (Step A), then runs Acme Step B only when intent is **AcmeOrderIntent**. Step A outcomes **PromptInjectionAttempt**, **Unknown**, **Unimplemented**, and others (except **NavigationIntent**, which resolves here) pass through without Step B.
  * Enrich chain-of-reason Markdown is not attached to **`AcmeOrder`**; use {@link parseCommandWithEnrichReasoning} when needed (e.g. affinities harness).
  */
 export async function parseCommand(
@@ -206,7 +206,7 @@ export async function parseCommand(
 }
 
 /**
- * Same pipeline as **`parseCommand`** (including **bare `look` / `l`** and Coyote test shortcuts without Bedrock), plus Step B **`enrichReasoningMarkdown`** for manual review (affinities harness). Does not add that string to **`AcmeOrder`**.
+ * Same pipeline as **`parseCommand`** (including **bare `look` / `l`**, Coyote test shortcuts without Bedrock, and Step A terminals like **PromptInjectionAttempt** without Acme Step B), plus Step B **`enrichReasoningMarkdown`** for manual review (affinities harness). Does not add that string to **`AcmeOrder`**.
  */
 export async function parseCommandWithEnrichReasoning(
     input: ParseCommandInput,

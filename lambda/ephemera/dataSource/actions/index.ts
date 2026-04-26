@@ -24,6 +24,7 @@ import {
     isParseCommandErrorResult,
     isParseCommandLookRoomResult,
     isParseCommandNavigationResult,
+    isParseCommandPromptInjectionAttemptResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
 } from './baseClasses'
@@ -265,6 +266,16 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                     displayProtocol: 'WorldOOCMessage',
                     message: [
                         "I can tell you're trying to do something that hasn't been implemented in the game yet, sorry.",
+                    ],
+                })
+            }
+            else if (isEphemeraCharacterId(content.characterId) && isParseCommandPromptInjectionAttemptResult(parseResult)) {
+                messageBus.send({
+                    type: 'PublishMessage',
+                    targets: [content.characterId],
+                    displayProtocol: 'WorldOOCMessage',
+                    message: [
+                        "Prompt injection isn't going to get you any closer to catching the Road Runner.",
                     ],
                 })
             }

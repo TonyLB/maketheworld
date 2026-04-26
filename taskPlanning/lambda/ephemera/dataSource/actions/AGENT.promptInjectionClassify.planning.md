@@ -1,6 +1,6 @@
 # Prompt-injection / jailbreak tone in parse Step A (`mtw.ephemera.actions`)
 
-**Status:** In progress. **`baseClasses.ts`** types and guard are in place; next step is prompt, interpreter, **`parseCommand`** / **`index.ts`**, and tests for end-to-end behavior.
+**Status:** In progress. Prompt, interpreter, **`parseCommand`** docstrings, **`index.ts`** OOC branch, and tests are landed. Remaining: optional durable line in [`actions/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.md) (Recommended order line 69), then retire this plan after merge.
 
 ## Purpose
 
@@ -40,7 +40,7 @@ This document is task-scoped. Remove or archive it after the behavior ships and 
 
 ## Design notes (implementation handoff)
 
-- **Placement in decision order:** Treat meta-instruction / jailbreak attempts as a **first-class** check in the prompt so they are not mislabeled as **`AcmeOrder`** or **`NavigationIntent`** when the line is primarily an attack on the parser. Exact ordering relative to sections A--D is a prompt-engineering choice; document the chosen rule in the prompt file comment or AGENT.md when done.
+- **Placement in decision order:** Treat meta-instruction / jailbreak attempts as a **first-class** check in the prompt so they are not mislabeled as **`AcmeOrder`** or **`NavigationIntent`** when the line is primarily an attack on the parser. **Chosen rule:** section **P — PromptInjectionAttempt** is evaluated before sections A--D in [`buildParseCommandIntentClassificationPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/buildParseCommandIntentClassificationPrompt.ts) (see file header and decision order).
 - **JSON `type` string (agreed):** **`PromptInjectionAttempt`**. Use it exactly (case-sensitive) in the prompt, interpreter, guards, and tests.
 - **Confidence:** Follow existing Step A shapes: include **`confidence`** in [0, 1] and validate with the same patterns as **`Unknown`**.
 - **No Step B:** Same as **`Unknown`** / **`Unimplemented`**: no Acme enrich after this label.
@@ -54,20 +54,20 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 - [X] **`baseClasses.ts`**
   - [X] Add variant to **`IntentClassificationResult`** and **`ParseCommandResult`**.
   - [X] Add **`isParseCommand...`** guard mirroring **`Unknown`** / **`Unimplemented`**.
-- [ ] **`buildParseCommandIntentClassificationPrompt.ts`**
-  - [ ] Add decision section and required JSON shape; extend the allowed **`type`** list in the closing reminder.
-- [ ] **`parseCommandIntentClassification.ts`**
-  - [ ] Parse and validate the new **`type`**; update the aggregate error message listing allowed types.
-- [ ] **`parseCommand.ts`**
-  - [ ] Confirm pass-through from Step A (no Acme Step B); adjust docstrings if they list only previous outcomes.
-- [ ] **`index.ts`**
-  - [ ] Branch with **`WorldOOCMessage`** and the agreed message line.
-- [ ] Tests
-  - [ ] [`parseCommandIntentClassification.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommandIntentClassification.test.ts) (valid + invalid payloads).
-  - [ ] [`parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts) or existing parse mocks for end-to-end **`ParseCommandResult`**.
-  - [ ] [`index.test.ts`](../../../../../lambda/ephemera/dataSource/actions/index.test.ts) for published OOC payload.
+- [X] **`buildParseCommandIntentClassificationPrompt.ts`**
+  - [X] Add decision section and required JSON shape; extend the allowed **`type`** list in the closing reminder.
+- [X] **`parseCommandIntentClassification.ts`**
+  - [X] Parse and validate the new **`type`**; update the aggregate error message listing allowed types.
+- [X] **`parseCommand.ts`**
+  - [X] Confirm pass-through from Step A (no Acme Step B); adjust docstrings if they list only previous outcomes.
+- [X] **`index.ts`**
+  - [X] Branch with **`WorldOOCMessage`** and the agreed message line.
+- [X] Tests
+  - [X] [`parseCommandIntentClassification.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommandIntentClassification.test.ts) (valid + invalid payloads).
+  - [X] [`parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts) or existing parse mocks for end-to-end **`ParseCommandResult`**.
+  - [X] [`index.test.ts`](../../../../../lambda/ephemera/dataSource/actions/index.test.ts) for published OOC payload.
 - [ ] Durable doc touch-up: add one sentence to [`actions/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.md) **Adding a new command affordance** or Role if the new label is part of the steady-state contract.
-- [ ] Update this plan's **Status** and **Progress** (and Recommended order checkboxes) when the slice merges.
+- [X] Update this plan's **Status** and **Progress** (and Recommended order checkboxes) when the slice merges.
 
 ## Verification
 
@@ -86,7 +86,7 @@ Broader regression (optional): `npx jest dataSource/actions/ dataSource/objects/
 | Task plan authored | Done |
 | JSON `type` **`PromptInjectionAttempt`** agreed | Done |
 | OOC player message confirmed | Done |
-| Types + interpreter + prompt | In progress (**`baseClasses.ts`** done; prompt + interpreter pending) |
-| `index.ts` OOC branch | Not started |
-| Tests + doc line | Not started |
+| Types + interpreter + prompt | Done (**`baseClasses.ts`**, prompt, interpreter) |
+| `index.ts` OOC branch | Done |
+| Tests + doc line | Done (tests); [`AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.md) one-liner still optional (line 69) |
 | Plan retired after merge | Not started |
