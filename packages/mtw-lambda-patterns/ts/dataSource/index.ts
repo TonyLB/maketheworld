@@ -129,6 +129,7 @@ export class DataSource<
     readonly feedbackTopicArn: string
     readonly replayable: boolean
     readonly publisherStrategy: DataSourcePublisherStrategy
+    readonly subscriptionPriority: number
     readonly subscribedEventTypeGuard?: (envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>
     readonly receiveEvents?: (params: { 
         events: Array<StreamingEventEnvelope<SubscribedContent>>,
@@ -151,6 +152,7 @@ export class DataSource<
         feedbackTopicArn,
         replayable = true,
         publisherStrategy = 'eventBridge+bus',
+        subscriptionPriority = 5,
         snapshotTimeoutMs = 5000,
         subscribedEventTypeGuard,
         receiveEvents,
@@ -167,6 +169,7 @@ export class DataSource<
         feedbackTopicArn: string,
         replayable?: boolean,
         publisherStrategy?: DataSourcePublisherStrategy,
+        subscriptionPriority?: number,
         snapshotTimeoutMs?: number,
         subscribedEventTypeGuard?: (envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>,
         receiveEvents?: (params: { 
@@ -187,6 +190,7 @@ export class DataSource<
         this.feedbackTopicArn = feedbackTopicArn
         this.replayable = replayable
         this.publisherStrategy = publisherStrategy
+        this.subscriptionPriority = subscriptionPriority
         this.subscribedEventTypeGuard = subscribedEventTypeGuard
         this.receiveEvents = receiveEvents
         this.eventSerializer = eventSerializer
@@ -787,7 +791,7 @@ export class DataSource<
         // Subscribe to messageBus with structure guard; callback builds envelopes as unknown, filters with envelope guard, passes narrowed to receiveEvents.
         this.messageBus.subscribe({
             tag: `dataSource-${this.dataSourceKey}`,
-            priority: 5, // Default priority for data source processing
+            priority: this.subscriptionPriority,
             filter: streamingEventStructureGuard,
             callback: async ({ payloads, activeFlushLane }) => {
                 this._inboundFlushLaneStack.push(activeFlushLane)

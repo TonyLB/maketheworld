@@ -1634,6 +1634,30 @@ describe('DataSource', () => {
                 })
             })
 
+            it('should allow overriding regular subscription priority', () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    subscribedEventTypeGuard: mockSubscribedEventTypeGuard,
+                    receiveEvents: mockReceiveEvents,
+                    subscriptionPriority: 20
+                })
+
+                dataSource.subscribe()
+
+                expect(mockMessageBus.subscribe).toHaveBeenCalledWith({
+                    tag: 'dataSource-mtw.testDataSource',
+                    priority: 20,
+                    filter: expect.any(Function),
+                    callback: expect.any(Function)
+                })
+            })
+
             it('should use structure guard for filter and envelope guard in callback', async () => {
                 // Envelope guard: same logic as before but receives envelope with .header
                 mockSubscribedEventTypeGuard.mockImplementation((envelope: { header: { dataSourceKey: string; type: string; streamKey: string } }) => {
