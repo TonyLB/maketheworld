@@ -12,6 +12,20 @@ Parses slash-free and natural-language commands (**Bedrock**: intent classificat
 
 Related index: [`../AGENT.md`](../AGENT.md) (**DataSource instances** table).
 
+## Movement bridge and deferred positions cutover
+
+- Current movement behavior in actions is intentionally **event + imperative** for parity:
+  - actions emits `Character Navigate` (`characterId`, `fromRoomId`, `toRoomId`) for downstream/event-first workflows.
+  - actions also sends `MoveCharacter` imperatively so movement executes immediately in current runtime.
+- This dual-path behavior is transitional and scoped to the movement-affordance task.
+- Event-only movement execution ownership is deferred to **`mtw.ephemera.positions`**.
+
+### Explicit non-goals (until positions lands)
+
+- Do not treat `mtw.ephemera.actions` as long-term authority for room/position state ownership.
+- Do not expand `Character Navigate` payload beyond `characterId`, `fromRoomId`, `toRoomId` without positions-scope requirements.
+- Do not add object-position or relative-position semantics in actions; those belong to future positions design.
+
 ## Adding a new command affordance
 
 Use this sequence when adding a new parse affordance to `mtw.ephemera.actions`:
