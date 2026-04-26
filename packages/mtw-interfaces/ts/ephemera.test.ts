@@ -311,6 +311,18 @@ describe('EphemeraClientMessage typeguard', () => {
             })).toBe(true)
         })
 
+        it('should reject CoyoteGameHelpMessage with malformed target', () => {
+            expect(isEphemeraClientMessage({
+                messageType: 'Messages',
+                messages: [{
+                    DisplayProtocol: 'CoyoteGameHelpMessage',
+                    MessageId: 'TestID',
+                    CreatedTime: 5,
+                    Target: 'TARGET#bad',
+                }]
+            })).toBe(false)
+        })
+
     })
 
     describe('ConversationStep (generic envelope)', () => {

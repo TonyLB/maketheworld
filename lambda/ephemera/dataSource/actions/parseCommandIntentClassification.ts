@@ -6,6 +6,7 @@ import type {
 import {
     isParseCommandAcmeOrderIntentResult,
     isParseCommandAwaitRoadrunnerResult,
+    isParseCommandHelpResult,
     isParseCommandLookRoomResult,
     isParseCommandNavigationIntentResult,
     isParseCommandPromptInjectionAttemptResult,
@@ -50,8 +51,8 @@ function extractJsonBody(raw: string): string {
 /**
  * Parses and validates LLM output for the intent-classification prompt.
  * Accepts **`PromptInjectionAttempt`**, **`AwaitRoadRunner`**, **`AcmeOrder`** (intent-only, no **`orders`**), **`LookRoom`**,
- * **`NavigationIntent`**, **`Unimplemented`**, or **`Unknown`**; anything else becomes **`Error`**.
- * (**`CoyoteEngineTest`**, slash-only harness types, and **bare `look` / `l`** are handled deterministically before Bedrock in **`parseCommand`**.)
+ * **`Help`**, **`NavigationIntent`**, **`Unimplemented`**, or **`Unknown`**; anything else becomes **`Error`**.
+ * (**`CoyoteEngineTest`**, slash-only harness types, and deterministic **bare `look` / `l` / `help`** are handled before Bedrock in **`parseCommand`**.)
  */
 export function interpretParseCommandIntentClassificationBody(body: string): IntentClassificationResult {
     const toParse = extractJsonBody(body)
@@ -91,6 +92,16 @@ export function interpretParseCommandIntentClassificationBody(body: string): Int
             confidence: obj.confidence as number,
         }
         if (isParseCommandLookRoomResult(candidate)) {
+            return candidate
+        }
+    }
+
+    if (type === 'Help') {
+        const candidate: IntentClassificationResult = {
+            type: 'Help',
+            confidence: obj.confidence as number,
+        }
+        if (isParseCommandHelpResult(candidate)) {
             return candidate
         }
     }
@@ -170,6 +181,6 @@ export function interpretParseCommandIntentClassificationBody(body: string): Int
     return {
         type: 'Error',
         errorMessage:
-            'Model JSON must be a valid PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
+            'Model JSON must be a valid PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, Help, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
     }
 }

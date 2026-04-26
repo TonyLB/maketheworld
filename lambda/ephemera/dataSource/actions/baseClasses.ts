@@ -67,6 +67,7 @@ export type IntentClassificationResult =
     | ParseCommandErrorResult
     | ParseCommandNavigationIntentResult
     | ParseCommandAwaitRoadrunnerResult
+    | ParseCommandHelpResult
     | ParseCommandAcmeOrderIntentResult
     | ParseCommandLookRoomResult
     | ParseCommandUnimplementedResult
@@ -84,6 +85,12 @@ export type ParseCommandAcmeOrderResult = {
 /** Coyote Game: wait-state for Road Runner encounter flows. */
 export type ParseCommandAwaitRoadrunnerResult = {
     type: 'AwaitRoadRunner'
+    confidence: ParseCommandConfidence
+}
+
+/** Show coyote-game help affordance content; no Step B enrich. */
+export type ParseCommandHelpResult = {
+    type: 'Help'
     confidence: ParseCommandConfidence
 }
 
@@ -128,6 +135,7 @@ export type ParseCommandResult =
     | ParseCommandNavigationResult
     | ParseCommandAcmeOrderResult
     | ParseCommandAwaitRoadrunnerResult
+    | ParseCommandHelpResult
     | ParseCommandLookRoomResult
     | ParseCommandCoyoteEngineTestResult
     | ParseCommandCoyoteAffinitiesTestResult
@@ -154,6 +162,15 @@ export function isParseCommandAwaitRoadrunnerResult(
     result: ParseCommandResult | IntentClassificationResult
 ): result is ParseCommandAwaitRoadrunnerResult {
     if (result.type !== 'AwaitRoadRunner') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
+export function isParseCommandHelpResult(
+    result: ParseCommandResult | IntentClassificationResult
+): result is ParseCommandHelpResult {
+    if (result.type !== 'Help') {
         return false
     }
     return isParseConfidence(result.confidence)

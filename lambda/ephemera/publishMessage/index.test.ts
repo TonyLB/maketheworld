@@ -189,6 +189,42 @@ describe('PublishMessage', () => {
         })
     })
 
+    it('should respect explicit messageId and createdTime for CoyoteGameHelpMessage without Message payload', async () => {
+        cacheMock.OrchestrateMessages.allOffsets.mockReturnValue({})
+        cacheMock.CharacterSessions.get.mockResolvedValue(['Z123'])
+        cacheMock.SessionConnections.get.mockResolvedValue(['Y123'])
+        await publishMessage({
+            payloads: [{
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'CoyoteGameHelpMessage',
+                messageId: 'MESSAGE#HELP',
+                createdTime: 1000000000123,
+            }]
+        })
+        expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
+            Target: 'CHARACTER#123',
+            DeltaId: '1000000000123::MESSAGE#HELP',
+            RowId: 'MESSAGE#HELP',
+            CreatedTime: 1000000000123,
+            DisplayProtocol: 'CoyoteGameHelpMessage'
+        })
+        expect(apiClientMock.send).toHaveBeenCalledWith({
+            ConnectionId: 'Y123',
+            Data: JSON.stringify({
+                messageType: 'Messages',
+                messages: [{
+                    Target: 'CHARACTER#123',
+                    MessageId: 'MESSAGE#HELP',
+                    CreatedTime: 1000000000123,
+                    DisplayProtocol: 'CoyoteGameHelpMessage'
+                }]
+            })
+        })
+        const firstCallPayload = JSON.parse(apiClientMock.send.mock.calls[0][0].Data)
+        expect(firstCallPayload.messages[0]).not.toHaveProperty('Message')
+    })
+
     it('should remap room targets dynamically', async () => {
         cacheMock.OrchestrateMessages.allOffsets.mockReturnValue({})
         cacheMock.RoomCharacterList.get.mockResolvedValue([{

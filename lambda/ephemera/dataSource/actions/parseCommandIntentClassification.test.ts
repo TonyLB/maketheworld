@@ -8,7 +8,7 @@ describe('interpretParseCommandIntentClassificationBody', () => {
             )
         ).toEqual({
             type: 'Error',
-            errorMessage: 'Model JSON must be a valid PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
+            errorMessage: 'Model JSON must be a valid PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, Help, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
         })
     })
 
@@ -19,8 +19,29 @@ describe('interpretParseCommandIntentClassificationBody', () => {
             )
         ).toEqual({
             type: 'Error',
-            errorMessage: 'Model JSON must be a valid PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
+            errorMessage: 'Model JSON must be a valid PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, Help, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
         })
+    })
+
+    it('accepts Help with confidence in range', () => {
+        expect(
+            interpretParseCommandIntentClassificationBody(
+                JSON.stringify({ type: 'Help', confidence: 0.72 })
+            )
+        ).toEqual({ type: 'Help', confidence: 0.72 })
+    })
+
+    it('rejects Help with invalid or missing confidence', () => {
+        expect(
+            interpretParseCommandIntentClassificationBody(
+                JSON.stringify({ type: 'Help', confidence: 1.01 })
+            ).type
+        ).toBe('Error')
+        expect(
+            interpretParseCommandIntentClassificationBody(
+                JSON.stringify({ type: 'Help' })
+            ).type
+        ).toBe('Error')
     })
 
     it('accepts PromptInjectionAttempt with confidence in range', () => {

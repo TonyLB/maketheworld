@@ -8,9 +8,18 @@
 
 ## Role
 
-Parses slash-free and natural-language commands (**Bedrock**: intent classification + Acme enrich when applicable). Publishes internal bus streams such as **`Acme Order`**, **`Character Navigate`**, **`Await RoadRunner`**, and harness-only outcomes --- see [`publishedEvents.ts`](publishedEvents.ts); for terminal parse lines that need no stream contract, **`index.ts`** may **`PublishMessage`** as **`WorldOOCMessage`** (including **`PromptInjectionAttempt`**, Step A meta-instruction / jailbreak-tone classification). **`mtw.ephemera.objects`** subscribes via [`../objects/subscribedEvents.ts`](../objects/subscribedEvents.ts) (**`Acme Order`** envelope guard).
+Parses slash-free and natural-language commands (**Bedrock**: intent classification + Acme enrich when applicable). Publishes internal bus streams such as **`Acme Order`**, **`Character Navigate`**, **`Await RoadRunner`**, and harness-only outcomes --- see [`publishedEvents.ts`](publishedEvents.ts); for terminal parse lines that need no stream contract, **`index.ts`** may **`PublishMessage`** as **`WorldOOCMessage`** (including **`PromptInjectionAttempt`**, Step A meta-instruction / jailbreak-tone classification) or **`CoyoteGameHelpMessage`** for **`Help`** intent (requesting character only, no stream contract). **`mtw.ephemera.objects`** subscribes via [`../objects/subscribedEvents.ts`](../objects/subscribedEvents.ts) (**`Acme Order`** envelope guard).
 
 Related index: [`../AGENT.md`](../AGENT.md) (**DataSource instances** table).
+
+## Implementation guide
+
+Implementation-heavy workflows are documented in [`AGENT.implementation.md`](./AGENT.implementation.md):
+
+- Adding a new command affordance (actions-local and end-to-end checklist)
+- Step A / Step B alignment requirements and branching patterns
+- Stream contract wiring and client-display protocol wiring
+- Verification matrix and suggested test commands
 
 ## Movement bridge and deferred positions cutover
 
@@ -26,25 +35,6 @@ Related index: [`../AGENT.md`](../AGENT.md) (**DataSource instances** table).
 - Do not expand `Character Navigate` payload beyond `characterId`, `fromRoomId`, `toRoomId` without positions-scope requirements.
 - Do not add object-position or relative-position semantics in actions; those belong to future positions design.
 
-## Adding a new command affordance
-
-Use this sequence when adding a new parse affordance to `mtw.ephemera.actions`:
-
-1. Add a new discriminant in [`baseClasses.ts`](baseClasses.ts) (`ParseCommandResult` variant + type guard).
-2. In [`parseCommand.ts`](parseCommand.ts), prefer a deterministic short-circuit first when possible (no Bedrock call), then Step A classification, and run Step B only for intents that need enrichment.
-3. Keep the Step A label string, prompt enum, and interpretation guard aligned across [`buildParseCommandIntentClassificationPrompt.ts`](buildParseCommandIntentClassificationPrompt.ts), [`parseCommandIntentClassification.ts`](parseCommandIntentClassification.ts), and `baseClasses.ts`.
-4. In [`index.ts`](index.ts), branch on the affordance guard and either publish a stream event (preferred for multi-DataSource workflows) or apply local side effects for strictly local behavior.
-5. Add payload type + runtime guard in [`publishedEvents.ts`](publishedEvents.ts) for any new stream contract.
-
-**`PromptInjectionAttempt` (steady-state):** Step A returns JSON **`type`** **`PromptInjectionAttempt`** when the intent prompt (section **P**, evaluated before **A--D** in [`buildParseCommandIntentClassificationPrompt.ts`](buildParseCommandIntentClassificationPrompt.ts)) labels parser-manipulation tone; **`parseCommand`** skips Acme Step B like **`Unknown`**, and **`index.ts`** sends **`WorldOOCMessage`** only (no **`streamEvent`** / **`publishedEvents`** entry) because this is in-franchise player feedback, not a security boundary.
-
-### Room look as reference implementation
-
-- `LookRoom` shows the preferred cross-DataSource pattern for affordances that need render/perception ordering.
-- In-room `LookRoom` publishes **`Look Command Requested`** from actions.
-- `mtw.ephemera.renderOrchestration` subscribes and handles ordering: register `roomDescription` perception thread, flush that same run-scoped lane, then send default-lane `Render Requested`.
-- This keeps perception-thread visibility ordered before downstream render orchestration and reuse of existing `Render Pertains` -> terminal `PerceptionMessage` behavior.
-
 ---
 
 ## Acme catalog lines and `stableKey` (normative contract)
@@ -56,20 +46,11 @@ Stable keys give **machine correlation** for Coyote staged objects (seams, clust
 - **Uniqueness:** **`stableKey`** must be unique across the **union** of **`Meta::Room.objects`** staged in **every Coyote demo game room** --- the same fixed roster used for hypothesis / plan snapshots ([**`defaultCoyoteGameData.gameRooms`**](../../internalCache/coyoteGame.ts)), not only the character's delivery room. Objects remain **stored per room**; collisions are forbidden **across** those rooms.
 - **Outside scope:** No contract that **`stableKey`** stays unique outside that Coyote game-room set (other rooms or features). Persisted **[`EphemeraMetaRoomObject`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)** rows require a non-empty **`stableKey`** after trim; environments with historical Dynamo rows that omit it need migration or loads may fail **`isEphemeraMetaRoomObject`** validation.
 
-### Two phases
+### Enforcement model
 
-1. **LLM-first (Step B enrich):** For Acme intent, **`buildParseAcmeOrderEnrichPrompt`** embeds the **Coyote-wide occupied-key list** (union of existing **`stableKey`** values from **`Meta::Room.objects`** across all Coyote game rooms). The model proposes one **`stableKey`** string per catalog line when possible (semantic hyphenated labels preferred). Output is structured JSON (**`mergeAcmeOrderEnrich`** / **`finalizeAcmeOrderFromStepB`**). Proposals may still collide internally or violate charset rules; Bedrock output is **not** authoritative alone.
-
-2. **Deterministic fallback (contractual guarantee):** After enrich, **[`finalizeStableKeysDeterministic`](finalizeStableKeysDeterministic.ts)** (with **[`normalizeStableKeyCharset`](../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)** / **`defaultStableKeyProposal`**) validates and **repairs** collisions using a **pure** allocator: charset rules, **`constructed-`** reservation (Acme allocator remaps reserved prefix), reservation of the normalized key **`setting`** for Coyote phase-plan virtual grounding (**[`COYOTE_RESERVED_VIRTUAL_GROUNDING_STABLE_KEY`](../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)** --- Acme emits **`acme-setting`** or suffixed variants instead), **numeric suffix repair** when needed, using the **occupied set** plus keys finalized earlier in the **same batch**. Exact repair steps are implemented and unit-tested in **`finalizeStableKeysDeterministic.test.ts`**; callers must supply **valid lines in batch order**.
-
-### Where enforcement runs
-
-[**`index.ts`**](index.ts) (**Acme Order** path):
-
-1. **[`collectCoyoteOccupiedStableKeys`](collectCoyoteOccupiedStableKeys.ts)** builds the occupancy snapshot from **`CoyoteGame.gameRooms`** + **`Meta::Room.objects`** (same roster as Coyote snapshots). Only non-empty trimmed **`stableKey`** strings contribute; malformed or legacy-shaped rows without a valid key contribute nothing.
-2. **`parseCommand({ command, occupiedStableKeys })`** passes that snapshot into Step B enrich (**same snapshot** used for **`finalizeStableKeysDeterministic`** after parse returns **`AcmeOrder`**).
-3. **`finalizeStableKeysDeterministic`** attaches **final** **`stableKey: string`** per valid line before **`streamEvent`** **`Acme Order`**.
-4. **`mtw.ephemera.objects`** **[`handleAcmeOrderAddObjects`](../objects/handleApiObjectsChange.ts)** persists into the character's **current** room only (pass-through **`stableKey`**).
+- **Step B may propose keys, but does not authoritatively guarantee uniqueness.**
+- **Deterministic finalize is mandatory before publishing `Acme Order`** and is the contract boundary that guarantees usable `stableKey` values on bus payloads.
+- Implementation details and call-order expectations are documented in [`AGENT.implementation.md`](./AGENT.implementation.md#acme-stablekey-implementation-notes).
 
 ### Types and payloads
 
@@ -86,21 +67,12 @@ Clustering / combine behavior is documented under **[`../coyoteGame/AGENT.md`](.
 
 ---
 
-## Verification
-
-From [`lambda/ephemera/`](../../):
-
-```bash
-cd lambda/ephemera && npx jest dataSource/actions/ dataSource/objects/
-```
-
----
-
 ## Related documentation
 
 | Doc | Role |
 | --- | --- |
 | [`../AGENT.md`](../AGENT.md) | Ephemera DataSource directory index (**`mtw.ephemera.actions`** row) |
+| [`AGENT.implementation.md`](./AGENT.implementation.md) | Implementation playbook: affordance wiring, stream contracts, message protocols, test checklist |
 | [`../objects/AGENT.md`](../objects/AGENT.md) | **`Meta::Room.objects`** merge; Acme **`stableKey`** pass-through |
 | [`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md) | Staged snapshot; **`stableKey`** on rows vs prompt text |
 | [`../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts) | Durable affinity contract: **`CoyoteAffinityPossibility`**, `prep` / `creation`, and flat modification tags |
