@@ -51,11 +51,11 @@ Follow the root getting-started pattern for complex tasks and read documents in 
 
 Use `[ ]` for pending and `[X]` for complete. Mark each nested item as you finish it.
 
-- [ ] Phase 1 - add parser/result contract for help affordance
-  - [ ] Add `Help` parse result variant and type guard in `actions/baseClasses.ts`.
-  - [ ] Decide and implement deterministic fast-path command forms (for example `help`, optionally `?`) in `parseCommand.ts`.
-  - [ ] Add Step A help-intent classification path and keep prompt labels + interpretation + guards aligned across prompt builder/interpreter/base classes.
-  - [ ] Add parser unit tests for deterministic and/or Step A help detection paths.
+- [X] Phase 1 - add parser/result contract for help affordance
+  - [X] Add `Help` parse result variant and type guard in `actions/baseClasses.ts`.
+  - [X] Decide and implement deterministic fast-path command forms (for example `help`, optionally `?`) in `parseCommand.ts`.
+  - [X] Add Step A help-intent classification path and keep prompt labels + interpretation + guards aligned across prompt builder/interpreter/base classes.
+  - [X] Add parser unit tests for deterministic and/or Step A help detection paths.
 
 - [ ] Phase 2 - route help affordance in actions handler
   - [ ] Add `Help` branch in `actions/index.ts` receive flow.
@@ -89,12 +89,18 @@ Run from repo root as needed:
 
 Record any additional commands actually used while implementing the task.
 
+Phase 1 verification completed with:
+
+- `cd /Users/anthonylower-basch/Code/maketheworld && npx jest --config lambda/ephemera/jest.config.js --runInBand lambda/ephemera/dataSource/actions/parseCommand.test.ts lambda/ephemera/dataSource/actions/parseCommandIntentClassification.test.ts`
+- `cd /Users/anthonylower-basch/Code/maketheworld/lambda/ephemera && npm run build`
+- `ReadLints` clean on edited files.
+
 ## Progress
 
 | Milestone | Status |
 | --- | --- |
 | Planning document created with scope and order | Done |
-| Parser/result contract for help affordance | Not started |
+| Parser/result contract for help affordance | Done |
 | Actions handler publish branch for `CoyoteGameHelpMessage` | Not started |
 | Publish/wire verification and tests | Not started |
 | Final docs/verification/checklist closeout | Not started |

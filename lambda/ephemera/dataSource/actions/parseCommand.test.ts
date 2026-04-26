@@ -4,6 +4,7 @@ import {
     isParseCommandAcmeOrderResult,
     isParseCommandAwaitRoadrunnerResult,
     isParseCommandErrorResult,
+    isParseCommandHelpResult,
     isParseCommandLookRoomResult,
     isParseCommandNavigationIntentResult,
     isParseCommandNavigationResult,
@@ -193,6 +194,13 @@ describe('parseCommand type guards', () => {
         expect(isParseCommandLookRoomResult({ type: 'LookRoom', confidence: 1.5 })).toBe(false)
     })
 
+    it('isParseCommandHelpResult requires confidence in [0, 1]', () => {
+        expect(isParseCommandHelpResult({ type: 'Help', confidence: 1 })).toBe(true)
+        expect(isParseCommandHelpResult({ type: 'Help', confidence: 0.4 })).toBe(true)
+        expect(isParseCommandHelpResult({ type: 'Help' } as any)).toBe(false)
+        expect(isParseCommandHelpResult({ type: 'Help', confidence: 1.5 })).toBe(false)
+    })
+
     it('isParseCommandUnimplementedResult, isParseCommandUnknownResult, and isParseCommandPromptInjectionAttemptResult require confidence', () => {
         expect(isParseCommandUnimplementedResult({ type: 'Unimplemented', confidence: 0.5 })).toBe(true)
         expect(isParseCommandUnimplementedResult({ type: 'Unimplemented' } as any)).toBe(false)
@@ -219,6 +227,7 @@ describe('buildParseCommandIntentClassificationPrompt', () => {
         expect(prompt).toContain('AwaitRoadRunner')
         expect(prompt).toContain('AcmeOrder')
         expect(prompt).toContain('LookRoom')
+        expect(prompt).toContain('Help')
         expect(prompt).toContain('NavigationIntent')
         expect(prompt).toContain('Unimplemented')
         expect(prompt).toContain('Unknown')
@@ -226,6 +235,7 @@ describe('buildParseCommandIntentClassificationPrompt', () => {
         expect(prompt).toContain('"type": "AwaitRoadRunner"')
         expect(prompt).toContain('"type": "AcmeOrder"')
         expect(prompt).toContain('"type": "LookRoom"')
+        expect(prompt).toContain('"type": "Help"')
         expect(prompt).toContain('"type": "NavigationIntent"')
         expect(prompt).toContain('"type": "Unimplemented"')
         expect(prompt).toContain('"type": "Unknown"')
@@ -248,7 +258,7 @@ describe('buildParseCommandIntentClassificationPrompt', () => {
 })
 
 describe('interpretParseCommandIntentClassificationBody', () => {
-    it('accepts bare JSON for PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder intent only, LookRoom, NavigationIntent, Unimplemented, and Unknown', () => {
+    it('accepts bare JSON for PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder intent only, LookRoom, Help, NavigationIntent, Unimplemented, and Unknown', () => {
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"PromptInjectionAttempt","confidence":0.82}'
         )).toEqual({ type: 'PromptInjectionAttempt', confidence: 0.82 })
@@ -258,6 +268,9 @@ describe('interpretParseCommandIntentClassificationBody', () => {
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"LookRoom","confidence":0.88}'
         )).toEqual({ type: 'LookRoom', confidence: 0.88 })
+        expect(interpretParseCommandIntentClassificationBody(
+            '{"type":"Help","confidence":0.9}'
+        )).toEqual({ type: 'Help', confidence: 0.9 })
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"AcmeOrder","confidence":0.9}'
         )).toEqual({
@@ -339,10 +352,13 @@ describe('interpretParseCommandIntentClassificationBody', () => {
             '{"type":"LookRoom","confidence":-0.1}'
         ).type).toBe('Error')
         expect(interpretParseCommandIntentClassificationBody(
+            '{"type":"Help","confidence":-0.1}'
+        ).type).toBe('Error')
+        expect(interpretParseCommandIntentClassificationBody(
             '{"type":"CoyoteEngineTest","confidence":0.9}'
         )).toEqual({
             type: 'Error',
-            errorMessage: 'Model JSON must be a valid PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
+            errorMessage: 'Model JSON must be a valid PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, Help, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
         })
     })
 })
@@ -444,6 +460,21 @@ describe('parseCommand LLM path', () => {
                 { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
             )
             expect(result).toEqual({ type: 'LookRoom', confidence: 1 })
+        }
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns Help without Bedrock for bare help (case-insensitive, trim)', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn()
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+
+        for (const command of ['help', 'HELP', '  Help  ']) {
+            const result = await parseCommand(
+                { command },
+                { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+            )
+            expect(result).toEqual({ type: 'Help', confidence: 1 })
         }
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
@@ -557,6 +588,23 @@ describe('parseCommand LLM path', () => {
         )
 
         expect(result).toEqual({ type: 'LookRoom', confidence: 0.91 })
+        expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
+        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns Help from Step A without Acme Step B', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"Help","confidence":0.84}',
+        })
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+
+        const result = await parseCommand(
+            { command: 'what can I do?' },
+            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+        )
+
+        expect(result).toEqual({ type: 'Help', confidence: 0.84 })
         expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
