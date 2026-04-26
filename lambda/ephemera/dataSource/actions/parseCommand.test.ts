@@ -5,6 +5,7 @@ import {
     isParseCommandAwaitRoadrunnerResult,
     isParseCommandErrorResult,
     isParseCommandLookRoomResult,
+    isParseCommandNavigationIntentResult,
     isParseCommandNavigationResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
@@ -13,7 +14,11 @@ import { buildParseCommandIntentClassificationPrompt } from './buildParseCommand
 import { isCoyoteAffinitiesTestSlashCommand } from './coyoteAffinitiesTestSlashCommand'
 import { isCoyoteEngineTestSlashCommand } from './coyoteEngineTestSlashCommand'
 import { interpretParseCommandIntentClassificationBody } from './parseCommandIntentClassification'
-import { parseCommand, parseCommandWithEnrichReasoning } from './parseCommand'
+import {
+    navigationIntentErrorMessages,
+    parseCommand,
+    parseCommandWithEnrichReasoning,
+} from './parseCommand'
 
 describe('parseCommand type guards', () => {
     const room = 'ROOM#x' as EphemeraRoomId
@@ -36,6 +41,29 @@ describe('parseCommand type guards', () => {
                 type: 'Navigation',
                 targetId: room,
                 confidence: 1.1,
+            })).toBe(false)
+        })
+    })
+
+    describe('isParseCommandNavigationIntentResult', () => {
+        it('accepts valid NavigationIntent shape for Step A', () => {
+            expect(isParseCommandNavigationIntentResult({
+                type: 'NavigationIntent',
+                exitCandidate: 'north',
+                confidence: 0.75,
+            })).toBe(true)
+        })
+
+        it('rejects blank exitCandidate or invalid confidence', () => {
+            expect(isParseCommandNavigationIntentResult({
+                type: 'NavigationIntent',
+                exitCandidate: '   ',
+                confidence: 0.75,
+            })).toBe(false)
+            expect(isParseCommandNavigationIntentResult({
+                type: 'NavigationIntent',
+                exitCandidate: 'north',
+                confidence: 2,
             })).toBe(false)
         })
     })
@@ -179,18 +207,23 @@ describe('parseCommand type guards', () => {
 
 describe('buildParseCommandIntentClassificationPrompt', () => {
     it('embeds the trimmed command and classification vocabulary', () => {
-        const prompt = buildParseCommandIntentClassificationPrompt('  attack troll  ')
+        const prompt = buildParseCommandIntentClassificationPrompt('  attack troll  ', {
+            movementExitLabels: ['north', 'south'],
+        })
         expect(prompt).toContain('attack troll')
         expect(prompt).toContain('AwaitRoadRunner')
         expect(prompt).toContain('AcmeOrder')
         expect(prompt).toContain('LookRoom')
+        expect(prompt).toContain('NavigationIntent')
         expect(prompt).toContain('Unimplemented')
         expect(prompt).toContain('Unknown')
         expect(prompt).toContain('"type": "AwaitRoadRunner"')
         expect(prompt).toContain('"type": "AcmeOrder"')
         expect(prompt).toContain('"type": "LookRoom"')
+        expect(prompt).toContain('"type": "NavigationIntent"')
         expect(prompt).toContain('"type": "Unimplemented"')
         expect(prompt).toContain('"type": "Unknown"')
+        expect(prompt).toContain('Available exits from current room: north, south')
         expect(prompt).toContain('later step')
     })
 
@@ -198,10 +231,18 @@ describe('buildParseCommandIntentClassificationPrompt', () => {
         expect(buildParseCommandIntentClassificationPrompt('')).toContain('(empty command)')
         expect(buildParseCommandIntentClassificationPrompt('   ')).toContain('(empty command)')
     })
+
+    it('includes no-exit movement guidance when exits are unavailable', () => {
+        const prompt = buildParseCommandIntentClassificationPrompt('move please', {
+            movementExitLabels: [],
+        })
+        expect(prompt).toContain('No validated exits are currently available in parser context.')
+        expect(prompt).toContain('Server-side parse resolution will validate destination')
+    })
 })
 
 describe('interpretParseCommandIntentClassificationBody', () => {
-    it('accepts bare JSON for AwaitRoadRunner, AcmeOrder intent only, LookRoom, Unimplemented, and Unknown', () => {
+    it('accepts bare JSON for AwaitRoadRunner, AcmeOrder intent only, LookRoom, NavigationIntent, Unimplemented, and Unknown', () => {
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"AwaitRoadRunner","confidence":0.95}'
         )).toEqual({ type: 'AwaitRoadRunner', confidence: 0.95 })
@@ -219,6 +260,13 @@ describe('interpretParseCommandIntentClassificationBody', () => {
         )).toEqual({
             type: 'AcmeOrderIntent',
             confidence: 0.85,
+        })
+        expect(interpretParseCommandIntentClassificationBody(
+            '{"type":"NavigationIntent","exitCandidate":" north ","confidence":0.77}'
+        )).toEqual({
+            type: 'NavigationIntent',
+            exitCandidate: 'north',
+            confidence: 0.77,
         })
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"Unimplemented","confidence":0.8}'
@@ -246,6 +294,21 @@ describe('interpretParseCommandIntentClassificationBody', () => {
         )).toEqual({ type: 'Unknown', confidence: 1 })
     })
 
+    it('rejects NavigationIntent routing fields and malformed movement payload', () => {
+        expect(interpretParseCommandIntentClassificationBody(
+            '{"type":"NavigationIntent","exitCandidate":"north","targetId":"ROOM#north","confidence":0.7}'
+        )).toEqual({
+            type: 'Error',
+            errorMessage: 'NavigationIntent must not include room-id routing fields',
+        })
+        expect(interpretParseCommandIntentClassificationBody(
+            '{"type":"NavigationIntent","exitCandidate":" ","confidence":0.7}'
+        ).type).toBe('Error')
+        expect(interpretParseCommandIntentClassificationBody(
+            '{"type":"NavigationIntent","confidence":0.7}'
+        ).type).toBe('Error')
+    })
+
     it('rejects invalid JSON, wrong type, or bad confidence', () => {
         expect(interpretParseCommandIntentClassificationBody('not json').type).toBe('Error')
         expect(interpretParseCommandIntentClassificationBody(
@@ -270,7 +333,7 @@ describe('interpretParseCommandIntentClassificationBody', () => {
             '{"type":"CoyoteEngineTest","confidence":0.9}'
         )).toEqual({
             type: 'Error',
-            errorMessage: 'Model JSON must be a valid AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, Unimplemented, or Unknown payload (see prompt)',
+            errorMessage: 'Model JSON must be a valid AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
         })
     })
 })
@@ -308,6 +371,8 @@ describe('isCoyoteEngineTestSlashCommand', () => {
 })
 
 describe('parseCommand LLM path', () => {
+    const northRoom = 'ROOM#north' as EphemeraRoomId
+
     it('returns CoyoteEngineTest without Bedrock for /test generation', async () => {
         const invokeBedrockParseCommandImpl = jest.fn()
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
@@ -375,6 +440,55 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 
+    it('returns deterministic Navigation for exact exit name without Bedrock', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn()
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+
+        const result = await parseCommand(
+            {
+                command: 'north',
+                roomExits: [{ normalizedName: 'north', targetId: northRoom }],
+            },
+            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+        )
+
+        expect(result).toEqual({ type: 'Navigation', targetId: northRoom, confidence: 1 })
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns deterministic Navigation for go <exit> with casing and whitespace variants', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn()
+
+        const result = await parseCommand(
+            {
+                command: '  GO   NORTH  ',
+                roomExits: [{ normalizedName: 'north', targetId: northRoom }],
+            },
+            { invokeBedrockParseCommandImpl }
+        )
+
+        expect(result).toEqual({ type: 'Navigation', targetId: northRoom, confidence: 1 })
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+    })
+
+    it('falls through to Bedrock when deterministic navigation does not match an exit', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"Unknown","confidence":0.3}',
+        })
+
+        await parseCommand(
+            {
+                command: 'go south',
+                roomExits: [{ normalizedName: 'north', targetId: northRoom }],
+            },
+            { invokeBedrockParseCommandImpl }
+        )
+
+        expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
+    })
+
     it('does not treat look at or long as bare look; still invokes Bedrock', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
@@ -419,6 +533,82 @@ describe('parseCommand LLM path', () => {
         expect(result).toEqual({ type: 'LookRoom', confidence: 0.91 })
         expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+    })
+
+    it('resolves NavigationIntent from Step A into Navigation using room exits', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"NavigationIntent","exitCandidate":"north","confidence":0.64}',
+        })
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+
+        const result = await parseCommand(
+            {
+                command: 'head north',
+                roomExits: [{ normalizedName: 'north', targetId: northRoom }],
+            },
+            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+        )
+
+        expect(result).toEqual({ type: 'Navigation', targetId: northRoom, confidence: 0.64 })
+        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns stable Error when NavigationIntent has no exit context', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"NavigationIntent","exitCandidate":"north","confidence":0.64}',
+        })
+
+        const result = await parseCommand(
+            { command: 'head north', roomExits: [] },
+            { invokeBedrockParseCommandImpl }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: navigationIntentErrorMessages.noExitContext,
+        })
+    })
+
+    it('returns stable Error when NavigationIntent has no matching exit', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"NavigationIntent","exitCandidate":"south","confidence":0.64}',
+        })
+
+        const result = await parseCommand(
+            { command: 'head south', roomExits: [{ normalizedName: 'north', targetId: northRoom }] },
+            { invokeBedrockParseCommandImpl }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: navigationIntentErrorMessages.noMatch,
+        })
+    })
+
+    it('returns stable Error when NavigationIntent is ambiguous across target rooms', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"NavigationIntent","exitCandidate":"north","confidence":0.64}',
+        })
+
+        const result = await parseCommand(
+            {
+                command: 'head north',
+                roomExits: [
+                    { normalizedName: 'north', targetId: 'ROOM#northA' as EphemeraRoomId },
+                    { normalizedName: 'north', targetId: 'ROOM#northB' as EphemeraRoomId },
+                ],
+            },
+            { invokeBedrockParseCommandImpl }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: navigationIntentErrorMessages.ambiguousMatch,
+        })
     })
 
     it('returns Error when Bedrock fails', async () => {

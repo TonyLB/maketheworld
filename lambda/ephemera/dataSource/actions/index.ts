@@ -28,6 +28,7 @@ import {
     isParseCommandUnknownResult,
 } from './baseClasses'
 import { parseCommand } from './parseCommand'
+import { navigationIntentErrorMessages } from './parseCommand'
 import { collectCoyoteOccupiedStableKeys } from './collectCoyoteOccupiedStableKeys'
 import { finalizeStableKeysDeterministic } from './finalizeStableKeysDeterministic'
 import { runAcmeOrderAffinitiesHarness } from './runAcmeOrderAffinitiesHarness'
@@ -81,6 +82,19 @@ const linesToRenderTree = (lines: string[]): RenderTree => (
     ))
 )
 
+const parseErrorMessageForPlayer = (errorMessage?: string): string => {
+    switch (errorMessage) {
+        case navigationIntentErrorMessages.noExitContext:
+            return 'You are not in a room, so you cannot go anywhere.'
+        case navigationIntentErrorMessages.noMatch:
+            return 'There is no exit to that place from here.'
+        case navigationIntentErrorMessages.ambiguousMatch:
+            return "I can't tell which exit you mean from here."
+        default:
+            return errorMessage ?? 'Parse error'
+    }
+}
+
 export const ephemeraActionsDataSource = new EphemeraDataSource<
     never,
     ActionsPublishedPayload,
@@ -93,13 +107,20 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (event) => {
             const content = await event.getContent()
+            const roomExitContext = isEphemeraCharacterId(content.characterId)
+                ? await getRoomExitTargetsForCharacter(content.characterId)
+                : { fromRoomId: null, toRoomIds: [], exits: [] }
             const coyoteOccupiedStableKeys = await collectCoyoteOccupiedStableKeys()
             const parseResult = await parseCommand({
                 command: content.command,
+                roomExits: roomExitContext.exits.map(({ normalizedName, toRoomId }) => ({
+                    normalizedName,
+                    targetId: toRoomId,
+                })),
                 occupiedStableKeys: [...coyoteOccupiedStableKeys],
             })
             if (isEphemeraCharacterId(content.characterId) && isParseCommandErrorResult(parseResult)) {
-                const line = parseResult.errorMessage ?? 'Parse error'
+                const line = parseErrorMessageForPlayer(parseResult.errorMessage)
                 messageBus.send({
                     type: 'PublishMessage',
                     targets: [content.characterId],
@@ -108,7 +129,7 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                 })
             }
             else if (isEphemeraCharacterId(content.characterId) && isParseCommandNavigationResult(parseResult)) {
-                const { fromRoomId, toRoomIds } = await getRoomExitTargetsForCharacter(content.characterId)
+                const { fromRoomId, toRoomIds } = roomExitContext
                 if (!fromRoomId) {
                     messageBus.send({
                         type: 'PublishMessage',
@@ -136,10 +157,15 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                             toRoomId: parseResult.targetId,
                         },
                     })
+                    messageBus.send({
+                        type: 'MoveCharacter',
+                        characterId: content.characterId,
+                        roomId: parseResult.targetId,
+                    })
                 }
             }
             else if (isEphemeraCharacterId(content.characterId) && isParseCommandLookRoomResult(parseResult)) {
-                const { fromRoomId } = await getRoomExitTargetsForCharacter(content.characterId)
+                const { fromRoomId } = roomExitContext
                 if (!fromRoomId) {
                     messageBus.send({
                         type: 'PublishMessage',

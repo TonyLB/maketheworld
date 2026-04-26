@@ -1,16 +1,35 @@
 /**
- * Intent classification for parse Step A: **AwaitRoadRunner**, **AcmeOrder** (intent only), **LookRoom**, **Unimplemented** vs **Unknown**.
+ * Intent classification for parse Step A: **AwaitRoadRunner**, **AcmeOrder** (intent only),
+ * **LookRoom**, **NavigationIntent**, **Unimplemented** vs **Unknown**.
  */
 
-export function buildParseCommandIntentClassificationPrompt(command: string): string {
+export function buildParseCommandIntentClassificationPrompt(
+    command: string,
+    options: { movementExitLabels?: string[] } = {}
+): string {
     const trimmed = command.trim()
     const commandBlock = trimmed === '' ? '(empty command)' : trimmed
+    const movementExitLabels = options.movementExitLabels ?? []
+    const movementContextBlock = movementExitLabels.length > 0
+        ? [
+            '### Movement context',
+            '',
+            `Available exits from current room: ${movementExitLabels.join(', ')}`,
+            'If movement intent is central, return NavigationIntent using one exitCandidate from the available exits.',
+        ].join('\n')
+        : [
+            '### Movement context',
+            '',
+            'No validated exits are currently available in parser context.',
+            'You may still classify movement as NavigationIntent when movement intent is central.',
+            'Server-side parse resolution will validate destination and may return an error if no exit match exists.',
+        ].join('\n')
 
     return `You are a parser for a text-based multiplayer game with a Coyote / Road Runner cartoon vibe. Players type short commands (verbs, directions, object names, slang). Your job is to classify a single line of input into exactly one JSON outcome for this pipeline step.
 
 ## Decision order (mandatory)
 
-**Before** choosing Unimplemented or Unknown, evaluate **AwaitRoadRunner**, **AcmeOrder**, and **LookRoom** as **same-tier** special intents.
+**Before** choosing Unimplemented or Unknown, evaluate **AwaitRoadRunner**, **AcmeOrder**, **LookRoom**, and **NavigationIntent** as same-tier special intents.
 
 ### A — AwaitRoadRunner
 
@@ -26,15 +45,27 @@ Choose **AcmeOrder** when the line is **primarily** about **ordering or buying g
 
 Choose **LookRoom** when the line is **primarily** about **seeing, examining, or taking in the current room or immediate surroundings** (a full look at where you are now) — e.g. "examine the room", "look around", "what's here", "describe my surroundings", "survey the area" — and **not** a targeted look at a named object, exit, or character. **Do not** choose this when the line is only the single word **look** or **l** (the game handles that elsewhere).
 
-### Tie-breaks when more than one of A, B, or C could apply
+### D — NavigationIntent
+
+Choose **NavigationIntent** when the line is primarily about movement to another room by exit direction/name (for example "go north", "head east", "take the south door", "let's move west").
+Return movement only as:
+{ "type": "NavigationIntent", "exitCandidate": "<string>", "confidence": <number> }
+Do not include room id fields such as targetId, toRoomId, roomId, destinationId, or fromRoomId.
+
+${movementContextBlock}
+
+### Tie-breaks when more than one of A, B, C, or D could apply
 
 - Prefer **AcmeOrder** when **commerce / catalog / ordering** language is central.
-- Prefer **AwaitRoadRunner** when **patience / timing / the chase** is central with **no** clear product order and **no** clear "see the current space" intent.
-- Prefer **LookRoom** when **perceiving the current space** (not ordering from Acme) is central and the line is **not** mainly biding for the Road Runner. If a line mixes catalog shopping with **look at** a product, that is still **AcmeOrder**, not **LookRoom**. Map clear OOC/meta or nonsense to **Unknown** (or **Unimplemented** only when there is a clear in-world intent we do not cover).
+- Prefer **LookRoom** when perceiving the current space (not ordering from Acme) is central.
+- Prefer **AwaitRoadRunner** when patience / timing / the chase is central with no clear product order and no clear room-look intent.
+- Prefer **NavigationIntent** only when the line is movement-first and the higher-priority intents above are not central.
+- If a line mixes catalog shopping with "look at" a product, that is still **AcmeOrder**, not **LookRoom**.
+- Map clear OOC/meta or nonsense to **Unknown** (or **Unimplemented** only when there is a clear in-world intent we do not cover).
 
 ### After A, B, and C
 
-If none of A, B, or C applies, choose **Unimplemented** vs **Unknown** as follows.
+If none of A, B, C, or D applies, choose **Unimplemented** vs **Unknown** as follows.
 
 ## Outcomes (choose exactly one)
 
@@ -44,9 +75,11 @@ If none of A, B, or C applies, choose **Unimplemented** vs **Unknown** as follow
 
 3. **LookRoom** — As in section C. Respond with **only** \`type\` and \`confidence\`. No follow-up step runs for this intent in the Acme pipeline.
 
-4. **Unimplemented** — Clear **other** in-world intent we do not implement yet (not mainly A, B, or C).
+4. **NavigationIntent** — As in section D. Respond with exactly \`type\`, \`exitCandidate\`, and \`confidence\`.
 
-5. **Unknown** — No sensible in-world intent (noise, OOC/meta, mash, empty).
+5. **Unimplemented** — Clear **other** in-world intent we do not implement yet (not mainly A, B, C, or D).
+
+6. **Unknown** — No sensible in-world intent (noise, OOC/meta, mash, empty).
 
 ## Rules
 
@@ -67,13 +100,17 @@ or
 
 or
 
+{ "type": "NavigationIntent", "exitCandidate": "<string>", "confidence": <number> }
+
+or
+
 { "type": "Unimplemented", "confidence": <number> }
 
 or
 
 { "type": "Unknown", "confidence": <number> }
 
-The \`type\` string must be exactly \`AwaitRoadRunner\`, \`AcmeOrder\`, \`LookRoom\`, \`Unimplemented\`, or \`Unknown\` (case-sensitive).
+The \`type\` string must be exactly \`AwaitRoadRunner\`, \`AcmeOrder\`, \`LookRoom\`, \`NavigationIntent\`, \`Unimplemented\`, or \`Unknown\` (case-sensitive).
 
 ## Player input
 

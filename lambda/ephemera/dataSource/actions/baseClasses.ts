@@ -34,6 +34,16 @@ export type ParseCommandNavigationResult = {
     confidence: ParseCommandConfidence
 }
 
+/**
+ * Step A only: model-classified movement intent before server-side exit resolution.
+ * Final parse result still uses `Navigation` with `targetId` after resolution.
+ */
+export type ParseCommandNavigationIntentResult = {
+    type: 'NavigationIntent'
+    exitCandidate: string
+    confidence: ParseCommandConfidence
+}
+
 /** Alias of **`AcmeCatalogRejectionReason`** for parse / courier apology copy. */
 export type ParseCommandAcmeOrderErrorType = AcmeCatalogRejectionReason
 
@@ -55,6 +65,7 @@ export type ParseCommandAcmeOrderIntentResult = {
  */
 export type IntentClassificationResult =
     | ParseCommandErrorResult
+    | ParseCommandNavigationIntentResult
     | ParseCommandAwaitRoadrunnerResult
     | ParseCommandAcmeOrderIntentResult
     | ParseCommandLookRoomResult
@@ -156,6 +167,21 @@ export function isParseCommandNavigationResult(
     return isEphemeraRoomId(result.targetId) && isParseConfidence(result.confidence)
 }
 
+export function isParseCommandNavigationIntentResult(
+    result: IntentClassificationResult | ParseCommandResult
+): result is ParseCommandNavigationIntentResult {
+    if (result.type !== 'NavigationIntent') {
+        return false
+    }
+    if (typeof result.exitCandidate !== 'string') {
+        return false
+    }
+    if (result.exitCandidate.trim().length === 0) {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
 export function isParseCommandAcmeOrderResult(
     result: ParseCommandResult
 ): result is ParseCommandAcmeOrderResult {
@@ -255,6 +281,10 @@ export function isParseCommandUnknownResult(
 
 export type ParseCommandInput = {
     command: string
+    roomExits?: {
+        normalizedName: string
+        targetId: EphemeraRoomId
+    }[]
     /** Coyote-wide **`stableKey`** occupancy for Step B enrich (omit or **[]** when unknown). */
     occupiedStableKeys?: readonly string[]
 }

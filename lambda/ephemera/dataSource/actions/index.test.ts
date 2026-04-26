@@ -3,6 +3,7 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { ephemeraActionsDataSource } from './index'
 import messageBus from '../../messageBus'
 import { parseCommand } from './parseCommand'
+import { navigationIntentErrorMessages } from './parseCommand'
 import { collectCoyoteOccupiedStableKeys } from './collectCoyoteOccupiedStableKeys'
 import { finalizeStableKeysDeterministic } from './finalizeStableKeysDeterministic'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
@@ -64,6 +65,11 @@ describe('ephemeraActionsDataSource', () => {
         mockedRunCoyoteEngineTestHarness.mockResolvedValue(undefined)
         mockedRunAcmeOrderAffinitiesHarness.mockResolvedValue(undefined)
         mockedCollectCoyoteOccupiedStableKeys.mockResolvedValue(new Set<string>())
+        mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+            fromRoomId: null,
+            toRoomIds: [],
+            exits: [],
+        })
         mockedParseCommand.mockResolvedValue({
             type: 'Error',
             errorMessage: 'Parse error',
@@ -106,6 +112,99 @@ describe('ephemeraActionsDataSource', () => {
         })
     })
 
+    it('maps NavigationIntent no-exit-context parse error to room guidance copy', async () => {
+        mockedParseCommand.mockResolvedValue({
+            type: 'Error',
+            errorMessage: navigationIntentErrorMessages.noExitContext,
+        })
+
+        await ephemeraActionsDataSource.receiveEvents!({
+            events: [{
+                header: {
+                    dataSourceKey: 'api.ephemera',
+                    streamKey: 'CHARACTER#123',
+                    timestamp: Date.now(),
+                    type: 'Parse Requested',
+                },
+                getContent: async () => ({
+                    characterId: 'CHARACTER#123',
+                    command: 'head north',
+                }),
+            }],
+            streamEvent: jest.fn(async () => {}),
+            streamEnvelope: jest.fn(async () => {}),
+        })
+
+        expect(mockMessageBus.send).toHaveBeenCalledWith({
+            type: 'PublishMessage',
+            targets: ['CHARACTER#123'],
+            displayProtocol: 'WorldOOCMessage',
+            message: ['You are not in a room, so you cannot go anywhere.'],
+        })
+    })
+
+    it('maps NavigationIntent no-match parse error to missing-exit copy', async () => {
+        mockedParseCommand.mockResolvedValue({
+            type: 'Error',
+            errorMessage: navigationIntentErrorMessages.noMatch,
+        })
+
+        await ephemeraActionsDataSource.receiveEvents!({
+            events: [{
+                header: {
+                    dataSourceKey: 'api.ephemera',
+                    streamKey: 'CHARACTER#123',
+                    timestamp: Date.now(),
+                    type: 'Parse Requested',
+                },
+                getContent: async () => ({
+                    characterId: 'CHARACTER#123',
+                    command: 'head north',
+                }),
+            }],
+            streamEvent: jest.fn(async () => {}),
+            streamEnvelope: jest.fn(async () => {}),
+        })
+
+        expect(mockMessageBus.send).toHaveBeenCalledWith({
+            type: 'PublishMessage',
+            targets: ['CHARACTER#123'],
+            displayProtocol: 'WorldOOCMessage',
+            message: ['There is no exit to that place from here.'],
+        })
+    })
+
+    it('maps NavigationIntent ambiguous parse error to ambiguity copy', async () => {
+        mockedParseCommand.mockResolvedValue({
+            type: 'Error',
+            errorMessage: navigationIntentErrorMessages.ambiguousMatch,
+        })
+
+        await ephemeraActionsDataSource.receiveEvents!({
+            events: [{
+                header: {
+                    dataSourceKey: 'api.ephemera',
+                    streamKey: 'CHARACTER#123',
+                    timestamp: Date.now(),
+                    type: 'Parse Requested',
+                },
+                getContent: async () => ({
+                    characterId: 'CHARACTER#123',
+                    command: 'head north',
+                }),
+            }],
+            streamEvent: jest.fn(async () => {}),
+            streamEnvelope: jest.fn(async () => {}),
+        })
+
+        expect(mockMessageBus.send).toHaveBeenCalledWith({
+            type: 'PublishMessage',
+            targets: ['CHARACTER#123'],
+            displayProtocol: 'WorldOOCMessage',
+            message: ["I can't tell which exit you mean from here."],
+        })
+    })
+
     it('does not emit correlated success when requestId is missing', async () => {
         await ephemeraActionsDataSource.receiveEvents!({
             events: [{
@@ -142,6 +241,7 @@ describe('ephemeraActionsDataSource', () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: from,
                 toRoomIds: [dest],
+                exits: [{ normalizedName: 'north', toRoomId: dest }],
             })
             const streamEvent = jest.fn(async () => {})
 
@@ -174,6 +274,14 @@ describe('ephemeraActionsDataSource', () => {
                 },
             })
             expect(mockMessageBus.send).toHaveBeenCalledWith({
+                type: 'MoveCharacter',
+                characterId: 'CHARACTER#123',
+                roomId: dest,
+            })
+            expect(mockedParseCommand).toHaveBeenCalledWith(expect.objectContaining({
+                roomExits: [{ normalizedName: 'north', targetId: dest }],
+            }))
+            expect(mockMessageBus.send).toHaveBeenCalledWith({
                 type: 'ReturnValue',
                 body: {
                     messageType: 'Success',
@@ -188,6 +296,7 @@ describe('ephemeraActionsDataSource', () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: null,
                 toRoomIds: [],
+                exits: [],
             })
 
             await ephemeraActionsDataSource.receiveEvents!({
@@ -213,6 +322,9 @@ describe('ephemeraActionsDataSource', () => {
                 displayProtocol: 'WorldOOCMessage',
                 message: ['You are not in a room, so you cannot go anywhere.'],
             })
+            expect(mockMessageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({
+                type: 'MoveCharacter',
+            }))
         })
 
         it('publishes WorldOOCMessage when target room is not reachable by an exit', async () => {
@@ -220,6 +332,7 @@ describe('ephemeraActionsDataSource', () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: from,
                 toRoomIds: ['ROOM#other' as EphemeraRoomId],
+                exits: [{ normalizedName: 'north', toRoomId: 'ROOM#other' as EphemeraRoomId }],
             })
 
             await ephemeraActionsDataSource.receiveEvents!({
@@ -245,6 +358,9 @@ describe('ephemeraActionsDataSource', () => {
                 displayProtocol: 'WorldOOCMessage',
                 message: ['There is no exit to that place from here.'],
             })
+            expect(mockMessageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({
+                type: 'MoveCharacter',
+            }))
         })
     })
 
@@ -256,6 +372,7 @@ describe('ephemeraActionsDataSource', () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: null,
                 toRoomIds: [],
+                exits: [],
             })
 
             await ephemeraActionsDataSource.receiveEvents!({
@@ -288,6 +405,7 @@ describe('ephemeraActionsDataSource', () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: currentRoom,
                 toRoomIds: [],
+                exits: [],
             })
             const streamEvent = jest.fn(async () => {})
 
@@ -336,6 +454,7 @@ describe('ephemeraActionsDataSource', () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: currentRoom,
                 toRoomIds: [],
+                exits: [],
             })
             const streamEvent = jest.fn(async () => {})
 
@@ -400,6 +519,7 @@ describe('ephemeraActionsDataSource', () => {
             expect(mockedCollectCoyoteOccupiedStableKeys).toHaveBeenCalledTimes(1)
             expect(mockedParseCommand).toHaveBeenCalledWith({
                 command: 'order widget',
+                roomExits: [],
                 occupiedStableKeys: ['alpha', 'beta'],
             })
         })

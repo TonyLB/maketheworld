@@ -1,17 +1,36 @@
 import type {
     IntentClassificationResult,
     ParseCommandAcmeOrderIntentResult,
+    ParseCommandNavigationIntentResult,
 } from './baseClasses'
 import {
     isParseCommandAcmeOrderIntentResult,
     isParseCommandAwaitRoadrunnerResult,
     isParseCommandLookRoomResult,
+    isParseCommandNavigationIntentResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
 } from './baseClasses'
 
 function isParseConfidence(value: unknown): boolean {
     return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1
+}
+
+const forbiddenNavigationIntentFields = new Set([
+    'targetId',
+    'toRoomId',
+    'roomId',
+    'destinationId',
+    'fromRoomId',
+])
+
+function hasForbiddenNavigationIntentField(obj: Record<string, unknown>): boolean {
+    return Object.keys(obj).some((key) => {
+        if (forbiddenNavigationIntentFields.has(key)) {
+            return true
+        }
+        return /id$/i.test(key) && /(target|room|destination|to|from)/i.test(key)
+    })
 }
 
 /** Strip markdown code fences and extract a JSON object from the model response. */
@@ -29,7 +48,8 @@ function extractJsonBody(raw: string): string {
 
 /**
  * Parses and validates LLM output for the intent-classification prompt.
- * Accepts **`AwaitRoadRunner`**, **`AcmeOrder`** (intent-only, no **`orders`**), **`LookRoom`**, **`Unimplemented`**, or **`Unknown`**; anything else becomes **`Error`**.
+ * Accepts **`AwaitRoadRunner`**, **`AcmeOrder`** (intent-only, no **`orders`**), **`LookRoom`**,
+ * **`NavigationIntent`**, **`Unimplemented`**, or **`Unknown`**; anything else becomes **`Error`**.
  * (**`CoyoteEngineTest`**, slash-only harness types, and **bare `look` / `l`** are handled deterministically before Bedrock in **`parseCommand`**.)
  */
 export function interpretParseCommandIntentClassificationBody(body: string): IntentClassificationResult {
@@ -71,6 +91,26 @@ export function interpretParseCommandIntentClassificationBody(body: string): Int
         }
         if (isParseCommandLookRoomResult(candidate)) {
             return candidate
+        }
+    }
+
+    if (type === 'NavigationIntent') {
+        if (hasForbiddenNavigationIntentField(obj)) {
+            return {
+                type: 'Error',
+                errorMessage: 'NavigationIntent must not include room-id routing fields',
+            }
+        }
+        const candidate: ParseCommandNavigationIntentResult = {
+            type: 'NavigationIntent',
+            exitCandidate: obj.exitCandidate as string,
+            confidence: obj.confidence as number,
+        }
+        if (isParseCommandNavigationIntentResult(candidate)) {
+            return {
+                ...candidate,
+                exitCandidate: candidate.exitCandidate.trim(),
+            }
         }
     }
 
@@ -119,6 +159,6 @@ export function interpretParseCommandIntentClassificationBody(body: string): Int
     return {
         type: 'Error',
         errorMessage:
-            'Model JSON must be a valid AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, Unimplemented, or Unknown payload (see prompt)',
+            'Model JSON must be a valid AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
     }
 }

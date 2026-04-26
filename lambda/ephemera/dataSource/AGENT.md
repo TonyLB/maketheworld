@@ -51,10 +51,12 @@ Side-effect **`import './dataSource/...'`** from [`../app.ts`](../app.ts) regist
 | **`mtw.ephemera.perception`** | [`perception/`](perception/) | Audience fan-in, **`PublishMessage`** --- [`perception/AGENT.md`](perception/AGENT.md) |
 | **`mtw.ephemera.state`** | [`state/`](state/) | **`Meta::Room.state`** marks merge, **`State Changed`** --- [`state/AGENT.md`](state/AGENT.md) |
 | **`mtw.ephemera.objects`** | [`objects/`](objects/) | **`Meta::Room.objects`** (**`EphemeraMetaRoomObject[]`**: **`uuid`**, **`shortName`**, optional **`stableKey`** machine correlation key (legacy rows may omit), optional plan-role **`affinities`** / **`affinitiesFailed`**) merge, **`Objects Changed`**, affordance fan-out --- [`objects/AGENT.md`](objects/AGENT.md) |
-| **`mtw.ephemera.actions`** | [`actions/`](actions/) ([`actions/index.ts`](actions/index.ts)) | **`Parse Requested`** ingress; **`Acme Order`** (**`stableKey`** per line after deterministic finalize), **`Character Navigate`**, **`Await RoadRunner`**, harnesses --- normative **`stableKey`** contract [**`actions/AGENT.md`**](actions/AGENT.md); [`publishedEvents.ts`](actions/publishedEvents.ts), [`parseCommand.ts`](actions/parseCommand.ts) |
+| **`mtw.ephemera.actions`** | [`actions/`](actions/) ([`actions/index.ts`](actions/index.ts)) | **`Parse Requested`** ingress; **`Acme Order`** (**`stableKey`** per line after deterministic finalize), **`Character Navigate`**, **`Await RoadRunner`**, harnesses --- normative **`stableKey`** contract [**`actions/AGENT.md`**](actions/AGENT.md); movement is currently **event + imperative** until cutover to positions; [`publishedEvents.ts`](actions/publishedEvents.ts), [`parseCommand.ts`](actions/parseCommand.ts) |
 | **`mtw.ephemera.coyoteGame`** | [`coyoteGame/`](coyoteGame/) | **`Objects Changed`** (Coyote + adds) and **`mtw.ephemera.actions` `Await RoadRunner`**; hypothesis + plan-outcome stubs --- [`coyoteGame/AGENT.md`](coyoteGame/AGENT.md) |
 
 **Virtual / cross-cutting:** **`api.ephemera`** is not a `DataSource` class but the **`dataSourceKey`** for internal command envelopes consumed by multiple subscribers above.
+
+**Deferred ownership note:** Movement and position authority is planned to converge under a future **`mtw.ephemera.positions`** DataSource (see task plan [`taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md`](../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md)). Until then, actions intentionally retains a temporary event-plus-imperative bridge for character navigation.
 
 ---
 
