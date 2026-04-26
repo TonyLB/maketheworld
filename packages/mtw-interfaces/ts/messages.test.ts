@@ -51,6 +51,24 @@ describe('CoyoteGameHelpMessage', () => {
             CreatedTime: 1
         })).toBe(false)
     })
+
+    it('should validate CoyoteGameHelpMessage with session target', () => {
+        expect(isMessage({
+            DisplayProtocol: 'CoyoteGameHelpMessage',
+            MessageId: 'MESSAGE#help-session',
+            CreatedTime: 1,
+            Target: 'SESSION#anon'
+        })).toBe(true)
+    })
+
+    it('should reject CoyoteGameHelpMessage with malformed target', () => {
+        expect(isMessage({
+            DisplayProtocol: 'CoyoteGameHelpMessage',
+            MessageId: 'MESSAGE#help-bad-target',
+            CreatedTime: 1,
+            Target: 'TARGET#bad'
+        })).toBe(false)
+    })
 })
 
 describe('PerceptionMessage', () => {

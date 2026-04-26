@@ -63,10 +63,10 @@ Use `[ ]` for pending and `[X]` for complete. Mark each nested item as you finis
   - [X] Preserve existing parse acceptance `ReturnValue` behavior and avoid changing unrelated fallback branches.
   - [X] Add/extend `actions/index.test.ts` to validate publish target/protocol and unchanged success correlation behavior.
 
-- [ ] Phase 3 - verify message protocol/wire integration for this path
-  - [ ] Confirm `PublishCoyoteGameHelpMessage` typing/guards in `lambda/ephemera/messageBus/baseClasses.ts` match handler usage.
-  - [ ] Confirm `publishMessage/index.ts` maps bus payload to wire `DisplayProtocol: 'CoyoteGameHelpMessage'` correctly.
-  - [ ] Add/adjust tests where needed in `publishMessage` and `mtw-interfaces` suites for coverage of this flow.
+- [X] Phase 3 - verify message protocol/wire integration for this path
+  - [X] Confirm `PublishCoyoteGameHelpMessage` typing/guards in `lambda/ephemera/messageBus/baseClasses.ts` match handler usage.
+  - [X] Confirm `publishMessage/index.ts` maps bus payload to wire `DisplayProtocol: 'CoyoteGameHelpMessage'` correctly.
+  - [X] Add/adjust tests where needed in `publishMessage` and `mtw-interfaces` suites for coverage of this flow.
 
 - [ ] Phase 4 - regression and docs closeout
   - [ ] Run targeted actions/parser/publish/interface tests and capture pass commands in Verification.
@@ -100,6 +100,13 @@ Phase 2 verification completed with:
 - `cd /Users/anthonylower-basch/Code/maketheworld && npx jest --config lambda/ephemera/jest.config.js --runInBand lambda/ephemera/dataSource/actions/index.test.ts`
 - `ReadLints` clean on edited files (`lambda/ephemera/dataSource/actions/index.ts`, `lambda/ephemera/dataSource/actions/index.test.ts`).
 
+Phase 3 verification completed with:
+
+- `cd /Users/anthonylower-basch/Code/maketheworld && npx jest --config lambda/ephemera/jest.config.js --runInBand lambda/ephemera/publishMessage/index.test.ts`
+- `cd /Users/anthonylower-basch/Code/maketheworld && npx jest --config packages/mtw-interfaces/jest.config.js packages/mtw-interfaces/ts/messages.test.ts packages/mtw-interfaces/ts/ephemera.test.ts`
+- `cd /Users/anthonylower-basch/Code/maketheworld/lambda/ephemera && npm run build`
+- `ReadLints` clean on edited files (`lambda/ephemera/publishMessage/index.test.ts`, `packages/mtw-interfaces/ts/messages.test.ts`, `packages/mtw-interfaces/ts/ephemera.test.ts`).
+
 ## Progress
 
 | Milestone | Status |
@@ -107,7 +114,7 @@ Phase 2 verification completed with:
 | Planning document created with scope and order | Done |
 | Parser/result contract for help affordance | Done |
 | Actions handler publish branch for `CoyoteGameHelpMessage` | Done |
-| Publish/wire verification and tests | Not started |
+| Publish/wire verification and tests | Done |
 | Final docs/verification/checklist closeout | Not started |
 
 ## Notes and open decisions
