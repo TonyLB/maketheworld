@@ -22,6 +22,7 @@ import {
     isParseCommandCoyoteAffinitiesTestResult,
     isParseCommandCoyoteEngineTestResult,
     isParseCommandErrorResult,
+    isParseCommandHelpResult,
     isParseCommandLookRoomResult,
     isParseCommandNavigationResult,
     isParseCommandPromptInjectionAttemptResult,
@@ -277,6 +278,13 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                     message: [
                         "Prompt injection isn't going to get you any closer to catching the Road Runner.",
                     ],
+                })
+            }
+            else if (isEphemeraCharacterId(content.characterId) && isParseCommandHelpResult(parseResult)) {
+                messageBus.send({
+                    type: 'PublishMessage',
+                    targets: [content.characterId],
+                    displayProtocol: 'CoyoteGameHelpMessage',
                 })
             }
             else if (isEphemeraCharacterId(content.characterId) && isParseCommandUnknownResult(parseResult)) {

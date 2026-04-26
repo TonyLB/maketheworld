@@ -922,6 +922,46 @@ describe('ephemeraActionsDataSource', () => {
         })
     })
 
+    describe('ParseCommandHelpResult', () => {
+        it('publishes CoyoteGameHelpMessage to requester and preserves correlated success behavior', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'Help', confidence: 0.92 })
+            const streamEvent = jest.fn(async () => {})
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'help me',
+                        requestId: 'req-help',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).not.toHaveBeenCalled()
+            expect(mockMessageBus.send).toHaveBeenNthCalledWith(1, {
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'CoyoteGameHelpMessage',
+            })
+            expect(mockMessageBus.send).toHaveBeenNthCalledWith(2, {
+                type: 'ReturnValue',
+                body: {
+                    messageType: 'Success',
+                    RequestId: 'req-help',
+                    message: 'Parse request accepted',
+                },
+            })
+        })
+    })
+
     describe('ParseCommandUnknownResult', () => {
         it('publishes WorldOOCMessage for unknown intent', async () => {
             mockedParseCommand.mockResolvedValue({ type: 'Unknown', confidence: 0.9 })

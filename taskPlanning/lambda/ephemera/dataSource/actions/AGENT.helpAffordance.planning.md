@@ -57,11 +57,11 @@ Use `[ ]` for pending and `[X]` for complete. Mark each nested item as you finis
   - [X] Add Step A help-intent classification path and keep prompt labels + interpretation + guards aligned across prompt builder/interpreter/base classes.
   - [X] Add parser unit tests for deterministic and/or Step A help detection paths.
 
-- [ ] Phase 2 - route help affordance in actions handler
-  - [ ] Add `Help` branch in `actions/index.ts` receive flow.
-  - [ ] Publish `PublishMessage` with `displayProtocol: 'CoyoteGameHelpMessage'` targeted to the requesting character.
-  - [ ] Preserve existing parse acceptance `ReturnValue` behavior and avoid changing unrelated fallback branches.
-  - [ ] Add/extend `actions/index.test.ts` to validate publish target/protocol and unchanged success correlation behavior.
+- [X] Phase 2 - route help affordance in actions handler
+  - [X] Add `Help` branch in `actions/index.ts` receive flow.
+  - [X] Publish `PublishMessage` with `displayProtocol: 'CoyoteGameHelpMessage'` targeted to the requesting character.
+  - [X] Preserve existing parse acceptance `ReturnValue` behavior and avoid changing unrelated fallback branches.
+  - [X] Add/extend `actions/index.test.ts` to validate publish target/protocol and unchanged success correlation behavior.
 
 - [ ] Phase 3 - verify message protocol/wire integration for this path
   - [ ] Confirm `PublishCoyoteGameHelpMessage` typing/guards in `lambda/ephemera/messageBus/baseClasses.ts` match handler usage.
@@ -95,13 +95,18 @@ Phase 1 verification completed with:
 - `cd /Users/anthonylower-basch/Code/maketheworld/lambda/ephemera && npm run build`
 - `ReadLints` clean on edited files.
 
+Phase 2 verification completed with:
+
+- `cd /Users/anthonylower-basch/Code/maketheworld && npx jest --config lambda/ephemera/jest.config.js --runInBand lambda/ephemera/dataSource/actions/index.test.ts`
+- `ReadLints` clean on edited files (`lambda/ephemera/dataSource/actions/index.ts`, `lambda/ephemera/dataSource/actions/index.test.ts`).
+
 ## Progress
 
 | Milestone | Status |
 | --- | --- |
 | Planning document created with scope and order | Done |
 | Parser/result contract for help affordance | Done |
-| Actions handler publish branch for `CoyoteGameHelpMessage` | Not started |
+| Actions handler publish branch for `CoyoteGameHelpMessage` | Done |
 | Publish/wire verification and tests | Not started |
 | Final docs/verification/checklist closeout | Not started |
 
