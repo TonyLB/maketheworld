@@ -157,6 +157,11 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                             toRoomId: parseResult.targetId,
                         },
                     })
+                    messageBus.send({
+                        type: 'MoveCharacter',
+                        characterId: content.characterId,
+                        roomId: parseResult.targetId,
+                    })
                 }
             }
             else if (isEphemeraCharacterId(content.characterId) && isParseCommandLookRoomResult(parseResult)) {

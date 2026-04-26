@@ -273,6 +273,11 @@ describe('ephemeraActionsDataSource', () => {
                     toRoomId: dest,
                 },
             })
+            expect(mockMessageBus.send).toHaveBeenCalledWith({
+                type: 'MoveCharacter',
+                characterId: 'CHARACTER#123',
+                roomId: dest,
+            })
             expect(mockedParseCommand).toHaveBeenCalledWith(expect.objectContaining({
                 roomExits: [{ normalizedName: 'north', targetId: dest }],
             }))
@@ -317,6 +322,9 @@ describe('ephemeraActionsDataSource', () => {
                 displayProtocol: 'WorldOOCMessage',
                 message: ['You are not in a room, so you cannot go anywhere.'],
             })
+            expect(mockMessageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({
+                type: 'MoveCharacter',
+            }))
         })
 
         it('publishes WorldOOCMessage when target room is not reachable by an exit', async () => {
@@ -350,6 +358,9 @@ describe('ephemeraActionsDataSource', () => {
                 displayProtocol: 'WorldOOCMessage',
                 message: ['There is no exit to that place from here.'],
             })
+            expect(mockMessageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({
+                type: 'MoveCharacter',
+            }))
         })
     })
 

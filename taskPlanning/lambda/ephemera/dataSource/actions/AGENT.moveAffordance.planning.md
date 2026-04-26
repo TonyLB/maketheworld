@@ -208,10 +208,10 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
   - [X] Ensure type guards and parse result union remain aligned.
   - [X] Add tests covering model output validation and fallback behavior for movement intent.
 
-- [ ] Phase 4 - actions handler and downstream execution
-  - [ ] Ensure actions handler emits movement event contract needed by downstream systems.
-  - [ ] Implement imperative movement execution bridge for parity in this task.
-  - [ ] Add tests proving both event emission and imperative movement execution behavior.
+- [X] Phase 4 - actions handler and downstream execution
+  - [X] Ensure actions handler emits movement event contract needed by downstream systems.
+  - [X] Implement imperative movement execution bridge for parity in this task.
+  - [X] Add tests proving both event emission and imperative movement execution behavior.
 
 - [ ] Phase 5 - handoff notes and docs
   - [ ] Document deferred cutover target (`mtw.ephemera.positions`) and explicit non-goals in durable docs.
@@ -239,5 +239,5 @@ Run from `lambda/ephemera/` unless noted otherwise.
 | Phase 1 contract decisions | Done |
 | Deterministic movement parse branch | Done |
 | Step A movement support (if selected) | Done |
-| Event plus imperative movement bridge | Not started |
+| Event plus imperative movement bridge | Done |
 | Handoff docs for later positions cutover | Not started |
