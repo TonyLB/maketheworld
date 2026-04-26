@@ -99,13 +99,13 @@ export const Message = ({ message, ...rest }: MessageProps) => {
                         {...rest} 
                     />
                 }
-                
-                // Fallback to legacy component type detection for backward compatibility
+
+                // WML tag fallback (before character metadata): route by parsed component tag at metaData.componentUUID
                 const componentUUID = metaData.componentUUID
                 const component = perceptionMessage.parsedWML.byUniversalId[componentUUID]
                 const componentType = component?.tag
-                
-                switch(componentType) {
+
+                switch (componentType) {
                     case 'Knowledge':
                         return <ComponentDescription 
                             parsedWML={perceptionMessage.parsedWML}
@@ -134,10 +134,29 @@ export const Message = ({ message, ...rest }: MessageProps) => {
                             metaData={fallbackRoomMetaData}
                             {...rest} 
                         />
+                    case 'Character':
+                        if (typeof componentUUID === 'string' && componentUUID.startsWith('CHARACTER#')) {
+                            return (
+                                <CharacterDescription
+                                    message={{
+                                        ...perceptionMessage,
+                                        metaData: { componentUUID: componentUUID as EphemeraCharacterId }
+                                    }}
+                                />
+                            )
+                        }
+                        break
                     // Add other cases as we implement them
                     default:
-                        return <UnknownMessage message={message} />
+                        break
                 }
+
+                // Immediate handling: character-typed metadata when WML tag routing did not apply
+                if (metaData && isPerceptionCharacterMetaData(metaData)) {
+                    return <CharacterDescription message={perceptionMessage} />
+                }
+
+                return <UnknownMessage message={message} />
             }
             return <UnknownMessage message={message} />
         case 'SpacerMessage':
