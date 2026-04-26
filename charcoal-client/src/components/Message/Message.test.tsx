@@ -255,3 +255,57 @@ describe('Message component - CoyoteGameHelpMessage routing', () => {
     })
 })
 
+describe('Message component - CoyoteGameHypothesisMessage routing', () => {
+    it('should render hypothesis message in dedicated component surface', () => {
+        const store = mockStore({
+            player: {
+                Players: {
+                    'CHARACTER#test': {
+                        Assets: []
+                    }
+                }
+            },
+            playerDataSource: {
+                publicData: {
+                    activeStreamKeys: [],
+                    subscribedStreams: {
+                        'test-player': {
+                            materializedView: {
+                                type: 'Snapshot',
+                                assets: [],
+                                characters: [],
+                                settings: { onboardCompleteTags: [] }
+                            }
+                        }
+                    }
+                }
+            },
+            personalAssets: { byId: {} },
+            activeCharacters: {
+                activeCharacter: 'CHARACTER#test'
+            },
+            settings: {
+                server: { ChatPrompt: 'What do you do?' },
+                client: { TextEntryLines: 1, ShowNeighborhoodHeaders: false, AlwaysShowOnboarding: false },
+                connection: { sessionId: '', playerName: 'test-player' }
+            },
+            lifeLine: {}
+        })
+        const message = {
+            DisplayProtocol: 'CoyoteGameHypothesisMessage',
+            MessageId: 'msg-hypothesis',
+            CreatedTime: Date.now(),
+            Message: ['Hypothesis: Generating...']
+        } as const
+
+        render(
+            <Provider store={store}>
+                <Message message={message as any} />
+            </Provider>
+        )
+
+        expect(screen.getByTestId('coyote-game-hypothesis-message')).toBeDefined()
+        expect(screen.getByText('Hypothesis: Generating...')).toBeDefined()
+    })
+})
+

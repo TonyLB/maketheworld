@@ -9,6 +9,7 @@ import OOCMessage from './OOCMessage'
 import WorldMessage from './WorldMessage'
 import WorldOOCMessage from './WorldOOCMessage'
 import CoyoteHelpMessage from './CoyoteHelpMessage'
+import CoyoteGameHypothesisMessage from './CoyoteGameHypothesisMessage'
 import RoomDescription from './RoomDescription'
 import ComponentDescription from './ComponentDescription'
 import SpacerMessage from './SpacerMessage'
@@ -59,6 +60,8 @@ export const Message = ({ message, ...rest }: MessageProps) => {
             return <WorldOOCMessage message={message} {...rest} />
         case 'CoyoteGameHelpMessage':
             return <CoyoteHelpMessage message={message} {...rest} />
+        case 'CoyoteGameHypothesisMessage':
+            return <CoyoteGameHypothesisMessage message={message} {...rest} />
         case 'PerceptionMessage':
             // Handle PerceptionMessage by routing to appropriate component based on metaData or fallback to component type
             const perceptionMessage = message as PerceptionMessage & { parsedWML?: StandardForm }

@@ -115,6 +115,41 @@ describe('PublishMessage', () => {
         })
     })
 
+    it('should dispatch CoyoteGameHypothesisMessage with same wire shape as WorldMessage', async () => {
+        cacheMock.OrchestrateMessages.allOffsets.mockReturnValue({})
+        cacheMock.CharacterSessions.get.mockResolvedValue(['Z123'])
+        cacheMock.SessionConnections.get.mockResolvedValue(['Y123'])
+        await publishMessage({
+            payloads: [{
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'CoyoteGameHypothesisMessage',
+                message: ['Hypothesis: Generating...']
+            }]
+        })
+        expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
+            Target: 'CHARACTER#123',
+            DeltaId: '1000000000000::MESSAGE#UUID',
+            RowId: 'MESSAGE#UUID',
+            CreatedTime: 1000000000000,
+            Message: ['Hypothesis: Generating...'],
+            DisplayProtocol: 'CoyoteGameHypothesisMessage'
+        })
+        expect(apiClientMock.send).toHaveBeenCalledWith({
+            ConnectionId: 'Y123',
+            Data: JSON.stringify({
+                messageType: 'Messages',
+                messages: [{
+                    Target: 'CHARACTER#123',
+                    MessageId: 'MESSAGE#UUID',
+                    CreatedTime: 1000000000000,
+                    Message: ['Hypothesis: Generating...'],
+                    DisplayProtocol: 'CoyoteGameHypothesisMessage'
+                }]
+            })
+        })
+    })
+
     it('uses shared messageId and explicit createdTime for WorldMessage when provided', async () => {
         cacheMock.OrchestrateMessages.allOffsets.mockReturnValue({})
         cacheMock.CharacterSessions.get.mockResolvedValue(['Z123'])
@@ -154,6 +189,48 @@ describe('PublishMessage', () => {
             CreatedTime: 1000000000001,
             Message: ['Hypothesis: Stubbed'],
             DisplayProtocol: 'WorldMessage',
+        })
+    })
+
+    it('uses shared messageId and explicit createdTime for CoyoteGameHypothesisMessage when provided', async () => {
+        cacheMock.OrchestrateMessages.allOffsets.mockReturnValue({})
+        cacheMock.CharacterSessions.get.mockResolvedValue(['Z123'])
+        cacheMock.SessionConnections.get.mockResolvedValue(['Y123'])
+        await publishMessage({
+            payloads: [
+                {
+                    type: 'PublishMessage',
+                    targets: ['CHARACTER#123'],
+                    displayProtocol: 'CoyoteGameHypothesisMessage',
+                    message: ['Hypothesis: Generating...'],
+                    messageId: 'MESSAGE#SHARED',
+                    createdTime: 1000000000000,
+                },
+                {
+                    type: 'PublishMessage',
+                    targets: ['CHARACTER#123'],
+                    displayProtocol: 'CoyoteGameHypothesisMessage',
+                    message: ['Hypothesis: Stubbed'],
+                    messageId: 'MESSAGE#SHARED',
+                    createdTime: 1000000000001,
+                },
+            ],
+        })
+        expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
+            Target: 'CHARACTER#123',
+            DeltaId: '1000000000000::MESSAGE#SHARED',
+            RowId: 'MESSAGE#SHARED',
+            CreatedTime: 1000000000000,
+            Message: ['Hypothesis: Generating...'],
+            DisplayProtocol: 'CoyoteGameHypothesisMessage',
+        })
+        expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
+            Target: 'CHARACTER#123',
+            DeltaId: '1000000000001::MESSAGE#SHARED',
+            RowId: 'MESSAGE#SHARED',
+            CreatedTime: 1000000000001,
+            Message: ['Hypothesis: Stubbed'],
+            DisplayProtocol: 'CoyoteGameHypothesisMessage',
         })
     })
 

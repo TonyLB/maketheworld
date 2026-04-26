@@ -70,7 +70,7 @@ describe('executeAction', () => {
                 }
             }
 
-            await executeAction(request)
+            await executeAction(MockMessageBus, request)
 
             expect(mockSendPerceptionThreadRegistered).toHaveBeenCalledWith(
                 MockMessageBus,
@@ -107,7 +107,7 @@ describe('executeAction', () => {
                 }
             }
 
-            await executeAction(request)
+            await executeAction(MockMessageBus, request)
 
             expect(MockMessageBus.send).toHaveBeenCalledWith({
                 type: 'Perception',
@@ -129,7 +129,7 @@ describe('executeAction', () => {
                 }
             }
 
-            await executeAction(request)
+            await executeAction(MockMessageBus, request)
 
             expect(MockMessageBus.send).toHaveBeenCalledWith({
                 type: 'MoveCharacter',
@@ -149,7 +149,7 @@ describe('executeAction', () => {
                 }
             }
 
-            await executeAction(request)
+            await executeAction(MockMessageBus, request)
 
             expect(MockMessageBus.send).toHaveBeenCalledWith({
                 type: 'MoveCharacter',
@@ -179,7 +179,7 @@ describe('executeAction', () => {
                 }
             }
 
-            await executeAction(request)
+            await executeAction(MockMessageBus, request)
 
             expect(internalCacheMock.CharacterMeta.get).toHaveBeenCalledWith('CHARACTER#123')
             expect(MockMessageBus.send).toHaveBeenCalledWith({
@@ -208,7 +208,7 @@ describe('executeAction', () => {
                 }
             }
 
-            await executeAction(request)
+            await executeAction(MockMessageBus, request)
 
             expect(internalCacheMock.CharacterMeta.get).toHaveBeenCalledWith('CHARACTER#123')
             expect(MockMessageBus.send).toHaveBeenCalledWith({
@@ -241,7 +241,7 @@ describe('executeAction', () => {
                 }
             }
 
-            await executeAction(request)
+            await executeAction(MockMessageBus, request)
 
             expect(internalCacheMock.CharacterMeta.get).toHaveBeenCalledWith('CHARACTER#123')
             expect(MockMessageBus.send).toHaveBeenCalledWith({
@@ -281,7 +281,7 @@ describe('executeAction', () => {
                 }
             }
 
-            await executeAction(request)
+            await executeAction(MockMessageBus, request)
 
             expect(internalCacheMock.CharacterMeta.get).toHaveBeenCalledWith('CHARACTER#123')
             expect(MockMessageBus.send).toHaveBeenCalledWith({
@@ -321,7 +321,7 @@ describe('executeAction', () => {
                 }
             }
 
-            await executeAction(request)
+            await executeAction(MockMessageBus, request)
 
             expect(internalCacheMock.CharacterMeta.get).toHaveBeenCalledWith('CHARACTER#123')
             expect(MockMessageBus.send).toHaveBeenCalledWith({
@@ -363,7 +363,7 @@ describe('executeAction', () => {
                 }
             }
 
-            await executeAction(request)
+            await executeAction(MockMessageBus, request)
 
             expect(MockMessageBus.send).toHaveBeenCalledWith({
                 type: 'PublishMessage',
@@ -396,7 +396,7 @@ describe('executeAction', () => {
                 }
             }
 
-            await executeAction(request)
+            await executeAction(MockMessageBus, request)
 
             // The current implementation only sends messages when RoomId exists
             // When RoomId is undefined, no messages are sent
@@ -413,7 +413,7 @@ describe('executeAction', () => {
             } as any
 
             // Should not throw
-            await expect(executeAction(request)).resolves.not.toThrow()
+            await expect(executeAction(MockMessageBus, request)).resolves.not.toThrow()
             
             // Should not send any messages
             expect(MockMessageBus.send).not.toHaveBeenCalled()

@@ -1,12 +1,14 @@
-import messageBus from '../messageBus'
 import internalCache from '../internalCache'
 import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { ActionAPIMessage } from '@tonylb/mtw-interfaces/ts/ephemera'
 import { EphemeraCharacterId, LegalCharacterColor, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { PublishMessage } from '../messageBus/baseClasses'
+import { MessageBus, PublishMessage } from '../messageBus/baseClasses'
 import { requestFullRoomDescriptionForCharacter } from '../dataSource/actions/requestFullRoomDescriptionForCharacter'
 
-const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol }: { CharacterId?: EphemeraCharacterId; Message?: string; DisplayProtocol?: PublishMessage["displayProtocol"]; } = {}) => {
+const narrateOOCOrSpeech = async (
+    messageBus: Pick<MessageBus, 'send'>,
+    { CharacterId, Message, DisplayProtocol }: { CharacterId?: EphemeraCharacterId; Message?: string; DisplayProtocol?: PublishMessage["displayProtocol"]; } = {}
+) => {
     if (CharacterId && Message && DisplayProtocol) {
         const { RoomId, Name, Color = defaultColorFromCharacterId(CharacterId) } = await internalCache.CharacterMeta.get(CharacterId) || {}
         if (RoomId) {
@@ -27,7 +29,7 @@ const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol }: { C
     }
 }
 
-export const executeAction = async (request: ActionAPIMessage) => {
+export const executeAction = async (messageBus: Pick<MessageBus, 'send'>, request: ActionAPIMessage) => {
     switch(request.actionType) {
         case 'look': {
             const characterId = request.payload.CharacterId
@@ -46,7 +48,7 @@ export const executeAction = async (request: ActionAPIMessage) => {
         case 'SayMessage':
         case 'NarrateMessage':
         case 'OOCMessage':
-            await narrateOOCOrSpeech({ ...request.payload, DisplayProtocol: request.actionType })
+            await narrateOOCOrSpeech(messageBus, { ...request.payload, DisplayProtocol: request.actionType })
             break
         case 'move':
             messageBus.send({
@@ -71,8 +73,8 @@ export const executeAction = async (request: ActionAPIMessage) => {
 }
 
 // Message bus handler for ExecuteAction messages
-export const executeActionMessage = async ({ payloads }: { payloads: import('../messageBus/baseClasses').ExecuteActionMessage[], messageBus?: any }) => {
+export const executeActionMessage = async ({ payloads, messageBus }: { payloads: import('../messageBus/baseClasses').ExecuteActionMessage[], messageBus: Pick<MessageBus, 'send'> }) => {
     await Promise.all(payloads.map(async (message) => {
-        await executeAction(message.action)
+        await executeAction(messageBus, message.action)
     }))
 }

@@ -1,6 +1,6 @@
 # Coyote compact hypothesis: dedicated `DisplayProtocol`
 
-**Status:** In progress. Wire and bus types shipped; next step: **`lambda/ephemera/publishMessage`** queue branch for **`CoyoteGameHypothesisMessage`**, then **`handleObjectsChangedForHypothesis`**, then client routing.
+**Status:** In progress. Wire, bus, publishMessage queue branch, and client routing shipped; next step: **`handleObjectsChangedForHypothesis`** protocol switch + tests, then durable **`coyoteGame/AGENT.md`** note.
 
 Skim [`taskPlanning/AGENT.md`](../../../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -26,7 +26,7 @@ Existing Coyote-specific protocol: **`CoyoteGameHelpMessage`** ([`packages/mtw-i
 | [`lambda/ephemera/messageBus/baseClasses.ts`](../../../../../lambda/ephemera/messageBus/baseClasses.ts) | **`PublishCoyoteGameHypothesisMessage`** and **`isPublishCoyoteGameHypothesisMessage`** added; next slice: **`publishMessage`** ORs this guard with the world-line branch (or a dedicated branch). |
 | [`lambda/ephemera/publishMessage/index.ts`](../../../../../lambda/ephemera/publishMessage/index.ts) | Queue path for world-line messages; extend so **`CoyoteGameHypothesisMessage`** maps to the same **`pushToQueues`** fields as **`WorldMessage`** (**`Message`**, **`MessageId`**, **`CreatedTime`**, **`DisplayProtocol`**). |
 | [`packages/mtw-interfaces/ts/messages.ts`](../../../../../packages/mtw-interfaces/ts/messages.ts) | **`CoyoteGameHypothesisMessage`**, extended **`Message`** / **`isMessage`**. |
-| [`charcoal-client/src/components/Message/index.tsx`](../../../../../charcoal-client/src/components/Message/index.tsx) | **`switch (DisplayProtocol)`** branch; initial implementation may delegate to **`WorldMessage`** for identical layout until bespoke UI lands. |
+| [`charcoal-client/src/components/Message/index.tsx`](../../../../../charcoal-client/src/components/Message/index.tsx) | **`switch (DisplayProtocol)`** branch to a dedicated **`CoyoteGameHypothesisMessage`** component (see Recommended order). |
 | [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) | After behavior ships, one-line note that compact hypothesis uses **`CoyoteGameHypothesisMessage`** (link from this plan until the task plan is retired). |
 
 ## Getting started
@@ -44,12 +44,12 @@ Existing Coyote-specific protocol: **`CoyoteGameHelpMessage`** ([`packages/mtw-i
 | --- | --- |
 | `mtw-interfaces`: type + `Message` union + `isMessage` | Done |
 | Ephemera `messageBus`: publish payload type + guards | Done |
-| `publishMessage`: queue branch for new protocol | |
+| `publishMessage`: queue branch for new protocol | Done |
 | `handleObjectsChangedForHypothesis` + unit tests | |
-| `publishMessage` tests (if new branch) | |
-| Charcoal `Message` switch (+ optional dedicated component) | |
+| `publishMessage` tests (if new branch) | Done |
+| Charcoal `Message` switch (+ optional dedicated component) | Done |
 | Durable `coyoteGame/AGENT.md` one-liner | |
-| This task plan checkboxes + status | |
+| This task plan checkboxes + status | In progress |
 
 ## Recommended order
 
@@ -58,12 +58,12 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
 - [X] **`@tonylb/mtw-interfaces`**: Add **`CoyoteGameHypothesisMessage`** type (**`DisplayProtocol: 'CoyoteGameHypothesisMessage'`**, **`Message: RenderTree`**, same addressing fields as **`WorldMessage`**), extend **`Message`** union, extend **`isMessage`** **`switch`** with **`RenderTree`** validation for **`Message`**.
   - [X] Add or extend **unit tests** in [`messages.test.ts`](../../../../../packages/mtw-interfaces/ts/messages.test.ts) (and **`ephemera.test.ts`** if full message envelopes are asserted there).
 - [X] **`lambda/ephemera/messageBus`**: Add **`PublishCoyoteGameHypothesisMessage`** (mirror **`PublishWorldMessage`** fields: **`message`**, **`messageId?`**, **`createdTime?`**), add to **`PublishMessage`** union, add **`isPublishCoyoteGameHypothesisMessage`** (and update **`isPublishWorldLineMessage`** or **`publishMessage`** consumer explicitly --- pick one approach and keep guards readable).
-- [ ] **`lambda/ephemera/publishMessage`**: Handle the new payload in [`index.ts`](../../../../../lambda/ephemera/publishMessage/index.ts) with the same **`pushToQueues`** shape as world-line messages (**`Message`**, **`MessageId`**, **`CreatedTime`**, **`DisplayProtocol`**).
-  - [ ] Update [`publishMessage/index.test.ts`](../../../../../lambda/ephemera/publishMessage/index.test.ts) if fixtures assert **`DisplayProtocol`** lists.
+- [X] **`lambda/ephemera/publishMessage`**: Handle the new payload in [`index.ts`](../../../../../lambda/ephemera/publishMessage/index.ts) with the same **`pushToQueues`** shape as world-line messages (**`Message`**, **`MessageId`**, **`CreatedTime`**, **`DisplayProtocol`**).
+  - [X] Update [`publishMessage/index.test.ts`](../../../../../lambda/ephemera/publishMessage/index.test.ts) if fixtures assert **`DisplayProtocol`** lists.
+- [X] **`charcoal-client`**: Add **`case 'CoyoteGameHypothesisMessage':`** in [`Message/index.tsx`](../../../../../charcoal-client/src/components/Message/index.tsx) that renders a **dedicated** component (for example colocated **`CoyoteGameHypothesisMessage.tsx`** under **`Message/`**), **not** a thin wrapper around **`WorldMessage`**. The component should reuse the same body pipeline as world-line rows where it makes sense (**`MessageComponent`**, **`RenderTreeContent`** on **`message.Message`**, similar typography) but with **distinct chrome**: **rounded corners** and a **middling dark grey** **`linear-gradient`** background so hypothesis rows read separately from generic narration.
+  - [X] Add or adjust a **client test** in **`Message.test.tsx`** (or equivalent): route **`DisplayProtocol: 'CoyoteGameHypothesisMessage'`** through **`Message`** and assert the dedicated surface (for example presence of hypothesis copy and/or a stable **`data-testid`** on the new component root).
 - [ ] **`handleObjectsChangedForHypothesis`**: Set **`displayProtocol: 'CoyoteGameHypothesisMessage'`** for both the generating and terminal **`PublishMessage`** rows.
   - [ ] Update [`handleObjectsChangedForHypothesis.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handleObjectsChangedForHypothesis.test.ts) expectations.
-- [ ] **`charcoal-client`**: Add **`case 'CoyoteGameHypothesisMessage':`** in [`Message/index.tsx`](../../../../../charcoal-client/src/components/Message/index.tsx); initial render may **`return <WorldMessage ...>`** (or extract shared presentational fragment) so behavior is unchanged until styling is specified.
-  - [ ] Add or adjust a **client test** if **`Message.test.tsx`** (or equivalent) covers protocol routing.
 - [ ] **Durable doc**: Short note in [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) under stream / bus or WorldMessage section.
 - [ ] **Closeout**: Update **Progress** table and **Status** line in this file; run **Verification** commands.
 
