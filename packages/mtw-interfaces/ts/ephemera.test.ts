@@ -299,6 +299,19 @@ describe('EphemeraClientMessage typeguard', () => {
             })).toBe(true)
         })
 
+        it('should accept CoyoteGameHypothesisMessage with world-line wire shape', () => {
+            expect(isEphemeraClientMessage({
+                messageType: 'Messages',
+                messages: [{
+                    DisplayProtocol: 'CoyoteGameHypothesisMessage',
+                    MessageId: 'TestID',
+                    CreatedTime: 5,
+                    Target: 'CHARACTER#TestABC',
+                    Message: ['Test']
+                }]
+            })).toBe(true)
+        })
+
         it('should accept CoyoteGameHelpMessage without message body payload', () => {
             expect(isEphemeraClientMessage({
                 messageType: 'Messages',

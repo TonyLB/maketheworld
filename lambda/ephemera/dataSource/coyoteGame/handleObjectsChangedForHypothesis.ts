@@ -11,6 +11,18 @@ import type { CoyoteGamePublishedPayload } from './publishedEvents'
 import { COYOTE_RENDER_LINE_BREAK } from './coyoteRenderTree'
 import { isCoyoteGameRoom } from './isCoyoteGameRoom'
 
+const SCENE_ANALYSIS_HEADING = /^\s*##\s+Scene analysis\s*$/im
+
+const userFacingWalkthrough = (walkthrough: string | undefined): string | undefined => {
+    if (!walkthrough || walkthrough.trim().length === 0) {
+        return undefined
+    }
+    if (SCENE_ANALYSIS_HEADING.test(walkthrough)) {
+        return undefined
+    }
+    return walkthrough
+}
+
 /**
  * When objects are added in a Coyote demo room, emit hypothesis stream events and
  * WorldMessage placeholder + terminal rows (shared messageId) for connected occupants.
@@ -54,7 +66,7 @@ export async function handleObjectsChangedForHypothesis(
         {
             type: 'PublishMessage',
             targets,
-            displayProtocol: 'WorldMessage',
+            displayProtocol: 'CoyoteGameHypothesisMessage',
             message: ['Hypothesis: Generating...'],
             messageId: stored.hypothesisId,
             createdTime: stored.t0,
@@ -75,9 +87,13 @@ export async function handleObjectsChangedForHypothesis(
 
         await internalCache.CoyoteGame.invalidate('intent')
         const intentRecord = await internalCache.CoyoteGame.get('intent')
+        // NOTE: intentRecord.walkthrough currently maps hop-2 Scene Analysis prose.
+        // That has drifted from the original "golden-path walkthrough" meaning.
+        // We filter Scene Analysis from terminal publish for now; semantic realignment is deferred.
+        const walkthrough = userFacingWalkthrough(intentRecord.walkthrough)
         const renderTree: RenderTree =
-            intentRecord.walkthrough !== undefined && intentRecord.walkthrough.length > 0
-                ? [intentRecord.walkthrough, COYOTE_RENDER_LINE_BREAK, intentRecord.intent]
+            walkthrough !== undefined
+                ? [walkthrough, COYOTE_RENDER_LINE_BREAK, intentRecord.intent]
                 : [intentRecord.intent]
 
         const t1 = Math.max(stored.t0 + 1, getCurrentTimestamp())
@@ -96,7 +112,7 @@ export async function handleObjectsChangedForHypothesis(
         deps.messageBus.send({
             type: 'PublishMessage',
             targets,
-            displayProtocol: 'WorldMessage',
+            displayProtocol: 'CoyoteGameHypothesisMessage',
             message: renderTree,
             messageId: stored.hypothesisId,
             createdTime: t1,

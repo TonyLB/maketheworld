@@ -12,7 +12,11 @@ export type CacheCoyoteGameKeys = 'gameRooms' | 'intent' | 'outcome'
  */
 export type CoyoteGameIntentRecord = {
     intent: string
-    /** Player walkthrough aligned to **`phasePlan`** (typically "## Scene analysis" body). */
+    /**
+     * NOTE: This currently carries hop-2 "## Scene analysis" prompt prose.
+     * It has drifted from the original "golden-path walkthrough" intent.
+     * Semantic realignment is deferred to a later prompt + handling optimization pass.
+     */
     walkthrough?: string
     /** Machine-checkable phase plan when hop-2 JSON validates. */
     phasePlan?: CoyotePhasePlan
@@ -60,6 +64,8 @@ function normalizeDurableIntentRow(fetched: CoyoteGameDurableIntentRow | undefin
             typeof fetched.sceneAnalysis === 'string' && fetched.sceneAnalysis.length > 0
                 ? fetched.sceneAnalysis
                 : undefined
+        // Legacy sceneAnalysis maps into walkthrough for compatibility.
+        // Semantic cleanup from Scene Analysis text to true walkthrough is deferred.
         walkthrough = legacyScene
     }
     const phasePlan = fetched.phasePlan

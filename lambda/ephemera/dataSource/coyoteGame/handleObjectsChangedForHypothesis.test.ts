@@ -74,7 +74,7 @@ describe('handleObjectsChangedForHypothesis', () => {
         expect(messageBus.flush).not.toHaveBeenCalled()
     })
 
-    it('emits stream events and two WorldMessage publishes with shared messageId', async () => {
+    it('emits stream events and two CoyoteGameHypothesisMessage publishes with shared messageId', async () => {
         coyoteMock
             .mockResolvedValueOnce(['VORTEX', 'STRAIGHTAWAY'])
             .mockResolvedValueOnce({ intent: 'Hypothesis: Cached from CoyoteGame' })
@@ -92,11 +92,11 @@ describe('handleObjectsChangedForHypothesis', () => {
         const first = messageBus.send.mock.calls[0][0] as Record<string, unknown>
         const firstLane = messageBus.send.mock.calls[0][1]
         const second = messageBus.send.mock.calls[1][0] as Record<string, unknown>
-        expect(first.displayProtocol).toBe('WorldMessage')
+        expect(first.displayProtocol).toBe('CoyoteGameHypothesisMessage')
         expect(first.message).toEqual(['Hypothesis: Generating...'])
         expect(typeof firstLane).toBe('string')
         expect(firstLane).toMatch(/^hypothesisLane:MESSAGE#/)
-        expect(second.displayProtocol).toBe('WorldMessage')
+        expect(second.displayProtocol).toBe('CoyoteGameHypothesisMessage')
         expect(second.message).toEqual(['Hypothesis: Cached from CoyoteGame'])
         expect(first.messageId).toBe(second.messageId)
         expect(typeof first.messageId).toBe('string')
@@ -106,5 +106,27 @@ describe('handleObjectsChangedForHypothesis', () => {
         expect(coyoteInvalidateMock).toHaveBeenCalledWith('intent')
         expect(coyoteMock).toHaveBeenNthCalledWith(2, 'intent')
         expect(messageBus.flush).toHaveBeenCalledWith(firstLane)
+    })
+
+    it('filters Scene analysis walkthrough content from terminal publish payload', async () => {
+        coyoteMock
+            .mockResolvedValueOnce(['VORTEX', 'STRAIGHTAWAY'])
+            .mockResolvedValueOnce({
+                walkthrough: '## Scene analysis\nThe coyote surveys object topology before acting.',
+                intent: 'Hypothesis: You are setting up a trap.',
+            })
+        const streamEvent = jest.fn().mockResolvedValue(undefined)
+        const messageBus = busMocks()
+        await handleObjectsChangedForHypothesis(basePayload(), { streamEvent, messageBus })
+
+        expect(messageBus.send).toHaveBeenCalledTimes(2)
+        const terminal = messageBus.send.mock.calls[1][0] as Record<string, unknown>
+        expect(terminal.displayProtocol).toBe('CoyoteGameHypothesisMessage')
+        expect(terminal.message).toEqual(['Hypothesis: You are setting up a trap.'])
+
+        const terminalRenderTree = terminal.message as unknown[]
+        expect(
+            terminalRenderTree.some((line) => typeof line === 'string' && /Scene analysis/i.test(line))
+        ).toBe(false)
     })
 })
