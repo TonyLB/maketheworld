@@ -3,6 +3,7 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { ephemeraActionsDataSource } from './index'
 import messageBus from '../../messageBus'
 import { parseCommand } from './parseCommand'
+import { navigationIntentErrorMessages } from './parseCommand'
 import { collectCoyoteOccupiedStableKeys } from './collectCoyoteOccupiedStableKeys'
 import { finalizeStableKeysDeterministic } from './finalizeStableKeysDeterministic'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
@@ -108,6 +109,99 @@ describe('ephemeraActionsDataSource', () => {
                 RequestId: 'req-1',
                 message: 'Parse request accepted',
             },
+        })
+    })
+
+    it('maps NavigationIntent no-exit-context parse error to room guidance copy', async () => {
+        mockedParseCommand.mockResolvedValue({
+            type: 'Error',
+            errorMessage: navigationIntentErrorMessages.noExitContext,
+        })
+
+        await ephemeraActionsDataSource.receiveEvents!({
+            events: [{
+                header: {
+                    dataSourceKey: 'api.ephemera',
+                    streamKey: 'CHARACTER#123',
+                    timestamp: Date.now(),
+                    type: 'Parse Requested',
+                },
+                getContent: async () => ({
+                    characterId: 'CHARACTER#123',
+                    command: 'head north',
+                }),
+            }],
+            streamEvent: jest.fn(async () => {}),
+            streamEnvelope: jest.fn(async () => {}),
+        })
+
+        expect(mockMessageBus.send).toHaveBeenCalledWith({
+            type: 'PublishMessage',
+            targets: ['CHARACTER#123'],
+            displayProtocol: 'WorldOOCMessage',
+            message: ['You are not in a room, so you cannot go anywhere.'],
+        })
+    })
+
+    it('maps NavigationIntent no-match parse error to missing-exit copy', async () => {
+        mockedParseCommand.mockResolvedValue({
+            type: 'Error',
+            errorMessage: navigationIntentErrorMessages.noMatch,
+        })
+
+        await ephemeraActionsDataSource.receiveEvents!({
+            events: [{
+                header: {
+                    dataSourceKey: 'api.ephemera',
+                    streamKey: 'CHARACTER#123',
+                    timestamp: Date.now(),
+                    type: 'Parse Requested',
+                },
+                getContent: async () => ({
+                    characterId: 'CHARACTER#123',
+                    command: 'head north',
+                }),
+            }],
+            streamEvent: jest.fn(async () => {}),
+            streamEnvelope: jest.fn(async () => {}),
+        })
+
+        expect(mockMessageBus.send).toHaveBeenCalledWith({
+            type: 'PublishMessage',
+            targets: ['CHARACTER#123'],
+            displayProtocol: 'WorldOOCMessage',
+            message: ['There is no exit to that place from here.'],
+        })
+    })
+
+    it('maps NavigationIntent ambiguous parse error to ambiguity copy', async () => {
+        mockedParseCommand.mockResolvedValue({
+            type: 'Error',
+            errorMessage: navigationIntentErrorMessages.ambiguousMatch,
+        })
+
+        await ephemeraActionsDataSource.receiveEvents!({
+            events: [{
+                header: {
+                    dataSourceKey: 'api.ephemera',
+                    streamKey: 'CHARACTER#123',
+                    timestamp: Date.now(),
+                    type: 'Parse Requested',
+                },
+                getContent: async () => ({
+                    characterId: 'CHARACTER#123',
+                    command: 'head north',
+                }),
+            }],
+            streamEvent: jest.fn(async () => {}),
+            streamEnvelope: jest.fn(async () => {}),
+        })
+
+        expect(mockMessageBus.send).toHaveBeenCalledWith({
+            type: 'PublishMessage',
+            targets: ['CHARACTER#123'],
+            displayProtocol: 'WorldOOCMessage',
+            message: ["I can't tell which exit you mean from here."],
         })
     })
 

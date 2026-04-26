@@ -201,12 +201,12 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
   - [X] Keep behavior explicit for invalid exits and no-room cases.
   - [X] Add focused unit tests for deterministic matching variants and edge cases.
 
-- [ ] Phase 3 - optional Step A movement intent support
+- [X] Phase 3 - optional Step A movement intent support
   - [X] Resolve [Phase 3 Step A: explicit decisions](#phase-3-step-a-explicit-decisions-pre-implementation) (P3-1 through P3-13) in this document before implementation planning.
-  - [ ] Extend Step A prompt/types/interpretation with movement intent label if Phase 1 selects LLM fallback.
-  - [ ] Pass selected movement context (exits and, per P3-9, destination short names) into prompt construction.
-  - [ ] Ensure type guards and parse result union remain aligned.
-  - [ ] Add tests covering model output validation and fallback behavior for movement intent.
+  - [X] Extend Step A prompt/types/interpretation with movement intent label if Phase 1 selects LLM fallback.
+  - [X] Pass selected movement context (exits and, per P3-9, destination short names) into prompt construction.
+  - [X] Ensure type guards and parse result union remain aligned.
+  - [X] Add tests covering model output validation and fallback behavior for movement intent.
 
 - [ ] Phase 4 - actions handler and downstream execution
   - [ ] Ensure actions handler emits movement event contract needed by downstream systems.
@@ -238,6 +238,6 @@ Run from `lambda/ephemera/` unless noted otherwise.
 | Create movement affordance task plan | Done |
 | Phase 1 contract decisions | Done |
 | Deterministic movement parse branch | Done |
-| Step A movement support (if selected) | Not started |
+| Step A movement support (if selected) | Done |
 | Event plus imperative movement bridge | Not started |
 | Handoff docs for later positions cutover | Not started |
