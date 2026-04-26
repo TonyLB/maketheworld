@@ -1,6 +1,6 @@
 # Coyote compact hypothesis: dedicated `DisplayProtocol`
 
-**Status:** In progress. Wire, bus, publishMessage queue branch, client routing, and **`handleObjectsChangedForHypothesis`** protocol switch + tests shipped; next step: durable **`coyoteGame/AGENT.md`** note.
+**Status:** In progress. Compact hypothesis terminal payload filtering is now shipped (Scene Analysis excluded from terminal publish) with focused tests/comments; next step: durable **`coyoteGame/AGENT.md`** note, then final closeout.
 
 Skim [`taskPlanning/AGENT.md`](../../../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -48,6 +48,7 @@ Existing Coyote-specific protocol: **`CoyoteGameHelpMessage`** ([`packages/mtw-i
 | `handleObjectsChangedForHypothesis` + unit tests | Done |
 | `publishMessage` tests (if new branch) | Done |
 | Charcoal `Message` switch (+ optional dedicated component) | Done |
+| Compact hypothesis output excludes non-user-facing Scene Analysis details | Done |
 | Durable `coyoteGame/AGENT.md` one-liner | |
 | This task plan checkboxes + status | In progress |
 
@@ -64,6 +65,10 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
   - [X] Add or adjust a **client test** in **`Message.test.tsx`** (or equivalent): route **`DisplayProtocol: 'CoyoteGameHypothesisMessage'`** through **`Message`** and assert the dedicated surface (for example presence of hypothesis copy and/or a stable **`data-testid`** on the new component root).
 - [X] **`handleObjectsChangedForHypothesis`**: Set **`displayProtocol: 'CoyoteGameHypothesisMessage'`** for both the generating and terminal **`PublishMessage`** rows.
   - [X] Update [`handleObjectsChangedForHypothesis.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handleObjectsChangedForHypothesis.test.ts) expectations.
+- [X] **Compact hypothesis payload filtering**: Ensure final compact hypothesis publish omits non-user-facing `Scene Analysis` content from prompt output.
+  - [X] Update [`handleObjectsChangedForHypothesis.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handleObjectsChangedForHypothesis.ts) so terminal `renderTree` only includes user-facing intent/walkthrough content.
+  - [X] Add/update focused assertions in [`handleObjectsChangedForHypothesis.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handleObjectsChangedForHypothesis.test.ts) that `Scene Analysis` details are not delivered in the terminal publish.
+  - [X] Add inline comments in [`handleObjectsChangedForHypothesis.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handleObjectsChangedForHypothesis.ts) and [`internalCache/coyoteGame.ts`](../../../../../lambda/ephemera/internalCache/coyoteGame.ts) documenting that `walkthrough` currently maps prompt `Scene Analysis` prose and has drifted from its original "golden-path walkthrough" intent; semantic realignment is explicitly deferred to a later prompt + handling optimization pass.
 - [ ] **Durable doc**: Short note in [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) under stream / bus or WorldMessage section.
 - [ ] **Closeout**: Update **Progress** table and **Status** line in this file; run **Verification** commands.
 
