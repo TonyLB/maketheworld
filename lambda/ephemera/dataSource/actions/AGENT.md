@@ -16,7 +16,7 @@ Related index: [`../AGENT.md`](../AGENT.md) (**DataSource instances** table).
 
 Implementation-heavy workflows are documented in [`AGENT.implementation.md`](./AGENT.implementation.md):
 
-The discriminate-intent prompt, JSON interpreter, and intent-only types/guards live under [`discriminateIntent/`](./discriminateIntent/).
+The discriminate-intent prompt, deterministic checks (including Coyote slash-command matchers), JSON interpreter, and intent-only types/guards live under [`discriminateIntent/`](./discriminateIntent/).
 Post-discrimination enrichment flows live under [`enrich/`](./enrich/), with Acme order as the first concrete implementation in [`enrich/acmeOrder/`](./enrich/acmeOrder/).
 
 - Adding a new command affordance (actions-local and end-to-end checklist)

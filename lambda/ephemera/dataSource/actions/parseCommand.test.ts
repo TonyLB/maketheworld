@@ -11,8 +11,8 @@ import {
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
 } from './baseClasses'
-import { isCoyoteAffinitiesTestSlashCommand } from './coyoteAffinitiesTestSlashCommand'
-import { isCoyoteEngineTestSlashCommand } from './coyoteEngineTestSlashCommand'
+import { isCoyoteAffinitiesTestSlashCommand } from './discriminateIntent/coyoteAffinitiesTestSlashCommand'
+import { isCoyoteEngineTestSlashCommand } from './discriminateIntent/coyoteEngineTestSlashCommand'
 import {
     navigationIntentErrorMessages,
     parseCommand,

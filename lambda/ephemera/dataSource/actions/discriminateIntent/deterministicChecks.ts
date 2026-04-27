@@ -1,6 +1,6 @@
 import type { ParseCommandInput, ParseCommandResult } from '../baseClasses'
-import { isCoyoteAffinitiesTestSlashCommand } from '../coyoteAffinitiesTestSlashCommand'
-import { isCoyoteEngineTestSlashCommand } from '../coyoteEngineTestSlashCommand'
+import { isCoyoteAffinitiesTestSlashCommand } from './coyoteAffinitiesTestSlashCommand'
+import { isCoyoteEngineTestSlashCommand } from './coyoteEngineTestSlashCommand'
 import { normalizeCommandToken, resolveExitLabelToTargetId } from './exitResolution'
 
 /** After trim, case-insensitive look or l as the whole line. */
