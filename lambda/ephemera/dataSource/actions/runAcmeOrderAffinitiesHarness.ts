@@ -1,16 +1,11 @@
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { AcmeOrderEnrichModelResponse } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import { invokeBedrockAcmeOrderEnrich } from '../../generateExample/invokeBedrockAcmeOrderEnrich'
 import { COYOTE_RENDER_LINE_BREAK } from '../coyoteGame/utilities/coyoteRenderTree'
 import { ACME_ORDER_AFFINITIES_HARNESS_PHRASES } from './acmeOrderAffinitiesHarnessPhrases'
 import type { ParseCommandDeps, ParseCommandResult } from './baseClasses'
-import {
-    buildParseAcmeOrderEnrichPrompt,
-    finalizeAcmeOrderFromStepB,
-    interpretAcmeOrderEnrichBody,
-} from './enrich/acmeOrder'
+import { enrichAcmeOrder } from './enrich/acmeOrder'
 import { parseCommand, parseCommandWithEnrichReasoning } from './parseCommand'
 
 export type RunAcmeOrderAffinitiesHarnessDeps = {
@@ -74,22 +69,13 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
         const parseDeps: ParseCommandDeps = {}
         try {
             if (stepBOnly) {
-                const parts = buildParseAcmeOrderEnrichPrompt(command, { occupiedStableKeys: [] })
-                const enrichInvoke = await invokeEnrich(parts)
-                let enrichFailed = !enrichInvoke.success
-                let response: AcmeOrderEnrichModelResponse | null = null
-                if (enrichInvoke.success) {
-                    const parsed = interpretAcmeOrderEnrichBody(enrichInvoke.body, {
-                        emptyFallbackName: command.trim() || 'order',
-                    })
-                    if (parsed.success) {
-                        response = parsed.response
-                        displayReasoning = parsed.reasoningMarkdown.trim()
-                    } else {
-                        enrichFailed = true
-                    }
-                }
-                result = finalizeAcmeOrderFromStepB(1, response, enrichFailed, command.trim() || 'order')
+                const enriched = await enrichAcmeOrder(
+                    { command, occupiedStableKeys: [] },
+                    1,
+                    invokeEnrich
+                )
+                result = enriched.result
+                displayReasoning = enriched.enrichReasoningMarkdown.trim()
             }
             else if (deps.parseCommandWithEnrichReasoningImpl) {
                 const pair = await deps.parseCommandWithEnrichReasoningImpl({ command }, parseDeps)

@@ -1,16 +1,8 @@
-import {
-    type AcmeOrderEnrichModelResponse,
-} from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import { invokeBedrockAcmeOrderEnrich } from '../../generateExample/invokeBedrockAcmeOrderEnrich'
 import type { ParseCommandDeps, ParseCommandInput, ParseCommandResult } from './baseClasses'
 import { isParseCommandLookRoomResult } from './baseClasses'
 import { discriminateIntent } from './discriminateIntent'
 export { navigationIntentErrorMessages } from './discriminateIntent/exitResolution'
-import {
-    buildParseAcmeOrderEnrichPrompt,
-    finalizeAcmeOrderFromStepB,
-    interpretAcmeOrderEnrichBody,
-} from './enrich/acmeOrder'
+import { enrichAcmeOrder } from './enrich/acmeOrder'
 
 /** Step B chain-of-reason Markdown only; use with {@link parseCommandWithEnrichReasoning} for harness review. */
 export type ParseCommandWithEnrichReasoningResult = {
@@ -22,41 +14,19 @@ async function parseCommandCore(
     input: ParseCommandInput,
     deps: ParseCommandDeps = {}
 ): Promise<ParseCommandWithEnrichReasoningResult> {
-    const invokeEnrich = deps.invokeBedrockAcmeOrderEnrichImpl ?? invokeBedrockAcmeOrderEnrich
     const intentResult = await discriminateIntent(input, deps)
 
     if (intentResult.type !== 'AcmeOrderIntent') {
         return { result: intentResult, enrichReasoningMarkdown: '' }
     }
 
-    const enrichPromptParts = buildParseAcmeOrderEnrichPrompt(input.command, {
-        occupiedStableKeys: input.occupiedStableKeys ?? [],
-    })
-    const enrichInvoke = await invokeEnrich(enrichPromptParts)
-
-    let enrichInvokeFailed = !enrichInvoke.success
-    let enrichResponse: AcmeOrderEnrichModelResponse | null = null
-    let enrichReasoningMarkdown = ''
-
-    if (enrichInvoke.success) {
-        const fallback = input.command.trim() || 'order'
-        const parsed = interpretAcmeOrderEnrichBody(enrichInvoke.body, {
-            emptyFallbackName: fallback,
-        })
-        if (parsed.success) {
-            enrichResponse = parsed.response
-            enrichReasoningMarkdown = parsed.reasoningMarkdown
-        } else {
-            enrichInvokeFailed = true
-        }
-    }
-
-    const fallbackName = input.command.trim() || 'order'
-    const result = finalizeAcmeOrderFromStepB(
+    const { result, enrichReasoningMarkdown } = await enrichAcmeOrder(
+        {
+            command: input.command,
+            occupiedStableKeys: input.occupiedStableKeys ?? [],
+        },
         intentResult.confidence,
-        enrichResponse,
-        enrichInvokeFailed,
-        fallbackName
+        deps.invokeBedrockAcmeOrderEnrichImpl
     )
     return { result, enrichReasoningMarkdown }
 }
