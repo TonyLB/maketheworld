@@ -113,12 +113,12 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as
   - [X] Extend [`runCoyoteEngineTestHarness.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/runCoyoteEngineTestHarness.ts) to accept mode, fixture filter, and phase options; format `WorldOOCMessage` output for partial vs full runs.
   - [X] Wire parse result or command tail from [`actions/index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) (extend `ParseCommandCoyoteEngineTestResult` or equivalent plumb).
 
-- [ ] Phase 4 - slash command and player feedback (**`/test generation` only**; do not extend `/test affinities` or other slash harnesses in this initiative)
-  - [ ] Parse `/test generation` tails in deterministic path or dedicated helper; align with [`parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts) and slash command guards.
-  - [ ] Invalid combinations return clear OOC errors (range, unknown phase, missing fixture). Include **missing run-only inject** for **planSelect** / **phasePlan** when no golden row exists (**Missing inject data (locked)**).
+- [X] Phase 4 - slash command and player feedback (**`/test generation` only**; do not extend `/test affinities` or other slash harnesses in this initiative)
+  - [X] Parse `/test generation` tails in deterministic path or dedicated helper; align with [`parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts) and slash command guards.
+  - [X] Invalid combinations return clear OOC errors (range, unknown phase, missing fixture). Include **missing run-only inject** for **planSelect** / **phasePlan** when no golden row exists (**Missing inject data (locked)**).
 
 - [ ] Phase 5 - coverage and docs
-  - [ ] Expand golden handoffs over time per **Coverage** decision (optional matrix; add rows as needed---not a single bulk prerequisite).
+  - [X] Expand golden handoffs over time per **Coverage** decision (optional matrix; add rows as needed---not a single bulk prerequisite). **Checked:** initiative does not require completing the matrix; further rows are **ongoing maintenance**, not Phase 5 scope.
   - [ ] **Durable docs:** Update [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) harness section (**`/test generation`** slash grammar; **`testOnly`** / **`harnessRunKind`** / **`injectState`**; fixture and handoff layout including [`coyoteEngineTestFixtures.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts)). Link from [`lambda/ephemera/dataSource/actions/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.md) when the parse surface changes.
   - [ ] Run **Verification** commands below.
 
@@ -150,7 +150,7 @@ rg "runCoyoteEngineTestHarness|CoyoteEngineTest|test generation" lambda/ephemera
 | Phase 0 | In progress | Slash command UX + phase aliases + handoff coverage/colocation locked; pipeline boundary appendix still open |
 | Phase 1 | Done | Types + optional **`planSelectInject`** / **`phasePlanInject`** on fixtures; **`fixture-01`** **`planSelect`** golden row; **`resolveCoyoteHarnessStartAtInject`**; no separate JSON schema (TS contract only) |
 | Phase 2 | Done | **`runCoyoteHypothesisPipeline(deps, options?)`**, **`kind`** union (`full` / `harnessPartial` / `stub`), **`coyoteHarnessInjectTypes.ts`**, harness + pipeline tests |
-| Phase 3 | Done | **`CoyoteEngineTestHarnessInvocation`** + **`harnessInvocation`** on **`ParseCommandCoyoteEngineTestResult`**; runner builds **`CoyoteHypothesisPipelineHarnessOptions`** / inject via **`resolveCoyoteHarnessStartAtInject`**; partial **`WorldOOCMessage`** banner + **`(not run)`** lines; Phase 4 next: populate **`harnessInvocation`** from **`/test generation`** parse |
-| Phase 4 | Not started | Slash UX |
-| Phase 5 | Not started | Coverage + docs |
+| Phase 3 | Done | **`CoyoteEngineTestHarnessInvocation`** + **`harnessInvocation`** on **`ParseCommandCoyoteEngineTestResult`**; runner builds **`CoyoteHypothesisPipelineHarnessOptions`** / inject via **`resolveCoyoteHarnessStartAtInject`**; partial **`WorldOOCMessage`** banner + **`(not run)`** lines |
+| Phase 4 | Done | Case-insensitive **`parseCoyoteEngineTestSlash`** + deterministic wiring; **`harnessInvocation`** from tails (`full` fixture filter + partial **`runUntil`**); **`mode: 'full'`** + **`fixtureIndex1Based`** in harness; inject missing copy aligned (**Missing inject data**) |
+| Phase 5 | In progress | Golden handoff matrix: acknowledged as ongoing/ad hoc (not a checklist gate); **AGENT.md** + verification still open |
 | Phase 6 | Not started | Plan retirement |

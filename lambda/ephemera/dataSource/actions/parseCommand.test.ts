@@ -213,6 +213,8 @@ describe('isCoyoteEngineTestSlashCommand', () => {
         expect(isCoyoteEngineTestSlashCommand('  /test generation  ')).toBe(true)
         expect(isCoyoteEngineTestSlashCommand('/test generation extra')).toBe(true)
         expect(isCoyoteEngineTestSlashCommand('/test generation  --x')).toBe(true)
+        expect(isCoyoteEngineTestSlashCommand('/TEST GENERATION')).toBe(true)
+        expect(isCoyoteEngineTestSlashCommand('/Test Generation CLUSTERING')).toBe(true)
     })
 
     it('does not match typos or missing word boundary after generation', () => {
@@ -240,15 +242,61 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 
-    it('returns CoyoteEngineTest for slash command with trailing args without Bedrock', async () => {
+    it('returns CoyoteEngineTest with harnessInvocation for parsed partial phase without Bedrock', async () => {
         const invokeBedrockParseCommandImpl = jest.fn()
 
         const result = await parseCommand(
-            { command: '  /test generation verbose  ' },
+            { command: '  /test generation PhasePlan  ' },
             { invokeBedrockParseCommandImpl }
         )
 
-        expect(result).toEqual({ type: 'CoyoteEngineTest', confidence: 1 })
+        expect(result).toEqual({
+            type: 'CoyoteEngineTest',
+            confidence: 1,
+            harnessInvocation: {
+                mode: 'partial',
+                testOnly: 'phasePlan',
+                harnessRunKind: 'runUntil',
+            },
+        })
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns Error for unknown /test generation tail without Bedrock', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn()
+
+        const result = await parseCommand(
+            { command: '/test generation not-a-phase' },
+            { invokeBedrockParseCommandImpl }
+        )
+
+        expect(result.type).toBe('Error')
+        if (result.type === 'Error') {
+            expect(result.errorMessage).toContain('clustering')
+            expect(result.errorMessage).toContain('planSelect')
+        }
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns Error for out-of-range fixture index on /test generation without Bedrock', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn()
+
+        const result = await parseCommand({ command: '/test generation 11' }, { invokeBedrockParseCommandImpl })
+
+        expect(result.type).toBe('Error')
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns CoyoteEngineTest with full fixture filter for /test generation <index>', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn()
+
+        const result = await parseCommand({ command: '/TEST GENERATION 3' }, { invokeBedrockParseCommandImpl })
+
+        expect(result).toEqual({
+            type: 'CoyoteEngineTest',
+            confidence: 1,
+            harnessInvocation: { mode: 'full', fixtureIndex1Based: 3 },
+        })
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
     })
 

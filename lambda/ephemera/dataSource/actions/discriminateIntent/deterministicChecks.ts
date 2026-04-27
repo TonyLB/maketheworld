@@ -1,6 +1,8 @@
 import type { ParseCommandInput, ParseCommandResult } from '../baseClasses'
+import { COYOTE_ENGINE_TEST_FIXTURES } from '../../coyoteGame/generators/testHarness/coyoteEngineTestFixtures'
 import { isCoyoteAffinitiesTestSlashCommand } from './coyoteAffinitiesTestSlashCommand'
 import { isCoyoteEngineTestSlashCommand } from './coyoteEngineTestSlashCommand'
+import { parseCoyoteEngineTestSlashTail } from './parseCoyoteEngineTestSlash'
 import { normalizeCommandToken, resolveExitLabelToTargetId } from './exitResolution'
 
 /** After trim, case-insensitive look or l as the whole line. */
@@ -32,7 +34,16 @@ function maybeDeterministicNavigationResult(input: ParseCommandInput): ParseComm
 
 export function deterministicIntentChecks(input: ParseCommandInput): ParseCommandResult | null {
     if (isCoyoteEngineTestSlashCommand(input.command)) {
-        return { type: 'CoyoteEngineTest', confidence: 1 }
+        const trimmed = input.command.trim()
+        const parsed = parseCoyoteEngineTestSlashTail(trimmed, COYOTE_ENGINE_TEST_FIXTURES.length)
+        if (!parsed.ok) {
+            return { type: 'Error', errorMessage: parsed.errorMessage }
+        }
+        return {
+            type: 'CoyoteEngineTest',
+            confidence: 1,
+            ...(parsed.harnessInvocation !== undefined ? { harnessInvocation: parsed.harnessInvocation } : {}),
+        }
     }
     if (isCoyoteAffinitiesTestSlashCommand(input.command)) {
         return { type: 'CoyoteAffinitiesTest', confidence: 1 }

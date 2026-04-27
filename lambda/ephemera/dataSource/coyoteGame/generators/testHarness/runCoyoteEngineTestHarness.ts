@@ -21,7 +21,11 @@ import { resolveCoyoteHarnessStartAtInject } from './coyoteEngineTestFixtures'
 
 /** Slash / actions parse (Phase 4) and tests; omit or **`{ mode: 'full' }`** for legacy full-pipeline-all-fixtures runs. */
 export type CoyoteEngineTestHarnessInvocation =
-    | { mode: 'full' }
+    | {
+          mode: 'full'
+          /** Run full pipeline for this fixture only (`/test generation <fixtureIndex>`). Omit for all fixtures. */
+          fixtureIndex1Based?: number
+      }
     | {
           mode: 'partial'
           testOnly: CoyoteHypothesisTestPhase
@@ -67,7 +71,18 @@ function selectHarnessFixtures(
     invocation: CoyoteEngineTestHarnessInvocation
 ): CoyoteEngineTestFixture[] | { error: string } {
     if (invocation.mode === 'full') {
-        return allFixtures
+        const { fixtureIndex1Based } = invocation
+        if (fixtureIndex1Based === undefined) {
+            return allFixtures
+        }
+        const max = allFixtures.length
+        const i = fixtureIndex1Based
+        if (!Number.isInteger(i) || i < 1 || i > max) {
+            return {
+                error: `Coyote engine test harness: fixture index must be an integer from 1 to ${max} (received ${i}).`,
+            }
+        }
+        return [allFixtures[i - 1]]
     }
     const { fixtureIndex1Based } = invocation
     if (fixtureIndex1Based === undefined) {
@@ -537,7 +552,8 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
             const index = nextIndex
             nextIndex += 1
             const effectiveFixtureIndex1Based =
-                invocation.mode === 'partial' && invocation.fixtureIndex1Based !== undefined
+                (invocation.mode === 'full' || invocation.mode === 'partial')
+                && invocation.fixtureIndex1Based !== undefined
                     ? invocation.fixtureIndex1Based
                     : index + 1
             await runFixture(fixtures[index], index, effectiveFixtureIndex1Based)

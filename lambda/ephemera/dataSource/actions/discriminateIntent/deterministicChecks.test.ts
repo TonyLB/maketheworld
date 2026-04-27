@@ -9,10 +9,24 @@ describe('deterministicIntentChecks', () => {
             type: 'CoyoteEngineTest',
             confidence: 1,
         })
-        expect(deterministicIntentChecks({ command: ' /test generation verbose ' })).toEqual({
+        expect(deterministicIntentChecks({ command: ' /TEST GENERATION CLUSTERING ' })).toEqual({
             type: 'CoyoteEngineTest',
             confidence: 1,
+            harnessInvocation: {
+                mode: 'partial',
+                testOnly: 'clustering',
+                harnessRunKind: 'runUntil',
+            },
         })
+    })
+
+    it('returns Parse error for invalid /test generation tails', () => {
+        expect(deterministicIntentChecks({ command: '/test generation verbose' })?.type).toBe('Error')
+        expect(deterministicIntentChecks({ command: '/test generation 99' })?.type).toBe('Error')
+        expect(deterministicIntentChecks({ command: '/test generation planSelect 99' })?.type).toBe(
+            'Error'
+        )
+        expect(deterministicIntentChecks({ command: '/test generation a b c' })?.type).toBe('Error')
     })
 
     it('returns CoyoteAffinitiesTest for /test affinities commands', () => {

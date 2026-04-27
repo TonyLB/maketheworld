@@ -72,7 +72,7 @@ export type ParseCommandLookRoomResult = {
 export type ParseCommandCoyoteEngineTestResult = {
     type: 'CoyoteEngineTest'
     confidence: ParseCommandConfidence
-    /** Populated by **`/test generation`** tail parse (Phase 4); forwarded to [`runCoyoteEngineTestHarness`](../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness.ts). */
+    /** Populated by **`/test generation`** tail parse; forwarded to [`runCoyoteEngineTestHarness`](../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness.ts). */
     harnessInvocation?: CoyoteEngineTestHarnessInvocation
 }
 

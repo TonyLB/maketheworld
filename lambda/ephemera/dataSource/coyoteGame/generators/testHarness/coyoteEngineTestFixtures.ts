@@ -475,7 +475,7 @@ export function resolveCoyoteHarnessStartAtInject(args: {
             return {
                 ok: false,
                 message:
-                    `Coyote engine test harness: start-at inject for phase "planSelect" is not yet defined for fixture index ${i} (${fixture.id}).`,
+                    `Coyote engine test harness does not yet supply starting input for run-only phase "planSelect" at fixture index ${i} (${fixture.id}).`,
             }
         }
         return { ok: true, phase: 'planSelect', inject }
@@ -485,7 +485,7 @@ export function resolveCoyoteHarnessStartAtInject(args: {
         return {
             ok: false,
             message:
-                `Coyote engine test harness: start-at inject for phase "phasePlan" is not yet defined for fixture index ${i} (${fixture.id}).`,
+                `Coyote engine test harness does not yet supply starting input for run-only phase "phasePlan" at fixture index ${i} (${fixture.id}).`,
         }
     }
     return { ok: true, phase: 'phasePlan', inject }

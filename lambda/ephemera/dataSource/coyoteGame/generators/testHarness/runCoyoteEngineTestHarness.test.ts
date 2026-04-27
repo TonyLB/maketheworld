@@ -337,7 +337,45 @@ describe('runCoyoteEngineTestHarness', () => {
         expect(send).toHaveBeenCalledTimes(1)
         const ooc = (send.mock.calls[0][0] as { message: string[] }).message
         expect(ooc[0]).toContain('planSelect')
-        expect(ooc[0]).toContain('not yet defined')
+        expect(ooc[0]).toContain('does not yet supply')
+    })
+
+    it('full mode with fixtureIndex1Based runs one fixture', async () => {
+        const send = jest.fn()
+        const flush = jest.fn().mockResolvedValue(undefined)
+        const pipeline = jest.fn().mockImplementation(async (): Promise<GenerateHypothesisPipelineResult> =>
+            okPipeline('Hypothesis: single')
+        )
+
+        await runCoyoteEngineTestHarness({
+            characterId: 'CHARACTER#runner',
+            messageBus: { send, flush },
+            fixtures: simpleFixtures,
+            generateHypothesisPipelineImpl: pipeline,
+            harnessInvocation: { mode: 'full', fixtureIndex1Based: 2 },
+        })
+
+        expect(pipeline).toHaveBeenCalledTimes(1)
+        expect(send).toHaveBeenCalledTimes(1)
+    })
+
+    it('invalid full-mode fixture index sends OOC error and does not call the pipeline', async () => {
+        const send = jest.fn()
+        const flush = jest.fn().mockResolvedValue(undefined)
+        const pipeline = jest.fn()
+
+        await runCoyoteEngineTestHarness({
+            characterId: 'CHARACTER#runner',
+            messageBus: { send, flush },
+            fixtures: simpleFixtures,
+            generateHypothesisPipelineImpl: pipeline,
+            harnessInvocation: { mode: 'full', fixtureIndex1Based: 99 },
+        })
+
+        expect(pipeline).not.toHaveBeenCalled()
+        expect(send).toHaveBeenCalledTimes(1)
+        const payload = send.mock.calls[0][0] as { message: string[] }
+        expect(payload.message[0]).toContain('fixture index must be an integer')
     })
 
     it('invalid partial fixture index sends a single OOC error and does not call the pipeline', async () => {
