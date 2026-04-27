@@ -11,6 +11,7 @@ import {
     isParseCommandAwaitRoadrunnerResult,
     isParseCommandHelpResult,
     isParseCommandLookRoomResult,
+    isParseCommandMultipleCommandsResult,
     isParseCommandPromptInjectionAttemptResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
@@ -52,7 +53,7 @@ function extractJsonBody(raw: string): string {
 
 /**
  * Parses and validates LLM output for the intent-classification prompt.
- * Accepts **`PromptInjectionAttempt`**, **`AwaitRoadRunner`**, **`AcmeOrder`** (intent-only, no **`orders`**), **`LookRoom`**,
+ * Accepts **`MultipleCommands`**, **`PromptInjectionAttempt`**, **`AwaitRoadRunner`**, **`AcmeOrder`** (intent-only, no **`orders`**), **`LookRoom`**,
  * **`Help`**, **`NavigationIntent`**, **`Unimplemented`**, or **`Unknown`**; anything else becomes **`Error`**.
  * (**`CoyoteEngineTest`**, slash-only harness types, and deterministic **bare `look` / `l` / `help`** are handled before Bedrock in **`parseCommand`**.)
  */
@@ -77,6 +78,16 @@ export function interpretIntentClassificationBody(body: string): IntentClassific
 
     const obj = parsed as Record<string, unknown>
     const type = obj.type
+
+    if (type === 'MultipleCommands') {
+        const candidate: IntentClassificationResult = {
+            type: 'MultipleCommands',
+            confidence: obj.confidence as number,
+        }
+        if (isParseCommandMultipleCommandsResult(candidate)) {
+            return candidate
+        }
+    }
 
     if (type === 'AwaitRoadRunner') {
         const candidate: IntentClassificationResult = {
@@ -183,6 +194,6 @@ export function interpretIntentClassificationBody(body: string): IntentClassific
     return {
         type: 'Error',
         errorMessage:
-            'Model JSON must be a valid PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, Help, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
+            'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, Help, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
     }
 }

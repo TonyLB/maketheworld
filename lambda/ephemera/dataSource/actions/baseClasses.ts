@@ -97,6 +97,14 @@ export type ParseCommandPromptInjectionAttemptResult = {
 }
 
 /**
+ * Parser classified input as multiple user commands in one line.
+ */
+export type ParseCommandMultipleCommandsResult = {
+    type: 'MultipleCommands'
+    confidence: ParseCommandConfidence
+}
+
+/**
  * Intent discrimination only: model-classified movement intent before server-side exit resolution.
  * Final parse result still uses `Navigation` with `targetId` after resolution.
  */
@@ -129,6 +137,7 @@ export type IntentClassificationResult =
     | ParseCommandUnimplementedResult
     | ParseCommandUnknownResult
     | ParseCommandPromptInjectionAttemptResult
+    | ParseCommandMultipleCommandsResult
 
 export type ParseCommandResult =
     | ParseCommandErrorResult
@@ -142,6 +151,7 @@ export type ParseCommandResult =
     | ParseCommandUnimplementedResult
     | ParseCommandUnknownResult
     | ParseCommandPromptInjectionAttemptResult
+    | ParseCommandMultipleCommandsResult
 
 export function isParseCommandErrorResult(
     result: ParseCommandResult
@@ -286,6 +296,15 @@ export function isParseCommandPromptInjectionAttemptResult(
     result: ParseCommandResult | IntentClassificationResult
 ): result is ParseCommandPromptInjectionAttemptResult {
     if (result.type !== 'PromptInjectionAttempt') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
+export function isParseCommandMultipleCommandsResult(
+    result: ParseCommandResult | IntentClassificationResult
+): result is ParseCommandMultipleCommandsResult {
+    if (result.type !== 'MultipleCommands') {
         return false
     }
     return isParseConfidence(result.confidence)

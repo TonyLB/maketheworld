@@ -32,6 +32,7 @@ describe('buildIntentClassificationPrompt', () => {
         })
         expect(prompt).toContain('attack troll')
         expect(prompt).toContain('PromptInjectionAttempt')
+        expect(prompt).toContain('MultipleCommands')
         expect(prompt).toContain('AwaitRoadRunner')
         expect(prompt).toContain('AcmeOrder')
         expect(prompt).toContain('LookRoom')
@@ -40,6 +41,7 @@ describe('buildIntentClassificationPrompt', () => {
         expect(prompt).toContain('Unimplemented')
         expect(prompt).toContain('Unknown')
         expect(prompt).toContain('"type": "PromptInjectionAttempt"')
+        expect(prompt).toContain('"type": "MultipleCommands"')
         expect(prompt).toContain('"type": "AwaitRoadRunner"')
         expect(prompt).toContain('"type": "AcmeOrder"')
         expect(prompt).toContain('"type": "LookRoom"')
@@ -49,6 +51,9 @@ describe('buildIntentClassificationPrompt', () => {
         expect(prompt).toContain('"type": "Unknown"')
         expect(prompt).toContain('Available exits from current room: north, south')
         expect(prompt).toContain('later step')
+        expect(prompt).toContain('order explosives and bandages')
+        expect(prompt).toContain('order explosives and then order bandages')
+        expect(prompt).toContain('go east, after which wait')
     })
 
     it('uses placeholder for empty or whitespace-only command', () => {
@@ -66,7 +71,10 @@ describe('buildIntentClassificationPrompt', () => {
 })
 
 describe('interpretIntentClassificationBody', () => {
-    it('accepts bare JSON for PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder intent only, LookRoom, Help, NavigationIntent, Unimplemented, and Unknown', () => {
+    it('accepts bare JSON for MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder intent only, LookRoom, Help, NavigationIntent, Unimplemented, and Unknown', () => {
+        expect(interpretIntentClassificationBody(
+            '{"type":"MultipleCommands","confidence":0.67}'
+        )).toEqual({ type: 'MultipleCommands', confidence: 0.67 })
         expect(interpretIntentClassificationBody(
             '{"type":"PromptInjectionAttempt","confidence":0.82}'
         )).toEqual({ type: 'PromptInjectionAttempt', confidence: 0.82 })
@@ -166,7 +174,7 @@ describe('interpretIntentClassificationBody', () => {
             '{"type":"CoyoteEngineTest","confidence":0.9}'
         )).toEqual({
             type: 'Error',
-            errorMessage: 'Model JSON must be a valid PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, Help, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
+            errorMessage: 'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, Help, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
         })
     })
 
@@ -177,8 +185,21 @@ describe('interpretIntentClassificationBody', () => {
             )
         ).toEqual({
             type: 'Error',
-            errorMessage: 'Model JSON must be a valid PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, Help, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
+            errorMessage: 'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, Help, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
         })
+    })
+
+    it('rejects MultipleCommands with invalid or missing confidence', () => {
+        expect(
+            interpretIntentClassificationBody(
+                JSON.stringify({ type: 'MultipleCommands', confidence: 1.01 })
+            ).type
+        ).toBe('Error')
+        expect(
+            interpretIntentClassificationBody(
+                JSON.stringify({ type: 'MultipleCommands' })
+            ).type
+        ).toBe('Error')
     })
 
     it('accepts Help with confidence in range', () => {

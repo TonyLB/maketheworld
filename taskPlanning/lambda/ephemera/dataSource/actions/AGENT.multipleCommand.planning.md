@@ -1,6 +1,6 @@
 # Multiple Command Parse Plan
 
-**Status:** In progress. Next step is to define and land the `MultipleCommands` intent-classification contract, then wire player-facing error handling.
+**Status:** In progress. Phase 2 is shipped; next step is Phase 3 parse pipeline and runtime handling for `MultipleCommands`.
 
 ## Purpose
 
@@ -64,23 +64,25 @@ Follow the root getting-started pattern for complex tasks and keep this plan foc
 
 Use `[ ]` for pending and `[X]` for complete. Mark nested items `[X]` as they are finished.
 
-- [ ] Phase 1 - lock contract and wording
-  - [ ] Choose final model output shape for multiple-command detection (for example `type: "MultipleCommands"` with `confidence`).
-  - [ ] Decide whether this is represented as a dedicated parse result vs `Error` with canonical code/message, then document the invariant in `baseClasses.ts` comments.
-  - [ ] Define player-facing message copy and internal error constant strategy.
+- [X] Phase 1 - lock contract and wording
+  - [X] Finalized model output shape for multiple-command detection: `type: "MultipleCommands"` with required `confidence`.
+  - [X] Use a dedicated parse result for this condition (not generic `Error`), and document the invariant in `baseClasses.ts` comments.
+  - [X] Player-facing message copy: "That looks like trying to do more than one thing in a single command. Please only try to do one thing at a time." Define and use a dedicated internal error constant for this outcome.
 
-- [ ] Phase 2 - prompt and interpreter
-  - [ ] Update intent prompt decision order and tie-break rules to prioritize multi-action detection before normal intent selection.
-  - [ ] Add explicit positive/negative examples including:
-    - [ ] `order explosives and bandages` (single Acme order, valid)
-    - [ ] `order explosives and then order bandages` (multiple commands)
-    - [ ] `go east, after which wait` (multiple commands)
-  - [ ] Update `interpretIntentClassificationBody` accepted shapes and invalid-shape errors accordingly.
-  - [ ] Extend `intentClassification` tests for accepted/rejected payloads and error text.
+- [X] Phase 2 - prompt and interpreter
+  - [X] Update intent prompt decision order and tie-break rules to prioritize multi-action detection before normal intent selection.
+  - [X] Add explicit positive/negative examples including:
+    - [X] `order explosives and bandages` (single Acme order, valid)
+    - [X] `order explosives and then order bandages` (multiple commands)
+    - [X] `go east, after which wait` (multiple commands)
+  - [X] Update `interpretIntentClassificationBody` accepted shapes and invalid-shape errors accordingly.
+  - [X] Extend `intentClassification` tests for accepted/rejected payloads and error text.
 
 - [ ] Phase 3 - parse pipeline and runtime handling
   - [ ] Propagate the new outcome through parse unions/type guards and `discriminateIntent` return type flow.
-  - [ ] Ensure `parseCommand` routing keeps Acme Step B disabled for multi-command outcomes.
+  - [ ] Ensure `parseCommand` routing keeps Acme Step B disabled for multi-command outcomes so Step B only receives single-command Acme input.
+  - [ ] Simplify Acme Step B by removing now-unneeded multi-verb-phrase handling paths and any guardrails that existed only to prevent those paths from misfiring.
+  - [ ] Confirm Step B contract/comments/tests now explicitly assume one verb-phrase and item-list shaping only.
   - [ ] Add/adjust actions DataSource handling so players get deterministic user-facing feedback for multi-command inputs.
   - [ ] Preserve existing behavior for all current non-multi-command outcomes.
 
@@ -110,9 +112,9 @@ Behavior checks to assert in tests:
 | Milestone | Status |
 | --- | --- |
 | Plan created and scoped | Done |
-| Contract decision (`MultipleCommands` representation and copy) | Not started |
-| Prompt + interpreter updates | Not started |
+| Contract decision (`MultipleCommands` representation and copy) | Done |
+| Prompt + interpreter updates | Done |
 | Parse pipeline + DataSource runtime updates | Not started |
-| Tests + build verification | Not started |
+| Tests + build verification | In progress |
 | Durable docs sync and plan retirement | Not started |
 
