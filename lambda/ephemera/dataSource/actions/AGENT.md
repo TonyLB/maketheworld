@@ -17,6 +17,7 @@ Related index: [`../AGENT.md`](../AGENT.md) (**DataSource instances** table).
 Implementation-heavy workflows are documented in [`AGENT.implementation.md`](./AGENT.implementation.md):
 
 The discriminate-intent prompt, deterministic checks (including Coyote slash-command matchers), JSON interpreter, and intent-only types/guards live under [`discriminateIntent/`](./discriminateIntent/).
+**Coyote engine test (`/test generation`):** Handled without Bedrock --- [`deterministicChecks.ts`](./discriminateIntent/deterministicChecks.ts) routes the prefix, [`parseCoyoteEngineTestSlashTail`](./discriminateIntent/parseCoyoteEngineTestSlash.ts) parses the tail, and [`coyoteEngineTestSlashCommand.ts`](./discriminateIntent/coyoteEngineTestSlashCommand.ts) defines the slash prefix. Canonical grammar, harness modes (**`runUntil`** vs programmatic **`runOnly`**), and fixtures: **[`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md)** (**Engine testing harness**).
 Post-discrimination enrichment flows live under [`enrich/`](./enrich/), with Acme order as the first concrete implementation in [`enrich/acmeOrder/`](./enrich/acmeOrder/).
 
 - Adding a new command affordance (actions-local and end-to-end checklist)
@@ -79,5 +80,6 @@ Clustering / combine behavior is documented under **[`../coyoteGame/AGENT.md`](.
 | [`enrich/AGENT.md`](./enrich/AGENT.md) | Post-discrimination enrich namespace contract; current `acmeOrder` implementation boundary |
 | [`../objects/AGENT.md`](../objects/AGENT.md) | **`Meta::Room.objects`** merge; Acme **`stableKey`** pass-through |
 | [`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md) | Staged snapshot; **`stableKey`** on rows vs prompt text |
+| **`/test generation`** harness parse | Same **[`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md)** (**Engine testing harness**). Actions entrypoints: [`parseCoyoteEngineTestSlash.ts`](./discriminateIntent/parseCoyoteEngineTestSlash.ts), [`coyoteEngineTestSlashCommand.ts`](./discriminateIntent/coyoteEngineTestSlashCommand.ts), [`deterministicChecks.ts`](./discriminateIntent/deterministicChecks.ts) |
 | [`../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts) | Durable affinity contract: **`CoyoteAffinityPossibility`**, `prep` / `creation`, and flat modification tags |
 | [`../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) | **`EphemeraMetaRoomObject`** |
