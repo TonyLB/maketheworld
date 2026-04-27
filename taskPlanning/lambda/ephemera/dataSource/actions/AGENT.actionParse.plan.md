@@ -55,13 +55,13 @@ Follow the ordered **categories** below (see [Getting Started pattern for comple
 
 4. **Review implemented code**
    - **Why**: Phase 3 adds an LLM path; reuse established Bedrock **Converse** + JSON validation patterns and the existing parse-result boundary.
-   - **Parser contract and handler**: [`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts) (types and guards), [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts), [`parseCommandIntentClassification.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommandIntentClassification.ts), [`buildParseCommandIntentClassificationPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/buildParseCommandIntentClassificationPrompt.ts), [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts).
+   - **Parser contract and handler**: [`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts) (terminal parse union + shared guards), [`discriminateIntent/baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/baseClasses.ts) (Step A types + guards), [`discriminateIntent/intentClassification.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/intentClassification.ts), [`discriminateIntent/buildIntentClassificationPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/buildIntentClassificationPrompt.ts), [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts), [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts).
    - **Legacy imperative baseline** (parity / migration context): [`lambda/ephemera/parse/index.ts`](../../../../../lambda/ephemera/parse/index.ts), [`lambda/ephemera/parse/executeAction.ts`](../../../../../lambda/ephemera/parse/executeAction.ts).
    - **Bedrock invocation reference** (Nova text in, JSON out, timeout): [`invokeBedrockConverseText.ts`](../../../../../lambda/ephemera/generateExample/invokeBedrockConverseText.ts), [`invokeBedrockParseCommand.ts`](../../../../../lambda/ephemera/generateExample/invokeBedrockParseCommand.ts), [`invokeBedrockRoomDescription.ts`](../../../../../lambda/ephemera/generateExample/invokeBedrockRoomDescription.ts).
 
 5. **Check testing patterns**
    - **Why**: Ephemera uses Jest from `lambda/ephemera`; keep parity with existing action-parse and ingress tests.
-   - **Files**: [`lambda/ephemera/dataSource/actions/parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts), [`lambda/ephemera/dataSource/actions/index.test.ts`](../../../../../lambda/ephemera/dataSource/actions/index.test.ts); ingress routing in [`lambda/ephemera/app.test.ts`](../../../../../lambda/ephemera/app.test.ts) where `command` / parse paths are covered.
+   - **Files**: [`lambda/ephemera/dataSource/actions/parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts), [`lambda/ephemera/dataSource/actions/discriminateIntent/intentClassification.test.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/intentClassification.test.ts), [`lambda/ephemera/dataSource/actions/index.test.ts`](../../../../../lambda/ephemera/dataSource/actions/index.test.ts); ingress routing in [`lambda/ephemera/app.test.ts`](../../../../../lambda/ephemera/app.test.ts) where `command` / parse paths are covered.
    - **Wire contracts** (types and client correlation expectations): [`packages/mtw-interfaces/ts/ephemera.ts`](../../../../../packages/mtw-interfaces/ts/ephemera.ts), [`charcoal-client/src/slices/lifeLine/index.api.ts`](../../../../../charcoal-client/src/slices/lifeLine/index.api.ts).
 
 6. **Identify next task**
@@ -132,7 +132,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - `cd "/Users/anthonylower-basch/Code/maketheworld/lambda/ephemera" && npm run build`
   - `ReadLints` clean on edited files.
 - Phase 2 verification: `npm run test -- --runInBand dataSource/actions/parseCommand.test.ts dataSource/actions/index.test.ts` and `npm run build` in `lambda/ephemera`.
-- Phase 3 verification: same Jest targets as Phase 2 (parse pipeline + handler); `npm run build` in `lambda/ephemera`. LLM path covered with mocked `invokeBedrockParseCommand`; validation/fallback covered in `interpretParseCommandIntentClassificationBody` tests.
+- Phase 3 verification: same Jest targets as Phase 2 (parse pipeline + handler); `npm run build` in `lambda/ephemera`. LLM path covered with mocked `invokeBedrockParseCommand`; validation/fallback covered in `discriminateIntent/intentClassification.test.ts` (`interpretIntentClassificationBody`).
 
 ## Progress
 

@@ -3,7 +3,7 @@
  * **LookRoom**, **Help**, **NavigationIntent**, **Unimplemented** vs **Unknown**.
  */
 
-export function buildParseCommandIntentClassificationPrompt(
+export function buildIntentClassificationPrompt(
     command: string,
     options: { movementExitLabels?: string[] } = {}
 ): string {

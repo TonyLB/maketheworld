@@ -2,6 +2,8 @@ import { EphemeraRoomId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/base
 import type { AcmeCatalogRejectionReason, AcmeOrderEnrichModelLine } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { isCoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
+import type { IntentClassificationResult } from './discriminateIntent/baseClasses'
+
 /**
  * Parser confidence for non-error outcomes. Typically in [0, 1]; validated by type guards.
  */
@@ -34,45 +36,11 @@ export type ParseCommandNavigationResult = {
     confidence: ParseCommandConfidence
 }
 
-/**
- * Step A only: model-classified movement intent before server-side exit resolution.
- * Final parse result still uses `Navigation` with `targetId` after resolution.
- */
-export type ParseCommandNavigationIntentResult = {
-    type: 'NavigationIntent'
-    exitCandidate: string
-    confidence: ParseCommandConfidence
-}
-
 /** Alias of **`AcmeCatalogRejectionReason`** for parse / courier apology copy. */
 export type ParseCommandAcmeOrderErrorType = AcmeCatalogRejectionReason
 
 /** Parsed Acme line: aligns with **`AcmeOrderEnrichModelLine`** (no **`stableKey`** on **`valid: false`**). */
 export type ParseCommandAcmeOrderLine = AcmeOrderEnrichModelLine
-
-/**
- * Step A only: player intent is an Acme order (no segmentation or catalog validation).
- * `parseCommand` always follows with Step B and returns {@link ParseCommandAcmeOrderResult}.
- */
-export type ParseCommandAcmeOrderIntentResult = {
-    type: 'AcmeOrderIntent'
-    confidence: ParseCommandConfidence
-}
-
-/**
- * Outcome of Step A intent classification only (includes Acme intent without line items, and
- * **LookRoom** for full room description / examine-surroundings intent without Step B).
- */
-export type IntentClassificationResult =
-    | ParseCommandErrorResult
-    | ParseCommandNavigationIntentResult
-    | ParseCommandAwaitRoadrunnerResult
-    | ParseCommandHelpResult
-    | ParseCommandAcmeOrderIntentResult
-    | ParseCommandLookRoomResult
-    | ParseCommandUnimplementedResult
-    | ParseCommandUnknownResult
-    | ParseCommandPromptInjectionAttemptResult
 
 /** Coyote Game: order from Acme (mail-order, catalog, or unspecified). One or more product lines. */
 export type ParseCommandAcmeOrderResult = {
@@ -149,15 +117,6 @@ export function isParseCommandErrorResult(
     return result.type === 'Error'
 }
 
-export function isParseCommandAcmeOrderIntentResult(
-    result: IntentClassificationResult | ParseCommandResult
-): result is ParseCommandAcmeOrderIntentResult {
-    if (result.type !== 'AcmeOrderIntent') {
-        return false
-    }
-    return isParseConfidence(result.confidence)
-}
-
 export function isParseCommandAwaitRoadrunnerResult(
     result: ParseCommandResult | IntentClassificationResult
 ): result is ParseCommandAwaitRoadrunnerResult {
@@ -192,21 +151,6 @@ export function isParseCommandNavigationResult(
         return false
     }
     return isEphemeraRoomId(result.targetId) && isParseConfidence(result.confidence)
-}
-
-export function isParseCommandNavigationIntentResult(
-    result: IntentClassificationResult | ParseCommandResult
-): result is ParseCommandNavigationIntentResult {
-    if (result.type !== 'NavigationIntent') {
-        return false
-    }
-    if (typeof result.exitCandidate !== 'string') {
-        return false
-    }
-    if (result.exitCandidate.trim().length === 0) {
-        return false
-    }
-    return isParseConfidence(result.confidence)
 }
 
 export function isParseCommandAcmeOrderResult(

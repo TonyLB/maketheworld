@@ -6,16 +6,13 @@ import {
     isParseCommandErrorResult,
     isParseCommandHelpResult,
     isParseCommandLookRoomResult,
-    isParseCommandNavigationIntentResult,
     isParseCommandNavigationResult,
     isParseCommandPromptInjectionAttemptResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
 } from './baseClasses'
-import { buildParseCommandIntentClassificationPrompt } from './buildParseCommandIntentClassificationPrompt'
 import { isCoyoteAffinitiesTestSlashCommand } from './coyoteAffinitiesTestSlashCommand'
 import { isCoyoteEngineTestSlashCommand } from './coyoteEngineTestSlashCommand'
-import { interpretParseCommandIntentClassificationBody } from './parseCommandIntentClassification'
 import {
     navigationIntentErrorMessages,
     parseCommand,
@@ -43,29 +40,6 @@ describe('parseCommand type guards', () => {
                 type: 'Navigation',
                 targetId: room,
                 confidence: 1.1,
-            })).toBe(false)
-        })
-    })
-
-    describe('isParseCommandNavigationIntentResult', () => {
-        it('accepts valid NavigationIntent shape for Step A', () => {
-            expect(isParseCommandNavigationIntentResult({
-                type: 'NavigationIntent',
-                exitCandidate: 'north',
-                confidence: 0.75,
-            })).toBe(true)
-        })
-
-        it('rejects blank exitCandidate or invalid confidence', () => {
-            expect(isParseCommandNavigationIntentResult({
-                type: 'NavigationIntent',
-                exitCandidate: '   ',
-                confidence: 0.75,
-            })).toBe(false)
-            expect(isParseCommandNavigationIntentResult({
-                type: 'NavigationIntent',
-                exitCandidate: 'north',
-                confidence: 2,
             })).toBe(false)
         })
     })
@@ -214,152 +188,6 @@ describe('parseCommand type guards', () => {
     it('isParseCommandErrorResult does not require confidence', () => {
         expect(isParseCommandErrorResult({ type: 'Error' })).toBe(true)
         expect(isParseCommandErrorResult({ type: 'Error', errorMessage: 'x' })).toBe(true)
-    })
-})
-
-describe('buildParseCommandIntentClassificationPrompt', () => {
-    it('embeds the trimmed command and classification vocabulary', () => {
-        const prompt = buildParseCommandIntentClassificationPrompt('  attack troll  ', {
-            movementExitLabels: ['north', 'south'],
-        })
-        expect(prompt).toContain('attack troll')
-        expect(prompt).toContain('PromptInjectionAttempt')
-        expect(prompt).toContain('AwaitRoadRunner')
-        expect(prompt).toContain('AcmeOrder')
-        expect(prompt).toContain('LookRoom')
-        expect(prompt).toContain('Help')
-        expect(prompt).toContain('NavigationIntent')
-        expect(prompt).toContain('Unimplemented')
-        expect(prompt).toContain('Unknown')
-        expect(prompt).toContain('"type": "PromptInjectionAttempt"')
-        expect(prompt).toContain('"type": "AwaitRoadRunner"')
-        expect(prompt).toContain('"type": "AcmeOrder"')
-        expect(prompt).toContain('"type": "LookRoom"')
-        expect(prompt).toContain('"type": "Help"')
-        expect(prompt).toContain('"type": "NavigationIntent"')
-        expect(prompt).toContain('"type": "Unimplemented"')
-        expect(prompt).toContain('"type": "Unknown"')
-        expect(prompt).toContain('Available exits from current room: north, south')
-        expect(prompt).toContain('later step')
-    })
-
-    it('uses placeholder for empty or whitespace-only command', () => {
-        expect(buildParseCommandIntentClassificationPrompt('')).toContain('(empty command)')
-        expect(buildParseCommandIntentClassificationPrompt('   ')).toContain('(empty command)')
-    })
-
-    it('includes no-exit movement guidance when exits are unavailable', () => {
-        const prompt = buildParseCommandIntentClassificationPrompt('move please', {
-            movementExitLabels: [],
-        })
-        expect(prompt).toContain('No validated exits are currently available in parser context.')
-        expect(prompt).toContain('Server-side parse resolution will validate destination')
-    })
-})
-
-describe('interpretParseCommandIntentClassificationBody', () => {
-    it('accepts bare JSON for PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder intent only, LookRoom, Help, NavigationIntent, Unimplemented, and Unknown', () => {
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"PromptInjectionAttempt","confidence":0.82}'
-        )).toEqual({ type: 'PromptInjectionAttempt', confidence: 0.82 })
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"AwaitRoadRunner","confidence":0.95}'
-        )).toEqual({ type: 'AwaitRoadRunner', confidence: 0.95 })
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"LookRoom","confidence":0.88}'
-        )).toEqual({ type: 'LookRoom', confidence: 0.88 })
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"Help","confidence":0.9}'
-        )).toEqual({ type: 'Help', confidence: 0.9 })
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"AcmeOrder","confidence":0.9}'
-        )).toEqual({
-            type: 'AcmeOrderIntent',
-            confidence: 0.9,
-        })
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"AcmeOrder","orders":[],"confidence":0.85}'
-        )).toEqual({
-            type: 'AcmeOrderIntent',
-            confidence: 0.85,
-        })
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"NavigationIntent","exitCandidate":" north ","confidence":0.77}'
-        )).toEqual({
-            type: 'NavigationIntent',
-            exitCandidate: 'north',
-            confidence: 0.77,
-        })
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"Unimplemented","confidence":0.8}'
-        )).toEqual({ type: 'Unimplemented', confidence: 0.8 })
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"Unknown","confidence":0.25}'
-        )).toEqual({ type: 'Unknown', confidence: 0.25 })
-    })
-
-    it('rejects AcmeOrder when Step A includes orders array with entries', () => {
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"AcmeOrder","orders":["rocket skates"],"confidence":0.9}'
-        ).type).toBe('Error')
-    })
-
-    it('rejects legacy AcmeOrder order field', () => {
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"AcmeOrder","order":"  giant rubber band  ","confidence":0.6}'
-        ).type).toBe('Error')
-    })
-
-    it('strips markdown fences and tolerates surrounding prose', () => {
-        expect(interpretParseCommandIntentClassificationBody(
-            'Here is JSON:\n```json\n{"type":"Unknown","confidence":1}\n```'
-        )).toEqual({ type: 'Unknown', confidence: 1 })
-    })
-
-    it('rejects NavigationIntent routing fields and malformed movement payload', () => {
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"NavigationIntent","exitCandidate":"north","targetId":"ROOM#north","confidence":0.7}'
-        )).toEqual({
-            type: 'Error',
-            errorMessage: 'NavigationIntent must not include room-id routing fields',
-        })
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"NavigationIntent","exitCandidate":" ","confidence":0.7}'
-        ).type).toBe('Error')
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"NavigationIntent","confidence":0.7}'
-        ).type).toBe('Error')
-    })
-
-    it('rejects invalid JSON, wrong type, or bad confidence', () => {
-        expect(interpretParseCommandIntentClassificationBody('not json').type).toBe('Error')
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"Navigation","targetId":"ROOM#x","confidence":0.9}'
-        ).type).toBe('Error')
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"Unimplemented"}'
-        ).type).toBe('Error')
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"Unknown","confidence":2}'
-        ).type).toBe('Error')
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"AwaitRoadRunner"}'
-        ).type).toBe('Error')
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"AcmeOrder","confidence":1.2}'
-        ).type).toBe('Error')
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"LookRoom","confidence":-0.1}'
-        ).type).toBe('Error')
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"Help","confidence":-0.1}'
-        ).type).toBe('Error')
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"CoyoteEngineTest","confidence":0.9}'
-        )).toEqual({
-            type: 'Error',
-            errorMessage: 'Model JSON must be a valid PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, Help, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
-        })
     })
 })
 

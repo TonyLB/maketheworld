@@ -16,6 +16,8 @@ Related index: [`../AGENT.md`](../AGENT.md) (**DataSource instances** table).
 
 Implementation-heavy workflows are documented in [`AGENT.implementation.md`](./AGENT.implementation.md):
 
+Step A (**high-level intent discrimination**) prompt, JSON interpreter, and Step A-specific types/guards live under [`discriminateIntent/`](./discriminateIntent/).
+
 - Adding a new command affordance (actions-local and end-to-end checklist)
 - Step A / Step B alignment requirements and branching patterns
 - Stream contract wiring and client-display protocol wiring

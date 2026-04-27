@@ -12,16 +12,17 @@ Use this checklist when adding a parse affordance (for example, `help`).
 ### 1) Extend parse result contracts
 
 1. Add a new discriminant in [`baseClasses.ts`](baseClasses.ts) (`ParseCommandResult` variant + type guard).
-2. Include the result in the appropriate unions (`IntentClassificationResult` and/or terminal `ParseCommandResult`) based on whether it is Step A-only or terminal parse output.
+2. Include the result in the appropriate unions (`IntentClassificationResult` in [`discriminateIntent/baseClasses.ts`](discriminateIntent/baseClasses.ts) and/or terminal `ParseCommandResult`) based on whether it is Step A-only or terminal parse output.
 3. Keep confidence and shape requirements aligned with existing result variants.
 
 ### 2) Wire parse pipeline behavior
 
 1. In [`parseCommand.ts`](parseCommand.ts), prefer deterministic short-circuit logic first when possible (no Bedrock call).
 2. Keep Step A classification and interpretation aligned:
-   - [`buildParseCommandIntentClassificationPrompt.ts`](buildParseCommandIntentClassificationPrompt.ts)
-   - [`parseCommandIntentClassification.ts`](parseCommandIntentClassification.ts)
-   - [`baseClasses.ts`](baseClasses.ts)
+   - [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts)
+   - [`discriminateIntent/intentClassification.ts`](discriminateIntent/intentClassification.ts)
+   - [`discriminateIntent/baseClasses.ts`](discriminateIntent/baseClasses.ts) (`IntentClassificationResult` and Step A guards)
+   - [`baseClasses.ts`](baseClasses.ts) (terminal parse union + shared guards)
 3. Run Step B only for intents that actually need enrich behavior.
 
 ### 3) Handle affordance in actions receive path
@@ -56,7 +57,7 @@ If the affordance introduces a new display protocol (for example, a specialized 
 
 ### `PromptInjectionAttempt` steady-state
 
-Step A returns JSON `type: 'PromptInjectionAttempt'` when the intent prompt section P (evaluated before sections A-D in [`buildParseCommandIntentClassificationPrompt.ts`](buildParseCommandIntentClassificationPrompt.ts)) labels parser-manipulation tone.
+Step A returns JSON `type: 'PromptInjectionAttempt'` when the intent prompt section P (evaluated before sections A-D in [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts)) labels parser-manipulation tone.
 `parseCommand` skips Acme Step B like `Unknown`, and [`index.ts`](index.ts) emits `WorldOOCMessage` only (no `streamEvent` / `publishedEvents` entry), since this is in-franchise player feedback rather than a security boundary.
 
 ### `LookRoom` as reference pattern

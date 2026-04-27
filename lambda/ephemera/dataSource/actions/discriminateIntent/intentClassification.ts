@@ -5,14 +5,16 @@ import type {
 } from './baseClasses'
 import {
     isParseCommandAcmeOrderIntentResult,
+    isParseCommandNavigationIntentResult,
+} from './baseClasses'
+import {
     isParseCommandAwaitRoadrunnerResult,
     isParseCommandHelpResult,
     isParseCommandLookRoomResult,
-    isParseCommandNavigationIntentResult,
     isParseCommandPromptInjectionAttemptResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
-} from './baseClasses'
+} from '../baseClasses'
 
 function isParseConfidence(value: unknown): boolean {
     return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1
@@ -54,7 +56,7 @@ function extractJsonBody(raw: string): string {
  * **`Help`**, **`NavigationIntent`**, **`Unimplemented`**, or **`Unknown`**; anything else becomes **`Error`**.
  * (**`CoyoteEngineTest`**, slash-only harness types, and deterministic **bare `look` / `l` / `help`** are handled before Bedrock in **`parseCommand`**.)
  */
-export function interpretParseCommandIntentClassificationBody(body: string): IntentClassificationResult {
+export function interpretIntentClassificationBody(body: string): IntentClassificationResult {
     const toParse = extractJsonBody(body)
     let parsed: unknown
     try {

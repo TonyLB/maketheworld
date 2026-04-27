@@ -5,21 +5,20 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { invokeBedrockAcmeOrderEnrich } from '../../generateExample/invokeBedrockAcmeOrderEnrich'
 import { invokeBedrockParseCommand } from '../../generateExample/invokeBedrockParseCommand'
 import type { ParseCommandDeps, ParseCommandInput, ParseCommandResult } from './baseClasses'
+import { isParseCommandLookRoomResult } from './baseClasses'
 import {
     isParseCommandAcmeOrderIntentResult,
-    isParseCommandLookRoomResult,
     isParseCommandNavigationIntentResult,
-} from './baseClasses'
+} from './discriminateIntent/baseClasses'
+import { buildIntentClassificationPrompt } from './discriminateIntent/buildIntentClassificationPrompt'
+import { interpretIntentClassificationBody } from './discriminateIntent/intentClassification'
 import { buildParseAcmeOrderEnrichPrompt } from './buildParseAcmeOrderEnrichPrompt'
-import { buildParseCommandIntentClassificationPrompt } from './buildParseCommandIntentClassificationPrompt'
 import { isCoyoteAffinitiesTestSlashCommand } from './coyoteAffinitiesTestSlashCommand'
 import { isCoyoteEngineTestSlashCommand } from './coyoteEngineTestSlashCommand'
 import {
     finalizeAcmeOrderFromStepB,
     interpretAcmeOrderEnrichBody,
 } from './mergeAcmeOrderEnrich'
-import { interpretParseCommandIntentClassificationBody } from './parseCommandIntentClassification'
-
 /** After trim, case-insensitive **look** or **l** as the whole line (legacy bare-look parity; no Step B). */
 function isBareLookCommand(trimmed: string): boolean {
     return /^(?:look|l)$/i.test(trimmed)
@@ -117,7 +116,7 @@ async function parseCommandCore(
     const invoke = deps.invokeBedrockParseCommandImpl ?? invokeBedrockParseCommand
     const invokeEnrich = deps.invokeBedrockAcmeOrderEnrichImpl ?? invokeBedrockAcmeOrderEnrich
 
-    const prompt = buildParseCommandIntentClassificationPrompt(input.command, {
+    const prompt = buildIntentClassificationPrompt(input.command, {
         movementExitLabels: [...new Set((input.roomExits ?? []).map(({ normalizedName }) => normalizedName))],
     })
     const invokeResult = await invoke(prompt)
@@ -125,7 +124,7 @@ async function parseCommandCore(
         return { result: { type: 'Error', errorMessage: invokeResult.errorMessage }, enrichReasoningMarkdown: '' }
     }
 
-    const stepA = interpretParseCommandIntentClassificationBody(invokeResult.body)
+    const stepA = interpretIntentClassificationBody(invokeResult.body)
 
     if (isParseCommandNavigationIntentResult(stepA)) {
         const resolved = resolveExitLabelToTargetId(input, stepA.exitCandidate)
