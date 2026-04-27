@@ -8,7 +8,7 @@ import { collectCoyoteOccupiedStableKeys } from './collectCoyoteOccupiedStableKe
 import { finalizeStableKeysDeterministic } from './finalizeStableKeysDeterministic'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
 import { runAcmeOrderAffinitiesHarness } from './runAcmeOrderAffinitiesHarness'
-import { runCoyoteEngineTestHarness } from '../coyoteGame/runCoyoteEngineTestHarness'
+import { runCoyoteEngineTestHarness } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
 import { sendPerceptionThreadRegistered } from '../perception/subscribedEvents'
 import { sendRenderRequested } from '../renderOrchestration/subscribedEvents'
 
@@ -40,7 +40,7 @@ jest.mock('./parseCommand', () => ({
 jest.mock('./collectCoyoteOccupiedStableKeys', () => ({
     collectCoyoteOccupiedStableKeys: jest.fn(),
 }))
-jest.mock('../coyoteGame/runCoyoteEngineTestHarness', () => ({
+jest.mock('../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness', () => ({
     runCoyoteEngineTestHarness: jest.fn(),
 }))
 jest.mock('./runAcmeOrderAffinitiesHarness', () => ({

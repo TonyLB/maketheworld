@@ -69,7 +69,7 @@ flowchart LR
 
 ## Optional Bedrock-shaped helper
 
-**[`defineLlmInvokeStep`](llmInvokeStep.ts)** wraps calls that match **`invokeBedrockConverseText`** ( **`InvokeBedrockConverseTextParams`** in / out). Use it when the feature already builds **Converse** messages directly. Features that wrap Bedrock with **custom user content** (for example cache points in [`invokeBedrockHypothesis`](../../dataSource/coyoteGame/invokeBedrockHypothesis.ts)) often use **`defineLlmStep`** with a **`run`** that calls those wrappers instead.
+**[`defineLlmInvokeStep`](llmInvokeStep.ts)** wraps calls that match **`invokeBedrockConverseText`** ( **`InvokeBedrockConverseTextParams`** in / out). Use it when the feature already builds **Converse** messages directly. Features that wrap Bedrock with **custom user content** (for example cache points in [`invokeBedrockHypothesis`](../../dataSource/coyoteGame/generators/pipelines/hypothesis/invokeBedrockHypothesis.ts)) often use **`defineLlmStep`** with a **`run`** that calls those wrappers instead.
 
 **[`LlmInvokeDiagnostics`](llmInvokeStep.ts)** is the suggested shape for **`meta*`** fields after an invoke.
 
@@ -87,13 +87,13 @@ flowchart LR
 
 ## Feature consumer (example)
 
-Coyote hypothesis (stage one → combine → plan-selection hop → phase-plan hop → parse) runs on this runner in [`../../dataSource/coyoteGame/coyoteHypothesisPipeline.ts`](../../dataSource/coyoteGame/coyoteHypothesisPipeline.ts); entry points remain [`../../dataSource/coyoteGame/generateHypothesis.ts`](../../dataSource/coyoteGame/generateHypothesis.ts). Broader Coyote context: [`../../dataSource/coyoteGame/AGENT.md`](../../dataSource/coyoteGame/AGENT.md).
+Coyote hypothesis (stage one → combine → plan-selection hop → phase-plan hop → parse) runs on this runner in [`../../dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts`](../../dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts); entry points remain [`../../dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis.ts`](../../dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis.ts). Broader Coyote context: [`../../dataSource/coyoteGame/AGENT.md`](../../dataSource/coyoteGame/AGENT.md).
 
 Other multi-step flows that are still **ad hoc** (for example [`parseCommand`](../../dataSource/actions/parseCommand.ts) enrich paths) may migrate incrementally; **`dataSource/actions/AGENT.md`** and feature docs remain the source of truth for those products.
 
 ## Tests and verification
 
-- **Unit tests:** [`runPipeline.test.ts`](runPipeline.test.ts) (ordering, failure propagation, hooks). Feature pipeline tests live next to the feature (for example [`../../dataSource/coyoteGame/generateHypothesis.test.ts`](../../dataSource/coyoteGame/generateHypothesis.test.ts), [`../../dataSource/coyoteGame/coyoteHypothesisPipeline.test.ts`](../../dataSource/coyoteGame/coyoteHypothesisPipeline.test.ts)).
+- **Unit tests:** [`runPipeline.test.ts`](runPipeline.test.ts) (ordering, failure propagation, hooks). Feature pipeline tests live next to the feature (for example [`../../dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis.test.ts`](../../dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis.test.ts), [`../../dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.test.ts`](../../dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.test.ts)).
 - From [`lambda/ephemera`](../../), run **`npm run build`**, then Jest as needed, for example **`npm run test -- --runInBand llm/pipeline/`** plus targeted paths for touched features.
 - Confirm **ReadLints** clean on edited TypeScript in the workspace after substantive changes.
 
