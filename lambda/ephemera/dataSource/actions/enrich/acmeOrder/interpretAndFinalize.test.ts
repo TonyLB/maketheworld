@@ -1,10 +1,10 @@
 import {
     interpretAcmeOrderEnrichBody,
-    finalizeAcmeOrderFromStepB,
+    finalizeAcmeOrderFromEnrich,
 } from './interpretAndFinalize'
 
 describe('interpretAcmeOrderEnrichBody', () => {
-    it('accepts valid Step B JSON', () => {
+    it('accepts valid Acme order enrich JSON', () => {
         const r = interpretAcmeOrderEnrichBody(JSON.stringify({
             lines: [{
                 valid: true,
@@ -110,11 +110,11 @@ ${payload}
 
 })
 
-describe('finalizeAcmeOrderFromStepB', () => {
+describe('finalizeAcmeOrderFromEnrich', () => {
     const intentConf = 0.8
 
     it('maps enrich lines to parse orders', () => {
-        const merged = finalizeAcmeOrderFromStepB(
+        const merged = finalizeAcmeOrderFromEnrich(
             intentConf,
             {
                 lines: [
@@ -152,7 +152,7 @@ describe('finalizeAcmeOrderFromStepB', () => {
     })
 
     it('single synthetic failure when enrichInvokeFailed', () => {
-        const merged = finalizeAcmeOrderFromStepB(intentConf, null, true, 'order rope')
+        const merged = finalizeAcmeOrderFromEnrich(intentConf, null, true, 'order rope')
         expect(merged.orders).toHaveLength(1)
         expect(merged.orders[0]).toMatchObject({
             valid: true,
@@ -183,7 +183,7 @@ describe('finalizeAcmeOrderFromStepB', () => {
         if (!parsed.success) {
             return
         }
-        const merged = finalizeAcmeOrderFromStepB(0.82, parsed.response, false, 'x')
+        const merged = finalizeAcmeOrderFromEnrich(0.82, parsed.response, false, 'x')
         expect(merged.orders[0]).toMatchObject({
             valid: true,
             name: 'dyn',
@@ -195,7 +195,7 @@ describe('finalizeAcmeOrderFromStepB', () => {
     })
 
     it('merges multi-role enrich lines in index order', () => {
-        const merged = finalizeAcmeOrderFromStepB(
+        const merged = finalizeAcmeOrderFromEnrich(
             0.85,
             {
                 lines: [

@@ -2,7 +2,7 @@ import type { AcmeOrderEnrichModelLine, AcmeOrderEnrichModelResponse } from '@to
 import {
     ACME_ORDER_ENRICH_MAX_LINES,
     defaultStableKeyProposal,
-    normalizeAcmeOrderStepBResponse,
+    normalizeAcmeOrderEnrichResponse,
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { extractJsonObjectText } from '../../../../llm/extractJsonObjectText'
 import { splitMarkdownReasoningAndJson } from '../../../../llm/splitMarkdownReasoningAndJson'
@@ -34,12 +34,12 @@ function splitBodyForEnrichInterpret(raw: string): { jsonText: string; reasoning
 }
 
 export type InterpretAcmeOrderEnrichBodyOptions = {
-    /** Single-row fallback **`name`** when Step B returns no **`lines`**. */
+    /** Single-row fallback **`name`** when Acme order enrich returns no **`lines`**. */
     emptyFallbackName?: string;
 }
 
 /**
- * Parses Step B JSON and normalizes **`lines`** via **`normalizeAcmeOrderStepBResponse`**.
+ * Parses Acme order enrich JSON and normalizes **`lines`** via **`normalizeAcmeOrderEnrichResponse`**.
  * Returns **`reasoningMarkdown`** alongside **`response`** when **`success`** (possibly empty).
  */
 export function interpretAcmeOrderEnrichBody(
@@ -61,7 +61,7 @@ export function interpretAcmeOrderEnrichBody(
     }
 
     try {
-        const response = normalizeAcmeOrderStepBResponse(parsed, {
+        const response = normalizeAcmeOrderEnrichResponse(parsed, {
             emptyFallbackName: options?.emptyFallbackName,
         })
         if (response.lines.length > ACME_ORDER_ENRICH_MAX_LINES) {
@@ -96,10 +96,10 @@ function enrichLineToParseLine(line: AcmeOrderEnrichModelLine): ParseCommandAcme
 }
 
 /**
- * Builds **`ParseCommandAcmeOrderResult`** from intent-discrimination confidence and Step B output.
+ * Builds **`ParseCommandAcmeOrderResult`** from intent-discrimination confidence and Acme order enrich output.
  * **`enrichInvokeFailed`**: transport failure or unparseable JSON — one synthetic failed row using **`commandFallbackName`**.
  */
-export function finalizeAcmeOrderFromStepB(
+export function finalizeAcmeOrderFromEnrich(
     intentConfidence: number,
     enrich: AcmeOrderEnrichModelResponse | null,
     enrichInvokeFailed: boolean,
@@ -120,11 +120,11 @@ export function finalizeAcmeOrderFromStepB(
         }
     }
 
-    const stepBConfidence = enrich.confidence ?? 1
+    const enrichConfidence = enrich.confidence ?? 1
     const orders = enrich.lines.map(enrichLineToParseLine)
     return {
         type: 'AcmeOrder',
         orders,
-        confidence: clamp01(intentConfidence * stepBConfidence),
+        confidence: clamp01(intentConfidence * enrichConfidence),
     }
 }

@@ -20,7 +20,7 @@ The discriminate-intent prompt, deterministic checks (including Coyote slash-com
 Post-discrimination enrichment flows live under [`enrich/`](./enrich/), with Acme order as the first concrete implementation in [`enrich/acmeOrder/`](./enrich/acmeOrder/).
 
 - Adding a new command affordance (actions-local and end-to-end checklist)
-- Discriminate-intent / Step B alignment requirements and branching patterns
+- Discriminate-intent / Acme order enrich alignment requirements and branching patterns
 - Stream contract wiring and client-display protocol wiring
 - Verification matrix and suggested test commands
 
@@ -51,7 +51,7 @@ Stable keys give **machine correlation** for Coyote staged objects (seams, clust
 
 ### Enforcement model
 
-- **Step B may propose keys, but does not authoritatively guarantee uniqueness.**
+- **Acme order enrich may propose keys, but does not authoritatively guarantee uniqueness.**
 - **Deterministic finalize is mandatory before publishing `Acme Order`** and is the contract boundary that guarantees usable `stableKey` values on bus payloads.
 - Implementation details and call-order expectations are documented in [`AGENT.implementation.md`](./AGENT.implementation.md#acme-stablekey-implementation-notes).
 

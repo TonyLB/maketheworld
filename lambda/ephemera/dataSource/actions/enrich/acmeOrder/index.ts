@@ -2,7 +2,7 @@ import { invokeBedrockAcmeOrderEnrich } from '../../../../generateExample/invoke
 import type { AcmeOrderEnrichModelResponse } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { buildParseAcmeOrderEnrichPrompt } from './buildPrompt'
 import {
-    finalizeAcmeOrderFromStepB,
+    finalizeAcmeOrderFromEnrich,
     interpretAcmeOrderEnrichBody,
 } from './interpretAndFinalize'
 
@@ -11,7 +11,7 @@ export type EnrichAcmeOrderInput = {
     occupiedStableKeys?: readonly string[]
 }
 
-export type EnrichAcmeOrderResult = ReturnType<typeof finalizeAcmeOrderFromStepB>
+export type EnrichAcmeOrderResult = ReturnType<typeof finalizeAcmeOrderFromEnrich>
 
 export async function enrichAcmeOrder(
     input: EnrichAcmeOrderInput,
@@ -45,7 +45,7 @@ export async function enrichAcmeOrder(
     }
 
     const fallbackName = input.command.trim() || 'order'
-    const result = finalizeAcmeOrderFromStepB(
+    const result = finalizeAcmeOrderFromEnrich(
         intentConfidence,
         enrichResponse,
         enrichInvokeFailed,

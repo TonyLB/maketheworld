@@ -116,7 +116,7 @@ export type ParseCommandNavigationIntentResult = {
 
 /**
  * Intent discrimination only: player intent is an Acme order (no segmentation or catalog validation).
- * `parseCommand` always follows with Step B and returns {@link ParseCommandAcmeOrderResult}.
+ * `parseCommand` always follows with Acme order enrich and returns {@link ParseCommandAcmeOrderResult}.
  */
 export type ParseCommandAcmeOrderIntentResult = {
     type: 'AcmeOrderIntent'
@@ -125,7 +125,7 @@ export type ParseCommandAcmeOrderIntentResult = {
 
 /**
  * Outcome of intent discrimination only (includes Acme intent without line items, and
- * `LookRoom` for full room description / examine-surroundings intent without Step B).
+ * `LookRoom` for full room description / examine-surroundings intent without Acme order enrich).
  */
 export type IntentClassificationResult =
     | ParseCommandErrorResult
@@ -316,7 +316,7 @@ export type ParseCommandInput = {
         normalizedName: string
         targetId: EphemeraRoomId
     }[]
-    /** Coyote-wide **`stableKey`** occupancy for Step B enrich (omit or **[]** when unknown). */
+    /** Coyote-wide **`stableKey`** occupancy for Acme order enrich (omit or **[]** when unknown). */
     occupiedStableKeys?: readonly string[]
 }
 

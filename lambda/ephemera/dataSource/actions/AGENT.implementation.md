@@ -58,7 +58,7 @@ If the affordance introduces a new display protocol (for example, a specialized 
 ### `PromptInjectionAttempt` steady-state
 
 Discriminate intent returns JSON `type: 'PromptInjectionAttempt'` when the intent prompt section P (evaluated before sections A-D in [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts)) labels parser-manipulation tone.
-`parseCommand` skips Acme Step B like `Unknown`, and [`index.ts`](index.ts) emits `WorldOOCMessage` only (no `streamEvent` / `publishedEvents` entry), since this is in-franchise player feedback rather than a security boundary.
+`parseCommand` skips Acme order enrich like `Unknown`, and [`index.ts`](index.ts) emits `WorldOOCMessage` only (no `streamEvent` / `publishedEvents` entry), since this is in-franchise player feedback rather than a security boundary.
 
 ### `LookRoom` as reference pattern
 
@@ -78,7 +78,7 @@ This section complements the normative contract in [`AGENT.md`](./AGENT.md).
 
 ### Two phases (required order)
 
-1. **LLM-first (Step B enrich):** [`buildPrompt.ts`](enrich/acmeOrder/buildPrompt.ts) provides occupied key context and model proposes candidate `stableKey` values per valid line.
+1. **LLM-first (Acme order enrich):** [`buildPrompt.ts`](enrich/acmeOrder/buildPrompt.ts) provides occupied key context and model proposes candidate `stableKey` values per valid line.
 2. **Deterministic finalize (contract boundary):** [`finalizeStableKeysDeterministic`](stableKey/finalizeStableKeysDeterministic.ts) validates and repairs collisions/invalid proposals with deterministic allocation rules before publish.
 
 ### Where enforcement runs
@@ -86,7 +86,7 @@ This section complements the normative contract in [`AGENT.md`](./AGENT.md).
 In [`index.ts`](index.ts), Acme order flow is:
 
 1. [`collectCoyoteOccupiedStableKeys`](stableKey/collectCoyoteOccupiedStableKeys.ts) builds occupancy snapshot from Coyote game rooms and room objects.
-2. `parseCommand({ command, occupiedStableKeys })` reuses that snapshot in Step B.
+2. `parseCommand({ command, occupiedStableKeys })` reuses that snapshot in Acme order enrich.
 3. `finalizeStableKeysDeterministic` assigns final `stableKey: string` values per valid line.
 4. actions publishes `Acme Order`, then objects persists pass-through keys in current room context.
 

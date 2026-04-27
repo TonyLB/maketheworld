@@ -16,9 +16,9 @@ import {
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 export type StableKeyFinalizeLineInput = {
-    /** Display/catalog name for empty fallback (aligned with Step B **`name`**). */
+    /** Display/catalog name for empty fallback (aligned with Acme order enrich **`name`**). */
     name: string;
-    /** LLM proposal after Step B; omit or empty to derive from **`name`**. */
+    /** LLM proposal after Acme order enrich; omit or empty to derive from **`name`**. */
     proposedStableKey?: string;
 };
 

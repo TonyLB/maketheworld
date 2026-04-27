@@ -2,7 +2,7 @@
  * mtw.ephemera.actions DataSource.
  *
  * **`stableKey`** on **`Acme Order`** stream payloads: prefetch Coyote-wide occupancy,
- * **`parseCommand`** (Step B enrich uses the same snapshot), then
+ * **`parseCommand`** (Acme order enrich uses the same snapshot), then
  * **`finalizeStableKeysDeterministic`** before **`streamEvent`** ---
  * see **`Where enforcement runs`** in [`AGENT.md`](./AGENT.md) (**Acme catalog lines and `stableKey`**).
  */

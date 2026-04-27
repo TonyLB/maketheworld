@@ -26,7 +26,7 @@ export type CoyoteModificationRole =
     | 'connect-props'
     | 'enhance-prop'
 
-/** Step B catalog rejection (aligned with parse command apology copy). */
+/** Acme order enrich catalog rejection (aligned with parse command apology copy). */
 export type AcmeCatalogRejectionReason = 'Not a thing' | 'Not tangible' | 'Too large'
 
 const structuralRoles: ReadonlySet<CoyoteStructuralRole> = new Set([
@@ -101,7 +101,7 @@ export type AcmeOrderEnrichModelLine =
 
 export type AcmeOrderEnrichModelResponse = {
     lines: AcmeOrderEnrichModelLine[];
-    /** Optional aggregate Step B confidence in **`[0, 1]`**. */
+    /** Optional aggregate Acme order enrich confidence in **`[0, 1]`**. */
     confidence?: number;
 }
 
@@ -312,21 +312,21 @@ export function normalizeAcmeOrderEnrichLine(raw: unknown, fallbackName: string)
     return syntheticAcmeOrderEnrichFailureLine(raw, fallbackName)
 }
 
-export type NormalizeAcmeOrderStepBOptions = {
+export type NormalizeAcmeOrderEnrichOptions = {
     /** When **`lines`** is missing or empty after parse, emit one synthetic failure row with this **`name`**. */
     emptyFallbackName?: string;
 };
 
 /**
- * Normalizes Step B JSON: optional root **`confidence`**, **`lines`** capped at **`ACME_ORDER_ENRICH_MAX_LINES`**.
+ * Normalizes Acme order enrich JSON: optional root **`confidence`**, **`lines`** capped at **`ACME_ORDER_ENRICH_MAX_LINES`**.
  * Empty **`lines`** becomes a single **`affinitiesFailed`** row (see **`emptyFallbackName`**).
  */
-export function normalizeAcmeOrderStepBResponse(
+export function normalizeAcmeOrderEnrichResponse(
     parsed: unknown,
-    options?: NormalizeAcmeOrderStepBOptions
+    options?: NormalizeAcmeOrderEnrichOptions
 ): AcmeOrderEnrichModelResponse {
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        throw new Error('normalizeAcmeOrderStepBResponse: parsed must be a plain object')
+        throw new Error('normalizeAcmeOrderEnrichResponse: parsed must be a plain object')
     }
     const root = parsed as Record<string, unknown>
 
