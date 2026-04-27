@@ -187,9 +187,9 @@ Pending work uses `[ ]` and completed work uses `[X]`. When a step has nested bu
   - [X] Add `handlers/` and move the two `handle*` modules (+ tests); fix imports from `index.ts`.
   - [X] Confirm no behavior change (unit tests for handlers and `index.test.ts`).
 
-- [ ] Phase 2 - generators skeleton
-  - [ ] Add `generators/abstract/`, `generators/sharedParsers/`, `generators/pipelines/hypothesis/`, `generators/pipelines/outcome/`, `generators/testHarness/` (empty or with moved files only).
-  - [ ] Move modules in dependency order (deepest / leaf parsers first, then prompts, then orchestrators) to avoid broken intermediate states, or use a single branch with one mechanical move commit.
+- [X] Phase 2 - generators skeleton
+  - [X] Add `generators/abstract/`, `generators/sharedParsers/`, `generators/pipelines/hypothesis/`, `generators/pipelines/outcome/`, `generators/testHarness/` (empty or with moved files only).
+  - [X] Move modules in dependency order (deepest / leaf parsers first, then prompts, then orchestrators) to avoid broken intermediate states, or use a single branch with one mechanical move commit.
 
 - [ ] Phase 3 - `utilities/`
   - [ ] Add **`utilities/`** and move the four locked modules (+ tests): **`coyoteRoomObjectSnapshot`**, **`collectActiveCharactersInCoyoteRooms`**, **`coyoteRenderTree`**, **`isCoyoteGameRoom`**; fix imports including **`dataSource/actions/`** for **`coyoteRenderTree`** ([Utilities folder (locked)](#utilities-folder-locked)).

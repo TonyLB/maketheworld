@@ -34,7 +34,7 @@ import { navigationIntentErrorMessages } from './parseCommand'
 import { collectCoyoteOccupiedStableKeys } from './collectCoyoteOccupiedStableKeys'
 import { finalizeStableKeysDeterministic } from './finalizeStableKeysDeterministic'
 import { runAcmeOrderAffinitiesHarness } from './runAcmeOrderAffinitiesHarness'
-import { runCoyoteEngineTestHarness } from '../coyoteGame/runCoyoteEngineTestHarness'
+import { runCoyoteEngineTestHarness } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
 
 const COYOTE_ENGINE_TEST_HARNESS_ENABLED = true
 const COYOTE_AFFINITIES_TEST_HARNESS_ENABLED = true

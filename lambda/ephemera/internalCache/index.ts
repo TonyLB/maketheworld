@@ -32,8 +32,8 @@ import ConversationsData from './conversations';
 import PerceptionThreadsData from './perceptionThreads';
 import messageBus from '../messageBus';
 import CacheCoyoteGameData from './coyoteGame';
-import { generateHypothesis } from '../dataSource/coyoteGame/generateHypothesis';
-import { generatePlanOutcome } from '../dataSource/coyoteGame/generatePlanOutcome';
+import { generateHypothesis } from '../dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis';
+import { generatePlanOutcome } from '../dataSource/coyoteGame/generators/pipelines/outcome/generatePlanOutcome';
 import GenerationContextData from './generationContext';
 
 const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>()(withGetOperations<'PrimaryKey', string>()(DBHandlerBase)))({

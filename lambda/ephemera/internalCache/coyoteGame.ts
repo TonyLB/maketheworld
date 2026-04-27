@@ -8,7 +8,7 @@ export type CacheCoyoteGameKeys = 'gameRooms' | 'intent' | 'outcome'
 
 /**
  * Durable Coyote hypothesis row: the **`Hypothesis:`** line plus optional hop-2 **walkthrough** (scene analysis) and **phasePlan** (when hop-2 JSON validated).
- * **Plan outcome** ([`generatePlanOutcome`](../dataSource/coyoteGame/generatePlanOutcome.ts)) and the Await RoadRunner path use the same cached **`get('intent')`** value (no extra Dynamo read for outcome). If **phasePlan** is absent (validation failed, or legacy data), outcome generation still uses **intent** and optional **walkthrough**; see [`coyoteGame/AGENT.md`](../dataSource/coyoteGame/AGENT.md) (plan outcome).
+ * **Plan outcome** ([`generatePlanOutcome`](../dataSource/coyoteGame/generators/pipelines/outcome/generatePlanOutcome.ts)) and the Await RoadRunner path use the same cached **`get('intent')`** value (no extra Dynamo read for outcome). If **phasePlan** is absent (validation failed, or legacy data), outcome generation still uses **intent** and optional **walkthrough**; see [`coyoteGame/AGENT.md`](../dataSource/coyoteGame/AGENT.md) (plan outcome).
  */
 export type CoyoteGameIntentRecord = {
     intent: string
