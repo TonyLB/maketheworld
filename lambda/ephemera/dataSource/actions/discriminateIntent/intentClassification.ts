@@ -2,7 +2,7 @@ import type {
     IntentClassificationResult,
     ParseCommandAcmeOrderIntentResult,
     ParseCommandNavigationIntentResult,
-} from './baseClasses'
+} from '../baseClasses'
 import {
     isParseCommandAcmeOrderIntentResult,
     isParseCommandNavigationIntentResult,

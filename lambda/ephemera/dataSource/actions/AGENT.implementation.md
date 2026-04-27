@@ -12,7 +12,7 @@ Use this checklist when adding a parse affordance (for example, `help`).
 ### 1) Extend parse result contracts
 
 1. Add a new discriminant in [`baseClasses.ts`](baseClasses.ts) (`ParseCommandResult` variant + type guard).
-2. Include the result in the appropriate unions (`IntentClassificationResult` in [`discriminateIntent/baseClasses.ts`](discriminateIntent/baseClasses.ts) and/or terminal `ParseCommandResult`) based on whether it is intent-discrimination-only or terminal parse output.
+2. Include the result in the appropriate unions (`IntentClassificationResult` in [`baseClasses.ts`](baseClasses.ts) and/or terminal `ParseCommandResult`) based on whether it is intent-discrimination-only or terminal parse output.
 3. Keep confidence and shape requirements aligned with existing result variants.
 
 ### 2) Wire parse pipeline behavior
@@ -21,8 +21,8 @@ Use this checklist when adding a parse affordance (for example, `help`).
 2. Keep discriminate-intent classification and interpretation aligned:
    - [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts)
    - [`discriminateIntent/intentClassification.ts`](discriminateIntent/intentClassification.ts)
-   - [`discriminateIntent/baseClasses.ts`](discriminateIntent/baseClasses.ts) (`IntentClassificationResult` and intent guards)
-   - [`baseClasses.ts`](baseClasses.ts) (terminal parse union + shared guards)
+  - [`discriminateIntent/baseClasses.ts`](discriminateIntent/baseClasses.ts) (intent-only guards)
+  - [`baseClasses.ts`](baseClasses.ts) (`IntentClassificationResult`, terminal parse union, and shared guards)
 3. Run enrich flows only for intents that actually need post-discrimination enrichment.
 
 ### 3) Handle affordance in actions receive path

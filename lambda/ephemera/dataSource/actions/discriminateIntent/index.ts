@@ -1,6 +1,5 @@
 import { invokeBedrockParseCommand } from '../../../generateExample/invokeBedrockParseCommand'
-import type { ParseCommandDeps, ParseCommandInput, ParseCommandResult } from '../baseClasses'
-import type { ParseCommandAcmeOrderIntentResult } from './baseClasses'
+import type { ParseCommandAcmeOrderIntentResult, ParseCommandDeps, ParseCommandInput, ParseCommandResult } from '../baseClasses'
 import { isParseCommandNavigationIntentResult } from './baseClasses'
 import { buildIntentClassificationPrompt } from './buildIntentClassificationPrompt'
 import { deterministicIntentChecks } from './deterministicChecks'
