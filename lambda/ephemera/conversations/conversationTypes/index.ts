@@ -4,8 +4,8 @@ export { CONVERSATION_PAYLOAD_STUB } from './baseClasses';
 export type {
     ConversationRecordType,
     StorableConversationRecord,
-} from './baseClasses';
-export { isStorableConversationRecordRoomStateRender } from './baseClasses';
+} from './storableConversationRecord';
+export { isStorableConversationRecordRoomStateRender } from './storableConversationRecord';
 export type {
     ConversationHandleRoomStateRender,
     RoomStateRenderConversationRouting,

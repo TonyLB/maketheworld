@@ -493,6 +493,16 @@ Resources:
             Resource:
               - !Sub 'arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.amazon.nova-2-lite-v1:0'
               - 'arn:aws:bedrock:*::foundation-model/amazon.nova-2-lite-v1:0'
+        # Nova Micro via US cross-region inference profile (us.amazon.nova-micro-v1:0).
+        # Requires: inference profile in source region + foundation model in source and each destination region.
+        - Statement:
+          - Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+              - bedrock:InvokeModelWithResponseStream
+            Resource:
+              - !Sub 'arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.amazon.nova-micro-v1:0'
+              - 'arn:aws:bedrock:*::foundation-model/amazon.nova-micro-v1:0'
         - Statement:
           - Effect: Allow
             Action:

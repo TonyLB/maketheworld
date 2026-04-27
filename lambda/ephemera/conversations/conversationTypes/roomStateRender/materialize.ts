@@ -3,11 +3,8 @@ import {
     toRenderError,
     toRenderInvalidate,
     toRenderReady,
-    type RenderError,
-    type RenderInvalidate,
-    type RenderReady,
-    type RenderRequested,
 } from '../../../dataSource/renderOrchestration/events'
+import type { RenderError, RenderInvalidate, RenderReady, RenderRequested } from '../../../messageBus/baseClasses'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 
 import type { ConversationHandleRoomStateRender, StorableConversationRecordRoomStateRender } from './baseClasses'

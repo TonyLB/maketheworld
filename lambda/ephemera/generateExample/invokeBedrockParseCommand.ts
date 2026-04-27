@@ -7,10 +7,16 @@ import {
     invokeBedrockConverseText,
     type InvokeBedrockConverseTextResult,
 } from '../llm/invokeBedrockConverseText'
+import {
+    BEDROCK_NOVA_MICRO_MODEL_ID,
+    type NovaModel,
+    novaModelToBedrockModelId,
+} from '../llm/novaModel'
 
-export const BEDROCK_PARSE_COMMAND_MODEL_ID = 'us.amazon.nova-2-lite-v1:0' as const
+export const BEDROCK_PARSE_COMMAND_MODEL_ID = BEDROCK_NOVA_MICRO_MODEL_ID
 export const BEDROCK_PARSE_COMMAND_TIMEOUT_MS = 30_000
 export const BEDROCK_PARSE_COMMAND_MAX_TOKENS = 512
+export const BEDROCK_PARSE_COMMAND_DEFAULT_MODEL: NovaModel = 'NovaMicro'
 
 export type InvokeBedrockParseCommandSuccess = Extract<InvokeBedrockConverseTextResult, { success: true }>
 export type InvokeBedrockParseCommandFailure = Extract<InvokeBedrockConverseTextResult, { success: false }>
@@ -22,6 +28,7 @@ export type InvokeBedrockParseCommandResult = InvokeBedrockConverseTextResult
 export async function invokeBedrockParseCommand(
     prompt: string,
     options: {
+        model?: NovaModel;
         modelId?: string;
         maxTokens?: number;
         temperature?: number;
@@ -29,7 +36,8 @@ export async function invokeBedrockParseCommand(
         client?: BedrockRuntimeClient;
     } = {}
 ): Promise<InvokeBedrockParseCommandResult> {
-    const modelId = options.modelId ?? BEDROCK_PARSE_COMMAND_MODEL_ID
+    const model = options.model ?? BEDROCK_PARSE_COMMAND_DEFAULT_MODEL
+    const modelId = options.modelId ?? novaModelToBedrockModelId(model)
     const maxTokens = options.maxTokens ?? BEDROCK_PARSE_COMMAND_MAX_TOKENS
     const timeoutMs = options.timeoutMs ?? BEDROCK_PARSE_COMMAND_TIMEOUT_MS
     const temperature = options.temperature ?? 0.1

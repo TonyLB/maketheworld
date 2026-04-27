@@ -12,7 +12,7 @@ import {
     RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
     streamEventFromMessageBus,
 } from './publishedEvents'
-import type { RenderRequested } from './events'
+import type { RenderRequested } from '../../messageBus/baseClasses'
 
 describe('dataSource/renderOrchestration/orchestrationHandler', () => {
     beforeEach(() => {

@@ -10,8 +10,14 @@ import {
     invokeBedrockConverseText,
     type InvokeBedrockConverseTextResult,
 } from '../llm/invokeBedrockConverseText'
+import {
+    BEDROCK_NOVA_2_LITE_MODEL_ID,
+    DEFAULT_NOVA_MODEL,
+    type NovaModel,
+    novaModelToBedrockModelId,
+} from '../llm/novaModel'
 
-export const BEDROCK_ROOM_DESCRIPTION_MODEL_ID = 'us.amazon.nova-2-lite-v1:0' as const
+export const BEDROCK_ROOM_DESCRIPTION_MODEL_ID = BEDROCK_NOVA_2_LITE_MODEL_ID
 export const BEDROCK_REQUEST_TIMEOUT_MS = 30_000
 export const BEDROCK_MAX_TOKENS = 1024
 
@@ -26,13 +32,15 @@ export type InvokeBedrockRoomDescriptionResult = InvokeBedrockConverseTextResult
 export async function invokeBedrockRoomDescription(
     prompt: string,
     options: {
+        model?: NovaModel;
         modelId?: string;
         maxTokens?: number;
         timeoutMs?: number;
         client?: BedrockRuntimeClient;
     } = {}
 ): Promise<InvokeBedrockRoomDescriptionResult> {
-    const modelId = options.modelId ?? BEDROCK_ROOM_DESCRIPTION_MODEL_ID
+    const model = options.model ?? DEFAULT_NOVA_MODEL
+    const modelId = options.modelId ?? novaModelToBedrockModelId(model)
     const maxTokens = options.maxTokens ?? BEDROCK_MAX_TOKENS
     const timeoutMs = options.timeoutMs ?? BEDROCK_REQUEST_TIMEOUT_MS
 

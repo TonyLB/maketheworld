@@ -3,7 +3,7 @@
  *
  * In-process only (dataSourceKey: 'api.ephemera'). See dataSource/renderOrchestration/AGENT.md.
  */
-import type { RenderRequested } from './events'
+import type { RenderRequested } from '../../messageBus/baseClasses'
 
 export type RenderRequestedCommand = Omit<RenderRequested, 'type'>
 

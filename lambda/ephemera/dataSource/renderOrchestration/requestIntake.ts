@@ -13,7 +13,7 @@ import internalCache from '../../internalCache'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId, EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheMarkState } from '../renderCache/baseClasses'
-import type { RenderRequested } from './events'
+import type { RenderRequested } from '../../messageBus/baseClasses'
 import type { RenderResolveInput, RenderResolveInputSuccess } from './baseClasses'
 import { computeDefaultMarksForRoom } from '../state/computeDefaultMarksForRoom'
 

@@ -7,7 +7,7 @@ import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
 import internalCache from '../../internalCache'
 import { orchestrateRenderRequest } from './orchestrationHandler'
-import type { RenderRequested } from './events'
+import type { RenderRequested } from '../../messageBus/baseClasses'
 import {
     isRenderOrchestrationCurrentCacheValidPayload,
     isRenderOrchestrationExactMatchFoundPayload,

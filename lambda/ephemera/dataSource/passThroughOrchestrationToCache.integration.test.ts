@@ -17,7 +17,7 @@ import internalCache from '../internalCache'
 import { orchestrateRenderRequest } from './renderOrchestration/orchestrationHandler'
 import { streamEventFromMessageBus } from './renderOrchestration/publishedEvents'
 import { RENDER_CACHE_DATA_SOURCE_KEY } from './renderCache/baseClasses'
-import type { RenderRequested } from './renderOrchestration/events'
+import type { RenderRequested } from '../messageBus/baseClasses'
 import {
     makePassThroughRenderGeneratedPayload,
     passThroughFixtureMinimalCacheId,
