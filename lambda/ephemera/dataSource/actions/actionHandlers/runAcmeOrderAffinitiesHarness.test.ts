@@ -1,9 +1,9 @@
-import messageBus from '../../messageBus'
-import { isPublishMessage, isPublishWorldLineMessage } from '../../messageBus/baseClasses'
-import type { ParseCommandAcmeOrderResult } from './baseClasses'
+import messageBus from '../../../messageBus'
+import { isPublishMessage, isPublishWorldLineMessage } from '../../../messageBus/baseClasses'
+import type { ParseCommandAcmeOrderResult } from '../baseClasses'
 import { runAcmeOrderAffinitiesHarness } from './runAcmeOrderAffinitiesHarness'
 
-jest.mock('../../messageBus')
+jest.mock('../../../messageBus')
 
 const mockMessageBus = messageBus as jest.Mocked<typeof messageBus>
 

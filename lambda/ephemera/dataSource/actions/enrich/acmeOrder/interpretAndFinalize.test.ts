@@ -1,7 +1,7 @@
 import {
     interpretAcmeOrderEnrichBody,
     finalizeAcmeOrderFromStepB,
-} from './mergeAcmeOrderEnrich'
+} from './interpretAndFinalize'
 
 describe('interpretAcmeOrderEnrichBody', () => {
     it('accepts valid Step B JSON', () => {
@@ -111,11 +111,11 @@ ${payload}
 })
 
 describe('finalizeAcmeOrderFromStepB', () => {
-    const stepAConf = 0.8
+    const intentConf = 0.8
 
     it('maps enrich lines to parse orders', () => {
         const merged = finalizeAcmeOrderFromStepB(
-            stepAConf,
+            intentConf,
             {
                 lines: [
                     {
@@ -148,11 +148,11 @@ describe('finalizeAcmeOrderFromStepB', () => {
             errorType: 'Not a thing',
             affinities: [],
         })
-        expect(merged.confidence).toBeCloseTo(stepAConf * 0.5)
+        expect(merged.confidence).toBeCloseTo(intentConf * 0.5)
     })
 
     it('single synthetic failure when enrichInvokeFailed', () => {
-        const merged = finalizeAcmeOrderFromStepB(stepAConf, null, true, 'order rope')
+        const merged = finalizeAcmeOrderFromStepB(intentConf, null, true, 'order rope')
         expect(merged.orders).toHaveLength(1)
         expect(merged.orders[0]).toMatchObject({
             valid: true,
@@ -161,7 +161,7 @@ describe('finalizeAcmeOrderFromStepB', () => {
             affinities: [],
             affinitiesFailed: true,
         })
-        expect(merged.confidence).toBe(stepAConf)
+        expect(merged.confidence).toBe(intentConf)
     })
 
     it('after interpret, merges good plus salvaged rows', () => {

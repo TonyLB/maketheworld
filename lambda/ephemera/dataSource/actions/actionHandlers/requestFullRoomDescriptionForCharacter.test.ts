@@ -1,14 +1,14 @@
-import internalCache from '../../internalCache'
+import internalCache from '../../../internalCache'
 import { prepareFullRoomDescriptionRenderForCharacter } from './requestFullRoomDescriptionForCharacter'
-import { resolveCanonAssetStackForRoom, resolveRoomAssetStackForRoom } from '../state/resolveAssetStackForRoom'
-import { filterRoomCanonStackByCharacterAssets } from '../renderOrchestration/fanOutStateChangedToPassiveRenders'
+import { resolveCanonAssetStackForRoom, resolveRoomAssetStackForRoom } from '../../state/resolveAssetStackForRoom'
+import { filterRoomCanonStackByCharacterAssets } from '../../renderOrchestration/fanOutStateChangedToPassiveRenders'
 
-jest.mock('../state/resolveAssetStackForRoom', () => ({
+jest.mock('../../state/resolveAssetStackForRoom', () => ({
     resolveCanonAssetStackForRoom: jest.fn(),
     resolveRoomAssetStackForRoom: jest.fn(),
 }))
 
-jest.mock('../renderOrchestration/fanOutStateChangedToPassiveRenders', () => ({
+jest.mock('../../renderOrchestration/fanOutStateChangedToPassiveRenders', () => ({
     filterRoomCanonStackByCharacterAssets: jest.fn(),
 }))
 

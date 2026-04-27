@@ -1,5 +1,5 @@
 import { COYOTE_AFFINITY_APTNESS_MIN } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import { buildParseAcmeOrderEnrichPrompt } from './buildParseAcmeOrderEnrichPrompt'
+import { buildParseAcmeOrderEnrichPrompt } from './buildPrompt'
 
 describe('buildParseAcmeOrderEnrichPrompt', () => {
     it('requires chain-of-reasoning markdown then fenced json, and retains affinity contract', () => {
@@ -33,7 +33,8 @@ describe('buildParseAcmeOrderEnrichPrompt', () => {
         expect(invariantPrefix).not.toContain('skill check')
         expect(invariantPrefix).toContain('stableKey')
         expect(invariantPrefix).toContain('constructed-')
-        expect(invariantPrefix).toContain('Ignore the command verb itself')
+        expect(invariantPrefix).toContain('Do not treat a leading order verb as a line item')
+        expect(invariantPrefix).toContain('Multi-command phrasing')
         expect(invariantPrefix).toContain('order glue and springs')
         expect(invariantPrefix).toContain('exactly two lines')
         expect(dynamicSuffix).toContain('order rope')

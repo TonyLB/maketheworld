@@ -1,11 +1,11 @@
 /**
  * Coyote-wide **`stableKey`** occupancy for Step B enrich and **`finalizeStableKeysDeterministic`**.
- * See **Scope and non-goals** / **Where enforcement runs** in [`AGENT.md`](./AGENT.md)
+ * See **Scope and non-goals** / **Where enforcement runs** in [`../AGENT.md`](../AGENT.md)
  * (**Acme catalog lines and `stableKey`**).
  */
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import internalCache from '../../internalCache'
+import internalCache from '../../../internalCache'
 
 export type CollectCoyoteOccupiedStableKeysDeps = {
     getGameRooms: () => Promise<string[]>

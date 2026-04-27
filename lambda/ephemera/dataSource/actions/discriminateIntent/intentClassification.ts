@@ -2,17 +2,20 @@ import type {
     IntentClassificationResult,
     ParseCommandAcmeOrderIntentResult,
     ParseCommandNavigationIntentResult,
-} from './baseClasses'
+} from '../baseClasses'
 import {
     isParseCommandAcmeOrderIntentResult,
+    isParseCommandNavigationIntentResult,
+} from './baseClasses'
+import {
     isParseCommandAwaitRoadrunnerResult,
     isParseCommandHelpResult,
     isParseCommandLookRoomResult,
-    isParseCommandNavigationIntentResult,
+    isParseCommandMultipleCommandsResult,
     isParseCommandPromptInjectionAttemptResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
-} from './baseClasses'
+} from '../baseClasses'
 
 function isParseConfidence(value: unknown): boolean {
     return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1
@@ -50,11 +53,11 @@ function extractJsonBody(raw: string): string {
 
 /**
  * Parses and validates LLM output for the intent-classification prompt.
- * Accepts **`PromptInjectionAttempt`**, **`AwaitRoadRunner`**, **`AcmeOrder`** (intent-only, no **`orders`**), **`LookRoom`**,
+ * Accepts **`MultipleCommands`**, **`PromptInjectionAttempt`**, **`AwaitRoadRunner`**, **`AcmeOrder`** (intent-only, no **`orders`**), **`LookRoom`**,
  * **`Help`**, **`NavigationIntent`**, **`Unimplemented`**, or **`Unknown`**; anything else becomes **`Error`**.
  * (**`CoyoteEngineTest`**, slash-only harness types, and deterministic **bare `look` / `l` / `help`** are handled before Bedrock in **`parseCommand`**.)
  */
-export function interpretParseCommandIntentClassificationBody(body: string): IntentClassificationResult {
+export function interpretIntentClassificationBody(body: string): IntentClassificationResult {
     const toParse = extractJsonBody(body)
     let parsed: unknown
     try {
@@ -75,6 +78,16 @@ export function interpretParseCommandIntentClassificationBody(body: string): Int
 
     const obj = parsed as Record<string, unknown>
     const type = obj.type
+
+    if (type === 'MultipleCommands') {
+        const candidate: IntentClassificationResult = {
+            type: 'MultipleCommands',
+            confidence: obj.confidence as number,
+        }
+        if (isParseCommandMultipleCommandsResult(candidate)) {
+            return candidate
+        }
+    }
 
     if (type === 'AwaitRoadRunner') {
         const candidate: IntentClassificationResult = {
@@ -130,13 +143,13 @@ export function interpretParseCommandIntentClassificationBody(body: string): Int
         if ('orders' in obj && Array.isArray(obj.orders) && obj.orders.length > 0) {
             return {
                 type: 'Error',
-                errorMessage: 'Step A AcmeOrder must not include orders array; segmentation is handled in Step B',
+                errorMessage: 'AcmeOrder intent payload must not include orders array; segmentation is handled in Step B',
             }
         }
         if (typeof obj.order === 'string') {
             return {
                 type: 'Error',
-                errorMessage: 'Step A AcmeOrder must not include legacy order field; segmentation is handled in Step B',
+                errorMessage: 'AcmeOrder intent payload must not include legacy order field; segmentation is handled in Step B',
             }
         }
         const candidate: ParseCommandAcmeOrderIntentResult = {
@@ -181,6 +194,6 @@ export function interpretParseCommandIntentClassificationBody(body: string): Int
     return {
         type: 'Error',
         errorMessage:
-            'Model JSON must be a valid PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, Help, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
+            'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, Help, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
     }
 }

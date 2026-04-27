@@ -1,13 +1,14 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { ephemeraActionsDataSource } from './index'
+import { MULTIPLE_COMMANDS_PLAYER_MESSAGE } from './multipleCommandsPlayerMessage'
 import messageBus from '../../messageBus'
 import { parseCommand } from './parseCommand'
 import { navigationIntentErrorMessages } from './parseCommand'
-import { collectCoyoteOccupiedStableKeys } from './collectCoyoteOccupiedStableKeys'
-import { finalizeStableKeysDeterministic } from './finalizeStableKeysDeterministic'
+import { collectCoyoteOccupiedStableKeys } from './stableKey/collectCoyoteOccupiedStableKeys'
+import { finalizeStableKeysDeterministic } from './stableKey/finalizeStableKeysDeterministic'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
-import { runAcmeOrderAffinitiesHarness } from './runAcmeOrderAffinitiesHarness'
+import { runAcmeOrderAffinitiesHarness } from './actionHandlers/runAcmeOrderAffinitiesHarness'
 import { runCoyoteEngineTestHarness } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
 import { sendPerceptionThreadRegistered } from '../perception/subscribedEvents'
 import { sendRenderRequested } from '../renderOrchestration/subscribedEvents'
@@ -37,13 +38,13 @@ jest.mock('./parseCommand', () => ({
     ...jest.requireActual<typeof import('./parseCommand')>('./parseCommand'),
     parseCommand: jest.fn(),
 }))
-jest.mock('./collectCoyoteOccupiedStableKeys', () => ({
+jest.mock('./stableKey/collectCoyoteOccupiedStableKeys', () => ({
     collectCoyoteOccupiedStableKeys: jest.fn(),
 }))
 jest.mock('../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness', () => ({
     runCoyoteEngineTestHarness: jest.fn(),
 }))
-jest.mock('./runAcmeOrderAffinitiesHarness', () => ({
+jest.mock('./actionHandlers/runAcmeOrderAffinitiesHarness', () => ({
     runAcmeOrderAffinitiesHarness: jest.fn(),
 }))
 
@@ -449,7 +450,7 @@ describe('ephemeraActionsDataSource', () => {
             })
         })
 
-        it('streams Look Command Requested for Step A LookRoom (paraphrase) with confidence from parse', async () => {
+        it('streams Look Command Requested for discriminate-intent LookRoom (paraphrase) with confidence from parse', async () => {
             mockedParseCommand.mockResolvedValue({ type: 'LookRoom', confidence: 0.91 })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: currentRoom,
@@ -918,6 +919,47 @@ describe('ephemeraActionsDataSource', () => {
                 message: [
                     "Prompt injection isn't going to get you any closer to catching the Road Runner.",
                 ],
+            })
+        })
+    })
+
+    describe('ParseCommandMultipleCommandsResult', () => {
+        it('publishes WorldOOCMessage with multi-command copy, no streamEvent, and correlated success when requestId present', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'MultipleCommands', confidence: 0.8 })
+            const streamEvent = jest.fn(async () => {})
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'order explosives and then order bandages',
+                        requestId: 'req-multiple',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).not.toHaveBeenCalled()
+            expect(mockMessageBus.send).toHaveBeenNthCalledWith(1, {
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: [MULTIPLE_COMMANDS_PLAYER_MESSAGE],
+            })
+            expect(mockMessageBus.send).toHaveBeenNthCalledWith(2, {
+                type: 'ReturnValue',
+                body: {
+                    messageType: 'Success',
+                    RequestId: 'req-multiple',
+                    message: 'Parse request accepted',
+                },
             })
         })
     })

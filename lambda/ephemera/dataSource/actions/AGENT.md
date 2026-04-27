@@ -8,7 +8,7 @@
 
 ## Role
 
-Parses slash-free and natural-language commands (**Bedrock**: intent classification + Acme enrich when applicable). Publishes internal bus streams such as **`Acme Order`**, **`Character Navigate`**, **`Await RoadRunner`**, and harness-only outcomes --- see [`publishedEvents.ts`](publishedEvents.ts); for terminal parse lines that need no stream contract, **`index.ts`** may **`PublishMessage`** as **`WorldOOCMessage`** (including **`PromptInjectionAttempt`**, Step A meta-instruction / jailbreak-tone classification) or **`CoyoteGameHelpMessage`** for **`Help`** intent (requesting character only, no stream contract). **`mtw.ephemera.objects`** subscribes via [`../objects/subscribedEvents.ts`](../objects/subscribedEvents.ts) (**`Acme Order`** envelope guard).
+Parses slash-free and natural-language commands (**Bedrock**: intent discrimination + Acme enrich when applicable). Publishes internal bus streams such as **`Acme Order`**, **`Character Navigate`**, **`Await RoadRunner`**, and harness-only outcomes --- see [`publishedEvents.ts`](publishedEvents.ts); for terminal parse lines that need no stream contract, **`index.ts`** may **`PublishMessage`** as **`WorldOOCMessage`** (including **`PromptInjectionAttempt`**, discriminate-intent meta-instruction / jailbreak-tone classification) or **`CoyoteGameHelpMessage`** for **`Help`** intent (requesting character only, no stream contract). **`mtw.ephemera.objects`** subscribes via [`../objects/subscribedEvents.ts`](../objects/subscribedEvents.ts) (**`Acme Order`** envelope guard).
 
 Related index: [`../AGENT.md`](../AGENT.md) (**DataSource instances** table).
 
@@ -16,8 +16,11 @@ Related index: [`../AGENT.md`](../AGENT.md) (**DataSource instances** table).
 
 Implementation-heavy workflows are documented in [`AGENT.implementation.md`](./AGENT.implementation.md):
 
+The discriminate-intent prompt, deterministic checks (including Coyote slash-command matchers), JSON interpreter, and intent-only types/guards live under [`discriminateIntent/`](./discriminateIntent/).
+Post-discrimination enrichment flows live under [`enrich/`](./enrich/), with Acme order as the first concrete implementation in [`enrich/acmeOrder/`](./enrich/acmeOrder/).
+
 - Adding a new command affordance (actions-local and end-to-end checklist)
-- Step A / Step B alignment requirements and branching patterns
+- Discriminate-intent / Step B alignment requirements and branching patterns
 - Stream contract wiring and client-display protocol wiring
 - Verification matrix and suggested test commands
 
@@ -73,6 +76,7 @@ Clustering / combine behavior is documented under **[`../coyoteGame/AGENT.md`](.
 | --- | --- |
 | [`../AGENT.md`](../AGENT.md) | Ephemera DataSource directory index (**`mtw.ephemera.actions`** row) |
 | [`AGENT.implementation.md`](./AGENT.implementation.md) | Implementation playbook: affordance wiring, stream contracts, message protocols, test checklist |
+| [`enrich/AGENT.md`](./enrich/AGENT.md) | Post-discrimination enrich namespace contract; current `acmeOrder` implementation boundary |
 | [`../objects/AGENT.md`](../objects/AGENT.md) | **`Meta::Room.objects`** merge; Acme **`stableKey`** pass-through |
 | [`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md) | Staged snapshot; **`stableKey`** on rows vs prompt text |
 | [`../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts) | Durable affinity contract: **`CoyoteAffinityPossibility`**, `prep` / `creation`, and flat modification tags |

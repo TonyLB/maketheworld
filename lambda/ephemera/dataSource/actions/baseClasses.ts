@@ -34,45 +34,11 @@ export type ParseCommandNavigationResult = {
     confidence: ParseCommandConfidence
 }
 
-/**
- * Step A only: model-classified movement intent before server-side exit resolution.
- * Final parse result still uses `Navigation` with `targetId` after resolution.
- */
-export type ParseCommandNavigationIntentResult = {
-    type: 'NavigationIntent'
-    exitCandidate: string
-    confidence: ParseCommandConfidence
-}
-
 /** Alias of **`AcmeCatalogRejectionReason`** for parse / courier apology copy. */
 export type ParseCommandAcmeOrderErrorType = AcmeCatalogRejectionReason
 
 /** Parsed Acme line: aligns with **`AcmeOrderEnrichModelLine`** (no **`stableKey`** on **`valid: false`**). */
 export type ParseCommandAcmeOrderLine = AcmeOrderEnrichModelLine
-
-/**
- * Step A only: player intent is an Acme order (no segmentation or catalog validation).
- * `parseCommand` always follows with Step B and returns {@link ParseCommandAcmeOrderResult}.
- */
-export type ParseCommandAcmeOrderIntentResult = {
-    type: 'AcmeOrderIntent'
-    confidence: ParseCommandConfidence
-}
-
-/**
- * Outcome of Step A intent classification only (includes Acme intent without line items, and
- * **LookRoom** for full room description / examine-surroundings intent without Step B).
- */
-export type IntentClassificationResult =
-    | ParseCommandErrorResult
-    | ParseCommandNavigationIntentResult
-    | ParseCommandAwaitRoadrunnerResult
-    | ParseCommandHelpResult
-    | ParseCommandAcmeOrderIntentResult
-    | ParseCommandLookRoomResult
-    | ParseCommandUnimplementedResult
-    | ParseCommandUnknownResult
-    | ParseCommandPromptInjectionAttemptResult
 
 /** Coyote Game: order from Acme (mail-order, catalog, or unspecified). One or more product lines. */
 export type ParseCommandAcmeOrderResult = {
@@ -88,13 +54,13 @@ export type ParseCommandAwaitRoadrunnerResult = {
     confidence: ParseCommandConfidence
 }
 
-/** Show coyote-game help affordance content; no Step B enrich. */
+/** Show coyote-game help affordance content; no Acme enrich. */
 export type ParseCommandHelpResult = {
     type: 'Help'
     confidence: ParseCommandConfidence
 }
 
-/** Full description of the current room (examine surroundings); no Step B enrich. */
+/** Full description of the current room (examine surroundings); no Acme enrich. */
 export type ParseCommandLookRoomResult = {
     type: 'LookRoom'
     confidence: ParseCommandConfidence
@@ -123,12 +89,55 @@ export type ParseCommandUnknownResult = {
 }
 
 /**
- * Step A / terminal parse: meta-instruction or jailbreak-style input (player-facing tone only; not a safety control).
+ * Intent discrimination / terminal parse: meta-instruction or jailbreak-style input (player-facing tone only; not a safety control).
  */
 export type ParseCommandPromptInjectionAttemptResult = {
     type: 'PromptInjectionAttempt'
     confidence: ParseCommandConfidence
 }
+
+/**
+ * Parser classified input as multiple user commands in one line.
+ */
+export type ParseCommandMultipleCommandsResult = {
+    type: 'MultipleCommands'
+    confidence: ParseCommandConfidence
+}
+
+/**
+ * Intent discrimination only: model-classified movement intent before server-side exit resolution.
+ * Final parse result still uses `Navigation` with `targetId` after resolution.
+ */
+export type ParseCommandNavigationIntentResult = {
+    type: 'NavigationIntent'
+    exitCandidate: string
+    confidence: ParseCommandConfidence
+}
+
+/**
+ * Intent discrimination only: player intent is an Acme order (no segmentation or catalog validation).
+ * `parseCommand` always follows with Step B and returns {@link ParseCommandAcmeOrderResult}.
+ */
+export type ParseCommandAcmeOrderIntentResult = {
+    type: 'AcmeOrderIntent'
+    confidence: ParseCommandConfidence
+}
+
+/**
+ * Outcome of intent discrimination only (includes Acme intent without line items, and
+ * `LookRoom` for full room description / examine-surroundings intent without Step B).
+ */
+export type IntentClassificationResult =
+    | ParseCommandErrorResult
+    | ParseCommandNavigationIntentResult
+    | ParseCommandAwaitRoadrunnerResult
+    | ParseCommandHelpResult
+    | ParseCommandAcmeOrderIntentResult
+    | ParseCommandLookRoomResult
+    | ParseCommandUnimplementedResult
+    | ParseCommandUnknownResult
+    | ParseCommandPromptInjectionAttemptResult
+    | ParseCommandMultipleCommandsResult
 
 export type ParseCommandResult =
     | ParseCommandErrorResult
@@ -142,20 +151,12 @@ export type ParseCommandResult =
     | ParseCommandUnimplementedResult
     | ParseCommandUnknownResult
     | ParseCommandPromptInjectionAttemptResult
+    | ParseCommandMultipleCommandsResult
 
 export function isParseCommandErrorResult(
     result: ParseCommandResult
 ): result is ParseCommandErrorResult {
     return result.type === 'Error'
-}
-
-export function isParseCommandAcmeOrderIntentResult(
-    result: IntentClassificationResult | ParseCommandResult
-): result is ParseCommandAcmeOrderIntentResult {
-    if (result.type !== 'AcmeOrderIntent') {
-        return false
-    }
-    return isParseConfidence(result.confidence)
 }
 
 export function isParseCommandAwaitRoadrunnerResult(
@@ -192,21 +193,6 @@ export function isParseCommandNavigationResult(
         return false
     }
     return isEphemeraRoomId(result.targetId) && isParseConfidence(result.confidence)
-}
-
-export function isParseCommandNavigationIntentResult(
-    result: IntentClassificationResult | ParseCommandResult
-): result is ParseCommandNavigationIntentResult {
-    if (result.type !== 'NavigationIntent') {
-        return false
-    }
-    if (typeof result.exitCandidate !== 'string') {
-        return false
-    }
-    if (result.exitCandidate.trim().length === 0) {
-        return false
-    }
-    return isParseConfidence(result.confidence)
 }
 
 export function isParseCommandAcmeOrderResult(
@@ -310,6 +296,15 @@ export function isParseCommandPromptInjectionAttemptResult(
     result: ParseCommandResult | IntentClassificationResult
 ): result is ParseCommandPromptInjectionAttemptResult {
     if (result.type !== 'PromptInjectionAttempt') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
+export function isParseCommandMultipleCommandsResult(
+    result: ParseCommandResult | IntentClassificationResult
+): result is ParseCommandMultipleCommandsResult {
+    if (result.type !== 'MultipleCommands') {
         return false
     }
     return isParseConfidence(result.confidence)
