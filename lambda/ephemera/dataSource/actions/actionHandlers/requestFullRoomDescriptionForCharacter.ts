@@ -1,14 +1,14 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 
-import internalCache from '../../internalCache'
-import type { StreamingEventMessage } from '../../messageBus/baseClasses'
-import type { PerceptionThreadRegisterCommand } from '../perception/localApiEvents'
-import { resolveCanonAssetStackForRoom, resolveRoomAssetStackForRoom } from '../state/resolveAssetStackForRoom'
-import { filterRoomCanonStackByCharacterAssets } from '../renderOrchestration/fanOutStateChangedToPassiveRenders'
-import { sendPerceptionThreadRegistered } from '../perception/subscribedEvents'
-import { sendRenderRequested } from '../renderOrchestration/subscribedEvents'
-import type { RenderRequestedCommand } from '../renderOrchestration/localApiEvents'
+import internalCache from '../../../internalCache'
+import type { StreamingEventMessage } from '../../../messageBus/baseClasses'
+import type { PerceptionThreadRegisterCommand } from '../../perception/localApiEvents'
+import { resolveCanonAssetStackForRoom, resolveRoomAssetStackForRoom } from '../../state/resolveAssetStackForRoom'
+import { filterRoomCanonStackByCharacterAssets } from '../../renderOrchestration/fanOutStateChangedToPassiveRenders'
+import { sendPerceptionThreadRegistered } from '../../perception/subscribedEvents'
+import { sendRenderRequested } from '../../renderOrchestration/subscribedEvents'
+import type { RenderRequestedCommand } from '../../renderOrchestration/localApiEvents'
 
 type MessageBusLike = { send: (payload: StreamingEventMessage, laneId?: string) => void }
 

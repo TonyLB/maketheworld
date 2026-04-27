@@ -1,12 +1,12 @@
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
-import type { MessageBus } from '../../messageBus/baseClasses'
-import { invokeBedrockAcmeOrderEnrich } from '../../generateExample/invokeBedrockAcmeOrderEnrich'
-import { COYOTE_RENDER_LINE_BREAK } from '../coyoteGame/utilities/coyoteRenderTree'
-import { ACME_ORDER_AFFINITIES_HARNESS_PHRASES } from './acmeOrderAffinitiesHarnessPhrases'
-import type { ParseCommandDeps, ParseCommandResult } from './baseClasses'
-import { enrichAcmeOrder } from './enrich/acmeOrder'
-import { parseCommand, parseCommandWithEnrichReasoning } from './parseCommand'
+import type { MessageBus } from '../../../messageBus/baseClasses'
+import { invokeBedrockAcmeOrderEnrich } from '../../../generateExample/invokeBedrockAcmeOrderEnrich'
+import { COYOTE_RENDER_LINE_BREAK } from '../../coyoteGame/utilities/coyoteRenderTree'
+import { ACME_ORDER_AFFINITIES_HARNESS_PHRASES } from '../acmeOrderAffinitiesHarnessPhrases'
+import type { ParseCommandDeps, ParseCommandResult } from '../baseClasses'
+import { enrichAcmeOrder } from '../enrich/acmeOrder'
+import { parseCommand, parseCommandWithEnrichReasoning } from '../parseCommand'
 
 export type RunAcmeOrderAffinitiesHarnessDeps = {
     characterId: EphemeraCharacterId

@@ -3,7 +3,7 @@ import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { ActionAPIMessage } from '@tonylb/mtw-interfaces/ts/ephemera'
 import { EphemeraCharacterId, LegalCharacterColor, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { MessageBus, PublishMessage } from '../messageBus/baseClasses'
-import { requestFullRoomDescriptionForCharacter } from '../dataSource/actions/requestFullRoomDescriptionForCharacter'
+import { requestFullRoomDescriptionForCharacter } from '../dataSource/actions/actionHandlers/requestFullRoomDescriptionForCharacter'
 
 const narrateOOCOrSpeech = async (
     messageBus: Pick<MessageBus, 'send'>,
