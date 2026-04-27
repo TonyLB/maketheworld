@@ -12,8 +12,27 @@ import type { CoyoteRoomObjectsByRoom } from '../../utilities/coyoteRoomObjectSn
 import type { InvokeBedrockHypothesisResult } from '../pipelines/hypothesis/invokeBedrockHypothesis'
 import {
     generateHypothesisWithStageResults,
+    type CoyoteHypothesisHarnessRunKind,
+    type CoyoteHypothesisPipelineHarnessOptions,
+    type CoyoteHypothesisTestPhase,
     type GenerateHypothesisPipelineResult,
 } from '../pipelines/hypothesis/generateHypothesis'
+import { resolveCoyoteHarnessStartAtInject } from './coyoteEngineTestFixtures'
+
+/** Slash / actions parse (Phase 4) and tests; omit or **`{ mode: 'full' }`** for legacy full-pipeline-all-fixtures runs. */
+export type CoyoteEngineTestHarnessInvocation =
+    | {
+          mode: 'full'
+          /** Run full pipeline for this fixture only (`/test generation <fixtureIndex>`). Omit for all fixtures. */
+          fixtureIndex1Based?: number
+      }
+    | {
+          mode: 'partial'
+          testOnly: CoyoteHypothesisTestPhase
+          harnessRunKind: CoyoteHypothesisHarnessRunKind
+          /** 1-based index into **`fixtures`** (or default harness list); omit to run every fixture under the same phase. */
+          fixtureIndex1Based?: number
+      }
 
 export type RunCoyoteEngineTestHarnessDeps = {
     characterId: EphemeraCharacterId
@@ -23,6 +42,8 @@ export type RunCoyoteEngineTestHarnessDeps = {
     /** Override for tests; defaults to [`generateHypothesisWithStageResults`]. */
     generateHypothesisPipelineImpl?: typeof generateHypothesisWithStageResults
     now?: () => number
+    /** Partial pipeline runs and optional single-fixture filter; see [`CoyoteEngineTestHarnessInvocation`]. */
+    harnessInvocation?: CoyoteEngineTestHarnessInvocation
 }
 
 const COYOTE_ROOM_IDS: EphemeraRoomId[] = [
@@ -37,6 +58,103 @@ function normalizeFixtureRoomObjects(fixture: CoyoteEngineTestFixture): CoyoteRo
     return Object.fromEntries(
         COYOTE_ROOM_IDS.map((roomId) => [roomId, fixture.roomObjectsByRoom[roomId] ?? []])
     ) as CoyoteRoomObjectsByRoom
+}
+
+function normalizeHarnessInvocation(
+    harnessInvocation: CoyoteEngineTestHarnessInvocation | undefined
+): CoyoteEngineTestHarnessInvocation {
+    return harnessInvocation ?? { mode: 'full' }
+}
+
+function selectHarnessFixtures(
+    allFixtures: CoyoteEngineTestFixture[],
+    invocation: CoyoteEngineTestHarnessInvocation
+): CoyoteEngineTestFixture[] | { error: string } {
+    if (invocation.mode === 'full') {
+        const { fixtureIndex1Based } = invocation
+        if (fixtureIndex1Based === undefined) {
+            return allFixtures
+        }
+        const max = allFixtures.length
+        const i = fixtureIndex1Based
+        if (!Number.isInteger(i) || i < 1 || i > max) {
+            return {
+                error: `Coyote engine test harness: fixture index must be an integer from 1 to ${max} (received ${i}).`,
+            }
+        }
+        return [allFixtures[i - 1]]
+    }
+    const { fixtureIndex1Based } = invocation
+    if (fixtureIndex1Based === undefined) {
+        return allFixtures
+    }
+    const max = allFixtures.length
+    const i = fixtureIndex1Based
+    if (!Number.isInteger(i) || i < 1 || i > max) {
+        return {
+            error: `Coyote engine test harness: fixture index must be an integer from 1 to ${max} (received ${i}).`,
+        }
+    }
+    return [allFixtures[i - 1]]
+}
+
+function buildHarnessPipelineOptions(args: {
+    invocation: Extract<CoyoteEngineTestHarnessInvocation, { mode: 'partial' }>
+    fixtureIndex1Based: number
+    fixtures: CoyoteEngineTestFixture[]
+}): CoyoteHypothesisPipelineHarnessOptions | { error: string } {
+    const { invocation, fixtureIndex1Based, fixtures } = args
+    const { testOnly, harnessRunKind } = invocation
+    if (harnessRunKind === 'runUntil') {
+        return { testOnly, harnessRunKind: 'runUntil' }
+    }
+    if (testOnly === 'clustering') {
+        return { testOnly: 'clustering', harnessRunKind: 'runOnly' }
+    }
+    const phase = testOnly === 'planSelect' ? 'planSelect' : 'phasePlan'
+    const resolved = resolveCoyoteHarnessStartAtInject({
+        fixtureIndex1Based,
+        phase,
+        fixtures,
+    })
+    if (!resolved.ok) {
+        return { error: resolved.message }
+    }
+    if (resolved.phase === 'planSelect') {
+        return {
+            testOnly: 'planSelect',
+            harnessRunKind: 'runOnly',
+            injectState: {
+                roomObjectsByRoom: resolved.inject.roomObjectsByRoom,
+                combinedMarkdown: resolved.inject.combinedMarkdown,
+            },
+        }
+    }
+    return {
+        testOnly: 'phasePlan',
+        harnessRunKind: 'runOnly',
+        injectState: {
+            roomObjectsByRoom: resolved.inject.roomObjectsByRoom,
+            combinedMarkdown: resolved.inject.combinedMarkdown,
+            hop1Handoff: resolved.inject.hop1Handoff,
+        },
+    }
+}
+
+function harnessPartialStageSkipped(
+    pipeline: GenerateHypothesisPipelineResult,
+    stage: 'stageOne' | 'planSelection' | 'phasePlan'
+): boolean {
+    if (pipeline.kind !== 'harnessPartial') {
+        return false
+    }
+    if (stage === 'stageOne') {
+        return pipeline.stageOneResult === undefined
+    }
+    if (stage === 'planSelection') {
+        return pipeline.planSelectionResult === undefined
+    }
+    return pipeline.phasePlanHopResult === undefined
 }
 
 /** Raw stage-1 Bedrock text for harness diagnostics (seam contract tuning, parse failures vs skipped stage 2). */
@@ -90,16 +208,80 @@ function formatUsageLine(label: string, result: InvokeBedrockHypothesisResult): 
 }
 
 function pipelineErrorMessage(pipeline: GenerateHypothesisPipelineResult): string | undefined {
-    if (!pipeline.stageOneResult.success) {
-        return pipeline.stageOneResult.errorMessage
+    switch (pipeline.kind) {
+        case 'stub': {
+            if (!pipeline.stageOneResult.success) {
+                return pipeline.stageOneResult.errorMessage
+            }
+            if (pipeline.planSelectionResult && !pipeline.planSelectionResult.success) {
+                return pipeline.planSelectionResult.errorMessage
+            }
+            if (pipeline.phasePlanHopResult && !pipeline.phasePlanHopResult.success) {
+                return pipeline.phasePlanHopResult.errorMessage
+            }
+            return undefined
+        }
+        case 'full': {
+            if (!pipeline.stageOneResult.success) {
+                return pipeline.stageOneResult.errorMessage
+            }
+            if (!pipeline.planSelectionResult.success) {
+                return pipeline.planSelectionResult.errorMessage
+            }
+            if (!pipeline.phasePlanHopResult.success) {
+                return pipeline.phasePlanHopResult.errorMessage
+            }
+            return undefined
+        }
+        case 'harnessPartial': {
+            if (pipeline.stageOneResult && !pipeline.stageOneResult.success) {
+                return pipeline.stageOneResult.errorMessage
+            }
+            if (pipeline.planSelectionResult && !pipeline.planSelectionResult.success) {
+                return pipeline.planSelectionResult.errorMessage
+            }
+            if (pipeline.phasePlanHopResult && !pipeline.phasePlanHopResult.success) {
+                return pipeline.phasePlanHopResult.errorMessage
+            }
+            return undefined
+        }
     }
-    if (pipeline.planSelectionResult && !pipeline.planSelectionResult.success) {
-        return pipeline.planSelectionResult.errorMessage
+}
+
+/** Normalize union pipeline result for harness formatting (default full runs use **`full`** or **`stub`** only). */
+function flattenPipelineResultForHarness(pipeline: GenerateHypothesisPipelineResult): {
+    record: CoyoteGameIntentRecord
+    stageOneResult: InvokeBedrockHypothesisResult
+    planSelectionResult: InvokeBedrockHypothesisResult | null
+    phasePlanHopResult: InvokeBedrockHypothesisResult | null
+    selectionBody?: string
+    phasePlanJson?: string
+    phasePlanValidationReason?: string
+} {
+    const emptyFail = { success: false as const, errorMessage: '', body: '' }
+    switch (pipeline.kind) {
+        case 'full':
+        case 'stub':
+            return {
+                record: pipeline.record,
+                stageOneResult: pipeline.stageOneResult,
+                planSelectionResult: pipeline.planSelectionResult,
+                phasePlanHopResult: pipeline.phasePlanHopResult,
+                selectionBody: pipeline.selectionBody,
+                phasePlanJson: pipeline.phasePlanJson,
+                phasePlanValidationReason: pipeline.phasePlanValidationReason,
+            }
+        case 'harnessPartial':
+            return {
+                record: pipeline.record,
+                stageOneResult: pipeline.stageOneResult ?? emptyFail,
+                planSelectionResult: pipeline.planSelectionResult ?? null,
+                phasePlanHopResult: pipeline.phasePlanHopResult ?? null,
+                selectionBody: pipeline.selectionBody,
+                phasePlanJson: pipeline.phasePlanJson,
+                phasePlanValidationReason: pipeline.phasePlanValidationReason,
+            }
     }
-    if (pipeline.phasePlanHopResult && !pipeline.phasePlanHopResult.success) {
-        return pipeline.phasePlanHopResult.errorMessage
-    }
-    return undefined
 }
 
 function formatFixtureRenderTree(args: {
@@ -115,6 +297,8 @@ function formatFixtureRenderTree(args: {
     selectionBodyBlock: string
     phasePlanJsonBlock: string
     errorMessage?: string
+    /** Partial-run banner lines after heading (e.g. **`harness: runUntil clustering`**). */
+    harnessBannerLines?: string[]
 }): RenderTree {
     const {
         fixture,
@@ -129,9 +313,17 @@ function formatFixtureRenderTree(args: {
         selectionBodyBlock,
         phasePlanJsonBlock,
         errorMessage,
+        harnessBannerLines,
     } = args
     const heading = `${index + 1}/${total} ${fixture.id}${fixture.label ? ` - ${fixture.label}` : ''}`
-    const tree: RenderTree = [heading, COYOTE_RENDER_LINE_BREAK]
+    const bannerSuffix =
+        harnessBannerLines !== undefined && harnessBannerLines.length > 0
+            ? harnessBannerLines.reduce<RenderTree>(
+                  (acc, line) => [...acc, line, COYOTE_RENDER_LINE_BREAK],
+                  [],
+              )
+            : []
+    const tree: RenderTree = [heading, COYOTE_RENDER_LINE_BREAK, ...bannerSuffix]
     if (intentRecord.walkthrough !== undefined && intentRecord.walkthrough.length > 0) {
         tree.push(intentRecord.walkthrough, COYOTE_RENDER_LINE_BREAK)
     }
@@ -159,7 +351,24 @@ function formatFixtureRenderTree(args: {
 }
 
 export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnessDeps): Promise<void> {
-    const fixtures = deps.fixtures ?? COYOTE_ENGINE_TEST_FIXTURES
+    const allFixtures = deps.fixtures ?? COYOTE_ENGINE_TEST_FIXTURES
+    const invocation = normalizeHarnessInvocation(deps.harnessInvocation)
+    const selectedOrErr = selectHarnessFixtures(allFixtures, invocation)
+    if ('error' in selectedOrErr) {
+        const laneId = uuidv4()
+        deps.messageBus.send(
+            {
+                type: 'PublishMessage',
+                targets: [deps.characterId],
+                displayProtocol: 'WorldOOCMessage',
+                message: [selectedOrErr.error],
+            },
+            laneId
+        )
+        await deps.messageBus.flush(laneId)
+        return
+    }
+    const fixtures = selectedOrErr
     if (fixtures.length === 0) {
         return
     }
@@ -170,54 +379,139 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
 
     const emptyUsageFailure = { success: false as const, errorMessage: '', body: '' }
 
-    const runFixture = async (fixture: CoyoteEngineTestFixture, index: number): Promise<void> => {
+    const harnessBannerLines =
+        invocation.mode === 'partial'
+            ? [`harness: ${invocation.harnessRunKind} ${invocation.testOnly}`]
+            : undefined
+
+    const runFixture = async (
+        fixture: CoyoteEngineTestFixture,
+        index: number,
+        effectiveFixtureIndex1Based: number
+    ): Promise<void> => {
         const laneId = uuidv4()
         const startMs = now()
         try {
-            const pipeline = await runPipeline({
+            const baseDeps = {
                 getGameRooms: async () => [],
                 getRoomMeta: async () => undefined,
                 roomObjectsByRoomOverride: normalizeFixtureRoomObjects(fixture),
-            })
-            const elapsedMs = Math.max(0, now() - startMs)
-            const usageStageOne = formatUsageLine('usageStage1', pipeline.stageOneResult)
-            const usagePlanSelection = formatUsageLine(
-                'usagePlanSelection',
-                pipeline.planSelectionResult ?? emptyUsageFailure
-            )
-            const usagePhasePlanHop = formatUsageLine(
-                'usagePhasePlanHop',
-                pipeline.phasePlanHopResult ?? emptyUsageFailure
-            )
-            const stageOneBodyBlock = formatStageOneBodyForHarness(pipeline.stageOneResult)
-            const selectionBodyBlock = formatSelectionBodyForHarness(pipeline.selectionBody)
-            const phasePlanJsonBlock = formatPhasePlanJsonForHarness({
-                phasePlanJson: pipeline.phasePlanJson,
-                phasePlanValidationReason: pipeline.phasePlanValidationReason,
-            })
-            const message = formatFixtureRenderTree({
-                fixture,
-                index,
-                total: fixtures.length,
-                intentRecord: pipeline.record,
-                elapsedMs,
-                usageStageOne,
-                stageOneBodyBlock,
-                usagePlanSelection,
-                usagePhasePlanHop,
-                selectionBodyBlock,
-                phasePlanJsonBlock,
-                errorMessage: pipelineErrorMessage(pipeline),
-            })
-            deps.messageBus.send(
-                {
-                    type: 'PublishMessage',
-                    targets: [deps.characterId],
-                    displayProtocol: 'WorldOOCMessage',
-                    message,
-                },
-                laneId
-            )
+            }
+
+            if (invocation.mode === 'partial') {
+                const built = buildHarnessPipelineOptions({
+                    invocation,
+                    fixtureIndex1Based: effectiveFixtureIndex1Based,
+                    fixtures: allFixtures,
+                })
+                if ('error' in built) {
+                    deps.messageBus.send(
+                        {
+                            type: 'PublishMessage',
+                            targets: [deps.characterId],
+                            displayProtocol: 'WorldOOCMessage',
+                            message: [built.error],
+                        },
+                        laneId
+                    )
+                    await deps.messageBus.flush(laneId)
+                    return
+                }
+                const pipeline = await runPipeline(baseDeps, built)
+                const flat = flattenPipelineResultForHarness(pipeline)
+                const elapsedMs = Math.max(0, now() - startMs)
+                const skipS1 = harnessPartialStageSkipped(pipeline, 'stageOne')
+                const skipPs = harnessPartialStageSkipped(pipeline, 'planSelection')
+                const skipPph = harnessPartialStageSkipped(pipeline, 'phasePlan')
+                const usageStageOne = skipS1
+                    ? 'usageStage1: (not run)'
+                    : formatUsageLine('usageStage1', flat.stageOneResult)
+                const usagePlanSelection = skipPs
+                    ? 'usagePlanSelection: (not run)'
+                    : formatUsageLine('usagePlanSelection', flat.planSelectionResult ?? emptyUsageFailure)
+                const usagePhasePlanHop = skipPph
+                    ? 'usagePhasePlanHop: (not run)'
+                    : formatUsageLine('usagePhasePlanHop', flat.phasePlanHopResult ?? emptyUsageFailure)
+                const stageOneBodyBlock = skipS1
+                    ? 'stageOneBody: (not run)'
+                    : formatStageOneBodyForHarness(flat.stageOneResult)
+                const selectionBodyBlock = skipPs
+                    ? 'selectionBody: (not run)'
+                    : formatSelectionBodyForHarness(flat.selectionBody)
+                const phasePlanJsonBlock = skipPph
+                    ? 'phasePlanJson: (not run)'
+                    : formatPhasePlanJsonForHarness({
+                          phasePlanJson: flat.phasePlanJson,
+                          phasePlanValidationReason: flat.phasePlanValidationReason,
+                      })
+                const message = formatFixtureRenderTree({
+                    fixture,
+                    index,
+                    total: fixtures.length,
+                    intentRecord: flat.record,
+                    elapsedMs,
+                    usageStageOne,
+                    stageOneBodyBlock,
+                    usagePlanSelection,
+                    usagePhasePlanHop,
+                    selectionBodyBlock,
+                    phasePlanJsonBlock,
+                    errorMessage: pipelineErrorMessage(pipeline),
+                    harnessBannerLines,
+                })
+                deps.messageBus.send(
+                    {
+                        type: 'PublishMessage',
+                        targets: [deps.characterId],
+                        displayProtocol: 'WorldOOCMessage',
+                        message,
+                    },
+                    laneId
+                )
+            }
+            else {
+                const pipeline = await runPipeline(baseDeps)
+                const flat = flattenPipelineResultForHarness(pipeline)
+                const elapsedMs = Math.max(0, now() - startMs)
+                const usageStageOne = formatUsageLine('usageStage1', flat.stageOneResult)
+                const usagePlanSelection = formatUsageLine(
+                    'usagePlanSelection',
+                    flat.planSelectionResult ?? emptyUsageFailure
+                )
+                const usagePhasePlanHop = formatUsageLine(
+                    'usagePhasePlanHop',
+                    flat.phasePlanHopResult ?? emptyUsageFailure
+                )
+                const stageOneBodyBlock = formatStageOneBodyForHarness(flat.stageOneResult)
+                const selectionBodyBlock = formatSelectionBodyForHarness(flat.selectionBody)
+                const phasePlanJsonBlock = formatPhasePlanJsonForHarness({
+                    phasePlanJson: flat.phasePlanJson,
+                    phasePlanValidationReason: flat.phasePlanValidationReason,
+                })
+                const message = formatFixtureRenderTree({
+                    fixture,
+                    index,
+                    total: fixtures.length,
+                    intentRecord: flat.record,
+                    elapsedMs,
+                    usageStageOne,
+                    stageOneBodyBlock,
+                    usagePlanSelection,
+                    usagePhasePlanHop,
+                    selectionBodyBlock,
+                    phasePlanJsonBlock,
+                    errorMessage: pipelineErrorMessage(pipeline),
+                })
+                deps.messageBus.send(
+                    {
+                        type: 'PublishMessage',
+                        targets: [deps.characterId],
+                        displayProtocol: 'WorldOOCMessage',
+                        message,
+                    },
+                    laneId
+                )
+            }
         }
         catch (error) {
             const elapsedMs = Math.max(0, now() - startMs)
@@ -238,6 +532,7 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                     phasePlanValidationReason: undefined,
                 }),
                 errorMessage,
+                harnessBannerLines,
             })
             deps.messageBus.send(
                 {
@@ -256,7 +551,12 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
         while (nextIndex < fixtures.length) {
             const index = nextIndex
             nextIndex += 1
-            await runFixture(fixtures[index], index)
+            const effectiveFixtureIndex1Based =
+                (invocation.mode === 'full' || invocation.mode === 'partial')
+                && invocation.fixtureIndex1Based !== undefined
+                    ? invocation.fixtureIndex1Based
+                    : index + 1
+            await runFixture(fixtures[index], index, effectiveFixtureIndex1Based)
         }
     }
 

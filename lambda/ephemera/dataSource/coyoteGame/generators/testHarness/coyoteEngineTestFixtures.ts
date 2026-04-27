@@ -2,6 +2,57 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { defaultStableKeyProposal } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import {
+    combineHypothesisClusters,
+    renderCombinedHypothesisForStageTwo,
+} from '../pipelines/hypothesis/combineHypothesisClusters'
+import type {
+    CoyoteHarnessPhasePlanInject,
+    CoyoteHarnessPlanSelectInject,
+} from '../pipelines/hypothesis/coyoteHarnessInjectTypes'
+import { parseHypothesisStageOneOutput } from '../pipelines/hypothesis/parseHypothesisStageOneOutput'
+import type { CoyoteRoomObjectsByRoom } from '../../utilities/coyoteRoomObjectSnapshot'
+
+export type { CoyoteHarnessPhasePlanInject, CoyoteHarnessPlanSelectInject } from '../pipelines/hypothesis/coyoteHarnessInjectTypes'
+
+/** Same room grid as [`normalizeFixtureRoomObjects`](./runCoyoteEngineTestHarness.ts). */
+const COYOTE_HARNESS_ROOM_IDS: EphemeraRoomId[] = [
+    'ROOM#VORTEX',
+    'ROOM#STRAIGHTAWAY',
+    'ROOM#CLIFFTOP',
+    'ROOM#CORNER',
+    'ROOM#BRIDGE',
+]
+
+/** Phase aliases that require hand-maintained inject bundles for **`runOnly`** runs. */
+export type CoyoteHarnessInjectPhase = 'planSelect' | 'phasePlan'
+
+export type CoyoteHarnessStartAtInjectSuccess =
+    | { ok: true; phase: 'planSelect'; inject: CoyoteHarnessPlanSelectInject }
+    | { ok: true; phase: 'phasePlan'; inject: CoyoteHarnessPhasePlanInject }
+
+export type CoyoteHarnessStartAtInjectResult = CoyoteHarnessStartAtInjectSuccess | { ok: false; message: string }
+
+export type CoyoteEngineTestFixture = {
+    id: string
+    label?: string
+    roomObjectsByRoom: Partial<Record<EphemeraRoomId, EphemeraMetaRoomObject[]>>
+    hypothesisLine?: string
+    planSelectInject?: CoyoteHarnessPlanSelectInject
+    phasePlanInject?: CoyoteHarnessPhasePlanInject
+}
+
+/**
+ * Every harness room id is present; missing rooms use an empty object list
+ * (same behavior as **`normalizeFixtureRoomObjects`** in the harness runner).
+ */
+export function normalizeCoyoteHarnessRoomObjects(
+    roomObjectsByRoom: Partial<Record<EphemeraRoomId, EphemeraMetaRoomObject[]>>
+): CoyoteRoomObjectsByRoom {
+    return Object.fromEntries(
+        COYOTE_HARNESS_ROOM_IDS.map((roomId) => [roomId, roomObjectsByRoom[roomId] ?? []])
+    ) as CoyoteRoomObjectsByRoom
+}
 
 export type HarnessRoomObjectSpec = {
     shortName: string
@@ -26,13 +77,6 @@ export function harnessRoomObjects(roomSlug: string, shortNames: string[]): Ephe
     return harnessRoomObjectsSpec(roomSlug, shortNames.map((shortName) => ({ shortName })))
 }
 
-export type CoyoteEngineTestFixture = {
-    id: string
-    label?: string
-    roomObjectsByRoom: Partial<Record<EphemeraRoomId, EphemeraMetaRoomObject[]>>
-    hypothesisLine?: string
-}
-
 /** Birdseed staged as bait: placed to stage the gag, then targets the quarry. */
 const birdseedLureAffinities: CoyoteAffinityPossibility[] = [
     {
@@ -41,25 +85,68 @@ const birdseedLureAffinities: CoyoteAffinityPossibility[] = [
     },
 ]
 
+const FIXTURE_01_ROOM_OBJECTS: CoyoteEngineTestFixture['roomObjectsByRoom'] = {
+    'ROOM#STRAIGHTAWAY': harnessRoomObjectsSpec('straightaway', [
+        {
+            shortName: 'rocket',
+            affinities: [
+                { role: 'delivery', aptness: 0.4 },
+                {
+                    role: 'coyote-enhancement',
+                    aptness: 0.69,
+                },
+                { role: 'terminal', aptness: 0.61 },
+            ],
+        },
+    ]),
+}
+
+/**
+ * Frozen stage-one seam JSON used only to derive golden **`combinedMarkdown`** via the same parse, combine,
+ * and render path as **`seamCombineRender`** (`stableKey` **`rocket-0`** matches **`harnessRoomObjectsSpec`**).
+ */
+const FIXTURE_01_GOLDEN_SEAM_BODY = JSON.stringify({
+    clusters: [
+        {
+            clusterName: 'Straightaway rocket',
+            members: [
+                {
+                    stableKey: 'rocket-0',
+                    intendedRole: { role: 'delivery', aptness: 0.4 },
+                },
+            ],
+        },
+    ],
+})
+
+function buildFixture01PlanSelectInject(): CoyoteHarnessPlanSelectInject {
+    const roomObjectsByRoom = normalizeCoyoteHarnessRoomObjects(FIXTURE_01_ROOM_OBJECTS)
+    const seamParsed = parseHypothesisStageOneOutput(FIXTURE_01_GOLDEN_SEAM_BODY, roomObjectsByRoom)
+    if (!seamParsed.ok) {
+        throw new Error(`fixture-01 planSelect golden seam: ${seamParsed.errorMessage}`)
+    }
+    const combinedResult = combineHypothesisClusters(
+        seamParsed.clusters,
+        roomObjectsByRoom,
+        seamParsed.explicitOutliers
+    )
+    if (!combinedResult.ok) {
+        throw new Error(`fixture-01 planSelect golden combine: ${combinedResult.errorMessage}`)
+    }
+    return {
+        roomObjectsByRoom,
+        combinedMarkdown: renderCombinedHypothesisForStageTwo(combinedResult.combined, roomObjectsByRoom),
+    }
+}
+
+const FIXTURE_01_PLAN_SELECT_INJECT = buildFixture01PlanSelectInject()
+
 export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
     {
         id: 'fixture-01',
         label: 'Rocket at the Straightaway',
-        roomObjectsByRoom: {
-            'ROOM#STRAIGHTAWAY': harnessRoomObjectsSpec('straightaway', [
-                {
-                    shortName: 'rocket',
-                    affinities: [
-                        { role: 'delivery', aptness: 0.4 },
-                        {
-                            role: 'coyote-enhancement',
-                            aptness: 0.69,
-                        },
-                        { role: 'terminal', aptness: 0.61 },
-                    ],
-                },
-            ]),
-        },
+        roomObjectsByRoom: FIXTURE_01_ROOM_OBJECTS,
+        planSelectInject: FIXTURE_01_PLAN_SELECT_INJECT,
     },
     {
         id: 'fixture-02',
@@ -363,3 +450,43 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
         },
     },
 ]
+
+/**
+ * Resolve start-at inject for **`planSelect`** / **`phasePlan`** (1-based fixture index, slash / harness aligned).
+ */
+export function resolveCoyoteHarnessStartAtInject(args: {
+    fixtureIndex1Based: number
+    phase: CoyoteHarnessInjectPhase
+    fixtures?: CoyoteEngineTestFixture[]
+}): CoyoteHarnessStartAtInjectResult {
+    const fixtures = args.fixtures ?? COYOTE_ENGINE_TEST_FIXTURES
+    const { fixtureIndex1Based: i, phase } = args
+    const max = fixtures.length
+    if (!Number.isInteger(i) || i < 1 || i > max) {
+        return {
+            ok: false,
+            message: `Coyote engine test harness: fixture index must be an integer from 1 to ${max} (received ${i}).`,
+        }
+    }
+    const fixture = fixtures[i - 1]
+    if (phase === 'planSelect') {
+        const inject = fixture.planSelectInject
+        if (inject === undefined) {
+            return {
+                ok: false,
+                message:
+                    `Coyote engine test harness does not yet supply starting input for run-only phase "planSelect" at fixture index ${i} (${fixture.id}).`,
+            }
+        }
+        return { ok: true, phase: 'planSelect', inject }
+    }
+    const inject = fixture.phasePlanInject
+    if (inject === undefined) {
+        return {
+            ok: false,
+            message:
+                `Coyote engine test harness does not yet supply starting input for run-only phase "phasePlan" at fixture index ${i} (${fixture.id}).`,
+        }
+    }
+    return { ok: true, phase: 'phasePlan', inject }
+}

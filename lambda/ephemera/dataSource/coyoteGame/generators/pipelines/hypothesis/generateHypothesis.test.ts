@@ -172,6 +172,10 @@ describe('generateHypothesis', () => {
             usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
         })
         const result = await generateHypothesisWithStageResults({ getGameRooms, getRoomMeta })
+        expect(result.kind).toBe('full')
+        if (result.kind !== 'full') {
+            return
+        }
         expect(result.record.intent).toBe('Hypothesis: With reasoning channel.')
         expect(result.stageOneResult).toEqual(expect.objectContaining({ success: true }))
         expect(result.planSelectionResult).toEqual(expect.objectContaining({ success: true }))

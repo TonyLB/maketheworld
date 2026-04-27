@@ -75,9 +75,33 @@ Harness code is under [`generators/testHarness/`](generators/testHarness/):
 - Runner: [`generators/testHarness/runCoyoteEngineTestHarness.ts`](generators/testHarness/runCoyoteEngineTestHarness.ts)
 - Fixtures: [`generators/testHarness/coyoteEngineTestFixtures.ts`](generators/testHarness/coyoteEngineTestFixtures.ts)
 
-Activation path:
+Player-facing slash command (this harness only; not `/test affinities`): **`/test generation`**. Grammar (token order is fixed; phase aliases are case-insensitive):
 
-- Parse command slash route in `actions`: [`../actions/parseCommand.ts`](../actions/parseCommand.ts)
+| Input | Behavior |
+| --- | --- |
+| `/test generation` | Full hypothesis pipeline for every harness fixture. |
+| `/test generation <fixtureIndex>` | Full pipeline for one fixture only (**1-based** index). |
+| `/test generation <phaseAlias>` | **Partial** run: **`runUntil`** through that phase, all fixtures. |
+| `/test generation <phaseAlias> <fixtureIndex>` | Partial **`runUntil`**, one fixture. |
+
+Phase aliases: **`clustering`**, **`planSelect`**, **`phasePlan`** (map to LLM hops on the hypothesis pipeline; see [`generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts`](generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts)). Invalid tails (unknown token, wrong order, index out of range) return a **`WorldOOCMessage`** with usage text.
+
+**Slash vs harness API:** [`parseCoyoteEngineTestSlashTail`](../actions/discriminateIntent/parseCoyoteEngineTestSlash.ts) builds partial invocations with **`harnessRunKind: 'runUntil'`** only. It does **not** expose **`runOnly`** to players. Isolated-step **`runOnly`** runs use the programmatic harness API below (tests and direct calls to the runner).
+
+**Invocation and pipeline options**
+
+- **`CoyoteEngineTestHarnessInvocation`** ([`runCoyoteEngineTestHarness.ts`](generators/testHarness/runCoyoteEngineTestHarness.ts)): **`mode: 'full'`** (optional single-fixture filter) or **`mode: 'partial'`** with **`testOnly`**, **`harnessRunKind`** (`runUntil` \| `runOnly`), optional **`fixtureIndex1Based`**. For **`runOnly`** on **`planSelect`** / **`phasePlan`**, the runner resolves inject bundles via **`buildHarnessPipelineOptions`** and **`resolveCoyoteHarnessStartAtInject`**.
+- **`runCoyoteHypothesisPipeline(deps, options?)`** ([`coyoteHypothesisPipeline.ts`](generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts)): optional harness **`testOnly`**, **`harnessRunKind`**, **`injectState`**. Omit these for production full-pipeline runs. **`injectState`** is valid only for **`runOnly`** **`planSelect`** / **`phasePlan`** (handoff-shaped partial [`CoyoteHypothesisPipelineState`](generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts)). **`clustering`** **`runOnly`** uses fixture **`roomObjectsByRoom`** plus deterministic **`loadRoomObjects`**; do not pass inject bundles for that mode.
+- Types and threading: [`generateHypothesis.ts`](generators/pipelines/hypothesis/generateHypothesis.ts) (**`CoyoteHypothesisPipelineHarnessOptions`**), [`coyoteHarnessInjectTypes.ts`](generators/pipelines/hypothesis/coyoteHarnessInjectTypes.ts).
+
+**Fixtures and handoffs** ([`coyoteEngineTestFixtures.ts`](generators/testHarness/coyoteEngineTestFixtures.ts))
+
+- Each **`CoyoteEngineTestFixture`** has **`roomObjectsByRoom`** and optional **`planSelectInject`** / **`phasePlanInject`**. Rows are **sparse**: only defined **(fixture, boundary)** pairs are required; missing bundles for a requested **`runOnly`** **`planSelect`** / **`phasePlan`** fail fast with a clear operator-facing error (no synthesized inputs).
+
+Activation path in `actions`:
+
+- Deterministic guard + tail parse: [`../actions/discriminateIntent/deterministicChecks.ts`](../actions/discriminateIntent/deterministicChecks.ts), [`../actions/discriminateIntent/parseCoyoteEngineTestSlash.ts`](../actions/discriminateIntent/parseCoyoteEngineTestSlash.ts), [`../actions/discriminateIntent/coyoteEngineTestSlashCommand.ts`](../actions/discriminateIntent/coyoteEngineTestSlashCommand.ts)
+- Parse command: [`../actions/parseCommand.ts`](../actions/parseCommand.ts); **`harnessInvocation`** on **`ParseCommandCoyoteEngineTestResult`**: [`../actions/baseClasses.ts`](../actions/baseClasses.ts)
 - Harness execution gate: [`../actions/index.ts`](../actions/index.ts)
 
 ## Verification
@@ -93,6 +117,14 @@ During focused iteration:
 ```bash
 npx jest dataSource/coyoteGame/
 ```
+
+Harness and slash regression (narrow scope; extend paths when adding tests under these trees):
+
+```bash
+npm run test -- --runInBand dataSource/coyoteGame/generators/testHarness/ dataSource/actions/parseCommand.test.ts dataSource/actions/discriminateIntent/
+```
+
+See [`../../AGENT.testing.md`](../../AGENT.testing.md) for general Jest usage in this package (`npm run test`, watch mode, and file paths).
 
 ## Related docs
 

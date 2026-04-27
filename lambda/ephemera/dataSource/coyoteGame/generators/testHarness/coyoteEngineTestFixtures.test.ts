@@ -1,6 +1,10 @@
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { COYOTE_ENGINE_TEST_FIXTURES } from './coyoteEngineTestFixtures'
+import { buildHypothesisPlanSelectionPromptParts } from '../pipelines/hypothesis/buildHypothesisPlanSelectionPromptParts'
+import {
+    COYOTE_ENGINE_TEST_FIXTURES,
+    resolveCoyoteHarnessStartAtInject,
+} from './coyoteEngineTestFixtures'
 
 const ALLOWED_COYOTE_ROOM_IDS = new Set([
     'ROOM#VORTEX',
@@ -36,6 +40,68 @@ describe('COYOTE_ENGINE_TEST_FIXTURES', () => {
                     expect(row.shortName.trim().length).toBeGreaterThan(0)
                 }
             }
+        }
+    })
+
+    it('fixture-01 planSelectInject drives plan-selection prompt parts', () => {
+        const inject = COYOTE_ENGINE_TEST_FIXTURES[0].planSelectInject
+        expect(inject).toBeDefined()
+        const parts = buildHypothesisPlanSelectionPromptParts({
+            roomObjectsByRoom: inject!.roomObjectsByRoom,
+            combinedMarkdown: inject!.combinedMarkdown,
+        })
+        expect(parts.invariantPrefix.length).toBeGreaterThan(0)
+        expect(parts.dynamicSuffix).toContain('## Combined clustering')
+    })
+})
+
+describe('resolveCoyoteHarnessStartAtInject', () => {
+    it('returns planSelect inject for fixture index 1', () => {
+        const r = resolveCoyoteHarnessStartAtInject({
+            fixtureIndex1Based: 1,
+            phase: 'planSelect',
+        })
+        expect(r.ok).toBe(true)
+        if (r.ok) {
+            expect(r.phase).toBe('planSelect')
+            expect(r.inject.combinedMarkdown).toContain('## Combined clustering')
+        }
+    })
+
+    it('returns missing inject error for planSelect when fixture has no bundle', () => {
+        const r = resolveCoyoteHarnessStartAtInject({
+            fixtureIndex1Based: 2,
+            phase: 'planSelect',
+        })
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.message).toContain('planSelect')
+            expect(r.message).toContain('fixture index 2')
+            expect(r.message).toContain('fixture-02')
+        }
+    })
+
+    it('rejects out-of-range fixture indices', () => {
+        expect(
+            resolveCoyoteHarnessStartAtInject({ fixtureIndex1Based: 0, phase: 'planSelect' }).ok
+        ).toBe(false)
+        expect(
+            resolveCoyoteHarnessStartAtInject({ fixtureIndex1Based: 11, phase: 'planSelect' }).ok
+        ).toBe(false)
+        expect(
+            resolveCoyoteHarnessStartAtInject({ fixtureIndex1Based: 1.5, phase: 'planSelect' }).ok
+        ).toBe(false)
+    })
+
+    it('returns missing inject for phasePlan when not curated', () => {
+        const r = resolveCoyoteHarnessStartAtInject({
+            fixtureIndex1Based: 1,
+            phase: 'phasePlan',
+        })
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.message).toContain('phasePlan')
+            expect(r.message).toContain('fixture-01')
         }
     })
 })

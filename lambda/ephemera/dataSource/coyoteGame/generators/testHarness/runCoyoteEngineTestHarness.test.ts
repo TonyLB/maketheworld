@@ -26,6 +26,7 @@ const simpleFixtures: CoyoteEngineTestFixture[] = [
 function okPipeline(intentLine: string): GenerateHypothesisPipelineResult {
     const usageBase = { inputTokens: 10, outputTokens: 6, totalTokens: 16 }
     return {
+        kind: 'full',
         record: {
             intent: intentLine,
         },
@@ -92,6 +93,7 @@ describe('runCoyoteEngineTestHarness', () => {
             .fn()
             .mockResolvedValueOnce(okPipeline('Hypothesis: ok'))
             .mockResolvedValueOnce({
+                kind: 'stub',
                 record: { intent: 'Hypothesis: Stubbed' },
                 stageOneResult: { success: false, errorMessage: 'Throttled', body: '' },
                 planSelectionResult: null,
@@ -126,6 +128,7 @@ describe('runCoyoteEngineTestHarness', () => {
             clusters: [{ clusterName: 'Cluster A', members: [{ stableKey: 'anvil-0' }] }],
         })
         const pipeline = jest.fn().mockResolvedValue({
+            kind: 'full',
             record: {
                 intent: 'Hypothesis: It looks like you are trying to launch a boulder.',
             },
@@ -242,5 +245,160 @@ describe('runCoyoteEngineTestHarness', () => {
         await runPromise
         expect(send).toHaveBeenCalledTimes(simpleFixtures.length)
         expect(flush).toHaveBeenCalledTimes(simpleFixtures.length)
+    })
+
+    it('partial runUntil passes harness options as the second argument to the pipeline impl', async () => {
+        const send = jest.fn()
+        const flush = jest.fn().mockResolvedValue(undefined)
+        const pipeline = jest.fn().mockResolvedValue({
+            kind: 'harnessPartial',
+            testOnly: 'clustering',
+            harnessRunKind: 'runUntil',
+            record: { intent: 'Hypothesis: partial' },
+            stageOneResult: {
+                success: true,
+                body: '{"clusters":[]}',
+                usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+            },
+        })
+
+        await runCoyoteEngineTestHarness({
+            characterId: 'CHARACTER#runner',
+            messageBus: { send, flush },
+            fixtures: [simpleFixtures[0]],
+            generateHypothesisPipelineImpl: pipeline,
+            harnessInvocation: {
+                mode: 'partial',
+                testOnly: 'clustering',
+                harnessRunKind: 'runUntil',
+            },
+        })
+
+        expect(pipeline).toHaveBeenCalledWith(
+            expect.anything(),
+            { testOnly: 'clustering', harnessRunKind: 'runUntil' }
+        )
+    })
+
+    it('partial harness partial result labels skipped stages as (not run) and prints harness banner', async () => {
+        const send = jest.fn()
+        const flush = jest.fn().mockResolvedValue(undefined)
+        const pipeline = jest.fn().mockResolvedValue({
+            kind: 'harnessPartial',
+            testOnly: 'clustering',
+            harnessRunKind: 'runUntil',
+            record: { intent: 'Hypothesis: partial' },
+            stageOneResult: {
+                success: true,
+                body: '{"clusters":[]}',
+                usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+            },
+        })
+
+        await runCoyoteEngineTestHarness({
+            characterId: 'CHARACTER#runner',
+            messageBus: { send, flush },
+            fixtures: [simpleFixtures[0]],
+            generateHypothesisPipelineImpl: pipeline,
+            harnessInvocation: {
+                mode: 'partial',
+                testOnly: 'clustering',
+                harnessRunKind: 'runUntil',
+            },
+        })
+
+        const rendered = renderTreeToString((send.mock.calls[0][0] as { message: RenderTree }).message)
+        expect(rendered).toContain('harness: runUntil clustering')
+        expect(rendered).toContain('usagePlanSelection: (not run)')
+        expect(rendered).toContain('usagePhasePlanHop: (not run)')
+        expect(rendered).toContain('selectionBody: (not run)')
+        expect(rendered).toContain('phasePlanJson: (not run)')
+    })
+
+    it('runOnly planSelect without inject publishes OOC error and does not call the pipeline', async () => {
+        const send = jest.fn()
+        const flush = jest.fn().mockResolvedValue(undefined)
+        const pipeline = jest.fn()
+
+        await runCoyoteEngineTestHarness({
+            characterId: 'CHARACTER#runner',
+            messageBus: { send, flush },
+            fixtures: [simpleFixtures[0]],
+            generateHypothesisPipelineImpl: pipeline,
+            harnessInvocation: {
+                mode: 'partial',
+                testOnly: 'planSelect',
+                harnessRunKind: 'runOnly',
+                fixtureIndex1Based: 1,
+            },
+        })
+
+        expect(pipeline).not.toHaveBeenCalled()
+        expect(send).toHaveBeenCalledTimes(1)
+        const ooc = (send.mock.calls[0][0] as { message: string[] }).message
+        expect(ooc[0]).toContain('planSelect')
+        expect(ooc[0]).toContain('does not yet supply')
+    })
+
+    it('full mode with fixtureIndex1Based runs one fixture', async () => {
+        const send = jest.fn()
+        const flush = jest.fn().mockResolvedValue(undefined)
+        const pipeline = jest.fn().mockImplementation(async (): Promise<GenerateHypothesisPipelineResult> =>
+            okPipeline('Hypothesis: single')
+        )
+
+        await runCoyoteEngineTestHarness({
+            characterId: 'CHARACTER#runner',
+            messageBus: { send, flush },
+            fixtures: simpleFixtures,
+            generateHypothesisPipelineImpl: pipeline,
+            harnessInvocation: { mode: 'full', fixtureIndex1Based: 2 },
+        })
+
+        expect(pipeline).toHaveBeenCalledTimes(1)
+        expect(send).toHaveBeenCalledTimes(1)
+    })
+
+    it('invalid full-mode fixture index sends OOC error and does not call the pipeline', async () => {
+        const send = jest.fn()
+        const flush = jest.fn().mockResolvedValue(undefined)
+        const pipeline = jest.fn()
+
+        await runCoyoteEngineTestHarness({
+            characterId: 'CHARACTER#runner',
+            messageBus: { send, flush },
+            fixtures: simpleFixtures,
+            generateHypothesisPipelineImpl: pipeline,
+            harnessInvocation: { mode: 'full', fixtureIndex1Based: 99 },
+        })
+
+        expect(pipeline).not.toHaveBeenCalled()
+        expect(send).toHaveBeenCalledTimes(1)
+        const payload = send.mock.calls[0][0] as { message: string[] }
+        expect(payload.message[0]).toContain('fixture index must be an integer')
+    })
+
+    it('invalid partial fixture index sends a single OOC error and does not call the pipeline', async () => {
+        const send = jest.fn()
+        const flush = jest.fn().mockResolvedValue(undefined)
+        const pipeline = jest.fn()
+
+        await runCoyoteEngineTestHarness({
+            characterId: 'CHARACTER#runner',
+            messageBus: { send, flush },
+            fixtures: simpleFixtures,
+            generateHypothesisPipelineImpl: pipeline,
+            harnessInvocation: {
+                mode: 'partial',
+                testOnly: 'clustering',
+                harnessRunKind: 'runUntil',
+                fixtureIndex1Based: 99,
+            },
+        })
+
+        expect(pipeline).not.toHaveBeenCalled()
+        expect(send).toHaveBeenCalledTimes(1)
+        const payload = send.mock.calls[0][0] as { message: string[] }
+        expect(payload.message[0]).toContain('fixture index must be an integer')
     })
 })

@@ -2,6 +2,8 @@ import { EphemeraRoomId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/base
 import type { AcmeCatalogRejectionReason, AcmeOrderEnrichModelLine } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { isCoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
+import type { CoyoteEngineTestHarnessInvocation } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
+
 /**
  * Parser confidence for non-error outcomes. Typically in [0, 1]; validated by type guards.
  */
@@ -70,6 +72,8 @@ export type ParseCommandLookRoomResult = {
 export type ParseCommandCoyoteEngineTestResult = {
     type: 'CoyoteEngineTest'
     confidence: ParseCommandConfidence
+    /** Populated by **`/test generation`** tail parse; forwarded to [`runCoyoteEngineTestHarness`](../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness.ts). */
+    harnessInvocation?: CoyoteEngineTestHarnessInvocation
 }
 
 /** Coyote Game: explicit trigger for the Acme parse affinities manual-review harness. */
