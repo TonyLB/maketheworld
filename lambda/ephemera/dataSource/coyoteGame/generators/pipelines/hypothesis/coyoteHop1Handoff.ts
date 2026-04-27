@@ -1,4 +1,5 @@
 import { findAllFenceBlocks } from '../../../../../llm/markdownCodeFences'
+import { hypothesisDebugLog } from '../../../utilities/hypothesisDebug'
 
 /** Canonical JSON keys for hop-1 handoff (Option A plan selection to hop 2). */
 export const COYOTE_HOP1_HANDOFF_JSON_KEYS = {
@@ -66,6 +67,10 @@ function narrowHandoff(parsed: unknown): ParseHop1HandoffResult {
  */
 export function parseHop1HandoffFromSelectionBody(raw: string): ParseHop1HandoffResult {
     const blocks = findAllFenceBlocks(raw)
+    hypothesisDebugLog('hop1 handoff parse: scanned fenced blocks', {
+        blockCount: blocks.length,
+        blockLangs: blocks.map((block) => block.lang),
+    })
     let lastJsonInterior: string | null = null
     for (let b = blocks.length - 1; b >= 0; b--) {
         if (blocks[b].lang.toLowerCase() === 'json') {
@@ -74,13 +79,23 @@ export function parseHop1HandoffFromSelectionBody(raw: string): ParseHop1Handoff
         }
     }
     if (lastJsonInterior === null) {
+        hypothesisDebugLog('hop1 handoff parse failed', { reason: 'no ```json fenced block found' })
         return { ok: false, reason: 'no ```json fenced block found' }
     }
     let parsed: unknown
     try {
         parsed = JSON.parse(lastJsonInterior.trim()) as unknown
     } catch {
+        hypothesisDebugLog('hop1 handoff parse failed', { reason: 'invalid JSON inside ```json fence' })
         return { ok: false, reason: 'invalid JSON inside ```json fence' }
     }
-    return narrowHandoff(parsed)
+    const narrowed = narrowHandoff(parsed)
+    if (!narrowed.ok) {
+        hypothesisDebugLog('hop1 handoff parse failed', { reason: narrowed.reason })
+        return narrowed
+    }
+    hypothesisDebugLog('hop1 handoff parse succeeded', {
+        rubricIssueCount: narrowed.handoff.rubricIssues.length,
+    })
+    return narrowed
 }

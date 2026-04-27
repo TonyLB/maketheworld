@@ -2,6 +2,7 @@ import type { CoyotePhasePlanValidationContext } from '@tonylb/mtw-interfaces/ts
 import { validateCoyotePhasePlan } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 import type { CoyoteGameIntentRecord } from '../../../../internalCache/coyoteGame'
 import { findAllFenceBlocks } from '../../../../llm/markdownCodeFences'
+import { hypothesisDebugLog } from '../../utilities/hypothesisDebug'
 
 const STUB_INTENT = 'Hypothesis: Stubbed'
 
@@ -99,6 +100,10 @@ export function parseHypothesisPhasePlanHopOutput(
     parseOptions?: ParseHypothesisModelOutputOptions
 ): ParseHypothesisPhasePlanHopResult {
     const blocks = findAllFenceBlocks(rawBody)
+    hypothesisDebugLog('phase plan parser: scanned fences', {
+        blockCount: blocks.length,
+        jsonFenceCount: blocks.filter((block) => block.lang.toLowerCase() === 'json').length,
+    })
     let phasePlanJson: string | undefined
     let lastReason = 'no valid phase-plan JSON in ```json fences'
 
@@ -112,6 +117,7 @@ export function parseHypothesisPhasePlanHopOutput(
             parsed = JSON.parse(interior) as unknown
         } catch {
             lastReason = 'invalid JSON inside ```json fence'
+            hypothesisDebugLog('phase plan parser: invalid json fence', { reason: lastReason })
             continue
         }
         const v = validateCoyotePhasePlan(parsed, phasePlanCtx)
@@ -124,9 +130,15 @@ export function parseHypothesisPhasePlanHopOutput(
                 ...(base.walkthrough !== undefined ? { walkthrough: base.walkthrough } : {}),
                 phasePlan: v.phasePlan,
             }
+            hypothesisDebugLog('phase plan parser: validated phase plan', {
+                intent: record.intent,
+                hasWalkthrough: record.walkthrough !== undefined,
+                phasePlanJsonLength: phasePlanJson.length,
+            })
             return { record, phasePlanJson }
         }
         lastReason = v.reason
+        hypothesisDebugLog('phase plan parser: phase plan validation failed', { reason: lastReason })
     }
 
     const proseBody = stripAllJsonFences(rawBody)
@@ -135,6 +147,11 @@ export function parseHypothesisPhasePlanHopOutput(
         intent: base.intent,
         ...(base.walkthrough !== undefined ? { walkthrough: base.walkthrough } : {}),
     }
+    hypothesisDebugLog('phase plan parser: returning prose-only record', {
+        intent: record.intent,
+        hasWalkthrough: record.walkthrough !== undefined,
+        phasePlanValidationReason: lastReason,
+    })
 
     return {
         record,
@@ -154,22 +171,44 @@ export function parseHypothesisModelOutput(
         const preLines = prefix.split(/\r?\n/)
         const walkthrough = trimSceneAnalysisPrefix(preLines)
         if (!prefix.trim()) {
+            hypothesisDebugLog('terminal parser path: final-fence without walkthrough', {
+                intent,
+                isStubIntent: intent === STUB_INTENT,
+            })
             return { intent }
         }
-        return walkthrough.length > 0 ? { intent, walkthrough } : { intent }
+        const record = walkthrough.length > 0 ? { intent, walkthrough } : { intent }
+        hypothesisDebugLog('terminal parser path: final-fence', {
+            intent: record.intent,
+            hasWalkthrough: record.walkthrough !== undefined,
+            isStubIntent: record.intent === STUB_INTENT,
+        })
+        return record
     }
 
     const unwrapped = stripCodeFences(rawBody)
     if (!unwrapped) {
+        hypothesisDebugLog('terminal parser path: legacy-empty-body->stub', { intent: STUB_INTENT })
         return { intent: STUB_INTENT }
     }
     const lines = unwrapped.split(/\r?\n/)
     const hypothesisIndex = lines.findIndex((line) => /^\s*Hypothesis:\s*.+/u.test(line))
     if (hypothesisIndex < 0) {
+        hypothesisDebugLog('terminal parser path: legacy-no-hypothesis-line', {
+            bodyLength: unwrapped.length,
+            isStubIntent: unwrapped === STUB_INTENT,
+        })
         return { intent: unwrapped }
     }
     const intent = lines[hypothesisIndex].trim()
     const preHypothesis = lines.slice(0, hypothesisIndex)
     const walkthrough = trimSceneAnalysisPrefix(preHypothesis)
-    return walkthrough.length > 0 ? { intent, walkthrough } : { intent }
+    const record = walkthrough.length > 0 ? { intent, walkthrough } : { intent }
+    hypothesisDebugLog('terminal parser path: legacy-hypothesis-line', {
+        hypothesisLineFound: true,
+        intent: record.intent,
+        hasWalkthrough: record.walkthrough !== undefined,
+        isStubIntent: record.intent === STUB_INTENT,
+    })
+    return record
 }

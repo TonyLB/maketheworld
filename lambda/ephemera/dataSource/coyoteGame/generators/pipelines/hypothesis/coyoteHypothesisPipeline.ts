@@ -30,6 +30,7 @@ import {
     type ParseHypothesisModelOutputOptions,
 } from '../../sharedParsers/parseHypothesisModelOutput';
 import { parseHypothesisStageOneOutput } from './parseHypothesisStageOneOutput';
+import { hypothesisDebugLog } from '../../../utilities/hypothesisDebug';
 
 /**
  * Failure policy: Bedrock failure on Stage One, plan-selection hop, or phase-plan hop; invalid seam / combine;
@@ -85,6 +86,22 @@ function abort(): never {
     throw new CoyoteHypothesisPipelineAbortError();
 }
 
+function summarizeInvokeResult(result: InvokeBedrockHypothesisResult): Record<string, unknown> {
+    return {
+        success: result.success,
+        bodyLength: result.success ? result.body.length : undefined,
+        usage: result.success ? result.usage : undefined,
+        errorMessage: result.success ? undefined : result.errorMessage,
+    };
+}
+
+function errorDetails(error: unknown): Record<string, unknown> {
+    if (error instanceof Error) {
+        return { errorName: error.name, errorMessage: error.message };
+    }
+    return { errorName: typeof error, errorMessage: String(error) };
+}
+
 function buildCoyoteHypothesisSteps(
     ctx: ReturnType<typeof createPipelineContext<CoyoteHypothesisPipelineState>>,
     deps: GenerateHypothesisDeps
@@ -107,7 +124,9 @@ function buildCoyoteHypothesisSteps(
                 const stageOneParts = buildHypothesisStageOnePromptParts({ roomObjectsByRoom });
                 const stageOneResult = await invokeBedrockHypothesisStageOne(stageOneParts);
                 draft.stageOneResult = stageOneResult;
+                hypothesisDebugLog('stage one invoke complete', summarizeInvokeResult(stageOneResult));
                 if (!stageOneResult.success) {
+                    hypothesisDebugLog('aborting hypothesis pipeline', { reason: 'stageOneInvokeFailed' });
                     abort();
                 }
             },
@@ -122,6 +141,10 @@ function buildCoyoteHypothesisSteps(
                 }
                 const seamParsed = parseHypothesisStageOneOutput(stageOneResult.body, roomObjectsByRoom);
                 if (!seamParsed.ok) {
+                    hypothesisDebugLog('aborting hypothesis pipeline', {
+                        reason: 'stageOneParseFailed',
+                        parseErrorMessage: seamParsed.errorMessage,
+                    });
                     abort();
                 }
                 const combinedResult = combineHypothesisClusters(
@@ -130,6 +153,10 @@ function buildCoyoteHypothesisSteps(
                     seamParsed.explicitOutliers
                 );
                 if (!combinedResult.ok) {
+                    hypothesisDebugLog('aborting hypothesis pipeline', {
+                        reason: 'combineFailed',
+                        combineErrorMessage: combinedResult.errorMessage,
+                    });
                     abort();
                 }
                 draft.combinedMarkdown = renderCombinedHypothesisForStageTwo(
@@ -152,7 +179,9 @@ function buildCoyoteHypothesisSteps(
                 });
                 const planSelectionResult = await invokeBedrockHypothesisPlanSelection(parts);
                 draft.planSelectionResult = planSelectionResult;
+                hypothesisDebugLog('plan selection invoke complete', summarizeInvokeResult(planSelectionResult));
                 if (!planSelectionResult.success) {
+                    hypothesisDebugLog('aborting hypothesis pipeline', { reason: 'planSelectionInvokeFailed' });
                     abort();
                 }
             },
@@ -169,6 +198,10 @@ function buildCoyoteHypothesisSteps(
                 draft.selectionBody = planSelectionResult.body;
                 const handoff = parseHop1HandoffFromSelectionBody(planSelectionResult.body);
                 if (!handoff.ok) {
+                    hypothesisDebugLog('aborting hypothesis pipeline', {
+                        reason: 'planSelectionHandoffParseFailed',
+                        parseReason: handoff.reason,
+                    });
                     abort();
                 }
                 draft.hop1Handoff = handoff.handoff;
@@ -190,7 +223,9 @@ function buildCoyoteHypothesisSteps(
                 });
                 const phasePlanHopResult = await invokeBedrockHypothesisPhasePlanHop(parts);
                 draft.phasePlanHopResult = phasePlanHopResult;
+                hypothesisDebugLog('phase plan hop invoke complete', summarizeInvokeResult(phasePlanHopResult));
                 if (!phasePlanHopResult.success) {
+                    hypothesisDebugLog('aborting hypothesis pipeline', { reason: 'phasePlanInvokeFailed' });
                     abort();
                 }
             },
@@ -221,6 +256,13 @@ function buildCoyoteHypothesisSteps(
                 ) {
                     draft.stageTwoReasoningContent = phasePlanHopResult.reasoningContent;
                 }
+                hypothesisDebugLog('phase plan hop parse complete', {
+                    intent: parsed.record.intent,
+                    hasWalkthrough: parsed.record.walkthrough !== undefined,
+                    hasPhasePlan: parsed.record.phasePlan !== undefined,
+                    phasePlanValidationReason: parsed.phasePlanValidationReason,
+                    phasePlanJsonPresent: parsed.phasePlanJson !== undefined,
+                });
             },
         }),
     ];
@@ -291,14 +333,30 @@ export function mapPipelineRunToGenerateHypothesisResult(
     result: PipelineRunResult<CoyoteHypothesisPipelineState>
 ): GenerateHypothesisPipelineResult {
     if (result.ok) {
+        hypothesisDebugLog('pipeline mapper: success result', {
+            hasRecord: result.state.record !== undefined,
+            intent: result.state.record?.intent,
+            hasWalkthrough: result.state.record?.walkthrough !== undefined,
+            hasPhasePlan: result.state.record?.phasePlan !== undefined,
+        });
         return pipelineSuccessToResult(result.state);
     }
 
     const stub = pipelineFailureToStubResult(result);
     if (stub !== null) {
+        hypothesisDebugLog('pipeline mapper: abort fallback to stub', {
+            failedStepName: result.failedStepName,
+            failedStepIndex: result.failedStepIndex,
+            ...errorDetails(result.error),
+        });
         return stub;
     }
 
+    hypothesisDebugLog('pipeline mapper: rethrowing non-abort error', {
+        failedStepName: result.failedStepName,
+        failedStepIndex: result.failedStepIndex,
+        ...errorDetails(result.error),
+    });
     throw result.error;
 }
 
@@ -307,6 +365,23 @@ export async function runCoyoteHypothesisPipeline(
 ): Promise<GenerateHypothesisPipelineResult> {
     const ctx = createPipelineContext<CoyoteHypothesisPipelineState>();
     const steps = buildCoyoteHypothesisSteps(ctx, deps);
-    const runResult = await ctx.runPipeline({}, steps);
+    const runResult = await ctx.runPipeline({}, steps, {
+        onStepStart: (stepName, stepIndex) => {
+            hypothesisDebugLog('pipeline step start', { stepName, stepIndex });
+        },
+        onStepEnd: (stepName, stepIndex) => {
+            hypothesisDebugLog('pipeline step end', { stepName, stepIndex });
+        },
+    });
+    if (runResult.ok) {
+        hypothesisDebugLog('pipeline run complete', { ok: true });
+    } else {
+        hypothesisDebugLog('pipeline run complete', {
+            ok: false,
+            failedStepName: runResult.failedStepName,
+            failedStepIndex: runResult.failedStepIndex,
+            ...errorDetails(runResult.error),
+        });
+    }
     return mapPipelineRunToGenerateHypothesisResult(runResult);
 }

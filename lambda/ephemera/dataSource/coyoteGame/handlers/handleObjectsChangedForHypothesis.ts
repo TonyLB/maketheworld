@@ -10,6 +10,7 @@ import internalCache from '../../../internalCache'
 import type { CoyoteGamePublishedPayload } from '../publishedEvents'
 import { COYOTE_RENDER_LINE_BREAK } from '../utilities/coyoteRenderTree'
 import { isCoyoteGameRoom } from '../utilities/isCoyoteGameRoom'
+import { hypothesisDebugLog } from '../utilities/hypothesisDebug'
 
 const SCENE_ANALYSIS_HEADING = /^\s*##\s+Scene analysis\s*$/im
 
@@ -61,6 +62,13 @@ export async function handleObjectsChangedForHypothesis(
 
     /** Drain this lane so the Generating WorldMessage runs through publishMessage while hypothesis work proceeds. */
     const hypothesisLaneId = `hypothesisLane:${hypothesisId}`
+    hypothesisDebugLog('objects changed hypothesis trigger', {
+        componentId: payload.componentId,
+        addCount: payload.add.length,
+        activeTargetsCount: targets.length,
+        hypothesisId,
+        hypothesisLaneId,
+    })
 
     deps.messageBus.send(
         {
@@ -95,6 +103,14 @@ export async function handleObjectsChangedForHypothesis(
             walkthrough !== undefined
                 ? [walkthrough, COYOTE_RENDER_LINE_BREAK, intentRecord.intent]
                 : [intentRecord.intent]
+        hypothesisDebugLog('objects changed hypothesis final intent', {
+            hypothesisId,
+            intent: intentRecord.intent,
+            hadStoredWalkthrough: intentRecord.walkthrough !== undefined,
+            includedWalkthrough: walkthrough !== undefined,
+            walkthroughFiltered: intentRecord.walkthrough !== undefined && walkthrough === undefined,
+            hasPhasePlan: intentRecord.phasePlan !== undefined,
+        })
 
         const t1 = Math.max(stored.t0 + 1, getCurrentTimestamp())
 
