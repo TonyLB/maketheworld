@@ -79,13 +79,13 @@ This section complements the normative contract in [`AGENT.md`](./AGENT.md).
 ### Two phases (required order)
 
 1. **LLM-first (Step B enrich):** [`buildPrompt.ts`](enrich/acmeOrder/buildPrompt.ts) provides occupied key context and model proposes candidate `stableKey` values per valid line.
-2. **Deterministic finalize (contract boundary):** [`finalizeStableKeysDeterministic`](finalizeStableKeysDeterministic.ts) validates and repairs collisions/invalid proposals with deterministic allocation rules before publish.
+2. **Deterministic finalize (contract boundary):** [`finalizeStableKeysDeterministic`](stableKey/finalizeStableKeysDeterministic.ts) validates and repairs collisions/invalid proposals with deterministic allocation rules before publish.
 
 ### Where enforcement runs
 
 In [`index.ts`](index.ts), Acme order flow is:
 
-1. [`collectCoyoteOccupiedStableKeys`](collectCoyoteOccupiedStableKeys.ts) builds occupancy snapshot from Coyote game rooms and room objects.
+1. [`collectCoyoteOccupiedStableKeys`](stableKey/collectCoyoteOccupiedStableKeys.ts) builds occupancy snapshot from Coyote game rooms and room objects.
 2. `parseCommand({ command, occupiedStableKeys })` reuses that snapshot in Step B.
 3. `finalizeStableKeysDeterministic` assigns final `stableKey: string` values per valid line.
 4. actions publishes `Acme Order`, then objects persists pass-through keys in current room context.

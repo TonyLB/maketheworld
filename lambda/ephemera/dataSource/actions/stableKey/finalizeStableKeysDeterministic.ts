@@ -1,7 +1,7 @@
 /**
  * Post-LLM deterministic **`stableKey`** enforcement for Acme orders.
  *
- * Contract: [`AGENT.md`](./AGENT.md) (**Acme catalog lines and `stableKey`**) ---
+ * Contract: [`../AGENT.md`](../AGENT.md) (**Acme catalog lines and `stableKey`**) ---
  * LLM-first vs deterministic phases, charset / **`constructed-`** / reserved **`setting`** rules; numeric repair
  * behavior is defined by this module and **`finalizeStableKeysDeterministic.test.ts`**.
  *

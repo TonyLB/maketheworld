@@ -4,8 +4,8 @@ import { ephemeraActionsDataSource } from './index'
 import messageBus from '../../messageBus'
 import { parseCommand } from './parseCommand'
 import { navigationIntentErrorMessages } from './parseCommand'
-import { collectCoyoteOccupiedStableKeys } from './collectCoyoteOccupiedStableKeys'
-import { finalizeStableKeysDeterministic } from './finalizeStableKeysDeterministic'
+import { collectCoyoteOccupiedStableKeys } from './stableKey/collectCoyoteOccupiedStableKeys'
+import { finalizeStableKeysDeterministic } from './stableKey/finalizeStableKeysDeterministic'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
 import { runAcmeOrderAffinitiesHarness } from './runAcmeOrderAffinitiesHarness'
 import { runCoyoteEngineTestHarness } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
@@ -37,7 +37,7 @@ jest.mock('./parseCommand', () => ({
     ...jest.requireActual<typeof import('./parseCommand')>('./parseCommand'),
     parseCommand: jest.fn(),
 }))
-jest.mock('./collectCoyoteOccupiedStableKeys', () => ({
+jest.mock('./stableKey/collectCoyoteOccupiedStableKeys', () => ({
     collectCoyoteOccupiedStableKeys: jest.fn(),
 }))
 jest.mock('../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness', () => ({

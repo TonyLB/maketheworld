@@ -31,8 +31,8 @@ import {
 } from './baseClasses'
 import { parseCommand } from './parseCommand'
 import { navigationIntentErrorMessages } from './parseCommand'
-import { collectCoyoteOccupiedStableKeys } from './collectCoyoteOccupiedStableKeys'
-import { finalizeStableKeysDeterministic } from './finalizeStableKeysDeterministic'
+import { collectCoyoteOccupiedStableKeys } from './stableKey/collectCoyoteOccupiedStableKeys'
+import { finalizeStableKeysDeterministic } from './stableKey/finalizeStableKeysDeterministic'
 import { runAcmeOrderAffinitiesHarness } from './runAcmeOrderAffinitiesHarness'
 import { runCoyoteEngineTestHarness } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
 
