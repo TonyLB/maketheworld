@@ -1,5 +1,8 @@
 import { InternalMessageBus } from '@tonylb/mtw-lambda-patterns/ts/messageBus'
 import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
+import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCacheDynamoItem } from '../dataSource/renderCache/baseClasses'
 
 import { LegalCharacterColor, isEphemeraTaggedId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId, } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import {
@@ -13,7 +16,6 @@ import { EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, EphemeraClien
 
 import { MessageGroupId } from "../internalCache/orchestrateMessages"
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
-import type { RenderOrchestrationMessage } from '../dataSource/renderOrchestration/events'
 
 export type PublishTargetRoom = `ROOM#${string}`
 
@@ -289,6 +291,73 @@ export type ExecuteActionMessage = {
     type: 'ExecuteAction';
     action: import('@tonylb/mtw-interfaces/ts/ephemera').ActionAPIMessage;
 }
+
+export type RenderComponentId = EphemeraRoomId | EphemeraFeatureId | EphemeraMapId
+
+type RenderTargetContext = {
+    characterId?: EphemeraCharacterId;
+    targets?: PublishTarget[];
+    messageGroupId?: MessageGroupId;
+}
+
+export type RenderComponentPerspective = {
+    componentId: RenderComponentId;
+    perspective: Perspective;
+}
+
+export type RenderRequested = RenderTargetContext & RenderComponentPerspective & {
+    type: 'RenderRequested';
+    allowGeneration?: boolean;
+    generationContextWml?: string;
+}
+
+export type RenderRequestedBusDeliveryFields = Pick<
+    RenderRequested,
+    'componentId' | 'perspective' | 'characterId' | 'targets' | 'messageGroupId'
+>
+
+export type RenderGenerationStarted = RenderTargetContext & RenderComponentPerspective & {
+    type: 'RenderGenerationStarted';
+}
+
+export type RenderError = RenderTargetContext & RenderComponentPerspective & {
+    type: 'RenderError';
+    errorCode: string;
+    errorMessage: string;
+}
+
+export type RenderInvalidate = RenderTargetContext & RenderComponentPerspective & {
+    type: 'RenderInvalidate';
+    reason?: string;
+}
+
+export type RenderReady = RenderTargetContext & RenderComponentPerspective & {
+    type: 'RenderReady';
+    cacheId: EphemeraCacheId;
+    cacheRecord?: EphemeraCacheDynamoItem;
+}
+
+export type RenderGenerationCompleted = RenderTargetContext & RenderComponentPerspective & {
+    type: 'RenderGenerationCompleted';
+    cacheId: EphemeraCacheId;
+}
+
+export type RenderGenerationFailed = RenderTargetContext & RenderComponentPerspective & {
+    type: 'RenderGenerationFailed';
+    errorCode: string;
+    errorMessage: string;
+}
+
+export type RenderOrchestrationRequestMessage = RenderRequested
+
+export type RenderOrchestrationMessage =
+    | RenderRequested
+    | RenderError
+    | RenderInvalidate
+    | RenderGenerationStarted
+    | RenderReady
+    | RenderGenerationCompleted
+    | RenderGenerationFailed
 
 export type StreamingEventMessage = {
     type: 'StreamingEvent';

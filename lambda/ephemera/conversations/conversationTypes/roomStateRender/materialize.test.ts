@@ -1,5 +1,5 @@
 import type { EphemeraCacheDynamoItem } from '../../../dataSource/renderCache/baseClasses'
-import type { RenderComponentId } from '../../../dataSource/renderOrchestration/events'
+import type { RenderComponentId } from '../../../messageBus/baseClasses'
 import { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION } from '../../../dataSource/renderOrchestration/baseClasses'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import { CONVERSATION_PAYLOAD_STUB } from '../baseClasses'

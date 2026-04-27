@@ -1,5 +1,5 @@
 import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
-import type { RenderComponentId } from './events'
+import type { RenderComponentId } from '../../messageBus/baseClasses'
 import type { RenderOrchestrationPublishedRouting } from './publishedEvents'
 
 export const buildOrchestrationRouting = (

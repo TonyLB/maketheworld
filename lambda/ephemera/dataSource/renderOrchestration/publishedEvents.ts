@@ -16,8 +16,7 @@ import {
     isEphemeraCacheDynamoItem,
     type EphemeraCacheDynamoItem,
 } from '../renderCache/baseClasses'
-import type { StreamingEventMessage } from '../../messageBus/baseClasses'
-import type { RenderComponentId } from './events'
+import type { RenderComponentId, StreamingEventMessage } from '../../messageBus/baseClasses'
 
 export const RENDER_ORCHESTRATION_DATA_SOURCE_KEY = 'mtw.ephemera.renderOrchestration' as const
 

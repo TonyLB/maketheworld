@@ -14,12 +14,3 @@ export type ConversationPayloadStub = Record<string, never>
 /** Use when registering a first-variant row until real fragment payloads exist. */
 export const CONVERSATION_PAYLOAD_STUB: ConversationPayloadStub = {} as ConversationPayloadStub
 
-/**
- * Persisted row union and narrowers live in `storableConversationRecord.ts` so variant modules
- * do not import each other through `baseClasses` (avoids circular resolution).
- */
-export type {
-    ConversationRecordType,
-    StorableConversationRecord,
-} from './storableConversationRecord';
-export { isStorableConversationRecordRoomStateRender } from './storableConversationRecord';
