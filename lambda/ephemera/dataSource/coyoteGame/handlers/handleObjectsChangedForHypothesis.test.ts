@@ -1,4 +1,4 @@
-jest.mock('../../internalCache', () => ({
+jest.mock('../../../internalCache', () => ({
     __esModule: true,
     default: {
         CoyoteGame: { get: jest.fn(), invalidate: jest.fn() },
@@ -6,14 +6,14 @@ jest.mock('../../internalCache', () => ({
     },
 }))
 
-jest.mock('../../internalUtils/dateUtil', () => ({
+jest.mock('../../../internalUtils/dateUtil', () => ({
     __esModule: true,
     default: jest.fn(() => 1000),
 }))
 
-import internalCache from '../../internalCache'
+import internalCache from '../../../internalCache'
 import { handleObjectsChangedForHypothesis } from './handleObjectsChangedForHypothesis'
-import type { ObjectsChangedPayload } from '../objects/events'
+import type { ObjectsChangedPayload } from '../../objects/events'
 
 const coyoteMock = internalCache.CoyoteGame.get as jest.MockedFunction<typeof internalCache.CoyoteGame.get>
 const roomListMock = internalCache.RoomCharacterList.get as jest.MockedFunction<typeof internalCache.RoomCharacterList.get>

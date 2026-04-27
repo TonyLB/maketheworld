@@ -183,9 +183,9 @@ Pending work uses `[ ]` and completed work uses `[X]`. When a step has nested bu
   - [X] Root layout: keep `index.ts`, `subscribedEvents.ts`, `publishedEvents.ts`, and root `AGENT.md` flat at `coyoteGame/` root ([Root-level layout (locked)](#root-level-layout-locked)).
   - [X] Replace the **Current inventory and proposed mapping** section with a locked **Frozen map** and align headings/wording to final decisions.
 
-- [ ] Phase 1 - handlers and entry clarity
-  - [ ] Add `handlers/` and move the two `handle*` modules (+ tests); fix imports from `index.ts`.
-  - [ ] Confirm no behavior change (unit tests for handlers and `index.test.ts`).
+- [X] Phase 1 - handlers and entry clarity
+  - [X] Add `handlers/` and move the two `handle*` modules (+ tests); fix imports from `index.ts`.
+  - [X] Confirm no behavior change (unit tests for handlers and `index.test.ts`).
 
 - [ ] Phase 2 - generators skeleton
   - [ ] Add `generators/abstract/`, `generators/sharedParsers/`, `generators/pipelines/hypothesis/`, `generators/pipelines/outcome/`, `generators/testHarness/` (empty or with moved files only).

@@ -9,8 +9,8 @@ import { isObjectsChangedPayload } from '../objects/events'
 import type { CoyoteGamePublishedPayload } from './publishedEvents'
 import type { CoyoteGameSubscribedContent } from './subscribedEvents'
 import { isCoyoteGameSubscribedEnvelope } from './subscribedEvents'
-import { handleAwaitRoadRunnerForPlanOutcome } from './handleAwaitRoadRunnerForPlanOutcome'
-import { handleObjectsChangedForHypothesis } from './handleObjectsChangedForHypothesis'
+import { handleAwaitRoadRunnerForPlanOutcome } from './handlers/handleAwaitRoadRunnerForPlanOutcome'
+import { handleObjectsChangedForHypothesis } from './handlers/handleObjectsChangedForHypothesis'
 import messageBus from '../../messageBus'
 
 export const ephemeraCoyoteGameDataSource = new EphemeraDataSource<
