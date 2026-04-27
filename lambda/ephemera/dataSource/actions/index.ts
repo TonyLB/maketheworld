@@ -131,6 +131,9 @@ const respondImperativelyForIntent = async ({ characterId, parseResult }: Respon
             await runCoyoteEngineTestHarness({
                 characterId,
                 messageBus,
+                ...(parseResult.harnessInvocation !== undefined
+                    ? { harnessInvocation: parseResult.harnessInvocation }
+                    : {}),
             })
         }
     }

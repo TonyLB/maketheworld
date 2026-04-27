@@ -861,6 +861,46 @@ describe('ephemeraActionsDataSource', () => {
     })
 
     describe('ParseCommandCoyoteEngineTestResult', () => {
+        it('forwards harnessInvocation to runCoyoteEngineTestHarness when present', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'CoyoteEngineTest',
+                confidence: 1,
+                harnessInvocation: {
+                    mode: 'partial',
+                    testOnly: 'clustering',
+                    harnessRunKind: 'runUntil',
+                },
+            })
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: '/test generation',
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockedRunCoyoteEngineTestHarness).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    characterId: 'CHARACTER#123',
+                    harnessInvocation: {
+                        mode: 'partial',
+                        testOnly: 'clustering',
+                        harnessRunKind: 'runUntil',
+                    },
+                })
+            )
+        })
+
         it.skip('publishes disabled message and does not run harness', async () => {
             mockedParseCommand.mockResolvedValue({ type: 'CoyoteEngineTest', confidence: 0.9 })
 

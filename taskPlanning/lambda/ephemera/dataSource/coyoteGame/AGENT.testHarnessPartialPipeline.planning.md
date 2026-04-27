@@ -109,9 +109,9 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as
   - [X] Wire **inject-and-run-from** for **`planSelect`** and **`phasePlan`** using typed bundles from [`coyoteEngineTestFixtures.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts).
   - [X] Unit tests with mocked Bedrock where appropriate; avoid flaky live calls in CI for isolated-step tests.
 
-- [ ] Phase 3 - harness integration
-  - [ ] Extend [`runCoyoteEngineTestHarness.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/runCoyoteEngineTestHarness.ts) to accept mode, fixture filter, and phase options; format `WorldOOCMessage` output for partial vs full runs.
-  - [ ] Wire parse result or command tail from [`actions/index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) (extend `ParseCommandCoyoteEngineTestResult` or equivalent plumb).
+- [X] Phase 3 - harness integration
+  - [X] Extend [`runCoyoteEngineTestHarness.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/runCoyoteEngineTestHarness.ts) to accept mode, fixture filter, and phase options; format `WorldOOCMessage` output for partial vs full runs.
+  - [X] Wire parse result or command tail from [`actions/index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) (extend `ParseCommandCoyoteEngineTestResult` or equivalent plumb).
 
 - [ ] Phase 4 - slash command and player feedback (**`/test generation` only**; do not extend `/test affinities` or other slash harnesses in this initiative)
   - [ ] Parse `/test generation` tails in deterministic path or dedicated helper; align with [`parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts) and slash command guards.
@@ -150,7 +150,7 @@ rg "runCoyoteEngineTestHarness|CoyoteEngineTest|test generation" lambda/ephemera
 | Phase 0 | In progress | Slash command UX + phase aliases + handoff coverage/colocation locked; pipeline boundary appendix still open |
 | Phase 1 | Done | Types + optional **`planSelectInject`** / **`phasePlanInject`** on fixtures; **`fixture-01`** **`planSelect`** golden row; **`resolveCoyoteHarnessStartAtInject`**; no separate JSON schema (TS contract only) |
 | Phase 2 | Done | **`runCoyoteHypothesisPipeline(deps, options?)`**, **`kind`** union (`full` / `harnessPartial` / `stub`), **`coyoteHarnessInjectTypes.ts`**, harness + pipeline tests |
-| Phase 3 | Not started | Harness |
+| Phase 3 | Done | **`CoyoteEngineTestHarnessInvocation`** + **`harnessInvocation`** on **`ParseCommandCoyoteEngineTestResult`**; runner builds **`CoyoteHypothesisPipelineHarnessOptions`** / inject via **`resolveCoyoteHarnessStartAtInject`**; partial **`WorldOOCMessage`** banner + **`(not run)`** lines; Phase 4 next: populate **`harnessInvocation`** from **`/test generation`** parse |
 | Phase 4 | Not started | Slash UX |
 | Phase 5 | Not started | Coverage + docs |
 | Phase 6 | Not started | Plan retirement |
