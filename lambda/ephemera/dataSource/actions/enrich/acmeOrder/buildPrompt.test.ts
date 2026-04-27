@@ -1,5 +1,5 @@
 import { COYOTE_AFFINITY_APTNESS_MIN } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import { buildParseAcmeOrderEnrichPrompt } from './buildParseAcmeOrderEnrichPrompt'
+import { buildParseAcmeOrderEnrichPrompt } from './buildPrompt'
 
 describe('buildParseAcmeOrderEnrichPrompt', () => {
     it('requires chain-of-reasoning markdown then fenced json, and retains affinity contract', () => {

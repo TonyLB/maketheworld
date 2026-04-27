@@ -1,7 +1,7 @@
 import {
     interpretAcmeOrderEnrichBody,
     finalizeAcmeOrderFromStepB,
-} from './mergeAcmeOrderEnrich'
+} from './interpretAndFinalize'
 
 describe('interpretAcmeOrderEnrichBody', () => {
     it('accepts valid Step B JSON', () => {

@@ -23,7 +23,7 @@ Use this checklist when adding a parse affordance (for example, `help`).
    - [`discriminateIntent/intentClassification.ts`](discriminateIntent/intentClassification.ts)
    - [`discriminateIntent/baseClasses.ts`](discriminateIntent/baseClasses.ts) (`IntentClassificationResult` and intent guards)
    - [`baseClasses.ts`](baseClasses.ts) (terminal parse union + shared guards)
-3. Run Step B only for intents that actually need enrich behavior.
+3. Run enrich flows only for intents that actually need post-discrimination enrichment.
 
 ### 3) Handle affordance in actions receive path
 
@@ -78,7 +78,7 @@ This section complements the normative contract in [`AGENT.md`](./AGENT.md).
 
 ### Two phases (required order)
 
-1. **LLM-first (Step B enrich):** [`buildParseAcmeOrderEnrichPrompt`](buildParseAcmeOrderEnrichPrompt.ts) provides occupied key context and model proposes candidate `stableKey` values per valid line.
+1. **LLM-first (Step B enrich):** [`buildPrompt.ts`](enrich/acmeOrder/buildPrompt.ts) provides occupied key context and model proposes candidate `stableKey` values per valid line.
 2. **Deterministic finalize (contract boundary):** [`finalizeStableKeysDeterministic`](finalizeStableKeysDeterministic.ts) validates and repairs collisions/invalid proposals with deterministic allocation rules before publish.
 
 ### Where enforcement runs

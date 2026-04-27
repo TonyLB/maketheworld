@@ -6,11 +6,11 @@ import { invokeBedrockAcmeOrderEnrich } from '../../generateExample/invokeBedroc
 import { COYOTE_RENDER_LINE_BREAK } from '../coyoteGame/utilities/coyoteRenderTree'
 import { ACME_ORDER_AFFINITIES_HARNESS_PHRASES } from './acmeOrderAffinitiesHarnessPhrases'
 import type { ParseCommandDeps, ParseCommandResult } from './baseClasses'
-import { buildParseAcmeOrderEnrichPrompt } from './buildParseAcmeOrderEnrichPrompt'
 import {
+    buildParseAcmeOrderEnrichPrompt,
     finalizeAcmeOrderFromStepB,
     interpretAcmeOrderEnrichBody,
-} from './mergeAcmeOrderEnrich'
+} from './enrich/acmeOrder'
 import { parseCommand, parseCommandWithEnrichReasoning } from './parseCommand'
 
 export type RunAcmeOrderAffinitiesHarnessDeps = {

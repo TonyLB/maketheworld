@@ -6,11 +6,11 @@ import type { ParseCommandDeps, ParseCommandInput, ParseCommandResult } from './
 import { isParseCommandLookRoomResult } from './baseClasses'
 import { discriminateIntent } from './discriminateIntent'
 export { navigationIntentErrorMessages } from './discriminateIntent/exitResolution'
-import { buildParseAcmeOrderEnrichPrompt } from './buildParseAcmeOrderEnrichPrompt'
 import {
+    buildParseAcmeOrderEnrichPrompt,
     finalizeAcmeOrderFromStepB,
     interpretAcmeOrderEnrichBody,
-} from './mergeAcmeOrderEnrich'
+} from './enrich/acmeOrder'
 
 /** Step B chain-of-reason Markdown only; use with {@link parseCommandWithEnrichReasoning} for harness review. */
 export type ParseCommandWithEnrichReasoningResult = {
