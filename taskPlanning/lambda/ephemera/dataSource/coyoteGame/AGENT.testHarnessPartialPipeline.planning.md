@@ -13,6 +13,8 @@ Extend the Coyote **generation** test harness so operators can:
 
 The second mode is the **heavy** case: it requires explicit **fixture shapes** and **golden (or authored) payload data** at each boundary where execution may start.
 
+**Incremental data (robustness):** Do **not** require a full matrix of golden handoffs before the harness is useful. Implement **all** harness and pipeline code paths first; **`planSelect`** / **`phasePlan`** **start-at** runs **may** omit inject bundles for some fixtures or boundaries until someone curates them. When a **start-at** request needs inject state that is **not** yet recorded for that fixture (and boundary), the harness must **fail fast** with a **clear error** (e.g. WorldOOCMessage) stating that the testHarness does not yet provide that starting input---not approximate, not silent. Operators bootstrap by running **stop-after** / earlier hops (often **`clustering`** first), capturing outputs, and **gradually** adding golden rows **per vertical slice** or broadly; functionality deepens as data arrives.
+
 This document is task-scoped; retire or archive it after the initiative ships and lasting notes live in [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) (or adjacent docs).
 
 ## Scope
@@ -74,6 +76,7 @@ Design choices for this initiative. (Durable **AGENT.md** updates are a **Phase 
 - [X] **Source of golden data (locked):** **Hand-maintained** payloads in those modules (curate and update when pipeline inputs or contracts change). No required export-from-full-run tool in scope for the first delivery; an export helper may be added later as a convenience only.
 - [X] **Versioning (locked):** **No separate schema-version field** inside fixture payloads. Handoff modules are typed TypeScript; **shape drift fails at compile time** until fixtures are updated. Revisit only if we introduce untyped JSON loaders or multi-era payloads side by side.
 - [X] **Coverage (locked):** **`clustering`** does **not** get a matrix of separate curated inject payloads---**`loadRoomObjects`** from the existing per-fixture **`roomObjectsByRoom`** is deterministic, so treat that as the input to **`hypothesisStageOneLlm`** (run steps 1+2). **Hand-maintained inject bundles** (for **start-at** **`planSelect`** and **`phasePlan`**) live in **[`coyoteEngineTestFixtures.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts)**; grow that module as needed. **Optional** matrix: full **10 fixtures** per inject boundary vs **subset** vs **single reference** row per boundary is a **tuning preference**---start minimal (reference or subset) and add rows when debugging specific fixtures (not a blocker for initial implementation).
+- [X] **Missing inject data (locked):** It is **expected** that **start-at** inject bundles are **absent** for some **(fixture, boundary)** pairs during rollout. **Do not** synthesize or guess inputs. If the requested **start-at** run requires inject state that is **not** defined for that fixture, **return a deterministic error** to the operator (same class of surface as other harness parse/range errors) explaining that the testHarness does **not yet** supply that starting input (name the phase alias and fixture index). This keeps the harness **safe and honest** while golden data is filled in progressively.
 
 ### Runner and types
 
@@ -95,10 +98,10 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as
   - [X] Resolve **Phase aliases vs implementation** enough to implement parser + harness (`clustering` / `planSelect` / `phasePlan`, stop-after LLM mapping, start-at handoff fixtures---locked under **Phase aliases vs implementation**).
   - [ ] Document each pipeline boundary with required inputs (fields on state + files references) in a short appendix or [`generators/pipelines/hypothesis/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md) subsection (link from here).
 
-- [ ] Phase 1 - fixture contract
-  - [ ] Define TypeScript types (and optional JSON schema) for saved handoffs per boundary.
-  - [ ] Expand [`coyoteEngineTestFixtures.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts) with types and hand-maintained inject bundles for **planSelect** / **phasePlan** start-at per **Coverage** (locked).
-  - [ ] Add one vertical slice of real golden data for one fixture and one boundary to validate the contract.
+- [X] Phase 1 - fixture contract
+  - [X] Define TypeScript types (and optional JSON schema) for saved handoffs per boundary.
+  - [X] Expand [`coyoteEngineTestFixtures.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts) with types and **sparse** hand-maintained inject bundles: only rows that exist are required; absent rows trigger **Missing inject data (locked)** errors on **start-at** requests (do not pre-fill every fixture x boundary).
+  - [X] Add **one** vertical slice of real golden data (one fixture, one boundary) to prove the contract when data **is** present; additional rows are **progressive** (Phase 5 / ad hoc), not a Phase 1 gate.
 
 - [ ] Phase 2 - pipeline runner extensions
   - [ ] Extend **`runCoyoteHypothesisPipeline`** with **`testOnly`** (**`'clustering'`** | **`'planSelect'`** | **`'phasePlan'`**), **`harnessRunKind`** (**`'stopAfter'`** | **`'startAt'`**), and optional **`injectState`** per **API surface (locked)** (`injectState` only for **`startAt`** **`planSelect`** / **`phasePlan`**).
@@ -112,10 +115,10 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as
 
 - [ ] Phase 4 - slash command and player feedback (**`/test generation` only**; do not extend `/test affinities` or other slash harnesses in this initiative)
   - [ ] Parse `/test generation` tails in deterministic path or dedicated helper; align with [`parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts) and slash command guards.
-  - [ ] Invalid combinations return clear OOC errors (range, unknown phase, missing fixture).
+  - [ ] Invalid combinations return clear OOC errors (range, unknown phase, missing fixture). Include **missing start-at inject** for **planSelect** / **phasePlan** when no golden row exists (**Missing inject data (locked)**).
 
 - [ ] Phase 5 - coverage and docs
-  - [ ] Expand golden handoffs per **Coverage** decision.
+  - [ ] Expand golden handoffs over time per **Coverage** decision (optional matrix; add rows as needed---not a single bulk prerequisite).
   - [ ] **Durable docs:** Update [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) harness section (**`/test generation`** slash grammar; **`testOnly`** / **`harnessRunKind`** / **`injectState`**; fixture and handoff layout including [`coyoteEngineTestFixtures.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts)). Link from [`lambda/ephemera/dataSource/actions/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.md) when the parse surface changes.
   - [ ] Run **Verification** commands below.
 
@@ -145,7 +148,7 @@ rg "runCoyoteEngineTestHarness|CoyoteEngineTest|test generation" lambda/ephemera
 | Phase | Status | Notes |
 | --- | --- | --- |
 | Phase 0 | In progress | Slash command UX + phase aliases + handoff coverage/colocation locked; pipeline boundary appendix still open |
-| Phase 1 | Not started | Fixture contract (expand coyoteEngineTestFixtures.ts) |
+| Phase 1 | Done | Types + optional **`planSelectInject`** / **`phasePlanInject`** on fixtures; **`fixture-01`** **`planSelect`** golden row; **`resolveCoyoteHarnessStartAtInject`**; no separate JSON schema (TS contract only) |
 | Phase 2 | Not started | Runner |
 | Phase 3 | Not started | Harness |
 | Phase 4 | Not started | Slash UX |
