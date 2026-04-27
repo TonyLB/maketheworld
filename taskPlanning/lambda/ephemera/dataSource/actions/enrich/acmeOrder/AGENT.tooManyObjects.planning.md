@@ -1,6 +1,6 @@
 # Acme order enrich: Coyote object cap (`Too Many Objects`)
 
-**Status:** Not started. Next step is to add a deterministic pre-enrich guard so Acme order planning does not run when Coyote Game rooms already hold too many placed objects.
+**Status:** In progress. Coyote placement count helper is in [`actions/utilities/`](../../../../../../../lambda/ephemera/dataSource/actions/utilities/); next wire **`enrichAcmeOrder`** guard.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../../../../taskPlanning/AGENT.md). For workflow scaffolding, see the root [`AGENT.md`](../../../../../../../AGENT.md) (complex-task Getting Started pattern where present).
 
@@ -45,7 +45,7 @@ Player-facing copy (exact string for the error path):
 
 Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each sub-step lands.
 
-- [ ] Add a small exported helper (for example under [`actions/stableKey/`](../../../../../../../lambda/ephemera/dataSource/actions/stableKey/) or [`coyoteGame/utilities/`](../../../../../../../lambda/ephemera/dataSource/coyoteGame/utilities/)) that returns the **total** Coyote Game object count across rooms, with **injectable deps** for tests.
+- [X] Add a small exported helper under [`actions/utilities/`](../../../../../../../lambda/ephemera/dataSource/actions/utilities/) (**`countCoyotePlacedObjectsAcrossRooms`**) that returns the **total** Coyote Game object count across rooms, with **injectable deps** for tests.
 - [ ] Wire **`enrichAcmeOrder`**: await count; if **`count > 20`**, return **`{ result: { type: 'Error', errorMessage: '<exact string>' }, enrichReasoningMarkdown: '' }`** and **do not** call **`invokeBedrockAcmeOrderEnrich`**.
 - [ ] Update **`parseCommand`** / **`parseCommandCore`** typings so **`AcmeOrderIntent`** can yield **`Error`** from enrich without casts.
 - [ ] Add tests: helper unit tests; **`enrichAcmeOrder`** asserts no enrich invoke when over cap; **`parseCommand`** (or harness) asserts enrich mock not called; optional test at **exactly** 20 objects still allows enrich.
@@ -58,18 +58,17 @@ From `lambda/ephemera/` (adjust file list to match what changed):
 
 ```bash
 npx jest --config "/Users/anthonylower-basch/Code/maketheworld/lambda/ephemera/jest.config.js" --runInBand \
+  dataSource/actions/utilities/countCoyotePlacedObjectsAcrossRooms.test.ts \
   dataSource/actions/enrich/acmeOrder/index.test.ts \
   dataSource/actions/parseCommand.test.ts
 ```
-
-Add the new helper test file path to the command once it exists.
 
 ## Progress
 
 | Milestone | Status |
 | --- | --- |
 | Task plan authored | Done |
-| Count helper + tests | Not started |
+| Count helper + tests | Done |
 | `enrichAcmeOrder` guard + parse wiring | Not started |
 | Verification commands green | Not started |
 | Durable docs updated (if needed) | Not started |
