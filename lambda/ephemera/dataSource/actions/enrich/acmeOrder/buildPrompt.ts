@@ -1,6 +1,8 @@
 /**
- * Step B: Parse the full Acme-order command, validate catalog rules per line item, normalized titles, affinities,
- * and **`stableKey`** proposals. Coyote-wide **`occupiedStableKeys`** embedding --- see **`LLM-first`** in [`../AGENT.md`](../AGENT.md).
+ * Step B: Parse a **single** Acme-order verb-phrase (one action: order from Acme). Multi-command inputs are
+ * filtered upstream by `discriminateIntent` as `MultipleCommands` and do not run this enrich step. Validates
+ * catalog rules per line item, normalized titles, affinities, and **`stableKey`** proposals. Coyote-wide
+ * **`occupiedStableKeys`** embedding --- see **`LLM-first`** in [`../AGENT.md`](../AGENT.md).
  */
 
 import { COYOTE_AFFINITY_APTNESS_MIN } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
@@ -59,7 +61,7 @@ The **Coyote-wide keys already in use** list appears **after** these instruction
 
 ## Segment line items
 
-From that command, extract **one entry in \`lines[]\` per distinct product / line item** (split on commas, **and**, **also**, or multiple **object-level** action verbs that name separate deliverables). Ignore the command verb itself (**order**, **get**, **send**, **mail order**) when segmenting. Example: **order glue and springs** → exactly two lines (**glue**, **springs**). Preserve **speaker intent** — do not drop items.
+From that command, extract **one entry in \`lines[]\` per distinct product / line item** within a **single** Acme order line. Multi-command phrasing (two or more actions) is classified **before** this step; you only segment **one** order into product lines. Split on commas, **and**, or **also** to separate product names. Do not treat a leading order verb as a line item: ignore **order**, **get**, **send**, and **mail order** at the start. Example: **order glue and springs** → exactly two lines (**glue**, **springs**). Preserve **speaker intent** — do not drop items.
 
 ## Catalog validation per line
 

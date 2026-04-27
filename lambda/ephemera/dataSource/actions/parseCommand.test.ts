@@ -403,6 +403,23 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 
+    it('returns MultipleCommands from intent discrimination without Acme Step B', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"MultipleCommands","confidence":0.7}',
+        })
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+
+        const result = await parseCommand(
+            { command: 'order explosives and then order bandages' },
+            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+        )
+
+        expect(result).toEqual({ type: 'MultipleCommands', confidence: 0.7 })
+        expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
+        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+    })
+
     it('returns LookRoom from intent discrimination without Acme Step B', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,

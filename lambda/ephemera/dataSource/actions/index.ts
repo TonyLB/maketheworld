@@ -26,11 +26,13 @@ import {
     isParseCommandErrorResult,
     isParseCommandHelpResult,
     isParseCommandLookRoomResult,
+    isParseCommandMultipleCommandsResult,
     isParseCommandNavigationResult,
     isParseCommandPromptInjectionAttemptResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
 } from './baseClasses'
+import { MULTIPLE_COMMANDS_PLAYER_MESSAGE } from './multipleCommandsPlayerMessage'
 import { parseCommand } from './parseCommand'
 import { navigationIntentErrorMessages } from './parseCommand'
 import { collectCoyoteOccupiedStableKeys } from './stableKey/collectCoyoteOccupiedStableKeys'
@@ -166,6 +168,14 @@ const respondImperativelyForIntent = async ({ characterId, parseResult }: Respon
             message: [
                 "Prompt injection isn't going to get you any closer to catching the Road Runner.",
             ],
+        })
+    }
+    else if (isParseCommandMultipleCommandsResult(parseResult)) {
+        messageBus.send({
+            type: 'PublishMessage',
+            targets: [characterId],
+            displayProtocol: 'WorldOOCMessage',
+            message: [MULTIPLE_COMMANDS_PLAYER_MESSAGE],
         })
     }
     else if (isParseCommandHelpResult(parseResult)) {

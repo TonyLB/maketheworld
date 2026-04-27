@@ -1,6 +1,6 @@
 # Multiple Command Parse Plan
 
-**Status:** In progress. Phase 2 is shipped; next step is Phase 3 parse pipeline and runtime handling for `MultipleCommands`.
+**Status:** In progress. Phases 1-3 are shipped; next step is Phase 4 verification and doc hygiene.
 
 ## Purpose
 
@@ -78,13 +78,13 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested items `[X]` as they ar
   - [X] Update `interpretIntentClassificationBody` accepted shapes and invalid-shape errors accordingly.
   - [X] Extend `intentClassification` tests for accepted/rejected payloads and error text.
 
-- [ ] Phase 3 - parse pipeline and runtime handling
-  - [ ] Propagate the new outcome through parse unions/type guards and `discriminateIntent` return type flow.
-  - [ ] Ensure `parseCommand` routing keeps Acme Step B disabled for multi-command outcomes so Step B only receives single-command Acme input.
-  - [ ] Simplify Acme Step B by removing now-unneeded multi-verb-phrase handling paths and any guardrails that existed only to prevent those paths from misfiring.
-  - [ ] Confirm Step B contract/comments/tests now explicitly assume one verb-phrase and item-list shaping only.
-  - [ ] Add/adjust actions DataSource handling so players get deterministic user-facing feedback for multi-command inputs.
-  - [ ] Preserve existing behavior for all current non-multi-command outcomes.
+- [X] Phase 3 - parse pipeline and runtime handling
+  - [X] Propagate the new outcome through parse unions/type guards and `discriminateIntent` return type flow.
+  - [X] Ensure `parseCommand` routing keeps Acme Step B disabled for multi-command outcomes so Step B only receives single-command Acme input.
+  - [X] Simplify Acme Step B by removing now-unneeded multi-verb-phrase handling paths and any guardrails that existed only to prevent those paths from misfiring.
+  - [X] Confirm Step B contract/comments/tests now explicitly assume one verb-phrase and item-list shaping only.
+  - [X] Add/adjust actions DataSource handling so players get deterministic user-facing feedback for multi-command inputs.
+  - [X] Preserve existing behavior for all current non-multi-command outcomes.
 
 - [ ] Phase 4 - verification and doc hygiene
   - [ ] Add regression tests for mixed-intent strings and Acme item-list edge cases.
@@ -114,7 +114,7 @@ Behavior checks to assert in tests:
 | Plan created and scoped | Done |
 | Contract decision (`MultipleCommands` representation and copy) | Done |
 | Prompt + interpreter updates | Done |
-| Parse pipeline + DataSource runtime updates | Not started |
+| Parse pipeline + DataSource runtime updates | Done |
 | Tests + build verification | In progress |
 | Durable docs sync and plan retirement | Not started |
 
