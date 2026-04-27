@@ -9,9 +9,15 @@ import {
     type InvokeBedrockConverseTextResult,
     type NovaReasoningEffort,
 } from '../../../../../llm/invokeBedrockConverseText'
+import {
+    BEDROCK_NOVA_2_LITE_MODEL_ID,
+    DEFAULT_NOVA_MODEL,
+    type NovaModel,
+    novaModelToBedrockModelId,
+} from '../../../../../llm/novaModel'
 import type { CoyotePromptParts } from '../hypothesis/buildHypothesisPrompt'
 
-export const BEDROCK_HYPOTHESIS_MODEL_ID = 'us.amazon.nova-2-lite-v1:0' as const
+export const BEDROCK_HYPOTHESIS_MODEL_ID = BEDROCK_NOVA_2_LITE_MODEL_ID
 export const BEDROCK_HYPOTHESIS_TIMEOUT_MS = 30_000
 
 /** Stage 1: clustering seam Markdown only — typically shorter output than stage 2. */
@@ -56,6 +62,7 @@ function coyoteUserContent(prompt: CoyotePromptParts): ContentBlock[] {
 export async function invokeBedrockHypothesis(
     prompt: CoyotePromptParts,
     options: {
+        model?: NovaModel;
         modelId?: string;
         maxTokens?: number;
         temperature?: number;
@@ -65,7 +72,8 @@ export async function invokeBedrockHypothesis(
         reasoningEffort?: NovaReasoningEffort;
     } = {}
 ): Promise<InvokeBedrockHypothesisResult> {
-    const modelId = options.modelId ?? BEDROCK_HYPOTHESIS_MODEL_ID
+    const model = options.model ?? DEFAULT_NOVA_MODEL
+    const modelId = options.modelId ?? novaModelToBedrockModelId(model)
     const maxTokens = options.maxTokens ?? BEDROCK_HYPOTHESIS_MAX_TOKENS
     const timeoutMs = options.timeoutMs ?? BEDROCK_HYPOTHESIS_TIMEOUT_MS
     const temperature = options.temperature ?? 0.2

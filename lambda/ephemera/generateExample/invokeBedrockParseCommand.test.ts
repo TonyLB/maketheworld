@@ -30,7 +30,7 @@ describe('invokeBedrockParseCommand', () => {
         })
         expect(invokeBedrockConverseText).toHaveBeenCalledWith(
             expect.objectContaining({
-                modelId: 'us.amazon.nova-2-lite-v1:0',
+                modelId: 'us.amazon.nova-micro-v1:0',
                 maxTokens: 512,
                 temperature: 0.1,
                 timeoutMs: 30_000,
@@ -63,6 +63,30 @@ describe('invokeBedrockParseCommand', () => {
                 temperature: 0.5,
                 timeoutMs: 1000,
                 client,
+            })
+        )
+    })
+
+    it('maps model selection to a Bedrock model id', async () => {
+        invokeBedrockConverseText.mockResolvedValue({ success: true, body: 'ok' })
+
+        await invokeBedrockParseCommand('x', { model: 'NovaMicro' })
+
+        expect(invokeBedrockConverseText).toHaveBeenCalledWith(
+            expect.objectContaining({
+                modelId: 'us.amazon.nova-micro-v1:0',
+            })
+        )
+    })
+
+    it('allows selecting Nova2Lite by typed model option', async () => {
+        invokeBedrockConverseText.mockResolvedValue({ success: true, body: 'ok' })
+
+        await invokeBedrockParseCommand('x', { model: 'Nova2Lite' })
+
+        expect(invokeBedrockConverseText).toHaveBeenCalledWith(
+            expect.objectContaining({
+                modelId: 'us.amazon.nova-2-lite-v1:0',
             })
         )
     })

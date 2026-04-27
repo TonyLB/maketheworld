@@ -1,6 +1,6 @@
 //
 // Second Bedrock call: Acme order line enrichment (name and affinities JSON).
-// Same model as intent parse; higher token/timeout budget for multi-line JSON.
+// Defaults to Nova 2 Lite with higher token/timeout budget for multi-line JSON.
 // Prompt caching: static instructions before the cache point; player command + line list after.
 //
 
@@ -14,9 +14,14 @@ import {
     invokeBedrockConverseText,
     type InvokeBedrockConverseTextResult,
 } from '../llm/invokeBedrockConverseText'
-import { BEDROCK_PARSE_COMMAND_MODEL_ID } from './invokeBedrockParseCommand'
+import {
+    BEDROCK_NOVA_2_LITE_MODEL_ID,
+    DEFAULT_NOVA_MODEL,
+    type NovaModel,
+    novaModelToBedrockModelId,
+} from '../llm/novaModel'
 
-export { BEDROCK_PARSE_COMMAND_MODEL_ID }
+export const BEDROCK_PARSE_COMMAND_MODEL_ID = BEDROCK_NOVA_2_LITE_MODEL_ID
 
 /** Split prompt for Bedrock prompt caching (`invariantPrefix` | cache point | `dynamicSuffix`). */
 export type ParseAcmeOrderEnrichPromptParts = {
@@ -46,6 +51,7 @@ function acmeOrderEnrichUserContent(parts: ParseAcmeOrderEnrichPromptParts): Con
 export async function invokeBedrockAcmeOrderEnrich(
     promptParts: ParseAcmeOrderEnrichPromptParts,
     options: {
+        model?: NovaModel;
         modelId?: string;
         maxTokens?: number;
         temperature?: number;
@@ -53,7 +59,8 @@ export async function invokeBedrockAcmeOrderEnrich(
         client?: BedrockRuntimeClient;
     } = {}
 ): Promise<InvokeBedrockAcmeOrderEnrichResult> {
-    const modelId = options.modelId ?? BEDROCK_PARSE_COMMAND_MODEL_ID
+    const model = options.model ?? DEFAULT_NOVA_MODEL
+    const modelId = options.modelId ?? novaModelToBedrockModelId(model)
     const maxTokens = options.maxTokens ?? BEDROCK_ACME_ORDER_ENRICH_MAX_TOKENS
     const timeoutMs = options.timeoutMs ?? BEDROCK_ACME_ORDER_ENRICH_TIMEOUT_MS
     const temperature = options.temperature ?? 0.1

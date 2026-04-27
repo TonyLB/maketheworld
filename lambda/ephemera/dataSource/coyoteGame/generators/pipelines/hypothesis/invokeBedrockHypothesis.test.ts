@@ -42,6 +42,7 @@ describe('invokeBedrockHypothesis', () => {
         const command = send.mock.calls[0][0]
         expect(command).toBeInstanceOf(ConverseCommand)
         const input = command.input
+        expect(input.modelId).toBe('us.amazon.nova-2-lite-v1:0')
         expect(input.messages).toHaveLength(1)
         expect(input.messages?.[0].role).toBe('user')
         expect(input.messages?.[0].content).toEqual([
@@ -50,6 +51,23 @@ describe('invokeBedrockHypothesis', () => {
             { text: '\nDYNAMIC_TAIL' },
         ])
         expect(input.additionalModelRequestFields).toBeUndefined()
+    })
+
+    it('maps model selection to a Bedrock model id', async () => {
+        const send = jest.fn().mockResolvedValue({
+            output: { message: { content: [{ text: 'Hypothesis: ok' }] } },
+            usage: {},
+        })
+        const client = { send } as unknown as BedrockRuntimeClient
+
+        await invokeBedrockHypothesis(
+            { invariantPrefix: 'INVARIANT_BLOCK', dynamicSuffix: '\nDYNAMIC_TAIL' },
+            { client, timeoutMs: 5000, model: 'NovaMicro' }
+        )
+
+        const command = send.mock.calls[0][0]
+        expect(command).toBeInstanceOf(ConverseCommand)
+        expect(command.input.modelId).toBe('us.amazon.nova-micro-v1:0')
     })
 })
 
