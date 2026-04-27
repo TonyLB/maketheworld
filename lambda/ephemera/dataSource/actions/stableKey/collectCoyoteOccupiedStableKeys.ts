@@ -1,5 +1,5 @@
 /**
- * Coyote-wide **`stableKey`** occupancy for Step B enrich and **`finalizeStableKeysDeterministic`**.
+ * Coyote-wide **`stableKey`** occupancy for Acme order enrich and **`finalizeStableKeysDeterministic`**.
  * See **Scope and non-goals** / **Where enforcement runs** in [`../AGENT.md`](../AGENT.md)
  * (**Acme catalog lines and `stableKey`**).
  */

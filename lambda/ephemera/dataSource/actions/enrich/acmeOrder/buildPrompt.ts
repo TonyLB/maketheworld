@@ -1,5 +1,5 @@
 /**
- * Step B: Parse a **single** Acme-order verb-phrase (one action: order from Acme). Multi-command inputs are
+ * Acme order enrich: parse a **single** Acme-order verb-phrase (one action: order from Acme). Multi-command inputs are
  * filtered upstream by `discriminateIntent` as `MultipleCommands` and do not run this enrich step. Validates
  * catalog rules per line item, normalized titles, affinities, and **`stableKey`** proposals. Coyote-wide
  * **`occupiedStableKeys`** embedding --- see **`LLM-first`** in [`../AGENT.md`](../AGENT.md).

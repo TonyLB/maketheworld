@@ -4,7 +4,7 @@ import { discriminateIntent } from './discriminateIntent'
 export { navigationIntentErrorMessages } from './discriminateIntent/exitResolution'
 import { enrichAcmeOrder } from './enrich/acmeOrder'
 
-/** Step B chain-of-reason Markdown only; use with {@link parseCommandWithEnrichReasoning} for harness review. */
+/** Acme order enrich chain-of-reason Markdown only; use with {@link parseCommandWithEnrichReasoning} for harness review. */
 export type ParseCommandWithEnrichReasoningResult = {
     result: ParseCommandResult;
     enrichReasoningMarkdown: string;
@@ -33,7 +33,7 @@ async function parseCommandCore(
 
 /**
  * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; **bare `look` / `l`** returns **`LookRoom`**; **bare `help`** returns **`Help`**: all without Bedrock.
- * Otherwise runs intent discrimination, then runs Acme Step B only when intent is **`AcmeOrderIntent`**. Intent outcomes **`PromptInjectionAttempt`**, **`Unknown`**, **`Unimplemented`**, and others pass through without Acme enrich.
+ * Otherwise runs intent discrimination, then runs Acme order enrich only when intent is **`AcmeOrderIntent`**. Intent outcomes **`PromptInjectionAttempt`**, **`Unknown`**, **`Unimplemented`**, and others pass through without Acme enrich.
  * Enrich chain-of-reason Markdown is not attached to **`AcmeOrder`**; use {@link parseCommandWithEnrichReasoning} when needed (e.g. affinities harness).
  */
 export async function parseCommand(
@@ -52,7 +52,7 @@ export async function parseCommand(
 }
 
 /**
- * Same pipeline as **`parseCommand`** (including **bare `look` / `l`**, **bare `help`**, Coyote test shortcuts without Bedrock, and intent terminals like **`PromptInjectionAttempt`** without Acme enrich), plus Step B **`enrichReasoningMarkdown`** for manual review (affinities harness). Does not add that string to **`AcmeOrder`**.
+ * Same pipeline as **`parseCommand`** (including **bare `look` / `l`**, **bare `help`**, Coyote test shortcuts without Bedrock, and intent terminals like **`PromptInjectionAttempt`** without Acme enrich), plus Acme order enrich **`enrichReasoningMarkdown`** for manual review (affinities harness). Does not add that string to **`AcmeOrder`**.
  */
 export async function parseCommandWithEnrichReasoning(
     input: ParseCommandInput,

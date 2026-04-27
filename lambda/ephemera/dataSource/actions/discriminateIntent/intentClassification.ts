@@ -143,13 +143,13 @@ export function interpretIntentClassificationBody(body: string): IntentClassific
         if ('orders' in obj && Array.isArray(obj.orders) && obj.orders.length > 0) {
             return {
                 type: 'Error',
-                errorMessage: 'AcmeOrder intent payload must not include orders array; segmentation is handled in Step B',
+                errorMessage: 'AcmeOrder intent payload must not include orders array; segmentation is handled in Acme order enrich',
             }
         }
         if (typeof obj.order === 'string') {
             return {
                 type: 'Error',
-                errorMessage: 'AcmeOrder intent payload must not include legacy order field; segmentation is handled in Step B',
+                errorMessage: 'AcmeOrder intent payload must not include legacy order field; segmentation is handled in Acme order enrich',
             }
         }
         const candidate: ParseCommandAcmeOrderIntentResult = {

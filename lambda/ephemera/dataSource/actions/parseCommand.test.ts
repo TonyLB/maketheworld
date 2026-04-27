@@ -386,7 +386,7 @@ describe('parseCommand LLM path', () => {
         expect(promptArg).toContain('use teleporter')
     })
 
-    it('returns PromptInjectionAttempt from intent discrimination without Acme Step B', async () => {
+    it('returns PromptInjectionAttempt from intent discrimination without Acme order enrich', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"PromptInjectionAttempt","confidence":0.88}',
@@ -403,7 +403,7 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 
-    it('returns MultipleCommands from intent discrimination without Acme Step B', async () => {
+    it('returns MultipleCommands from intent discrimination without Acme order enrich', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"MultipleCommands","confidence":0.7}',
@@ -420,7 +420,7 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 
-    it('returns LookRoom from intent discrimination without Acme Step B', async () => {
+    it('returns LookRoom from intent discrimination without Acme order enrich', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"LookRoom","confidence":0.91}',
@@ -437,7 +437,7 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 
-    it('returns Help from intent discrimination without Acme Step B', async () => {
+    it('returns Help from intent discrimination without Acme order enrich', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"Help","confidence":0.84}',
@@ -840,7 +840,7 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
     })
 
-    it('runs enrich when Step B returns only invalid catalog lines', async () => {
+    it('runs enrich when Acme order enrich returns only invalid catalog lines', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"AcmeOrder","confidence":0.8}',

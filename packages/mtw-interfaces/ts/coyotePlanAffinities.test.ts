@@ -7,7 +7,7 @@ import {
     isCoyoteAffinityPossibility,
     isCoyoteAffinityPossibilityEcho,
     normalizeAcmeOrderEnrichLine,
-    normalizeAcmeOrderStepBResponse,
+    normalizeAcmeOrderEnrichResponse,
 } from './coyotePlanAffinities'
 import { isEphemeraMetaRoomObject } from './ephemeraMeta'
 
@@ -270,9 +270,9 @@ describe('normalizeAcmeOrderEnrichLine', () => {
     })
 })
 
-describe('normalizeAcmeOrderStepBResponse', () => {
+describe('normalizeAcmeOrderEnrichResponse', () => {
     it('drops invalid root confidence and uses explicit lines', () => {
-        const r = normalizeAcmeOrderStepBResponse({
+        const r = normalizeAcmeOrderEnrichResponse({
             confidence: 9,
             lines: [
                 {
@@ -289,7 +289,7 @@ describe('normalizeAcmeOrderStepBResponse', () => {
     })
 
     it('pads empty lines array with synthetic failure using emptyFallbackName', () => {
-        const r = normalizeAcmeOrderStepBResponse({ lines: [] }, { emptyFallbackName: 'custom' })
+        const r = normalizeAcmeOrderEnrichResponse({ lines: [] }, { emptyFallbackName: 'custom' })
         expect(r.lines).toHaveLength(1)
         expect(r.lines[0]).toMatchObject({
             valid: true,
@@ -301,7 +301,7 @@ describe('normalizeAcmeOrderStepBResponse', () => {
     })
 
     it('salvages null entries in lines array', () => {
-        const r = normalizeAcmeOrderStepBResponse({
+        const r = normalizeAcmeOrderEnrichResponse({
             confidence: 0.9,
             lines: [
                 {
@@ -325,7 +325,7 @@ describe('normalizeAcmeOrderStepBResponse', () => {
     })
 
     it('mixes valid and invalid lines', () => {
-        const r = normalizeAcmeOrderStepBResponse({
+        const r = normalizeAcmeOrderEnrichResponse({
             lines: [
                 {
                     valid: false,
@@ -351,7 +351,7 @@ describe('normalizeAcmeOrderStepBResponse', () => {
     })
 
     it('throws when parsed is not an object', () => {
-        expect(() => normalizeAcmeOrderStepBResponse(null)).toThrow(/plain object/)
+        expect(() => normalizeAcmeOrderEnrichResponse(null)).toThrow(/plain object/)
     })
 })
 

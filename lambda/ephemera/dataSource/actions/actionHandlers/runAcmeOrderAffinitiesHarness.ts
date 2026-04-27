@@ -12,17 +12,17 @@ export type RunAcmeOrderAffinitiesHarnessDeps = {
     characterId: EphemeraCharacterId
     messageBus: Pick<MessageBus, 'send'>
     phrases?: readonly string[]
-    /** When true, only Step B (enrich) runs with the full command string; intent discrimination is skipped. */
-    stepBOnly?: boolean
+    /** When true, only Acme order enrich runs with the full command string; intent discrimination is skipped. */
+    enrichOnly?: boolean
     /**
-     * Override for tests when **`stepBOnly`** is false. If unset, uses **`parseCommandWithEnrichReasoning`**
+     * Override for tests when **`enrichOnly`** is false. If unset, uses **`parseCommandWithEnrichReasoning`**
      * so chain-of-reason Markdown is available for display. **`parseCommandImpl`** is a legacy shortcut
      * that returns **`result`** only (no CoR in the published tree unless you also wire enrich reasoning).
      */
     parseCommandImpl?: typeof parseCommand
-    /** Full override including **`enrichReasoningMarkdown`** for harness output when **`stepBOnly`** is false. */
+    /** Full override including **`enrichReasoningMarkdown`** for harness output when **`enrichOnly`** is false. */
     parseCommandWithEnrichReasoningImpl?: typeof parseCommandWithEnrichReasoning
-    /** Override Bedrock enrich for tests when **`stepBOnly`** is true. */
+    /** Override Bedrock enrich for tests when **`enrichOnly`** is true. */
     invokeBedrockAcmeOrderEnrichImpl?: typeof invokeBedrockAcmeOrderEnrich
     now?: () => number
 }
@@ -34,18 +34,18 @@ function formatParseResultJson(result: ParseCommandResult): string {
 /**
  * Runs **`parseCommand`** once per canonical phrase as **`order &lt;phrase&gt;`**, then publishes **one** OOC message with all results for manual review.
  *
- * With **`stepBOnly`**: runs **`buildParseAcmeOrderEnrichPrompt`** + **`invokeBedrockAcmeOrderEnrich`** + **`finalizeAcmeOrderFromStepB`** per phrase (no intent classification).
+ * With **`enrichOnly`**: runs **`buildParseAcmeOrderEnrichPrompt`** + **`invokeBedrockAcmeOrderEnrich`** + **`finalizeAcmeOrderFromEnrich`** per phrase (no intent classification).
  */
 export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinitiesHarnessDeps): Promise<void> {
     const phrases = deps.phrases ?? ACME_ORDER_AFFINITIES_HARNESS_PHRASES
     const invokeEnrich = deps.invokeBedrockAcmeOrderEnrichImpl ?? invokeBedrockAcmeOrderEnrich
     const now = deps.now ?? (() => Date.now())
-    const stepBOnly = deps.stepBOnly ?? false
+    const enrichOnly = deps.enrichOnly ?? false
 
     const tree: RenderTree = [
-        stepBOnly
-            ? 'Acme affinities harness (Step B enrich only per phrase)'
-            : 'Acme affinities harness (parseCommand discriminate intent + Step B per line)',
+        enrichOnly
+            ? 'Acme affinities harness (Acme enrich only per phrase)'
+            : 'Acme affinities harness (parseCommand discriminate intent + Acme enrich per line)',
         COYOTE_RENDER_LINE_BREAK,
     ]
 
@@ -68,7 +68,7 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
         let displayReasoning = ''
         const parseDeps: ParseCommandDeps = {}
         try {
-            if (stepBOnly) {
+            if (enrichOnly) {
                 const enriched = await enrichAcmeOrder(
                     { command, occupiedStableKeys: [] },
                     1,

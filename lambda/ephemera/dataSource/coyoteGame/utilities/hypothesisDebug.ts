@@ -1,4 +1,4 @@
-export const COYOTE_HYPOTHESIS_DEBUG_ENABLED = false
+export const COYOTE_HYPOTHESIS_DEBUG_ENABLED = true
 
 const COYOTE_HYPOTHESIS_DEBUG_PREFIX = '[mtw.ephemera.coyoteGame.hypothesisDebug]'
 
