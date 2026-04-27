@@ -8,8 +8,8 @@ import { isObjectsChangedPayload } from '../../objects/events'
 import getCurrentTimestamp from '../../../internalUtils/dateUtil'
 import internalCache from '../../../internalCache'
 import type { CoyoteGamePublishedPayload } from '../publishedEvents'
-import { COYOTE_RENDER_LINE_BREAK } from '../coyoteRenderTree'
-import { isCoyoteGameRoom } from '../isCoyoteGameRoom'
+import { COYOTE_RENDER_LINE_BREAK } from '../utilities/coyoteRenderTree'
+import { isCoyoteGameRoom } from '../utilities/isCoyoteGameRoom'
 
 const SCENE_ANALYSIS_HEADING = /^\s*##\s+Scene analysis\s*$/im
 

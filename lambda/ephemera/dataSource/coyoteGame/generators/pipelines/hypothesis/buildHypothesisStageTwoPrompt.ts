@@ -4,7 +4,7 @@ import {
     COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
     coyoteSeamRoomMappingLines,
 } from './coyoteHypothesisPromptShared'
-import type { CoyoteRoomObjectsByRoom } from '../../../coyoteRoomObjectSnapshot'
+import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 
 export type BuildHypothesisStageTwoPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom

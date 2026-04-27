@@ -3,7 +3,7 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { CoyoteGameIntentRecord } from '../../../../../internalCache/coyoteGame'
 import { buildPlanOutcomePromptParts } from './buildPlanOutcomePrompt'
-import { loadCoyoteRoomObjectsByRoom, type CoyoteRoomObjectsByRoom } from '../../../coyoteRoomObjectSnapshot'
+import { loadCoyoteRoomObjectsByRoom, type CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 import { invokeBedrockHypothesis } from '../hypothesis/invokeBedrockHypothesis'
 
 const OUTCOME_STUB: RenderTree = ['Outcome: Stubbed']

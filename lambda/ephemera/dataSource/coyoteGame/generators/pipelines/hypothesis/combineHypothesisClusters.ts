@@ -7,8 +7,8 @@ import type {
 import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 import type { ParsedCluster, ParsedClusterMember } from './parseHypothesisStageOneOutput'
-import { formatCoyoteAffinityPossibility } from '../../../coyoteRoomObjectSnapshot'
-import type { CoyoteRoomObjectsByRoom } from '../../../coyoteRoomObjectSnapshot'
+import { formatCoyoteAffinityPossibility } from '../../../utilities/coyoteRoomObjectSnapshot'
+import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 
 export type CombineHypothesisClustersSuccess = {
     ok: true

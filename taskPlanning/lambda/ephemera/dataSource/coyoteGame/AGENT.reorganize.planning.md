@@ -191,8 +191,8 @@ Pending work uses `[ ]` and completed work uses `[X]`. When a step has nested bu
   - [X] Add `generators/abstract/`, `generators/sharedParsers/`, `generators/pipelines/hypothesis/`, `generators/pipelines/outcome/`, `generators/testHarness/` (empty or with moved files only).
   - [X] Move modules in dependency order (deepest / leaf parsers first, then prompts, then orchestrators) to avoid broken intermediate states, or use a single branch with one mechanical move commit.
 
-- [ ] Phase 3 - `utilities/`
-  - [ ] Add **`utilities/`** and move the four locked modules (+ tests): **`coyoteRoomObjectSnapshot`**, **`collectActiveCharactersInCoyoteRooms`**, **`coyoteRenderTree`**, **`isCoyoteGameRoom`**; fix imports including **`dataSource/actions/`** for **`coyoteRenderTree`** ([Utilities folder (locked)](#utilities-folder-locked)).
+- [X] Phase 3 - `utilities/`
+  - [X] Add **`utilities/`** and move the four locked modules (+ tests): **`coyoteRoomObjectSnapshot`**, **`collectActiveCharactersInCoyoteRooms`**, **`coyoteRenderTree`**, **`isCoyoteGameRoom`**; fix imports including **`dataSource/actions/`** for **`coyoteRenderTree`** ([Utilities folder (locked)](#utilities-folder-locked)).
 
 - [ ] Phase 4 - test harness
   - [ ] Move harness runner and fixtures (+ tests) under `generators/testHarness/`.

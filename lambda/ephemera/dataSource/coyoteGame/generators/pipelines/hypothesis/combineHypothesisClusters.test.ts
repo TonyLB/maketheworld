@@ -1,7 +1,7 @@
 import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { harnessRoomObjects } from '../../testHarness/coyoteEngineTestFixtures'
 import { combineHypothesisClusters, renderCombinedHypothesisForStageTwo } from './combineHypothesisClusters'
-import type { CoyoteRoomObjectsByRoom } from '../../../coyoteRoomObjectSnapshot'
+import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 import type { ParsedCluster } from './parseHypothesisStageOneOutput'
 
 describe('combineHypothesisClusters', () => {

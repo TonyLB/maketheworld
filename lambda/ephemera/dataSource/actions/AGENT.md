@@ -59,7 +59,7 @@ Stable keys give **machine correlation** for Coyote staged objects (seams, clust
 
 ### Coyote prompts vs stored fields
 
-Hypothesis / plan prompts format staged objects primarily from **`shortName`** + plan-role **`affinities`** (**[`formatCoyoteStagedObjectsByRoom`](../coyoteGame/coyoteRoomObjectSnapshot.ts)**). Current affinity vocabulary includes structural roles, enrich-side generative roles **`prep`** and **`creation`**, and flat modification tags (**`influence-road-runner`**, **`alter-road-runner`**, **`coyote-equipment`**, **`coyote-enhancement`**, **`setting-addition`**, **`connect-props`**, **`enhance-prop`**). **`stableKey`** is echoed in the staged snapshot line (see **[`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md)**).
+Hypothesis / plan prompts format staged objects primarily from **`shortName`** + plan-role **`affinities`** (**[`formatCoyoteStagedObjectsByRoom`](../coyoteGame/utilities/coyoteRoomObjectSnapshot.ts)**). Current affinity vocabulary includes structural roles, enrich-side generative roles **`prep`** and **`creation`**, and flat modification tags (**`influence-road-runner`**, **`alter-road-runner`**, **`coyote-equipment`**, **`coyote-enhancement`**, **`setting-addition`**, **`connect-props`**, **`enhance-prop`**). **`stableKey`** is echoed in the staged snapshot line (see **[`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md)**).
 
 ### Downstream
 

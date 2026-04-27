@@ -7,7 +7,7 @@ import { isAwaitRoadRunnerPublishedPayload } from '../../actions/publishedEvents
 import getCurrentTimestamp from '../../../internalUtils/dateUtil'
 import internalCache from '../../../internalCache'
 import type { CoyoteGamePublishedPayload } from '../publishedEvents'
-import { collectActiveCharactersInCoyoteRooms } from '../collectActiveCharactersInCoyoteRooms'
+import { collectActiveCharactersInCoyoteRooms } from '../utilities/collectActiveCharactersInCoyoteRooms'
 
 /**
  * On Await RoadRunner from actions, broadcast plan-outcome WorldMessages to all active characters

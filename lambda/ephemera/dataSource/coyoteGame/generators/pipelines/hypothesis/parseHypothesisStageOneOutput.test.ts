@@ -1,6 +1,6 @@
 import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { harnessRoomObjects } from '../../testHarness/coyoteEngineTestFixtures'
-import type { CoyoteRoomObjectsByRoom } from '../../../coyoteRoomObjectSnapshot'
+import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 import { parseHypothesisStageOneOutput, stripHypothesisStageOneFence } from './parseHypothesisStageOneOutput'
 
 const affinitiesTerminal: CoyoteAffinityPossibility[] = [{ role: 'terminal', aptness: 0.55 }]

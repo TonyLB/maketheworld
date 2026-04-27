@@ -18,7 +18,7 @@ import {
 } from './combineHypothesisClusters';
 import { parseHop1HandoffFromSelectionBody, type CoyoteHop1Handoff } from './coyoteHop1Handoff';
 import { buildCoyotePhasePlanValidationContext } from './coyoteHypothesisPhasePlanContext';
-import { loadCoyoteRoomObjectsByRoom, type CoyoteRoomObjectsByRoom } from '../../../coyoteRoomObjectSnapshot';
+import { loadCoyoteRoomObjectsByRoom, type CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot';
 import {
     invokeBedrockHypothesisPhasePlanHop,
     invokeBedrockHypothesisPlanSelection,

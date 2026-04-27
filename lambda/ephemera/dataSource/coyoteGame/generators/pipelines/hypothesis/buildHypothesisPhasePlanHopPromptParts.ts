@@ -11,7 +11,7 @@ import {
     coyoteSeamRoomMappingLines,
 } from './coyoteHypothesisPromptShared'
 import type { CoyoteHop1Handoff } from './coyoteHop1Handoff'
-import type { CoyoteRoomObjectsByRoom } from '../../../coyoteRoomObjectSnapshot'
+import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 
 export type BuildHypothesisPhasePlanHopPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom

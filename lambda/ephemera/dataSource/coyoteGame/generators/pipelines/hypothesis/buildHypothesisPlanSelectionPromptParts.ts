@@ -6,7 +6,7 @@ import {
     coyoteSeamRoomMappingLines,
 } from './coyoteHypothesisPromptShared'
 import { COYOTE_HOP1_HANDOFF_JSON_KEYS } from './coyoteHop1Handoff'
-import type { CoyoteRoomObjectsByRoom } from '../../../coyoteRoomObjectSnapshot'
+import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 
 export type BuildHypothesisPlanSelectionPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom

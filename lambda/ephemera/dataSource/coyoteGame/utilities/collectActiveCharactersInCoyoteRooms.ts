@@ -1,6 +1,6 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
-import internalCache from '../../internalCache'
+import internalCache from '../../../internalCache'
 
 /**
  * All characters with at least one session in any Coyote Game demo room, de-duplicated by EphemeraId.

@@ -4,7 +4,7 @@ import {
     SNAPSHOT_SECTION_HEADER,
     splitCoyoteHypothesisLinesAtSnapshot,
 } from './coyoteHypothesisPromptShared'
-import { formatCoyoteStagedObjectsByRoom, type CoyoteRoomObjectsByRoom } from '../../../coyoteRoomObjectSnapshot'
+import { formatCoyoteStagedObjectsByRoom, type CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 
 export type BuildHypothesisPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom

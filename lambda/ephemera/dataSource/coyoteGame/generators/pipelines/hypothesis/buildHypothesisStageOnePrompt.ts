@@ -6,7 +6,7 @@ import {
     SNAPSHOT_SECTION_HEADER,
     splitCoyoteHypothesisLinesAtSnapshot,
 } from './coyoteHypothesisPromptShared'
-import { formatCoyoteStagedObjectsByRoom } from '../../../coyoteRoomObjectSnapshot'
+import { formatCoyoteStagedObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 
 const STAGE_ONE_INTRO_LINES = [
     'You are clustering staged Acme objects in a Coyote-vs-Road-Runner cartoon setup.',

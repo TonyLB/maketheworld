@@ -4,7 +4,7 @@ import {
     type CoyotePhasePlanValidationContext,
 } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 import { seamRoomLabelFromEphemeraRoomId } from './coyoteHypothesisPromptShared'
-import type { CoyoteRoomObjectsByRoom } from '../../../coyoteRoomObjectSnapshot'
+import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 
 /** Normalized snapshot **`stableKey`** set for **`validateCoyotePhasePlan`**. */
 export function collectCoyoteSnapshotStableKeys(roomObjectsByRoom: CoyoteRoomObjectsByRoom): Set<string> {

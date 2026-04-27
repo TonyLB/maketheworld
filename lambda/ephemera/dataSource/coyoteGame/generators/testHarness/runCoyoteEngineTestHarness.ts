@@ -3,12 +3,12 @@ import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import { v4 as uuidv4 } from 'uuid'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { CoyoteGameIntentRecord } from '../../../../internalCache/coyoteGame'
-import { COYOTE_RENDER_LINE_BREAK } from '../../coyoteRenderTree'
+import { COYOTE_RENDER_LINE_BREAK } from '../../utilities/coyoteRenderTree'
 import {
     COYOTE_ENGINE_TEST_FIXTURES,
     type CoyoteEngineTestFixture,
 } from './coyoteEngineTestFixtures'
-import type { CoyoteRoomObjectsByRoom } from '../../coyoteRoomObjectSnapshot'
+import type { CoyoteRoomObjectsByRoom } from '../../utilities/coyoteRoomObjectSnapshot'
 import type { InvokeBedrockHypothesisResult } from '../pipelines/hypothesis/invokeBedrockHypothesis'
 import {
     generateHypothesisWithStageResults,

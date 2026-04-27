@@ -1,6 +1,6 @@
 import type { CoyotePhasePlan } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 import { formatPhasePlanForOutcomePrompt } from './formatPhasePlanForOutcomePrompt'
-import { formatCoyoteStagedObjectsByRoom, type CoyoteRoomObjectsByRoom } from '../../../coyoteRoomObjectSnapshot'
+import { formatCoyoteStagedObjectsByRoom, type CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 import type { CoyotePromptParts } from '../hypothesis/buildHypothesisPrompt'
 
 export type BuildPlanOutcomePromptInput = {

@@ -2,7 +2,7 @@ import {
     normalizedPhasePlanStableKey,
     type CoyotePhasePlan,
 } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
-import type { CoyoteRoomObjectsByRoom } from '../../../coyoteRoomObjectSnapshot'
+import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 
 /** Maps normalized snapshot stable keys to display **shortName** for prompt-facing text. */
 export function buildStableKeyToShortNameMap(
