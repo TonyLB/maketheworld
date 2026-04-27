@@ -90,16 +90,80 @@ function formatUsageLine(label: string, result: InvokeBedrockHypothesisResult): 
 }
 
 function pipelineErrorMessage(pipeline: GenerateHypothesisPipelineResult): string | undefined {
-    if (!pipeline.stageOneResult.success) {
-        return pipeline.stageOneResult.errorMessage
+    switch (pipeline.kind) {
+        case 'stub': {
+            if (!pipeline.stageOneResult.success) {
+                return pipeline.stageOneResult.errorMessage
+            }
+            if (pipeline.planSelectionResult && !pipeline.planSelectionResult.success) {
+                return pipeline.planSelectionResult.errorMessage
+            }
+            if (pipeline.phasePlanHopResult && !pipeline.phasePlanHopResult.success) {
+                return pipeline.phasePlanHopResult.errorMessage
+            }
+            return undefined
+        }
+        case 'full': {
+            if (!pipeline.stageOneResult.success) {
+                return pipeline.stageOneResult.errorMessage
+            }
+            if (!pipeline.planSelectionResult.success) {
+                return pipeline.planSelectionResult.errorMessage
+            }
+            if (!pipeline.phasePlanHopResult.success) {
+                return pipeline.phasePlanHopResult.errorMessage
+            }
+            return undefined
+        }
+        case 'harnessPartial': {
+            if (pipeline.stageOneResult && !pipeline.stageOneResult.success) {
+                return pipeline.stageOneResult.errorMessage
+            }
+            if (pipeline.planSelectionResult && !pipeline.planSelectionResult.success) {
+                return pipeline.planSelectionResult.errorMessage
+            }
+            if (pipeline.phasePlanHopResult && !pipeline.phasePlanHopResult.success) {
+                return pipeline.phasePlanHopResult.errorMessage
+            }
+            return undefined
+        }
     }
-    if (pipeline.planSelectionResult && !pipeline.planSelectionResult.success) {
-        return pipeline.planSelectionResult.errorMessage
+}
+
+/** Normalize union pipeline result for harness formatting (default full runs use **`full`** or **`stub`** only). */
+function flattenPipelineResultForHarness(pipeline: GenerateHypothesisPipelineResult): {
+    record: CoyoteGameIntentRecord
+    stageOneResult: InvokeBedrockHypothesisResult
+    planSelectionResult: InvokeBedrockHypothesisResult | null
+    phasePlanHopResult: InvokeBedrockHypothesisResult | null
+    selectionBody?: string
+    phasePlanJson?: string
+    phasePlanValidationReason?: string
+} {
+    const emptyFail = { success: false as const, errorMessage: '', body: '' }
+    switch (pipeline.kind) {
+        case 'full':
+        case 'stub':
+            return {
+                record: pipeline.record,
+                stageOneResult: pipeline.stageOneResult,
+                planSelectionResult: pipeline.planSelectionResult,
+                phasePlanHopResult: pipeline.phasePlanHopResult,
+                selectionBody: pipeline.selectionBody,
+                phasePlanJson: pipeline.phasePlanJson,
+                phasePlanValidationReason: pipeline.phasePlanValidationReason,
+            }
+        case 'harnessPartial':
+            return {
+                record: pipeline.record,
+                stageOneResult: pipeline.stageOneResult ?? emptyFail,
+                planSelectionResult: pipeline.planSelectionResult ?? null,
+                phasePlanHopResult: pipeline.phasePlanHopResult ?? null,
+                selectionBody: pipeline.selectionBody,
+                phasePlanJson: pipeline.phasePlanJson,
+                phasePlanValidationReason: pipeline.phasePlanValidationReason,
+            }
     }
-    if (pipeline.phasePlanHopResult && !pipeline.phasePlanHopResult.success) {
-        return pipeline.phasePlanHopResult.errorMessage
-    }
-    return undefined
 }
 
 function formatFixtureRenderTree(args: {
@@ -179,27 +243,28 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                 getRoomMeta: async () => undefined,
                 roomObjectsByRoomOverride: normalizeFixtureRoomObjects(fixture),
             })
+            const flat = flattenPipelineResultForHarness(pipeline)
             const elapsedMs = Math.max(0, now() - startMs)
-            const usageStageOne = formatUsageLine('usageStage1', pipeline.stageOneResult)
+            const usageStageOne = formatUsageLine('usageStage1', flat.stageOneResult)
             const usagePlanSelection = formatUsageLine(
                 'usagePlanSelection',
-                pipeline.planSelectionResult ?? emptyUsageFailure
+                flat.planSelectionResult ?? emptyUsageFailure
             )
             const usagePhasePlanHop = formatUsageLine(
                 'usagePhasePlanHop',
-                pipeline.phasePlanHopResult ?? emptyUsageFailure
+                flat.phasePlanHopResult ?? emptyUsageFailure
             )
-            const stageOneBodyBlock = formatStageOneBodyForHarness(pipeline.stageOneResult)
-            const selectionBodyBlock = formatSelectionBodyForHarness(pipeline.selectionBody)
+            const stageOneBodyBlock = formatStageOneBodyForHarness(flat.stageOneResult)
+            const selectionBodyBlock = formatSelectionBodyForHarness(flat.selectionBody)
             const phasePlanJsonBlock = formatPhasePlanJsonForHarness({
-                phasePlanJson: pipeline.phasePlanJson,
-                phasePlanValidationReason: pipeline.phasePlanValidationReason,
+                phasePlanJson: flat.phasePlanJson,
+                phasePlanValidationReason: flat.phasePlanValidationReason,
             })
             const message = formatFixtureRenderTree({
                 fixture,
                 index,
                 total: fixtures.length,
-                intentRecord: pipeline.record,
+                intentRecord: flat.record,
                 elapsedMs,
                 usageStageOne,
                 stageOneBodyBlock,

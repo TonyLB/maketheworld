@@ -2,13 +2,18 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { defaultStableKeyProposal } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import type { CoyoteHop1Handoff } from '../pipelines/hypothesis/coyoteHop1Handoff'
 import {
     combineHypothesisClusters,
     renderCombinedHypothesisForStageTwo,
 } from '../pipelines/hypothesis/combineHypothesisClusters'
+import type {
+    CoyoteHarnessPhasePlanInject,
+    CoyoteHarnessPlanSelectInject,
+} from '../pipelines/hypothesis/coyoteHarnessInjectTypes'
 import { parseHypothesisStageOneOutput } from '../pipelines/hypothesis/parseHypothesisStageOneOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../utilities/coyoteRoomObjectSnapshot'
+
+export type { CoyoteHarnessPhasePlanInject, CoyoteHarnessPlanSelectInject } from '../pipelines/hypothesis/coyoteHarnessInjectTypes'
 
 /** Same room grid as [`normalizeFixtureRoomObjects`](./runCoyoteEngineTestHarness.ts). */
 const COYOTE_HARNESS_ROOM_IDS: EphemeraRoomId[] = [
@@ -19,23 +24,7 @@ const COYOTE_HARNESS_ROOM_IDS: EphemeraRoomId[] = [
     'ROOM#BRIDGE',
 ]
 
-/**
- * Minimum pipeline state to start at **`hypothesisPlanSelectionLlm`** (after **`seamCombineRender`**).
- * Matches [`BuildHypothesisPlanSelectionPromptInput`](../pipelines/hypothesis/buildHypothesisPlanSelectionPromptParts.ts).
- */
-export type CoyoteHarnessPlanSelectInject = {
-    roomObjectsByRoom: CoyoteRoomObjectsByRoom
-    combinedMarkdown: string
-}
-
-/**
- * Minimum state to start at **`hypothesisPhasePlanHopLlm`** (after **`parsePlanSelectionHandoff`**).
- */
-export type CoyoteHarnessPhasePlanInject = CoyoteHarnessPlanSelectInject & {
-    hop1Handoff: CoyoteHop1Handoff
-}
-
-/** Phase aliases that require hand-maintained inject bundles for **`startAt`** runs. */
+/** Phase aliases that require hand-maintained inject bundles for **`runOnly`** runs. */
 export type CoyoteHarnessInjectPhase = 'planSelect' | 'phasePlan'
 
 export type CoyoteHarnessStartAtInjectSuccess =

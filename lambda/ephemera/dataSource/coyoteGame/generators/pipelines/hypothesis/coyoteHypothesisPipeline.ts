@@ -16,6 +16,7 @@ import {
     combineHypothesisClusters,
     renderCombinedHypothesisForStageTwo,
 } from './combineHypothesisClusters';
+import type { CoyoteHarnessPhasePlanInject, CoyoteHarnessPlanSelectInject } from './coyoteHarnessInjectTypes';
 import { parseHop1HandoffFromSelectionBody, type CoyoteHop1Handoff } from './coyoteHop1Handoff';
 import { buildCoyotePhasePlanValidationContext } from './coyoteHypothesisPhasePlanContext';
 import { loadCoyoteRoomObjectsByRoom, type CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot';
@@ -44,21 +45,62 @@ export type GenerateHypothesisDeps = {
     roomObjectsByRoomOverride?: CoyoteRoomObjectsByRoom;
 };
 
-export type GenerateHypothesisPipelineResult = {
+/** Phase alias aligned with slash / harness (`testOnly`). */
+export type CoyoteHypothesisTestPhase = 'clustering' | 'planSelect' | 'phasePlan';
+
+/** Harness-only: prefix run vs isolated single LLM hop. */
+export type CoyoteHypothesisHarnessRunKind = 'runUntil' | 'runOnly';
+
+export type CoyoteHypothesisPipelineHarnessOptions = {
+    testOnly: CoyoteHypothesisTestPhase;
+    harnessRunKind: CoyoteHypothesisHarnessRunKind;
+    /** Required for **`runOnly`** **`planSelect`** / **`phasePlan`**; omit for **`runUntil`** and **`runOnly`** **`clustering`**. */
+    injectState?: Partial<CoyoteHypothesisPipelineState>;
+};
+
+/** Shared payload fields on full completion (successful parse of phase-plan hop). */
+type GenerateHypothesisPipelineOkFields = {
     record: CoyoteGameIntentRecord;
     stageOneResult: InvokeBedrockHypothesisResult;
-    /** Option A hop 1 (plan selection + rubric + JSON handoff). */
-    planSelectionResult: InvokeBedrockHypothesisResult | null;
-    /** Option A hop 2 (phase-plan JSON + "## Scene analysis" + fenced Hypothesis). */
-    phasePlanHopResult: InvokeBedrockHypothesisResult | null;
-    /** Hop 1 assistant body (plan selection); harness / tuning. */
+    planSelectionResult: InvokeBedrockHypothesisResult;
+    phasePlanHopResult: InvokeBedrockHypothesisResult;
     selectionBody?: string;
-    /** Raw **` ```json ` ** interior that validated for **`phasePlan`**, when any. */
     phasePlanJson?: string;
     phasePlanValidationReason?: string;
-    /** Phase-plan hop extended-reasoning text when Bedrock returned it (not stored on CoyoteGameIntentRecord). */
     stageTwoReasoningContent?: string;
 };
+
+export type GenerateHypothesisPipelineFullResult = { kind: 'full' } & GenerateHypothesisPipelineOkFields;
+
+export type GenerateHypothesisPipelineHarnessPartialResult = {
+    kind: 'harnessPartial';
+    testOnly: CoyoteHypothesisTestPhase;
+    harnessRunKind: CoyoteHypothesisHarnessRunKind;
+    record: CoyoteGameIntentRecord;
+    stageOneResult?: InvokeBedrockHypothesisResult;
+    planSelectionResult?: InvokeBedrockHypothesisResult | null;
+    phasePlanHopResult?: InvokeBedrockHypothesisResult | null;
+    selectionBody?: string;
+    phasePlanJson?: string;
+    phasePlanValidationReason?: string;
+    stageTwoReasoningContent?: string;
+};
+
+export type GenerateHypothesisPipelineStubResult = {
+    kind: 'stub';
+    record: CoyoteGameIntentRecord;
+    stageOneResult: InvokeBedrockHypothesisResult;
+    planSelectionResult: InvokeBedrockHypothesisResult | null;
+    phasePlanHopResult: InvokeBedrockHypothesisResult | null;
+    selectionBody?: string;
+    phasePlanJson?: string;
+    phasePlanValidationReason?: string;
+};
+
+export type GenerateHypothesisPipelineResult =
+    | GenerateHypothesisPipelineFullResult
+    | GenerateHypothesisPipelineHarnessPartialResult
+    | GenerateHypothesisPipelineStubResult;
 
 export type CoyoteHypothesisPipelineState = {
     roomObjectsByRoom?: CoyoteRoomObjectsByRoom;
@@ -101,6 +143,62 @@ function errorDetails(error: unknown): Record<string, unknown> {
     }
     return { errorName: typeof error, errorMessage: String(error) };
 }
+
+function assertRunOnlyInjectPlanSelect(
+    inject: Partial<CoyoteHypothesisPipelineState> | undefined
+): CoyoteHarnessPlanSelectInject {
+    const roomObjectsByRoom = inject?.roomObjectsByRoom;
+    const combinedMarkdown = inject?.combinedMarkdown;
+    if (!roomObjectsByRoom || combinedMarkdown === undefined) {
+        throw new Error(
+            'CoyoteHypothesisPipeline: runOnly planSelect requires injectState with roomObjectsByRoom and combinedMarkdown'
+        );
+    }
+    return { roomObjectsByRoom, combinedMarkdown };
+}
+
+function assertRunOnlyInjectPhasePlan(
+    inject: Partial<CoyoteHypothesisPipelineState> | undefined
+): CoyoteHarnessPhasePlanInject {
+    const base = assertRunOnlyInjectPlanSelect(inject);
+    const hop1Handoff = inject?.hop1Handoff;
+    if (!hop1Handoff) {
+        throw new Error(
+            'CoyoteHypothesisPipeline: runOnly phasePlan requires injectState with hop1Handoff, roomObjectsByRoom, and combinedMarkdown'
+        );
+    }
+    return { ...base, hop1Handoff };
+}
+
+export function validateCoyoteHypothesisHarnessOptions(options: CoyoteHypothesisPipelineHarnessOptions): void {
+    const { testOnly, harnessRunKind, injectState } = options;
+    if (harnessRunKind === 'runOnly') {
+        if (testOnly === 'planSelect') {
+            assertRunOnlyInjectPlanSelect(injectState);
+            return;
+        }
+        if (testOnly === 'phasePlan') {
+            assertRunOnlyInjectPhasePlan(injectState);
+            return;
+        }
+        if (injectState !== undefined && Object.keys(injectState).length > 0) {
+            throw new Error(
+                'CoyoteHypothesisPipeline: runOnly clustering does not accept injectState; use roomObjectsByRoomOverride on deps'
+            );
+        }
+        return;
+    }
+    if (injectState !== undefined && Object.keys(injectState).length > 0) {
+        throw new Error('CoyoteHypothesisPipeline: injectState is only valid for harnessRunKind runOnly planSelect / phasePlan');
+    }
+}
+
+/** Indices match [`buildCoyoteHypothesisSteps`] order. */
+const RUN_UNTIL_LAST_STEP_INDEX: Record<CoyoteHypothesisTestPhase, number> = {
+    clustering: 1,
+    planSelect: 3,
+    phasePlan: 5,
+};
 
 function buildCoyoteHypothesisSteps(
     ctx: ReturnType<typeof createPipelineContext<CoyoteHypothesisPipelineState>>,
@@ -270,7 +368,7 @@ function buildCoyoteHypothesisSteps(
 
 function pipelineFailureToStubResult(
     failure: PipelineRunFailure<CoyoteHypothesisPipelineState>
-): GenerateHypothesisPipelineResult | null {
+): GenerateHypothesisPipelineStubResult | null {
     const { state, error } = failure;
 
     if (!(error instanceof CoyoteHypothesisPipelineAbortError)) {
@@ -283,6 +381,7 @@ function pipelineFailureToStubResult(
     }
 
     return {
+        kind: 'stub',
         record: { intent: 'Hypothesis: Stubbed' },
         stageOneResult,
         planSelectionResult: state.planSelectionResult !== undefined ? state.planSelectionResult : null,
@@ -295,9 +394,7 @@ function pipelineFailureToStubResult(
     };
 }
 
-function pipelineSuccessToResult(
-    state: CoyoteHypothesisPipelineState
-): GenerateHypothesisPipelineResult {
+function pipelineSuccessToFullResult(state: CoyoteHypothesisPipelineState): GenerateHypothesisPipelineFullResult {
     const stageOneResult = state.stageOneResult;
     const planSelectionResult = state.planSelectionResult;
     const phasePlanHopResult = state.phasePlanHopResult;
@@ -306,6 +403,7 @@ function pipelineSuccessToResult(
     if (
         !stageOneResult ||
         planSelectionResult === undefined ||
+        planSelectionResult === null ||
         phasePlanHopResult === undefined ||
         phasePlanHopResult === null ||
         !record
@@ -314,6 +412,7 @@ function pipelineSuccessToResult(
     }
 
     return {
+        kind: 'full',
         record,
         stageOneResult,
         planSelectionResult,
@@ -329,8 +428,41 @@ function pipelineSuccessToResult(
     };
 }
 
+function pipelineSuccessToHarnessPartial(
+    state: CoyoteHypothesisPipelineState,
+    harness: { testOnly: CoyoteHypothesisTestPhase; harnessRunKind: CoyoteHypothesisHarnessRunKind }
+): GenerateHypothesisPipelineHarnessPartialResult {
+    return {
+        kind: 'harnessPartial',
+        testOnly: harness.testOnly,
+        harnessRunKind: harness.harnessRunKind,
+        record: state.record ?? { intent: 'Hypothesis: Stubbed' },
+        ...(state.stageOneResult !== undefined ? { stageOneResult: state.stageOneResult } : {}),
+        ...(state.planSelectionResult !== undefined ? { planSelectionResult: state.planSelectionResult } : {}),
+        ...(state.phasePlanHopResult !== undefined ? { phasePlanHopResult: state.phasePlanHopResult } : {}),
+        ...(state.selectionBody !== undefined ? { selectionBody: state.selectionBody } : {}),
+        ...(state.phasePlanJson !== undefined ? { phasePlanJson: state.phasePlanJson } : {}),
+        ...(state.phasePlanValidationReason !== undefined
+            ? { phasePlanValidationReason: state.phasePlanValidationReason }
+            : {}),
+        ...(state.stageTwoReasoningContent !== undefined && state.stageTwoReasoningContent.length > 0
+            ? { stageTwoReasoningContent: state.stageTwoReasoningContent }
+            : {}),
+    };
+}
+
+export type MapPipelineHarnessContext =
+    | { harness: undefined }
+    | {
+          harness: {
+              testOnly: CoyoteHypothesisTestPhase;
+              harnessRunKind: CoyoteHypothesisHarnessRunKind;
+          };
+      };
+
 export function mapPipelineRunToGenerateHypothesisResult(
-    result: PipelineRunResult<CoyoteHypothesisPipelineState>
+    result: PipelineRunResult<CoyoteHypothesisPipelineState>,
+    context: MapPipelineHarnessContext = { harness: undefined }
 ): GenerateHypothesisPipelineResult {
     if (result.ok) {
         hypothesisDebugLog('pipeline mapper: success result', {
@@ -339,7 +471,10 @@ export function mapPipelineRunToGenerateHypothesisResult(
             hasWalkthrough: result.state.record?.walkthrough !== undefined,
             hasPhasePlan: result.state.record?.phasePlan !== undefined,
         });
-        return pipelineSuccessToResult(result.state);
+        if (context.harness !== undefined) {
+            return pipelineSuccessToHarnessPartial(result.state, context.harness);
+        }
+        return pipelineSuccessToFullResult(result.state);
     }
 
     const stub = pipelineFailureToStubResult(result);
@@ -360,12 +495,72 @@ export function mapPipelineRunToGenerateHypothesisResult(
     throw result.error;
 }
 
+function initialStateForRunOnly(
+    testOnly: CoyoteHypothesisTestPhase,
+    injectState: Partial<CoyoteHypothesisPipelineState> | undefined
+): CoyoteHypothesisPipelineState {
+    if (testOnly === 'clustering') {
+        return {};
+    }
+    if (testOnly === 'planSelect') {
+        const inject = assertRunOnlyInjectPlanSelect(injectState);
+        return {
+            roomObjectsByRoom: inject.roomObjectsByRoom,
+            combinedMarkdown: inject.combinedMarkdown,
+        };
+    }
+    const inject = assertRunOnlyInjectPhasePlan(injectState);
+    return {
+        roomObjectsByRoom: inject.roomObjectsByRoom,
+        combinedMarkdown: inject.combinedMarkdown,
+        hop1Handoff: inject.hop1Handoff,
+    };
+}
+
+function selectHarnessSteps(
+    allSteps: PipelineStep<CoyoteHypothesisPipelineState>[],
+    harness: CoyoteHypothesisPipelineHarnessOptions
+): PipelineStep<CoyoteHypothesisPipelineState>[] {
+    const { testOnly, harnessRunKind } = harness;
+    if (harnessRunKind === 'runUntil') {
+        const last = RUN_UNTIL_LAST_STEP_INDEX[testOnly];
+        return allSteps.slice(0, last + 1);
+    }
+    if (testOnly === 'clustering') {
+        return allSteps.slice(0, 2);
+    }
+    if (testOnly === 'planSelect') {
+        return [allSteps[3]];
+    }
+    return [allSteps[5]];
+}
+
 export async function runCoyoteHypothesisPipeline(
-    deps: GenerateHypothesisDeps
+    deps: GenerateHypothesisDeps,
+    harnessOptions?: CoyoteHypothesisPipelineHarnessOptions
 ): Promise<GenerateHypothesisPipelineResult> {
     const ctx = createPipelineContext<CoyoteHypothesisPipelineState>();
-    const steps = buildCoyoteHypothesisSteps(ctx, deps);
-    const runResult = await ctx.runPipeline({}, steps, {
+    const allSteps = buildCoyoteHypothesisSteps(ctx, deps);
+
+    let initialState: CoyoteHypothesisPipelineState = {};
+    let steps = allSteps;
+    let mapContext: MapPipelineHarnessContext = { harness: undefined };
+
+    if (harnessOptions !== undefined) {
+        validateCoyoteHypothesisHarnessOptions(harnessOptions);
+        mapContext = {
+            harness: {
+                testOnly: harnessOptions.testOnly,
+                harnessRunKind: harnessOptions.harnessRunKind,
+            },
+        };
+        steps = selectHarnessSteps(allSteps, harnessOptions);
+        if (harnessOptions.harnessRunKind === 'runOnly') {
+            initialState = initialStateForRunOnly(harnessOptions.testOnly, harnessOptions.injectState);
+        }
+    }
+
+    const runResult = await ctx.runPipeline(initialState, steps, {
         onStepStart: (stepName, stepIndex) => {
             hypothesisDebugLog('pipeline step start', { stepName, stepIndex });
         },
@@ -383,5 +578,5 @@ export async function runCoyoteHypothesisPipeline(
             ...errorDetails(runResult.error),
         });
     }
-    return mapPipelineRunToGenerateHypothesisResult(runResult);
+    return mapPipelineRunToGenerateHypothesisResult(runResult, mapContext);
 }

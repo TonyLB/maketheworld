@@ -26,6 +26,7 @@ const simpleFixtures: CoyoteEngineTestFixture[] = [
 function okPipeline(intentLine: string): GenerateHypothesisPipelineResult {
     const usageBase = { inputTokens: 10, outputTokens: 6, totalTokens: 16 }
     return {
+        kind: 'full',
         record: {
             intent: intentLine,
         },
@@ -92,6 +93,7 @@ describe('runCoyoteEngineTestHarness', () => {
             .fn()
             .mockResolvedValueOnce(okPipeline('Hypothesis: ok'))
             .mockResolvedValueOnce({
+                kind: 'stub',
                 record: { intent: 'Hypothesis: Stubbed' },
                 stageOneResult: { success: false, errorMessage: 'Throttled', body: '' },
                 planSelectionResult: null,
@@ -126,6 +128,7 @@ describe('runCoyoteEngineTestHarness', () => {
             clusters: [{ clusterName: 'Cluster A', members: [{ stableKey: 'anvil-0' }] }],
         })
         const pipeline = jest.fn().mockResolvedValue({
+            kind: 'full',
             record: {
                 intent: 'Hypothesis: It looks like you are trying to launch a boulder.',
             },
