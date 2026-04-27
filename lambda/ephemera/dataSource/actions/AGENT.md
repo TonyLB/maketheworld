@@ -8,7 +8,7 @@
 
 ## Role
 
-Parses slash-free and natural-language commands (**Bedrock**: intent classification + Acme enrich when applicable). Publishes internal bus streams such as **`Acme Order`**, **`Character Navigate`**, **`Await RoadRunner`**, and harness-only outcomes --- see [`publishedEvents.ts`](publishedEvents.ts); for terminal parse lines that need no stream contract, **`index.ts`** may **`PublishMessage`** as **`WorldOOCMessage`** (including **`PromptInjectionAttempt`**, Step A meta-instruction / jailbreak-tone classification) or **`CoyoteGameHelpMessage`** for **`Help`** intent (requesting character only, no stream contract). **`mtw.ephemera.objects`** subscribes via [`../objects/subscribedEvents.ts`](../objects/subscribedEvents.ts) (**`Acme Order`** envelope guard).
+Parses slash-free and natural-language commands (**Bedrock**: intent discrimination + Acme enrich when applicable). Publishes internal bus streams such as **`Acme Order`**, **`Character Navigate`**, **`Await RoadRunner`**, and harness-only outcomes --- see [`publishedEvents.ts`](publishedEvents.ts); for terminal parse lines that need no stream contract, **`index.ts`** may **`PublishMessage`** as **`WorldOOCMessage`** (including **`PromptInjectionAttempt`**, discriminate-intent meta-instruction / jailbreak-tone classification) or **`CoyoteGameHelpMessage`** for **`Help`** intent (requesting character only, no stream contract). **`mtw.ephemera.objects`** subscribes via [`../objects/subscribedEvents.ts`](../objects/subscribedEvents.ts) (**`Acme Order`** envelope guard).
 
 Related index: [`../AGENT.md`](../AGENT.md) (**DataSource instances** table).
 
@@ -16,10 +16,10 @@ Related index: [`../AGENT.md`](../AGENT.md) (**DataSource instances** table).
 
 Implementation-heavy workflows are documented in [`AGENT.implementation.md`](./AGENT.implementation.md):
 
-Step A (**high-level intent discrimination**) prompt, JSON interpreter, and Step A-specific types/guards live under [`discriminateIntent/`](./discriminateIntent/).
+The discriminate-intent prompt, JSON interpreter, and intent-only types/guards live under [`discriminateIntent/`](./discriminateIntent/).
 
 - Adding a new command affordance (actions-local and end-to-end checklist)
-- Step A / Step B alignment requirements and branching patterns
+- Discriminate-intent / Step B alignment requirements and branching patterns
 - Stream contract wiring and client-display protocol wiring
 - Verification matrix and suggested test commands
 

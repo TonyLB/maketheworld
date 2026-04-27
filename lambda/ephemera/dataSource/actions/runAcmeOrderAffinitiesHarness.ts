@@ -17,7 +17,7 @@ export type RunAcmeOrderAffinitiesHarnessDeps = {
     characterId: EphemeraCharacterId
     messageBus: Pick<MessageBus, 'send'>
     phrases?: readonly string[]
-    /** When true, only Step B (enrich) runs with the full command string; Step A is skipped. */
+    /** When true, only Step B (enrich) runs with the full command string; intent discrimination is skipped. */
     stepBOnly?: boolean
     /**
      * Override for tests when **`stepBOnly`** is false. If unset, uses **`parseCommandWithEnrichReasoning`**
@@ -50,7 +50,7 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
     const tree: RenderTree = [
         stepBOnly
             ? 'Acme affinities harness (Step B enrich only per phrase)'
-            : 'Acme affinities harness (parseCommand Step A + Step B per line)',
+            : 'Acme affinities harness (parseCommand discriminate intent + Step B per line)',
         COYOTE_RENDER_LINE_BREAK,
     ]
 

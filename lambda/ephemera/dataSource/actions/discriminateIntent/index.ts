@@ -27,17 +27,17 @@ export async function discriminateIntent(
         return { type: 'Error', errorMessage: invokeResult.errorMessage }
     }
 
-    const stepA = interpretIntentClassificationBody(invokeResult.body)
-    if (!isParseCommandNavigationIntentResult(stepA)) {
-        return stepA
+    const discriminatedIntent = interpretIntentClassificationBody(invokeResult.body)
+    if (!isParseCommandNavigationIntentResult(discriminatedIntent)) {
+        return discriminatedIntent
     }
 
-    const resolved = resolveExitLabelToTargetId(input, stepA.exitCandidate)
+    const resolved = resolveExitLabelToTargetId(input, discriminatedIntent.exitCandidate)
     if (resolved.type === 'Resolved') {
         return {
             type: 'Navigation',
             targetId: resolved.targetId,
-            confidence: stepA.confidence,
+            confidence: discriminatedIntent.confidence,
         }
     }
     if (resolved.type === 'NoExitContext') {

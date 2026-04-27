@@ -449,7 +449,7 @@ describe('ephemeraActionsDataSource', () => {
             })
         })
 
-        it('streams Look Command Requested for Step A LookRoom (paraphrase) with confidence from parse', async () => {
+        it('streams Look Command Requested for discriminate-intent LookRoom (paraphrase) with confidence from parse', async () => {
             mockedParseCommand.mockResolvedValue({ type: 'LookRoom', confidence: 0.91 })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: currentRoom,

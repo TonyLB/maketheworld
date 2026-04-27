@@ -31,7 +31,7 @@ describe('discriminateIntent', () => {
         expect(result).toEqual({ type: 'Error', errorMessage: 'Bedrock unavailable' })
     })
 
-    it('passes through non-navigation Step A results', async () => {
+    it('passes through non-navigation intent-discrimination results', async () => {
         const result = await discriminateIntent(
             { command: 'use teleporter' },
             {

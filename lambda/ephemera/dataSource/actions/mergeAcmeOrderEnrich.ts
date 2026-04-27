@@ -96,11 +96,11 @@ function enrichLineToParseLine(line: AcmeOrderEnrichModelLine): ParseCommandAcme
 }
 
 /**
- * Builds **`ParseCommandAcmeOrderResult`** from Step A confidence and Step B output.
+ * Builds **`ParseCommandAcmeOrderResult`** from intent-discrimination confidence and Step B output.
  * **`enrichInvokeFailed`**: transport failure or unparseable JSON — one synthetic failed row using **`commandFallbackName`**.
  */
 export function finalizeAcmeOrderFromStepB(
-    stepAConfidence: number,
+    intentConfidence: number,
     enrich: AcmeOrderEnrichModelResponse | null,
     enrichInvokeFailed: boolean,
     commandFallbackName: string
@@ -116,7 +116,7 @@ export function finalizeAcmeOrderFromStepB(
                 affinities: [],
                 affinitiesFailed: true,
             }],
-            confidence: stepAConfidence,
+            confidence: intentConfidence,
         }
     }
 
@@ -125,6 +125,6 @@ export function finalizeAcmeOrderFromStepB(
     return {
         type: 'AcmeOrder',
         orders,
-        confidence: clamp01(stepAConfidence * stepBConfidence),
+        confidence: clamp01(intentConfidence * stepBConfidence),
     }
 }

@@ -3,7 +3,7 @@ import { buildIntentClassificationPrompt } from './buildIntentClassificationProm
 import { interpretIntentClassificationBody } from './intentClassification'
 
 describe('isParseCommandNavigationIntentResult', () => {
-    it('accepts valid NavigationIntent shape for Step A', () => {
+    it('accepts valid NavigationIntent shape for intent discrimination', () => {
         expect(isParseCommandNavigationIntentResult({
             type: 'NavigationIntent',
             exitCandidate: 'north',
@@ -106,7 +106,7 @@ describe('interpretIntentClassificationBody', () => {
         )).toEqual({ type: 'Unknown', confidence: 0.25 })
     })
 
-    it('rejects AcmeOrder when Step A includes orders array with entries', () => {
+    it('rejects AcmeOrder when intent payload includes orders array with entries', () => {
         expect(interpretIntentClassificationBody(
             '{"type":"AcmeOrder","orders":["rocket skates"],"confidence":0.9}'
         ).type).toBe('Error')

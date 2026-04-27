@@ -30,7 +30,7 @@ This plan is task-scoped and should be retired after the action parse initiative
 
 The `LookRoom` affordance is now the reference branch for event-driven cross-DataSource behavior:
 
-- deterministic `look` / `l` fast path plus Step A `LookRoom` classification for paraphrases;
+- deterministic `look` / `l` fast path plus discriminate-intent `LookRoom` classification for paraphrases;
 - actions publishes `Look Command Requested` (typed payload + guard);
 - render orchestration subscriber enforces lane ordering (`Perception Thread Registered` -> `flush(lane)` -> default-lane `Render Requested`).
 
@@ -55,7 +55,7 @@ Follow the ordered **categories** below (see [Getting Started pattern for comple
 
 4. **Review implemented code**
    - **Why**: Phase 3 adds an LLM path; reuse established Bedrock **Converse** + JSON validation patterns and the existing parse-result boundary.
-   - **Parser contract and handler**: [`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts) (terminal parse union + shared guards), [`discriminateIntent/baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/baseClasses.ts) (Step A types + guards), [`discriminateIntent/intentClassification.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/intentClassification.ts), [`discriminateIntent/buildIntentClassificationPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/buildIntentClassificationPrompt.ts), [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts), [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts).
+   - **Parser contract and handler**: [`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts) (terminal parse union + shared guards), [`discriminateIntent/baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/baseClasses.ts) (intent-discrimination types + guards), [`discriminateIntent/intentClassification.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/intentClassification.ts), [`discriminateIntent/buildIntentClassificationPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/buildIntentClassificationPrompt.ts), [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts), [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts).
    - **Legacy imperative baseline** (parity / migration context): [`lambda/ephemera/parse/index.ts`](../../../../../lambda/ephemera/parse/index.ts), [`lambda/ephemera/parse/executeAction.ts`](../../../../../lambda/ephemera/parse/executeAction.ts).
    - **Bedrock invocation reference** (Nova text in, JSON out, timeout): [`invokeBedrockConverseText.ts`](../../../../../lambda/ephemera/generateExample/invokeBedrockConverseText.ts), [`invokeBedrockParseCommand.ts`](../../../../../lambda/ephemera/generateExample/invokeBedrockParseCommand.ts), [`invokeBedrockRoomDescription.ts`](../../../../../lambda/ephemera/generateExample/invokeBedrockRoomDescription.ts).
 

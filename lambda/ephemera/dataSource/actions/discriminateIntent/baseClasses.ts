@@ -18,7 +18,7 @@ const isParseConfidence = (value: unknown): value is ParseCommandConfidence => (
 )
 
 /**
- * Step A only: model-classified movement intent before server-side exit resolution.
+ * Intent discrimination only: model-classified movement intent before server-side exit resolution.
  * Final parse result still uses `Navigation` with `targetId` after resolution.
  */
 export type ParseCommandNavigationIntentResult = {
@@ -28,7 +28,7 @@ export type ParseCommandNavigationIntentResult = {
 }
 
 /**
- * Step A only: player intent is an Acme order (no segmentation or catalog validation).
+ * Intent discrimination only: player intent is an Acme order (no segmentation or catalog validation).
  * `parseCommand` always follows with Step B and returns {@link ParseCommandAcmeOrderResult}.
  */
 export type ParseCommandAcmeOrderIntentResult = {
@@ -37,7 +37,7 @@ export type ParseCommandAcmeOrderIntentResult = {
 }
 
 /**
- * Outcome of Step A intent classification only (includes Acme intent without line items, and
+ * Outcome of intent discrimination only (includes Acme intent without line items, and
  * **LookRoom** for full room description / examine-surroundings intent without Step B).
  */
 export type IntentClassificationResult =

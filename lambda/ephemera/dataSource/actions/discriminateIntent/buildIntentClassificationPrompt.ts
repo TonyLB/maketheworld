@@ -1,5 +1,5 @@
 /**
- * Intent classification for parse Step A: **PromptInjectionAttempt**, **AwaitRoadRunner**, **AcmeOrder** (intent only),
+ * Intent discrimination prompt: **PromptInjectionAttempt**, **AwaitRoadRunner**, **AcmeOrder** (intent only),
  * **LookRoom**, **Help**, **NavigationIntent**, **Unimplemented** vs **Unknown**.
  */
 

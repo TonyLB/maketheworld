@@ -56,13 +56,13 @@ export type ParseCommandAwaitRoadrunnerResult = {
     confidence: ParseCommandConfidence
 }
 
-/** Show coyote-game help affordance content; no Step B enrich. */
+/** Show coyote-game help affordance content; no Acme enrich. */
 export type ParseCommandHelpResult = {
     type: 'Help'
     confidence: ParseCommandConfidence
 }
 
-/** Full description of the current room (examine surroundings); no Step B enrich. */
+/** Full description of the current room (examine surroundings); no Acme enrich. */
 export type ParseCommandLookRoomResult = {
     type: 'LookRoom'
     confidence: ParseCommandConfidence
@@ -91,7 +91,7 @@ export type ParseCommandUnknownResult = {
 }
 
 /**
- * Step A / terminal parse: meta-instruction or jailbreak-style input (player-facing tone only; not a safety control).
+ * Intent discrimination / terminal parse: meta-instruction or jailbreak-style input (player-facing tone only; not a safety control).
  */
 export type ParseCommandPromptInjectionAttemptResult = {
     type: 'PromptInjectionAttempt'
