@@ -87,10 +87,18 @@ export type ParseCommandCoyoteEngineTestResult = {
     harnessInvocation?: CoyoteEngineTestHarnessInvocation
 }
 
+/** Slash/actions parse payload for Acme affinities harness (default full run, optional single-fixture filter). */
+export type CoyoteAffinitiesHarnessInvocation = {
+    mode: 'full'
+    /** 1-based fixture index into the locked affinities harness fixture list. */
+    fixtureIndex1Based?: number
+}
+
 /** Coyote Game: explicit trigger for the Acme parse affinities manual-review harness. */
 export type ParseCommandCoyoteAffinitiesTestResult = {
     type: 'CoyoteAffinitiesTest'
     confidence: ParseCommandConfidence
+    harnessInvocation?: CoyoteAffinitiesHarnessInvocation
 }
 
 export type ParseCommandUnimplementedResult = {

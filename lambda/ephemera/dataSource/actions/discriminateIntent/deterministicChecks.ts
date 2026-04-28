@@ -1,7 +1,9 @@
 import type { ParseCommandInput, ParseCommandResult } from '../baseClasses'
 import { COYOTE_ENGINE_TEST_FIXTURES } from '../../coyoteGame/generators/testHarness/coyoteEngineTestFixtures'
+import { ACME_ORDER_AFFINITIES_HARNESS_PHRASES } from '../acmeOrderAffinitiesHarnessPhrases'
 import { isCoyoteAffinitiesTestSlashCommand } from './coyoteAffinitiesTestSlashCommand'
 import { isCoyoteEngineTestSlashCommand } from './coyoteEngineTestSlashCommand'
+import { parseCoyoteAffinitiesTestSlashTail } from './parseCoyoteAffinitiesTestSlash'
 import { parseCoyoteEngineTestSlashTail } from './parseCoyoteEngineTestSlash'
 import { normalizeCommandToken, resolveExitLabelToTargetId } from './exitResolution'
 
@@ -46,7 +48,16 @@ export function deterministicIntentChecks(input: ParseCommandInput): ParseComman
         }
     }
     if (isCoyoteAffinitiesTestSlashCommand(input.command)) {
-        return { type: 'CoyoteAffinitiesTest', confidence: 1 }
+        const trimmed = input.command.trim()
+        const parsed = parseCoyoteAffinitiesTestSlashTail(trimmed, ACME_ORDER_AFFINITIES_HARNESS_PHRASES.length)
+        if (!parsed.ok) {
+            return { type: 'Error', errorMessage: parsed.errorMessage }
+        }
+        return {
+            type: 'CoyoteAffinitiesTest',
+            confidence: 1,
+            ...(parsed.harnessInvocation !== undefined ? { harnessInvocation: parsed.harnessInvocation } : {}),
+        }
     }
 
     const trimmedCommand = input.command.trim()
