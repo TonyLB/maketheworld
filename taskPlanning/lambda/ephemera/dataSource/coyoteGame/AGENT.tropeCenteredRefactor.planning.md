@@ -216,10 +216,14 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
     - Parser strictness remains exact-key-only with additional candidate hardening: required execution fields, canonical trope order enforcement, duplicate trope rejection, and per-candidate staged `stableKey` partition checks.
     - Combined stage-two markdown remains under `## Combined clustering` but now renders `### Candidate <id>` sections with trope-level `executionDetail` and candidate-local outliers, and fixture-01 frozen seam authority is updated to the new candidate shape.
 
-- [ ] Phase 3C - hypothesis `plan selection` rework
-  - [ ] Rework `plan selection` into conflict catalog + rubric comparison + best-candidate selection.
-  - [ ] Add tests for handoff extraction and failure routing when conflict/rubric sections are missing or invalid.
-  - [ ] Re-freeze plan-selection fixture slices in [`coyoteEngineTestFixtures.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts).
+- [X] Phase 3C - hypothesis `plan selection` rework
+  - [X] Rework `plan selection` into conflict catalog + rubric comparison + best-candidate selection.
+  - [X] Add tests for handoff extraction and failure routing when conflict/rubric sections are missing or invalid.
+  - [X] Re-freeze plan-selection fixture slices in [`coyoteEngineTestFixtures.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts).
+  - Locked implementation notes:
+    - Plan-selection prompt contract now requires sectioned output in order (`## Conflict catalog`, `## Rubric comparison`, `## Winner selection`) before the final handoff JSON fence, while preserving required handoff keys `paragraphSummary` and `rubricIssues`.
+    - Hop-1 handoff parsing now hard-fails when required conflict/rubric/winner section headings are missing, in addition to existing malformed or mistyped JSON handoff failures; pipeline failure routing remains abort-to-stub before phase-plan invocation.
+    - Parser and pipeline regressions now cover missing-section failures and confirm phase-plan is not invoked on handoff contract violations; fixture-01 phase-plan handoff slices are re-frozen with conflict/rubric-centered summary and issue language.
 
 - [ ] Phase 3D - hypothesis `phase-plan` rework
   - [ ] Rework `phase-plan` into deconflicted final trope sequence (second-draft detail) plus golden-path walk-through generation by trope beats.

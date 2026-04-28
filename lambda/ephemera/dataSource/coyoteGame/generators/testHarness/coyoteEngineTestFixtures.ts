@@ -148,9 +148,10 @@ function buildFixture01PlanSelectInject(): CoyoteHarnessPlanSelectInject {
 
 const FIXTURE_01_PLAN_SELECT_INJECT = buildFixture01PlanSelectInject()
 const FIXTURE_01_PHASE_PLAN_HANDOFF: CoyoteHop1Handoff = {
-    paragraphSummary: 'Use the straightaway rocket setup to launch the player into a trap lane.',
+    paragraphSummary: 'Conflict review favors candidate-1: use the straightaway rocket setup to launch into one trap lane with the cleanest coverage and coherence tradeoff.',
     rubricIssues: [
-        'Need tighter grounding on how the launch trigger engages from current object placement.',
+        'Conflict catalog still needs tighter trigger grounding for how launch timing resolves from current object placement.',
+        'Rubric comparison leaves completeness risk around fail-safe lane commitment detail.',
     ],
 }
 const FIXTURE_01_PHASE_PLAN_INJECT: CoyoteHarnessPhasePlanInject = {

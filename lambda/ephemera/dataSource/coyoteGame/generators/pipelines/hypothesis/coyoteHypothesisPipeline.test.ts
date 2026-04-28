@@ -54,8 +54,14 @@ const stageOneSeamBody = JSON.stringify({
 })
 
 const hop1PlanSelectionBody = [
-    '## Comparison',
-    'Plan A wins.',
+    '## Conflict catalog',
+    '- candidate-1 conflicts: trigger timing remains coarse.',
+    '',
+    '## Rubric comparison',
+    '- candidate-1 has best coverage/coherence for available props.',
+    '',
+    '## Winner selection',
+    '- Winner: candidate-1.',
     '',
     '```json',
     '{"paragraphSummary":"Stage the anvil.","rubricIssues":[]}',
@@ -243,6 +249,29 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         expect(result.kind).toBe('harnessPartial')
         expect(stageOneMock).toHaveBeenCalledTimes(1)
         expect(planSelectionMock).toHaveBeenCalledTimes(1)
+        expect(phasePlanHopMock).not.toHaveBeenCalled()
+    })
+
+    it('returns stub when plan-selection response misses required rubric section', async () => {
+        planSelectionMock.mockResolvedValue({
+            success: true,
+            body: [
+                '## Conflict catalog',
+                '- conflict listed',
+                '',
+                '## Winner selection',
+                '- Winner: candidate-1.',
+                '',
+                '```json',
+                '{"paragraphSummary":"Stage the anvil.","rubricIssues":[]}',
+                '```',
+            ].join('\n'),
+            usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
+        })
+        const result = await runCoyoteHypothesisPipeline(
+            { getGameRooms, getRoomMeta }
+        )
+        expect(result.kind).toBe('stub')
         expect(phasePlanHopMock).not.toHaveBeenCalled()
     })
 
