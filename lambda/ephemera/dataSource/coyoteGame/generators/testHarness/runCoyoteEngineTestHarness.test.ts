@@ -166,7 +166,7 @@ describe('runCoyoteEngineTestHarness', () => {
                 },
             },
             selectionBody: '{"paragraphSummary":"x","rubricIssues":[]}',
-            phasePlanJson: '{"phases":[{"stableKeysUsed":["anvil-0"],"virtualEntities":[],"achievement":"launch"}]}',
+            phasePlanJson: '{"tropeSequence":["Contraption"],"deconflictionSummary":"single lane","phases":[{"trope":"Contraption","tropeBeat":"prime launch lane","stableKeysUsed":["anvil-0"],"virtualEntities":[],"achievement":"launch"}]}',
         })
         let t = 0
         const now = () => {
@@ -196,7 +196,7 @@ describe('runCoyoteEngineTestHarness', () => {
         expect(flat).toContain('usagePhasePlanHop: input=20 output=9 total=29 cacheRead=12 cacheWrite=0')
         expect(flat).toContain('selectionBody:\n{"paragraphSummary":"x","rubricIssues":[]}')
         expect(flat).toContain(
-            'phasePlanJson:\n{"phases":[{"stableKeysUsed":["anvil-0"],"virtualEntities":[],"achievement":"launch"}]}'
+            'phasePlanJson:\n{"tropeSequence":["Contraption"],"deconflictionSummary":"single lane","phases":[{"trope":"Contraption","tropeBeat":"prime launch lane","stableKeysUsed":["anvil-0"],"virtualEntities":[],"achievement":"launch"}]}'
         )
     })
 

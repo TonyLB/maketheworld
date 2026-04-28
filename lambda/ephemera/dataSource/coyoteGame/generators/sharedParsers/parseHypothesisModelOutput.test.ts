@@ -59,7 +59,7 @@ describe('parseHypothesisModelOutput', () => {
     it('hop-2 Option A shape: leading ```json phase-plan fence then Scene analysis then final ```text Hypothesis', () => {
         const raw = [
             '```json',
-            '{"phases":[]}',
+            '{"tropeSequence":[],"deconflictionSummary":"x","phases":[]}',
             '```',
             '',
             '## Scene analysis',
@@ -87,8 +87,12 @@ describe('parseHypothesisPhasePlanHopOutput', () => {
         const raw = [
             '```json',
             JSON.stringify({
+                tropeSequence: ['Contraption'],
+                deconflictionSummary: 'Resolved to one setup lane.',
                 phases: [
                     {
+                        trope: 'Contraption',
+                        tropeBeat: 'Rig anvil in launch lane.',
                         stableKeysUsed: ['anvil'],
                         virtualEntities: [
                             { label: 'Prep', derivedFrom: ['anvil'], phaseKind: 'gathered' },
@@ -114,8 +118,12 @@ describe('parseHypothesisPhasePlanHopOutput', () => {
         const raw = [
             '```json',
             JSON.stringify({
+                tropeSequence: ['Contraption'],
+                deconflictionSummary: 'Resolved to one setup lane.',
                 phases: [
                     {
+                        trope: 'Contraption',
+                        tropeBeat: 'Rig anvil in launch lane.',
                         stableKeysUsed: ['anvil'],
                         virtualEntities: [
                             { label: 'Prep', derivedFrom: ['anvil'], phaseKind: 'gathered' },
@@ -141,7 +149,7 @@ describe('parseHypothesisPhasePlanHopOutput', () => {
     it('degrades when phase-plan JSON fails validation but Hypothesis parses', () => {
         const raw = [
             '```json',
-            '{"phases":[]}',
+            '{"tropeSequence":["Contraption"],"deconflictionSummary":"x","phases":[]}',
             '```',
             '',
             '```text',

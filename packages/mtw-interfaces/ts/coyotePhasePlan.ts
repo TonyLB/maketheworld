@@ -5,7 +5,9 @@
 
 import {
     COYOTE_RESERVED_VIRTUAL_GROUNDING_STABLE_KEY,
+    isCoyoteTrope,
     normalizeStableKeyCharset,
+    type CoyoteTrope,
 } from './coyotePlanAffinities'
 
 export type CoyotePhasePlanPhaseKind = 'gathered' | 'synthesized' | 'deployed'
@@ -20,6 +22,8 @@ export type CoyotePhaseVirtualEntity = {
 }
 
 export type CoyotePhasePlanPhase = {
+    trope: CoyoteTrope
+    tropeBeat: string
     stableKeysUsed: string[]
     virtualEntities: CoyotePhaseVirtualEntity[]
     achievement: string
@@ -27,6 +31,8 @@ export type CoyotePhasePlanPhase = {
 }
 
 export type CoyotePhasePlan = {
+    tropeSequence: CoyoteTrope[]
+    deconflictionSummary: string
     phases: CoyotePhasePlanPhase[]
 }
 
@@ -49,9 +55,18 @@ export type ValidateCoyotePhasePlanResult =
 const PHASE_KINDS = new Set<CoyotePhasePlanPhaseKind>(['gathered', 'synthesized', 'deployed'])
 const PREP_VS_BEAT = new Set<CoyotePhasePrepVsBeat>(['prep', 'creation'])
 
-const ROOT_KEY = 'phases'
+const ROOT_KEYS = new Set(['tropeSequence', 'deconflictionSummary', 'phases'])
 const PHASE_KEYS_REQUIRED = new Set(['stableKeysUsed', 'virtualEntities', 'achievement'])
 const VIRTUAL_KEYS = new Set(['label', 'derivedFrom', 'phaseKind'])
+const CANONICAL_TROPE_ORDER: CoyoteTrope[] = [
+    'Contraption',
+    'Distraction',
+    'Disadvantage',
+    'Finishing Move',
+]
+const CANONICAL_TROPE_INDEX = new Map<CoyoteTrope, number>(
+    CANONICAL_TROPE_ORDER.map((trope, index) => [trope, index])
+)
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
     return typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -201,7 +216,7 @@ function validatePhase(
     const keys = Object.keys(p)
     const keySet = new Set(keys)
     for (const k of keys) {
-        if (!PHASE_KEYS_REQUIRED.has(k) && k !== 'prepVsBeat') {
+        if (!PHASE_KEYS_REQUIRED.has(k) && k !== 'prepVsBeat' && k !== 'trope' && k !== 'tropeBeat') {
             return { ok: false, reason: `unexpected key on phase: ${k}` }
         }
     }
@@ -210,7 +225,21 @@ function validatePhase(
             return { ok: false, reason: `phase missing key: ${req}` }
         }
     }
+    if (!keySet.has('trope')) {
+        return { ok: false, reason: 'phase missing key: trope' }
+    }
+    if (!keySet.has('tropeBeat')) {
+        return { ok: false, reason: 'phase missing key: tropeBeat' }
+    }
+    const trope = p.trope
+    const tropeBeat = p.tropeBeat
     const stableKeysUsed = p.stableKeysUsed
+    if (typeof trope !== 'string' || !isCoyoteTrope(trope)) {
+        return { ok: false, reason: 'trope must be one of Contraption, Distraction, Disadvantage, Finishing Move' }
+    }
+    if (typeof tropeBeat !== 'string' || tropeBeat.trim().length === 0) {
+        return { ok: false, reason: 'tropeBeat must be a non-empty string' }
+    }
     const virtualEntities = p.virtualEntities
     const achievement = p.achievement
     const prepVsBeat = p.prepVsBeat
@@ -262,6 +291,8 @@ function validatePhase(
     }
 
     const phase: CoyotePhasePlanPhase = {
+        trope,
+        tropeBeat: tropeBeat.trim(),
         stableKeysUsed: stableKeysUsed.map((s) => normalizedPhasePlanStableKey(s)),
         virtualEntities: entitiesOut,
         achievement,
@@ -287,8 +318,41 @@ export function validateCoyotePhasePlan(
         return { ok: false, reason: 'phasePlan must be a plain object' }
     }
     const rootKeys = Object.keys(raw)
-    if (rootKeys.length !== 1 || rootKeys[0] !== ROOT_KEY) {
-        return { ok: false, reason: 'phasePlan root must contain exactly the key "phases"' }
+    if (rootKeys.length !== 3 || !rootKeys.every((key) => ROOT_KEYS.has(key))) {
+        return { ok: false, reason: 'phasePlan root must contain exactly keys "tropeSequence", "deconflictionSummary", and "phases"' }
+    }
+    const tropeSequenceRaw = raw.tropeSequence
+    const deconflictionSummary = raw.deconflictionSummary
+    if (!Array.isArray(tropeSequenceRaw) || tropeSequenceRaw.length === 0) {
+        return { ok: false, reason: 'tropeSequence must be a non-empty array' }
+    }
+    const tropeSequence: CoyoteTrope[] = []
+    const seenTropes = new Set<CoyoteTrope>()
+    let lastOrderIndex = -1
+    for (let ti = 0; ti < tropeSequenceRaw.length; ti++) {
+        const trope = tropeSequenceRaw[ti]
+        if (typeof trope !== 'string' || !isCoyoteTrope(trope)) {
+            return { ok: false, reason: `tropeSequence[${ti}] must be a valid trope` }
+        }
+        if (seenTropes.has(trope)) {
+            return { ok: false, reason: `tropeSequence[${ti}] duplicates trope ${trope}` }
+        }
+        const orderIndex = CANONICAL_TROPE_INDEX.get(trope)
+        if (orderIndex === undefined) {
+            return { ok: false, reason: `tropeSequence[${ti}] unknown trope ${trope}` }
+        }
+        if (orderIndex <= lastOrderIndex) {
+            return {
+                ok: false,
+                reason: `tropeSequence violates canonical order ${CANONICAL_TROPE_ORDER.join(' -> ')}`,
+            }
+        }
+        lastOrderIndex = orderIndex
+        seenTropes.add(trope)
+        tropeSequence.push(trope)
+    }
+    if (typeof deconflictionSummary !== 'string' || deconflictionSummary.trim().length === 0) {
+        return { ok: false, reason: 'deconflictionSummary must be a non-empty string' }
     }
     const phases = raw.phases
     if (!Array.isArray(phases)) {
@@ -296,6 +360,9 @@ export function validateCoyotePhasePlan(
     }
     if (phases.length === 0) {
         return { ok: false, reason: 'phases must be non-empty' }
+    }
+    if (phases.length !== tropeSequence.length) {
+        return { ok: false, reason: 'phases length must match tropeSequence length' }
     }
 
     const phasesOut: CoyotePhasePlanPhase[] = []
@@ -307,6 +374,12 @@ export function validateCoyotePhasePlan(
             return { ok: false, reason: `phases[${pi}]: ${phaseRes.reason}` }
         }
         const ph = phaseRes.phase
+        if (ph.trope !== tropeSequence[pi]) {
+            return {
+                ok: false,
+                reason: `phases[${pi}].trope must match tropeSequence[${pi}]`,
+            }
+        }
 
         if (maxSettingOnly !== undefined) {
             let settingOnlyCount = 0
@@ -326,5 +399,12 @@ export function validateCoyotePhasePlan(
         phasesOut.push(ph)
     }
 
-    return { ok: true, phasePlan: { phases: phasesOut } }
+    return {
+        ok: true,
+        phasePlan: {
+            tropeSequence,
+            deconflictionSummary: deconflictionSummary.trim(),
+            phases: phasesOut,
+        },
+    }
 }

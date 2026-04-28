@@ -148,10 +148,10 @@ function buildFixture01PlanSelectInject(): CoyoteHarnessPlanSelectInject {
 
 const FIXTURE_01_PLAN_SELECT_INJECT = buildFixture01PlanSelectInject()
 const FIXTURE_01_PHASE_PLAN_HANDOFF: CoyoteHop1Handoff = {
-    paragraphSummary: 'Conflict review favors candidate-1: use the straightaway rocket setup to launch into one trap lane with the cleanest coverage and coherence tradeoff.',
+    paragraphSummary: 'Conflict review favors candidate-1: lock a single Contraption-first lane using the straightaway rocket setup, then carry that same lane through the terminal beat with no prop-role conflicts.',
     rubricIssues: [
-        'Conflict catalog still needs tighter trigger grounding for how launch timing resolves from current object placement.',
-        'Rubric comparison leaves completeness risk around fail-safe lane commitment detail.',
+        'Deconfliction still needs explicit notes about why no alternative trope branch reuses rocket-0 in incompatible ways.',
+        'Golden-path prose must mirror trope-by-trope beat order instead of collapsing setup and payoff into one vague paragraph.',
     ],
 }
 const FIXTURE_01_PHASE_PLAN_INJECT: CoyoteHarnessPhasePlanInject = {

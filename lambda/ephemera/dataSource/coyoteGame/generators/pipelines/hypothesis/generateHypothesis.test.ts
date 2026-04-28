@@ -57,8 +57,12 @@ const hop1PlanSelectionBody = [
 /** Minimal phase-plan JSON validating against VORTEX snapshot (stableKey **anvil**). */
 function hop2PhasePlanHopBody(intentLine: string, options?: { includeSceneAnalysis?: boolean }): string {
     const phasePlan = {
+        tropeSequence: ['Contraption'],
+        deconflictionSummary: 'Single-lane setup avoids conflicting prop reuse.',
         phases: [
             {
+                trope: 'Contraption',
+                tropeBeat: 'Rig the anvil drop lane and commit trigger timing.',
                 stableKeysUsed: ['anvil'],
                 virtualEntities: [
                     {
@@ -354,7 +358,7 @@ describe('generateHypothesis', () => {
             success: true,
             body: [
                 '```json',
-                '{"phases":[]}',
+                '{"tropeSequence":["Contraption"],"deconflictionSummary":"x","phases":[]}',
                 '```',
                 '',
                 '```text',

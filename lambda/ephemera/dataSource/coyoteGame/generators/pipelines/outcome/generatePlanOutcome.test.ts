@@ -105,8 +105,12 @@ describe('generatePlanOutcome', () => {
                 intent: 'Hypothesis: Full record override.',
                 walkthrough: 'Scene beats align to the plan.',
                 phasePlan: {
+                    tropeSequence: ['Contraption'],
+                    deconflictionSummary: 'Use catapult as the only committed beat.',
                     phases: [
                         {
+                            trope: 'Contraption',
+                            tropeBeat: 'Prime the catapult and commit timing.',
                             stableKeysUsed: ['catapult'],
                             virtualEntities: [],
                             achievement: 'Launch toward cliff.',
