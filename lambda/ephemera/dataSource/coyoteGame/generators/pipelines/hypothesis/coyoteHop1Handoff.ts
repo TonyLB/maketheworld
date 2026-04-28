@@ -29,18 +29,8 @@ function narrowHandoff(parsed: unknown): ParseHop1HandoffResult {
     if (!isPlainObject(parsed)) {
         return { ok: false, reason: 'handoff JSON must be a plain object' }
     }
-    const keys = Object.keys(parsed)
-    const keySet = new Set(keys)
-    if (keySet.size !== REQUIRED_KEYS.size) {
-        return { ok: false, reason: 'handoff JSON must contain exactly paragraphSummary and rubricIssues' }
-    }
-    for (const k of keys) {
-        if (!REQUIRED_KEYS.has(k)) {
-            return { ok: false, reason: `unexpected key in handoff JSON: ${k}` }
-        }
-    }
     for (const req of REQUIRED_KEYS) {
-        if (!keySet.has(req)) {
+        if (!(req in parsed)) {
             return { ok: false, reason: `missing key in handoff JSON: ${req}` }
         }
     }

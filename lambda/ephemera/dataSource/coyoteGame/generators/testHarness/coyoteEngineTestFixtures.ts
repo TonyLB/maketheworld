@@ -10,6 +10,7 @@ import type {
     CoyoteHarnessPhasePlanInject,
     CoyoteHarnessPlanSelectInject,
 } from '../pipelines/hypothesis/coyoteHarnessInjectTypes'
+import type { CoyoteHop1Handoff } from '../pipelines/hypothesis/coyoteHop1Handoff'
 import { parseHypothesisStageOneOutput } from '../pipelines/hypothesis/parseHypothesisStageOneOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../utilities/coyoteRoomObjectSnapshot'
 
@@ -140,6 +141,16 @@ function buildFixture01PlanSelectInject(): CoyoteHarnessPlanSelectInject {
 }
 
 const FIXTURE_01_PLAN_SELECT_INJECT = buildFixture01PlanSelectInject()
+const FIXTURE_01_PHASE_PLAN_HANDOFF: CoyoteHop1Handoff = {
+    paragraphSummary: 'Use the straightaway rocket setup to launch the player into a trap lane.',
+    rubricIssues: [
+        'Need tighter grounding on how the launch trigger engages from current object placement.',
+    ],
+}
+const FIXTURE_01_PHASE_PLAN_INJECT: CoyoteHarnessPhasePlanInject = {
+    ...FIXTURE_01_PLAN_SELECT_INJECT,
+    hop1Handoff: FIXTURE_01_PHASE_PLAN_HANDOFF,
+}
 
 export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
     {
@@ -147,6 +158,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
         label: 'Rocket at the Straightaway',
         roomObjectsByRoom: FIXTURE_01_ROOM_OBJECTS,
         planSelectInject: FIXTURE_01_PLAN_SELECT_INJECT,
+        phasePlanInject: FIXTURE_01_PHASE_PLAN_INJECT,
     },
     {
         id: 'fixture-02',

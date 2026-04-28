@@ -265,4 +265,34 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
             expect(result.planSelectionResult?.success).toBe(true)
         }
     })
+
+    it('runOnly phasePlan uses inject and skips stage-one/plan-selection LLMs', async () => {
+        const fixture01 = COYOTE_ENGINE_TEST_FIXTURES.find((f) => f.id === 'fixture-01')
+        expect(fixture01?.phasePlanInject).toBeDefined()
+        const inject = fixture01!.phasePlanInject!
+
+        const result = await runCoyoteHypothesisPipeline(
+            {
+                getGameRooms: async () => [],
+                getRoomMeta: async () => undefined,
+                roomObjectsByRoomOverride: inject.roomObjectsByRoom,
+            },
+            {
+                testOnly: 'phasePlan',
+                harnessRunKind: 'runOnly',
+                injectState: {
+                    roomObjectsByRoom: inject.roomObjectsByRoom,
+                    combinedMarkdown: inject.combinedMarkdown,
+                    hop1Handoff: inject.hop1Handoff,
+                },
+            }
+        )
+        expect(result.kind).toBe('harnessPartial')
+        expect(stageOneMock).not.toHaveBeenCalled()
+        expect(planSelectionMock).not.toHaveBeenCalled()
+        expect(phasePlanHopMock).toHaveBeenCalledTimes(1)
+        if (result.kind === 'harnessPartial') {
+            expect(result.phasePlanHopResult?.success).toBe(true)
+        }
+    })
 })

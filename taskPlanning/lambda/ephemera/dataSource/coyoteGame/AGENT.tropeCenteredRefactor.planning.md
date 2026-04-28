@@ -197,10 +197,15 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Apply a bounded prompt revision pass in `actions/enrich/acmeOrder/buildPrompt.ts`, then re-run the same corpus and compare before/after outcomes.
   - [X] Lock an eval artifact reference (fixtures + rubric notes) so Phase 3A+ can reuse the same quality harness when reworking hypothesis hops.
 
-- [ ] Phase 3A - hypothesis contracts and validation seams
-  - [ ] Lock hop contracts before major prompt rewrites: candidate-clustering output shape, plan-selection handoff shape, and phase-plan output shape.
-  - [ ] Add/adjust parsers and validation contexts to fail fast on malformed hop payloads while preserving current stub/abort semantics.
-  - [ ] Refresh harness fixtures with contract-first snapshots so downstream prompt rewrites have stable parser targets.
+- [X] Phase 3A - hypothesis contracts and validation seams
+  - [X] Lock hop contracts before major prompt rewrites: candidate-clustering output shape, plan-selection handoff shape, and phase-plan output shape.
+  - [X] Add/adjust parsers and validation contexts to fail fast on malformed hop payloads while preserving current stub/abort semantics.
+  - [X] Refresh harness fixtures with contract-first snapshots so downstream prompt rewrites have stable parser targets.
+  - Locked implementation notes:
+    - Stage-one clustering seam is now strict-first in parser and prompt contract language: root keys limited to `clusters` / optional `outliers` / optional `notes`, cluster keys limited to `clusterName` + `members`, and member keys limited to `stableKey` + optional compatibility/debug `intendedRole`.
+    - Plan-selection handoff parser now enforces required typed minimum keys (`paragraphSummary`, `rubricIssues`) while tolerating additional keys; malformed required-key payloads still abort to stub via existing pipeline failure routing.
+    - Phase-plan seam keeps the current `validateCoyotePhasePlan` baseline and prose-preserving fallback behavior; prompt wording now explicitly instructs models to still emit complete scene-analysis + hypothesis prose when JSON details are uncertain.
+    - Harness contract authority now includes fixture-01 phase-plan run-only inject state (`roomObjectsByRoom`, `combinedMarkdown`, `hop1Handoff`) alongside existing plan-selection inject data, so downstream hop rewrites can target stable fixture-backed parser seams.
 
 - [ ] Phase 3B - hypothesis `clustering` rework
   - [ ] Rework `clustering` into candidate trope assignments with provisional object-to-trope grouping and first-draft execution detail.

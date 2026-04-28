@@ -180,4 +180,47 @@ describe('parseHypothesisStageOneOutput', () => {
         })
         expect(parseHypothesisStageOneOutput(body, map).ok).toBe(false)
     })
+
+    it('rejects unknown root keys', () => {
+        const body = JSON.stringify({
+            clusters: [{ clusterName: 'Main', members: [{ stableKey: 'anvil-0' }] }],
+            debug: 'extra',
+        })
+        const r = parseHypothesisStageOneOutput(body, singleObjectRoomMap)
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.errorMessage).toContain('unknown root key')
+        }
+    })
+
+    it('rejects unknown cluster and member keys', () => {
+        const badCluster = JSON.stringify({
+            clusters: [
+                {
+                    clusterName: 'Main',
+                    members: [{ stableKey: 'anvil-0' }],
+                    summary: 'extra',
+                },
+            ],
+        })
+        const clusterResult = parseHypothesisStageOneOutput(badCluster, singleObjectRoomMap)
+        expect(clusterResult.ok).toBe(false)
+        if (!clusterResult.ok) {
+            expect(clusterResult.errorMessage).toContain('unknown key')
+        }
+
+        const badMember = JSON.stringify({
+            clusters: [
+                {
+                    clusterName: 'Main',
+                    members: [{ stableKey: 'anvil-0', name: 'extra' }],
+                },
+            ],
+        })
+        const memberResult = parseHypothesisStageOneOutput(badMember, singleObjectRoomMap)
+        expect(memberResult.ok).toBe(false)
+        if (!memberResult.ok) {
+            expect(memberResult.errorMessage).toContain('unknown key')
+        }
+    })
 })

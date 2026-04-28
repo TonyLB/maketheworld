@@ -48,13 +48,14 @@ const PLAN_SELECTION_INTRO = [
     '  (prefer avoiding ties). You may rank ordinally (1 = best) or name the winner',
     '  matching the sketch labels.',
     '- End your reply with **only** a Markdown **` ```json ` ** fenced block',
-    '  (language tag **json**) containing **exactly** these keys (no extras): **`',
+    '  (language tag **json**) containing at least these required keys: **`',
     COYOTE_HOP1_HANDOFF_JSON_KEYS.paragraphSummary,
     '`** (string: one paragraph summarizing the **chosen** plan only) and',
     '  **`',
     COYOTE_HOP1_HANDOFF_JSON_KEYS.rubricIssues,
     '`** (array of strings: concrete issues / gaps from the rubric for that chosen',
-    '  plan --- staged keys still vague, synthesis needs, etc.).',
+    '  plan --- staged keys still vague, synthesis needs, etc.). Additional keys are',
+    '  allowed, but these two keys must be present and well-typed.',
     '- The **` ```json ` ** block must be the **last** fence in your output.',
 ] as const
 

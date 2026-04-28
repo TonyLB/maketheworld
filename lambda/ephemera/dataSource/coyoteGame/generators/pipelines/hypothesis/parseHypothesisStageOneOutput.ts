@@ -119,6 +119,17 @@ function isNonEmptyString(x: unknown): x is string {
     return typeof x === 'string' && x.trim().length > 0
 }
 
+const STAGE_ONE_ROOT_ALLOWED_KEYS = new Set(['clusters', 'outliers', 'notes'])
+const STAGE_ONE_CLUSTER_ALLOWED_KEYS = new Set(['clusterName', 'members'])
+const STAGE_ONE_MEMBER_ALLOWED_KEYS = new Set(['stableKey', 'intendedRole'])
+
+function unknownKeys(
+    candidate: Record<string, unknown>,
+    allowed: Set<string>
+): string[] {
+    return Object.keys(candidate).filter((key) => !allowed.has(key))
+}
+
 function resolveEchoToStoredRow(
     obj: EphemeraMetaRoomObject,
     echo: CoyoteAffinityPossibilityEcho
@@ -217,6 +228,13 @@ function parseClustersFromPayload(
         return { ok: false, errorMessage: 'stage 1 JSON: root must be an object' }
     }
     const root = payload as Record<string, unknown>
+    const unknownRootKeys = unknownKeys(root, STAGE_ONE_ROOT_ALLOWED_KEYS)
+    if (unknownRootKeys.length > 0) {
+        return {
+            ok: false,
+            errorMessage: `stage 1 JSON: unknown root key(s): ${unknownRootKeys.join(', ')}`,
+        }
+    }
 
     if (root.notes !== undefined && typeof root.notes !== 'string') {
         return { ok: false, errorMessage: 'stage 1 JSON: notes must be a string when present' }
@@ -247,6 +265,13 @@ function parseClustersFromPayload(
             return { ok: false, errorMessage: `stage 1 JSON: cluster ${ci} must be an object` }
         }
         const co = c as Record<string, unknown>
+        const unknownClusterKeys = unknownKeys(co, STAGE_ONE_CLUSTER_ALLOWED_KEYS)
+        if (unknownClusterKeys.length > 0) {
+            return {
+                ok: false,
+                errorMessage: `stage 1 JSON: cluster ${ci} has unknown key(s): ${unknownClusterKeys.join(', ')}`,
+            }
+        }
         if (!isNonEmptyString(co.clusterName)) {
             return { ok: false, errorMessage: `stage 1 JSON: cluster ${ci} needs non-empty clusterName` }
         }
@@ -268,8 +293,18 @@ function parseClustersFromPayload(
                     errorMessage: `stage 1 JSON: cluster "${clusterName}" member ${mi} must be an object`,
                 }
             }
+            const mo = mem as Record<string, unknown>
+            const unknownMemberKeys = unknownKeys(mo, STAGE_ONE_MEMBER_ALLOWED_KEYS)
+            if (unknownMemberKeys.length > 0) {
+                return {
+                    ok: false,
+                    errorMessage:
+                        `stage 1 JSON: cluster "${clusterName}" member ${mi} has unknown key(s): ` +
+                        unknownMemberKeys.join(', '),
+                }
+            }
             const parsedM = parseDraftMemberFromRecord(
-                mem as Record<string, unknown>,
+                mo,
                 `stage 1 JSON: cluster "${clusterName}" member ${mi}`
             )
             if (!parsedM.ok) {
@@ -299,8 +334,16 @@ function parseClustersFromPayload(
             if (typeof raw !== 'object' || raw === null) {
                 return { ok: false, errorMessage: `stage 1 JSON: outliers[${oi}] must be an object` }
             }
+            const rawObj = raw as Record<string, unknown>
+            const unknownOutlierKeys = unknownKeys(rawObj, STAGE_ONE_MEMBER_ALLOWED_KEYS)
+            if (unknownOutlierKeys.length > 0) {
+                return {
+                    ok: false,
+                    errorMessage: `stage 1 JSON: outliers[${oi}] has unknown key(s): ${unknownOutlierKeys.join(', ')}`,
+                }
+            }
             const parsedO = parseDraftMemberFromRecord(
-                raw as Record<string, unknown>,
+                rawObj,
                 `stage 1 JSON: outliers[${oi}]`
             )
             if (!parsedO.ok) {

@@ -59,12 +59,15 @@ describe('parseHop1HandoffFromSelectionBody', () => {
         }
     })
 
-    it('returns error when keys are missing or extra', () => {
+    it('returns error when required keys are missing', () => {
         expect(
             parseHop1HandoffFromSelectionBody(
                 '```json\n' + JSON.stringify({ paragraphSummary: 'x' }) + '\n```'
             ).ok
         ).toBe(false)
+    })
+
+    it('allows additional keys when required keys are present', () => {
         expect(
             parseHop1HandoffFromSelectionBody(
                 '```json\n' +
@@ -75,7 +78,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
                     }) +
                     '\n```'
             ).ok
-        ).toBe(false)
+        ).toBe(true)
     })
 
     it('returns error when rubricIssues is not string array', () => {
