@@ -24,11 +24,13 @@ const STAGE_TWO_INTRO_LINES = [
 /** Exported for [`buildHypothesisPhasePlanHopPromptParts`](./buildHypothesisPhasePlanHopPromptParts.ts). */
 export const COMBINED_CLUSTERING_CONTRACT_LINES = [
     '## Combined clustering Markdown (how to read the dynamic tail)',
-    '- After seam room labels you will see **## Combined clustering**, then one **### ClusterName** section per thematic group from Stage One. Treat each **###** heading as a working group for the maneuver; do not rename or merge clusters in your prose.',
-    '- Each bullet under a cluster is one staged object: **stableKey**, **shortName**, and **room** (placement). An optional indented line **intendedRole:** is Stage One\'s binding choice of a single plan role for that object --- when present, prefer it over guessing from names.',
+    '- After seam room labels you will see **## Combined trope candidates**, then one **### Candidate <id>** section per Stage One candidate.',
+    '- Under each candidate you will see **executionSummary**, then one **#### <Trope>** section per assigned trope beat. Treat each trope section as candidate-local structure; do not merge trope sections across candidates.',
+    '- Inside each trope section, **executionDetail** captures Stage One\'s first-draft beat detail. Member bullets list staged objects (**stableKey**, **shortName**, **room**).',
+    '- An optional indented line **intendedRole:** is Stage One\'s binding choice of a single plan role for that object --- when present, prefer it over guessing from names.',
     '- **intendedRole** uses the plan-role vocabulary: structural **terminal**, **trigger**, **delivery**, **autonomous_agent**; generative **prep** and **creation**; and flat modification tags (**influence-road-runner**, **alter-road-runner**, **coyote-equipment**, **coyote-enhancement**, **setting-addition**, **connect-props**, **enhance-prop**). Treat each role label as intent-level semantics, not a decomposition into hidden tuple fields.',
     '- **prep** is setup that completes before the main trap fires or the cartoon beat runs; **creation** is effects that manifest during plan execution / the beat.',
-    '- **## Outliers** lists staged objects in no **###** cluster. Acknowledge outliers when they matter to your reading; never fold them into a named cluster in prose. If outliers are **(none)**, do not invent cluster members.',
+    '- Each candidate includes its own **#### Outliers** block. Outliers are candidate-local: do not move outlier props into trope sections unless the candidate already assigns them there.',
 ] as const
 
 export const INTERPRETATION_RULES_LINES = [

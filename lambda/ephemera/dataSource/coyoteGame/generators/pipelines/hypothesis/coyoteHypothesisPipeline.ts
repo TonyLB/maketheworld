@@ -246,9 +246,8 @@ function buildCoyoteHypothesisSteps(
                     abort();
                 }
                 const combinedResult = combineHypothesisClusters(
-                    seamParsed.clusters,
-                    roomObjectsByRoom,
-                    seamParsed.explicitOutliers
+                    seamParsed.candidates,
+                    roomObjectsByRoom
                 );
                 if (!combinedResult.ok) {
                     hypothesisDebugLog('aborting hypothesis pipeline', {

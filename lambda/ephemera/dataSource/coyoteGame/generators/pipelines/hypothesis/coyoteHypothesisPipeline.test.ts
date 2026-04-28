@@ -33,20 +33,35 @@ const phasePlanHopMock = invokeBedrockHypothesisPhasePlanHop as jest.MockedFunct
 
 /** Valid stage-1 JSON for parse + combine (matches generateHypothesis.test harness). */
 const stageOneSeamBody = JSON.stringify({
-    clusters: [
+    candidates: [
         {
-            clusterName: 'Combined setup',
-            members: [
-                { stableKey: 'anvil', intendedRole: { role: 'terminal', aptness: 0.5 } },
-                { stableKey: 'rocket-skates', intendedRole: { role: 'coyote-equipment', aptness: 0.6 } },
+            candidateId: 'candidate-1',
+            executionSummary: 'Lure then strike across the straightaway lane.',
+            tropeAssignments: [
+                {
+                    trope: 'Distraction',
+                    executionDetail: 'Road Runner is guided into the strike lane first.',
+                    members: [{ stableKey: 'rocket-skates', intendedRole: { role: 'coyote-equipment', aptness: 0.6 } }],
+                },
+                {
+                    trope: 'Finishing Move',
+                    executionDetail: 'Anvil lands after the lane setup commits the target route.',
+                    members: [{ stableKey: 'anvil', intendedRole: { role: 'terminal', aptness: 0.5 } }],
+                },
             ],
         },
     ],
 })
 
 const hop1PlanSelectionBody = [
-    '## Comparison',
-    'Plan A wins.',
+    '## Conflict catalog',
+    '- candidate-1 conflicts: trigger timing remains coarse.',
+    '',
+    '## Rubric comparison',
+    '- candidate-1 has best coverage/coherence for available props.',
+    '',
+    '## Winner selection',
+    '- Winner: candidate-1.',
     '',
     '```json',
     '{"paragraphSummary":"Stage the anvil.","rubricIssues":[]}',
@@ -237,6 +252,29 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         expect(phasePlanHopMock).not.toHaveBeenCalled()
     })
 
+    it('returns stub when plan-selection response misses required rubric section', async () => {
+        planSelectionMock.mockResolvedValue({
+            success: true,
+            body: [
+                '## Conflict catalog',
+                '- conflict listed',
+                '',
+                '## Winner selection',
+                '- Winner: candidate-1.',
+                '',
+                '```json',
+                '{"paragraphSummary":"Stage the anvil.","rubricIssues":[]}',
+                '```',
+            ].join('\n'),
+            usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
+        })
+        const result = await runCoyoteHypothesisPipeline(
+            { getGameRooms, getRoomMeta }
+        )
+        expect(result.kind).toBe('stub')
+        expect(phasePlanHopMock).not.toHaveBeenCalled()
+    })
+
     it('runOnly planSelect uses inject and skips upstream LLMs', async () => {
         const fixture01 = COYOTE_ENGINE_TEST_FIXTURES.find((f) => f.id === 'fixture-01')
         expect(fixture01?.planSelectInject).toBeDefined()
@@ -263,6 +301,36 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         expect(phasePlanHopMock).not.toHaveBeenCalled()
         if (result.kind === 'harnessPartial') {
             expect(result.planSelectionResult?.success).toBe(true)
+        }
+    })
+
+    it('runOnly phasePlan uses inject and skips stage-one/plan-selection LLMs', async () => {
+        const fixture01 = COYOTE_ENGINE_TEST_FIXTURES.find((f) => f.id === 'fixture-01')
+        expect(fixture01?.phasePlanInject).toBeDefined()
+        const inject = fixture01!.phasePlanInject!
+
+        const result = await runCoyoteHypothesisPipeline(
+            {
+                getGameRooms: async () => [],
+                getRoomMeta: async () => undefined,
+                roomObjectsByRoomOverride: inject.roomObjectsByRoom,
+            },
+            {
+                testOnly: 'phasePlan',
+                harnessRunKind: 'runOnly',
+                injectState: {
+                    roomObjectsByRoom: inject.roomObjectsByRoom,
+                    combinedMarkdown: inject.combinedMarkdown,
+                    hop1Handoff: inject.hop1Handoff,
+                },
+            }
+        )
+        expect(result.kind).toBe('harnessPartial')
+        expect(stageOneMock).not.toHaveBeenCalled()
+        expect(planSelectionMock).not.toHaveBeenCalled()
+        expect(phasePlanHopMock).toHaveBeenCalledTimes(1)
+        if (result.kind === 'harnessPartial') {
+            expect(result.phasePlanHopResult?.success).toBe(true)
         }
     })
 })

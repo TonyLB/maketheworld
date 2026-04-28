@@ -93,15 +93,27 @@ describe('resolveCoyoteHarnessStartAtInject', () => {
         ).toBe(false)
     })
 
-    it('returns missing inject for phasePlan when not curated', () => {
+    it('returns phasePlan inject for fixture index 1', () => {
         const r = resolveCoyoteHarnessStartAtInject({
             fixtureIndex1Based: 1,
+            phase: 'phasePlan',
+        })
+        expect(r.ok).toBe(true)
+        if (r.ok && r.phase === 'phasePlan') {
+            expect(r.phase).toBe('phasePlan')
+            expect(r.inject.hop1Handoff.paragraphSummary.length).toBeGreaterThan(0)
+        }
+    })
+
+    it('returns missing inject for phasePlan when fixture has no bundle', () => {
+        const r = resolveCoyoteHarnessStartAtInject({
+            fixtureIndex1Based: 2,
             phase: 'phasePlan',
         })
         expect(r.ok).toBe(false)
         if (!r.ok) {
             expect(r.message).toContain('phasePlan')
-            expect(r.message).toContain('fixture-01')
+            expect(r.message).toContain('fixture-02')
         }
     })
 })

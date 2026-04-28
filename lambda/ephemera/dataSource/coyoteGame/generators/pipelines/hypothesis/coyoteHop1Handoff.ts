@@ -16,6 +16,12 @@ export type ParseHop1HandoffResult =
     | { ok: true; handoff: CoyoteHop1Handoff }
     | { ok: false; reason: string }
 
+const REQUIRED_SECTION_HEADINGS = [
+    '## Conflict catalog',
+    '## Rubric comparison',
+    '## Winner selection',
+] as const
+
 const REQUIRED_KEYS = new Set<string>([
     COYOTE_HOP1_HANDOFF_JSON_KEYS.paragraphSummary,
     COYOTE_HOP1_HANDOFF_JSON_KEYS.rubricIssues,
@@ -29,18 +35,8 @@ function narrowHandoff(parsed: unknown): ParseHop1HandoffResult {
     if (!isPlainObject(parsed)) {
         return { ok: false, reason: 'handoff JSON must be a plain object' }
     }
-    const keys = Object.keys(parsed)
-    const keySet = new Set(keys)
-    if (keySet.size !== REQUIRED_KEYS.size) {
-        return { ok: false, reason: 'handoff JSON must contain exactly paragraphSummary and rubricIssues' }
-    }
-    for (const k of keys) {
-        if (!REQUIRED_KEYS.has(k)) {
-            return { ok: false, reason: `unexpected key in handoff JSON: ${k}` }
-        }
-    }
     for (const req of REQUIRED_KEYS) {
-        if (!keySet.has(req)) {
+        if (!(req in parsed)) {
             return { ok: false, reason: `missing key in handoff JSON: ${req}` }
         }
     }
@@ -61,11 +57,25 @@ function narrowHandoff(parsed: unknown): ParseHop1HandoffResult {
     }
 }
 
+function containsRequiredSections(raw: string): { ok: false; reason: string } | null {
+    for (const heading of REQUIRED_SECTION_HEADINGS) {
+        if (!raw.includes(heading)) {
+            return { ok: false, reason: `missing required section heading: ${heading}` }
+        }
+    }
+    return null
+}
+
 /**
  * Parses hop-1 plan-selection assistant output for the trailing **` ```json `** handoff block.
  * Uses the **last** fence whose language tag is **`json`** (case-insensitive).
  */
 export function parseHop1HandoffFromSelectionBody(raw: string): ParseHop1HandoffResult {
+    const requiredSectionsResult = containsRequiredSections(raw)
+    if (requiredSectionsResult) {
+        hypothesisDebugLog('hop1 handoff parse failed', { reason: requiredSectionsResult.reason })
+        return requiredSectionsResult
+    }
     const blocks = findAllFenceBlocks(raw)
     hypothesisDebugLog('hop1 handoff parse: scanned fenced blocks', {
         blockCount: blocks.length,

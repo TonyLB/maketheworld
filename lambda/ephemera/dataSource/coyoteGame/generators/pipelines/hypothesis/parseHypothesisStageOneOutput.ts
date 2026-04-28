@@ -1,14 +1,16 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
+    CoyoteTrope,
     CoyoteAffinityPossibility,
     CoyoteAffinityPossibilityEcho,
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import { isCoyoteAffinityPossibilityEcho } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import { isCoyoteAffinityPossibilityEcho, isCoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 /*
- * Stage 1 emits JSON: optional notes, required clusters[], optional outliers[] (partition with clusters),
- * members use stableKey + optional intendedRole echo (CoyoteAffinityPossibilityEcho).
+ * Stage 1 emits trope-first JSON: optional notes, required candidates[].
+ * Each candidate includes tropeAssignments[] and optional outliers[] (partition with members).
+ * members/outliers use stableKey + optional intendedRole echo (CoyoteAffinityPossibilityEcho).
  */
 
 /** One staged object reference in a cluster or in **`outliers`**. */
@@ -17,22 +19,24 @@ export type ParsedClusterMember = {
     intendedRole?: CoyoteAffinityPossibility
 }
 
-export type ParsedCluster = {
-    clusterName: string
+export type ParsedTropeAssignment = {
+    trope: CoyoteTrope
+    executionDetail: string
     members: ParsedClusterMember[]
+}
+
+export type ParsedTropeCandidate = {
+    candidateId: string
+    executionSummary: string
+    tropeAssignments: ParsedTropeAssignment[]
+    explicitOutliers?: ParsedClusterMember[]
 }
 
 export type ParseHypothesisStageOneSuccess = {
     ok: true
     /** Canonical JSON string after validation (debug / tests). */
     normalizedJson: string
-    clusters: ParsedCluster[]
-    /**
-     * Present when the model included root **`outliers`** — **`combineHypothesisClusters`** hydrates these
-     * instead of inferring complement from clusters. Omitted when **`outliers`** is absent (fallback: every
-     * staged **`stableKey`** appears only in **`clusters`**).
-     */
-    explicitOutliers?: ParsedClusterMember[]
+    candidates: ParsedTropeCandidate[]
 }
 
 export type ParseHypothesisStageOneFailure = {
@@ -117,6 +121,25 @@ function expectedStableKeysSorted(
 
 function isNonEmptyString(x: unknown): x is string {
     return typeof x === 'string' && x.trim().length > 0
+}
+
+const STAGE_ONE_ROOT_ALLOWED_KEYS = new Set(['candidates', 'notes'])
+const STAGE_ONE_CANDIDATE_ALLOWED_KEYS = new Set([
+    'candidateId',
+    'executionSummary',
+    'tropeAssignments',
+    'outliers',
+])
+const STAGE_ONE_TROPE_ASSIGNMENT_ALLOWED_KEYS = new Set(['trope', 'executionDetail', 'members'])
+const STAGE_ONE_MEMBER_ALLOWED_KEYS = new Set(['stableKey', 'intendedRole'])
+const TROPE_ORDER: CoyoteTrope[] = ['Contraption', 'Distraction', 'Disadvantage', 'Finishing Move']
+const TROPE_ORDER_INDEX = new Map(TROPE_ORDER.map((trope, i) => [trope, i]))
+
+function unknownKeys(
+    candidate: Record<string, unknown>,
+    allowed: Set<string>
+): string[] {
+    return Object.keys(candidate).filter((key) => !allowed.has(key))
 }
 
 function resolveEchoToStoredRow(
@@ -205,26 +228,32 @@ function resolveDraftMembers(
     return { ok: true, members: membersOut }
 }
 
-function parseClustersFromPayload(
+function parseCandidatesFromPayload(
     payload: unknown,
     roomObjectsByRoom: Record<EphemeraRoomId, EphemeraMetaRoomObject[]>
 ): {
     ok: true
-    clusters: ParsedCluster[]
-    explicitOutliers?: ParsedClusterMember[]
+    candidates: ParsedTropeCandidate[]
 } | { ok: false; errorMessage: string } {
     if (typeof payload !== 'object' || payload === null) {
         return { ok: false, errorMessage: 'stage 1 JSON: root must be an object' }
     }
     const root = payload as Record<string, unknown>
+    const unknownRootKeys = unknownKeys(root, STAGE_ONE_ROOT_ALLOWED_KEYS)
+    if (unknownRootKeys.length > 0) {
+        return {
+            ok: false,
+            errorMessage: `stage 1 JSON: unknown root key(s): ${unknownRootKeys.join(', ')}`,
+        }
+    }
 
     if (root.notes !== undefined && typeof root.notes !== 'string') {
         return { ok: false, errorMessage: 'stage 1 JSON: notes must be a string when present' }
     }
 
-    const clustersRaw = root.clusters
-    if (!Array.isArray(clustersRaw)) {
-        return { ok: false, errorMessage: 'stage 1 JSON: missing or invalid clusters array' }
+    const candidatesRaw = root.candidates
+    if (!Array.isArray(candidatesRaw)) {
+        return { ok: false, errorMessage: 'stage 1 JSON: missing or invalid candidates array' }
     }
 
     const expectedCount = expectedStableKeysSorted(roomObjectsByRoom).length
@@ -232,144 +261,242 @@ function parseClustersFromPayload(
         return { ok: false, errorMessage: 'stage 1 JSON: no staged objects to cluster' }
     }
 
-    if (clustersRaw.length < 1 || clustersRaw.length > expectedCount) {
+    if (candidatesRaw.length < 1) {
         return {
             ok: false,
-            errorMessage: `stage 1 JSON: expected 1-${expectedCount} clusters, got ${clustersRaw.length}`,
+            errorMessage: 'stage 1 JSON: candidates must be a non-empty array',
         }
     }
 
-    const draftClusters: { clusterName: string; members: DraftMember[] }[] = []
-
-    for (let ci = 0; ci < clustersRaw.length; ci++) {
-        const c = clustersRaw[ci]
+    const candidates: ParsedTropeCandidate[] = []
+    for (let ci = 0; ci < candidatesRaw.length; ci++) {
+        const c = candidatesRaw[ci]
         if (typeof c !== 'object' || c === null) {
-            return { ok: false, errorMessage: `stage 1 JSON: cluster ${ci} must be an object` }
+            return { ok: false, errorMessage: `stage 1 JSON: candidate ${ci} must be an object` }
         }
         const co = c as Record<string, unknown>
-        if (!isNonEmptyString(co.clusterName)) {
-            return { ok: false, errorMessage: `stage 1 JSON: cluster ${ci} needs non-empty clusterName` }
-        }
-        const clusterName = co.clusterName.trim()
-        const membersRaw = co.members
-        if (!Array.isArray(membersRaw) || membersRaw.length < 1) {
+        const unknownClusterKeys = unknownKeys(co, STAGE_ONE_CANDIDATE_ALLOWED_KEYS)
+        if (unknownClusterKeys.length > 0) {
             return {
                 ok: false,
-                errorMessage: `stage 1 JSON: cluster "${clusterName}" needs a non-empty members array`,
+                errorMessage: `stage 1 JSON: candidate ${ci} has unknown key(s): ${unknownClusterKeys.join(', ')}`,
             }
         }
+        if (!isNonEmptyString(co.candidateId)) {
+            return { ok: false, errorMessage: `stage 1 JSON: candidate ${ci} needs non-empty candidateId` }
+        }
+        if (!isNonEmptyString(co.executionSummary)) {
+            return {
+                ok: false,
+                errorMessage: `stage 1 JSON: candidate "${co.candidateId}" needs non-empty executionSummary`,
+            }
+        }
+        const candidateId = co.candidateId.trim()
+        const executionSummary = co.executionSummary.trim()
+        const tropeAssignmentsRaw = co.tropeAssignments
+        if (!Array.isArray(tropeAssignmentsRaw) || tropeAssignmentsRaw.length < 1) {
+            return { ok: false, errorMessage: `stage 1 JSON: candidate "${candidateId}" needs tropeAssignments` }
+        }
 
-        const membersDraft: DraftMember[] = []
-        for (let mi = 0; mi < membersRaw.length; mi++) {
-            const mem = membersRaw[mi]
-            if (typeof mem !== 'object' || mem === null) {
+        const tropeAssignmentsDraft: Array<{ trope: CoyoteTrope; executionDetail: string; members: DraftMember[] }> = []
+        let previousTropeIndex = -1
+        const seenTropes = new Set<CoyoteTrope>()
+        for (let ti = 0; ti < tropeAssignmentsRaw.length; ti++) {
+            const ta = tropeAssignmentsRaw[ti]
+            if (typeof ta !== 'object' || ta === null) {
                 return {
                     ok: false,
-                    errorMessage: `stage 1 JSON: cluster "${clusterName}" member ${mi} must be an object`,
+                    errorMessage: `stage 1 JSON: candidate "${candidateId}" tropeAssignments[${ti}] must be an object`,
                 }
             }
-            const parsedM = parseDraftMemberFromRecord(
-                mem as Record<string, unknown>,
-                `stage 1 JSON: cluster "${clusterName}" member ${mi}`
-            )
-            if (!parsedM.ok) {
-                return parsedM
-            }
-            membersDraft.push(parsedM.draft)
-        }
-
-        draftClusters.push({ clusterName, members: membersDraft })
-    }
-
-    const clusterKeysSorted = draftClusters
-        .flatMap((cl) => cl.members.map((m) => m.stableKey.trim()))
-        .sort()
-
-    const expectedSorted = JSON.stringify(expectedStableKeysSorted(roomObjectsByRoom))
-    const hasExplicitOutliers = Object.prototype.hasOwnProperty.call(root, 'outliers')
-
-    let draftOutliers: DraftMember[] | undefined
-    if (hasExplicitOutliers) {
-        if (!Array.isArray(root.outliers)) {
-            return { ok: false, errorMessage: 'stage 1 JSON: outliers must be an array when present' }
-        }
-        draftOutliers = []
-        for (let oi = 0; oi < root.outliers.length; oi++) {
-            const raw = root.outliers[oi]
-            if (typeof raw !== 'object' || raw === null) {
-                return { ok: false, errorMessage: `stage 1 JSON: outliers[${oi}] must be an object` }
-            }
-            const parsedO = parseDraftMemberFromRecord(
-                raw as Record<string, unknown>,
-                `stage 1 JSON: outliers[${oi}]`
-            )
-            if (!parsedO.ok) {
-                return parsedO
-            }
-            draftOutliers.push(parsedO.draft)
-        }
-
-        const outlierKeysSorted = draftOutliers.map((d) => d.stableKey.trim()).sort()
-        const clusterKeySet = new Set(clusterKeysSorted)
-        for (const ok of outlierKeysSorted) {
-            if (clusterKeySet.has(ok)) {
+            const tao = ta as Record<string, unknown>
+            const unknownMemberKeys = unknownKeys(tao, STAGE_ONE_TROPE_ASSIGNMENT_ALLOWED_KEYS)
+            if (unknownMemberKeys.length > 0) {
                 return {
                     ok: false,
-                    errorMessage: `stage 1 JSON: stableKey "${ok}" appears in both clusters and outliers`,
+                    errorMessage:
+                        `stage 1 JSON: candidate "${candidateId}" tropeAssignments[${ti}] has unknown key(s): ` +
+                        unknownMemberKeys.join(', '),
+                }
+            }
+            if (!isCoyoteTrope(tao.trope)) {
+                return {
+                    ok: false,
+                    errorMessage: `stage 1 JSON: candidate "${candidateId}" tropeAssignments[${ti}] has invalid trope`,
+                }
+            }
+            if (seenTropes.has(tao.trope)) {
+                return {
+                    ok: false,
+                    errorMessage: `stage 1 JSON: candidate "${candidateId}" repeats trope "${tao.trope}"`,
+                }
+            }
+            const tropeIndex = TROPE_ORDER_INDEX.get(tao.trope)!
+            if (tropeIndex < previousTropeIndex) {
+                return {
+                    ok: false,
+                    errorMessage: `stage 1 JSON: candidate "${candidateId}" tropeAssignments are out of canonical trope order`,
+                }
+            }
+            previousTropeIndex = tropeIndex
+            seenTropes.add(tao.trope)
+            if (!isNonEmptyString(tao.executionDetail)) {
+                return {
+                    ok: false,
+                    errorMessage: `stage 1 JSON: candidate "${candidateId}" trope "${tao.trope}" needs non-empty executionDetail`,
+                }
+            }
+            const membersRaw = tao.members
+            if (!Array.isArray(membersRaw) || membersRaw.length < 1) {
+                return {
+                    ok: false,
+                    errorMessage: `stage 1 JSON: candidate "${candidateId}" trope "${tao.trope}" needs a non-empty members array`,
+                }
+            }
+            const membersDraft: DraftMember[] = []
+            for (let mi = 0; mi < membersRaw.length; mi++) {
+                const mem = membersRaw[mi]
+                if (typeof mem !== 'object' || mem === null) {
+                    return {
+                        ok: false,
+                        errorMessage: `stage 1 JSON: candidate "${candidateId}" trope "${tao.trope}" member ${mi} must be an object`,
+                    }
+                }
+                const mo = mem as Record<string, unknown>
+                const unknownMemberKeysForItem = unknownKeys(mo, STAGE_ONE_MEMBER_ALLOWED_KEYS)
+                if (unknownMemberKeysForItem.length > 0) {
+                    return {
+                        ok: false,
+                        errorMessage:
+                            `stage 1 JSON: candidate "${candidateId}" trope "${tao.trope}" member ${mi} has unknown key(s): ` +
+                            unknownMemberKeysForItem.join(', '),
+                    }
+                }
+                const parsedM = parseDraftMemberFromRecord(
+                    mo,
+                    `stage 1 JSON: candidate "${candidateId}" trope "${tao.trope}" member ${mi}`
+                )
+                if (!parsedM.ok) {
+                    return parsedM
+                }
+                membersDraft.push(parsedM.draft)
+            }
+
+            tropeAssignmentsDraft.push({
+                trope: tao.trope,
+                executionDetail: tao.executionDetail.trim(),
+                members: membersDraft,
+            })
+        }
+
+        const expectedSorted = JSON.stringify(expectedStableKeysSorted(roomObjectsByRoom))
+        const assignmentKeysSorted = tropeAssignmentsDraft
+            .flatMap((assignment) => assignment.members.map((m) => m.stableKey.trim()))
+            .sort()
+        const hasExplicitOutliers = Object.prototype.hasOwnProperty.call(co, 'outliers')
+        let draftOutliers: DraftMember[] | undefined
+        if (hasExplicitOutliers) {
+            if (!Array.isArray(co.outliers)) {
+                return { ok: false, errorMessage: `stage 1 JSON: candidate "${candidateId}" outliers must be an array when present` }
+            }
+            draftOutliers = []
+            for (let oi = 0; oi < co.outliers.length; oi++) {
+                const raw = co.outliers[oi]
+                if (typeof raw !== 'object' || raw === null) {
+                    return { ok: false, errorMessage: `stage 1 JSON: candidate "${candidateId}" outliers[${oi}] must be an object` }
+                }
+                const rawObj = raw as Record<string, unknown>
+                const unknownOutlierKeys = unknownKeys(rawObj, STAGE_ONE_MEMBER_ALLOWED_KEYS)
+                if (unknownOutlierKeys.length > 0) {
+                    return {
+                        ok: false,
+                        errorMessage:
+                            `stage 1 JSON: candidate "${candidateId}" outliers[${oi}] has unknown key(s): ` +
+                            unknownOutlierKeys.join(', '),
+                    }
+                }
+                const parsedO = parseDraftMemberFromRecord(
+                    rawObj,
+                    `stage 1 JSON: candidate "${candidateId}" outliers[${oi}]`
+                )
+                if (!parsedO.ok) {
+                    return parsedO
+                }
+                draftOutliers.push(parsedO.draft)
+            }
+            const outlierKeysSorted = draftOutliers.map((d) => d.stableKey.trim()).sort()
+            const assignmentKeySet = new Set(assignmentKeysSorted)
+            for (const ok of outlierKeysSorted) {
+                if (assignmentKeySet.has(ok)) {
+                    return {
+                        ok: false,
+                        errorMessage: `stage 1 JSON: candidate "${candidateId}" stableKey "${ok}" appears in both tropeAssignments and outliers`,
+                    }
+                }
+            }
+            const unionSorted = [...assignmentKeysSorted, ...outlierKeysSorted].sort()
+            if (JSON.stringify(unionSorted) !== expectedSorted) {
+                return {
+                    ok: false,
+                    errorMessage:
+                        `stage 1 JSON: candidate "${candidateId}" tropeAssignments ∪ outliers must equal staged multiset ` +
+                        `(expected ${expectedSorted}, got ${JSON.stringify(unionSorted)})`,
+                }
+            }
+        } else {
+            const parsedSorted = JSON.stringify(assignmentKeysSorted)
+            if (
+                assignmentKeysSorted.length !== expectedStableKeysSorted(roomObjectsByRoom).length
+                || parsedSorted !== expectedSorted
+            ) {
+                return {
+                    ok: false,
+                    errorMessage:
+                        `stage 1 JSON: candidate "${candidateId}" stableKey multiset mismatch ` +
+                        `(expected ${expectedSorted}, parsed ${parsedSorted})`,
                 }
             }
         }
 
-        const unionSorted = [...clusterKeysSorted, ...outlierKeysSorted].sort()
-        if (JSON.stringify(unionSorted) !== expectedSorted) {
-            return {
-                ok: false,
-                errorMessage: `stage 1 JSON: clusters ∪ outliers must equal staged multiset (expected ${expectedSorted}, got ${JSON.stringify(unionSorted)})`,
+        const snapshotByStableKey = new Map<string, EphemeraMetaRoomObject>()
+        for (const objects of Object.values(roomObjectsByRoom)) {
+            for (const o of objects) {
+                snapshotByStableKey.set(o.stableKey.trim(), o)
             }
         }
-    } else {
-        const parsedSorted = JSON.stringify(clusterKeysSorted)
-        if (
-            clusterKeysSorted.length !== expectedStableKeysSorted(roomObjectsByRoom).length
-            || parsedSorted !== expectedSorted
-        ) {
-            return {
-                ok: false,
-                errorMessage: `stage 1 JSON: stableKey multiset mismatch (expected ${expectedSorted}, parsed ${parsedSorted})`,
+        const tropeAssignments: ParsedTropeAssignment[] = []
+        for (const draft of tropeAssignmentsDraft) {
+            const resolvedMembers = resolveDraftMembers(draft.members, snapshotByStableKey, 'cluster')
+            if (!resolvedMembers.ok) {
+                return resolvedMembers
             }
+            tropeAssignments.push({
+                trope: draft.trope,
+                executionDetail: draft.executionDetail,
+                members: resolvedMembers.members,
+            })
         }
+        let explicitOutliers: ParsedClusterMember[] | undefined
+        if (hasExplicitOutliers && draftOutliers !== undefined) {
+            const resolvedOut = resolveDraftMembers(draftOutliers, snapshotByStableKey, 'outlier')
+            if (!resolvedOut.ok) {
+                return resolvedOut
+            }
+            explicitOutliers = resolvedOut.members
+        }
+        candidates.push({
+            candidateId,
+            executionSummary,
+            tropeAssignments,
+            ...(explicitOutliers !== undefined ? { explicitOutliers } : {}),
+        })
     }
 
-    const snapshotByStableKey = new Map<string, EphemeraMetaRoomObject>()
-    for (const objects of Object.values(roomObjectsByRoom)) {
-        for (const o of objects) {
-            snapshotByStableKey.set(o.stableKey.trim(), o)
-        }
-    }
-
-    const clusters: ParsedCluster[] = []
-    for (const dc of draftClusters) {
-        const resolved = resolveDraftMembers(dc.members, snapshotByStableKey, 'cluster')
-        if (!resolved.ok) {
-            return resolved
-        }
-        clusters.push({ clusterName: dc.clusterName, members: resolved.members })
-    }
-
-    let explicitOutliers: ParsedClusterMember[] | undefined
-    if (hasExplicitOutliers && draftOutliers !== undefined) {
-        const resolvedOut = resolveDraftMembers(draftOutliers, snapshotByStableKey, 'outlier')
-        if (!resolvedOut.ok) {
-            return resolvedOut
-        }
-        explicitOutliers = resolvedOut.members
-    }
-
-    return { ok: true, clusters, explicitOutliers }
+    return { ok: true, candidates }
 }
 
 /**
- * Validates stage-1 Bedrock JSON body and returns parsed clusters.
+ * Validates stage-1 Bedrock JSON body and returns parsed trope candidates.
  */
 export function parseHypothesisStageOneOutput(
     rawBody: string,
@@ -387,7 +514,7 @@ export function parseHypothesisStageOneOutput(
         return { ok: false, errorMessage: 'stage 1 JSON: JSON.parse failed' }
     }
 
-    const parsed = parseClustersFromPayload(payload, roomObjectsByRoom)
+    const parsed = parseCandidatesFromPayload(payload, roomObjectsByRoom)
     if (!parsed.ok) {
         return parsed
     }
@@ -398,10 +525,7 @@ export function parseHypothesisStageOneOutput(
             : undefined
 
     const normalizedPayload: Record<string, unknown> = {
-        clusters: parsed.clusters,
-    }
-    if (parsed.explicitOutliers !== undefined) {
-        normalizedPayload.outliers = parsed.explicitOutliers
+        candidates: parsed.candidates,
     }
     if (notes !== undefined) {
         normalizedPayload.notes = notes
@@ -410,7 +534,6 @@ export function parseHypothesisStageOneOutput(
     return {
         ok: true,
         normalizedJson: JSON.stringify(normalizedPayload),
-        clusters: parsed.clusters,
-        ...(parsed.explicitOutliers !== undefined ? { explicitOutliers: parsed.explicitOutliers } : {}),
+        candidates: parsed.candidates,
     }
 }

@@ -1,18 +1,37 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type {
-    CombineClustersReturn,
-    ClusterMemberPair,
-} from '@tonylb/mtw-interfaces/ts/coyoteCombineClusters'
+import type { CoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
-import type { ParsedCluster, ParsedClusterMember } from './parseHypothesisStageOneOutput'
+import type { ParsedClusterMember, ParsedTropeCandidate } from './parseHypothesisStageOneOutput'
 import { formatCoyoteAffinityPossibility } from '../../../utilities/coyoteRoomObjectSnapshot'
 import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 
+export type CombinedMemberPair = {
+    identifier: string
+    intendedRole?: CoyoteAffinityPossibility
+}
+
+export type CombinedTropeAssignment = {
+    trope: CoyoteTrope
+    executionDetail: string
+    members: CombinedMemberPair[]
+}
+
+export type CombinedTropeCandidate = {
+    candidateId: string
+    executionSummary: string
+    tropeAssignments: CombinedTropeAssignment[]
+    outliers: CombinedMemberPair[]
+}
+
+export type CombineHypothesisClustersReturn = {
+    candidates: CombinedTropeCandidate[]
+}
+
 export type CombineHypothesisClustersSuccess = {
     ok: true
-    combined: CombineClustersReturn
+    combined: CombineHypothesisClustersReturn
 }
 
 export type CombineHypothesisClustersFailure = {
@@ -78,138 +97,147 @@ function snapshotIndexByStableKey(
  * is listed as an outlier (complement fallback).
  */
 export function combineHypothesisClusters(
-    clusters: ParsedCluster[],
-    roomObjectsByRoom: CoyoteRoomObjectsByRoom,
-    explicitOutliers?: ParsedClusterMember[]
+    candidates: ParsedTropeCandidate[],
+    roomObjectsByRoom: CoyoteRoomObjectsByRoom
 ): CombineHypothesisClustersResult {
     const byStableKey = snapshotIndexByStableKey(roomObjectsByRoom)
-
-    const outClusters: CombineClustersReturn['clusters'] = []
-    const seenKeys = new Set<string>()
-
-    for (const pc of clusters) {
-        const membersOut: ClusterMemberPair[] = []
-        for (const mem of pc.members) {
-            const sk = mem.stableKey.trim()
-            const obj = byStableKey.get(sk)
-            if (!obj) {
-                return { ok: false, errorMessage: `combine: unknown stableKey "${sk}"` }
-            }
-            seenKeys.add(sk)
-
-            const resolvedRole = resolveMemberIntendedRole(obj, mem.intendedRole, `"${sk}"`)
-            if (!resolvedRole.ok) {
-                return resolvedRole
-            }
-
-            const pair: ClusterMemberPair = {
-                identifier: sk,
-                intendedRole: resolvedRole.intendedRole,
-            }
-            membersOut.push(pair)
-        }
-        outClusters.push({
-            clusterName: pc.clusterName,
-            members: membersOut,
-        })
-    }
-
-    let outliers: ClusterMemberPair[]
-
-    if (explicitOutliers !== undefined) {
-        outliers = []
-        for (const mem of explicitOutliers) {
-            const sk = mem.stableKey.trim()
-            if (seenKeys.has(sk)) {
-                return {
-                    ok: false,
-                    errorMessage: `combine: stableKey "${sk}" appears in both clusters and explicit outliers`,
+    const combinedCandidates: CombinedTropeCandidate[] = []
+    for (const candidate of candidates) {
+        const seenKeys = new Set<string>()
+        const tropeAssignments: CombinedTropeAssignment[] = []
+        for (const tropeAssignment of candidate.tropeAssignments) {
+            const membersOut: CombinedMemberPair[] = []
+            for (const mem of tropeAssignment.members) {
+                const sk = mem.stableKey.trim()
+                if (seenKeys.has(sk)) {
+                    return {
+                        ok: false,
+                        errorMessage:
+                            `combine: candidate "${candidate.candidateId}" duplicate stableKey "${sk}" across trope assignments`,
+                    }
                 }
+                const obj = byStableKey.get(sk)
+                if (!obj) {
+                    return { ok: false, errorMessage: `combine: unknown stableKey "${sk}"` }
+                }
+                seenKeys.add(sk)
+                const resolvedRole = resolveMemberIntendedRole(
+                    obj,
+                    mem.intendedRole,
+                    `candidate "${candidate.candidateId}" trope "${tropeAssignment.trope}" stableKey "${sk}"`
+                )
+                if (!resolvedRole.ok) {
+                    return resolvedRole
+                }
+                membersOut.push({
+                    identifier: sk,
+                    intendedRole: resolvedRole.intendedRole,
+                })
             }
-            seenKeys.add(sk)
-            const obj = byStableKey.get(sk)
-            if (!obj) {
-                return { ok: false, errorMessage: `combine: unknown outlier stableKey "${sk}"` }
-            }
-            const resolvedRole = resolveMemberIntendedRole(obj, mem.intendedRole, `outlier "${sk}"`)
-            if (!resolvedRole.ok) {
-                return resolvedRole
-            }
-            outliers.push({
-                identifier: sk,
-                intendedRole: resolvedRole.intendedRole,
+            tropeAssignments.push({
+                trope: tropeAssignment.trope,
+                executionDetail: tropeAssignment.executionDetail,
+                members: membersOut,
             })
         }
-    } else {
-        outliers = []
-        for (const objects of Object.values(roomObjectsByRoom)) {
-            for (const o of objects) {
-                const sk = o.stableKey.trim()
-                if (!seenKeys.has(sk)) {
-                    outliers.push({ identifier: sk })
+        const outliers: CombinedMemberPair[] = []
+        if (candidate.explicitOutliers !== undefined) {
+            for (const outlier of candidate.explicitOutliers) {
+                const sk = outlier.stableKey.trim()
+                if (seenKeys.has(sk)) {
+                    return {
+                        ok: false,
+                        errorMessage:
+                            `combine: candidate "${candidate.candidateId}" stableKey "${sk}" appears in both trope assignments and explicit outliers`,
+                    }
                 }
+                const obj = byStableKey.get(sk)
+                if (!obj) {
+                    return { ok: false, errorMessage: `combine: unknown outlier stableKey "${sk}"` }
+                }
+                seenKeys.add(sk)
+                const resolvedRole = resolveMemberIntendedRole(
+                    obj,
+                    outlier.intendedRole,
+                    `candidate "${candidate.candidateId}" outlier "${sk}"`
+                )
+                if (!resolvedRole.ok) {
+                    return resolvedRole
+                }
+                outliers.push({
+                    identifier: sk,
+                    intendedRole: resolvedRole.intendedRole,
+                })
             }
         }
+        combinedCandidates.push({
+            candidateId: candidate.candidateId,
+            executionSummary: candidate.executionSummary,
+            tropeAssignments,
+            outliers,
+        })
     }
 
     return {
         ok: true,
         combined: {
-            clusters: outClusters,
-            outliers,
+            candidates: combinedCandidates,
         },
     }
 }
 
 /** Deterministic Markdown for Stage Two dynamic tail (combined-only contract). */
 export function renderCombinedHypothesisForStageTwo(
-    combined: CombineClustersReturn,
+    combined: CombineHypothesisClustersReturn,
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
 ): string {
     const byStableKey = snapshotIndexByStableKey(roomObjectsByRoom)
 
     const lines: string[] = ['## Combined clustering', '']
 
-    for (const cl of combined.clusters) {
-        lines.push(`### ${cl.clusterName}`, '')
-        for (const mem of cl.members) {
-            const sk = typeof mem.identifier === 'string' ? mem.identifier.trim() : ''
-            const obj = sk ? byStableKey.get(sk) : undefined
-            const shortName = obj?.shortName ?? sk
-            const roomLabel = obj
-                ? findRoomIdForObject(roomObjectsByRoom, obj)?.replace(/^ROOM#/, '') ?? ''
-                : ''
-            lines.push(
-                `- **stableKey:** ${sk} — **shortName:** ${shortName}${roomLabel ? ` — **room:** ${roomLabel}` : ''}`
-            )
-            if (mem.intendedRole !== undefined) {
-                lines.push(`  - **intendedRole:** ${formatCoyoteAffinityPossibility(mem.intendedRole)}`)
+    for (const candidate of combined.candidates) {
+        lines.push(`### Candidate ${candidate.candidateId}`, '')
+        lines.push(`- **executionSummary:** ${candidate.executionSummary}`, '')
+        for (const assignment of candidate.tropeAssignments) {
+            lines.push(`#### ${assignment.trope}`, '')
+            lines.push(`- **executionDetail:** ${assignment.executionDetail}`, '')
+            for (const mem of assignment.members) {
+                const sk = mem.identifier.trim()
+                const obj = sk ? byStableKey.get(sk) : undefined
+                const shortName = obj?.shortName ?? sk
+                const roomLabel = obj
+                    ? findRoomIdForObject(roomObjectsByRoom, obj)?.replace(/^ROOM#/, '') ?? ''
+                    : ''
+                lines.push(
+                    `- **stableKey:** ${sk} — **shortName:** ${shortName}${roomLabel ? ` — **room:** ${roomLabel}` : ''}`
+                )
+                if (mem.intendedRole !== undefined) {
+                    lines.push(`  - **intendedRole:** ${formatCoyoteAffinityPossibility(mem.intendedRole)}`)
+                }
+            }
+            lines.push('')
+        }
+        lines.push('#### Outliers', '')
+        if (candidate.outliers.length === 0) {
+            lines.push('(none)', '')
+        } else {
+            for (const out of candidate.outliers) {
+                const sk = out.identifier.trim()
+                const obj = sk ? byStableKey.get(sk) : undefined
+                const shortName = obj?.shortName ?? sk
+                const roomLabel = obj
+                    ? findRoomIdForObject(roomObjectsByRoom, obj)?.replace(/^ROOM#/, '') ?? ''
+                    : ''
+                lines.push(
+                    `- **stableKey:** ${sk} — **shortName:** ${shortName}${roomLabel ? ` — **room:** ${roomLabel}` : ''}`
+                )
+                if (out.intendedRole !== undefined) {
+                    lines.push(`  - **intendedRole:** ${formatCoyoteAffinityPossibility(out.intendedRole)}`)
+                }
             }
             lines.push('')
         }
     }
-
-    lines.push('## Outliers', '')
-    if (combined.outliers.length === 0) {
-        lines.push('(none)', '')
-    } else {
-        for (const out of combined.outliers) {
-            const sk = typeof out.identifier === 'string' ? out.identifier.trim() : ''
-            const obj = sk ? byStableKey.get(sk) : undefined
-            const shortName = obj?.shortName ?? sk
-            const roomLabel = obj
-                ? findRoomIdForObject(roomObjectsByRoom, obj)?.replace(/^ROOM#/, '') ?? ''
-                : ''
-            lines.push(
-                `- **stableKey:** ${sk} — **shortName:** ${shortName}${roomLabel ? ` — **room:** ${roomLabel}` : ''}`
-            )
-            if (out.intendedRole !== undefined) {
-                lines.push(`  - **intendedRole:** ${formatCoyoteAffinityPossibility(out.intendedRole)}`)
-            }
-            lines.push('')
-        }
-    }
-
     return lines.join('\n').trimEnd()
 }
 

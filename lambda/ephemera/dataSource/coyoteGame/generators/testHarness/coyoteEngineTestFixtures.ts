@@ -10,6 +10,7 @@ import type {
     CoyoteHarnessPhasePlanInject,
     CoyoteHarnessPlanSelectInject,
 } from '../pipelines/hypothesis/coyoteHarnessInjectTypes'
+import type { CoyoteHop1Handoff } from '../pipelines/hypothesis/coyoteHop1Handoff'
 import { parseHypothesisStageOneOutput } from '../pipelines/hypothesis/parseHypothesisStageOneOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../utilities/coyoteRoomObjectSnapshot'
 
@@ -106,13 +107,20 @@ const FIXTURE_01_ROOM_OBJECTS: CoyoteEngineTestFixture['roomObjectsByRoom'] = {
  * and render path as **`seamCombineRender`** (`stableKey` **`rocket-0`** matches **`harnessRoomObjectsSpec`**).
  */
 const FIXTURE_01_GOLDEN_SEAM_BODY = JSON.stringify({
-    clusters: [
+    candidates: [
         {
-            clusterName: 'Straightaway rocket',
-            members: [
+            candidateId: 'candidate-1',
+            executionSummary: 'Use the straightaway rocket lane as the main trap route.',
+            tropeAssignments: [
                 {
-                    stableKey: 'rocket-0',
-                    intendedRole: { role: 'delivery', aptness: 0.4 },
+                    trope: 'Contraption',
+                    executionDetail: 'Rocket hardware is staged and aligned on the straightaway.',
+                    members: [
+                        {
+                            stableKey: 'rocket-0',
+                            intendedRole: { role: 'delivery', aptness: 0.4 },
+                        },
+                    ],
                 },
             ],
         },
@@ -126,9 +134,8 @@ function buildFixture01PlanSelectInject(): CoyoteHarnessPlanSelectInject {
         throw new Error(`fixture-01 planSelect golden seam: ${seamParsed.errorMessage}`)
     }
     const combinedResult = combineHypothesisClusters(
-        seamParsed.clusters,
-        roomObjectsByRoom,
-        seamParsed.explicitOutliers
+        seamParsed.candidates,
+        roomObjectsByRoom
     )
     if (!combinedResult.ok) {
         throw new Error(`fixture-01 planSelect golden combine: ${combinedResult.errorMessage}`)
@@ -140,6 +147,17 @@ function buildFixture01PlanSelectInject(): CoyoteHarnessPlanSelectInject {
 }
 
 const FIXTURE_01_PLAN_SELECT_INJECT = buildFixture01PlanSelectInject()
+const FIXTURE_01_PHASE_PLAN_HANDOFF: CoyoteHop1Handoff = {
+    paragraphSummary: 'Conflict review favors candidate-1: use the straightaway rocket setup to launch into one trap lane with the cleanest coverage and coherence tradeoff.',
+    rubricIssues: [
+        'Conflict catalog still needs tighter trigger grounding for how launch timing resolves from current object placement.',
+        'Rubric comparison leaves completeness risk around fail-safe lane commitment detail.',
+    ],
+}
+const FIXTURE_01_PHASE_PLAN_INJECT: CoyoteHarnessPhasePlanInject = {
+    ...FIXTURE_01_PLAN_SELECT_INJECT,
+    hop1Handoff: FIXTURE_01_PHASE_PLAN_HANDOFF,
+}
 
 export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
     {
@@ -147,6 +165,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
         label: 'Rocket at the Straightaway',
         roomObjectsByRoom: FIXTURE_01_ROOM_OBJECTS,
         planSelectInject: FIXTURE_01_PLAN_SELECT_INJECT,
+        phasePlanInject: FIXTURE_01_PHASE_PLAN_INJECT,
     },
     {
         id: 'fixture-02',

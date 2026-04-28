@@ -22,10 +22,17 @@ const singleObjectRoomMap: CoyoteRoomObjectsByRoom = {
 }
 
 const validJsonSingleObject = JSON.stringify({
-    clusters: [
+    candidates: [
         {
-            clusterName: 'Cliff trap',
-            members: [{ stableKey: 'anvil-0', intendedRole: { role: 'terminal', aptness: 0.55 } }],
+            candidateId: 'candidate-1',
+            executionSummary: 'Drop the anvil as the final beat.',
+            tropeAssignments: [
+                {
+                    trope: 'Finishing Move',
+                    executionDetail: 'Anvil drops once Road Runner commits to the lane.',
+                    members: [{ stableKey: 'anvil-0', intendedRole: { role: 'terminal', aptness: 0.55 } }],
+                },
+            ],
         },
     ],
 })
@@ -39,40 +46,65 @@ describe('stripHypothesisStageOneFence', () => {
 })
 
 describe('parseHypothesisStageOneOutput', () => {
-    it('accepts valid JSON matching snapshot multiset', () => {
+    it('accepts valid trope-candidate JSON matching snapshot multiset', () => {
         const r = parseHypothesisStageOneOutput(validJsonSingleObject, singleObjectRoomMap)
         expect(r.ok).toBe(true)
         if (r.ok) {
             expect(r.normalizedJson).toContain('"stableKey":"anvil-0"')
-            expect(r.clusters).toHaveLength(1)
-            expect(r.clusters[0].members[0].stableKey).toBe('anvil-0')
-            expect(r.clusters[0].members[0].intendedRole).toEqual({ role: 'terminal', aptness: 0.55 })
+            expect(r.candidates).toHaveLength(1)
+            expect(r.candidates[0].tropeAssignments[0].members[0].stableKey).toBe('anvil-0')
+            expect(r.candidates[0].tropeAssignments[0].members[0].intendedRole).toEqual({
+                role: 'terminal',
+                aptness: 0.55,
+            })
         }
     })
 
     it('accepts intendedRole echo without aptness and resolves from snapshot', () => {
         const body = JSON.stringify({
-            clusters: [
+            candidates: [
                 {
-                    clusterName: 'One',
-                    members: [{ stableKey: 'anvil-0', intendedRole: { role: 'terminal' } }],
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Drop the anvil.',
+                    tropeAssignments: [
+                        {
+                            trope: 'Finishing Move',
+                            executionDetail: 'Trigger the terminal drop.',
+                            members: [{ stableKey: 'anvil-0', intendedRole: { role: 'terminal' } }],
+                        },
+                    ],
                 },
             ],
         })
         const r = parseHypothesisStageOneOutput(body, singleObjectRoomMap)
         expect(r.ok).toBe(true)
         if (r.ok) {
-            expect(r.clusters[0].members[0].intendedRole).toEqual({ role: 'terminal', aptness: 0.55 })
+            expect(r.candidates[0].tropeAssignments[0].members[0].intendedRole).toEqual({
+                role: 'terminal',
+                aptness: 0.55,
+            })
         }
     })
 
-    it('accepts member without intendedRole when affinities omitted on object', () => {
+    it('accepts trope member without intendedRole when affinities omitted on object', () => {
         const map: CoyoteRoomObjectsByRoom = {
             ...singleObjectRoomMap,
             'ROOM#VORTEX': [{ uuid: 'OBJECT#x' as `OBJECT#${string}`, shortName: 'anvil', stableKey: 'anvil-0' }],
         }
         const body = JSON.stringify({
-            clusters: [{ clusterName: 'One', members: [{ stableKey: 'anvil-0' }] }],
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Drop the anvil.',
+                    tropeAssignments: [
+                        {
+                            trope: 'Finishing Move',
+                            executionDetail: 'Trigger the terminal drop.',
+                            members: [{ stableKey: 'anvil-0' }],
+                        },
+                    ],
+                },
+            ],
         })
         expect(parseHypothesisStageOneOutput(body, map).ok).toBe(true)
     })
@@ -85,7 +117,7 @@ describe('parseHypothesisStageOneOutput', () => {
         expect(parseHypothesisStageOneOutput(validJsonSingleObject, map).ok).toBe(false)
     })
 
-    it('rejects multiset mismatch', () => {
+    it('rejects candidate multiset mismatch', () => {
         const twoObjMap: CoyoteRoomObjectsByRoom = {
             ...singleObjectRoomMap,
             'ROOM#BRIDGE': harnessRoomObjects('bridge', ['rope']),
@@ -95,10 +127,17 @@ describe('parseHypothesisStageOneOutput', () => {
 
     it('rejects invalid intendedRole JSON shape', () => {
         const bad = JSON.stringify({
-            clusters: [
+            candidates: [
                 {
-                    clusterName: 'One',
-                    members: [{ stableKey: 'anvil-0', intendedRole: { role: 'not_a_role', aptness: 0.55 } }],
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Drop the anvil.',
+                    tropeAssignments: [
+                        {
+                            trope: 'Finishing Move',
+                            executionDetail: 'Trigger the terminal drop.',
+                            members: [{ stableKey: 'anvil-0', intendedRole: { role: 'not_a_role', aptness: 0.55 } }],
+                        },
+                    ],
                 },
             ],
         })
@@ -118,17 +157,24 @@ describe('parseHypothesisStageOneOutput', () => {
             ],
         }
         const body = JSON.stringify({
-            clusters: [
+            candidates: [
                 {
-                    clusterName: 'Bait',
-                    members: [{ stableKey: 'anvil-0', intendedRole: { role: 'influence-road-runner' } }],
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Use bait first.',
+                    tropeAssignments: [
+                        {
+                            trope: 'Distraction',
+                            executionDetail: 'Road Runner is lured into lane.',
+                            members: [{ stableKey: 'anvil-0', intendedRole: { role: 'influence-road-runner' } }],
+                        },
+                    ],
                 },
             ],
         })
         const r = parseHypothesisStageOneOutput(body, map)
         expect(r.ok).toBe(true)
         if (r.ok) {
-            expect(r.clusters[0].members[0].intendedRole).toEqual({
+            expect(r.candidates[0].tropeAssignments[0].members[0].intendedRole).toEqual({
                 role: 'influence-road-runner',
                 aptness: 0.67,
             })
@@ -140,43 +186,187 @@ describe('parseHypothesisStageOneOutput', () => {
         expect(parseHypothesisStageOneOutput(body, singleObjectRoomMap).ok).toBe(true)
     })
 
-    it('canonical normalizedJson lists clusters before notes', () => {
+    it('canonical normalizedJson lists candidates before notes', () => {
         const body = JSON.stringify({
             notes: 'Written first by model still parses.',
-            clusters: [{ clusterName: 'Solo', members: [{ stableKey: 'anvil-0' }] }],
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Drop the anvil.',
+                    tropeAssignments: [
+                        {
+                            trope: 'Finishing Move',
+                            executionDetail: 'Trigger the terminal drop.',
+                            members: [{ stableKey: 'anvil-0' }],
+                        },
+                    ],
+                },
+            ],
         })
         const r = parseHypothesisStageOneOutput(body, singleObjectRoomMap)
         expect(r.ok).toBe(true)
         if (r.ok) {
-            expect(r.normalizedJson.indexOf('"clusters"')).toBeLessThan(r.normalizedJson.indexOf('"notes"'))
+            expect(r.normalizedJson.indexOf('"candidates"')).toBeLessThan(r.normalizedJson.indexOf('"notes"'))
         }
     })
 
-    it('accepts clusters ∪ outliers partition when outliers key is present', () => {
+    it('accepts tropeAssignments ∪ outliers partition per candidate', () => {
         const map: CoyoteRoomObjectsByRoom = {
             ...singleObjectRoomMap,
             'ROOM#BRIDGE': harnessRoomObjects('bridge', ['rope']),
         }
         const body = JSON.stringify({
-            clusters: [{ clusterName: 'Main', members: [{ stableKey: 'anvil-0' }] }],
-            outliers: [{ stableKey: 'rope-0' }],
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Primary trap on the anvil lane.',
+                    tropeAssignments: [
+                        {
+                            trope: 'Finishing Move',
+                            executionDetail: 'Anvil lane execution.',
+                            members: [{ stableKey: 'anvil-0' }],
+                        },
+                    ],
+                    outliers: [{ stableKey: 'rope-0' }],
+                },
+            ],
         })
         const r = parseHypothesisStageOneOutput(body, map)
         expect(r.ok).toBe(true)
         if (r.ok) {
-            expect(r.explicitOutliers).toEqual([{ stableKey: 'rope-0' }])
-            expect(r.normalizedJson).toContain('"outliers"')
+            expect(r.candidates[0].explicitOutliers).toEqual([{ stableKey: 'rope-0' }])
         }
     })
 
-    it('rejects stableKey in both clusters and outliers', () => {
+    it('rejects stableKey in both tropeAssignments and outliers', () => {
         const map: CoyoteRoomObjectsByRoom = {
             ...singleObjectRoomMap,
             'ROOM#BRIDGE': harnessRoomObjects('bridge', ['rope']),
         }
         const body = JSON.stringify({
-            clusters: [{ clusterName: 'Main', members: [{ stableKey: 'anvil-0' }, { stableKey: 'rope-0' }] }],
-            outliers: [{ stableKey: 'rope-0' }],
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Primary trap on the anvil lane.',
+                    tropeAssignments: [
+                        {
+                            trope: 'Finishing Move',
+                            executionDetail: 'Anvil lane execution.',
+                            members: [{ stableKey: 'anvil-0' }, { stableKey: 'rope-0' }],
+                        },
+                    ],
+                    outliers: [{ stableKey: 'rope-0' }],
+                },
+            ],
+        })
+        expect(parseHypothesisStageOneOutput(body, map).ok).toBe(false)
+    })
+
+    it('rejects unknown root keys', () => {
+        const body = JSON.stringify({
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Drop the anvil.',
+                    tropeAssignments: [
+                        {
+                            trope: 'Finishing Move',
+                            executionDetail: 'Trigger the terminal drop.',
+                            members: [{ stableKey: 'anvil-0' }],
+                        },
+                    ],
+                },
+            ],
+            debug: 'extra',
+        })
+        const r = parseHypothesisStageOneOutput(body, singleObjectRoomMap)
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.errorMessage).toContain('unknown root key')
+        }
+    })
+
+    it('rejects unknown candidate and trope/member keys', () => {
+        const badCandidate = JSON.stringify({
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Drop the anvil.',
+                    tropeAssignments: [
+                        {
+                            trope: 'Finishing Move',
+                            executionDetail: 'Trigger the terminal drop.',
+                            members: [{ stableKey: 'anvil-0' }],
+                        },
+                    ],
+                    score: 'extra',
+                },
+            ],
+        })
+        const clusterResult = parseHypothesisStageOneOutput(badCandidate, singleObjectRoomMap)
+        expect(clusterResult.ok).toBe(false)
+        if (!clusterResult.ok) {
+            expect(clusterResult.errorMessage).toContain('unknown key')
+        }
+
+        const badMember = JSON.stringify({
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Drop the anvil.',
+                    tropeAssignments: [
+                        {
+                            trope: 'Finishing Move',
+                            executionDetail: 'Trigger the terminal drop.',
+                            members: [{ stableKey: 'anvil-0', name: 'extra' }],
+                        },
+                    ],
+                },
+            ],
+        })
+        const memberResult = parseHypothesisStageOneOutput(badMember, singleObjectRoomMap)
+        expect(memberResult.ok).toBe(false)
+        if (!memberResult.ok) {
+            expect(memberResult.errorMessage).toContain('unknown key')
+        }
+    })
+
+    it('rejects partial candidate output with missing execution fields', () => {
+        const body = JSON.stringify({
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    tropeAssignments: [{ trope: 'Finishing Move', members: [{ stableKey: 'anvil-0' }] }],
+                },
+            ],
+        })
+        expect(parseHypothesisStageOneOutput(body, singleObjectRoomMap).ok).toBe(false)
+    })
+
+    it('rejects trope assignments out of canonical order', () => {
+        const map: CoyoteRoomObjectsByRoom = {
+            ...singleObjectRoomMap,
+            'ROOM#BRIDGE': harnessRoomObjects('bridge', ['rope']),
+        }
+        const body = JSON.stringify({
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Order check.',
+                    tropeAssignments: [
+                        {
+                            trope: 'Finishing Move',
+                            executionDetail: 'End first.',
+                            members: [{ stableKey: 'anvil-0' }],
+                        },
+                        {
+                            trope: 'Contraption',
+                            executionDetail: 'Setup second.',
+                            members: [{ stableKey: 'rope-0' }],
+                        },
+                    ],
+                },
+            ],
         })
         expect(parseHypothesisStageOneOutput(body, map).ok).toBe(false)
     })

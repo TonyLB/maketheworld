@@ -18,12 +18,21 @@ import {
 
 /** Valid stage-1 JSON for two VORTEX objects with stableKeys matching mocks (parse + combine succeed). */
 const stageOneSeamBody = JSON.stringify({
-    clusters: [
+    candidates: [
         {
-            clusterName: 'Combined setup',
-            members: [
-                { stableKey: 'anvil', intendedRole: { role: 'terminal', aptness: 0.5 } },
-                { stableKey: 'rocket-skates', intendedRole: { role: 'coyote-equipment', aptness: 0.6 } },
+            candidateId: 'candidate-1',
+            executionSummary: 'Use lane setup then terminal drop.',
+            tropeAssignments: [
+                {
+                    trope: 'Distraction',
+                    executionDetail: 'Road Runner is drawn into the lane.',
+                    members: [{ stableKey: 'rocket-skates', intendedRole: { role: 'coyote-equipment', aptness: 0.6 } }],
+                },
+                {
+                    trope: 'Finishing Move',
+                    executionDetail: 'Anvil drop is timed for the committed lane.',
+                    members: [{ stableKey: 'anvil', intendedRole: { role: 'terminal', aptness: 0.5 } }],
+                },
             ],
         },
     ],
@@ -31,8 +40,14 @@ const stageOneSeamBody = JSON.stringify({
 
 /** Hop 1 --- rubric narrative + trailing ` ```json ` handoff for hop 2. */
 const hop1PlanSelectionBody = [
-    '## Comparison',
-    'Plan A wins.',
+    '## Conflict catalog',
+    '- candidate-1 conflict: launch timing needs tighter trigger specificity.',
+    '',
+    '## Rubric comparison',
+    '- candidate-1 wins on coverage/completeness/coherence balance.',
+    '',
+    '## Winner selection',
+    '- Winner: candidate-1.',
     '',
     '```json',
     '{"paragraphSummary":"Stage the anvil and lure the Road Runner underneath.","rubricIssues":["needs rope timing"]}',
@@ -201,13 +216,20 @@ describe('generateHypothesis', () => {
 
     it('uses room object override without consulting room meta deps', async () => {
         const overrideSeam = JSON.stringify({
-            clusters: [
+            candidates: [
                 {
-                    clusterName: 'Multi-room',
-                    members: [
-                        { stableKey: 'anvil-0' },
-                        { stableKey: 'portable-hole-0' },
-                        { stableKey: 'birdseed-1' },
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Multi-room setup.',
+                    tropeAssignments: [
+                        {
+                            trope: 'Contraption',
+                            executionDetail: 'Setup spans rooms before final beat.',
+                            members: [
+                                { stableKey: 'anvil-0' },
+                                { stableKey: 'portable-hole-0' },
+                                { stableKey: 'birdseed-1' },
+                            ],
+                        },
                     ],
                 },
             ],
@@ -283,6 +305,29 @@ describe('generateHypothesis', () => {
         planSelectionMock.mockResolvedValue({
             success: true,
             body: 'No json fence here.',
+            usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        })
+
+        await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
+            intent: 'Hypothesis: Stubbed',
+        })
+        expect(phasePlanHopMock).not.toHaveBeenCalled()
+    })
+
+    it('falls back to stub when required hop-1 rubric section is missing', async () => {
+        planSelectionMock.mockResolvedValue({
+            success: true,
+            body: [
+                '## Conflict catalog',
+                '- candidate-1 conflict',
+                '',
+                '## Winner selection',
+                '- Winner: candidate-1.',
+                '',
+                '```json',
+                '{"paragraphSummary":"Chosen.","rubricIssues":[]}',
+                '```',
+            ].join('\n'),
             usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
         })
 
