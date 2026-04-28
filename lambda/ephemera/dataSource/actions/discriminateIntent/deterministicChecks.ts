@@ -1,6 +1,6 @@
 import type { ParseCommandInput, ParseCommandResult } from '../baseClasses'
 import { COYOTE_ENGINE_TEST_FIXTURES } from '../../coyoteGame/generators/testHarness/coyoteEngineTestFixtures'
-import { ACME_ORDER_AFFINITIES_HARNESS_PHRASES } from '../acmeOrderAffinitiesHarnessPhrases'
+import { ACME_ORDER_AFFINITIES_HARNESS_FIXTURES } from '../acmeOrderAffinitiesHarnessPhrases'
 import { isCoyoteAffinitiesTestSlashCommand } from './coyoteAffinitiesTestSlashCommand'
 import { isCoyoteEngineTestSlashCommand } from './coyoteEngineTestSlashCommand'
 import { parseCoyoteAffinitiesTestSlashTail } from './parseCoyoteAffinitiesTestSlash'
@@ -49,7 +49,7 @@ export function deterministicIntentChecks(input: ParseCommandInput): ParseComman
     }
     if (isCoyoteAffinitiesTestSlashCommand(input.command)) {
         const trimmed = input.command.trim()
-        const parsed = parseCoyoteAffinitiesTestSlashTail(trimmed, ACME_ORDER_AFFINITIES_HARNESS_PHRASES.length)
+        const parsed = parseCoyoteAffinitiesTestSlashTail(trimmed, ACME_ORDER_AFFINITIES_HARNESS_FIXTURES.length)
         if (!parsed.ok) {
             return { type: 'Error', errorMessage: parsed.errorMessage }
         }

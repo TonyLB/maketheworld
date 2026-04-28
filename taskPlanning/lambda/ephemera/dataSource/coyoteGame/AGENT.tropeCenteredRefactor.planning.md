@@ -145,8 +145,11 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
     - `formatCoyoteObjectAffinitySuffix` is now trope-first while retaining stage-one legacy echo support: trope lines render first when present, legacy plan-role lines render as secondary compatibility text, and both failure markers are emitted deterministically when both paths fail.
 
 - [ ] Phase 2.5 - Acme trope-affinity quality hardening
-  - [ ] Build a representative calibration corpus for Acme enrich trope fits (clean trope signals, borderline cases, and likely misclassification patterns).
-  - [ ] Define first-pass acceptance criteria for trope-affinity usefulness (coverage, trope-label plausibility, narrowing specificity, and failure-rate guardrails).
+  - [X] Build a representative calibration corpus for Acme enrich trope fits (clean trope signals, borderline cases, and likely misclassification patterns).
+    - Artifact: [`acmeEnrichTropeCalibrationCorpus.v1.json`](acmeEnrichTropeCalibrationCorpus.v1.json) with 11 first-pass prompts spanning clean/borderline/likely-misclassification buckets and directional expected trope-fit outcomes.
+  - [X] Define first-pass acceptance criteria for trope-affinity usefulness (coverage, trope-label plausibility, narrowing specificity, and failure-rate guardrails).
+    - First-pass criteria are encoded in the corpus artifact itself for objective harness evaluation: `expectedLines` defines required directional signal (coverage + trope-label plausibility + narrowing specificity), and `likelyErrors` defines disallowed/failure-pattern guardrails to track fail-rate.
+  - [X] Extend affinities test-harness fixture shape to carry calibration metadata (`expectedLines`, `likelyErrors`, bucket/tags) so the corpus can be encoded directly in fixtures and scored without sidecar mapping.
   - [ ] Run calibration/evaluation passes against the current Acme enrich prompt and record concrete failure modes to feed hypothesis-phase parser/rubric hardening.
   - [ ] Apply a bounded prompt revision pass in `actions/enrich/acmeOrder/buildPrompt.ts`, then re-run the same corpus and compare before/after outcomes.
   - [ ] Lock an eval artifact reference (fixtures + rubric notes) so Phase 3A+ can reuse the same quality harness when reworking hypothesis hops.
