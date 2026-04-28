@@ -248,6 +248,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [ ] Add rubric-level assertions where deterministic legality checks must override soft scoring.
 
 - [ ] Phase 4B - spatial second pass (after first-pass trope-centering)
+  - Tracking note: execution authority moved to [`AGENT.tuneLLMPipeline.planning.md`](AGENT.tuneLLMPipeline.planning.md) Phase `T4` so tuning status is centralized with other hop-by-hop revisions.
   - [ ] Add explicit spatial judgment inputs (room boundaries, co-staged props, path feasibility) to `plan selection` rubric scoring.
   - [ ] Add explicit spatial deconfliction checks to `phase-plan` so final trope sequence and walk-through respect layout constraints.
   - [ ] Expand tests with spatial contradiction cases (works in trope logic, fails in room layout) and expected corrections.
