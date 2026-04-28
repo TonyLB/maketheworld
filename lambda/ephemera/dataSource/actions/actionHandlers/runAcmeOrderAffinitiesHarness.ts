@@ -24,6 +24,8 @@ export type RunAcmeOrderAffinitiesHarnessDeps = {
     parseCommandWithEnrichReasoningImpl?: typeof parseCommandWithEnrichReasoning
     /** Override Bedrock enrich for tests when **`enrichOnly`** is true. */
     invokeBedrockAcmeOrderEnrichImpl?: typeof invokeBedrockAcmeOrderEnrich
+    /** Forwarded to **`enrichAcmeOrder`** when **`enrichOnly`** (tests avoid real Coyote cache object counts). */
+    countCoyotePlacedObjectsAcrossRoomsDeps?: ParseCommandDeps['countCoyotePlacedObjectsAcrossRoomsDeps']
     now?: () => number
 }
 
@@ -72,7 +74,8 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
                 const enriched = await enrichAcmeOrder(
                     { command, occupiedStableKeys: [] },
                     1,
-                    invokeEnrich
+                    invokeEnrich,
+                    deps.countCoyotePlacedObjectsAcrossRoomsDeps
                 )
                 result = enriched.result
                 displayReasoning = enriched.enrichReasoningMarkdown.trim()

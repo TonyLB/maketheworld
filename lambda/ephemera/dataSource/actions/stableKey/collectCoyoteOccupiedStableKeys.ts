@@ -4,13 +4,8 @@
  * (**Acme catalog lines and `stableKey`**).
  */
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import internalCache from '../../../internalCache'
-
-export type CollectCoyoteOccupiedStableKeysDeps = {
-    getGameRooms: () => Promise<string[]>
-    getRoomMeta: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
-}
+import type { CollectCoyoteOccupiedStableKeysDeps } from '../baseClasses'
 
 /** Union of non-empty **`stableKey`** values from **`Meta::Room.objects`** across Coyote game rooms. */
 export async function collectCoyoteOccupiedStableKeys(

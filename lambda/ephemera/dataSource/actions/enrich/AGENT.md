@@ -6,18 +6,19 @@
 
 Current implementation:
 
-- [`acmeOrder/`](./acmeOrder/) - enriches `AcmeOrderIntent` into terminal `AcmeOrder` lines, including catalog validation details, affinity proposals, and `stableKey` proposals.
+- [`acmeOrder/`](./acmeOrder/) - enriches `AcmeOrderIntent` into terminal **`AcmeOrder`** lines (or **`ParseCommandErrorResult`** when the Coyote-wide object placement count exceeds the cap **before** any Acme enrich Bedrock call), including catalog validation details, affinity proposals, and **`stableKey`** proposals.
 
 ## Boundary
 
-- **Input:** an intent-level outcome from `discriminateIntent` plus original command/context (for example `occupiedStableKeys` and enrich-model responses).
-- **Output:** terminal parse payloads (for example `AcmeOrder`) or pass-through behavior handled by `parseCommand` orchestration.
+- **Input:** an intent-level outcome from `discriminateIntent` plus original command/context (for example **`occupiedStableKeys`** and enrich-model responses).
+- **Output:** terminal parse payloads (for example **`AcmeOrder`**, or **`Error`** when the placement cap rejects enrich) or pass-through behavior handled by **`parseCommand`** orchestration.
 - **Ownership:** enrich modules should stay focused on enrichment/normalization logic; `parseCommand` remains the orchestrator deciding when enrichment runs.
 
 ## Current files
 
+- [`acmeOrder/index.ts`](./acmeOrder/index.ts) - placement-count guard, Bedrock **`invokeBedrockAcmeOrderEnrich`**, and wiring to **`finalizeAcmeOrderFromEnrich`**.
 - [`acmeOrder/buildPrompt.ts`](./acmeOrder/buildPrompt.ts) - builds Bedrock enrich prompt parts.
-- [`acmeOrder/interpretAndFinalize.ts`](./acmeOrder/interpretAndFinalize.ts) - interprets enrich output and finalizes `ParseCommandAcmeOrderResult`.
+- [`acmeOrder/interpretAndFinalize.ts`](./acmeOrder/interpretAndFinalize.ts) - interprets enrich output and finalizes **`ParseCommandAcmeOrderResult`**.
 
 ## Notes
 
