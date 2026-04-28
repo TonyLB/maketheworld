@@ -1,6 +1,8 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { isCoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import { isCoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 /**
  * Outbound stream payloads for mtw.ephemera.actions (bus-only DataSource).
@@ -35,6 +37,8 @@ export type AcmeOrderPublishedOrder = {
     shortName: string;
     /** Machine correlation key after deterministic finalize in actions `index.ts`. */
     stableKey: string;
+    tropeAffinities?: CoyoteTropeAffinity[];
+    tropeAffinitiesFailed?: boolean;
     affinities: CoyoteAffinityPossibility[];
     affinitiesFailed?: boolean;
 }
@@ -96,6 +100,23 @@ export const isAcmeOrderPublishedOrder = (value: unknown): value is AcmeOrderPub
         return false
     }
     if (!Array.isArray(o.affinities) || !o.affinities.every((x) => isCoyoteAffinityPossibility(x))) {
+        return false
+    }
+    if ('tropeAffinities' in o) {
+        if (!Array.isArray(o.tropeAffinities)) {
+            return false
+        }
+        if (o.tropeAffinities.length > 3) {
+            return false
+        }
+        if (!o.tropeAffinities.every((x) => isCoyoteTropeAffinity(x))) {
+            return false
+        }
+    }
+    if ('tropeAffinitiesFailed' in o && typeof o.tropeAffinitiesFailed !== 'boolean') {
+        return false
+    }
+    if (o.tropeAffinitiesFailed === true && Array.isArray(o.tropeAffinities) && o.tropeAffinities.length !== 0) {
         return false
     }
     if ('affinitiesFailed' in o && typeof o.affinitiesFailed !== 'boolean') {

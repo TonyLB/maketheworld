@@ -163,7 +163,11 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             stableKey: 'a',
             affinities: [{ role: 'terminal', aptness: 0.5 }] as const,
         }
-        expect(normalizeAcmeOrderEnrichLine(line, 'fallback')).toEqual(line)
+        expect(normalizeAcmeOrderEnrichLine(line, 'fallback')).toEqual({
+            ...line,
+            tropeAffinities: [],
+            tropeAffinitiesFailed: false,
+        })
     })
 
     it('sorts affinities by aptness descending and drops entries below the floor', () => {
@@ -184,6 +188,8 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             valid: true,
             name: 'X',
             stableKey: 'x',
+            tropeAffinities: [],
+            tropeAffinitiesFailed: false,
             affinities: [
                 {
                     role: 'influence-road-runner',
@@ -214,6 +220,8 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             valid: true,
             name: 'rope',
             stableKey: 'rope',
+            tropeAffinities: [],
+            tropeAffinitiesFailed: true,
             affinities: [],
             affinitiesFailed: true,
         })
@@ -224,6 +232,8 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             valid: true,
             name: 'catalog',
             stableKey: 'catalog',
+            tropeAffinities: [],
+            tropeAffinitiesFailed: true,
             affinities: [],
             affinitiesFailed: true,
         })
@@ -244,6 +254,8 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             valid: true,
             name: 'X',
             stableKey: 'x',
+            tropeAffinities: [],
+            tropeAffinitiesFailed: true,
             affinities: [{ role: 'terminal', aptness: 0.5 }],
         })
     })
@@ -264,6 +276,8 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             valid: true,
             name: 'X',
             stableKey: 'x',
+            tropeAffinities: [],
+            tropeAffinitiesFailed: true,
             affinities: [],
             affinitiesFailed: true,
         })

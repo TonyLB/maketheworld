@@ -52,13 +52,23 @@ export type CoyoteAffinityPossibility =
           aptness: number;
       }
     | {
-          role: CoyoteStructuralRole;
-          aptness: number;
+        role: CoyoteStructuralRole;
+        aptness: number;
       }
     | {
-          role: CoyoteGenerativeRole;
-          aptness: number;
+        role: CoyoteGenerativeRole;
+        aptness: number;
       }
+
+export type CoyoteTrope = 'Contraption' | 'Distraction' | 'Disadvantage' | 'Finishing Move'
+
+export type CoyoteTropeAptness = 'High' | 'Good' | 'Poor'
+
+export type CoyoteTropeAffinity = {
+    trope: CoyoteTrope;
+    aptness: CoyoteTropeAptness;
+    narrowing: string;
+}
 
 /** Stage-one intendedRole echo: same roles as **[`CoyoteAffinityPossibility`]**, but **`aptness`** may be omitted (resolved against snapshot rows). */
 export type CoyoteAffinityPossibilityEcho =
@@ -89,6 +99,8 @@ export type AcmeOrderEnrichModelLine =
           name: string;
           /** Machine correlation key proposal (`a-z` / `0-9` / `-`); deterministic repair may adjust. */
           stableKey: string;
+          tropeAffinities?: CoyoteTropeAffinity[];
+          tropeAffinitiesFailed?: boolean;
           affinities: CoyoteAffinityPossibility[];
           affinitiesFailed?: boolean;
       }
@@ -124,6 +136,32 @@ export function isCoyoteStructuralRole(value: unknown): value is CoyoteStructura
 
 export function isCoyoteGenerativeRole(value: unknown): value is CoyoteGenerativeRole {
     return value === 'prep' || value === 'creation'
+}
+
+export function isCoyoteTrope(value: unknown): value is CoyoteTrope {
+    return (
+        value === 'Contraption'
+        || value === 'Distraction'
+        || value === 'Disadvantage'
+        || value === 'Finishing Move'
+    )
+}
+
+export function isCoyoteTropeAptness(value: unknown): value is CoyoteTropeAptness {
+    return value === 'High' || value === 'Good' || value === 'Poor'
+}
+
+export function isCoyoteTropeAffinity(entry: unknown): entry is CoyoteTropeAffinity {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+        return false
+    }
+    const o = entry as Record<string, unknown>
+    return (
+        isCoyoteTrope(o.trope)
+        && isCoyoteTropeAptness(o.aptness)
+        && typeof o.narrowing === 'string'
+        && o.narrowing.trim().length > 0
+    )
 }
 
 export function isCoyoteAffinityPossibility(entry: unknown): entry is CoyoteAffinityPossibility {
@@ -233,6 +271,8 @@ function salvageAcmeOrderEnrichLine(raw: unknown): AcmeOrderEnrichModelLine | nu
             valid: true,
             name: nameTrim,
             stableKey,
+            tropeAffinities: [],
+            tropeAffinitiesFailed: true,
             affinities: [],
             affinitiesFailed: true,
         }
@@ -249,6 +289,11 @@ function salvageAcmeOrderEnrichLine(raw: unknown): AcmeOrderEnrichModelLine | nu
         valid: true,
         name: nameTrim,
         stableKey,
+        tropeAffinities: Array.isArray(o.tropeAffinities)
+            ? o.tropeAffinities.filter((x) => isCoyoteTropeAffinity(x)).slice(0, 3)
+            : [],
+        tropeAffinitiesFailed: o.tropeAffinitiesFailed === true
+            || !Array.isArray(o.tropeAffinities),
         affinities: applyCoyoteAffinityAptnessFloor(filtered),
     }
     return isAcmeOrderEnrichModelLine(candidate) ? candidate : null
@@ -266,6 +311,8 @@ function syntheticAcmeOrderEnrichFailureLine(raw: unknown, fallbackName: string)
         valid: true,
         name,
         stableKey: defaultStableKeyProposal(name),
+        tropeAffinities: [],
+        tropeAffinitiesFailed: true,
         affinities: [],
         affinitiesFailed: true,
     }
@@ -294,6 +341,8 @@ export function normalizeAcmeOrderEnrichLine(raw: unknown, fallbackName: string)
                 valid: true,
                 name: raw.name,
                 stableKey: trimStableKeyOrFallback(raw.stableKey, raw.name),
+                tropeAffinities: [],
+                tropeAffinitiesFailed: true,
                 affinities: [],
                 affinitiesFailed: true,
             }
@@ -302,6 +351,8 @@ export function normalizeAcmeOrderEnrichLine(raw: unknown, fallbackName: string)
             valid: true,
             name: raw.name,
             stableKey: trimStableKeyOrFallback(raw.stableKey, raw.name),
+            tropeAffinities: Array.isArray(raw.tropeAffinities) ? raw.tropeAffinities.slice(0, 3) : [],
+            tropeAffinitiesFailed: raw.tropeAffinitiesFailed === true,
             affinities: applyCoyoteAffinityAptnessFloor(raw.affinities),
         }
     }
@@ -349,6 +400,8 @@ export function normalizeAcmeOrderEnrichResponse(
             valid: true,
             name: emptyName,
             stableKey: defaultStableKeyProposal(emptyName),
+            tropeAffinities: [],
+            tropeAffinitiesFailed: true,
             affinities: [],
             affinitiesFailed: true,
         }]
@@ -376,6 +429,23 @@ export function isAcmeOrderEnrichModelLine(entry: unknown): entry is AcmeOrderEn
         )
     }
     if (typeof o.stableKey !== 'string' || o.stableKey.trim().length === 0) {
+        return false
+    }
+    if ('tropeAffinities' in o) {
+        if (!Array.isArray(o.tropeAffinities)) {
+            return false
+        }
+        if (o.tropeAffinities.length > 3) {
+            return false
+        }
+        if (!o.tropeAffinities.every((x) => isCoyoteTropeAffinity(x))) {
+            return false
+        }
+    }
+    if ('tropeAffinitiesFailed' in o && typeof o.tropeAffinitiesFailed !== 'boolean') {
+        return false
+    }
+    if (o.tropeAffinitiesFailed === true && Array.isArray(o.tropeAffinities) && o.tropeAffinities.length !== 0) {
         return false
     }
     if (!Array.isArray(o.affinities)) {

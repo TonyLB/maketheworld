@@ -44,6 +44,14 @@ export function formatCoyoteAffinityPossibility(p: CoyoteAffinityPossibility): s
  * Renders plan-role lines for one staged object. Legacy rows (no affinities, not failed) add no suffix.
  */
 export function formatCoyoteObjectAffinitySuffix(o: EphemeraMetaRoomObject): string {
+    if (o.tropeAffinitiesFailed === true) {
+        return 'trope affinities unavailable (enrich failed)'
+    }
+    if (o.tropeAffinities && o.tropeAffinities.length > 0) {
+        return o.tropeAffinities.map((entry) => (
+            `${entry.trope} ${entry.aptness} (${entry.narrowing})`
+        )).join('; ')
+    }
     if (o.affinitiesFailed === true) {
         return 'plan roles unavailable (enrich failed)'
     }

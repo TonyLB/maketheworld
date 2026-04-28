@@ -124,6 +124,8 @@ export const handleAcmeOrderAddObjects = async (
         uuid: `OBJECT#${makeUuid()}` as `OBJECT#${string}`,
         shortName: entry.shortName,
         stableKey: entry.stableKey,
+        ...(entry.tropeAffinities !== undefined ? { tropeAffinities: entry.tropeAffinities } : {}),
+        ...(entry.tropeAffinitiesFailed === true ? { tropeAffinitiesFailed: true as const } : {}),
         affinities: entry.affinities,
         ...(entry.affinitiesFailed === true ? { affinitiesFailed: true as const } : {}),
     }))

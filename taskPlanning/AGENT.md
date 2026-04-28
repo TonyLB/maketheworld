@@ -52,6 +52,20 @@ Add `AGENT.development.md` when a subtree has non-obvious tooling (Vitest vs Jes
 6. **Use the area `AGENT.development.md`** (or package testing docs) for **exact** test commands; do not rely on Jest-only examples from generic templates when the package uses Vitest or another runner.
 7. **Include Progress** (table or checklist), **Recommended order** (with checkboxes and an intro line per **Recommended order checkboxes** below), and **Verification** so status is visible without rereading the whole file.
 
+## Getting Started testing-doc pattern
+
+When writing a task plan's **Getting Started**, include explicit test-orientation steps before implementation work starts.
+
+Minimum pattern:
+
+1. Link the area's durable testing doc first (prefer `AGENT.development.md`, otherwise `AGENT.testing.md`, otherwise the nearest area `AGENT.md` testing section).
+2. State the command authority for that area (for example: "If commands conflict, follow `<area>/AGENT.testing.md`").
+3. Include execution context for each command (working directory and runner style, such as `npm run test` vs `npm test`).
+4. Add one baseline verification command that should pass before edits.
+5. In **Verification**, repeat the exact commands used for this task slice (do not rely on generic root examples alone).
+
+This pattern reduces avoidable failures from wrong cwd, wrong workspace scope, or wrong test runner assumptions.
+
 ## Recommended order checkboxes
 
 Every **`## Recommended order`** section (or similarly named ordered worklist, e.g. `Recommended order (server)`) should begin with a **short instruction line** (one sentence or two) placed immediately under the section heading and **before** the first checklist item. State that pending work uses `[ ]` and completed work uses `[X]`, and mention nested bullets if the section uses them (for example: mark each nested line `[X]` as it is done). Readers often open only the task plan; this line duplicates the minimum convention so they do not have to open [`taskPlanning/AGENT.md`](AGENT.md) for basics.

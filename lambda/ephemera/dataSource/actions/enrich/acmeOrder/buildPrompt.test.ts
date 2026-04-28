@@ -1,8 +1,7 @@
-import { COYOTE_AFFINITY_APTNESS_MIN } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { buildParseAcmeOrderEnrichPrompt } from './buildPrompt'
 
 describe('buildParseAcmeOrderEnrichPrompt', () => {
-    it('requires chain-of-reasoning markdown then fenced json, and retains affinity contract', () => {
+    it('requires chain-of-reasoning markdown then fenced json, and retains compatibility contract', () => {
         const { invariantPrefix, dynamicSuffix } = buildParseAcmeOrderEnrichPrompt('order rope')
         const flatTags = [
             'influence-road-runner',
@@ -28,8 +27,10 @@ describe('buildParseAcmeOrderEnrichPrompt', () => {
         expect(invariantPrefix).toContain('Do not emit legacy tuple fields like **`target`** or **`mode`**')
         expect(invariantPrefix).toContain('### Generative roles')
         expect(invariantPrefix).toContain('### Structural roles')
-        expect(invariantPrefix).toContain(String(COYOTE_AFFINITY_APTNESS_MIN))
-        expect(invariantPrefix).toContain('strictly below')
+        expect(invariantPrefix).toContain('tropeAffinities')
+        expect(invariantPrefix).toContain('tropeAffinitiesFailed')
+        expect(invariantPrefix).toContain('Legacy compatibility placeholders')
+        expect(invariantPrefix).toContain('affinitiesFailed')
         expect(invariantPrefix).not.toContain('skill check')
         expect(invariantPrefix).toContain('stableKey')
         expect(invariantPrefix).toContain('constructed-')

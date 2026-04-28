@@ -91,6 +91,8 @@ This yields **16 possible sequence shapes**. The valid sequence for any given it
 
 Trope **slots** are ordered and sparse; **details** (what the contraption actually is, how the finishing move is staged) are derived by reading the staged object set and committing to a single optimistic causal story. This section describes patterns for that derivation.
 
+Implementation-specific rollout policy for trope fields (including narrowing contract) lives in [`AGENT.tropes.implementation.md`](AGENT.tropes.implementation.md).
+
 ### Contraption deduction
 
 Start by relating **construction-adjacent materials** (wood, nails, pipes, rope, brackets, sheet metal, etc.) to **non-construction items**, especially anything that wants to live in a **Finishing Move** (explosives, traps, ranged weapons, area hazards). The question is not "what can be built from wood alone?" but "what **sort of advantage** does the Coyote need so that those other objects make sense as the endgame?"

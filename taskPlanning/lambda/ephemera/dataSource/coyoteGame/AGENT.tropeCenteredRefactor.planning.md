@@ -91,8 +91,12 @@ Document deterministic stub rules as part of Phase 0 deliverables in this file.
 3. Read current affinity contract: [`packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts).
 4. Trace Acme enrich -> publish -> objects merge for one order: [`actions/enrich/acmeOrder/`](../../../../../../lambda/ephemera/dataSource/actions/enrich/acmeOrder/), [`objects/`](../../../../../../lambda/ephemera/dataSource/objects/).
 5. Skim hypothesis pipeline entry and cluster combiner: [`coyoteHypothesisPipeline.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts), [`combineHypothesisClusters.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/combineHypothesisClusters.ts).
+6. Read testing authority for this area before running commands: [`lambda/ephemera/AGENT.testing.md`](../../../../../../lambda/ephemera/AGENT.testing.md). If commands conflict with generic examples, follow this file for lambda-level Jest usage.
+7. Confirm command context from package scripts before test execution: [`lambda/ephemera/package.json`](../../../../../../lambda/ephemera/package.json) and repo root [`package.json`](../../../../../../package.json). This avoids wrong workspace/cwd assumptions.
+8. Run one baseline verification command before edits (from `lambda/ephemera/`):
+   - `npm run test -- --watchAll=false dataSource/actions/publishedEvents.test.ts`
 
-Ephemeral testing notes for this package: [`lambda/ephemera/AGENT.testing.md`](../../../../../../lambda/ephemera/AGENT.testing.md).
+Ephemeral testing notes for this package (durable command source): [`lambda/ephemera/AGENT.testing.md`](../../../../../../lambda/ephemera/AGENT.testing.md).
 
 ## Design decisions (current draft)
 
@@ -110,11 +114,19 @@ Ephemeral testing notes for this package: [`lambda/ephemera/AGENT.testing.md`](.
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]` as each sub-step lands.
 
-- [ ] Phase 0 - lock compatibility story
-  - [ ] Lock temporary stub contract for Acme + `Meta::Room.objects`: valid lines emit `affinities: []` and `affinitiesFailed: true` until legacy role consumers are removed.
-  - [ ] Lock and document parallel-field names and ownership: `tropeAffinities` / `tropeAffinitiesFailed` canonical; `affinities` / `affinitiesFailed` temporary compatibility only.
-  - [ ] Document free-text narrowing contract and durable notes on prospective structured enums.
-  - [ ] List all read sites of `affinities` / `intendedRole` echo and classify: must work unchanged vs may adapt in same release.
+- [X] Phase 0 - lock compatibility story
+  - [X] Lock temporary stub contract for Acme + `Meta::Room.objects`: valid lines emit `affinities: []` and `affinitiesFailed: true` until legacy role consumers are removed.
+  - [X] Lock and document parallel-field names and ownership: `tropeAffinities` / `tropeAffinitiesFailed` canonical; `affinities` / `affinitiesFailed` temporary compatibility only.
+  - [X] Document free-text narrowing contract and durable notes on prospective structured enums.
+  - [X] List all read sites of `affinities` / `intendedRole` echo and classify: must work unchanged vs may adapt in same release.
+  - Locked implementation notes:
+    - Canonical object/order planning signal is `tropeAffinities` + `tropeAffinitiesFailed`; legacy `affinities` + `affinitiesFailed` remain temporary compatibility placeholders.
+    - Acme parse/finalize now emits valid-line legacy stubs deterministically (`affinities: []`, `affinitiesFailed: true`), while preserving invalid catalog lines unchanged.
+    - Free-text narrowing is explicitly first-pass (durable notes and candidate enum families added in `lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md`).
+  - Read-site classification (compatibility pass):
+    - Must work unchanged: `packages/mtw-interfaces/ts/coyotePlanAffinities.ts`, `packages/mtw-interfaces/ts/ephemeraMeta.ts`, `lambda/ephemera/dataSource/actions/baseClasses.ts`, `lambda/ephemera/dataSource/actions/publishedEvents.ts`, `lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/parseHypothesisStageOneOutput.ts`, `lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/combineHypothesisClusters.ts`.
+    - May adapt in same release: `lambda/ephemera/dataSource/actions/enrich/acmeOrder/interpretAndFinalize.ts`, `lambda/ephemera/dataSource/actions/enrich/acmeOrder/buildPrompt.ts`, `lambda/ephemera/dataSource/actions/index.ts`, `lambda/ephemera/dataSource/objects/handleApiObjectsChange.ts`, `lambda/ephemera/dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot.ts`.
+    - Hidden envelope validators to keep in scope: `lambda/ephemera/dataSource/localApiEvents.ts`, `lambda/ephemera/dataSource/objects/events.ts`.
 
 - [ ] Phase 1 - types and normalization (`mtw-interfaces` + actions)
   - [ ] Introduce trope-centered types (`tropeAffinities` / `tropeAffinitiesFailed`; 1-3 fits per object; aptness `High` | `Good` | `Poor`; free-text narrowing) without breaking existing `normalizeAcmeOrderEnrichResponse` callers; extend or duplicate normalize paths as needed.
