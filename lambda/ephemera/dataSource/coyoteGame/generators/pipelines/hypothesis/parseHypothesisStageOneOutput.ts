@@ -2,21 +2,19 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
     CoyoteTrope,
-    CoyoteAffinityPossibility,
-    CoyoteAffinityPossibilityEcho,
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import { isCoyoteAffinityPossibilityEcho, isCoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import { isCoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 /*
  * Stage 1 emits trope-first JSON: optional notes, required candidates[].
  * Each candidate includes tropeAssignments[] and optional outliers[] (partition with members).
- * members/outliers use stableKey + optional intendedRole echo (CoyoteAffinityPossibilityEcho).
+ * members/outliers use stableKey + required tropeFunction annotation.
  */
 
 /** One staged object reference in a cluster or in **`outliers`**. */
 export type ParsedClusterMember = {
     stableKey: string
-    intendedRole?: CoyoteAffinityPossibility
+    tropeFunction: string
 }
 
 export type ParsedTropeAssignment = {
@@ -131,7 +129,7 @@ const STAGE_ONE_CANDIDATE_ALLOWED_KEYS = new Set([
     'outliers',
 ])
 const STAGE_ONE_TROPE_ASSIGNMENT_ALLOWED_KEYS = new Set(['trope', 'executionDetail', 'members'])
-const STAGE_ONE_MEMBER_ALLOWED_KEYS = new Set(['stableKey', 'intendedRole'])
+const STAGE_ONE_MEMBER_ALLOWED_KEYS = new Set(['stableKey', 'tropeFunction'])
 const TROPE_ORDER: CoyoteTrope[] = ['Contraption', 'Distraction', 'Disadvantage', 'Finishing Move']
 const TROPE_ORDER_INDEX = new Map(TROPE_ORDER.map((trope, i) => [trope, i]))
 
@@ -142,31 +140,9 @@ function unknownKeys(
     return Object.keys(candidate).filter((key) => !allowed.has(key))
 }
 
-function resolveEchoToStoredRow(
-    obj: EphemeraMetaRoomObject,
-    echo: CoyoteAffinityPossibilityEcho
-): CoyoteAffinityPossibility | undefined {
-    const aff = obj.affinities
-    if (!aff || aff.length === 0 || obj.affinitiesFailed === true) {
-        return undefined
-    }
-    const candidates = aff.filter((stored) => {
-        return stored.role === echo.role
-    })
-    if (candidates.length === 0) {
-        return undefined
-    }
-    if (echo.aptness !== undefined && Number.isFinite(echo.aptness)) {
-        return candidates.find((s) => Math.abs(s.aptness - echo.aptness!) < 1e-6)
-    }
-    // Deterministic fallback for role-only echoes: pick highest-aptness persisted row for that role.
-    const sorted = [...candidates].sort((a, b) => b.aptness - a.aptness)
-    return sorted[0]
-}
-
 type DraftMember = {
     stableKey: string
-    echo?: CoyoteAffinityPossibilityEcho
+    tropeFunction: string
 }
 
 function parseDraftMemberFromRecord(
@@ -177,25 +153,16 @@ function parseDraftMemberFromRecord(
         return { ok: false, errorMessage: `${contextLabel} needs stableKey` }
     }
     const stableKey = mo.stableKey.trim()
-
-    let echo: CoyoteAffinityPossibilityEcho | undefined
-    if (mo.intendedRole !== undefined) {
-        if (!isCoyoteAffinityPossibilityEcho(mo.intendedRole)) {
-            return {
-                ok: false,
-                errorMessage: `${contextLabel}: intendedRole for "${stableKey}" is not a valid affinity echo`,
-            }
-        }
-        echo = mo.intendedRole
+    if (!isNonEmptyString(mo.tropeFunction)) {
+        return { ok: false, errorMessage: `${contextLabel} needs non-empty tropeFunction` }
     }
 
-    return { ok: true, draft: { stableKey, echo } }
+    return { ok: true, draft: { stableKey, tropeFunction: mo.tropeFunction.trim() } }
 }
 
 function resolveDraftMembers(
     drafts: DraftMember[],
-    snapshotByStableKey: Map<string, EphemeraMetaRoomObject>,
-    kind: 'cluster' | 'outlier'
+    snapshotByStableKey: Map<string, EphemeraMetaRoomObject>
 ): { ok: true; members: ParsedClusterMember[] } | { ok: false; errorMessage: string } {
     const membersOut: ParsedClusterMember[] = []
     for (const dm of drafts) {
@@ -203,27 +170,7 @@ function resolveDraftMembers(
         if (!obj) {
             return { ok: false, errorMessage: `stage 1 JSON: unknown stableKey "${dm.stableKey}"` }
         }
-        if (dm.echo === undefined) {
-            membersOut.push({ stableKey: dm.stableKey })
-            continue
-        }
-        const aff = obj.affinities
-        if (!aff || aff.length === 0 || obj.affinitiesFailed === true) {
-            return {
-                ok: false,
-                errorMessage: `stage 1 JSON: intendedRole given for ${dm.stableKey} (${kind}) but affinities unavailable`,
-            }
-        }
-        const resolved = resolveEchoToStoredRow(obj, dm.echo)
-        if (!resolved) {
-            return {
-                ok: false,
-                errorMessage:
-                    `stage 1 JSON: intendedRole ${JSON.stringify(dm.echo)} does not resolve to a stored affinity for ` +
-                    `${dm.stableKey} (${kind}); echo one persisted role from that object's affinities`,
-            }
-        }
-        membersOut.push({ stableKey: dm.stableKey, intendedRole: resolved })
+        membersOut.push({ stableKey: dm.stableKey, tropeFunction: dm.tropeFunction })
     }
     return { ok: true, members: membersOut }
 }
@@ -466,7 +413,7 @@ function parseCandidatesFromPayload(
         }
         const tropeAssignments: ParsedTropeAssignment[] = []
         for (const draft of tropeAssignmentsDraft) {
-            const resolvedMembers = resolveDraftMembers(draft.members, snapshotByStableKey, 'cluster')
+            const resolvedMembers = resolveDraftMembers(draft.members, snapshotByStableKey)
             if (!resolvedMembers.ok) {
                 return resolvedMembers
             }
@@ -478,7 +425,7 @@ function parseCandidatesFromPayload(
         }
         let explicitOutliers: ParsedClusterMember[] | undefined
         if (hasExplicitOutliers && draftOutliers !== undefined) {
-            const resolvedOut = resolveDraftMembers(draftOutliers, snapshotByStableKey, 'outlier')
+            const resolvedOut = resolveDraftMembers(draftOutliers, snapshotByStableKey)
             if (!resolvedOut.ok) {
                 return resolvedOut
             }

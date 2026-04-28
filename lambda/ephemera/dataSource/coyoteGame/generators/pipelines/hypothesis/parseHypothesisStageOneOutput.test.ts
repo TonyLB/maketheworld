@@ -1,10 +1,6 @@
-import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { harnessRoomObjects } from '../../testHarness/coyoteEngineTestFixtures'
 import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 import { parseHypothesisStageOneOutput, stripHypothesisStageOneFence } from './parseHypothesisStageOneOutput'
-
-const affinitiesTerminal: CoyoteAffinityPossibility[] = [{ role: 'terminal', aptness: 0.55 }]
-const affinitiesRoadRunner: CoyoteAffinityPossibility[] = [{ role: 'influence-road-runner', aptness: 0.67 }]
 
 const singleObjectRoomMap: CoyoteRoomObjectsByRoom = {
     'ROOM#VORTEX': [
@@ -12,7 +8,6 @@ const singleObjectRoomMap: CoyoteRoomObjectsByRoom = {
             uuid: 'OBJECT#x' as `OBJECT#${string}`,
             shortName: 'anvil',
             stableKey: 'anvil-0',
-            affinities: affinitiesTerminal,
         },
     ],
     'ROOM#STRAIGHTAWAY': [],
@@ -30,7 +25,7 @@ const validJsonSingleObject = JSON.stringify({
                 {
                     trope: 'Finishing Move',
                     executionDetail: 'Anvil drops once Road Runner commits to the lane.',
-                    members: [{ stableKey: 'anvil-0', intendedRole: { role: 'terminal', aptness: 0.55 } }],
+                    members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal drop payload' }],
                 },
             ],
         },
@@ -53,14 +48,11 @@ describe('parseHypothesisStageOneOutput', () => {
             expect(r.normalizedJson).toContain('"stableKey":"anvil-0"')
             expect(r.candidates).toHaveLength(1)
             expect(r.candidates[0].tropeAssignments[0].members[0].stableKey).toBe('anvil-0')
-            expect(r.candidates[0].tropeAssignments[0].members[0].intendedRole).toEqual({
-                role: 'terminal',
-                aptness: 0.55,
-            })
+            expect(r.candidates[0].tropeAssignments[0].members[0].tropeFunction).toBe('terminal drop payload')
         }
     })
 
-    it('accepts intendedRole echo without aptness and resolves from snapshot', () => {
+    it('accepts tropeFunction member annotations', () => {
         const body = JSON.stringify({
             candidates: [
                 {
@@ -70,7 +62,7 @@ describe('parseHypothesisStageOneOutput', () => {
                         {
                             trope: 'Finishing Move',
                             executionDetail: 'Trigger the terminal drop.',
-                            members: [{ stableKey: 'anvil-0', intendedRole: { role: 'terminal' } }],
+                            members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal drop payload' }],
                         },
                     ],
                 },
@@ -79,18 +71,11 @@ describe('parseHypothesisStageOneOutput', () => {
         const r = parseHypothesisStageOneOutput(body, singleObjectRoomMap)
         expect(r.ok).toBe(true)
         if (r.ok) {
-            expect(r.candidates[0].tropeAssignments[0].members[0].intendedRole).toEqual({
-                role: 'terminal',
-                aptness: 0.55,
-            })
+            expect(r.candidates[0].tropeAssignments[0].members[0].tropeFunction).toBe('terminal drop payload')
         }
     })
 
-    it('accepts trope member without intendedRole when affinities omitted on object', () => {
-        const map: CoyoteRoomObjectsByRoom = {
-            ...singleObjectRoomMap,
-            'ROOM#VORTEX': [{ uuid: 'OBJECT#x' as `OBJECT#${string}`, shortName: 'anvil', stableKey: 'anvil-0' }],
-        }
+    it('rejects trope member missing tropeFunction', () => {
         const body = JSON.stringify({
             candidates: [
                 {
@@ -106,15 +91,7 @@ describe('parseHypothesisStageOneOutput', () => {
                 },
             ],
         })
-        expect(parseHypothesisStageOneOutput(body, map).ok).toBe(true)
-    })
-
-    it('rejects IntendedRole when affinities unavailable', () => {
-        const map: CoyoteRoomObjectsByRoom = {
-            ...singleObjectRoomMap,
-            'ROOM#VORTEX': [{ uuid: 'OBJECT#x' as `OBJECT#${string}`, shortName: 'anvil', stableKey: 'anvil-0' }],
-        }
-        expect(parseHypothesisStageOneOutput(validJsonSingleObject, map).ok).toBe(false)
+        expect(parseHypothesisStageOneOutput(body, singleObjectRoomMap).ok).toBe(false)
     })
 
     it('rejects candidate multiset mismatch', () => {
@@ -125,7 +102,7 @@ describe('parseHypothesisStageOneOutput', () => {
         expect(parseHypothesisStageOneOutput(validJsonSingleObject, twoObjMap).ok).toBe(false)
     })
 
-    it('rejects invalid intendedRole JSON shape', () => {
+    it('rejects legacy intendedRole key under strict member schema', () => {
         const bad = JSON.stringify({
             candidates: [
                 {
@@ -135,49 +112,16 @@ describe('parseHypothesisStageOneOutput', () => {
                         {
                             trope: 'Finishing Move',
                             executionDetail: 'Trigger the terminal drop.',
-                            members: [{ stableKey: 'anvil-0', intendedRole: { role: 'not_a_role', aptness: 0.55 } }],
+                            members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal', intendedRole: { role: 'terminal' } }],
                         },
                     ],
                 },
             ],
         })
-        expect(parseHypothesisStageOneOutput(bad, singleObjectRoomMap).ok).toBe(false)
-    })
-
-    it('resolves flat-tag intendedRole echo from snapshot affinities', () => {
-        const map: CoyoteRoomObjectsByRoom = {
-            ...singleObjectRoomMap,
-            'ROOM#VORTEX': [
-                {
-                    uuid: 'OBJECT#x' as `OBJECT#${string}`,
-                    shortName: 'birdseed',
-                    stableKey: 'anvil-0',
-                    affinities: affinitiesRoadRunner,
-                },
-            ],
-        }
-        const body = JSON.stringify({
-            candidates: [
-                {
-                    candidateId: 'candidate-1',
-                    executionSummary: 'Use bait first.',
-                    tropeAssignments: [
-                        {
-                            trope: 'Distraction',
-                            executionDetail: 'Road Runner is lured into lane.',
-                            members: [{ stableKey: 'anvil-0', intendedRole: { role: 'influence-road-runner' } }],
-                        },
-                    ],
-                },
-            ],
-        })
-        const r = parseHypothesisStageOneOutput(body, map)
-        expect(r.ok).toBe(true)
-        if (r.ok) {
-            expect(r.candidates[0].tropeAssignments[0].members[0].intendedRole).toEqual({
-                role: 'influence-road-runner',
-                aptness: 0.67,
-            })
+        const r = parseHypothesisStageOneOutput(bad, singleObjectRoomMap)
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.errorMessage).toContain('unknown key')
         }
     })
 
@@ -197,7 +141,7 @@ describe('parseHypothesisStageOneOutput', () => {
                         {
                             trope: 'Finishing Move',
                             executionDetail: 'Trigger the terminal drop.',
-                            members: [{ stableKey: 'anvil-0' }],
+                            members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal drop payload' }],
                         },
                     ],
                 },
@@ -224,17 +168,17 @@ describe('parseHypothesisStageOneOutput', () => {
                         {
                             trope: 'Finishing Move',
                             executionDetail: 'Anvil lane execution.',
-                            members: [{ stableKey: 'anvil-0' }],
+                            members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal lane payload' }],
                         },
                     ],
-                    outliers: [{ stableKey: 'rope-0' }],
+                    outliers: [{ stableKey: 'rope-0', tropeFunction: 'reserve connective line' }],
                 },
             ],
         })
         const r = parseHypothesisStageOneOutput(body, map)
         expect(r.ok).toBe(true)
         if (r.ok) {
-            expect(r.candidates[0].explicitOutliers).toEqual([{ stableKey: 'rope-0' }])
+            expect(r.candidates[0].explicitOutliers).toEqual([{ stableKey: 'rope-0', tropeFunction: 'reserve connective line' }])
         }
     })
 
@@ -252,10 +196,13 @@ describe('parseHypothesisStageOneOutput', () => {
                         {
                             trope: 'Finishing Move',
                             executionDetail: 'Anvil lane execution.',
-                            members: [{ stableKey: 'anvil-0' }, { stableKey: 'rope-0' }],
+                            members: [
+                                { stableKey: 'anvil-0', tropeFunction: 'terminal lane payload' },
+                                { stableKey: 'rope-0', tropeFunction: 'duplicate key member' },
+                            ],
                         },
                     ],
-                    outliers: [{ stableKey: 'rope-0' }],
+                    outliers: [{ stableKey: 'rope-0', tropeFunction: 'duplicate key outlier' }],
                 },
             ],
         })
@@ -272,7 +219,7 @@ describe('parseHypothesisStageOneOutput', () => {
                         {
                             trope: 'Finishing Move',
                             executionDetail: 'Trigger the terminal drop.',
-                            members: [{ stableKey: 'anvil-0' }],
+                            members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal drop payload' }],
                         },
                     ],
                 },
@@ -296,7 +243,7 @@ describe('parseHypothesisStageOneOutput', () => {
                         {
                             trope: 'Finishing Move',
                             executionDetail: 'Trigger the terminal drop.',
-                            members: [{ stableKey: 'anvil-0' }],
+                            members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal drop payload' }],
                         },
                     ],
                     score: 'extra',
@@ -318,7 +265,7 @@ describe('parseHypothesisStageOneOutput', () => {
                         {
                             trope: 'Finishing Move',
                             executionDetail: 'Trigger the terminal drop.',
-                            members: [{ stableKey: 'anvil-0', name: 'extra' }],
+                            members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal drop payload', name: 'extra' }],
                         },
                     ],
                 },
@@ -357,12 +304,12 @@ describe('parseHypothesisStageOneOutput', () => {
                         {
                             trope: 'Finishing Move',
                             executionDetail: 'End first.',
-                            members: [{ stableKey: 'anvil-0' }],
+                            members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal beat first' }],
                         },
                         {
                             trope: 'Contraption',
                             executionDetail: 'Setup second.',
-                            members: [{ stableKey: 'rope-0' }],
+                            members: [{ stableKey: 'rope-0', tropeFunction: 'setup beat second' }],
                         },
                     ],
                 },

@@ -1,6 +1,6 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { defaultStableKeyProposal } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import {
     combineHypothesisClusters,
@@ -57,10 +57,10 @@ export function normalizeCoyoteHarnessRoomObjects(
 
 export type HarnessRoomObjectSpec = {
     shortName: string
-    affinities?: CoyoteAffinityPossibility[]
+    tropeAffinities?: CoyoteTropeAffinity[]
 }
 
-/** Build harness objects with deterministic uuids (`stableKey` disambiguated per slot); optional **`affinities`** per row. */
+/** Build harness objects with deterministic uuids (`stableKey` disambiguated per slot); trope-first affinity hints per row. */
 export function harnessRoomObjectsSpec(
     roomSlug: string,
     specs: HarnessRoomObjectSpec[]
@@ -69,20 +69,24 @@ export function harnessRoomObjectsSpec(
         uuid: `OBJECT#harness-${roomSlug}-${index}` as `OBJECT#${string}`,
         shortName: spec.shortName,
         stableKey: `${defaultStableKeyProposal(spec.shortName)}-${index}`,
-        ...(spec.affinities?.length ? { affinities: spec.affinities } : {}),
+        ...(spec.tropeAffinities?.length ? { tropeAffinities: spec.tropeAffinities } : {}),
+        ...(spec.tropeAffinities?.length ? {} : { tropeAffinities: [], tropeAffinitiesFailed: true }),
+        affinities: [],
+        affinitiesFailed: true,
     }))
 }
 
-/** Build harness objects with deterministic uuids (`stableKey` disambiguated per slot; no affinities). */
+/** Build harness objects with deterministic uuids (`stableKey` disambiguated per slot; no trope affinity hints). */
 export function harnessRoomObjects(roomSlug: string, shortNames: string[]): EphemeraMetaRoomObject[] {
     return harnessRoomObjectsSpec(roomSlug, shortNames.map((shortName) => ({ shortName })))
 }
 
 /** Birdseed staged as bait: placed to stage the gag, then targets the quarry. */
-const birdseedLureAffinities: CoyoteAffinityPossibility[] = [
+const birdseedLureAffinities: CoyoteTropeAffinity[] = [
     {
-        role: 'influence-road-runner',
-        aptness: 0.8,
+        trope: 'Distraction',
+        aptness: 'High',
+        narrowing: 'bait lure that commits Road Runner to the chosen lane',
     },
 ]
 
@@ -90,13 +94,17 @@ const FIXTURE_01_ROOM_OBJECTS: CoyoteEngineTestFixture['roomObjectsByRoom'] = {
     'ROOM#STRAIGHTAWAY': harnessRoomObjectsSpec('straightaway', [
         {
             shortName: 'rocket',
-            affinities: [
-                { role: 'delivery', aptness: 0.4 },
+            tropeAffinities: [
                 {
-                    role: 'coyote-enhancement',
-                    aptness: 0.69,
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'self-powered lane setup hardware',
                 },
-                { role: 'terminal', aptness: 0.61 },
+                {
+                    trope: 'Finishing Move',
+                    aptness: 'Good',
+                    narrowing: 'payload delivery into terminal beat',
+                },
             ],
         },
     ]),
@@ -118,7 +126,7 @@ const FIXTURE_01_GOLDEN_SEAM_BODY = JSON.stringify({
                     members: [
                         {
                             stableKey: 'rocket-0',
-                            intendedRole: { role: 'delivery', aptness: 0.4 },
+                            tropeFunction: 'delivery lane hardware for straightaway setup',
                         },
                     ],
                 },
@@ -174,16 +182,24 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
             'ROOM#CLIFFTOP': harnessRoomObjectsSpec('clifftop', [
                 {
                     shortName: 'lever',
-                    affinities: [
-                        { role: 'trigger', aptness: 0.4 },
-                        { role: 'prep', aptness: 0.7 },
+                    tropeAffinities: [
+                        {
+                            trope: 'Contraption',
+                            aptness: 'High',
+                            narrowing: 'mechanical trigger prep above lane',
+                        },
+                        {
+                            trope: 'Finishing Move',
+                            aptness: 'Good',
+                            narrowing: 'release mechanism for cliffside payload',
+                        },
                     ],
                 },
             ]),
             'ROOM#VORTEX': harnessRoomObjectsSpec('vortex', [
                 {
                     shortName: 'birdseed',
-                    affinities: birdseedLureAffinities,
+                    tropeAffinities: birdseedLureAffinities,
                 },
             ]),
         },
@@ -195,23 +211,33 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
             'ROOM#STRAIGHTAWAY': harnessRoomObjectsSpec('straightaway', [
                 {
                     shortName: 'roller skates',
-                    affinities: [
+                    tropeAffinities: [
                         {
-                            role: 'coyote-equipment',
-                            aptness: 0.71,
+                            trope: 'Contraption',
+                            aptness: 'High',
+                            narrowing: 'mobility rig for setup and chase positioning',
                         },
-                        { role: 'delivery', aptness: 0.64 },
+                        {
+                            trope: 'Finishing Move',
+                            aptness: 'Poor',
+                            narrowing: 'delivery assist but not terminal by itself',
+                        },
                     ],
                 },
             ]),
             'ROOM#CORNER': harnessRoomObjectsSpec('corner', [
                 {
                     shortName: 'paint',
-                    affinities: [
-                        { role: 'prep', aptness: 0.7 },
+                    tropeAffinities: [
                         {
-                            role: 'connect-props',
-                            aptness: 0.53,
+                            trope: 'Distraction',
+                            aptness: 'Good',
+                            narrowing: 'visual lure through fake passage cue',
+                        },
+                        {
+                            trope: 'Contraption',
+                            aptness: 'Good',
+                            narrowing: 'prep-world edit before engagement',
                         },
                     ],
                 },
@@ -219,13 +245,22 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
             'ROOM#BRIDGE': harnessRoomObjectsSpec('bridge', [
                 {
                     shortName: 'portable hole',
-                    affinities: [
-                        { role: 'prep', aptness: 0.9 }
+                    tropeAffinities: [
+                        {
+                            trope: 'Disadvantage',
+                            aptness: 'High',
+                            narrowing: 'persistent route hazard in bridge lane',
+                        },
+                        {
+                            trope: 'Finishing Move',
+                            aptness: 'Good',
+                            narrowing: 'terminal drop endpoint if committed',
+                        },
                     ],
                 },
                 {
                     shortName: 'birdseed',
-                    affinities: birdseedLureAffinities,
+                    tropeAffinities: birdseedLureAffinities,
                 },
             ]),
         },
@@ -237,20 +272,32 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
             'ROOM#STRAIGHTAWAY': harnessRoomObjectsSpec('straightaway', [
                 {
                     shortName: 'magnet',
-                    affinities: [
+                    tropeAffinities: [
                         {
-                            role: 'influence-road-runner',
-                            aptness: 0.73,
+                            trope: 'Disadvantage',
+                            aptness: 'High',
+                            narrowing: 'persistent pull alters runner pathing',
                         },
-                        { role: 'terminal', aptness: 0.62 },
+                        {
+                            trope: 'Finishing Move',
+                            aptness: 'Good',
+                            narrowing: 'terminal snap-in collision setup',
+                        },
                     ],
                 },
                 {
                     shortName: 'steel drum',
-                    affinities: [
-                        { role: 'delivery', aptness: 0.54 },
-                        { role: 'trigger', aptness: 0.49 },
-                        { role: 'autonomous_agent', aptness: 0.44 },
+                    tropeAffinities: [
+                        {
+                            trope: 'Contraption',
+                            aptness: 'Good',
+                            narrowing: 'rig body for trigger chain',
+                        },
+                        {
+                            trope: 'Finishing Move',
+                            aptness: 'Good',
+                            narrowing: 'rolling impact payload',
+                        },
                     ],
                 },
             ]),
@@ -263,9 +310,17 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
             'ROOM#VORTEX': harnessRoomObjectsSpec('vortex', [
                 {
                     shortName: 'catapult',
-                    affinities: [
-                        { role: 'delivery', aptness: 0.72 },
-                        { role: 'terminal', aptness: 0.4 },
+                    tropeAffinities: [
+                        {
+                            trope: 'Contraption',
+                            aptness: 'High',
+                            narrowing: 'pre-aimed launch apparatus',
+                        },
+                        {
+                            trope: 'Finishing Move',
+                            aptness: 'High',
+                            narrowing: 'terminal launch and drop delivery',
+                        },
                     ],
                 },
             ]),
@@ -278,26 +333,35 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
             'ROOM#STRAIGHTAWAY': harnessRoomObjectsSpec('straightaway', [
                 {
                     shortName: 'birdseed',
-                    affinities: birdseedLureAffinities,
+                    tropeAffinities: birdseedLureAffinities,
                 },
             ]),
             'ROOM#VORTEX': harnessRoomObjectsSpec('vortex', [
                 {
                     shortName: 'glue',
-                    affinities: [
+                    tropeAffinities: [
                         {
-                            role: 'enhance-prop',
-                            aptness: 0.66,
+                            trope: 'Disadvantage',
+                            aptness: 'High',
+                            narrowing: 'persistent adhesion constraint on movement',
                         },
-                        { role: 'prep', aptness: 0.54 },
+                        {
+                            trope: 'Contraption',
+                            aptness: 'Poor',
+                            narrowing: 'support prep material only',
+                        },
                     ],
                 },
             ]),
             'ROOM#CLIFFTOP': harnessRoomObjectsSpec('clifftop', [
                 {
                     shortName: 'anvil',
-                    affinities: [
-                        { role: 'terminal', aptness: 0.74 }
+                    tropeAffinities: [
+                        {
+                            trope: 'Finishing Move',
+                            aptness: 'High',
+                            narrowing: 'point terminal payload from above',
+                        },
                     ],
                 },
             ]),
@@ -310,18 +374,34 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
             'ROOM#VORTEX': harnessRoomObjectsSpec('vortex', [
                 {
                     shortName: 'trampoline',
-                    affinities: [
-                        { role: 'prep', aptness: 0.67 },
-                        { role: 'delivery', aptness: 0.64 },
+                    tropeAffinities: [
+                        {
+                            trope: 'Contraption',
+                            aptness: 'High',
+                            narrowing: 'trajectory setup hardware',
+                        },
+                        {
+                            trope: 'Disadvantage',
+                            aptness: 'Good',
+                            narrowing: 'forced bounce path control',
+                        },
                     ],
                 },
             ]),
             'ROOM#CLIFFTOP': harnessRoomObjectsSpec('clifftop', [
                 {
                     shortName: 'net',
-                    affinities: [
-                        { role: 'terminal', aptness: 0.66 },
-                        { role: 'trigger', aptness: 0.4 },
+                    tropeAffinities: [
+                        {
+                            trope: 'Disadvantage',
+                            aptness: 'High',
+                            narrowing: 'capture constraint state',
+                        },
+                        {
+                            trope: 'Finishing Move',
+                            aptness: 'Good',
+                            narrowing: 'terminal containment beat',
+                        },
                     ],
                 },
             ]),
@@ -334,49 +414,76 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
             'ROOM#STRAIGHTAWAY': harnessRoomObjectsSpec('straightaway', [
                 {
                     shortName: 'rocket',
-                    affinities: [
-                        { role: 'delivery', aptness: 0.4 },
+                    tropeAffinities: [
                         {
-                            role: 'coyote-enhancement',
-                            aptness: 0.69,
+                            trope: 'Contraption',
+                            aptness: 'High',
+                            narrowing: 'high-energy prep subsystem',
                         },
-                        { role: 'terminal', aptness: 0.61 },
+                        {
+                            trope: 'Finishing Move',
+                            aptness: 'Good',
+                            narrowing: 'payload acceleration toward terminal beat',
+                        },
                     ],
                 },
                 {
                     shortName: 'skis',
-                    affinities: [
-                        { role: 'delivery', aptness: 0.4 },
+                    tropeAffinities: [
                         {
-                            role: 'coyote-equipment',
-                            aptness: 0.7,
+                            trope: 'Contraption',
+                            aptness: 'Good',
+                            narrowing: 'mobility prep on long straightaway route',
+                        },
+                        {
+                            trope: 'Distraction',
+                            aptness: 'Poor',
+                            narrowing: 'visual decoy only in narrow reads',
                         },
                     ],
                 },
                 {
                     shortName: 'catapult',
-                    affinities: [
-                        { role: 'delivery', aptness: 0.72 },
-                        { role: 'terminal', aptness: 0.4 },
+                    tropeAffinities: [
+                        {
+                            trope: 'Contraption',
+                            aptness: 'High',
+                            narrowing: 'launch platform in primary setup chain',
+                        },
+                        {
+                            trope: 'Finishing Move',
+                            aptness: 'High',
+                            narrowing: 'terminal delivery rig when committed',
+                        },
                     ],
                 },
                 {
                     shortName: 'springs',
-                    affinities: [
-                        { role: 'terminal', aptness: 0.53 },
-                        { role: 'trigger', aptness: 0.47 },
+                    tropeAffinities: [
+                        {
+                            trope: 'Contraption',
+                            aptness: 'Good',
+                            narrowing: 'triggered kinetic transfer between props',
+                        },
+                        {
+                            trope: 'Finishing Move',
+                            aptness: 'Good',
+                            narrowing: 'impact amplification at terminal moment',
+                        },
                     ],
                 },
                 {
                     shortName: 'glue',
-                    affinities: [
+                    tropeAffinities: [
                         {
-                            role: 'coyote-equipment',
-                            aptness: 0.57,
+                            trope: 'Disadvantage',
+                            aptness: 'High',
+                            narrowing: 'persistent adhesion constraint on route',
                         },
                         {
-                            role: 'enhance-prop',
-                            aptness: 0.52,
+                            trope: 'Contraption',
+                            aptness: 'Poor',
+                            narrowing: 'support prep only',
                         },
                     ],
                 },
@@ -390,10 +497,16 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
             'ROOM#CLIFFTOP': harnessRoomObjectsSpec('clifftop', [
                 {
                     shortName: 'umbrella',
-                    affinities: [
+                    tropeAffinities: [
                         {
-                            role: 'coyote-equipment',
-                            aptness: 0.45,
+                            trope: 'Contraption',
+                            aptness: 'Good',
+                            narrowing: 'deflection or glide prep tool',
+                        },
+                        {
+                            trope: 'Distraction',
+                            aptness: 'Poor',
+                            narrowing: 'costume-like visual decoy read',
                         },
                     ],
                 },
@@ -401,10 +514,16 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
             'ROOM#CORNER': harnessRoomObjectsSpec('corner', [
                 {
                     shortName: 'snorkel',
-                    affinities: [
+                    tropeAffinities: [
                         {
-                            role: 'coyote-equipment',
-                            aptness: 0.45,
+                            trope: 'Contraption',
+                            aptness: 'Good',
+                            narrowing: 'environment adaptation prep tool',
+                        },
+                        {
+                            trope: 'Disadvantage',
+                            aptness: 'Poor',
+                            narrowing: 'indirect impairment setup helper',
                         },
                     ],
                 },
@@ -412,11 +531,16 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
             'ROOM#BRIDGE': harnessRoomObjectsSpec('bridge', [
                 {
                     shortName: 'skis',
-                    affinities: [
-                        { role: 'delivery', aptness: 0.8 },
+                    tropeAffinities: [
                         {
-                            role: 'coyote-equipment',
-                            aptness: 0.66,
+                            trope: 'Contraption',
+                            aptness: 'High',
+                            narrowing: 'mobility prep on long bridge approach',
+                        },
+                        {
+                            trope: 'Finishing Move',
+                            aptness: 'Poor',
+                            narrowing: 'delivery assist only',
                         },
                     ],
                 },
@@ -430,39 +554,57 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
             'ROOM#CLIFFTOP': harnessRoomObjectsSpec('clifftop', [
                 {
                     shortName: 'cannon',
-                    affinities: [
-                        { role: 'terminal', aptness: 0.77 },
-                        { role: 'trigger', aptness: 0.69 },
+                    tropeAffinities: [
+                        {
+                            trope: 'Finishing Move',
+                            aptness: 'High',
+                            narrowing: 'terminal projectile payload',
+                        },
+                        {
+                            trope: 'Contraption',
+                            aptness: 'Good',
+                            narrowing: 'mounted firing prep',
+                        },
                     ],
                 },
             ]),
             'ROOM#VORTEX': harnessRoomObjectsSpec('vortex', [
                 {
                     shortName: 'birdseed',
-                    affinities: birdseedLureAffinities,
+                    tropeAffinities: birdseedLureAffinities,
                 },
             ]),
             'ROOM#STRAIGHTAWAY': harnessRoomObjectsSpec('straightaway', [
                 {
                     shortName: 'roller skates',
-                    affinities: [
+                    tropeAffinities: [
                         {
-                            role: 'coyote-equipment',
-                            aptness: 0.7,
+                            trope: 'Contraption',
+                            aptness: 'High',
+                            narrowing: 'position and speed setup',
                         },
-                        { role: 'delivery', aptness: 0.65 },
+                        {
+                            trope: 'Finishing Move',
+                            aptness: 'Poor',
+                            narrowing: 'delivery helper only',
+                        },
                     ],
                 },
             ]),
             'ROOM#CORNER': harnessRoomObjectsSpec('corner', [
                 {
                     shortName: 'paint',
-                    affinities: [
+                    tropeAffinities: [
                         {
-                            role: 'connect-props',
-                            aptness: 0.6,
+                            trope: 'Distraction',
+                            aptness: 'Good',
+                            narrowing: 'visual deception lure at turn',
                         },
-                        { role: 'prep', aptness: 0.7 },
+                        {
+                            trope: 'Contraption',
+                            aptness: 'Good',
+                            narrowing: 'prep illusion and route edit',
+                        },
                     ],
                 },
             ]),

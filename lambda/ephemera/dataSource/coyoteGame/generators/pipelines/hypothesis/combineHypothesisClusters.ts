@@ -1,15 +1,13 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { CoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
-import type { ParsedClusterMember, ParsedTropeCandidate } from './parseHypothesisStageOneOutput'
-import { formatCoyoteAffinityPossibility } from '../../../utilities/coyoteRoomObjectSnapshot'
+import type { ParsedTropeCandidate } from './parseHypothesisStageOneOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 
 export type CombinedMemberPair = {
     identifier: string
-    intendedRole?: CoyoteAffinityPossibility
+    tropeFunction: string
 }
 
 export type CombinedTropeAssignment = {
@@ -40,44 +38,6 @@ export type CombineHypothesisClustersFailure = {
 }
 
 export type CombineHypothesisClustersResult = CombineHypothesisClustersSuccess | CombineHypothesisClustersFailure
-
-function affinityMatchesStored(
-    stored: CoyoteAffinityPossibility,
-    echoed: CoyoteAffinityPossibility
-): boolean {
-    if (stored.role !== echoed.role) {
-        return false
-    }
-    return Math.abs(stored.aptness - echoed.aptness) < 1e-6
-}
-
-function resolveCanonicalRole(
-    obj: EphemeraMetaRoomObject,
-    echoed?: CoyoteAffinityPossibility
-): CoyoteAffinityPossibility | undefined {
-    if (!echoed || !obj.affinities?.length || obj.affinitiesFailed === true) {
-        return undefined
-    }
-    return obj.affinities.find((a) => affinityMatchesStored(a, echoed))
-}
-
-function resolveMemberIntendedRole(
-    obj: EphemeraMetaRoomObject,
-    echoed: CoyoteAffinityPossibility | undefined,
-    context: string
-): { ok: true; intendedRole?: CoyoteAffinityPossibility } | { ok: false; errorMessage: string } {
-    if (echoed === undefined) {
-        return { ok: true, intendedRole: undefined }
-    }
-    const intendedRole = resolveCanonicalRole(obj, echoed)
-    if (!intendedRole) {
-        return {
-            ok: false,
-            errorMessage: `combine: could not resolve canonical intendedRole for ${context}`,
-        }
-    }
-    return { ok: true, intendedRole }
-}
 
 function snapshotIndexByStableKey(
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
@@ -121,17 +81,9 @@ export function combineHypothesisClusters(
                     return { ok: false, errorMessage: `combine: unknown stableKey "${sk}"` }
                 }
                 seenKeys.add(sk)
-                const resolvedRole = resolveMemberIntendedRole(
-                    obj,
-                    mem.intendedRole,
-                    `candidate "${candidate.candidateId}" trope "${tropeAssignment.trope}" stableKey "${sk}"`
-                )
-                if (!resolvedRole.ok) {
-                    return resolvedRole
-                }
                 membersOut.push({
                     identifier: sk,
-                    intendedRole: resolvedRole.intendedRole,
+                    tropeFunction: mem.tropeFunction,
                 })
             }
             tropeAssignments.push({
@@ -156,17 +108,9 @@ export function combineHypothesisClusters(
                     return { ok: false, errorMessage: `combine: unknown outlier stableKey "${sk}"` }
                 }
                 seenKeys.add(sk)
-                const resolvedRole = resolveMemberIntendedRole(
-                    obj,
-                    outlier.intendedRole,
-                    `candidate "${candidate.candidateId}" outlier "${sk}"`
-                )
-                if (!resolvedRole.ok) {
-                    return resolvedRole
-                }
                 outliers.push({
                     identifier: sk,
-                    intendedRole: resolvedRole.intendedRole,
+                    tropeFunction: outlier.tropeFunction,
                 })
             }
         }
@@ -211,9 +155,7 @@ export function renderCombinedHypothesisForStageTwo(
                 lines.push(
                     `- **stableKey:** ${sk} — **shortName:** ${shortName}${roomLabel ? ` — **room:** ${roomLabel}` : ''}`
                 )
-                if (mem.intendedRole !== undefined) {
-                    lines.push(`  - **intendedRole:** ${formatCoyoteAffinityPossibility(mem.intendedRole)}`)
-                }
+                lines.push(`  - **tropeFunction:** ${mem.tropeFunction}`)
             }
             lines.push('')
         }
@@ -231,9 +173,7 @@ export function renderCombinedHypothesisForStageTwo(
                 lines.push(
                     `- **stableKey:** ${sk} — **shortName:** ${shortName}${roomLabel ? ` — **room:** ${roomLabel}` : ''}`
                 )
-                if (out.intendedRole !== undefined) {
-                    lines.push(`  - **intendedRole:** ${formatCoyoteAffinityPossibility(out.intendedRole)}`)
-                }
+                lines.push(`  - **tropeFunction:** ${out.tropeFunction}`)
             }
             lines.push('')
         }

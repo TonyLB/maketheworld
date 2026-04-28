@@ -26,12 +26,12 @@ const stageOneSeamBody = JSON.stringify({
                 {
                     trope: 'Distraction',
                     executionDetail: 'Road Runner is drawn into the lane.',
-                    members: [{ stableKey: 'rocket-skates', intendedRole: { role: 'coyote-equipment', aptness: 0.6 } }],
+                    members: [{ stableKey: 'rocket-skates', tropeFunction: 'speed lure setup prop' }],
                 },
                 {
                     trope: 'Finishing Move',
                     executionDetail: 'Anvil drop is timed for the committed lane.',
-                    members: [{ stableKey: 'anvil', intendedRole: { role: 'terminal', aptness: 0.5 } }],
+                    members: [{ stableKey: 'anvil', tropeFunction: 'terminal drop payload' }],
                 },
             ],
         },
@@ -158,14 +158,14 @@ describe('generateHypothesis', () => {
         expect(phasePlanHopMock).toHaveBeenCalledTimes(1)
     })
 
-    it('passes flat intendedRole rendering into phase-plan hop prompt', async () => {
+    it('passes tropeFunction rendering into phase-plan hop prompt', async () => {
         await generateHypothesis({ getGameRooms, getRoomMeta })
         const phasePlanHopPrompt = phasePlanHopMock.mock.calls[0][0] as {
             invariantPrefix: string
             dynamicSuffix: string
         }
         const fullHop2 = phasePlanHopPrompt.invariantPrefix + phasePlanHopPrompt.dynamicSuffix
-        expect(fullHop2).toContain('**intendedRole:** coyote-equipment 0.60')
+        expect(fullHop2).toContain('**tropeFunction:** speed lure setup prop')
     })
 
     it('parses phase-plan hop body with ## Scene analysis + fenced Hypothesis', async () => {
@@ -229,9 +229,9 @@ describe('generateHypothesis', () => {
                             trope: 'Contraption',
                             executionDetail: 'Setup spans rooms before final beat.',
                             members: [
-                                { stableKey: 'anvil-0' },
-                                { stableKey: 'portable-hole-0' },
-                                { stableKey: 'birdseed-1' },
+                                { stableKey: 'anvil-0', tropeFunction: 'anchor payload rig' },
+                                { stableKey: 'portable-hole-0', tropeFunction: 'route shaping trap surface' },
+                                { stableKey: 'birdseed-1', tropeFunction: 'bait cue for lane commitment' },
                             ],
                         },
                     ],

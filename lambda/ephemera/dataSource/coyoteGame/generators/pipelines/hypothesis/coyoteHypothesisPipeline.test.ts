@@ -41,12 +41,12 @@ const stageOneSeamBody = JSON.stringify({
                 {
                     trope: 'Distraction',
                     executionDetail: 'Road Runner is guided into the strike lane first.',
-                    members: [{ stableKey: 'rocket-skates', intendedRole: { role: 'coyote-equipment', aptness: 0.6 } }],
+                    members: [{ stableKey: 'rocket-skates', tropeFunction: 'speed lure setup prop' }],
                 },
                 {
                     trope: 'Finishing Move',
                     executionDetail: 'Anvil lands after the lane setup commits the target route.',
-                    members: [{ stableKey: 'anvil', intendedRole: { role: 'terminal', aptness: 0.5 } }],
+                    members: [{ stableKey: 'anvil', tropeFunction: 'terminal drop payload' }],
                 },
             ],
         },

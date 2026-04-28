@@ -1,6 +1,6 @@
 # Coyote Game: tune trope-centered LLM pipeline (planning)
 
-**Status:** In progress. Next step is to lock tuning corpus and hop exit criteria, then start a single ordered pass from clustering through outcome.
+**Status:** In progress. Next step is to lock tuning corpus and subjective hop exit criteria (tracked in the external rubric spreadsheet), then start a single ordered pass from clustering through outcome.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -35,10 +35,10 @@ This file is task-scoped and should be archived or removed when this tuning pass
 
 - All four hops produce trope-first outputs with no required legacy `intendedRole` assumptions.
 - Regression suite for tuned fixtures passes consistently under documented command context.
-- Each hop meets explicit exit criteria before advancing:
-  - contract compliance pass-rate target met on active corpus;
-  - bounded quality rubric target met for that hop;
-  - no known blocker severity failures left untracked.
+- Each hop meets explicitly recorded subjective exit criteria before advancing:
+  - current output quality is acceptable on the external rubric spreadsheet for this hop;
+  - known failure clusters are either addressed in-slice or logged as intentional carry-forward;
+  - no blocker-severity failures are left untracked.
 - A complete end-to-end sweep is recorded with before/after notes for each hop.
 
 ## Working method
@@ -51,7 +51,7 @@ For each hop in sequence:
 4. Re-run evaluation and record deltas.
 5. Freeze fixture snapshots for this hop.
 6. Update next-hop fixtures to reflect tuned upstream output.
-7. Advance only if exit criteria are met.
+7. Advance only if subjective exit criteria are met and logged in notes/spreadsheet.
 
 ## Getting started
 
@@ -70,15 +70,22 @@ For each hop in sequence:
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]` as each sub-step lands.
 
-- [ ] Phase T0 - lock tuning protocol and corpus governance
-  - [ ] Define per-hop exit criteria (contract compliance threshold, rubric threshold, blocker policy).
-  - [ ] Lock fixture corpus versioning/update policy (append-only test cases, reason tags, and expected directional outcomes).
-  - [ ] Define scorecard template for before/after reporting at each hop.
+- [X] Phase T0 - lock tuning protocol and corpus governance
+  - [X] Define per-hop subjective exit criteria (spreadsheet rubric judgment + blocker policy + note-taking expectations).
+  - [X] Lock fixture corpus update policy as latest-write canonical state (no append-only history; keep current reason tags and expected directional outcomes aligned to active behavior goals).
+  - [X] Define scorecard template for before/after reporting at each hop:
+    - `qualityScore` (0-50 composite, from external spreadsheet rubric)
+    - `elapsedMs` (total time elapsed for evaluated run)
+    - `decision` (`advance` or `iterate`)
 
-- [ ] Phase T1 - remove legacy `intendedRole` assumptions
-  - [ ] Inventory all remaining `intendedRole` reads and classify required vs removable.
-  - [ ] Remove required-by-contract assumptions from trope-first seams, prompts, and parser expectations.
-  - [ ] Re-freeze fixtures and tests proving no required legacy role fields remain for tuned hops.
+- [X] Phase T1 - remove legacy `intendedRole` assumptions
+  - [X] Inventory all remaining `intendedRole` reads and classify required vs removable.
+  - [X] Remove required-by-contract assumptions from trope-first seams, prompts, and parser expectations.
+  - [X] Re-freeze fixtures and tests proving no required legacy role fields remain for tuned hops.
+  - Locked implementation notes:
+    - Stage One member schema is now trope-first and strict: member/outlier objects require `stableKey` + `tropeFunction`; legacy `intendedRole` is rejected as an unknown key in parser validation.
+    - Combined clustering and Stage Two prompt contracts now consume/render `tropeFunction` annotations and no longer reference plan-role `intendedRole` semantics.
+    - Harness and hypothesis seam fixtures were re-frozen to trope-first member annotations (`coyoteEngineTestFixtures`, pipeline seam mocks), with parser/combine/prompt regressions updated to lock the strict deprecation behavior.
 
 - [ ] Phase T2 - tune `clustering` hop
   - [ ] Run corpus eval and identify dominant failure clusters.
