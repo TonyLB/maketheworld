@@ -3,6 +3,7 @@
 ## Quick Reference (Common Agent Failures)
 - **Client testing**: `npm test` (watch) or `npm run test:single` (single run; in `charcoal-client/`)
 - **Package testing**: `npm run test` (watch) or `npm run test -- --watchAll=false` (single run)
+- **Sandbox working directory**: Assume commands start at repo root; prefer `npm --prefix <path> run <script>` instead of `cd <path> && ...`
 - **Detailed testing procedures**: See below for comprehensive testing patterns and examples
 
 ---
@@ -160,6 +161,16 @@ Include specific guidance for AI assistants:
 - **Specific Files**: `npm run test:single -- src/path/to/test.ts` (client) or `npm run test -- src/path/to/test.ts` (packages)
 - **Test Coverage**: Follow existing test patterns and naming conventions
 - **Client Testing Standards**: See [`charcoal-client/AGENT.testing.md`](charcoal-client/AGENT.testing.md) for detailed Vitest patterns and React component testing
+
+#### **Sandbox Pinned to Repo Root**
+- **Default assumption**: In Cursor sandbox, shell commands are hard-pinned to the repository root.
+- **Do not rely on `cd`**: Prefer command forms that target a package path explicitly.
+- **Use npm prefix**: `npm --prefix <relative/path> run <script> [-- <args>]`.
+- **Examples**:
+  - `npm --prefix charcoal-client run test:single -- src/components/MyComponent.test.tsx`
+  - `npm --prefix lambda/ephemera run test -- --watchAll=false src/dataSource/actions/enrich/acmeOrder/buildPrompt.test.ts`
+  - `npm --prefix packages/mtw-lambda-patterns run test -- --watchAll=false`
+- **For one-off binaries**: Use `npx --prefix <relative/path> <cmd>` when you need package-local tooling.
 
 #### **Adding New Documentation**
 1. **Follow the Structure**: Use the standard sections outlined above
