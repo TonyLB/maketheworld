@@ -140,7 +140,10 @@ describe('finalizeAcmeOrderFromEnrich', () => {
             valid: true,
             name: 'rope line',
             stableKey: 'rope-line',
-            affinities: [{ role: 'delivery', aptness: 0.6 }],
+            tropeAffinities: [],
+            tropeAffinitiesFailed: true,
+            affinities: [],
+            affinitiesFailed: true,
         })
         expect(merged.orders[1]).toMatchObject({
             valid: false,
@@ -158,6 +161,8 @@ describe('finalizeAcmeOrderFromEnrich', () => {
             valid: true,
             name: 'order rope',
             stableKey: 'order-rope',
+            tropeAffinities: [],
+            tropeAffinitiesFailed: true,
             affinities: [],
             affinitiesFailed: true,
         })
@@ -188,7 +193,10 @@ describe('finalizeAcmeOrderFromEnrich', () => {
             valid: true,
             name: 'dyn',
             stableKey: 'dyn',
-            affinities: [{ role: 'terminal', aptness: 0.5 }],
+            tropeAffinities: [],
+            tropeAffinitiesFailed: true,
+            affinities: [],
+            affinitiesFailed: true,
         })
         expect(merged.orders[1]).toMatchObject({ valid: true, affinitiesFailed: true })
         expect(merged.confidence).toBeCloseTo(0.82 * 0.9)

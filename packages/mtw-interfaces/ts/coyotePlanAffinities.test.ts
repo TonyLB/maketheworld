@@ -163,7 +163,11 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             stableKey: 'a',
             affinities: [{ role: 'terminal', aptness: 0.5 }] as const,
         }
-        expect(normalizeAcmeOrderEnrichLine(line, 'fallback')).toEqual(line)
+        expect(normalizeAcmeOrderEnrichLine(line, 'fallback')).toEqual({
+            ...line,
+            tropeAffinities: [],
+            tropeAffinitiesFailed: true,
+        })
     })
 
     it('sorts affinities by aptness descending and drops entries below the floor', () => {
@@ -184,6 +188,8 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             valid: true,
             name: 'X',
             stableKey: 'x',
+            tropeAffinities: [],
+            tropeAffinitiesFailed: true,
             affinities: [
                 {
                     role: 'influence-road-runner',
@@ -214,6 +220,8 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             valid: true,
             name: 'rope',
             stableKey: 'rope',
+            tropeAffinities: [],
+            tropeAffinitiesFailed: true,
             affinities: [],
             affinitiesFailed: true,
         })
@@ -224,6 +232,8 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             valid: true,
             name: 'catalog',
             stableKey: 'catalog',
+            tropeAffinities: [],
+            tropeAffinitiesFailed: true,
             affinities: [],
             affinitiesFailed: true,
         })
@@ -244,6 +254,8 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             valid: true,
             name: 'X',
             stableKey: 'x',
+            tropeAffinities: [],
+            tropeAffinitiesFailed: true,
             affinities: [{ role: 'terminal', aptness: 0.5 }],
         })
     })
@@ -264,8 +276,32 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             valid: true,
             name: 'X',
             stableKey: 'x',
+            tropeAffinities: [],
+            tropeAffinitiesFailed: true,
             affinities: [],
             affinitiesFailed: true,
+        })
+    })
+
+    it('keeps provided tropeAffinities when valid and non-empty', () => {
+        expect(
+            normalizeAcmeOrderEnrichLine(
+                {
+                    valid: true,
+                    name: 'X',
+                    stableKey: 'x',
+                    tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'launch rig' }],
+                    affinities: [{ role: 'terminal', aptness: 0.5 }],
+                },
+                'fb'
+            )
+        ).toEqual({
+            valid: true,
+            name: 'X',
+            stableKey: 'x',
+            tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'launch rig' }],
+            tropeAffinitiesFailed: false,
+            affinities: [{ role: 'terminal', aptness: 0.5 }],
         })
     })
 })

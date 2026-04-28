@@ -7,7 +7,7 @@ import {
     isEphemeraObjectId,
     type EphemeraObjectId,
 } from './baseClasses'
-import type { CoyoteAffinityPossibility } from './coyotePlanAffinities'
+import type { CoyoteAffinityPossibility, CoyoteTropeAffinity } from './coyotePlanAffinities'
 
 //
 // Shared types for Ephemera-table metadata records (ephemeraDB).
@@ -75,6 +75,10 @@ export type EphemeraMetaRoomObject = {
     affinities?: CoyoteAffinityPossibility[];
     /** True when affinities could not be validated (enrich LLM/parse failure); distinguish from legacy omitted fields. */
     affinitiesFailed?: boolean;
+    /** Canonical trope-centered possibilities for Coyote planning (1-3 entries). */
+    tropeAffinities?: CoyoteTropeAffinity[];
+    /** True when trope affinities were unavailable from enrich processing. */
+    tropeAffinitiesFailed?: boolean;
 }
 
 export const isEphemeraMetaRoomObject = (entry: unknown): entry is EphemeraMetaRoomObject => {
@@ -93,6 +97,12 @@ export const isEphemeraMetaRoomObject = (entry: unknown): entry is EphemeraMetaR
         return false
     }
     if ('affinitiesFailed' in o && typeof o.affinitiesFailed !== 'boolean') {
+        return false
+    }
+    if ('tropeAffinities' in o && !Array.isArray(o.tropeAffinities)) {
+        return false
+    }
+    if ('tropeAffinitiesFailed' in o && typeof o.tropeAffinitiesFailed !== 'boolean') {
         return false
     }
     if (typeof o.stableKey !== 'string' || o.stableKey.trim().length === 0) {

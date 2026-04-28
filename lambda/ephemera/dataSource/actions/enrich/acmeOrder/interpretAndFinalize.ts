@@ -90,8 +90,11 @@ function enrichLineToParseLine(line: AcmeOrderEnrichModelLine): ParseCommandAcme
         valid: true,
         name: line.name,
         stableKey: line.stableKey,
-        affinities: line.affinities,
-        ...(line.affinitiesFailed !== undefined ? { affinitiesFailed: line.affinitiesFailed } : {}),
+        tropeAffinities: line.tropeAffinities ?? [],
+        tropeAffinitiesFailed: line.tropeAffinitiesFailed === true || (line.tropeAffinities ?? []).length === 0,
+        // Phase 0 compatibility contract: keep legacy role fields shape-valid but semantically retired.
+        affinities: [],
+        affinitiesFailed: true,
     }
 }
 
@@ -113,6 +116,8 @@ export function finalizeAcmeOrderFromEnrich(
                 valid: true,
                 name,
                 stableKey: defaultStableKeyProposal(name),
+                tropeAffinities: [],
+                tropeAffinitiesFailed: true,
                 affinities: [],
                 affinitiesFailed: true,
             }],

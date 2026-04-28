@@ -2,6 +2,7 @@ import { EphemeraRoomId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/base
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { AcmeCatalogRejectionReason, AcmeOrderEnrichModelLine } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { isCoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import { isCoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 import type { CoyoteEngineTestHarnessInvocation } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
 
@@ -240,6 +241,23 @@ export function isParseCommandAcmeOrderResult(
             return false
         }
         if (!entry.affinities.every((x) => isCoyoteAffinityPossibility(x))) {
+            return false
+        }
+        if ('tropeAffinities' in entry) {
+            if (!Array.isArray(entry.tropeAffinities)) {
+                return false
+            }
+            if (entry.tropeAffinities.length > 3) {
+                return false
+            }
+            if (!entry.tropeAffinities.every((x) => isCoyoteTropeAffinity(x))) {
+                return false
+            }
+        }
+        if ('tropeAffinitiesFailed' in entry && typeof entry.tropeAffinitiesFailed !== 'boolean') {
+            return false
+        }
+        if (entry.tropeAffinitiesFailed === true && Array.isArray(entry.tropeAffinities) && entry.tropeAffinities.length !== 0) {
             return false
         }
         if (entry.valid === true) {

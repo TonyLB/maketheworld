@@ -5,7 +5,6 @@
  * **`occupiedStableKeys`** embedding --- see **`LLM-first`** in [`../AGENT.md`](../AGENT.md).
  */
 
-import { COYOTE_AFFINITY_APTNESS_MIN } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import type { ParseAcmeOrderEnrichPromptParts } from '../../../../generateExample/invokeBedrockAcmeOrderEnrich'
 
 export type BuildParseAcmeOrderEnrichPromptOptions = {
@@ -30,8 +29,6 @@ export function buildParseAcmeOrderEnrichPrompt(
     const trimmed = command.trim()
     const commandBlock = trimmed === '' ? '(empty command)' : trimmed
 
-    const floor = COYOTE_AFFINITY_APTNESS_MIN
-
     const invariantPrefix = `You validate and enrich **Acme mail-order** requests for a Coyote vs. Road Runner contraption game. Player requests are expected to name things they want Acme to deliver.
 
 You will complete **two steps with different rules** — do not treat them as the same content in two formats. Step 1 is **classification and concise rationale only** (no catalog JSON). Step 2 is **the machine-readable Acme record** (affinities, normalized naming, and tone).
@@ -55,7 +52,7 @@ Produce **two parts** in order:
 
    In your markdown, show the **three layers** briefly: correction (if any), **Cartoon physics** yes/no, then primary category. For **Not a thing**, **Not tangible**, or **Too large**, state only those facts plus modifiers — no packaging spin. For **Phenomenon** and **Diffuse**, record the **two** alternatives for Step 2. **Primary** **Not a thing** / **Not tangible** / **Too large** → **\`valid\`: false** in JSON; **Phenomenon**, **Diffuse**, **Self-contained** → **\`valid\`: true**.
 
-2. **Enhance (JSON final):** After Step 1, output **one** trailing fenced code block with language tag **json**. Inside the fence put **only** the root JSON object (**lines**, optional **confidence**) — nothing else inside the fence. No prose after that closing fence. This step applies Acme catalog normalization, **affinities**, per-line **stable reference keys** (**\`stableKey\`**), and light Coyote-vs.-Road-Runner **presentation** — that cartoon-contraption flavor belongs **here**, not in Step 1's eligibility decisions.
+2. **Enhance (JSON final):** After Step 1, output **one** trailing fenced code block with language tag **json**. Inside the fence put **only** the root JSON object (**lines**, optional **confidence**) — nothing else inside the fence. No prose after that closing fence. This step applies Acme catalog normalization, canonical **\`tropeAffinities\`**, legacy compatibility placeholders (**\`affinities\`** / **\`affinitiesFailed\`**), per-line **stable reference keys** (**\`stableKey\`**), and light Coyote-vs.-Road-Runner **presentation** — that cartoon-contraption flavor belongs **here**, not in Step 1's eligibility decisions.
 
 The **Coyote-wide keys already in use** list appears **after** these instructions (before the player command). The **full player command** appears at the end of this prompt.
 
@@ -68,15 +65,15 @@ From that command, extract **one entry in \`lines[]\` per distinct product / lin
 Each **\`lines\`** entry must include **\`valid\`**: boolean, aligned with Step 1.
 
 - **\`valid\`: false** (only for **Not a thing**, **Not tangible**, **Too large**) — include **\`errorType\`**: exactly one of **\`Not a thing\`**, **\`Not tangible\`**, **\`Too large\`**. Use **\`affinities\`**: []. **Do not** include **\`stableKey\`** on invalid lines.
-- **\`valid\`: true** when Step 1 **primary** is **Phenomenon**, **Diffuse**, or **Self-contained** — normalized Acme catalog **\`name\`**, **\`stableKey\`** (see below), **\`affinities\`** role possibilities with **\`aptness\`** in **[0, 1]**. Choose **\`name\`** so shipped goods reflect Step 1 packaging for Phenomenon/Diffuse. When Step 1 had **Cartoon physics: yes**, title the SKU with straight-faced Acme packaging — the impossible behavior **is** the product.
+- **\`valid\`: true** when Step 1 **primary** is **Phenomenon**, **Diffuse**, or **Self-contained** — normalized Acme catalog **\`name\`**, **\`stableKey\`** (see below), canonical **\`tropeAffinities\`** entries, and temporary compatibility placeholders **\`affinities\`**/**\`affinitiesFailed\`**. Choose **\`name\`** so shipped goods reflect Step 1 packaging for Phenomenon/Diffuse. When Step 1 had **Cartoon physics: yes**, title the SKU with straight-faced Acme packaging — the impossible behavior **is** the product.
 
 ## Stable reference key (**\`stableKey\`**, **\`valid\`: true** only)
 
 Emit **\`stableKey\`**: a single **slug-shaped** string per deliverable line: **ASCII lowercase** letters **a-z**, digits **0-9**, and **hyphens** only (no spaces or underscores). Prefer **semantic** hyphenated labels (**\`rocket-high-powered\`**) over opaque numeric suffixes when you can still avoid collisions. **Do not** use keys that begin with **\`constructed-\`** (reserved). Avoid every key listed under **Coyote-wide keys already in use** below **when you can** pick a distinct readable slug; if the list is empty, still choose stable, unique-looking keys within this order.
 
-## Affinities must honor the player ask
+## Trope affinities must honor the player ask
 
-For **\`valid\`: true** lines, derive **\`affinities\`** from the **effective order** — the Step 1 **intended gloss** after any **Correctable user error**, not from a typo surface string. If the fulfillment is a packaged variant (pressurized cylinder for a gas cloud, mesh crate for insects), **do not** boost **aptness** for hazards or uses implied only by the vessel unless that **effective** wording supports it.
+For **\`valid\`: true** lines, derive **\`tropeAffinities\`** from the **effective order** — the Step 1 **intended gloss** after any **Correctable user error**, not from a typo surface string. If the fulfillment is a packaged variant (pressurized cylinder for a gas cloud, mesh crate for insects), **do not** boost fit quality for hazards or uses implied only by the vessel unless that **effective** wording supports it.
 
 ## Tone and catalog titles (\`valid\`: true)
 
@@ -108,9 +105,14 @@ Example **invalid** line entry:
   "affinities": []
 }
 
-## Role possibilities (\`affinities\`) for **\`valid\`: true**
+## Canonical trope fields (\`tropeAffinities\`) for **\`valid\`: true**
 
-Emit **1-3** possibilities per deliverable line. **Omit** aptness **strictly below ${floor}**.
+Emit **1-3** trope-fit entries per deliverable line. Each entry must be:
+- **\`trope\`**: exactly one of **\`Contraption\`**, **\`Distraction\`**, **\`Disadvantage\`**, **\`Finishing Move\`**
+- **\`aptness\`**: exactly one of **\`High\`**, **\`Good\`**, **\`Poor\`**
+- **\`narrowing\`**: concise free text for the specific use (no enum codes yet)
+
+If you cannot justify trope fits for a valid line, set **\`tropeAffinitiesFailed\`**: true and **\`tropeAffinities\`**: [].
 
 ### Flat modification tags
 
@@ -139,17 +141,32 @@ Do not emit legacy tuple fields like **\`target\`** or **\`mode\`**.
 
 **terminal**, **trigger**, **delivery**, **autonomous_agent** — include **\`aptness\`** only.
 
+## Legacy compatibility placeholders (temporary)
+
+For every **\`valid\`: true** line during this transition slice, emit:
+- **\`affinities\`**: []
+- **\`affinitiesFailed\`**: true
+
+Do not emit legacy role tuples in **\`affinities\`** for valid lines in this slice.
+
 ## Failure and confidence
 
 - Optional root **\`confidence\`**: **[0, 1]** for this pass.
-- If **\`valid\`: true** but you cannot justify affinities, set **\`affinitiesFailed\`**: true and **\`affinities\`**: []. You must still emit **\`stableKey\`** on that line.
+- If **\`valid\`: true** but you cannot justify canonical trope fits, set **\`tropeAffinitiesFailed\`**: true and **\`tropeAffinities\`**: []. You must still emit **\`stableKey\`** on that line.
 
 ## Enhance JSON shape (inside the **json** fence only)
 
 \`\`\`json
 {
   "lines": [
-    { "valid": true, "name": "<string>", "stableKey": "<string>", "affinities": [ { "role": "terminal", "aptness": 0.5 } ] },
+    {
+      "valid": true,
+      "name": "<string>",
+      "stableKey": "<string>",
+      "tropeAffinities": [ { "trope": "Contraption", "aptness": "Good", "narrowing": "launch platform" } ],
+      "affinities": [],
+      "affinitiesFailed": true
+    },
     { "valid": false, "name": "<string>", "errorType": "Not a thing", "affinities": [] }
   ],
   "confidence": <optional number 0..1>

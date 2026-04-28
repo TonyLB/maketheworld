@@ -70,6 +70,18 @@ describe('parseCommand type guards', () => {
                 ],
                 confidence: 0.85,
             })).toBe(true)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{
+                    valid: true,
+                    name: 'rocket skates',
+                    stableKey: 'rocket-skates',
+                    tropeAffinities: [{ trope: 'Contraption', aptness: 'High', narrowing: 'pursuit gear' }],
+                    affinities: [],
+                    affinitiesFailed: true,
+                }],
+                confidence: 0.85,
+            })).toBe(true)
         })
 
         it('rejects valid true line that also carries errorType (mixed shape)', () => {
@@ -153,6 +165,18 @@ describe('parseCommand type guards', () => {
                 order: 'legacy only',
                 confidence: 0.9,
             } as any)).toBe(false)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{
+                    valid: true,
+                    name: 'rope',
+                    stableKey: 'rope',
+                    tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'tie-off' }],
+                    tropeAffinitiesFailed: true,
+                    affinities: [],
+                }],
+                confidence: 0.9,
+            })).toBe(false)
         })
 
     })
@@ -649,13 +673,19 @@ describe('parseCommand LLM path', () => {
                     valid: true,
                     name: 'dynamite sticks',
                     stableKey: 'dynamite-sticks',
-                    affinities: [{ role: 'terminal', aptness: 0.5 }],
+                    tropeAffinities: [],
+                    tropeAffinitiesFailed: true,
+                    affinities: [],
+                    affinitiesFailed: true,
                 },
                 {
                     valid: true,
                     name: 'spring',
                     stableKey: 'spring',
-                    affinities: [{ role: 'trigger', aptness: 0.4 }],
+                    tropeAffinities: [],
+                    tropeAffinitiesFailed: true,
+                    affinities: [],
+                    affinitiesFailed: true,
                 },
             ],
             confidence: 0.82 * 0.9,
@@ -746,7 +776,10 @@ describe('parseCommand LLM path', () => {
                 valid: true,
                 name: 'rope',
                 stableKey: 'rope',
+                tropeAffinities: [],
+                tropeAffinitiesFailed: true,
                 affinities: [],
+                affinitiesFailed: true,
             }],
             confidence: 0.82,
         })
@@ -849,12 +882,17 @@ describe('parseCommand LLM path', () => {
                     valid: true,
                     name: 'dynamite sticks',
                     stableKey: 'dynamite-sticks',
-                    affinities: [{ role: 'terminal', aptness: 0.5 }],
+                    tropeAffinities: [],
+                    tropeAffinitiesFailed: true,
+                    affinities: [],
+                    affinitiesFailed: true,
                 },
                 {
                     valid: true,
                     name: 'line2',
                     stableKey: 'line2',
+                    tropeAffinities: [],
+                    tropeAffinitiesFailed: true,
                     affinities: [],
                     affinitiesFailed: true,
                 },
@@ -884,6 +922,8 @@ describe('parseCommand LLM path', () => {
                 valid: true,
                 name: 'order anvil from acme',
                 stableKey: 'order-anvil-from-acme',
+                tropeAffinities: [],
+                tropeAffinitiesFailed: true,
                 affinities: [],
                 affinitiesFailed: true,
             }],
@@ -950,34 +990,28 @@ describe('parseCommand LLM path', () => {
                     valid: true,
                     name: 'Beehive',
                     stableKey: 'beehive',
-                    affinities: [
-                        {
-                            role: 'influence-road-runner',
-                            aptness: 0.7,
-                        },
-                        { role: 'terminal', aptness: 0.5 },
-                    ],
+                    tropeAffinities: [],
+                    tropeAffinitiesFailed: true,
+                    affinities: [],
+                    affinitiesFailed: true,
                 },
                 {
                     valid: true,
                     name: 'Entrenching Shovel',
                     stableKey: 'entrenching-shovel',
-                    affinities: [
-                        {
-                            role: 'connect-props',
-                            aptness: 0.88,
-                        },
-                        { role: 'trigger', aptness: 0.42 },
-                    ],
+                    tropeAffinities: [],
+                    tropeAffinitiesFailed: true,
+                    affinities: [],
+                    affinitiesFailed: true,
                 },
                 {
                     valid: true,
                     name: 'Climbing Rope',
                     stableKey: 'climbing-rope',
-                    affinities: [
-                        { role: 'delivery', aptness: 0.81 },
-                        { role: 'trigger', aptness: 0.55 },
-                    ],
+                    tropeAffinities: [],
+                    tropeAffinitiesFailed: true,
+                    affinities: [],
+                    affinitiesFailed: true,
                 },
             ],
             confidence: 0.85 * 0.9,

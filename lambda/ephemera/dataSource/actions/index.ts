@@ -58,6 +58,8 @@ const buildPublishedAcmeOrdersWithStableKeys = (
     return validLines.map((line, index) => ({
         shortName: line.name.trim(),
         stableKey: finalizedKeys[index],
+        ...(line.tropeAffinities !== undefined ? { tropeAffinities: line.tropeAffinities } : {}),
+        ...(line.tropeAffinitiesFailed === true ? { tropeAffinitiesFailed: true as const } : {}),
         affinities: line.affinities,
         ...(line.affinitiesFailed === true ? { affinitiesFailed: true as const } : {}),
     }))
