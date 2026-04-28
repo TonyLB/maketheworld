@@ -93,11 +93,11 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Return parse-time error payload for malformed fixture selector (parity with generation harness behavior).
   - [X] Add/adjust unit tests for valid and invalid slash-tail forms.
 
-- [ ] Phase 2 - harness runner per-fixture execution
-  - [ ] Extend `runAcmeOrderAffinitiesHarness` deps/invocation to accept optional single-fixture filter.
-  - [ ] Refactor fixture selection logic so full-run and single-fixture paths share the same execution/rendering flow.
-  - [ ] Preserve current `enrichOnly` and parse-with-reasoning branches under both selection modes.
-  - [ ] Add runner tests for all-fixtures default, valid single-fixture run, and out-of-range fixture index handling.
+- [X] Phase 2 - harness runner per-fixture execution
+  - [X] Extend `runAcmeOrderAffinitiesHarness` deps/invocation to accept optional single-fixture filter.
+  - [X] Refactor fixture selection logic so full-run and single-fixture paths share the same execution/rendering flow.
+  - [X] Preserve current `enrichOnly` and parse-with-reasoning branches under both selection modes.
+  - [X] Add runner tests for all-fixtures default, valid single-fixture run, and out-of-range fixture index handling.
 
 - [ ] Phase 3 - action wiring and regression coverage
   - [ ] Wire invocation through actions ingress (`index.ts` and action handler dispatch) so slash parsing reaches harness execution.
@@ -126,6 +126,10 @@ npm run test -- --watchAll=false dataSource/actions/index.test.ts
 | Task plan drafted with scope and file map | Done |
 | Invocation contract + slash grammar + fixture source locked | Done |
 | Deterministic parser + tests landed | Done |
-| Harness per-fixture execution landed | Not started |
+| Harness per-fixture execution landed | Done |
 | End-to-end action wiring + regressions green | Not started |
 | Checklist updated and plan retired | Not started |
+
+Phase 2 implementation note:
+
+- `runAcmeOrderAffinitiesHarness` now accepts optional `harnessInvocation` and validates `fixtureIndex1Based` in-runner with deterministic operator-facing error text: `Coyote affinities test harness: fixture index must be an integer from 1 to <max> (received <value>).`

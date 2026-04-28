@@ -4,7 +4,11 @@ import type { MessageBus } from '../../../messageBus/baseClasses'
 import { invokeBedrockAcmeOrderEnrich } from '../../../generateExample/invokeBedrockAcmeOrderEnrich'
 import { COYOTE_RENDER_LINE_BREAK } from '../../coyoteGame/utilities/coyoteRenderTree'
 import { ACME_ORDER_AFFINITIES_HARNESS_PHRASES } from '../acmeOrderAffinitiesHarnessPhrases'
-import type { ParseCommandDeps, ParseCommandResult } from '../baseClasses'
+import type {
+    CoyoteAffinitiesHarnessInvocation,
+    ParseCommandDeps,
+    ParseCommandResult,
+} from '../baseClasses'
 import { enrichAcmeOrder } from '../enrich/acmeOrder'
 import { parseCommand, parseCommandWithEnrichReasoning } from '../parseCommand'
 
@@ -24,6 +28,8 @@ export type RunAcmeOrderAffinitiesHarnessDeps = {
     parseCommandWithEnrichReasoningImpl?: typeof parseCommandWithEnrichReasoning
     /** Override Bedrock enrich for tests when **`enrichOnly`** is true. */
     invokeBedrockAcmeOrderEnrichImpl?: typeof invokeBedrockAcmeOrderEnrich
+    /** Optional slash-invocation payload (`/test affinities <n>`) for single-fixture runs. */
+    harnessInvocation?: CoyoteAffinitiesHarnessInvocation
     /** Forwarded to **`enrichAcmeOrder`** when **`enrichOnly`** (tests avoid real Coyote cache object counts). */
     countCoyotePlacedObjectsAcrossRoomsDeps?: ParseCommandDeps['countCoyotePlacedObjectsAcrossRoomsDeps']
     now?: () => number
@@ -33,13 +39,41 @@ function formatParseResultJson(result: ParseCommandResult): string {
     return JSON.stringify(result, null, 2)
 }
 
+function selectHarnessPhrases(
+    allPhrases: readonly string[],
+    invocation: CoyoteAffinitiesHarnessInvocation | undefined
+): readonly string[] | { error: string } {
+    const fixtureIndex1Based = invocation?.fixtureIndex1Based
+    if (fixtureIndex1Based === undefined) {
+        return allPhrases
+    }
+    const max = allPhrases.length
+    if (!Number.isInteger(fixtureIndex1Based) || fixtureIndex1Based < 1 || fixtureIndex1Based > max) {
+        return {
+            error: `Coyote affinities test harness: fixture index must be an integer from 1 to ${max} (received ${fixtureIndex1Based}).`,
+        }
+    }
+    return [allPhrases[fixtureIndex1Based - 1]!]
+}
+
 /**
  * Runs **`parseCommand`** once per canonical phrase as **`order &lt;phrase&gt;`**, then publishes **one** OOC message with all results for manual review.
  *
  * With **`enrichOnly`**: runs **`buildParseAcmeOrderEnrichPrompt`** + **`invokeBedrockAcmeOrderEnrich`** + **`finalizeAcmeOrderFromEnrich`** per phrase (no intent classification).
  */
 export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinitiesHarnessDeps): Promise<void> {
-    const phrases = deps.phrases ?? ACME_ORDER_AFFINITIES_HARNESS_PHRASES
+    const allPhrases = deps.phrases ?? ACME_ORDER_AFFINITIES_HARNESS_PHRASES
+    const selectedOrErr = selectHarnessPhrases(allPhrases, deps.harnessInvocation)
+    if ('error' in selectedOrErr) {
+        deps.messageBus.send({
+            type: 'PublishMessage',
+            targets: [deps.characterId],
+            displayProtocol: 'WorldOOCMessage',
+            message: [selectedOrErr.error],
+        })
+        return
+    }
+    const phrases = selectedOrErr
     const invokeEnrich = deps.invokeBedrockAcmeOrderEnrichImpl ?? invokeBedrockAcmeOrderEnrich
     const now = deps.now ?? (() => Date.now())
     const enrichOnly = deps.enrichOnly ?? false
