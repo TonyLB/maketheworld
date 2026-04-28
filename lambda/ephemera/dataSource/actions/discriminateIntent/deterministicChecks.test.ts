@@ -18,6 +18,16 @@ describe('deterministicIntentChecks', () => {
                 harnessRunKind: 'runUntil',
             },
         })
+        expect(deterministicIntentChecks({ command: ' /test generation runOnly planSelect 1 ' })).toEqual({
+            type: 'CoyoteEngineTest',
+            confidence: 1,
+            harnessInvocation: {
+                mode: 'partial',
+                testOnly: 'planSelect',
+                harnessRunKind: 'runOnly',
+                fixtureIndex1Based: 1,
+            },
+        })
     })
 
     it('returns Parse error for invalid /test generation tails', () => {

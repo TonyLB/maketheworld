@@ -169,9 +169,17 @@ function formatStageOneBodyForHarness(result: InvokeBedrockHypothesisResult): st
     return `stageOneBody:\n${body}`
 }
 
-function formatSelectionBodyForHarness(selectionBody: string | undefined): string {
-    if (selectionBody !== undefined && selectionBody.trim().length > 0) {
-        return `selectionBody:\n${selectionBody}`
+function formatSelectionBodyForHarness(args: {
+    selectionBody: string | undefined
+    planSelectionResult: InvokeBedrockHypothesisResult | null
+}): string {
+    const primary = args.selectionBody
+    if (primary !== undefined && primary.trim().length > 0) {
+        return `selectionBody:\n${primary}`
+    }
+    const fallback = args.planSelectionResult
+    if (fallback?.success && fallback.body.trim().length > 0) {
+        return `selectionBody:\n${fallback.body}`
     }
     return 'selectionBody: (none)'
 }
@@ -437,7 +445,10 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                     : formatStageOneBodyForHarness(flat.stageOneResult)
                 const selectionBodyBlock = skipPs
                     ? 'selectionBody: (not run)'
-                    : formatSelectionBodyForHarness(flat.selectionBody)
+                    : formatSelectionBodyForHarness({
+                          selectionBody: flat.selectionBody,
+                          planSelectionResult: flat.planSelectionResult,
+                      })
                 const phasePlanJsonBlock = skipPph
                     ? 'phasePlanJson: (not run)'
                     : formatPhasePlanJsonForHarness({
@@ -483,7 +494,10 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                     flat.phasePlanHopResult ?? emptyUsageFailure
                 )
                 const stageOneBodyBlock = formatStageOneBodyForHarness(flat.stageOneResult)
-                const selectionBodyBlock = formatSelectionBodyForHarness(flat.selectionBody)
+                const selectionBodyBlock = formatSelectionBodyForHarness({
+                    selectionBody: flat.selectionBody,
+                    planSelectionResult: flat.planSelectionResult,
+                })
                 const phasePlanJsonBlock = formatPhasePlanJsonForHarness({
                     phasePlanJson: flat.phasePlanJson,
                     phasePlanValidationReason: flat.phasePlanValidationReason,
@@ -526,7 +540,10 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                 stageOneBodyBlock: 'stageOneBody: (none)',
                 usagePlanSelection: 'usagePlanSelection: (none)',
                 usagePhasePlanHop: 'usagePhasePlanHop: (none)',
-                selectionBodyBlock: formatSelectionBodyForHarness(undefined),
+                selectionBodyBlock: formatSelectionBodyForHarness({
+                    selectionBody: undefined,
+                    planSelectionResult: null,
+                }),
                 phasePlanJsonBlock: formatPhasePlanJsonForHarness({
                     phasePlanJson: undefined,
                     phasePlanValidationReason: undefined,

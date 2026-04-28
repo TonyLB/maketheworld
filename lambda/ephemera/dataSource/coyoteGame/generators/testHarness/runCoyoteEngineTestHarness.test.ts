@@ -315,6 +315,44 @@ describe('runCoyoteEngineTestHarness', () => {
         expect(rendered).toContain('phasePlanJson: (not run)')
     })
 
+    it('partial runUntil planSelect falls back to planSelectionResult body for selectionBody', async () => {
+        const send = jest.fn()
+        const flush = jest.fn().mockResolvedValue(undefined)
+        const pipeline = jest.fn().mockResolvedValue({
+            kind: 'harnessPartial',
+            testOnly: 'planSelect',
+            harnessRunKind: 'runUntil',
+            record: { intent: 'Hypothesis: partial' },
+            stageOneResult: {
+                success: true,
+                body: '{"candidates":[]}',
+                usage: { inputTokens: 3, outputTokens: 4, totalTokens: 7 },
+            },
+            planSelectionResult: {
+                success: true,
+                body: '{"paragraphSummary":"winner","rubricIssues":[]}',
+                usage: { inputTokens: 9, outputTokens: 10, totalTokens: 19 },
+            },
+        })
+
+        await runCoyoteEngineTestHarness({
+            characterId: 'CHARACTER#runner',
+            messageBus: { send, flush },
+            fixtures: [simpleFixtures[0]],
+            generateHypothesisPipelineImpl: pipeline,
+            harnessInvocation: {
+                mode: 'partial',
+                testOnly: 'planSelect',
+                harnessRunKind: 'runUntil',
+            },
+        })
+
+        const rendered = renderTreeToString((send.mock.calls[0][0] as { message: RenderTree }).message)
+        expect(rendered).toContain(
+            'selectionBody:\n{"paragraphSummary":"winner","rubricIssues":[]}'
+        )
+    })
+
     it('runOnly planSelect without inject publishes OOC error and does not call the pipeline', async () => {
         const send = jest.fn()
         const flush = jest.fn().mockResolvedValue(undefined)

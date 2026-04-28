@@ -29,6 +29,12 @@ const PLAN_SELECTION_READING_RULES = [
 const PLAN_SELECTION_INTRO = [
     'You are comparing competing high-level Coyote-vs-Road-Runner maneuver sketches before the detailed hypothesis is written.',
     '',
+    '## Perspective guardrail (hard constraint)',
+    '- Evaluate and describe every candidate strictly from the Coyote\'s planning perspective.',
+    '- Treat the Coyote as the sole planner and actor selecting maneuvers; the Road Runner is the target to be affected by those maneuvers.',
+    '- If any draft sentence frames a candidate as helping the Road Runner, escaping the Coyote, or improving Road Runner outcomes, rewrite it before output so the same evidence is expressed as Coyote intent, setup, or failure-risk analysis.',
+    '- Do not keep winner rationale that prefers a Road Runner-advantaging plan unless it is explicitly framed as a Coyote-side setup choice that still serves the selected Coyote maneuver.',
+    '',
     'Use the **combined clustering** block below as ground truth for staged objects, clusters, outliers, and intended roles.',
     '',
     '## Task',

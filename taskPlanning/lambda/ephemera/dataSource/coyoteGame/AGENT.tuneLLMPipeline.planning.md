@@ -1,6 +1,6 @@
 # Coyote Game: tune trope-centered LLM pipeline (planning)
 
-**Status:** In progress. Next step is to lock tuning corpus and subjective hop exit criteria (tracked in the external rubric spreadsheet), then start a single ordered pass from clustering through outcome.
+**Status:** In progress. Next step is Phase T3 (`plan selection`) tuning using the newly frozen clustering outputs as incoming fixture expectations.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -87,11 +87,15 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
     - Combined clustering and Stage Two prompt contracts now consume/render `tropeFunction` annotations and no longer reference plan-role `intendedRole` semantics.
     - Harness and hypothesis seam fixtures were re-frozen to trope-first member annotations (`coyoteEngineTestFixtures`, pipeline seam mocks), with parser/combine/prompt regressions updated to lock the strict deprecation behavior.
 
-- [ ] Phase T2 - tune `clustering` hop
-  - [ ] Run corpus eval and identify dominant failure clusters.
-  - [ ] Apply bounded revision pass (prompt/parser/validation copy as needed).
-  - [ ] Re-run eval and record deltas.
-  - [ ] Freeze `clustering` fixture outputs and update `plan selection` incoming fixture expectations.
+- [X] Phase T2 - tune `clustering` hop
+  - [X] Run corpus eval and identify dominant failure clusters.
+  - [X] Apply bounded revision pass (prompt/parser/validation copy as needed).
+  - [X] Re-run eval and record deltas.
+  - [X] Freeze `clustering` fixture outputs and update `plan selection` incoming fixture expectations.
+  - Locked implementation notes:
+    - Clustering tuning pass advanced quality from 27/50 to 30/50 on the ten-fixture corpus while maintaining a 14-second total run time.
+    - Harness fixtures are now trope-first at the object level via canonical `tropeAffinities` entries, with `tropeAffinitiesFailed` placeholders removed for tuning runs.
+    - `planSelectInject` is now frozen for fixtures `01-10` using hand-authored Stage One golden seam bodies rendered through parse/combine/markdown production paths, establishing canonical incoming expectations for Phase T3.
 
 - [ ] Phase T3 - tune `plan selection` hop
   - [ ] Evaluate conflict-catalog/rubric/winner quality and handoff reliability.
@@ -148,7 +152,7 @@ npx jest dataSource/coyoteGame/
 | Tuning plan drafted | Done |
 | Protocol + corpus governance locked | Not started |
 | Legacy `intendedRole` assumptions removed | Not started |
-| Clustering tuned and re-frozen | Not started |
+| Clustering tuned and re-frozen | Done |
 | Plan selection tuned and re-frozen | Not started |
 | Phase-plan tuned (spatial second pass included) | Not started |
 | Outcome tuned and re-frozen | Not started |

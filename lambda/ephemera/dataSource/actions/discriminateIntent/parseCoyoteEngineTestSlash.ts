@@ -5,6 +5,11 @@ import { COYOTE_ENGINE_TEST_SLASH_PREFIX_LENGTH } from './coyoteEngineTestSlashC
 const PREFIX_LEN = COYOTE_ENGINE_TEST_SLASH_PREFIX_LENGTH
 
 const PHASE_ALIASES: CoyoteHypothesisTestPhase[] = ['clustering', 'planSelect', 'phasePlan']
+const RUN_KIND_ALIASES = {
+    runUntil: 'runUntil',
+    runOnly: 'runOnly',
+} as const
+type ParsedRunKind = (typeof RUN_KIND_ALIASES)[keyof typeof RUN_KIND_ALIASES]
 
 function phaseFromToken(token: string): CoyoteHypothesisTestPhase | undefined {
     const lower = token.toLowerCase()
@@ -24,8 +29,19 @@ function parseFixtureIndexToken(token: string): number | undefined {
     return Number.parseInt(token, 10)
 }
 
+function runKindFromToken(token: string): ParsedRunKind | undefined {
+    const lower = token.toLowerCase()
+    if (lower === 'rununtil') {
+        return RUN_KIND_ALIASES.runUntil
+    }
+    if (lower === 'runonly') {
+        return RUN_KIND_ALIASES.runOnly
+    }
+    return undefined
+}
+
 function usageSuffix(fixtureCount: number): string {
-    return `Valid phase aliases (case-insensitive): ${PHASE_ALIASES.join(', ')}. Fixture index must be an integer from 1 to ${fixtureCount}.`
+    return `Valid run kinds (case-insensitive): ${RUN_KIND_ALIASES.runUntil}, ${RUN_KIND_ALIASES.runOnly}. Valid phase aliases (case-insensitive): ${PHASE_ALIASES.join(', ')}. Fixture index must be an integer from 1 to ${fixtureCount}.`
 }
 
 function invalidTailMessage(fixtureCount: number, detail: string): string {
@@ -50,13 +66,67 @@ export function parseCoyoteEngineTestSlashTail(
     }
 
     const tokens = tail.split(/\s+/).filter(Boolean)
-    if (tokens.length > 2) {
+    if (tokens.length > 3) {
         return {
             ok: false,
             errorMessage: invalidTailMessage(
                 fixtureCount,
-                `Too many arguments (expected at most a phase alias and optional fixture index).`
+                `Too many arguments (expected at most run kind, phase alias, and optional fixture index).`
             ),
+        }
+    }
+
+    if (tokens.length >= 2) {
+        const runKind = runKindFromToken(tokens[0]!)
+        if (runKind !== undefined) {
+            const phase = phaseFromToken(tokens[1]!)
+            if (phase === undefined) {
+                return {
+                    ok: false,
+                    errorMessage: invalidTailMessage(
+                        fixtureCount,
+                        `Unknown phase alias "${tokens[1]}".`
+                    ),
+                }
+            }
+            if (tokens.length === 2) {
+                return {
+                    ok: true,
+                    harnessInvocation: {
+                        mode: 'partial',
+                        testOnly: phase,
+                        harnessRunKind: runKind,
+                    },
+                }
+            }
+            const idx = parseFixtureIndexToken(tokens[2]!)
+            if (idx === undefined) {
+                return {
+                    ok: false,
+                    errorMessage: invalidTailMessage(
+                        fixtureCount,
+                        `Third token must be a fixture index from 1 to ${fixtureCount} (received "${tokens[2]}").`
+                    ),
+                }
+            }
+            if (!Number.isInteger(idx) || idx < 1 || idx > fixtureCount) {
+                return {
+                    ok: false,
+                    errorMessage: invalidTailMessage(
+                        fixtureCount,
+                        `Fixture index must be an integer from 1 to ${fixtureCount} (received ${tokens[2]}).`
+                    ),
+                }
+            }
+            return {
+                ok: true,
+                harnessInvocation: {
+                    mode: 'partial',
+                    testOnly: phase,
+                    harnessRunKind: runKind,
+                    fixtureIndex1Based: idx,
+                },
+            }
         }
     }
 
@@ -103,7 +173,7 @@ export function parseCoyoteEngineTestSlashTail(
             ok: false,
             errorMessage: invalidTailMessage(
                 fixtureCount,
-                `Invalid token order: expected "<phaseAlias> <fixtureIndex>", not a fixture index first.`
+                `Invalid token order: expected "<phaseAlias> <fixtureIndex>" or "<runKind> <phaseAlias> [fixtureIndex]", not a fixture index first.`
             ),
         }
     }

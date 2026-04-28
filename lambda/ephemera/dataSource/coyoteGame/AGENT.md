@@ -83,10 +83,12 @@ Player-facing slash command (this harness only; not `/test affinities`): **`/tes
 | `/test generation <fixtureIndex>` | Full pipeline for one fixture only (**1-based** index). |
 | `/test generation <phaseAlias>` | **Partial** run: **`runUntil`** through that phase, all fixtures. |
 | `/test generation <phaseAlias> <fixtureIndex>` | Partial **`runUntil`**, one fixture. |
+| `/test generation <runKind> <phaseAlias>` | Partial run using explicit run kind (`runUntil` or `runOnly`) for all fixtures. |
+| `/test generation <runKind> <phaseAlias> <fixtureIndex>` | Partial run using explicit run kind for one fixture. |
 
 Phase aliases: **`clustering`**, **`planSelect`**, **`phasePlan`** (map to LLM hops on the hypothesis pipeline; see [`generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts`](generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts)). Invalid tails (unknown token, wrong order, index out of range) return a **`WorldOOCMessage`** with usage text.
 
-**Slash vs harness API:** [`parseCoyoteEngineTestSlashTail`](../actions/discriminateIntent/parseCoyoteEngineTestSlash.ts) builds partial invocations with **`harnessRunKind: 'runUntil'`** only. It does **not** expose **`runOnly`** to players. Isolated-step **`runOnly`** runs use the programmatic harness API below (tests and direct calls to the runner).
+**Slash vs harness API:** [`parseCoyoteEngineTestSlashTail`](../actions/discriminateIntent/parseCoyoteEngineTestSlash.ts) supports both shorthand partial invocations (`<phaseAlias> [fixtureIndex]` => `runUntil`) and explicit run-kind partial invocations (`<runKind> <phaseAlias> [fixtureIndex]` with `runKind` in `runUntil` | `runOnly`).
 
 **Invocation and pipeline options**
 

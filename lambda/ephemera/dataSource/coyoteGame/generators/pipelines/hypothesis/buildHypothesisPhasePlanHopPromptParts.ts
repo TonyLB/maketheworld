@@ -22,6 +22,12 @@ export type BuildHypothesisPhasePlanHopPromptInput = {
 const PHASE_PLAN_HOP_INTRO = [
     'You are completing the structured phase plan and player-facing hypothesis for a Coyote-vs-Road-Runner cartoon setup.',
     '',
+    '## Perspective guardrail (hard constraint)',
+    '- Plan and describe trope beats strictly from the Coyote\'s planning perspective for the committed maneuver.',
+    '- Treat the Coyote as the sole planner/actor and the Road Runner as the target; do not frame beats as Road Runner goal fulfillment.',
+    '- If any sentence drifts into Road Runner-benefiting intent (escape optimization, trap avoidance, Coyote failure as the goal), rewrite it before output as Coyote intent, Coyote setup logic, or Coyote-side deconfliction risk handling.',
+    '- Keep this guardrail inside this prompt run: enforce it while producing JSON phases, scene analysis, and final Hypothesis line without adding external deterministic phase-to-phase intent checks.',
+    '',
     '## Grounding from plan selection (authoritative)',
     'The **chosen plan summary** and **rubric issues** below were produced by an',
     'earlier selection step. Treat them as the committed maneuver --- do not',
