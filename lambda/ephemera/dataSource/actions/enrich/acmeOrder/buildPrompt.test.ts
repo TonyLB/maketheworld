@@ -3,15 +3,6 @@ import { buildParseAcmeOrderEnrichPrompt } from './buildPrompt'
 describe('buildParseAcmeOrderEnrichPrompt', () => {
     it('requires chain-of-reasoning markdown then fenced json, and retains compatibility contract', () => {
         const { invariantPrefix, dynamicSuffix } = buildParseAcmeOrderEnrichPrompt('order rope')
-        const flatTags = [
-            'influence-road-runner',
-            'alter-road-runner',
-            'coyote-equipment',
-            'coyote-enhancement',
-            'setting-addition',
-            'connect-props',
-            'enhance-prop',
-        ]
         expect(invariantPrefix).toContain('Classify order type')
         expect(invariantPrefix).toContain('two steps with different rules')
         expect(invariantPrefix).toContain('Enhance (JSON final)')
@@ -20,13 +11,11 @@ describe('buildParseAcmeOrderEnrichPrompt', () => {
         expect(invariantPrefix.indexOf('Correctable user error')).toBeLessThan(invariantPrefix.indexOf('Cartoon physics modifier'))
         expect(invariantPrefix.indexOf('Cartoon physics modifier')).toBeLessThan(invariantPrefix.indexOf('Primary category'))
         expect(invariantPrefix).toContain('language tag **json**')
-        for (const tag of flatTags) {
-            expect(invariantPrefix).toContain(tag)
-        }
-        expect(invariantPrefix).toContain('autonomous_agent')
-        expect(invariantPrefix).toContain('Do not emit legacy tuple fields like **`target`** or **`mode`**')
-        expect(invariantPrefix).toContain('### Generative roles')
-        expect(invariantPrefix).toContain('### Structural roles')
+        expect(invariantPrefix).toContain('**`trope`** is an allowlist field')
+        expect(invariantPrefix).not.toContain('### Flat modification tags')
+        expect(invariantPrefix).not.toContain('### Generative roles')
+        expect(invariantPrefix).not.toContain('### Structural roles')
+        expect(invariantPrefix).toContain('emit only **`Contraption`**, **`Distraction`**, **`Disadvantage`**, or **`Finishing Move`**')
         expect(invariantPrefix).toContain('tropeAffinities')
         expect(invariantPrefix).toContain('tropeAffinitiesFailed')
         expect(invariantPrefix).toContain('Step 1 trope anchor — Finishing Move')
@@ -35,6 +24,8 @@ describe('buildParseAcmeOrderEnrichPrompt', () => {
         expect(invariantPrefix).toContain('Dual-use handling')
         expect(invariantPrefix).toContain('knockout gas canister = payload')
         expect(invariantPrefix).toContain('grand piano dropped on Road Runner = payload')
+        expect(invariantPrefix).toContain('For Step 1 lines classified as **Phenomenon**')
+        expect(invariantPrefix).toContain('"pocket avalanche trigger" produces an avalanche')
         expect(invariantPrefix).toContain('Legacy compatibility placeholders')
         expect(invariantPrefix).toContain('affinitiesFailed')
         expect(invariantPrefix).not.toContain('skill check')

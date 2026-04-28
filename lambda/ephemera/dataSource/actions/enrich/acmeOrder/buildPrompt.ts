@@ -1,7 +1,7 @@
 /**
  * Acme order enrich: parse a **single** Acme-order verb-phrase (one action: order from Acme). Multi-command inputs are
  * filtered upstream by `discriminateIntent` as `MultipleCommands` and do not run this enrich step. Validates
- * catalog rules per line item, normalized titles, affinities, and **`stableKey`** proposals. Coyote-wide
+ * catalog rules per line item, normalized titles, trope fits, and **`stableKey`** proposals. Coyote-wide
  * **`occupiedStableKeys`** embedding --- see **`LLM-first`** in [`../AGENT.md`](../AGENT.md).
  */
 
@@ -35,7 +35,7 @@ to deliver.
 
 You will complete **two steps with different rules** — do not treat them as the same content in
 two formats. Step 1 is **classification and concise rationale only** (no catalog JSON).
-Step 2 is **the machine-readable Acme record** (affinities, normalized naming, and tone).
+Step 2 is **the machine-readable Acme record** (trope fits, normalized naming, and tone).
 
 Produce **two parts** in order:
 
@@ -150,10 +150,15 @@ the Step 1 **intended gloss** after any **Correctable user error**, not from a t
 string. If the fulfillment is a packaged variant (pressurized cylinder for a gas cloud,
 mesh crate for insects), **do not** boost fit quality for hazards or uses implied only by the
 vessel unless that **effective** wording supports it.
+For Step 1 lines classified as **Phenomenon**, derive trope fits from what the phenomenon does
+(its Road Runner/environment effect), not from the starter kit or generator form factor.
+Treat the generator as vessel and the phenomenon as the effective order.
+Example: "pocket avalanche trigger" produces an avalanche; score tropes for the avalanche
+(cascading area payload, usually **Finishing Move** High/Good), not for the trigger device itself.
 
 ## Tone and catalog titles (\`valid\`: true)
 
-Write **\`name\`** and implied roles in **cartoon physics / contraption** language (this is where genre voice lives).
+Write **\`name\`** and implied use-cases in **cartoon physics / contraption** language (this is where genre voice lives).
 
 - When Step 1 used **Cartoon physics: yes**, title the stock with **in-setting plausibility** (what Acme puts on the crate), not a skeptical real-world disclaimer.
 - Prefer neutral physical words: gadget, hazard, launcher, coil, fuse, lure, obstacle.
@@ -166,10 +171,12 @@ Example **valid** line entry (inside **\`lines\`**):
   "valid": true,
   "name": "Beehive",
   "stableKey": "beehive",
-  "affinities": [
-    { "role": "influence-road-runner", "aptness": 0.7 },
-    { "role": "terminal", "aptness": 0.5 }
-  ]
+  "tropeAffinities": [
+    { "trope": "Distraction", "aptness": "Good", "narrowing": "lure trail payload" },
+    { "trope": "Finishing Move", "aptness": "Poor", "narrowing": "swarm release payoff" }
+  ],
+  "affinities": [],
+  "affinitiesFailed": true
 }
 
 Example **invalid** line entry:
@@ -187,6 +194,7 @@ Emit **1-3** trope-fit entries per deliverable line. Each entry must be:
 - **\`trope\`**: exactly one of **\`Contraption\`**, **\`Distraction\`**, **\`Disadvantage\`**, **\`Finishing Move\`**
 - **\`aptness\`**: exactly one of **\`High\`**, **\`Good\`**, **\`Poor\`**
 - **\`narrowing\`**: concise free text for the specific use (no enum codes yet)
+- **\`trope\`** is an allowlist field: emit only **\`Contraption\`**, **\`Distraction\`**, **\`Disadvantage\`**, or **\`Finishing Move\`**.
 
 If you cannot justify trope fits for a valid line, set **\`tropeAffinitiesFailed\`**: true and **\`tropeAffinities\`**: [].
 
@@ -202,40 +210,13 @@ grand piano dropped on Road Runner = payload (Finishing Move point payload), pul
 grand piano used as seesaw counterweight = Contraption; if wording supports both uses, prefer
 Finishing Move first and keep Contraption as secondary.
 
-### Flat modification tags
-
-Use these exact role tags with **\`aptness\`** only:
-
-- **\`influence-road-runner\`**: impacts the Road Runner behavior or path.
-- **\`alter-road-runner\`**: physically alters, restrains, or directly affects the Road Runner.
-- **\`coyote-equipment\`**: equipment the Coyote uses or wears.
-- **\`coyote-enhancement\`**: boosts Coyote capability or state.
-- **\`setting-addition\`**: adds terrain or environmental setup.
-- **\`connect-props\`**: links staged props into one mechanism.
-- **\`enhance-prop\`**: modifies or improves an existing staged prop.
-
-Do not emit legacy tuple fields like **\`target\`** or **\`mode\`**.
-
-### Generative roles
-
-**prep** and **creation** use **\`aptness\`** only.
-
-- **prep**: before-beat setup, assembly, rigging, digging, or scene preparation.
-- **creation**: in-beat generative or ephemeral effects produced during execution.
-- Example (**prep**): dig a pit, rig a rope, or assemble launch hardware before execution.
-- Example (**creation**): a Tesla coil creating lightning arcs during the beat.
-
-### Structural roles
-
-**terminal**, **trigger**, **delivery**, **autonomous_agent** — include **\`aptness\`** only.
-
 ## Legacy compatibility placeholders (temporary)
 
 For every **\`valid\`: true** line during this transition slice, emit:
 - **\`affinities\`**: []
 - **\`affinitiesFailed\`**: true
 
-Do not emit legacy role tuples in **\`affinities\`** for valid lines in this slice.
+Do not emit legacy tuple-shaped entries in **\`affinities\`** for valid lines in this slice.
 
 ## Failure and confidence
 
