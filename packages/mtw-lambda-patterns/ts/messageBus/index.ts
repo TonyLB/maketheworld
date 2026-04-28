@@ -32,6 +32,18 @@ type ConstrainedInternalMessageSubscription<PayloadType, P extends PayloadType> 
     callback: (props: { payloads: P[]; messageBus: InternalMessageBus<PayloadType>; activeFlushLane: string | undefined }) => Promise<void>;
 }
 
+function assertSubscriptionCallback<PayloadType>(
+    subscription: UnconstrainedInternalMessageSubscription<PayloadType> | ConstrainedInternalMessageSubscription<PayloadType, any>,
+    stage: 'subscribe' | 'flush'
+): void {
+    if (typeof subscription.callback !== 'function') {
+        const callbackType = typeof subscription.callback
+        throw new TypeError(
+            `InternalMessageBus ${stage} error: subscription "${subscription.tag}" at priority ${subscription.priority} has non-function callback (${callbackType}).`
+        )
+    }
+}
+
 export class InternalMessageBus<PayloadType> {
     _stream: InternalMessageItem<PayloadType>[] = []
     _subscriptions: (UnconstrainedInternalMessageSubscription<PayloadType> | ConstrainedInternalMessageSubscription<PayloadType, any>)[] = []
@@ -54,6 +66,7 @@ export class InternalMessageBus<PayloadType> {
     }
 
     subscribe<P extends PayloadType>(props: UnconstrainedInternalMessageSubscription<PayloadType> | ConstrainedInternalMessageSubscription<PayloadType, P>): void {
+        assertSubscriptionCallback(props, 'subscribe')
         this._subscriptions.push(props)
     }
 
@@ -83,6 +96,11 @@ export class InternalMessageBus<PayloadType> {
         }
         const subscriptionsToProcess = this._subscriptions.filter(({ priority }) => (priority === priorityToProcess))
         const processSubscription = async ({ tag, filter: filterFunc, callback }): Promise<void> => {
+            if (typeof callback !== 'function') {
+                throw new TypeError(
+                    `InternalMessageBus flush error: subscription "${tag}" at priority ${priorityToProcess} has non-function callback (${typeof callback}).`
+                )
+            }
             const filteredMessages = this._stream
                 .filter((item) => (matchesActiveLane(item, activeLane)))
                 .filter(({ processedBy }) => (!processedBy.includes(tag)))

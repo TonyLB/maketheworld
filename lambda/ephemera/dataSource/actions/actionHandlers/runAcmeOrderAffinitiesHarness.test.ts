@@ -1,5 +1,6 @@
 import messageBus from '../../../messageBus'
 import { isPublishMessage, isPublishWorldLineMessage } from '../../../messageBus/baseClasses'
+import type { AcmeOrderAffinitiesHarnessFixture } from '../baseClasses'
 import type { ParseCommandAcmeOrderResult } from '../baseClasses'
 import { runAcmeOrderAffinitiesHarness } from './runAcmeOrderAffinitiesHarness'
 
@@ -225,5 +226,53 @@ describe('runAcmeOrderAffinitiesHarness', () => {
         expect(joined).toContain('Analysis')
         expect(joined).not.toContain('"reasoningMarkdown"')
         expect(joined).toContain('CoR Widget')
+    })
+
+    it('uses fixture objects and renders fixture metadata line', async () => {
+        const parseCommandImpl = jest.fn().mockResolvedValue({
+            type: 'AcmeOrder',
+            confidence: 0.8,
+            orders: [{
+                valid: true,
+                name: 'paint',
+                stableKey: 'paint',
+                affinities: [{ role: 'terminal', aptness: 0.5 }],
+            }],
+        })
+        const fixtures: AcmeOrderAffinitiesHarnessFixture[] = [{
+            id: 'fx-1',
+            commandPhrase: 'paint',
+            bucket: 'borderline',
+            tags: ['art-supplies'],
+            expectedLines: [{
+                nameLike: 'paint',
+                valid: true,
+            }],
+            likelyErrors: ['Return no tropeAffinities'],
+        }]
+
+        await runAcmeOrderAffinitiesHarness({
+            characterId: 'CHARACTER#fixture',
+            messageBus,
+            fixtures,
+            parseCommandImpl,
+            now: () => 0,
+        })
+
+        expect(parseCommandImpl).toHaveBeenCalledTimes(1)
+        expect(parseCommandImpl.mock.calls[0][0]).toEqual({ command: 'order paint' })
+        const payload = mockMessageBus.send.mock.calls[0][0]
+        if (!isPublishMessage(payload)) {
+            throw new Error('expected PublishMessage')
+        }
+        if (!isPublishWorldLineMessage(payload)) {
+            throw new Error('expected WorldMessage or WorldOOCMessage')
+        }
+        const joined = JSON.stringify(payload.message)
+        expect(joined).toContain('fixtureMetadata:')
+        expect(joined).toContain('bucket: borderline')
+        expect(joined).toContain('tags: art-supplies')
+        expect(joined).toContain('expectedLines: 1')
+        expect(joined).toContain('likelyErrors: 1')
     })
 })

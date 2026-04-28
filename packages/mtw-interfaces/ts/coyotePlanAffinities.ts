@@ -14,6 +14,7 @@ export const ACME_ORDER_ENRICH_MAX_AFFINITIES_PER_LINE = 20
 
 /** Omit affinity possibilities strictly below this aptness (entries with aptness equal to this value are kept). */
 export const COYOTE_AFFINITY_APTNESS_MIN = 0.2
+const ACME_ENRICH_NORMALIZATION_DEBUG = false
 
 export type CoyoteStructuralRole = 'terminal' | 'trigger' | 'delivery' | 'autonomous_agent'
 export type CoyoteGenerativeRole = 'prep' | 'creation'
@@ -326,13 +327,33 @@ function trimStableKeyOrFallback(stableKey: string, name: string): string {
 function normalizeTropeFields(raw: {
     tropeAffinities?: CoyoteTropeAffinity[];
     tropeAffinitiesFailed?: boolean;
+}, context?: {
+    fallbackName?: string;
+    lineName?: string;
+    sourceKind?: 'valid_line' | 'affinities_failed_line' | 'salvaged_line' | 'synthetic_line';
 }): { tropeAffinities: CoyoteTropeAffinity[]; tropeAffinitiesFailed: boolean } {
     const tropeAffinities = Array.isArray(raw.tropeAffinities) ? raw.tropeAffinities.slice(0, 3) : []
     const tropeAffinitiesFailed = raw.tropeAffinitiesFailed === true || tropeAffinities.length === 0
-    return {
+    const output = {
         tropeAffinities: tropeAffinitiesFailed ? [] : tropeAffinities,
         tropeAffinitiesFailed,
     }
+    if (ACME_ENRICH_NORMALIZATION_DEBUG && output.tropeAffinitiesFailed) {
+        console.log('[mtw.interfaces.acmeEnrich.normalize] trope_affinities_failed', {
+            sourceKind: context?.sourceKind ?? 'valid_line',
+            fallbackName: context?.fallbackName,
+            lineName: context?.lineName,
+            hadTropeAffinitiesField: Array.isArray(raw.tropeAffinities),
+            rawTropeAffinitiesLength: Array.isArray(raw.tropeAffinities) ? raw.tropeAffinities.length : undefined,
+            rawTropeAffinitiesFailed: raw.tropeAffinitiesFailed,
+            outputTropeAffinitiesLength: output.tropeAffinities.length,
+            outputTropeAffinitiesFailed: output.tropeAffinitiesFailed,
+            reason: raw.tropeAffinitiesFailed === true
+                ? 'input_marked_failed'
+                : 'missing_or_empty_trope_affinities',
+        })
+    }
+    return output
 }
 
 /**
@@ -353,12 +374,20 @@ export function normalizeAcmeOrderEnrichLine(raw: unknown, fallbackName: string)
                 valid: true,
                 name: raw.name,
                 stableKey: trimStableKeyOrFallback(raw.stableKey, raw.name),
-                ...normalizeTropeFields(raw),
+                ...normalizeTropeFields(raw, {
+                    fallbackName,
+                    lineName: raw.name,
+                    sourceKind: 'affinities_failed_line',
+                }),
                 affinities: [],
                 affinitiesFailed: true,
             }
         }
-        const normalizedTrope = normalizeTropeFields(raw)
+        const normalizedTrope = normalizeTropeFields(raw, {
+            fallbackName,
+            lineName: raw.name,
+            sourceKind: 'valid_line',
+        })
         return {
             valid: true,
             name: raw.name,

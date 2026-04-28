@@ -23,7 +23,7 @@ export class ConversationsData extends CacheBase {
 
     constructor(
         private readonly globals: CacheGlobalData,
-        private readonly messageBus: MessageBus
+        private readonly messageBus?: MessageBus
     ) {
         super()
     }
@@ -38,6 +38,12 @@ export class ConversationsData extends CacheBase {
         }
         const busForMaterialize = options?.messageBus ?? this.messageBus
         if (record.type === CONVERSATION_TYPE_ROOM_STATE_RENDER) {
+            if (!busForMaterialize) {
+                return {
+                    record,
+                    handle: createConversationCompositeReadHandleStub(),
+                }
+            }
             const live = materializeRoomStateRender(record, {
                 messageBus: busForMaterialize,
             })

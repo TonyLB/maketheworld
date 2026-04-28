@@ -3,8 +3,11 @@ import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import { invokeBedrockAcmeOrderEnrich } from '../../../generateExample/invokeBedrockAcmeOrderEnrich'
 import { COYOTE_RENDER_LINE_BREAK } from '../../coyoteGame/utilities/coyoteRenderTree'
-import { ACME_ORDER_AFFINITIES_HARNESS_PHRASES } from '../acmeOrderAffinitiesHarnessPhrases'
+import {
+    ACME_ORDER_AFFINITIES_HARNESS_FIXTURES,
+} from '../acmeOrderAffinitiesHarnessPhrases'
 import type {
+    AcmeOrderAffinitiesHarnessFixture,
     CoyoteAffinitiesHarnessInvocation,
     ParseCommandDeps,
     ParseCommandResult,
@@ -15,6 +18,8 @@ import { parseCommand, parseCommandWithEnrichReasoning } from '../parseCommand'
 export type RunAcmeOrderAffinitiesHarnessDeps = {
     characterId: EphemeraCharacterId
     messageBus: Pick<MessageBus, 'send'>
+    fixtures?: readonly AcmeOrderAffinitiesHarnessFixture[]
+    /** Legacy override path for tests; internally converted to lightweight fixtures. */
     phrases?: readonly string[]
     /** When true, only Acme order enrich runs with the full command string; intent discrimination is skipped. */
     enrichOnly?: boolean
@@ -39,21 +44,48 @@ function formatParseResultJson(result: ParseCommandResult): string {
     return JSON.stringify(result, null, 2)
 }
 
-function selectHarnessPhrases(
-    allPhrases: readonly string[],
+function selectHarnessFixtures(
+    fixtures: readonly AcmeOrderAffinitiesHarnessFixture[],
     invocation: CoyoteAffinitiesHarnessInvocation | undefined
-): readonly string[] | { error: string } {
+): readonly AcmeOrderAffinitiesHarnessFixture[] | { error: string } {
     const fixtureIndex1Based = invocation?.fixtureIndex1Based
     if (fixtureIndex1Based === undefined) {
-        return allPhrases
+        return fixtures
     }
-    const max = allPhrases.length
+    const max = fixtures.length
     if (!Number.isInteger(fixtureIndex1Based) || fixtureIndex1Based < 1 || fixtureIndex1Based > max) {
         return {
             error: `Coyote affinities test harness: fixture index must be an integer from 1 to ${max} (received ${fixtureIndex1Based}).`,
         }
     }
-    return [allPhrases[fixtureIndex1Based - 1]!]
+    return [fixtures[fixtureIndex1Based - 1]!]
+}
+
+function coercePhrasesToFixtures(phrases: readonly string[]): AcmeOrderAffinitiesHarnessFixture[] {
+    return phrases.map((phrase, index) => ({
+        id: `legacy-${index + 1}`,
+        commandPhrase: phrase,
+    }))
+}
+
+function appendFixtureMetadata(tree: RenderTree, fixture: AcmeOrderAffinitiesHarnessFixture): void {
+    const sections: string[] = []
+    if (fixture.bucket) {
+        sections.push(`bucket: ${fixture.bucket}`)
+    }
+    if (fixture.tags && fixture.tags.length > 0) {
+        sections.push(`tags: ${fixture.tags.join(', ')}`)
+    }
+    if (fixture.expectedLines && fixture.expectedLines.length > 0) {
+        sections.push(`expectedLines: ${fixture.expectedLines.length}`)
+    }
+    if (fixture.likelyErrors && fixture.likelyErrors.length > 0) {
+        sections.push(`likelyErrors: ${fixture.likelyErrors.length}`)
+    }
+    if (sections.length > 0) {
+        tree.push('fixtureMetadata: ' + sections.join(' | '))
+        tree.push(COYOTE_RENDER_LINE_BREAK)
+    }
 }
 
 /**
@@ -62,8 +94,9 @@ function selectHarnessPhrases(
  * With **`enrichOnly`**: runs **`buildParseAcmeOrderEnrichPrompt`** + **`invokeBedrockAcmeOrderEnrich`** + **`finalizeAcmeOrderFromEnrich`** per phrase (no intent classification).
  */
 export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinitiesHarnessDeps): Promise<void> {
-    const allPhrases = deps.phrases ?? ACME_ORDER_AFFINITIES_HARNESS_PHRASES
-    const selectedOrErr = selectHarnessPhrases(allPhrases, deps.harnessInvocation)
+    const allFixtures = deps.fixtures
+        ?? (deps.phrases ? coercePhrasesToFixtures(deps.phrases) : ACME_ORDER_AFFINITIES_HARNESS_FIXTURES)
+    const selectedOrErr = selectHarnessFixtures(allFixtures, deps.harnessInvocation)
     if ('error' in selectedOrErr) {
         deps.messageBus.send({
             type: 'PublishMessage',
@@ -73,7 +106,7 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
         })
         return
     }
-    const phrases = selectedOrErr
+    const fixtures = selectedOrErr
     const invokeEnrich = deps.invokeBedrockAcmeOrderEnrichImpl ?? invokeBedrockAcmeOrderEnrich
     const now = deps.now ?? (() => Date.now())
     const enrichOnly = deps.enrichOnly ?? false
@@ -85,7 +118,7 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
         COYOTE_RENDER_LINE_BREAK,
     ]
 
-    if (phrases.length === 0) {
+    if (fixtures.length === 0) {
         tree.push('(no phrases)')
         deps.messageBus.send({
             type: 'PublishMessage',
@@ -96,8 +129,9 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
         return
     }
 
-    for (let i = 0; i < phrases.length; i += 1) {
-        const phrase = phrases[i]!.trim()
+    for (let i = 0; i < fixtures.length; i += 1) {
+        const fixture = fixtures[i]!
+        const phrase = fixture.commandPhrase.trim()
         const command = `order ${phrase}`
         const startMs = now()
         let result: ParseCommandResult
@@ -137,8 +171,9 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
         if (i > 0) {
             tree.push(COYOTE_RENDER_LINE_BREAK)
         }
-        tree.push(`--- ${i + 1}/${phrases.length} ${command} ---`)
+        tree.push(`--- ${i + 1}/${fixtures.length} ${command} ---`)
         tree.push(COYOTE_RENDER_LINE_BREAK)
+        appendFixtureMetadata(tree, fixture)
         tree.push(`elapsedMs: ${elapsedMs}`)
         tree.push(COYOTE_RENDER_LINE_BREAK)
         if (displayReasoning) {

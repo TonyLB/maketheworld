@@ -94,6 +94,28 @@ export type CoyoteAffinitiesHarnessInvocation = {
     fixtureIndex1Based?: number
 }
 
+export type AcmeOrderAffinitiesHarnessExpectedTrope = {
+    trope: 'Contraption' | 'Distraction' | 'Disadvantage' | 'Finishing Move'
+    aptness: 'High' | 'Good' | 'Poor'
+    narrowingLike: string
+}
+
+export type AcmeOrderAffinitiesHarnessExpectedLine = {
+    nameLike: string
+    valid: boolean
+    errorType?: ParseCommandAcmeOrderErrorType
+    tropeAffinities?: AcmeOrderAffinitiesHarnessExpectedTrope[]
+}
+
+export type AcmeOrderAffinitiesHarnessFixture = {
+    id: string
+    commandPhrase: string
+    bucket?: 'clean' | 'borderline' | 'likely-misclassification'
+    tags?: string[]
+    expectedLines?: AcmeOrderAffinitiesHarnessExpectedLine[]
+    likelyErrors?: string[]
+}
+
 /** Coyote Game: explicit trigger for the Acme parse affinities manual-review harness. */
 export type ParseCommandCoyoteAffinitiesTestResult = {
     type: 'CoyoteAffinitiesTest'

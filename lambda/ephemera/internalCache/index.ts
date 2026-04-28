@@ -30,7 +30,6 @@ import CacheGlobalData from './global';
 import { RenderCacheData } from './renderCache';
 import ConversationsData from './conversations';
 import PerceptionThreadsData from './perceptionThreads';
-import messageBus from '../messageBus';
 import CacheCoyoteGameData from './coyoteGame';
 import { generateHypothesis } from '../dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis';
 import { generatePlanOutcome } from '../dataSource/coyoteGame/generators/pipelines/outcome/generatePlanOutcome';
@@ -47,7 +46,7 @@ const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>
 export class InternalCache {
     Global: CacheGlobalData = new CacheGlobalData()
     CoyoteGame: CacheCoyoteGameData;
-    Conversations: ConversationsData = new ConversationsData(this.Global, messageBus)
+    Conversations: ConversationsData = new ConversationsData(this.Global)
     RenderCache: RenderCacheData = new RenderCacheData(queryCacheRecordsForComponent)
     PlayerMeta: CachePlayerMetaData;
     OrchestrateMessages: OrchestrateMessagesData = new OrchestrateMessagesData()

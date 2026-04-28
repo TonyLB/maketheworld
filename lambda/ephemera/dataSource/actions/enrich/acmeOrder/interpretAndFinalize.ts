@@ -8,6 +8,8 @@ import { extractJsonObjectText } from '../../../../llm/extractJsonObjectText'
 import { splitMarkdownReasoningAndJson } from '../../../../llm/splitMarkdownReasoningAndJson'
 import type { ParseCommandAcmeOrderLine, ParseCommandAcmeOrderResult } from '../../baseClasses'
 
+const ACME_ENRICH_NORMALIZE_ECHO_DEBUG = false
+
 function clamp01(n: number): number {
     return Math.min(1, Math.max(0, n))
 }
@@ -61,8 +63,54 @@ export function interpretAcmeOrderEnrichBody(
     }
 
     try {
+        const parsedRoot = parsed as Record<string, unknown>
+        const rawLines = Array.isArray(parsedRoot.lines) ? parsedRoot.lines : []
         const response = normalizeAcmeOrderEnrichResponse(parsed, {
             emptyFallbackName: options?.emptyFallbackName,
+        })
+        response.lines.forEach((line, index) => {
+            if (!ACME_ENRICH_NORMALIZE_ECHO_DEBUG) {
+                return
+            }
+            if (!line.valid || line.tropeAffinitiesFailed !== true) {
+                return
+            }
+            const rawLine = rawLines[index]
+            const rawLineObject = (rawLine && typeof rawLine === 'object' && !Array.isArray(rawLine))
+                ? (rawLine as Record<string, unknown>)
+                : null
+            const rawLineJson = (() => {
+                try {
+                    return JSON.stringify(rawLine)
+                } catch {
+                    return '[unserializable rawLine]'
+                }
+            })()
+            const rawTropeAffinitiesJson = (() => {
+                try {
+                    return JSON.stringify(rawLineObject?.tropeAffinities)
+                } catch {
+                    return '[unserializable raw tropeAffinities]'
+                }
+            })()
+            console.log('[mtw.ephemera.acmeEnrich.normalizeEcho] trope_affinities_failed', {
+                line: index + 1,
+                name: line.name,
+                stableKey: line.stableKey,
+                tropeAffinitiesLength: line.tropeAffinities?.length ?? 0,
+                tropeAffinitiesFailed: line.tropeAffinitiesFailed,
+                rawHasTropeAffinitiesField: rawLineObject
+                    ? Object.prototype.hasOwnProperty.call(rawLineObject, 'tropeAffinities')
+                    : false,
+                rawTropeAffinitiesLength: rawLineObject && Array.isArray(rawLineObject.tropeAffinities)
+                    ? rawLineObject.tropeAffinities.length
+                    : undefined,
+                rawTropeAffinitiesFailed: rawLineObject?.tropeAffinitiesFailed,
+                rawLine,
+                rawLineJson,
+                rawTropeAffinitiesJson,
+                note: 'Post-normalization line has tropeAffinitiesFailed=true',
+            })
         })
         if (response.lines.length > ACME_ORDER_ENRICH_MAX_LINES) {
             return {

@@ -21,7 +21,7 @@ describe('buildHypothesisStageOnePromptParts', () => {
         expect(full).toContain('"role": "influence-road-runner"')
         expect(full).toContain('"role": "connect-props"')
         expect(full).toContain('"role": "delivery"')
-        expect(full).toContain('Do not include legacy tuple keys such as **`target`** or **`mode`**')
+        expect(full).toMatch(/Do not include legacy tuple keys such as \*\*`target`\*\*\s+or \*\*`mode`\*\*/)
         expect(full).toContain(SNAPSHOT_SECTION_HEADER)
         expect(full).toContain('STRAIGHTAWAY')
         expect(full).toContain('rocket skates')
