@@ -37,6 +37,12 @@ You will complete **two steps with different rules** — do not treat them as th
 two formats. Step 1 is **classification and concise rationale only** (no catalog JSON).
 Step 2 is **the machine-readable Acme record** (trope fits, normalized naming, and tone).
 
+All trope assignments, narrowings, and plan reasoning in this prompt are evaluated from the
+**Coyote's perspective exclusively**. The Coyote is the sole planner. The Road Runner is the
+target in this model. When assigning tropes and writing narrowings, always ask: "What does
+this item do for the Coyote or against the Road Runner?" Never frame an item's role in terms
+of what it does for the Road Runner.
+
 Produce **two parts** in order:
 
 1. **Classify order type (Chain-of-reason markdown):** Walk each
@@ -196,6 +202,13 @@ Emit **1-3** trope-fit entries per deliverable line. Each entry must be:
 - **\`narrowing\`**: concise free text for the specific use (no enum codes yet)
 - **\`trope\`** is an allowlist field: emit only **\`Contraption\`**, **\`Distraction\`**, **\`Disadvantage\`**, or **\`Finishing Move\`**.
 
+**\`narrowing\` POV rule:** write each narrowing from the **Coyote's planning perspective**:
+describe what the item does for the Coyote or to the Road Runner.
+Correct examples: "enhance Coyote pursuit speed", "immobilize Road Runner on road surface",
+"lure Road Runner into blast zone".
+Incorrect examples: "enhance mobility to evade pursuit", "escape from Coyote", "avoid the trap".
+If a draft narrowing describes Road Runner goals/capabilities, reverse perspective before emitting.
+
 If you cannot justify trope fits for a valid line, set **\`tropeAffinitiesFailed\`**: true and **\`tropeAffinities\`**: [].
 
 **Contraption payload exclusion:** Contraption is setup infrastructure or capability boost, not the
@@ -209,6 +222,31 @@ Examples: knockout gas canister = payload (Finishing Move area payload), pressur
 grand piano dropped on Road Runner = payload (Finishing Move point payload), pulley drop rig = Contraption;
 grand piano used as seesaw counterweight = Contraption; if wording supports both uses, prefer
 Finishing Move first and keep Contraption as secondary.
+
+**Distraction mechanism test (volition-dependent):** Distraction is correct only when the
+distraction itself is the causal mechanism. The plan works because the Road Runner notices,
+wants, and voluntarily moves toward or engages with the lure. If the item still works when
+the Road Runner does not notice it, does not choose it, or does not cooperate, it is not
+Distraction.
+Positive example: birdseed trail, novelty lure, or fake detour sign where the Road Runner
+must see and follow it for the beat to work.
+Negative example: lasso or net that captures on contact even if unseen. Alarming or
+disorienting side effects do not make that Distraction; route those as **Disadvantage** or
+**Finishing Move**.
+Honey-trap dual-fit rule: desirable lure objects can fit both **Distraction** and
+**Disadvantage** when both mechanisms are explicitly present. Use **Distraction** for the
+voluntary approach/engagement beat, and use **Disadvantage** for the persistent impairment
+caused by consuming, touching, or otherwise engaging with the same lure.
+
+**Disadvantage positive anchor:** Disadvantage items impose a persistent condition on the
+Road Runner independent of his awareness or choices. Canonical Disadvantage fits include
+surface hazards (glue, marbles, oil slick), physical restraints (rope, net, adhesive trap),
+and sustained impairments (lingering knockout gas cloud, darkness, disorientation field).
+Spiking something the Road Runner wants (for example, adding ball-bearings or knockout pills
+to a lure plate) is still **Disadvantage** for the spiked payload because the imposed
+impairment persists after engagement.
+When the core use is ongoing mobility/option reduction, treat Disadvantage as a leading fit with **High** or **Good** aptness (not hedged
+downward).
 
 ## Legacy compatibility placeholders (temporary)
 
