@@ -91,6 +91,14 @@ matters: corrections can move nonsense into a valid gloss; cartoon physics can m
    **Primary** **Not a thing** / **Not tangible** / **Too large** → **\`valid\`: false** in JSON;
    **Phenomenon**, **Diffuse**, **Self-contained** → **\`valid\`: true**.
 
+   **Step 1 trope anchor — Finishing Move:** When a line is **\`valid\`: true**, treat direct terminal
+   payloads as canonical **Finishing Move** candidates before any other trope. Point-impact payloads
+   (anvil, boulder, harpoon) and area payloads (bees, gas, explosives) should usually start at
+   **High** or **Good** for **Finishing Move**. The delivery apparatus is separate: launcher, pulley
+   rig, crate-release mechanism, or drop platform may be **Contraption**, but the payload itself is not.
+   Ask: "Is this the thing the Coyote intends to be the last thing the Road Runner experiences?" If yes,
+   lead with **Finishing Move**.
+
 2. **Enhance (JSON final):** After Step 1, output **one** trailing fenced code block with
 language tag **json**. Inside the fence put **only** the root JSON object (**lines**,
 optional **confidence**) — nothing else inside the fence. No prose after that closing fence.
@@ -181,6 +189,18 @@ Emit **1-3** trope-fit entries per deliverable line. Each entry must be:
 - **\`narrowing\`**: concise free text for the specific use (no enum codes yet)
 
 If you cannot justify trope fits for a valid line, set **\`tropeAffinitiesFailed\`**: true and **\`tropeAffinities\`**: [].
+
+**Contraption payload exclusion:** Contraption is setup infrastructure or capability boost, not the
+terminal payload itself. If removing the item removes the plan's terminal harm/capture effect, the item
+is payload-first: prefer **Finishing Move** (or **Disadvantage** when it is persistent impairment) before
+**Contraption**. Contraption applies to the rig or delivery mechanism around the payload.
+Dual-use handling: when wording supports both readings, keep payload-first as the stronger fit
+(typically **High**/**Good**), and include **Contraption** only as a weaker secondary fit
+(typically **Poor**, sometimes **Good**) when the line explicitly supports setup use.
+Examples: knockout gas canister = payload (Finishing Move area payload), pressurized release manifold = Contraption;
+grand piano dropped on Road Runner = payload (Finishing Move point payload), pulley drop rig = Contraption;
+grand piano used as seesaw counterweight = Contraption; if wording supports both uses, prefer
+Finishing Move first and keep Contraption as secondary.
 
 ### Flat modification tags
 
