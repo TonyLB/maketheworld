@@ -110,6 +110,49 @@ Ephemeral testing notes for this package (durable command source): [`lambda/ephe
 - **Spatial factoring:** defer explicit spatial judgment in candidate scoring/deconfliction to a second pass after first-pass trope-centering lands.
 - **Legacy roles:** keep in data shape for compile/type compatibility via `affinities: []` stubs during first pass, then remove once no longer needed.
 
+## Open questions (Phase 3A contract lock)
+
+Resolve these before major prompt rewrites in Phase 3B/3C/3D. Mark `[X]` when a decision is made and reflected in parser/type/harness contracts.
+
+- [X] **Clustering seam payload shape:** keep stage-one member `intendedRole` echo as-is for this slice, or pivot now to trope-first member fields (`trope`, `aptness`, `narrowing`) at the seam boundary.
+  - Decided: lock clustering contracts as trope-first and do not require item-level `intendedRole`.
+  - Transition policy: permit optional `intendedRole` echo as compatibility/debug metadata for one slice, but treat it as non-canonical and plan removal after trope-first seam consumers are stable.
+- [X] **Clustering strictness policy:** lock whether parser accepts unknown root/member keys or requires exact keys only (`clusters`, optional `outliers`, optional `notes`) and define duplicate/empty constraints.
+  - Decided: strict-first parser policy for Phase 3A.
+  - Root keys allowed: exact allowlist only (`clusters`, optional `outliers`, optional `notes`); reject unknown root keys.
+  - Member keys allowed: exact allowlist only per shape; reject unknown keys.
+  - Keep duplicate/coverage/non-empty constraints strict (single assignment per staged `stableKey`, no overlaps, no omissions under chosen outlier mode).
+  - Revisit gate: if strict rejects repeatedly surface useful inventive patterns, capture examples and decide explicit contract expansion rather than silent permissive parsing.
+- [X] **Plan-selection handoff schema:** decide whether the current JSON handoff (`paragraphSummary`, `rubricIssues`) remains sufficient, or needs additional structured winner metadata (for example candidate id / conflict summary).
+  - Decided: first-draft Phase 3A keeps current handoff JSON schema unchanged (`paragraphSummary`, `rubricIssues`).
+  - Rationale: this slice already changes upstream structure from clusters to cluster-candidates; avoid adding simultaneous handoff-schema complexity in the same migration.
+  - Deferred: candidate id / structured conflict metadata can be added in a later hardening pass once candidate contracts and parser stability are proven.
+- [X] **Plan-selection handoff strictness:** lock exact-key-only vs permissive-extra-keys behavior, and minimum content requirements (`rubricIssues` non-empty vs allowed empty).
+  - Decided: permissive extra keys are allowed in the handoff JSON for this slice.
+  - Required minimum remains: `paragraphSummary` string and `rubricIssues` string array must be present and well-typed.
+  - Empty `rubricIssues` is allowed for first-pass migration.
+- [X] **Phase-plan JSON contract scope:** confirm whether current `validateCoyotePhasePlan` shape is the locked Phase 3A target, or whether trope-sequence/deconfliction fields must be added now before 3D prompt work.
+  - Decided: lock current `validateCoyotePhasePlan` shape as the Phase 3A baseline contract.
+  - Deferred: trope-sequence/deconfliction schema additions move to Phase 3D contract hardening, after candidate/selection behavior is better characterized.
+  - Revisit gate: before Phase 3D prompt rewrites, decide whether additional structured fields are required by downstream outcome/rubric consumers.
+- [X] **Phase-plan failure semantics:** reconfirm and lock parser behavior when JSON is malformed/invalid but prose parses (current behavior keeps prose record and sets `phasePlanValidationReason`).
+  - Decided: keep current short-term behavior for Phase 3A (retain prose record when phase-plan JSON fails validation, and set `phasePlanValidationReason`).
+  - Rationale: preserves playable output while contracts are being reshaped and avoids premature hard-fail coupling to still-evolving structured fields.
+  - Revisit gate: tighten to hard-fail only if prose-only fallback rate is high enough to mask prompt drift or blocks Phase 4 consumers.
+- [X] **Reserved token policy:** reconfirm allowed `derivedFrom` token families (snapshot stable keys, seam topology labels, reserved `setting`) and whether any additional virtual tokens are needed now.
+  - Decided: no additional virtual token families for this slice.
+  - Allowed now: snapshot `stableKey` tokens, seam topology labels, and reserved `setting`.
+  - Revisit later: if implementation or next-iteration tuning reveals repeatable unmet grounding needs, add new tokens explicitly via a contract update (not ad hoc prompt drift).
+- [X] **Harness freeze authority:** decide which fixtures become canonical contract-first snapshots for each hop (`clustering`, `plan selection`, `phase-plan`) and where they are versioned.
+  - Decided: staged harness authority with two passes.
+  - Pass 1 (implementation path): as each step lands, freeze contract-first output for all new incoming fixture inputs, and populate next-hop expected results for one canonical fixture (`fixture-01`) before starting implementation of the next step.
+  - Pass 2 (tuning path, target around Phase 4B): backfill expected results for all steps across all fixtures for broad calibration/tuning coverage.
+  - Versioning/source of truth: keep canonical fixture data in `lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts`; treat step-specific snapshots there as contract authority for parser and harness regressions.
+- [X] **Compatibility sunset gate:** define explicit criteria for removing legacy intended-role affinity echoes from hypothesis seams after trope-first contracts are adopted.
+  - Decided: sunset `intendedRole` echoes immediately once trope-first seam adoption checks pass.
+  - Removal checks: no prompt contract requires `intendedRole`; no parser/combine path depends on it; harness/tests pass with fixtures that omit it; no downstream consumer reads it.
+  - Policy: if all checks pass in the same slice, remove instead of carrying a transitional echo window.
+
 ## Recommended order
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]` as each sub-step lands.
