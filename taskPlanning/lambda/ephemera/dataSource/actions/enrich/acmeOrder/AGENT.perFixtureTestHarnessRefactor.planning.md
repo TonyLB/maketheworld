@@ -99,10 +99,10 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Preserve current `enrichOnly` and parse-with-reasoning branches under both selection modes.
   - [X] Add runner tests for all-fixtures default, valid single-fixture run, and out-of-range fixture index handling.
 
-- [ ] Phase 3 - action wiring and regression coverage
-  - [ ] Wire invocation through actions ingress (`index.ts` and action handler dispatch) so slash parsing reaches harness execution.
-  - [ ] Expand integration-style tests (`index.test.ts` and/or `parseCommand.test.ts`) to cover end-to-end fixture targeting.
-  - [ ] Verify no regressions in existing `/test affinities` no-arg behavior.
+- [X] Phase 3 - action wiring and regression coverage
+  - [X] Wire invocation through actions ingress (`index.ts` and action handler dispatch) so slash parsing reaches harness execution.
+  - [X] Expand integration-style tests (`index.test.ts` and/or `parseCommand.test.ts`) to cover end-to-end fixture targeting.
+  - [X] Verify no regressions in existing `/test affinities` no-arg behavior.
 
 - [ ] Phase 4 - polish and task-plan updates
   - [ ] Add concise operator-facing notes (slash usage examples) in appropriate code comments/docs.
@@ -127,9 +127,13 @@ npm run test -- --watchAll=false dataSource/actions/index.test.ts
 | Invocation contract + slash grammar + fixture source locked | Done |
 | Deterministic parser + tests landed | Done |
 | Harness per-fixture execution landed | Done |
-| End-to-end action wiring + regressions green | Not started |
+| End-to-end action wiring + regressions green | Done |
 | Checklist updated and plan retired | Not started |
 
 Phase 2 implementation note:
 
 - `runAcmeOrderAffinitiesHarness` now accepts optional `harnessInvocation` and validates `fixtureIndex1Based` in-runner with deterministic operator-facing error text: `Coyote affinities test harness: fixture index must be an integer from 1 to <max> (received <value>).`
+
+Phase 3 implementation note:
+
+- Actions ingress (`index.ts`) now forwards optional `harnessInvocation` from `ParseCommandCoyoteAffinitiesTestResult` into `runAcmeOrderAffinitiesHarness`, and `index.test.ts` now verifies both fixture-targeted forwarding (`/test affinities 3`) and no-arg default invocation behavior (`/test affinities`).
