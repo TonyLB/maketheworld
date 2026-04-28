@@ -107,13 +107,20 @@ const FIXTURE_01_ROOM_OBJECTS: CoyoteEngineTestFixture['roomObjectsByRoom'] = {
  * and render path as **`seamCombineRender`** (`stableKey` **`rocket-0`** matches **`harnessRoomObjectsSpec`**).
  */
 const FIXTURE_01_GOLDEN_SEAM_BODY = JSON.stringify({
-    clusters: [
+    candidates: [
         {
-            clusterName: 'Straightaway rocket',
-            members: [
+            candidateId: 'candidate-1',
+            executionSummary: 'Use the straightaway rocket lane as the main trap route.',
+            tropeAssignments: [
                 {
-                    stableKey: 'rocket-0',
-                    intendedRole: { role: 'delivery', aptness: 0.4 },
+                    trope: 'Contraption',
+                    executionDetail: 'Rocket hardware is staged and aligned on the straightaway.',
+                    members: [
+                        {
+                            stableKey: 'rocket-0',
+                            intendedRole: { role: 'delivery', aptness: 0.4 },
+                        },
+                    ],
                 },
             ],
         },
@@ -127,9 +134,8 @@ function buildFixture01PlanSelectInject(): CoyoteHarnessPlanSelectInject {
         throw new Error(`fixture-01 planSelect golden seam: ${seamParsed.errorMessage}`)
     }
     const combinedResult = combineHypothesisClusters(
-        seamParsed.clusters,
-        roomObjectsByRoom,
-        seamParsed.explicitOutliers
+        seamParsed.candidates,
+        roomObjectsByRoom
     )
     if (!combinedResult.ok) {
         throw new Error(`fixture-01 planSelect golden combine: ${combinedResult.errorMessage}`)

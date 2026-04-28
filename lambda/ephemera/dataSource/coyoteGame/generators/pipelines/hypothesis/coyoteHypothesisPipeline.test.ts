@@ -33,12 +33,21 @@ const phasePlanHopMock = invokeBedrockHypothesisPhasePlanHop as jest.MockedFunct
 
 /** Valid stage-1 JSON for parse + combine (matches generateHypothesis.test harness). */
 const stageOneSeamBody = JSON.stringify({
-    clusters: [
+    candidates: [
         {
-            clusterName: 'Combined setup',
-            members: [
-                { stableKey: 'anvil', intendedRole: { role: 'terminal', aptness: 0.5 } },
-                { stableKey: 'rocket-skates', intendedRole: { role: 'coyote-equipment', aptness: 0.6 } },
+            candidateId: 'candidate-1',
+            executionSummary: 'Lure then strike across the straightaway lane.',
+            tropeAssignments: [
+                {
+                    trope: 'Distraction',
+                    executionDetail: 'Road Runner is guided into the strike lane first.',
+                    members: [{ stableKey: 'rocket-skates', intendedRole: { role: 'coyote-equipment', aptness: 0.6 } }],
+                },
+                {
+                    trope: 'Finishing Move',
+                    executionDetail: 'Anvil lands after the lane setup commits the target route.',
+                    members: [{ stableKey: 'anvil', intendedRole: { role: 'terminal', aptness: 0.5 } }],
+                },
             ],
         },
     ],

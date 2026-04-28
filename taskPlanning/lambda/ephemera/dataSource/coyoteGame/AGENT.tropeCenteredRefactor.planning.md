@@ -207,10 +207,14 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
     - Phase-plan seam keeps the current `validateCoyotePhasePlan` baseline and prose-preserving fallback behavior; prompt wording now explicitly instructs models to still emit complete scene-analysis + hypothesis prose when JSON details are uncertain.
     - Harness contract authority now includes fixture-01 phase-plan run-only inject state (`roomObjectsByRoom`, `combinedMarkdown`, `hop1Handoff`) alongside existing plan-selection inject data, so downstream hop rewrites can target stable fixture-backed parser seams.
 
-- [ ] Phase 3B - hypothesis `clustering` rework
-  - [ ] Rework `clustering` into candidate trope assignments with provisional object-to-trope grouping and first-draft execution detail.
-  - [ ] Add focused tests for clustering parse/merge behavior under trope-first data (including malformed/partial model outputs).
-  - [ ] Re-freeze clustering fixture slices in [`coyoteEngineTestFixtures.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts).
+- [X] Phase 3B - hypothesis `clustering` rework
+  - [X] Rework `clustering` into candidate trope assignments with provisional object-to-trope grouping and first-draft execution detail.
+  - [X] Add focused tests for clustering parse/merge behavior under trope-first data (including malformed/partial model outputs).
+  - [X] Re-freeze clustering fixture slices in [`coyoteEngineTestFixtures.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts).
+  - Locked implementation notes:
+    - Stage-one seam contract is now trope-candidate-first: root `candidates` + optional `notes`, with each candidate carrying `candidateId`, `executionSummary`, ordered `tropeAssignments`, and optional candidate-local `outliers`.
+    - Parser strictness remains exact-key-only with additional candidate hardening: required execution fields, canonical trope order enforcement, duplicate trope rejection, and per-candidate staged `stableKey` partition checks.
+    - Combined stage-two markdown remains under `## Combined clustering` but now renders `### Candidate <id>` sections with trope-level `executionDetail` and candidate-local outliers, and fixture-01 frozen seam authority is updated to the new candidate shape.
 
 - [ ] Phase 3C - hypothesis `plan selection` rework
   - [ ] Rework `plan selection` into conflict catalog + rubric comparison + best-candidate selection.
