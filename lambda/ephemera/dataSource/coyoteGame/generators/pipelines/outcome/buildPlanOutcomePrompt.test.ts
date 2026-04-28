@@ -105,10 +105,48 @@ describe('buildPlanOutcomePrompt', () => {
             },
         })
         expect(prompt).toContain('## Phase plan (execution outline)')
+        expect(prompt).toContain('Trope sequence: Finishing Move')
+        expect(prompt).toContain('Deconfliction: Use anvil only at terminal beat.')
         expect(prompt).toContain('Phase 1: Finishing Move — Drop anvil from committed lane.')
         expect(prompt).toContain('Achievement: Gravity votes coyote.')
         expect(prompt).toContain('Staged props: anvil')
         expect(prompt).toContain('single Outcome: line')
+    })
+
+    it('anchors instructions to trope order and walkthrough beats when both are present', () => {
+        const prompt = buildPlanOutcomePrompt({
+            roomObjectsByRoom: {
+                'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']),
+            },
+            hypothesisLine: 'Hypothesis: Follow the beat order.',
+            walkthrough: 'First prep the lane, then commit the final drop.',
+            phasePlan: {
+                tropeSequence: ['Contraption', 'Finishing Move'],
+                deconflictionSummary: 'Keep prep and finisher on separate committed beats.',
+                phases: [
+                    {
+                        trope: 'Contraption',
+                        tropeBeat: 'Prime launch rail.',
+                        stableKeysUsed: ['anvil'],
+                        virtualEntities: [],
+                        achievement: 'Lane prepared.',
+                        prepVsBeat: 'prep',
+                    },
+                    {
+                        trope: 'Finishing Move',
+                        tropeBeat: 'Release final payload.',
+                        stableKeysUsed: ['anvil'],
+                        virtualEntities: [],
+                        achievement: 'Backfire lands.',
+                    },
+                ],
+            },
+        })
+        expect(prompt).toContain('## Scene analysis')
+        expect(prompt).toContain('First prep the lane, then commit the final drop.')
+        expect(prompt).toContain('Trope sequence: Contraption -> Finishing Move')
+        expect(prompt).toContain('Deconfliction: Keep prep and finisher on separate committed beats.')
+        expect(prompt).toContain('Follow trope order and walkthrough beats')
     })
 
     it('omits scene analysis and phase sections when absent', () => {

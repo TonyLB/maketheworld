@@ -32,7 +32,11 @@ export function formatPhasePlanForOutcomePrompt(
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
 ): string {
     const keyToShort = buildStableKeyToShortNameMap(roomObjectsByRoom)
-    const lines: string[] = []
+    const lines: string[] = [
+        `Trope sequence: ${phasePlan.tropeSequence.join(' -> ')}`,
+        `Deconfliction: ${phasePlan.deconflictionSummary}`,
+        '',
+    ]
 
     phasePlan.phases.forEach((phase, index) => {
         const n = index + 1

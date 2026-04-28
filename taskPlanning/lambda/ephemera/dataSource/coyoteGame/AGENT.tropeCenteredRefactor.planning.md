@@ -235,9 +235,13 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
     - Prompt + parser fallback policy remains stable: hop-2 prompt now requires trope-sequence deconfliction and beat-ordered scene analysis, while parse flow still preserves prose `intent`/`walkthrough` with `phasePlanValidationReason` whenever structured JSON fails validation.
     - Harness fixture authority is re-frozen for phase-plan entry (`fixture-01` `phasePlanInject.hop1Handoff`) with deconfliction and beat-order language aligned to the new 3D contract.
 
-- [ ] Phase 4A - outcome pipeline alignment
-  - [ ] Align **`buildPlanOutcomePrompt`** / **`formatPhasePlanForOutcomePrompt`** with assembled trope sequence + walk-through from Phase 3D contracts.
-  - [ ] Add regression tests that consume trope-first phase-plan output without legacy role assumptions.
+- [X] Phase 4A - outcome pipeline alignment
+  - [X] Align **`buildPlanOutcomePrompt`** / **`formatPhasePlanForOutcomePrompt`** with assembled trope sequence + walk-through from Phase 3D contracts.
+  - [X] Add regression tests that consume trope-first phase-plan output without legacy role assumptions.
+  - Locked implementation notes:
+    - Outcome phase-plan formatting is now explicitly trope-sequence-first: `formatPhasePlanForOutcomePrompt` renders `tropeSequence` and `deconflictionSummary` before per-phase beat details so outcome generation consumes assembled order and deconfliction context directly.
+    - Outcome prompt guidance is now aligned with Phase 3D walk-through semantics: `buildPlanOutcomePrompt` phase-plan instructions explicitly require following trope order and walkthrough beats while preserving Road Runner safety and Coyote-backfire constraints.
+    - Regression coverage now locks trope-first behavior across the outcome pipeline (`formatPhasePlanForOutcomePrompt.test.ts`, `buildPlanOutcomePrompt.test.ts`, `generatePlanOutcome.test.ts`), including a no-legacy-role-label assertion path for trope-first phase-plan + walkthrough overrides.
 
 - [ ] Phase 4B - legality and rubric verification
   - [ ] Add verification tests for golden-path legality (trope order, distraction constraint).

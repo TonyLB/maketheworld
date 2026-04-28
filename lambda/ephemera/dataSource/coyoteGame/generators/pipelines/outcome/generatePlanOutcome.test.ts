@@ -165,6 +165,63 @@ describe('generatePlanOutcome', () => {
         expect(getIntentRecord).not.toHaveBeenCalled()
     })
 
+    it('renders trope-first phase-plan/walkthrough context without relying on legacy role labels', async () => {
+        await generatePlanOutcome({
+            getGameRooms,
+            getRoomMeta,
+            getIntentRecord,
+            roomObjectsByRoomOverride: {
+                'ROOM#VORTEX': [
+                    {
+                        uuid: 'OBJECT#anvil' as `OBJECT#${string}`,
+                        shortName: 'anvil',
+                        stableKey: 'anvil',
+                        tropeAffinities: [
+                            { trope: 'Finishing Move', aptness: 'High', narrowing: 'terminal drop payload' },
+                        ],
+                        affinities: [],
+                        affinitiesFailed: true,
+                    },
+                ],
+            },
+            intentRecordOverride: {
+                intent: 'Hypothesis: Trope-first only.',
+                walkthrough: 'Contraption setup transitions into final drop beat.',
+                phasePlan: {
+                    tropeSequence: ['Contraption', 'Finishing Move'],
+                    deconflictionSummary: 'Keep setup and impact beats separated.',
+                    phases: [
+                        {
+                            trope: 'Contraption',
+                            tropeBeat: 'Set up launch lane.',
+                            stableKeysUsed: ['anvil'],
+                            virtualEntities: [],
+                            achievement: 'Lane staged.',
+                            prepVsBeat: 'prep',
+                        },
+                        {
+                            trope: 'Finishing Move',
+                            tropeBeat: 'Trigger final drop.',
+                            stableKeysUsed: ['anvil'],
+                            virtualEntities: [],
+                            achievement: 'Backfire lands on Coyote.',
+                        },
+                    ],
+                },
+            },
+        })
+
+        const promptArg = invokeBedrockHypothesisMock.mock.calls[0][0] as {
+            invariantPrefix: string
+            dynamicSuffix: string
+        }
+        const fullPrompt = promptArg.invariantPrefix + promptArg.dynamicSuffix
+        expect(fullPrompt).toContain('Trope sequence: Contraption -> Finishing Move')
+        expect(fullPrompt).toContain('Deconfliction: Keep setup and impact beats separated.')
+        expect(fullPrompt).toContain('Contraption setup transitions into final drop beat.')
+        expect(fullPrompt).not.toContain('coyote-equipment')
+    })
+
     it('falls back to stub when Bedrock fails', async () => {
         invokeBedrockHypothesisMock.mockResolvedValue({
             success: false,
