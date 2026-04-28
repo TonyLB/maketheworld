@@ -29,14 +29,56 @@ describe('deterministicIntentChecks', () => {
         expect(deterministicIntentChecks({ command: '/test generation a b c' })?.type).toBe('Error')
     })
 
-    it('returns CoyoteAffinitiesTest for /test affinities commands', () => {
+    it('returns CoyoteAffinitiesTest for valid /test affinities commands', () => {
         expect(deterministicIntentChecks({ command: '/test affinities' })).toEqual({
             type: 'CoyoteAffinitiesTest',
             confidence: 1,
         })
-        expect(deterministicIntentChecks({ command: ' /test affinities --x ' })).toEqual({
+        expect(deterministicIntentChecks({ command: ' /test affinities 3 ' })).toEqual({
             type: 'CoyoteAffinitiesTest',
             confidence: 1,
+            harnessInvocation: {
+                mode: 'full',
+                fixtureIndex1Based: 3,
+            },
+        })
+    })
+
+    it('returns Parse error for invalid /test affinities tails', () => {
+        const badToken = deterministicIntentChecks({ command: '/test affinities abc' })
+        expect(badToken).toEqual({
+            type: 'Error',
+            errorMessage: expect.stringContaining('Unknown token "abc"'),
+        })
+
+        const zero = deterministicIntentChecks({ command: '/test affinities 0' })
+        expect(zero).toEqual({
+            type: 'Error',
+            errorMessage: expect.stringContaining('Unknown token "0"'),
+        })
+
+        const negative = deterministicIntentChecks({ command: '/test affinities -1' })
+        expect(negative).toEqual({
+            type: 'Error',
+            errorMessage: expect.stringContaining('Unknown token "-1"'),
+        })
+
+        const decimal = deterministicIntentChecks({ command: '/test affinities 1.5' })
+        expect(decimal).toEqual({
+            type: 'Error',
+            errorMessage: expect.stringContaining('Unknown token "1.5"'),
+        })
+
+        const outOfRange = deterministicIntentChecks({ command: '/test affinities 99' })
+        expect(outOfRange).toEqual({
+            type: 'Error',
+            errorMessage: expect.stringContaining('Fixture index must be an integer from 1 to 10 (received 99).'),
+        })
+
+        const tooManyArgs = deterministicIntentChecks({ command: '/test affinities 1 extra' })
+        expect(tooManyArgs).toEqual({
+            type: 'Error',
+            errorMessage: expect.stringContaining('Too many arguments'),
         })
     })
 

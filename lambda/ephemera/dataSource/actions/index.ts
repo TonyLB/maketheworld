@@ -152,6 +152,9 @@ const respondImperativelyForIntent = async ({ characterId, parseResult }: Respon
             await runAcmeOrderAffinitiesHarness({
                 characterId,
                 messageBus,
+                ...(parseResult.harnessInvocation !== undefined
+                    ? { harnessInvocation: parseResult.harnessInvocation }
+                    : {}),
             })
         }
     }

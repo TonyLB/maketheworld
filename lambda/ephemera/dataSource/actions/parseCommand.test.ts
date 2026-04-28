@@ -346,7 +346,23 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 
-    it('returns CoyoteAffinitiesTest for slash with trailing args without Bedrock', async () => {
+    it('returns CoyoteAffinitiesTest with fixture invocation for /test affinities <index>', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn()
+
+        const result = await parseCommand(
+            { command: '  /test affinities 3  ' },
+            { invokeBedrockParseCommandImpl }
+        )
+
+        expect(result).toEqual({
+            type: 'CoyoteAffinitiesTest',
+            confidence: 1,
+            harnessInvocation: { mode: 'full', fixtureIndex1Based: 3 },
+        })
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns Error for invalid /test affinities tails without Bedrock', async () => {
         const invokeBedrockParseCommandImpl = jest.fn()
 
         const result = await parseCommand(
@@ -354,7 +370,10 @@ describe('parseCommand LLM path', () => {
             { invokeBedrockParseCommandImpl }
         )
 
-        expect(result).toEqual({ type: 'CoyoteAffinitiesTest', confidence: 1 })
+        expect(result.type).toBe('Error')
+        if (result.type === 'Error') {
+            expect(result.errorMessage).toContain('Expected a fixture index')
+        }
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
     })
 

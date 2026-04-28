@@ -830,6 +830,74 @@ describe('ephemeraActionsDataSource', () => {
     })
 
     describe('ParseCommandCoyoteAffinitiesTestResult', () => {
+        it('forwards harnessInvocation to runAcmeOrderAffinitiesHarness when present', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'CoyoteAffinitiesTest',
+                confidence: 1,
+                harnessInvocation: {
+                    mode: 'full',
+                    fixtureIndex1Based: 3,
+                },
+            })
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: '/test affinities 3',
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockedRunAcmeOrderAffinitiesHarness).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    characterId: 'CHARACTER#123',
+                    harnessInvocation: {
+                        mode: 'full',
+                        fixtureIndex1Based: 3,
+                    },
+                })
+            )
+        })
+
+        it('runs affinities harness with default invocation when harnessInvocation is absent', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'CoyoteAffinitiesTest', confidence: 1 })
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: '/test affinities',
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockedRunAcmeOrderAffinitiesHarness).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    characterId: 'CHARACTER#123',
+                })
+            )
+            const firstCallArg = mockedRunAcmeOrderAffinitiesHarness.mock.calls[0]?.[0]
+            expect(firstCallArg).toBeDefined()
+            expect(firstCallArg).not.toHaveProperty('harnessInvocation')
+        })
+
         it.skip('publishes disabled message and does not run affinities harness', async () => {
             mockedParseCommand.mockResolvedValue({ type: 'CoyoteAffinitiesTest', confidence: 1 })
 

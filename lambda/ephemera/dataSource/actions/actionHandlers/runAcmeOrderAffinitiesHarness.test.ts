@@ -82,6 +82,68 @@ describe('runAcmeOrderAffinitiesHarness', () => {
         expect(JSON.stringify(payload.message)).toContain('boom')
     })
 
+    it('runs only selected fixture when harnessInvocation fixture index is provided', async () => {
+        const parseCommandImpl = jest.fn().mockResolvedValue({
+            type: 'AcmeOrder',
+            confidence: 0.8,
+            orders: [{
+                valid: true,
+                name: 'two',
+                stableKey: 'two',
+                affinities: [{ role: 'terminal', aptness: 0.5 }],
+            }],
+        })
+
+        await runAcmeOrderAffinitiesHarness({
+            characterId: 'CHARACTER#single',
+            messageBus,
+            phrases: ['one', 'two', 'three'],
+            harnessInvocation: { mode: 'full', fixtureIndex1Based: 2 },
+            parseCommandImpl,
+            now: () => 0,
+        })
+
+        expect(parseCommandImpl).toHaveBeenCalledTimes(1)
+        expect(parseCommandImpl.mock.calls[0][0]).toEqual({ command: 'order two' })
+        const payload = mockMessageBus.send.mock.calls[0][0]
+        if (!isPublishMessage(payload)) {
+            throw new Error('expected PublishMessage')
+        }
+        if (!isPublishWorldLineMessage(payload)) {
+            throw new Error('expected WorldMessage or WorldOOCMessage')
+        }
+        expect(JSON.stringify(payload.message)).toContain('--- 1/1 order two ---')
+    })
+
+    it('publishes deterministic error and skips work on out-of-range fixture index', async () => {
+        const parseCommandImpl = jest.fn()
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+
+        await runAcmeOrderAffinitiesHarness({
+            characterId: 'CHARACTER#bad',
+            messageBus,
+            phrases: ['one', 'two'],
+            harnessInvocation: { mode: 'full', fixtureIndex1Based: 3 },
+            parseCommandImpl,
+            invokeBedrockAcmeOrderEnrichImpl,
+            enrichOnly: true,
+            now: () => 0,
+        })
+
+        expect(parseCommandImpl).not.toHaveBeenCalled()
+        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+        expect(mockMessageBus.send).toHaveBeenCalledTimes(1)
+        const payload = mockMessageBus.send.mock.calls[0][0]
+        if (!isPublishMessage(payload)) {
+            throw new Error('expected PublishMessage')
+        }
+        if (!isPublishWorldLineMessage(payload)) {
+            throw new Error('expected WorldMessage or WorldOOCMessage')
+        }
+        const joined = JSON.stringify(payload.message)
+        expect(joined).toContain('Coyote affinities test harness: fixture index must be an integer from 1 to 2 (received 3).')
+    })
+
     it('enrichOnly runs enrich only and does not call parseCommand', async () => {
         const parseCommandImpl = jest.fn()
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({

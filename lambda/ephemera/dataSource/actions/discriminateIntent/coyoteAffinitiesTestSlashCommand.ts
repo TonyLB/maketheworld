@@ -1,4 +1,10 @@
-/** Canonical harness slash; match is case-sensitive ASCII. */
+/**
+ * Canonical harness slash; match is case-sensitive ASCII.
+ *
+ * Operator usage:
+ * - `/test affinities` runs the full fixture corpus.
+ * - `/test affinities <n>` runs fixture `<n>` (1-based), validated in slash-tail parsing.
+ */
 export const COYOTE_AFFINITIES_TEST_SLASH_PREFIX = '/test affinities'
 
 /**
