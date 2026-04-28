@@ -167,6 +167,29 @@ const FIXTURE_01_PHASE_PLAN_INJECT: CoyoteHarnessPhasePlanInject = {
     hop1Handoff: FIXTURE_01_PHASE_PLAN_HANDOFF,
 }
 
+function buildPlanSelectInjectFromGoldenSeam(args: {
+    fixtureId: string
+    roomObjectsByRoom: Partial<Record<EphemeraRoomId, EphemeraMetaRoomObject[]>>
+    stageOneSeamBody: string
+}): CoyoteHarnessPlanSelectInject {
+    const roomObjectsByRoom = normalizeCoyoteHarnessRoomObjects(args.roomObjectsByRoom)
+    const seamParsed = parseHypothesisStageOneOutput(args.stageOneSeamBody, roomObjectsByRoom)
+    if (!seamParsed.ok) {
+        throw new Error(`${args.fixtureId} planSelect golden seam: ${seamParsed.errorMessage}`)
+    }
+    const combinedResult = combineHypothesisClusters(
+        seamParsed.candidates,
+        roomObjectsByRoom
+    )
+    if (!combinedResult.ok) {
+        throw new Error(`${args.fixtureId} planSelect golden combine: ${combinedResult.errorMessage}`)
+    }
+    return {
+        roomObjectsByRoom,
+        combinedMarkdown: renderCombinedHypothesisForStageTwo(combinedResult.combined, roomObjectsByRoom),
+    }
+}
+
 export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
     {
         id: 'fixture-01',
@@ -611,6 +634,228 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
         },
     },
 ]
+
+const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id'], string>> = {
+    'fixture-02': JSON.stringify({
+        candidates: [
+            {
+                candidateId: 'candidate-1',
+                executionSummary: 'Birdseed lures Road Runner while lever rig prepares the cliffside release.',
+                tropeAssignments: [
+                    {
+                        trope: 'Contraption',
+                        executionDetail: 'Lever is staged at CLIFFTOP as release hardware.',
+                        members: [{ stableKey: 'lever-0', tropeFunction: 'release lever' }],
+                    },
+                    {
+                        trope: 'Distraction',
+                        executionDetail: 'Road Runner stops to eat birdseed at VORTEX.',
+                        members: [{ stableKey: 'birdseed-0', tropeFunction: 'lane bait' }],
+                    },
+                ],
+            },
+        ],
+    }),
+    'fixture-03': JSON.stringify({
+        candidates: [
+            {
+                candidateId: 'candidate-1',
+                executionSummary: 'Paint and skates prep a route while birdseed lures into a portable-hole finish.',
+                tropeAssignments: [
+                    {
+                        trope: 'Contraption',
+                        executionDetail: 'Roller skates and paint prep speed and route illusion before commitment.',
+                        members: [
+                            { stableKey: 'roller-skates-0', tropeFunction: 'speed rig' },
+                            { stableKey: 'paint-0', tropeFunction: 'route edit' },
+                        ],
+                    },
+                    {
+                        trope: 'Distraction',
+                        executionDetail: 'Road Runner pauses for birdseed at the bridge approach.',
+                        members: [{ stableKey: 'birdseed-1', tropeFunction: 'target bait' }],
+                    },
+                    {
+                        trope: 'Finishing Move',
+                        executionDetail: 'Portable hole is used as the terminal drop endpoint.',
+                        members: [{ stableKey: 'portable-hole-0', tropeFunction: 'drop trap' }],
+                    },
+                ],
+            },
+        ],
+    }),
+    'fixture-04': JSON.stringify({
+        candidates: [
+            {
+                candidateId: 'candidate-1',
+                executionSummary: 'Magnet control narrows path and steel drum closes the impact beat.',
+                tropeAssignments: [
+                    {
+                        trope: 'Disadvantage',
+                        executionDetail: 'Magnet creates persistent path pull in straightaway lane.',
+                        members: [{ stableKey: 'magnet-0', tropeFunction: 'path pull' }],
+                    },
+                    {
+                        trope: 'Finishing Move',
+                        executionDetail: 'Steel drum rolls through as terminal impact payload.',
+                        members: [{ stableKey: 'steel-drum-1', tropeFunction: 'impact payload' }],
+                    },
+                ],
+            },
+        ],
+    }),
+    'fixture-05': JSON.stringify({
+        candidates: [
+            {
+                candidateId: 'candidate-1',
+                executionSummary: 'Catapult alone serves as the contraption for a launch-based chase setup.',
+                tropeAssignments: [
+                    {
+                        trope: 'Contraption',
+                        executionDetail: 'Catapult is pre-aimed at VORTEX for launch timing.',
+                        members: [{ stableKey: 'catapult-0', tropeFunction: 'launch rig' }],
+                    },
+                ],
+            },
+        ],
+    }),
+    'fixture-06': JSON.stringify({
+        candidates: [
+            {
+                candidateId: 'candidate-1',
+                executionSummary: 'Birdseed lures, glue constrains, and anvil closes terminally.',
+                tropeAssignments: [
+                    {
+                        trope: 'Distraction',
+                        executionDetail: 'Road Runner pauses for birdseed along the straightaway.',
+                        members: [{ stableKey: 'birdseed-0', tropeFunction: 'target bait' }],
+                    },
+                    {
+                        trope: 'Disadvantage',
+                        executionDetail: 'Glue applies persistent movement constraint in VORTEX lane.',
+                        members: [{ stableKey: 'glue-0', tropeFunction: 'speed drag' }],
+                    },
+                    {
+                        trope: 'Finishing Move',
+                        executionDetail: 'Anvil drops from CLIFFTOP as the terminal payload.',
+                        members: [{ stableKey: 'anvil-0', tropeFunction: 'boom payload' }],
+                    },
+                ],
+            },
+        ],
+    }),
+    'fixture-07': JSON.stringify({
+        candidates: [
+            {
+                candidateId: 'candidate-1',
+                executionSummary: 'Trampoline sets trajectory while net imposes terminal containment.',
+                tropeAssignments: [
+                    {
+                        trope: 'Contraption',
+                        executionDetail: 'Trampoline is staged to control launch arc.',
+                        members: [{ stableKey: 'trampoline-0', tropeFunction: 'launch pad' }],
+                    },
+                    {
+                        trope: 'Disadvantage',
+                        executionDetail: 'Net applies capture constraint at CLIFFTOP endpoint.',
+                        members: [{ stableKey: 'net-0', tropeFunction: 'capture wrap' }],
+                    },
+                ],
+            },
+        ],
+    }),
+    'fixture-08': JSON.stringify({
+        candidates: [
+            {
+                candidateId: 'candidate-1',
+                executionSummary: 'Multi-prop straightaway rig builds speed and release timing before terminal spring impact.',
+                tropeAssignments: [
+                    {
+                        trope: 'Contraption',
+                        executionDetail: 'Rocket, skis, and catapult chain into one prep platform.',
+                        members: [
+                            { stableKey: 'rocket-0', tropeFunction: 'thrust source' },
+                            { stableKey: 'skis-1', tropeFunction: 'speed rail' },
+                            { stableKey: 'catapult-2', tropeFunction: 'launch arm' },
+                        ],
+                    },
+                    {
+                        trope: 'Disadvantage',
+                        executionDetail: 'Glue slows pathing to hold timing window.',
+                        members: [{ stableKey: 'glue-4', tropeFunction: 'speed drag' }],
+                    },
+                    {
+                        trope: 'Finishing Move',
+                        executionDetail: 'Springs deliver the terminal strike at committed lane point.',
+                        members: [{ stableKey: 'springs-3', tropeFunction: 'impact snap' }],
+                    },
+                ],
+            },
+        ],
+    }),
+    'fixture-09': JSON.stringify({
+        candidates: [
+            {
+                candidateId: 'candidate-1',
+                executionSummary: 'Umbrella, snorkel, and skis form one prep-heavy chase contraption.',
+                tropeAssignments: [
+                    {
+                        trope: 'Contraption',
+                        executionDetail: 'Tools combine into a mobility-and-survival prep loadout.',
+                        members: [
+                            { stableKey: 'umbrella-0', tropeFunction: 'glide aid' },
+                            { stableKey: 'snorkel-0', tropeFunction: 'breath prep' },
+                            { stableKey: 'skis-0', tropeFunction: 'speed rig' },
+                        ],
+                    },
+                ],
+            },
+        ],
+    }),
+    'fixture-10': JSON.stringify({
+        candidates: [
+            {
+                candidateId: 'candidate-1',
+                executionSummary: 'Paint and skates prep route, birdseed lures stop, cannon closes with terminal blast.',
+                tropeAssignments: [
+                    {
+                        trope: 'Contraption',
+                        executionDetail: 'Roller skates plus paint set speed and deceptive route geometry.',
+                        members: [
+                            { stableKey: 'roller-skates-0', tropeFunction: 'speed rig' },
+                            { stableKey: 'paint-0', tropeFunction: 'route edit' },
+                        ],
+                    },
+                    {
+                        trope: 'Distraction',
+                        executionDetail: 'Birdseed draws Road Runner into the prepared line.',
+                        members: [{ stableKey: 'birdseed-0', tropeFunction: 'target bait' }],
+                    },
+                    {
+                        trope: 'Finishing Move',
+                        executionDetail: 'Cannon fires the terminal payload once lane commitment is locked.',
+                        members: [{ stableKey: 'cannon-0', tropeFunction: 'boom' }],
+                    },
+                ],
+            },
+        ],
+    }),
+}
+
+for (const fixture of COYOTE_ENGINE_TEST_FIXTURES) {
+    if (fixture.planSelectInject !== undefined) {
+        continue
+    }
+    const stageOneSeamBody = STAGE_ONE_GOLDEN_BY_FIXTURE_ID[fixture.id]
+    if (!stageOneSeamBody) {
+        continue
+    }
+    fixture.planSelectInject = buildPlanSelectInjectFromGoldenSeam({
+        fixtureId: fixture.id,
+        roomObjectsByRoom: fixture.roomObjectsByRoom,
+        stageOneSeamBody,
+    })
+}
 
 /**
  * Resolve start-at inject for **`planSelect`** / **`phasePlan`** (1-based fixture index, slash / harness aligned).

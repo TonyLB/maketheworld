@@ -68,16 +68,15 @@ describe('resolveCoyoteHarnessStartAtInject', () => {
         }
     })
 
-    it('returns missing inject error for planSelect when fixture has no bundle', () => {
+    it('returns planSelect inject for fixture index 2', () => {
         const r = resolveCoyoteHarnessStartAtInject({
             fixtureIndex1Based: 2,
             phase: 'planSelect',
         })
-        expect(r.ok).toBe(false)
-        if (!r.ok) {
-            expect(r.message).toContain('planSelect')
-            expect(r.message).toContain('fixture index 2')
-            expect(r.message).toContain('fixture-02')
+        expect(r.ok).toBe(true)
+        if (r.ok) {
+            expect(r.phase).toBe('planSelect')
+            expect(r.inject.combinedMarkdown).toContain('## Combined clustering')
         }
     })
 
