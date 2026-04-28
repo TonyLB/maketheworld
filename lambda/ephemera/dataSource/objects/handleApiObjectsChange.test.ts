@@ -221,6 +221,11 @@ describe('handleAcmeOrderAddObjects', () => {
                     uuid: 'OBJECT#u2' as EphemeraObjectId,
                     shortName: 'giant magnet',
                     stableKey: 'giant-magnet',
+                    tropeAffinities: [{
+                        trope: 'Contraption' as const,
+                        aptness: 'High' as const,
+                        narrowing: 'magnetic winch rig',
+                    }],
                     affinities: [{ role: 'terminal' as const, aptness: 0.6 }],
                 },
             ],
@@ -237,6 +242,11 @@ describe('handleAcmeOrderAddObjects', () => {
                 {
                     shortName: 'giant magnet',
                     stableKey: 'giant-magnet',
+                    tropeAffinities: [{
+                        trope: 'Contraption',
+                        aptness: 'High',
+                        narrowing: 'magnetic winch rig',
+                    }],
                     affinities: [{ role: 'terminal', aptness: 0.6 }],
                 },
             ],
@@ -257,6 +267,11 @@ describe('handleAcmeOrderAddObjects', () => {
                     uuid: 'OBJECT#u2',
                     shortName: 'giant magnet',
                     stableKey: 'giant-magnet',
+                    tropeAffinities: [{
+                        trope: 'Contraption',
+                        aptness: 'High',
+                        narrowing: 'magnetic winch rig',
+                    }],
                     affinities: [{ role: 'terminal', aptness: 0.6 }],
                 },
             ],
@@ -274,6 +289,11 @@ describe('handleAcmeOrderAddObjects', () => {
                         uuid: 'OBJECT#u2',
                         shortName: 'giant magnet',
                         stableKey: 'giant-magnet',
+                        tropeAffinities: [{
+                            trope: 'Contraption',
+                            aptness: 'High',
+                            narrowing: 'magnetic winch rig',
+                        }],
                         affinities: [{ role: 'terminal', aptness: 0.6 }],
                     },
                 ],
@@ -286,6 +306,11 @@ describe('handleAcmeOrderAddObjects', () => {
                         uuid: 'OBJECT#u2',
                         shortName: 'giant magnet',
                         stableKey: 'giant-magnet',
+                        tropeAffinities: [{
+                            trope: 'Contraption',
+                            aptness: 'High',
+                            narrowing: 'magnetic winch rig',
+                        }],
                         affinities: [{ role: 'terminal', aptness: 0.6 }],
                     },
                 ],
@@ -327,6 +352,58 @@ describe('handleAcmeOrderAddObjects', () => {
                 uuid: 'OBJECT#u1',
                 shortName: 'box',
                 stableKey: 'box',
+                affinities: [],
+                affinitiesFailed: true,
+            }],
+            remove: [],
+        })
+    })
+
+    it('persists tropeAffinitiesFailed when present on the bus payload', async () => {
+        const mergePersistMetaRoomObjectsImpl = jest.fn().mockResolvedValue({
+            ok: true,
+            persisted: true,
+            priorObjects: [],
+            newObjects: [{
+                uuid: 'OBJECT#u1' as EphemeraObjectId,
+                shortName: 'box',
+                stableKey: 'box',
+                tropeAffinities: [],
+                tropeAffinitiesFailed: true,
+                affinities: [],
+                affinitiesFailed: true,
+            }],
+        })
+        const getCharacterMeta = jest.fn(async () => ({ RoomId: 'ROOM#VORTEX' }))
+        const uuidFactory = jest.fn(() => 'u1')
+
+        await handleAcmeOrderAddObjects({
+            type: 'Acme Order',
+            characterId: 'CHARACTER#123',
+            orders: [{
+                shortName: 'box',
+                stableKey: 'box',
+                tropeAffinities: [],
+                tropeAffinitiesFailed: true,
+                affinities: [],
+                affinitiesFailed: true,
+            }],
+            confidence: 0.5,
+        }, {
+            streamEvent,
+            getCharacterMeta,
+            uuidFactory,
+            mergePersistMetaRoomObjectsImpl,
+        })
+
+        expect(mergePersistMetaRoomObjectsImpl).toHaveBeenCalledWith({
+            roomId: 'ROOM#VORTEX',
+            add: [{
+                uuid: 'OBJECT#u1',
+                shortName: 'box',
+                stableKey: 'box',
+                tropeAffinities: [],
+                tropeAffinitiesFailed: true,
                 affinities: [],
                 affinitiesFailed: true,
             }],

@@ -44,24 +44,27 @@ export function formatCoyoteAffinityPossibility(p: CoyoteAffinityPossibility): s
  * Renders plan-role lines for one staged object. Legacy rows (no affinities, not failed) add no suffix.
  */
 export function formatCoyoteObjectAffinitySuffix(o: EphemeraMetaRoomObject): string {
-    if (o.tropeAffinitiesFailed === true) {
-        return 'trope affinities unavailable (enrich failed)'
-    }
+    const parts: string[] = []
     if (o.tropeAffinities && o.tropeAffinities.length > 0) {
-        return o.tropeAffinities.map((entry) => (
+        parts.push(`tropes: ${o.tropeAffinities.map((entry) => (
             `${entry.trope} ${entry.aptness} (${entry.narrowing})`
-        )).join('; ')
+        )).join('; ')}`)
+    }
+    else if (o.tropeAffinitiesFailed === true) {
+        parts.push('trope affinities unavailable (enrich failed)')
     }
     if (o.affinitiesFailed === true) {
-        return 'plan roles unavailable (enrich failed)'
+        parts.push('plan roles unavailable (enrich failed)')
     }
-    const raw = o.affinities
-    if (!raw || raw.length === 0) {
-        return ''
+    else {
+        const raw = o.affinities
+        if (raw && raw.length > 0) {
+            const sorted = [...raw].sort((a, b) => b.aptness - a.aptness)
+            const capped = sorted.slice(0, ACME_ORDER_ENRICH_MAX_AFFINITIES_PER_LINE)
+            parts.push(`plan roles: ${capped.map(formatCoyoteAffinityPossibility).join('; ')}`)
+        }
     }
-    const sorted = [...raw].sort((a, b) => b.aptness - a.aptness)
-    const capped = sorted.slice(0, ACME_ORDER_ENRICH_MAX_AFFINITIES_PER_LINE)
-    return capped.map(formatCoyoteAffinityPossibility).join('; ')
+    return parts.join(' | ')
 }
 
 function formatCoyoteStagedObjectLine(o: EphemeraMetaRoomObject): string {

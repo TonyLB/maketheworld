@@ -137,19 +137,47 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
     - Legacy compatibility placeholders remain deterministic for valid lines (`affinities: []`, `affinitiesFailed: true`) in parse/finalize outputs.
     - Bus/type guards in `publishedEvents` and `baseClasses` remained backward-compatible (trope fields optional), with added tests to cover both payloads with trope fields and legacy-compatible payloads without them.
 
-- [ ] Phase 2 - persistence and snapshots
-  - [ ] Extend object merge / meta room object shape for new fields; bridge from orders to objects.
-  - [ ] Update **`coyoteRoomObjectSnapshot`** formatting so hypothesis/outcome prompts see trope-centered lines while still exposing enough legacy-compatible text for stage-one echo rules until relaxed.
+- [X] Phase 2 - persistence and snapshots
+  - [X] Extend object merge / meta room object shape for new fields; bridge from orders to objects.
+  - [X] Update **`coyoteRoomObjectSnapshot`** formatting so hypothesis/outcome prompts see trope-centered lines while still exposing enough legacy-compatible text for stage-one echo rules until relaxed.
+  - Locked implementation notes:
+    - `handleAcmeOrderAddObjects` now uses a dedicated bus-to-object mapper so canonical trope fields (`tropeAffinities`, `tropeAffinitiesFailed`) and temporary legacy placeholders (`affinities`, `affinitiesFailed`) are persisted and streamed in one pass-through contract.
+    - `formatCoyoteObjectAffinitySuffix` is now trope-first while retaining stage-one legacy echo support: trope lines render first when present, legacy plan-role lines render as secondary compatibility text, and both failure markers are emitted deterministically when both paths fail.
 
-- [ ] Phase 3 - hypothesis pipeline
+- [ ] Phase 2.5 - Acme trope-affinity quality hardening
+  - [ ] Build a representative calibration corpus for Acme enrich trope fits (clean trope signals, borderline cases, and likely misclassification patterns).
+  - [ ] Define first-pass acceptance criteria for trope-affinity usefulness (coverage, trope-label plausibility, narrowing specificity, and failure-rate guardrails).
+  - [ ] Run calibration/evaluation passes against the current Acme enrich prompt and record concrete failure modes to feed hypothesis-phase parser/rubric hardening.
+  - [ ] Apply a bounded prompt revision pass in `actions/enrich/acmeOrder/buildPrompt.ts`, then re-run the same corpus and compare before/after outcomes.
+  - [ ] Lock an eval artifact reference (fixtures + rubric notes) so Phase 3A+ can reuse the same quality harness when reworking hypothesis hops.
+
+- [ ] Phase 3A - hypothesis contracts and validation seams
+  - [ ] Lock hop contracts before major prompt rewrites: candidate-clustering output shape, plan-selection handoff shape, and phase-plan output shape.
+  - [ ] Add/adjust parsers and validation contexts to fail fast on malformed hop payloads while preserving current stub/abort semantics.
+  - [ ] Refresh harness fixtures with contract-first snapshots so downstream prompt rewrites have stable parser targets.
+
+- [ ] Phase 3B - hypothesis `clustering` rework
   - [ ] Rework `clustering` into candidate trope assignments with provisional object-to-trope grouping and first-draft execution detail.
-  - [ ] Rework `plan selection` into conflict catalog + rubric comparison + best-candidate selection.
-  - [ ] Rework `phase-plan` into deconflicted final trope sequence (second-draft detail) plus golden-path walk-through generation by trope beats.
-  - [ ] Refresh test harness fixtures in [`coyoteEngineTestFixtures.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts) incrementally.
+  - [ ] Add focused tests for clustering parse/merge behavior under trope-first data (including malformed/partial model outputs).
+  - [ ] Re-freeze clustering fixture slices in [`coyoteEngineTestFixtures.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts).
 
-- [ ] Phase 4 - outcome pipeline and rubric
-  - [ ] Align **`buildPlanOutcomePrompt`** / **`formatPhasePlanForOutcomePrompt`** with assembled trope sequence + walk-through.
+- [ ] Phase 3C - hypothesis `plan selection` rework
+  - [ ] Rework `plan selection` into conflict catalog + rubric comparison + best-candidate selection.
+  - [ ] Add tests for handoff extraction and failure routing when conflict/rubric sections are missing or invalid.
+  - [ ] Re-freeze plan-selection fixture slices in [`coyoteEngineTestFixtures.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts).
+
+- [ ] Phase 3D - hypothesis `phase-plan` rework
+  - [ ] Rework `phase-plan` into deconflicted final trope sequence (second-draft detail) plus golden-path walk-through generation by trope beats.
+  - [ ] Add tests for phase-plan parse validation reasoning (structured-failure tolerated when prose hypothesis parses).
+  - [ ] Re-freeze phase-plan fixture slices in [`coyoteEngineTestFixtures.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts).
+
+- [ ] Phase 4A - outcome pipeline alignment
+  - [ ] Align **`buildPlanOutcomePrompt`** / **`formatPhasePlanForOutcomePrompt`** with assembled trope sequence + walk-through from Phase 3D contracts.
+  - [ ] Add regression tests that consume trope-first phase-plan output without legacy role assumptions.
+
+- [ ] Phase 4B - legality and rubric verification
   - [ ] Add verification tests for golden-path legality (trope order, distraction constraint).
+  - [ ] Add rubric-level assertions where deterministic legality checks must override soft scoring.
 
 - [ ] Phase 4B - spatial second pass (after first-pass trope-centering)
   - [ ] Add explicit spatial judgment inputs (room boundaries, co-staged props, path feasibility) to `plan selection` rubric scoring.

@@ -101,9 +101,22 @@ export const handleAwaitRoadRunnerClearObjects = async (
 
 /**
  * Coyote Acme delivery: persist finalized `stableKey` from `AcmeOrderPublishedOrder` onto
- * `Meta::Room.objects` with `shortName` / `affinities`; mapping is pass-through (uniqueness enforced
- * upstream in `mtw.ephemera.actions`).
+ * `Meta::Room.objects` with `shortName`, canonical trope fields, and legacy compatibility fields;
+ * mapping is pass-through (uniqueness enforced upstream in `mtw.ephemera.actions`).
  */
+const acmeOrderToMetaRoomObject = (
+    entry: AcmeOrderPublishedPayload['orders'][number],
+    uuid: `OBJECT#${string}`
+) => ({
+    uuid,
+    shortName: entry.shortName,
+    stableKey: entry.stableKey,
+    ...(entry.tropeAffinities !== undefined ? { tropeAffinities: entry.tropeAffinities } : {}),
+    ...(entry.tropeAffinitiesFailed === true ? { tropeAffinitiesFailed: true as const } : {}),
+    affinities: entry.affinities,
+    ...(entry.affinitiesFailed === true ? { affinitiesFailed: true as const } : {}),
+})
+
 export const handleAcmeOrderAddObjects = async (
     payload: AcmeOrderPublishedPayload,
     deps: {
@@ -120,15 +133,10 @@ export const handleAcmeOrderAddObjects = async (
         return
     }
     const makeUuid = deps.uuidFactory ?? uuidv4
-    const add = payload.orders.map((entry) => ({
-        uuid: `OBJECT#${makeUuid()}` as `OBJECT#${string}`,
-        shortName: entry.shortName,
-        stableKey: entry.stableKey,
-        ...(entry.tropeAffinities !== undefined ? { tropeAffinities: entry.tropeAffinities } : {}),
-        ...(entry.tropeAffinitiesFailed === true ? { tropeAffinitiesFailed: true as const } : {}),
-        affinities: entry.affinities,
-        ...(entry.affinitiesFailed === true ? { affinitiesFailed: true as const } : {}),
-    }))
+    const add = payload.orders.map((entry) => acmeOrderToMetaRoomObject(
+        entry,
+        `OBJECT#${makeUuid()}` as `OBJECT#${string}`
+    ))
     if (add.length === 0) {
         return
     }

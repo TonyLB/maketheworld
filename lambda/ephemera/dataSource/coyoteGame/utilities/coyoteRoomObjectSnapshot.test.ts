@@ -68,7 +68,37 @@ describe('formatCoyoteObjectAffinitySuffix', () => {
             ],
         }
         expect(formatCoyoteObjectAffinitySuffix(o)).toBe(
-            'influence-road-runner 0.70; terminal 0.50'
+            'plan roles: influence-road-runner 0.70; terminal 0.50'
+        )
+    })
+
+    it('formats trope affinities before legacy roles when both are present', () => {
+        const o: EphemeraMetaRoomObject = {
+            uuid: 'OBJECT#a' as `OBJECT#${string}`,
+            shortName: 'Magnet',
+            stableKey: 'magnet',
+            tropeAffinities: [{
+                trope: 'Contraption',
+                aptness: 'High',
+                narrowing: 'overhead winch',
+            }],
+            affinities: [{ role: 'delivery', aptness: 0.62 }],
+        }
+        expect(formatCoyoteObjectAffinitySuffix(o)).toBe(
+            'tropes: Contraption High (overhead winch) | plan roles: delivery 0.62'
+        )
+    })
+
+    it('includes both failure markers when both trope and legacy paths failed', () => {
+        const o: EphemeraMetaRoomObject = {
+            uuid: 'OBJECT#a' as `OBJECT#${string}`,
+            shortName: 'Box',
+            stableKey: 'box',
+            tropeAffinitiesFailed: true,
+            affinitiesFailed: true,
+        }
+        expect(formatCoyoteObjectAffinitySuffix(o)).toBe(
+            'trope affinities unavailable (enrich failed) | plan roles unavailable (enrich failed)'
         )
     })
 })
@@ -104,6 +134,27 @@ describe('formatCoyoteStagedObjectsByRoom', () => {
             ],
         })
         expect(out).toContain('paint — stableKey: paint — plan roles unavailable (enrich failed)')
+    })
+
+    it('renders trope-first then legacy role text in staged line', () => {
+        const out = formatCoyoteStagedObjectsByRoom({
+            [room('ROOM#VORTEX')]: [
+                {
+                    uuid: 'OBJECT#x' as `OBJECT#${string}`,
+                    shortName: 'magnet',
+                    stableKey: 'magnet',
+                    tropeAffinities: [{
+                        trope: 'Contraption',
+                        aptness: 'Good',
+                        narrowing: 'ceiling track',
+                    }],
+                    affinities: [{ role: 'delivery', aptness: 0.55 }],
+                },
+            ],
+        })
+        expect(out).toContain(
+            'magnet — stableKey: magnet — tropes: Contraption Good (ceiling track) | plan roles: delivery 0.55'
+        )
     })
 
     it('sorts rooms by id', () => {
