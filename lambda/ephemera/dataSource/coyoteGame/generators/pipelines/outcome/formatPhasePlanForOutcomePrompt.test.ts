@@ -11,8 +11,12 @@ describe('formatPhasePlanForOutcomePrompt', () => {
         }
         const text = formatPhasePlanForOutcomePrompt(
             {
+                tropeSequence: ['Contraption', 'Finishing Move'],
+                deconflictionSummary: 'Use skates for setup and reserve anvil for the finisher.',
                 phases: [
                     {
+                        trope: 'Contraption',
+                        tropeBeat: 'Build speed before the strike.',
                         stableKeysUsed: ['rocket-skates-0'],
                         virtualEntities: [
                             {
@@ -25,6 +29,8 @@ describe('formatPhasePlanForOutcomePrompt', () => {
                         prepVsBeat: 'prep',
                     },
                     {
+                        trope: 'Finishing Move',
+                        tropeBeat: 'Drop the anvil when lane commitment is locked.',
                         stableKeysUsed: ['anvil-1'],
                         virtualEntities: [],
                         achievement: 'Drop fails upward.',
@@ -35,18 +41,24 @@ describe('formatPhasePlanForOutcomePrompt', () => {
             roomObjectsByRoom,
         )
 
-        expect(text).toContain('Phase 1 — prep: Close the gap on the highway.')
+        expect(text).toContain('Phase 1 — prep: Contraption — Build speed before the strike.')
+        expect(text).toContain('Achievement: Close the gap on the highway.')
         expect(text).toContain('Staged props: rocket skates (rocket-skates-0)')
         expect(text).toContain('Virtual "speed burst" (deployed): from rocket-skates-0')
-        expect(text).toContain('Phase 2 — creation: Drop fails upward.')
+        expect(text).toContain('Phase 2 — creation: Finishing Move — Drop the anvil when lane commitment is locked.')
+        expect(text).toContain('Achievement: Drop fails upward.')
         expect(text).toContain('Staged props: anvil (anvil-1)')
     })
 
     it('falls back to raw stableKey when not in snapshot', () => {
         const text = formatPhasePlanForOutcomePrompt(
             {
+                tropeSequence: ['Contraption'],
+                deconflictionSummary: 'Fallback unknown key example.',
                 phases: [
                     {
+                        trope: 'Contraption',
+                        tropeBeat: 'Use unknown prop.',
                         stableKeysUsed: ['missing-key'],
                         virtualEntities: [],
                         achievement: 'Unknown prop beat.',

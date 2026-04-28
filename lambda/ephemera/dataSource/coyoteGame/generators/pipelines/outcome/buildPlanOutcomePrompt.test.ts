@@ -56,8 +56,12 @@ describe('buildPlanOutcomePrompt', () => {
             hypothesisLine: 'Hypothesis: B.',
             walkthrough: 'You stage the chase along the highway.',
             phasePlan: {
+                tropeSequence: ['Contraption'],
+                deconflictionSummary: 'Single setup lane.',
                 phases: [
                     {
+                        trope: 'Contraption',
+                        tropeBeat: 'Prepare anvil drop.',
                         stableKeysUsed: ['anvil'],
                         virtualEntities: [],
                         achievement: 'Test.',
@@ -87,8 +91,12 @@ describe('buildPlanOutcomePrompt', () => {
             },
             hypothesisLine: 'Hypothesis: Drop.',
             phasePlan: {
+                tropeSequence: ['Finishing Move'],
+                deconflictionSummary: 'Use anvil only at terminal beat.',
                 phases: [
                     {
+                        trope: 'Finishing Move',
+                        tropeBeat: 'Drop anvil from committed lane.',
                         stableKeysUsed: ['anvil'],
                         virtualEntities: [],
                         achievement: 'Gravity votes coyote.',
@@ -97,7 +105,8 @@ describe('buildPlanOutcomePrompt', () => {
             },
         })
         expect(prompt).toContain('## Phase plan (execution outline)')
-        expect(prompt).toContain('Phase 1: Gravity votes coyote.')
+        expect(prompt).toContain('Phase 1: Finishing Move — Drop anvil from committed lane.')
+        expect(prompt).toContain('Achievement: Gravity votes coyote.')
         expect(prompt).toContain('Staged props: anvil')
         expect(prompt).toContain('single Outcome: line')
     })

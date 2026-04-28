@@ -17,8 +17,12 @@ function ctx(overrides: Partial<CoyotePhasePlanValidationContext> = {}): CoyoteP
 /** One phase with one virtual grounded on the first snapshot key (and listed in stableKeysUsed). */
 function minimalValidPlan() {
     return {
+        tropeSequence: ['Contraption'],
+        deconflictionSummary: 'Use only the anvil lane and avoid duplicate prop assignments.',
         phases: [
             {
+                trope: 'Contraption',
+                tropeBeat: 'Rig the anvil lane with a committed trigger.',
                 stableKeysUsed: ['anvil-1'],
                 virtualEntities: [
                     {
@@ -48,7 +52,7 @@ describe('validateCoyotePhasePlan', () => {
         const result = validateCoyotePhasePlan(raw, ctx())
         expect(result.ok).toBe(false)
         if (!result.ok) {
-            expect(result.reason).toContain('exactly the key "phases"')
+            expect(result.reason).toContain('exactly keys "tropeSequence", "deconflictionSummary", and "phases"')
         }
     })
 
@@ -65,6 +69,31 @@ describe('validateCoyotePhasePlan', () => {
         expect(result.ok).toBe(false)
         if (!result.ok) {
             expect(result.reason).toContain('unexpected key on phase')
+        }
+    })
+
+    it('rejects non-canonical tropeSequence order', () => {
+        const raw = {
+            ...minimalValidPlan(),
+            tropeSequence: ['Disadvantage', 'Distraction'],
+        }
+        const result = validateCoyotePhasePlan(raw, ctx())
+        expect(result.ok).toBe(false)
+        if (!result.ok) {
+            expect(result.reason).toContain('canonical order')
+        }
+    })
+
+    it('rejects phase trope mismatch against tropeSequence', () => {
+        const raw = {
+            ...minimalValidPlan(),
+            tropeSequence: ['Contraption'],
+            phases: [{ ...minimalValidPlan().phases[0], trope: 'Distraction' }],
+        }
+        const result = validateCoyotePhasePlan(raw, ctx())
+        expect(result.ok).toBe(false)
+        if (!result.ok) {
+            expect(result.reason).toContain('must match tropeSequence')
         }
     })
 
@@ -94,8 +123,12 @@ describe('validateCoyotePhasePlan', () => {
 
     it('rejects reserved setting token in stableKeysUsed', () => {
         const raw = {
+            tropeSequence: ['Contraption'],
+            deconflictionSummary: 'Keep setting token virtual-only.',
             phases: [
                 {
+                    trope: 'Contraption',
+                    tropeBeat: 'Set the prop.',
                     stableKeysUsed: [COYOTE_RESERVED_VIRTUAL_GROUNDING_STABLE_KEY],
                     virtualEntities: [
                         {
@@ -117,8 +150,12 @@ describe('validateCoyotePhasePlan', () => {
 
     it('rejects unknown snapshot stableKey in stableKeysUsed', () => {
         const raw = {
+            tropeSequence: ['Contraption'],
+            deconflictionSummary: 'Unknown key should fail.',
             phases: [
                 {
+                    trope: 'Contraption',
+                    tropeBeat: 'Set unknown key.',
                     stableKeysUsed: ['not-in-snapshot'],
                     virtualEntities: [
                         {
@@ -140,8 +177,12 @@ describe('validateCoyotePhasePlan', () => {
 
     it('allows derivedFrom to mix reserved setting and snapshot keys', () => {
         const raw = {
+            tropeSequence: ['Contraption'],
+            deconflictionSummary: 'Mix setting and staged grounding.',
             phases: [
                 {
+                    trope: 'Contraption',
+                    tropeBeat: 'Blend setting with staged object.',
                     stableKeysUsed: ['crate-2'],
                     virtualEntities: [
                         {
@@ -160,8 +201,12 @@ describe('validateCoyotePhasePlan', () => {
 
     it('allows stableKeysUsed for keys that would be clustering outliers (present on snapshot)', () => {
         const raw = {
+            tropeSequence: ['Contraption'],
+            deconflictionSummary: 'Outlier is still snapshot-valid.',
             phases: [
                 {
+                    trope: 'Contraption',
+                    tropeBeat: 'Include outlier prop in final beat.',
                     stableKeysUsed: ['outlier-prop'],
                     virtualEntities: [
                         {
@@ -180,8 +225,12 @@ describe('validateCoyotePhasePlan', () => {
 
     it('rejects topology-only derivedFrom when no topology allowlist is provided', () => {
         const raw = {
+            tropeSequence: ['Contraption'],
+            deconflictionSummary: 'Topology token invalid without allowlist.',
             phases: [
                 {
+                    trope: 'Contraption',
+                    tropeBeat: 'Use cliff cue.',
                     stableKeysUsed: ['anvil-1'],
                     virtualEntities: [
                         {
@@ -203,8 +252,12 @@ describe('validateCoyotePhasePlan', () => {
 
     it('allows topology tokens when allowlist matches (case-insensitive)', () => {
         const raw = {
+            tropeSequence: ['Contraption'],
+            deconflictionSummary: 'Topology token accepted by allowlist.',
             phases: [
                 {
+                    trope: 'Contraption',
+                    tropeBeat: 'Use cliff cue.',
                     stableKeysUsed: ['anvil-1'],
                     virtualEntities: [
                         {
@@ -226,8 +279,12 @@ describe('validateCoyotePhasePlan', () => {
 
     it('mentions topology allowlist when it is provided and the token is invalid', () => {
         const raw = {
+            tropeSequence: ['Contraption'],
+            deconflictionSummary: 'Invalid topology token should error.',
             phases: [
                 {
+                    trope: 'Contraption',
+                    tropeBeat: 'Use invalid cue.',
                     stableKeysUsed: ['anvil-1'],
                     virtualEntities: [
                         {
@@ -251,7 +308,11 @@ describe('validateCoyotePhasePlan', () => {
     })
 
     it('rejects empty phases array', () => {
-        const result = validateCoyotePhasePlan({ phases: [] }, ctx())
+        const result = validateCoyotePhasePlan({
+            tropeSequence: ['Contraption'],
+            deconflictionSummary: 'Empty phases should fail.',
+            phases: [],
+        }, ctx())
         expect(result.ok).toBe(false)
         if (!result.ok) {
             expect(result.reason).toContain('non-empty')
@@ -260,8 +321,12 @@ describe('validateCoyotePhasePlan', () => {
 
     it('enforces maxSettingOnlyVirtualsPerPhase cap', () => {
         const raw = {
+            tropeSequence: ['Contraption'],
+            deconflictionSummary: 'Setting-only cap applies.',
             phases: [
                 {
+                    trope: 'Contraption',
+                    tropeBeat: 'Stock scenery setup.',
                     stableKeysUsed: [],
                     virtualEntities: [
                         {
@@ -291,8 +356,12 @@ describe('validateCoyotePhasePlan', () => {
 
     it('does not count virtuals with a snapshot key toward the setting-only cap', () => {
         const raw = {
+            tropeSequence: ['Contraption'],
+            deconflictionSummary: 'Snapshot-grounded virtuals should not count toward setting cap.',
             phases: [
                 {
+                    trope: 'Contraption',
+                    tropeBeat: 'Use real prop plus setting extras.',
                     stableKeysUsed: ['anvil-1'],
                     virtualEntities: [
                         {
@@ -321,8 +390,12 @@ describe('validateCoyotePhasePlan', () => {
 
     it('accepts optional prepVsBeat', () => {
         const raw = {
+            tropeSequence: ['Contraption'],
+            deconflictionSummary: 'Prep beat accepted.',
             phases: [
                 {
+                    trope: 'Contraption',
+                    tropeBeat: 'Prep the launch line.',
                     stableKeysUsed: ['anvil-1'],
                     virtualEntities: [
                         {

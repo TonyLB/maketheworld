@@ -38,7 +38,8 @@ export function formatPhasePlanForOutcomePrompt(
         const n = index + 1
         const prep =
             phase.prepVsBeat !== undefined ? ` — ${phase.prepVsBeat}` : ''
-        lines.push(`Phase ${n}${prep}: ${phase.achievement}`)
+        lines.push(`Phase ${n}${prep}: ${phase.trope} — ${phase.tropeBeat}`)
+        lines.push(`  Achievement: ${phase.achievement}`)
         if (phase.stableKeysUsed.length > 0) {
             const labels = phase.stableKeysUsed.map((sk) => resolveStableKeyLabel(sk, keyToShort))
             lines.push(`  Staged props: ${labels.join(', ')}`)
