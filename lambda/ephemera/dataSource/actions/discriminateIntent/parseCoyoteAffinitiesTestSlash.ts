@@ -26,6 +26,11 @@ export type ParseCoyoteAffinitiesTestSlashResult =
 /**
  * Parses `/test affinities` tail into harness invocation per locked slash UX.
  * Call only when {@link isCoyoteAffinitiesTestSlashCommand} is true for the trimmed command.
+ *
+ * Operator-facing grammar:
+ * - `/test affinities` => full fixture run.
+ * - `/test affinities <n>` => single fixture run (1-based index).
+ * - Any other tail shape => deterministic `Error` parse result with usage guidance.
  */
 export function parseCoyoteAffinitiesTestSlashTail(
     trimmedCommand: string,

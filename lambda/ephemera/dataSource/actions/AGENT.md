@@ -17,6 +17,7 @@ Related index: [`../AGENT.md`](../AGENT.md) (**DataSource instances** table).
 Implementation-heavy workflows are documented in [`AGENT.implementation.md`](./AGENT.implementation.md):
 
 The discriminate-intent prompt, deterministic checks (including Coyote slash-command matchers), JSON interpreter, and intent-only types/guards live under [`discriminateIntent/`](./discriminateIntent/).
+**Acme affinities test (`/test affinities`) operator usage:** `/test affinities` runs all affinities fixtures, while `/test affinities <n>` runs a single fixture by 1-based index (invalid tails return deterministic parse errors with usage text).
 **Coyote engine test (`/test generation`):** Handled without Bedrock --- [`deterministicChecks.ts`](./discriminateIntent/deterministicChecks.ts) routes the prefix, [`parseCoyoteEngineTestSlashTail`](./discriminateIntent/parseCoyoteEngineTestSlash.ts) parses the tail, and [`coyoteEngineTestSlashCommand.ts`](./discriminateIntent/coyoteEngineTestSlashCommand.ts) defines the slash prefix. Canonical grammar, harness modes (**`runUntil`** vs programmatic **`runOnly`**), and fixtures: **[`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md)** (**Engine testing harness**).
 Post-discrimination enrichment flows live under [`enrich/`](./enrich/), with Acme order as the first concrete implementation in [`enrich/acmeOrder/`](./enrich/acmeOrder/).
 
