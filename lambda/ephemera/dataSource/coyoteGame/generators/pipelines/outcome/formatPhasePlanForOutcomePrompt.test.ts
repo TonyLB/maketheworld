@@ -41,6 +41,8 @@ describe('formatPhasePlanForOutcomePrompt', () => {
             roomObjectsByRoom,
         )
 
+        expect(text).toContain('Trope sequence: Contraption -> Finishing Move')
+        expect(text).toContain('Deconfliction: Use skates for setup and reserve anvil for the finisher.')
         expect(text).toContain('Phase 1 — prep: Contraption — Build speed before the strike.')
         expect(text).toContain('Achievement: Close the gap on the highway.')
         expect(text).toContain('Staged props: rocket skates (rocket-skates-0)')
@@ -67,6 +69,8 @@ describe('formatPhasePlanForOutcomePrompt', () => {
             },
             { 'ROOM#VORTEX': [] },
         )
+        expect(text).toContain('Trope sequence: Contraption')
+        expect(text).toContain('Deconfliction: Fallback unknown key example.')
         expect(text).toContain('Staged props: missing-key')
     })
 })

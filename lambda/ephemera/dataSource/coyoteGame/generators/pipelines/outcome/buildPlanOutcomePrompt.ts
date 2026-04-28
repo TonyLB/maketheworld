@@ -78,9 +78,10 @@ function buildPlanOutcomeDynamicLines(input: BuildPlanOutcomePromptInput): strin
             '## Phase plan (execution outline)',
             outline,
             '',
-            '- Turn the phase outline into a single Outcome: line. Honor the prop and',
-            '  beat order; the failure should still be on the Coyote, with the Road',
-            '  Runner unharmed and free to escape.',
+            '- Turn the trope sequence, deconfliction note, and phase outline into a',
+            '  single Outcome: line. Follow trope order and walkthrough beats; the',
+            '  failure should still be on the Coyote, with the Road Runner unharmed',
+            '  and free to escape.',
         )
     }
 
