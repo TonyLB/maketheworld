@@ -1,6 +1,6 @@
 # Acme order enrich: Coyote object cap (`Too Many Objects`)
 
-**Status:** In progress. Coyote placement count helper is in [`actions/utilities/`](../../../../../../../lambda/ephemera/dataSource/actions/utilities/); next wire **`enrichAcmeOrder`** guard.
+**Status:** In progress. Coyote placement cap is enforced in **`enrichAcmeOrder`**; remaining cleanup is merge housekeeping below.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../../../../taskPlanning/AGENT.md). For workflow scaffolding, see the root [`AGENT.md`](../../../../../../../AGENT.md) (complex-task Getting Started pattern where present).
 
@@ -46,10 +46,10 @@ Player-facing copy (exact string for the error path):
 Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each sub-step lands.
 
 - [X] Add a small exported helper under [`actions/utilities/`](../../../../../../../lambda/ephemera/dataSource/actions/utilities/) (**`countCoyotePlacedObjectsAcrossRooms`**) that returns the **total** Coyote Game object count across rooms, with **injectable deps** for tests.
-- [ ] Wire **`enrichAcmeOrder`**: await count; if **`count > 20`**, return **`{ result: { type: 'Error', errorMessage: '<exact string>' }, enrichReasoningMarkdown: '' }`** and **do not** call **`invokeBedrockAcmeOrderEnrich`**.
-- [ ] Update **`parseCommand`** / **`parseCommandCore`** typings so **`AcmeOrderIntent`** can yield **`Error`** from enrich without casts.
-- [ ] Add tests: helper unit tests; **`enrichAcmeOrder`** asserts no enrich invoke when over cap; **`parseCommand`** (or harness) asserts enrich mock not called; optional test at **exactly** 20 objects still allows enrich.
-- [ ] Run targeted Jest for touched files under `lambda/ephemera/` (see **Verification**).
+- [X] Wire **`enrichAcmeOrder`**: await count; if **`count > 20`**, return **`{ result: { type: 'Error', errorMessage: '<exact string>' }, enrichReasoningMarkdown: '' }`** and **do not** call **`invokeBedrockAcmeOrderEnrich`**.
+- [X] Update **`parseCommand`** / **`parseCommandCore`** typings so **`AcmeOrderIntent`** can yield **`Error`** from enrich without casts.
+- [X] Add tests: helper unit tests; **`enrichAcmeOrder`** asserts no enrich invoke when over cap; **`parseCommand`** (or harness) asserts enrich mock not called; optional test at **exactly** 20 objects still allows enrich.
+- [X] Run targeted Jest for touched files under `lambda/ephemera/` (see **Verification**).
 - [ ] After merge, update **Progress** below and **Recommended order** checkboxes; then archive or delete this plan per [`taskPlanning/AGENT.md`](../../../../../../../taskPlanning/AGENT.md).
 
 ## Verification
@@ -60,7 +60,8 @@ From `lambda/ephemera/` (adjust file list to match what changed):
 npx jest --config "/Users/anthonylower-basch/Code/maketheworld/lambda/ephemera/jest.config.js" --runInBand \
   dataSource/actions/utilities/countCoyotePlacedObjectsAcrossRooms.test.ts \
   dataSource/actions/enrich/acmeOrder/index.test.ts \
-  dataSource/actions/parseCommand.test.ts
+  dataSource/actions/parseCommand.test.ts \
+  dataSource/actions/actionHandlers/runAcmeOrderAffinitiesHarness.test.ts
 ```
 
 ## Progress
@@ -69,7 +70,7 @@ npx jest --config "/Users/anthonylower-basch/Code/maketheworld/lambda/ephemera/j
 | --- | --- |
 | Task plan authored | Done |
 | Count helper + tests | Done |
-| `enrichAcmeOrder` guard + parse wiring | Not started |
-| Verification commands green | Not started |
+| `enrichAcmeOrder` guard + parse wiring | Done |
+| Verification commands green | Done |
 | Durable docs updated (if needed) | Not started |
 | Task plan retired | Not started |

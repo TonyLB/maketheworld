@@ -4,7 +4,7 @@
  */
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../../internalCache'
-import type { CollectCoyoteOccupiedStableKeysDeps } from '../stableKey/collectCoyoteOccupiedStableKeys'
+import type { CollectCoyoteOccupiedStableKeysDeps } from '../baseClasses'
 
 export async function countCoyotePlacedObjectsAcrossRooms(
     deps?: Partial<CollectCoyoteOccupiedStableKeysDeps>

@@ -104,6 +104,7 @@ describe('runAcmeOrderAffinitiesHarness', () => {
             enrichOnly: true,
             parseCommandImpl,
             invokeBedrockAcmeOrderEnrichImpl,
+            countCoyotePlacedObjectsAcrossRoomsDeps: { getGameRooms: async () => [] },
             now: () => 0,
         })
 
@@ -145,6 +146,7 @@ describe('runAcmeOrderAffinitiesHarness', () => {
             enrichOnly: true,
             parseCommandImpl,
             invokeBedrockAcmeOrderEnrichImpl,
+            countCoyotePlacedObjectsAcrossRoomsDeps: { getGameRooms: async () => [] },
             now: () => 0,
         })
 

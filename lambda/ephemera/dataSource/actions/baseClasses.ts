@@ -1,8 +1,18 @@
 import { EphemeraRoomId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { AcmeCatalogRejectionReason, AcmeOrderEnrichModelLine } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { isCoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 import type { CoyoteEngineTestHarnessInvocation } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
+
+/**
+ * Injectable accessors for iterating Coyote demo rooms and **`Meta::Room`** (shared by
+ * **`collectCoyoteOccupiedStableKeys`**, **`countCoyotePlacedObjectsAcrossRooms`**, and **`ParseCommandDeps`**).
+ */
+export type CollectCoyoteOccupiedStableKeysDeps = {
+    getGameRooms: () => Promise<string[]>
+    getRoomMeta: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
+}
 
 /**
  * Parser confidence for non-error outcomes. Typically in [0, 1]; validated by type guards.
@@ -120,7 +130,8 @@ export type ParseCommandNavigationIntentResult = {
 
 /**
  * Intent discrimination only: player intent is an Acme order (no segmentation or catalog validation).
- * `parseCommand` always follows with Acme order enrich and returns {@link ParseCommandAcmeOrderResult}.
+ * `parseCommand` runs Acme order enrich next; under normal conditions that yields {@link ParseCommandAcmeOrderResult},
+ * but enrich may return {@link ParseCommandErrorResult} (for example when Coyote placement count exceeds the cap).
  */
 export type ParseCommandAcmeOrderIntentResult = {
     type: 'AcmeOrderIntent'
@@ -329,4 +340,6 @@ export type ParseCommandDeps = {
     invokeBedrockParseCommandImpl?: typeof import('../../generateExample/invokeBedrockParseCommand').invokeBedrockParseCommand;
     /** Second Bedrock call for Acme line enrichment; tests may inject a mock. */
     invokeBedrockAcmeOrderEnrichImpl?: typeof import('../../generateExample/invokeBedrockAcmeOrderEnrich').invokeBedrockAcmeOrderEnrich;
+    /** Injectable Coyote room/meta accessors for `countCoyotePlacedObjectsAcrossRooms` (Acme enrich pre-check). */
+    countCoyotePlacedObjectsAcrossRoomsDeps?: Partial<CollectCoyoteOccupiedStableKeysDeps>;
 }

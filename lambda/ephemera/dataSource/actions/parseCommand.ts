@@ -26,7 +26,8 @@ async function parseCommandCore(
             occupiedStableKeys: input.occupiedStableKeys ?? [],
         },
         intentResult.confidence,
-        deps.invokeBedrockAcmeOrderEnrichImpl
+        deps.invokeBedrockAcmeOrderEnrichImpl,
+        deps.countCoyotePlacedObjectsAcrossRoomsDeps
     )
     return { result, enrichReasoningMarkdown }
 }
