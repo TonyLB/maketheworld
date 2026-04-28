@@ -128,10 +128,14 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
     - May adapt in same release: `lambda/ephemera/dataSource/actions/enrich/acmeOrder/interpretAndFinalize.ts`, `lambda/ephemera/dataSource/actions/enrich/acmeOrder/buildPrompt.ts`, `lambda/ephemera/dataSource/actions/index.ts`, `lambda/ephemera/dataSource/objects/handleApiObjectsChange.ts`, `lambda/ephemera/dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot.ts`.
     - Hidden envelope validators to keep in scope: `lambda/ephemera/dataSource/localApiEvents.ts`, `lambda/ephemera/dataSource/objects/events.ts`.
 
-- [ ] Phase 1 - types and normalization (`mtw-interfaces` + actions)
-  - [ ] Introduce trope-centered types (`tropeAffinities` / `tropeAffinitiesFailed`; 1-3 fits per object; aptness `High` | `Good` | `Poor`; free-text narrowing) without breaking existing `normalizeAcmeOrderEnrichResponse` callers; extend or duplicate normalize paths as needed.
-  - [ ] Update Acme enrich **`buildPrompt.ts`** so the model outputs the new canonical fields and deterministic legacy stubs per Phase 0.
-  - [ ] Update **`publishedEvents` / `baseClasses`** validation only if new fields ride the bus; preserve backward compatibility for older payloads in tests.
+- [X] Phase 1 - types and normalization (`mtw-interfaces` + actions)
+  - [X] Introduce trope-centered types (`tropeAffinities` / `tropeAffinitiesFailed`; 1-3 fits per object; aptness `High` | `Good` | `Poor`; free-text narrowing) without breaking existing `normalizeAcmeOrderEnrichResponse` callers; extend or duplicate normalize paths as needed.
+  - [X] Update Acme enrich **`buildPrompt.ts`** so the model outputs the new canonical fields and deterministic legacy stubs per Phase 0.
+  - [X] Update **`publishedEvents` / `baseClasses`** validation only if new fields ride the bus; preserve backward compatibility for older payloads in tests.
+  - Locked implementation notes:
+    - `normalizeAcmeOrderEnrichLine` now deterministically emits canonical trope status for valid lines: non-empty trope fits stay as-is; missing/empty fits normalize to `tropeAffinities: []` with `tropeAffinitiesFailed: true`.
+    - Legacy compatibility placeholders remain deterministic for valid lines (`affinities: []`, `affinitiesFailed: true`) in parse/finalize outputs.
+    - Bus/type guards in `publishedEvents` and `baseClasses` remained backward-compatible (trope fields optional), with added tests to cover both payloads with trope fields and legacy-compatible payloads without them.
 
 - [ ] Phase 2 - persistence and snapshots
   - [ ] Extend object merge / meta room object shape for new fields; bridge from orders to objects.

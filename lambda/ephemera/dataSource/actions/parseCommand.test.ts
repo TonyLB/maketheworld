@@ -70,6 +70,18 @@ describe('parseCommand type guards', () => {
                 ],
                 confidence: 0.85,
             })).toBe(true)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{
+                    valid: true,
+                    name: 'rocket skates',
+                    stableKey: 'rocket-skates',
+                    tropeAffinities: [{ trope: 'Contraption', aptness: 'High', narrowing: 'pursuit gear' }],
+                    affinities: [],
+                    affinitiesFailed: true,
+                }],
+                confidence: 0.85,
+            })).toBe(true)
         })
 
         it('rejects valid true line that also carries errorType (mixed shape)', () => {
@@ -153,6 +165,18 @@ describe('parseCommand type guards', () => {
                 order: 'legacy only',
                 confidence: 0.9,
             } as any)).toBe(false)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{
+                    valid: true,
+                    name: 'rope',
+                    stableKey: 'rope',
+                    tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'tie-off' }],
+                    tropeAffinitiesFailed: true,
+                    affinities: [],
+                }],
+                confidence: 0.9,
+            })).toBe(false)
         })
 
     })

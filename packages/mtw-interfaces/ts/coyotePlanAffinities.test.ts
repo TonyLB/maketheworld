@@ -166,7 +166,7 @@ describe('normalizeAcmeOrderEnrichLine', () => {
         expect(normalizeAcmeOrderEnrichLine(line, 'fallback')).toEqual({
             ...line,
             tropeAffinities: [],
-            tropeAffinitiesFailed: false,
+            tropeAffinitiesFailed: true,
         })
     })
 
@@ -189,7 +189,7 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             name: 'X',
             stableKey: 'x',
             tropeAffinities: [],
-            tropeAffinitiesFailed: false,
+            tropeAffinitiesFailed: true,
             affinities: [
                 {
                     role: 'influence-road-runner',
@@ -280,6 +280,28 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             tropeAffinitiesFailed: true,
             affinities: [],
             affinitiesFailed: true,
+        })
+    })
+
+    it('keeps provided tropeAffinities when valid and non-empty', () => {
+        expect(
+            normalizeAcmeOrderEnrichLine(
+                {
+                    valid: true,
+                    name: 'X',
+                    stableKey: 'x',
+                    tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'launch rig' }],
+                    affinities: [{ role: 'terminal', aptness: 0.5 }],
+                },
+                'fb'
+            )
+        ).toEqual({
+            valid: true,
+            name: 'X',
+            stableKey: 'x',
+            tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'launch rig' }],
+            tropeAffinitiesFailed: false,
+            affinities: [{ role: 'terminal', aptness: 0.5 }],
         })
     })
 })

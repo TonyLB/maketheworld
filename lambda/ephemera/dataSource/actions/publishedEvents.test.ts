@@ -26,6 +26,25 @@ describe('isAcmeOrderPublishedOrder', () => {
     it('rejects stableKey wrong type', () => {
         expect(isAcmeOrderPublishedOrder({ ...minimal, stableKey: 1 } as unknown)).toBe(false)
     })
+
+    it('accepts canonical trope fields when present', () => {
+        expect(
+            isAcmeOrderPublishedOrder({
+                ...minimal,
+                tropeAffinities: [{ trope: 'Contraption', aptness: 'High', narrowing: 'launch rig' }],
+            })
+        ).toBe(true)
+    })
+
+    it('rejects tropeAffinitiesFailed true with non-empty tropeAffinities', () => {
+        expect(
+            isAcmeOrderPublishedOrder({
+                ...minimal,
+                tropeAffinities: [{ trope: 'Contraption', aptness: 'High', narrowing: 'launch rig' }],
+                tropeAffinitiesFailed: true,
+            })
+        ).toBe(false)
+    })
 })
 
 describe('isLookCommandRequestedPublishedPayload', () => {

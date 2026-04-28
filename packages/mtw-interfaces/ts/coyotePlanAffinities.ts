@@ -323,6 +323,18 @@ function trimStableKeyOrFallback(stableKey: string, name: string): string {
     return t.length > 0 ? t : defaultStableKeyProposal(name)
 }
 
+function normalizeTropeFields(raw: {
+    tropeAffinities?: CoyoteTropeAffinity[];
+    tropeAffinitiesFailed?: boolean;
+}): { tropeAffinities: CoyoteTropeAffinity[]; tropeAffinitiesFailed: boolean } {
+    const tropeAffinities = Array.isArray(raw.tropeAffinities) ? raw.tropeAffinities.slice(0, 3) : []
+    const tropeAffinitiesFailed = raw.tropeAffinitiesFailed === true || tropeAffinities.length === 0
+    return {
+        tropeAffinities: tropeAffinitiesFailed ? [] : tropeAffinities,
+        tropeAffinitiesFailed,
+    }
+}
+
 /**
  * Maps one raw **`lines[i]`** entry to a canonical **`AcmeOrderEnrichModelLine`**: validate, salvage common LLM mistakes, or synthesize **`affinitiesFailed`**.
  */
@@ -341,18 +353,17 @@ export function normalizeAcmeOrderEnrichLine(raw: unknown, fallbackName: string)
                 valid: true,
                 name: raw.name,
                 stableKey: trimStableKeyOrFallback(raw.stableKey, raw.name),
-                tropeAffinities: [],
-                tropeAffinitiesFailed: true,
+                ...normalizeTropeFields(raw),
                 affinities: [],
                 affinitiesFailed: true,
             }
         }
+        const normalizedTrope = normalizeTropeFields(raw)
         return {
             valid: true,
             name: raw.name,
             stableKey: trimStableKeyOrFallback(raw.stableKey, raw.name),
-            tropeAffinities: Array.isArray(raw.tropeAffinities) ? raw.tropeAffinities.slice(0, 3) : [],
-            tropeAffinitiesFailed: raw.tropeAffinitiesFailed === true,
+            ...normalizedTrope,
             affinities: applyCoyoteAffinityAptnessFloor(raw.affinities),
         }
     }
