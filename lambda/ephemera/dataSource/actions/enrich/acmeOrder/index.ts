@@ -9,7 +9,7 @@ import {
     interpretAcmeOrderEnrichBody,
 } from './interpretAndFinalize'
 
-/** Placement rows across Coyote demo rooms above this block Acme order enrich (see task plan). */
+/** Placement rows across Coyote demo rooms above this block Acme order enrich (see **`actions/AGENT.md`** Coyote placement cap). */
 export const ACME_ORDER_COYOTE_MAX_OBJECTS = 20
 
 export const ACME_ORDER_TOO_MANY_PLACED_OBJECTS_MESSAGE =

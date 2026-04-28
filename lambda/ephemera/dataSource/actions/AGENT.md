@@ -56,6 +56,10 @@ Stable keys give **machine correlation** for Coyote staged objects (seams, clust
 - **Deterministic finalize is mandatory before publishing `Acme Order`** and is the contract boundary that guarantees usable `stableKey` values on bus payloads.
 - Implementation details and call-order expectations are documented in [`AGENT.implementation.md`](./AGENT.implementation.md#acme-stablekey-implementation-notes).
 
+### Acme order enrich: Coyote placement cap (pre-Bedrock)
+
+Before **`invokeBedrockAcmeOrderEnrich`**, **[`enrich/acmeOrder/index.ts`](./enrich/acmeOrder/index.ts)** runs **[`countCoyotePlacedObjectsAcrossRooms`](./utilities/countCoyotePlacedObjectsAcrossRooms.ts)** over the same Coyote demo room roster as **`collectCoyoteOccupiedStableKeys`** (sum of **`meta.objects.length`** per room; placement rows, not **`stableKey`** deduplication). If the total is **greater than 20**, enrich returns **`ParseCommandErrorResult`** (`type: 'Error'` with a fixed **`errorMessage`**) and **does not** call Bedrock. **`parseCommand`** may therefore yield **`Error`** immediately after **`AcmeOrderIntent`** without catalog lines. **`ParseCommandDeps.countCoyotePlacedObjectsAcrossRoomsDeps`** supplies injectable **`getGameRooms`** / **`getRoomMeta`** for tests; the deps shape is **`CollectCoyoteOccupiedStableKeysDeps`** in **[`baseClasses.ts`](./baseClasses.ts)**.
+
 ### Types and payloads
 
 - **[`AcmeOrderPublishedOrder`](publishedEvents.ts):** **`stableKey: string`** required on each bus order line after wiring.

@@ -76,9 +76,13 @@ This preserves perception-thread ordering before downstream render behavior (`Re
 
 This section complements the normative contract in [`AGENT.md`](./AGENT.md).
 
+### Pre-Bedrock placement cap
+
+[`enrich/acmeOrder/index.ts`](enrich/acmeOrder/index.ts) runs **[`countCoyotePlacedObjectsAcrossRooms`](utilities/countCoyotePlacedObjectsAcrossRooms.ts)** before any **`invokeBedrockAcmeOrderEnrich`**. If total Coyote demo-room placement rows exceed **20**, enrich returns **`ParseCommandErrorResult`** and skips Bedrock and finalize.
+
 ### Two phases (required order)
 
-1. **LLM-first (Acme order enrich):** [`buildPrompt.ts`](enrich/acmeOrder/buildPrompt.ts) provides occupied key context and model proposes candidate `stableKey` values per valid line.
+1. **LLM-first (Acme order enrich):** [`buildPrompt.ts`](enrich/acmeOrder/buildPrompt.ts) provides occupied key context and model proposes candidate **`stableKey`** values per valid line (only after the placement cap passes).
 2. **Deterministic finalize (contract boundary):** [`finalizeStableKeysDeterministic`](stableKey/finalizeStableKeysDeterministic.ts) validates and repairs collisions/invalid proposals with deterministic allocation rules before publish.
 
 ### Where enforcement runs
@@ -86,9 +90,9 @@ This section complements the normative contract in [`AGENT.md`](./AGENT.md).
 In [`index.ts`](index.ts), Acme order flow is:
 
 1. [`collectCoyoteOccupiedStableKeys`](stableKey/collectCoyoteOccupiedStableKeys.ts) builds occupancy snapshot from Coyote game rooms and room objects.
-2. `parseCommand({ command, occupiedStableKeys })` reuses that snapshot in Acme order enrich.
-3. `finalizeStableKeysDeterministic` assigns final `stableKey: string` values per valid line.
-4. actions publishes `Acme Order`, then objects persists pass-through keys in current room context.
+2. **`parseCommand({ command, occupiedStableKeys })`** calls **`enrichAcmeOrder`**, which applies the placement cap (step above); on success, reuses the snapshot from (1) in Acme order enrich prompts.
+3. **`finalizeStableKeysDeterministic`** assigns final **`stableKey: string`** values per valid line.
+4. actions publishes **`Acme Order`**, then objects persists pass-through keys in current room context.
 
 ---
 
