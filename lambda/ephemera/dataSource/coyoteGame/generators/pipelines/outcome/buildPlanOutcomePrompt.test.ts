@@ -113,6 +113,27 @@ describe('buildPlanOutcomePrompt', () => {
         expect(prompt).toContain('single Outcome: line')
     })
 
+    it('keeps outcome prompt content unchanged when trope environmentAffordances are present', () => {
+        const prompt = buildPlanOutcomePrompt({
+            roomObjectsByRoom: {
+                'ROOM#VORTEX': [{
+                    uuid: 'OBJECT#anvil' as `OBJECT#${string}`,
+                    shortName: 'anvil',
+                    stableKey: 'anvil',
+                    tropeAffinities: [{
+                        trope: 'Finishing Move',
+                        aptness: 'High',
+                        narrowing: 'terminal payload',
+                        environmentAffordances: ['drop-ready'],
+                    }],
+                }],
+            },
+            hypothesisLine: 'Hypothesis: Drop.',
+        })
+        expect(prompt).toContain('anvil — stableKey: anvil — tropes: Finishing Move High (terminal payload)')
+        expect(prompt).not.toContain('drop-ready')
+    })
+
     it('anchors instructions to trope order and walkthrough beats when both are present', () => {
         const prompt = buildPlanOutcomePrompt({
             roomObjectsByRoom: {

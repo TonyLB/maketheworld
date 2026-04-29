@@ -1,5 +1,6 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom, EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import type { MergePersistMetaRoomObjectsOptimisticUpdateParams } from './mergePersistMetaRoomObjects'
 import { clearPersistMetaRoomObjects, mergeMetaRoomObjects, mergePersistMetaRoomObjects } from './mergePersistMetaRoomObjects'
 import internalCache from '../../internalCache'
@@ -34,7 +35,7 @@ const obj = (suffix: string, shortName: string): EphemeraMetaRoomObject => ({
 const enrichedObj = (
     suffix: string,
     shortName: string,
-    extras: Partial<Pick<EphemeraMetaRoomObject, 'affinities' | 'affinitiesFailed' | 'stableKey'>> = {}
+    extras: Partial<Pick<EphemeraMetaRoomObject, 'affinities' | 'affinitiesFailed' | 'stableKey' | 'tropeAffinities' | 'tropeAffinitiesFailed'>> = {}
 ): EphemeraMetaRoomObject => ({
     uuid: `OBJECT#${suffix}` as EphemeraObjectId,
     shortName,
@@ -118,6 +119,12 @@ describe('mergeMetaRoomObjects', () => {
 
 describe('mergePersistMetaRoomObjects', () => {
     const roomId = 'ROOM#test' as EphemeraRoomId
+    const trope = (overrides: Partial<CoyoteTropeAffinity> = {}): CoyoteTropeAffinity => ({
+        trope: 'Contraption',
+        aptness: 'High',
+        narrowing: 'spring-loaded frame',
+        ...overrides,
+    })
 
     const baseMeta = (overrides: Partial<EphemeraMetaRoom> = {}): EphemeraMetaRoom => ({
         EphemeraId: roomId,
@@ -190,6 +197,7 @@ describe('mergePersistMetaRoomObjects', () => {
     it('preserves optional Acme enrich fields in priorObjects and newObjects snapshots', async () => {
         const priorRich = enrichedObj('a', 'Legacy', {
             affinities: [{ role: 'terminal', aptness: 0.4 }],
+            tropeAffinities: [trope({ narrowing: 'hanging chain mount' })],
         })
         const meta = baseMeta({
             objects: [priorRich, obj('b', 'B')],
@@ -197,6 +205,17 @@ describe('mergePersistMetaRoomObjects', () => {
         const optimisticUpdate = mockOptimisticUpdatePersisting(meta, roomId)
 
         const addRich = enrichedObj('c', 'Imported dynamite crate', {
+            tropeAffinities: [
+                trope({
+                    narrowing: 'detonation cradle',
+                    environmentAffordances: ['affordance-alpha', 'affordance-beta'],
+                }),
+                trope({
+                    trope: 'Contraption',
+                    aptness: 'Good',
+                    narrowing: 'wooden slat shell',
+                }),
+            ],
             affinities: [
                 { role: 'connect-props', aptness: 0.55 },
                 { role: 'terminal', aptness: 0.3 },
@@ -216,12 +235,14 @@ describe('mergePersistMetaRoomObjects', () => {
         expect(result.priorObjects).toEqual([
             enrichedObj('a', 'Legacy', {
                 affinities: [{ role: 'terminal', aptness: 0.4 }],
+                tropeAffinities: [trope({ narrowing: 'hanging chain mount' })],
             }),
             obj('b', 'B'),
         ])
         expect(result.newObjects).toEqual([
             enrichedObj('a', 'Legacy', {
                 affinities: [{ role: 'terminal', aptness: 0.4 }],
+                tropeAffinities: [trope({ narrowing: 'hanging chain mount' })],
             }),
             obj('b', 'B'),
             addRich,

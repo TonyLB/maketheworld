@@ -36,6 +36,70 @@ describe('isAcmeOrderPublishedOrder', () => {
         ).toBe(true)
     })
 
+    it('accepts tropeAffinities environmentAffordances when string arrays', () => {
+        expect(
+            isAcmeOrderPublishedOrder({
+                ...minimal,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'launch rig',
+                    environmentAffordances: ['payload cradle'],
+                }],
+            })
+        ).toBe(true)
+        expect(
+            isAcmeOrderPublishedOrder({
+                ...minimal,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'launch rig',
+                    environmentAffordances: [],
+                }],
+            })
+        ).toBe(true)
+    })
+
+    it('rejects tropeAffinities environmentAffordances when invalid', () => {
+        expect(
+            isAcmeOrderPublishedOrder({
+                ...minimal,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'launch rig',
+                    environmentAffordances: 'payload cradle',
+                }],
+            } as unknown)
+        ).toBe(false)
+        expect(
+            isAcmeOrderPublishedOrder({
+                ...minimal,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'launch rig',
+                    environmentAffordances: ['payload cradle', 1],
+                }],
+            } as unknown)
+        ).toBe(false)
+    })
+
+    it('rejects tropeAffinities legacy affordances key', () => {
+        expect(
+            isAcmeOrderPublishedOrder({
+                ...minimal,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'launch rig',
+                    affordances: ['payload cradle'],
+                }],
+            } as unknown)
+        ).toBe(false)
+    })
+
     it('rejects tropeAffinitiesFailed true with non-empty tropeAffinities', () => {
         expect(
             isAcmeOrderPublishedOrder({

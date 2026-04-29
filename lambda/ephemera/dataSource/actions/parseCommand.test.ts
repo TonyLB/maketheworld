@@ -82,6 +82,22 @@ describe('parseCommand type guards', () => {
                 }],
                 confidence: 0.85,
             })).toBe(true)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{
+                    valid: true,
+                    name: 'rocket skates',
+                    stableKey: 'rocket-skates',
+                    tropeAffinities: [{
+                        trope: 'Contraption',
+                        aptness: 'High',
+                        narrowing: 'pursuit gear',
+                        environmentAffordances: ['quick acceleration'],
+                    }],
+                    affinities: [],
+                }],
+                confidence: 0.85,
+            })).toBe(true)
         })
 
         it('rejects valid true line that also carries errorType (mixed shape)', () => {
@@ -177,6 +193,54 @@ describe('parseCommand type guards', () => {
                 }],
                 confidence: 0.9,
             })).toBe(false)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{
+                    valid: true,
+                    name: 'rope',
+                    stableKey: 'rope',
+                    tropeAffinities: [{
+                        trope: 'Contraption',
+                        aptness: 'Good',
+                        narrowing: 'tie-off',
+                        environmentAffordances: 'lasso control',
+                    }],
+                    affinities: [],
+                }],
+                confidence: 0.9,
+            } as any)).toBe(false)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{
+                    valid: true,
+                    name: 'rope',
+                    stableKey: 'rope',
+                    tropeAffinities: [{
+                        trope: 'Contraption',
+                        aptness: 'Good',
+                        narrowing: 'tie-off',
+                        environmentAffordances: ['lasso control', 3],
+                    }],
+                    affinities: [],
+                }],
+                confidence: 0.9,
+            } as any)).toBe(false)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{
+                    valid: true,
+                    name: 'rope',
+                    stableKey: 'rope',
+                    tropeAffinities: [{
+                        trope: 'Contraption',
+                        aptness: 'Good',
+                        narrowing: 'tie-off',
+                        affordances: ['lasso control'],
+                    }],
+                    affinities: [],
+                }],
+                confidence: 0.9,
+            } as any)).toBe(false)
         })
 
     })

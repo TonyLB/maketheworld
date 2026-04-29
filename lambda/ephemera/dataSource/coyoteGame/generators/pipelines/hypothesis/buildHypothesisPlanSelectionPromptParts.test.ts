@@ -43,4 +43,38 @@ describe('buildHypothesisPlanSelectionPromptParts', () => {
         expect(parts.dynamicSuffix).toContain('ROOM#VORTEX')
         expect(full).toContain('## Trope candidates (input JSON)')
     })
+
+    it('keeps prompt content unchanged when staged trope environmentAffordances are present', () => {
+        const parts = buildHypothesisPlanSelectionPromptParts({
+            roomObjectsByRoom: {
+                'ROOM#VORTEX': [{
+                    uuid: 'OBJECT#anvil' as `OBJECT#${string}`,
+                    shortName: 'anvil',
+                    stableKey: 'anvil',
+                    tropeAffinities: [{
+                        trope: 'Finishing Move',
+                        aptness: 'High',
+                        narrowing: 'terminal payload',
+                        environmentAffordances: ['drop-ready'],
+                    }],
+                }],
+            },
+            combined: {
+                candidates: [{
+                    candidateId: 'candidate-1',
+                    executionSummary: 'One-line summary.',
+                    tropeAssignments: [{
+                        trope: 'Contraption',
+                        executionDetail: 'Beat detail.',
+                        members: [{ identifier: 'anvil', tropeFunction: 'terminal payload' }],
+                    }],
+                    outliers: [],
+                }],
+            },
+        })
+        const full = parts.invariantPrefix + parts.dynamicSuffix
+        expect(full).toContain('"candidateId":"candidate-1"')
+        expect(full).toContain('"stableKey":"anvil"')
+        expect(full).not.toContain('drop-ready')
+    })
 })

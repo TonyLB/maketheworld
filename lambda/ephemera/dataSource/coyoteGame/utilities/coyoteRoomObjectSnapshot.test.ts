@@ -89,6 +89,31 @@ describe('formatCoyoteObjectAffinitySuffix', () => {
         )
     })
 
+    it('ignores optional trope environmentAffordances in formatted suffix text', () => {
+        const o: EphemeraMetaRoomObject = {
+            uuid: 'OBJECT#a' as `OBJECT#${string}`,
+            shortName: 'Magnet',
+            stableKey: 'magnet',
+            tropeAffinities: [
+                {
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'overhead winch',
+                    environmentAffordances: ['affordance-alpha'],
+                },
+                {
+                    trope: 'Contraption',
+                    aptness: 'Good',
+                    narrowing: 'chain rig',
+                },
+            ],
+            affinities: [{ role: 'delivery', aptness: 0.62 }],
+        }
+        expect(formatCoyoteObjectAffinitySuffix(o)).toBe(
+            'tropes: Contraption High (overhead winch); Contraption Good (chain rig) | plan roles: delivery 0.62'
+        )
+    })
+
     it('includes both failure markers when both trope and legacy paths failed', () => {
         const o: EphemeraMetaRoomObject = {
             uuid: 'OBJECT#a' as `OBJECT#${string}`,

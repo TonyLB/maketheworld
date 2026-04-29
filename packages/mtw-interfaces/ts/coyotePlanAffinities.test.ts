@@ -153,6 +153,76 @@ describe('isAcmeOrderEnrichModelLine', () => {
             })
         ).toBe(false)
     })
+
+    it('accepts tropeAffinities entries with omitted or present environmentAffordances', () => {
+        expect(
+            isAcmeOrderEnrichModelLine({
+                ...validLine,
+                tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'launch rig' }],
+            })
+        ).toBe(true)
+        expect(
+            isAcmeOrderEnrichModelLine({
+                ...validLine,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'Good',
+                    narrowing: 'launch rig',
+                    environmentAffordances: ['payload sling', 'spring board'],
+                }],
+            })
+        ).toBe(true)
+        expect(
+            isAcmeOrderEnrichModelLine({
+                ...validLine,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'Good',
+                    narrowing: 'launch rig',
+                    environmentAffordances: [],
+                }],
+            })
+        ).toBe(true)
+    })
+
+    it('rejects tropeAffinities entries with invalid environmentAffordances shape', () => {
+        expect(
+            isAcmeOrderEnrichModelLine({
+                ...validLine,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'Good',
+                    narrowing: 'launch rig',
+                    environmentAffordances: 'payload sling',
+                }],
+            } as unknown)
+        ).toBe(false)
+        expect(
+            isAcmeOrderEnrichModelLine({
+                ...validLine,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'Good',
+                    narrowing: 'launch rig',
+                    environmentAffordances: ['payload sling', 7],
+                }],
+            } as unknown)
+        ).toBe(false)
+    })
+
+    it('rejects tropeAffinities entries with legacy affordances key', () => {
+        expect(
+            isAcmeOrderEnrichModelLine({
+                ...validLine,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'Good',
+                    narrowing: 'launch rig',
+                    affordances: ['payload sling'],
+                }],
+            } as unknown)
+        ).toBe(false)
+    })
 })
 
 describe('normalizeAcmeOrderEnrichLine', () => {
