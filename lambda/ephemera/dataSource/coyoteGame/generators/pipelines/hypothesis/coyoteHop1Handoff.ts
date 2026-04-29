@@ -1,7 +1,7 @@
 import { findAllFenceBlocks } from '../../../../../llm/markdownCodeFences'
 import { hypothesisDebugLog } from '../../../utilities/hypothesisDebug'
 
-/** Canonical JSON keys for hop-1 handoff (Option A plan selection to hop 2). */
+/** Canonical JSON keys for hop-1 handoff (plan selection to phase-plan). */
 export const COYOTE_HOP1_HANDOFF_JSON_KEYS = {
     paragraphSummary: 'paragraphSummary',
     rubricIssues: 'rubricIssues',
@@ -17,7 +17,7 @@ export type ParseHop1HandoffResult =
     | { ok: false; reason: string }
 
 const REQUIRED_SECTION_HEADINGS = [
-    '## Conflict catalog',
+    '## Intent conflicts',
     '## Rubric comparison',
     '## Winner selection',
 ] as const

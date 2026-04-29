@@ -48,10 +48,11 @@ describe('COYOTE_ENGINE_TEST_FIXTURES', () => {
         expect(inject).toBeDefined()
         const parts = buildHypothesisPlanSelectionPromptParts({
             roomObjectsByRoom: inject!.roomObjectsByRoom,
-            combinedMarkdown: inject!.combinedMarkdown,
+            combined: inject!.combined,
         })
         expect(parts.invariantPrefix.length).toBeGreaterThan(0)
-        expect(parts.dynamicSuffix).toContain('## Combined clustering')
+        expect(parts.dynamicSuffix).toContain('"schemaVersion":1')
+        expect(parts.dynamicSuffix).toContain('candidate-1')
     })
 })
 
@@ -64,7 +65,7 @@ describe('resolveCoyoteHarnessStartAtInject', () => {
         expect(r.ok).toBe(true)
         if (r.ok) {
             expect(r.phase).toBe('planSelect')
-            expect(r.inject.combinedMarkdown).toContain('## Combined clustering')
+            expect(r.inject.combined.candidates.length).toBeGreaterThan(0)
         }
     })
 
@@ -76,7 +77,7 @@ describe('resolveCoyoteHarnessStartAtInject', () => {
         expect(r.ok).toBe(true)
         if (r.ok) {
             expect(r.phase).toBe('planSelect')
-            expect(r.inject.combinedMarkdown).toContain('## Combined clustering')
+            expect(r.inject.combined.candidates.length).toBeGreaterThan(0)
         }
     })
 

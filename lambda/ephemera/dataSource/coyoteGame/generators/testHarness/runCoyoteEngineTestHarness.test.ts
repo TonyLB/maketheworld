@@ -198,6 +198,7 @@ describe('runCoyoteEngineTestHarness', () => {
         expect(flat).toContain(
             'phasePlanJson:\n{"tropeSequence":["Contraption"],"deconflictionSummary":"single lane","phases":[{"trope":"Contraption","tropeBeat":"prime launch lane","stableKeysUsed":["anvil-0"],"virtualEntities":[],"achievement":"launch"}]}'
         )
+        expect(flat).not.toContain('planSelectionReasoning')
     })
 
     it('respects testBatchSize concurrency limit', async () => {
@@ -313,6 +314,7 @@ describe('runCoyoteEngineTestHarness', () => {
         expect(rendered).toContain('usagePhasePlanHop: (not run)')
         expect(rendered).toContain('selectionBody: (not run)')
         expect(rendered).toContain('phasePlanJson: (not run)')
+        expect(rendered).not.toContain('planSelectionReasoning')
     })
 
     it('partial runUntil planSelect falls back to planSelectionResult body for selectionBody', async () => {
@@ -331,6 +333,7 @@ describe('runCoyoteEngineTestHarness', () => {
             planSelectionResult: {
                 success: true,
                 body: '{"paragraphSummary":"winner","rubricIssues":[]}',
+                reasoningContent: 'compare sketches then pick candidate-1',
                 usage: { inputTokens: 9, outputTokens: 10, totalTokens: 19 },
             },
         })
@@ -350,6 +353,9 @@ describe('runCoyoteEngineTestHarness', () => {
         const rendered = renderTreeToString((send.mock.calls[0][0] as { message: RenderTree }).message)
         expect(rendered).toContain(
             'selectionBody:\n{"paragraphSummary":"winner","rubricIssues":[]}'
+        )
+        expect(rendered).toContain(
+            'planSelectionReasoning:\ncompare sketches then pick candidate-1'
         )
     })
 

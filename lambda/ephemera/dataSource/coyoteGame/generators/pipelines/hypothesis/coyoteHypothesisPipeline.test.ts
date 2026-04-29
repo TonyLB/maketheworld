@@ -54,8 +54,8 @@ const stageOneSeamBody = JSON.stringify({
 })
 
 const hop1PlanSelectionBody = [
-    '## Conflict catalog',
-    '- candidate-1 conflicts: trigger timing remains coarse.',
+    '## Intent conflicts',
+    '- candidate-1 may misread intent: trigger timing remains coarse.',
     '',
     '## Rubric comparison',
     '- candidate-1 has best coverage/coherence for available props.',
@@ -163,7 +163,7 @@ describe('validateCoyoteHypothesisHarnessOptions', () => {
             validateCoyoteHypothesisHarnessOptions({
                 testOnly: 'planSelect',
                 harnessRunKind: 'runUntil',
-                injectState: { combinedMarkdown: 'x' },
+                injectState: { combined: { candidates: [] } },
             })
         ).toThrow('injectState')
     })
@@ -256,7 +256,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         planSelectionMock.mockResolvedValue({
             success: true,
             body: [
-                '## Conflict catalog',
+                '## Intent conflicts',
                 '- conflict listed',
                 '',
                 '## Winner selection',
@@ -291,7 +291,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
                 harnessRunKind: 'runOnly',
                 injectState: {
                     roomObjectsByRoom: inject.roomObjectsByRoom,
-                    combinedMarkdown: inject.combinedMarkdown,
+                    combined: inject.combined,
                 },
             }
         )
@@ -320,7 +320,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
                 harnessRunKind: 'runOnly',
                 injectState: {
                     roomObjectsByRoom: inject.roomObjectsByRoom,
-                    combinedMarkdown: inject.combinedMarkdown,
+                    combined: inject.combined,
                     hop1Handoff: inject.hop1Handoff,
                 },
             }

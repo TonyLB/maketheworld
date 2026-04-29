@@ -1,4 +1,6 @@
 import type { CoyotePromptParts } from './buildHypothesisPrompt'
+import type { CombineHypothesisClustersReturn } from './combineHypothesisClusters'
+import { renderCombinedHypothesisForStageTwo } from './combineHypothesisClusters'
 import {
     COMBINED_CLUSTERING_CONTRACT_LINES,
     INTERPRETATION_RULES_LINES,
@@ -15,7 +17,7 @@ import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjec
 
 export type BuildHypothesisPhasePlanHopPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
-    combinedMarkdown: string
+    combined: CombineHypothesisClustersReturn
     hop1Handoff: CoyoteHop1Handoff
 }
 
@@ -29,7 +31,7 @@ const PHASE_PLAN_HOP_INTRO = [
     '- Keep this guardrail inside this prompt run: enforce it while producing JSON phases, scene analysis, and final Hypothesis line without adding external deterministic phase-to-phase intent checks.',
     '',
     '## Grounding from plan selection (authoritative)',
-    'The **chosen plan summary** and **rubric issues** below were produced by an',
+    'The **chosen plan summary** and **intent-confidence gaps** below were produced by an',
     'earlier selection step. Treat them as the committed maneuver --- do not',
     'substitute a different plan or revert to comparing alternatives.',
     '',
@@ -85,13 +87,17 @@ function formatHop1HandoffBlock(handoff: CoyoteHop1Handoff): string {
         handoff.rubricIssues.length > 0
             ? handoff.rubricIssues.map((line) => `- ${line}`).join('\n')
             : '- (none)'
-    return ['## Plan selection grounding', '', '**Chosen plan summary:**', '', handoff.paragraphSummary.trim(), '', '**Rubric issues:**', issues].join('\n')
+    return ['## Plan selection grounding', '', '**Chosen plan summary:**', '', handoff.paragraphSummary.trim(), '', '**Intent-confidence gaps:**', issues].join('\n')
 }
 
 /** Option A hop 2: phase-plan JSON first, then "## Scene analysis", then fenced Hypothesis line. */
 export function buildHypothesisPhasePlanHopPromptParts(
     input: BuildHypothesisPhasePlanHopPromptInput
 ): CoyotePromptParts {
+    const combinedMarkdown = renderCombinedHypothesisForStageTwo(
+        input.combined,
+        input.roomObjectsByRoom
+    )
     const seamRoomMappingBlock = coyoteSeamRoomMappingLines(input.roomObjectsByRoom).join('\n')
     const handoffBlock = formatHop1HandoffBlock(input.hop1Handoff)
     const invariantPrefix = [
@@ -122,7 +128,7 @@ export function buildHypothesisPhasePlanHopPromptParts(
         '',
         seamRoomMappingBlock,
         '',
-        input.combinedMarkdown.trim(),
+        combinedMarkdown.trim(),
         '',
     ].join('\n')
 

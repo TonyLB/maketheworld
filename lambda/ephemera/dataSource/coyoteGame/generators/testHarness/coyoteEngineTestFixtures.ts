@@ -2,10 +2,7 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { defaultStableKeyProposal } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import {
-    combineHypothesisClusters,
-    renderCombinedHypothesisForStageTwo,
-} from '../pipelines/hypothesis/combineHypothesisClusters'
+import { combineHypothesisClusters } from '../pipelines/hypothesis/combineHypothesisClusters'
 import type {
     CoyoteHarnessPhasePlanInject,
     CoyoteHarnessPlanSelectInject,
@@ -111,8 +108,8 @@ const FIXTURE_01_ROOM_OBJECTS: CoyoteEngineTestFixture['roomObjectsByRoom'] = {
 }
 
 /**
- * Frozen stage-one seam JSON used only to derive golden **`combinedMarkdown`** via the same parse, combine,
- * and render path as **`seamCombineRender`** (`stableKey` **`rocket-0`** matches **`harnessRoomObjectsSpec`**).
+ * Frozen stage-one seam JSON used only to derive golden **`combined`** via the same parse and combine
+ * path as **`seamCombineRender`** (`stableKey` **`rocket-0`** matches **`harnessRoomObjectsSpec`**).
  */
 const FIXTURE_01_GOLDEN_SEAM_BODY = JSON.stringify({
     candidates: [
@@ -150,7 +147,7 @@ function buildFixture01PlanSelectInject(): CoyoteHarnessPlanSelectInject {
     }
     return {
         roomObjectsByRoom,
-        combinedMarkdown: renderCombinedHypothesisForStageTwo(combinedResult.combined, roomObjectsByRoom),
+        combined: combinedResult.combined,
     }
 }
 
@@ -158,8 +155,8 @@ const FIXTURE_01_PLAN_SELECT_INJECT = buildFixture01PlanSelectInject()
 const FIXTURE_01_PHASE_PLAN_HANDOFF: CoyoteHop1Handoff = {
     paragraphSummary: 'Conflict review favors candidate-1: lock a single Contraption-first lane using the straightaway rocket setup, then carry that same lane through the terminal beat with no prop-role conflicts.',
     rubricIssues: [
-        'Deconfliction still needs explicit notes about why no alternative trope branch reuses rocket-0 in incompatible ways.',
-        'Golden-path prose must mirror trope-by-trope beat order instead of collapsing setup and payoff into one vague paragraph.',
+        'Candidate-1 may misread intent for rocket-0 because the lure role and terminal role overlap without a clear handoff.',
+        'Chosen-plan confidence is reduced until trope-by-trope beat order is explicit instead of collapsing setup and payoff into one vague paragraph.',
     ],
 }
 const FIXTURE_01_PHASE_PLAN_INJECT: CoyoteHarnessPhasePlanInject = {
@@ -186,7 +183,7 @@ function buildPlanSelectInjectFromGoldenSeam(args: {
     }
     return {
         roomObjectsByRoom,
-        combinedMarkdown: renderCombinedHypothesisForStageTwo(combinedResult.combined, roomObjectsByRoom),
+        combined: combinedResult.combined,
     }
 }
 

@@ -5,8 +5,8 @@ import {
 
 describe('parseHop1HandoffFromSelectionBody', () => {
     const requiredSections = [
-        '## Conflict catalog',
-        '- candidate-1 conflicts with candidate-2 over shared trigger timing.',
+        '## Intent conflicts',
+        '- candidate-1 may misread player intent for the shared trigger timing.',
         '## Rubric comparison',
         '- candidate-1 has stronger coverage and coherence.',
         '## Winner selection',
@@ -97,7 +97,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
         }
     })
 
-    it('returns error when conflict catalog section is missing', () => {
+    it('returns error when intent conflicts section is missing', () => {
         const raw = [
             '## Rubric comparison',
             '- candidate-1 is best.',
@@ -110,13 +110,13 @@ describe('parseHop1HandoffFromSelectionBody', () => {
         const r = parseHop1HandoffFromSelectionBody(raw)
         expect(r.ok).toBe(false)
         if (!r.ok) {
-            expect(r.reason).toContain('## Conflict catalog')
+            expect(r.reason).toContain('## Intent conflicts')
         }
     })
 
     it('returns error when rubric comparison section is missing', () => {
         const raw = [
-            '## Conflict catalog',
+            '## Intent conflicts',
             '- conflict',
             '## Winner selection',
             '- Winner: candidate-1.',
@@ -133,7 +133,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
 
     it('returns error when winner selection section is missing', () => {
         const raw = [
-            '## Conflict catalog',
+            '## Intent conflicts',
             '- conflict',
             '## Rubric comparison',
             '- compare',

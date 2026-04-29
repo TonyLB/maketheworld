@@ -98,7 +98,7 @@ Phase aliases: **`clustering`**, **`planSelect`**, **`phasePlan`** (map to LLM h
 
 **Fixtures and handoffs** ([`coyoteEngineTestFixtures.ts`](generators/testHarness/coyoteEngineTestFixtures.ts))
 
-- Each **`CoyoteEngineTestFixture`** has **`roomObjectsByRoom`** and optional **`planSelectInject`** / **`phasePlanInject`**. Rows are **sparse**: only defined **(fixture, boundary)** pairs are required; missing bundles for a requested **`runOnly`** **`planSelect`** / **`phasePlan`** fail fast with a clear operator-facing error (no synthesized inputs).
+- Each **`CoyoteEngineTestFixture`** has **`roomObjectsByRoom`** and optional **`planSelectInject`** / **`phasePlanInject`**. **`planSelectInject`** / **`phasePlanInject`** carry **`combined`** ([**`CombineHypothesisClustersReturn`**](generators/pipelines/hypothesis/combineHypothesisClusters.ts) from parse + combine) plus, for phase-plan, **`hop1Handoff`**. Rows are **sparse**: only defined **(fixture, boundary)** pairs are required; missing bundles for a requested **`runOnly`** **`planSelect`** / **`phasePlan`** fail fast with a clear operator-facing error (no synthesized inputs).
 
 Activation path in `actions`:
 

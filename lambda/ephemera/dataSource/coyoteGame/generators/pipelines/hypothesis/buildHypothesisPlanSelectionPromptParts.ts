@@ -1,5 +1,6 @@
 import type { CoyotePromptParts } from './buildHypothesisPrompt'
-import { COMBINED_CLUSTERING_CONTRACT_LINES } from './buildHypothesisStageTwoPrompt'
+import type { CombineHypothesisClustersReturn } from './combineHypothesisClusters'
+import { serializePlanSelectCombinedInput } from './combineHypothesisClusters'
 import {
     COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
     COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
@@ -10,83 +11,113 @@ import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjec
 
 export type BuildHypothesisPlanSelectionPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
-    combinedMarkdown: string
-    /** Number of competing one-line plan sketches (default 3). */
-    planSketchCount?: number
+    combined: CombineHypothesisClustersReturn
 }
 
-const DEFAULT_PLAN_SKETCH_COUNT = 3
+/** How to read the fenced JSON trope-candidates block in the dynamic tail. */
+const PLAN_SELECT_COMBINED_JSON_SCHEMA_LINES = [
+    '## Trope candidates JSON (input; how to read)',
+    '- The **` ```json ` ** block in the dynamic section is **input only**: it is the complete,',
+    '  authoritative list of **Stage One candidates** after parse and combine. **Schema version 1**',
+    '  root keys: **`schemaVersion`**, **`candidates`**.',
+    '- **`candidates`** is the exhaustive option set. You must **only** compare, score, and select',
+    '  among these rows. **Do not** invent alternative plans, extra candidates, or substitute',
+    '  paraphrases for new option ids.',
+    '- Each candidate has **`candidateId`**, **`executionSummary`**, **`tropeAssignments`**, and **`outliers`**.',
+    '- Each **`tropeAssignment`** has **`trope`**, **`executionDetail`** (Stage One first-draft beat detail),',
+    '  and **`members`**. Each member has **`stableKey`**, **`shortName`**, **`room`** (seam label without',
+    '  the `ROOM#` prefix when known), and **`tropeFunction`** (that prop\'s trope-local job in this',
+    '  candidate).',
+    '- **`outliers`** lists staged props assigned outside trope sections for that candidate, each',
+    '  with the same **`stableKey`** / **`shortName`** / **`room`** / **`tropeFunction`** shape.',
+    '- **`executionSummary`** states how that candidate frames the overall maneuver; **`tropeFunction`**',
+    '  lines label each staged prop\'s intent inside that candidate. Use both when judging coherence',
+    '  and intent-fit.',
+] as const
 
 const PLAN_SELECTION_READING_RULES = [
-    '## Reading the setup (for matrix cells)',
+    '## Reading the setup',
     '- Address the player in second person ("you") when describing what a plan would do.',
-    '- Never reinterpret Road Runner roles as Coyote gear-building instructions.',
-    '- Ground evidence in **stableKey**, cluster membership, and **## Outliers** ---',
-    '  outliers are eligible props; do not fold them into named clusters they were',
-    '  not assigned to.',
+    '- Treat each **candidate** as one complete Coyote setup and maneuver path aimed at the Road Runner.',
+    '- Use **stableKey**, **shortName**, and **room** from the JSON as ground truth for which prop is',
+    '  where; use **tropeFunction** and **executionDetail** for how that candidate uses each prop.',
+    '- **Outliers** in the JSON are candidate-local: eligible props outside named trope rows for that',
+    '  candidate only.',
 ] as const
 
 const PLAN_SELECTION_INTRO = [
-    'You are comparing competing high-level Coyote-vs-Road-Runner maneuver sketches before the detailed hypothesis is written.',
+    'You are **selecting** the best high-level Coyote-vs-Road-Runner maneuver from a **fixed list of',
+    'candidates** (JSON below) before the detailed hypothesis is written. You are not asked to draft',
+    'new candidate plans from scratch.',
     '',
     '## Perspective guardrail (hard constraint)',
     '- Evaluate and describe every candidate strictly from the Coyote\'s planning perspective.',
-    '- Treat the Coyote as the sole planner and actor selecting maneuvers; the Road Runner is the target to be affected by those maneuvers.',
-    '- If any draft sentence frames a candidate as helping the Road Runner, escaping the Coyote, or improving Road Runner outcomes, rewrite it before output so the same evidence is expressed as Coyote intent, setup, or failure-risk analysis.',
-    '- Do not keep winner rationale that prefers a Road Runner-advantaging plan unless it is explicitly framed as a Coyote-side setup choice that still serves the selected Coyote maneuver.',
+    '- Treat the Coyote as the sole planner and actor selecting maneuvers; the Road Runner is the',
+    '  target to be affected by those maneuvers.',
+    '- Describe each candidate as Coyote setup, intent, and Coyote-side failure-risk analysis where',
+    '  relevant to the rubric.',
+    '- Winner rationale should explain why the selected **provided candidate** best serves the',
+    '  Coyote\'s maneuver.',
     '',
-    'Use the **combined clustering** block below as ground truth for staged objects, clusters, outliers, and intended roles.',
+    '## Two JSON fences (critical)',
+    '- The **` ```json ` ** block in the **dynamic section below** (after seam rooms) is **input data**',
+    '  --- read-only trope candidates.',
+    '- Your reply must **end** with a **separate** **` ```json ` ** fenced block (language tag **json**)',
+    '  containing the hop handoff keys --- that trailing fence is **your output**, not part of the',
+    '  setup.',
     '',
     '## Task',
     '- Ground yourself briefly on the setup (short prose before the required sections is fine).',
-    `- Produce exactly **N** distinct one-line **plan sketches** (numbered or labeled consistently) where **N** is specified below.`,
-    '- Build a **criterion-first rubric matrix**: **one row per plan sketch**,',
-    '  **one column per dimension**: **coverage**, **completeness**, **coherence**.',
-    '- Each matrix cell: short, evidence-grounded prose referencing **stableKey** and',
-    '  cluster membership where relevant --- comparison, not abstract letter grades.',
-    '- Treat **coverage**, **completeness**, and **coherence** as **equally important**',
-    '  when judging rows. Do not emphasize one dimension over another in prose or',
-    '  tie-break language.',
-    '- Do **not** grade or bias sketches on Road Runner safety, villain effectiveness,',
-    '  or outcome comedy --- those belong to later execution prompts, not this rubric.',
+    '- Compare **all listed candidates** under **coverage**, **completeness**, and **coherence** using',
+    '  **`candidateId`**, **`executionSummary`**, **`tropeFunction`**, **`executionDetail`**, **`stableKey`**,',
+    '  **`shortName`**, **`room`**, and outliers as evidence.',
+    '- Compare candidates under those dimensions in one short paragraph in **`## Rubric comparison`**',
+    '  (3-5 sentences total).',
+    '- Brevity is the priority. One sentence per candidate is fine.',
+    '- Treat **coverage**, **completeness**, and **coherence** as **equally important** when judging',
+    '  candidates. Do not emphasize one dimension over another in prose or tie-break language.',
+    '- Do **not** grade or bias candidates on Road Runner safety, villain effectiveness, or outcome',
+    '  comedy --- those belong to later execution prompts, not this rubric.',
     '- Then emit exactly these Markdown sections in order:',
-    '  1. **`## Conflict catalog`** --- enumerate concrete candidate-local conflicts,',
-    '     incompatibilities, and grounding gaps.',
-    '  2. **`## Rubric comparison`** --- compare all candidates under coverage,',
-    '     completeness, and coherence using evidence.',
-    '  3. **`## Winner selection`** --- select exactly one best candidate and explain why.',
-    '- In **`## Winner selection`**, pick exactly **one** winning sketch',
-    '  with no ties unless you apply an explicit tie-break stated in one line',
-    '  (prefer avoiding ties). You may rank ordinally (1 = best) or name the winner',
-    '  matching the sketch labels.',
-    '- End your reply with **only** a Markdown **` ```json ` ** fenced block',
-    '  (language tag **json**) containing at least these required keys: **`',
+    '  1. **`## Intent conflicts`** --- list only evidence that the **winning** candidate may misread',
+    '     player intent. Eligible: unaccounted staged props, affordance contradictions, **mismatches',
+    '     between a prop\'s `tropeFunction` and how the candidate uses that prop in `executionSummary`',
+    '     or trope rows**, props central to the summary that never appear in members/outliers, and',
+    '     topology issues for Road Runner positioning. Exclude execution risks, missing mechanisms, and',
+    '     generic "might miss" failure concerns.',
+    '  2. **`## Rubric comparison`** --- compare all **provided** candidates under coverage,',
+    '     completeness, and coherence in one concise paragraph.',
+    '  3. **`## Winner selection`** --- select exactly one best **candidate** by **`candidateId`** and',
+    '     explain why.',
+    '- In **`## Winner selection`**, pick exactly **one** winning **`candidateId`** with no ties unless you',
+    '  apply an explicit tie-break stated in one line (prefer avoiding ties).',
+    '- End your reply with **only** a Markdown **` ```json ` ** fenced block (language tag **json**)',
+    '  containing at least these required keys: **`',
     COYOTE_HOP1_HANDOFF_JSON_KEYS.paragraphSummary,
-    '`** (string: one paragraph summarizing the **chosen** plan only) and',
-    '  **`',
+    '`** (string: one paragraph summarizing the **chosen** candidate only) and **`',
     COYOTE_HOP1_HANDOFF_JSON_KEYS.rubricIssues,
-    '`** (array of strings: concrete issues / gaps from the rubric for that chosen',
-    '  plan --- staged keys still vague, synthesis needs, etc.). Additional keys are',
-    '  allowed, but these two keys must be present and well-typed.',
-    '- The **` ```json ` ** block must be the **last** fence in your output.',
+    '`** (array of strings: evidence that the chosen candidate may misread player intent ---',
+    '  unaccounted props, affordance contradictions, tropeFunction/summary mismatches, topology issues).',
+    '  Additional keys are allowed, but these two keys must be present and well-typed.',
+    '- The **final** **` ```json ` ** block in your entire output must be this **handoff** fence ---',
+    '  the **last** fence in your output.',
 ] as const
 
 export function buildHypothesisPlanSelectionPromptParts(
     input: BuildHypothesisPlanSelectionPromptInput
 ): CoyotePromptParts {
-    const n = input.planSketchCount ?? DEFAULT_PLAN_SKETCH_COUNT
     const seamRoomMappingBlock = coyoteSeamRoomMappingLines(input.roomObjectsByRoom).join('\n')
+    const tropeCandidatesJson = serializePlanSelectCombinedInput(input.combined, input.roomObjectsByRoom)
     const invariantPrefix = [
         ...PLAN_SELECTION_INTRO,
         '',
-        `Use **${n}** plan sketches.`,
-        '',
         '## Rubric dimensions',
         '- **coverage** --- how much each staged prop / affordance can contribute to the plan.',
-        '- **completeness** --- how much everything **needed** by the plan is already present or constructable from staged props and topology (including synthesis implied by the plan).',
+        '- **completeness** --- how much everything **needed** by the plan is already present or',
+        '  constructable from staged props and topology (including synthesis implied by the plan).',
         '- **coherence** --- how well implied actions reinforce each other toward one maneuver.',
         '',
-        ...COMBINED_CLUSTERING_CONTRACT_LINES,
+        ...PLAN_SELECT_COMBINED_JSON_SCHEMA_LINES,
         '',
         ...COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
         '',
@@ -94,16 +125,18 @@ export function buildHypothesisPlanSelectionPromptParts(
         '',
         ...PLAN_SELECTION_READING_RULES,
         '',
-        'The following blocks are specific to this request (seam room labels, then combined clustering):',
-        '',
-        '## Combined clustering input (structured Markdown)',
+        'The following blocks are specific to this request (seam room labels, then trope candidates JSON).',
     ].join('\n')
 
     const dynamicSuffix = [
         '',
         seamRoomMappingBlock,
         '',
-        input.combinedMarkdown.trim(),
+        '## Trope candidates (input JSON)',
+        '',
+        '```json',
+        tropeCandidatesJson,
+        '```',
         '',
     ].join('\n')
 

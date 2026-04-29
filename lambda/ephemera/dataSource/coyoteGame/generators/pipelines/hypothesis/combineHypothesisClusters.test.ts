@@ -1,5 +1,9 @@
 import { harnessRoomObjects } from '../../testHarness/coyoteEngineTestFixtures'
-import { combineHypothesisClusters, renderCombinedHypothesisForStageTwo } from './combineHypothesisClusters'
+import {
+    combineHypothesisClusters,
+    renderCombinedHypothesisForStageTwo,
+    serializePlanSelectCombinedInput,
+} from './combineHypothesisClusters'
 import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 import type { ParsedTropeCandidate } from './parseHypothesisStageOneOutput'
 
@@ -103,5 +107,59 @@ describe('combineHypothesisClusters', () => {
             expect(md).toContain('**room:** VORTEX')
             expect(md).toContain('**tropeFunction:** reserve setup line if primary beat fails')
         }
+    })
+
+    it('serializePlanSelectCombinedInput is stable JSON with enriched members and outliers', () => {
+        const roomMap: CoyoteRoomObjectsByRoom = {
+            'ROOM#VORTEX': [
+                {
+                    uuid: 'OBJECT#a' as `OBJECT#${string}`,
+                    shortName: 'rope',
+                    stableKey: 'rope-0',
+                },
+                {
+                    uuid: 'OBJECT#b' as `OBJECT#${string}`,
+                    shortName: 'glue',
+                    stableKey: 'glue-1',
+                },
+            ],
+        }
+        const candidates: ParsedTropeCandidate[] = [
+            {
+                candidateId: 'candidate-1',
+                executionSummary: 'Primary glue beat with rope as explicit outlier.',
+                tropeAssignments: [
+                    {
+                        trope: 'Disadvantage',
+                        executionDetail: 'Glue is applied as the persistent constraint.',
+                        members: [{ stableKey: 'glue-1', tropeFunction: 'persistent movement constraint on lane' }],
+                    },
+                ],
+                explicitOutliers: [{ stableKey: 'rope-0', tropeFunction: 'reserve setup line if primary beat fails' }],
+            },
+        ]
+        const r = combineHypothesisClusters(candidates, roomMap)
+        expect(r.ok).toBe(true)
+        if (!r.ok) {
+            return
+        }
+        const a = serializePlanSelectCombinedInput(r.combined, roomMap)
+        const b = serializePlanSelectCombinedInput(r.combined, roomMap)
+        expect(a).toBe(b)
+        const parsed = JSON.parse(a) as { schemaVersion: number; candidates: unknown[] }
+        expect(parsed.schemaVersion).toBe(1)
+        expect(parsed.candidates).toHaveLength(1)
+        const c0 = parsed.candidates[0] as {
+            candidateId: string
+            tropeAssignments: Array<{ members: Array<{ stableKey: string; shortName: string; room: string }> }>
+            outliers: Array<{ stableKey: string; room: string }>
+        }
+        expect(c0.candidateId).toBe('candidate-1')
+        expect(c0.tropeAssignments[0].members[0]).toMatchObject({
+            stableKey: 'glue-1',
+            shortName: 'glue',
+            room: 'VORTEX',
+        })
+        expect(c0.outliers[0]).toMatchObject({ stableKey: 'rope-0', shortName: 'rope', room: 'VORTEX' })
     })
 })

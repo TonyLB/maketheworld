@@ -195,3 +195,60 @@ function findRoomIdForObject(
     }
     return undefined
 }
+
+function enrichMemberForPlanSelectJson(
+    mem: CombinedMemberPair,
+    byStableKey: Map<string, EphemeraMetaRoomObject>,
+    roomObjectsByRoom: CoyoteRoomObjectsByRoom
+): { stableKey: string; shortName: string; room: string; tropeFunction: string } {
+    const sk = mem.identifier.trim()
+    const obj = sk ? byStableKey.get(sk) : undefined
+    const shortName = obj?.shortName ?? sk
+    const roomLabel = obj
+        ? findRoomIdForObject(roomObjectsByRoom, obj)?.replace(/^ROOM#/, '') ?? ''
+        : ''
+    return {
+        stableKey: sk,
+        shortName,
+        room: roomLabel,
+        tropeFunction: mem.tropeFunction,
+    }
+}
+
+/**
+ * Deterministic JSON string for plan-selection prompts: same facts as
+ * {@link renderCombinedHypothesisForStageTwo} with `stableKey` / `shortName` / `room` on each staged prop.
+ * Callers typically wrap the result in a Markdown ` ```json ` fence.
+ */
+export function serializePlanSelectCombinedInput(
+    combined: CombineHypothesisClustersReturn,
+    roomObjectsByRoom: CoyoteRoomObjectsByRoom
+): string {
+    const byStableKey = snapshotIndexByStableKey(roomObjectsByRoom)
+    const payload: {
+        schemaVersion: number
+        candidates: Array<{
+            candidateId: string
+            executionSummary: string
+            tropeAssignments: Array<{
+                trope: CoyoteTrope
+                executionDetail: string
+                members: ReturnType<typeof enrichMemberForPlanSelectJson>[]
+            }>
+            outliers: ReturnType<typeof enrichMemberForPlanSelectJson>[]
+        }>
+    } = {
+        schemaVersion: 1,
+        candidates: combined.candidates.map((candidate) => ({
+            candidateId: candidate.candidateId,
+            executionSummary: candidate.executionSummary,
+            tropeAssignments: candidate.tropeAssignments.map((assignment) => ({
+                trope: assignment.trope,
+                executionDetail: assignment.executionDetail,
+                members: assignment.members.map((m) => enrichMemberForPlanSelectJson(m, byStableKey, roomObjectsByRoom)),
+            })),
+            outliers: candidate.outliers.map((o) => enrichMemberForPlanSelectJson(o, byStableKey, roomObjectsByRoom)),
+        })),
+    }
+    return JSON.stringify(payload)
+}

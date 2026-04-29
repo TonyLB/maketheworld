@@ -40,8 +40,8 @@ const stageOneSeamBody = JSON.stringify({
 
 /** Hop 1 --- rubric narrative + trailing ` ```json ` handoff for hop 2. */
 const hop1PlanSelectionBody = [
-    '## Conflict catalog',
-    '- candidate-1 conflict: launch timing needs tighter trigger specificity.',
+    '## Intent conflicts',
+    '- candidate-1 may misread intent: launch timing needs tighter trigger specificity.',
     '',
     '## Rubric comparison',
     '- candidate-1 wins on coverage/completeness/coherence balance.',
@@ -322,8 +322,8 @@ describe('generateHypothesis', () => {
         planSelectionMock.mockResolvedValue({
             success: true,
             body: [
-                '## Conflict catalog',
-                '- candidate-1 conflict',
+                '## Intent conflicts',
+                '- candidate-1 intent gap',
                 '',
                 '## Winner selection',
                 '- Winner: candidate-1.',
