@@ -69,6 +69,7 @@ export type CoyoteTropeAffinity = {
     trope: CoyoteTrope;
     aptness: CoyoteTropeAptness;
     narrowing: string;
+    affordances?: string[];
 }
 
 /** Stage-one intendedRole echo: same roles as **[`CoyoteAffinityPossibility`]**, but **`aptness`** may be omitted (resolved against snapshot rows). */
@@ -157,11 +158,16 @@ export function isCoyoteTropeAffinity(entry: unknown): entry is CoyoteTropeAffin
         return false
     }
     const o = entry as Record<string, unknown>
+    const validAffordances = (
+        !('affordances' in o)
+        || (Array.isArray(o.affordances) && o.affordances.every((entry) => typeof entry === 'string'))
+    )
     return (
         isCoyoteTrope(o.trope)
         && isCoyoteTropeAptness(o.aptness)
         && typeof o.narrowing === 'string'
         && o.narrowing.trim().length > 0
+        && validAffordances
     )
 }
 

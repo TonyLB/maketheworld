@@ -1,6 +1,6 @@
 # Object affordances plumbing (planning)
 
-**Status:** Not started. Next step is Phase A0 (schema surface inventory and change map).
+**Status:** In progress. Phase A0 inventory and decision lock complete; next step is Phase A1 (type and validator updates).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -62,6 +62,47 @@ Resolve and record these before Phase A1 code edits begin:
 | Backfill/migration requirement | Anthony + Agent | No historical backfill/migration required; existing fixtures/data without `affordances` remain valid. | 2026-04-29 |
 | Baseline + targeted test command list | Anthony + Agent | Lock baseline and regression command set under `Verification` in this doc. | 2026-04-29 |
 
+## Phase A0 inventory map (locked)
+
+Canonical schema/validation owners:
+
+- `packages/mtw-interfaces/ts/coyotePlanAffinities.ts`
+  - Canonical affinity element type and validators (`CoyoteTropeAffinity`, `isCoyoteTropeAffinity`) plus enrich normalization/validation.
+- `packages/mtw-interfaces/ts/ephemeraMeta.ts`
+  - Canonical persisted room-object carrier (`EphemeraMetaRoomObject.tropeAffinities?`).
+
+Downstream mirrored/derived contracts to keep aligned in A1-A3:
+
+- `lambda/ephemera/dataSource/actions/baseClasses.ts` (`ParseCommandAcmeOrderLine`, `isParseCommandAcmeOrderResult`)
+- `lambda/ephemera/dataSource/actions/publishedEvents.ts` (`AcmeOrderPublishedOrder`, payload guards)
+- `lambda/ephemera/dataSource/actions/enrich/acmeOrder/interpretAndFinalize.ts` (enrich parse -> parse-command line mapping)
+
+Persistence write/read paths carrying `tropeAffinities`:
+
+- Write path: `actions/index.ts` -> `objects/handleApiObjectsChange.ts` -> `objects/mergePersistMetaRoomObjects.ts`
+- Read path: `internalCache/componentEphemeraMeta.ts` -> `coyoteGame/utilities/coyoteRoomObjectSnapshot.ts` -> hypothesis/outcome pipelines
+  - `coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts`
+  - `coyoteGame/generators/pipelines/outcome/generatePlanOutcome.ts`
+
+Prompt/pipeline seams where `tropeAffinities` is threaded:
+
+- Snapshot formatter seam: `coyoteGame/utilities/coyoteRoomObjectSnapshot.ts`
+- Hypothesis prompt seam consumers:
+  - `coyoteGame/generators/pipelines/hypothesis/buildHypothesisStageOnePrompt.ts`
+  - `coyoteGame/generators/pipelines/hypothesis/buildHypothesisPlanSelectionPromptParts.ts`
+  - `coyoteGame/generators/pipelines/hypothesis/buildHypothesisPhasePlanHopPromptParts.ts`
+- Outcome prompt seam consumer:
+  - `coyoteGame/generators/pipelines/outcome/buildPlanOutcomePrompt.ts`
+- Harness seam contracts to keep aligned:
+  - `coyoteGame/generators/pipelines/hypothesis/coyoteHarnessInjectTypes.ts`
+  - `coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts`
+
+Implementation-facing A1 clarifications:
+
+- Validation policy lock applies at canonical construction/normalization boundaries: allow omitted, `string[]`, and explicit empty `[]`; reject non-array and non-string elements.
+- Empty or whitespace-only affordance entries should be filtered during normalization, then persistence should prefer omission over explicit empty arrays.
+- Prompt behavior lock remains input-plumbing only for this task: no intentional text/rendering behavior change in A1-A3.
+
 ## Getting started
 
 1. Skim task-plan conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
@@ -75,17 +116,24 @@ Resolve and record these before Phase A1 code edits begin:
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]` as each sub-step lands.
 
-- [ ] Phase A0 - inventory schema and plumbing surfaces
-  - [ ] Locate all `tropeAffinities` type definitions and validators/parsers.
-  - [ ] Locate persistence write/read paths for objects carrying `tropeAffinities`.
-  - [ ] Locate prompt-part builders and pipeline seams that pass `tropeAffinities` through.
-  - [ ] Resolve all items in `Pre-implementation decisions to lock` and record outcomes in `Decision log`.
-  - [ ] Finalize targeted test list for this slice.
+- [X] Phase A0 - inventory schema and plumbing surfaces
+  - [X] Locate all `tropeAffinities` type definitions and validators/parsers.
+  - [X] Locate persistence write/read paths for objects carrying `tropeAffinities`.
+  - [X] Locate prompt-part builders and pipeline seams that pass `tropeAffinities` through.
+  - [X] Resolve all items in `Pre-implementation decisions to lock` and record outcomes in `Decision log`.
+  - [X] Finalize targeted test list for this slice.
 
-- [ ] Phase A1 - add type and validation support
-  - [ ] Add optional `affordances?: string[]` to canonical interfaces/types.
-  - [ ] Update parser/validator schemas to accept missing or present `affordances`.
-  - [ ] Preserve strictness for non-array or non-string invalid values.
+- [X] Phase A1 - add type and validation support
+  - [X] Add optional `affordances?: string[]` to canonical interfaces/types.
+  - [X] Update parser/validator schemas to accept missing or present `affordances`.
+  - [X] Preserve strictness for non-array or non-string invalid values.
+  - Locked implementation notes:
+    - Canonical `CoyoteTropeAffinity` now includes optional `affordances?: string[]` in `packages/mtw-interfaces/ts/coyotePlanAffinities.ts`.
+    - Guard policy is enforced in `isCoyoteTropeAffinity`: omitted/array accepted; non-array and non-string array elements rejected.
+    - A1 targeted verification passed:
+      - `npm --prefix packages/mtw-interfaces run test -- --watchAll=false ts/coyotePlanAffinities.test.ts`
+      - `npm --prefix lambda/ephemera run test -- --watchAll=false dataSource/actions/publishedEvents.test.ts`
+      - `npm --prefix lambda/ephemera run test -- --watchAll=false dataSource/actions/parseCommand.test.ts`
 
 - [ ] Phase A2 - persistence plumbing
   - [ ] Ensure serialization/writes preserve optional `affordances` when present.
@@ -139,8 +187,8 @@ npm --prefix lambda/ephemera run test -- --watchAll=false dataSource/coyoteGame/
 | Milestone | Status |
 | --- | --- |
 | Plan drafted | Done |
-| Schema surfaces inventoried | Not started |
-| Type + validator updates landed | Not started |
+| Schema surfaces inventoried | Done |
+| Type + validator updates landed | Done |
 | Persistence plumbing landed | Not started |
 | Prompt-ingest plumbing landed | Not started |
 | Verification complete | Not started |

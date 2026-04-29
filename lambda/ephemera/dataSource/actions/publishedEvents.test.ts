@@ -36,6 +36,56 @@ describe('isAcmeOrderPublishedOrder', () => {
         ).toBe(true)
     })
 
+    it('accepts tropeAffinities affordances when string arrays', () => {
+        expect(
+            isAcmeOrderPublishedOrder({
+                ...minimal,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'launch rig',
+                    affordances: ['payload cradle'],
+                }],
+            })
+        ).toBe(true)
+        expect(
+            isAcmeOrderPublishedOrder({
+                ...minimal,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'launch rig',
+                    affordances: [],
+                }],
+            })
+        ).toBe(true)
+    })
+
+    it('rejects tropeAffinities affordances when invalid', () => {
+        expect(
+            isAcmeOrderPublishedOrder({
+                ...minimal,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'launch rig',
+                    affordances: 'payload cradle',
+                }],
+            } as unknown)
+        ).toBe(false)
+        expect(
+            isAcmeOrderPublishedOrder({
+                ...minimal,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'launch rig',
+                    affordances: ['payload cradle', 1],
+                }],
+            } as unknown)
+        ).toBe(false)
+    })
+
     it('rejects tropeAffinitiesFailed true with non-empty tropeAffinities', () => {
         expect(
             isAcmeOrderPublishedOrder({
