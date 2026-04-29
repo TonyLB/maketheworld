@@ -92,10 +92,10 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Decide residual `planIssues` semantics (resolved rows dropped vs status-tagged).
   - [X] Document migration compatibility guarantees (legacy-only handoff remains valid).
 
-- [ ] Phase P1 - prompt redesign (single invocation, structured internals)
-  - [ ] Add explicit phase order and per-phase JSON mini-schema instructions to plan-select prompt.
-  - [ ] Preserve required markdown sections and trailing handoff JSON fence constraints.
-  - [ ] Add explicit instructions that final handoff JSON is the only downstream-consumed artifact.
+- [X] Phase P1 - prompt redesign (single invocation, structured internals)
+  - [X] Add explicit phase order and per-phase JSON mini-schema instructions to plan-select prompt.
+  - [X] Preserve required markdown sections and trailing handoff JSON fence constraints.
+  - [X] Add explicit instructions that final handoff JSON is the only downstream-consumed artifact.
 
 - [ ] Phase P2 - hop-1 parser/type updates
   - [ ] Extend `CoyoteHop1Handoff` with optional structured winner payload.

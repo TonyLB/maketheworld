@@ -45,6 +45,32 @@ const PLAN_SELECTION_READING_RULES = [
     '  candidate only.',
 ] as const
 
+const PLAN_SELECTION_INTERNAL_PHASES = [
+    '## Internal phase order (single invocation; structured internals)',
+    '- Keep one response, but execute these internal phases in order before finalizing output.',
+    '- These phase artifacts are internal scaffolding for consistency and should not override output-format constraints.',
+    '- The only downstream-consumed artifact is the final trailing handoff `json` fence.',
+    '',
+    '### Phase 1 - candidate audit (internal mini-schema)',
+    '- Build an internal `candidateAudit` array where each row is:',
+    '  `{ "candidateId": string, "coverage": string, "completeness": string, "coherence": string, "issues": string[] }`.',
+    '- Include exactly one row per input candidate, in input order.',
+    '',
+    '### Phase 2 - rubric judgment (internal mini-schema)',
+    '- Build an internal `rubricJudgment` object:',
+    '  `{ "candidateOrder": string[], "comparisons": { "<candidateId>": { "coverage": string, "completeness": string, "coherence": string } }, "tieBreak": string | null }`.',
+    '- Use this structure to support exactly one rubric sentence per candidate in the required markdown section.',
+    '',
+    '### Phase 3 - winner merge and residual issues (internal mini-schema)',
+    '- Build an internal `winnerMerge` object:',
+    '  `{ "winnerCandidateId": string, "paragraphSummaryDraft": string, "residualPlanIssues": { "code": string, "summary": string, "evidence"?: string[] }[] }`.',
+    '- Keep only residual unresolved issues in `residualPlanIssues`; do not carry forward resolved rows.',
+    '',
+    '### Phase 4 - final handoff emission',
+    '- Emit required markdown sections in order, then emit the final handoff `json` fence as the last fence in the response.',
+    '- Ensure handoff JSON preserves required key types for `paragraphSummary` and `planIssues`.',
+] as const
+
 const PLAN_SELECTION_INTRO = [
     'You are **selecting** the best high-level Coyote-vs-Road-Runner maneuver from a **fixed list of',
     'candidates** (JSON below) before the detailed hypothesis is written. You are not asked to draft',
@@ -129,6 +155,8 @@ export function buildHypothesisPlanSelectionPromptParts(
         '- **coherence** --- how well implied actions reinforce each other toward one maneuver.',
         '',
         ...PLAN_SELECT_COMBINED_JSON_SCHEMA_LINES,
+        '',
+        ...PLAN_SELECTION_INTERNAL_PHASES,
         '',
         ...COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
         '',
