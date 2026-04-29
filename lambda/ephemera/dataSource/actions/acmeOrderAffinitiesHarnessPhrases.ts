@@ -133,21 +133,21 @@ export const ACME_ORDER_AFFINITIES_HARNESS_FIXTURES: readonly AcmeOrderAffinitie
         ],
     },
     {
-        id: 'misclass-001-mosquito-cloud-generator',
+        id: 'misclass-001-catapult-rig',
         bucket: 'likely-misclassification',
-        commandPhrase: 'a portable mosquito cloud generator',
-        tags: ['diffuse', 'phenomenon-packaging'],
+        commandPhrase: 'a reinforced catapult',
+        tags: ['contraption', 'environment-affordances'],
         expectedLines: [{
-            nameLike: 'mosquito',
+            nameLike: 'catapult',
             valid: true,
             tropeAffinities: [
-                { trope: 'Distraction', aptness: 'Good', narrowingLike: 'swarms steer runner path' },
-                { trope: 'Disadvantage', aptness: 'Good', narrowingLike: 'sustained nuisance or impaired movement' },
+                { trope: 'Contraption', aptness: 'Good', narrowingLike: 'launch platform for payload delivery' },
+                { trope: 'Finishing Move', aptness: 'Poor', narrowingLike: 'indirect launch setup for terminal strike' },
             ],
         }],
         likelyErrors: [
-            'Mark as Not tangible because cloud is not a single object.',
-            'Return tropeAffinitiesFailed true despite clear packaged generator form.',
+            'Omit environmentAffordances despite clear dependency on nearby payload terrain objects.',
+            'Write environmentAffordances as intrinsic catapult behavior instead of scene affordances.',
         ],
     },
     {

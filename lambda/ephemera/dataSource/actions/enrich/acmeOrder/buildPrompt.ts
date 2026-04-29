@@ -200,6 +200,7 @@ Emit **1-3** trope-fit entries per deliverable line. Each entry must be:
 - **\`trope\`**: exactly one of **\`Contraption\`**, **\`Distraction\`**, **\`Disadvantage\`**, **\`Finishing Move\`**
 - **\`aptness\`**: exactly one of **\`High\`**, **\`Good\`**, **\`Poor\`**
 - **\`narrowing\`**: concise free text for the specific use (no enum codes yet)
+- optional **\`environmentAffordances\`**: **string[]** scene affordances (see closed-world rule below)
 - **\`trope\`** is an allowlist field: emit only **\`Contraption\`**, **\`Distraction\`**, **\`Disadvantage\`**, or **\`Finishing Move\`**.
 
 **\`narrowing\` POV rule:** write each narrowing from the **Coyote's planning perspective**:
@@ -208,6 +209,18 @@ Correct examples: "enhance Coyote pursuit speed", "immobilize Road Runner on roa
 "lure Road Runner into blast zone".
 Incorrect examples: "enhance mobility to evade pursuit", "escape from Coyote", "avoid the trap".
 If a draft narrowing describes Road Runner goals/capabilities, reverse perspective before emitting.
+
+**\`environmentAffordances\` rule (optional, per trope entry):**
+- This field captures what the **environment likely offers** around the trope beat, not what the ordered item does.
+- If text would read as an intrinsic item capability, keep it in **\`narrowing\`** instead.
+  Wrong: "attract metal objects" (item behavior). Right: "metal debris likely scattered on road surface" (scene affordance).
+- Allowed environment object references are a **closed world**:
+  **Boulder**, **Cactus**, **Tumbleweed**, **Rock wall / cliff face**, **Dirt**.
+  Do not introduce other environment objects or synonyms outside this set.
+- For each trope entry, ask: "Does this trope use become meaningfully more complete if one allowed environment object is present?"
+  - If yes, emit **1-2** short scene-perspective strings in **\`environmentAffordances\`**.
+  - If no, **omit** **\`environmentAffordances\`** (preferred) rather than emitting **\`[]\`**.
+- Keep strings brief and concrete from scene perspective (for example, "boulder available in surroundings to load as payload").
 
 If you cannot justify trope fits for a valid line, set **\`tropeAffinitiesFailed\`**: true and **\`tropeAffinities\`**: [].
 
@@ -270,9 +283,9 @@ Do not emit legacy tuple-shaped entries in **\`affinities\`** for valid lines in
   "lines": [
     {
       "valid": true,
-      "name": "<string>",
-      "stableKey": "<string>",
-      "tropeAffinities": [ { "trope": "Contraption", "aptness": "Good", "narrowing": "launch platform" } ],
+      "name": "catapult",
+      "stableKey": "catapult",
+      "tropeAffinities": [ { "trope": "Contraption", "aptness": "Good", "narrowing": "launch platform", "environmentAffordances": ["boulder available in surroundings to load as payload"] } ],
       "affinities": [],
       "affinitiesFailed": true
     },
