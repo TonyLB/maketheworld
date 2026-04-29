@@ -154,10 +154,7 @@ function buildFixture01PlanSelectInject(): CoyoteHarnessPlanSelectInject {
 const FIXTURE_01_PLAN_SELECT_INJECT = buildFixture01PlanSelectInject()
 const FIXTURE_01_PHASE_PLAN_HANDOFF: CoyoteHop1Handoff = {
     paragraphSummary: 'Conflict review favors candidate-1: lock a single Contraption-first lane using the straightaway rocket setup, then carry that same lane through the terminal beat with no prop-role conflicts.',
-    planIssues: [
-        'Candidate-1 may misread intent for rocket-0 because the lure role and terminal role overlap without a clear handoff.',
-        'Chosen-plan confidence is reduced until trope-by-trope beat order is explicit instead of collapsing setup and payoff into one vague paragraph.',
-    ],
+    planIssues: [],
 }
 const FIXTURE_01_PHASE_PLAN_INJECT: CoyoteHarnessPhasePlanInject = {
     ...FIXTURE_01_PLAN_SELECT_INJECT,

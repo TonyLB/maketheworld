@@ -180,12 +180,18 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
     - Debug log field for successful parse counts renamed from `rubricIssueCount` to `planIssueCount`.
     - Harness fixture `FIXTURE_01_PHASE_PLAN_HANDOFF` and all colocated unit tests updated to the new key and label; no backward-compat dual-read of `rubricIssues`.
 
-- [ ] Phase P2 - structured `planIssues` contract and parser hardening
-  - [ ] Replace `planIssues: string[]` shape with structured issue objects.
-  - [ ] Implement parser validation for required fields and code-union membership.
-  - [ ] Update parser failure messages for malformed issue rows.
-  - [ ] Preserve current abort/stub behavior for malformed handoff payloads unless explicitly changed.
-  - [ ] Refresh unit tests around happy path and malformed payload handling.
+- [X] Phase P2 - structured `planIssues` contract and parser hardening
+  - [X] Replace `planIssues: string[]` shape with structured issue objects.
+  - [X] Implement parser validation for required fields and code-union membership.
+  - [X] Update parser failure messages for malformed issue rows.
+  - [X] Preserve current abort/stub behavior for malformed handoff payloads unless explicitly changed.
+  - [X] Refresh unit tests around happy path and malformed payload handling.
+  - Locked implementation notes:
+    - `CoyoteHop1Handoff.planIssues` now carries structured rows (`code`, `summary`, optional `evidence`) with exported v1 code unions and deterministic code-classification helpers; parser validation enforces required fields and code allowlist membership while continuing to tolerate extra keys when required fields are valid.
+    - Parser failure reasons are now row-scoped (`planIssues[index] ...`) for malformed rows (non-object row, missing/invalid `code`, unknown code, missing/invalid `summary`, invalid `evidence`), improving malformed-payload diagnostics without widening parser surface.
+    - Abort/stub behavior is unchanged: malformed handoff payloads still fail parse and trigger existing pipeline abort-to-stub semantics in orchestration.
+    - Plan-selection prompt handoff contract now instructs structured `planIssues` rows with v1 code allowlist, and phase-plan grounding renders plan issues as `[CODE] summary` bullets with optional evidence lines.
+    - Fixtures and focused tests were migrated to the structured shape across hypothesis pipeline and harness paths (`coyoteHop1Handoff`, prompt-part tests, `coyoteHypothesisPipeline`, `generateHypothesis`, harness fixture + runner tests).
 
 - [ ] Phase P3 - align plan-selection and phase-plan prompt contracts
   - [ ] Update plan-selection prompt instructions to emit structured `planIssues` with v1 category semantics.
@@ -237,7 +243,7 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/testHarness/ru
 | Plan drafted | Done |
 | Contract framing locked (`planIssues` v1) | Done |
 | Rename/refocus baseline migration complete | Done |
-| Structured handoff/parser migration complete | Not started |
+| Structured handoff/parser migration complete | Done |
 | Prompt alignment complete | Not started |
 | Harness/fixture migration complete | Not started |
 | Regression pass complete | Not started |

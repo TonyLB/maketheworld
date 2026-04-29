@@ -85,7 +85,13 @@ const SCENE_ANALYSIS_AND_FENCED_HYPOTHESIS_LINES = [
 function formatHop1HandoffBlock(handoff: CoyoteHop1Handoff): string {
     const issues =
         handoff.planIssues.length > 0
-            ? handoff.planIssues.map((line) => `- ${line}`).join('\n')
+            ? handoff.planIssues.map((issue) => {
+                const evidence =
+                    issue.evidence && issue.evidence.length > 0
+                        ? `\n  - evidence: ${issue.evidence.join(' | ')}`
+                        : ''
+                return `- [${issue.code}] ${issue.summary}${evidence}`
+            }).join('\n')
             : '- (none)'
     return ['## Plan selection grounding', '', '**Chosen plan summary:**', '', handoff.paragraphSummary.trim(), '', '**Plan issues:**', issues].join('\n')
 }

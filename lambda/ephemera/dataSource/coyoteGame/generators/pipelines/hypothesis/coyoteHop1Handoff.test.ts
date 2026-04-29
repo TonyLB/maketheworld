@@ -13,7 +13,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
         '- Winner: candidate-1.',
     ]
 
-    it('parses last ```json fence with paragraphSummary and planIssues', () => {
+    it('parses last ```json fence with paragraphSummary and structured planIssues', () => {
         const raw = [
             ...requiredSections,
             '',
@@ -21,7 +21,10 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             JSON.stringify({
                 [COYOTE_HOP1_HANDOFF_JSON_KEYS.paragraphSummary]:
                     'Use the cliff and anvil together in one trap.',
-                [COYOTE_HOP1_HANDOFF_JSON_KEYS.planIssues]: ['stableKey ROCK has no role yet'],
+                [COYOTE_HOP1_HANDOFF_JSON_KEYS.planIssues]: [{
+                    code: 'OUTLIER_PROP_UNACCOUNTED',
+                    summary: 'stableKey ROCK has no role yet',
+                }],
             }),
             '```',
         ].join('\n')
@@ -29,7 +32,10 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             ok: true,
             handoff: {
                 paragraphSummary: 'Use the cliff and anvil together in one trap.',
-                planIssues: ['stableKey ROCK has no role yet'],
+                planIssues: [{
+                    code: 'OUTLIER_PROP_UNACCOUNTED',
+                    summary: 'stableKey ROCK has no role yet',
+                }],
             },
         })
     })
@@ -37,15 +43,15 @@ describe('parseHop1HandoffFromSelectionBody', () => {
     it('uses last json fence when multiple ```json blocks exist', () => {
         const inner = JSON.stringify({
             paragraphSummary: 'Chosen plan.',
-            planIssues: [],
+            planIssues: [{ code: 'DIRECTION_AMBIGUOUS', summary: 'Need clearer order.' }],
         })
         const raw = `${requiredSections.join('\n')}\n\n\`\`\`json\n${inner}\n\`\`\`\n\nMiddle.\n\n\`\`\`json\n${JSON.stringify({
             paragraphSummary: 'Later handoff wins.',
-            planIssues: ['gap'],
+            planIssues: [{ code: 'ROLE_CONFLICT', summary: 'gap' }],
         })}\n\`\`\``
         const r = parseHop1HandoffFromSelectionBody(raw)
         expect(r.ok && r.handoff.paragraphSummary).toBe('Later handoff wins.')
-        expect(r.ok && r.handoff.planIssues).toEqual(['gap'])
+        expect(r.ok && r.handoff.planIssues).toEqual([{ code: 'ROLE_CONFLICT', summary: 'gap' }])
     })
 
     it('returns error when no ```json fence', () => {
@@ -78,14 +84,18 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             parseHop1HandoffFromSelectionBody(
                 `${requiredSections.join('\n')}\n\n\`\`\`json\n${JSON.stringify({
                     paragraphSummary: 'x',
-                    planIssues: [],
+                    planIssues: [{
+                        code: 'DIRECTION_AMBIGUOUS',
+                        summary: 'x',
+                        extraIssueField: 'still tolerated',
+                    }],
                     extra: 'bad',
                 })}\n\`\`\``
             ).ok
         ).toBe(true)
     })
 
-    it('returns error when planIssues is not string array', () => {
+    it('returns error when planIssues row is not an object', () => {
         const raw =
             `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
             JSON.stringify({ paragraphSummary: 'x', planIssues: [1, 2] }) +
@@ -93,7 +103,70 @@ describe('parseHop1HandoffFromSelectionBody', () => {
         const r = parseHop1HandoffFromSelectionBody(raw)
         expect(r.ok).toBe(false)
         if (!r.ok) {
-            expect(r.reason).toContain('array of strings')
+            expect(r.reason).toContain('planIssues[0] must be a plain object')
+        }
+    })
+
+    it('returns error when planIssues row is missing code', () => {
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({ paragraphSummary: 'x', planIssues: [{ summary: 'missing code' }] }) +
+            '\n```'
+        const r = parseHop1HandoffFromSelectionBody(raw)
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.reason).toContain('missing required key: code')
+        }
+    })
+
+    it('returns error when planIssues code is unknown', () => {
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({ paragraphSummary: 'x', planIssues: [{ code: 'NOT_REAL', summary: 'bad' }] }) +
+            '\n```'
+        const r = parseHop1HandoffFromSelectionBody(raw)
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.reason).toContain('code must be one of')
+        }
+    })
+
+    it('returns error when planIssues row is missing summary', () => {
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({ paragraphSummary: 'x', planIssues: [{ code: 'ROLE_CONFLICT' }] }) +
+            '\n```'
+        const r = parseHop1HandoffFromSelectionBody(raw)
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.reason).toContain('missing required key: summary')
+        }
+    })
+
+    it('returns error when planIssues summary is not a string', () => {
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({ paragraphSummary: 'x', planIssues: [{ code: 'ROLE_CONFLICT', summary: 1 }] }) +
+            '\n```'
+        const r = parseHop1HandoffFromSelectionBody(raw)
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.reason).toContain('summary must be a string')
+        }
+    })
+
+    it('returns error when evidence is not a string array', () => {
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({
+                paragraphSummary: 'x',
+                planIssues: [{ code: 'ROLE_CONFLICT', summary: 'bad evidence', evidence: [1] }],
+            }) +
+            '\n```'
+        const r = parseHop1HandoffFromSelectionBody(raw)
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.reason).toContain('evidence must be an array of strings')
         }
     })
 

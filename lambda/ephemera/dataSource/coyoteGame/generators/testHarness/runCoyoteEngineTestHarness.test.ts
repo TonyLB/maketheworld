@@ -145,7 +145,7 @@ describe('runCoyoteEngineTestHarness', () => {
             },
             planSelectionResult: {
                 success: true,
-                body: '{"paragraphSummary":"x","planIssues":[]}',
+                body: '{"paragraphSummary":"x","planIssues":[{"code":"ROLE_CONFLICT","summary":"x"}]}',
                 usage: {
                     inputTokens: 15,
                     outputTokens: 8,
@@ -165,7 +165,7 @@ describe('runCoyoteEngineTestHarness', () => {
                     cacheWriteInputTokens: 0,
                 },
             },
-            selectionBody: '{"paragraphSummary":"x","planIssues":[]}',
+            selectionBody: '{"paragraphSummary":"x","planIssues":[{"code":"ROLE_CONFLICT","summary":"x"}]}',
             phasePlanJson: '{"tropeSequence":["Contraption"],"deconflictionSummary":"single lane","phases":[{"trope":"Contraption","tropeBeat":"prime launch lane","stableKeysUsed":["anvil-0"],"virtualEntities":[],"achievement":"launch"}]}',
         })
         let t = 0
@@ -194,7 +194,7 @@ describe('runCoyoteEngineTestHarness', () => {
         expect(flat).toContain('"stableKey":"anvil-0"')
         expect(flat).toContain('usagePlanSelection: input=15 output=8 total=23 cacheRead=10 cacheWrite=1')
         expect(flat).toContain('usagePhasePlanHop: input=20 output=9 total=29 cacheRead=12 cacheWrite=0')
-        expect(flat).toContain('selectionBody:\n{"paragraphSummary":"x","planIssues":[]}')
+        expect(flat).toContain('selectionBody:\n{"paragraphSummary":"x","planIssues":[{"code":"ROLE_CONFLICT","summary":"x"}]}')
         expect(flat).toContain(
             'phasePlanJson:\n{"tropeSequence":["Contraption"],"deconflictionSummary":"single lane","phases":[{"trope":"Contraption","tropeBeat":"prime launch lane","stableKeysUsed":["anvil-0"],"virtualEntities":[],"achievement":"launch"}]}'
         )
@@ -332,7 +332,7 @@ describe('runCoyoteEngineTestHarness', () => {
             },
             planSelectionResult: {
                 success: true,
-                body: '{"paragraphSummary":"winner","planIssues":[]}',
+                body: '{"paragraphSummary":"winner","planIssues":[{"code":"DIRECTION_AMBIGUOUS","summary":"winner"}]}',
                 reasoningContent: 'compare sketches then pick candidate-1',
                 usage: { inputTokens: 9, outputTokens: 10, totalTokens: 19 },
             },
@@ -352,7 +352,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         const rendered = renderTreeToString((send.mock.calls[0][0] as { message: RenderTree }).message)
         expect(rendered).toContain(
-            'selectionBody:\n{"paragraphSummary":"winner","planIssues":[]}'
+            'selectionBody:\n{"paragraphSummary":"winner","planIssues":[{"code":"DIRECTION_AMBIGUOUS","summary":"winner"}]}'
         )
         expect(rendered).toContain(
             'planSelectionReasoning:\ncompare sketches then pick candidate-1'
