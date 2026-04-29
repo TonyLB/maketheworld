@@ -33,7 +33,7 @@ describe('buildHypothesisPlanSelectionPromptParts', () => {
         expect(full).toContain('completeness')
         expect(full).toContain('coherence')
         expect(full).toContain(COYOTE_HOP1_HANDOFF_JSON_KEYS.paragraphSummary)
-        expect(full).toContain(COYOTE_HOP1_HANDOFF_JSON_KEYS.rubricIssues)
+        expect(full).toContain(COYOTE_HOP1_HANDOFF_JSON_KEYS.planIssues)
         expect(full).toContain('## Intent conflicts')
         expect(full).toContain('## Rubric comparison')
         expect(full).toContain('## Winner selection')

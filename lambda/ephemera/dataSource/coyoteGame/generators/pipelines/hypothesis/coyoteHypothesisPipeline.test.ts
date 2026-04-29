@@ -64,7 +64,7 @@ const hop1PlanSelectionBody = [
     '- Winner: candidate-1.',
     '',
     '```json',
-    '{"paragraphSummary":"Stage the anvil.","rubricIssues":[]}',
+    '{"paragraphSummary":"Stage the anvil.","planIssues":[]}',
     '```',
 ].join('\n')
 
@@ -113,7 +113,7 @@ describe('mapPipelineRunToGenerateHypothesisResult', () => {
                 },
                 planSelectionResult: {
                     success: true,
-                    body: '{"paragraphSummary":"x","rubricIssues":[]}',
+                    body: '{"paragraphSummary":"x","planIssues":[]}',
                     usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
                 },
                 phasePlanHopResult: {
@@ -263,7 +263,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
                 '- Winner: candidate-1.',
                 '',
                 '```json',
-                '{"paragraphSummary":"Stage the anvil.","rubricIssues":[]}',
+                '{"paragraphSummary":"Stage the anvil.","planIssues":[]}',
                 '```',
             ].join('\n'),
             usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },

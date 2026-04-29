@@ -1,6 +1,6 @@
 # Coyote Game: refactor rubricIssues into planIssues (planning)
 
-**Status:** In progress. Next step is Phase P0 (`contract framing`) to define the first-pass `planIssues` schema and stage ownership.
+**Status:** In progress. Next step is Phase P2 (structured `planIssues` contract and parser hardening).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -170,10 +170,15 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
     - Prompt-level semantics are locked: intent-signal issues count as negative winner evidence in plan-select, while underspecification issues are deconfliction obligations; phase-plan consumes all `planIssues` as grounding constraints.
     - No durable persistence of `planIssues` is permitted beyond phase-plan handling in this slice; persistence/telemetry expansion remains out of scope unless needed for safety.
 
-- [ ] Phase P1 - rename/refocus baseline migration (`rubricIssues` -> `planIssues`)
-  - [ ] Replace handoff key names and prompt copy from rubric-specific language to plan-level language.
-  - [ ] Keep behavior otherwise equivalent to current flow to minimize migration risk.
-  - [ ] Update tests/fixtures for key rename and wording changes.
+- [X] Phase P1 - rename/refocus baseline migration (`rubricIssues` -> `planIssues`)
+  - [X] Replace handoff key names and prompt copy from rubric-specific language to plan-level language.
+  - [X] Keep behavior otherwise equivalent to current flow to minimize migration risk.
+  - [X] Update tests/fixtures for key rename and wording changes.
+  - Locked implementation notes:
+    - Hop-1 handoff JSON key and `CoyoteHop1Handoff` field renamed from `rubricIssues` to `planIssues`; value remains `string[]`; parser required keys, section-heading checks, and extra-key tolerance unchanged from pre-P1 behavior.
+    - Phase-plan grounding block label renamed from `**Intent-confidence gaps:**` to `**Plan issues:**`; plan-selection Markdown section headings (`## Intent conflicts`, `## Rubric comparison`, `## Winner selection`) unchanged in this slice (deferred to P3 prompt alignment).
+    - Debug log field for successful parse counts renamed from `rubricIssueCount` to `planIssueCount`.
+    - Harness fixture `FIXTURE_01_PHASE_PLAN_HANDOFF` and all colocated unit tests updated to the new key and label; no backward-compat dual-read of `rubricIssues`.
 
 - [ ] Phase P2 - structured `planIssues` contract and parser hardening
   - [ ] Replace `planIssues: string[]` shape with structured issue objects.
@@ -230,8 +235,8 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/testHarness/ru
 | Milestone | Status |
 | --- | --- |
 | Plan drafted | Done |
-| Contract framing locked (`planIssues` v1) | Not started |
-| Rename/refocus baseline migration complete | Not started |
+| Contract framing locked (`planIssues` v1) | Done |
+| Rename/refocus baseline migration complete | Done |
 | Structured handoff/parser migration complete | Not started |
 | Prompt alignment complete | Not started |
 | Harness/fixture migration complete | Not started |

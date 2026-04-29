@@ -23,7 +23,7 @@ describe('buildHypothesisPhasePlanHopPromptParts', () => {
             },
             hop1Handoff: {
                 paragraphSummary: 'Summary line.',
-                rubricIssues: ['gap a'],
+                planIssues: ['gap a'],
             },
         })
         const full = parts.invariantPrefix + parts.dynamicSuffix
@@ -63,7 +63,7 @@ describe('buildHypothesisPhasePlanHopPromptParts', () => {
             },
             hop1Handoff: {
                 paragraphSummary: 'Summary line.',
-                rubricIssues: ['gap a'],
+                planIssues: ['gap a'],
             },
         })
         const full = parts.invariantPrefix + parts.dynamicSuffix

@@ -13,7 +13,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
         '- Winner: candidate-1.',
     ]
 
-    it('parses last ```json fence with paragraphSummary and rubricIssues', () => {
+    it('parses last ```json fence with paragraphSummary and planIssues', () => {
         const raw = [
             ...requiredSections,
             '',
@@ -21,7 +21,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             JSON.stringify({
                 [COYOTE_HOP1_HANDOFF_JSON_KEYS.paragraphSummary]:
                     'Use the cliff and anvil together in one trap.',
-                [COYOTE_HOP1_HANDOFF_JSON_KEYS.rubricIssues]: ['stableKey ROCK has no role yet'],
+                [COYOTE_HOP1_HANDOFF_JSON_KEYS.planIssues]: ['stableKey ROCK has no role yet'],
             }),
             '```',
         ].join('\n')
@@ -29,7 +29,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             ok: true,
             handoff: {
                 paragraphSummary: 'Use the cliff and anvil together in one trap.',
-                rubricIssues: ['stableKey ROCK has no role yet'],
+                planIssues: ['stableKey ROCK has no role yet'],
             },
         })
     })
@@ -37,15 +37,15 @@ describe('parseHop1HandoffFromSelectionBody', () => {
     it('uses last json fence when multiple ```json blocks exist', () => {
         const inner = JSON.stringify({
             paragraphSummary: 'Chosen plan.',
-            rubricIssues: [],
+            planIssues: [],
         })
         const raw = `${requiredSections.join('\n')}\n\n\`\`\`json\n${inner}\n\`\`\`\n\nMiddle.\n\n\`\`\`json\n${JSON.stringify({
             paragraphSummary: 'Later handoff wins.',
-            rubricIssues: ['gap'],
+            planIssues: ['gap'],
         })}\n\`\`\``
         const r = parseHop1HandoffFromSelectionBody(raw)
         expect(r.ok && r.handoff.paragraphSummary).toBe('Later handoff wins.')
-        expect(r.ok && r.handoff.rubricIssues).toEqual(['gap'])
+        expect(r.ok && r.handoff.planIssues).toEqual(['gap'])
     })
 
     it('returns error when no ```json fence', () => {
@@ -78,17 +78,17 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             parseHop1HandoffFromSelectionBody(
                 `${requiredSections.join('\n')}\n\n\`\`\`json\n${JSON.stringify({
                     paragraphSummary: 'x',
-                    rubricIssues: [],
+                    planIssues: [],
                     extra: 'bad',
                 })}\n\`\`\``
             ).ok
         ).toBe(true)
     })
 
-    it('returns error when rubricIssues is not string array', () => {
+    it('returns error when planIssues is not string array', () => {
         const raw =
             `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
-            JSON.stringify({ paragraphSummary: 'x', rubricIssues: [1, 2] }) +
+            JSON.stringify({ paragraphSummary: 'x', planIssues: [1, 2] }) +
             '\n```'
         const r = parseHop1HandoffFromSelectionBody(raw)
         expect(r.ok).toBe(false)
@@ -104,7 +104,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             '## Winner selection',
             '- Winner: candidate-1.',
             '```json',
-            JSON.stringify({ paragraphSummary: 'x', rubricIssues: [] }),
+            JSON.stringify({ paragraphSummary: 'x', planIssues: [] }),
             '```',
         ].join('\n')
         const r = parseHop1HandoffFromSelectionBody(raw)
@@ -121,7 +121,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             '## Winner selection',
             '- Winner: candidate-1.',
             '```json',
-            JSON.stringify({ paragraphSummary: 'x', rubricIssues: [] }),
+            JSON.stringify({ paragraphSummary: 'x', planIssues: [] }),
             '```',
         ].join('\n')
         const r = parseHop1HandoffFromSelectionBody(raw)
@@ -138,7 +138,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             '## Rubric comparison',
             '- compare',
             '```json',
-            JSON.stringify({ paragraphSummary: 'x', rubricIssues: [] }),
+            JSON.stringify({ paragraphSummary: 'x', planIssues: [] }),
             '```',
         ].join('\n')
         const r = parseHop1HandoffFromSelectionBody(raw)

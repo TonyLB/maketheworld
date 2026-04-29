@@ -4,12 +4,12 @@ import { hypothesisDebugLog } from '../../../utilities/hypothesisDebug'
 /** Canonical JSON keys for hop-1 handoff (plan selection to phase-plan). */
 export const COYOTE_HOP1_HANDOFF_JSON_KEYS = {
     paragraphSummary: 'paragraphSummary',
-    rubricIssues: 'rubricIssues',
+    planIssues: 'planIssues',
 } as const
 
 export type CoyoteHop1Handoff = {
     paragraphSummary: string
-    rubricIssues: string[]
+    planIssues: string[]
 }
 
 export type ParseHop1HandoffResult =
@@ -24,7 +24,7 @@ const REQUIRED_SECTION_HEADINGS = [
 
 const REQUIRED_KEYS = new Set<string>([
     COYOTE_HOP1_HANDOFF_JSON_KEYS.paragraphSummary,
-    COYOTE_HOP1_HANDOFF_JSON_KEYS.rubricIssues,
+    COYOTE_HOP1_HANDOFF_JSON_KEYS.planIssues,
 ])
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
@@ -41,19 +41,19 @@ function narrowHandoff(parsed: unknown): ParseHop1HandoffResult {
         }
     }
     const paragraphSummary = parsed.paragraphSummary
-    const rubricIssues = parsed.rubricIssues
+    const planIssues = parsed.planIssues
     if (typeof paragraphSummary !== 'string') {
         return { ok: false, reason: 'paragraphSummary must be a string' }
     }
-    if (!Array.isArray(rubricIssues)) {
-        return { ok: false, reason: 'rubricIssues must be an array' }
+    if (!Array.isArray(planIssues)) {
+        return { ok: false, reason: 'planIssues must be an array' }
     }
-    if (!rubricIssues.every((item): item is string => typeof item === 'string')) {
-        return { ok: false, reason: 'rubricIssues must be an array of strings' }
+    if (!planIssues.every((item): item is string => typeof item === 'string')) {
+        return { ok: false, reason: 'planIssues must be an array of strings' }
     }
     return {
         ok: true,
-        handoff: { paragraphSummary, rubricIssues },
+        handoff: { paragraphSummary, planIssues },
     }
 }
 
@@ -105,7 +105,7 @@ export function parseHop1HandoffFromSelectionBody(raw: string): ParseHop1Handoff
         return narrowed
     }
     hypothesisDebugLog('hop1 handoff parse succeeded', {
-        rubricIssueCount: narrowed.handoff.rubricIssues.length,
+        planIssueCount: narrowed.handoff.planIssues.length,
     })
     return narrowed
 }

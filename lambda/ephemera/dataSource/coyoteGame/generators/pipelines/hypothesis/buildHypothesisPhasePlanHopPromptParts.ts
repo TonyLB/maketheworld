@@ -84,10 +84,10 @@ const SCENE_ANALYSIS_AND_FENCED_HYPOTHESIS_LINES = [
 
 function formatHop1HandoffBlock(handoff: CoyoteHop1Handoff): string {
     const issues =
-        handoff.rubricIssues.length > 0
-            ? handoff.rubricIssues.map((line) => `- ${line}`).join('\n')
+        handoff.planIssues.length > 0
+            ? handoff.planIssues.map((line) => `- ${line}`).join('\n')
             : '- (none)'
-    return ['## Plan selection grounding', '', '**Chosen plan summary:**', '', handoff.paragraphSummary.trim(), '', '**Intent-confidence gaps:**', issues].join('\n')
+    return ['## Plan selection grounding', '', '**Chosen plan summary:**', '', handoff.paragraphSummary.trim(), '', '**Plan issues:**', issues].join('\n')
 }
 
 /** Option A hop 2: phase-plan JSON first, then "## Scene analysis", then fenced Hypothesis line. */

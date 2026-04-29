@@ -100,7 +100,7 @@ const PLAN_SELECTION_INTRO = [
     '`** (string: a restatement of the chosen candidate only; must start with `Selected',
     '  <candidateId>:` and stay anchored to that candidate\'s `executionSummary` plus listed',
     '  trope/member evidence --- no new plan steps) and **`',
-    COYOTE_HOP1_HANDOFF_JSON_KEYS.rubricIssues,
+    COYOTE_HOP1_HANDOFF_JSON_KEYS.planIssues,
     '`** (array of strings: evidence that the chosen candidate may misread player intent ---',
     '  unaccounted props, affordance contradictions, tropeFunction/summary mismatches, topology issues).',
     '  Additional keys are allowed, but these two keys must be present and well-typed.',
