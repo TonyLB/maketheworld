@@ -204,11 +204,16 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
     - Prompt-level Coyote perspective and ordering guardrails were preserved; no section-heading/order contract changes were introduced for hop-1 parsing.
     - Focused prompt-part tests were updated to assert the new wording semantics and pass under direct Jest config invocation (`buildHypothesisPlanSelectionPromptParts.test.ts`, `buildHypothesisPhasePlanHopPromptParts.test.ts`).
 
-- [ ] Phase P4 - harness and fixture migration
-  - [ ] Migrate harness inject fixtures and any golden handoff snapshots to structured `planIssues`.
-  - [ ] Update harness assertions and output expectations.
-  - [ ] Remove backward-compatibility dual-shape handling once fixture migration is complete (no compatibility window required).
-  - [ ] Confirm partial-run (`runOnly` / `runUntil`) paths remain valid with migrated handoff data.
+- [X] Phase P4 - harness and fixture migration
+  - [X] Migrate harness inject fixtures and any golden handoff snapshots to structured `planIssues`.
+  - [X] Update harness assertions and output expectations.
+  - [X] Remove backward-compatibility dual-shape handling once fixture migration is complete (no compatibility window required).
+  - [X] Confirm partial-run (`runOnly` / `runUntil`) paths remain valid with migrated handoff data.
+  - Locked implementation notes:
+    - Harness fixtures now include structured hop-1 golden handoff snapshots keyed by fixture id (`HOP1_HANDOFF_GOLDEN_BY_FIXTURE_ID`), and `phasePlanInject` is auto-populated from `planSelectInject` plus structured `hop1Handoff` when available.
+    - Harness regression coverage now explicitly locks successful `runOnly planSelect` and `runOnly phasePlan` inject flows, including structured `hop1Handoff.planIssues` rows in injected phase-plan state.
+    - No dual-shape fallback remains in harness-facing plan-issue handling for this slice; fixture/test paths now exercise only structured `planIssues` rows (`code`, `summary`, optional `evidence`).
+    - Partial-run validation remains intact across `runUntil` and `runOnly` paths under focused hypothesis/harness regression runs (`runCoyoteEngineTestHarness.test.ts`, `generateHypothesis.test.ts`, `coyoteHypothesisPipeline.test.ts`).
 
 - [ ] Phase P5 - evaluation, cleanup, and closeout
   - [ ] Run focused hypothesis pipeline and harness regressions.
@@ -250,6 +255,6 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/testHarness/ru
 | Rename/refocus baseline migration complete | Done |
 | Structured handoff/parser migration complete | Done |
 | Prompt alignment complete | Done |
-| Harness/fixture migration complete | Not started |
+| Harness/fixture migration complete | Done |
 | Regression pass complete | Not started |
 | Durable docs updated and plan archived | Not started |
