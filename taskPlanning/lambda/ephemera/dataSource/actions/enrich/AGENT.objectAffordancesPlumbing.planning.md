@@ -135,10 +135,20 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
       - `npm --prefix lambda/ephemera run test -- --watchAll=false dataSource/actions/publishedEvents.test.ts`
       - `npm --prefix lambda/ephemera run test -- --watchAll=false dataSource/actions/parseCommand.test.ts`
 
-- [ ] Phase A2 - persistence plumbing
-  - [ ] Ensure serialization/writes preserve optional `affordances` when present.
-  - [ ] Ensure hydration/reads expose `affordances` when present and remain compatible when absent.
-  - [ ] Add regression coverage for both present and absent cases.
+- [X] Phase A2 - persistence plumbing
+  - [X] Ensure serialization/writes preserve optional `affordances` when present.
+  - [X] Ensure hydration/reads expose `affordances` when present and remain compatible when absent.
+  - [X] Add regression coverage for both present and absent cases.
+  - Locked implementation notes:
+    - Acme order write-path mapping/stream payload assertions now lock nested `tropeAffinities[].affordances` passthrough plus compatibility entries where `affordances` is absent.
+    - Meta-room persistence snapshot coverage now locks `priorObjects`/`newObjects` preservation for both present and absent `tropeAffinities[].affordances`.
+    - Room-object hydration/formatting coverage confirms read-path objects carrying `affordances` remain valid while rendered prompt text remains unchanged.
+    - A2 targeted verification passed:
+      - `npm --prefix lambda/ephemera run test -- --watchAll=false dataSource/actions/publishedEvents.test.ts`
+      - `npm --prefix lambda/ephemera run test -- --watchAll=false dataSource/actions/parseCommand.test.ts`
+      - `npm --prefix lambda/ephemera run test -- --watchAll=false dataSource/objects/mergePersistMetaRoomObjects.test.ts`
+      - `npm --prefix lambda/ephemera run test -- --watchAll=false dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot.test.ts`
+      - `npm --prefix packages/mtw-interfaces run test -- --watchAll=false ts/coyotePlanAffinities.test.ts`
 
 - [ ] Phase A3 - prompt-ingest plumbing
   - [ ] Thread `affordances` through prompt input structures where `tropeAffinities` already flows.
@@ -189,6 +199,6 @@ npm --prefix lambda/ephemera run test -- --watchAll=false dataSource/coyoteGame/
 | Plan drafted | Done |
 | Schema surfaces inventoried | Done |
 | Type + validator updates landed | Done |
-| Persistence plumbing landed | Not started |
+| Persistence plumbing landed | Done |
 | Prompt-ingest plumbing landed | Not started |
 | Verification complete | Not started |

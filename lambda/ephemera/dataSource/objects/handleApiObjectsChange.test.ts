@@ -221,11 +221,19 @@ describe('handleAcmeOrderAddObjects', () => {
                     uuid: 'OBJECT#u2' as EphemeraObjectId,
                     shortName: 'giant magnet',
                     stableKey: 'giant-magnet',
-                    tropeAffinities: [{
-                        trope: 'Contraption' as const,
-                        aptness: 'High' as const,
-                        narrowing: 'magnetic winch rig',
-                    }],
+                    tropeAffinities: [
+                        {
+                            trope: 'Contraption' as const,
+                            aptness: 'High' as const,
+                            narrowing: 'magnetic winch rig',
+                            affordances: ['affordance-alpha', 'affordance-beta'],
+                        },
+                        {
+                            trope: 'Contraption',
+                            aptness: 'Good',
+                            narrowing: 'hanging chain mount',
+                        },
+                    ],
                     affinities: [{ role: 'terminal' as const, aptness: 0.6 }],
                 },
             ],
@@ -242,11 +250,19 @@ describe('handleAcmeOrderAddObjects', () => {
                 {
                     shortName: 'giant magnet',
                     stableKey: 'giant-magnet',
-                    tropeAffinities: [{
-                        trope: 'Contraption',
-                        aptness: 'High',
-                        narrowing: 'magnetic winch rig',
-                    }],
+                    tropeAffinities: [
+                        {
+                            trope: 'Contraption',
+                            aptness: 'High',
+                            narrowing: 'magnetic winch rig',
+                            affordances: ['affordance-alpha', 'affordance-beta'],
+                        },
+                        {
+                            trope: 'Contraption',
+                            aptness: 'Good',
+                            narrowing: 'hanging chain mount',
+                        },
+                    ],
                     affinities: [{ role: 'terminal', aptness: 0.6 }],
                 },
             ],
@@ -267,11 +283,19 @@ describe('handleAcmeOrderAddObjects', () => {
                     uuid: 'OBJECT#u2',
                     shortName: 'giant magnet',
                     stableKey: 'giant-magnet',
-                    tropeAffinities: [{
-                        trope: 'Contraption',
-                        aptness: 'High',
-                        narrowing: 'magnetic winch rig',
-                    }],
+                    tropeAffinities: [
+                        {
+                            trope: 'Contraption',
+                            aptness: 'High',
+                            narrowing: 'magnetic winch rig',
+                            affordances: ['affordance-alpha', 'affordance-beta'],
+                        },
+                        {
+                            trope: 'Contraption',
+                            aptness: 'Good',
+                            narrowing: 'hanging chain mount',
+                        },
+                    ],
                     affinities: [{ role: 'terminal', aptness: 0.6 }],
                 },
             ],
@@ -289,11 +313,19 @@ describe('handleAcmeOrderAddObjects', () => {
                         uuid: 'OBJECT#u2',
                         shortName: 'giant magnet',
                         stableKey: 'giant-magnet',
-                        tropeAffinities: [{
-                            trope: 'Contraption',
-                            aptness: 'High',
-                            narrowing: 'magnetic winch rig',
-                        }],
+                        tropeAffinities: [
+                            {
+                                trope: 'Contraption',
+                                aptness: 'High',
+                                narrowing: 'magnetic winch rig',
+                                affordances: ['affordance-alpha', 'affordance-beta'],
+                            },
+                            {
+                                trope: 'Contraption',
+                                aptness: 'Good',
+                                narrowing: 'hanging chain mount',
+                            },
+                        ],
                         affinities: [{ role: 'terminal', aptness: 0.6 }],
                     },
                 ],
@@ -306,11 +338,19 @@ describe('handleAcmeOrderAddObjects', () => {
                         uuid: 'OBJECT#u2',
                         shortName: 'giant magnet',
                         stableKey: 'giant-magnet',
-                        tropeAffinities: [{
-                            trope: 'Contraption',
-                            aptness: 'High',
-                            narrowing: 'magnetic winch rig',
-                        }],
+                        tropeAffinities: [
+                            {
+                                trope: 'Contraption',
+                                aptness: 'High',
+                                narrowing: 'magnetic winch rig',
+                                affordances: ['affordance-alpha', 'affordance-beta'],
+                            },
+                            {
+                                trope: 'Contraption',
+                                aptness: 'Good',
+                                narrowing: 'hanging chain mount',
+                            },
+                        ],
                         affinities: [{ role: 'terminal', aptness: 0.6 }],
                     },
                 ],
