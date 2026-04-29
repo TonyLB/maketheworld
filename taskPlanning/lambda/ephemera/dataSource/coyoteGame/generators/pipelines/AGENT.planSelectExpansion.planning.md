@@ -1,6 +1,6 @@
 # Coyote planSelect expansion (planning)
 
-**Status:** In progress. Next step is to lock the hop-1 handoff shape for a structured selected-candidate artifact.
+**Status:** In progress. Phase P0 is locked; next step is Phase P1 prompt redesign with structured internal phases.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../../../../AGENT.md).
 
@@ -42,20 +42,31 @@ This plan is task-scoped and should be removed or archived after this expansion 
 - Plural-form handling is represented as execution-detail wording and sequencing hints, not trope-type expansion.
 - `resolvedBy: "planSelect-merge"` is deferred unless a clear downstream need appears.
 
-## Open questions and decisions needed
+## Decisions locked (current)
 
 1. `selectedCandidate` schema strictness:
-   - Should it mirror plan-select input shape exactly, or allow extra merge metadata?
-   - Should sequencing hints be required, optional, or omitted in v1?
+   - Mirror plan-select input shape exactly in v1 (no extra merge metadata fields).
+   - Sequencing hints are omitted in v1.
 2. Residual `planIssues` policy:
-   - Should resolved issues be fully removed from final `planIssues`, or retained with explicit status?
+   - Remove resolved issues from final `planIssues`; only residual unresolved issues remain.
 3. Phase-plan consumption:
-   - Should phase-plan prompt grounding explicitly prioritize `selectedCandidate` when present?
-   - What fallback language should apply when only legacy hop-1 keys exist?
+   - Phase-plan prompt grounding should explicitly prioritize `selectedCandidate` when present.
+   - Legacy fallback should be a "do your best" bridge using existing `paragraphSummary` and `planIssues`.
 4. Parser tolerance:
-   - Should unknown top-level handoff keys stay tolerated, or should `selectedCandidate` rollout tighten key validation?
-5. Harness rollout:
-   - Should fixtures migrate in one sweep or by phased corpus slices?
+   - Unknown top-level handoff keys remain tolerated, but non-authoritative keys are screened out deterministically by narrowing logic.
+5. Harness and fixture rollout:
+   - Migrate by phased corpus slices, not one sweep.
+   - Before fixture-slice updates, run a practical plan-select evaluation pass to validate output quality and stability.
+6. Migration compatibility guarantees:
+   - Legacy-only handoff (`paragraphSummary` + `planIssues`) remains valid during rollout.
+   - `selectedCandidate` is optional in the initial expansion phase and prioritized when present.
+   - Final handoff narrowing keeps authoritative keys deterministic for downstream consumption.
+
+## Open questions and decisions needed
+
+- When to flip from "prioritize `selectedCandidate`" to "require `selectedCandidate`" in phase-plan consumption.
+- What quality threshold and sample size define "stable enough" to start fixture-slice migration.
+- Whether any currently tolerated top-level keys should be explicitly deprecated in parser diagnostics before the required-`selectedCandidate` phase.
 
 ## Getting started
 
@@ -76,10 +87,10 @@ This plan is task-scoped and should be removed or archived after this expansion 
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]` as each sub-step lands.
 
-- [ ] Phase P0 - lock handoff contract delta
-  - [ ] Decide `selectedCandidate` schema fields and strictness.
-  - [ ] Decide residual `planIssues` semantics (resolved rows dropped vs status-tagged).
-  - [ ] Document migration compatibility guarantees (legacy-only handoff remains valid).
+- [X] Phase P0 - lock handoff contract delta
+  - [X] Decide `selectedCandidate` schema fields and strictness.
+  - [X] Decide residual `planIssues` semantics (resolved rows dropped vs status-tagged).
+  - [X] Document migration compatibility guarantees (legacy-only handoff remains valid).
 
 - [ ] Phase P1 - prompt redesign (single invocation, structured internals)
   - [ ] Add explicit phase order and per-phase JSON mini-schema instructions to plan-select prompt.
@@ -135,7 +146,7 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/testHarness/co
 | Milestone | Status |
 | --- | --- |
 | Plan drafted | Done |
-| Contract delta locked | Not started |
+| Contract delta locked | Done |
 | Prompt and parser updates landed | Not started |
 | Phase-plan grounding updates landed | Not started |
 | Fixtures and tests migrated | Not started |
