@@ -198,6 +198,7 @@ describe('runCoyoteEngineTestHarness', () => {
         expect(flat).toContain(
             'phasePlanJson:\n{"tropeSequence":["Contraption"],"deconflictionSummary":"single lane","phases":[{"trope":"Contraption","tropeBeat":"prime launch lane","stableKeysUsed":["anvil-0"],"virtualEntities":[],"achievement":"launch"}]}'
         )
+        expect(flat).not.toContain('planSelectionReasoning')
     })
 
     it('respects testBatchSize concurrency limit', async () => {
@@ -313,6 +314,49 @@ describe('runCoyoteEngineTestHarness', () => {
         expect(rendered).toContain('usagePhasePlanHop: (not run)')
         expect(rendered).toContain('selectionBody: (not run)')
         expect(rendered).toContain('phasePlanJson: (not run)')
+        expect(rendered).not.toContain('planSelectionReasoning')
+    })
+
+    it('partial runUntil planSelect falls back to planSelectionResult body for selectionBody', async () => {
+        const send = jest.fn()
+        const flush = jest.fn().mockResolvedValue(undefined)
+        const pipeline = jest.fn().mockResolvedValue({
+            kind: 'harnessPartial',
+            testOnly: 'planSelect',
+            harnessRunKind: 'runUntil',
+            record: { intent: 'Hypothesis: partial' },
+            stageOneResult: {
+                success: true,
+                body: '{"candidates":[]}',
+                usage: { inputTokens: 3, outputTokens: 4, totalTokens: 7 },
+            },
+            planSelectionResult: {
+                success: true,
+                body: '{"paragraphSummary":"winner","rubricIssues":[]}',
+                reasoningContent: 'compare sketches then pick candidate-1',
+                usage: { inputTokens: 9, outputTokens: 10, totalTokens: 19 },
+            },
+        })
+
+        await runCoyoteEngineTestHarness({
+            characterId: 'CHARACTER#runner',
+            messageBus: { send, flush },
+            fixtures: [simpleFixtures[0]],
+            generateHypothesisPipelineImpl: pipeline,
+            harnessInvocation: {
+                mode: 'partial',
+                testOnly: 'planSelect',
+                harnessRunKind: 'runUntil',
+            },
+        })
+
+        const rendered = renderTreeToString((send.mock.calls[0][0] as { message: RenderTree }).message)
+        expect(rendered).toContain(
+            'selectionBody:\n{"paragraphSummary":"winner","rubricIssues":[]}'
+        )
+        expect(rendered).toContain(
+            'planSelectionReasoning:\ncompare sketches then pick candidate-1'
+        )
     })
 
     it('runOnly planSelect without inject publishes OOC error and does not call the pipeline', async () => {

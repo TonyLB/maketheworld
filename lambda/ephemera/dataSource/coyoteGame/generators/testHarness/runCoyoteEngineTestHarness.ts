@@ -126,7 +126,7 @@ function buildHarnessPipelineOptions(args: {
             harnessRunKind: 'runOnly',
             injectState: {
                 roomObjectsByRoom: resolved.inject.roomObjectsByRoom,
-                combinedMarkdown: resolved.inject.combinedMarkdown,
+                combined: resolved.inject.combined,
             },
         }
     }
@@ -135,7 +135,7 @@ function buildHarnessPipelineOptions(args: {
         harnessRunKind: 'runOnly',
         injectState: {
             roomObjectsByRoom: resolved.inject.roomObjectsByRoom,
-            combinedMarkdown: resolved.inject.combinedMarkdown,
+            combined: resolved.inject.combined,
             hop1Handoff: resolved.inject.hop1Handoff,
         },
     }
@@ -169,11 +169,38 @@ function formatStageOneBodyForHarness(result: InvokeBedrockHypothesisResult): st
     return `stageOneBody:\n${body}`
 }
 
-function formatSelectionBodyForHarness(selectionBody: string | undefined): string {
-    if (selectionBody !== undefined && selectionBody.trim().length > 0) {
-        return `selectionBody:\n${selectionBody}`
+function formatSelectionBodyForHarness(args: {
+    selectionBody: string | undefined
+    planSelectionResult: InvokeBedrockHypothesisResult | null
+}): string {
+    const primary = args.selectionBody
+    if (primary !== undefined && primary.trim().length > 0) {
+        return `selectionBody:\n${primary}`
+    }
+    const fallback = args.planSelectionResult
+    if (fallback?.success && fallback.body.trim().length > 0) {
+        return `selectionBody:\n${fallback.body}`
     }
     return 'selectionBody: (none)'
+}
+
+/** Nova extended-thinking channel for plan selection; only surfaced when harness ends at planSelect (see caller). */
+function formatPlanSelectionReasoningForHarness(args: {
+    planSelectionSkipped: boolean
+    planSelectionResult: InvokeBedrockHypothesisResult | null
+}): string {
+    if (args.planSelectionSkipped) {
+        return 'planSelectionReasoning: (not run)'
+    }
+    const r = args.planSelectionResult
+    if (!r?.success) {
+        return 'planSelectionReasoning: (none)'
+    }
+    const rc = r.reasoningContent
+    if (rc === undefined || rc.trim().length === 0) {
+        return 'planSelectionReasoning: (none)'
+    }
+    return `planSelectionReasoning:\n${rc}`
 }
 
 function formatPhasePlanJsonForHarness(args: {
@@ -295,6 +322,8 @@ function formatFixtureRenderTree(args: {
     usagePlanSelection: string
     usagePhasePlanHop: string
     selectionBodyBlock: string
+    /** Only when partial harness **`testOnly`** is **`planSelect`** (run ends after plan selection). */
+    planSelectionReasoningBlock?: string
     phasePlanJsonBlock: string
     errorMessage?: string
     /** Partial-run banner lines after heading (e.g. **`harness: runUntil clustering`**). */
@@ -311,6 +340,7 @@ function formatFixtureRenderTree(args: {
         usagePlanSelection,
         usagePhasePlanHop,
         selectionBodyBlock,
+        planSelectionReasoningBlock,
         phasePlanJsonBlock,
         errorMessage,
         harnessBannerLines,
@@ -342,8 +372,11 @@ function formatFixtureRenderTree(args: {
         COYOTE_RENDER_LINE_BREAK,
         selectionBodyBlock,
         COYOTE_RENDER_LINE_BREAK,
-        phasePlanJsonBlock
     )
+    if (planSelectionReasoningBlock !== undefined) {
+        tree.push(planSelectionReasoningBlock, COYOTE_RENDER_LINE_BREAK)
+    }
+    tree.push(phasePlanJsonBlock)
     if (errorMessage) {
         tree.push(COYOTE_RENDER_LINE_BREAK, `error: ${errorMessage}`)
     }
@@ -437,7 +470,17 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                     : formatStageOneBodyForHarness(flat.stageOneResult)
                 const selectionBodyBlock = skipPs
                     ? 'selectionBody: (not run)'
-                    : formatSelectionBodyForHarness(flat.selectionBody)
+                    : formatSelectionBodyForHarness({
+                          selectionBody: flat.selectionBody,
+                          planSelectionResult: flat.planSelectionResult,
+                      })
+                const planSelectionReasoningBlock =
+                    invocation.testOnly === 'planSelect'
+                        ? formatPlanSelectionReasoningForHarness({
+                              planSelectionSkipped: skipPs,
+                              planSelectionResult: flat.planSelectionResult,
+                          })
+                        : undefined
                 const phasePlanJsonBlock = skipPph
                     ? 'phasePlanJson: (not run)'
                     : formatPhasePlanJsonForHarness({
@@ -455,6 +498,7 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                     usagePlanSelection,
                     usagePhasePlanHop,
                     selectionBodyBlock,
+                    planSelectionReasoningBlock,
                     phasePlanJsonBlock,
                     errorMessage: pipelineErrorMessage(pipeline),
                     harnessBannerLines,
@@ -483,7 +527,10 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                     flat.phasePlanHopResult ?? emptyUsageFailure
                 )
                 const stageOneBodyBlock = formatStageOneBodyForHarness(flat.stageOneResult)
-                const selectionBodyBlock = formatSelectionBodyForHarness(flat.selectionBody)
+                const selectionBodyBlock = formatSelectionBodyForHarness({
+                    selectionBody: flat.selectionBody,
+                    planSelectionResult: flat.planSelectionResult,
+                })
                 const phasePlanJsonBlock = formatPhasePlanJsonForHarness({
                     phasePlanJson: flat.phasePlanJson,
                     phasePlanValidationReason: flat.phasePlanValidationReason,
@@ -526,7 +573,10 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                 stageOneBodyBlock: 'stageOneBody: (none)',
                 usagePlanSelection: 'usagePlanSelection: (none)',
                 usagePhasePlanHop: 'usagePhasePlanHop: (none)',
-                selectionBodyBlock: formatSelectionBodyForHarness(undefined),
+                selectionBodyBlock: formatSelectionBodyForHarness({
+                    selectionBody: undefined,
+                    planSelectionResult: null,
+                }),
                 phasePlanJsonBlock: formatPhasePlanJsonForHarness({
                     phasePlanJson: undefined,
                     phasePlanValidationReason: undefined,

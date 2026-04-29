@@ -24,30 +24,76 @@ const STAGE_ONE_INTRO_LINES = [
 const TROPE_ORDER: CoyoteTrope[] = ['Contraption', 'Distraction', 'Disadvantage', 'Finishing Move']
 const TROPE_ORDER_LABEL = TROPE_ORDER.join(' -> ')
 
-/** Few-shot: trope-first candidate assignments with optional intendedRole compatibility echoes. */
+/** Few-shot: trope-first candidate assignments with required tropeFunction member annotations. */
 const STAGE_ONE_JSON_FEW_SHOT = `Example (shape — use real **stableKey** strings from **Current staged objects by room** below):
 \`\`\`json
 {
   "candidates": [
     {
       "candidateId": "candidate-1",
-      "executionSummary": "Use birdseed to lure Road Runner into lane and drop a rocket-assisted anvil strike.",
+      "executionSummary": "Road Runner stops at birdseed while rope-and-pulley rig drops an anvil overhead.",
       "tropeAssignments": [
         {
+          "trope": "Contraption",
+          "executionDetail": "Rope and pulley stage an overhead release path for the anvil.",
+          "members": [
+            { "stableKey": "rope", "tropeFunction": "hold things up" },
+            { "stableKey": "pulley", "tropeFunction": "mechanical guide" }
+          ]
+        },
+        {
           "trope": "Distraction",
-          "executionDetail": "Road Runner follows the birdseed trail into the strike lane.",
-          "members": [{ "stableKey": "birdseed", "intendedRole": { "role": "influence-road-runner" } }]
+          "executionDetail": "Road Runner stops to eat a pile of birdseed.",
+          "members": [{ "stableKey": "birdseed", "tropeFunction": "target zone bait" }]
         },
         {
           "trope": "Finishing Move",
-          "executionDetail": "Rocket skates deliver the terminal drop timing for the anvil payload.",
-          "members": [{ "stableKey": "rocket-skates", "intendedRole": { "role": "delivery" } }]
+          "executionDetail": "Anvil drops to flatten Road Runner at the bait point.",
+          "members": [{ "stableKey": "anvil", "tropeFunction": "falling blunt trauma" }]
         }
-      ],
-      "outliers": [{ "stableKey": "glue", "intendedRole": { "role": "connect-props" } }]
+      ]
+    },
+    {
+      "candidateId": "candidate-2",
+      "executionSummary": "Road Runner stops at birdseed while rope, pulley, and anvil snap a snare trap shut.",
+      "tropeAssignments": [
+        {
+          "trope": "Contraption",
+          "executionDetail": "Rope and pulley rig a snare around birdseed, with anvil as counterweight release.",
+          "members": [
+            { "stableKey": "rope", "tropeFunction": "snare line" },
+            { "stableKey": "pulley", "tropeFunction": "mechanical guide" },
+            { "stableKey": "anvil", "tropeFunction": "counterweight" }
+          ]
+        },
+        {
+          "trope": "Distraction",
+          "executionDetail": "Road Runner stops to eat a pile of birdseed.",
+          "members": [{ "stableKey": "birdseed", "tropeFunction": "target zone bait" }]
+        }
+      ]
     }
   ],
   "notes": "Optional spatial note — emit last."
+}
+\`\`\`
+
+Second example (simple one-candidate shape):
+\`\`\`json
+{
+  "candidates": [
+    {
+      "candidateId": "candidate-1",
+      "executionSummary": "Use a rocket sled at the base of the cliff as a speed-chase contraption.",
+      "tropeAssignments": [
+        {
+          "trope": "Contraption",
+          "executionDetail": "Rocket sled launches from the cliff base to build immediate chase speed along the highway.",
+          "members": [{ "stableKey": "rocket-sled", "tropeFunction": "speed rig" }]
+        }
+      ]
+    }
+  ]
 }
 \`\`\`
 `
@@ -73,16 +119,12 @@ const STAGE_ONE_JSON_CONTRACT_LINES = [
     '      - **`stableKey`** (string): **literal copy** of the **`stableKey`** field',
     '        from **Current staged objects by room** (identify objects **only** by this',
     '        token — never substitute **`shortName`** or room labels).',
-    '      - **`intendedRole`** (object, optional compatibility/debug echo only):',
-    '        when that staged row lists **`affinities`**, echo exactly one persisted',
-    '        role by value as',
-    '        `{ "role": "<stored-role>" }` (no aptness, no decomposition).',
+    '      - **`tropeFunction`** (required non-empty string): very short trope-local',
+    '        job phrase for that staged object in this candidate beat.',
     '    - **`outliers`** (optional array): omit to require every staged object to',
     '      appear in **`tropeAssignments[*].members`** only. When present, list every',
-    '      staged object that is not assigned to a trope in this candidate — each',
-    '      entry has **`stableKey`** (string) and',
-    '    optional **`intendedRole`** (same echo rules as cluster members; omit',
-    '    **`intendedRole`** when affinities are missing or failed).',
+    '      staged object that is not assigned to a trope in this candidate — each entry',
+    '      has **`stableKey`** (string) and required **`tropeFunction`** (string).',
     '    **`outliers`** must partition staged **`stableKey`**s for that candidate',
     '    (no overlap, no omissions).',
     '  - **`notes`** (optional string, **last property in the root object**): at most',
@@ -91,22 +133,21 @@ const STAGE_ONE_JSON_CONTRACT_LINES = [
     '    so cross-room framing reflects the candidate assignments you already committed to.',
     '- **Trope-first candidate grouping only.** Assign props to trope beats for each',
     '  candidate; do not collapse multiple trope beats into one unlabeled cluster.',
-    '- **Omit** **`intendedRole`** when `affinities` are missing or marked failed for',
-    '  that row (do not invent roles).',
     '- **Coverage per candidate:** Each staged **`stableKey`** appears **exactly once**',
     '  across candidate **`tropeAssignments[*].members`** ∪ candidate **`outliers`**',
     '  (when candidate **`outliers`** is omitted, all keys appear in',
     '  **`tropeAssignments[*].members`**).',
+    '- **`tropeFunction` style (cost + speed):** use the shortest phrase that still',
+    '  disambiguates intent --- usually **2-5 words**, lowercase fragment, not a full',
+    '  sentence, no trailing punctuation.',
+    '- Good: `"lane bait"`, `"drop trigger"`, `"boom payload"`.',
+    '- Bad: `"terminal projectile payload delivery for final beat"`.',
     '- **Strict keys:** root object may contain only **`candidates`** and optional',
     '  **`notes`**. Candidate objects may contain only **`candidateId`**,',
     '  **`executionSummary`**, **`tropeAssignments`**, and optional **`outliers`**.',
     '  Trope assignment objects may contain only **`trope`**, **`executionDetail`**,',
     '  and **`members`**. Member/outlier objects may contain only **`stableKey`** and',
-    '  optional **`intendedRole`**.',
-    '- **`intendedRole.role`** must match one stored affinity role for that exact',
-    '  staged object: flat modification tags, **`prep`** / **`creation`**, or',
-    '  structural roles. Do not include legacy tuple keys such as **`target`**',
-    '  or **`mode`**.',
+    '  required **`tropeFunction`**.',
 ] as const
 
 function stageOnePromptLines(snapshotSection: string): string[] {

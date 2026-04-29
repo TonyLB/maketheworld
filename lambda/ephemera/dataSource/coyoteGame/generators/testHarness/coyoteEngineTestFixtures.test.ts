@@ -48,10 +48,11 @@ describe('COYOTE_ENGINE_TEST_FIXTURES', () => {
         expect(inject).toBeDefined()
         const parts = buildHypothesisPlanSelectionPromptParts({
             roomObjectsByRoom: inject!.roomObjectsByRoom,
-            combinedMarkdown: inject!.combinedMarkdown,
+            combined: inject!.combined,
         })
         expect(parts.invariantPrefix.length).toBeGreaterThan(0)
-        expect(parts.dynamicSuffix).toContain('## Combined clustering')
+        expect(parts.dynamicSuffix).toContain('"schemaVersion":1')
+        expect(parts.dynamicSuffix).toContain('candidate-1')
     })
 })
 
@@ -64,20 +65,19 @@ describe('resolveCoyoteHarnessStartAtInject', () => {
         expect(r.ok).toBe(true)
         if (r.ok) {
             expect(r.phase).toBe('planSelect')
-            expect(r.inject.combinedMarkdown).toContain('## Combined clustering')
+            expect(r.inject.combined.candidates.length).toBeGreaterThan(0)
         }
     })
 
-    it('returns missing inject error for planSelect when fixture has no bundle', () => {
+    it('returns planSelect inject for fixture index 2', () => {
         const r = resolveCoyoteHarnessStartAtInject({
             fixtureIndex1Based: 2,
             phase: 'planSelect',
         })
-        expect(r.ok).toBe(false)
-        if (!r.ok) {
-            expect(r.message).toContain('planSelect')
-            expect(r.message).toContain('fixture index 2')
-            expect(r.message).toContain('fixture-02')
+        expect(r.ok).toBe(true)
+        if (r.ok) {
+            expect(r.phase).toBe('planSelect')
+            expect(r.inject.combined.candidates.length).toBeGreaterThan(0)
         }
     })
 

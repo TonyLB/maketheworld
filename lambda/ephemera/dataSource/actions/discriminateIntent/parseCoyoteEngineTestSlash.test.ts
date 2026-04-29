@@ -28,6 +28,26 @@ describe('parseCoyoteEngineTestSlashTail', () => {
         })
     })
 
+    it('maps explicit run kind forms', () => {
+        expect(parseCoyoteEngineTestSlashTail('/test generation runOnly planSelect', n)).toEqual({
+            ok: true,
+            harnessInvocation: {
+                mode: 'partial',
+                testOnly: 'planSelect',
+                harnessRunKind: 'runOnly',
+            },
+        })
+        expect(parseCoyoteEngineTestSlashTail('/test generation RUNUNTIL phasePlan 1', n)).toEqual({
+            ok: true,
+            harnessInvocation: {
+                mode: 'partial',
+                testOnly: 'phasePlan',
+                harnessRunKind: 'runUntil',
+                fixtureIndex1Based: 1,
+            },
+        })
+    })
+
     it('maps fixture-only full mode', () => {
         expect(parseCoyoteEngineTestSlashTail(`/test generation ${n}`, n)).toEqual({
             ok: true,
@@ -40,6 +60,20 @@ describe('parseCoyoteEngineTestSlashTail', () => {
         expect(r.ok).toBe(false)
         if (!r.ok) {
             expect(r.errorMessage).toContain('fixture index first')
+        }
+    })
+
+    it('rejects invalid explicit run kind tails', () => {
+        const unknownPhase = parseCoyoteEngineTestSlashTail('/test generation runOnly nope', n)
+        expect(unknownPhase.ok).toBe(false)
+        if (!unknownPhase.ok) {
+            expect(unknownPhase.errorMessage).toContain('Unknown phase alias "nope"')
+        }
+
+        const badIndex = parseCoyoteEngineTestSlashTail('/test generation runOnly planSelect nope', n)
+        expect(badIndex.ok).toBe(false)
+        if (!badIndex.ok) {
+            expect(badIndex.errorMessage).toContain('Third token must be a fixture index')
         }
     })
 })

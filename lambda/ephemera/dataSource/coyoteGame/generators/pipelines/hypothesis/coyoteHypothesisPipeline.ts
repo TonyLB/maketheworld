@@ -14,7 +14,7 @@ import { buildHypothesisPlanSelectionPromptParts } from './buildHypothesisPlanSe
 import { buildHypothesisStageOnePromptParts } from './buildHypothesisStageOnePrompt';
 import {
     combineHypothesisClusters,
-    renderCombinedHypothesisForStageTwo,
+    type CombineHypothesisClustersReturn,
 } from './combineHypothesisClusters';
 import type { CoyoteHarnessPhasePlanInject, CoyoteHarnessPlanSelectInject } from './coyoteHarnessInjectTypes';
 import { parseHop1HandoffFromSelectionBody, type CoyoteHop1Handoff } from './coyoteHop1Handoff';
@@ -104,7 +104,8 @@ export type GenerateHypothesisPipelineResult =
 
 export type CoyoteHypothesisPipelineState = {
     roomObjectsByRoom?: CoyoteRoomObjectsByRoom;
-    combinedMarkdown?: string;
+    /** Combined trope candidates after {@link combineHypothesisClusters} (source of truth for plan-select JSON and phase-plan Markdown). */
+    combined?: CombineHypothesisClustersReturn;
     stageOneResult?: InvokeBedrockHypothesisResult;
     planSelectionResult?: InvokeBedrockHypothesisResult | null;
     phasePlanHopResult?: InvokeBedrockHypothesisResult | null;
@@ -148,13 +149,13 @@ function assertRunOnlyInjectPlanSelect(
     inject: Partial<CoyoteHypothesisPipelineState> | undefined
 ): CoyoteHarnessPlanSelectInject {
     const roomObjectsByRoom = inject?.roomObjectsByRoom;
-    const combinedMarkdown = inject?.combinedMarkdown;
-    if (!roomObjectsByRoom || combinedMarkdown === undefined) {
+    const combined = inject?.combined;
+    if (!roomObjectsByRoom || combined === undefined) {
         throw new Error(
-            'CoyoteHypothesisPipeline: runOnly planSelect requires injectState with roomObjectsByRoom and combinedMarkdown'
+            'CoyoteHypothesisPipeline: runOnly planSelect requires injectState with roomObjectsByRoom and combined'
         );
     }
-    return { roomObjectsByRoom, combinedMarkdown };
+    return { roomObjectsByRoom, combined };
 }
 
 function assertRunOnlyInjectPhasePlan(
@@ -162,9 +163,9 @@ function assertRunOnlyInjectPhasePlan(
 ): CoyoteHarnessPhasePlanInject {
     const base = assertRunOnlyInjectPlanSelect(inject);
     const hop1Handoff = inject?.hop1Handoff;
-    if (!hop1Handoff) {
+        if (!hop1Handoff) {
         throw new Error(
-            'CoyoteHypothesisPipeline: runOnly phasePlan requires injectState with hop1Handoff, roomObjectsByRoom, and combinedMarkdown'
+            'CoyoteHypothesisPipeline: runOnly phasePlan requires injectState with hop1Handoff, roomObjectsByRoom, and combined'
         );
     }
     return { ...base, hop1Handoff };
@@ -256,23 +257,20 @@ function buildCoyoteHypothesisSteps(
                     });
                     abort();
                 }
-                draft.combinedMarkdown = renderCombinedHypothesisForStageTwo(
-                    combinedResult.combined,
-                    roomObjectsByRoom
-                );
+                draft.combined = combinedResult.combined;
             },
         }),
         ctx.defineLlmStep({
             name: 'hypothesisPlanSelectionLlm',
             run: async (draft) => {
                 const roomObjectsByRoom = draft.roomObjectsByRoom;
-                const combinedMarkdown = draft.combinedMarkdown;
-                if (!roomObjectsByRoom || combinedMarkdown === undefined) {
+                const combined = draft.combined;
+                if (!roomObjectsByRoom || combined === undefined) {
                     throw new Error('CoyoteHypothesisPipeline: hypothesisPlanSelectionLlm preconditions');
                 }
                 const parts = buildHypothesisPlanSelectionPromptParts({
                     roomObjectsByRoom,
-                    combinedMarkdown,
+                    combined,
                 });
                 const planSelectionResult = await invokeBedrockHypothesisPlanSelection(parts);
                 draft.planSelectionResult = planSelectionResult;
@@ -288,8 +286,8 @@ function buildCoyoteHypothesisSteps(
             run: async (draft) => {
                 const planSelectionResult = draft.planSelectionResult;
                 const roomObjectsByRoom = draft.roomObjectsByRoom;
-                const combinedMarkdown = draft.combinedMarkdown;
-                if (!planSelectionResult?.success || !roomObjectsByRoom || combinedMarkdown === undefined) {
+                const combined = draft.combined;
+                if (!planSelectionResult?.success || !roomObjectsByRoom || combined === undefined) {
                     throw new Error('CoyoteHypothesisPipeline: parsePlanSelectionHandoff preconditions');
                 }
                 draft.selectionBody = planSelectionResult.body;
@@ -308,14 +306,14 @@ function buildCoyoteHypothesisSteps(
             name: 'hypothesisPhasePlanHopLlm',
             run: async (draft) => {
                 const roomObjectsByRoom = draft.roomObjectsByRoom;
-                const combinedMarkdown = draft.combinedMarkdown;
+                const combined = draft.combined;
                 const handoff = draft.hop1Handoff;
-                if (!roomObjectsByRoom || combinedMarkdown === undefined || !handoff) {
+                if (!roomObjectsByRoom || combined === undefined || !handoff) {
                     throw new Error('CoyoteHypothesisPipeline: hypothesisPhasePlanHopLlm preconditions');
                 }
                 const parts = buildHypothesisPhasePlanHopPromptParts({
                     roomObjectsByRoom,
-                    combinedMarkdown,
+                    combined,
                     hop1Handoff: handoff,
                 });
                 const phasePlanHopResult = await invokeBedrockHypothesisPhasePlanHop(parts);
@@ -505,13 +503,13 @@ function initialStateForRunOnly(
         const inject = assertRunOnlyInjectPlanSelect(injectState);
         return {
             roomObjectsByRoom: inject.roomObjectsByRoom,
-            combinedMarkdown: inject.combinedMarkdown,
+            combined: inject.combined,
         };
     }
     const inject = assertRunOnlyInjectPhasePlan(injectState);
     return {
         roomObjectsByRoom: inject.roomObjectsByRoom,
-        combinedMarkdown: inject.combinedMarkdown,
+        combined: inject.combined,
         hop1Handoff: inject.hop1Handoff,
     };
 }

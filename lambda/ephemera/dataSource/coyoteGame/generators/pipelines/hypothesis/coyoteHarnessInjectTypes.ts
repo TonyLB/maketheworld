@@ -1,3 +1,4 @@
+import type { CombineHypothesisClustersReturn } from './combineHypothesisClusters';
 import type { CoyoteHop1Handoff } from './coyoteHop1Handoff';
 import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot';
 
@@ -7,7 +8,7 @@ import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjec
  */
 export type CoyoteHarnessPlanSelectInject = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom;
-    combinedMarkdown: string;
+    combined: CombineHypothesisClustersReturn;
 };
 
 /**

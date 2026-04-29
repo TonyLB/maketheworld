@@ -26,12 +26,12 @@ const stageOneSeamBody = JSON.stringify({
                 {
                     trope: 'Distraction',
                     executionDetail: 'Road Runner is drawn into the lane.',
-                    members: [{ stableKey: 'rocket-skates', intendedRole: { role: 'coyote-equipment', aptness: 0.6 } }],
+                    members: [{ stableKey: 'rocket-skates', tropeFunction: 'speed lure setup prop' }],
                 },
                 {
                     trope: 'Finishing Move',
                     executionDetail: 'Anvil drop is timed for the committed lane.',
-                    members: [{ stableKey: 'anvil', intendedRole: { role: 'terminal', aptness: 0.5 } }],
+                    members: [{ stableKey: 'anvil', tropeFunction: 'terminal drop payload' }],
                 },
             ],
         },
@@ -40,8 +40,8 @@ const stageOneSeamBody = JSON.stringify({
 
 /** Hop 1 --- rubric narrative + trailing ` ```json ` handoff for hop 2. */
 const hop1PlanSelectionBody = [
-    '## Conflict catalog',
-    '- candidate-1 conflict: launch timing needs tighter trigger specificity.',
+    '## Intent conflicts',
+    '- candidate-1 may misread intent: launch timing needs tighter trigger specificity.',
     '',
     '## Rubric comparison',
     '- candidate-1 wins on coverage/completeness/coherence balance.',
@@ -158,14 +158,14 @@ describe('generateHypothesis', () => {
         expect(phasePlanHopMock).toHaveBeenCalledTimes(1)
     })
 
-    it('passes flat intendedRole rendering into phase-plan hop prompt', async () => {
+    it('passes tropeFunction rendering into phase-plan hop prompt', async () => {
         await generateHypothesis({ getGameRooms, getRoomMeta })
         const phasePlanHopPrompt = phasePlanHopMock.mock.calls[0][0] as {
             invariantPrefix: string
             dynamicSuffix: string
         }
         const fullHop2 = phasePlanHopPrompt.invariantPrefix + phasePlanHopPrompt.dynamicSuffix
-        expect(fullHop2).toContain('**intendedRole:** coyote-equipment 0.60')
+        expect(fullHop2).toContain('**tropeFunction:** speed lure setup prop')
     })
 
     it('parses phase-plan hop body with ## Scene analysis + fenced Hypothesis', async () => {
@@ -229,9 +229,9 @@ describe('generateHypothesis', () => {
                             trope: 'Contraption',
                             executionDetail: 'Setup spans rooms before final beat.',
                             members: [
-                                { stableKey: 'anvil-0' },
-                                { stableKey: 'portable-hole-0' },
-                                { stableKey: 'birdseed-1' },
+                                { stableKey: 'anvil-0', tropeFunction: 'anchor payload rig' },
+                                { stableKey: 'portable-hole-0', tropeFunction: 'route shaping trap surface' },
+                                { stableKey: 'birdseed-1', tropeFunction: 'bait cue for lane commitment' },
                             ],
                         },
                     ],
@@ -322,8 +322,8 @@ describe('generateHypothesis', () => {
         planSelectionMock.mockResolvedValue({
             success: true,
             body: [
-                '## Conflict catalog',
-                '- candidate-1 conflict',
+                '## Intent conflicts',
+                '- candidate-1 intent gap',
                 '',
                 '## Winner selection',
                 '- Winner: candidate-1.',
