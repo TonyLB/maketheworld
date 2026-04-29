@@ -146,16 +146,29 @@ type PlanIssue = {
 - What thresholds should trigger future tightening (for example requiring `evidence` on selected codes)?
 - Should any additional issue codes be added after first-pass implementation and tuning feedback?
 
+## Deferred after P0 contract framing
+
+- **P2 follow-up:** Decide whether parser strictness should evolve from "allow extra keys" to explicit key allowlists per `planIssues` row after real handoff quality is measured.
+- **P3/P4 follow-up:** Define per-code remediation guidance text for phase-plan prompt copy so deconfliction obligations are specific without overfitting to current fixture language.
+- **P5 follow-up:** Re-evaluate whether `evidence` should become required for selected codes once tuning establishes stable signal quality thresholds.
+- **P5+ follow-up:** Consider controlled expansion of `PlanIssueCode` taxonomy only when new classes show repeatable value across fixtures and regressions.
+
 ## Recommended order
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]` as each sub-step lands.
 
-- [ ] Phase P0 - lock first-pass `planIssues` contract framing
-  - [ ] Confirm v1 code unions (`PlanIssueIntentSignalCode` / `PlanIssueUnderspecificationCode`) and allowlist membership.
-  - [ ] Confirm minimum required fields and first-pass strictness policy.
-  - [ ] Confirm prompt-level semantics for selection penalty vs deconfliction obligation.
-  - [ ] Lock no-durable-persistence policy for `planIssues` beyond phase-plan handling.
-  - [ ] Record unresolved taxonomy/typing questions as explicit deferred work.
+- [X] Phase P0 - lock first-pass `planIssues` contract framing
+  - [X] Confirm v1 code unions (`PlanIssueIntentSignalCode` / `PlanIssueUnderspecificationCode`) and allowlist membership.
+  - [X] Confirm minimum required fields and first-pass strictness policy.
+  - [X] Confirm prompt-level semantics for selection penalty vs deconfliction obligation.
+  - [X] Lock no-durable-persistence policy for `planIssues` beyond phase-plan handling.
+  - [X] Record unresolved taxonomy/typing questions as explicit deferred work.
+  - Locked implementation notes:
+    - Hop-1 handoff contract authority remains centered on `coyoteHop1Handoff.ts`, with prompt semantics anchored in `buildHypothesisPlanSelectionPromptParts.ts` and `buildHypothesisPhasePlanHopPromptParts.ts`.
+    - P0 locks the v1 code allowlist exactly as documented above: intent-signal (`OUTLIER_PROP_UNACCOUNTED`, `TROPE_FUNCTION_MISMATCH`, `STRUCTURAL_CONTRADICTION`) and underspecification (`DIRECTION_AMBIGUOUS`, `ROLE_CONFLICT`); `DIRECTION_AGNOSTIC` remains excluded.
+    - P0 locks required row fields to `code` and `summary`, keeps `evidence` optional, and keeps first-pass strictness as required-field/type plus unknown-code rejection while tolerating extra keys when required fields are valid.
+    - Prompt-level semantics are locked: intent-signal issues count as negative winner evidence in plan-select, while underspecification issues are deconfliction obligations; phase-plan consumes all `planIssues` as grounding constraints.
+    - No durable persistence of `planIssues` is permitted beyond phase-plan handling in this slice; persistence/telemetry expansion remains out of scope unless needed for safety.
 
 - [ ] Phase P1 - rename/refocus baseline migration (`rubricIssues` -> `planIssues`)
   - [ ] Replace handoff key names and prompt copy from rubric-specific language to plan-level language.
