@@ -34,6 +34,10 @@ const PHASE_PLAN_HOP_INTRO = [
     'The **chosen plan summary** and **plan issues** below were produced by an',
     'earlier selection step. Treat them as the committed maneuver and constraint set --- do not',
     'substitute a different plan or revert to comparing alternatives.',
+    '- If a structured **selected candidate** payload is present in the grounding block, treat it as',
+    '  authoritative winner detail for prop-level sequencing and role commitments.',
+    '- If no structured selected-candidate payload is present, do your best with the chosen summary',
+    '  plus plan issues as legacy fallback grounding.',
     '- Treat every plan issue as an actionable grounding constraint for this run.',
     '- Intent-signal issue codes (`OUTLIER_PROP_UNACCOUNTED`, `TROPE_FUNCTION_MISMATCH`,',
     '  `STRUCTURAL_CONTRADICTION`) are Coyote-side risk constraints: resolve them when possible and',
@@ -99,7 +103,43 @@ function formatHop1HandoffBlock(handoff: CoyoteHop1Handoff): string {
                 return `- [${issue.code}] ${issue.summary}${evidence}`
             }).join('\n')
             : '- (none)'
-    return ['## Plan selection grounding', '', '**Chosen plan summary:**', '', handoff.paragraphSummary.trim(), '', '**Plan issues:**', issues].join('\n')
+    const selectedCandidateLines = handoff.selectedCandidate
+        ? [
+            '',
+            '**Selected candidate (authoritative winner payload when present):**',
+            `- candidateId: ${handoff.selectedCandidate.candidateId}`,
+            `- executionSummary: ${handoff.selectedCandidate.executionSummary}`,
+            '- tropeAssignments:',
+            ...handoff.selectedCandidate.tropeAssignments.map((assignment) => [
+                `  - trope: ${assignment.trope}`,
+                `    executionDetail: ${assignment.executionDetail}`,
+                ...assignment.members.map((member) => (
+                    `    - member: ${member.stableKey} | ${member.shortName} | ${member.room} | ${member.tropeFunction}`
+                )),
+            ].join('\n')),
+            '- outliers:',
+            ...(handoff.selectedCandidate.outliers.length > 0
+                ? handoff.selectedCandidate.outliers.map(
+                    (outlier) => `  - ${outlier.stableKey} | ${outlier.shortName} | ${outlier.room} | ${outlier.tropeFunction}`
+                )
+                : ['  - (none)']),
+        ]
+        : [
+            '',
+            '**Selected candidate:**',
+            '- (not provided; use chosen plan summary and plan issues as fallback grounding)',
+        ]
+    return [
+        '## Plan selection grounding',
+        '',
+        '**Chosen plan summary:**',
+        '',
+        handoff.paragraphSummary.trim(),
+        '',
+        '**Plan issues:**',
+        issues,
+        ...selectedCandidateLines,
+    ].join('\n')
 }
 
 /** Option A hop 2: phase-plan JSON first, then "## Scene analysis", then fenced Hypothesis line. */

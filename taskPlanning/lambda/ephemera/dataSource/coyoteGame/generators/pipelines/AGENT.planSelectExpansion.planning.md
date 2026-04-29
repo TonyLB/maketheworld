@@ -102,14 +102,14 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Validate payload shape with row-scoped parse reasons.
   - [X] Preserve acceptance of legacy handoff JSON with only required v1 keys.
 
-- [ ] Phase P3 - phase-plan grounding updates
-  - [ ] Thread structured winner payload into phase-plan prompt grounding when present.
-  - [ ] Keep legacy fallback path for existing fixtures and legacy outputs.
+- [X] Phase P3 - phase-plan grounding updates
+  - [X] Thread structured winner payload into phase-plan prompt grounding when present.
+  - [X] Keep legacy fallback path for existing fixtures and legacy outputs.
 
-- [ ] Phase P4 - tests and fixture migration
-  - [ ] Add/adjust unit tests for prompt instructions and parser narrowing behavior.
-  - [ ] Update harness fixtures for selected corpus rows with structured winner payload.
-  - [ ] Verify `runOnly phasePlan` inject compatibility with mixed legacy/new handoffs.
+- [X] Phase P4 - tests and fixture migration
+  - [X] Add/adjust unit tests for prompt instructions and parser narrowing behavior.
+  - [X] Update harness fixtures for selected corpus rows with structured winner payload.
+  - [X] Verify `runOnly phasePlan` inject compatibility with mixed legacy/new handoffs.
 
 - [ ] Phase P5 - closeout
   - [ ] Run targeted and broad hypothesis tests.
@@ -148,6 +148,6 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/testHarness/co
 | Plan drafted | Done |
 | Contract delta locked | Done |
 | Prompt and parser updates landed | Done |
-| Phase-plan grounding updates landed | Not started |
-| Fixtures and tests migrated | Not started |
+| Phase-plan grounding updates landed | Done |
+| Fixtures and tests migrated | Done |
 | Closeout and durable docs sync | Not started |

@@ -171,6 +171,53 @@ describe('parseHop1HandoffFromSelectionBody', () => {
         ).toBe(true)
     })
 
+    it('accepts mixed legacy/new handoff fields with selectedCandidate plus tolerated extras', () => {
+        const r = parseHop1HandoffFromSelectionBody(
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n${JSON.stringify({
+                paragraphSummary: 'Selected candidate-1: keep the lane coherent.',
+                planIssues: [{ code: 'ROLE_CONFLICT', summary: 'clarify payload order' }],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Keep one staged lane and resolve order.',
+                    tropeAssignments: [{
+                        trope: 'Contraption',
+                        executionDetail: 'Set the lane first.',
+                        members: [{
+                            stableKey: 'anvil-0',
+                            shortName: 'anvil',
+                            room: 'VORTEX',
+                            tropeFunction: 'payload prep',
+                        }],
+                    }],
+                    outliers: [],
+                },
+                nonAuthoritativeNote: 'still tolerated',
+            })}\n\`\`\``
+        )
+        expect(r).toEqual({
+            ok: true,
+            handoff: {
+                paragraphSummary: 'Selected candidate-1: keep the lane coherent.',
+                planIssues: [{ code: 'ROLE_CONFLICT', summary: 'clarify payload order' }],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Keep one staged lane and resolve order.',
+                    tropeAssignments: [{
+                        trope: 'Contraption',
+                        executionDetail: 'Set the lane first.',
+                        members: [{
+                            stableKey: 'anvil-0',
+                            shortName: 'anvil',
+                            room: 'VORTEX',
+                            tropeFunction: 'payload prep',
+                        }],
+                    }],
+                    outliers: [],
+                },
+            },
+        })
+    })
+
     it('returns error when planIssues row is not an object', () => {
         const raw =
             `${requiredSections.join('\n')}\n\n\`\`\`json\n` +

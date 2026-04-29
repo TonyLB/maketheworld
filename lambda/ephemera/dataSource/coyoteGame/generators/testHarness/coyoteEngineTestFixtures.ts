@@ -840,10 +840,90 @@ const HOP1_HANDOFF_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture[
     'fixture-02': {
         paragraphSummary: 'Choose candidate-1: keep birdseed lure timing aligned to the cliffside lever release so setup and payoff stay in one lane.',
         planIssues: [],
+        selectedCandidate: {
+            candidateId: 'candidate-1',
+            executionSummary: 'Birdseed lures Road Runner while lever rig prepares the cliffside release.',
+            tropeAssignments: [
+                {
+                    trope: 'Contraption',
+                    executionDetail: 'Lever is staged at CLIFFTOP as release hardware.',
+                    members: [
+                        {
+                            stableKey: 'lever-0',
+                            shortName: 'lever',
+                            room: 'CLIFFTOP',
+                            tropeFunction: 'release lever',
+                        },
+                    ],
+                },
+                {
+                    trope: 'Distraction',
+                    executionDetail: 'Road Runner stops to eat birdseed at VORTEX.',
+                    members: [
+                        {
+                            stableKey: 'birdseed-0',
+                            shortName: 'birdseed',
+                            room: 'VORTEX',
+                            tropeFunction: 'lane bait',
+                        },
+                    ],
+                },
+            ],
+            outliers: [],
+        },
     },
     'fixture-03': {
         paragraphSummary: 'Choose candidate-1: preserve the paint-plus-skates setup, then commit the bridge portable-hole finish after lure confirmation.',
         planIssues: [],
+        selectedCandidate: {
+            candidateId: 'candidate-1',
+            executionSummary: 'Paint and skates prep a route while birdseed lures into a portable-hole finish.',
+            tropeAssignments: [
+                {
+                    trope: 'Contraption',
+                    executionDetail: 'Roller skates and paint prep speed and route illusion before commitment.',
+                    members: [
+                        {
+                            stableKey: 'roller-skates-0',
+                            shortName: 'roller skates',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'speed rig',
+                        },
+                        {
+                            stableKey: 'paint-0',
+                            shortName: 'paint',
+                            room: 'CORNER',
+                            tropeFunction: 'route edit',
+                        },
+                    ],
+                },
+                {
+                    trope: 'Distraction',
+                    executionDetail: 'Road Runner pauses for birdseed at the bridge approach.',
+                    members: [
+                        {
+                            stableKey: 'birdseed-1',
+                            shortName: 'birdseed',
+                            room: 'BRIDGE',
+                            tropeFunction: 'target bait',
+                        },
+                    ],
+                },
+                {
+                    trope: 'Finishing Move',
+                    executionDetail: 'Portable hole is used as the terminal drop endpoint.',
+                    members: [
+                        {
+                            stableKey: 'portable-hole-0',
+                            shortName: 'portable hole',
+                            room: 'BRIDGE',
+                            tropeFunction: 'drop trap',
+                        },
+                    ],
+                },
+            ],
+            outliers: [],
+        },
     },
     'fixture-04': {
         paragraphSummary: 'Choose candidate-1: keep magnet control as persistent path pressure and reserve steel drum for the terminal impact beat.',
