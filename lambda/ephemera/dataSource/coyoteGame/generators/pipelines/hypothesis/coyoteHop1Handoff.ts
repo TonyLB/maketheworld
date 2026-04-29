@@ -1,15 +1,27 @@
 import { findAllFenceBlocks } from '../../../../../llm/markdownCodeFences'
+import { isCoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { hypothesisDebugLog } from '../../../utilities/hypothesisDebug'
+import type {
+    PlanSelectCombinedCandidate,
+    PlanSelectCombinedMember,
+    PlanSelectCombinedTropeAssignment,
+} from './combineHypothesisClusters'
 
 /** Canonical JSON keys for hop-1 handoff (plan selection to phase-plan). */
 export const COYOTE_HOP1_HANDOFF_JSON_KEYS = {
     paragraphSummary: 'paragraphSummary',
     planIssues: 'planIssues',
+    selectedCandidate: 'selectedCandidate',
 } as const
+
+export type SelectedCandidateMember = PlanSelectCombinedMember
+export type SelectedCandidateTropeAssignment = PlanSelectCombinedTropeAssignment
+export type SelectedCandidate = PlanSelectCombinedCandidate
 
 export type CoyoteHop1Handoff = {
     paragraphSummary: string
     planIssues: PlanIssue[]
+    selectedCandidate?: SelectedCandidate
 }
 
 export type PlanIssueIntentSignalCode =
@@ -32,6 +44,8 @@ export type PlanIssue = {
 export type ParseHop1HandoffResult =
     | { ok: true; handoff: CoyoteHop1Handoff }
     | { ok: false; reason: string }
+
+type ParseHop1HandoffFailure = { ok: false; reason: string }
 
 const REQUIRED_SECTION_HEADINGS = [
     '## Intent conflicts',
@@ -76,7 +90,7 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
     return typeof v === 'object' && v !== null && !Array.isArray(v)
 }
 
-function validatePlanIssueRow(row: unknown, rowIndex: number): ParseHop1HandoffResult | null {
+function validatePlanIssueRow(row: unknown, rowIndex: number): ParseHop1HandoffFailure | null {
     if (!isPlainObject(row)) {
         return { ok: false, reason: `planIssues[${rowIndex}] must be a plain object` }
     }
@@ -106,6 +120,108 @@ function validatePlanIssueRow(row: unknown, rowIndex: number): ParseHop1HandoffR
     return null
 }
 
+function validateSelectedCandidateMemberRow(
+    row: unknown,
+    reasonPath: string
+): { ok: true; member: SelectedCandidateMember } | ParseHop1HandoffFailure {
+    if (!isPlainObject(row)) {
+        return { ok: false, reason: `${reasonPath} must be a plain object` }
+    }
+    if (typeof row.stableKey !== 'string') {
+        return { ok: false, reason: `${reasonPath}.stableKey must be a string` }
+    }
+    if (typeof row.shortName !== 'string') {
+        return { ok: false, reason: `${reasonPath}.shortName must be a string` }
+    }
+    if (typeof row.room !== 'string') {
+        return { ok: false, reason: `${reasonPath}.room must be a string` }
+    }
+    if (typeof row.tropeFunction !== 'string') {
+        return { ok: false, reason: `${reasonPath}.tropeFunction must be a string` }
+    }
+    return {
+        ok: true,
+        member: {
+            stableKey: row.stableKey,
+            shortName: row.shortName,
+            room: row.room,
+            tropeFunction: row.tropeFunction,
+        },
+    }
+}
+
+function validateSelectedCandidate(
+    raw: unknown
+): { ok: true; selectedCandidate: SelectedCandidate } | ParseHop1HandoffFailure {
+    if (!isPlainObject(raw)) {
+        return { ok: false, reason: 'selectedCandidate must be a plain object' }
+    }
+    if (typeof raw.candidateId !== 'string') {
+        return { ok: false, reason: 'selectedCandidate.candidateId must be a string' }
+    }
+    if (typeof raw.executionSummary !== 'string') {
+        return { ok: false, reason: 'selectedCandidate.executionSummary must be a string' }
+    }
+    if (!Array.isArray(raw.tropeAssignments)) {
+        return { ok: false, reason: 'selectedCandidate.tropeAssignments must be an array' }
+    }
+    const narrowedTropeAssignments: SelectedCandidateTropeAssignment[] = []
+    for (let i = 0; i < raw.tropeAssignments.length; i += 1) {
+        const tropeAssignment = raw.tropeAssignments[i]
+        if (!isPlainObject(tropeAssignment)) {
+            return { ok: false, reason: `selectedCandidate.tropeAssignments[${i}] must be a plain object` }
+        }
+        if (!isCoyoteTrope(tropeAssignment.trope)) {
+            return { ok: false, reason: `selectedCandidate.tropeAssignments[${i}].trope must be a valid CoyoteTrope` }
+        }
+        if (typeof tropeAssignment.executionDetail !== 'string') {
+            return { ok: false, reason: `selectedCandidate.tropeAssignments[${i}].executionDetail must be a string` }
+        }
+        if (!Array.isArray(tropeAssignment.members)) {
+            return { ok: false, reason: `selectedCandidate.tropeAssignments[${i}].members must be an array` }
+        }
+        const narrowedMembers: SelectedCandidateMember[] = []
+        for (let j = 0; j < tropeAssignment.members.length; j += 1) {
+            const memberResult = validateSelectedCandidateMemberRow(
+                tropeAssignment.members[j],
+                `selectedCandidate.tropeAssignments[${i}].members[${j}]`
+            )
+            if (!memberResult.ok) {
+                return memberResult
+            }
+            narrowedMembers.push(memberResult.member)
+        }
+        narrowedTropeAssignments.push({
+            trope: tropeAssignment.trope,
+            executionDetail: tropeAssignment.executionDetail,
+            members: narrowedMembers,
+        })
+    }
+    if (!Array.isArray(raw.outliers)) {
+        return { ok: false, reason: 'selectedCandidate.outliers must be an array' }
+    }
+    const narrowedOutliers: SelectedCandidateMember[] = []
+    for (let i = 0; i < raw.outliers.length; i += 1) {
+        const outlierResult = validateSelectedCandidateMemberRow(
+            raw.outliers[i],
+            `selectedCandidate.outliers[${i}]`
+        )
+        if (!outlierResult.ok) {
+            return outlierResult
+        }
+        narrowedOutliers.push(outlierResult.member)
+    }
+    return {
+        ok: true,
+        selectedCandidate: {
+            candidateId: raw.candidateId,
+            executionSummary: raw.executionSummary,
+            tropeAssignments: narrowedTropeAssignments,
+            outliers: narrowedOutliers,
+        },
+    }
+}
+
 function narrowHandoff(parsed: unknown): ParseHop1HandoffResult {
     if (!isPlainObject(parsed)) {
         return { ok: false, reason: 'handoff JSON must be a plain object' }
@@ -117,6 +233,7 @@ function narrowHandoff(parsed: unknown): ParseHop1HandoffResult {
     }
     const paragraphSummary = parsed.paragraphSummary
     const planIssues = parsed.planIssues
+    const selectedCandidateRaw = parsed.selectedCandidate
     if (typeof paragraphSummary !== 'string') {
         return { ok: false, reason: 'paragraphSummary must be a string' }
     }
@@ -136,10 +253,23 @@ function narrowHandoff(parsed: unknown): ParseHop1HandoffResult {
             evidence: row.evidence,
         })
     }
-    return {
-        ok: true,
-        handoff: { paragraphSummary, planIssues: narrowedPlanIssues },
+    let selectedCandidate: SelectedCandidate | undefined
+    if (selectedCandidateRaw !== undefined) {
+        const selectedCandidateValidation = validateSelectedCandidate(selectedCandidateRaw)
+        if (!selectedCandidateValidation.ok) {
+            return selectedCandidateValidation
+        }
+        selectedCandidate = selectedCandidateValidation.selectedCandidate
     }
+    return selectedCandidate
+        ? {
+            ok: true,
+            handoff: { paragraphSummary, planIssues: narrowedPlanIssues, selectedCandidate },
+        }
+        : {
+            ok: true,
+            handoff: { paragraphSummary, planIssues: narrowedPlanIssues },
+        }
 }
 
 function containsRequiredSections(raw: string): { ok: false; reason: string } | null {

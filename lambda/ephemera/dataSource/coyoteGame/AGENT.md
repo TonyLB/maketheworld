@@ -45,7 +45,7 @@ Hypothesis generation chain:
 
 Plan-selection to phase-plan handoff semantics are documented in
 [`generators/pipelines/hypothesis/AGENT.md`](generators/pipelines/hypothesis/AGENT.md) under
-the hop-1 `planIssues` contract section, with parser/type authority in
+the hop-1 contract (including optional structured `selectedCandidate`, residual `planIssues`, and legacy fallback), with parser/type authority in
 [`generators/pipelines/hypothesis/coyoteHop1Handoff.ts`](generators/pipelines/hypothesis/coyoteHop1Handoff.ts).
 
 ## Await RoadRunner (outcome path)
