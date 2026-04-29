@@ -193,11 +193,16 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
     - Plan-selection prompt handoff contract now instructs structured `planIssues` rows with v1 code allowlist, and phase-plan grounding renders plan issues as `[CODE] summary` bullets with optional evidence lines.
     - Fixtures and focused tests were migrated to the structured shape across hypothesis pipeline and harness paths (`coyoteHop1Handoff`, prompt-part tests, `coyoteHypothesisPipeline`, `generateHypothesis`, harness fixture + runner tests).
 
-- [ ] Phase P3 - align plan-selection and phase-plan prompt contracts
-  - [ ] Update plan-selection prompt instructions to emit structured `planIssues` with v1 category semantics.
-  - [ ] Update phase-plan grounding block copy to consume structured `planIssues` semantics clearly.
-  - [ ] Keep copy constraints aligned with Coyote perspective and existing ordering guardrails.
-  - [ ] Re-run prompt-part unit tests and adjust fixtures as needed.
+- [X] Phase P3 - align plan-selection and phase-plan prompt contracts
+  - [X] Update plan-selection prompt instructions to emit structured `planIssues` with v1 category semantics.
+  - [X] Update phase-plan grounding block copy to consume structured `planIssues` semantics clearly.
+  - [X] Keep copy constraints aligned with Coyote perspective and existing ordering guardrails.
+  - [X] Re-run prompt-part unit tests and adjust fixtures as needed.
+  - Locked implementation notes:
+    - Plan-selection handoff instructions now explicitly encode v1 code-class semantics without expanding required handoff shape: intent-signal codes (`OUTLIER_PROP_UNACCOUNTED`, `TROPE_FUNCTION_MISMATCH`, `STRUCTURAL_CONTRADICTION`) count as negative winner evidence, while underspecification codes (`DIRECTION_AMBIGUOUS`, `ROLE_CONFLICT`) are downstream deconfliction obligations rather than automatic disqualifiers.
+    - Phase-plan grounding copy now treats chosen summary plus `planIssues` as authoritative constraints, with explicit handling guidance for intent-signal risk resolution/escalation versus mandatory underspecification deconfliction.
+    - Prompt-level Coyote perspective and ordering guardrails were preserved; no section-heading/order contract changes were introduced for hop-1 parsing.
+    - Focused prompt-part tests were updated to assert the new wording semantics and pass under direct Jest config invocation (`buildHypothesisPlanSelectionPromptParts.test.ts`, `buildHypothesisPhasePlanHopPromptParts.test.ts`).
 
 - [ ] Phase P4 - harness and fixture migration
   - [ ] Migrate harness inject fixtures and any golden handoff snapshots to structured `planIssues`.
@@ -244,7 +249,7 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/testHarness/ru
 | Contract framing locked (`planIssues` v1) | Done |
 | Rename/refocus baseline migration complete | Done |
 | Structured handoff/parser migration complete | Done |
-| Prompt alignment complete | Not started |
+| Prompt alignment complete | Done |
 | Harness/fixture migration complete | Not started |
 | Regression pass complete | Not started |
 | Durable docs updated and plan archived | Not started |
