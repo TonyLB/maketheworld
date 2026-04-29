@@ -69,6 +69,8 @@ const PLAN_SELECTION_INTERNAL_PHASES = [
     '### Phase 4 - final handoff emission',
     '- Emit required markdown sections in order, then emit the final handoff `json` fence as the last fence in the response.',
     '- Ensure handoff JSON preserves required key types for `paragraphSummary` and `planIssues`.',
+    '- Include `selectedCandidate` in the final handoff JSON as a full copy of the winning candidate row',
+    '  (`candidateId`, `executionSummary`, `tropeAssignments`, `outliers`) from the input candidates JSON.',
 ] as const
 
 const PLAN_SELECTION_INTRO = [
@@ -135,6 +137,11 @@ const PLAN_SELECTION_INTRO = [
     '  your selection judgment; `DIRECTION_AMBIGUOUS` and `ROLE_CONFLICT` are underspecification',
     '  obligations for downstream deconfliction and are not automatic winner disqualifiers by',
     '  themselves.',
+    '  Include **`',
+    COYOTE_HOP1_HANDOFF_JSON_KEYS.selectedCandidate,
+    '`** as a complete copy of the winning candidate row from input JSON',
+    '  (`candidateId`, `executionSummary`, `tropeAssignments`, `outliers`). Treat this field as required',
+    '  output for this prompt run; do not omit it unless generating it is impossible.',
     '  Additional keys are allowed, but these two keys must be present and well-typed.',
     '- The **final** **` ```json ` ** block in your entire output must be this **handoff** fence ---',
     '  the **last** fence in your output.',
