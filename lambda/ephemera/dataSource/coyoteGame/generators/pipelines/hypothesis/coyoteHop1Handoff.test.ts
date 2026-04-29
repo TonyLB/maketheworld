@@ -378,6 +378,30 @@ describe('parseHop1HandoffFromSelectionBody', () => {
         }
     })
 
+    it('accepts single-candidate non-comparative rubric section when heading is present', () => {
+        const raw = [
+            '## Intent conflicts',
+            '- candidate-1 has one unresolved prop-role mismatch.',
+            '## Rubric comparison',
+            '- candidate-1: baseline checks pass for a solo-candidate run.',
+            '## Winner selection',
+            '- Winner: candidate-1.',
+            '```json',
+            JSON.stringify({
+                paragraphSummary: 'Selected candidate-1: keep the staged lane and resolve mismatch.',
+                planIssues: [{ code: 'TROPE_FUNCTION_MISMATCH', summary: 'anvil role text conflicts with summary verb' }],
+            }),
+            '```',
+        ].join('\n')
+        expect(parseHop1HandoffFromSelectionBody(raw)).toEqual({
+            ok: true,
+            handoff: {
+                paragraphSummary: 'Selected candidate-1: keep the staged lane and resolve mismatch.',
+                planIssues: [{ code: 'TROPE_FUNCTION_MISMATCH', summary: 'anvil role text conflicts with summary verb' }],
+            },
+        })
+    })
+
     it('returns error when winner selection section is missing', () => {
         const raw = [
             '## Intent conflicts',

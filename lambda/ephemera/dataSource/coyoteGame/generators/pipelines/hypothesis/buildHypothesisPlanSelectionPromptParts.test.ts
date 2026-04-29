@@ -3,7 +3,7 @@ import { COYOTE_HOP1_HANDOFF_JSON_KEYS } from './coyoteHop1Handoff'
 import { harnessRoomObjects } from '../../testHarness/coyoteEngineTestFixtures'
 
 describe('buildHypothesisPlanSelectionPromptParts', () => {
-    it('includes rubric dimensions, handoff keys, trope candidates JSON tail, and seam rooms', () => {
+    it('uses single-candidate two-phase workflow with stable handoff requirements', () => {
         const parts = buildHypothesisPlanSelectionPromptParts({
             roomObjectsByRoom: { 'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']) },
             combined: {
@@ -45,20 +45,60 @@ describe('buildHypothesisPlanSelectionPromptParts', () => {
         expect(full).toContain('## Rubric comparison')
         expect(full).toContain('## Winner selection')
         expect(full).toContain('## Internal phase order (single invocation; structured internals)')
-        expect(full).toContain('### Phase 1 - candidate audit (internal mini-schema)')
-        expect(full).toContain('### Phase 2 - rubric judgment (internal mini-schema)')
-        expect(full).toContain('### Phase 3 - winner merge and residual issues (internal mini-schema)')
-        expect(full).toContain('### Phase 4 - final handoff emission')
+        expect(full).toContain('### Phase 1 - issue surfacing for the sole candidate (internal mini-schema)')
+        expect(full).toContain('### Phase 2 - candidate enhancement and final handoff emission')
+        expect(full).toContain('There is no candidate-to-candidate')
+        expect(full).toContain('competition in this run.')
+        expect(full).toContain('Keep it non-comparative and grounded only in')
+        expect(full).not.toContain('### Phase 2 - rubric judgment (internal mini-schema)')
+        expect(full).not.toContain('### Phase 3 - winner merge and residual issues (internal mini-schema)')
+        expect(full).not.toContain('### Phase 4 - final handoff emission')
         expect(full).toContain('The only downstream-consumed artifact is the final trailing handoff `json` fence.')
         expect(full).toContain('Include `selectedCandidate` in the final handoff JSON as a full copy of the winning candidate row')
-        expect(full).toContain('`candidateAudit`')
-        expect(full).toContain('`rubricJudgment`')
-        expect(full).toContain('`winnerMerge`')
+        expect(full).toContain('`singleCandidateIssueAudit`')
+        expect(full).toContain('`singleCandidateDelivery`')
         expect(full).toContain('```json')
         expect(full).toContain('"schemaVersion":1')
         expect(full).toContain('"candidateId":"candidate-1"')
         expect(parts.dynamicSuffix).toContain('ROOM#VORTEX')
         expect(full).toContain('## Trope candidates (input JSON)')
+    })
+
+    it('keeps multi-candidate rubric-comparison phase scaffolding', () => {
+        const parts = buildHypothesisPlanSelectionPromptParts({
+            roomObjectsByRoom: { 'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil', 'rope']) },
+            combined: {
+                candidates: [
+                    {
+                        candidateId: 'candidate-1',
+                        executionSummary: 'One-line summary.',
+                        tropeAssignments: [{
+                            trope: 'Contraption',
+                            executionDetail: 'Beat detail.',
+                            members: [{ identifier: 'anvil-0', tropeFunction: 'terminal payload' }],
+                        }],
+                        outliers: [],
+                    },
+                    {
+                        candidateId: 'candidate-2',
+                        executionSummary: 'Another summary.',
+                        tropeAssignments: [{
+                            trope: 'Contraption',
+                            executionDetail: 'Alternate beat detail.',
+                            members: [{ identifier: 'rope-0', tropeFunction: 'trigger pull' }],
+                        }],
+                        outliers: [],
+                    },
+                ],
+            },
+        })
+        const full = parts.invariantPrefix + parts.dynamicSuffix
+        expect(full).toContain('Compare **all listed candidates** under **coverage**, **completeness**, and **coherence**')
+        expect(full).toContain('### Phase 2 - rubric judgment (internal mini-schema)')
+        expect(full).toContain('### Phase 3 - winner merge and residual issues (internal mini-schema)')
+        expect(full).toContain('### Phase 4 - final handoff emission')
+        expect(full).not.toContain('There is no candidate-to-candidate')
+        expect(full).not.toContain('competition in this run.')
     })
 
     it('keeps prompt content unchanged when staged trope environmentAffordances are present', () => {
