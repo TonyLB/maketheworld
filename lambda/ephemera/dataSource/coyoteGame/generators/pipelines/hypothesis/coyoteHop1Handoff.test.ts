@@ -54,6 +54,66 @@ describe('parseHop1HandoffFromSelectionBody', () => {
         expect(r.ok && r.handoff.planIssues).toEqual([{ code: 'ROLE_CONFLICT', summary: 'gap' }])
     })
 
+    it('parses optional selectedCandidate payload when present', () => {
+        const raw = [
+            ...requiredSections,
+            '',
+            '```json',
+            JSON.stringify({
+                paragraphSummary: 'Selected candidate-2: build a staged fake tunnel detour.',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-2',
+                    executionSummary: 'Build a fake tunnel and redirect into it.',
+                    tropeAssignments: [{
+                        trope: 'Contraption',
+                        executionDetail: 'Paint a fake tunnel with staged boards.',
+                        members: [{
+                            stableKey: 'paint',
+                            shortName: 'paint can',
+                            room: 'VORTEX',
+                            tropeFunction: 'visual lure prep',
+                        }],
+                    }],
+                    outliers: [{
+                        stableKey: 'rope',
+                        shortName: 'rope',
+                        room: 'VORTEX',
+                        tropeFunction: 'trip fallback',
+                    }],
+                },
+            }),
+            '```',
+        ].join('\n')
+        expect(parseHop1HandoffFromSelectionBody(raw)).toEqual({
+            ok: true,
+            handoff: {
+                paragraphSummary: 'Selected candidate-2: build a staged fake tunnel detour.',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-2',
+                    executionSummary: 'Build a fake tunnel and redirect into it.',
+                    tropeAssignments: [{
+                        trope: 'Contraption',
+                        executionDetail: 'Paint a fake tunnel with staged boards.',
+                        members: [{
+                            stableKey: 'paint',
+                            shortName: 'paint can',
+                            room: 'VORTEX',
+                            tropeFunction: 'visual lure prep',
+                        }],
+                    }],
+                    outliers: [{
+                        stableKey: 'rope',
+                        shortName: 'rope',
+                        room: 'VORTEX',
+                        tropeFunction: 'trip fallback',
+                    }],
+                },
+            },
+        })
+    })
+
     it('returns error when no ```json fence', () => {
         const r = parseHop1HandoffFromSelectionBody(`${requiredSections.join('\n')}\n\n\`\`\`text\nplain\n\`\`\``)
         expect(r.ok).toBe(false)
@@ -77,6 +137,22 @@ describe('parseHop1HandoffFromSelectionBody', () => {
                 `${requiredSections.join('\n')}\n\n\`\`\`json\n${JSON.stringify({ paragraphSummary: 'x' })}\n\`\`\``
             ).ok
         ).toBe(false)
+    })
+
+    it('keeps legacy handoff valid with only required v1 keys', () => {
+        const r = parseHop1HandoffFromSelectionBody(
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n${JSON.stringify({
+                paragraphSummary: 'Legacy summary still accepted.',
+                planIssues: [],
+            })}\n\`\`\``
+        )
+        expect(r).toEqual({
+            ok: true,
+            handoff: {
+                paragraphSummary: 'Legacy summary still accepted.',
+                planIssues: [],
+            },
+        })
     })
 
     it('allows additional keys when required keys are present', () => {
@@ -167,6 +243,57 @@ describe('parseHop1HandoffFromSelectionBody', () => {
         expect(r.ok).toBe(false)
         if (!r.ok) {
             expect(r.reason).toContain('evidence must be an array of strings')
+        }
+    })
+
+    it('returns row-scoped error when selectedCandidate trope member field is invalid', () => {
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
+                    tropeAssignments: [{
+                        trope: 'Contraption',
+                        executionDetail: 'detail',
+                        members: [{
+                            stableKey: 'anvil',
+                            shortName: 'anvil',
+                            room: 'VORTEX',
+                            tropeFunction: 9,
+                        }],
+                    }],
+                    outliers: [],
+                },
+            }) +
+            '\n```'
+        const r = parseHop1HandoffFromSelectionBody(raw)
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.reason).toContain('selectedCandidate.tropeAssignments[0].members[0].tropeFunction must be a string')
+        }
+    })
+
+    it('returns row-scoped error when selectedCandidate outlier row is malformed', () => {
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
+                    tropeAssignments: [],
+                    outliers: [{ stableKey: 'anvil' }],
+                },
+            }) +
+            '\n```'
+        const r = parseHop1HandoffFromSelectionBody(raw)
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.reason).toContain('selectedCandidate.outliers[0].shortName must be a string')
         }
     })
 

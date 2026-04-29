@@ -97,10 +97,10 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Preserve required markdown sections and trailing handoff JSON fence constraints.
   - [X] Add explicit instructions that final handoff JSON is the only downstream-consumed artifact.
 
-- [ ] Phase P2 - hop-1 parser/type updates
-  - [ ] Extend `CoyoteHop1Handoff` with optional structured winner payload.
-  - [ ] Validate payload shape with row-scoped parse reasons.
-  - [ ] Preserve acceptance of legacy handoff JSON with only required v1 keys.
+- [X] Phase P2 - hop-1 parser/type updates
+  - [X] Extend `CoyoteHop1Handoff` with optional structured winner payload.
+  - [X] Validate payload shape with row-scoped parse reasons.
+  - [X] Preserve acceptance of legacy handoff JSON with only required v1 keys.
 
 - [ ] Phase P3 - phase-plan grounding updates
   - [ ] Thread structured winner payload into phase-plan prompt grounding when present.
@@ -147,7 +147,7 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/testHarness/co
 | --- | --- |
 | Plan drafted | Done |
 | Contract delta locked | Done |
-| Prompt and parser updates landed | Not started |
+| Prompt and parser updates landed | Done |
 | Phase-plan grounding updates landed | Not started |
 | Fixtures and tests migrated | Not started |
 | Closeout and durable docs sync | Not started |

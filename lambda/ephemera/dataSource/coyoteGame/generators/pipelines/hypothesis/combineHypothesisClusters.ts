@@ -27,6 +27,26 @@ export type CombineHypothesisClustersReturn = {
     candidates: CombinedTropeCandidate[]
 }
 
+export type PlanSelectCombinedMember = {
+    stableKey: string
+    shortName: string
+    room: string
+    tropeFunction: string
+}
+
+export type PlanSelectCombinedTropeAssignment = {
+    trope: CoyoteTrope
+    executionDetail: string
+    members: PlanSelectCombinedMember[]
+}
+
+export type PlanSelectCombinedCandidate = {
+    candidateId: string
+    executionSummary: string
+    tropeAssignments: PlanSelectCombinedTropeAssignment[]
+    outliers: PlanSelectCombinedMember[]
+}
+
 export type CombineHypothesisClustersSuccess = {
     ok: true
     combined: CombineHypothesisClustersReturn
@@ -200,7 +220,7 @@ function enrichMemberForPlanSelectJson(
     mem: CombinedMemberPair,
     byStableKey: Map<string, EphemeraMetaRoomObject>,
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
-): { stableKey: string; shortName: string; room: string; tropeFunction: string } {
+): PlanSelectCombinedMember {
     const sk = mem.identifier.trim()
     const obj = sk ? byStableKey.get(sk) : undefined
     const shortName = obj?.shortName ?? sk
@@ -227,16 +247,7 @@ export function serializePlanSelectCombinedInput(
     const byStableKey = snapshotIndexByStableKey(roomObjectsByRoom)
     const payload: {
         schemaVersion: number
-        candidates: Array<{
-            candidateId: string
-            executionSummary: string
-            tropeAssignments: Array<{
-                trope: CoyoteTrope
-                executionDetail: string
-                members: ReturnType<typeof enrichMemberForPlanSelectJson>[]
-            }>
-            outliers: ReturnType<typeof enrichMemberForPlanSelectJson>[]
-        }>
+        candidates: PlanSelectCombinedCandidate[]
     } = {
         schemaVersion: 1,
         candidates: combined.candidates.map((candidate) => ({
