@@ -43,6 +43,11 @@ Hypothesis generation chain:
 - Orchestration: [`generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts`](generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts)
 - Terminal shared parse: [`generators/sharedParsers/parseHypothesisModelOutput.ts`](generators/sharedParsers/parseHypothesisModelOutput.ts)
 
+Plan-selection to phase-plan handoff semantics are documented in
+[`generators/pipelines/hypothesis/AGENT.md`](generators/pipelines/hypothesis/AGENT.md) under
+the hop-1 `planIssues` contract section, with parser/type authority in
+[`generators/pipelines/hypothesis/coyoteHop1Handoff.ts`](generators/pipelines/hypothesis/coyoteHop1Handoff.ts).
+
 ## Await RoadRunner (outcome path)
 
 [`handlers/handleAwaitRoadRunnerForPlanOutcome.ts`](handlers/handleAwaitRoadRunnerForPlanOutcome.ts):
@@ -101,6 +106,7 @@ Phase aliases: **`clustering`**, **`planSelect`**, **`phasePlan`** (map to LLM h
 **Fixtures and handoffs** ([`coyoteEngineTestFixtures.ts`](generators/testHarness/coyoteEngineTestFixtures.ts))
 
 - Each **`CoyoteEngineTestFixture`** has **`roomObjectsByRoom`** and optional **`planSelectInject`** / **`phasePlanInject`**. **`planSelectInject`** / **`phasePlanInject`** carry **`combined`** ([**`CombineHypothesisClustersReturn`**](generators/pipelines/hypothesis/combineHypothesisClusters.ts) from parse + combine) plus, for phase-plan, **`hop1Handoff`**. Rows are **sparse**: only defined **(fixture, boundary)** pairs are required; missing bundles for a requested **`runOnly`** **`planSelect`** / **`phasePlan`** fail fast with a clear operator-facing error (no synthesized inputs).
+- For `runOnly phasePlan`, fixture `hop1Handoff.planIssues` rows must use the structured contract (`code`, `summary`, optional `evidence`) and valid v1 allowlist codes defined in [`generators/pipelines/hypothesis/coyoteHop1Handoff.ts`](generators/pipelines/hypothesis/coyoteHop1Handoff.ts).
 
 Activation path in `actions`:
 

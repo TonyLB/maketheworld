@@ -145,7 +145,7 @@ describe('runCoyoteEngineTestHarness', () => {
             },
             planSelectionResult: {
                 success: true,
-                body: '{"paragraphSummary":"x","rubricIssues":[]}',
+                body: '{"paragraphSummary":"x","planIssues":[{"code":"ROLE_CONFLICT","summary":"x"}]}',
                 usage: {
                     inputTokens: 15,
                     outputTokens: 8,
@@ -165,7 +165,7 @@ describe('runCoyoteEngineTestHarness', () => {
                     cacheWriteInputTokens: 0,
                 },
             },
-            selectionBody: '{"paragraphSummary":"x","rubricIssues":[]}',
+            selectionBody: '{"paragraphSummary":"x","planIssues":[{"code":"ROLE_CONFLICT","summary":"x"}]}',
             phasePlanJson: '{"tropeSequence":["Contraption"],"deconflictionSummary":"single lane","phases":[{"trope":"Contraption","tropeBeat":"prime launch lane","stableKeysUsed":["anvil-0"],"virtualEntities":[],"achievement":"launch"}]}',
         })
         let t = 0
@@ -194,7 +194,7 @@ describe('runCoyoteEngineTestHarness', () => {
         expect(flat).toContain('"stableKey":"anvil-0"')
         expect(flat).toContain('usagePlanSelection: input=15 output=8 total=23 cacheRead=10 cacheWrite=1')
         expect(flat).toContain('usagePhasePlanHop: input=20 output=9 total=29 cacheRead=12 cacheWrite=0')
-        expect(flat).toContain('selectionBody:\n{"paragraphSummary":"x","rubricIssues":[]}')
+        expect(flat).toContain('selectionBody:\n{"paragraphSummary":"x","planIssues":[{"code":"ROLE_CONFLICT","summary":"x"}]}')
         expect(flat).toContain(
             'phasePlanJson:\n{"tropeSequence":["Contraption"],"deconflictionSummary":"single lane","phases":[{"trope":"Contraption","tropeBeat":"prime launch lane","stableKeysUsed":["anvil-0"],"virtualEntities":[],"achievement":"launch"}]}'
         )
@@ -332,7 +332,7 @@ describe('runCoyoteEngineTestHarness', () => {
             },
             planSelectionResult: {
                 success: true,
-                body: '{"paragraphSummary":"winner","rubricIssues":[]}',
+                body: '{"paragraphSummary":"winner","planIssues":[{"code":"DIRECTION_AMBIGUOUS","summary":"winner"}]}',
                 reasoningContent: 'compare sketches then pick candidate-1',
                 usage: { inputTokens: 9, outputTokens: 10, totalTokens: 19 },
             },
@@ -352,7 +352,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         const rendered = renderTreeToString((send.mock.calls[0][0] as { message: RenderTree }).message)
         expect(rendered).toContain(
-            'selectionBody:\n{"paragraphSummary":"winner","rubricIssues":[]}'
+            'selectionBody:\n{"paragraphSummary":"winner","planIssues":[{"code":"DIRECTION_AMBIGUOUS","summary":"winner"}]}'
         )
         expect(rendered).toContain(
             'planSelectionReasoning:\ncompare sketches then pick candidate-1'
@@ -382,6 +382,133 @@ describe('runCoyoteEngineTestHarness', () => {
         const ooc = (send.mock.calls[0][0] as { message: string[] }).message
         expect(ooc[0]).toContain('planSelect')
         expect(ooc[0]).toContain('does not yet supply')
+    })
+
+    it('runOnly planSelect with inject calls pipeline with injected combined state', async () => {
+        const send = jest.fn()
+        const flush = jest.fn().mockResolvedValue(undefined)
+        const pipeline = jest.fn().mockResolvedValue({
+            kind: 'harnessPartial',
+            testOnly: 'planSelect',
+            harnessRunKind: 'runOnly',
+            record: { intent: 'Hypothesis: planSelect only' },
+            planSelectionResult: {
+                success: true,
+                body: '{"paragraphSummary":"winner","planIssues":[{"code":"ROLE_CONFLICT","summary":"needs lane owner"}]}',
+                usage: { inputTokens: 4, outputTokens: 5, totalTokens: 9 },
+            },
+        })
+        const fixturesWithInject: CoyoteEngineTestFixture[] = [
+            {
+                ...simpleFixtures[0],
+                planSelectInject: {
+                    roomObjectsByRoom: {
+                        'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']),
+                        'ROOM#STRAIGHTAWAY': [],
+                        'ROOM#CLIFFTOP': [],
+                        'ROOM#CORNER': [],
+                        'ROOM#BRIDGE': [],
+                    },
+                    combined: {} as any,
+                },
+            },
+        ]
+
+        await runCoyoteEngineTestHarness({
+            characterId: 'CHARACTER#runner',
+            messageBus: { send, flush },
+            fixtures: fixturesWithInject,
+            generateHypothesisPipelineImpl: pipeline,
+            harnessInvocation: {
+                mode: 'partial',
+                testOnly: 'planSelect',
+                harnessRunKind: 'runOnly',
+                fixtureIndex1Based: 1,
+            },
+        })
+
+        expect(pipeline).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                testOnly: 'planSelect',
+                harnessRunKind: 'runOnly',
+                injectState: expect.objectContaining({
+                    combined: fixturesWithInject[0].planSelectInject?.combined,
+                }),
+            })
+        )
+    })
+
+    it('runOnly phasePlan with inject calls pipeline with structured hop1 handoff', async () => {
+        const send = jest.fn()
+        const flush = jest.fn().mockResolvedValue(undefined)
+        const pipeline = jest.fn().mockResolvedValue({
+            kind: 'harnessPartial',
+            testOnly: 'phasePlan',
+            harnessRunKind: 'runOnly',
+            record: { intent: 'Hypothesis: phasePlan only' },
+            phasePlanHopResult: {
+                success: true,
+                body: '```text\nHypothesis: phase only\n```',
+                usage: { inputTokens: 6, outputTokens: 7, totalTokens: 13 },
+            },
+        })
+        const fixturesWithInject: CoyoteEngineTestFixture[] = [
+            {
+                ...simpleFixtures[0],
+                planSelectInject: {
+                    roomObjectsByRoom: {
+                        'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']),
+                        'ROOM#STRAIGHTAWAY': [],
+                        'ROOM#CLIFFTOP': [],
+                        'ROOM#CORNER': [],
+                        'ROOM#BRIDGE': [],
+                    },
+                    combined: {} as any,
+                },
+                phasePlanInject: {
+                    roomObjectsByRoom: {
+                        'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']),
+                        'ROOM#STRAIGHTAWAY': [],
+                        'ROOM#CLIFFTOP': [],
+                        'ROOM#CORNER': [],
+                        'ROOM#BRIDGE': [],
+                    },
+                    combined: {} as any,
+                    hop1Handoff: {
+                        paragraphSummary: 'Pick candidate-1 and keep timing coherent.',
+                        planIssues: [{ code: 'ROLE_CONFLICT', summary: 'needs lane ownership' }],
+                    },
+                },
+            },
+        ]
+
+        await runCoyoteEngineTestHarness({
+            characterId: 'CHARACTER#runner',
+            messageBus: { send, flush },
+            fixtures: fixturesWithInject,
+            generateHypothesisPipelineImpl: pipeline,
+            harnessInvocation: {
+                mode: 'partial',
+                testOnly: 'phasePlan',
+                harnessRunKind: 'runOnly',
+                fixtureIndex1Based: 1,
+            },
+        })
+
+        expect(pipeline).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                testOnly: 'phasePlan',
+                harnessRunKind: 'runOnly',
+                injectState: expect.objectContaining({
+                    hop1Handoff: expect.objectContaining({
+                        paragraphSummary: 'Pick candidate-1 and keep timing coherent.',
+                        planIssues: [{ code: 'ROLE_CONFLICT', summary: 'needs lane ownership' }],
+                    }),
+                }),
+            })
+        )
     })
 
     it('full mode with fixtureIndex1Based runs one fixture', async () => {

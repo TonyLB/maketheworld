@@ -23,12 +23,16 @@ describe('buildHypothesisPhasePlanHopPromptParts', () => {
             },
             hop1Handoff: {
                 paragraphSummary: 'Summary line.',
-                rubricIssues: ['gap a'],
+                planIssues: [{ code: 'ROLE_CONFLICT', summary: 'gap a' }],
             },
         })
         const full = parts.invariantPrefix + parts.dynamicSuffix
         expect(full).toContain('Summary line.')
         expect(full).toContain('gap a')
+        expect(full).toContain('plan issues')
+        expect(full).toContain('Treat every plan issue as an actionable grounding constraint')
+        expect(full).toContain('Intent-signal issue codes')
+        expect(full).toContain('Underspecification codes')
         expect(full).toContain('```json')
         expect(full).toContain('## Combined clustering')
         expect(full).toContain('Candidate candidate-1')
@@ -63,7 +67,7 @@ describe('buildHypothesisPhasePlanHopPromptParts', () => {
             },
             hop1Handoff: {
                 paragraphSummary: 'Summary line.',
-                rubricIssues: ['gap a'],
+                planIssues: [{ code: 'ROLE_CONFLICT', summary: 'gap a' }],
             },
         })
         const full = parts.invariantPrefix + parts.dynamicSuffix

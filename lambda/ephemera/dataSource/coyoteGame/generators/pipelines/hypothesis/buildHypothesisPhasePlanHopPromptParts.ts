@@ -31,9 +31,15 @@ const PHASE_PLAN_HOP_INTRO = [
     '- Keep this guardrail inside this prompt run: enforce it while producing JSON phases, scene analysis, and final Hypothesis line without adding external deterministic phase-to-phase intent checks.',
     '',
     '## Grounding from plan selection (authoritative)',
-    'The **chosen plan summary** and **intent-confidence gaps** below were produced by an',
-    'earlier selection step. Treat them as the committed maneuver --- do not',
+    'The **chosen plan summary** and **plan issues** below were produced by an',
+    'earlier selection step. Treat them as the committed maneuver and constraint set --- do not',
     'substitute a different plan or revert to comparing alternatives.',
+    '- Treat every plan issue as an actionable grounding constraint for this run.',
+    '- Intent-signal issue codes (`OUTLIER_PROP_UNACCOUNTED`, `TROPE_FUNCTION_MISMATCH`,',
+    '  `STRUCTURAL_CONTRADICTION`) are Coyote-side risk constraints: resolve them when possible and',
+    '  escalate only if unresolved risk blocks coherent execution of the committed maneuver.',
+    '- Underspecification codes (`DIRECTION_AMBIGUOUS`, `ROLE_CONFLICT`) are mandatory deconfliction',
+    '  obligations: resolve them in phase planning rather than treating them as winner-selection retries.',
     '',
     '## Output order (strict)',
     '1. **First**, output **one** Markdown **` ```json ` ** fenced block whose JSON has',
@@ -84,10 +90,16 @@ const SCENE_ANALYSIS_AND_FENCED_HYPOTHESIS_LINES = [
 
 function formatHop1HandoffBlock(handoff: CoyoteHop1Handoff): string {
     const issues =
-        handoff.rubricIssues.length > 0
-            ? handoff.rubricIssues.map((line) => `- ${line}`).join('\n')
+        handoff.planIssues.length > 0
+            ? handoff.planIssues.map((issue) => {
+                const evidence =
+                    issue.evidence && issue.evidence.length > 0
+                        ? `\n  - evidence: ${issue.evidence.join(' | ')}`
+                        : ''
+                return `- [${issue.code}] ${issue.summary}${evidence}`
+            }).join('\n')
             : '- (none)'
-    return ['## Plan selection grounding', '', '**Chosen plan summary:**', '', handoff.paragraphSummary.trim(), '', '**Intent-confidence gaps:**', issues].join('\n')
+    return ['## Plan selection grounding', '', '**Chosen plan summary:**', '', handoff.paragraphSummary.trim(), '', '**Plan issues:**', issues].join('\n')
 }
 
 /** Option A hop 2: phase-plan JSON first, then "## Scene analysis", then fenced Hypothesis line. */

@@ -154,10 +154,7 @@ function buildFixture01PlanSelectInject(): CoyoteHarnessPlanSelectInject {
 const FIXTURE_01_PLAN_SELECT_INJECT = buildFixture01PlanSelectInject()
 const FIXTURE_01_PHASE_PLAN_HANDOFF: CoyoteHop1Handoff = {
     paragraphSummary: 'Conflict review favors candidate-1: lock a single Contraption-first lane using the straightaway rocket setup, then carry that same lane through the terminal beat with no prop-role conflicts.',
-    rubricIssues: [
-        'Candidate-1 may misread intent for rocket-0 because the lure role and terminal role overlap without a clear handoff.',
-        'Chosen-plan confidence is reduced until trope-by-trope beat order is explicit instead of collapsing setup and payoff into one vague paragraph.',
-    ],
+    planIssues: [],
 }
 const FIXTURE_01_PHASE_PLAN_INJECT: CoyoteHarnessPhasePlanInject = {
     ...FIXTURE_01_PLAN_SELECT_INJECT,
@@ -839,6 +836,45 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
     }),
 }
 
+const HOP1_HANDOFF_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id'], CoyoteHop1Handoff>> = {
+    'fixture-02': {
+        paragraphSummary: 'Choose candidate-1: keep birdseed lure timing aligned to the cliffside lever release so setup and payoff stay in one lane.',
+        planIssues: [],
+    },
+    'fixture-03': {
+        paragraphSummary: 'Choose candidate-1: preserve the paint-plus-skates setup, then commit the bridge portable-hole finish after lure confirmation.',
+        planIssues: [],
+    },
+    'fixture-04': {
+        paragraphSummary: 'Choose candidate-1: keep magnet control as persistent path pressure and reserve steel drum for the terminal impact beat.',
+        planIssues: [],
+    },
+    'fixture-05': {
+        paragraphSummary: 'Choose candidate-1: keep a single catapult-driven lane with explicit setup-to-release timing.',
+        planIssues: [],
+    },
+    'fixture-06': {
+        paragraphSummary: 'Choose candidate-1: preserve lure then constraint then anvil payoff ordering across straightaway, vortex, and clifftop.',
+        planIssues: [],
+    },
+    'fixture-07': {
+        paragraphSummary: 'Choose candidate-1: trampoline sets trajectory first and net applies terminal containment at the endpoint.',
+        planIssues: [],
+    },
+    'fixture-08': {
+        paragraphSummary: 'Choose candidate-1: keep the multi-prop straightaway chain but lock one primary prep sequence before spring impact.',
+        planIssues: [],
+    },
+    'fixture-09': {
+        paragraphSummary: 'Choose candidate-1: keep umbrella, snorkel, and skis as a single prep loadout and avoid unsupported terminal claims.',
+        planIssues: [],
+    },
+    'fixture-10': {
+        paragraphSummary: 'Choose candidate-1: keep paint-plus-skates setup, birdseed lure, then cannon terminal release in one coherent lane.',
+        planIssues: [],
+    },
+}
+
 for (const fixture of COYOTE_ENGINE_TEST_FIXTURES) {
     if (fixture.planSelectInject !== undefined) {
         continue
@@ -852,6 +888,23 @@ for (const fixture of COYOTE_ENGINE_TEST_FIXTURES) {
         roomObjectsByRoom: fixture.roomObjectsByRoom,
         stageOneSeamBody,
     })
+}
+
+for (const fixture of COYOTE_ENGINE_TEST_FIXTURES) {
+    if (fixture.phasePlanInject !== undefined) {
+        continue
+    }
+    if (fixture.planSelectInject === undefined) {
+        continue
+    }
+    const hop1Handoff = HOP1_HANDOFF_GOLDEN_BY_FIXTURE_ID[fixture.id]
+    if (hop1Handoff === undefined) {
+        continue
+    }
+    fixture.phasePlanInject = {
+        ...fixture.planSelectInject,
+        hop1Handoff,
+    }
 }
 
 /**

@@ -4,12 +4,29 @@ import { hypothesisDebugLog } from '../../../utilities/hypothesisDebug'
 /** Canonical JSON keys for hop-1 handoff (plan selection to phase-plan). */
 export const COYOTE_HOP1_HANDOFF_JSON_KEYS = {
     paragraphSummary: 'paragraphSummary',
-    rubricIssues: 'rubricIssues',
+    planIssues: 'planIssues',
 } as const
 
 export type CoyoteHop1Handoff = {
     paragraphSummary: string
-    rubricIssues: string[]
+    planIssues: PlanIssue[]
+}
+
+export type PlanIssueIntentSignalCode =
+    | 'OUTLIER_PROP_UNACCOUNTED'
+    | 'TROPE_FUNCTION_MISMATCH'
+    | 'STRUCTURAL_CONTRADICTION'
+
+export type PlanIssueUnderspecificationCode =
+    | 'DIRECTION_AMBIGUOUS'
+    | 'ROLE_CONFLICT'
+
+export type PlanIssueCode = PlanIssueIntentSignalCode | PlanIssueUnderspecificationCode
+
+export type PlanIssue = {
+    code: PlanIssueCode
+    summary: string
+    evidence?: string[]
 }
 
 export type ParseHop1HandoffResult =
@@ -24,11 +41,69 @@ const REQUIRED_SECTION_HEADINGS = [
 
 const REQUIRED_KEYS = new Set<string>([
     COYOTE_HOP1_HANDOFF_JSON_KEYS.paragraphSummary,
-    COYOTE_HOP1_HANDOFF_JSON_KEYS.rubricIssues,
+    COYOTE_HOP1_HANDOFF_JSON_KEYS.planIssues,
 ])
+
+const PLAN_ISSUE_INTENT_SIGNAL_CODES = new Set<PlanIssueIntentSignalCode>([
+    'OUTLIER_PROP_UNACCOUNTED',
+    'TROPE_FUNCTION_MISMATCH',
+    'STRUCTURAL_CONTRADICTION',
+])
+
+const PLAN_ISSUE_UNDERSPECIFICATION_CODES = new Set<PlanIssueUnderspecificationCode>([
+    'DIRECTION_AMBIGUOUS',
+    'ROLE_CONFLICT',
+])
+
+export function isIntentSignalPlanIssueCode(code: unknown): code is PlanIssueIntentSignalCode {
+    return typeof code === 'string' && PLAN_ISSUE_INTENT_SIGNAL_CODES.has(code as PlanIssueIntentSignalCode)
+}
+
+export function isUnderspecificationPlanIssueCode(
+    code: unknown
+): code is PlanIssueUnderspecificationCode {
+    return (
+        typeof code === 'string'
+        && PLAN_ISSUE_UNDERSPECIFICATION_CODES.has(code as PlanIssueUnderspecificationCode)
+    )
+}
+
+function isPlanIssueCode(code: unknown): code is PlanIssueCode {
+    return isIntentSignalPlanIssueCode(code) || isUnderspecificationPlanIssueCode(code)
+}
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
     return typeof v === 'object' && v !== null && !Array.isArray(v)
+}
+
+function validatePlanIssueRow(row: unknown, rowIndex: number): ParseHop1HandoffResult | null {
+    if (!isPlainObject(row)) {
+        return { ok: false, reason: `planIssues[${rowIndex}] must be a plain object` }
+    }
+    if (!('code' in row)) {
+        return { ok: false, reason: `planIssues[${rowIndex}] missing required key: code` }
+    }
+    if (!isPlanIssueCode(row.code)) {
+        return {
+            ok: false,
+            reason: `planIssues[${rowIndex}] code must be one of OUTLIER_PROP_UNACCOUNTED, TROPE_FUNCTION_MISMATCH, STRUCTURAL_CONTRADICTION, DIRECTION_AMBIGUOUS, ROLE_CONFLICT`,
+        }
+    }
+    if (!('summary' in row)) {
+        return { ok: false, reason: `planIssues[${rowIndex}] missing required key: summary` }
+    }
+    if (typeof row.summary !== 'string') {
+        return { ok: false, reason: `planIssues[${rowIndex}] summary must be a string` }
+    }
+    if ('evidence' in row) {
+        if (!Array.isArray(row.evidence)) {
+            return { ok: false, reason: `planIssues[${rowIndex}] evidence must be an array of strings when present` }
+        }
+        if (!row.evidence.every((item): item is string => typeof item === 'string')) {
+            return { ok: false, reason: `planIssues[${rowIndex}] evidence must be an array of strings when present` }
+        }
+    }
+    return null
 }
 
 function narrowHandoff(parsed: unknown): ParseHop1HandoffResult {
@@ -41,19 +116,29 @@ function narrowHandoff(parsed: unknown): ParseHop1HandoffResult {
         }
     }
     const paragraphSummary = parsed.paragraphSummary
-    const rubricIssues = parsed.rubricIssues
+    const planIssues = parsed.planIssues
     if (typeof paragraphSummary !== 'string') {
         return { ok: false, reason: 'paragraphSummary must be a string' }
     }
-    if (!Array.isArray(rubricIssues)) {
-        return { ok: false, reason: 'rubricIssues must be an array' }
+    if (!Array.isArray(planIssues)) {
+        return { ok: false, reason: 'planIssues must be an array' }
     }
-    if (!rubricIssues.every((item): item is string => typeof item === 'string')) {
-        return { ok: false, reason: 'rubricIssues must be an array of strings' }
+    const narrowedPlanIssues: PlanIssue[] = []
+    for (let i = 0; i < planIssues.length; i += 1) {
+        const validationFailure = validatePlanIssueRow(planIssues[i], i)
+        if (validationFailure) {
+            return validationFailure
+        }
+        const row = planIssues[i] as PlanIssue
+        narrowedPlanIssues.push({
+            code: row.code,
+            summary: row.summary,
+            evidence: row.evidence,
+        })
     }
     return {
         ok: true,
-        handoff: { paragraphSummary, rubricIssues },
+        handoff: { paragraphSummary, planIssues: narrowedPlanIssues },
     }
 }
 
@@ -105,7 +190,7 @@ export function parseHop1HandoffFromSelectionBody(raw: string): ParseHop1Handoff
         return narrowed
     }
     hypothesisDebugLog('hop1 handoff parse succeeded', {
-        rubricIssueCount: narrowed.handoff.rubricIssues.length,
+        planIssueCount: narrowed.handoff.planIssues.length,
     })
     return narrowed
 }

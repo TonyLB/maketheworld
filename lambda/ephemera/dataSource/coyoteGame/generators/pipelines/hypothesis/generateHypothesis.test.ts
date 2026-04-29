@@ -50,7 +50,7 @@ const hop1PlanSelectionBody = [
     '- Winner: candidate-1.',
     '',
     '```json',
-    '{"paragraphSummary":"Stage the anvil and lure the Road Runner underneath.","rubricIssues":["needs rope timing"]}',
+    '{"paragraphSummary":"Stage the anvil and lure the Road Runner underneath.","planIssues":[{"code":"DIRECTION_AMBIGUOUS","summary":"needs rope timing"}]}',
     '```',
 ].join('\n')
 
@@ -329,7 +329,7 @@ describe('generateHypothesis', () => {
                 '- Winner: candidate-1.',
                 '',
                 '```json',
-                '{"paragraphSummary":"Chosen.","rubricIssues":[]}',
+                '{"paragraphSummary":"Chosen.","planIssues":[{"code":"ROLE_CONFLICT","summary":"missing role handoff"}]}',
                 '```',
             ].join('\n'),
             usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
