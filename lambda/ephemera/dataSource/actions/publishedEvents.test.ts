@@ -36,7 +36,7 @@ describe('isAcmeOrderPublishedOrder', () => {
         ).toBe(true)
     })
 
-    it('accepts tropeAffinities affordances when string arrays', () => {
+    it('accepts tropeAffinities environmentAffordances when string arrays', () => {
         expect(
             isAcmeOrderPublishedOrder({
                 ...minimal,
@@ -44,7 +44,7 @@ describe('isAcmeOrderPublishedOrder', () => {
                     trope: 'Contraption',
                     aptness: 'High',
                     narrowing: 'launch rig',
-                    affordances: ['payload cradle'],
+                    environmentAffordances: ['payload cradle'],
                 }],
             })
         ).toBe(true)
@@ -55,13 +55,13 @@ describe('isAcmeOrderPublishedOrder', () => {
                     trope: 'Contraption',
                     aptness: 'High',
                     narrowing: 'launch rig',
-                    affordances: [],
+                    environmentAffordances: [],
                 }],
             })
         ).toBe(true)
     })
 
-    it('rejects tropeAffinities affordances when invalid', () => {
+    it('rejects tropeAffinities environmentAffordances when invalid', () => {
         expect(
             isAcmeOrderPublishedOrder({
                 ...minimal,
@@ -69,7 +69,7 @@ describe('isAcmeOrderPublishedOrder', () => {
                     trope: 'Contraption',
                     aptness: 'High',
                     narrowing: 'launch rig',
-                    affordances: 'payload cradle',
+                    environmentAffordances: 'payload cradle',
                 }],
             } as unknown)
         ).toBe(false)
@@ -80,7 +80,21 @@ describe('isAcmeOrderPublishedOrder', () => {
                     trope: 'Contraption',
                     aptness: 'High',
                     narrowing: 'launch rig',
-                    affordances: ['payload cradle', 1],
+                    environmentAffordances: ['payload cradle', 1],
+                }],
+            } as unknown)
+        ).toBe(false)
+    })
+
+    it('rejects tropeAffinities legacy affordances key', () => {
+        expect(
+            isAcmeOrderPublishedOrder({
+                ...minimal,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'launch rig',
+                    affordances: ['payload cradle'],
                 }],
             } as unknown)
         ).toBe(false)

@@ -208,7 +208,7 @@ describe('mergePersistMetaRoomObjects', () => {
             tropeAffinities: [
                 trope({
                     narrowing: 'detonation cradle',
-                    affordances: ['affordance-alpha', 'affordance-beta'],
+                    environmentAffordances: ['affordance-alpha', 'affordance-beta'],
                 }),
                 trope({
                     trope: 'Contraption',

@@ -33,4 +33,42 @@ describe('buildHypothesisPhasePlanHopPromptParts', () => {
         expect(full).toContain('## Combined clustering')
         expect(full).toContain('Candidate candidate-1')
     })
+
+    it('keeps phase-plan prompt content unchanged when staged trope environmentAffordances are present', () => {
+        const parts = buildHypothesisPhasePlanHopPromptParts({
+            roomObjectsByRoom: {
+                'ROOM#VORTEX': [{
+                    uuid: 'OBJECT#anvil' as `OBJECT#${string}`,
+                    shortName: 'anvil',
+                    stableKey: 'anvil',
+                    tropeAffinities: [{
+                        trope: 'Finishing Move',
+                        aptness: 'High',
+                        narrowing: 'terminal payload',
+                        environmentAffordances: ['drop-ready'],
+                    }],
+                }],
+            },
+            combined: {
+                candidates: [{
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary.',
+                    tropeAssignments: [{
+                        trope: 'Contraption',
+                        executionDetail: 'Detail.',
+                        members: [{ identifier: 'anvil', tropeFunction: 'job' }],
+                    }],
+                    outliers: [],
+                }],
+            },
+            hop1Handoff: {
+                paragraphSummary: 'Summary line.',
+                rubricIssues: ['gap a'],
+            },
+        })
+        const full = parts.invariantPrefix + parts.dynamicSuffix
+        expect(full).toContain('Candidate candidate-1')
+        expect(full).toContain('stableKey:** anvil')
+        expect(full).not.toContain('drop-ready')
+    })
 })

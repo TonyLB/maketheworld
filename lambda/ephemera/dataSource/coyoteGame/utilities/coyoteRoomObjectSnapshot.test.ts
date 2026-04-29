@@ -89,7 +89,7 @@ describe('formatCoyoteObjectAffinitySuffix', () => {
         )
     })
 
-    it('ignores optional trope affordances in formatted suffix text', () => {
+    it('ignores optional trope environmentAffordances in formatted suffix text', () => {
         const o: EphemeraMetaRoomObject = {
             uuid: 'OBJECT#a' as `OBJECT#${string}`,
             shortName: 'Magnet',
@@ -99,7 +99,7 @@ describe('formatCoyoteObjectAffinitySuffix', () => {
                     trope: 'Contraption',
                     aptness: 'High',
                     narrowing: 'overhead winch',
-                    affordances: ['affordance-alpha'],
+                    environmentAffordances: ['affordance-alpha'],
                 },
                 {
                     trope: 'Contraption',

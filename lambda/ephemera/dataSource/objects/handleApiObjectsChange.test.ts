@@ -226,7 +226,7 @@ describe('handleAcmeOrderAddObjects', () => {
                             trope: 'Contraption' as const,
                             aptness: 'High' as const,
                             narrowing: 'magnetic winch rig',
-                            affordances: ['affordance-alpha', 'affordance-beta'],
+                            environmentAffordances: ['affordance-alpha', 'affordance-beta'],
                         },
                         {
                             trope: 'Contraption',
@@ -255,7 +255,7 @@ describe('handleAcmeOrderAddObjects', () => {
                             trope: 'Contraption',
                             aptness: 'High',
                             narrowing: 'magnetic winch rig',
-                            affordances: ['affordance-alpha', 'affordance-beta'],
+                            environmentAffordances: ['affordance-alpha', 'affordance-beta'],
                         },
                         {
                             trope: 'Contraption',
@@ -288,7 +288,7 @@ describe('handleAcmeOrderAddObjects', () => {
                             trope: 'Contraption',
                             aptness: 'High',
                             narrowing: 'magnetic winch rig',
-                            affordances: ['affordance-alpha', 'affordance-beta'],
+                            environmentAffordances: ['affordance-alpha', 'affordance-beta'],
                         },
                         {
                             trope: 'Contraption',
@@ -318,7 +318,7 @@ describe('handleAcmeOrderAddObjects', () => {
                                 trope: 'Contraption',
                                 aptness: 'High',
                                 narrowing: 'magnetic winch rig',
-                                affordances: ['affordance-alpha', 'affordance-beta'],
+                                environmentAffordances: ['affordance-alpha', 'affordance-beta'],
                             },
                             {
                                 trope: 'Contraption',
@@ -343,7 +343,7 @@ describe('handleAcmeOrderAddObjects', () => {
                                 trope: 'Contraption',
                                 aptness: 'High',
                                 narrowing: 'magnetic winch rig',
-                                affordances: ['affordance-alpha', 'affordance-beta'],
+                                environmentAffordances: ['affordance-alpha', 'affordance-beta'],
                             },
                             {
                                 trope: 'Contraption',
