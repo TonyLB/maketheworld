@@ -103,6 +103,17 @@ describe('isAcmeOrderEnrichModelLine', () => {
         expect(isAcmeOrderEnrichModelLine(validLine)).toBe(true)
     })
 
+    it('accepts valid line when legacy affinities array is omitted', () => {
+        expect(
+            isAcmeOrderEnrichModelLine({
+                valid: true,
+                name: 'Beehive',
+                stableKey: 'beehive',
+                tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'hive rig' }],
+            })
+        ).toBe(true)
+    })
+
     it('accepts an invalid catalog line', () => {
         expect(
             isAcmeOrderEnrichModelLine({
@@ -110,6 +121,16 @@ describe('isAcmeOrderEnrichModelLine', () => {
                 name: 'Justice',
                 errorType: 'Not tangible',
                 affinities: [],
+            })
+        ).toBe(true)
+    })
+
+    it('accepts invalid catalog line when legacy affinities array is omitted', () => {
+        expect(
+            isAcmeOrderEnrichModelLine({
+                valid: false,
+                name: 'Justice',
+                errorType: 'Not tangible',
             })
         ).toBe(true)
     })
@@ -305,7 +326,6 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             tropeAffinities: [],
             tropeAffinitiesFailed: true,
             affinities: [],
-            affinitiesFailed: true,
         })
     })
 
@@ -372,6 +392,27 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'launch rig' }],
             tropeAffinitiesFailed: false,
             affinities: [{ role: 'terminal', aptness: 0.5 }],
+        })
+    })
+
+    it('salvages valid line with tropeAffinities when legacy affinities are omitted', () => {
+        expect(
+            normalizeAcmeOrderEnrichLine(
+                {
+                    valid: true,
+                    name: 'X',
+                    stableKey: 'x',
+                    tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'launch rig' }],
+                },
+                'fb'
+            )
+        ).toEqual({
+            valid: true,
+            name: 'X',
+            stableKey: 'x',
+            tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'launch rig' }],
+            tropeAffinitiesFailed: false,
+            affinities: [],
         })
     })
 })

@@ -287,10 +287,11 @@ function salvageAcmeOrderEnrichLine(raw: unknown): AcmeOrderEnrichModelLine | nu
         }
         return isAcmeOrderEnrichModelLine(coerced) ? coerced : null
     }
-    if (!Array.isArray(o.affinities)) {
+    if ('affinities' in o && !Array.isArray(o.affinities)) {
         return null
     }
-    const filtered = o.affinities.filter((x) => isCoyoteAffinityPossibility(x))
+    const affinitiesSource = Array.isArray(o.affinities) ? o.affinities : []
+    const filtered = affinitiesSource.filter((x) => isCoyoteAffinityPossibility(x))
     if (filtered.length > ACME_ORDER_ENRICH_MAX_AFFINITIES_PER_LINE) {
         return null
     }
@@ -401,7 +402,7 @@ export function normalizeAcmeOrderEnrichLine(raw: unknown, fallbackName: string)
             name: raw.name,
             stableKey: trimStableKeyOrFallback(raw.stableKey, raw.name),
             ...normalizedTrope,
-            affinities: applyCoyoteAffinityAptnessFloor(raw.affinities),
+            affinities: applyCoyoteAffinityAptnessFloor(raw.affinities ?? []),
         }
     }
     const salvaged = salvageAcmeOrderEnrichLine(raw)
@@ -470,11 +471,9 @@ export function isAcmeOrderEnrichModelLine(entry: unknown): entry is AcmeOrderEn
         return false
     }
     if (o.valid === false) {
-        return (
-            isAcmeCatalogRejectionReason(o.errorType)
-            && Array.isArray(o.affinities)
-            && o.affinities.length === 0
-        )
+        const aff = o.affinities
+        const affEmpty = aff === undefined || (Array.isArray(aff) && aff.length === 0)
+        return isAcmeCatalogRejectionReason(o.errorType) && affEmpty
     }
     if (typeof o.stableKey !== 'string' || o.stableKey.trim().length === 0) {
         return false
@@ -496,16 +495,17 @@ export function isAcmeOrderEnrichModelLine(entry: unknown): entry is AcmeOrderEn
     if (o.tropeAffinitiesFailed === true && Array.isArray(o.tropeAffinities) && o.tropeAffinities.length !== 0) {
         return false
     }
-    if (!Array.isArray(o.affinities)) {
+    if (o.affinities !== undefined && !Array.isArray(o.affinities)) {
         return false
     }
-    if (o.affinities.length > ACME_ORDER_ENRICH_MAX_AFFINITIES_PER_LINE) {
+    const affinities = Array.isArray(o.affinities) ? o.affinities : []
+    if (affinities.length > ACME_ORDER_ENRICH_MAX_AFFINITIES_PER_LINE) {
         return false
     }
     if (o.affinitiesFailed === true) {
-        return o.affinities.length === 0
+        return affinities.length === 0
     }
-    return o.affinities.every((x) => isCoyoteAffinityPossibility(x))
+    return affinities.every((x) => isCoyoteAffinityPossibility(x))
 }
 
 export function isAcmeOrderEnrichModelResponse(body: unknown): body is AcmeOrderEnrichModelResponse {

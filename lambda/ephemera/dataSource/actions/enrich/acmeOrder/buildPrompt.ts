@@ -119,10 +119,10 @@ Walk **in order** for every item: **(1)** correction gloss **(2)** cartoon physi
 const AFTER_STEP1_INSTRUCTIONS = `2. **Enhance (JSON final):** After Step 1, output **one** trailing fenced code block with
 language tag **json**. Inside the fence put **only** the root JSON object (**lines**,
 optional **confidence**) — nothing else inside the fence. No prose after that closing fence.
-This step applies Acme catalog normalization, canonical **\`tropeAffinities\`**, legacy
-compatibility placeholders (**\`affinities\`** / **\`affinitiesFailed\`**), per-line
+This step applies Acme catalog normalization, canonical **\`tropeAffinities\`**, per-line
 **stable reference keys** (**\`stableKey\`**), and light Coyote-vs.-Road-Runner presentation —
 that cartoon-contraption flavor belongs **here**, not in Step 1's eligibility decisions.
+For **\`valid\`: true** lines, the machine record is **only** **\`name\`**, **\`stableKey\`**, **\`tropeAffinities\`**, and (when needed) **\`tropeAffinitiesFailed\`** — one trope-scoring array, not a second parallel array.
 
 The **Coyote-wide keys already in use** list appears **after** these instructions (before the player command). The **full player command** appears at the end of this prompt.
 
@@ -146,11 +146,10 @@ Each **\`lines\`** entry must include **\`valid\`**: boolean, aligned with Step 
 
 - **\`valid\`: false** (only for **Not a thing**, **Not tangible**, **Too large**) — include
   **\`errorType\`**: exactly one of **\`Not a thing\`**, **\`Not tangible\`**, **\`Too large\`**.
-  Use **\`affinities\`**: []. **Do not** include **\`stableKey\`** on invalid lines.
+  **Do not** include **\`stableKey\`** on invalid lines.
 - **\`valid\`: true** when Step 1 **primary** is **Phenomenon**, **Diffuse**, or
   **Self-contained** — normalized Acme catalog **\`name\`**, **\`stableKey\`** (see below),
-  canonical **\`tropeAffinities\`** entries, and temporary compatibility placeholders
-  **\`affinities\`**/**\`affinitiesFailed\`**. Choose **\`name\`** so shipped goods reflect
+  and canonical **\`tropeAffinities\`** entries. Choose **\`name\`** so shipped goods reflect
   Step 1 packaging for Phenomenon/Diffuse. When Step 1 had **Cartoon physics: yes**,
   title the SKU with straight-faced Acme packaging — the impossible behavior **is** the product.
 
@@ -164,7 +163,7 @@ Emit **\`stableKey\`**: a single **slug-shaped** string per deliverable line:
 **Coyote-wide keys already in use** below **when you can** pick a distinct readable slug; if the
 list is empty, still choose stable, unique-looking keys within this order.
 
-## Trope affinities must honor the player ask
+## Trope fits must honor the player ask
 
 For **\`valid\`: true** lines, derive **\`tropeAffinities\`** from the **effective order** —
 the Step 1 **intended gloss** after any **Correctable user error**, not from a typo surface
@@ -195,9 +194,7 @@ Example **valid** line entry (inside **\`lines\`**):
   "tropeAffinities": [
     { "trope": "Distraction", "aptness": "Good", "narrowing": "lure trail payload" },
     { "trope": "Finishing Move", "aptness": "Poor", "narrowing": "swarm release payoff" }
-  ],
-  "affinities": [],
-  "affinitiesFailed": true
+  ]
 }
 
 Example **invalid** line entry:
@@ -205,8 +202,7 @@ Example **invalid** line entry:
 {
   "valid": false,
   "name": "Justice",
-  "errorType": "Not tangible",
-  "affinities": []
+  "errorType": "Not tangible"
 }
 
 ## Canonical trope fields (\`tropeAffinities\`) for **\`valid\`: true**
@@ -276,14 +272,6 @@ impairment persists after engagement.
 When the core use is ongoing mobility/option reduction, treat Disadvantage as a leading fit with **High** or **Good** aptness (not hedged
 downward).
 
-## Legacy compatibility placeholders (temporary)
-
-For every **\`valid\`: true** line during this transition slice, emit:
-- **\`affinities\`**: []
-- **\`affinitiesFailed\`**: true
-
-Do not emit legacy tuple-shaped entries in **\`affinities\`** for valid lines in this slice.
-
 ## Failure and confidence
 
 - Optional root **\`confidence\`**: **[0, 1]** for this pass.
@@ -300,11 +288,9 @@ Do not emit legacy tuple-shaped entries in **\`affinities\`** for valid lines in
       "valid": true,
       "name": "catapult",
       "stableKey": "catapult",
-      "tropeAffinities": [ { "trope": "Contraption", "aptness": "Good", "narrowing": "launch platform", "environmentAffordances": ["boulder available in surroundings to load as payload"] } ],
-      "affinities": [],
-      "affinitiesFailed": true
+      "tropeAffinities": [ { "trope": "Contraption", "aptness": "Good", "narrowing": "launch platform", "environmentAffordances": ["boulder available in surroundings to load as payload"] } ]
     },
-    { "valid": false, "name": "<string>", "errorType": "Not a thing", "affinities": [] }
+    { "valid": false, "name": "<string>", "errorType": "Not a thing" }
   ],
   "confidence": <optional number 0..1>
 }
