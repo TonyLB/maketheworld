@@ -641,6 +641,11 @@ describe('ephemeraActionsDataSource', () => {
                         name: 'Glooblethwoats, flensed',
                         errorType: 'Not a thing',
                     },
+                    {
+                        valid: false,
+                        name: 'Justice Sonia Sotomayor',
+                        errorType: 'Celebrity cameo',
+                    },
                 ],
                 confidence: 0.88,
             })
@@ -691,6 +696,8 @@ describe('ephemeraActionsDataSource', () => {
                     "The courier apologizes: You couldn't afford the shipping on Jupiter's moon Ganymede",
                     { data: { tag: 'br' }, children: [] },
                     'The courier apologizes: Glooblethwoats, flensed is not in the catalog.',
+                    { data: { tag: 'br' }, children: [] },
+                    'The courier apologizes: Acme no longer arranges celebrity cameos. Complaints about this policy should be directed to Yakko, Wakko, and Dot at the Warner lot. They know what they did.',
                 ],
             })
         })

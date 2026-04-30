@@ -154,6 +154,15 @@ describe('parseCommand type guards', () => {
                 type: 'AcmeOrder',
                 orders: [{
                     valid: false,
+                    name: 'Bugs Bunny',
+                    errorType: 'Celebrity cameo',
+                }],
+                confidence: 0.5,
+            })).toBe(true)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{
+                    valid: false,
                     name: 'moon',
                     stableKey: 'moon',
                     errorType: 'Too large',

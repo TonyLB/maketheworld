@@ -41,7 +41,7 @@ Output compact rationale rows only for this section; avoid decorative Markdown h
 
 - **gloss:** After **correctable** typo/malaprop/STT fix (**potable** to **portable**, etc.), the intended noun phrase; **(none)** if no fix. **Do not** choose **Not a thing** if a reasonable correction yields a deliverable.
 - **physics:** **yes** if the deliverable defies real-world physics/manufacturing but is normal Coyote vs. Road Runner stock; **no** otherwise. Apply **after** gloss. **Modifier** on the primary bucket only — not a substitute for Phenomenon / Diffuse / Self-contained.
-- **primary (exactly one):** **Not a thing** | **Not tangible** | **Too large** | **Phenomenon** | **Diffuse** | **Self-contained**. **Eligibility is parse and category**, not whether the item feels on-theme for a gag. **Do not** reject for weak slapstick, insufficient whimsy, or "the Coyote would not plan with this" — that is **never** a **Not a thing** test.
+- **primary (exactly one):** **Not a thing** | **Not tangible** | **Too large** | **Celebrity cameo** | **Phenomenon** | **Diffuse** | **Self-contained**. **Eligibility is parse and category**, not whether the item feels on-theme for a gag. **Do not** reject for weak slapstick, insufficient whimsy, or "the Coyote would not plan with this" — that is **never** a **Not a thing** test.
 - **finishing-mechanisms:** one or more of **impact**, **explosion**, **area-hazard**, **projectile**, **collision** (comma-separated, no duplicates) when this item itself delivers that harm mechanism directly to or at the Road Runner, without requiring a downstream item to do the actual work; emit **none** otherwise. Use a **single best mechanism** by default; combine mechanisms only when dual behavior is encoded in the ordered item's intent (for example, wording that explicitly combines blast + lingering cloud). **Trap closure**, **immobilization**, and **restraint** are not finishing mechanisms (route those as **Disadvantage**). Rigs/infrastructure-only lines (pulley rig, launcher frame, drop platform) emit **none**. Invalid primaries emit **none**. If payoff depends on an environment object to complete doom (painted tunnel -> rock wall collision, portable hole -> long fall), keep **finishing-mechanisms: none** on the item and represent that via **\`environmentAffordances\`** with **roles** including **Finishing Move**.
 - **packaging-alts:** For **Phenomenon** or **Diffuse**, two short generator/package labels separated by **; ** (feeds Step 2 naming). Otherwise **n/a**.
 
@@ -49,11 +49,12 @@ Output compact rationale rows only for this section; avoid decorative Markdown h
 1. **Not a thing** — **Only** when, after any correction, the line still does **not** parse to a **product noun phrase** the player is asking to receive, or it is still gibberish / not a named thing at all. **Never** use **Not a thing** for a plain physical noun the player clearly ordered (**paint**, **glue**, **rope**, **anvil**, **nails**) — those parse fine; put them in **Self-contained** / **Diffuse** / **Phenomenon** / **Too large** as appropriate.
 2. **Not tangible** — Parses as a noun but names something abstract (**justice**, **hope**) — not a physical deliverable even with packaging.
 3. **Too large** — **Cosmic / stage-breaking scale** as one SKU (Moon, continents, jet stream boxed). **Never** freight intuition: cranes, locomotives, grand pianos, moon rockets, Chuck Jones mega-props => **Self-contained** / **Diffuse** / **Phenomenon**, not **Too large**.
-4. **Phenomenon** — Ongoing process/event; **packaging-alts** required (two ways Acme ships or triggers it).
-5. **Diffuse** — Tangible but not one unit; **packaging-alts** required.
-6. **Self-contained** — One SKU shipped as an article; includes mundane hardware and supplies (**paint**, **glue**, **rope**, **springs**) when the player names them as the product. **Cartoon physics: yes** still counts (**flying carpet**).
+4. **Celebrity cameo** — The line asks Acme to deliver, summon, or arrange a specific person / famous individual as the product itself (cameo, celebrity guest, named real-world figure). This is not a catalog good.
+5. **Phenomenon** — Ongoing process/event; **packaging-alts** required (two ways Acme ships or triggers it).
+6. **Diffuse** — Tangible but not one unit; **packaging-alts** required.
+7. **Self-contained** — One SKU shipped as an article; includes mundane hardware and supplies (**paint**, **glue**, **rope**, **springs**) when the player names them as the product. **Cartoon physics: yes** still counts (**flying carpet**).
 
-**valid:** **Not a thing** / **Not tangible** / **Too large** => **valid**: false in JSON. **Phenomenon** / **Diffuse** / **Self-contained** => **valid**: true.
+**valid:** **Not a thing** / **Not tangible** / **Too large** / **Celebrity cameo** => **valid**: false in JSON. **Phenomenon** / **Diffuse** / **Self-contained** => **valid**: true.
 
 **Finishing Move anchor (Step 1):** For **valid** lines, any non-**none** **finishing-mechanisms** value is a strong signal to lead JSON **\`tropeAffinities\`** with **Finishing Move** at **High** or **Good** aptness. Point payloads (anvil, harpoon) and area payloads (bees, gas, explosives) usually lead **Finishing Move**. Launcher, pulley, drop platform = **Contraption**, not the payload. Ask: *Is this the last thing the Road Runner experiences?* If yes, lead JSON with **Finishing Move**.`
 
@@ -85,8 +86,8 @@ Preserve **speaker intent** — do not drop items.
 
 Each **\`lines\`** entry must include **\`valid\`**: boolean, aligned with Step 1.
 
-- **\`valid\`: false** (only for **Not a thing**, **Not tangible**, **Too large**) — include
-  **\`errorType\`**: exactly one of **\`Not a thing\`**, **\`Not tangible\`**, **\`Too large\`**.
+- **\`valid\`: false** (only for **Not a thing**, **Not tangible**, **Too large**, **Celebrity cameo**) — include
+  **\`errorType\`**: exactly one of **\`Not a thing\`**, **\`Not tangible\`**, **\`Too large\`**, **\`Celebrity cameo\`**.
   **Do not** include **\`stableKey\`** on invalid lines.
 - **\`valid\`: true** when Step 1 **primary** is **Phenomenon**, **Diffuse**, or
   **Self-contained** — normalized Acme catalog **\`name\`**, **\`stableKey\`** (see below),
@@ -144,6 +145,12 @@ Example **invalid** line entry:
   "valid": false,
   "name": "Justice",
   "errorType": "Not tangible"
+}
+
+{
+  "valid": false,
+  "name": "Justice Sonia Sotomayor",
+  "errorType": "Celebrity cameo"
 }
 
 ## Canonical trope fields (\`tropeAffinities\`) for **\`valid\`: true**
