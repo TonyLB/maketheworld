@@ -56,6 +56,7 @@ Check catalog.
             confidence: 0.8 * 0.9,
         })
         expect(output.enrichReasoningMarkdown).toContain('Notes')
+        expect(output.enrichRawBody).toContain('"lines"')
         expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
         const parts = invokeBedrockAcmeOrderEnrichImpl.mock.calls[0]?.[0] as { dynamicSuffix: string }
         expect(parts.dynamicSuffix).toContain('- existing-key')
@@ -88,6 +89,7 @@ Check catalog.
             confidence: 0.75,
         })
         expect(output.enrichReasoningMarkdown).toBe('')
+        expect(output.enrichRawBody).toBeUndefined()
     })
 
     it('returns Error and does not invoke enrich when placement count exceeds cap', async () => {
@@ -122,6 +124,7 @@ Check catalog.
             errorMessage: ACME_ORDER_TOO_MANY_PLACED_OBJECTS_MESSAGE,
         })
         expect(output.enrichReasoningMarkdown).toBe('')
+        expect(output.enrichRawBody).toBeUndefined()
     })
 
     it('still invokes enrich when placement count is exactly at cap', async () => {

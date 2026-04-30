@@ -152,7 +152,7 @@ Emit **1-3** trope-fit entries per deliverable line. Each entry must be:
 - **\`trope\`**: exactly one of **\`Contraption\`**, **\`Distraction\`**, **\`Disadvantage\`**, **\`Finishing Move\`**
 - **\`aptness\`**: exactly one of **\`High\`**, **\`Good\`**, **\`Poor\`**
 - **\`narrowing\`**: concise free text for the specific use (no enum codes yet)
-- optional **\`environmentAffordances\`**: **string[]** scene affordances (see closed-world rule below)
+- optional **\`environmentAffordances\`**: **\`{ object, roles }[]\`** scene affordances (see closed-world rule below)
 - **\`trope\`** is an allowlist field: emit only **\`Contraption\`**, **\`Distraction\`**, **\`Disadvantage\`**, or **\`Finishing Move\`**.
 
 **\`narrowing\` POV rule:** write each narrowing from the **Coyote's planning perspective**:
@@ -231,13 +231,30 @@ downward).
   "lines": [
     {
       "valid": true,
-      "name": "catapult",
-      "stableKey": "catapult",
-      "tropeAffinities": [ { "trope": "Contraption", "aptness": "Good", "narrowing": "launch platform", "environmentAffordances": ["boulder available in surroundings to load as payload"] } ]
+      "name": "Anvil",
+      "stableKey": "anvil",
+      "tropeAffinities": [
+        { "trope": "Finishing Move", "aptness": "High", "narrowing": "drop payload onto Road Runner" }
+      ]
     },
-    { "valid": false, "name": "<string>", "errorType": "Not a thing" }
+    {
+      "valid": true,
+      "name": "Catapult",
+      "stableKey": "catapult",
+      "tropeAffinities": [
+        {
+          "trope": "Contraption",
+          "aptness": "Good",
+          "narrowing": "launch platform for payload delivery",
+          "environmentAffordances": [
+            { "object": "boulder", "roles": ["Finishing Move", "Contraption"] }
+          ]
+        }
+      ]
+    },
+    { "valid": false, "name": "Justice", "errorType": "Not tangible" }
   ],
-  "confidence": <optional number 0..1>
+  "confidence": 0.9
 }
 \`\`\`
 `

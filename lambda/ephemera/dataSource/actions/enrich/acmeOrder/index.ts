@@ -63,6 +63,7 @@ export async function enrichAcmeOrder(
 ): Promise<{
     result: EnrichAcmeOrderResult
     enrichReasoningMarkdown: string
+    enrichRawBody?: string
 }> {
     const commandPreview = input.command.trim().slice(0, 200)
     if (ACME_ENRICH_DEBUG) {
@@ -86,6 +87,7 @@ export async function enrichAcmeOrder(
                 errorMessage: ACME_ORDER_TOO_MANY_PLACED_OBJECTS_MESSAGE,
             },
             enrichReasoningMarkdown: '',
+            enrichRawBody: undefined,
         }
     }
 
@@ -105,9 +107,11 @@ export async function enrichAcmeOrder(
     let enrichInvokeFailed = !enrichInvoke.success
     let enrichResponse: AcmeOrderEnrichModelResponse | null = null
     let enrichReasoningMarkdown = ''
+    let enrichRawBody: string | undefined = undefined
     let parseFailureReason: string | undefined = undefined
 
     if (enrichInvoke.success) {
+        enrichRawBody = enrichInvoke.body
         const fallback = input.command.trim() || 'order'
         const parsed = interpretAcmeOrderEnrichBody(enrichInvoke.body, {
             emptyFallbackName: fallback,
@@ -158,5 +162,5 @@ export async function enrichAcmeOrder(
             ),
         })
     }
-    return { result, enrichReasoningMarkdown }
+    return { result, enrichReasoningMarkdown, enrichRawBody }
 }
