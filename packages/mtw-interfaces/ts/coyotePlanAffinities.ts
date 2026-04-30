@@ -9,9 +9,6 @@
 /** Max line items in a single Acme enrich model response (prompt guardrail). */
 export const ACME_ORDER_ENRICH_MAX_LINES = 50
 
-/** Max affinity entries per object line (prompt guardrail). */
-export const ACME_ORDER_ENRICH_MAX_AFFINITIES_PER_LINE = 20
-
 /** Omit affinity possibilities strictly below this aptness (entries with aptness equal to this value are kept). */
 export const COYOTE_AFFINITY_APTNESS_MIN = 0.2
 const ACME_ENRICH_NORMALIZATION_DEBUG = false
@@ -115,14 +112,11 @@ export type AcmeOrderEnrichModelLine =
           stableKey: string;
           tropeAffinities?: CoyoteTropeAffinity[];
           tropeAffinitiesFailed?: boolean;
-          affinities: CoyoteAffinityPossibility[];
-          affinitiesFailed?: boolean;
       }
     | {
           valid: false;
           name: string;
           errorType: AcmeCatalogRejectionReason;
-          affinities: [];
       }
 
 export type AcmeOrderEnrichModelResponse = {
@@ -305,32 +299,11 @@ function salvageAcmeOrderEnrichLine(raw: unknown): AcmeOrderEnrichModelLine | nu
             valid: false,
             name: o.name.trim() || 'unknown',
             errorType,
-            affinities: [],
         }
         return isAcmeOrderEnrichModelLine(candidate) ? candidate : null
     }
     const nameTrim = o.name.trim() || 'unknown'
     const stableKey = stableKeyFromRawLine(o, nameTrim)
-    if (o.affinitiesFailed === true) {
-        const coerced: AcmeOrderEnrichModelLine = {
-            valid: true,
-            name: nameTrim,
-            stableKey,
-            tropeAffinities: [],
-            tropeAffinitiesFailed: true,
-            affinities: [],
-            affinitiesFailed: true,
-        }
-        return isAcmeOrderEnrichModelLine(coerced) ? coerced : null
-    }
-    if ('affinities' in o && !Array.isArray(o.affinities)) {
-        return null
-    }
-    const affinitiesSource = Array.isArray(o.affinities) ? o.affinities : []
-    const filtered = affinitiesSource.filter((x) => isCoyoteAffinityPossibility(x))
-    if (filtered.length > ACME_ORDER_ENRICH_MAX_AFFINITIES_PER_LINE) {
-        return null
-    }
     const candidate: AcmeOrderEnrichModelLine = {
         valid: true,
         name: nameTrim,
@@ -340,7 +313,6 @@ function salvageAcmeOrderEnrichLine(raw: unknown): AcmeOrderEnrichModelLine | nu
             : [],
         tropeAffinitiesFailed: o.tropeAffinitiesFailed === true
             || !Array.isArray(o.tropeAffinities),
-        affinities: applyCoyoteAffinityAptnessFloor(filtered),
     }
     return isAcmeOrderEnrichModelLine(candidate) ? candidate : null
 }
@@ -359,8 +331,6 @@ function syntheticAcmeOrderEnrichFailureLine(raw: unknown, fallbackName: string)
         stableKey: defaultStableKeyProposal(name),
         tropeAffinities: [],
         tropeAffinitiesFailed: true,
-        affinities: [],
-        affinitiesFailed: true,
     }
 }
 
@@ -375,7 +345,7 @@ function normalizeTropeFields(raw: {
 }, context?: {
     fallbackName?: string;
     lineName?: string;
-    sourceKind?: 'valid_line' | 'affinities_failed_line' | 'salvaged_line' | 'synthetic_line';
+    sourceKind?: 'valid_line' | 'salvaged_line' | 'synthetic_line';
 }): { tropeAffinities: CoyoteTropeAffinity[]; tropeAffinitiesFailed: boolean } {
     const tropeAffinities = Array.isArray(raw.tropeAffinities) ? raw.tropeAffinities.slice(0, 3) : []
     const tropeAffinitiesFailed = raw.tropeAffinitiesFailed === true || tropeAffinities.length === 0
@@ -402,7 +372,7 @@ function normalizeTropeFields(raw: {
 }
 
 /**
- * Maps one raw **`lines[i]`** entry to a canonical **`AcmeOrderEnrichModelLine`**: validate, salvage common LLM mistakes, or synthesize **`affinitiesFailed`**.
+ * Maps one raw **`lines[i]`** entry to a canonical **`AcmeOrderEnrichModelLine`**: validate, salvage common LLM mistakes, or synthesize trope failure.
  */
 export function normalizeAcmeOrderEnrichLine(raw: unknown, fallbackName: string): AcmeOrderEnrichModelLine {
     if (isAcmeOrderEnrichModelLine(raw)) {
@@ -411,21 +381,6 @@ export function normalizeAcmeOrderEnrichLine(raw: unknown, fallbackName: string)
                 valid: false,
                 name: raw.name,
                 errorType: raw.errorType,
-                affinities: [],
-            }
-        }
-        if (raw.affinitiesFailed === true) {
-            return {
-                valid: true,
-                name: raw.name,
-                stableKey: trimStableKeyOrFallback(raw.stableKey, raw.name),
-                ...normalizeTropeFields(raw, {
-                    fallbackName,
-                    lineName: raw.name,
-                    sourceKind: 'affinities_failed_line',
-                }),
-                affinities: [],
-                affinitiesFailed: true,
             }
         }
         const normalizedTrope = normalizeTropeFields(raw, {
@@ -438,7 +393,6 @@ export function normalizeAcmeOrderEnrichLine(raw: unknown, fallbackName: string)
             name: raw.name,
             stableKey: trimStableKeyOrFallback(raw.stableKey, raw.name),
             ...normalizedTrope,
-            affinities: applyCoyoteAffinityAptnessFloor(raw.affinities ?? []),
         }
     }
     const salvaged = salvageAcmeOrderEnrichLine(raw)
@@ -455,7 +409,7 @@ export type NormalizeAcmeOrderEnrichOptions = {
 
 /**
  * Normalizes Acme order enrich JSON: optional root **`confidence`**, **`lines`** capped at **`ACME_ORDER_ENRICH_MAX_LINES`**.
- * Empty **`lines`** becomes a single **`affinitiesFailed`** row (see **`emptyFallbackName`**).
+ * Empty **`lines`** becomes a single trope-failure row (see **`emptyFallbackName`**).
  */
 export function normalizeAcmeOrderEnrichResponse(
     parsed: unknown,
@@ -487,8 +441,6 @@ export function normalizeAcmeOrderEnrichResponse(
             stableKey: defaultStableKeyProposal(emptyName),
             tropeAffinities: [],
             tropeAffinitiesFailed: true,
-            affinities: [],
-            affinitiesFailed: true,
         }]
 
     const result: AcmeOrderEnrichModelResponse = { lines: outLines }
@@ -507,9 +459,7 @@ export function isAcmeOrderEnrichModelLine(entry: unknown): entry is AcmeOrderEn
         return false
     }
     if (o.valid === false) {
-        const aff = o.affinities
-        const affEmpty = aff === undefined || (Array.isArray(aff) && aff.length === 0)
-        return isAcmeCatalogRejectionReason(o.errorType) && affEmpty
+        return isAcmeCatalogRejectionReason(o.errorType)
     }
     if (typeof o.stableKey !== 'string' || o.stableKey.trim().length === 0) {
         return false
@@ -531,17 +481,7 @@ export function isAcmeOrderEnrichModelLine(entry: unknown): entry is AcmeOrderEn
     if (o.tropeAffinitiesFailed === true && Array.isArray(o.tropeAffinities) && o.tropeAffinities.length !== 0) {
         return false
     }
-    if (o.affinities !== undefined && !Array.isArray(o.affinities)) {
-        return false
-    }
-    const affinities = Array.isArray(o.affinities) ? o.affinities : []
-    if (affinities.length > ACME_ORDER_ENRICH_MAX_AFFINITIES_PER_LINE) {
-        return false
-    }
-    if (o.affinitiesFailed === true) {
-        return affinities.length === 0
-    }
-    return affinities.every((x) => isCoyoteAffinityPossibility(x))
+    return true
 }
 
 export function isAcmeOrderEnrichModelResponse(body: unknown): body is AcmeOrderEnrichModelResponse {

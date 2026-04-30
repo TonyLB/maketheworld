@@ -1,14 +1,12 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom, EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import { ACME_ORDER_ENRICH_MAX_AFFINITIES_PER_LINE } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 export type CoyoteRoomObjectSnapshotDeps = {
     getGameRooms: () => Promise<string[]>
     getRoomMeta: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
 }
 
-/** Staged objects by room for Coyote hypothesis/outcome prompts (full meta rows incl. affinities). */
+/** Staged objects by room for Coyote hypothesis/outcome prompts (full meta rows incl. trope affinities). */
 export type CoyoteRoomObjectsByRoom = Record<EphemeraRoomId, EphemeraMetaRoomObject[]>
 
 export async function loadCoyoteRoomObjectsByRoom(
@@ -35,14 +33,7 @@ function formatRoomLabel(roomId: EphemeraRoomId): string {
     return roomId.replace(/^ROOM#/, '')
 }
 
-/** Compact deterministic line for one affinity possibility (prompt-facing; tunable copy). */
-export function formatCoyoteAffinityPossibility(p: CoyoteAffinityPossibility): string {
-    return `${p.role} ${p.aptness.toFixed(2)}`
-}
-
-/**
- * Renders plan-role lines for one staged object. Legacy rows (no affinities, not failed) add no suffix.
- */
+/** Renders trope-affinity lines for one staged object. */
 export function formatCoyoteObjectAffinitySuffix(o: EphemeraMetaRoomObject): string {
     const parts: string[] = []
     if (o.tropeAffinities && o.tropeAffinities.length > 0) {
@@ -52,17 +43,6 @@ export function formatCoyoteObjectAffinitySuffix(o: EphemeraMetaRoomObject): str
     }
     else if (o.tropeAffinitiesFailed === true) {
         parts.push('trope affinities unavailable (enrich failed)')
-    }
-    if (o.affinitiesFailed === true) {
-        parts.push('plan roles unavailable (enrich failed)')
-    }
-    else {
-        const raw = o.affinities
-        if (raw && raw.length > 0) {
-            const sorted = [...raw].sort((a, b) => b.aptness - a.aptness)
-            const capped = sorted.slice(0, ACME_ORDER_ENRICH_MAX_AFFINITIES_PER_LINE)
-            parts.push(`plan roles: ${capped.map(formatCoyoteAffinityPossibility).join('; ')}`)
-        }
     }
     return parts.join(' | ')
 }

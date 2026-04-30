@@ -10,7 +10,7 @@ import internalCache from '../../internalCache'
  * Missing `base` is treated as empty.
  *
  * Each `add` row is stored as an `EphemeraMetaRoomObject` as given (optional fields such as
- * `stableKey`, `affinities`, `affinitiesFailed` persist when present).
+ * `stableKey`, `tropeAffinities`, `tropeAffinitiesFailed` persist when present).
  */
 export const mergeMetaRoomObjects = (
     base: EphemeraMetaRoomObject[] | undefined,

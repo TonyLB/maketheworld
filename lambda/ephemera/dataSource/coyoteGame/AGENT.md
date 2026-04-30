@@ -63,7 +63,7 @@ Outcome generation chain:
 - Prompt builder: [`generators/pipelines/outcome/buildPlanOutcomePrompt.ts`](generators/pipelines/outcome/buildPlanOutcomePrompt.ts)
 - Phase-plan formatter: [`generators/pipelines/outcome/formatPhasePlanForOutcomePrompt.ts`](generators/pipelines/outcome/formatPhasePlanForOutcomePrompt.ts)
 
-## Staged object snapshot and affinities
+## Staged object snapshot
 
 Snapshot and formatting helpers are centralized in [`utilities/coyoteRoomObjectSnapshot.ts`](utilities/coyoteRoomObjectSnapshot.ts), including:
 

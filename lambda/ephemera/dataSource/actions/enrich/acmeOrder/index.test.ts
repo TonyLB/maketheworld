@@ -27,7 +27,7 @@ Check catalog.
       "valid": true,
       "name": "rope",
       "stableKey": "rope",
-      "affinities": [{ "role": "delivery", "aptness": 0.6 }]
+      "tropeAffinities": [{ "trope": "Contraption", "aptness": "Good", "narrowing": "rope rig" }]
     }
   ],
   "confidence": 0.9
@@ -48,10 +48,8 @@ Check catalog.
                 valid: true,
                 name: 'rope',
                 stableKey: 'rope',
-                tropeAffinities: [],
-                tropeAffinitiesFailed: true,
-                affinities: [],
-                affinitiesFailed: true,
+                tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'rope rig' }],
+                tropeAffinitiesFailed: false,
             }],
             confidence: 0.8 * 0.9,
         })
@@ -83,8 +81,6 @@ Check catalog.
                 stableKey: 'order-anvil-from-acme',
                 tropeAffinities: [],
                 tropeAffinitiesFailed: true,
-                affinities: [],
-                affinitiesFailed: true,
             }],
             confidence: 0.75,
         })
@@ -135,7 +131,6 @@ Check catalog.
                     valid: true,
                     name: 'rope',
                     stableKey: 'rope',
-                    affinities: [],
                 }],
                 confidence: 1,
             }),
@@ -170,8 +165,6 @@ Check catalog.
                 stableKey: 'rope',
                 tropeAffinities: [],
                 tropeAffinitiesFailed: true,
-                affinities: [],
-                affinitiesFailed: true,
             }],
             confidence: 0.5,
         })

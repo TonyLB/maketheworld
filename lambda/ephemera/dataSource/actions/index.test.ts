@@ -496,7 +496,7 @@ describe('ephemeraActionsDataSource', () => {
             mockedCollectCoyoteOccupiedStableKeys.mockResolvedValue(new Set(['alpha', 'beta']))
             mockedParseCommand.mockResolvedValue({
                 type: 'AcmeOrder',
-                orders: [{ valid: true, name: 'widget', stableKey: 'widget', affinities: [] }],
+                orders: [{ valid: true, name: 'widget', stableKey: 'widget' }],
                 confidence: 0.91,
             })
 
@@ -532,7 +532,6 @@ describe('ephemeraActionsDataSource', () => {
                     valid: true,
                     name: 'rocket-powered roller skates',
                     stableKey: 'rocket-powered-roller-skates',
-                    affinities: [],
                 }],
                 confidence: 0.9,
             })
@@ -568,7 +567,6 @@ describe('ephemeraActionsDataSource', () => {
                     orders: [{
                         shortName: 'rocket-powered roller skates',
                         stableKey: expectedStableKey,
-                        affinities: [],
                     }],
                     confidence: 0.9,
                 },
@@ -589,7 +587,6 @@ describe('ephemeraActionsDataSource', () => {
                     valid: true,
                     name: 'rocket-powered roller skates',
                     stableKey: 'rocket-powered-roller-skates',
-                    affinities: [],
                 }],
                 confidence: 0.9,
             })
@@ -618,7 +615,7 @@ describe('ephemeraActionsDataSource', () => {
 
             expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
                 update: expect.objectContaining({
-                    orders: [{ shortName: 'rocket-powered roller skates', stableKey: expectedStableKey, affinities: [] }],
+                    orders: [{ shortName: 'rocket-powered roller skates', stableKey: expectedStableKey }],
                 }),
             }))
             expect(expectedStableKey).toBe('rocket-powered-roller-skates1')
@@ -628,24 +625,21 @@ describe('ephemeraActionsDataSource', () => {
             mockedParseCommand.mockResolvedValue({
                 type: 'AcmeOrder',
                 orders: [
-                    { valid: true, name: 'anvil', stableKey: 'anvil', affinities: [] },
+                    { valid: true, name: 'anvil', stableKey: 'anvil' },
                     {
                         valid: false,
                         name: 'justice',
                         errorType: 'Not tangible',
-                        affinities: [],
                     },
                     {
                         valid: false,
                         name: "Jupiter's moon Ganymede",
                         errorType: 'Too large',
-                        affinities: [],
                     },
                     {
                         valid: false,
                         name: 'Glooblethwoats, flensed',
                         errorType: 'Not a thing',
-                        affinities: [],
                     },
                 ],
                 confidence: 0.88,
@@ -680,7 +674,7 @@ describe('ephemeraActionsDataSource', () => {
                     type: 'Acme Order',
                     characterId: 'CHARACTER#123',
                     orders: [
-                        { shortName: 'anvil', stableKey: expectedAnvilKey, affinities: [] },
+                        { shortName: 'anvil', stableKey: expectedAnvilKey },
                     ],
                     confidence: 0.88,
                 },
@@ -701,20 +695,20 @@ describe('ephemeraActionsDataSource', () => {
             })
         })
 
-        it('publishes structured orders with affinities and affinitiesFailed', async () => {
+        it('publishes structured trope-first orders', async () => {
             mockedParseCommand.mockResolvedValue({
                 type: 'AcmeOrder',
                 orders: [{
                     valid: true,
                     name: 'Beehive',
                     stableKey: 'beehive',
-                    affinities: [{ role: 'terminal', aptness: 0.7 }],
+                    tropeAffinities: [{ trope: 'Finishing Move', aptness: 'Good', narrowing: 'point payload' }],
                 }, {
                     valid: true,
                     name: 'broken dynamite',
                     stableKey: 'broken-dynamite',
-                    affinities: [],
-                    affinitiesFailed: true,
+                    tropeAffinities: [],
+                    tropeAffinitiesFailed: true,
                 }],
                 confidence: 0.85,
             })
@@ -748,8 +742,8 @@ describe('ephemeraActionsDataSource', () => {
                     type: 'Acme Order',
                     characterId: 'CHARACTER#123',
                     orders: [
-                        { shortName: 'Beehive', stableKey: beeDynamiteKeys[0], affinities: [{ role: 'terminal', aptness: 0.7 }] },
-                        { shortName: 'broken dynamite', stableKey: beeDynamiteKeys[1], affinities: [], affinitiesFailed: true },
+                        { shortName: 'Beehive', stableKey: beeDynamiteKeys[0], tropeAffinities: [{ trope: 'Finishing Move', aptness: 'Good', narrowing: 'point payload' }] },
+                        { shortName: 'broken dynamite', stableKey: beeDynamiteKeys[1], tropeAffinities: [], tropeAffinitiesFailed: true },
                     ],
                     confidence: 0.85,
                 },

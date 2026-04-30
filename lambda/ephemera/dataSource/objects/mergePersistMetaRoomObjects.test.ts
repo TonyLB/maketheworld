@@ -35,7 +35,7 @@ const obj = (suffix: string, shortName: string): EphemeraMetaRoomObject => ({
 const enrichedObj = (
     suffix: string,
     shortName: string,
-    extras: Partial<Pick<EphemeraMetaRoomObject, 'affinities' | 'affinitiesFailed' | 'stableKey' | 'tropeAffinities' | 'tropeAffinitiesFailed'>> = {}
+    extras: Partial<Pick<EphemeraMetaRoomObject, 'stableKey' | 'tropeAffinities' | 'tropeAffinitiesFailed'>> = {}
 ): EphemeraMetaRoomObject => ({
     uuid: `OBJECT#${suffix}` as EphemeraObjectId,
     shortName,
@@ -96,7 +96,6 @@ describe('mergeMetaRoomObjects', () => {
             uuid: 'OBJECT#new' as EphemeraObjectId,
             shortName: 'Anvil',
             stableKey: 'anvil',
-            affinities: [],
         }
         expect(mergeMetaRoomObjects([existing], [incoming], [])).toEqual([existing, incoming])
     })
@@ -111,7 +110,6 @@ describe('mergeMetaRoomObjects', () => {
             uuid: 'OBJECT#a' as EphemeraObjectId,
             shortName: 'rocket',
             stableKey: 'rocket2',
-            affinities: [],
         }
         expect(mergeMetaRoomObjects([base], [replacement], [])).toEqual([replacement])
     })
@@ -196,7 +194,6 @@ describe('mergePersistMetaRoomObjects', () => {
 
     it('preserves optional Acme enrich fields in priorObjects and newObjects snapshots', async () => {
         const priorRich = enrichedObj('a', 'Legacy', {
-            affinities: [{ role: 'terminal', aptness: 0.4 }],
             tropeAffinities: [trope({ narrowing: 'hanging chain mount' })],
         })
         const meta = baseMeta({
@@ -219,11 +216,6 @@ describe('mergePersistMetaRoomObjects', () => {
                     narrowing: 'wooden slat shell',
                 }),
             ],
-            affinities: [
-                { role: 'connect-props', aptness: 0.55 },
-                { role: 'terminal', aptness: 0.3 },
-            ],
-            affinitiesFailed: false,
         })
 
         const result = await mergePersistMetaRoomObjects(
@@ -237,14 +229,12 @@ describe('mergePersistMetaRoomObjects', () => {
         }
         expect(result.priorObjects).toEqual([
             enrichedObj('a', 'Legacy', {
-                affinities: [{ role: 'terminal', aptness: 0.4 }],
                 tropeAffinities: [trope({ narrowing: 'hanging chain mount' })],
             }),
             obj('b', 'B'),
         ])
         expect(result.newObjects).toEqual([
             enrichedObj('a', 'Legacy', {
-                affinities: [{ role: 'terminal', aptness: 0.4 }],
                 tropeAffinities: [trope({ narrowing: 'hanging chain mount' })],
             }),
             obj('b', 'B'),

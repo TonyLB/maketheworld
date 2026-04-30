@@ -114,13 +114,13 @@ describe('generateHypothesis', () => {
                             uuid: 'OBJECT#anvil' as `OBJECT#${string}`,
                             shortName: 'anvil',
                             stableKey: 'anvil',
-                            affinities: [{ role: 'terminal', aptness: 0.5 }],
+                            tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'drop zone' }],
                         },
                         {
                             uuid: 'OBJECT#rocket-skates' as `OBJECT#${string}`,
                             shortName: 'rocket skates',
                             stableKey: 'rocket-skates',
-                            affinities: [{ role: 'coyote-equipment', aptness: 0.6 }],
+                            tropeAffinities: [{ trope: 'Contraption', aptness: 'High', narrowing: 'mobility' }],
                         },
                     ],
                 }

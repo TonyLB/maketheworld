@@ -10,7 +10,6 @@ describe('interpretAcmeOrderEnrichBody', () => {
                 valid: true,
                 name: 'A',
                 stableKey: 'a',
-                affinities: [{ role: 'terminal', aptness: 0.5 }],
             }],
         }))
         expect(r.success).toBe(true)
@@ -35,7 +34,6 @@ describe('interpretAcmeOrderEnrichBody', () => {
                 valid: true,
                 name: 'Beehive',
                 stableKey: 'beehive',
-                affinities: [{ role: 'terminal', aptness: 0.5 }],
             }],
             confidence: 1,
         })
@@ -55,7 +53,7 @@ ${payload}
     })
 
     it('accepts prose plus raw JSON without a trailing fence (brace fallback)', () => {
-        const json = '{"lines":[{"valid":true,"name":"X","stableKey":"x","affinities":[]}]}'
+        const json = '{"lines":[{"valid":true,"name":"X","stableKey":"x"}]}'
         const body = `Notes here.\n\n${json}`
         const r = interpretAcmeOrderEnrichBody(body)
         expect(r.success).toBe(true)
@@ -73,8 +71,8 @@ ${payload}
             expect(r.response.lines[0]).toMatchObject({
                 valid: true,
                 stableKey: 'order',
-                affinities: [],
-                affinitiesFailed: true,
+                tropeAffinities: [],
+                tropeAffinitiesFailed: true,
             })
             expect(r.reasoningMarkdown).toBe('')
         }
@@ -88,7 +86,6 @@ ${payload}
                         valid: true,
                         name: 'Good',
                         stableKey: 'good',
-                        affinities: [{ role: 'terminal', aptness: 0.3 }],
                     },
                     { notValid: true },
                 ],
@@ -101,8 +98,8 @@ ${payload}
                 valid: true,
                 name: 'line2',
                 stableKey: 'line2',
-                affinities: [],
-                affinitiesFailed: true,
+                tropeAffinities: [],
+                tropeAffinitiesFailed: true,
             })
             expect(r.reasoningMarkdown).toBe('')
         }
@@ -122,13 +119,11 @@ describe('finalizeAcmeOrderFromEnrich', () => {
                         valid: true,
                         name: 'rope line',
                         stableKey: 'rope-line',
-                        affinities: [{ role: 'delivery', aptness: 0.6 }],
                     },
                     {
                         valid: false,
                         name: 'moon',
                         errorType: 'Not a thing',
-                        affinities: [],
                     },
                 ],
                 confidence: 0.5,
@@ -142,14 +137,11 @@ describe('finalizeAcmeOrderFromEnrich', () => {
             stableKey: 'rope-line',
             tropeAffinities: [],
             tropeAffinitiesFailed: true,
-            affinities: [],
-            affinitiesFailed: true,
         })
         expect(merged.orders[1]).toMatchObject({
             valid: false,
             name: 'moon',
             errorType: 'Not a thing',
-            affinities: [],
         })
         expect(merged.confidence).toBeCloseTo(intentConf * 0.5)
     })
@@ -163,8 +155,6 @@ describe('finalizeAcmeOrderFromEnrich', () => {
             stableKey: 'order-rope',
             tropeAffinities: [],
             tropeAffinitiesFailed: true,
-            affinities: [],
-            affinitiesFailed: true,
         })
         expect(merged.confidence).toBe(intentConf)
     })
@@ -178,7 +168,6 @@ describe('finalizeAcmeOrderFromEnrich', () => {
                         valid: true,
                         name: 'dyn',
                         stableKey: 'dyn',
-                        affinities: [{ role: 'terminal', aptness: 0.5 }],
                     },
                     null,
                 ],
@@ -195,10 +184,8 @@ describe('finalizeAcmeOrderFromEnrich', () => {
             stableKey: 'dyn',
             tropeAffinities: [],
             tropeAffinitiesFailed: true,
-            affinities: [],
-            affinitiesFailed: true,
         })
-        expect(merged.orders[1]).toMatchObject({ valid: true, affinitiesFailed: true })
+        expect(merged.orders[1]).toMatchObject({ valid: true, tropeAffinitiesFailed: true })
         expect(merged.confidence).toBeCloseTo(0.82 * 0.9)
     })
 
@@ -211,34 +198,16 @@ describe('finalizeAcmeOrderFromEnrich', () => {
                         valid: true,
                         name: 'Beehive',
                         stableKey: 'beehive',
-                        affinities: [
-                            {
-                                role: 'influence-road-runner',
-                                aptness: 0.7,
-                            },
-                            { role: 'terminal', aptness: 0.5 },
-                        ],
                     },
                     {
                         valid: true,
                         name: 'Entrenching Shovel',
                         stableKey: 'entrenching-shovel',
-                        affinities: [
-                            {
-                                role: 'connect-props',
-                                aptness: 0.88,
-                            },
-                            { role: 'trigger', aptness: 0.42 },
-                        ],
                     },
                     {
                         valid: true,
                         name: 'Climbing Rope',
                         stableKey: 'climbing-rope',
-                        affinities: [
-                            { role: 'delivery', aptness: 0.81 },
-                            { role: 'trigger', aptness: 0.55 },
-                        ],
                     },
                 ],
                 confidence: 0.9,

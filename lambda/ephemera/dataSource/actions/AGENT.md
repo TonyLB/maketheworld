@@ -68,7 +68,7 @@ Before **`invokeBedrockAcmeOrderEnrich`**, **[`enrich/acmeOrder/index.ts`](./enr
 
 ### Coyote prompts vs stored fields
 
-Hypothesis / plan prompts format staged objects primarily from **`shortName`** + plan-role **`affinities`** (**[`formatCoyoteStagedObjectsByRoom`](../coyoteGame/utilities/coyoteRoomObjectSnapshot.ts)**). Current affinity vocabulary includes structural roles, enrich-side generative roles **`prep`** and **`creation`**, and flat modification tags (**`influence-road-runner`**, **`alter-road-runner`**, **`coyote-equipment`**, **`coyote-enhancement`**, **`setting-addition`**, **`connect-props`**, **`enhance-prop`**). **`stableKey`** is echoed in the staged snapshot line (see **[`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md)**).
+Hypothesis / plan prompts format staged objects from **`shortName`** plus trope fields (**`tropeAffinities`** / **`tropeAffinitiesFailed`**) via **[`formatCoyoteStagedObjectsByRoom`](../coyoteGame/utilities/coyoteRoomObjectSnapshot.ts)**. **`stableKey`** is echoed in the staged snapshot line (see **[`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md)**).
 
 ### Downstream
 
@@ -86,5 +86,5 @@ Clustering / combine behavior is documented under **[`../coyoteGame/AGENT.md`](.
 | [`../objects/AGENT.md`](../objects/AGENT.md) | **`Meta::Room.objects`** merge; Acme **`stableKey`** pass-through |
 | [`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md) | Staged snapshot; **`stableKey`** on rows vs prompt text |
 | **`/test generation`** harness parse | Same **[`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md)** (**Engine testing harness**). Actions entrypoints: [`parseCoyoteEngineTestSlash.ts`](./discriminateIntent/parseCoyoteEngineTestSlash.ts), [`coyoteEngineTestSlashCommand.ts`](./discriminateIntent/coyoteEngineTestSlashCommand.ts), [`deterministicChecks.ts`](./discriminateIntent/deterministicChecks.ts) |
-| [`../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts) | Durable affinity contract: **`CoyoteAffinityPossibility`**, `prep` / `creation`, and flat modification tags |
+| [`../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts) | Durable trope and legacy-role helper contracts used by Coyote pipelines |
 | [`../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) | **`EphemeraMetaRoomObject`** |

@@ -8,6 +8,11 @@ jest.mock('../../../messageBus')
 
 const mockMessageBus = messageBus as jest.Mocked<typeof messageBus>
 
+const harnessValidOrderLine = {
+    tropeAffinities: [{ trope: 'Contraption' as const, aptness: 'High' as const, narrowing: 'harness fixture' }],
+    tropeAffinitiesFailed: false as const,
+}
+
 describe('runAcmeOrderAffinitiesHarness', () => {
     beforeEach(() => {
         jest.clearAllMocks()
@@ -24,7 +29,7 @@ describe('runAcmeOrderAffinitiesHarness', () => {
                 valid: true,
                 name: phrase,
                 stableKey: phrase,
-                affinities: [{ role: 'terminal', aptness: 0.5 }],
+                ...harnessValidOrderLine,
             }],
         })
 
@@ -91,7 +96,7 @@ describe('runAcmeOrderAffinitiesHarness', () => {
                 valid: true,
                 name: 'two',
                 stableKey: 'two',
-                affinities: [{ role: 'terminal', aptness: 0.5 }],
+                ...harnessValidOrderLine,
             }],
         })
 
@@ -154,7 +159,7 @@ describe('runAcmeOrderAffinitiesHarness', () => {
                     valid: true,
                     name: 'Test Widget',
                     stableKey: 'test-widget',
-                    affinities: [{ role: 'terminal', aptness: 0.5 }],
+                    tropeAffinities: [{ trope: 'Contraption', aptness: 'High', narrowing: 'widget test' }],
                 }],
                 confidence: 0.95,
             }),
@@ -192,7 +197,7 @@ describe('runAcmeOrderAffinitiesHarness', () => {
                 valid: true,
                 name: 'CoR Widget',
                 stableKey: 'cor-widget',
-                affinities: [{ role: 'terminal', aptness: 0.5 }],
+                tropeAffinities: [{ trope: 'Contraption', aptness: 'High', narrowing: 'cor widget' }],
             }],
             confidence: 0.9,
         })
@@ -237,7 +242,7 @@ describe('runAcmeOrderAffinitiesHarness', () => {
                     valid: true,
                     name: 'Rocket Skates',
                     stableKey: 'rocket-skates',
-                    affinities: [{ role: 'terminal', aptness: 0.5 }],
+                    ...harnessValidOrderLine,
                 }],
             },
             enrichReasoningMarkdown: 'surface text | gloss: corrected phrase or (none) | physics: yes or no | primary: bucket | finishing-mechanisms: mechanism1, mechanism2 or none | packaging-alts: alt1; alt2 or n/a',
@@ -274,7 +279,7 @@ describe('runAcmeOrderAffinitiesHarness', () => {
                 valid: true,
                 name: 'paint',
                 stableKey: 'paint',
-                affinities: [{ role: 'terminal', aptness: 0.5 }],
+                ...harnessValidOrderLine,
             }],
         })
         const fixtures: AcmeOrderAffinitiesHarnessFixture[] = [{

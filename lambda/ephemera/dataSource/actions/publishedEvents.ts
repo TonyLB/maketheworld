@@ -1,6 +1,4 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import { isCoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { isCoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
@@ -39,8 +37,6 @@ export type AcmeOrderPublishedOrder = {
     stableKey: string;
     tropeAffinities?: CoyoteTropeAffinity[];
     tropeAffinitiesFailed?: boolean;
-    affinities: CoyoteAffinityPossibility[];
-    affinitiesFailed?: boolean;
 }
 
 export type AcmeOrderPublishedPayload = {
@@ -99,9 +95,6 @@ export const isAcmeOrderPublishedOrder = (value: unknown): value is AcmeOrderPub
     if (typeof o.shortName !== 'string' || o.shortName.trim().length === 0) {
         return false
     }
-    if (!Array.isArray(o.affinities) || !o.affinities.every((x) => isCoyoteAffinityPossibility(x))) {
-        return false
-    }
     if ('tropeAffinities' in o) {
         if (!Array.isArray(o.tropeAffinities)) {
             return false
@@ -117,12 +110,6 @@ export const isAcmeOrderPublishedOrder = (value: unknown): value is AcmeOrderPub
         return false
     }
     if (o.tropeAffinitiesFailed === true && Array.isArray(o.tropeAffinities) && o.tropeAffinities.length !== 0) {
-        return false
-    }
-    if ('affinitiesFailed' in o && typeof o.affinitiesFailed !== 'boolean') {
-        return false
-    }
-    if (o.affinitiesFailed === true && o.affinities.length !== 0) {
         return false
     }
     if (typeof o.stableKey !== 'string' || o.stableKey.trim().length === 0) {

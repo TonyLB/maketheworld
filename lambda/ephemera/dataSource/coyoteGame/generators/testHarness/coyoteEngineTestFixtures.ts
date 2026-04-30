@@ -68,8 +68,6 @@ export function harnessRoomObjectsSpec(
         stableKey: `${defaultStableKeyProposal(spec.shortName)}-${index}`,
         ...(spec.tropeAffinities?.length ? { tropeAffinities: spec.tropeAffinities } : {}),
         ...(spec.tropeAffinities?.length ? {} : { tropeAffinities: [], tropeAffinitiesFailed: true }),
-        affinities: [],
-        affinitiesFailed: true,
     }))
 }
 

@@ -179,8 +179,6 @@ describe('generatePlanOutcome', () => {
                         tropeAffinities: [
                             { trope: 'Finishing Move', aptness: 'High', narrowing: 'terminal drop payload' },
                         ],
-                        affinities: [],
-                        affinitiesFailed: true,
                     },
                 ],
             },
