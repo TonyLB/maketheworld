@@ -104,7 +104,7 @@ describe('combineHypothesisClusters', () => {
             expect(r.combined.candidates[0].outliers[0].identifier).toBe('rope-0')
             expect(r.combined.candidates[0].outliers[0].tropeFunction).toBe('reserve setup line if primary beat fails')
             const md = renderCombinedHypothesisForStageTwo(r.combined, roomMap)
-            expect(md).toContain('**room:** VORTEX')
+            expect(md).toContain('**room:** CLIFFBASE')
             expect(md).toContain('**tropeFunction:** reserve setup line if primary beat fails')
         }
     })
@@ -158,8 +158,8 @@ describe('combineHypothesisClusters', () => {
         expect(c0.tropeAssignments[0].members[0]).toMatchObject({
             stableKey: 'glue-1',
             shortName: 'glue',
-            room: 'VORTEX',
+            room: 'CLIFFBASE',
         })
-        expect(c0.outliers[0]).toMatchObject({ stableKey: 'rope-0', shortName: 'rope', room: 'VORTEX' })
+        expect(c0.outliers[0]).toMatchObject({ stableKey: 'rope-0', shortName: 'rope', room: 'CLIFFBASE' })
     })
 })

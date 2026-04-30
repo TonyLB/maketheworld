@@ -75,6 +75,32 @@ These are consumed by both hypothesis and outcome pipelines and by test harness 
 
 `tropeAffinities[].environmentAffordances` is threaded through staged object snapshot carriers when present, but staged-object prompt formatting remains unchanged and does not render environment-affordance text.
 
+## Room id seam (canonical vs prompt labels)
+
+Make The World uses canonical `EphemeraRoomId` values (for example `ROOM#VORTEX`) everywhere durable or structural. Coyote prompts use **seam labels** so geography reads correctly for the cartoon frame: the cliff-base highway is labeled **`CLIFFBASE`** in prompts while the canonical id remains **`ROOM#VORTEX`**.
+
+**Authoritative code**
+
+- Override map and seam helpers: [`generators/pipelines/hypothesis/coyoteHypothesisPromptShared.ts`](generators/pipelines/hypothesis/coyoteHypothesisPromptShared.ts) (`COYOTE_SEAM_ROOM_LABEL_OVERRIDES`, `seamRoomLabelFromEphemeraRoomId`, `normalizeSeamRoomLabelToken`).
+- Staged snapshot `room` field (human label) and Markdown headings: [`utilities/coyoteRoomObjectSnapshot.ts`](utilities/coyoteRoomObjectSnapshot.ts) (via `seamRoomLabelFromEphemeraRoomId`). JSON snapshot rows still include canonical **`roomId`**.
+- Combined clustering / plan-select JSON `room` strings: [`generators/pipelines/hypothesis/combineHypothesisClusters.ts`](generators/pipelines/hypothesis/combineHypothesisClusters.ts).
+- Phase-plan topology allowlist for `derivedFrom`: [`generators/pipelines/hypothesis/coyoteHypothesisPhasePlanContext.ts`](generators/pipelines/hypothesis/coyoteHypothesisPhasePlanContext.ts) (uses `seamRoomLabelFromEphemeraRoomId` for rooms that have staged objects).
+
+**One-way contract**
+
+We intentionally do **not** resolve seam labels back to `EphemeraRoomId`. Pipeline parsing keys objects by `stableKey`; hop-1 `selectedCandidate.members[].room` is a free string; phase-plan `derivedFrom` tokens are validated against an allowlist, not mapped into room rows.
+
+**If you add backward-reference later (label -> id), expect**
+
+1. **Bijection or primary key** - overrides must not map two canonical ids to the same label without an explicit disambiguation rule.
+2. **Legacy tokens** - models or fixtures may still say `VORTEX`; `normalizeSeamRoomLabelToken` maps legacy strip + new seam to one token for validators; a reverse map must accept the same set and reject unknowns.
+3. **Hop-1 handoff** - [`generators/pipelines/hypothesis/coyoteHop1Handoff.ts`](generators/pipelines/hypothesis/coyoteHop1Handoff.ts) would need strict validation of `room` vs the snapshot-derived allowlist (today: type-only).
+4. **Phase-plan** - [`packages/mtw-interfaces/ts/coyotePhasePlan.ts`](packages/mtw-interfaces/ts/coyotePhasePlan.ts) mixes snapshot `stableKey`s, reserved `setting`, and topology strings in `derivedFrom`; you must disambiguate labels from stable keys before resolving to ids.
+5. **Tests / fixtures** - many literals; every boundary that should round-trip needs canonical-id assertions again.
+6. **Scope** - overrides are global constants today; per-asset worlds would need scoped maps before reverse lookup is safe.
+
+Product topology narrative (player-facing names) stays aligned in [`AGENT.CoyoteGame.md`](../../../../AGENT.CoyoteGame.md) under **Canonical Demo Topology**.
+
 ## Engine testing harness (dev)
 
 Harness code is under [`generators/testHarness/`](generators/testHarness/):

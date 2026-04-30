@@ -22,7 +22,7 @@ describe('buildPlanOutcomePrompt', () => {
         expect(prompt).toContain('## Current staged objects by room')
         expect(prompt).toContain('STRAIGHTAWAY')
         expect(prompt).toContain('rocket skates')
-        expect(prompt).toContain('VORTEX')
+        expect(prompt).toContain('CLIFFBASE')
         expect(prompt).toContain('anvil')
         expect(prompt).toContain('beginning exactly with "Outcome:"')
     })

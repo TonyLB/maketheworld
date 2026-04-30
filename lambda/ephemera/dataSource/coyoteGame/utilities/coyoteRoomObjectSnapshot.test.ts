@@ -91,14 +91,14 @@ describe('formatCoyoteStagedObjectsByRoom', () => {
         const out = formatCoyoteStagedObjectsByRoom({
             [room('ROOM#VORTEX')]: [],
         })
-        expect(out).toBe('VORTEX: (none)')
+        expect(out).toBe('CLIFFBASE: (none)')
     })
 
     it('lists legacy object with stableKey line', () => {
         const out = formatCoyoteStagedObjectsByRoom({
             [room('ROOM#VORTEX')]: [{ uuid: 'OBJECT#x' as `OBJECT#${string}`, shortName: 'anvil', stableKey: 'anvil' }],
         })
-        expect(out).toBe('VORTEX:\n  anvil — stableKey: anvil')
+        expect(out).toBe('CLIFFBASE:\n  anvil — stableKey: anvil')
     })
 
     it('includes failure note per object', () => {

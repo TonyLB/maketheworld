@@ -16,7 +16,7 @@ import {
     invokeBedrockHypothesisStageOne,
 } from './invokeBedrockHypothesis'
 
-/** Valid stage-1 JSON for two VORTEX objects with stableKeys matching mocks (parse + combine succeed). */
+/** Valid stage-1 JSON for two objects in ROOM#VORTEX (seam label CLIFFBASE) with stableKeys matching mocks (parse + combine succeed). */
 const stageOneSeamBody = JSON.stringify({
     candidates: [
         {
@@ -54,7 +54,7 @@ const hop1PlanSelectionBody = [
     '```',
 ].join('\n')
 
-/** Minimal phase-plan JSON validating against VORTEX snapshot (stableKey **anvil**). */
+/** Minimal phase-plan JSON validating against ROOM#VORTEX snapshot (seam label CLIFFBASE; stableKey **anvil**). */
 function hop2PhasePlanHopBody(intentLine: string, options?: { includeSceneAnalysis?: boolean }): string {
     const phasePlan = {
         tropeSequence: ['Contraption'],

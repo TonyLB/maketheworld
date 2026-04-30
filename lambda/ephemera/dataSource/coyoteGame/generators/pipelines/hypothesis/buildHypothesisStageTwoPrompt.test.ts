@@ -6,7 +6,7 @@ describe('buildHypothesisStageTwoPromptParts', () => {
         const combined = `## Combined clustering
 
 ### Trap
-- **stableKey:** anvil — **shortName:** anvil — **room:** VORTEX
+- **stableKey:** anvil — **shortName:** anvil — **room:** CLIFFBASE
 
 ## Outliers
 
@@ -39,7 +39,7 @@ describe('buildHypothesisStageTwoPromptParts', () => {
         expect(parts.invariantPrefix).toContain('## Scene analysis and Hypothesis output')
         expect(parts.invariantPrefix).toContain('## Combined clustering input (structured Markdown)')
         expect(parts.dynamicSuffix).toContain('## Seam room labels')
-        expect(parts.dynamicSuffix).toContain('`ROOM#VORTEX` → **VORTEX**')
+        expect(parts.dynamicSuffix).toContain('`ROOM#VORTEX` → **CLIFFBASE**')
         expect(parts.dynamicSuffix).toContain(combined.trim())
         expect(parts.dynamicSuffix).not.toContain('## Current staged objects by room')
         expect(parts.invariantPrefix).not.toContain('## Seam Markdown contract')

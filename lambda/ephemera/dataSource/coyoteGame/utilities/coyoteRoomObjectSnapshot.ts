@@ -1,6 +1,8 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom, EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
+import { seamRoomLabelFromEphemeraRoomId } from '../generators/pipelines/hypothesis/coyoteHypothesisPromptShared'
+
 export type CoyoteRoomObjectSnapshotDeps = {
     getGameRooms: () => Promise<string[]>
     getRoomMeta: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
@@ -30,7 +32,7 @@ export async function loadCoyoteRoomObjectsByRoom(
 }
 
 function formatRoomLabel(roomId: EphemeraRoomId): string {
-    return roomId.replace(/^ROOM#/, '')
+    return seamRoomLabelFromEphemeraRoomId(roomId)
 }
 
 function sortedRoomEntries(

@@ -4,6 +4,7 @@ import type { CoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities
 
 import type { ParsedTropeCandidate } from './parseHypothesisStageOneOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
+import { seamRoomLabelFromEphemeraRoomId } from './coyoteHypothesisPromptShared'
 
 export type CombinedMemberPair = {
     identifier: string
@@ -169,9 +170,8 @@ export function renderCombinedHypothesisForStageTwo(
                 const sk = mem.identifier.trim()
                 const obj = sk ? byStableKey.get(sk) : undefined
                 const shortName = obj?.shortName ?? sk
-                const roomLabel = obj
-                    ? findRoomIdForObject(roomObjectsByRoom, obj)?.replace(/^ROOM#/, '') ?? ''
-                    : ''
+                const roomIdForObj = obj ? findRoomIdForObject(roomObjectsByRoom, obj) : undefined
+                const roomLabel = roomIdForObj !== undefined ? seamRoomLabelFromEphemeraRoomId(roomIdForObj) : ''
                 lines.push(
                     `- **stableKey:** ${sk} — **shortName:** ${shortName}${roomLabel ? ` — **room:** ${roomLabel}` : ''}`
                 )
@@ -187,9 +187,8 @@ export function renderCombinedHypothesisForStageTwo(
                 const sk = out.identifier.trim()
                 const obj = sk ? byStableKey.get(sk) : undefined
                 const shortName = obj?.shortName ?? sk
-                const roomLabel = obj
-                    ? findRoomIdForObject(roomObjectsByRoom, obj)?.replace(/^ROOM#/, '') ?? ''
-                    : ''
+                const roomIdForObj = obj ? findRoomIdForObject(roomObjectsByRoom, obj) : undefined
+                const roomLabel = roomIdForObj !== undefined ? seamRoomLabelFromEphemeraRoomId(roomIdForObj) : ''
                 lines.push(
                     `- **stableKey:** ${sk} — **shortName:** ${shortName}${roomLabel ? ` — **room:** ${roomLabel}` : ''}`
                 )
@@ -224,9 +223,8 @@ function enrichMemberForPlanSelectJson(
     const sk = mem.identifier.trim()
     const obj = sk ? byStableKey.get(sk) : undefined
     const shortName = obj?.shortName ?? sk
-    const roomLabel = obj
-        ? findRoomIdForObject(roomObjectsByRoom, obj)?.replace(/^ROOM#/, '') ?? ''
-        : ''
+    const roomIdForObj = obj ? findRoomIdForObject(roomObjectsByRoom, obj) : undefined
+    const roomLabel = roomIdForObj !== undefined ? seamRoomLabelFromEphemeraRoomId(roomIdForObj) : ''
     return {
         stableKey: sk,
         shortName,

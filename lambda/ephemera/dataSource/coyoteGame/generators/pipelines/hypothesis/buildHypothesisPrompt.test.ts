@@ -40,7 +40,7 @@ describe('buildHypothesisPrompt', () => {
         expect(parts.dynamicSuffix.startsWith('\n\n## Current staged objects by room')).toBe(true)
         expect(parts.dynamicSuffix).toContain('STRAIGHTAWAY')
         expect(parts.dynamicSuffix).toContain('rocket skates')
-        expect(parts.dynamicSuffix).toContain('VORTEX')
+        expect(parts.dynamicSuffix).toContain('CLIFFBASE')
         expect(parts.dynamicSuffix).toContain('anvil')
     })
 })

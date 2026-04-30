@@ -71,14 +71,14 @@ describe('parseHop1HandoffFromSelectionBody', () => {
                         members: [{
                             stableKey: 'paint',
                             shortName: 'paint can',
-                            room: 'VORTEX',
+                            room: 'CLIFFBASE',
                             tropeFunction: 'visual lure prep',
                         }],
                     }],
                     outliers: [{
                         stableKey: 'rope',
                         shortName: 'rope',
-                        room: 'VORTEX',
+                        room: 'CLIFFBASE',
                         tropeFunction: 'trip fallback',
                     }],
                 },
@@ -99,14 +99,14 @@ describe('parseHop1HandoffFromSelectionBody', () => {
                         members: [{
                             stableKey: 'paint',
                             shortName: 'paint can',
-                            room: 'VORTEX',
+                            room: 'CLIFFBASE',
                             tropeFunction: 'visual lure prep',
                         }],
                     }],
                     outliers: [{
                         stableKey: 'rope',
                         shortName: 'rope',
-                        room: 'VORTEX',
+                        room: 'CLIFFBASE',
                         tropeFunction: 'trip fallback',
                     }],
                 },
@@ -185,7 +185,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
                         members: [{
                             stableKey: 'anvil-0',
                             shortName: 'anvil',
-                            room: 'VORTEX',
+                            room: 'CLIFFBASE',
                             tropeFunction: 'payload prep',
                         }],
                     }],
@@ -208,7 +208,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
                         members: [{
                             stableKey: 'anvil-0',
                             shortName: 'anvil',
-                            room: 'VORTEX',
+                            room: 'CLIFFBASE',
                             tropeFunction: 'payload prep',
                         }],
                     }],
@@ -308,7 +308,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
                         members: [{
                             stableKey: 'anvil',
                             shortName: 'anvil',
-                            room: 'VORTEX',
+                            room: 'CLIFFBASE',
                             tropeFunction: 9,
                         }],
                     }],
