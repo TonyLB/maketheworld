@@ -10,26 +10,11 @@ import type { ParseAcmeOrderEnrichPromptParts } from '../../../../generateExampl
 export type BuildParseAcmeOrderEnrichPromptOptions = {
     /** Union of **`stableKey`** values already used on staged objects across Coyote game rooms (must not invent collisions when avoidable). */
     occupiedStableKeys?: readonly string[];
+    /** When true, Step 1 uses legacy verbose markdown per item. When false/omitted, compact decision lines (default). */
+    debugRationale?: boolean;
 };
 
-function formatOccupiedStableKeysBlock(keys: readonly string[]): string {
-    const uniqueSorted = [...new Set(keys.map((k) => k.trim()).filter((k) => k.length > 0))].sort(
-        (a, b) => a.localeCompare(b)
-    )
-    if (uniqueSorted.length === 0) {
-        return '(none)'
-    }
-    return uniqueSorted.map((k) => `- ${k}`).join('\n')
-}
-
-export function buildParseAcmeOrderEnrichPrompt(
-    command: string,
-    options?: BuildParseAcmeOrderEnrichPromptOptions
-): ParseAcmeOrderEnrichPromptParts {
-    const trimmed = command.trim()
-    const commandBlock = trimmed === '' ? '(empty command)' : trimmed
-
-    const invariantPrefix = `You validate and enrich **Acme mail-order** requests for a Coyote
+const INTRO_THROUGH_COYOTE_POV = `You validate and enrich **Acme mail-order** requests for a Coyote
 vs. Road Runner contraption game. Player requests are expected to name things they want Acme
 to deliver.
 
@@ -43,9 +28,9 @@ target in this model. When assigning tropes and writing narrowings, always ask: 
 this item do for the Coyote or against the Road Runner?" Never frame an item's role in terms
 of what it does for the Road Runner.
 
-Produce **two parts** in order:
+`
 
-1. **Classify order type (Chain-of-reason markdown):** Walk each
+const VERBOSE_STEP1_INSTRUCTIONS = `1. **Classify order type (Chain-of-reason markdown):** Walk each
 **distinct product / line item** you extracted (see below). Use **one section or bullet block
 per item**. For **every** item, reason **in the order below** (same classify step). That order
 matters: corrections can move nonsense into a valid gloss; cartoon physics can move
@@ -103,9 +88,35 @@ matters: corrections can move nonsense into a valid gloss; cartoon physics can m
    **High** or **Good** for **Finishing Move**. The delivery apparatus is separate: launcher, pulley
    rig, crate-release mechanism, or drop platform may be **Contraption**, but the payload itself is not.
    Ask: "Is this the thing the Coyote intends to be the last thing the Road Runner experiences?" If yes,
-   lead with **Finishing Move**.
+   lead with **Finishing Move**.`
 
-2. **Enhance (JSON final):** After Step 1, output **one** trailing fenced code block with
+const COMPACT_STEP1_INSTRUCTIONS = `1. **Classify order type (compact decision lines):** For each **distinct product / line item** you extract (see **Segment line items**), emit **exactly one** pipe-separated row with these fields in order:
+
+surface text | gloss: corrected phrase or (none) | physics: yes or no | primary: bucket | fm-lead: yes or no | packaging-alts: alt1; alt2 or n/a
+
+**One product = one row:** The **surface text** field is the **full** product phrase for that item (e.g. **rocket skates** is **one** surface spanning both words). **Do not** emit a second row for a tail noun (**skates**) peeled off a compound name. Put **each** product row on its **own** line in Step 1 (newline between rows); **never** glue two products into one pipe row.
+
+Walk **in order** for every item: **(1)** correction gloss **(2)** cartoon physics **(3)** primary bucket **(4)** Finishing Move lead **(5)** packaging alternatives.
+
+- **gloss:** After **correctable** typo/malaprop/STT fix (**potable** to **portable**, etc.), the intended noun phrase; **(none)** if no fix. **Do not** choose **Not a thing** if a reasonable correction yields a deliverable.
+- **physics:** **yes** if the deliverable defies real-world physics/manufacturing but is normal Coyote vs. Road Runner stock; **no** otherwise. Apply **after** gloss. **Modifier** on the primary bucket only — not a substitute for Phenomenon / Diffuse / Self-contained.
+- **primary (exactly one):** **Not a thing** | **Not tangible** | **Too large** | **Phenomenon** | **Diffuse** | **Self-contained**. **Eligibility is parse and category**, not whether the item feels on-theme for a gag. **Do not** reject for weak slapstick, insufficient whimsy, or "the Coyote would not plan with this" — that is **never** a **Not a thing** test.
+- **fm-lead:** **yes** when this line would be **valid**: **true** and the ordered thing is the **terminal payload** payoff (point or area harm); **no** for rigs-only or invalid primaries. Payloads usually imply **Finishing Move** **High**/**Good** first in JSON.
+- **packaging-alts:** For **Phenomenon** or **Diffuse**, two short generator/package labels separated by **; ** (feeds Step 2 naming). Otherwise **n/a**.
+
+**Primary bucket checklist (correction -> physics -> primary):**
+1. **Not a thing** — **Only** when, after any correction, the line still does **not** parse to a **product noun phrase** the player is asking to receive, or it is still gibberish / not a named thing at all. **Never** use **Not a thing** for a plain physical noun the player clearly ordered (**paint**, **glue**, **rope**, **anvil**, **nails**) — those parse fine; put them in **Self-contained** / **Diffuse** / **Phenomenon** / **Too large** as appropriate.
+2. **Not tangible** — Parses as a noun but names something abstract (**justice**, **hope**) — not a physical deliverable even with packaging.
+3. **Too large** — **Cosmic / stage-breaking scale** as one SKU (Moon, continents, jet stream boxed). **Never** freight intuition: cranes, locomotives, grand pianos, moon rockets, Chuck Jones mega-props => **Self-contained** / **Diffuse** / **Phenomenon**, not **Too large**.
+4. **Phenomenon** — Ongoing process/event; **packaging-alts** required (two ways Acme ships or triggers it).
+5. **Diffuse** — Tangible but not one unit; **packaging-alts** required.
+6. **Self-contained** — One SKU shipped as an article; includes mundane hardware and supplies (**paint**, **glue**, **rope**, **springs**) when the player names them as the product. **Cartoon physics: yes** still counts (**flying carpet**).
+
+**valid:** **Not a thing** / **Not tangible** / **Too large** => **valid**: false in JSON. **Phenomenon** / **Diffuse** / **Self-contained** => **valid**: true.
+
+**Finishing Move anchor (Step 1):** For **valid** lines, treat **direct terminal payloads** as **Finishing Move** candidates before other tropes. Point payloads (anvil, harpoon) and area payloads (bees, gas, explosives) => usually **High**/**Good** **Finishing Move**. Launcher, pulley, drop platform = **Contraption**, not the payload. Ask: *Is this the last thing the Road Runner experiences?* If yes, lead JSON with **Finishing Move**.`
+
+const AFTER_STEP1_INSTRUCTIONS = `2. **Enhance (JSON final):** After Step 1, output **one** trailing fenced code block with
 language tag **json**. Inside the fence put **only** the root JSON object (**lines**,
 optional **confidence**) — nothing else inside the fence. No prose after that closing fence.
 This step applies Acme catalog normalization, canonical **\`tropeAffinities\`**, legacy
@@ -122,6 +133,10 @@ From that command, extract **one entry in \`lines[]\` per distinct product / lin
 this step; you only segment **one** order into product lines. Split on commas, **and**, or
 **also** to separate product names. Do not treat a leading order verb as a line item: ignore
 **order**, **get**, **send**, and **mail order** at the start.
+A **single** deliverable is often **several words** (e.g. **rocket skates**, **giant rubber band**,
+**a deluxe bag of birdseed**). **Do not** split on spaces inside one product; interior words are
+**not** separate line items. Only split where the player used explicit separators (commas, **and**,
+**also**). Example: **order rocket skates** → **one** line item (**rocket skates**), not two.
 Example: **order glue and springs** → exactly two lines (**glue**, **springs**).
 Preserve **speaker intent** — do not drop items.
 
@@ -295,6 +310,33 @@ Do not emit legacy tuple-shaped entries in **\`affinities\`** for valid lines in
 }
 \`\`\`
 `
+
+
+function formatOccupiedStableKeysBlock(keys: readonly string[]): string {
+    const uniqueSorted = [...new Set(keys.map((k) => k.trim()).filter((k) => k.length > 0))].sort(
+        (a, b) => a.localeCompare(b)
+    )
+    if (uniqueSorted.length === 0) {
+        return '(none)'
+    }
+    return uniqueSorted.map((k) => `- ${k}`).join('\n')
+}
+
+export function buildParseAcmeOrderEnrichPrompt(
+    command: string,
+    options?: BuildParseAcmeOrderEnrichPromptOptions
+): ParseAcmeOrderEnrichPromptParts {
+    const trimmed = command.trim()
+    const commandBlock = trimmed === '' ? '(empty command)' : trimmed
+
+    const debugRationale = options?.debugRationale === true
+    const invariantPrefix = `${INTRO_THROUGH_COYOTE_POV}
+
+Produce **two parts** in order:
+
+${debugRationale ? VERBOSE_STEP1_INSTRUCTIONS : COMPACT_STEP1_INSTRUCTIONS}
+
+${AFTER_STEP1_INSTRUCTIONS}`
 
     const occupied = options?.occupiedStableKeys ?? []
     const occupiedBlock = formatOccupiedStableKeysBlock(occupied)

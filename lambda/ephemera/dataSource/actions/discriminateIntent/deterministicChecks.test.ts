@@ -52,6 +52,32 @@ describe('deterministicIntentChecks', () => {
                 fixtureIndex1Based: 3,
             },
         })
+        expect(deterministicIntentChecks({ command: '/test affinities verbose' })).toEqual({
+            type: 'CoyoteAffinitiesTest',
+            confidence: 1,
+            harnessInvocation: {
+                mode: 'full',
+                verbose: true,
+            },
+        })
+        expect(deterministicIntentChecks({ command: '/test affinities verbose 3' })).toEqual({
+            type: 'CoyoteAffinitiesTest',
+            confidence: 1,
+            harnessInvocation: {
+                mode: 'full',
+                fixtureIndex1Based: 3,
+                verbose: true,
+            },
+        })
+        expect(deterministicIntentChecks({ command: '/test affinities 3 verbose' })).toEqual({
+            type: 'CoyoteAffinitiesTest',
+            confidence: 1,
+            harnessInvocation: {
+                mode: 'full',
+                fixtureIndex1Based: 3,
+                verbose: true,
+            },
+        })
     })
 
     it('returns Parse error for invalid /test affinities tails', () => {
@@ -85,7 +111,13 @@ describe('deterministicIntentChecks', () => {
             errorMessage: expect.stringContaining('Fixture index must be an integer from 1 to 11 (received 99).'),
         })
 
-        const tooManyArgs = deterministicIntentChecks({ command: '/test affinities 1 extra' })
+        const unknownExtra = deterministicIntentChecks({ command: '/test affinities 1 extra' })
+        expect(unknownExtra).toEqual({
+            type: 'Error',
+            errorMessage: expect.stringContaining('Unknown token "extra"'),
+        })
+
+        const tooManyArgs = deterministicIntentChecks({ command: '/test affinities 1 2 verbose' })
         expect(tooManyArgs).toEqual({
             type: 'Error',
             errorMessage: expect.stringContaining('Too many arguments'),

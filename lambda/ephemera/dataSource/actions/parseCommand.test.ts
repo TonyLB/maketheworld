@@ -426,7 +426,7 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
     })
 
-    it('returns Error for invalid /test affinities tails without Bedrock', async () => {
+    it('returns CoyoteAffinitiesTest with verbose harnessInvocation for /test affinities verbose', async () => {
         const invokeBedrockParseCommandImpl = jest.fn()
 
         const result = await parseCommand(
@@ -434,10 +434,14 @@ describe('parseCommand LLM path', () => {
             { invokeBedrockParseCommandImpl }
         )
 
-        expect(result.type).toBe('Error')
-        if (result.type === 'Error') {
-            expect(result.errorMessage).toContain('Expected a fixture index')
-        }
+        expect(result).toEqual({
+            type: 'CoyoteAffinitiesTest',
+            confidence: 1,
+            harnessInvocation: {
+                mode: 'full',
+                verbose: true,
+            },
+        })
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
     })
 

@@ -92,6 +92,8 @@ export type CoyoteAffinitiesHarnessInvocation = {
     mode: 'full'
     /** 1-based fixture index into the locked affinities harness fixture list. */
     fixtureIndex1Based?: number
+    /** When true, the affinities harness should use verbose/diagnostic behavior (e.g. legacy Acme enrich Step 1; other consumers may add more). */
+    verbose?: boolean
 }
 
 export type AcmeOrderAffinitiesHarnessExpectedTrope = {
@@ -390,4 +392,6 @@ export type ParseCommandDeps = {
     invokeBedrockAcmeOrderEnrichImpl?: typeof import('../../generateExample/invokeBedrockAcmeOrderEnrich').invokeBedrockAcmeOrderEnrich;
     /** Injectable Coyote room/meta accessors for `countCoyotePlacedObjectsAcrossRooms` (Acme enrich pre-check). */
     countCoyotePlacedObjectsAcrossRoomsDeps?: Partial<CollectCoyoteOccupiedStableKeysDeps>;
+    /** When true, Acme enrich uses verbose Step 1 in the prompt (rare; affinities harness can set via slash `verbose`). */
+    debugAcmeOrderEnrichRationale?: boolean;
 }

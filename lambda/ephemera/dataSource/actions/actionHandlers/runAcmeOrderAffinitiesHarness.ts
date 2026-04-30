@@ -136,11 +136,18 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
         const startMs = now()
         let result: ParseCommandResult
         let displayReasoning = ''
-        const parseDeps: ParseCommandDeps = {}
+        const acmeEnrichVerbose = deps.harnessInvocation?.verbose === true
+        const parseDeps: ParseCommandDeps = acmeEnrichVerbose
+            ? { debugAcmeOrderEnrichRationale: true }
+            : {}
         try {
             if (enrichOnly) {
                 const enriched = await enrichAcmeOrder(
-                    { command, occupiedStableKeys: [] },
+                    {
+                        command,
+                        occupiedStableKeys: [],
+                        ...(acmeEnrichVerbose ? { debugRationale: true } : {}),
+                    },
                     1,
                     invokeEnrich,
                     deps.countCoyotePlacedObjectsAcrossRoomsDeps

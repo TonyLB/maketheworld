@@ -19,6 +19,8 @@ const ACME_ENRICH_DEBUG = false
 export type EnrichAcmeOrderInput = {
     command: string
     occupiedStableKeys?: readonly string[]
+    /** When true, Bedrock prompt uses legacy verbose Step 1; omit/false for compact (default). */
+    debugRationale?: boolean
 }
 
 export type EnrichAcmeOrderResult = ParseCommandAcmeOrderResult | ParseCommandErrorResult
@@ -90,6 +92,7 @@ export async function enrichAcmeOrder(
     const invokeEnrich = invokeBedrockAcmeOrderEnrichImpl ?? invokeBedrockAcmeOrderEnrich
     const enrichPromptParts = buildParseAcmeOrderEnrichPrompt(input.command, {
         occupiedStableKeys: input.occupiedStableKeys ?? [],
+        ...(input.debugRationale === true ? { debugRationale: true } : {}),
     })
     const enrichInvoke = await invokeEnrich(enrichPromptParts)
     if (ACME_ENRICH_DEBUG) {

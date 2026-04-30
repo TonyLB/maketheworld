@@ -24,6 +24,7 @@ async function parseCommandCore(
         {
             command: input.command,
             occupiedStableKeys: input.occupiedStableKeys ?? [],
+            ...(deps.debugAcmeOrderEnrichRationale === true ? { debugRationale: true } : {}),
         },
         intentResult.confidence,
         deps.invokeBedrockAcmeOrderEnrichImpl,
