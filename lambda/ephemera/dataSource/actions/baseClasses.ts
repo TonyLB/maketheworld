@@ -1,7 +1,6 @@
 import { EphemeraRoomId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { AcmeCatalogRejectionReason, AcmeOrderEnrichModelLine } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import { isCoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { isCoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 import type { CoyoteEngineTestHarnessInvocation } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
@@ -269,12 +268,6 @@ export function isParseCommandAcmeOrderResult(
         if (entry.name.trim().length === 0) {
             return false
         }
-        if (!Array.isArray(entry.affinities)) {
-            return false
-        }
-        if (!entry.affinities.every((x) => isCoyoteAffinityPossibility(x))) {
-            return false
-        }
         if ('tropeAffinities' in entry) {
             if (!Array.isArray(entry.tropeAffinities)) {
                 return false
@@ -303,12 +296,6 @@ export function isParseCommandAcmeOrderResult(
             if (stableKeyRaw.trim().length === 0) {
                 return false
             }
-            if ('affinitiesFailed' in entry && typeof entry.affinitiesFailed !== 'boolean') {
-                return false
-            }
-            if (entry.affinitiesFailed === true) {
-                return entry.affinities.length === 0
-            }
             return true
         }
         if ('stableKey' in entry) {
@@ -317,7 +304,7 @@ export function isParseCommandAcmeOrderResult(
         if (!isParseCommandAcmeOrderErrorType(entry.errorType)) {
             return false
         }
-        return entry.affinities.length === 0
+        return true
     })
 }
 

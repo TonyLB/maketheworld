@@ -7,7 +7,7 @@ import {
     isEphemeraObjectId,
     type EphemeraObjectId,
 } from './baseClasses'
-import type { CoyoteAffinityPossibility, CoyoteTropeAffinity } from './coyotePlanAffinities'
+import type { CoyoteTropeAffinity } from './coyotePlanAffinities'
 
 //
 // Shared types for Ephemera-table metadata records (ephemeraDB).
@@ -71,10 +71,6 @@ export type EphemeraMetaRoomObject = {
     shortName: string;
     /** Coyote-wide machine correlation key (`a-z` / `0-9` / `-`). */
     stableKey: string;
-    /** Plan-role possibilities with aptness; omitted on legacy rows. */
-    affinities?: CoyoteAffinityPossibility[];
-    /** True when affinities could not be validated (enrich LLM/parse failure); distinguish from legacy omitted fields. */
-    affinitiesFailed?: boolean;
     /** Canonical trope-centered possibilities for Coyote planning (1-3 entries). */
     tropeAffinities?: CoyoteTropeAffinity[];
     /** True when trope affinities were unavailable from enrich processing. */
@@ -93,12 +89,6 @@ export const isEphemeraMetaRoomObject = (entry: unknown): entry is EphemeraMetaR
         return false
     }
     const o = entry as Record<string, unknown>
-    if ('affinities' in o && !Array.isArray(o.affinities)) {
-        return false
-    }
-    if ('affinitiesFailed' in o && typeof o.affinitiesFailed !== 'boolean') {
-        return false
-    }
     if ('tropeAffinities' in o && !Array.isArray(o.tropeAffinities)) {
         return false
     }

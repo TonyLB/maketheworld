@@ -101,7 +101,7 @@ export const handleAwaitRoadRunnerClearObjects = async (
 
 /**
  * Coyote Acme delivery: persist finalized `stableKey` from `AcmeOrderPublishedOrder` onto
- * `Meta::Room.objects` with `shortName`, canonical trope fields, and legacy compatibility fields;
+ * `Meta::Room.objects` with `shortName` and canonical trope fields;
  * mapping is pass-through (uniqueness enforced upstream in `mtw.ephemera.actions`).
  */
 const acmeOrderToMetaRoomObject = (
@@ -113,8 +113,6 @@ const acmeOrderToMetaRoomObject = (
     stableKey: entry.stableKey,
     ...(entry.tropeAffinities !== undefined ? { tropeAffinities: entry.tropeAffinities } : {}),
     ...(entry.tropeAffinitiesFailed === true ? { tropeAffinitiesFailed: true as const } : {}),
-    affinities: entry.affinities,
-    ...(entry.affinitiesFailed === true ? { affinitiesFailed: true as const } : {}),
 })
 
 export const handleAcmeOrderAddObjects = async (

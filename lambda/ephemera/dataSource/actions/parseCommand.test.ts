@@ -53,19 +53,17 @@ describe('parseCommand type guards', () => {
                     valid: true,
                     name: 'rocket-powered roller skates',
                     stableKey: 'rocket-powered-roller-skates',
-                    affinities: [],
                 }],
                 confidence: 0.9,
             })).toBe(true)
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
                 orders: [
-                    { valid: true, name: 'anvil', stableKey: 'anvil', affinities: [] },
+                    { valid: true, name: 'anvil', stableKey: 'anvil' },
                     {
                         valid: false,
                         name: 'justice',
                         errorType: 'Not tangible',
-                        affinities: [],
                     },
                 ],
                 confidence: 0.85,
@@ -77,8 +75,6 @@ describe('parseCommand type guards', () => {
                     name: 'rocket skates',
                     stableKey: 'rocket-skates',
                     tropeAffinities: [{ trope: 'Contraption', aptness: 'High', narrowing: 'pursuit gear' }],
-                    affinities: [],
-                    affinitiesFailed: true,
                 }],
                 confidence: 0.85,
             })).toBe(true)
@@ -97,7 +93,6 @@ describe('parseCommand type guards', () => {
                             roles: ['Contraption'],
                         }],
                     }],
-                    affinities: [],
                 }],
                 confidence: 0.85,
             })).toBe(true)
@@ -110,7 +105,6 @@ describe('parseCommand type guards', () => {
                     valid: true,
                     name: 'anvil',
                     errorType: 'Not a thing',
-                    affinities: [],
                 } as any],
                 confidence: 0.5,
             })).toBe(false)
@@ -119,7 +113,7 @@ describe('parseCommand type guards', () => {
         it('rejects invalid confidence, empty orders, or blank lines', () => {
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                orders: [{ valid: true, name: 'skates', stableKey: 'skates', affinities: [] }],
+                orders: [{ valid: true, name: 'skates', stableKey: 'skates' }],
                 confidence: -0.01,
             })).toBe(false)
             expect(isParseCommandAcmeOrderResult({
@@ -129,12 +123,12 @@ describe('parseCommand type guards', () => {
             })).toBe(false)
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                orders: [{ valid: true, name: '', stableKey: 'x', affinities: [] }],
+                orders: [{ valid: true, name: '', stableKey: 'x' }],
                 confidence: 0.5,
             })).toBe(false)
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                orders: [{ valid: true, name: 'anvil', stableKey: 'anvil', affinities: [] }],
+                orders: [{ valid: true, name: 'anvil', stableKey: 'anvil' }],
                 confidence: 0.5,
             })).toBe(true)
             expect(isParseCommandAcmeOrderResult({
@@ -144,7 +138,7 @@ describe('parseCommand type guards', () => {
             })).toBe(false)
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                orders: [{ valid: false, name: 'x', affinities: [] } as any],
+                orders: [{ valid: false, name: 'x' } as any],
                 confidence: 0.5,
             })).toBe(false)
             expect(isParseCommandAcmeOrderResult({
@@ -153,7 +147,6 @@ describe('parseCommand type guards', () => {
                     valid: false,
                     name: 'moon',
                     errorType: 'Too large',
-                    affinities: [],
                 }],
                 confidence: 0.5,
             })).toBe(true)
@@ -164,7 +157,6 @@ describe('parseCommand type guards', () => {
                     name: 'moon',
                     stableKey: 'moon',
                     errorType: 'Too large',
-                    affinities: [],
                 } as any],
                 confidence: 0.5,
             })).toBe(false)
@@ -174,8 +166,12 @@ describe('parseCommand type guards', () => {
                     valid: true,
                     name: 'rope',
                     stableKey: 'rope',
-                    affinities: [{ role: 'terminal', aptness: 0.5 }],
-                    affinitiesFailed: true,
+                    tropeAffinities: [
+                        { trope: 'Contraption', aptness: 'High', narrowing: 'a' },
+                        { trope: 'Contraption', aptness: 'High', narrowing: 'b' },
+                        { trope: 'Contraption', aptness: 'High', narrowing: 'c' },
+                        { trope: 'Contraption', aptness: 'High', narrowing: 'd' },
+                    ],
                 }],
                 confidence: 0.9,
             })).toBe(false)
@@ -192,7 +188,6 @@ describe('parseCommand type guards', () => {
                     stableKey: 'rope',
                     tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'tie-off' }],
                     tropeAffinitiesFailed: true,
-                    affinities: [],
                 }],
                 confidence: 0.9,
             })).toBe(false)
@@ -208,7 +203,6 @@ describe('parseCommand type guards', () => {
                         narrowing: 'tie-off',
                         environmentAffordances: 'lasso control',
                     }],
-                    affinities: [],
                 }],
                 confidence: 0.9,
             } as any)).toBe(false)
@@ -227,7 +221,6 @@ describe('parseCommand type guards', () => {
                             roles: ['Finishing Move'],
                         }, 3],
                     }],
-                    affinities: [],
                 }],
                 confidence: 0.9,
             } as any)).toBe(false)
@@ -243,7 +236,6 @@ describe('parseCommand type guards', () => {
                         narrowing: 'tie-off',
                         affordances: ['lasso control'],
                     }],
-                    affinities: [],
                 }],
                 confidence: 0.9,
             } as any)).toBe(false)
@@ -741,13 +733,11 @@ describe('parseCommand LLM path', () => {
                         valid: true,
                         name: 'dynamite sticks',
                         stableKey: 'dynamite-sticks',
-                        affinities: [{ role: 'terminal', aptness: 0.5 }],
                     },
                     {
                         valid: true,
                         name: 'spring',
                         stableKey: 'spring',
-                        affinities: [{ role: 'trigger', aptness: 0.4 }],
                     },
                 ],
                 confidence: 0.9,
@@ -768,8 +758,6 @@ describe('parseCommand LLM path', () => {
                     stableKey: 'dynamite-sticks',
                     tropeAffinities: [],
                     tropeAffinitiesFailed: true,
-                    affinities: [],
-                    affinitiesFailed: true,
                 },
                 {
                     valid: true,
@@ -777,8 +765,6 @@ describe('parseCommand LLM path', () => {
                     stableKey: 'spring',
                     tropeAffinities: [],
                     tropeAffinitiesFailed: true,
-                    affinities: [],
-                    affinitiesFailed: true,
                 },
             ],
             confidence: 0.82 * 0.9,
@@ -834,7 +820,6 @@ describe('parseCommand LLM path', () => {
                     valid: true,
                     name: 'rope',
                     stableKey: 'rope',
-                    affinities: [],
                 }],
                 confidence: 1,
             }),
@@ -871,8 +856,6 @@ describe('parseCommand LLM path', () => {
                 stableKey: 'rope',
                 tropeAffinities: [],
                 tropeAffinitiesFailed: true,
-                affinities: [],
-                affinitiesFailed: true,
             }],
             confidence: 0.82,
         })
@@ -890,7 +873,6 @@ describe('parseCommand LLM path', () => {
                     valid: true,
                     name: 'rope',
                     stableKey: 'rope',
-                    affinities: [{ role: 'delivery', aptness: 0.6 }],
                 }],
                 confidence: 1,
             }),
@@ -917,7 +899,6 @@ describe('parseCommand LLM path', () => {
                 valid: true,
                 name: 'rope',
                 stableKey: 'rope',
-                affinities: [{ role: 'delivery', aptness: 0.6 }],
             }],
             confidence: 0.95,
         })
@@ -955,7 +936,6 @@ describe('parseCommand LLM path', () => {
                         valid: true,
                         name: 'dynamite sticks',
                         stableKey: 'dynamite-sticks',
-                        affinities: [{ role: 'terminal', aptness: 0.5 }],
                     },
                     { bad: true },
                 ],
@@ -977,8 +957,6 @@ describe('parseCommand LLM path', () => {
                     stableKey: 'dynamite-sticks',
                     tropeAffinities: [],
                     tropeAffinitiesFailed: true,
-                    affinities: [],
-                    affinitiesFailed: true,
                 },
                 {
                     valid: true,
@@ -986,15 +964,13 @@ describe('parseCommand LLM path', () => {
                     stableKey: 'line2',
                     tropeAffinities: [],
                     tropeAffinitiesFailed: true,
-                    affinities: [],
-                    affinitiesFailed: true,
                 },
             ],
             confidence: 0.82 * 0.9,
         })
     })
 
-    it('marks affinitiesFailed and keeps intent confidence when enrich Bedrock fails', async () => {
+    it('marks tropeAffinitiesFailed and keeps intent confidence when enrich Bedrock fails', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"AcmeOrder","confidence":0.75}',
@@ -1017,8 +993,6 @@ describe('parseCommand LLM path', () => {
                 stableKey: 'order-anvil-from-acme',
                 tropeAffinities: [],
                 tropeAffinitiesFailed: true,
-                affinities: [],
-                affinitiesFailed: true,
             }],
             confidence: 0.75,
         })
@@ -1037,34 +1011,16 @@ describe('parseCommand LLM path', () => {
                         valid: true,
                         name: 'Beehive',
                         stableKey: 'beehive',
-                        affinities: [
-                            {
-                                role: 'influence-road-runner',
-                                aptness: 0.7,
-                            },
-                            { role: 'terminal', aptness: 0.5 },
-                        ],
                     },
                     {
                         valid: true,
                         name: 'Entrenching Shovel',
                         stableKey: 'entrenching-shovel',
-                        affinities: [
-                            {
-                                role: 'connect-props',
-                                aptness: 0.88,
-                            },
-                            { role: 'trigger', aptness: 0.42 },
-                        ],
                     },
                     {
                         valid: true,
                         name: 'Climbing Rope',
                         stableKey: 'climbing-rope',
-                        affinities: [
-                            { role: 'delivery', aptness: 0.81 },
-                            { role: 'trigger', aptness: 0.55 },
-                        ],
                     },
                 ],
                 confidence: 0.9,
@@ -1085,8 +1041,6 @@ describe('parseCommand LLM path', () => {
                     stableKey: 'beehive',
                     tropeAffinities: [],
                     tropeAffinitiesFailed: true,
-                    affinities: [],
-                    affinitiesFailed: true,
                 },
                 {
                     valid: true,
@@ -1094,8 +1048,6 @@ describe('parseCommand LLM path', () => {
                     stableKey: 'entrenching-shovel',
                     tropeAffinities: [],
                     tropeAffinitiesFailed: true,
-                    affinities: [],
-                    affinitiesFailed: true,
                 },
                 {
                     valid: true,
@@ -1103,8 +1055,6 @@ describe('parseCommand LLM path', () => {
                     stableKey: 'climbing-rope',
                     tropeAffinities: [],
                     tropeAffinitiesFailed: true,
-                    affinities: [],
-                    affinitiesFailed: true,
                 },
             ],
             confidence: 0.85 * 0.9,
@@ -1124,7 +1074,6 @@ describe('parseCommand LLM path', () => {
                     valid: false,
                     name: 'Justice',
                     errorType: 'Not tangible',
-                    affinities: [],
                 }],
                 confidence: 1,
             }),
@@ -1141,7 +1090,6 @@ describe('parseCommand LLM path', () => {
                 valid: false,
                 name: 'Justice',
                 errorType: 'Not tangible',
-                affinities: [],
             }],
             confidence: 0.8,
         })

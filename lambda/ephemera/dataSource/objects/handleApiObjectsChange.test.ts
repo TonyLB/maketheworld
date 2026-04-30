@@ -204,7 +204,7 @@ describe('handleAcmeOrderAddObjects', () => {
         streamEvent.mockClear()
     })
 
-    it('adds incoming order lines as room objects with affinities for character current room', async () => {
+    it('adds incoming order lines as room objects for character current room', async () => {
         const mergePersistMetaRoomObjectsImpl = jest.fn().mockResolvedValue({
             ok: true,
             persisted: true,
@@ -215,7 +215,6 @@ describe('handleAcmeOrderAddObjects', () => {
                     uuid: 'OBJECT#u1' as EphemeraObjectId,
                     shortName: 'anvil',
                     stableKey: 'anvil',
-                    affinities: [],
                 },
                 {
                     uuid: 'OBJECT#u2' as EphemeraObjectId,
@@ -237,7 +236,6 @@ describe('handleAcmeOrderAddObjects', () => {
                             narrowing: 'hanging chain mount',
                         },
                     ],
-                    affinities: [{ role: 'terminal' as const, aptness: 0.6 }],
                 },
             ],
         })
@@ -249,7 +247,7 @@ describe('handleAcmeOrderAddObjects', () => {
             type: 'Acme Order',
             characterId: 'CHARACTER#123',
             orders: [
-                { shortName: 'anvil', stableKey: 'anvil', affinities: [] },
+                { shortName: 'anvil', stableKey: 'anvil' },
                 {
                     shortName: 'giant magnet',
                     stableKey: 'giant-magnet',
@@ -269,7 +267,6 @@ describe('handleAcmeOrderAddObjects', () => {
                             narrowing: 'hanging chain mount',
                         },
                     ],
-                    affinities: [{ role: 'terminal', aptness: 0.6 }],
                 },
             ],
             confidence: 0.9,
@@ -284,7 +281,7 @@ describe('handleAcmeOrderAddObjects', () => {
         expect(mergePersistMetaRoomObjectsImpl).toHaveBeenCalledWith({
             roomId: 'ROOM#VORTEX',
             add: [
-                { uuid: 'OBJECT#u1', shortName: 'anvil', stableKey: 'anvil', affinities: [] },
+                { uuid: 'OBJECT#u1', shortName: 'anvil', stableKey: 'anvil' },
                 {
                     uuid: 'OBJECT#u2',
                     shortName: 'giant magnet',
@@ -305,7 +302,6 @@ describe('handleAcmeOrderAddObjects', () => {
                             narrowing: 'hanging chain mount',
                         },
                     ],
-                    affinities: [{ role: 'terminal', aptness: 0.6 }],
                 },
             ],
             remove: [],
@@ -317,7 +313,7 @@ describe('handleAcmeOrderAddObjects', () => {
                 type: 'Objects Changed',
                 componentId: 'ROOM#VORTEX',
                 add: [
-                    { uuid: 'OBJECT#u1', shortName: 'anvil', stableKey: 'anvil', affinities: [] },
+                    { uuid: 'OBJECT#u1', shortName: 'anvil', stableKey: 'anvil' },
                     {
                         uuid: 'OBJECT#u2',
                         shortName: 'giant magnet',
@@ -338,14 +334,13 @@ describe('handleAcmeOrderAddObjects', () => {
                                 narrowing: 'hanging chain mount',
                             },
                         ],
-                        affinities: [{ role: 'terminal', aptness: 0.6 }],
                     },
                 ],
                 remove: [],
                 priorObjects: [obj('old', 'Old')],
                 newObjects: [
                     obj('old', 'Old'),
-                    { uuid: 'OBJECT#u1', shortName: 'anvil', stableKey: 'anvil', affinities: [] },
+                    { uuid: 'OBJECT#u1', shortName: 'anvil', stableKey: 'anvil' },
                     {
                         uuid: 'OBJECT#u2',
                         shortName: 'giant magnet',
@@ -366,14 +361,13 @@ describe('handleAcmeOrderAddObjects', () => {
                                 narrowing: 'hanging chain mount',
                             },
                         ],
-                        affinities: [{ role: 'terminal', aptness: 0.6 }],
                     },
                 ],
             },
         })
     })
 
-    it('persists affinitiesFailed when present on the bus payload', async () => {
+    it('persists tropeAffinitiesFailed when present on the bus payload', async () => {
         const mergePersistMetaRoomObjectsImpl = jest.fn().mockResolvedValue({
             ok: true,
             persisted: true,
@@ -382,8 +376,8 @@ describe('handleAcmeOrderAddObjects', () => {
                 uuid: 'OBJECT#u1' as EphemeraObjectId,
                 shortName: 'box',
                 stableKey: 'box',
-                affinities: [],
-                affinitiesFailed: true,
+                tropeAffinities: [],
+                tropeAffinitiesFailed: true,
             }],
         })
         const getCharacterMeta = jest.fn(async () => ({ RoomId: 'ROOM#VORTEX' }))
@@ -392,7 +386,7 @@ describe('handleAcmeOrderAddObjects', () => {
         await handleAcmeOrderAddObjects({
             type: 'Acme Order',
             characterId: 'CHARACTER#123',
-            orders: [{ shortName: 'box', stableKey: 'box', affinities: [], affinitiesFailed: true }],
+            orders: [{ shortName: 'box', stableKey: 'box', tropeAffinities: [], tropeAffinitiesFailed: true }],
             confidence: 0.5,
         }, {
             streamEvent,
@@ -407,8 +401,8 @@ describe('handleAcmeOrderAddObjects', () => {
                 uuid: 'OBJECT#u1',
                 shortName: 'box',
                 stableKey: 'box',
-                affinities: [],
-                affinitiesFailed: true,
+                tropeAffinities: [],
+                tropeAffinitiesFailed: true,
             }],
             remove: [],
         })
@@ -425,8 +419,6 @@ describe('handleAcmeOrderAddObjects', () => {
                 stableKey: 'box',
                 tropeAffinities: [],
                 tropeAffinitiesFailed: true,
-                affinities: [],
-                affinitiesFailed: true,
             }],
         })
         const getCharacterMeta = jest.fn(async () => ({ RoomId: 'ROOM#VORTEX' }))
@@ -440,8 +432,6 @@ describe('handleAcmeOrderAddObjects', () => {
                 stableKey: 'box',
                 tropeAffinities: [],
                 tropeAffinitiesFailed: true,
-                affinities: [],
-                affinitiesFailed: true,
             }],
             confidence: 0.5,
         }, {
@@ -459,8 +449,6 @@ describe('handleAcmeOrderAddObjects', () => {
                 stableKey: 'box',
                 tropeAffinities: [],
                 tropeAffinitiesFailed: true,
-                affinities: [],
-                affinitiesFailed: true,
             }],
             remove: [],
         })
@@ -474,7 +462,7 @@ describe('handleAcmeOrderAddObjects', () => {
         await handleAcmeOrderAddObjects({
             type: 'Acme Order',
             characterId: 'CHARACTER#123',
-            orders: [{ shortName: 'anvil', stableKey: 'anvil', affinities: [] }],
+            orders: [{ shortName: 'anvil', stableKey: 'anvil' }],
             confidence: 0.9,
         }, {
             streamEvent,
