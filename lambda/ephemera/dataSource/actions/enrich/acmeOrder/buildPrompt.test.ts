@@ -1,9 +1,9 @@
 import { buildParseAcmeOrderEnrichPrompt } from './buildPrompt'
 
-/** Assertions shared by compact (default) and verbose Step 1 (trope / catalog sections unchanged). */
+/** Assertions shared by compact prompt variants (trope / catalog sections unchanged). */
 function expectSharedAcmeEnrichSuffix(invariantPrefix: string): void {
-    expect(invariantPrefix).toContain('two steps with different rules')
-    expect(invariantPrefix).toContain('Enhance (JSON final)')
+    expect(invariantPrefix).toContain('two required parts in fixed order')
+    expect(invariantPrefix).toContain('JSON handoff')
     expect(invariantPrefix).toContain('one trope-scoring array, not a second parallel array')
     expect(invariantPrefix).toContain('language tag **json**')
     expect(invariantPrefix).toContain('**`trope`** is an allowlist field')
@@ -54,8 +54,9 @@ function expectSharedAcmeEnrichSuffix(invariantPrefix: string): void {
 describe('buildParseAcmeOrderEnrichPrompt', () => {
     it('default (compact Step 1): compressed decision lines plus unchanged trope/catalog tail', () => {
         const { invariantPrefix, dynamicSuffix } = buildParseAcmeOrderEnrichPrompt('order rope')
-        expect(invariantPrefix).toContain('Classify order type (compact decision lines)')
+        expect(invariantPrefix).toContain('Compact rationale lines')
         expect(invariantPrefix).toContain('One product = one row')
+        expect(invariantPrefix).toContain('avoid decorative Markdown headings')
         expect(invariantPrefix).toContain('not whether the item feels on-theme')
         expect(invariantPrefix).toContain('plain physical noun')
         expect(invariantPrefix).toContain('packaging-alts')
@@ -75,26 +76,16 @@ describe('buildParseAcmeOrderEnrichPrompt', () => {
         expect(dynamicSuffix).toContain('(none)')
     })
 
-    it('debugRationale: verbose Step 1 retains legacy chain-of-reason essay structure', () => {
-        const { invariantPrefix, dynamicSuffix } = buildParseAcmeOrderEnrichPrompt('order rope', {
+    it('debugRationale flag is inert and returns the same compact prompt', () => {
+        const compact = buildParseAcmeOrderEnrichPrompt('order rope')
+        const verboseFlag = buildParseAcmeOrderEnrichPrompt('order rope', {
             debugRationale: true,
         })
-        expect(invariantPrefix).toContain('Classify order type (Chain-of-reason markdown)')
-        expect(invariantPrefix).toContain('one section or bullet block')
-        expect(invariantPrefix).toContain('Correctable user error')
-        expect(invariantPrefix).toContain('Cartoon physics modifier')
-        expect(invariantPrefix.indexOf('Correctable user error')).toBeLessThan(
-            invariantPrefix.indexOf('Cartoon physics modifier')
-        )
-        expect(invariantPrefix.indexOf('Cartoon physics modifier')).toBeLessThan(
-            invariantPrefix.indexOf('Primary category')
-        )
-        expect(invariantPrefix).toContain('Step 1 trope anchor — Finishing Move')
-        expect(invariantPrefix).toContain(
-            'Is this the thing the Coyote intends to be the last thing the Road Runner experiences?'
-        )
-        expectSharedAcmeEnrichSuffix(invariantPrefix)
-        expect(dynamicSuffix).toContain('order rope')
+        expect(verboseFlag.invariantPrefix).toEqual(compact.invariantPrefix)
+        expect(verboseFlag.dynamicSuffix).toEqual(compact.dynamicSuffix)
+        expect(verboseFlag.invariantPrefix).not.toContain('Classify order type (Chain-of-reason markdown)')
+        expect(verboseFlag.invariantPrefix).not.toContain('one section or bullet block')
+        expect(verboseFlag.dynamicSuffix).toContain('order rope')
     })
 
     it('lists occupied stable keys in dynamicSuffix after dedupe and sort', () => {

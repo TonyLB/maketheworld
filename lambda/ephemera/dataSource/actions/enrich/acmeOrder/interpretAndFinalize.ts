@@ -17,10 +17,11 @@ function clamp01(n: number): number {
 export type InterpretAcmeOrderEnrichBodySuccess = {
     success: true;
     response: AcmeOrderEnrichModelResponse;
-    /** Leading Markdown chain-of-reason before the JSON payload; empty when absent or fallback path. */
+    /** Leading Markdown rationale before the final JSON handoff; empty on fallback extraction path. */
     reasoningMarkdown: string;
 }
 
+/** Prefer Markdown+r trailing fenced JSON split; fall back to best-effort object slice for drift tolerance. */
 function splitBodyForEnrichInterpret(raw: string): { jsonText: string; reasoningMarkdown: string } {
     const split = splitMarkdownReasoningAndJson(raw)
     if (split.ok) {
@@ -41,8 +42,9 @@ export type InterpretAcmeOrderEnrichBodyOptions = {
 }
 
 /**
- * Parses Acme order enrich JSON and normalizes **`lines`** via **`normalizeAcmeOrderEnrichResponse`**.
- * Returns **`reasoningMarkdown`** alongside **`response`** when **`success`** (possibly empty).
+ * Parses Acme enrich output where normative format is compact Markdown rationale + trailing fenced JSON.
+ * Falls back to raw object extraction when fence contract is violated, then normalizes via
+ * **`normalizeAcmeOrderEnrichResponse`** and returns optional **`reasoningMarkdown`**.
  */
 export function interpretAcmeOrderEnrichBody(
     body: string,

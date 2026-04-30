@@ -392,6 +392,6 @@ export type ParseCommandDeps = {
     invokeBedrockAcmeOrderEnrichImpl?: typeof import('../../generateExample/invokeBedrockAcmeOrderEnrich').invokeBedrockAcmeOrderEnrich;
     /** Injectable Coyote room/meta accessors for `countCoyotePlacedObjectsAcrossRooms` (Acme enrich pre-check). */
     countCoyotePlacedObjectsAcrossRoomsDeps?: Partial<CollectCoyoteOccupiedStableKeysDeps>;
-    /** When true, Acme enrich uses verbose Step 1 in the prompt (rare; affinities harness can set via slash `verbose`). */
+    /** Deprecated compatibility flag; Acme enrich prompt is compact regardless of value. */
     debugAcmeOrderEnrichRationale?: boolean;
 }

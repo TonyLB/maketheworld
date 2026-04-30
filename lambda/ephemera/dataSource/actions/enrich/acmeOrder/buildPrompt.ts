@@ -10,7 +10,7 @@ import type { ParseAcmeOrderEnrichPromptParts } from '../../../../generateExampl
 export type BuildParseAcmeOrderEnrichPromptOptions = {
     /** Union of **`stableKey`** values already used on staged objects across Coyote game rooms (must not invent collisions when avoidable). */
     occupiedStableKeys?: readonly string[];
-    /** When true, Step 1 uses legacy verbose markdown per item. When false/omitted, compact decision lines (default). */
+    /** Deprecated compatibility flag; prompt remains compact regardless of value. */
     debugRationale?: boolean;
 };
 
@@ -18,9 +18,9 @@ const INTRO_THROUGH_COYOTE_POV = `You validate and enrich **Acme mail-order** re
 vs. Road Runner contraption game. Player requests are expected to name things they want Acme
 to deliver.
 
-You will complete **two steps with different rules** — do not treat them as the same content in
-two formats. Step 1 is **classification and concise rationale only** (no catalog JSON).
-Step 2 is **the machine-readable Acme record** (trope fits, normalized naming, and tone).
+Your reply has **two required parts in fixed order**:
+1) compact Markdown rationale lines (classification only; no catalog JSON),
+2) one trailing fenced **json** handoff block (machine-readable Acme record).
 
 All trope assignments, narrowings, and plan reasoning in this prompt are evaluated from the
 **Coyote's perspective exclusively**. The Coyote is the sole planner. The Road Runner is the
@@ -30,73 +30,14 @@ of what it does for the Road Runner.
 
 `
 
-const VERBOSE_STEP1_INSTRUCTIONS = `1. **Classify order type (Chain-of-reason markdown):** Walk each
-**distinct product / line item** you extracted (see below). Use **one section or bullet block
-per item**. For **every** item, reason **in the order below** (same classify step). That order
-matters: corrections can move nonsense into a valid gloss; cartoon physics can move
-**real-world impossible** into **in-genre** before you pick the primary bucket.
-
-   **First — Correctable user error:** Check whether the surface text is plausibly a typo,
-   speech-to-text glitch, or wrong-word slip against Coyote / Acme vocabulary
-   (**potable**→**portable**, etc.). If so, state the **intended gloss** and use
-   **only that gloss** for the rest of the reasoning on this line. If no correction applies,
-   say so briefly. **Do not** label **Not a thing** when a reasonable correction yields
-   a clear deliverable.
-
-   **Second — Cartoon physics modifier:** Given the **effective wording** (after any correction),
-   set **Cartoon physics: yes** when the deliverable **defies real-world physics or manufacturing**
-   but is **normal Coyote vs. Road Runner stock** (flying carpets, portable holes,
-   delayed-fall kits, etc.). Otherwise **Cartoon physics: no**. Use this **after** corrections so
-   an impossible-looking string is re-judged after fixing the words. This is a **modifier**
-   stacked on the primary category — not a substitute for **Phenomenon** / **Diffuse** /
-   **Self-contained**.
-
-   **Third — Primary category (exactly one):** Pick **one** bucket for the line.
-   **Do not** reject for insufficient silliness or gag quality — genre vibe is **not**
-   eligibility here. **Do not** shoehorn into **Not tangible** for vibe reasons.
-
-   - **Not a thing:** The effective wording still does not parse to a noun phrase you can treat as a requested deliverable, or it remains gibberish / not a product after correction.
-   - **Not tangible:** It parses as a noun, but names something abstract (**justice**, **hope**) — not a physical deliverable even with packaging.
-   - **Too large:** Only when the ask names **scale that breaks the cartoon stage as one
-     deliverable** — for example **the Galilean moons**, **the Moon**, **North America**,
-     **the jet stream** as a boxed SKU. **Do not** use real-world freight intuition:
-     tower cranes, diesel locomotives, moon rockets, grand pianos, and similar
-     **Chuck Jones oversized props** are **Self-contained** (or **Diffuse** / **Phenomenon**
-     when they fit), **not** **Too large**. **Cartoon physics** can stack here
-     (cosmic gag, still rejected for scale).
-   - **Phenomenon:** Concrete, but an ongoing process or event
-     (laser beam, earthquake, lightning storm). Stay **brief**: state that label,
-     then list **two** plausible Acme gadgets or deliveries that could **produce**
-     that phenomenon.
-   - **Diffuse:** Tangible, but not one self-contained unit
-     (hydrogen gas, flock of crows, **cloud of mosquitos**, waterfall). Stay **brief**:
-     state that label, then list **two** plausible **packages or generators**.
-   - **Self-contained:** A single ship-ready article (crate, coil, costume, bottle, beehive).
-     **Ordinary objecthood is not required** when **Cartoon physics: yes** —
-     a flying carpet is still **Self-contained** (one SKU), not **Not a thing**.
-
-   In your markdown, show the **three layers** briefly: correction (if any),
-   **Cartoon physics** yes/no, then primary category. For **Not a thing**, **Not tangible**,
-   or **Too large**, state only those facts plus modifiers — no packaging spin.
-   For **Phenomenon** and **Diffuse**, record the **two** alternatives for Step 2.
-   **Primary** **Not a thing** / **Not tangible** / **Too large** → **\`valid\`: false** in JSON;
-   **Phenomenon**, **Diffuse**, **Self-contained** → **\`valid\`: true**.
-
-   **Step 1 trope anchor — Finishing Move:** When a line is **\`valid\`: true**, treat direct terminal
-   payloads as canonical **Finishing Move** candidates before any other trope. Point-impact payloads
-   (anvil, boulder, harpoon) and area payloads (bees, gas, explosives) should usually start at
-   **High** or **Good** for **Finishing Move**. The delivery apparatus is separate: launcher, pulley
-   rig, crate-release mechanism, or drop platform may be **Contraption**, but the payload itself is not.
-   Ask: "Is this the thing the Coyote intends to be the last thing the Road Runner experiences?" If yes,
-   lead with **Finishing Move**.`
-
-const COMPACT_STEP1_INSTRUCTIONS = `1. **Classify order type (compact decision lines):** For each **distinct product / line item** you extract (see **Segment line items**), emit **exactly one** pipe-separated row with these fields in order:
+const COMPACT_STEP1_INSTRUCTIONS = `1. **Compact rationale lines:** For each **distinct product / line item** you extract (see **Segment line items**), emit **exactly one** pipe-separated row with these fields in order:
 
 surface text | gloss: corrected phrase or (none) | physics: yes or no | primary: bucket | fm-lead: yes or no | packaging-alts: alt1; alt2 or n/a
 
 **One product = one row:** The **surface text** field is the **full** product phrase for that item (e.g. **rocket skates** is **one** surface spanning both words). **Do not** emit a second row for a tail noun (**skates**) peeled off a compound name. Put **each** product row on its **own** line in Step 1 (newline between rows); **never** glue two products into one pipe row.
 
 Walk **in order** for every item: **(1)** correction gloss **(2)** cartoon physics **(3)** primary bucket **(4)** Finishing Move lead **(5)** packaging alternatives.
+Output compact rationale rows only for this section; avoid decorative Markdown headings (for example, no **##** or **###** titles).
 
 - **gloss:** After **correctable** typo/malaprop/STT fix (**potable** to **portable**, etc.), the intended noun phrase; **(none)** if no fix. **Do not** choose **Not a thing** if a reasonable correction yields a deliverable.
 - **physics:** **yes** if the deliverable defies real-world physics/manufacturing but is normal Coyote vs. Road Runner stock; **no** otherwise. Apply **after** gloss. **Modifier** on the primary bucket only — not a substitute for Phenomenon / Diffuse / Self-contained.
@@ -116,7 +57,7 @@ Walk **in order** for every item: **(1)** correction gloss **(2)** cartoon physi
 
 **Finishing Move anchor (Step 1):** For **valid** lines, treat **direct terminal payloads** as **Finishing Move** candidates before other tropes. Point payloads (anvil, harpoon) and area payloads (bees, gas, explosives) => usually **High**/**Good** **Finishing Move**. Launcher, pulley, drop platform = **Contraption**, not the payload. Ask: *Is this the last thing the Road Runner experiences?* If yes, lead JSON with **Finishing Move**.`
 
-const AFTER_STEP1_INSTRUCTIONS = `2. **Enhance (JSON final):** After Step 1, output **one** trailing fenced code block with
+const AFTER_STEP1_INSTRUCTIONS = `2. **JSON handoff:** After rationale rows, output **one** trailing fenced code block with
 language tag **json**. Inside the fence put **only** the root JSON object (**lines**,
 optional **confidence**) — nothing else inside the fence. No prose after that closing fence.
 This step applies Acme catalog normalization, canonical **\`tropeAffinities\`**, per-line
@@ -315,12 +256,11 @@ export function buildParseAcmeOrderEnrichPrompt(
     const trimmed = command.trim()
     const commandBlock = trimmed === '' ? '(empty command)' : trimmed
 
-    const debugRationale = options?.debugRationale === true
     const invariantPrefix = `${INTRO_THROUGH_COYOTE_POV}
 
-Produce **two parts** in order:
+Produce **two required parts in order**:
 
-${debugRationale ? VERBOSE_STEP1_INSTRUCTIONS : COMPACT_STEP1_INSTRUCTIONS}
+${COMPACT_STEP1_INSTRUCTIONS}
 
 ${AFTER_STEP1_INSTRUCTIONS}`
 

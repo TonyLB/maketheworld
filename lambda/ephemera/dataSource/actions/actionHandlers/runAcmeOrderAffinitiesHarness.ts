@@ -146,7 +146,6 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
                     {
                         command,
                         occupiedStableKeys: [],
-                        ...(acmeEnrichVerbose ? { debugRationale: true } : {}),
                     },
                     1,
                     invokeEnrich,
