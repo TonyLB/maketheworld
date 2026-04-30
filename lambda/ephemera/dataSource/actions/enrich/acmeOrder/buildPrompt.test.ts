@@ -1,75 +1,14 @@
 import { buildParseAcmeOrderEnrichPrompt } from './buildPrompt'
 
-/** Assertions shared by compact prompt variants (trope / catalog sections unchanged). */
-function expectSharedAcmeEnrichSuffix(invariantPrefix: string): void {
-    expect(invariantPrefix).toContain('two required parts in fixed order')
-    expect(invariantPrefix).toContain('JSON handoff')
-    expect(invariantPrefix).toContain('one trope-scoring array, not a second parallel array')
-    expect(invariantPrefix).toContain('language tag **json**')
-    expect(invariantPrefix).toContain('**`trope`** is an allowlist field')
-    expect(invariantPrefix).toContain('**`narrowing` POV rule:**')
-    expect(invariantPrefix).toContain('**`environmentAffordances` rule (optional, per trope entry):**')
-    expect(invariantPrefix).toContain('captures what the **environment likely offers**')
-    expect(invariantPrefix).toContain('Allowed environment object references are a **closed world**')
-    expect(invariantPrefix).toContain('**Boulder**, **Cactus**, **Tumbleweed**, **Rock wall / cliff face**, **Dirt**')
-    expect(invariantPrefix).toContain('rather than emitting **`[]`**')
-    expect(invariantPrefix).toContain('surroundings to load as payload')
-    expect(invariantPrefix).toContain('enhance Coyote pursuit speed')
-    expect(invariantPrefix).toContain('enhance mobility to evade pursuit')
-    expect(invariantPrefix).not.toContain('### Flat modification tags')
-    expect(invariantPrefix).not.toContain('### Generative roles')
-    expect(invariantPrefix).not.toContain('### Structural roles')
-    expect(invariantPrefix).toContain('emit only **`Contraption`**, **`Distraction`**, **`Disadvantage`**, or **`Finishing Move`**')
-    expect(invariantPrefix).toContain('tropeAffinities')
-    expect(invariantPrefix).toContain('tropeAffinitiesFailed')
-    expect(invariantPrefix).toContain('Contraption payload exclusion')
-    expect(invariantPrefix).toContain('Dual-use handling')
-    expect(invariantPrefix).toContain('knockout gas canister = payload')
-    expect(invariantPrefix).toContain('grand piano dropped on Road Runner = payload')
-    expect(invariantPrefix).toContain('Distraction mechanism test (volition-dependent)')
-    expect(invariantPrefix).toContain('distraction itself is the causal mechanism')
-    expect(invariantPrefix).toContain('Negative example: lasso or net that captures on contact even if unseen')
-    expect(invariantPrefix).toContain('Honey-trap dual-fit rule')
-    expect(invariantPrefix).toContain('desirable lure objects can fit both **Distraction** and')
-    expect(invariantPrefix).toContain('Use **Distraction** for the')
-    expect(invariantPrefix).toContain('voluntary approach/engagement beat')
-    expect(invariantPrefix).toContain('Disadvantage positive anchor')
-    expect(invariantPrefix).toContain('surface hazards (glue, marbles, oil slick)')
-    expect(invariantPrefix).toContain('Spiking something the Road Runner wants')
-    expect(invariantPrefix).toContain('adding ball-bearings or knockout pills')
-    expect(invariantPrefix).toContain('ongoing mobility/option reduction')
-    expect(invariantPrefix).toContain('## Trope fits must honor the player ask')
-    expect(invariantPrefix).toContain('For Step 1 lines classified as **Phenomenon**')
-    expect(invariantPrefix).toContain('"pocket avalanche trigger" produces an avalanche')
-    expect(invariantPrefix).not.toContain('Legacy compatibility placeholders')
-    expect(invariantPrefix).not.toContain('skill check')
-    expect(invariantPrefix).toContain('stableKey')
-    expect(invariantPrefix).toContain('constructed-')
-    expect(invariantPrefix).toContain('Do not treat a leading order verb as a line item')
-    expect(invariantPrefix).toContain('Multi-command phrasing')
-    expect(invariantPrefix).toContain('order glue and springs')
-    expect(invariantPrefix).toContain('exactly two lines')
-}
-
 describe('buildParseAcmeOrderEnrichPrompt', () => {
-    it('default (compact Step 1): compressed decision lines plus unchanged trope/catalog tail', () => {
+    it('returns prompt sections with stable top-level anchors', () => {
         const { invariantPrefix, dynamicSuffix } = buildParseAcmeOrderEnrichPrompt('order rope')
-        expect(invariantPrefix).toContain('Compact rationale lines')
-        expect(invariantPrefix).toContain('One product = one row')
-        expect(invariantPrefix).toContain('avoid decorative Markdown headings')
-        expect(invariantPrefix).toContain('not whether the item feels on-theme')
-        expect(invariantPrefix).toContain('plain physical noun')
-        expect(invariantPrefix).toContain('packaging-alts')
-        expect(invariantPrefix).toContain('Primary bucket checklist')
-        expect(invariantPrefix).toContain('Finishing Move anchor (Step 1)')
-        expect(invariantPrefix).not.toContain('one section or bullet block per item')
-        expect(invariantPrefix).not.toContain('**First — Correctable user error:**')
-        expect(invariantPrefix).toContain("Coyote's perspective exclusively")
-        expect(invariantPrefix).toContain('What does')
-        expect(invariantPrefix).toContain('this item do for the Coyote or against the Road Runner?')
-        expectSharedAcmeEnrichSuffix(invariantPrefix)
-        expect(invariantPrefix).toContain('**order rocket skates**')
-        expect(invariantPrefix).toContain('not two')
+        // Spot-check only: keep these invariantPrefix checks intentionally sparse.
+        // They may be modified when core prompt structure changes, but should not
+        // be expanded by default for routine instruction copy edits.
+        expect(invariantPrefix).toContain('two required parts in fixed order')
+        expect(invariantPrefix).toContain('JSON handoff')
+        expect(invariantPrefix).toContain('finishing-mechanisms')
         expect(dynamicSuffix).toContain('order rope')
         expect(dynamicSuffix).toContain('Player command')
         expect(dynamicSuffix).toContain('Coyote-wide stable keys already in use')
@@ -88,6 +27,17 @@ describe('buildParseAcmeOrderEnrichPrompt', () => {
         expect(verboseFlag.dynamicSuffix).toContain('order rope')
     })
 
+    it('normalizes command whitespace in dynamicSuffix', () => {
+        const { dynamicSuffix } = buildParseAcmeOrderEnrichPrompt('  order glue and springs   ')
+        expect(dynamicSuffix).toContain('order glue and springs')
+        expect(dynamicSuffix).not.toContain('  order glue and springs   ')
+    })
+
+    it('uses explicit empty-command placeholder when command trims empty', () => {
+        const { dynamicSuffix } = buildParseAcmeOrderEnrichPrompt('   ')
+        expect(dynamicSuffix).toContain('(empty command)')
+    })
+
     it('lists occupied stable keys in dynamicSuffix after dedupe and sort', () => {
         const { dynamicSuffix } = buildParseAcmeOrderEnrichPrompt('buy widget', {
             occupiedStableKeys: ['zebra', 'alpha', 'alpha', 'beta'],
@@ -97,5 +47,14 @@ describe('buildParseAcmeOrderEnrichPrompt', () => {
         expect(dynamicSuffix).toContain('- zebra')
         expect(dynamicSuffix.indexOf('- alpha')).toBeLessThan(dynamicSuffix.indexOf('- beta'))
         expect(dynamicSuffix.indexOf('- beta')).toBeLessThan(dynamicSuffix.indexOf('- zebra'))
+    })
+
+    it('trims and drops empty occupied stable keys before dedupe + sort', () => {
+        const { dynamicSuffix } = buildParseAcmeOrderEnrichPrompt('buy widget', {
+            occupiedStableKeys: [' zebra ', '', '  ', 'alpha', 'alpha '],
+        })
+        expect(dynamicSuffix).toContain('- alpha')
+        expect(dynamicSuffix).toContain('- zebra')
+        expect((dynamicSuffix.match(/\n- /g) ?? []).length).toBe(2)
     })
 })

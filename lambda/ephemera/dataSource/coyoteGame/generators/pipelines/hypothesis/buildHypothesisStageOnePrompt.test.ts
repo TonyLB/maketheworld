@@ -3,7 +3,7 @@ import { buildHypothesisStageOnePromptParts } from './buildHypothesisStageOnePro
 import { SNAPSHOT_SECTION_HEADER } from './coyoteHypothesisPromptShared'
 
 describe('buildHypothesisStageOnePromptParts', () => {
-    it('places topology and seam instructions before staged-object snapshot', () => {
+    it('includes stage-one contract anchors and dynamic seam/snapshot sections', () => {
         const parts = buildHypothesisStageOnePromptParts({
             roomObjectsByRoom: {
                 'ROOM#STRAIGHTAWAY': harnessRoomObjects('straightaway', ['rocket skates']),
@@ -14,21 +14,18 @@ describe('buildHypothesisStageOnePromptParts', () => {
             },
         })
         const full = parts.invariantPrefix + parts.dynamicSuffix
-        expect(full).toContain('## World topology')
-        expect(full).toContain('## Seam room labels')
-        expect(full).toContain('`ROOM#STRAIGHTAWAY` → **STRAIGHTAWAY**')
+        // Spot-check only: keep invariantPrefix checks intentionally minimal.
+        // Update these for major contract shifts, but avoid adding new string
+        // checkpoints by default when prompt wording changes.
+        expect(parts.invariantPrefix).toContain('## World topology')
         expect(full).toContain('## Stage one JSON contract')
         expect(full).toContain('"tropeFunction":')
-        expect(full).toContain('Second example (simple one-candidate shape):')
-        expect(full).toContain('"stableKey": "rocket-sled"')
-        expect(full).toContain('"tropeFunction": "speed rig"')
-        expect(full).toContain('usually **2-5 words**')
-        expect(full).toContain('required **`tropeFunction`**')
         expect(full).not.toContain('intendedRole')
-        expect(full).toContain(SNAPSHOT_SECTION_HEADER)
-        expect(full).toContain('STRAIGHTAWAY')
-        expect(full).toContain('rocket skates')
-        expect(full).not.toContain('## Interpretation rules')
+        expect(parts.dynamicSuffix).toContain('## Seam room labels')
+        expect(parts.dynamicSuffix).toContain('`ROOM#STRAIGHTAWAY` → **STRAIGHTAWAY**')
+        expect(parts.dynamicSuffix).toContain(SNAPSHOT_SECTION_HEADER)
+        expect(parts.dynamicSuffix).toContain('STRAIGHTAWAY')
+        expect(parts.dynamicSuffix).toContain('rocket skates')
     })
 
     it('rejoins parts consistently', () => {

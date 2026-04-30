@@ -32,17 +32,17 @@ of what it does for the Road Runner.
 
 const COMPACT_STEP1_INSTRUCTIONS = `1. **Compact rationale lines:** For each **distinct product / line item** you extract (see **Segment line items**), emit **exactly one** pipe-separated row with these fields in order:
 
-surface text | gloss: corrected phrase or (none) | physics: yes or no | primary: bucket | fm-lead: yes or no | packaging-alts: alt1; alt2 or n/a
+surface text | gloss: corrected phrase or (none) | physics: yes or no | primary: bucket | finishing-mechanisms: mechanism1, mechanism2 or none | packaging-alts: alt1; alt2 or n/a
 
 **One product = one row:** The **surface text** field is the **full** product phrase for that item (e.g. **rocket skates** is **one** surface spanning both words). **Do not** emit a second row for a tail noun (**skates**) peeled off a compound name. Put **each** product row on its **own** line in Step 1 (newline between rows); **never** glue two products into one pipe row.
 
-Walk **in order** for every item: **(1)** correction gloss **(2)** cartoon physics **(3)** primary bucket **(4)** Finishing Move lead **(5)** packaging alternatives.
+Walk **in order** for every item: **(1)** correction gloss **(2)** cartoon physics **(3)** primary bucket **(4)** finishing mechanisms **(5)** packaging alternatives.
 Output compact rationale rows only for this section; avoid decorative Markdown headings (for example, no **##** or **###** titles).
 
 - **gloss:** After **correctable** typo/malaprop/STT fix (**potable** to **portable**, etc.), the intended noun phrase; **(none)** if no fix. **Do not** choose **Not a thing** if a reasonable correction yields a deliverable.
 - **physics:** **yes** if the deliverable defies real-world physics/manufacturing but is normal Coyote vs. Road Runner stock; **no** otherwise. Apply **after** gloss. **Modifier** on the primary bucket only — not a substitute for Phenomenon / Diffuse / Self-contained.
 - **primary (exactly one):** **Not a thing** | **Not tangible** | **Too large** | **Phenomenon** | **Diffuse** | **Self-contained**. **Eligibility is parse and category**, not whether the item feels on-theme for a gag. **Do not** reject for weak slapstick, insufficient whimsy, or "the Coyote would not plan with this" — that is **never** a **Not a thing** test.
-- **fm-lead:** **yes** when this line would be **valid**: **true** and the ordered thing is the **terminal payload** payoff (point or area harm); **no** for rigs-only or invalid primaries. Payloads usually imply **Finishing Move** **High**/**Good** first in JSON.
+- **finishing-mechanisms:** one or more of **impact**, **explosion**, **area-hazard**, **projectile**, **collision** (comma-separated, no duplicates) when this item itself delivers that harm mechanism directly to or at the Road Runner, without requiring a downstream item to do the actual work; emit **none** otherwise. Use a **single best mechanism** by default; combine mechanisms only when dual behavior is encoded in the ordered item's intent (for example, wording that explicitly combines blast + lingering cloud). **Trap closure**, **immobilization**, and **restraint** are not finishing mechanisms (route those as **Disadvantage**). Rigs/infrastructure-only lines (pulley rig, launcher frame, drop platform) emit **none**. Invalid primaries emit **none**. If payoff depends on an environment object to complete doom (painted tunnel -> rock wall collision, portable hole -> long fall), keep **finishing-mechanisms: none** on the item and represent that via **\`environmentAffordances\`** with **roles** including **Finishing Move**.
 - **packaging-alts:** For **Phenomenon** or **Diffuse**, two short generator/package labels separated by **; ** (feeds Step 2 naming). Otherwise **n/a**.
 
 **Primary bucket checklist (correction -> physics -> primary):**
@@ -55,7 +55,7 @@ Output compact rationale rows only for this section; avoid decorative Markdown h
 
 **valid:** **Not a thing** / **Not tangible** / **Too large** => **valid**: false in JSON. **Phenomenon** / **Diffuse** / **Self-contained** => **valid**: true.
 
-**Finishing Move anchor (Step 1):** For **valid** lines, treat **direct terminal payloads** as **Finishing Move** candidates before other tropes. Point payloads (anvil, harpoon) and area payloads (bees, gas, explosives) => usually **High**/**Good** **Finishing Move**. Launcher, pulley, drop platform = **Contraption**, not the payload. Ask: *Is this the last thing the Road Runner experiences?* If yes, lead JSON with **Finishing Move**.`
+**Finishing Move anchor (Step 1):** For **valid** lines, any non-**none** **finishing-mechanisms** value is a strong signal to lead JSON **\`tropeAffinities\`** with **Finishing Move** at **High** or **Good** aptness. Point payloads (anvil, harpoon) and area payloads (bees, gas, explosives) usually lead **Finishing Move**. Launcher, pulley, drop platform = **Contraption**, not the payload. Ask: *Is this the last thing the Road Runner experiences?* If yes, lead JSON with **Finishing Move**.`
 
 const AFTER_STEP1_INSTRUCTIONS = `2. **JSON handoff:** After rationale rows, output **one** trailing fenced code block with
 language tag **json**. Inside the fence put **only** the root JSON object (**lines**,
@@ -163,16 +163,20 @@ Incorrect examples: "enhance mobility to evade pursuit", "escape from Coyote", "
 If a draft narrowing describes Road Runner goals/capabilities, reverse perspective before emitting.
 
 **\`environmentAffordances\` rule (optional, per trope entry):**
-- This field captures what the **environment likely offers** around the trope beat, not what the ordered item does.
-- If text would read as an intrinsic item capability, keep it in **\`narrowing\`** instead.
-  Wrong: "attract metal objects" (item behavior). Right: "metal debris likely scattered on road surface" (scene affordance).
-- Allowed environment object references are a **closed world**:
-  **Boulder**, **Cactus**, **Tumbleweed**, **Rock wall / cliff face**, **Dirt**.
-  Do not introduce other environment objects or synonyms outside this set.
-- For each trope entry, ask: "Does this trope use become meaningfully more complete if one allowed environment object is present?"
-  - If yes, emit **1-2** short scene-perspective strings in **\`environmentAffordances\`**.
-  - If no, **omit** **\`environmentAffordances\`** (preferred) rather than emitting **\`[]\`**.
-- Keep strings brief and concrete from scene perspective (for example, "boulder available in surroundings to load as payload").
+- This field captures environment-dependent completion requirements around a trope beat, not intrinsic item behavior.
+- Emit structured objects only:
+  **\`environmentAffordances\`: [ { "object": "<object>", "roles": ["<trope>", "..."] } ]**
+- **\`object\`** allowlist (closed world, exact tokens): **\`boulder\`**, **\`cactus\`**, **\`tumbleweed\`**, **\`rock-wall\`**, **\`long-fall\`**.
+- **\`roles\`** allowlist (exact trope names): **\`Contraption\`**, **\`Distraction\`**, **\`Disadvantage\`**, **\`Finishing Move\`**.
+- For each entry, include one object and **1-2** roles that object can play for this trope beat.
+- If no meaningful environment dependency is needed, **omit** **\`environmentAffordances\`** (preferred) rather than emitting **\`[]\`**.
+- **Finishing-move exclusivity:** if item **finishing-mechanisms** is non-**none**, do **not** also claim **\`Finishing Move\`** in **\`environmentAffordances.roles\`** for that same beat.
+- Use **\`environmentAffordances.roles\`** including **\`Finishing Move\`** when an environment object completes doom while the item itself remains non-terminal.
+- Canonical examples:
+  - paint / fake tunnel => **\`{ "object": "rock-wall", "roles": ["Finishing Move"] }\`**
+  - portable hole => **\`{ "object": "long-fall", "roles": ["Finishing Move"] }\`**
+  - giant rubber band => **\`{ "object": "cactus", "roles": ["Contraption"] }\`**, **\`{ "object": "boulder", "roles": ["Finishing Move", "Contraption"] }\`**
+  - birdseed trail (optional) => **\`{ "object": "boulder", "roles": ["Finishing Move"] }\`** when lure sets up a drop point.
 
 If you cannot justify trope fits for a valid line, set **\`tropeAffinitiesFailed\`**: true and **\`tropeAffinities\`**: [].
 

@@ -99,7 +99,10 @@ describe('formatCoyoteObjectAffinitySuffix', () => {
                     trope: 'Contraption',
                     aptness: 'High',
                     narrowing: 'overhead winch',
-                    environmentAffordances: ['affordance-alpha'],
+                    environmentAffordances: [{
+                        object: 'boulder',
+                        roles: ['Finishing Move'],
+                    }],
                 },
                 {
                     trope: 'Contraption',

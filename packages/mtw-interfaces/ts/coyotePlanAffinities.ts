@@ -65,11 +65,23 @@ export type CoyoteTrope = 'Contraption' | 'Distraction' | 'Disadvantage' | 'Fini
 
 export type CoyoteTropeAptness = 'High' | 'Good' | 'Poor'
 
+export type EnvironmentAffordanceObject =
+    | 'boulder'
+    | 'cactus'
+    | 'tumbleweed'
+    | 'rock-wall'
+    | 'long-fall'
+
+export type EnvironmentAffordanceRef = {
+    object: EnvironmentAffordanceObject;
+    roles: CoyoteTrope[];
+}
+
 export type CoyoteTropeAffinity = {
     trope: CoyoteTrope;
     aptness: CoyoteTropeAptness;
     narrowing: string;
-    environmentAffordances?: string[];
+    environmentAffordances?: EnvironmentAffordanceRef[];
 }
 
 /** Stage-one intendedRole echo: same roles as **[`CoyoteAffinityPossibility`]**, but **`aptness`** may be omitted (resolved against snapshot rows). */
@@ -153,6 +165,30 @@ export function isCoyoteTropeAptness(value: unknown): value is CoyoteTropeAptnes
     return value === 'High' || value === 'Good' || value === 'Poor'
 }
 
+export function isEnvironmentAffordanceObject(value: unknown): value is EnvironmentAffordanceObject {
+    return (
+        value === 'boulder'
+        || value === 'cactus'
+        || value === 'tumbleweed'
+        || value === 'rock-wall'
+        || value === 'long-fall'
+    )
+}
+
+export function isEnvironmentAffordanceRef(entry: unknown): entry is EnvironmentAffordanceRef {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+        return false
+    }
+    const o = entry as Record<string, unknown>
+    if (!isEnvironmentAffordanceObject(o.object)) {
+        return false
+    }
+    if (!Array.isArray(o.roles) || o.roles.length === 0) {
+        return false
+    }
+    return o.roles.every((role) => isCoyoteTrope(role))
+}
+
 export function isCoyoteTropeAffinity(entry: unknown): entry is CoyoteTropeAffinity {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
         return false
@@ -160,7 +196,7 @@ export function isCoyoteTropeAffinity(entry: unknown): entry is CoyoteTropeAffin
     const o = entry as Record<string, unknown>
     const validEnvironmentAffordances = (
         !('environmentAffordances' in o)
-        || (Array.isArray(o.environmentAffordances) && o.environmentAffordances.every((entry) => typeof entry === 'string'))
+        || (Array.isArray(o.environmentAffordances) && o.environmentAffordances.every((entry) => isEnvironmentAffordanceRef(entry)))
     )
     const hasLegacyAffordancesKey = 'affordances' in o
     return (

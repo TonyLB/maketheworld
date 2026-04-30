@@ -36,7 +36,7 @@ describe('isAcmeOrderPublishedOrder', () => {
         ).toBe(true)
     })
 
-    it('accepts tropeAffinities environmentAffordances when string arrays', () => {
+    it('accepts tropeAffinities environmentAffordances when structured objects', () => {
         expect(
             isAcmeOrderPublishedOrder({
                 ...minimal,
@@ -44,7 +44,10 @@ describe('isAcmeOrderPublishedOrder', () => {
                     trope: 'Contraption',
                     aptness: 'High',
                     narrowing: 'launch rig',
-                    environmentAffordances: ['payload cradle'],
+                    environmentAffordances: [{
+                        object: 'boulder',
+                        roles: ['Finishing Move'],
+                    }],
                 }],
             })
         ).toBe(true)
@@ -80,7 +83,10 @@ describe('isAcmeOrderPublishedOrder', () => {
                     trope: 'Contraption',
                     aptness: 'High',
                     narrowing: 'launch rig',
-                    environmentAffordances: ['payload cradle', 1],
+                    environmentAffordances: [{
+                        object: 'boulder',
+                        roles: ['Finishing Move'],
+                    }, 1],
                 }],
             } as unknown)
         ).toBe(false)

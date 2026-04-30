@@ -2,7 +2,7 @@ import { harnessRoomObjects } from '../../testHarness/coyoteEngineTestFixtures'
 import { buildHypothesisPrompt, buildHypothesisPromptParts } from './buildHypothesisPrompt'
 
 describe('buildHypothesisPrompt', () => {
-    it('places topology instructions before the live snapshot', () => {
+    it('includes stable instruction anchors and staged objects in dynamic tail', () => {
         const prompt = buildHypothesisPrompt({
             roomObjectsByRoom: {
                 'ROOM#STRAIGHTAWAY': harnessRoomObjects('straightaway', ['rocket skates']),
@@ -13,22 +13,10 @@ describe('buildHypothesisPrompt', () => {
             },
         })
 
+        // Spot-check only: keep invariant prompt assertions sparse.
+        // Adjust these when high-level prompt framing changes, but do not
+        // grow this list for routine copy tweaks.
         expect(prompt).toContain('## World topology')
-        expect(prompt).toContain('drop or release the boulder')
-        expect(prompt).toContain('Road Runner to collide with the rock face')
-        expect(prompt).toContain('Address the player in second person')
-        expect(prompt).toContain('intellectually humble and provisional')
-        expect(prompt).toContain('It looks like you are trying to')
-        expect(prompt).toContain('single most plausible detailed plan')
-        expect(prompt).toContain('Do not list multiple possible plans')
-        expect(prompt).toContain('Do not use ambiguous either-or phrasing')
-        expect(prompt).toContain('Good style: "Hypothesis: It looks like you are trying to use the roller skates')
-        expect(prompt).toContain('Bad style: "Hypothesis: It seems like you are trying to set up a chase')
-        expect(prompt).toContain('## Actor affinities')
-        expect(prompt).toContain('Coyote-affinity')
-        expect(prompt).toContain('## Scene analysis instructions')
-        expect(prompt).toContain('## Scene analysis')
-        expect(prompt).toContain('Structured markdown (including ## headings)')
         expect(prompt).toContain('## Current staged objects by room')
         expect(prompt).toContain('STRAIGHTAWAY')
         expect(prompt).toContain('rocket skates')
@@ -50,5 +38,9 @@ describe('buildHypothesisPrompt', () => {
         const parts = buildHypothesisPromptParts(input)
         expect(parts.invariantPrefix + parts.dynamicSuffix).toBe(full)
         expect(parts.dynamicSuffix.startsWith('\n\n## Current staged objects by room')).toBe(true)
+        expect(parts.dynamicSuffix).toContain('STRAIGHTAWAY')
+        expect(parts.dynamicSuffix).toContain('rocket skates')
+        expect(parts.dynamicSuffix).toContain('VORTEX')
+        expect(parts.dynamicSuffix).toContain('anvil')
     })
 })

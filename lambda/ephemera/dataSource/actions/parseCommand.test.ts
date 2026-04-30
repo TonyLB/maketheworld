@@ -92,7 +92,10 @@ describe('parseCommand type guards', () => {
                         trope: 'Contraption',
                         aptness: 'High',
                         narrowing: 'pursuit gear',
-                        environmentAffordances: ['quick acceleration'],
+                        environmentAffordances: [{
+                            object: 'boulder',
+                            roles: ['Contraption'],
+                        }],
                     }],
                     affinities: [],
                 }],
@@ -219,7 +222,10 @@ describe('parseCommand type guards', () => {
                         trope: 'Contraption',
                         aptness: 'Good',
                         narrowing: 'tie-off',
-                        environmentAffordances: ['lasso control', 3],
+                        environmentAffordances: [{
+                            object: 'boulder',
+                            roles: ['Finishing Move'],
+                        }, 3],
                     }],
                     affinities: [],
                 }],
