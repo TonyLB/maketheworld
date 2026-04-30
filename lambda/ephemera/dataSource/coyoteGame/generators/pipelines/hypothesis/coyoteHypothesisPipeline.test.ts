@@ -202,7 +202,14 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
                             uuid: 'OBJECT#rocket-skates' as `OBJECT#${string}`,
                             shortName: 'rocket skates',
                             stableKey: 'rocket-skates',
-                            tropeAffinities: [{ trope: 'Contraption', aptness: 'High', narrowing: 'mobility' }],
+                            tropeAffinities: [
+                                {
+                                    trope: 'Contraption',
+                                    aptness: 'High',
+                                    narrowing: 'mobility',
+                                    environmentAffordances: [{ object: 'long-fall', roles: ['Finishing Move'] }],
+                                },
+                            ],
                         },
                     ],
                 }
@@ -237,6 +244,10 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         )
         expect(result.kind).toBe('harnessPartial')
         expect(stageOneMock).toHaveBeenCalledTimes(1)
+        const promptArg = stageOneMock.mock.calls[0][0]
+        expect(promptArg.dynamicSuffix).toContain('"tropeAffinities"')
+        expect(promptArg.dynamicSuffix).toContain('"environmentAffordances"')
+        expect(promptArg.dynamicSuffix).toContain('"object": "long-fall"')
         expect(planSelectionMock).not.toHaveBeenCalled()
         expect(phasePlanHopMock).not.toHaveBeenCalled()
     })

@@ -1,6 +1,6 @@
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import { renderTreeToString } from '@tonylb/mtw-base/ts/renderTree'
-import { harnessRoomObjects, type CoyoteEngineTestFixture } from './coyoteEngineTestFixtures'
+import { harnessRoomObjects, harnessRoomObjectsSpec, type CoyoteEngineTestFixture } from './coyoteEngineTestFixtures'
 import { runCoyoteEngineTestHarness } from './runCoyoteEngineTestHarness'
 import type { GenerateHypothesisPipelineResult } from '../pipelines/hypothesis/generateHypothesis'
 
@@ -279,6 +279,60 @@ describe('runCoyoteEngineTestHarness', () => {
             expect.anything(),
             { testOnly: 'clustering', harnessRunKind: 'runUntil' }
         )
+    })
+
+    it('partial runUntil clustering passes affordance-rich room objects unchanged', async () => {
+        const send = jest.fn()
+        const flush = jest.fn().mockResolvedValue(undefined)
+        const affordanceFixture: CoyoteEngineTestFixture = {
+            id: 'fixture-affordance',
+            roomObjectsByRoom: {
+                'ROOM#VORTEX': harnessRoomObjectsSpec('vortex', [
+                    {
+                        shortName: 'paint',
+                        tropeAffinities: [{
+                            trope: 'Distraction',
+                            aptness: 'Good',
+                            narrowing: 'fake tunnel lure',
+                            environmentAffordances: [{ object: 'rock-wall', roles: ['Finishing Move'] }],
+                        }],
+                    },
+                ]),
+            },
+        }
+        const pipeline = jest.fn().mockResolvedValue({
+            kind: 'harnessPartial',
+            testOnly: 'clustering',
+            harnessRunKind: 'runUntil',
+            record: { intent: 'Hypothesis: partial' },
+            stageOneResult: {
+                success: true,
+                body: '{"candidates":[]}',
+                usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+            },
+        })
+
+        await runCoyoteEngineTestHarness({
+            characterId: 'CHARACTER#runner',
+            messageBus: { send, flush },
+            fixtures: [affordanceFixture],
+            generateHypothesisPipelineImpl: pipeline,
+            harnessInvocation: {
+                mode: 'partial',
+                testOnly: 'clustering',
+                harnessRunKind: 'runUntil',
+            },
+        })
+
+        expect(pipeline).toHaveBeenCalledTimes(1)
+        const depsArg = pipeline.mock.calls[0][0] as {
+            roomObjectsByRoomOverride: Record<string, Array<{
+                tropeAffinities?: Array<{ environmentAffordances?: unknown[] }>;
+            }>>;
+        }
+        expect(
+            depsArg.roomObjectsByRoomOverride['ROOM#VORTEX'][0].tropeAffinities?.[0].environmentAffordances
+        ).toEqual([{ object: 'rock-wall', roles: ['Finishing Move'] }])
     })
 
     it('partial harness partial result labels skipped stages as (not run) and prints harness banner', async () => {

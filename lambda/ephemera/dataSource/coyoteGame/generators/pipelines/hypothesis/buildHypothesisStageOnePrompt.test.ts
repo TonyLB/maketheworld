@@ -1,6 +1,5 @@
 import { harnessRoomObjects } from '../../testHarness/coyoteEngineTestFixtures'
 import { buildHypothesisStageOnePromptParts } from './buildHypothesisStageOnePrompt'
-import { SNAPSHOT_SECTION_HEADER } from './coyoteHypothesisPromptShared'
 
 describe('buildHypothesisStageOnePromptParts', () => {
     it('includes stage-one contract anchors and dynamic seam/snapshot sections', () => {
@@ -23,9 +22,13 @@ describe('buildHypothesisStageOnePromptParts', () => {
         expect(full).not.toContain('intendedRole')
         expect(parts.dynamicSuffix).toContain('## Seam room labels')
         expect(parts.dynamicSuffix).toContain('`ROOM#STRAIGHTAWAY` → **STRAIGHTAWAY**')
-        expect(parts.dynamicSuffix).toContain(SNAPSHOT_SECTION_HEADER)
-        expect(parts.dynamicSuffix).toContain('STRAIGHTAWAY')
-        expect(parts.dynamicSuffix).toContain('rocket skates')
+        expect(parts.dynamicSuffix).toContain('## Current staged objects by room')
+        expect(parts.dynamicSuffix).toContain('Use this JSON as authoritative staged-object input')
+        expect(parts.dynamicSuffix).toContain('```json')
+        expect(parts.dynamicSuffix).toContain('"roomId": "ROOM#STRAIGHTAWAY"')
+        expect(parts.dynamicSuffix).toContain('"shortName": "rocket skates"')
+        expect(parts.dynamicSuffix).toContain('"stableKey": "rocket-skates-0"')
+        expect(parts.dynamicSuffix).toContain('"tropeAffinities"')
     })
 
     it('rejoins parts consistently', () => {
@@ -41,5 +44,6 @@ describe('buildHypothesisStageOnePromptParts', () => {
         const parts = buildHypothesisStageOnePromptParts(input)
         expect(parts.dynamicSuffix.startsWith('\n## Seam room labels')).toBe(true)
         expect(parts.dynamicSuffix).toContain('## Current staged objects by room')
+        expect(parts.dynamicSuffix).toContain('```json')
     })
 })
