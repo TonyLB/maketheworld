@@ -263,7 +263,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         expect(phasePlanHopMock).not.toHaveBeenCalled()
     })
 
-    it('returns stub when plan-selection response misses required rubric section', async () => {
+    it('continues full pipeline when plan-selection rubric markdown section is missing but JSON is valid', async () => {
         planSelectionMock.mockResolvedValue({
             success: true,
             body: [
@@ -282,8 +282,8 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         const result = await runCoyoteHypothesisPipeline(
             { getGameRooms, getRoomMeta }
         )
-        expect(result.kind).toBe('stub')
-        expect(phasePlanHopMock).not.toHaveBeenCalled()
+        expect(result.kind).toBe('full')
+        expect(phasePlanHopMock).toHaveBeenCalledTimes(1)
     })
 
     it('runOnly planSelect uses inject and skips upstream LLMs', async () => {

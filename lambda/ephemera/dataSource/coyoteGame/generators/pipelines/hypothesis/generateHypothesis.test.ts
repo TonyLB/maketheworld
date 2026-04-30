@@ -318,7 +318,7 @@ describe('generateHypothesis', () => {
         expect(phasePlanHopMock).not.toHaveBeenCalled()
     })
 
-    it('falls back to stub when required hop-1 rubric section is missing', async () => {
+    it('continues when hop-1 rubric markdown section is missing but handoff JSON is valid', async () => {
         planSelectionMock.mockResolvedValue({
             success: true,
             body: [
@@ -336,9 +336,28 @@ describe('generateHypothesis', () => {
         })
 
         await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
-            intent: 'Hypothesis: Stubbed',
+            intent: 'Hypothesis: You are trying to drop something on the Road Runner.',
+            phasePlan: {
+                tropeSequence: ['Contraption'],
+                deconflictionSummary: 'Single-lane setup avoids conflicting prop reuse.',
+                phases: [
+                    {
+                        trope: 'Contraption',
+                        tropeBeat: 'Rig the anvil drop lane and commit trigger timing.',
+                        stableKeysUsed: ['anvil'],
+                        virtualEntities: [
+                            {
+                                label: 'Position bait',
+                                derivedFrom: ['anvil'],
+                                phaseKind: 'gathered',
+                            },
+                        ],
+                        achievement: 'Trap staged',
+                    },
+                ],
+            },
         })
-        expect(phasePlanHopMock).not.toHaveBeenCalled()
+        expect(phasePlanHopMock).toHaveBeenCalledTimes(1)
     })
 
     it('falls back to stub when phase-plan hop Bedrock fails', async () => {
