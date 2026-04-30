@@ -7,7 +7,7 @@ import {
     SNAPSHOT_SECTION_HEADER,
     splitCoyoteHypothesisLinesAtSnapshot,
 } from './coyoteHypothesisPromptShared'
-import { formatCoyoteStagedObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
+import { serializeCoyoteStagedObjectsByRoomJson } from '../../../utilities/coyoteRoomObjectSnapshot'
 
 const STAGE_ONE_INTRO_LINES = [
     'You are clustering staged Acme objects in a Coyote-vs-Road-Runner cartoon setup.',
@@ -148,6 +148,10 @@ const STAGE_ONE_JSON_CONTRACT_LINES = [
     '  Trope assignment objects may contain only **`trope`**, **`executionDetail`**,',
     '  and **`members`**. Member/outlier objects may contain only **`stableKey`** and',
     '  required **`tropeFunction`**.',
+    '- **Input evidence priority:** Use staged-object **`tropeAffinities`** as the primary',
+    '  decision signal when grouping members and writing **`tropeFunction`**.',
+    '- Treat **`environmentAffordances`** inside those affinities as secondary advisory',
+    '  hints; they can refine placement, but should not override stronger affinity evidence.',
 ] as const
 
 function stageOnePromptLines(snapshotSection: string): string[] {
@@ -163,13 +167,17 @@ function stageOnePromptLines(snapshotSection: string): string[] {
         STAGE_ONE_JSON_FEW_SHOT,
         '',
         SNAPSHOT_SECTION_HEADER,
-        snapshotSection || '(none)',
+        'Use this JSON as authoritative staged-object input (full object rows, trope affinities, and affordances).',
+        '',
+        '```json',
+        snapshotSection || '{}',
+        '```',
     ]
 }
 
 /** Stage 1 only: emits JSON clustering seam. Cache split before staged-objects snapshot. */
 export function buildHypothesisStageOnePromptParts(input: BuildHypothesisPromptInput): CoyotePromptParts {
-    const snapshotSection = formatCoyoteStagedObjectsByRoom(input.roomObjectsByRoom)
+    const snapshotSection = serializeCoyoteStagedObjectsByRoomJson(input.roomObjectsByRoom)
     const lines = stageOnePromptLines(snapshotSection)
     const splitAt = splitCoyoteHypothesisLinesAtSnapshot(lines)
     const mappingBlock = coyoteSeamRoomMappingLines(input.roomObjectsByRoom).join('\n')

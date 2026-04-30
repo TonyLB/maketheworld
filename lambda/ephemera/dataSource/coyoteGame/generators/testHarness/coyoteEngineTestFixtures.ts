@@ -98,7 +98,7 @@ const FIXTURE_01_ROOM_OBJECTS: CoyoteEngineTestFixture['roomObjectsByRoom'] = {
                 {
                     trope: 'Finishing Move',
                     aptness: 'Good',
-                    narrowing: 'payload delivery into terminal beat',
+                    narrowing: 'payload delivery into terminal beat'
                 },
             ],
         },
@@ -267,9 +267,13 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                             narrowing: 'persistent route hazard in bridge lane',
                         },
                         {
-                            trope: 'Finishing Move',
+                            trope: 'Contraption',
                             aptness: 'Good',
-                            narrowing: 'terminal drop endpoint if committed',
+                            narrowing: 'diverts someone to a drop',
+                            environmentAffordances: [{
+                                object: 'long-fall',
+                                roles: ['Finishing Move', 'Contraption'],
+                            }],
                         },
                     ],
                 },
@@ -294,9 +298,9 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                             narrowing: 'persistent pull alters runner pathing',
                         },
                         {
-                            trope: 'Finishing Move',
+                            trope: 'Contraption',
                             aptness: 'Good',
-                            narrowing: 'terminal snap-in collision setup',
+                            narrowing: 'attracts toward metal objects'
                         },
                     ],
                 },
@@ -306,7 +310,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                         {
                             trope: 'Contraption',
                             aptness: 'Good',
-                            narrowing: 'rig body for trigger chain',
+                            narrowing: 'vehicle or carrier',
                         },
                         {
                             trope: 'Finishing Move',
@@ -330,12 +334,11 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                             trope: 'Contraption',
                             aptness: 'High',
                             narrowing: 'pre-aimed launch apparatus',
-                        },
-                        {
-                            trope: 'Finishing Move',
-                            aptness: 'High',
-                            narrowing: 'terminal launch and drop delivery',
-                        },
+                            environmentAffordances: [{
+                                object: 'boulder',
+                                roles: ['Finishing Move'],
+                            }],
+                        }
                     ],
                 },
             ]),
@@ -358,12 +361,12 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                         {
                             trope: 'Disadvantage',
                             aptness: 'High',
-                            narrowing: 'persistent adhesion constraint on movement',
+                            narrowing: 'slow target',
                         },
                         {
                             trope: 'Contraption',
-                            aptness: 'Poor',
-                            narrowing: 'support prep material only',
+                            aptness: 'Good',
+                            narrowing: 'attach things',
                         },
                     ],
                 },
@@ -376,6 +379,10 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                             trope: 'Finishing Move',
                             aptness: 'High',
                             narrowing: 'point terminal payload from above',
+                            environmentAffordances: [{
+                                object: 'long-fall',
+                                roles: ['Contraption'],
+                            }],
                         },
                     ],
                 },
@@ -393,12 +400,26 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                         {
                             trope: 'Contraption',
                             aptness: 'High',
-                            narrowing: 'trajectory setup hardware',
+                            narrowing: 'changes trajectory',
+                            environmentAffordances: [{
+                                object: 'boulder',
+                                roles: ['Finishing Move'],
+                            }, {
+                                object: 'tumbleweed',
+                                roles: ['Contraption'],
+                            }],
                         },
                         {
                             trope: 'Disadvantage',
                             aptness: 'Good',
                             narrowing: 'forced bounce path control',
+                            environmentAffordances: [{
+                                object: 'cactus',
+                                roles: ['Disadvantage'],
+                            }, {
+                                object: 'long-fall',
+                                roles: ['Finishing Move'],
+                            }],
                         },
                     ],
                 },
@@ -411,12 +432,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                             trope: 'Disadvantage',
                             aptness: 'High',
                             narrowing: 'capture constraint state',
-                        },
-                        {
-                            trope: 'Finishing Move',
-                            aptness: 'Good',
-                            narrowing: 'terminal containment beat',
-                        },
+                        }
                     ],
                 },
             ]),
@@ -438,7 +454,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                         {
                             trope: 'Finishing Move',
                             aptness: 'Good',
-                            narrowing: 'payload acceleration toward terminal beat',
+                            narrowing: 'blow target up',
                         },
                     ],
                 },
@@ -449,12 +465,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                             trope: 'Contraption',
                             aptness: 'Good',
                             narrowing: 'mobility prep on long straightaway route',
-                        },
-                        {
-                            trope: 'Distraction',
-                            aptness: 'Poor',
-                            narrowing: 'visual decoy only in narrow reads',
-                        },
+                        }
                     ],
                 },
                 {
@@ -464,12 +475,11 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                             trope: 'Contraption',
                             aptness: 'High',
                             narrowing: 'launch platform in primary setup chain',
-                        },
-                        {
-                            trope: 'Finishing Move',
-                            aptness: 'High',
-                            narrowing: 'terminal delivery rig when committed',
-                        },
+                            environmentAffordances: [{
+                                object: 'boulder',
+                                roles: ['Finishing Move'],
+                            }],
+                        }
                     ],
                 },
                 {
@@ -478,12 +488,11 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                         {
                             trope: 'Contraption',
                             aptness: 'Good',
-                            narrowing: 'triggered kinetic transfer between props',
-                        },
-                        {
-                            trope: 'Finishing Move',
-                            aptness: 'Good',
-                            narrowing: 'impact amplification at terminal moment',
+                            narrowing: 'launches or redirects',
+                            environmentAffordances: [{
+                                object: 'boulder',
+                                roles: ['Finishing Move'],
+                            }],
                         },
                     ],
                 },
@@ -493,12 +502,12 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                         {
                             trope: 'Disadvantage',
                             aptness: 'High',
-                            narrowing: 'persistent adhesion constraint on route',
+                            narrowing: 'slow target',
                         },
                         {
                             trope: 'Contraption',
-                            aptness: 'Poor',
-                            narrowing: 'support prep only',
+                            aptness: 'Good',
+                            narrowing: 'attach things',
                         },
                     ],
                 },
@@ -619,6 +628,13 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                             trope: 'Contraption',
                             aptness: 'Good',
                             narrowing: 'prep illusion and route edit',
+                            environmentAffordances: [{
+                                object: 'rock-wall',
+                                roles: ['Finishing Move'],
+                            }, {
+                                object: 'long-fall',
+                                roles: ['Finishing Move'],
+                            }],
                         },
                     ],
                 },
