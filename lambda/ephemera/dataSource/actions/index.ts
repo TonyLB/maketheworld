@@ -74,6 +74,8 @@ const invalidAcmeOrderMessages = (orders: ParseCommandAcmeOrderLine[]): string[]
                     return `The courier apologizes: Acme only sells tangible objects, ${name} doesn't qualify`
                 case 'Too large':
                     return `The courier apologizes: You couldn't afford the shipping on ${name}`
+                case 'Celebrity cameo':
+                    return 'The courier apologizes: Acme no longer arranges celebrity cameos. Complaints about this policy should be directed to Yakko, Wakko, and Dot at the Warner lot. They know what they did.'
                 default:
                     return `The courier apologizes: ${name} cannot be delivered.`
             }

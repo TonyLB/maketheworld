@@ -27,7 +27,10 @@ const isParseConfidence = (value: unknown): value is ParseCommandConfidence => (
 )
 
 const isParseCommandAcmeOrderErrorType = (value: unknown): value is ParseCommandAcmeOrderErrorType => (
-    value === 'Not a thing' || value === 'Not tangible' || value === 'Too large'
+    value === 'Not a thing'
+    || value === 'Not tangible'
+    || value === 'Too large'
+    || value === 'Celebrity cameo'
 )
 
 /**

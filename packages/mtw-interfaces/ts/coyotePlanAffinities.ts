@@ -25,7 +25,11 @@ export type CoyoteModificationRole =
     | 'enhance-prop'
 
 /** Acme order enrich catalog rejection (aligned with parse command apology copy). */
-export type AcmeCatalogRejectionReason = 'Not a thing' | 'Not tangible' | 'Too large'
+export type AcmeCatalogRejectionReason =
+    | 'Not a thing'
+    | 'Not tangible'
+    | 'Too large'
+    | 'Celebrity cameo'
 
 const structuralRoles: ReadonlySet<CoyoteStructuralRole> = new Set([
     'terminal',
@@ -244,7 +248,12 @@ export function isCoyoteAffinityPossibilityEcho(entry: unknown): entry is Coyote
 }
 
 export function isAcmeCatalogRejectionReason(value: unknown): value is AcmeCatalogRejectionReason {
-    return value === 'Not a thing' || value === 'Not tangible' || value === 'Too large'
+    return (
+        value === 'Not a thing'
+        || value === 'Not tangible'
+        || value === 'Too large'
+        || value === 'Celebrity cameo'
+    )
 }
 
 function isFiniteUnitConfidence(n: unknown): boolean {
