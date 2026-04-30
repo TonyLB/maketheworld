@@ -197,6 +197,29 @@ describe('handleAwaitRoadRunnerClearObjects', () => {
 
 describe('handleAcmeOrderAddObjects', () => {
     const streamEvent = jest.fn().mockResolvedValue(undefined)
+    const environmentAffordanceMatrixOrder = {
+        shortName: 'paint tunnel kit',
+        stableKey: 'paint-tunnel-kit',
+        tropeAffinities: [
+            {
+                trope: 'Contraption' as const,
+                aptness: 'High' as const,
+                narrowing: 'scene-dependent rig',
+                environmentAffordances: [
+                    { object: 'rock-wall' as const, roles: ['Finishing Move' as const] },
+                    { object: 'long-fall' as const, roles: ['Finishing Move' as const] },
+                    { object: 'cactus' as const, roles: ['Disadvantage' as const] },
+                    { object: 'boulder' as const, roles: ['Contraption' as const] },
+                    { object: 'tumbleweed' as const, roles: ['Distraction' as const] },
+                ],
+            },
+            {
+                trope: 'Distraction' as const,
+                aptness: 'Good' as const,
+                narrowing: 'portable bait',
+            },
+        ],
+    }
 
     beforeEach(() => {
         mergePersistMetaRoomObjectsMock.mockReset()
@@ -473,6 +496,125 @@ describe('handleAcmeOrderAddObjects', () => {
 
         expect(mergePersistMetaRoomObjectsImpl).not.toHaveBeenCalled()
         expect(streamEvent).not.toHaveBeenCalled()
+    })
+
+    it('filters environment affordances for ROOM#STRAIGHTAWAY', async () => {
+        const mergePersistMetaRoomObjectsImpl = jest.fn().mockResolvedValue({ ok: true, persisted: false })
+        const getCharacterMeta = jest.fn(async () => ({ RoomId: 'ROOM#STRAIGHTAWAY' }))
+        const uuidFactory = jest.fn(() => 'u1')
+
+        await handleAcmeOrderAddObjects({
+            type: 'Acme Order',
+            characterId: 'CHARACTER#123',
+            orders: [environmentAffordanceMatrixOrder],
+            confidence: 0.7,
+        }, {
+            streamEvent,
+            getCharacterMeta,
+            uuidFactory,
+            mergePersistMetaRoomObjectsImpl,
+        })
+
+        const addLine = mergePersistMetaRoomObjectsImpl.mock.calls[0]?.[0]?.add?.[0]
+        expect(addLine.tropeAffinities?.[0]?.environmentAffordances).toEqual([
+            { object: 'cactus', roles: ['Disadvantage'] },
+            { object: 'boulder', roles: ['Contraption'] },
+            { object: 'tumbleweed', roles: ['Distraction'] },
+        ])
+        expect(addLine.tropeAffinities?.[1]).toEqual({
+            trope: 'Distraction',
+            aptness: 'Good',
+            narrowing: 'portable bait',
+        })
+    })
+
+    it('filters environment affordances for ROOM#BRIDGE', async () => {
+        const mergePersistMetaRoomObjectsImpl = jest.fn().mockResolvedValue({ ok: true, persisted: false })
+        const getCharacterMeta = jest.fn(async () => ({ RoomId: 'ROOM#BRIDGE' }))
+        const uuidFactory = jest.fn(() => 'u1')
+
+        await handleAcmeOrderAddObjects({
+            type: 'Acme Order',
+            characterId: 'CHARACTER#123',
+            orders: [environmentAffordanceMatrixOrder],
+            confidence: 0.7,
+        }, {
+            streamEvent,
+            getCharacterMeta,
+            uuidFactory,
+            mergePersistMetaRoomObjectsImpl,
+        })
+
+        const addLine = mergePersistMetaRoomObjectsImpl.mock.calls[0]?.[0]?.add?.[0]
+        expect(addLine.tropeAffinities?.[0]?.environmentAffordances).toEqual([
+            { object: 'long-fall', roles: ['Finishing Move'] },
+            { object: 'boulder', roles: ['Contraption'] },
+            { object: 'tumbleweed', roles: ['Distraction'] },
+        ])
+    })
+
+    it('filters environment affordances for ROOM#VORTEX and reflects filtered payload in stream event', async () => {
+        const filteredAddObject = {
+            uuid: 'OBJECT#u1' as EphemeraObjectId,
+            shortName: 'paint tunnel kit',
+            stableKey: 'paint-tunnel-kit',
+            tropeAffinities: [
+                {
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'scene-dependent rig',
+                    environmentAffordances: [
+                        { object: 'rock-wall', roles: ['Finishing Move'] },
+                        { object: 'cactus', roles: ['Disadvantage'] },
+                        { object: 'boulder', roles: ['Contraption'] },
+                        { object: 'tumbleweed', roles: ['Distraction'] },
+                    ],
+                },
+                {
+                    trope: 'Distraction',
+                    aptness: 'Good',
+                    narrowing: 'portable bait',
+                },
+            ],
+        }
+        const mergePersistMetaRoomObjectsImpl = jest.fn().mockResolvedValue({
+            ok: true,
+            persisted: true,
+            priorObjects: [],
+            newObjects: [filteredAddObject],
+        })
+        const getCharacterMeta = jest.fn(async () => ({ RoomId: 'ROOM#VORTEX' }))
+        const uuidFactory = jest.fn(() => 'u1')
+
+        await handleAcmeOrderAddObjects({
+            type: 'Acme Order',
+            characterId: 'CHARACTER#123',
+            orders: [environmentAffordanceMatrixOrder],
+            confidence: 0.7,
+        }, {
+            streamEvent,
+            getCharacterMeta,
+            uuidFactory,
+            mergePersistMetaRoomObjectsImpl,
+        })
+
+        expect(mergePersistMetaRoomObjectsImpl).toHaveBeenCalledWith({
+            roomId: 'ROOM#VORTEX',
+            add: [filteredAddObject],
+            remove: [],
+        })
+        expect(streamEvent).toHaveBeenCalledWith({
+            streamKey: 'ROOM#VORTEX',
+            header: { type: 'Objects Changed' },
+            update: {
+                type: 'Objects Changed',
+                componentId: 'ROOM#VORTEX',
+                add: [filteredAddObject],
+                remove: [],
+                priorObjects: [],
+                newObjects: [filteredAddObject],
+            },
+        })
     })
 
 })
