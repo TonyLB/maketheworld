@@ -6,6 +6,10 @@ import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
 import { v4 as uuidv4 } from 'uuid'
 import type { ObjectsChangeCommand } from '../localApiEvents'
 import type { AcmeOrderPublishedPayload } from '../actions/publishedEvents'
+import type {
+    CoyoteTropeAffinity,
+    EnvironmentAffordanceObject,
+} from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { clearPersistMetaRoomObjects, mergePersistMetaRoomObjects } from './mergePersistMetaRoomObjects'
 import type { ObjectsChangedPayload } from './events'
 import internalCache from '../../internalCache'
@@ -106,14 +110,57 @@ export const handleAwaitRoadRunnerClearObjects = async (
  */
 const acmeOrderToMetaRoomObject = (
     entry: AcmeOrderPublishedPayload['orders'][number],
+    roomId: EphemeraRoomId,
     uuid: `OBJECT#${string}`
 ) => ({
     uuid,
     shortName: entry.shortName,
     stableKey: entry.stableKey,
-    ...(entry.tropeAffinities !== undefined ? { tropeAffinities: entry.tropeAffinities } : {}),
+    ...(entry.tropeAffinities !== undefined
+        ? { tropeAffinities: filterTropeAffinitiesByRoom(roomId)(entry.tropeAffinities) }
+        : {}),
     ...(entry.tropeAffinitiesFailed === true ? { tropeAffinitiesFailed: true as const } : {}),
 })
+
+const ROOM_IDS_WITH_ROCK_WALL = new Set<EphemeraRoomId>(['ROOM#VORTEX', 'ROOM#CORNER'])
+const ROOM_IDS_WITH_LONG_FALL = new Set<EphemeraRoomId>(['ROOM#CLIFFTOP', 'ROOM#BRIDGE'])
+const ROOM_IDS_WITHOUT_CACTUS = new Set<EphemeraRoomId>(['ROOM#BRIDGE'])
+
+function isEnvironmentAffordanceAllowedInRoom(
+    affordanceObject: EnvironmentAffordanceObject,
+    roomId: EphemeraRoomId
+): boolean {
+    switch (affordanceObject) {
+        case 'rock-wall':
+            return ROOM_IDS_WITH_ROCK_WALL.has(roomId)
+        case 'long-fall':
+            return ROOM_IDS_WITH_LONG_FALL.has(roomId)
+        case 'cactus':
+            return !ROOM_IDS_WITHOUT_CACTUS.has(roomId)
+        case 'boulder':
+        case 'tumbleweed':
+            return true
+        default:
+            return false
+    }
+}
+
+const filterTropeAffinitiesByRoom = (
+    roomId: EphemeraRoomId
+) => (
+    tropeAffinities: CoyoteTropeAffinity[]
+): CoyoteTropeAffinity[] => (
+    tropeAffinities.map((entry) => {
+        if (entry.environmentAffordances === undefined) {
+            return entry
+        }
+        return {
+            ...entry,
+            environmentAffordances: entry.environmentAffordances
+                .filter(({ object }) => isEnvironmentAffordanceAllowedInRoom(object, roomId)),
+        }
+    })
+)
 
 export const handleAcmeOrderAddObjects = async (
     payload: AcmeOrderPublishedPayload,
@@ -133,6 +180,7 @@ export const handleAcmeOrderAddObjects = async (
     const makeUuid = deps.uuidFactory ?? uuidv4
     const add = payload.orders.map((entry) => acmeOrderToMetaRoomObject(
         entry,
+        roomId,
         `OBJECT#${makeUuid()}` as `OBJECT#${string}`
     ))
     if (add.length === 0) {
