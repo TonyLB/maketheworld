@@ -72,7 +72,7 @@ Choose **AcmeOrder** when the line is **primarily** about **ordering or buying g
 
 **Do not** list products, judge catalog validity, or segment line items — a **later step** parses
 the command and validates **tangible vs. abstract**, **catalog membership**, **size**,
-**affinities**, and **normalized titles**.
+**trope fits**, and **normalized titles**.
 
 ### C — LookRoom
 

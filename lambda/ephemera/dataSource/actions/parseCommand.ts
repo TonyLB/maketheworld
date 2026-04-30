@@ -8,6 +8,7 @@ import { enrichAcmeOrder } from './enrich/acmeOrder'
 export type ParseCommandWithEnrichReasoningResult = {
     result: ParseCommandResult;
     enrichReasoningMarkdown: string;
+    enrichRawBody?: string;
 };
 
 async function parseCommandCore(
@@ -17,10 +18,10 @@ async function parseCommandCore(
     const intentResult = await discriminateIntent(input, deps)
 
     if (intentResult.type !== 'AcmeOrderIntent') {
-        return { result: intentResult, enrichReasoningMarkdown: '' }
+        return { result: intentResult, enrichReasoningMarkdown: '', enrichRawBody: undefined }
     }
 
-    const { result, enrichReasoningMarkdown } = await enrichAcmeOrder(
+    const { result, enrichReasoningMarkdown, enrichRawBody } = await enrichAcmeOrder(
         {
             command: input.command,
             occupiedStableKeys: input.occupiedStableKeys ?? [],
@@ -29,7 +30,7 @@ async function parseCommandCore(
         deps.invokeBedrockAcmeOrderEnrichImpl,
         deps.countCoyotePlacedObjectsAcrossRoomsDeps
     )
-    return { result, enrichReasoningMarkdown }
+    return { result, enrichReasoningMarkdown, enrichRawBody }
 }
 
 /**

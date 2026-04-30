@@ -226,7 +226,10 @@ describe('handleAcmeOrderAddObjects', () => {
                             trope: 'Contraption' as const,
                             aptness: 'High' as const,
                             narrowing: 'magnetic winch rig',
-                            environmentAffordances: ['affordance-alpha', 'affordance-beta'],
+                            environmentAffordances: [{
+                                object: 'boulder',
+                                roles: ['Contraption', 'Finishing Move'],
+                            }],
                         },
                         {
                             trope: 'Contraption',
@@ -255,7 +258,10 @@ describe('handleAcmeOrderAddObjects', () => {
                             trope: 'Contraption',
                             aptness: 'High',
                             narrowing: 'magnetic winch rig',
-                            environmentAffordances: ['affordance-alpha', 'affordance-beta'],
+                            environmentAffordances: [{
+                                object: 'boulder',
+                                roles: ['Contraption', 'Finishing Move'],
+                            }],
                         },
                         {
                             trope: 'Contraption',
@@ -288,7 +294,10 @@ describe('handleAcmeOrderAddObjects', () => {
                             trope: 'Contraption',
                             aptness: 'High',
                             narrowing: 'magnetic winch rig',
-                            environmentAffordances: ['affordance-alpha', 'affordance-beta'],
+                            environmentAffordances: [{
+                                object: 'boulder',
+                                roles: ['Contraption', 'Finishing Move'],
+                            }],
                         },
                         {
                             trope: 'Contraption',
@@ -318,7 +327,10 @@ describe('handleAcmeOrderAddObjects', () => {
                                 trope: 'Contraption',
                                 aptness: 'High',
                                 narrowing: 'magnetic winch rig',
-                                environmentAffordances: ['affordance-alpha', 'affordance-beta'],
+                                environmentAffordances: [{
+                                    object: 'boulder',
+                                    roles: ['Contraption', 'Finishing Move'],
+                                }],
                             },
                             {
                                 trope: 'Contraption',
@@ -343,7 +355,10 @@ describe('handleAcmeOrderAddObjects', () => {
                                 trope: 'Contraption',
                                 aptness: 'High',
                                 narrowing: 'magnetic winch rig',
-                                environmentAffordances: ['affordance-alpha', 'affordance-beta'],
+                                environmentAffordances: [{
+                                    object: 'boulder',
+                                    roles: ['Contraption', 'Finishing Move'],
+                                }],
                             },
                             {
                                 trope: 'Contraption',

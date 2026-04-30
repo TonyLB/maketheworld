@@ -93,14 +93,22 @@ describe('isAcmeOrderEnrichModelLine', () => {
         valid: true as const,
         name: 'Beehive',
         stableKey: 'beehive',
-        affinities: [
-            { role: 'influence-road-runner', aptness: 0.7 },
-            { role: 'terminal', aptness: 0.5 },
-        ],
+        affinities: [],
     }
 
     it('accepts a valid line', () => {
         expect(isAcmeOrderEnrichModelLine(validLine)).toBe(true)
+    })
+
+    it('accepts valid line when legacy affinities array is omitted', () => {
+        expect(
+            isAcmeOrderEnrichModelLine({
+                valid: true,
+                name: 'Beehive',
+                stableKey: 'beehive',
+                tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'hive rig' }],
+            })
+        ).toBe(true)
     })
 
     it('accepts an invalid catalog line', () => {
@@ -110,6 +118,16 @@ describe('isAcmeOrderEnrichModelLine', () => {
                 name: 'Justice',
                 errorType: 'Not tangible',
                 affinities: [],
+            })
+        ).toBe(true)
+    })
+
+    it('accepts invalid catalog line when legacy affinities array is omitted', () => {
+        expect(
+            isAcmeOrderEnrichModelLine({
+                valid: false,
+                name: 'Justice',
+                errorType: 'Not tangible',
             })
         ).toBe(true)
     })
@@ -168,7 +186,10 @@ describe('isAcmeOrderEnrichModelLine', () => {
                     trope: 'Contraption',
                     aptness: 'Good',
                     narrowing: 'launch rig',
-                    environmentAffordances: ['payload sling', 'spring board'],
+                    environmentAffordances: [{
+                        object: 'boulder',
+                        roles: ['Contraption'],
+                    }],
                 }],
             })
         ).toBe(true)
@@ -193,7 +214,10 @@ describe('isAcmeOrderEnrichModelLine', () => {
                     trope: 'Contraption',
                     aptness: 'Good',
                     narrowing: 'launch rig',
-                    environmentAffordances: 'payload sling',
+                    environmentAffordances: {
+                        object: 'boulder',
+                        roles: ['Contraption'],
+                    },
                 }],
             } as unknown)
         ).toBe(false)
@@ -204,7 +228,38 @@ describe('isAcmeOrderEnrichModelLine', () => {
                     trope: 'Contraption',
                     aptness: 'Good',
                     narrowing: 'launch rig',
-                    environmentAffordances: ['payload sling', 7],
+                    environmentAffordances: [{
+                        object: 'payload sling',
+                        roles: ['Contraption'],
+                    }],
+                }],
+            } as unknown)
+        ).toBe(false)
+        expect(
+            isAcmeOrderEnrichModelLine({
+                ...validLine,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'Good',
+                    narrowing: 'launch rig',
+                    environmentAffordances: [{
+                        object: 'boulder',
+                        roles: [],
+                    }],
+                }],
+            } as unknown)
+        ).toBe(false)
+        expect(
+            isAcmeOrderEnrichModelLine({
+                ...validLine,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'Good',
+                    narrowing: 'launch rig',
+                    environmentAffordances: [{
+                        object: 'boulder',
+                        roles: ['finishing-move'],
+                    }],
                 }],
             } as unknown)
         ).toBe(false)
@@ -305,7 +360,6 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             tropeAffinities: [],
             tropeAffinitiesFailed: true,
             affinities: [],
-            affinitiesFailed: true,
         })
     })
 
@@ -372,6 +426,27 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'launch rig' }],
             tropeAffinitiesFailed: false,
             affinities: [{ role: 'terminal', aptness: 0.5 }],
+        })
+    })
+
+    it('salvages valid line with tropeAffinities when legacy affinities are omitted', () => {
+        expect(
+            normalizeAcmeOrderEnrichLine(
+                {
+                    valid: true,
+                    name: 'X',
+                    stableKey: 'x',
+                    tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'launch rig' }],
+                },
+                'fb'
+            )
+        ).toEqual({
+            valid: true,
+            name: 'X',
+            stableKey: 'x',
+            tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'launch rig' }],
+            tropeAffinitiesFailed: false,
+            affinities: [],
         })
     })
 })

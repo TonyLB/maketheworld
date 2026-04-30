@@ -12,7 +12,7 @@ function parseFixtureIndexToken(token: string): number | undefined {
 }
 
 function usageSuffix(fixtureCount: number): string {
-    return `Fixture index must be an integer from 1 to ${fixtureCount}.`
+    return `Fixture index must be an integer from 1 to ${fixtureCount}, or add **verbose** for legacy Step 1.`
 }
 
 function invalidTailMessage(fixtureCount: number, detail: string): string {
@@ -27,9 +27,11 @@ export type ParseCoyoteAffinitiesTestSlashResult =
  * Parses `/test affinities` tail into harness invocation per locked slash UX.
  * Call only when {@link isCoyoteAffinitiesTestSlashCommand} is true for the trimmed command.
  *
- * Operator-facing grammar:
- * - `/test affinities` => full fixture run.
- * - `/test affinities <n>` => single fixture run (1-based index).
+ * Operator-facing grammar (tokens are order-independent except at most one index and at most one **verbose**):
+ * - `/test affinities` => full fixture run, compact Acme enrich Step 1.
+ * - `/test affinities <n>` => single fixture (1-based index), compact Step 1.
+ * - `/test affinities verbose` => full run, verbose (legacy) Step 1 in the enrich prompt.
+ * - `/test affinities <n> verbose` or `/test affinities verbose <n>` => one fixture, verbose Step 1.
  * - Any other tail shape => deterministic `Error` parse result with usage guidance.
  */
 export function parseCoyoteAffinitiesTestSlashTail(
@@ -41,36 +43,67 @@ export function parseCoyoteAffinitiesTestSlashTail(
         return { ok: true }
     }
     const tokens = tail.split(/\s+/).filter(Boolean)
-    if (tokens.length > 1) {
+    if (tokens.length > 2) {
         return {
             ok: false,
             errorMessage: invalidTailMessage(
                 fixtureCount,
-                'Too many arguments (expected at most one fixture index).'
+                'Too many arguments (expected at most a fixture index and optional "verbose").'
             ),
         }
     }
-    const idx = parseFixtureIndexToken(tokens[0]!)
-    if (idx === undefined) {
-        return {
-            ok: false,
-            errorMessage: invalidTailMessage(
-                fixtureCount,
-                `Unknown token "${tokens[0]}". Expected a fixture index.`
-            ),
+
+    let fixtureIndex1Based: number | undefined
+    let includeVerbose = false
+    for (const raw of tokens) {
+        if (/^verbose$/i.test(raw)) {
+            if (includeVerbose) {
+                return {
+                    ok: false,
+                    errorMessage: invalidTailMessage(fixtureCount, 'Duplicate "verbose" token.'),
+                }
+            }
+            includeVerbose = true
+            continue
+        }
+        const idx = parseFixtureIndexToken(raw)
+        if (idx === undefined) {
+            return {
+                ok: false,
+                errorMessage: invalidTailMessage(
+                    fixtureCount,
+                    `Unknown token "${raw}". Expected a fixture index (1-${fixtureCount}) or "verbose".`
+                ),
+            }
+        }
+        if (fixtureIndex1Based !== undefined) {
+            return {
+                ok: false,
+                errorMessage: invalidTailMessage(
+                    fixtureCount,
+                    'Too many fixture indices (expected at most one).'
+                ),
+            }
+        }
+        fixtureIndex1Based = idx
+    }
+
+    if (fixtureIndex1Based !== undefined) {
+        if (!Number.isInteger(fixtureIndex1Based) || fixtureIndex1Based < 1 || fixtureIndex1Based > fixtureCount) {
+            return {
+                ok: false,
+                errorMessage: invalidTailMessage(
+                    fixtureCount,
+                    `Fixture index must be an integer from 1 to ${fixtureCount} (received ${fixtureIndex1Based}).`
+                ),
+            }
         }
     }
-    if (!Number.isInteger(idx) || idx < 1 || idx > fixtureCount) {
-        return {
-            ok: false,
-            errorMessage: invalidTailMessage(
-                fixtureCount,
-                `Fixture index must be an integer from 1 to ${fixtureCount} (received ${tokens[0]}).`
-            ),
-        }
+
+    const harnessInvocation: CoyoteAffinitiesHarnessInvocation = {
+        mode: 'full',
+        ...(fixtureIndex1Based !== undefined ? { fixtureIndex1Based } : {}),
+        ...(includeVerbose ? { verbose: true } : {}),
     }
-    return {
-        ok: true,
-        harnessInvocation: { mode: 'full', fixtureIndex1Based: idx },
-    }
+    return { ok: true, harnessInvocation }
 }

@@ -51,7 +51,7 @@ describe('buildHypothesisPhasePlanHopPromptParts', () => {
                         trope: 'Finishing Move',
                         aptness: 'High',
                         narrowing: 'terminal payload',
-                        environmentAffordances: ['drop-ready'],
+                        environmentAffordances: [{ object: 'boulder', roles: ['Contraption'] }],
                     }],
                 }],
             },

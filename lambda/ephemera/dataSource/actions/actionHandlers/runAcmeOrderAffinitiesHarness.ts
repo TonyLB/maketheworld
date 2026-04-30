@@ -136,22 +136,35 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
         const startMs = now()
         let result: ParseCommandResult
         let displayReasoning = ''
-        const parseDeps: ParseCommandDeps = {}
+        let displayRawBody = ''
+        const acmeEnrichVerbose = deps.harnessInvocation?.verbose === true
+        const parseDeps: ParseCommandDeps = acmeEnrichVerbose
+            ? { debugAcmeOrderEnrichRationale: true }
+            : {}
         try {
             if (enrichOnly) {
                 const enriched = await enrichAcmeOrder(
-                    { command, occupiedStableKeys: [] },
+                    {
+                        command,
+                        occupiedStableKeys: [],
+                    },
                     1,
                     invokeEnrich,
                     deps.countCoyotePlacedObjectsAcrossRoomsDeps
                 )
                 result = enriched.result
                 displayReasoning = enriched.enrichReasoningMarkdown.trim()
+                if (acmeEnrichVerbose) {
+                    displayRawBody = (enriched.enrichRawBody ?? '').trim()
+                }
             }
             else if (deps.parseCommandWithEnrichReasoningImpl) {
                 const pair = await deps.parseCommandWithEnrichReasoningImpl({ command }, parseDeps)
                 result = pair.result
                 displayReasoning = pair.enrichReasoningMarkdown.trim()
+                if (acmeEnrichVerbose) {
+                    displayRawBody = (pair.enrichRawBody ?? '').trim()
+                }
             }
             else if (deps.parseCommandImpl) {
                 result = await deps.parseCommandImpl({ command }, parseDeps)
@@ -160,6 +173,9 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
                 const pair = await parseCommandWithEnrichReasoning({ command }, parseDeps)
                 result = pair.result
                 displayReasoning = pair.enrichReasoningMarkdown.trim()
+                if (acmeEnrichVerbose) {
+                    displayRawBody = (pair.enrichRawBody ?? '').trim()
+                }
             }
         }
         catch (error) {
@@ -180,6 +196,12 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
             tree.push('Classify order type (markdown):')
             tree.push(COYOTE_RENDER_LINE_BREAK)
             tree.push(displayReasoning)
+            tree.push(COYOTE_RENDER_LINE_BREAK)
+        }
+        if (acmeEnrichVerbose && displayRawBody) {
+            tree.push('Raw enrich body:')
+            tree.push(COYOTE_RENDER_LINE_BREAK)
+            tree.push(displayRawBody)
             tree.push(COYOTE_RENDER_LINE_BREAK)
         }
         tree.push(formatParseResultJson(result))

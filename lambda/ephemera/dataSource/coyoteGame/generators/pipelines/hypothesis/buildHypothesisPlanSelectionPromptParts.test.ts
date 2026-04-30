@@ -112,7 +112,7 @@ describe('buildHypothesisPlanSelectionPromptParts', () => {
                         trope: 'Finishing Move',
                         aptness: 'High',
                         narrowing: 'terminal payload',
-                        environmentAffordances: ['drop-ready'],
+                        environmentAffordances: [{ object: 'long-fall', roles: ['Finishing Move'] }],
                     }],
                 }],
             },

@@ -10,32 +10,17 @@ import type { ParseAcmeOrderEnrichPromptParts } from '../../../../generateExampl
 export type BuildParseAcmeOrderEnrichPromptOptions = {
     /** Union of **`stableKey`** values already used on staged objects across Coyote game rooms (must not invent collisions when avoidable). */
     occupiedStableKeys?: readonly string[];
+    /** Deprecated compatibility flag; prompt remains compact regardless of value. */
+    debugRationale?: boolean;
 };
 
-function formatOccupiedStableKeysBlock(keys: readonly string[]): string {
-    const uniqueSorted = [...new Set(keys.map((k) => k.trim()).filter((k) => k.length > 0))].sort(
-        (a, b) => a.localeCompare(b)
-    )
-    if (uniqueSorted.length === 0) {
-        return '(none)'
-    }
-    return uniqueSorted.map((k) => `- ${k}`).join('\n')
-}
-
-export function buildParseAcmeOrderEnrichPrompt(
-    command: string,
-    options?: BuildParseAcmeOrderEnrichPromptOptions
-): ParseAcmeOrderEnrichPromptParts {
-    const trimmed = command.trim()
-    const commandBlock = trimmed === '' ? '(empty command)' : trimmed
-
-    const invariantPrefix = `You validate and enrich **Acme mail-order** requests for a Coyote
+const INTRO_THROUGH_COYOTE_POV = `You validate and enrich **Acme mail-order** requests for a Coyote
 vs. Road Runner contraption game. Player requests are expected to name things they want Acme
 to deliver.
 
-You will complete **two steps with different rules** — do not treat them as the same content in
-two formats. Step 1 is **classification and concise rationale only** (no catalog JSON).
-Step 2 is **the machine-readable Acme record** (trope fits, normalized naming, and tone).
+Your reply has **two required parts in fixed order**:
+1) compact Markdown rationale lines (classification only; no catalog JSON),
+2) one trailing fenced **json** handoff block (machine-readable Acme record).
 
 All trope assignments, narrowings, and plan reasoning in this prompt are evaluated from the
 **Coyote's perspective exclusively**. The Coyote is the sole planner. The Road Runner is the
@@ -43,75 +28,42 @@ target in this model. When assigning tropes and writing narrowings, always ask: 
 this item do for the Coyote or against the Road Runner?" Never frame an item's role in terms
 of what it does for the Road Runner.
 
-Produce **two parts** in order:
+`
 
-1. **Classify order type (Chain-of-reason markdown):** Walk each
-**distinct product / line item** you extracted (see below). Use **one section or bullet block
-per item**. For **every** item, reason **in the order below** (same classify step). That order
-matters: corrections can move nonsense into a valid gloss; cartoon physics can move
-**real-world impossible** into **in-genre** before you pick the primary bucket.
+const COMPACT_STEP1_INSTRUCTIONS = `1. **Compact rationale lines:** For each **distinct product / line item** you extract (see **Segment line items**), emit **exactly one** pipe-separated row with these fields in order:
 
-   **First — Correctable user error:** Check whether the surface text is plausibly a typo,
-   speech-to-text glitch, or wrong-word slip against Coyote / Acme vocabulary
-   (**potable**→**portable**, etc.). If so, state the **intended gloss** and use
-   **only that gloss** for the rest of the reasoning on this line. If no correction applies,
-   say so briefly. **Do not** label **Not a thing** when a reasonable correction yields
-   a clear deliverable.
+surface text | gloss: corrected phrase or (none) | physics: yes or no | primary: bucket | finishing-mechanisms: mechanism1, mechanism2 or none | packaging-alts: alt1; alt2 or n/a
 
-   **Second — Cartoon physics modifier:** Given the **effective wording** (after any correction),
-   set **Cartoon physics: yes** when the deliverable **defies real-world physics or manufacturing**
-   but is **normal Coyote vs. Road Runner stock** (flying carpets, portable holes,
-   delayed-fall kits, etc.). Otherwise **Cartoon physics: no**. Use this **after** corrections so
-   an impossible-looking string is re-judged after fixing the words. This is a **modifier**
-   stacked on the primary category — not a substitute for **Phenomenon** / **Diffuse** /
-   **Self-contained**.
+**One product = one row:** The **surface text** field is the **full** product phrase for that item (e.g. **rocket skates** is **one** surface spanning both words). **Do not** emit a second row for a tail noun (**skates**) peeled off a compound name. Put **each** product row on its **own** line in Step 1 (newline between rows); **never** glue two products into one pipe row.
 
-   **Third — Primary category (exactly one):** Pick **one** bucket for the line.
-   **Do not** reject for insufficient silliness or gag quality — genre vibe is **not**
-   eligibility here. **Do not** shoehorn into **Not tangible** for vibe reasons.
+Walk **in order** for every item: **(1)** correction gloss **(2)** cartoon physics **(3)** primary bucket **(4)** finishing mechanisms **(5)** packaging alternatives.
+Output compact rationale rows only for this section; avoid decorative Markdown headings (for example, no **##** or **###** titles).
 
-   - **Not a thing:** The effective wording still does not parse to a noun phrase you can treat as a requested deliverable, or it remains gibberish / not a product after correction.
-   - **Not tangible:** It parses as a noun, but names something abstract (**justice**, **hope**) — not a physical deliverable even with packaging.
-   - **Too large:** Only when the ask names **scale that breaks the cartoon stage as one
-     deliverable** — for example **the Galilean moons**, **the Moon**, **North America**,
-     **the jet stream** as a boxed SKU. **Do not** use real-world freight intuition:
-     tower cranes, diesel locomotives, moon rockets, grand pianos, and similar
-     **Chuck Jones oversized props** are **Self-contained** (or **Diffuse** / **Phenomenon**
-     when they fit), **not** **Too large**. **Cartoon physics** can stack here
-     (cosmic gag, still rejected for scale).
-   - **Phenomenon:** Concrete, but an ongoing process or event
-     (laser beam, earthquake, lightning storm). Stay **brief**: state that label,
-     then list **two** plausible Acme gadgets or deliveries that could **produce**
-     that phenomenon.
-   - **Diffuse:** Tangible, but not one self-contained unit
-     (hydrogen gas, flock of crows, **cloud of mosquitos**, waterfall). Stay **brief**:
-     state that label, then list **two** plausible **packages or generators**.
-   - **Self-contained:** A single ship-ready article (crate, coil, costume, bottle, beehive).
-     **Ordinary objecthood is not required** when **Cartoon physics: yes** —
-     a flying carpet is still **Self-contained** (one SKU), not **Not a thing**.
+- **gloss:** After **correctable** typo/malaprop/STT fix (**potable** to **portable**, etc.), the intended noun phrase; **(none)** if no fix. **Do not** choose **Not a thing** if a reasonable correction yields a deliverable.
+- **physics:** **yes** if the deliverable defies real-world physics/manufacturing but is normal Coyote vs. Road Runner stock; **no** otherwise. Apply **after** gloss. **Modifier** on the primary bucket only — not a substitute for Phenomenon / Diffuse / Self-contained.
+- **primary (exactly one):** **Not a thing** | **Not tangible** | **Too large** | **Phenomenon** | **Diffuse** | **Self-contained**. **Eligibility is parse and category**, not whether the item feels on-theme for a gag. **Do not** reject for weak slapstick, insufficient whimsy, or "the Coyote would not plan with this" — that is **never** a **Not a thing** test.
+- **finishing-mechanisms:** one or more of **impact**, **explosion**, **area-hazard**, **projectile**, **collision** (comma-separated, no duplicates) when this item itself delivers that harm mechanism directly to or at the Road Runner, without requiring a downstream item to do the actual work; emit **none** otherwise. Use a **single best mechanism** by default; combine mechanisms only when dual behavior is encoded in the ordered item's intent (for example, wording that explicitly combines blast + lingering cloud). **Trap closure**, **immobilization**, and **restraint** are not finishing mechanisms (route those as **Disadvantage**). Rigs/infrastructure-only lines (pulley rig, launcher frame, drop platform) emit **none**. Invalid primaries emit **none**. If payoff depends on an environment object to complete doom (painted tunnel -> rock wall collision, portable hole -> long fall), keep **finishing-mechanisms: none** on the item and represent that via **\`environmentAffordances\`** with **roles** including **Finishing Move**.
+- **packaging-alts:** For **Phenomenon** or **Diffuse**, two short generator/package labels separated by **; ** (feeds Step 2 naming). Otherwise **n/a**.
 
-   In your markdown, show the **three layers** briefly: correction (if any),
-   **Cartoon physics** yes/no, then primary category. For **Not a thing**, **Not tangible**,
-   or **Too large**, state only those facts plus modifiers — no packaging spin.
-   For **Phenomenon** and **Diffuse**, record the **two** alternatives for Step 2.
-   **Primary** **Not a thing** / **Not tangible** / **Too large** → **\`valid\`: false** in JSON;
-   **Phenomenon**, **Diffuse**, **Self-contained** → **\`valid\`: true**.
+**Primary bucket checklist (correction -> physics -> primary):**
+1. **Not a thing** — **Only** when, after any correction, the line still does **not** parse to a **product noun phrase** the player is asking to receive, or it is still gibberish / not a named thing at all. **Never** use **Not a thing** for a plain physical noun the player clearly ordered (**paint**, **glue**, **rope**, **anvil**, **nails**) — those parse fine; put them in **Self-contained** / **Diffuse** / **Phenomenon** / **Too large** as appropriate.
+2. **Not tangible** — Parses as a noun but names something abstract (**justice**, **hope**) — not a physical deliverable even with packaging.
+3. **Too large** — **Cosmic / stage-breaking scale** as one SKU (Moon, continents, jet stream boxed). **Never** freight intuition: cranes, locomotives, grand pianos, moon rockets, Chuck Jones mega-props => **Self-contained** / **Diffuse** / **Phenomenon**, not **Too large**.
+4. **Phenomenon** — Ongoing process/event; **packaging-alts** required (two ways Acme ships or triggers it).
+5. **Diffuse** — Tangible but not one unit; **packaging-alts** required.
+6. **Self-contained** — One SKU shipped as an article; includes mundane hardware and supplies (**paint**, **glue**, **rope**, **springs**) when the player names them as the product. **Cartoon physics: yes** still counts (**flying carpet**).
 
-   **Step 1 trope anchor — Finishing Move:** When a line is **\`valid\`: true**, treat direct terminal
-   payloads as canonical **Finishing Move** candidates before any other trope. Point-impact payloads
-   (anvil, boulder, harpoon) and area payloads (bees, gas, explosives) should usually start at
-   **High** or **Good** for **Finishing Move**. The delivery apparatus is separate: launcher, pulley
-   rig, crate-release mechanism, or drop platform may be **Contraption**, but the payload itself is not.
-   Ask: "Is this the thing the Coyote intends to be the last thing the Road Runner experiences?" If yes,
-   lead with **Finishing Move**.
+**valid:** **Not a thing** / **Not tangible** / **Too large** => **valid**: false in JSON. **Phenomenon** / **Diffuse** / **Self-contained** => **valid**: true.
 
-2. **Enhance (JSON final):** After Step 1, output **one** trailing fenced code block with
+**Finishing Move anchor (Step 1):** For **valid** lines, any non-**none** **finishing-mechanisms** value is a strong signal to lead JSON **\`tropeAffinities\`** with **Finishing Move** at **High** or **Good** aptness. Point payloads (anvil, harpoon) and area payloads (bees, gas, explosives) usually lead **Finishing Move**. Launcher, pulley, drop platform = **Contraption**, not the payload. Ask: *Is this the last thing the Road Runner experiences?* If yes, lead JSON with **Finishing Move**.`
+
+const AFTER_STEP1_INSTRUCTIONS = `2. **JSON handoff:** After rationale rows, output **one** trailing fenced code block with
 language tag **json**. Inside the fence put **only** the root JSON object (**lines**,
 optional **confidence**) — nothing else inside the fence. No prose after that closing fence.
-This step applies Acme catalog normalization, canonical **\`tropeAffinities\`**, legacy
-compatibility placeholders (**\`affinities\`** / **\`affinitiesFailed\`**), per-line
+This step applies Acme catalog normalization, canonical **\`tropeAffinities\`**, per-line
 **stable reference keys** (**\`stableKey\`**), and light Coyote-vs.-Road-Runner presentation —
 that cartoon-contraption flavor belongs **here**, not in Step 1's eligibility decisions.
+For **\`valid\`: true** lines, the machine record is **only** **\`name\`**, **\`stableKey\`**, **\`tropeAffinities\`**, and (when needed) **\`tropeAffinitiesFailed\`** — one trope-scoring array, not a second parallel array.
 
 The **Coyote-wide keys already in use** list appears **after** these instructions (before the player command). The **full player command** appears at the end of this prompt.
 
@@ -122,6 +74,10 @@ From that command, extract **one entry in \`lines[]\` per distinct product / lin
 this step; you only segment **one** order into product lines. Split on commas, **and**, or
 **also** to separate product names. Do not treat a leading order verb as a line item: ignore
 **order**, **get**, **send**, and **mail order** at the start.
+A **single** deliverable is often **several words** (e.g. **rocket skates**, **giant rubber band**,
+**a deluxe bag of birdseed**). **Do not** split on spaces inside one product; interior words are
+**not** separate line items. Only split where the player used explicit separators (commas, **and**,
+**also**). Example: **order rocket skates** → **one** line item (**rocket skates**), not two.
 Example: **order glue and springs** → exactly two lines (**glue**, **springs**).
 Preserve **speaker intent** — do not drop items.
 
@@ -131,11 +87,10 @@ Each **\`lines\`** entry must include **\`valid\`**: boolean, aligned with Step 
 
 - **\`valid\`: false** (only for **Not a thing**, **Not tangible**, **Too large**) — include
   **\`errorType\`**: exactly one of **\`Not a thing\`**, **\`Not tangible\`**, **\`Too large\`**.
-  Use **\`affinities\`**: []. **Do not** include **\`stableKey\`** on invalid lines.
+  **Do not** include **\`stableKey\`** on invalid lines.
 - **\`valid\`: true** when Step 1 **primary** is **Phenomenon**, **Diffuse**, or
   **Self-contained** — normalized Acme catalog **\`name\`**, **\`stableKey\`** (see below),
-  canonical **\`tropeAffinities\`** entries, and temporary compatibility placeholders
-  **\`affinities\`**/**\`affinitiesFailed\`**. Choose **\`name\`** so shipped goods reflect
+  and canonical **\`tropeAffinities\`** entries. Choose **\`name\`** so shipped goods reflect
   Step 1 packaging for Phenomenon/Diffuse. When Step 1 had **Cartoon physics: yes**,
   title the SKU with straight-faced Acme packaging — the impossible behavior **is** the product.
 
@@ -149,7 +104,7 @@ Emit **\`stableKey\`**: a single **slug-shaped** string per deliverable line:
 **Coyote-wide keys already in use** below **when you can** pick a distinct readable slug; if the
 list is empty, still choose stable, unique-looking keys within this order.
 
-## Trope affinities must honor the player ask
+## Trope fits must honor the player ask
 
 For **\`valid\`: true** lines, derive **\`tropeAffinities\`** from the **effective order** —
 the Step 1 **intended gloss** after any **Correctable user error**, not from a typo surface
@@ -180,9 +135,7 @@ Example **valid** line entry (inside **\`lines\`**):
   "tropeAffinities": [
     { "trope": "Distraction", "aptness": "Good", "narrowing": "lure trail payload" },
     { "trope": "Finishing Move", "aptness": "Poor", "narrowing": "swarm release payoff" }
-  ],
-  "affinities": [],
-  "affinitiesFailed": true
+  ]
 }
 
 Example **invalid** line entry:
@@ -190,8 +143,7 @@ Example **invalid** line entry:
 {
   "valid": false,
   "name": "Justice",
-  "errorType": "Not tangible",
-  "affinities": []
+  "errorType": "Not tangible"
 }
 
 ## Canonical trope fields (\`tropeAffinities\`) for **\`valid\`: true**
@@ -200,7 +152,7 @@ Emit **1-3** trope-fit entries per deliverable line. Each entry must be:
 - **\`trope\`**: exactly one of **\`Contraption\`**, **\`Distraction\`**, **\`Disadvantage\`**, **\`Finishing Move\`**
 - **\`aptness\`**: exactly one of **\`High\`**, **\`Good\`**, **\`Poor\`**
 - **\`narrowing\`**: concise free text for the specific use (no enum codes yet)
-- optional **\`environmentAffordances\`**: **string[]** scene affordances (see closed-world rule below)
+- optional **\`environmentAffordances\`**: **\`{ object, roles }[]\`** scene affordances (see closed-world rule below)
 - **\`trope\`** is an allowlist field: emit only **\`Contraption\`**, **\`Distraction\`**, **\`Disadvantage\`**, or **\`Finishing Move\`**.
 
 **\`narrowing\` POV rule:** write each narrowing from the **Coyote's planning perspective**:
@@ -211,16 +163,20 @@ Incorrect examples: "enhance mobility to evade pursuit", "escape from Coyote", "
 If a draft narrowing describes Road Runner goals/capabilities, reverse perspective before emitting.
 
 **\`environmentAffordances\` rule (optional, per trope entry):**
-- This field captures what the **environment likely offers** around the trope beat, not what the ordered item does.
-- If text would read as an intrinsic item capability, keep it in **\`narrowing\`** instead.
-  Wrong: "attract metal objects" (item behavior). Right: "metal debris likely scattered on road surface" (scene affordance).
-- Allowed environment object references are a **closed world**:
-  **Boulder**, **Cactus**, **Tumbleweed**, **Rock wall / cliff face**, **Dirt**.
-  Do not introduce other environment objects or synonyms outside this set.
-- For each trope entry, ask: "Does this trope use become meaningfully more complete if one allowed environment object is present?"
-  - If yes, emit **1-2** short scene-perspective strings in **\`environmentAffordances\`**.
-  - If no, **omit** **\`environmentAffordances\`** (preferred) rather than emitting **\`[]\`**.
-- Keep strings brief and concrete from scene perspective (for example, "boulder available in surroundings to load as payload").
+- This field captures environment-dependent completion requirements around a trope beat, not intrinsic item behavior.
+- Emit structured objects only:
+  **\`environmentAffordances\`: [ { "object": "<object>", "roles": ["<trope>", "..."] } ]**
+- **\`object\`** allowlist (closed world, exact tokens): **\`boulder\`**, **\`cactus\`**, **\`tumbleweed\`**, **\`rock-wall\`**, **\`long-fall\`**.
+- **\`roles\`** allowlist (exact trope names): **\`Contraption\`**, **\`Distraction\`**, **\`Disadvantage\`**, **\`Finishing Move\`**.
+- For each entry, include one object and **1-2** roles that object can play for this trope beat.
+- If no meaningful environment dependency is needed, **omit** **\`environmentAffordances\`** (preferred) rather than emitting **\`[]\`**.
+- **Finishing-move exclusivity:** if item **finishing-mechanisms** is non-**none**, do **not** also claim **\`Finishing Move\`** in **\`environmentAffordances.roles\`** for that same beat.
+- Use **\`environmentAffordances.roles\`** including **\`Finishing Move\`** when an environment object completes doom while the item itself remains non-terminal.
+- Canonical examples:
+  - paint / fake tunnel => **\`{ "object": "rock-wall", "roles": ["Finishing Move"] }\`**
+  - portable hole => **\`{ "object": "long-fall", "roles": ["Finishing Move"] }\`**
+  - giant rubber band => **\`{ "object": "cactus", "roles": ["Contraption"] }\`**, **\`{ "object": "boulder", "roles": ["Finishing Move", "Contraption"] }\`**
+  - birdseed trail (optional) => **\`{ "object": "boulder", "roles": ["Finishing Move"] }\`** when lure sets up a drop point.
 
 If you cannot justify trope fits for a valid line, set **\`tropeAffinitiesFailed\`**: true and **\`tropeAffinities\`**: [].
 
@@ -261,14 +217,6 @@ impairment persists after engagement.
 When the core use is ongoing mobility/option reduction, treat Disadvantage as a leading fit with **High** or **Good** aptness (not hedged
 downward).
 
-## Legacy compatibility placeholders (temporary)
-
-For every **\`valid\`: true** line during this transition slice, emit:
-- **\`affinities\`**: []
-- **\`affinitiesFailed\`**: true
-
-Do not emit legacy tuple-shaped entries in **\`affinities\`** for valid lines in this slice.
-
 ## Failure and confidence
 
 - Optional root **\`confidence\`**: **[0, 1]** for this pass.
@@ -283,18 +231,59 @@ Do not emit legacy tuple-shaped entries in **\`affinities\`** for valid lines in
   "lines": [
     {
       "valid": true,
-      "name": "catapult",
-      "stableKey": "catapult",
-      "tropeAffinities": [ { "trope": "Contraption", "aptness": "Good", "narrowing": "launch platform", "environmentAffordances": ["boulder available in surroundings to load as payload"] } ],
-      "affinities": [],
-      "affinitiesFailed": true
+      "name": "Anvil",
+      "stableKey": "anvil",
+      "tropeAffinities": [
+        { "trope": "Finishing Move", "aptness": "High", "narrowing": "drop payload onto Road Runner" }
+      ]
     },
-    { "valid": false, "name": "<string>", "errorType": "Not a thing", "affinities": [] }
+    {
+      "valid": true,
+      "name": "Catapult",
+      "stableKey": "catapult",
+      "tropeAffinities": [
+        {
+          "trope": "Contraption",
+          "aptness": "Good",
+          "narrowing": "launch platform for payload delivery",
+          "environmentAffordances": [
+            { "object": "boulder", "roles": ["Finishing Move", "Contraption"] }
+          ]
+        }
+      ]
+    },
+    { "valid": false, "name": "Justice", "errorType": "Not tangible" }
   ],
-  "confidence": <optional number 0..1>
+  "confidence": 0.9
 }
 \`\`\`
 `
+
+
+function formatOccupiedStableKeysBlock(keys: readonly string[]): string {
+    const uniqueSorted = [...new Set(keys.map((k) => k.trim()).filter((k) => k.length > 0))].sort(
+        (a, b) => a.localeCompare(b)
+    )
+    if (uniqueSorted.length === 0) {
+        return '(none)'
+    }
+    return uniqueSorted.map((k) => `- ${k}`).join('\n')
+}
+
+export function buildParseAcmeOrderEnrichPrompt(
+    command: string,
+    options?: BuildParseAcmeOrderEnrichPromptOptions
+): ParseAcmeOrderEnrichPromptParts {
+    const trimmed = command.trim()
+    const commandBlock = trimmed === '' ? '(empty command)' : trimmed
+
+    const invariantPrefix = `${INTRO_THROUGH_COYOTE_POV}
+
+Produce **two required parts in order**:
+
+${COMPACT_STEP1_INSTRUCTIONS}
+
+${AFTER_STEP1_INSTRUCTIONS}`
 
     const occupied = options?.occupiedStableKeys ?? []
     const occupiedBlock = formatOccupiedStableKeysBlock(occupied)

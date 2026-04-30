@@ -1,5 +1,5 @@
 //
-// Second Bedrock call: Acme order line enrichment (name and affinities JSON).
+// Second Bedrock call: Acme order line enrichment (trope fits + catalog JSON per line).
 // Defaults to Nova 2 Lite with higher token/timeout budget for multi-line JSON.
 // Prompt caching: static instructions before the cache point; player command + line list after.
 //

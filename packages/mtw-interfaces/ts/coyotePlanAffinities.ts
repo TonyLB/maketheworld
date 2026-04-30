@@ -65,11 +65,23 @@ export type CoyoteTrope = 'Contraption' | 'Distraction' | 'Disadvantage' | 'Fini
 
 export type CoyoteTropeAptness = 'High' | 'Good' | 'Poor'
 
+export type EnvironmentAffordanceObject =
+    | 'boulder'
+    | 'cactus'
+    | 'tumbleweed'
+    | 'rock-wall'
+    | 'long-fall'
+
+export type EnvironmentAffordanceRef = {
+    object: EnvironmentAffordanceObject;
+    roles: CoyoteTrope[];
+}
+
 export type CoyoteTropeAffinity = {
     trope: CoyoteTrope;
     aptness: CoyoteTropeAptness;
     narrowing: string;
-    environmentAffordances?: string[];
+    environmentAffordances?: EnvironmentAffordanceRef[];
 }
 
 /** Stage-one intendedRole echo: same roles as **[`CoyoteAffinityPossibility`]**, but **`aptness`** may be omitted (resolved against snapshot rows). */
@@ -153,6 +165,30 @@ export function isCoyoteTropeAptness(value: unknown): value is CoyoteTropeAptnes
     return value === 'High' || value === 'Good' || value === 'Poor'
 }
 
+export function isEnvironmentAffordanceObject(value: unknown): value is EnvironmentAffordanceObject {
+    return (
+        value === 'boulder'
+        || value === 'cactus'
+        || value === 'tumbleweed'
+        || value === 'rock-wall'
+        || value === 'long-fall'
+    )
+}
+
+export function isEnvironmentAffordanceRef(entry: unknown): entry is EnvironmentAffordanceRef {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+        return false
+    }
+    const o = entry as Record<string, unknown>
+    if (!isEnvironmentAffordanceObject(o.object)) {
+        return false
+    }
+    if (!Array.isArray(o.roles) || o.roles.length === 0) {
+        return false
+    }
+    return o.roles.every((role) => isCoyoteTrope(role))
+}
+
 export function isCoyoteTropeAffinity(entry: unknown): entry is CoyoteTropeAffinity {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
         return false
@@ -160,7 +196,7 @@ export function isCoyoteTropeAffinity(entry: unknown): entry is CoyoteTropeAffin
     const o = entry as Record<string, unknown>
     const validEnvironmentAffordances = (
         !('environmentAffordances' in o)
-        || (Array.isArray(o.environmentAffordances) && o.environmentAffordances.every((entry) => typeof entry === 'string'))
+        || (Array.isArray(o.environmentAffordances) && o.environmentAffordances.every((entry) => isEnvironmentAffordanceRef(entry)))
     )
     const hasLegacyAffordancesKey = 'affordances' in o
     return (
@@ -287,10 +323,11 @@ function salvageAcmeOrderEnrichLine(raw: unknown): AcmeOrderEnrichModelLine | nu
         }
         return isAcmeOrderEnrichModelLine(coerced) ? coerced : null
     }
-    if (!Array.isArray(o.affinities)) {
+    if ('affinities' in o && !Array.isArray(o.affinities)) {
         return null
     }
-    const filtered = o.affinities.filter((x) => isCoyoteAffinityPossibility(x))
+    const affinitiesSource = Array.isArray(o.affinities) ? o.affinities : []
+    const filtered = affinitiesSource.filter((x) => isCoyoteAffinityPossibility(x))
     if (filtered.length > ACME_ORDER_ENRICH_MAX_AFFINITIES_PER_LINE) {
         return null
     }
@@ -401,7 +438,7 @@ export function normalizeAcmeOrderEnrichLine(raw: unknown, fallbackName: string)
             name: raw.name,
             stableKey: trimStableKeyOrFallback(raw.stableKey, raw.name),
             ...normalizedTrope,
-            affinities: applyCoyoteAffinityAptnessFloor(raw.affinities),
+            affinities: applyCoyoteAffinityAptnessFloor(raw.affinities ?? []),
         }
     }
     const salvaged = salvageAcmeOrderEnrichLine(raw)
@@ -470,11 +507,9 @@ export function isAcmeOrderEnrichModelLine(entry: unknown): entry is AcmeOrderEn
         return false
     }
     if (o.valid === false) {
-        return (
-            isAcmeCatalogRejectionReason(o.errorType)
-            && Array.isArray(o.affinities)
-            && o.affinities.length === 0
-        )
+        const aff = o.affinities
+        const affEmpty = aff === undefined || (Array.isArray(aff) && aff.length === 0)
+        return isAcmeCatalogRejectionReason(o.errorType) && affEmpty
     }
     if (typeof o.stableKey !== 'string' || o.stableKey.trim().length === 0) {
         return false
@@ -496,16 +531,17 @@ export function isAcmeOrderEnrichModelLine(entry: unknown): entry is AcmeOrderEn
     if (o.tropeAffinitiesFailed === true && Array.isArray(o.tropeAffinities) && o.tropeAffinities.length !== 0) {
         return false
     }
-    if (!Array.isArray(o.affinities)) {
+    if (o.affinities !== undefined && !Array.isArray(o.affinities)) {
         return false
     }
-    if (o.affinities.length > ACME_ORDER_ENRICH_MAX_AFFINITIES_PER_LINE) {
+    const affinities = Array.isArray(o.affinities) ? o.affinities : []
+    if (affinities.length > ACME_ORDER_ENRICH_MAX_AFFINITIES_PER_LINE) {
         return false
     }
     if (o.affinitiesFailed === true) {
-        return o.affinities.length === 0
+        return affinities.length === 0
     }
-    return o.affinities.every((x) => isCoyoteAffinityPossibility(x))
+    return affinities.every((x) => isCoyoteAffinityPossibility(x))
 }
 
 export function isAcmeOrderEnrichModelResponse(body: unknown): body is AcmeOrderEnrichModelResponse {

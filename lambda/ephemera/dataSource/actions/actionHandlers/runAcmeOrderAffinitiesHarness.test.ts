@@ -228,6 +228,44 @@ describe('runAcmeOrderAffinitiesHarness', () => {
         expect(joined).toContain('CoR Widget')
     })
 
+    it('verbose harness mode includes raw enrich body when available', async () => {
+        const parseCommandWithEnrichReasoningImpl = jest.fn().mockResolvedValue({
+            result: {
+                type: 'AcmeOrder',
+                confidence: 0.9,
+                orders: [{
+                    valid: true,
+                    name: 'Rocket Skates',
+                    stableKey: 'rocket-skates',
+                    affinities: [{ role: 'terminal', aptness: 0.5 }],
+                }],
+            },
+            enrichReasoningMarkdown: 'surface text | gloss: corrected phrase or (none) | physics: yes or no | primary: bucket | finishing-mechanisms: mechanism1, mechanism2 or none | packaging-alts: alt1; alt2 or n/a',
+            enrichRawBody: '## Step 1\nrocket skates | (none) | yes | Self-contained | none | n/a\n\n```json\n{"lines":[{"valid":true,"name":"Rocket Skates","stableKey":"rocket-skates","tropeAffinities":[{"trope":"Contraption","aptness":"High","narrowing":"enhance Coyote pursuit speed"}]}]}\n```',
+        })
+
+        await runAcmeOrderAffinitiesHarness({
+            characterId: 'CHARACTER#verbose',
+            messageBus,
+            phrases: ['rocket skates'],
+            harnessInvocation: { mode: 'full', fixtureIndex1Based: 1, verbose: true },
+            parseCommandWithEnrichReasoningImpl,
+            now: () => 0,
+        })
+
+        const payload = mockMessageBus.send.mock.calls[0][0]
+        if (!isPublishMessage(payload)) {
+            throw new Error('expected PublishMessage')
+        }
+        if (!isPublishWorldLineMessage(payload)) {
+            throw new Error('expected WorldMessage or WorldOOCMessage')
+        }
+        const joined = JSON.stringify(payload.message)
+        expect(joined).toContain('Raw enrich body:')
+        expect(joined).toContain('```json')
+        expect(joined).toContain('\\"tropeAffinities\\"')
+    })
+
     it('uses fixture objects and renders fixture metadata line', async () => {
         const parseCommandImpl = jest.fn().mockResolvedValue({
             type: 'AcmeOrder',
