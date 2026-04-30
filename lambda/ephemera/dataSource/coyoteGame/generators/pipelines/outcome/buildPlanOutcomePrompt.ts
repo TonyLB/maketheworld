@@ -2,6 +2,7 @@ import type { CoyotePhasePlan } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 import { formatPhasePlanForOutcomePrompt } from './formatPhasePlanForOutcomePrompt'
 import { formatCoyoteStagedObjectsByRoom, type CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 import type { CoyotePromptParts } from '../hypothesis/buildHypothesisPrompt'
+import { COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES } from '../hypothesis/coyoteHypothesisPromptShared'
 
 export type BuildPlanOutcomePromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
@@ -20,12 +21,7 @@ const INVARIANT_PLAN_OUTCOME_LINES = [
     'Your job is to narrate one concise outcome: what actually happens in cartoon',
     'physics when the Coyote\'s scheme runs.',
     '',
-    '## World topology',
-    '- STRAIGHTAWAY is west of VORTEX. It is a long desert highway lined with cacti, stretching toward the western horizon.',
-    '- VORTEX is the starting room. The highway passes the base of a tall, sheer cliff here.',
-    '- CLIFFTOP is directly above VORTEX. A boulder sits near the cliff edge.',
-    '- CORNER is east of VORTEX. The road continues east, then turns sharply south, bending away from a rock face.',
-    '- BRIDGE is south of CORNER. It is a bridge over a yawning chasm, carrying the road north-south.',
+    ...COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
     '',
     '## Hard constraints (safety and role)',
     '- The Road Runner must not be harmed, caught, trapped successfully, pinned, injured, or prevented from escaping.',

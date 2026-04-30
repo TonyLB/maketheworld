@@ -60,7 +60,7 @@ describe('generatePlanOutcome', () => {
             dynamicSuffix: string
         }
         const fullPrompt = promptArg.invariantPrefix + promptArg.dynamicSuffix
-        expect(fullPrompt).toContain('VORTEX')
+        expect(fullPrompt).toContain('CLIFFBASE')
         expect(fullPrompt).toContain('anvil')
         expect(fullPrompt).toContain('Hypothesis: It looks like you are trying to drop the anvil.')
         expect(invokeBedrockHypothesisMock.mock.calls[0][1]).toEqual({ maxTokens: 384 })
@@ -86,7 +86,7 @@ describe('generatePlanOutcome', () => {
             dynamicSuffix: string
         }
         const fullPrompt = promptArg.invariantPrefix + promptArg.dynamicSuffix
-        expect(fullPrompt).toContain('VORTEX')
+        expect(fullPrompt).toContain('CLIFFBASE')
         expect(fullPrompt).toContain('catapult')
         expect(fullPrompt).toContain('CLIFFTOP')
         expect(fullPrompt).toContain('lever')

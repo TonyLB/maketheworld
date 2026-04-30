@@ -105,14 +105,14 @@ describe('buildHypothesisPhasePlanHopPromptParts', () => {
                         members: [{
                             stableKey: 'anvil-0',
                             shortName: 'anvil',
-                            room: 'VORTEX',
+                            room: 'CLIFFBASE',
                             tropeFunction: 'payload rig',
                         }],
                     }],
                     outliers: [{
                         stableKey: 'rope-1',
                         shortName: 'rope',
-                        room: 'VORTEX',
+                        room: 'CLIFFBASE',
                         tropeFunction: 'trip fallback',
                     }],
                 },
@@ -123,7 +123,7 @@ describe('buildHypothesisPhasePlanHopPromptParts', () => {
         expect(full).toContain('candidateId: candidate-2')
         expect(full).toContain('executionSummary: Use anvil as staged payload and rope as fallback.')
         expect(full).toContain('trope: Contraption')
-        expect(full).toContain('member: anvil-0 | anvil | VORTEX | payload rig')
-        expect(full).toContain('rope-1 | rope | VORTEX | trip fallback')
+        expect(full).toContain('member: anvil-0 | anvil | CLIFFBASE | payload rig')
+        expect(full).toContain('rope-1 | rope | CLIFFBASE | trip fallback')
     })
 })

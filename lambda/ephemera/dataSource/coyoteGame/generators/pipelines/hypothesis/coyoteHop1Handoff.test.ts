@@ -71,14 +71,14 @@ describe('parseHop1HandoffFromSelectionBody', () => {
                         members: [{
                             stableKey: 'paint',
                             shortName: 'paint can',
-                            room: 'VORTEX',
+                            room: 'CLIFFBASE',
                             tropeFunction: 'visual lure prep',
                         }],
                     }],
                     outliers: [{
                         stableKey: 'rope',
                         shortName: 'rope',
-                        room: 'VORTEX',
+                        room: 'CLIFFBASE',
                         tropeFunction: 'trip fallback',
                     }],
                 },
@@ -99,14 +99,14 @@ describe('parseHop1HandoffFromSelectionBody', () => {
                         members: [{
                             stableKey: 'paint',
                             shortName: 'paint can',
-                            room: 'VORTEX',
+                            room: 'CLIFFBASE',
                             tropeFunction: 'visual lure prep',
                         }],
                     }],
                     outliers: [{
                         stableKey: 'rope',
                         shortName: 'rope',
-                        room: 'VORTEX',
+                        room: 'CLIFFBASE',
                         tropeFunction: 'trip fallback',
                     }],
                 },
@@ -185,7 +185,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
                         members: [{
                             stableKey: 'anvil-0',
                             shortName: 'anvil',
-                            room: 'VORTEX',
+                            room: 'CLIFFBASE',
                             tropeFunction: 'payload prep',
                         }],
                     }],
@@ -208,7 +208,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
                         members: [{
                             stableKey: 'anvil-0',
                             shortName: 'anvil',
-                            room: 'VORTEX',
+                            room: 'CLIFFBASE',
                             tropeFunction: 'payload prep',
                         }],
                     }],
@@ -308,7 +308,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
                         members: [{
                             stableKey: 'anvil',
                             shortName: 'anvil',
-                            room: 'VORTEX',
+                            room: 'CLIFFBASE',
                             tropeFunction: 9,
                         }],
                     }],
@@ -344,7 +344,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
         }
     })
 
-    it('returns error when intent conflicts section is missing', () => {
+    it('continues parsing when intent conflicts section is missing', () => {
         const raw = [
             '## Rubric comparison',
             '- candidate-1 is best.',
@@ -354,14 +354,13 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             JSON.stringify({ paragraphSummary: 'x', planIssues: [] }),
             '```',
         ].join('\n')
-        const r = parseHop1HandoffFromSelectionBody(raw)
-        expect(r.ok).toBe(false)
-        if (!r.ok) {
-            expect(r.reason).toContain('## Intent conflicts')
-        }
+        expect(parseHop1HandoffFromSelectionBody(raw)).toEqual({
+            ok: true,
+            handoff: { paragraphSummary: 'x', planIssues: [] },
+        })
     })
 
-    it('returns error when rubric comparison section is missing', () => {
+    it('continues parsing when rubric comparison section is missing', () => {
         const raw = [
             '## Intent conflicts',
             '- conflict',
@@ -371,11 +370,10 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             JSON.stringify({ paragraphSummary: 'x', planIssues: [] }),
             '```',
         ].join('\n')
-        const r = parseHop1HandoffFromSelectionBody(raw)
-        expect(r.ok).toBe(false)
-        if (!r.ok) {
-            expect(r.reason).toContain('## Rubric comparison')
-        }
+        expect(parseHop1HandoffFromSelectionBody(raw)).toEqual({
+            ok: true,
+            handoff: { paragraphSummary: 'x', planIssues: [] },
+        })
     })
 
     it('accepts single-candidate non-comparative rubric section when heading is present', () => {
@@ -402,7 +400,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
         })
     })
 
-    it('returns error when winner selection section is missing', () => {
+    it('continues parsing when winner selection section is missing', () => {
         const raw = [
             '## Intent conflicts',
             '- conflict',
@@ -412,10 +410,51 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             JSON.stringify({ paragraphSummary: 'x', planIssues: [] }),
             '```',
         ].join('\n')
-        const r = parseHop1HandoffFromSelectionBody(raw)
-        expect(r.ok).toBe(false)
-        if (!r.ok) {
-            expect(r.reason).toContain('## Winner selection')
-        }
+        expect(parseHop1HandoffFromSelectionBody(raw)).toEqual({
+            ok: true,
+            handoff: { paragraphSummary: 'x', planIssues: [] },
+        })
+    })
+
+    it('accepts required section headings with case/spacing variation', () => {
+        const raw = [
+            '##   intent conflicts  ',
+            '- conflict',
+            '##RUBRIC COMPARISON',
+            '- compare',
+            '##   Winner Selection',
+            '- Winner: candidate-1.',
+            '```json',
+            JSON.stringify({ paragraphSummary: 'x', planIssues: [] }),
+            '```',
+        ].join('\n')
+        expect(parseHop1HandoffFromSelectionBody(raw)).toEqual({
+            ok: true,
+            handoff: {
+                paragraphSummary: 'x',
+                planIssues: [],
+            },
+        })
+    })
+
+    it('accepts required sections when intent conflicts is emitted as a level-3 heading', () => {
+        const raw = [
+            '### Intent conflicts',
+            '- mismatch evidence',
+            '## Rubric comparison',
+            '**candidate-1:** only candidate present.',
+            '## Winner selection',
+            'Winner: candidate-1',
+            '```json',
+            JSON.stringify({ paragraphSummary: 'Selected candidate-1: summary.', planIssues: [] }),
+            '```',
+        ].join('\n')
+        expect(parseHop1HandoffFromSelectionBody(raw)).toEqual({
+            ok: true,
+            handoff: {
+                paragraphSummary: 'Selected candidate-1: summary.',
+                planIssues: [],
+            },
+        })
     })
 })

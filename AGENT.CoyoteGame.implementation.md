@@ -64,6 +64,7 @@ Practical meaning:
   - `CLIFFTOP` above `VORTEX`
   - `CORNER` east of `VORTEX`
   - `BRIDGE` south of `CORNER`
+- ephemera Coyote prompts use a **seam label** for `ROOM#VORTEX` (`CLIFFBASE` in topology and snapshots) while canonical ids stay `ROOM#…`; see `lambda/ephemera/dataSource/coyoteGame/AGENT.md` section **Room id seam (canonical vs prompt labels)**.
 
 ### 3) Guest character flow (now coyote-aware behind the global switch)
 

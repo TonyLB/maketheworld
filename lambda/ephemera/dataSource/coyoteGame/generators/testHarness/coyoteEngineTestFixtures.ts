@@ -657,7 +657,7 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
                     },
                     {
                         trope: 'Distraction',
-                        executionDetail: 'Road Runner stops to eat birdseed at VORTEX.',
+                        executionDetail: 'Road Runner stops to eat birdseed at CLIFFBASE.',
                         members: [{ stableKey: 'birdseed-0', tropeFunction: 'lane bait' }],
                     },
                 ],
@@ -720,7 +720,7 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
                 tropeAssignments: [
                     {
                         trope: 'Contraption',
-                        executionDetail: 'Catapult is pre-aimed at VORTEX for launch timing.',
+                        executionDetail: 'Catapult is pre-aimed at CLIFFBASE for launch timing.',
                         members: [{ stableKey: 'catapult-0', tropeFunction: 'launch rig' }],
                     },
                 ],
@@ -740,7 +740,7 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
                     },
                     {
                         trope: 'Disadvantage',
-                        executionDetail: 'Glue applies persistent movement constraint in VORTEX lane.',
+                        executionDetail: 'Glue applies persistent movement constraint in CLIFFBASE lane.',
                         members: [{ stableKey: 'glue-0', tropeFunction: 'speed drag' }],
                     },
                     {
@@ -872,12 +872,12 @@ const HOP1_HANDOFF_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture[
                 },
                 {
                     trope: 'Distraction',
-                    executionDetail: 'Road Runner stops to eat birdseed at VORTEX.',
+                    executionDetail: 'Road Runner stops to eat birdseed at CLIFFBASE.',
                     members: [
                         {
                             stableKey: 'birdseed-0',
                             shortName: 'birdseed',
-                            room: 'VORTEX',
+                            room: 'CLIFFBASE',
                             tropeFunction: 'lane bait',
                         },
                     ],

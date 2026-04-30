@@ -22,13 +22,13 @@ describe('coyoteHypothesisPhasePlanContext', () => {
 
     it('topology allowlist uses seam labels for non-empty rooms only', () => {
         const topo = coyoteTopologyAllowlistFromRooms(roomObjectsByRoom)
-        expect(topo.has('VORTEX')).toBe(true)
+        expect(topo.has('CLIFFBASE')).toBe(true)
         expect(topo.has('BRIDGE')).toBe(false)
     })
 
     it('buildCoyotePhasePlanValidationContext merges snapshot + topology', () => {
         const ctx = buildCoyotePhasePlanValidationContext(roomObjectsByRoom)
         expect(ctx.snapshotStableKeys?.has(normalizedPhasePlanStableKey(vortexObjects[0].stableKey))).toBe(true)
-        expect(ctx.allowedTopologyRefTokens?.has('VORTEX')).toBe(true)
+        expect(ctx.allowedTopologyRefTokens?.has('CLIFFBASE')).toBe(true)
     })
 })

@@ -48,9 +48,8 @@ export type ParseHop1HandoffResult =
 type ParseHop1HandoffFailure = { ok: false; reason: string }
 
 const REQUIRED_SECTION_HEADINGS = [
-    '## Intent conflicts',
-    '## Rubric comparison',
-    '## Winner selection',
+    'Intent conflicts',
+    'Rubric comparison',
 ] as const
 
 const REQUIRED_KEYS = new Set<string>([
@@ -272,13 +271,26 @@ function narrowHandoff(parsed: unknown): ParseHop1HandoffResult {
         }
 }
 
-function containsRequiredSections(raw: string): { ok: false; reason: string } | null {
+function escapeRegexLiteral(input: string): string {
+    return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function missingRequiredSections(raw: string): string[] {
+    const missing: string[] = []
     for (const heading of REQUIRED_SECTION_HEADINGS) {
-        if (!raw.includes(heading)) {
-            return { ok: false, reason: `missing required section heading: ${heading}` }
+        const headingPattern = new RegExp(`^\\s*#{2,3}\\s*${escapeRegexLiteral(heading)}\\s*$`, 'im')
+        if (!headingPattern.test(raw)) {
+            missing.push(`## ${heading}`)
         }
     }
-    return null
+    return missing
+}
+
+function logParseFailureWithRawBody(reason: string, raw: string): void {
+    hypothesisDebugLog('hop1 handoff parse failed', {
+        reason,
+        selectionBodyRaw: raw,
+    })
 }
 
 /**
@@ -286,10 +298,11 @@ function containsRequiredSections(raw: string): { ok: false; reason: string } | 
  * Uses the **last** fence whose language tag is **`json`** (case-insensitive).
  */
 export function parseHop1HandoffFromSelectionBody(raw: string): ParseHop1HandoffResult {
-    const requiredSectionsResult = containsRequiredSections(raw)
-    if (requiredSectionsResult) {
-        hypothesisDebugLog('hop1 handoff parse failed', { reason: requiredSectionsResult.reason })
-        return requiredSectionsResult
+    const missingSections = missingRequiredSections(raw)
+    if (missingSections.length > 0) {
+        hypothesisDebugLog('hop1 handoff parse warning: missing markdown sections (continuing with json handoff)', {
+            missingSections,
+        })
     }
     const blocks = findAllFenceBlocks(raw)
     hypothesisDebugLog('hop1 handoff parse: scanned fenced blocks', {
@@ -304,19 +317,19 @@ export function parseHop1HandoffFromSelectionBody(raw: string): ParseHop1Handoff
         }
     }
     if (lastJsonInterior === null) {
-        hypothesisDebugLog('hop1 handoff parse failed', { reason: 'no ```json fenced block found' })
+        logParseFailureWithRawBody('no ```json fenced block found', raw)
         return { ok: false, reason: 'no ```json fenced block found' }
     }
     let parsed: unknown
     try {
         parsed = JSON.parse(lastJsonInterior.trim()) as unknown
     } catch {
-        hypothesisDebugLog('hop1 handoff parse failed', { reason: 'invalid JSON inside ```json fence' })
+        logParseFailureWithRawBody('invalid JSON inside ```json fence', raw)
         return { ok: false, reason: 'invalid JSON inside ```json fence' }
     }
     const narrowed = narrowHandoff(parsed)
     if (!narrowed.ok) {
-        hypothesisDebugLog('hop1 handoff parse failed', { reason: narrowed.reason })
+        logParseFailureWithRawBody(narrowed.reason, raw)
         return narrowed
     }
     hypothesisDebugLog('hop1 handoff parse succeeded', {
