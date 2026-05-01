@@ -58,6 +58,7 @@ describe('validateCoyotePhasePlan', () => {
 
     it('rejects extra keys on a phase', () => {
         const raw = {
+            ...minimalValidPlan(),
             phases: [
                 {
                     ...minimalValidPlan().phases[0],
@@ -75,7 +76,7 @@ describe('validateCoyotePhasePlan', () => {
     it('rejects non-canonical tropeSequence order', () => {
         const raw = {
             ...minimalValidPlan(),
-            tropeSequence: ['Disadvantage', 'Distraction'],
+            tropeSequence: ['Disadvantage', 'Bait'],
         }
         const result = validateCoyotePhasePlan(raw, ctx())
         expect(result.ok).toBe(false)
@@ -88,7 +89,7 @@ describe('validateCoyotePhasePlan', () => {
         const raw = {
             ...minimalValidPlan(),
             tropeSequence: ['Contraption'],
-            phases: [{ ...minimalValidPlan().phases[0], trope: 'Distraction' }],
+            phases: [{ ...minimalValidPlan().phases[0], trope: 'Bait' }],
         }
         const result = validateCoyotePhasePlan(raw, ctx())
         expect(result.ok).toBe(false)
@@ -99,9 +100,10 @@ describe('validateCoyotePhasePlan', () => {
 
     it('rejects extra keys on a virtual entity', () => {
         const raw = {
+            ...minimalValidPlan(),
             phases: [
                 {
-                    stableKeysUsed: ['anvil-1'],
+                    ...minimalValidPlan().phases[0],
                     virtualEntities: [
                         {
                             label: 'x',
@@ -110,7 +112,6 @@ describe('validateCoyotePhasePlan', () => {
                             weight: 1,
                         },
                     ],
-                    achievement: 'y',
                 },
             ],
         }
@@ -413,6 +414,135 @@ describe('validateCoyotePhasePlan', () => {
         expect(result.ok).toBe(true)
         if (result.ok) {
             expect(result.phasePlan.phases[0].prepVsBeat).toBe('prep')
+        }
+    })
+
+    it('accepts Bait and Misdirection together in canonical order', () => {
+        const raw = {
+            tropeSequence: ['Bait', 'Misdirection'],
+            deconflictionSummary: 'Lure then misread terrain.',
+            phases: [
+                {
+                    trope: 'Bait',
+                    tropeBeat: 'Birdseed draws the runner to the cliff lip.',
+                    stableKeysUsed: ['crate-2'],
+                    virtualEntities: [
+                        {
+                            label: 'Lure pile',
+                            derivedFrom: ['crate-2'],
+                            phaseKind: 'deployed',
+                        },
+                    ],
+                    achievement: 'Runner is positioned',
+                },
+                {
+                    trope: 'Misdirection',
+                    tropeBeat: 'Painted tunnel reads as real at speed.',
+                    stableKeysUsed: ['outlier-prop'],
+                    virtualEntities: [
+                        {
+                            label: 'False tunnel mouth',
+                            derivedFrom: ['outlier-prop'],
+                            phaseKind: 'synthesized',
+                        },
+                    ],
+                    achievement: 'Runner commits to the wrong vector',
+                },
+            ],
+        }
+        const result = validateCoyotePhasePlan(raw, ctx())
+        expect(result.ok).toBe(true)
+        if (result.ok) {
+            expect(result.phasePlan.tropeSequence).toEqual(['Bait', 'Misdirection'])
+        }
+    })
+
+    it('rejects Misdirection before Bait in tropeSequence', () => {
+        const raw = {
+            tropeSequence: ['Misdirection', 'Bait'],
+            deconflictionSummary: 'Wrong order for co-occurring lure beats.',
+            phases: [
+                {
+                    trope: 'Misdirection',
+                    tropeBeat: 'Illusion first.',
+                    stableKeysUsed: ['anvil-1'],
+                    virtualEntities: [
+                        {
+                            label: 'x',
+                            derivedFrom: ['anvil-1'],
+                            phaseKind: 'gathered',
+                        },
+                    ],
+                    achievement: 'a',
+                },
+                {
+                    trope: 'Bait',
+                    tropeBeat: 'Lure second.',
+                    stableKeysUsed: ['crate-2'],
+                    virtualEntities: [
+                        {
+                            label: 'y',
+                            derivedFrom: ['crate-2'],
+                            phaseKind: 'deployed',
+                        },
+                    ],
+                    achievement: 'b',
+                },
+            ],
+        }
+        const result = validateCoyotePhasePlan(raw, ctx())
+        expect(result.ok).toBe(false)
+        if (!result.ok) {
+            expect(result.reason).toContain('canonical order')
+        }
+    })
+
+    it('accepts a full five-trope plan in canonical order', () => {
+        const raw = {
+            tropeSequence: ['Contraption', 'Bait', 'Misdirection', 'Disadvantage', 'Finishing Move'],
+            deconflictionSummary: 'Golden path through every slot.',
+            phases: [
+                {
+                    trope: 'Contraption',
+                    tropeBeat: 'Rig approach hardware.',
+                    stableKeysUsed: ['anvil-1'],
+                    virtualEntities: [{ label: 'c', derivedFrom: ['anvil-1'], phaseKind: 'gathered' }],
+                    achievement: 'Hardware staged',
+                },
+                {
+                    trope: 'Bait',
+                    tropeBeat: 'Draw the runner.',
+                    stableKeysUsed: ['crate-2'],
+                    virtualEntities: [{ label: 'b', derivedFrom: ['crate-2'], phaseKind: 'deployed' }],
+                    achievement: 'Runner lured',
+                },
+                {
+                    trope: 'Misdirection',
+                    tropeBeat: 'Steer perception.',
+                    stableKeysUsed: ['outlier-prop'],
+                    virtualEntities: [{ label: 'm', derivedFrom: ['outlier-prop'], phaseKind: 'synthesized' }],
+                    achievement: 'Misread committed',
+                },
+                {
+                    trope: 'Disadvantage',
+                    tropeBeat: 'Impose mobility loss.',
+                    stableKeysUsed: ['anvil-1'],
+                    virtualEntities: [{ label: 'd', derivedFrom: ['anvil-1'], phaseKind: 'deployed' }],
+                    achievement: 'Runner impaired',
+                },
+                {
+                    trope: 'Finishing Move',
+                    tropeBeat: 'Terminal payload.',
+                    stableKeysUsed: ['crate-2'],
+                    virtualEntities: [{ label: 'f', derivedFrom: ['crate-2'], phaseKind: 'gathered' }],
+                    achievement: 'Finisher armed',
+                },
+            ],
+        }
+        const result = validateCoyotePhasePlan(raw, ctx())
+        expect(result.ok).toBe(true)
+        if (result.ok) {
+            expect(result.phasePlan.phases).toHaveLength(5)
         }
     })
 })

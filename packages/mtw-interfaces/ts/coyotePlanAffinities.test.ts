@@ -189,7 +189,7 @@ describe('isCoyoteTropeAffinity', () => {
                 ...baseAffinity,
                 affordancesProvided: [
                     { object: 'spring-loaded crate', intended: true, roles: ['Contraption'] },
-                    { object: 'tripwire', roles: ['Distraction'] },
+                    { object: 'tripwire', roles: ['Bait'] },
                 ],
             })
         ).toBe(true)

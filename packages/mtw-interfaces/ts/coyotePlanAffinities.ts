@@ -62,7 +62,7 @@ export type CoyoteAffinityPossibility =
         aptness: number;
       }
 
-export type CoyoteTrope = 'Contraption' | 'Distraction' | 'Disadvantage' | 'Finishing Move'
+export type CoyoteTrope = 'Contraption' | 'Bait' | 'Misdirection' | 'Disadvantage' | 'Finishing Move'
 
 export type CoyoteTropeAptness = 'High' | 'Good' | 'Poor'
 
@@ -160,7 +160,8 @@ export function isCoyoteGenerativeRole(value: unknown): value is CoyoteGenerativ
 export function isCoyoteTrope(value: unknown): value is CoyoteTrope {
     return (
         value === 'Contraption'
-        || value === 'Distraction'
+        || value === 'Bait'
+        || value === 'Misdirection'
         || value === 'Disadvantage'
         || value === 'Finishing Move'
     )

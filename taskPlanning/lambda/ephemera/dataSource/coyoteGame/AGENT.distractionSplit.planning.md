@@ -1,6 +1,6 @@
 # Coyote Game: split Distraction into Bait and Misdirection (planning)
 
-**Status:** **D0 complete** (decisions locked, open questions resolved). Next step is **Phase D1** (interfaces) per **Recommended order**.
+**Status:** **D1 complete** (`CoyoteTrope` / phase-plan validation in `mtw-interfaces`). Next step is **Phase D2** (Acme enrich + actions harness) per **Recommended order**.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -114,12 +114,12 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 - [X] Phase D0 - lock decisions and migration story
   - [X] Resolve every item under **Decisions (locked)** with written outcomes.
   - [X] Complete **Open questions** inventory (see **Open questions (resolved)**).
-  - [ ] Update **Verification** commands with exact cwd + scripts after D1 spike if paths differ.
+  - [X] Update **Verification** commands with exact cwd + scripts after D1 spike if paths differ.
 
-- [ ] Phase D1 - interfaces and validation (`mtw-interfaces`)
-  - [ ] Extend **`CoyoteTrope`** and **`isCoyoteTrope`**; remove **`Distraction`** (**hard cut**, no shim).
-  - [ ] Update **`CANONICAL_TROPE_ORDER`** and validation copy in **`validateCoyotePhasePlan`**.
-  - [ ] Update **`coyotePhasePlan.test.ts`** and **`coyotePlanAffinities.test.ts`** (and any package tests referencing Distraction).
+- [X] Phase D1 - interfaces and validation (`mtw-interfaces`)
+  - [X] Extend **`CoyoteTrope`** and **`isCoyoteTrope`**; remove **`Distraction`** (**hard cut**, no shim).
+  - [X] Update **`CANONICAL_TROPE_ORDER`** and validation copy in **`validateCoyotePhasePlan`**.
+  - [X] Update **`coyotePhasePlan.test.ts`** and **`coyotePlanAffinities.test.ts`** (and any package tests referencing Distraction).
 
 - [ ] Phase D2 - Acme enrich and actions harness
   - [ ] Rewrite trope allowlists and mechanism tests in **`buildPrompt.ts`** (replace single Distraction block with Bait + Misdirection rubrics; preserve honey-trap / dual-fit logic with new names).
@@ -156,6 +156,12 @@ Run after implementation; commands assume repo root or adjust per **`lambda/ephe
 - From `lambda/ephemera/`: targeted Jest for coyote hypothesis + actions as listed in **`AGENT.testing.md`** after interfaces land.
 - `packages/mtw-interfaces`: full package tests once union changes.
 
+**Confirmed commands (D1)** --- cwd **`packages/mtw-interfaces/`** (paths match **Getting started**; no drift):
+
+- `npm run test -- --watchAll=false ts/coyotePhasePlan.test.ts`
+- `npm run test -- --watchAll=false ts/coyotePlanAffinities.test.ts`
+- `npm run test -- --watchAll=false` (full package; 376 tests at time of D1)
+
 Re-record exact passing commands in this section after the first green CI run so future agents do not guess cwd.
 
 ## Progress
@@ -163,3 +169,4 @@ Re-record exact passing commands in this section after the first green CI run so
 | Phase | State | Notes |
 | --- | --- | --- |
 | D0 | Done | **Decisions (locked)**; **Open questions (resolved)**; prod persistence cleared; optional: record exact **Verification** commands after first green run |
+| D1 | Done | **`CoyoteTrope`**: `Bait` + `Misdirection`; **`Distraction`** removed. **`CANONICAL_TROPE_ORDER`** and **`validateCoyotePhasePlan`** copy updated. Package tests green; **`rg "Distraction" packages/mtw-interfaces/ts`** is empty. Lambda / ephemera still reference **`Distraction`** until D2-D5. |
