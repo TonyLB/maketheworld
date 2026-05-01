@@ -1,6 +1,6 @@
 # Coyote Game: split Distraction into Bait and Misdirection (planning)
 
-**Status:** **D1 complete** (`CoyoteTrope` / phase-plan validation in `mtw-interfaces`). Next step is **Phase D2** (Acme enrich + actions harness) per **Recommended order**.
+**Status:** **D2 complete** (Acme enrich + actions harness updated for `Bait` / `Misdirection`). Next step is **Phase D3** (hypothesis pipeline) per **Recommended order**.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -121,10 +121,10 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Update **`CANONICAL_TROPE_ORDER`** and validation copy in **`validateCoyotePhasePlan`**.
   - [X] Update **`coyotePhasePlan.test.ts`** and **`coyotePlanAffinities.test.ts`** (and any package tests referencing Distraction).
 
-- [ ] Phase D2 - Acme enrich and actions harness
-  - [ ] Rewrite trope allowlists and mechanism tests in **`buildPrompt.ts`** (replace single Distraction block with Bait + Misdirection rubrics; preserve honey-trap / dual-fit logic with new names).
-  - [ ] Update **`acmeOrderAffinitiesHarnessPhrases.ts`** expected lines and **`likelyErrors`**; run harness tests.
-  - [ ] Touch **`baseClasses.ts`** / publish validation only if trope literals are duplicated there.
+- [X] Phase D2 - Acme enrich and actions harness
+  - [X] Rewrite trope allowlists and mechanism tests in **`buildPrompt.ts`** (replace single Distraction block with Bait + Misdirection rubrics; preserve honey-trap / dual-fit logic with new names).
+  - [X] Update **`acmeOrderAffinitiesHarnessPhrases.ts`** expected lines and **`likelyErrors`**; run harness tests.
+  - [X] Touch **`baseClasses.ts`** / publish validation only if trope literals are duplicated there.
 
 - [ ] Phase D3 - hypothesis pipeline (prompts, parsers, combine, narrative beats)
   - [ ] Update all **`TROPE_ORDER`** arrays and prompt copy.
@@ -162,6 +162,18 @@ Run after implementation; commands assume repo root or adjust per **`lambda/ephe
 - `npm run test -- --watchAll=false ts/coyotePlanAffinities.test.ts`
 - `npm run test -- --watchAll=false` (full package; 376 tests at time of D1)
 
+**Confirmed commands (D2)** --- cwd **`lambda/ephemera/`**:
+
+- `npm run test -- --watchAll=false dataSource/actions/enrich/acmeOrder/buildPrompt.test.ts` (6 / 6 pass)
+- `rg "Distraction" lambda/ephemera/dataSource/actions` (empty after D2; from repo root)
+
+**Known D3-blocked tests (transient).** D1's hard cut of **`Distraction`** narrowed **`CoyoteTrope`** in **`mtw-interfaces`**, so any lambda test whose import graph reaches the hypothesis pipeline now fails ts-jest type-check on stale **`'Distraction'`** literals (e.g. **`buildNarrativeBeatPrompt.ts`** `TROPE_ORDER`). These tests are expected to fail until **Phase D3** sweeps the hypothesis pipeline:
+
+- `npm run test -- --watchAll=false dataSource/actions/actionHandlers/runAcmeOrderAffinitiesHarness.test.ts`
+- `npm run test -- --watchAll=false dataSource/actions/enrich/acmeOrder/index.test.ts`
+
+Both are local-edit-clean (zero **`Distraction`** references in the actions tree); they only fail because their import graph transitively pulls in the hypothesis pipeline. Re-run them as part of D3 verification.
+
 Re-record exact passing commands in this section after the first green CI run so future agents do not guess cwd.
 
 ## Progress
@@ -170,3 +182,4 @@ Re-record exact passing commands in this section after the first green CI run so
 | --- | --- | --- |
 | D0 | Done | **Decisions (locked)**; **Open questions (resolved)**; prod persistence cleared; optional: record exact **Verification** commands after first green run |
 | D1 | Done | **`CoyoteTrope`**: `Bait` + `Misdirection`; **`Distraction`** removed. **`CANONICAL_TROPE_ORDER`** and **`validateCoyotePhasePlan`** copy updated. Package tests green; **`rg "Distraction" packages/mtw-interfaces/ts`** is empty. Lambda / ephemera still reference **`Distraction`** until D2-D5. |
+| D2 | Done | Acme enrich prompt rewritten for **`Bait`** + **`Misdirection`** rubrics (Decisions 6-8 with first-appearance parentheticals); harness fixtures (`clean-002-birdseed-lure`, `borderline-001-paint-kit`) and **`likelyErrors`** retargeted; **`baseClasses.ts`** **`AcmeOrderAffinitiesHarnessExpectedTrope`** tightened to **`CoyoteTrope`** / **`CoyoteTropeAptness`**. **`rg "Distraction" lambda/ephemera/dataSource/actions`** is empty; **`buildPrompt.test.ts`** green. Hypothesis-pipeline-touching lambda tests (`runAcmeOrderAffinitiesHarness.test.ts`, `dataSource/actions/enrich/acmeOrder/index.test.ts`) remain ts-jest-blocked on stale **`'Distraction'`** literals in **`buildNarrativeBeatPrompt.ts`** etc. until D3. |

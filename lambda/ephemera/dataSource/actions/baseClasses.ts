@@ -1,6 +1,11 @@
 import { EphemeraRoomId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { AcmeCatalogRejectionReason, AcmeOrderEnrichModelLine } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import type {
+    AcmeCatalogRejectionReason,
+    AcmeOrderEnrichModelLine,
+    CoyoteTrope,
+    CoyoteTropeAptness,
+} from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { isCoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 import type { CoyoteEngineTestHarnessInvocation } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
@@ -99,8 +104,8 @@ export type CoyoteAffinitiesHarnessInvocation = {
 }
 
 export type AcmeOrderAffinitiesHarnessExpectedTrope = {
-    trope: 'Contraption' | 'Distraction' | 'Disadvantage' | 'Finishing Move'
-    aptness: 'High' | 'Good' | 'Poor'
+    trope: CoyoteTrope
+    aptness: CoyoteTropeAptness
     narrowingLike: string
 }
 

@@ -31,7 +31,7 @@ export const ACME_ORDER_AFFINITIES_HARNESS_FIXTURES: readonly AcmeOrderAffinitie
             nameLike: 'birdseed',
             valid: true,
             tropeAffinities: [
-                { trope: 'Distraction', aptness: 'High', narrowingLike: 'lure or bait trail' },
+                { trope: 'Bait', aptness: 'High', narrowingLike: 'voluntary lure or bait trail' },
                 { trope: 'Disadvantage', aptness: 'High', narrowingLike: 'payload carrier for embedded trap agents' },
             ],
         }],
@@ -85,8 +85,8 @@ export const ACME_ORDER_AFFINITIES_HARNESS_FIXTURES: readonly AcmeOrderAffinitie
             nameLike: 'paint',
             valid: true,
             tropeAffinities: [
-                { trope: 'Distraction', aptness: 'Good', narrowingLike: 'fake route or visual lure' },
-                { trope: 'Contraption', aptness: 'Good', narrowingLike: 'pre-drawn illusion staging' },
+                { trope: 'Bait', aptness: 'Good', narrowingLike: 'fake route or visual lure' },
+                { trope: 'Misdirection', aptness: 'Good', narrowingLike: 'painted illusion misread as terrain' },
                 { trope: 'Finishing Move', aptness: 'High', narrowingLike: 'painted tunnel collision setup' },
             ],
         }],
@@ -111,7 +111,7 @@ export const ACME_ORDER_AFFINITIES_HARNESS_FIXTURES: readonly AcmeOrderAffinitie
         }],
         likelyErrors: [
             'Force High aptness on both Disadvantage and Finishing Move without disambiguating narrowing.',
-            'Misclassify as pure Distraction because bait can be attached.',
+            'Misclassify as pure Bait because lure can be attached.',
         ],
     },
     {
@@ -165,7 +165,7 @@ export const ACME_ORDER_AFFINITIES_HARNESS_FIXTURES: readonly AcmeOrderAffinitie
         }],
         likelyErrors: [
             'Reject as Not a thing due to impossible weather control.',
-            'Confuse with Distraction and omit hazard framing.',
+            'Confuse with Bait or Misdirection and omit hazard framing.',
         ],
     },
     {
