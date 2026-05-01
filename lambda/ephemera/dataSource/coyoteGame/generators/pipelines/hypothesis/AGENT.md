@@ -132,6 +132,8 @@ Plan-select may **materialize** chosen affordances as first-class `tropeAssignme
 **Regression tests.** Colocated under `candidates/*.test.ts`, pipeline tests in this folder, and
 [`../../testHarness/`](../../testHarness/). Run Jest from `lambda/ephemera` per [`AGENT.testing.md`](../../../../../AGENT.testing.md).
 
+**Harness example.** Coyote engine fixture-01 (`FIXTURE_01_PHASE_PLAN_HANDOFF`) injects phase-plan `planSelectOutput` with `selectedCandidate` that includes a **Finishing Move** member using **`affordance:coyote`**, exercised by [`coyoteEngineTestFixtures.test.ts`](../../testHarness/coyoteEngineTestFixtures.test.ts). Definition: [`coyoteEngineTestFixtures.ts`](../../testHarness/coyoteEngineTestFixtures.ts).
+
 - Terminal parse of model output into cache-facing intent fields is shared and lives in [`../../sharedParsers/parseHypothesisModelOutput.ts`](../../sharedParsers/parseHypothesisModelOutput.ts), not in this folder.
 - Cross-cutting staged-object helpers and render-tree constants are under [`../../../utilities/`](../../../utilities/).
 - Harness code lives under [`../../testHarness/`](../../testHarness/) and imports this pipeline rather than duplicating it.
