@@ -94,12 +94,13 @@ describe('parseHypothesisStageOneOutput', () => {
         expect(parseHypothesisStageOneOutput(body, singleObjectRoomMap).ok).toBe(false)
     })
 
-    it('rejects candidate multiset mismatch', () => {
+    it('accepts tropeAssignments subset when staged multiset is larger', () => {
         const twoObjMap: CoyoteRoomObjectsByRoom = {
             ...singleObjectRoomMap,
             'ROOM#BRIDGE': harnessRoomObjects('bridge', ['rope']),
         }
-        expect(parseHypothesisStageOneOutput(validJsonSingleObject, twoObjMap).ok).toBe(false)
+        const r = parseHypothesisStageOneOutput(validJsonSingleObject, twoObjMap)
+        expect(r.ok).toBe(true)
     })
 
     it('rejects legacy intendedRole key under strict member schema', () => {
@@ -154,7 +155,7 @@ describe('parseHypothesisStageOneOutput', () => {
         }
     })
 
-    it('accepts tropeAssignments ∪ outliers partition per candidate', () => {
+    it('accepts stableKey-only outliers scaffolding with partial trope coverage', () => {
         const map: CoyoteRoomObjectsByRoom = {
             ...singleObjectRoomMap,
             'ROOM#BRIDGE': harnessRoomObjects('bridge', ['rope']),
@@ -171,18 +172,18 @@ describe('parseHypothesisStageOneOutput', () => {
                             members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal lane payload' }],
                         },
                     ],
-                    outliers: [{ stableKey: 'rope-0', tropeFunction: 'reserve connective line' }],
+                    outliers: [{ stableKey: 'rope-0' }],
                 },
             ],
         })
         const r = parseHypothesisStageOneOutput(body, map)
         expect(r.ok).toBe(true)
         if (r.ok) {
-            expect(r.candidates[0].explicitOutliers).toEqual([{ stableKey: 'rope-0', tropeFunction: 'reserve connective line' }])
+            expect(r.candidates[0].tropeAssignments[0].members).toHaveLength(1)
         }
     })
 
-    it('rejects stableKey in both tropeAssignments and outliers', () => {
+    it('accepts overlapping stableKey in tropeAssignments and outliers scaffolding (not authoritative)', () => {
         const map: CoyoteRoomObjectsByRoom = {
             ...singleObjectRoomMap,
             'ROOM#BRIDGE': harnessRoomObjects('bridge', ['rope']),
@@ -198,15 +199,43 @@ describe('parseHypothesisStageOneOutput', () => {
                             executionDetail: 'Anvil lane execution.',
                             members: [
                                 { stableKey: 'anvil-0', tropeFunction: 'terminal lane payload' },
-                                { stableKey: 'rope-0', tropeFunction: 'duplicate key member' },
+                                { stableKey: 'rope-0', tropeFunction: 'also in trope row' },
                             ],
                         },
                     ],
-                    outliers: [{ stableKey: 'rope-0', tropeFunction: 'duplicate key outlier' }],
+                    outliers: [{ stableKey: 'rope-0' }],
                 },
             ],
         })
-        expect(parseHypothesisStageOneOutput(body, map).ok).toBe(false)
+        expect(parseHypothesisStageOneOutput(body, map).ok).toBe(true)
+    })
+
+    it('rejects tropeFunction key on outlier row (strict stableKey-only)', () => {
+        const map: CoyoteRoomObjectsByRoom = {
+            ...singleObjectRoomMap,
+            'ROOM#BRIDGE': harnessRoomObjects('bridge', ['rope']),
+        }
+        const body = JSON.stringify({
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Primary trap on the anvil lane.',
+                    tropeAssignments: [
+                        {
+                            trope: 'Finishing Move',
+                            executionDetail: 'Anvil lane execution.',
+                            members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal lane payload' }],
+                        },
+                    ],
+                    outliers: [{ stableKey: 'rope-0', tropeFunction: 'not allowed on outlier' }],
+                },
+            ],
+        })
+        const r = parseHypothesisStageOneOutput(body, map)
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.errorMessage).toContain('unknown key')
+        }
     })
 
     it('rejects unknown root keys', () => {

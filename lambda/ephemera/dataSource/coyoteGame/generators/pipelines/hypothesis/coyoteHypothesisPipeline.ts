@@ -14,6 +14,7 @@ import { buildHypothesisPlanSelectionPromptParts } from './buildHypothesisPlanSe
 import { buildHypothesisStageOnePromptParts } from './buildHypothesisStageOnePrompt';
 import {
     combineHypothesisClusters,
+    planSelectOutliersForCombinedCandidate,
     type CombineHypothesisClustersReturn,
 } from './combineHypothesisClusters';
 import type { CoyoteHarnessPhasePlanInject, CoyoteHarnessPlanSelectInject } from './coyoteHarnessInjectTypes';
@@ -299,7 +300,21 @@ function buildCoyoteHypothesisSteps(
                     });
                     abort();
                 }
-                draft.hop1Handoff = handoff.handoff;
+                let hop1Handoff = handoff.handoff;
+                const selected = hop1Handoff.selectedCandidate;
+                if (selected) {
+                    const matched = combined.candidates.find((c) => c.candidateId === selected.candidateId);
+                    if (matched) {
+                        hop1Handoff = {
+                            ...hop1Handoff,
+                            selectedCandidate: {
+                                ...selected,
+                                outliers: planSelectOutliersForCombinedCandidate(matched, roomObjectsByRoom),
+                            },
+                        };
+                    }
+                }
+                draft.hop1Handoff = hop1Handoff;
             },
         }),
         ctx.defineLlmStep({

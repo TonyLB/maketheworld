@@ -120,7 +120,7 @@ function formatHop1HandoffBlock(handoff: CoyoteHop1Handoff): string {
             '- outliers:',
             ...(handoff.selectedCandidate.outliers.length > 0
                 ? handoff.selectedCandidate.outliers.map(
-                    (outlier) => `  - ${outlier.stableKey} | ${outlier.shortName} | ${outlier.room} | ${outlier.tropeFunction}`
+                    (outlier) => `  - ${outlier.stableKey} | ${outlier.shortName} | ${outlier.room}`
                 )
                 : ['  - (none)']),
         ]

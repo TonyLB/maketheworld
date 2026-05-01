@@ -4,6 +4,7 @@ import { hypothesisDebugLog } from '../../../utilities/hypothesisDebug'
 import type {
     PlanSelectCombinedCandidate,
     PlanSelectCombinedMember,
+    PlanSelectCombinedOutlier,
     PlanSelectCombinedTropeAssignment,
 } from './combineHypothesisClusters'
 
@@ -15,6 +16,7 @@ export const COYOTE_HOP1_HANDOFF_JSON_KEYS = {
 } as const
 
 export type SelectedCandidateMember = PlanSelectCombinedMember
+export type SelectedCandidateOutlier = PlanSelectCombinedOutlier
 export type SelectedCandidateTropeAssignment = PlanSelectCombinedTropeAssignment
 export type SelectedCandidate = PlanSelectCombinedCandidate
 
@@ -149,6 +151,32 @@ function validateSelectedCandidateMemberRow(
     }
 }
 
+function validateSelectedCandidateOutlierRow(
+    row: unknown,
+    reasonPath: string
+): { ok: true; outlier: SelectedCandidateOutlier } | ParseHop1HandoffFailure {
+    if (!isPlainObject(row)) {
+        return { ok: false, reason: `${reasonPath} must be a plain object` }
+    }
+    if (typeof row.stableKey !== 'string') {
+        return { ok: false, reason: `${reasonPath}.stableKey must be a string` }
+    }
+    if (typeof row.shortName !== 'string') {
+        return { ok: false, reason: `${reasonPath}.shortName must be a string` }
+    }
+    if (typeof row.room !== 'string') {
+        return { ok: false, reason: `${reasonPath}.room must be a string` }
+    }
+    return {
+        ok: true,
+        outlier: {
+            stableKey: row.stableKey,
+            shortName: row.shortName,
+            room: row.room,
+        },
+    }
+}
+
 function validateSelectedCandidate(
     raw: unknown
 ): { ok: true; selectedCandidate: SelectedCandidate } | ParseHop1HandoffFailure {
@@ -199,16 +227,16 @@ function validateSelectedCandidate(
     if (!Array.isArray(raw.outliers)) {
         return { ok: false, reason: 'selectedCandidate.outliers must be an array' }
     }
-    const narrowedOutliers: SelectedCandidateMember[] = []
+    const narrowedOutliers: SelectedCandidateOutlier[] = []
     for (let i = 0; i < raw.outliers.length; i += 1) {
-        const outlierResult = validateSelectedCandidateMemberRow(
+        const outlierResult = validateSelectedCandidateOutlierRow(
             raw.outliers[i],
             `selectedCandidate.outliers[${i}]`
         )
         if (!outlierResult.ok) {
             return outlierResult
         }
-        narrowedOutliers.push(outlierResult.member)
+        narrowedOutliers.push(outlierResult.outlier)
     }
     return {
         ok: true,
