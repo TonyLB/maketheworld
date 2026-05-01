@@ -1,6 +1,6 @@
 # Coyote Game: affordancesProvided threading (planning)
 
-**Status:** In progress. Design-decision constraints are locked; next step is Phase A1 implementation of type/validator changes.
+**Status:** In progress. Phase A1 (mtw-interfaces contract + validator lock) landed; next step is Phase A2 (Acme enrich authoring + actions acceptance).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -81,10 +81,10 @@ The following decisions are explicitly locked for this task.
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]` as each sub-step lands.
 
-- [ ] Phase A1 - contract and validation lock
-  - [ ] Add `affordancesProvided` types and validators in `mtw-interfaces` with explicit strictness for `intended?: true`, free-text `object`, and trope-role allowlist.
-  - [ ] Extend `isCoyoteTropeAffinity` and related line-level validators to accept the new field and reject malformed rows.
-  - [ ] Add unit coverage for valid/invalid `affordancesProvided` payloads (including malformed `intended`, empty `roles`, and non-string `object`).
+- [X] Phase A1 - contract and validation lock
+  - [X] Add `affordancesProvided` types and validators in `mtw-interfaces` with explicit strictness for `intended?: true`, free-text `object`, and trope-role allowlist.
+  - [X] Extend `isCoyoteTropeAffinity` and related line-level validators to accept the new field and reject malformed rows.
+  - [X] Add unit coverage for valid/invalid `affordancesProvided` payloads (including malformed `intended`, empty `roles`, and non-string `object`).
 
 - [ ] Phase A2 - Acme enrich authoring and action contracts
   - [ ] Update Acme enrich prompt/schema docs and examples to emit `affordancesProvided` alongside `environmentAffordances` where appropriate.
@@ -145,7 +145,7 @@ npx jest dataSource/coyoteGame/ dataSource/actions/ dataSource/objects/
 | Milestone | Status |
 | --- | --- |
 | Plan drafted with assumptions and boundaries | Done |
-| A1 contract + validator lock | Not started |
+| A1 contract + validator lock | Done |
 | A2 Acme enrich + actions acceptance | Not started |
 | A3 persistence + snapshot threading | Not started |
 | A4 candidate -> planSelect flow-through | Not started |
