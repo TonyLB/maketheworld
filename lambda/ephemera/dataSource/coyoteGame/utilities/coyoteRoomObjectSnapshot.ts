@@ -79,26 +79,3 @@ export function formatCoyoteStagedObjectsByRoom(roomObjectsByRoom: CoyoteRoomObj
     const snapshotSection = blocks.join('\n')
     return snapshotSection || '(none)'
 }
-
-/**
- * Candidates-phase (stage-one seam) grounding payload:
- * stable JSON for room-grouped staged objects with full trope/affordance data.
- */
-export function serializeCoyoteStagedObjectsByRoomJson(
-    roomObjectsByRoom: CoyoteRoomObjectsByRoom
-): string {
-    const payload = {
-        rooms: sortedRoomEntries(roomObjectsByRoom).map(([roomId, objects]) => ({
-            roomId,
-            room: formatRoomLabel(roomId),
-            objects: objects.map((o) => ({
-                uuid: o.uuid,
-                shortName: o.shortName,
-                stableKey: o.stableKey,
-                ...(o.tropeAffinities !== undefined ? { tropeAffinities: o.tropeAffinities } : {}),
-                ...(o.tropeAffinitiesFailed !== undefined ? { tropeAffinitiesFailed: o.tropeAffinitiesFailed } : {}),
-            })),
-        })),
-    }
-    return JSON.stringify(payload, null, 2)
-}

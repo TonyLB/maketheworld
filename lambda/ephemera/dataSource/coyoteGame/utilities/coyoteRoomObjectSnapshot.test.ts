@@ -3,7 +3,6 @@ import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraM
 import {
     formatCoyoteObjectAffinitySuffix,
     formatCoyoteStagedObjectsByRoom,
-    serializeCoyoteStagedObjectsByRoomJson,
 } from './coyoteRoomObjectSnapshot'
 
 const room = (id: string): EphemeraRoomId => id as EphemeraRoomId
@@ -141,61 +140,5 @@ describe('formatCoyoteStagedObjectsByRoom', () => {
             [room('ROOM#A')]: [{ uuid: 'OBJECT#a' as `OBJECT#${string}`, shortName: 'a', stableKey: 'a' }],
         })
         expect(out.indexOf('A:')).toBeLessThan(out.indexOf('Z:'))
-    })
-})
-
-describe('serializeCoyoteStagedObjectsByRoomJson', () => {
-    it('returns deterministic room ordering with full nested affordances', () => {
-        const first = serializeCoyoteStagedObjectsByRoomJson({
-            [room('ROOM#Z')]: [{
-                uuid: 'OBJECT#z' as `OBJECT#${string}`,
-                shortName: 'z',
-                stableKey: 'z',
-            }],
-            [room('ROOM#A')]: [{
-                uuid: 'OBJECT#a' as `OBJECT#${string}`,
-                shortName: 'a',
-                stableKey: 'a',
-                tropeAffinities: [{
-                    trope: 'Contraption',
-                    aptness: 'High',
-                    narrowing: 'chain rig',
-                    environmentAffordances: [{ object: 'boulder', roles: ['Finishing Move', 'Contraption'] }],
-                }],
-            }],
-        })
-        const second = serializeCoyoteStagedObjectsByRoomJson({
-            [room('ROOM#Z')]: [{
-                uuid: 'OBJECT#z' as `OBJECT#${string}`,
-                shortName: 'z',
-                stableKey: 'z',
-            }],
-            [room('ROOM#A')]: [{
-                uuid: 'OBJECT#a' as `OBJECT#${string}`,
-                shortName: 'a',
-                stableKey: 'a',
-                tropeAffinities: [{
-                    trope: 'Contraption',
-                    aptness: 'High',
-                    narrowing: 'chain rig',
-                    environmentAffordances: [{ object: 'boulder', roles: ['Finishing Move', 'Contraption'] }],
-                }],
-            }],
-        })
-        expect(first).toBe(second)
-        const parsed = JSON.parse(first) as {
-            rooms: Array<{
-                roomId: string;
-                room: string;
-                objects: Array<{
-                    stableKey: string;
-                    tropeAffinities?: Array<{ environmentAffordances?: unknown[] }>;
-                }>;
-            }>;
-        }
-        expect(parsed.rooms.map(({ room }) => room)).toEqual(['A', 'Z'])
-        expect(parsed.rooms[0].objects[0].tropeAffinities?.[0].environmentAffordances).toEqual([
-            { object: 'boulder', roles: ['Finishing Move', 'Contraption'] },
-        ])
     })
 })

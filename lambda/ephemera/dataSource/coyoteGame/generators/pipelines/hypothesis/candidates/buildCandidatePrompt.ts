@@ -4,10 +4,12 @@ import {
     COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
     COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
     coyoteSeamRoomMappingLines,
-    SNAPSHOT_SECTION_HEADER,
     splitCoyoteHypothesisLinesAtSnapshot,
 } from '../coyoteHypothesisPromptShared'
-import { serializeCoyoteStagedObjectsByRoomJson } from '../../../../utilities/coyoteRoomObjectSnapshot'
+import { serializeStagedObjectsAffinityForwardJson } from './serializeStagedObjectsForCandidatePrompt'
+
+/** Stage-one snapshot heading (object-centric JSON); must match [`splitCoyoteHypothesisLinesAtSnapshot`] argument. */
+export const CANDIDATE_STAGED_OBJECTS_SECTION_HEADER = '## Current staged objects'
 
 const CANDIDATE_PROMPT_INTRO_LINES = [
     'You are clustering staged Acme objects in a Coyote-vs-Road-Runner cartoon setup.',
@@ -25,7 +27,7 @@ const TROPE_ORDER: CoyoteTrope[] = ['Contraption', 'Distraction', 'Disadvantage'
 const TROPE_ORDER_LABEL = TROPE_ORDER.join(' -> ')
 
 /** Few-shot: trope-first candidate assignments with required tropeFunction member annotations. */
-const CANDIDATE_JSON_FEW_SHOT = `Example (shape -- use real **stableKey** strings from **Current staged objects by room** below):
+const CANDIDATE_JSON_FEW_SHOT = `Example (shape -- use real **stableKey** strings from **Current staged objects** below):
 \`\`\`json
 {
   "candidates": [
@@ -117,7 +119,7 @@ const CANDIDATE_JSON_CONTRACT_LINES = [
     '      - **`members`** (required non-empty array): staged objects grouped to that',
     '        trope beat. Each member object has:',
     '      - **`stableKey`** (string): **literal copy** of the **`stableKey`** field',
-    '        from **Current staged objects by room** (identify objects **only** by this',
+    '        from **Current staged objects** (identify objects **only** by this',
     '        token -- never substitute **`shortName`** or room labels).',
     '      - **`tropeFunction`** (required non-empty string): very short trope-local',
     '        job phrase for that staged object in this candidate beat.',
@@ -146,9 +148,12 @@ const CANDIDATE_JSON_CONTRACT_LINES = [
     '  Trope assignment objects may contain only **`trope`**, **`executionDetail`**,',
     '  and **`members`**. Each **member** object may contain only **`stableKey`** and required',
     '  **`tropeFunction`**. Each optional **outlier** object may contain only **`stableKey`**.',
-    '- **Input evidence priority:** Use staged-object **`tropeAffinities`** as the primary',
-    '  decision signal when grouping members and writing **`tropeFunction`**.',
-    '- Treat **`environmentAffordances`** inside those affinities as secondary advisory',
+    '- **Input evidence priority:** Use **`objects[*].tropeAffinities`** as the primary',
+    '  decision signal when grouping members and writing **`tropeFunction`**; **`objects[*].room`** is execution context,',
+    '  not the primary clustering axis.',
+    '- Use **`decisionFocus.ambiguousStableKeys`** and **`decisionFocus.unassignedStableKeys`** as steering',
+    '  for objects that warrant alternative readings vs props needing placement.',
+    '- Treat **`environmentAffordances`** nested under each affinity row as secondary advisory',
     '  hints; they can refine placement, but should not override stronger affinity evidence.',
 ] as const
 
@@ -164,8 +169,8 @@ function candidatePromptLines(snapshotSection: string): string[] {
         '',
         CANDIDATE_JSON_FEW_SHOT,
         '',
-        SNAPSHOT_SECTION_HEADER,
-        'Use this JSON as authoritative staged-object input (full object rows, trope affinities, and affordances).',
+        CANDIDATE_STAGED_OBJECTS_SECTION_HEADER,
+        'Use this JSON as authoritative staged-object input (`decisionFocus`, then `objects` rows with seam **`room`**, **`tropeAffinities`** including nested **`environmentAffordances`** when present).',
         '',
         '```json',
         snapshotSection || '{}',
@@ -175,9 +180,9 @@ function candidatePromptLines(snapshotSection: string): string[] {
 
 /** Stage 1 only: emits JSON clustering seam. Cache split before staged-objects snapshot. */
 export function buildCandidatePrompt(input: BuildHypothesisPromptInput): CoyotePromptParts {
-    const snapshotSection = serializeCoyoteStagedObjectsByRoomJson(input.roomObjectsByRoom)
+    const snapshotSection = serializeStagedObjectsAffinityForwardJson(input.roomObjectsByRoom)
     const lines = candidatePromptLines(snapshotSection)
-    const splitAt = splitCoyoteHypothesisLinesAtSnapshot(lines)
+    const splitAt = splitCoyoteHypothesisLinesAtSnapshot(lines, CANDIDATE_STAGED_OBJECTS_SECTION_HEADER)
     const mappingBlock = coyoteSeamRoomMappingLines(input.roomObjectsByRoom).join('\n')
     const tailAfterSplit = lines.slice(splitAt).join('\n')
     return {

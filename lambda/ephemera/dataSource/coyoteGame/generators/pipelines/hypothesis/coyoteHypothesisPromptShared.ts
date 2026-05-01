@@ -107,7 +107,7 @@ export function coyoteSeamRoomMappingLines(
     const roomIds = roomIdsWithStagedObjects(roomObjectsByRoom)
     const lines: string[] = [
         '## Seam room labels',
-        '- Canonical **`EphemeraRoomId`** values appear only in **Current staged objects by room**. Stage One JSON **`members`** reference objects **only** by **`stableKey`** from that snapshot — not by **`shortName`**, room headings, or this label table.',
+        '- Canonical **`EphemeraRoomId`** values appear in this table (not as **`roomId`** in Stage One staged JSON). Stage One JSON **`members`** reference objects **only** by **`stableKey`** from that snapshot — not by **`shortName`**, **`room`** seam text, or labels from this table.',
         '- Each **seam label** is the default `ROOM#` strip from the id, **unless** listed in the Coyote override map in code (`COYOTE_SEAM_ROOM_LABEL_OVERRIDES` in `coyoteHypothesisPromptShared.ts`); this table is the source of truth for interpreting geography vs ids.',
         '- Use topology / room flavor in **`notes`** or free-text **`clusterName`** when helpful; spatial reasoning must not replace **`stableKey`** identifiers in **`members`**.',
         '',
@@ -153,10 +153,13 @@ export function coyoteHypothesisSharedWorldContextBlock(): string {
     return `${COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_SECTION}\n\n${COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_SECTION}`
 }
 
-/** Blank line immediately before [`SNAPSHOT_SECTION_HEADER`] marks the Bedrock prompt-cache boundary. */
-export function splitCoyoteHypothesisLinesAtSnapshot(lines: string[]): number {
+/** Blank line immediately before the snapshot heading marks the Bedrock prompt-cache boundary. */
+export function splitCoyoteHypothesisLinesAtSnapshot(
+    lines: string[],
+    snapshotSectionHeader: string = SNAPSHOT_SECTION_HEADER
+): number {
     const splitAt = lines.findIndex(
-        (line, index) => line === '' && lines[index + 1] === SNAPSHOT_SECTION_HEADER
+        (line, index) => line === '' && lines[index + 1] === snapshotSectionHeader
     )
     if (splitAt < 0) {
         throw new Error('Coyote hypothesis prompt: missing blank line before staged-objects snapshot')
