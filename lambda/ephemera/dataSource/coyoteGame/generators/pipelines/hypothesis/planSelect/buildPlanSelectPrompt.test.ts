@@ -59,6 +59,8 @@ describe('buildPlanSelectPrompt', () => {
         expect(full).toContain('`singleCandidateDelivery`')
         expect(full).toContain('```json')
         expect(full).toContain('"schemaVersion":3')
+        expect(full).toContain('affordancesProvided')
+        expect(full).toContain('environmentAffordances')
         expect(full).toContain('"candidateId":"candidate-1"')
         expect(parts.dynamicSuffix).toContain('ROOM#VORTEX')
         expect(full).toContain('## Trope candidates (input JSON)')
@@ -135,6 +137,8 @@ describe('buildPlanSelectPrompt', () => {
         const full = parts.invariantPrefix + parts.dynamicSuffix
         expect(full).toContain('"candidateId":"candidate-1"')
         expect(full).toContain('"stableKey":"anvil"')
+        expect(full).toContain('"environmentAffordances"')
+        expect(full).toContain('"object":"long-fall"')
         expect(full).not.toContain('drop-ready')
     })
 })

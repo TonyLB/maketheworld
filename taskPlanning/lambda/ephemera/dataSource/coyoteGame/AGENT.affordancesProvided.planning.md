@@ -1,6 +1,6 @@
 # Coyote Game: affordancesProvided threading (planning)
 
-**Status:** In progress. Phases A1 through A3 are complete; next step is Phase A4 (hypothesis flow-through to planSelect).
+**Status:** In progress. Phases A1 through A4 are complete; next step is Phase A5 (tests/docs closeout for durable `AGENT.md` and any remaining focused tests).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -96,11 +96,11 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Keep existing room filtering behavior for `environmentAffordances`; do not drop `affordancesProvided` unless explicitly required.
   - [X] Add regression tests around `handleApiObjectsChange` and snapshot serialization to verify round-trip persistence.
 
-- [ ] Phase A4 - hypothesis flow-through to planSelect
-  - [ ] Preserve `affordancesProvided` in stage-one snapshot consumption used by candidate creation.
-  - [ ] Extend candidate-combine -> planSelect input JSON shape so planSelect sees `affordancesProvided` signal at member/object level consistent with current architecture.
-  - [ ] Update prompt contract wording in candidate/planSelect builders so the field is described as available evidence.
-  - [ ] Update parser/types at planSelect boundary as needed so handoff data remains schema-consistent and testable.
+- [X] Phase A4 - hypothesis flow-through to planSelect
+  - [X] Preserve `affordancesProvided` in stage-one snapshot consumption used by candidate creation.
+  - [X] Extend candidate-combine -> planSelect input JSON shape so planSelect sees `affordancesProvided` signal at member/object level consistent with current architecture.
+  - [X] Update prompt contract wording in candidate/planSelect builders so the field is described as available evidence.
+  - [X] Update parser/types at planSelect boundary as needed so handoff data remains schema-consistent and testable.
 
 - [ ] Phase A5 - tests, docs, and closeout
   - [ ] Update focused hypothesis tests (`serializeStagedObjects*`, `combineCandidateOutput*`, `buildPlanSelectPrompt*`, and parser tests) for the new field.
@@ -148,5 +148,5 @@ npx jest dataSource/coyoteGame/ dataSource/actions/ dataSource/objects/
 | A1 contract + validator lock | Done |
 | A2 Acme enrich + actions acceptance | Done |
 | A3 persistence + snapshot threading | Done (regressions in `handleApiObjectsChange.test.ts`, `serializeStagedObjectsForCandidatePrompt.test.ts`) |
-| A4 candidate -> planSelect flow-through | Not started |
+| A4 candidate -> planSelect flow-through | Done (`buildCandidatePrompt`, `combineCandidateOutput` serialize + types, `buildPlanSelectPrompt`, `parsePlanSelectOutput`; tests in combine/parser/buildPrompt) |
 | A5 docs/tests closeout | Not started |
