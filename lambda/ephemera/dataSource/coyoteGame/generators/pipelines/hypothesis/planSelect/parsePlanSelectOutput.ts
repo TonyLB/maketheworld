@@ -17,6 +17,46 @@ import type {
 /** Canonical trope ordering for deterministic narrowed-record emission. */
 const TROPE_ORDER: CoyoteTrope[] = CANONICAL_TROPE_ORDER
 
+/**
+ * Prefix for materialized affordance `stableKey` values in handoff members (see hypothesis/AGENT.md).
+ * Keys without this prefix are treated as staged-object identities.
+ */
+export const MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX = 'affordance:' as const
+
+/** Suffix after `MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX`: letters, digits, underscore, hyphen (e.g. coyote, boulder1). */
+const MATERIALIZED_AFFORDANCE_STABLE_KEY_SUFFIX_PATTERN = /^[A-Za-z0-9_-]+$/
+
+/**
+ * True when `stableKey` (after trim) uses the materialization prefix and the suffix matches the handoff contract.
+ * Staged keys that do not start with the prefix are valid and return true.
+ */
+export function isValidMaterializedAffordanceStableKey(stableKey: string): boolean {
+    const trimmed = stableKey.trim()
+    if (!trimmed.startsWith(MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX)) {
+        return true
+    }
+    const suffix = trimmed.slice(MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX.length)
+    if (suffix.length === 0) {
+        return false
+    }
+    return MATERIALIZED_AFFORDANCE_STABLE_KEY_SUFFIX_PATTERN.test(suffix)
+}
+
+function materializedAffordanceStableKeyValidationFailureReason(stableKey: string): string | null {
+    const trimmed = stableKey.trim()
+    if (!trimmed.startsWith(MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX)) {
+        return null
+    }
+    const suffix = trimmed.slice(MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX.length)
+    if (suffix.length === 0) {
+        return 'materialized affordance stableKey must have a non-empty suffix after "affordance:"'
+    }
+    if (!MATERIALIZED_AFFORDANCE_STABLE_KEY_SUFFIX_PATTERN.test(suffix)) {
+        return 'materialized affordance stableKey suffix must contain only letters, digits, underscores, and hyphens'
+    }
+    return null
+}
+
 /** Canonical JSON keys for planSelect output (plan selection to phase-plan). */
 export const PLAN_SELECT_OUTPUT_JSON_KEYS = {
     paragraphSummary: 'paragraphSummary',
@@ -141,6 +181,11 @@ function validatePlanSelectWinningCandidateMemberRow(
     if (typeof row.stableKey !== 'string') {
         return { ok: false, reason: `${reasonPath}.stableKey must be a string` }
     }
+    const stableKey = row.stableKey.trim()
+    const materializedKeyError = materializedAffordanceStableKeyValidationFailureReason(stableKey)
+    if (materializedKeyError !== null) {
+        return { ok: false, reason: `${reasonPath}.stableKey ${materializedKeyError}` }
+    }
     if (typeof row.shortName !== 'string') {
         return { ok: false, reason: `${reasonPath}.shortName must be a string` }
     }
@@ -189,7 +234,7 @@ function validatePlanSelectWinningCandidateMemberRow(
     return {
         ok: true,
         member: {
-            stableKey: row.stableKey,
+            stableKey,
             shortName: row.shortName,
             room: row.room,
             tropeFunction: row.tropeFunction,

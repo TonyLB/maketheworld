@@ -1,6 +1,6 @@
 # Coyote planSelect: affordance alignment (planning)
 
-**Status:** In progress. StableKey and compatibility choices below are locked; materialization contract is recorded in [`hypothesis/AGENT.md`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md#materialized-affordance-rows-synthetic-stablekey); next step is **Types + parser**, then downstream and prompt updates.
+**Status:** In progress. StableKey and compatibility choices below are locked; materialization contract is recorded in [`hypothesis/AGENT.md`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md#materialized-affordance-rows-synthetic-stablekey); synthetic member `stableKey` validation and tests are in [`parsePlanSelectOutput.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/parsePlanSelectOutput.ts); next step is **Downstream read paths**, then prompt updates.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../../../../../AGENT.md).
 
@@ -70,8 +70,8 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as y
 **Pointer:** Durable materialization contract (synthetic `stableKey`, `room` v1, optional rows, member/parser shape): [`hypothesis/AGENT.md` section "Materialized affordance rows"](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md#materialized-affordance-rows-synthetic-stablekey).
 
 - [X] Record **materialization contract** (stableKey, room inheritance, optional rows; parser member shape) in a short durable note or interfaces comment and link it from [`hypothesis/AGENT.md`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md) when behavior stabilizes.
-- [ ] **Types + parser:** extend validation for synthetic members; add focused tests in [`parsePlanSelectOutput.test.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/parsePlanSelectOutput.test.ts).
-  - [ ] Golden or harness payloads updated if parser rejects old shapes.
+- [X] **Types + parser:** extend validation for synthetic members; add focused tests in [`parsePlanSelectOutput.test.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/parsePlanSelectOutput.test.ts).
+  - [X] Golden or harness payloads updated if parser rejects old shapes (no edits needed; goldens use staged keys only).
 - [ ] **Downstream read paths:** update narrative beat (and any other consumer) so synthetic stableKeys do not break grounding or duplicate real props.
 - [ ] **Prompt:** update [`buildPlanSelectPrompt.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/buildPlanSelectPrompt.ts) and snapshot tests in [`buildPlanSelectPrompt.test.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/buildPlanSelectPrompt.test.ts).
 - [ ] **Harness / fixtures:** extend [`coyoteEngineTestFixtures.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts) or related tests when inject paths need new fields.
@@ -94,7 +94,7 @@ Exact commands and filters may evolve; prefer [`lambda/ephemera/AGENT.testing.md
 | Milestone | Notes |
 | --- | --- |
 | Contract drafted | StableKey prefix, room v1, compatibility; steady-state prose and authority links in [`hypothesis/AGENT.md#materialized-affordance-rows-synthetic-stablekey`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md#materialized-affordance-rows-synthetic-stablekey); `PlanSelectCombinedMember` JSDoc and parser member validator comment |
-| Parser + tests | |
+| Parser + tests | Member-row `stableKey`: trim; if prefixed with `affordance:`, non-empty suffix matching `[A-Za-z0-9_-]+`; exports `MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX`, `isValidMaterializedAffordanceStableKey`; tests for accept / reject / trim; harness unchanged |
 | Downstream consumers | |
 | Prompt + tests | |
 | Harness / integration | |

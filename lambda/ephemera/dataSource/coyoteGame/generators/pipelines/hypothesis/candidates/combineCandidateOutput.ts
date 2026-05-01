@@ -40,6 +40,7 @@ export type CombineCandidateOutputReturn = {
 /**
  * Member row shape for plan-select input JSON and winning-candidate handoff (`selectedCandidate`).
  * Includes staged props and optional **materialized** affordance rows (synthetic `stableKey` under `affordance:`).
+ * Materialized keys must match validation in `../planSelect/parsePlanSelectOutput.ts` (`MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX`, suffix charset).
  *
  * @see ../AGENT.md#materialized-affordance-rows-synthetic-stablekey
  */
