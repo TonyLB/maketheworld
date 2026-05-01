@@ -62,6 +62,42 @@ describe('isAcmeOrderPublishedOrder', () => {
         ).toBe(true)
     })
 
+    it('accepts tropeAffinities affordancesProvided when structured objects', () => {
+        expect(
+            isAcmeOrderPublishedOrder({
+                ...minimal,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'electrical generator',
+                    affordancesProvided: [{
+                        object: 'lightning',
+                        intended: true,
+                        roles: ['Contraption', 'Finishing Move'],
+                    }],
+                }],
+            })
+        ).toBe(true)
+        expect(
+            isAcmeOrderPublishedOrder({
+                ...minimal,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'launch rig',
+                    environmentAffordances: [{
+                        object: 'boulder',
+                        roles: ['Finishing Move'],
+                    }],
+                    affordancesProvided: [{
+                        object: 'long rope for setting off',
+                        roles: ['Contraption'],
+                    }],
+                }],
+            })
+        ).toBe(true)
+    })
+
     it('rejects tropeAffinities environmentAffordances when invalid', () => {
         expect(
             isAcmeOrderPublishedOrder({
@@ -85,6 +121,52 @@ describe('isAcmeOrderPublishedOrder', () => {
                         object: 'boulder',
                         roles: ['Finishing Move'],
                     }, 1],
+                }],
+            } as unknown)
+        ).toBe(false)
+    })
+
+    it('rejects tropeAffinities affordancesProvided when invalid', () => {
+        expect(
+            isAcmeOrderPublishedOrder({
+                ...minimal,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'launch rig',
+                    affordancesProvided: [{
+                        object: 'drop trigger',
+                        intended: false,
+                        roles: ['Contraption'],
+                    }],
+                }],
+            } as unknown)
+        ).toBe(false)
+        expect(
+            isAcmeOrderPublishedOrder({
+                ...minimal,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'launch rig',
+                    affordancesProvided: [{
+                        object: 4,
+                        roles: ['Contraption'],
+                    }],
+                }],
+            } as unknown)
+        ).toBe(false)
+        expect(
+            isAcmeOrderPublishedOrder({
+                ...minimal,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'launch rig',
+                    affordancesProvided: [{
+                        object: 'drop trigger',
+                        roles: [],
+                    }],
                 }],
             } as unknown)
         ).toBe(false)

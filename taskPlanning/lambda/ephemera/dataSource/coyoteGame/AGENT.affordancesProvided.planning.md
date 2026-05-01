@@ -86,10 +86,10 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Extend `isCoyoteTropeAffinity` and related line-level validators to accept the new field and reject malformed rows.
   - [X] Add unit coverage for valid/invalid `affordancesProvided` payloads (including malformed `intended`, empty `roles`, and non-string `object`).
 
-- [ ] Phase A2 - Acme enrich authoring and action contracts
-  - [ ] Update Acme enrich prompt/schema docs and examples to emit `affordancesProvided` alongside `environmentAffordances` where appropriate.
-  - [ ] Ensure publish payload validation accepts structured `affordancesProvided` via `CoyoteTropeAffinity` validators.
-  - [ ] Add tests in actions package for acceptance/rejection behavior and mixed affordance-field payloads.
+- [X] Phase A2 - Acme enrich authoring and action contracts
+  - [X] Update Acme enrich prompt/schema docs and examples to emit `affordancesProvided` alongside `environmentAffordances` where appropriate.
+  - [X] Ensure publish payload validation accepts structured `affordancesProvided` via `CoyoteTropeAffinity` validators.
+  - [X] Add tests in actions package for acceptance/rejection behavior and mixed affordance-field payloads.
 
 - [ ] Phase A3 - persistence and snapshot threading
   - [ ] Confirm order-to-room-object persistence carries `affordancesProvided` unchanged.
@@ -146,7 +146,7 @@ npx jest dataSource/coyoteGame/ dataSource/actions/ dataSource/objects/
 | --- | --- |
 | Plan drafted with assumptions and boundaries | Done |
 | A1 contract + validator lock | Done |
-| A2 Acme enrich + actions acceptance | Not started |
+| A2 Acme enrich + actions acceptance | Done |
 | A3 persistence + snapshot threading | Not started |
 | A4 candidate -> planSelect flow-through | Not started |
 | A5 docs/tests closeout | Not started |
