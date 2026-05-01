@@ -70,6 +70,7 @@ export type CombineCandidateOutputFailure = {
 }
 
 export type CombineCandidateOutputResult = CombineCandidateOutputSuccess | CombineCandidateOutputFailure
+const TROPE_ORDER: CoyoteTrope[] = ['Contraption', 'Distraction', 'Disadvantage', 'Finishing Move']
 
 function snapshotIndexByStableKey(
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
@@ -138,7 +139,11 @@ export function combineCandidateOutput(
         const seenKeys = new Set<string>()
         const tropeAssignments: CombinedTropeAssignment[] = []
         const assignmentStableKeys: string[] = []
-        for (const tropeAssignment of candidate.tropeAssignments) {
+        for (const trope of TROPE_ORDER) {
+            const tropeAssignment = candidate.tropeAssignments[trope]
+            if (!tropeAssignment) {
+                continue
+            }
             const membersOut: CombinedMemberPair[] = []
             for (const mem of tropeAssignment.members) {
                 const sk = mem.stableKey.trim()
@@ -161,7 +166,7 @@ export function combineCandidateOutput(
                 })
             }
             tropeAssignments.push({
-                trope: tropeAssignment.trope,
+                trope,
                 executionDetail: tropeAssignment.executionDetail,
                 members: membersOut,
             })

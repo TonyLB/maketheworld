@@ -7,7 +7,7 @@ import { isCoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 /*
  * Stage 1 emits trope-first JSON: optional notes, required candidates[].
- * Each candidate includes tropeAssignments[]; optional outliers[] is scaffolding only (stableKey-only).
+ * Each candidate includes tropeAssignments{} keyed by trope; optional outliers[] is scaffolding only (stableKey-only).
  * Trope members use stableKey + required tropeFunction. Authoritative outliers are derived in combine.
  */
 
@@ -18,7 +18,6 @@ export type ParsedCandidateMember = {
 }
 
 export type ParsedCandidateTropeAssignment = {
-    trope: CoyoteTrope
     executionDetail: string
     members: ParsedCandidateMember[]
 }
@@ -26,7 +25,7 @@ export type ParsedCandidateTropeAssignment = {
 export type ParsedCandidate = {
     candidateId: string
     executionSummary: string
-    tropeAssignments: ParsedCandidateTropeAssignment[]
+    tropeAssignments: Partial<Record<CoyoteTrope, ParsedCandidateTropeAssignment>>
 }
 
 export type ParseCandidateOutputSuccess = {
@@ -127,11 +126,10 @@ const STAGE_ONE_CANDIDATE_ALLOWED_KEYS = new Set([
     'tropeAssignments',
     'outliers',
 ])
-const STAGE_ONE_TROPE_ASSIGNMENT_ALLOWED_KEYS = new Set(['trope', 'executionDetail', 'members'])
+const STAGE_ONE_TROPE_ASSIGNMENT_ALLOWED_KEYS = new Set(['executionDetail', 'members'])
 const STAGE_ONE_MEMBER_ALLOWED_KEYS = new Set(['stableKey', 'tropeFunction'])
 const STAGE_ONE_OUTLIER_ALLOWED_KEYS = new Set(['stableKey'])
 const TROPE_ORDER: CoyoteTrope[] = ['Contraption', 'Distraction', 'Disadvantage', 'Finishing Move']
-const TROPE_ORDER_INDEX = new Map(TROPE_ORDER.map((trope, i) => [trope, i]))
 
 function unknownKeys(
     candidate: Record<string, unknown>,
@@ -251,19 +249,33 @@ function parseCandidatesFromPayload(
         const candidateId = co.candidateId.trim()
         const executionSummary = co.executionSummary.trim()
         const tropeAssignmentsRaw = co.tropeAssignments
-        if (!Array.isArray(tropeAssignmentsRaw) || tropeAssignmentsRaw.length < 1) {
+        if (
+            typeof tropeAssignmentsRaw !== 'object'
+            || tropeAssignmentsRaw === null
+            || Array.isArray(tropeAssignmentsRaw)
+        ) {
             return { ok: false, errorMessage: `stage 1 JSON: candidate "${candidateId}" needs tropeAssignments` }
         }
 
-        const tropeAssignmentsDraft: Array<{ trope: CoyoteTrope; executionDetail: string; members: DraftMember[] }> = []
-        let previousTropeIndex = -1
-        const seenTropes = new Set<CoyoteTrope>()
-        for (let ti = 0; ti < tropeAssignmentsRaw.length; ti++) {
-            const ta = tropeAssignmentsRaw[ti]
-            if (typeof ta !== 'object' || ta === null) {
+        const tropeAssignmentsRecord = tropeAssignmentsRaw as Record<string, unknown>
+        const tropeKeys = Object.keys(tropeAssignmentsRecord)
+        if (tropeKeys.length < 1) {
+            return { ok: false, errorMessage: `stage 1 JSON: candidate "${candidateId}" needs tropeAssignments` }
+        }
+
+        const tropeAssignmentsDraft: Partial<Record<CoyoteTrope, { executionDetail: string; members: DraftMember[] }>> = {}
+        for (const tropeKey of tropeKeys) {
+            if (!isCoyoteTrope(tropeKey)) {
                 return {
                     ok: false,
-                    errorMessage: `stage 1 JSON: candidate "${candidateId}" tropeAssignments[${ti}] must be an object`,
+                    errorMessage: `stage 1 JSON: candidate "${candidateId}" tropeAssignments has invalid trope key "${tropeKey}"`,
+                }
+            }
+            const ta = tropeAssignmentsRecord[tropeKey]
+            if (typeof ta !== 'object' || ta === null || Array.isArray(ta)) {
+                return {
+                    ok: false,
+                    errorMessage: `stage 1 JSON: candidate "${candidateId}" trope "${tropeKey}" must be an object`,
                 }
             }
             const tao = ta as Record<string, unknown>
@@ -272,42 +284,21 @@ function parseCandidatesFromPayload(
                 return {
                     ok: false,
                     errorMessage:
-                        `stage 1 JSON: candidate "${candidateId}" tropeAssignments[${ti}] has unknown key(s): ` +
+                        `stage 1 JSON: candidate "${candidateId}" trope "${tropeKey}" has unknown key(s): ` +
                         unknownMemberKeys.join(', '),
                 }
             }
-            if (!isCoyoteTrope(tao.trope)) {
-                return {
-                    ok: false,
-                    errorMessage: `stage 1 JSON: candidate "${candidateId}" tropeAssignments[${ti}] has invalid trope`,
-                }
-            }
-            if (seenTropes.has(tao.trope)) {
-                return {
-                    ok: false,
-                    errorMessage: `stage 1 JSON: candidate "${candidateId}" repeats trope "${tao.trope}"`,
-                }
-            }
-            const tropeIndex = TROPE_ORDER_INDEX.get(tao.trope)!
-            if (tropeIndex < previousTropeIndex) {
-                return {
-                    ok: false,
-                    errorMessage: `stage 1 JSON: candidate "${candidateId}" tropeAssignments are out of canonical trope order`,
-                }
-            }
-            previousTropeIndex = tropeIndex
-            seenTropes.add(tao.trope)
             if (!isNonEmptyString(tao.executionDetail)) {
                 return {
                     ok: false,
-                    errorMessage: `stage 1 JSON: candidate "${candidateId}" trope "${tao.trope}" needs non-empty executionDetail`,
+                    errorMessage: `stage 1 JSON: candidate "${candidateId}" trope "${tropeKey}" needs non-empty executionDetail`,
                 }
             }
             const membersRaw = tao.members
             if (!Array.isArray(membersRaw) || membersRaw.length < 1) {
                 return {
                     ok: false,
-                    errorMessage: `stage 1 JSON: candidate "${candidateId}" trope "${tao.trope}" needs a non-empty members array`,
+                    errorMessage: `stage 1 JSON: candidate "${candidateId}" trope "${tropeKey}" needs a non-empty members array`,
                 }
             }
             const membersDraft: DraftMember[] = []
@@ -316,7 +307,7 @@ function parseCandidatesFromPayload(
                 if (typeof mem !== 'object' || mem === null) {
                     return {
                         ok: false,
-                        errorMessage: `stage 1 JSON: candidate "${candidateId}" trope "${tao.trope}" member ${mi} must be an object`,
+                        errorMessage: `stage 1 JSON: candidate "${candidateId}" trope "${tropeKey}" member ${mi} must be an object`,
                     }
                 }
                 const mo = mem as Record<string, unknown>
@@ -325,13 +316,13 @@ function parseCandidatesFromPayload(
                     return {
                         ok: false,
                         errorMessage:
-                            `stage 1 JSON: candidate "${candidateId}" trope "${tao.trope}" member ${mi} has unknown key(s): ` +
+                            `stage 1 JSON: candidate "${candidateId}" trope "${tropeKey}" member ${mi} has unknown key(s): ` +
                             unknownMemberKeysForItem.join(', '),
                     }
                 }
                 const parsedM = parseDraftMemberFromRecord(
                     mo,
-                    `stage 1 JSON: candidate "${candidateId}" trope "${tao.trope}" member ${mi}`
+                    `stage 1 JSON: candidate "${candidateId}" trope "${tropeKey}" member ${mi}`
                 )
                 if (!parsedM.ok) {
                     return parsedM
@@ -339,16 +330,15 @@ function parseCandidatesFromPayload(
                 membersDraft.push(parsedM.draft)
             }
 
-            tropeAssignmentsDraft.push({
-                trope: tao.trope,
+            tropeAssignmentsDraft[tropeKey] = {
                 executionDetail: tao.executionDetail.trim(),
                 members: membersDraft,
-            })
+            }
         }
 
         const stagedMultisetSorted = expectedStableKeysSorted(roomObjectsByRoom)
-        const assignmentKeysList = tropeAssignmentsDraft.flatMap((assignment) =>
-            assignment.members.map((m) => m.stableKey.trim())
+        const assignmentKeysList = Object.values(tropeAssignmentsDraft).flatMap((assignment) =>
+            (assignment?.members ?? []).map((m) => m.stableKey.trim())
         )
         const stagedCounts = new Map<string, number>()
         for (const sk of stagedMultisetSorted) {
@@ -413,17 +403,20 @@ function parseCandidatesFromPayload(
             }
         }
 
-        const tropeAssignments: ParsedCandidateTropeAssignment[] = []
-        for (const draft of tropeAssignmentsDraft) {
+        const tropeAssignments: Partial<Record<CoyoteTrope, ParsedCandidateTropeAssignment>> = {}
+        for (const trope of TROPE_ORDER) {
+            const draft = tropeAssignmentsDraft[trope]
+            if (!draft) {
+                continue
+            }
             const resolvedMembers = resolveDraftMembers(draft.members, snapshotByStableKey)
             if (!resolvedMembers.ok) {
                 return resolvedMembers
             }
-            tropeAssignments.push({
-                trope: draft.trope,
+            tropeAssignments[trope] = {
                 executionDetail: draft.executionDetail,
                 members: resolvedMembers.members,
-            })
+            }
         }
         candidates.push({
             candidateId,

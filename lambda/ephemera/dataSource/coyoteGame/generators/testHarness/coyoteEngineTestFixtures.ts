@@ -114,9 +114,8 @@ const FIXTURE_01_GOLDEN_SEAM_BODY = JSON.stringify({
         {
             candidateId: 'candidate-1',
             executionSummary: 'Use the straightaway rocket lane as the main trap route.',
-            tropeAssignments: [
-                {
-                    trope: 'Contraption',
+            tropeAssignments: {
+                Contraption: {
                     executionDetail: 'Rocket hardware is staged and aligned on the straightaway.',
                     members: [
                         {
@@ -125,7 +124,7 @@ const FIXTURE_01_GOLDEN_SEAM_BODY = JSON.stringify({
                         },
                     ],
                 },
-            ],
+            },
         },
     ],
 })
@@ -649,18 +648,16 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Birdseed lures Road Runner while lever rig prepares the cliffside release.',
-                tropeAssignments: [
-                    {
-                        trope: 'Contraption',
+                tropeAssignments: {
+                    Contraption: {
                         executionDetail: 'Lever is staged at CLIFFTOP as release hardware.',
                         members: [{ stableKey: 'lever-0', tropeFunction: 'release lever' }],
                     },
-                    {
-                        trope: 'Distraction',
+                    Distraction: {
                         executionDetail: 'Road Runner stops to eat birdseed at CLIFFBASE.',
                         members: [{ stableKey: 'birdseed-0', tropeFunction: 'lane bait' }],
                     },
-                ],
+                },
             },
         ],
     }),
@@ -669,26 +666,23 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Paint and skates prep a route while birdseed lures into a portable-hole finish.',
-                tropeAssignments: [
-                    {
-                        trope: 'Contraption',
+                tropeAssignments: {
+                    Contraption: {
                         executionDetail: 'Roller skates and paint prep speed and route illusion before commitment.',
                         members: [
                             { stableKey: 'roller-skates-0', tropeFunction: 'speed rig' },
                             { stableKey: 'paint-0', tropeFunction: 'route edit' },
                         ],
                     },
-                    {
-                        trope: 'Distraction',
+                    Distraction: {
                         executionDetail: 'Road Runner pauses for birdseed at the bridge approach.',
                         members: [{ stableKey: 'birdseed-1', tropeFunction: 'target bait' }],
                     },
-                    {
-                        trope: 'Finishing Move',
+                    'Finishing Move': {
                         executionDetail: 'Portable hole is used as the terminal drop endpoint.',
                         members: [{ stableKey: 'portable-hole-0', tropeFunction: 'drop trap' }],
                     },
-                ],
+                },
             },
         ],
     }),
@@ -697,18 +691,16 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Magnet control narrows path and steel drum closes the impact beat.',
-                tropeAssignments: [
-                    {
-                        trope: 'Disadvantage',
+                tropeAssignments: {
+                    Disadvantage: {
                         executionDetail: 'Magnet creates persistent path pull in straightaway lane.',
                         members: [{ stableKey: 'magnet-0', tropeFunction: 'path pull' }],
                     },
-                    {
-                        trope: 'Finishing Move',
+                    'Finishing Move': {
                         executionDetail: 'Steel drum rolls through as terminal impact payload.',
                         members: [{ stableKey: 'steel-drum-1', tropeFunction: 'impact payload' }],
                     },
-                ],
+                },
             },
         ],
     }),
@@ -717,13 +709,12 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Catapult alone serves as the contraption for a launch-based chase setup.',
-                tropeAssignments: [
-                    {
-                        trope: 'Contraption',
+                tropeAssignments: {
+                    Contraption: {
                         executionDetail: 'Catapult is pre-aimed at CLIFFBASE for launch timing.',
                         members: [{ stableKey: 'catapult-0', tropeFunction: 'launch rig' }],
                     },
-                ],
+                },
             },
         ],
     }),
@@ -732,23 +723,20 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Birdseed lures, glue constrains, and anvil closes terminally.',
-                tropeAssignments: [
-                    {
-                        trope: 'Distraction',
+                tropeAssignments: {
+                    Distraction: {
                         executionDetail: 'Road Runner pauses for birdseed along the straightaway.',
                         members: [{ stableKey: 'birdseed-0', tropeFunction: 'target bait' }],
                     },
-                    {
-                        trope: 'Disadvantage',
+                    Disadvantage: {
                         executionDetail: 'Glue applies persistent movement constraint in CLIFFBASE lane.',
                         members: [{ stableKey: 'glue-0', tropeFunction: 'speed drag' }],
                     },
-                    {
-                        trope: 'Finishing Move',
+                    'Finishing Move': {
                         executionDetail: 'Anvil drops from CLIFFTOP as the terminal payload.',
                         members: [{ stableKey: 'anvil-0', tropeFunction: 'boom payload' }],
                     },
-                ],
+                },
             },
         ],
     }),
@@ -757,18 +745,16 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Trampoline sets trajectory while net imposes terminal containment.',
-                tropeAssignments: [
-                    {
-                        trope: 'Contraption',
+                tropeAssignments: {
+                    Contraption: {
                         executionDetail: 'Trampoline is staged to control launch arc.',
                         members: [{ stableKey: 'trampoline-0', tropeFunction: 'launch pad' }],
                     },
-                    {
-                        trope: 'Disadvantage',
+                    Disadvantage: {
                         executionDetail: 'Net applies capture constraint at CLIFFTOP endpoint.',
                         members: [{ stableKey: 'net-0', tropeFunction: 'capture wrap' }],
                     },
-                ],
+                },
             },
         ],
     }),
@@ -777,9 +763,8 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Multi-prop straightaway rig builds speed and release timing before terminal spring impact.',
-                tropeAssignments: [
-                    {
-                        trope: 'Contraption',
+                tropeAssignments: {
+                    Contraption: {
                         executionDetail: 'Rocket, skis, and catapult chain into one prep platform.',
                         members: [
                             { stableKey: 'rocket-0', tropeFunction: 'thrust source' },
@@ -787,17 +772,15 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
                             { stableKey: 'catapult-2', tropeFunction: 'launch arm' },
                         ],
                     },
-                    {
-                        trope: 'Disadvantage',
+                    Disadvantage: {
                         executionDetail: 'Glue slows pathing to hold timing window.',
                         members: [{ stableKey: 'glue-4', tropeFunction: 'speed drag' }],
                     },
-                    {
-                        trope: 'Finishing Move',
+                    'Finishing Move': {
                         executionDetail: 'Springs deliver the terminal strike at committed lane point.',
                         members: [{ stableKey: 'springs-3', tropeFunction: 'impact snap' }],
                     },
-                ],
+                },
             },
         ],
     }),
@@ -806,9 +789,8 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Umbrella, snorkel, and skis form one prep-heavy chase contraption.',
-                tropeAssignments: [
-                    {
-                        trope: 'Contraption',
+                tropeAssignments: {
+                    Contraption: {
                         executionDetail: 'Tools combine into a mobility-and-survival prep loadout.',
                         members: [
                             { stableKey: 'umbrella-0', tropeFunction: 'glide aid' },
@@ -816,7 +798,7 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
                             { stableKey: 'skis-0', tropeFunction: 'speed rig' },
                         ],
                     },
-                ],
+                },
             },
         ],
     }),
@@ -825,26 +807,23 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Paint and skates prep route, birdseed lures stop, cannon closes with terminal blast.',
-                tropeAssignments: [
-                    {
-                        trope: 'Contraption',
+                tropeAssignments: {
+                    Contraption: {
                         executionDetail: 'Roller skates plus paint set speed and deceptive route geometry.',
                         members: [
                             { stableKey: 'roller-skates-0', tropeFunction: 'speed rig' },
                             { stableKey: 'paint-0', tropeFunction: 'route edit' },
                         ],
                     },
-                    {
-                        trope: 'Distraction',
+                    Distraction: {
                         executionDetail: 'Birdseed draws Road Runner into the prepared line.',
                         members: [{ stableKey: 'birdseed-0', tropeFunction: 'target bait' }],
                     },
-                    {
-                        trope: 'Finishing Move',
+                    'Finishing Move': {
                         executionDetail: 'Cannon fires the terminal payload once lane commitment is locked.',
                         members: [{ stableKey: 'cannon-0', tropeFunction: 'boom' }],
                     },
-                ],
+                },
             },
         ],
     }),

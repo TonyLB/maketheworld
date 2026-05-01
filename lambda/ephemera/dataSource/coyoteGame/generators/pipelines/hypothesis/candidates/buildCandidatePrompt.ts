@@ -34,33 +34,29 @@ const CANDIDATE_JSON_FEW_SHOT = `Example (shape -- use real **stableKey** string
     {
       "candidateId": "candidate-1",
       "executionSummary": "Road Runner stops at birdseed while rope-and-pulley rig drops an anvil overhead.",
-      "tropeAssignments": [
-        {
-          "trope": "Contraption",
+      "tropeAssignments": {
+        "Contraption": {
           "executionDetail": "Rope and pulley stage an overhead release path for the anvil.",
           "members": [
             { "stableKey": "rope", "tropeFunction": "hold things up" },
             { "stableKey": "pulley", "tropeFunction": "mechanical guide" }
           ]
         },
-        {
-          "trope": "Distraction",
+        "Distraction": {
           "executionDetail": "Road Runner stops to eat a pile of birdseed.",
           "members": [{ "stableKey": "birdseed", "tropeFunction": "target zone bait" }]
         },
-        {
-          "trope": "Finishing Move",
+        "Finishing Move": {
           "executionDetail": "Anvil drops to flatten Road Runner at the bait point.",
           "members": [{ "stableKey": "anvil", "tropeFunction": "falling blunt trauma" }]
         }
-      ]
+      }
     },
     {
       "candidateId": "candidate-2",
       "executionSummary": "Road Runner stops at birdseed while rope, pulley, and anvil snap a snare trap shut.",
-      "tropeAssignments": [
-        {
-          "trope": "Contraption",
+      "tropeAssignments": {
+        "Contraption": {
           "executionDetail": "Rope and pulley rig a snare around birdseed, with anvil as counterweight release.",
           "members": [
             { "stableKey": "rope", "tropeFunction": "snare line" },
@@ -68,12 +64,11 @@ const CANDIDATE_JSON_FEW_SHOT = `Example (shape -- use real **stableKey** string
             { "stableKey": "anvil", "tropeFunction": "counterweight" }
           ]
         },
-        {
-          "trope": "Distraction",
+        "Distraction": {
           "executionDetail": "Road Runner stops to eat a pile of birdseed.",
           "members": [{ "stableKey": "birdseed", "tropeFunction": "target zone bait" }]
         }
-      ]
+      }
     }
   ],
   "notes": "Optional spatial note -- emit last."
@@ -87,13 +82,12 @@ Second example (simple one-candidate shape):
     {
       "candidateId": "candidate-1",
       "executionSummary": "Use a rocket sled at the base of the cliff as a speed-chase contraption.",
-      "tropeAssignments": [
-        {
-          "trope": "Contraption",
+      "tropeAssignments": {
+        "Contraption": {
           "executionDetail": "Rocket sled launches from the cliff base to build immediate chase speed along the highway.",
           "members": [{ "stableKey": "rocket-sled", "tropeFunction": "speed rig" }]
         }
-      ]
+      }
     }
   ]
 }
@@ -109,11 +103,11 @@ const CANDIDATE_JSON_CONTRACT_LINES = [
     '      `candidate-1`, `candidate-2`).',
     '    - **`executionSummary`** (required non-empty string): one concise line for',
     '      the candidate\'s provisional execution.',
-    '    - **`tropeAssignments`** (required non-empty array): assignments in trope',
-    `      order (**${TROPE_ORDER_LABEL}**) with no duplicate trope labels per candidate.`,
-    '      Each assignment object has:',
-    '      - **`trope`** (required): one of `Contraption`, `Distraction`,',
-    '        `Disadvantage`, `Finishing Move`.',
+    '    - **`tropeAssignments`** (required non-empty object, not an array): sparse',
+    `      record keyed by trope label in canonical order (**${TROPE_ORDER_LABEL}**).`,
+    '      Include only trope keys used in that candidate. Valid keys are',
+    '      `Contraption`, `Distraction`, `Disadvantage`, `Finishing Move`.',
+    '      Each trope-value object has:',
     '      - **`executionDetail`** (required non-empty string): first-draft detail',
     '        for how this trope beat runs in this candidate.',
     '      - **`members`** (required non-empty array): staged objects grouped to that',
@@ -134,9 +128,9 @@ const CANDIDATE_JSON_CONTRACT_LINES = [
     '- **Trope-first candidate grouping only.** Assign props to trope beats for each',
     '  candidate; do not collapse multiple trope beats into one unlabeled cluster.',
     '- **Coverage per candidate:** Each staged **`stableKey`** appears **exactly once**',
-    '  across candidate **`tropeAssignments[*].members`** ∪ candidate **`outliers`**',
+    '  across candidate **`tropeAssignments.<trope>.members`** ∪ candidate **`outliers`**',
     '  (when candidate **`outliers`** is omitted, all keys appear in',
-    '  **`tropeAssignments[*].members`**).',
+    '  **`tropeAssignments.<trope>.members`**).',
     '- **`tropeFunction` style (cost + speed):** use the shortest phrase that still',
     '  disambiguates intent --- usually **2-5 words**, lowercase fragment, not a full',
     '  sentence, no trailing punctuation.',
@@ -145,8 +139,8 @@ const CANDIDATE_JSON_CONTRACT_LINES = [
     '- **Strict keys:** root object may contain only **`candidates`** and optional',
     '  **`notes`**. Candidate objects may contain only **`candidateId`**,',
     '  **`executionSummary`**, **`tropeAssignments`**, and optional **`outliers`**.',
-    '  Trope assignment objects may contain only **`trope`**, **`executionDetail`**,',
-    '  and **`members`**. Each **member** object may contain only **`stableKey`** and required',
+    '  Each trope-value object may contain only **`executionDetail`** and **`members`**.',
+    '  Each **member** object may contain only **`stableKey`** and required',
     '  **`tropeFunction`**. Each optional **outlier** object may contain only **`stableKey`**.',
     '- **Input evidence priority:** Use **`objects[*].tropeAffinities`** as the primary',
     '  decision signal when grouping members and writing **`tropeFunction`**; **`objects[*].room`** is execution context,',

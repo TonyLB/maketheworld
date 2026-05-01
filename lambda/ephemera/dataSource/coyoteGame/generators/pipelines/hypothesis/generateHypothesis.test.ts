@@ -22,18 +22,16 @@ const stageOneSeamBody = JSON.stringify({
         {
             candidateId: 'candidate-1',
             executionSummary: 'Use lane setup then terminal drop.',
-            tropeAssignments: [
-                {
-                    trope: 'Distraction',
+            tropeAssignments: {
+                Distraction: {
                     executionDetail: 'Road Runner is drawn into the lane.',
                     members: [{ stableKey: 'rocket-skates', tropeFunction: 'speed lure setup prop' }],
                 },
-                {
-                    trope: 'Finishing Move',
+                'Finishing Move': {
                     executionDetail: 'Anvil drop is timed for the committed lane.',
                     members: [{ stableKey: 'anvil', tropeFunction: 'terminal drop payload' }],
                 },
-            ],
+            },
         },
     ],
 })
@@ -224,9 +222,8 @@ describe('generateHypothesis', () => {
                 {
                     candidateId: 'candidate-1',
                     executionSummary: 'Multi-room setup.',
-                    tropeAssignments: [
-                        {
-                            trope: 'Contraption',
+                    tropeAssignments: {
+                        Contraption: {
                             executionDetail: 'Setup spans rooms before final beat.',
                             members: [
                                 { stableKey: 'anvil-0', tropeFunction: 'anchor payload rig' },
@@ -234,7 +231,7 @@ describe('generateHypothesis', () => {
                                 { stableKey: 'birdseed-1', tropeFunction: 'bait cue for lane commitment' },
                             ],
                         },
-                    ],
+                    },
                 },
             ],
         })

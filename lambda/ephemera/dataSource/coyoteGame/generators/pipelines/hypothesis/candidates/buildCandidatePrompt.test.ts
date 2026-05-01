@@ -20,6 +20,8 @@ describe('buildCandidatePrompt', () => {
         expect(full).toContain('## Stage one JSON contract')
         expect(full).toContain('"tropeFunction":')
         expect(full).not.toContain('intendedRole')
+        expect(full).toContain('"tropeAssignments": {')
+        expect(full).not.toContain('"tropeAssignments": [')
         expect(parts.dynamicSuffix).toContain('## Seam room labels')
         expect(parts.dynamicSuffix).toContain('`ROOM#STRAIGHTAWAY` → **STRAIGHTAWAY**')
         expect(parts.dynamicSuffix).toContain('## Current staged objects')

@@ -22,13 +22,12 @@ describe('combineCandidateOutput', () => {
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Use rope prep in the opening beat.',
-                tropeAssignments: [
-                    {
-                        trope: 'Contraption',
+                tropeAssignments: {
+                    Contraption: {
                         executionDetail: 'Rope links setup pieces before execution.',
                         members: [{ stableKey: 'rope-0', tropeFunction: 'connective rigging between setup pieces' }],
                     },
-                ],
+                },
             },
         ]
         const r = combineCandidateOutput(candidates, roomMap)
@@ -52,13 +51,12 @@ describe('combineCandidateOutput', () => {
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Focus on one object only.',
-                tropeAssignments: [
-                    {
-                        trope: 'Finishing Move',
+                tropeAssignments: {
+                    'Finishing Move': {
                         executionDetail: 'Anvil beats only.',
                         members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal-only focus in this candidate' }],
                     },
-                ],
+                },
             },
         ]
         const r = combineCandidateOutput(candidates, roomMap)
@@ -92,13 +90,12 @@ describe('combineCandidateOutput', () => {
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Primary glue beat; rope unassigned in tropes.',
-                tropeAssignments: [
-                    {
-                        trope: 'Disadvantage',
+                tropeAssignments: {
+                    Disadvantage: {
                         executionDetail: 'Glue is applied as the persistent constraint.',
                         members: [{ stableKey: 'glue-1', tropeFunction: 'persistent movement constraint on lane' }],
                     },
-                ],
+                },
             },
         ]
         const r = combineCandidateOutput(candidates, roomMap)
@@ -134,13 +131,12 @@ describe('combineCandidateOutput', () => {
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Primary glue beat; rope unassigned in tropes.',
-                tropeAssignments: [
-                    {
-                        trope: 'Disadvantage',
+                tropeAssignments: {
+                    Disadvantage: {
                         executionDetail: 'Glue is applied as the persistent constraint.',
                         members: [{ stableKey: 'glue-1', tropeFunction: 'persistent movement constraint on lane' }],
                     },
-                ],
+                },
             },
         ]
         const r = combineCandidateOutput(candidates, roomMap)
