@@ -36,11 +36,11 @@ const stageOneSeamBody = JSON.stringify({
     candidates: [
         {
             candidateId: 'candidate-1',
-            executionSummary: 'Lure then strike across the straightaway lane.',
+            executionSummary: 'Birdseed lure then terminal drop.',
             tropeAssignments: {
-                Distraction: {
-                    executionDetail: 'Road Runner is guided into the strike lane first.',
-                    members: [{ stableKey: 'rocket-skates', tropeFunction: 'speed lure setup prop' }],
+                Bait: {
+                    executionDetail: 'Road Runner stops for birdseed in the lane.',
+                    members: [{ stableKey: 'birdseed-0', tropeFunction: 'lane bait' }],
                 },
                 'Finishing Move': {
                     executionDetail: 'Anvil lands after the lane setup commits the target route.',
@@ -197,14 +197,14 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
                             tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'drop zone' }],
                         },
                         {
-                            uuid: 'OBJECT#rocket-skates' as `OBJECT#${string}`,
-                            shortName: 'rocket skates',
-                            stableKey: 'rocket-skates',
+                            uuid: 'OBJECT#birdseed' as `OBJECT#${string}`,
+                            shortName: 'birdseed',
+                            stableKey: 'birdseed-0',
                             tropeAffinities: [
                                 {
-                                    trope: 'Contraption',
+                                    trope: 'Bait',
                                     aptness: 'High',
-                                    narrowing: 'mobility',
+                                    narrowing: 'lane lure',
                                     environmentAffordances: [{ object: 'long-fall', roles: ['Finishing Move'] }],
                                 },
                             ],

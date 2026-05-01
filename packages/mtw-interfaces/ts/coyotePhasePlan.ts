@@ -58,9 +58,11 @@ const PREP_VS_BEAT = new Set<CoyotePhasePrepVsBeat>(['prep', 'creation'])
 const ROOT_KEYS = new Set(['tropeSequence', 'deconflictionSummary', 'phases'])
 const PHASE_KEYS_REQUIRED = new Set(['stableKeysUsed', 'virtualEntities', 'achievement'])
 const VIRTUAL_KEYS = new Set(['label', 'derivedFrom', 'phaseKind'])
-const CANONICAL_TROPE_ORDER: CoyoteTrope[] = [
+/** Canonical trope order for prompts, parsers, and tropeSequence validation (single source of truth). */
+export const CANONICAL_TROPE_ORDER: CoyoteTrope[] = [
     'Contraption',
-    'Distraction',
+    'Bait',
+    'Misdirection',
     'Disadvantage',
     'Finishing Move',
 ]
@@ -235,7 +237,7 @@ function validatePhase(
     const tropeBeat = p.tropeBeat
     const stableKeysUsed = p.stableKeysUsed
     if (typeof trope !== 'string' || !isCoyoteTrope(trope)) {
-        return { ok: false, reason: 'trope must be one of Contraption, Distraction, Disadvantage, Finishing Move' }
+        return { ok: false, reason: 'trope must be one of Contraption, Bait, Misdirection, Disadvantage, Finishing Move' }
     }
     if (typeof tropeBeat !== 'string' || tropeBeat.trim().length === 0) {
         return { ok: false, reason: 'tropeBeat must be a non-empty string' }

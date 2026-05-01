@@ -17,7 +17,7 @@ The outcome pipeline is triggered by `Await RoadRunner` handling and produces a 
 
 - [`generatePlanOutcome.ts`](generatePlanOutcome.ts): Bedrock call wrapper and final parse-to-render output.
 - [`buildPlanOutcomePrompt.ts`](buildPlanOutcomePrompt.ts): invariant + dynamic prompt split for caching.
-- [`formatPhasePlanForOutcomePrompt.ts`](formatPhasePlanForOutcomePrompt.ts): deterministic phase-plan formatting for the prompt tail.
+- [`formatPhasePlanForOutcomePrompt.ts`](formatPhasePlanForOutcomePrompt.ts): deterministic phase-plan formatting for the prompt tail (echoes whatever valid `CoyotePhasePlan` contains; no prompt-side trope lexicon or fixed phase count).
 
 ## Contracts and boundaries
 

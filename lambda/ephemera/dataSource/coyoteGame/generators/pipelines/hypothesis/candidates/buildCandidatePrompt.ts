@@ -1,5 +1,6 @@
 import type { BuildHypothesisPromptInput, CoyotePromptParts } from '../promptTypes'
 import type { CoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import { CANONICAL_TROPE_ORDER } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 import {
     COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
     COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
@@ -23,8 +24,17 @@ const CANDIDATE_PROMPT_INTRO_LINES = [
     '  Do **not** emit the bare word **`json`** before **`{`** (that is not valid JSON).',
 ] as const
 
-const TROPE_ORDER: CoyoteTrope[] = ['Contraption', 'Distraction', 'Disadvantage', 'Finishing Move']
+const TROPE_ORDER: CoyoteTrope[] = CANONICAL_TROPE_ORDER
 const TROPE_ORDER_LABEL = TROPE_ORDER.join(' -> ')
+
+const CANDIDATE_TROPE_VOCABULARY_LINES = [
+    '## Trope vocabulary',
+    '- **Bait** (voluntary lure): Road Runner *chooses* a suboptimal stop or route (appetite, curiosity, desirable object).',
+    '- **Misdirection** (illusion / perception): misread terrain or optics so motion lacks adequate control (fake tunnel, obscured vision); not the same as raw ability debuffs.',
+    '- **Disadvantage**: impairment imposed independent of that choice or knowledge (sticky feet, net trap).',
+    '- **Contraption**: setup machinery or capability deployed for the maneuver (rigs, launchers, prep hardware).',
+    '- **Finishing Move**: terminal payoff or harm delivery aimed at the Road Runner.',
+] as const
 
 /** Few-shot: trope-first candidate assignments with required tropeFunction member annotations. */
 const CANDIDATE_JSON_FEW_SHOT = `Example (shape -- use real **stableKey** strings from **Current staged objects** below):
@@ -42,7 +52,7 @@ const CANDIDATE_JSON_FEW_SHOT = `Example (shape -- use real **stableKey** string
             { "stableKey": "pulley", "tropeFunction": "mechanical guide" }
           ]
         },
-        "Distraction": {
+        "Bait": {
           "executionDetail": "Road Runner stops to eat a pile of birdseed.",
           "members": [{ "stableKey": "birdseed", "tropeFunction": "target zone bait" }]
         },
@@ -64,7 +74,7 @@ const CANDIDATE_JSON_FEW_SHOT = `Example (shape -- use real **stableKey** string
             { "stableKey": "anvil", "tropeFunction": "counterweight" }
           ]
         },
-        "Distraction": {
+        "Bait": {
           "executionDetail": "Road Runner stops to eat a pile of birdseed.",
           "members": [{ "stableKey": "birdseed", "tropeFunction": "target zone bait" }]
         }
@@ -106,7 +116,7 @@ const CANDIDATE_JSON_CONTRACT_LINES = [
     '    - **`tropeAssignments`** (required non-empty object, not an array): sparse',
     `      record keyed by trope label in canonical order (**${TROPE_ORDER_LABEL}**).`,
     '      Include only trope keys used in that candidate. Valid keys are',
-    '      `Contraption`, `Distraction`, `Disadvantage`, `Finishing Move`.',
+    '      `Contraption`, `Bait`, `Misdirection`, `Disadvantage`, `Finishing Move`.',
     '      Each trope-value object has:',
     '      - **`executionDetail`** (required non-empty string): first-draft detail',
     '        for how this trope beat runs in this candidate.',
@@ -156,6 +166,8 @@ const CANDIDATE_JSON_CONTRACT_LINES = [
 function candidatePromptLines(snapshotSection: string): string[] {
     return [
         ...CANDIDATE_PROMPT_INTRO_LINES,
+        '',
+        ...CANDIDATE_TROPE_VOCABULARY_LINES,
         '',
         ...COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
         '',

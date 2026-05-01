@@ -134,7 +134,7 @@ Example **valid** line entry (inside **\`lines\`**):
   "name": "Beehive",
   "stableKey": "beehive",
   "tropeAffinities": [
-    { "trope": "Distraction", "aptness": "Good", "narrowing": "lure trail payload" },
+    { "trope": "Bait", "aptness": "Good", "narrowing": "lure trail to swarm zone" },
     { "trope": "Finishing Move", "aptness": "Poor", "narrowing": "swarm release payoff" }
   ]
 }
@@ -156,12 +156,12 @@ Example **invalid** line entry:
 ## Canonical trope fields (\`tropeAffinities\`) for **\`valid\`: true**
 
 Emit **1-3** trope-fit entries per deliverable line. Each entry must be:
-- **\`trope\`**: exactly one of **\`Contraption\`**, **\`Distraction\`**, **\`Disadvantage\`**, **\`Finishing Move\`**
+- **\`trope\`**: exactly one of **\`Contraption\`**, **\`Bait\`**, **\`Misdirection\`**, **\`Disadvantage\`**, **\`Finishing Move\`**
 - **\`aptness\`**: exactly one of **\`High\`**, **\`Good\`**, **\`Poor\`**
 - **\`narrowing\`**: concise free text for the specific use (no enum codes yet)
 - optional **\`environmentAffordances\`**: **\`{ object, roles }[]\`** scene affordances (see closed-world rule below)
 - optional **\`affordancesProvided\`**: **\`{ object, intended?, roles }[]\`** explicit affordances this item contributes (see rule below)
-- **\`trope\`** is an allowlist field: emit only **\`Contraption\`**, **\`Distraction\`**, **\`Disadvantage\`**, or **\`Finishing Move\`**.
+- **\`trope\`** is an allowlist field: emit only **\`Contraption\`**, **\`Bait\`**, **\`Misdirection\`**, **\`Disadvantage\`**, or **\`Finishing Move\`**.
 
 **\`narrowing\` POV rule:** write each narrowing from the **Coyote's planning perspective**:
 describe what the item does for the Coyote or to the Road Runner.
@@ -175,7 +175,7 @@ If a draft narrowing describes Road Runner goals/capabilities, reverse perspecti
 - Emit structured objects only:
   **\`environmentAffordances\`: [ { "object": "<object>", "roles": ["<trope>", "..."] } ]**
 - **\`object\`** allowlist (closed world, exact tokens): **\`boulder\`**, **\`cactus\`**, **\`tumbleweed\`**, **\`rock-wall\`**, **\`long-fall\`**.
-- **\`roles\`** allowlist (exact trope names): **\`Contraption\`**, **\`Distraction\`**, **\`Disadvantage\`**, **\`Finishing Move\`**.
+- **\`roles\`** allowlist (exact trope names): **\`Contraption\`**, **\`Bait\`**, **\`Misdirection\`**, **\`Disadvantage\`**, **\`Finishing Move\`**.
 - For each entry, include one object and **1-2** roles that object can play for this trope beat.
 - If no meaningful environment dependency is needed, **omit** **\`environmentAffordances\`** (preferred) rather than emitting **\`[]\`**.
 - **Finishing-move exclusivity:** if item **finishing-mechanisms** is non-**none**, do **not** also claim **\`Finishing Move\`** in **\`environmentAffordances.roles\`** for that same beat.
@@ -192,7 +192,7 @@ If a draft narrowing describes Road Runner goals/capabilities, reverse perspecti
   **\`affordancesProvided\`: [ { "object": "<free text object>", "intended": true, "roles": ["<trope>", "..."] } ]**
 - **\`object\`** is free text (non-empty string), not a closed-world token list.
 - **\`intended\`** is optional; when present it must be literal **\`true\`**.
-- **\`roles\`** allowlist (exact trope names): **\`Contraption\`**, **\`Distraction\`**, **\`Disadvantage\`**, **\`Finishing Move\`**.
+- **\`roles\`** allowlist (exact trope names): **\`Contraption\`**, **\`Bait\`**, **\`Misdirection\`**, **\`Disadvantage\`**, **\`Finishing Move\`**.
 - For each entry, include one object and **1-2** roles.
 - If no explicit provided affordance is needed, **omit** **\`affordancesProvided\`** (preferred) rather than emitting **\`[]\`**.
 - **\`environmentAffordances\`** and **\`affordancesProvided\`** may coexist on the same trope entry when both signals are justified.
@@ -211,25 +211,49 @@ grand piano dropped on Road Runner = payload (Finishing Move point payload), pul
 grand piano used as seesaw counterweight = Contraption; if wording supports both uses, prefer
 Finishing Move first and keep Contraption as secondary.
 
-**Distraction mechanism test (volition-dependent):** Distraction is correct only when the
-distraction itself is the causal mechanism. The plan works because the Road Runner notices,
+**\`Bait\`** (voluntary lure) **mechanism test (volition-dependent):** **Bait** is correct only
+when the lure itself is the causal mechanism. The plan works because the Road Runner notices,
 wants, and voluntarily moves toward or engages with the lure. If the item still works when
 the Road Runner does not notice it, does not choose it, or does not cooperate, it is not
-Distraction.
-Positive example: birdseed trail, novelty lure, or fake detour sign where the Road Runner
-must see and follow it for the beat to work.
+**Bait**.
+Positive example: birdseed trail, novelty lure, or appetitive payload that the Road Runner
+must see and choose to approach for the beat to work.
 Negative example: lasso or net that captures on contact even if unseen. Alarming or
-disorienting side effects do not make that Distraction; route those as **Disadvantage** or
+disorienting side effects do not make that **Bait**; route those as **Disadvantage** or
 **Finishing Move**.
-Honey-trap dual-fit rule: desirable lure objects can fit both **Distraction** and
-**Disadvantage** when both mechanisms are explicitly present. Use **Distraction** for the
-voluntary approach/engagement beat, and use **Disadvantage** for the persistent impairment
-caused by consuming, touching, or otherwise engaging with the same lure.
+
+**\`Misdirection\`** (illusion / misread terrain) **mechanism test (knowledge / perception failure):**
+**Misdirection** is correct when the plan works because the Road Runner **cannot accurately
+see or steer** -- locomotion proceeds, but vision is obscured, optics are misleading, or
+terrain is misread, so motion is steered into peril. The defining axis is **knowledge or
+perception failure**, not raw ability impairment. Positive examples: painted tunnel on a
+rock face, painted shortcut on a cliff, fake detour signage that **misrepresents real
+terrain**, fog or smokescreen that hides a hazard already in the Road Runner's path.
+Distinguish from neighboring tropes:
+- **Misdirection vs \`Disadvantage\`:** an **oil slick** is **Disadvantage** when the plan
+  assumes the Road Runner **stops or is mobility-trapped** by loss of friction; tag it
+  **Misdirection** when the plan assumes **continued motion without adequate control**
+  steers him into peril. Persistent ability impairment regardless of perception is always
+  **Disadvantage**.
+- **Misdirection vs \`Contraption\`:** the **painted illusion surface** itself (a tunnel
+  painted on the rock face, a fake horizon line) is **Misdirection**. **Contraption** is
+  reserved for the **setup machinery or capability** deployed for other purposes -- a
+  fake-tunnel painting robot is **Contraption**; the painted illusion it produces is
+  **Misdirection**.
+
+A plan **may** include **both** **Bait** and **Misdirection**; when both apply, score them
+separately on the same item rather than collapsing to one fit.
+
+Honey-trap dual-fit rule: desirable lure objects can fit both **Bait** and **Disadvantage**
+when both mechanisms are explicitly present. Use **Bait** for the voluntary
+approach/engagement beat, and use **Disadvantage** for the persistent impairment caused by
+consuming, touching, or otherwise engaging with the same lure.
 
 **Disadvantage positive anchor:** Disadvantage items impose a persistent condition on the
 Road Runner independent of his awareness or choices. Canonical Disadvantage fits include
-surface hazards (glue, marbles, oil slick), physical restraints (rope, net, adhesive trap),
-and sustained impairments (lingering knockout gas cloud, darkness, disorientation field).
+surface hazards (glue, marbles, mobility-trapping oil slick), physical restraints (rope,
+net, adhesive trap), and sustained impairments (lingering knockout gas cloud, darkness,
+disorientation field).
 Spiking something the Road Runner wants (for example, adding ball-bearings or knockout pills
 to a lure plate) is still **Disadvantage** for the spiked payload because the imposed
 impairment persists after engagement.

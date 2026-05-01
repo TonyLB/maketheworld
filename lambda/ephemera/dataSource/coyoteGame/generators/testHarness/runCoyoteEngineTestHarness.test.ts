@@ -291,7 +291,7 @@ describe('runCoyoteEngineTestHarness', () => {
                     {
                         shortName: 'paint',
                         tropeAffinities: [{
-                            trope: 'Distraction',
+                            trope: 'Misdirection',
                             aptness: 'Good',
                             narrowing: 'fake tunnel lure',
                             environmentAffordances: [{ object: 'rock-wall', roles: ['Finishing Move'] }],

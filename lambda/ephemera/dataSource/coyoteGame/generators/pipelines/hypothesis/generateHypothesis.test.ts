@@ -21,11 +21,11 @@ const stageOneSeamBody = JSON.stringify({
     candidates: [
         {
             candidateId: 'candidate-1',
-            executionSummary: 'Use lane setup then terminal drop.',
+            executionSummary: 'Birdseed lure then terminal drop.',
             tropeAssignments: {
-                Distraction: {
-                    executionDetail: 'Road Runner is drawn into the lane.',
-                    members: [{ stableKey: 'rocket-skates', tropeFunction: 'speed lure setup prop' }],
+                Bait: {
+                    executionDetail: 'Road Runner stops for birdseed in the lane.',
+                    members: [{ stableKey: 'birdseed-0', tropeFunction: 'lane bait' }],
                 },
                 'Finishing Move': {
                     executionDetail: 'Anvil drop is timed for the committed lane.',
@@ -115,10 +115,10 @@ describe('generateHypothesis', () => {
                             tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'drop zone' }],
                         },
                         {
-                            uuid: 'OBJECT#rocket-skates' as `OBJECT#${string}`,
-                            shortName: 'rocket skates',
-                            stableKey: 'rocket-skates',
-                            tropeAffinities: [{ trope: 'Contraption', aptness: 'High', narrowing: 'mobility' }],
+                            uuid: 'OBJECT#birdseed' as `OBJECT#${string}`,
+                            shortName: 'birdseed',
+                            stableKey: 'birdseed-0',
+                            tropeAffinities: [{ trope: 'Bait', aptness: 'High', narrowing: 'lane lure' }],
                         },
                     ],
                 }
@@ -163,7 +163,7 @@ describe('generateHypothesis', () => {
             dynamicSuffix: string
         }
         const fullHop2 = narrativeBeatPrompt.invariantPrefix + narrativeBeatPrompt.dynamicSuffix
-        expect(fullHop2).toContain('**tropeFunction:** speed lure setup prop')
+        expect(fullHop2).toContain('**tropeFunction:** lane bait')
     })
 
     it('parses phase-plan hop body with ## Scene analysis + fenced Hypothesis', async () => {
