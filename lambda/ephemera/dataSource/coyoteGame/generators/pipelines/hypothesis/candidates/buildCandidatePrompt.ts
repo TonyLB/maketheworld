@@ -147,8 +147,10 @@ const CANDIDATE_JSON_CONTRACT_LINES = [
     '  not the primary clustering axis.',
     '- Use **`decisionFocus.ambiguousStableKeys`** and **`decisionFocus.unassignedStableKeys`** as steering',
     '  for objects that warrant alternative readings vs props needing placement.',
-    '- Treat **`environmentAffordances`** nested under each affinity row as secondary advisory',
-    '  hints; they can refine placement, but should not override stronger affinity evidence.',
+    '- Treat optional **`environmentAffordances`** and **`affordancesProvided`** nested under each',
+    '  affinity row as secondary advisory hints alongside primary **`tropeAffinities`** signals;',
+    '  they can refine placement, but should not override stronger affinity evidence (both may appear',
+    '  on the same row when justified).',
 ] as const
 
 function candidatePromptLines(snapshotSection: string): string[] {
@@ -164,7 +166,7 @@ function candidatePromptLines(snapshotSection: string): string[] {
         CANDIDATE_JSON_FEW_SHOT,
         '',
         CANDIDATE_STAGED_OBJECTS_SECTION_HEADER,
-        'Use this JSON as authoritative staged-object input (`decisionFocus`, then `objects` rows with seam **`room`**, **`tropeAffinities`** including nested **`environmentAffordances`** when present).',
+        'Use this JSON as authoritative staged-object input (`decisionFocus`, then `objects` rows with seam **`room`**, **`tropeAffinities`** including optional nested **`environmentAffordances`** and **`affordancesProvided`** when present).',
         '',
         '```json',
         snapshotSection || '{}',

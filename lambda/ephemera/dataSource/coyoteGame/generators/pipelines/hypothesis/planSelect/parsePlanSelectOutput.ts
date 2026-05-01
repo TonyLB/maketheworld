@@ -1,6 +1,10 @@
 import { findAllFenceBlocks } from '../../../../../../llm/markdownCodeFences'
-import type { CoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import { isCoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import type { AffordanceProvidedRef, CoyoteTrope, EnvironmentAffordanceRef } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import {
+    isAffordanceProvidedRef,
+    isCoyoteTrope,
+    isEnvironmentAffordanceRef,
+} from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { hypothesisDebugLog } from '../../../../utilities/hypothesisDebug'
 import type {
     PlanSelectCombinedCandidate,
@@ -144,6 +148,42 @@ function validatePlanSelectWinningCandidateMemberRow(
     if (typeof row.tropeFunction !== 'string') {
         return { ok: false, reason: `${reasonPath}.tropeFunction must be a string` }
     }
+    let environmentAffordances: EnvironmentAffordanceRef[] | undefined
+    if ('environmentAffordances' in row) {
+        if (!Array.isArray(row.environmentAffordances)) {
+            return { ok: false, reason: `${reasonPath}.environmentAffordances must be an array when present` }
+        }
+        const narrowed: EnvironmentAffordanceRef[] = []
+        for (let i = 0; i < row.environmentAffordances.length; i += 1) {
+            const entry = row.environmentAffordances[i]
+            if (!isEnvironmentAffordanceRef(entry)) {
+                return {
+                    ok: false,
+                    reason: `${reasonPath}.environmentAffordances[${i}] must be a valid environmentAffordances entry`,
+                }
+            }
+            narrowed.push(entry)
+        }
+        environmentAffordances = narrowed.length > 0 ? narrowed : undefined
+    }
+    let affordancesProvided: AffordanceProvidedRef[] | undefined
+    if ('affordancesProvided' in row) {
+        if (!Array.isArray(row.affordancesProvided)) {
+            return { ok: false, reason: `${reasonPath}.affordancesProvided must be an array when present` }
+        }
+        const narrowed: AffordanceProvidedRef[] = []
+        for (let i = 0; i < row.affordancesProvided.length; i += 1) {
+            const entry = row.affordancesProvided[i]
+            if (!isAffordanceProvidedRef(entry)) {
+                return {
+                    ok: false,
+                    reason: `${reasonPath}.affordancesProvided[${i}] must be a valid affordancesProvided entry`,
+                }
+            }
+            narrowed.push(entry)
+        }
+        affordancesProvided = narrowed.length > 0 ? narrowed : undefined
+    }
     return {
         ok: true,
         member: {
@@ -151,6 +191,8 @@ function validatePlanSelectWinningCandidateMemberRow(
             shortName: row.shortName,
             room: row.room,
             tropeFunction: row.tropeFunction,
+            ...(environmentAffordances !== undefined ? { environmentAffordances } : {}),
+            ...(affordancesProvided !== undefined ? { affordancesProvided } : {}),
         },
     }
 }
@@ -171,12 +213,50 @@ function validatePlanSelectWinningCandidateOutlierRow(
     if (typeof row.room !== 'string') {
         return { ok: false, reason: `${reasonPath}.room must be a string` }
     }
+    let environmentAffordances: EnvironmentAffordanceRef[] | undefined
+    if ('environmentAffordances' in row) {
+        if (!Array.isArray(row.environmentAffordances)) {
+            return { ok: false, reason: `${reasonPath}.environmentAffordances must be an array when present` }
+        }
+        const narrowed: EnvironmentAffordanceRef[] = []
+        for (let i = 0; i < row.environmentAffordances.length; i += 1) {
+            const entry = row.environmentAffordances[i]
+            if (!isEnvironmentAffordanceRef(entry)) {
+                return {
+                    ok: false,
+                    reason: `${reasonPath}.environmentAffordances[${i}] must be a valid environmentAffordances entry`,
+                }
+            }
+            narrowed.push(entry)
+        }
+        environmentAffordances = narrowed.length > 0 ? narrowed : undefined
+    }
+    let affordancesProvided: AffordanceProvidedRef[] | undefined
+    if ('affordancesProvided' in row) {
+        if (!Array.isArray(row.affordancesProvided)) {
+            return { ok: false, reason: `${reasonPath}.affordancesProvided must be an array when present` }
+        }
+        const narrowed: AffordanceProvidedRef[] = []
+        for (let i = 0; i < row.affordancesProvided.length; i += 1) {
+            const entry = row.affordancesProvided[i]
+            if (!isAffordanceProvidedRef(entry)) {
+                return {
+                    ok: false,
+                    reason: `${reasonPath}.affordancesProvided[${i}] must be a valid affordancesProvided entry`,
+                }
+            }
+            narrowed.push(entry)
+        }
+        affordancesProvided = narrowed.length > 0 ? narrowed : undefined
+    }
     return {
         ok: true,
         outlier: {
             stableKey: row.stableKey,
             shortName: row.shortName,
             room: row.room,
+            ...(environmentAffordances !== undefined ? { environmentAffordances } : {}),
+            ...(affordancesProvided !== undefined ? { affordancesProvided } : {}),
         },
     }
 }

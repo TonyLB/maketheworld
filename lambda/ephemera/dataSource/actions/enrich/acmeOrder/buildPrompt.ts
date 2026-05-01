@@ -160,6 +160,7 @@ Emit **1-3** trope-fit entries per deliverable line. Each entry must be:
 - **\`aptness\`**: exactly one of **\`High\`**, **\`Good\`**, **\`Poor\`**
 - **\`narrowing\`**: concise free text for the specific use (no enum codes yet)
 - optional **\`environmentAffordances\`**: **\`{ object, roles }[]\`** scene affordances (see closed-world rule below)
+- optional **\`affordancesProvided\`**: **\`{ object, intended?, roles }[]\`** explicit affordances this item contributes (see rule below)
 - **\`trope\`** is an allowlist field: emit only **\`Contraption\`**, **\`Distraction\`**, **\`Disadvantage\`**, or **\`Finishing Move\`**.
 
 **\`narrowing\` POV rule:** write each narrowing from the **Coyote's planning perspective**:
@@ -184,6 +185,17 @@ If a draft narrowing describes Road Runner goals/capabilities, reverse perspecti
   - portable hole => **\`{ "object": "long-fall", "roles": ["Finishing Move"] }\`**
   - giant rubber band => **\`{ "object": "cactus", "roles": ["Contraption"] }\`**, **\`{ "object": "boulder", "roles": ["Finishing Move", "Contraption"] }\`**
   - birdseed trail (optional) => **\`{ "object": "boulder", "roles": ["Finishing Move"] }\`** when lure sets up a drop point.
+
+**\`affordancesProvided\` rule (optional, per trope entry):**
+- This field captures affordances that the ordered item directly contributes for downstream plan assembly.
+- Emit structured objects only:
+  **\`affordancesProvided\`: [ { "object": "<free text object>", "intended": true, "roles": ["<trope>", "..."] } ]**
+- **\`object\`** is free text (non-empty string), not a closed-world token list.
+- **\`intended\`** is optional; when present it must be literal **\`true\`**.
+- **\`roles\`** allowlist (exact trope names): **\`Contraption\`**, **\`Distraction\`**, **\`Disadvantage\`**, **\`Finishing Move\`**.
+- For each entry, include one object and **1-2** roles.
+- If no explicit provided affordance is needed, **omit** **\`affordancesProvided\`** (preferred) rather than emitting **\`[]\`**.
+- **\`environmentAffordances\`** and **\`affordancesProvided\`** may coexist on the same trope entry when both signals are justified.
 
 If you cannot justify trope fits for a valid line, set **\`tropeAffinitiesFailed\`**: true and **\`tropeAffinities\`**: [].
 
@@ -255,6 +267,9 @@ downward).
           "narrowing": "launch platform for payload delivery",
           "environmentAffordances": [
             { "object": "boulder", "roles": ["Finishing Move", "Contraption"] }
+          ],
+          "affordancesProvided": [
+            { "object": "long rope for setting off", "intended": true, "roles": ["Contraption"] }
           ]
         }
       ]

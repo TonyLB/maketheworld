@@ -169,4 +169,188 @@ describe('combineCandidateOutput', () => {
         expect(c0.outliers[0]).toMatchObject({ stableKey: 'rope-0', shortName: 'rope', room: 'CLIFFBASE' })
         expect(c0.outliers[0].tropeFunction).toBeUndefined()
     })
+
+    it('serializePlanSelectCandidateInput includes affordancesProvided from staged tropeAffinities on members', () => {
+        const affordancesProvided = [
+            { object: 'hidden catapult', intended: true as const, roles: ['Contraption' as const] },
+        ]
+        const roomMap: CoyoteRoomObjectsByRoom = {
+            'ROOM#VORTEX': [{
+                uuid: 'OBJECT#g' as `OBJECT#${string}`,
+                shortName: 'glue',
+                stableKey: 'glue-1',
+                tropeAffinities: [{
+                    trope: 'Disadvantage',
+                    aptness: 'High',
+                    narrowing: 'rig',
+                    affordancesProvided,
+                }],
+            }],
+        }
+        const candidates: ParsedCandidate[] = [{
+            candidateId: 'candidate-1',
+            executionSummary: 'Glue constraint beat.',
+            tropeAssignments: {
+                Disadvantage: {
+                    executionDetail: 'Glue applies persistent constraint.',
+                    members: [{ stableKey: 'glue-1', tropeFunction: 'persistent constraint' }],
+                },
+            },
+        }]
+        const r = combineCandidateOutput(candidates, roomMap)
+        expect(r.ok).toBe(true)
+        if (!r.ok) {
+            return
+        }
+        const json = serializePlanSelectCandidateInput(r.combined, roomMap)
+        const parsed = JSON.parse(json) as {
+            candidates: Array<{
+                tropeAssignments: Partial<Record<'Disadvantage', {
+                    members: Array<{ stableKey: string; affordancesProvided?: typeof affordancesProvided }>
+                }>>
+            }>
+        }
+        expect(parsed.candidates[0].tropeAssignments.Disadvantage?.members[0].affordancesProvided).toEqual(
+            affordancesProvided
+        )
+    })
+
+    it('serializePlanSelectCandidateInput includes affordancesProvided on outliers when staged object has them', () => {
+        const affordancesProvided = [{ object: 'coil spring', roles: ['Contraption' as const] }]
+        const roomMap: CoyoteRoomObjectsByRoom = {
+            'ROOM#VORTEX': [
+                {
+                    uuid: 'OBJECT#g' as `OBJECT#${string}`,
+                    shortName: 'glue',
+                    stableKey: 'glue-1',
+                    tropeAffinities: [{ trope: 'Disadvantage', aptness: 'High', narrowing: 'stick' }],
+                },
+                {
+                    uuid: 'OBJECT#r' as `OBJECT#${string}`,
+                    shortName: 'rope',
+                    stableKey: 'rope-0',
+                    tropeAffinities: [{
+                        trope: 'Contraption',
+                        aptness: 'Good',
+                        narrowing: 'line',
+                        affordancesProvided,
+                    }],
+                },
+            ],
+        }
+        const candidates: ParsedCandidate[] = [{
+            candidateId: 'candidate-1',
+            executionSummary: 'Glue only.',
+            tropeAssignments: {
+                Disadvantage: {
+                    executionDetail: 'Glue applies persistent constraint.',
+                    members: [{ stableKey: 'glue-1', tropeFunction: 'persistent constraint' }],
+                },
+            },
+        }]
+        const r = combineCandidateOutput(candidates, roomMap)
+        expect(r.ok).toBe(true)
+        if (!r.ok) {
+            return
+        }
+        const json = serializePlanSelectCandidateInput(r.combined, roomMap)
+        const parsed = JSON.parse(json) as {
+            candidates: Array<{ outliers: Array<{ stableKey: string; affordancesProvided?: typeof affordancesProvided }> }>
+        }
+        expect(parsed.candidates[0].outliers).toHaveLength(1)
+        expect(parsed.candidates[0].outliers[0].stableKey).toBe('rope-0')
+        expect(parsed.candidates[0].outliers[0].affordancesProvided).toEqual(affordancesProvided)
+    })
+
+    it('serializePlanSelectCandidateInput includes environmentAffordances from staged tropeAffinities on members', () => {
+        const environmentAffordances = [{ object: 'long-fall' as const, roles: ['Finishing Move' as const] }]
+        const roomMap: CoyoteRoomObjectsByRoom = {
+            'ROOM#VORTEX': [{
+                uuid: 'OBJECT#g' as `OBJECT#${string}`,
+                shortName: 'rocket skates',
+                stableKey: 'rocket-skates',
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'mobility',
+                    environmentAffordances,
+                }],
+            }],
+        }
+        const candidates: ParsedCandidate[] = [{
+            candidateId: 'candidate-1',
+            executionSummary: 'Skates beat.',
+            tropeAssignments: {
+                Contraption: {
+                    executionDetail: 'Skates deliver speed.',
+                    members: [{ stableKey: 'rocket-skates', tropeFunction: 'mobility' }],
+                },
+            },
+        }]
+        const r = combineCandidateOutput(candidates, roomMap)
+        expect(r.ok).toBe(true)
+        if (!r.ok) {
+            return
+        }
+        const json = serializePlanSelectCandidateInput(r.combined, roomMap)
+        const parsed = JSON.parse(json) as {
+            candidates: Array<{
+                tropeAssignments: Partial<Record<'Contraption', {
+                    members: Array<{ stableKey: string; environmentAffordances?: typeof environmentAffordances }>
+                }>>
+            }>
+        }
+        expect(parsed.candidates[0].tropeAssignments.Contraption?.members[0].environmentAffordances).toEqual(
+            environmentAffordances
+        )
+    })
+
+    it('serializePlanSelectCandidateInput includes environmentAffordances on outliers when staged object has them', () => {
+        const environmentAffordances = [{ object: 'rock-wall' as const, roles: ['Finishing Move' as const] }]
+        const roomMap: CoyoteRoomObjectsByRoom = {
+            'ROOM#VORTEX': [
+                {
+                    uuid: 'OBJECT#g' as `OBJECT#${string}`,
+                    shortName: 'glue',
+                    stableKey: 'glue-1',
+                    tropeAffinities: [{ trope: 'Disadvantage', aptness: 'High', narrowing: 'stick' }],
+                },
+                {
+                    uuid: 'OBJECT#b' as `OBJECT#${string}`,
+                    shortName: 'boulder',
+                    stableKey: 'boulder-0',
+                    tropeAffinities: [{
+                        trope: 'Finishing Move',
+                        aptness: 'High',
+                        narrowing: 'crush',
+                        environmentAffordances,
+                    }],
+                },
+            ],
+        }
+        const candidates: ParsedCandidate[] = [{
+            candidateId: 'candidate-1',
+            executionSummary: 'Glue only.',
+            tropeAssignments: {
+                Disadvantage: {
+                    executionDetail: 'Glue applies persistent constraint.',
+                    members: [{ stableKey: 'glue-1', tropeFunction: 'persistent constraint' }],
+                },
+            },
+        }]
+        const r = combineCandidateOutput(candidates, roomMap)
+        expect(r.ok).toBe(true)
+        if (!r.ok) {
+            return
+        }
+        const json = serializePlanSelectCandidateInput(r.combined, roomMap)
+        const parsed = JSON.parse(json) as {
+            candidates: Array<{
+                outliers: Array<{ stableKey: string; environmentAffordances?: typeof environmentAffordances }>
+            }>
+        }
+        expect(parsed.candidates[0].outliers).toHaveLength(1)
+        expect(parsed.candidates[0].outliers[0].stableKey).toBe('boulder-0')
+        expect(parsed.candidates[0].outliers[0].environmentAffordances).toEqual(environmentAffordances)
+    })
 })

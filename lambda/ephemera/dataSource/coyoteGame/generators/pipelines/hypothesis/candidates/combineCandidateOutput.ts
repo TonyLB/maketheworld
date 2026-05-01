@@ -1,6 +1,10 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { CoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import type {
+    AffordanceProvidedRef,
+    CoyoteTrope,
+    EnvironmentAffordanceRef,
+} from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 import type { ParsedCandidate } from './parseCandidateOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
@@ -37,12 +41,16 @@ export type PlanSelectCombinedMember = {
     shortName: string
     room: string
     tropeFunction: string
+    environmentAffordances?: EnvironmentAffordanceRef[]
+    affordancesProvided?: AffordanceProvidedRef[]
 }
 
 export type PlanSelectCombinedOutlier = {
     stableKey: string
     shortName: string
     room: string
+    environmentAffordances?: EnvironmentAffordanceRef[]
+    affordancesProvided?: AffordanceProvidedRef[]
 }
 
 export type PlanSelectCombinedTropeAssignment = {
@@ -241,6 +249,48 @@ export function renderCombinedCandidateOutputForNarrativeBeat(
     return lines.join('\n').trimEnd()
 }
 
+/**
+ * Concatenates `affordancesProvided` from each trope affinity row in array order.
+ * Returns undefined when there is nothing to emit (omit empty arrays in JSON).
+ */
+export function collectAffordancesProvidedFromRoomObject(
+    o: EphemeraMetaRoomObject
+): AffordanceProvidedRef[] | undefined {
+    const rows = o.tropeAffinities
+    if (!rows?.length) {
+        return undefined
+    }
+    const out: AffordanceProvidedRef[] = []
+    for (const row of rows) {
+        const ap = row.affordancesProvided
+        if (ap?.length) {
+            out.push(...ap)
+        }
+    }
+    return out.length > 0 ? out : undefined
+}
+
+/**
+ * Concatenates `environmentAffordances` from each trope affinity row in array order.
+ * Returns undefined when there is nothing to emit (omit empty arrays in JSON).
+ */
+export function collectEnvironmentAffordancesFromRoomObject(
+    o: EphemeraMetaRoomObject
+): EnvironmentAffordanceRef[] | undefined {
+    const rows = o.tropeAffinities
+    if (!rows?.length) {
+        return undefined
+    }
+    const out: EnvironmentAffordanceRef[] = []
+    for (const row of rows) {
+        const ea = row.environmentAffordances
+        if (ea?.length) {
+            out.push(...ea)
+        }
+    }
+    return out.length > 0 ? out : undefined
+}
+
 function findRoomIdForObject(
     roomObjectsByRoom: CoyoteRoomObjectsByRoom,
     target: EphemeraMetaRoomObject
@@ -266,11 +316,15 @@ function enrichMemberForPlanSelectJson(
     const shortName = obj?.shortName ?? sk
     const roomIdForObj = obj ? findRoomIdForObject(roomObjectsByRoom, obj) : undefined
     const roomLabel = roomIdForObj !== undefined ? seamRoomLabelFromEphemeraRoomId(roomIdForObj) : ''
+    const environmentAffordances = obj ? collectEnvironmentAffordancesFromRoomObject(obj) : undefined
+    const affordancesProvided = obj ? collectAffordancesProvidedFromRoomObject(obj) : undefined
     return {
         stableKey: sk,
         shortName,
         room: roomLabel,
         tropeFunction: mem.tropeFunction,
+        ...(environmentAffordances !== undefined ? { environmentAffordances } : {}),
+        ...(affordancesProvided !== undefined ? { affordancesProvided } : {}),
     }
 }
 
@@ -284,10 +338,14 @@ function enrichOutlierForPlanSelectJson(
     const shortName = obj?.shortName ?? sk
     const roomIdForObj = obj ? findRoomIdForObject(roomObjectsByRoom, obj) : undefined
     const roomLabel = roomIdForObj !== undefined ? seamRoomLabelFromEphemeraRoomId(roomIdForObj) : ''
+    const environmentAffordances = obj ? collectEnvironmentAffordancesFromRoomObject(obj) : undefined
+    const affordancesProvided = obj ? collectAffordancesProvidedFromRoomObject(obj) : undefined
     return {
         stableKey: sk,
         shortName,
         room: roomLabel,
+        ...(environmentAffordances !== undefined ? { environmentAffordances } : {}),
+        ...(affordancesProvided !== undefined ? { affordancesProvided } : {}),
     }
 }
 

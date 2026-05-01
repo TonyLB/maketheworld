@@ -295,6 +295,247 @@ describe('parsePlanSelectOutput', () => {
         }
     })
 
+    it('parses optional affordancesProvided on selectedCandidate member rows when valid', () => {
+        const affordancesProvided = [{ object: 'crate lid', intended: true as const, roles: ['Contraption' as const] }]
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'detail',
+                            members: [{
+                                stableKey: 'anvil',
+                                shortName: 'anvil',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'payload prep',
+                                affordancesProvided,
+                            }],
+                        },
+                    },
+                    outliers: [],
+                },
+            }) +
+            '\n```'
+        const r = parsePlanSelectOutput(raw)
+        expect(r).toEqual({
+            ok: true,
+            handoff: {
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'detail',
+                            members: [{
+                                stableKey: 'anvil',
+                                shortName: 'anvil',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'payload prep',
+                                affordancesProvided,
+                            }],
+                        },
+                    },
+                    outliers: [],
+                },
+            },
+        })
+    })
+
+    it('parses optional affordancesProvided on selectedCandidate outlier rows when valid', () => {
+        const affordancesProvided = [{ object: 'coil spring', roles: ['Contraption' as const] }]
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'detail',
+                            members: [{
+                                stableKey: 'skates',
+                                shortName: 'skates',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'mobility',
+                            }],
+                        },
+                    },
+                    outliers: [{
+                        stableKey: 'boulder',
+                        shortName: 'boulder',
+                        room: 'CLIFFBASE',
+                        affordancesProvided,
+                    }],
+                },
+            }) +
+            '\n```'
+        const r = parsePlanSelectOutput(raw)
+        expect(r).toEqual({
+            ok: true,
+            handoff: {
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'detail',
+                            members: [{
+                                stableKey: 'skates',
+                                shortName: 'skates',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'mobility',
+                            }],
+                        },
+                    },
+                    outliers: [{
+                        stableKey: 'boulder',
+                        shortName: 'boulder',
+                        room: 'CLIFFBASE',
+                        affordancesProvided,
+                    }],
+                },
+            },
+        })
+    })
+
+    it('parses optional environmentAffordances on selectedCandidate member and outlier rows when valid', () => {
+        const environmentAffordances = [{ object: 'long-fall' as const, roles: ['Finishing Move' as const] }]
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'detail',
+                            members: [{
+                                stableKey: 'skates',
+                                shortName: 'skates',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'mobility',
+                                environmentAffordances,
+                            }],
+                        },
+                    },
+                    outliers: [{
+                        stableKey: 'boulder',
+                        shortName: 'boulder',
+                        room: 'CLIFFBASE',
+                        environmentAffordances: [{ object: 'rock-wall', roles: ['Finishing Move'] }],
+                    }],
+                },
+            }) +
+            '\n```'
+        const r = parsePlanSelectOutput(raw)
+        expect(r).toEqual({
+            ok: true,
+            handoff: {
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'detail',
+                            members: [{
+                                stableKey: 'skates',
+                                shortName: 'skates',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'mobility',
+                                environmentAffordances,
+                            }],
+                        },
+                    },
+                    outliers: [{
+                        stableKey: 'boulder',
+                        shortName: 'boulder',
+                        room: 'CLIFFBASE',
+                        environmentAffordances: [{ object: 'rock-wall', roles: ['Finishing Move'] }],
+                    }],
+                },
+            },
+        })
+    })
+
+    it('returns row-scoped error when environmentAffordances entry is malformed', () => {
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'detail',
+                            members: [{
+                                stableKey: 'anvil',
+                                shortName: 'anvil',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'payload prep',
+                                environmentAffordances: [{ object: 'not-a-catalog-object', roles: ['Contraption'] }],
+                            }],
+                        },
+                    },
+                    outliers: [],
+                },
+            }) +
+            '\n```'
+        const r = parsePlanSelectOutput(raw)
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.reason).toContain('environmentAffordances[0]')
+        }
+    })
+
+    it('returns row-scoped error when affordancesProvided entry is malformed', () => {
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'detail',
+                            members: [{
+                                stableKey: 'anvil',
+                                shortName: 'anvil',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'payload prep',
+                                affordancesProvided: [{ object: 'x', roles: [] }],
+                            }],
+                        },
+                    },
+                    outliers: [],
+                },
+            }) +
+            '\n```'
+        const r = parsePlanSelectOutput(raw)
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.reason).toContain('affordancesProvided[0]')
+        }
+    })
+
     it('returns row-scoped error when selectedCandidate trope member field is invalid', () => {
         const raw =
             `${requiredSections.join('\n')}\n\n\`\`\`json\n` +

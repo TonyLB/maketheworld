@@ -9,6 +9,8 @@ describe('buildParseAcmeOrderEnrichPrompt', () => {
         expect(invariantPrefix).toContain('two required parts in fixed order')
         expect(invariantPrefix).toContain('JSON handoff')
         expect(invariantPrefix).toContain('finishing-mechanisms')
+        expect(invariantPrefix).toContain('affordancesProvided')
+        expect(invariantPrefix).toContain('"intended": true')
         expect(dynamicSuffix).toContain('order rope')
         expect(dynamicSuffix).toContain('Player command')
         expect(dynamicSuffix).toContain('Coyote-wide stable keys already in use')

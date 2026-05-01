@@ -112,6 +112,39 @@ describe('handleApiObjectsChangeCommand', () => {
             },
         })
     })
+
+    it('passes tropeAffinities affordancesProvided through to merge unchanged', async () => {
+        const roomId = 'ROOM#r-pass' as EphemeraRoomId
+        const affordancesProvided = [{
+            object: 'spring-loaded crate',
+            intended: true as const,
+            roles: ['Contraption' as const],
+        }]
+        const add = [{
+            uuid: 'OBJECT#o1' as EphemeraObjectId,
+            shortName: 'crate',
+            stableKey: 'crate',
+            tropeAffinities: [{
+                trope: 'Contraption' as const,
+                aptness: 'High' as const,
+                narrowing: 'boxed rig',
+                affordancesProvided,
+            }],
+        }]
+        mergePersistMetaRoomObjectsMock.mockResolvedValue({
+            ok: true,
+            persisted: false,
+        })
+        await handleApiObjectsChangeCommand(
+            { componentId: roomId, add, remove: [] },
+            { streamEvent }
+        )
+        expect(mergePersistMetaRoomObjectsMock).toHaveBeenCalledWith({
+            roomId,
+            add,
+            remove: [],
+        })
+    })
 })
 
 describe('clearRoomObjectsAndPublishUpdate', () => {
@@ -526,6 +559,57 @@ describe('handleAcmeOrderAddObjects', () => {
             aptness: 'Good',
             narrowing: 'portable bait',
         })
+    })
+
+    it('preserves affordancesProvided while filtering environmentAffordances for ROOM#STRAIGHTAWAY', async () => {
+        const affordancesProvided = [{
+            object: 'fold-out cliff facade',
+            intended: true as const,
+            roles: ['Contraption' as const, 'Finishing Move' as const],
+        }]
+        const orderWithProvided = {
+            shortName: 'paint tunnel kit',
+            stableKey: 'paint-tunnel-kit',
+            tropeAffinities: [
+                {
+                    trope: 'Contraption' as const,
+                    aptness: 'High' as const,
+                    narrowing: 'scene-dependent rig',
+                    environmentAffordances: [
+                        { object: 'rock-wall' as const, roles: ['Finishing Move' as const] },
+                        { object: 'long-fall' as const, roles: ['Finishing Move' as const] },
+                        { object: 'cactus' as const, roles: ['Disadvantage' as const] },
+                        { object: 'boulder' as const, roles: ['Contraption' as const] },
+                        { object: 'tumbleweed' as const, roles: ['Distraction' as const] },
+                    ],
+                    affordancesProvided,
+                },
+                environmentAffordanceMatrixOrder.tropeAffinities[1],
+            ],
+        }
+        const mergePersistMetaRoomObjectsImpl = jest.fn().mockResolvedValue({ ok: true, persisted: false })
+        const getCharacterMeta = jest.fn(async () => ({ RoomId: 'ROOM#STRAIGHTAWAY' }))
+        const uuidFactory = jest.fn(() => 'u1')
+
+        await handleAcmeOrderAddObjects({
+            type: 'Acme Order',
+            characterId: 'CHARACTER#123',
+            orders: [orderWithProvided],
+            confidence: 0.7,
+        }, {
+            streamEvent,
+            getCharacterMeta,
+            uuidFactory,
+            mergePersistMetaRoomObjectsImpl,
+        })
+
+        const addLine = mergePersistMetaRoomObjectsImpl.mock.calls[0]?.[0]?.add?.[0]
+        expect(addLine.tropeAffinities?.[0]?.environmentAffordances).toEqual([
+            { object: 'cactus', roles: ['Disadvantage'] },
+            { object: 'boulder', roles: ['Contraption'] },
+            { object: 'tumbleweed', roles: ['Distraction'] },
+        ])
+        expect(addLine.tropeAffinities?.[0]?.affordancesProvided).toEqual(affordancesProvided)
     })
 
     it('filters environment affordances for ROOM#BRIDGE', async () => {

@@ -145,6 +145,7 @@ function isEnvironmentAffordanceAllowedInRoom(
     }
 }
 
+/** Room rules filter only `environmentAffordances`; other trope fields such as `affordancesProvided` are unchanged. */
 const filterTropeAffinitiesByRoom = (
     roomId: EphemeraRoomId
 ) => (

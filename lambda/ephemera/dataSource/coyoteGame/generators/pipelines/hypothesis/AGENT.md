@@ -112,6 +112,8 @@ Markdown renders stay stable. Plan-select input JSON is **`schemaVersion: 3`** w
 ([`candidates/serializeStagedObjectsForCandidatePrompt.ts`](candidates/serializeStagedObjectsForCandidatePrompt.ts))
 is **input** to stage one only; it does not define the candidate JSON emit shape.
 
+**`affordancesProvided` (optional).** When present on trope affinity rows, values are validated in `@tonylb/mtw-interfaces` (see [`coyotePlanAffinities.ts`](../../../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)). [`candidates/combineCandidateOutput.ts`](candidates/combineCandidateOutput.ts) aggregates them onto plan-select input JSON for **members and outliers** alongside `environmentAffordances`. [`planSelect/buildPlanSelectPrompt.ts`](planSelect/buildPlanSelectPrompt.ts) and [`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts) treat the field as optional structured evidence on handoff rows. There is no required consumption in phase-plan or outcome in the current architecture; extending winners or phase-plan with explicit affordance objects is a follow-on slice.
+
 **Regression tests.** Colocated under `candidates/*.test.ts`, pipeline tests in this folder, and
 [`../../testHarness/`](../../testHarness/). Run Jest from `lambda/ephemera` per [`AGENT.testing.md`](../../../../../AGENT.testing.md).
 

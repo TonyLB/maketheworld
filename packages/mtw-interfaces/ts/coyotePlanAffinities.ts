@@ -78,11 +78,18 @@ export type EnvironmentAffordanceRef = {
     roles: CoyoteTrope[];
 }
 
+export type AffordanceProvidedRef = {
+    object: string;
+    intended?: true;
+    roles: CoyoteTrope[];
+}
+
 export type CoyoteTropeAffinity = {
     trope: CoyoteTrope;
     aptness: CoyoteTropeAptness;
     narrowing: string;
     environmentAffordances?: EnvironmentAffordanceRef[];
+    affordancesProvided?: AffordanceProvidedRef[];
 }
 
 /** Stage-one intendedRole echo: same roles as **[`CoyoteAffinityPossibility`]**, but **`aptness`** may be omitted (resolved against snapshot rows). */
@@ -187,6 +194,23 @@ export function isEnvironmentAffordanceRef(entry: unknown): entry is Environment
     return o.roles.every((role) => isCoyoteTrope(role))
 }
 
+export function isAffordanceProvidedRef(entry: unknown): entry is AffordanceProvidedRef {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+        return false
+    }
+    const o = entry as Record<string, unknown>
+    if (typeof o.object !== 'string' || o.object.trim().length === 0) {
+        return false
+    }
+    if ('intended' in o && o.intended !== true) {
+        return false
+    }
+    if (!Array.isArray(o.roles) || o.roles.length === 0) {
+        return false
+    }
+    return o.roles.every((role) => isCoyoteTrope(role))
+}
+
 export function isCoyoteTropeAffinity(entry: unknown): entry is CoyoteTropeAffinity {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
         return false
@@ -196,6 +220,10 @@ export function isCoyoteTropeAffinity(entry: unknown): entry is CoyoteTropeAffin
         !('environmentAffordances' in o)
         || (Array.isArray(o.environmentAffordances) && o.environmentAffordances.every((entry) => isEnvironmentAffordanceRef(entry)))
     )
+    const validAffordancesProvided = (
+        !('affordancesProvided' in o)
+        || (Array.isArray(o.affordancesProvided) && o.affordancesProvided.every((entry) => isAffordanceProvidedRef(entry)))
+    )
     const hasLegacyAffordancesKey = 'affordances' in o
     return (
         isCoyoteTrope(o.trope)
@@ -203,6 +231,7 @@ export function isCoyoteTropeAffinity(entry: unknown): entry is CoyoteTropeAffin
         && typeof o.narrowing === 'string'
         && o.narrowing.trim().length > 0
         && validEnvironmentAffordances
+        && validAffordancesProvided
         && !hasLegacyAffordancesKey
     )
 }

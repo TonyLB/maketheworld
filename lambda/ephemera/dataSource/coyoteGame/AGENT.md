@@ -73,7 +73,7 @@ Snapshot and formatting helpers are centralized in [`utilities/coyoteRoomObjectS
 
 These are consumed by both hypothesis and outcome pipelines and by test harness paths.
 
-`tropeAffinities[].environmentAffordances` is threaded through staged object snapshot carriers when present, but staged-object prompt formatting remains unchanged and does not render environment-affordance text.
+`tropeAffinities[].environmentAffordances` and optional `tropeAffinities[].affordancesProvided` are threaded through staged object snapshot carriers when present, in parallel. Staged-object prompt formatting remains unchanged and does not render affordance text from either field; both exist so candidate combine and plan-select JSON can carry structured evidence toward later hops.
 
 ## Room id seam (canonical vs prompt labels)
 
