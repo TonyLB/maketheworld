@@ -57,6 +57,64 @@ This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock
 
 ## Contracts and boundaries
 
+### Stage-one candidate seam (`tropeAssignments`)
+
+Authority: [`candidates/buildCandidatePrompt.ts`](candidates/buildCandidatePrompt.ts) (prompt),
+[`candidates/parseCandidateOutput.ts`](candidates/parseCandidateOutput.ts) (parse),
+[`candidates/combineCandidateOutput.ts`](candidates/combineCandidateOutput.ts) (hydrate + derive outliers).
+
+**Shape.** Each candidate must include `tropeAssignments` as a **non-array object** with **at least one**
+trope key. Keys must be `CoyoteTrope` literals only (`Contraption`, `Distraction`, `Disadvantage`,
+`Finishing Move`); see [`isCoyoteTrope`](../../../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)
+in `@tonylb/mtw-interfaces`. Sparse records omit unused tropes; do **not** require all four tropes or
+empty member lists. Each trope value is `{ "executionDetail": string, "members": [...] }` only (keep
+the **`executionDetail`** name).
+
+Example:
+
+```json
+"tropeAssignments": {
+  "Contraption": { "executionDetail": "...", "members": [{ "stableKey": "...", "tropeFunction": "..." }] },
+  "Finishing Move": { "executionDetail": "...", "members": [...] }
+}
+```
+
+**Expressivity.** One key per trope per candidate enforces **at most one beat per trope** (no duplicate
+trope keys). The model cannot emit two independent beats for the same trope (for example two
+`Contraption` rows); that narrowing is intentional.
+
+**Parser posture (hard cutover).** `parseCandidateOutput` accepts **only** the record shape above.
+Legacy array-shaped `tropeAssignments` and empty `{}` are rejected. Per-trope values allow only
+`executionDetail` and `members`; each member allows only `stableKey` and `tropeFunction`, with
+strict unknown-key rejection at root, candidate, trope value, member, and optional outlier rows.
+
+**Optional `outliers`.** Candidate-level `outliers` remains **stableKey-only** scaffolding for the
+model; authoritative outliers are still **derived in combine** from staged multiset minus assigned
+members.
+
+**`normalizedJson`.** On successful parse, each candidate's `tropeAssignments` object is emitted
+with trope keys in **canonical order** (`Contraption`, then `Distraction`, then `Disadvantage`, then
+`Finishing Move`), omitting absent tropes. Root object order stays **`candidates`** then optional
+**`notes`**.
+
+**Combine.** Parsed records flow through combine as a **`Partial<Record<CoyoteTrope, CombinedTropeAssignment>>`**
+keyed by trope; rendering helpers (`renderCombinedCandidateOutputForNarrativeBeat`,
+`serializePlanSelectCandidateInput`) iterate the canonical trope order so plan-select JSON and
+Markdown renders stay stable. Plan-select input JSON is **`schemaVersion: 3`** with
+`tropeAssignments` as a non-array object keyed by trope.
+
+**Boundary vs plan-select.** Plan-selection handoff JSON uses the **same** record shape:
+`selectedCandidate.tropeAssignments` is a non-array object keyed by trope. Array-shaped
+`tropeAssignments` is rejected by [`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts)
+(hard cutover, matching the candidate-output parser).
+
+**Boundary vs staged snapshot.** Affinity-forward serialization for the prompt
+([`candidates/serializeStagedObjectsForCandidatePrompt.ts`](candidates/serializeStagedObjectsForCandidatePrompt.ts))
+is **input** to stage one only; it does not define the candidate JSON emit shape.
+
+**Regression tests.** Colocated under `candidates/*.test.ts`, pipeline tests in this folder, and
+[`../../testHarness/`](../../testHarness/). Run Jest from `lambda/ephemera` per [`AGENT.testing.md`](../../../../../AGENT.testing.md).
+
 - Terminal parse of model output into cache-facing intent fields is shared and lives in [`../../sharedParsers/parseHypothesisModelOutput.ts`](../../sharedParsers/parseHypothesisModelOutput.ts), not in this folder.
 - Cross-cutting staged-object helpers and render-tree constants are under [`../../../utilities/`](../../../utilities/).
 - Harness code lives under [`../../testHarness/`](../../testHarness/) and imports this pipeline rather than duplicating it.
@@ -82,6 +140,7 @@ Parser safety posture:
 ### Optional `selectedCandidate` (structured winner)
 
 - Hop-1 JSON may include optional `selectedCandidate`: the structured winning candidate, shaped like plan-select input candidates (mirror input shape in v1; sequencing hints are omitted in v1).
+- `selectedCandidate.tropeAssignments` is a **non-array object keyed by trope** (`Contraption`, `Distraction`, `Disadvantage`, `Finishing Move`); each value carries `executionDetail` and `members`. Array-shaped `tropeAssignments` is rejected at parse time.
 - Legacy-only handoff (`paragraphSummary` plus `planIssues` without `selectedCandidate`) remains valid during rollout.
 
 ### Plan-selection hop (single invocation)

@@ -65,16 +65,17 @@ describe('parsePlanSelectOutput', () => {
                 selectedCandidate: {
                     candidateId: 'candidate-2',
                     executionSummary: 'Build a fake tunnel and redirect into it.',
-                    tropeAssignments: [{
-                        trope: 'Contraption',
-                        executionDetail: 'Paint a fake tunnel with staged boards.',
-                        members: [{
-                            stableKey: 'paint',
-                            shortName: 'paint can',
-                            room: 'CLIFFBASE',
-                            tropeFunction: 'visual lure prep',
-                        }],
-                    }],
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'Paint a fake tunnel with staged boards.',
+                            members: [{
+                                stableKey: 'paint',
+                                shortName: 'paint can',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'visual lure prep',
+                            }],
+                        },
+                    },
                     outliers: [{
                         stableKey: 'rope',
                         shortName: 'rope',
@@ -92,16 +93,17 @@ describe('parsePlanSelectOutput', () => {
                 selectedCandidate: {
                     candidateId: 'candidate-2',
                     executionSummary: 'Build a fake tunnel and redirect into it.',
-                    tropeAssignments: [{
-                        trope: 'Contraption',
-                        executionDetail: 'Paint a fake tunnel with staged boards.',
-                        members: [{
-                            stableKey: 'paint',
-                            shortName: 'paint can',
-                            room: 'CLIFFBASE',
-                            tropeFunction: 'visual lure prep',
-                        }],
-                    }],
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'Paint a fake tunnel with staged boards.',
+                            members: [{
+                                stableKey: 'paint',
+                                shortName: 'paint can',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'visual lure prep',
+                            }],
+                        },
+                    },
                     outliers: [{
                         stableKey: 'rope',
                         shortName: 'rope',
@@ -177,16 +179,17 @@ describe('parsePlanSelectOutput', () => {
                 selectedCandidate: {
                     candidateId: 'candidate-1',
                     executionSummary: 'Keep one staged lane and resolve order.',
-                    tropeAssignments: [{
-                        trope: 'Contraption',
-                        executionDetail: 'Set the lane first.',
-                        members: [{
-                            stableKey: 'anvil-0',
-                            shortName: 'anvil',
-                            room: 'CLIFFBASE',
-                            tropeFunction: 'payload prep',
-                        }],
-                    }],
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'Set the lane first.',
+                            members: [{
+                                stableKey: 'anvil-0',
+                                shortName: 'anvil',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'payload prep',
+                            }],
+                        },
+                    },
                     outliers: [],
                 },
                 nonAuthoritativeNote: 'still tolerated',
@@ -200,16 +203,17 @@ describe('parsePlanSelectOutput', () => {
                 selectedCandidate: {
                     candidateId: 'candidate-1',
                     executionSummary: 'Keep one staged lane and resolve order.',
-                    tropeAssignments: [{
-                        trope: 'Contraption',
-                        executionDetail: 'Set the lane first.',
-                        members: [{
-                            stableKey: 'anvil-0',
-                            shortName: 'anvil',
-                            room: 'CLIFFBASE',
-                            tropeFunction: 'payload prep',
-                        }],
-                    }],
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'Set the lane first.',
+                            members: [{
+                                stableKey: 'anvil-0',
+                                shortName: 'anvil',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'payload prep',
+                            }],
+                        },
+                    },
                     outliers: [],
                 },
             },
@@ -300,6 +304,37 @@ describe('parsePlanSelectOutput', () => {
                 selectedCandidate: {
                     candidateId: 'candidate-1',
                     executionSummary: 'Summary',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'detail',
+                            members: [{
+                                stableKey: 'anvil',
+                                shortName: 'anvil',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 9,
+                            }],
+                        },
+                    },
+                    outliers: [],
+                },
+            }) +
+            '\n```'
+        const r = parsePlanSelectOutput(raw)
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.reason).toContain('selectedCandidate.tropeAssignments.Contraption.members[0].tropeFunction must be a string')
+        }
+    })
+
+    it('rejects array-shaped selectedCandidate.tropeAssignments (hard cutover)', () => {
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
                     tropeAssignments: [{
                         trope: 'Contraption',
                         executionDetail: 'detail',
@@ -307,7 +342,7 @@ describe('parsePlanSelectOutput', () => {
                             stableKey: 'anvil',
                             shortName: 'anvil',
                             room: 'CLIFFBASE',
-                            tropeFunction: 9,
+                            tropeFunction: 'payload prep',
                         }],
                     }],
                     outliers: [],
@@ -317,7 +352,33 @@ describe('parsePlanSelectOutput', () => {
         const r = parsePlanSelectOutput(raw)
         expect(r.ok).toBe(false)
         if (!r.ok) {
-            expect(r.reason).toContain('selectedCandidate.tropeAssignments[0].members[0].tropeFunction must be a string')
+            expect(r.reason).toContain('selectedCandidate.tropeAssignments must be a non-array object keyed by trope')
+        }
+    })
+
+    it('rejects selectedCandidate.tropeAssignments with unknown trope key', () => {
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
+                    tropeAssignments: {
+                        NotARealTrope: {
+                            executionDetail: 'detail',
+                            members: [],
+                        },
+                    },
+                    outliers: [],
+                },
+            }) +
+            '\n```'
+        const r = parsePlanSelectOutput(raw)
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.reason).toContain('selectedCandidate.tropeAssignments has invalid trope key "NotARealTrope"')
         }
     })
 
@@ -330,7 +391,7 @@ describe('parsePlanSelectOutput', () => {
                 selectedCandidate: {
                     candidateId: 'candidate-1',
                     executionSummary: 'Summary',
-                    tropeAssignments: [],
+                    tropeAssignments: {},
                     outliers: [{ stableKey: 'anvil' }],
                 },
             }) +

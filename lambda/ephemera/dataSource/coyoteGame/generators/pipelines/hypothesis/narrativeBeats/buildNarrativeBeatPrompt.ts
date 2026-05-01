@@ -14,6 +14,10 @@ import {
 } from '../coyoteHypothesisPromptShared'
 import type { PlanSelectOutput } from '../planSelect/parsePlanSelectOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
+import type { CoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+
+/** Canonical trope ordering for deterministic selectedCandidate rendering. */
+const TROPE_ORDER: CoyoteTrope[] = ['Contraption', 'Distraction', 'Disadvantage', 'Finishing Move']
 
 export type BuildNarrativeBeatPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
@@ -104,26 +108,37 @@ function formatPlanSelectOutputBlock(handoff: PlanSelectOutput): string {
             }).join('\n')
             : '- (none)'
     const selectedCandidateLines = handoff.selectedCandidate
-        ? [
-            '',
-            '**Selected candidate (authoritative winner payload when present):**',
-            `- candidateId: ${handoff.selectedCandidate.candidateId}`,
-            `- executionSummary: ${handoff.selectedCandidate.executionSummary}`,
-            '- tropeAssignments:',
-            ...handoff.selectedCandidate.tropeAssignments.map((assignment) => [
-                `  - trope: ${assignment.trope}`,
-                `    executionDetail: ${assignment.executionDetail}`,
-                ...assignment.members.map((member) => (
-                    `    - member: ${member.stableKey} | ${member.shortName} | ${member.room} | ${member.tropeFunction}`
-                )),
-            ].join('\n')),
-            '- outliers:',
-            ...(handoff.selectedCandidate.outliers.length > 0
-                ? handoff.selectedCandidate.outliers.map(
-                    (outlier) => `  - ${outlier.stableKey} | ${outlier.shortName} | ${outlier.room}`
-                )
-                : ['  - (none)']),
-        ]
+        ? (() => {
+            const selected = handoff.selectedCandidate
+            const tropeAssignmentLines: string[] = []
+            for (const trope of TROPE_ORDER) {
+                const assignment = selected.tropeAssignments[trope]
+                if (!assignment) {
+                    continue
+                }
+                tropeAssignmentLines.push([
+                    `  - trope: ${trope}`,
+                    `    executionDetail: ${assignment.executionDetail}`,
+                    ...assignment.members.map((member) => (
+                        `    - member: ${member.stableKey} | ${member.shortName} | ${member.room} | ${member.tropeFunction}`
+                    )),
+                ].join('\n'))
+            }
+            return [
+                '',
+                '**Selected candidate (authoritative winner payload when present):**',
+                `- candidateId: ${selected.candidateId}`,
+                `- executionSummary: ${selected.executionSummary}`,
+                '- tropeAssignments:',
+                ...tropeAssignmentLines,
+                '- outliers:',
+                ...(selected.outliers.length > 0
+                    ? selected.outliers.map(
+                        (outlier) => `  - ${outlier.stableKey} | ${outlier.shortName} | ${outlier.room}`
+                    )
+                    : ['  - (none)']),
+            ]
+        })()
         : [
             '',
             '**Selected candidate:**',

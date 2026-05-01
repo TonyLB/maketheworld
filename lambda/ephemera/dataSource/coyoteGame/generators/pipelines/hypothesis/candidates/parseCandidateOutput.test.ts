@@ -21,13 +21,12 @@ const validJsonSingleObject = JSON.stringify({
         {
             candidateId: 'candidate-1',
             executionSummary: 'Drop the anvil as the final beat.',
-            tropeAssignments: [
-                {
-                    trope: 'Finishing Move',
+            tropeAssignments: {
+                'Finishing Move': {
                     executionDetail: 'Anvil drops once Road Runner commits to the lane.',
                     members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal drop payload' }],
                 },
-            ],
+            },
         },
     ],
 })
@@ -47,8 +46,8 @@ describe('parseCandidateOutput', () => {
         if (r.ok) {
             expect(r.normalizedJson).toContain('"stableKey":"anvil-0"')
             expect(r.candidates).toHaveLength(1)
-            expect(r.candidates[0].tropeAssignments[0].members[0].stableKey).toBe('anvil-0')
-            expect(r.candidates[0].tropeAssignments[0].members[0].tropeFunction).toBe('terminal drop payload')
+            expect(r.candidates[0].tropeAssignments['Finishing Move']?.members[0].stableKey).toBe('anvil-0')
+            expect(r.candidates[0].tropeAssignments['Finishing Move']?.members[0].tropeFunction).toBe('terminal drop payload')
         }
     })
 
@@ -58,20 +57,19 @@ describe('parseCandidateOutput', () => {
                 {
                     candidateId: 'candidate-1',
                     executionSummary: 'Drop the anvil.',
-                    tropeAssignments: [
-                        {
-                            trope: 'Finishing Move',
+                    tropeAssignments: {
+                        'Finishing Move': {
                             executionDetail: 'Trigger the terminal drop.',
                             members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal drop payload' }],
                         },
-                    ],
+                    },
                 },
             ],
         })
         const r = parseCandidateOutput(body, singleObjectRoomMap)
         expect(r.ok).toBe(true)
         if (r.ok) {
-            expect(r.candidates[0].tropeAssignments[0].members[0].tropeFunction).toBe('terminal drop payload')
+            expect(r.candidates[0].tropeAssignments['Finishing Move']?.members[0].tropeFunction).toBe('terminal drop payload')
         }
     })
 
@@ -81,13 +79,12 @@ describe('parseCandidateOutput', () => {
                 {
                     candidateId: 'candidate-1',
                     executionSummary: 'Drop the anvil.',
-                    tropeAssignments: [
-                        {
-                            trope: 'Finishing Move',
+                    tropeAssignments: {
+                        'Finishing Move': {
                             executionDetail: 'Trigger the terminal drop.',
                             members: [{ stableKey: 'anvil-0' }],
                         },
-                    ],
+                    },
                 },
             ],
         })
@@ -109,13 +106,12 @@ describe('parseCandidateOutput', () => {
                 {
                     candidateId: 'candidate-1',
                     executionSummary: 'Drop the anvil.',
-                    tropeAssignments: [
-                        {
-                            trope: 'Finishing Move',
+                    tropeAssignments: {
+                        'Finishing Move': {
                             executionDetail: 'Trigger the terminal drop.',
                             members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal', intendedRole: { role: 'terminal' } }],
                         },
-                    ],
+                    },
                 },
             ],
         })
@@ -138,13 +134,12 @@ describe('parseCandidateOutput', () => {
                 {
                     candidateId: 'candidate-1',
                     executionSummary: 'Drop the anvil.',
-                    tropeAssignments: [
-                        {
-                            trope: 'Finishing Move',
+                    tropeAssignments: {
+                        'Finishing Move': {
                             executionDetail: 'Trigger the terminal drop.',
                             members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal drop payload' }],
                         },
-                    ],
+                    },
                 },
             ],
         })
@@ -165,13 +160,12 @@ describe('parseCandidateOutput', () => {
                 {
                     candidateId: 'candidate-1',
                     executionSummary: 'Primary trap on the anvil lane.',
-                    tropeAssignments: [
-                        {
-                            trope: 'Finishing Move',
+                    tropeAssignments: {
+                        'Finishing Move': {
                             executionDetail: 'Anvil lane execution.',
                             members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal lane payload' }],
                         },
-                    ],
+                    },
                     outliers: [{ stableKey: 'rope-0' }],
                 },
             ],
@@ -179,7 +173,7 @@ describe('parseCandidateOutput', () => {
         const r = parseCandidateOutput(body, map)
         expect(r.ok).toBe(true)
         if (r.ok) {
-            expect(r.candidates[0].tropeAssignments[0].members).toHaveLength(1)
+            expect(r.candidates[0].tropeAssignments['Finishing Move']?.members).toHaveLength(1)
         }
     })
 
@@ -193,16 +187,15 @@ describe('parseCandidateOutput', () => {
                 {
                     candidateId: 'candidate-1',
                     executionSummary: 'Primary trap on the anvil lane.',
-                    tropeAssignments: [
-                        {
-                            trope: 'Finishing Move',
+                    tropeAssignments: {
+                        'Finishing Move': {
                             executionDetail: 'Anvil lane execution.',
                             members: [
                                 { stableKey: 'anvil-0', tropeFunction: 'terminal lane payload' },
                                 { stableKey: 'rope-0', tropeFunction: 'also in trope row' },
                             ],
                         },
-                    ],
+                    },
                     outliers: [{ stableKey: 'rope-0' }],
                 },
             ],
@@ -220,13 +213,12 @@ describe('parseCandidateOutput', () => {
                 {
                     candidateId: 'candidate-1',
                     executionSummary: 'Primary trap on the anvil lane.',
-                    tropeAssignments: [
-                        {
-                            trope: 'Finishing Move',
+                    tropeAssignments: {
+                        'Finishing Move': {
                             executionDetail: 'Anvil lane execution.',
                             members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal lane payload' }],
                         },
-                    ],
+                    },
                     outliers: [{ stableKey: 'rope-0', tropeFunction: 'not allowed on outlier' }],
                 },
             ],
@@ -244,13 +236,12 @@ describe('parseCandidateOutput', () => {
                 {
                     candidateId: 'candidate-1',
                     executionSummary: 'Drop the anvil.',
-                    tropeAssignments: [
-                        {
-                            trope: 'Finishing Move',
+                    tropeAssignments: {
+                        'Finishing Move': {
                             executionDetail: 'Trigger the terminal drop.',
                             members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal drop payload' }],
                         },
-                    ],
+                    },
                 },
             ],
             debug: 'extra',
@@ -268,13 +259,12 @@ describe('parseCandidateOutput', () => {
                 {
                     candidateId: 'candidate-1',
                     executionSummary: 'Drop the anvil.',
-                    tropeAssignments: [
-                        {
-                            trope: 'Finishing Move',
+                    tropeAssignments: {
+                        'Finishing Move': {
                             executionDetail: 'Trigger the terminal drop.',
                             members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal drop payload' }],
                         },
-                    ],
+                    },
                     score: 'extra',
                 },
             ],
@@ -290,13 +280,12 @@ describe('parseCandidateOutput', () => {
                 {
                     candidateId: 'candidate-1',
                     executionSummary: 'Drop the anvil.',
-                    tropeAssignments: [
-                        {
-                            trope: 'Finishing Move',
+                    tropeAssignments: {
+                        'Finishing Move': {
                             executionDetail: 'Trigger the terminal drop.',
                             members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal drop payload', name: 'extra' }],
                         },
-                    ],
+                    },
                 },
             ],
         })
@@ -312,14 +301,14 @@ describe('parseCandidateOutput', () => {
             candidates: [
                 {
                     candidateId: 'candidate-1',
-                    tropeAssignments: [{ trope: 'Finishing Move', members: [{ stableKey: 'anvil-0' }] }],
+                    tropeAssignments: { 'Finishing Move': { members: [{ stableKey: 'anvil-0' }] } },
                 },
             ],
         })
         expect(parseCandidateOutput(body, singleObjectRoomMap).ok).toBe(false)
     })
 
-    it('rejects trope assignments out of canonical order', () => {
+    it('normalizes trope assignment record keys to canonical trope order in normalizedJson', () => {
         const map: CoyoteRoomObjectsByRoom = {
             ...singleObjectRoomMap,
             'ROOM#BRIDGE': harnessRoomObjects('bridge', ['rope']),
@@ -329,21 +318,59 @@ describe('parseCandidateOutput', () => {
                 {
                     candidateId: 'candidate-1',
                     executionSummary: 'Order check.',
-                    tropeAssignments: [
-                        {
-                            trope: 'Finishing Move',
+                    tropeAssignments: {
+                        'Finishing Move': {
                             executionDetail: 'End first.',
                             members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal beat first' }],
                         },
-                        {
-                            trope: 'Contraption',
+                        Contraption: {
                             executionDetail: 'Setup second.',
                             members: [{ stableKey: 'rope-0', tropeFunction: 'setup beat second' }],
+                        },
+                    },
+                },
+            ],
+        })
+        const result = parseCandidateOutput(body, map)
+        expect(result.ok).toBe(true)
+        if (result.ok) {
+            const contraptionIndex = result.normalizedJson.indexOf('"Contraption"')
+            const finishingMoveIndex = result.normalizedJson.indexOf('"Finishing Move"')
+            expect(contraptionIndex).toBeGreaterThan(-1)
+            expect(finishingMoveIndex).toBeGreaterThan(-1)
+            expect(contraptionIndex).toBeLessThan(finishingMoveIndex)
+        }
+    })
+
+    it('rejects array-shaped tropeAssignments (hard cutover)', () => {
+        const body = JSON.stringify({
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Legacy shape should fail.',
+                    tropeAssignments: [
+                        {
+                            trope: 'Finishing Move',
+                            executionDetail: 'Legacy row.',
+                            members: [{ stableKey: 'anvil-0', tropeFunction: 'legacy' }],
                         },
                     ],
                 },
             ],
         })
-        expect(parseCandidateOutput(body, map).ok).toBe(false)
+        expect(parseCandidateOutput(body, singleObjectRoomMap).ok).toBe(false)
+    })
+
+    it('rejects empty tropeAssignments record', () => {
+        const body = JSON.stringify({
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Empty trope record should fail.',
+                    tropeAssignments: {},
+                },
+            ],
+        })
+        expect(parseCandidateOutput(body, singleObjectRoomMap).ok).toBe(false)
     })
 })

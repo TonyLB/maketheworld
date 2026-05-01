@@ -22,19 +22,18 @@ describe('combineCandidateOutput', () => {
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Use rope prep in the opening beat.',
-                tropeAssignments: [
-                    {
-                        trope: 'Contraption',
+                tropeAssignments: {
+                    Contraption: {
                         executionDetail: 'Rope links setup pieces before execution.',
                         members: [{ stableKey: 'rope-0', tropeFunction: 'connective rigging between setup pieces' }],
                     },
-                ],
+                },
             },
         ]
         const r = combineCandidateOutput(candidates, roomMap)
         expect(r.ok).toBe(true)
         if (r.ok) {
-            expect(r.combined.candidates[0].tropeAssignments[0].members[0].tropeFunction).toBe(
+            expect(r.combined.candidates[0].tropeAssignments.Contraption?.members[0].tropeFunction).toBe(
                 'connective rigging between setup pieces'
             )
             expect(r.combined.candidates[0].outliers).toHaveLength(0)
@@ -52,13 +51,12 @@ describe('combineCandidateOutput', () => {
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Focus on one object only.',
-                tropeAssignments: [
-                    {
-                        trope: 'Finishing Move',
+                tropeAssignments: {
+                    'Finishing Move': {
                         executionDetail: 'Anvil beats only.',
                         members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal-only focus in this candidate' }],
                     },
-                ],
+                },
             },
         ]
         const r = combineCandidateOutput(candidates, roomMap)
@@ -92,13 +90,12 @@ describe('combineCandidateOutput', () => {
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Primary glue beat; rope unassigned in tropes.',
-                tropeAssignments: [
-                    {
-                        trope: 'Disadvantage',
+                tropeAssignments: {
+                    Disadvantage: {
                         executionDetail: 'Glue is applied as the persistent constraint.',
                         members: [{ stableKey: 'glue-1', tropeFunction: 'persistent movement constraint on lane' }],
                     },
-                ],
+                },
             },
         ]
         const r = combineCandidateOutput(candidates, roomMap)
@@ -115,7 +112,7 @@ describe('combineCandidateOutput', () => {
         }
     })
 
-    it('serializePlanSelectCandidateInput is stable JSON with schemaVersion 2 and outliers without tropeFunction', () => {
+    it('serializePlanSelectCandidateInput is stable JSON with schemaVersion 3 and outliers without tropeFunction', () => {
         const roomMap: CoyoteRoomObjectsByRoom = {
             'ROOM#VORTEX': [
                 {
@@ -134,13 +131,12 @@ describe('combineCandidateOutput', () => {
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Primary glue beat; rope unassigned in tropes.',
-                tropeAssignments: [
-                    {
-                        trope: 'Disadvantage',
+                tropeAssignments: {
+                    Disadvantage: {
                         executionDetail: 'Glue is applied as the persistent constraint.',
                         members: [{ stableKey: 'glue-1', tropeFunction: 'persistent movement constraint on lane' }],
                     },
-                ],
+                },
             },
         ]
         const r = combineCandidateOutput(candidates, roomMap)
@@ -152,15 +148,19 @@ describe('combineCandidateOutput', () => {
         const b = serializePlanSelectCandidateInput(r.combined, roomMap)
         expect(a).toBe(b)
         const parsed = JSON.parse(a) as { schemaVersion: number; candidates: unknown[] }
-        expect(parsed.schemaVersion).toBe(2)
+        expect(parsed.schemaVersion).toBe(3)
         expect(parsed.candidates).toHaveLength(1)
         const c0 = parsed.candidates[0] as {
             candidateId: string
-            tropeAssignments: Array<{ members: Array<{ stableKey: string; shortName: string; room: string; tropeFunction: string }> }>
+            tropeAssignments: Partial<Record<
+                'Contraption' | 'Distraction' | 'Disadvantage' | 'Finishing Move',
+                { executionDetail: string; members: Array<{ stableKey: string; shortName: string; room: string; tropeFunction: string }> }
+            >>
             outliers: Array<{ stableKey: string; shortName: string; room: string; tropeFunction?: string }>
         }
         expect(c0.candidateId).toBe('candidate-1')
-        expect(c0.tropeAssignments[0].members[0]).toMatchObject({
+        expect(Array.isArray(c0.tropeAssignments)).toBe(false)
+        expect(c0.tropeAssignments.Disadvantage?.members[0]).toMatchObject({
             stableKey: 'glue-1',
             shortName: 'glue',
             room: 'CLIFFBASE',
