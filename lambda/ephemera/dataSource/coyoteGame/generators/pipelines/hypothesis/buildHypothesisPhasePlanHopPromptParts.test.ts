@@ -113,7 +113,6 @@ describe('buildHypothesisPhasePlanHopPromptParts', () => {
                         stableKey: 'rope-1',
                         shortName: 'rope',
                         room: 'CLIFFBASE',
-                        tropeFunction: 'trip fallback',
                     }],
                 },
             },
@@ -124,6 +123,6 @@ describe('buildHypothesisPhasePlanHopPromptParts', () => {
         expect(full).toContain('executionSummary: Use anvil as staged payload and rope as fallback.')
         expect(full).toContain('trope: Contraption')
         expect(full).toContain('member: anvil-0 | anvil | CLIFFBASE | payload rig')
-        expect(full).toContain('rope-1 | rope | CLIFFBASE | trip fallback')
+        expect(full).toContain('rope-1 | rope | CLIFFBASE')
     })
 })

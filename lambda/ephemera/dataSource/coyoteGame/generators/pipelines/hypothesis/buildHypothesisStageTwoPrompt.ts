@@ -15,7 +15,7 @@ export type BuildHypothesisStageTwoPromptInput = {
 const STAGE_TWO_INTRO_LINES = [
     'You are completing the player-facing hypothesis for a Coyote-vs-Road-Runner cartoon setup.',
     '',
-    'The dynamic section below contains **combined clustering input** (clusters, members, tropeFunction annotations, outliers) derived from staged objects and Stage One --- use it as ground truth for grouping and beat-level prop jobs.',
+    'The dynamic section below contains **combined clustering input** (trope members with tropeFunction, plus server-derived outliers) from staged objects and Stage One --- use it as ground truth for grouping and beat-level prop jobs.',
     '- Write chain-of-reasoning and spatial analysis under "## Scene analysis" for the player (Markdown allowed there).',
     '- After "## Scene analysis", output a **final** fenced code block with language `text` whose **only** content is exactly one plain-text line beginning with "Hypothesis:".',
     '- Do not put any other text after the closing fence.',
@@ -27,8 +27,8 @@ export const COMBINED_CLUSTERING_CONTRACT_LINES = [
     '- After seam room labels you will see **## Combined trope candidates**, then one **### Candidate <id>** section per Stage One candidate.',
     '- Under each candidate you will see **executionSummary**, then one **#### <Trope>** section per assigned trope beat. Treat each trope section as candidate-local structure; do not merge trope sections across candidates.',
     '- Inside each trope section, **executionDetail** captures Stage One\'s first-draft beat detail. Member bullets list staged objects (**stableKey**, **shortName**, **room**).',
-    '- An indented line **tropeFunction:** is required for each member/outlier and describes that object\'s trope-local job inside this candidate. Use it as the canonical annotation for role/function intent.',
-    '- Each candidate includes its own **#### Outliers** block. Outliers are candidate-local: do not move outlier props into trope sections unless the candidate already assigns them there.',
+    '- An indented line **tropeFunction:** is required for each **trope member** and describes that object\'s trope-local job inside this candidate. Use it as the canonical annotation for in-trope role/function intent.',
+    '- Each candidate includes its own **#### Outliers** block (stableKey / shortName / room only). Outliers are candidate-local props not under any trope row; role language for them is not fixed in clustering --- do not move outlier props into trope sections unless the candidate already assigns them there.',
 ] as const
 
 export const INTERPRETATION_RULES_LINES = [
@@ -52,7 +52,7 @@ export const INTERPRETATION_RULES_LINES = [
 const SCENE_AND_HYPOTHESIS_LINES = [
     '## Scene analysis and Hypothesis output',
     '- Your "## Scene analysis" section should commit to a single reading and build the spatial and causal logic behind it. Do not survey multiple plans there; the Hypothesis line restates that same reading as one sentence.',
-    '- Ground your "## Scene analysis" section on the **combined clustering** block and world topology; narrate for the player without contradicting cluster membership, **## Outliers** listings, or stated tropeFunction annotations.',
+    '- Ground your "## Scene analysis" section on the **combined clustering** block and world topology; narrate for the player without contradicting cluster membership, **## Outliers** listings, or stated **tropeFunction** lines on trope members.',
     '- After "## Scene analysis", open a Markdown fence: ```text on its own line, then exactly one line beginning with "Hypothesis:", then ``` on its own line to close the fence. The fenced interior must contain only that Hypothesis line.',
     '- No JSON. No extra commentary outside "## Scene analysis" (markdown allowed there) and the fenced Hypothesis line.',
 ] as const

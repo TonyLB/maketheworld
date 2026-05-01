@@ -58,7 +58,7 @@ describe('buildHypothesisPlanSelectionPromptParts', () => {
         expect(full).toContain('`singleCandidateIssueAudit`')
         expect(full).toContain('`singleCandidateDelivery`')
         expect(full).toContain('```json')
-        expect(full).toContain('"schemaVersion":1')
+        expect(full).toContain('"schemaVersion":2')
         expect(full).toContain('"candidateId":"candidate-1"')
         expect(parts.dynamicSuffix).toContain('ROOM#VORTEX')
         expect(full).toContain('## Trope candidates (input JSON)')

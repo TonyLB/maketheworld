@@ -7,11 +7,11 @@ import { isCoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 /*
  * Stage 1 emits trope-first JSON: optional notes, required candidates[].
- * Each candidate includes tropeAssignments[] and optional outliers[] (partition with members).
- * members/outliers use stableKey + required tropeFunction annotation.
+ * Each candidate includes tropeAssignments[]; optional outliers[] is scaffolding only (stableKey-only).
+ * Trope members use stableKey + required tropeFunction. Authoritative outliers are derived in combine.
  */
 
-/** One staged object reference in a cluster or in **`outliers`**. */
+/** One staged object reference under a trope assignment `members` row. */
 export type ParsedClusterMember = {
     stableKey: string
     tropeFunction: string
@@ -27,7 +27,6 @@ export type ParsedTropeCandidate = {
     candidateId: string
     executionSummary: string
     tropeAssignments: ParsedTropeAssignment[]
-    explicitOutliers?: ParsedClusterMember[]
 }
 
 export type ParseHypothesisStageOneSuccess = {
@@ -130,6 +129,7 @@ const STAGE_ONE_CANDIDATE_ALLOWED_KEYS = new Set([
 ])
 const STAGE_ONE_TROPE_ASSIGNMENT_ALLOWED_KEYS = new Set(['trope', 'executionDetail', 'members'])
 const STAGE_ONE_MEMBER_ALLOWED_KEYS = new Set(['stableKey', 'tropeFunction'])
+const STAGE_ONE_OUTLIER_ALLOWED_KEYS = new Set(['stableKey'])
 const TROPE_ORDER: CoyoteTrope[] = ['Contraption', 'Distraction', 'Disadvantage', 'Finishing Move']
 const TROPE_ORDER_INDEX = new Map(TROPE_ORDER.map((trope, i) => [trope, i]))
 
@@ -173,6 +173,16 @@ function resolveDraftMembers(
         membersOut.push({ stableKey: dm.stableKey, tropeFunction: dm.tropeFunction })
     }
     return { ok: true, members: membersOut }
+}
+
+function parseOutlierStableKeyOnly(
+    rawObj: Record<string, unknown>,
+    contextLabel: string
+): { ok: true; stableKey: string } | { ok: false; errorMessage: string } {
+    if (!isNonEmptyString(rawObj.stableKey)) {
+        return { ok: false, errorMessage: `${contextLabel} needs stableKey` }
+    }
+    return { ok: true, stableKey: rawObj.stableKey.trim() }
 }
 
 function parseCandidatesFromPayload(
@@ -336,71 +346,26 @@ function parseCandidatesFromPayload(
             })
         }
 
-        const expectedSorted = JSON.stringify(expectedStableKeysSorted(roomObjectsByRoom))
-        const assignmentKeysSorted = tropeAssignmentsDraft
-            .flatMap((assignment) => assignment.members.map((m) => m.stableKey.trim()))
-            .sort()
-        const hasExplicitOutliers = Object.prototype.hasOwnProperty.call(co, 'outliers')
-        let draftOutliers: DraftMember[] | undefined
-        if (hasExplicitOutliers) {
-            if (!Array.isArray(co.outliers)) {
-                return { ok: false, errorMessage: `stage 1 JSON: candidate "${candidateId}" outliers must be an array when present` }
-            }
-            draftOutliers = []
-            for (let oi = 0; oi < co.outliers.length; oi++) {
-                const raw = co.outliers[oi]
-                if (typeof raw !== 'object' || raw === null) {
-                    return { ok: false, errorMessage: `stage 1 JSON: candidate "${candidateId}" outliers[${oi}] must be an object` }
-                }
-                const rawObj = raw as Record<string, unknown>
-                const unknownOutlierKeys = unknownKeys(rawObj, STAGE_ONE_MEMBER_ALLOWED_KEYS)
-                if (unknownOutlierKeys.length > 0) {
-                    return {
-                        ok: false,
-                        errorMessage:
-                            `stage 1 JSON: candidate "${candidateId}" outliers[${oi}] has unknown key(s): ` +
-                            unknownOutlierKeys.join(', '),
-                    }
-                }
-                const parsedO = parseDraftMemberFromRecord(
-                    rawObj,
-                    `stage 1 JSON: candidate "${candidateId}" outliers[${oi}]`
-                )
-                if (!parsedO.ok) {
-                    return parsedO
-                }
-                draftOutliers.push(parsedO.draft)
-            }
-            const outlierKeysSorted = draftOutliers.map((d) => d.stableKey.trim()).sort()
-            const assignmentKeySet = new Set(assignmentKeysSorted)
-            for (const ok of outlierKeysSorted) {
-                if (assignmentKeySet.has(ok)) {
-                    return {
-                        ok: false,
-                        errorMessage: `stage 1 JSON: candidate "${candidateId}" stableKey "${ok}" appears in both tropeAssignments and outliers`,
-                    }
-                }
-            }
-            const unionSorted = [...assignmentKeysSorted, ...outlierKeysSorted].sort()
-            if (JSON.stringify(unionSorted) !== expectedSorted) {
+        const stagedMultisetSorted = expectedStableKeysSorted(roomObjectsByRoom)
+        const assignmentKeysList = tropeAssignmentsDraft.flatMap((assignment) =>
+            assignment.members.map((m) => m.stableKey.trim())
+        )
+        const stagedCounts = new Map<string, number>()
+        for (const sk of stagedMultisetSorted) {
+            stagedCounts.set(sk, (stagedCounts.get(sk) ?? 0) + 1)
+        }
+        const assignmentCounts = new Map<string, number>()
+        for (const sk of assignmentKeysList) {
+            assignmentCounts.set(sk, (assignmentCounts.get(sk) ?? 0) + 1)
+        }
+        for (const [sk, ac] of assignmentCounts) {
+            const sc = stagedCounts.get(sk) ?? 0
+            if (ac > sc) {
                 return {
                     ok: false,
                     errorMessage:
-                        `stage 1 JSON: candidate "${candidateId}" tropeAssignments ∪ outliers must equal staged multiset ` +
-                        `(expected ${expectedSorted}, got ${JSON.stringify(unionSorted)})`,
-                }
-            }
-        } else {
-            const parsedSorted = JSON.stringify(assignmentKeysSorted)
-            if (
-                assignmentKeysSorted.length !== expectedStableKeysSorted(roomObjectsByRoom).length
-                || parsedSorted !== expectedSorted
-            ) {
-                return {
-                    ok: false,
-                    errorMessage:
-                        `stage 1 JSON: candidate "${candidateId}" stableKey multiset mismatch ` +
-                        `(expected ${expectedSorted}, parsed ${parsedSorted})`,
+                        `stage 1 JSON: candidate "${candidateId}" tropeAssignments use stableKey "${sk}" ` +
+                        `more often (${ac}) than it appears in the staged snapshot (${sc})`,
                 }
             }
         }
@@ -411,6 +376,43 @@ function parseCandidatesFromPayload(
                 snapshotByStableKey.set(o.stableKey.trim(), o)
             }
         }
+
+        const hasOutliersKey = Object.prototype.hasOwnProperty.call(co, 'outliers')
+        if (hasOutliersKey) {
+            if (!Array.isArray(co.outliers)) {
+                return { ok: false, errorMessage: `stage 1 JSON: candidate "${candidateId}" outliers must be an array when present` }
+            }
+            for (let oi = 0; oi < co.outliers.length; oi++) {
+                const raw = co.outliers[oi]
+                if (typeof raw !== 'object' || raw === null) {
+                    return { ok: false, errorMessage: `stage 1 JSON: candidate "${candidateId}" outliers[${oi}] must be an object` }
+                }
+                const rawObj = raw as Record<string, unknown>
+                const unknownOutlierKeys = unknownKeys(rawObj, STAGE_ONE_OUTLIER_ALLOWED_KEYS)
+                if (unknownOutlierKeys.length > 0) {
+                    return {
+                        ok: false,
+                        errorMessage:
+                            `stage 1 JSON: candidate "${candidateId}" outliers[${oi}] has unknown key(s): ` +
+                            unknownOutlierKeys.join(', '),
+                    }
+                }
+                const parsedO = parseOutlierStableKeyOnly(
+                    rawObj,
+                    `stage 1 JSON: candidate "${candidateId}" outliers[${oi}]`
+                )
+                if (!parsedO.ok) {
+                    return parsedO
+                }
+                if (!snapshotByStableKey.has(parsedO.stableKey)) {
+                    return {
+                        ok: false,
+                        errorMessage: `stage 1 JSON: unknown stableKey "${parsedO.stableKey}" in outliers[${oi}]`,
+                    }
+                }
+            }
+        }
+
         const tropeAssignments: ParsedTropeAssignment[] = []
         for (const draft of tropeAssignmentsDraft) {
             const resolvedMembers = resolveDraftMembers(draft.members, snapshotByStableKey)
@@ -423,19 +425,10 @@ function parseCandidatesFromPayload(
                 members: resolvedMembers.members,
             })
         }
-        let explicitOutliers: ParsedClusterMember[] | undefined
-        if (hasExplicitOutliers && draftOutliers !== undefined) {
-            const resolvedOut = resolveDraftMembers(draftOutliers, snapshotByStableKey)
-            if (!resolvedOut.ok) {
-                return resolvedOut
-            }
-            explicitOutliers = resolvedOut.members
-        }
         candidates.push({
             candidateId,
             executionSummary,
             tropeAssignments,
-            ...(explicitOutliers !== undefined ? { explicitOutliers } : {}),
         })
     }
 

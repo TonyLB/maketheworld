@@ -11,6 +11,11 @@ export type CombinedMemberPair = {
     tropeFunction: string
 }
 
+/** Staged stableKey not placed under any trope row (identity only; derived multiset complement). */
+export type CombinedOutlierIdentity = {
+    identifier: string
+}
+
 export type CombinedTropeAssignment = {
     trope: CoyoteTrope
     executionDetail: string
@@ -21,7 +26,7 @@ export type CombinedTropeCandidate = {
     candidateId: string
     executionSummary: string
     tropeAssignments: CombinedTropeAssignment[]
-    outliers: CombinedMemberPair[]
+    outliers: CombinedOutlierIdentity[]
 }
 
 export type CombineHypothesisClustersReturn = {
@@ -35,6 +40,12 @@ export type PlanSelectCombinedMember = {
     tropeFunction: string
 }
 
+export type PlanSelectCombinedOutlier = {
+    stableKey: string
+    shortName: string
+    room: string
+}
+
 export type PlanSelectCombinedTropeAssignment = {
     trope: CoyoteTrope
     executionDetail: string
@@ -45,7 +56,7 @@ export type PlanSelectCombinedCandidate = {
     candidateId: string
     executionSummary: string
     tropeAssignments: PlanSelectCombinedTropeAssignment[]
-    outliers: PlanSelectCombinedMember[]
+    outliers: PlanSelectCombinedOutlier[]
 }
 
 export type CombineHypothesisClustersSuccess = {
@@ -72,20 +83,61 @@ function snapshotIndexByStableKey(
     return map
 }
 
+/** One entry per staged object, in room iteration order, for multiset complement. */
+function stagedStableKeysInOrder(roomObjectsByRoom: CoyoteRoomObjectsByRoom): string[] {
+    const keys: string[] = []
+    for (const objects of Object.values(roomObjectsByRoom)) {
+        for (const o of objects) {
+            keys.push(o.stableKey.trim())
+        }
+    }
+    return keys
+}
+
+function deriveOutlierIdentifiers(
+    stagedOrdered: string[],
+    assignmentStableKeys: string[]
+): { ok: true; identifiers: string[] } | { ok: false; errorMessage: string } {
+    const remaining = new Map<string, number>()
+    for (const k of stagedOrdered) {
+        remaining.set(k, (remaining.get(k) ?? 0) + 1)
+    }
+    for (const ak of assignmentStableKeys) {
+        const c = (remaining.get(ak) ?? 0) - 1
+        if (c < 0) {
+            return {
+                ok: false,
+                errorMessage: `combine: assignment over-uses stableKey "${ak}" vs staged multiset`,
+            }
+        }
+        remaining.set(ak, c)
+    }
+    const identifiers: string[] = []
+    for (const k of stagedOrdered) {
+        const c = remaining.get(k) ?? 0
+        if (c > 0) {
+            identifiers.push(k)
+            remaining.set(k, c - 1)
+        }
+    }
+    return { ok: true, identifiers }
+}
+
 /**
- * Hydrated DTO for Stage Two. When **`explicitOutliers`** is set (Stage One JSON included **`outliers`**),
- * outliers come only from that list; otherwise every staged **`stableKey`** missing from **`clusters`**
- * is listed as an outlier (complement fallback).
+ * Hydrates trope assignments and **derives** candidate-local outliers as the multiset complement:
+ * staged `stableKey`s minus keys appearing in **`tropeAssignments[*].members`** (order follows staged snapshot iteration).
  */
 export function combineHypothesisClusters(
     candidates: ParsedTropeCandidate[],
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
 ): CombineHypothesisClustersResult {
     const byStableKey = snapshotIndexByStableKey(roomObjectsByRoom)
+    const stagedOrdered = stagedStableKeysInOrder(roomObjectsByRoom)
     const combinedCandidates: CombinedTropeCandidate[] = []
     for (const candidate of candidates) {
         const seenKeys = new Set<string>()
         const tropeAssignments: CombinedTropeAssignment[] = []
+        const assignmentStableKeys: string[] = []
         for (const tropeAssignment of candidate.tropeAssignments) {
             const membersOut: CombinedMemberPair[] = []
             for (const mem of tropeAssignment.members) {
@@ -102,6 +154,7 @@ export function combineHypothesisClusters(
                     return { ok: false, errorMessage: `combine: unknown stableKey "${sk}"` }
                 }
                 seenKeys.add(sk)
+                assignmentStableKeys.push(sk)
                 membersOut.push({
                     identifier: sk,
                     tropeFunction: mem.tropeFunction,
@@ -113,28 +166,11 @@ export function combineHypothesisClusters(
                 members: membersOut,
             })
         }
-        const outliers: CombinedMemberPair[] = []
-        if (candidate.explicitOutliers !== undefined) {
-            for (const outlier of candidate.explicitOutliers) {
-                const sk = outlier.stableKey.trim()
-                if (seenKeys.has(sk)) {
-                    return {
-                        ok: false,
-                        errorMessage:
-                            `combine: candidate "${candidate.candidateId}" stableKey "${sk}" appears in both trope assignments and explicit outliers`,
-                    }
-                }
-                const obj = byStableKey.get(sk)
-                if (!obj) {
-                    return { ok: false, errorMessage: `combine: unknown outlier stableKey "${sk}"` }
-                }
-                seenKeys.add(sk)
-                outliers.push({
-                    identifier: sk,
-                    tropeFunction: outlier.tropeFunction,
-                })
-            }
+        const derived = deriveOutlierIdentifiers(stagedOrdered, assignmentStableKeys)
+        if (!derived.ok) {
+            return { ok: false, errorMessage: derived.errorMessage }
         }
+        const outliers: CombinedOutlierIdentity[] = derived.identifiers.map((identifier) => ({ identifier }))
         combinedCandidates.push({
             candidateId: candidate.candidateId,
             executionSummary: candidate.executionSummary,
@@ -192,7 +228,6 @@ export function renderCombinedHypothesisForStageTwo(
                 lines.push(
                     `- **stableKey:** ${sk} — **shortName:** ${shortName}${roomLabel ? ` — **room:** ${roomLabel}` : ''}`
                 )
-                lines.push(`  - **tropeFunction:** ${out.tropeFunction}`)
             }
             lines.push('')
         }
@@ -233,6 +268,23 @@ function enrichMemberForPlanSelectJson(
     }
 }
 
+function enrichOutlierForPlanSelectJson(
+    out: CombinedOutlierIdentity,
+    byStableKey: Map<string, EphemeraMetaRoomObject>,
+    roomObjectsByRoom: CoyoteRoomObjectsByRoom
+): PlanSelectCombinedOutlier {
+    const sk = out.identifier.trim()
+    const obj = sk ? byStableKey.get(sk) : undefined
+    const shortName = obj?.shortName ?? sk
+    const roomIdForObj = obj ? findRoomIdForObject(roomObjectsByRoom, obj) : undefined
+    const roomLabel = roomIdForObj !== undefined ? seamRoomLabelFromEphemeraRoomId(roomIdForObj) : ''
+    return {
+        stableKey: sk,
+        shortName,
+        room: roomLabel,
+    }
+}
+
 /**
  * Deterministic JSON string for plan-selection prompts: same facts as
  * {@link renderCombinedHypothesisForStageTwo} with `stableKey` / `shortName` / `room` on each staged prop.
@@ -247,7 +299,7 @@ export function serializePlanSelectCombinedInput(
         schemaVersion: number
         candidates: PlanSelectCombinedCandidate[]
     } = {
-        schemaVersion: 1,
+        schemaVersion: 2,
         candidates: combined.candidates.map((candidate) => ({
             candidateId: candidate.candidateId,
             executionSummary: candidate.executionSummary,
@@ -256,8 +308,17 @@ export function serializePlanSelectCombinedInput(
                 executionDetail: assignment.executionDetail,
                 members: assignment.members.map((m) => enrichMemberForPlanSelectJson(m, byStableKey, roomObjectsByRoom)),
             })),
-            outliers: candidate.outliers.map((o) => enrichMemberForPlanSelectJson(o, byStableKey, roomObjectsByRoom)),
+            outliers: candidate.outliers.map((o) => enrichOutlierForPlanSelectJson(o, byStableKey, roomObjectsByRoom)),
         })),
     }
     return JSON.stringify(payload)
+}
+
+/** Enriched outlier rows for a combined candidate (e.g. hop-1 rehydrate from combine). */
+export function planSelectOutliersForCombinedCandidate(
+    candidate: CombinedTropeCandidate,
+    roomObjectsByRoom: CoyoteRoomObjectsByRoom
+): PlanSelectCombinedOutlier[] {
+    const byStableKey = snapshotIndexByStableKey(roomObjectsByRoom)
+    return candidate.outliers.map((o) => enrichOutlierForPlanSelectJson(o, byStableKey, roomObjectsByRoom))
 }
