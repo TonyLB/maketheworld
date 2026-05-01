@@ -7,13 +7,32 @@ Parent docs:
 - Package overview: [`../../../AGENT.md`](../../../AGENT.md)
 - LLM pipeline framework: [`../../../../../llm/pipeline/AGENT.md`](../../../../../llm/pipeline/AGENT.md)
 
+## Pipeline architecture
+
+Production runs a **linear sequence** orchestrated in [`coyoteHypothesisPipeline.ts`](coyoteHypothesisPipeline.ts): load room context, run three LLM phases (`candidates`, `planSelect`, `phasePlan`) with deterministic steps between them, then parse into cache-facing intent. Read this section for **what each phase is for**; exact step names, state fields, and parsers live in that source file.
+
+### Conceptual flow
+
+1. **Candidates**  
+   The model proposes a **candidate pool** of trope-style readings (seams) from what changed in the room. Application code then **parses and combines** that output with staged room objects: validation, clustering, and rendering so later hops see a **single enriched view** of the possibilities, not just the raw transcript.
+
+2. **Plan selection**  
+   That combined pool is presented for **rubric-style comparison** so the model can weigh readings and settle on one coherent direction. Code **extracts a structured handoff**: a short summary of the committed reading, **residual** plan issues that still bind the story, and optionally a **structured winning candidate** supplemented with deterministic detail (for example tying outliers back to room objects) so the next hop stays grounded.
+
+3. **Narrative beat (phase plan)**  
+   The chosen framing and constraints feed the **final hop**, which turns them into a **`Hypothesis:`** line the player can read and optional structured plan / walkthrough material. A shared terminal parser ([`parseHypothesisModelOutput`](../../sharedParsers/parseHypothesisModelOutput.ts)) maps model text into a **`CoyoteGameIntentRecord`** the cache and UI use.
+
+**In one sentence:** propose a trope **candidate pool**, **enrich it deterministically**, **compare against a rubric and select a reading**, then **materialize** that choice into player-parseable hypothesis output (and optional structured follow-through).
+
+Harness modes (`runUntil` / `runOnly`) slice this sequence or inject mid-pipeline state for tests (`selectHarnessSteps`, `initialStateForRunOnly` in the same file).
+
 ## Scope
 
 The hypothesis pipeline is the production path for `Objects Changed` events in Coyote rooms:
 
-1. Stage one seam generation from staged room objects.
-2. Plan-selection hop over combined clusters.
-3. Narrative beat hop that returns `Hypothesis:` and optional structured plan/walkthrough.
+1. **Candidates:** propose a trope assignment pool from staged objects, then merge it with room state into one enriched candidate view.
+2. **Plan selection:** compare that pool under a rubric, choose a reading, and pass a structured handoff (summary, residual issues, optional winner).
+3. **Narrative beat:** render the committed reading into a `Hypothesis:` line and optional structured plan/walkthrough for the player and cache.
 
 This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock wrappers for that flow.
 

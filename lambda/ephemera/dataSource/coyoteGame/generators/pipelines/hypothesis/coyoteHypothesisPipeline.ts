@@ -215,7 +215,7 @@ function buildCoyoteHypothesisSteps(
             },
         }),
         ctx.defineLlmStep({
-            name: 'hypothesisStageOneLlm',
+            name: 'hypothesisCandidatesLlm',
             run: async (draft) => {
                 const roomObjectsByRoom = draft.roomObjectsByRoom;
                 if (!roomObjectsByRoom) {
