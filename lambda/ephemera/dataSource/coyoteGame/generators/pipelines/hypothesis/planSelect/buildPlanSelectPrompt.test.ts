@@ -1,5 +1,8 @@
 import { buildPlanSelectPrompt } from './buildPlanSelectPrompt'
-import { PLAN_SELECT_OUTPUT_JSON_KEYS } from './parsePlanSelectOutput'
+import {
+    MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX,
+    PLAN_SELECT_OUTPUT_JSON_KEYS,
+} from './parsePlanSelectOutput'
 import { harnessRoomObjects } from '../../../testHarness/coyoteEngineTestFixtures'
 
 describe('buildPlanSelectPrompt', () => {
@@ -54,7 +57,12 @@ describe('buildPlanSelectPrompt', () => {
         expect(full).not.toContain('### Phase 3 - winner merge and residual issues (internal mini-schema)')
         expect(full).not.toContain('### Phase 4 - final handoff emission')
         expect(full).toContain('The only downstream-consumed artifact is the final trailing handoff `json` fence.')
-        expect(full).toContain('Include `selectedCandidate` in the final handoff JSON as a full copy of the winning candidate row')
+        expect(full).toContain(
+            'Include `selectedCandidate` in the final handoff JSON anchored on the winning input candidate row'
+        )
+        expect(full).toContain(MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX)
+        expect(full).not.toContain('full copy')
+        expect(full).not.toContain('complete copy')
         expect(full).toContain('`singleCandidateIssueAudit`')
         expect(full).toContain('`singleCandidateDelivery`')
         expect(full).toContain('```json')
@@ -105,7 +113,7 @@ describe('buildPlanSelectPrompt', () => {
         expect(full).not.toContain('competition in this run.')
     })
 
-    it('keeps prompt content unchanged when staged trope environmentAffordances are present', () => {
+    it('still serializes environmentAffordances in dynamic JSON and documents materialized handoff rows', () => {
         const parts = buildPlanSelectPrompt({
             roomObjectsByRoom: {
                 'ROOM#VORTEX': [{
@@ -140,5 +148,7 @@ describe('buildPlanSelectPrompt', () => {
         expect(full).toContain('"environmentAffordances"')
         expect(full).toContain('"object":"long-fall"')
         expect(full).not.toContain('drop-ready')
+        expect(full).toContain('Handoff JSON (optional materialized affordances)')
+        expect(full).toContain(MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX)
     })
 })
