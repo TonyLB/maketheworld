@@ -77,7 +77,7 @@ describe('mapPipelineRunToGenerateHypothesisResult', () => {
                 planSelectionResult: null,
                 narrativeBeatResult: null,
             },
-            failedStepName: 'hypothesisStageOneLlm',
+            failedStepName: 'hypothesisCandidatesLlm',
             failedStepIndex: 1,
             error: new CoyoteHypothesisPipelineAbortError(),
         })
