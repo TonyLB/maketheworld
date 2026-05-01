@@ -176,6 +176,60 @@ describe('validateCoyotePhasePlan', () => {
         }
     })
 
+    it('accepts materialized affordance stableKey in stableKeysUsed when not in snapshot', () => {
+        const raw = {
+            tropeSequence: ['Contraption'],
+            deconflictionSummary: 'Coyote finishing affordance.',
+            phases: [
+                {
+                    trope: 'Contraption',
+                    tropeBeat: 'Finish with coyote.',
+                    stableKeysUsed: ['affordance:coyote'],
+                    virtualEntities: [
+                        {
+                            label: 'Coyote gag',
+                            derivedFrom: ['affordance:coyote'],
+                            phaseKind: 'deployed',
+                        },
+                    ],
+                    achievement: 'Beat lands',
+                },
+            ],
+        }
+        const result = validateCoyotePhasePlan(raw, ctx())
+        expect(result.ok).toBe(true)
+        if (result.ok) {
+            expect(result.phasePlan.phases[0].stableKeysUsed).toEqual(['affordance-coyote'])
+        }
+    })
+
+    it('rejects malformed materialized affordance stableKey in stableKeysUsed', () => {
+        const raw = {
+            tropeSequence: ['Contraption'],
+            deconflictionSummary: 'Bad affordance key.',
+            phases: [
+                {
+                    trope: 'Contraption',
+                    tropeBeat: 'x',
+                    stableKeysUsed: ['affordance:'],
+                    virtualEntities: [
+                        {
+                            label: 'x',
+                            derivedFrom: ['anvil-1'],
+                            phaseKind: 'gathered',
+                        },
+                    ],
+                    achievement: 'y',
+                },
+            ],
+        }
+        const result = validateCoyotePhasePlan(raw, ctx())
+        expect(result.ok).toBe(false)
+        if (!result.ok) {
+            expect(result.reason).toContain('unknown snapshot stableKey')
+        }
+    })
+
     it('allows derivedFrom to mix reserved setting and snapshot keys', () => {
         const raw = {
             tropeSequence: ['Contraption'],
@@ -387,6 +441,46 @@ describe('validateCoyotePhasePlan', () => {
         }
         const result = validateCoyotePhasePlan(raw, ctx({ caps: { maxSettingOnlyVirtualsPerPhase: 2 } }))
         expect(result.ok).toBe(true)
+    })
+
+    it('does not count virtuals with only materialized affordance derivedFrom toward the setting-only cap', () => {
+        const raw = {
+            tropeSequence: ['Contraption'],
+            deconflictionSummary: 'Materialized affordance is not setting-only.',
+            phases: [
+                {
+                    trope: 'Contraption',
+                    tropeBeat: 'Mix affordance virtual with setting-only virtuals.',
+                    stableKeysUsed: ['affordance:coyote', 'anvil-1'],
+                    virtualEntities: [
+                        {
+                            label: 'Coyote beat',
+                            derivedFrom: ['affordance:coyote'],
+                            phaseKind: 'deployed',
+                        },
+                        {
+                            label: 'Setting a',
+                            derivedFrom: [COYOTE_RESERVED_VIRTUAL_GROUNDING_STABLE_KEY],
+                            phaseKind: 'synthesized',
+                        },
+                        {
+                            label: 'Setting b',
+                            derivedFrom: [COYOTE_RESERVED_VIRTUAL_GROUNDING_STABLE_KEY],
+                            phaseKind: 'synthesized',
+                        },
+                    ],
+                    achievement: 'y',
+                },
+            ],
+        }
+        const pass = validateCoyotePhasePlan(raw, ctx({ caps: { maxSettingOnlyVirtualsPerPhase: 2 } }))
+        expect(pass.ok).toBe(true)
+
+        const fail = validateCoyotePhasePlan(raw, ctx({ caps: { maxSettingOnlyVirtualsPerPhase: 1 } }))
+        expect(fail.ok).toBe(false)
+        if (!fail.ok) {
+            expect(fail.reason).toContain('exceeds maxSettingOnlyVirtualsPerPhase')
+        }
     })
 
     it('accepts optional prepVsBeat', () => {

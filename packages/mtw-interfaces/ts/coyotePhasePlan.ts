@@ -6,6 +6,7 @@
 import {
     COYOTE_RESERVED_VIRTUAL_GROUNDING_STABLE_KEY,
     isCoyoteTrope,
+    isSyntaxMaterializedAffordanceStableKey,
     normalizeStableKeyCharset,
     type CoyoteTrope,
 } from './coyotePlanAffinities'
@@ -110,6 +111,7 @@ function topologyMatches(lookup: Set<string> | undefined, raw: string): boolean 
     return lookup.has(normalizedTopologyRef(raw))
 }
 
+/** True when derivedFrom cites at least one staged snapshot key or a well-formed materialized affordance token (handoff-only `affordance:` ids). */
 function derivedFromReferencesSnapshotKey(derivedFrom: readonly string[], snapshotNorm: Set<string>): boolean {
     for (const raw of derivedFrom) {
         const norm = normalizedPhasePlanStableKey(raw)
@@ -117,6 +119,9 @@ function derivedFromReferencesSnapshotKey(derivedFrom: readonly string[], snapsh
             continue
         }
         if (snapshotNorm.has(norm)) {
+            return true
+        }
+        if (isSyntaxMaterializedAffordanceStableKey(raw)) {
             return true
         }
     }
@@ -140,6 +145,9 @@ function validateDerivedFromToken(
         return { ok: true }
     }
     if (topologyMatches(topologyLookup, raw)) {
+        return { ok: true }
+    }
+    if (isSyntaxMaterializedAffordanceStableKey(raw)) {
         return { ok: true }
     }
     if (hadTopologyAllowlist) {
@@ -275,7 +283,7 @@ function validatePhase(
                 reason: `reserved virtual grounding stableKey "${COYOTE_RESERVED_VIRTUAL_GROUNDING_STABLE_KEY}" must not appear in stableKeysUsed`,
             }
         }
-        if (!snapshotNorm.has(norm)) {
+        if (!snapshotNorm.has(norm) && !isSyntaxMaterializedAffordanceStableKey(sk)) {
             return {
                 ok: false,
                 reason: `stableKeysUsed references unknown snapshot stableKey ${JSON.stringify(sk)}`,

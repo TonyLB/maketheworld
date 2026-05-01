@@ -1,11 +1,39 @@
 import {
     isAcmeOrderEnrichModelLine,
+    isNormalizedMaterializedAffordanceStableKey,
+    isSyntaxMaterializedAffordanceStableKey,
     normalizeAcmeOrderEnrichLine,
     normalizeAcmeOrderEnrichResponse,
     isCoyoteAffinityPossibility,
     isAffordanceProvidedRef,
     isCoyoteTropeAffinity,
 } from './coyotePlanAffinities'
+
+describe('isSyntaxMaterializedAffordanceStableKey', () => {
+    it('accepts prefix with alphanumeric underscore hyphen suffix', () => {
+        expect(isSyntaxMaterializedAffordanceStableKey('affordance:coyote')).toBe(true)
+        expect(isSyntaxMaterializedAffordanceStableKey('  affordance:boulder1  ')).toBe(true)
+        expect(isSyntaxMaterializedAffordanceStableKey('affordance:finishing-x')).toBe(true)
+    })
+
+    it('rejects staged keys and malformed materialized keys', () => {
+        expect(isSyntaxMaterializedAffordanceStableKey('anvil-0')).toBe(false)
+        expect(isSyntaxMaterializedAffordanceStableKey('affordance:')).toBe(false)
+        expect(isSyntaxMaterializedAffordanceStableKey('affordance:bad space')).toBe(false)
+    })
+})
+
+describe('isNormalizedMaterializedAffordanceStableKey', () => {
+    it('matches charset-normalized materialized keys', () => {
+        expect(isNormalizedMaterializedAffordanceStableKey('affordance-coyote')).toBe(true)
+        expect(isNormalizedMaterializedAffordanceStableKey('affordance-boulder1')).toBe(true)
+    })
+
+    it('rejects non-materialized keys', () => {
+        expect(isNormalizedMaterializedAffordanceStableKey('anvil-0')).toBe(false)
+        expect(isNormalizedMaterializedAffordanceStableKey('affordance')).toBe(false)
+    })
+})
 
 describe('isCoyoteAffinityPossibility', () => {
     it('accepts known roles and aptness in range', () => {

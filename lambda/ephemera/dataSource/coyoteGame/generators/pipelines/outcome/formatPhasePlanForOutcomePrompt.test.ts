@@ -45,11 +45,35 @@ describe('formatPhasePlanForOutcomePrompt', () => {
         expect(text).toContain('Deconfliction: Use skates for setup and reserve anvil for the finisher.')
         expect(text).toContain('Phase 1 — prep: Contraption — Build speed before the strike.')
         expect(text).toContain('Achievement: Close the gap on the highway.')
-        expect(text).toContain('Staged props: rocket skates (rocket-skates-0)')
+        expect(text).toContain('Staged props and materialized affordances: rocket skates (rocket-skates-0)')
         expect(text).toContain('Virtual "speed burst" (deployed): from rocket-skates-0')
         expect(text).toContain('Phase 2 — creation: Finishing Move — Drop the anvil when lane commitment is locked.')
         expect(text).toContain('Achievement: Drop fails upward.')
-        expect(text).toContain('Staged props: anvil (anvil-1)')
+        expect(text).toContain('Staged props and materialized affordances: anvil (anvil-1)')
+    })
+
+    it('labels materialized affordance stableKeys distinctly from staged props', () => {
+        const text = formatPhasePlanForOutcomePrompt(
+            {
+                tropeSequence: ['Finishing Move'],
+                deconflictionSummary: 'Coyote affordance.',
+                phases: [
+                    {
+                        trope: 'Finishing Move',
+                        tropeBeat: 'Cartoon finish.',
+                        stableKeysUsed: ['affordance-coyote', 'anvil-0'],
+                        virtualEntities: [],
+                        achievement: 'Done.',
+                    },
+                ],
+            },
+            {
+                'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']),
+            },
+        )
+        expect(text).toContain(
+            'Staged props and materialized affordances: coyote (materialized affordance: affordance-coyote), anvil (anvil-0)',
+        )
     })
 
     it('falls back to raw stableKey when not in snapshot', () => {
@@ -71,7 +95,7 @@ describe('formatPhasePlanForOutcomePrompt', () => {
         )
         expect(text).toContain('Trope sequence: Contraption')
         expect(text).toContain('Deconfliction: Fallback unknown key example.')
-        expect(text).toContain('Staged props: missing-key')
+        expect(text).toContain('Staged props and materialized affordances: missing-key')
     })
 
     it('formats Bait and Misdirection in canonical trope order', () => {

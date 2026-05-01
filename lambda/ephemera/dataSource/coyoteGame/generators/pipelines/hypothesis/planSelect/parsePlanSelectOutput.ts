@@ -4,6 +4,8 @@ import {
     isAffordanceProvidedRef,
     isCoyoteTrope,
     isEnvironmentAffordanceRef,
+    isSyntaxMaterializedAffordanceStableKey,
+    MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX,
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { CANONICAL_TROPE_ORDER } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 import { hypothesisDebugLog } from '../../../../utilities/hypothesisDebug'
@@ -17,14 +19,8 @@ import type {
 /** Canonical trope ordering for deterministic narrowed-record emission. */
 const TROPE_ORDER: CoyoteTrope[] = CANONICAL_TROPE_ORDER
 
-/**
- * Prefix for materialized affordance `stableKey` values in handoff members (see hypothesis/AGENT.md).
- * Keys without this prefix are treated as staged-object identities.
- */
-export const MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX = 'affordance:' as const
-
-/** Suffix after `MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX`: letters, digits, underscore, hyphen (e.g. coyote, boulder1). */
-const MATERIALIZED_AFFORDANCE_STABLE_KEY_SUFFIX_PATTERN = /^[A-Za-z0-9_-]+$/
+/** Re-export for callers that import from this module; grammar lives in mtw-interfaces. */
+export { MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX }
 
 /**
  * True when `stableKey` (after trim) uses the materialization prefix and the suffix matches the handoff contract.
@@ -35,11 +31,7 @@ export function isValidMaterializedAffordanceStableKey(stableKey: string): boole
     if (!trimmed.startsWith(MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX)) {
         return true
     }
-    const suffix = trimmed.slice(MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX.length)
-    if (suffix.length === 0) {
-        return false
-    }
-    return MATERIALIZED_AFFORDANCE_STABLE_KEY_SUFFIX_PATTERN.test(suffix)
+    return isSyntaxMaterializedAffordanceStableKey(trimmed)
 }
 
 function materializedAffordanceStableKeyValidationFailureReason(stableKey: string): string | null {
@@ -47,11 +39,11 @@ function materializedAffordanceStableKeyValidationFailureReason(stableKey: strin
     if (!trimmed.startsWith(MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX)) {
         return null
     }
-    const suffix = trimmed.slice(MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX.length)
-    if (suffix.length === 0) {
-        return 'materialized affordance stableKey must have a non-empty suffix after "affordance:"'
-    }
-    if (!MATERIALIZED_AFFORDANCE_STABLE_KEY_SUFFIX_PATTERN.test(suffix)) {
+    if (!isSyntaxMaterializedAffordanceStableKey(trimmed)) {
+        const suffix = trimmed.slice(MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX.length)
+        if (suffix.length === 0) {
+            return 'materialized affordance stableKey must have a non-empty suffix after "affordance:"'
+        }
         return 'materialized affordance stableKey suffix must contain only letters, digits, underscores, and hyphens'
     }
     return null

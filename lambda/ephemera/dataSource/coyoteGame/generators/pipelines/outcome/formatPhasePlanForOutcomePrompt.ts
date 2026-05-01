@@ -1,4 +1,10 @@
 import {
+    isNormalizedMaterializedAffordanceStableKey,
+    isSyntaxMaterializedAffordanceStableKey,
+    MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX,
+    NORMALIZED_MATERIALIZED_AFFORDANCE_PREFIX,
+} from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import {
     normalizedPhasePlanStableKey,
     type CoyotePhasePlan,
 } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
@@ -17,10 +23,30 @@ export function buildStableKeyToShortNameMap(
     return map
 }
 
+function materializedAffordanceLabel(rawKey: string): string {
+    const t = rawKey.trim()
+    if (isSyntaxMaterializedAffordanceStableKey(t)) {
+        const suffix = t.slice(MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX.length)
+        return `${suffix} (materialized affordance: ${t})`
+    }
+    const norm = normalizedPhasePlanStableKey(t)
+    if (isNormalizedMaterializedAffordanceStableKey(norm)) {
+        const rest = norm.slice(NORMALIZED_MATERIALIZED_AFFORDANCE_PREFIX.length)
+        return `${rest} (materialized affordance: ${t})`
+    }
+    return t
+}
+
 function resolveStableKeyLabel(rawKey: string, keyToShort: Map<string, string>): string {
     const norm = normalizedPhasePlanStableKey(rawKey)
     const shortName = keyToShort.get(norm)
-    return shortName !== undefined ? `${shortName} (${rawKey})` : rawKey
+    if (shortName !== undefined) {
+        return `${shortName} (${rawKey})`
+    }
+    if (isSyntaxMaterializedAffordanceStableKey(rawKey) || isNormalizedMaterializedAffordanceStableKey(norm)) {
+        return materializedAffordanceLabel(rawKey)
+    }
+    return rawKey
 }
 
 /**
@@ -46,7 +72,7 @@ export function formatPhasePlanForOutcomePrompt(
         lines.push(`  Achievement: ${phase.achievement}`)
         if (phase.stableKeysUsed.length > 0) {
             const labels = phase.stableKeysUsed.map((sk) => resolveStableKeyLabel(sk, keyToShort))
-            lines.push(`  Staged props: ${labels.join(', ')}`)
+            lines.push(`  Staged props and materialized affordances: ${labels.join(', ')}`)
         }
         for (const ve of phase.virtualEntities) {
             const derived = ve.derivedFrom.join(', ')
