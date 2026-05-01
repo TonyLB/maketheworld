@@ -1,5 +1,5 @@
-import { harnessRoomObjects } from '../../testHarness/coyoteEngineTestFixtures'
-import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
+import { harnessRoomObjects } from '../../../testHarness/coyoteEngineTestFixtures'
+import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
 import { parseHypothesisStageOneOutput, stripHypothesisStageOneFence } from './parseHypothesisStageOneOutput'
 
 const singleObjectRoomMap: CoyoteRoomObjectsByRoom = {

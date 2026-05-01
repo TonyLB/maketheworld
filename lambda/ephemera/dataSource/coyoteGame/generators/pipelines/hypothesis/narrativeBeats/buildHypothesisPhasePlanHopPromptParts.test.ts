@@ -1,5 +1,5 @@
 import { buildHypothesisPhasePlanHopPromptParts } from './buildHypothesisPhasePlanHopPromptParts'
-import { harnessRoomObjects } from '../../testHarness/coyoteEngineTestFixtures'
+import { harnessRoomObjects } from '../../../testHarness/coyoteEngineTestFixtures'
 
 describe('buildHypothesisPhasePlanHopPromptParts', () => {
     it('embeds hop-1 handoff and combined clustering Markdown from combined payload', () => {

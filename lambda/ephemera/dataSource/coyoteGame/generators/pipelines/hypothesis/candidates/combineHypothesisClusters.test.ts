@@ -1,10 +1,10 @@
-import { harnessRoomObjects } from '../../testHarness/coyoteEngineTestFixtures'
+import { harnessRoomObjects } from '../../../testHarness/coyoteEngineTestFixtures'
 import {
     combineHypothesisClusters,
     renderCombinedHypothesisForStageTwo,
     serializePlanSelectCombinedInput,
 } from './combineHypothesisClusters'
-import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
+import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
 import type { ParsedTropeCandidate } from './parseHypothesisStageOneOutput'
 
 describe('combineHypothesisClusters', () => {

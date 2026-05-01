@@ -1,10 +1,10 @@
-import type { CoyotePromptParts } from './buildHypothesisPrompt'
+import type { CoyotePromptParts } from '../buildHypothesisPrompt'
 import {
     COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
     COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
     coyoteSeamRoomMappingLines,
-} from './coyoteHypothesisPromptShared'
-import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
+} from '../coyoteHypothesisPromptShared'
+import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
 
 export type BuildHypothesisStageTwoPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom

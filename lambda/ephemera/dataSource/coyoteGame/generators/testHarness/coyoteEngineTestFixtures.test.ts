@@ -1,6 +1,6 @@
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { buildHypothesisPlanSelectionPromptParts } from '../pipelines/hypothesis/buildHypothesisPlanSelectionPromptParts'
+import { buildHypothesisPlanSelectionPromptParts } from '../pipelines/hypothesis/planSelect/buildHypothesisPlanSelectionPromptParts'
 import {
     COYOTE_ENGINE_TEST_FIXTURES,
     resolveCoyoteHarnessStartAtInject,

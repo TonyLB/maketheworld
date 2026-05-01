@@ -1,4 +1,4 @@
-import type { BuildHypothesisPromptInput, CoyotePromptParts } from './buildHypothesisPrompt'
+import type { BuildHypothesisPromptInput, CoyotePromptParts } from '../buildHypothesisPrompt'
 import type { CoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import {
     COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
@@ -6,15 +6,15 @@ import {
     coyoteSeamRoomMappingLines,
     SNAPSHOT_SECTION_HEADER,
     splitCoyoteHypothesisLinesAtSnapshot,
-} from './coyoteHypothesisPromptShared'
-import { serializeCoyoteStagedObjectsByRoomJson } from '../../../utilities/coyoteRoomObjectSnapshot'
+} from '../coyoteHypothesisPromptShared'
+import { serializeCoyoteStagedObjectsByRoomJson } from '../../../../utilities/coyoteRoomObjectSnapshot'
 
 const STAGE_ONE_INTRO_LINES = [
     'You are clustering staged Acme objects in a Coyote-vs-Road-Runner cartoon setup.',
     '',
     'Reply with **valid JSON only**, following the contract below.',
     '- Do **not** write "Hypothesis:".',
-    '- Do **not** use "## Scene analysis" — that belongs to a later processing step.',
+    '- Do **not** use "## Scene analysis" -- that belongs to a later processing step.',
     '- Your entire response must be **one JSON object** (optional ```json fence).',
     '  No Markdown headings or prose outside JSON.',
     '- After any optional fence, the payload must start with **`{`** immediately.',
@@ -25,7 +25,7 @@ const TROPE_ORDER: CoyoteTrope[] = ['Contraption', 'Distraction', 'Disadvantage'
 const TROPE_ORDER_LABEL = TROPE_ORDER.join(' -> ')
 
 /** Few-shot: trope-first candidate assignments with required tropeFunction member annotations. */
-const STAGE_ONE_JSON_FEW_SHOT = `Example (shape — use real **stableKey** strings from **Current staged objects by room** below):
+const STAGE_ONE_JSON_FEW_SHOT = `Example (shape -- use real **stableKey** strings from **Current staged objects by room** below):
 \`\`\`json
 {
   "candidates": [
@@ -74,7 +74,7 @@ const STAGE_ONE_JSON_FEW_SHOT = `Example (shape — use real **stableKey** strin
       ]
     }
   ],
-  "notes": "Optional spatial note — emit last."
+  "notes": "Optional spatial note -- emit last."
 }
 \`\`\`
 
@@ -100,7 +100,7 @@ Second example (simple one-candidate shape):
 
 const STAGE_ONE_JSON_CONTRACT_LINES = [
     '## Stage one JSON contract',
-    '- Root object keys (**emit in this order — `candidates`, then optional `notes` last**):',
+    '- Root object keys (**emit in this order -- `candidates`, then optional `notes` last**):',
     '  - **`candidates`** (required non-empty array): each element is one complete',
     '    trope-first plan candidate. Each candidate object has:',
     '    - **`candidateId`** (required string): deterministic short id (for example',
@@ -118,7 +118,7 @@ const STAGE_ONE_JSON_CONTRACT_LINES = [
     '        trope beat. Each member object has:',
     '      - **`stableKey`** (string): **literal copy** of the **`stableKey`** field',
     '        from **Current staged objects by room** (identify objects **only** by this',
-    '        token — never substitute **`shortName`** or room labels).',
+    '        token -- never substitute **`shortName`** or room labels).',
     '      - **`tropeFunction`** (required non-empty string): very short trope-local',
     '        job phrase for that staged object in this candidate beat.',
     '    - **`outliers`** (optional array): for **your own partition reasoning** only. Each entry',

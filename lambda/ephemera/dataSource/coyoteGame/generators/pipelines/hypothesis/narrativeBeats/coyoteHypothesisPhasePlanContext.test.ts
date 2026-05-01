@@ -4,7 +4,7 @@ import {
     collectCoyoteSnapshotStableKeys,
     coyoteTopologyAllowlistFromRooms,
 } from './coyoteHypothesisPhasePlanContext'
-import { harnessRoomObjects } from '../../testHarness/coyoteEngineTestFixtures'
+import { harnessRoomObjects } from '../../../testHarness/coyoteEngineTestFixtures'
 
 describe('coyoteHypothesisPhasePlanContext', () => {
     const vortexObjects = harnessRoomObjects('vortex', ['anvil', 'crate'])

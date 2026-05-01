@@ -1,6 +1,6 @@
 import { buildHypothesisPlanSelectionPromptParts } from './buildHypothesisPlanSelectionPromptParts'
 import { COYOTE_HOP1_HANDOFF_JSON_KEYS } from './coyoteHop1Handoff'
-import { harnessRoomObjects } from '../../testHarness/coyoteEngineTestFixtures'
+import { harnessRoomObjects } from '../../../testHarness/coyoteEngineTestFixtures'
 
 describe('buildHypothesisPlanSelectionPromptParts', () => {
     it('uses single-candidate two-phase workflow with stable handoff requirements', () => {

@@ -3,8 +3,8 @@ import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraM
 import type { CoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 import type { ParsedTropeCandidate } from './parseHypothesisStageOneOutput'
-import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
-import { seamRoomLabelFromEphemeraRoomId } from './coyoteHypothesisPromptShared'
+import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
+import { seamRoomLabelFromEphemeraRoomId } from '../coyoteHypothesisPromptShared'
 
 export type CombinedMemberPair = {
     identifier: string
@@ -209,7 +209,7 @@ export function renderCombinedHypothesisForStageTwo(
                 const roomIdForObj = obj ? findRoomIdForObject(roomObjectsByRoom, obj) : undefined
                 const roomLabel = roomIdForObj !== undefined ? seamRoomLabelFromEphemeraRoomId(roomIdForObj) : ''
                 lines.push(
-                    `- **stableKey:** ${sk} — **shortName:** ${shortName}${roomLabel ? ` — **room:** ${roomLabel}` : ''}`
+                    `- **stableKey:** ${sk} -- **shortName:** ${shortName}${roomLabel ? ` -- **room:** ${roomLabel}` : ''}`
                 )
                 lines.push(`  - **tropeFunction:** ${mem.tropeFunction}`)
             }
@@ -226,7 +226,7 @@ export function renderCombinedHypothesisForStageTwo(
                 const roomIdForObj = obj ? findRoomIdForObject(roomObjectsByRoom, obj) : undefined
                 const roomLabel = roomIdForObj !== undefined ? seamRoomLabelFromEphemeraRoomId(roomIdForObj) : ''
                 lines.push(
-                    `- **stableKey:** ${sk} — **shortName:** ${shortName}${roomLabel ? ` — **room:** ${roomLabel}` : ''}`
+                    `- **stableKey:** ${sk} -- **shortName:** ${shortName}${roomLabel ? ` -- **room:** ${roomLabel}` : ''}`
                 )
             }
             lines.push('')

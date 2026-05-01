@@ -1,6 +1,6 @@
-import type { CoyotePromptParts } from './buildHypothesisPrompt'
-import type { CombineHypothesisClustersReturn } from './combineHypothesisClusters'
-import { renderCombinedHypothesisForStageTwo } from './combineHypothesisClusters'
+import type { CoyotePromptParts } from '../buildHypothesisPrompt'
+import type { CombineHypothesisClustersReturn } from '../candidates/combineHypothesisClusters'
+import { renderCombinedHypothesisForStageTwo } from '../candidates/combineHypothesisClusters'
 import {
     COMBINED_CLUSTERING_CONTRACT_LINES,
     INTERPRETATION_RULES_LINES,
@@ -11,9 +11,9 @@ import {
     COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
     COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
     coyoteSeamRoomMappingLines,
-} from './coyoteHypothesisPromptShared'
-import type { CoyoteHop1Handoff } from './coyoteHop1Handoff'
-import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
+} from '../coyoteHypothesisPromptShared'
+import type { CoyoteHop1Handoff } from '../planSelect/coyoteHop1Handoff'
+import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
 
 export type BuildHypothesisPhasePlanHopPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom

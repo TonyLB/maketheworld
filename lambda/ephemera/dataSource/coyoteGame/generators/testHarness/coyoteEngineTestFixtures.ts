@@ -2,13 +2,13 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { defaultStableKeyProposal } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import { combineHypothesisClusters } from '../pipelines/hypothesis/combineHypothesisClusters'
+import { combineHypothesisClusters } from '../pipelines/hypothesis/candidates/combineHypothesisClusters'
 import type {
     CoyoteHarnessPhasePlanInject,
     CoyoteHarnessPlanSelectInject,
 } from '../pipelines/hypothesis/coyoteHarnessInjectTypes'
-import type { CoyoteHop1Handoff } from '../pipelines/hypothesis/coyoteHop1Handoff'
-import { parseHypothesisStageOneOutput } from '../pipelines/hypothesis/parseHypothesisStageOneOutput'
+import type { CoyoteHop1Handoff } from '../pipelines/hypothesis/planSelect/coyoteHop1Handoff'
+import { parseHypothesisStageOneOutput } from '../pipelines/hypothesis/candidates/parseHypothesisStageOneOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../utilities/coyoteRoomObjectSnapshot'
 
 export type { CoyoteHarnessPhasePlanInject, CoyoteHarnessPlanSelectInject } from '../pipelines/hypothesis/coyoteHarnessInjectTypes'

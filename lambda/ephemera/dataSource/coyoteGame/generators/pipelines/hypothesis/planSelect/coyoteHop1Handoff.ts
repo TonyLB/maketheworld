@@ -1,12 +1,12 @@
-import { findAllFenceBlocks } from '../../../../../llm/markdownCodeFences'
+import { findAllFenceBlocks } from '../../../../../../llm/markdownCodeFences'
 import { isCoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import { hypothesisDebugLog } from '../../../utilities/hypothesisDebug'
+import { hypothesisDebugLog } from '../../../../utilities/hypothesisDebug'
 import type {
     PlanSelectCombinedCandidate,
     PlanSelectCombinedMember,
     PlanSelectCombinedOutlier,
     PlanSelectCombinedTropeAssignment,
-} from './combineHypothesisClusters'
+} from '../candidates/combineHypothesisClusters'
 
 /** Canonical JSON keys for hop-1 handoff (plan selection to phase-plan). */
 export const COYOTE_HOP1_HANDOFF_JSON_KEYS = {

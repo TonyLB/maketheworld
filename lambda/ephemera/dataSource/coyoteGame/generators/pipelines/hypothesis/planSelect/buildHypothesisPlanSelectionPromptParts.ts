@@ -1,13 +1,13 @@
-import type { CoyotePromptParts } from './buildHypothesisPrompt'
-import type { CombineHypothesisClustersReturn } from './combineHypothesisClusters'
-import { serializePlanSelectCombinedInput } from './combineHypothesisClusters'
+import type { CoyotePromptParts } from '../buildHypothesisPrompt'
+import type { CombineHypothesisClustersReturn } from '../candidates/combineHypothesisClusters'
+import { serializePlanSelectCombinedInput } from '../candidates/combineHypothesisClusters'
 import {
     COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
     COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
     coyoteSeamRoomMappingLines,
-} from './coyoteHypothesisPromptShared'
+} from '../coyoteHypothesisPromptShared'
 import { COYOTE_HOP1_HANDOFF_JSON_KEYS } from './coyoteHop1Handoff'
-import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
+import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
 
 export type BuildHypothesisPlanSelectionPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom

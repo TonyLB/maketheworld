@@ -9,17 +9,17 @@ import {
     type PipelineStep,
 } from '../../../../../llm/pipeline';
 
-import { buildHypothesisPhasePlanHopPromptParts } from './buildHypothesisPhasePlanHopPromptParts';
-import { buildHypothesisPlanSelectionPromptParts } from './buildHypothesisPlanSelectionPromptParts';
-import { buildHypothesisStageOnePromptParts } from './buildHypothesisStageOnePrompt';
+import { buildHypothesisPhasePlanHopPromptParts } from './narrativeBeats/buildHypothesisPhasePlanHopPromptParts';
+import { buildHypothesisPlanSelectionPromptParts } from './planSelect/buildHypothesisPlanSelectionPromptParts';
+import { buildHypothesisStageOnePromptParts } from './candidates/buildHypothesisStageOnePrompt';
 import {
     combineHypothesisClusters,
     planSelectOutliersForCombinedCandidate,
     type CombineHypothesisClustersReturn,
-} from './combineHypothesisClusters';
+} from './candidates/combineHypothesisClusters';
 import type { CoyoteHarnessPhasePlanInject, CoyoteHarnessPlanSelectInject } from './coyoteHarnessInjectTypes';
-import { parseHop1HandoffFromSelectionBody, type CoyoteHop1Handoff } from './coyoteHop1Handoff';
-import { buildCoyotePhasePlanValidationContext } from './coyoteHypothesisPhasePlanContext';
+import { parseHop1HandoffFromSelectionBody, type CoyoteHop1Handoff } from './planSelect/coyoteHop1Handoff';
+import { buildCoyotePhasePlanValidationContext } from './narrativeBeats/coyoteHypothesisPhasePlanContext';
 import { loadCoyoteRoomObjectsByRoom, type CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot';
 import {
     invokeBedrockHypothesisPhasePlanHop,
@@ -31,7 +31,7 @@ import {
     parseHypothesisPhasePlanHopOutput,
     type ParseHypothesisModelOutputOptions,
 } from '../../sharedParsers/parseHypothesisModelOutput';
-import { parseHypothesisStageOneOutput } from './parseHypothesisStageOneOutput';
+import { parseHypothesisStageOneOutput } from './candidates/parseHypothesisStageOneOutput';
 import { hypothesisDebugLog } from '../../../utilities/hypothesisDebug';
 
 /**

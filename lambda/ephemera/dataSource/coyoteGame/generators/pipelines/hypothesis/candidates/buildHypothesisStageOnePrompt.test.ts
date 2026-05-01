@@ -1,4 +1,4 @@
-import { harnessRoomObjects } from '../../testHarness/coyoteEngineTestFixtures'
+import { harnessRoomObjects } from '../../../testHarness/coyoteEngineTestFixtures'
 import { buildHypothesisStageOnePromptParts } from './buildHypothesisStageOnePrompt'
 
 describe('buildHypothesisStageOnePromptParts', () => {
