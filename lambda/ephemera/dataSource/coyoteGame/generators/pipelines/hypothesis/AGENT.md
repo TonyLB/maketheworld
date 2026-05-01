@@ -57,6 +57,10 @@ This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock
 
 ## Contracts and boundaries
 
+### Trope rubric (conceptual)
+
+Prompt and parser **keys** are **`CoyoteTrope`** literals in canonical order (`Contraption`, `Bait`, `Misdirection`, `Disadvantage`, `Finishing Move`). For **unawareness**, **first Road-Runner-facing** beats, and **Bait vs Misdirection vs Disadvantage** (voluntary lure vs perceptual misread vs imposed condition), use the shared conceptual spec in [`../../../AGENT.tropes.md`](../../../AGENT.tropes.md) --- do not duplicate the full rubric here.
+
 ### Stage-one candidate seam (`tropeAssignments`)
 
 Authority: [`candidates/buildCandidatePrompt.ts`](candidates/buildCandidatePrompt.ts) (prompt),

@@ -73,6 +73,53 @@ describe('formatPhasePlanForOutcomePrompt', () => {
         expect(text).toContain('Deconfliction: Fallback unknown key example.')
         expect(text).toContain('Staged props: missing-key')
     })
+
+    it('formats Bait and Misdirection in canonical trope order', () => {
+        const text = formatPhasePlanForOutcomePrompt(
+            {
+                tropeSequence: ['Contraption', 'Bait', 'Misdirection', 'Finishing Move'],
+                deconflictionSummary: 'Lure then misread terrain before terminal beat.',
+                phases: [
+                    {
+                        trope: 'Contraption',
+                        tropeBeat: 'Stage the illusion surface.',
+                        stableKeysUsed: [],
+                        virtualEntities: [],
+                        achievement: 'Prep complete.',
+                    },
+                    {
+                        trope: 'Bait',
+                        tropeBeat: 'Birdseed draws the runner onto the path.',
+                        stableKeysUsed: [],
+                        virtualEntities: [],
+                        achievement: 'Voluntary routing.',
+                    },
+                    {
+                        trope: 'Misdirection',
+                        tropeBeat: 'Runner treats wall tunnel as traversable.',
+                        stableKeysUsed: [],
+                        virtualEntities: [],
+                        achievement: 'Misread at speed.',
+                    },
+                    {
+                        trope: 'Finishing Move',
+                        tropeBeat: 'Runner smashes into the wall at lethal speed.',
+                        stableKeysUsed: [],
+                        virtualEntities: [],
+                        achievement: 'Backfire.',
+                    },
+                ],
+            },
+            { 'ROOM#VORTEX': [] },
+        )
+
+        expect(text).toContain(
+            'Trope sequence: Contraption -> Bait -> Misdirection -> Finishing Move',
+        )
+        expect(text).toContain('Deconfliction: Lure then misread terrain before terminal beat.')
+        expect(text).toContain('Phase 2: Bait — Birdseed draws the runner onto the path.')
+        expect(text).toContain('Phase 3: Misdirection — Runner treats wall tunnel as traversable.')
+    })
 })
 
 describe('buildStableKeyToShortNameMap', () => {

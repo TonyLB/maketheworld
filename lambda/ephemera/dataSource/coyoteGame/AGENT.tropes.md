@@ -8,15 +8,15 @@
 
 Coyote plans are constructed from a small, fixed set of tropes. The trope system is intentionally constrained to reflect the genre conventions of the Road Runner cartoons specifically --- not all logically possible plans, but the recognizable formula that defines the format.
 
-Plans are assembled as **ordered sequences** of up to four optional trope slots. The ordering is fixed and genre-definitional: it reflects the production convention that Coyote always prepares in advance, alone, before the Road Runner arrives. A plan that violates the ordering is not merely suboptimal --- it is not a Wile E. Coyote plan.
+Plans are assembled as **ordered sequences** of up to **five** optional trope slots (`Contraption`, `Bait`, `Misdirection`, `Disadvantage`, `Finishing Move`). At most **one phase per trope type** in a given plan. The ordering is fixed and genre-definitional: it reflects the production convention that Coyote always prepares in advance, alone, before the Road Runner arrives. A plan that violates the ordering is not merely suboptimal --- it is not a Wile E. Coyote plan.
 
 ---
 
-## The four tropes
+## The five tropes
 
 ### 1. Contraption
 
-**Position:** Always first, if present.
+**Position:** Always first among tropes, if present.
 
 An elaborate system, device, or preparation that tilts things in the Coyote's favor --- typically independent of any direct effect on the Road Runner. The Coyote does something clever to himself, his capabilities, or his environment before engagement begins.
 
@@ -26,29 +26,47 @@ The defining quality is Acme-ness and pre-commitment: the Coyote has assembled s
 
 ---
 
-### 2. Distraction
+### 2. Bait
 
-**Position:** Second, if present. Requires Road Runner's unawareness.
+**Position:** Second, if present.
 
-The first Road-Runner-facing action in any plan. A distraction manipulates the Road Runner's attention, curiosity, or appetite to bring him to a specific location or hold him momentarily in place. It relies entirely on the Road Runner not yet knowing anything is wrong.
+Influences the Road Runner to **go to** or **stay in** a particular place or path through **voluntary** appetite, curiosity, or desire --- appetitive lure, desirable object, routing that the bird **chooses**.
 
-Examples: a plate of birdseed, a fake detour sign, a painted shortcut on a cliff face.
+Examples: a plate of birdseed, a fake detour sign that exploits trust or habit, a visible prize placed to steer motion.
 
-**Critical constraint:** Distraction must always be the first Road-Runner-facing trope. It cannot follow Disadvantage or any other trope that would have already alerted the Road Runner. The moment the Road Runner is aware of the plan, the distraction gambit is blown.
-
----
-
-### 3. Disadvantage
-
-**Position:** Third, if present. Can be the first Road-Runner-facing trope if Distraction is absent.
-
-A persistent state imposed on the Road Runner that reduces his options, mobility, or awareness. Unlike Distraction (a punctual event that creates a window), Disadvantage is a condition that continues to apply.
-
-Examples: a barrel dropping over him, glue on the road, marbles, knockout gas, a net, high-iron birdseed in a plan that also involves a magnet.
+**Critical constraint (golden-path voice):** **Bait** is for **choice-shaped** failure: the Road Runner picks the wrong lane or stop because something attractive or plausible pulls him that way. It assumes the usual genre reading where this beat still works as a lure before the bird has caught on to the full scheme in-story. It cannot follow a beat that has already **alerted** him in a way that collapses the lure (ordering relative to **Contraption** is fixed; relative to **Misdirection**, **Bait** comes first when both appear).
 
 ---
 
-### 4. Finishing move
+### 3. Misdirection
+
+**Position:** Third, if present.
+
+Interferes with the Road Runner's ability to **accurately see or control** where he is going --- illusion of terrain, obscured vision, misleading optics, or steering/control failure framed as **misread** rather than a raw imposed debuff.
+
+Examples: a **painted tunnel on a wall** (the illusion the bird treats as real at speed), camouflage, dazzle, trompe-l'oeil scenery that routes motion into peril.
+
+**Contraption vs Misdirection:** The **machinery** that deploys or maintains a gag (for example a painting rig) can be **Contraption**; the **illusion surface or perceptual trap** the bird reacts to is **Misdirection**, not Contraption.
+
+**Misdirection vs Disadvantage:** **Oil slick** tags **Disadvantage** when the plan assumes the bird **stops or is mobility-trapped** by loss of friction; tag **Misdirection** when the plan assumes **continued motion without adequate control** leads to peril. **Fake tunnel** (pure illusion terrain) is **Misdirection**-first.
+
+A plan **may** include both **Bait** and **Misdirection**; when both appear they follow **canonical order** (**Bait** then **Misdirection**).
+
+---
+
+### 4. Disadvantage
+
+**Position:** Fourth, if present. Can be the first Road-Runner-facing trope if **Bait** and **Misdirection** are both absent (for example **Contraption** prep then an imposed state on the bird).
+
+A persistent state imposed on the Road Runner that reduces his options, mobility, or effectiveness **independent of voluntary choice or mistaken perception** --- sticky feet, net, glue, knockout gas, ongoing impairment.
+
+Examples: a barrel dropping over him, glue on the road, marbles, knockout gas, a net, high-iron birdseed with a magnet when the plan treats it as a **condition**, not a lure-only beat.
+
+Unlike **Misdirection** (a perceptual misread at speed), **Disadvantage** is a **condition that keeps applying** until the gag releases it.
+
+---
+
+### 5. Finishing move
 
 **Position:** Always last, if present.
 
@@ -65,7 +83,7 @@ Two subtypes:
 
 **Chase is not a trope.** It is the implicit resolution assumed whenever a sequence does not end with an explicit Finishing Move.
 
-When the final trope in a sequence is Contraption, Distraction, or Disadvantage, the understood completion is: "...and then the Coyote catches him." This does not need to be stated in the sequence --- it is genre-assumed.
+When the final trope in a sequence is **Contraption**, **Bait**, **Misdirection**, or **Disadvantage**, the understood completion is: "...and then the Coyote catches him." This does not need to be stated in the sequence --- it is genre-assumed.
 
 Chase can also appear as mid-sequence connective tissue when a Contraption is specifically an approach mechanism (rocket skates, a jet-powered pogo stick) --- in which case the contraption *is* the chase, and the sequence closes either implicitly or with a Finishing Move.
 
@@ -75,15 +93,15 @@ The Coyote is a maximally optimistic planner. His plans are golden-path walkthro
 
 ## Sequence assembly
 
-A valid plan is any combination of the four tropes in the fixed order above, with all four optional:
+A valid plan is any combination of the **five** tropes in the fixed order below, with **each slot optional** (sparse sequences are normal):
 
 ```
-[Contraption?] -> [Distraction?] -> [Disadvantage?] -> [Finishing Move?]
+[Contraption?] -> [Bait?] -> [Misdirection?] -> [Disadvantage?] -> [Finishing Move?]
 ```
 
 The all-absent sequence (no tropes at all) is valid: it represents the Coyote's opening gambit of simply running after the Road Runner unaided.
 
-This yields **16 possible sequence shapes**. The valid sequence for any given item set is determined by a **possibility mask** --- a prior assessment of which trope slots the available items could support (at varying confidence levels). The possibility mask constrains but does not determine the final sequence: multiple valid candidates can be generated from the same mask, and a rubric selects among them.
+This yields **32 possible sequence shapes** (each of five ordered slots may be present or absent). The valid sequence for any given item set is determined by a **possibility mask** --- a prior assessment of which trope slots the available items could support (at varying confidence levels). The possibility mask constrains but does not determine the final sequence: multiple valid candidates can be generated from the same mask, and a rubric selects among them.
 
 ---
 
@@ -124,15 +142,15 @@ That distinction matters for generation: **backup plans** (branching, explicit f
 
 **Artistic supplies** (paint, brushes, pencils, ink, chalk, spray cans, canvas or backdrop panels, oversized erasers, drafting tools, etc.) sit in a special place in the Coyote trope universe. They must be read with **two** stacks of affordances --- ordinary prop logic **and** Looney Tunes **cartoon literalism**.
 
-### Distraction versus reality edits
+### Bait versus Misdirection versus trompe-l'oeil
 
-On the mundane reading, paint supplies support **Distraction**: a fake sign, a decorative lure, anything that steers attention or appetite.
+On the mundane reading, some supplies support **Bait**: a fake sign, food imagery, anything that steers **attention or appetite** so the bird **voluntarily** goes where the Coyote wants.
 
-On the genre reading, the same supplies support **convincing alterations of reality**. That is **especially true in outcome calculation** (what actually happens on screen): a painted tunnel or highway on a solid rock face is **treated as real for locomotion** until the fiction snaps back --- classic payoff: the Road Runner passes through unscathed while the Coyote **slams into stone at lethal cartoon speed**. That beat is not "paint as cosmetic"; it is **paint as temporary world-building**, staged in advance (Contraption-aligned prep) so that the Road Runner's mistaken physics becomes the hinge for a terminal collision or fall.
+On the genre reading, the same supplies often support **Misdirection**: **convincing alterations of perceived reality** --- signage or scenery so persuasive that the Road Runner **misreads** terrain at speed. That is **especially true in outcome calculation** (what actually happens on screen): a painted tunnel or highway on a solid rock face is **treated as real for locomotion** until the fiction snaps back --- classic payoff: the Road Runner passes through unscathed while the Coyote **slams into stone at lethal cartoon speed**. That beat is not "paint as cosmetic"; it is **paint as temporary world-building**, staged in advance (often **Contraption**-aligned prep for the staging gear) so that mistaken physics becomes the hinge for a terminal collision or fall.
 
-**Plan narration is different.** Wile E. Coyote **does not usually plan in terms of cartoon literalism** --- he does not rely on meta rules like "the animator will make the brushstroke traversable." His *stated* intention is the near cousin: a **perfectly realistic illusion** --- signage or scenery so persuasive that the Road Runner will misread it as real terrain at speed. Optimistic trompe-l'oeil stagecraft fits the golden-path voice; literal "we are drawings" logic is usually how the **audience** rationalizes the gag after the fact, not how he briefs himself. Props that **advertise impossible affordances** blur the line: if he orders a **giant eraser**, the fiction can lean toward *intending* erasure-as-editing, because the prop itself cues cartoon-causal readings.
+**Plan narration is different.** Wile E. Coyote **does not usually plan in terms of cartoon literalism** --- he does not rely on meta rules like "the animator will make the brushstroke traversable." His *stated* intention is the near cousin: a **perfectly realistic illusion** --- optimistic trompe-l'oeil stagecraft fits the golden-path voice; literal "we are drawings" logic is usually how the **audience** rationalizes the gag after the fact, not how he briefs himself. Props that **advertise impossible affordances** blur the line: if he orders a **giant eraser**, the fiction can lean toward *intending* erasure-as-editing, because the prop itself cues cartoon-causal readings.
 
-Mapping objects to tropes here is fuzzy in a useful way: the **tunnel-on-the-wall** gag is simultaneously pre-drawn staging, first Road-Runner-facing misdirection where unawareness matters, and setup for a **Finishing Move** delivered as that wall impact (even if slapstick substitutes for on-screen lethality). Generators should allow that overlap rather than forcing a single literal label.
+Mapping objects to tropes here is fuzzy in a useful way: the **tunnel-on-the-wall** gag is simultaneously pre-drawn staging (**Contraption** when the rig matters), **Misdirection** for the illusion surface, sometimes **Bait** if a lure clearly steers approach first, and setup for a **Finishing Move** delivered as that wall impact (even if slapstick substitutes for on-screen lethality). Generators should allow that overlap rather than forcing a single literal label.
 
 ### Hanging a lantern on animation
 
@@ -153,9 +171,10 @@ This is additive to Acme gadgetry and Rube chains --- another vocabulary for tyi
 
 ## Key constraints summary
 
-- Contraption is always pre-engagement preparation; it cannot occur after Road Runner contact.
-- Distraction requires Road Runner unawareness; it cannot follow any trope that would have alerted him.
-- Disadvantage is a persistent imposed state; it follows Distraction naturally but cannot precede it.
-- Finishing Move is always terminal; nothing follows it.
-- Chase is implicit resolution, not a sequence node.
+- **Contraption** is always pre-engagement preparation; it cannot occur after Road Runner contact.
+- **Bait** covers **voluntary** routing and lure; **Misdirection** covers **perceptual** misread and misleading optics. When both apply, **Bait** precedes **Misdirection** in the fixed order.
+- **Misdirection** is not **Contraption**: the painted illusion is **Misdirection**; a machine that paints it is **Contraption**.
+- **Disadvantage** is an imposed condition independent of choice or mistaken perception; it follows **Misdirection** in order when both are present, and cannot precede **Bait** or **Misdirection**.
+- **Finishing Move** is always terminal; nothing follows it.
+- **Chase** is implicit resolution, not a sequence node.
 - Plans have no branches or contingencies --- always a single golden-path walkthrough.

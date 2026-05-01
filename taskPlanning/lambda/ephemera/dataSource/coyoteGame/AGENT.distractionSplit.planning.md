@@ -1,6 +1,6 @@
 # Coyote Game: split Distraction into Bait and Misdirection (planning)
 
-**Status:** **D3 complete** (hypothesis pipeline: prompts, parsers, `combineCandidateOutput`, narrative beats, engine harness trope literals). Next step is **Phase D4** (outcome pipeline) per **Recommended order**.
+**Status:** **D5 complete** (outcome verification + tests, **`AGENT.tropes.md`** rewrite, doc pointers). Next step is **Phase D6** (verification sweep and closeout) per **Recommended order**.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -15,7 +15,7 @@ This task plan is **disposable** after the initiative ships; steady-state trope 
 
 ## Why now
 
-Conceptual doc and prompts already strain **`Distraction`** across voluntary lure beats and trompe-l'oeil / perception beats (see **Distraction versus reality edits** in `AGENT.tropes.md`). Acme enrich already applies a **volition-dependent** test that partially maps to **Bait** vs non-lure routing. Formalizing two tropes should reduce misclassification and tuning churn across Acme enrich, hypothesis clustering/plan-select/phase-plan, and outcome prompting.
+Conceptual doc and prompts already strained the old **`Distraction`** bucket across voluntary lure beats and trompe-l'oeil / perception beats (see **Bait versus Misdirection versus trompe-l'oeil** in `AGENT.tropes.md`). Acme enrich already applies a **volition-dependent** test that partially maps to **Bait** vs non-lure routing. Formalizing two tropes should reduce misclassification and tuning churn across Acme enrich, hypothesis clustering/plan-select/phase-plan, and outcome prompting.
 
 ## Scope and boundaries
 
@@ -97,7 +97,7 @@ Use these as starting grep anchors when executing; paths may drift slightly.
 ## Getting started
 
 1. Skim task-plan conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
-2. Read current trope vocabulary: [`lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md`](../../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md) (focus **Distraction** and **Distraction versus reality edits**).
+2. Read current trope vocabulary: [`lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md`](../../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md) (focus **Bait**, **Misdirection**, and **Bait versus Misdirection versus trompe-l'oeil**).
 3. Read related refactor context if helpful: [`taskPlanning/lambda/ephemera/dataSource/coyoteGame/AGENT.tropeCenteredRefactor.planning.md`](AGENT.tropeCenteredRefactor.planning.md).
 4. Read testing authority before running commands: [`lambda/ephemera/AGENT.testing.md`](../../../../../../lambda/ephemera/AGENT.testing.md). If instructions conflict elsewhere, follow that file for lambda-level Jest usage.
 5. Confirm scripts from [`lambda/ephemera/package.json`](../../../../../../lambda/ephemera/package.json) and root [`package.json`](../../../../../../package.json).
@@ -131,12 +131,12 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Adjust parsers strictness if trope keys change (unknown key policy unchanged unless decided otherwise).
   - [X] Update **`combineCandidateOutput`** and plan-select / candidate tests.
 
-- [ ] Phase D4 - outcome pipeline and formatters
-  - [ ] Verify **`formatPhasePlanForOutcomePrompt`** and **`buildPlanOutcomePrompt`** for trope list examples and any hard-coded **five-trope** assumptions.
+- [X] Phase D4 - outcome pipeline and formatters
+  - [X] Verify **`formatPhasePlanForOutcomePrompt`** and **`buildPlanOutcomePrompt`** for trope list examples and any hard-coded **five-trope** assumptions.
 
-- [ ] Phase D5 - fixtures, integration tests, docs
-  - [ ] Re-verify **`coyoteEngineTestFixtures`** / **`runCoyoteEngineTestHarness`** after broader grep (**engine harness tropes retargeted during D3** for **`CoyoteTrope`**); **`handleApiObjectsChange.test.ts`** and conceptual **`AGENT.tropes.md`** as needed.
-  - [ ] Revise **`AGENT.tropes.md`**, coyoteGame **`AGENT.md`**, hypothesis **`AGENT.md`**: five tropes, ordering, constraints (unawareness / first Road-Runner-facing beat) split between Bait and Misdirection.
+- [X] Phase D5 - fixtures, integration tests, docs
+  - [X] Re-verify **`coyoteEngineTestFixtures`** / **`runCoyoteEngineTestHarness`** after broader grep (**engine harness tropes retargeted during D3** for **`CoyoteTrope`**); **`handleApiObjectsChange.test.ts`** and conceptual **`AGENT.tropes.md`** as needed.
+  - [X] Revise **`AGENT.tropes.md`**, coyoteGame **`AGENT.md`**, hypothesis **`AGENT.md`**: five tropes, ordering, constraints (unawareness / first Road-Runner-facing beat) split between Bait and Misdirection.
 
 - [ ] Phase D6 - verification sweep and closeout
   - [ ] Run full **Verification** suite; fix stragglers via grep for `Distraction` in Coyote-trope contexts.
@@ -176,6 +176,15 @@ Run after implementation; commands assume repo root or adjust per **`lambda/ephe
 
 **Confirmed (D3)** --- cwd **`packages/mtw-interfaces/`**: **`CANONICAL_TROPE_ORDER`** is exported from **`coyotePhasePlan.ts`**; **`ts/coyotePhasePlan.test.ts`** remains green after re-run.
 
+**Confirmed commands (D4)** --- cwd **`lambda/ephemera/`**:
+
+- `npm run test -- --watchAll=false dataSource/coyoteGame/generators/pipelines/outcome/` (outcome pipeline tests; 3 suites / 22 tests)
+
+**Confirmed commands (D5)** --- cwd **`lambda/ephemera/`**:
+
+- `npm run test -- --watchAll=false dataSource/coyoteGame/generators/testHarness/runCoyoteEngineTestHarness.test.ts dataSource/objects/handleApiObjectsChange.test.ts` (2 suites / 32 tests)
+- `rg "Distraction" packages/mtw-interfaces/ts lambda/ephemera/dataSource/actions/enrich/acmeOrder lambda/ephemera/dataSource/coyoteGame lambda/ephemera/dataSource/objects` (empty in **`lambda/ephemera/dataSource/coyoteGame`** after **`AGENT.tropes.md`** rewrite)
+
 Re-record exact passing commands in this section after the first green CI run so future agents do not guess cwd.
 
 ## Progress
@@ -185,4 +194,6 @@ Re-record exact passing commands in this section after the first green CI run so
 | D0 | Done | **Decisions (locked)**; **Open questions (resolved)**; prod persistence cleared; optional: record exact **Verification** commands after first green run |
 | D1 | Done | **`CoyoteTrope`**: `Bait` + `Misdirection`; **`Distraction`** removed. **`CANONICAL_TROPE_ORDER`** and **`validateCoyotePhasePlan`** copy updated. Package tests green; **`rg "Distraction" packages/mtw-interfaces/ts`** is empty. |
 | D2 | Done | Acme enrich prompt rewritten for **`Bait`** + **`Misdirection`** rubrics (Decisions 6-8 with first-appearance parentheticals); harness fixtures (`clean-002-birdseed-lure`, `borderline-001-paint-kit`) and **`likelyErrors`** retargeted; **`baseClasses.ts`** **`AcmeOrderAffinitiesHarnessExpectedTrope`** tightened to **`CoyoteTrope`** / **`CoyoteTropeAptness`**. **`rg "Distraction" lambda/ephemera/dataSource/actions`** is empty; **`buildPrompt.test.ts`** green. |
-| D3 | Done | Exported **`CANONICAL_TROPE_ORDER`**; hypothesis **`TROPE_ORDER`** imports it in parsers, combine, plan-select, prompts (stage one + plan-select schema + narrative **`tropeSequence`**); trope vocabulary / rubric lines in prompts; **`coyoteEngineTestFixtures`** + **`runCoyoteEngineTestHarness.test`** tropes aligned (**`Bait`** vs **`Misdirection`**); hypothesis **`AGENT.md`** trope lists updated. **`lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md`** still describes legacy **Distraction** until **D5**. |
+| D3 | Done | Exported **`CANONICAL_TROPE_ORDER`**; hypothesis **`TROPE_ORDER`** imports it in parsers, combine, plan-select, prompts (stage one + plan-select schema + narrative **`tropeSequence`**); trope vocabulary / rubric lines in prompts; **`coyoteEngineTestFixtures`** + **`runCoyoteEngineTestHarness.test`** tropes aligned (**`Bait`** vs **`Misdirection`**); hypothesis **`AGENT.md`** trope lists updated. |
+| D4 | Done | Outcome formatters are pass-through (no trope lexicon); regression test for **`Bait`**/**`Misdirection`** in **`formatPhasePlanForOutcomePrompt.test.ts`**; **`generators/pipelines/outcome/AGENT.md`** notes formatter behavior. |
+| D5 | Done | **`rg`** clean in scoped Coyote paths; **`runCoyoteEngineTestHarness.test`** + **`handleApiObjectsChange.test`** green; **`AGENT.tropes.md`** rewritten (five tropes, 32 shapes, Bait/Misdirection split); coyoteGame **`AGENT.md`** + hypothesis **`AGENT.md`** cross-links / conceptual pointer. |

@@ -164,6 +164,7 @@ See [`../../AGENT.testing.md`](../../AGENT.testing.md) for general Jest usage in
 
 ## Related docs
 
+- **Trope vocabulary (five tropes, canonical order, Bait vs Misdirection rubrics):** [`AGENT.tropes.md`](AGENT.tropes.md)
 - DataSource index: [`../AGENT.md`](../AGENT.md)
 - LLM utilities and parser patterns: [`../../llm/AGENT.md`](../../llm/AGENT.md)
 - LLM linear pipeline runner: [`../../llm/pipeline/AGENT.md`](../../llm/pipeline/AGENT.md)
