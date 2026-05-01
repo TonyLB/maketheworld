@@ -1,4 +1,4 @@
-import type { CoyotePromptParts } from '../buildHypothesisPrompt'
+import type { CoyotePromptParts } from '../promptTypes'
 import {
     COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
     COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,

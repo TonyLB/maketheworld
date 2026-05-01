@@ -1,4 +1,4 @@
-import type { BuildHypothesisPromptInput, CoyotePromptParts } from '../buildHypothesisPrompt'
+import type { BuildHypothesisPromptInput, CoyotePromptParts } from '../promptTypes'
 import type { CoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import {
     COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,

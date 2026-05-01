@@ -1,4 +1,4 @@
-import type { CoyotePromptParts } from '../buildHypothesisPrompt'
+import type { CoyotePromptParts } from '../promptTypes'
 import type { CombineHypothesisClustersReturn } from '../candidates/combineHypothesisClusters'
 import { serializePlanSelectCombinedInput } from '../candidates/combineHypothesisClusters'
 import {

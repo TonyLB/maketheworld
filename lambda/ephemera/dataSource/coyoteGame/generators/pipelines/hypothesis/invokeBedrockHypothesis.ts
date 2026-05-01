@@ -15,7 +15,7 @@ import {
     type NovaModel,
     novaModelToBedrockModelId,
 } from '../../../../../llm/novaModel'
-import type { CoyotePromptParts } from '../hypothesis/buildHypothesisPrompt'
+import type { CoyotePromptParts } from './promptTypes'
 
 export const BEDROCK_HYPOTHESIS_MODEL_ID = BEDROCK_NOVA_2_LITE_MODEL_ID
 export const BEDROCK_HYPOTHESIS_TIMEOUT_MS = 30_000
