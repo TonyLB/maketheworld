@@ -118,6 +118,17 @@ is **input** to stage one only; it does not define the candidate JSON emit shape
 
 **`affordancesProvided` (optional).** When present on trope affinity rows, values are validated in `@tonylb/mtw-interfaces` (see [`coyotePlanAffinities.ts`](../../../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)). [`candidates/combineCandidateOutput.ts`](candidates/combineCandidateOutput.ts) aggregates them onto plan-select input JSON for **members and outliers** alongside `environmentAffordances`. [`planSelect/buildPlanSelectPrompt.ts`](planSelect/buildPlanSelectPrompt.ts) and [`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts) treat the field as optional structured evidence on handoff rows. There is no required consumption in phase-plan or outcome in the current architecture; extending winners or phase-plan with explicit affordance objects is a follow-on slice.
 
+### Materialized affordance rows (synthetic `stableKey`)
+
+Plan-select may **materialize** chosen affordances as first-class `tropeAssignments` member rows (for example under **`Finishing Move`**) using synthetic **`stableKey`** values so later hops do not infer finishing beats only from embedded affordance arrays on props.
+
+- **Identity.** Synthetic keys use the **`affordance:`** prefix (for example `affordance:coyote`). When multiple affordance rows of the same kind appear in one handoff, add numeric suffixes (for example `affordance:boulder1`, `affordance:boulder2`). These keys are **not** staged-room-object identities: they do **not** resolve through room-object caches and carry meaning **only** inside the handoff JSON they travel with.
+- **Grounding (`room`)** (v1). **`room`** on a synthetic affordance member should match the **seam label** of the staged member or outlier row the affordance was chosen from.
+- **Member JSON shape.** Synthetic rows use the **same** member object shape as staged-backed rows validated by [`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts): required **`stableKey`**, **`shortName`**, **`room`**, **`tropeFunction`**; optional **`environmentAffordances`** / **`affordancesProvided`** with the same validation as other members. Synthetic rows still supply human-readable **`shortName`** and role text in **`tropeFunction`**; those fields are required strings even when **`stableKey`** is synthetic.
+- **Optional materialization.** A valid handoff may include **no** synthetic affordance rows when the selected reading does not need them. There is **no** plan-select handoff **`schemaVersion`** bump for this contract.
+
+**Authority.** Parser validation: [`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts). Prompt guidance for when and how to materialize: [`planSelect/buildPlanSelectPrompt.ts`](planSelect/buildPlanSelectPrompt.ts).
+
 **Regression tests.** Colocated under `candidates/*.test.ts`, pipeline tests in this folder, and
 [`../../testHarness/`](../../testHarness/). Run Jest from `lambda/ephemera` per [`AGENT.testing.md`](../../../../../AGENT.testing.md).
 

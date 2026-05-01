@@ -1,6 +1,6 @@
 # Coyote planSelect: affordance alignment (planning)
 
-**Status:** In progress. StableKey and compatibility choices below are locked; next step is member-shape details in types/parser, then downstream and prompt updates.
+**Status:** In progress. StableKey and compatibility choices below are locked; materialization contract is recorded in [`hypothesis/AGENT.md`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md#materialized-affordance-rows-synthetic-stablekey); next step is **Types + parser**, then downstream and prompt updates.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../../../../../AGENT.md).
 
@@ -67,7 +67,9 @@ This file is disposable after the initiative completes; steady-state contracts b
 
 Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as you finish them.
 
-- [ ] Record **materialization contract** (stableKey, room inheritance, optional rows; parser member shape) in a short durable note or interfaces comment and link it from [`hypothesis/AGENT.md`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md) when behavior stabilizes.
+**Pointer:** Durable materialization contract (synthetic `stableKey`, `room` v1, optional rows, member/parser shape): [`hypothesis/AGENT.md` section "Materialized affordance rows"](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md#materialized-affordance-rows-synthetic-stablekey).
+
+- [X] Record **materialization contract** (stableKey, room inheritance, optional rows; parser member shape) in a short durable note or interfaces comment and link it from [`hypothesis/AGENT.md`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md) when behavior stabilizes.
 - [ ] **Types + parser:** extend validation for synthetic members; add focused tests in [`parsePlanSelectOutput.test.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/parsePlanSelectOutput.test.ts).
   - [ ] Golden or harness payloads updated if parser rejects old shapes.
 - [ ] **Downstream read paths:** update narrative beat (and any other consumer) so synthetic stableKeys do not break grounding or duplicate real props.
@@ -91,7 +93,7 @@ Exact commands and filters may evolve; prefer [`lambda/ephemera/AGENT.testing.md
 
 | Milestone | Notes |
 | --- | --- |
-| Contract drafted | StableKey prefix, room v1, compatibility; member fields TBD in types |
+| Contract drafted | StableKey prefix, room v1, compatibility; steady-state prose and authority links in [`hypothesis/AGENT.md#materialized-affordance-rows-synthetic-stablekey`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md#materialized-affordance-rows-synthetic-stablekey); `PlanSelectCombinedMember` JSDoc and parser member validator comment |
 | Parser + tests | |
 | Downstream consumers | |
 | Prompt + tests | |

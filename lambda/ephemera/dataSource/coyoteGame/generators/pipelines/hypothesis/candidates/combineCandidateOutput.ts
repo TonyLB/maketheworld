@@ -37,6 +37,12 @@ export type CombineCandidateOutputReturn = {
     candidates: CombinedTropeCandidate[]
 }
 
+/**
+ * Member row shape for plan-select input JSON and winning-candidate handoff (`selectedCandidate`).
+ * Includes staged props and optional **materialized** affordance rows (synthetic `stableKey` under `affordance:`).
+ *
+ * @see ../AGENT.md#materialized-affordance-rows-synthetic-stablekey
+ */
 export type PlanSelectCombinedMember = {
     stableKey: string
     shortName: string

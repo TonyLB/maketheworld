@@ -130,6 +130,7 @@ function validatePlanIssueRow(row: unknown, rowIndex: number): ParsePlanSelectOu
     return null
 }
 
+/** Validates each `tropeAssignments.*.members[]` row; see `PlanSelectCombinedMember` and ../AGENT.md#materialized-affordance-rows-synthetic-stablekey */
 function validatePlanSelectWinningCandidateMemberRow(
     row: unknown,
     reasonPath: string
