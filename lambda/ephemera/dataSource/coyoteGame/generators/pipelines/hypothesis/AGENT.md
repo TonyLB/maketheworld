@@ -13,13 +13,13 @@ The hypothesis pipeline is the production path for `Objects Changed` events in C
 
 1. Stage one seam generation from staged room objects.
 2. Plan-selection hop over combined clusters.
-3. Phase-plan hop that returns `Hypothesis:` and optional structured plan/walkthrough.
+3. Narrative beat hop that returns `Hypothesis:` and optional structured plan/walkthrough.
 
 This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock wrappers for that flow.
 
 ## Layout
 
-- `candidates/`: stage-one clustering prompt/parse/combine modules.
+- `candidates/`: first-hop (**`candidates`** phase) prompt, parse, and combine modules.
 - `planSelect/`: plan-selection prompt and planSelect output contract/parser.
 - `narrativeBeats/`: phase-plan prompt/context modules (formerly phasePlan/stageTwo naming).
 - Parent `hypothesis/`: orchestration, entrypoints, Bedrock wrapper, and shared prompt/harness types.
@@ -34,7 +34,7 @@ This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock
 - [`candidates/combineCandidateOutput.ts`](candidates/combineCandidateOutput.ts): combine and render candidate output for later hops.
 - [`planSelect/buildPlanSelectPrompt.ts`](planSelect/buildPlanSelectPrompt.ts): plan-selection prompt builder.
 - [`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts): extracts planSelect output contract.
-- [`narrativeBeats/buildHypothesisPhasePlanHopPromptParts.ts`](narrativeBeats/buildHypothesisPhasePlanHopPromptParts.ts): phase-plan prompt builder.
+- [`narrativeBeats/buildNarrativeBeatPrompt.ts`](narrativeBeats/buildNarrativeBeatPrompt.ts): phase-plan prompt builder.
 
 ## Contracts and boundaries
 
@@ -72,7 +72,7 @@ Parser safety posture:
 
 ### Phase-plan consumption
 
-- [`narrativeBeats/buildHypothesisPhasePlanHopPromptParts.ts`](narrativeBeats/buildHypothesisPhasePlanHopPromptParts.ts) should **prioritize** `selectedCandidate` for grounding when present.
+- [`narrativeBeats/buildNarrativeBeatPrompt.ts`](narrativeBeats/buildNarrativeBeatPrompt.ts) should **prioritize** `selectedCandidate` for grounding when present.
 - When `selectedCandidate` is absent, phase-plan falls back to `paragraphSummary` and `planIssues` (best-effort bridge for legacy outputs and fixtures).
 
 ### Residual `planIssues`

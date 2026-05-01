@@ -1,5 +1,5 @@
 import type { CoyotePhasePlanValidationContext } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
-import { parseHypothesisModelOutput, parseHypothesisPhasePlanHopOutput } from './parseHypothesisModelOutput'
+import { parseHypothesisModelOutput, parseNarrativeBeatOutput } from './parseHypothesisModelOutput'
 
 const phasePlanCtx: CoyotePhasePlanValidationContext = {
     snapshotStableKeys: new Set(['anvil']),
@@ -82,7 +82,7 @@ describe('parseHypothesisModelOutput', () => {
     })
 })
 
-describe('parseHypothesisPhasePlanHopOutput', () => {
+describe('parseNarrativeBeatOutput', () => {
     it('extracts validated phasePlan and Hypothesis line', () => {
         const raw = [
             '```json',
@@ -107,7 +107,7 @@ describe('parseHypothesisPhasePlanHopOutput', () => {
             'Hypothesis: Valid plan.',
             '```',
         ].join('\n')
-        const out = parseHypothesisPhasePlanHopOutput(raw, phasePlanCtx)
+        const out = parseNarrativeBeatOutput(raw, phasePlanCtx)
         expect(out.record.phasePlan?.phases).toHaveLength(1)
         expect(out.record.intent).toBe('Hypothesis: Valid plan.')
         expect(out.phasePlanJson).toContain('"phases"')
@@ -141,7 +141,7 @@ describe('parseHypothesisPhasePlanHopOutput', () => {
             'Hypothesis: Valid with walkthrough.',
             '```',
         ].join('\n')
-        const out = parseHypothesisPhasePlanHopOutput(raw, phasePlanCtx)
+        const out = parseNarrativeBeatOutput(raw, phasePlanCtx)
         expect(out.record.walkthrough).toBe('## Scene analysis\nCoyote surveys the terrain.')
         expect(out.record.intent).toBe('Hypothesis: Valid with walkthrough.')
     })
@@ -156,7 +156,7 @@ describe('parseHypothesisPhasePlanHopOutput', () => {
             'Hypothesis: Still here.',
             '```',
         ].join('\n')
-        const out = parseHypothesisPhasePlanHopOutput(raw, phasePlanCtx)
+        const out = parseNarrativeBeatOutput(raw, phasePlanCtx)
         expect(out.record.phasePlan).toBeUndefined()
         expect(out.record.intent).toBe('Hypothesis: Still here.')
         expect(out.phasePlanValidationReason).toContain('phases')

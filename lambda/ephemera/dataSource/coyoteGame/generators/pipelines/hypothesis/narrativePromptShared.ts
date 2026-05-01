@@ -1,27 +1,3 @@
-import type { CoyotePromptParts } from '../promptTypes'
-import {
-    COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
-    COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
-    coyoteSeamRoomMappingLines,
-} from '../coyoteHypothesisPromptShared'
-import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
-
-export type BuildHypothesisStageTwoPromptInput = {
-    roomObjectsByRoom: CoyoteRoomObjectsByRoom
-    /** Deterministic Markdown from combine + renderer (combined-only; no raw seam + snapshot replay). */
-    combinedMarkdown: string
-}
-
-const STAGE_TWO_INTRO_LINES = [
-    'You are completing the player-facing hypothesis for a Coyote-vs-Road-Runner cartoon setup.',
-    '',
-    'The dynamic section below contains **combined clustering input** (trope members with tropeFunction, plus server-derived outliers) from staged objects and Stage One --- use it as ground truth for grouping and beat-level prop jobs.',
-    '- Write chain-of-reasoning and spatial analysis under "## Scene analysis" for the player (Markdown allowed there).',
-    '- After "## Scene analysis", output a **final** fenced code block with language `text` whose **only** content is exactly one plain-text line beginning with "Hypothesis:".',
-    '- Do not put any other text after the closing fence.',
-] as const
-
-/** Exported for [`buildHypothesisPhasePlanHopPromptParts`](./buildHypothesisPhasePlanHopPromptParts.ts). */
 export const COMBINED_CLUSTERING_CONTRACT_LINES = [
     '## Combined clustering Markdown (how to read the dynamic tail)',
     '- After seam room labels you will see **## Combined trope candidates**, then one **### Candidate <id>** section per Stage One candidate.',
@@ -49,14 +25,6 @@ export const INTERPRETATION_RULES_LINES = [
     '- Bad style: "Hypothesis: It seems like you are trying to set up a chase using the roller skates and the rocket and rope to either propel or trap the Road Runner."',
 ] as const
 
-const SCENE_AND_HYPOTHESIS_LINES = [
-    '## Scene analysis and Hypothesis output',
-    '- Your "## Scene analysis" section should commit to a single reading and build the spatial and causal logic behind it. Do not survey multiple plans there; the Hypothesis line restates that same reading as one sentence.',
-    '- Ground your "## Scene analysis" section on the **combined clustering** block and world topology; narrate for the player without contradicting cluster membership, **## Outliers** listings, or stated **tropeFunction** lines on trope members.',
-    '- After "## Scene analysis", open a Markdown fence: ```text on its own line, then exactly one line beginning with "Hypothesis:", then ``` on its own line to close the fence. The fenced interior must contain only that Hypothesis line.',
-    '- No JSON. No extra commentary outside "## Scene analysis" (markdown allowed there) and the fenced Hypothesis line.',
-] as const
-
 export const TEMPORAL_ORDERING_LINES = [
     '## Temporal ordering (prep vs execution)',
     '- **Prep** (**prep** roles, assembly, bait placement, positioning): narrate these as finishing **before** the contraption fires, before a **trigger** releases the gag, or before the main cartoon beat lands --- not as simultaneous with the payoff.',
@@ -70,54 +38,3 @@ export const VIRTUAL_SCENERY_AND_PREP_OBJECTS_LINES = [
     '- **Prep** may introduce narratively grounded **virtual** props or terrain (for example a painted fake tunnel on a rock face, a dug pit, piles, rigged ground rocks) that complete **before** the beat, consistent with **Temporal ordering** above. These are in-story setup, not new **`stableKey`** entries in the snapshot.',
     '- Still ground roles and membership on **## Combined clustering** and **## Outliers**; use virtual scenery to connect staged objects to place and sequence --- do not replace staged objects, merge outliers into clusters, or invent cluster members.',
 ] as const
-
-const SCENE_ANALYSIS_AND_FENCED_HYPOTHESIS_LINES = [
-    '## Scene analysis and fenced Hypothesis (assistant text only)',
-    '- Put **planning, ordering, and topology** in "## Scene analysis" in the assistant **text** stream (**body**). Do not rely on a separate Nova reasoning channel.',
-    '- The **final** ```text fence must contain **only** the Hypothesis line so parsers can slice it reliably.',
-] as const
-
-const DYNAMIC_SECTION_INTRO = [
-    '',
-    'The following blocks are specific to this request (seam room labels, then combined clustering):',
-    '',
-    '## Combined clustering input (structured Markdown)',
-] as const
-
-/** Stage 2: topology + interpretation + scene/hypothesis rules invariant; dynamic tail = labels + combined Markdown only. */
-export function buildHypothesisStageTwoPromptParts(input: BuildHypothesisStageTwoPromptInput): CoyotePromptParts {
-    const seamRoomMappingBlock = coyoteSeamRoomMappingLines(input.roomObjectsByRoom).join('\n')
-    const invariantPrefix = [
-        ...STAGE_TWO_INTRO_LINES,
-        '',
-        ...COMBINED_CLUSTERING_CONTRACT_LINES,
-        '',
-        ...COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
-        '',
-        ...COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
-        '',
-        ...INTERPRETATION_RULES_LINES,
-        '',
-        ...SCENE_AND_HYPOTHESIS_LINES,
-        '',
-        ...TEMPORAL_ORDERING_LINES,
-        '',
-        ...VIRTUAL_SCENERY_AND_PREP_OBJECTS_LINES,
-        '',
-        ...SCENE_ANALYSIS_AND_FENCED_HYPOTHESIS_LINES,
-        ...DYNAMIC_SECTION_INTRO,
-    ].join('\n')
-
-    const dynamicSuffix = [
-        '',
-        seamRoomMappingBlock,
-        '',
-        input.combinedMarkdown.trim(),
-        '',
-    ].join('\n')
-
-    return {
-        invariantPrefix,
-        dynamicSuffix: `\n${dynamicSuffix}`,
-    }
-}

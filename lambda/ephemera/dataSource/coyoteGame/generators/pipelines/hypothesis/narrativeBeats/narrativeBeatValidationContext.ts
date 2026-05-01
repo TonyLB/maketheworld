@@ -29,7 +29,7 @@ export function coyoteTopologyAllowlistFromRooms(roomObjectsByRoom: CoyoteRoomOb
 }
 
 /** Builds validation context for hop-2 phase-plan JSON (snapshot keys + topology allowlist). */
-export function buildCoyotePhasePlanValidationContext(
+export function buildNarrativeBeatValidationContext(
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
 ): CoyotePhasePlanValidationContext {
     return {

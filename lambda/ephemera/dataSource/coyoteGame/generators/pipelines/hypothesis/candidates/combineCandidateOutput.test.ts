@@ -1,7 +1,7 @@
 import { harnessRoomObjects } from '../../../testHarness/coyoteEngineTestFixtures'
 import {
     combineCandidateOutput,
-    renderCombinedCandidateOutputForStageTwo,
+    renderCombinedCandidateOutputForNarrativeBeat,
     serializePlanSelectCandidateInput,
 } from './combineCandidateOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
@@ -38,7 +38,7 @@ describe('combineCandidateOutput', () => {
                 'connective rigging between setup pieces'
             )
             expect(r.combined.candidates[0].outliers).toHaveLength(0)
-            const md = renderCombinedCandidateOutputForStageTwo(r.combined, roomMap)
+            const md = renderCombinedCandidateOutputForNarrativeBeat(r.combined, roomMap)
             expect(md).toContain('Candidate candidate-1')
             expect(md).toContain('**tropeFunction:** connective rigging between setup pieces')
         }
@@ -66,7 +66,7 @@ describe('combineCandidateOutput', () => {
         if (r.ok) {
             expect(r.combined.candidates[0].outliers).toHaveLength(1)
             expect(r.combined.candidates[0].outliers[0].identifier).toBe('glue-1')
-            const md = renderCombinedCandidateOutputForStageTwo(r.combined, roomMap)
+            const md = renderCombinedCandidateOutputForNarrativeBeat(r.combined, roomMap)
             expect(md).toContain('#### Outliers')
             expect(md).toContain('glue-1')
             expect(md).not.toMatch(/\*\*tropeFunction:\*\*[^\n]*glue/)
@@ -106,7 +106,7 @@ describe('combineCandidateOutput', () => {
         if (r.ok) {
             expect(r.combined.candidates[0].outliers).toHaveLength(1)
             expect(r.combined.candidates[0].outliers[0].identifier).toBe('rope-0')
-            const md = renderCombinedCandidateOutputForStageTwo(r.combined, roomMap)
+            const md = renderCombinedCandidateOutputForNarrativeBeat(r.combined, roomMap)
             expect(md).toContain('**room:** CLIFFBASE')
             expect(md).toContain('rope-0')
             const afterOutliers = md.split('#### Outliers')[1] ?? ''

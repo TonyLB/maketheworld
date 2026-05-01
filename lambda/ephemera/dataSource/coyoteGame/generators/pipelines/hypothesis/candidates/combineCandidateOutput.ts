@@ -187,8 +187,8 @@ export function combineCandidateOutput(
     }
 }
 
-/** Deterministic Markdown for Stage Two dynamic tail (combined-only contract). */
-export function renderCombinedCandidateOutputForStageTwo(
+/** Deterministic Markdown for the narrative-beat prompt dynamic tail (combined-only contract). */
+export function renderCombinedCandidateOutputForNarrativeBeat(
     combined: CombineCandidateOutputReturn,
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
 ): string {
@@ -287,7 +287,7 @@ function enrichOutlierForPlanSelectJson(
 
 /**
  * Deterministic JSON string for plan-selection prompts: same facts as
- * {@link renderCombinedCandidateOutputForStageTwo} with `stableKey` / `shortName` / `room` on each staged prop.
+ * {@link renderCombinedCandidateOutputForNarrativeBeat} with `stableKey` / `shortName` / `room` on each staged prop.
  * Callers typically wrap the result in a Markdown ` ```json ` fence.
  */
 export function serializePlanSelectCandidateInput(

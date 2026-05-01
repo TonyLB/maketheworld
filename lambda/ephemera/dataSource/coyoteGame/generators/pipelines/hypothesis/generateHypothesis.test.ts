@@ -4,14 +4,14 @@ jest.mock('./invokeBedrockHypothesis', () => {
         ...actual,
         invokeBedrockHypothesisStageOne: jest.fn(),
         invokeBedrockHypothesisPlanSelection: jest.fn(),
-        invokeBedrockHypothesisPhasePlanHop: jest.fn(),
+        invokeBedrockHypothesisNarrativeBeat: jest.fn(),
     }
 })
 
 import { generateHypothesis, generateHypothesisWithStageResults } from './generateHypothesis'
 import { harnessRoomObjects } from '../../testHarness/coyoteEngineTestFixtures'
 import {
-    invokeBedrockHypothesisPhasePlanHop,
+    invokeBedrockHypothesisNarrativeBeat,
     invokeBedrockHypothesisPlanSelection,
     invokeBedrockHypothesisStageOne,
 } from './invokeBedrockHypothesis'
@@ -55,7 +55,7 @@ const planSelectOutputBody = [
 ].join('\n')
 
 /** Minimal phase-plan JSON validating against ROOM#VORTEX snapshot (seam label CLIFFBASE; stableKey **anvil**). */
-function hop2PhasePlanHopBody(intentLine: string, options?: { includeSceneAnalysis?: boolean }): string {
+function narrativeBeatModelBody(intentLine: string, options?: { includeSceneAnalysis?: boolean }): string {
     const phasePlan = {
         tropeSequence: ['Contraption'],
         deconflictionSummary: 'Single-lane setup avoids conflicting prop reuse.',
@@ -93,8 +93,8 @@ const stageOneMock = invokeBedrockHypothesisStageOne as jest.MockedFunction<
 const planSelectionMock = invokeBedrockHypothesisPlanSelection as jest.MockedFunction<
     typeof invokeBedrockHypothesisPlanSelection
 >
-const phasePlanHopMock = invokeBedrockHypothesisPhasePlanHop as jest.MockedFunction<
-    typeof invokeBedrockHypothesisPhasePlanHop
+const narrativeBeatMock = invokeBedrockHypothesisNarrativeBeat as jest.MockedFunction<
+    typeof invokeBedrockHypothesisNarrativeBeat
 >
 
 describe('generateHypothesis', () => {
@@ -141,9 +141,9 @@ describe('generateHypothesis', () => {
             body: planSelectOutputBody,
             usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
         })
-        phasePlanHopMock.mockResolvedValue({
+        narrativeBeatMock.mockResolvedValue({
             success: true,
-            body: hop2PhasePlanHopBody('Hypothesis: You are trying to drop something on the Road Runner.'),
+            body: narrativeBeatModelBody('Hypothesis: You are trying to drop something on the Road Runner.'),
             usage: { inputTokens: 4, outputTokens: 5, totalTokens: 9 },
         })
     })
@@ -155,23 +155,23 @@ describe('generateHypothesis', () => {
         expect(record.walkthrough).toBeUndefined()
         expect(stageOneMock).toHaveBeenCalledTimes(1)
         expect(planSelectionMock).toHaveBeenCalledTimes(1)
-        expect(phasePlanHopMock).toHaveBeenCalledTimes(1)
+        expect(narrativeBeatMock).toHaveBeenCalledTimes(1)
     })
 
     it('passes tropeFunction rendering into phase-plan hop prompt', async () => {
         await generateHypothesis({ getGameRooms, getRoomMeta })
-        const phasePlanHopPrompt = phasePlanHopMock.mock.calls[0][0] as {
+        const narrativeBeatPrompt = narrativeBeatMock.mock.calls[0][0] as {
             invariantPrefix: string
             dynamicSuffix: string
         }
-        const fullHop2 = phasePlanHopPrompt.invariantPrefix + phasePlanHopPrompt.dynamicSuffix
+        const fullHop2 = narrativeBeatPrompt.invariantPrefix + narrativeBeatPrompt.dynamicSuffix
         expect(fullHop2).toContain('**tropeFunction:** speed lure setup prop')
     })
 
     it('parses phase-plan hop body with ## Scene analysis + fenced Hypothesis', async () => {
-        phasePlanHopMock.mockResolvedValue({
+        narrativeBeatMock.mockResolvedValue({
             success: true,
-            body: hop2PhasePlanHopBody(
+            body: narrativeBeatModelBody(
                 'Hypothesis: You are trying to drop something on the Road Runner.',
                 { includeSceneAnalysis: true }
             ),
@@ -183,10 +183,10 @@ describe('generateHypothesis', () => {
         })
     })
 
-    it('exposes stageTwoReasoningContent on pipeline result when phase-plan hop returns reasoning', async () => {
-        phasePlanHopMock.mockResolvedValue({
+    it('exposes narrativeBeatReasoningContent on pipeline result when narrative beat returns reasoning', async () => {
+        narrativeBeatMock.mockResolvedValue({
             success: true,
-            body: hop2PhasePlanHopBody('Hypothesis: With reasoning channel.'),
+            body: narrativeBeatModelBody('Hypothesis: With reasoning channel.'),
             reasoningContent: 'plan ordering scratch',
             usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
         })
@@ -198,13 +198,13 @@ describe('generateHypothesis', () => {
         expect(result.record.intent).toBe('Hypothesis: With reasoning channel.')
         expect(result.stageOneResult).toEqual(expect.objectContaining({ success: true }))
         expect(result.planSelectionResult).toEqual(expect.objectContaining({ success: true }))
-        expect(result.phasePlanHopResult).toEqual(
+        expect(result.narrativeBeatResult).toEqual(
             expect.objectContaining({
                 success: true,
                 reasoningContent: 'plan ordering scratch',
             })
         )
-        expect(result.stageTwoReasoningContent).toBe('plan ordering scratch')
+        expect(result.narrativeBeatReasoningContent).toBe('plan ordering scratch')
         expect(typeof result.selectionBody).toBe('string')
         expect(typeof result.phasePlanJson).toBe('string')
     })
@@ -253,12 +253,12 @@ describe('generateHypothesis', () => {
         expect(getRoomMeta).not.toHaveBeenCalled()
         expect(stageOneMock).toHaveBeenCalledTimes(1)
         expect(planSelectionMock).toHaveBeenCalledTimes(1)
-        expect(phasePlanHopMock).toHaveBeenCalledTimes(1)
-        const phasePlanHopPrompt = phasePlanHopMock.mock.calls[0][0] as {
+        expect(narrativeBeatMock).toHaveBeenCalledTimes(1)
+        const narrativeBeatPrompt = narrativeBeatMock.mock.calls[0][0] as {
             invariantPrefix: string
             dynamicSuffix: string
         }
-        const fullHop2 = phasePlanHopPrompt.invariantPrefix + phasePlanHopPrompt.dynamicSuffix
+        const fullHop2 = narrativeBeatPrompt.invariantPrefix + narrativeBeatPrompt.dynamicSuffix
         expect(fullHop2).toContain('## Combined clustering')
         expect(fullHop2).toContain('anvil')
         expect(fullHop2).toContain('portable hole')
@@ -276,7 +276,7 @@ describe('generateHypothesis', () => {
             intent: 'Hypothesis: Stubbed',
         })
         expect(planSelectionMock).not.toHaveBeenCalled()
-        expect(phasePlanHopMock).not.toHaveBeenCalled()
+        expect(narrativeBeatMock).not.toHaveBeenCalled()
     })
 
     it('falls back to stub when stage 1 seam parse fails', async () => {
@@ -289,7 +289,7 @@ describe('generateHypothesis', () => {
             intent: 'Hypothesis: Stubbed',
         })
         expect(planSelectionMock).not.toHaveBeenCalled()
-        expect(phasePlanHopMock).not.toHaveBeenCalled()
+        expect(narrativeBeatMock).not.toHaveBeenCalled()
     })
 
     it('falls back to stub when plan-selection Bedrock fails', async () => {
@@ -302,7 +302,7 @@ describe('generateHypothesis', () => {
             intent: 'Hypothesis: Stubbed',
         })
         expect(planSelectionMock).toHaveBeenCalledTimes(1)
-        expect(phasePlanHopMock).not.toHaveBeenCalled()
+        expect(narrativeBeatMock).not.toHaveBeenCalled()
     })
 
     it('falls back to stub when planSelect output JSON parse fails', async () => {
@@ -315,7 +315,7 @@ describe('generateHypothesis', () => {
         await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
             intent: 'Hypothesis: Stubbed',
         })
-        expect(phasePlanHopMock).not.toHaveBeenCalled()
+        expect(narrativeBeatMock).not.toHaveBeenCalled()
     })
 
     it('continues when planSelect rubric markdown section is missing but output JSON is valid', async () => {
@@ -357,11 +357,11 @@ describe('generateHypothesis', () => {
                 ],
             },
         })
-        expect(phasePlanHopMock).toHaveBeenCalledTimes(1)
+        expect(narrativeBeatMock).toHaveBeenCalledTimes(1)
     })
 
     it('falls back to stub when phase-plan hop Bedrock fails', async () => {
-        phasePlanHopMock.mockResolvedValue({
+        narrativeBeatMock.mockResolvedValue({
             success: false,
             errorMessage: 'Timeout',
         })
@@ -369,11 +369,11 @@ describe('generateHypothesis', () => {
         await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
             intent: 'Hypothesis: Stubbed',
         })
-        expect(phasePlanHopMock).toHaveBeenCalledTimes(1)
+        expect(narrativeBeatMock).toHaveBeenCalledTimes(1)
     })
 
     it('keeps prose when phase-plan JSON is invalid but Hypothesis parses', async () => {
-        phasePlanHopMock.mockResolvedValue({
+        narrativeBeatMock.mockResolvedValue({
             success: true,
             body: [
                 '```json',

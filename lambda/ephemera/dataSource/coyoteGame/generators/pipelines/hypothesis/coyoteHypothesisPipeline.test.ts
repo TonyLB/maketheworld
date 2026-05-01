@@ -4,13 +4,13 @@ jest.mock('./invokeBedrockHypothesis', () => {
         ...actual,
         invokeBedrockHypothesisStageOne: jest.fn(),
         invokeBedrockHypothesisPlanSelection: jest.fn(),
-        invokeBedrockHypothesisPhasePlanHop: jest.fn(),
+        invokeBedrockHypothesisNarrativeBeat: jest.fn(),
     }
 })
 
 import { COYOTE_ENGINE_TEST_FIXTURES } from '../../testHarness/coyoteEngineTestFixtures'
 import {
-    invokeBedrockHypothesisPhasePlanHop,
+    invokeBedrockHypothesisNarrativeBeat,
     invokeBedrockHypothesisPlanSelection,
     invokeBedrockHypothesisStageOne,
 } from './invokeBedrockHypothesis'
@@ -27,8 +27,8 @@ const stageOneMock = invokeBedrockHypothesisStageOne as jest.MockedFunction<
 const planSelectionMock = invokeBedrockHypothesisPlanSelection as jest.MockedFunction<
     typeof invokeBedrockHypothesisPlanSelection
 >
-const phasePlanHopMock = invokeBedrockHypothesisPhasePlanHop as jest.MockedFunction<
-    typeof invokeBedrockHypothesisPhasePlanHop
+const narrativeBeatMock = invokeBedrockHypothesisNarrativeBeat as jest.MockedFunction<
+    typeof invokeBedrockHypothesisNarrativeBeat
 >
 
 /** Valid stage-1 JSON for parse + combine (matches generateHypothesis.test harness). */
@@ -75,7 +75,7 @@ describe('mapPipelineRunToGenerateHypothesisResult', () => {
             state: {
                 stageOneResult: { success: false, errorMessage: 'Throttled' },
                 planSelectionResult: null,
-                phasePlanHopResult: null,
+                narrativeBeatResult: null,
             },
             failedStepName: 'hypothesisStageOneLlm',
             failedStepIndex: 1,
@@ -86,7 +86,7 @@ describe('mapPipelineRunToGenerateHypothesisResult', () => {
             record: { intent: 'Hypothesis: Stubbed' },
             stageOneResult: { success: false, errorMessage: 'Throttled' },
             planSelectionResult: null,
-            phasePlanHopResult: null,
+            narrativeBeatResult: null,
         })
     })
 
@@ -116,7 +116,7 @@ describe('mapPipelineRunToGenerateHypothesisResult', () => {
                     body: '{"paragraphSummary":"x","planIssues":[{"code":"ROLE_CONFLICT","summary":"x"}]}',
                     usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
                 },
-                phasePlanHopResult: {
+                narrativeBeatResult: {
                     success: true,
                     body: 'Hypothesis: Test.',
                     usage: { inputTokens: 4, outputTokens: 5, totalTokens: 9 },
@@ -129,7 +129,7 @@ describe('mapPipelineRunToGenerateHypothesisResult', () => {
             record: { intent: 'Hypothesis: Test.' },
             stageOneResult: expect.objectContaining({ success: true }),
             planSelectionResult: expect.objectContaining({ success: true }),
-            phasePlanHopResult: expect.objectContaining({ success: true }),
+            narrativeBeatResult: expect.objectContaining({ success: true }),
         })
     })
 
@@ -145,11 +145,11 @@ describe('mapPipelineRunToGenerateHypothesisResult', () => {
                     },
                 },
             },
-            { harness: { testOnly: 'clustering', harnessRunKind: 'runUntil' } }
+            { harness: { testOnly: 'candidates', harnessRunKind: 'runUntil' } }
         )
         expect(result.kind).toBe('harnessPartial')
         if (result.kind === 'harnessPartial') {
-            expect(result.testOnly).toBe('clustering')
+            expect(result.testOnly).toBe('candidates')
             expect(result.harnessRunKind).toBe('runUntil')
             expect(result.record.intent).toBe('Hypothesis: Stubbed')
             expect(result.stageOneResult?.success).toBe(true)
@@ -230,17 +230,17 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
             body: planSelectOutputBody,
             usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
         })
-        phasePlanHopMock.mockResolvedValue({
+        narrativeBeatMock.mockResolvedValue({
             success: true,
             body: '```text\nHypothesis: Done.\n```',
             usage: { inputTokens: 4, outputTokens: 5, totalTokens: 9 },
         })
     })
 
-    it('runUntil clustering invokes only stage-one Bedrock', async () => {
+    it('runUntil candidates invokes only stage-one Bedrock', async () => {
         const result = await runCoyoteHypothesisPipeline(
             { getGameRooms, getRoomMeta },
-            { testOnly: 'clustering', harnessRunKind: 'runUntil' }
+            { testOnly: 'candidates', harnessRunKind: 'runUntil' }
         )
         expect(result.kind).toBe('harnessPartial')
         expect(stageOneMock).toHaveBeenCalledTimes(1)
@@ -249,7 +249,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         expect(promptArg.dynamicSuffix).toContain('"environmentAffordances"')
         expect(promptArg.dynamicSuffix).toContain('"object": "long-fall"')
         expect(planSelectionMock).not.toHaveBeenCalled()
-        expect(phasePlanHopMock).not.toHaveBeenCalled()
+        expect(narrativeBeatMock).not.toHaveBeenCalled()
     })
 
     it('runUntil planSelect invokes stage one and plan selection only', async () => {
@@ -260,7 +260,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         expect(result.kind).toBe('harnessPartial')
         expect(stageOneMock).toHaveBeenCalledTimes(1)
         expect(planSelectionMock).toHaveBeenCalledTimes(1)
-        expect(phasePlanHopMock).not.toHaveBeenCalled()
+        expect(narrativeBeatMock).not.toHaveBeenCalled()
     })
 
     it('continues full pipeline when plan-selection rubric markdown section is missing but JSON is valid', async () => {
@@ -283,7 +283,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
             { getGameRooms, getRoomMeta }
         )
         expect(result.kind).toBe('full')
-        expect(phasePlanHopMock).toHaveBeenCalledTimes(1)
+        expect(narrativeBeatMock).toHaveBeenCalledTimes(1)
     })
 
     it('runOnly planSelect uses inject and skips upstream LLMs', async () => {
@@ -309,7 +309,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         expect(result.kind).toBe('harnessPartial')
         expect(stageOneMock).not.toHaveBeenCalled()
         expect(planSelectionMock).toHaveBeenCalledTimes(1)
-        expect(phasePlanHopMock).not.toHaveBeenCalled()
+        expect(narrativeBeatMock).not.toHaveBeenCalled()
         if (result.kind === 'harnessPartial') {
             expect(result.planSelectionResult?.success).toBe(true)
         }
@@ -339,9 +339,9 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         expect(result.kind).toBe('harnessPartial')
         expect(stageOneMock).not.toHaveBeenCalled()
         expect(planSelectionMock).not.toHaveBeenCalled()
-        expect(phasePlanHopMock).toHaveBeenCalledTimes(1)
+        expect(narrativeBeatMock).toHaveBeenCalledTimes(1)
         if (result.kind === 'harnessPartial') {
-            expect(result.phasePlanHopResult?.success).toBe(true)
+            expect(result.narrativeBeatResult?.success).toBe(true)
         }
     })
 })

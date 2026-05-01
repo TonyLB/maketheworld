@@ -108,8 +108,8 @@ function buildHarnessPipelineOptions(args: {
     if (harnessRunKind === 'runUntil') {
         return { testOnly, harnessRunKind: 'runUntil' }
     }
-    if (testOnly === 'clustering') {
-        return { testOnly: 'clustering', harnessRunKind: 'runOnly' }
+    if (testOnly === 'candidates') {
+        return { testOnly: 'candidates', harnessRunKind: 'runOnly' }
     }
     const phase = testOnly === 'planSelect' ? 'planSelect' : 'phasePlan'
     const resolved = resolveCoyoteHarnessStartAtInject({
@@ -154,7 +154,7 @@ function harnessPartialStageSkipped(
     if (stage === 'planSelection') {
         return pipeline.planSelectionResult === undefined
     }
-    return pipeline.phasePlanHopResult === undefined
+    return pipeline.narrativeBeatResult === undefined
 }
 
 /** Raw stage-1 Bedrock text for harness diagnostics (seam contract tuning, parse failures vs skipped stage 2). */
@@ -243,8 +243,8 @@ function pipelineErrorMessage(pipeline: GenerateHypothesisPipelineResult): strin
             if (pipeline.planSelectionResult && !pipeline.planSelectionResult.success) {
                 return pipeline.planSelectionResult.errorMessage
             }
-            if (pipeline.phasePlanHopResult && !pipeline.phasePlanHopResult.success) {
-                return pipeline.phasePlanHopResult.errorMessage
+            if (pipeline.narrativeBeatResult && !pipeline.narrativeBeatResult.success) {
+                return pipeline.narrativeBeatResult.errorMessage
             }
             return undefined
         }
@@ -255,8 +255,8 @@ function pipelineErrorMessage(pipeline: GenerateHypothesisPipelineResult): strin
             if (!pipeline.planSelectionResult.success) {
                 return pipeline.planSelectionResult.errorMessage
             }
-            if (!pipeline.phasePlanHopResult.success) {
-                return pipeline.phasePlanHopResult.errorMessage
+            if (!pipeline.narrativeBeatResult.success) {
+                return pipeline.narrativeBeatResult.errorMessage
             }
             return undefined
         }
@@ -267,8 +267,8 @@ function pipelineErrorMessage(pipeline: GenerateHypothesisPipelineResult): strin
             if (pipeline.planSelectionResult && !pipeline.planSelectionResult.success) {
                 return pipeline.planSelectionResult.errorMessage
             }
-            if (pipeline.phasePlanHopResult && !pipeline.phasePlanHopResult.success) {
-                return pipeline.phasePlanHopResult.errorMessage
+            if (pipeline.narrativeBeatResult && !pipeline.narrativeBeatResult.success) {
+                return pipeline.narrativeBeatResult.errorMessage
             }
             return undefined
         }
@@ -280,7 +280,7 @@ function flattenPipelineResultForHarness(pipeline: GenerateHypothesisPipelineRes
     record: CoyoteGameIntentRecord
     stageOneResult: InvokeBedrockHypothesisResult
     planSelectionResult: InvokeBedrockHypothesisResult | null
-    phasePlanHopResult: InvokeBedrockHypothesisResult | null
+    narrativeBeatResult: InvokeBedrockHypothesisResult | null
     selectionBody?: string
     phasePlanJson?: string
     phasePlanValidationReason?: string
@@ -293,7 +293,7 @@ function flattenPipelineResultForHarness(pipeline: GenerateHypothesisPipelineRes
                 record: pipeline.record,
                 stageOneResult: pipeline.stageOneResult,
                 planSelectionResult: pipeline.planSelectionResult,
-                phasePlanHopResult: pipeline.phasePlanHopResult,
+                narrativeBeatResult: pipeline.narrativeBeatResult,
                 selectionBody: pipeline.selectionBody,
                 phasePlanJson: pipeline.phasePlanJson,
                 phasePlanValidationReason: pipeline.phasePlanValidationReason,
@@ -303,7 +303,7 @@ function flattenPipelineResultForHarness(pipeline: GenerateHypothesisPipelineRes
                 record: pipeline.record,
                 stageOneResult: pipeline.stageOneResult ?? emptyFail,
                 planSelectionResult: pipeline.planSelectionResult ?? null,
-                phasePlanHopResult: pipeline.phasePlanHopResult ?? null,
+                narrativeBeatResult: pipeline.narrativeBeatResult ?? null,
                 selectionBody: pipeline.selectionBody,
                 phasePlanJson: pipeline.phasePlanJson,
                 phasePlanValidationReason: pipeline.phasePlanValidationReason,
@@ -320,13 +320,13 @@ function formatFixtureRenderTree(args: {
     usageStageOne: string
     stageOneBodyBlock: string
     usagePlanSelection: string
-    usagePhasePlanHop: string
+    usageNarrativeBeat: string
     selectionBodyBlock: string
     /** Only when partial harness **`testOnly`** is **`planSelect`** (run ends after plan selection). */
     planSelectionReasoningBlock?: string
     phasePlanJsonBlock: string
     errorMessage?: string
-    /** Partial-run banner lines after heading (e.g. **`harness: runUntil clustering`**). */
+    /** Partial-run banner lines after heading (e.g. **`harness: runUntil candidates`**). */
     harnessBannerLines?: string[]
 }): RenderTree {
     const {
@@ -338,7 +338,7 @@ function formatFixtureRenderTree(args: {
         usageStageOne,
         stageOneBodyBlock,
         usagePlanSelection,
-        usagePhasePlanHop,
+        usageNarrativeBeat,
         selectionBodyBlock,
         planSelectionReasoningBlock,
         phasePlanJsonBlock,
@@ -368,7 +368,7 @@ function formatFixtureRenderTree(args: {
         COYOTE_RENDER_LINE_BREAK,
         usagePlanSelection,
         COYOTE_RENDER_LINE_BREAK,
-        usagePhasePlanHop,
+        usageNarrativeBeat,
         COYOTE_RENDER_LINE_BREAK,
         selectionBodyBlock,
         COYOTE_RENDER_LINE_BREAK,
@@ -455,16 +455,16 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                 const elapsedMs = Math.max(0, now() - startMs)
                 const skipS1 = harnessPartialStageSkipped(pipeline, 'stageOne')
                 const skipPs = harnessPartialStageSkipped(pipeline, 'planSelection')
-                const skipPph = harnessPartialStageSkipped(pipeline, 'phasePlan')
+                const skipNarrativeBeat = harnessPartialStageSkipped(pipeline, 'phasePlan')
                 const usageStageOne = skipS1
                     ? 'usageStage1: (not run)'
                     : formatUsageLine('usageStage1', flat.stageOneResult)
                 const usagePlanSelection = skipPs
                     ? 'usagePlanSelection: (not run)'
                     : formatUsageLine('usagePlanSelection', flat.planSelectionResult ?? emptyUsageFailure)
-                const usagePhasePlanHop = skipPph
-                    ? 'usagePhasePlanHop: (not run)'
-                    : formatUsageLine('usagePhasePlanHop', flat.phasePlanHopResult ?? emptyUsageFailure)
+                const usageNarrativeBeat = skipNarrativeBeat
+                    ? 'usageNarrativeBeat: (not run)'
+                    : formatUsageLine('usageNarrativeBeat', flat.narrativeBeatResult ?? emptyUsageFailure)
                 const stageOneBodyBlock = skipS1
                     ? 'stageOneBody: (not run)'
                     : formatStageOneBodyForHarness(flat.stageOneResult)
@@ -481,7 +481,7 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                               planSelectionResult: flat.planSelectionResult,
                           })
                         : undefined
-                const phasePlanJsonBlock = skipPph
+                const phasePlanJsonBlock = skipNarrativeBeat
                     ? 'phasePlanJson: (not run)'
                     : formatPhasePlanJsonForHarness({
                           phasePlanJson: flat.phasePlanJson,
@@ -496,7 +496,7 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                     usageStageOne,
                     stageOneBodyBlock,
                     usagePlanSelection,
-                    usagePhasePlanHop,
+                    usageNarrativeBeat,
                     selectionBodyBlock,
                     planSelectionReasoningBlock,
                     phasePlanJsonBlock,
@@ -522,9 +522,9 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                     'usagePlanSelection',
                     flat.planSelectionResult ?? emptyUsageFailure
                 )
-                const usagePhasePlanHop = formatUsageLine(
-                    'usagePhasePlanHop',
-                    flat.phasePlanHopResult ?? emptyUsageFailure
+                const usageNarrativeBeat = formatUsageLine(
+                    'usageNarrativeBeat',
+                    flat.narrativeBeatResult ?? emptyUsageFailure
                 )
                 const stageOneBodyBlock = formatStageOneBodyForHarness(flat.stageOneResult)
                 const selectionBodyBlock = formatSelectionBodyForHarness({
@@ -544,7 +544,7 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                     usageStageOne,
                     stageOneBodyBlock,
                     usagePlanSelection,
-                    usagePhasePlanHop,
+                    usageNarrativeBeat,
                     selectionBodyBlock,
                     phasePlanJsonBlock,
                     errorMessage: pipelineErrorMessage(pipeline),
@@ -572,7 +572,7 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                 usageStageOne: 'usageStage1: (none)',
                 stageOneBodyBlock: 'stageOneBody: (none)',
                 usagePlanSelection: 'usagePlanSelection: (none)',
-                usagePhasePlanHop: 'usagePhasePlanHop: (none)',
+                usageNarrativeBeat: 'usageNarrativeBeat: (none)',
                 selectionBodyBlock: formatSelectionBodyForHarness({
                     selectionBody: undefined,
                     planSelectionResult: null,

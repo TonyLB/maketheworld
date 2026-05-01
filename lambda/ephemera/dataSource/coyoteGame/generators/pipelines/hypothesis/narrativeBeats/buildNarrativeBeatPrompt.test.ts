@@ -1,9 +1,9 @@
-import { buildHypothesisPhasePlanHopPromptParts } from './buildHypothesisPhasePlanHopPromptParts'
+import { buildNarrativeBeatPrompt } from './buildNarrativeBeatPrompt'
 import { harnessRoomObjects } from '../../../testHarness/coyoteEngineTestFixtures'
 
-describe('buildHypothesisPhasePlanHopPromptParts', () => {
+describe('buildNarrativeBeatPrompt', () => {
     it('embeds planSelect output and combined clustering Markdown from combined payload', () => {
-        const parts = buildHypothesisPhasePlanHopPromptParts({
+        const parts = buildNarrativeBeatPrompt({
             roomObjectsByRoom: { 'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']) },
             combined: {
                 candidates: [
@@ -41,7 +41,7 @@ describe('buildHypothesisPhasePlanHopPromptParts', () => {
     })
 
     it('keeps phase-plan prompt content unchanged when staged trope environmentAffordances are present', () => {
-        const parts = buildHypothesisPhasePlanHopPromptParts({
+        const parts = buildNarrativeBeatPrompt({
             roomObjectsByRoom: {
                 'ROOM#VORTEX': [{
                     uuid: 'OBJECT#anvil' as `OBJECT#${string}`,
@@ -79,7 +79,7 @@ describe('buildHypothesisPhasePlanHopPromptParts', () => {
     })
 
     it('renders structured selectedCandidate grounding when present', () => {
-        const parts = buildHypothesisPhasePlanHopPromptParts({
+        const parts = buildNarrativeBeatPrompt({
             roomObjectsByRoom: { 'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil', 'rope']) },
             combined: {
                 candidates: [{

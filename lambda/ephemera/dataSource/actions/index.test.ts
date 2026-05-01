@@ -936,7 +936,7 @@ describe('ephemeraActionsDataSource', () => {
                 confidence: 1,
                 harnessInvocation: {
                     mode: 'partial',
-                    testOnly: 'clustering',
+                    testOnly: 'candidates',
                     harnessRunKind: 'runUntil',
                 },
             })
@@ -963,7 +963,7 @@ describe('ephemeraActionsDataSource', () => {
                     characterId: 'CHARACTER#123',
                     harnessInvocation: {
                         mode: 'partial',
-                        testOnly: 'clustering',
+                        testOnly: 'candidates',
                         harnessRunKind: 'runUntil',
                     },
                 })

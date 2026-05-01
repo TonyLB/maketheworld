@@ -84,7 +84,7 @@ Make The World uses canonical `EphemeraRoomId` values (for example `ROOM#VORTEX`
 - Override map and seam helpers: [`generators/pipelines/hypothesis/coyoteHypothesisPromptShared.ts`](generators/pipelines/hypothesis/coyoteHypothesisPromptShared.ts) (`COYOTE_SEAM_ROOM_LABEL_OVERRIDES`, `seamRoomLabelFromEphemeraRoomId`, `normalizeSeamRoomLabelToken`).
 - Staged snapshot `room` field (human label) and Markdown headings: [`utilities/coyoteRoomObjectSnapshot.ts`](utilities/coyoteRoomObjectSnapshot.ts) (via `seamRoomLabelFromEphemeraRoomId`). JSON snapshot rows still include canonical **`roomId`**.
 - Combined clustering / plan-select JSON `room` strings: [`generators/pipelines/hypothesis/candidates/combineCandidateOutput.ts`](generators/pipelines/hypothesis/candidates/combineCandidateOutput.ts).
-- Phase-plan topology allowlist for `derivedFrom`: [`generators/pipelines/hypothesis/narrativeBeats/coyoteHypothesisPhasePlanContext.ts`](generators/pipelines/hypothesis/narrativeBeats/coyoteHypothesisPhasePlanContext.ts) (uses `seamRoomLabelFromEphemeraRoomId` for rooms that have staged objects).
+- Phase-plan topology allowlist for `derivedFrom`: [`generators/pipelines/hypothesis/narrativeBeats/narrativeBeatValidationContext.ts`](generators/pipelines/hypothesis/narrativeBeats/narrativeBeatValidationContext.ts) (uses `seamRoomLabelFromEphemeraRoomId` for rooms that have staged objects).
 
 **One-way contract**
 
@@ -119,14 +119,14 @@ Player-facing slash command (this harness only; not `/test affinities`): **`/tes
 | `/test generation <runKind> <phaseAlias>` | Partial run using explicit run kind (`runUntil` or `runOnly`) for all fixtures. |
 | `/test generation <runKind> <phaseAlias> <fixtureIndex>` | Partial run using explicit run kind for one fixture. |
 
-Phase aliases: **`clustering`**, **`planSelect`**, **`phasePlan`** (map to LLM hops on the hypothesis pipeline; see [`generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts`](generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts)). Invalid tails (unknown token, wrong order, index out of range) return a **`WorldOOCMessage`** with usage text.
+Phase aliases: **`candidates`** (legacy slash token **`clustering`** still accepted), **`planSelect`**, **`phasePlan`** (map to LLM hops on the hypothesis pipeline; see [`generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts`](generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts)). Invalid tails (unknown token, wrong order, index out of range) return a **`WorldOOCMessage`** with usage text.
 
 **Slash vs harness API:** [`parseCoyoteEngineTestSlashTail`](../actions/discriminateIntent/parseCoyoteEngineTestSlash.ts) supports both shorthand partial invocations (`<phaseAlias> [fixtureIndex]` => `runUntil`) and explicit run-kind partial invocations (`<runKind> <phaseAlias> [fixtureIndex]` with `runKind` in `runUntil` | `runOnly`).
 
 **Invocation and pipeline options**
 
 - **`CoyoteEngineTestHarnessInvocation`** ([`runCoyoteEngineTestHarness.ts`](generators/testHarness/runCoyoteEngineTestHarness.ts)): **`mode: 'full'`** (optional single-fixture filter) or **`mode: 'partial'`** with **`testOnly`**, **`harnessRunKind`** (`runUntil` \| `runOnly`), optional **`fixtureIndex1Based`**. For **`runOnly`** on **`planSelect`** / **`phasePlan`**, the runner resolves inject bundles via **`buildHarnessPipelineOptions`** and **`resolveCoyoteHarnessStartAtInject`**.
-- **`runCoyoteHypothesisPipeline(deps, options?)`** ([`coyoteHypothesisPipeline.ts`](generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts)): optional harness **`testOnly`**, **`harnessRunKind`**, **`injectState`**. Omit these for production full-pipeline runs. **`injectState`** is valid only for **`runOnly`** **`planSelect`** / **`phasePlan`** (handoff-shaped partial [`CoyoteHypothesisPipelineState`](generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts)). **`clustering`** **`runOnly`** uses fixture **`roomObjectsByRoom`** plus deterministic **`loadRoomObjects`**; do not pass inject bundles for that mode.
+- **`runCoyoteHypothesisPipeline(deps, options?)`** ([`coyoteHypothesisPipeline.ts`](generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts)): optional harness **`testOnly`**, **`harnessRunKind`**, **`injectState`**. Omit these for production full-pipeline runs. **`injectState`** is valid only for **`runOnly`** **`planSelect`** / **`phasePlan`** (handoff-shaped partial [`CoyoteHypothesisPipelineState`](generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts)). **`candidates`** **`runOnly`** uses fixture **`roomObjectsByRoom`** plus deterministic **`loadRoomObjects`**; do not pass inject bundles for that mode.
 - Types and threading: [`generateHypothesis.ts`](generators/pipelines/hypothesis/generateHypothesis.ts) (**`CoyoteHypothesisPipelineHarnessOptions`**), [`coyoteHarnessInjectTypes.ts`](generators/pipelines/hypothesis/coyoteHarnessInjectTypes.ts).
 
 **Fixtures and handoffs** ([`coyoteEngineTestFixtures.ts`](generators/testHarness/coyoteEngineTestFixtures.ts))

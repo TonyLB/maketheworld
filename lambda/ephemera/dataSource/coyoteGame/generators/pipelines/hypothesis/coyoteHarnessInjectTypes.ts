@@ -12,7 +12,7 @@ export type CoyoteHarnessPlanSelectInject = {
 };
 
 /**
- * Minimum state to run **`hypothesisPhasePlanHopLlm`** in **`runOnly`** mode.
+ * Minimum state to run **`hypothesisNarrativeBeatLlm`** in **`runOnly`** mode.
  */
 export type CoyoteHarnessPhasePlanInject = CoyoteHarnessPlanSelectInject & {
     planSelectOutput: PlanSelectOutput;

@@ -20,32 +20,27 @@ import type { CoyotePromptParts } from './promptTypes'
 export const BEDROCK_HYPOTHESIS_MODEL_ID = BEDROCK_NOVA_2_LITE_MODEL_ID
 export const BEDROCK_HYPOTHESIS_TIMEOUT_MS = 30_000
 
-/** Stage 1: clustering seam Markdown only — typically shorter output than stage 2. */
-export const BEDROCK_HYPOTHESIS_STAGE_ONE_MAX_TOKENS = 512
-
-/** Stage 2 max output tokens ("## Scene analysis" prose + Hypothesis line); increase if the model truncates. */
-export const BEDROCK_HYPOTHESIS_STAGE_TWO_MAX_TOKENS = 2048
+/** Candidates phase (first hop): seam Markdown only; shorter cap than post-combine hops. */
+export const BEDROCK_HYPOTHESIS_CANDIDATES_MAX_TOKENS = 1024
 
 /**
- * Default max tokens for Option A hops after combine (plan selection; phase-plan + surface).
- * Tune from harness **`usage`** only — topology stays two Bedrock hops after combine (see [`AGENT.md`](./AGENT.md)).
+ * Default max output tokens for post-combine hops (plan selection, narrative beat), and for
+ * [`invokeBedrockHypothesis`] when callers omit maxTokens (e.g. plan outcome).
+ * Tune from harness **`usage`** — two Bedrock invokes after combine (see [`AGENT.md`](./AGENT.md)).
  */
-export const BEDROCK_HYPOTHESIS_NEW_HOP_DEFAULT_MAX_TOKENS = 2048
+export const BEDROCK_HYPOTHESIS_DEFAULT_MAX_TOKENS = 2048
 
 /**
- * Hop 1 (plan selection + rubric + fenced JSON handoff).
- * Compare **`usagePlanSelection`** vs **`usagePhasePlanHop`** from [`runCoyoteEngineTestHarness`](./runCoyoteEngineTestHarness.ts) when tuning output caps.
+ * Plan-selection hop (rubric + fenced JSON handoff).
+ * Compare **`usagePlanSelection`** vs **`usageNarrativeBeat`** from [`runCoyoteEngineTestHarness`](./runCoyoteEngineTestHarness.ts) when tuning output caps.
  */
-export const BEDROCK_HYPOTHESIS_PLAN_SELECTION_MAX_TOKENS = BEDROCK_HYPOTHESIS_NEW_HOP_DEFAULT_MAX_TOKENS
+export const BEDROCK_HYPOTHESIS_PLAN_SELECTION_MAX_TOKENS = BEDROCK_HYPOTHESIS_DEFAULT_MAX_TOKENS
 
 /**
- * Hop 2 (phase-plan JSON + "## Scene analysis" + fenced Hypothesis line).
- * Hypothesis pipeline: three sequential invokes (stage one + hop 1 + hop 2), each using [`BEDROCK_HYPOTHESIS_TIMEOUT_MS`] — ensure Lambda timeout fits all plus combine work (see [`AGENT.md`](./AGENT.md), template.yaml).
+ * Narrative beat hop (phase-plan JSON + "## Scene analysis" + fenced Hypothesis line).
+ * Hypothesis pipeline: three sequential invokes (candidates phase + plan selection + narrative beat), each using [`BEDROCK_HYPOTHESIS_TIMEOUT_MS`] — ensure Lambda timeout fits all plus combine work (see [`AGENT.md`](./AGENT.md), template.yaml).
  */
-export const BEDROCK_HYPOTHESIS_PHASE_PLAN_HOP_MAX_TOKENS = BEDROCK_HYPOTHESIS_NEW_HOP_DEFAULT_MAX_TOKENS
-
-/** Default max output tokens for [`invokeBedrockHypothesis`] when not using stage wrappers (e.g. plan outcome). */
-export const BEDROCK_HYPOTHESIS_MAX_TOKENS = BEDROCK_HYPOTHESIS_STAGE_TWO_MAX_TOKENS
+export const BEDROCK_HYPOTHESIS_NARRATIVE_BEAT_MAX_TOKENS = BEDROCK_HYPOTHESIS_DEFAULT_MAX_TOKENS
 
 export type InvokeBedrockHypothesisSuccess = Extract<InvokeBedrockConverseTextResult, { success: true }>
 export type InvokeBedrockHypothesisFailure = Extract<InvokeBedrockConverseTextResult, { success: false }>
@@ -74,7 +69,7 @@ export async function invokeBedrockHypothesis(
 ): Promise<InvokeBedrockHypothesisResult> {
     const model = options.model ?? DEFAULT_NOVA_MODEL
     const modelId = options.modelId ?? novaModelToBedrockModelId(model)
-    const maxTokens = options.maxTokens ?? BEDROCK_HYPOTHESIS_MAX_TOKENS
+    const maxTokens = options.maxTokens ?? BEDROCK_HYPOTHESIS_DEFAULT_MAX_TOKENS
     const timeoutMs = options.timeoutMs ?? BEDROCK_HYPOTHESIS_TIMEOUT_MS
     const temperature = options.temperature ?? 0.2
 
@@ -97,14 +92,14 @@ export async function invokeBedrockHypothesis(
 
 type InvokeBedrockHypothesisOptions = NonNullable<Parameters<typeof invokeBedrockHypothesis>[1]>
 
-/** Hypothesis pipeline round-trip 1: seam Markdown. Defaults to [`BEDROCK_HYPOTHESIS_STAGE_ONE_MAX_TOKENS`]. */
+/** Candidates phase: seam Markdown. Defaults to [`BEDROCK_HYPOTHESIS_CANDIDATES_MAX_TOKENS`]. */
 export async function invokeBedrockHypothesisStageOne(
     prompt: CoyotePromptParts,
     options: InvokeBedrockHypothesisOptions = {}
 ): Promise<InvokeBedrockHypothesisResult> {
     return invokeBedrockHypothesis(prompt, {
         ...options,
-        maxTokens: options.maxTokens ?? BEDROCK_HYPOTHESIS_STAGE_ONE_MAX_TOKENS,
+        maxTokens: options.maxTokens ?? BEDROCK_HYPOTHESIS_CANDIDATES_MAX_TOKENS,
     })
 }
 
@@ -120,25 +115,14 @@ export async function invokeBedrockHypothesisPlanSelection(
     })
 }
 
-/** Option A hop 2: leading phase-plan JSON + "## Scene analysis" + final fenced Hypothesis line. */
-export async function invokeBedrockHypothesisPhasePlanHop(
+/** Narrative beat hop: leading phase-plan JSON + "## Scene analysis" + final fenced Hypothesis line. */
+export async function invokeBedrockHypothesisNarrativeBeat(
     prompt: CoyotePromptParts,
     options: InvokeBedrockHypothesisOptions = {}
 ): Promise<InvokeBedrockHypothesisResult> {
     return invokeBedrockHypothesis(prompt, {
         ...options,
-        maxTokens: options.maxTokens ?? BEDROCK_HYPOTHESIS_PHASE_PLAN_HOP_MAX_TOKENS,
+        maxTokens: options.maxTokens ?? BEDROCK_HYPOTHESIS_NARRATIVE_BEAT_MAX_TOKENS,
         extendedThinking: options.extendedThinking ?? false,
     })
-}
-
-/**
- * Legacy name: same as [`invokeBedrockHypothesisPhasePlanHop`] (Option A hop 2).
- * @deprecated Prefer [`invokeBedrockHypothesisPhasePlanHop`].
- */
-export async function invokeBedrockHypothesisStageTwo(
-    prompt: CoyotePromptParts,
-    options: InvokeBedrockHypothesisOptions = {}
-): Promise<InvokeBedrockHypothesisResult> {
-    return invokeBedrockHypothesisPhasePlanHop(prompt, options)
 }
