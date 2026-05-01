@@ -92,4 +92,34 @@ describe('serializeStagedObjectsAffinityForwardJson', () => {
         expect(parsed.decisionFocus.ambiguousStableKeys).toEqual(['multi-0'])
         expect(parsed.decisionFocus.unassignedStableKeys).toEqual(['fail-2', 'none-1'])
     })
+
+    it('round-trips affordancesProvided nested under tropeAffinities', () => {
+        const affordancesProvided = [
+            { object: 'hidden catapult', intended: true as const, roles: ['Contraption' as const] },
+        ]
+        const json = serializeStagedObjectsAffinityForwardJson({
+            [room('ROOM#VORTEX')]: [{
+                uuid: 'OBJECT#ap' as `OBJECT#${string}`,
+                shortName: 'kit',
+                stableKey: 'kit',
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'rig',
+                    environmentAffordances: [{ object: 'boulder', roles: ['Contraption'] }],
+                    affordancesProvided,
+                }],
+            }],
+        })
+        const parsed = JSON.parse(json) as {
+            objects: Array<{ tropeAffinities?: Array<{
+                environmentAffordances?: unknown[]
+                affordancesProvided?: typeof affordancesProvided
+            }> }>
+        }
+        expect(parsed.objects[0].tropeAffinities?.[0].environmentAffordances).toEqual([
+            { object: 'boulder', roles: ['Contraption'] },
+        ])
+        expect(parsed.objects[0].tropeAffinities?.[0].affordancesProvided).toEqual(affordancesProvided)
+    })
 })

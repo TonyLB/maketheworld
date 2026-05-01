@@ -1,6 +1,6 @@
 # Coyote Game: affordancesProvided threading (planning)
 
-**Status:** In progress. Phase A1 (mtw-interfaces contract + validator lock) landed; next step is Phase A2 (Acme enrich authoring + actions acceptance).
+**Status:** In progress. Phases A1 through A3 are complete; next step is Phase A4 (hypothesis flow-through to planSelect).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -91,10 +91,10 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Ensure publish payload validation accepts structured `affordancesProvided` via `CoyoteTropeAffinity` validators.
   - [X] Add tests in actions package for acceptance/rejection behavior and mixed affordance-field payloads.
 
-- [ ] Phase A3 - persistence and snapshot threading
-  - [ ] Confirm order-to-room-object persistence carries `affordancesProvided` unchanged.
-  - [ ] Keep existing room filtering behavior for `environmentAffordances`; do not drop `affordancesProvided` unless explicitly required.
-  - [ ] Add regression tests around `handleApiObjectsChange` and snapshot serialization to verify round-trip persistence.
+- [X] Phase A3 - persistence and snapshot threading
+  - [X] Confirm order-to-room-object persistence carries `affordancesProvided` unchanged.
+  - [X] Keep existing room filtering behavior for `environmentAffordances`; do not drop `affordancesProvided` unless explicitly required.
+  - [X] Add regression tests around `handleApiObjectsChange` and snapshot serialization to verify round-trip persistence.
 
 - [ ] Phase A4 - hypothesis flow-through to planSelect
   - [ ] Preserve `affordancesProvided` in stage-one snapshot consumption used by candidate creation.
@@ -147,6 +147,6 @@ npx jest dataSource/coyoteGame/ dataSource/actions/ dataSource/objects/
 | Plan drafted with assumptions and boundaries | Done |
 | A1 contract + validator lock | Done |
 | A2 Acme enrich + actions acceptance | Done |
-| A3 persistence + snapshot threading | Not started |
+| A3 persistence + snapshot threading | Done (regressions in `handleApiObjectsChange.test.ts`, `serializeStagedObjectsForCandidatePrompt.test.ts`) |
 | A4 candidate -> planSelect flow-through | Not started |
 | A5 docs/tests closeout | Not started |
