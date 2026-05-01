@@ -53,7 +53,7 @@ const stageOneSeamBody = JSON.stringify({
     ],
 })
 
-const hop1PlanSelectionBody = [
+const planSelectOutputBody = [
     '## Intent conflicts',
     '- candidate-1 may misread intent: trigger timing remains coarse.',
     '',
@@ -227,7 +227,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         })
         planSelectionMock.mockResolvedValue({
             success: true,
-            body: hop1PlanSelectionBody,
+            body: planSelectOutputBody,
             usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
         })
         phasePlanHopMock.mockResolvedValue({
@@ -332,7 +332,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
                 injectState: {
                     roomObjectsByRoom: inject.roomObjectsByRoom,
                     combined: inject.combined,
-                    hop1Handoff: inject.hop1Handoff,
+                    planSelectOutput: inject.planSelectOutput,
                 },
             }
         )

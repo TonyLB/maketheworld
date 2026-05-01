@@ -7,7 +7,7 @@ import type {
     CoyoteHarnessPhasePlanInject,
     CoyoteHarnessPlanSelectInject,
 } from '../pipelines/hypothesis/coyoteHarnessInjectTypes'
-import type { CoyoteHop1Handoff } from '../pipelines/hypothesis/planSelect/coyoteHop1Handoff'
+import type { PlanSelectOutput } from '../pipelines/hypothesis/planSelect/parsePlanSelectOutput'
 import { parseCandidateOutput } from '../pipelines/hypothesis/candidates/parseCandidateOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../utilities/coyoteRoomObjectSnapshot'
 
@@ -150,13 +150,13 @@ function buildFixture01PlanSelectInject(): CoyoteHarnessPlanSelectInject {
 }
 
 const FIXTURE_01_PLAN_SELECT_INJECT = buildFixture01PlanSelectInject()
-const FIXTURE_01_PHASE_PLAN_HANDOFF: CoyoteHop1Handoff = {
+const FIXTURE_01_PHASE_PLAN_HANDOFF: PlanSelectOutput = {
     paragraphSummary: 'Conflict review favors candidate-1: lock a single Contraption-first lane using the straightaway rocket setup, then carry that same lane through the terminal beat with no prop-role conflicts.',
     planIssues: [],
 }
 const FIXTURE_01_PHASE_PLAN_INJECT: CoyoteHarnessPhasePlanInject = {
     ...FIXTURE_01_PLAN_SELECT_INJECT,
-    hop1Handoff: FIXTURE_01_PHASE_PLAN_HANDOFF,
+    planSelectOutput: FIXTURE_01_PHASE_PLAN_HANDOFF,
 }
 
 function buildPlanSelectInjectFromGoldenSeam(args: {
@@ -850,7 +850,7 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
     }),
 }
 
-const HOP1_HANDOFF_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id'], CoyoteHop1Handoff>> = {
+const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id'], PlanSelectOutput>> = {
     'fixture-02': {
         paragraphSummary: 'Choose candidate-1: keep birdseed lure timing aligned to the cliffside lever release so setup and payoff stay in one lane.',
         planIssues: [],
@@ -991,13 +991,13 @@ for (const fixture of COYOTE_ENGINE_TEST_FIXTURES) {
     if (fixture.planSelectInject === undefined) {
         continue
     }
-    const hop1Handoff = HOP1_HANDOFF_GOLDEN_BY_FIXTURE_ID[fixture.id]
-    if (hop1Handoff === undefined) {
+    const planSelectOutput = PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID[fixture.id]
+    if (planSelectOutput === undefined) {
         continue
     }
     fixture.phasePlanInject = {
         ...fixture.planSelectInject,
-        hop1Handoff,
+        planSelectOutput,
     }
 }
 

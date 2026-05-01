@@ -8,22 +8,22 @@ import type {
     PlanSelectCombinedTropeAssignment,
 } from '../candidates/combineCandidateOutput'
 
-/** Canonical JSON keys for hop-1 handoff (plan selection to phase-plan). */
-export const COYOTE_HOP1_HANDOFF_JSON_KEYS = {
+/** Canonical JSON keys for planSelect output (plan selection to phase-plan). */
+export const PLAN_SELECT_OUTPUT_JSON_KEYS = {
     paragraphSummary: 'paragraphSummary',
     planIssues: 'planIssues',
     selectedCandidate: 'selectedCandidate',
 } as const
 
-export type SelectedCandidateMember = PlanSelectCombinedMember
-export type SelectedCandidateOutlier = PlanSelectCombinedOutlier
-export type SelectedCandidateTropeAssignment = PlanSelectCombinedTropeAssignment
-export type SelectedCandidate = PlanSelectCombinedCandidate
+export type PlanSelectWinningCandidateMember = PlanSelectCombinedMember
+export type PlanSelectWinningCandidateOutlier = PlanSelectCombinedOutlier
+export type PlanSelectWinningCandidateTropeAssignment = PlanSelectCombinedTropeAssignment
+export type PlanSelectWinningCandidate = PlanSelectCombinedCandidate
 
-export type CoyoteHop1Handoff = {
+export type PlanSelectOutput = {
     paragraphSummary: string
     planIssues: PlanIssue[]
-    selectedCandidate?: SelectedCandidate
+    selectedCandidate?: PlanSelectWinningCandidate
 }
 
 export type PlanIssueIntentSignalCode =
@@ -43,11 +43,11 @@ export type PlanIssue = {
     evidence?: string[]
 }
 
-export type ParseHop1HandoffResult =
-    | { ok: true; handoff: CoyoteHop1Handoff }
+export type ParsePlanSelectOutputResult =
+    | { ok: true; handoff: PlanSelectOutput }
     | { ok: false; reason: string }
 
-type ParseHop1HandoffFailure = { ok: false; reason: string }
+type ParsePlanSelectOutputFailure = { ok: false; reason: string }
 
 const REQUIRED_SECTION_HEADINGS = [
     'Intent conflicts',
@@ -55,8 +55,8 @@ const REQUIRED_SECTION_HEADINGS = [
 ] as const
 
 const REQUIRED_KEYS = new Set<string>([
-    COYOTE_HOP1_HANDOFF_JSON_KEYS.paragraphSummary,
-    COYOTE_HOP1_HANDOFF_JSON_KEYS.planIssues,
+    PLAN_SELECT_OUTPUT_JSON_KEYS.paragraphSummary,
+    PLAN_SELECT_OUTPUT_JSON_KEYS.planIssues,
 ])
 
 const PLAN_ISSUE_INTENT_SIGNAL_CODES = new Set<PlanIssueIntentSignalCode>([
@@ -91,7 +91,7 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
     return typeof v === 'object' && v !== null && !Array.isArray(v)
 }
 
-function validatePlanIssueRow(row: unknown, rowIndex: number): ParseHop1HandoffFailure | null {
+function validatePlanIssueRow(row: unknown, rowIndex: number): ParsePlanSelectOutputFailure | null {
     if (!isPlainObject(row)) {
         return { ok: false, reason: `planIssues[${rowIndex}] must be a plain object` }
     }
@@ -121,10 +121,10 @@ function validatePlanIssueRow(row: unknown, rowIndex: number): ParseHop1HandoffF
     return null
 }
 
-function validateSelectedCandidateMemberRow(
+function validatePlanSelectWinningCandidateMemberRow(
     row: unknown,
     reasonPath: string
-): { ok: true; member: SelectedCandidateMember } | ParseHop1HandoffFailure {
+): { ok: true; member: PlanSelectWinningCandidateMember } | ParsePlanSelectOutputFailure {
     if (!isPlainObject(row)) {
         return { ok: false, reason: `${reasonPath} must be a plain object` }
     }
@@ -151,10 +151,10 @@ function validateSelectedCandidateMemberRow(
     }
 }
 
-function validateSelectedCandidateOutlierRow(
+function validatePlanSelectWinningCandidateOutlierRow(
     row: unknown,
     reasonPath: string
-): { ok: true; outlier: SelectedCandidateOutlier } | ParseHop1HandoffFailure {
+): { ok: true; outlier: PlanSelectWinningCandidateOutlier } | ParsePlanSelectOutputFailure {
     if (!isPlainObject(row)) {
         return { ok: false, reason: `${reasonPath} must be a plain object` }
     }
@@ -177,9 +177,9 @@ function validateSelectedCandidateOutlierRow(
     }
 }
 
-function validateSelectedCandidate(
+function validatePlanSelectWinningCandidate(
     raw: unknown
-): { ok: true; selectedCandidate: SelectedCandidate } | ParseHop1HandoffFailure {
+): { ok: true; selectedCandidate: PlanSelectWinningCandidate } | ParsePlanSelectOutputFailure {
     if (!isPlainObject(raw)) {
         return { ok: false, reason: 'selectedCandidate must be a plain object' }
     }
@@ -192,7 +192,7 @@ function validateSelectedCandidate(
     if (!Array.isArray(raw.tropeAssignments)) {
         return { ok: false, reason: 'selectedCandidate.tropeAssignments must be an array' }
     }
-    const narrowedTropeAssignments: SelectedCandidateTropeAssignment[] = []
+    const narrowedTropeAssignments: PlanSelectWinningCandidateTropeAssignment[] = []
     for (let i = 0; i < raw.tropeAssignments.length; i += 1) {
         const tropeAssignment = raw.tropeAssignments[i]
         if (!isPlainObject(tropeAssignment)) {
@@ -207,9 +207,9 @@ function validateSelectedCandidate(
         if (!Array.isArray(tropeAssignment.members)) {
             return { ok: false, reason: `selectedCandidate.tropeAssignments[${i}].members must be an array` }
         }
-        const narrowedMembers: SelectedCandidateMember[] = []
+        const narrowedMembers: PlanSelectWinningCandidateMember[] = []
         for (let j = 0; j < tropeAssignment.members.length; j += 1) {
-            const memberResult = validateSelectedCandidateMemberRow(
+            const memberResult = validatePlanSelectWinningCandidateMemberRow(
                 tropeAssignment.members[j],
                 `selectedCandidate.tropeAssignments[${i}].members[${j}]`
             )
@@ -227,9 +227,9 @@ function validateSelectedCandidate(
     if (!Array.isArray(raw.outliers)) {
         return { ok: false, reason: 'selectedCandidate.outliers must be an array' }
     }
-    const narrowedOutliers: SelectedCandidateOutlier[] = []
+    const narrowedOutliers: PlanSelectWinningCandidateOutlier[] = []
     for (let i = 0; i < raw.outliers.length; i += 1) {
-        const outlierResult = validateSelectedCandidateOutlierRow(
+        const outlierResult = validatePlanSelectWinningCandidateOutlierRow(
             raw.outliers[i],
             `selectedCandidate.outliers[${i}]`
         )
@@ -249,7 +249,7 @@ function validateSelectedCandidate(
     }
 }
 
-function narrowHandoff(parsed: unknown): ParseHop1HandoffResult {
+function narrowHandoff(parsed: unknown): ParsePlanSelectOutputResult {
     if (!isPlainObject(parsed)) {
         return { ok: false, reason: 'handoff JSON must be a plain object' }
     }
@@ -280,9 +280,9 @@ function narrowHandoff(parsed: unknown): ParseHop1HandoffResult {
             evidence: row.evidence,
         })
     }
-    let selectedCandidate: SelectedCandidate | undefined
+    let selectedCandidate: PlanSelectWinningCandidate | undefined
     if (selectedCandidateRaw !== undefined) {
-        const selectedCandidateValidation = validateSelectedCandidate(selectedCandidateRaw)
+        const selectedCandidateValidation = validatePlanSelectWinningCandidate(selectedCandidateRaw)
         if (!selectedCandidateValidation.ok) {
             return selectedCandidateValidation
         }
@@ -315,25 +315,25 @@ function missingRequiredSections(raw: string): string[] {
 }
 
 function logParseFailureWithRawBody(reason: string, raw: string): void {
-    hypothesisDebugLog('hop1 handoff parse failed', {
+    hypothesisDebugLog('planSelect output parse failed', {
         reason,
         selectionBodyRaw: raw,
     })
 }
 
 /**
- * Parses hop-1 plan-selection assistant output for the trailing **` ```json `** handoff block.
+ * Parses planSelect assistant output for the trailing **` ```json `** handoff block.
  * Uses the **last** fence whose language tag is **`json`** (case-insensitive).
  */
-export function parseHop1HandoffFromSelectionBody(raw: string): ParseHop1HandoffResult {
+export function parsePlanSelectOutput(raw: string): ParsePlanSelectOutputResult {
     const missingSections = missingRequiredSections(raw)
     if (missingSections.length > 0) {
-        hypothesisDebugLog('hop1 handoff parse warning: missing markdown sections (continuing with json handoff)', {
+        hypothesisDebugLog('planSelect output parse warning: missing markdown sections (continuing with json handoff)', {
             missingSections,
         })
     }
     const blocks = findAllFenceBlocks(raw)
-    hypothesisDebugLog('hop1 handoff parse: scanned fenced blocks', {
+    hypothesisDebugLog('planSelect output parse: scanned fenced blocks', {
         blockCount: blocks.length,
         blockLangs: blocks.map((block) => block.lang),
     })
@@ -360,7 +360,7 @@ export function parseHop1HandoffFromSelectionBody(raw: string): ParseHop1Handoff
         logParseFailureWithRawBody(narrowed.reason, raw)
         return narrowed
     }
-    hypothesisDebugLog('hop1 handoff parse succeeded', {
+    hypothesisDebugLog('planSelect output parse succeeded', {
         planIssueCount: narrowed.handoff.planIssues.length,
     })
     return narrowed

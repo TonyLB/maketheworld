@@ -12,13 +12,13 @@ import {
     COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
     coyoteSeamRoomMappingLines,
 } from '../coyoteHypothesisPromptShared'
-import type { CoyoteHop1Handoff } from '../planSelect/coyoteHop1Handoff'
+import type { PlanSelectOutput } from '../planSelect/parsePlanSelectOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
 
 export type BuildHypothesisPhasePlanHopPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
     combined: CombineCandidateOutputReturn
-    hop1Handoff: CoyoteHop1Handoff
+    planSelectOutput: PlanSelectOutput
 }
 
 const PHASE_PLAN_HOP_INTRO = [
@@ -92,7 +92,7 @@ const SCENE_ANALYSIS_AND_FENCED_HYPOTHESIS_LINES = [
     '- The **final** ```text fence must contain **only** the Hypothesis line so parsers can slice it reliably.',
 ] as const
 
-function formatHop1HandoffBlock(handoff: CoyoteHop1Handoff): string {
+function formatPlanSelectOutputBlock(handoff: PlanSelectOutput): string {
     const issues =
         handoff.planIssues.length > 0
             ? handoff.planIssues.map((issue) => {
@@ -151,7 +151,7 @@ export function buildHypothesisPhasePlanHopPromptParts(
         input.roomObjectsByRoom
     )
     const seamRoomMappingBlock = coyoteSeamRoomMappingLines(input.roomObjectsByRoom).join('\n')
-    const handoffBlock = formatHop1HandoffBlock(input.hop1Handoff)
+    const handoffBlock = formatPlanSelectOutputBlock(input.planSelectOutput)
     const invariantPrefix = [
         ...PHASE_PLAN_HOP_INTRO,
         '',

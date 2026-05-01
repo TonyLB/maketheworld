@@ -314,7 +314,7 @@ export function serializePlanSelectCandidateInput(
     return JSON.stringify(payload)
 }
 
-/** Enriched outlier rows for a combined candidate (e.g. hop-1 rehydrate from combine). */
+/** Enriched outlier rows for a combined candidate (e.g. planSelect output rehydrate from combine). */
 export function planSelectOutliersForCandidate(
     candidate: CombinedTropeCandidate,
     roomObjectsByRoom: CoyoteRoomObjectsByRoom

@@ -39,7 +39,7 @@ const stageOneSeamBody = JSON.stringify({
 })
 
 /** Hop 1 --- rubric narrative + trailing ` ```json ` handoff for hop 2. */
-const hop1PlanSelectionBody = [
+const planSelectOutputBody = [
     '## Intent conflicts',
     '- candidate-1 may misread intent: launch timing needs tighter trigger specificity.',
     '',
@@ -138,7 +138,7 @@ describe('generateHypothesis', () => {
         })
         planSelectionMock.mockResolvedValue({
             success: true,
-            body: hop1PlanSelectionBody,
+            body: planSelectOutputBody,
             usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
         })
         phasePlanHopMock.mockResolvedValue({
@@ -305,7 +305,7 @@ describe('generateHypothesis', () => {
         expect(phasePlanHopMock).not.toHaveBeenCalled()
     })
 
-    it('falls back to stub when hop-1 handoff JSON parse fails', async () => {
+    it('falls back to stub when planSelect output JSON parse fails', async () => {
         planSelectionMock.mockResolvedValue({
             success: true,
             body: 'No json fence here.',
@@ -318,7 +318,7 @@ describe('generateHypothesis', () => {
         expect(phasePlanHopMock).not.toHaveBeenCalled()
     })
 
-    it('continues when hop-1 rubric markdown section is missing but handoff JSON is valid', async () => {
+    it('continues when planSelect rubric markdown section is missing but output JSON is valid', async () => {
         planSelectionMock.mockResolvedValue({
             success: true,
             body: [

@@ -205,7 +205,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
     - Stage-one clustering seam is now strict-first in parser and prompt contract language: root keys limited to `clusters` / optional `outliers` / optional `notes`, cluster keys limited to `clusterName` + `members`, and member keys limited to `stableKey` + optional compatibility/debug `intendedRole`.
     - Plan-selection handoff parser now enforces required typed minimum keys (`paragraphSummary`, `rubricIssues`) while tolerating additional keys; malformed required-key payloads still abort to stub via existing pipeline failure routing.
     - Phase-plan seam keeps the current `validateCoyotePhasePlan` baseline and prose-preserving fallback behavior; prompt wording now explicitly instructs models to still emit complete scene-analysis + hypothesis prose when JSON details are uncertain.
-    - Harness contract authority now includes fixture-01 phase-plan run-only inject state (`roomObjectsByRoom`, `combinedMarkdown`, `hop1Handoff`) alongside existing plan-selection inject data, so downstream hop rewrites can target stable fixture-backed parser seams.
+    - Harness contract authority now includes fixture-01 phase-plan run-only inject state (`roomObjectsByRoom`, `combinedMarkdown`, `planSelectOutput`) alongside existing plan-selection inject data, so downstream hop rewrites can target stable fixture-backed parser seams.
 
 - [X] Phase 3B - hypothesis `clustering` rework
   - [X] Rework `clustering` into candidate trope assignments with provisional object-to-trope grouping and first-draft execution detail.
@@ -233,7 +233,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
     - Phase-plan JSON contract now encodes final selection shape directly: required root keys `tropeSequence`, `deconflictionSummary`, and `phases`, where `tropeSequence` is unique and canonical-order constrained (`Contraption` -> `Distraction` -> `Disadvantage` -> `Finishing Move`) and `phases` are index-aligned trope beats.
     - Each phase now carries trope-beat structure (`trope`, `tropeBeat`, `stableKeysUsed`, `virtualEntities`, `achievement`, optional `prepVsBeat`) so downstream consumers can preserve second-draft detail and render beat-by-beat execution outlines.
     - Prompt + parser fallback policy remains stable: hop-2 prompt now requires trope-sequence deconfliction and beat-ordered scene analysis, while parse flow still preserves prose `intent`/`walkthrough` with `phasePlanValidationReason` whenever structured JSON fails validation.
-    - Harness fixture authority is re-frozen for phase-plan entry (`fixture-01` `phasePlanInject.hop1Handoff`) with deconfliction and beat-order language aligned to the new 3D contract.
+    - Harness fixture authority is re-frozen for phase-plan entry (`fixture-01` `phasePlanInject.planSelectOutput`) with deconfliction and beat-order language aligned to the new 3D contract.
 
 - [X] Phase 4A - outcome pipeline alignment
   - [X] Align **`buildPlanOutcomePrompt`** / **`formatPhasePlanForOutcomePrompt`** with assembled trope sequence + walk-through from Phase 3D contracts.

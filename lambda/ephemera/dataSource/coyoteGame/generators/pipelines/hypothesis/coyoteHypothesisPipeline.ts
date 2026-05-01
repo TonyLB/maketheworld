@@ -10,7 +10,7 @@ import {
 } from '../../../../../llm/pipeline';
 
 import { buildHypothesisPhasePlanHopPromptParts } from './narrativeBeats/buildHypothesisPhasePlanHopPromptParts';
-import { buildHypothesisPlanSelectionPromptParts } from './planSelect/buildHypothesisPlanSelectionPromptParts';
+import { buildPlanSelectPrompt } from './planSelect/buildPlanSelectPrompt';
 import { buildCandidatePrompt } from './candidates/buildCandidatePrompt';
 import {
     combineCandidateOutput,
@@ -18,7 +18,7 @@ import {
     type CombineCandidateOutputReturn,
 } from './candidates/combineCandidateOutput';
 import type { CoyoteHarnessPhasePlanInject, CoyoteHarnessPlanSelectInject } from './coyoteHarnessInjectTypes';
-import { parseHop1HandoffFromSelectionBody, type CoyoteHop1Handoff } from './planSelect/coyoteHop1Handoff';
+import { parsePlanSelectOutput, type PlanSelectOutput } from './planSelect/parsePlanSelectOutput';
 import { buildCoyotePhasePlanValidationContext } from './narrativeBeats/coyoteHypothesisPhasePlanContext';
 import { loadCoyoteRoomObjectsByRoom, type CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot';
 import {
@@ -36,7 +36,7 @@ import { hypothesisDebugLog } from '../../../utilities/hypothesisDebug';
 
 /**
  * Failure policy: Bedrock failure on Stage One, plan-selection hop, or phase-plan hop; invalid seam / combine;
- * or hop-1 handoff parse failure yields stub intent only --- no partial hypothesis to players.
+ * or planSelect output parse failure yields stub intent only --- no partial hypothesis to players.
  * Hop-2 phase-plan JSON validation failure does **not** abort when prose Hypothesis still parses (**Decided: structured validation failure**).
  */
 
@@ -110,7 +110,7 @@ export type CoyoteHypothesisPipelineState = {
     stageOneResult?: InvokeBedrockHypothesisResult;
     planSelectionResult?: InvokeBedrockHypothesisResult | null;
     phasePlanHopResult?: InvokeBedrockHypothesisResult | null;
-    hop1Handoff?: CoyoteHop1Handoff;
+    planSelectOutput?: PlanSelectOutput;
     selectionBody?: string;
     phasePlanJson?: string;
     phasePlanValidationReason?: string;
@@ -163,13 +163,13 @@ function assertRunOnlyInjectPhasePlan(
     inject: Partial<CoyoteHypothesisPipelineState> | undefined
 ): CoyoteHarnessPhasePlanInject {
     const base = assertRunOnlyInjectPlanSelect(inject);
-    const hop1Handoff = inject?.hop1Handoff;
-        if (!hop1Handoff) {
+    const planSelectOutput = inject?.planSelectOutput;
+        if (!planSelectOutput) {
         throw new Error(
-            'CoyoteHypothesisPipeline: runOnly phasePlan requires injectState with hop1Handoff, roomObjectsByRoom, and combined'
+            'CoyoteHypothesisPipeline: runOnly phasePlan requires injectState with planSelectOutput, roomObjectsByRoom, and combined'
         );
     }
-    return { ...base, hop1Handoff };
+    return { ...base, planSelectOutput };
 }
 
 export function validateCoyoteHypothesisHarnessOptions(options: CoyoteHypothesisPipelineHarnessOptions): void {
@@ -269,7 +269,7 @@ function buildCoyoteHypothesisSteps(
                 if (!roomObjectsByRoom || combined === undefined) {
                     throw new Error('CoyoteHypothesisPipeline: hypothesisPlanSelectionLlm preconditions');
                 }
-                const parts = buildHypothesisPlanSelectionPromptParts({
+                const parts = buildPlanSelectPrompt({
                     roomObjectsByRoom,
                     combined,
                 });
@@ -292,7 +292,7 @@ function buildCoyoteHypothesisSteps(
                     throw new Error('CoyoteHypothesisPipeline: parsePlanSelectionHandoff preconditions');
                 }
                 draft.selectionBody = planSelectionResult.body;
-                const handoff = parseHop1HandoffFromSelectionBody(planSelectionResult.body);
+                const handoff = parsePlanSelectOutput(planSelectionResult.body);
                 if (!handoff.ok) {
                     hypothesisDebugLog('aborting hypothesis pipeline', {
                         reason: 'planSelectionHandoffParseFailed',
@@ -300,13 +300,13 @@ function buildCoyoteHypothesisSteps(
                     });
                     abort();
                 }
-                let hop1Handoff = handoff.handoff;
-                const selected = hop1Handoff.selectedCandidate;
+                let planSelectOutput = handoff.handoff;
+                const selected = planSelectOutput.selectedCandidate;
                 if (selected) {
                     const matched = combined.candidates.find((c) => c.candidateId === selected.candidateId);
                     if (matched) {
-                        hop1Handoff = {
-                            ...hop1Handoff,
+                        planSelectOutput = {
+                            ...planSelectOutput,
                             selectedCandidate: {
                                 ...selected,
                                 outliers: planSelectOutliersForCandidate(matched, roomObjectsByRoom),
@@ -314,7 +314,7 @@ function buildCoyoteHypothesisSteps(
                         };
                     }
                 }
-                draft.hop1Handoff = hop1Handoff;
+                draft.planSelectOutput = planSelectOutput;
             },
         }),
         ctx.defineLlmStep({
@@ -322,14 +322,14 @@ function buildCoyoteHypothesisSteps(
             run: async (draft) => {
                 const roomObjectsByRoom = draft.roomObjectsByRoom;
                 const combined = draft.combined;
-                const handoff = draft.hop1Handoff;
+                const handoff = draft.planSelectOutput;
                 if (!roomObjectsByRoom || combined === undefined || !handoff) {
                     throw new Error('CoyoteHypothesisPipeline: hypothesisPhasePlanHopLlm preconditions');
                 }
                 const parts = buildHypothesisPhasePlanHopPromptParts({
                     roomObjectsByRoom,
                     combined,
-                    hop1Handoff: handoff,
+                    planSelectOutput: handoff,
                 });
                 const phasePlanHopResult = await invokeBedrockHypothesisPhasePlanHop(parts);
                 draft.phasePlanHopResult = phasePlanHopResult;
@@ -525,7 +525,7 @@ function initialStateForRunOnly(
     return {
         roomObjectsByRoom: inject.roomObjectsByRoom,
         combined: inject.combined,
-        hop1Handoff: inject.hop1Handoff,
+        planSelectOutput: inject.planSelectOutput,
     };
 }
 

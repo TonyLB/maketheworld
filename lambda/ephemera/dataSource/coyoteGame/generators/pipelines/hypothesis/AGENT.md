@@ -20,7 +20,7 @@ This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock
 ## Layout
 
 - `candidates/`: stage-one clustering prompt/parse/combine modules.
-- `planSelect/`: plan-selection prompt and hop-1 handoff contract/parser.
+- `planSelect/`: plan-selection prompt and planSelect output contract/parser.
 - `narrativeBeats/`: phase-plan prompt/context modules (formerly phasePlan/stageTwo naming).
 - Parent `hypothesis/`: orchestration, entrypoints, Bedrock wrapper, and shared prompt/harness types.
 
@@ -32,8 +32,8 @@ This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock
 - [`candidates/buildCandidatePrompt.ts`](candidates/buildCandidatePrompt.ts): stage-one prompt parts.
 - [`candidates/parseCandidateOutput.ts`](candidates/parseCandidateOutput.ts): stage-one seam parsing and validation.
 - [`candidates/combineCandidateOutput.ts`](candidates/combineCandidateOutput.ts): combine and render candidate output for later hops.
-- [`planSelect/buildHypothesisPlanSelectionPromptParts.ts`](planSelect/buildHypothesisPlanSelectionPromptParts.ts): plan-selection prompt builder.
-- [`planSelect/coyoteHop1Handoff.ts`](planSelect/coyoteHop1Handoff.ts): extracts hop-1 handoff contract.
+- [`planSelect/buildPlanSelectPrompt.ts`](planSelect/buildPlanSelectPrompt.ts): plan-selection prompt builder.
+- [`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts): extracts planSelect output contract.
 - [`narrativeBeats/buildHypothesisPhasePlanHopPromptParts.ts`](narrativeBeats/buildHypothesisPhasePlanHopPromptParts.ts): phase-plan prompt builder.
 
 ## Contracts and boundaries
@@ -44,7 +44,7 @@ This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock
 
 ## Hop-1 handoff (`planIssues`) contract
 
-Authority for plan-selection to phase-plan handoff shape is [`planSelect/coyoteHop1Handoff.ts`](planSelect/coyoteHop1Handoff.ts).
+Authority for plan-selection to phase-plan handoff shape is [`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts).
 
 - Required JSON keys are `paragraphSummary` and `planIssues`.
 - `planIssues` rows are structured objects with required `code` and `summary`, plus optional `evidence: string[]`.
@@ -58,7 +58,7 @@ Parser safety posture:
 - Reject unknown codes and malformed rows with row-scoped reasons (`planIssues[index] ...`).
 - Require well-typed `paragraphSummary`, `planIssues`, `code`, and `summary`.
 - Keep extra keys tolerant in v1 as long as required keys remain present and valid.
-- Unknown top-level keys on the parsed JSON object may be tolerated at parse time; downstream consumption uses a **narrowed** authoritative handoff object produced by [`planSelect/coyoteHop1Handoff.ts`](planSelect/coyoteHop1Handoff.ts) (non-authoritative keys are dropped deterministically).
+- Unknown top-level keys on the parsed JSON object may be tolerated at parse time; downstream consumption uses a **narrowed** authoritative handoff object produced by [`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts) (non-authoritative keys are dropped deterministically).
 
 ### Optional `selectedCandidate` (structured winner)
 
@@ -68,7 +68,7 @@ Parser safety posture:
 ### Plan-selection hop (single invocation)
 
 - Production still uses **one** Bedrock call for plan-selection; internal multi-phase reasoning is expressed **inside** that prompt (explicit phase order and markdown sections), not as separate pipeline steps.
-- Prompt authority: [`planSelect/buildHypothesisPlanSelectionPromptParts.ts`](planSelect/buildHypothesisPlanSelectionPromptParts.ts). The **trailing** fenced JSON handoff block (the last `json` code fence in the model output) is the artifact consumed by the hop-1 parser for downstream use.
+- Prompt authority: [`planSelect/buildPlanSelectPrompt.ts`](planSelect/buildPlanSelectPrompt.ts). The **trailing** fenced JSON handoff block (the last `json` code fence in the model output) is the artifact consumed by the planSelect output parser for downstream use.
 
 ### Phase-plan consumption
 

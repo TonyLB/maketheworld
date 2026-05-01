@@ -2,7 +2,7 @@ import { buildHypothesisPhasePlanHopPromptParts } from './buildHypothesisPhasePl
 import { harnessRoomObjects } from '../../../testHarness/coyoteEngineTestFixtures'
 
 describe('buildHypothesisPhasePlanHopPromptParts', () => {
-    it('embeds hop-1 handoff and combined clustering Markdown from combined payload', () => {
+    it('embeds planSelect output and combined clustering Markdown from combined payload', () => {
         const parts = buildHypothesisPhasePlanHopPromptParts({
             roomObjectsByRoom: { 'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']) },
             combined: {
@@ -21,7 +21,7 @@ describe('buildHypothesisPhasePlanHopPromptParts', () => {
                     },
                 ],
             },
-            hop1Handoff: {
+            planSelectOutput: {
                 paragraphSummary: 'Summary line.',
                 planIssues: [{ code: 'ROLE_CONFLICT', summary: 'gap a' }],
             },
@@ -67,7 +67,7 @@ describe('buildHypothesisPhasePlanHopPromptParts', () => {
                     outliers: [],
                 }],
             },
-            hop1Handoff: {
+            planSelectOutput: {
                 paragraphSummary: 'Summary line.',
                 planIssues: [{ code: 'ROLE_CONFLICT', summary: 'gap a' }],
             },
@@ -93,7 +93,7 @@ describe('buildHypothesisPhasePlanHopPromptParts', () => {
                     outliers: [],
                 }],
             },
-            hop1Handoff: {
+            planSelectOutput: {
                 paragraphSummary: 'Summary line.',
                 planIssues: [{ code: 'ROLE_CONFLICT', summary: 'gap a' }],
                 selectedCandidate: {

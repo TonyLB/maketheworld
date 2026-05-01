@@ -45,8 +45,8 @@ Hypothesis generation chain:
 
 Plan-selection to phase-plan handoff semantics are documented in
 [`generators/pipelines/hypothesis/AGENT.md`](generators/pipelines/hypothesis/AGENT.md) under
-the hop-1 contract (including optional structured `selectedCandidate`, residual `planIssues`, and legacy fallback), with parser/type authority in
-[`generators/pipelines/hypothesis/planSelect/coyoteHop1Handoff.ts`](generators/pipelines/hypothesis/planSelect/coyoteHop1Handoff.ts).
+the planSelect output contract (including optional structured `selectedCandidate`, residual `planIssues`, and legacy fallback), with parser/type authority in
+[`generators/pipelines/hypothesis/planSelect/parsePlanSelectOutput.ts`](generators/pipelines/hypothesis/planSelect/parsePlanSelectOutput.ts).
 
 ## Await RoadRunner (outcome path)
 
@@ -88,13 +88,13 @@ Make The World uses canonical `EphemeraRoomId` values (for example `ROOM#VORTEX`
 
 **One-way contract**
 
-We intentionally do **not** resolve seam labels back to `EphemeraRoomId`. Pipeline parsing keys objects by `stableKey`; hop-1 `selectedCandidate.members[].room` is a free string; phase-plan `derivedFrom` tokens are validated against an allowlist, not mapped into room rows.
+We intentionally do **not** resolve seam labels back to `EphemeraRoomId`. Pipeline parsing keys objects by `stableKey`; planSelect output `selectedCandidate.members[].room` is a free string; phase-plan `derivedFrom` tokens are validated against an allowlist, not mapped into room rows.
 
 **If you add backward-reference later (label -> id), expect**
 
 1. **Bijection or primary key** - overrides must not map two canonical ids to the same label without an explicit disambiguation rule.
 2. **Legacy tokens** - models or fixtures may still say `VORTEX`; `normalizeSeamRoomLabelToken` maps legacy strip + new seam to one token for validators; a reverse map must accept the same set and reject unknowns.
-3. **Hop-1 handoff** - [`generators/pipelines/hypothesis/planSelect/coyoteHop1Handoff.ts`](generators/pipelines/hypothesis/planSelect/coyoteHop1Handoff.ts) would need strict validation of `room` vs the snapshot-derived allowlist (today: type-only).
+3. **Hop-1 handoff** - [`generators/pipelines/hypothesis/planSelect/parsePlanSelectOutput.ts`](generators/pipelines/hypothesis/planSelect/parsePlanSelectOutput.ts) would need strict validation of `room` vs the snapshot-derived allowlist (today: type-only).
 4. **Phase-plan** - [`packages/mtw-interfaces/ts/coyotePhasePlan.ts`](packages/mtw-interfaces/ts/coyotePhasePlan.ts) mixes snapshot `stableKey`s, reserved `setting`, and topology strings in `derivedFrom`; you must disambiguate labels from stable keys before resolving to ids.
 5. **Tests / fixtures** - many literals; every boundary that should round-trip needs canonical-id assertions again.
 6. **Scope** - overrides are global constants today; per-asset worlds would need scoped maps before reverse lookup is safe.
@@ -131,8 +131,8 @@ Phase aliases: **`clustering`**, **`planSelect`**, **`phasePlan`** (map to LLM h
 
 **Fixtures and handoffs** ([`coyoteEngineTestFixtures.ts`](generators/testHarness/coyoteEngineTestFixtures.ts))
 
-- Each **`CoyoteEngineTestFixture`** has **`roomObjectsByRoom`** and optional **`planSelectInject`** / **`phasePlanInject`**. **`planSelectInject`** / **`phasePlanInject`** carry **`combined`** ([**`CombineCandidateOutputReturn`**](generators/pipelines/hypothesis/candidates/combineCandidateOutput.ts) from parse + combine) plus, for phase-plan, **`hop1Handoff`**. Rows are **sparse**: only defined **(fixture, boundary)** pairs are required; missing bundles for a requested **`runOnly`** **`planSelect`** / **`phasePlan`** fail fast with a clear operator-facing error (no synthesized inputs).
-- For `runOnly phasePlan`, fixture `hop1Handoff.planIssues` rows must use the structured contract (`code`, `summary`, optional `evidence`) and valid v1 allowlist codes defined in [`generators/pipelines/hypothesis/planSelect/coyoteHop1Handoff.ts`](generators/pipelines/hypothesis/planSelect/coyoteHop1Handoff.ts).
+- Each **`CoyoteEngineTestFixture`** has **`roomObjectsByRoom`** and optional **`planSelectInject`** / **`phasePlanInject`**. **`planSelectInject`** / **`phasePlanInject`** carry **`combined`** ([**`CombineCandidateOutputReturn`**](generators/pipelines/hypothesis/candidates/combineCandidateOutput.ts) from parse + combine) plus, for phase-plan, **`planSelectOutput`**. Rows are **sparse**: only defined **(fixture, boundary)** pairs are required; missing bundles for a requested **`runOnly`** **`planSelect`** / **`phasePlan`** fail fast with a clear operator-facing error (no synthesized inputs).
+- For `runOnly phasePlan`, fixture `planSelectOutput.planIssues` rows must use the structured contract (`code`, `summary`, optional `evidence`) and valid v1 allowlist codes defined in [`generators/pipelines/hypothesis/planSelect/parsePlanSelectOutput.ts`](generators/pipelines/hypothesis/planSelect/parsePlanSelectOutput.ts).
 
 Activation path in `actions`:
 

@@ -1,9 +1,9 @@
 import {
-    COYOTE_HOP1_HANDOFF_JSON_KEYS,
-    parseHop1HandoffFromSelectionBody,
-} from './coyoteHop1Handoff'
+    PLAN_SELECT_OUTPUT_JSON_KEYS,
+    parsePlanSelectOutput,
+} from './parsePlanSelectOutput'
 
-describe('parseHop1HandoffFromSelectionBody', () => {
+describe('parsePlanSelectOutput', () => {
     const requiredSections = [
         '## Intent conflicts',
         '- candidate-1 may misread player intent for the shared trigger timing.',
@@ -19,16 +19,16 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             '',
             '```json',
             JSON.stringify({
-                [COYOTE_HOP1_HANDOFF_JSON_KEYS.paragraphSummary]:
+                [PLAN_SELECT_OUTPUT_JSON_KEYS.paragraphSummary]:
                     'Use the cliff and anvil together in one trap.',
-                [COYOTE_HOP1_HANDOFF_JSON_KEYS.planIssues]: [{
+                [PLAN_SELECT_OUTPUT_JSON_KEYS.planIssues]: [{
                     code: 'OUTLIER_PROP_UNACCOUNTED',
                     summary: 'stableKey ROCK has no role yet',
                 }],
             }),
             '```',
         ].join('\n')
-        expect(parseHop1HandoffFromSelectionBody(raw)).toEqual({
+        expect(parsePlanSelectOutput(raw)).toEqual({
             ok: true,
             handoff: {
                 paragraphSummary: 'Use the cliff and anvil together in one trap.',
@@ -49,7 +49,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             paragraphSummary: 'Later handoff wins.',
             planIssues: [{ code: 'ROLE_CONFLICT', summary: 'gap' }],
         })}\n\`\`\``
-        const r = parseHop1HandoffFromSelectionBody(raw)
+        const r = parsePlanSelectOutput(raw)
         expect(r.ok && r.handoff.paragraphSummary).toBe('Later handoff wins.')
         expect(r.ok && r.handoff.planIssues).toEqual([{ code: 'ROLE_CONFLICT', summary: 'gap' }])
     })
@@ -84,7 +84,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             }),
             '```',
         ].join('\n')
-        expect(parseHop1HandoffFromSelectionBody(raw)).toEqual({
+        expect(parsePlanSelectOutput(raw)).toEqual({
             ok: true,
             handoff: {
                 paragraphSummary: 'Selected candidate-2: build a staged fake tunnel detour.',
@@ -113,7 +113,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
     })
 
     it('returns error when no ```json fence', () => {
-        const r = parseHop1HandoffFromSelectionBody(`${requiredSections.join('\n')}\n\n\`\`\`text\nplain\n\`\`\``)
+        const r = parsePlanSelectOutput(`${requiredSections.join('\n')}\n\n\`\`\`text\nplain\n\`\`\``)
         expect(r.ok).toBe(false)
         if (!r.ok) {
             expect(r.reason).toContain('json')
@@ -122,7 +122,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
 
     it('returns error on invalid JSON inside fence', () => {
         const raw = `${requiredSections.join('\n')}\n\n\`\`\`json\n{\n\`\`\``
-        const r = parseHop1HandoffFromSelectionBody(raw)
+        const r = parsePlanSelectOutput(raw)
         expect(r.ok).toBe(false)
         if (!r.ok) {
             expect(r.reason).toContain('invalid JSON')
@@ -131,14 +131,14 @@ describe('parseHop1HandoffFromSelectionBody', () => {
 
     it('returns error when required keys are missing', () => {
         expect(
-            parseHop1HandoffFromSelectionBody(
+            parsePlanSelectOutput(
                 `${requiredSections.join('\n')}\n\n\`\`\`json\n${JSON.stringify({ paragraphSummary: 'x' })}\n\`\`\``
             ).ok
         ).toBe(false)
     })
 
     it('keeps legacy handoff valid with only required v1 keys', () => {
-        const r = parseHop1HandoffFromSelectionBody(
+        const r = parsePlanSelectOutput(
             `${requiredSections.join('\n')}\n\n\`\`\`json\n${JSON.stringify({
                 paragraphSummary: 'Legacy summary still accepted.',
                 planIssues: [],
@@ -155,7 +155,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
 
     it('allows additional keys when required keys are present', () => {
         expect(
-            parseHop1HandoffFromSelectionBody(
+            parsePlanSelectOutput(
                 `${requiredSections.join('\n')}\n\n\`\`\`json\n${JSON.stringify({
                     paragraphSummary: 'x',
                     planIssues: [{
@@ -170,7 +170,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
     })
 
     it('accepts mixed legacy/new handoff fields with selectedCandidate plus tolerated extras', () => {
-        const r = parseHop1HandoffFromSelectionBody(
+        const r = parsePlanSelectOutput(
             `${requiredSections.join('\n')}\n\n\`\`\`json\n${JSON.stringify({
                 paragraphSummary: 'Selected candidate-1: keep the lane coherent.',
                 planIssues: [{ code: 'ROLE_CONFLICT', summary: 'clarify payload order' }],
@@ -221,7 +221,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
             JSON.stringify({ paragraphSummary: 'x', planIssues: [1, 2] }) +
             '\n```'
-        const r = parseHop1HandoffFromSelectionBody(raw)
+        const r = parsePlanSelectOutput(raw)
         expect(r.ok).toBe(false)
         if (!r.ok) {
             expect(r.reason).toContain('planIssues[0] must be a plain object')
@@ -233,7 +233,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
             JSON.stringify({ paragraphSummary: 'x', planIssues: [{ summary: 'missing code' }] }) +
             '\n```'
-        const r = parseHop1HandoffFromSelectionBody(raw)
+        const r = parsePlanSelectOutput(raw)
         expect(r.ok).toBe(false)
         if (!r.ok) {
             expect(r.reason).toContain('missing required key: code')
@@ -245,7 +245,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
             JSON.stringify({ paragraphSummary: 'x', planIssues: [{ code: 'NOT_REAL', summary: 'bad' }] }) +
             '\n```'
-        const r = parseHop1HandoffFromSelectionBody(raw)
+        const r = parsePlanSelectOutput(raw)
         expect(r.ok).toBe(false)
         if (!r.ok) {
             expect(r.reason).toContain('code must be one of')
@@ -257,7 +257,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
             JSON.stringify({ paragraphSummary: 'x', planIssues: [{ code: 'ROLE_CONFLICT' }] }) +
             '\n```'
-        const r = parseHop1HandoffFromSelectionBody(raw)
+        const r = parsePlanSelectOutput(raw)
         expect(r.ok).toBe(false)
         if (!r.ok) {
             expect(r.reason).toContain('missing required key: summary')
@@ -269,7 +269,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
             JSON.stringify({ paragraphSummary: 'x', planIssues: [{ code: 'ROLE_CONFLICT', summary: 1 }] }) +
             '\n```'
-        const r = parseHop1HandoffFromSelectionBody(raw)
+        const r = parsePlanSelectOutput(raw)
         expect(r.ok).toBe(false)
         if (!r.ok) {
             expect(r.reason).toContain('summary must be a string')
@@ -284,7 +284,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
                 planIssues: [{ code: 'ROLE_CONFLICT', summary: 'bad evidence', evidence: [1] }],
             }) +
             '\n```'
-        const r = parseHop1HandoffFromSelectionBody(raw)
+        const r = parsePlanSelectOutput(raw)
         expect(r.ok).toBe(false)
         if (!r.ok) {
             expect(r.reason).toContain('evidence must be an array of strings')
@@ -314,7 +314,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
                 },
             }) +
             '\n```'
-        const r = parseHop1HandoffFromSelectionBody(raw)
+        const r = parsePlanSelectOutput(raw)
         expect(r.ok).toBe(false)
         if (!r.ok) {
             expect(r.reason).toContain('selectedCandidate.tropeAssignments[0].members[0].tropeFunction must be a string')
@@ -335,7 +335,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
                 },
             }) +
             '\n```'
-        const r = parseHop1HandoffFromSelectionBody(raw)
+        const r = parsePlanSelectOutput(raw)
         expect(r.ok).toBe(false)
         if (!r.ok) {
             expect(r.reason).toContain('selectedCandidate.outliers[0].shortName must be a string')
@@ -352,7 +352,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             JSON.stringify({ paragraphSummary: 'x', planIssues: [] }),
             '```',
         ].join('\n')
-        expect(parseHop1HandoffFromSelectionBody(raw)).toEqual({
+        expect(parsePlanSelectOutput(raw)).toEqual({
             ok: true,
             handoff: { paragraphSummary: 'x', planIssues: [] },
         })
@@ -368,7 +368,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             JSON.stringify({ paragraphSummary: 'x', planIssues: [] }),
             '```',
         ].join('\n')
-        expect(parseHop1HandoffFromSelectionBody(raw)).toEqual({
+        expect(parsePlanSelectOutput(raw)).toEqual({
             ok: true,
             handoff: { paragraphSummary: 'x', planIssues: [] },
         })
@@ -389,7 +389,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             }),
             '```',
         ].join('\n')
-        expect(parseHop1HandoffFromSelectionBody(raw)).toEqual({
+        expect(parsePlanSelectOutput(raw)).toEqual({
             ok: true,
             handoff: {
                 paragraphSummary: 'Selected candidate-1: keep the staged lane and resolve mismatch.',
@@ -408,7 +408,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             JSON.stringify({ paragraphSummary: 'x', planIssues: [] }),
             '```',
         ].join('\n')
-        expect(parseHop1HandoffFromSelectionBody(raw)).toEqual({
+        expect(parsePlanSelectOutput(raw)).toEqual({
             ok: true,
             handoff: { paragraphSummary: 'x', planIssues: [] },
         })
@@ -426,7 +426,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             JSON.stringify({ paragraphSummary: 'x', planIssues: [] }),
             '```',
         ].join('\n')
-        expect(parseHop1HandoffFromSelectionBody(raw)).toEqual({
+        expect(parsePlanSelectOutput(raw)).toEqual({
             ok: true,
             handoff: {
                 paragraphSummary: 'x',
@@ -447,7 +447,7 @@ describe('parseHop1HandoffFromSelectionBody', () => {
             JSON.stringify({ paragraphSummary: 'Selected candidate-1: summary.', planIssues: [] }),
             '```',
         ].join('\n')
-        expect(parseHop1HandoffFromSelectionBody(raw)).toEqual({
+        expect(parsePlanSelectOutput(raw)).toEqual({
             ok: true,
             handoff: {
                 paragraphSummary: 'Selected candidate-1: summary.',

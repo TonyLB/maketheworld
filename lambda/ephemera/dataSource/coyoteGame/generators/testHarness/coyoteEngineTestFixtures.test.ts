@@ -1,6 +1,6 @@
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { buildHypothesisPlanSelectionPromptParts } from '../pipelines/hypothesis/planSelect/buildHypothesisPlanSelectionPromptParts'
+import { buildPlanSelectPrompt } from '../pipelines/hypothesis/planSelect/buildPlanSelectPrompt'
 import {
     COYOTE_ENGINE_TEST_FIXTURES,
     resolveCoyoteHarnessStartAtInject,
@@ -46,7 +46,7 @@ describe('COYOTE_ENGINE_TEST_FIXTURES', () => {
     it('fixture-01 planSelectInject drives plan-selection prompt parts', () => {
         const inject = COYOTE_ENGINE_TEST_FIXTURES[0].planSelectInject
         expect(inject).toBeDefined()
-        const parts = buildHypothesisPlanSelectionPromptParts({
+        const parts = buildPlanSelectPrompt({
             roomObjectsByRoom: inject!.roomObjectsByRoom,
             combined: inject!.combined,
         })
@@ -101,7 +101,7 @@ describe('resolveCoyoteHarnessStartAtInject', () => {
         expect(r.ok).toBe(true)
         if (r.ok && r.phase === 'phasePlan') {
             expect(r.phase).toBe('phasePlan')
-            expect(r.inject.hop1Handoff.paragraphSummary.length).toBeGreaterThan(0)
+            expect(r.inject.planSelectOutput.paragraphSummary.length).toBeGreaterThan(0)
         }
     })
 
@@ -113,8 +113,8 @@ describe('resolveCoyoteHarnessStartAtInject', () => {
         expect(r.ok).toBe(true)
         if (r.ok && r.phase === 'phasePlan') {
             expect(r.phase).toBe('phasePlan')
-            expect(r.inject.hop1Handoff.paragraphSummary.length).toBeGreaterThan(0)
-            expect(Array.isArray(r.inject.hop1Handoff.planIssues)).toBe(true)
+            expect(r.inject.planSelectOutput.paragraphSummary.length).toBeGreaterThan(0)
+            expect(Array.isArray(r.inject.planSelectOutput.planIssues)).toBe(true)
         }
     })
 })

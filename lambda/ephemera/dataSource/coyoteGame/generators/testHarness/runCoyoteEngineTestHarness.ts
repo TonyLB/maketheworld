@@ -136,7 +136,7 @@ function buildHarnessPipelineOptions(args: {
         injectState: {
             roomObjectsByRoom: resolved.inject.roomObjectsByRoom,
             combined: resolved.inject.combined,
-            hop1Handoff: resolved.inject.hop1Handoff,
+            planSelectOutput: resolved.inject.planSelectOutput,
         },
     }
 }

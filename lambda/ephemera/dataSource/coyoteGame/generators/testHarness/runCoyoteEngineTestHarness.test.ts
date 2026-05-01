@@ -493,7 +493,7 @@ describe('runCoyoteEngineTestHarness', () => {
         )
     })
 
-    it('runOnly phasePlan with inject calls pipeline with structured hop1 handoff', async () => {
+    it('runOnly phasePlan with inject calls pipeline with structured planSelect output', async () => {
         const send = jest.fn()
         const flush = jest.fn().mockResolvedValue(undefined)
         const pipeline = jest.fn().mockResolvedValue({
@@ -529,7 +529,7 @@ describe('runCoyoteEngineTestHarness', () => {
                         'ROOM#BRIDGE': [],
                     },
                     combined: {} as any,
-                    hop1Handoff: {
+                    planSelectOutput: {
                         paragraphSummary: 'Pick candidate-1 and keep timing coherent.',
                         planIssues: [{ code: 'ROLE_CONFLICT', summary: 'needs lane ownership' }],
                     },
@@ -556,7 +556,7 @@ describe('runCoyoteEngineTestHarness', () => {
                 testOnly: 'phasePlan',
                 harnessRunKind: 'runOnly',
                 injectState: expect.objectContaining({
-                    hop1Handoff: expect.objectContaining({
+                    planSelectOutput: expect.objectContaining({
                         paragraphSummary: 'Pick candidate-1 and keep timing coherent.',
                         planIssues: [{ code: 'ROLE_CONFLICT', summary: 'needs lane ownership' }],
                     }),

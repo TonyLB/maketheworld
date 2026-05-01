@@ -1,10 +1,10 @@
-import { buildHypothesisPlanSelectionPromptParts } from './buildHypothesisPlanSelectionPromptParts'
-import { COYOTE_HOP1_HANDOFF_JSON_KEYS } from './coyoteHop1Handoff'
+import { buildPlanSelectPrompt } from './buildPlanSelectPrompt'
+import { PLAN_SELECT_OUTPUT_JSON_KEYS } from './parsePlanSelectOutput'
 import { harnessRoomObjects } from '../../../testHarness/coyoteEngineTestFixtures'
 
-describe('buildHypothesisPlanSelectionPromptParts', () => {
+describe('buildPlanSelectPrompt', () => {
     it('uses single-candidate two-phase workflow with stable handoff requirements', () => {
-        const parts = buildHypothesisPlanSelectionPromptParts({
+        const parts = buildPlanSelectPrompt({
             roomObjectsByRoom: { 'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']) },
             combined: {
                 candidates: [
@@ -32,9 +32,9 @@ describe('buildHypothesisPlanSelectionPromptParts', () => {
         expect(full).toContain('coverage')
         expect(full).toContain('completeness')
         expect(full).toContain('coherence')
-        expect(full).toContain(COYOTE_HOP1_HANDOFF_JSON_KEYS.paragraphSummary)
-        expect(full).toContain(COYOTE_HOP1_HANDOFF_JSON_KEYS.planIssues)
-        expect(full).toContain(COYOTE_HOP1_HANDOFF_JSON_KEYS.selectedCandidate)
+        expect(full).toContain(PLAN_SELECT_OUTPUT_JSON_KEYS.paragraphSummary)
+        expect(full).toContain(PLAN_SELECT_OUTPUT_JSON_KEYS.planIssues)
+        expect(full).toContain(PLAN_SELECT_OUTPUT_JSON_KEYS.selectedCandidate)
         expect(full).toContain('Treat this field as required')
         expect(full).toContain('output for this prompt run; do not omit it unless generating it is impossible.')
         expect(full).toContain('Code semantics for v1')
@@ -65,7 +65,7 @@ describe('buildHypothesisPlanSelectionPromptParts', () => {
     })
 
     it('keeps multi-candidate rubric-comparison phase scaffolding', () => {
-        const parts = buildHypothesisPlanSelectionPromptParts({
+        const parts = buildPlanSelectPrompt({
             roomObjectsByRoom: { 'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil', 'rope']) },
             combined: {
                 candidates: [
@@ -102,7 +102,7 @@ describe('buildHypothesisPlanSelectionPromptParts', () => {
     })
 
     it('keeps prompt content unchanged when staged trope environmentAffordances are present', () => {
-        const parts = buildHypothesisPlanSelectionPromptParts({
+        const parts = buildPlanSelectPrompt({
             roomObjectsByRoom: {
                 'ROOM#VORTEX': [{
                     uuid: 'OBJECT#anvil' as `OBJECT#${string}`,
