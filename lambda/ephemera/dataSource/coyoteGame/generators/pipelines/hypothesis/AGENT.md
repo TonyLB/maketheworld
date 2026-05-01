@@ -97,13 +97,16 @@ with trope keys in **canonical order** (`Contraption`, then `Distraction`, then 
 `Finishing Move`), omitting absent tropes. Root object order stays **`candidates`** then optional
 **`notes`**.
 
-**Combine.** Parsed records are expanded to **`CombinedTropeAssignment[]`** in that same canonical
-trope order so plan-select JSON (`serializePlanSelectCandidateInput`) and Markdown renders stay
-stable without changing downstream schema in this hop.
+**Combine.** Parsed records flow through combine as a **`Partial<Record<CoyoteTrope, CombinedTropeAssignment>>`**
+keyed by trope; rendering helpers (`renderCombinedCandidateOutputForNarrativeBeat`,
+`serializePlanSelectCandidateInput`) iterate the canonical trope order so plan-select JSON and
+Markdown renders stay stable. Plan-select input JSON is **`schemaVersion: 3`** with
+`tropeAssignments` as a non-array object keyed by trope.
 
-**Boundary vs plan-select.** Plan-selection handoff JSON may still use **array**-shaped
-`selectedCandidate.tropeAssignments` ([`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts)).
-Migrating hop-2 output to a record is a **separate** change from stage-one.
+**Boundary vs plan-select.** Plan-selection handoff JSON uses the **same** record shape:
+`selectedCandidate.tropeAssignments` is a non-array object keyed by trope. Array-shaped
+`tropeAssignments` is rejected by [`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts)
+(hard cutover, matching the candidate-output parser).
 
 **Boundary vs staged snapshot.** Affinity-forward serialization for the prompt
 ([`candidates/serializeStagedObjectsForCandidatePrompt.ts`](candidates/serializeStagedObjectsForCandidatePrompt.ts))
@@ -137,6 +140,7 @@ Parser safety posture:
 ### Optional `selectedCandidate` (structured winner)
 
 - Hop-1 JSON may include optional `selectedCandidate`: the structured winning candidate, shaped like plan-select input candidates (mirror input shape in v1; sequencing hints are omitted in v1).
+- `selectedCandidate.tropeAssignments` is a **non-array object keyed by trope** (`Contraption`, `Distraction`, `Disadvantage`, `Finishing Move`); each value carries `executionDetail` and `members`. Array-shaped `tropeAssignments` is rejected at parse time.
 - Legacy-only handoff (`paragraphSummary` plus `planIssues` without `selectedCandidate`) remains valid during rollout.
 
 ### Plan-selection hop (single invocation)

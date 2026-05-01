@@ -836,9 +836,8 @@ const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFi
         selectedCandidate: {
             candidateId: 'candidate-1',
             executionSummary: 'Birdseed lures Road Runner while lever rig prepares the cliffside release.',
-            tropeAssignments: [
-                {
-                    trope: 'Contraption',
+            tropeAssignments: {
+                Contraption: {
                     executionDetail: 'Lever is staged at CLIFFTOP as release hardware.',
                     members: [
                         {
@@ -849,8 +848,7 @@ const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFi
                         },
                     ],
                 },
-                {
-                    trope: 'Distraction',
+                Distraction: {
                     executionDetail: 'Road Runner stops to eat birdseed at CLIFFBASE.',
                     members: [
                         {
@@ -861,7 +859,7 @@ const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFi
                         },
                     ],
                 },
-            ],
+            },
             outliers: [],
         },
     },
@@ -871,9 +869,8 @@ const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFi
         selectedCandidate: {
             candidateId: 'candidate-1',
             executionSummary: 'Paint and skates prep a route while birdseed lures into a portable-hole finish.',
-            tropeAssignments: [
-                {
-                    trope: 'Contraption',
+            tropeAssignments: {
+                Contraption: {
                     executionDetail: 'Roller skates and paint prep speed and route illusion before commitment.',
                     members: [
                         {
@@ -890,8 +887,7 @@ const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFi
                         },
                     ],
                 },
-                {
-                    trope: 'Distraction',
+                Distraction: {
                     executionDetail: 'Road Runner pauses for birdseed at the bridge approach.',
                     members: [
                         {
@@ -902,8 +898,7 @@ const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFi
                         },
                     ],
                 },
-                {
-                    trope: 'Finishing Move',
+                'Finishing Move': {
                     executionDetail: 'Portable hole is used as the terminal drop endpoint.',
                     members: [
                         {
@@ -914,7 +909,7 @@ const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFi
                         },
                     ],
                 },
-            ],
+            },
             outliers: [],
         },
     },

@@ -10,13 +10,12 @@ describe('buildNarrativeBeatPrompt', () => {
                     {
                         candidateId: 'candidate-1',
                         executionSummary: 'Summary.',
-                        tropeAssignments: [
-                            {
-                                trope: 'Contraption',
+                        tropeAssignments: {
+                            Contraption: {
                                 executionDetail: 'Detail.',
                                 members: [{ identifier: 'anvil-0', tropeFunction: 'job' }],
                             },
-                        ],
+                        },
                         outliers: [],
                     },
                 ],
@@ -59,11 +58,12 @@ describe('buildNarrativeBeatPrompt', () => {
                 candidates: [{
                     candidateId: 'candidate-1',
                     executionSummary: 'Summary.',
-                    tropeAssignments: [{
-                        trope: 'Contraption',
-                        executionDetail: 'Detail.',
-                        members: [{ identifier: 'anvil', tropeFunction: 'job' }],
-                    }],
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'Detail.',
+                            members: [{ identifier: 'anvil', tropeFunction: 'job' }],
+                        },
+                    },
                     outliers: [],
                 }],
             },
@@ -85,11 +85,12 @@ describe('buildNarrativeBeatPrompt', () => {
                 candidates: [{
                     candidateId: 'candidate-1',
                     executionSummary: 'Summary.',
-                    tropeAssignments: [{
-                        trope: 'Contraption',
-                        executionDetail: 'Detail.',
-                        members: [{ identifier: 'anvil-0', tropeFunction: 'job' }],
-                    }],
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'Detail.',
+                            members: [{ identifier: 'anvil-0', tropeFunction: 'job' }],
+                        },
+                    },
                     outliers: [],
                 }],
             },
@@ -99,16 +100,17 @@ describe('buildNarrativeBeatPrompt', () => {
                 selectedCandidate: {
                     candidateId: 'candidate-2',
                     executionSummary: 'Use anvil as staged payload and rope as fallback.',
-                    tropeAssignments: [{
-                        trope: 'Contraption',
-                        executionDetail: 'Rig anvil release timing.',
-                        members: [{
-                            stableKey: 'anvil-0',
-                            shortName: 'anvil',
-                            room: 'CLIFFBASE',
-                            tropeFunction: 'payload rig',
-                        }],
-                    }],
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'Rig anvil release timing.',
+                            members: [{
+                                stableKey: 'anvil-0',
+                                shortName: 'anvil',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'payload rig',
+                            }],
+                        },
+                    },
                     outliers: [{
                         stableKey: 'rope-1',
                         shortName: 'rope',

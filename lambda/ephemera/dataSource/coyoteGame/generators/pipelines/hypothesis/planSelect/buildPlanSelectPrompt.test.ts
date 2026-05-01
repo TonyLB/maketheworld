@@ -11,9 +11,8 @@ describe('buildPlanSelectPrompt', () => {
                     {
                         candidateId: 'candidate-1',
                         executionSummary: 'One-line summary.',
-                        tropeAssignments: [
-                            {
-                                trope: 'Contraption',
+                        tropeAssignments: {
+                            Contraption: {
                                 executionDetail: 'Beat detail.',
                                 members: [
                                     {
@@ -22,7 +21,7 @@ describe('buildPlanSelectPrompt', () => {
                                     },
                                 ],
                             },
-                        ],
+                        },
                         outliers: [],
                     },
                 ],
@@ -37,6 +36,7 @@ describe('buildPlanSelectPrompt', () => {
         expect(full).toContain(PLAN_SELECT_OUTPUT_JSON_KEYS.selectedCandidate)
         expect(full).toContain('Treat this field as required')
         expect(full).toContain('output for this prompt run; do not omit it unless generating it is impossible.')
+        expect(full).toContain('non-array object keyed by trope')
         expect(full).toContain('Code semantics for v1')
         expect(full).toContain('are intent-signal evidence that should count against the winner')
         expect(full).toContain('are underspecification')
@@ -58,7 +58,7 @@ describe('buildPlanSelectPrompt', () => {
         expect(full).toContain('`singleCandidateIssueAudit`')
         expect(full).toContain('`singleCandidateDelivery`')
         expect(full).toContain('```json')
-        expect(full).toContain('"schemaVersion":2')
+        expect(full).toContain('"schemaVersion":3')
         expect(full).toContain('"candidateId":"candidate-1"')
         expect(parts.dynamicSuffix).toContain('ROOM#VORTEX')
         expect(full).toContain('## Trope candidates (input JSON)')
@@ -72,21 +72,23 @@ describe('buildPlanSelectPrompt', () => {
                     {
                         candidateId: 'candidate-1',
                         executionSummary: 'One-line summary.',
-                        tropeAssignments: [{
-                            trope: 'Contraption',
-                            executionDetail: 'Beat detail.',
-                            members: [{ identifier: 'anvil-0', tropeFunction: 'terminal payload' }],
-                        }],
+                        tropeAssignments: {
+                            Contraption: {
+                                executionDetail: 'Beat detail.',
+                                members: [{ identifier: 'anvil-0', tropeFunction: 'terminal payload' }],
+                            },
+                        },
                         outliers: [],
                     },
                     {
                         candidateId: 'candidate-2',
                         executionSummary: 'Another summary.',
-                        tropeAssignments: [{
-                            trope: 'Contraption',
-                            executionDetail: 'Alternate beat detail.',
-                            members: [{ identifier: 'rope-0', tropeFunction: 'trigger pull' }],
-                        }],
+                        tropeAssignments: {
+                            Contraption: {
+                                executionDetail: 'Alternate beat detail.',
+                                members: [{ identifier: 'rope-0', tropeFunction: 'trigger pull' }],
+                            },
+                        },
                         outliers: [],
                     },
                 ],
@@ -120,11 +122,12 @@ describe('buildPlanSelectPrompt', () => {
                 candidates: [{
                     candidateId: 'candidate-1',
                     executionSummary: 'One-line summary.',
-                    tropeAssignments: [{
-                        trope: 'Contraption',
-                        executionDetail: 'Beat detail.',
-                        members: [{ identifier: 'anvil', tropeFunction: 'terminal payload' }],
-                    }],
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'Beat detail.',
+                            members: [{ identifier: 'anvil', tropeFunction: 'terminal payload' }],
+                        },
+                    },
                     outliers: [],
                 }],
             },

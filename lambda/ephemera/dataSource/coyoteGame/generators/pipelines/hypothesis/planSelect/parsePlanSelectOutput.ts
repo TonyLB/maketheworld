@@ -1,4 +1,5 @@
 import { findAllFenceBlocks } from '../../../../../../llm/markdownCodeFences'
+import type { CoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { isCoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { hypothesisDebugLog } from '../../../../utilities/hypothesisDebug'
 import type {
@@ -7,6 +8,9 @@ import type {
     PlanSelectCombinedOutlier,
     PlanSelectCombinedTropeAssignment,
 } from '../candidates/combineCandidateOutput'
+
+/** Canonical trope ordering for deterministic narrowed-record emission. */
+const TROPE_ORDER: CoyoteTrope[] = ['Contraption', 'Distraction', 'Disadvantage', 'Finishing Move']
 
 /** Canonical JSON keys for planSelect output (plan selection to phase-plan). */
 export const PLAN_SELECT_OUTPUT_JSON_KEYS = {
@@ -189,40 +193,62 @@ function validatePlanSelectWinningCandidate(
     if (typeof raw.executionSummary !== 'string') {
         return { ok: false, reason: 'selectedCandidate.executionSummary must be a string' }
     }
-    if (!Array.isArray(raw.tropeAssignments)) {
-        return { ok: false, reason: 'selectedCandidate.tropeAssignments must be an array' }
-    }
-    const narrowedTropeAssignments: PlanSelectWinningCandidateTropeAssignment[] = []
-    for (let i = 0; i < raw.tropeAssignments.length; i += 1) {
-        const tropeAssignment = raw.tropeAssignments[i]
-        if (!isPlainObject(tropeAssignment)) {
-            return { ok: false, reason: `selectedCandidate.tropeAssignments[${i}] must be a plain object` }
+    const tropeAssignmentsRaw = raw.tropeAssignments
+    if (Array.isArray(tropeAssignmentsRaw) || !isPlainObject(tropeAssignmentsRaw)) {
+        return {
+            ok: false,
+            reason: 'selectedCandidate.tropeAssignments must be a non-array object keyed by trope',
         }
-        if (!isCoyoteTrope(tropeAssignment.trope)) {
-            return { ok: false, reason: `selectedCandidate.tropeAssignments[${i}].trope must be a valid CoyoteTrope` }
+    }
+    const tropeAssignmentsRecord: Partial<Record<CoyoteTrope, PlanSelectWinningCandidateTropeAssignment>> = {}
+    for (const tropeKey of Object.keys(tropeAssignmentsRaw)) {
+        if (!isCoyoteTrope(tropeKey)) {
+            return {
+                ok: false,
+                reason: `selectedCandidate.tropeAssignments has invalid trope key "${tropeKey}"`,
+            }
+        }
+        const tropeAssignment = tropeAssignmentsRaw[tropeKey]
+        if (!isPlainObject(tropeAssignment)) {
+            return {
+                ok: false,
+                reason: `selectedCandidate.tropeAssignments.${tropeKey} must be a plain object`,
+            }
         }
         if (typeof tropeAssignment.executionDetail !== 'string') {
-            return { ok: false, reason: `selectedCandidate.tropeAssignments[${i}].executionDetail must be a string` }
+            return {
+                ok: false,
+                reason: `selectedCandidate.tropeAssignments.${tropeKey}.executionDetail must be a string`,
+            }
         }
         if (!Array.isArray(tropeAssignment.members)) {
-            return { ok: false, reason: `selectedCandidate.tropeAssignments[${i}].members must be an array` }
+            return {
+                ok: false,
+                reason: `selectedCandidate.tropeAssignments.${tropeKey}.members must be an array`,
+            }
         }
         const narrowedMembers: PlanSelectWinningCandidateMember[] = []
         for (let j = 0; j < tropeAssignment.members.length; j += 1) {
             const memberResult = validatePlanSelectWinningCandidateMemberRow(
                 tropeAssignment.members[j],
-                `selectedCandidate.tropeAssignments[${i}].members[${j}]`
+                `selectedCandidate.tropeAssignments.${tropeKey}.members[${j}]`
             )
             if (!memberResult.ok) {
                 return memberResult
             }
             narrowedMembers.push(memberResult.member)
         }
-        narrowedTropeAssignments.push({
-            trope: tropeAssignment.trope,
+        tropeAssignmentsRecord[tropeKey] = {
             executionDetail: tropeAssignment.executionDetail,
             members: narrowedMembers,
-        })
+        }
+    }
+    const narrowedTropeAssignments: Partial<Record<CoyoteTrope, PlanSelectWinningCandidateTropeAssignment>> = {}
+    for (const trope of TROPE_ORDER) {
+        const entry = tropeAssignmentsRecord[trope]
+        if (entry !== undefined) {
+            narrowedTropeAssignments[trope] = entry
+        }
     }
     if (!Array.isArray(raw.outliers)) {
         return { ok: false, reason: 'selectedCandidate.outliers must be an array' }

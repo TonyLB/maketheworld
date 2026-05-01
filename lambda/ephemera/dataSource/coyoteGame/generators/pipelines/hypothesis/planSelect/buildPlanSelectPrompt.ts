@@ -18,16 +18,18 @@ export type BuildPlanSelectPromptInput = {
 const PLAN_SELECT_COMBINED_JSON_SCHEMA_LINES = [
     '## Trope candidates JSON (input; how to read)',
     '- The **` ```json ` ** block in the dynamic section is **input only**: it is the complete,',
-    '  authoritative list of **Stage One candidates** after parse and combine. **Schema version 2**',
+    '  authoritative list of **Stage One candidates** after parse and combine. **Schema version 3**',
     '  root keys: **`schemaVersion`**, **`candidates`**.',
     '- **`candidates`** is the exhaustive option set. You must **only** compare, score, and select',
     '  among these rows. **Do not** invent alternative plans, extra candidates, or substitute',
     '  paraphrases for new option ids.',
     '- Each candidate has **`candidateId`**, **`executionSummary`**, **`tropeAssignments`**, and **`outliers`**.',
-    '- Each **`tropeAssignment`** has **`trope`**, **`executionDetail`** (Stage One first-draft beat detail),',
-    '  and **`members`**. Each member has **`stableKey`**, **`shortName`**, **`room`** (seam label without',
-    '  the `ROOM#` prefix when known), and **`tropeFunction`** (that prop\'s trope-local job in this',
-    '  candidate).',
+    '- **`tropeAssignments`** is a **non-array object keyed by trope name** (allowed keys:',
+    '  **`Contraption`**, **`Distraction`**, **`Disadvantage`**, **`Finishing Move`**); only present',
+    '  tropes appear as keys. Each value carries **`executionDetail`** (Stage One first-draft beat',
+    '  detail) and **`members`**. Each member has **`stableKey`**, **`shortName`**, **`room`** (seam',
+    '  label without the `ROOM#` prefix when known), and **`tropeFunction`** (that prop\'s',
+    '  trope-local job in this candidate).',
     '- **`outliers`** lists staged props not placed under any trope row for that candidate (server-derived),',
     '  each with **`stableKey`**, **`shortName`**, and **`room`** only (no **`tropeFunction`** on outliers).',
     '- **`executionSummary`** states how that candidate frames the overall maneuver; member **`tropeFunction`**',
@@ -71,6 +73,8 @@ const PLAN_SELECTION_INTERNAL_PHASES_MULTI_CANDIDATE = [
     '- Ensure handoff JSON preserves required key types for `paragraphSummary` and `planIssues`.',
     '- Include `selectedCandidate` in the final handoff JSON as a full copy of the winning candidate row',
     '  (`candidateId`, `executionSummary`, `tropeAssignments`, `outliers`) from the input candidates JSON.',
+    '  **`tropeAssignments`** in `selectedCandidate` must remain a **non-array object keyed by trope**',
+    '  (matching the input shape); do **not** rewrite it as an array.',
 ] as const
 
 const PLAN_SELECTION_INTERNAL_PHASES_SINGLE_CANDIDATE = [
@@ -91,6 +95,8 @@ const PLAN_SELECTION_INTERNAL_PHASES_SINGLE_CANDIDATE = [
     '- Ensure handoff JSON preserves required key types for `paragraphSummary` and `planIssues`.',
     '- Include `selectedCandidate` in the final handoff JSON as a full copy of the winning candidate row',
     '  (`candidateId`, `executionSummary`, `tropeAssignments`, `outliers`) from the input candidates JSON.',
+    '  **`tropeAssignments`** in `selectedCandidate` must remain a **non-array object keyed by trope**',
+    '  (matching the input shape); do **not** rewrite it as an array.',
 ] as const
 
 const PLAN_SELECTION_TWO_JSON_FENCES_SECTION = [
@@ -130,8 +136,10 @@ const PLAN_SELECTION_TASK_COMMON_SECTION_AND_HANDOFF = [
     '  Include **`',
     PLAN_SELECT_OUTPUT_JSON_KEYS.selectedCandidate,
     '`** as a complete copy of the winning candidate row from input JSON',
-    '  (`candidateId`, `executionSummary`, `tropeAssignments`, `outliers`). Treat this field as required',
-    '  output for this prompt run; do not omit it unless generating it is impossible.',
+    '  (`candidateId`, `executionSummary`, `tropeAssignments`, `outliers`). **`tropeAssignments`**',
+    '  must be the same **non-array object keyed by trope** that appears in the input row; do **not**',
+    '  reshape it as an array.',
+    '  Treat this field as required output for this prompt run; do not omit it unless generating it is impossible.',
     '  Additional keys are allowed, but these two keys must be present and well-typed.',
     '- The **final** **` ```json ` ** block in your entire output must be this **handoff** fence ---',
     '  the **last** fence in your output.',

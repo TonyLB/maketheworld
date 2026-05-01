@@ -33,7 +33,7 @@ describe('combineCandidateOutput', () => {
         const r = combineCandidateOutput(candidates, roomMap)
         expect(r.ok).toBe(true)
         if (r.ok) {
-            expect(r.combined.candidates[0].tropeAssignments[0].members[0].tropeFunction).toBe(
+            expect(r.combined.candidates[0].tropeAssignments.Contraption?.members[0].tropeFunction).toBe(
                 'connective rigging between setup pieces'
             )
             expect(r.combined.candidates[0].outliers).toHaveLength(0)
@@ -112,7 +112,7 @@ describe('combineCandidateOutput', () => {
         }
     })
 
-    it('serializePlanSelectCandidateInput is stable JSON with schemaVersion 2 and outliers without tropeFunction', () => {
+    it('serializePlanSelectCandidateInput is stable JSON with schemaVersion 3 and outliers without tropeFunction', () => {
         const roomMap: CoyoteRoomObjectsByRoom = {
             'ROOM#VORTEX': [
                 {
@@ -148,15 +148,19 @@ describe('combineCandidateOutput', () => {
         const b = serializePlanSelectCandidateInput(r.combined, roomMap)
         expect(a).toBe(b)
         const parsed = JSON.parse(a) as { schemaVersion: number; candidates: unknown[] }
-        expect(parsed.schemaVersion).toBe(2)
+        expect(parsed.schemaVersion).toBe(3)
         expect(parsed.candidates).toHaveLength(1)
         const c0 = parsed.candidates[0] as {
             candidateId: string
-            tropeAssignments: Array<{ members: Array<{ stableKey: string; shortName: string; room: string; tropeFunction: string }> }>
+            tropeAssignments: Partial<Record<
+                'Contraption' | 'Distraction' | 'Disadvantage' | 'Finishing Move',
+                { executionDetail: string; members: Array<{ stableKey: string; shortName: string; room: string; tropeFunction: string }> }
+            >>
             outliers: Array<{ stableKey: string; shortName: string; room: string; tropeFunction?: string }>
         }
         expect(c0.candidateId).toBe('candidate-1')
-        expect(c0.tropeAssignments[0].members[0]).toMatchObject({
+        expect(Array.isArray(c0.tropeAssignments)).toBe(false)
+        expect(c0.tropeAssignments.Disadvantage?.members[0]).toMatchObject({
             stableKey: 'glue-1',
             shortName: 'glue',
             room: 'CLIFFBASE',

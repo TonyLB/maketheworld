@@ -17,7 +17,6 @@ export type CombinedOutlierIdentity = {
 }
 
 export type CombinedTropeAssignment = {
-    trope: CoyoteTrope
     executionDetail: string
     members: CombinedMemberPair[]
 }
@@ -25,7 +24,7 @@ export type CombinedTropeAssignment = {
 export type CombinedTropeCandidate = {
     candidateId: string
     executionSummary: string
-    tropeAssignments: CombinedTropeAssignment[]
+    tropeAssignments: Partial<Record<CoyoteTrope, CombinedTropeAssignment>>
     outliers: CombinedOutlierIdentity[]
 }
 
@@ -47,7 +46,6 @@ export type PlanSelectCombinedOutlier = {
 }
 
 export type PlanSelectCombinedTropeAssignment = {
-    trope: CoyoteTrope
     executionDetail: string
     members: PlanSelectCombinedMember[]
 }
@@ -55,7 +53,7 @@ export type PlanSelectCombinedTropeAssignment = {
 export type PlanSelectCombinedCandidate = {
     candidateId: string
     executionSummary: string
-    tropeAssignments: PlanSelectCombinedTropeAssignment[]
+    tropeAssignments: Partial<Record<CoyoteTrope, PlanSelectCombinedTropeAssignment>>
     outliers: PlanSelectCombinedOutlier[]
 }
 
@@ -137,7 +135,7 @@ export function combineCandidateOutput(
     const combinedCandidates: CombinedTropeCandidate[] = []
     for (const candidate of candidates) {
         const seenKeys = new Set<string>()
-        const tropeAssignments: CombinedTropeAssignment[] = []
+        const tropeAssignments: Partial<Record<CoyoteTrope, CombinedTropeAssignment>> = {}
         const assignmentStableKeys: string[] = []
         for (const trope of TROPE_ORDER) {
             const tropeAssignment = candidate.tropeAssignments[trope]
@@ -165,11 +163,10 @@ export function combineCandidateOutput(
                     tropeFunction: mem.tropeFunction,
                 })
             }
-            tropeAssignments.push({
-                trope,
+            tropeAssignments[trope] = {
                 executionDetail: tropeAssignment.executionDetail,
                 members: membersOut,
-            })
+            }
         }
         const derived = deriveOutlierIdentifiers(stagedOrdered, assignmentStableKeys)
         if (!derived.ok) {
@@ -204,8 +201,12 @@ export function renderCombinedCandidateOutputForNarrativeBeat(
     for (const candidate of combined.candidates) {
         lines.push(`### Candidate ${candidate.candidateId}`, '')
         lines.push(`- **executionSummary:** ${candidate.executionSummary}`, '')
-        for (const assignment of candidate.tropeAssignments) {
-            lines.push(`#### ${assignment.trope}`, '')
+        for (const trope of TROPE_ORDER) {
+            const assignment = candidate.tropeAssignments[trope]
+            if (!assignment) {
+                continue
+            }
+            lines.push(`#### ${trope}`, '')
             lines.push(`- **executionDetail:** ${assignment.executionDetail}`, '')
             for (const mem of assignment.members) {
                 const sk = mem.identifier.trim()
@@ -304,17 +305,26 @@ export function serializePlanSelectCandidateInput(
         schemaVersion: number
         candidates: PlanSelectCombinedCandidate[]
     } = {
-        schemaVersion: 2,
-        candidates: combined.candidates.map((candidate) => ({
-            candidateId: candidate.candidateId,
-            executionSummary: candidate.executionSummary,
-            tropeAssignments: candidate.tropeAssignments.map((assignment) => ({
-                trope: assignment.trope,
-                executionDetail: assignment.executionDetail,
-                members: assignment.members.map((m) => enrichMemberForPlanSelectJson(m, byStableKey, roomObjectsByRoom)),
-            })),
-            outliers: candidate.outliers.map((o) => enrichOutlierForPlanSelectJson(o, byStableKey, roomObjectsByRoom)),
-        })),
+        schemaVersion: 3,
+        candidates: combined.candidates.map((candidate) => {
+            const tropeAssignments: Partial<Record<CoyoteTrope, PlanSelectCombinedTropeAssignment>> = {}
+            for (const trope of TROPE_ORDER) {
+                const assignment = candidate.tropeAssignments[trope]
+                if (!assignment) {
+                    continue
+                }
+                tropeAssignments[trope] = {
+                    executionDetail: assignment.executionDetail,
+                    members: assignment.members.map((m) => enrichMemberForPlanSelectJson(m, byStableKey, roomObjectsByRoom)),
+                }
+            }
+            return {
+                candidateId: candidate.candidateId,
+                executionSummary: candidate.executionSummary,
+                tropeAssignments,
+                outliers: candidate.outliers.map((o) => enrichOutlierForPlanSelectJson(o, byStableKey, roomObjectsByRoom)),
+            }
+        }),
     }
     return JSON.stringify(payload)
 }
