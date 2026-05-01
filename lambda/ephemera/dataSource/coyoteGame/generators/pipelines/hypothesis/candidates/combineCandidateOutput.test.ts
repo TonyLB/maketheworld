@@ -153,7 +153,7 @@ describe('combineCandidateOutput', () => {
         const c0 = parsed.candidates[0] as {
             candidateId: string
             tropeAssignments: Partial<Record<
-                'Contraption' | 'Distraction' | 'Disadvantage' | 'Finishing Move',
+                'Contraption' | 'Bait' | 'Misdirection' | 'Disadvantage' | 'Finishing Move',
                 { executionDetail: string; members: Array<{ stableKey: string; shortName: string; room: string; tropeFunction: string }> }
             >>
             outliers: Array<{ stableKey: string; shortName: string; room: string; tropeFunction?: string }>

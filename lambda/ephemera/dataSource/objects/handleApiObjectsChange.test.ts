@@ -243,11 +243,11 @@ describe('handleAcmeOrderAddObjects', () => {
                     { object: 'long-fall' as const, roles: ['Finishing Move' as const] },
                     { object: 'cactus' as const, roles: ['Disadvantage' as const] },
                     { object: 'boulder' as const, roles: ['Contraption' as const] },
-                    { object: 'tumbleweed' as const, roles: ['Distraction' as const] },
+                    { object: 'tumbleweed' as const, roles: ['Misdirection' as const] },
                 ],
             },
             {
-                trope: 'Distraction' as const,
+                trope: 'Bait' as const,
                 aptness: 'Good' as const,
                 narrowing: 'portable bait',
             },
@@ -552,10 +552,10 @@ describe('handleAcmeOrderAddObjects', () => {
         expect(addLine.tropeAffinities?.[0]?.environmentAffordances).toEqual([
             { object: 'cactus', roles: ['Disadvantage'] },
             { object: 'boulder', roles: ['Contraption'] },
-            { object: 'tumbleweed', roles: ['Distraction'] },
+            { object: 'tumbleweed', roles: ['Misdirection'] },
         ])
         expect(addLine.tropeAffinities?.[1]).toEqual({
-            trope: 'Distraction',
+            trope: 'Bait',
             aptness: 'Good',
             narrowing: 'portable bait',
         })
@@ -580,7 +580,7 @@ describe('handleAcmeOrderAddObjects', () => {
                         { object: 'long-fall' as const, roles: ['Finishing Move' as const] },
                         { object: 'cactus' as const, roles: ['Disadvantage' as const] },
                         { object: 'boulder' as const, roles: ['Contraption' as const] },
-                        { object: 'tumbleweed' as const, roles: ['Distraction' as const] },
+                        { object: 'tumbleweed' as const, roles: ['Misdirection' as const] },
                     ],
                     affordancesProvided,
                 },
@@ -607,7 +607,7 @@ describe('handleAcmeOrderAddObjects', () => {
         expect(addLine.tropeAffinities?.[0]?.environmentAffordances).toEqual([
             { object: 'cactus', roles: ['Disadvantage'] },
             { object: 'boulder', roles: ['Contraption'] },
-            { object: 'tumbleweed', roles: ['Distraction'] },
+            { object: 'tumbleweed', roles: ['Misdirection'] },
         ])
         expect(addLine.tropeAffinities?.[0]?.affordancesProvided).toEqual(affordancesProvided)
     })
@@ -633,7 +633,7 @@ describe('handleAcmeOrderAddObjects', () => {
         expect(addLine.tropeAffinities?.[0]?.environmentAffordances).toEqual([
             { object: 'long-fall', roles: ['Finishing Move'] },
             { object: 'boulder', roles: ['Contraption'] },
-            { object: 'tumbleweed', roles: ['Distraction'] },
+            { object: 'tumbleweed', roles: ['Misdirection'] },
         ])
     })
 
@@ -651,11 +651,11 @@ describe('handleAcmeOrderAddObjects', () => {
                         { object: 'rock-wall', roles: ['Finishing Move'] },
                         { object: 'cactus', roles: ['Disadvantage'] },
                         { object: 'boulder', roles: ['Contraption'] },
-                        { object: 'tumbleweed', roles: ['Distraction'] },
+                        { object: 'tumbleweed', roles: ['Misdirection'] },
                     ],
                 },
                 {
-                    trope: 'Distraction',
+                    trope: 'Bait',
                     aptness: 'Good',
                     narrowing: 'portable bait',
                 },

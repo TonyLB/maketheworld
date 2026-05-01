@@ -1,3 +1,4 @@
+import { CANONICAL_TROPE_ORDER } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 import type { CoyotePromptParts } from '../promptTypes'
 import type { CombineCandidateOutputReturn } from '../candidates/combineCandidateOutput'
 import { serializePlanSelectCandidateInput } from '../candidates/combineCandidateOutput'
@@ -8,6 +9,8 @@ import {
 } from '../coyoteHypothesisPromptShared'
 import { PLAN_SELECT_OUTPUT_JSON_KEYS } from './parsePlanSelectOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
+
+const PLAN_SELECT_TROPE_KEYS_LABEL = CANONICAL_TROPE_ORDER.map((t) => `**${t}**`).join(', ')
 
 export type BuildPlanSelectPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
@@ -25,8 +28,11 @@ const PLAN_SELECT_COMBINED_JSON_SCHEMA_LINES = [
     '  paraphrases for new option ids.',
     '- Each candidate has **`candidateId`**, **`executionSummary`**, **`tropeAssignments`**, and **`outliers`**.',
     '- **`tropeAssignments`** is a **non-array object keyed by trope name** (allowed keys:',
-    '  **`Contraption`**, **`Distraction`**, **`Disadvantage`**, **`Finishing Move`**); only present',
-    '  tropes appear as keys. Each value carries **`executionDetail`** (Stage One first-draft beat',
+    `  ${PLAN_SELECT_TROPE_KEYS_LABEL}); only present`,
+    '  tropes appear as keys. When comparing candidates, read **Bait** as voluntary lure, **Misdirection**',
+    '  as illusion or perception failure that spoils steering or control, **Disadvantage** as imposed impairment',
+    '  independent of knowledge or consent.',
+    '  Each value carries **`executionDetail`** (Stage One first-draft beat',
     '  detail) and **`members`**. Each member has **`stableKey`**, **`shortName`**, **`room`** (seam',
     '  label without the `ROOM#` prefix when known), and **`tropeFunction`** (that prop\'s',
     '  trope-local job in this candidate). Members may also include optional **`environmentAffordances`**:',

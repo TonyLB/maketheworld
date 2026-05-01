@@ -58,7 +58,8 @@ const PREP_VS_BEAT = new Set<CoyotePhasePrepVsBeat>(['prep', 'creation'])
 const ROOT_KEYS = new Set(['tropeSequence', 'deconflictionSummary', 'phases'])
 const PHASE_KEYS_REQUIRED = new Set(['stableKeysUsed', 'virtualEntities', 'achievement'])
 const VIRTUAL_KEYS = new Set(['label', 'derivedFrom', 'phaseKind'])
-const CANONICAL_TROPE_ORDER: CoyoteTrope[] = [
+/** Canonical trope order for prompts, parsers, and tropeSequence validation (single source of truth). */
+export const CANONICAL_TROPE_ORDER: CoyoteTrope[] = [
     'Contraption',
     'Bait',
     'Misdirection',

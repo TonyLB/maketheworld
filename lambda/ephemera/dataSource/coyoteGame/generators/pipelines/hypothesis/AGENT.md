@@ -64,9 +64,9 @@ Authority: [`candidates/buildCandidatePrompt.ts`](candidates/buildCandidatePromp
 [`candidates/combineCandidateOutput.ts`](candidates/combineCandidateOutput.ts) (hydrate + derive outliers).
 
 **Shape.** Each candidate must include `tropeAssignments` as a **non-array object** with **at least one**
-trope key. Keys must be `CoyoteTrope` literals only (`Contraption`, `Distraction`, `Disadvantage`,
+trope key. Keys must be `CoyoteTrope` literals only (`Contraption`, `Bait`, `Misdirection`, `Disadvantage`,
 `Finishing Move`); see [`isCoyoteTrope`](../../../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)
-in `@tonylb/mtw-interfaces`. Sparse records omit unused tropes; do **not** require all four tropes or
+in `@tonylb/mtw-interfaces`. Sparse records omit unused tropes; do **not** require all five tropes or
 empty member lists. Each trope value is `{ "executionDetail": string, "members": [...] }` only (keep
 the **`executionDetail`** name).
 
@@ -93,7 +93,7 @@ model; authoritative outliers are still **derived in combine** from staged multi
 members.
 
 **`normalizedJson`.** On successful parse, each candidate's `tropeAssignments` object is emitted
-with trope keys in **canonical order** (`Contraption`, then `Distraction`, then `Disadvantage`, then
+with trope keys in **canonical order** (`Contraption`, then `Bait`, then `Misdirection`, then `Disadvantage`, then
 `Finishing Move`), omitting absent tropes. Root object order stays **`candidates`** then optional
 **`notes`**.
 
@@ -142,7 +142,7 @@ Parser safety posture:
 ### Optional `selectedCandidate` (structured winner)
 
 - Hop-1 JSON may include optional `selectedCandidate`: the structured winning candidate, shaped like plan-select input candidates (mirror input shape in v1; sequencing hints are omitted in v1).
-- `selectedCandidate.tropeAssignments` is a **non-array object keyed by trope** (`Contraption`, `Distraction`, `Disadvantage`, `Finishing Move`); each value carries `executionDetail` and `members`. Array-shaped `tropeAssignments` is rejected at parse time.
+- `selectedCandidate.tropeAssignments` is a **non-array object keyed by trope** (`Contraption`, `Bait`, `Misdirection`, `Disadvantage`, `Finishing Move`); each value carries `executionDetail` and `members`. Array-shaped `tropeAssignments` is rejected at parse time.
 - Legacy-only handoff (`paragraphSummary` plus `planIssues` without `selectedCandidate`) remains valid during rollout.
 
 ### Plan-selection hop (single invocation)

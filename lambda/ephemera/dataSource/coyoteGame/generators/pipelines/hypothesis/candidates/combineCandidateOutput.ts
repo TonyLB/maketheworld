@@ -5,6 +5,7 @@ import type {
     CoyoteTrope,
     EnvironmentAffordanceRef,
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import { CANONICAL_TROPE_ORDER } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 
 import type { ParsedCandidate } from './parseCandidateOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
@@ -76,7 +77,7 @@ export type CombineCandidateOutputFailure = {
 }
 
 export type CombineCandidateOutputResult = CombineCandidateOutputSuccess | CombineCandidateOutputFailure
-const TROPE_ORDER: CoyoteTrope[] = ['Contraption', 'Distraction', 'Disadvantage', 'Finishing Move']
+const TROPE_ORDER: CoyoteTrope[] = CANONICAL_TROPE_ORDER
 
 function snapshotIndexByStableKey(
     roomObjectsByRoom: CoyoteRoomObjectsByRoom

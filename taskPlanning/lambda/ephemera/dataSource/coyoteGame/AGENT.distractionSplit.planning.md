@@ -1,6 +1,6 @@
 # Coyote Game: split Distraction into Bait and Misdirection (planning)
 
-**Status:** **D2 complete** (Acme enrich + actions harness updated for `Bait` / `Misdirection`). Next step is **Phase D3** (hypothesis pipeline) per **Recommended order**.
+**Status:** **D3 complete** (hypothesis pipeline: prompts, parsers, `combineCandidateOutput`, narrative beats, engine harness trope literals). Next step is **Phase D4** (outcome pipeline) per **Recommended order**.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -87,7 +87,7 @@ Use these as starting grep anchors when executing; paths may drift slightly.
 | Concern | Location |
 | --- | --- |
 | Trope union + guards | [`packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts) |
-| Phase plan order validation | [`packages/mtw-interfaces/ts/coyotePhasePlan.ts`](../../../../../../packages/mtw-interfaces/ts/coyotePhasePlan.ts) |
+| Phase plan order validation (**`CANONICAL_TROPE_ORDER`** export) | [`packages/mtw-interfaces/ts/coyotePhasePlan.ts`](../../../../../../packages/mtw-interfaces/ts/coyotePhasePlan.ts) |
 | Acme enrich trope rules | [`lambda/ephemera/dataSource/actions/enrich/acmeOrder/buildPrompt.ts`](../../../../../../lambda/ephemera/dataSource/actions/enrich/acmeOrder/buildPrompt.ts) |
 | Acme harness fixtures | [`lambda/ephemera/dataSource/actions/acmeOrderAffinitiesHarnessPhrases.ts`](../../../../../../lambda/ephemera/dataSource/actions/acmeOrderAffinitiesHarnessPhrases.ts) |
 | Hypothesis `TROPE_ORDER` | [`parseCandidateOutput.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/candidates/parseCandidateOutput.ts), [`parsePlanSelectOutput.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/parsePlanSelectOutput.ts), [`combineCandidateOutput.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/candidates/combineCandidateOutput.ts), [`buildCandidatePrompt.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/candidates/buildCandidatePrompt.ts), [`buildPlanSelectPrompt.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/buildPlanSelectPrompt.ts), [`buildNarrativeBeatPrompt.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/narrativeBeats/buildNarrativeBeatPrompt.ts) |
@@ -126,16 +126,16 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Update **`acmeOrderAffinitiesHarnessPhrases.ts`** expected lines and **`likelyErrors`**; run harness tests.
   - [X] Touch **`baseClasses.ts`** / publish validation only if trope literals are duplicated there.
 
-- [ ] Phase D3 - hypothesis pipeline (prompts, parsers, combine, narrative beats)
-  - [ ] Update all **`TROPE_ORDER`** arrays and prompt copy.
-  - [ ] Adjust parsers strictness if trope keys change (unknown key policy unchanged unless decided otherwise).
-  - [ ] Update **`combineCandidateOutput`** and plan-select / candidate tests.
+- [X] Phase D3 - hypothesis pipeline (prompts, parsers, combine, narrative beats)
+  - [X] Update all **`TROPE_ORDER`** arrays and prompt copy.
+  - [X] Adjust parsers strictness if trope keys change (unknown key policy unchanged unless decided otherwise).
+  - [X] Update **`combineCandidateOutput`** and plan-select / candidate tests.
 
 - [ ] Phase D4 - outcome pipeline and formatters
   - [ ] Verify **`formatPhasePlanForOutcomePrompt`** and **`buildPlanOutcomePrompt`** for trope list examples and any hard-coded **five-trope** assumptions.
 
 - [ ] Phase D5 - fixtures, integration tests, docs
-  - [ ] Update **`coyoteEngineTestFixtures`**, **`runCoyoteEngineTestHarness`**, hypothesis pipeline tests, **`handleApiObjectsChange.test.ts`** as needed.
+  - [ ] Re-verify **`coyoteEngineTestFixtures`** / **`runCoyoteEngineTestHarness`** after broader grep (**engine harness tropes retargeted during D3** for **`CoyoteTrope`**); **`handleApiObjectsChange.test.ts`** and conceptual **`AGENT.tropes.md`** as needed.
   - [ ] Revise **`AGENT.tropes.md`**, coyoteGame **`AGENT.md`**, hypothesis **`AGENT.md`**: five tropes, ordering, constraints (unawareness / first Road-Runner-facing beat) split between Bait and Misdirection.
 
 - [ ] Phase D6 - verification sweep and closeout
@@ -167,12 +167,14 @@ Run after implementation; commands assume repo root or adjust per **`lambda/ephe
 - `npm run test -- --watchAll=false dataSource/actions/enrich/acmeOrder/buildPrompt.test.ts` (6 / 6 pass)
 - `rg "Distraction" lambda/ephemera/dataSource/actions` (empty after D2; from repo root)
 
-**Known D3-blocked tests (transient).** D1's hard cut of **`Distraction`** narrowed **`CoyoteTrope`** in **`mtw-interfaces`**, so any lambda test whose import graph reaches the hypothesis pipeline now fails ts-jest type-check on stale **`'Distraction'`** literals (e.g. **`buildNarrativeBeatPrompt.ts`** `TROPE_ORDER`). These tests are expected to fail until **Phase D3** sweeps the hypothesis pipeline:
+**Confirmed commands (D3)** --- cwd **`lambda/ephemera/`**:
 
+- `npm run test -- --watchAll=false dataSource/coyoteGame/generators/pipelines/hypothesis` (hypothesis pipeline tests)
+- `npm run test -- --watchAll=false dataSource/coyoteGame/generators/testHarness/runCoyoteEngineTestHarness.test.ts` (recommended spot-check after fixture trope edits)
 - `npm run test -- --watchAll=false dataSource/actions/actionHandlers/runAcmeOrderAffinitiesHarness.test.ts`
 - `npm run test -- --watchAll=false dataSource/actions/enrich/acmeOrder/index.test.ts`
 
-Both are local-edit-clean (zero **`Distraction`** references in the actions tree); they only fail because their import graph transitively pulls in the hypothesis pipeline. Re-run them as part of D3 verification.
+**Confirmed (D3)** --- cwd **`packages/mtw-interfaces/`**: **`CANONICAL_TROPE_ORDER`** is exported from **`coyotePhasePlan.ts`**; **`ts/coyotePhasePlan.test.ts`** remains green after re-run.
 
 Re-record exact passing commands in this section after the first green CI run so future agents do not guess cwd.
 
@@ -181,5 +183,6 @@ Re-record exact passing commands in this section after the first green CI run so
 | Phase | State | Notes |
 | --- | --- | --- |
 | D0 | Done | **Decisions (locked)**; **Open questions (resolved)**; prod persistence cleared; optional: record exact **Verification** commands after first green run |
-| D1 | Done | **`CoyoteTrope`**: `Bait` + `Misdirection`; **`Distraction`** removed. **`CANONICAL_TROPE_ORDER`** and **`validateCoyotePhasePlan`** copy updated. Package tests green; **`rg "Distraction" packages/mtw-interfaces/ts`** is empty. Lambda / ephemera still reference **`Distraction`** until D2-D5. |
-| D2 | Done | Acme enrich prompt rewritten for **`Bait`** + **`Misdirection`** rubrics (Decisions 6-8 with first-appearance parentheticals); harness fixtures (`clean-002-birdseed-lure`, `borderline-001-paint-kit`) and **`likelyErrors`** retargeted; **`baseClasses.ts`** **`AcmeOrderAffinitiesHarnessExpectedTrope`** tightened to **`CoyoteTrope`** / **`CoyoteTropeAptness`**. **`rg "Distraction" lambda/ephemera/dataSource/actions`** is empty; **`buildPrompt.test.ts`** green. Hypothesis-pipeline-touching lambda tests (`runAcmeOrderAffinitiesHarness.test.ts`, `dataSource/actions/enrich/acmeOrder/index.test.ts`) remain ts-jest-blocked on stale **`'Distraction'`** literals in **`buildNarrativeBeatPrompt.ts`** etc. until D3. |
+| D1 | Done | **`CoyoteTrope`**: `Bait` + `Misdirection`; **`Distraction`** removed. **`CANONICAL_TROPE_ORDER`** and **`validateCoyotePhasePlan`** copy updated. Package tests green; **`rg "Distraction" packages/mtw-interfaces/ts`** is empty. |
+| D2 | Done | Acme enrich prompt rewritten for **`Bait`** + **`Misdirection`** rubrics (Decisions 6-8 with first-appearance parentheticals); harness fixtures (`clean-002-birdseed-lure`, `borderline-001-paint-kit`) and **`likelyErrors`** retargeted; **`baseClasses.ts`** **`AcmeOrderAffinitiesHarnessExpectedTrope`** tightened to **`CoyoteTrope`** / **`CoyoteTropeAptness`**. **`rg "Distraction" lambda/ephemera/dataSource/actions`** is empty; **`buildPrompt.test.ts`** green. |
+| D3 | Done | Exported **`CANONICAL_TROPE_ORDER`**; hypothesis **`TROPE_ORDER`** imports it in parsers, combine, plan-select, prompts (stage one + plan-select schema + narrative **`tropeSequence`**); trope vocabulary / rubric lines in prompts; **`coyoteEngineTestFixtures`** + **`runCoyoteEngineTestHarness.test`** tropes aligned (**`Bait`** vs **`Misdirection`**); hypothesis **`AGENT.md`** trope lists updated. **`lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md`** still describes legacy **Distraction** until **D5**. |

@@ -5,6 +5,7 @@ import {
     isCoyoteTrope,
     isEnvironmentAffordanceRef,
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import { CANONICAL_TROPE_ORDER } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 import { hypothesisDebugLog } from '../../../../utilities/hypothesisDebug'
 import type {
     PlanSelectCombinedCandidate,
@@ -14,7 +15,7 @@ import type {
 } from '../candidates/combineCandidateOutput'
 
 /** Canonical trope ordering for deterministic narrowed-record emission. */
-const TROPE_ORDER: CoyoteTrope[] = ['Contraption', 'Distraction', 'Disadvantage', 'Finishing Move']
+const TROPE_ORDER: CoyoteTrope[] = CANONICAL_TROPE_ORDER
 
 /** Canonical JSON keys for planSelect output (plan selection to phase-plan). */
 export const PLAN_SELECT_OUTPUT_JSON_KEYS = {

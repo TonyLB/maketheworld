@@ -4,6 +4,7 @@ import type {
     CoyoteTrope,
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { isCoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import { CANONICAL_TROPE_ORDER } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 
 /*
  * Stage 1 emits trope-first JSON: optional notes, required candidates[].
@@ -129,7 +130,7 @@ const STAGE_ONE_CANDIDATE_ALLOWED_KEYS = new Set([
 const STAGE_ONE_TROPE_ASSIGNMENT_ALLOWED_KEYS = new Set(['executionDetail', 'members'])
 const STAGE_ONE_MEMBER_ALLOWED_KEYS = new Set(['stableKey', 'tropeFunction'])
 const STAGE_ONE_OUTLIER_ALLOWED_KEYS = new Set(['stableKey'])
-const TROPE_ORDER: CoyoteTrope[] = ['Contraption', 'Distraction', 'Disadvantage', 'Finishing Move']
+const TROPE_ORDER: CoyoteTrope[] = CANONICAL_TROPE_ORDER
 
 function unknownKeys(
     candidate: Record<string, unknown>,

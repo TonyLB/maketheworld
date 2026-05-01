@@ -15,9 +15,11 @@ import {
 import type { PlanSelectOutput } from '../planSelect/parsePlanSelectOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
 import type { CoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import { CANONICAL_TROPE_ORDER } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 
 /** Canonical trope ordering for deterministic selectedCandidate rendering. */
-const TROPE_ORDER: CoyoteTrope[] = ['Contraption', 'Distraction', 'Disadvantage', 'Finishing Move']
+const TROPE_ORDER: CoyoteTrope[] = CANONICAL_TROPE_ORDER
+const CANONICAL_TROPE_CHAIN_LABEL = CANONICAL_TROPE_ORDER.join(' -> ')
 
 export type BuildNarrativeBeatPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
@@ -53,8 +55,8 @@ const NARRATIVE_BEAT_INTRO = [
     '1. **First**, output **one** Markdown **` ```json ` ** fenced block whose JSON has',
     '   **exactly** top-level keys **`tropeSequence`**, **`deconflictionSummary`**, and',
     '   **`phases`**.',
-    '   - **`tropeSequence`**: non-empty array of unique trope names in canonical order',
-    '     (Contraption -> Distraction -> Disadvantage -> Finishing Move).',
+    '   - **`tropeSequence`**: non-empty array of **unique** trope names; include only tropes this plan uses,',
+    `     each at most once, in canonical order (${CANONICAL_TROPE_CHAIN_LABEL}). Omit tropes the maneuver does not use.`,
     '   - **`deconflictionSummary`**: concise string describing final conflict resolutions.',
     '   - **`phases`**: non-empty array, one entry per trope in `tropeSequence` at the',
     '     same index. Each phase object includes **`trope`**, **`tropeBeat`** (second-draft',

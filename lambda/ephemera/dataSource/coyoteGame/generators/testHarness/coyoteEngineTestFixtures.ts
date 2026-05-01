@@ -79,7 +79,7 @@ export function harnessRoomObjects(roomSlug: string, shortNames: string[]): Ephe
 /** Birdseed staged as bait: placed to stage the gag, then targets the quarry. */
 const birdseedLureAffinities: CoyoteTropeAffinity[] = [
     {
-        trope: 'Distraction',
+        trope: 'Bait',
         aptness: 'High',
         narrowing: 'bait lure that commits Road Runner to the chosen lane',
     },
@@ -244,7 +244,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                     shortName: 'paint',
                     tropeAffinities: [
                         {
-                            trope: 'Distraction',
+                            trope: 'Misdirection',
                             aptness: 'Good',
                             narrowing: 'visual lure through fake passage cue',
                         },
@@ -527,7 +527,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                             narrowing: 'deflection or glide prep tool',
                         },
                         {
-                            trope: 'Distraction',
+                            trope: 'Misdirection',
                             aptness: 'Poor',
                             narrowing: 'costume-like visual decoy read',
                         },
@@ -619,7 +619,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                     shortName: 'paint',
                     tropeAffinities: [
                         {
-                            trope: 'Distraction',
+                            trope: 'Misdirection',
                             aptness: 'Good',
                             narrowing: 'visual deception lure at turn',
                         },
@@ -653,7 +653,7 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
                         executionDetail: 'Lever is staged at CLIFFTOP as release hardware.',
                         members: [{ stableKey: 'lever-0', tropeFunction: 'release lever' }],
                     },
-                    Distraction: {
+                    Bait: {
                         executionDetail: 'Road Runner stops to eat birdseed at CLIFFBASE.',
                         members: [{ stableKey: 'birdseed-0', tropeFunction: 'lane bait' }],
                     },
@@ -674,7 +674,7 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
                             { stableKey: 'paint-0', tropeFunction: 'route edit' },
                         ],
                     },
-                    Distraction: {
+                    Bait: {
                         executionDetail: 'Road Runner pauses for birdseed at the bridge approach.',
                         members: [{ stableKey: 'birdseed-1', tropeFunction: 'target bait' }],
                     },
@@ -724,7 +724,7 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
                 candidateId: 'candidate-1',
                 executionSummary: 'Birdseed lures, glue constrains, and anvil closes terminally.',
                 tropeAssignments: {
-                    Distraction: {
+                    Bait: {
                         executionDetail: 'Road Runner pauses for birdseed along the straightaway.',
                         members: [{ stableKey: 'birdseed-0', tropeFunction: 'target bait' }],
                     },
@@ -815,7 +815,7 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
                             { stableKey: 'paint-0', tropeFunction: 'route edit' },
                         ],
                     },
-                    Distraction: {
+                    Bait: {
                         executionDetail: 'Birdseed draws Road Runner into the prepared line.',
                         members: [{ stableKey: 'birdseed-0', tropeFunction: 'target bait' }],
                     },
@@ -848,7 +848,7 @@ const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFi
                         },
                     ],
                 },
-                Distraction: {
+                Bait: {
                     executionDetail: 'Road Runner stops to eat birdseed at CLIFFBASE.',
                     members: [
                         {
@@ -887,7 +887,7 @@ const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFi
                         },
                     ],
                 },
-                Distraction: {
+                Bait: {
                     executionDetail: 'Road Runner pauses for birdseed at the bridge approach.',
                     members: [
                         {
