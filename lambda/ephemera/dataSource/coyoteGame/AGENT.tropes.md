@@ -178,3 +178,4 @@ This is additive to Acme gadgetry and Rube chains --- another vocabulary for tyi
 - **Finishing Move** is always terminal; nothing follows it.
 - **Chase** is implicit resolution, not a sequence node.
 - Plans have no branches or contingencies --- always a single golden-path walkthrough.
+- **`environmentAffordances` vs `affordancesProvided`:** The constrained environment-affordance object list is not expected to need **Bait** or **Misdirection** roles on fixed environment rows in practice. **`affordancesProvided`** may still attach derived objects with **Bait** or **Misdirection** (for example a **Contraption** line such as an automatic birthday-cake oven with `affordancesProvided: [{ object: 'birthday cake', roles: ['Bait'] }]`). Acme harness copy for fixed environment tables can stay focused on **Contraption**, **Finishing Move**, and **Disadvantage** unless a concrete counterexample appears.
