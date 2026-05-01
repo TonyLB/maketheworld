@@ -2,6 +2,10 @@ import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { buildPlanSelectPrompt } from '../pipelines/hypothesis/planSelect/buildPlanSelectPrompt'
 import {
+    isValidMaterializedAffordanceStableKey,
+    parsePlanSelectOutput,
+} from '../pipelines/hypothesis/planSelect/parsePlanSelectOutput'
+import {
     COYOTE_ENGINE_TEST_FIXTURES,
     resolveCoyoteHarnessStartAtInject,
 } from './coyoteEngineTestFixtures'
@@ -53,6 +57,43 @@ describe('COYOTE_ENGINE_TEST_FIXTURES', () => {
         expect(parts.invariantPrefix.length).toBeGreaterThan(0)
         expect(parts.dynamicSuffix).toContain('"schemaVersion":3')
         expect(parts.dynamicSuffix).toContain('candidate-1')
+    })
+
+    it('fixture-01 phasePlanInject planSelectOutput carries a materialized affordance Finishing Move member', () => {
+        const phaseInject = COYOTE_ENGINE_TEST_FIXTURES[0].phasePlanInject
+        expect(phaseInject).toBeDefined()
+        const selected = phaseInject!.planSelectOutput.selectedCandidate
+        expect(selected).toBeDefined()
+        const fm = selected!.tropeAssignments['Finishing Move']
+        expect(fm?.members.length).toBeGreaterThan(0)
+        const coyoteRow = fm!.members.find((m) => m.stableKey === 'affordance:coyote')
+        expect(coyoteRow).toBeDefined()
+        expect(isValidMaterializedAffordanceStableKey(coyoteRow!.stableKey)).toBe(true)
+    })
+
+    it('fixture-01 phasePlan handoff parses through parsePlanSelectOutput like production output', () => {
+        const handoff = COYOTE_ENGINE_TEST_FIXTURES[0].phasePlanInject!.planSelectOutput
+        const raw = [
+            '## Intent conflicts',
+            '- (fixture harness)',
+            '## Rubric comparison',
+            '- candidate-1.',
+            '## Winner selection',
+            '- Winner: candidate-1.',
+            '',
+            '```json',
+            JSON.stringify(handoff),
+            '```',
+        ].join('\n')
+        const parsed = parsePlanSelectOutput(raw)
+        expect(parsed.ok).toBe(true)
+        if (!parsed.ok) {
+            throw new Error(parsed.reason)
+        }
+        expect(parsed.handoff.paragraphSummary).toBe(handoff.paragraphSummary)
+        expect(parsed.handoff.selectedCandidate?.tropeAssignments['Finishing Move']?.members[0]?.stableKey).toBe(
+            'affordance:coyote'
+        )
     })
 })
 

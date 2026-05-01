@@ -150,8 +150,38 @@ function buildFixture01PlanSelectInject(): CoyoteHarnessPlanSelectInject {
 
 const FIXTURE_01_PLAN_SELECT_INJECT = buildFixture01PlanSelectInject()
 const FIXTURE_01_PHASE_PLAN_HANDOFF: PlanSelectOutput = {
-    paragraphSummary: 'Conflict review favors candidate-1: lock a single Contraption-first lane using the straightaway rocket setup, then carry that same lane through the terminal beat with no prop-role conflicts.',
+    paragraphSummary:
+        'Conflict review favors candidate-1: lock a single Contraption-first lane using the straightaway rocket setup, materialize Coyote as the finishing-move affordance grounded on that same seam, then carry the lane through the terminal beat with no prop-role conflicts.',
     planIssues: [],
+    selectedCandidate: {
+        candidateId: 'candidate-1',
+        executionSummary: 'Use the straightaway rocket lane as the main trap route.',
+        tropeAssignments: {
+            Contraption: {
+                executionDetail: 'Rocket hardware is staged and aligned on the straightaway.',
+                members: [
+                    {
+                        stableKey: 'rocket-0',
+                        shortName: 'rocket',
+                        room: 'STRAIGHTAWAY',
+                        tropeFunction: 'delivery lane hardware for straightaway setup',
+                    },
+                ],
+            },
+            'Finishing Move': {
+                executionDetail: 'Coyote closes the beat as the terminal pursuit affordance tied to the rocket lane.',
+                members: [
+                    {
+                        stableKey: 'affordance:coyote',
+                        shortName: 'Coyote',
+                        room: 'STRAIGHTAWAY',
+                        tropeFunction: 'terminal chase beat',
+                    },
+                ],
+            },
+        },
+        outliers: [],
+    },
 }
 const FIXTURE_01_PHASE_PLAN_INJECT: CoyoteHarnessPhasePlanInject = {
     ...FIXTURE_01_PLAN_SELECT_INJECT,
