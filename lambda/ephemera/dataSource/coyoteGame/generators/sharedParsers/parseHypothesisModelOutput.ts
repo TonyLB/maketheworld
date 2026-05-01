@@ -83,7 +83,7 @@ function trySplitFinalHypothesisFence(rawBody: string): { prefix: string; intent
  * scene analysis is taken from the prefix before that fence (with the same `## Scene analysis` trim rules).
  * **Legacy path:** Otherwise, unwrap a single outer ``` fence if present, then use the first `Hypothesis:` line.
  */
-export type ParseHypothesisPhasePlanHopResult = {
+export type ParseNarrativeBeatOutputResult = {
     record: CoyoteGameIntentRecord
     /** Raw **` ```json ` ** interior that validated, when any. */
     phasePlanJson?: string
@@ -91,14 +91,14 @@ export type ParseHypothesisPhasePlanHopResult = {
 }
 
 /**
- * Option A hop 2: extracts **`phasePlan`** from **` ```json ` ** fences via [**`validateCoyotePhasePlan`**], then prose via [**`parseHypothesisModelOutput`**].
+ * Narrative beat hop: extracts **`phasePlan`** from **` ```json ` ** fences via [**`validateCoyotePhasePlan`**], then prose via [**`parseHypothesisModelOutput`**].
  * On validation failure, **`record`** still carries usable **`intent`** / **`walkthrough`** when prose parses (**Decided: structured validation failure**).
  */
-export function parseHypothesisPhasePlanHopOutput(
+export function parseNarrativeBeatOutput(
     rawBody: string,
     phasePlanCtx: CoyotePhasePlanValidationContext,
     parseOptions?: ParseHypothesisModelOutputOptions
-): ParseHypothesisPhasePlanHopResult {
+): ParseNarrativeBeatOutputResult {
     const blocks = findAllFenceBlocks(rawBody)
     hypothesisDebugLog('phase plan parser: scanned fences', {
         blockCount: blocks.length,

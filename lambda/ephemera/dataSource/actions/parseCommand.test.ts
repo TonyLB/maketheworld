@@ -375,7 +375,7 @@ describe('parseCommand LLM path', () => {
 
         expect(result.type).toBe('Error')
         if (result.type === 'Error') {
-            expect(result.errorMessage).toContain('clustering')
+            expect(result.errorMessage).toContain('candidates')
             expect(result.errorMessage).toContain('planSelect')
         }
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()

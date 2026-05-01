@@ -9,34 +9,34 @@ import {
     type PipelineStep,
 } from '../../../../../llm/pipeline';
 
-import { buildHypothesisPhasePlanHopPromptParts } from './buildHypothesisPhasePlanHopPromptParts';
-import { buildHypothesisPlanSelectionPromptParts } from './buildHypothesisPlanSelectionPromptParts';
-import { buildHypothesisStageOnePromptParts } from './buildHypothesisStageOnePrompt';
+import { buildNarrativeBeatPrompt } from './narrativeBeats/buildNarrativeBeatPrompt';
+import { buildPlanSelectPrompt } from './planSelect/buildPlanSelectPrompt';
+import { buildCandidatePrompt } from './candidates/buildCandidatePrompt';
 import {
-    combineHypothesisClusters,
-    planSelectOutliersForCombinedCandidate,
-    type CombineHypothesisClustersReturn,
-} from './combineHypothesisClusters';
+    combineCandidateOutput,
+    planSelectOutliersForCandidate,
+    type CombineCandidateOutputReturn,
+} from './candidates/combineCandidateOutput';
 import type { CoyoteHarnessPhasePlanInject, CoyoteHarnessPlanSelectInject } from './coyoteHarnessInjectTypes';
-import { parseHop1HandoffFromSelectionBody, type CoyoteHop1Handoff } from './coyoteHop1Handoff';
-import { buildCoyotePhasePlanValidationContext } from './coyoteHypothesisPhasePlanContext';
+import { parsePlanSelectOutput, type PlanSelectOutput } from './planSelect/parsePlanSelectOutput';
+import { buildNarrativeBeatValidationContext } from './narrativeBeats/narrativeBeatValidationContext';
 import { loadCoyoteRoomObjectsByRoom, type CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot';
 import {
-    invokeBedrockHypothesisPhasePlanHop,
+    invokeBedrockHypothesisNarrativeBeat,
     invokeBedrockHypothesisPlanSelection,
     invokeBedrockHypothesisStageOne,
     type InvokeBedrockHypothesisResult,
 } from './invokeBedrockHypothesis';
 import {
-    parseHypothesisPhasePlanHopOutput,
+    parseNarrativeBeatOutput,
     type ParseHypothesisModelOutputOptions,
 } from '../../sharedParsers/parseHypothesisModelOutput';
-import { parseHypothesisStageOneOutput } from './parseHypothesisStageOneOutput';
+import { parseCandidateOutput } from './candidates/parseCandidateOutput';
 import { hypothesisDebugLog } from '../../../utilities/hypothesisDebug';
 
 /**
- * Failure policy: Bedrock failure on Stage One, plan-selection hop, or phase-plan hop; invalid seam / combine;
- * or hop-1 handoff parse failure yields stub intent only --- no partial hypothesis to players.
+ * Failure policy: Bedrock failure on Stage One, plan-selection hop, or narrative beat hop; invalid seam / combine;
+ * or planSelect output parse failure yields stub intent only --- no partial hypothesis to players.
  * Hop-2 phase-plan JSON validation failure does **not** abort when prose Hypothesis still parses (**Decided: structured validation failure**).
  */
 
@@ -47,7 +47,7 @@ export type GenerateHypothesisDeps = {
 };
 
 /** Phase alias aligned with slash / harness (`testOnly`). */
-export type CoyoteHypothesisTestPhase = 'clustering' | 'planSelect' | 'phasePlan';
+export type CoyoteHypothesisTestPhase = 'candidates' | 'planSelect' | 'phasePlan';
 
 /** Harness-only: prefix run vs isolated single LLM hop. */
 export type CoyoteHypothesisHarnessRunKind = 'runUntil' | 'runOnly';
@@ -55,20 +55,20 @@ export type CoyoteHypothesisHarnessRunKind = 'runUntil' | 'runOnly';
 export type CoyoteHypothesisPipelineHarnessOptions = {
     testOnly: CoyoteHypothesisTestPhase;
     harnessRunKind: CoyoteHypothesisHarnessRunKind;
-    /** Required for **`runOnly`** **`planSelect`** / **`phasePlan`**; omit for **`runUntil`** and **`runOnly`** **`clustering`**. */
+    /** Required for **`runOnly`** **`planSelect`** / **`phasePlan`**; omit for **`runUntil`** and **`runOnly`** **`candidates`**. */
     injectState?: Partial<CoyoteHypothesisPipelineState>;
 };
 
-/** Shared payload fields on full completion (successful parse of phase-plan hop). */
+/** Shared payload fields on full completion (successful parse of narrative beat output). */
 type GenerateHypothesisPipelineOkFields = {
     record: CoyoteGameIntentRecord;
     stageOneResult: InvokeBedrockHypothesisResult;
     planSelectionResult: InvokeBedrockHypothesisResult;
-    phasePlanHopResult: InvokeBedrockHypothesisResult;
+    narrativeBeatResult: InvokeBedrockHypothesisResult;
     selectionBody?: string;
     phasePlanJson?: string;
     phasePlanValidationReason?: string;
-    stageTwoReasoningContent?: string;
+    narrativeBeatReasoningContent?: string;
 };
 
 export type GenerateHypothesisPipelineFullResult = { kind: 'full' } & GenerateHypothesisPipelineOkFields;
@@ -80,11 +80,11 @@ export type GenerateHypothesisPipelineHarnessPartialResult = {
     record: CoyoteGameIntentRecord;
     stageOneResult?: InvokeBedrockHypothesisResult;
     planSelectionResult?: InvokeBedrockHypothesisResult | null;
-    phasePlanHopResult?: InvokeBedrockHypothesisResult | null;
+    narrativeBeatResult?: InvokeBedrockHypothesisResult | null;
     selectionBody?: string;
     phasePlanJson?: string;
     phasePlanValidationReason?: string;
-    stageTwoReasoningContent?: string;
+    narrativeBeatReasoningContent?: string;
 };
 
 export type GenerateHypothesisPipelineStubResult = {
@@ -92,7 +92,7 @@ export type GenerateHypothesisPipelineStubResult = {
     record: CoyoteGameIntentRecord;
     stageOneResult: InvokeBedrockHypothesisResult;
     planSelectionResult: InvokeBedrockHypothesisResult | null;
-    phasePlanHopResult: InvokeBedrockHypothesisResult | null;
+    narrativeBeatResult: InvokeBedrockHypothesisResult | null;
     selectionBody?: string;
     phasePlanJson?: string;
     phasePlanValidationReason?: string;
@@ -105,17 +105,17 @@ export type GenerateHypothesisPipelineResult =
 
 export type CoyoteHypothesisPipelineState = {
     roomObjectsByRoom?: CoyoteRoomObjectsByRoom;
-    /** Combined trope candidates after {@link combineHypothesisClusters} (source of truth for plan-select JSON and phase-plan Markdown). */
-    combined?: CombineHypothesisClustersReturn;
+    /** Combined trope candidates after {@link combineCandidateOutput} (source of truth for plan-select JSON and phase-plan Markdown). */
+    combined?: CombineCandidateOutputReturn;
     stageOneResult?: InvokeBedrockHypothesisResult;
     planSelectionResult?: InvokeBedrockHypothesisResult | null;
-    phasePlanHopResult?: InvokeBedrockHypothesisResult | null;
-    hop1Handoff?: CoyoteHop1Handoff;
+    narrativeBeatResult?: InvokeBedrockHypothesisResult | null;
+    planSelectOutput?: PlanSelectOutput;
     selectionBody?: string;
     phasePlanJson?: string;
     phasePlanValidationReason?: string;
     record?: CoyoteGameIntentRecord;
-    stageTwoReasoningContent?: string;
+    narrativeBeatReasoningContent?: string;
 };
 
 /** Thrown after partial state is written so [`runPipeline`] stops and the mapper returns a stub [`GenerateHypothesisPipelineResult`]. */
@@ -163,13 +163,13 @@ function assertRunOnlyInjectPhasePlan(
     inject: Partial<CoyoteHypothesisPipelineState> | undefined
 ): CoyoteHarnessPhasePlanInject {
     const base = assertRunOnlyInjectPlanSelect(inject);
-    const hop1Handoff = inject?.hop1Handoff;
-        if (!hop1Handoff) {
+    const planSelectOutput = inject?.planSelectOutput;
+        if (!planSelectOutput) {
         throw new Error(
-            'CoyoteHypothesisPipeline: runOnly phasePlan requires injectState with hop1Handoff, roomObjectsByRoom, and combined'
+            'CoyoteHypothesisPipeline: runOnly phasePlan requires injectState with planSelectOutput, roomObjectsByRoom, and combined'
         );
     }
-    return { ...base, hop1Handoff };
+    return { ...base, planSelectOutput };
 }
 
 export function validateCoyoteHypothesisHarnessOptions(options: CoyoteHypothesisPipelineHarnessOptions): void {
@@ -185,7 +185,7 @@ export function validateCoyoteHypothesisHarnessOptions(options: CoyoteHypothesis
         }
         if (injectState !== undefined && Object.keys(injectState).length > 0) {
             throw new Error(
-                'CoyoteHypothesisPipeline: runOnly clustering does not accept injectState; use roomObjectsByRoomOverride on deps'
+                'CoyoteHypothesisPipeline: runOnly candidates does not accept injectState; use roomObjectsByRoomOverride on deps'
             );
         }
         return;
@@ -197,7 +197,7 @@ export function validateCoyoteHypothesisHarnessOptions(options: CoyoteHypothesis
 
 /** Indices match [`buildCoyoteHypothesisSteps`] order. */
 const RUN_UNTIL_LAST_STEP_INDEX: Record<CoyoteHypothesisTestPhase, number> = {
-    clustering: 1,
+    candidates: 1,
     planSelect: 3,
     phasePlan: 5,
 };
@@ -221,7 +221,7 @@ function buildCoyoteHypothesisSteps(
                 if (!roomObjectsByRoom) {
                     throw new Error('CoyoteHypothesisPipeline: missing roomObjectsByRoom');
                 }
-                const stageOneParts = buildHypothesisStageOnePromptParts({ roomObjectsByRoom });
+                const stageOneParts = buildCandidatePrompt({ roomObjectsByRoom });
                 const stageOneResult = await invokeBedrockHypothesisStageOne(stageOneParts);
                 draft.stageOneResult = stageOneResult;
                 hypothesisDebugLog('stage one invoke complete', summarizeInvokeResult(stageOneResult));
@@ -239,7 +239,7 @@ function buildCoyoteHypothesisSteps(
                 if (!roomObjectsByRoom || !stageOneResult?.success) {
                     throw new Error('CoyoteHypothesisPipeline: seamCombineRender preconditions');
                 }
-                const seamParsed = parseHypothesisStageOneOutput(stageOneResult.body, roomObjectsByRoom);
+                const seamParsed = parseCandidateOutput(stageOneResult.body, roomObjectsByRoom);
                 if (!seamParsed.ok) {
                     hypothesisDebugLog('aborting hypothesis pipeline', {
                         reason: 'stageOneParseFailed',
@@ -247,7 +247,7 @@ function buildCoyoteHypothesisSteps(
                     });
                     abort();
                 }
-                const combinedResult = combineHypothesisClusters(
+                const combinedResult = combineCandidateOutput(
                     seamParsed.candidates,
                     roomObjectsByRoom
                 );
@@ -269,7 +269,7 @@ function buildCoyoteHypothesisSteps(
                 if (!roomObjectsByRoom || combined === undefined) {
                     throw new Error('CoyoteHypothesisPipeline: hypothesisPlanSelectionLlm preconditions');
                 }
-                const parts = buildHypothesisPlanSelectionPromptParts({
+                const parts = buildPlanSelectPrompt({
                     roomObjectsByRoom,
                     combined,
                 });
@@ -292,7 +292,7 @@ function buildCoyoteHypothesisSteps(
                     throw new Error('CoyoteHypothesisPipeline: parsePlanSelectionHandoff preconditions');
                 }
                 draft.selectionBody = planSelectionResult.body;
-                const handoff = parseHop1HandoffFromSelectionBody(planSelectionResult.body);
+                const handoff = parsePlanSelectOutput(planSelectionResult.body);
                 if (!handoff.ok) {
                     hypothesisDebugLog('aborting hypothesis pipeline', {
                         reason: 'planSelectionHandoffParseFailed',
@@ -300,60 +300,60 @@ function buildCoyoteHypothesisSteps(
                     });
                     abort();
                 }
-                let hop1Handoff = handoff.handoff;
-                const selected = hop1Handoff.selectedCandidate;
+                let planSelectOutput = handoff.handoff;
+                const selected = planSelectOutput.selectedCandidate;
                 if (selected) {
                     const matched = combined.candidates.find((c) => c.candidateId === selected.candidateId);
                     if (matched) {
-                        hop1Handoff = {
-                            ...hop1Handoff,
+                        planSelectOutput = {
+                            ...planSelectOutput,
                             selectedCandidate: {
                                 ...selected,
-                                outliers: planSelectOutliersForCombinedCandidate(matched, roomObjectsByRoom),
+                                outliers: planSelectOutliersForCandidate(matched, roomObjectsByRoom),
                             },
                         };
                     }
                 }
-                draft.hop1Handoff = hop1Handoff;
+                draft.planSelectOutput = planSelectOutput;
             },
         }),
         ctx.defineLlmStep({
-            name: 'hypothesisPhasePlanHopLlm',
+            name: 'hypothesisNarrativeBeatLlm',
             run: async (draft) => {
                 const roomObjectsByRoom = draft.roomObjectsByRoom;
                 const combined = draft.combined;
-                const handoff = draft.hop1Handoff;
+                const handoff = draft.planSelectOutput;
                 if (!roomObjectsByRoom || combined === undefined || !handoff) {
-                    throw new Error('CoyoteHypothesisPipeline: hypothesisPhasePlanHopLlm preconditions');
+                    throw new Error('CoyoteHypothesisPipeline: hypothesisNarrativeBeatLlm preconditions');
                 }
-                const parts = buildHypothesisPhasePlanHopPromptParts({
+                const parts = buildNarrativeBeatPrompt({
                     roomObjectsByRoom,
                     combined,
-                    hop1Handoff: handoff,
+                    planSelectOutput: handoff,
                 });
-                const phasePlanHopResult = await invokeBedrockHypothesisPhasePlanHop(parts);
-                draft.phasePlanHopResult = phasePlanHopResult;
-                hypothesisDebugLog('phase plan hop invoke complete', summarizeInvokeResult(phasePlanHopResult));
-                if (!phasePlanHopResult.success) {
-                    hypothesisDebugLog('aborting hypothesis pipeline', { reason: 'phasePlanInvokeFailed' });
+                const narrativeBeatResult = await invokeBedrockHypothesisNarrativeBeat(parts);
+                draft.narrativeBeatResult = narrativeBeatResult;
+                hypothesisDebugLog('narrative beat invoke complete', summarizeInvokeResult(narrativeBeatResult));
+                if (!narrativeBeatResult.success) {
+                    hypothesisDebugLog('aborting hypothesis pipeline', { reason: 'narrativeBeatInvokeFailed' });
                     abort();
                 }
             },
         }),
         ctx.defineOrchestrationStep({
-            name: 'parsePhasePlanHopRecord',
+            name: 'parseNarrativeBeatRecord',
             run: async (draft) => {
-                const phasePlanHopResult = draft.phasePlanHopResult;
+                const narrativeBeatResult = draft.narrativeBeatResult;
                 const roomObjectsByRoom = draft.roomObjectsByRoom;
-                if (!phasePlanHopResult?.success || !roomObjectsByRoom) {
-                    throw new Error('CoyoteHypothesisPipeline: parsePhasePlanHopRecord preconditions');
+                if (!narrativeBeatResult?.success || !roomObjectsByRoom) {
+                    throw new Error('CoyoteHypothesisPipeline: parseNarrativeBeatRecord preconditions');
                 }
                 const parseOptions: ParseHypothesisModelOutputOptions = {
-                    reasoningContentProvided: Boolean(phasePlanHopResult.reasoningContent),
+                    reasoningContentProvided: Boolean(narrativeBeatResult.reasoningContent),
                 };
-                const phasePlanCtx = buildCoyotePhasePlanValidationContext(roomObjectsByRoom);
-                const parsed = parseHypothesisPhasePlanHopOutput(
-                    phasePlanHopResult.body,
+                const phasePlanCtx = buildNarrativeBeatValidationContext(roomObjectsByRoom);
+                const parsed = parseNarrativeBeatOutput(
+                    narrativeBeatResult.body,
                     phasePlanCtx,
                     parseOptions
                 );
@@ -361,12 +361,12 @@ function buildCoyoteHypothesisSteps(
                 draft.phasePlanJson = parsed.phasePlanJson;
                 draft.phasePlanValidationReason = parsed.phasePlanValidationReason;
                 if (
-                    phasePlanHopResult.reasoningContent !== undefined &&
-                    phasePlanHopResult.reasoningContent.length > 0
+                    narrativeBeatResult.reasoningContent !== undefined &&
+                    narrativeBeatResult.reasoningContent.length > 0
                 ) {
-                    draft.stageTwoReasoningContent = phasePlanHopResult.reasoningContent;
+                    draft.narrativeBeatReasoningContent = narrativeBeatResult.reasoningContent;
                 }
-                hypothesisDebugLog('phase plan hop parse complete', {
+                hypothesisDebugLog('narrative beat parse complete', {
                     intent: parsed.record.intent,
                     hasWalkthrough: parsed.record.walkthrough !== undefined,
                     hasPhasePlan: parsed.record.phasePlan !== undefined,
@@ -397,7 +397,7 @@ function pipelineFailureToStubResult(
         record: { intent: 'Hypothesis: Stubbed' },
         stageOneResult,
         planSelectionResult: state.planSelectionResult !== undefined ? state.planSelectionResult : null,
-        phasePlanHopResult: state.phasePlanHopResult !== undefined ? state.phasePlanHopResult : null,
+        narrativeBeatResult: state.narrativeBeatResult !== undefined ? state.narrativeBeatResult : null,
         ...(state.selectionBody !== undefined ? { selectionBody: state.selectionBody } : {}),
         ...(state.phasePlanJson !== undefined ? { phasePlanJson: state.phasePlanJson } : {}),
         ...(state.phasePlanValidationReason !== undefined
@@ -409,15 +409,15 @@ function pipelineFailureToStubResult(
 function pipelineSuccessToFullResult(state: CoyoteHypothesisPipelineState): GenerateHypothesisPipelineFullResult {
     const stageOneResult = state.stageOneResult;
     const planSelectionResult = state.planSelectionResult;
-    const phasePlanHopResult = state.phasePlanHopResult;
+    const narrativeBeatResult = state.narrativeBeatResult;
     const record = state.record;
 
     if (
         !stageOneResult ||
         planSelectionResult === undefined ||
         planSelectionResult === null ||
-        phasePlanHopResult === undefined ||
-        phasePlanHopResult === null ||
+        narrativeBeatResult === undefined ||
+        narrativeBeatResult === null ||
         !record
     ) {
         throw new Error('CoyoteHypothesisPipeline: incomplete success state');
@@ -428,14 +428,14 @@ function pipelineSuccessToFullResult(state: CoyoteHypothesisPipelineState): Gene
         record,
         stageOneResult,
         planSelectionResult,
-        phasePlanHopResult,
+        narrativeBeatResult,
         ...(state.selectionBody !== undefined ? { selectionBody: state.selectionBody } : {}),
         ...(state.phasePlanJson !== undefined ? { phasePlanJson: state.phasePlanJson } : {}),
         ...(state.phasePlanValidationReason !== undefined
             ? { phasePlanValidationReason: state.phasePlanValidationReason }
             : {}),
-        ...(state.stageTwoReasoningContent !== undefined && state.stageTwoReasoningContent.length > 0
-            ? { stageTwoReasoningContent: state.stageTwoReasoningContent }
+        ...(state.narrativeBeatReasoningContent !== undefined && state.narrativeBeatReasoningContent.length > 0
+            ? { narrativeBeatReasoningContent: state.narrativeBeatReasoningContent }
             : {}),
     };
 }
@@ -451,14 +451,14 @@ function pipelineSuccessToHarnessPartial(
         record: state.record ?? { intent: 'Hypothesis: Stubbed' },
         ...(state.stageOneResult !== undefined ? { stageOneResult: state.stageOneResult } : {}),
         ...(state.planSelectionResult !== undefined ? { planSelectionResult: state.planSelectionResult } : {}),
-        ...(state.phasePlanHopResult !== undefined ? { phasePlanHopResult: state.phasePlanHopResult } : {}),
+        ...(state.narrativeBeatResult !== undefined ? { narrativeBeatResult: state.narrativeBeatResult } : {}),
         ...(state.selectionBody !== undefined ? { selectionBody: state.selectionBody } : {}),
         ...(state.phasePlanJson !== undefined ? { phasePlanJson: state.phasePlanJson } : {}),
         ...(state.phasePlanValidationReason !== undefined
             ? { phasePlanValidationReason: state.phasePlanValidationReason }
             : {}),
-        ...(state.stageTwoReasoningContent !== undefined && state.stageTwoReasoningContent.length > 0
-            ? { stageTwoReasoningContent: state.stageTwoReasoningContent }
+        ...(state.narrativeBeatReasoningContent !== undefined && state.narrativeBeatReasoningContent.length > 0
+            ? { narrativeBeatReasoningContent: state.narrativeBeatReasoningContent }
             : {}),
     };
 }
@@ -511,7 +511,7 @@ function initialStateForRunOnly(
     testOnly: CoyoteHypothesisTestPhase,
     injectState: Partial<CoyoteHypothesisPipelineState> | undefined
 ): CoyoteHypothesisPipelineState {
-    if (testOnly === 'clustering') {
+    if (testOnly === 'candidates') {
         return {};
     }
     if (testOnly === 'planSelect') {
@@ -525,7 +525,7 @@ function initialStateForRunOnly(
     return {
         roomObjectsByRoom: inject.roomObjectsByRoom,
         combined: inject.combined,
-        hop1Handoff: inject.hop1Handoff,
+        planSelectOutput: inject.planSelectOutput,
     };
 }
 
@@ -538,7 +538,7 @@ function selectHarnessSteps(
         const last = RUN_UNTIL_LAST_STEP_INDEX[testOnly];
         return allSteps.slice(0, last + 1);
     }
-    if (testOnly === 'clustering') {
+    if (testOnly === 'candidates') {
         return allSteps.slice(0, 2);
     }
     if (testOnly === 'planSelect') {

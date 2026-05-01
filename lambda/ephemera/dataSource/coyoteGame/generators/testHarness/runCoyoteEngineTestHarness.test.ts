@@ -40,7 +40,7 @@ function okPipeline(intentLine: string): GenerateHypothesisPipelineResult {
             body: '',
             usage: usageBase,
         },
-        phasePlanHopResult: {
+        narrativeBeatResult: {
             success: true,
             body: intentLine,
             usage: usageBase,
@@ -97,7 +97,7 @@ describe('runCoyoteEngineTestHarness', () => {
                 record: { intent: 'Hypothesis: Stubbed' },
                 stageOneResult: { success: false, errorMessage: 'Throttled', body: '' },
                 planSelectionResult: null,
-                phasePlanHopResult: null,
+                narrativeBeatResult: null,
             })
             .mockRejectedValueOnce(new Error('network down'))
             .mockResolvedValueOnce(okPipeline('Hypothesis: final'))
@@ -154,7 +154,7 @@ describe('runCoyoteEngineTestHarness', () => {
                     cacheWriteInputTokens: 1,
                 },
             },
-            phasePlanHopResult: {
+            narrativeBeatResult: {
                 success: true,
                 body: '```text\nHypothesis: It looks like you are trying to launch a boulder.\n```',
                 usage: {
@@ -193,7 +193,7 @@ describe('runCoyoteEngineTestHarness', () => {
         expect(flat).toContain('stageOneBody:')
         expect(flat).toContain('"stableKey":"anvil-0"')
         expect(flat).toContain('usagePlanSelection: input=15 output=8 total=23 cacheRead=10 cacheWrite=1')
-        expect(flat).toContain('usagePhasePlanHop: input=20 output=9 total=29 cacheRead=12 cacheWrite=0')
+        expect(flat).toContain('usageNarrativeBeat: input=20 output=9 total=29 cacheRead=12 cacheWrite=0')
         expect(flat).toContain('selectionBody:\n{"paragraphSummary":"x","planIssues":[{"code":"ROLE_CONFLICT","summary":"x"}]}')
         expect(flat).toContain(
             'phasePlanJson:\n{"tropeSequence":["Contraption"],"deconflictionSummary":"single lane","phases":[{"trope":"Contraption","tropeBeat":"prime launch lane","stableKeysUsed":["anvil-0"],"virtualEntities":[],"achievement":"launch"}]}'
@@ -253,7 +253,7 @@ describe('runCoyoteEngineTestHarness', () => {
         const flush = jest.fn().mockResolvedValue(undefined)
         const pipeline = jest.fn().mockResolvedValue({
             kind: 'harnessPartial',
-            testOnly: 'clustering',
+            testOnly: 'candidates',
             harnessRunKind: 'runUntil',
             record: { intent: 'Hypothesis: partial' },
             stageOneResult: {
@@ -270,18 +270,18 @@ describe('runCoyoteEngineTestHarness', () => {
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {
                 mode: 'partial',
-                testOnly: 'clustering',
+                testOnly: 'candidates',
                 harnessRunKind: 'runUntil',
             },
         })
 
         expect(pipeline).toHaveBeenCalledWith(
             expect.anything(),
-            { testOnly: 'clustering', harnessRunKind: 'runUntil' }
+            { testOnly: 'candidates', harnessRunKind: 'runUntil' }
         )
     })
 
-    it('partial runUntil clustering passes affordance-rich room objects unchanged', async () => {
+    it('partial runUntil candidates passes affordance-rich room objects unchanged', async () => {
         const send = jest.fn()
         const flush = jest.fn().mockResolvedValue(undefined)
         const affordanceFixture: CoyoteEngineTestFixture = {
@@ -302,7 +302,7 @@ describe('runCoyoteEngineTestHarness', () => {
         }
         const pipeline = jest.fn().mockResolvedValue({
             kind: 'harnessPartial',
-            testOnly: 'clustering',
+            testOnly: 'candidates',
             harnessRunKind: 'runUntil',
             record: { intent: 'Hypothesis: partial' },
             stageOneResult: {
@@ -319,7 +319,7 @@ describe('runCoyoteEngineTestHarness', () => {
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {
                 mode: 'partial',
-                testOnly: 'clustering',
+                testOnly: 'candidates',
                 harnessRunKind: 'runUntil',
             },
         })
@@ -340,7 +340,7 @@ describe('runCoyoteEngineTestHarness', () => {
         const flush = jest.fn().mockResolvedValue(undefined)
         const pipeline = jest.fn().mockResolvedValue({
             kind: 'harnessPartial',
-            testOnly: 'clustering',
+            testOnly: 'candidates',
             harnessRunKind: 'runUntil',
             record: { intent: 'Hypothesis: partial' },
             stageOneResult: {
@@ -357,15 +357,15 @@ describe('runCoyoteEngineTestHarness', () => {
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {
                 mode: 'partial',
-                testOnly: 'clustering',
+                testOnly: 'candidates',
                 harnessRunKind: 'runUntil',
             },
         })
 
         const rendered = renderTreeToString((send.mock.calls[0][0] as { message: RenderTree }).message)
-        expect(rendered).toContain('harness: runUntil clustering')
+        expect(rendered).toContain('harness: runUntil candidates')
         expect(rendered).toContain('usagePlanSelection: (not run)')
-        expect(rendered).toContain('usagePhasePlanHop: (not run)')
+        expect(rendered).toContain('usageNarrativeBeat: (not run)')
         expect(rendered).toContain('selectionBody: (not run)')
         expect(rendered).toContain('phasePlanJson: (not run)')
         expect(rendered).not.toContain('planSelectionReasoning')
@@ -493,7 +493,7 @@ describe('runCoyoteEngineTestHarness', () => {
         )
     })
 
-    it('runOnly phasePlan with inject calls pipeline with structured hop1 handoff', async () => {
+    it('runOnly phasePlan with inject calls pipeline with structured planSelect output', async () => {
         const send = jest.fn()
         const flush = jest.fn().mockResolvedValue(undefined)
         const pipeline = jest.fn().mockResolvedValue({
@@ -501,7 +501,7 @@ describe('runCoyoteEngineTestHarness', () => {
             testOnly: 'phasePlan',
             harnessRunKind: 'runOnly',
             record: { intent: 'Hypothesis: phasePlan only' },
-            phasePlanHopResult: {
+            narrativeBeatResult: {
                 success: true,
                 body: '```text\nHypothesis: phase only\n```',
                 usage: { inputTokens: 6, outputTokens: 7, totalTokens: 13 },
@@ -529,7 +529,7 @@ describe('runCoyoteEngineTestHarness', () => {
                         'ROOM#BRIDGE': [],
                     },
                     combined: {} as any,
-                    hop1Handoff: {
+                    planSelectOutput: {
                         paragraphSummary: 'Pick candidate-1 and keep timing coherent.',
                         planIssues: [{ code: 'ROLE_CONFLICT', summary: 'needs lane ownership' }],
                     },
@@ -556,7 +556,7 @@ describe('runCoyoteEngineTestHarness', () => {
                 testOnly: 'phasePlan',
                 harnessRunKind: 'runOnly',
                 injectState: expect.objectContaining({
-                    hop1Handoff: expect.objectContaining({
+                    planSelectOutput: expect.objectContaining({
                         paragraphSummary: 'Pick candidate-1 and keep timing coherent.',
                         planIssues: [{ code: 'ROLE_CONFLICT', summary: 'needs lane ownership' }],
                     }),
@@ -615,7 +615,7 @@ describe('runCoyoteEngineTestHarness', () => {
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {
                 mode: 'partial',
-                testOnly: 'clustering',
+                testOnly: 'candidates',
                 harnessRunKind: 'runUntil',
                 fixtureIndex1Based: 99,
             },

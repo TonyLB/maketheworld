@@ -22,7 +22,7 @@
  * - **Legacy tokens:** {@link normalizeSeamRoomLabelToken} maps both the old strip label (`VORTEX`)
  *   and the new seam label (`CLIFFBASE`) to one normalized token for validators; a reverse map
  *   must accept the same set and fail closed on unknown strings.
- * - **Hop-1 handoff** (`selectedCandidate.members[].room` in `coyoteHop1Handoff.ts`): free strings
+ * - **Hop-1 handoff** (`selectedCandidate.members[].room` in `parsePlanSelectOutput.ts`): free strings
  *   today; reverse lookup would need strict validation vs the snapshot-derived allowlist.
  * - **Phase-plan** (`validateCoyotePhasePlan` in `packages/mtw-interfaces/ts/coyotePhasePlan.ts`):
  *   `derivedFrom` mixes snapshot `stableKey`s, reserved `setting`, and topology tokens in one

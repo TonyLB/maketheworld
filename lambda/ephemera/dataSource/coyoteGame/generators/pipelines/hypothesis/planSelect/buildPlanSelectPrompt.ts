@@ -1,17 +1,17 @@
-import type { CoyotePromptParts } from './buildHypothesisPrompt'
-import type { CombineHypothesisClustersReturn } from './combineHypothesisClusters'
-import { serializePlanSelectCombinedInput } from './combineHypothesisClusters'
+import type { CoyotePromptParts } from '../promptTypes'
+import type { CombineCandidateOutputReturn } from '../candidates/combineCandidateOutput'
+import { serializePlanSelectCandidateInput } from '../candidates/combineCandidateOutput'
 import {
     COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
     COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
     coyoteSeamRoomMappingLines,
-} from './coyoteHypothesisPromptShared'
-import { COYOTE_HOP1_HANDOFF_JSON_KEYS } from './coyoteHop1Handoff'
-import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
+} from '../coyoteHypothesisPromptShared'
+import { PLAN_SELECT_OUTPUT_JSON_KEYS } from './parsePlanSelectOutput'
+import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
 
-export type BuildHypothesisPlanSelectionPromptInput = {
+export type BuildPlanSelectPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
-    combined: CombineHypothesisClustersReturn
+    combined: CombineCandidateOutputReturn
 }
 
 /** How to read the fenced JSON trope-candidates block in the dynamic tail. */
@@ -114,11 +114,11 @@ const PLAN_SELECTION_TASK_COMMON_SECTION_AND_HANDOFF = [
     '     generic "might miss" failure concerns.',
     '- End your reply with **only** a Markdown **` ```json ` ** fenced block (language tag **json**)',
     '  containing at least these required keys: **`',
-    COYOTE_HOP1_HANDOFF_JSON_KEYS.paragraphSummary,
+    PLAN_SELECT_OUTPUT_JSON_KEYS.paragraphSummary,
     '`** (string: a restatement of the chosen candidate only; must start with `Selected',
     '  <candidateId>:` and stay anchored to that candidate\'s `executionSummary` plus listed',
     '  trope/member evidence --- no new plan steps) and **`',
-    COYOTE_HOP1_HANDOFF_JSON_KEYS.planIssues,
+    PLAN_SELECT_OUTPUT_JSON_KEYS.planIssues,
     '`** (array of objects: each issue row must include **`code`** and **`summary`**, and may include',
     '  optional **`evidence`** as a string array. Allowed `code` values: `OUTLIER_PROP_UNACCOUNTED`,',
     '  `TROPE_FUNCTION_MISMATCH`, `STRUCTURAL_CONTRADICTION`, `DIRECTION_AMBIGUOUS`, `ROLE_CONFLICT`.',
@@ -128,7 +128,7 @@ const PLAN_SELECTION_TASK_COMMON_SECTION_AND_HANDOFF = [
     '  obligations for downstream deconfliction and are not automatic winner disqualifiers by',
     '  themselves.',
     '  Include **`',
-    COYOTE_HOP1_HANDOFF_JSON_KEYS.selectedCandidate,
+    PLAN_SELECT_OUTPUT_JSON_KEYS.selectedCandidate,
     '`** as a complete copy of the winning candidate row from input JSON',
     '  (`candidateId`, `executionSummary`, `tropeAssignments`, `outliers`). Treat this field as required',
     '  output for this prompt run; do not omit it unless generating it is impossible.',
@@ -204,12 +204,12 @@ const PLAN_SELECTION_INTRO_SINGLE_CANDIDATE = [
     '- In **`## Winner selection`**, the first line must be exactly: **`Winner: <candidateId>`**.',
 ] as const
 
-export function buildHypothesisPlanSelectionPromptParts(
-    input: BuildHypothesisPlanSelectionPromptInput
+export function buildPlanSelectPrompt(
+    input: BuildPlanSelectPromptInput
 ): CoyotePromptParts {
     const isSingleCandidate = input.combined.candidates.length === 1
     const seamRoomMappingBlock = coyoteSeamRoomMappingLines(input.roomObjectsByRoom).join('\n')
-    const tropeCandidatesJson = serializePlanSelectCombinedInput(input.combined, input.roomObjectsByRoom)
+    const tropeCandidatesJson = serializePlanSelectCandidateInput(input.combined, input.roomObjectsByRoom)
     const intro = isSingleCandidate
         ? PLAN_SELECTION_INTRO_SINGLE_CANDIDATE
         : PLAN_SELECTION_INTRO_MULTI_CANDIDATE

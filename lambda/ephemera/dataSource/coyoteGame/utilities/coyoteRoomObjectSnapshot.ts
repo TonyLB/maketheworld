@@ -81,7 +81,7 @@ export function formatCoyoteStagedObjectsByRoom(roomObjectsByRoom: CoyoteRoomObj
 }
 
 /**
- * Stage-one clustering grounding payload:
+ * Candidates-phase (stage-one seam) grounding payload:
  * stable JSON for room-grouped staged objects with full trope/affordance data.
  */
 export function serializeCoyoteStagedObjectsByRoomJson(

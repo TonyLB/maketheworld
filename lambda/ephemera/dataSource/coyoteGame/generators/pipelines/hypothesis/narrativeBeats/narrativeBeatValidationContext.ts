@@ -3,8 +3,8 @@ import {
     normalizedPhasePlanStableKey,
     type CoyotePhasePlanValidationContext,
 } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
-import { seamRoomLabelFromEphemeraRoomId } from './coyoteHypothesisPromptShared'
-import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
+import { seamRoomLabelFromEphemeraRoomId } from '../coyoteHypothesisPromptShared'
+import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
 
 /** Normalized snapshot **`stableKey`** set for **`validateCoyotePhasePlan`**. */
 export function collectCoyoteSnapshotStableKeys(roomObjectsByRoom: CoyoteRoomObjectsByRoom): Set<string> {
@@ -29,7 +29,7 @@ export function coyoteTopologyAllowlistFromRooms(roomObjectsByRoom: CoyoteRoomOb
 }
 
 /** Builds validation context for hop-2 phase-plan JSON (snapshot keys + topology allowlist). */
-export function buildCoyotePhasePlanValidationContext(
+export function buildNarrativeBeatValidationContext(
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
 ): CoyotePhasePlanValidationContext {
     return {

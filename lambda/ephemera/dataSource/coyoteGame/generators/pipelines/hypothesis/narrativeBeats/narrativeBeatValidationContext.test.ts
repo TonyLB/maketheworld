@@ -1,12 +1,12 @@
 import { normalizedPhasePlanStableKey } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 import {
-    buildCoyotePhasePlanValidationContext,
+    buildNarrativeBeatValidationContext,
     collectCoyoteSnapshotStableKeys,
     coyoteTopologyAllowlistFromRooms,
-} from './coyoteHypothesisPhasePlanContext'
-import { harnessRoomObjects } from '../../testHarness/coyoteEngineTestFixtures'
+} from './narrativeBeatValidationContext'
+import { harnessRoomObjects } from '../../../testHarness/coyoteEngineTestFixtures'
 
-describe('coyoteHypothesisPhasePlanContext', () => {
+describe('narrativeBeatValidationContext', () => {
     const vortexObjects = harnessRoomObjects('vortex', ['anvil', 'crate'])
     const roomObjectsByRoom = {
         'ROOM#VORTEX': vortexObjects,
@@ -26,8 +26,8 @@ describe('coyoteHypothesisPhasePlanContext', () => {
         expect(topo.has('BRIDGE')).toBe(false)
     })
 
-    it('buildCoyotePhasePlanValidationContext merges snapshot + topology', () => {
-        const ctx = buildCoyotePhasePlanValidationContext(roomObjectsByRoom)
+    it('buildNarrativeBeatValidationContext merges snapshot + topology', () => {
+        const ctx = buildNarrativeBeatValidationContext(roomObjectsByRoom)
         expect(ctx.snapshotStableKeys?.has(normalizedPhasePlanStableKey(vortexObjects[0].stableKey))).toBe(true)
         expect(ctx.allowedTopologyRefTokens?.has('CLIFFBASE')).toBe(true)
     })

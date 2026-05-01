@@ -1,27 +1,27 @@
-import type { CoyotePromptParts } from './buildHypothesisPrompt'
-import type { CombineHypothesisClustersReturn } from './combineHypothesisClusters'
-import { renderCombinedHypothesisForStageTwo } from './combineHypothesisClusters'
+import type { CoyotePromptParts } from '../promptTypes'
+import type { CombineCandidateOutputReturn } from '../candidates/combineCandidateOutput'
+import { renderCombinedCandidateOutputForNarrativeBeat } from '../candidates/combineCandidateOutput'
 import {
     COMBINED_CLUSTERING_CONTRACT_LINES,
     INTERPRETATION_RULES_LINES,
     TEMPORAL_ORDERING_LINES,
     VIRTUAL_SCENERY_AND_PREP_OBJECTS_LINES,
-} from './buildHypothesisStageTwoPrompt'
+} from '../narrativePromptShared'
 import {
     COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
     COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
     coyoteSeamRoomMappingLines,
-} from './coyoteHypothesisPromptShared'
-import type { CoyoteHop1Handoff } from './coyoteHop1Handoff'
-import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
+} from '../coyoteHypothesisPromptShared'
+import type { PlanSelectOutput } from '../planSelect/parsePlanSelectOutput'
+import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
 
-export type BuildHypothesisPhasePlanHopPromptInput = {
+export type BuildNarrativeBeatPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
-    combined: CombineHypothesisClustersReturn
-    hop1Handoff: CoyoteHop1Handoff
+    combined: CombineCandidateOutputReturn
+    planSelectOutput: PlanSelectOutput
 }
 
-const PHASE_PLAN_HOP_INTRO = [
+const NARRATIVE_BEAT_INTRO = [
     'You are completing the structured phase plan and player-facing hypothesis for a Coyote-vs-Road-Runner cartoon setup.',
     '',
     '## Perspective guardrail (hard constraint)',
@@ -92,7 +92,7 @@ const SCENE_ANALYSIS_AND_FENCED_HYPOTHESIS_LINES = [
     '- The **final** ```text fence must contain **only** the Hypothesis line so parsers can slice it reliably.',
 ] as const
 
-function formatHop1HandoffBlock(handoff: CoyoteHop1Handoff): string {
+function formatPlanSelectOutputBlock(handoff: PlanSelectOutput): string {
     const issues =
         handoff.planIssues.length > 0
             ? handoff.planIssues.map((issue) => {
@@ -143,17 +143,17 @@ function formatHop1HandoffBlock(handoff: CoyoteHop1Handoff): string {
 }
 
 /** Option A hop 2: phase-plan JSON first, then "## Scene analysis", then fenced Hypothesis line. */
-export function buildHypothesisPhasePlanHopPromptParts(
-    input: BuildHypothesisPhasePlanHopPromptInput
+export function buildNarrativeBeatPrompt(
+    input: BuildNarrativeBeatPromptInput
 ): CoyotePromptParts {
-    const combinedMarkdown = renderCombinedHypothesisForStageTwo(
+    const combinedMarkdown = renderCombinedCandidateOutputForNarrativeBeat(
         input.combined,
         input.roomObjectsByRoom
     )
     const seamRoomMappingBlock = coyoteSeamRoomMappingLines(input.roomObjectsByRoom).join('\n')
-    const handoffBlock = formatHop1HandoffBlock(input.hop1Handoff)
+    const handoffBlock = formatPlanSelectOutputBlock(input.planSelectOutput)
     const invariantPrefix = [
-        ...PHASE_PLAN_HOP_INTRO,
+        ...NARRATIVE_BEAT_INTRO,
         '',
         ...COMBINED_CLUSTERING_CONTRACT_LINES,
         '',

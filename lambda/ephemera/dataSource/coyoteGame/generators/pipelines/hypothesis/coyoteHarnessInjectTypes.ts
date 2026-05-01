@@ -1,5 +1,5 @@
-import type { CombineHypothesisClustersReturn } from './combineHypothesisClusters';
-import type { CoyoteHop1Handoff } from './coyoteHop1Handoff';
+import type { CombineCandidateOutputReturn } from './candidates/combineCandidateOutput';
+import type { PlanSelectOutput } from './planSelect/parsePlanSelectOutput';
 import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot';
 
 /**
@@ -8,12 +8,12 @@ import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjec
  */
 export type CoyoteHarnessPlanSelectInject = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom;
-    combined: CombineHypothesisClustersReturn;
+    combined: CombineCandidateOutputReturn;
 };
 
 /**
- * Minimum state to run **`hypothesisPhasePlanHopLlm`** in **`runOnly`** mode.
+ * Minimum state to run **`hypothesisNarrativeBeatLlm`** in **`runOnly`** mode.
  */
 export type CoyoteHarnessPhasePlanInject = CoyoteHarnessPlanSelectInject & {
-    hop1Handoff: CoyoteHop1Handoff;
+    planSelectOutput: PlanSelectOutput;
 };

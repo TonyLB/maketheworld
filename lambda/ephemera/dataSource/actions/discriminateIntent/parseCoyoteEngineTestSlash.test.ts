@@ -21,7 +21,16 @@ describe('parseCoyoteEngineTestSlashTail', () => {
             ok: true,
             harnessInvocation: {
                 mode: 'partial',
-                testOnly: 'clustering',
+                testOnly: 'candidates',
+                harnessRunKind: 'runUntil',
+                fixtureIndex1Based: 1,
+            },
+        })
+        expect(parseCoyoteEngineTestSlashTail('/test generation candidates 1', n)).toEqual({
+            ok: true,
+            harnessInvocation: {
+                mode: 'partial',
+                testOnly: 'candidates',
                 harnessRunKind: 'runUntil',
                 fixtureIndex1Based: 1,
             },

@@ -1,11 +1,11 @@
 import type { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime'
 import { CachePointType, ConverseCommand } from '@aws-sdk/client-bedrock-runtime'
 import {
-    BEDROCK_HYPOTHESIS_PHASE_PLAN_HOP_MAX_TOKENS,
-    BEDROCK_HYPOTHESIS_STAGE_ONE_MAX_TOKENS,
+    BEDROCK_HYPOTHESIS_NARRATIVE_BEAT_MAX_TOKENS,
+    BEDROCK_HYPOTHESIS_CANDIDATES_MAX_TOKENS,
     invokeBedrockHypothesis,
+    invokeBedrockHypothesisNarrativeBeat,
     invokeBedrockHypothesisStageOne,
-    invokeBedrockHypothesisStageTwo,
 } from './invokeBedrockHypothesis'
 
 describe('invokeBedrockHypothesis', () => {
@@ -71,8 +71,8 @@ describe('invokeBedrockHypothesis', () => {
     })
 })
 
-describe('invokeBedrockHypothesisStageOne / StageTwo', () => {
-    it('StageOne passes stage-one max tokens by default', async () => {
+describe('invokeBedrockHypothesisStageOne / narrative beat', () => {
+    it('invokeBedrockHypothesisStageOne passes candidates-phase max tokens by default', async () => {
         const send = jest.fn().mockResolvedValue({
             output: { message: { content: [{ text: 'seam' }] } },
             usage: {},
@@ -85,35 +85,35 @@ describe('invokeBedrockHypothesisStageOne / StageTwo', () => {
         )
 
         const command = send.mock.calls[0][0] as InstanceType<typeof ConverseCommand>
-        expect(command.input.inferenceConfig?.maxTokens).toBe(BEDROCK_HYPOTHESIS_STAGE_ONE_MAX_TOKENS)
+        expect(command.input.inferenceConfig?.maxTokens).toBe(BEDROCK_HYPOTHESIS_CANDIDATES_MAX_TOKENS)
         expect(command.input.additionalModelRequestFields).toBeUndefined()
     })
 
-    it('StageTwo passes stage-two max tokens by default', async () => {
+    it('invokeBedrockHypothesisNarrativeBeat passes narrative-beat max tokens by default', async () => {
         const send = jest.fn().mockResolvedValue({
             output: { message: { content: [{ text: 'Hypothesis: ok' }] } },
             usage: {},
         })
         const client = { send } as unknown as BedrockRuntimeClient
 
-        await invokeBedrockHypothesisStageTwo(
+        await invokeBedrockHypothesisNarrativeBeat(
             { invariantPrefix: 'A', dynamicSuffix: '\nB' },
             { client, timeoutMs: 5000 }
         )
 
         const command = send.mock.calls[0][0] as InstanceType<typeof ConverseCommand>
-        expect(command.input.inferenceConfig?.maxTokens).toBe(BEDROCK_HYPOTHESIS_PHASE_PLAN_HOP_MAX_TOKENS)
+        expect(command.input.inferenceConfig?.maxTokens).toBe(BEDROCK_HYPOTHESIS_NARRATIVE_BEAT_MAX_TOKENS)
         expect(command.input.additionalModelRequestFields).toBeUndefined()
     })
 
-    it('StageTwo sends Nova reasoningConfig when extendedThinking is true', async () => {
+    it('invokeBedrockHypothesisNarrativeBeat sends Nova reasoningConfig when extendedThinking is true', async () => {
         const send = jest.fn().mockResolvedValue({
             output: { message: { content: [{ text: 'Hypothesis: ok' }] } },
             usage: {},
         })
         const client = { send } as unknown as BedrockRuntimeClient
 
-        await invokeBedrockHypothesisStageTwo(
+        await invokeBedrockHypothesisNarrativeBeat(
             { invariantPrefix: 'A', dynamicSuffix: '\nB' },
             { client, timeoutMs: 5000, extendedThinking: true }
         )
@@ -124,7 +124,7 @@ describe('invokeBedrockHypothesisStageOne / StageTwo', () => {
         })
     })
 
-    it('StageTwo returns reasoningContent when the response includes reasoning blocks', async () => {
+    it('invokeBedrockHypothesisNarrativeBeat returns reasoningContent when the response includes reasoning blocks', async () => {
         const send = jest.fn().mockResolvedValue({
             output: {
                 message: {
@@ -138,7 +138,7 @@ describe('invokeBedrockHypothesisStageOne / StageTwo', () => {
         })
         const client = { send } as unknown as BedrockRuntimeClient
 
-        const result = await invokeBedrockHypothesisStageTwo(
+        const result = await invokeBedrockHypothesisNarrativeBeat(
             { invariantPrefix: 'A', dynamicSuffix: '\nB' },
             { client, timeoutMs: 5000, extendedThinking: true }
         )

@@ -1,6 +1,6 @@
-import { harnessRoomObjects } from '../../testHarness/coyoteEngineTestFixtures'
-import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
-import { parseHypothesisStageOneOutput, stripHypothesisStageOneFence } from './parseHypothesisStageOneOutput'
+import { harnessRoomObjects } from '../../../testHarness/coyoteEngineTestFixtures'
+import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
+import { parseCandidateOutput, stripCandidateOutputFence } from './parseCandidateOutput'
 
 const singleObjectRoomMap: CoyoteRoomObjectsByRoom = {
     'ROOM#VORTEX': [
@@ -32,17 +32,17 @@ const validJsonSingleObject = JSON.stringify({
     ],
 })
 
-describe('stripHypothesisStageOneFence', () => {
+describe('stripCandidateOutputFence', () => {
     it('removes fenced wrapper', () => {
-        expect(stripHypothesisStageOneFence('```json\n{"clusters":[]}\n```')).toBe('{"clusters":[]}')
-        expect(stripHypothesisStageOneFence('```markdown\n{"x":1}\n```')).toContain('"x":1')
-        expect(stripHypothesisStageOneFence('```markdown\n{"x":1}\n```')).not.toContain('```')
+        expect(stripCandidateOutputFence('```json\n{"clusters":[]}\n```')).toBe('{"clusters":[]}')
+        expect(stripCandidateOutputFence('```markdown\n{"x":1}\n```')).toContain('"x":1')
+        expect(stripCandidateOutputFence('```markdown\n{"x":1}\n```')).not.toContain('```')
     })
 })
 
-describe('parseHypothesisStageOneOutput', () => {
+describe('parseCandidateOutput', () => {
     it('accepts valid trope-candidate JSON matching snapshot multiset', () => {
-        const r = parseHypothesisStageOneOutput(validJsonSingleObject, singleObjectRoomMap)
+        const r = parseCandidateOutput(validJsonSingleObject, singleObjectRoomMap)
         expect(r.ok).toBe(true)
         if (r.ok) {
             expect(r.normalizedJson).toContain('"stableKey":"anvil-0"')
@@ -68,7 +68,7 @@ describe('parseHypothesisStageOneOutput', () => {
                 },
             ],
         })
-        const r = parseHypothesisStageOneOutput(body, singleObjectRoomMap)
+        const r = parseCandidateOutput(body, singleObjectRoomMap)
         expect(r.ok).toBe(true)
         if (r.ok) {
             expect(r.candidates[0].tropeAssignments[0].members[0].tropeFunction).toBe('terminal drop payload')
@@ -91,7 +91,7 @@ describe('parseHypothesisStageOneOutput', () => {
                 },
             ],
         })
-        expect(parseHypothesisStageOneOutput(body, singleObjectRoomMap).ok).toBe(false)
+        expect(parseCandidateOutput(body, singleObjectRoomMap).ok).toBe(false)
     })
 
     it('accepts tropeAssignments subset when staged multiset is larger', () => {
@@ -99,7 +99,7 @@ describe('parseHypothesisStageOneOutput', () => {
             ...singleObjectRoomMap,
             'ROOM#BRIDGE': harnessRoomObjects('bridge', ['rope']),
         }
-        const r = parseHypothesisStageOneOutput(validJsonSingleObject, twoObjMap)
+        const r = parseCandidateOutput(validJsonSingleObject, twoObjMap)
         expect(r.ok).toBe(true)
     })
 
@@ -119,7 +119,7 @@ describe('parseHypothesisStageOneOutput', () => {
                 },
             ],
         })
-        const r = parseHypothesisStageOneOutput(bad, singleObjectRoomMap)
+        const r = parseCandidateOutput(bad, singleObjectRoomMap)
         expect(r.ok).toBe(false)
         if (!r.ok) {
             expect(r.errorMessage).toContain('unknown key')
@@ -128,7 +128,7 @@ describe('parseHypothesisStageOneOutput', () => {
 
     it('extracts JSON object when preceded by prose', () => {
         const body = `Here you go:\n${validJsonSingleObject}\nThanks`
-        expect(parseHypothesisStageOneOutput(body, singleObjectRoomMap).ok).toBe(true)
+        expect(parseCandidateOutput(body, singleObjectRoomMap).ok).toBe(true)
     })
 
     it('canonical normalizedJson lists candidates before notes', () => {
@@ -148,7 +148,7 @@ describe('parseHypothesisStageOneOutput', () => {
                 },
             ],
         })
-        const r = parseHypothesisStageOneOutput(body, singleObjectRoomMap)
+        const r = parseCandidateOutput(body, singleObjectRoomMap)
         expect(r.ok).toBe(true)
         if (r.ok) {
             expect(r.normalizedJson.indexOf('"candidates"')).toBeLessThan(r.normalizedJson.indexOf('"notes"'))
@@ -176,7 +176,7 @@ describe('parseHypothesisStageOneOutput', () => {
                 },
             ],
         })
-        const r = parseHypothesisStageOneOutput(body, map)
+        const r = parseCandidateOutput(body, map)
         expect(r.ok).toBe(true)
         if (r.ok) {
             expect(r.candidates[0].tropeAssignments[0].members).toHaveLength(1)
@@ -207,7 +207,7 @@ describe('parseHypothesisStageOneOutput', () => {
                 },
             ],
         })
-        expect(parseHypothesisStageOneOutput(body, map).ok).toBe(true)
+        expect(parseCandidateOutput(body, map).ok).toBe(true)
     })
 
     it('rejects tropeFunction key on outlier row (strict stableKey-only)', () => {
@@ -231,7 +231,7 @@ describe('parseHypothesisStageOneOutput', () => {
                 },
             ],
         })
-        const r = parseHypothesisStageOneOutput(body, map)
+        const r = parseCandidateOutput(body, map)
         expect(r.ok).toBe(false)
         if (!r.ok) {
             expect(r.errorMessage).toContain('unknown key')
@@ -255,7 +255,7 @@ describe('parseHypothesisStageOneOutput', () => {
             ],
             debug: 'extra',
         })
-        const r = parseHypothesisStageOneOutput(body, singleObjectRoomMap)
+        const r = parseCandidateOutput(body, singleObjectRoomMap)
         expect(r.ok).toBe(false)
         if (!r.ok) {
             expect(r.errorMessage).toContain('unknown root key')
@@ -279,7 +279,7 @@ describe('parseHypothesisStageOneOutput', () => {
                 },
             ],
         })
-        const clusterResult = parseHypothesisStageOneOutput(badCandidate, singleObjectRoomMap)
+        const clusterResult = parseCandidateOutput(badCandidate, singleObjectRoomMap)
         expect(clusterResult.ok).toBe(false)
         if (!clusterResult.ok) {
             expect(clusterResult.errorMessage).toContain('unknown key')
@@ -300,7 +300,7 @@ describe('parseHypothesisStageOneOutput', () => {
                 },
             ],
         })
-        const memberResult = parseHypothesisStageOneOutput(badMember, singleObjectRoomMap)
+        const memberResult = parseCandidateOutput(badMember, singleObjectRoomMap)
         expect(memberResult.ok).toBe(false)
         if (!memberResult.ok) {
             expect(memberResult.errorMessage).toContain('unknown key')
@@ -316,7 +316,7 @@ describe('parseHypothesisStageOneOutput', () => {
                 },
             ],
         })
-        expect(parseHypothesisStageOneOutput(body, singleObjectRoomMap).ok).toBe(false)
+        expect(parseCandidateOutput(body, singleObjectRoomMap).ok).toBe(false)
     })
 
     it('rejects trope assignments out of canonical order', () => {
@@ -344,6 +344,6 @@ describe('parseHypothesisStageOneOutput', () => {
                 },
             ],
         })
-        expect(parseHypothesisStageOneOutput(body, map).ok).toBe(false)
+        expect(parseCandidateOutput(body, map).ok).toBe(false)
     })
 })

@@ -13,21 +13,28 @@ The hypothesis pipeline is the production path for `Objects Changed` events in C
 
 1. Stage one seam generation from staged room objects.
 2. Plan-selection hop over combined clusters.
-3. Phase-plan hop that returns `Hypothesis:` and optional structured plan/walkthrough.
+3. Narrative beat hop that returns `Hypothesis:` and optional structured plan/walkthrough.
 
 This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock wrappers for that flow.
+
+## Layout
+
+- `candidates/`: first-hop (**`candidates`** phase) prompt, parse, and combine modules.
+- `planSelect/`: plan-selection prompt and planSelect output contract/parser.
+- `narrativeBeats/`: phase-plan prompt/context modules (formerly phasePlan/stageTwo naming).
+- Parent `hypothesis/`: orchestration, entrypoints, Bedrock wrapper, and shared prompt/harness types.
 
 ## Key files
 
 - [`generateHypothesis.ts`](generateHypothesis.ts): entrypoint used by production and harness code.
 - [`coyoteHypothesisPipeline.ts`](coyoteHypothesisPipeline.ts): ordered orchestration over the linear runner.
 - [`invokeBedrockHypothesis.ts`](invokeBedrockHypothesis.ts): stage-specific Bedrock invoke wrappers and token limits.
-- [`buildHypothesisStageOnePrompt.ts`](buildHypothesisStageOnePrompt.ts): stage-one prompt parts.
-- [`buildHypothesisPlanSelectionPromptParts.ts`](buildHypothesisPlanSelectionPromptParts.ts): plan-selection prompt builder.
-- [`buildHypothesisPhasePlanHopPromptParts.ts`](buildHypothesisPhasePlanHopPromptParts.ts): phase-plan prompt builder.
-- [`parseHypothesisStageOneOutput.ts`](parseHypothesisStageOneOutput.ts): stage-one seam parsing and validation.
-- [`coyoteHop1Handoff.ts`](coyoteHop1Handoff.ts): extracts hop-1 handoff contract.
-- [`combineHypothesisClusters.ts`](combineHypothesisClusters.ts): combine and render cluster output for later hops.
+- [`candidates/buildCandidatePrompt.ts`](candidates/buildCandidatePrompt.ts): stage-one prompt parts.
+- [`candidates/parseCandidateOutput.ts`](candidates/parseCandidateOutput.ts): stage-one seam parsing and validation.
+- [`candidates/combineCandidateOutput.ts`](candidates/combineCandidateOutput.ts): combine and render candidate output for later hops.
+- [`planSelect/buildPlanSelectPrompt.ts`](planSelect/buildPlanSelectPrompt.ts): plan-selection prompt builder.
+- [`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts): extracts planSelect output contract.
+- [`narrativeBeats/buildNarrativeBeatPrompt.ts`](narrativeBeats/buildNarrativeBeatPrompt.ts): phase-plan prompt builder.
 
 ## Contracts and boundaries
 
@@ -37,7 +44,7 @@ This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock
 
 ## Hop-1 handoff (`planIssues`) contract
 
-Authority for plan-selection to phase-plan handoff shape is [`coyoteHop1Handoff.ts`](coyoteHop1Handoff.ts).
+Authority for plan-selection to phase-plan handoff shape is [`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts).
 
 - Required JSON keys are `paragraphSummary` and `planIssues`.
 - `planIssues` rows are structured objects with required `code` and `summary`, plus optional `evidence: string[]`.
@@ -51,7 +58,7 @@ Parser safety posture:
 - Reject unknown codes and malformed rows with row-scoped reasons (`planIssues[index] ...`).
 - Require well-typed `paragraphSummary`, `planIssues`, `code`, and `summary`.
 - Keep extra keys tolerant in v1 as long as required keys remain present and valid.
-- Unknown top-level keys on the parsed JSON object may be tolerated at parse time; downstream consumption uses a **narrowed** authoritative handoff object produced by [`coyoteHop1Handoff.ts`](coyoteHop1Handoff.ts) (non-authoritative keys are dropped deterministically).
+- Unknown top-level keys on the parsed JSON object may be tolerated at parse time; downstream consumption uses a **narrowed** authoritative handoff object produced by [`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts) (non-authoritative keys are dropped deterministically).
 
 ### Optional `selectedCandidate` (structured winner)
 
@@ -61,11 +68,11 @@ Parser safety posture:
 ### Plan-selection hop (single invocation)
 
 - Production still uses **one** Bedrock call for plan-selection; internal multi-phase reasoning is expressed **inside** that prompt (explicit phase order and markdown sections), not as separate pipeline steps.
-- Prompt authority: [`buildHypothesisPlanSelectionPromptParts.ts`](buildHypothesisPlanSelectionPromptParts.ts). The **trailing** fenced JSON handoff block (the last `json` code fence in the model output) is the artifact consumed by the hop-1 parser for downstream use.
+- Prompt authority: [`planSelect/buildPlanSelectPrompt.ts`](planSelect/buildPlanSelectPrompt.ts). The **trailing** fenced JSON handoff block (the last `json` code fence in the model output) is the artifact consumed by the planSelect output parser for downstream use.
 
 ### Phase-plan consumption
 
-- [`buildHypothesisPhasePlanHopPromptParts.ts`](buildHypothesisPhasePlanHopPromptParts.ts) should **prioritize** `selectedCandidate` for grounding when present.
+- [`narrativeBeats/buildNarrativeBeatPrompt.ts`](narrativeBeats/buildNarrativeBeatPrompt.ts) should **prioritize** `selectedCandidate` for grounding when present.
 - When `selectedCandidate` is absent, phase-plan falls back to `paragraphSummary` and `planIssues` (best-effort bridge for legacy outputs and fixtures).
 
 ### Residual `planIssues`
@@ -80,5 +87,5 @@ Stage responsibilities:
 
 ## Tests
 
-- Unit tests are colocated as `*.test.ts` in this folder.
+- Unit tests are colocated next to each phase module under `candidates/`, `planSelect/`, and `narrativeBeats/`.
 - Harness-focused tests remain under [`../../testHarness/`](../../testHarness/).

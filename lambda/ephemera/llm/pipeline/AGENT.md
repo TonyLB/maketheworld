@@ -87,7 +87,7 @@ flowchart LR
 
 ## Feature consumer (example)
 
-Coyote hypothesis (stage one → combine → plan-selection hop → phase-plan hop → parse) runs on this runner in [`../../dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts`](../../dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts); entry points remain [`../../dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis.ts`](../../dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis.ts). Broader Coyote context: [`../../dataSource/coyoteGame/AGENT.md`](../../dataSource/coyoteGame/AGENT.md).
+Coyote hypothesis (stage one → combine → plan-selection hop → narrative beat hop → parse) runs on this runner in [`../../dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts`](../../dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts); entry points remain [`../../dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis.ts`](../../dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis.ts). Broader Coyote context: [`../../dataSource/coyoteGame/AGENT.md`](../../dataSource/coyoteGame/AGENT.md).
 
 Other multi-step flows that are still **ad hoc** (for example [`parseCommand`](../../dataSource/actions/parseCommand.ts) enrich paths) may migrate incrementally; **`dataSource/actions/AGENT.md`** and feature docs remain the source of truth for those products.
 

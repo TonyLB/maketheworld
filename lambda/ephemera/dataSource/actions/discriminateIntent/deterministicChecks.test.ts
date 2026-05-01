@@ -14,7 +14,7 @@ describe('deterministicIntentChecks', () => {
             confidence: 1,
             harnessInvocation: {
                 mode: 'partial',
-                testOnly: 'clustering',
+                testOnly: 'candidates',
                 harnessRunKind: 'runUntil',
             },
         })
