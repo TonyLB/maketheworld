@@ -348,6 +348,67 @@ describe('parsePlanSelectOutput', () => {
         })
     })
 
+    it('parses optional affordancesProvided on selectedCandidate outlier rows when valid', () => {
+        const affordancesProvided = [{ object: 'coil spring', roles: ['Contraption' as const] }]
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'detail',
+                            members: [{
+                                stableKey: 'skates',
+                                shortName: 'skates',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'mobility',
+                            }],
+                        },
+                    },
+                    outliers: [{
+                        stableKey: 'boulder',
+                        shortName: 'boulder',
+                        room: 'CLIFFBASE',
+                        affordancesProvided,
+                    }],
+                },
+            }) +
+            '\n```'
+        const r = parsePlanSelectOutput(raw)
+        expect(r).toEqual({
+            ok: true,
+            handoff: {
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'detail',
+                            members: [{
+                                stableKey: 'skates',
+                                shortName: 'skates',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'mobility',
+                            }],
+                        },
+                    },
+                    outliers: [{
+                        stableKey: 'boulder',
+                        shortName: 'boulder',
+                        room: 'CLIFFBASE',
+                        affordancesProvided,
+                    }],
+                },
+            },
+        })
+    })
+
     it('parses optional environmentAffordances on selectedCandidate member and outlier rows when valid', () => {
         const environmentAffordances = [{ object: 'long-fall' as const, roles: ['Finishing Move' as const] }]
         const raw =
