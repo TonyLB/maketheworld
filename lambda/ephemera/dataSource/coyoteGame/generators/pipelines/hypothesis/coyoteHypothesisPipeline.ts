@@ -11,12 +11,12 @@ import {
 
 import { buildHypothesisPhasePlanHopPromptParts } from './narrativeBeats/buildHypothesisPhasePlanHopPromptParts';
 import { buildHypothesisPlanSelectionPromptParts } from './planSelect/buildHypothesisPlanSelectionPromptParts';
-import { buildHypothesisStageOnePromptParts } from './candidates/buildHypothesisStageOnePrompt';
+import { buildCandidatePrompt } from './candidates/buildCandidatePrompt';
 import {
-    combineHypothesisClusters,
-    planSelectOutliersForCombinedCandidate,
-    type CombineHypothesisClustersReturn,
-} from './candidates/combineHypothesisClusters';
+    combineCandidateOutput,
+    planSelectOutliersForCandidate,
+    type CombineCandidateOutputReturn,
+} from './candidates/combineCandidateOutput';
 import type { CoyoteHarnessPhasePlanInject, CoyoteHarnessPlanSelectInject } from './coyoteHarnessInjectTypes';
 import { parseHop1HandoffFromSelectionBody, type CoyoteHop1Handoff } from './planSelect/coyoteHop1Handoff';
 import { buildCoyotePhasePlanValidationContext } from './narrativeBeats/coyoteHypothesisPhasePlanContext';
@@ -31,7 +31,7 @@ import {
     parseHypothesisPhasePlanHopOutput,
     type ParseHypothesisModelOutputOptions,
 } from '../../sharedParsers/parseHypothesisModelOutput';
-import { parseHypothesisStageOneOutput } from './candidates/parseHypothesisStageOneOutput';
+import { parseCandidateOutput } from './candidates/parseCandidateOutput';
 import { hypothesisDebugLog } from '../../../utilities/hypothesisDebug';
 
 /**
@@ -105,8 +105,8 @@ export type GenerateHypothesisPipelineResult =
 
 export type CoyoteHypothesisPipelineState = {
     roomObjectsByRoom?: CoyoteRoomObjectsByRoom;
-    /** Combined trope candidates after {@link combineHypothesisClusters} (source of truth for plan-select JSON and phase-plan Markdown). */
-    combined?: CombineHypothesisClustersReturn;
+    /** Combined trope candidates after {@link combineCandidateOutput} (source of truth for plan-select JSON and phase-plan Markdown). */
+    combined?: CombineCandidateOutputReturn;
     stageOneResult?: InvokeBedrockHypothesisResult;
     planSelectionResult?: InvokeBedrockHypothesisResult | null;
     phasePlanHopResult?: InvokeBedrockHypothesisResult | null;
@@ -221,7 +221,7 @@ function buildCoyoteHypothesisSteps(
                 if (!roomObjectsByRoom) {
                     throw new Error('CoyoteHypothesisPipeline: missing roomObjectsByRoom');
                 }
-                const stageOneParts = buildHypothesisStageOnePromptParts({ roomObjectsByRoom });
+                const stageOneParts = buildCandidatePrompt({ roomObjectsByRoom });
                 const stageOneResult = await invokeBedrockHypothesisStageOne(stageOneParts);
                 draft.stageOneResult = stageOneResult;
                 hypothesisDebugLog('stage one invoke complete', summarizeInvokeResult(stageOneResult));
@@ -239,7 +239,7 @@ function buildCoyoteHypothesisSteps(
                 if (!roomObjectsByRoom || !stageOneResult?.success) {
                     throw new Error('CoyoteHypothesisPipeline: seamCombineRender preconditions');
                 }
-                const seamParsed = parseHypothesisStageOneOutput(stageOneResult.body, roomObjectsByRoom);
+                const seamParsed = parseCandidateOutput(stageOneResult.body, roomObjectsByRoom);
                 if (!seamParsed.ok) {
                     hypothesisDebugLog('aborting hypothesis pipeline', {
                         reason: 'stageOneParseFailed',
@@ -247,7 +247,7 @@ function buildCoyoteHypothesisSteps(
                     });
                     abort();
                 }
-                const combinedResult = combineHypothesisClusters(
+                const combinedResult = combineCandidateOutput(
                     seamParsed.candidates,
                     roomObjectsByRoom
                 );
@@ -309,7 +309,7 @@ function buildCoyoteHypothesisSteps(
                             ...hop1Handoff,
                             selectedCandidate: {
                                 ...selected,
-                                outliers: planSelectOutliersForCombinedCandidate(matched, roomObjectsByRoom),
+                                outliers: planSelectOutliersForCandidate(matched, roomObjectsByRoom),
                             },
                         };
                     }

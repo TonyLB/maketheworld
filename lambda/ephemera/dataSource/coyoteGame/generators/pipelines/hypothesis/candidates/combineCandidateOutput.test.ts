@@ -1,13 +1,13 @@
 import { harnessRoomObjects } from '../../../testHarness/coyoteEngineTestFixtures'
 import {
-    combineHypothesisClusters,
-    renderCombinedHypothesisForStageTwo,
-    serializePlanSelectCombinedInput,
-} from './combineHypothesisClusters'
+    combineCandidateOutput,
+    renderCombinedCandidateOutputForStageTwo,
+    serializePlanSelectCandidateInput,
+} from './combineCandidateOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
-import type { ParsedTropeCandidate } from './parseHypothesisStageOneOutput'
+import type { ParsedCandidate } from './parseCandidateOutput'
 
-describe('combineHypothesisClusters', () => {
+describe('combineCandidateOutput', () => {
     it('hydrates tropeFunction from stage-one members', () => {
         const roomMap: CoyoteRoomObjectsByRoom = {
             'ROOM#VORTEX': [
@@ -18,7 +18,7 @@ describe('combineHypothesisClusters', () => {
                 },
             ],
         }
-        const candidates: ParsedTropeCandidate[] = [
+        const candidates: ParsedCandidate[] = [
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Use rope prep in the opening beat.',
@@ -31,14 +31,14 @@ describe('combineHypothesisClusters', () => {
                 ],
             },
         ]
-        const r = combineHypothesisClusters(candidates, roomMap)
+        const r = combineCandidateOutput(candidates, roomMap)
         expect(r.ok).toBe(true)
         if (r.ok) {
             expect(r.combined.candidates[0].tropeAssignments[0].members[0].tropeFunction).toBe(
                 'connective rigging between setup pieces'
             )
             expect(r.combined.candidates[0].outliers).toHaveLength(0)
-            const md = renderCombinedHypothesisForStageTwo(r.combined, roomMap)
+            const md = renderCombinedCandidateOutputForStageTwo(r.combined, roomMap)
             expect(md).toContain('Candidate candidate-1')
             expect(md).toContain('**tropeFunction:** connective rigging between setup pieces')
         }
@@ -48,7 +48,7 @@ describe('combineHypothesisClusters', () => {
         const roomMap: CoyoteRoomObjectsByRoom = {
             'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil', 'glue']),
         }
-        const candidates: ParsedTropeCandidate[] = [
+        const candidates: ParsedCandidate[] = [
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Focus on one object only.',
@@ -61,12 +61,12 @@ describe('combineHypothesisClusters', () => {
                 ],
             },
         ]
-        const r = combineHypothesisClusters(candidates, roomMap)
+        const r = combineCandidateOutput(candidates, roomMap)
         expect(r.ok).toBe(true)
         if (r.ok) {
             expect(r.combined.candidates[0].outliers).toHaveLength(1)
             expect(r.combined.candidates[0].outliers[0].identifier).toBe('glue-1')
-            const md = renderCombinedHypothesisForStageTwo(r.combined, roomMap)
+            const md = renderCombinedCandidateOutputForStageTwo(r.combined, roomMap)
             expect(md).toContain('#### Outliers')
             expect(md).toContain('glue-1')
             expect(md).not.toMatch(/\*\*tropeFunction:\*\*[^\n]*glue/)
@@ -88,7 +88,7 @@ describe('combineHypothesisClusters', () => {
                 },
             ],
         }
-        const candidates: ParsedTropeCandidate[] = [
+        const candidates: ParsedCandidate[] = [
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Primary glue beat; rope unassigned in tropes.',
@@ -101,12 +101,12 @@ describe('combineHypothesisClusters', () => {
                 ],
             },
         ]
-        const r = combineHypothesisClusters(candidates, roomMap)
+        const r = combineCandidateOutput(candidates, roomMap)
         expect(r.ok).toBe(true)
         if (r.ok) {
             expect(r.combined.candidates[0].outliers).toHaveLength(1)
             expect(r.combined.candidates[0].outliers[0].identifier).toBe('rope-0')
-            const md = renderCombinedHypothesisForStageTwo(r.combined, roomMap)
+            const md = renderCombinedCandidateOutputForStageTwo(r.combined, roomMap)
             expect(md).toContain('**room:** CLIFFBASE')
             expect(md).toContain('rope-0')
             const afterOutliers = md.split('#### Outliers')[1] ?? ''
@@ -115,7 +115,7 @@ describe('combineHypothesisClusters', () => {
         }
     })
 
-    it('serializePlanSelectCombinedInput is stable JSON with schemaVersion 2 and outliers without tropeFunction', () => {
+    it('serializePlanSelectCandidateInput is stable JSON with schemaVersion 2 and outliers without tropeFunction', () => {
         const roomMap: CoyoteRoomObjectsByRoom = {
             'ROOM#VORTEX': [
                 {
@@ -130,7 +130,7 @@ describe('combineHypothesisClusters', () => {
                 },
             ],
         }
-        const candidates: ParsedTropeCandidate[] = [
+        const candidates: ParsedCandidate[] = [
             {
                 candidateId: 'candidate-1',
                 executionSummary: 'Primary glue beat; rope unassigned in tropes.',
@@ -143,13 +143,13 @@ describe('combineHypothesisClusters', () => {
                 ],
             },
         ]
-        const r = combineHypothesisClusters(candidates, roomMap)
+        const r = combineCandidateOutput(candidates, roomMap)
         expect(r.ok).toBe(true)
         if (!r.ok) {
             return
         }
-        const a = serializePlanSelectCombinedInput(r.combined, roomMap)
-        const b = serializePlanSelectCombinedInput(r.combined, roomMap)
+        const a = serializePlanSelectCandidateInput(r.combined, roomMap)
+        const b = serializePlanSelectCandidateInput(r.combined, roomMap)
         expect(a).toBe(b)
         const parsed = JSON.parse(a) as { schemaVersion: number; candidates: unknown[] }
         expect(parsed.schemaVersion).toBe(2)

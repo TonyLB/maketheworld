@@ -174,7 +174,7 @@ function stageOnePromptLines(snapshotSection: string): string[] {
 }
 
 /** Stage 1 only: emits JSON clustering seam. Cache split before staged-objects snapshot. */
-export function buildHypothesisStageOnePromptParts(input: BuildHypothesisPromptInput): CoyotePromptParts {
+export function buildCandidatePrompt(input: BuildHypothesisPromptInput): CoyotePromptParts {
     const snapshotSection = serializeCoyoteStagedObjectsByRoomJson(input.roomObjectsByRoom)
     const lines = stageOnePromptLines(snapshotSection)
     const splitAt = splitCoyoteHypothesisLinesAtSnapshot(lines)

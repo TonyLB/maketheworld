@@ -12,39 +12,39 @@ import { isCoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
  */
 
 /** One staged object reference under a trope assignment `members` row. */
-export type ParsedClusterMember = {
+export type ParsedCandidateMember = {
     stableKey: string
     tropeFunction: string
 }
 
-export type ParsedTropeAssignment = {
+export type ParsedCandidateTropeAssignment = {
     trope: CoyoteTrope
     executionDetail: string
-    members: ParsedClusterMember[]
+    members: ParsedCandidateMember[]
 }
 
-export type ParsedTropeCandidate = {
+export type ParsedCandidate = {
     candidateId: string
     executionSummary: string
-    tropeAssignments: ParsedTropeAssignment[]
+    tropeAssignments: ParsedCandidateTropeAssignment[]
 }
 
-export type ParseHypothesisStageOneSuccess = {
+export type ParseCandidateOutputSuccess = {
     ok: true
     /** Canonical JSON string after validation (debug / tests). */
     normalizedJson: string
-    candidates: ParsedTropeCandidate[]
+    candidates: ParsedCandidate[]
 }
 
-export type ParseHypothesisStageOneFailure = {
+export type ParseCandidateOutputFailure = {
     ok: false
     errorMessage: string
 }
 
-export type ParseHypothesisStageOneResult = ParseHypothesisStageOneSuccess | ParseHypothesisStageOneFailure
+export type ParseCandidateOutputResult = ParseCandidateOutputSuccess | ParseCandidateOutputFailure
 
 /** Strips a leading markdown ``` / ```json fence and trailing ``` when present. */
-export function stripHypothesisStageOneFence(body: string): string {
+export function stripCandidateOutputFence(body: string): string {
     let s = body.trim()
     const fenceOpen = /^```(?:json|markdown|md|text)?\s*\r?\n?/
     const fenceClose = /\r?\n```\s*$/
@@ -59,7 +59,7 @@ function normalizeNewlines(text: string): string {
 }
 
 function extractJsonObjectString(text: string): string | null {
-    const t = stripHypothesisStageOneFence(normalizeNewlines(text).trim())
+    const t = stripCandidateOutputFence(normalizeNewlines(text).trim())
     if (!t.length) {
         return null
     }
@@ -163,8 +163,8 @@ function parseDraftMemberFromRecord(
 function resolveDraftMembers(
     drafts: DraftMember[],
     snapshotByStableKey: Map<string, EphemeraMetaRoomObject>
-): { ok: true; members: ParsedClusterMember[] } | { ok: false; errorMessage: string } {
-    const membersOut: ParsedClusterMember[] = []
+): { ok: true; members: ParsedCandidateMember[] } | { ok: false; errorMessage: string } {
+    const membersOut: ParsedCandidateMember[] = []
     for (const dm of drafts) {
         const obj = snapshotByStableKey.get(dm.stableKey.trim())
         if (!obj) {
@@ -190,7 +190,7 @@ function parseCandidatesFromPayload(
     roomObjectsByRoom: Record<EphemeraRoomId, EphemeraMetaRoomObject[]>
 ): {
     ok: true
-    candidates: ParsedTropeCandidate[]
+    candidates: ParsedCandidate[]
 } | { ok: false; errorMessage: string } {
     if (typeof payload !== 'object' || payload === null) {
         return { ok: false, errorMessage: 'stage 1 JSON: root must be an object' }
@@ -225,7 +225,7 @@ function parseCandidatesFromPayload(
         }
     }
 
-    const candidates: ParsedTropeCandidate[] = []
+    const candidates: ParsedCandidate[] = []
     for (let ci = 0; ci < candidatesRaw.length; ci++) {
         const c = candidatesRaw[ci]
         if (typeof c !== 'object' || c === null) {
@@ -413,7 +413,7 @@ function parseCandidatesFromPayload(
             }
         }
 
-        const tropeAssignments: ParsedTropeAssignment[] = []
+        const tropeAssignments: ParsedCandidateTropeAssignment[] = []
         for (const draft of tropeAssignmentsDraft) {
             const resolvedMembers = resolveDraftMembers(draft.members, snapshotByStableKey)
             if (!resolvedMembers.ok) {
@@ -438,10 +438,10 @@ function parseCandidatesFromPayload(
 /**
  * Validates stage-1 Bedrock JSON body and returns parsed trope candidates.
  */
-export function parseHypothesisStageOneOutput(
+export function parseCandidateOutput(
     rawBody: string,
     roomObjectsByRoom: Record<EphemeraRoomId, EphemeraMetaRoomObject[]>
-): ParseHypothesisStageOneResult {
+): ParseCandidateOutputResult {
     const jsonStr = extractJsonObjectString(rawBody)
     if (!jsonStr) {
         return { ok: false, errorMessage: 'stage 1 JSON: empty body or no JSON object found' }

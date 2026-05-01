@@ -1,6 +1,6 @@
 import type { CoyotePromptParts } from '../promptTypes'
-import type { CombineHypothesisClustersReturn } from '../candidates/combineHypothesisClusters'
-import { serializePlanSelectCombinedInput } from '../candidates/combineHypothesisClusters'
+import type { CombineCandidateOutputReturn } from '../candidates/combineCandidateOutput'
+import { serializePlanSelectCandidateInput } from '../candidates/combineCandidateOutput'
 import {
     COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
     COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
@@ -11,7 +11,7 @@ import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomOb
 
 export type BuildHypothesisPlanSelectionPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
-    combined: CombineHypothesisClustersReturn
+    combined: CombineCandidateOutputReturn
 }
 
 /** How to read the fenced JSON trope-candidates block in the dynamic tail. */
@@ -209,7 +209,7 @@ export function buildHypothesisPlanSelectionPromptParts(
 ): CoyotePromptParts {
     const isSingleCandidate = input.combined.candidates.length === 1
     const seamRoomMappingBlock = coyoteSeamRoomMappingLines(input.roomObjectsByRoom).join('\n')
-    const tropeCandidatesJson = serializePlanSelectCombinedInput(input.combined, input.roomObjectsByRoom)
+    const tropeCandidatesJson = serializePlanSelectCandidateInput(input.combined, input.roomObjectsByRoom)
     const intro = isSingleCandidate
         ? PLAN_SELECTION_INTRO_SINGLE_CANDIDATE
         : PLAN_SELECTION_INTRO_MULTI_CANDIDATE

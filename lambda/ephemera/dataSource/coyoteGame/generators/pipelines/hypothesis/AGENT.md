@@ -29,9 +29,9 @@ This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock
 - [`generateHypothesis.ts`](generateHypothesis.ts): entrypoint used by production and harness code.
 - [`coyoteHypothesisPipeline.ts`](coyoteHypothesisPipeline.ts): ordered orchestration over the linear runner.
 - [`invokeBedrockHypothesis.ts`](invokeBedrockHypothesis.ts): stage-specific Bedrock invoke wrappers and token limits.
-- [`candidates/buildHypothesisStageOnePrompt.ts`](candidates/buildHypothesisStageOnePrompt.ts): stage-one prompt parts.
-- [`candidates/parseHypothesisStageOneOutput.ts`](candidates/parseHypothesisStageOneOutput.ts): stage-one seam parsing and validation.
-- [`candidates/combineHypothesisClusters.ts`](candidates/combineHypothesisClusters.ts): combine and render candidate output for later hops.
+- [`candidates/buildCandidatePrompt.ts`](candidates/buildCandidatePrompt.ts): stage-one prompt parts.
+- [`candidates/parseCandidateOutput.ts`](candidates/parseCandidateOutput.ts): stage-one seam parsing and validation.
+- [`candidates/combineCandidateOutput.ts`](candidates/combineCandidateOutput.ts): combine and render candidate output for later hops.
 - [`planSelect/buildHypothesisPlanSelectionPromptParts.ts`](planSelect/buildHypothesisPlanSelectionPromptParts.ts): plan-selection prompt builder.
 - [`planSelect/coyoteHop1Handoff.ts`](planSelect/coyoteHop1Handoff.ts): extracts hop-1 handoff contract.
 - [`narrativeBeats/buildHypothesisPhasePlanHopPromptParts.ts`](narrativeBeats/buildHypothesisPhasePlanHopPromptParts.ts): phase-plan prompt builder.

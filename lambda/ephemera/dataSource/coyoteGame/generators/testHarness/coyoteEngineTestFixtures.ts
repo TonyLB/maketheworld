@@ -2,13 +2,13 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { defaultStableKeyProposal } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import { combineHypothesisClusters } from '../pipelines/hypothesis/candidates/combineHypothesisClusters'
+import { combineCandidateOutput } from '../pipelines/hypothesis/candidates/combineCandidateOutput'
 import type {
     CoyoteHarnessPhasePlanInject,
     CoyoteHarnessPlanSelectInject,
 } from '../pipelines/hypothesis/coyoteHarnessInjectTypes'
 import type { CoyoteHop1Handoff } from '../pipelines/hypothesis/planSelect/coyoteHop1Handoff'
-import { parseHypothesisStageOneOutput } from '../pipelines/hypothesis/candidates/parseHypothesisStageOneOutput'
+import { parseCandidateOutput } from '../pipelines/hypothesis/candidates/parseCandidateOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../utilities/coyoteRoomObjectSnapshot'
 
 export type { CoyoteHarnessPhasePlanInject, CoyoteHarnessPlanSelectInject } from '../pipelines/hypothesis/coyoteHarnessInjectTypes'
@@ -132,11 +132,11 @@ const FIXTURE_01_GOLDEN_SEAM_BODY = JSON.stringify({
 
 function buildFixture01PlanSelectInject(): CoyoteHarnessPlanSelectInject {
     const roomObjectsByRoom = normalizeCoyoteHarnessRoomObjects(FIXTURE_01_ROOM_OBJECTS)
-    const seamParsed = parseHypothesisStageOneOutput(FIXTURE_01_GOLDEN_SEAM_BODY, roomObjectsByRoom)
+    const seamParsed = parseCandidateOutput(FIXTURE_01_GOLDEN_SEAM_BODY, roomObjectsByRoom)
     if (!seamParsed.ok) {
         throw new Error(`fixture-01 planSelect golden seam: ${seamParsed.errorMessage}`)
     }
-    const combinedResult = combineHypothesisClusters(
+    const combinedResult = combineCandidateOutput(
         seamParsed.candidates,
         roomObjectsByRoom
     )
@@ -165,11 +165,11 @@ function buildPlanSelectInjectFromGoldenSeam(args: {
     stageOneSeamBody: string
 }): CoyoteHarnessPlanSelectInject {
     const roomObjectsByRoom = normalizeCoyoteHarnessRoomObjects(args.roomObjectsByRoom)
-    const seamParsed = parseHypothesisStageOneOutput(args.stageOneSeamBody, roomObjectsByRoom)
+    const seamParsed = parseCandidateOutput(args.stageOneSeamBody, roomObjectsByRoom)
     if (!seamParsed.ok) {
         throw new Error(`${args.fixtureId} planSelect golden seam: ${seamParsed.errorMessage}`)
     }
-    const combinedResult = combineHypothesisClusters(
+    const combinedResult = combineCandidateOutput(
         seamParsed.candidates,
         roomObjectsByRoom
     )

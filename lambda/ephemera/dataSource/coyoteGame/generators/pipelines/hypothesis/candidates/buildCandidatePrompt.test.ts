@@ -1,9 +1,9 @@
 import { harnessRoomObjects } from '../../../testHarness/coyoteEngineTestFixtures'
-import { buildHypothesisStageOnePromptParts } from './buildHypothesisStageOnePrompt'
+import { buildCandidatePrompt } from './buildCandidatePrompt'
 
-describe('buildHypothesisStageOnePromptParts', () => {
+describe('buildCandidatePrompt', () => {
     it('includes stage-one contract anchors and dynamic seam/snapshot sections', () => {
-        const parts = buildHypothesisStageOnePromptParts({
+        const parts = buildCandidatePrompt({
             roomObjectsByRoom: {
                 'ROOM#STRAIGHTAWAY': harnessRoomObjects('straightaway', ['rocket skates']),
                 'ROOM#VORTEX': [],
@@ -41,7 +41,7 @@ describe('buildHypothesisStageOnePromptParts', () => {
                 'ROOM#BRIDGE': [],
             },
         }
-        const parts = buildHypothesisStageOnePromptParts(input)
+        const parts = buildCandidatePrompt(input)
         expect(parts.dynamicSuffix.startsWith('\n## Seam room labels')).toBe(true)
         expect(parts.dynamicSuffix).toContain('## Current staged objects by room')
         expect(parts.dynamicSuffix).toContain('```json')

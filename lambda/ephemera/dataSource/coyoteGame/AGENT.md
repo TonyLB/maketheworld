@@ -83,7 +83,7 @@ Make The World uses canonical `EphemeraRoomId` values (for example `ROOM#VORTEX`
 
 - Override map and seam helpers: [`generators/pipelines/hypothesis/coyoteHypothesisPromptShared.ts`](generators/pipelines/hypothesis/coyoteHypothesisPromptShared.ts) (`COYOTE_SEAM_ROOM_LABEL_OVERRIDES`, `seamRoomLabelFromEphemeraRoomId`, `normalizeSeamRoomLabelToken`).
 - Staged snapshot `room` field (human label) and Markdown headings: [`utilities/coyoteRoomObjectSnapshot.ts`](utilities/coyoteRoomObjectSnapshot.ts) (via `seamRoomLabelFromEphemeraRoomId`). JSON snapshot rows still include canonical **`roomId`**.
-- Combined clustering / plan-select JSON `room` strings: [`generators/pipelines/hypothesis/candidates/combineHypothesisClusters.ts`](generators/pipelines/hypothesis/candidates/combineHypothesisClusters.ts).
+- Combined clustering / plan-select JSON `room` strings: [`generators/pipelines/hypothesis/candidates/combineCandidateOutput.ts`](generators/pipelines/hypothesis/candidates/combineCandidateOutput.ts).
 - Phase-plan topology allowlist for `derivedFrom`: [`generators/pipelines/hypothesis/narrativeBeats/coyoteHypothesisPhasePlanContext.ts`](generators/pipelines/hypothesis/narrativeBeats/coyoteHypothesisPhasePlanContext.ts) (uses `seamRoomLabelFromEphemeraRoomId` for rooms that have staged objects).
 
 **One-way contract**
@@ -131,7 +131,7 @@ Phase aliases: **`clustering`**, **`planSelect`**, **`phasePlan`** (map to LLM h
 
 **Fixtures and handoffs** ([`coyoteEngineTestFixtures.ts`](generators/testHarness/coyoteEngineTestFixtures.ts))
 
-- Each **`CoyoteEngineTestFixture`** has **`roomObjectsByRoom`** and optional **`planSelectInject`** / **`phasePlanInject`**. **`planSelectInject`** / **`phasePlanInject`** carry **`combined`** ([**`CombineHypothesisClustersReturn`**](generators/pipelines/hypothesis/candidates/combineHypothesisClusters.ts) from parse + combine) plus, for phase-plan, **`hop1Handoff`**. Rows are **sparse**: only defined **(fixture, boundary)** pairs are required; missing bundles for a requested **`runOnly`** **`planSelect`** / **`phasePlan`** fail fast with a clear operator-facing error (no synthesized inputs).
+- Each **`CoyoteEngineTestFixture`** has **`roomObjectsByRoom`** and optional **`planSelectInject`** / **`phasePlanInject`**. **`planSelectInject`** / **`phasePlanInject`** carry **`combined`** ([**`CombineCandidateOutputReturn`**](generators/pipelines/hypothesis/candidates/combineCandidateOutput.ts) from parse + combine) plus, for phase-plan, **`hop1Handoff`**. Rows are **sparse**: only defined **(fixture, boundary)** pairs are required; missing bundles for a requested **`runOnly`** **`planSelect`** / **`phasePlan`** fail fast with a clear operator-facing error (no synthesized inputs).
 - For `runOnly phasePlan`, fixture `hop1Handoff.planIssues` rows must use the structured contract (`code`, `summary`, optional `evidence`) and valid v1 allowlist codes defined in [`generators/pipelines/hypothesis/planSelect/coyoteHop1Handoff.ts`](generators/pipelines/hypothesis/planSelect/coyoteHop1Handoff.ts).
 
 Activation path in `actions`:

@@ -1,4 +1,4 @@
-import type { CombineHypothesisClustersReturn } from './candidates/combineHypothesisClusters';
+import type { CombineCandidateOutputReturn } from './candidates/combineCandidateOutput';
 import type { CoyoteHop1Handoff } from './planSelect/coyoteHop1Handoff';
 import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot';
 
@@ -8,7 +8,7 @@ import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjec
  */
 export type CoyoteHarnessPlanSelectInject = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom;
-    combined: CombineHypothesisClustersReturn;
+    combined: CombineCandidateOutputReturn;
 };
 
 /**

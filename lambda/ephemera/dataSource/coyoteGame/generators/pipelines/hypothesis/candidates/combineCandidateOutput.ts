@@ -2,7 +2,7 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { CoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
-import type { ParsedTropeCandidate } from './parseHypothesisStageOneOutput'
+import type { ParsedCandidate } from './parseCandidateOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
 import { seamRoomLabelFromEphemeraRoomId } from '../coyoteHypothesisPromptShared'
 
@@ -29,7 +29,7 @@ export type CombinedTropeCandidate = {
     outliers: CombinedOutlierIdentity[]
 }
 
-export type CombineHypothesisClustersReturn = {
+export type CombineCandidateOutputReturn = {
     candidates: CombinedTropeCandidate[]
 }
 
@@ -59,17 +59,17 @@ export type PlanSelectCombinedCandidate = {
     outliers: PlanSelectCombinedOutlier[]
 }
 
-export type CombineHypothesisClustersSuccess = {
+export type CombineCandidateOutputSuccess = {
     ok: true
-    combined: CombineHypothesisClustersReturn
+    combined: CombineCandidateOutputReturn
 }
 
-export type CombineHypothesisClustersFailure = {
+export type CombineCandidateOutputFailure = {
     ok: false
     errorMessage: string
 }
 
-export type CombineHypothesisClustersResult = CombineHypothesisClustersSuccess | CombineHypothesisClustersFailure
+export type CombineCandidateOutputResult = CombineCandidateOutputSuccess | CombineCandidateOutputFailure
 
 function snapshotIndexByStableKey(
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
@@ -127,10 +127,10 @@ function deriveOutlierIdentifiers(
  * Hydrates trope assignments and **derives** candidate-local outliers as the multiset complement:
  * staged `stableKey`s minus keys appearing in **`tropeAssignments[*].members`** (order follows staged snapshot iteration).
  */
-export function combineHypothesisClusters(
-    candidates: ParsedTropeCandidate[],
+export function combineCandidateOutput(
+    candidates: ParsedCandidate[],
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
-): CombineHypothesisClustersResult {
+): CombineCandidateOutputResult {
     const byStableKey = snapshotIndexByStableKey(roomObjectsByRoom)
     const stagedOrdered = stagedStableKeysInOrder(roomObjectsByRoom)
     const combinedCandidates: CombinedTropeCandidate[] = []
@@ -188,8 +188,8 @@ export function combineHypothesisClusters(
 }
 
 /** Deterministic Markdown for Stage Two dynamic tail (combined-only contract). */
-export function renderCombinedHypothesisForStageTwo(
-    combined: CombineHypothesisClustersReturn,
+export function renderCombinedCandidateOutputForStageTwo(
+    combined: CombineCandidateOutputReturn,
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
 ): string {
     const byStableKey = snapshotIndexByStableKey(roomObjectsByRoom)
@@ -287,11 +287,11 @@ function enrichOutlierForPlanSelectJson(
 
 /**
  * Deterministic JSON string for plan-selection prompts: same facts as
- * {@link renderCombinedHypothesisForStageTwo} with `stableKey` / `shortName` / `room` on each staged prop.
+ * {@link renderCombinedCandidateOutputForStageTwo} with `stableKey` / `shortName` / `room` on each staged prop.
  * Callers typically wrap the result in a Markdown ` ```json ` fence.
  */
-export function serializePlanSelectCombinedInput(
-    combined: CombineHypothesisClustersReturn,
+export function serializePlanSelectCandidateInput(
+    combined: CombineCandidateOutputReturn,
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
 ): string {
     const byStableKey = snapshotIndexByStableKey(roomObjectsByRoom)
@@ -315,7 +315,7 @@ export function serializePlanSelectCombinedInput(
 }
 
 /** Enriched outlier rows for a combined candidate (e.g. hop-1 rehydrate from combine). */
-export function planSelectOutliersForCombinedCandidate(
+export function planSelectOutliersForCandidate(
     candidate: CombinedTropeCandidate,
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
 ): PlanSelectCombinedOutlier[] {

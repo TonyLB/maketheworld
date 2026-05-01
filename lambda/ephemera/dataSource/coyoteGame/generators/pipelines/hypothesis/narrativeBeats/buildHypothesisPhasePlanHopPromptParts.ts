@@ -1,6 +1,6 @@
 import type { CoyotePromptParts } from '../promptTypes'
-import type { CombineHypothesisClustersReturn } from '../candidates/combineHypothesisClusters'
-import { renderCombinedHypothesisForStageTwo } from '../candidates/combineHypothesisClusters'
+import type { CombineCandidateOutputReturn } from '../candidates/combineCandidateOutput'
+import { renderCombinedCandidateOutputForStageTwo } from '../candidates/combineCandidateOutput'
 import {
     COMBINED_CLUSTERING_CONTRACT_LINES,
     INTERPRETATION_RULES_LINES,
@@ -17,7 +17,7 @@ import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomOb
 
 export type BuildHypothesisPhasePlanHopPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
-    combined: CombineHypothesisClustersReturn
+    combined: CombineCandidateOutputReturn
     hop1Handoff: CoyoteHop1Handoff
 }
 
@@ -146,7 +146,7 @@ function formatHop1HandoffBlock(handoff: CoyoteHop1Handoff): string {
 export function buildHypothesisPhasePlanHopPromptParts(
     input: BuildHypothesisPhasePlanHopPromptInput
 ): CoyotePromptParts {
-    const combinedMarkdown = renderCombinedHypothesisForStageTwo(
+    const combinedMarkdown = renderCombinedCandidateOutputForStageTwo(
         input.combined,
         input.roomObjectsByRoom
     )
