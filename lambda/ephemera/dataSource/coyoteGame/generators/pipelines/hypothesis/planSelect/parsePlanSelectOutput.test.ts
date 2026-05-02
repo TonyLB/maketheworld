@@ -40,6 +40,47 @@ describe('parsePlanSelectOutput', () => {
         })
     })
 
+    it('maps remainingPlanIssues from JSON fence to handoff.planIssues (deterministic shim)', () => {
+        const raw = [
+            ...requiredSections,
+            '',
+            '```json',
+            JSON.stringify({
+                paragraphSummary: 'Mapped summary.',
+                remainingPlanIssues: [{ code: 'ROLE_CONFLICT', summary: 'payload ordering unclear' }],
+            }),
+            '```',
+        ].join('\n')
+        expect(parsePlanSelectOutput(raw)).toEqual({
+            ok: true,
+            handoff: {
+                paragraphSummary: 'Mapped summary.',
+                planIssues: [{ code: 'ROLE_CONFLICT', summary: 'payload ordering unclear' }],
+            },
+        })
+    })
+
+    it('prefers remainingPlanIssues over legacy planIssues when both keys are present', () => {
+        const raw = [
+            ...requiredSections,
+            '',
+            '```json',
+            JSON.stringify({
+                paragraphSummary: 'Both keys.',
+                remainingPlanIssues: [{ code: 'ROLE_CONFLICT', summary: 'from remaining' }],
+                planIssues: [{ code: 'DIRECTION_AMBIGUOUS', summary: 'from legacy' }],
+            }),
+            '```',
+        ].join('\n')
+        expect(parsePlanSelectOutput(raw)).toEqual({
+            ok: true,
+            handoff: {
+                paragraphSummary: 'Both keys.',
+                planIssues: [{ code: 'ROLE_CONFLICT', summary: 'from remaining' }],
+            },
+        })
+    })
+
     it('uses last json fence when multiple ```json blocks exist', () => {
         const inner = JSON.stringify({
             paragraphSummary: 'Chosen plan.',
@@ -52,6 +93,45 @@ describe('parsePlanSelectOutput', () => {
         const r = parsePlanSelectOutput(raw)
         expect(r.ok && r.handoff.paragraphSummary).toBe('Later handoff wins.')
         expect(r.ok && r.handoff.planIssues).toEqual([{ code: 'ROLE_CONFLICT', summary: 'gap' }])
+    })
+
+    it('parses handoff when first ```json is Phase 1 materializedCandidates scratchpad', () => {
+        const phase1Scratch = JSON.stringify({
+            materializedCandidates: [
+                {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Materialized summary.',
+                    tropeAssignments: { Contraption: { executionDetail: 'd', members: [] } },
+                    outliers: [],
+                },
+            ],
+        })
+        const handoffObj = {
+            paragraphSummary: 'Selected candidate-1: ok.',
+            remainingPlanIssues: [] as Array<{ code: 'ROLE_CONFLICT'; summary: string }>,
+        }
+        const raw = [
+            '## Materialized candidates (Phase 1)',
+            '',
+            '```json',
+            phase1Scratch,
+            '```',
+            '',
+            '- cleanup trace omitted for test',
+            '',
+            ...requiredSections,
+            '',
+            '```json',
+            JSON.stringify(handoffObj),
+            '```',
+        ].join('\n')
+        expect(parsePlanSelectOutput(raw)).toEqual({
+            ok: true,
+            handoff: {
+                paragraphSummary: 'Selected candidate-1: ok.',
+                planIssues: [],
+            },
+        })
     })
 
     it('parses optional selectedCandidate payload when present', () => {
