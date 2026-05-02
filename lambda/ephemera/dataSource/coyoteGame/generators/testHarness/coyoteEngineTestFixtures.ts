@@ -113,14 +113,14 @@ const FIXTURE_01_GOLDEN_SEAM_BODY = JSON.stringify({
     candidates: [
         {
             candidateId: 'candidate-1',
-            executionSummary: 'Use the straightaway rocket lane as the main trap route.',
+            executionSummary: 'Coyote rides the rocket to chase down Road Runner.',
             tropeAssignments: {
                 Contraption: {
-                    executionDetail: 'Rocket hardware is staged and aligned on the straightaway.',
+                    executionDetail: 'Rocket accelerates down the straightaway.',
                     members: [
                         {
                             stableKey: 'rocket-0',
-                            tropeFunction: 'delivery lane hardware for straightaway setup',
+                            tropeFunction: 'vehicle',
                         },
                     ],
                 },

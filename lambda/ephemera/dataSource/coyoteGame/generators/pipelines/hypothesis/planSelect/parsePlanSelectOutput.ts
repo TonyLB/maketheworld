@@ -52,6 +52,8 @@ function materializedAffordanceStableKeyValidationFailureReason(stableKey: strin
 /** Canonical JSON keys for planSelect output (plan selection to phase-plan). */
 export const PLAN_SELECT_OUTPUT_JSON_KEYS = {
     paragraphSummary: 'paragraphSummary',
+    /** Model-facing handoff key; parser renames to {@link PLAN_SELECT_OUTPUT_JSON_KEYS.planIssues}. */
+    remainingPlanIssues: 'remainingPlanIssues',
     planIssues: 'planIssues',
     selectedCandidate: 'selectedCandidate',
 } as const
@@ -95,10 +97,6 @@ const REQUIRED_SECTION_HEADINGS = [
     'Rubric comparison',
 ] as const
 
-const REQUIRED_KEYS = new Set<string>([
-    PLAN_SELECT_OUTPUT_JSON_KEYS.paragraphSummary,
-    PLAN_SELECT_OUTPUT_JSON_KEYS.planIssues,
-])
 
 const PLAN_ISSUE_INTENT_SIGNAL_CODES = new Set<PlanIssueIntentSignalCode>([
     'OUTLIER_PROP_UNACCOUNTED',
@@ -132,31 +130,35 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
     return typeof v === 'object' && v !== null && !Array.isArray(v)
 }
 
-function validatePlanIssueRow(row: unknown, rowIndex: number): ParsePlanSelectOutputFailure | null {
+function validatePlanIssueRow(
+    row: unknown,
+    rowIndex: number,
+    issuesKeyLabel: string
+): ParsePlanSelectOutputFailure | null {
     if (!isPlainObject(row)) {
-        return { ok: false, reason: `planIssues[${rowIndex}] must be a plain object` }
+        return { ok: false, reason: `${issuesKeyLabel}[${rowIndex}] must be a plain object` }
     }
     if (!('code' in row)) {
-        return { ok: false, reason: `planIssues[${rowIndex}] missing required key: code` }
+        return { ok: false, reason: `${issuesKeyLabel}[${rowIndex}] missing required key: code` }
     }
     if (!isPlanIssueCode(row.code)) {
         return {
             ok: false,
-            reason: `planIssues[${rowIndex}] code must be one of OUTLIER_PROP_UNACCOUNTED, TROPE_FUNCTION_MISMATCH, STRUCTURAL_CONTRADICTION, DIRECTION_AMBIGUOUS, ROLE_CONFLICT`,
+            reason: `${issuesKeyLabel}[${rowIndex}] code must be one of OUTLIER_PROP_UNACCOUNTED, TROPE_FUNCTION_MISMATCH, STRUCTURAL_CONTRADICTION, DIRECTION_AMBIGUOUS, ROLE_CONFLICT`,
         }
     }
     if (!('summary' in row)) {
-        return { ok: false, reason: `planIssues[${rowIndex}] missing required key: summary` }
+        return { ok: false, reason: `${issuesKeyLabel}[${rowIndex}] missing required key: summary` }
     }
     if (typeof row.summary !== 'string') {
-        return { ok: false, reason: `planIssues[${rowIndex}] summary must be a string` }
+        return { ok: false, reason: `${issuesKeyLabel}[${rowIndex}] summary must be a string` }
     }
     if ('evidence' in row) {
         if (!Array.isArray(row.evidence)) {
-            return { ok: false, reason: `planIssues[${rowIndex}] evidence must be an array of strings when present` }
+            return { ok: false, reason: `${issuesKeyLabel}[${rowIndex}] evidence must be an array of strings when present` }
         }
         if (!row.evidence.every((item): item is string => typeof item === 'string')) {
-            return { ok: false, reason: `planIssues[${rowIndex}] evidence must be an array of strings when present` }
+            return { ok: false, reason: `${issuesKeyLabel}[${rowIndex}] evidence must be an array of strings when present` }
         }
     }
     return null
@@ -398,27 +400,33 @@ function narrowHandoff(parsed: unknown): ParsePlanSelectOutputResult {
     if (!isPlainObject(parsed)) {
         return { ok: false, reason: 'handoff JSON must be a plain object' }
     }
-    for (const req of REQUIRED_KEYS) {
-        if (!(req in parsed)) {
-            return { ok: false, reason: `missing key in handoff JSON: ${req}` }
-        }
-    }
     const paragraphSummary = parsed.paragraphSummary
-    const planIssues = parsed.planIssues
     const selectedCandidateRaw = parsed.selectedCandidate
     if (typeof paragraphSummary !== 'string') {
         return { ok: false, reason: 'paragraphSummary must be a string' }
     }
-    if (!Array.isArray(planIssues)) {
-        return { ok: false, reason: 'planIssues must be an array' }
+    const remainingKey = PLAN_SELECT_OUTPUT_JSON_KEYS.remainingPlanIssues
+    const legacyIssuesKey = PLAN_SELECT_OUTPUT_JSON_KEYS.planIssues
+    const record = parsed as Record<string, unknown>
+    const hasRemaining = remainingKey in record && record[remainingKey] !== undefined
+    const issuesSourceKey = hasRemaining ? remainingKey : legacyIssuesKey
+    const rawIssues = record[issuesSourceKey]
+    if (rawIssues === undefined) {
+        return {
+            ok: false,
+            reason: `missing key in handoff JSON: ${remainingKey} (or ${legacyIssuesKey} for legacy transcripts)`,
+        }
+    }
+    if (!Array.isArray(rawIssues)) {
+        return { ok: false, reason: `${issuesSourceKey} must be an array` }
     }
     const narrowedPlanIssues: PlanIssue[] = []
-    for (let i = 0; i < planIssues.length; i += 1) {
-        const validationFailure = validatePlanIssueRow(planIssues[i], i)
+    for (let i = 0; i < rawIssues.length; i += 1) {
+        const validationFailure = validatePlanIssueRow(rawIssues[i], i, issuesSourceKey)
         if (validationFailure) {
             return validationFailure
         }
-        const row = planIssues[i] as PlanIssue
+        const row = rawIssues[i] as PlanIssue
         narrowedPlanIssues.push({
             code: row.code,
             summary: row.summary,
@@ -469,6 +477,9 @@ function logParseFailureWithRawBody(reason: string, raw: string): void {
 /**
  * Parses planSelect assistant output for the trailing **` ```json `** handoff block.
  * Uses the **last** fence whose language tag is **`json`** (case-insensitive).
+ *
+ * The model emits **`remainingPlanIssues`** in the fence; this parser validates those rows and exposes them as
+ * **`planIssues`** on {@link PlanSelectOutput} (legacy **`planIssues`** key in JSON still accepted as fallback).
  */
 export function parsePlanSelectOutput(raw: string): ParsePlanSelectOutputResult {
     const missingSections = missingRequiredSections(raw)

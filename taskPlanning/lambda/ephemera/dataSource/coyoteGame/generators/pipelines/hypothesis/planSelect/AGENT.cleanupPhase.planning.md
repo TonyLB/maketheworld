@@ -53,15 +53,15 @@ Work through the list in **Recommended order**; capture decisions inline or in P
 
    **(a) Finishing Move guarantee (required cleanup sub-step, not a general promotion case).**
 
-   - Cleanup **must** ensure the materialized candidate has a **Finishing Move** trope slot **adequately filled** before Phase 2 runs. Treat this as **spot and address**, not as raising a parallel plan issue: a **named sub-step** inside Phase 1, not a distinct wire `planIssues` code.
-   - If the slot is not yet adequate, Phase 1 may use a lightweight internal hook only: **`MISSING_FINISHING_MOVE`** --- meaning 'cleanup still owes a finishing mechanism.' It **never appears in the wire handoff** because cleanup **always resolves** it before Phase 2. This is **control-flow scaffolding** for prompt ordering only --- **not** a sixth `planIssues` code and not a parallel taxonomy (avoid over-instrumenting with evidence arrays or extra enums).
-   - **Resolution priority** (first match wins; stop when Finishing Move is adequately filled):
+   - Cleanup **must** ensure **`tropeAssignments` includes `Finishing Move`** with **at least one** `members` row (staged prop or synthetic **`affordance:*`**) before Phase 2 runs. **Implicit completion via other tropes or prose alone is invalid.** Treat this as **spot and address**, not as raising a parallel plan issue: a **named sub-step** inside Phase 1, not a distinct wire `planIssues` code. Prompt prose **carves out** FM materialization from the older "optional / only when they clarify" handoff language --- FM rows required by this sub-step are **mandatory**.
+   - Cleanup **may add** a **`Finishing Move`** trope key when Stage One input omitted it. If the slot is not yet filled, Phase 1 may use a lightweight internal hook only: **`MISSING_FINISHING_MOVE`** --- meaning 'cleanup still owes a **Finishing Move** block with **>= 1** member.' It **never appears in the wire handoff** because cleanup **always resolves** it before Phase 2. This is **control-flow scaffolding** for prompt ordering only --- **not** a sixth `planIssues` code and not a parallel taxonomy (avoid over-instrumenting with evidence arrays or extra enums).
+   - **Resolution priority** (first match wins; stop when **`tropeAssignments.Finishing Move.members`** is non-empty):
 
-     1. A **staged prop** already fills **Finishing Move** --- no extra materialization; internal hook does not fire.
-     2. **`affordancesProvided`** on any staged **member** or **outlier** clearly indicates a finishing mechanism --- materialize from that evidence (strongest staged intent: player ordered these props).
-     3. **Candidate context** implies **Coyote-as-payload** (for example safety gear, `executionSummary` framing self-launch) --- materialize **`affordance:coyote`**.
-     4. A **Contraption** member's own **`environmentAffordances`** lists **`Finishing Move`** in **roles** --- materialize from those env refs.
-     5. **Guaranteed fallback:** **`affordance:coyote`**.
+     1. Input already has **`Finishing Move`** with **>= 1** staged **member** --- no extra materialization unless Sub-step B edits text; internal hook does not fire.
+     2. **`affordancesProvided`** on any staged **member** or **outlier** clearly indicates a finishing mechanism --- materialize into **`Finishing Move.members`** from that evidence (strongest staged intent: player ordered these props).
+     3. **Candidate context** implies **Coyote-as-payload** (for example safety gear, `executionSummary` framing self-launch) --- materialize **`affordance:coyote`** under **`Finishing Move.members`**.
+     4. A **Contraption** member's own **`environmentAffordances`** lists **`Finishing Move`** in **roles** --- materialize from those env refs into **`Finishing Move.members`**.
+     5. **Guaranteed fallback:** **`affordance:coyote`** under **`Finishing Move.members`**.
 
    - **Disambiguation (steps 2-4):** Read **player intent** from the **whole staged prop set** and candidate text. This is **not** choosing between competing structural readings of the skeleton --- the trope skeleton already fixes plan shape. Cleanup picks the **affordance-level** finishing slot that best matches what the player was going for. **`affordancesProvided` on staged props outranks** passive **`environmentAffordances`** on the contraption (explicit player ordering beats ambient env possibility).
    - **Phase 2 anchor:** The **chosen Finishing Move** after materialization anchors rubric judgment. Different candidates may end up with **different** finishing move materializations depending on skeleton plus staged props (for example **Contraption**-only vs **Contraption** plus **Misdirection**).
@@ -134,7 +134,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 
 - [X] **Q1 - Naming:** Adopt **cleanup** as the Phase 1 label (closes resolvable gaps before scoring; Phase 2 judges best achievable form).
 - [X] **Q2 - Phase 1 artifact:** **Materialized candidate set** --- one fully materialized candidate JSON per input row (same shape as input `candidates[]` entries); affordance-backed members promoted into trope slots; **Phase 2 scores this set**. Internal-only; no new TS wire types.
-- [X] **Q3a - Finishing Move guarantee:** Required cleanup sub-step; internal **`MISSING_FINISHING_MOVE`** hook only (always resolved before Phase 2; never wire); resolution priority 1-5; Phase 2 rubric anchored on chosen finishing move; **`affordancesProvided`** outranks passive env on contraption for FM disambiguation.
+- [X] **Q3a - Finishing Move guarantee:** Required **`Finishing Move`** trope block with **>= 1** member; internal **`MISSING_FINISHING_MOVE`** hook only; FM carve-out from optional handoff copy; may add trope key when input omitted it; resolution priority 1-5; Phase 2 anchored on chosen finishing move; **`affordancesProvided`** outranks passive env on contraption for FM disambiguation.
 - [X] **Q3b partial - `OUTLIER_PROP_UNACCOUNTED`:** Bounded cleanup with pass-through fallback; misclassification + candidate-context legibility; low promotion bar; coil-wire canonical example; parser does not enforce enrich **`tropeAffinities`** vs trope row (**Open question** 3).
 - [X] **Q3b partial - `TROPE_FUNCTION_MISMATCH`:** Bounded **`tropeFunction`** rewrite when placement already coherent; pass-through if no honest relabel; separate from OUTLIER moves; deeper work deferred to **`selectedCandidate`** / handoff if still open (**Open question** 3).
 - [X] **Q3b - `STRUCTURAL_CONTRADICTION`:** Plurality-without-commitment / overbuilding only; per-trope **`executionDetail`** framings; optimism signal; Phase 2 must not re-penalize resolved plurality; all other structural contradictions pass through (**Open question** 3).
@@ -183,3 +183,4 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/pipelines/hypo
 | Q3 prompt copy + Phase 1/2 drafted | Multi-candidate + **single-candidate** cleanup + rubric prose in `buildPlanSelectPrompt` (four internal phases; singleton `materializedCandidates`) |
 | Phase 3-4 internal prose | Multi/single share winner-merge + handoff sections; no renumber pass needed; downstream artifact remains sole trailing `json` fence |
 | Multi slice verification | `planSelect/` + `invokeBedrockHypothesis.test.ts` green |
+| Q3a FM structural hardening | `Finishing Move` trope key with >= 1 member required; no "defensible equivalent" escape; FM materialization carves out of optional/clarify handoff language; may add **Finishing Move** key when input omits it |
