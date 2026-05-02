@@ -1,6 +1,6 @@
 # Plan-select: cleanup-first internal phase (planning)
 
-**Status:** In progress. Next step is to draft **Q3b** general promotion rules (intent-signal `planIssues` codes only) and Phase 1 / Phase 2 prompt copy for [`buildPlanSelectPrompt.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/buildPlanSelectPrompt.ts). **Q3a** Finishing Move guarantee is recorded under **Open questions** below.
+**Status:** In progress. Next step is to draft **prompt copy** implementing all recorded Q3 rules (Q3a + Q3b intent-signal codes) and Phase 1 / Phase 2 structure in [`buildPlanSelectPrompt.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/buildPlanSelectPrompt.ts). Promotion policy for **`OUTLIER_PROP_UNACCOUNTED`**, **`TROPE_FUNCTION_MISMATCH`**, and **`STRUCTURAL_CONTRADICTION`** is recorded under **Open questions** below.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../../../../../../taskPlanning/AGENT.md).
 
@@ -49,7 +49,7 @@ Work through the list in **Recommended order**; capture decisions inline or in P
 
 2. **Internal artifact shape.** **Resolved:** Phase 1 produces **one fully materialized candidate JSON per input candidate** --- same shape as input `candidates[]` entries, with affordance-backed members promoted into their trope slots. This **materialized candidate set** is what Phase 2 scores. Not an audit-with-annotations as the primary deliverable.
 
-3. **Promotion rules.** Split into **(a)** Finishing Move guarantee --- **resolved** --- and **(b)** general promotion for intent-signal issues --- **still to draft** in prompt prose.
+3. **Promotion rules.** Split into **(a)** Finishing Move guarantee --- **resolved** --- and **(b)** general promotion for intent-signal issues --- **resolved** (`OUTLIER_PROP_UNACCOUNTED`, **`TROPE_FUNCTION_MISMATCH`**, **`STRUCTURAL_CONTRADICTION`** below); **prompt prose still to draft**.
 
    **(a) Finishing Move guarantee (required cleanup sub-step, not a general promotion case).**
 
@@ -66,19 +66,60 @@ Work through the list in **Recommended order**; capture decisions inline or in P
    - **Disambiguation (steps 2-4):** Read **player intent** from the **whole staged prop set** and candidate text. This is **not** choosing between competing structural readings of the skeleton --- the trope skeleton already fixes plan shape. Cleanup picks the **affordance-level** finishing slot that best matches what the player was going for. **`affordancesProvided` on staged props outranks** passive **`environmentAffordances`** on the contraption (explicit player ordering beats ambient env possibility).
    - **Phase 2 anchor:** The **chosen Finishing Move** after materialization anchors rubric judgment. Different candidates may end up with **different** finishing move materializations depending on skeleton plus staged props (for example **Contraption**-only vs **Contraption** plus **Misdirection**).
 
-   **(b) General promotion (remaining Q3 work --- draft after (a) is copied into prompt).**
+   **(b) General promotion (Q3b --- decisions recorded; prompt prose still to draft).**
 
-   - **Intent-signal** `planIssues` codes only: **`OUTLIER_PROP_UNACCOUNTED`**, **`TROPE_FUNCTION_MISMATCH`**, **`STRUCTURAL_CONTRADICTION`** --- when affordance evidence is sufficient to **close** a gap vs **annotate only**, and when to leave the issue for the residual handoff.
    - **Underspecification** codes **`DIRECTION_AMBIGUOUS`** and **`ROLE_CONFLICT`**: **not** resolvable by promotion inside cleanup; they **pass through** to the wire handoff unchanged (residual obligations for phase-plan).
-   - Carry forward where needed: explicit **`stableKey`** citation; **outliers** as fuel vs hole; **conflicts** between affordance evidence and **`tropeFunction`** / **`executionSummary`**.
 
-4. **Materialized rows and handoff.** Phase 1 **internally** gives every candidate a fully materialized form including `affordance:*` where promotion rules allow. The **wire** handoff still attaches synthetic rows only on **`selectedCandidate`** per current contracts. Confirm prompt text keeps that distinction obvious for the model.
+   **`OUTLIER_PROP_UNACCOUNTED` --- promotion rule (bounded, context-driven, pass-through fallback).** **Resolved** before drafting prompt copy.
 
-5. **Single-candidate path.** Should Phase 1 mirror multi-candidate cleanup **before** `intentConflicts` / residual issues, or merge cleanup + issue audit into one object with ordered sections?
+   - This code **may** still appear in rubric reasoning and the wire **`planIssues`** after cleanup --- that is acceptable. Use a **bounded** cleanup pass: try retroactive slot assignment when context supports it; if **no** fix is legible, **pass the issue through unchanged**. Do **not** over-invest; rubric and downstream phases continue to handle **residual** outliers.
+   - **Correctable case:** Original **misclassification** --- enrich-time **`tropeAffinities`** were assigned **without** skeleton context. Cleanup asks whether the candidate's committed trope structure plus **`executionSummary`** makes a **better** trope slot assignment **legible**. If **yes**, **promote** the outlier into that slot (move **`stableKey`** from **`outliers`** into **`tropeAssignments[*].members`** with matching **`tropeFunction`**). If **no** clear slot is legible, **do not** force a promotion.
+   - **Promotion bar:** **Low** relative to other intent-signal codes. Cleanup is **not** re-classifying from scratch and **not** resolving a hard conflict --- it completes an assignment enrich left **underspecified**. Candidate context making the right slot obvious is **enough**.
+   - **Canonical example:** Coil of copper wire tagged **Disadvantage**-only at enrich, listed as an **outlier** on a candidate whose skeleton is otherwise electrical apparatus (**Contraption**-heavy, arcs, storm-cloud pills, **`executionSummary`** implying conduction). Candidate context makes **Contraption** the obvious slot --- **promote** the wire there.
 
-6. **Length / verbosity guardrails.** Caps on bullets per candidate to control tokens?
+   **Validation note (before locking `OUTLIER` prompt copy):** [`parsePlanSelectOutput.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/parsePlanSelectOutput.ts) validates **`selectedCandidate`** **structurally** only (Coyote trope keys, member/outlier rows, **`stableKey`** / **`shortName`** / **`room`** / **`tropeFunction`**, optional affordance fields, materialized **`affordance:*`** syntax). It does **not** enforce that a staged object's enrich-time **`tropeAffinities`** row matches the trope bucket where that **`stableKey`** appears. Moving a prop from **`outliers`** into a trope row that enrich did **not** foreground for that object is **not** rejected at parse. Phase-plan JSON validators (`@tonylb/mtw-interfaces`, **`coyotePhasePlan`**) care about **`stableKeysUsed`** vs the **room snapshot** (plus well-formed **`affordance:*`** tokens), not trope affinity lineage from Acme enrich. **Implication:** no parser change is **required** for cleanup-driven promotion; optional prompt prose may still state that promotion is **context-driven** and may **extend** apparent trope use beyond first-pass **`tropeAffinities`** when the candidate makes that reading legible.
 
-7. **Evaluation.** Subjective eval on fixture corpus only, or add one fixture that asserts Phase 1 section keywords / structure in transcript (if internal JSON is surfaced for tests)?
+   **`TROPE_FUNCTION_MISMATCH` --- promotion rule (bounded string alignment; pass-through fallback; defer depth to winner handoff).** **Resolved** before drafting prompt copy.
+
+   - Same **effort class** as **`OUTLIER_PROP_UNACCOUNTED`**: **one bounded fix attempt**, then **pass through** if cleanup cannot honestly resolve the tension. The code **may** remain in rubric reasoning and wire **`planIssues`** after cleanup --- that is acceptable.
+   - **Correctable case (primary):** **`tropeFunction`** is **wrong copy** for the role the skeleton **already** assigns --- placement is coherent (**`stableKey`** stays in the same trope **`members`** row), but the line disagrees with **`executionSummary`** / **`executionDetail`** / how the candidate actually uses the prop. **Fix:** rewrite **`tropeFunction`** (and only touch **`executionDetail`** on that trope when needed for the same beat). That is **annotation alignment**, not re-classification.
+   - **Not fixable in this pass:** **I do not see how this object fits** --- placement vs summary cannot be reconciled by honest relabeling alone. Do **not** force a **tropeFunction** patch that **pretends** a use the candidate does not support. **Pass through** **`TROPE_FUNCTION_MISMATCH`** or treat as **placement / structure** ( **`OUTLIER`** promotion rules, **`STRUCTURAL_CONTRADICTION`**, etc.) per facts --- cleanup does not merge those investigations here.
+   - **Separation from OUTLIER:** **`OUTLIER`** addresses **where** the prop sits in the graph (outlier vs trope row). **`TROPE_FUNCTION_MISMATCH`** addresses **whether the member line matches** the graph **you already kept**. Do **not** use **`TROPE_FUNCTION_MISMATCH`** cleanup to **move** **`stableKey`** between tropes; use OUTLIER / structural rules for moves.
+   - **Later pass:** If **`TROPE_FUNCTION_MISMATCH`** still applies at **`selectedCandidate`** / wire handoff, **invest more** there --- refining **`tropeFunction`** / narrative alignment for the **winning** payload is the right place for deeper effort. Cleanup stays **light** at this phase.
+
+   **`STRUCTURAL_CONTRADICTION` --- promotion rule (plurality-as-overbuilding sub-type only; bounded; pass-through for all other sub-types).** **Resolved** before drafting prompt copy.
+
+   - **`STRUCTURAL_CONTRADICTION`** is a **broad** bucket. Cleanup addresses **exactly one** recognizable sub-type cheaply; **all other** sub-types **pass through** to the rubric as **residual negative evidence** (same bounded-pass discipline as **`OUTLIER_PROP_UNACCOUNTED`** and **`TROPE_FUNCTION_MISMATCH`**: **one** recognition attempt; if this sub-type is not clearly present, **do not** force a fix).
+
+   - **Resolvable sub-type: plurality without commitment.** The skeleton has **multiple props competing for the same trope role** without the plan committing to **which** one fires. The surface tension reads like "these cannot all be X" --- in Looney Tunes genre terms that is **not** a contradiction; it is **optimism**. Cleanup resolves by **embracing plurality** and rewriting that trope's **`executionDetail`** so the competition reads as **intentional overbuilding** (not picking a single winner prop). Example per-trope framings (adapt wording to the candidate; keep genre tone):
+
+     - **Finishing Move:** "A gauntlet of attacks"
+     - **Misdirection:** "An obstacle course of dangers"
+     - **Bait:** "An over-the-top spectacle of temptations"
+     - **Contraption:** "A Rube Goldberg overengineered mess of optimistic causality"
+     - **Disadvantage:** "A piling on of layered obstruction"
+
+   - **Optimism signal (required for this fix --- not neutral relabeling):** The plurality reframe must **raise optimism** in **`executionDetail`** tone: Coyote-side planning treats **more** moving parts as **more** individual brilliance, not as engineering failure-probability accumulation. Plurality **offsets** implausibility when reading player intent --- it is **not** an extra penalty multiplier.
+
+   - **Phase 2 rubric consequence:** After a plurality reframe, treat the candidate's **coherence as strengthened** on its own terms, not merely neutralized. The prompt already evaluates from the **Coyote's** perspective --- **do not** re-penalize plurality that cleanup has already framed as **deliberate overbuilding**.
+
+   - **Not fixable by this rule --- pass through:** Any **`STRUCTURAL_CONTRADICTION`** that **cannot** be resolved by embracing plurality. **Canonical non-resolvable cases** (illustrative): topology contradicts implied Road Runner movement; **`tropeFunction`** vs **`executionSummary`** flatly clash in a way no **`executionDetail`** rewrite honestly bridges; genuine spatial or causal impossibility that requires **committing** to one structural interpretation over another. Leave **`STRUCTURAL_CONTRADICTION`** in **`planIssues`** / rubric weighting as residual intent-signal evidence.
+
+4. **Materialized rows and handoff.** **Resolved.**
+
+   - **No separate surface to other phases:** Cleanup's **materialized candidate set** (per-input-candidate materialization, including `affordance:*` on **every** option where rules say so) exists **only inside the plan-select prompt / single model invocation**. It is **not** emitted as its own structured artifact for orchestration, parsers, or downstream hops. Later phases continue to see **only** what they already consume from plan-select (notably the trailing handoff JSON). Same decision as **Out of scope** --- no Phase 1 JSON as a pipeline artifact unless a future initiative adds it.
+   - **Wire handoff unchanged:** Application parsers still receive materialized `affordance:*` **member** rows **only** on **`selectedCandidate`** in the trailing fence, per current contracts. Non-winners do not need synthetic rows in wire output.
+   - **Prompt obligation:** Instructions must make the model keep the distinction clear in its own reasoning --- internal materialization for rubric comparison vs **final** handoff keys --- without implying that internal structures are emitted as a separate artifact beyond this hop's trailing fence.
+
+5. **Single-candidate path.** **Resolved:** Use **one** internal artifact --- merge **cleanup** (materialized candidate, FM guarantee, Q3b promotion passes) with **intent conflicts / residual issues** into a **single object** with **ordered sections**, instead of mirroring multi-candidate's separate Phase 1 vs Phase 2 internal phases as sequential schemas. Prompt prose must define section order so reasoning stays deterministic without splitting into two top-level internal phases.
+
+6. **Length / verbosity guardrails.** **Resolved.**
+
+   - **Prompt-level broad caps (yes):** Add **soft** limits in instructions so internal mini-schemas do not explode --- for example a **maximum** number of bullet lines per candidate in the materialized-set or audit sections, or a one-sentence cap for per-candidate sub-fields where prose can bloat. Keep rules **broad** (order-of-magnitude guardrails), not a detailed character budget; the goal is predictable token use without choking legitimate cleanup output.
+   - **Plan-select output token ceiling (code) --- apply when implementing cleanup, not before:** Today **`BEDROCK_HYPOTHESIS_PLAN_SELECTION_MAX_TOKENS`** aliases **`BEDROCK_HYPOTHESIS_DEFAULT_MAX_TOKENS` (2048)** in [`invokeBedrockHypothesis.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/invokeBedrockHypothesis.ts). When shipping the cleanup / plan-select prompt work, **bump plan-select to at least 4096** (dedicated constant) --- headroom for internal materialized candidates, rubric output, and large **`selectedCandidate`** JSON on complicated plans; most runs should still be far below. **Add a unit test** that `invokeBedrockHypothesisPlanSelection` uses the new default. **1024** stays for **candidates** only. Narrative beat can remain **2048** unless you change it deliberately.
+   - **After the bump:** Tune from harness **`usagePlanSelection`** in [`runCoyoteEngineTestHarness`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/runCoyoteEngineTestHarness.ts); **raise** plan-selection max further only if needed, and re-check Lambda timeout vs the three-hop pipeline (hypothesis **`AGENT.md`**).
+
+7. **Evaluation.** **Resolved:** Keep **subjective** evaluation (fixture corpus, rubric judgment, how outputs read) for this cleanup initiative. **Do not** add new automated assertions on model transcript shape (internal phase keywords, surfaced internal JSON) as part of this task --- that would be unscientific **accretion** of one-off tests. A **deliberate sweep** of rigorous prompt-engineering metrics (if any) is a **separate** future effort, not built up case by case here.
 
 ## Getting started
 
@@ -94,14 +135,18 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 - [X] **Q1 - Naming:** Adopt **cleanup** as the Phase 1 label (closes resolvable gaps before scoring; Phase 2 judges best achievable form).
 - [X] **Q2 - Phase 1 artifact:** **Materialized candidate set** --- one fully materialized candidate JSON per input row (same shape as input `candidates[]` entries); affordance-backed members promoted into trope slots; **Phase 2 scores this set**. Internal-only; no new TS wire types.
 - [X] **Q3a - Finishing Move guarantee:** Required cleanup sub-step; internal **`MISSING_FINISHING_MOVE`** hook only (always resolved before Phase 2; never wire); resolution priority 1-5; Phase 2 rubric anchored on chosen finishing move; **`affordancesProvided`** outranks passive env on contraption for FM disambiguation.
-- [ ] Draft **Q3b - General promotion** for intent-signal codes only; underspec codes pass through (**Open question** 3).
-- [ ] Draft multi-candidate Phase 1 + Phase 2 prompt sections (materialized set emission; rubric judges materialized rows).
-- [ ] Align **Q4** (internal full materialization vs wire handoff-only on `selectedCandidate`) in explicit prompt guardrails.
-- [ ] Draft single-candidate Phase 1 to match (**Q5**).
-- [ ] Apply **Q6** verbosity guardrails.
+- [X] **Q3b partial - `OUTLIER_PROP_UNACCOUNTED`:** Bounded cleanup with pass-through fallback; misclassification + candidate-context legibility; low promotion bar; coil-wire canonical example; parser does not enforce enrich **`tropeAffinities`** vs trope row (**Open question** 3).
+- [X] **Q3b partial - `TROPE_FUNCTION_MISMATCH`:** Bounded **`tropeFunction`** rewrite when placement already coherent; pass-through if no honest relabel; separate from OUTLIER moves; deeper work deferred to **`selectedCandidate`** / handoff if still open (**Open question** 3).
+- [X] **Q3b - `STRUCTURAL_CONTRADICTION`:** Plurality-without-commitment / overbuilding only; per-trope **`executionDetail`** framings; optimism signal; Phase 2 must not re-penalize resolved plurality; all other structural contradictions pass through (**Open question** 3).
+- [ ] Draft **multi-candidate** Phase 1 + Phase 2 prompt updates in [`buildPlanSelectPrompt.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/buildPlanSelectPrompt.ts): materialized candidate set, internal cleanup phases per Q3a/Q3b, rubric alignment (FM anchor; plurality reframe strengthens coherence; no double penalty); embed **Q4** resolved rules (internals stay in prompt; wire `selectedCandidate` only); embed **Q6** broad internal caps; **implement Q6 token bump** (plan-select **4096** + test) in [`invokeBedrockHypothesis.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/invokeBedrockHypothesis.ts) (**Open questions** 3, 4, and 6).
+- [X] **Q4 - Materialized rows / handoff:** Phase 1 internals not surfaced outside single plan-select invocation; wire unchanged (`affordance:*` on **`selectedCandidate`** only); prompt makes internal vs handoff distinction explicit (**Open question** 4).
+- [X] **Q5 - Single-candidate path:** One merged internal object --- cleanup plus intent / residual issue audit with **ordered sections** (**Open question** 5).
+- [ ] Draft **single-candidate** Phase 1 prompt updates implementing Q5 (in tandem with multi-candidate draft) (**Open question** 5).
+- [X] **Q6 - Length / verbosity:** Broad prompt caps; **on implementation** set plan-select max output to **at least 4096** in [`invokeBedrockHypothesis.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/invokeBedrockHypothesis.ts) (currently 2048); add test; then tune with **`usage`** if needed (**Open question** 6).
 - [ ] Renumber or adjust Phase 3-4 prose if internal phases shifted (keep "only downstream-consumed artifact is the final trailing handoff `json` fence" invariant).
 - [ ] Update [`buildPlanSelectPrompt.test.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/buildPlanSelectPrompt.test.ts) expectations for new subsection titles / keywords.
-- [ ] Optional: run harness or corpus spot-check (**Q7**).
+- [X] **Q7 - Evaluation:** Subjective eval only for this slice; no transcript keyword accretion; rigorous measurement = future deliberate sweep (**Open question** 7).
+- [ ] Optional: informal harness or corpus pass when tuning (subjective, not a gate).
 - [ ] If any behavior is canonical for contributors long-term, add a short pointer in [`hypothesis/AGENT.md`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md) and trim duplication from this file.
 - [ ] On completion: set **Status** to done, check all boxes, then archive or delete this plan per [`taskPlanning/AGENT.md`](../../../../../../../../../taskPlanning/AGENT.md).
 
@@ -128,5 +173,12 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/pipelines/hypo
 | Task plan created | Cleanup-first goal; no TS wire changes for internals; open questions listed |
 | Q1 / Q2 resolved | Cleanup naming; materialized candidate set as Phase 1 internal artifact; constraint split internal vs wire |
 | Q3a Finishing Move locked | FM guarantee sub-step; resolution priority; Phase 2 anchor; internal hook naming |
-| Q3b promotion + prompt drafted | |
+| Q3b partial OUTLIER locked | Bounded promotion; pass-through; enrich vs skeleton; validation note |
+| Q3b partial TROPE locked | String-alignment attempt; pass-through; defer depth to winner handoff |
+| Q3b STRUCTURAL locked | Plurality overbuilding only; optimism; Phase 2 coherence consequence; pass-through rest |
+| Q4 handoff boundary locked | Internals prompt-only; no pipeline artifact; wire selectedCandidate-only for synthetic rows |
+| Q5 single-candidate locked | One internal object; merged cleanup + issues; ordered sections |
+| Q6 verbosity locked | Broad prompt caps; **4096 plan-select** deferred to implementation + test |
+| Q7 eval approach locked | Subjective; no accreted transcript tests; rigor = later sweep |
+| Q3 prompt copy + Phase 1/2 drafted | Implement recorded rules in buildPlanSelectPrompt |
 | Tests / verification green | |
