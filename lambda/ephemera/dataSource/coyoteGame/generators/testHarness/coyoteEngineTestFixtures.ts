@@ -150,8 +150,38 @@ function buildFixture01PlanSelectInject(): CoyoteHarnessPlanSelectInject {
 
 const FIXTURE_01_PLAN_SELECT_INJECT = buildFixture01PlanSelectInject()
 const FIXTURE_01_PHASE_PLAN_HANDOFF: PlanSelectOutput = {
-    paragraphSummary: 'Conflict review favors candidate-1: lock a single Contraption-first lane using the straightaway rocket setup, then carry that same lane through the terminal beat with no prop-role conflicts.',
+    paragraphSummary:
+        'Conflict review favors candidate-1: lock a single Contraption-first lane using the straightaway rocket setup, materialize Coyote as the finishing-move affordance grounded on that same seam, then carry the lane through the terminal beat with no prop-role conflicts.',
     planIssues: [],
+    selectedCandidate: {
+        candidateId: 'candidate-1',
+        executionSummary: 'Use the straightaway rocket lane as the main trap route.',
+        tropeAssignments: {
+            Contraption: {
+                executionDetail: 'Rocket hardware is staged and aligned on the straightaway.',
+                members: [
+                    {
+                        stableKey: 'rocket-0',
+                        shortName: 'rocket',
+                        room: 'STRAIGHTAWAY',
+                        tropeFunction: 'delivery lane hardware for straightaway setup',
+                    },
+                ],
+            },
+            'Finishing Move': {
+                executionDetail: 'Coyote closes the beat as the terminal pursuit affordance tied to the rocket lane.',
+                members: [
+                    {
+                        stableKey: 'affordance:coyote',
+                        shortName: 'Coyote',
+                        room: 'STRAIGHTAWAY',
+                        tropeFunction: 'terminal chase beat',
+                    },
+                ],
+            },
+        },
+        outliers: [],
+    },
 }
 const FIXTURE_01_PHASE_PLAN_INJECT: CoyoteHarnessPhasePlanInject = {
     ...FIXTURE_01_PLAN_SELECT_INJECT,
@@ -200,12 +230,8 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                         {
                             trope: 'Contraption',
                             aptness: 'High',
-                            narrowing: 'mechanical trigger prep above lane',
-                        },
-                        {
-                            trope: 'Finishing Move',
-                            aptness: 'Good',
-                            narrowing: 'release mechanism for cliffside payload',
+                            narrowing: 'mechanically tip or move things',
+                            environmentAffordances: [{ object: 'boulder', roles: ['Finishing Move'] }],
                         },
                     ],
                 },
@@ -231,11 +257,6 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                             aptness: 'High',
                             narrowing: 'mobility rig for setup and chase positioning',
                         },
-                        {
-                            trope: 'Finishing Move',
-                            aptness: 'Poor',
-                            narrowing: 'delivery assist but not terminal by itself',
-                        },
                     ],
                 },
             ]),
@@ -245,14 +266,20 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                     tropeAffinities: [
                         {
                             trope: 'Misdirection',
-                            aptness: 'Good',
+                            aptness: 'High',
                             narrowing: 'visual lure through fake passage cue',
+                            environmentAffordances: [{ object: 'rock-wall', roles: ['Finishing Move'] }],
+                        },
+                        {
+                            trope: 'Bait',
+                            aptness: 'Good',
+                            narrowing: 'helps draw attention'
                         },
                         {
                             trope: 'Contraption',
-                            aptness: 'Good',
-                            narrowing: 'prep-world edit before engagement',
-                        },
+                            aptness: 'Poor',
+                            narrowing: 'camouflage or decorate components',
+                        }
                     ],
                 },
             ]),
@@ -261,18 +288,15 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                     shortName: 'portable hole',
                     tropeAffinities: [
                         {
-                            trope: 'Disadvantage',
+                            trope: 'Misdirection',
                             aptness: 'High',
-                            narrowing: 'persistent route hazard in bridge lane',
+                            narrowing: 'persistent route hazard',
+                            environmentAffordances: [{ object: 'long-fall', roles: ['Finishing Move'] }],
                         },
                         {
-                            trope: 'Contraption',
+                            trope: 'Disadvantage',
                             aptness: 'Good',
-                            narrowing: 'diverts someone to a drop',
-                            environmentAffordances: [{
-                                object: 'long-fall',
-                                roles: ['Finishing Move', 'Contraption'],
-                            }],
+                            narrowing: 'drop into an enclosed pit'
                         },
                     ],
                 },
@@ -293,12 +317,12 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                     tropeAffinities: [
                         {
                             trope: 'Disadvantage',
-                            aptness: 'High',
-                            narrowing: 'persistent pull alters runner pathing',
+                            aptness: 'Good',
+                            narrowing: 'persistent pull if Road Runner is made magnetic',
                         },
                         {
                             trope: 'Contraption',
-                            aptness: 'Good',
+                            aptness: 'High',
                             narrowing: 'attracts toward metal objects'
                         },
                     ],
@@ -559,12 +583,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                             trope: 'Contraption',
                             aptness: 'High',
                             narrowing: 'mobility prep on long bridge approach',
-                        },
-                        {
-                            trope: 'Finishing Move',
-                            aptness: 'Poor',
-                            narrowing: 'delivery assist only',
-                        },
+                        }
                     ],
                 },
             ]),
@@ -579,14 +598,10 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                     shortName: 'cannon',
                     tropeAffinities: [
                         {
-                            trope: 'Finishing Move',
-                            aptness: 'High',
-                            narrowing: 'terminal projectile payload',
-                        },
-                        {
                             trope: 'Contraption',
-                            aptness: 'Good',
-                            narrowing: 'mounted firing prep',
+                            aptness: 'High',
+                            narrowing: 'shoots something',
+                            affordancesProvided: [{ object: 'cannonball', roles: ['Finishing Move'] }],
                         },
                     ],
                 },
@@ -605,12 +620,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                             trope: 'Contraption',
                             aptness: 'High',
                             narrowing: 'position and speed setup',
-                        },
-                        {
-                            trope: 'Finishing Move',
-                            aptness: 'Poor',
-                            narrowing: 'delivery helper only',
-                        },
+                        }
                     ],
                 },
             ]),
@@ -620,22 +630,21 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                     tropeAffinities: [
                         {
                             trope: 'Misdirection',
+                            aptness: 'High',
+                            narrowing: 'visual lure through fake passage cue',
+                            environmentAffordances: [{ object: 'rock-wall', roles: ['Finishing Move'] }],
+                        },
+                        {
+                            trope: 'Bait',
                             aptness: 'Good',
-                            narrowing: 'visual deception lure at turn',
+                            narrowing: 'helps draw attention'
                         },
                         {
                             trope: 'Contraption',
-                            aptness: 'Good',
-                            narrowing: 'prep illusion and route edit',
-                            environmentAffordances: [{
-                                object: 'rock-wall',
-                                roles: ['Finishing Move'],
-                            }, {
-                                object: 'long-fall',
-                                roles: ['Finishing Move'],
-                            }],
-                        },
-                    ],
+                            aptness: 'Poor',
+                            narrowing: 'camouflage or decorate components',
+                        }
+                    ]
                 },
             ]),
         },

@@ -4,6 +4,8 @@ import {
     isAffordanceProvidedRef,
     isCoyoteTrope,
     isEnvironmentAffordanceRef,
+    isSyntaxMaterializedAffordanceStableKey,
+    MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX,
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { CANONICAL_TROPE_ORDER } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 import { hypothesisDebugLog } from '../../../../utilities/hypothesisDebug'
@@ -16,6 +18,36 @@ import type {
 
 /** Canonical trope ordering for deterministic narrowed-record emission. */
 const TROPE_ORDER: CoyoteTrope[] = CANONICAL_TROPE_ORDER
+
+/** Re-export for callers that import from this module; grammar lives in mtw-interfaces. */
+export { MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX }
+
+/**
+ * True when `stableKey` (after trim) uses the materialization prefix and the suffix matches the handoff contract.
+ * Staged keys that do not start with the prefix are valid and return true.
+ */
+export function isValidMaterializedAffordanceStableKey(stableKey: string): boolean {
+    const trimmed = stableKey.trim()
+    if (!trimmed.startsWith(MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX)) {
+        return true
+    }
+    return isSyntaxMaterializedAffordanceStableKey(trimmed)
+}
+
+function materializedAffordanceStableKeyValidationFailureReason(stableKey: string): string | null {
+    const trimmed = stableKey.trim()
+    if (!trimmed.startsWith(MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX)) {
+        return null
+    }
+    if (!isSyntaxMaterializedAffordanceStableKey(trimmed)) {
+        const suffix = trimmed.slice(MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX.length)
+        if (suffix.length === 0) {
+            return 'materialized affordance stableKey must have a non-empty suffix after "affordance:"'
+        }
+        return 'materialized affordance stableKey suffix must contain only letters, digits, underscores, and hyphens'
+    }
+    return null
+}
 
 /** Canonical JSON keys for planSelect output (plan selection to phase-plan). */
 export const PLAN_SELECT_OUTPUT_JSON_KEYS = {
@@ -130,6 +162,7 @@ function validatePlanIssueRow(row: unknown, rowIndex: number): ParsePlanSelectOu
     return null
 }
 
+/** Validates each `tropeAssignments.*.members[]` row; see `PlanSelectCombinedMember` and ../AGENT.md#materialized-affordance-rows-synthetic-stablekey */
 function validatePlanSelectWinningCandidateMemberRow(
     row: unknown,
     reasonPath: string
@@ -139,6 +172,11 @@ function validatePlanSelectWinningCandidateMemberRow(
     }
     if (typeof row.stableKey !== 'string') {
         return { ok: false, reason: `${reasonPath}.stableKey must be a string` }
+    }
+    const stableKey = row.stableKey.trim()
+    const materializedKeyError = materializedAffordanceStableKeyValidationFailureReason(stableKey)
+    if (materializedKeyError !== null) {
+        return { ok: false, reason: `${reasonPath}.stableKey ${materializedKeyError}` }
     }
     if (typeof row.shortName !== 'string') {
         return { ok: false, reason: `${reasonPath}.shortName must be a string` }
@@ -188,7 +226,7 @@ function validatePlanSelectWinningCandidateMemberRow(
     return {
         ok: true,
         member: {
-            stableKey: row.stableKey,
+            stableKey,
             shortName: row.shortName,
             room: row.room,
             tropeFunction: row.tropeFunction,

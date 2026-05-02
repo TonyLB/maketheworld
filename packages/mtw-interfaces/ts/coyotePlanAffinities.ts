@@ -308,6 +308,50 @@ export function normalizeStableKeyCharset(raw: string): string {
     return withHyphens.replace(/-+/g, '-').replace(/^-|-$/g, '')
 }
 
+/**
+ * Prefix for plan-select **materialized affordance** `stableKey` values (handoff-only; not a staged room-object id).
+ * @see Coyote hypothesis pipeline **Materialized affordance rows**
+ */
+export const MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX = 'affordance:' as const
+
+/** Suffix after {@link MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX}: letters, digits, underscore, hyphen (e.g. coyote, boulder1). */
+const MATERIALIZED_AFFORDANCE_STABLE_KEY_SUFFIX_PATTERN = /^[A-Za-z0-9_-]+$/
+
+/**
+ * True when `raw` (after trim) uses the materialization prefix and the suffix matches the handoff contract.
+ * Staged keys without the prefix return false.
+ */
+export function isSyntaxMaterializedAffordanceStableKey(raw: string): boolean {
+    const trimmed = raw.trim()
+    if (!trimmed.startsWith(MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX)) {
+        return false
+    }
+    const suffix = trimmed.slice(MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX.length)
+    if (suffix.length === 0) {
+        return false
+    }
+    return MATERIALIZED_AFFORDANCE_STABLE_KEY_SUFFIX_PATTERN.test(suffix)
+}
+
+/** Normalized (`normalizeStableKeyCharset`) form of materialized affordance keys: `affordance-` + lowercase suffix. */
+export const NORMALIZED_MATERIALIZED_AFFORDANCE_PREFIX = 'affordance-'
+
+/**
+ * True when `norm` equals `normalizedPhasePlanStableKey` of some syntactically valid materialized affordance key.
+ * Used when consumers only see normalized stable keys (e.g. phase-plan output).
+ */
+export function isNormalizedMaterializedAffordanceStableKey(norm: string): boolean {
+    const n = norm.trim().toLowerCase()
+    if (!n.startsWith(NORMALIZED_MATERIALIZED_AFFORDANCE_PREFIX)) {
+        return false
+    }
+    const rest = n.slice(NORMALIZED_MATERIALIZED_AFFORDANCE_PREFIX.length)
+    if (rest.length === 0) {
+        return false
+    }
+    return /^[a-z0-9-]+$/.test(rest)
+}
+
 /** Fallback **`stableKey`** when the model omits or supplies an empty string (deterministic repair may still adjust). */
 export function defaultStableKeyProposal(name: string): string {
     const collapsed = normalizeStableKeyCharset(name)

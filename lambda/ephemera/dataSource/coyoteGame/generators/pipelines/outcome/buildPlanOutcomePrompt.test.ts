@@ -109,7 +109,7 @@ describe('buildPlanOutcomePrompt', () => {
         expect(prompt).toContain('Deconfliction: Use anvil only at terminal beat.')
         expect(prompt).toContain('Phase 1: Finishing Move — Drop anvil from committed lane.')
         expect(prompt).toContain('Achievement: Gravity votes coyote.')
-        expect(prompt).toContain('Staged props: anvil')
+        expect(prompt).toContain('Staged props and materialized affordances: anvil')
         expect(prompt).toContain('single Outcome: line')
     })
 

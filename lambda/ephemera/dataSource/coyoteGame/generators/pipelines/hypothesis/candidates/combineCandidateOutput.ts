@@ -37,6 +37,13 @@ export type CombineCandidateOutputReturn = {
     candidates: CombinedTropeCandidate[]
 }
 
+/**
+ * Member row shape for plan-select input JSON and winning-candidate handoff (`selectedCandidate`).
+ * Includes staged props and optional **materialized** affordance rows (synthetic `stableKey` under `affordance:`).
+ * Materialized keys must match `MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX` and `isSyntaxMaterializedAffordanceStableKey` in `packages/mtw-interfaces/ts/coyotePlanAffinities.ts` (same rules as `../planSelect/parsePlanSelectOutput.ts` member validation).
+ *
+ * @see ../AGENT.md#materialized-affordance-rows-synthetic-stablekey
+ */
 export type PlanSelectCombinedMember = {
     stableKey: string
     shortName: string

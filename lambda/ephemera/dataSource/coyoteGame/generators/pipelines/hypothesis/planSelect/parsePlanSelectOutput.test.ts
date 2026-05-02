@@ -567,6 +567,171 @@ describe('parsePlanSelectOutput', () => {
         }
     })
 
+    it('parses materialized affordance stableKeys on selectedCandidate members', () => {
+        const environmentAffordances = [{ object: 'long-fall' as const, roles: ['Finishing Move' as const] }]
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
+                    tropeAssignments: {
+                        'Finishing Move': {
+                            executionDetail: 'Coyote beat plus boulder payload.',
+                            members: [
+                                {
+                                    stableKey: 'affordance:coyote',
+                                    shortName: 'Coyote',
+                                    room: 'CLIFFBASE',
+                                    tropeFunction: 'character finishing beat',
+                                },
+                                {
+                                    stableKey: 'affordance:boulder1',
+                                    shortName: 'boulder',
+                                    room: 'CLIFFBASE',
+                                    tropeFunction: 'terminal impact',
+                                    environmentAffordances,
+                                },
+                            ],
+                        },
+                    },
+                    outliers: [],
+                },
+            }) +
+            '\n```'
+        const r = parsePlanSelectOutput(raw)
+        expect(r).toEqual({
+            ok: true,
+            handoff: {
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
+                    tropeAssignments: {
+                        'Finishing Move': {
+                            executionDetail: 'Coyote beat plus boulder payload.',
+                            members: [
+                                {
+                                    stableKey: 'affordance:coyote',
+                                    shortName: 'Coyote',
+                                    room: 'CLIFFBASE',
+                                    tropeFunction: 'character finishing beat',
+                                },
+                                {
+                                    stableKey: 'affordance:boulder1',
+                                    shortName: 'boulder',
+                                    room: 'CLIFFBASE',
+                                    tropeFunction: 'terminal impact',
+                                    environmentAffordances,
+                                },
+                            ],
+                        },
+                    },
+                    outliers: [],
+                },
+            },
+        })
+    })
+
+    it('narrows trimmed stableKey for materialized affordance members', () => {
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
+                    tropeAssignments: {
+                        'Finishing Move': {
+                            executionDetail: 'detail',
+                            members: [{
+                                stableKey: '  affordance:coyote  ',
+                                shortName: 'Coyote',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'finish',
+                            }],
+                        },
+                    },
+                    outliers: [],
+                },
+            }) +
+            '\n```'
+        const r = parsePlanSelectOutput(raw)
+        expect(r.ok).toBe(true)
+        if (r.ok && r.handoff.selectedCandidate) {
+            const members = r.handoff.selectedCandidate.tropeAssignments['Finishing Move']?.members
+            expect(members?.[0]?.stableKey).toBe('affordance:coyote')
+        }
+    })
+
+    it('returns row-scoped error when materialized stableKey has empty suffix', () => {
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
+                    tropeAssignments: {
+                        'Finishing Move': {
+                            executionDetail: 'detail',
+                            members: [{
+                                stableKey: 'affordance:',
+                                shortName: 'x',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'finish',
+                            }],
+                        },
+                    },
+                    outliers: [],
+                },
+            }) +
+            '\n```'
+        const r = parsePlanSelectOutput(raw)
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.reason).toContain('selectedCandidate.tropeAssignments.Finishing Move.members[0].stableKey')
+            expect(r.reason).toContain('non-empty suffix')
+        }
+    })
+
+    it('returns row-scoped error when materialized stableKey suffix has invalid characters', () => {
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'detail',
+                            members: [{
+                                stableKey: 'affordance:boulder 2',
+                                shortName: 'boulder',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'prep',
+                            }],
+                        },
+                    },
+                    outliers: [],
+                },
+            }) +
+            '\n```'
+        const r = parsePlanSelectOutput(raw)
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.reason).toContain('selectedCandidate.tropeAssignments.Contraption.members[0].stableKey')
+            expect(r.reason).toContain('suffix must contain only letters')
+        }
+    })
+
     it('rejects array-shaped selectedCandidate.tropeAssignments (hard cutover)', () => {
         const raw =
             `${requiredSections.join('\n')}\n\n\`\`\`json\n` +

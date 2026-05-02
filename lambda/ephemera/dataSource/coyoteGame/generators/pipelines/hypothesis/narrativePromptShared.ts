@@ -2,7 +2,7 @@ export const COMBINED_CLUSTERING_CONTRACT_LINES = [
     '## Combined clustering Markdown (how to read the dynamic tail)',
     '- After seam room labels you will see **## Combined trope candidates**, then one **### Candidate <id>** section per Stage One candidate.',
     '- Under each candidate you will see **executionSummary**, then one **#### <Trope>** section per assigned trope beat. Treat each trope section as candidate-local structure; do not merge trope sections across candidates.',
-    '- Inside each trope section, **executionDetail** captures Stage One\'s first-draft beat detail. Member bullets list staged objects (**stableKey**, **shortName**, **room**).',
+    '- Inside each trope section, **executionDetail** captures Stage One\'s first-draft beat detail. Member bullets list staged objects (**stableKey**, **shortName**, **room**). The later **## Plan selection grounding** block (not this section) may additionally list **synthetic** materialized affordance members (**`affordance:`** keys) from the winning handoff; those are not snapshot rows but are authoritative when present.',
     '- An indented line **tropeFunction:** is required for each **trope member** and describes that object\'s trope-local job inside this candidate. Use it as the canonical annotation for in-trope role/function intent.',
     '- Each candidate includes its own **#### Outliers** block (stableKey / shortName / room only). Outliers are candidate-local props not under any trope row; role language for them is not fixed in clustering --- do not move outlier props into trope sections unless the candidate already assigns them there.',
 ] as const

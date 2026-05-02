@@ -7,7 +7,10 @@ import {
     COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
     coyoteSeamRoomMappingLines,
 } from '../coyoteHypothesisPromptShared'
-import { PLAN_SELECT_OUTPUT_JSON_KEYS } from './parsePlanSelectOutput'
+import {
+    MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX,
+    PLAN_SELECT_OUTPUT_JSON_KEYS,
+} from './parsePlanSelectOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
 
 const PLAN_SELECT_TROPE_KEYS_LABEL = CANONICAL_TROPE_ORDER.map((t) => `**${t}**`).join(', ')
@@ -47,6 +50,17 @@ const PLAN_SELECT_COMBINED_JSON_SCHEMA_LINES = [
     '- **`executionSummary`** states how that candidate frames the overall maneuver; member **`tropeFunction`**',
     '  lines label each in-trope prop\'s intent. Use both when judging coherence and intent-fit; treat',
     '  outliers as membership evidence (which props are outside named trope beats in this candidate).',
+    '- **Handoff JSON (optional materialized affordances).** In `selectedCandidate.tropeAssignments`, you may',
+    `  append extra \`members\` rows whose \`stableKey\` begins with the literal prefix \`${MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX}\``,
+    '  followed by a non-empty suffix (add numeric suffixes such as `affordance:boulder1` when multiple same-kind rows appear).',
+    '  These rows are **not** staged room-object identities; they exist only inside the handoff. **`room`** on',
+    '  such a row should match the seam label of the member or outlier row whose affordance evidence you used.',
+    '  Supply **`shortName`** and **`tropeFunction`** as human-readable strings; optional **`environmentAffordances`** /',
+    '  **`affordancesProvided`** use the same shapes as staged-backed members when present.',
+    '- Only add materialized rows when they clarify the maneuver (for example an explicit **Finishing Move** member);',
+    '  do not contradict the winning candidate\'s **`environmentAffordances`**, **`affordancesProvided`**, or **`tropeFunction`** text.',
+    '- Choosing Coyote versus environment or provided finishing affordances must stay grounded in staged lists and the',
+    '  candidate\'s **`executionSummary`** and trope fields --- no separate schema fork for Coyote.',
 ] as const
 
 const PLAN_SELECTION_READING_RULES = [
@@ -62,6 +76,9 @@ const PLAN_SELECTION_READING_RULES = [
     '  replace it.',
     '- **Outliers** in the JSON are candidate-local: eligible props outside named trope rows for that',
     '  candidate only.',
+    '- Member rows whose **`stableKey`** uses the materialized affordance prefix (see JSON section above) are',
+    '  optional handoff-only annotations; read **`tropeFunction`** and **`shortName`** on those rows like other members',
+    '  when reasoning about coverage for the handoff you emit.',
 ] as const
 
 const PLAN_SELECTION_INTERNAL_PHASES_MULTI_CANDIDATE = [
@@ -88,10 +105,13 @@ const PLAN_SELECTION_INTERNAL_PHASES_MULTI_CANDIDATE = [
     '### Phase 4 - final handoff emission',
     '- Emit required markdown sections in order, then emit the final handoff `json` fence as the last fence in the response.',
     '- Ensure handoff JSON preserves required key types for `paragraphSummary` and `planIssues`.',
-    '- Include `selectedCandidate` in the final handoff JSON as a full copy of the winning candidate row',
-    '  (`candidateId`, `executionSummary`, `tropeAssignments`, `outliers`) from the input candidates JSON.',
-    '  **`tropeAssignments`** in `selectedCandidate` must remain a **non-array object keyed by trope**',
-    '  (matching the input shape); do **not** rewrite it as an array.',
+    '- Include `selectedCandidate` in the final handoff JSON anchored on the winning input candidate row',
+    '  (`candidateId`, `executionSummary`, `tropeAssignments`, `outliers`). Use the same **`candidateId`** and **`executionSummary`**',
+    '  as the winner. **`tropeAssignments`** must remain a **non-array object keyed by trope** (matching the input shape);',
+    '  do **not** rewrite it as an array. Preserve every staged-backed member and outlier row from the winning input;',
+    `  you **may** append extra \`members\` rows whose \`stableKey\` uses the materialized prefix \`${MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX}\``,
+    '  only as described in the trope candidates JSON section (optional). Any trope key you emit must include valid',
+    '  **`executionDetail`** and **`members`** arrays like the input tropes.',
 ] as const
 
 const PLAN_SELECTION_INTERNAL_PHASES_SINGLE_CANDIDATE = [
@@ -110,10 +130,13 @@ const PLAN_SELECTION_INTERNAL_PHASES_SINGLE_CANDIDATE = [
     '  `{ "winnerCandidateId": string, "paragraphSummaryDraft": string, "selectedCandidate": object }`.',
     '- Emit required markdown sections in order, then emit the final handoff `json` fence as the last fence in the response.',
     '- Ensure handoff JSON preserves required key types for `paragraphSummary` and `planIssues`.',
-    '- Include `selectedCandidate` in the final handoff JSON as a full copy of the winning candidate row',
-    '  (`candidateId`, `executionSummary`, `tropeAssignments`, `outliers`) from the input candidates JSON.',
-    '  **`tropeAssignments`** in `selectedCandidate` must remain a **non-array object keyed by trope**',
-    '  (matching the input shape); do **not** rewrite it as an array.',
+    '- Include `selectedCandidate` in the final handoff JSON anchored on the winning input candidate row',
+    '  (`candidateId`, `executionSummary`, `tropeAssignments`, `outliers`). Use the same **`candidateId`** and **`executionSummary`**',
+    '  as the winner. **`tropeAssignments`** must remain a **non-array object keyed by trope** (matching the input shape);',
+    '  do **not** rewrite it as an array. Preserve every staged-backed member and outlier row from the winning input;',
+    `  you **may** append extra \`members\` rows whose \`stableKey\` uses the materialized prefix \`${MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX}\``,
+    '  only as described in the trope candidates JSON section (optional). Any trope key you emit must include valid',
+    '  **`executionDetail`** and **`members`** arrays like the input tropes.',
 ] as const
 
 const PLAN_SELECTION_TWO_JSON_FENCES_SECTION = [
@@ -126,8 +149,9 @@ const PLAN_SELECTION_TWO_JSON_FENCES_SECTION = [
 ] as const
 
 const PLAN_SELECTION_TASK_COMMON_SECTION_AND_HANDOFF = [
-    '- Do **not** invent or rewrite candidate plans. Do not introduce props, rooms, trope beats,',
-    '  or causal steps that are absent from the selected candidate\'s JSON fields.',
+    '- Do **not** invent or rewrite candidate plans. Do not introduce **staged** props, rooms, trope beats,',
+    '  or causal steps that are absent from the selected candidate\'s JSON fields (materialized affordance rows',
+    '  are allowed only as specified in the trope candidates JSON section).',
     '- Then emit exactly these Markdown sections in order:',
     '  1. **`## Intent conflicts`** --- list only evidence that the candidate may misread player',
     '     intent. Eligible: unaccounted staged props, affordance contradictions, **mismatches',
@@ -152,10 +176,11 @@ const PLAN_SELECTION_TASK_COMMON_SECTION_AND_HANDOFF = [
     '  themselves.',
     '  Include **`',
     PLAN_SELECT_OUTPUT_JSON_KEYS.selectedCandidate,
-    '`** as a complete copy of the winning candidate row from input JSON',
-    '  (`candidateId`, `executionSummary`, `tropeAssignments`, `outliers`). **`tropeAssignments`**',
-    '  must be the same **non-array object keyed by trope** that appears in the input row; do **not**',
-    '  reshape it as an array.',
+    '`** derived from the winning input candidate (`candidateId`, `executionSummary`, `tropeAssignments`, `outliers`).',
+    '  Keep the same **`candidateId`**, **`executionSummary`**, and **trope-keyed object** shape as the winning row;',
+    '  preserve every staged-backed member and outlier row from input; you **may** append materialized-affordance',
+    `  \`members\` rows (\`stableKey\` prefix \`${MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX}\`) per the JSON section above.`,
+    '  **`tropeAssignments`** must remain a **non-array object keyed by trope**; do **not** reshape it as an array.',
     '  Treat this field as required output for this prompt run; do not omit it unless generating it is impossible.',
     '  Additional keys are allowed, but these two keys must be present and well-typed.',
     '- The **final** **` ```json ` ** block in your entire output must be this **handoff** fence ---',
@@ -183,7 +208,8 @@ const PLAN_SELECTION_INTRO_MULTI_CANDIDATE = [
     '- Compare **all listed candidates** under **coverage**, **completeness**, and **coherence** using',
     '  **`candidateId`**, **`executionSummary`**, member **`tropeFunction`**, **`executionDetail`**, **`stableKey`**,',
     '  **`shortName`**, **`room`**, optional **`environmentAffordances`** / **`affordancesProvided`**, and',
-    '  outlier membership as evidence.',
+    '  outlier membership as evidence. After you pick a winner, optional materialized finishing rows in the handoff',
+    '  still must trace to those same input fields.',
     '- In **`## Rubric comparison`**, write exactly one sentence per candidate in the same order as',
     '  input JSON. Every sentence must begin with **`candidateId`** (for example,',
     '  `candidate-2:`) and must stay grounded in that candidate\'s fields only.',
@@ -219,7 +245,8 @@ const PLAN_SELECTION_INTRO_SINGLE_CANDIDATE = [
     '- Ground yourself briefly on the setup (at most one sentence before required sections).',
     '- Surface unresolved intent and structural issues using **`candidateId`**, **`executionSummary`**,',
     '  member **`tropeFunction`**, **`executionDetail`**, **`stableKey`**, **`shortName`**, **`room`**, optional',
-    '  **`environmentAffordances`** / **`affordancesProvided`**, and outlier membership as evidence.',
+    '  **`environmentAffordances`** / **`affordancesProvided`**, and outlier membership as evidence. Optional',
+    '  materialized finishing rows in the handoff still must trace to those same input fields.',
     '- In **`## Rubric comparison`**, write exactly one short sentence prefixed with the sole',
     '  **`candidateId`** (for example, `candidate-1:`). Keep it non-comparative and grounded only in',
     '  that candidate\'s fields.',
@@ -246,7 +273,9 @@ export function buildPlanSelectPrompt(
         ...intro,
         '',
         '## Rubric dimensions',
-        '- **coverage** --- how much each staged prop / affordance can contribute to the plan.',
+        '- **coverage** --- how much each staged prop / affordance can contribute to the plan; optional',
+        '  materialized finishing rows you add to the handoff (per the JSON section) count as explicit affordance evidence',
+        '  when they trace to input **`environmentAffordances`**, **`affordancesProvided`**, or trope text.',
         '- **completeness** --- how much everything **needed** by the plan is already present or',
         '  constructable from staged props and topology (including synthesis implied by the plan).',
         '- **coherence** --- how well implied actions reinforce each other toward one maneuver.',
