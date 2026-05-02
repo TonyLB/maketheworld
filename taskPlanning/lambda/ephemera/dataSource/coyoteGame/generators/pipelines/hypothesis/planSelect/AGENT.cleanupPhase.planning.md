@@ -1,6 +1,6 @@
 # Plan-select: cleanup-first internal phase (planning)
 
-**Status:** In progress. Next step is to draft **prompt copy** implementing all recorded Q3 rules (Q3a + Q3b intent-signal codes) and Phase 1 / Phase 2 structure in [`buildPlanSelectPrompt.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/buildPlanSelectPrompt.ts). Promotion policy for **`OUTLIER_PROP_UNACCOUNTED`**, **`TROPE_FUNCTION_MISMATCH`**, and **`STRUCTURAL_CONTRADICTION`** is recorded under **Open questions** below.
+**Status:** In progress. [`buildPlanSelectPrompt.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/buildPlanSelectPrompt.ts) implements internal **Phases 1-4** for both paths (**cleanup** then **rubric judgment**, then **winner merge**, then **handoff**), including Q3a/Q3b promotion prose and the internal-vs-wire distinction. Remaining optional items: harness/corpus pass; contributor pointer in [`hypothesis/AGENT.md`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md) if warranted; then archive or delete this file per [`taskPlanning/AGENT.md`](../../../../../../../../../taskPlanning/AGENT.md). Historical promotion policy detail stays under **Open questions** below where noted.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../../../../../../taskPlanning/AGENT.md).
 
@@ -38,7 +38,7 @@ This file is task-scoped. Archive or remove it when the prompt revision is shipp
 - Phase 1 instructions require emitting a **materialized candidate set**: same top-level shape as input `candidates[]` rows, with promotion of affordance-backed members into trope slots; Phase 2 rubric judgment explicitly scores **this** set (not the raw input block alone).
 - The **chosen Finishing Move** (after cleanup) is **load-bearing** for Phase 2: **coverage**, **completeness**, and **coherence** are read as how well the rest of the candidate **supports that finishing move**. Rubric prose **names the finishing move explicitly** as the starting point for each candidate (see Q3a).
 - Phase 2 still yields exactly one rubric sentence per candidate and stays grounded in staged evidence plus promotion rules.
-- Single-candidate path matches (cleanup produces one materialized candidate before downstream phases).
+- Single-candidate path matches multi-candidate structure: one input candidate still runs **Phase 1** cleanup then **Phase 2** judgment (singleton materialized set), not a special merged schema.
 - Regression tests for [`buildPlanSelectPrompt.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/buildPlanSelectPrompt.test.ts) updated; optional harness spot-check if fixtures assert prompt substrings.
 
 ## Open questions (narrow these before locking copy)
@@ -111,7 +111,7 @@ Work through the list in **Recommended order**; capture decisions inline or in P
    - **Wire handoff unchanged:** Application parsers still receive materialized `affordance:*` **member** rows **only** on **`selectedCandidate`** in the trailing fence, per current contracts. Non-winners do not need synthetic rows in wire output.
    - **Prompt obligation:** Instructions must make the model keep the distinction clear in its own reasoning --- internal materialization for rubric comparison vs **final** handoff keys --- without implying that internal structures are emitted as a separate artifact beyond this hop's trailing fence.
 
-5. **Single-candidate path.** **Resolved:** Use **one** internal artifact --- merge **cleanup** (materialized candidate, FM guarantee, Q3b promotion passes) with **intent conflicts / residual issues** into a **single object** with **ordered sections**, instead of mirroring multi-candidate's separate Phase 1 vs Phase 2 internal phases as sequential schemas. Prompt prose must define section order so reasoning stays deterministic without splitting into two top-level internal phases.
+5. **Single-candidate path.** **Resolved (correction):** **Single candidate** means the model receives **one** candidate in `candidates[]` to evaluate --- **not** the wire **`selectedCandidate`** (winner handoff). That branch should use the **same** internal structure as multi-candidate: **Phase 1** cleanup (materialized candidate set; here a **singleton**) then **Phase 2** rubric judgment on that materialized form, per `PLAN_SELECTION_INTERNAL_PHASES_*`. Do **not** merge cleanup with intent-conflict / residual-issue reasoning into one combined internal object to avoid "two phases"; keep Phase 1 vs Phase 2 as separate sequential internal phases, analogous to the multi-candidate prompt.
 
 6. **Length / verbosity guardrails.** **Resolved.**
 
@@ -140,11 +140,11 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 - [X] **Q3b - `STRUCTURAL_CONTRADICTION`:** Plurality-without-commitment / overbuilding only; per-trope **`executionDetail`** framings; optimism signal; Phase 2 must not re-penalize resolved plurality; all other structural contradictions pass through (**Open question** 3).
 - [X] Draft **multi-candidate** Phase 1 + Phase 2 prompt updates in [`buildPlanSelectPrompt.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/buildPlanSelectPrompt.ts): materialized candidate set, internal cleanup phases per Q3a/Q3b, rubric alignment (FM anchor; plurality reframe strengthens coherence; no double penalty); embed **Q4** resolved rules (internals stay in prompt; wire `selectedCandidate` only); embed **Q6** broad internal caps; **implement Q6 token bump** (plan-select **4096** + test) in [`invokeBedrockHypothesis.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/invokeBedrockHypothesis.ts) (**Open questions** 3, 4, and 6).
 - [X] **Q4 - Materialized rows / handoff:** Phase 1 internals not surfaced outside single plan-select invocation; wire unchanged (`affordance:*` on **`selectedCandidate`** only); prompt makes internal vs handoff distinction explicit (**Open question** 4).
-- [X] **Q5 - Single-candidate path:** One merged internal object --- cleanup plus intent / residual issue audit with **ordered sections** (**Open question** 5).
-- [ ] Draft **single-candidate** Phase 1 prompt updates implementing Q5 (in tandem with multi-candidate draft) (**Open question** 5).
+- [X] **Q5 - Single-candidate path:** Align with multi-candidate **Phase 1** then **Phase 2** (singleton materialized set); not a merged cleanup-plus-issues schema (**Open question** 5).
+- [X] Draft **single-candidate** Phase 1 + Phase 2 prompt updates aligned with multi-candidate structure (**Open question** 5).
 - [X] **Q6 - Length / verbosity:** Broad prompt caps (multi-candidate Phase 1); plan-select max output **4096** in [`invokeBedrockHypothesis.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/invokeBedrockHypothesis.ts) + [`invokeBedrockHypothesis.test.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/invokeBedrockHypothesis.test.ts); tune with **`usage`** if needed (**Open question** 6).
-- [ ] Renumber or adjust Phase 3-4 prose if internal phases shifted (keep "only downstream-consumed artifact is the final trailing handoff `json` fence" invariant).
-- [ ] Update [`buildPlanSelectPrompt.test.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/buildPlanSelectPrompt.test.ts) expectations for new subsection titles / keywords.
+- [X] Renumber or adjust Phase 3-4 prose if internal phases shifted (keep "only downstream-consumed artifact is the final trailing handoff `json` fence" invariant). **Satisfied without extra edits:** single-candidate was aligned to the same Phase 3-4 headings and handoff copy as multi; both `PLAN_SELECTION_INTERNAL_PHASES_*` blocks keep the trailing-fence-only invariant.
+- [X] Update [`buildPlanSelectPrompt.test.ts`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/buildPlanSelectPrompt.test.ts) expectations for new subsection titles / keywords.
 - [X] **Q7 - Evaluation:** Subjective eval only for this slice; no transcript keyword accretion; rigorous measurement = future deliberate sweep (**Open question** 7).
 - [ ] Optional: informal harness or corpus pass when tuning (subjective, not a gate).
 - [ ] If any behavior is canonical for contributors long-term, add a short pointer in [`hypothesis/AGENT.md`](../../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md) and trim duplication from this file.
@@ -177,8 +177,9 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/pipelines/hypo
 | Q3b partial TROPE locked | String-alignment attempt; pass-through; defer depth to winner handoff |
 | Q3b STRUCTURAL locked | Plurality overbuilding only; optimism; Phase 2 coherence consequence; pass-through rest |
 | Q4 handoff boundary locked | Internals prompt-only; no pipeline artifact; wire selectedCandidate-only for synthetic rows |
-| Q5 single-candidate locked | One internal object; merged cleanup + issues; ordered sections |
+| Q5 single-candidate locked | Same Phase 1 / Phase 2 split as multi-candidate; one-row input = singleton materialized set |
 | Q6 verbosity locked | Broad prompt caps; **4096 plan-select** + default-maxTokens test shipped |
 | Q7 eval approach locked | Subjective; no accreted transcript tests; rigor = later sweep |
-| Q3 prompt copy + Phase 1/2 drafted | **Multi-candidate** cleanup + rubric prose in `buildPlanSelectPrompt`; single-candidate draft still pending (line 144) |
+| Q3 prompt copy + Phase 1/2 drafted | Multi-candidate + **single-candidate** cleanup + rubric prose in `buildPlanSelectPrompt` (four internal phases; singleton `materializedCandidates`) |
+| Phase 3-4 internal prose | Multi/single share winner-merge + handoff sections; no renumber pass needed; downstream artifact remains sole trailing `json` fence |
 | Multi slice verification | `planSelect/` + `invokeBedrockHypothesis.test.ts` green |
