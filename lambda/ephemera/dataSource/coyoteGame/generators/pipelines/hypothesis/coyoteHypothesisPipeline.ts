@@ -9,7 +9,10 @@ import {
     type PipelineStep,
 } from '../../../../../llm/pipeline';
 
-import { buildNarrativeBeatPrompt } from './narrativeBeats/buildNarrativeBeatPrompt';
+import {
+    buildNarrativeBeatPrompt,
+    type PlanSelectOutputWithWinner,
+} from './narrativeBeats/buildNarrativeBeatPrompt';
 import { buildPlanSelectPrompt } from './planSelect/buildPlanSelectPrompt';
 import { buildCandidatePrompt } from './candidates/buildCandidatePrompt';
 import {
@@ -105,7 +108,7 @@ export type GenerateHypothesisPipelineResult =
 
 export type CoyoteHypothesisPipelineState = {
     roomObjectsByRoom?: CoyoteRoomObjectsByRoom;
-    /** Combined trope candidates after {@link combineCandidateOutput} (source of truth for plan-select JSON and phase-plan Markdown). */
+    /** Combined trope candidates after {@link combineCandidateOutput} (plan-select JSON input; outlier rehydration for {@link parsePlanSelectionHandoff}). */
     combined?: CombineCandidateOutputReturn;
     stageOneResult?: InvokeBedrockHypothesisResult;
     planSelectionResult?: InvokeBedrockHypothesisResult | null;
@@ -164,9 +167,14 @@ function assertRunOnlyInjectPhasePlan(
 ): CoyoteHarnessPhasePlanInject {
     const base = assertRunOnlyInjectPlanSelect(inject);
     const planSelectOutput = inject?.planSelectOutput;
-        if (!planSelectOutput) {
+    if (!planSelectOutput) {
         throw new Error(
             'CoyoteHypothesisPipeline: runOnly phasePlan requires injectState with planSelectOutput, roomObjectsByRoom, and combined'
+        );
+    }
+    if (!planSelectOutput.selectedCandidate) {
+        throw new Error(
+            'CoyoteHypothesisPipeline: runOnly phasePlan requires planSelectOutput.selectedCandidate'
         );
     }
     return { ...base, planSelectOutput };
@@ -315,21 +323,25 @@ function buildCoyoteHypothesisSteps(
                     }
                 }
                 draft.planSelectOutput = planSelectOutput;
+                if (!planSelectOutput.selectedCandidate) {
+                    hypothesisDebugLog('aborting hypothesis pipeline', {
+                        reason: 'planSelectionMissingSelectedCandidate',
+                    });
+                    abort();
+                }
             },
         }),
         ctx.defineLlmStep({
             name: 'hypothesisNarrativeBeatLlm',
             run: async (draft) => {
                 const roomObjectsByRoom = draft.roomObjectsByRoom;
-                const combined = draft.combined;
                 const handoff = draft.planSelectOutput;
-                if (!roomObjectsByRoom || combined === undefined || !handoff) {
+                if (!roomObjectsByRoom || !handoff?.selectedCandidate) {
                     throw new Error('CoyoteHypothesisPipeline: hypothesisNarrativeBeatLlm preconditions');
                 }
                 const parts = buildNarrativeBeatPrompt({
                     roomObjectsByRoom,
-                    combined,
-                    planSelectOutput: handoff,
+                    planSelectOutput: handoff as PlanSelectOutputWithWinner,
                 });
                 const narrativeBeatResult = await invokeBedrockHypothesisNarrativeBeat(parts);
                 draft.narrativeBeatResult = narrativeBeatResult;

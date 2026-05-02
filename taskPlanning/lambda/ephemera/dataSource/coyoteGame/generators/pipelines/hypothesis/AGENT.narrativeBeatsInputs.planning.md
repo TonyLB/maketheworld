@@ -93,7 +93,7 @@ Design choices for **this** refactor; implementation should match these and [`hy
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]` as each sub-step lands.
 
-- [ ] Implement **`selectedCandidate`** gate + **`planSelectOutput`** / **`roomObjectsByRoom`**-only **`buildNarrativeBeatPrompt`** API (**decision 4**) + **single committed-plan** Markdown (**decision 2**); update [`coyoteHypothesisPipeline.ts`](../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts) call site (stop passing **`combined`**).
+- [X] Implement **`selectedCandidate`** gate + **`planSelectOutput`** / **`roomObjectsByRoom`**-only **`buildNarrativeBeatPrompt`** API (**decision 4**) + **single committed-plan** Markdown (**decision 2**); update [`coyoteHypothesisPipeline.ts`](../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts) call site (stop passing **`combined`**).
 - [ ] Inline committed-plan reading contract in [`buildNarrativeBeatPrompt.ts`](../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/narrativeBeats/buildNarrativeBeatPrompt.ts); remove **`COMBINED_CLUSTERING_CONTRACT_LINES`** import; sweep **`## Combined clustering`** references in [`narrativePromptShared.ts`](../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/narrativePromptShared.ts) + **`buildNarrativeBeatPrompt`** per decision **3**.
 - [ ] Adjust [`buildNarrativeBeatPrompt.test.ts`](../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/narrativeBeats/buildNarrativeBeatPrompt.test.ts) and any combine tests that assert narrative-beat Markdown shape.
 - [ ] Rename **`CoyoteHarnessPhasePlanInject`** to **`CoyoteHarnessNarrativeBeatsInject`**, strip **`combined`** from inject, wire **`runOnly`** **`phasePlan`** + fixtures (**decision 5**).
@@ -123,6 +123,6 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/pipelines/hypo
 | --- | --- |
 | Task plan created | Winner-only direction; decisions/unknowns listed; scope vs FM/prep follow-on |
 | Decisions resolved | **1**--**7** locked (FM/prep follow-on = separate plan later) |
-| Implementation | Prompt + pipeline + tests |
+| Implementation | Prompt + pipeline + tests; **line 96 slice:** `parsePlanSelectionHandoff` gate, **`## Committed plan`**, seam-only suffix, tests + [`hypothesis/AGENT.md`](../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md) updates |
 | Durable docs updated | [`hypothesis/AGENT.md`](../../../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md) or equivalent |
 | Plan archived | Per [`taskPlanning/AGENT.md`](../../../../../../../../taskPlanning/AGENT.md) |

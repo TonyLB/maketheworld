@@ -156,11 +156,11 @@ Parser safety posture:
 - Keep extra keys tolerant in v1 as long as required keys remain present and valid.
 - Unknown top-level keys on the parsed JSON object may be tolerated at parse time; downstream consumption uses a **narrowed** authoritative handoff object produced by [`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts) (non-authoritative keys are dropped deterministically).
 
-### Optional `selectedCandidate` (structured winner)
+### `selectedCandidate` (structured winner)
 
-- Hop-1 JSON may include optional `selectedCandidate`: the structured winning candidate, shaped like plan-select input candidates (mirror input shape in v1; sequencing hints are omitted in v1).
+- Hop-1 JSON may include optional `selectedCandidate` at parse time: the structured winning candidate, shaped like plan-select input candidates (mirror input shape in v1; sequencing hints are omitted in v1).
 - `selectedCandidate.tropeAssignments` is a **non-array object keyed by trope** (`Contraption`, `Bait`, `Misdirection`, `Disadvantage`, `Finishing Move`); each value carries `executionDetail` and `members`. Array-shaped `tropeAssignments` is rejected at parse time.
-- Legacy-only handoff (`paragraphSummary` plus `planIssues` without `selectedCandidate`) remains valid during rollout.
+- **Pipeline:** [`hypothesis/coyoteHypothesisPipeline.ts`](coyoteHypothesisPipeline.ts) **requires** `selectedCandidate` after plan-select parse before invoking the narrative beat hop. If the parsed handoff lacks it, the run **aborts** to stub (same family as other hypothesis aborts); legacy-only JSON without `selectedCandidate` does **not** reach [`narrativeBeats/buildNarrativeBeatPrompt.ts`](narrativeBeats/buildNarrativeBeatPrompt.ts).
 
 ### Plan-selection hop (single invocation)
 
@@ -169,8 +169,7 @@ Parser safety posture:
 
 ### Phase-plan consumption
 
-- [`narrativeBeats/buildNarrativeBeatPrompt.ts`](narrativeBeats/buildNarrativeBeatPrompt.ts) should **prioritize** `selectedCandidate` for grounding when present.
-- When `selectedCandidate` is absent, phase-plan falls back to `paragraphSummary` and `planIssues` (best-effort bridge for legacy outputs and fixtures).
+- [`narrativeBeats/buildNarrativeBeatPrompt.ts`](narrativeBeats/buildNarrativeBeatPrompt.ts) accepts **`planSelectOutput`** with mandatory **`selectedCandidate`** plus **`roomObjectsByRoom`** only; dynamic Markdown uses a single **`## Committed plan`** block (summary, residual issues, structured winner).
 
 ### Residual `planIssues`
 

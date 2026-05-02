@@ -2,27 +2,28 @@ import { buildNarrativeBeatPrompt } from './buildNarrativeBeatPrompt'
 import { harnessRoomObjects } from '../../../testHarness/coyoteEngineTestFixtures'
 
 describe('buildNarrativeBeatPrompt', () => {
-    it('embeds planSelect output and combined clustering Markdown from combined payload', () => {
+    it('embeds committed plan and seam mapping Markdown', () => {
         const parts = buildNarrativeBeatPrompt({
             roomObjectsByRoom: { 'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']) },
-            combined: {
-                candidates: [
-                    {
-                        candidateId: 'candidate-1',
-                        executionSummary: 'Summary.',
-                        tropeAssignments: {
-                            Contraption: {
-                                executionDetail: 'Detail.',
-                                members: [{ identifier: 'anvil-0', tropeFunction: 'job' }],
-                            },
-                        },
-                        outliers: [],
-                    },
-                ],
-            },
             planSelectOutput: {
                 paragraphSummary: 'Summary line.',
                 planIssues: [{ code: 'ROLE_CONFLICT', summary: 'gap a' }],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary.',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'Detail.',
+                            members: [{
+                                stableKey: 'anvil-0',
+                                shortName: 'anvil',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'job',
+                            }],
+                        },
+                    },
+                    outliers: [],
+                },
             },
         })
         const full = parts.invariantPrefix + parts.dynamicSuffix
@@ -33,10 +34,10 @@ describe('buildNarrativeBeatPrompt', () => {
         expect(full).toContain('Intent-signal issue codes')
         expect(full).toContain('Underspecification codes')
         expect(full).toContain('```json')
-        expect(full).toContain('## Combined clustering')
-        expect(full).toContain('Candidate candidate-1')
-        expect(full).toContain('Selected candidate')
-        expect(full).toContain('not provided; use chosen plan summary and plan issues as fallback grounding')
+        expect(full).toContain('## Committed plan')
+        expect(parts.dynamicSuffix).not.toContain('## Combined clustering')
+        expect(parts.dynamicSuffix).not.toContain('### Candidate')
+        expect(full).toContain('candidateId: candidate-1')
     })
 
     it('keeps phase-plan prompt content unchanged when staged trope environmentAffordances are present', () => {
@@ -54,46 +55,35 @@ describe('buildNarrativeBeatPrompt', () => {
                     }],
                 }],
             },
-            combined: {
-                candidates: [{
+            planSelectOutput: {
+                paragraphSummary: 'Summary line.',
+                planIssues: [{ code: 'ROLE_CONFLICT', summary: 'gap a' }],
+                selectedCandidate: {
                     candidateId: 'candidate-1',
                     executionSummary: 'Summary.',
                     tropeAssignments: {
                         Contraption: {
                             executionDetail: 'Detail.',
-                            members: [{ identifier: 'anvil', tropeFunction: 'job' }],
+                            members: [{
+                                stableKey: 'anvil',
+                                shortName: 'anvil',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'job',
+                            }],
                         },
                     },
                     outliers: [],
-                }],
-            },
-            planSelectOutput: {
-                paragraphSummary: 'Summary line.',
-                planIssues: [{ code: 'ROLE_CONFLICT', summary: 'gap a' }],
+                },
             },
         })
         const full = parts.invariantPrefix + parts.dynamicSuffix
-        expect(full).toContain('Candidate candidate-1')
-        expect(full).toContain('stableKey:** anvil')
+        expect(full).toContain('member: anvil | anvil | CLIFFBASE | job')
         expect(full).not.toContain('drop-ready')
     })
 
     it('renders structured selectedCandidate grounding when present', () => {
         const parts = buildNarrativeBeatPrompt({
             roomObjectsByRoom: { 'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil', 'rope']) },
-            combined: {
-                candidates: [{
-                    candidateId: 'candidate-1',
-                    executionSummary: 'Summary.',
-                    tropeAssignments: {
-                        Contraption: {
-                            executionDetail: 'Detail.',
-                            members: [{ identifier: 'anvil-0', tropeFunction: 'job' }],
-                        },
-                    },
-                    outliers: [],
-                }],
-            },
             planSelectOutput: {
                 paragraphSummary: 'Summary line.',
                 planIssues: [{ code: 'ROLE_CONFLICT', summary: 'gap a' }],
@@ -120,7 +110,7 @@ describe('buildNarrativeBeatPrompt', () => {
             },
         })
         const full = parts.invariantPrefix + parts.dynamicSuffix
-        expect(full).toContain('Selected candidate (authoritative winner payload when present)')
+        expect(full).toContain('**Selected candidate (authoritative winner payload):**')
         expect(full).toContain('candidateId: candidate-2')
         expect(full).toContain('executionSummary: Use anvil as staged payload and rope as fallback.')
         expect(full).toContain('trope: Contraption')
