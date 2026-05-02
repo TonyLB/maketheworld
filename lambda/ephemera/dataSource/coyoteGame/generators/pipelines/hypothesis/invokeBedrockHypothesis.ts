@@ -32,9 +32,10 @@ export const BEDROCK_HYPOTHESIS_DEFAULT_MAX_TOKENS = 2048
 
 /**
  * Plan-selection hop (rubric + fenced JSON handoff).
+ * Raised above [`BEDROCK_HYPOTHESIS_DEFAULT_MAX_TOKENS`] for internal materialized candidates, rubric prose, and large `selectedCandidate` JSON on heavy plans.
  * Compare **`usagePlanSelection`** vs **`usageNarrativeBeat`** from [`runCoyoteEngineTestHarness`](./runCoyoteEngineTestHarness.ts) when tuning output caps.
  */
-export const BEDROCK_HYPOTHESIS_PLAN_SELECTION_MAX_TOKENS = BEDROCK_HYPOTHESIS_DEFAULT_MAX_TOKENS
+export const BEDROCK_HYPOTHESIS_PLAN_SELECTION_MAX_TOKENS = 4096
 
 /**
  * Narrative beat hop (phase-plan JSON + "## Scene analysis" + fenced Hypothesis line).

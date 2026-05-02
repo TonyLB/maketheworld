@@ -3,8 +3,10 @@ import { CachePointType, ConverseCommand } from '@aws-sdk/client-bedrock-runtime
 import {
     BEDROCK_HYPOTHESIS_NARRATIVE_BEAT_MAX_TOKENS,
     BEDROCK_HYPOTHESIS_CANDIDATES_MAX_TOKENS,
+    BEDROCK_HYPOTHESIS_PLAN_SELECTION_MAX_TOKENS,
     invokeBedrockHypothesis,
     invokeBedrockHypothesisNarrativeBeat,
+    invokeBedrockHypothesisPlanSelection,
     invokeBedrockHypothesisStageOne,
 } from './invokeBedrockHypothesis'
 
@@ -86,6 +88,23 @@ describe('invokeBedrockHypothesisStageOne / narrative beat', () => {
 
         const command = send.mock.calls[0][0] as InstanceType<typeof ConverseCommand>
         expect(command.input.inferenceConfig?.maxTokens).toBe(BEDROCK_HYPOTHESIS_CANDIDATES_MAX_TOKENS)
+        expect(command.input.additionalModelRequestFields).toBeUndefined()
+    })
+
+    it('invokeBedrockHypothesisPlanSelection passes plan-selection max tokens by default', async () => {
+        const send = jest.fn().mockResolvedValue({
+            output: { message: { content: [{ text: '{"paragraphSummary":"x"}' }] } },
+            usage: {},
+        })
+        const client = { send } as unknown as BedrockRuntimeClient
+
+        await invokeBedrockHypothesisPlanSelection(
+            { invariantPrefix: 'A', dynamicSuffix: '\nB' },
+            { client, timeoutMs: 5000 }
+        )
+
+        const command = send.mock.calls[0][0] as InstanceType<typeof ConverseCommand>
+        expect(command.input.inferenceConfig?.maxTokens).toBe(BEDROCK_HYPOTHESIS_PLAN_SELECTION_MAX_TOKENS)
         expect(command.input.additionalModelRequestFields).toBeUndefined()
     })
 
