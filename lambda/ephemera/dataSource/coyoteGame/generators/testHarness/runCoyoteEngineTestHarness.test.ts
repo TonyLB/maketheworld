@@ -528,10 +528,25 @@ describe('runCoyoteEngineTestHarness', () => {
                         'ROOM#CORNER': [],
                         'ROOM#BRIDGE': [],
                     },
-                    combined: {} as any,
                     planSelectOutput: {
                         paragraphSummary: 'Pick candidate-1 and keep timing coherent.',
                         planIssues: [{ code: 'ROLE_CONFLICT', summary: 'needs lane ownership' }],
+                        selectedCandidate: {
+                            candidateId: 'candidate-1',
+                            executionSummary: 'Anvil drop lane.',
+                            tropeAssignments: {
+                                Contraption: {
+                                    executionDetail: 'Stage anvil.',
+                                    members: [{
+                                        stableKey: 'anvil-0',
+                                        shortName: 'anvil',
+                                        room: 'CLIFFBASE',
+                                        tropeFunction: 'payload',
+                                    }],
+                                },
+                            },
+                            outliers: [],
+                        },
                     },
                 },
             },

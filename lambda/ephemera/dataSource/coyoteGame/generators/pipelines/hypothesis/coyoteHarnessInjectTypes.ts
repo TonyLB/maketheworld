@@ -1,5 +1,5 @@
 import type { CombineCandidateOutputReturn } from './candidates/combineCandidateOutput';
-import type { PlanSelectOutput } from './planSelect/parsePlanSelectOutput';
+import type { PlanSelectOutputWithWinner } from './narrativeBeats/buildNarrativeBeatPrompt';
 import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot';
 
 /**
@@ -13,7 +13,9 @@ export type CoyoteHarnessPlanSelectInject = {
 
 /**
  * Minimum state to run **`hypothesisNarrativeBeatLlm`** in **`runOnly`** mode.
+ * **`combined`** is omitted; plan-select outlier rehydration is not used in this harness path.
  */
-export type CoyoteHarnessPhasePlanInject = CoyoteHarnessPlanSelectInject & {
-    planSelectOutput: PlanSelectOutput;
+export type CoyoteHarnessNarrativeBeatsInject = {
+    roomObjectsByRoom: CoyoteRoomObjectsByRoom;
+    planSelectOutput: PlanSelectOutputWithWinner;
 };

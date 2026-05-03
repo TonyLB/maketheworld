@@ -220,7 +220,6 @@ describe('validateCoyoteHypothesisHarnessOptions', () => {
                 harnessRunKind: 'runOnly',
                 injectState: {
                     roomObjectsByRoom: fixture01!.roomObjectsByRoom as CoyoteRoomObjectsByRoom,
-                    combined: fixture01!.planSelectInject!.combined,
                     planSelectOutput: {
                         paragraphSummary: 'x',
                         planIssues: [],
@@ -387,7 +386,6 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
                 harnessRunKind: 'runOnly',
                 injectState: {
                     roomObjectsByRoom: inject.roomObjectsByRoom,
-                    combined: inject.combined,
                     planSelectOutput: inject.planSelectOutput,
                 },
             }

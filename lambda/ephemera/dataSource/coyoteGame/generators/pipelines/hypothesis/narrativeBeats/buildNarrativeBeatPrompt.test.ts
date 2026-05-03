@@ -42,7 +42,7 @@ describe('buildNarrativeBeatPrompt', () => {
         expect(full).toContain('candidateId: candidate-1')
     })
 
-    it('keeps phase-plan prompt content unchanged when staged trope environmentAffordances are present', () => {
+    it('does not invent drop-ready wording when staged trope environmentAffordances are present', () => {
         const parts = buildNarrativeBeatPrompt({
             roomObjectsByRoom: {
                 'ROOM#VORTEX': [{

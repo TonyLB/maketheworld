@@ -104,8 +104,7 @@ describe('resolveCoyoteHarnessStartAtInject', () => {
             phase: 'planSelect',
         })
         expect(r.ok).toBe(true)
-        if (r.ok) {
-            expect(r.phase).toBe('planSelect')
+        if (r.ok && r.phase === 'planSelect') {
             expect(r.inject.combined.candidates.length).toBeGreaterThan(0)
         }
     })
@@ -116,8 +115,7 @@ describe('resolveCoyoteHarnessStartAtInject', () => {
             phase: 'planSelect',
         })
         expect(r.ok).toBe(true)
-        if (r.ok) {
-            expect(r.phase).toBe('planSelect')
+        if (r.ok && r.phase === 'planSelect') {
             expect(r.inject.combined.candidates.length).toBeGreaterThan(0)
         }
     })

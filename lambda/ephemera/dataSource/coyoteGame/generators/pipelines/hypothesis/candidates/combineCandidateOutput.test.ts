@@ -37,6 +37,7 @@ describe('combineCandidateOutput', () => {
                 'connective rigging between setup pieces'
             )
             expect(r.combined.candidates[0].outliers).toHaveLength(0)
+            // Pool Markdown helper; narrative beat uses ## Committed plan, not this renderer.
             const md = renderCombinedCandidateOutputForNarrativeBeat(r.combined, roomMap)
             expect(md).toContain('Candidate candidate-1')
             expect(md).toContain('**tropeFunction:** connective rigging between setup pieces')
@@ -64,6 +65,7 @@ describe('combineCandidateOutput', () => {
         if (r.ok) {
             expect(r.combined.candidates[0].outliers).toHaveLength(1)
             expect(r.combined.candidates[0].outliers[0].identifier).toBe('glue-1')
+            // Pool Markdown helper; narrative beat uses ## Committed plan, not this renderer.
             const md = renderCombinedCandidateOutputForNarrativeBeat(r.combined, roomMap)
             expect(md).toContain('#### Outliers')
             expect(md).toContain('glue-1')
@@ -103,6 +105,7 @@ describe('combineCandidateOutput', () => {
         if (r.ok) {
             expect(r.combined.candidates[0].outliers).toHaveLength(1)
             expect(r.combined.candidates[0].outliers[0].identifier).toBe('rope-0')
+            // Pool Markdown helper; narrative beat uses ## Committed plan, not this renderer.
             const md = renderCombinedCandidateOutputForNarrativeBeat(r.combined, roomMap)
             expect(md).toContain('**room:** CLIFFBASE')
             expect(md).toContain('rope-0')

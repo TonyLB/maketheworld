@@ -20,7 +20,7 @@ import {
     planSelectOutliersForCandidate,
     type CombineCandidateOutputReturn,
 } from './candidates/combineCandidateOutput';
-import type { CoyoteHarnessPhasePlanInject, CoyoteHarnessPlanSelectInject } from './coyoteHarnessInjectTypes';
+import type { CoyoteHarnessNarrativeBeatsInject, CoyoteHarnessPlanSelectInject } from './coyoteHarnessInjectTypes';
 import { parsePlanSelectOutput, type PlanSelectOutput } from './planSelect/parsePlanSelectOutput';
 import { buildNarrativeBeatValidationContext } from './narrativeBeats/narrativeBeatValidationContext';
 import { loadCoyoteRoomObjectsByRoom, type CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot';
@@ -164,12 +164,12 @@ function assertRunOnlyInjectPlanSelect(
 
 function assertRunOnlyInjectPhasePlan(
     inject: Partial<CoyoteHypothesisPipelineState> | undefined
-): CoyoteHarnessPhasePlanInject {
-    const base = assertRunOnlyInjectPlanSelect(inject);
+): CoyoteHarnessNarrativeBeatsInject {
+    const roomObjectsByRoom = inject?.roomObjectsByRoom;
     const planSelectOutput = inject?.planSelectOutput;
-    if (!planSelectOutput) {
+    if (!roomObjectsByRoom || !planSelectOutput) {
         throw new Error(
-            'CoyoteHypothesisPipeline: runOnly phasePlan requires injectState with planSelectOutput, roomObjectsByRoom, and combined'
+            'CoyoteHypothesisPipeline: runOnly phasePlan requires injectState with roomObjectsByRoom and planSelectOutput'
         );
     }
     if (!planSelectOutput.selectedCandidate) {
@@ -177,7 +177,7 @@ function assertRunOnlyInjectPhasePlan(
             'CoyoteHypothesisPipeline: runOnly phasePlan requires planSelectOutput.selectedCandidate'
         );
     }
-    return { ...base, planSelectOutput };
+    return { roomObjectsByRoom, planSelectOutput: planSelectOutput as PlanSelectOutputWithWinner };
 }
 
 export function validateCoyoteHypothesisHarnessOptions(options: CoyoteHypothesisPipelineHarnessOptions): void {
@@ -536,7 +536,6 @@ function initialStateForRunOnly(
     const inject = assertRunOnlyInjectPhasePlan(injectState);
     return {
         roomObjectsByRoom: inject.roomObjectsByRoom,
-        combined: inject.combined,
         planSelectOutput: inject.planSelectOutput,
     };
 }

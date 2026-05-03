@@ -205,7 +205,11 @@ export function combineCandidateOutput(
     }
 }
 
-/** Deterministic Markdown for the narrative-beat prompt dynamic tail (combined-only contract). */
+/**
+ * Deterministic Markdown for the **multi-candidate pool** after combine (legacy **`## Combined clustering`**
+ * / **`### Candidate`** shape). The narrative beat hop no longer embeds this output; it uses **## Committed plan**
+ * from plan-select only. Kept for combine unit tests and any callers that need human-readable pool text.
+ */
 export function renderCombinedCandidateOutputForNarrativeBeat(
     combined: CombineCandidateOutputReturn,
     roomObjectsByRoom: CoyoteRoomObjectsByRoom

@@ -4,14 +4,15 @@ import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAf
 import { defaultStableKeyProposal } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { combineCandidateOutput } from '../pipelines/hypothesis/candidates/combineCandidateOutput'
 import type {
-    CoyoteHarnessPhasePlanInject,
+    CoyoteHarnessNarrativeBeatsInject,
     CoyoteHarnessPlanSelectInject,
 } from '../pipelines/hypothesis/coyoteHarnessInjectTypes'
+import type { PlanSelectOutputWithWinner } from '../pipelines/hypothesis/narrativeBeats/buildNarrativeBeatPrompt'
 import type { PlanSelectOutput } from '../pipelines/hypothesis/planSelect/parsePlanSelectOutput'
 import { parseCandidateOutput } from '../pipelines/hypothesis/candidates/parseCandidateOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../utilities/coyoteRoomObjectSnapshot'
 
-export type { CoyoteHarnessPhasePlanInject, CoyoteHarnessPlanSelectInject } from '../pipelines/hypothesis/coyoteHarnessInjectTypes'
+export type { CoyoteHarnessNarrativeBeatsInject, CoyoteHarnessPlanSelectInject } from '../pipelines/hypothesis/coyoteHarnessInjectTypes'
 
 /** Same room grid as [`normalizeFixtureRoomObjects`](./runCoyoteEngineTestHarness.ts). */
 const COYOTE_HARNESS_ROOM_IDS: EphemeraRoomId[] = [
@@ -27,7 +28,7 @@ export type CoyoteHarnessInjectPhase = 'planSelect' | 'phasePlan'
 
 export type CoyoteHarnessStartAtInjectSuccess =
     | { ok: true; phase: 'planSelect'; inject: CoyoteHarnessPlanSelectInject }
-    | { ok: true; phase: 'phasePlan'; inject: CoyoteHarnessPhasePlanInject }
+    | { ok: true; phase: 'phasePlan'; inject: CoyoteHarnessNarrativeBeatsInject }
 
 export type CoyoteHarnessStartAtInjectResult = CoyoteHarnessStartAtInjectSuccess | { ok: false; message: string }
 
@@ -37,7 +38,7 @@ export type CoyoteEngineTestFixture = {
     roomObjectsByRoom: Partial<Record<EphemeraRoomId, EphemeraMetaRoomObject[]>>
     hypothesisLine?: string
     planSelectInject?: CoyoteHarnessPlanSelectInject
-    phasePlanInject?: CoyoteHarnessPhasePlanInject
+    phasePlanInject?: CoyoteHarnessNarrativeBeatsInject
 }
 
 /**
@@ -149,7 +150,7 @@ function buildFixture01PlanSelectInject(): CoyoteHarnessPlanSelectInject {
 }
 
 const FIXTURE_01_PLAN_SELECT_INJECT = buildFixture01PlanSelectInject()
-const FIXTURE_01_PHASE_PLAN_HANDOFF: PlanSelectOutput = {
+const FIXTURE_01_PHASE_PLAN_HANDOFF: PlanSelectOutputWithWinner = {
     paragraphSummary:
         'Conflict review favors candidate-1: lock a single Contraption-first lane using the straightaway rocket setup, materialize Coyote as the finishing-move affordance grounded on that same seam, then carry the lane through the terminal beat with no prop-role conflicts.',
     planIssues: [],
@@ -183,8 +184,8 @@ const FIXTURE_01_PHASE_PLAN_HANDOFF: PlanSelectOutput = {
         outliers: [],
     },
 }
-const FIXTURE_01_PHASE_PLAN_INJECT: CoyoteHarnessPhasePlanInject = {
-    ...FIXTURE_01_PLAN_SELECT_INJECT,
+const FIXTURE_01_PHASE_PLAN_INJECT: CoyoteHarnessNarrativeBeatsInject = {
+    roomObjectsByRoom: FIXTURE_01_PLAN_SELECT_INJECT.roomObjectsByRoom,
     planSelectOutput: FIXTURE_01_PHASE_PLAN_HANDOFF,
 }
 
@@ -975,12 +976,12 @@ for (const fixture of COYOTE_ENGINE_TEST_FIXTURES) {
         continue
     }
     const planSelectOutput = PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID[fixture.id]
-    if (planSelectOutput === undefined) {
+    if (planSelectOutput === undefined || planSelectOutput.selectedCandidate === undefined) {
         continue
     }
     fixture.phasePlanInject = {
-        ...fixture.planSelectInject,
-        planSelectOutput,
+        roomObjectsByRoom: fixture.planSelectInject.roomObjectsByRoom,
+        planSelectOutput: planSelectOutput as PlanSelectOutputWithWinner,
     }
 }
 

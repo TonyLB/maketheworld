@@ -135,7 +135,6 @@ function buildHarnessPipelineOptions(args: {
         harnessRunKind: 'runOnly',
         injectState: {
             roomObjectsByRoom: resolved.inject.roomObjectsByRoom,
-            combined: resolved.inject.combined,
             planSelectOutput: resolved.inject.planSelectOutput,
         },
     }
