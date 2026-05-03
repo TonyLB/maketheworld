@@ -35,6 +35,8 @@ describe('buildNarrativeBeatPrompt', () => {
         expect(full).toContain('Underspecification codes')
         expect(full).toContain('```json')
         expect(full).toContain('## Committed plan')
+        expect(full).toContain('## Committed plan Markdown (how to read the grounding block)')
+        expect(full).not.toContain('## Combined clustering')
         expect(parts.dynamicSuffix).not.toContain('## Combined clustering')
         expect(parts.dynamicSuffix).not.toContain('### Candidate')
         expect(full).toContain('candidateId: candidate-1')

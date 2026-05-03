@@ -1,6 +1,5 @@
 import type { CoyotePromptParts } from '../promptTypes'
 import {
-    COMBINED_CLUSTERING_CONTRACT_LINES,
     INTERPRETATION_RULES_LINES,
     TEMPORAL_ORDERING_LINES,
     VIRTUAL_SCENERY_AND_PREP_OBJECTS_LINES,
@@ -95,6 +94,16 @@ const NARRATIVE_BEAT_INTRO = [
     '  "## Scene analysis", and the fenced Hypothesis line.',
 ] as const
 
+/** How to read **## Committed plan** (single winner; inlined per hypothesis narrative-beats decision 3). */
+const COMMITTED_PLAN_MARKDOWN_CONTRACT_LINES = [
+    '## Committed plan Markdown (how to read the grounding block)',
+    '- **## Committed plan** appears in this prompt before the seam room mapping block. It is the only plan-grounding Markdown: **Chosen plan summary**, **Plan issues**, and **Selected candidate (authoritative winner payload)**. There is no **## Combined trope candidates** section, no **### Candidate** blocks, and no additional candidate pool after seam topology.',
+    '- Under **tropeAssignments**, each trope lists **executionDetail** and **member** lines (**stableKey**, **shortName**, **room**, **tropeFunction**). Treat each trope block as plan-local structure; do not merge member rows across tropes.',
+    '- **executionDetail** is Stage One first-draft beat detail for that trope. Member bullets list staged objects; when **## Committed plan** lists **synthetic** materialized affordance members (**`stableKey`** values beginning with **`affordance:`**), those are not snapshot rows but are authoritative when present.',
+    '- **tropeFunction** on each member line describes that object\'s trope-local job; use it as the canonical annotation for in-trope role intent.',
+    '- The **outliers** list under the selected candidate names props not under any trope row; role language for outliers is not fixed like trope members --- do not move outlier props into trope rows unless the handoff already assigns them there.',
+] as const
+
 const SCENE_ANALYSIS_AND_FENCED_HYPOTHESIS_LINES = [
     '## Scene analysis and fenced Hypothesis (assistant text only)',
     '- Put **planning, ordering, and topology** in "## Scene analysis" in the',
@@ -165,7 +174,7 @@ export function buildNarrativeBeatPrompt(
     const invariantPrefix = [
         ...NARRATIVE_BEAT_INTRO,
         '',
-        ...COMBINED_CLUSTERING_CONTRACT_LINES,
+        ...COMMITTED_PLAN_MARKDOWN_CONTRACT_LINES,
         '',
         ...COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
         '',
