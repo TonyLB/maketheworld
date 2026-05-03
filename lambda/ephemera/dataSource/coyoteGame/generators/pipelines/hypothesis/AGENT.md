@@ -9,7 +9,7 @@ Parent docs:
 
 ## Pipeline architecture
 
-Production runs a **linear sequence** orchestrated in [`coyoteHypothesisPipeline.ts`](coyoteHypothesisPipeline.ts): load room context, run three LLM phases (`candidates`, `planSelect`, `phasePlan`) with deterministic steps between them, then parse into cache-facing intent. Read this section for **what each phase is for**; exact step names, state fields, and parsers live in that source file.
+Production runs a **linear sequence** orchestrated in [`coyoteHypothesisPipeline.ts`](coyoteHypothesisPipeline.ts): load room context, run three LLM phases (`candidates`, `planSelect`, `narrativeBeats`) with deterministic steps between them, then parse into cache-facing intent. Read this section for **what each phase is for**; exact step names, state fields, and parsers live in that source file.
 
 ### Conceptual flow
 
@@ -132,9 +132,9 @@ Plan-select may **materialize** chosen affordances as first-class `tropeAssignme
 **Regression tests.** Colocated under `candidates/*.test.ts`, pipeline tests in this folder, and
 [`../../testHarness/`](../../testHarness/). Run Jest from `lambda/ephemera` per [`AGENT.testing.md`](../../../../../AGENT.testing.md).
 
-**Harness example.** Coyote engine fixture-01 (`FIXTURE_01_PHASE_PLAN_HANDOFF`) injects phase-plan `planSelectOutput` with `selectedCandidate` that includes a **Finishing Move** member using **`affordance:coyote`**, exercised by [`coyoteEngineTestFixtures.test.ts`](../../testHarness/coyoteEngineTestFixtures.test.ts). Definition: [`coyoteEngineTestFixtures.ts`](../../testHarness/coyoteEngineTestFixtures.ts).
+**Harness example.** Coyote engine fixture-01 (`FIXTURE_01_NARRATIVE_BEATS_HANDOFF`) injects narrative-beat `planSelectOutput` with `selectedCandidate` that includes a **Finishing Move** member using **`affordance:coyote`**, exercised by [`coyoteEngineTestFixtures.test.ts`](../../testHarness/coyoteEngineTestFixtures.test.ts). Definition: [`coyoteEngineTestFixtures.ts`](../../testHarness/coyoteEngineTestFixtures.ts).
 
-**Narrative beat harness (`runOnly` `phasePlan`).** Injected pipeline state uses **`CoyoteHarnessNarrativeBeatsInject`**: **`{ planSelectOutput, roomObjectsByRoom }`** only (no **`combined`**). `selectedCandidate` is required on `planSelectOutput` for this path. Types: [`coyoteHarnessInjectTypes.ts`](coyoteHarnessInjectTypes.ts); orchestration and validation: [`coyoteHypothesisPipeline.ts`](coyoteHypothesisPipeline.ts).
+**Narrative beat harness (`runOnly` `narrativeBeats`).** Injected pipeline state uses **`CoyoteHarnessNarrativeBeatsInject`**: **`{ planSelectOutput, roomObjectsByRoom }`** only (no **`combined`**). `selectedCandidate` is required on `planSelectOutput` for this path. Types: [`coyoteHarnessInjectTypes.ts`](coyoteHarnessInjectTypes.ts); orchestration and validation: [`coyoteHypothesisPipeline.ts`](coyoteHypothesisPipeline.ts).
 
 - Terminal parse of model output into cache-facing intent fields is shared and lives in [`../../sharedParsers/parseHypothesisModelOutput.ts`](../../sharedParsers/parseHypothesisModelOutput.ts), not in this folder.
 - Cross-cutting staged-object helpers and render-tree constants are under [`../../../utilities/`](../../../utilities/).

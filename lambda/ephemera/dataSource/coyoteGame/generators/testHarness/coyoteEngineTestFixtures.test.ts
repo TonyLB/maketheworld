@@ -59,8 +59,8 @@ describe('COYOTE_ENGINE_TEST_FIXTURES', () => {
         expect(parts.dynamicSuffix).toContain('candidate-1')
     })
 
-    it('fixture-01 phasePlanInject planSelectOutput carries a materialized affordance Finishing Move member', () => {
-        const phaseInject = COYOTE_ENGINE_TEST_FIXTURES[0].phasePlanInject
+    it('fixture-01 narrativeBeatsInject planSelectOutput carries a materialized affordance Finishing Move member', () => {
+        const phaseInject = COYOTE_ENGINE_TEST_FIXTURES[0].narrativeBeatsInject
         expect(phaseInject).toBeDefined()
         const selected = phaseInject!.planSelectOutput.selectedCandidate
         expect(selected).toBeDefined()
@@ -71,8 +71,8 @@ describe('COYOTE_ENGINE_TEST_FIXTURES', () => {
         expect(isValidMaterializedAffordanceStableKey(coyoteRow!.stableKey)).toBe(true)
     })
 
-    it('fixture-01 phasePlan handoff parses through parsePlanSelectOutput like production output', () => {
-        const handoff = COYOTE_ENGINE_TEST_FIXTURES[0].phasePlanInject!.planSelectOutput
+    it('fixture-01 narrativeBeats handoff parses through parsePlanSelectOutput like production output', () => {
+        const handoff = COYOTE_ENGINE_TEST_FIXTURES[0].narrativeBeatsInject!.planSelectOutput
         const raw = [
             '## Intent conflicts',
             '- (fixture harness)',
@@ -132,26 +132,26 @@ describe('resolveCoyoteHarnessStartAtInject', () => {
         ).toBe(false)
     })
 
-    it('returns phasePlan inject for fixture index 1', () => {
+    it('returns narrativeBeats inject for fixture index 1', () => {
         const r = resolveCoyoteHarnessStartAtInject({
             fixtureIndex1Based: 1,
-            phase: 'phasePlan',
+            phase: 'narrativeBeats',
         })
         expect(r.ok).toBe(true)
-        if (r.ok && r.phase === 'phasePlan') {
-            expect(r.phase).toBe('phasePlan')
+        if (r.ok && r.phase === 'narrativeBeats') {
+            expect(r.phase).toBe('narrativeBeats')
             expect(r.inject.planSelectOutput.paragraphSummary.length).toBeGreaterThan(0)
         }
     })
 
-    it('returns phasePlan inject for fixture index 2', () => {
+    it('returns narrativeBeats inject for fixture index 2', () => {
         const r = resolveCoyoteHarnessStartAtInject({
             fixtureIndex1Based: 2,
-            phase: 'phasePlan',
+            phase: 'narrativeBeats',
         })
         expect(r.ok).toBe(true)
-        if (r.ok && r.phase === 'phasePlan') {
-            expect(r.phase).toBe('phasePlan')
+        if (r.ok && r.phase === 'narrativeBeats') {
+            expect(r.phase).toBe('narrativeBeats')
             expect(r.inject.planSelectOutput.paragraphSummary.length).toBeGreaterThan(0)
             expect(Array.isArray(r.inject.planSelectOutput.planIssues)).toBe(true)
         }

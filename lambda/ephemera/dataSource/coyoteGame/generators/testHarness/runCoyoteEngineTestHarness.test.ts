@@ -196,7 +196,7 @@ describe('runCoyoteEngineTestHarness', () => {
         expect(flat).toContain('usageNarrativeBeat: input=20 output=9 total=29 cacheRead=12 cacheWrite=0')
         expect(flat).toContain('selectionBody:\n{"paragraphSummary":"x","planIssues":[{"code":"ROLE_CONFLICT","summary":"x"}]}')
         expect(flat).toContain(
-            'phasePlanJson:\n{"tropeSequence":["Contraption"],"deconflictionSummary":"single lane","phases":[{"trope":"Contraption","tropeBeat":"prime launch lane","stableKeysUsed":["anvil-0"],"virtualEntities":[],"achievement":"launch"}]}'
+            'narrativeBeatsJson:\n{"tropeSequence":["Contraption"],"deconflictionSummary":"single lane","phases":[{"trope":"Contraption","tropeBeat":"prime launch lane","stableKeysUsed":["anvil-0"],"virtualEntities":[],"achievement":"launch"}]}'
         )
         expect(flat).not.toContain('planSelectionReasoning')
     })
@@ -367,7 +367,7 @@ describe('runCoyoteEngineTestHarness', () => {
         expect(rendered).toContain('usagePlanSelection: (not run)')
         expect(rendered).toContain('usageNarrativeBeat: (not run)')
         expect(rendered).toContain('selectionBody: (not run)')
-        expect(rendered).toContain('phasePlanJson: (not run)')
+        expect(rendered).toContain('narrativeBeatsJson: (not run)')
         expect(rendered).not.toContain('planSelectionReasoning')
     })
 
@@ -493,14 +493,14 @@ describe('runCoyoteEngineTestHarness', () => {
         )
     })
 
-    it('runOnly phasePlan with inject calls pipeline with structured planSelect output', async () => {
+    it('runOnly narrativeBeats with inject calls pipeline with structured planSelect output', async () => {
         const send = jest.fn()
         const flush = jest.fn().mockResolvedValue(undefined)
         const pipeline = jest.fn().mockResolvedValue({
             kind: 'harnessPartial',
-            testOnly: 'phasePlan',
+            testOnly: 'narrativeBeats',
             harnessRunKind: 'runOnly',
-            record: { intent: 'Hypothesis: phasePlan only' },
+            record: { intent: 'Hypothesis: narrativeBeats only' },
             narrativeBeatResult: {
                 success: true,
                 body: '```text\nHypothesis: phase only\n```',
@@ -520,7 +520,7 @@ describe('runCoyoteEngineTestHarness', () => {
                     },
                     combined: {} as any,
                 },
-                phasePlanInject: {
+                narrativeBeatsInject: {
                     roomObjectsByRoom: {
                         'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']),
                         'ROOM#STRAIGHTAWAY': [],
@@ -559,7 +559,7 @@ describe('runCoyoteEngineTestHarness', () => {
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {
                 mode: 'partial',
-                testOnly: 'phasePlan',
+                testOnly: 'narrativeBeats',
                 harnessRunKind: 'runOnly',
                 fixtureIndex1Based: 1,
             },
@@ -568,7 +568,7 @@ describe('runCoyoteEngineTestHarness', () => {
         expect(pipeline).toHaveBeenCalledWith(
             expect.anything(),
             expect.objectContaining({
-                testOnly: 'phasePlan',
+                testOnly: 'narrativeBeats',
                 harnessRunKind: 'runOnly',
                 injectState: expect.objectContaining({
                     planSelectOutput: expect.objectContaining({

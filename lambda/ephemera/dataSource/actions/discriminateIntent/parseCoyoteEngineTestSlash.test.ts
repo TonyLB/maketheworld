@@ -50,7 +50,16 @@ describe('parseCoyoteEngineTestSlashTail', () => {
             ok: true,
             harnessInvocation: {
                 mode: 'partial',
-                testOnly: 'phasePlan',
+                testOnly: 'narrativeBeats',
+                harnessRunKind: 'runUntil',
+                fixtureIndex1Based: 1,
+            },
+        })
+        expect(parseCoyoteEngineTestSlashTail('/test generation RUNUNTIL narrativeBeats 1', n)).toEqual({
+            ok: true,
+            harnessInvocation: {
+                mode: 'partial',
+                testOnly: 'narrativeBeats',
                 harnessRunKind: 'runUntil',
                 fixtureIndex1Based: 1,
             },

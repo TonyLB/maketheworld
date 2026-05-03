@@ -24,11 +24,11 @@ const COYOTE_HARNESS_ROOM_IDS: EphemeraRoomId[] = [
 ]
 
 /** Phase aliases that require hand-maintained inject bundles for **`runOnly`** runs. */
-export type CoyoteHarnessInjectPhase = 'planSelect' | 'phasePlan'
+export type CoyoteHarnessInjectPhase = 'planSelect' | 'narrativeBeats'
 
 export type CoyoteHarnessStartAtInjectSuccess =
     | { ok: true; phase: 'planSelect'; inject: CoyoteHarnessPlanSelectInject }
-    | { ok: true; phase: 'phasePlan'; inject: CoyoteHarnessNarrativeBeatsInject }
+    | { ok: true; phase: 'narrativeBeats'; inject: CoyoteHarnessNarrativeBeatsInject }
 
 export type CoyoteHarnessStartAtInjectResult = CoyoteHarnessStartAtInjectSuccess | { ok: false; message: string }
 
@@ -38,7 +38,7 @@ export type CoyoteEngineTestFixture = {
     roomObjectsByRoom: Partial<Record<EphemeraRoomId, EphemeraMetaRoomObject[]>>
     hypothesisLine?: string
     planSelectInject?: CoyoteHarnessPlanSelectInject
-    phasePlanInject?: CoyoteHarnessNarrativeBeatsInject
+    narrativeBeatsInject?: CoyoteHarnessNarrativeBeatsInject
 }
 
 /**
@@ -150,7 +150,7 @@ function buildFixture01PlanSelectInject(): CoyoteHarnessPlanSelectInject {
 }
 
 const FIXTURE_01_PLAN_SELECT_INJECT = buildFixture01PlanSelectInject()
-const FIXTURE_01_PHASE_PLAN_HANDOFF: PlanSelectOutputWithWinner = {
+const FIXTURE_01_NARRATIVE_BEATS_HANDOFF: PlanSelectOutputWithWinner = {
     paragraphSummary:
         'Conflict review favors candidate-1: lock a single Contraption-first lane using the straightaway rocket setup, materialize Coyote as the finishing-move affordance grounded on that same seam, then carry the lane through the terminal beat with no prop-role conflicts.',
     planIssues: [],
@@ -184,9 +184,9 @@ const FIXTURE_01_PHASE_PLAN_HANDOFF: PlanSelectOutputWithWinner = {
         outliers: [],
     },
 }
-const FIXTURE_01_PHASE_PLAN_INJECT: CoyoteHarnessNarrativeBeatsInject = {
+const FIXTURE_01_NARRATIVE_BEATS_INJECT: CoyoteHarnessNarrativeBeatsInject = {
     roomObjectsByRoom: FIXTURE_01_PLAN_SELECT_INJECT.roomObjectsByRoom,
-    planSelectOutput: FIXTURE_01_PHASE_PLAN_HANDOFF,
+    planSelectOutput: FIXTURE_01_NARRATIVE_BEATS_HANDOFF,
 }
 
 function buildPlanSelectInjectFromGoldenSeam(args: {
@@ -218,7 +218,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
         label: 'Rocket at the Straightaway',
         roomObjectsByRoom: FIXTURE_01_ROOM_OBJECTS,
         planSelectInject: FIXTURE_01_PLAN_SELECT_INJECT,
-        phasePlanInject: FIXTURE_01_PHASE_PLAN_INJECT,
+        narrativeBeatsInject: FIXTURE_01_NARRATIVE_BEATS_INJECT,
     },
     {
         id: 'fixture-02',
@@ -969,7 +969,7 @@ for (const fixture of COYOTE_ENGINE_TEST_FIXTURES) {
 }
 
 for (const fixture of COYOTE_ENGINE_TEST_FIXTURES) {
-    if (fixture.phasePlanInject !== undefined) {
+    if (fixture.narrativeBeatsInject !== undefined) {
         continue
     }
     if (fixture.planSelectInject === undefined) {
@@ -979,14 +979,14 @@ for (const fixture of COYOTE_ENGINE_TEST_FIXTURES) {
     if (planSelectOutput === undefined || planSelectOutput.selectedCandidate === undefined) {
         continue
     }
-    fixture.phasePlanInject = {
+    fixture.narrativeBeatsInject = {
         roomObjectsByRoom: fixture.planSelectInject.roomObjectsByRoom,
         planSelectOutput: planSelectOutput as PlanSelectOutputWithWinner,
     }
 }
 
 /**
- * Resolve start-at inject for **`planSelect`** / **`phasePlan`** (1-based fixture index, slash / harness aligned).
+ * Resolve start-at inject for **`planSelect`** / **`narrativeBeats`** (1-based fixture index, slash / harness aligned).
  */
 export function resolveCoyoteHarnessStartAtInject(args: {
     fixtureIndex1Based: number
@@ -1014,13 +1014,13 @@ export function resolveCoyoteHarnessStartAtInject(args: {
         }
         return { ok: true, phase: 'planSelect', inject }
     }
-    const inject = fixture.phasePlanInject
+    const inject = fixture.narrativeBeatsInject
     if (inject === undefined) {
         return {
             ok: false,
             message:
-                `Coyote engine test harness does not yet supply starting input for run-only phase "phasePlan" at fixture index ${i} (${fixture.id}).`,
+                `Coyote engine test harness does not yet supply starting input for run-only phase "narrativeBeats" at fixture index ${i} (${fixture.id}).`,
         }
     }
-    return { ok: true, phase: 'phasePlan', inject }
+    return { ok: true, phase: 'narrativeBeats', inject }
 }

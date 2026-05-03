@@ -50,7 +50,7 @@ export type GenerateHypothesisDeps = {
 };
 
 /** Phase alias aligned with slash / harness (`testOnly`). */
-export type CoyoteHypothesisTestPhase = 'candidates' | 'planSelect' | 'phasePlan';
+export type CoyoteHypothesisTestPhase = 'candidates' | 'planSelect' | 'narrativeBeats';
 
 /** Harness-only: prefix run vs isolated single LLM hop. */
 export type CoyoteHypothesisHarnessRunKind = 'runUntil' | 'runOnly';
@@ -58,7 +58,7 @@ export type CoyoteHypothesisHarnessRunKind = 'runUntil' | 'runOnly';
 export type CoyoteHypothesisPipelineHarnessOptions = {
     testOnly: CoyoteHypothesisTestPhase;
     harnessRunKind: CoyoteHypothesisHarnessRunKind;
-    /** Required for **`runOnly`** **`planSelect`** / **`phasePlan`**; omit for **`runUntil`** and **`runOnly`** **`candidates`**. */
+    /** Required for **`runOnly`** **`planSelect`** / **`narrativeBeats`**; omit for **`runUntil`** and **`runOnly`** **`candidates`**. */
     injectState?: Partial<CoyoteHypothesisPipelineState>;
 };
 
@@ -169,12 +169,12 @@ function assertRunOnlyInjectPhasePlan(
     const planSelectOutput = inject?.planSelectOutput;
     if (!roomObjectsByRoom || !planSelectOutput) {
         throw new Error(
-            'CoyoteHypothesisPipeline: runOnly phasePlan requires injectState with roomObjectsByRoom and planSelectOutput'
+            'CoyoteHypothesisPipeline: runOnly narrativeBeats requires injectState with roomObjectsByRoom and planSelectOutput'
         );
     }
     if (!planSelectOutput.selectedCandidate) {
         throw new Error(
-            'CoyoteHypothesisPipeline: runOnly phasePlan requires planSelectOutput.selectedCandidate'
+            'CoyoteHypothesisPipeline: runOnly narrativeBeats requires planSelectOutput.selectedCandidate'
         );
     }
     return { roomObjectsByRoom, planSelectOutput: planSelectOutput as PlanSelectOutputWithWinner };
@@ -187,7 +187,7 @@ export function validateCoyoteHypothesisHarnessOptions(options: CoyoteHypothesis
             assertRunOnlyInjectPlanSelect(injectState);
             return;
         }
-        if (testOnly === 'phasePlan') {
+        if (testOnly === 'narrativeBeats') {
             assertRunOnlyInjectPhasePlan(injectState);
             return;
         }
@@ -199,7 +199,7 @@ export function validateCoyoteHypothesisHarnessOptions(options: CoyoteHypothesis
         return;
     }
     if (injectState !== undefined && Object.keys(injectState).length > 0) {
-        throw new Error('CoyoteHypothesisPipeline: injectState is only valid for harnessRunKind runOnly planSelect / phasePlan');
+        throw new Error('CoyoteHypothesisPipeline: injectState is only valid for harnessRunKind runOnly planSelect / narrativeBeats');
     }
 }
 
@@ -207,7 +207,7 @@ export function validateCoyoteHypothesisHarnessOptions(options: CoyoteHypothesis
 const RUN_UNTIL_LAST_STEP_INDEX: Record<CoyoteHypothesisTestPhase, number> = {
     candidates: 1,
     planSelect: 3,
-    phasePlan: 5,
+    narrativeBeats: 5,
 };
 
 function buildCoyoteHypothesisSteps(

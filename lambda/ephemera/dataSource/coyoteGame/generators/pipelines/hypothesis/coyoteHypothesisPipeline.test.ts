@@ -211,12 +211,12 @@ describe('validateCoyoteHypothesisHarnessOptions', () => {
         ).toThrow('runOnly planSelect')
     })
 
-    it('throws when runOnly phasePlan inject omits selectedCandidate', () => {
+    it('throws when runOnly narrativeBeats inject omits selectedCandidate', () => {
         const fixture01 = COYOTE_ENGINE_TEST_FIXTURES.find((f) => f.id === 'fixture-01')
         expect(fixture01?.planSelectInject).toBeDefined()
         expect(() =>
             validateCoyoteHypothesisHarnessOptions({
-                testOnly: 'phasePlan',
+                testOnly: 'narrativeBeats',
                 harnessRunKind: 'runOnly',
                 injectState: {
                     roomObjectsByRoom: fixture01!.roomObjectsByRoom as CoyoteRoomObjectsByRoom,
@@ -370,10 +370,10 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         }
     })
 
-    it('runOnly phasePlan uses inject and skips stage-one/plan-selection LLMs', async () => {
+    it('runOnly narrativeBeats uses inject and skips stage-one/plan-selection LLMs', async () => {
         const fixture01 = COYOTE_ENGINE_TEST_FIXTURES.find((f) => f.id === 'fixture-01')
-        expect(fixture01?.phasePlanInject).toBeDefined()
-        const inject = fixture01!.phasePlanInject!
+        expect(fixture01?.narrativeBeatsInject).toBeDefined()
+        const inject = fixture01!.narrativeBeatsInject!
 
         const result = await runCoyoteHypothesisPipeline(
             {
@@ -382,7 +382,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
                 roomObjectsByRoomOverride: inject.roomObjectsByRoom,
             },
             {
-                testOnly: 'phasePlan',
+                testOnly: 'narrativeBeats',
                 harnessRunKind: 'runOnly',
                 injectState: {
                     roomObjectsByRoom: inject.roomObjectsByRoom,
