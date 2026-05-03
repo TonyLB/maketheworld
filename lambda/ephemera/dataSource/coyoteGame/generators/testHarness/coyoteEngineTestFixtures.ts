@@ -926,30 +926,310 @@ const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFi
     'fixture-04': {
         paragraphSummary: 'Choose candidate-1: keep magnet control as persistent path pressure and reserve steel drum for the terminal impact beat.',
         planIssues: [],
+        selectedCandidate: {
+            candidateId: 'candidate-1',
+            executionSummary: 'Magnet control narrows path and steel drum closes the impact beat.',
+            tropeAssignments: {
+                Contraption: {
+                    executionDetail: 'Magnet pulls the drum into position.',
+                    members: [
+                        {
+                            stableKey: 'magnet-0',
+                            shortName: 'magnet',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'path pull',
+                        },
+                    ],
+                },
+                'Finishing Move': {
+                    executionDetail: 'Steel drum flattens the Road Runner.',
+                    members: [
+                        {
+                            stableKey: 'steel-drum-1',
+                            shortName: 'steel drum',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'impact payload',
+                        },
+                    ],
+                },
+            },
+            outliers: [],
+        },
     },
     'fixture-05': {
         paragraphSummary: 'Choose candidate-1: keep a single catapult-driven lane with explicit setup-to-release timing.',
         planIssues: [],
+        selectedCandidate: {
+            candidateId: 'candidate-1',
+            executionSummary: 'Catapult launches a boulder at the Road Runner.',
+            tropeAssignments: {
+                Contraption: {
+                    executionDetail: 'Catapult is pre-aimed at CLIFFBASE for launch timing.',
+                    members: [
+                        {
+                            stableKey: 'catapult-0',
+                            shortName: 'catapult',
+                            room: 'VORTEX',
+                            tropeFunction: 'launch rig',
+                        },
+                    ],
+                },
+                'Finishing Move': {
+                    executionDetail: 'Boulder smashes the Road Runner.',
+                    members: [
+                        {
+                            stableKey: 'affordance:boulder',
+                            shortName: 'boulder',
+                            room: 'VORTEX',
+                            tropeFunction: 'impact payload',
+                        },
+                    ],
+                },
+            },
+            outliers: [],
+        },
     },
     'fixture-06': {
         paragraphSummary: 'Choose candidate-1: preserve lure then constraint then anvil payoff ordering across straightaway, vortex, and clifftop.',
         planIssues: [],
+        selectedCandidate: {
+            candidateId: 'candidate-1',
+            executionSummary: 'Birdseed lures, glue constrains, and anvil closes terminally.',
+            tropeAssignments: {
+                Bait: {
+                    executionDetail: 'Road Runner pauses for birdseed along the straightaway.',
+                    members: [
+                        {
+                            stableKey: 'birdseed-0',
+                            shortName: 'birdseed',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'target bait',
+                        },
+                    ],
+                },
+                Disadvantage: {
+                    executionDetail: 'Glue applies persistent movement constraint in CLIFFBASE lane.',
+                    members: [
+                        {
+                            stableKey: 'glue-0',
+                            shortName: 'glue',
+                            room: 'VORTEX',
+                            tropeFunction: 'speed drag',
+                        },
+                    ],
+                },
+                'Finishing Move': {
+                    executionDetail: 'Anvil drops from CLIFFTOP as the terminal payload.',
+                    members: [
+                        {
+                            stableKey: 'anvil-0',
+                            shortName: 'anvil',
+                            room: 'CLIFFTOP',
+                            tropeFunction: 'smashing payload',
+                        },
+                    ],
+                },
+            },
+            outliers: [],
+        },
     },
     'fixture-07': {
         paragraphSummary: 'Choose candidate-1: trampoline sets trajectory first and net applies terminal containment at the endpoint.',
         planIssues: [],
+        selectedCandidate: {
+            candidateId: 'candidate-1',
+            executionSummary: 'Trampoline sets trajectory while net imposes terminal containment.',
+            tropeAssignments: {
+                Contraption: {
+                    executionDetail: 'Trampoline is staged to control launch arc.',
+                    members: [
+                        {
+                            stableKey: 'trampoline-0',
+                            shortName: 'trampoline',
+                            room: 'VORTEX',
+                            tropeFunction: 'launch pad',
+                        },
+                    ],
+                },
+                Disadvantage: {
+                    executionDetail: 'Net applies capture constraint at CLIFFTOP endpoint.',
+                    members: [
+                        {
+                            stableKey: 'net-0',
+                            shortName: 'net',
+                            room: 'CLIFFTOP',
+                            tropeFunction: 'capture wrap',
+                        },
+                    ],
+                },
+                'Finishing Move': {
+                    executionDetail: 'Coyote captures the Road Runner.',
+                    members: [
+                        {
+                            stableKey: 'affordance:coyote',
+                            shortName: 'Coyote',
+                            room: 'CLIFFTOP',
+                            tropeFunction: 'finish',
+                        },
+                    ],
+                },
+            },
+            outliers: [],
+        },
     },
     'fixture-08': {
         paragraphSummary: 'Choose candidate-1: keep the multi-prop straightaway chain but lock one primary prep sequence before spring impact.',
         planIssues: [],
+        selectedCandidate: {
+            candidateId: 'candidate-1',
+            executionSummary:
+                'Multi-prop straightaway rig builds speed and release timing before terminal spring impact.',
+            tropeAssignments: {
+                Contraption: {
+                    executionDetail: 'Rocket, spring, and catapult chain into one multi-stage launch of Coyote on skis.',
+                    members: [
+                        {
+                            stableKey: 'rocket-0',
+                            shortName: 'rocket',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'increase speed',
+                        },
+                        {
+                            stableKey: 'skis-1',
+                            shortName: 'skis',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'control at speed',
+                        },
+                        {
+                            stableKey: 'springs-3',
+                            shortName: 'springs',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'launch',
+                        },
+                        {
+                            stableKey: 'catapult-2',
+                            shortName: 'catapult',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'launch',
+                        },
+                    ],
+                },
+                Disadvantage: {
+                    executionDetail: 'Glue slows pathing to hold timing window.',
+                    members: [
+                        {
+                            stableKey: 'glue-4',
+                            shortName: 'glue',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'speed drag',
+                        },
+                    ],
+                },
+                'Finishing Move': {
+                    executionDetail: 'Coyote captures the Road Runner.',
+                    members: [
+                        {
+                            stableKey: 'affordance:coyote',
+                            shortName: 'Coyote',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'finish',
+                        },
+                    ],
+                },
+            },
+            outliers: [],
+        },
     },
     'fixture-09': {
         paragraphSummary: 'Choose candidate-1: keep umbrella, snorkel, and skis as a single prep loadout and avoid unsupported terminal claims.',
         planIssues: [],
+        selectedCandidate: {
+            candidateId: 'candidate-1',
+            executionSummary: 'Umbrella, snorkel, and skis form one Rube-Goldberg contraption.',
+            tropeAssignments: {
+                Contraption: {
+                    executionDetail: 'Tools combine into a multi-stage sequence.',
+                    members: [
+                        {
+                            stableKey: 'umbrella-0',
+                            shortName: 'umbrella',
+                            room: 'CLIFFTOP',
+                            tropeFunction: 'glide aid',
+                        },
+                        {
+                            stableKey: 'snorkel-0',
+                            shortName: 'snorkel',
+                            room: 'CORNER',
+                            tropeFunction: 'breath prep',
+                        },
+                        {
+                            stableKey: 'skis-0',
+                            shortName: 'skis',
+                            room: 'BRIDGE',
+                            tropeFunction: 'speed rig',
+                        },
+                    ],
+                },
+            },
+            outliers: [],
+        },
     },
     'fixture-10': {
         paragraphSummary: 'Choose candidate-1: keep paint-plus-skates setup, birdseed lure, then cannon terminal release in one coherent lane.',
         planIssues: [],
+        selectedCandidate: {
+            candidateId: 'candidate-1',
+            executionSummary:
+                'Paint and birdseed lure stop, Coyote on skates starts a chase, then cannon finishes.',
+            tropeAssignments: {
+                Contraption: {
+                    executionDetail: 'Coyote chases with roller skates into the path of the cannonball.',
+                    members: [
+                        {
+                            stableKey: 'roller-skates-0',
+                            shortName: 'roller skates',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'speed rig',
+                        },
+                        {
+                            stableKey: 'cannon-0',
+                            shortName: 'cannon',
+                            room: 'CLIFFTOP',
+                            tropeFunction: 'launch',
+                        },
+                    ],
+                },
+                Bait: {
+                    executionDetail: 'Birdseed draws Road Runner into the prepared line.',
+                    members: [
+                        {
+                            stableKey: 'birdseed-0',
+                            shortName: 'birdseed',
+                            room: 'VORTEX',
+                            tropeFunction: 'target bait',
+                        },
+                        {
+                            stableKey: 'paint-0',
+                            shortName: 'paint',
+                            room: 'CORNER',
+                            tropeFunction: 'attention draw',
+                        },
+                    ],
+                },
+                'Finishing Move': {
+                    executionDetail: 'Cannonball finishes the chase by hitting the Road Runner.',
+                    members: [
+                        {
+                            stableKey: 'affordance:cannonball',
+                            shortName: 'cannonball',
+                            room: 'CLIFFTOP',
+                            tropeFunction: 'impact payload',
+                        },
+                    ],
+                },
+            },
+            outliers: [],
+        },
     },
 }
 
