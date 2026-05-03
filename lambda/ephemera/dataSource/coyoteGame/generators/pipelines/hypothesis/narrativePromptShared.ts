@@ -1,12 +1,3 @@
-export const COMBINED_CLUSTERING_CONTRACT_LINES = [
-    '## Combined clustering Markdown (how to read the dynamic tail)',
-    '- After seam room labels you will see **## Combined trope candidates**, then one **### Candidate <id>** section per Stage One candidate.',
-    '- Under each candidate you will see **executionSummary**, then one **#### <Trope>** section per assigned trope beat. Treat each trope section as candidate-local structure; do not merge trope sections across candidates.',
-    '- Inside each trope section, **executionDetail** captures Stage One\'s first-draft beat detail. Member bullets list staged objects (**stableKey**, **shortName**, **room**). The later **## Plan selection grounding** block (not this section) may additionally list **synthetic** materialized affordance members (**`affordance:`** keys) from the winning handoff; those are not snapshot rows but are authoritative when present.',
-    '- An indented line **tropeFunction:** is required for each **trope member** and describes that object\'s trope-local job inside this candidate. Use it as the canonical annotation for in-trope role/function intent.',
-    '- Each candidate includes its own **#### Outliers** block (stableKey / shortName / room only). Outliers are candidate-local props not under any trope row; role language for them is not fixed in clustering --- do not move outlier props into trope sections unless the candidate already assigns them there.',
-] as const
-
 export const INTERPRETATION_RULES_LINES = [
     '## Interpretation rules',
     '- Address the player in second person, using "you" and "your", not "the player" or "the Coyote".',
@@ -36,5 +27,5 @@ export const VIRTUAL_SCENERY_AND_PREP_OBJECTS_LINES = [
     '## Virtual scenery and prep-invented props',
     '- **Environmental scenery** from world topology and cartoon-opportunity cues is first-class in "## Scene analysis" and the **Hypothesis:** line even when it is not a separate staged **`Meta::Room.objects`** row: the cliff and boulder on **CLIFFTOP**, the rock face at **CORNER**, cacti along **STRAIGHTAWAY**, the chasm at **BRIDGE**, lever-friendly rocks, and similar fixed geography.',
     '- **Prep** may introduce narratively grounded **virtual** props or terrain (for example a painted fake tunnel on a rock face, a dug pit, piles, rigged ground rocks) that complete **before** the beat, consistent with **Temporal ordering** above. These are in-story setup, not new **`stableKey`** entries in the snapshot.',
-    '- Still ground roles and membership on **## Combined clustering** and **## Outliers**; use virtual scenery to connect staged objects to place and sequence --- do not replace staged objects, merge outliers into clusters, or invent cluster members.',
+    '- Still ground roles and membership on **## Committed plan** (including the **outliers** list under the selected candidate); use virtual scenery to connect staged objects to place and sequence --- do not replace staged objects, merge outliers into trope rows inappropriately, or invent members.',
 ] as const

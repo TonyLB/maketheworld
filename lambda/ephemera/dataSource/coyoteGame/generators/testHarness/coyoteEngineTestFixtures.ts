@@ -4,14 +4,15 @@ import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAf
 import { defaultStableKeyProposal } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { combineCandidateOutput } from '../pipelines/hypothesis/candidates/combineCandidateOutput'
 import type {
-    CoyoteHarnessPhasePlanInject,
+    CoyoteHarnessNarrativeBeatsInject,
     CoyoteHarnessPlanSelectInject,
 } from '../pipelines/hypothesis/coyoteHarnessInjectTypes'
+import type { PlanSelectOutputWithWinner } from '../pipelines/hypothesis/narrativeBeats/buildNarrativeBeatPrompt'
 import type { PlanSelectOutput } from '../pipelines/hypothesis/planSelect/parsePlanSelectOutput'
 import { parseCandidateOutput } from '../pipelines/hypothesis/candidates/parseCandidateOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../utilities/coyoteRoomObjectSnapshot'
 
-export type { CoyoteHarnessPhasePlanInject, CoyoteHarnessPlanSelectInject } from '../pipelines/hypothesis/coyoteHarnessInjectTypes'
+export type { CoyoteHarnessNarrativeBeatsInject, CoyoteHarnessPlanSelectInject } from '../pipelines/hypothesis/coyoteHarnessInjectTypes'
 
 /** Same room grid as [`normalizeFixtureRoomObjects`](./runCoyoteEngineTestHarness.ts). */
 const COYOTE_HARNESS_ROOM_IDS: EphemeraRoomId[] = [
@@ -23,11 +24,11 @@ const COYOTE_HARNESS_ROOM_IDS: EphemeraRoomId[] = [
 ]
 
 /** Phase aliases that require hand-maintained inject bundles for **`runOnly`** runs. */
-export type CoyoteHarnessInjectPhase = 'planSelect' | 'phasePlan'
+export type CoyoteHarnessInjectPhase = 'planSelect' | 'narrativeBeats'
 
 export type CoyoteHarnessStartAtInjectSuccess =
     | { ok: true; phase: 'planSelect'; inject: CoyoteHarnessPlanSelectInject }
-    | { ok: true; phase: 'phasePlan'; inject: CoyoteHarnessPhasePlanInject }
+    | { ok: true; phase: 'narrativeBeats'; inject: CoyoteHarnessNarrativeBeatsInject }
 
 export type CoyoteHarnessStartAtInjectResult = CoyoteHarnessStartAtInjectSuccess | { ok: false; message: string }
 
@@ -37,7 +38,7 @@ export type CoyoteEngineTestFixture = {
     roomObjectsByRoom: Partial<Record<EphemeraRoomId, EphemeraMetaRoomObject[]>>
     hypothesisLine?: string
     planSelectInject?: CoyoteHarnessPlanSelectInject
-    phasePlanInject?: CoyoteHarnessPhasePlanInject
+    narrativeBeatsInject?: CoyoteHarnessNarrativeBeatsInject
 }
 
 /**
@@ -149,7 +150,7 @@ function buildFixture01PlanSelectInject(): CoyoteHarnessPlanSelectInject {
 }
 
 const FIXTURE_01_PLAN_SELECT_INJECT = buildFixture01PlanSelectInject()
-const FIXTURE_01_PHASE_PLAN_HANDOFF: PlanSelectOutput = {
+const FIXTURE_01_NARRATIVE_BEATS_HANDOFF: PlanSelectOutputWithWinner = {
     paragraphSummary:
         'Conflict review favors candidate-1: lock a single Contraption-first lane using the straightaway rocket setup, materialize Coyote as the finishing-move affordance grounded on that same seam, then carry the lane through the terminal beat with no prop-role conflicts.',
     planIssues: [],
@@ -183,9 +184,9 @@ const FIXTURE_01_PHASE_PLAN_HANDOFF: PlanSelectOutput = {
         outliers: [],
     },
 }
-const FIXTURE_01_PHASE_PLAN_INJECT: CoyoteHarnessPhasePlanInject = {
-    ...FIXTURE_01_PLAN_SELECT_INJECT,
-    planSelectOutput: FIXTURE_01_PHASE_PLAN_HANDOFF,
+const FIXTURE_01_NARRATIVE_BEATS_INJECT: CoyoteHarnessNarrativeBeatsInject = {
+    roomObjectsByRoom: FIXTURE_01_PLAN_SELECT_INJECT.roomObjectsByRoom,
+    planSelectOutput: FIXTURE_01_NARRATIVE_BEATS_HANDOFF,
 }
 
 function buildPlanSelectInjectFromGoldenSeam(args: {
@@ -217,7 +218,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
         label: 'Rocket at the Straightaway',
         roomObjectsByRoom: FIXTURE_01_ROOM_OBJECTS,
         planSelectInject: FIXTURE_01_PLAN_SELECT_INJECT,
-        phasePlanInject: FIXTURE_01_PHASE_PLAN_INJECT,
+        narrativeBeatsInject: FIXTURE_01_NARRATIVE_BEATS_INJECT,
     },
     {
         id: 'fixture-02',
@@ -925,30 +926,310 @@ const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFi
     'fixture-04': {
         paragraphSummary: 'Choose candidate-1: keep magnet control as persistent path pressure and reserve steel drum for the terminal impact beat.',
         planIssues: [],
+        selectedCandidate: {
+            candidateId: 'candidate-1',
+            executionSummary: 'Magnet control narrows path and steel drum closes the impact beat.',
+            tropeAssignments: {
+                Contraption: {
+                    executionDetail: 'Magnet pulls the drum into position.',
+                    members: [
+                        {
+                            stableKey: 'magnet-0',
+                            shortName: 'magnet',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'path pull',
+                        },
+                    ],
+                },
+                'Finishing Move': {
+                    executionDetail: 'Steel drum flattens the Road Runner.',
+                    members: [
+                        {
+                            stableKey: 'steel-drum-1',
+                            shortName: 'steel drum',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'impact payload',
+                        },
+                    ],
+                },
+            },
+            outliers: [],
+        },
     },
     'fixture-05': {
         paragraphSummary: 'Choose candidate-1: keep a single catapult-driven lane with explicit setup-to-release timing.',
         planIssues: [],
+        selectedCandidate: {
+            candidateId: 'candidate-1',
+            executionSummary: 'Catapult launches a boulder at the Road Runner.',
+            tropeAssignments: {
+                Contraption: {
+                    executionDetail: 'Catapult is pre-aimed at CLIFFBASE for launch timing.',
+                    members: [
+                        {
+                            stableKey: 'catapult-0',
+                            shortName: 'catapult',
+                            room: 'VORTEX',
+                            tropeFunction: 'launch rig',
+                        },
+                    ],
+                },
+                'Finishing Move': {
+                    executionDetail: 'Boulder smashes the Road Runner.',
+                    members: [
+                        {
+                            stableKey: 'affordance:boulder',
+                            shortName: 'boulder',
+                            room: 'VORTEX',
+                            tropeFunction: 'impact payload',
+                        },
+                    ],
+                },
+            },
+            outliers: [],
+        },
     },
     'fixture-06': {
         paragraphSummary: 'Choose candidate-1: preserve lure then constraint then anvil payoff ordering across straightaway, vortex, and clifftop.',
         planIssues: [],
+        selectedCandidate: {
+            candidateId: 'candidate-1',
+            executionSummary: 'Birdseed lures, glue constrains, and anvil closes terminally.',
+            tropeAssignments: {
+                Bait: {
+                    executionDetail: 'Road Runner pauses for birdseed along the straightaway.',
+                    members: [
+                        {
+                            stableKey: 'birdseed-0',
+                            shortName: 'birdseed',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'target bait',
+                        },
+                    ],
+                },
+                Disadvantage: {
+                    executionDetail: 'Glue applies persistent movement constraint in CLIFFBASE lane.',
+                    members: [
+                        {
+                            stableKey: 'glue-0',
+                            shortName: 'glue',
+                            room: 'VORTEX',
+                            tropeFunction: 'speed drag',
+                        },
+                    ],
+                },
+                'Finishing Move': {
+                    executionDetail: 'Anvil drops from CLIFFTOP as the terminal payload.',
+                    members: [
+                        {
+                            stableKey: 'anvil-0',
+                            shortName: 'anvil',
+                            room: 'CLIFFTOP',
+                            tropeFunction: 'smashing payload',
+                        },
+                    ],
+                },
+            },
+            outliers: [],
+        },
     },
     'fixture-07': {
         paragraphSummary: 'Choose candidate-1: trampoline sets trajectory first and net applies terminal containment at the endpoint.',
         planIssues: [],
+        selectedCandidate: {
+            candidateId: 'candidate-1',
+            executionSummary: 'Trampoline sets trajectory while net imposes terminal containment.',
+            tropeAssignments: {
+                Contraption: {
+                    executionDetail: 'Trampoline is staged to control launch arc.',
+                    members: [
+                        {
+                            stableKey: 'trampoline-0',
+                            shortName: 'trampoline',
+                            room: 'VORTEX',
+                            tropeFunction: 'launch pad',
+                        },
+                    ],
+                },
+                Disadvantage: {
+                    executionDetail: 'Net applies capture constraint at CLIFFTOP endpoint.',
+                    members: [
+                        {
+                            stableKey: 'net-0',
+                            shortName: 'net',
+                            room: 'CLIFFTOP',
+                            tropeFunction: 'capture wrap',
+                        },
+                    ],
+                },
+                'Finishing Move': {
+                    executionDetail: 'Coyote captures the Road Runner.',
+                    members: [
+                        {
+                            stableKey: 'affordance:coyote',
+                            shortName: 'Coyote',
+                            room: 'CLIFFTOP',
+                            tropeFunction: 'finish',
+                        },
+                    ],
+                },
+            },
+            outliers: [],
+        },
     },
     'fixture-08': {
         paragraphSummary: 'Choose candidate-1: keep the multi-prop straightaway chain but lock one primary prep sequence before spring impact.',
         planIssues: [],
+        selectedCandidate: {
+            candidateId: 'candidate-1',
+            executionSummary:
+                'Multi-prop straightaway rig builds speed and release timing before terminal spring impact.',
+            tropeAssignments: {
+                Contraption: {
+                    executionDetail: 'Rocket, spring, and catapult chain into one multi-stage launch of Coyote on skis.',
+                    members: [
+                        {
+                            stableKey: 'rocket-0',
+                            shortName: 'rocket',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'increase speed',
+                        },
+                        {
+                            stableKey: 'skis-1',
+                            shortName: 'skis',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'control at speed',
+                        },
+                        {
+                            stableKey: 'springs-3',
+                            shortName: 'springs',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'launch',
+                        },
+                        {
+                            stableKey: 'catapult-2',
+                            shortName: 'catapult',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'launch',
+                        },
+                    ],
+                },
+                Disadvantage: {
+                    executionDetail: 'Glue slows pathing to hold timing window.',
+                    members: [
+                        {
+                            stableKey: 'glue-4',
+                            shortName: 'glue',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'speed drag',
+                        },
+                    ],
+                },
+                'Finishing Move': {
+                    executionDetail: 'Coyote captures the Road Runner.',
+                    members: [
+                        {
+                            stableKey: 'affordance:coyote',
+                            shortName: 'Coyote',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'finish',
+                        },
+                    ],
+                },
+            },
+            outliers: [],
+        },
     },
     'fixture-09': {
         paragraphSummary: 'Choose candidate-1: keep umbrella, snorkel, and skis as a single prep loadout and avoid unsupported terminal claims.',
         planIssues: [],
+        selectedCandidate: {
+            candidateId: 'candidate-1',
+            executionSummary: 'Umbrella, snorkel, and skis form one Rube-Goldberg contraption.',
+            tropeAssignments: {
+                Contraption: {
+                    executionDetail: 'Tools combine into a multi-stage sequence.',
+                    members: [
+                        {
+                            stableKey: 'umbrella-0',
+                            shortName: 'umbrella',
+                            room: 'CLIFFTOP',
+                            tropeFunction: 'glide aid',
+                        },
+                        {
+                            stableKey: 'snorkel-0',
+                            shortName: 'snorkel',
+                            room: 'CORNER',
+                            tropeFunction: 'breath prep',
+                        },
+                        {
+                            stableKey: 'skis-0',
+                            shortName: 'skis',
+                            room: 'BRIDGE',
+                            tropeFunction: 'speed rig',
+                        },
+                    ],
+                },
+            },
+            outliers: [],
+        },
     },
     'fixture-10': {
         paragraphSummary: 'Choose candidate-1: keep paint-plus-skates setup, birdseed lure, then cannon terminal release in one coherent lane.',
         planIssues: [],
+        selectedCandidate: {
+            candidateId: 'candidate-1',
+            executionSummary:
+                'Paint and birdseed lure stop, Coyote on skates starts a chase, then cannon finishes.',
+            tropeAssignments: {
+                Contraption: {
+                    executionDetail: 'Coyote chases with roller skates into the path of the cannonball.',
+                    members: [
+                        {
+                            stableKey: 'roller-skates-0',
+                            shortName: 'roller skates',
+                            room: 'STRAIGHTAWAY',
+                            tropeFunction: 'speed rig',
+                        },
+                        {
+                            stableKey: 'cannon-0',
+                            shortName: 'cannon',
+                            room: 'CLIFFTOP',
+                            tropeFunction: 'launch',
+                        },
+                    ],
+                },
+                Bait: {
+                    executionDetail: 'Birdseed draws Road Runner into the prepared line.',
+                    members: [
+                        {
+                            stableKey: 'birdseed-0',
+                            shortName: 'birdseed',
+                            room: 'VORTEX',
+                            tropeFunction: 'target bait',
+                        },
+                        {
+                            stableKey: 'paint-0',
+                            shortName: 'paint',
+                            room: 'CORNER',
+                            tropeFunction: 'attention draw',
+                        },
+                    ],
+                },
+                'Finishing Move': {
+                    executionDetail: 'Cannonball finishes the chase by hitting the Road Runner.',
+                    members: [
+                        {
+                            stableKey: 'affordance:cannonball',
+                            shortName: 'cannonball',
+                            room: 'CLIFFTOP',
+                            tropeFunction: 'impact payload',
+                        },
+                    ],
+                },
+            },
+            outliers: [],
+        },
     },
 }
 
@@ -968,24 +1249,24 @@ for (const fixture of COYOTE_ENGINE_TEST_FIXTURES) {
 }
 
 for (const fixture of COYOTE_ENGINE_TEST_FIXTURES) {
-    if (fixture.phasePlanInject !== undefined) {
+    if (fixture.narrativeBeatsInject !== undefined) {
         continue
     }
     if (fixture.planSelectInject === undefined) {
         continue
     }
     const planSelectOutput = PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID[fixture.id]
-    if (planSelectOutput === undefined) {
+    if (planSelectOutput === undefined || planSelectOutput.selectedCandidate === undefined) {
         continue
     }
-    fixture.phasePlanInject = {
-        ...fixture.planSelectInject,
-        planSelectOutput,
+    fixture.narrativeBeatsInject = {
+        roomObjectsByRoom: fixture.planSelectInject.roomObjectsByRoom,
+        planSelectOutput: planSelectOutput as PlanSelectOutputWithWinner,
     }
 }
 
 /**
- * Resolve start-at inject for **`planSelect`** / **`phasePlan`** (1-based fixture index, slash / harness aligned).
+ * Resolve start-at inject for **`planSelect`** / **`narrativeBeats`** (1-based fixture index, slash / harness aligned).
  */
 export function resolveCoyoteHarnessStartAtInject(args: {
     fixtureIndex1Based: number
@@ -1013,13 +1294,13 @@ export function resolveCoyoteHarnessStartAtInject(args: {
         }
         return { ok: true, phase: 'planSelect', inject }
     }
-    const inject = fixture.phasePlanInject
+    const inject = fixture.narrativeBeatsInject
     if (inject === undefined) {
         return {
             ok: false,
             message:
-                `Coyote engine test harness does not yet supply starting input for run-only phase "phasePlan" at fixture index ${i} (${fixture.id}).`,
+                `Coyote engine test harness does not yet supply starting input for run-only phase "narrativeBeats" at fixture index ${i} (${fixture.id}).`,
         }
     }
-    return { ok: true, phase: 'phasePlan', inject }
+    return { ok: true, phase: 'narrativeBeats', inject }
 }

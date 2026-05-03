@@ -1,8 +1,5 @@
 import type { CoyotePromptParts } from '../promptTypes'
-import type { CombineCandidateOutputReturn } from '../candidates/combineCandidateOutput'
-import { renderCombinedCandidateOutputForNarrativeBeat } from '../candidates/combineCandidateOutput'
 import {
-    COMBINED_CLUSTERING_CONTRACT_LINES,
     INTERPRETATION_RULES_LINES,
     TEMPORAL_ORDERING_LINES,
     VIRTUAL_SCENERY_AND_PREP_OBJECTS_LINES,
@@ -12,10 +9,18 @@ import {
     COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
     coyoteSeamRoomMappingLines,
 } from '../coyoteHypothesisPromptShared'
-import type { PlanSelectOutput } from '../planSelect/parsePlanSelectOutput'
+import type {
+    PlanSelectOutput,
+    PlanSelectWinningCandidate,
+} from '../planSelect/parsePlanSelectOutput'
 import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
 import type { CoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { CANONICAL_TROPE_ORDER } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
+
+/** Plan-select handoff with structured winner detail required for narrative beat grounding. */
+export type PlanSelectOutputWithWinner = PlanSelectOutput & {
+    selectedCandidate: PlanSelectWinningCandidate
+}
 
 /** Canonical trope ordering for deterministic selectedCandidate rendering. */
 const TROPE_ORDER: CoyoteTrope[] = CANONICAL_TROPE_ORDER
@@ -23,8 +28,7 @@ const CANONICAL_TROPE_CHAIN_LABEL = CANONICAL_TROPE_ORDER.join(' -> ')
 
 export type BuildNarrativeBeatPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
-    combined: CombineCandidateOutputReturn
-    planSelectOutput: PlanSelectOutput
+    planSelectOutput: PlanSelectOutputWithWinner
 }
 
 const NARRATIVE_BEAT_INTRO = [
@@ -37,13 +41,10 @@ const NARRATIVE_BEAT_INTRO = [
     '- Keep this guardrail inside this prompt run: enforce it while producing JSON phases, scene analysis, and final Hypothesis line without adding external deterministic phase-to-phase intent checks.',
     '',
     '## Grounding from plan selection (authoritative)',
-    'The **chosen plan summary** and **plan issues** below were produced by an',
+    'The **chosen plan summary**, **plan issues**, and **structured selected candidate** in **## Committed plan** below were produced by an',
     'earlier selection step. Treat them as the committed maneuver and constraint set --- do not',
     'substitute a different plan or revert to comparing alternatives.',
-    '- If a structured **selected candidate** payload is present in the grounding block, treat it as',
-    '  authoritative winner detail for prop-level sequencing and role commitments.',
-    '- If no structured selected-candidate payload is present, do your best with the chosen summary',
-    '  plus plan issues as legacy fallback grounding.',
+    '- The **selected candidate** payload is authoritative winner detail for prop-level sequencing and role commitments.',
     '- Treat every plan issue as an actionable grounding constraint for this run.',
     '- Intent-signal issue codes (`OUTLIER_PROP_UNACCOUNTED`, `TROPE_FUNCTION_MISMATCH`,',
     '  `STRUCTURAL_CONTRADICTION`) are Coyote-side risk constraints: resolve them when possible and',
@@ -63,8 +64,8 @@ const NARRATIVE_BEAT_INTRO = [
     '     beat detail), **`stableKeysUsed`**, **`virtualEntities`** (each with **`label`**,',
     '     **`derivedFrom`** string array, **`phaseKind`** gathered | synthesized |',
     '     deployed), and **`achievement`**. Optional **`prepVsBeat`**: prep | creation.',
-    '   - Reference staged objects by **`stableKey`** from the snapshot / combined clustering.',
-    '     When **structured plan-selection grounding** lists materialized affordance members',
+    '   - Reference staged objects by **`stableKey`** from the room snapshot and **## Committed plan**.',
+    '     When **## Committed plan** lists materialized affordance members',
     '     (**`stableKey`** values beginning with **`affordance:`**, validated like plan-select handoff),',
     '     you may cite those same strings in **`stableKeysUsed`** (they normalize in phase-plan JSON)',
     '     and in **`derivedFrom`** when grounding a virtual to that handoff-only affordance row.',
@@ -86,11 +87,21 @@ const NARRATIVE_BEAT_INTRO = [
     '## Scene analysis and Hypothesis output',
     '- Your "## Scene analysis" section should commit to the single reading above and',
     '  build spatial and causal logic. Do not survey multiple plans.',
-    '- Ground "## Scene analysis" on **combined clustering**, **## Outliers**,',
-    '  topology, and the plan-selection grounding block.',
+    '- Ground "## Scene analysis" on **## Committed plan**, **## Outliers** within it,',
+    '  seam topology below, and staged snapshot keys.',
     '- Open **` ```text ` ** only after "## Scene analysis". The fenced interior must contain **only** the Hypothesis line.',
     '- No extra commentary outside the leading **` ```json ` ** phase plan,',
     '  "## Scene analysis", and the fenced Hypothesis line.',
+] as const
+
+/** How to read **## Committed plan** (single winner; inlined per hypothesis narrative-beats decision 3). */
+const COMMITTED_PLAN_MARKDOWN_CONTRACT_LINES = [
+    '## Committed plan Markdown (how to read the grounding block)',
+    '- **## Committed plan** appears in this prompt before the seam room mapping block. It is the only plan-grounding Markdown: **Chosen plan summary**, **Plan issues**, and **Selected candidate (authoritative winner payload)**. There is no **## Combined trope candidates** section, no **### Candidate** blocks, and no additional candidate pool after seam topology.',
+    '- Under **tropeAssignments**, each trope lists **executionDetail** and **member** lines (**stableKey**, **shortName**, **room**, **tropeFunction**). Treat each trope block as plan-local structure; do not merge member rows across tropes.',
+    '- **executionDetail** is Stage One first-draft beat detail for that trope. Member bullets list staged objects; when **## Committed plan** lists **synthetic** materialized affordance members (**`stableKey`** values beginning with **`affordance:`**), those are not snapshot rows but are authoritative when present.',
+    '- **tropeFunction** on each member line describes that object\'s trope-local job; use it as the canonical annotation for in-trope role intent.',
+    '- The **outliers** list under the selected candidate names props not under any trope row; role language for outliers is not fixed like trope members --- do not move outlier props into trope rows unless the handoff already assigns them there.',
 ] as const
 
 const SCENE_ANALYSIS_AND_FENCED_HYPOTHESIS_LINES = [
@@ -101,7 +112,7 @@ const SCENE_ANALYSIS_AND_FENCED_HYPOTHESIS_LINES = [
     '- The **final** ```text fence must contain **only** the Hypothesis line so parsers can slice it reliably.',
 ] as const
 
-function formatPlanSelectOutputBlock(handoff: PlanSelectOutput): string {
+function formatCommittedPlanBlock(handoff: PlanSelectOutputWithWinner): string {
     const issues =
         handoff.planIssues.length > 0
             ? handoff.planIssues.map((issue) => {
@@ -112,45 +123,37 @@ function formatPlanSelectOutputBlock(handoff: PlanSelectOutput): string {
                 return `- [${issue.code}] ${issue.summary}${evidence}`
             }).join('\n')
             : '- (none)'
-    const selectedCandidateLines = handoff.selectedCandidate
-        ? (() => {
-            const selected = handoff.selectedCandidate
-            const tropeAssignmentLines: string[] = []
-            for (const trope of TROPE_ORDER) {
-                const assignment = selected.tropeAssignments[trope]
-                if (!assignment) {
-                    continue
-                }
-                tropeAssignmentLines.push([
-                    `  - trope: ${trope}`,
-                    `    executionDetail: ${assignment.executionDetail}`,
-                    ...assignment.members.map((member) => (
-                        `    - member: ${member.stableKey} | ${member.shortName} | ${member.room} | ${member.tropeFunction}`
-                    )),
-                ].join('\n'))
-            }
-            return [
-                '',
-                '**Selected candidate (authoritative winner payload when present):**',
-                `- candidateId: ${selected.candidateId}`,
-                `- executionSummary: ${selected.executionSummary}`,
-                '- tropeAssignments:',
-                ...tropeAssignmentLines,
-                '- outliers:',
-                ...(selected.outliers.length > 0
-                    ? selected.outliers.map(
-                        (outlier) => `  - ${outlier.stableKey} | ${outlier.shortName} | ${outlier.room}`
-                    )
-                    : ['  - (none)']),
-            ]
-        })()
-        : [
-            '',
-            '**Selected candidate:**',
-            '- (not provided; use chosen plan summary and plan issues as fallback grounding)',
-        ]
+    const selected = handoff.selectedCandidate
+    const tropeAssignmentLines: string[] = []
+    for (const trope of TROPE_ORDER) {
+        const assignment = selected.tropeAssignments[trope]
+        if (!assignment) {
+            continue
+        }
+        tropeAssignmentLines.push([
+            `  - trope: ${trope}`,
+            `    executionDetail: ${assignment.executionDetail}`,
+            ...assignment.members.map((member) => (
+                `    - member: ${member.stableKey} | ${member.shortName} | ${member.room} | ${member.tropeFunction}`
+            )),
+        ].join('\n'))
+    }
+    const selectedCandidateLines = [
+        '',
+        '**Selected candidate (authoritative winner payload):**',
+        `- candidateId: ${selected.candidateId}`,
+        `- executionSummary: ${selected.executionSummary}`,
+        '- tropeAssignments:',
+        ...tropeAssignmentLines,
+        '- outliers:',
+        ...(selected.outliers.length > 0
+            ? selected.outliers.map(
+                (outlier) => `  - ${outlier.stableKey} | ${outlier.shortName} | ${outlier.room}`
+            )
+            : ['  - (none)']),
+    ]
     return [
-        '## Plan selection grounding',
+        '## Committed plan',
         '',
         '**Chosen plan summary:**',
         '',
@@ -166,16 +169,12 @@ function formatPlanSelectOutputBlock(handoff: PlanSelectOutput): string {
 export function buildNarrativeBeatPrompt(
     input: BuildNarrativeBeatPromptInput
 ): CoyotePromptParts {
-    const combinedMarkdown = renderCombinedCandidateOutputForNarrativeBeat(
-        input.combined,
-        input.roomObjectsByRoom
-    )
     const seamRoomMappingBlock = coyoteSeamRoomMappingLines(input.roomObjectsByRoom).join('\n')
-    const handoffBlock = formatPlanSelectOutputBlock(input.planSelectOutput)
+    const committedPlanBlock = formatCommittedPlanBlock(input.planSelectOutput)
     const invariantPrefix = [
         ...NARRATIVE_BEAT_INTRO,
         '',
-        ...COMBINED_CLUSTERING_CONTRACT_LINES,
+        ...COMMITTED_PLAN_MARKDOWN_CONTRACT_LINES,
         '',
         ...COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
         '',
@@ -191,16 +190,12 @@ export function buildNarrativeBeatPrompt(
         '',
         'The following blocks are specific to this request:',
         '',
-        handoffBlock,
-        '',
-        '## Combined clustering input (structured Markdown)',
+        committedPlanBlock,
     ].join('\n')
 
     const dynamicSuffix = [
         '',
         seamRoomMappingBlock,
-        '',
-        combinedMarkdown.trim(),
         '',
     ].join('\n')
 

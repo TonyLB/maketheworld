@@ -4,7 +4,7 @@ import { COYOTE_ENGINE_TEST_SLASH_PREFIX_LENGTH } from './coyoteEngineTestSlashC
 
 const PREFIX_LEN = COYOTE_ENGINE_TEST_SLASH_PREFIX_LENGTH
 
-const PHASE_ALIASES: CoyoteHypothesisTestPhase[] = ['candidates', 'planSelect', 'phasePlan']
+const PHASE_ALIASES: CoyoteHypothesisTestPhase[] = ['candidates', 'planSelect', 'narrativeBeats']
 const RUN_KIND_ALIASES = {
     runUntil: 'runUntil',
     runOnly: 'runOnly',
@@ -16,6 +16,10 @@ function phaseFromToken(token: string): CoyoteHypothesisTestPhase | undefined {
     /** Legacy slash token; canonical phase is **`candidates`**. */
     if (lower === 'clustering') {
         return 'candidates'
+    }
+    /** Legacy slash token; canonical phase is **`narrativeBeats`**. */
+    if (lower === 'phaseplan') {
+        return 'narrativeBeats'
     }
     for (const alias of PHASE_ALIASES) {
         if (alias.toLowerCase() === lower) {

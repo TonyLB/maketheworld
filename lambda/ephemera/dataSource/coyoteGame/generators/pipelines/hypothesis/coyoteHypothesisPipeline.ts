@@ -9,7 +9,10 @@ import {
     type PipelineStep,
 } from '../../../../../llm/pipeline';
 
-import { buildNarrativeBeatPrompt } from './narrativeBeats/buildNarrativeBeatPrompt';
+import {
+    buildNarrativeBeatPrompt,
+    type PlanSelectOutputWithWinner,
+} from './narrativeBeats/buildNarrativeBeatPrompt';
 import { buildPlanSelectPrompt } from './planSelect/buildPlanSelectPrompt';
 import { buildCandidatePrompt } from './candidates/buildCandidatePrompt';
 import {
@@ -17,7 +20,7 @@ import {
     planSelectOutliersForCandidate,
     type CombineCandidateOutputReturn,
 } from './candidates/combineCandidateOutput';
-import type { CoyoteHarnessPhasePlanInject, CoyoteHarnessPlanSelectInject } from './coyoteHarnessInjectTypes';
+import type { CoyoteHarnessNarrativeBeatsInject, CoyoteHarnessPlanSelectInject } from './coyoteHarnessInjectTypes';
 import { parsePlanSelectOutput, type PlanSelectOutput } from './planSelect/parsePlanSelectOutput';
 import { buildNarrativeBeatValidationContext } from './narrativeBeats/narrativeBeatValidationContext';
 import { loadCoyoteRoomObjectsByRoom, type CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot';
@@ -47,7 +50,7 @@ export type GenerateHypothesisDeps = {
 };
 
 /** Phase alias aligned with slash / harness (`testOnly`). */
-export type CoyoteHypothesisTestPhase = 'candidates' | 'planSelect' | 'phasePlan';
+export type CoyoteHypothesisTestPhase = 'candidates' | 'planSelect' | 'narrativeBeats';
 
 /** Harness-only: prefix run vs isolated single LLM hop. */
 export type CoyoteHypothesisHarnessRunKind = 'runUntil' | 'runOnly';
@@ -55,7 +58,7 @@ export type CoyoteHypothesisHarnessRunKind = 'runUntil' | 'runOnly';
 export type CoyoteHypothesisPipelineHarnessOptions = {
     testOnly: CoyoteHypothesisTestPhase;
     harnessRunKind: CoyoteHypothesisHarnessRunKind;
-    /** Required for **`runOnly`** **`planSelect`** / **`phasePlan`**; omit for **`runUntil`** and **`runOnly`** **`candidates`**. */
+    /** Required for **`runOnly`** **`planSelect`** / **`narrativeBeats`**; omit for **`runUntil`** and **`runOnly`** **`candidates`**. */
     injectState?: Partial<CoyoteHypothesisPipelineState>;
 };
 
@@ -105,7 +108,7 @@ export type GenerateHypothesisPipelineResult =
 
 export type CoyoteHypothesisPipelineState = {
     roomObjectsByRoom?: CoyoteRoomObjectsByRoom;
-    /** Combined trope candidates after {@link combineCandidateOutput} (source of truth for plan-select JSON and phase-plan Markdown). */
+    /** Combined trope candidates after {@link combineCandidateOutput} (plan-select JSON input; outlier rehydration for {@link parsePlanSelectionHandoff}). */
     combined?: CombineCandidateOutputReturn;
     stageOneResult?: InvokeBedrockHypothesisResult;
     planSelectionResult?: InvokeBedrockHypothesisResult | null;
@@ -161,15 +164,20 @@ function assertRunOnlyInjectPlanSelect(
 
 function assertRunOnlyInjectPhasePlan(
     inject: Partial<CoyoteHypothesisPipelineState> | undefined
-): CoyoteHarnessPhasePlanInject {
-    const base = assertRunOnlyInjectPlanSelect(inject);
+): CoyoteHarnessNarrativeBeatsInject {
+    const roomObjectsByRoom = inject?.roomObjectsByRoom;
     const planSelectOutput = inject?.planSelectOutput;
-        if (!planSelectOutput) {
+    if (!roomObjectsByRoom || !planSelectOutput) {
         throw new Error(
-            'CoyoteHypothesisPipeline: runOnly phasePlan requires injectState with planSelectOutput, roomObjectsByRoom, and combined'
+            'CoyoteHypothesisPipeline: runOnly narrativeBeats requires injectState with roomObjectsByRoom and planSelectOutput'
         );
     }
-    return { ...base, planSelectOutput };
+    if (!planSelectOutput.selectedCandidate) {
+        throw new Error(
+            'CoyoteHypothesisPipeline: runOnly narrativeBeats requires planSelectOutput.selectedCandidate'
+        );
+    }
+    return { roomObjectsByRoom, planSelectOutput: planSelectOutput as PlanSelectOutputWithWinner };
 }
 
 export function validateCoyoteHypothesisHarnessOptions(options: CoyoteHypothesisPipelineHarnessOptions): void {
@@ -179,7 +187,7 @@ export function validateCoyoteHypothesisHarnessOptions(options: CoyoteHypothesis
             assertRunOnlyInjectPlanSelect(injectState);
             return;
         }
-        if (testOnly === 'phasePlan') {
+        if (testOnly === 'narrativeBeats') {
             assertRunOnlyInjectPhasePlan(injectState);
             return;
         }
@@ -191,7 +199,7 @@ export function validateCoyoteHypothesisHarnessOptions(options: CoyoteHypothesis
         return;
     }
     if (injectState !== undefined && Object.keys(injectState).length > 0) {
-        throw new Error('CoyoteHypothesisPipeline: injectState is only valid for harnessRunKind runOnly planSelect / phasePlan');
+        throw new Error('CoyoteHypothesisPipeline: injectState is only valid for harnessRunKind runOnly planSelect / narrativeBeats');
     }
 }
 
@@ -199,7 +207,8 @@ export function validateCoyoteHypothesisHarnessOptions(options: CoyoteHypothesis
 const RUN_UNTIL_LAST_STEP_INDEX: Record<CoyoteHypothesisTestPhase, number> = {
     candidates: 1,
     planSelect: 3,
-    phasePlan: 5,
+    /** Includes {@link parseNarrativeBeatRecord} after {@link hypothesisNarrativeBeatLlm}. */
+    narrativeBeats: 6,
 };
 
 function buildCoyoteHypothesisSteps(
@@ -315,21 +324,25 @@ function buildCoyoteHypothesisSteps(
                     }
                 }
                 draft.planSelectOutput = planSelectOutput;
+                if (!planSelectOutput.selectedCandidate) {
+                    hypothesisDebugLog('aborting hypothesis pipeline', {
+                        reason: 'planSelectionMissingSelectedCandidate',
+                    });
+                    abort();
+                }
             },
         }),
         ctx.defineLlmStep({
             name: 'hypothesisNarrativeBeatLlm',
             run: async (draft) => {
                 const roomObjectsByRoom = draft.roomObjectsByRoom;
-                const combined = draft.combined;
                 const handoff = draft.planSelectOutput;
-                if (!roomObjectsByRoom || combined === undefined || !handoff) {
+                if (!roomObjectsByRoom || !handoff?.selectedCandidate) {
                     throw new Error('CoyoteHypothesisPipeline: hypothesisNarrativeBeatLlm preconditions');
                 }
                 const parts = buildNarrativeBeatPrompt({
                     roomObjectsByRoom,
-                    combined,
-                    planSelectOutput: handoff,
+                    planSelectOutput: handoff as PlanSelectOutputWithWinner,
                 });
                 const narrativeBeatResult = await invokeBedrockHypothesisNarrativeBeat(parts);
                 draft.narrativeBeatResult = narrativeBeatResult;
@@ -524,7 +537,6 @@ function initialStateForRunOnly(
     const inject = assertRunOnlyInjectPhasePlan(injectState);
     return {
         roomObjectsByRoom: inject.roomObjectsByRoom,
-        combined: inject.combined,
         planSelectOutput: inject.planSelectOutput,
     };
 }
@@ -544,7 +556,8 @@ function selectHarnessSteps(
     if (testOnly === 'planSelect') {
         return [allSteps[3]];
     }
-    return [allSteps[5]];
+    /** Narrative beat LLM plus parse into intent / phase-plan JSON (same slice tail as `runUntil` for this phase). */
+    return [allSteps[5], allSteps[6]];
 }
 
 export async function runCoyoteHypothesisPipeline(

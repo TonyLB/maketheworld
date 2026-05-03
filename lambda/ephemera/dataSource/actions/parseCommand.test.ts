@@ -422,7 +422,7 @@ describe('parseCommand LLM path', () => {
             confidence: 1,
             harnessInvocation: {
                 mode: 'partial',
-                testOnly: 'phasePlan',
+                testOnly: 'narrativeBeats',
                 harnessRunKind: 'runUntil',
             },
         })

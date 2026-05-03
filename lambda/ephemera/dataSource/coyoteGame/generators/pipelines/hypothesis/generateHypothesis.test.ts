@@ -36,6 +36,36 @@ const stageOneSeamBody = JSON.stringify({
     ],
 })
 
+const PLAN_SELECT_SELECTED_CANDIDATE_DEFAULT = {
+    candidateId: 'candidate-1',
+    executionSummary: 'Birdseed lure then terminal drop.',
+    tropeAssignments: {
+        Bait: {
+            executionDetail: 'Road Runner stops for birdseed in the lane.',
+            members: [
+                {
+                    stableKey: 'birdseed-0',
+                    shortName: 'birdseed',
+                    room: 'CLIFFBASE',
+                    tropeFunction: 'lane bait',
+                },
+            ],
+        },
+        'Finishing Move': {
+            executionDetail: 'Anvil drop is timed for the committed lane.',
+            members: [
+                {
+                    stableKey: 'anvil',
+                    shortName: 'anvil',
+                    room: 'CLIFFBASE',
+                    tropeFunction: 'terminal drop payload',
+                },
+            ],
+        },
+    },
+    outliers: [] as const,
+}
+
 /** Hop 1 --- rubric narrative + trailing ` ```json ` handoff for hop 2. */
 const planSelectOutputBody = [
     '## Intent conflicts',
@@ -48,7 +78,11 @@ const planSelectOutputBody = [
     '- Winner: candidate-1.',
     '',
     '```json',
-    '{"paragraphSummary":"Stage the anvil and lure the Road Runner underneath.","planIssues":[{"code":"DIRECTION_AMBIGUOUS","summary":"needs rope timing"}]}',
+    JSON.stringify({
+        paragraphSummary: 'Stage the anvil and lure the Road Runner underneath.',
+        planIssues: [{ code: 'DIRECTION_AMBIGUOUS', summary: 'needs rope timing' }],
+        selectedCandidate: PLAN_SELECT_SELECTED_CANDIDATE_DEFAULT,
+    }),
     '```',
 ].join('\n')
 
@@ -163,7 +197,8 @@ describe('generateHypothesis', () => {
             dynamicSuffix: string
         }
         const fullHop2 = narrativeBeatPrompt.invariantPrefix + narrativeBeatPrompt.dynamicSuffix
-        expect(fullHop2).toContain('**tropeFunction:** lane bait')
+        expect(fullHop2).toContain('member:')
+        expect(fullHop2).toContain('| lane bait')
     })
 
     it('parses phase-plan hop body with ## Scene analysis + fenced Hypothesis', async () => {
@@ -236,6 +271,57 @@ describe('generateHypothesis', () => {
             ],
         })
         stageOneMock.mockResolvedValue({ success: true, body: overrideSeam })
+        planSelectionMock.mockResolvedValue({
+            success: true,
+            body: [
+                '## Intent conflicts',
+                '- x',
+                '',
+                '## Rubric comparison',
+                '- x',
+                '',
+                '## Winner selection',
+                '- Winner: candidate-1.',
+                '',
+                '```json',
+                JSON.stringify({
+                    paragraphSummary: 'Stage the anvil and lure the Road Runner underneath.',
+                    planIssues: [{ code: 'DIRECTION_AMBIGUOUS', summary: 'needs rope timing' }],
+                    selectedCandidate: {
+                        candidateId: 'candidate-1',
+                        executionSummary: 'Multi-room setup.',
+                        tropeAssignments: {
+                            Contraption: {
+                                executionDetail: 'Setup spans rooms before final beat.',
+                                members: [
+                                    {
+                                        stableKey: 'anvil-0',
+                                        shortName: 'anvil',
+                                        room: 'CLIFFBASE',
+                                        tropeFunction: 'anchor payload rig',
+                                    },
+                                    {
+                                        stableKey: 'portable-hole-0',
+                                        shortName: 'portable hole',
+                                        room: 'BRIDGE',
+                                        tropeFunction: 'route shaping trap surface',
+                                    },
+                                    {
+                                        stableKey: 'birdseed-1',
+                                        shortName: 'birdseed',
+                                        room: 'BRIDGE',
+                                        tropeFunction: 'bait cue for lane commitment',
+                                    },
+                                ],
+                            },
+                        },
+                        outliers: [],
+                    },
+                }),
+                '```',
+            ].join('\n'),
+            usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
+        })
 
         await generateHypothesis({
             getGameRooms,
@@ -256,7 +342,7 @@ describe('generateHypothesis', () => {
             dynamicSuffix: string
         }
         const fullHop2 = narrativeBeatPrompt.invariantPrefix + narrativeBeatPrompt.dynamicSuffix
-        expect(fullHop2).toContain('## Combined clustering')
+        expect(fullHop2).toContain('## Committed plan')
         expect(fullHop2).toContain('anvil')
         expect(fullHop2).toContain('portable hole')
         expect(fullHop2).toContain('birdseed')
@@ -326,7 +412,11 @@ describe('generateHypothesis', () => {
                 '- Winner: candidate-1.',
                 '',
                 '```json',
-                '{"paragraphSummary":"Chosen.","planIssues":[{"code":"ROLE_CONFLICT","summary":"missing role handoff"}]}',
+                JSON.stringify({
+                    paragraphSummary: 'Chosen.',
+                    planIssues: [{ code: 'ROLE_CONFLICT', summary: 'missing role handoff' }],
+                    selectedCandidate: PLAN_SELECT_SELECTED_CANDIDATE_DEFAULT,
+                }),
                 '```',
             ].join('\n'),
             usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
@@ -355,6 +445,33 @@ describe('generateHypothesis', () => {
             },
         })
         expect(narrativeBeatMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('falls back to stub when plan-select handoff omits selectedCandidate', async () => {
+        planSelectionMock.mockResolvedValue({
+            success: true,
+            body: [
+                '## Intent conflicts',
+                '- x',
+                '',
+                '## Winner selection',
+                '- Winner: candidate-1.',
+                '',
+                '```json',
+                JSON.stringify({
+                    paragraphSummary: 'Stage the anvil and lure the Road Runner underneath.',
+                    planIssues: [{ code: 'DIRECTION_AMBIGUOUS', summary: 'needs rope timing' }],
+                }),
+                '```',
+            ].join('\n'),
+            usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        })
+        const result = await generateHypothesisWithStageResults({ getGameRooms, getRoomMeta })
+        expect(result.kind).toBe('stub')
+        if (result.kind === 'stub') {
+            expect(result.record.intent).toBe('Hypothesis: Stubbed')
+        }
+        expect(narrativeBeatMock).not.toHaveBeenCalled()
     })
 
     it('falls back to stub when phase-plan hop Bedrock fails', async () => {

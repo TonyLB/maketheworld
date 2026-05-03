@@ -9,6 +9,7 @@ jest.mock('./invokeBedrockHypothesis', () => {
 })
 
 import { COYOTE_ENGINE_TEST_FIXTURES } from '../../testHarness/coyoteEngineTestFixtures'
+import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 import {
     invokeBedrockHypothesisNarrativeBeat,
     invokeBedrockHypothesisPlanSelection,
@@ -51,6 +52,36 @@ const stageOneSeamBody = JSON.stringify({
     ],
 })
 
+const PLAN_SELECT_SELECTED_CANDIDATE = {
+    candidateId: 'candidate-1',
+    executionSummary: 'Birdseed lure then terminal drop.',
+    tropeAssignments: {
+        Bait: {
+            executionDetail: 'Road Runner stops for birdseed in the lane.',
+            members: [
+                {
+                    stableKey: 'birdseed-0',
+                    shortName: 'birdseed',
+                    room: 'CLIFFBASE',
+                    tropeFunction: 'lane bait',
+                },
+            ],
+        },
+        'Finishing Move': {
+            executionDetail: 'Anvil lands after the lane setup commits the target route.',
+            members: [
+                {
+                    stableKey: 'anvil',
+                    shortName: 'anvil',
+                    room: 'CLIFFBASE',
+                    tropeFunction: 'terminal drop payload',
+                },
+            ],
+        },
+    },
+    outliers: [] as const,
+}
+
 const planSelectOutputBody = [
     '## Intent conflicts',
     '- candidate-1 may misread intent: trigger timing remains coarse.',
@@ -62,7 +93,11 @@ const planSelectOutputBody = [
     '- Winner: candidate-1.',
     '',
     '```json',
-    '{"paragraphSummary":"Stage the anvil.","planIssues":[{"code":"DIRECTION_AMBIGUOUS","summary":"timing is coarse"}]}',
+    JSON.stringify({
+        paragraphSummary: 'Stage the anvil.',
+        planIssues: [{ code: 'DIRECTION_AMBIGUOUS', summary: 'timing is coarse' }],
+        selectedCandidate: PLAN_SELECT_SELECTED_CANDIDATE,
+    }),
     '```',
 ].join('\n')
 
@@ -175,6 +210,24 @@ describe('validateCoyoteHypothesisHarnessOptions', () => {
             })
         ).toThrow('runOnly planSelect')
     })
+
+    it('throws when runOnly narrativeBeats inject omits selectedCandidate', () => {
+        const fixture01 = COYOTE_ENGINE_TEST_FIXTURES.find((f) => f.id === 'fixture-01')
+        expect(fixture01?.planSelectInject).toBeDefined()
+        expect(() =>
+            validateCoyoteHypothesisHarnessOptions({
+                testOnly: 'narrativeBeats',
+                harnessRunKind: 'runOnly',
+                injectState: {
+                    roomObjectsByRoom: fixture01!.roomObjectsByRoom as CoyoteRoomObjectsByRoom,
+                    planSelectOutput: {
+                        paragraphSummary: 'x',
+                        planIssues: [],
+                    },
+                },
+            })
+        ).toThrow('selectedCandidate')
+    })
 })
 
 describe('runCoyoteHypothesisPipeline harness modes', () => {
@@ -272,7 +325,11 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
                 '- Winner: candidate-1.',
                 '',
                 '```json',
-                '{"paragraphSummary":"Stage the anvil.","planIssues":[{"code":"DIRECTION_AMBIGUOUS","summary":"timing is coarse"}]}',
+                JSON.stringify({
+                    paragraphSummary: 'Stage the anvil.',
+                    planIssues: [{ code: 'DIRECTION_AMBIGUOUS', summary: 'timing is coarse' }],
+                    selectedCandidate: PLAN_SELECT_SELECTED_CANDIDATE,
+                }),
                 '```',
             ].join('\n'),
             usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
@@ -313,10 +370,10 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         }
     })
 
-    it('runOnly phasePlan uses inject and skips stage-one/plan-selection LLMs', async () => {
+    it('runOnly narrativeBeats uses inject and skips stage-one/plan-selection LLMs', async () => {
         const fixture01 = COYOTE_ENGINE_TEST_FIXTURES.find((f) => f.id === 'fixture-01')
-        expect(fixture01?.phasePlanInject).toBeDefined()
-        const inject = fixture01!.phasePlanInject!
+        expect(fixture01?.narrativeBeatsInject).toBeDefined()
+        const inject = fixture01!.narrativeBeatsInject!
 
         const result = await runCoyoteHypothesisPipeline(
             {
@@ -325,11 +382,10 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
                 roomObjectsByRoomOverride: inject.roomObjectsByRoom,
             },
             {
-                testOnly: 'phasePlan',
+                testOnly: 'narrativeBeats',
                 harnessRunKind: 'runOnly',
                 injectState: {
                     roomObjectsByRoom: inject.roomObjectsByRoom,
-                    combined: inject.combined,
                     planSelectOutput: inject.planSelectOutput,
                 },
             }
@@ -341,5 +397,33 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         if (result.kind === 'harnessPartial') {
             expect(result.narrativeBeatResult?.success).toBe(true)
         }
+    })
+
+    it('aborts to stub when plan-select JSON omits selectedCandidate', async () => {
+        planSelectionMock.mockResolvedValue({
+            success: true,
+            body: [
+                '## Intent conflicts',
+                '- candidate-1 intent gap',
+                '',
+                '## Winner selection',
+                '- Winner: candidate-1.',
+                '',
+                '```json',
+                JSON.stringify({
+                    paragraphSummary: 'Stage the anvil.',
+                    planIssues: [{ code: 'DIRECTION_AMBIGUOUS', summary: 'timing is coarse' }],
+                }),
+                '```',
+            ].join('\n'),
+            usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
+        })
+        const result = await runCoyoteHypothesisPipeline({ getGameRooms, getRoomMeta })
+        expect(result.kind).toBe('stub')
+        if (result.kind === 'stub') {
+            expect(result.record.intent).toBe('Hypothesis: Stubbed')
+        }
+        expect(narrativeBeatMock).not.toHaveBeenCalled()
+        expect(planSelectionMock).toHaveBeenCalledTimes(1)
     })
 })
