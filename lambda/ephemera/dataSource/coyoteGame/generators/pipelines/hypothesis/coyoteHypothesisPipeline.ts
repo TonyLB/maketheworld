@@ -207,7 +207,8 @@ export function validateCoyoteHypothesisHarnessOptions(options: CoyoteHypothesis
 const RUN_UNTIL_LAST_STEP_INDEX: Record<CoyoteHypothesisTestPhase, number> = {
     candidates: 1,
     planSelect: 3,
-    narrativeBeats: 5,
+    /** Includes {@link parseNarrativeBeatRecord} after {@link hypothesisNarrativeBeatLlm}. */
+    narrativeBeats: 6,
 };
 
 function buildCoyoteHypothesisSteps(
@@ -555,7 +556,8 @@ function selectHarnessSteps(
     if (testOnly === 'planSelect') {
         return [allSteps[3]];
     }
-    return [allSteps[5]];
+    /** Narrative beat LLM plus parse into intent / phase-plan JSON (same slice tail as `runUntil` for this phase). */
+    return [allSteps[5], allSteps[6]];
 }
 
 export async function runCoyoteHypothesisPipeline(

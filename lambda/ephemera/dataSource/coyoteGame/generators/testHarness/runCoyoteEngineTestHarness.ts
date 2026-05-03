@@ -202,6 +202,22 @@ function formatPlanSelectionReasoningForHarness(args: {
     return `planSelectionReasoning:\n${rc}`
 }
 
+/** Raw Bedrock text for the narrative beat hop (partial **`runOnly` `narrativeBeats`** diagnostics). */
+function formatNarrativeBeatBodyForHarness(result: InvokeBedrockHypothesisResult | null): string {
+    if (result === null) {
+        return 'narrativeBeatBody: (none)'
+    }
+    if (!result.success) {
+        const err = result.errorMessage?.trim().length ? result.errorMessage : 'invoke failed'
+        return `narrativeBeatBody: (${err})`
+    }
+    const body = result.body
+    if (!body.trim()) {
+        return 'narrativeBeatBody: (empty)'
+    }
+    return `narrativeBeatBody:\n${body}`
+}
+
 function formatNarrativeBeatsJsonForHarness(args: {
     phasePlanJson: string | undefined
     phasePlanValidationReason: string | undefined
@@ -323,6 +339,8 @@ function formatFixtureRenderTree(args: {
     selectionBodyBlock: string
     /** Only when partial harness **`testOnly`** is **`planSelect`** (run ends after plan selection). */
     planSelectionReasoningBlock?: string
+    /** Only when partial harness **`testOnly`** is **`narrativeBeats`**: raw model text before parsed JSON line. */
+    narrativeBeatBodyBlock?: string
     narrativeBeatsJsonBlock: string
     errorMessage?: string
     /** Partial-run banner lines after heading (e.g. **`harness: runUntil candidates`**). */
@@ -340,6 +358,7 @@ function formatFixtureRenderTree(args: {
         usageNarrativeBeat,
         selectionBodyBlock,
         planSelectionReasoningBlock,
+        narrativeBeatBodyBlock,
         narrativeBeatsJsonBlock,
         errorMessage,
         harnessBannerLines,
@@ -374,6 +393,9 @@ function formatFixtureRenderTree(args: {
     )
     if (planSelectionReasoningBlock !== undefined) {
         tree.push(planSelectionReasoningBlock, COYOTE_RENDER_LINE_BREAK)
+    }
+    if (narrativeBeatBodyBlock !== undefined) {
+        tree.push(narrativeBeatBodyBlock, COYOTE_RENDER_LINE_BREAK)
     }
     tree.push(narrativeBeatsJsonBlock)
     if (errorMessage) {
@@ -480,6 +502,10 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                               planSelectionResult: flat.planSelectionResult,
                           })
                         : undefined
+                const narrativeBeatBodyBlock =
+                    invocation.testOnly === 'narrativeBeats' && !skipNarrativeBeat
+                        ? formatNarrativeBeatBodyForHarness(flat.narrativeBeatResult ?? null)
+                        : undefined
                 const narrativeBeatsJsonBlock = skipNarrativeBeat
                     ? 'narrativeBeatsJson: (not run)'
                     : formatNarrativeBeatsJsonForHarness({
@@ -498,6 +524,7 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                     usageNarrativeBeat,
                     selectionBodyBlock,
                     planSelectionReasoningBlock,
+                    narrativeBeatBodyBlock,
                     narrativeBeatsJsonBlock,
                     errorMessage: pipelineErrorMessage(pipeline),
                     harnessBannerLines,
