@@ -17,7 +17,7 @@ Production runs a **linear sequence** orchestrated in [`coyoteHypothesisPipeline
    The model proposes a **candidate pool** of trope-style readings (seams) from what changed in the room. Application code then **parses and combines** that output with staged room objects: validation, clustering, and rendering so later hops see a **single enriched view** of the possibilities, not just the raw transcript.
 
 2. **Plan selection**  
-   That combined pool is presented for **rubric-style comparison** so the model can weigh readings and settle on one coherent direction. Code **extracts a structured handoff**: a short summary of the committed reading, **residual** plan issues that still bind the story, and optionally a **structured winning candidate** supplemented with deterministic detail (for example tying outliers back to room objects) so the next hop stays grounded.
+   That combined pool is presented for **rubric-style comparison** so the model can weigh readings and settle on one coherent direction. Code **extracts a structured handoff**: a short summary of the committed reading, **residual** plan issues that still bind the story, and a **structured winning candidate** (`selectedCandidate`) supplemented with deterministic detail (for example tying outliers back to room objects) so the next hop stays grounded. The plan-select JSON parser may still tolerate a handoff **without** `selectedCandidate` at parse time; **orchestration** nonetheless **requires** `selectedCandidate` before the narrative beat LLM. If it is missing after plan-select, the run **aborts** to stub and does **not** call `buildNarrativeBeatPrompt`.
 
 3. **Narrative beat (phase plan)**  
    The chosen framing and constraints feed the **final hop**, which turns them into a **`Hypothesis:`** line the player can read and optional structured plan / walkthrough material. A shared terminal parser ([`parseHypothesisModelOutput`](../../sharedParsers/parseHypothesisModelOutput.ts)) maps model text into a **`CoyoteGameIntentRecord`** the cache and UI use.
@@ -31,7 +31,7 @@ Harness modes (`runUntil` / `runOnly`) slice this sequence or inject mid-pipelin
 The hypothesis pipeline is the production path for `Objects Changed` events in Coyote rooms:
 
 1. **Candidates:** propose a trope assignment pool from staged objects, then merge it with room state into one enriched candidate view.
-2. **Plan selection:** compare that pool under a rubric, choose a reading, and pass a structured handoff (summary, residual issues, optional winner).
+2. **Plan selection:** compare that pool under a rubric, choose a reading, and pass a structured handoff (summary, residual issues, structured winner `selectedCandidate`). The narrative beat hop runs only when `selectedCandidate` is present after parse (see [`coyoteHypothesisPipeline.ts`](coyoteHypothesisPipeline.ts)).
 3. **Narrative beat:** render the committed reading into a `Hypothesis:` line and optional structured plan/walkthrough for the player and cache.
 
 This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock wrappers for that flow.
@@ -134,6 +134,8 @@ Plan-select may **materialize** chosen affordances as first-class `tropeAssignme
 
 **Harness example.** Coyote engine fixture-01 (`FIXTURE_01_PHASE_PLAN_HANDOFF`) injects phase-plan `planSelectOutput` with `selectedCandidate` that includes a **Finishing Move** member using **`affordance:coyote`**, exercised by [`coyoteEngineTestFixtures.test.ts`](../../testHarness/coyoteEngineTestFixtures.test.ts). Definition: [`coyoteEngineTestFixtures.ts`](../../testHarness/coyoteEngineTestFixtures.ts).
 
+**Narrative beat harness (`runOnly` `phasePlan`).** Injected pipeline state uses **`CoyoteHarnessNarrativeBeatsInject`**: **`{ planSelectOutput, roomObjectsByRoom }`** only (no **`combined`**). `selectedCandidate` is required on `planSelectOutput` for this path. Types: [`coyoteHarnessInjectTypes.ts`](coyoteHarnessInjectTypes.ts); orchestration and validation: [`coyoteHypothesisPipeline.ts`](coyoteHypothesisPipeline.ts).
+
 - Terminal parse of model output into cache-facing intent fields is shared and lives in [`../../sharedParsers/parseHypothesisModelOutput.ts`](../../sharedParsers/parseHypothesisModelOutput.ts), not in this folder.
 - Cross-cutting staged-object helpers and render-tree constants are under [`../../../utilities/`](../../../utilities/).
 - Harness code lives under [`../../testHarness/`](../../testHarness/) and imports this pipeline rather than duplicating it.
@@ -169,7 +171,11 @@ Parser safety posture:
 
 ### Phase-plan consumption
 
-- [`narrativeBeats/buildNarrativeBeatPrompt.ts`](narrativeBeats/buildNarrativeBeatPrompt.ts) accepts **`planSelectOutput`** with mandatory **`selectedCandidate`** plus **`roomObjectsByRoom`** only; dynamic Markdown uses a single **`## Committed plan`** block (summary, residual issues, structured winner).
+- [`narrativeBeats/buildNarrativeBeatPrompt.ts`](narrativeBeats/buildNarrativeBeatPrompt.ts) accepts **`planSelectOutput`** with mandatory **`selectedCandidate`** plus **`roomObjectsByRoom`** only. The narrative beat prompt **does not** embed the full **combined** candidate pool. **Combined** output still exists **upstream** (for example plan-select input serialization and the **`parsePlanSelectionHandoff`** step in [`coyoteHypothesisPipeline.ts`](coyoteHypothesisPipeline.ts), including outlier rehydration when `candidateId` matches); it is simply **not** passed into `buildNarrativeBeatPrompt`.
+- Dynamic Markdown uses a single **`## Committed plan`** block (summary, residual issues, structured winner). Instructions for **how to read** that block are **inline** in `buildNarrativeBeatPrompt.ts` (local string constants next to prompt assembly), not a shared multi-candidate clustering contract.
+- Default narrative beat max output tokens: **`BEDROCK_HYPOTHESIS_NARRATIVE_BEAT_MAX_TOKENS` = 2048** in [`invokeBedrockHypothesis.ts`](invokeBedrockHypothesis.ts). Change the cap only with explicit justification (for example harness **`usageNarrativeBeat`** and manual load review).
+
+**Follow-on narrative copy (not required here).** Stronger model-facing guidance for **Finishing Move as terminal beat**, **backward reasoning**, and **prep vs showtime** relative to Road Runner involvement belongs in a **future** `taskPlanning` task plan, not this pipeline doc. Related trope-centered context: [`AGENT.tropeCenteredRefactor.planning.md`](../../../../../../../taskPlanning/lambda/ephemera/dataSource/coyoteGame/AGENT.tropeCenteredRefactor.planning.md).
 
 ### Residual `planIssues`
 
@@ -179,7 +185,7 @@ Stage responsibilities:
 
 - Plan-selection identifies issues and resolves what it can; **emitted** `planIssues` are residual obligations only. Intent-signal rows count as negative winner evidence while they remain open.
 - Underspecification rows are deconfliction obligations, not automatic disqualifiers.
-- Phase-plan treats the chosen summary, residual `planIssues`, and (when present) `selectedCandidate` as authoritative constraints and resolves or escalates accordingly.
+- Phase-plan (narrative beat LLM) treats the chosen summary, residual `planIssues`, and **`selectedCandidate`** as authoritative constraints and resolves or escalates accordingly. That hop runs only after orchestration has confirmed `selectedCandidate` is present (see **`selectedCandidate` (structured winner)** above).
 
 ## Tests
 
