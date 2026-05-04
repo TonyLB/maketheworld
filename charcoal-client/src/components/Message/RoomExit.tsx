@@ -1,4 +1,4 @@
-import React, { ReactChild, ReactChildren } from 'react'
+import React, { ReactNode } from 'react'
 import { useDispatch } from 'react-redux'
 
 import Chip from '@mui/material/Chip'
@@ -14,7 +14,7 @@ import { StandardExitFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/ex
 interface RoomExitProps {
     exit: StandardExitFacet;
     inactive?: boolean;
-    children?: ReactChild | ReactChildren;
+    children?: ReactNode;
 }
 
 export const RoomExit = ({ exit, inactive = false }: RoomExitProps) => {
