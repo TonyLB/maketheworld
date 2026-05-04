@@ -125,4 +125,51 @@ describe('RoomExit', () => {
 
         expect(screen.getByText('No Target Exit')).toBeInTheDocument()
     })
+
+    describe('inactive variant', () => {
+        it('should render an outlined grey chip when inactive', () => {
+            const exit = new StandardExitFacet({
+                reference: { tag: 'Room', universalKey: 'ROOM#target-room' },
+                payload: 'Inactive Exit'
+            })
+
+            const { container } = render(
+                <Provider store={store}>
+                    <RoomExit exit={exit} inactive />
+                </Provider>
+            )
+
+            const chipRoot = container.querySelector('.MuiChip-root')
+            expect(chipRoot).not.toBeNull()
+            expect(chipRoot?.className).toContain('MuiChip-outlined')
+            expect(screen.getByText('Inactive Exit')).toBeInTheDocument()
+        })
+
+        it('should not dispatch moveCharacter when an inactive chip is clicked', () => {
+            const exit = new StandardExitFacet({
+                reference: { tag: 'Room', universalKey: 'ROOM#target-room' },
+                payload: 'Inactive Exit'
+            })
+
+            render(
+                <Provider store={store}>
+                    <RoomExit exit={exit} inactive />
+                </Provider>
+            )
+
+            const label = screen.getByText('Inactive Exit')
+            fireEvent.click(label)
+
+            expect(mockDispatch).not.toHaveBeenCalledWith(
+                expect.objectContaining({
+                    type: expect.stringContaining('lifeLine/moveCharacter')
+                })
+            )
+            expect(mockDispatch).not.toHaveBeenCalledWith(
+                expect.objectContaining({
+                    type: expect.stringContaining('player/addOnboardingComplete')
+                })
+            )
+        })
+    })
 }) 

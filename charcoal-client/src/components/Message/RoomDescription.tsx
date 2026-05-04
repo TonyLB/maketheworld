@@ -2,11 +2,13 @@ import React, { ReactChild, ReactChildren, useMemo, useCallback, ReactNode } fro
 import { useDispatch, useSelector } from 'react-redux'
 
 import {
+    alpha,
     Box,
     Typography,
-    Divider
+    Divider,
+    Theme
 } from '@mui/material'
-import { blue } from '@mui/material/colors'
+import { blue, grey } from '@mui/material/colors'
 import HouseIcon from '@mui/icons-material/House'
 
 import MessageComponent from './MessageComponent'
@@ -20,7 +22,6 @@ import RenderTreeContent from './RenderTreeContent'
 import { getPlayer } from '../../slices/player'
 import { EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
-import MiniChip from '../MiniChip'
 import { useActiveCharacter } from '../ActiveCharacter'
 import { socketDispatchPromise } from '../../slices/lifeLine'
 import { StandardRender, PlainClass } from '@tonylb/mtw-wml/ts/standardize/render'
@@ -31,6 +32,26 @@ import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/cha
 import { SituationRoomFacetPayload } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { formatRoomContentsLine } from '../../slices/messages/roomHeaderPhaseC'
+
+const roomShellSx = (live: boolean, header: boolean | undefined) => {
+    const tint = live ? blue[200] : grey[200]
+    return {
+        paddingTop: '10px',
+        paddingBottom: '10px',
+        background: `linear-gradient(75deg, ${tint}, #ffffff)`,
+        color: (theme: Theme) => theme.palette.getContrastText(tint),
+        ...(header
+            ? {
+                marginLeft: 0,
+                marginRight: 0
+            }
+            : {
+                marginLeft: '70px',
+                marginRight: '70px'
+            }
+        )
+    }
+}
 
 interface RoomDescriptionProps {
     parsedWML?: StandardForm;
@@ -44,6 +65,8 @@ interface RoomDescriptionProps {
 
 
 export const RoomDescription = ({ parsedWML, metaData, header, currentHeader, isGenerating }: RoomDescriptionProps) => {
+    const useLivePalette = Boolean(isGenerating || (header && currentHeader))
+    const affordancesInactive = !useLivePalette
     const componentUUID = metaData.componentUUID
 
     // Initialize with proper types
@@ -121,126 +144,111 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader, is
     const contentsLine = header ? formatRoomContentsLine(parsedWML, componentUUID) : null
 
     if (isGenerating) {
-        return <MessageComponent
-            flush={header}
-            sx={{
-                paddingTop: "10px",
-                paddingBottom: "10px",
-                background: `linear-gradient(75deg, ${blue[200]}, #ffffff)`,
-                color: (theme) => (theme.palette.getContrastText(blue[200])),
-                ...(header
-                    ? {
-                        marginLeft: 0,
-                        marginRight: 0
-                    }
-                    : {
-                        marginLeft: "70px",
-                        marginRight: "70px"
-                    }
-                )
-            }}
-            leftIcon={<HouseIcon />}
-        >
-            <Box
-                sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    minHeight: '6rem'
-                }}
-            >
-                <Typography variant='h5' align='center'>
-                    Generating...
-                </Typography>
+        return (
+            <Box data-live-palette='live' sx={{ width: '100%' }}>
+                <MessageComponent
+                    flush={header}
+                    sx={roomShellSx(true, header)}
+                    leftIcon={<HouseIcon />}
+                >
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minHeight: '6rem'
+                        }}
+                    >
+                        <Typography variant='h5' align='center'>
+                            Generating...
+                        </Typography>
+                    </Box>
+                </MessageComponent>
             </Box>
-        </MessageComponent>
+        )
     }
 
-    return <MessageComponent
-            flush={header}
-            sx={{
-                paddingTop: "10px",
-                paddingBottom: "10px",
-                background: `linear-gradient(75deg, ${blue[200]}, #ffffff)`,
-                color: (theme) => (theme.palette.getContrastText(blue[200])),
-                ...(header
-                    ? {
-                        // When header is sticky, ensure it extends to edges
-                        // GroupedVirtuoso handles sticky positioning automatically
-                        marginLeft: 0,
-                        marginRight: 0
-                    }
-                    : {
-                        marginLeft: "70px",
-                        marginRight: "70px"
-                    }
-                )
-            }}
-            leftIcon={<HouseIcon />}
+    return (
+        <Box
+            data-live-palette={useLivePalette ? 'live' : 'historical'}
+            sx={{ width: '100%' }}
         >
-            <Box
-                sx={{
-                    display: 'grid',
-                    gridTemplateAreas: `
-                        "content content"
-                        "exits characters"
-                    `,
-                    gridTemplateColumns: '1fr 1fr',
-                    gridTemplateRows: 'auto auto'
-                }}
+            <MessageComponent
+                flush={header}
+                sx={roomShellSx(useLivePalette, header)}
+                leftIcon={<HouseIcon />}
             >
                 <Box
                     sx={{
-                        gridArea: 'content',
-                        paddingBottom: '5px',
-                        ...(header && {
-                            maxHeight: '20vh',
-                            overflow: 'hidden'
-                        })
+                        display: 'grid',
+                        gridTemplateAreas: `
+                            "content content"
+                            "exits characters"
+                        `,
+                        gridTemplateColumns: '1fr 1fr',
+                        gridTemplateRows: 'auto auto'
                     }}
                 >
-                    <Typography variant='h5' align='left'>
-                        { nameText }
-                        { currentHeader && <MiniChip text="Live" /> }
-                    </Typography>
-                    <Box sx={{ overflow: 'hidden' }}>
-                        {
-                            (() => {
-                                const plain = description.plain ?? []
-                                if (description && description._payload && !(description._payload instanceof PlainClass)) {
-                                    console.error('Expected PlainClass but got', description._payload.constructor.name, description)
-                                }
-                                return plain.length > 0
-                                    ? <RenderTreeContent list={plain} onClickLink={onClickLink} />
-                                    : <em>No description</em>
-                            })()
-                        }
-                    </Box>
-                    {contentsLine && (
-                        <Typography variant='body2' component='p' sx={{ marginTop: '8px' }}>
-                            {contentsLine}
+                    <Box
+                        sx={{
+                            gridArea: 'content',
+                            paddingBottom: '5px',
+                            ...(header && {
+                                maxHeight: '20vh',
+                                overflow: 'hidden'
+                            })
+                        }}
+                    >
+                        <Typography variant='h5' align='left'>
+                            { nameText }
                         </Typography>
-                    )}
-                    <Divider />
-                </Box>
-                <Box sx={{ gridArea: 'exits' }}>
-                    { exits.map((exit, index) => (
-                        <RoomExit 
-                            exit={exit} 
-                            key={`exit-${index}`} 
+                        <Box sx={{ overflow: 'hidden' }}>
+                            {
+                                (() => {
+                                    const plain = description.plain ?? []
+                                    if (description && description._payload && !(description._payload instanceof PlainClass)) {
+                                        console.error('Expected PlainClass but got', description._payload.constructor.name, description)
+                                    }
+                                    return plain.length > 0
+                                        ? <RenderTreeContent list={plain} onClickLink={onClickLink} />
+                                        : <em>No description</em>
+                                })()
+                            }
+                        </Box>
+                        {contentsLine && (
+                            <Typography variant='body2' component='p' sx={{ marginTop: '8px' }}>
+                                {contentsLine}
+                            </Typography>
+                        )}
+                        <Divider
+                            sx={{
+                                borderColor: (theme) =>
+                                    alpha(useLivePalette ? blue[400] : grey[500], theme.palette.mode === 'dark' ? 0.35 : 0.28)
+                            }}
                         />
-                    ))}
+                    </Box>
+                    <Box sx={{ gridArea: 'exits' }}>
+                        { exits.map((exit, index) => (
+                            <RoomExit 
+                                exit={exit} 
+                                inactive={affordancesInactive}
+                                key={`exit-${index}`} 
+                            />
+                        ))}
+                    </Box>
+                    <Box sx={{ gridArea: 'characters' }}>
+                        { characters.map((character, index) => (
+                            <RoomCharacter 
+                                character={character} 
+                                inactive={affordancesInactive}
+                                key={`character-${index}`} 
+                            />
+                        ))}
+                    </Box>
                 </Box>
-                <Box sx={{ gridArea: 'characters' }}>
-                    { characters.map((character, index) => (
-                        <RoomCharacter 
-                            character={character} 
-                            key={`character-${index}`} 
-                        />
-                    ))}
-                </Box>
-            </Box>
-        </MessageComponent>
+            </MessageComponent>
+        </Box>
+    )
 }
 
 export default RoomDescription

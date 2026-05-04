@@ -7,6 +7,7 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
+import '@testing-library/jest-dom'
 import RoomDescription from './RoomDescription'
 import { PerceptionRoomMetaData } from '@tonylb/mtw-interfaces/ts/messages'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
@@ -16,14 +17,24 @@ vi.mock('../../../cacheDB')
 
 // Mock the sub-components to simplify testing
 vi.mock('./RoomExit', () => ({
-    default: ({ exit }: any) => (
-        <div data-testid="room-exit">{exit?.description?.plainString || 'Exit'}</div>
+    default: ({ exit, inactive }: any) => (
+        <div
+            data-testid="room-exit"
+            data-inactive={String(Boolean(inactive))}
+        >
+            {exit?.description?.plainString || 'Exit'}
+        </div>
     )
 }))
 
 vi.mock('./RoomCharacter', () => ({
-    default: ({ character }: any) => (
-        <div data-testid="room-character">{character?.displayName?.plainString || 'Character'}</div>
+    default: ({ character, inactive }: any) => (
+        <div
+            data-testid="room-character"
+            data-inactive={String(Boolean(inactive))}
+        >
+            {character?.displayName?.plainString || 'Character'}
+        </div>
     )
 }))
 
@@ -238,6 +249,77 @@ describe('RoomDescription', () => {
     })
 
     /**
+     * Threads `affordancesInactive = !useLivePalette` from RoomDescription into RoomExit and
+     * RoomCharacter so historical headers render inert grey affordances.
+     */
+    describe('Affordance threading', () => {
+        const wmlWithAffordances = `
+            <Asset uuid=(Test)>
+                <Room uuid=(ROOM#main)>
+                    <Render>
+                        <DisplayName>Parlor</DisplayName>
+                        <Summary>A room.</Summary>
+                        <Description>Full prose here.</Description>
+                    </Render>
+                    <Exit to=(ROOM#north)>North passage</Exit>
+                    <Character key=(testChar) uuid=(CHARACTER#test) />
+                </Room>
+            </Asset>
+        `
+
+        it('marks affordances active when header && currentHeader (live)', () => {
+            const parsedWML = new StandardForm(deIndentWML(wmlWithAffordances), { standardizeMode: 'ephemeraWire' })
+            const metaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#main',
+                displayMode: 'header'
+            }
+
+            render(
+                <Provider store={store}>
+                    <RoomDescription
+                        parsedWML={parsedWML}
+                        metaData={metaData}
+                        header
+                        currentHeader
+                    />
+                </Provider>
+            )
+
+            const exits = screen.getAllByTestId('room-exit')
+            const characters = screen.getAllByTestId('room-character')
+            expect(exits.length).toBeGreaterThan(0)
+            expect(characters.length).toBeGreaterThan(0)
+            exits.forEach((node) => expect(node).toHaveAttribute('data-inactive', 'false'))
+            characters.forEach((node) => expect(node).toHaveAttribute('data-inactive', 'false'))
+        })
+
+        it('marks affordances inactive when header is rendered without currentHeader (historical)', () => {
+            const parsedWML = new StandardForm(deIndentWML(wmlWithAffordances), { standardizeMode: 'ephemeraWire' })
+            const metaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#main',
+                displayMode: 'header'
+            }
+
+            render(
+                <Provider store={store}>
+                    <RoomDescription
+                        parsedWML={parsedWML}
+                        metaData={metaData}
+                        header
+                    />
+                </Provider>
+            )
+
+            const exits = screen.getAllByTestId('room-exit')
+            const characters = screen.getAllByTestId('room-character')
+            expect(exits.length).toBeGreaterThan(0)
+            expect(characters.length).toBeGreaterThan(0)
+            exits.forEach((node) => expect(node).toHaveAttribute('data-inactive', 'true'))
+            characters.forEach((node) => expect(node).toHaveAttribute('data-inactive', 'true'))
+        })
+    })
+
+    /**
      * Room-affordances channel only (exits, characters, Object, etc.): skipped until affordance-only
      * perception fixtures and client aggregation are wired. Un-skip and flesh out in a staged TDD pass.
      */
@@ -399,13 +481,13 @@ describe('RoomDescription', () => {
                 expect(screen.getByText('Header Room')).toBeDefined()
             })
 
-            it('should show live indicator when currentHeader is true', () => {
+            it('should use live palette when currentHeader is true in header mode', () => {
                 const metaData: PerceptionRoomMetaData = {
                     componentUUID: 'ROOM#test-room',
                     displayMode: 'header'
                 }
 
-                render(
+                const { container } = render(
                     <Provider store={store}>
                         <RoomDescription
                             metaData={metaData}
@@ -415,16 +497,17 @@ describe('RoomDescription', () => {
                     </Provider>
                 )
 
-                expect(screen.getByText('Live')).toBeDefined()
+                const shell = container.querySelector('[data-live-palette="live"]')
+                expect(shell).not.toBeNull()
             })
 
-            it('should not show live indicator when currentHeader is false', () => {
+            it('should use historical palette when currentHeader is false in header mode', () => {
                 const metaData: PerceptionRoomMetaData = {
                     componentUUID: 'ROOM#test-room',
                     displayMode: 'header'
                 }
 
-                render(
+                const { container } = render(
                     <Provider store={store}>
                         <RoomDescription
                             metaData={metaData}
@@ -433,7 +516,8 @@ describe('RoomDescription', () => {
                     </Provider>
                 )
 
-                expect(screen.queryByText('Live')).toBeNull()
+                const shell = container.querySelector('[data-live-palette="historical"]')
+                expect(shell).not.toBeNull()
             })
 
             it('should render generating placeholder when isGenerating is true', () => {

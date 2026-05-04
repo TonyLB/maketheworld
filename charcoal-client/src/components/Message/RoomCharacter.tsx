@@ -11,10 +11,11 @@ import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/cha
 
 interface RoomCharacterProps {
     character: StandardCharacter;  // Only accept Standard format
+    inactive?: boolean;
     children?: ReactChild | ReactChildren;
 }
 
-export const RoomCharacter = ({ character }: RoomCharacterProps) => {
+export const RoomCharacter = ({ character, inactive = false }: RoomCharacterProps) => {
     // Access data through StandardCharacter getters - displayName is now a StandardLiteral
     const characterName = character.displayName ? (character.displayName._payload?.plain?.toJSON?.() as string) : 'Unknown Character'
     const characterId = character.universalKey || character.key as any
@@ -22,6 +23,25 @@ export const RoomCharacter = ({ character }: RoomCharacterProps) => {
 
     const { CharacterId: viewCharacterId } = useActiveCharacter()
     const dispatch = useDispatch()
+
+    if (inactive) {
+        //
+        // Historical room headers render character chips as plain grey, inert
+        // affordances. CharacterChip's variant="inactive" branch skips
+        // CharacterStyleWrapper and ignores onClick.
+        //
+        return (
+            <div data-testid="room-character">
+                <CharacterChip
+                    CharacterId={characterId}
+                    Name={characterName}
+                    fileURL={characterImage}
+                    variant="inactive"
+                />
+            </div>
+        )
+    }
+
     //
     // TODO: Create locking mechanism, and embed something akin to "clickable" into
     // the data structure for the Exit

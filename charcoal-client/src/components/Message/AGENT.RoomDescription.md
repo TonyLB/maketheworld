@@ -47,12 +47,19 @@ Inbound **`PerceptionMessage.wmlContent`** is parsed with **`standardizeMode: 'e
 - **Functionality**: Character movement via Redux dispatch
 - **Data**: Uses `StandardExitFacet` with `reference` (target room) and `payload` (exit name)
 - **Implementation**: Extracts exit name from `exit.payload.toJSON()` and target room from `exit.reference.universalKey`
+- **Props**:
+  - `inactive?: boolean` --- when true, the chip renders as an **outlined grey** `<Chip>` with no `onClick`. Used by `RoomDescription` to mute exits inside historical / non-live headers (clicks are ignored so historical exits cannot trigger time-traveling moves).
 
 #### **RoomCharacter** (`RoomCharacter.tsx`)
 - **Purpose**: Shows characters present in the room
 - **Functionality**: Character linking and navigation
 - **Data**: Uses `StandardCharacter` with rich text name, image, and metadata
 - **Implementation**: Extracts character data from `StandardCharacter` properties directly
+- **Props**:
+  - `inactive?: boolean` --- when true, forwards `variant="inactive"` to [`CharacterChip`](../CharacterChip/index.tsx) and does **not** wire the `socketDispatchPromise` link click. Used by `RoomDescription` to mute character chips inside historical / non-live headers.
+
+#### **CharacterChip** (`../CharacterChip/index.tsx`)
+- **`variant?: 'default' | 'inactive'`** (D1) --- `default` keeps the existing per-character themed chip wrapped in [`CharacterStyleWrapper`](../CharacterStyleWrapper/index.tsx). `inactive` skips the wrapper entirely and renders a plain-grey `<Chip>` (no per-character tint) with `onClick` ignored. The string-union shape is intentional: future muted-but-character-tinted treatments can be added behind the same prop without churning the API at every call site.
 
 ### **Integration Points**
 
@@ -97,11 +104,14 @@ Inbound **`PerceptionMessage.wmlContent`** is parsed with **`standardizeMode: 'e
 interface RoomDescriptionProps {
     parsedWML?: StandardForm;
     metaData: PerceptionRoomMetaData;
-    children?: ReactChild | ReactChildren;
+    children?: ReactNode;
     header?: boolean;
     currentHeader?: boolean;
+    isGenerating?: boolean;
 }
 ```
+
+`RoomDescription` derives `useLivePalette = Boolean(isGenerating || (header && currentHeader))` for the shell / divider, and `affordancesInactive = !useLivePalette` for the exit and character rows; the latter is threaded into [`RoomExit`](RoomExit.tsx) and [`RoomCharacter`](RoomCharacter.tsx) via their `inactive` props so the shell, divider, exits, and character chips all stay in lockstep.
 
 ### **Standard Format Data Extraction Pattern**
 
@@ -249,13 +259,15 @@ The `RoomDescription` component supports two display modes:
 - **Layout**: Side margins (70px left/right)
 - **Content**: Complete room description with all sub-components
 - **Height**: Unlimited height, full content display
+- **Palette**: Same `useLivePalette` rule as header mode: without `header`, only **`isGenerating`** selects the live (blue) shell; otherwise the historical (grey) shell applies. **Affordances** follow the same rule via `affordancesInactive = !useLivePalette` (see Affordance treatment below).
 - **Usage**: Primary room display in message stream
 
 #### **Header Mode** (`header={true}`)
 - **Layout**: No margins, compact header positioning
 - **Content**: Essential information only (name, truncated description)
 - **Height**: Limited to `maxHeight: '20vh'` with overflow hidden
-- **Live Indicator**: Shows "Live" chip when `currentHeader={true}`
+- **Palette**: The shell uses a **light blue** gradient when **live** and a **grey** gradient when **historical**. **Live** means `useLivePalette` is true: `isGenerating` **or** (`header` and `currentHeader`). **`isGenerating`** always uses the live (blue) treatment even when `currentHeader` is false. **`currentHeader`** is omitted or undefined for historical styling (defaults off). In the play transcript, [`VirtualMessageList.tsx`](VirtualMessageList.tsx) sets `currentHeader` only for the **last** message group (`index >= Groups.length - 1`).
+- **Affordance treatment**: Historical headers also render their exits and character chips in a muted, **non-interactive** state via `affordancesInactive = !useLivePalette`. [`RoomExit`](RoomExit.tsx) shows an outlined grey chip with no `onClick`; [`RoomCharacter`](RoomCharacter.tsx) forwards `variant="inactive"` to [`CharacterChip`](../CharacterChip/index.tsx), which renders plain grey and ignores `onClick`. Clicks on inactive affordances are intentionally ignored (no `moveCharacter` from a stale exit, no link dispatch from a stale character chip), so historical headers read as archive without enabling time-traveling actions.
 - **Usage**: Room context headers during navigation
 - **Routing**: `RoomHeader` message type routes to `<RoomDescription header />`
 

@@ -24,13 +24,15 @@ const mockStore = configureStore()
 // Mock CharacterChip component with proper React component pattern
 vi.mock('../CharacterChip', () => {
     const MockCharacterChip = vi.fn((props: any) => {
-        const { CharacterId, Name, fileURL, onClick } = props
+        const { CharacterId, Name, fileURL, onClick, variant } = props
         return (
             <div 
                 data-testid="character-chip" 
                 data-character-id={CharacterId}
                 data-name={Name}
                 data-file-url={fileURL}
+                data-variant={variant ?? 'default'}
+                data-has-onclick={onClick ? 'true' : 'false'}
                 onClick={onClick}
             >
                 {Name}
@@ -167,5 +169,49 @@ describe('RoomCharacter', () => {
         )
 
         expect(screen.getByTestId('character-chip')).toHaveAttribute('data-character-id', character.universalKey)
+    })
+
+    describe('inactive variant', () => {
+        it('should forward variant="inactive" and drop onClick when inactive', () => {
+            const character = new StandardCharacter(`
+                <Character key=(inactiveCharacter)>
+                    <DisplayName>Inactive Character</DisplayName>
+                    <ShortName>Inactive</ShortName>
+                </Character>
+            `)
+
+            render(
+                <Provider store={store}>
+                    <RoomCharacter character={character} inactive />
+                </Provider>
+            )
+
+            const chip = screen.getByTestId('character-chip')
+            expect(chip).toHaveAttribute('data-variant', 'inactive')
+            expect(chip).toHaveAttribute('data-has-onclick', 'false')
+        })
+
+        it('should not dispatch socketDispatchPromise when an inactive chip is clicked', () => {
+            const character = new StandardCharacter(`
+                <Character key=(inactiveClickCharacter)>
+                    <DisplayName>Inactive Click</DisplayName>
+                    <ShortName>InactiveClick</ShortName>
+                </Character>
+            `)
+
+            render(
+                <Provider store={store}>
+                    <RoomCharacter character={character} inactive />
+                </Provider>
+            )
+
+            fireEvent.click(screen.getByTestId('character-chip'))
+
+            expect(mockDispatch).not.toHaveBeenCalledWith(
+                expect.objectContaining({
+                    type: expect.stringContaining('lifeLine/socketDispatchPromise')
+                })
+            )
+        })
     })
 }) 
