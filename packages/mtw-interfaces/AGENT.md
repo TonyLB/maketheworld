@@ -69,7 +69,7 @@ Defines the display protocol for different types of game messages:
 #### **Current Message Types**
 - **`SpacerMessage`**: Visual spacing in chat
 - **`WorldMessage`**: System-generated content
-- **`CommandTranscriptMessage`**: Player command echo on the message log (same `RenderTree` wire as world lines; distinct protocol for client styling)
+- **`CommandTranscriptMessage`**: Player command echo on the message log
 - **`RoomDescription/Header/Update`**: Room information and changes
 - **`FeatureDescription`**: Feature details and interactions
 - **`KnowledgeDescription`**: Knowledge item information
