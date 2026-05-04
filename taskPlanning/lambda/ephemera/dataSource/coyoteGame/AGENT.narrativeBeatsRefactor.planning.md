@@ -1,6 +1,6 @@
 # Coyote Game: narrative beats refactor (planning)
 
-**Status:** Step **1** initial baseline Jest run is green (see **Baseline capture**); **0** (schema + **`mtw-interfaces`** type name) still open. **Validation-failure behavior** and **intent field name `narrativeBeatsStructured`** remain locked (see **Delivery sequencing**).
+**Status:** Step **0** (schema + naming) and Step **1** (baseline + ongoing green tests) are complete. **Validation-failure behavior** and **intent field name `narrativeBeatsStructured`** remain locked (see **Delivery sequencing**).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -30,7 +30,7 @@ Downstream today: the first **` ```json ` ** fence is validated as legacy **`Coy
 
 ### Structured output and naming (direction locked)
 
-- **Canonical structured output** for hop 2 is a **new validated type** in **`mtw-interfaces`** (TypeScript type name TBD; shape TBD under **Open questions**) representing the **final, cacheable, behind-the-scenes** narrative-beats payload---including scratchpad (or merged into one validated tree), not a bolt-on derivation of legacy **`CoyotePhasePlan`** as the long-term source of truth.
+- **Canonical structured output** for hop 2 is a **new validated type** in **`mtw-interfaces`** (**`CoyoteNarrativeBeatsStructured`**; schema shape TBD under **Open questions**) representing the **final, cacheable, behind-the-scenes** narrative-beats payload---including scratchpad (or merged into one validated tree), not a bolt-on derivation of legacy **`CoyotePhasePlan`** as the long-term source of truth.
 - **Durable intent row:** validated JSON is stored on **`CoyoteGameIntentRecord` as `narrativeBeatsStructured`** (replacing **`phasePlan`**), alongside **`walkthrough`** (middle-section prose) and **`intent`** (Hypothesis line). **`generatePlanOutcome`** continues to read the same **`get('intent')`** row; wire **`narrativeBeatsStructured`** (and **`walkthrough`**) into the outcome prompt builder the way **`phasePlan`** and **`walkthrough`** are today.
 - **Rename as you go:** treat legacy **phase-plan** vocabulary elsewhere (pipeline draft state, parsers, harness, docs) as **narrative beats** where it refers to this hop or its structured product. Prefer the same prefix for pipeline siblings for traceability, for example **`phasePlanJson`** to **`narrativeBeatsStructuredJson`**, **`phasePlanValidationReason`** to **`narrativeBeatsStructuredValidationReason`**. Keep renames **mechanical and traceable** (compat shims or short dual-field window only if a release slice needs it).
 
@@ -43,10 +43,16 @@ Downstream today: the first **` ```json ` ** fence is validated as legacy **`Coy
 - Replace the first fenced JSON with an internal **beat scratchpad** (flat beats, dependencies, **`linearizedSequence`**) as in the collaborator handoff, then **cartoon prose**, then fenced Hypothesis.
 - **Requires a contract migration:** new validated type + intent record field, updates to **`parseNarrativeBeatOutput`**, outcome formatting (successor to **`formatPhasePlanForOutcomePrompt`**), harness structured JSON expectations, fixtures, and pipeline state keyed with **narrative beats** naming.
 
-**Open questions before implementation (lock in Progress when decided):**
+**Phase-0 decisions (locked for primary slice):**
 
-- Exact **schema** for the validated tree (what lives in scratchpad-only vs normalized canonical fields for outcome and debugging).
-- **TypeScript type name** in **`mtw-interfaces`** for the validated object carried in **`narrativeBeatsStructured`** (field name is locked; type identifier can differ, e.g. **`CoyoteNarrativeBeatsValidated`**).
+- Type name locked: use **`CoyoteNarrativeBeatsStructured`** in **`mtw-interfaces`** for the validated object carried in **`narrativeBeatsStructured`**.
+- Minimal v1 schema for **`CoyoteNarrativeBeatsStructured`**:
+  - top-level **`beats`** array (non-empty)
+  - each beat is:
+    - **`beatId: string`** (stable per beat within the payload)
+    - **`description: string`**
+    - **`derivedFrom: string[]`** (stableKey list)
+- Keep v1 intentionally lean (no required trope/phaseKind/dependency graph fields in this first contract slice).
 
 ### Optional follow-up -- Prompt-only tweaks (after structure exists)
 
@@ -78,7 +84,7 @@ Downstream today: the first **` ```json ` ** fence is validated as legacy **`Coy
 | --- | --- |
 | Validation-failure: prose-only record + **`narrativeBeatsStructuredValidationReason`** | Locked |
 | Intent **`narrativeBeatsStructured`** + pipeline **`narrativeBeatsStructuredJson`** (raw fence interior when valid) | Locked |
-| Lock **`mtw-interfaces`** type name + validated **JSON schema** (open questions above) | Not started |
+| Lock **`mtw-interfaces`** type name + validated **JSON schema** (open questions above) | Locked |
 | Primary slice: interfaces + parser + outcome + harness + fixtures | Not started |
 | Hop-2 prompt and shared-line alignment (depends on primary slice) | Not started |
 | Durable doc updates (`hypothesis/AGENT.md` if contracts change) | Not started |
@@ -146,12 +152,15 @@ Hypothesis: It looks like you are trying to use the straightaway rocket setup to
 
 Use **`[ ]`** for pending work and **`[X]`** for completed work. Mark nested bullets **`[X]`** as each sub-task finishes so partial progress is visible.
 
-- [ ] **0. Lock schema and naming:** Answer the **Open questions** in **Delivery sequencing** (validated tree shape, **`mtw-interfaces`** type name). Intent field **`narrativeBeatsStructured`** and pipeline **`narrativeBeatsStructuredJson`** / **`narrativeBeatsStructuredValidationReason`** are already **Locked** in **Delivery sequencing** and **Progress**; align **phase-plan** to **narrative beats** renames in the same slice where touch cost is low; update the **Progress** table.
+- [X] **0. Lock schema and naming:** Answer the **Open questions** in **Delivery sequencing** (validated tree shape, **`mtw-interfaces`** type name). Intent field **`narrativeBeatsStructured`** and pipeline **`narrativeBeatsStructuredJson`** / **`narrativeBeatsStructuredValidationReason`** are already **Locked** in **Delivery sequencing** and **Progress**; align **phase-plan** to **narrative beats** renames in the same slice where touch cost is low; update the **Progress** table.
   - [X] Validation-failure degraded path (prose-only + **`narrativeBeatsStructuredValidationReason`**) recorded under **Delivery sequencing** and **Progress**.
   - [X] Intent field **`narrativeBeatsStructured`** (with **`walkthrough`** for outcome) and pipeline JSON sibling naming recorded under **Delivery sequencing** and **Progress**.
-- [ ] **1. Baseline tests:** Run the Getting started command; keep **`buildNarrativeBeatPrompt.test.ts`**, **`coyoteHypothesisPipeline.test.ts`**, and **`parseHypothesisModelOutput.test.ts`** green while the contract changes.
+  - [X] Type name locked: **`CoyoteNarrativeBeatsStructured`**.
+  - [X] Validated schema fields/shape locked (minimal v1: `beats[]` with `beatId`, `description`, `derivedFrom`).
+- [X] **1. Baseline tests:** Run the Getting started command; keep **`buildNarrativeBeatPrompt.test.ts`**, **`coyoteHypothesisPipeline.test.ts`**, and **`parseHypothesisModelOutput.test.ts`** green while the contract changes.
   - [X] Initial verification (2026-05-04): Getting started command plus the two sibling files in **Verification** all pass from **`lambda/ephemera/`**.
   - [X] Capture one example of current bad register (fixture or redacted log) for before/after comparison if useful (see **Baseline capture** above).
+  - [X] User-confirmed full **`lambda/ephemera`** suite green (2026-05-04), satisfying the "keep green while changing contract" requirement at this stage.
 - [ ] **2. Primary slice (structure first):** Design validated JSON (scratchpad with **`beats`** / **`linearizedSequence`** or agreed variant); implement **narrative-beats** types and validator in **`mtw-interfaces`**, **`parseNarrativeBeatOutput`**, pipeline state, intent cache field, outcome formatter, harness, and golden fixtures; rename legacy **phase-plan** identifiers to **narrative beats** where they denote this hop or its structured output.
   - [ ] Extend or replace **`parseNarrativeBeatOutput`** tests for new fences and failure modes.
   - [ ] Confirm **`generatePlanOutcome`** still receives enough structured context from the new intent field.
