@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react'
-import { keyframes } from '@mui/material/styles'
+import { keyframes } from '@mui/material'
 
 const load8 = keyframes`
     from {

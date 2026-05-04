@@ -1,11 +1,23 @@
-import React, { useRef, useMemo, useCallback, useState, useEffect } from 'react'
+import React, {
+    useRef,
+    useMemo,
+    useCallback,
+    useState,
+    useEffect,
+    type ComponentType
+} from 'react'
 import PropTypes from "prop-types"
 
 import {
     List
 } from '@mui/material'
 
-import { GroupedVirtuoso, VirtuosoHandle } from 'react-virtuoso'
+import {
+    GroupedVirtuoso,
+    GroupedVirtuosoHandle,
+    type Components as VirtuosoComponents,
+    type ListProps as VirtuosoListProps
+} from 'react-virtuoso'
 import { isPerceptionRoomMetaData } from '@tonylb/mtw-interfaces/ts/messages'
 
 import { useActiveCharacter } from '../ActiveCharacter'
@@ -80,31 +92,33 @@ const StickyRoomGroupHeader = ({
     )
 }
 
+const VirtuosoMuiList = React.forwardRef<HTMLDivElement, Omit<VirtuosoListProps, 'ref'>>(
+    ({ style, children }, listRef) => (
+        <List
+            style={{ padding: 0, ...style, margin: 0 }}
+            component="div"
+            ref={listRef}
+        >
+            {children}
+        </List>
+    )
+)
+
 export const VirtualMessageList = () => {
     const { messageBreakdown } = useActiveCharacter()
-    const virtuoso = useRef<VirtuosoHandle>(null)
+    const virtuoso = useRef<GroupedVirtuosoHandle | null>(null)
 
     const groupCounts = useMemo(() => (
         messageBreakdown.Groups.map(({ messageCount }) => (messageCount))
     ), [messageBreakdown.Groups])
 
-    const Components = useMemo(() => {
-        return {
-            //
-            // TODO: Properly type-constrain this forwardRef
-            //
-            List: React.forwardRef<any, any>(({ style, children }, listRef) => (
-                <List
-                    style={{padding: 0, ...style, margin: 0 }}
-                    component="div"
-                    ref={listRef}
-                >
-                    {children}
-                </List>
-            )) as any
-
-        } as any
-    }, [])
+    const components = useMemo(
+        (): VirtuosoComponents => ({
+            // ForwardRefExoticComponent is structurally fine for Virtuoso; types disagree on propTypes/ref.
+            List: VirtuosoMuiList as ComponentType<VirtuosoListProps>
+        }),
+        []
+    )
 
     const itemContent = useCallback((index: number) => (
             <MessageComponent message={messageBreakdown.Messages[index]} />
@@ -121,12 +135,14 @@ export const VirtualMessageList = () => {
         <GroupedVirtuoso
             groupCounts={groupCounts}
             groupContent={groupContent}
-            components={Components}
+            components={components}
             initialTopMostItemIndex={messageBreakdown.Messages.length - 1}
             overscan={{ main: 500, reverse: 500 }}
             itemContent={itemContent}
             followOutput={true}
             ref={virtuoso as any}
+            onPointerEnterCapture={undefined}
+            onPointerLeaveCapture={undefined}
         />
     )
 }

@@ -1,13 +1,12 @@
 import React, { useCallback, useMemo, useState } from "react"
 
-import { styled } from "@mui/material/styles"
 import Tabs from "@mui/material/Tabs"
 import Tab, { tabClasses } from "@mui/material/Tab"
 import Box from "@mui/material/Box"
 import { blue, green, red } from '@mui/material/colors'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import CancelIcon from '@mui/icons-material/Cancel'
-import { Button, Checkbox, FormControl, FormControlLabel, FormGroup, FormHelperText, Stack, TextField } from "@mui/material"
+import { Button, Checkbox, FormControl, FormControlLabel, FormGroup, FormHelperText, Stack, styled, TextField } from "@mui/material"
 import CodeOfConductConsentDialog from "../CodeOfConductConsent"
 import { anonymousAPIPromise, isAnonymousAPIResultSignInFailure, isAnonymousAPIResultSignInSuccess } from "../../anonymousAPI"
 import { useDispatch, useSelector } from "react-redux"

@@ -1,6 +1,6 @@
 import React, { ReactNode, FunctionComponent } from 'react'
 import { useSelector } from 'react-redux'
-import { ThemeProvider } from '@mui/material/styles'
+import { ThemeProvider } from '@mui/material'
 import {
     blue,
     pink,

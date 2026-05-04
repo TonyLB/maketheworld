@@ -1,8 +1,6 @@
 import React, { useEffect } from 'react'
 import { Provider, useDispatch, useSelector } from 'react-redux'
-import { CssBaseline } from '@mui/material'
-import { Theme } from '@mui/material/styles';
-import { ThemeProvider, StyledEngineProvider, createTheme } from '@mui/material/styles'
+import { CssBaseline, ThemeProvider, StyledEngineProvider, createTheme } from '@mui/material'
 
 import { store } from './store/index'
 import AppController from './components/AppController'

@@ -4,7 +4,7 @@
 
 import React from 'react'
 import { render, screen } from '@testing-library/react'
-import { ThemeProvider, createTheme } from '@mui/material/styles'
+import { ThemeProvider, createTheme } from '@mui/material'
 import { vi, beforeEach, describe, it, expect } from 'vitest'
 import '@testing-library/jest-dom'
 import { createEditor, Descendant } from 'slate'

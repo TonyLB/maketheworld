@@ -143,10 +143,10 @@ export const CharacterSelectionModal: FunctionComponent<CharacterSelectionModalP
                                 <TutorialPopover anchorEl={guest as any} placement="right" checkPoints={['navigateInPlayEdit']} />
                             </Grid>
                         )}
-                        {hasCharacters && myCharacters.filter(({ scopedId }) => (scopedId)).map(({ Name, fileURL, scopedId, CharacterId }) => (
+                        {hasCharacters && myCharacters.filter(({ scopedId }) => (scopedId)).map(({ DisplayName, fileURL, scopedId, CharacterId }) => (
                             scopedId && 
                             <Grid
-                                key={`${Name}:${scopedId}`}
+                                key={`${DisplayName}:${scopedId}`}
                                 container
                                 size={{ sm: 3 }}
                                 sx={{
@@ -164,12 +164,12 @@ export const CharacterSelectionModal: FunctionComponent<CharacterSelectionModalP
                                 >
                                     <Avatar
                                         sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
-                                        alt={Name || '???'}
+                                        alt={DisplayName || '???'}
                                         src={fileURL && `${appBaseURL}/images/${fileURL}.png`}
                                     >
-                                        {Name[0] ? Name[0].toUpperCase() : '?'}
+                                        {DisplayName[0] ? DisplayName[0].toUpperCase() : '?'}
                                     </Avatar>
-                                    <React.Fragment>{ Name }</React.Fragment>
+                                    <React.Fragment>{ DisplayName }</React.Fragment>
                                 </Stack>
                             </Grid>
                         ))}
