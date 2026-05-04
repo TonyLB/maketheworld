@@ -53,6 +53,12 @@ export type WorldOOCMessage = {
     Message: RenderTree;
 } & MessageAddressing
 
+/** Player-submitted command echo for the message log: same wire shape as WorldMessage, distinct DisplayProtocol for client styling. */
+export type CommandTranscriptMessage = {
+    DisplayProtocol: 'CommandTranscriptMessage';
+    Message: RenderTree;
+} & MessageAddressing
+
 /** Coyote compact hypothesis rows: same wire shape as WorldMessage, distinct DisplayProtocol for client routing. */
 export type CoyoteGameHypothesisMessage = {
     DisplayProtocol: 'CoyoteGameHypothesisMessage';
@@ -347,7 +353,7 @@ export const isPerceptionAssetMetaData = (metaData: PerceptionMessageMetaData): 
     return metaData.componentUUID.startsWith('ASSET#');
 }
 
-export type Message = SpacerMessage | CoyoteGameHelpMessage | WorldMessage | WorldOOCMessage | CoyoteGameHypothesisMessage | RoomUpdate | CharacterNarration | CharacterSpeech | OutOfCharacterMessage | PerceptionMessage
+export type Message = SpacerMessage | CoyoteGameHelpMessage | WorldMessage | WorldOOCMessage | CommandTranscriptMessage | CoyoteGameHypothesisMessage | RoomUpdate | CharacterNarration | CharacterSpeech | OutOfCharacterMessage | PerceptionMessage
 
 export const isMessage = (message: any): message is Message => {
     if (typeof message !== 'object') {
@@ -364,6 +370,7 @@ export const isMessage = (message: any): message is Message => {
             return true
         case 'WorldMessage':
         case 'WorldOOCMessage':
+        case 'CommandTranscriptMessage':
         case 'CoyoteGameHypothesisMessage':
             return isRenderTree(message.Message)
         case 'SayMessage':
