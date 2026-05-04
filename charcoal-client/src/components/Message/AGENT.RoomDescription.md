@@ -249,13 +249,14 @@ The `RoomDescription` component supports two display modes:
 - **Layout**: Side margins (70px left/right)
 - **Content**: Complete room description with all sub-components
 - **Height**: Unlimited height, full content display
+- **Palette**: Same `useLivePalette` rule as header mode: without `header`, only **`isGenerating`** selects the live (blue) shell; otherwise the historical (grey) shell applies.
 - **Usage**: Primary room display in message stream
 
 #### **Header Mode** (`header={true}`)
 - **Layout**: No margins, compact header positioning
 - **Content**: Essential information only (name, truncated description)
 - **Height**: Limited to `maxHeight: '20vh'` with overflow hidden
-- **Live Indicator**: Shows "Live" chip when `currentHeader={true}`
+- **Palette**: The shell uses a **light blue** gradient when **live** and a **grey** gradient when **historical**. **Live** means `useLivePalette` is true: `isGenerating` **or** (`header` and `currentHeader`). **`isGenerating`** always uses the live (blue) treatment even when `currentHeader` is false. **`currentHeader`** is omitted or undefined for historical styling (defaults off). In the play transcript, [`VirtualMessageList.tsx`](VirtualMessageList.tsx) sets `currentHeader` only for the **last** message group (`index >= Groups.length - 1`).
 - **Usage**: Room context headers during navigation
 - **Routing**: `RoomHeader` message type routes to `<RoomDescription header />`
 

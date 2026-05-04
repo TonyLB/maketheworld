@@ -399,13 +399,13 @@ describe('RoomDescription', () => {
                 expect(screen.getByText('Header Room')).toBeDefined()
             })
 
-            it('should show live indicator when currentHeader is true', () => {
+            it('should use live palette when currentHeader is true in header mode', () => {
                 const metaData: PerceptionRoomMetaData = {
                     componentUUID: 'ROOM#test-room',
                     displayMode: 'header'
                 }
 
-                render(
+                const { container } = render(
                     <Provider store={store}>
                         <RoomDescription
                             metaData={metaData}
@@ -415,16 +415,17 @@ describe('RoomDescription', () => {
                     </Provider>
                 )
 
-                expect(screen.getByText('Live')).toBeDefined()
+                const shell = container.querySelector('[data-live-palette="live"]')
+                expect(shell).not.toBeNull()
             })
 
-            it('should not show live indicator when currentHeader is false', () => {
+            it('should use historical palette when currentHeader is false in header mode', () => {
                 const metaData: PerceptionRoomMetaData = {
                     componentUUID: 'ROOM#test-room',
                     displayMode: 'header'
                 }
 
-                render(
+                const { container } = render(
                     <Provider store={store}>
                         <RoomDescription
                             metaData={metaData}
@@ -433,7 +434,8 @@ describe('RoomDescription', () => {
                     </Provider>
                 )
 
-                expect(screen.queryByText('Live')).toBeNull()
+                const shell = container.querySelector('[data-live-palette="historical"]')
+                expect(shell).not.toBeNull()
             })
 
             it('should render generating placeholder when isGenerating is true', () => {

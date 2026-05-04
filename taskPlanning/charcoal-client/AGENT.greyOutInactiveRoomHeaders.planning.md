@@ -1,8 +1,8 @@
 # Grey out inactive (non-live) room headers in the play transcript
 
-**Status:** In progress (decisions D1-D5 resolved below; implementation not started).
+**Status:** In progress (palette split and "Live" chip removal landed in `RoomDescription`; D1 affordance threading still pending).
 
-**Next step:** Follow **Recommended order** (baseline tests, then implementation).
+**Next step:** Extend `RoomExit` / `RoomCharacter` / `CharacterChip` per D1 (Recommended order line below).
 
 This document follows the task planning framework in [`taskPlanning/AGENT.md`](../AGENT.md) (durability, what belongs here vs in package docs, checkbox conventions). When the feature ships, move any lasting UI notes into [`charcoal-client/AGENT.md`](../../charcoal-client/AGENT.md) or an adjacent message doc, then **delete or archive** this file so `taskPlanning/` stays current.
 
@@ -30,7 +30,7 @@ In the play-mode message list, room block headers use a **light blue** treatment
 3. Baseline: from repo root, `cd charcoal-client` and run `npm run test:single` (or a narrow run against message components) so you have a clean baseline before UI edits.
 4. Code touchpoints (read before implementing):
    - [`charcoal-client/src/components/Message/VirtualMessageList.tsx`](../../charcoal-client/src/components/Message/VirtualMessageList.tsx) --- `currentHeader={index >= messageBreakdown.Groups.length - 1}` passed into sticky headers.
-   - [`charcoal-client/src/components/Message/RoomDescription.tsx`](../../charcoal-client/src/components/Message/RoomDescription.tsx) --- blue gradient, `MiniChip` "Live", maps to `RoomExit` / `RoomCharacter`.
+   - [`charcoal-client/src/components/Message/RoomDescription.tsx`](../../charcoal-client/src/components/Message/RoomDescription.tsx) --- live (blue) vs historical (grey) shell gradient from `useLivePalette`; maps to `RoomExit` / `RoomCharacter`.
    - [`charcoal-client/src/components/Message/RoomExit.tsx`](../../charcoal-client/src/components/Message/RoomExit.tsx) --- default MUI `Chip`.
    - [`charcoal-client/src/components/Message/RoomCharacter.tsx`](../../charcoal-client/src/components/Message/RoomCharacter.tsx) and [`charcoal-client/src/components/CharacterChip/index.tsx`](../../charcoal-client/src/components/CharacterChip/index.tsx) --- `CharacterStyleWrapper` (per-character theme) for nested chips.
 5. Durable architecture for the message list: [`charcoal-client/AGENT.md`](../../charcoal-client/AGENT.md) (link only; do not duplicate here).
@@ -66,8 +66,8 @@ In the play-mode message list, room block headers use a **light blue** treatment
 | --- | --- |
 | Task plan created; decisions D1-D5 captured | Done |
 | D1-D5 resolved in this doc | Done |
-| Implementation in `RoomDescription` + children | Not started |
-| Tests green; task plan checkboxes updated | Not started |
+| Implementation in `RoomDescription` + children | Partial (`RoomDescription` palette; exits/characters pending D1) |
+| Tests green; task plan checkboxes updated | Partial |
 | Lasting notes moved to package doc; this file removed/archived | Not started |
 
 ---
@@ -78,10 +78,10 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as
 
 - [X] Resolve **Decisions** D1-D5 (see table above).
 - [X] Baseline tests: `cd charcoal-client && npm run test:single` (see [`AGENT.development.md`](AGENT.development.md)).
-- [ ] Implement palette split and remove "Live" chip in [`RoomDescription.tsx`](../../charcoal-client/src/components/Message/RoomDescription.tsx); align `isGenerating` with D2.
+- [X] Implement palette split and remove "Live" chip in [`RoomDescription.tsx`](../../charcoal-client/src/components/Message/RoomDescription.tsx); align `isGenerating` with D2.
 - [ ] Extend [`RoomExit.tsx`](../../charcoal-client/src/components/Message/RoomExit.tsx) (and optionally [`RoomCharacter.tsx`](../../charcoal-client/src/components/Message/RoomCharacter.tsx) / [`CharacterChip`](../../charcoal-client/src/components/CharacterChip/index.tsx)) per D1.
-- [ ] Update [`RoomDescription.test.tsx`](../../charcoal-client/src/components/Message/RoomDescription.test.tsx) and any snapshot or RTL expectations.
-- [ ] `npm run test:single` (full package or scoped to `src/components/Message`).
+- [X] Update [`RoomDescription.test.tsx`](../../charcoal-client/src/components/Message/RoomDescription.test.tsx) and any snapshot or RTL expectations.
+- [X] `npm run test:single` (full package or scoped to `src/components/Message`).
 - [ ] Manual smoke: scroll transcript (historical vs bottom), room move with new section below fold.
 - [ ] Update **Progress** and **Recommended order** checkboxes in this file; migrate durable notes to [`charcoal-client/AGENT.md`](../../charcoal-client/AGENT.md) if needed; archive/delete this plan per [`taskPlanning/AGENT.md`](../AGENT.md).
 
