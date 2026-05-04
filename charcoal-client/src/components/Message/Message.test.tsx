@@ -309,3 +309,57 @@ describe('Message component - CoyoteGameHypothesisMessage routing', () => {
     })
 })
 
+describe('Message component - CommandTranscriptMessage routing', () => {
+    it('should render the command transcript message with command copy', () => {
+        const store = mockStore({
+            player: {
+                Players: {
+                    'CHARACTER#test': {
+                        Assets: []
+                    }
+                }
+            },
+            playerDataSource: {
+                publicData: {
+                    activeStreamKeys: [],
+                    subscribedStreams: {
+                        'test-player': {
+                            materializedView: {
+                                type: 'Snapshot',
+                                assets: [],
+                                characters: [],
+                                settings: { onboardCompleteTags: [] }
+                            }
+                        }
+                    }
+                }
+            },
+            personalAssets: { byId: {} },
+            activeCharacters: {
+                activeCharacter: 'CHARACTER#test'
+            },
+            settings: {
+                server: { ChatPrompt: 'What do you do?' },
+                client: { TextEntryLines: 1, ShowNeighborhoodHeaders: false, AlwaysShowOnboarding: false },
+                connection: { sessionId: '', playerName: 'test-player' }
+            },
+            lifeLine: {}
+        })
+        const message = {
+            DisplayProtocol: 'CommandTranscriptMessage',
+            MessageId: 'msg-command',
+            CreatedTime: Date.now(),
+            Message: ['look']
+        } as const
+
+        render(
+            <Provider store={store}>
+                <Message message={message as any} />
+            </Provider>
+        )
+
+        expect(screen.getByTestId('command-transcript-message')).toBeDefined()
+        expect(screen.getByText('look')).toBeDefined()
+    })
+})
+

@@ -455,9 +455,15 @@ export const moveCharacter = (CharacterId: EphemeraCharacterId) => ({ ExitName, 
     dispatch(socketDispatch({ message: 'action', actionType: 'move', payload: { CharacterId, ExitName, RoomId } }))
 }
 
-export const parseCommand = (CharacterId: EphemeraCharacterId) => ({ mode, entry }: ParseCommandProps): ThunkAction<boolean, RootState, unknown, AnyAction> => (dispatch) => {
+export const parseCommand = (CharacterId: EphemeraCharacterId) => ({ mode, entry, commandDispatchStrategy = 'fireAndForget' }: ParseCommandProps): ThunkAction<boolean, RootState, unknown, AnyAction> => (dispatch) => {
     if (mode === 'Command') {
-        dispatch(socketDispatch({ message: 'command', CharacterId, command: entry }))
+        if (commandDispatchStrategy === 'promise') {
+            // Optional correlation mode for command submissions. socketDispatchPromise adds RequestId.
+            dispatch(socketDispatchPromise({ message: 'command', CharacterId, command: entry }))
+        }
+        else {
+            dispatch(socketDispatch({ message: 'command', CharacterId, command: entry }))
+        }
         //
         // TODO: Use raiseError to handle return errors from the back-end command parser
         //
