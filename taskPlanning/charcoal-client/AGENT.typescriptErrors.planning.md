@@ -25,7 +25,7 @@ Eliminate TypeScript errors reported by `tsc` so `npm run check` and `npm run bu
 
 ## Decisions
 
-- **Material UI:** Pin `@mui/material`, `@mui/system`, and `@mui/icons-material` to **`7.3.4`** (exact or equivalent lockfile discipline so installs do not drift). Watching MUI release notes and scheduling deliberate version bumps is **out of scope** for this task; handle that as a separate initiative when needed.
+- **Material UI:** Pin `@mui/material` and `@mui/icons-material` to **`7.3.4`**, and `@mui/system` to **`7.3.3`** (npm does not publish `@mui/system@7.3.4`; `7.3.3` matches `@mui/material@7.3.4` dependency range). Use exact versions in `charcoal-client/package.json` and root `overrides` (and add a root dependency on `@mui/system` so the package hoists for `tsc`). Theme APIs use the `@mui/material` barrel where needed for TypeScript `isolatedModules` with MUI 7. Watching MUI release notes and scheduling deliberate version bumps is **out of scope** for this task; handle that as a separate initiative when needed.
 - **react-virtuoso:** Pin to **`1.11.1`** (matches the current range in [`charcoal-client/package.json`](../../charcoal-client/package.json): `^1.11.1`). Fix the `GroupedVirtuoso` / React types mismatch at that version (props, assertion, or local typing); do **not** treat upgrading to Virtuoso 2.x or later as part of this task unless a pin-only fix is impossible.
 - **`build:dev` / script churn:** Adding, documenting, or redirecting a `build:dev` script is **out of scope**. Use existing `npm run build` and `npm run check` in `charcoal-client/`.
 
@@ -33,7 +33,7 @@ Eliminate TypeScript errors reported by `tsc` so `npm run check` and `npm run bu
 
 | Area | Notes |
 | --- | --- |
-| MUI `@mui/material/styles` imports | Pin all `@mui/*` to **7.3.4**; reinstall; confirm typings resolve |
+| MUI / theme imports | Done: **7.3.4** material + icons, **7.3.3** system; root hoists `@mui/system`; theme hooks use `@mui/material` barrel (styles subpath + `isolatedModules` was unreliable). |
 | Character `DisplayName` (library, player, UI) | Replace legacy `Name` with `DisplayName` per `mtw-interfaces` |
 | `MessagePanel` / ephemera `info` | Use `DisplayName` on `EphemeraCharacterInPlay`, not nested `Name` |
 | `VirtualMessageList` / react-virtuoso | Pin **`1.11.1`**; satisfy `GroupedVirtuoso` vs `@types/react` (no Virtuoso major bump in-task) |
@@ -47,7 +47,7 @@ Eliminate TypeScript errors reported by `tsc` so `npm run check` and `npm run bu
 
 Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as you finish them.
 
-- [ ] **MUI:** Pin `@mui/material`, `@mui/system`, and `@mui/icons-material` to **7.3.4**; reinstall dependencies; confirm `Theme`, `createTheme`, `ThemeProvider`, `StyledEngineProvider`, `useTheme`, `styled`, `keyframes` resolve from `@mui/material/styles` (or adjust imports only if resolution stays broken after a clean install on that pin). Touch: `App.tsx`, `CharacterStyleWrapper`, `DraggableTree/useTreeStyles`, `Maps/Edit` theme hooks, `Onboarding/TutorialPopover`, `SignIn`, `Spinner`, `Workbench/workbenchTheme`.
+- [X] **MUI:** Pin `@mui/material` and `@mui/icons-material` to **7.3.4** and `@mui/system` to **7.3.3**; align root `overrides` and add root `@mui/system` for hoisting; reinstall. Import `Theme`/`useTheme`/`styled`/`keyframes`/`createTheme`/`ThemeProvider`/`StyledEngineProvider` from `@mui/material` (see **Decisions**). Touched: `App.tsx`, `CharacterStyleWrapper`, `DraggableTree/useTreeStyles`, `Maps/Edit` theme hooks, `Onboarding/TutorialPopover`, `SignIn`, `Spinner`, `Workbench/workbenchTheme`, plus `components.test.tsx` for consistency.
 - [ ] **Characters:** Rename `Name` to `DisplayName` where types are `LibraryCharacter` or `AssetClientPlayerCharacter` (`CharacterSelection`, `Home`, `slices/player` guest helper). Use `DisplayName` for `EphemeraCharacterInPlay` in `MessagePanel` (no `info.Name`).
 - [ ] **Virtuoso:** Set `react-virtuoso` to **`1.11.1`** in `package.json` (exact); fix `GroupedVirtuoso` typing in `VirtualMessageList.tsx` at that version (e.g. pointer-capture props, narrow assertion, or `ComponentProps` helper). Defer deliberate Virtuoso upgrades.
 - [ ] **Workbench:** Widen `handleImportSelect` in `TopLevelEditor.tsx` to `SchemaImportMapping['type']` and handle `Lens` in `addImportToDraft` path if needed.

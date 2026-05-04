@@ -1,5 +1,5 @@
-import { Theme } from '@mui/material/styles'
-import { useTheme } from '@mui/material/styles'
+import type { Theme } from '@mui/material'
+import { useTheme } from '@mui/material'
 import { orange, deepOrange } from '@mui/material/colors'
 
 // Import theme extensions as side-effect to ensure module augmentation is applied

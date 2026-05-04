@@ -1,7 +1,7 @@
 import React, { FunctionComponent, ReactElement, useRef } from 'react'
 import IconButton from '@mui/material/IconButton'
 import ButtonGroup from '@mui/material/ButtonGroup'
-import { useTheme } from '@mui/material/styles'
+import { useTheme } from '@mui/material'
 
 import SelectionIcon from '@mui/icons-material/NearMe'
 import OneWayExitIcon from '@mui/icons-material/TrendingFlat'

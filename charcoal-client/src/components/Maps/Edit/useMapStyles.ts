@@ -1,7 +1,5 @@
 import { blue } from "@mui/material/colors"
-import { useTheme } from '@mui/material/styles'
-import { styled } from '@mui/material/styles'
-import { Box } from '@mui/material'
+import { Box, styled, useTheme } from '@mui/material'
 
 export const useMapStyles = () => {
     const theme = useTheme()
