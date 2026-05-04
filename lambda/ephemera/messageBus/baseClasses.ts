@@ -58,6 +58,13 @@ export type PublishWorldOOCMessage = PublishMessageBase & {
     createdTime?: number;
 }
 
+export type PublishCommandTranscriptMessage = PublishMessageBase & {
+    displayProtocol: 'CommandTranscriptMessage';
+    message: RenderTree;
+    messageId?: string;
+    createdTime?: number;
+}
+
 export type PublishCoyoteGameHelpMessage = PublishMessageBase & {
     displayProtocol: 'CoyoteGameHelpMessage';
     messageId?: string;
@@ -107,6 +114,7 @@ export type PublishPerceptionMessage = {
 
 export type PublishMessage = PublishWorldMessage |
     PublishWorldOOCMessage |
+    PublishCommandTranscriptMessage |
     PublishCoyoteGameHelpMessage |
     PublishCoyoteGameHypothesisMessage |
     PublishSpeechMessage |
@@ -397,6 +405,9 @@ export const isPublishWorldLineMessage = (prop: PublishMessage): prop is Publish
     prop.displayProtocol === 'WorldMessage' || prop.displayProtocol === 'WorldOOCMessage'
 export const isPublishCoyoteGameHelpMessage = (prop: PublishMessage): prop is PublishCoyoteGameHelpMessage => (prop.displayProtocol === 'CoyoteGameHelpMessage')
 export const isPublishCoyoteGameHypothesisMessage = (prop: PublishMessage): prop is PublishCoyoteGameHypothesisMessage => (prop.displayProtocol === 'CoyoteGameHypothesisMessage')
+export const isPublishCommandTranscriptMessage = (prop: PublishMessage): prop is PublishCommandTranscriptMessage => (
+    prop.displayProtocol === 'CommandTranscriptMessage'
+)
 export const isCharacterMessage = (prop: PublishMessage): prop is (PublishSpeechMessage | PublishNarrateMessage | PublishOutOfCharacterMessage) => (['SayMessage', 'NarrateMessage', 'OOCMessage'].includes(prop.displayProtocol))
 
 export const isPerceptionPublishMessage = (prop: PublishMessage): prop is PublishPerceptionMessage => (prop.displayProtocol === 'PerceptionMessage')

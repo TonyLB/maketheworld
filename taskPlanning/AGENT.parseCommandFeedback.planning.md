@@ -1,7 +1,7 @@
 # Parse command feedback (transcript + correlation)
 
 **Status:** In progress  
-**Next step:** **Ephemera actions** -- publish the command transcript row on parse request (see **Recommended order**). Transcript wire: **`CommandTranscriptMessage`** in [`packages/mtw-interfaces/ts/messages.ts`](../packages/mtw-interfaces/ts/messages.ts).
+**Next step:** **Publish / perception path** -- confirm the new row reaches the client **`messageType: 'Messages'`** pipeline end-to-end (see **Recommended order**).
 
 This document follows [`taskPlanning/AGENT.md`](AGENT.md) (durability, what belongs here vs in package docs, checkbox conventions, retire when done).
 
@@ -18,14 +18,14 @@ Non-goals for this task plan: changing the LLM parse pipeline itself; full produ
 | --- | --- | --- |
 | Where command text is sourced for the row | **Server `PublishMessage`** | Same stream spectators see; persists with the message log for later review. **`DisplayProtocol: 'CommandTranscriptMessage'`** ( **`CommandTranscriptMessage`** type): same wire as **`WorldMessage`** (`Message: RenderTree` + **`MessageAddressing`**). |
 | Promise correlation | **`ReturnValue`** with **`messageType: 'Success'`** and top-level **`RequestId`** | Use once the client sends **`RequestId`** on the command. No separate **`messageType: 'Messages'`** envelope required for the promise; `socketDispatchPromise` matches **top-level** **`RequestId`** on the parsed lambda body. See [`charcoal-client/src/slices/lifeLine/index.api.ts`](../charcoal-client/src/slices/lifeLine/index.api.ts). |
-| Success payload copy | **Machine-oriented only** | Human-readable command echo lives **only** on the published transcript row (not duplicated on **`Success.message`**). |
+| Success payload copy | **Machine-oriented only** | Human-readable command echo lives **only** on the published transcript row (not duplicated on **`Success.message`**). Server **`Success.message`** token: **`parse_request_handled`**. |
 
 ## Progress
 
 | Area | Doc / owner | Notes |
 | --- | --- | --- |
 | Interfaces | `packages/mtw-interfaces` | **`CommandTranscriptMessage`** + `isMessage` / tests added. |
-| Ephemera lambda | `lambda/ephemera` | `app.ts` already forwards **`RequestId`** into parse-request when present; actions DS sends Success when **`requestId`** set. |
+| Ephemera lambda | `lambda/ephemera` | `app.ts` forwards **`RequestId`** into parse-request when present. **`mtw.ephemera.actions`** publishes **`CommandTranscriptMessage`** first on each parse, then outcomes; correlated **`ReturnValue`** Success uses **`parse_request_handled`**. **`publishMessage`** handles **`CommandTranscriptMessage`** like other RenderTree world-line protocols. |
 | Client lifeLine | `charcoal-client` | Today command mode uses **`socketDispatch`** without **`RequestId`**; switch or parallel path for **`socketDispatchPromise`** as needed. |
 | Client Message UI | `charcoal-client/src/components/Message` | New component + **`index.tsx`** router case. |
 
@@ -63,7 +63,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. If a step has nested bullets
 
 - [X] **Echo strategy:** server **`PublishMessage`** (spectators + persisted log); documented in **Design decisions** above.
 - [X] **`mtw-interfaces`:** Add transcript wire shape (new **`DisplayProtocol`** and **`Message`** variant, or documented reuse of an existing protocol if acceptable). Update **`isMessage`** / [`messages.ts`](../packages/mtw-interfaces/ts/messages.ts) tests.
-- [ ] **Ephemera actions:** Publish the transcript echo line when a parse is requested; keep **`ReturnValue`** **`Success`** correlated when **`requestId`** is present; keep **`Success.message`** machine-oriented (human copy only on the published row). Update [`index.test.ts`](../lambda/ephemera/dataSource/actions/index.test.ts).
+- [X] **Ephemera actions:** Publish the transcript echo line when a parse is requested; keep **`ReturnValue`** **`Success`** correlated when **`requestId`** is present; keep **`Success.message`** machine-oriented (human copy only on the published row). Update [`index.test.ts`](../lambda/ephemera/dataSource/actions/index.test.ts).
 - [ ] **Publish / perception path:** Confirm whatever **`publishMessage`** / queue path is required for the new row reaches the client **`messageType: 'Messages'`** pipeline (no orphan types).
 - [ ] **Client lifeLine:** Send **`RequestId`** on outbound command when using promise-based dispatch; keep fire-and-forget option clear if both modes exist. Add or extend tests (e.g. [`socketDispatchConversation.test.ts`](../charcoal-client/src/slices/lifeLine/socketDispatchConversation.test.ts) patterns / lifeLine tests).
 - [ ] **Client UI:** New message component (monospace / border per design), register in [`Message/index.tsx`](../charcoal-client/src/components/Message/index.tsx); component tests under **`charcoal-client`** Vitest rules.
