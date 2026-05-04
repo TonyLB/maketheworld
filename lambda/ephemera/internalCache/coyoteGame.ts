@@ -7,13 +7,14 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 export type CacheCoyoteGameKeys = 'gameRooms' | 'intent' | 'outcome'
 
 /**
- * Durable Coyote hypothesis row: the **`Hypothesis:`** line plus optional hop-2 **walkthrough** (internal cartoon prose; heading may be `## Scene analysis` or `## Cartoon play-by-play`) and **narrativeBeatsStructured** (when hop-2 JSON validated).
+ * Durable Coyote hypothesis row: the **`Hypothesis:`** line plus optional hop-2 **walkthrough** (internal cartoon prose under **`## Cartoon play-by-play`**) and **narrativeBeatsStructured** (when hop-2 JSON validated).
+ * Dynamo-backed reads rewrite a legacy first-line **`## Scene analysis`** heading to **`## Cartoon play-by-play`**.
  * **Plan outcome** ([`generatePlanOutcome`](../dataSource/coyoteGame/generators/pipelines/outcome/generatePlanOutcome.ts)) and the Await RoadRunner path use the same cached **`get('intent')`** value (no extra Dynamo read for outcome). If **narrativeBeatsStructured** is absent (validation failed, or legacy data), outcome generation still uses **intent** and optional **walkthrough**; see [`coyoteGame/AGENT.md`](../dataSource/coyoteGame/AGENT.md) (plan outcome).
  */
 export type CoyoteGameIntentRecord = {
     intent: string
     /**
-     * NOTE: Hop-2 internal prose under `## Scene analysis` or `## Cartoon play-by-play` (parser accepts both).
+     * Hop-2 internal prose; canonical section heading is **`## Cartoon play-by-play`**.
      * It has drifted from the original "golden-path walkthrough" intent for some flows.
      * Semantic realignment is deferred to a later prompt + handling optimization pass.
      */
@@ -53,6 +54,21 @@ const COYOTE_GAME_OUTCOME_KEY = {
     DataCategory: 'CoyoteGame#Outcome',
 } as const
 
+const LEGACY_SCENE_ANALYSIS_HEADING_LINE = /^\s*##\s+Scene analysis\s*$/i
+const CANONICAL_WALKTHROUGH_HEADING_LINE = '## Cartoon play-by-play'
+
+/** Rewrites legacy first-line `## Scene analysis` to `## Cartoon play-by-play` when loading from Dynamo. */
+function normalizeWalkthroughHeadingFromStorage(walkthrough: string | undefined): string | undefined {
+    if (walkthrough === undefined) {
+        return undefined
+    }
+    const lines = walkthrough.split(/\r?\n/)
+    if (lines.length > 0 && LEGACY_SCENE_ANALYSIS_HEADING_LINE.test(lines[0])) {
+        lines[0] = CANONICAL_WALKTHROUGH_HEADING_LINE
+    }
+    return lines.join('\n')
+}
+
 function normalizeDurableIntentRow(fetched: CoyoteGameDurableIntentRow | undefined): CoyoteGameIntentRecord | null {
     if (!fetched || typeof fetched.intent !== 'string' || fetched.intent.length === 0) {
         return null
@@ -66,9 +82,9 @@ function normalizeDurableIntentRow(fetched: CoyoteGameDurableIntentRow | undefin
                 ? fetched.sceneAnalysis
                 : undefined
         // Legacy sceneAnalysis maps into walkthrough for compatibility.
-        // Semantic cleanup from Scene Analysis text to true walkthrough is deferred.
         walkthrough = legacyScene
     }
+    walkthrough = normalizeWalkthroughHeadingFromStorage(walkthrough)
     const narrativeBeatsStructured = fetched.narrativeBeatsStructured
         ?? (fetched.phasePlan as CoyoteNarrativeBeatsStructured | undefined)
     return {

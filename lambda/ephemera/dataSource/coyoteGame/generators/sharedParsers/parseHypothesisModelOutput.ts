@@ -9,8 +9,8 @@ const STUB_INTENT = 'Hypothesis: Stubbed'
 const OPEN_FENCE = /^```(?:text)?\s*\n?/i
 const CLOSE_FENCE = /\n?```\s*$/i
 
-/** Matches hop-2 walkthrough heading: legacy "## Scene analysis" or "## Cartoon play-by-play". */
-const WALKTHROUGH_SECTION_HEADING = /^\s*##\s+(?:Scene analysis|Cartoon play-by-play)\s*$/i
+/** Matches hop-2 walkthrough section heading: `## Cartoon play-by-play` only. */
+const WALKTHROUGH_SECTION_HEADING = /^\s*##\s+Cartoon play-by-play\s*$/i
 
 const HYPOTHESIS_LINE = /^\s*Hypothesis:\s*.+/u
 
@@ -23,7 +23,7 @@ function stripCodeFences(body: string): string {
     return body.trim().replace(OPEN_FENCE, '').replace(CLOSE_FENCE, '').trim()
 }
 
-function trimSceneAnalysisPrefix(preHypothesisLines: string[]): string {
+function trimWalkthroughSectionPrefix(preHypothesisLines: string[]): string {
     const headingIdx = preHypothesisLines.findIndex((line) => WALKTHROUGH_SECTION_HEADING.test(line))
     if (headingIdx < 0) {
         return preHypothesisLines.join('\n').trim()
@@ -76,8 +76,8 @@ function trySplitFinalHypothesisFence(rawBody: string): { prefix: string; intent
  * Splits Bedrock hypothesis output into walkthrough (optional) and a single Hypothesis: line.
  * Shared by generateHypothesis and the Coyote engine test harness.
  *
- * When a hop-2 walkthrough heading appears before the Hypothesis line (`## Scene analysis` or
- * `## Cartoon play-by-play`), any lines **before** that heading are dropped so leaked scratch text
+ * When `## Cartoon play-by-play` appears before the Hypothesis line, any lines **before** that
+ * heading are dropped so leaked scratch text
  * does not become walkthrough prose.
  *
  * **Final-fence path:** If the last fenced block whose interior is a single `Hypothesis:` line is present,
@@ -171,7 +171,7 @@ export function parseHypothesisModelOutput(
         const { prefix, intentLine } = split
         const intent = intentLine.trim()
         const preLines = prefix.split(/\r?\n/)
-        const walkthrough = trimSceneAnalysisPrefix(preLines)
+        const walkthrough = trimWalkthroughSectionPrefix(preLines)
         if (!prefix.trim()) {
             hypothesisDebugLog('terminal parser path: final-fence without walkthrough', {
                 intent,
@@ -204,7 +204,7 @@ export function parseHypothesisModelOutput(
     }
     const intent = lines[hypothesisIndex].trim()
     const preHypothesis = lines.slice(0, hypothesisIndex)
-    const walkthrough = trimSceneAnalysisPrefix(preHypothesis)
+    const walkthrough = trimWalkthroughSectionPrefix(preHypothesis)
     const record = walkthrough.length > 0 ? { intent, walkthrough } : { intent }
     hypothesisDebugLog('terminal parser path: legacy-hypothesis-line', {
         hypothesisLineFound: true,

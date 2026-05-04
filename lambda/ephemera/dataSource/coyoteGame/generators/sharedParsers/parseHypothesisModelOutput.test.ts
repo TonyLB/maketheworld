@@ -13,9 +13,9 @@ describe('parseHypothesisModelOutput', () => {
     })
 
     it('strips fenced code blocks then splits', () => {
-        const raw = '```text\n## Scene analysis\nPrep.\nHypothesis: It looks like you are trying to test.\n```'
+        const raw = '```text\n## Cartoon play-by-play\nPrep.\nHypothesis: It looks like you are trying to test.\n```'
         expect(parseHypothesisModelOutput(raw)).toEqual({
-            walkthrough: '## Scene analysis\nPrep.',
+            walkthrough: '## Cartoon play-by-play\nPrep.',
             intent: 'Hypothesis: It looks like you are trying to test.',
         })
     })
@@ -41,14 +41,22 @@ describe('parseHypothesisModelOutput', () => {
     })
 
     it('drops text before walkthrough heading so leaked scratch is not walkthrough', () => {
-        const body = 'First I will plan in text (leak).\n\n## Scene analysis\nYou staged a trap.\n\nHypothesis: It looks like you are trying to test.'
+        const body = 'First I will plan in text (leak).\n\n## Cartoon play-by-play\nYou staged a trap.\n\nHypothesis: It looks like you are trying to test.'
         expect(parseHypothesisModelOutput(body)).toEqual({
-            walkthrough: '## Scene analysis\nYou staged a trap.',
+            walkthrough: '## Cartoon play-by-play\nYou staged a trap.',
             intent: 'Hypothesis: It looks like you are trying to test.',
         })
     })
 
-    it('drops text before ## Cartoon play-by-play the same way (dual-accept heading)', () => {
+    it('does not treat legacy ## Scene analysis as section heading (prior leak is not trimmed)', () => {
+        const body = 'First I will plan in text (leak).\n\n## Scene analysis\nYou staged a trap.\n\nHypothesis: It looks like you are trying to test.'
+        expect(parseHypothesisModelOutput(body)).toEqual({
+            walkthrough: 'First I will plan in text (leak).\n\n## Scene analysis\nYou staged a trap.',
+            intent: 'Hypothesis: It looks like you are trying to test.',
+        })
+    })
+
+    it('drops text before ## Cartoon play-by-play the same way', () => {
         const body = 'Scratch.\n\n## Cartoon play-by-play\nYou light the fuse and run.\n\nHypothesis: It looks like you sprint.'
         expect(parseHypothesisModelOutput(body)).toEqual({
             walkthrough: '## Cartoon play-by-play\nYou light the fuse and run.',
@@ -56,21 +64,21 @@ describe('parseHypothesisModelOutput', () => {
         })
     })
 
-    it('new contract: ## Scene analysis prefix + final ```text fence with Hypothesis only', () => {
-        const raw = '## Scene analysis\nYou staged a trap.\n\n```text\nHypothesis: It looks like you are trying to test.\n```'
+    it('new contract: ## Cartoon play-by-play prefix + final ```text fence with Hypothesis only', () => {
+        const raw = '## Cartoon play-by-play\nYou staged a trap.\n\n```text\nHypothesis: It looks like you are trying to test.\n```'
         expect(parseHypothesisModelOutput(raw)).toEqual({
-            walkthrough: '## Scene analysis\nYou staged a trap.',
+            walkthrough: '## Cartoon play-by-play\nYou staged a trap.',
             intent: 'Hypothesis: It looks like you are trying to test.',
         })
     })
 
-    it('hop-2 Option A shape: leading ```json phase-plan fence then Scene analysis then final ```text Hypothesis', () => {
+    it('hop-2 Option A shape: leading ```json fence then Cartoon play-by-play then final ```text Hypothesis', () => {
         const raw = [
             '```json',
             '{"tropeSequence":[],"deconflictionSummary":"x","phases":[]}',
             '```',
             '',
-            '## Scene analysis',
+            '## Cartoon play-by-play',
             'Player staged cliff gear.',
             '',
             '```text',
@@ -78,7 +86,7 @@ describe('parseHypothesisModelOutput', () => {
             '```',
         ].join('\n')
         expect(parseHypothesisModelOutput(raw)).toEqual({
-            walkthrough: '## Scene analysis\nPlayer staged cliff gear.',
+            walkthrough: '## Cartoon play-by-play\nPlayer staged cliff gear.',
             intent: 'Hypothesis: It looks like you are trying to spring a cliff trap.',
         })
     })
@@ -144,7 +152,7 @@ describe('parseNarrativeBeatOutput', () => {
         expect(out.record.intent).toBe('Hypothesis: Valid with walkthrough.')
     })
 
-    it('still maps legacy ## Scene analysis prose to walkthrough', () => {
+    it('preserves prose under legacy ## Scene analysis in walkthrough (not a trim heading)', () => {
         const raw = [
             '```json',
             JSON.stringify({

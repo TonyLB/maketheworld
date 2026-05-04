@@ -12,8 +12,8 @@ import { COYOTE_RENDER_LINE_BREAK } from '../utilities/coyoteRenderTree'
 import { isCoyoteGameRoom } from '../utilities/isCoyoteGameRoom'
 import { hypothesisDebugLog } from '../utilities/hypothesisDebug'
 
-/** Hop-2 internal walkthrough headings: strip from terminal publish (legacy + current). */
-const INTERNAL_WALKTHROUGH_HEADING = /^\s*##\s+(?:Scene analysis|Cartoon play-by-play)\s*$/im
+/** Hop-2 internal walkthrough heading: strip from terminal publish (canonical only; Dynamo load normalizes legacy Scene analysis). */
+const INTERNAL_WALKTHROUGH_HEADING = /^\s*##\s+Cartoon play-by-play\s*$/im
 
 const userFacingWalkthrough = (walkthrough: string | undefined): string | undefined => {
     if (!walkthrough || walkthrough.trim().length === 0) {
@@ -96,7 +96,7 @@ export async function handleObjectsChangedForHypothesis(
 
         await internalCache.CoyoteGame.invalidate('intent')
         const intentRecord = await internalCache.CoyoteGame.get('intent')
-        // NOTE: intentRecord.walkthrough maps hop-2 internal prose (## Scene analysis or ## Cartoon play-by-play).
+        // NOTE: intentRecord.walkthrough maps hop-2 internal prose (## Cartoon play-by-play).
         // We filter those headings from terminal publish for now; semantic realignment is deferred.
         const walkthrough = userFacingWalkthrough(intentRecord.walkthrough)
         const renderTree: RenderTree =

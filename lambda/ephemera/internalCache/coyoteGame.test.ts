@@ -63,7 +63,7 @@ describe('CacheCoyoteGameData', () => {
 
             await expect(cache.get('intent')).resolves.toEqual({
                 intent: 'Hypothesis: Durable',
-                walkthrough: '## Scene analysis\nNotes.',
+                walkthrough: '## Cartoon play-by-play\nNotes.',
             })
             expect(generateIntent).not.toHaveBeenCalled()
         })
@@ -79,7 +79,7 @@ describe('CacheCoyoteGameData', () => {
 
             await expect(cache.get('intent')).resolves.toEqual({
                 intent: 'Hypothesis: Durable',
-                walkthrough: '## Scene analysis\nPreferred.',
+                walkthrough: '## Cartoon play-by-play\nPreferred.',
             })
             expect(generateIntent).not.toHaveBeenCalled()
         })
