@@ -93,7 +93,7 @@ describe('generatePlanOutcome', () => {
         expect(fullPrompt).toContain('Hypothesis: It looks like you are trying to spring a cliff trap.')
     })
 
-    it('does not call getIntentRecord when intentRecordOverride supplies walkthrough and phasePlan', async () => {
+    it('does not call getIntentRecord when intentRecordOverride supplies walkthrough and narrativeBeatsStructured', async () => {
         await generatePlanOutcome({
             getGameRooms,
             getRoomMeta,
@@ -104,19 +104,15 @@ describe('generatePlanOutcome', () => {
             intentRecordOverride: {
                 intent: 'Hypothesis: Full record override.',
                 walkthrough: 'Scene beats align to the plan.',
-                phasePlan: {
-                    tropeSequence: ['Contraption'],
-                    deconflictionSummary: 'Use catapult as the only committed beat.',
-                    phases: [
+                narrativeBeatsStructured: {
+                    beats: [
                         {
-                            trope: 'Contraption',
-                            tropeBeat: 'Prime the catapult and commit timing.',
-                            stableKeysUsed: ['catapult'],
-                            virtualEntities: [],
-                            achievement: 'Launch toward cliff.',
-                            prepVsBeat: 'prep',
+                            beatId: 'prep',
+                            description: 'Prime the catapult and commit timing.',
+                            derivedFrom: ['catapult'],
                         },
                     ],
+                    linearizedSequence: ['prep'],
                 },
             },
         })
@@ -130,10 +126,10 @@ describe('generatePlanOutcome', () => {
         }
         const fullPrompt = promptArg.invariantPrefix + promptArg.dynamicSuffix
         expect(fullPrompt).toContain('Hypothesis: Full record override.')
-        expect(fullPrompt).toContain('## Scene analysis')
+        expect(fullPrompt).toContain('## Cartoon play-by-play')
         expect(fullPrompt).toContain('Scene beats align to the plan.')
-        expect(fullPrompt).toContain('## Phase plan (execution outline)')
-        expect(fullPrompt).toContain('Launch toward cliff.')
+        expect(fullPrompt).toContain('## Narrative beats structured (execution outline)')
+        expect(fullPrompt).toContain('Prime the catapult and commit timing.')
         expect(fullPrompt).toContain('catapult')
     })
 
@@ -165,7 +161,7 @@ describe('generatePlanOutcome', () => {
         expect(getIntentRecord).not.toHaveBeenCalled()
     })
 
-    it('renders trope-first phase-plan/walkthrough context without relying on legacy role labels', async () => {
+    it('renders narrative-beats/walkthrough context without relying on legacy role labels', async () => {
         await generatePlanOutcome({
             getGameRooms,
             getRoomMeta,
@@ -185,26 +181,20 @@ describe('generatePlanOutcome', () => {
             intentRecordOverride: {
                 intent: 'Hypothesis: Trope-first only.',
                 walkthrough: 'Contraption setup transitions into final drop beat.',
-                phasePlan: {
-                    tropeSequence: ['Contraption', 'Finishing Move'],
-                    deconflictionSummary: 'Keep setup and impact beats separated.',
-                    phases: [
+                narrativeBeatsStructured: {
+                    beats: [
                         {
-                            trope: 'Contraption',
-                            tropeBeat: 'Set up launch lane.',
-                            stableKeysUsed: ['anvil'],
-                            virtualEntities: [],
-                            achievement: 'Lane staged.',
-                            prepVsBeat: 'prep',
+                            beatId: 'prep',
+                            description: 'Set up launch lane.',
+                            derivedFrom: ['anvil'],
                         },
                         {
-                            trope: 'Finishing Move',
-                            tropeBeat: 'Trigger final drop.',
-                            stableKeysUsed: ['anvil'],
-                            virtualEntities: [],
-                            achievement: 'Backfire lands on Coyote.',
+                            beatId: 'finish',
+                            description: 'Trigger final drop.',
+                            derivedFrom: ['anvil'],
                         },
                     ],
+                    linearizedSequence: ['prep', 'finish'],
                 },
             },
         })
@@ -214,8 +204,7 @@ describe('generatePlanOutcome', () => {
             dynamicSuffix: string
         }
         const fullPrompt = promptArg.invariantPrefix + promptArg.dynamicSuffix
-        expect(fullPrompt).toContain('Trope sequence: Contraption -> Finishing Move')
-        expect(fullPrompt).toContain('Deconfliction: Keep setup and impact beats separated.')
+        expect(fullPrompt).toContain('Linearized sequence: prep -> finish')
         expect(fullPrompt).toContain('Contraption setup transitions into final drop beat.')
         expect(fullPrompt).not.toContain('coyote-equipment')
     })

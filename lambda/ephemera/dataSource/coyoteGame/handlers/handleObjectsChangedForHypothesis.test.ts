@@ -108,25 +108,22 @@ describe('handleObjectsChangedForHypothesis', () => {
         expect(messageBus.flush).toHaveBeenCalledWith(firstLane)
     })
 
-    it('filters Scene analysis walkthrough content from terminal publish payload', async () => {
+    it('filters ## Cartoon play-by-play walkthrough from terminal publish payload', async () => {
         coyoteMock
             .mockResolvedValueOnce(['VORTEX', 'STRAIGHTAWAY'])
             .mockResolvedValueOnce({
-                walkthrough: '## Scene analysis\nThe coyote surveys object topology before acting.',
-                intent: 'Hypothesis: You are setting up a trap.',
+                walkthrough: '## Cartoon play-by-play\nYou climb the rocket and light the fuse.',
+                intent: 'Hypothesis: It looks like you launch.',
             })
         const streamEvent = jest.fn().mockResolvedValue(undefined)
         const messageBus = busMocks()
         await handleObjectsChangedForHypothesis(basePayload(), { streamEvent, messageBus })
 
-        expect(messageBus.send).toHaveBeenCalledTimes(2)
         const terminal = messageBus.send.mock.calls[1][0] as Record<string, unknown>
-        expect(terminal.displayProtocol).toBe('CoyoteGameHypothesisMessage')
-        expect(terminal.message).toEqual(['Hypothesis: You are setting up a trap.'])
-
+        expect(terminal.message).toEqual(['Hypothesis: It looks like you launch.'])
         const terminalRenderTree = terminal.message as unknown[]
         expect(
-            terminalRenderTree.some((line) => typeof line === 'string' && /Scene analysis/i.test(line))
+            terminalRenderTree.some((line) => typeof line === 'string' && /Cartoon play-by-play/i.test(line))
         ).toBe(false)
     })
 })

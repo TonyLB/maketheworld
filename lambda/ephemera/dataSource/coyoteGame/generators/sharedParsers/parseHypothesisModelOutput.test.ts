@@ -1,7 +1,7 @@
-import type { CoyotePhasePlanValidationContext } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
+import type { CoyoteNarrativeBeatsValidationContext } from '@tonylb/mtw-interfaces/ts/coyoteNarrativeBeatsStructured'
 import { parseHypothesisModelOutput, parseNarrativeBeatOutput } from './parseHypothesisModelOutput'
 
-const phasePlanCtx: CoyotePhasePlanValidationContext = {
+const narrativeBeatsCtx: CoyoteNarrativeBeatsValidationContext = {
     snapshotStableKeys: new Set(['anvil']),
     allowedTopologyRefTokens: new Set(['vortex']),
 }
@@ -13,9 +13,9 @@ describe('parseHypothesisModelOutput', () => {
     })
 
     it('strips fenced code blocks then splits', () => {
-        const raw = '```text\n## Scene analysis\nPrep.\nHypothesis: It looks like you are trying to test.\n```'
+        const raw = '```text\n## Cartoon play-by-play\nPrep.\nHypothesis: It looks like you are trying to test.\n```'
         expect(parseHypothesisModelOutput(raw)).toEqual({
-            walkthrough: '## Scene analysis\nPrep.',
+            walkthrough: '## Cartoon play-by-play\nPrep.',
             intent: 'Hypothesis: It looks like you are trying to test.',
         })
     })
@@ -40,29 +40,45 @@ describe('parseHypothesisModelOutput', () => {
         })
     })
 
-    it('drops text before ## Scene analysis so leaked scratch is not sceneAnalysis', () => {
+    it('drops text before walkthrough heading so leaked scratch is not walkthrough', () => {
+        const body = 'First I will plan in text (leak).\n\n## Cartoon play-by-play\nYou staged a trap.\n\nHypothesis: It looks like you are trying to test.'
+        expect(parseHypothesisModelOutput(body)).toEqual({
+            walkthrough: '## Cartoon play-by-play\nYou staged a trap.',
+            intent: 'Hypothesis: It looks like you are trying to test.',
+        })
+    })
+
+    it('does not treat legacy ## Scene analysis as section heading (prior leak is not trimmed)', () => {
         const body = 'First I will plan in text (leak).\n\n## Scene analysis\nYou staged a trap.\n\nHypothesis: It looks like you are trying to test.'
         expect(parseHypothesisModelOutput(body)).toEqual({
-            walkthrough: '## Scene analysis\nYou staged a trap.',
+            walkthrough: 'First I will plan in text (leak).\n\n## Scene analysis\nYou staged a trap.',
             intent: 'Hypothesis: It looks like you are trying to test.',
         })
     })
 
-    it('new contract: ## Scene analysis prefix + final ```text fence with Hypothesis only', () => {
-        const raw = '## Scene analysis\nYou staged a trap.\n\n```text\nHypothesis: It looks like you are trying to test.\n```'
+    it('drops text before ## Cartoon play-by-play the same way', () => {
+        const body = 'Scratch.\n\n## Cartoon play-by-play\nYou light the fuse and run.\n\nHypothesis: It looks like you sprint.'
+        expect(parseHypothesisModelOutput(body)).toEqual({
+            walkthrough: '## Cartoon play-by-play\nYou light the fuse and run.',
+            intent: 'Hypothesis: It looks like you sprint.',
+        })
+    })
+
+    it('new contract: ## Cartoon play-by-play prefix + final ```text fence with Hypothesis only', () => {
+        const raw = '## Cartoon play-by-play\nYou staged a trap.\n\n```text\nHypothesis: It looks like you are trying to test.\n```'
         expect(parseHypothesisModelOutput(raw)).toEqual({
-            walkthrough: '## Scene analysis\nYou staged a trap.',
+            walkthrough: '## Cartoon play-by-play\nYou staged a trap.',
             intent: 'Hypothesis: It looks like you are trying to test.',
         })
     })
 
-    it('hop-2 Option A shape: leading ```json phase-plan fence then Scene analysis then final ```text Hypothesis', () => {
+    it('hop-2 Option A shape: leading ```json fence then Cartoon play-by-play then final ```text Hypothesis', () => {
         const raw = [
             '```json',
             '{"tropeSequence":[],"deconflictionSummary":"x","phases":[]}',
             '```',
             '',
-            '## Scene analysis',
+            '## Cartoon play-by-play',
             'Player staged cliff gear.',
             '',
             '```text',
@@ -70,7 +86,7 @@ describe('parseHypothesisModelOutput', () => {
             '```',
         ].join('\n')
         expect(parseHypothesisModelOutput(raw)).toEqual({
-            walkthrough: '## Scene analysis\nPlayer staged cliff gear.',
+            walkthrough: '## Cartoon play-by-play\nPlayer staged cliff gear.',
             intent: 'Hypothesis: It looks like you are trying to spring a cliff trap.',
         })
     })
@@ -83,23 +99,18 @@ describe('parseHypothesisModelOutput', () => {
 })
 
 describe('parseNarrativeBeatOutput', () => {
-    it('extracts validated phasePlan and Hypothesis line', () => {
+    it('extracts validated narrativeBeatsStructured and Hypothesis line', () => {
         const raw = [
             '```json',
             JSON.stringify({
-                tropeSequence: ['Contraption'],
-                deconflictionSummary: 'Resolved to one setup lane.',
-                phases: [
+                beats: [
                     {
-                        trope: 'Contraption',
-                        tropeBeat: 'Rig anvil in launch lane.',
-                        stableKeysUsed: ['anvil'],
-                        virtualEntities: [
-                            { label: 'Prep', derivedFrom: ['anvil'], phaseKind: 'gathered' },
-                        ],
-                        achievement: 'Ready',
+                        beatId: 'prep',
+                        description: 'Rig anvil in launch lane.',
+                        derivedFrom: ['anvil'],
                     },
                 ],
+                linearizedSequence: ['prep'],
             }),
             '```',
             '',
@@ -107,58 +118,115 @@ describe('parseNarrativeBeatOutput', () => {
             'Hypothesis: Valid plan.',
             '```',
         ].join('\n')
-        const out = parseNarrativeBeatOutput(raw, phasePlanCtx)
-        expect(out.record.phasePlan?.phases).toHaveLength(1)
+        const out = parseNarrativeBeatOutput(raw, narrativeBeatsCtx)
+        expect(out.record.narrativeBeatsStructured?.beats).toHaveLength(1)
         expect(out.record.intent).toBe('Hypothesis: Valid plan.')
-        expect(out.phasePlanJson).toContain('"phases"')
-        expect(out.phasePlanValidationReason).toBeUndefined()
+        expect(out.narrativeBeatsStructuredJson).toContain('"beats"')
+        expect(out.narrativeBeatsStructuredValidationReason).toBeUndefined()
     })
 
-    it('maps ## Scene analysis prose to walkthrough on intent record only', () => {
+    it('maps ## Cartoon play-by-play prose to walkthrough on intent record only', () => {
         const raw = [
             '```json',
             JSON.stringify({
-                tropeSequence: ['Contraption'],
-                deconflictionSummary: 'Resolved to one setup lane.',
-                phases: [
+                beats: [
                     {
-                        trope: 'Contraption',
-                        tropeBeat: 'Rig anvil in launch lane.',
-                        stableKeysUsed: ['anvil'],
-                        virtualEntities: [
-                            { label: 'Prep', derivedFrom: ['anvil'], phaseKind: 'gathered' },
-                        ],
-                        achievement: 'Ready',
+                        beatId: 'prep',
+                        description: 'Rig anvil in launch lane.',
+                        derivedFrom: ['anvil'],
                     },
                 ],
+                linearizedSequence: ['prep'],
             }),
             '```',
             '',
-            '## Scene analysis',
+            '## Cartoon play-by-play',
             'Coyote surveys the terrain.',
             '',
             '```text',
             'Hypothesis: Valid with walkthrough.',
             '```',
         ].join('\n')
-        const out = parseNarrativeBeatOutput(raw, phasePlanCtx)
-        expect(out.record.walkthrough).toBe('## Scene analysis\nCoyote surveys the terrain.')
+        const out = parseNarrativeBeatOutput(raw, narrativeBeatsCtx)
+        expect(out.record.walkthrough).toBe('## Cartoon play-by-play\nCoyote surveys the terrain.')
         expect(out.record.intent).toBe('Hypothesis: Valid with walkthrough.')
     })
 
-    it('degrades when phase-plan JSON fails validation but Hypothesis parses', () => {
+    it('preserves prose under legacy ## Scene analysis in walkthrough (not a trim heading)', () => {
         const raw = [
             '```json',
-            '{"tropeSequence":["Contraption"],"deconflictionSummary":"x","phases":[]}',
+            JSON.stringify({
+                beats: [
+                    {
+                        beatId: 'prep',
+                        description: 'Rig anvil in launch lane.',
+                        derivedFrom: ['anvil'],
+                    },
+                ],
+                linearizedSequence: ['prep'],
+            }),
+            '```',
+            '',
+            '## Scene analysis',
+            'Legacy heading body.',
+            '',
+            '```text',
+            'Hypothesis: Legacy walkthrough ok.',
+            '```',
+        ].join('\n')
+        const out = parseNarrativeBeatOutput(raw, narrativeBeatsCtx)
+        expect(out.record.walkthrough).toBe('## Scene analysis\nLegacy heading body.')
+        expect(out.record.intent).toBe('Hypothesis: Legacy walkthrough ok.')
+    })
+
+    it('degrades when narrative-beats JSON fails validation but Hypothesis parses', () => {
+        const raw = [
+            '```json',
+            '{"beats":[],"linearizedSequence":[]}',
             '```',
             '',
             '```text',
             'Hypothesis: Still here.',
             '```',
         ].join('\n')
-        const out = parseNarrativeBeatOutput(raw, phasePlanCtx)
-        expect(out.record.phasePlan).toBeUndefined()
+        const out = parseNarrativeBeatOutput(raw, narrativeBeatsCtx)
+        expect(out.record.narrativeBeatsStructured).toBeUndefined()
         expect(out.record.intent).toBe('Hypothesis: Still here.')
-        expect(out.phasePlanValidationReason).toContain('phases')
+        expect(out.narrativeBeatsStructuredValidationReason).toContain('non-empty')
+    })
+
+    it('degrades when json fence is invalid JSON but Hypothesis parses', () => {
+        const raw = [
+            '```json',
+            '{bad json',
+            '```',
+            '',
+            '```text',
+            'Hypothesis: Still here.',
+            '```',
+        ].join('\n')
+        const out = parseNarrativeBeatOutput(raw, narrativeBeatsCtx)
+        expect(out.record.narrativeBeatsStructured).toBeUndefined()
+        expect(out.record.intent).toBe('Hypothesis: Still here.')
+        expect(out.narrativeBeatsStructuredValidationReason).toContain('invalid JSON')
+    })
+
+    it('uses first valid structured fence when earlier json fails', () => {
+        const raw = [
+            '```json',
+            '{"beats":[],"linearizedSequence":[]}',
+            '```',
+            '',
+            '```json',
+            '{"beats":[{"beatId":"prep","description":"Rig anvil.","derivedFrom":["anvil"]}],"linearizedSequence":["prep"]}',
+            '```',
+            '',
+            '```text',
+            'Hypothesis: Still here.',
+            '```',
+        ].join('\n')
+        const out = parseNarrativeBeatOutput(raw, narrativeBeatsCtx)
+        expect(out.record.narrativeBeatsStructured?.beats).toHaveLength(1)
+        expect(out.narrativeBeatsStructuredValidationReason).toBeUndefined()
     })
 })

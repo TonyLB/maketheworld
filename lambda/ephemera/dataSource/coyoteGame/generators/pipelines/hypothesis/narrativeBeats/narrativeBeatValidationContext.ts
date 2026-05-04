@@ -1,8 +1,8 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
     normalizedPhasePlanStableKey,
-    type CoyotePhasePlanValidationContext,
 } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
+import type { CoyoteNarrativeBeatsValidationContext } from '@tonylb/mtw-interfaces/ts/coyoteNarrativeBeatsStructured'
 import { seamRoomLabelFromEphemeraRoomId } from '../coyoteHypothesisPromptShared'
 import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
 
@@ -28,10 +28,10 @@ export function coyoteTopologyAllowlistFromRooms(roomObjectsByRoom: CoyoteRoomOb
     return out
 }
 
-/** Builds validation context for hop-2 phase-plan JSON (snapshot keys + topology allowlist). */
+/** Builds validation context for hop-2 narrative-beats JSON (snapshot keys + topology allowlist). */
 export function buildNarrativeBeatValidationContext(
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
-): CoyotePhasePlanValidationContext {
+): CoyoteNarrativeBeatsValidationContext {
     return {
         snapshotStableKeys: collectCoyoteSnapshotStableKeys(roomObjectsByRoom),
         allowedTopologyRefTokens: coyoteTopologyAllowlistFromRooms(roomObjectsByRoom),

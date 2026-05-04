@@ -55,18 +55,15 @@ describe('buildPlanOutcomePrompt', () => {
             roomObjectsByRoom: baseRooms,
             hypothesisLine: 'Hypothesis: B.',
             walkthrough: 'You stage the chase along the highway.',
-            phasePlan: {
-                tropeSequence: ['Contraption'],
-                deconflictionSummary: 'Single setup lane.',
-                phases: [
+            narrativeBeatsStructured: {
+                beats: [
                     {
-                        trope: 'Contraption',
-                        tropeBeat: 'Prepare anvil drop.',
-                        stableKeysUsed: ['anvil'],
-                        virtualEntities: [],
-                        achievement: 'Test.',
+                        beatId: 'prep',
+                        description: 'Prepare anvil drop.',
+                        derivedFrom: ['anvil'],
                     },
                 ],
+                linearizedSequence: ['prep'],
             },
         })
         expect(minimal.invariantPrefix).toBe(rich.invariantPrefix)
@@ -79,37 +76,33 @@ describe('buildPlanOutcomePrompt', () => {
             hypothesisLine: 'Hypothesis: Trap.',
             walkthrough: 'The bird loops past the cliff.',
         })
-        expect(prompt).toContain('## Scene analysis')
+        expect(prompt).toContain('## Cartoon play-by-play')
         expect(prompt).toContain('The bird loops past the cliff.')
         expect(prompt).toContain('cartoon time')
     })
 
-    it('includes phase plan outline when phasePlan is present', () => {
+    it('includes narrative beats outline when narrativeBeatsStructured is present', () => {
         const prompt = buildPlanOutcomePrompt({
             roomObjectsByRoom: {
                 'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']),
             },
             hypothesisLine: 'Hypothesis: Drop.',
-            phasePlan: {
-                tropeSequence: ['Finishing Move'],
-                deconflictionSummary: 'Use anvil only at terminal beat.',
-                phases: [
+            narrativeBeatsStructured: {
+                beats: [
                     {
-                        trope: 'Finishing Move',
-                        tropeBeat: 'Drop anvil from committed lane.',
-                        stableKeysUsed: ['anvil'],
-                        virtualEntities: [],
-                        achievement: 'Gravity votes coyote.',
+                        beatId: 'finish',
+                        description: 'Drop anvil from committed lane.',
+                        derivedFrom: ['anvil'],
                     },
                 ],
+                linearizedSequence: ['finish'],
             },
         })
-        expect(prompt).toContain('## Phase plan (execution outline)')
-        expect(prompt).toContain('Trope sequence: Finishing Move')
-        expect(prompt).toContain('Deconfliction: Use anvil only at terminal beat.')
-        expect(prompt).toContain('Phase 1: Finishing Move — Drop anvil from committed lane.')
-        expect(prompt).toContain('Achievement: Gravity votes coyote.')
-        expect(prompt).toContain('Staged props and materialized affordances: anvil')
+        expect(prompt).toContain('## Narrative beats structured (execution outline)')
+        expect(prompt).toContain('Linearized sequence: finish')
+        expect(prompt).toContain('Beat 1: finish')
+        expect(prompt).toContain('Description: Drop anvil from committed lane.')
+        expect(prompt).toContain('Grounded from: anvil')
         expect(prompt).toContain('single Outcome: line')
     })
 
@@ -141,33 +134,27 @@ describe('buildPlanOutcomePrompt', () => {
             },
             hypothesisLine: 'Hypothesis: Follow the beat order.',
             walkthrough: 'First prep the lane, then commit the final drop.',
-            phasePlan: {
-                tropeSequence: ['Contraption', 'Finishing Move'],
-                deconflictionSummary: 'Keep prep and finisher on separate committed beats.',
-                phases: [
+            narrativeBeatsStructured: {
+                beats: [
                     {
-                        trope: 'Contraption',
-                        tropeBeat: 'Prime launch rail.',
-                        stableKeysUsed: ['anvil'],
-                        virtualEntities: [],
-                        achievement: 'Lane prepared.',
-                        prepVsBeat: 'prep',
+                        beatId: 'prep',
+                        description: 'Prime launch rail.',
+                        derivedFrom: ['anvil'],
                     },
                     {
-                        trope: 'Finishing Move',
-                        tropeBeat: 'Release final payload.',
-                        stableKeysUsed: ['anvil'],
-                        virtualEntities: [],
-                        achievement: 'Backfire lands.',
+                        beatId: 'finish',
+                        description: 'Release final payload.',
+                        derivedFrom: ['anvil'],
                     },
                 ],
+                linearizedSequence: ['prep', 'finish'],
             },
         })
-        expect(prompt).toContain('## Scene analysis')
+        expect(prompt).toContain('## Cartoon play-by-play')
         expect(prompt).toContain('First prep the lane, then commit the final drop.')
-        expect(prompt).toContain('Trope sequence: Contraption -> Finishing Move')
-        expect(prompt).toContain('Deconfliction: Keep prep and finisher on separate committed beats.')
-        expect(prompt).toContain('Follow trope order and walkthrough beats')
+        expect(prompt).toContain('Linearized sequence: prep -> finish')
+        expect(prompt).toContain('Follow')
+        expect(prompt).toContain('linearized beat order and walkthrough beats')
     })
 
     it('omits scene analysis and phase sections when absent', () => {
@@ -175,7 +162,7 @@ describe('buildPlanOutcomePrompt', () => {
             roomObjectsByRoom: baseRooms,
             hypothesisLine: 'Hypothesis: Minimal.',
         })
-        expect(prompt).not.toContain('## Scene analysis')
-        expect(prompt).not.toContain('## Phase plan (execution outline)')
+        expect(prompt).not.toContain('## Cartoon play-by-play')
+        expect(prompt).not.toContain('## Narrative beats structured (execution outline)')
     })
 })

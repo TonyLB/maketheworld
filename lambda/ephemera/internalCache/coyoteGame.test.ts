@@ -48,7 +48,7 @@ describe('CacheCoyoteGameData', () => {
             await expect(cache.get('intent')).resolves.toEqual({ intent: 'Hypothesis: Durable' })
             expect(ephemeraMock.getItem).toHaveBeenCalledWith({
                 Key: intentKey,
-                ProjectionFields: ['intent', 'walkthrough', 'phasePlan', 'sceneAnalysis'],
+                ProjectionFields: ['intent', 'walkthrough', 'narrativeBeatsStructured', 'phasePlan', 'sceneAnalysis'],
             })
             expect(generateIntent).not.toHaveBeenCalled()
         })
@@ -63,7 +63,7 @@ describe('CacheCoyoteGameData', () => {
 
             await expect(cache.get('intent')).resolves.toEqual({
                 intent: 'Hypothesis: Durable',
-                walkthrough: '## Scene analysis\nNotes.',
+                walkthrough: '## Cartoon play-by-play\nNotes.',
             })
             expect(generateIntent).not.toHaveBeenCalled()
         })
@@ -79,7 +79,22 @@ describe('CacheCoyoteGameData', () => {
 
             await expect(cache.get('intent')).resolves.toEqual({
                 intent: 'Hypothesis: Durable',
-                walkthrough: '## Scene analysis\nPreferred.',
+                walkthrough: '## Cartoon play-by-play\nPreferred.',
+            })
+            expect(generateIntent).not.toHaveBeenCalled()
+        })
+
+        it('maps legacy sceneAnalysis with ## Cartoon play-by-play heading to walkthrough', async () => {
+            const { generateIntent, generateOutcome } = defaultDeps()
+            ephemeraMock.getItem.mockResolvedValue({
+                intent: 'Hypothesis: Durable',
+                sceneAnalysis: '## Cartoon play-by-play\nRocket gag.',
+            })
+            const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
+
+            await expect(cache.get('intent')).resolves.toEqual({
+                intent: 'Hypothesis: Durable',
+                walkthrough: '## Cartoon play-by-play\nRocket gag.',
             })
             expect(generateIntent).not.toHaveBeenCalled()
         })

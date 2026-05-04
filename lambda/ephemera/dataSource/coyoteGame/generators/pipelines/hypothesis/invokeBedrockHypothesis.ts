@@ -38,7 +38,7 @@ export const BEDROCK_HYPOTHESIS_DEFAULT_MAX_TOKENS = 2048
 export const BEDROCK_HYPOTHESIS_PLAN_SELECTION_MAX_TOKENS = 4096
 
 /**
- * Narrative beat hop (phase-plan JSON + "## Scene analysis" + fenced Hypothesis line).
+ * Narrative beat hop (narrative-beats JSON scratchpad + "## Cartoon play-by-play" + fenced Hypothesis line).
  * Hypothesis pipeline: three sequential invokes (candidates phase + plan selection + narrative beat), each using [`BEDROCK_HYPOTHESIS_TIMEOUT_MS`] — ensure Lambda timeout fits all plus combine work (see [`AGENT.md`](./AGENT.md), template.yaml).
  */
 export const BEDROCK_HYPOTHESIS_NARRATIVE_BEAT_MAX_TOKENS = BEDROCK_HYPOTHESIS_DEFAULT_MAX_TOKENS
@@ -116,7 +116,7 @@ export async function invokeBedrockHypothesisPlanSelection(
     })
 }
 
-/** Narrative beat hop: leading phase-plan JSON + "## Scene analysis" + final fenced Hypothesis line. */
+/** Narrative beat hop: leading narrative-beats JSON + "## Cartoon play-by-play" + final fenced Hypothesis line. */
 export async function invokeBedrockHypothesisNarrativeBeat(
     prompt: CoyotePromptParts,
     options: InvokeBedrockHypothesisOptions = {}

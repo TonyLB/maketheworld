@@ -1,5 +1,5 @@
-import type { CoyotePhasePlanValidationContext } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
-import { validateCoyotePhasePlan } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
+import type { CoyoteNarrativeBeatsValidationContext } from '@tonylb/mtw-interfaces/ts/coyoteNarrativeBeatsStructured'
+import { validateCoyoteNarrativeBeatsStructured } from '@tonylb/mtw-interfaces/ts/coyoteNarrativeBeatsStructured'
 import type { CoyoteGameIntentRecord } from '../../../../internalCache/coyoteGame'
 import { findAllFenceBlocks } from '../../../../llm/markdownCodeFences'
 import { hypothesisDebugLog } from '../../utilities/hypothesisDebug'
@@ -9,8 +9,8 @@ const STUB_INTENT = 'Hypothesis: Stubbed'
 const OPEN_FENCE = /^```(?:text)?\s*\n?/i
 const CLOSE_FENCE = /\n?```\s*$/i
 
-/** Matches the Stage Two "## Scene analysis" heading (prompt contract). */
-const SCENE_ANALYSIS_HEADING = /^\s*##\s+Scene analysis\s*$/i
+/** Matches hop-2 walkthrough section heading: `## Cartoon play-by-play` only. */
+const WALKTHROUGH_SECTION_HEADING = /^\s*##\s+Cartoon play-by-play\s*$/i
 
 const HYPOTHESIS_LINE = /^\s*Hypothesis:\s*.+/u
 
@@ -23,8 +23,8 @@ function stripCodeFences(body: string): string {
     return body.trim().replace(OPEN_FENCE, '').replace(CLOSE_FENCE, '').trim()
 }
 
-function trimSceneAnalysisPrefix(preHypothesisLines: string[]): string {
-    const headingIdx = preHypothesisLines.findIndex((line) => SCENE_ANALYSIS_HEADING.test(line))
+function trimWalkthroughSectionPrefix(preHypothesisLines: string[]): string {
+    const headingIdx = preHypothesisLines.findIndex((line) => WALKTHROUGH_SECTION_HEADING.test(line))
     if (headingIdx < 0) {
         return preHypothesisLines.join('\n').trim()
     }
@@ -43,9 +43,9 @@ function interiorIsSingleHypothesisLine(interior: string): string | null {
 }
 
 /**
- * New Stage Two contract: prefix (scene analysis Markdown) + final ``` fence whose interior is only Hypothesis: ...
+ * New Stage Two contract: prefix (walkthrough Markdown) + final ``` fence whose interior is only Hypothesis: ...
  */
-/** Removes every **` ```json ` ** fenced region (Option A hop-2 phase-plan JSON) so prose parsing sees only scene analysis + Hypothesis fences. */
+/** Removes every **` ```json ` ** fenced region (hop-2 narrative-beats scratchpad JSON) so prose parsing sees only walkthrough + Hypothesis fences. */
 function stripAllJsonFences(rawBody: string): string {
     let s = rawBody
     const blocks = findAllFenceBlocks(s)
@@ -73,30 +73,32 @@ function trySplitFinalHypothesisFence(rawBody: string): { prefix: string; intent
 }
 
 /**
- * Splits Bedrock hypothesis output into scene analysis (optional) and a single Hypothesis: line.
+ * Splits Bedrock hypothesis output into walkthrough (optional) and a single Hypothesis: line.
  * Shared by generateHypothesis and the Coyote engine test harness.
  *
- * When "## Scene analysis" appears before the Hypothesis line, any lines **before** that heading are dropped
- * so leaked scratch text does not become player-visible scene analysis.
+ * When `## Cartoon play-by-play` appears before the Hypothesis line, any lines **before** that
+ * heading are dropped so leaked scratch text
+ * does not become walkthrough prose.
  *
  * **Final-fence path:** If the last fenced block whose interior is a single `Hypothesis:` line is present,
- * scene analysis is taken from the prefix before that fence (with the same `## Scene analysis` trim rules).
+ * walkthrough is taken from the prefix before that fence (with the same walkthrough-heading trim rules).
  * **Legacy path:** Otherwise, unwrap a single outer ``` fence if present, then use the first `Hypothesis:` line.
  */
 export type ParseNarrativeBeatOutputResult = {
     record: CoyoteGameIntentRecord
     /** Raw **` ```json ` ** interior that validated, when any. */
-    phasePlanJson?: string
-    phasePlanValidationReason?: string
+    narrativeBeatsStructuredJson?: string
+    narrativeBeatsStructuredValidationReason?: string
 }
 
 /**
- * Narrative beat hop: extracts **`phasePlan`** from **` ```json ` ** fences via [**`validateCoyotePhasePlan`**], then prose via [**`parseHypothesisModelOutput`**].
+ * Narrative beat hop: extracts **`narrativeBeatsStructured`** from **` ```json ` ** fences via
+ * [**`validateCoyoteNarrativeBeatsStructured`**], then prose via [**`parseHypothesisModelOutput`**].
  * On validation failure, **`record`** still carries usable **`intent`** / **`walkthrough`** when prose parses (**Decided: structured validation failure**).
  */
 export function parseNarrativeBeatOutput(
     rawBody: string,
-    phasePlanCtx: CoyotePhasePlanValidationContext,
+    narrativeBeatsCtx: CoyoteNarrativeBeatsValidationContext,
     parseOptions?: ParseHypothesisModelOutputOptions
 ): ParseNarrativeBeatOutputResult {
     const blocks = findAllFenceBlocks(rawBody)
@@ -104,8 +106,8 @@ export function parseNarrativeBeatOutput(
         blockCount: blocks.length,
         jsonFenceCount: blocks.filter((block) => block.lang.toLowerCase() === 'json').length,
     })
-    let phasePlanJson: string | undefined
-    let lastReason = 'no valid phase-plan JSON in ```json fences'
+    let narrativeBeatsStructuredJson: string | undefined
+    let lastReason = 'no valid narrative-beats JSON in ```json fences'
 
     for (const b of blocks) {
         if (b.lang.toLowerCase() !== 'json') {
@@ -120,22 +122,22 @@ export function parseNarrativeBeatOutput(
             hypothesisDebugLog('phase plan parser: invalid json fence', { reason: lastReason })
             continue
         }
-        const v = validateCoyotePhasePlan(parsed, phasePlanCtx)
+        const v = validateCoyoteNarrativeBeatsStructured(parsed, narrativeBeatsCtx)
         if (v.ok) {
-            phasePlanJson = interior
+            narrativeBeatsStructuredJson = interior
             const proseBody = stripAllJsonFences(rawBody)
             const base = parseHypothesisModelOutput(proseBody, parseOptions)
             const record: CoyoteGameIntentRecord = {
                 intent: base.intent,
                 ...(base.walkthrough !== undefined ? { walkthrough: base.walkthrough } : {}),
-                phasePlan: v.phasePlan,
+                narrativeBeatsStructured: v.narrativeBeatsStructured,
             }
             hypothesisDebugLog('phase plan parser: validated phase plan', {
                 intent: record.intent,
                 hasWalkthrough: record.walkthrough !== undefined,
-                phasePlanJsonLength: phasePlanJson.length,
+                narrativeBeatsStructuredJsonLength: narrativeBeatsStructuredJson.length,
             })
-            return { record, phasePlanJson }
+            return { record, narrativeBeatsStructuredJson }
         }
         lastReason = v.reason
         hypothesisDebugLog('phase plan parser: phase plan validation failed', { reason: lastReason })
@@ -150,13 +152,13 @@ export function parseNarrativeBeatOutput(
     hypothesisDebugLog('phase plan parser: returning prose-only record', {
         intent: record.intent,
         hasWalkthrough: record.walkthrough !== undefined,
-        phasePlanValidationReason: lastReason,
+        narrativeBeatsStructuredValidationReason: lastReason,
     })
 
     return {
         record,
-        phasePlanJson,
-        phasePlanValidationReason: lastReason,
+        narrativeBeatsStructuredJson,
+        narrativeBeatsStructuredValidationReason: lastReason,
     }
 }
 
@@ -169,7 +171,7 @@ export function parseHypothesisModelOutput(
         const { prefix, intentLine } = split
         const intent = intentLine.trim()
         const preLines = prefix.split(/\r?\n/)
-        const walkthrough = trimSceneAnalysisPrefix(preLines)
+        const walkthrough = trimWalkthroughSectionPrefix(preLines)
         if (!prefix.trim()) {
             hypothesisDebugLog('terminal parser path: final-fence without walkthrough', {
                 intent,
@@ -202,7 +204,7 @@ export function parseHypothesisModelOutput(
     }
     const intent = lines[hypothesisIndex].trim()
     const preHypothesis = lines.slice(0, hypothesisIndex)
-    const walkthrough = trimSceneAnalysisPrefix(preHypothesis)
+    const walkthrough = trimWalkthroughSectionPrefix(preHypothesis)
     const record = walkthrough.length > 0 ? { intent, walkthrough } : { intent }
     hypothesisDebugLog('terminal parser path: legacy-hypothesis-line', {
         hypothesisLineFound: true,

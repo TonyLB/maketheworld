@@ -1,9 +1,15 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
+    AffordanceProvidedRef,
     CoyoteTrope,
+    EnvironmentAffordanceRef,
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import { isCoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import {
+    isAffordanceProvidedRef,
+    isCoyoteTrope,
+    isEnvironmentAffordanceRef,
+} from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { CANONICAL_TROPE_ORDER } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 
 /*
@@ -16,6 +22,8 @@ import { CANONICAL_TROPE_ORDER } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan
 export type ParsedCandidateMember = {
     stableKey: string
     tropeFunction: string
+    environmentAffordances?: EnvironmentAffordanceRef[]
+    affordancesProvided?: AffordanceProvidedRef[]
 }
 
 export type ParsedCandidateTropeAssignment = {
@@ -128,8 +136,13 @@ const STAGE_ONE_CANDIDATE_ALLOWED_KEYS = new Set([
     'outliers',
 ])
 const STAGE_ONE_TROPE_ASSIGNMENT_ALLOWED_KEYS = new Set(['executionDetail', 'members'])
-const STAGE_ONE_MEMBER_ALLOWED_KEYS = new Set(['stableKey', 'tropeFunction'])
-const STAGE_ONE_OUTLIER_ALLOWED_KEYS = new Set(['stableKey'])
+const STAGE_ONE_MEMBER_ALLOWED_KEYS = new Set([
+    'stableKey',
+    'tropeFunction',
+    'environmentAffordances',
+    'affordancesProvided',
+])
+const STAGE_ONE_OUTLIER_ALLOWED_KEYS = new Set(['stableKey', 'environmentAffordances', 'affordancesProvided'])
 const TROPE_ORDER: CoyoteTrope[] = CANONICAL_TROPE_ORDER
 
 function unknownKeys(
@@ -142,6 +155,53 @@ function unknownKeys(
 type DraftMember = {
     stableKey: string
     tropeFunction: string
+    environmentAffordances?: EnvironmentAffordanceRef[]
+    affordancesProvided?: AffordanceProvidedRef[]
+}
+
+function parseOptionalAffordances(
+    rawObj: Record<string, unknown>,
+    contextLabel: string
+): {
+    ok: true
+    environmentAffordances?: EnvironmentAffordanceRef[]
+    affordancesProvided?: AffordanceProvidedRef[]
+} | { ok: false; errorMessage: string } {
+    if ('environmentAffordances' in rawObj && rawObj.environmentAffordances !== undefined) {
+        if (
+            !Array.isArray(rawObj.environmentAffordances)
+            || !rawObj.environmentAffordances.every((entry) => isEnvironmentAffordanceRef(entry))
+        ) {
+            return {
+                ok: false,
+                errorMessage: `${contextLabel} has malformed environmentAffordances`,
+            }
+        }
+    }
+    if ('affordancesProvided' in rawObj && rawObj.affordancesProvided !== undefined) {
+        if (
+            !Array.isArray(rawObj.affordancesProvided)
+            || !rawObj.affordancesProvided.every((entry) => isAffordanceProvidedRef(entry))
+        ) {
+            return {
+                ok: false,
+                errorMessage: `${contextLabel} has malformed affordancesProvided`,
+            }
+        }
+    }
+    return {
+        ok: true,
+        ...(
+            Array.isArray(rawObj.environmentAffordances) && rawObj.environmentAffordances.length > 0
+                ? { environmentAffordances: rawObj.environmentAffordances }
+                : {}
+        ),
+        ...(
+            Array.isArray(rawObj.affordancesProvided) && rawObj.affordancesProvided.length > 0
+                ? { affordancesProvided: rawObj.affordancesProvided }
+                : {}
+        ),
+    }
 }
 
 function parseDraftMemberFromRecord(
@@ -155,8 +215,24 @@ function parseDraftMemberFromRecord(
     if (!isNonEmptyString(mo.tropeFunction)) {
         return { ok: false, errorMessage: `${contextLabel} needs non-empty tropeFunction` }
     }
+    const parsedAffordances = parseOptionalAffordances(mo, contextLabel)
+    if (!parsedAffordances.ok) {
+        return parsedAffordances
+    }
 
-    return { ok: true, draft: { stableKey, tropeFunction: mo.tropeFunction.trim() } }
+    return {
+        ok: true,
+        draft: {
+            stableKey,
+            tropeFunction: mo.tropeFunction.trim(),
+            ...(parsedAffordances.environmentAffordances !== undefined
+                ? { environmentAffordances: parsedAffordances.environmentAffordances }
+                : {}),
+            ...(parsedAffordances.affordancesProvided !== undefined
+                ? { affordancesProvided: parsedAffordances.affordancesProvided }
+                : {}),
+        },
+    }
 }
 
 function resolveDraftMembers(
@@ -169,7 +245,16 @@ function resolveDraftMembers(
         if (!obj) {
             return { ok: false, errorMessage: `stage 1 JSON: unknown stableKey "${dm.stableKey}"` }
         }
-        membersOut.push({ stableKey: dm.stableKey, tropeFunction: dm.tropeFunction })
+        membersOut.push({
+            stableKey: dm.stableKey,
+            tropeFunction: dm.tropeFunction,
+            ...(dm.environmentAffordances !== undefined
+                ? { environmentAffordances: dm.environmentAffordances }
+                : {}),
+            ...(dm.affordancesProvided !== undefined
+                ? { affordancesProvided: dm.affordancesProvided }
+                : {}),
+        })
     }
     return { ok: true, members: membersOut }
 }
@@ -180,6 +265,10 @@ function parseOutlierStableKeyOnly(
 ): { ok: true; stableKey: string } | { ok: false; errorMessage: string } {
     if (!isNonEmptyString(rawObj.stableKey)) {
         return { ok: false, errorMessage: `${contextLabel} needs stableKey` }
+    }
+    const parsedAffordances = parseOptionalAffordances(rawObj, contextLabel)
+    if (!parsedAffordances.ok) {
+        return parsedAffordances
     }
     return { ok: true, stableKey: rawObj.stableKey.trim() }
 }

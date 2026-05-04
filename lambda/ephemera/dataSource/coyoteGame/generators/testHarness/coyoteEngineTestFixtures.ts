@@ -775,20 +775,17 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
                 executionSummary: 'Multi-prop straightaway rig builds speed and release timing before terminal spring impact.',
                 tropeAssignments: {
                     Contraption: {
-                        executionDetail: 'Rocket, skis, and catapult chain into one prep platform.',
+                        executionDetail: 'Rocket, skis, catapult, and spring chain into one prep platform.',
                         members: [
                             { stableKey: 'rocket-0', tropeFunction: 'thrust source' },
                             { stableKey: 'skis-1', tropeFunction: 'speed rail' },
                             { stableKey: 'catapult-2', tropeFunction: 'launch arm' },
+                            { stableKey: 'springs-3', tropeFunction: 'launch' }
                         ],
                     },
                     Disadvantage: {
                         executionDetail: 'Glue slows pathing to hold timing window.',
                         members: [{ stableKey: 'glue-4', tropeFunction: 'speed drag' }],
-                    },
-                    'Finishing Move': {
-                        executionDetail: 'Springs deliver the terminal strike at committed lane point.',
-                        members: [{ stableKey: 'springs-3', tropeFunction: 'impact snap' }],
                     },
                 },
             },
@@ -823,15 +820,16 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
                         members: [
                             { stableKey: 'roller-skates-0', tropeFunction: 'speed rig' },
                             { stableKey: 'paint-0', tropeFunction: 'route edit' },
+                            {
+                                stableKey: 'cannon-0',
+                                tropeFunction: 'boom',
+                                affordancesProvided: [{ object: 'cannonball', roles: ['Finishing Move'] }],
+                            },
                         ],
                     },
                     Bait: {
                         executionDetail: 'Birdseed draws Road Runner into the prepared line.',
                         members: [{ stableKey: 'birdseed-0', tropeFunction: 'target bait' }],
-                    },
-                    'Finishing Move': {
-                        executionDetail: 'Cannon fires the terminal payload once lane commitment is locked.',
-                        members: [{ stableKey: 'cannon-0', tropeFunction: 'boom' }],
                     },
                 },
             },

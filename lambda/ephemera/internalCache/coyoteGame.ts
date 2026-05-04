@@ -1,25 +1,26 @@
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import { isRenderTree } from '@tonylb/mtw-base/ts/renderTree'
-import type { CoyotePhasePlan } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
+import type { CoyoteNarrativeBeatsStructured } from '@tonylb/mtw-interfaces/ts/coyoteNarrativeBeatsStructured'
 import { CacheBase } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 export type CacheCoyoteGameKeys = 'gameRooms' | 'intent' | 'outcome'
 
 /**
- * Durable Coyote hypothesis row: the **`Hypothesis:`** line plus optional hop-2 **walkthrough** (scene analysis) and **phasePlan** (when hop-2 JSON validated).
- * **Plan outcome** ([`generatePlanOutcome`](../dataSource/coyoteGame/generators/pipelines/outcome/generatePlanOutcome.ts)) and the Await RoadRunner path use the same cached **`get('intent')`** value (no extra Dynamo read for outcome). If **phasePlan** is absent (validation failed, or legacy data), outcome generation still uses **intent** and optional **walkthrough**; see [`coyoteGame/AGENT.md`](../dataSource/coyoteGame/AGENT.md) (plan outcome).
+ * Durable Coyote hypothesis row: the **`Hypothesis:`** line plus optional hop-2 **walkthrough** (internal cartoon prose under **`## Cartoon play-by-play`**) and **narrativeBeatsStructured** (when hop-2 JSON validated).
+ * Dynamo-backed reads rewrite a legacy first-line **`## Scene analysis`** heading to **`## Cartoon play-by-play`**.
+ * **Plan outcome** ([`generatePlanOutcome`](../dataSource/coyoteGame/generators/pipelines/outcome/generatePlanOutcome.ts)) and the Await RoadRunner path use the same cached **`get('intent')`** value (no extra Dynamo read for outcome). If **narrativeBeatsStructured** is absent (validation failed, or legacy data), outcome generation still uses **intent** and optional **walkthrough**; see [`coyoteGame/AGENT.md`](../dataSource/coyoteGame/AGENT.md) (plan outcome).
  */
 export type CoyoteGameIntentRecord = {
     intent: string
     /**
-     * NOTE: This currently carries hop-2 "## Scene analysis" prompt prose.
-     * It has drifted from the original "golden-path walkthrough" intent.
+     * Hop-2 internal prose; canonical section heading is **`## Cartoon play-by-play`**.
+     * It has drifted from the original "golden-path walkthrough" intent for some flows.
      * Semantic realignment is deferred to a later prompt + handling optimization pass.
      */
     walkthrough?: string
-    /** Machine-checkable phase plan when hop-2 JSON validates. */
-    phasePlan?: CoyotePhasePlan
+    /** Machine-checkable narrative beats when hop-2 JSON validates. */
+    narrativeBeatsStructured?: CoyoteNarrativeBeatsStructured
 }
 
 /** Dynamo row shape; **`sceneAnalysis`** may exist on legacy reads only (mapped into **`walkthrough`**). */
@@ -27,7 +28,8 @@ type CoyoteGameDurableIntentRow = {
     intent?: string
     sceneAnalysis?: string
     walkthrough?: string
-    phasePlan?: CoyotePhasePlan
+    phasePlan?: unknown
+    narrativeBeatsStructured?: CoyoteNarrativeBeatsStructured
 }
 
 type CoyoteGameCacheState = {
@@ -52,6 +54,21 @@ const COYOTE_GAME_OUTCOME_KEY = {
     DataCategory: 'CoyoteGame#Outcome',
 } as const
 
+const LEGACY_SCENE_ANALYSIS_HEADING_LINE = /^\s*##\s+Scene analysis\s*$/i
+const CANONICAL_WALKTHROUGH_HEADING_LINE = '## Cartoon play-by-play'
+
+/** Rewrites legacy first-line `## Scene analysis` to `## Cartoon play-by-play` when loading from Dynamo. */
+function normalizeWalkthroughHeadingFromStorage(walkthrough: string | undefined): string | undefined {
+    if (walkthrough === undefined) {
+        return undefined
+    }
+    const lines = walkthrough.split(/\r?\n/)
+    if (lines.length > 0 && LEGACY_SCENE_ANALYSIS_HEADING_LINE.test(lines[0])) {
+        lines[0] = CANONICAL_WALKTHROUGH_HEADING_LINE
+    }
+    return lines.join('\n')
+}
+
 function normalizeDurableIntentRow(fetched: CoyoteGameDurableIntentRow | undefined): CoyoteGameIntentRecord | null {
     if (!fetched || typeof fetched.intent !== 'string' || fetched.intent.length === 0) {
         return null
@@ -65,14 +82,15 @@ function normalizeDurableIntentRow(fetched: CoyoteGameDurableIntentRow | undefin
                 ? fetched.sceneAnalysis
                 : undefined
         // Legacy sceneAnalysis maps into walkthrough for compatibility.
-        // Semantic cleanup from Scene Analysis text to true walkthrough is deferred.
         walkthrough = legacyScene
     }
-    const phasePlan = fetched.phasePlan
+    walkthrough = normalizeWalkthroughHeadingFromStorage(walkthrough)
+    const narrativeBeatsStructured = fetched.narrativeBeatsStructured
+        ?? (fetched.phasePlan as CoyoteNarrativeBeatsStructured | undefined)
     return {
         intent,
         ...(walkthrough !== undefined ? { walkthrough } : {}),
-        ...(phasePlan !== undefined ? { phasePlan } : {}),
+        ...(narrativeBeatsStructured !== undefined ? { narrativeBeatsStructured } : {}),
     }
 }
 
@@ -139,7 +157,7 @@ export class CacheCoyoteGameData extends CacheBase {
     private async loadIntent(): Promise<CoyoteGameIntentRecord> {
         const fetched = await ephemeraDB.getItem<CoyoteGameDurableIntentRow>({
             Key: COYOTE_GAME_INTENT_KEY,
-            ProjectionFields: ['intent', 'walkthrough', 'phasePlan', 'sceneAnalysis'],
+            ProjectionFields: ['intent', 'walkthrough', 'narrativeBeatsStructured', 'phasePlan', 'sceneAnalysis'],
         })
         const fromDynamo = normalizeDurableIntentRow(fetched ?? undefined)
         if (fromDynamo) {
@@ -151,7 +169,9 @@ export class CacheCoyoteGameData extends CacheBase {
             ...COYOTE_GAME_INTENT_KEY,
             intent: generated.intent,
             ...(generated.walkthrough !== undefined ? { walkthrough: generated.walkthrough } : {}),
-            ...(generated.phasePlan !== undefined ? { phasePlan: generated.phasePlan } : {}),
+            ...(generated.narrativeBeatsStructured !== undefined
+                ? { narrativeBeatsStructured: generated.narrativeBeatsStructured }
+                : {}),
         })
         this.state.intent = generated
         return generated

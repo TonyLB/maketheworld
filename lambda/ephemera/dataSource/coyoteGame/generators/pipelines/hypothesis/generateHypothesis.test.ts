@@ -86,34 +86,25 @@ const planSelectOutputBody = [
     '```',
 ].join('\n')
 
-/** Minimal phase-plan JSON validating against ROOM#VORTEX snapshot (seam label CLIFFBASE; stableKey **anvil**). */
-function narrativeBeatModelBody(intentLine: string, options?: { includeSceneAnalysis?: boolean }): string {
-    const phasePlan = {
-        tropeSequence: ['Contraption'],
-        deconflictionSummary: 'Single-lane setup avoids conflicting prop reuse.',
-        phases: [
+/** Minimal narrative-beats JSON validating against ROOM#VORTEX snapshot (seam label CLIFFBASE; stableKey **anvil**). */
+function narrativeBeatModelBody(intentLine: string, options?: { includeWalkthrough?: boolean }): string {
+    const narrativeBeatsStructured = {
+        beats: [
             {
-                trope: 'Contraption',
-                tropeBeat: 'Rig the anvil drop lane and commit trigger timing.',
-                stableKeysUsed: ['anvil'],
-                virtualEntities: [
-                    {
-                        label: 'Position bait',
-                        derivedFrom: ['anvil'],
-                        phaseKind: 'gathered' as const,
-                    },
-                ],
-                achievement: 'Trap staged',
+                beatId: 'prep',
+                description: 'Rig the anvil drop lane and commit trigger timing.',
+                derivedFrom: ['anvil'],
             },
         ],
+        linearizedSequence: ['prep'],
     }
     const blocks = [
         '```json',
-        JSON.stringify(phasePlan),
+        JSON.stringify(narrativeBeatsStructured),
         '```',
     ]
-    if (options?.includeSceneAnalysis) {
-        blocks.push('', '## Scene analysis', 'Trap setup.', '')
+    if (options?.includeWalkthrough) {
+        blocks.push('', '## Cartoon play-by-play', 'Trap setup.', '')
     }
     blocks.push('```text', intentLine, '```')
     return blocks.join('\n')
@@ -180,10 +171,10 @@ describe('generateHypothesis', () => {
         })
     })
 
-    it('returns phase-plan hop model output when all stages succeed', async () => {
+    it('returns narrative-beats hop model output when all stages succeed', async () => {
         const record = await generateHypothesis({ getGameRooms, getRoomMeta })
         expect(record.intent).toBe('Hypothesis: You are trying to drop something on the Road Runner.')
-        expect(record.phasePlan?.phases).toHaveLength(1)
+        expect(record.narrativeBeatsStructured?.beats).toHaveLength(1)
         expect(record.walkthrough).toBeUndefined()
         expect(stageOneMock).toHaveBeenCalledTimes(1)
         expect(planSelectionMock).toHaveBeenCalledTimes(1)
@@ -201,18 +192,18 @@ describe('generateHypothesis', () => {
         expect(fullHop2).toContain('| lane bait')
     })
 
-    it('parses phase-plan hop body with ## Scene analysis + fenced Hypothesis', async () => {
+    it('parses narrative-beats hop body with ## Cartoon play-by-play + fenced Hypothesis', async () => {
         narrativeBeatMock.mockResolvedValue({
             success: true,
             body: narrativeBeatModelBody(
                 'Hypothesis: You are trying to drop something on the Road Runner.',
-                { includeSceneAnalysis: true }
+                { includeWalkthrough: true }
             ),
             usage: { inputTokens: 4, outputTokens: 5, totalTokens: 9 },
         })
         await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toMatchObject({
             intent: 'Hypothesis: You are trying to drop something on the Road Runner.',
-            walkthrough: '## Scene analysis\nTrap setup.',
+            walkthrough: '## Cartoon play-by-play\nTrap setup.',
         })
     })
 
@@ -239,7 +230,7 @@ describe('generateHypothesis', () => {
         )
         expect(result.narrativeBeatReasoningContent).toBe('plan ordering scratch')
         expect(typeof result.selectionBody).toBe('string')
-        expect(typeof result.phasePlanJson).toBe('string')
+        expect(typeof result.narrativeBeatsStructuredJson).toBe('string')
     })
 
     it('fetches room-local objects for all Coyote Game rooms when not overridden', async () => {
@@ -424,24 +415,15 @@ describe('generateHypothesis', () => {
 
         await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
             intent: 'Hypothesis: You are trying to drop something on the Road Runner.',
-            phasePlan: {
-                tropeSequence: ['Contraption'],
-                deconflictionSummary: 'Single-lane setup avoids conflicting prop reuse.',
-                phases: [
+            narrativeBeatsStructured: {
+                beats: [
                     {
-                        trope: 'Contraption',
-                        tropeBeat: 'Rig the anvil drop lane and commit trigger timing.',
-                        stableKeysUsed: ['anvil'],
-                        virtualEntities: [
-                            {
-                                label: 'Position bait',
-                                derivedFrom: ['anvil'],
-                                phaseKind: 'gathered',
-                            },
-                        ],
-                        achievement: 'Trap staged',
+                        beatId: 'prep',
+                        description: 'Rig the anvil drop lane and commit trigger timing.',
+                        derivedFrom: ['anvil'],
                     },
                 ],
+                linearizedSequence: ['prep'],
             },
         })
         expect(narrativeBeatMock).toHaveBeenCalledTimes(1)
@@ -474,7 +456,7 @@ describe('generateHypothesis', () => {
         expect(narrativeBeatMock).not.toHaveBeenCalled()
     })
 
-    it('falls back to stub when phase-plan hop Bedrock fails', async () => {
+    it('falls back to stub when narrative-beats hop Bedrock fails', async () => {
         narrativeBeatMock.mockResolvedValue({
             success: false,
             errorMessage: 'Timeout',
@@ -486,12 +468,12 @@ describe('generateHypothesis', () => {
         expect(narrativeBeatMock).toHaveBeenCalledTimes(1)
     })
 
-    it('keeps prose when phase-plan JSON is invalid but Hypothesis parses', async () => {
+    it('keeps prose when narrative-beats JSON is invalid but Hypothesis parses', async () => {
         narrativeBeatMock.mockResolvedValue({
             success: true,
             body: [
                 '```json',
-                '{"tropeSequence":["Contraption"],"deconflictionSummary":"x","phases":[]}',
+                '{"beats":[],"linearizedSequence":[]}',
                 '```',
                 '',
                 '```text',
@@ -502,6 +484,6 @@ describe('generateHypothesis', () => {
         })
         const record = await generateHypothesis({ getGameRooms, getRoomMeta })
         expect(record.intent).toBe('Hypothesis: Prose still works.')
-        expect(record.phasePlan).toBeUndefined()
+        expect(record.narrativeBeatsStructured).toBeUndefined()
     })
 })

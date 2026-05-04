@@ -4,10 +4,10 @@ import {
     MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX,
     NORMALIZED_MATERIALIZED_AFFORDANCE_PREFIX,
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import { normalizedPhasePlanStableKey } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 import {
-    normalizedPhasePlanStableKey,
-    type CoyotePhasePlan,
-} from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
+    type CoyoteNarrativeBeatsStructured,
+} from '@tonylb/mtw-interfaces/ts/coyoteNarrativeBeatsStructured'
 import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 
 /** Maps normalized snapshot stable keys to display **shortName** for prompt-facing text. */
@@ -50,35 +50,29 @@ function resolveStableKeyLabel(rawKey: string, keyToShort: Map<string, string>):
 }
 
 /**
- * Deterministic outline of **phasePlan** for plan-outcome prompting: ordered phases,
- * achievements, prep vs beat, staged props, virtual entities.
+ * Deterministic outline of **narrativeBeatsStructured** for plan-outcome prompting.
  */
-export function formatPhasePlanForOutcomePrompt(
-    phasePlan: CoyotePhasePlan,
+export function formatNarrativeBeatsStructuredForOutcomePrompt(
+    narrativeBeatsStructured: CoyoteNarrativeBeatsStructured,
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
 ): string {
     const keyToShort = buildStableKeyToShortNameMap(roomObjectsByRoom)
     const lines: string[] = [
-        `Trope sequence: ${phasePlan.tropeSequence.join(' -> ')}`,
-        `Deconfliction: ${phasePlan.deconflictionSummary}`,
+        `Linearized sequence: ${narrativeBeatsStructured.linearizedSequence.join(' -> ')}`,
         '',
     ]
 
-    phasePlan.phases.forEach((phase, index) => {
+    narrativeBeatsStructured.beats.forEach((beat, index) => {
         const n = index + 1
-        const prep =
-            phase.prepVsBeat !== undefined ? ` — ${phase.prepVsBeat}` : ''
-        lines.push(`Phase ${n}${prep}: ${phase.trope} — ${phase.tropeBeat}`)
-        lines.push(`  Achievement: ${phase.achievement}`)
-        if (phase.stableKeysUsed.length > 0) {
-            const labels = phase.stableKeysUsed.map((sk) => resolveStableKeyLabel(sk, keyToShort))
-            lines.push(`  Staged props and materialized affordances: ${labels.join(', ')}`)
-        }
-        for (const ve of phase.virtualEntities) {
-            const derived = ve.derivedFrom.join(', ')
-            lines.push(`  Virtual "${ve.label}" (${ve.phaseKind}): from ${derived}`)
+        lines.push(`Beat ${n}: ${beat.beatId}`)
+        lines.push(`  Description: ${beat.description}`)
+        if (beat.derivedFrom.length > 0) {
+            const labels = beat.derivedFrom.map((sk) => resolveStableKeyLabel(sk, keyToShort))
+            lines.push(`  Grounded from: ${labels.join(', ')}`)
         }
     })
 
     return lines.join('\n')
 }
+
+export const formatPhasePlanForOutcomePrompt = formatNarrativeBeatsStructuredForOutcomePrompt

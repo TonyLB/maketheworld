@@ -24,7 +24,6 @@ export type PlanSelectOutputWithWinner = PlanSelectOutput & {
 
 /** Canonical trope ordering for deterministic selectedCandidate rendering. */
 const TROPE_ORDER: CoyoteTrope[] = CANONICAL_TROPE_ORDER
-const CANONICAL_TROPE_CHAIN_LABEL = CANONICAL_TROPE_ORDER.join(' -> ')
 
 export type BuildNarrativeBeatPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
@@ -32,13 +31,13 @@ export type BuildNarrativeBeatPromptInput = {
 }
 
 const NARRATIVE_BEAT_INTRO = [
-    'You are completing the structured phase plan and player-facing hypothesis for a Coyote-vs-Road-Runner cartoon setup.',
+    'You are sketching an internal beat scratchpad, then a cartoon play-by-play, then a single player-facing Hypothesis line for a Coyote-vs-Road-Runner cartoon setup.',
     '',
     '## Perspective guardrail (hard constraint)',
-    '- Plan and describe trope beats strictly from the Coyote\'s planning perspective for the committed maneuver.',
+    '- Plan and describe beats strictly from the Coyote\'s planning perspective for the committed maneuver.',
     '- Treat the Coyote as the sole planner/actor and the Road Runner as the target; do not frame beats as Road Runner goal fulfillment.',
-    '- If any sentence drifts into Road Runner-benefiting intent (escape optimization, trap avoidance, Coyote failure as the goal), rewrite it before output as Coyote intent, Coyote setup logic, or Coyote-side deconfliction risk handling.',
-    '- Keep this guardrail inside this prompt run: enforce it while producing JSON phases, scene analysis, and final Hypothesis line without adding external deterministic phase-to-phase intent checks.',
+    '- If any sentence drifts into Road Runner-benefiting intent (escape optimization, trap avoidance, Coyote failure as the goal), rewrite it before output as Coyote intent, Coyote setup logic, or Coyote-side risk handling.',
+    '- Keep this guardrail inside this prompt run: enforce it while producing JSON scratchpad, **## Cartoon play-by-play**, and final Hypothesis line without adding external deterministic phase-to-phase intent checks.',
     '',
     '## Grounding from plan selection (authoritative)',
     'The **chosen plan summary**, **plan issues**, and **structured selected candidate** in **## Committed plan** below were produced by an',
@@ -49,49 +48,40 @@ const NARRATIVE_BEAT_INTRO = [
     '- Intent-signal issue codes (`OUTLIER_PROP_UNACCOUNTED`, `TROPE_FUNCTION_MISMATCH`,',
     '  `STRUCTURAL_CONTRADICTION`) are Coyote-side risk constraints: resolve them when possible and',
     '  escalate only if unresolved risk blocks coherent execution of the committed maneuver.',
-    '- Underspecification codes (`DIRECTION_AMBIGUOUS`, `ROLE_CONFLICT`) are mandatory deconfliction',
-    '  obligations: resolve them in phase planning rather than treating them as winner-selection retries.',
+    '- Underspecification codes (`DIRECTION_AMBIGUOUS`, `ROLE_CONFLICT`) bind how you **narrate** the committed maneuver:',
+    '  commit to concrete timeline and role choices in the scratchpad JSON and in **## Cartoon play-by-play**.',
+    '  Do **not** re-run winner-level rubric comparison; plan selection already chose the reading.',
     '',
     '## Output order (strict)',
     '1. **First**, output **one** Markdown **` ```json ` ** fenced block whose JSON has',
-    '   **exactly** top-level keys **`tropeSequence`**, **`deconflictionSummary`**, and',
-    '   **`phases`**.',
-    '   - **`tropeSequence`**: non-empty array of **unique** trope names; include only tropes this plan uses,',
-    `     each at most once, in canonical order (${CANONICAL_TROPE_CHAIN_LABEL}). Omit tropes the maneuver does not use.`,
-    '   - **`deconflictionSummary`**: concise string describing final conflict resolutions.',
-    '   - **`phases`**: non-empty array, one entry per trope in `tropeSequence` at the',
-    '     same index. Each phase object includes **`trope`**, **`tropeBeat`** (second-draft',
-    '     beat detail), **`stableKeysUsed`**, **`virtualEntities`** (each with **`label`**,',
-    '     **`derivedFrom`** string array, **`phaseKind`** gathered | synthesized |',
-    '     deployed), and **`achievement`**. Optional **`prepVsBeat`**: prep | creation.',
-    '   - Reference staged objects by **`stableKey`** from the room snapshot and **## Committed plan**.',
-    '     When **## Committed plan** lists materialized affordance members',
-    '     (**`stableKey`** values beginning with **`affordance:`**, validated like plan-select handoff),',
-    '     you may cite those same strings in **`stableKeysUsed`** (they normalize in phase-plan JSON)',
-    '     and in **`derivedFrom`** when grounding a virtual to that handoff-only affordance row.',
-    '   - For other virtual entities, **`derivedFrom`** may cite snapshot keys, seam room labels /',
-    '     topology tokens consistent with prompts, or the reserved grounding token **`setting`**',
-    '     (cartoon stock affordances) where no staged row applies --- see interfaces package validators.',
-    '2. **Second**, write **`## Scene analysis`** (Markdown): chain-of-reasoning and',
-    '   spatial analysis for the player for **this** plan only.',
-    '   - Present the golden path explicitly as trope beats in sequence, matching the',
-    '     same order and beat intent in `tropeSequence` + `phases[*].tropeBeat`.',
-    '3. **Third**, after "## Scene analysis", output a **final** fenced block with',
+    '   **exactly** top-level keys **`beats`** and **`linearizedSequence`**.',
+    '   - **`beats`**: non-empty array. Each element is a plain object with **exactly** keys **`beatId`**, **`description`**, **`derivedFrom`**.',
+    '     - **`beatId`**: non-empty string, stable within this payload, unique across `beats`.',
+    '     - **`description`**: non-empty string; one beat of cartoon action in present tense (internal scratchpad register is fine here).',
+    '     - **`derivedFrom`**: non-empty string array. Each token must be one of:',
+    '       a staged **`stableKey`** from the room snapshot or **## Committed plan**;',
+    '       a materialized affordance **`stableKey`** beginning with **`affordance:`** when listed in **## Committed plan**;',
+    '       a seam / topology token consistent with world topology and seam room labels in this prompt;',
+    '       or the reserved token **`setting`** for cartoon stock affordances with no staged row.',
+    '   - **`linearizedSequence`**: non-empty array of strings. It must list every **`beatId`** from **`beats`** exactly once (no duplicates, no omissions),',
+    '     in the order the cartoon gag plays out.',
+    '2. **Second**, write **`## Cartoon play-by-play`** (Markdown): imagined cartoon action for **this** plan only,',
+    '   in present tense, ordered to match **`linearizedSequence`**. This is play-by-play, not engineering analysis.',
+    '   Do not survey multiple plans.',
+    '3. **Third**, after "## Cartoon play-by-play", output a **final** fenced block with',
     '   language **`text`** whose **only** content is exactly one plain-text line',
     '   beginning with "Hypothesis:".',
     '4. Do not put any other text after the closing **` ```text ` ** fence.',
     '5. Even if you are unsure about the JSON details, still provide a complete',
-    '   "## Scene analysis" and final Hypothesis line (downstream systems can',
+    '   "## Cartoon play-by-play" and final Hypothesis line (downstream systems can',
     '   preserve prose when structured JSON needs correction).',
     '',
-    '## Scene analysis and Hypothesis output',
-    '- Your "## Scene analysis" section should commit to the single reading above and',
-    '  build spatial and causal logic. Do not survey multiple plans.',
-    '- Ground "## Scene analysis" on **## Committed plan**, **## Outliers** within it,',
-    '  seam topology below, and staged snapshot keys.',
-    '- Open **` ```text ` ** only after "## Scene analysis". The fenced interior must contain **only** the Hypothesis line.',
-    '- No extra commentary outside the leading **` ```json ` ** phase plan,',
-    '  "## Scene analysis", and the fenced Hypothesis line.',
+    '## Cartoon play-by-play and Hypothesis output',
+    '- Your "## Cartoon play-by-play" section should commit to the single reading above.',
+    '- Ground it on **## Committed plan**, **## Outliers** within it, seam topology below, and staged snapshot keys.',
+    '- Open **` ```text ` ** only after "## Cartoon play-by-play". The fenced interior must contain **only** the Hypothesis line.',
+    '- No extra commentary outside the leading **` ```json ` ** scratchpad,',
+    '  "## Cartoon play-by-play", and the fenced Hypothesis line.',
 ] as const
 
 /** How to read **## Committed plan** (single winner; inlined per hypothesis narrative-beats decision 3). */
@@ -104,9 +94,9 @@ const COMMITTED_PLAN_MARKDOWN_CONTRACT_LINES = [
     '- The **outliers** list under the selected candidate names props not under any trope row; role language for outliers is not fixed like trope members --- do not move outlier props into trope rows unless the handoff already assigns them there.',
 ] as const
 
-const SCENE_ANALYSIS_AND_FENCED_HYPOTHESIS_LINES = [
-    '## Scene analysis and fenced Hypothesis (assistant text only)',
-    '- Put **planning, ordering, and topology** in "## Scene analysis" in the',
+const CARTOON_PLAY_BY_PLAY_AND_FENCED_HYPOTHESIS_LINES = [
+    '## Cartoon play-by-play and fenced Hypothesis (assistant text only)',
+    '- Put **imagined cartoon action and ordering** in "## Cartoon play-by-play" in the',
     '  assistant **text** stream (**body**). Do not rely on a separate Nova',
     '  reasoning channel.',
     '- The **final** ```text fence must contain **only** the Hypothesis line so parsers can slice it reliably.',
@@ -165,7 +155,7 @@ function formatCommittedPlanBlock(handoff: PlanSelectOutputWithWinner): string {
     ].join('\n')
 }
 
-/** Option A hop 2: phase-plan JSON first, then "## Scene analysis", then fenced Hypothesis line. */
+/** Hop 2: narrative-beats JSON scratchpad first, then "## Cartoon play-by-play", then fenced Hypothesis line. */
 export function buildNarrativeBeatPrompt(
     input: BuildNarrativeBeatPromptInput
 ): CoyotePromptParts {
@@ -186,7 +176,7 @@ export function buildNarrativeBeatPrompt(
         '',
         ...VIRTUAL_SCENERY_AND_PREP_OBJECTS_LINES,
         '',
-        ...SCENE_ANALYSIS_AND_FENCED_HYPOTHESIS_LINES,
+        ...CARTOON_PLAY_BY_PLAY_AND_FENCED_HYPOTHESIS_LINES,
         '',
         'The following blocks are specific to this request:',
         '',

@@ -1,5 +1,5 @@
-import type { CoyotePhasePlan } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
-import { formatPhasePlanForOutcomePrompt } from './formatPhasePlanForOutcomePrompt'
+import type { CoyoteNarrativeBeatsStructured } from '@tonylb/mtw-interfaces/ts/coyoteNarrativeBeatsStructured'
+import { formatNarrativeBeatsStructuredForOutcomePrompt } from './formatPhasePlanForOutcomePrompt'
 import { formatCoyoteStagedObjectsByRoom, type CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 import type { CoyotePromptParts } from '../hypothesis/promptTypes'
 import { COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES } from '../hypothesis/coyoteHypothesisPromptShared'
@@ -8,7 +8,7 @@ export type BuildPlanOutcomePromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
     hypothesisLine: string
     walkthrough?: string
-    phasePlan?: CoyotePhasePlan
+    narrativeBeatsStructured?: CoyoteNarrativeBeatsStructured
 }
 
 /**
@@ -58,7 +58,7 @@ function buildPlanOutcomeDynamicLines(input: BuildPlanOutcomePromptInput): strin
     if (walkthrough) {
         lines.push(
             '',
-            '## Scene analysis',
+            '## Cartoon play-by-play',
             walkthrough,
             '',
             '- The execution you describe should follow this analysis beat-for-beat in',
@@ -67,17 +67,19 @@ function buildPlanOutcomeDynamicLines(input: BuildPlanOutcomePromptInput): strin
         )
     }
 
-    if (input.phasePlan) {
-        const outline = formatPhasePlanForOutcomePrompt(input.phasePlan, input.roomObjectsByRoom)
+    if (input.narrativeBeatsStructured) {
+        const outline = formatNarrativeBeatsStructuredForOutcomePrompt(
+            input.narrativeBeatsStructured,
+            input.roomObjectsByRoom
+        )
         lines.push(
             '',
-            '## Phase plan (execution outline)',
+            '## Narrative beats structured (execution outline)',
             outline,
             '',
-            '- Turn the trope sequence, deconfliction note, and phase outline into a',
-            '  single Outcome: line. Follow trope order and walkthrough beats; the',
-            '  failure should still be on the Coyote, with the Road Runner unharmed',
-            '  and free to escape.',
+            '- Turn this ordered beat structure into a single Outcome: line. Follow',
+            '  linearized beat order and walkthrough beats; the failure should still',
+            '  be on the Coyote, with the Road Runner unharmed and free to escape.',
         )
     }
 
