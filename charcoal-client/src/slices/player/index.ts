@@ -132,7 +132,7 @@ export const getNextOnboarding = createSelector(
 
 const guestCharacter = (guestId: string, guestName: string): PlayerPublic['Characters'][number] => ({
     CharacterId: `CHARACTER#${guestId}`,
-    Name: guestName,
+    DisplayName: guestName,
     Pronouns: 'they/them'
 })
 

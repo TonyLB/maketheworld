@@ -22,7 +22,7 @@ import { setForceCharacterSelection } from '../../slices/UI/playSpine'
 export const MessagePanel: FunctionComponent<{}> = () => {
     const dispatch = useDispatch()
     const navigate = useNavigate()
-    const { CharacterId, info: { Name = '???' } = {}, scopedId } = useActiveCharacter()
+    const { CharacterId, scopedId } = useActiveCharacter()
     // Removed useAutoPin - tab navigation removed
     useOnboardingCheckpoint('navigatePlay')
     useOnboardingCheckpoint('navigateInPlayEdit', { requireSequence: true })
