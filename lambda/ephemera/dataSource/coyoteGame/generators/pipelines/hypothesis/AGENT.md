@@ -20,7 +20,7 @@ Production runs a **linear sequence** orchestrated in [`coyoteHypothesisPipeline
    That combined pool is presented for **rubric-style comparison** so the model can weigh readings and settle on one coherent direction. Code **extracts a structured handoff**: a short summary of the committed reading, **residual** plan issues that still bind the story, and a **structured winning candidate** (`selectedCandidate`) supplemented with deterministic detail (for example tying outliers back to room objects) so the next hop stays grounded. The plan-select JSON parser may still tolerate a handoff **without** `selectedCandidate` at parse time; **orchestration** nonetheless **requires** `selectedCandidate` before the narrative beat LLM. If it is missing after plan-select, the run **aborts** to stub and does **not** call `buildNarrativeBeatPrompt`.
 
 3. **Narrative beat**  
-   The chosen framing and constraints feed the **final hop**, which turns them into a **`Hypothesis:`** line the player can read and optional structured narrative-beats / walkthrough material. A shared terminal parser ([`parseHypothesisModelOutput`](../../sharedParsers/parseHypothesisModelOutput.ts)) maps model text into a **`CoyoteGameIntentRecord`** (`intent`, optional `walkthrough`, optional `narrativeBeatsStructured`) the cache and UI use.
+   The chosen framing and constraints feed the **final hop**, which turns them into a **`Hypothesis:`** line the player can read and optional structured narrative-beats / walkthrough material. Hop-2 Markdown walkthrough uses **`## Cartoon play-by-play`**; the parser still accepts legacy **`## Scene analysis`** during transition. A shared terminal parser ([`parseHypothesisModelOutput`](../../sharedParsers/parseHypothesisModelOutput.ts)) maps model text into a **`CoyoteGameIntentRecord`** (`intent`, optional `walkthrough`, optional `narrativeBeatsStructured`) the cache and UI use.
 
 **In one sentence:** propose a trope **candidate pool**, **enrich it deterministically**, **compare against a rubric and select a reading**, then **materialize** that choice into player-parseable hypothesis output (and optional structured follow-through).
 
@@ -32,7 +32,7 @@ The hypothesis pipeline is the production path for `Objects Changed` events in C
 
 1. **Candidates:** propose a trope assignment pool from staged objects, then merge it with room state into one enriched candidate view.
 2. **Plan selection:** compare that pool under a rubric, choose a reading, and pass a structured handoff (summary, residual issues, structured winner `selectedCandidate`). The narrative beat hop runs only when `selectedCandidate` is present after parse (see [`coyoteHypothesisPipeline.ts`](coyoteHypothesisPipeline.ts)).
-3. **Narrative beat:** render the committed reading into a `Hypothesis:` line and optional structured plan/walkthrough for the player and cache.
+3. **Narrative beat:** render the committed reading into a `Hypothesis:` line and optional structured narrative-beats / walkthrough for the player and cache.
 
 This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock wrappers for that flow.
 
@@ -116,7 +116,7 @@ Markdown renders stay stable. Plan-select input JSON is **`schemaVersion: 3`** w
 ([`candidates/serializeStagedObjectsForCandidatePrompt.ts`](candidates/serializeStagedObjectsForCandidatePrompt.ts))
 is **input** to stage one only; it does not define the candidate JSON emit shape.
 
-**`affordancesProvided` (optional).** When present on trope affinity rows, values are validated in `@tonylb/mtw-interfaces` (see [`coyotePlanAffinities.ts`](../../../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)). [`candidates/combineCandidateOutput.ts`](candidates/combineCandidateOutput.ts) aggregates them onto plan-select input JSON for **members and outliers** alongside `environmentAffordances`. [`planSelect/buildPlanSelectPrompt.ts`](planSelect/buildPlanSelectPrompt.ts) and [`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts) treat the field as optional structured evidence on handoff rows. There is no required consumption in phase-plan or outcome in the current architecture; extending winners or phase-plan with explicit affordance objects is a follow-on slice.
+**`affordancesProvided` (optional).** When present on trope affinity rows, values are validated in `@tonylb/mtw-interfaces` (see [`coyotePlanAffinities.ts`](../../../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)). [`candidates/combineCandidateOutput.ts`](candidates/combineCandidateOutput.ts) aggregates them onto plan-select input JSON for **members and outliers** alongside `environmentAffordances`. [`planSelect/buildPlanSelectPrompt.ts`](planSelect/buildPlanSelectPrompt.ts) and [`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts) treat the field as optional structured evidence on handoff rows. There is no required consumption in narrative-beats hop or outcome in the current architecture; extending winners or narrative-beats structured output with explicit affordance objects is a follow-on slice.
 
 ### Materialized affordance rows (synthetic `stableKey`)
 
@@ -142,7 +142,7 @@ Plan-select may **materialize** chosen affordances as first-class `tropeAssignme
 
 ## Hop-1 handoff (`planIssues`) contract
 
-Authority for plan-selection to phase-plan handoff shape is [`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts).
+Authority for plan-selection to narrative-beat handoff shape is [`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts).
 
 - Required JSON keys are `paragraphSummary` and `planIssues`.
 - `planIssues` rows are structured objects with required `code` and `summary`, plus optional `evidence: string[]`.
@@ -169,7 +169,7 @@ Parser safety posture:
 - Production still uses **one** Bedrock call for plan-selection; internal multi-phase reasoning is expressed **inside** that prompt (explicit phase order and markdown sections), not as separate pipeline steps.
 - Prompt authority: [`planSelect/buildPlanSelectPrompt.ts`](planSelect/buildPlanSelectPrompt.ts). The **trailing** fenced JSON handoff block (the last `json` code fence in the model output) is the artifact consumed by the planSelect output parser for downstream use.
 
-### Phase-plan consumption
+### Narrative beat consumption
 
 - [`narrativeBeats/buildNarrativeBeatPrompt.ts`](narrativeBeats/buildNarrativeBeatPrompt.ts) accepts **`planSelectOutput`** with mandatory **`selectedCandidate`** plus **`roomObjectsByRoom`** only. The narrative beat prompt **does not** embed the full **combined** candidate pool. **Combined** output still exists **upstream** (for example plan-select input serialization and the **`parsePlanSelectionHandoff`** step in [`coyoteHypothesisPipeline.ts`](coyoteHypothesisPipeline.ts), including outlier rehydration when `candidateId` matches); it is simply **not** passed into `buildNarrativeBeatPrompt`.
 - Dynamic Markdown uses a single **`## Committed plan`** block (summary, residual issues, structured winner). Instructions for **how to read** that block are **inline** in `buildNarrativeBeatPrompt.ts` (local string constants next to prompt assembly), not a shared multi-candidate clustering contract.
@@ -185,7 +185,7 @@ Stage responsibilities:
 
 - Plan-selection identifies issues and resolves what it can; **emitted** `planIssues` are residual obligations only. Intent-signal rows count as negative winner evidence while they remain open.
 - Underspecification rows are deconfliction obligations, not automatic disqualifiers.
-- Phase-plan (narrative beat LLM) treats the chosen summary, residual `planIssues`, and **`selectedCandidate`** as authoritative constraints and resolves or escalates accordingly. That hop runs only after orchestration has confirmed `selectedCandidate` is present (see **`selectedCandidate` (structured winner)** above).
+- The narrative beat LLM treats the chosen summary, residual `planIssues`, and **`selectedCandidate`** as authoritative constraints and resolves or escalates accordingly. That hop runs only after orchestration has confirmed `selectedCandidate` is present (see **`selectedCandidate` (structured winner)** above).
 
 ## Tests
 

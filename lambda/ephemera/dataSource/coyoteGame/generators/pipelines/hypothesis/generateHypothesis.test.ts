@@ -87,7 +87,7 @@ const planSelectOutputBody = [
 ].join('\n')
 
 /** Minimal narrative-beats JSON validating against ROOM#VORTEX snapshot (seam label CLIFFBASE; stableKey **anvil**). */
-function narrativeBeatModelBody(intentLine: string, options?: { includeSceneAnalysis?: boolean }): string {
+function narrativeBeatModelBody(intentLine: string, options?: { includeWalkthrough?: boolean }): string {
     const narrativeBeatsStructured = {
         beats: [
             {
@@ -103,8 +103,8 @@ function narrativeBeatModelBody(intentLine: string, options?: { includeSceneAnal
         JSON.stringify(narrativeBeatsStructured),
         '```',
     ]
-    if (options?.includeSceneAnalysis) {
-        blocks.push('', '## Scene analysis', 'Trap setup.', '')
+    if (options?.includeWalkthrough) {
+        blocks.push('', '## Cartoon play-by-play', 'Trap setup.', '')
     }
     blocks.push('```text', intentLine, '```')
     return blocks.join('\n')
@@ -192,18 +192,18 @@ describe('generateHypothesis', () => {
         expect(fullHop2).toContain('| lane bait')
     })
 
-    it('parses phase-plan hop body with ## Scene analysis + fenced Hypothesis', async () => {
+    it('parses narrative-beats hop body with ## Cartoon play-by-play + fenced Hypothesis', async () => {
         narrativeBeatMock.mockResolvedValue({
             success: true,
             body: narrativeBeatModelBody(
                 'Hypothesis: You are trying to drop something on the Road Runner.',
-                { includeSceneAnalysis: true }
+                { includeWalkthrough: true }
             ),
             usage: { inputTokens: 4, outputTokens: 5, totalTokens: 9 },
         })
         await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toMatchObject({
             intent: 'Hypothesis: You are trying to drop something on the Road Runner.',
-            walkthrough: '## Scene analysis\nTrap setup.',
+            walkthrough: '## Cartoon play-by-play\nTrap setup.',
         })
     })
 

@@ -58,7 +58,7 @@ function buildPlanOutcomeDynamicLines(input: BuildPlanOutcomePromptInput): strin
     if (walkthrough) {
         lines.push(
             '',
-            '## Scene analysis',
+            '## Cartoon play-by-play',
             walkthrough,
             '',
             '- The execution you describe should follow this analysis beat-for-beat in',

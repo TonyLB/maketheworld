@@ -76,7 +76,7 @@ describe('buildPlanOutcomePrompt', () => {
             hypothesisLine: 'Hypothesis: Trap.',
             walkthrough: 'The bird loops past the cliff.',
         })
-        expect(prompt).toContain('## Scene analysis')
+        expect(prompt).toContain('## Cartoon play-by-play')
         expect(prompt).toContain('The bird loops past the cliff.')
         expect(prompt).toContain('cartoon time')
     })
@@ -150,7 +150,7 @@ describe('buildPlanOutcomePrompt', () => {
                 linearizedSequence: ['prep', 'finish'],
             },
         })
-        expect(prompt).toContain('## Scene analysis')
+        expect(prompt).toContain('## Cartoon play-by-play')
         expect(prompt).toContain('First prep the lane, then commit the final drop.')
         expect(prompt).toContain('Linearized sequence: prep -> finish')
         expect(prompt).toContain('Follow')
@@ -162,7 +162,7 @@ describe('buildPlanOutcomePrompt', () => {
             roomObjectsByRoom: baseRooms,
             hypothesisLine: 'Hypothesis: Minimal.',
         })
-        expect(prompt).not.toContain('## Scene analysis')
+        expect(prompt).not.toContain('## Cartoon play-by-play')
         expect(prompt).not.toContain('## Narrative beats structured (execution outline)')
     })
 })

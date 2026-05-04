@@ -9,8 +9,8 @@ const STUB_INTENT = 'Hypothesis: Stubbed'
 const OPEN_FENCE = /^```(?:text)?\s*\n?/i
 const CLOSE_FENCE = /\n?```\s*$/i
 
-/** Matches the Stage Two "## Scene analysis" heading (prompt contract). */
-const SCENE_ANALYSIS_HEADING = /^\s*##\s+Scene analysis\s*$/i
+/** Matches hop-2 walkthrough heading: legacy "## Scene analysis" or "## Cartoon play-by-play". */
+const WALKTHROUGH_SECTION_HEADING = /^\s*##\s+(?:Scene analysis|Cartoon play-by-play)\s*$/i
 
 const HYPOTHESIS_LINE = /^\s*Hypothesis:\s*.+/u
 
@@ -24,7 +24,7 @@ function stripCodeFences(body: string): string {
 }
 
 function trimSceneAnalysisPrefix(preHypothesisLines: string[]): string {
-    const headingIdx = preHypothesisLines.findIndex((line) => SCENE_ANALYSIS_HEADING.test(line))
+    const headingIdx = preHypothesisLines.findIndex((line) => WALKTHROUGH_SECTION_HEADING.test(line))
     if (headingIdx < 0) {
         return preHypothesisLines.join('\n').trim()
     }
@@ -43,9 +43,9 @@ function interiorIsSingleHypothesisLine(interior: string): string | null {
 }
 
 /**
- * New Stage Two contract: prefix (scene analysis Markdown) + final ``` fence whose interior is only Hypothesis: ...
+ * New Stage Two contract: prefix (walkthrough Markdown) + final ``` fence whose interior is only Hypothesis: ...
  */
-/** Removes every **` ```json ` ** fenced region (Option A hop-2 phase-plan JSON) so prose parsing sees only scene analysis + Hypothesis fences. */
+/** Removes every **` ```json ` ** fenced region (hop-2 narrative-beats scratchpad JSON) so prose parsing sees only walkthrough + Hypothesis fences. */
 function stripAllJsonFences(rawBody: string): string {
     let s = rawBody
     const blocks = findAllFenceBlocks(s)
@@ -73,14 +73,15 @@ function trySplitFinalHypothesisFence(rawBody: string): { prefix: string; intent
 }
 
 /**
- * Splits Bedrock hypothesis output into scene analysis (optional) and a single Hypothesis: line.
+ * Splits Bedrock hypothesis output into walkthrough (optional) and a single Hypothesis: line.
  * Shared by generateHypothesis and the Coyote engine test harness.
  *
- * When "## Scene analysis" appears before the Hypothesis line, any lines **before** that heading are dropped
- * so leaked scratch text does not become player-visible scene analysis.
+ * When a hop-2 walkthrough heading appears before the Hypothesis line (`## Scene analysis` or
+ * `## Cartoon play-by-play`), any lines **before** that heading are dropped so leaked scratch text
+ * does not become walkthrough prose.
  *
  * **Final-fence path:** If the last fenced block whose interior is a single `Hypothesis:` line is present,
- * scene analysis is taken from the prefix before that fence (with the same `## Scene analysis` trim rules).
+ * walkthrough is taken from the prefix before that fence (with the same walkthrough-heading trim rules).
  * **Legacy path:** Otherwise, unwrap a single outer ``` fence if present, then use the first `Hypothesis:` line.
  */
 export type ParseNarrativeBeatOutputResult = {

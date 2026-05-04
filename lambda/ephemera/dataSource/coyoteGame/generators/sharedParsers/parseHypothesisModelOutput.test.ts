@@ -40,11 +40,19 @@ describe('parseHypothesisModelOutput', () => {
         })
     })
 
-    it('drops text before ## Scene analysis so leaked scratch is not sceneAnalysis', () => {
+    it('drops text before walkthrough heading so leaked scratch is not walkthrough', () => {
         const body = 'First I will plan in text (leak).\n\n## Scene analysis\nYou staged a trap.\n\nHypothesis: It looks like you are trying to test.'
         expect(parseHypothesisModelOutput(body)).toEqual({
             walkthrough: '## Scene analysis\nYou staged a trap.',
             intent: 'Hypothesis: It looks like you are trying to test.',
+        })
+    })
+
+    it('drops text before ## Cartoon play-by-play the same way (dual-accept heading)', () => {
+        const body = 'Scratch.\n\n## Cartoon play-by-play\nYou light the fuse and run.\n\nHypothesis: It looks like you sprint.'
+        expect(parseHypothesisModelOutput(body)).toEqual({
+            walkthrough: '## Cartoon play-by-play\nYou light the fuse and run.',
+            intent: 'Hypothesis: It looks like you sprint.',
         })
     })
 
@@ -109,7 +117,34 @@ describe('parseNarrativeBeatOutput', () => {
         expect(out.narrativeBeatsStructuredValidationReason).toBeUndefined()
     })
 
-    it('maps ## Scene analysis prose to walkthrough on intent record only', () => {
+    it('maps ## Cartoon play-by-play prose to walkthrough on intent record only', () => {
+        const raw = [
+            '```json',
+            JSON.stringify({
+                beats: [
+                    {
+                        beatId: 'prep',
+                        description: 'Rig anvil in launch lane.',
+                        derivedFrom: ['anvil'],
+                    },
+                ],
+                linearizedSequence: ['prep'],
+            }),
+            '```',
+            '',
+            '## Cartoon play-by-play',
+            'Coyote surveys the terrain.',
+            '',
+            '```text',
+            'Hypothesis: Valid with walkthrough.',
+            '```',
+        ].join('\n')
+        const out = parseNarrativeBeatOutput(raw, narrativeBeatsCtx)
+        expect(out.record.walkthrough).toBe('## Cartoon play-by-play\nCoyote surveys the terrain.')
+        expect(out.record.intent).toBe('Hypothesis: Valid with walkthrough.')
+    })
+
+    it('still maps legacy ## Scene analysis prose to walkthrough', () => {
         const raw = [
             '```json',
             JSON.stringify({
@@ -125,15 +160,15 @@ describe('parseNarrativeBeatOutput', () => {
             '```',
             '',
             '## Scene analysis',
-            'Coyote surveys the terrain.',
+            'Legacy heading body.',
             '',
             '```text',
-            'Hypothesis: Valid with walkthrough.',
+            'Hypothesis: Legacy walkthrough ok.',
             '```',
         ].join('\n')
         const out = parseNarrativeBeatOutput(raw, narrativeBeatsCtx)
-        expect(out.record.walkthrough).toBe('## Scene analysis\nCoyote surveys the terrain.')
-        expect(out.record.intent).toBe('Hypothesis: Valid with walkthrough.')
+        expect(out.record.walkthrough).toBe('## Scene analysis\nLegacy heading body.')
+        expect(out.record.intent).toBe('Hypothesis: Legacy walkthrough ok.')
     })
 
     it('degrades when narrative-beats JSON fails validation but Hypothesis parses', () => {

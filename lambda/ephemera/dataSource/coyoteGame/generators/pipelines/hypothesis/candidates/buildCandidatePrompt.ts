@@ -17,7 +17,7 @@ const CANDIDATE_PROMPT_INTRO_LINES = [
     '',
     'Reply with **valid JSON only**, following the contract below.',
     '- Do **not** write "Hypothesis:".',
-    '- Do **not** use "## Scene analysis" -- that belongs to a later processing step.',
+    '- Do **not** use "## Scene analysis" or "## Cartoon play-by-play" -- those belong to a later processing step.',
     '- Your entire response must be **one JSON object** (optional ```json fence).',
     '  No Markdown headings or prose outside JSON.',
     '- After any optional fence, the payload must start with **`{`** immediately.',

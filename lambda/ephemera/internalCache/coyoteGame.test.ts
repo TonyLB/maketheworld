@@ -84,6 +84,21 @@ describe('CacheCoyoteGameData', () => {
             expect(generateIntent).not.toHaveBeenCalled()
         })
 
+        it('maps legacy sceneAnalysis with ## Cartoon play-by-play heading to walkthrough', async () => {
+            const { generateIntent, generateOutcome } = defaultDeps()
+            ephemeraMock.getItem.mockResolvedValue({
+                intent: 'Hypothesis: Durable',
+                sceneAnalysis: '## Cartoon play-by-play\nRocket gag.',
+            })
+            const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
+
+            await expect(cache.get('intent')).resolves.toEqual({
+                intent: 'Hypothesis: Durable',
+                walkthrough: '## Cartoon play-by-play\nRocket gag.',
+            })
+            expect(generateIntent).not.toHaveBeenCalled()
+        })
+
         it('generates and persists intent on durable miss', async () => {
             const { generateIntent, generateOutcome } = defaultDeps()
             generateIntent.mockResolvedValue({ intent: 'Hypothesis: Generated' })

@@ -12,13 +12,14 @@ import { COYOTE_RENDER_LINE_BREAK } from '../utilities/coyoteRenderTree'
 import { isCoyoteGameRoom } from '../utilities/isCoyoteGameRoom'
 import { hypothesisDebugLog } from '../utilities/hypothesisDebug'
 
-const SCENE_ANALYSIS_HEADING = /^\s*##\s+Scene analysis\s*$/im
+/** Hop-2 internal walkthrough headings: strip from terminal publish (legacy + current). */
+const INTERNAL_WALKTHROUGH_HEADING = /^\s*##\s+(?:Scene analysis|Cartoon play-by-play)\s*$/im
 
 const userFacingWalkthrough = (walkthrough: string | undefined): string | undefined => {
     if (!walkthrough || walkthrough.trim().length === 0) {
         return undefined
     }
-    if (SCENE_ANALYSIS_HEADING.test(walkthrough)) {
+    if (INTERNAL_WALKTHROUGH_HEADING.test(walkthrough)) {
         return undefined
     }
     return walkthrough
@@ -95,9 +96,8 @@ export async function handleObjectsChangedForHypothesis(
 
         await internalCache.CoyoteGame.invalidate('intent')
         const intentRecord = await internalCache.CoyoteGame.get('intent')
-        // NOTE: intentRecord.walkthrough currently maps hop-2 Scene Analysis prose.
-        // That has drifted from the original "golden-path walkthrough" meaning.
-        // We filter Scene Analysis from terminal publish for now; semantic realignment is deferred.
+        // NOTE: intentRecord.walkthrough maps hop-2 internal prose (## Scene analysis or ## Cartoon play-by-play).
+        // We filter those headings from terminal publish for now; semantic realignment is deferred.
         const walkthrough = userFacingWalkthrough(intentRecord.walkthrough)
         const renderTree: RenderTree =
             walkthrough !== undefined

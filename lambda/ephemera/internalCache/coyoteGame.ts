@@ -7,14 +7,14 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 export type CacheCoyoteGameKeys = 'gameRooms' | 'intent' | 'outcome'
 
 /**
- * Durable Coyote hypothesis row: the **`Hypothesis:`** line plus optional hop-2 **walkthrough** (scene analysis) and **narrativeBeatsStructured** (when hop-2 JSON validated).
+ * Durable Coyote hypothesis row: the **`Hypothesis:`** line plus optional hop-2 **walkthrough** (internal cartoon prose; heading may be `## Scene analysis` or `## Cartoon play-by-play`) and **narrativeBeatsStructured** (when hop-2 JSON validated).
  * **Plan outcome** ([`generatePlanOutcome`](../dataSource/coyoteGame/generators/pipelines/outcome/generatePlanOutcome.ts)) and the Await RoadRunner path use the same cached **`get('intent')`** value (no extra Dynamo read for outcome). If **narrativeBeatsStructured** is absent (validation failed, or legacy data), outcome generation still uses **intent** and optional **walkthrough**; see [`coyoteGame/AGENT.md`](../dataSource/coyoteGame/AGENT.md) (plan outcome).
  */
 export type CoyoteGameIntentRecord = {
     intent: string
     /**
-     * NOTE: This currently carries hop-2 "## Scene analysis" prompt prose.
-     * It has drifted from the original "golden-path walkthrough" intent.
+     * NOTE: Hop-2 internal prose under `## Scene analysis` or `## Cartoon play-by-play` (parser accepts both).
+     * It has drifted from the original "golden-path walkthrough" intent for some flows.
      * Semantic realignment is deferred to a later prompt + handling optimization pass.
      */
     walkthrough?: string

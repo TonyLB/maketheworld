@@ -1,6 +1,6 @@
 # Coyote Game: narrative beats refactor (planning)
 
-**Status:** Step **0** (schema + naming) and Step **1** (baseline + ongoing green tests) are complete. **Validation-failure behavior** and **intent field name `narrativeBeatsStructured`** remain locked (see **Delivery sequencing**).
+**Status:** Steps **0--3** are complete (schema + naming, baseline tests, primary slice, hop-2 prompt and shared-line alignment). **Validation-failure behavior** and **intent field name `narrativeBeatsStructured`** remain locked (see **Delivery sequencing**).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -18,11 +18,11 @@ Goals:
 2. **Stop re-running full deconfliction** in hop 2 when **`planSelect`** already committed a winner; keep only what is needed to **narrate** or to **pin down residual underspec** implied by **`planIssues`**.
 3. Preserve a **clear path** to richer **structured** beat ordering (scratchpad) and a later **free-text** user walkthrough, aligned with walk-through / grounding in the trope-centered roadmap ([`AGENT.tropeCenteredRefactor.planning.md`](AGENT.tropeCenteredRefactor.planning.md) step 4).
 
-## Problem statement (current behavior)
+## Problem statement (before this initiative)
 
-Hop 2 prompt text in [`buildNarrativeBeatPrompt.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/narrativeBeats/buildNarrativeBeatPrompt.ts) frames the task as **completing the structured phase plan**, orders output as **JSON phase plan then `## Scene analysis` then fenced Hypothesis**, and requires **`deconflictionSummary`** plus obligations to resolve some **`planIssues`** codes in **phase planning**. Shared lines ([`narrativePromptShared.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/narrativePromptShared.ts)) steer **`## Scene analysis`** toward planning and **tropeFunction**-driven ordering. Models often **mirror** that register in the Hypothesis.
+**Before step 3:** Hop 2 prompt text in [`buildNarrativeBeatPrompt.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/narrativeBeats/buildNarrativeBeatPrompt.ts) framed the task as **completing the structured phase plan**, ordered output as **JSON phase plan then `## Scene analysis` then fenced Hypothesis**, and required **`deconflictionSummary`** plus obligations to resolve some **`planIssues`** codes in **phase planning**. Shared lines ([`narrativePromptShared.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/narrativePromptShared.ts)) steered **`## Scene analysis`** toward planning and **tropeFunction**-driven ordering. Models often **mirrored** that register in the Hypothesis.
 
-Downstream today: the first **` ```json ` ** fence is validated as legacy **`CoyotePhasePlan`** ([`parseNarrativeBeatOutput`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/sharedParsers/parseHypothesisModelOutput.ts) + [`validateCoyotePhasePlan`](../../../../../packages/mtw-interfaces/ts/coyotePhasePlan.ts)); optional **`phasePlan`** on the intent record feeds outcome prompting ([`formatPhasePlanForOutcomePrompt.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/outcome/formatPhasePlanForOutcomePrompt.ts)). This initiative replaces that pairing with a **narrative-beats-shaped** validated payload and **naming** that matches the hop (`narrativeBeats`), not "phase plan."
+**Contract today:** The first **` ```json ` ** fence validates as **`CoyoteNarrativeBeatsStructured`** ([`parseNarrativeBeatOutput`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/sharedParsers/parseHypothesisModelOutput.ts) + [`validateCoyoteNarrativeBeatsStructured`](../../../../../packages/mtw-interfaces/ts/coyoteNarrativeBeatsStructured.ts)); optional **`narrativeBeatsStructured`** on the intent record feeds outcome prompting. Hop-2 prose uses **`## Cartoon play-by-play`** (parser dual-accepts legacy **`## Scene analysis`**); see **Phase-3 decisions** below.
 
 ## Delivery sequencing (practical order)
 
@@ -36,7 +36,7 @@ Downstream today: the first **` ```json ` ** fence is validated as legacy **`Coy
 
 ### Validation failure (locked)
 
-- If structured validation fails, preserve today's spirit: **prose-only** **`intent`** / **`walkthrough`** when the terminal prose parse succeeds, plus a **machine-readable** pipeline field **`narrativeBeatsStructuredValidationReason`** (same role as today's **`phasePlanValidationReason`**). No **`narrativeBeatsStructured`** on the intent record when validation fails. Same behavior as today's [`parseNarrativeBeatOutput`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/sharedParsers/parseHypothesisModelOutput.ts) path when **`validateCoyotePhasePlan`** rejects all **` ```json ` ** candidates.
+- If structured validation fails, preserve today's spirit: **prose-only** **`intent`** / **`walkthrough`** when the terminal prose parse succeeds, plus a **machine-readable** pipeline field **`narrativeBeatsStructuredValidationReason`** (same role as today's **`phasePlanValidationReason`**). No **`narrativeBeatsStructured`** on the intent record when validation fails. Same behavior as [`parseNarrativeBeatOutput`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/sharedParsers/parseHypothesisModelOutput.ts) when no **` ```json ` ** candidate validates as **`CoyoteNarrativeBeatsStructured`**.
 
 ### Primary slice -- Scratchpad JSON + narrative stages + contract migration
 
@@ -54,6 +54,11 @@ Downstream today: the first **` ```json ` ** fence is validated as legacy **`Coy
     - **`derivedFrom: string[]`** (stableKey list)
 - Keep v1 intentionally lean (no required trope/phaseKind/dependency graph fields in this first contract slice).
 
+### Phase-3 decisions (hop-2 prompt and copy, 2026-05-04)
+
+- **Walkthrough heading:** Prompt contract is **`## Cartoon play-by-play`** for the Markdown section between the scratchpad JSON and the fenced Hypothesis line. [`parseHypothesisModelOutput.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/sharedParsers/parseHypothesisModelOutput.ts) uses **`WALKTHROUGH_SECTION_HEADING`**: dual-accept **`## Scene analysis`** and **`## Cartoon play-by-play`** so legacy model output still parses. [`handleObjectsChangedForHypothesis.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handleObjectsChangedForHypothesis.ts) mirrors the same dual regex so both headings stay out of the terminal publish payload. **Close-out follow-up:** remove the **`## Scene analysis`** branch after telemetry shows no production outputs still emit it.
+- **Hypothesis voice:** Keep **`Hypothesis: It looks like ...`** / **`It seems like ...`** as the required humility opener; the body after that is **present-tense cartoon play-by-play** (not prescribed as "you are trying to ..."). Updated in [`narrativePromptShared.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/narrativePromptShared.ts) **`INTERPRETATION_RULES_LINES`** (only consumer is hop 2).
+
 ### Optional follow-up -- Prompt-only tweaks (after structure exists)
 
 - Small wording passes on hop-2-only strings once scratchpad + narrative stages are in place (for example tightening guardrails or heading copy) without another schema change.
@@ -61,8 +66,8 @@ Downstream today: the first **` ```json ` ** fence is validated as legacy **`Coy
 
 ## Parser and heading constraints
 
-- Walkthrough trimming keys off the **`## Scene analysis`** heading ([`SCENE_ANALYSIS_HEADING`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/sharedParsers/parseHypothesisModelOutput.ts)). Renaming the section to **`## What happens`** (or similar) **requires** updating that regex (or dual acceptance) and any prompt lines that reference the old heading ([`VIRTUAL_SCENERY_AND_PREP_OBJECTS_LINES`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/narrativePromptShared.ts)).
-- **`INTERPRETATION_RULES_LINES`** pushes "Hypothesis: It looks like you are trying to ..."; desired style may be **more immediate** ("you are going to ..."). Decide whether hop 2 **overrides** those lines locally or adjusts shared copy (watch impact on other callers of `narrativePromptShared` if any).
+- Walkthrough trimming keys off **`## Cartoon play-by-play`** or legacy **`## Scene analysis`** ([`WALKTHROUGH_SECTION_HEADING`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/sharedParsers/parseHypothesisModelOutput.ts)). Terminal publish filtering uses the same dual heading set in [`handleObjectsChangedForHypothesis.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handleObjectsChangedForHypothesis.ts).
+- **`INTERPRETATION_RULES_LINES`:** humility stays on the **`It looks like ...`** / **`It seems like ...`** opener; cartoon action follows in the same Hypothesis line (see **Phase-3 decisions**).
 
 ## Anchor points in the repo
 
@@ -70,7 +75,7 @@ Downstream today: the first **` ```json ` ** fence is validated as legacy **`Coy
 | --- | --- |
 | Narrative beat prompt | [`buildNarrativeBeatPrompt.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/narrativeBeats/buildNarrativeBeatPrompt.ts) |
 | Narrative beat prompt tests | [`buildNarrativeBeatPrompt.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/narrativeBeats/buildNarrativeBeatPrompt.test.ts) |
-| Hop-2 parse (today: phase plan; target: narrative beats structured) | [`parseHypothesisModelOutput.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/sharedParsers/parseHypothesisModelOutput.ts), [`parseHypothesisModelOutput.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/sharedParsers/parseHypothesisModelOutput.test.ts) |
+| Hop-2 parse (narrative beats structured + dual walkthrough headings) | [`parseHypothesisModelOutput.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/sharedParsers/parseHypothesisModelOutput.ts), [`parseHypothesisModelOutput.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/sharedParsers/parseHypothesisModelOutput.test.ts) |
 | Legacy phase plan types and validator (rename or supersede) | [`packages/mtw-interfaces/ts/coyotePhasePlan.ts`](../../../../../packages/mtw-interfaces/ts/coyotePhasePlan.ts) (and tests alongside); new narrative-beats module TBD alongside or instead of this file |
 | Validation context for hop 2 | [`narrativeBeatValidationContext.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/narrativeBeats/narrativeBeatValidationContext.ts) |
 | Pipeline orchestration | [`coyoteHypothesisPipeline.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts) |
@@ -86,8 +91,8 @@ Downstream today: the first **` ```json ` ** fence is validated as legacy **`Coy
 | Intent **`narrativeBeatsStructured`** + pipeline **`narrativeBeatsStructuredJson`** (raw fence interior when valid) | Locked |
 | Lock **`mtw-interfaces`** type name + validated **JSON schema** (open questions above) | Locked |
 | Primary slice: interfaces + parser + outcome + harness + fixtures | Complete (2026-05-04) |
-| Hop-2 prompt and shared-line alignment (depends on primary slice) | Not started |
-| Durable doc updates (`hypothesis/AGENT.md` if contracts change) | Complete (2026-05-04) |
+| Hop-2 prompt and shared-line alignment (depends on primary slice) | Complete (2026-05-04) |
+| Durable doc updates (`hypothesis/AGENT.md` if contracts change) | Complete (2026-05-04); refreshed with Cartoon play-by-play / dual-heading note (2026-05-04) |
 | Task plan retired (delete or archive) | Not started |
 
 ## Getting started
@@ -165,10 +170,10 @@ Use **`[ ]`** for pending work and **`[X]`** for completed work. Mark nested bul
   - [X] Shipped v1 validator in `mtw-interfaces` with both `beats[]` and `linearizedSequence[]` required and cross-checked by `beatId`.
   - [X] Extend or replace **`parseNarrativeBeatOutput`** tests for new fences and failure modes.
   - [X] Confirm **`generatePlanOutcome`** still receives enough structured context from the new intent field.
-- [ ] **3. Prompt and copy (after structure):** Rewrite **`NARRATIVE_BEAT_INTRO`**, output order, deconfliction framing, and narrative-stage instructions so they match scratchpad then cartoon prose then Hypothesis; adjust or locally override **`TEMPORAL_ORDERING_LINES`**, **`SCENE_ANALYSIS_AND_FENCED_HYPOTHESIS_LINES`**, **`VIRTUAL_SCENERY`**, and parser heading rules as needed (same change set as step 2 when possible, but **depends** on the first-fence contract being real).
-  - [ ] Re-run narrative-beat-related Jest files touched by the diff.
+- [X] **3. Prompt and copy (after structure):** Rewrite **`NARRATIVE_BEAT_INTRO`**, output order, deconfliction framing, and narrative-stage instructions so they match scratchpad then cartoon prose then Hypothesis; adjust or locally override **`TEMPORAL_ORDERING_LINES`**, **`SCENE_ANALYSIS_AND_FENCED_HYPOTHESIS_LINES`**, **`VIRTUAL_SCENERY`**, and parser heading rules as needed (same change set as step 2 when possible, but **depends** on the first-fence contract being real).
+  - [X] Re-run narrative-beat-related Jest files touched by the diff (2026-05-04): `parseHypothesisModelOutput.test.ts`, `buildNarrativeBeatPrompt.test.ts`, `coyoteHypothesisPipeline.test.ts`, `generateHypothesis.test.ts`, `buildPlanOutcomePrompt.test.ts`, `generatePlanOutcome.test.ts`, `handleObjectsChangedForHypothesis.test.ts`, `internalCache/coyoteGame.test.ts`.
 - [X] **4. Documentation:** Update [`hypothesis/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md) hop-3 description if the player-visible contract or JSON shape changes.
-- [ ] **5. Close out:** Mark **Progress** rows done; run **Verification** commands; when the initiative ships, archive or delete this plan per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
+- [ ] **5. Close out:** Mark **Progress** rows done; run **Verification** commands; retire **`## Scene analysis`** parser / publish-filter branch when safe (see **Phase-3 decisions**); when the initiative ships, archive or delete this plan per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
 ## Verification
 
@@ -178,6 +183,11 @@ Run from **`lambda/ephemera/`** after substantive edits (expand the list if **`m
 npm run test -- --watchAll=false dataSource/coyoteGame/generators/sharedParsers/parseHypothesisModelOutput.test.ts
 npm run test -- --watchAll=false dataSource/coyoteGame/generators/pipelines/hypothesis/narrativeBeats/buildNarrativeBeatPrompt.test.ts
 npm run test -- --watchAll=false dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.test.ts
+npm run test -- --watchAll=false dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis.test.ts
+npm run test -- --watchAll=false dataSource/coyoteGame/generators/pipelines/outcome/buildPlanOutcomePrompt.test.ts
+npm run test -- --watchAll=false dataSource/coyoteGame/generators/pipelines/outcome/generatePlanOutcome.test.ts
+npm run test -- --watchAll=false dataSource/coyoteGame/handlers/handleObjectsChangedForHypothesis.test.ts
+npm run test -- --watchAll=false internalCache/coyoteGame.test.ts
 ```
 
 If **`packages/mtw-interfaces`** types or validators change, run that package's test script per its **`package.json`** (do not assume **`lambda/ephemera`** alone is sufficient).

@@ -40,7 +40,7 @@ import { hypothesisDebugLog } from '../../../utilities/hypothesisDebug';
 /**
  * Failure policy: Bedrock failure on Stage One, plan-selection hop, or narrative beat hop; invalid seam / combine;
  * or planSelect output parse failure yields stub intent only --- no partial hypothesis to players.
- * Hop-2 phase-plan JSON validation failure does **not** abort when prose Hypothesis still parses (**Decided: structured validation failure**).
+ * Hop-2 narrative-beats JSON validation failure does **not** abort when prose Hypothesis still parses (**Decided: structured validation failure**).
  */
 
 export type GenerateHypothesisDeps = {
@@ -562,7 +562,7 @@ function selectHarnessSteps(
     if (testOnly === 'planSelect') {
         return [allSteps[3]];
     }
-    /** Narrative beat LLM plus parse into intent / phase-plan JSON (same slice tail as `runUntil` for this phase). */
+    /** Narrative beat LLM plus parse into intent / narrative-beats structured JSON (same slice tail as `runUntil` for this phase). */
     return [allSteps[5], allSteps[6]];
 }
 

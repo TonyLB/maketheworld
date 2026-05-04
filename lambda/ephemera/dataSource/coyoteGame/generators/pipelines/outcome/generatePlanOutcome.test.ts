@@ -126,7 +126,7 @@ describe('generatePlanOutcome', () => {
         }
         const fullPrompt = promptArg.invariantPrefix + promptArg.dynamicSuffix
         expect(fullPrompt).toContain('Hypothesis: Full record override.')
-        expect(fullPrompt).toContain('## Scene analysis')
+        expect(fullPrompt).toContain('## Cartoon play-by-play')
         expect(fullPrompt).toContain('Scene beats align to the plan.')
         expect(fullPrompt).toContain('## Narrative beats structured (execution outline)')
         expect(fullPrompt).toContain('Prime the catapult and commit timing.')
