@@ -2,6 +2,7 @@ import React, { ReactChild, ReactChildren } from 'react'
 import { useDispatch } from 'react-redux'
 
 import Chip from '@mui/material/Chip'
+import { grey } from '@mui/material/colors'
 import ExitIcon from '@mui/icons-material/ExitToApp'
 
 import { moveCharacter } from '../../slices/lifeLine'
@@ -12,10 +13,11 @@ import { StandardExitFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/ex
 
 interface RoomExitProps {
     exit: StandardExitFacet;
+    inactive?: boolean;
     children?: ReactChild | ReactChildren;
 }
 
-export const RoomExit = ({ exit }: RoomExitProps) => {
+export const RoomExit = ({ exit, inactive = false }: RoomExitProps) => {
     if (!(exit instanceof StandardExitFacet)) {
         return <Chip label="Unknown Exit" icon={<ExitIcon />} />
     }
@@ -24,6 +26,23 @@ export const RoomExit = ({ exit }: RoomExitProps) => {
 
     const { CharacterId } = useActiveCharacter()
     const dispatch = useDispatch()
+
+    if (inactive) {
+        //
+        // Historical room headers render exits as outlined grey chips with no click
+        // handler so they read as archived and avoid time-traveling moves.
+        //
+        return <Chip
+            label={exitName}
+            icon={<ExitIcon sx={{ color: `${grey[600]} !important` }} />}
+            variant="outlined"
+            sx={{
+                color: grey[700],
+                borderColor: grey[500]
+            }}
+        />
+    }
+
     //
     // TODO: Create locking mechanism, and embed something akin to "clickable" into
     // the data structure for the Exit

@@ -1,8 +1,8 @@
 # Grey out inactive (non-live) room headers in the play transcript
 
-**Status:** In progress (palette split and "Live" chip removal landed in `RoomDescription`; D1 affordance threading still pending).
+**Status:** In progress (palette split, "Live" chip removal, and D1 affordance threading landed; awaiting manual smoke + archive).
 
-**Next step:** Extend `RoomExit` / `RoomCharacter` / `CharacterChip` per D1 (Recommended order line below).
+**Next step:** Manual smoke pass (scroll transcript, room move with new section below fold), then archive per [`taskPlanning/AGENT.md`](../AGENT.md).
 
 This document follows the task planning framework in [`taskPlanning/AGENT.md`](../AGENT.md) (durability, what belongs here vs in package docs, checkbox conventions). When the feature ships, move any lasting UI notes into [`charcoal-client/AGENT.md`](../../charcoal-client/AGENT.md) or an adjacent message doc, then **delete or archive** this file so `taskPlanning/` stays current.
 
@@ -66,8 +66,8 @@ In the play-mode message list, room block headers use a **light blue** treatment
 | --- | --- |
 | Task plan created; decisions D1-D5 captured | Done |
 | D1-D5 resolved in this doc | Done |
-| Implementation in `RoomDescription` + children | Partial (`RoomDescription` palette; exits/characters pending D1) |
-| Tests green; task plan checkboxes updated | Partial |
+| Implementation in `RoomDescription` + children | Done (`RoomDescription` palette + D1 affordance threading via `inactive` on `RoomExit` / `RoomCharacter` and `variant` on `CharacterChip`) |
+| Tests green; task plan checkboxes updated | Done (full `npm run test:single` clean) |
 | Lasting notes moved to package doc; this file removed/archived | Not started |
 
 ---
@@ -79,7 +79,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as
 - [X] Resolve **Decisions** D1-D5 (see table above).
 - [X] Baseline tests: `cd charcoal-client && npm run test:single` (see [`AGENT.development.md`](AGENT.development.md)).
 - [X] Implement palette split and remove "Live" chip in [`RoomDescription.tsx`](../../charcoal-client/src/components/Message/RoomDescription.tsx); align `isGenerating` with D2.
-- [ ] Extend [`RoomExit.tsx`](../../charcoal-client/src/components/Message/RoomExit.tsx) (and optionally [`RoomCharacter.tsx`](../../charcoal-client/src/components/Message/RoomCharacter.tsx) / [`CharacterChip`](../../charcoal-client/src/components/CharacterChip/index.tsx)) per D1.
+- [X] Extend [`RoomExit.tsx`](../../charcoal-client/src/components/Message/RoomExit.tsx) (and optionally [`RoomCharacter.tsx`](../../charcoal-client/src/components/Message/RoomCharacter.tsx) / [`CharacterChip`](../../charcoal-client/src/components/CharacterChip/index.tsx)) per D1. Threaded `affordancesInactive = !useLivePalette` from [`RoomDescription.tsx`](../../charcoal-client/src/components/Message/RoomDescription.tsx) into both leaves; inactive exits render outlined grey with no `onClick`, inactive character chips forward `variant="inactive"` to `CharacterChip` (which skips `CharacterStyleWrapper`, renders plain grey, and ignores `onClick`). See updated notes in [`AGENT.RoomDescription.md`](../../charcoal-client/src/components/Message/AGENT.RoomDescription.md).
 - [X] Update [`RoomDescription.test.tsx`](../../charcoal-client/src/components/Message/RoomDescription.test.tsx) and any snapshot or RTL expectations.
 - [X] `npm run test:single` (full package or scoped to `src/components/Message`).
 - [ ] Manual smoke: scroll transcript (historical vs bottom), room move with new section below fold.

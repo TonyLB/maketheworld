@@ -7,6 +7,7 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
+import '@testing-library/jest-dom'
 import RoomDescription from './RoomDescription'
 import { PerceptionRoomMetaData } from '@tonylb/mtw-interfaces/ts/messages'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
@@ -16,14 +17,24 @@ vi.mock('../../../cacheDB')
 
 // Mock the sub-components to simplify testing
 vi.mock('./RoomExit', () => ({
-    default: ({ exit }: any) => (
-        <div data-testid="room-exit">{exit?.description?.plainString || 'Exit'}</div>
+    default: ({ exit, inactive }: any) => (
+        <div
+            data-testid="room-exit"
+            data-inactive={String(Boolean(inactive))}
+        >
+            {exit?.description?.plainString || 'Exit'}
+        </div>
     )
 }))
 
 vi.mock('./RoomCharacter', () => ({
-    default: ({ character }: any) => (
-        <div data-testid="room-character">{character?.displayName?.plainString || 'Character'}</div>
+    default: ({ character, inactive }: any) => (
+        <div
+            data-testid="room-character"
+            data-inactive={String(Boolean(inactive))}
+        >
+            {character?.displayName?.plainString || 'Character'}
+        </div>
     )
 }))
 
@@ -234,6 +245,77 @@ describe('RoomDescription', () => {
 
             expect(screen.getByText('Untitled')).toBeDefined()
             expect(screen.getByText('No description')).toBeDefined()
+        })
+    })
+
+    /**
+     * Threads `affordancesInactive = !useLivePalette` from RoomDescription into RoomExit and
+     * RoomCharacter so historical headers render inert grey affordances.
+     */
+    describe('Affordance threading', () => {
+        const wmlWithAffordances = `
+            <Asset uuid=(Test)>
+                <Room uuid=(ROOM#main)>
+                    <Render>
+                        <DisplayName>Parlor</DisplayName>
+                        <Summary>A room.</Summary>
+                        <Description>Full prose here.</Description>
+                    </Render>
+                    <Exit to=(ROOM#north)>North passage</Exit>
+                    <Character key=(testChar) uuid=(CHARACTER#test) />
+                </Room>
+            </Asset>
+        `
+
+        it('marks affordances active when header && currentHeader (live)', () => {
+            const parsedWML = new StandardForm(deIndentWML(wmlWithAffordances), { standardizeMode: 'ephemeraWire' })
+            const metaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#main',
+                displayMode: 'header'
+            }
+
+            render(
+                <Provider store={store}>
+                    <RoomDescription
+                        parsedWML={parsedWML}
+                        metaData={metaData}
+                        header
+                        currentHeader
+                    />
+                </Provider>
+            )
+
+            const exits = screen.getAllByTestId('room-exit')
+            const characters = screen.getAllByTestId('room-character')
+            expect(exits.length).toBeGreaterThan(0)
+            expect(characters.length).toBeGreaterThan(0)
+            exits.forEach((node) => expect(node).toHaveAttribute('data-inactive', 'false'))
+            characters.forEach((node) => expect(node).toHaveAttribute('data-inactive', 'false'))
+        })
+
+        it('marks affordances inactive when header is rendered without currentHeader (historical)', () => {
+            const parsedWML = new StandardForm(deIndentWML(wmlWithAffordances), { standardizeMode: 'ephemeraWire' })
+            const metaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#main',
+                displayMode: 'header'
+            }
+
+            render(
+                <Provider store={store}>
+                    <RoomDescription
+                        parsedWML={parsedWML}
+                        metaData={metaData}
+                        header
+                    />
+                </Provider>
+            )
+
+            const exits = screen.getAllByTestId('room-exit')
+            const characters = screen.getAllByTestId('room-character')
+            expect(exits.length).toBeGreaterThan(0)
+            expect(characters.length).toBeGreaterThan(0)
+            exits.forEach((node) => expect(node).toHaveAttribute('data-inactive', 'true'))
+            characters.forEach((node) => expect(node).toHaveAttribute('data-inactive', 'true'))
         })
     })
 

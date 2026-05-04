@@ -66,6 +66,7 @@ interface RoomDescriptionProps {
 
 export const RoomDescription = ({ parsedWML, metaData, header, currentHeader, isGenerating }: RoomDescriptionProps) => {
     const useLivePalette = Boolean(isGenerating || (header && currentHeader))
+    const affordancesInactive = !useLivePalette
     const componentUUID = metaData.componentUUID
 
     // Initialize with proper types
@@ -230,6 +231,7 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader, is
                         { exits.map((exit, index) => (
                             <RoomExit 
                                 exit={exit} 
+                                inactive={affordancesInactive}
                                 key={`exit-${index}`} 
                             />
                         ))}
@@ -238,6 +240,7 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader, is
                         { characters.map((character, index) => (
                             <RoomCharacter 
                                 character={character} 
+                                inactive={affordancesInactive}
                                 key={`character-${index}`} 
                             />
                         ))}
