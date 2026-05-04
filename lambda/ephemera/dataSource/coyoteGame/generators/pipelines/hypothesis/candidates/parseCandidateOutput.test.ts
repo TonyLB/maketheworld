@@ -73,6 +73,138 @@ describe('parseCandidateOutput', () => {
         }
     })
 
+    it('accepts optional environmentAffordances and affordancesProvided on members and outliers', () => {
+        const map: CoyoteRoomObjectsByRoom = {
+            ...singleObjectRoomMap,
+            'ROOM#BRIDGE': harnessRoomObjects('bridge', ['rope']),
+        }
+        const body = JSON.stringify({
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Use affordance evidence on rows.',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'Rope read as launcher geometry.',
+                            members: [
+                                {
+                                    stableKey: 'rope-0',
+                                    tropeFunction: 'launcher rig',
+                                    environmentAffordances: [{ object: 'rock-wall', roles: ['Contraption'] }],
+                                    affordancesProvided: [{ object: 'cannonball', roles: ['Finishing Move'] }],
+                                },
+                            ],
+                        },
+                        'Finishing Move': {
+                            executionDetail: 'Anvil drops as terminal beat.',
+                            members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal drop payload' }],
+                        },
+                    },
+                    outliers: [
+                        {
+                            stableKey: 'rope-0',
+                            environmentAffordances: [{ object: 'rock-wall', roles: ['Contraption'] }],
+                            affordancesProvided: [{ object: 'cannonball', roles: ['Finishing Move'] }],
+                        },
+                    ],
+                },
+            ],
+        })
+        const r = parseCandidateOutput(body, map)
+        expect(r.ok).toBe(true)
+        if (r.ok) {
+            const member = r.candidates[0].tropeAssignments.Contraption?.members[0]
+            expect(member?.environmentAffordances).toEqual([{ object: 'rock-wall', roles: ['Contraption'] }])
+            expect(member?.affordancesProvided).toEqual([{ object: 'cannonball', roles: ['Finishing Move'] }])
+        }
+    })
+
+    it('rejects malformed environmentAffordances or affordancesProvided on member rows', () => {
+        const badEnvironment = JSON.stringify({
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Bad row shape.',
+                    tropeAssignments: {
+                        'Finishing Move': {
+                            executionDetail: 'Trigger the terminal drop.',
+                            members: [
+                                {
+                                    stableKey: 'anvil-0',
+                                    tropeFunction: 'terminal drop payload',
+                                    environmentAffordances: [{ object: 'not-real', roles: ['Finishing Move'] }],
+                                },
+                            ],
+                        },
+                    },
+                },
+            ],
+        })
+        const badEnvironmentResult = parseCandidateOutput(badEnvironment, singleObjectRoomMap)
+        expect(badEnvironmentResult.ok).toBe(false)
+        if (!badEnvironmentResult.ok) {
+            expect(badEnvironmentResult.errorMessage).toContain('malformed environmentAffordances')
+        }
+
+        const badProvided = JSON.stringify({
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Bad row shape.',
+                    tropeAssignments: {
+                        'Finishing Move': {
+                            executionDetail: 'Trigger the terminal drop.',
+                            members: [
+                                {
+                                    stableKey: 'anvil-0',
+                                    tropeFunction: 'terminal drop payload',
+                                    affordancesProvided: [{ object: '', roles: ['Finishing Move'] }],
+                                },
+                            ],
+                        },
+                    },
+                },
+            ],
+        })
+        const badProvidedResult = parseCandidateOutput(badProvided, singleObjectRoomMap)
+        expect(badProvidedResult.ok).toBe(false)
+        if (!badProvidedResult.ok) {
+            expect(badProvidedResult.errorMessage).toContain('malformed affordancesProvided')
+        }
+    })
+
+    it('rejects malformed environmentAffordances or affordancesProvided on outlier rows', () => {
+        const map: CoyoteRoomObjectsByRoom = {
+            ...singleObjectRoomMap,
+            'ROOM#BRIDGE': harnessRoomObjects('bridge', ['rope']),
+        }
+        const badOutlier = JSON.stringify({
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Outlier affordance shape regression.',
+                    tropeAssignments: {
+                        'Finishing Move': {
+                            executionDetail: 'Anvil lane execution.',
+                            members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal lane payload' }],
+                        },
+                    },
+                    outliers: [
+                        {
+                            stableKey: 'rope-0',
+                            affordancesProvided: [{ object: 'cannonball', intended: false, roles: ['Finishing Move'] }],
+                        },
+                    ],
+                },
+            ],
+        })
+        const r = parseCandidateOutput(badOutlier, map)
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.errorMessage).toContain('malformed affordancesProvided')
+        }
+    })
+
     it('rejects trope member missing tropeFunction', () => {
         const body = JSON.stringify({
             candidates: [

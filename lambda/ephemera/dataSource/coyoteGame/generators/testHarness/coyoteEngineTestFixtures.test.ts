@@ -95,6 +95,14 @@ describe('COYOTE_ENGINE_TEST_FIXTURES', () => {
             'affordance:coyote'
         )
     })
+
+    it('fixture-10 planSelectInject includes cannon member in combined contraption lane', () => {
+        const fixture10 = COYOTE_ENGINE_TEST_FIXTURES.find(({ id }) => id === 'fixture-10')
+        expect(fixture10).toBeDefined()
+        const contraptionMembers = fixture10?.planSelectInject?.combined.candidates[0]?.tropeAssignments.Contraption?.members ?? []
+        const cannonMember = contraptionMembers.find((member) => member.identifier === 'cannon-0')
+        expect(cannonMember).toBeDefined()
+    })
 })
 
 describe('resolveCoyoteHarnessStartAtInject', () => {
