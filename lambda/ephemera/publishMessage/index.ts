@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { isCharacterMessage, isPublishWorldLineMessage, PublishMessage, MessageBus, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isPerceptionPublishMessage, isPublishTargetSession, isPublishTargetExcludeSession, isPublishCoyoteGameHelpMessage, isPublishCoyoteGameHypothesisMessage } from "../messageBus/baseClasses"
+import { isCharacterMessage, isPublishWorldLineMessage, isPublishCommandTranscriptMessage, PublishMessage, MessageBus, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isPerceptionPublishMessage, isPublishTargetSession, isPublishTargetExcludeSession, isPublishCoyoteGameHelpMessage, isPublishCoyoteGameHypothesisMessage } from "../messageBus/baseClasses"
 import getCurrentTimestamp from '../internalUtils/dateUtil'
 import { unique } from '@tonylb/mtw-utilities/ts/lists'
 import internalCache from '../internalCache'
@@ -255,7 +255,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
 
     await Promise.all(payloads.map(async (payload, index) => {
         const computedCreatedTime = baseTime + (payload.messageGroupId ? offsetsByMessageId[payload.messageGroupId] ?? pastOffsets + index : pastOffsets + index)
-        if (isPublishWorldLineMessage(payload) || isPublishCoyoteGameHypothesisMessage(payload)) {
+        if (isPublishWorldLineMessage(payload) || isPublishCoyoteGameHypothesisMessage(payload) || isPublishCommandTranscriptMessage(payload)) {
             const CreatedTime = payload.createdTime !== undefined ? payload.createdTime : computedCreatedTime
             const MessageId = payload.messageId ?? `MESSAGE#${uuidv4()}`
             await pushToQueues({

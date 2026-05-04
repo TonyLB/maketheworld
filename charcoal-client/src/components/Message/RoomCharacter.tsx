@@ -1,4 +1,4 @@
-import React, { ReactChild, ReactChildren} from 'react'
+import React, { ReactNode } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
 import { RoomCharacter as RoomCharacterType } from '@tonylb/mtw-interfaces/ts/messages'
@@ -12,7 +12,7 @@ import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/cha
 interface RoomCharacterProps {
     character: StandardCharacter;  // Only accept Standard format
     inactive?: boolean;
-    children?: ReactChild | ReactChildren;
+    children?: ReactNode;
 }
 
 export const RoomCharacter = ({ character, inactive = false }: RoomCharacterProps) => {

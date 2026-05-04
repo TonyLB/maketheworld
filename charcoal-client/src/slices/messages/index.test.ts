@@ -81,6 +81,40 @@ describe('messages reducer', () => {
             })
         })
 
+        it('should accept CommandTranscriptMessage rows from Messages pipeline', () => {
+            expect(reducer(undefined, receiveMessages([{
+                DisplayProtocol: 'CommandTranscriptMessage',
+                CreatedTime: 2,
+                Message: ['look'],
+                MessageId: 'MESSAGE#command',
+                Target: 'CHARACTER#TESS'
+            } as any]))).toEqual({
+                history: {
+                    'CHARACTER#TESS': [{
+                        DisplayProtocol: 'CommandTranscriptMessage',
+                        CreatedTime: 2,
+                        Message: ['look'],
+                        MessageId: 'MESSAGE#command',
+                        Target: 'CHARACTER#TESS'
+                    }]
+                },
+                aggregates: {
+                    'CHARACTER#TESS': {
+                        'MESSAGE#command': { earliestCreatedTime: 2, latestCreatedTime: 2 }
+                    }
+                },
+                presentation: {
+                    'CHARACTER#TESS': [{
+                        DisplayProtocol: 'CommandTranscriptMessage',
+                        CreatedTime: 2,
+                        Message: ['look'],
+                        MessageId: 'MESSAGE#command',
+                        Target: 'CHARACTER#TESS'
+                    }]
+                }
+            })
+        })
+
         it('should add target entry when none exists', () => {
             expect(reducer(state, receiveMessages([{
                 DisplayProtocol: 'WorldMessage',

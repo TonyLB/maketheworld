@@ -45,6 +45,18 @@
 
 **Tests:** [`socketDispatchConversation.test.ts`](socketDispatchConversation.test.ts).
 
+## `parseCommand` command dispatch strategy
+
+**Location:** [`index.api.ts`](index.api.ts) (`parseCommand`).
+
+`parseCommand` supports explicit command dispatch behavior:
+
+- Default `commandDispatchStrategy: 'fireAndForget'` sends command mode via `socketDispatch` (no required `RequestId`).
+- Optional `commandDispatchStrategy: 'promise'` sends command mode via `socketDispatchPromise`, which adds `RequestId` on outbound wire for correlation.
+- Non-command modes (`SayMessage`, `NarrateMessage`, `OOCMessage`) remain fire-and-forget action dispatch.
+
+This keeps current command UX behavior stable while exposing a correlation-ready path for features that need round-trip gating or timeout handling.
+
 ## References
 
 - [`lambda/ephemera/conversations/AGENT.planning.md`](../../../../lambda/ephemera/conversations/AGENT.planning.md) - coordination trap, vertical slice, orchestration alignment.

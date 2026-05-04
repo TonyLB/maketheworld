@@ -41,9 +41,11 @@ export interface LifeLineNodes {
 }
 
 export type ParseCommandModes = 'SayMessage' | 'NarrateMessage' | 'OOCMessage' | 'Command'
+export type ParseCommandDispatchStrategy = 'fireAndForget' | 'promise'
 
 export interface ParseCommandProps {
     mode: ParseCommandModes;
     entry: string;
     raiseError: (error: string) => void;
+    commandDispatchStrategy?: ParseCommandDispatchStrategy;
 }

@@ -333,6 +333,12 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
             if (!isEphemeraCharacterId(content.characterId)) {
                 return
             }
+            messageBus.send({
+                type: 'PublishMessage',
+                targets: [content.characterId],
+                displayProtocol: 'CommandTranscriptMessage',
+                message: linesToRenderTree([content.command.trim()]),
+            })
             const roomExitContext = await getRoomExitTargetsForCharacter(content.characterId)
             const coyoteOccupiedStableKeys = await collectCoyoteOccupiedStableKeys()
             const parseResult = await parseCommand({
@@ -363,7 +369,7 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                     body: {
                         messageType: 'Success',
                         RequestId: content.requestId,
-                        message: 'Parse request accepted',
+                        message: 'parse_request_handled',
                     },
                 })
             }

@@ -8,6 +8,7 @@ import NarrateMessage from './NarrateMessage'
 import OOCMessage from './OOCMessage'
 import WorldMessage from './WorldMessage'
 import WorldOOCMessage from './WorldOOCMessage'
+import CommandTranscriptMessage from './CommandTranscriptMessage'
 import CoyoteHelpMessage from './CoyoteHelpMessage'
 import CoyoteGameHypothesisMessage from './CoyoteGameHypothesisMessage'
 import RoomDescription from './RoomDescription'
@@ -58,6 +59,8 @@ export const Message = ({ message, ...rest }: MessageProps) => {
             return <WorldMessage message={message} {...rest} />
         case 'WorldOOCMessage':
             return <WorldOOCMessage message={message} {...rest} />
+        case 'CommandTranscriptMessage':
+            return <CommandTranscriptMessage message={message} {...rest} />
         case 'CoyoteGameHelpMessage':
             return <CoyoteHelpMessage message={message} {...rest} />
         case 'CoyoteGameHypothesisMessage':

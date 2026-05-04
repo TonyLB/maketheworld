@@ -96,19 +96,25 @@ describe('ephemeraActionsDataSource', () => {
             streamEnvelope: jest.fn(async () => {}),
         })
 
-        expect(mockMessageBus.send).toHaveBeenCalledTimes(2)
+        expect(mockMessageBus.send).toHaveBeenCalledTimes(3)
         expect(mockMessageBus.send).toHaveBeenNthCalledWith(1, {
+            type: 'PublishMessage',
+            targets: ['CHARACTER#123'],
+            displayProtocol: 'CommandTranscriptMessage',
+            message: ['look'],
+        })
+        expect(mockMessageBus.send).toHaveBeenNthCalledWith(2, {
             type: 'PublishMessage',
             targets: ['CHARACTER#123'],
             displayProtocol: 'WorldOOCMessage',
             message: ['Parse error'],
         })
-        expect(mockMessageBus.send).toHaveBeenNthCalledWith(2, {
+        expect(mockMessageBus.send).toHaveBeenNthCalledWith(3, {
             type: 'ReturnValue',
             body: {
                 messageType: 'Success',
                 RequestId: 'req-1',
-                message: 'Parse request accepted',
+                message: 'parse_request_handled',
             },
         })
     })
@@ -224,8 +230,14 @@ describe('ephemeraActionsDataSource', () => {
             streamEnvelope: jest.fn(async () => {}),
         })
 
-        expect(mockMessageBus.send).toHaveBeenCalledTimes(1)
-        expect(mockMessageBus.send).toHaveBeenCalledWith({
+        expect(mockMessageBus.send).toHaveBeenCalledTimes(2)
+        expect(mockMessageBus.send).toHaveBeenNthCalledWith(1, {
+            type: 'PublishMessage',
+            targets: ['CHARACTER#123'],
+            displayProtocol: 'CommandTranscriptMessage',
+            message: ['look'],
+        })
+        expect(mockMessageBus.send).toHaveBeenNthCalledWith(2, {
             type: 'PublishMessage',
             targets: ['CHARACTER#123'],
             displayProtocol: 'WorldOOCMessage',
@@ -287,7 +299,7 @@ describe('ephemeraActionsDataSource', () => {
                 body: {
                     messageType: 'Success',
                     RequestId: 'req-nav',
-                    message: 'Parse request accepted',
+                    message: 'parse_request_handled',
                 },
             })
         })
@@ -445,7 +457,7 @@ describe('ephemeraActionsDataSource', () => {
                 body: {
                     messageType: 'Success',
                     RequestId: 'req-look',
-                    message: 'Parse request accepted',
+                    message: 'parse_request_handled',
                 },
             })
         })
@@ -1059,15 +1071,21 @@ describe('ephemeraActionsDataSource', () => {
             expect(mockMessageBus.send).toHaveBeenNthCalledWith(1, {
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
+                displayProtocol: 'CommandTranscriptMessage',
+                message: ['order explosives and then order bandages'],
+            })
+            expect(mockMessageBus.send).toHaveBeenNthCalledWith(2, {
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldOOCMessage',
                 message: [MULTIPLE_COMMANDS_PLAYER_MESSAGE],
             })
-            expect(mockMessageBus.send).toHaveBeenNthCalledWith(2, {
+            expect(mockMessageBus.send).toHaveBeenNthCalledWith(3, {
                 type: 'ReturnValue',
                 body: {
                     messageType: 'Success',
                     RequestId: 'req-multiple',
-                    message: 'Parse request accepted',
+                    message: 'parse_request_handled',
                 },
             })
         })
@@ -1100,14 +1118,20 @@ describe('ephemeraActionsDataSource', () => {
             expect(mockMessageBus.send).toHaveBeenNthCalledWith(1, {
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
-                displayProtocol: 'CoyoteGameHelpMessage',
+                displayProtocol: 'CommandTranscriptMessage',
+                message: ['help me'],
             })
             expect(mockMessageBus.send).toHaveBeenNthCalledWith(2, {
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'CoyoteGameHelpMessage',
+            })
+            expect(mockMessageBus.send).toHaveBeenNthCalledWith(3, {
                 type: 'ReturnValue',
                 body: {
                     messageType: 'Success',
                     RequestId: 'req-help',
-                    message: 'Parse request accepted',
+                    message: 'parse_request_handled',
                 },
             })
         })

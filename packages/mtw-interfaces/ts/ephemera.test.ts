@@ -312,6 +312,19 @@ describe('EphemeraClientMessage typeguard', () => {
             })).toBe(true)
         })
 
+        it('should accept CommandTranscriptMessage with world-line wire shape', () => {
+            expect(isEphemeraClientMessage({
+                messageType: 'Messages',
+                messages: [{
+                    DisplayProtocol: 'CommandTranscriptMessage',
+                    MessageId: 'TestID',
+                    CreatedTime: 5,
+                    Target: 'CHARACTER#TestABC',
+                    Message: ['> look']
+                }]
+            })).toBe(true)
+        })
+
         it('should accept CoyoteGameHelpMessage without message body payload', () => {
             expect(isEphemeraClientMessage({
                 messageType: 'Messages',
