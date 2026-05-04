@@ -39,6 +39,7 @@ import { standardComponentFactory } from "@tonylb/mtw-wml/ts/standardize/compone
 import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
 import { v4 as uuidv4 } from "uuid"
 import { AssetUUID, ComponentUUID } from "@tonylb/mtw-base/ts/schema"
+import type { SchemaImportMapping } from "@tonylb/mtw-base/ts/schema/metaData"
 
 type AddComponentTag = "Character" | "Map" | "Room" | "Feature" | "Knowledge" | "Image" | "Situation"
 
@@ -193,7 +194,7 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
     )
 
     const handleImportSelect = useCallback(
-        (fromAsset: AssetUUID, uuid: ComponentUUID, tag: "Room" | "Feature" | "Knowledge" | "Map" | "Message" | "Moment") => {
+        (fromAsset: AssetUUID, uuid: ComponentUUID, tag: SchemaImportMapping["type"]) => {
             updateStandard({
                 type: "update",
                 update: (draft) => {

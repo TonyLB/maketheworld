@@ -1,6 +1,6 @@
 # Task plan: charcoal-client TypeScript build errors
 
-**Status:** Not started --- clean `npm run build` / `npm run check` from `charcoal-client/` is the exit criterion.
+**Status:** In progress --- Workbench/Maps/WML selectors slice done (`check`, `build`, `test:single` green). Remaining: **Close out** row when the full initiative is verified and merged.
 
 See [`taskPlanning/AGENT.md`](../AGENT.md) for how task plans relate to durable docs and when to delete this file after merge.
 
@@ -37,11 +37,11 @@ Eliminate TypeScript errors reported by `tsc` so `npm run check` and `npm run bu
 | Character `DisplayName` (library, player, UI) | Done: guest helper in `slices/player`, `CharacterSelection`, `Home` use `DisplayName` per `mtw-interfaces`. |
 | `MessagePanel` / ephemera `info` | Done: `MessagePanel` no longer destructures `info.Name`; `EphemeraCharacterInPlay` uses top-level `DisplayName`. |
 | `VirtualMessageList` / react-virtuoso | Done: exact **`1.11.1`** in `package.json` + root `overrides`; `VirtualMessageList.tsx`: typed MUI `List` wrapper, pointer-capture props, `ref` assertion for Virtuoso 1.11 / React 18. |
-| Workbench import handler | Extend tag union to include `Lens` (match `ImportComponentDialog`) |
-| `MapController` positions | Use `shortName` on `MapContextPosition` |
-| `receiveMapEphemera` | Fix `name` vs `shortName` in return object |
-| `buildGenerationContextSubset` | Fix `StandardRoom` payload assertion (e.g. via `unknown`) |
-| `contentHeaders/selectors` | Narrow `displayName` union before `plainString` |
+| Workbench import handler | Done: `TopLevelEditor` `handleImportSelect` uses `SchemaImportMapping['type']` (includes `Lens`). |
+| `MapController` positions | Done: workbench `MapController` uses `shortName` on `MapContextPosition` (matches `Maps/Controller/index`). |
+| `receiveMapEphemera` | Done: `extractMapDataFromStandardForm` returns map `shortName`, not undefined `name`. |
+| `buildGenerationContextSubset` | Done: trim uses `StandardRoomPayload` cast and clears `_inlineRefs` (not `_examples`). |
+| `contentHeaders/selectors` | Done: `getComponentDisplayName` handles `StandardLiteral` + optional `plainString` fallback. |
 
 ## Recommended order
 
@@ -50,9 +50,9 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as y
 - [X] **MUI:** Pin `@mui/material` and `@mui/icons-material` to **7.3.4** and `@mui/system` to **7.3.3**; align root `overrides` and add root `@mui/system` for hoisting; reinstall. Import `Theme`/`useTheme`/`styled`/`keyframes`/`createTheme`/`ThemeProvider`/`StyledEngineProvider` from `@mui/material` (see **Decisions**). Touched: `App.tsx`, `CharacterStyleWrapper`, `DraggableTree/useTreeStyles`, `Maps/Edit` theme hooks, `Onboarding/TutorialPopover`, `SignIn`, `Spinner`, `Workbench/workbenchTheme`, plus `components.test.tsx` for consistency.
 - [X] **Characters:** Rename `Name` to `DisplayName` where types are `LibraryCharacter` or `AssetClientPlayerCharacter` (`CharacterSelection`, `Home`, `slices/player` guest helper). Use `DisplayName` for `EphemeraCharacterInPlay` in `MessagePanel` (no `info.Name`).
 - [X] **Virtuoso:** Set `react-virtuoso` to **`1.11.1`** in `package.json` (exact); fix `GroupedVirtuoso` typing in `VirtualMessageList.tsx` at that version (e.g. pointer-capture props, narrow assertion, or `ComponentProps` helper). Defer deliberate Virtuoso upgrades.
-- [ ] **Workbench:** Widen `handleImportSelect` in `TopLevelEditor.tsx` to `SchemaImportMapping['type']` and handle `Lens` in `addImportToDraft` path if needed.
-- [ ] **Maps:** In `MapController.tsx`, set `shortName` on position objects (not `name`). In `receiveMapEphemera.ts`, return `shortName` not `name` in `extractMapDataFromStandardForm`.
-- [ ] **WML / selectors:** Fix `buildGenerationContextSubset.ts` cast to match `StandardRoom` payload. Narrow `getComponentDisplayName` in `contentHeaders/selectors.ts` for `displayName.plainString`.
+- [X] **Workbench:** Widen `handleImportSelect` in `TopLevelEditor.tsx` to `SchemaImportMapping['type']` and handle `Lens` in `addImportToDraft` path if needed.
+- [X] **Maps:** In `MapController.tsx`, set `shortName` on position objects (not `name`). In `receiveMapEphemera.ts`, return `shortName` not `name` in `extractMapDataFromStandardForm`.
+- [X] **WML / selectors:** Fix `buildGenerationContextSubset.ts` cast to match `StandardRoom` payload. Narrow `getComponentDisplayName` in `contentHeaders/selectors.ts` for `displayName.plainString`.
 - [ ] **Close out:** Run Verification; update this plan's checkboxes and Progress table; remove this file after merge per [`taskPlanning/AGENT.md`](../AGENT.md).
 
 ## Verification

@@ -1,6 +1,6 @@
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardKey, ReferenceList } from '@tonylb/mtw-wml/ts/standardize/components/reference'
-import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardRoom, { type StandardRoomPayload } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardMark, { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import StandardGuidance from '@tonylb/mtw-wml/ts/standardize/components/guidance'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
@@ -28,14 +28,14 @@ const isGenerationContextComponent = (c: StandardComponent): boolean =>
 const roomMatchesKey = (room: StandardRoom, roomKey: StandardKey): boolean =>
     room.standardKey.equals(roomKey)
 
-/** Clones the room and clears situations, examples, exits, features, and characters on the clone's payload. */
+/** Clones the room and clears situations, inline refs, exits, features, and characters on the clone's payload. */
 function trimRoomForGenerationContext(room: StandardRoom): StandardRoom {
     const trimmed = room.clone()
-    const payload = (trimmed as { _payload: { _situations: unknown; _exits: unknown; _features: unknown; _examples: unknown; _characters: unknown } })._payload
+    const payload = (trimmed as StandardRoom & { _payload: StandardRoomPayload })._payload
     payload._situations = new SituationRoomFacetList([])
     payload._exits = new ExitFacetList([])
     payload._features = new ReferenceList([])
-    payload._examples = new ReferenceList([])
+    payload._inlineRefs = new ReferenceList([])
     payload._characters = new ReferenceList([])
     return trimmed
 }
@@ -43,8 +43,8 @@ function trimRoomForGenerationContext(room: StandardRoom): StandardRoom {
 /**
  * Builds the generation-context subset for a Room: Room plus Direct-referenced Lens, Mark, and Guidance.
  * The caller can serialize with schemaToWML([result.schema]) to obtain generation-context WML when a trimmed
- * room slice (without situations, examples, exits, features, characters) is needed.
- * The Room in the result is trimmed to only shortName, lens, and guidance (no situations, examples, exits, features, characters).
+ * room slice (without situations, inline refs, exits, features, characters) is needed.
+ * The Room in the result is trimmed to only shortName, lens, and guidance (no situations, inline refs, exits, features, characters).
  */
 export const buildGenerationContextSubset = (form: StandardForm, roomKey: StandardKey): StandardForm => {
     const subsetForm = form.subset([{

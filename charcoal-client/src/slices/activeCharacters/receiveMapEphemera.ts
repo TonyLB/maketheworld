@@ -81,7 +81,7 @@ const extractMapDataFromStandardForm = (standardForm: StandardForm, mapId: Ephem
 
     return {
         description: '', // Keep original description for backwards compatibility if needed
-        name,
+        shortName,
         rooms,
         assets,
         fileURL

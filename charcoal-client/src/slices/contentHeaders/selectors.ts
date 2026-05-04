@@ -7,6 +7,7 @@ import { ContentHeadersSnapshot } from '@tonylb/mtw-interfaces/ts/eventBridge/as
 import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
+import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { hasDisplayName } from '@tonylb/mtw-wml/ts/standardize'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
@@ -63,7 +64,14 @@ export const getComponentDisplayName = (component: StandardComponent): string =>
         return shortNameValue
     }
     if (hasDisplayName(component) && component.displayName) {
-        const displayNameStr = component.displayName.plainString
+        const dn = component.displayName
+        let displayNameStr: string | undefined
+        if (dn instanceof StandardLiteral) {
+            const raw = dn.toJSON()
+            displayNameStr = typeof raw === 'string' ? raw : undefined
+        } else if ('plainString' in dn && typeof (dn as { plainString?: string }).plainString === 'string') {
+            displayNameStr = (dn as { plainString: string }).plainString
+        }
         if (typeof displayNameStr === 'string' && displayNameStr.trim()) {
             return displayNameStr
         }
