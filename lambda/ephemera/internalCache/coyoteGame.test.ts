@@ -48,7 +48,7 @@ describe('CacheCoyoteGameData', () => {
             await expect(cache.get('intent')).resolves.toEqual({ intent: 'Hypothesis: Durable' })
             expect(ephemeraMock.getItem).toHaveBeenCalledWith({
                 Key: intentKey,
-                ProjectionFields: ['intent', 'walkthrough', 'phasePlan', 'sceneAnalysis'],
+                ProjectionFields: ['intent', 'walkthrough', 'narrativeBeatsStructured', 'phasePlan', 'sceneAnalysis'],
             })
             expect(generateIntent).not.toHaveBeenCalled()
         })

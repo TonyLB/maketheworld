@@ -69,8 +69,8 @@ type GenerateHypothesisPipelineOkFields = {
     planSelectionResult: InvokeBedrockHypothesisResult;
     narrativeBeatResult: InvokeBedrockHypothesisResult;
     selectionBody?: string;
-    phasePlanJson?: string;
-    phasePlanValidationReason?: string;
+    narrativeBeatsStructuredJson?: string;
+    narrativeBeatsStructuredValidationReason?: string;
     narrativeBeatReasoningContent?: string;
 };
 
@@ -85,8 +85,8 @@ export type GenerateHypothesisPipelineHarnessPartialResult = {
     planSelectionResult?: InvokeBedrockHypothesisResult | null;
     narrativeBeatResult?: InvokeBedrockHypothesisResult | null;
     selectionBody?: string;
-    phasePlanJson?: string;
-    phasePlanValidationReason?: string;
+    narrativeBeatsStructuredJson?: string;
+    narrativeBeatsStructuredValidationReason?: string;
     narrativeBeatReasoningContent?: string;
 };
 
@@ -97,8 +97,8 @@ export type GenerateHypothesisPipelineStubResult = {
     planSelectionResult: InvokeBedrockHypothesisResult | null;
     narrativeBeatResult: InvokeBedrockHypothesisResult | null;
     selectionBody?: string;
-    phasePlanJson?: string;
-    phasePlanValidationReason?: string;
+    narrativeBeatsStructuredJson?: string;
+    narrativeBeatsStructuredValidationReason?: string;
 };
 
 export type GenerateHypothesisPipelineResult =
@@ -115,8 +115,8 @@ export type CoyoteHypothesisPipelineState = {
     narrativeBeatResult?: InvokeBedrockHypothesisResult | null;
     planSelectOutput?: PlanSelectOutput;
     selectionBody?: string;
-    phasePlanJson?: string;
-    phasePlanValidationReason?: string;
+    narrativeBeatsStructuredJson?: string;
+    narrativeBeatsStructuredValidationReason?: string;
     record?: CoyoteGameIntentRecord;
     narrativeBeatReasoningContent?: string;
 };
@@ -364,15 +364,15 @@ function buildCoyoteHypothesisSteps(
                 const parseOptions: ParseHypothesisModelOutputOptions = {
                     reasoningContentProvided: Boolean(narrativeBeatResult.reasoningContent),
                 };
-                const phasePlanCtx = buildNarrativeBeatValidationContext(roomObjectsByRoom);
+                const narrativeBeatsCtx = buildNarrativeBeatValidationContext(roomObjectsByRoom);
                 const parsed = parseNarrativeBeatOutput(
                     narrativeBeatResult.body,
-                    phasePlanCtx,
+                    narrativeBeatsCtx,
                     parseOptions
                 );
                 draft.record = parsed.record;
-                draft.phasePlanJson = parsed.phasePlanJson;
-                draft.phasePlanValidationReason = parsed.phasePlanValidationReason;
+                draft.narrativeBeatsStructuredJson = parsed.narrativeBeatsStructuredJson;
+                draft.narrativeBeatsStructuredValidationReason = parsed.narrativeBeatsStructuredValidationReason;
                 if (
                     narrativeBeatResult.reasoningContent !== undefined &&
                     narrativeBeatResult.reasoningContent.length > 0
@@ -382,9 +382,9 @@ function buildCoyoteHypothesisSteps(
                 hypothesisDebugLog('narrative beat parse complete', {
                     intent: parsed.record.intent,
                     hasWalkthrough: parsed.record.walkthrough !== undefined,
-                    hasPhasePlan: parsed.record.phasePlan !== undefined,
-                    phasePlanValidationReason: parsed.phasePlanValidationReason,
-                    phasePlanJsonPresent: parsed.phasePlanJson !== undefined,
+                    hasNarrativeBeatsStructured: parsed.record.narrativeBeatsStructured !== undefined,
+                    narrativeBeatsStructuredValidationReason: parsed.narrativeBeatsStructuredValidationReason,
+                    narrativeBeatsStructuredJsonPresent: parsed.narrativeBeatsStructuredJson !== undefined,
                 });
             },
         }),
@@ -412,9 +412,11 @@ function pipelineFailureToStubResult(
         planSelectionResult: state.planSelectionResult !== undefined ? state.planSelectionResult : null,
         narrativeBeatResult: state.narrativeBeatResult !== undefined ? state.narrativeBeatResult : null,
         ...(state.selectionBody !== undefined ? { selectionBody: state.selectionBody } : {}),
-        ...(state.phasePlanJson !== undefined ? { phasePlanJson: state.phasePlanJson } : {}),
-        ...(state.phasePlanValidationReason !== undefined
-            ? { phasePlanValidationReason: state.phasePlanValidationReason }
+        ...(state.narrativeBeatsStructuredJson !== undefined
+            ? { narrativeBeatsStructuredJson: state.narrativeBeatsStructuredJson }
+            : {}),
+        ...(state.narrativeBeatsStructuredValidationReason !== undefined
+            ? { narrativeBeatsStructuredValidationReason: state.narrativeBeatsStructuredValidationReason }
             : {}),
     };
 }
@@ -443,9 +445,11 @@ function pipelineSuccessToFullResult(state: CoyoteHypothesisPipelineState): Gene
         planSelectionResult,
         narrativeBeatResult,
         ...(state.selectionBody !== undefined ? { selectionBody: state.selectionBody } : {}),
-        ...(state.phasePlanJson !== undefined ? { phasePlanJson: state.phasePlanJson } : {}),
-        ...(state.phasePlanValidationReason !== undefined
-            ? { phasePlanValidationReason: state.phasePlanValidationReason }
+        ...(state.narrativeBeatsStructuredJson !== undefined
+            ? { narrativeBeatsStructuredJson: state.narrativeBeatsStructuredJson }
+            : {}),
+        ...(state.narrativeBeatsStructuredValidationReason !== undefined
+            ? { narrativeBeatsStructuredValidationReason: state.narrativeBeatsStructuredValidationReason }
             : {}),
         ...(state.narrativeBeatReasoningContent !== undefined && state.narrativeBeatReasoningContent.length > 0
             ? { narrativeBeatReasoningContent: state.narrativeBeatReasoningContent }
@@ -466,9 +470,11 @@ function pipelineSuccessToHarnessPartial(
         ...(state.planSelectionResult !== undefined ? { planSelectionResult: state.planSelectionResult } : {}),
         ...(state.narrativeBeatResult !== undefined ? { narrativeBeatResult: state.narrativeBeatResult } : {}),
         ...(state.selectionBody !== undefined ? { selectionBody: state.selectionBody } : {}),
-        ...(state.phasePlanJson !== undefined ? { phasePlanJson: state.phasePlanJson } : {}),
-        ...(state.phasePlanValidationReason !== undefined
-            ? { phasePlanValidationReason: state.phasePlanValidationReason }
+        ...(state.narrativeBeatsStructuredJson !== undefined
+            ? { narrativeBeatsStructuredJson: state.narrativeBeatsStructuredJson }
+            : {}),
+        ...(state.narrativeBeatsStructuredValidationReason !== undefined
+            ? { narrativeBeatsStructuredValidationReason: state.narrativeBeatsStructuredValidationReason }
             : {}),
         ...(state.narrativeBeatReasoningContent !== undefined && state.narrativeBeatReasoningContent.length > 0
             ? { narrativeBeatReasoningContent: state.narrativeBeatReasoningContent }
@@ -494,7 +500,7 @@ export function mapPipelineRunToGenerateHypothesisResult(
             hasRecord: result.state.record !== undefined,
             intent: result.state.record?.intent,
             hasWalkthrough: result.state.record?.walkthrough !== undefined,
-            hasPhasePlan: result.state.record?.phasePlan !== undefined,
+            hasNarrativeBeatsStructured: result.state.record?.narrativeBeatsStructured !== undefined,
         });
         if (context.harness !== undefined) {
             return pipelineSuccessToHarnessPartial(result.state, context.harness);

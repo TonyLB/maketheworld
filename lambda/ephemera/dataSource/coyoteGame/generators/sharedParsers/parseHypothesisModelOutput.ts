@@ -1,5 +1,5 @@
-import type { CoyotePhasePlanValidationContext } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
-import { validateCoyotePhasePlan } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
+import type { CoyoteNarrativeBeatsValidationContext } from '@tonylb/mtw-interfaces/ts/coyoteNarrativeBeatsStructured'
+import { validateCoyoteNarrativeBeatsStructured } from '@tonylb/mtw-interfaces/ts/coyoteNarrativeBeatsStructured'
 import type { CoyoteGameIntentRecord } from '../../../../internalCache/coyoteGame'
 import { findAllFenceBlocks } from '../../../../llm/markdownCodeFences'
 import { hypothesisDebugLog } from '../../utilities/hypothesisDebug'
@@ -86,17 +86,18 @@ function trySplitFinalHypothesisFence(rawBody: string): { prefix: string; intent
 export type ParseNarrativeBeatOutputResult = {
     record: CoyoteGameIntentRecord
     /** Raw **` ```json ` ** interior that validated, when any. */
-    phasePlanJson?: string
-    phasePlanValidationReason?: string
+    narrativeBeatsStructuredJson?: string
+    narrativeBeatsStructuredValidationReason?: string
 }
 
 /**
- * Narrative beat hop: extracts **`phasePlan`** from **` ```json ` ** fences via [**`validateCoyotePhasePlan`**], then prose via [**`parseHypothesisModelOutput`**].
+ * Narrative beat hop: extracts **`narrativeBeatsStructured`** from **` ```json ` ** fences via
+ * [**`validateCoyoteNarrativeBeatsStructured`**], then prose via [**`parseHypothesisModelOutput`**].
  * On validation failure, **`record`** still carries usable **`intent`** / **`walkthrough`** when prose parses (**Decided: structured validation failure**).
  */
 export function parseNarrativeBeatOutput(
     rawBody: string,
-    phasePlanCtx: CoyotePhasePlanValidationContext,
+    narrativeBeatsCtx: CoyoteNarrativeBeatsValidationContext,
     parseOptions?: ParseHypothesisModelOutputOptions
 ): ParseNarrativeBeatOutputResult {
     const blocks = findAllFenceBlocks(rawBody)
@@ -104,8 +105,8 @@ export function parseNarrativeBeatOutput(
         blockCount: blocks.length,
         jsonFenceCount: blocks.filter((block) => block.lang.toLowerCase() === 'json').length,
     })
-    let phasePlanJson: string | undefined
-    let lastReason = 'no valid phase-plan JSON in ```json fences'
+    let narrativeBeatsStructuredJson: string | undefined
+    let lastReason = 'no valid narrative-beats JSON in ```json fences'
 
     for (const b of blocks) {
         if (b.lang.toLowerCase() !== 'json') {
@@ -120,22 +121,22 @@ export function parseNarrativeBeatOutput(
             hypothesisDebugLog('phase plan parser: invalid json fence', { reason: lastReason })
             continue
         }
-        const v = validateCoyotePhasePlan(parsed, phasePlanCtx)
+        const v = validateCoyoteNarrativeBeatsStructured(parsed, narrativeBeatsCtx)
         if (v.ok) {
-            phasePlanJson = interior
+            narrativeBeatsStructuredJson = interior
             const proseBody = stripAllJsonFences(rawBody)
             const base = parseHypothesisModelOutput(proseBody, parseOptions)
             const record: CoyoteGameIntentRecord = {
                 intent: base.intent,
                 ...(base.walkthrough !== undefined ? { walkthrough: base.walkthrough } : {}),
-                phasePlan: v.phasePlan,
+                narrativeBeatsStructured: v.narrativeBeatsStructured,
             }
             hypothesisDebugLog('phase plan parser: validated phase plan', {
                 intent: record.intent,
                 hasWalkthrough: record.walkthrough !== undefined,
-                phasePlanJsonLength: phasePlanJson.length,
+                narrativeBeatsStructuredJsonLength: narrativeBeatsStructuredJson.length,
             })
-            return { record, phasePlanJson }
+            return { record, narrativeBeatsStructuredJson }
         }
         lastReason = v.reason
         hypothesisDebugLog('phase plan parser: phase plan validation failed', { reason: lastReason })
@@ -150,13 +151,13 @@ export function parseNarrativeBeatOutput(
     hypothesisDebugLog('phase plan parser: returning prose-only record', {
         intent: record.intent,
         hasWalkthrough: record.walkthrough !== undefined,
-        phasePlanValidationReason: lastReason,
+        narrativeBeatsStructuredValidationReason: lastReason,
     })
 
     return {
         record,
-        phasePlanJson,
-        phasePlanValidationReason: lastReason,
+        narrativeBeatsStructuredJson,
+        narrativeBeatsStructuredValidationReason: lastReason,
     }
 }
 

@@ -166,7 +166,7 @@ describe('runCoyoteEngineTestHarness', () => {
                 },
             },
             selectionBody: '{"paragraphSummary":"x","planIssues":[{"code":"ROLE_CONFLICT","summary":"x"}]}',
-            phasePlanJson: '{"tropeSequence":["Contraption"],"deconflictionSummary":"single lane","phases":[{"trope":"Contraption","tropeBeat":"prime launch lane","stableKeysUsed":["anvil-0"],"virtualEntities":[],"achievement":"launch"}]}',
+            narrativeBeatsStructuredJson: '{"beats":[{"beatId":"prep","description":"prime launch lane","derivedFrom":["anvil-0"]}],"linearizedSequence":["prep"]}',
         })
         let t = 0
         const now = () => {
@@ -196,7 +196,7 @@ describe('runCoyoteEngineTestHarness', () => {
         expect(flat).toContain('usageNarrativeBeat: input=20 output=9 total=29 cacheRead=12 cacheWrite=0')
         expect(flat).toContain('selectionBody:\n{"paragraphSummary":"x","planIssues":[{"code":"ROLE_CONFLICT","summary":"x"}]}')
         expect(flat).toContain(
-            'narrativeBeatsJson:\n{"tropeSequence":["Contraption"],"deconflictionSummary":"single lane","phases":[{"trope":"Contraption","tropeBeat":"prime launch lane","stableKeysUsed":["anvil-0"],"virtualEntities":[],"achievement":"launch"}]}'
+            'narrativeBeatsJson:\n{"beats":[{"beatId":"prep","description":"prime launch lane","derivedFrom":["anvil-0"]}],"linearizedSequence":["prep"]}'
         )
         expect(flat).not.toContain('planSelectionReasoning')
     })

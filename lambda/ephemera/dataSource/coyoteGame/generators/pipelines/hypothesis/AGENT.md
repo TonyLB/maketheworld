@@ -19,8 +19,8 @@ Production runs a **linear sequence** orchestrated in [`coyoteHypothesisPipeline
 2. **Plan selection**  
    That combined pool is presented for **rubric-style comparison** so the model can weigh readings and settle on one coherent direction. Code **extracts a structured handoff**: a short summary of the committed reading, **residual** plan issues that still bind the story, and a **structured winning candidate** (`selectedCandidate`) supplemented with deterministic detail (for example tying outliers back to room objects) so the next hop stays grounded. The plan-select JSON parser may still tolerate a handoff **without** `selectedCandidate` at parse time; **orchestration** nonetheless **requires** `selectedCandidate` before the narrative beat LLM. If it is missing after plan-select, the run **aborts** to stub and does **not** call `buildNarrativeBeatPrompt`.
 
-3. **Narrative beat (phase plan)**  
-   The chosen framing and constraints feed the **final hop**, which turns them into a **`Hypothesis:`** line the player can read and optional structured plan / walkthrough material. A shared terminal parser ([`parseHypothesisModelOutput`](../../sharedParsers/parseHypothesisModelOutput.ts)) maps model text into a **`CoyoteGameIntentRecord`** the cache and UI use.
+3. **Narrative beat**  
+   The chosen framing and constraints feed the **final hop**, which turns them into a **`Hypothesis:`** line the player can read and optional structured narrative-beats / walkthrough material. A shared terminal parser ([`parseHypothesisModelOutput`](../../sharedParsers/parseHypothesisModelOutput.ts)) maps model text into a **`CoyoteGameIntentRecord`** (`intent`, optional `walkthrough`, optional `narrativeBeatsStructured`) the cache and UI use.
 
 **In one sentence:** propose a trope **candidate pool**, **enrich it deterministically**, **compare against a rubric and select a reading**, then **materialize** that choice into player-parseable hypothesis output (and optional structured follow-through).
 
@@ -40,7 +40,7 @@ This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock
 
 - `candidates/`: first-hop (**`candidates`** phase) prompt, parse, and combine modules.
 - `planSelect/`: plan-selection prompt and planSelect output contract/parser.
-- `narrativeBeats/`: phase-plan prompt/context modules (formerly phasePlan/stageTwo naming).
+- `narrativeBeats/`: narrative-beat prompt/context modules (formerly phasePlan/stageTwo naming).
 - Parent `hypothesis/`: orchestration, entrypoints, Bedrock wrapper, and shared prompt/harness types.
 
 ## Key files
@@ -53,7 +53,7 @@ This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock
 - [`candidates/combineCandidateOutput.ts`](candidates/combineCandidateOutput.ts): combine and render candidate output for later hops.
 - [`planSelect/buildPlanSelectPrompt.ts`](planSelect/buildPlanSelectPrompt.ts): plan-selection prompt builder.
 - [`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts): extracts planSelect output contract.
-- [`narrativeBeats/buildNarrativeBeatPrompt.ts`](narrativeBeats/buildNarrativeBeatPrompt.ts): phase-plan prompt builder.
+- [`narrativeBeats/buildNarrativeBeatPrompt.ts`](narrativeBeats/buildNarrativeBeatPrompt.ts): narrative-beat prompt builder.
 
 ## Contracts and boundaries
 

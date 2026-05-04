@@ -1,14 +1,14 @@
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import { isRenderTree } from '@tonylb/mtw-base/ts/renderTree'
-import type { CoyotePhasePlan } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
+import type { CoyoteNarrativeBeatsStructured } from '@tonylb/mtw-interfaces/ts/coyoteNarrativeBeatsStructured'
 import { CacheBase } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 export type CacheCoyoteGameKeys = 'gameRooms' | 'intent' | 'outcome'
 
 /**
- * Durable Coyote hypothesis row: the **`Hypothesis:`** line plus optional hop-2 **walkthrough** (scene analysis) and **phasePlan** (when hop-2 JSON validated).
- * **Plan outcome** ([`generatePlanOutcome`](../dataSource/coyoteGame/generators/pipelines/outcome/generatePlanOutcome.ts)) and the Await RoadRunner path use the same cached **`get('intent')`** value (no extra Dynamo read for outcome). If **phasePlan** is absent (validation failed, or legacy data), outcome generation still uses **intent** and optional **walkthrough**; see [`coyoteGame/AGENT.md`](../dataSource/coyoteGame/AGENT.md) (plan outcome).
+ * Durable Coyote hypothesis row: the **`Hypothesis:`** line plus optional hop-2 **walkthrough** (scene analysis) and **narrativeBeatsStructured** (when hop-2 JSON validated).
+ * **Plan outcome** ([`generatePlanOutcome`](../dataSource/coyoteGame/generators/pipelines/outcome/generatePlanOutcome.ts)) and the Await RoadRunner path use the same cached **`get('intent')`** value (no extra Dynamo read for outcome). If **narrativeBeatsStructured** is absent (validation failed, or legacy data), outcome generation still uses **intent** and optional **walkthrough**; see [`coyoteGame/AGENT.md`](../dataSource/coyoteGame/AGENT.md) (plan outcome).
  */
 export type CoyoteGameIntentRecord = {
     intent: string
@@ -18,8 +18,8 @@ export type CoyoteGameIntentRecord = {
      * Semantic realignment is deferred to a later prompt + handling optimization pass.
      */
     walkthrough?: string
-    /** Machine-checkable phase plan when hop-2 JSON validates. */
-    phasePlan?: CoyotePhasePlan
+    /** Machine-checkable narrative beats when hop-2 JSON validates. */
+    narrativeBeatsStructured?: CoyoteNarrativeBeatsStructured
 }
 
 /** Dynamo row shape; **`sceneAnalysis`** may exist on legacy reads only (mapped into **`walkthrough`**). */
@@ -27,7 +27,8 @@ type CoyoteGameDurableIntentRow = {
     intent?: string
     sceneAnalysis?: string
     walkthrough?: string
-    phasePlan?: CoyotePhasePlan
+    phasePlan?: unknown
+    narrativeBeatsStructured?: CoyoteNarrativeBeatsStructured
 }
 
 type CoyoteGameCacheState = {
@@ -68,11 +69,12 @@ function normalizeDurableIntentRow(fetched: CoyoteGameDurableIntentRow | undefin
         // Semantic cleanup from Scene Analysis text to true walkthrough is deferred.
         walkthrough = legacyScene
     }
-    const phasePlan = fetched.phasePlan
+    const narrativeBeatsStructured = fetched.narrativeBeatsStructured
+        ?? (fetched.phasePlan as CoyoteNarrativeBeatsStructured | undefined)
     return {
         intent,
         ...(walkthrough !== undefined ? { walkthrough } : {}),
-        ...(phasePlan !== undefined ? { phasePlan } : {}),
+        ...(narrativeBeatsStructured !== undefined ? { narrativeBeatsStructured } : {}),
     }
 }
 
@@ -139,7 +141,7 @@ export class CacheCoyoteGameData extends CacheBase {
     private async loadIntent(): Promise<CoyoteGameIntentRecord> {
         const fetched = await ephemeraDB.getItem<CoyoteGameDurableIntentRow>({
             Key: COYOTE_GAME_INTENT_KEY,
-            ProjectionFields: ['intent', 'walkthrough', 'phasePlan', 'sceneAnalysis'],
+            ProjectionFields: ['intent', 'walkthrough', 'narrativeBeatsStructured', 'phasePlan', 'sceneAnalysis'],
         })
         const fromDynamo = normalizeDurableIntentRow(fetched ?? undefined)
         if (fromDynamo) {
@@ -151,7 +153,9 @@ export class CacheCoyoteGameData extends CacheBase {
             ...COYOTE_GAME_INTENT_KEY,
             intent: generated.intent,
             ...(generated.walkthrough !== undefined ? { walkthrough: generated.walkthrough } : {}),
-            ...(generated.phasePlan !== undefined ? { phasePlan: generated.phasePlan } : {}),
+            ...(generated.narrativeBeatsStructured !== undefined
+                ? { narrativeBeatsStructured: generated.narrativeBeatsStructured }
+                : {}),
         })
         this.state.intent = generated
         return generated

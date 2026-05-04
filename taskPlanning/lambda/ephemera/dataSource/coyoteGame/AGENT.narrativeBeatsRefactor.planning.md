@@ -85,9 +85,9 @@ Downstream today: the first **` ```json ` ** fence is validated as legacy **`Coy
 | Validation-failure: prose-only record + **`narrativeBeatsStructuredValidationReason`** | Locked |
 | Intent **`narrativeBeatsStructured`** + pipeline **`narrativeBeatsStructuredJson`** (raw fence interior when valid) | Locked |
 | Lock **`mtw-interfaces`** type name + validated **JSON schema** (open questions above) | Locked |
-| Primary slice: interfaces + parser + outcome + harness + fixtures | Not started |
+| Primary slice: interfaces + parser + outcome + harness + fixtures | Complete (2026-05-04) |
 | Hop-2 prompt and shared-line alignment (depends on primary slice) | Not started |
-| Durable doc updates (`hypothesis/AGENT.md` if contracts change) | Not started |
+| Durable doc updates (`hypothesis/AGENT.md` if contracts change) | Complete (2026-05-04) |
 | Task plan retired (delete or archive) | Not started |
 
 ## Getting started
@@ -161,12 +161,13 @@ Use **`[ ]`** for pending work and **`[X]`** for completed work. Mark nested bul
   - [X] Initial verification (2026-05-04): Getting started command plus the two sibling files in **Verification** all pass from **`lambda/ephemera/`**.
   - [X] Capture one example of current bad register (fixture or redacted log) for before/after comparison if useful (see **Baseline capture** above).
   - [X] User-confirmed full **`lambda/ephemera`** suite green (2026-05-04), satisfying the "keep green while changing contract" requirement at this stage.
-- [ ] **2. Primary slice (structure first):** Design validated JSON (scratchpad with **`beats`** / **`linearizedSequence`** or agreed variant); implement **narrative-beats** types and validator in **`mtw-interfaces`**, **`parseNarrativeBeatOutput`**, pipeline state, intent cache field, outcome formatter, harness, and golden fixtures; rename legacy **phase-plan** identifiers to **narrative beats** where they denote this hop or its structured output.
-  - [ ] Extend or replace **`parseNarrativeBeatOutput`** tests for new fences and failure modes.
-  - [ ] Confirm **`generatePlanOutcome`** still receives enough structured context from the new intent field.
+- [X] **2. Primary slice (structure first):** Design validated JSON (scratchpad with **`beats`** / **`linearizedSequence`** or agreed variant); implement **narrative-beats** types and validator in **`mtw-interfaces`**, **`parseNarrativeBeatOutput`**, pipeline state, intent cache field, outcome formatter, harness, and golden fixtures; rename legacy **phase-plan** identifiers to **narrative beats** where they denote this hop or its structured output.
+  - [X] Shipped v1 validator in `mtw-interfaces` with both `beats[]` and `linearizedSequence[]` required and cross-checked by `beatId`.
+  - [X] Extend or replace **`parseNarrativeBeatOutput`** tests for new fences and failure modes.
+  - [X] Confirm **`generatePlanOutcome`** still receives enough structured context from the new intent field.
 - [ ] **3. Prompt and copy (after structure):** Rewrite **`NARRATIVE_BEAT_INTRO`**, output order, deconfliction framing, and narrative-stage instructions so they match scratchpad then cartoon prose then Hypothesis; adjust or locally override **`TEMPORAL_ORDERING_LINES`**, **`SCENE_ANALYSIS_AND_FENCED_HYPOTHESIS_LINES`**, **`VIRTUAL_SCENERY`**, and parser heading rules as needed (same change set as step 2 when possible, but **depends** on the first-fence contract being real).
   - [ ] Re-run narrative-beat-related Jest files touched by the diff.
-- [ ] **4. Documentation:** Update [`hypothesis/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md) hop-3 description if the player-visible contract or JSON shape changes.
+- [X] **4. Documentation:** Update [`hypothesis/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md) hop-3 description if the player-visible contract or JSON shape changes.
 - [ ] **5. Close out:** Mark **Progress** rows done; run **Verification** commands; when the initiative ships, archive or delete this plan per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
 ## Verification

@@ -1,7 +1,7 @@
-import type { CoyotePhasePlanValidationContext } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
+import type { CoyoteNarrativeBeatsValidationContext } from '@tonylb/mtw-interfaces/ts/coyoteNarrativeBeatsStructured'
 import { parseHypothesisModelOutput, parseNarrativeBeatOutput } from './parseHypothesisModelOutput'
 
-const phasePlanCtx: CoyotePhasePlanValidationContext = {
+const narrativeBeatsCtx: CoyoteNarrativeBeatsValidationContext = {
     snapshotStableKeys: new Set(['anvil']),
     allowedTopologyRefTokens: new Set(['vortex']),
 }
@@ -83,23 +83,18 @@ describe('parseHypothesisModelOutput', () => {
 })
 
 describe('parseNarrativeBeatOutput', () => {
-    it('extracts validated phasePlan and Hypothesis line', () => {
+    it('extracts validated narrativeBeatsStructured and Hypothesis line', () => {
         const raw = [
             '```json',
             JSON.stringify({
-                tropeSequence: ['Contraption'],
-                deconflictionSummary: 'Resolved to one setup lane.',
-                phases: [
+                beats: [
                     {
-                        trope: 'Contraption',
-                        tropeBeat: 'Rig anvil in launch lane.',
-                        stableKeysUsed: ['anvil'],
-                        virtualEntities: [
-                            { label: 'Prep', derivedFrom: ['anvil'], phaseKind: 'gathered' },
-                        ],
-                        achievement: 'Ready',
+                        beatId: 'prep',
+                        description: 'Rig anvil in launch lane.',
+                        derivedFrom: ['anvil'],
                     },
                 ],
+                linearizedSequence: ['prep'],
             }),
             '```',
             '',
@@ -107,30 +102,25 @@ describe('parseNarrativeBeatOutput', () => {
             'Hypothesis: Valid plan.',
             '```',
         ].join('\n')
-        const out = parseNarrativeBeatOutput(raw, phasePlanCtx)
-        expect(out.record.phasePlan?.phases).toHaveLength(1)
+        const out = parseNarrativeBeatOutput(raw, narrativeBeatsCtx)
+        expect(out.record.narrativeBeatsStructured?.beats).toHaveLength(1)
         expect(out.record.intent).toBe('Hypothesis: Valid plan.')
-        expect(out.phasePlanJson).toContain('"phases"')
-        expect(out.phasePlanValidationReason).toBeUndefined()
+        expect(out.narrativeBeatsStructuredJson).toContain('"beats"')
+        expect(out.narrativeBeatsStructuredValidationReason).toBeUndefined()
     })
 
     it('maps ## Scene analysis prose to walkthrough on intent record only', () => {
         const raw = [
             '```json',
             JSON.stringify({
-                tropeSequence: ['Contraption'],
-                deconflictionSummary: 'Resolved to one setup lane.',
-                phases: [
+                beats: [
                     {
-                        trope: 'Contraption',
-                        tropeBeat: 'Rig anvil in launch lane.',
-                        stableKeysUsed: ['anvil'],
-                        virtualEntities: [
-                            { label: 'Prep', derivedFrom: ['anvil'], phaseKind: 'gathered' },
-                        ],
-                        achievement: 'Ready',
+                        beatId: 'prep',
+                        description: 'Rig anvil in launch lane.',
+                        derivedFrom: ['anvil'],
                     },
                 ],
+                linearizedSequence: ['prep'],
             }),
             '```',
             '',
@@ -141,24 +131,59 @@ describe('parseNarrativeBeatOutput', () => {
             'Hypothesis: Valid with walkthrough.',
             '```',
         ].join('\n')
-        const out = parseNarrativeBeatOutput(raw, phasePlanCtx)
+        const out = parseNarrativeBeatOutput(raw, narrativeBeatsCtx)
         expect(out.record.walkthrough).toBe('## Scene analysis\nCoyote surveys the terrain.')
         expect(out.record.intent).toBe('Hypothesis: Valid with walkthrough.')
     })
 
-    it('degrades when phase-plan JSON fails validation but Hypothesis parses', () => {
+    it('degrades when narrative-beats JSON fails validation but Hypothesis parses', () => {
         const raw = [
             '```json',
-            '{"tropeSequence":["Contraption"],"deconflictionSummary":"x","phases":[]}',
+            '{"beats":[],"linearizedSequence":[]}',
             '```',
             '',
             '```text',
             'Hypothesis: Still here.',
             '```',
         ].join('\n')
-        const out = parseNarrativeBeatOutput(raw, phasePlanCtx)
-        expect(out.record.phasePlan).toBeUndefined()
+        const out = parseNarrativeBeatOutput(raw, narrativeBeatsCtx)
+        expect(out.record.narrativeBeatsStructured).toBeUndefined()
         expect(out.record.intent).toBe('Hypothesis: Still here.')
-        expect(out.phasePlanValidationReason).toContain('phases')
+        expect(out.narrativeBeatsStructuredValidationReason).toContain('non-empty')
+    })
+
+    it('degrades when json fence is invalid JSON but Hypothesis parses', () => {
+        const raw = [
+            '```json',
+            '{bad json',
+            '```',
+            '',
+            '```text',
+            'Hypothesis: Still here.',
+            '```',
+        ].join('\n')
+        const out = parseNarrativeBeatOutput(raw, narrativeBeatsCtx)
+        expect(out.record.narrativeBeatsStructured).toBeUndefined()
+        expect(out.record.intent).toBe('Hypothesis: Still here.')
+        expect(out.narrativeBeatsStructuredValidationReason).toContain('invalid JSON')
+    })
+
+    it('uses first valid structured fence when earlier json fails', () => {
+        const raw = [
+            '```json',
+            '{"beats":[],"linearizedSequence":[]}',
+            '```',
+            '',
+            '```json',
+            '{"beats":[{"beatId":"prep","description":"Rig anvil.","derivedFrom":["anvil"]}],"linearizedSequence":["prep"]}',
+            '```',
+            '',
+            '```text',
+            'Hypothesis: Still here.',
+            '```',
+        ].join('\n')
+        const out = parseNarrativeBeatOutput(raw, narrativeBeatsCtx)
+        expect(out.record.narrativeBeatsStructured?.beats).toHaveLength(1)
+        expect(out.narrativeBeatsStructuredValidationReason).toBeUndefined()
     })
 })

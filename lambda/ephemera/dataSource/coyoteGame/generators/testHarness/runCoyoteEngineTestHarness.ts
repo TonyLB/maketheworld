@@ -219,16 +219,16 @@ function formatNarrativeBeatBodyForHarness(result: InvokeBedrockHypothesisResult
 }
 
 function formatNarrativeBeatsJsonForHarness(args: {
-    phasePlanJson: string | undefined
-    phasePlanValidationReason: string | undefined
+    narrativeBeatsStructuredJson: string | undefined
+    narrativeBeatsStructuredValidationReason: string | undefined
 }): string {
-    const { phasePlanJson, phasePlanValidationReason } = args
-    if (phasePlanJson !== undefined && phasePlanJson.trim().length > 0) {
-        return `narrativeBeatsJson:\n${phasePlanJson}`
+    const { narrativeBeatsStructuredJson, narrativeBeatsStructuredValidationReason } = args
+    if (narrativeBeatsStructuredJson !== undefined && narrativeBeatsStructuredJson.trim().length > 0) {
+        return `narrativeBeatsJson:\n${narrativeBeatsStructuredJson}`
     }
     let s = 'narrativeBeatsJson: (none)'
-    if (phasePlanValidationReason !== undefined && phasePlanValidationReason.length > 0) {
-        s += `\nnarrativeBeatsValidationReason: ${phasePlanValidationReason}`
+    if (narrativeBeatsStructuredValidationReason !== undefined && narrativeBeatsStructuredValidationReason.length > 0) {
+        s += `\nnarrativeBeatsValidationReason: ${narrativeBeatsStructuredValidationReason}`
     }
     return s
 }
@@ -297,8 +297,8 @@ function flattenPipelineResultForHarness(pipeline: GenerateHypothesisPipelineRes
     planSelectionResult: InvokeBedrockHypothesisResult | null
     narrativeBeatResult: InvokeBedrockHypothesisResult | null
     selectionBody?: string
-    phasePlanJson?: string
-    phasePlanValidationReason?: string
+    narrativeBeatsStructuredJson?: string
+    narrativeBeatsStructuredValidationReason?: string
 } {
     const emptyFail = { success: false as const, errorMessage: '', body: '' }
     switch (pipeline.kind) {
@@ -310,8 +310,8 @@ function flattenPipelineResultForHarness(pipeline: GenerateHypothesisPipelineRes
                 planSelectionResult: pipeline.planSelectionResult,
                 narrativeBeatResult: pipeline.narrativeBeatResult,
                 selectionBody: pipeline.selectionBody,
-                phasePlanJson: pipeline.phasePlanJson,
-                phasePlanValidationReason: pipeline.phasePlanValidationReason,
+                narrativeBeatsStructuredJson: pipeline.narrativeBeatsStructuredJson,
+                narrativeBeatsStructuredValidationReason: pipeline.narrativeBeatsStructuredValidationReason,
             }
         case 'harnessPartial':
             return {
@@ -320,8 +320,8 @@ function flattenPipelineResultForHarness(pipeline: GenerateHypothesisPipelineRes
                 planSelectionResult: pipeline.planSelectionResult ?? null,
                 narrativeBeatResult: pipeline.narrativeBeatResult ?? null,
                 selectionBody: pipeline.selectionBody,
-                phasePlanJson: pipeline.phasePlanJson,
-                phasePlanValidationReason: pipeline.phasePlanValidationReason,
+                narrativeBeatsStructuredJson: pipeline.narrativeBeatsStructuredJson,
+                narrativeBeatsStructuredValidationReason: pipeline.narrativeBeatsStructuredValidationReason,
             }
     }
 }
@@ -509,8 +509,8 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                 const narrativeBeatsJsonBlock = skipNarrativeBeat
                     ? 'narrativeBeatsJson: (not run)'
                     : formatNarrativeBeatsJsonForHarness({
-                          phasePlanJson: flat.phasePlanJson,
-                          phasePlanValidationReason: flat.phasePlanValidationReason,
+                narrativeBeatsStructuredJson: flat.narrativeBeatsStructuredJson,
+                narrativeBeatsStructuredValidationReason: flat.narrativeBeatsStructuredValidationReason,
                       })
                 const message = formatFixtureRenderTree({
                     fixture,
@@ -558,8 +558,8 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                     planSelectionResult: flat.planSelectionResult,
                 })
                 const narrativeBeatsJsonBlock = formatNarrativeBeatsJsonForHarness({
-                    phasePlanJson: flat.phasePlanJson,
-                    phasePlanValidationReason: flat.phasePlanValidationReason,
+                    narrativeBeatsStructuredJson: flat.narrativeBeatsStructuredJson,
+                    narrativeBeatsStructuredValidationReason: flat.narrativeBeatsStructuredValidationReason,
                 })
                 const message = formatFixtureRenderTree({
                     fixture,
@@ -604,8 +604,8 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                     planSelectionResult: null,
                 }),
                 narrativeBeatsJsonBlock: formatNarrativeBeatsJsonForHarness({
-                    phasePlanJson: undefined,
-                    phasePlanValidationReason: undefined,
+                    narrativeBeatsStructuredJson: undefined,
+                    narrativeBeatsStructuredValidationReason: undefined,
                 }),
                 errorMessage,
                 harnessBannerLines,

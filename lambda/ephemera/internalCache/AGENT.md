@@ -223,7 +223,7 @@ if (!object) {
 
 ## Integration Points
 
-**CoyoteGame (demo / experimental):** [`coyoteGame.ts`](coyoteGame.ts) caches **`gameRooms`**, durable **intent** ([`CoyoteGameIntentRecord`](coyoteGame.ts): **`intent`**, optional **`walkthrough`**, optional **`phasePlan`]), and **outcome** (`RenderTree`). Wiring in [`index.ts`](index.ts) passes **`getIntentRecord: () => CoyoteGame.get('intent')`** into plan-outcome generation so the Bedrock prompt can use the full row without a second intent read. Steady-state behavior and prompt section order: [`../dataSource/coyoteGame/AGENT.md`](../dataSource/coyoteGame/AGENT.md) (Await RoadRunner, plan outcome, Bedrock caching).
+**CoyoteGame (demo / experimental):** [`coyoteGame.ts`](coyoteGame.ts) caches **`gameRooms`**, durable **intent** ([`CoyoteGameIntentRecord`](coyoteGame.ts): **`intent`**, optional **`walkthrough`**, optional **`narrativeBeatsStructured`**), and **outcome** (`RenderTree`). Wiring in [`index.ts`](index.ts) passes **`getIntentRecord: () => CoyoteGame.get('intent')`** into plan-outcome generation so the Bedrock prompt can use the full row without a second intent read. Steady-state behavior and prompt section order: [`../dataSource/coyoteGame/AGENT.md`](../dataSource/coyoteGame/AGENT.md) (Await RoadRunner, plan outcome, Bedrock caching).
 
 ### **Database Systems**
 - **`assetDB`**: Component metadata and asset data

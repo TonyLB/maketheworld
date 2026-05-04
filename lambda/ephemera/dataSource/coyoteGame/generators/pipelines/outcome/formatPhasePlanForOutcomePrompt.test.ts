@@ -5,144 +5,114 @@ import {
 } from './formatPhasePlanForOutcomePrompt'
 
 describe('formatPhasePlanForOutcomePrompt', () => {
-    it('formats phases with resolved shortNames and virtual entities', () => {
+    it('formats beats with resolved shortNames from derivedFrom', () => {
         const roomObjectsByRoom = {
             'ROOM#VORTEX': harnessRoomObjects('vortex', ['rocket skates', 'anvil']),
         }
         const text = formatPhasePlanForOutcomePrompt(
             {
-                tropeSequence: ['Contraption', 'Finishing Move'],
-                deconflictionSummary: 'Use skates for setup and reserve anvil for the finisher.',
-                phases: [
+                beats: [
                     {
-                        trope: 'Contraption',
-                        tropeBeat: 'Build speed before the strike.',
-                        stableKeysUsed: ['rocket-skates-0'],
-                        virtualEntities: [
-                            {
-                                label: 'speed burst',
-                                derivedFrom: ['rocket-skates-0'],
-                                phaseKind: 'deployed',
-                            },
-                        ],
-                        achievement: 'Close the gap on the highway.',
-                        prepVsBeat: 'prep',
+                        beatId: 'prep',
+                        description: 'Build speed before the strike.',
+                        derivedFrom: ['rocket-skates-0'],
                     },
                     {
-                        trope: 'Finishing Move',
-                        tropeBeat: 'Drop the anvil when lane commitment is locked.',
-                        stableKeysUsed: ['anvil-1'],
-                        virtualEntities: [],
-                        achievement: 'Drop fails upward.',
-                        prepVsBeat: 'creation',
+                        beatId: 'finish',
+                        description: 'Drop the anvil when lane commitment is locked.',
+                        derivedFrom: ['anvil-1'],
                     },
                 ],
+                linearizedSequence: ['prep', 'finish'],
             },
             roomObjectsByRoom,
         )
 
-        expect(text).toContain('Trope sequence: Contraption -> Finishing Move')
-        expect(text).toContain('Deconfliction: Use skates for setup and reserve anvil for the finisher.')
-        expect(text).toContain('Phase 1 — prep: Contraption — Build speed before the strike.')
-        expect(text).toContain('Achievement: Close the gap on the highway.')
-        expect(text).toContain('Staged props and materialized affordances: rocket skates (rocket-skates-0)')
-        expect(text).toContain('Virtual "speed burst" (deployed): from rocket-skates-0')
-        expect(text).toContain('Phase 2 — creation: Finishing Move — Drop the anvil when lane commitment is locked.')
-        expect(text).toContain('Achievement: Drop fails upward.')
-        expect(text).toContain('Staged props and materialized affordances: anvil (anvil-1)')
+        expect(text).toContain('Linearized sequence: prep -> finish')
+        expect(text).toContain('Beat 1: prep')
+        expect(text).toContain('Description: Build speed before the strike.')
+        expect(text).toContain('Grounded from: rocket skates (rocket-skates-0)')
+        expect(text).toContain('Beat 2: finish')
+        expect(text).toContain('Description: Drop the anvil when lane commitment is locked.')
+        expect(text).toContain('Grounded from: anvil (anvil-1)')
     })
 
     it('labels materialized affordance stableKeys distinctly from staged props', () => {
         const text = formatPhasePlanForOutcomePrompt(
             {
-                tropeSequence: ['Finishing Move'],
-                deconflictionSummary: 'Coyote affordance.',
-                phases: [
+                beats: [
                     {
-                        trope: 'Finishing Move',
-                        tropeBeat: 'Cartoon finish.',
-                        stableKeysUsed: ['affordance-coyote', 'anvil-0'],
-                        virtualEntities: [],
-                        achievement: 'Done.',
+                        beatId: 'finish',
+                        description: 'Cartoon finish.',
+                        derivedFrom: ['affordance-coyote', 'anvil-0'],
                     },
                 ],
+                linearizedSequence: ['finish'],
             },
             {
                 'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']),
             },
         )
         expect(text).toContain(
-            'Staged props and materialized affordances: coyote (materialized affordance: affordance-coyote), anvil (anvil-0)',
+            'Grounded from: coyote (materialized affordance: affordance-coyote), anvil (anvil-0)',
         )
     })
 
     it('falls back to raw stableKey when not in snapshot', () => {
         const text = formatPhasePlanForOutcomePrompt(
             {
-                tropeSequence: ['Contraption'],
-                deconflictionSummary: 'Fallback unknown key example.',
-                phases: [
+                beats: [
                     {
-                        trope: 'Contraption',
-                        tropeBeat: 'Use unknown prop.',
-                        stableKeysUsed: ['missing-key'],
-                        virtualEntities: [],
-                        achievement: 'Unknown prop beat.',
+                        beatId: 'unknown',
+                        description: 'Use unknown prop.',
+                        derivedFrom: ['missing-key'],
                     },
                 ],
+                linearizedSequence: ['unknown'],
             },
             { 'ROOM#VORTEX': [] },
         )
-        expect(text).toContain('Trope sequence: Contraption')
-        expect(text).toContain('Deconfliction: Fallback unknown key example.')
-        expect(text).toContain('Staged props and materialized affordances: missing-key')
+        expect(text).toContain('Linearized sequence: unknown')
+        expect(text).toContain('Grounded from: missing-key')
     })
 
-    it('formats Bait and Misdirection in canonical trope order', () => {
+    it('formats multiple beats in array order (linearized sequence drives header)', () => {
         const text = formatPhasePlanForOutcomePrompt(
             {
-                tropeSequence: ['Contraption', 'Bait', 'Misdirection', 'Finishing Move'],
-                deconflictionSummary: 'Lure then misread terrain before terminal beat.',
-                phases: [
+                beats: [
                     {
-                        trope: 'Contraption',
-                        tropeBeat: 'Stage the illusion surface.',
-                        stableKeysUsed: [],
-                        virtualEntities: [],
-                        achievement: 'Prep complete.',
+                        beatId: 'contraption',
+                        description: 'Stage the illusion surface.',
+                        derivedFrom: [],
                     },
                     {
-                        trope: 'Bait',
-                        tropeBeat: 'Birdseed draws the runner onto the path.',
-                        stableKeysUsed: [],
-                        virtualEntities: [],
-                        achievement: 'Voluntary routing.',
+                        beatId: 'bait',
+                        description: 'Birdseed draws the runner onto the path.',
+                        derivedFrom: [],
                     },
                     {
-                        trope: 'Misdirection',
-                        tropeBeat: 'Runner treats wall tunnel as traversable.',
-                        stableKeysUsed: [],
-                        virtualEntities: [],
-                        achievement: 'Misread at speed.',
+                        beatId: 'misdirection',
+                        description: 'Runner treats wall tunnel as traversable.',
+                        derivedFrom: [],
                     },
                     {
-                        trope: 'Finishing Move',
-                        tropeBeat: 'Runner smashes into the wall at lethal speed.',
-                        stableKeysUsed: [],
-                        virtualEntities: [],
-                        achievement: 'Backfire.',
+                        beatId: 'finishing',
+                        description: 'Runner smashes into the wall at lethal speed.',
+                        derivedFrom: [],
                     },
                 ],
+                linearizedSequence: ['contraption', 'bait', 'misdirection', 'finishing'],
             },
             { 'ROOM#VORTEX': [] },
         )
 
         expect(text).toContain(
-            'Trope sequence: Contraption -> Bait -> Misdirection -> Finishing Move',
+            'Linearized sequence: contraption -> bait -> misdirection -> finishing',
         )
-        expect(text).toContain('Deconfliction: Lure then misread terrain before terminal beat.')
-        expect(text).toContain('Phase 2: Bait — Birdseed draws the runner onto the path.')
-        expect(text).toContain('Phase 3: Misdirection — Runner treats wall tunnel as traversable.')
+        expect(text).toContain('Beat 2: bait')
+        expect(text).toContain('Description: Birdseed draws the runner onto the path.')
+        expect(text).toContain('Beat 3: misdirection')
+        expect(text).toContain('Description: Runner treats wall tunnel as traversable.')
     })
 })
 

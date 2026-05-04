@@ -55,7 +55,7 @@ export async function generatePlanOutcome(deps: GeneratePlanOutcomeDeps): Promis
         roomObjectsByRoom,
         hypothesisLine,
         walkthrough: intentRecord.walkthrough,
-        phasePlan: intentRecord.phasePlan,
+        narrativeBeatsStructured: intentRecord.narrativeBeatsStructured,
     })
     const invokeResult = await invokeBedrockHypothesis(prompt, { maxTokens: 384 })
     if (!invokeResult.success) {

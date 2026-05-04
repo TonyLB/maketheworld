@@ -109,7 +109,7 @@ export async function handleObjectsChangedForHypothesis(
             hadStoredWalkthrough: intentRecord.walkthrough !== undefined,
             includedWalkthrough: walkthrough !== undefined,
             walkthroughFiltered: intentRecord.walkthrough !== undefined && walkthrough === undefined,
-            hasPhasePlan: intentRecord.phasePlan !== undefined,
+            hasNarrativeBeatsStructured: intentRecord.narrativeBeatsStructured !== undefined,
         })
 
         const t1 = Math.max(stored.t0 + 1, getCurrentTimestamp())
