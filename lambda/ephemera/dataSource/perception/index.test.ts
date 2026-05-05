@@ -24,6 +24,7 @@ import { EPHEMERA_OBJECTS_DATA_SOURCE_KEY } from '../objects/events'
 import { roomHeaderGeneratingPlaceholderWml } from './roomHeaderPlaceholderWml'
 import { sendCharacterPerceptionRequested, sendPerceptionThreadRegistered } from './subscribedEvents'
 import { ephemeraPerceptionDataSource } from './index'
+import * as roomHeaderBroadcastModule from './kickRoomHeaderBroadcast'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
@@ -119,6 +120,31 @@ describe('mtw.ephemera.perception DataSource', () => {
                 type: payload.type,
             },
             getContent: () => Promise.resolve(payload),
+        })
+        await messageBus.flush()
+    }
+
+    async function sendRenderPertainsStreamingEvent(): Promise<void> {
+        const tsCache = Date.now()
+        messageBus.send({
+            type: 'StreamingEvent',
+            dataSourceKey: RENDER_CACHE_DATA_SOURCE_KEY,
+            streamKey: passThroughFixtureRoomId,
+            timestamp: tsCache,
+            header: {
+                dataSourceKey: RENDER_CACHE_DATA_SOURCE_KEY,
+                streamKey: passThroughFixtureRoomId,
+                timestamp: tsCache,
+                type: 'Render Pertains',
+            },
+            getContent: () =>
+                Promise.resolve({
+                    type: 'Render Pertains',
+                    componentId: passThroughFixtureRoomId,
+                    perspectiveKey: passThroughFixturePerspectiveKey,
+                    cacheId: passThroughFixtureMinimalDynamoItem.DataCategory,
+                    cacheRecord: passThroughFixtureMinimalDynamoItem,
+                }),
         })
         await messageBus.flush()
     }
@@ -560,6 +586,81 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect(leavePublishes).toHaveLength(1)
         expect(arrivePublishes).toHaveLength(1)
 
+        schemaSpy.mockRestore()
+        sendSpy.mockRestore()
+    })
+
+    it('Render Pertains fallback publishes render header to perspective-matched occupants when no threads registered', async () => {
+        const sendSpy = jest.spyOn(messageBus, 'send')
+        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<FallbackHeader />')
+        jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
+            { EphemeraId: 'CHARACTER#Match', DisplayName: 'Match', Color: 'blue', SessionIds: [] },
+            { EphemeraId: 'CHARACTER#Other', DisplayName: 'Other', Color: 'purple', SessionIds: [] },
+        ])
+        const perspectiveSpy = jest.spyOn(roomHeaderBroadcastModule, 'getCharacterRoomPerspectiveKey')
+            .mockImplementation(async (_roomId, assets) => {
+                if ((assets || []).includes('match')) {
+                    return passThroughFixturePerspectiveKey
+                }
+                return 'DIFFERENT#Perspective'
+            })
+        jest.spyOn(internalCache.CharacterMeta, 'get')
+            .mockImplementation(async (characterId) => ({
+                EphemeraId: characterId,
+                assets: characterId === 'CHARACTER#Match' ? ['match'] : ['other'],
+            } as any))
+
+        await sendRenderPertainsStreamingEvent()
+
+        const fallbackPublish = sendSpy.mock.calls.find((c) => {
+            const m = c[0] as { type?: string; metaData?: { roomChannel?: string; displayMode?: string }; wmlContent?: string; targets?: string[] }
+            return (
+                m?.type === 'PublishMessage'
+                && m?.metaData?.roomChannel === 'render'
+                && m?.metaData?.displayMode === 'header'
+                && m?.wmlContent === '<FallbackHeader />'
+            )
+        })
+        expect(fallbackPublish).toBeDefined()
+        expect((fallbackPublish![0] as { targets?: string[] }).targets).toEqual(['CHARACTER#Match'])
+        expect((fallbackPublish![0] as { messageId?: string }).messageId).toMatch(/^MESSAGE#/)
+        expect(perspectiveSpy).toHaveBeenCalledTimes(2)
+
+        perspectiveSpy.mockRestore()
+        schemaSpy.mockRestore()
+        sendSpy.mockRestore()
+    })
+
+    it('Render Pertains fallback does not publish when no occupants match perspective key', async () => {
+        const sendSpy = jest.spyOn(messageBus, 'send')
+        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<FallbackHeaderNoMatch />')
+        jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
+            { EphemeraId: 'CHARACTER#A', DisplayName: 'A', Color: 'blue', SessionIds: [] },
+            { EphemeraId: 'CHARACTER#B', DisplayName: 'B', Color: 'purple', SessionIds: [] },
+        ])
+        const perspectiveSpy = jest.spyOn(roomHeaderBroadcastModule, 'getCharacterRoomPerspectiveKey')
+            .mockResolvedValue('DIFFERENT#Perspective')
+        jest.spyOn(internalCache.CharacterMeta, 'get')
+            .mockImplementation(async (characterId) => ({
+                EphemeraId: characterId,
+                assets: ['other'],
+            } as any))
+
+        await sendRenderPertainsStreamingEvent()
+
+        const fallbackPublishes = sendSpy.mock.calls.filter((c) => {
+            const m = c[0] as { type?: string; metaData?: { roomChannel?: string; displayMode?: string }; wmlContent?: string }
+            return (
+                m?.type === 'PublishMessage'
+                && m?.metaData?.roomChannel === 'render'
+                && m?.metaData?.displayMode === 'header'
+                && m?.wmlContent === '<FallbackHeaderNoMatch />'
+            )
+        })
+        expect(fallbackPublishes).toHaveLength(0)
+        expect(perspectiveSpy).toHaveBeenCalledTimes(2)
+
+        perspectiveSpy.mockRestore()
         schemaSpy.mockRestore()
         sendSpy.mockRestore()
     })
