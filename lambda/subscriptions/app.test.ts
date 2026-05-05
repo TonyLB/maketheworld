@@ -211,4 +211,39 @@ describe('subscriptions app handler', () => {
             }])
         })
     })
+
+    describe('Session Disconnect cleanup', () => {
+        it('cleans stream rows by session DataCategory without Global/Sessions dependency', async () => {
+            connectionDBMock.query.mockResolvedValue([
+                {
+                    ConnectionId: 'STREAM#mtw.assets.players::player-1',
+                    DataCategory: 'SESSION#session-1'
+                }
+            ] as any)
+            connectionDBMock.deleteItem.mockResolvedValue(undefined as any)
+
+            const result = await handler({
+                source: 'mtw.connections',
+                'detail-type': 'Session Disconnect',
+                detail: { sessionId: 'session-1' }
+            })
+
+            expect(connectionDBMock.query).toHaveBeenCalledWith({
+                IndexName: 'DataCategoryIndex',
+                Key: { DataCategory: 'SESSION#session-1' },
+                KeyConditionExpression: 'begins_with(ConnectionId, :streamPrefix)',
+                ExpressionAttributeValues: { ':streamPrefix': 'STREAM#' },
+                ProjectionFields: ['ConnectionId']
+            })
+            expect(connectionDBMock.deleteItem).toHaveBeenCalledWith({
+                ConnectionId: 'STREAM#mtw.assets.players::player-1',
+                DataCategory: 'SESSION#session-1'
+            })
+            expect(internalCacheMock.Global.get).not.toHaveBeenCalledWith('sessions')
+            expect(result).toEqual({
+                statusCode: 200,
+                body: '{}'
+            })
+        })
+    })
 })
