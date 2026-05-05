@@ -1,6 +1,6 @@
 
 import { v4 as uuidv4 } from 'uuid'
-import { connectionDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
+import { connectionDB, META_SESSION_PK, sessionMetaSortKey } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import { eventBridgeClient } from "@tonylb/mtw-utilities/ts/eventBridge"
 
 const confirmGuestCharacter = async ({ characterId, name }: { characterId?: string; name?: string }): Promise<void> => {
@@ -44,8 +44,8 @@ export const connect = async (connectionId: string, userName: string, SessionId:
             }),
             connectionDB.optimisticUpdate({
                 Key: {
-                    ConnectionId: `SESSION#${defaultedSessionId}`,
-                    DataCategory: 'Meta::Session'
+                    ConnectionId: META_SESSION_PK,
+                    DataCategory: sessionMetaSortKey(defaultedSessionId)
                 },
                 updateKeys: ['connections', 'player'],
                 updateReducer: (draft: { connections?: string[]; player?: string }) => {

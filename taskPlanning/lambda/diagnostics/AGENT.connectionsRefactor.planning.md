@@ -1,6 +1,6 @@
 # Connections consistency refactor plan
 
-Status: in progress. Next step: start PR2 (`Meta::Session` concentrated-PK cutover) after PR1 merge.
+Status: in progress. Next step: PR3 (Stale Session sweep in diagnostics lambda).
 
 ## Purpose
 
@@ -123,12 +123,14 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
     - [X] Update relevant area docs (`lambda/*/AGENT.md` and/or task docs) to reflect that runtime correctness no longer depends on `Global / Sessions`.
     - [X] Update this planning file checkboxes and progress notes last, after verification commands pass.
 
-- [ ] PR2 - Refactor `Meta::Session` storage to concentrated PK
-  - [ ] Implement concentrated-PK key orientation for canonical session rows (`ConnectionId='Meta::Session'`, `DataCategory='SESSION#...'`) with unchanged payload shape.
-  - [ ] Migrate writers (`connect`, `dropConnection`, `checkSession`, related caches).
-  - [ ] Update query callsites to primary-index query patterns with `ConsistentRead` where needed.
-  - [ ] Remove legacy-shape readers/writers (no dual-read/dual-write or backfill path in clean-slate cutover).
-  - [ ] Validate post-cutover smoke checks against canonical-only session behavior.
+- [X] PR2 - Refactor `Meta::Session` storage to concentrated PK
+  - [X] Implement concentrated-PK key orientation for canonical session rows (`ConnectionId='Meta::Session'`, `DataCategory='SESSION#...'`) with unchanged payload shape.
+  - [X] Migrate writers (`connect`, `dropConnection`, `checkSession`, related caches).
+  - [X] Update query callsites to primary-index query patterns with `ConsistentRead` where needed.
+  - [X] Remove legacy-shape readers/writers (no dual-read/dual-write or backfill path in clean-slate cutover).
+  - [X] Validate post-cutover smoke checks against canonical-only session behavior.
+  - [X] Document deliberate DynamoDB trade-off for concentrated `Meta::Session` PK: hot-partition pressure vs instant `ConsistentRead` session lookups (we choose the latter knowingly).
+    - [X] Add durable documentation (see [`lambda/connections/AGENT.md`](../../../lambda/connections/AGENT.md)); keep this task plan as a pointer only.
 
 - [ ] PR3 - Add Stale Session sweep to diagnostics lambda
   - [ ] Implement diagnostics sweep that evaluates:
@@ -168,7 +170,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 | PR | Scope | Status | Notes |
 | --- | --- | --- | --- |
 | 1 | Remove `Global / Sessions` | Complete | Hot-path writes removed; fanout/session-cache readers moved to `Meta::Session` queries |
-| 2 | Refactor `Meta::Session` storage | Not started | Depends on PR1 behavior decoupling |
+| 2 | Refactor `Meta::Session` storage | Complete | Concentrated PK (`Meta::Session` / `SESSION#...`); `connectionDB.query` supports base-table `ConsistentRead`; helpers in `mtw-utilities/sessionMetaKeys` |
 | 3 | Diagnostics stale-session sweep | Not started | Decision-locked; implement sweep + finding emission |
 | 4 | Connections stale-session handling | Not started | Problem-report producer behavior |
 | 5 | Diagnostics occupancy-drift sweep | Not started | Decision-locked; can run parallel with PR6 implementation |

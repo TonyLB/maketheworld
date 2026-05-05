@@ -10,6 +10,8 @@ type QueryExtendedProps = Partial<{
     ExpressionAttributeValues: Record<string, any>;
     FilterExpression: string;
     allFields?: boolean;
+    /** Base-table queries only; ignored when `IndexName` is set (GSIs do not support strongly consistent reads). */
+    ConsistentRead?: boolean;
 }>
 
 type QueryKeyPropsDataCategoryIndex = {
@@ -124,6 +126,9 @@ export const withQuery = <KIncoming extends DBHandlerLegalKey, T extends string 
                     TableName: this._tableName,
                     KeyConditionExpression,
                     IndexName: IndexName.length > 0 ? IndexName : undefined,
+                    ...(IndexName.length === 0 && typeof props.ConsistentRead === 'boolean'
+                        ? { ConsistentRead: props.ConsistentRead }
+                        : {}),
                     ExpressionAttributeValues: marshall({
                         ':keyId': keyId,
                         ...(ExpressionAttributeValues || {})

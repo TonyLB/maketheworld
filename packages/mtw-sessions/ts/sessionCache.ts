@@ -1,4 +1,4 @@
-import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { connectionDB, META_SESSION_PK, sessionMetaSortKey } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 export class CacheSessionConnectionsData {
     ConnectionsBySessionId: Record<string, Promise<string[] | undefined>> = {};
@@ -15,10 +15,11 @@ export class CacheSessionConnectionsData {
         if (!(this.ConnectionsBySessionId[sessionId])) {
             this.ConnectionsBySessionId[sessionId] = connectionDB.getItem<{ connections: string[] }>({
                     Key: {
-                        ConnectionId: `SESSION#${sessionId}`,
-                        DataCategory: 'Meta::Session'
+                        ConnectionId: META_SESSION_PK,
+                        DataCategory: sessionMetaSortKey(sessionId)
                     },
                     ProjectionFields: ['connections'],
+                    ConsistentRead: true
                 }).then((value) => (value?.connections))
         }
         return await this.ConnectionsBySessionId[sessionId]

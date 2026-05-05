@@ -1,4 +1,4 @@
-import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { connectionDB, META_SESSION_PK, sessionIdFromMetaSortKey } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 export class CachePlayerSessionsData {
     SessionsByPlayer: Promise<Record<string, string[]>> | undefined;
@@ -8,23 +8,26 @@ export class CachePlayerSessionsData {
     async get(player: string): Promise<string[] | undefined> {
         if (!(this.SessionsByPlayer)) {
             this.SessionsByPlayer = connectionDB.query<{ ConnectionId: string; DataCategory: string; player?: string }>({
-                    IndexName: 'DataCategoryIndex',
                     Key: {
-                        DataCategory: 'Meta::Session'
+                        ConnectionId: META_SESSION_PK
                     },
-                    ProjectionFields: ['ConnectionId', 'player']
+                    KeyConditionExpression: 'begins_with(DataCategory, :prefix)',
+                    ExpressionAttributeValues: {
+                        ':prefix': 'SESSION#'
+                    },
+                    ProjectionFields: ['DataCategory', 'player'],
+                    ConsistentRead: true
                 }).then((sessions) => (
-                    (sessions || []).reduce<Record<string, string[]>>((previous, { ConnectionId, player }) => ({
-                        ...previous,
-                        ...(player
-                            ? {
-                                [player]: [
-                                    ...(previous[player] || []),
-                                    ConnectionId.startsWith('SESSION#') ? ConnectionId.slice(8) : ConnectionId
-                                ]
-                            }
-                            : {})
-                    }), {})
+                    (sessions || []).reduce<Record<string, string[]>>((previous, { DataCategory, player }) => {
+                        const sessionId = sessionIdFromMetaSortKey(DataCategory)
+                        if (!player || !sessionId) {
+                            return previous
+                        }
+                        return {
+                            ...previous,
+                            [player]: [...(previous[player] || []), sessionId]
+                        }
+                    }, {})
                 ))
                 .then((sessionsByPlayer) => (
                     Object.fromEntries(

@@ -104,4 +104,27 @@ describe('withQuery', () => {
         }])
     })
 
+    it('passes ConsistentRead on base-table query only', async () => {
+        dbMock.send.mockResolvedValue({ Items: [] })
+        await dbHandler.query({
+            Key: { PrimaryKey: 'Meta::Session' },
+            KeyConditionExpression: 'begins_with(DataCategory, :prefix)',
+            ExpressionAttributeValues: { ':prefix': 'SESSION#' },
+            ConsistentRead: true
+        })
+        expect(dbMock.send.mock.calls[0][0].input).toMatchObject({
+            ConsistentRead: true
+        })
+    })
+
+    it('does not pass ConsistentRead when querying a GSI', async () => {
+        dbMock.send.mockResolvedValue({ Items: [] })
+        await dbHandler.query({
+            IndexName: 'DataCategoryIndex',
+            Key: { DataCategory: 'Meta::Session' },
+            ConsistentRead: true
+        })
+        expect(dbMock.send.mock.calls[0][0].input.ConsistentRead).toBeUndefined()
+    })
+
 })

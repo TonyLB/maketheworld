@@ -1,5 +1,5 @@
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { connectionDB, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { connectionDB, ephemeraDB, META_SESSION_PK, sessionMetaSortKey } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { v4 as uuidv4 } from 'uuid'
 
 export const addGhostSession = async ({ characterId }: { characterId?: EphemeraCharacterId }): Promise<void> => {
@@ -15,8 +15,8 @@ export const addGhostSession = async ({ characterId }: { characterId?: EphemeraC
         await connectionDB.transactWrite([
             {
                 Put: {
-                    ConnectionId: `SESSION#${sessionId}`,
-                    DataCategory: 'Meta::Session'
+                    ConnectionId: META_SESSION_PK,
+                    DataCategory: sessionMetaSortKey(sessionId)
                 }
             },
             {
@@ -64,9 +64,10 @@ export const addGhostSession = async ({ characterId }: { characterId?: EphemeraC
         }
     }
     else {
+        const sessionId = uuidv4()
         connectionDB.putItem({
-            ConnectionId: `SESSION#${uuidv4()}`,
-            DataCategory: 'Meta::Session'
+            ConnectionId: META_SESSION_PK,
+            DataCategory: sessionMetaSortKey(sessionId)
         })
     }
 }
