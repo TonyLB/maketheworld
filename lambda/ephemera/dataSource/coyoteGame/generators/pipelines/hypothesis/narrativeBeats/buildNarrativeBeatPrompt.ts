@@ -71,6 +71,7 @@ const NARRATIVE_BEAT_INTRO = [
     '3. **Third**, after "## Cartoon play-by-play", output a **final** fenced block with',
     '   language **`text`** whose **only** content is exactly one plain-text line',
     '   beginning with "Hypothesis:".',
+    '   The Hypothesis line should stop at the Coyote\'s intended terminal beat and must not include post-plan reversal or aftermath.',
     '4. Do not put any other text after the closing **` ```text ` ** fence.',
     '5. Even if you are unsure about the JSON details, still provide a complete',
     '   "## Cartoon play-by-play" and final Hypothesis line (downstream systems can',
