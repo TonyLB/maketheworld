@@ -1,17 +1,24 @@
 // Copyright 2024 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-import { connectionDB, exponentialBackoffWrapper, META_SESSION_PK, sessionMetaSortKey } from "@tonylb/mtw-utilities/ts/dynamoDB"
+import { connectionDB, META_SESSION_PK, sessionMetaSortKey } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/ts/errors"
-import { atomicallyRemoveCharacterAdjacency, disconnect } from './disconnect'
-import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { eventBridgeClient } from "@tonylb/mtw-utilities/ts/eventBridge"
+import { disconnect } from './disconnect'
 import { generateInvitationCode, validateInvitationCode } from "./invitationCodes"
 import { InitiateAuthCommand } from "@aws-sdk/client-cognito-identity-provider"
 import { cognitoClient } from "./clients"
 import { createCognitoUser } from "./createUser"
+import { handleStaleSessionFinding } from "./staleSessionFinding"
+import { getSessionPlayerForTeardown, tearDownStaleSession } from "./staleSessionTeardown"
 
 export const handler = async (event: any) => {
+
+    //
+    // EventBridge (diagnostics findings)
+    //
+    if (event?.source === 'mtw.diagnostics' && event['detail-type'] === 'Stale SessionId Finding') {
+        return await handleStaleSessionFinding(event.detail ?? {})
+    }
 
     const { connectionId, routeKey, resourcePath } = event.requestContext || {}
 
@@ -148,6 +155,7 @@ export const handler = async (event: any) => {
     if (event.message === 'checkSession') {
         const epochTime = Date.now()
         const { sessionId } = event
+        const player = await getSessionPlayerForTeardown(sessionId)
         let shouldDrop = false
         await connectionDB.optimisticUpdate<{ connections: string[]; dropAfter?: number; shouldDrop?: string }>({
             Key: {
@@ -165,51 +173,7 @@ export const handler = async (event: any) => {
         })
         if (shouldDrop) {
             await asyncSuppressExceptions(async () => {
-                await exponentialBackoffWrapper(async () => {
-                    const characterQuery = await connectionDB.query<{ ConnectionId: string; DataCategory: EphemeraCharacterId }>({
-                        Key: { ConnectionId: `SESSION#${sessionId}` },
-                        ExpressionAttributeValues: {
-                            ':dcPrefix': 'CHARACTER#'
-                        },
-                        KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
-                        ProjectionFields: ['DataCategory']
-                    })
-
-                    await Promise.all(characterQuery.map(({ DataCategory }) => (atomicallyRemoveCharacterAdjacency(sessionId, DataCategory))))
-
-                    await connectionDB.transactWrite([
-                        {
-                            Update: {
-                                Key: {
-                                    ConnectionId: 'Library',
-                                    DataCategory: 'Subscriptions'
-                                },
-                                updateKeys: ['SessionIds'],
-                                updateReducer: (draft) => {
-                                    draft.SessionIds = (draft.SessionIds ?? []).filter((value) => (value !== sessionId))
-                                }
-                            }
-                        },
-                        {
-                            Update: {
-                                Key: {
-                                    ConnectionId: 'Map',
-                                    DataCategory: 'Subscriptions'
-                                },
-                                updateKeys: ['SessionIds'],
-                                updateReducer: (draft) => {
-                                    draft.SessionIds = (draft.SessionIds ?? []).filter((value) => (value !== sessionId))
-                                }
-                            }
-                        }
-                    ])
-                }, {
-                    retryErrors: ['TransactionCanceledException']
-                })
-                await eventBridgeClient.send([{
-                    DetailType: 'Session Disconnect',
-                    Detail: { sessionId }
-                }])
+                await tearDownStaleSession(sessionId, { sourceOperation: 'checkSession', player })
             })
         }
         return
