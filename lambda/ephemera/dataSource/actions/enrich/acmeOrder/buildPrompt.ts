@@ -46,13 +46,14 @@ Output compact rationale rows only for this section; avoid decorative Markdown h
 - **packaging-alts:** For **Phenomenon** or **Diffuse**, two short generator/package labels separated by **; ** (feeds Step 2 naming). Otherwise **n/a**.
 
 **Primary bucket checklist (correction -> physics -> primary):**
-1. **Not a thing** — **Only** when, after any correction, the line still does **not** parse to a **product noun phrase** the player is asking to receive, or it is still gibberish / not a named thing at all. **Never** use **Not a thing** for a plain physical noun the player clearly ordered (**paint**, **glue**, **rope**, **anvil**, **nails**) — those parse fine; put them in **Self-contained** / **Diffuse** / **Phenomenon** / **Too large** as appropriate.
-2. **Not tangible** — Parses as a noun but names something abstract (**justice**, **hope**) — not a physical deliverable even with packaging.
-3. **Too large** — **Cosmic / stage-breaking scale** as one SKU (Moon, continents, jet stream boxed). **Never** freight intuition: cranes, locomotives, grand pianos, moon rockets, Chuck Jones mega-props => **Self-contained** / **Diffuse** / **Phenomenon**, not **Too large**.
-4. **Celebrity cameo** — The line asks Acme to deliver, summon, or arrange a specific person / famous individual as the product itself (cameo, celebrity guest, named real-world figure). This is not a catalog good.
-5. **Phenomenon** — Ongoing process/event; **packaging-alts** required (two ways Acme ships or triggers it).
-6. **Diffuse** — Tangible but not one unit; **packaging-alts** required.
-7. **Self-contained** — One SKU shipped as an article; includes mundane hardware and supplies (**paint**, **glue**, **rope**, **springs**) when the player names them as the product. **Cartoon physics: yes** still counts (**flying carpet**).
+Treat these seven checks as a decision waterfall for **each extracted line item**, not as seven output slots. Do **not** invent extra products to populate buckets.
+**Check 1 (exit -> Not a thing):** If, after any correction, the line still does **not** parse as a **product noun phrase** the player is asking to receive, or remains gibberish / not a named thing at all, emit **Not a thing** and **Stop**. **Never** use **Not a thing** for a plain physical noun the player clearly ordered (**paint**, **glue**, **rope**, **anvil**, **nails**) — those parse fine; continue to later checks and place in **Self-contained** / **Diffuse** / **Phenomenon** / **Too large** as appropriate.
+**Check 2 (exit -> Not tangible):** If check 1 did not exit and the phrase parses as a noun but names something abstract (**justice**, **hope**) rather than a physical deliverable (even with packaging), emit **Not tangible** and **Stop**. **Never** apply **Not tangible** merely because scale is exaggerated; if the object is physically real, continue to the scale check.
+**Check 3 (exit -> Too large):** If checks 1-2 did not exit and the requested thing is **cosmic / stage-breaking scale** as one SKU (Moon, continents, jet stream boxed), emit **Too large** and **Stop**. **Never** freight intuition: cranes, locomotives, grand pianos, moon rockets, Chuck Jones mega-props => continue to later checks and classify as **Self-contained** / **Diffuse** / **Phenomenon**, not **Too large**.
+**Check 4 (exit -> Celebrity cameo):** If checks 1-3 did not exit and the line asks Acme to deliver, summon, or arrange a specific person / famous individual as the product itself (cameo, celebrity guest, named real-world figure), emit **Celebrity cameo** and **Stop**.
+**Check 5 (exit -> Phenomenon):** If checks 1-4 did not exit and the thing is an ongoing process/event (avalanche, storm, explosion cloud, lightning), emit **Phenomenon**, provide **packaging-alts** (two ways Acme ships or triggers it), and **Stop**. **Never** use **Phenomenon** for collections of separable physical units (swarm, powder, liquid, granules, insects, particles); those are **Diffuse**.
+**Check 6 (exit -> Diffuse):** If checks 1-5 did not exit and the thing is tangible but not one unit (separable physical units such as swarm, powder, liquid, granules), emit **Diffuse**, provide **packaging-alts** (two package/generator labels), and **Stop**. **Never** use **Diffuse** for ongoing processes/events; those are **Phenomenon**. Use nature-of-thing, not scale.
+**Fallthrough -> Self-contained:** If none of checks 1-6 exited, emit **Self-contained**. This is one SKU shipped as an article, including mundane hardware and supplies (**paint**, **glue**, **rope**, **springs**) when the player names them as the product. **Cartoon physics: yes** still counts (**flying carpet**).
 
 **valid:** **Not a thing** / **Not tangible** / **Too large** / **Celebrity cameo** => **valid**: false in JSON. **Phenomenon** / **Diffuse** / **Self-contained** => **valid**: true.
 
@@ -81,6 +82,7 @@ A **single** deliverable is often **several words** (e.g. **rocket skates**, **g
 **also**). Example: **order rocket skates** → **one** line item (**rocket skates**), not two.
 Example: **order glue and springs** → exactly two lines (**glue**, **springs**).
 Preserve **speaker intent** — do not drop items.
+If the command names one product phrase with no explicit separators, extract exactly one line item. Do **not** fabricate a kit/bundle list to satisfy multiple categories.
 
 ## Catalog validation per line
 
