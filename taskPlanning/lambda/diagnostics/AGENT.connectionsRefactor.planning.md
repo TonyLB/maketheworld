@@ -1,6 +1,6 @@
 # Connections consistency refactor plan
 
-Status: in progress. Next step: align contracts and baseline checks for PR1 (`Remove Global / Sessions`).
+Status: in progress. Next step: start PR2 (`Meta::Session` concentrated-PK cutover) after PR1 merge.
 
 ## Purpose
 
@@ -98,12 +98,30 @@ Pending decisions use `[ ]` and locked decisions use `[X]`. Add the final decisi
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as progress is made; when all nested lines are complete, mark the parent line `[X]`.
 
-- [ ] PR1 - Remove `Global / Sessions`
-  - [ ] Inventory all reads/writes to `ConnectionId='Global', DataCategory='Sessions'`.
-  - [ ] Remove correctness dependencies on this record in connections hot paths.
-  - [ ] Update caches/helpers that currently invert `sessions` map (replace with session-row based reads or remove dead paths).
-  - [ ] Add/adjust tests to prove connect/disconnect still works without global map writes.
-  - [ ] Confirm `subscriptions` and publish fanout paths are unaffected.
+- [X] PR1 - Remove `Global / Sessions`
+  - [X] Inventory all reads/writes to `ConnectionId='Global', DataCategory='Sessions'`.
+    - [X] Confirm direct writers in `lambda/authentication/connect.ts`, `lambda/connections/app.ts`, and `lambda/assets/selfHealing/globalValues.ts`.
+    - [X] Confirm direct/indirect readers in `lambda/ephemera/internalCache/global.ts`, `lambda/ephemera/internalCache/playerSessions.ts`, `lambda/subscriptions/internalCache/playerSessions.ts`, and `lambda/assets/internalCache/playerSessions.ts`.
+    - [X] Capture whether each usage is hot-path critical, cache-only, or diagnostics/self-healing only.
+  - [X] Remove correctness dependencies on this record in connections hot paths.
+    - [X] Remove `Global / Sessions` write from auth connect path in `lambda/authentication/connect.ts` while preserving `Meta::Connection` and `Meta::Session` writes.
+    - [X] Remove `Global / Sessions` write from delayed drop flow in `lambda/connections/app.ts` while preserving `Session Disconnect` emission and `Map/Library` subscription cleanup behavior.
+    - [X] Preserve idempotency and contention handling semantics around `dropConnection`/`checkSession` and Step Functions flow in `stepFunctions/dropConnection.asl.yaml`.
+  - [X] Update caches/helpers that currently invert `sessions` map (replace with session-row based reads or remove dead paths).
+    - [X] Replace ephemera `Global.get('sessions')` dependency (currently used by global fanout) with session-row based lookup via `DataCategoryIndex` query on `Meta::Session` in `lambda/ephemera/internalCache/global.ts` and related consumers.
+    - [X] Remove or migrate `CachePlayerSessions` readers that invert `Global / Sessions` maps in subscriptions/assets/ephemera internal caches.
+    - [X] Keep temporary compatibility only where required for this PR; otherwise delete dead code paths.
+  - [X] Add/adjust tests to prove connect/disconnect still works without global map writes.
+    - [X] Add/update auth/connect tests to verify no `Global / Sessions` write is required for successful session creation.
+    - [X] Add/update connections tests around `checkSession` to verify session drop, adjacency cleanup, and `Session Disconnect` emission without `Global / Sessions` mutation.
+    - [X] Add/update ephemera cache/fanout tests to verify `GLOBAL` targeting still resolves active sessions without `Global / Sessions`.
+  - [X] Confirm `subscriptions` and publish fanout paths are unaffected.
+    - [X] Verify `lambda/subscriptions/app.ts` `Session Disconnect` cleanup remains keyed on `SESSION#...` stream rows, not `Global / Sessions`.
+    - [X] Verify `lambda/subscriptions/handlerFramework/baseClasses.ts` publish fanout continues to resolve via `SessionConnections` (`Meta::Session` -> `connections`).
+    - [X] Run targeted subscriptions tests to guard against accidental `Global / Sessions` coupling.
+  - [X] Update durable documents after implementation lands.
+    - [X] Update relevant area docs (`lambda/*/AGENT.md` and/or task docs) to reflect that runtime correctness no longer depends on `Global / Sessions`.
+    - [X] Update this planning file checkboxes and progress notes last, after verification commands pass.
 
 - [ ] PR2 - Refactor `Meta::Session` storage to concentrated PK
   - [ ] Implement concentrated-PK key orientation for canonical session rows (`ConnectionId='Meta::Session'`, `DataCategory='SESSION#...'`) with unchanged payload shape.
@@ -149,11 +167,11 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 
 | PR | Scope | Status | Notes |
 | --- | --- | --- | --- |
-| 1 | Remove `Global / Sessions` | Not started | Highest leverage for contention reduction |
+| 1 | Remove `Global / Sessions` | Complete | Hot-path writes removed; fanout/session-cache readers moved to `Meta::Session` queries |
 | 2 | Refactor `Meta::Session` storage | Not started | Depends on PR1 behavior decoupling |
-| 3 | Diagnostics stale-session sweep | Not started | Contract-first with finding schema |
+| 3 | Diagnostics stale-session sweep | Not started | Decision-locked; implement sweep + finding emission |
 | 4 | Connections stale-session handling | Not started | Problem-report producer behavior |
-| 5 | Diagnostics occupancy-drift sweep | Not started | Parallel with PR6 contract prep |
+| 5 | Diagnostics occupancy-drift sweep | Not started | Decision-locked; can run parallel with PR6 implementation |
 | 6 | Ephemera occupancy-drift handling | Not started | Consumes PR5 finding |
 | 7 | Remove `Library / Sessions` | Not started | Cleanup/legacy removal pass |
 

@@ -8,21 +8,31 @@ export class CachePlayerSessionsData {
     }
     async get(player: string): Promise<string[] | undefined> {
         if (!(this.SessionsByPlayer)) {
-            this.SessionsByPlayer = connectionDB.getItem<{ sessions: Record<string, string> }>({
+            this.SessionsByPlayer = connectionDB.query<{ ConnectionId: string; DataCategory: string; player?: string }>({
+                    IndexName: 'DataCategoryIndex',
                     Key: {
-                        ConnectionId: 'Global',
-                        DataCategory: 'Sessions'
+                        DataCategory: 'Meta::Session'
                     },
-                    ProjectionFields: ['sessions']
-                }).then((value) => (value?.sessions))
-                .then((sessions) => (
-                    Object.entries(sessions || {}).reduce<Record<string, string[]>>((previous, [sessionId, player]) => ({
+                    ProjectionFields: ['ConnectionId', 'player']
+                }).then((sessions) => (
+                    (sessions || []).reduce<Record<string, string[]>>((previous, { ConnectionId, player }) => ({
                         ...previous,
-                        [player]: [
-                            ...(previous[player] || []),
-                            sessionId
-                        ]
+                        ...(player
+                            ? {
+                                [player]: [
+                                    ...(previous[player] || []),
+                                    ConnectionId.startsWith('SESSION#') ? ConnectionId.slice(8) : ConnectionId
+                                ]
+                            }
+                            : {})
                     }), {})
+                ))
+                .then((sessionsByPlayer) => (
+                    Object.fromEntries(
+                        Object.entries(sessionsByPlayer).map(([key, values]) => (
+                            [key, [...new Set(values)]]
+                        ))
+                    ) as Record<string, string[]>
                 ))
         }
         return (await this.SessionsByPlayer)[player]

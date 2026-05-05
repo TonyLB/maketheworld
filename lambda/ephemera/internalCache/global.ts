@@ -67,14 +67,16 @@ export class CacheGlobalData {
                 return this.assets
             case 'sessions':
                 if (typeof this.sessions === 'undefined') {
-                    const { connections = {} } = (await connectionDB.getItem<{ connections: Record<string, string> }>({
+                    const sessions = await connectionDB.query<{ ConnectionId: string; DataCategory: string }>({
+                        IndexName: 'DataCategoryIndex',
                         Key: {
-                            ConnectionId: 'Global',
-                            DataCategory: 'Sessions'    
+                            DataCategory: 'Meta::Session'
                         },
-                        ProjectionFields: ['sessions']
-                    })) || {}
-                    this.sessions = Object.keys(connections)
+                        ProjectionFields: ['ConnectionId']
+                    })
+                    this.sessions = (sessions || [])
+                        .map(({ ConnectionId }) => (ConnectionId.startsWith('SESSION#') ? ConnectionId.slice(8) : undefined))
+                        .filter((sessionId): sessionId is string => (Boolean(sessionId)))
                 }
                 return this.sessions
             case 'mapSubscriptions':

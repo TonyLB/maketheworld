@@ -181,23 +181,6 @@ export const handler = async (event: any) => {
                         {
                             Update: {
                                 Key: {
-                                    ConnectionId: 'Global',
-                                    DataCategory: 'Sessions'
-                                },
-                                updateKeys: ['sessions'],
-                                updateReducer: (draft) => {
-                                    if (typeof draft.sessions === 'undefined') {
-                                        draft.sessions = {}
-                                    }
-                                    else {
-                                        draft.sessions[sessionId] = undefined
-                                    }
-                                }
-                            }
-                        },
-                        {
-                            Update: {
-                                Key: {
                                     ConnectionId: 'Library',
                                     DataCategory: 'Subscriptions'
                                 },

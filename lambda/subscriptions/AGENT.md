@@ -67,7 +67,7 @@ type LibraryEntry = {
 - **`CacheGlobal`**: Session and connection metadata management
 - **`CacheSessionConnections`**: WebSocket connection tracking
 - **`CacheCharacterSessions`**: Character-to-session mapping
-- **`CachePlayerSessions`**: Player-to-session mapping
+- **`CachePlayerSessions`**: Player-to-session mapping sourced from `Meta::Session` rows (no `Global / Sessions` dependency)
 
 ### Configuration
 

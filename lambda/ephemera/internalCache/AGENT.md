@@ -212,7 +212,7 @@ if (!object) {
 
 ### **Session-Based Handlers**
 - **`SessionConnections`**: Caches connection data
-- **`PlayerSessions`**: Caches player session data
+- **`PlayerSessions`**: Caches player session data from `Meta::Session` rows (no `Global / Sessions` dependency)
 - **`RoomCharacterLists`**: Caches room character lists
 
 ### **Global Handlers**
