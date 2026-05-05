@@ -1,5 +1,5 @@
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses";
-import { connectionDB, ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB";
+import { connectionDB, ephemeraDB, META_SESSION_PK, sessionIdFromMetaSortKey } from "@tonylb/mtw-utilities/ts/dynamoDB";
 import delayPromise from "@tonylb/mtw-utilities/ts/dynamoDB/delayPromise";
 
 export type CacheGlobalKeys = 'ConnectionId' | 'SessionId' | 'RequestId' | 'player' | 'assets' | 'sessions' | 'mapSubscriptions'
@@ -68,14 +68,18 @@ export class CacheGlobalData {
             case 'sessions':
                 if (typeof this.sessions === 'undefined') {
                     const sessions = await connectionDB.query<{ ConnectionId: string; DataCategory: string }>({
-                        IndexName: 'DataCategoryIndex',
                         Key: {
-                            DataCategory: 'Meta::Session'
+                            ConnectionId: META_SESSION_PK
                         },
-                        ProjectionFields: ['ConnectionId']
+                        KeyConditionExpression: 'begins_with(DataCategory, :prefix)',
+                        ExpressionAttributeValues: {
+                            ':prefix': 'SESSION#'
+                        },
+                        ProjectionFields: ['DataCategory'],
+                        ConsistentRead: true
                     })
                     this.sessions = (sessions || [])
-                        .map(({ ConnectionId }) => (ConnectionId.startsWith('SESSION#') ? ConnectionId.slice(8) : undefined))
+                        .map(({ DataCategory }) => sessionIdFromMetaSortKey(DataCategory))
                         .filter((sessionId): sessionId is string => (Boolean(sessionId)))
                 }
                 return this.sessions

@@ -36,6 +36,10 @@ a first new session
 - Player Disconnect: Published when a player who previously had sessions connected disconnects
 their last session
 
+## Session storage and DynamoDB trade-offs
+
+For how canonical session rows are keyed (including concentrated PK and hot-partition vs `ConsistentRead` trade-offs), see [`AGENT.md`](./AGENT.md).
+
 ## Tightly coupled data
 
 In the interest of performance, the **ephemera** and **subscriptions** data sources each *directly couple*

@@ -1,7 +1,7 @@
 // Copyright 2024 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-import { connectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/ts/dynamoDB"
+import { connectionDB, exponentialBackoffWrapper, META_SESSION_PK, sessionMetaSortKey } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/ts/errors"
 import { atomicallyRemoveCharacterAdjacency, disconnect } from './disconnect'
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
@@ -123,8 +123,8 @@ export const handler = async (event: any) => {
         const { sessionId, connectionId } = event
         const { dropAfter } = (await connectionDB.optimisticUpdate<{ dropAfter?: number }>({
             Key: {
-                ConnectionId: `SESSION#${sessionId}`,
-                DataCategory: 'Meta::Session'
+                ConnectionId: META_SESSION_PK,
+                DataCategory: sessionMetaSortKey(sessionId)
             },
             updateKeys: ['connections', 'dropAfter'],
             updateReducer: (draft: { connections?: string[]; dropAfter?: number }) => {
@@ -151,8 +151,8 @@ export const handler = async (event: any) => {
         let shouldDrop = false
         await connectionDB.optimisticUpdate<{ connections: string[]; dropAfter?: number; shouldDrop?: string }>({
             Key: {
-                ConnectionId: `SESSION#${sessionId}`,
-                DataCategory: 'Meta::Session'
+                ConnectionId: META_SESSION_PK,
+                DataCategory: sessionMetaSortKey(sessionId)
             },
             updateKeys: ['connections', 'dropAfter', 'shouldDrop'],
             updateReducer: (draft) => {

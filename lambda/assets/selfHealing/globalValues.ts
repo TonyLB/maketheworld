@@ -1,6 +1,5 @@
-import { assetDB, connectionDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
+import { assetDB, connectionDB, META_SESSION_PK, sessionIdFromMetaSortKey } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/ts/errors"
-import { splitType } from "@tonylb/mtw-utilities/ts/types"
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import internalCache from "../internalCache"
 
@@ -8,15 +7,23 @@ export const healGlobalValues = async ({ shouldHealConnections = true, shouldHea
     return await asyncSuppressExceptions(async () => {
         const healConnections = async () => {
             const Items = await connectionDB.query({
-                IndexName: 'DataCategoryIndex',
                 Key: {
-                    DataCategory: 'Meta::Session'
+                    ConnectionId: META_SESSION_PK
                 },
-                ProjectionFields: ['ConnectionId', 'player']
+                KeyConditionExpression: 'begins_with(DataCategory, :prefix)',
+                ExpressionAttributeValues: {
+                    ':prefix': 'SESSION#'
+                },
+                ProjectionFields: ['DataCategory', 'player'],
+                ConsistentRead: true
             })
         
             const sessionMap = Items
-                .map(({ ConnectionId, player }) => ({ Player: player, Session: splitType(ConnectionId)[1]}))
+                .map(({ DataCategory, player }) => {
+                    const Session = sessionIdFromMetaSortKey(DataCategory)
+                    return Session ? { Player: player, Session } : null
+                })
+                .filter((row): row is { Player: string | undefined; Session: string } => row !== null)
                 .reduce((previous, { Player, Session }) => ({ ...previous, [Session]: Player }), {})
         
             await connectionDB.putItem({

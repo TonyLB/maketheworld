@@ -1,5 +1,5 @@
 import { MapSubscriptionMessage, MapUnsubscribeMessage, MessageBus } from "../messageBus/baseClasses"
-import { connectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/ts/dynamoDB"
+import { connectionDB, exponentialBackoffWrapper, META_SESSION_PK, sessionMetaSortKey } from "@tonylb/mtw-utilities/ts/dynamoDB"
 
 import internalCache from '../internalCache'
 import { unique } from "@tonylb/mtw-utilities/ts/lists"
@@ -59,8 +59,8 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
                 {
                     ConditionCheck: {
                         Key: {
-                            ConnectionId: `SESSION#${sessionId}`,
-                            DataCategory: 'Meta::Session'
+                            ConnectionId: META_SESSION_PK,
+                            DataCategory: sessionMetaSortKey(sessionId)
                         },
                         ProjectionFields: ['DataCategory'],
                         ConditionExpression: 'attribute_exists(DataCategory)'

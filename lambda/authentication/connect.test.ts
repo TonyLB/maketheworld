@@ -1,4 +1,13 @@
-jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
+jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => {
+    const actual = jest.requireActual('@tonylb/mtw-utilities/ts/dynamoDB') as typeof import('@tonylb/mtw-utilities/ts/dynamoDB')
+    return {
+        ...actual,
+        connectionDB: Object.assign({}, actual.connectionDB, {
+            putItem: jest.fn(),
+            optimisticUpdate: jest.fn()
+        })
+    }
+})
 import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 jest.mock('@tonylb/mtw-utilities/ts/eventBridge')
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
@@ -33,8 +42,8 @@ describe('authentication connect', () => {
         expect(connectionDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
         expect(connectionDBMock.optimisticUpdate).toHaveBeenCalledWith(expect.objectContaining({
             Key: {
-                ConnectionId: 'SESSION#session-1',
-                DataCategory: 'Meta::Session'
+                ConnectionId: 'Meta::Session',
+                DataCategory: 'SESSION#session-1'
             }
         }))
         expect(connectionDBMock.optimisticUpdate).not.toHaveBeenCalledWith(expect.objectContaining({
