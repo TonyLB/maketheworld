@@ -1,6 +1,6 @@
 # Connections consistency refactor plan
 
-Status: in progress. Next step: PR3 (Stale Session sweep in diagnostics lambda).
+Status: in progress. Next step: PR4 (Stale Session handling in connections lambda).
 
 ## Purpose
 
@@ -35,6 +35,7 @@ This initiative is structured into seven PRs:
    - [`lambda/ephemera/internalCache/roomCharacterLists.ts`](../../../lambda/ephemera/internalCache/roomCharacterLists.ts)
 5. Review diagnostics entrypoints currently wired:
    - [`lambda/diagnostics/app.ts`](../../../lambda/diagnostics/app.ts)
+   - [`lambda/diagnostics/AGENT.md`](../../../lambda/diagnostics/AGENT.md)
    - [`lambda/assets/selfHealing/globalValues.ts`](../../../lambda/assets/selfHealing/globalValues.ts)
 
 ## Design assumptions to preserve
@@ -132,13 +133,13 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
   - [X] Document deliberate DynamoDB trade-off for concentrated `Meta::Session` PK: hot-partition pressure vs instant `ConsistentRead` session lookups (we choose the latter knowingly).
     - [X] Add durable documentation (see [`lambda/connections/AGENT.md`](../../../lambda/connections/AGENT.md)); keep this task plan as a pointer only.
 
-- [ ] PR3 - Add Stale Session sweep to diagnostics lambda
-  - [ ] Implement diagnostics sweep that evaluates:
-    - [ ] session rows without active connections beyond grace window
-    - [ ] stream subscriptions referencing stale session IDs
-    - [ ] session/character adjacency inconsistencies
-  - [ ] Emit `Stale SessionId Finding` payload `{ player }` (optional `diagnosticRunId` on diagnostics sweeps).
-  - [ ] Add tests for false-positive suppression and repeated-run idempotency.
+- [X] PR3 - Add Stale Session sweep to diagnostics lambda
+  - [X] Implement diagnostics sweep that evaluates:
+    - [X] session rows without active connections beyond grace window
+    - [X] stream subscriptions referencing stale session IDs
+    - [X] session/character adjacency inconsistencies
+  - [X] Emit `Stale SessionId Finding` payload `{ player }` (optional `diagnosticRunId` on diagnostics sweeps).
+  - [X] Add tests for false-positive suppression and repeated-run idempotency.
 
 - [ ] PR4 - Add Stale Session handling in connections lambda
   - [ ] Implement `Session Disconnect Problem` emission points for cleanup conflicts/failures.
@@ -171,11 +172,16 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 | --- | --- | --- | --- |
 | 1 | Remove `Global / Sessions` | Complete | Hot-path writes removed; fanout/session-cache readers moved to `Meta::Session` queries |
 | 2 | Refactor `Meta::Session` storage | Complete | Concentrated PK (`Meta::Session` / `SESSION#...`); `connectionDB.query` supports base-table `ConsistentRead`; helpers in `mtw-utilities/sessionMetaKeys` |
-| 3 | Diagnostics stale-session sweep | Not started | Decision-locked; implement sweep + finding emission |
+| 3 | Diagnostics stale-session sweep | Complete | Sweep + `Stale SessionId Finding`; see [`lambda/diagnostics/AGENT.md`](../../../lambda/diagnostics/AGENT.md) |
 | 4 | Connections stale-session handling | Not started | Problem-report producer behavior |
 | 5 | Diagnostics occupancy-drift sweep | Not started | Decision-locked; can run parallel with PR6 implementation |
 | 6 | Ephemera occupancy-drift handling | Not started | Consumes PR5 finding |
 | 7 | Remove `Library / Sessions` | Not started | Cleanup/legacy removal pass |
+
+### PR3 verification (completed)
+
+- `cd lambda/diagnostics && npm test`
+- `cd packages/mtw-interfaces && npm test -- --testPathPattern=eventBridge/diagnostics`
 
 ## Decision log
 

@@ -10,6 +10,7 @@
 
 **Implemented (findings-based)**:
 - **S3 Structure Finding** - Emitted by initialize lambda (for `primitives.wml`); consumed by WML lambda to trigger idempotent primitives init. Contract lives in `packages/mtw-interfaces/ts/eventBridge/diagnostics`. EventBridge routes `mtw.diagnostics` / `S3 Structure Finding` to WML lambda.
+- **Stale SessionId Finding** - Emitted by diagnostics lambda stale-session sweep (connections consistency initiative). Contract lives in `packages/mtw-interfaces/ts/eventBridge/diagnostics`. Operational notes: [`lambda/diagnostics/AGENT.md`](AGENT.md).
 
 **Still imperative / ad hoc**:
 - `detail-type: "Initialize"` - Command to run full client + primitives init (initialize lambda)

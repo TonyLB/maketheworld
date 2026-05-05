@@ -1,5 +1,6 @@
 {
   "name": "diagnostics",
+  "type": "module",
   "version": "1.0.0",
   "description": "Lambda for diagnostics and self-repair functions",
   "main": "app.ts",
@@ -11,12 +12,16 @@
   "author": "Tony Lower-Basch",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.588.0",
+    "@aws-sdk/client-eventbridge": "^3.588.0",
     "@tonylb/mtw-interfaces": "file:../../packages/mtw-interfaces",
+    "@tonylb/mtw-lambda-patterns": "file:../../packages/mtw-lambda-patterns",
     "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@types/jest": "^29.5.4",
+    "esbuild": "^0.19.2",
     "jest": "^29.6.4",
     "ts-jest": "^29.1.1",
     "typescript": "^5.2.2"
