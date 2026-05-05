@@ -4,7 +4,7 @@ import type { CoyoteGameIntentRecord } from '../../../../internalCache/coyoteGam
 import { findAllFenceBlocks } from '../../../../llm/markdownCodeFences'
 import { hypothesisDebugLog } from '../../utilities/hypothesisDebug'
 
-const STUB_INTENT = 'Hypothesis: Stubbed'
+const STUB_INTENT = 'Hypothesis: Something went wrong'
 
 const OPEN_FENCE = /^```(?:text)?\s*\n?/i
 const CLOSE_FENCE = /\n?```\s*$/i

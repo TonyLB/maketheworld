@@ -407,7 +407,7 @@ function pipelineFailureToStubResult(
 
     return {
         kind: 'stub',
-        record: { intent: 'Hypothesis: Stubbed' },
+        record: { intent: 'Hypothesis: Something went wrong' },
         stageOneResult,
         planSelectionResult: state.planSelectionResult !== undefined ? state.planSelectionResult : null,
         narrativeBeatResult: state.narrativeBeatResult !== undefined ? state.narrativeBeatResult : null,
@@ -465,7 +465,7 @@ function pipelineSuccessToHarnessPartial(
         kind: 'harnessPartial',
         testOnly: harness.testOnly,
         harnessRunKind: harness.harnessRunKind,
-        record: state.record ?? { intent: 'Hypothesis: Stubbed' },
+        record: state.record ?? { intent: 'Hypothesis: Something went wrong' },
         ...(state.stageOneResult !== undefined ? { stageOneResult: state.stageOneResult } : {}),
         ...(state.planSelectionResult !== undefined ? { planSelectionResult: state.planSelectionResult } : {}),
         ...(state.narrativeBeatResult !== undefined ? { narrativeBeatResult: state.narrativeBeatResult } : {}),

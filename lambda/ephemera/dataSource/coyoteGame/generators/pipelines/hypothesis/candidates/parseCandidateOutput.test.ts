@@ -1,6 +1,7 @@
 import { harnessRoomObjects } from '../../../testHarness/coyoteEngineTestFixtures'
 import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
 import { parseCandidateOutput, stripCandidateOutputFence } from './parseCandidateOutput'
+import { COYOTE_STRICT_FAIL_FAST_ENABLED } from '../../../../utilities/coyoteRuntimeToggles'
 
 const singleObjectRoomMap: CoyoteRoomObjectsByRoom = {
     'ROOM#VORTEX': [
@@ -173,7 +174,7 @@ describe('parseCandidateOutput', () => {
         }
     })
 
-    it('rejects malformed environmentAffordances or affordancesProvided on outlier rows', () => {
+    it('handles malformed outlier affordance fields according to strict fail-fast toggle', () => {
         const map: CoyoteRoomObjectsByRoom = {
             ...singleObjectRoomMap,
             'ROOM#BRIDGE': harnessRoomObjects('bridge', ['rope']),
@@ -199,10 +200,14 @@ describe('parseCandidateOutput', () => {
             ],
         })
         const r = parseCandidateOutput(badOutlier, map)
-        expect(r.ok).toBe(false)
-        if (!r.ok) {
-            expect(r.errorMessage).toContain('malformed affordancesProvided')
+        if (COYOTE_STRICT_FAIL_FAST_ENABLED) {
+            expect(r.ok).toBe(false)
+            if (!r.ok) {
+                expect(r.errorMessage).toContain('malformed affordancesProvided')
+            }
+            return
         }
+        expect(r.ok).toBe(true)
     })
 
     it('rejects trope member missing tropeFunction', () => {

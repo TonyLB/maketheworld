@@ -347,7 +347,7 @@ describe('generateHypothesis', () => {
         })
 
         await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
-            intent: 'Hypothesis: Stubbed',
+            intent: 'Hypothesis: Something went wrong',
         })
         expect(planSelectionMock).not.toHaveBeenCalled()
         expect(narrativeBeatMock).not.toHaveBeenCalled()
@@ -360,7 +360,7 @@ describe('generateHypothesis', () => {
         })
 
         await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
-            intent: 'Hypothesis: Stubbed',
+            intent: 'Hypothesis: Something went wrong',
         })
         expect(planSelectionMock).not.toHaveBeenCalled()
         expect(narrativeBeatMock).not.toHaveBeenCalled()
@@ -373,7 +373,7 @@ describe('generateHypothesis', () => {
         })
 
         await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
-            intent: 'Hypothesis: Stubbed',
+            intent: 'Hypothesis: Something went wrong',
         })
         expect(planSelectionMock).toHaveBeenCalledTimes(1)
         expect(narrativeBeatMock).not.toHaveBeenCalled()
@@ -387,7 +387,7 @@ describe('generateHypothesis', () => {
         })
 
         await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
-            intent: 'Hypothesis: Stubbed',
+            intent: 'Hypothesis: Something went wrong',
         })
         expect(narrativeBeatMock).not.toHaveBeenCalled()
     })
@@ -451,7 +451,7 @@ describe('generateHypothesis', () => {
         const result = await generateHypothesisWithStageResults({ getGameRooms, getRoomMeta })
         expect(result.kind).toBe('stub')
         if (result.kind === 'stub') {
-            expect(result.record.intent).toBe('Hypothesis: Stubbed')
+            expect(result.record.intent).toBe('Hypothesis: Something went wrong')
         }
         expect(narrativeBeatMock).not.toHaveBeenCalled()
     })
@@ -463,7 +463,7 @@ describe('generateHypothesis', () => {
         })
 
         await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
-            intent: 'Hypothesis: Stubbed',
+            intent: 'Hypothesis: Something went wrong',
         })
         expect(narrativeBeatMock).toHaveBeenCalledTimes(1)
     })

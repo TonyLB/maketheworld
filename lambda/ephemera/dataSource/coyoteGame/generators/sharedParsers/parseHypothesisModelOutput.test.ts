@@ -8,8 +8,8 @@ const narrativeBeatsCtx: CoyoteNarrativeBeatsValidationContext = {
 
 describe('parseHypothesisModelOutput', () => {
     it('returns stub when empty after strip', () => {
-        expect(parseHypothesisModelOutput('   ')).toEqual({ intent: 'Hypothesis: Stubbed' })
-        expect(parseHypothesisModelOutput('')).toEqual({ intent: 'Hypothesis: Stubbed' })
+        expect(parseHypothesisModelOutput('   ')).toEqual({ intent: 'Hypothesis: Something went wrong' })
+        expect(parseHypothesisModelOutput('')).toEqual({ intent: 'Hypothesis: Something went wrong' })
     })
 
     it('strips fenced code blocks then splits', () => {
