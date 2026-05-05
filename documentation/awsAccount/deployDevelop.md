@@ -49,6 +49,8 @@ sam deploy \
 
 **Note**: The `samconfig.toml` file already configures the necessary IAM capabilities, so you don't need to specify `--capabilities` on the command line. The `TablePrefix` parameter is required and will be used as the prefix for all DynamoDB tables and S3 buckets (e.g., `mtw` creates `mtw_assets`, `mtw_ephemera`, etc.).
 
+After you deploy, the `{TablePrefix}-client` bucket is only refreshed when the **initialize** Lambda runs (it uploads the built client from its layer and writes `config.json`, including Cognito, WebSocket, and anonymous API URIs). Send an EventBridge event on your stack event bus with `source` `mtw.diagnostics` and `detail-type` `Initialize` so that Lambda runs and updates the bucket; then CloudFront will serve a client that can load configuration without manual edits to `config.json`.
+
 #### Deploying the local front end
 
 Finally, you'll have to dig down into the *charcoal-client* directory, and read its README.md as well.  There are some

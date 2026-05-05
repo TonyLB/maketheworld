@@ -120,11 +120,13 @@ export const handler = async (event, context) => {
                     Body: JSON.stringify(Object.entries({
                         UserPoolClient: process.env.USER_POOL_CLIENT,
                         UserPoolId: process.env.USER_POOL_ID,
-                        WebSocketURI: process.env.WEB_SOCKET_URI
+                        WebSocketURI: process.env.WEB_SOCKET_URI,
+                        AnonymousApiURI: process.env.ANONYMOUS_API_URI
                     }).map(([key, value]) => ({
                         OutputKey: key,
                         OutputValue: value
-                    })), null, 4)
+                    })), null, 4),
+                    ContentType: 'application/json'
                 }))
             ])
             return JSON.stringify(`Success`)
