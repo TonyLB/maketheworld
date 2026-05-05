@@ -94,7 +94,7 @@ describe('runCoyoteEngineTestHarness', () => {
             .mockResolvedValueOnce(okPipeline('Hypothesis: ok'))
             .mockResolvedValueOnce({
                 kind: 'stub',
-                record: { intent: 'Hypothesis: Stubbed' },
+                record: { intent: 'Hypothesis: Something went wrong' },
                 stageOneResult: { success: false, errorMessage: 'Throttled', body: '' },
                 planSelectionResult: null,
                 narrativeBeatResult: null,

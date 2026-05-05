@@ -593,7 +593,7 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                 fixture,
                 index,
                 total: fixtures.length,
-                intentRecord: { intent: 'Hypothesis: Stubbed' },
+                intentRecord: { intent: 'Hypothesis: Something went wrong' },
                 elapsedMs,
                 usageStageOne: 'usageStage1: (none)',
                 stageOneBodyBlock: 'stageOneBody: (none)',

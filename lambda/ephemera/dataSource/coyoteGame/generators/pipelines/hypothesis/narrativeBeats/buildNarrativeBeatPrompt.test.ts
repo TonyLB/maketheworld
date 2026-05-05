@@ -37,6 +37,7 @@ describe('buildNarrativeBeatPrompt', () => {
         expect(full).toContain('## Cartoon play-by-play')
         expect(full).toContain('**`beats`**')
         expect(full).toContain('**`linearizedSequence`**')
+        expect(full).toContain('must not include post-plan reversal or aftermath')
         expect(full).not.toContain('tropeSequence')
         expect(full).not.toContain('deconflictionSummary')
         expect(full).not.toContain('**`phases`**')

@@ -11,6 +11,7 @@ import {
     isEnvironmentAffordanceRef,
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { CANONICAL_TROPE_ORDER } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
+import { COYOTE_STRICT_FAIL_FAST_ENABLED } from '../../../../utilities/coyoteRuntimeToggles'
 
 /*
  * Stage 1 emits trope-first JSON: optional notes, required candidates[].
@@ -266,9 +267,11 @@ function parseOutlierStableKeyOnly(
     if (!isNonEmptyString(rawObj.stableKey)) {
         return { ok: false, errorMessage: `${contextLabel} needs stableKey` }
     }
-    const parsedAffordances = parseOptionalAffordances(rawObj, contextLabel)
-    if (!parsedAffordances.ok) {
-        return parsedAffordances
+    if (COYOTE_STRICT_FAIL_FAST_ENABLED) {
+        const parsedAffordances = parseOptionalAffordances(rawObj, contextLabel)
+        if (!parsedAffordances.ok) {
+            return parsedAffordances
+        }
     }
     return { ok: true, stableKey: rawObj.stableKey.trim() }
 }

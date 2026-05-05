@@ -203,7 +203,7 @@ describe('PublishMessage', () => {
                     type: 'PublishMessage',
                     targets: ['CHARACTER#123'],
                     displayProtocol: 'WorldMessage',
-                    message: ['Hypothesis: Stubbed'],
+                    message: ['Hypothesis: Something went wrong'],
                     messageId: 'MESSAGE#SHARED',
                     createdTime: 1000000000001,
                 },
@@ -222,7 +222,7 @@ describe('PublishMessage', () => {
             DeltaId: '1000000000001::MESSAGE#SHARED',
             RowId: 'MESSAGE#SHARED',
             CreatedTime: 1000000000001,
-            Message: ['Hypothesis: Stubbed'],
+            Message: ['Hypothesis: Something went wrong'],
             DisplayProtocol: 'WorldMessage',
         })
     })
@@ -245,7 +245,7 @@ describe('PublishMessage', () => {
                     type: 'PublishMessage',
                     targets: ['CHARACTER#123'],
                     displayProtocol: 'CoyoteGameHypothesisMessage',
-                    message: ['Hypothesis: Stubbed'],
+                    message: ['Hypothesis: Something went wrong'],
                     messageId: 'MESSAGE#SHARED',
                     createdTime: 1000000000001,
                 },
@@ -264,7 +264,7 @@ describe('PublishMessage', () => {
             DeltaId: '1000000000001::MESSAGE#SHARED',
             RowId: 'MESSAGE#SHARED',
             CreatedTime: 1000000000001,
-            Message: ['Hypothesis: Stubbed'],
+            Message: ['Hypothesis: Something went wrong'],
             DisplayProtocol: 'CoyoteGameHypothesisMessage',
         })
     })

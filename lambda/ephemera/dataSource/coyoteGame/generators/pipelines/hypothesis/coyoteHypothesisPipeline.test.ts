@@ -116,7 +116,7 @@ describe('mapPipelineRunToGenerateHypothesisResult', () => {
         })
         expect(result).toEqual({
             kind: 'stub',
-            record: { intent: 'Hypothesis: Stubbed' },
+            record: { intent: 'Hypothesis: Something went wrong' },
             stageOneResult: { success: false, errorMessage: 'Throttled' },
             planSelectionResult: null,
             narrativeBeatResult: null,
@@ -184,7 +184,7 @@ describe('mapPipelineRunToGenerateHypothesisResult', () => {
         if (result.kind === 'harnessPartial') {
             expect(result.testOnly).toBe('candidates')
             expect(result.harnessRunKind).toBe('runUntil')
-            expect(result.record.intent).toBe('Hypothesis: Stubbed')
+            expect(result.record.intent).toBe('Hypothesis: Something went wrong')
             expect(result.stageOneResult?.success).toBe(true)
         }
     })
@@ -421,7 +421,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         const result = await runCoyoteHypothesisPipeline({ getGameRooms, getRoomMeta })
         expect(result.kind).toBe('stub')
         if (result.kind === 'stub') {
-            expect(result.record.intent).toBe('Hypothesis: Stubbed')
+            expect(result.record.intent).toBe('Hypothesis: Something went wrong')
         }
         expect(narrativeBeatMock).not.toHaveBeenCalled()
         expect(planSelectionMock).toHaveBeenCalledTimes(1)
