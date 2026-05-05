@@ -25,6 +25,7 @@ import {
     isRenderOrchestrationGenerationStartedPayload,
     isRenderOrchestrationOrchestrationErrorPayload,
 } from '../renderOrchestration/publishedEvents'
+import { getCharacterRoomPerspectiveKey } from './kickRoomHeaderBroadcast'
 
 /**
  * TEMPORARY: Word joiner (U+2060) as non-whitespace display title so WML round-trips.
@@ -63,6 +64,28 @@ function logTerminalDedupe(
     console.log(
         `[mtw.ephemera.perception] skip ${eventLabel} (terminal) ${componentId} ${perspectiveKey} registrationId=${registrationId}`
     )
+}
+
+async function resolveFallbackRenderTargetsForPerspective(
+    roomId: EphemeraRoomId,
+    perspectiveKey: string
+): Promise<EphemeraCharacterId[]> {
+    const occupants = await internalCache.RoomCharacterList.get(roomId)
+    if (!occupants.length) {
+        return []
+    }
+    const matches = await Promise.all(
+        occupants.map(async ({ EphemeraId }) => {
+            const characterId = EphemeraId as EphemeraCharacterId
+            const characterMeta = await internalCache.CharacterMeta.get(characterId)
+            const characterPerspectiveKey = await getCharacterRoomPerspectiveKey(roomId, characterMeta?.assets || [])
+            if (characterPerspectiveKey === perspectiveKey) {
+                return characterId
+            }
+            return null
+        })
+    )
+    return matches.filter((target): target is EphemeraCharacterId => Boolean(target))
 }
 
 function headerTargetsForCharacterMove(
@@ -298,6 +321,31 @@ async function handleRenderPertains(
         })
     }
 
+    let fallbackPublished = 0
+    let fallbackTargetsMatched = 0
+    if (entries.length === 0) {
+        const fallbackTargets = await resolveFallbackRenderTargetsForPerspective(
+            payload.componentId,
+            payload.perspectiveKey
+        )
+        fallbackTargetsMatched = fallbackTargets.length
+        if (fallbackTargets.length) {
+            bus.send({
+                type: 'PublishMessage',
+                targets: fallbackTargets,
+                displayProtocol: 'PerceptionMessage',
+                wmlContent: terminalHeaderWml,
+                metaData: {
+                    componentUUID: payload.componentId,
+                    displayMode: 'header',
+                    roomChannel: 'render',
+                },
+                messageId: `MESSAGE#${uuidv4()}`,
+            })
+            fallbackPublished = 1
+        }
+    }
+
     const summary = {
         componentId: payload.componentId,
         perspectiveKey: payload.perspectiveKey,
@@ -311,9 +359,11 @@ async function handleRenderPertains(
         publishedCharacterMove,
         skippedCharacterMoveTerminal,
         skippedCharacterMoveEmptyTargets,
+        fallbackTargetsMatched,
+        fallbackPublished,
     }
     if (entries.length === 0) {
-        console.warn('[mtw.ephemera.perception] handleRenderPertains: no PerceptionThreads rows for bucket', summary)
+        console.warn('[mtw.ephemera.perception] handleRenderPertains: no PerceptionThreads rows for bucket; fallback attempted', summary)
     }
     else {
         console.log('[mtw.ephemera.perception] handleRenderPertains', summary)
