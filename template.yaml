@@ -1283,6 +1283,7 @@ Resources:
                   USER_POOL_CLIENT: !Ref UserPoolClient
                   USER_POOL_ID: !Ref UserPool
                   WEB_SOCKET_URI: !Join [ '', [ 'wss://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'RealTimeStage'] ]
+                  ANONYMOUS_API_URI: !Join [ '', [ 'https://', !Ref AnonymousAPI, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/prod'] ]
                   EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
           Policies:
               - S3CrudPolicy:
