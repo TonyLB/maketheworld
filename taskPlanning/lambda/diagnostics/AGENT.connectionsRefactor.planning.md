@@ -13,7 +13,7 @@ This initiative is structured into seven PRs:
 1. Remove `Global / Sessions`
 2. Refactor `Meta::Session` storage to concentrated PK (for instant consistent-read)
 3. Add Stale Session sweep to diagnostics lambda
-4. Add Stale Session handling in connections lambda
+4. Add stale session handling in connections lambda (problem reports + `Stale SessionId Finding` repair)
 5. Add Room Occupancy Drift sweep to diagnostics lambda
 6. Add Room Occupancy Drift Finding to ephemera lambda
 7. Remove `Library / Sessions`
@@ -42,6 +42,7 @@ This initiative is structured into seven PRs:
 
 - Findings remain descriptive (not imperative): e.g. `Stale SessionId Finding`, `Room Occupancy Drift Finding`.
 - Producers emit problem reports; diagnostics evaluates and emits findings.
+- PR4 covers both sides of stale-session work in connections: emitting `Session Disconnect Problem` when cleanup contends, and consuming `Stale SessionId Finding` to run **connections-table-only** idempotent repair (D6); diagnostics itself never mutates storage.
 - Cleanup paths remain idempotent and safe under refresh races (disconnect/connect overlap).
 - Refactors should not require downtime or a one-shot migration cutover unless explicitly planned.
 
@@ -141,12 +142,17 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
   - [X] Emit `Stale SessionId Finding` payload `{ player }` (optional `diagnosticRunId` on diagnostics sweeps).
   - [X] Add tests for false-positive suppression and repeated-run idempotency.
 
-- [ ] PR4 - Add Stale Session handling in connections lambda
-  - [ ] Implement `Session Disconnect Problem` emission points for cleanup conflicts/failures.
-  - [ ] Ensure problem reports are emitted outside recursive cleanup internals.
-  - [ ] Decouple `Session Disconnect` emission from contested bookkeeping writes.
-  - [ ] Add bounded retry (3 attempts, progressive waits) + structured logging for cleanup conflict paths.
-  - [ ] Add tests covering refresh race (disconnect old / connect new overlap).
+- [ ] PR4 - Stale session handling in connections lambda (problem reports + `Stale SessionId Finding` repair)
+  - [ ] **Problem reports (`mtw.connections` producer):** Implement `Session Disconnect Problem` emission points for cleanup conflicts/failures.
+  - [ ] **Problem reports:** Ensure problem reports are emitted outside recursive cleanup internals.
+  - [ ] **Problem reports:** Decouple `Session Disconnect` emission from contested bookkeeping writes.
+  - [ ] **Problem reports:** Add bounded retry (3 attempts, progressive waits) + structured logging for cleanup conflict paths.
+  - [ ] **Problem reports:** Add tests covering refresh race (disconnect old / connect new overlap).
+  - [ ] **Finding-driven repair:** Wire connections lambda to consume `mtw.diagnostics` / `Stale SessionId Finding` (EventBridge subscription + handler path; mirror the PR6 pattern where ephemera consumes occupancy drift findings).
+  - [ ] **Finding-driven repair:** Implement idempotent reconciliation limited to **`connections` table** state for the affected player (D6 ownership). The finding payload is `{ player }` only (D3): resolve affected sessions/rows via `Meta::Session` / existing keyed lookups, then reuse or factor cleanup primitives (`checkSession`-equivalent drops, `STREAM#` subscription edges, session-character adjacency under `SESSION#...`) without crossing into ephemera-owned repairs.
+  - [ ] **Finding-driven repair:** Observe D6 loop prevention: finding handlers must not emit `Session Disconnect Problem` on the same remediation path; any escalation signal must be a distinct higher-severity diagnostic contract if needed.
+  - [ ] **Finding-driven repair:** Add tests for replay idempotency and for “repair does not recreate problem-report noise” alongside producer-path tests.
+  - [ ] Update durable docs after implementation: extend [`lambda/connections/AGENT.md`](../../../lambda/connections/AGENT.md) with problem-report vs finding-repair responsibilities and EventBridge wiring notes.
 
 - [ ] PR5 - Add Room Occupancy Drift sweep to diagnostics lambda
   - [ ] Implement occupancy drift sweep using locked invariants (`SessionIds` canonical; adjacency + `Meta::Character.RoomId` authoritative).
@@ -173,7 +179,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 | 1 | Remove `Global / Sessions` | Complete | Hot-path writes removed; fanout/session-cache readers moved to `Meta::Session` queries |
 | 2 | Refactor `Meta::Session` storage | Complete | Concentrated PK (`Meta::Session` / `SESSION#...`); `connectionDB.query` supports base-table `ConsistentRead`; helpers in `mtw-utilities/sessionMetaKeys` |
 | 3 | Diagnostics stale-session sweep | Complete | Sweep + `Stale SessionId Finding`; see [`lambda/diagnostics/AGENT.md`](../../../lambda/diagnostics/AGENT.md) |
-| 4 | Connections stale-session handling | Not started | Problem-report producer behavior |
+| 4 | Connections stale-session handling | Not started | `Session Disconnect Problem` producer + idempotent `Stale SessionId Finding` consumer/repair (`connections` table only per D6); see PR4 checklist |
 | 5 | Diagnostics occupancy-drift sweep | Not started | Decision-locked; can run parallel with PR6 implementation |
 | 6 | Ephemera occupancy-drift handling | Not started | Consumes PR5 finding |
 | 7 | Remove `Library / Sessions` | Not started | Cleanup/legacy removal pass |
@@ -208,7 +214,7 @@ Use commands from each lambda/package-specific test documentation where present.
 
 Minimum checks per PR (adapt paths as needed):
 
-- `lambda/connections` tests for connect/disconnect/checkSession behavior
+- `lambda/connections` tests for connect/disconnect/checkSession behavior, problem reports, and (PR4) `Stale SessionId Finding` repair paths
 - `lambda/subscriptions` tests for stream cleanup and publish routing
 - `lambda/diagnostics` tests for finding emission and dedupe behavior
 - `lambda/ephemera` tests for room occupancy reconciliation (for PR6)
@@ -230,5 +236,6 @@ Minimum checks per PR (adapt paths as needed):
 - Session cleanup no longer depends on high-contention global map writes.
 - Diagnostics emits reliable `Stale SessionId Finding` and `Room Occupancy Drift Finding`.
 - Connections emits structured problem reports on cleanup contention/failure.
+- Connections applies idempotent `connections`-table reconciliation in response to `Stale SessionId Finding` (repair ownership per D6; no diagnostics-side writes).
 - Ephemera can reconcile room occupancy drift findings idempotently.
 - `Library / Sessions` legacy record and references removed.
