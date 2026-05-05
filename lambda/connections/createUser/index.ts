@@ -2,6 +2,8 @@ import { AdminCreateUserCommand, AdminSetUserPasswordCommand, InitiateAuthComman
 import { cognitoClient } from "../clients";
 import { connectionDB } from "@tonylb/mtw-utilities/ts/dynamoDB";
 
+const DEMO_SIGNUP_EMAIL = 'anthony.lowerbasch+mtwdemo@gmail.com'
+
 type CreateUserRequest = {
     inviteCode: string;
     userName: string;
@@ -60,6 +62,10 @@ export const createCognitoUser = async ({ inviteCode, userName, password }: Crea
         const results = await cognitoClient.send(new AdminCreateUserCommand({
             UserPoolId: COGNITO_USER_POOL_ID,
             Username: userName,
+            UserAttributes: [
+                { Name: 'email', Value: DEMO_SIGNUP_EMAIL },
+                { Name: 'email_verified', Value: 'true' }
+            ],
             MessageAction: 'SUPPRESS'
         }))
         //
