@@ -32,6 +32,13 @@ export type DiagnosticsEphemeraRenderCacheFindingEvent = {
     roomIds?: EphemeraRoomId[]
 }
 
+export type DiagnosticsStaleSessionIdFindingEvent = {
+    type: 'Stale SessionId Finding'
+    player: string
+    diagnosticRunId: string
+    timestamp: string
+}
+
 /** Heal Global Values content shape (for deserialize only; produced elsewhere) */
 export type DiagnosticsHealGlobalValuesContent = {
     type: 'Heal Global Values'
@@ -44,6 +51,7 @@ export type DiagnosticsEventUpdate =
     | DiagnosticsS3StructureFindingEvent
     | DiagnosticsCacheConsistencyFindingEvent
     | DiagnosticsEphemeraRenderCacheFindingEvent
+    | DiagnosticsStaleSessionIdFindingEvent
     | DiagnosticsHealGlobalValuesContent
 
 //
@@ -75,10 +83,18 @@ export type DiagnosticsEphemeraRenderCacheFindingEventExternal = {
     roomIds?: EphemeraRoomId[]
 }
 
+export type DiagnosticsStaleSessionIdFindingEventExternal = {
+    type: 'Stale SessionId Finding'
+    player: string
+    diagnosticRunId?: string
+    timestamp?: string
+}
+
 export type DiagnosticsEventExternal =
     | DiagnosticsS3StructureFindingEventExternal
     | DiagnosticsCacheConsistencyFindingEventExternal
     | DiagnosticsEphemeraRenderCacheFindingEventExternal
+    | DiagnosticsStaleSessionIdFindingEventExternal
 
 //
 // Type guards
@@ -122,8 +138,19 @@ export const isEphemeraRenderCacheFindingEvent = (event: any): event is Diagnost
     )
 }
 
+export const isStaleSessionIdFindingEvent = (event: any): event is DiagnosticsStaleSessionIdFindingEvent => {
+    return Boolean(
+        event &&
+        typeof event === 'object' &&
+        event.type === 'Stale SessionId Finding' &&
+        typeof event.player === 'string' &&
+        event.player.length > 0
+    )
+}
+
 export const isDiagnosticsEventUpdate = (event: unknown): event is DiagnosticsEventUpdate => {
     return isS3StructureFindingEvent(event) || isCacheConsistencyFindingEvent(event) || isEphemeraRenderCacheFindingEvent(event) ||
+        isStaleSessionIdFindingEvent(event) ||
         (typeof event === 'object' && event !== null && (event as any).type === 'Heal Global Values')
 }
 
@@ -175,6 +202,14 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
                 diagnosticRunId: content.diagnosticRunId,
                 timestamp: content.timestamp,
                 ...(content.roomIds ? { roomIds: content.roomIds } : {})
+            }
+        }
+        if (header.type === 'Stale SessionId Finding' && isStaleSessionIdFindingEvent(content)) {
+            return {
+                type: 'Stale SessionId Finding',
+                player: content.player,
+                diagnosticRunId: content.diagnosticRunId,
+                timestamp: content.timestamp
             }
         }
         throw new Error(`Unknown diagnostics event type: ${header.type}`)
@@ -250,6 +285,18 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
                 diagnosticRunId: content.diagnosticRunId || 'unknown',
                 timestamp: content.timestamp || new Date().toISOString(),
                 ...(content.roomIds ? { roomIds: content.roomIds as EphemeraRoomId[] } : {})
+            }
+        }
+
+        if (eventType === 'Stale SessionId Finding') {
+            if (typeof content.player !== 'string' || content.player.length === 0) {
+                return null
+            }
+            return {
+                type: 'Stale SessionId Finding',
+                player: content.player,
+                diagnosticRunId: content.diagnosticRunId || 'unknown',
+                timestamp: content.timestamp || new Date().toISOString()
             }
         }
 

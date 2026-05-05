@@ -4,6 +4,7 @@ import {
     isS3StructureFindingEvent,
     isCacheConsistencyFindingEvent,
     isEphemeraRenderCacheFindingEvent,
+    isStaleSessionIdFindingEvent,
     isDiagnosticsEventUpdate
 } from './index'
 import type { DataSourceEnvironment } from '@tonylb/mtw-interfaces/ts/DataSourceEnvironment'
@@ -64,7 +65,10 @@ describe('DiagnosticsEventSerializer', () => {
                     content: internalEvent,
                     header: diagnosticsHeader('S3 Structure Finding')
                 })
-                expect(external.status).toBe(status)
+                expect(external.type).toBe('S3 Structure Finding')
+                if (external.type === 'S3 Structure Finding') {
+                    expect(external.status).toBe(status)
+                }
             })
         })
     })
@@ -136,6 +140,27 @@ describe('DiagnosticsEventSerializer', () => {
                 diagnosticRunId: 'run-rc-1',
                 timestamp: '2025-10-18T14:30:00.000Z',
                 roomIds: ['ROOM#one', 'ROOM#two']
+            })
+        })
+
+        it('should serialize Stale SessionId Finding event', () => {
+            const internalEvent: DiagnosticsEventUpdate = {
+                type: 'Stale SessionId Finding',
+                player: 'alice',
+                diagnosticRunId: 'run-stale-1',
+                timestamp: '2025-10-18T17:00:00.000Z'
+            }
+
+            const external = serializer.serialize({
+                content: internalEvent,
+                header: diagnosticsHeader('Stale SessionId Finding')
+            })
+
+            expect(external).toEqual({
+                type: 'Stale SessionId Finding',
+                player: 'alice',
+                diagnosticRunId: 'run-stale-1',
+                timestamp: '2025-10-18T17:00:00.000Z'
             })
         })
     })
@@ -364,6 +389,64 @@ describe('DiagnosticsEventSerializer', () => {
 
             expect(internal).toBeNull()
         })
+
+        it('should deserialize Stale SessionId Finding event from EventBridge format', async () => {
+            const externalEvent: any = {
+                type: 'Stale SessionId Finding',
+                player: 'bob',
+                diagnosticRunId: 'run-stale-2',
+                timestamp: '2025-10-18T17:05:00.000Z'
+            }
+
+            const internal = await serializer.deserialize({
+                content: externalEvent,
+                header: diagnosticsHeader('Stale SessionId Finding')
+            })
+
+            expect(internal).toEqual({
+                type: 'Stale SessionId Finding',
+                player: 'bob',
+                diagnosticRunId: 'run-stale-2',
+                timestamp: '2025-10-18T17:05:00.000Z'
+            })
+        })
+
+        it('should deserialize Stale SessionId Finding with defaults for optional fields', async () => {
+            const externalEvent: any = {
+                type: 'Stale SessionId Finding',
+                player: 'carol'
+            }
+
+            const internal = await serializer.deserialize({
+                content: externalEvent,
+                header: diagnosticsHeader('Stale SessionId Finding')
+            })
+
+            expect(internal).toBeDefined()
+            expect(internal).toMatchObject({
+                type: 'Stale SessionId Finding',
+                player: 'carol'
+            })
+            if (internal && internal.type === 'Stale SessionId Finding') {
+                expect(internal.diagnosticRunId).toBe('unknown')
+                expect(internal.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+            }
+        })
+
+        it('should return null for Stale SessionId Finding with empty or missing player', async () => {
+            const invalidEvents = [
+                { type: 'Stale SessionId Finding', player: '' },
+                { type: 'Stale SessionId Finding' }
+            ]
+
+            for (const event of invalidEvents) {
+                const internal = await serializer.deserialize({
+                    content: event,
+                    header: diagnosticsHeader('Stale SessionId Finding')
+                })
+                expect(internal).toBeNull()
+            }
+        })
     })
 
     describe('type guards', () => {
@@ -407,6 +490,12 @@ describe('DiagnosticsEventSerializer', () => {
                 }
 
                 expect(isDiagnosticsEventUpdate(event)).toBe(true)
+                expect(isDiagnosticsEventUpdate({
+                    type: 'Stale SessionId Finding',
+                    player: 'test-player',
+                    diagnosticRunId: 'test-123',
+                    timestamp: '2025-10-18T12:00:00.000Z'
+                })).toBe(true)
             })
 
             it('should return false for invalid events', () => {
@@ -468,6 +557,24 @@ describe('DiagnosticsEventSerializer', () => {
                 expect(isEphemeraRenderCacheFindingEvent({ type: 'Ephemera RenderCache Finding', perspective: ['ASSET#x'], status: 'invalid' })).toBe(false)
                 expect(isEphemeraRenderCacheFindingEvent({ type: 'Ephemera RenderCache Finding', perspective: ['NOT-ASSET#x'], status: 'missing' })).toBe(false)
                 expect(isEphemeraRenderCacheFindingEvent({ type: 'Ephemera RenderCache Finding', perspective: ['ASSET#x'], status: 'missing', roomIds: ['NOT-ROOM#x'] })).toBe(false)
+            })
+        })
+
+        describe('isStaleSessionIdFindingEvent', () => {
+            it('should return true for valid Stale SessionId Finding event', () => {
+                const event = {
+                    type: 'Stale SessionId Finding',
+                    player: 'alice',
+                    diagnosticRunId: 'run-1',
+                    timestamp: '2025-10-18T12:00:00.000Z'
+                }
+                expect(isStaleSessionIdFindingEvent(event)).toBe(true)
+            })
+
+            it('should return false for empty player or invalid payloads', () => {
+                expect(isStaleSessionIdFindingEvent(null)).toBe(false)
+                expect(isStaleSessionIdFindingEvent({ type: 'Stale SessionId Finding', player: '' })).toBe(false)
+                expect(isStaleSessionIdFindingEvent({ type: 'Stale SessionId Finding' })).toBe(false)
             })
         })
     })
@@ -532,6 +639,26 @@ describe('DiagnosticsEventSerializer', () => {
             const deserialized = await serializer.deserialize({
                 content: external,
                 header: diagnosticsHeader('Ephemera RenderCache Finding')
+            })
+
+            expect(deserialized).toEqual(original)
+        })
+
+        it('should round-trip Stale SessionId Finding', async () => {
+            const original: DiagnosticsEventUpdate = {
+                type: 'Stale SessionId Finding',
+                player: 'dana',
+                diagnosticRunId: 'run-stale-rt',
+                timestamp: '2025-10-18T18:00:00.000Z'
+            }
+
+            const external = serializer.serialize({
+                content: original,
+                header: diagnosticsHeader('Stale SessionId Finding')
+            })
+            const deserialized = await serializer.deserialize({
+                content: external,
+                header: diagnosticsHeader('Stale SessionId Finding')
             })
 
             expect(deserialized).toEqual(original)
