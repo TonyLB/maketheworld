@@ -273,6 +273,45 @@ function parseOutlierStableKeyOnly(
     return { ok: true, stableKey: rawObj.stableKey.trim() }
 }
 
+function trimDraftMembersToSnapshotCounts(
+    drafts: Partial<Record<CoyoteTrope, { executionDetail: string; members: DraftMember[] }>>,
+    roomObjectsByRoom: Record<EphemeraRoomId, EphemeraMetaRoomObject[]>
+): Partial<Record<CoyoteTrope, { executionDetail: string; members: DraftMember[] }>> {
+    const remainingCounts = new Map<string, number>()
+    for (const sk of expectedStableKeysSorted(roomObjectsByRoom)) {
+        remainingCounts.set(sk, (remainingCounts.get(sk) ?? 0) + 1)
+    }
+
+    const trimmed: Partial<Record<CoyoteTrope, { executionDetail: string; members: DraftMember[] }>> = {}
+    // Current deconfliction policy is deterministic: as we walk TROPE_ORDER, earlier trope buckets
+    // keep the member and later buckets lose duplicates when snapshot capacity is exhausted.
+    // This "first trope wins" behavior is a safety fallback, not necessarily optimal intent resolution.
+    // Revisit with corpus data if we want smarter cross-trope arbitration.
+    for (const trope of TROPE_ORDER) {
+        const draft = drafts[trope]
+        if (!draft) {
+            continue
+        }
+        const keptMembers: DraftMember[] = []
+        for (const member of draft.members) {
+            const sk = member.stableKey.trim()
+            const remaining = remainingCounts.get(sk) ?? 0
+            if (remaining <= 0) {
+                continue
+            }
+            keptMembers.push(member)
+            remainingCounts.set(sk, remaining - 1)
+        }
+        if (keptMembers.length > 0) {
+            trimmed[trope] = {
+                executionDetail: draft.executionDetail,
+                members: keptMembers,
+            }
+        }
+    }
+    return trimmed
+}
+
 function parseCandidatesFromPayload(
     payload: unknown,
     roomObjectsByRoom: Record<EphemeraRoomId, EphemeraMetaRoomObject[]>
@@ -385,10 +424,10 @@ function parseCandidatesFromPayload(
                 }
             }
             const membersRaw = tao.members
-            if (!Array.isArray(membersRaw) || membersRaw.length < 1) {
+            if (!Array.isArray(membersRaw)) {
                 return {
                     ok: false,
-                    errorMessage: `stage 1 JSON: candidate "${candidateId}" trope "${tropeKey}" needs a non-empty members array`,
+                    errorMessage: `stage 1 JSON: candidate "${candidateId}" trope "${tropeKey}" needs a members array`,
                 }
             }
             const membersDraft: DraftMember[] = []
@@ -426,29 +465,10 @@ function parseCandidatesFromPayload(
             }
         }
 
-        const stagedMultisetSorted = expectedStableKeysSorted(roomObjectsByRoom)
-        const assignmentKeysList = Object.values(tropeAssignmentsDraft).flatMap((assignment) =>
-            (assignment?.members ?? []).map((m) => m.stableKey.trim())
+        const trimmedTropeAssignmentsDraft = trimDraftMembersToSnapshotCounts(
+            tropeAssignmentsDraft,
+            roomObjectsByRoom
         )
-        const stagedCounts = new Map<string, number>()
-        for (const sk of stagedMultisetSorted) {
-            stagedCounts.set(sk, (stagedCounts.get(sk) ?? 0) + 1)
-        }
-        const assignmentCounts = new Map<string, number>()
-        for (const sk of assignmentKeysList) {
-            assignmentCounts.set(sk, (assignmentCounts.get(sk) ?? 0) + 1)
-        }
-        for (const [sk, ac] of assignmentCounts) {
-            const sc = stagedCounts.get(sk) ?? 0
-            if (ac > sc) {
-                return {
-                    ok: false,
-                    errorMessage:
-                        `stage 1 JSON: candidate "${candidateId}" tropeAssignments use stableKey "${sk}" ` +
-                        `more often (${ac}) than it appears in the staged snapshot (${sc})`,
-                }
-            }
-        }
 
         const snapshotByStableKey = new Map<string, EphemeraMetaRoomObject>()
         for (const objects of Object.values(roomObjectsByRoom)) {
@@ -495,7 +515,7 @@ function parseCandidatesFromPayload(
 
         const tropeAssignments: Partial<Record<CoyoteTrope, ParsedCandidateTropeAssignment>> = {}
         for (const trope of TROPE_ORDER) {
-            const draft = tropeAssignmentsDraft[trope]
+            const draft = trimmedTropeAssignmentsDraft[trope]
             if (!draft) {
                 continue
             }

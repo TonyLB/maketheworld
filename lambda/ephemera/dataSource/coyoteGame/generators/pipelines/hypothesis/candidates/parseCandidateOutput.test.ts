@@ -232,6 +232,33 @@ describe('parseCandidateOutput', () => {
         expect(r.ok).toBe(true)
     })
 
+    it('trims duplicate stableKey usage across trope rows to snapshot capacity', () => {
+        const body = JSON.stringify({
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'One object appears in two trope rows.',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'Use anvil as setup weight.',
+                            members: [{ stableKey: 'anvil-0', tropeFunction: 'counterweight rig' }],
+                        },
+                        'Finishing Move': {
+                            executionDetail: 'Use anvil as terminal payload.',
+                            members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal drop payload' }],
+                        },
+                    },
+                },
+            ],
+        })
+        const r = parseCandidateOutput(body, singleObjectRoomMap)
+        expect(r.ok).toBe(true)
+        if (r.ok) {
+            expect(r.candidates[0].tropeAssignments.Contraption?.members).toHaveLength(1)
+            expect(r.candidates[0].tropeAssignments['Finishing Move']).toBeUndefined()
+        }
+    })
+
     it('rejects legacy intendedRole key under strict member schema', () => {
         const bad = JSON.stringify({
             candidates: [
@@ -333,6 +360,37 @@ describe('parseCandidateOutput', () => {
             ],
         })
         expect(parseCandidateOutput(body, map).ok).toBe(true)
+    })
+
+    it('drops trope rows whose members array is empty', () => {
+        const map: CoyoteRoomObjectsByRoom = {
+            ...singleObjectRoomMap,
+            'ROOM#BRIDGE': harnessRoomObjects('bridge', ['rope']),
+        }
+        const body = JSON.stringify({
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Keep only rows with assigned members.',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'No staged member assigned yet.',
+                            members: [],
+                        },
+                        'Finishing Move': {
+                            executionDetail: 'Terminal row has an actual member.',
+                            members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal drop payload' }],
+                        },
+                    },
+                },
+            ],
+        })
+        const r = parseCandidateOutput(body, map)
+        expect(r.ok).toBe(true)
+        if (r.ok) {
+            expect(r.candidates[0].tropeAssignments.Contraption).toBeUndefined()
+            expect(r.candidates[0].tropeAssignments['Finishing Move']?.members).toHaveLength(1)
+        }
     })
 
     it('rejects tropeFunction key on outlier row (strict stableKey-only)', () => {
