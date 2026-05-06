@@ -54,7 +54,7 @@ describe('connections app checkSession', () => {
         })
     }
 
-    it('drops stale session and emits Session Disconnect before Library/Map bookkeeping; no Global/Sessions write', async () => {
+    it('drops stale session and emits Session Disconnect before Map bookkeeping; no Global/Sessions write', async () => {
         mockShouldDropOptimisticUpdate()
         connectionDBMock.query.mockResolvedValue([])
         connectionDBMock.transactWrite.mockResolvedValue(undefined as any)
@@ -84,15 +84,17 @@ describe('connections app checkSession', () => {
             expect.objectContaining({
                 Update: expect.objectContaining({
                     Key: {
-                        ConnectionId: 'Library',
+                        ConnectionId: 'Map',
                         DataCategory: 'Subscriptions'
                     }
                 })
-            }),
+            })
+        ]))
+        expect(transactArgs).not.toEqual(expect.arrayContaining([
             expect.objectContaining({
                 Update: expect.objectContaining({
                     Key: {
-                        ConnectionId: 'Map',
+                        ConnectionId: 'Library',
                         DataCategory: 'Subscriptions'
                     }
                 })

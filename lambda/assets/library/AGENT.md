@@ -271,7 +271,3 @@ The Library data source provides **only asset IDs**. To display rich metadata, c
 - Subscribers receive all Library changes, not just assets they care about
 - Acceptable because Library UI shows all assets anyway
 - More efficient than managing many per-asset subscriptions
-
-### Operational Notes
-
-**Legacy Database Record**: A legacy subscription record may exist at `ConnectionId: 'Library', DataCategory: 'Subscriptions'` in connectionDB. This is unused and harmless—no cleanup required.

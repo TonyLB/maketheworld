@@ -1,6 +1,6 @@
 # Connections consistency refactor plan
 
-Status: in progress. Next step: PR7 (remove `Library / Sessions`); PR6 (ephemera occupancy-drift handling) is complete.
+Status: complete. All seven PRs landed (connections refactor initiative done).
 
 ## Purpose
 
@@ -16,7 +16,7 @@ This initiative is structured into seven PRs:
 4. Add stale session handling in connections lambda (problem reports + `Stale SessionId Finding` repair)
 5. Add Room Occupancy Drift sweep to diagnostics lambda
 6. Add Room Occupancy Drift Finding to ephemera lambda
-7. Remove `Library / Sessions`
+7. Remove `Library / Subscriptions`
 
 ## Getting started
 
@@ -85,7 +85,7 @@ Pending decisions use `[ ]` and locked decisions use `[X]`. Add the final decisi
   - [X] Loop prevention and idempotency guarantees across lambdas
 
 - [X] D7 - Legacy cleanup timing
-  - [X] Whether `Library / Sessions` removal is independent or bundled
+  - [X] Whether `Library / Subscriptions` removal is independent or bundled
   - [X] Telemetry soak period before deleting compatibility paths
   - [X] Final removal gate for legacy docs/tests/helpers
 
@@ -166,11 +166,11 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
   - [X] Ensure cache invalidation/update contract after reconciliation (`RoomCharacterList`, `ComponentEphemeraMeta`, `ComponentStackMerge`) and room update signaling.
   - [X] Add tests for idempotent replays and partial-repair scenarios.
 
-- [ ] PR7 - Remove `Library / Sessions`
-  - [ ] Remove remaining read paths for `ConnectionId='Library', DataCategory='Subscriptions'`.
-  - [ ] Remove cleanup writes against legacy `Library / Subscriptions` record.
-  - [ ] Update docs/comments describing this record as active behavior.
-  - [ ] Add regression tests confirming no subscription behavior depends on legacy record.
+- [X] PR7 - Remove `Library / Subscriptions`
+  - [X] Remove remaining read paths for `ConnectionId='Library', DataCategory='Subscriptions'`.
+  - [X] Remove cleanup writes against legacy `Library / Subscriptions` record.
+  - [X] Update docs/comments describing this record as active behavior.
+  - [X] Add regression tests confirming no subscription behavior depends on legacy record.
 
 ## Progress
 
@@ -182,7 +182,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 | 4 | Connections stale-session handling | Complete | Problem reports + finding-driven repair ([`lambda/connections/staleSessionFinding`](../../../lambda/connections/staleSessionFinding/index.ts), [`staleSessionTeardown`](../../../lambda/connections/staleSessionTeardown/index.ts)); see [`lambda/connections/AGENT.md`](../../../lambda/connections/AGENT.md) |
 | 5 | Diagnostics occupancy-drift sweep | Complete | Direct-invoke sweep implemented; emits `Room Occupancy Drift Finding`; mixed-valid/mixed-invalid coverage added in diagnostics tests |
 | 6 | Ephemera occupancy-drift handling | Complete | Ephemera now consumes `Room Occupancy Drift Finding` via DataSource deserializer lane and runs idempotent room self-healing in `dataSource/selfHealing/roomOccupancyDriftFinding.ts` with cache invalidation + `RoomUpdate` signaling |
-| 7 | Remove `Library / Sessions` | Not started | Cleanup/legacy removal pass |
+| 7 | Remove `Library / Subscriptions` | Complete | See PR7 verification below; dead `librarySubscriptions` cache key removed; `tearDownStaleSession` updates only `Map / Subscriptions` |
 
 ### PR3 verification (completed)
 
@@ -210,6 +210,12 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 - `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/diagnostics" test -- --testPathPattern=roomOccupancyDriftSweep`
 - `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/packages/mtw-interfaces" test -- --testPathPattern=eventBridge/diagnostics`
 
+### PR7 verification (completed)
+
+- `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/connections" test`
+- `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/assets" test`
+- `rg -n "ConnectionId: 'Library'" lambda packages --glob '!**/*.test.ts'` (expect no matches; `app.test.ts` keeps a negative regression assertion on that key)
+
 ## Decision log
 
 Record each locked decision here in order. Keep entries concise and implementation-oriented.
@@ -222,7 +228,7 @@ Record each locked decision here in order. Keep entries concise and implementati
 | D4 | Locked | Keep existing disconnect grace behavior (~4s `dropAfter` with 5s Step Functions wait before `checkSession`) as stale-classification timing baseline. Use retry budget of 3 attempts with progressive waits before emitting `Session Disconnect Problem`. Do not require a separate connections-side escalation threshold; each problem report triggers diagnostics evaluation, and diagnostics determines whether a finding exists. Emit `Session Disconnect` whenever session drop is confirmed (`shouldDrop` true), even if contested bookkeeping writes fail. |
 | D5 | Locked | Canonical room occupancy field is `SessionIds`. In drift conflicts, session/character adjacency is authoritative, with `Meta::Character.RoomId` authoritative for room membership. Ambiguous/invalid location cases delegate to `checkLocation` for legal relocation resolution (including fallback behavior) rather than ad hoc occupancy guesses. Post-reconciliation contract: refresh/invalidate room-related ephemera caches (`RoomCharacterList`, `ComponentEphemeraMeta`, `ComponentStackMerge`) and emit room update signaling for affected room state. |
 | D6 | Locked | Diagnostics is report-only: it emits findings and does not perform data repairs. Repair ownership is table/domain bounded: connections repairs only `connections` table state; ephemera repairs only `ephemera` table state. Loop prevention rule: healing paths must not emit same-path problem reports; if healing emits any problem signal, it must be escalation-only to a distinct higher-severity diagnostic path with a different remediation path. All repair handlers must be idempotent under replay. |
-| D7 | Locked | With clean-slate pre-cutover cleanup, remove legacy compatibility paths immediately (no telemetry soak period required for compatibility code). `Library / Sessions` legacy removal can proceed directly in-scope for this initiative without staged dual-path support. Final gate is successful post-deploy smoke checks and updated docs/tests reflecting only canonical behavior. |
+| D7 | Locked | With clean-slate pre-cutover cleanup, remove legacy compatibility paths immediately (no telemetry soak period required for compatibility code). `Library / Subscriptions` legacy removal can proceed directly in-scope for this initiative without staged dual-path support. Final gate is successful post-deploy smoke checks and updated docs/tests reflecting only canonical behavior. |
 | D8 | Locked | Adopt event-first eventual-consistency model for character connection lifecycle. Connections remains authoritative for `connections`-table state and emits lifecycle events (`Character Connected` / `Character Disconnected`) instead of relying on direct cross-table adjacency mutation as steady-state architecture. Ephemera consumes lifecycle events and converges room/character presence asynchronously, accepting short-lived ghost presence as an intentional tradeoff. `checkLocation` and diagnostics drift sweeps remain convergence/repair backstops. |
 
 ## Verification strategy by phase
@@ -259,4 +265,4 @@ Minimum checks per PR (adapt paths as needed):
 - Connections emits structured problem reports on cleanup contention/failure.
 - Connections applies idempotent `connections`-table reconciliation in response to `Stale SessionId Finding` (repair ownership per D6; no diagnostics-side writes).
 - Ephemera can reconcile room occupancy drift findings idempotently.
-- `Library / Sessions` legacy record and references removed.
+- `Library / Subscriptions` legacy record and references removed.
