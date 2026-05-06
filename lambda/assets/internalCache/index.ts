@@ -15,18 +15,16 @@ import { AssetData } from './assetData'
 import { ComponentData } from './componentData'
 
 
-type CacheConnectionKeys = 'connectionId' | 'sessionId' | 'RequestId' | 'player' | 's3Client' | 'librarySubscriptions'
+type CacheConnectionKeys = 'connectionId' | 'sessionId' | 'RequestId' | 'player' | 's3Client'
 class CacheConnectionData {
     connectionId?: string;
     sessionId?: string;
     RequestId?: string;
     s3Client?: S3Client;
     player?: string;
-    librarySubscriptions?: string[];
     get(key: 'connectionId' | 'sessionId' | 'RequestId' | 'player'): Promise<string | undefined>
     get(key: 's3Client'): Promise<S3Client | undefined>
-    get(key: 'librarySubscriptions'): Promise<string[] | undefined>
-    get(key: CacheConnectionKeys): Promise<S3Client | string | string[] | undefined>
+    get(key: CacheConnectionKeys): Promise<S3Client | string | undefined>
     async get(key: CacheConnectionKeys) {
         switch(key) {
             case 'player':
@@ -62,18 +60,6 @@ class CacheConnectionData {
                     }
                 }
                 return key === 'player' ? this.player : this.sessionId
-            case 'librarySubscriptions':
-                if (typeof this.librarySubscriptions === 'undefined') {
-                    const { SessionIds = [] } = (await connectionDB.getItem<{ SessionIds: string[] }>({
-                        Key: {
-                            ConnectionId: 'Library',
-                            DataCategory: 'Subscriptions'
-                        },
-                        ProjectionFields: ['SessionIds']
-                    })) || {}
-                    this.librarySubscriptions = SessionIds
-                }
-                return this.librarySubscriptions
             default:
                 return this[key]
         }
@@ -90,10 +76,6 @@ class CacheConnectionData {
     set(props: { key: 's3Client', value: S3Client; }): void
     set({ key, value }: { key: CacheConnectionKeys, value: any }): void {
         this[key] = value
-    }
-
-    invalidate(key: 'librarySubscriptions'): void {
-        delete this[key]
     }
 }
 

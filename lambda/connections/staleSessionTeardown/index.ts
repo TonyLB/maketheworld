@@ -15,19 +15,7 @@ export type TearDownStaleSessionContext = {
     player?: string
 }
 
-const libraryMapSessionIdsCleanup = (sessionId: string) => ([
-    {
-        Update: {
-            Key: {
-                ConnectionId: 'Library',
-                DataCategory: 'Subscriptions'
-            },
-            updateKeys: ['SessionIds'],
-            updateReducer: (draft: any) => {
-                draft.SessionIds = (draft.SessionIds ?? []).filter((value: string) => (value !== sessionId))
-            }
-        }
-    },
+const mapSessionIdsCleanup = (sessionId: string) => ([
     {
         Update: {
             Key: {
@@ -98,7 +86,7 @@ const logBookkeepingFailure = (args: {
 
 /**
  * Idempotent cleanup for a session that is already scheduled to drop (e.g. `checkSession` with `shouldDrop`).
- * Emits `Session Disconnect` after character adjacency removal, then retries Library/Map `SessionIds` bookkeeping.
+ * Emits `Session Disconnect` after character adjacency removal, then retries Map `SessionIds` bookkeeping.
  * On bookkeeping failure, emits `Session Disconnect Problem` (D3/D4), except for `staleSessionFinding` (D6 loop prevention).
  */
 export const tearDownStaleSession = async (
@@ -131,7 +119,7 @@ export const tearDownStaleSession = async (
     const bookkeeping = await retryWithEscalation(
         async (attempt) => {
             try {
-                await connectionDB.transactWrite([...libraryMapSessionIdsCleanup(sessionId)])
+                await connectionDB.transactWrite([...mapSessionIdsCleanup(sessionId)])
             }
             catch (err) {
                 const errorType = dynamoErrorType(err)
