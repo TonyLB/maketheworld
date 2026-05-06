@@ -6,9 +6,13 @@ jest.mock('./staleSessionSweep', () => ({
 jest.mock('./roomOccupancyDriftSweep', () => ({
     roomOccupancyDriftSweep: jest.fn(async () => ({ emittedCount: 0, roomIds: [] as string[], checkLocationCandidates: [] as string[] }))
 }))
+jest.mock('./player', () => ({
+    healPlayer: jest.fn(async () => ({}))
+}))
 
 import { staleSessionSweep } from './staleSessionSweep'
 import { roomOccupancyDriftSweep } from './roomOccupancyDriftSweep'
+import { healPlayer } from './player'
 import { handler } from './app'
 
 describe('diagnostics handler', () => {
@@ -17,19 +21,62 @@ describe('diagnostics handler', () => {
         jest.mocked(staleSessionSweep).mockResolvedValue({ emittedCount: 0, players: [] as string[] })
         jest.mocked(roomOccupancyDriftSweep).mockReset()
         jest.mocked(roomOccupancyDriftSweep).mockResolvedValue({ emittedCount: 0, roomIds: [] as string[], checkLocationCandidates: [] as string[] })
+        jest.mocked(healPlayer).mockReset()
+        jest.mocked(healPlayer).mockResolvedValue({ Characters: [], Assets: [], guestName: '', guestId: '' })
     })
 
-    it('invokes staleSessionSweep for mtw.diagnostics Stale Session Sweep', async () => {
+    it('invokes staleSessionSweep for direct StaleSessionSweep via api.diagnostics synthetic lane', async () => {
         await handler({
-            source: 'mtw.diagnostics',
-            'detail-type': 'Stale Session Sweep',
-            detail: { diagnosticRunId: 'dr-1' }
+            type: 'StaleSessionSweep',
+            diagnosticRunId: 'dr-1'
         })
 
         expect(staleSessionSweep).toHaveBeenCalledWith({ diagnosticRunId: 'dr-1' })
     })
 
-    it('invokes staleSessionSweep for direct StaleSessionSweep type', async () => {
+    it('invokes staleSessionSweep for mtw.connections Session Disconnect Problem', async () => {
+        await handler({
+            source: 'mtw.connections',
+            'detail-type': 'Session Disconnect Problem',
+            detail: {
+                sessionId: 'session-1',
+                player: 'player-1',
+                sourceOperation: 'checkSession',
+                attemptCount: 3,
+                dedupeKey: 'session-1::checkSession::3'
+            }
+        })
+
+        expect(staleSessionSweep).toHaveBeenCalledWith()
+    })
+
+    it('routes mtw.connections New Player through DataSource subscribed intake', async () => {
+        await handler({
+            source: 'mtw.connections',
+            'detail-type': 'New Player',
+            detail: {
+                player: 'player-1'
+            }
+        })
+
+        expect(healPlayer).toHaveBeenCalledWith('player-1')
+    })
+
+    it('drops malformed mtw.connections Session Disconnect Problem payloads without throwing', async () => {
+        await expect(handler({
+            source: 'mtw.connections',
+            'detail-type': 'Session Disconnect Problem',
+            detail: {
+                sessionId: 'session-1',
+                sourceOperation: 'checkSession',
+                attemptCount: 3
+            }
+        })).resolves.toBeUndefined()
+
+        expect(staleSessionSweep).not.toHaveBeenCalled()
+    })
+
+    it('passes nowMs through direct StaleSessionSweep synthetic intake', async () => {
         await handler({
             type: 'StaleSessionSweep',
             diagnosticRunId: 'dr-2',

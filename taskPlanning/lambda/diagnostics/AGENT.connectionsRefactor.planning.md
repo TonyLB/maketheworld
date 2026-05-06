@@ -371,22 +371,22 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
     - [X] Extend [`lambda/connections/AGENT.md`](../../../lambda/connections/AGENT.md) with the new ingress/dispatch DataSource boundary and adapter map.
     - [X] Update this planning doc checkboxes/progress/verification last, after tests pass.
 
-- [ ] PR11 - Refactor diagnostics to receive problem reports with DataSource pattern
+- [X] PR11 - Refactor diagnostics to receive problem reports with DataSource pattern
   - [X] Lock D21-D24 before implementation.
-  - [ ] Establish producer-side `mtw.connections` DataSource baseline first (pre-intake dependency):
+  - [X] Establish producer-side `mtw.connections` DataSource baseline first (pre-intake dependency):
     - [X] Introduce an instantiated `mtw.connections` DataSource (`new DataSource(...)` + `.subscribe()`) for app-level publishing/subscription wiring, replacing the current adapter-only module shape.
       - [X] Align ingress and DataSource handling onto one shared lambda-level bus (`lambda/connections/messageBus`), with `app.ts` per-invocation bus clear.
       - [X] Split synthetic-vs-external envelope contracts by module (`dataSource/apiConnections.ts` for `api.connections`; `dataSource/subscribedEvents.ts` for `mtw.diagnostics`) and compose in `dataSource/index.ts`.
     - [X] Define canonical `mtw.connections` problem-report serializer/contracts in [`packages/mtw-interfaces/ts/eventBridge/connections`](../../../packages/mtw-interfaces/ts/eventBridge/connections) and wire connections to use them.
-    - [ ] Move connections problem-report emission paths to DataSource `streamEvent` publishing without changing existing operational semantics.
+    - [X] Move connections problem-report emission paths to DataSource `streamEvent` publishing without changing existing operational semantics.
       - [X] Plumb `streamEvent` dependency to the current producer emission boundary with explicit deferred-cutover comments.
-      - [ ] Final switch-over remains pending coordinated diagnostics subscriber-side intake changes.
-  - [ ] Introduce DataSource intake for diagnostics problem reports/findings triggers.
-    - [ ] Consume the shared `mtw.connections` serializer/contracts from interfaces (no diagnostics-local canonical schema duplication).
-    - [ ] Keep thin diagnostics transport adapters only; route canonical envelopes through one diagnostics DataSource subscription/deserialization lane.
-  - [ ] Preserve D6 ownership boundaries and existing finding contracts.
-  - [ ] Add replay/idempotency and malformed-payload handling tests.
-  - [ ] Update durable docs after implementation lands.
+      - [X] Final switch-over coordinated with diagnostics subscriber-side intake changes.
+  - [X] Introduce DataSource intake for diagnostics problem reports/findings triggers.
+    - [X] Consume the shared `mtw.connections` serializer/contracts from interfaces (no diagnostics-local canonical schema duplication).
+    - [X] Keep thin diagnostics transport adapters only; route canonical envelopes through one diagnostics DataSource subscription/deserialization lane.
+  - [X] Preserve D6 ownership boundaries and existing finding contracts.
+  - [X] Add replay/idempotency and malformed-payload handling tests.
+  - [X] Update durable docs after implementation lands.
 
 ## Progress (spin-off PRs)
 
@@ -395,13 +395,15 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 | 8 | Remove `Map / Subscriptions` | Complete | Removed runtime `Map / Subscriptions` coupling from connections + ephemera paths; subscribe/unsubscribe acks now return empty stub snapshots; map publish fanout intentionally absent pending deferred redesign plan |
 | 9 | Add pagination controls to utilities `withQuery` mixin | Complete | `withQuery` now supports opt-in pagination envelope with opaque token handling + guardrails; stale-session proving-ground migrations landed in both `connections` and `diagnostics` paths |
 | 10 | Refactor connections with DataSource pattern | Complete | Added shallow `mtw.connections` ingress boundary in `lambda/connections/dataSource`; `app.ts` now delegates through canonical `api.connections` normalization and subscribed-event guard intake for diagnostics finding handling |
-| 11 | Refactor diagnostics to receive problem reports with DataSource pattern | In progress | Producer baseline partially complete (`mtw.connections` DataSource instantiated; shared bus ingress alignment landed; `api.connections` synthetic envelopes now route through DataSource `receiveEvents`; interfaces contracts added; `streamEvent` plumbing at producer boundary). Novel request-id promise correlation map was removed in favor of established bus `ReturnValue` extraction. Final producer publish cutover + diagnostics intake migration remain pending coordinated subscriber-side changes |
+| 11 | Refactor diagnostics to receive problem reports with DataSource pattern | Complete | Producer cutover now emits `Session Disconnect` through DataSource `streamEvent`; diagnostics now receives `Session Disconnect Problem` and `Stale Session Sweep` through one DataSource subscribed-event lane with shared `mtw.connections` contracts, malformed payload drop handling, and per-batch dedupe guard on `dedupeKey` |
 
-### PR11 verification (producer baseline slice, partial)
+### PR11 verification (completed)
 
 - `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/connections" test`
 - `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/connections" test -- --testPathPattern=app`
 - `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/connections" test -- --testPathPattern=staleSession`
+- `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/connections" test -- --testPathPattern=staleSessionTeardown`
+- `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/diagnostics" test`
 - `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/packages/mtw-interfaces" test -- --testPathPattern=eventBridge/connections`
 
 ## Verification strategy by phase

@@ -17,6 +17,25 @@
 
 **Pagination implementation note:** Session-meta enumeration now uses shared `connectionDB.query`/`withQuery` pagination (`{ items, nextToken?, nextPage? }`) rather than direct AWS SDK `QueryCommand` loops, so diagnostics and connections stale-session paths share token handling and page-size guardrails.
 
+## Connections problem-report intake (DataSource lane)
+
+**Purpose:** Receive `mtw.connections` problem reports through one diagnostics DataSource subscription/deserialization lane and trigger report-only diagnostics evaluation (D6).
+
+**Intake boundary:**
+
+- [`ingress.ts`](ingress.ts) routes EventBridge ingress onto diagnostics message-bus streaming envelopes.
+- [`dataSource/subscribedEvents.ts`](dataSource/subscribedEvents.ts) owns subscribed header/envelope guards for:
+  - `mtw.connections` / `Session Disconnect Problem`
+  - `mtw.diagnostics` / `Stale Session Sweep`
+- [`dataSource/index.ts`](dataSource/index.ts) owns subscribed-event handling.
+
+**Handling semantics:**
+
+- `Session Disconnect Problem` intake consumes shared serializer/contracts from [`packages/mtw-interfaces/ts/eventBridge/connections`](../../packages/mtw-interfaces/ts/eventBridge/connections).
+- Intake is tidy-failure: malformed/partial payloads are logged and dropped at ingress/deserialization boundaries without throwing.
+- Within a single receive batch, repeated problem reports with the same `dedupeKey` are suppressed before triggering sweep evaluation.
+- Diagnostics remains report-only: problem reports trigger `staleSessionSweep` evaluation and finding emission only; diagnostics does not perform connections-table repairs.
+
 ## Room Occupancy Drift sweep (ephemera consistency diagnostics)
 
 **Purpose:** Read-only sweep over room occupancy snapshots (`Meta::Room.activeCharacters[].SessionIds`) compared against authoritative membership (`connections` session/character adjacency + `Meta::Character.RoomId`). Emits descriptive findings only; no repairs.

@@ -126,10 +126,11 @@ describe('connections app checkSession', () => {
             }
         }))
         expect(eventBridgeClientMock.send).toHaveBeenCalledTimes(1)
-        expect(eventBridgeClientMock.send.mock.calls[0][0]).toEqual([{
+        expect(eventBridgeClientMock.send.mock.calls[0][0]).toEqual([expect.objectContaining({
             DetailType: 'Session Disconnect',
-            Detail: { sessionId: 'session-1' }
-        }])
+            Source: 'mtw.connections',
+            Detail: expect.objectContaining({ sessionId: 'session-1' })
+        })])
         expect(connectionDBMock.deleteItem).toHaveBeenCalledWith({
             ConnectionId: 'Meta::Session',
             DataCategory: 'SESSION#session-1'

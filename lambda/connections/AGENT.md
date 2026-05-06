@@ -43,7 +43,7 @@ When changing session storage, update this section so the trade-off stays visibl
 
 **`Session Disconnect` (existing):** After a session is confirmed for drop via `checkSession` (Step Functions `dropConnection` path), the connections lambda removes session/character adjacency, emits `source: mtw.connections` / `detail-type: Session Disconnect` with `detail: { sessionId }`, then deletes the canonical `Meta::Session` row idempotently.
 
-**Deferred publish cutover note:** `tearDownStaleSession` now accepts DataSource `streamEvent` plumbing at the emission boundary, but continues to emit `Session Disconnect` via legacy `eventBridgeClient.send(...)` until diagnostics subscriber-side coordination is complete.
+**Publish cutover note:** `tearDownStaleSession` now emits `Session Disconnect` through `mtw.connections` DataSource `streamEvent` when invoked from the app/DataSource lane. A legacy direct EventBridge fallback remains only for non-DataSource invocation contexts.
 
 **PR8 cutover note:** `Map / Subscriptions` bookkeeping has been removed from teardown paths. Connections no longer reads or writes `ConnectionId='Map', DataCategory='Subscriptions'` during `checkSession` or `Stale SessionId Finding` remediation.
 

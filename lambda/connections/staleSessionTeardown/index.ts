@@ -43,15 +43,24 @@ export const tearDownStaleSession = async (
     await Promise.all(characterQuery.map(({ DataCategory }) => (atomicallyRemoveCharacterAdjacency(sessionId, DataCategory))))
 
     if (streamEvent) {
-        // Switch-over to DataSource streamEvent emission is intentionally deferred until
-        // diagnostics subscriber-side intake changes land; keep legacy EventBridge send for now.
-        void streamEvent
+        await streamEvent({
+            streamKey: 'global',
+            header: {
+                type: 'Session Disconnect'
+            },
+            update: {
+                type: 'Session Disconnect',
+                sessionId,
+                timestamp: new Date().toISOString()
+            }
+        })
     }
-
-    await eventBridgeClient.send([{
-        DetailType: 'Session Disconnect',
-        Detail: { sessionId }
-    }])
+    else {
+        await eventBridgeClient.send([{
+            DetailType: 'Session Disconnect',
+            Detail: { sessionId }
+        }])
+    }
     await connectionDB.deleteItem({
         ConnectionId: META_SESSION_PK,
         DataCategory: sessionMetaSortKey(sessionId)

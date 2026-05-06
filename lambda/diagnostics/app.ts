@@ -1,20 +1,19 @@
 import { healPlayer } from "./player"
 import { staleSessionSweep } from "./staleSessionSweep"
 import { roomOccupancyDriftSweep } from "./roomOccupancyDriftSweep"
+import { routeDiagnosticsIngress } from "./ingress"
+import messageBus from "./messageBus"
 
 export const handler = async (event) => {
 
     //
-    // Handle EventBridge messages
+    // EventBridge diagnostics/problem-report intake goes through the DataSource lane.
     //
-    if (event?.source === 'mtw.connections' && event["detail-type"] === 'New Player' && event.detail?.player) {
-        return await healPlayer(event.detail?.player)
-    }
-
-    if (event?.source === 'mtw.diagnostics' && event["detail-type"] === 'Stale Session Sweep') {
-        return await staleSessionSweep({
-            diagnosticRunId: typeof event.detail?.diagnosticRunId === 'string' ? event.detail.diagnosticRunId : undefined
-        })
+    if (event?.source && event["detail-type"]) {
+        messageBus.clear()
+        await routeDiagnosticsIngress(event)
+        await messageBus.flush()
+        return
     }
 
     //
@@ -24,10 +23,10 @@ export const handler = async (event) => {
         case 'HealPlayer':
             return await healPlayer(event.player)
         case 'StaleSessionSweep':
-            return await staleSessionSweep({
-                diagnosticRunId: typeof event.diagnosticRunId === 'string' ? event.diagnosticRunId : undefined,
-                nowMs: typeof event.nowMs === 'number' ? event.nowMs : undefined
-            })
+            messageBus.clear()
+            await routeDiagnosticsIngress(event)
+            await messageBus.flush()
+            return
         case 'RoomOccupancyDriftSweep':
             return await roomOccupancyDriftSweep({
                 diagnosticRunId: typeof event.diagnosticRunId === 'string' ? event.diagnosticRunId : undefined,
