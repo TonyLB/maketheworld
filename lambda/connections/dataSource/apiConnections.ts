@@ -3,16 +3,6 @@ import { createInternalOriginEnvelope } from "@tonylb/mtw-lambda-patterns/ts/dat
 import type { StreamingEventMessage } from "../messageBus/baseClasses"
 
 export type ConnectionsAPIPayload =
-    | { type: '$disconnect'; connectionId: string; requestId: string }
-    | { type: 'validateInvitation'; invitationCode: string; requestId: string }
-    | { type: 'signIn'; userName: string; password: string; requestId: string }
-    | { type: 'signUp'; userName: string; inviteCode: string; password: string; requestId: string }
-    | { type: 'accessToken'; RefreshToken: string; requestId: string }
-    | { type: 'dropConnection'; sessionId: string; connectionId: string; requestId: string }
-    | { type: 'checkSession'; sessionId: string; requestId: string }
-    | { type: 'generateInvitation'; requestId: string }
-
-export type ConnectionsAPIPayloadWithoutRequestId =
     | { type: '$disconnect'; connectionId: string }
     | { type: 'validateInvitation'; invitationCode: string }
     | { type: 'signIn'; userName: string; password: string }

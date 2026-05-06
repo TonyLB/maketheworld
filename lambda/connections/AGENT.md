@@ -35,6 +35,7 @@ When changing session storage, update this section so the trade-off stays visibl
   - API Gateway/WebSocket: `$disconnect`, `/validateInvitation`, `/signIn`, `/signUp`, `/accessToken`
   - direct invoke control messages: `dropConnection`, `checkSession`, `generateInvitation`
 - EventBridge finding intake (`source: mtw.diagnostics`, `detail-type: Stale SessionId Finding`) is adapted into streaming envelopes and sent onto the same shared bus, then routed through DataSource subscription wiring plus subscribed-event guards in [`dataSource/subscribedEvents.ts`](dataSource/subscribedEvents.ts).
+- API/direct-invoke responses now follow the established lambda pattern: API handlers emit bus `ReturnValue`/`Error` messages and ingress returns through [`returnValue/extractReturnValue`](returnValue/index.ts) after `messageBus.flush()`. The interim request-id promise correlation map (`pendingResponses`) was removed.
 - Guard ownership split follows newer ephemera conventions:
   - [`dataSource/apiConnections.ts`](dataSource/apiConnections.ts): synthetic `api.connections` contracts/guards/helpers.
   - [`dataSource/subscribedEvents.ts`](dataSource/subscribedEvents.ts): external subscribed-source guards (`mtw.diagnostics`).
