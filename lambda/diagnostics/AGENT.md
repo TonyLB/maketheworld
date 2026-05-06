@@ -37,6 +37,14 @@
 - Diagnostics remains report-only: problem reports trigger `staleSessionSweep` evaluation and finding emission only; diagnostics does not perform connections-table repairs.
 - Direct command return values now use message-bus `ReturnValue`/`Error` delivery plus app-boundary extraction (`returnValue/index.ts`) rather than direct `app.ts` returns, matching the `connections` pattern.
 
+## Steady-state invariants
+
+- **Report-only diagnostics role:** Diagnostics evaluates evidence and emits findings. It does not perform storage repairs in `connections` or `ephemera`.
+- **Repair ownership boundaries:** `connections` repairs only `connections`-table state. `ephemera` repairs only `ephemera`-table state.
+- **Lifecycle consistency model:** Character connection lifecycle is event-first and eventually consistent across lambdas. Short-lived divergence is acceptable; sweeps/findings are the convergence backstop.
+- **Ordering assumptions:** Intake and evaluation do not rely on ordered delivery across problem-report families. Behavior must remain correct under out-of-order and parallel processing.
+- **Malformed intake policy:** Invalid or partial inbound problem reports are logged and dropped without crashing handler execution.
+
 ## Room Occupancy Drift sweep (ephemera consistency diagnostics)
 
 **Purpose:** Read-only sweep over room occupancy snapshots (`Meta::Room.activeCharacters[].SessionIds`) compared against authoritative membership (`connections` session/character adjacency + `Meta::Character.RoomId`). Emits descriptive findings only; no repairs.
