@@ -233,7 +233,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 - `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/connections" test -- --testPathPattern=staleSessionFinding`
 - `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/diagnostics" test -- --testPathPattern=staleSessionSweep`
 
-### PR10 verification (planned)
+### PR10 verification (completed)
 
 - `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/connections" test`
 - `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/connections" test -- --testPathPattern=app`
@@ -345,31 +345,31 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
   - [X] Migrate at least one high-cardinality caller as proving ground.
   - [X] Document usage guidance in durable docs.
 
-- [ ] PR10 - Refactor connections with DataSource pattern
+- [X] PR10 - Refactor connections with DataSource pattern
   - [X] Lock D17-D20 before implementation.
-  - [ ] Introduce one `mtw.connections` DataSource module under [`lambda/connections/dataSource`](../../../lambda/connections/dataSource) and wire [`lambda/connections/app.ts`](../../../lambda/connections/app.ts) to route ingress through it (single shallow DataSource boundary only; no multi-DataSource internal decomposition), with adapters for:
-    - [ ] API Gateway/WebSocket (`$disconnect`, HTTP auth endpoints).
-    - [ ] direct invoke control messages (`dropConnection`, `checkSession`, `generateInvitation`).
-    - [ ] EventBridge `mtw.diagnostics` / `Stale SessionId Finding`.
-  - [ ] Establish canonical internal `api.connections` envelope contract for non-EventBridge ingress (D18) and route all normalized envelopes through the single `mtw.connections` DataSource dispatch path.
-  - [ ] Consume `mtw.diagnostics` / `Stale SessionId Finding` through the same DataSource subscription/deserialization lane as other inbound events (serializer + subscribed event guard), rather than a bespoke `app.ts` EventBridge branch.
-  - [ ] Preserve handler contracts and behavior parity during route migration:
-    - [ ] `disconnect(connectionId)` behavior unchanged.
-    - [ ] auth/invitation endpoint response shapes unchanged.
-    - [ ] `dropConnection` and `checkSession` semantics unchanged (including `dropAfter` timing + `shouldDrop` gating).
-    - [ ] finding intake still delegates to `handleStaleSessionFinding`.
-    - [ ] remove direct `event.source/event['detail-type']` finding bypass from `app.ts`; the canonical path is transport adapter -> envelope -> DataSource subscription handler.
-  - [ ] Preserve retry/escalation semantics and loop-prevention guarantees by ensuring refactor does not alter:
-    - [ ] `tearDownStaleSession(..., { sourceOperation })` call paths.
-    - [ ] problem-report suppression rules on finding remediation paths (D6).
-    - [ ] Step Functions `dropConnection` flow compatibility.
-  - [ ] Update/port tests to DataSource-oriented coverage (D20):
-    - [ ] keep [`lambda/connections/app.test.ts`](../../../lambda/connections/app.test.ts) as primary parity harness.
-    - [ ] add focused adapter/normalization tests for each ingress family.
-    - [ ] extract only lightweight shared fixtures to reduce duplicated event-shape setup.
-  - [ ] Update durable docs after implementation lands.
-    - [ ] Extend [`lambda/connections/AGENT.md`](../../../lambda/connections/AGENT.md) with the new ingress/dispatch DataSource boundary and adapter map.
-    - [ ] Update this planning doc checkboxes/progress/verification last, after tests pass.
+  - [X] Introduce one `mtw.connections` DataSource module under [`lambda/connections/dataSource`](../../../lambda/connections/dataSource) and wire [`lambda/connections/app.ts`](../../../lambda/connections/app.ts) to route ingress through it (single shallow DataSource boundary only; no multi-DataSource internal decomposition), with adapters for:
+    - [X] API Gateway/WebSocket (`$disconnect`, HTTP auth endpoints).
+    - [X] direct invoke control messages (`dropConnection`, `checkSession`, `generateInvitation`).
+    - [X] EventBridge `mtw.diagnostics` / `Stale SessionId Finding`.
+  - [X] Establish canonical internal `api.connections` envelope contract for non-EventBridge ingress (D18) and route all normalized envelopes through the single `mtw.connections` DataSource dispatch path.
+  - [X] Consume `mtw.diagnostics` / `Stale SessionId Finding` through the same DataSource subscription/deserialization lane as other inbound events (serializer + subscribed event guard), rather than a bespoke `app.ts` EventBridge branch.
+  - [X] Preserve handler contracts and behavior parity during route migration:
+    - [X] `disconnect(connectionId)` behavior unchanged.
+    - [X] auth/invitation endpoint response shapes unchanged.
+    - [X] `dropConnection` and `checkSession` semantics unchanged (including `dropAfter` timing + `shouldDrop` gating).
+    - [X] finding intake still delegates to `handleStaleSessionFinding`.
+    - [X] remove direct `event.source/event['detail-type']` finding bypass from `app.ts`; the canonical path is transport adapter -> envelope -> DataSource subscription handler.
+  - [X] Preserve retry/escalation semantics and loop-prevention guarantees by ensuring refactor does not alter:
+    - [X] `tearDownStaleSession(..., { sourceOperation })` call paths.
+    - [X] problem-report suppression rules on finding remediation paths (D6).
+    - [X] Step Functions `dropConnection` flow compatibility.
+  - [X] Update/port tests to DataSource-oriented coverage (D20):
+    - [X] keep [`lambda/connections/app.test.ts`](../../../lambda/connections/app.test.ts) as primary parity harness.
+    - [X] add focused adapter/normalization tests for each ingress family.
+    - [X] extract only lightweight shared fixtures to reduce duplicated event-shape setup.
+  - [X] Update durable docs after implementation lands.
+    - [X] Extend [`lambda/connections/AGENT.md`](../../../lambda/connections/AGENT.md) with the new ingress/dispatch DataSource boundary and adapter map.
+    - [X] Update this planning doc checkboxes/progress/verification last, after tests pass.
 
 - [ ] PR11 - Refactor diagnostics to receive problem reports with DataSource pattern
   - [ ] Lock D21-D24 before implementation.
@@ -384,7 +384,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 | --- | --- | --- | --- |
 | 8 | Remove `Map / Subscriptions` | Complete | Removed runtime `Map / Subscriptions` coupling from connections + ephemera paths; subscribe/unsubscribe acks now return empty stub snapshots; map publish fanout intentionally absent pending deferred redesign plan |
 | 9 | Add pagination controls to utilities `withQuery` mixin | Complete | `withQuery` now supports opt-in pagination envelope with opaque token handling + guardrails; stale-session proving-ground migrations landed in both `connections` and `diagnostics` paths |
-| 10 | Refactor connections with DataSource pattern | Planned | D17-D20 locked; implementation checklist + parity-first verification defined |
+| 10 | Refactor connections with DataSource pattern | Complete | Added shallow `mtw.connections` ingress boundary in `lambda/connections/dataSource`; `app.ts` now delegates through canonical `api.connections` normalization and subscribed-event guard intake for diagnostics finding handling |
 | 11 | Refactor diagnostics to receive problem reports with DataSource pattern | Not started | Blocked on D21-D24 |
 
 ## Verification strategy by phase
