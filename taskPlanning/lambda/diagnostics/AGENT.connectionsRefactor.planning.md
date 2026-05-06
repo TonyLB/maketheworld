@@ -238,6 +238,18 @@ Record each locked decision here in order. Keep entries concise and implementati
 | D10 | Locked | Use one-shot cutover for PR8: sever runtime dependency on `Map / Subscriptions` and old imperative fanout path immediately, keep client-facing subscribe/unsubscribe request/ack semantics stable, and do not run a compatibility dual-path window. |
 | D11 | Locked | During stub window, map-update hot-path performance constraints are out of scope (`N/A` beyond "no regression outside maps"). Define replacement latency/read-amplification budgets in deferred map subscription refactor planning. |
 | D12 | Locked | Cleanup ownership in PR8: remove `Map / Subscriptions` coupling from connections/ephemera hot paths now, archive orphaned imperative map-subscription code for reference, and defer canonical ownership/fanout redesign to [`taskPlanning/lambda/ephemera/AGENT.mapSubscriptionRefactor.planning.md`](../ephemera/AGENT.mapSubscriptionRefactor.planning.md). |
+| D13 | Locked | `withQuery` pagination API uses an overloaded opt-in contract: default calls keep returning `Promise<T[]>` (full result compatibility), while `pagination`-opted calls return a page envelope with `items`, optional `nextToken`, and optional `nextPage()` callback that resolves to the same envelope shape. |
+| D14 | Locked | Preserve default callsite compatibility: `withQuery` remains full-result `Promise<T[]>` unless callers explicitly opt into pagination. No existing non-paginated query consumers should require code changes for this PR. |
+| D15 | Locked | Standardize on opaque pagination tokens at the utility boundary: callers pass/receive `nextToken` strings, while `withQuery` internally encodes/decodes DynamoDB `LastEvaluatedKey` state (no raw `ExclusiveStartKey` contract at callsites). |
+| D16 | Locked | Enforce page-size guardrails in `withQuery`: apply a conservative default page size for paginated calls, clamp caller-provided limits to a max, and allow override only through an explicit internal policy hook (not ad hoc per-call bypasses). |
+| D17 | Locked | PR10 uses an app-level DataSource boundary in `lambda/connections/app.ts` (ingress normalization + routing/dispatch), while keeping teardown/repair internals on existing module boundaries for parity and risk control. Deep internal compositional rewrite is explicitly deferred to follow-up work and should reuse the normalized ingress contract established in PR10. |
+| D18 | Locked | Normalize non-EventBridge ingress in connections to a canonical internal StreamingEvent envelope under `api.connections` (WebSocket/API Gateway + direct invoke/legacy message paths adapt at ingress), then route through one app-level dispatch path. Keep EventBridge ingestion on its native envelope, mapped via a dedicated adapter into the same internal dispatch contract. |
+| D19 | Locked | Use a clean one-shot swap for PR10 (no strangler dual-route and no runtime feature flag): replace app-level ingress/dispatch wiring in one cut while preserving external contracts. Safety checks are test-first parity coverage across all ingress families (`$disconnect`, auth HTTP paths, direct-invoke control messages, EventBridge finding intake) plus post-deploy smoke verification of disconnect/session teardown and finding-triggered repair behavior. |
+| D20 | Locked | Test migration for PR10 is parity-first and minimal-change: keep existing `lambda/connections/app.test.ts` suites as primary regression harness, add focused ingress-normalization/adapter tests for `api.connections` mapping across ingress families, and introduce only lightweight shared fixtures/helpers needed to avoid duplicated event-shape setup. Defer broader test-architecture refactor to follow-up work aligned with any future deep internal composition changes. |
+| D21 | Locked | Schema ownership is interfaces-first with staged adoption: PR10 establishes `mtw.connections` EventBridge/DataSource contracts and serializer in `packages/mtw-interfaces/ts/eventBridge/connections`, and PR11 migrates diagnostics intake to standard DataSource subscription/deserialization against that shared serializer. Diagnostics-local code may keep thin transport adapters but does not define canonical problem-report schemas. |
+| D22 | Locked | Place dedupe in the diagnostics DataSource intake layer before downstream sweep/finding handlers run. Handlers receive already-deduped canonical report envelopes and remain focused on evaluation/emission logic. |
+| D23 | Locked | No cross-source ordering guarantee is required for PR11. Different problem-report types may be processed independently/in parallel; diagnostics behavior should be correct under eventual consistency without relying on ordered delivery between report families. |
+| D24 | Locked | Malformed/partial problem reports are handled as tidy non-throw failures in intake: validate, log structured diagnostics, and drop/skip invalid events without crashing handler execution. Advanced retry/escalation policy is explicitly deferred follow-up work. |
 
 ## Spin-off follow-up planning (post PR7)
 
@@ -261,30 +273,30 @@ These items are intentionally blocked on explicit decisions before implementatio
 - Goal: support explicit page size / pagination token controls in shared query helper(s) to avoid one-shot scans in high-cardinality reads.
 - Expected blast radius: `packages/mtw-utilities` query consumers across lambdas (connections, diagnostics, ephemera, assets, subscriptions).
 - Decisions/unknowns to lock:
-  - [ ] D13 - Pagination API shape in `withQuery` (`limit`, `nextToken`, `exclusiveStartKey`, iterator API, or callback style).
-  - [ ] D14 - Default behavior compatibility (must preserve existing callsites that expect full result arrays unless opt-in).
-  - [ ] D15 - Token contract standardization (raw DynamoDB key passthrough vs encoded opaque token).
-  - [ ] D16 - Max page-size guardrails and caller override policy.
+  - [X] D13 - Pagination API shape in `withQuery`: overloaded opt-in contract where default calls return `Promise<T[]>`, and paginated calls return `{ items, nextToken?, nextPage? }` with `nextPage()` returning the same page-envelope shape.
+  - [X] D14 - Default behavior compatibility: preserve current full-result `Promise<T[]>` behavior unless pagination is explicitly opted in.
+  - [X] D15 - Token contract standardization: expose opaque `nextToken` strings and keep raw DynamoDB pagination keys internal to `withQuery`.
+  - [X] D16 - Max page-size guardrails and caller override policy: clamp requested limits to utility-level defaults/max bounds, with explicit internal-only override path.
 
 ### Candidate PR10 - Refactor connections with DataSource pattern
 
 - Goal: align connections lambda event ingestion/dispatch with the DataSource pattern used in newer areas for consistency and testability.
 - Scope candidate: app entrypoint routing + event normalization + message handlers while preserving existing contracts (`Session Disconnect`, problem reports, stale-session finding handling).
 - Decisions/unknowns to lock:
-  - [ ] D17 - Target DataSource boundary in connections (app-level only vs include teardown/repair internals).
-  - [ ] D18 - Event envelope normalization strategy across direct invokes, EventBridge, and any legacy message paths.
-  - [ ] D19 - Rollout strategy (strangler dual-route, feature flag, or one-shot swap) with safety checks.
-  - [ ] D20 - Test migration strategy (which existing Jest suites move first, and required fixture abstractions).
+  - [X] D17 - Target DataSource boundary in connections: app-level ingress/routing refactor only for PR10; teardown/repair internals remain on current module boundaries and deeper compositional rewrite is deferred.
+  - [X] D18 - Event envelope normalization strategy: use canonical `api.connections` internal envelopes for non-EventBridge ingress, with adapters at ingress and unified app-level dispatch; map EventBridge events through a dedicated adapter to the same dispatch contract.
+  - [X] D19 - Rollout strategy: clean one-shot swap (no strangler route/feature flag) with ingress-parity test coverage and post-deploy smoke checks.
+  - [X] D20 - Test migration strategy: parity-first/minimal change (retain `app.test.ts` as primary harness, add focused adapter tests, and only lightweight fixture extraction).
 
 ### Candidate PR11 - Refactor diagnostics to receive problem reports with DataSource pattern
 
 - Goal: move diagnostics intake (especially problem-report ingestion) onto DataSource pattern for shared deserialization, dedupe hooks, and clearer contracts.
 - Scope candidate: diagnostics app entrypoint + report/finding dispatch; maintain report-only repair ownership boundary (D6).
 - Decisions/unknowns to lock:
-  - [ ] D21 - Problem-report intake schema ownership (interfaces package vs diagnostics-local adapters).
-  - [ ] D22 - Dedupe placement (inside DataSource layer vs downstream sweep/findings handlers).
-  - [ ] D23 - Cross-source ordering/consistency expectations when receiving multiple report types.
-  - [ ] D24 - Failure/retry semantics for malformed or partial report payloads.
+  - [X] D21 - Problem-report intake schema ownership: interfaces-first (`mtw-interfaces` owns canonical `mtw.connections` serializer/contracts; diagnostics consumes via DataSource subscription with only thin local adapters).
+  - [X] D22 - Dedupe placement: in DataSource intake before downstream sweep/finding handlers.
+  - [X] D23 - Cross-source ordering/consistency: no ordering guarantees; report families may process independently/in parallel.
+  - [X] D24 - Malformed/partial payload semantics: tidy non-throw intake failure with structured logging and drop/skip; advanced retry/escalation deferred.
 
 ## Recommended order (spin-off PRs)
 
