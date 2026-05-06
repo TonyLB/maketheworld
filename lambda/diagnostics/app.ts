@@ -1,5 +1,6 @@
 import { healPlayer } from "./player"
 import { staleSessionSweep } from "./staleSessionSweep"
+import { roomOccupancyDriftSweep } from "./roomOccupancyDriftSweep"
 
 export const handler = async (event) => {
 
@@ -24,6 +25,11 @@ export const handler = async (event) => {
             return await healPlayer(event.player)
         case 'StaleSessionSweep':
             return await staleSessionSweep({
+                diagnosticRunId: typeof event.diagnosticRunId === 'string' ? event.diagnosticRunId : undefined,
+                nowMs: typeof event.nowMs === 'number' ? event.nowMs : undefined
+            })
+        case 'RoomOccupancyDriftSweep':
+            return await roomOccupancyDriftSweep({
                 diagnosticRunId: typeof event.diagnosticRunId === 'string' ? event.diagnosticRunId : undefined,
                 nowMs: typeof event.nowMs === 'number' ? event.nowMs : undefined
             })

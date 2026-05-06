@@ -5,6 +5,7 @@ import {
     isCacheConsistencyFindingEvent,
     isEphemeraRenderCacheFindingEvent,
     isStaleSessionIdFindingEvent,
+    isRoomOccupancyDriftFindingEvent,
     isDiagnosticsEventUpdate
 } from './index'
 import type { DataSourceEnvironment } from '@tonylb/mtw-interfaces/ts/DataSourceEnvironment'
@@ -161,6 +162,27 @@ describe('DiagnosticsEventSerializer', () => {
                 player: 'alice',
                 diagnosticRunId: 'run-stale-1',
                 timestamp: '2025-10-18T17:00:00.000Z'
+            })
+        })
+
+        it('should serialize Room Occupancy Drift Finding event', () => {
+            const internalEvent: DiagnosticsEventUpdate = {
+                type: 'Room Occupancy Drift Finding',
+                roomId: 'ROOM#alpha',
+                diagnosticRunId: 'run-room-1',
+                timestamp: '2025-10-18T17:10:00.000Z'
+            }
+
+            const external = serializer.serialize({
+                content: internalEvent,
+                header: diagnosticsHeader('Room Occupancy Drift Finding')
+            })
+
+            expect(external).toEqual({
+                type: 'Room Occupancy Drift Finding',
+                roomId: 'ROOM#alpha',
+                diagnosticRunId: 'run-room-1',
+                timestamp: '2025-10-18T17:10:00.000Z'
             })
         })
     })
@@ -447,6 +469,43 @@ describe('DiagnosticsEventSerializer', () => {
                 expect(internal).toBeNull()
             }
         })
+
+        it('should deserialize Room Occupancy Drift Finding event from EventBridge format', async () => {
+            const externalEvent: any = {
+                type: 'Room Occupancy Drift Finding',
+                roomId: 'ROOM#beta',
+                diagnosticRunId: 'run-room-2',
+                timestamp: '2025-10-18T17:15:00.000Z'
+            }
+
+            const internal = await serializer.deserialize({
+                content: externalEvent,
+                header: diagnosticsHeader('Room Occupancy Drift Finding')
+            })
+
+            expect(internal).toEqual({
+                type: 'Room Occupancy Drift Finding',
+                roomId: 'ROOM#beta',
+                diagnosticRunId: 'run-room-2',
+                timestamp: '2025-10-18T17:15:00.000Z'
+            })
+        })
+
+        it('should return null for Room Occupancy Drift Finding with invalid roomId', async () => {
+            const invalidEvents = [
+                { type: 'Room Occupancy Drift Finding', roomId: '' },
+                { type: 'Room Occupancy Drift Finding', roomId: 'NOT-ROOM' },
+                { type: 'Room Occupancy Drift Finding' }
+            ]
+
+            for (const event of invalidEvents) {
+                const internal = await serializer.deserialize({
+                    content: event,
+                    header: diagnosticsHeader('Room Occupancy Drift Finding')
+                })
+                expect(internal).toBeNull()
+            }
+        })
     })
 
     describe('type guards', () => {
@@ -577,6 +636,25 @@ describe('DiagnosticsEventSerializer', () => {
                 expect(isStaleSessionIdFindingEvent({ type: 'Stale SessionId Finding' })).toBe(false)
             })
         })
+
+        describe('isRoomOccupancyDriftFindingEvent', () => {
+            it('should return true for valid Room Occupancy Drift Finding event', () => {
+                const event = {
+                    type: 'Room Occupancy Drift Finding',
+                    roomId: 'ROOM#one',
+                    diagnosticRunId: 'run-1',
+                    timestamp: '2025-10-18T12:00:00.000Z'
+                }
+                expect(isRoomOccupancyDriftFindingEvent(event)).toBe(true)
+            })
+
+            it('should return false for invalid roomId or payloads', () => {
+                expect(isRoomOccupancyDriftFindingEvent(null)).toBe(false)
+                expect(isRoomOccupancyDriftFindingEvent({ type: 'Room Occupancy Drift Finding', roomId: '' })).toBe(false)
+                expect(isRoomOccupancyDriftFindingEvent({ type: 'Room Occupancy Drift Finding', roomId: 'one' })).toBe(false)
+                expect(isRoomOccupancyDriftFindingEvent({ type: 'Room Occupancy Drift Finding' })).toBe(false)
+            })
+        })
     })
 
     describe('round-trip serialization', () => {
@@ -659,6 +737,26 @@ describe('DiagnosticsEventSerializer', () => {
             const deserialized = await serializer.deserialize({
                 content: external,
                 header: diagnosticsHeader('Stale SessionId Finding')
+            })
+
+            expect(deserialized).toEqual(original)
+        })
+
+        it('should round-trip Room Occupancy Drift Finding', async () => {
+            const original: DiagnosticsEventUpdate = {
+                type: 'Room Occupancy Drift Finding',
+                roomId: 'ROOM#gamma',
+                diagnosticRunId: 'run-room-rt',
+                timestamp: '2025-10-18T18:10:00.000Z'
+            }
+
+            const external = serializer.serialize({
+                content: original,
+                header: diagnosticsHeader('Room Occupancy Drift Finding')
+            })
+            const deserialized = await serializer.deserialize({
+                content: external,
+                header: diagnosticsHeader('Room Occupancy Drift Finding')
             })
 
             expect(deserialized).toEqual(original)

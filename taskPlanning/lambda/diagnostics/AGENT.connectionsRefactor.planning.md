@@ -1,6 +1,6 @@
 # Connections consistency refactor plan
 
-Status: in progress. Next step: PR5 (Room Occupancy Drift sweep in diagnostics lambda); PR4 (connections stale-session handling) is complete.
+Status: in progress. Next step: PR6 (Room Occupancy Drift Finding handling in ephemera lambda); PR5 (diagnostics occupancy-drift sweep) is complete.
 
 ## Purpose
 
@@ -154,11 +154,11 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
   - [X] **Finding-driven repair:** Add tests for replay idempotency and for “repair does not recreate problem-report noise” alongside producer-path tests.
   - [X] Update durable docs after implementation: extend [`lambda/connections/AGENT.md`](../../../lambda/connections/AGENT.md) with problem-report vs finding-repair responsibilities and EventBridge wiring notes.
 
-- [ ] PR5 - Add Room Occupancy Drift sweep to diagnostics lambda
-  - [ ] Implement occupancy drift sweep using locked invariants (`SessionIds` canonical; adjacency + `Meta::Character.RoomId` authoritative).
-  - [ ] Delegate ambiguous/invalid location cases to `checkLocation`.
-  - [ ] Emit `Room Occupancy Drift Finding` payload `{ roomId }` (optional `diagnosticRunId` on diagnostics sweeps).
-  - [ ] Add tests for mixed-valid/mixed-invalid room states.
+- [X] PR5 - Add Room Occupancy Drift sweep to diagnostics lambda
+  - [X] Implement occupancy drift sweep using locked invariants (`SessionIds` canonical; adjacency + `Meta::Character.RoomId` authoritative).
+  - [X] Delegate ambiguous/invalid location cases to `checkLocation` (diagnostics marks candidates for downstream repair handling; no direct repair writes in diagnostics).
+  - [X] Emit `Room Occupancy Drift Finding` payload `{ roomId }` (optional `diagnosticRunId` on diagnostics sweeps).
+  - [X] Add tests for mixed-valid/mixed-invalid room states.
 
 - [ ] PR6 - Add Room Occupancy Drift Finding handling to ephemera lambda
   - [ ] Wire ephemera intake for `mtw.diagnostics` room-occupancy finding events.
@@ -180,7 +180,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 | 2 | Refactor `Meta::Session` storage | Complete | Concentrated PK (`Meta::Session` / `SESSION#...`); `connectionDB.query` supports base-table `ConsistentRead`; helpers in `mtw-utilities/sessionMetaKeys` |
 | 3 | Diagnostics stale-session sweep | Complete | Sweep + `Stale SessionId Finding`; see [`lambda/diagnostics/AGENT.md`](../../../lambda/diagnostics/AGENT.md) |
 | 4 | Connections stale-session handling | Complete | Problem reports + finding-driven repair ([`lambda/connections/staleSessionFinding`](../../../lambda/connections/staleSessionFinding/index.ts), [`staleSessionTeardown`](../../../lambda/connections/staleSessionTeardown/index.ts)); see [`lambda/connections/AGENT.md`](../../../lambda/connections/AGENT.md) |
-| 5 | Diagnostics occupancy-drift sweep | Not started | Decision-locked; can run parallel with PR6 implementation |
+| 5 | Diagnostics occupancy-drift sweep | Complete | Direct-invoke sweep implemented; emits `Room Occupancy Drift Finding`; mixed-valid/mixed-invalid coverage added in diagnostics tests |
 | 6 | Ephemera occupancy-drift handling | Not started | Consumes PR5 finding |
 | 7 | Remove `Library / Sessions` | Not started | Cleanup/legacy removal pass |
 
@@ -198,6 +198,11 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 
 - `cd lambda/connections && npm test`
 - `cd lambda/diagnostics && npm test` (sanity after classification parity in connections)
+
+### PR5 verification (completed)
+
+- `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/diagnostics" test`
+- `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/packages/mtw-interfaces" test -- --testPathPattern=eventBridge/diagnostics`
 
 ## Decision log
 

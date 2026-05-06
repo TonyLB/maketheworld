@@ -39,6 +39,13 @@ export type DiagnosticsStaleSessionIdFindingEvent = {
     timestamp: string
 }
 
+export type DiagnosticsRoomOccupancyDriftFindingEvent = {
+    type: 'Room Occupancy Drift Finding'
+    roomId: EphemeraRoomId
+    diagnosticRunId: string
+    timestamp: string
+}
+
 /** Heal Global Values content shape (for deserialize only; produced elsewhere) */
 export type DiagnosticsHealGlobalValuesContent = {
     type: 'Heal Global Values'
@@ -52,6 +59,7 @@ export type DiagnosticsEventUpdate =
     | DiagnosticsCacheConsistencyFindingEvent
     | DiagnosticsEphemeraRenderCacheFindingEvent
     | DiagnosticsStaleSessionIdFindingEvent
+    | DiagnosticsRoomOccupancyDriftFindingEvent
     | DiagnosticsHealGlobalValuesContent
 
 //
@@ -90,11 +98,19 @@ export type DiagnosticsStaleSessionIdFindingEventExternal = {
     timestamp?: string
 }
 
+export type DiagnosticsRoomOccupancyDriftFindingEventExternal = {
+    type: 'Room Occupancy Drift Finding'
+    roomId: EphemeraRoomId
+    diagnosticRunId?: string
+    timestamp?: string
+}
+
 export type DiagnosticsEventExternal =
     | DiagnosticsS3StructureFindingEventExternal
     | DiagnosticsCacheConsistencyFindingEventExternal
     | DiagnosticsEphemeraRenderCacheFindingEventExternal
     | DiagnosticsStaleSessionIdFindingEventExternal
+    | DiagnosticsRoomOccupancyDriftFindingEventExternal
 
 //
 // Type guards
@@ -148,9 +164,19 @@ export const isStaleSessionIdFindingEvent = (event: any): event is DiagnosticsSt
     )
 }
 
+export const isRoomOccupancyDriftFindingEvent = (event: any): event is DiagnosticsRoomOccupancyDriftFindingEvent => {
+    return Boolean(
+        event &&
+        typeof event === 'object' &&
+        event.type === 'Room Occupancy Drift Finding' &&
+        typeof event.roomId === 'string' &&
+        isEphemeraRoomId(event.roomId)
+    )
+}
+
 export const isDiagnosticsEventUpdate = (event: unknown): event is DiagnosticsEventUpdate => {
     return isS3StructureFindingEvent(event) || isCacheConsistencyFindingEvent(event) || isEphemeraRenderCacheFindingEvent(event) ||
-        isStaleSessionIdFindingEvent(event) ||
+        isStaleSessionIdFindingEvent(event) || isRoomOccupancyDriftFindingEvent(event) ||
         (typeof event === 'object' && event !== null && (event as any).type === 'Heal Global Values')
 }
 
@@ -208,6 +234,14 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
             return {
                 type: 'Stale SessionId Finding',
                 player: content.player,
+                diagnosticRunId: content.diagnosticRunId,
+                timestamp: content.timestamp
+            }
+        }
+        if (header.type === 'Room Occupancy Drift Finding' && isRoomOccupancyDriftFindingEvent(content)) {
+            return {
+                type: 'Room Occupancy Drift Finding',
+                roomId: content.roomId,
                 diagnosticRunId: content.diagnosticRunId,
                 timestamp: content.timestamp
             }
@@ -295,6 +329,18 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
             return {
                 type: 'Stale SessionId Finding',
                 player: content.player,
+                diagnosticRunId: content.diagnosticRunId || 'unknown',
+                timestamp: content.timestamp || new Date().toISOString()
+            }
+        }
+
+        if (eventType === 'Room Occupancy Drift Finding') {
+            if (typeof content.roomId !== 'string' || !isEphemeraRoomId(content.roomId)) {
+                return null
+            }
+            return {
+                type: 'Room Occupancy Drift Finding',
+                roomId: content.roomId as EphemeraRoomId,
                 diagnosticRunId: content.diagnosticRunId || 'unknown',
                 timestamp: content.timestamp || new Date().toISOString()
             }
