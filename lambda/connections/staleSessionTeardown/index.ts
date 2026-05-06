@@ -5,12 +5,18 @@ import { connectionDB, META_SESSION_PK, sessionMetaSortKey } from '@tonylb/mtw-u
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { atomicallyRemoveCharacterAdjacency } from '../disconnect'
+import { ConnectionsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
 
 export type TearDownSourceOperation = 'checkSession' | 'staleSessionFinding'
 
 export type TearDownStaleSessionContext = {
     sourceOperation: TearDownSourceOperation
     player?: string
+    streamEvent?: (params: {
+        update: ConnectionsEventUpdate;
+        streamKey: string;
+        header: { type: string };
+    }) => Promise<void>
 }
 
 /**
@@ -22,7 +28,7 @@ export const tearDownStaleSession = async (
     sessionId: string,
     context: TearDownStaleSessionContext
 ): Promise<void> => {
-    const { sourceOperation } = context
+    const { sourceOperation, streamEvent } = context
     void sourceOperation
 
     const characterQuery = await connectionDB.query<{ ConnectionId: string; DataCategory: EphemeraCharacterId }>({
@@ -35,6 +41,12 @@ export const tearDownStaleSession = async (
     })
 
     await Promise.all(characterQuery.map(({ DataCategory }) => (atomicallyRemoveCharacterAdjacency(sessionId, DataCategory))))
+
+    if (streamEvent) {
+        // Switch-over to DataSource streamEvent emission is intentionally deferred until
+        // diagnostics subscriber-side intake changes land; keep legacy EventBridge send for now.
+        void streamEvent
+    }
 
     await eventBridgeClient.send([{
         DetailType: 'Session Disconnect',

@@ -47,4 +47,20 @@ describe('tearDownStaleSession', () => {
             DataCategory: 'SESSION#session-1'
         })
     })
+
+    it('accepts streamEvent plumbing but keeps legacy EventBridge emission pending coordinated cutover', async () => {
+        const streamEvent = jest.fn(async () => undefined)
+        await tearDownStaleSession('session-2', {
+            sourceOperation: 'checkSession',
+            player: 'p2',
+            streamEvent
+        })
+
+        expect(streamEvent).not.toHaveBeenCalled()
+        expect(eventBridgeClientMock.send).toHaveBeenCalledTimes(1)
+        expect(eventBridgeClientMock.send.mock.calls[0][0]).toEqual([{
+            DetailType: 'Session Disconnect',
+            Detail: { sessionId: 'session-2' }
+        }])
+    })
 })
