@@ -372,8 +372,14 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
     - [X] Update this planning doc checkboxes/progress/verification last, after tests pass.
 
 - [ ] PR11 - Refactor diagnostics to receive problem reports with DataSource pattern
-  - [ ] Lock D21-D24 before implementation.
+  - [X] Lock D21-D24 before implementation.
+  - [ ] Establish producer-side `mtw.connections` DataSource baseline first (pre-intake dependency):
+    - [ ] Introduce an instantiated `mtw.connections` DataSource (`new DataSource(...)` + `.subscribe()`) for app-level publishing/subscription wiring, replacing the current adapter-only module shape.
+    - [ ] Define canonical `mtw.connections` problem-report serializer/contracts in [`packages/mtw-interfaces/ts/eventBridge/connections`](../../../packages/mtw-interfaces/ts/eventBridge/connections) and wire connections to use them.
+    - [ ] Move connections problem-report emission paths to DataSource `streamEvent` publishing without changing existing operational semantics.
   - [ ] Introduce DataSource intake for diagnostics problem reports/findings triggers.
+    - [ ] Consume the shared `mtw.connections` serializer/contracts from interfaces (no diagnostics-local canonical schema duplication).
+    - [ ] Keep thin diagnostics transport adapters only; route canonical envelopes through one diagnostics DataSource subscription/deserialization lane.
   - [ ] Preserve D6 ownership boundaries and existing finding contracts.
   - [ ] Add replay/idempotency and malformed-payload handling tests.
   - [ ] Update durable docs after implementation lands.
@@ -385,7 +391,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 | 8 | Remove `Map / Subscriptions` | Complete | Removed runtime `Map / Subscriptions` coupling from connections + ephemera paths; subscribe/unsubscribe acks now return empty stub snapshots; map publish fanout intentionally absent pending deferred redesign plan |
 | 9 | Add pagination controls to utilities `withQuery` mixin | Complete | `withQuery` now supports opt-in pagination envelope with opaque token handling + guardrails; stale-session proving-ground migrations landed in both `connections` and `diagnostics` paths |
 | 10 | Refactor connections with DataSource pattern | Complete | Added shallow `mtw.connections` ingress boundary in `lambda/connections/dataSource`; `app.ts` now delegates through canonical `api.connections` normalization and subscribed-event guard intake for diagnostics finding handling |
-| 11 | Refactor diagnostics to receive problem reports with DataSource pattern | Not started | Blocked on D21-D24 |
+| 11 | Refactor diagnostics to receive problem reports with DataSource pattern | Not started | Starts with producer-side `mtw.connections` DataSource + interfaces contract wiring, then rolls into diagnostics intake migration |
 
 ## Verification strategy by phase
 
