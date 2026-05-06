@@ -128,6 +128,7 @@ The lambda maintains sophisticated caching for performance optimization:
 #### **Connection Management**
 - **`Global`**: Request-scoped values including connection ID and request ID
 - **`SessionConnections`**: Mapping between character sessions and WebSocket connections
+- **Map stub window**: map subscription aggregate-row state (`Map / Subscriptions`) is removed. `subscribeToMaps` / `unsubscribeFromMaps` retain request/ack correlation and return empty map snapshots while map update fanout is intentionally disabled pending deferred redesign.
 
 For complete cache system documentation, see [`internalCache/AGENT.md`](internalCache/AGENT.md).
 

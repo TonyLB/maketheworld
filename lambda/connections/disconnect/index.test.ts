@@ -28,11 +28,6 @@ describe("atomicallyRemoveCharacterAdjacency", () => {
                 updateReducer: expect.any(Function),
                 deleteCondition: expect.any(Function),
                 deleteCallback: expect.any(Function)
-            }},
-            { Update: {
-                Key: { ConnectionId: 'Map', DataCategory: 'Subscriptions' },
-                updateKeys: ['sessions'],
-                updateReducer: expect.any(Function)
             }}
         ])
     })

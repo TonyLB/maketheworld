@@ -58,18 +58,6 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
                         }
                     }
                 }
-            },
-            {
-                Update: {
-                    Key: {
-                        ConnectionId: 'Map',
-                        DataCategory: 'Subscriptions'
-                    },
-                    updateKeys: ['connections'],
-                    updateReducer: (draft) => {
-                        draft.connections = draft.connections.filter((value) => (value.connectionId !== connectionId))
-                    }
-                }
             }
         ])
         await ephemeraDB.optimisticUpdate({
