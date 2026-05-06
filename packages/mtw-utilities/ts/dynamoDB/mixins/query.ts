@@ -51,8 +51,57 @@ type ExtractKeyReturn = {
     keyId: string;
 }
 
+const DEFAULT_PAGINATION_LIMIT = 50
+const MAX_PAGINATION_LIMIT = 250
+
+type QueryPaginationProps = {
+    limit?: number;
+    nextToken?: string;
+}
+
+export type QueryPageEnvelope<Query> = {
+    items: Query[];
+    nextToken?: string;
+    nextPage?: () => Promise<QueryPageEnvelope<Query>>;
+}
+
+const encodeNextToken = (lastEvaluatedKey: Record<string, any>): string => {
+    return Buffer.from(JSON.stringify(lastEvaluatedKey), 'utf8').toString('base64')
+}
+
+const decodeNextToken = (nextToken: string): Record<string, any> => {
+    try {
+        return JSON.parse(Buffer.from(nextToken, 'base64').toString('utf8'))
+    }
+    catch (error) {
+        throw new Error('Invalid pagination token')
+    }
+}
+
 export const withQuery = <KIncoming extends DBHandlerLegalKey, T extends string = string>() => <GBase extends Constructor<DBHandlerBase<KIncoming, T>>>(Base: GBase) => {
     return class QueryDBHandler extends Base {
+        _queryPaginationPolicy() {
+            return {
+                defaultLimit: DEFAULT_PAGINATION_LIMIT,
+                maxLimit: MAX_PAGINATION_LIMIT
+            }
+        }
+
+        _clampPaginationLimit(limit?: number): number {
+            const { defaultLimit, maxLimit } = this._queryPaginationPolicy()
+            if (!Number.isFinite(limit)) {
+                return defaultLimit
+            }
+            const normalized = Math.floor(limit as number)
+            if (normalized < 1) {
+                return 1
+            }
+            if (normalized > maxLimit) {
+                return maxLimit
+            }
+            return normalized
+        }
+
         _queryExtractKeyInfo(props: QueryKeyProps<KIncoming, T>): ExtractKeyReturn {
             switch(props.IndexName) {
                 case 'PlayerIndex':
@@ -88,7 +137,9 @@ export const withQuery = <KIncoming extends DBHandlerLegalKey, T extends string 
             }
         }
 
-        async query<Query extends DBHandlerItem<KIncoming, T>>(props: QueryKeyProps<KIncoming, T> & QueryExtendedProps): Promise<Query[]> {
+        async query<Query extends DBHandlerItem<KIncoming, T>>(props: QueryKeyProps<KIncoming, T> & QueryExtendedProps): Promise<Query[]>;
+        async query<Query extends DBHandlerItem<KIncoming, T>>(props: QueryKeyProps<KIncoming, T> & QueryExtendedProps & { pagination: QueryPaginationProps | true }): Promise<QueryPageEnvelope<Query>>;
+        async query<Query extends DBHandlerItem<KIncoming, T>>(props: QueryKeyProps<KIncoming, T> & QueryExtendedProps & { pagination?: QueryPaginationProps | true }): Promise<Query[] | QueryPageEnvelope<Query>> {
             const {
                 IndexName = '',
                 ProjectionFields: passedProjectionFields,
@@ -96,7 +147,16 @@ export const withQuery = <KIncoming extends DBHandlerLegalKey, T extends string 
                 ExpressionAttributeValues,
                 FilterExpression
             } = props
-            const { Items = [] } = await asyncSuppressExceptions(async () => {
+            const paginationProps = props.pagination
+            const isPaginated = Boolean(paginationProps)
+            const requestedPagination = (paginationProps && paginationProps !== true)
+                ? paginationProps
+                : {}
+            const limit = this._clampPaginationLimit(requestedPagination.limit)
+            const exclusiveStartKey = requestedPagination.nextToken
+                ? decodeNextToken(requestedPagination.nextToken)
+                : undefined
+            const { Items = [], LastEvaluatedKey } = await asyncSuppressExceptions(async () => {
                 const ProjectionFields = passedProjectionFields || 
                     (IndexName
                         ? [this._incomingKeyLabel, 'DataCategory']
@@ -142,10 +202,31 @@ export const withQuery = <KIncoming extends DBHandlerLegalKey, T extends string 
                     ExpressionAttributeNames: (Object.keys(revisedExpressionAttributeNames).length > 0)
                         ? revisedExpressionAttributeNames
                         : undefined,
-                    FilterExpression: FilterExpression ? replaceAttributeNames(FilterExpression) : undefined
+                    FilterExpression: FilterExpression ? replaceAttributeNames(FilterExpression) : undefined,
+                    ...(isPaginated ? { Limit: limit } : {}),
+                    ...(exclusiveStartKey ? { ExclusiveStartKey: exclusiveStartKey } : {})
                 }))
-            }, async () => ({ Items: [] })) as { Items: Query[] }
-            return Items.map((value) => (this._remapOutgoingObject(unmarshall(value) as any))) as Query[]
+            }, async () => ({ Items: [] })) as { Items: Query[]; LastEvaluatedKey?: Record<string, any> }
+            const items = Items.map((value) => (this._remapOutgoingObject(unmarshall(value) as any))) as Query[]
+            if (!isPaginated) {
+                return items
+            }
+            const nextToken = LastEvaluatedKey ? encodeNextToken(LastEvaluatedKey) : undefined
+            return {
+                items,
+                ...(nextToken ? { nextToken } : {}),
+                ...(nextToken
+                    ? {
+                        nextPage: async (): Promise<QueryPageEnvelope<Query>> => (await this.query<Query>({
+                            ...props,
+                            pagination: {
+                                ...requestedPagination,
+                                nextToken
+                            }
+                        } as QueryKeyProps<KIncoming, T> & QueryExtendedProps & { pagination: QueryPaginationProps | true })) as unknown as QueryPageEnvelope<Query>
+                    }
+                    : {})
+            }
         }
     }
 }

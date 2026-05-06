@@ -29,6 +29,7 @@ import { handler } from './app'
 const connectionDBMock = jest.mocked(connectionDB)
 const eventBridgeClientMock = jest.mocked(eventBridgeClient)
 const handleStaleSessionFindingMock = jest.mocked(handleStaleSessionFinding)
+const queryMock = connectionDB.query as unknown as jest.Mock
 
 describe('connections app checkSession', () => {
     beforeEach(() => {
@@ -50,7 +51,7 @@ describe('connections app checkSession', () => {
 
     it('drops stale session and emits Session Disconnect without Map bookkeeping', async () => {
         mockShouldDropOptimisticUpdate()
-        connectionDBMock.query.mockResolvedValue([])
+        queryMock.mockResolvedValue([])
         connectionDBMock.deleteItem.mockResolvedValue(undefined as any)
         eventBridgeClientMock.send.mockResolvedValue(undefined as any)
 

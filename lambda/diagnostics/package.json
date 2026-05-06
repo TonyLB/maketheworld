@@ -12,7 +12,6 @@
   "author": "Tony Lower-Basch",
   "license": "MIT",
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.588.0",
     "@aws-sdk/client-eventbridge": "^3.588.0",
     "@tonylb/mtw-interfaces": "file:../../packages/mtw-interfaces",
     "@tonylb/mtw-lambda-patterns": "file:../../packages/mtw-lambda-patterns",

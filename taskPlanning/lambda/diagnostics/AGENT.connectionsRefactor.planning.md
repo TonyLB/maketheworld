@@ -227,6 +227,12 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 - `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/subscriptions" test`
 - `rg -n "ConnectionId:\s*'Map'|DataCategory:\s*'Subscriptions'|mapSubscriptions" lambda --glob '!**/*.test.ts'` (expect no matches)
 
+### PR9 verification (completed)
+
+- `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/packages/mtw-utilities" test -- --testPathPattern=dynamoDB/mixins/query`
+- `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/connections" test -- --testPathPattern=staleSessionFinding`
+- `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/diagnostics" test -- --testPathPattern=staleSessionSweep`
+
 ## Decision log
 
 Record each locked decision here in order. Keep entries concise and implementation-oriented.
@@ -324,12 +330,12 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
   - [X] Add regression tests for disconnect cleanup plus explicit "stub-window" map behavior (subscribe/unsubscribe ack succeeds; map updates intentionally absent).
   - [X] Update durable docs after implementation lands.
 
-- [ ] PR9 - Add pagination controls to utilities `withQuery` mixin
-  - [ ] Lock D13-D16 before implementation.
-  - [ ] Extend utilities API with pagination primitives and type-safe return contract.
-  - [ ] Add utility-level unit tests for token round-trip, limits, and compatibility defaults.
-  - [ ] Migrate at least one high-cardinality caller as proving ground.
-  - [ ] Document usage guidance in durable docs.
+- [X] PR9 - Add pagination controls to utilities `withQuery` mixin
+  - [X] Lock D13-D16 before implementation.
+  - [X] Extend utilities API with pagination primitives and type-safe return contract.
+  - [X] Add utility-level unit tests for token round-trip, limits, and compatibility defaults.
+  - [X] Migrate at least one high-cardinality caller as proving ground.
+  - [X] Document usage guidance in durable docs.
 
 - [ ] PR10 - Refactor connections with DataSource pattern
   - [ ] Lock D17-D20 before implementation.
@@ -351,7 +357,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 | PR | Scope | Status | Notes |
 | --- | --- | --- | --- |
 | 8 | Remove `Map / Subscriptions` | Complete | Removed runtime `Map / Subscriptions` coupling from connections + ephemera paths; subscribe/unsubscribe acks now return empty stub snapshots; map publish fanout intentionally absent pending deferred redesign plan |
-| 9 | Add pagination controls to utilities `withQuery` mixin | Not started | Blocked on D13-D16 |
+| 9 | Add pagination controls to utilities `withQuery` mixin | Complete | `withQuery` now supports opt-in pagination envelope with opaque token handling + guardrails; stale-session proving-ground migrations landed in both `connections` and `diagnostics` paths |
 | 10 | Refactor connections with DataSource pattern | Not started | Blocked on D17-D20 |
 | 11 | Refactor diagnostics to receive problem reports with DataSource pattern | Not started | Blocked on D21-D24 |
 
