@@ -84,13 +84,14 @@ export const retryWithEscalation = async <T>(
 }
 
 const logBookkeepingFailure = (args: {
-    event: 'session-disconnect-bookkeeping-failed' | 'session-disconnect-bookkeeping-retry'
+    event: 'session-disconnect-bookkeeping-failed' | 'session-disconnect-bookkeeping-failed-suppressed' | 'session-disconnect-bookkeeping-retry'
     sessionId: string
     player: string
     sourceOperation: TearDownSourceOperation
     attempt: number
     errorType: string
     dedupeKey: string
+    suppressedProblemReport?: boolean
 }) => {
     console.log(JSON.stringify(args))
 }
@@ -98,7 +99,7 @@ const logBookkeepingFailure = (args: {
 /**
  * Idempotent cleanup for a session that is already scheduled to drop (e.g. `checkSession` with `shouldDrop`).
  * Emits `Session Disconnect` after character adjacency removal, then retries Library/Map `SessionIds` bookkeeping.
- * On bookkeeping failure, emits `Session Disconnect Problem` (D3/D4).
+ * On bookkeeping failure, emits `Session Disconnect Problem` (D3/D4), except for `staleSessionFinding` (D6 loop prevention).
  */
 export const tearDownStaleSession = async (
     sessionId: string,
@@ -106,6 +107,7 @@ export const tearDownStaleSession = async (
 ): Promise<void> => {
     const { sourceOperation, player: contextPlayer } = context
     const player = typeof contextPlayer === 'string' ? contextPlayer.trim() : ''
+    const suppressSessionDisconnectProblem = sourceOperation === 'staleSessionFinding'
 
     const characterQuery = await connectionDB.query<{ ConnectionId: string; DataCategory: EphemeraCharacterId }>({
         Key: { ConnectionId: `SESSION#${sessionId}` },
@@ -142,7 +144,8 @@ export const tearDownStaleSession = async (
                         sourceOperation,
                         attempt,
                         errorType,
-                        dedupeKey
+                        dedupeKey,
+                        ...(suppressSessionDisconnectProblem ? { suppressedProblemReport: true } : {})
                     })
                 }
                 throw err
@@ -157,30 +160,37 @@ export const tearDownStaleSession = async (
     )
 
     if (bookkeeping.ok) {
+        await connectionDB.deleteItem({
+            ConnectionId: META_SESSION_PK,
+            DataCategory: sessionMetaSortKey(sessionId)
+        })
         return
     }
 
     const errorType = dynamoErrorType(bookkeeping.lastError)
     logBookkeepingFailure({
-        event: 'session-disconnect-bookkeeping-failed',
+        event: suppressSessionDisconnectProblem ? 'session-disconnect-bookkeeping-failed-suppressed' : 'session-disconnect-bookkeeping-failed',
         sessionId,
         player,
         sourceOperation,
         attempt: bookkeeping.attempts,
         errorType,
-        dedupeKey
+        dedupeKey,
+        ...(suppressSessionDisconnectProblem ? { suppressedProblemReport: true } : {})
     })
 
-    await eventBridgeClient.send([{
-        DetailType: 'Session Disconnect Problem',
-        Detail: {
-            sessionId,
-            ...(player ? { player } : {}),
-            sourceOperation,
-            attemptCount: bookkeeping.attempts,
-            dedupeKey
-        }
-    }])
+    if (!suppressSessionDisconnectProblem) {
+        await eventBridgeClient.send([{
+            DetailType: 'Session Disconnect Problem',
+            Detail: {
+                sessionId,
+                ...(player ? { player } : {}),
+                sourceOperation,
+                attemptCount: bookkeeping.attempts,
+                dedupeKey
+            }
+        }])
+    }
 }
 
 /**

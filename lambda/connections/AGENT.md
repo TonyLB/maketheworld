@@ -32,12 +32,21 @@ When changing session storage, update this section so the trade-off stays visibl
 
 - `sessionId` (required)
 - `player` (optional; omitted when unknown)
-- `sourceOperation` (e.g. `checkSession`; future repair path uses `staleSessionFinding`)
+- `sourceOperation` (e.g. `checkSession` or `staleSessionFinding` on the EventBridge repair path)
 - `attemptCount` (number of bookkeeping attempts in that batch)
 - `dedupeKey` (`${sourceOperation}:${sessionId}:${ISO8601}` at start of bookkeeping retries)
 
 Structured logs: `session-disconnect-bookkeeping-retry` (retryable failures before the last attempt) and `session-disconnect-bookkeeping-failed` (terminal bookkeeping failure before the problem report).
 
-**`Stale SessionId Finding` consumer (wiring):** EventBridge triggers the connections lambda on `source: mtw.diagnostics`, `detail-type: Stale SessionId Finding` (see `template.yaml` under `ConnectionFunction.Events.StaleSessionFinding`). The handler dispatches to [`staleSessionFinding/index.ts`](staleSessionFinding/index.ts); repair is **stubbed** until the next PR4 slice (connections-table-only reconciliation per D6). Full consumer documentation will expand once repair lands.
+**Successful teardown:** After Library/Map bookkeeping succeeds, `tearDownStaleSession` deletes the `Meta::Session` row (`Meta::Session` / `SESSION#${sessionId}`) idempotently. On the normal `checkSession` path the meta row is usually already removed by the optimistic update before teardown runs; the delete is harmless when the item is absent.
 
-**Related:** Initiative checklist and remaining PR4 repair work in [`taskPlanning/lambda/diagnostics/AGENT.connectionsRefactor.planning.md`](../../taskPlanning/lambda/diagnostics/AGENT.connectionsRefactor.planning.md).
+**`Stale SessionId Finding` consumer:** EventBridge invokes the connections lambda on `source: mtw.diagnostics`, `detail-type: Stale SessionId Finding` with payload `{ player }` per D3 (see `template.yaml` under `ConnectionFunction.Events.StaleSessionFinding`). [`app.ts`](app.ts) routes to [`staleSessionFinding/index.ts`](staleSessionFinding/index.ts).
+
+Repair behavior (connections-owned, D6):
+
+- Enumerates session meta rows by querying `ConnectionId = Meta::Session`, `begins_with(DataCategory, 'SESSION#')` (paginated), filtered to the finding `player`.
+- Re-evaluates staleness using predicates aligned with diagnostics ([`staleSessionFinding/classification.ts`](staleSessionFinding/classification.ts) must stay in sync with [`lambda/diagnostics/staleSessionSweep/classification.ts`](../diagnostics/staleSessionSweep/classification.ts)); skips rows that are no longer stale (replay / convergence).
+- For each stale session, runs [`tearDownStaleSession`](staleSessionTeardown/index.ts) with `sourceOperation: 'staleSessionFinding'`. That path reuses the same adjacency removal, `Session Disconnect` emission (subscriptions lambda removes `STREAM#...` edges keyed on `SESSION#${sessionId}`), and Library/Map bookkeeping as `checkSession`-driven teardown.
+- **D6 loop prevention:** On `staleSessionFinding`, bookkeeping failure logs `session-disconnect-bookkeeping-failed-suppressed` with `suppressedProblemReport: true` and **does not** emit `Session Disconnect Problem`, so repair does not feed the diagnostics/problem-report loop.
+
+**Related:** Initiative progress in [`taskPlanning/lambda/diagnostics/AGENT.connectionsRefactor.planning.md`](../../taskPlanning/lambda/diagnostics/AGENT.connectionsRefactor.planning.md).

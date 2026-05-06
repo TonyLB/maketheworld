@@ -6,7 +6,8 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => {
             optimisticUpdate: jest.fn(),
             query: jest.fn(),
             transactWrite: jest.fn(),
-            getItem: jest.fn()
+            getItem: jest.fn(),
+            deleteItem: jest.fn()
         })
     }
 })
@@ -57,6 +58,7 @@ describe('connections app checkSession', () => {
         mockShouldDropOptimisticUpdate()
         connectionDBMock.query.mockResolvedValue([])
         connectionDBMock.transactWrite.mockResolvedValue(undefined as any)
+        connectionDBMock.deleteItem.mockResolvedValue(undefined as any)
         eventBridgeClientMock.send.mockResolvedValue(undefined as any)
 
         await handler({
@@ -111,6 +113,10 @@ describe('connections app checkSession', () => {
             DetailType: 'Session Disconnect',
             Detail: { sessionId: 'session-1' }
         }])
+        expect(connectionDBMock.deleteItem).toHaveBeenCalledWith({
+            ConnectionId: 'Meta::Session',
+            DataCategory: 'SESSION#session-1'
+        })
         expect(connectionDBMock.transactWrite.mock.invocationCallOrder[0]).toBeGreaterThan(
             eventBridgeClientMock.send.mock.invocationCallOrder[0]
         )
