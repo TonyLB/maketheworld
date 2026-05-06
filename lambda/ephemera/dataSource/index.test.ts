@@ -15,8 +15,12 @@ jest.mock('../messageBus', () => ({
 jest.mock('./perception/kickRoomHeaderBroadcast', () => ({
     kickRoomHeaderBroadcastForRoom: jest.fn().mockResolvedValue(undefined),
 }))
+jest.mock('./selfHealing/roomOccupancyDriftFinding', () => ({
+    handleRoomOccupancyDriftFinding: jest.fn().mockResolvedValue({ changed: false, checkLocationQueued: false }),
+}))
 
 import { kickRoomHeaderBroadcastForRoom } from './perception/kickRoomHeaderBroadcast'
+import { handleRoomOccupancyDriftFinding } from './selfHealing/roomOccupancyDriftFinding'
 
 // Mock the date utility
 jest.mock('../internalUtils/dateUtil', () => ({
@@ -26,6 +30,7 @@ jest.mock('../internalUtils/dateUtil', () => ({
 
 const mockMessageBus = messageBus as jest.Mocked<typeof messageBus>
 const getCurrentTimestampMock = getCurrentTimestamp as jest.MockedFunction<typeof getCurrentTimestamp>
+const handleRoomOccupancyDriftFindingMock = handleRoomOccupancyDriftFinding as jest.MockedFunction<typeof handleRoomOccupancyDriftFinding>
 
 describe('Ephemera DataSource receiveEvents', () => {
     const FIXED_TS = 1700000000000
@@ -368,6 +373,35 @@ describe('Ephemera DataSource receiveEvents', () => {
         })
     })
 
+    describe('Diagnostics finding events', () => {
+        it('should process Room Occupancy Drift Finding events via self-healing handler', async () => {
+            const events = [
+                {
+                    header: {
+                        dataSourceKey: 'mtw.diagnostics' as const,
+                        streamKey: 'global',
+                        timestamp: getCurrentTimestamp(),
+                        type: 'Room Occupancy Drift Finding' as const,
+                    },
+                    getContent: () => Promise.resolve({
+                        type: 'Room Occupancy Drift Finding' as const,
+                        roomId: 'ROOM#drifted' as const,
+                        diagnosticRunId: 'diag-1',
+                        timestamp: '2026-05-06T10:00:00.000Z',
+                    }),
+                },
+            ]
+
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
+
+            expect(handleRoomOccupancyDriftFindingMock).toHaveBeenCalledWith({
+                roomId: 'ROOM#drifted',
+                messageBus: mockMessageBus,
+            })
+        })
+    })
+
     describe('Event Subscription', () => {
         it('should subscribe to events from mtw.assets', () => {
             const envelope = {
@@ -409,6 +443,20 @@ describe('Ephemera DataSource receiveEvents', () => {
             }
 
             expect(ephemeraDataSource.subscribedEventTypeGuard?.(envelope)).toBe(false)
+        })
+
+        it('should subscribe to Room Occupancy Drift Finding from mtw.diagnostics', () => {
+            const envelope = {
+                header: {
+                    dataSourceKey: 'mtw.diagnostics',
+                    streamKey: 'global',
+                    timestamp: getCurrentTimestamp(),
+                    type: 'Room Occupancy Drift Finding'
+                },
+                getContent: () => Promise.resolve({})
+            }
+
+            expect(ephemeraDataSource.subscribedEventTypeGuard?.(envelope)).toBe(true)
         })
     })
 })

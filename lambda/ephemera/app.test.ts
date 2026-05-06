@@ -195,16 +195,14 @@ describe('app handler', () => {
             expect(content).toEqual({})
         })
 
-        it('should reject mtw.diagnostics Ephemera RenderCache Finding when deserializer is unavailable', async () => {
+        it('should route mtw.diagnostics Room Occupancy Drift Finding to StreamingEvent', async () => {
             const event = {
                 source: 'mtw.diagnostics',
-                'detail-type': 'Ephemera RenderCache Finding',
+                'detail-type': 'Room Occupancy Drift Finding',
                 detail: {
-                    perspective: ['ASSET#primitives'],
-                    status: 'missing',
+                    roomId: 'ROOM#alpha',
                     diagnosticRunId: 'diag-1',
                     timestamp: '2026-04-21T12:00:00.000Z',
-                    roomIds: ['ROOM#alpha']
                 },
                 time: '2026-04-21T12:00:00.000Z'
             }
@@ -213,9 +211,10 @@ describe('app handler', () => {
 
             expect(mockMessageBus.send).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    type: 'Error',
-                    body: expect.objectContaining({
-                        error: 'No deserializer available for data source: mtw.diagnostics'
+                    type: 'StreamingEvent',
+                    dataSourceKey: 'mtw.diagnostics',
+                    header: expect.objectContaining({
+                        type: 'Room Occupancy Drift Finding'
                     })
                 })
             )

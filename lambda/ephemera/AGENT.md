@@ -57,8 +57,21 @@ Ephemera Lambda manages a **dual-layer message persistence architecture**:
 
 The Ephemera Lambda integrates with other system components through:
 - **Assets Lambda**: Consumes component-level materialized views for rendering while reconciling blueprint changes
-- **EventBridge Events**: Receives 'Content Update' events (from various sources including WML changes) for blueprint reconciliation
+- **EventBridge Events**: Receives assets update events for blueprint reconciliation and diagnostics findings for self-healing intake
 - **Client Applications**: Maintains persistent WebSocket connections for real-time interaction
+
+#### **Diagnostics self-healing intake**
+
+Ephemera subscribes to `mtw.diagnostics` finding events through the DataSource envelope lane in `app.ts` (`eventDeserializers`), then routes supported finding types via `dataSource/subscribedEvents.ts`.
+
+Current supported occupancy-healing finding:
+
+- **`Room Occupancy Drift Finding`** (`mtw.diagnostics`): handled by `dataSource/selfHealing/roomOccupancyDriftFinding.ts`.
+  - Scope is strictly `ephemera`-table reconciliation (D6 ownership boundary).
+  - Rebuilds `Meta::Room.activeCharacters` from authoritative character room membership + live sessions.
+  - Keeps replay idempotency (no-op when room occupancy already matches canonical shape).
+  - Enforces post-repair contract: `RoomCharacterList` refresh, `ComponentEphemeraMeta` + `ComponentStackMerge` invalidation, and `RoomUpdate` signaling.
+  - Queues `CheckLocation` for occupancy entries lacking authoritative room assignment.
 
 ## Current System Architecture
 

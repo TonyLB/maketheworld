@@ -30,8 +30,10 @@ import { extractReturnValue } from './returnValue'
 import { sfnClient } from './clients'
 import { confirmGuestCharacter } from './guestCharacter'
 import { AssetsEventSerializer, ComponentExamplesEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
+import { DiagnosticsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
+import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { sendParseRequested, sendStateChange } from './dataSource/apiEphemera'
 import { isStateChangeCommand } from './dataSource/localApiEvents'
 
@@ -50,7 +52,7 @@ import './dataSource/state'  // mtw.ephemera.state DataSource (see lambda/epheme
 const eventDeserializers = {
     'mtw.assets': new AssetsEventSerializer(),
     'mtw.assets.componentExamples': new ComponentExamplesEventSerializer(),
-    // Add other data source deserializers here as needed
+    'mtw.diagnostics': new DiagnosticsEventSerializer(createNodeDataSourceEnvironment()),
 } as const
 
 export const handler = async (event: any, context: any) => {
