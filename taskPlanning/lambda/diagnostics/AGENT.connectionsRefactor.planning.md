@@ -233,6 +233,14 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 - `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/connections" test -- --testPathPattern=staleSessionFinding`
 - `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/diagnostics" test -- --testPathPattern=staleSessionSweep`
 
+### PR10 verification (planned)
+
+- `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/connections" test`
+- `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/connections" test -- --testPathPattern=app`
+- `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/connections" test -- --testPathPattern=staleSessionFinding`
+- `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/connections" test -- --testPathPattern=staleSessionTeardown`
+- `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/diagnostics" test -- --testPathPattern=staleSessionSweep` (sanity: finding producer/consumer contract unchanged)
+
 ## Decision log
 
 Record each locked decision here in order. Keep entries concise and implementation-oriented.
@@ -300,8 +308,8 @@ These items are intentionally blocked on explicit decisions before implementatio
 - Goal: align connections lambda event ingestion/dispatch with the DataSource pattern used in newer areas for consistency and testability.
 - Scope candidate: app entrypoint routing + event normalization + message handlers while preserving existing contracts (`Session Disconnect`, problem reports, stale-session finding handling).
 - Decisions/unknowns to lock:
-  - [X] D17 - Target DataSource boundary in connections: app-level ingress/routing refactor only for PR10; teardown/repair internals remain on current module boundaries and deeper compositional rewrite is deferred.
-  - [X] D18 - Event envelope normalization strategy: use canonical `api.connections` internal envelopes for non-EventBridge ingress, with adapters at ingress and unified app-level dispatch; map EventBridge events through a dedicated adapter to the same dispatch contract.
+  - [X] D17 - Target DataSource boundary in connections: create one `mtw.connections` DataSource boundary for PR10 (shallow app-level ingress normalization + dispatch). Do not split connections into multiple internal DataSources in this PR; teardown/repair internals remain on current module boundaries and deeper compositional rewrite is deferred.
+  - [X] D18 - Event envelope normalization strategy: use canonical `api.connections` internal envelopes for non-EventBridge ingress, with adapters at ingress and unified app-level dispatch; map EventBridge events through a dedicated adapter to the same dispatch contract. Transport normalization happens once at ingress: do not add bypass routes that manually handle EventBridge findings outside the DataSource subscription/deserialization path, and do not synthesize internal events after bespoke handling.
   - [X] D19 - Rollout strategy: clean one-shot swap (no strangler route/feature flag) with ingress-parity test coverage and post-deploy smoke checks.
   - [X] D20 - Test migration strategy: parity-first/minimal change (retain `app.test.ts` as primary harness, add focused adapter tests, and only lightweight fixture extraction).
 
@@ -338,12 +346,30 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
   - [X] Document usage guidance in durable docs.
 
 - [ ] PR10 - Refactor connections with DataSource pattern
-  - [ ] Lock D17-D20 before implementation.
-  - [ ] Introduce DataSource entry/dispatch layer in connections.
-  - [ ] Migrate existing handler routes without contract drift.
-  - [ ] Preserve retry/escalation semantics and loop-prevention guarantees.
-  - [ ] Update/port tests to DataSource-oriented coverage.
+  - [X] Lock D17-D20 before implementation.
+  - [ ] Introduce one `mtw.connections` DataSource module under [`lambda/connections/dataSource`](../../../lambda/connections/dataSource) and wire [`lambda/connections/app.ts`](../../../lambda/connections/app.ts) to route ingress through it (single shallow DataSource boundary only; no multi-DataSource internal decomposition), with adapters for:
+    - [ ] API Gateway/WebSocket (`$disconnect`, HTTP auth endpoints).
+    - [ ] direct invoke control messages (`dropConnection`, `checkSession`, `generateInvitation`).
+    - [ ] EventBridge `mtw.diagnostics` / `Stale SessionId Finding`.
+  - [ ] Establish canonical internal `api.connections` envelope contract for non-EventBridge ingress (D18) and route all normalized envelopes through the single `mtw.connections` DataSource dispatch path.
+  - [ ] Consume `mtw.diagnostics` / `Stale SessionId Finding` through the same DataSource subscription/deserialization lane as other inbound events (serializer + subscribed event guard), rather than a bespoke `app.ts` EventBridge branch.
+  - [ ] Preserve handler contracts and behavior parity during route migration:
+    - [ ] `disconnect(connectionId)` behavior unchanged.
+    - [ ] auth/invitation endpoint response shapes unchanged.
+    - [ ] `dropConnection` and `checkSession` semantics unchanged (including `dropAfter` timing + `shouldDrop` gating).
+    - [ ] finding intake still delegates to `handleStaleSessionFinding`.
+    - [ ] remove direct `event.source/event['detail-type']` finding bypass from `app.ts`; the canonical path is transport adapter -> envelope -> DataSource subscription handler.
+  - [ ] Preserve retry/escalation semantics and loop-prevention guarantees by ensuring refactor does not alter:
+    - [ ] `tearDownStaleSession(..., { sourceOperation })` call paths.
+    - [ ] problem-report suppression rules on finding remediation paths (D6).
+    - [ ] Step Functions `dropConnection` flow compatibility.
+  - [ ] Update/port tests to DataSource-oriented coverage (D20):
+    - [ ] keep [`lambda/connections/app.test.ts`](../../../lambda/connections/app.test.ts) as primary parity harness.
+    - [ ] add focused adapter/normalization tests for each ingress family.
+    - [ ] extract only lightweight shared fixtures to reduce duplicated event-shape setup.
   - [ ] Update durable docs after implementation lands.
+    - [ ] Extend [`lambda/connections/AGENT.md`](../../../lambda/connections/AGENT.md) with the new ingress/dispatch DataSource boundary and adapter map.
+    - [ ] Update this planning doc checkboxes/progress/verification last, after tests pass.
 
 - [ ] PR11 - Refactor diagnostics to receive problem reports with DataSource pattern
   - [ ] Lock D21-D24 before implementation.
@@ -358,7 +384,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 | --- | --- | --- | --- |
 | 8 | Remove `Map / Subscriptions` | Complete | Removed runtime `Map / Subscriptions` coupling from connections + ephemera paths; subscribe/unsubscribe acks now return empty stub snapshots; map publish fanout intentionally absent pending deferred redesign plan |
 | 9 | Add pagination controls to utilities `withQuery` mixin | Complete | `withQuery` now supports opt-in pagination envelope with opaque token handling + guardrails; stale-session proving-ground migrations landed in both `connections` and `diagnostics` paths |
-| 10 | Refactor connections with DataSource pattern | Not started | Blocked on D17-D20 |
+| 10 | Refactor connections with DataSource pattern | Planned | D17-D20 locked; implementation checklist + parity-first verification defined |
 | 11 | Refactor diagnostics to receive problem reports with DataSource pattern | Not started | Blocked on D21-D24 |
 
 ## Verification strategy by phase
