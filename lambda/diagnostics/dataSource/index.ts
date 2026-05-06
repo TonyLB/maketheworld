@@ -5,12 +5,15 @@ import { DiagnosticsEventSerializer, DiagnosticsEventUpdate } from '@tonylb/mtw-
 import { isSessionDisconnectProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
 import messageBus from '../messageBus'
 import { healPlayer } from '../player'
+import { roomOccupancyDriftSweep } from '../roomOccupancyDriftSweep'
 import { staleSessionSweep } from '../staleSessionSweep'
 import {
     DiagnosticsSubscribedContent,
     isConnectionsNewPlayerEnvelope,
     isConnectionsProblemEnvelope,
-    isDiagnosticsStaleSessionSweepEnvelope,
+    isDiagnosticsApiHealPlayerEnvelope,
+    isDiagnosticsApiRoomOccupancyDriftSweepEnvelope,
+    isDiagnosticsApiStaleSessionSweepEnvelope,
     isDiagnosticsSubscribedEnvelope
 } from './subscribedEvents'
 
@@ -56,22 +59,59 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
     }, [])
 
     await Promise.all(dedupedEvents.map(async ({ event }) => {
-        if (isConnectionsProblemEnvelope(event as any)) {
-            await staleSessionSweep()
-            return
-        }
-        if (isConnectionsNewPlayerEnvelope(event as any)) {
-            const content = await event.getContent()
-            if (typeof content.player === 'string' && content.player.length > 0) {
-                await healPlayer(content.player)
+        try {
+            if (isConnectionsProblemEnvelope(event as any)) {
+                await staleSessionSweep()
+                return
             }
-            return
+            if (isConnectionsNewPlayerEnvelope(event as any)) {
+                const content = await event.getContent()
+                if (typeof content.player === 'string' && content.player.length > 0) {
+                    await healPlayer(content.player)
+                }
+                return
+            }
+            if (isDiagnosticsApiStaleSessionSweepEnvelope(event as any)) {
+                const content = await event.getContent()
+                const result = await staleSessionSweep({
+                    diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
+                    nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
+                })
+                messageBus.send({
+                    type: 'ReturnValue',
+                    body: result as Record<string, any>
+                })
+                return
+            }
+            if (isDiagnosticsApiHealPlayerEnvelope(event as any)) {
+                const content = await event.getContent()
+                const result = await healPlayer(content.player)
+                messageBus.send({
+                    type: 'ReturnValue',
+                    body: result as Record<string, any>
+                })
+                return
+            }
+            if (isDiagnosticsApiRoomOccupancyDriftSweepEnvelope(event as any)) {
+                const content = await event.getContent()
+                const result = await roomOccupancyDriftSweep({
+                    diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
+                    nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
+                })
+                messageBus.send({
+                    type: 'ReturnValue',
+                    body: result as Record<string, any>
+                })
+                return
+            }
         }
-        if (isDiagnosticsStaleSessionSweepEnvelope(event as any)) {
-            const content = await event.getContent()
-            await staleSessionSweep({
-                diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
-                nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
+        catch (error) {
+            messageBus.send({
+                type: 'Error',
+                body: {
+                    error: error instanceof Error ? error.message : String(error),
+                    statusCode: 500
+                }
             })
         }
     }))

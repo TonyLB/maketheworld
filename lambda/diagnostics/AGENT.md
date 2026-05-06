@@ -6,8 +6,7 @@
 
 **Entrypoints:**
 
-- EventBridge: `source: mtw.diagnostics`, `detail-type: Stale Session Sweep`, optional `detail.diagnosticRunId` (string).
-- Direct invoke: `type: StaleSessionSweep`, optional `diagnosticRunId` and `nowMs` (for tests).
+- Direct invoke: `type: StaleSessionSweep`, optional `diagnosticRunId` and `nowMs` (for tests). This command is normalized to synthetic `api.diagnostics` ingress and handled through diagnostics DataSource subscribed-event dispatch.
 
 **Thresholds:** See `STALE_BUFFER_MS` in [`staleSessionSweep/classification.ts`](staleSessionSweep/classification.ts) (slack after `dropAfter` before classifying a session meta row as stale; suppresses false positives during normal `dropConnection` / Step Functions timing).
 
@@ -26,7 +25,8 @@
 - [`ingress.ts`](ingress.ts) routes EventBridge ingress onto diagnostics message-bus streaming envelopes.
 - [`dataSource/subscribedEvents.ts`](dataSource/subscribedEvents.ts) owns subscribed header/envelope guards for:
   - `mtw.connections` / `Session Disconnect Problem`
-  - `mtw.diagnostics` / `Stale Session Sweep`
+  - `mtw.connections` / `New Player`
+  - `api.diagnostics` synthetic command envelopes (`HealPlayer`, `StaleSessionSweep`, `RoomOccupancyDriftSweep`)
 - [`dataSource/index.ts`](dataSource/index.ts) owns subscribed-event handling.
 
 **Handling semantics:**
@@ -35,6 +35,7 @@
 - Intake is tidy-failure: malformed/partial payloads are logged and dropped at ingress/deserialization boundaries without throwing.
 - Within a single receive batch, repeated problem reports with the same `dedupeKey` are suppressed before triggering sweep evaluation.
 - Diagnostics remains report-only: problem reports trigger `staleSessionSweep` evaluation and finding emission only; diagnostics does not perform connections-table repairs.
+- Direct command return values now use message-bus `ReturnValue`/`Error` delivery plus app-boundary extraction (`returnValue/index.ts`) rather than direct `app.ts` returns, matching the `connections` pattern.
 
 ## Room Occupancy Drift sweep (ephemera consistency diagnostics)
 

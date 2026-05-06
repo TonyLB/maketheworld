@@ -26,12 +26,13 @@ describe('diagnostics handler', () => {
     })
 
     it('invokes staleSessionSweep for direct StaleSessionSweep via api.diagnostics synthetic lane', async () => {
-        await handler({
+        const result = await handler({
             type: 'StaleSessionSweep',
             diagnosticRunId: 'dr-1'
         })
 
         expect(staleSessionSweep).toHaveBeenCalledWith({ diagnosticRunId: 'dr-1' })
+        expect(result).toEqual({ emittedCount: 0, players: [] })
     })
 
     it('invokes staleSessionSweep for mtw.connections Session Disconnect Problem', async () => {
@@ -77,7 +78,7 @@ describe('diagnostics handler', () => {
     })
 
     it('passes nowMs through direct StaleSessionSweep synthetic intake', async () => {
-        await handler({
+        const result = await handler({
             type: 'StaleSessionSweep',
             diagnosticRunId: 'dr-2',
             nowMs: 12345
@@ -87,10 +88,11 @@ describe('diagnostics handler', () => {
             diagnosticRunId: 'dr-2',
             nowMs: 12345
         })
+        expect(result).toEqual({ emittedCount: 0, players: [] })
     })
 
     it('invokes roomOccupancyDriftSweep for direct RoomOccupancyDriftSweep type', async () => {
-        await handler({
+        const result = await handler({
             type: 'RoomOccupancyDriftSweep',
             diagnosticRunId: 'dr-3',
             nowMs: 67890
@@ -100,5 +102,16 @@ describe('diagnostics handler', () => {
             diagnosticRunId: 'dr-3',
             nowMs: 67890
         })
+        expect(result).toEqual({ emittedCount: 0, roomIds: [], checkLocationCandidates: [] })
+    })
+
+    it('returns healPlayer payload for direct HealPlayer command', async () => {
+        const result = await handler({
+            type: 'HealPlayer',
+            player: 'player-2'
+        })
+
+        expect(healPlayer).toHaveBeenCalledWith('player-2')
+        expect(result).toEqual({ Characters: [], Assets: [], guestName: '', guestId: '' })
     })
 })

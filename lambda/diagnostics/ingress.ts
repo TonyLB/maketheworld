@@ -22,14 +22,30 @@ const normalizeConnectionsEventBridgeIngress = async (event: any) => {
 }
 
 const normalizeApiDiagnosticsIngress = async (event: any) => {
-    if (event.type !== 'StaleSessionSweep') {
-        return
+    switch (event.type) {
+        case 'StaleSessionSweep':
+            sendApiDiagnosticsEvent(messageBus, {
+                type: 'StaleSessionSweep',
+                ...(typeof event.diagnosticRunId === 'string' ? { diagnosticRunId: event.diagnosticRunId } : {}),
+                ...(typeof event.nowMs === 'number' ? { nowMs: event.nowMs } : {})
+            })
+            return
+        case 'HealPlayer':
+            if (typeof event.player === 'string') {
+                sendApiDiagnosticsEvent(messageBus, {
+                    type: 'HealPlayer',
+                    player: event.player
+                })
+            }
+            return
+        case 'RoomOccupancyDriftSweep':
+            sendApiDiagnosticsEvent(messageBus, {
+                type: 'RoomOccupancyDriftSweep',
+                ...(typeof event.diagnosticRunId === 'string' ? { diagnosticRunId: event.diagnosticRunId } : {}),
+                ...(typeof event.nowMs === 'number' ? { nowMs: event.nowMs } : {})
+            })
+            return
     }
-    sendApiDiagnosticsEvent(messageBus, {
-        type: 'StaleSessionSweep',
-        ...(typeof event.diagnosticRunId === 'string' ? { diagnosticRunId: event.diagnosticRunId } : {}),
-        ...(typeof event.nowMs === 'number' ? { nowMs: event.nowMs } : {})
-    })
 }
 
 export const routeDiagnosticsIngress = async (event: any) => {
