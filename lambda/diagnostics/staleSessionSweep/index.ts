@@ -1,12 +1,10 @@
-import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb'
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge'
-import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
 import { v4 as uuidv4 } from 'uuid'
 import { DiagnosticsEventSerializer, DiagnosticsStaleSessionIdFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { publishStreamEvent, StreamEventPublisherSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/streamEventPublisher'
-import type { AttributeValue } from '@aws-sdk/client-dynamodb'
 import { connectionDB, META_SESSION_PK, sessionIdFromMetaSortKey, sessionMetaSortKey } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import type { QueryPageEnvelope } from '@tonylb/mtw-utilities/ts/dynamoDB/mixins/query'
 import { isStaleSessionMetaRow } from './classification'
 
 type MetaSessionRow = {
@@ -18,30 +16,27 @@ type MetaSessionRow = {
 }
 
 const queryAllMetaSessionRows = async (): Promise<MetaSessionRow[]> => {
-    const tablePrefix = process.env.TABLE_PREFIX
-    if (!tablePrefix) {
-        throw new Error('staleSessionSweep requires TABLE_PREFIX')
-    }
-    const client = new DynamoDBClient({ region: process.env.AWS_REGION })
-    const tableName = `${tablePrefix}_connections`
     const collected: MetaSessionRow[] = []
-    let exclusiveStartKey: Record<string, AttributeValue> | undefined
-
+    let nextPage: (() => Promise<QueryPageEnvelope<MetaSessionRow>>) | undefined
+    let page = await connectionDB.query<MetaSessionRow>({
+        Key: {
+            ConnectionId: META_SESSION_PK
+        },
+        KeyConditionExpression: 'begins_with(DataCategory, :prefix)',
+        ExpressionAttributeValues: {
+            ':prefix': 'SESSION#'
+        },
+        ProjectionFields: ['ConnectionId', 'DataCategory', 'connections', 'dropAfter', 'player'],
+        ConsistentRead: true,
+        pagination: true
+    })
     do {
-        const out = await client.send(new QueryCommand({
-            TableName: tableName,
-            KeyConditionExpression: 'ConnectionId = :pk AND begins_with(DataCategory, :prefix)',
-            ExpressionAttributeValues: marshall({
-                ':pk': META_SESSION_PK,
-                ':prefix': 'SESSION#'
-            }),
-            ConsistentRead: true,
-            ...(exclusiveStartKey ? { ExclusiveStartKey: exclusiveStartKey } : {})
-        }))
-        const batch = (out.Items ?? []).map((item) => unmarshall(item) as MetaSessionRow)
-        collected.push(...batch)
-        exclusiveStartKey = out.LastEvaluatedKey
-    } while (exclusiveStartKey)
+        collected.push(...page.items)
+        nextPage = page.nextPage
+        if (nextPage) {
+            page = await nextPage()
+        }
+    } while (nextPage)
 
     return collected
 }

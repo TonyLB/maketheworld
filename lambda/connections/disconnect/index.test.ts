@@ -8,6 +8,7 @@ import { atomicallyRemoveCharacterAdjacency } from '.'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const connectionDBMock = connectionDB as jest.Mocked<typeof connectionDB>
+const queryMock = connectionDB.query as unknown as jest.Mock
 
 describe("atomicallyRemoveCharacterAdjacency", () => {
     beforeEach(() => {
@@ -17,7 +18,7 @@ describe("atomicallyRemoveCharacterAdjacency", () => {
 
     it("should update correctly on last connection", async () => {
         ephemeraDBMock.getItem.mockResolvedValue({ RoomId: 'ROOM#Test' })
-        connectionDBMock.query.mockResolvedValueOnce([{ ConnectionId: 'CONNECTION#XYZ', DataCategory: 'CHARACTER#ABC' }])
+        queryMock.mockResolvedValueOnce([{ ConnectionId: 'CONNECTION#XYZ', DataCategory: 'CHARACTER#ABC' }])
         await atomicallyRemoveCharacterAdjacency('1234', 'CHARACTER#TestChar')
         expect(connectionDBMock.transactWrite).toHaveBeenCalledTimes(1)
         expect(connectionDBMock.transactWrite.mock.calls[0][0]).toEqual([

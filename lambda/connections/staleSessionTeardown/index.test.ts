@@ -25,11 +25,12 @@ import { tearDownStaleSession } from './index'
 
 const connectionDBMock = jest.mocked(connectionDB)
 const eventBridgeClientMock = jest.mocked(eventBridgeClient)
+const queryMock = connectionDB.query as unknown as jest.Mock
 
 describe('tearDownStaleSession', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        connectionDBMock.query.mockResolvedValue([])
+        queryMock.mockImplementation(async () => ([]))
         eventBridgeClientMock.send.mockResolvedValue(undefined as never)
     })
 

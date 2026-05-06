@@ -127,4 +127,86 @@ describe('withQuery', () => {
         expect(dbMock.send.mock.calls[0][0].input.ConsistentRead).toBeUndefined()
     })
 
+    it('returns paginated envelope with limit and next token', async () => {
+        dbMock.send.mockResolvedValueOnce({
+            Items: [marshall({
+                EphemeraId: 'TestOne',
+                DataCategory: 'DC1',
+                TestValue: 5
+            })],
+            LastEvaluatedKey: marshall({
+                EphemeraId: 'TestTwo',
+                DataCategory: 'DC2'
+            })
+        })
+        const output = await dbHandler.query<{ PrimaryKey: string; DataCategory: string; TestValue: number }>({
+            Key: { PrimaryKey: 'TestOne' },
+            pagination: { limit: 5 }
+        })
+        expect(dbMock.send).toHaveBeenCalledTimes(1)
+        expect(dbMock.send.mock.calls[0][0].input.Limit).toBe(5)
+        expect(Array.isArray((output as any).items)).toBe(true)
+        expect((output as any).nextToken).toBeDefined()
+        expect(typeof (output as any).nextPage).toBe('function')
+        expect((output as any).items).toEqual([{
+            PrimaryKey: 'TestOne',
+            DataCategory: 'DC1',
+            TestValue: 5
+        }])
+    })
+
+    it('nextPage uses decoded token as ExclusiveStartKey', async () => {
+        dbMock.send
+            .mockResolvedValueOnce({
+                Items: [marshall({
+                    EphemeraId: 'TestOne',
+                    DataCategory: 'DC1',
+                    TestValue: 1
+                })],
+                LastEvaluatedKey: marshall({
+                    EphemeraId: 'TestTwo',
+                    DataCategory: 'DC2'
+                })
+            })
+            .mockResolvedValueOnce({
+                Items: [marshall({
+                    EphemeraId: 'TestThree',
+                    DataCategory: 'DC3',
+                    TestValue: 2
+                })]
+            })
+        const first = await dbHandler.query<{ PrimaryKey: string; DataCategory: string; TestValue: number }>({
+            Key: { PrimaryKey: 'TestOne' },
+            pagination: { limit: 3 }
+        })
+        const second = await (first as any).nextPage()
+        expect(dbMock.send).toHaveBeenCalledTimes(2)
+        expect(dbMock.send.mock.calls[1][0].input.ExclusiveStartKey).toEqual(marshall({
+            EphemeraId: 'TestTwo',
+            DataCategory: 'DC2'
+        }))
+        expect(second.items).toEqual([{
+            PrimaryKey: 'TestThree',
+            DataCategory: 'DC3',
+            TestValue: 2
+        }])
+    })
+
+    it('clamps paginated limit to max guardrail', async () => {
+        dbMock.send.mockResolvedValue({ Items: [] })
+        await dbHandler.query({
+            Key: { PrimaryKey: 'TestOne' },
+            pagination: { limit: 99999 }
+        })
+        expect(dbMock.send.mock.calls[0][0].input.Limit).toBe(250)
+    })
+
+    it('throws for invalid pagination token', async () => {
+        await expect(dbHandler.query({
+            Key: { PrimaryKey: 'TestOne' },
+            pagination: { nextToken: '$not-valid-token$' }
+        })).rejects.toThrow('Invalid pagination token')
+        expect(dbMock.send).not.toHaveBeenCalled()
+    })
+
 })

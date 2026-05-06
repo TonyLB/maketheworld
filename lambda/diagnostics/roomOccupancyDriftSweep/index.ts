@@ -1,76 +1,73 @@
-import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb'
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge'
-import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
 import { v4 as uuidv4 } from 'uuid'
 import { DiagnosticsEventSerializer, DiagnosticsRoomOccupancyDriftFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { publishStreamEvent, StreamEventPublisherSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/streamEventPublisher'
-import type { AttributeValue } from '@aws-sdk/client-dynamodb'
-import { connectionDB, META_SESSION_PK, sessionIdFromMetaSortKey, sessionMetaSortKey } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { connectionDB, ephemeraDB, META_SESSION_PK, sessionIdFromMetaSortKey } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import type { QueryPageEnvelope } from '@tonylb/mtw-utilities/ts/dynamoDB/mixins/query'
+import type { DBHandlerItem } from '@tonylb/mtw-utilities/ts/dynamoDB/baseClasses'
 import { authoritativeRoomByCharacter, listOccupancyEntries, normalizeRoomId, roomHasOccupancyDrift } from './classification'
 
 type MetaSessionRow = {
+    ConnectionId: string
     DataCategory: string
 }
 
 type CharacterMetaRow = {
     EphemeraId: string
+    DataCategory: string
     RoomId?: string
 }
 
 type RoomMetaRow = {
     EphemeraId: string
+    DataCategory: string
     activeCharacters?: unknown[]
 }
 
-const queryAllMetaSessionRows = async (tableName: string): Promise<MetaSessionRow[]> => {
-    const client = new DynamoDBClient({ region: process.env.AWS_REGION })
-    const collected: MetaSessionRow[] = []
-    let exclusiveStartKey: Record<string, AttributeValue> | undefined
-
+const unfoldPages = async <T>(firstPage: QueryPageEnvelope<T>): Promise<T[]> => {
+    const collected: T[] = []
+    let page = firstPage
+    let nextPage = page.nextPage
     do {
-        const out = await client.send(new QueryCommand({
-            TableName: tableName,
-            KeyConditionExpression: 'ConnectionId = :pk AND begins_with(DataCategory, :prefix)',
-            ExpressionAttributeValues: marshall({
-                ':pk': META_SESSION_PK,
-                ':prefix': 'SESSION#'
-            }),
-            ConsistentRead: true,
-            ...(exclusiveStartKey ? { ExclusiveStartKey: exclusiveStartKey } : {})
-        }))
-        collected.push(...(out.Items ?? []).map((item) => unmarshall(item) as MetaSessionRow))
-        exclusiveStartKey = out.LastEvaluatedKey
-    } while (exclusiveStartKey)
-
+        collected.push(...page.items)
+        nextPage = page.nextPage
+        if (nextPage) {
+            page = await nextPage()
+        }
+    } while (nextPage)
     return collected
 }
 
-const queryAllEphemeraRowsByDataCategory = async <T>(args: {
-    tableName: string
+const queryAllMetaSessionRows = async (): Promise<MetaSessionRow[]> => {
+    const firstPage = await connectionDB.query<MetaSessionRow>({
+        Key: {
+            ConnectionId: META_SESSION_PK
+        },
+        KeyConditionExpression: 'begins_with(DataCategory, :prefix)',
+        ExpressionAttributeValues: {
+            ':prefix': 'SESSION#'
+        },
+        ProjectionFields: ['ConnectionId', 'DataCategory'],
+        ConsistentRead: true,
+        pagination: true
+    }) as unknown as QueryPageEnvelope<MetaSessionRow>
+    return await unfoldPages<MetaSessionRow>(firstPage)
+}
+
+const queryAllEphemeraRowsByDataCategory = async <T extends DBHandlerItem<'EphemeraId'>>(args: {
     dataCategory: string
     projectionFields: string[]
 }): Promise<T[]> => {
-    const client = new DynamoDBClient({ region: process.env.AWS_REGION })
-    const collected: T[] = []
-    let exclusiveStartKey: Record<string, AttributeValue> | undefined
-
-    do {
-        const out = await client.send(new QueryCommand({
-            TableName: args.tableName,
-            IndexName: 'DataCategoryIndex',
-            KeyConditionExpression: 'DataCategory = :dataCategory',
-            ExpressionAttributeValues: marshall({
-                ':dataCategory': args.dataCategory
-            }),
-            ProjectionExpression: args.projectionFields.join(', '),
-            ...(exclusiveStartKey ? { ExclusiveStartKey: exclusiveStartKey } : {})
-        }))
-        collected.push(...(out.Items ?? []).map((item) => unmarshall(item) as T))
-        exclusiveStartKey = out.LastEvaluatedKey
-    } while (exclusiveStartKey)
-
-    return collected
+    const firstPage = await ephemeraDB.query<T>({
+        IndexName: 'DataCategoryIndex',
+        Key: {
+            DataCategory: args.dataCategory
+        },
+        ProjectionFields: args.projectionFields,
+        pagination: true
+    }) as unknown as QueryPageEnvelope<T>
+    return await unfoldPages<T>(firstPage)
 }
 
 const adjacencyCharactersForSession = async (sessionId: string): Promise<string[]> => {
@@ -108,16 +105,14 @@ export const roomOccupancyDriftSweep = async (params?: {
     const serializer = new DiagnosticsEventSerializer(createNodeDataSourceEnvironment())
 
     const [metaSessionRows, characterMetaRows, roomMetaRows] = await Promise.all([
-        queryAllMetaSessionRows(`${tablePrefix}_connections`),
+        queryAllMetaSessionRows(),
         queryAllEphemeraRowsByDataCategory<CharacterMetaRow>({
-            tableName: `${tablePrefix}_ephemera`,
             dataCategory: 'Meta::Character',
-            projectionFields: ['EphemeraId', 'RoomId']
+            projectionFields: ['EphemeraId', 'DataCategory', 'RoomId']
         }),
         queryAllEphemeraRowsByDataCategory<RoomMetaRow>({
-            tableName: `${tablePrefix}_ephemera`,
             dataCategory: 'Meta::Room',
-            projectionFields: ['EphemeraId', 'activeCharacters']
+            projectionFields: ['EphemeraId', 'DataCategory', 'activeCharacters']
         })
     ])
 
