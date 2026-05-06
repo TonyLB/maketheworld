@@ -1,6 +1,6 @@
 # Connections consistency refactor plan
 
-Status: complete. All seven PRs landed (connections refactor initiative done).
+Status: in progress. Core PR1-PR7 complete; next step: lock spin-off decisions and sequence PR8-PR11.
 
 ## Purpose
 
@@ -8,7 +8,7 @@ Plan and sequence the connections/diagnostics/ephemera refactor work needed to r
 
 ## Scope and PR boundaries
 
-This initiative is structured into seven PRs:
+The original initiative shipped in seven PRs, followed by four spin-off PRs:
 
 1. Remove `Global / Sessions`
 2. Refactor `Meta::Session` storage to concentrated PK (for instant consistent-read)
@@ -17,6 +17,10 @@ This initiative is structured into seven PRs:
 5. Add Room Occupancy Drift sweep to diagnostics lambda
 6. Add Room Occupancy Drift Finding to ephemera lambda
 7. Remove `Library / Subscriptions`
+8. Remove `Map / Subscriptions`
+9. Add pagination controls to utilities `withQuery` mixin
+10. Refactor connections with DataSource pattern
+11. Refactor diagnostics to receive problem reports with DataSource pattern
 
 ## Getting started
 
@@ -230,6 +234,103 @@ Record each locked decision here in order. Keep entries concise and implementati
 | D6 | Locked | Diagnostics is report-only: it emits findings and does not perform data repairs. Repair ownership is table/domain bounded: connections repairs only `connections` table state; ephemera repairs only `ephemera` table state. Loop prevention rule: healing paths must not emit same-path problem reports; if healing emits any problem signal, it must be escalation-only to a distinct higher-severity diagnostic path with a different remediation path. All repair handlers must be idempotent under replay. |
 | D7 | Locked | With clean-slate pre-cutover cleanup, remove legacy compatibility paths immediately (no telemetry soak period required for compatibility code). `Library / Subscriptions` legacy removal can proceed directly in-scope for this initiative without staged dual-path support. Final gate is successful post-deploy smoke checks and updated docs/tests reflecting only canonical behavior. |
 | D8 | Locked | Adopt event-first eventual-consistency model for character connection lifecycle. Connections remains authoritative for `connections`-table state and emits lifecycle events (`Character Connected` / `Character Disconnected`) instead of relying on direct cross-table adjacency mutation as steady-state architecture. Ephemera consumes lifecycle events and converges room/character presence asynchronously, accepting short-lived ghost presence as an intentional tradeoff. `checkLocation` and diagnostics drift sweeps remain convergence/repair backstops. |
+| D9 | Locked | For PR8, replace legacy map-subscription behavior with a temporary `mtw.ephemera.maps` DataSource stub that returns syntactically valid empty snapshots on subscribe. Treat map publishing/perception integration as intentionally deferred (temporary functionality gap accepted). |
+| D10 | Locked | Use one-shot cutover for PR8: sever runtime dependency on `Map / Subscriptions` and old imperative fanout path immediately, keep client-facing subscribe/unsubscribe request/ack semantics stable, and do not run a compatibility dual-path window. |
+| D11 | Locked | During stub window, map-update hot-path performance constraints are out of scope (`N/A` beyond "no regression outside maps"). Define replacement latency/read-amplification budgets in deferred map subscription refactor planning. |
+| D12 | Locked | Cleanup ownership in PR8: remove `Map / Subscriptions` coupling from connections/ephemera hot paths now, archive orphaned imperative map-subscription code for reference, and defer canonical ownership/fanout redesign to [`taskPlanning/lambda/ephemera/AGENT.mapSubscriptionRefactor.planning.md`](../ephemera/AGENT.mapSubscriptionRefactor.planning.md). |
+
+## Spin-off follow-up planning (post PR7)
+
+These items are intentionally blocked on explicit decisions before implementation starts. Pending decisions use `[ ]`; move to `[X]` and add final wording to the decision log (or a follow-up decision subsection) before coding.
+
+### Candidate PR8 - Remove `Map / Subscriptions`
+
+- Goal: eliminate remaining correctness dependencies on the `ConnectionId='Map', DataCategory='Subscriptions'` aggregate row.
+- Known current usage (from PR7 context):
+  - Connections teardown bookkeeping currently removes session IDs from Map subscriptions.
+  - Ephemera map subscription/fanout paths still read/write Map subscriptions.
+  - Disconnect/cleanup paths across lambdas assume this aggregate exists.
+- Locked decisions:
+  - [X] D9 - Canonical temporary behavior after removing aggregate row is a `mtw.ephemera.maps` stub DataSource that publishes syntactically valid empty snapshots; map publishing functionality is intentionally deferred.
+  - [X] D10 - One-shot cutover (no compatibility read window): remove runtime coupling to `Map / Subscriptions` while preserving subscribe/unsubscribe request/ack semantics.
+  - [X] D11 - Replacement hot-path performance targets are deferred until full map/perception redesign; PR8 acceptance is correctness/isolation, not map-publish performance.
+  - [X] D12 - Archive old imperative map-subscription code as deferred reference and track full ownership redesign in [`taskPlanning/lambda/ephemera/AGENT.mapSubscriptionRefactor.planning.md`](../ephemera/AGENT.mapSubscriptionRefactor.planning.md).
+
+### Candidate PR9 - Add pagination controls to utilities `withQuery` mixin
+
+- Goal: support explicit page size / pagination token controls in shared query helper(s) to avoid one-shot scans in high-cardinality reads.
+- Expected blast radius: `packages/mtw-utilities` query consumers across lambdas (connections, diagnostics, ephemera, assets, subscriptions).
+- Decisions/unknowns to lock:
+  - [ ] D13 - Pagination API shape in `withQuery` (`limit`, `nextToken`, `exclusiveStartKey`, iterator API, or callback style).
+  - [ ] D14 - Default behavior compatibility (must preserve existing callsites that expect full result arrays unless opt-in).
+  - [ ] D15 - Token contract standardization (raw DynamoDB key passthrough vs encoded opaque token).
+  - [ ] D16 - Max page-size guardrails and caller override policy.
+
+### Candidate PR10 - Refactor connections with DataSource pattern
+
+- Goal: align connections lambda event ingestion/dispatch with the DataSource pattern used in newer areas for consistency and testability.
+- Scope candidate: app entrypoint routing + event normalization + message handlers while preserving existing contracts (`Session Disconnect`, problem reports, stale-session finding handling).
+- Decisions/unknowns to lock:
+  - [ ] D17 - Target DataSource boundary in connections (app-level only vs include teardown/repair internals).
+  - [ ] D18 - Event envelope normalization strategy across direct invokes, EventBridge, and any legacy message paths.
+  - [ ] D19 - Rollout strategy (strangler dual-route, feature flag, or one-shot swap) with safety checks.
+  - [ ] D20 - Test migration strategy (which existing Jest suites move first, and required fixture abstractions).
+
+### Candidate PR11 - Refactor diagnostics to receive problem reports with DataSource pattern
+
+- Goal: move diagnostics intake (especially problem-report ingestion) onto DataSource pattern for shared deserialization, dedupe hooks, and clearer contracts.
+- Scope candidate: diagnostics app entrypoint + report/finding dispatch; maintain report-only repair ownership boundary (D6).
+- Decisions/unknowns to lock:
+  - [ ] D21 - Problem-report intake schema ownership (interfaces package vs diagnostics-local adapters).
+  - [ ] D22 - Dedupe placement (inside DataSource layer vs downstream sweep/findings handlers).
+  - [ ] D23 - Cross-source ordering/consistency expectations when receiving multiple report types.
+  - [ ] D24 - Failure/retry semantics for malformed or partial report payloads.
+
+## Recommended order (spin-off PRs)
+
+Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as progress is made; when all nested lines are complete, mark the parent line `[X]`.
+
+- [ ] PR8 - Remove `Map / Subscriptions`
+  - [X] Lock D9-D12 before implementation.
+  - [X] Create deferred follow-up plan doc [`taskPlanning/lambda/ephemera/AGENT.mapSubscriptionRefactor.planning.md`](../ephemera/AGENT.mapSubscriptionRefactor.planning.md) using `taskPlanning/AGENT.md` conventions.
+  - [ ] Inventory all read/write paths to `ConnectionId='Map', DataCategory='Subscriptions'`.
+  - [ ] Implement temporary `mtw.ephemera.maps` stub DataSource (empty snapshot-on-subscribe contract, syntactically valid payload).
+  - [ ] Preserve subscribe/unsubscribe request/ack correlation semantics expected by client state machines.
+  - [ ] Sever runtime fanout dependency on imperative map-subscription paths (intentional temporary map-publishing gap).
+  - [ ] Remove legacy cleanup writes and compatibility reads.
+  - [ ] Add regression tests for disconnect cleanup plus explicit "stub-window" map behavior (subscribe/unsubscribe ack succeeds; map updates intentionally absent).
+  - [ ] Update durable docs after implementation lands.
+
+- [ ] PR9 - Add pagination controls to utilities `withQuery` mixin
+  - [ ] Lock D13-D16 before implementation.
+  - [ ] Extend utilities API with pagination primitives and type-safe return contract.
+  - [ ] Add utility-level unit tests for token round-trip, limits, and compatibility defaults.
+  - [ ] Migrate at least one high-cardinality caller as proving ground.
+  - [ ] Document usage guidance in durable docs.
+
+- [ ] PR10 - Refactor connections with DataSource pattern
+  - [ ] Lock D17-D20 before implementation.
+  - [ ] Introduce DataSource entry/dispatch layer in connections.
+  - [ ] Migrate existing handler routes without contract drift.
+  - [ ] Preserve retry/escalation semantics and loop-prevention guarantees.
+  - [ ] Update/port tests to DataSource-oriented coverage.
+  - [ ] Update durable docs after implementation lands.
+
+- [ ] PR11 - Refactor diagnostics to receive problem reports with DataSource pattern
+  - [ ] Lock D21-D24 before implementation.
+  - [ ] Introduce DataSource intake for diagnostics problem reports/findings triggers.
+  - [ ] Preserve D6 ownership boundaries and existing finding contracts.
+  - [ ] Add replay/idempotency and malformed-payload handling tests.
+  - [ ] Update durable docs after implementation lands.
+
+## Progress (spin-off PRs)
+
+| PR | Scope | Status | Notes |
+| --- | --- | --- | --- |
+| 8 | Remove `Map / Subscriptions` | Not started | D9-D12 locked; implementation intentionally uses temporary `mtw.ephemera.maps` stub and defers full map/perception redesign to follow-up plan |
+| 9 | Add pagination controls to utilities `withQuery` mixin | Not started | Blocked on D13-D16 |
+| 10 | Refactor connections with DataSource pattern | Not started | Blocked on D17-D20 |
+| 11 | Refactor diagnostics to receive problem reports with DataSource pattern | Not started | Blocked on D21-D24 |
 
 ## Verification strategy by phase
 
