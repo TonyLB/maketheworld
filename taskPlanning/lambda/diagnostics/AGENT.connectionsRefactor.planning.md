@@ -1,6 +1,6 @@
 # Connections consistency refactor plan
 
-Status: in progress. Next step: PR6 (Room Occupancy Drift Finding handling in ephemera lambda); PR5 (diagnostics occupancy-drift sweep) is complete.
+Status: in progress. Next step: PR7 (remove `Library / Sessions`); PR6 (ephemera occupancy-drift handling) is complete.
 
 ## Purpose
 
@@ -160,11 +160,11 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
   - [X] Emit `Room Occupancy Drift Finding` payload `{ roomId }` (optional `diagnosticRunId` on diagnostics sweeps).
   - [X] Add tests for mixed-valid/mixed-invalid room states.
 
-- [ ] PR6 - Add Room Occupancy Drift Finding handling to ephemera lambda
-  - [ ] Wire ephemera intake for `mtw.diagnostics` room-occupancy finding events.
-  - [ ] Implement corrective reconciliation for affected room records (derived room occupancy reconciled to authoritative adjacency + `Meta::Character.RoomId`).
-  - [ ] Ensure cache invalidation/update contract after reconciliation (`RoomCharacterList`, `ComponentEphemeraMeta`, `ComponentStackMerge`) and room update signaling.
-  - [ ] Add tests for idempotent replays and partial-repair scenarios.
+- [X] PR6 - Add Room Occupancy Drift Finding handling to ephemera lambda
+  - [X] Wire ephemera intake for `mtw.diagnostics` room-occupancy finding events.
+  - [X] Implement corrective reconciliation for affected room records (derived room occupancy reconciled to authoritative adjacency + `Meta::Character.RoomId`).
+  - [X] Ensure cache invalidation/update contract after reconciliation (`RoomCharacterList`, `ComponentEphemeraMeta`, `ComponentStackMerge`) and room update signaling.
+  - [X] Add tests for idempotent replays and partial-repair scenarios.
 
 - [ ] PR7 - Remove `Library / Sessions`
   - [ ] Remove remaining read paths for `ConnectionId='Library', DataCategory='Subscriptions'`.
@@ -181,7 +181,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 | 3 | Diagnostics stale-session sweep | Complete | Sweep + `Stale SessionId Finding`; see [`lambda/diagnostics/AGENT.md`](../../../lambda/diagnostics/AGENT.md) |
 | 4 | Connections stale-session handling | Complete | Problem reports + finding-driven repair ([`lambda/connections/staleSessionFinding`](../../../lambda/connections/staleSessionFinding/index.ts), [`staleSessionTeardown`](../../../lambda/connections/staleSessionTeardown/index.ts)); see [`lambda/connections/AGENT.md`](../../../lambda/connections/AGENT.md) |
 | 5 | Diagnostics occupancy-drift sweep | Complete | Direct-invoke sweep implemented; emits `Room Occupancy Drift Finding`; mixed-valid/mixed-invalid coverage added in diagnostics tests |
-| 6 | Ephemera occupancy-drift handling | Not started | Consumes PR5 finding |
+| 6 | Ephemera occupancy-drift handling | Complete | Ephemera now consumes `Room Occupancy Drift Finding` via DataSource deserializer lane and runs idempotent room self-healing in `dataSource/selfHealing/roomOccupancyDriftFinding.ts` with cache invalidation + `RoomUpdate` signaling |
 | 7 | Remove `Library / Sessions` | Not started | Cleanup/legacy removal pass |
 
 ### PR3 verification (completed)
@@ -202,6 +202,12 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 ### PR5 verification (completed)
 
 - `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/diagnostics" test`
+- `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/packages/mtw-interfaces" test -- --testPathPattern=eventBridge/diagnostics`
+
+### PR6 verification (completed)
+
+- `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/ephemera" test`
+- `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/diagnostics" test -- --testPathPattern=roomOccupancyDriftSweep`
 - `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/packages/mtw-interfaces" test -- --testPathPattern=eventBridge/diagnostics`
 
 ## Decision log
