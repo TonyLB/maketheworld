@@ -186,7 +186,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 | 4 | Connections stale-session handling | Complete | Problem reports + finding-driven repair ([`lambda/connections/staleSessionFinding`](../../../lambda/connections/staleSessionFinding/index.ts), [`staleSessionTeardown`](../../../lambda/connections/staleSessionTeardown/index.ts)); see [`lambda/connections/AGENT.md`](../../../lambda/connections/AGENT.md) |
 | 5 | Diagnostics occupancy-drift sweep | Complete | Direct-invoke sweep implemented; emits `Room Occupancy Drift Finding`; mixed-valid/mixed-invalid coverage added in diagnostics tests |
 | 6 | Ephemera occupancy-drift handling | Complete | Ephemera now consumes `Room Occupancy Drift Finding` via DataSource deserializer lane and runs idempotent room self-healing in `dataSource/selfHealing/roomOccupancyDriftFinding.ts` with cache invalidation + `RoomUpdate` signaling |
-| 7 | Remove `Library / Subscriptions` | Complete | See PR7 verification below; dead `librarySubscriptions` cache key removed; `tearDownStaleSession` updates only `Map / Subscriptions` |
+| 7 | Remove `Library / Subscriptions` | Complete | See PR7 verification below; dead `librarySubscriptions` cache key removed; `Map / Subscriptions` removal deferred to PR8 |
 
 ### PR3 verification (completed)
 
@@ -219,6 +219,13 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 - `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/connections" test`
 - `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/assets" test`
 - `rg -n "ConnectionId: 'Library'" lambda packages --glob '!**/*.test.ts'` (expect no matches; `app.test.ts` keeps a negative regression assertion on that key)
+
+### PR8 verification (completed)
+
+- `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/connections" test`
+- `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/ephemera" test`
+- `npm --prefix "/Users/anthonylower-basch/Code/maketheworld/lambda/subscriptions" test`
+- `rg -n "ConnectionId:\s*'Map'|DataCategory:\s*'Subscriptions'|mapSubscriptions" lambda --glob '!**/*.test.ts'` (expect no matches)
 
 ## Decision log
 
@@ -262,6 +269,10 @@ These items are intentionally blocked on explicit decisions before implementatio
   - Connections teardown bookkeeping currently removes session IDs from Map subscriptions.
   - Ephemera map subscription/fanout paths still read/write Map subscriptions.
   - Disconnect/cleanup paths across lambdas assume this aggregate exists.
+- PR8 implementation inventory (completed):
+  - Writers removed: `lambda/connections/disconnect/index.ts`, `lambda/connections/staleSessionTeardown/index.ts`, `lambda/ephemera/mapSubscription/index.ts`, `lambda/ephemera/disconnectMessage/index.ts`
+  - Readers/fanout paths severed: `lambda/ephemera/internalCache/global.ts`, `lambda/ephemera/mapUpdate/index.ts`, `lambda/ephemera/ephemeraUpdate/index.ts`
+  - Regression coverage updated: `lambda/connections/app.test.ts`, `lambda/connections/disconnect/index.test.ts`, `lambda/connections/staleSessionTeardown/index.test.ts`, `lambda/ephemera/mapSubscription/index.test.ts`
 - Locked decisions:
   - [X] D9 - Canonical temporary behavior after removing aggregate row is a `mtw.ephemera.maps` stub DataSource that publishes syntactically valid empty snapshots; map publishing functionality is intentionally deferred.
   - [X] D10 - One-shot cutover (no compatibility read window): remove runtime coupling to `Map / Subscriptions` while preserving subscribe/unsubscribe request/ack semantics.
@@ -302,16 +313,16 @@ These items are intentionally blocked on explicit decisions before implementatio
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as progress is made; when all nested lines are complete, mark the parent line `[X]`.
 
-- [ ] PR8 - Remove `Map / Subscriptions`
+- [X] PR8 - Remove `Map / Subscriptions`
   - [X] Lock D9-D12 before implementation.
   - [X] Create deferred follow-up plan doc [`taskPlanning/lambda/ephemera/AGENT.mapSubscriptionRefactor.planning.md`](../ephemera/AGENT.mapSubscriptionRefactor.planning.md) using `taskPlanning/AGENT.md` conventions.
-  - [ ] Inventory all read/write paths to `ConnectionId='Map', DataCategory='Subscriptions'`.
-  - [ ] Implement temporary `mtw.ephemera.maps` stub DataSource (empty snapshot-on-subscribe contract, syntactically valid payload).
-  - [ ] Preserve subscribe/unsubscribe request/ack correlation semantics expected by client state machines.
-  - [ ] Sever runtime fanout dependency on imperative map-subscription paths (intentional temporary map-publishing gap).
-  - [ ] Remove legacy cleanup writes and compatibility reads.
-  - [ ] Add regression tests for disconnect cleanup plus explicit "stub-window" map behavior (subscribe/unsubscribe ack succeeds; map updates intentionally absent).
-  - [ ] Update durable docs after implementation lands.
+  - [X] Inventory all read/write paths to `ConnectionId='Map', DataCategory='Subscriptions'`.
+  - [X] Implement temporary `mtw.ephemera.maps` stub DataSource (empty snapshot-on-subscribe contract, syntactically valid payload).
+  - [X] Preserve subscribe/unsubscribe request/ack correlation semantics expected by client state machines.
+  - [X] Sever runtime fanout dependency on imperative map-subscription paths (intentional temporary map-publishing gap).
+  - [X] Remove legacy cleanup writes and compatibility reads.
+  - [X] Add regression tests for disconnect cleanup plus explicit "stub-window" map behavior (subscribe/unsubscribe ack succeeds; map updates intentionally absent).
+  - [X] Update durable docs after implementation lands.
 
 - [ ] PR9 - Add pagination controls to utilities `withQuery` mixin
   - [ ] Lock D13-D16 before implementation.
@@ -339,7 +350,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 
 | PR | Scope | Status | Notes |
 | --- | --- | --- | --- |
-| 8 | Remove `Map / Subscriptions` | Not started | D9-D12 locked; implementation intentionally uses temporary `mtw.ephemera.maps` stub and defers full map/perception redesign to follow-up plan |
+| 8 | Remove `Map / Subscriptions` | Complete | Removed runtime `Map / Subscriptions` coupling from connections + ephemera paths; subscribe/unsubscribe acks now return empty stub snapshots; map publish fanout intentionally absent pending deferred redesign plan |
 | 9 | Add pagination controls to utilities `withQuery` mixin | Not started | Blocked on D13-D16 |
 | 10 | Refactor connections with DataSource pattern | Not started | Blocked on D17-D20 |
 | 11 | Refactor diagnostics to receive problem reports with DataSource pattern | Not started | Blocked on D21-D24 |

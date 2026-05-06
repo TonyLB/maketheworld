@@ -10,28 +10,14 @@ import { EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, EphemeraClien
 
 export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMessage[], messageBus?: MessageBus }): Promise<void> => {
     const characterIds = payloads.map(({ updates }) => (updates.map(({ connectionTargets, ...rest }) => (rest)).filter(isEphemeraCharacterArgument).map(({ CharacterId }) => (CharacterId)))).flat(1)
-    const [RequestId, mapSubscriptions, ...characterMetaValues] = await Promise.all([
+    const [RequestId, ...characterMetaValues] = await Promise.all([
         internalCache.Global.get('RequestId'),
-        internalCache.Global.get('mapSubscriptions'),
         ...unique(characterIds).map((characterId) => (internalCache.CharacterMeta.get(characterId)))
     ])
 
-    //
-    // For reference later, calculate for each CharacterId that appears in the mapSubscriptions table, which sessions
-    // are subscribed to maps on behalf of that CharacterId.  As yet, CharacterId targets in ephemeraUpdate only
-    // refer to publishing the targeted subscription of map renders.
-    //
-    const mapSubscriptionsByCharacterId = (mapSubscriptions || []).reduce<Record<EphemeraCharacterId, PublishTargetSession[]>>(
-        (previous, { sessionId, characterIds }) => (characterIds.reduce<Record<EphemeraCharacterId, PublishTargetSession[]>>(
-            (accumulator, characterId) => ({
-                ...accumulator,
-                [characterId]: [
-                    ...(accumulator[characterId] || []),
-                    `SESSION#${sessionId}`
-                ]
-            }), previous
-        )), {}
-    )
+    // PR8 stub window: character-target map fanout is intentionally disabled.
+    // Character-targeted map updates therefore resolve to no sessions here.
+    const mapFanoutSessionsByCharacterId: Record<EphemeraCharacterId, PublishTargetSession[]> = {}
 
     const sortTargetsIntoSessions = async (targets: EphemeraPublishTarget[]): Promise<{ sessionId: PublishTargetSession, characters: EphemeraCharacterId[] }[]> => {
         let returnValue: Record<PublishTargetSession, EphemeraCharacterId[]> = {}
@@ -50,7 +36,7 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
             }
         }))
         targets.filter(isPublishTargetCharacter).forEach((characterId) => {
-            const sessionIdsForCharacter = mapSubscriptionsByCharacterId[characterId] || []
+            const sessionIdsForCharacter = mapFanoutSessionsByCharacterId[characterId] || []
             sessionIdsForCharacter.forEach((sessionId) => {
                 returnValue[sessionId] = unique(returnValue[sessionId] || [], [characterId]) as EphemeraCharacterId[]
             })

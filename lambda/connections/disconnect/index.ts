@@ -37,18 +37,6 @@ export const atomicallyRemoveCharacterAdjacency = async (sessionId: string, char
                             }])
                         }
                     }
-                },
-                {
-                    Update: {
-                        Key: {
-                            ConnectionId: 'Map',
-                            DataCategory: 'Subscriptions'
-                        },
-                        updateKeys: ['sessions'],
-                        updateReducer: (draft) => {
-                            draft.sessions = (draft.sessions ?? []).filter((value) => (value.sessionId !== sessionId))
-                        }
-                    }
                 }
             ])
         ])

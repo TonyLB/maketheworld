@@ -48,8 +48,6 @@ describe('EphemeraUpdateMessage', () => {
                     return 'TestConnection'
                 case 'sessions':
                     return ['Session1']
-                case 'mapSubscriptions':
-                    return []
                 default:
                     return 'Request123'
             }

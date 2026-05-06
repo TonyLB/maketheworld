@@ -1,13 +1,7 @@
-import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses";
 import { connectionDB, ephemeraDB, META_SESSION_PK, sessionIdFromMetaSortKey } from "@tonylb/mtw-utilities/ts/dynamoDB";
 import delayPromise from "@tonylb/mtw-utilities/ts/dynamoDB/delayPromise";
 
-export type CacheGlobalKeys = 'ConnectionId' | 'SessionId' | 'RequestId' | 'player' | 'assets' | 'sessions' | 'mapSubscriptions'
-
-export type MapSubscriptionConnection = {
-    sessionId: string;
-    characterIds: EphemeraCharacterId[]
-}
+export type CacheGlobalKeys = 'ConnectionId' | 'SessionId' | 'RequestId' | 'player' | 'assets' | 'sessions'
 
 export class CacheGlobalData {
     ConnectionId?: string;
@@ -16,11 +10,9 @@ export class CacheGlobalData {
     SessionId?: string;
     assets?: string[];
     sessions?: string[];
-    mapSubscriptions?: MapSubscriptionConnection[];
     get(key: 'ConnectionId' | 'RequestId' | 'player' | 'SessionId'): Promise<string | undefined>
     get(key: 'assets' | 'sessions'): Promise<string[] | undefined>
-    get(key: 'mapSubscriptions'): Promise<MapSubscriptionConnection[] | undefined>
-    get(key: CacheGlobalKeys): Promise<string | string[] | MapSubscriptionConnection[] | undefined>
+    get(key: CacheGlobalKeys): Promise<string | string[] | undefined>
     async get(key: CacheGlobalKeys) {
         switch(key) {
             case 'player':
@@ -83,17 +75,6 @@ export class CacheGlobalData {
                         .filter((sessionId): sessionId is string => (Boolean(sessionId)))
                 }
                 return this.sessions
-            case 'mapSubscriptions':
-                if (typeof this.mapSubscriptions === 'undefined') {
-                    const { sessions = [] } = (await connectionDB.getItem<{ sessions: MapSubscriptionConnection[] }>({
-                        Key: {
-                            ConnectionId: 'Map',
-                            DataCategory: 'Subscriptions'
-                        },
-                        ProjectionFields: ['sessions']
-                    })) || {}
-                    this.mapSubscriptions = sessions
-                }
             default:
                 return this[key]
         }
@@ -105,23 +86,13 @@ export class CacheGlobalData {
         this.player = undefined
         this.assets = undefined
         this.sessions = undefined
-        this.mapSubscriptions = undefined
-    }
-
-    invalidate(key: 'mapSubscriptions'): void {
-        this[key] = undefined
     }
 
     set(props: { key: 'ConnectionId' | 'RequestId', value: string; }): void
-    set(props: { key: 'mapSubscriptions', value: MapSubscriptionConnection[] }): void
     set(props: { key: 'assets', value: string[] }): void
-    set(props: { key: 'ConnectionId' | 'RequestId' | 'mapSubscriptions' | 'assets', value: string |  string[] | MapSubscriptionConnection[]; }): void {
-        const isMapSubscriptionEntry = (props: { key: 'ConnectionId' | 'RequestId' | 'mapSubscriptions' | 'assets', value: string | string[] | MapSubscriptionConnection[]; }): props is { key: 'mapSubscriptions', value: MapSubscriptionConnection[] } => (props.key === 'mapSubscriptions')
-        const isAssetsEntry = (props: { key: 'ConnectionId' | 'RequestId' | 'mapSubscriptions' | 'assets', value: string | string[] | MapSubscriptionConnection[]; }): props is { key: 'assets', value: string[] } => (props.key === 'assets')
-        const isPlainStringEntry = (props: { key: 'ConnectionId' | 'RequestId' | 'mapSubscriptions' | 'assets', value: string | string[] | MapSubscriptionConnection[]; }): props is { key: 'ConnectionId' | 'RequestId', value: string } => (props.key !== 'mapSubscriptions' && props.key !== 'assets')
-        if (isMapSubscriptionEntry(props)) {
-            this.mapSubscriptions = props.value
-        }
+    set(props: { key: 'ConnectionId' | 'RequestId' | 'assets', value: string |  string[]; }): void {
+        const isAssetsEntry = (props: { key: 'ConnectionId' | 'RequestId' | 'assets', value: string | string[]; }): props is { key: 'assets', value: string[] } => (props.key === 'assets')
+        const isPlainStringEntry = (props: { key: 'ConnectionId' | 'RequestId' | 'assets', value: string | string[]; }): props is { key: 'ConnectionId' | 'RequestId', value: string } => (props.key !== 'assets')
         if (isAssetsEntry(props)) {
             this.assets = props.value
         }

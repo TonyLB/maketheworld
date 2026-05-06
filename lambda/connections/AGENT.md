@@ -26,19 +26,9 @@ When changing session storage, update this section so the trade-off stays visibl
 
 ## Problem reports and finding subscriptions
 
-**`Session Disconnect` (existing):** After a session is confirmed for drop via `checkSession` (Step Functions `dropConnection` path), the connections lambda removes session/character adjacency, then emits `source: mtw.connections` / `detail-type: Session Disconnect` with `detail: { sessionId }`. This emission is **intentionally decoupled** from Map `Subscriptions` `SessionIds` bookkeeping (D4): it runs after adjacency removal and **before** the subscription-map updates succeed or fail.
+**`Session Disconnect` (existing):** After a session is confirmed for drop via `checkSession` (Step Functions `dropConnection` path), the connections lambda removes session/character adjacency, emits `source: mtw.connections` / `detail-type: Session Disconnect` with `detail: { sessionId }`, then deletes the canonical `Meta::Session` row idempotently.
 
-**`Session Disconnect Problem`:** When Map bookkeeping hits contention (`TransactionCanceledException`) or another failure, the lambda retries **three times** with progressive waits (100ms, 200ms, 400ms). If bookkeeping still fails, it emits `source: mtw.connections` / `detail-type: Session Disconnect Problem` with payload shaped per D3:
-
-- `sessionId` (required)
-- `player` (optional; omitted when unknown)
-- `sourceOperation` (e.g. `checkSession` or `staleSessionFinding` on the EventBridge repair path)
-- `attemptCount` (number of bookkeeping attempts in that batch)
-- `dedupeKey` (`${sourceOperation}:${sessionId}:${ISO8601}` at start of bookkeeping retries)
-
-Structured logs: `session-disconnect-bookkeeping-retry` (retryable failures before the last attempt) and `session-disconnect-bookkeeping-failed` (terminal bookkeeping failure before the problem report).
-
-**Successful teardown:** After Map bookkeeping succeeds, `tearDownStaleSession` deletes the `Meta::Session` row (`Meta::Session` / `SESSION#${sessionId}`) idempotently. On the normal `checkSession` path the meta row is usually already removed by the optimistic update before teardown runs; the delete is harmless when the item is absent.
+**PR8 cutover note:** `Map / Subscriptions` bookkeeping has been removed from teardown paths. Connections no longer reads or writes `ConnectionId='Map', DataCategory='Subscriptions'` during `checkSession` or `Stale SessionId Finding` remediation.
 
 **`Stale SessionId Finding` consumer:** EventBridge invokes the connections lambda on `source: mtw.diagnostics`, `detail-type: Stale SessionId Finding` with payload `{ player }` per D3 (see `template.yaml` under `ConnectionFunction.Events.StaleSessionFinding`). [`app.ts`](app.ts) routes to [`staleSessionFinding/index.ts`](staleSessionFinding/index.ts).
 
@@ -46,7 +36,6 @@ Repair behavior (connections-owned, D6):
 
 - Enumerates session meta rows by querying `ConnectionId = Meta::Session`, `begins_with(DataCategory, 'SESSION#')` (paginated), filtered to the finding `player`.
 - Re-evaluates staleness using predicates aligned with diagnostics ([`staleSessionFinding/classification.ts`](staleSessionFinding/classification.ts) must stay in sync with [`lambda/diagnostics/staleSessionSweep/classification.ts`](../diagnostics/staleSessionSweep/classification.ts)); skips rows that are no longer stale (replay / convergence).
-- For each stale session, runs [`tearDownStaleSession`](staleSessionTeardown/index.ts) with `sourceOperation: 'staleSessionFinding'`. That path reuses the same adjacency removal, `Session Disconnect` emission (subscriptions lambda removes `STREAM#...` edges keyed on `SESSION#${sessionId}`), and Map bookkeeping as `checkSession`-driven teardown.
-- **D6 loop prevention:** On `staleSessionFinding`, bookkeeping failure logs `session-disconnect-bookkeeping-failed-suppressed` with `suppressedProblemReport: true` and **does not** emit `Session Disconnect Problem`, so repair does not feed the diagnostics/problem-report loop.
+- For each stale session, runs [`tearDownStaleSession`](staleSessionTeardown/index.ts) with `sourceOperation: 'staleSessionFinding'`. That path reuses the same adjacency removal and `Session Disconnect` emission as `checkSession`-driven teardown.
 
 **Related:** Initiative progress in [`taskPlanning/lambda/diagnostics/AGENT.connectionsRefactor.planning.md`](../../taskPlanning/lambda/diagnostics/AGENT.connectionsRefactor.planning.md).
