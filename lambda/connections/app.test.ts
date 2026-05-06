@@ -19,15 +19,24 @@ jest.mock('./disconnect', () => ({
     atomicallyRemoveCharacterAdjacency: jest.fn().mockResolvedValue(undefined),
     unregisterCharacterMessage: jest.fn()
 }))
+jest.mock('./invitationCodes', () => ({
+    validateInvitationCode: jest.fn(),
+    generateInvitationCode: jest.fn()
+}))
 jest.mock('./staleSessionFinding', () => ({
     handleStaleSessionFinding: jest.fn().mockResolvedValue(undefined)
 }))
 
+import { disconnect } from './disconnect'
+import { generateInvitationCode, validateInvitationCode } from './invitationCodes'
 import { handleStaleSessionFinding } from './staleSessionFinding'
 import { handler } from './app'
 
 const connectionDBMock = jest.mocked(connectionDB)
 const eventBridgeClientMock = jest.mocked(eventBridgeClient)
+const disconnectMock = jest.mocked(disconnect)
+const generateInvitationCodeMock = jest.mocked(generateInvitationCode)
+const validateInvitationCodeMock = jest.mocked(validateInvitationCode)
 const handleStaleSessionFindingMock = jest.mocked(handleStaleSessionFinding)
 const queryMock = connectionDB.query as unknown as jest.Mock
 
@@ -48,6 +57,50 @@ describe('connections app checkSession', () => {
             return draft
         })
     }
+
+    it('routes websocket disconnect through api.connections lane', async () => {
+        await handler({
+            requestContext: {
+                routeKey: '$disconnect',
+                connectionId: 'abc123'
+            }
+        })
+
+        expect(disconnectMock).toHaveBeenCalledTimes(1)
+        expect(disconnectMock).toHaveBeenCalledWith('abc123')
+    })
+
+    it('routes validateInvitation via API adapter preserving response shape', async () => {
+        validateInvitationCodeMock.mockResolvedValue(true)
+
+        const response = await handler({
+            requestContext: {
+                resourcePath: '/validateInvitation'
+            },
+            body: JSON.stringify({
+                invitationCode: 'ABC123'
+            })
+        })
+
+        expect(validateInvitationCodeMock).toHaveBeenCalledTimes(1)
+        expect(validateInvitationCodeMock).toHaveBeenCalledWith('ABC123')
+        expect(response).toEqual({
+            statusCode: 200,
+            body: JSON.stringify({ valid: true }),
+            headers: { 'Access-Control-Allow-Origin': '*' }
+        })
+    })
+
+    it('routes generateInvitation direct invoke through api.connections adapter', async () => {
+        generateInvitationCodeMock.mockResolvedValue('QW123E')
+
+        const response = await handler({
+            message: 'generateInvitation'
+        })
+
+        expect(generateInvitationCodeMock).toHaveBeenCalledTimes(1)
+        expect(response).toEqual({ invitationCode: 'QW123E' })
+    })
 
     it('drops stale session and emits Session Disconnect without Map bookkeeping', async () => {
         mockShouldDropOptimisticUpdate()
@@ -91,6 +144,6 @@ describe('connections app checkSession', () => {
         })
 
         expect(handleStaleSessionFindingMock).toHaveBeenCalledTimes(1)
-        expect(handleStaleSessionFindingMock).toHaveBeenCalledWith({ player: 'p1', diagnosticRunId: 'd1' })
+        expect(handleStaleSessionFindingMock).toHaveBeenCalledWith(expect.objectContaining({ player: 'p1', diagnosticRunId: 'd1' }))
     })
 })

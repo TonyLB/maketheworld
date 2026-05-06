@@ -26,11 +26,19 @@ When changing session storage, update this section so the trade-off stays visibl
 
 ## Problem reports and finding subscriptions
 
+**PR10 ingress boundary (`mtw.connections` DataSource):**
+
+- [`app.ts`](app.ts) is now a thin ingress shim that delegates all routing to [`dataSource/index.ts`](dataSource/index.ts).
+- Non-EventBridge ingress is normalized into a canonical internal `api.connections` envelope and dispatched through one lane:
+  - API Gateway/WebSocket: `$disconnect`, `/validateInvitation`, `/signIn`, `/signUp`, `/accessToken`
+  - direct invoke control messages: `dropConnection`, `checkSession`, `generateInvitation`
+- EventBridge finding intake (`source: mtw.diagnostics`, `detail-type: Stale SessionId Finding`) now uses serializer + subscribed-event guard routing in [`dataSource/subscribedEvents.ts`](dataSource/subscribedEvents.ts), not a bespoke `app.ts` event-source branch.
+
 **`Session Disconnect` (existing):** After a session is confirmed for drop via `checkSession` (Step Functions `dropConnection` path), the connections lambda removes session/character adjacency, emits `source: mtw.connections` / `detail-type: Session Disconnect` with `detail: { sessionId }`, then deletes the canonical `Meta::Session` row idempotently.
 
 **PR8 cutover note:** `Map / Subscriptions` bookkeeping has been removed from teardown paths. Connections no longer reads or writes `ConnectionId='Map', DataCategory='Subscriptions'` during `checkSession` or `Stale SessionId Finding` remediation.
 
-**`Stale SessionId Finding` consumer:** EventBridge invokes the connections lambda on `source: mtw.diagnostics`, `detail-type: Stale SessionId Finding` with payload `{ player }` per D3 (see `template.yaml` under `ConnectionFunction.Events.StaleSessionFinding`). [`app.ts`](app.ts) routes to [`staleSessionFinding/index.ts`](staleSessionFinding/index.ts).
+**`Stale SessionId Finding` consumer:** EventBridge invokes the connections lambda on `source: mtw.diagnostics`, `detail-type: Stale SessionId Finding` with payload `{ player }` per D3 (see `template.yaml` under `ConnectionFunction.Events.StaleSessionFinding`). `app.ts` delegates ingress handling to the `mtw.connections` DataSource boundary, and that lane routes to [`staleSessionFinding/index.ts`](staleSessionFinding/index.ts).
 
 Repair behavior (connections-owned, D6):
 
