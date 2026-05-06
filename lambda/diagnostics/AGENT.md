@@ -15,6 +15,19 @@
 
 **Evaluation:** For each stale candidate session (non-empty `player` on the meta row), the sweep also queries stream subscription rows (`STREAM#` on `DataCategoryIndex`) and session-character adjacency (`SESSION#${sessionId}` / `CHARACTER#...`) so operators have correlated evidence; findings remain aggregated **per player**.
 
+## Room Occupancy Drift sweep (ephemera consistency diagnostics)
+
+**Purpose:** Read-only sweep over room occupancy snapshots (`Meta::Room.activeCharacters[].SessionIds`) compared against authoritative membership (`connections` session/character adjacency + `Meta::Character.RoomId`). Emits descriptive findings only; no repairs.
+
+**Entrypoints:**
+
+- Direct invoke only: `type: RoomOccupancyDriftSweep`, optional `diagnosticRunId` and `nowMs` (for tests).
+- No `mtw.diagnostics` EventBridge sweep trigger is wired for this slice; diagnostics remains a finding emitter.
+
+**Finding contract:** `mtw.diagnostics` / `Room Occupancy Drift Finding` with payload `{ roomId }`, optional `diagnosticRunId` for sweep correlation. Emission uses `publishStreamEvent` + `DiagnosticsEventSerializer`.
+
+**Evaluation:** The sweep compares sorted occupancy fingerprints per room (`characterId + SessionIds`) against authoritative adjacency-derived occupancy constrained by `Meta::Character.RoomId`. Rooms with mixed-valid/mixed-invalid entries still emit one finding. Cases where occupancy contains characters lacking a usable authoritative room are marked as `checkLocation` delegation candidates for downstream repair handling (still report-only in diagnostics).
+
 ## Related docs
 
 - Task initiative: [`taskPlanning/lambda/diagnostics/AGENT.connectionsRefactor.planning.md`](../../taskPlanning/lambda/diagnostics/AGENT.connectionsRefactor.planning.md)
