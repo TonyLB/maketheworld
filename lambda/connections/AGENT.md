@@ -26,15 +26,24 @@ When changing session storage, update this section so the trade-off stays visibl
 
 ## Problem reports and finding subscriptions
 
-**PR10 ingress boundary (`mtw.connections` DataSource):**
+**Ingress boundary (`mtw.connections` DataSource):**
 
 - [`app.ts`](app.ts) is now a thin ingress shim that delegates all routing to [`dataSource/index.ts`](dataSource/index.ts).
-- Non-EventBridge ingress is normalized into a canonical internal `api.connections` envelope and dispatched through one lane:
+- [`dataSource/index.ts`](dataSource/index.ts) now instantiates a concrete `mtw.connections` `DataSource` (`new DataSource(...)`) and calls `.subscribe()` for subscribed-event intake wiring.
+- `connections` now uses a shared lambda-level bus ([`messageBus/index.ts`](messageBus/index.ts)) for both ingress adapters and DataSource subscription handling; `app.ts` clears the bus per invocation.
+- Non-EventBridge ingress is normalized into canonical internal `api.connections` envelopes via [`dataSource/apiConnections.ts`](dataSource/apiConnections.ts) and enqueued onto that shared bus:
   - API Gateway/WebSocket: `$disconnect`, `/validateInvitation`, `/signIn`, `/signUp`, `/accessToken`
   - direct invoke control messages: `dropConnection`, `checkSession`, `generateInvitation`
-- EventBridge finding intake (`source: mtw.diagnostics`, `detail-type: Stale SessionId Finding`) now uses serializer + subscribed-event guard routing in [`dataSource/subscribedEvents.ts`](dataSource/subscribedEvents.ts), not a bespoke `app.ts` event-source branch.
+- EventBridge finding intake (`source: mtw.diagnostics`, `detail-type: Stale SessionId Finding`) is adapted into streaming envelopes and sent onto the same shared bus, then routed through DataSource subscription wiring plus subscribed-event guards in [`dataSource/subscribedEvents.ts`](dataSource/subscribedEvents.ts).
+- API/direct-invoke responses now follow the established lambda pattern: API handlers emit bus `ReturnValue`/`Error` messages and ingress returns through [`returnValue/extractReturnValue`](returnValue/index.ts) after `messageBus.flush()`. The interim request-id promise correlation map (`pendingResponses`) was removed.
+- Guard ownership split follows newer ephemera conventions:
+  - [`dataSource/apiConnections.ts`](dataSource/apiConnections.ts): synthetic `api.connections` contracts/guards/helpers.
+  - [`dataSource/subscribedEvents.ts`](dataSource/subscribedEvents.ts): external subscribed-source guards (`mtw.diagnostics`).
+- Canonical connections EventBridge contracts now live in [`packages/mtw-interfaces/ts/eventBridge/connections`](../../packages/mtw-interfaces/ts/eventBridge/connections).
 
 **`Session Disconnect` (existing):** After a session is confirmed for drop via `checkSession` (Step Functions `dropConnection` path), the connections lambda removes session/character adjacency, emits `source: mtw.connections` / `detail-type: Session Disconnect` with `detail: { sessionId }`, then deletes the canonical `Meta::Session` row idempotently.
+
+**Publish cutover note:** `tearDownStaleSession` now emits `Session Disconnect` through `mtw.connections` DataSource `streamEvent` when invoked from the app/DataSource lane. A legacy direct EventBridge fallback remains only for non-DataSource invocation contexts.
 
 **PR8 cutover note:** `Map / Subscriptions` bookkeeping has been removed from teardown paths. Connections no longer reads or writes `ConnectionId='Map', DataCategory='Subscriptions'` during `checkSession` or `Stale SessionId Finding` remediation.
 
@@ -47,4 +56,4 @@ Repair behavior (connections-owned, D6):
 - Re-evaluates staleness using predicates aligned with diagnostics ([`staleSessionFinding/classification.ts`](staleSessionFinding/classification.ts) must stay in sync with [`lambda/diagnostics/staleSessionSweep/classification.ts`](../diagnostics/staleSessionSweep/classification.ts)); skips rows that are no longer stale (replay / convergence).
 - For each stale session, runs [`tearDownStaleSession`](staleSessionTeardown/index.ts) with `sourceOperation: 'staleSessionFinding'`. That path reuses the same adjacency removal and `Session Disconnect` emission as `checkSession`-driven teardown.
 
-**Related:** Initiative progress in [`taskPlanning/lambda/diagnostics/AGENT.connectionsRefactor.planning.md`](../../taskPlanning/lambda/diagnostics/AGENT.connectionsRefactor.planning.md).
+Cross-lambda ownership and intake invariants are documented in [`lambda/diagnostics/AGENT.md`](../diagnostics/AGENT.md#steady-state-invariants).

@@ -1653,6 +1653,7 @@ Resources:
                   - mtw.connections
                 detail-type:
                   - New Player
+                  - Session Disconnect Problem
           StaleSessionSweep:
             Type: CloudWatchEvent
             Properties:

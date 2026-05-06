@@ -24,3 +24,5 @@ export const isConnectionsSubscribedEnvelope = makeStreamingEnvelopeGuardFromHea
     DiagnosticsStaleSessionIdFindingEvent,
     ConnectionsSubscribedHeader
 >(isConnectionsSubscribedHeader)
+
+export type ConnectionsExternalSubscribedContent = DiagnosticsStaleSessionIdFindingEvent

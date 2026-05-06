@@ -1,37 +1,17 @@
-import { healPlayer } from "./player"
-import { staleSessionSweep } from "./staleSessionSweep"
-import { roomOccupancyDriftSweep } from "./roomOccupancyDriftSweep"
+import { routeDiagnosticsIngress } from "./ingress"
+import messageBus from "./messageBus"
+import { extractReturnValue } from "./returnValue"
 
 export const handler = async (event) => {
+    messageBus.clear()
 
-    //
-    // Handle EventBridge messages
-    //
-    if (event?.source === 'mtw.connections' && event["detail-type"] === 'New Player' && event.detail?.player) {
-        return await healPlayer(event.detail?.player)
+    if (
+        (event?.source && event["detail-type"]) ||
+        ['HealPlayer', 'StaleSessionSweep', 'RoomOccupancyDriftSweep'].includes(event?.type)
+    ) {
+        await routeDiagnosticsIngress(event)
     }
 
-    if (event?.source === 'mtw.diagnostics' && event["detail-type"] === 'Stale Session Sweep') {
-        return await staleSessionSweep({
-            diagnosticRunId: typeof event.detail?.diagnosticRunId === 'string' ? event.detail.diagnosticRunId : undefined
-        })
-    }
-
-    //
-    // Handle direct calls (e.g. step functions)
-    //
-    switch(event.type) {
-        case 'HealPlayer':
-            return await healPlayer(event.player)
-        case 'StaleSessionSweep':
-            return await staleSessionSweep({
-                diagnosticRunId: typeof event.diagnosticRunId === 'string' ? event.diagnosticRunId : undefined,
-                nowMs: typeof event.nowMs === 'number' ? event.nowMs : undefined
-            })
-        case 'RoomOccupancyDriftSweep':
-            return await roomOccupancyDriftSweep({
-                diagnosticRunId: typeof event.diagnosticRunId === 'string' ? event.diagnosticRunId : undefined,
-                nowMs: typeof event.nowMs === 'number' ? event.nowMs : undefined
-            })
-    }
+    await messageBus.flush()
+    return extractReturnValue(messageBus)
 }

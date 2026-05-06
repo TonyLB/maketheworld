@@ -1,7 +1,7 @@
 import { InitiateAuthCommand } from "@aws-sdk/client-cognito-identity-provider"
+import { ConnectionsEventSerializer, ConnectionsEventUpdate } from "@tonylb/mtw-interfaces/ts/eventBridge/connections"
 import { DiagnosticsEventSerializer, DiagnosticsStaleSessionIdFindingEvent } from "@tonylb/mtw-interfaces/ts/eventBridge/diagnostics"
-import { coreFormatToStreamingEnvelope, createInternalOriginEnvelope } from "@tonylb/mtw-lambda-patterns/ts/dataSource"
-import { fromEventBridgeFormat } from "@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform"
+import { DataSource } from "@tonylb/mtw-lambda-patterns/ts/dataSource"
 import { createNodeDataSourceEnvironment } from "@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/ts/errors"
 import { connectionDB, META_SESSION_PK, sessionMetaSortKey } from "@tonylb/mtw-utilities/ts/dynamoDB"
@@ -11,23 +11,19 @@ import { disconnect } from "../disconnect"
 import { generateInvitationCode, validateInvitationCode } from "../invitationCodes"
 import { handleStaleSessionFinding } from "../staleSessionFinding"
 import { getSessionPlayerForTeardown, tearDownStaleSession } from "../staleSessionTeardown"
-import { isConnectionsSubscribedEnvelope, isDiagnosticsStaleSessionFindingEnvelope } from "./subscribedEvents"
+import messageBus from "../messageBus"
+import { ConnectionsAPIPayload, isApiConnectionsEnvelope } from "./apiConnections"
+import { ConnectionsExternalSubscribedContent, isConnectionsSubscribedEnvelope, isDiagnosticsStaleSessionFindingEnvelope } from "./subscribedEvents"
 
-type ConnectionsAPIPayload =
-    | { type: '$disconnect'; connectionId: string }
-    | { type: 'validateInvitation'; invitationCode: string }
-    | { type: 'signIn'; userName: string; password: string }
-    | { type: 'signUp'; userName: string; inviteCode: string; password: string }
-    | { type: 'accessToken'; RefreshToken: string }
-    | { type: 'dropConnection'; sessionId: string; connectionId: string }
-    | { type: 'checkSession'; sessionId: string }
-    | { type: 'generateInvitation' }
+export const diagnosticsDeserializer = new DiagnosticsEventSerializer(createNodeDataSourceEnvironment())
+const connectionsEventSerializer = new ConnectionsEventSerializer(createNodeDataSourceEnvironment())
 
-const apiConnectionsSerializer = {
-    serialize: ({ content }: { content: ConnectionsAPIPayload; header: { type: string } }) => ({ ...content })
-}
-
-const diagnosticsDeserializer = new DiagnosticsEventSerializer(createNodeDataSourceEnvironment())
+const isConnectionsIncomingEnvelope = (envelope: any): envelope is {
+    header: { dataSourceKey: string; type: string };
+    getContent: () => Promise<ConnectionsAPIPayload | ConnectionsExternalSubscribedContent>;
+} => (
+    isApiConnectionsEnvelope(envelope) || isConnectionsSubscribedEnvelope(envelope)
+)
 
 const corsResponse = (body: unknown) => ({
     statusCode: 200,
@@ -35,26 +31,7 @@ const corsResponse = (body: unknown) => ({
     headers: { 'Access-Control-Allow-Origin': '*' }
 })
 
-const createConnectionsApiEnvelope = (content: ConnectionsAPIPayload) => {
-    const timestamp = Date.now()
-    const envelope = createInternalOriginEnvelope(
-        {
-            dataSourceKey: 'api.connections',
-            streamKey: 'ingress',
-            timestamp,
-            type: content.type
-        },
-        content,
-        apiConnectionsSerializer
-    )
-    return {
-        header: envelope.header,
-        getContent: envelope.getContent
-    }
-}
-
-const dispatchConnectionsApiEnvelope = async (envelope: ReturnType<typeof createConnectionsApiEnvelope>) => {
-    const content = await envelope.getContent()
+const handleApiConnectionsPayload = async (content: ConnectionsAPIPayload) => {
     switch(content.type) {
         case '$disconnect':
             await disconnect(content.connectionId)
@@ -155,7 +132,11 @@ const dispatchConnectionsApiEnvelope = async (envelope: ReturnType<typeof create
             })
             if (shouldDrop) {
                 await asyncSuppressExceptions(async () => {
-                    await tearDownStaleSession(content.sessionId, { sourceOperation: 'checkSession', player })
+                    await tearDownStaleSession(content.sessionId, {
+                        sourceOperation: 'checkSession',
+                        player,
+                        streamEvent: streamConnectionsEvent
+                    })
                 })
             }
             return
@@ -167,70 +148,61 @@ const dispatchConnectionsApiEnvelope = async (envelope: ReturnType<typeof create
     }
 }
 
-const dispatchSubscribedEnvelope = async (envelope: {
-    header: { dataSourceKey: string; type: string };
-    getContent: () => Promise<unknown>;
-}) => {
-    if (!isConnectionsSubscribedEnvelope(envelope as any)) {
-        throw new Error('Invalid subscribed event for mtw.connections DataSource')
+export const connectionsDataSource = new DataSource<
+    never,
+    ConnectionsEventUpdate,
+    ConnectionsAPIPayload | ConnectionsExternalSubscribedContent,
+    any,
+    'ConnectionId'
+>({
+    dynamo: connectionDB as any,
+    sns: {
+        send: async () => undefined
+    },
+    messageBus: messageBus,
+    primaryKeyName: 'ConnectionId',
+    dataSourceKey: 'mtw.connections',
+    feedbackTopicArn: process.env.FEEDBACK_TOPIC ?? '',
+    replayable: false,
+    eventSerializer: connectionsEventSerializer,
+    subscribedEventTypeGuard: isConnectionsIncomingEnvelope as any,
+    receiveEvents: async ({ events }) => {
+        await Promise.all(events.map(async (event) => {
+            if (isApiConnectionsEnvelope(event as any)) {
+                const content = await event.getContent() as ConnectionsAPIPayload
+                try {
+                    const result = await handleApiConnectionsPayload(content)
+                    if (typeof result !== 'undefined') {
+                        messageBus.send({
+                            type: 'ReturnValue',
+                            body: result as Record<string, any>
+                        })
+                    }
+                } catch (error) {
+                    messageBus.send({
+                        type: 'Error',
+                        body: {
+                            error: error instanceof Error ? error.message : String(error),
+                            statusCode: 500
+                        }
+                    })
+                }
+                return
+            }
+            if (isDiagnosticsStaleSessionFindingEnvelope(event as any)) {
+                const content = await event.getContent() as DiagnosticsStaleSessionIdFindingEvent
+                await handleStaleSessionFinding(content)
+                return
+            }
+            throw new Error('Invalid subscribed event for mtw.connections DataSource')
+        }))
     }
-    if (isDiagnosticsStaleSessionFindingEnvelope(envelope as any)) {
-        const content = await envelope.getContent() as DiagnosticsStaleSessionIdFindingEvent
-        return await handleStaleSessionFinding(content)
-    }
-}
+})
 
-const normalizeApiIngress = (event: any): ConnectionsAPIPayload | undefined => {
-    const { connectionId, routeKey, resourcePath } = event.requestContext || {}
-    if (routeKey === '$disconnect' && connectionId) {
-        return { type: '$disconnect', connectionId }
-    }
-    if (resourcePath && event.body) {
-        const json = JSON.parse(event.body)
-        if (resourcePath === '/validateInvitation' && typeof json === 'object' && 'invitationCode' in json) {
-            return { type: 'validateInvitation', invitationCode: json.invitationCode }
-        }
-        if (resourcePath === '/signIn' && typeof json === 'object' && 'userName' in json && 'password' in json) {
-            return { type: 'signIn', userName: json.userName, password: json.password }
-        }
-        if (resourcePath === '/signUp' && typeof json === 'object' && 'userName' in json && 'inviteCode' in json && 'password' in json) {
-            return { type: 'signUp', userName: json.userName, inviteCode: json.inviteCode, password: json.password }
-        }
-        if (resourcePath === '/accessToken' && typeof json === 'object' && 'RefreshToken' in json) {
-            return { type: 'accessToken', RefreshToken: json.RefreshToken }
-        }
-    }
-    if (event.message === 'dropConnection') {
-        return { type: 'dropConnection', sessionId: event.sessionId, connectionId: event.connectionId }
-    }
-    if (event.message === 'checkSession') {
-        return { type: 'checkSession', sessionId: event.sessionId }
-    }
-    if (event.message === 'generateInvitation') {
-        return { type: 'generateInvitation' }
-    }
-    return
-}
+connectionsDataSource.subscribe()
 
-const normalizeEventBridgeIngress = async (event: any) => {
-    const coreFormat = fromEventBridgeFormat(event)
-    const envelope = coreFormatToStreamingEnvelope(coreFormat, async () =>
-        diagnosticsDeserializer.deserialize({ content: coreFormat.update as any, header: coreFormat.header })
-    )
-    return envelope
-}
-
-export const routeConnectionsIngress = async (event: any) => {
-    if (event?.source && event['detail-type']) {
-        const envelope = await normalizeEventBridgeIngress(event)
-        return await dispatchSubscribedEnvelope(envelope as any)
-    }
-
-    const apiContent = normalizeApiIngress(event)
-    if (apiContent) {
-        return await dispatchConnectionsApiEnvelope(createConnectionsApiEnvelope(apiContent))
-    }
-
-    throw new Error('Invalid parameters')
-}
-
+export const streamConnectionsEvent = async (params: {
+    update: ConnectionsEventUpdate;
+    streamKey: string;
+    header: { type: string };
+}) => connectionsDataSource.streamEvent(params as any)

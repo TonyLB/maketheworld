@@ -6,8 +6,7 @@
 
 **Entrypoints:**
 
-- EventBridge: `source: mtw.diagnostics`, `detail-type: Stale Session Sweep`, optional `detail.diagnosticRunId` (string).
-- Direct invoke: `type: StaleSessionSweep`, optional `diagnosticRunId` and `nowMs` (for tests).
+- Direct invoke: `type: StaleSessionSweep`, optional `diagnosticRunId` and `nowMs` (for tests). This command is normalized to synthetic `api.diagnostics` ingress and handled through diagnostics DataSource subscribed-event dispatch.
 
 **Thresholds:** See `STALE_BUFFER_MS` in [`staleSessionSweep/classification.ts`](staleSessionSweep/classification.ts) (slack after `dropAfter` before classifying a session meta row as stale; suppresses false positives during normal `dropConnection` / Step Functions timing).
 
@@ -16,6 +15,35 @@
 **Evaluation:** For each stale candidate session (non-empty `player` on the meta row), the sweep also queries stream subscription rows (`STREAM#` on `DataCategoryIndex`) and session-character adjacency (`SESSION#${sessionId}` / `CHARACTER#...`) so operators have correlated evidence; findings remain aggregated **per player**.
 
 **Pagination implementation note:** Session-meta enumeration now uses shared `connectionDB.query`/`withQuery` pagination (`{ items, nextToken?, nextPage? }`) rather than direct AWS SDK `QueryCommand` loops, so diagnostics and connections stale-session paths share token handling and page-size guardrails.
+
+## Connections problem-report intake (DataSource lane)
+
+**Purpose:** Receive `mtw.connections` problem reports through one diagnostics DataSource subscription/deserialization lane and trigger report-only diagnostics evaluation (D6).
+
+**Intake boundary:**
+
+- [`ingress.ts`](ingress.ts) routes EventBridge ingress onto diagnostics message-bus streaming envelopes.
+- [`dataSource/subscribedEvents.ts`](dataSource/subscribedEvents.ts) owns subscribed header/envelope guards for:
+  - `mtw.connections` / `Session Disconnect Problem`
+  - `mtw.connections` / `New Player`
+  - `api.diagnostics` synthetic command envelopes (`HealPlayer`, `StaleSessionSweep`, `RoomOccupancyDriftSweep`)
+- [`dataSource/index.ts`](dataSource/index.ts) owns subscribed-event handling.
+
+**Handling semantics:**
+
+- `Session Disconnect Problem` intake consumes shared serializer/contracts from [`packages/mtw-interfaces/ts/eventBridge/connections`](../../packages/mtw-interfaces/ts/eventBridge/connections).
+- Intake is tidy-failure: malformed/partial payloads are logged and dropped at ingress/deserialization boundaries without throwing.
+- Within a single receive batch, repeated problem reports with the same `dedupeKey` are suppressed before triggering sweep evaluation.
+- Diagnostics remains report-only: problem reports trigger `staleSessionSweep` evaluation and finding emission only; diagnostics does not perform connections-table repairs.
+- Direct command return values now use message-bus `ReturnValue`/`Error` delivery plus app-boundary extraction (`returnValue/index.ts`) rather than direct `app.ts` returns, matching the `connections` pattern.
+
+## Steady-state invariants
+
+- **Report-only diagnostics role:** Diagnostics evaluates evidence and emits findings. It does not perform storage repairs in `connections` or `ephemera`.
+- **Repair ownership boundaries:** `connections` repairs only `connections`-table state. `ephemera` repairs only `ephemera`-table state.
+- **Lifecycle consistency model:** Character connection lifecycle is event-first and eventually consistent across lambdas. Short-lived divergence is acceptable; sweeps/findings are the convergence backstop.
+- **Ordering assumptions:** Intake and evaluation do not rely on ordered delivery across problem-report families. Behavior must remain correct under out-of-order and parallel processing.
+- **Malformed intake policy:** Invalid or partial inbound problem reports are logged and dropped without crashing handler execution.
 
 ## Room Occupancy Drift sweep (ephemera consistency diagnostics)
 

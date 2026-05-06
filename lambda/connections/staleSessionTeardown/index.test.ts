@@ -47,4 +47,26 @@ describe('tearDownStaleSession', () => {
             DataCategory: 'SESSION#session-1'
         })
     })
+
+    it('publishes Session Disconnect via streamEvent when provided', async () => {
+        const streamEvent = jest.fn(async () => undefined)
+        await tearDownStaleSession('session-2', {
+            sourceOperation: 'checkSession',
+            player: 'p2',
+            streamEvent
+        })
+
+        expect(streamEvent).toHaveBeenCalledTimes(1)
+        expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
+            streamKey: 'global',
+            header: {
+                type: 'Session Disconnect'
+            },
+            update: expect.objectContaining({
+                type: 'Session Disconnect',
+                sessionId: 'session-2'
+            })
+        }))
+        expect(eventBridgeClientMock.send).not.toHaveBeenCalled()
+    })
 })
