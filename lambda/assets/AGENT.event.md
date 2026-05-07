@@ -182,6 +182,7 @@ The Assets Lambda receives events from multiple sources:
 **EventBridge Events**:
 - `mtw.wml` events → Content Update, Zone Changed, Asset Purged
 - `mtw.diagnostics` events → Heal Global Values
+- `mtw.cognito` events → `New Player` subscription is planned under `taskPlanning/lambda/assets/AGENT.playerHealAuthority.planning.md` (not yet wired in steady state)
 - `mtw.subscriptions` events → Initialize Subscription (for replayable data sources)
 
 **WebSocket API Messages**:

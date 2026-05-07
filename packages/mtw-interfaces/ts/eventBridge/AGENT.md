@@ -60,6 +60,9 @@ All event contracts are now centralized in the `mtw-interfaces` package:
 - **WML Events**: Content and zone change events
 - **Assets Events**: Component and asset-level events with sub-sources
 - **Ephemera Events**: Real-time game state events
+- **Connections Events**: Session lifecycle and problem-report events (`mtw.connections`)
+- **Diagnostics Events**: Findings and diagnostics-domain events (`mtw.diagnostics`)
+- **Cognito Events**: Signup-domain events (`mtw.cognito` / `New Player`)
 
 ## Related Documentation
 

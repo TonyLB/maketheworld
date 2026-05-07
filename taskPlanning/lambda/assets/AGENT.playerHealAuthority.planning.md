@@ -98,13 +98,13 @@ All **D1** through **D7** are locked; pending vs completed for **implementation*
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines as you go; parent `[X]` when all children are done.
 
-- [ ] **Phase 0 - Inventory and baseline**
-  - [ ] Confirm Cognito trigger targets and list all code paths that call **`healPlayer`** (EventBridge, SFN, direct invoke). (**`healAllPlayers`** is unused---see **D6**.)
-  - [ ] Baseline tests: `lambda/assets` `npm test`, `lambda/diagnostics` tests, relevant `mtw-interfaces` tests.
+- [X] **Phase 0 - Inventory and baseline**
+  - [X] Confirm Cognito trigger targets and list all code paths that call **`healPlayer`** (EventBridge, SFN, direct invoke). (**`healAllPlayers`** is unused---see **D6**.)
+  - [X] Baseline tests: `lambda/assets` `npm test`, `lambda/diagnostics` tests, relevant `mtw-interfaces` tests.
 
-- [ ] **Phase 1 - Contracts (`mtw-interfaces`)**
-  - [ ] Add **`mtw.cognito`** EventBridge types, headers, and serializer/deserializer patterns consistent with [`packages/mtw-interfaces/ts/eventBridge`](../../../packages/mtw-interfaces/ts/eventBridge).
-  - [ ] Unit tests for serialization round-trip where applicable.
+- [X] **Phase 1 - Contracts (`mtw-interfaces`)**
+  - [X] Add **`mtw.cognito`** EventBridge types, headers, and serializer/deserializer patterns consistent with [`packages/mtw-interfaces/ts/eventBridge`](../../../packages/mtw-interfaces/ts/eventBridge).
+  - [X] Unit tests for serialization round-trip where applicable.
 
 - [ ] **Phase 2 - Assets: heal implementation and subscription**
   - [ ] Move or reimplement **`healPlayer`** (and helpers) under **`lambda/assets`**; keep behavior and **return shape** compatible with [`stepFunctions/heal.asl.yaml`](../../../stepFunctions/heal.asl.yaml) / Update Ephemera (see **D4** **`ReturnValue`**).
@@ -142,12 +142,21 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines as you 
 
 | Milestone | Notes |
 | --- | --- |
-| Contracts | |
+| Contracts | Added `mtw.cognito` contract module + serializer + guards in `packages/mtw-interfaces/ts/eventBridge/cognito`, exported via `eventBridge/index.ts`, and covered by new unit tests. |
 | Assets heal + subscribe | |
 | Cognito publish | |
 | Diagnostics / template / SFN cutover | |
 | Double-heal resolved | |
 | Optional sweep | |
+
+### Phase 0 inventory snapshot
+
+- Cognito trigger wiring (SAM): [`template.yaml`](../../../template.yaml) wires **`PostConfirmation`** and **`PreSignUp`** to **`CognitoHandlerFunction`** only; **`AssetsFunction`** has no `Type: Cognito` event source.
+- `healPlayer` call paths currently active:
+  - EventBridge: `mtw.connections` / `New Player` -> diagnostics DataSource handler in [`lambda/diagnostics/dataSource/index.ts`](../../../lambda/diagnostics/dataSource/index.ts) (guarded by [`lambda/diagnostics/dataSource/subscribedEvents.ts`](../../../lambda/diagnostics/dataSource/subscribedEvents.ts)).
+  - Direct invoke: diagnostics command `type: HealPlayer` routed via [`lambda/diagnostics/app.ts`](../../../lambda/diagnostics/app.ts) -> [`lambda/diagnostics/ingress.ts`](../../../lambda/diagnostics/ingress.ts) -> diagnostics DataSource.
+  - Step Functions: [`stepFunctions/heal.asl.yaml`](../../../stepFunctions/heal.asl.yaml) currently invokes **`DiagnosticsFunction`** with `type: HealPlayer`.
+- Baseline before edits (2026-05-07): `lambda/assets`, `lambda/diagnostics`, and `packages/mtw-interfaces` test suites all green using package-local Jest scripts (`npm run test` in each package).
 
 ## Verification
 
@@ -156,6 +165,8 @@ Repeat these after each risky phase; adjust paths if workspace scripts change.
 - `cd lambda/assets && npm test`
 - `cd lambda/diagnostics && npm test` (when diagnostics changes land)
 - `cd packages/mtw-interfaces && npm test` (when interfaces change)
+- Phase 0 baseline (2026-05-07): all three suites passed (`lambda/assets` 21/21, `lambda/diagnostics` 5/5, `packages/mtw-interfaces` 19/19 pre-change).
+- Phase 1 verification (2026-05-07): `cd packages/mtw-interfaces && npm run test -- eventBridge` and full `cd packages/mtw-interfaces && npm run test` both passed after `mtw.cognito` contract additions.
 - Manual or integration: confirm EventBridge rule delivers **`mtw.cognito` / `New Player`** to Assets only after cutover; confirm **`HealPlayer`** SFN step returns payload **`Update Ephemera`** accepts.
 
 ## Related documentation
