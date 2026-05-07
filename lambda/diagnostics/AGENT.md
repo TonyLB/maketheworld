@@ -62,5 +62,5 @@
 
 ## Related docs
 
-- Task initiative: [`taskPlanning/lambda/diagnostics/AGENT.connectionsRefactor.planning.md`](../../taskPlanning/lambda/diagnostics/AGENT.connectionsRefactor.planning.md)
+- Task initiative (player heal authority, mesh): [`taskPlanning/lambda/assets/AGENT.playerHealAuthority.planning.md`](../../taskPlanning/lambda/assets/AGENT.playerHealAuthority.planning.md)
 - Broader diagnostics schema notes: [`AGENT.schema.planning.md`](AGENT.schema.planning.md)
