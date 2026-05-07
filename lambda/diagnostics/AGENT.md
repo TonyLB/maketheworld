@@ -76,5 +76,6 @@
 
 ## Related docs
 
-- Task initiative (player heal authority, mesh): [`taskPlanning/lambda/assets/AGENT.playerHealAuthority.planning.md`](../../taskPlanning/lambda/assets/AGENT.playerHealAuthority.planning.md)
+- Assets heal authority and event flow: [`../assets/AGENT.event.md`](../assets/AGENT.event.md)
+- Cognito signup publish flow (`mtw.cognito` / `New Player`): [`../cognitoEvent/AGENT.md`](../cognitoEvent/AGENT.md)
 - Broader diagnostics schema notes: [`AGENT.schema.planning.md`](AGENT.schema.planning.md)

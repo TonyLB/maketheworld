@@ -153,15 +153,15 @@ The system already has foundation for self-healing:
 - `healGlobalValues()` - Repairs session mappings and canon asset state
 - Fixes connection metadata and global asset cache
 
-**Diagnostics Lambda** (`lambda/diagnostics/player/index.ts`):
-- `healPlayer()` - Repairs player-specific data corruption
-- Rebuilds player asset library and character listings
+**Assets Lambda** (`lambda/assets/player/heal.ts`):
+- `healPlayer()` - Repairs player-specific data corruption in the owning domain
+- Rebuilds player asset library and character listings through the assets DataSource lane (`mtw.cognito` / `New Player`, `mtw.diagnostics` / `Player Misalignment Finding`, and `api.assets` `HealPlayer`)
 
 **Heal Step Function**: Orchestrates player healing operations
 
 ### Integration with New Pattern
 
-These existing healing functions should be **triggered by findings**, not run directly:
+These existing healing functions should be **triggered by findings or domain-owned ingress lanes**, not run from diagnostics imperative handlers:
 
 **Current** (imperative):
 ```typescript

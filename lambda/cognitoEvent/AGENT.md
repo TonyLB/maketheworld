@@ -9,7 +9,7 @@ This lambda handles Cognito User Pool triggers and publishes signup events into 
 - **PreSignUp (`PreSignUp_SignUp`)**: handled directly in [`app.ts`](./app.ts) by mutating `event.response.autoConfirmUser = true` and returning the Cognito event.
 - **PostConfirmation (`PostConfirmation_ConfirmSignUp`)**: normalized through local ingress/DataSource flow and published as `mtw.cognito` / `New Player` with payload `{ player }`.
 
-**Heal entry is publish-only.** PostConfirmation does not start the heal Step Function or invoke any other lambda directly. Downstream player heal happens in `AssetsFunction` via the `mtw.cognito` EventBridge subscription (idempotent, see [`../assets/AGENT.event.md`](../assets/AGENT.event.md)). `CognitoHandlerFunction` is the **only** lambda attached to User Pool triggers in the SAM template; verify any non-SAM (console-attached) triggers are absent before deploys per the **Phase 5** check in the player heal authority task plan.
+**Heal entry is publish-only.** PostConfirmation does not start the heal Step Function or invoke any other lambda directly. Downstream player heal happens in `AssetsFunction` via the `mtw.cognito` EventBridge subscription (idempotent, see [`../assets/AGENT.event.md`](../assets/AGENT.event.md)). `CognitoHandlerFunction` is the **only** lambda attached to User Pool triggers in the SAM template; this lambda owns signup signal publication, not heal execution.
 
 ## PostConfirmation publish flow
 
