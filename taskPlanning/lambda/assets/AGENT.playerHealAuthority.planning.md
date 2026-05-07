@@ -106,12 +106,12 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines as you 
   - [X] Add **`mtw.cognito`** EventBridge types, headers, and serializer/deserializer patterns consistent with [`packages/mtw-interfaces/ts/eventBridge`](../../../packages/mtw-interfaces/ts/eventBridge).
   - [X] Unit tests for serialization round-trip where applicable.
 
-- [ ] **Phase 2 - Assets: heal implementation and subscription**
-  - [ ] Move or reimplement **`healPlayer`** (and helpers) under **`lambda/assets`**; keep behavior and **return shape** compatible with [`stepFunctions/heal.asl.yaml`](../../../stepFunctions/heal.asl.yaml) / Update Ephemera (see **D4** **`ReturnValue`**).
-  - [ ] Delete **`healAllPlayers`** from diagnostics when removing **`healPlayer`** (**D6**).
-  - [ ] Add EventBridge rule in [`template.yaml`](../../../template.yaml): **`mtw.cognito`** + agreed **`detail-type`** -> **AssetsFunction**.
-  - [ ] Add DataSource **`receiveEvents`** (or extend existing assets DataSource) to handle **`New Player`** and run heal **idempotently**.
-  - [ ] Add **`api.assets`** (or chosen) path for **direct / SFN** invoke with **`ReturnValue`** extraction mirroring diagnostics pattern ([`lambda/assets/returnValue`](../../../lambda/assets/returnValue)).
+- [X] **Phase 2 - Assets: heal implementation and subscription**
+  - [X] Move or reimplement **`healPlayer`** (and helpers) under **`lambda/assets`**; keep behavior and **return shape** compatible with [`stepFunctions/heal.asl.yaml`](../../../stepFunctions/heal.asl.yaml) / Update Ephemera (see **D4** **`ReturnValue`**).
+  - [X] Delete **`healAllPlayers`** from diagnostics when removing **`healPlayer`** (**D6**).
+  - [X] Add EventBridge rule in [`template.yaml`](../../../template.yaml): **`mtw.cognito`** + agreed **`detail-type`** -> **AssetsFunction**.
+  - [X] Add DataSource **`receiveEvents`** (or extend existing assets DataSource) to handle **`New Player`** and run heal **idempotently**.
+  - [X] Add **`api.assets`** (or chosen) path for **direct / SFN** invoke with **`ReturnValue`** extraction mirroring diagnostics pattern ([`lambda/assets/returnValue`](../../../lambda/assets/returnValue)).
 
 - [ ] **Phase 3 - Cognito lambda: DataSource publish**
   - [ ] Refactor [`lambda/cognitoEvent/app.ts`](../../../lambda/cognitoEvent/app.ts) to use **`DataSource`** and **`streamEvent`** for **`mtw.cognito`** instead of manual **`PutEvents`** to **`mtw.connections`**.
@@ -143,7 +143,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines as you 
 | Milestone | Notes |
 | --- | --- |
 | Contracts | Added `mtw.cognito` contract module + serializer + guards in `packages/mtw-interfaces/ts/eventBridge/cognito`, exported via `eventBridge/index.ts`, and covered by new unit tests. |
-| Assets heal + subscribe | |
+| Assets heal + subscribe | Ported `healPlayer` to `lambda/assets/player/heal.ts`; wired `mtw.cognito/New Player` and `api.assets/HealPlayer` through assets DataSource; added `AssetsFunction` EventBridge rule for `mtw.cognito`; removed diagnostics `healPlayer`/`healAllPlayers`; direct `type: HealPlayer` invoke now routes through assets synthetic ingress and returns message-bus `ReturnValue` shape. |
 | Cognito publish | |
 | Diagnostics / template / SFN cutover | |
 | Double-heal resolved | |
@@ -167,6 +167,7 @@ Repeat these after each risky phase; adjust paths if workspace scripts change.
 - `cd packages/mtw-interfaces && npm test` (when interfaces change)
 - Phase 0 baseline (2026-05-07): all three suites passed (`lambda/assets` 21/21, `lambda/diagnostics` 5/5, `packages/mtw-interfaces` 19/19 pre-change).
 - Phase 1 verification (2026-05-07): `cd packages/mtw-interfaces && npm run test -- eventBridge` and full `cd packages/mtw-interfaces && npm run test` both passed after `mtw.cognito` contract additions.
+- Phase 2 verification (2026-05-07): `cd lambda/assets && npm run test`, `cd lambda/diagnostics && npm run test`, and `cd packages/mtw-interfaces && npm run test` all passed after assets heal-authority wiring.
 - Manual or integration: confirm EventBridge rule delivers **`mtw.cognito` / `New Player`** to Assets only after cutover; confirm **`HealPlayer`** SFN step returns payload **`Update Ephemera`** accepts.
 
 ## Related documentation

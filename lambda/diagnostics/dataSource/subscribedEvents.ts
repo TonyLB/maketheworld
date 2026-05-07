@@ -15,9 +15,6 @@ export type DiagnosticsConnectionsNewPlayerHeader =
 export type DiagnosticsApiStaleSessionSweepHeader =
     StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'StaleSessionSweep' }
 
-export type DiagnosticsApiHealPlayerHeader =
-    StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'HealPlayer' }
-
 export type DiagnosticsApiRoomOccupancyDriftSweepHeader =
     StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'RoomOccupancyDriftSweep' }
 
@@ -39,12 +36,6 @@ const isDiagnosticsApiStaleSessionSweepHeader: HeaderGuard<DiagnosticsApiStaleSe
     header.dataSourceKey === 'api.diagnostics' && header.type === 'StaleSessionSweep'
 )
 
-const isDiagnosticsApiHealPlayerHeader: HeaderGuard<DiagnosticsApiHealPlayerHeader> = (
-    header
-): header is DiagnosticsApiHealPlayerHeader => (
-    header.dataSourceKey === 'api.diagnostics' && header.type === 'HealPlayer'
-)
-
 const isDiagnosticsApiRoomOccupancyDriftSweepHeader: HeaderGuard<DiagnosticsApiRoomOccupancyDriftSweepHeader> = (
     header
 ): header is DiagnosticsApiRoomOccupancyDriftSweepHeader => (
@@ -57,7 +48,6 @@ export const isDiagnosticsSubscribedHeader: HeaderGuard<DiagnosticsConnectionsPr
     isConnectionsProblemHeader(header) ||
     isConnectionsNewPlayerHeader(header) ||
     isDiagnosticsApiStaleSessionSweepHeader(header) ||
-    isDiagnosticsApiHealPlayerHeader(header) ||
     isDiagnosticsApiRoomOccupancyDriftSweepHeader(header)
 )
 
@@ -70,11 +60,6 @@ export const isDiagnosticsApiStaleSessionSweepEnvelope = makeStreamingEnvelopeGu
     Extract<DiagnosticsAPIPayload, { type: 'StaleSessionSweep' }>,
     DiagnosticsApiStaleSessionSweepHeader
 >(isDiagnosticsApiStaleSessionSweepHeader)
-
-export const isDiagnosticsApiHealPlayerEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
-    Extract<DiagnosticsAPIPayload, { type: 'HealPlayer' }>,
-    DiagnosticsApiHealPlayerHeader
->(isDiagnosticsApiHealPlayerHeader)
 
 export const isDiagnosticsApiRoomOccupancyDriftSweepEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     Extract<DiagnosticsAPIPayload, { type: 'RoomOccupancyDriftSweep' }>,

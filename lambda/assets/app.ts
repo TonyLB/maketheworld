@@ -23,8 +23,10 @@ import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 import { PublishCommand } from "@aws-sdk/client-sns"
 import { createBackupEntry } from "./backups"
 import { extractReturnValue } from './returnValue'
+import { sendApiAssetsEvent } from './dataSource/apiAssets'
 import { WMLEventSerializer, WMLEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { DiagnosticsEventSerializer, DiagnosticsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
+import { CognitoEventSerializer, CognitoEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/cognito'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { coreFormatToStreamingEnvelope, createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
@@ -45,6 +47,7 @@ const s3Client = new S3Client(params)
 const eventDeserializers = {
     'mtw.wml': new WMLEventSerializer(createNodeDataSourceEnvironment()),
     'mtw.diagnostics': new DiagnosticsEventSerializer(createNodeDataSourceEnvironment()),
+    'mtw.cognito': new CognitoEventSerializer(createNodeDataSourceEnvironment()),
 } as const
 
 export const handler = async (event, context) => {
@@ -61,6 +64,15 @@ export const handler = async (event, context) => {
     //
     if (event?.message) {
         switch(event.message) {
+            case 'HealPlayer':
+                if (typeof event.player === 'string' && event.player.length > 0) {
+                    sendApiAssetsEvent(messageBus, {
+                        type: 'HealPlayer',
+                        player: event.player
+                    })
+                    await messageBus.flush()
+                }
+                return await extractReturnValue(messageBus)
             case 'cacheAsset': {
                 // Legacy Step Function call - publish as internal format StreamEvent for data source processing
                 const streamKey = `ASSET#${event.assetId}`
@@ -95,6 +107,15 @@ export const handler = async (event, context) => {
         }
     }
 
+    if (event?.type === 'HealPlayer' && typeof event.player === 'string' && event.player.length > 0) {
+        sendApiAssetsEvent(messageBus, {
+            type: 'HealPlayer',
+            player: event.player
+        })
+        await messageBus.flush()
+        return await extractReturnValue(messageBus)
+    }
+
     // Handle Cognito PostConfirm messages
     if (event?.triggerSource === 'PostConfirmation_ConfirmSignUp' && event?.userName) {
         await sfnClient.send(new StartExecutionCommand({
@@ -123,7 +144,7 @@ export const handler = async (event, context) => {
             if (deserializer) {
                 // Convert EventBridge event to CoreExternalFormat using format transformer
                 const coreFormat = fromEventBridgeFormat(event)
-                const envelope = coreFormatToStreamingEnvelope<WMLEventUpdate | DiagnosticsEventUpdate | null>(coreFormat, () =>
+                const envelope = coreFormatToStreamingEnvelope<WMLEventUpdate | DiagnosticsEventUpdate | CognitoEventUpdate | null>(coreFormat, () =>
                     deserializer.deserialize({ content: coreFormat.update as any, header: coreFormat.header })
                 )
                 messageBus.send({

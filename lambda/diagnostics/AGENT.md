@@ -26,7 +26,7 @@
 - [`dataSource/subscribedEvents.ts`](dataSource/subscribedEvents.ts) owns subscribed header/envelope guards for:
   - `mtw.connections` / `Session Disconnect Problem`
   - `mtw.connections` / `New Player`
-  - `api.diagnostics` synthetic command envelopes (`HealPlayer`, `StaleSessionSweep`, `RoomOccupancyDriftSweep`)
+  - `api.diagnostics` synthetic command envelopes (`StaleSessionSweep`, `RoomOccupancyDriftSweep`)
 - [`dataSource/index.ts`](dataSource/index.ts) owns subscribed-event handling.
 
 **Handling semantics:**

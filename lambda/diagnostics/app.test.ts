@@ -6,13 +6,9 @@ jest.mock('./staleSessionSweep', () => ({
 jest.mock('./roomOccupancyDriftSweep', () => ({
     roomOccupancyDriftSweep: jest.fn(async () => ({ emittedCount: 0, roomIds: [] as string[], checkLocationCandidates: [] as string[] }))
 }))
-jest.mock('./player', () => ({
-    healPlayer: jest.fn(async () => ({}))
-}))
 
 import { staleSessionSweep } from './staleSessionSweep'
 import { roomOccupancyDriftSweep } from './roomOccupancyDriftSweep'
-import { healPlayer } from './player'
 import { handler } from './app'
 
 describe('diagnostics handler', () => {
@@ -21,8 +17,6 @@ describe('diagnostics handler', () => {
         jest.mocked(staleSessionSweep).mockResolvedValue({ emittedCount: 0, players: [] as string[] })
         jest.mocked(roomOccupancyDriftSweep).mockReset()
         jest.mocked(roomOccupancyDriftSweep).mockResolvedValue({ emittedCount: 0, roomIds: [] as string[], checkLocationCandidates: [] as string[] })
-        jest.mocked(healPlayer).mockReset()
-        jest.mocked(healPlayer).mockResolvedValue({ Characters: [], Assets: [], guestName: '', guestId: '' })
     })
 
     it('invokes staleSessionSweep for direct StaleSessionSweep via api.diagnostics synthetic lane', async () => {
@@ -60,7 +54,7 @@ describe('diagnostics handler', () => {
             }
         })
 
-        expect(healPlayer).toHaveBeenCalledWith('player-1')
+        expect(staleSessionSweep).not.toHaveBeenCalled()
     })
 
     it('drops malformed mtw.connections Session Disconnect Problem payloads without throwing', async () => {
@@ -105,13 +99,4 @@ describe('diagnostics handler', () => {
         expect(result).toEqual({ emittedCount: 0, roomIds: [], checkLocationCandidates: [] })
     })
 
-    it('returns healPlayer payload for direct HealPlayer command', async () => {
-        const result = await handler({
-            type: 'HealPlayer',
-            player: 'player-2'
-        })
-
-        expect(healPlayer).toHaveBeenCalledWith('player-2')
-        expect(result).toEqual({ Characters: [], Assets: [], guestName: '', guestId: '' })
-    })
 })

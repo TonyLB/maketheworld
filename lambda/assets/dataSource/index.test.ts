@@ -8,6 +8,8 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { cacheAsset, decacheAsset } from './caching'
 import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { reseedComponentExamplesFromDiagnostics } from '../componentExamples/reseedFromDiagnostics'
+import { healPlayer } from '../player/heal'
+import messageBus from '../messageBus'
 
 // Mock external dependencies
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
@@ -51,12 +53,16 @@ jest.mock('./caching')
 jest.mock('../componentExamples/reseedFromDiagnostics', () => ({
     reseedComponentExamplesFromDiagnostics: jest.fn()
 }))
+jest.mock('../player/heal', () => ({
+    healPlayer: jest.fn(async () => ({ Characters: [], Assets: [], guestName: '', guestId: '' }))
+}))
 
 const assetDBMock = jest.mocked(assetDB, { shallow: false })
 const eventBridgeSendMock = jest.mocked(eventBridgeClient.send, { shallow: false })
 const cacheAssetMock = jest.mocked(cacheAsset)
 const decacheAssetMock = jest.mocked(decacheAsset)
 const reseedComponentExamplesFromDiagnosticsMock = jest.mocked(reseedComponentExamplesFromDiagnostics)
+const healPlayerMock = jest.mocked(healPlayer)
 
 describe('AssetsDataSource (mtw.assets)', () => {
     beforeEach(() => {
@@ -67,8 +73,11 @@ describe('AssetsDataSource (mtw.assets)', () => {
         } as any)
         decacheAssetMock.mockResolvedValue(undefined)
         reseedComponentExamplesFromDiagnosticsMock.mockResolvedValue(undefined)
+        healPlayerMock.mockReset()
+        healPlayerMock.mockResolvedValue({ Characters: [], Assets: [], guestName: '', guestId: '' } as any)
+        jest.mocked(messageBus.send).mockReset()
         // Mock assetDB.query for diagnostic tests
-        assetDBMock.query.mockResolvedValue([])
+        assetDBMock.query.mockResolvedValue([] as any)
     })
 
     describe('Constructor', () => {
@@ -319,7 +328,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             assetDBMock.query.mockResolvedValueOnce([
                 { AssetId: 'ASSET#test456', DataCategory: 'Meta::Asset', zone: 'Canon' },
                 { AssetId: 'ASSET#other123', DataCategory: 'Meta::Asset', zone: 'Canon' }
-            ])
+            ] as any)
             
             await assetsDataSource.receiveEvents?.({ 
                 events: [zoneChangedEvent], 
@@ -391,7 +400,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             // Mock canon graph query results (remaining canon assets)
             assetDBMock.query.mockResolvedValueOnce([
                 { AssetId: 'ASSET#other123', DataCategory: 'Meta::Asset', zone: 'Canon' }
-            ])
+            ] as any)
             
             await assetsDataSource.receiveEvents?.({ 
                 events: [zoneChangedEvent], 
@@ -479,7 +488,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
         it('should handle diagnostic events', async () => {
             // Mock the assetDB.query call that's failing in healGlobalValues
-            assetDBMock.query.mockResolvedValueOnce([]) // Return empty array for Items.map
+            assetDBMock.query.mockResolvedValueOnce([] as any) // Return empty array for Items.map
 
             const diagnosticEvent = {
                 header: {
@@ -638,6 +647,58 @@ describe('AssetsDataSource (mtw.assets)', () => {
             }), mockStreamEvent)
         })
 
+        it('should process mtw.cognito New Player by healing the player', async () => {
+            const cognitoEvent: any = {
+                header: {
+                    dataSourceKey: 'mtw.cognito',
+                    streamKey: 'global',
+                    timestamp: Date.now(),
+                    type: 'New Player'
+                },
+                getContent: () => Promise.resolve({
+                    type: 'New Player',
+                    player: 'new-player'
+                })
+            }
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+
+            await assetsDataSource.receiveEvents?.({
+                events: [cognitoEvent],
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
+            })
+
+            expect(healPlayerMock).toHaveBeenCalledWith('new-player')
+        })
+
+        it('should process api.assets HealPlayer and emit ReturnValue', async () => {
+            const apiEvent: any = {
+                header: {
+                    dataSourceKey: 'api.assets',
+                    streamKey: 'ingress',
+                    timestamp: Date.now(),
+                    type: 'HealPlayer'
+                },
+                getContent: () => Promise.resolve({
+                    type: 'HealPlayer',
+                    player: 'api-player'
+                })
+            }
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+
+            await assetsDataSource.receiveEvents?.({
+                events: [apiEvent],
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
+            })
+
+            expect(healPlayerMock).toHaveBeenCalledWith('api-player')
+            expect(messageBus.send).toHaveBeenCalledWith({
+                type: 'ReturnValue',
+                body: { Characters: [], Assets: [], guestName: '', guestId: '' }
+            })
+        })
+
         it('should normalize short assetId to ASSET# prefix in Cache Consistency Finding', async () => {
             const cacheConsistencyEvent: any = {
                 header: {
@@ -736,7 +797,9 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 { dataSourceKey: 'mtw.wml', type: 'Asset Purged' },
                 { dataSourceKey: 'mtw.diagnostics', type: 'Heal Global Values' },
                 { dataSourceKey: 'mtw.diagnostics', type: 'Cache Consistency Finding' },
-                { dataSourceKey: 'mtw.diagnostics', type: 'Ephemera RenderCache Finding' }
+                { dataSourceKey: 'mtw.diagnostics', type: 'Ephemera RenderCache Finding' },
+                { dataSourceKey: 'mtw.cognito', type: 'New Player' },
+                { dataSourceKey: 'api.assets', type: 'HealPlayer' }
             ]
 
             subscribedHeaderPairs.forEach(({ dataSourceKey, type }) => {

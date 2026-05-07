@@ -3,15 +3,11 @@ import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 jest.mock('../staleSessionSweep', () => ({
     staleSessionSweep: jest.fn(async () => ({ emittedCount: 0, players: [] as string[] }))
 }))
-jest.mock('../player', () => ({
-    healPlayer: jest.fn(async () => ({}))
-}))
 jest.mock('../roomOccupancyDriftSweep', () => ({
     roomOccupancyDriftSweep: jest.fn(async () => ({ emittedCount: 0, roomIds: [] as string[], checkLocationCandidates: [] as string[] }))
 }))
 
 import { staleSessionSweep } from '../staleSessionSweep'
-import { healPlayer } from '../player'
 import { roomOccupancyDriftSweep } from '../roomOccupancyDriftSweep'
 import { processDiagnosticsSubscribedEvents } from './index'
 import messageBus from '../messageBus'
@@ -30,8 +26,6 @@ describe('diagnosticsDataSource subscribed event processing', () => {
     beforeEach(() => {
         jest.mocked(staleSessionSweep).mockReset()
         jest.mocked(staleSessionSweep).mockResolvedValue({ emittedCount: 0, players: [] as string[] })
-        jest.mocked(healPlayer).mockReset()
-        jest.mocked(healPlayer).mockResolvedValue({ Characters: [], Assets: [], guestName: '', guestId: '' } as any)
         jest.mocked(roomOccupancyDriftSweep).mockReset()
         jest.mocked(roomOccupancyDriftSweep).mockResolvedValue({ emittedCount: 0, roomIds: [] as string[], checkLocationCandidates: [] as string[] })
         messageBus.clear()
@@ -98,7 +92,7 @@ describe('diagnosticsDataSource subscribed event processing', () => {
         expect(returnValueMessages).toHaveLength(1)
     })
 
-    it('routes mtw.connections New Player events to healPlayer', async () => {
+    it('accepts mtw.connections New Player events without repair action', async () => {
         await processDiagnosticsSubscribedEvents([
             makeEnvelope(
                 { dataSourceKey: 'mtw.connections', type: 'New Player' },
@@ -107,8 +101,7 @@ describe('diagnosticsDataSource subscribed event processing', () => {
                 }
             )
         ])
-
-        expect(healPlayer).toHaveBeenCalledWith('player-new')
+        expect(staleSessionSweep).not.toHaveBeenCalled()
     })
 
     it('emits ReturnValue for api.diagnostics RoomOccupancyDriftSweep events', async () => {

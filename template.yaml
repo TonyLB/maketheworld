@@ -1443,6 +1443,15 @@ Resources:
                     - Content Update
                     - Zone Changed
                     - Asset Purged
+            Cognito:
+              Type: CloudWatchEvent
+              Properties:
+                EventBusName: !Sub ${TablePrefix}-bus
+                Pattern:
+                  source:
+                    - mtw.cognito
+                  detail-type:
+                    - New Player
   DeliverMessageSyncFunction:
       Type: AWS::Serverless::Function
       # Metadata:

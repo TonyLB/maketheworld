@@ -2,16 +2,10 @@ import { v4 as uuidv4 } from 'uuid'
 
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { splitType } from '@tonylb/mtw-utilities/ts/types'
-import { newGuestName } from "./guestNames"
 import { coyoteGameEnabled } from '@tonylb/mtw-base/ts/coyoteGame'
+import { AssetClientPlayerSettings } from '@tonylb/mtw-interfaces/ts/asset'
 
-import { CognitoIdentityProviderClient, ListUsersCommand } from "@aws-sdk/client-cognito-identity-provider"
-import { AssetClientPlayerSettings  } from "@tonylb/mtw-interfaces/ts/asset"
-
-const { COGNITO_POOL_ID } = process.env
-
-const params = { region: process.env.AWS_REGION }
-const cognitoClient = new CognitoIdentityProviderClient(params)
+import { newGuestName } from './guestNames'
 
 export const convertAssetQuery = (queryItems) => {
     const Characters = queryItems
@@ -89,7 +83,7 @@ export const healPlayer = async (player: string): Promise<HealPlayerReturnValue>
             finalGuestId = result.guestId
         }
     }
-    
+
     const { Characters, Assets } = await generatePersonalAssetLibrary(player)
 
     return {
@@ -98,22 +92,4 @@ export const healPlayer = async (player: string): Promise<HealPlayerReturnValue>
         guestName: finalGuestName || '',
         guestId: finalGuestId || ''
     }
-}
-
-export const healAllPlayers = async () => {
-    //
-    // TODO: Filter on only confirmed players, to prevent healing in lots of unconfirmed names
-    //
-    const { Users = [] } = await cognitoClient.send(new ListUsersCommand({
-            UserPoolId: COGNITO_POOL_ID
-        }))
-    const userNames = Users
-        .map(({ Username }) => (Username))
-        .filter((userName) => (userName))
-    await Promise.all(
-        userNames
-            .filter((userName): userName is string => (Boolean(userName)))
-            .map(healPlayer)
-    )
-    return {}
 }
