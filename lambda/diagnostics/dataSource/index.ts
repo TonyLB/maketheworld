@@ -4,15 +4,14 @@ import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { DiagnosticsEventSerializer, DiagnosticsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { isSessionDisconnectProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
 import messageBus from '../messageBus'
-import { healPlayer } from '../player'
 import { roomOccupancyDriftSweep } from '../roomOccupancyDriftSweep'
+import { playerMisalignmentSweep } from '../playerMisalignmentSweep'
 import { staleSessionSweep } from '../staleSessionSweep'
 import {
     DiagnosticsSubscribedContent,
-    isConnectionsNewPlayerEnvelope,
     isConnectionsProblemEnvelope,
-    isDiagnosticsApiHealPlayerEnvelope,
     isDiagnosticsApiRoomOccupancyDriftSweepEnvelope,
+    isDiagnosticsApiPlayerMisalignmentSweepEnvelope,
     isDiagnosticsApiStaleSessionSweepEnvelope,
     isDiagnosticsSubscribedEnvelope
 } from './subscribedEvents'
@@ -64,13 +63,6 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
                 await staleSessionSweep()
                 return
             }
-            if (isConnectionsNewPlayerEnvelope(event as any)) {
-                const content = await event.getContent()
-                if (typeof content.player === 'string' && content.player.length > 0) {
-                    await healPlayer(content.player)
-                }
-                return
-            }
             if (isDiagnosticsApiStaleSessionSweepEnvelope(event as any)) {
                 const content = await event.getContent()
                 const result = await staleSessionSweep({
@@ -83,18 +75,21 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
                 })
                 return
             }
-            if (isDiagnosticsApiHealPlayerEnvelope(event as any)) {
+            if (isDiagnosticsApiRoomOccupancyDriftSweepEnvelope(event as any)) {
                 const content = await event.getContent()
-                const result = await healPlayer(content.player)
+                const result = await roomOccupancyDriftSweep({
+                    diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
+                    nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
+                })
                 messageBus.send({
                     type: 'ReturnValue',
                     body: result as Record<string, any>
                 })
                 return
             }
-            if (isDiagnosticsApiRoomOccupancyDriftSweepEnvelope(event as any)) {
+            if (isDiagnosticsApiPlayerMisalignmentSweepEnvelope(event as any)) {
                 const content = await event.getContent()
-                const result = await roomOccupancyDriftSweep({
+                const result = await playerMisalignmentSweep({
                     diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
                     nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
                 })

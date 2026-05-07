@@ -9,11 +9,12 @@ export type DiagnosticsAPIPayload =
         nowMs?: number
     }
     | {
-        type: 'HealPlayer'
-        player: string
+        type: 'RoomOccupancyDriftSweep'
+        diagnosticRunId?: string
+        nowMs?: number
     }
     | {
-        type: 'RoomOccupancyDriftSweep'
+        type: 'PlayerMisalignmentSweep'
         diagnosticRunId?: string
         nowMs?: number
     }
@@ -27,7 +28,7 @@ const isApiDiagnosticsHeader: HeaderGuard<DiagnosticsApiSubscribedHeader> = (
     header
 ): header is DiagnosticsApiSubscribedHeader => (
     header.dataSourceKey === 'api.diagnostics' &&
-    ['StaleSessionSweep', 'HealPlayer', 'RoomOccupancyDriftSweep'].includes(header.type)
+    ['StaleSessionSweep', 'RoomOccupancyDriftSweep', 'PlayerMisalignmentSweep'].includes(header.type)
 )
 
 export const isApiDiagnosticsEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<

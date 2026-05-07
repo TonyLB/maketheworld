@@ -1,0 +1,57 @@
+import { HeaderGuard, StreamingEventHeader, makeStreamingEnvelopeGuardFromHeaderGuard } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
+import type { StreamingEventMessage } from '../messageBus/baseClasses'
+
+export type AssetsAPIPayload = {
+    type: 'HealPlayer'
+    player: string
+}
+
+export type AssetsApiSubscribedHeader = StreamingEventHeader & {
+    dataSourceKey: 'api.assets';
+    type: AssetsAPIPayload['type'];
+}
+
+const isApiAssetsHeader: HeaderGuard<AssetsApiSubscribedHeader> = (
+    header
+): header is AssetsApiSubscribedHeader => (
+    header.dataSourceKey === 'api.assets' &&
+    header.type === 'HealPlayer'
+)
+
+export const isApiAssetsEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    AssetsAPIPayload,
+    AssetsApiSubscribedHeader
+>(isApiAssetsHeader)
+
+type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }
+
+const apiAssetsSerializer = {
+    serialize: ({ content }: { content: AssetsAPIPayload; header: { type: string } }) => ({ ...content })
+}
+
+export const sendApiAssetsEvent = (
+    bus: Bus,
+    content: AssetsAPIPayload,
+    laneId?: string
+) => {
+    const timestamp = Date.now()
+    const envelope = createInternalOriginEnvelope(
+        {
+            dataSourceKey: 'api.assets',
+            streamKey: 'ingress',
+            timestamp,
+            type: content.type
+        },
+        content,
+        apiAssetsSerializer
+    )
+    bus.send({
+        type: 'StreamingEvent',
+        dataSourceKey: 'api.assets',
+        streamKey: 'ingress',
+        header: envelope.header,
+        getContent: envelope.getContent,
+        timestamp
+    }, laneId)
+}

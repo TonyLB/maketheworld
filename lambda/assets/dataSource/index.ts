@@ -10,15 +10,19 @@ import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import {
     AssetsIncomingEvent,
     AssetsSubscribedContent,
+    isApiAssetsHealPlayerEvent,
     isAssetsSubscribedEnvelope,
+    isCognitoNewPlayerEvent,
     isWMLZoneChangedEvent,
     isWMLAssetPurgedEvent,
     isDiagnosticsHealGlobalValuesEvent,
     isDiagnosticsCacheConsistencyFindingEvent,
     isDiagnosticsEphemeraRenderCacheFindingEvent,
+    isDiagnosticsPlayerMisalignmentFindingEvent,
     isWMLContentUpdateEvent,
 } from './subscribedEvents'
 import { reseedComponentExamplesFromDiagnostics } from '../componentExamples/reseedFromDiagnostics'
+import { healPlayer } from '../player/heal'
 
 type StreamEventFn = (params: { update: AssetsEventUpdate; streamKey: string; header: { type: string } }) => Promise<void>
 
@@ -166,6 +170,40 @@ const handleEphemeraRenderCacheFinding = async (
     await reseedComponentExamplesFromDiagnostics(content, streamEvent)
 }
 
+const handleNewPlayerHeal = async (
+    event: Extract<AssetsIncomingEvent, { header: { type: 'New Player' } }>
+): Promise<void> => {
+    const content = await event.getContent()
+    if (!content?.player || typeof content.player !== 'string') {
+        return
+    }
+    await healPlayer(content.player)
+}
+
+const handlePlayerMisalignmentFinding = async (
+    event: Extract<AssetsIncomingEvent, { header: { type: 'Player Misalignment Finding' } }>
+): Promise<void> => {
+    const content = await event.getContent()
+    if (!content?.player || typeof content.player !== 'string') {
+        return
+    }
+    await healPlayer(content.player)
+}
+
+const handleApiHealPlayer = async (
+    event: Extract<AssetsIncomingEvent, { header: { dataSourceKey: 'api.assets'; type: 'HealPlayer' } }>
+): Promise<void> => {
+    const content = await event.getContent()
+    if (!content?.player || typeof content.player !== 'string') {
+        return
+    }
+    const result = await healPlayer(content.player)
+    messageBus.send({
+        type: 'ReturnValue',
+        body: result as Record<string, any>
+    })
+}
+
 //
 // Non-replayable DataSource singleton for mtw.assets
 // 
@@ -210,6 +248,18 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
             }
             if (isDiagnosticsEphemeraRenderCacheFindingEvent(event)) {
                 await handleEphemeraRenderCacheFinding(event, streamEvent)
+                return
+            }
+            if (isDiagnosticsPlayerMisalignmentFindingEvent(event)) {
+                await handlePlayerMisalignmentFinding(event)
+                return
+            }
+            if (isCognitoNewPlayerEvent(event)) {
+                await handleNewPlayerHeal(event)
+                return
+            }
+            if (isApiAssetsHealPlayerEvent(event)) {
+                await handleApiHealPlayer(event)
                 return
             }
         }))

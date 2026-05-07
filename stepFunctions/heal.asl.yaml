@@ -5,7 +5,7 @@ States:
     "Heal Player":
         Type: Task
         Next: Create Supplemental Argument
-        Resource: "${DiagnosticsFunctionArn}"
+        Resource: "${AssetsFunctionArn}"
         Parameters:
             type: "HealPlayer"
             player.$: "$$.Execution.Input.player"

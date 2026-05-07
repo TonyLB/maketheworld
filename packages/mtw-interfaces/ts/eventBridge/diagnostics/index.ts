@@ -46,6 +46,13 @@ export type DiagnosticsRoomOccupancyDriftFindingEvent = {
     timestamp: string
 }
 
+export type DiagnosticsPlayerMisalignmentFindingEvent = {
+    type: 'Player Misalignment Finding'
+    player: string
+    diagnosticRunId: string
+    timestamp: string
+}
+
 /** Heal Global Values content shape (for deserialize only; produced elsewhere) */
 export type DiagnosticsHealGlobalValuesContent = {
     type: 'Heal Global Values'
@@ -60,6 +67,7 @@ export type DiagnosticsEventUpdate =
     | DiagnosticsEphemeraRenderCacheFindingEvent
     | DiagnosticsStaleSessionIdFindingEvent
     | DiagnosticsRoomOccupancyDriftFindingEvent
+    | DiagnosticsPlayerMisalignmentFindingEvent
     | DiagnosticsHealGlobalValuesContent
 
 //
@@ -105,12 +113,20 @@ export type DiagnosticsRoomOccupancyDriftFindingEventExternal = {
     timestamp?: string
 }
 
+export type DiagnosticsPlayerMisalignmentFindingEventExternal = {
+    type: 'Player Misalignment Finding'
+    player: string
+    diagnosticRunId?: string
+    timestamp?: string
+}
+
 export type DiagnosticsEventExternal =
     | DiagnosticsS3StructureFindingEventExternal
     | DiagnosticsCacheConsistencyFindingEventExternal
     | DiagnosticsEphemeraRenderCacheFindingEventExternal
     | DiagnosticsStaleSessionIdFindingEventExternal
     | DiagnosticsRoomOccupancyDriftFindingEventExternal
+    | DiagnosticsPlayerMisalignmentFindingEventExternal
 
 //
 // Type guards
@@ -174,9 +190,19 @@ export const isRoomOccupancyDriftFindingEvent = (event: any): event is Diagnosti
     )
 }
 
+export const isPlayerMisalignmentFindingEvent = (event: any): event is DiagnosticsPlayerMisalignmentFindingEvent => {
+    return Boolean(
+        event &&
+        typeof event === 'object' &&
+        event.type === 'Player Misalignment Finding' &&
+        typeof event.player === 'string' &&
+        event.player.length > 0
+    )
+}
+
 export const isDiagnosticsEventUpdate = (event: unknown): event is DiagnosticsEventUpdate => {
     return isS3StructureFindingEvent(event) || isCacheConsistencyFindingEvent(event) || isEphemeraRenderCacheFindingEvent(event) ||
-        isStaleSessionIdFindingEvent(event) || isRoomOccupancyDriftFindingEvent(event) ||
+        isStaleSessionIdFindingEvent(event) || isRoomOccupancyDriftFindingEvent(event) || isPlayerMisalignmentFindingEvent(event) ||
         (typeof event === 'object' && event !== null && (event as any).type === 'Heal Global Values')
 }
 
@@ -242,6 +268,14 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
             return {
                 type: 'Room Occupancy Drift Finding',
                 roomId: content.roomId,
+                diagnosticRunId: content.diagnosticRunId,
+                timestamp: content.timestamp
+            }
+        }
+        if (header.type === 'Player Misalignment Finding' && isPlayerMisalignmentFindingEvent(content)) {
+            return {
+                type: 'Player Misalignment Finding',
+                player: content.player,
                 diagnosticRunId: content.diagnosticRunId,
                 timestamp: content.timestamp
             }
@@ -341,6 +375,18 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
             return {
                 type: 'Room Occupancy Drift Finding',
                 roomId: content.roomId as EphemeraRoomId,
+                diagnosticRunId: content.diagnosticRunId || 'unknown',
+                timestamp: content.timestamp || new Date().toISOString()
+            }
+        }
+
+        if (eventType === 'Player Misalignment Finding') {
+            if (typeof content.player !== 'string' || content.player.length === 0) {
+                return null
+            }
+            return {
+                type: 'Player Misalignment Finding',
+                player: content.player,
                 diagnosticRunId: content.diagnosticRunId || 'unknown',
                 timestamp: content.timestamp || new Date().toISOString()
             }

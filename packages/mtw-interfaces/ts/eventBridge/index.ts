@@ -31,4 +31,17 @@ export type EventBridgeUpdatePlayer = {
 // - @tonylb/mtw-interfaces/ts/eventBridge/wml
 // - @tonylb/mtw-interfaces/ts/eventBridge/assets  
 // - @tonylb/mtw-interfaces/ts/eventBridge/ephemera
+// - @tonylb/mtw-interfaces/ts/eventBridge/cognito
 // - @tonylb/mtw-interfaces/ts/eventBridge/baseClasses
+
+export {
+    CognitoEventSerializer,
+    isCognitoEventUpdate,
+    isNewPlayerEvent
+} from './cognito/index'
+export type {
+    CognitoEventExternal,
+    CognitoEventUpdate,
+    CognitoNewPlayerEvent,
+    CognitoNewPlayerEventExternal
+} from './cognito/index'

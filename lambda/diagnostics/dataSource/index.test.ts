@@ -3,16 +3,16 @@ import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 jest.mock('../staleSessionSweep', () => ({
     staleSessionSweep: jest.fn(async () => ({ emittedCount: 0, players: [] as string[] }))
 }))
-jest.mock('../player', () => ({
-    healPlayer: jest.fn(async () => ({}))
-}))
 jest.mock('../roomOccupancyDriftSweep', () => ({
     roomOccupancyDriftSweep: jest.fn(async () => ({ emittedCount: 0, roomIds: [] as string[], checkLocationCandidates: [] as string[] }))
 }))
+jest.mock('../playerMisalignmentSweep', () => ({
+    playerMisalignmentSweep: jest.fn(async () => ({ emittedCount: 0, players: [] as string[] }))
+}))
 
 import { staleSessionSweep } from '../staleSessionSweep'
-import { healPlayer } from '../player'
 import { roomOccupancyDriftSweep } from '../roomOccupancyDriftSweep'
+import { playerMisalignmentSweep } from '../playerMisalignmentSweep'
 import { processDiagnosticsSubscribedEvents } from './index'
 import messageBus from '../messageBus'
 
@@ -30,10 +30,10 @@ describe('diagnosticsDataSource subscribed event processing', () => {
     beforeEach(() => {
         jest.mocked(staleSessionSweep).mockReset()
         jest.mocked(staleSessionSweep).mockResolvedValue({ emittedCount: 0, players: [] as string[] })
-        jest.mocked(healPlayer).mockReset()
-        jest.mocked(healPlayer).mockResolvedValue({ Characters: [], Assets: [], guestName: '', guestId: '' } as any)
         jest.mocked(roomOccupancyDriftSweep).mockReset()
         jest.mocked(roomOccupancyDriftSweep).mockResolvedValue({ emittedCount: 0, roomIds: [] as string[], checkLocationCandidates: [] as string[] })
+        jest.mocked(playerMisalignmentSweep).mockReset()
+        jest.mocked(playerMisalignmentSweep).mockResolvedValue({ emittedCount: 0, players: [] as string[] })
         messageBus.clear()
     })
 
@@ -98,19 +98,6 @@ describe('diagnosticsDataSource subscribed event processing', () => {
         expect(returnValueMessages).toHaveLength(1)
     })
 
-    it('routes mtw.connections New Player events to healPlayer', async () => {
-        await processDiagnosticsSubscribedEvents([
-            makeEnvelope(
-                { dataSourceKey: 'mtw.connections', type: 'New Player' },
-                {
-                    player: 'player-new'
-                }
-            )
-        ])
-
-        expect(healPlayer).toHaveBeenCalledWith('player-new')
-    })
-
     it('emits ReturnValue for api.diagnostics RoomOccupancyDriftSweep events', async () => {
         await processDiagnosticsSubscribedEvents([
             makeEnvelope(
@@ -124,6 +111,23 @@ describe('diagnosticsDataSource subscribed event processing', () => {
         ])
 
         expect(roomOccupancyDriftSweep).toHaveBeenCalledWith({ diagnosticRunId: 'diag-2', nowMs: 54321 })
+        const returnValueMessages = messageBus._stream.map(({ payload }) => payload).filter(({ type }) => type === 'ReturnValue')
+        expect(returnValueMessages).toHaveLength(1)
+    })
+
+    it('emits ReturnValue for api.diagnostics PlayerMisalignmentSweep events', async () => {
+        await processDiagnosticsSubscribedEvents([
+            makeEnvelope(
+                { dataSourceKey: 'api.diagnostics', type: 'PlayerMisalignmentSweep' },
+                {
+                    type: 'PlayerMisalignmentSweep',
+                    diagnosticRunId: 'diag-3',
+                    nowMs: 67890
+                }
+            )
+        ])
+
+        expect(playerMisalignmentSweep).toHaveBeenCalledWith({ diagnosticRunId: 'diag-3', nowMs: 67890 })
         const returnValueMessages = messageBus._stream.map(({ payload }) => payload).filter(({ type }) => type === 'ReturnValue')
         expect(returnValueMessages).toHaveLength(1)
     })

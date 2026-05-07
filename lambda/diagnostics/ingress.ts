@@ -30,17 +30,16 @@ const normalizeApiDiagnosticsIngress = async (event: any) => {
                 ...(typeof event.nowMs === 'number' ? { nowMs: event.nowMs } : {})
             })
             return
-        case 'HealPlayer':
-            if (typeof event.player === 'string') {
-                sendApiDiagnosticsEvent(messageBus, {
-                    type: 'HealPlayer',
-                    player: event.player
-                })
-            }
-            return
         case 'RoomOccupancyDriftSweep':
             sendApiDiagnosticsEvent(messageBus, {
                 type: 'RoomOccupancyDriftSweep',
+                ...(typeof event.diagnosticRunId === 'string' ? { diagnosticRunId: event.diagnosticRunId } : {}),
+                ...(typeof event.nowMs === 'number' ? { nowMs: event.nowMs } : {})
+            })
+            return
+        case 'PlayerMisalignmentSweep':
+            sendApiDiagnosticsEvent(messageBus, {
+                type: 'PlayerMisalignmentSweep',
                 ...(typeof event.diagnosticRunId === 'string' ? { diagnosticRunId: event.diagnosticRunId } : {}),
                 ...(typeof event.nowMs === 'number' ? { nowMs: event.nowMs } : {})
             })
