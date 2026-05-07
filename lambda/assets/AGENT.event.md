@@ -35,6 +35,7 @@ The Assets Lambda hosts six data sources, each serving a specific purpose:
 - Subscribes to `mtw.diagnostics` findings including:
   - `Cache Consistency Finding` -> calls `cacheAsset(...)`.
   - `Ephemera RenderCache Finding` -> calls `reseedComponentExamplesFromDiagnostics(...)`.
+  - `Player Misalignment Finding` -> calls `healPlayer(player)` idempotently.
 - `Ephemera RenderCache Finding` remediation is **assets-led** and **descriptive**:
   - validates and normalizes `perspective` and optional `roomIds`,
   - resolves target room set (`roomIds` scope when provided, else all perspective-eligible rooms),
@@ -182,6 +183,7 @@ The Assets Lambda receives events from multiple sources:
 **EventBridge Events**:
 - `mtw.wml` events → Content Update, Zone Changed, Asset Purged
 - `mtw.diagnostics` events → Heal Global Values
+- `mtw.diagnostics` findings → Cache Consistency Finding, Ephemera RenderCache Finding, Player Misalignment Finding
 - `mtw.cognito` events → `New Player` triggers idempotent player heal in `mtw.assets` DataSource
 - `mtw.subscriptions` events → Initialize Subscription (for replayable data sources)
 - synthetic `api.assets` ingress → `HealPlayer` direct invoke path normalized onto the same DataSource lane as mesh events, with response payload returned through message-bus `ReturnValue` extraction

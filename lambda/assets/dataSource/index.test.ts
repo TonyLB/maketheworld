@@ -671,6 +671,32 @@ describe('AssetsDataSource (mtw.assets)', () => {
             expect(healPlayerMock).toHaveBeenCalledWith('new-player')
         })
 
+        it('should process Player Misalignment Finding by healing the player', async () => {
+            const findingEvent: any = {
+                header: {
+                    dataSourceKey: 'mtw.diagnostics',
+                    streamKey: 'global',
+                    timestamp: Date.now(),
+                    type: 'Player Misalignment Finding'
+                },
+                getContent: () => Promise.resolve({
+                    type: 'Player Misalignment Finding',
+                    player: 'misaligned-player',
+                    diagnosticRunId: 'diag-player-1',
+                    timestamp: '2026-05-07T00:00:00.000Z'
+                })
+            }
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+
+            await assetsDataSource.receiveEvents?.({
+                events: [findingEvent],
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
+            })
+
+            expect(healPlayerMock).toHaveBeenCalledWith('misaligned-player')
+        })
+
         it('should process api.assets HealPlayer and emit ReturnValue', async () => {
             const apiEvent: any = {
                 header: {
@@ -798,6 +824,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 { dataSourceKey: 'mtw.diagnostics', type: 'Heal Global Values' },
                 { dataSourceKey: 'mtw.diagnostics', type: 'Cache Consistency Finding' },
                 { dataSourceKey: 'mtw.diagnostics', type: 'Ephemera RenderCache Finding' },
+                { dataSourceKey: 'mtw.diagnostics', type: 'Player Misalignment Finding' },
                 { dataSourceKey: 'mtw.cognito', type: 'New Player' },
                 { dataSourceKey: 'api.assets', type: 'HealPlayer' }
             ]

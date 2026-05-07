@@ -129,10 +129,10 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines as you 
   - [X] Remove dead **`PostConfirmation`** / **`HEAL_SFN`** branch from [`lambda/assets/app.ts`](../../../lambda/assets/app.ts) once SFN invokes Assets directly (per **D1**, SAM never wired this path). Also dropped now-orphan **`AssetsFunction`** template entries: **`HEAL_SFN`** and **`COGNITO_POOL_ID`** env vars, **`StepFunctionsExecutionPolicy`** for **`${TablePrefix}_heal_step_function`**, and **`cognito-idp:ListUsers`** statement (the last two left over from **D6** **`healAllPlayers`**); **`HealStateMachine`** resource itself retained for ad-hoc operator invocations.
   - [X] Documented dev/staging one-heal-per-signup protocol and the SAM-only Cognito trigger assumption in **Verification** below.
 
-- [ ] **Phase 6 - Optional: player misalignment sweep**
-  - [ ] Implement read-only sweep in diagnostics; emit **`mtw.diagnostics`** / **`Player Misalignment Finding`** per **D5** (direct-invoke entry).
-  - [ ] Subscribe assets (or heal handler) to finding; idempotent heal.
-  - [ ] Treat this sweep as the **efficient substitute** for the old **`healAllPlayers`** intent (targeted work from evidence, not full Cognito enumeration---**D6**).
+- [X] **Phase 6 - Optional: player misalignment sweep**
+  - [X] Implemented read-only sweep in diagnostics; emits **`mtw.diagnostics`** / **`Player Misalignment Finding`** per **D5** through direct-invoke **`PlayerMisalignmentSweep`**.
+  - [X] Subscribed assets heal path to **`Player Misalignment Finding`**; remediation uses idempotent **`healPlayer`**.
+  - [X] Sweep now acts as the **efficient substitute** for old **`healAllPlayers`** intent: evidence-driven targeting from assets-table misalignment signals (missing player meta, missing guest fields, coyote guest-name mismatch), not full Cognito enumeration (**D6**).
 
 - [ ] **Phase 7 - Close out**
   - [ ] Update durable docs: [`lambda/diagnostics/AGENT.md`](../../../lambda/diagnostics/AGENT.md), [`lambda/assets/AGENT.event.md`](../../../lambda/assets/AGENT.event.md), [`lambda/cognitoEvent`](../../../lambda/cognitoEvent) if present, root [`AGENT.md`](../../../AGENT.md) index if needed.
@@ -148,7 +148,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines as you 
 | Cognito publish | Added `lambda/cognitoEvent` message-bus/DataSource publish lane (`api.cognito` -> `mtw.cognito` via `streamEvent`), removed direct `PutEvents` publishing from `app.ts`, added focused Jest coverage (`app.test.ts`, `ingress.test.ts`, `dataSource/index.test.ts`), and wired `FEEDBACK_TOPIC` env var for Cognito DataSource configuration parity. |
 | Diagnostics / template / SFN cutover | Removed diagnostics `mtw.connections/New Player` subscribed-event guards and no-op branch, removed `New Player` trigger from `DiagnosticsFunction` EventBridge pattern, and switched `HealStateMachine` substitution/task resource/policy from `DiagnosticsFunction` to `AssetsFunction` while preserving `type: HealPlayer` parameters and return-shape compatibility for `Update Ephemera`. |
 | Double-heal resolved | Removed dead `PostConfirmation_ConfirmSignUp` / `HEAL_SFN` branch from `lambda/assets/app.ts`; dropped now-orphan `AssetsFunction` template entries (`HEAL_SFN` and `COGNITO_POOL_ID` env vars, `StepFunctionsExecutionPolicy` for `${TablePrefix}_heal_step_function`, `cognito-idp:ListUsers` statement); updated durable docs (`lambda/assets/AGENT.event.md`, `lambda/cognitoEvent/AGENT.md`) to assert `AssetsFunction` is not a Cognito trigger and heal entry is mesh + `api.assets` only. Dev/staging one-heal-per-signup protocol and non-SAM Cognito trigger enumeration documented in Verification; per-environment verification still pending. |
-| Optional sweep | |
+| Optional sweep | Added diagnostics direct-invoke `PlayerMisalignmentSweep` read-only evaluator and `Player Misalignment Finding` emitter; assets now subscribes to finding and runs idempotent `healPlayer`; `template.yaml` includes `Player Misalignment Finding` under `AssetsFunction` diagnostics rule. |
 
 ### Phase 0 inventory snapshot
 
@@ -172,6 +172,7 @@ Repeat these after each risky phase; adjust paths if workspace scripts change.
 - Phase 3 verification (2026-05-07): `npm --prefix "lambda/cognitoEvent" run test` and `npm --prefix "lambda/assets" run test` both passed after Cognito DataSource publish refactor.
 - Phase 4 verification (2026-05-07): `npm --prefix "lambda/diagnostics" run test`, `npm --prefix "lambda/assets" run test`, and `npm --prefix "lambda/cognitoEvent" run test` all passed after diagnostics retirement + template/SFN cutover.
 - Phase 5 verification (2026-05-07): `npm --prefix "lambda/assets" run test` (21 suites / 172 tests), `npm --prefix "lambda/cognitoEvent" run test` (3 suites / 5 tests), and `npm --prefix "lambda/diagnostics" run test` (5 suites / 24 tests) all passed after dead-branch and AssetsFunction template-orphan removal.
+- Phase 6 verification (2026-05-07): `npm --prefix "packages/mtw-interfaces" run test` (20 suites / 425 tests), `npm --prefix "lambda/diagnostics" run test` (6 suites / 28 tests), and `npm --prefix "lambda/assets" run test` (21 suites / 173 tests) all passed after player-misalignment contract + sweep + finding-consumer wiring.
 - Manual or integration: confirm EventBridge rule delivers **`mtw.cognito` / `New Player`** to Assets only after cutover; confirm **`HealPlayer`** SFN step returns payload **`Update Ephemera`** accepts.
 
 ### Phase 5 dev/staging protocol (one heal per signup)

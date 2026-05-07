@@ -6,6 +6,7 @@ import {
     isEphemeraRenderCacheFindingEvent,
     isStaleSessionIdFindingEvent,
     isRoomOccupancyDriftFindingEvent,
+    isPlayerMisalignmentFindingEvent,
     isDiagnosticsEventUpdate
 } from './index'
 import type { DataSourceEnvironment } from '@tonylb/mtw-interfaces/ts/DataSourceEnvironment'
@@ -183,6 +184,27 @@ describe('DiagnosticsEventSerializer', () => {
                 roomId: 'ROOM#alpha',
                 diagnosticRunId: 'run-room-1',
                 timestamp: '2025-10-18T17:10:00.000Z'
+            })
+        })
+
+        it('should serialize Player Misalignment Finding event', () => {
+            const internalEvent: DiagnosticsEventUpdate = {
+                type: 'Player Misalignment Finding',
+                player: 'alice',
+                diagnosticRunId: 'run-player-1',
+                timestamp: '2025-10-18T17:20:00.000Z'
+            }
+
+            const external = serializer.serialize({
+                content: internalEvent,
+                header: diagnosticsHeader('Player Misalignment Finding')
+            })
+
+            expect(external).toEqual({
+                type: 'Player Misalignment Finding',
+                player: 'alice',
+                diagnosticRunId: 'run-player-1',
+                timestamp: '2025-10-18T17:20:00.000Z'
             })
         })
     })
@@ -506,6 +528,27 @@ describe('DiagnosticsEventSerializer', () => {
                 expect(internal).toBeNull()
             }
         })
+
+        it('should deserialize Player Misalignment Finding event from EventBridge format', async () => {
+            const externalEvent: any = {
+                type: 'Player Misalignment Finding',
+                player: 'bob',
+                diagnosticRunId: 'run-player-2',
+                timestamp: '2025-10-18T17:25:00.000Z'
+            }
+
+            const internal = await serializer.deserialize({
+                content: externalEvent,
+                header: diagnosticsHeader('Player Misalignment Finding')
+            })
+
+            expect(internal).toEqual({
+                type: 'Player Misalignment Finding',
+                player: 'bob',
+                diagnosticRunId: 'run-player-2',
+                timestamp: '2025-10-18T17:25:00.000Z'
+            })
+        })
     })
 
     describe('type guards', () => {
@@ -655,6 +698,24 @@ describe('DiagnosticsEventSerializer', () => {
                 expect(isRoomOccupancyDriftFindingEvent({ type: 'Room Occupancy Drift Finding' })).toBe(false)
             })
         })
+
+        describe('isPlayerMisalignmentFindingEvent', () => {
+            it('should return true for valid Player Misalignment Finding event', () => {
+                const event = {
+                    type: 'Player Misalignment Finding',
+                    player: 'alice',
+                    diagnosticRunId: 'run-1',
+                    timestamp: '2025-10-18T12:00:00.000Z'
+                }
+                expect(isPlayerMisalignmentFindingEvent(event)).toBe(true)
+            })
+
+            it('should return false for invalid payloads', () => {
+                expect(isPlayerMisalignmentFindingEvent(null)).toBe(false)
+                expect(isPlayerMisalignmentFindingEvent({ type: 'Player Misalignment Finding', player: '' })).toBe(false)
+                expect(isPlayerMisalignmentFindingEvent({ type: 'Player Misalignment Finding' })).toBe(false)
+            })
+        })
     })
 
     describe('round-trip serialization', () => {
@@ -757,6 +818,26 @@ describe('DiagnosticsEventSerializer', () => {
             const deserialized = await serializer.deserialize({
                 content: external,
                 header: diagnosticsHeader('Room Occupancy Drift Finding')
+            })
+
+            expect(deserialized).toEqual(original)
+        })
+
+        it('should round-trip Player Misalignment Finding', async () => {
+            const original: DiagnosticsEventUpdate = {
+                type: 'Player Misalignment Finding',
+                player: 'eve',
+                diagnosticRunId: 'run-player-rt',
+                timestamp: '2025-10-18T18:20:00.000Z'
+            }
+
+            const external = serializer.serialize({
+                content: original,
+                header: diagnosticsHeader('Player Misalignment Finding')
+            })
+            const deserialized = await serializer.deserialize({
+                content: external,
+                header: diagnosticsHeader('Player Misalignment Finding')
             })
 
             expect(deserialized).toEqual(original)

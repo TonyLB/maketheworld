@@ -59,6 +59,21 @@
 
 **Downstream handling:** Ephemera consumes `mtw.diagnostics` / `Room Occupancy Drift Finding` and performs idempotent `ephemera`-table-only reconciliation for the targeted room (`lambda/ephemera/dataSource/selfHealing/roomOccupancyDriftFinding.ts`), including room cache refresh and `RoomUpdate` signaling.
 
+## Player Misalignment sweep (player heal targeting diagnostics)
+
+**Purpose:** Read-only sweep over assets-table player evidence to identify players that likely need `healPlayer` reconciliation. Emits findings only; diagnostics does not mutate assets state.
+
+**Entrypoints:**
+
+- Direct invoke only: `type: PlayerMisalignmentSweep`, optional `diagnosticRunId` and `nowMs` (for tests/operators).
+- Routed through synthetic `api.diagnostics` ingress and diagnostics DataSource subscribed-event dispatch.
+
+**Finding contract:** `mtw.diagnostics` / `Player Misalignment Finding` with payload `{ player }`, optional `diagnosticRunId` for sweep correlation. Emission uses `publishStreamEvent` + `DiagnosticsEventSerializer`.
+
+**Evaluation:** The sweep enumerates assets-table evidence (no Cognito `ListUsers`): `Meta::Player` rows plus player references on `Meta::Asset`/`Meta::Character`. It flags players when player meta is missing, guest fields are missing, or coyote guest-name invariants are misaligned.
+
+**Downstream handling:** Assets consumes `mtw.diagnostics` / `Player Misalignment Finding` and runs idempotent `healPlayer` in the owning domain.
+
 ## Related docs
 
 - Task initiative (player heal authority, mesh): [`taskPlanning/lambda/assets/AGENT.playerHealAuthority.planning.md`](../../taskPlanning/lambda/assets/AGENT.playerHealAuthority.planning.md)

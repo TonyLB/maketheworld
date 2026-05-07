@@ -18,6 +18,7 @@ import {
     isDiagnosticsHealGlobalValuesEvent,
     isDiagnosticsCacheConsistencyFindingEvent,
     isDiagnosticsEphemeraRenderCacheFindingEvent,
+    isDiagnosticsPlayerMisalignmentFindingEvent,
     isWMLContentUpdateEvent,
 } from './subscribedEvents'
 import { reseedComponentExamplesFromDiagnostics } from '../componentExamples/reseedFromDiagnostics'
@@ -179,6 +180,16 @@ const handleNewPlayerHeal = async (
     await healPlayer(content.player)
 }
 
+const handlePlayerMisalignmentFinding = async (
+    event: Extract<AssetsIncomingEvent, { header: { type: 'Player Misalignment Finding' } }>
+): Promise<void> => {
+    const content = await event.getContent()
+    if (!content?.player || typeof content.player !== 'string') {
+        return
+    }
+    await healPlayer(content.player)
+}
+
 const handleApiHealPlayer = async (
     event: Extract<AssetsIncomingEvent, { header: { dataSourceKey: 'api.assets'; type: 'HealPlayer' } }>
 ): Promise<void> => {
@@ -237,6 +248,10 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
             }
             if (isDiagnosticsEphemeraRenderCacheFindingEvent(event)) {
                 await handleEphemeraRenderCacheFinding(event, streamEvent)
+                return
+            }
+            if (isDiagnosticsPlayerMisalignmentFindingEvent(event)) {
+                await handlePlayerMisalignmentFinding(event)
                 return
             }
             if (isCognitoNewPlayerEvent(event)) {

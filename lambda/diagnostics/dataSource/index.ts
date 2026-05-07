@@ -5,11 +5,13 @@ import { DiagnosticsEventSerializer, DiagnosticsEventUpdate } from '@tonylb/mtw-
 import { isSessionDisconnectProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
 import messageBus from '../messageBus'
 import { roomOccupancyDriftSweep } from '../roomOccupancyDriftSweep'
+import { playerMisalignmentSweep } from '../playerMisalignmentSweep'
 import { staleSessionSweep } from '../staleSessionSweep'
 import {
     DiagnosticsSubscribedContent,
     isConnectionsProblemEnvelope,
     isDiagnosticsApiRoomOccupancyDriftSweepEnvelope,
+    isDiagnosticsApiPlayerMisalignmentSweepEnvelope,
     isDiagnosticsApiStaleSessionSweepEnvelope,
     isDiagnosticsSubscribedEnvelope
 } from './subscribedEvents'
@@ -76,6 +78,18 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
             if (isDiagnosticsApiRoomOccupancyDriftSweepEnvelope(event as any)) {
                 const content = await event.getContent()
                 const result = await roomOccupancyDriftSweep({
+                    diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
+                    nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
+                })
+                messageBus.send({
+                    type: 'ReturnValue',
+                    body: result as Record<string, any>
+                })
+                return
+            }
+            if (isDiagnosticsApiPlayerMisalignmentSweepEnvelope(event as any)) {
+                const content = await event.getContent()
+                const result = await playerMisalignmentSweep({
                     diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
                     nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
                 })

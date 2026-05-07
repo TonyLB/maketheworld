@@ -1410,6 +1410,7 @@ Resources:
                     - Heal Global Values
                     - Cache Consistency Finding
                     - Ephemera RenderCache Finding
+                    - Player Misalignment Finding
             InitializeSubscriptions:
               Type: CloudWatchEvent
               Properties:
