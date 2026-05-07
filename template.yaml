@@ -1256,6 +1256,7 @@ Resources:
           Environment:
               Variables:
                   EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
+                  FEEDBACK_TOPIC: !Ref MTWFeedbackTopic
           Policies:
             - Statement:
               - Effect: Allow

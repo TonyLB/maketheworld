@@ -113,10 +113,10 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines as you 
   - [X] Add DataSource **`receiveEvents`** (or extend existing assets DataSource) to handle **`New Player`** and run heal **idempotently**.
   - [X] Add **`api.assets`** (or chosen) path for **direct / SFN** invoke with **`ReturnValue`** extraction mirroring diagnostics pattern ([`lambda/assets/returnValue`](../../../lambda/assets/returnValue)).
 
-- [ ] **Phase 3 - Cognito lambda: DataSource publish**
-  - [ ] Refactor [`lambda/cognitoEvent/app.ts`](../../../lambda/cognitoEvent/app.ts) to use **`DataSource`** and **`streamEvent`** for **`mtw.cognito`** instead of manual **`PutEvents`** to **`mtw.connections`**.
-  - [ ] Extend **`template.yaml`** for cognito lambda env vars (bus name, feedback topic if required by pattern, etc.) per DataSource needs.
-  - [ ] Tests or harness acceptable for PostConfirmation publish path.
+- [X] **Phase 3 - Cognito lambda: DataSource publish**
+  - [X] Refactor [`lambda/cognitoEvent/app.ts`](../../../lambda/cognitoEvent/app.ts) to use **`DataSource`** and **`streamEvent`** for **`mtw.cognito`** instead of manual **`PutEvents`** to **`mtw.connections`**.
+  - [X] Extend **`template.yaml`** for cognito lambda env vars (bus name, feedback topic if required by pattern, etc.) per DataSource needs.
+  - [X] Tests or harness acceptable for PostConfirmation publish path.
 
 - [ ] **Phase 4 - Cutover and diagnostics retirement**
   - [ ] Deploy **atomically** per **D2** (single release with Phase 2 and Phase 3 already merged: Cognito publishes **`mtw.cognito`**, Assets subscribes, Diagnostics does not).
@@ -144,7 +144,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines as you 
 | --- | --- |
 | Contracts | Added `mtw.cognito` contract module + serializer + guards in `packages/mtw-interfaces/ts/eventBridge/cognito`, exported via `eventBridge/index.ts`, and covered by new unit tests. |
 | Assets heal + subscribe | Ported `healPlayer` to `lambda/assets/player/heal.ts`; wired `mtw.cognito/New Player` and `api.assets/HealPlayer` through assets DataSource; added `AssetsFunction` EventBridge rule for `mtw.cognito`; removed diagnostics `healPlayer`/`healAllPlayers`; direct `type: HealPlayer` invoke now routes through assets synthetic ingress and returns message-bus `ReturnValue` shape. |
-| Cognito publish | |
+| Cognito publish | Added `lambda/cognitoEvent` message-bus/DataSource publish lane (`api.cognito` -> `mtw.cognito` via `streamEvent`), removed direct `PutEvents` publishing from `app.ts`, added focused Jest coverage (`app.test.ts`, `ingress.test.ts`, `dataSource/index.test.ts`), and wired `FEEDBACK_TOPIC` env var for Cognito DataSource configuration parity. |
 | Diagnostics / template / SFN cutover | |
 | Double-heal resolved | |
 | Optional sweep | |
@@ -168,6 +168,7 @@ Repeat these after each risky phase; adjust paths if workspace scripts change.
 - Phase 0 baseline (2026-05-07): all three suites passed (`lambda/assets` 21/21, `lambda/diagnostics` 5/5, `packages/mtw-interfaces` 19/19 pre-change).
 - Phase 1 verification (2026-05-07): `cd packages/mtw-interfaces && npm run test -- eventBridge` and full `cd packages/mtw-interfaces && npm run test` both passed after `mtw.cognito` contract additions.
 - Phase 2 verification (2026-05-07): `cd lambda/assets && npm run test`, `cd lambda/diagnostics && npm run test`, and `cd packages/mtw-interfaces && npm run test` all passed after assets heal-authority wiring.
+- Phase 3 verification (2026-05-07): `npm --prefix "lambda/cognitoEvent" run test` and `npm --prefix "lambda/assets" run test` both passed after Cognito DataSource publish refactor.
 - Manual or integration: confirm EventBridge rule delivers **`mtw.cognito` / `New Player`** to Assets only after cutover; confirm **`HealPlayer`** SFN step returns payload **`Update Ephemera`** accepts.
 
 ## Related documentation

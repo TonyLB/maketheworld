@@ -19,6 +19,9 @@
     "typescript": "^5.1.3"
   },
   "dependencies": {
-    "@aws-sdk/client-eventbridge": "^3.348.0"
+    "@aws-sdk/client-eventbridge": "^3.348.0",
+    "@tonylb/mtw-interfaces": "file:../../packages/mtw-interfaces",
+    "@tonylb/mtw-lambda-patterns": "file:../../packages/mtw-lambda-patterns",
+    "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities"
   }
 }
