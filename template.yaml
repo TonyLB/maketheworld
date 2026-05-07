@@ -1346,8 +1346,6 @@ Resources:
                   IMAGES_BUCKET: !Sub '${TablePrefix}-images'
                   FEEDBACK_TOPIC: !Ref MTWFeedbackTopic
                   MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE: '0'
-                  COGNITO_POOL_ID: !Ref UserPool
-                  HEAL_SFN: !Ref HealStateMachine
                   LLM_GENERATE_SFN: !Ref LargeLanguageModelStateMachine
           Policies:
             - DynamoDBCrudPolicy:
@@ -1356,8 +1354,6 @@ Resources:
                 TableName: !Sub '${TablePrefix}_connections'
             - SNSPublishMessagePolicy:
                 TopicName: !GetAtt MTWFeedbackTopic.TopicName
-            - StepFunctionsExecutionPolicy:
-                StateMachineName: !Sub '${TablePrefix}_heal_step_function'
             - StepFunctionsExecutionPolicy:
                 StateMachineName: !Sub '${TablePrefix}_llm_generate_step_function'
             - Statement:
@@ -1402,14 +1398,6 @@ Resources:
                   Fn::Sub:
                       - "arn:aws:s3:::${ImageBucket}/*"
                       - AssetBucket: !Sub '${TablePrefix}-images'
-            - Statement:
-              - Effect: Allow
-                Action:
-                  - cognito-idp:ListUsers
-                Resource:
-                  Fn::Sub:
-                      - "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPoolId}"
-                      - UserPoolId: !Ref UserPool
           Events:
             Diagnostics:
               Type: CloudWatchEvent

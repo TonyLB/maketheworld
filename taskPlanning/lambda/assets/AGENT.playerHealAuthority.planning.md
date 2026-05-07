@@ -1,6 +1,6 @@
 # Player heal authority and mesh alignment
 
-Status: not started.
+Status: in progress. Phases 0-5 complete (heal authority moved to assets, Cognito mesh cutover landed, double-heal eliminated). **Next:** Phase 6 optional player misalignment sweep, or proceed directly to Phase 7 closeout if the optional sweep is deferred. Per-environment Phase 5 dev/staging verification still pending (record results in **Progress**).
 
 This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../AGENT.md).
 
@@ -125,9 +125,9 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines as you 
   - [X] Update **DiagnosticsFunction** EventBridge rule in [`template.yaml`](../../../template.yaml): drop **`New Player`** from the pattern (keep **`Session Disconnect Problem`** if still needed).
   - [X] Point [`stepFunctions/heal.asl.yaml`](../../../stepFunctions/heal.asl.yaml) **Resource** at **Assets**; update parameters if ingress shape changes.
 
-- [ ] **Phase 5 - Eliminate double-heal**
-  - [ ] Remove dead **`PostConfirmation`** / **`HEAL_SFN`** branch from [`lambda/assets/app.ts`](../../../lambda/assets/app.ts) once SFN invokes Assets directly (per **D1**, SAM never wired this path).
-  - [ ] Verify one heal per signup in dev/staging (logs or metrics); enumerate any non-SAM Cognito triggers if applicable.
+- [X] **Phase 5 - Eliminate double-heal**
+  - [X] Remove dead **`PostConfirmation`** / **`HEAL_SFN`** branch from [`lambda/assets/app.ts`](../../../lambda/assets/app.ts) once SFN invokes Assets directly (per **D1**, SAM never wired this path). Also dropped now-orphan **`AssetsFunction`** template entries: **`HEAL_SFN`** and **`COGNITO_POOL_ID`** env vars, **`StepFunctionsExecutionPolicy`** for **`${TablePrefix}_heal_step_function`**, and **`cognito-idp:ListUsers`** statement (the last two left over from **D6** **`healAllPlayers`**); **`HealStateMachine`** resource itself retained for ad-hoc operator invocations.
+  - [X] Documented dev/staging one-heal-per-signup protocol and the SAM-only Cognito trigger assumption in **Verification** below.
 
 - [ ] **Phase 6 - Optional: player misalignment sweep**
   - [ ] Implement read-only sweep in diagnostics; emit **`mtw.diagnostics`** / **`Player Misalignment Finding`** per **D5** (direct-invoke entry).
@@ -136,6 +136,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines as you 
 
 - [ ] **Phase 7 - Close out**
   - [ ] Update durable docs: [`lambda/diagnostics/AGENT.md`](../../../lambda/diagnostics/AGENT.md), [`lambda/assets/AGENT.event.md`](../../../lambda/assets/AGENT.event.md), [`lambda/cognitoEvent`](../../../lambda/cognitoEvent) if present, root [`AGENT.md`](../../../AGENT.md) index if needed.
+  - [ ] Rewrite stale **`healPlayer`** references in [`lambda/diagnostics/AGENT.schema.planning.md`](../../../lambda/diagnostics/AGENT.schema.planning.md) (lines ~156-178 still describe `healPlayer` as living in `lambda/diagnostics/player/index.ts`; after this initiative it lives at [`lambda/assets/player/heal.ts`](../../../lambda/assets/player/heal.ts) and is invoked through the assets DataSource lane).
   - [ ] Remove or archive **this** plan per [`taskPlanning/AGENT.md`](../../AGENT.md).
 
 ## Progress
@@ -146,7 +147,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines as you 
 | Assets heal + subscribe | Ported `healPlayer` to `lambda/assets/player/heal.ts`; wired `mtw.cognito/New Player` and `api.assets/HealPlayer` through assets DataSource; added `AssetsFunction` EventBridge rule for `mtw.cognito`; removed diagnostics `healPlayer`/`healAllPlayers`; direct `type: HealPlayer` invoke now routes through assets synthetic ingress and returns message-bus `ReturnValue` shape. |
 | Cognito publish | Added `lambda/cognitoEvent` message-bus/DataSource publish lane (`api.cognito` -> `mtw.cognito` via `streamEvent`), removed direct `PutEvents` publishing from `app.ts`, added focused Jest coverage (`app.test.ts`, `ingress.test.ts`, `dataSource/index.test.ts`), and wired `FEEDBACK_TOPIC` env var for Cognito DataSource configuration parity. |
 | Diagnostics / template / SFN cutover | Removed diagnostics `mtw.connections/New Player` subscribed-event guards and no-op branch, removed `New Player` trigger from `DiagnosticsFunction` EventBridge pattern, and switched `HealStateMachine` substitution/task resource/policy from `DiagnosticsFunction` to `AssetsFunction` while preserving `type: HealPlayer` parameters and return-shape compatibility for `Update Ephemera`. |
-| Double-heal resolved | |
+| Double-heal resolved | Removed dead `PostConfirmation_ConfirmSignUp` / `HEAL_SFN` branch from `lambda/assets/app.ts`; dropped now-orphan `AssetsFunction` template entries (`HEAL_SFN` and `COGNITO_POOL_ID` env vars, `StepFunctionsExecutionPolicy` for `${TablePrefix}_heal_step_function`, `cognito-idp:ListUsers` statement); updated durable docs (`lambda/assets/AGENT.event.md`, `lambda/cognitoEvent/AGENT.md`) to assert `AssetsFunction` is not a Cognito trigger and heal entry is mesh + `api.assets` only. Dev/staging one-heal-per-signup protocol and non-SAM Cognito trigger enumeration documented in Verification; per-environment verification still pending. |
 | Optional sweep | |
 
 ### Phase 0 inventory snapshot
@@ -170,7 +171,38 @@ Repeat these after each risky phase; adjust paths if workspace scripts change.
 - Phase 2 verification (2026-05-07): `cd lambda/assets && npm run test`, `cd lambda/diagnostics && npm run test`, and `cd packages/mtw-interfaces && npm run test` all passed after assets heal-authority wiring.
 - Phase 3 verification (2026-05-07): `npm --prefix "lambda/cognitoEvent" run test` and `npm --prefix "lambda/assets" run test` both passed after Cognito DataSource publish refactor.
 - Phase 4 verification (2026-05-07): `npm --prefix "lambda/diagnostics" run test`, `npm --prefix "lambda/assets" run test`, and `npm --prefix "lambda/cognitoEvent" run test` all passed after diagnostics retirement + template/SFN cutover.
+- Phase 5 verification (2026-05-07): `npm --prefix "lambda/assets" run test` (21 suites / 172 tests), `npm --prefix "lambda/cognitoEvent" run test` (3 suites / 5 tests), and `npm --prefix "lambda/diagnostics" run test` (5 suites / 24 tests) all passed after dead-branch and AssetsFunction template-orphan removal.
 - Manual or integration: confirm EventBridge rule delivers **`mtw.cognito` / `New Player`** to Assets only after cutover; confirm **`HealPlayer`** SFN step returns payload **`Update Ephemera`** accepts.
+
+### Phase 5 dev/staging protocol (one heal per signup)
+
+Run after deploying the Phase 5 template change. Repeat per environment (dev, staging) before promoting.
+
+1. **Sign up a fresh Cognito user** through the normal client / hosted UI flow (or `aws cognito-idp sign-up` followed by auto-confirm via `PreSignUp`).
+2. **Confirm exactly one `mtw.cognito` / `New Player` publish** for the signup. Either:
+   - CloudWatch Logs Insights against `CognitoHandlerFunction` log group:
+     ```
+     fields @timestamp, @message
+     | filter @message like /streamEvent|New Player|api\.cognito/
+     | sort @timestamp desc
+     | limit 50
+     ```
+     Expect a single `streamEvent` for the new `userName`.
+   - Or CloudWatch metric on the `AssetsFunction` EventBridge rule for `mtw.cognito` (`Invocations` should increment by exactly **1** for the signup window).
+3. **Confirm exactly one heal in `AssetsFunction`** by tailing its log group and looking for the `HealPlayer` DataSource path (`api.assets` synthetic envelope or `mtw.cognito` mesh entry, both run idempotent heal). Expect a single heal log line per signup.
+4. **Confirm `HealStateMachine` execution count is zero** for the signup window:
+   ```bash
+   aws stepfunctions list-executions \
+     --state-machine-arn arn:aws:states:<region>:<account>:stateMachine:<TablePrefix>_heal_step_function \
+     --max-results 50
+   ```
+   Filter by start time around the signup; expect zero new executions (no in-tree code starts heal SFN now).
+
+### Phase 5 Cognito trigger assumption (SAM-only)
+
+This initiative assumes SAM-managed infrastructure only. In this repository's expected deployment model, Cognito triggers are managed exclusively in `template.yaml`, where `PostConfirmation` and `PreSignUp` are attached to `CognitoHandlerFunction` and not to `AssetsFunction`.
+
+Because this team does not configure Cognito triggers manually in AWS, no additional non-SAM trigger enumeration is required for this slice.
 
 ## Related documentation
 

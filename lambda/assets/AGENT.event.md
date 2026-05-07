@@ -187,6 +187,8 @@ The Assets Lambda receives events from multiple sources:
 - synthetic `api.assets` ingress → `HealPlayer` direct invoke path normalized onto the same DataSource lane as mesh events, with response payload returned through message-bus `ReturnValue` extraction
   - `stepFunctions/heal.asl.yaml` now invokes `AssetsFunction` (not `DiagnosticsFunction`) for `HealPlayer`; that invoke lands on this same synthetic ingress lane
 
+**Cognito trigger boundary:** `AssetsFunction` is **not** a Cognito User Pool trigger and never starts `HealStateMachine` directly. Player heal entry is exclusively the `mtw.cognito` mesh subscription (PostConfirmation publish from [`lambda/cognitoEvent`](../cognitoEvent/AGENT.md)) and the synthetic `api.assets` ingress used by the heal SFN task and by direct `type: HealPlayer` invocations. The `HealStateMachine` itself remains for ad-hoc operator invocations and finding-driven heals; it is not started from any in-tree handler.
+
 **WebSocket API Messages**:
 - Asset fetch requests
 - Metadata queries

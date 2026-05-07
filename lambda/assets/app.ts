@@ -116,18 +116,6 @@ export const handler = async (event, context) => {
         return await extractReturnValue(messageBus)
     }
 
-    // Handle Cognito PostConfirm messages
-    if (event?.triggerSource === 'PostConfirmation_ConfirmSignUp' && event?.userName) {
-        await sfnClient.send(new StartExecutionCommand({
-            stateMachineArn: process.env.HEAL_SFN,
-            input: JSON.stringify({
-                type: 'Player',
-                player: event.userName,
-            })
-        }))
-        return event
-    }
-
     // Handle EventBridge messages by publishing to messageBus for DataSource processing
     if (event?.source && event["detail-type"]) {
         // Special handling for Initialize Subscription events from mtw.subscriptions
