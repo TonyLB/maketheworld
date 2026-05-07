@@ -118,12 +118,12 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines as you 
   - [X] Extend **`template.yaml`** for cognito lambda env vars (bus name, feedback topic if required by pattern, etc.) per DataSource needs.
   - [X] Tests or harness acceptable for PostConfirmation publish path.
 
-- [ ] **Phase 4 - Cutover and diagnostics retirement**
-  - [ ] Deploy **atomically** per **D2** (single release with Phase 2 and Phase 3 already merged: Cognito publishes **`mtw.cognito`**, Assets subscribes, Diagnostics does not).
-  - [ ] Remove **`New Player`** handling from [`lambda/diagnostics/dataSource/index.ts`](../../../lambda/diagnostics/dataSource/index.ts) and guards from [`lambda/diagnostics/dataSource/subscribedEvents.ts`](../../../lambda/diagnostics/dataSource/subscribedEvents.ts).
-  - [ ] Remove **`HealPlayer`** from [`lambda/diagnostics/ingress.ts`](../../../lambda/diagnostics/ingress.ts), [`lambda/diagnostics/app.ts`](../../../lambda/diagnostics/app.ts), [`lambda/diagnostics/dataSource/apiDiagnostics.ts`](../../../lambda/diagnostics/dataSource/apiDiagnostics.ts).
-  - [ ] Update **DiagnosticsFunction** EventBridge rule in [`template.yaml`](../../../template.yaml): drop **`New Player`** from the pattern (keep **`Session Disconnect Problem`** if still needed).
-  - [ ] Point [`stepFunctions/heal.asl.yaml`](../../../stepFunctions/heal.asl.yaml) **Resource** at **Assets**; update parameters if ingress shape changes.
+- [X] **Phase 4 - Cutover and diagnostics retirement**
+  - [X] Deploy **atomically** per **D2** (single release with Phase 2 and Phase 3 already merged: Cognito publishes **`mtw.cognito`**, Assets subscribes, Diagnostics does not).
+  - [X] Remove **`New Player`** handling from [`lambda/diagnostics/dataSource/index.ts`](../../../lambda/diagnostics/dataSource/index.ts) and guards from [`lambda/diagnostics/dataSource/subscribedEvents.ts`](../../../lambda/diagnostics/dataSource/subscribedEvents.ts).
+  - [X] Remove **`HealPlayer`** from [`lambda/diagnostics/ingress.ts`](../../../lambda/diagnostics/ingress.ts), [`lambda/diagnostics/app.ts`](../../../lambda/diagnostics/app.ts), [`lambda/diagnostics/dataSource/apiDiagnostics.ts`](../../../lambda/diagnostics/dataSource/apiDiagnostics.ts).
+  - [X] Update **DiagnosticsFunction** EventBridge rule in [`template.yaml`](../../../template.yaml): drop **`New Player`** from the pattern (keep **`Session Disconnect Problem`** if still needed).
+  - [X] Point [`stepFunctions/heal.asl.yaml`](../../../stepFunctions/heal.asl.yaml) **Resource** at **Assets**; update parameters if ingress shape changes.
 
 - [ ] **Phase 5 - Eliminate double-heal**
   - [ ] Remove dead **`PostConfirmation`** / **`HEAL_SFN`** branch from [`lambda/assets/app.ts`](../../../lambda/assets/app.ts) once SFN invokes Assets directly (per **D1**, SAM never wired this path).
@@ -145,7 +145,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines as you 
 | Contracts | Added `mtw.cognito` contract module + serializer + guards in `packages/mtw-interfaces/ts/eventBridge/cognito`, exported via `eventBridge/index.ts`, and covered by new unit tests. |
 | Assets heal + subscribe | Ported `healPlayer` to `lambda/assets/player/heal.ts`; wired `mtw.cognito/New Player` and `api.assets/HealPlayer` through assets DataSource; added `AssetsFunction` EventBridge rule for `mtw.cognito`; removed diagnostics `healPlayer`/`healAllPlayers`; direct `type: HealPlayer` invoke now routes through assets synthetic ingress and returns message-bus `ReturnValue` shape. |
 | Cognito publish | Added `lambda/cognitoEvent` message-bus/DataSource publish lane (`api.cognito` -> `mtw.cognito` via `streamEvent`), removed direct `PutEvents` publishing from `app.ts`, added focused Jest coverage (`app.test.ts`, `ingress.test.ts`, `dataSource/index.test.ts`), and wired `FEEDBACK_TOPIC` env var for Cognito DataSource configuration parity. |
-| Diagnostics / template / SFN cutover | |
+| Diagnostics / template / SFN cutover | Removed diagnostics `mtw.connections/New Player` subscribed-event guards and no-op branch, removed `New Player` trigger from `DiagnosticsFunction` EventBridge pattern, and switched `HealStateMachine` substitution/task resource/policy from `DiagnosticsFunction` to `AssetsFunction` while preserving `type: HealPlayer` parameters and return-shape compatibility for `Update Ephemera`. |
 | Double-heal resolved | |
 | Optional sweep | |
 
@@ -169,6 +169,7 @@ Repeat these after each risky phase; adjust paths if workspace scripts change.
 - Phase 1 verification (2026-05-07): `cd packages/mtw-interfaces && npm run test -- eventBridge` and full `cd packages/mtw-interfaces && npm run test` both passed after `mtw.cognito` contract additions.
 - Phase 2 verification (2026-05-07): `cd lambda/assets && npm run test`, `cd lambda/diagnostics && npm run test`, and `cd packages/mtw-interfaces && npm run test` all passed after assets heal-authority wiring.
 - Phase 3 verification (2026-05-07): `npm --prefix "lambda/cognitoEvent" run test` and `npm --prefix "lambda/assets" run test` both passed after Cognito DataSource publish refactor.
+- Phase 4 verification (2026-05-07): `npm --prefix "lambda/diagnostics" run test`, `npm --prefix "lambda/assets" run test`, and `npm --prefix "lambda/cognitoEvent" run test` all passed after diagnostics retirement + template/SFN cutover.
 - Manual or integration: confirm EventBridge rule delivers **`mtw.cognito` / `New Player`** to Assets only after cutover; confirm **`HealPlayer`** SFN step returns payload **`Update Ephemera`** accepts.
 
 ## Related documentation

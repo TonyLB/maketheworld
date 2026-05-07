@@ -45,18 +45,6 @@ describe('diagnostics handler', () => {
         expect(staleSessionSweep).toHaveBeenCalledWith()
     })
 
-    it('routes mtw.connections New Player through DataSource subscribed intake', async () => {
-        await handler({
-            source: 'mtw.connections',
-            'detail-type': 'New Player',
-            detail: {
-                player: 'player-1'
-            }
-        })
-
-        expect(staleSessionSweep).not.toHaveBeenCalled()
-    })
-
     it('drops malformed mtw.connections Session Disconnect Problem payloads without throwing', async () => {
         await expect(handler({
             source: 'mtw.connections',

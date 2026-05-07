@@ -2,15 +2,8 @@ import { HeaderGuard, StreamingEventHeader, makeStreamingEnvelopeGuardFromHeader
 import { ConnectionsSessionDisconnectProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
 import { DiagnosticsAPIPayload, DiagnosticsApiSubscribedHeader } from './apiDiagnostics'
 
-export type ConnectionsNewPlayerEvent = {
-    player: string
-}
-
 export type DiagnosticsConnectionsProblemHeader =
     StreamingEventHeader & { dataSourceKey: 'mtw.connections'; type: 'Session Disconnect Problem' }
-
-export type DiagnosticsConnectionsNewPlayerHeader =
-    StreamingEventHeader & { dataSourceKey: 'mtw.connections'; type: 'New Player' }
 
 export type DiagnosticsApiStaleSessionSweepHeader =
     StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'StaleSessionSweep' }
@@ -22,12 +15,6 @@ const isConnectionsProblemHeader: HeaderGuard<DiagnosticsConnectionsProblemHeade
     header
 ): header is DiagnosticsConnectionsProblemHeader => (
     header.dataSourceKey === 'mtw.connections' && header.type === 'Session Disconnect Problem'
-)
-
-const isConnectionsNewPlayerHeader: HeaderGuard<DiagnosticsConnectionsNewPlayerHeader> = (
-    header
-): header is DiagnosticsConnectionsNewPlayerHeader => (
-    header.dataSourceKey === 'mtw.connections' && header.type === 'New Player'
 )
 
 const isDiagnosticsApiStaleSessionSweepHeader: HeaderGuard<DiagnosticsApiStaleSessionSweepHeader> = (
@@ -42,11 +29,10 @@ const isDiagnosticsApiRoomOccupancyDriftSweepHeader: HeaderGuard<DiagnosticsApiR
     header.dataSourceKey === 'api.diagnostics' && header.type === 'RoomOccupancyDriftSweep'
 )
 
-export const isDiagnosticsSubscribedHeader: HeaderGuard<DiagnosticsConnectionsProblemHeader | DiagnosticsConnectionsNewPlayerHeader | DiagnosticsApiSubscribedHeader> = (
+export const isDiagnosticsSubscribedHeader: HeaderGuard<DiagnosticsConnectionsProblemHeader | DiagnosticsApiSubscribedHeader> = (
     header
-): header is DiagnosticsConnectionsProblemHeader | DiagnosticsConnectionsNewPlayerHeader | DiagnosticsApiSubscribedHeader => (
+): header is DiagnosticsConnectionsProblemHeader | DiagnosticsApiSubscribedHeader => (
     isConnectionsProblemHeader(header) ||
-    isConnectionsNewPlayerHeader(header) ||
     isDiagnosticsApiStaleSessionSweepHeader(header) ||
     isDiagnosticsApiRoomOccupancyDriftSweepHeader(header)
 )
@@ -66,14 +52,9 @@ export const isDiagnosticsApiRoomOccupancyDriftSweepEnvelope = makeStreamingEnve
     DiagnosticsApiRoomOccupancyDriftSweepHeader
 >(isDiagnosticsApiRoomOccupancyDriftSweepHeader)
 
-export const isConnectionsNewPlayerEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
-    ConnectionsNewPlayerEvent,
-    DiagnosticsConnectionsNewPlayerHeader
->(isConnectionsNewPlayerHeader)
-
 export const isDiagnosticsSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
-    ConnectionsSessionDisconnectProblemEvent | ConnectionsNewPlayerEvent | DiagnosticsAPIPayload,
-    DiagnosticsConnectionsProblemHeader | DiagnosticsConnectionsNewPlayerHeader | DiagnosticsApiSubscribedHeader
+    ConnectionsSessionDisconnectProblemEvent | DiagnosticsAPIPayload,
+    DiagnosticsConnectionsProblemHeader | DiagnosticsApiSubscribedHeader
 >(isDiagnosticsSubscribedHeader)
 
-export type DiagnosticsSubscribedContent = ConnectionsSessionDisconnectProblemEvent | ConnectionsNewPlayerEvent | DiagnosticsAPIPayload
+export type DiagnosticsSubscribedContent = ConnectionsSessionDisconnectProblemEvent | DiagnosticsAPIPayload

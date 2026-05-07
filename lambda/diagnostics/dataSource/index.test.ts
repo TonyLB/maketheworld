@@ -92,18 +92,6 @@ describe('diagnosticsDataSource subscribed event processing', () => {
         expect(returnValueMessages).toHaveLength(1)
     })
 
-    it('accepts mtw.connections New Player events without repair action', async () => {
-        await processDiagnosticsSubscribedEvents([
-            makeEnvelope(
-                { dataSourceKey: 'mtw.connections', type: 'New Player' },
-                {
-                    player: 'player-new'
-                }
-            )
-        ])
-        expect(staleSessionSweep).not.toHaveBeenCalled()
-    })
-
     it('emits ReturnValue for api.diagnostics RoomOccupancyDriftSweep events', async () => {
         await processDiagnosticsSubscribedEvents([
             makeEnvelope(

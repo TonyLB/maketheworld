@@ -1662,7 +1662,6 @@ Resources:
                 source:
                   - mtw.connections
                 detail-type:
-                  - New Player
                   - Session Disconnect Problem
           StaleSessionSweep:
             Type: CloudWatchEvent
@@ -1808,11 +1807,11 @@ Resources:
         IncludeExecutionData: true
         Level: ALL
       DefinitionSubstitutions:
-        DiagnosticsFunctionArn: !GetAtt DiagnosticsFunction.Arn
+        AssetsFunctionArn: !GetAtt AssetsFunction.Arn
         UpdateEphemeraFunctionArn: !GetAtt UpdateEphemeraFunction.Arn
       Policies:
         - LambdaInvokePolicy:
-            FunctionName: !Ref DiagnosticsFunction
+            FunctionName: !Ref AssetsFunction
         - LambdaInvokePolicy:
             FunctionName: !Ref UpdateEphemeraFunction
         - CloudWatchLogsFullAccess

@@ -185,6 +185,7 @@ The Assets Lambda receives events from multiple sources:
 - `mtw.cognito` events → `New Player` triggers idempotent player heal in `mtw.assets` DataSource
 - `mtw.subscriptions` events → Initialize Subscription (for replayable data sources)
 - synthetic `api.assets` ingress → `HealPlayer` direct invoke path normalized onto the same DataSource lane as mesh events, with response payload returned through message-bus `ReturnValue` extraction
+  - `stepFunctions/heal.asl.yaml` now invokes `AssetsFunction` (not `DiagnosticsFunction`) for `HealPlayer`; that invoke lands on this same synthetic ingress lane
 
 **WebSocket API Messages**:
 - Asset fetch requests

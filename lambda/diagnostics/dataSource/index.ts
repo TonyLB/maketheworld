@@ -8,7 +8,6 @@ import { roomOccupancyDriftSweep } from '../roomOccupancyDriftSweep'
 import { staleSessionSweep } from '../staleSessionSweep'
 import {
     DiagnosticsSubscribedContent,
-    isConnectionsNewPlayerEnvelope,
     isConnectionsProblemEnvelope,
     isDiagnosticsApiRoomOccupancyDriftSweepEnvelope,
     isDiagnosticsApiStaleSessionSweepEnvelope,
@@ -60,9 +59,6 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
         try {
             if (isConnectionsProblemEnvelope(event as any)) {
                 await staleSessionSweep()
-                return
-            }
-            if (isConnectionsNewPlayerEnvelope(event as any)) {
                 return
             }
             if (isDiagnosticsApiStaleSessionSweepEnvelope(event as any)) {
