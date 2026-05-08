@@ -40,7 +40,7 @@ describe('tearDownStaleSession', () => {
         expect(eventBridgeClientMock.send).toHaveBeenCalledTimes(1)
         expect(eventBridgeClientMock.send.mock.calls[0][0]).toEqual([{
             DetailType: 'Session Disconnect',
-            Detail: { sessionId: 'session-1' }
+            Detail: { sessionId: 'session-1', characterIds: [] }
         }])
         expect(connectionDBMock.deleteItem).toHaveBeenCalledWith({
             ConnectionId: 'Meta::Session',
@@ -49,7 +49,7 @@ describe('tearDownStaleSession', () => {
     })
 
     it('publishes Session Disconnect via streamEvent when provided', async () => {
-        const streamEvent = jest.fn(async () => undefined)
+        const streamEvent = jest.fn(async (_params: any) => undefined)
         await tearDownStaleSession('session-2', {
             sourceOperation: 'checkSession',
             player: 'p2',
@@ -64,7 +64,8 @@ describe('tearDownStaleSession', () => {
             },
             update: expect.objectContaining({
                 type: 'Session Disconnect',
-                sessionId: 'session-2'
+                sessionId: 'session-2',
+                characterIds: []
             })
         }))
         expect(eventBridgeClientMock.send).not.toHaveBeenCalled()

@@ -13,6 +13,10 @@ Events:
 - Character Registered
 - Session Disconnect Problem (and related problem-report events)
 
+Notes:
+
+- `Session Disconnect` carries an optional `characterIds` field: the teardown-time candidate set of characters adjacently attached to the dropped session; the derived `mtw.connections.characters` lane uses this field to perform its final connected/disconnected judgment.
+
 ## `mtw.connections.characters`
 
 **Source:** `mtw.connections.characters` (derived character-presence lane)

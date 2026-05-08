@@ -7,6 +7,7 @@ import {
 } from './index'
 import type { DataSourceEnvironment } from '@tonylb/mtw-interfaces/ts/DataSourceEnvironment'
 import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 const connectionsHeader = (type: string): StreamingEventHeader => ({
     dataSourceKey: 'mtw.connections',
@@ -25,6 +26,7 @@ describe('ConnectionsEventSerializer', () => {
         const event = {
             type: 'Session Disconnect' as const,
             sessionId: 'session-1',
+            characterIds: ['CHARACTER#abc'] as EphemeraCharacterId[],
             timestamp: '2026-01-01T00:00:00.000Z'
         }
         const serialized = serializer.serialize({
@@ -118,7 +120,19 @@ describe('connections event guards', () => {
             sessionId: 'session-1',
             timestamp: '2026-01-01T00:00:00.000Z'
         })).toBe(true)
+        expect(isSessionDisconnectEvent({
+            type: 'Session Disconnect',
+            sessionId: 'session-1',
+            characterIds: ['CHARACTER#abc'],
+            timestamp: '2026-01-01T00:00:00.000Z'
+        })).toBe(true)
         expect(isSessionDisconnectEvent({ type: 'Session Disconnect', sessionId: '' })).toBe(false)
+        expect(isSessionDisconnectEvent({
+            type: 'Session Disconnect',
+            sessionId: 'session-1',
+            characterIds: ['ROOM#abc'],
+            timestamp: '2026-01-01T00:00:00.000Z'
+        })).toBe(false)
     })
 
     it('validates Session Disconnect Problem', () => {

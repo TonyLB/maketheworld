@@ -5,6 +5,7 @@ import { EphemeraCharacterId, isEphemeraCharacterId } from '@tonylb/mtw-interfac
 export type ConnectionsSessionDisconnectEvent = {
     type: 'Session Disconnect'
     sessionId: string
+    characterIds?: EphemeraCharacterId[]
     timestamp: string
 }
 
@@ -33,6 +34,7 @@ export type ConnectionsEventUpdate =
 export type ConnectionsSessionDisconnectEventExternal = {
     type: 'Session Disconnect'
     sessionId: string
+    characterIds?: EphemeraCharacterId[]
     timestamp?: string
 }
 
@@ -65,6 +67,16 @@ export const isSessionDisconnectEvent = (event: any): event is ConnectionsSessio
         event.type === 'Session Disconnect' &&
         typeof event.sessionId === 'string' &&
         event.sessionId.length > 0
+        &&
+        (
+            typeof event.characterIds === 'undefined' ||
+            (
+                Array.isArray(event.characterIds) &&
+                event.characterIds.every((characterId) => (
+                    typeof characterId === 'string' && isEphemeraCharacterId(characterId)
+                ))
+            )
+        )
     )
 )
 
@@ -120,6 +132,7 @@ export class ConnectionsEventSerializer implements DataSourceEventSerializer<Con
             return {
                 type: 'Session Disconnect',
                 sessionId: content.sessionId,
+                ...(content.characterIds ? { characterIds: content.characterIds } : {}),
                 timestamp: content.timestamp
             }
         }
@@ -157,9 +170,22 @@ export class ConnectionsEventSerializer implements DataSourceEventSerializer<Con
             if (typeof content?.sessionId !== 'string' || content.sessionId.length === 0) {
                 return null
             }
+
+            if (typeof content?.characterIds !== 'undefined') {
+                if (
+                    !Array.isArray(content.characterIds) ||
+                    content.characterIds.some((characterId: any) => (
+                        typeof characterId !== 'string' || !isEphemeraCharacterId(characterId)
+                    ))
+                ) {
+                    return null
+                }
+            }
+
             return {
                 type: 'Session Disconnect',
                 sessionId: content.sessionId,
+                ...(content.characterIds ? { characterIds: content.characterIds } : {}),
                 timestamp: content.timestamp || new Date().toISOString()
             }
         }

@@ -118,11 +118,11 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
   - [X] Define serializer/deserializer guards and tests in `packages/mtw-interfaces`.
   - [X] Document at-least-once delivery semantics and duplicate-tolerant consumer requirements in contract docs.
 
-- [ ] Phase 2 - derived DataSource scaffold (`mtw.connections.characters`)
-  - [ ] Add DataSource module wiring and subscribed-event guards for `Character Registered` and `Session Disconnect`.
-  - [ ] Implement enrichment lookups and pre-check count logic on `CHARACTER#...` adjacency for connect/disconnect transition intent.
-  - [ ] Emit `Character Connected`/`Character Disconnected` with at-least-once semantics (duplicate emits acceptable).
-  - [ ] Add focused tests for churn scenarios (multiple sessions for one character, out-of-order retries, duplicate events).
+- [X] Phase 2 - derived DataSource scaffold (`mtw.connections.characters`)
+  - [X] Add DataSource module wiring and subscribed-event guards for `Character Registered` and `Session Disconnect`.
+  - [X] Implement enrichment lookups and pre-check count logic on `CHARACTER#...` adjacency for connect/disconnect transition intent.
+  - [X] Emit `Character Connected`/`Character Disconnected` with at-least-once semantics (duplicate emits acceptable).
+  - [X] Add focused tests for churn scenarios (multiple sessions for one character, out-of-order retries, duplicate events).
 
 - [ ] Phase 3 - registration ingress refactor
   - [ ] Introduce/route registration API/event ingress through `connections` instead of `ephemera`.
@@ -158,7 +158,7 @@ Run from the noted package directory.
 | --- | --- |
 | Create task plan | Done |
 | Define contracts and authority ownership | Done |
-| Implement `mtw.connections.characters` derived DataSource | Not started |
+| Implement `mtw.connections.characters` derived DataSource | Done |
 | Migrate registration ingress to connections | Not started |
 | Cut ephemera to subscriber/projection role | Not started |
 | Update durable docs and remove bridges | Not started |
