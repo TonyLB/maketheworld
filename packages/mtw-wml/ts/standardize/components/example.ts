@@ -2,19 +2,19 @@ import { excludeUndefined } from "../../lib/lists"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent, StandardComponentReferenceKey, NestedSchemaOptions } from "./baseClasses"
-import linkReferenceKeys, { ReferenceFormat } from "./utils/references"
+import { ReferenceFormat } from "./utils/references"
 import { StandardRender } from "../render"
 import { StandardToJSONOptions } from "./baseClasses"
 import { StandardExampleData, StandardExampleInputData, StandardExampleNDJSONData, StandardExampleNDJSONInputData } from "./dataTypes/example"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaExample, isSchemaDisplayName, isSchemaSummary, isSchemaDescription, SchemaDisplayNameTag, SchemaSummaryTag, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
-import { renderTreeToSchema, schemaToRenderTree, RenderTree } from "@tonylb/mtw-base/ts/renderTree"
+import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardKey } from "../keys/key"
 import StandardReference from "../keys/reference"
 import { StandardExplicitParent } from "../explicit"
 import { MarkFacetList } from "../keys/facets/mark"
-import { StandardEditableData, extractFromEditableData } from "@tonylb/mtw-base/ts/editable"
+import { SituationRoomFacetPayload } from "../keys/facets/situationRoom"
 import { StandardFormSubsetRequest } from "../baseClasses"
 import { StandardLiteral } from "../literal"
 import { defaultedEquals } from "./utils"
@@ -164,12 +164,8 @@ export class StandardExamplePayload implements HasShortName, ComponentConstructo
     }
 
     referencedKeys(mapping: StandardReference[]): StandardComponentReferenceKey[] {
-        // Extract all RenderTree values from StandardEditableData<RenderTree> (summary/description only; displayName is a StandardLiteral)
-        const editableData = [this._summary?.toJSON(), this._description?.toJSON()].filter(excludeUndefined) as StandardEditableData<RenderTree>[]
-        const renderTrees = editableData.flatMap(extractFromEditableData<RenderTree>)
         return [
-            ...linkReferenceKeys(mapping)(renderTreeToSchema(renderTrees.flat(1)))
-                .map((reference) => ({ referenceType: 'Link' as const, reference })),
+            ...SituationRoomFacetPayload.linkReferenceKeysFromSummaryDescription(mapping, this._summary, this._description),
             ...this.marks.items.map((facet) => {
                 // Facets are structural relationships with associated payload data
                 const ref = facet.reference as StandardReference

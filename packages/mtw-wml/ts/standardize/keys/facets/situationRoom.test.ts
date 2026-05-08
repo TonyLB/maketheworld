@@ -6,8 +6,10 @@ import {
     SituationRoomFacetPayloadType,
 } from "./situationRoom"
 import { StandardFacetData } from "./dataTypes/facet"
+import StandardReference from "../reference"
 import { StandardReferenceData } from "../dataTypes/reference"
 import { treeFromWML } from "../../../schema"
+import { StandardRender } from "../../render"
 
 describe("SituationRoomFacet and SituationRoomFacetList", () => {
     const createSituationRef = (key: string, ref: number = 1): StandardReferenceData => ({
@@ -61,6 +63,45 @@ describe("SituationRoomFacet and SituationRoomFacetList", () => {
             const a = new SituationRoomFacetPayload({ displayName: ["A"] })
             const inv = a.invert()
             expect(inv.toJSON()).toBeDefined()
+        })
+
+        it("referencedLinkKeys should emit Link refs from summary and description render trees", () => {
+            const mapping = [
+                new StandardReference({ key: "featOne", tag: "Feature", universalKey: "FEATURE#featOne" }),
+                new StandardReference({ key: "markTwo", tag: "Mark", universalKey: "MARK#markTwo" }),
+            ]
+            const summary = new StandardRender([
+                "See ",
+                { data: { tag: "Link", to: "featOne", text: "Feature" }, children: [] },
+                ".",
+            ])
+            const description = new StandardRender([
+                "Also ",
+                { data: { tag: "Link", to: "markTwo", text: "Mark" }, children: [] },
+                ".",
+            ])
+            const payload = new SituationRoomFacetPayload({ summary, description })
+            const keys = payload.referencedLinkKeys(mapping)
+            expect(keys.every((k) => k.referenceType === "Link")).toBe(true)
+            expect(keys.map((k) => k.reference.standardKey.toJSON())).toEqual([
+                { key: "featOne", universalKey: "FEATURE#featOne" },
+                { key: "markTwo", universalKey: "MARK#markTwo" },
+            ])
+        })
+
+        it("referencedLinkKeys should return empty when no summary or description", () => {
+            const payload = new SituationRoomFacetPayload({ displayName: "Title only" })
+            expect(payload.referencedLinkKeys([])).toEqual([])
+        })
+
+        it("linkReferenceKeysFromSummaryDescription static helper matches instance method", () => {
+            const summary = new StandardRender([
+                { data: { tag: "Link", to: "x", text: "room" }, children: [] },
+            ])
+            const mapping = [new StandardReference({ key: "x", tag: "Room", universalKey: "ROOM#x" })]
+            const fromStatic = SituationRoomFacetPayload.linkReferenceKeysFromSummaryDescription(mapping, summary, undefined)
+            const fromInstance = new SituationRoomFacetPayload({ summary }).referencedLinkKeys(mapping)
+            expect(fromStatic).toEqual(fromInstance)
         })
     })
 

@@ -521,17 +521,21 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return returnValue as this
     }
 
-    referencedKeys(): StandardComponentReferenceKey[] {
+    referencedKeys(mapping: StandardReference[]): StandardComponentReferenceKey[] {
         return [
             ...this.exits.items.map((facet) => {
                 // Extract reference from facet - exits always reference rooms
                 const ref = facet.reference as StandardReference
                 return { referenceType: 'Exit' as const, reference: ref }
             }),
-            ...this.situations.items.map((facet) => {
+            ...this.situations.items.flatMap((facet) => {
                 const ref = facet.reference as StandardReference
-                return { referenceType: 'Direct' as const, reference: ref }
+                return [
+                    { referenceType: 'Direct' as const, reference: ref },
+                    ...facet.payload.referencedLinkKeys(mapping),
+                ]
             }),
+            ...(this._render ? this._render.referencedLinkKeys(mapping) : []),
             ...this.lens.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
             ...this.features.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
             ...this.guidance.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
