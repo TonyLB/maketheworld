@@ -40,7 +40,8 @@ export const tearDownStaleSession = async (
         ProjectionFields: ['DataCategory']
     })
 
-    await Promise.all(characterQuery.map(({ DataCategory }) => (atomicallyRemoveCharacterAdjacency(sessionId, DataCategory))))
+    const characterIds = [...new Set(characterQuery.map(({ DataCategory }) => DataCategory))]
+    await Promise.all(characterIds.map((characterId) => (atomicallyRemoveCharacterAdjacency(sessionId, characterId))))
 
     if (streamEvent) {
         await streamEvent({
@@ -51,6 +52,7 @@ export const tearDownStaleSession = async (
             update: {
                 type: 'Session Disconnect',
                 sessionId,
+                characterIds,
                 timestamp: new Date().toISOString()
             }
         })
@@ -58,7 +60,7 @@ export const tearDownStaleSession = async (
     else {
         await eventBridgeClient.send([{
             DetailType: 'Session Disconnect',
-            Detail: { sessionId }
+            Detail: { sessionId, characterIds }
         }])
     }
     await connectionDB.deleteItem({

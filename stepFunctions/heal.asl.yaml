@@ -4,12 +4,18 @@ StartAt: Heal Player
 States:
     "Heal Player":
         Type: Task
-        Next: Create Supplemental Argument
+        Next: Parse Heal Player Body
         Resource: "${AssetsFunctionArn}"
         Parameters:
             type: "HealPlayer"
             player.$: "$$.Execution.Input.player"
         ResultPath: "$.healResults"
+    "Parse Heal Player Body":
+        Type: Pass
+        Next: Create Supplemental Argument
+        Parameters:
+            "parsedBody.$": "States.StringToJson($.healResults.body)"
+        ResultPath: "$.parsedHealResults"
     "Create Supplemental Argument":
         Type: Pass
         Next: Supplement Update Arguments
@@ -21,7 +27,7 @@ States:
         Type: Pass
         Next: Update Ephemera
         Parameters:
-            "updateArgs.$": "States.JsonMerge($.healResults, $.supplement, false)"
+            "updateArgs.$": "States.JsonMerge($.parsedHealResults.parsedBody, $.supplement, false)"
         ResultPath: "$"
     "Update Ephemera":
         Type: Task

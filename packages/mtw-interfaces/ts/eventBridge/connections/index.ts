@@ -1,9 +1,11 @@
 import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { DataSourceEnvironment } from '@tonylb/mtw-interfaces/ts/DataSourceEnvironment'
+import { EphemeraCharacterId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 export type ConnectionsSessionDisconnectEvent = {
     type: 'Session Disconnect'
     sessionId: string
+    characterIds?: EphemeraCharacterId[]
     timestamp: string
 }
 
@@ -17,13 +19,22 @@ export type ConnectionsSessionDisconnectProblemEvent = {
     timestamp: string
 }
 
+export type ConnectionsCharacterRegisteredEvent = {
+    type: 'Character Registered'
+    characterId: EphemeraCharacterId
+    sessionId: string
+    timestamp: string
+}
+
 export type ConnectionsEventUpdate =
     | ConnectionsSessionDisconnectEvent
     | ConnectionsSessionDisconnectProblemEvent
+    | ConnectionsCharacterRegisteredEvent
 
 export type ConnectionsSessionDisconnectEventExternal = {
     type: 'Session Disconnect'
     sessionId: string
+    characterIds?: EphemeraCharacterId[]
     timestamp?: string
 }
 
@@ -37,9 +48,17 @@ export type ConnectionsSessionDisconnectProblemEventExternal = {
     timestamp?: string
 }
 
+export type ConnectionsCharacterRegisteredEventExternal = {
+    type: 'Character Registered'
+    characterId: EphemeraCharacterId
+    sessionId: string
+    timestamp?: string
+}
+
 export type ConnectionsEventExternal =
     | ConnectionsSessionDisconnectEventExternal
     | ConnectionsSessionDisconnectProblemEventExternal
+    | ConnectionsCharacterRegisteredEventExternal
 
 export const isSessionDisconnectEvent = (event: any): event is ConnectionsSessionDisconnectEvent => (
     Boolean(
@@ -48,6 +67,16 @@ export const isSessionDisconnectEvent = (event: any): event is ConnectionsSessio
         event.type === 'Session Disconnect' &&
         typeof event.sessionId === 'string' &&
         event.sessionId.length > 0
+        &&
+        (
+            typeof event.characterIds === 'undefined' ||
+            (
+                Array.isArray(event.characterIds) &&
+                event.characterIds.every((characterId) => (
+                    typeof characterId === 'string' && isEphemeraCharacterId(characterId)
+                ))
+            )
+        )
     )
 )
 
@@ -68,8 +97,22 @@ export const isSessionDisconnectProblemEvent = (event: any): event is Connection
     )
 )
 
+export const isCharacterRegisteredEvent = (event: any): event is ConnectionsCharacterRegisteredEvent => (
+    Boolean(
+        event &&
+        typeof event === 'object' &&
+        event.type === 'Character Registered' &&
+        typeof event.characterId === 'string' &&
+        isEphemeraCharacterId(event.characterId) &&
+        typeof event.sessionId === 'string' &&
+        event.sessionId.length > 0 &&
+        typeof event.timestamp === 'string' &&
+        event.timestamp.length > 0
+    )
+)
+
 export const isConnectionsEventUpdate = (event: unknown): event is ConnectionsEventUpdate => (
-    isSessionDisconnectEvent(event) || isSessionDisconnectProblemEvent(event)
+    isSessionDisconnectEvent(event) || isSessionDisconnectProblemEvent(event) || isCharacterRegisteredEvent(event)
 )
 
 export class ConnectionsEventSerializer implements DataSourceEventSerializer<ConnectionsEventUpdate, ConnectionsEventExternal> {
@@ -89,6 +132,7 @@ export class ConnectionsEventSerializer implements DataSourceEventSerializer<Con
             return {
                 type: 'Session Disconnect',
                 sessionId: content.sessionId,
+                ...(content.characterIds ? { characterIds: content.characterIds } : {}),
                 timestamp: content.timestamp
             }
         }
@@ -100,6 +144,14 @@ export class ConnectionsEventSerializer implements DataSourceEventSerializer<Con
                 sourceOperation: content.sourceOperation,
                 attemptCount: content.attemptCount,
                 dedupeKey: content.dedupeKey,
+                timestamp: content.timestamp
+            }
+        }
+        if (header.type === 'Character Registered' && isCharacterRegisteredEvent(content)) {
+            return {
+                type: 'Character Registered',
+                characterId: content.characterId,
+                sessionId: content.sessionId,
                 timestamp: content.timestamp
             }
         }
@@ -118,9 +170,22 @@ export class ConnectionsEventSerializer implements DataSourceEventSerializer<Con
             if (typeof content?.sessionId !== 'string' || content.sessionId.length === 0) {
                 return null
             }
+
+            if (typeof content?.characterIds !== 'undefined') {
+                if (
+                    !Array.isArray(content.characterIds) ||
+                    content.characterIds.some((characterId: any) => (
+                        typeof characterId !== 'string' || !isEphemeraCharacterId(characterId)
+                    ))
+                ) {
+                    return null
+                }
+            }
+
             return {
                 type: 'Session Disconnect',
                 sessionId: content.sessionId,
+                ...(content.characterIds ? { characterIds: content.characterIds } : {}),
                 timestamp: content.timestamp || new Date().toISOString()
             }
         }
@@ -145,6 +210,22 @@ export class ConnectionsEventSerializer implements DataSourceEventSerializer<Con
                 sourceOperation: content.sourceOperation,
                 attemptCount: content.attemptCount,
                 dedupeKey: content.dedupeKey,
+                timestamp: content.timestamp || new Date().toISOString()
+            }
+        }
+        if (header.type === 'Character Registered') {
+            if (
+                typeof content?.characterId !== 'string' ||
+                !isEphemeraCharacterId(content.characterId) ||
+                typeof content?.sessionId !== 'string' ||
+                content.sessionId.length === 0
+            ) {
+                return null
+            }
+            return {
+                type: 'Character Registered',
+                characterId: content.characterId,
+                sessionId: content.sessionId,
                 timestamp: content.timestamp || new Date().toISOString()
             }
         }

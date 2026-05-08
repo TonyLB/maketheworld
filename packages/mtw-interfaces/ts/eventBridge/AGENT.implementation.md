@@ -6,7 +6,7 @@ This document provides technical guidelines for implementing and maintaining Eve
 
 mtw-interfaces EventBridge holds **cross-lambda** event contracts only. Events that never leave a single lambda process are out of scope.
 
-- **In scope:** Events with `dataSourceKey` like `'mtw.wml'`, `'mtw.assets'`, `'mtw.diagnostics'`—serialized for EventBridge transmission and consumed by other lambdas.
+- **In scope:** Events with `dataSourceKey` like `'mtw.wml'`, `'mtw.assets'`, `'mtw.connections'`, `'mtw.connections.characters'`, `'mtw.diagnostics'`—serialized for EventBridge transmission and consumed by other lambdas.
 - **Out of scope:** Events with `dataSourceKey: 'api.wml'` or `'api.assets'`—API-triggered events that stay in-process (e.g. Apply Edit, Move Asset, Player Settings Updated). Their payload types and type guards live in lambda-local `localApiEvents.ts`, not in mtw-interfaces. See [mtw-lambda-patterns DataSource AGENT.implementation.md](../../../mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (localApiEvents.ts and API-triggered internal events).
 
 The former coordination package (Apply Edit, Move Asset, etc.) has been removed; those events are now internal-only and handled via `localApiEvents.ts` in each owning lambda.
@@ -75,6 +75,18 @@ Serializers follow the header/content model:
 - Use envelope-level type guards when branching on `header.type` to narrow content (e.g. Library, Players).
 
 For envelope unions and payload purity rules, see [mtw-lambda-patterns DataSource AGENT.implementation.md](../../../mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (Type-Safe Routing with Envelope-Level Discriminated Unions).
+
+### Connections character presence delivery semantics
+
+Contracts for `Character Connected` and `Character Disconnected` on `mtw.connections.characters` are defined in [`connections/characters/index.ts`](./connections/characters/index.ts). Intended delivery is **at least once**: EventBridge retries, producer churn, and overlapping registration or disconnect windows may surface **duplicate** events for the same logical transition.
+
+**Consumer requirements:** Handlers must treat user-visible side effects as **idempotent**. Downstream code should gate arrival and departure work so duplicates do not multiply observable behavior (for example, ephemera uses conditional updates on `Meta::Room.activeCharacters` so room-presence and messaging side effects apply only when the projection actually changes).
+
+**`sessionId` on presence events (`Character Connected` / `Character Disconnected`):** This field identifies the **session membership edge associated with the boundary-crossing publish** (for example, the registration or teardown path that moved aggregate session count across `0 <-> 1`). It is **not** a claim that this is the character's only session, nor a complete enumeration of sessions. Do **not** treat it as proof of uniqueness, strict causality ordering across retries, or as an authority token.
+
+**Footgun:** Because `sessionId` is present on the payload, it is tempting to assume it must equal "the session we are processing right now" or that matching it against local state is sufficient for correctness. At-least-once delivery, races, and duplicate events mean that assumption can silently become a **false authority**: consumers should drive side effects from **durable projections and conditionals** (for example room presence gates), not from correlating this field to whatever session id happens to be in scope.
+
+`Character Registered` on `mtw.connections` follows the same stream key convention as character-presence events (`CHARACTER#${characterId}`); registration ingress is connections-owned in steady state (see area planning notes under `taskPlanning/lambda/connections/`).
 
 ### Implementation Guidelines
 

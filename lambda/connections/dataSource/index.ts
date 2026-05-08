@@ -14,6 +14,7 @@ import { getSessionPlayerForTeardown, tearDownStaleSession } from "../staleSessi
 import messageBus from "../messageBus"
 import { ConnectionsAPIPayload, isApiConnectionsEnvelope } from "./apiConnections"
 import { ConnectionsExternalSubscribedContent, isConnectionsSubscribedEnvelope, isDiagnosticsStaleSessionFindingEnvelope } from "./subscribedEvents"
+import "./charactersDataSource"
 
 export const diagnosticsDeserializer = new DiagnosticsEventSerializer(createNodeDataSourceEnvironment())
 const connectionsEventSerializer = new ConnectionsEventSerializer(createNodeDataSourceEnvironment())
