@@ -9,6 +9,7 @@ import { cognitoClient } from "../clients"
 import { createCognitoUser } from "../createUser"
 import { disconnect } from "../disconnect"
 import { generateInvitationCode, validateInvitationCode } from "../invitationCodes"
+import { registerCharacterMessage } from "../registerCharacter"
 import { handleStaleSessionFinding } from "../staleSessionFinding"
 import { getSessionPlayerForTeardown, tearDownStaleSession } from "../staleSessionTeardown"
 import messageBus from "../messageBus"
@@ -87,6 +88,15 @@ const handleApiConnectionsPayload = async (content: ConnectionsAPIPayload) => {
                     errorMessage: 'Invalid refresh token.'
                 })
             }
+        case 'registerCharacter': {
+            const result = await registerCharacterMessage({
+                connectionId: content.connectionId,
+                characterId: content.characterId,
+                requestId: content.requestId,
+                streamEvent: streamConnectionsEvent
+            })
+            return result
+        }
         case 'dropConnection': {
             const epochTime = Date.now()
             const { dropAfter } = (await connectionDB.optimisticUpdate<{ dropAfter?: number }>({

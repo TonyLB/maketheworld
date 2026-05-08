@@ -19,6 +19,7 @@ import { cacheMessages } from '../messages'
 import { receiveMessages as perceptionCacheReceiveMessages } from '../perceptionCache'
 
 import { EphemeraAPIMessage, isEphemeraClientMessage, isTerminalConversationStep } from '@tonylb/mtw-interfaces/ts/ephemera'
+import { ConnectionsAPIMessage } from '@tonylb/mtw-interfaces/ts/connections'
 import { AssetAPIMessage, isAssetClientMessage } from '@tonylb/mtw-interfaces/ts/asset'
 import { isSubscriptionClientMessage, SubscriptionsAPIMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
 import { WMLAPIMessage } from '@tonylb/mtw-interfaces/ts/wml'
@@ -127,11 +128,12 @@ export const subscribeMessages: LifeLineAction = () => async (dispatch) => {
 //   queue through the lifeline when status returns to connected.
 //
 export function socketDispatch(payload: EphemeraAPIMessage, options?: { service: 'ephemera' }): ThunkAction<void, RootState, unknown, AnyAction>;
+export function socketDispatch(payload: ConnectionsAPIMessage, options: { service: 'connections' }): ThunkAction<void, RootState, unknown, AnyAction>;
 export function socketDispatch(payload: AssetAPIMessage, options: { service: 'asset' }): ThunkAction<void, RootState, unknown, AnyAction>;
 export function socketDispatch(payload: SubscriptionsAPIMessage, options: { service: 'subscriptions' }): ThunkAction<void, RootState, unknown, AnyAction>;
 export function socketDispatch(payload: { messageType: 'ping' }, options: { service: 'ping' }): ThunkAction<void, RootState, unknown, AnyAction>;
-export function socketDispatch(payload: EphemeraAPIMessage | AssetAPIMessage | SubscriptionsAPIMessage | { messageType: 'ping' }, options: { service?: 'ephemera' | 'asset' | 'subscriptions' | 'ping'}): ThunkAction<void, RootState, unknown, AnyAction>
-export function socketDispatch(payload: EphemeraAPIMessage | AssetAPIMessage | SubscriptionsAPIMessage | { messageType: 'ping' }, { service = 'ephemera' }: { service?: 'ephemera' | 'asset' | 'subscriptions' | 'ping'} = {}): ThunkAction<void, RootState, unknown, AnyAction> {
+export function socketDispatch(payload: EphemeraAPIMessage | ConnectionsAPIMessage | AssetAPIMessage | SubscriptionsAPIMessage | { messageType: 'ping' }, options: { service?: 'ephemera' | 'connections' | 'asset' | 'subscriptions' | 'ping'}): ThunkAction<void, RootState, unknown, AnyAction>
+export function socketDispatch(payload: EphemeraAPIMessage | ConnectionsAPIMessage | AssetAPIMessage | SubscriptionsAPIMessage | { messageType: 'ping' }, { service = 'ephemera' }: { service?: 'ephemera' | 'connections' | 'asset' | 'subscriptions' | 'ping'} = {}): ThunkAction<void, RootState, unknown, AnyAction> {
     return (dispatch: AppDispatch, getState: AppGetState): void => {
         const { status, webSocket }: any = getLifeLine(getState()) || {}
         if (webSocket && status === 'CONNECTED') {
@@ -259,12 +261,13 @@ export const backoffAction: LifeLineAction = ({ internalData: { incrementalBacko
 // for that (similar to how HTTP calls are processed).
 //
 export function socketDispatchPromise(payload: EphemeraAPIMessage & { RequestId?: string }, options?: { service: 'ephemera' }): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction>;
+export function socketDispatchPromise(payload: ConnectionsAPIMessage & { RequestId?: string }, options: { service: 'connections' }): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction>;
 export function socketDispatchPromise(payload: AssetAPIMessage & { RequestId?: string }, options: { service: 'asset' }): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction>;
 export function socketDispatchPromise(payload: SubscriptionsAPIMessage & { RequestId?: string }, options: { service: 'subscriptions' }): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction>;
 export function socketDispatchPromise(payload: WMLAPIMessage, options: { service: 'wml' }): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction>;
 export function socketDispatchPromise(payload: { messageType: 'ping', RequestId?: string }, options: { service: 'ping' }): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction>;
-export function socketDispatchPromise(payload: (EphemeraAPIMessage | AssetAPIMessage | SubscriptionsAPIMessage | { messageType: 'ping' }) & { RequestId?: string }, options: { service?: 'ephemera' | 'asset' | 'subscriptions' | 'ping'}): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction>
-export function socketDispatchPromise(payload: (EphemeraAPIMessage | AssetAPIMessage | SubscriptionsAPIMessage | WMLAPIMessage | { messageType: 'ping' }) & { RequestId?: string }, { service = 'ephemera' }: { service?: 'ephemera' | 'asset' | 'wml' | 'subscriptions' | 'ping' } = {}): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction> {
+export function socketDispatchPromise(payload: (EphemeraAPIMessage | ConnectionsAPIMessage | AssetAPIMessage | SubscriptionsAPIMessage | { messageType: 'ping' }) & { RequestId?: string }, options: { service?: 'ephemera' | 'connections' | 'asset' | 'subscriptions' | 'ping'}): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction>
+export function socketDispatchPromise(payload: (EphemeraAPIMessage | ConnectionsAPIMessage | AssetAPIMessage | SubscriptionsAPIMessage | WMLAPIMessage | { messageType: 'ping' }) & { RequestId?: string }, { service = 'ephemera' }: { service?: 'ephemera' | 'connections' | 'asset' | 'wml' | 'subscriptions' | 'ping' } = {}): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction> {
     return (dispatch, getState) => {
         const { status, webSocket }: any = getLifeLine(getState()) || {}
         if (webSocket && status === 'CONNECTED') {
@@ -349,6 +352,10 @@ export function socketDispatchConversation(
     options: SocketDispatchConversationOptions & { service?: 'ephemera' }
 ): ThunkAction<Promise<{ unsubscribe: () => void; conversationId: string }>, RootState, unknown, AnyAction>
 export function socketDispatchConversation(
+    payload: ConnectionsAPIMessage & { conversationId?: string },
+    options: SocketDispatchConversationOptions & { service: 'connections' }
+): ThunkAction<Promise<{ unsubscribe: () => void; conversationId: string }>, RootState, unknown, AnyAction>
+export function socketDispatchConversation(
     payload: AssetAPIMessage & { conversationId?: string },
     options: SocketDispatchConversationOptions & { service: 'asset' }
 ): ThunkAction<Promise<{ unsubscribe: () => void; conversationId: string }>, RootState, unknown, AnyAction>
@@ -365,14 +372,14 @@ export function socketDispatchConversation(
     options: SocketDispatchConversationOptions & { service: 'ping' }
 ): ThunkAction<Promise<{ unsubscribe: () => void; conversationId: string }>, RootState, unknown, AnyAction>
 export function socketDispatchConversation(
-    payload: (EphemeraAPIMessage | AssetAPIMessage | SubscriptionsAPIMessage | WMLAPIMessage | { messageType: 'ping' }) & { conversationId?: string; RequestId?: string },
+    payload: (EphemeraAPIMessage | ConnectionsAPIMessage | AssetAPIMessage | SubscriptionsAPIMessage | WMLAPIMessage | { messageType: 'ping' }) & { conversationId?: string; RequestId?: string },
     {
         service = 'ephemera',
         onEvent,
         onTerminal,
         matchRequestIdFallback = false,
         isTerminal = isTerminalConversationStep,
-    }: SocketDispatchConversationOptions & { service?: 'ephemera' | 'asset' | 'wml' | 'subscriptions' | 'ping' }
+    }: SocketDispatchConversationOptions & { service?: 'ephemera' | 'connections' | 'asset' | 'wml' | 'subscriptions' | 'ping' }
 ): ThunkAction<Promise<{ unsubscribe: () => void; conversationId: string }>, RootState, unknown, AnyAction> {
     return (dispatch, getState) => {
         const { status, webSocket }: any = getLifeLine(getState()) || {}

@@ -124,10 +124,10 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
   - [X] Emit `Character Connected`/`Character Disconnected` with at-least-once semantics (duplicate emits acceptable).
   - [X] Add focused tests for churn scenarios (multiple sessions for one character, out-of-order retries, duplicate events).
 
-- [ ] Phase 3 - registration ingress refactor
-  - [ ] Introduce/route registration API/event ingress through `connections` instead of `ephemera`.
-  - [ ] Move authoritative adjacency/session mutation from `ephemera/registerCharacter` into connections-owned path.
-  - [ ] Keep temporary compatibility bridge only as needed for safe rollout; mark with explicit removal criteria.
+- [X] Phase 3 - registration ingress refactor
+  - [X] Introduce/route registration API/event ingress through `connections` instead of `ephemera`.
+  - [X] Move authoritative adjacency/session mutation from `ephemera/registerCharacter` into connections-owned path.
+  - [X] Keep temporary compatibility bridge only as needed for safe rollout; mark with explicit removal criteria.
 
 - [ ] Phase 4 - ephemera consumer cutover
   - [ ] Update ephemera to subscribe to `Character Connected`/`Character Disconnected` and perform denormalized updates (`Meta::Room.activeCharacters`, room notifications).
@@ -138,6 +138,11 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
   - [ ] Update `template.yaml` EventBridge rules and lambda subscriptions for new event types/sources.
   - [ ] Add runbook notes for dual-write/dual-consume avoidance during rollout.
   - [ ] Remove obsolete bridge paths and update durable `AGENT.md` docs after cutover is stable.
+    - [ ] Remove bridge-only register behavior in `lambda/ephemera/app.ts` that returns `messageType: 'Error'` for `registercharacter` on `service: 'ephemera'`.
+    - [ ] Remove any remaining bridge-specific registration test assertions in `lambda/ephemera/app.test.ts`.
+    - [ ] Verify no lingering registration authority in `lambda/ephemera/registerCharacter/index.ts` (no direct adjacency/session mutation path used by ingress).
+    - [ ] Confirm registration steady-state remains `service: 'connections'` -> `lambda/connections/ingress.ts` -> `lambda/connections/registerCharacter/index.ts`.
+    - [ ] Validate completion signal: no production `registercharacter` traffic on `service: 'ephemera'` over agreed observation window.
 
 ## Verification
 
@@ -159,6 +164,6 @@ Run from the noted package directory.
 | Create task plan | Done |
 | Define contracts and authority ownership | Done |
 | Implement `mtw.connections.characters` derived DataSource | Done |
-| Migrate registration ingress to connections | Not started |
+| Migrate registration ingress to connections | Done |
 | Cut ephemera to subscriber/projection role | Not started |
 | Update durable docs and remove bridges | Not started |

@@ -56,7 +56,7 @@ export const registerAction: ActiveCharacterAction = (incoming) => async (dispat
     })
     await dispatch(socketDispatchPromise({ message: 'fetchEphemera', CharacterId: id?.split('#')[1] }))
     if (id) {
-        await dispatch(socketDispatchPromise({ message: 'registercharacter', CharacterId: id }))
+        await dispatch(socketDispatchPromise({ message: 'registercharacter', CharacterId: id }, { service: 'connections' }))
     }
     else {
         console.log(`NO ID for ACTIVE CHARACTER`)

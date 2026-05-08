@@ -22,7 +22,7 @@ describe('fetchPlayerEphemera', () => {
         connectionDBMock.query.mockResolvedValue([{
             ConnectionId: `CHARACTER#ABC`,
             DataCategory: 'Meta::Character'
-        }])
+        }] as any)
         internalCacheMock.CharacterMeta.get.mockResolvedValue({
             EphemeraId: 'CHARACTER#ABC',
             RoomId: 'ROOM#XYZ',

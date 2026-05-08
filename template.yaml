@@ -733,6 +733,45 @@ Resources:
       RouteId: !Ref EphemeraRoute
       RouteResponseKey: "$default"
   #
+  # Direct connections service websocket route for registration ingress.
+  #
+  ConnectionsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteKey: connections
+      AuthorizationType: NONE
+      OperationName: ConnectionsRoute
+      RouteResponseSelectionExpression: $default
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref ConnectionsInteg
+  ConnectionsInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      Description: Connections Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+          Fn::Sub:
+              - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${ChannelArn}/invocations"
+              -
+                  Region: !Ref AWS::Region
+                  ChannelArn: !GetAtt ConnectionFunction.Arn
+  ConnectionsIntegrationResponse:
+    Type: AWS::ApiGatewayV2::IntegrationResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      IntegrationId: !Ref ConnectionsInteg
+      IntegrationResponseKey: "/200/"
+  ConnectionsResponse:
+    Type: AWS::ApiGatewayV2::RouteResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteId: !Ref ConnectionsRoute
+      RouteResponseKey: "$default"
+  #
   # Separate route and integrations for asset service
   #
   AssetRoute:
