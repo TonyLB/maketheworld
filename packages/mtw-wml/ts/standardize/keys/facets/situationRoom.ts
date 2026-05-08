@@ -18,10 +18,12 @@ import { StandardRender } from "../../render";
 import { processWithConsumers, StandardizeConsumerRender, StandardizeConsumerStandardLiteral } from "../../components/fromSchemaPipeline";
 import { StandardKey } from "../key";
 import { StandardComponent } from "../../components/baseClasses";
-import { RenderTree } from "@tonylb/mtw-base/ts/renderTree";
-import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
+import { RenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree";
+import { StandardEditableData, extractFromEditableData } from "@tonylb/mtw-base/ts/editable";
 import { excludeUndefined } from "@tonylb/mtw-base/ts/utils/lists";
 import type { StandardizeFromSchemaContext } from "../../wmlStandardizeMode";
+import type { StandardComponentReferenceKey } from "../../components/baseClasses";
+import linkReferenceKeys from "../../components/utils/references";
 
 /** Payload shape: optional displayName/summary/description.
  *  displayName is a StandardLiteral (string-based), while summary/description remain StandardRender (RenderTree-based).
@@ -116,6 +118,27 @@ export class SituationRoomFacetPayload {
     hasNonEmptyDisplayName(): boolean {
         const emptyLiteral = (l?: StandardLiteral) => !l || !String((l as any).plainString ?? (l as any)._payload?.plain?.data ?? "").trim();
         return !emptyLiteral(this._displayName);
+    }
+
+    /**
+     * Link targets inside Summary / Description render trees (same extraction as Example prose fields).
+     * DisplayName is literal-only and does not contribute links.
+     */
+    static linkReferenceKeysFromSummaryDescription(
+        mapping: StandardReference[],
+        summary?: StandardRender,
+        description?: StandardRender
+    ): StandardComponentReferenceKey[] {
+        const editableData = [summary?.toJSON(), description?.toJSON()].filter(excludeUndefined) as StandardEditableData<RenderTree>[];
+        const renderTrees = editableData.flatMap(extractFromEditableData<RenderTree>);
+        return linkReferenceKeys(mapping)(renderTreeToSchema(renderTrees.flat(1))).map((reference) => ({
+            referenceType: "Link" as const,
+            reference,
+        }));
+    }
+
+    referencedLinkKeys(mapping: StandardReference[]): StandardComponentReferenceKey[] {
+        return SituationRoomFacetPayload.linkReferenceKeysFromSummaryDescription(mapping, this._summary, this._description);
     }
 
     /**

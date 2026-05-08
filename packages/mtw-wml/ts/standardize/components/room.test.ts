@@ -531,6 +531,43 @@ describe('StandardRoom class', () => {
             expect(featureKeys).toContainEqual({ key: 'removedFeature' })
         })
 
+        it('should include Link refs from Situation facet prose when mapping resolves link targets', () => {
+            const wml = deIndentWML(`
+                <Room key=(tavern)>
+                    <Situation key=(day)>
+                        <DisplayName>Daytime</DisplayName>
+                        <Summary>A scene with <Link to=(linkedFeature)>a feature</Link>.</Summary>
+                    </Situation>
+                </Room>
+            `)
+            const mapping = [
+                new StandardReference({ key: 'linkedFeature', tag: 'Feature', universalKey: 'FEATURE#linkedFeature' }),
+                new StandardReference({ key: 'day', tag: 'Situation', universalKey: 'SITUATION#day' }),
+            ]
+            const room = new StandardRoom(wml).withMapping(mapping)
+            const refs = room.referencedKeys()
+            expect(refs.some((r) => r.referenceType === 'Direct' && r.reference.key === 'day')).toBe(true)
+            const linkRefs = refs.filter((r) => r.referenceType === 'Link')
+            expect(linkRefs.length).toBe(1)
+            expect(linkRefs[0].reference.standardKey.toJSON()).toEqual({ key: 'linkedFeature', universalKey: 'FEATURE#linkedFeature' })
+        })
+
+        it('should include Link refs from ephemera render when mapping resolves link targets', () => {
+            const mapping = [new StandardReference({ key: 'otherRoom', tag: 'Room', universalKey: 'ROOM#other' })]
+            const roomData: StandardRoomData = {
+                tag: 'Room',
+                key: 'lobby',
+                render: {
+                    displayName: 'Lobby',
+                    summary: [{ data: { tag: 'Link', to: 'otherRoom', text: 'Elsewhere' }, children: [] }],
+                },
+            }
+            const room = new StandardRoom(roomData).withMapping(mapping)
+            const linkRefs = room.referencedKeys().filter((r) => r.referenceType === 'Link')
+            expect(linkRefs.length).toBe(1)
+            expect(linkRefs[0].reference.standardKey.toJSON()).toEqual({ key: 'otherRoom', universalKey: 'ROOM#other' })
+        })
+
         it('should provide access to characters via getter', () => {
             const room = new StandardRoom(`
                 <Room key=(testRoom)>

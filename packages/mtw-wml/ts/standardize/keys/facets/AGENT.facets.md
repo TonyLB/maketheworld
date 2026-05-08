@@ -182,6 +182,12 @@ Facets support three levels of edit operations with clear separation of concerns
 
 **Payload `fromSchema` and content tags**: When implementing `fromSchema()` for a facet payload that consumes content tags (e.g. DisplayName, Summary, Description, Match), use `splitTaggedChildren` from `schema/utils` so that content wrapped in Remove/Replace is found. Use the **matched** node(s) and pass them to StandardRender (or equivalent); do not use direct `children.find(...)` by tag, or edits will be lost on round-trip.
 
+### Situation room facet prose (`SituationRoomFacetPayload`) and `referencedKeys`
+
+- **Payload**: [`situationRoom.ts`](./situationRoom.ts) `SituationRoomFacetPayload` holds optional DisplayName (`StandardLiteral`), Summary, and Description (`StandardRender`). Summary and Description may contain `<Link>` nodes resolved via `withMapping` on the parent `StandardComponent`.
+- **Link extraction**: Call **`SituationRoomFacetPayload.referencedLinkKeys(mapping)`** (or the static **`linkReferenceKeysFromSummaryDescription(mapping, summary, description)`**) so prose links become **`referenceType: 'Link'`** entries in the owning component's `referencedKeys()` output. DisplayName is literal-only and does not contribute links.
+- **Embedders**: Any component that stores this prose shape (for example **`StandardRoom`** situations and ephemera **`render`**, or future **`Feature`** Situation facets) must **union** structural references (facet reference, exits, reference lists, etc.) with **`referencedLinkKeys`** from each embedded `SituationRoomFacetPayload`. Follow **`StandardRoomPayload.referencedKeys`** in [`components/room.ts`](../../components/room.ts) as the reference wiring.
+
 ### Separation of Concerns
 
 This separation ensures:
