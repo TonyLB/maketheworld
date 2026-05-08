@@ -1,6 +1,6 @@
 # replayAt authority plumbing (DataSource + mtw.wml)
 
-**Status:** in progress (partially complete). Next: Phase B - wire **`snapshotTimestamp`** from **`getPresignedSnapshotUrl`** into **`generateWmlSnapshotContent`** **`replayAt`**.
+**Status:** in progress (partially complete). Next: Phase C - evaluate Dynamo cursor alignment (`snapshotHeader.replayAt` with fallback) and complete Phase D verification/docs.
 
 This file is task-scoped. See [`taskPlanning/AGENT.md`](../../../../AGENT.md) for durability, checkbox conventions, and what belongs here vs in package docs.
 
@@ -44,7 +44,7 @@ Durable constraint for **content vs auth** and why a single joined snapshot is m
 | Phase | Goal | Status | Notes |
 | --- | --- | --- | --- |
 | A | Presign path exposes sidecar mint time to the generator | Done | **`getPresignedSnapshotUrl`** returns **`snapshotTimestamp`** (ms) for the presigned manifest row; shared parse in [`lambda/wml/s3Storage/snapshotPresign.ts`](../../../../../lambda/wml/s3Storage/snapshotPresign.ts) |
-| B | WML generator sets `replayAt` from that authority after presign | Pending | Keeps Dynamo query ordering; fixes returned cursor |
+| B | WML generator sets `replayAt` from that authority after presign | Done | `generateWmlSnapshotContent` now returns presigned sidecar mint time (`snapshotTimestamp`) as `replayAt`; Dynamo timestamp remains query lower bound |
 | C | Optional: Meta::Snapshot read uses `replayAt` for event bound | Pending | Coordinate with stored header shape |
 | D | Tests + docs touch-up | In progress | Framework replayAt guard exists; WML tests for A/B/C still pending |
 
@@ -55,9 +55,9 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
 - [X] **Phase A - Delegated authority (plumbing)**
   - [X] Extend **`getPresignedSnapshotUrl`** (or a small helper it calls) to return the **manifest timestamp** (ms) of the **same** snapshot object that was presigned, alongside **`wml.sidecarUrl`**. Reuse the same parsing logic as **`getLatestSnapshotTimestamp`** where practical to avoid drift.
   - [X] Update **`getPresignedSnapshotUrl`** unit tests in [`lambda/wml/s3Storage/snapshotPresign.test.ts`](../../../../../lambda/wml/s3Storage/snapshotPresign.test.ts).
-- [ ] **Phase B - mtw.wml generator**
-  - [ ] In **`generateWmlSnapshotContent`**, after **`getPresignedSnapshotUrl`**, set returned **`replayAt`** to the **mint time of the returned sidecar** (from Phase A), per [`lambda/wml/dataSource/AGENT.md`](../../../../../lambda/wml/dataSource/AGENT.md) (single descriptor for content; one `replayAt` matches one URL).
-  - [ ] Update [`lambda/wml/dataSource/snapshotContent.test.ts`](../../../../../lambda/wml/dataSource/snapshotContent.test.ts) (including manifest fallback / `createSnapshotFirst` true cases).
+- [X] **Phase B - mtw.wml generator**
+  - [X] In **`generateWmlSnapshotContent`**, after **`getPresignedSnapshotUrl`**, set returned **`replayAt`** to the **mint time of the returned sidecar** (from Phase A), per [`lambda/wml/dataSource/AGENT.md`](../../../../../lambda/wml/dataSource/AGENT.md) (single descriptor for content; one `replayAt` matches one URL).
+  - [X] Update [`lambda/wml/dataSource/snapshotContent.test.ts`](../../../../../lambda/wml/dataSource/snapshotContent.test.ts) (including manifest fallback / `createSnapshotFirst` true cases).
 - [ ] **Phase C - Dynamo cursor alignment (optional but recommended)**
   - [ ] Evaluate **`getLatestSnapshotTimestampFromDynamo`**: use **`snapshotHeader.replayAt`** when present, else **`snapshotHeader.timestamp`**, so the event query lower bound matches the stored replay cursor contract.
   - [ ] Add or adjust tests so **`Meta::Snapshot`** fixtures with **`replayAt`** differ from **`timestamp`** behave as intended.

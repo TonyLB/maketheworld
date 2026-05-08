@@ -16,7 +16,9 @@ jest.mock('../utilities/mockableAssetDB', () => ({
 
 const mockGetPresignedSnapshotUrl = getPresignedSnapshotUrl as jest.MockedFunction<typeof getPresignedSnapshotUrl>
 const mockGetChunksAfterLatestSnapshot = getChunksAfterLatestSnapshot as jest.MockedFunction<typeof getChunksAfterLatestSnapshot>
-const mockAssetDBQuery = assetDB.query as jest.MockedFunction<typeof assetDB.query>
+const mockAssetDBQuery = assetDB.query as unknown as jest.MockedFunction<
+    (args: Record<string, unknown>) => Promise<Array<{ AssetId: string; DataCategory: string; type?: string; update?: unknown }>>
+>
 const mockAssetDBGetItem = assetDB.getItem as jest.MockedFunction<typeof assetDB.getItem>
 
 describe('generateWmlSnapshotContent', () => {
@@ -24,7 +26,8 @@ describe('generateWmlSnapshotContent', () => {
         jest.clearAllMocks()
         mockAssetDBGetItem.mockResolvedValue(undefined)
         mockGetPresignedSnapshotUrl.mockResolvedValue({
-            wml: { sidecarUrl: 'https://bucket.s3.amazonaws.com/snapshot?X-Amz-Signature=xyz' }
+            wml: { sidecarUrl: 'https://bucket.s3.amazonaws.com/snapshot?X-Amz-Signature=xyz' },
+            snapshotTimestamp: 4000
         })
         mockAssetDBQuery.mockResolvedValue([])
         mockGetChunksAfterLatestSnapshot.mockResolvedValue(0)
@@ -35,7 +38,7 @@ describe('generateWmlSnapshotContent', () => {
 
         expect(result).toEqual({
             wml: { sidecarUrl: expect.stringContaining('https://') },
-            replayAt: 0
+            replayAt: 4000
         })
     })
 
@@ -51,14 +54,19 @@ describe('generateWmlSnapshotContent', () => {
 
     it('passes createSnapshotFirst true when Dynamo has events after snapshot', async () => {
         mockAssetDBGetItem.mockResolvedValue({ snapshotHeader: { timestamp: 1729252800000 } })
+        mockGetPresignedSnapshotUrl.mockResolvedValue({
+            wml: { sidecarUrl: 'https://bucket.s3.amazonaws.com/snapshot?X-Amz-Signature=xyz' },
+            snapshotTimestamp: 1729252900000
+        })
         mockAssetDBQuery.mockResolvedValue([
             { AssetId: 'ASSET#room', DataCategory: 'EVENT#1729252900000::uuid-1', type: 'Content Update', update: {} }
         ])
 
-        await generateWmlSnapshotContent('ASSET#room')
+        const result = await generateWmlSnapshotContent('ASSET#room')
 
         expect(mockGetPresignedSnapshotUrl).toHaveBeenCalledWith('ASSET#room', true)
         expect(mockGetChunksAfterLatestSnapshot).not.toHaveBeenCalled()
+        expect(result.replayAt).toBe(1729252900000)
     })
 
     it('uses sinceTimestamp from Meta::Snapshot when present', async () => {
@@ -73,7 +81,7 @@ describe('generateWmlSnapshotContent', () => {
                 })
             })
         )
-        expect(result.replayAt).toBe(1000)
+        expect(result.replayAt).toBe(4000)
     })
 
     it('uses sinceTimestamp 0 when no Meta::Snapshot exists', async () => {
@@ -88,13 +96,17 @@ describe('generateWmlSnapshotContent', () => {
                 })
             })
         )
-        expect(result.replayAt).toBe(0)
+        expect(result.replayAt).toBe(4000)
     })
 
     it('manifest fallback: creates snapshot and logs when Dynamo has 0 but manifest has chunks', async () => {
         mockAssetDBGetItem.mockResolvedValue({ snapshotHeader: { timestamp: 1729252800000 } })
         mockAssetDBQuery.mockResolvedValue([])
         mockGetChunksAfterLatestSnapshot.mockResolvedValue(3)
+        mockGetPresignedSnapshotUrl.mockResolvedValue({
+            wml: { sidecarUrl: 'https://bucket.s3.amazonaws.com/snapshot?X-Amz-Signature=xyz' },
+            snapshotTimestamp: 1729253000000
+        })
 
         const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
 
@@ -104,7 +116,7 @@ describe('generateWmlSnapshotContent', () => {
         expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('mtw.wml snapshot mismatch'))
         expect(warnSpy.mock.calls[0][0]).toContain('3 chunks')
         expect(warnSpy.mock.calls[0][0]).toContain('ASSET#room')
-        expect(result.replayAt).toBe(1729252800000)
+        expect(result.replayAt).toBe(1729253000000)
 
         warnSpy.mockRestore()
     })
