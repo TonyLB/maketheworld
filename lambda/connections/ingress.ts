@@ -1,5 +1,6 @@
 import { coreFormatToStreamingEnvelope } from "@tonylb/mtw-lambda-patterns/ts/dataSource"
 import { fromEventBridgeFormat } from "@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform"
+import { isEphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import messageBus from "./messageBus"
 import { ConnectionsAPIPayload, sendApiConnectionsEvent } from "./dataSource/apiConnections"
 import { diagnosticsDeserializer } from "./dataSource"
@@ -24,6 +25,23 @@ const normalizeApiIngress = (event: any): ConnectionsAPIPayload | undefined => {
         }
         if (resourcePath === '/accessToken' && typeof json === 'object' && 'RefreshToken' in json) {
             return { type: 'accessToken', RefreshToken: json.RefreshToken }
+        }
+    }
+    if (routeKey === 'connections' && connectionId && event.body) {
+        const json = JSON.parse(event.body)
+        if (
+            typeof json === 'object' &&
+            json !== null &&
+            json.message === 'registercharacter' &&
+            typeof json.CharacterId === 'string' &&
+            isEphemeraCharacterId(json.CharacterId)
+        ) {
+            return {
+                type: 'registerCharacter',
+                connectionId,
+                characterId: json.CharacterId,
+                ...(typeof json.RequestId === 'string' ? { requestId: json.RequestId } : {})
+            }
         }
     }
     if (event.message === 'dropConnection') {

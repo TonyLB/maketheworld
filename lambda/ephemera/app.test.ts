@@ -158,6 +158,32 @@ describe('app handler', () => {
         })
     })
 
+    describe('registration bridge handling', () => {
+        it('returns explicit error for registercharacter on ephemera service bridge', async () => {
+            const event = {
+                requestContext: {
+                    connectionId: 'test-connection'
+                },
+                body: JSON.stringify({
+                    message: 'registercharacter',
+                    CharacterId: 'CHARACTER#123',
+                    RequestId: 'request-1'
+                })
+            }
+
+            await handler(event, {})
+
+            expect(mockMessageBus.send).toHaveBeenCalledWith({
+                type: 'ReturnValue',
+                body: {
+                    messageType: 'Error',
+                    message: 'registercharacter has moved to service=connections',
+                    RequestId: 'request-1'
+                }
+            })
+        })
+    })
+
     describe('EventBridge messages (single path: fromEventBridgeFormat -> deserialize)', () => {
         it('should use fromEventBridgeFormat and pass coreFormat.update + header to deserialize, then send StreamingEvent', async () => {
             const event = {

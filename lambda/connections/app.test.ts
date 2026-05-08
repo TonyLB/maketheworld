@@ -26,9 +26,13 @@ jest.mock('./invitationCodes', () => ({
 jest.mock('./staleSessionFinding', () => ({
     handleStaleSessionFinding: jest.fn().mockResolvedValue(undefined)
 }))
+jest.mock('./registerCharacter', () => ({
+    registerCharacterMessage: jest.fn()
+}))
 
 import { disconnect } from './disconnect'
 import { generateInvitationCode, validateInvitationCode } from './invitationCodes'
+import { registerCharacterMessage } from './registerCharacter'
 import { handleStaleSessionFinding } from './staleSessionFinding'
 import { handler } from './app'
 
@@ -37,6 +41,7 @@ const eventBridgeClientMock = jest.mocked(eventBridgeClient)
 const disconnectMock = jest.mocked(disconnect)
 const generateInvitationCodeMock = jest.mocked(generateInvitationCode)
 const validateInvitationCodeMock = jest.mocked(validateInvitationCode)
+const registerCharacterMessageMock = jest.mocked(registerCharacterMessage)
 const handleStaleSessionFindingMock = jest.mocked(handleStaleSessionFinding)
 const queryMock = connectionDB.query as unknown as jest.Mock
 
@@ -45,6 +50,11 @@ describe('connections app checkSession', () => {
         jest.clearAllMocks()
         jest.useRealTimers()
         connectionDBMock.getItem.mockResolvedValue({ player: 'test-player' })
+        registerCharacterMessageMock.mockResolvedValue({
+            messageType: 'Registration',
+            CharacterId: 'CHARACTER#abc',
+            RequestId: 'request-1'
+        })
     })
 
     const mockShouldDropOptimisticUpdate = () => {
@@ -100,6 +110,34 @@ describe('connections app checkSession', () => {
 
         expect(generateInvitationCodeMock).toHaveBeenCalledTimes(1)
         expect(response).toEqual({ invitationCode: 'QW123E' })
+    })
+
+    it('routes websocket registercharacter through connections registration path', async () => {
+        const response = await handler({
+            requestContext: {
+                routeKey: 'connections',
+                connectionId: 'connection-1'
+            },
+            body: JSON.stringify({
+                service: 'connections',
+                message: 'registercharacter',
+                CharacterId: 'CHARACTER#abc',
+                RequestId: 'request-1'
+            })
+        })
+
+        expect(registerCharacterMessageMock).toHaveBeenCalledTimes(1)
+        expect(registerCharacterMessageMock).toHaveBeenCalledWith(expect.objectContaining({
+            connectionId: 'connection-1',
+            characterId: 'CHARACTER#abc',
+            requestId: 'request-1',
+            streamEvent: expect.any(Function)
+        }))
+        expect(response).toEqual({
+            messageType: 'Registration',
+            CharacterId: 'CHARACTER#abc',
+            RequestId: 'request-1'
+        })
     })
 
     it('drops stale session and emits Session Disconnect without Map bookkeeping', async () => {

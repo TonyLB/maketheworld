@@ -128,11 +128,22 @@ export const handler = async (event: any, context: any) => {
     }
     else {
         if (isEphemeraAPIMessage(request)) {
-            if (isRegisterCharacterAPIMessage(request) || isUnregisterCharacterAPIMessage(request)) {
-                const messageType = isRegisterCharacterAPIMessage(request) ? 'RegisterCharacter' : 'UnregisterCharacter'
+            if (isRegisterCharacterAPIMessage(request)) {
+                // Phase 3 bridge: registration authority moved to connections service route.
+                // Remove once no registration calls target `service: 'ephemera'`.
+                messageBus.send({
+                    type: 'ReturnValue',
+                    body: {
+                        messageType: 'Error',
+                        message: 'registercharacter has moved to service=connections',
+                        ...(request.RequestId ? { RequestId: request.RequestId } : {})
+                    }
+                })
+            }
+            else if (isUnregisterCharacterAPIMessage(request)) {
                 if (request.CharacterId && isEphemeraCharacterId(request.CharacterId)) {
                     messageBus.send({
-                        type: messageType,
+                        type: 'UnregisterCharacter',
                         characterId: request.CharacterId
                     })
                 }

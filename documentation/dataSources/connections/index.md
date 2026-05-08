@@ -16,6 +16,8 @@ Events:
 Notes:
 
 - `Session Disconnect` carries an optional `characterIds` field: the teardown-time candidate set of characters adjacently attached to the dropped session; the derived `mtw.connections.characters` lane uses this field to perform its final connected/disconnected judgment.
+- Registration ingress authority is now in `connections`: websocket `service: connections` with `message: registercharacter` writes adjacency/session membership and emits `Character Registered`.
+- Client request contract for websocket `service: connections` is now isolated as `ConnectionsAPIMessage` in `packages/mtw-interfaces/ts/connections.ts` (no longer piggybacked on ephemera request typings).
 
 ## `mtw.connections.characters`
 

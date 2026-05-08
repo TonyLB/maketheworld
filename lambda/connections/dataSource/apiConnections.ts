@@ -1,6 +1,7 @@
 import { HeaderGuard, StreamingEventHeader, makeStreamingEnvelopeGuardFromHeaderGuard } from "@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses"
 import { createInternalOriginEnvelope } from "@tonylb/mtw-lambda-patterns/ts/dataSource"
 import type { StreamingEventMessage } from "../messageBus/baseClasses"
+import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 
 export type ConnectionsAPIPayload =
     | { type: '$disconnect'; connectionId: string }
@@ -8,6 +9,7 @@ export type ConnectionsAPIPayload =
     | { type: 'signIn'; userName: string; password: string }
     | { type: 'signUp'; userName: string; inviteCode: string; password: string }
     | { type: 'accessToken'; RefreshToken: string }
+    | { type: 'registerCharacter'; connectionId: string; characterId: EphemeraCharacterId; requestId?: string }
     | { type: 'dropConnection'; sessionId: string; connectionId: string }
     | { type: 'checkSession'; sessionId: string }
     | { type: 'generateInvitation' }
@@ -21,7 +23,7 @@ const isApiConnectionsHeader: HeaderGuard<ConnectionsApiSubscribedHeader> = (
     header
 ): header is ConnectionsApiSubscribedHeader => (
     header.dataSourceKey === 'api.connections' &&
-    ['$disconnect', 'validateInvitation', 'signIn', 'signUp', 'accessToken', 'dropConnection', 'checkSession', 'generateInvitation'].includes(header.type)
+    ['$disconnect', 'validateInvitation', 'signIn', 'signUp', 'accessToken', 'registerCharacter', 'dropConnection', 'checkSession', 'generateInvitation'].includes(header.type)
 )
 
 export const isApiConnectionsEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
