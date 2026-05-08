@@ -343,9 +343,9 @@ Follow this structured path when working with the DataSource pattern. The header
    - **Serializer changes**: Ensure `serialize`/`deserialize` use `{ content, header }` and route only on `header.type`. Do not branch on `content.type`
 
 7. **Run Tests Before Starting**
-   - **Command** (from repo root): `cd packages/mtw-lambda-patterns && npm run test -- --testPathPattern=dataSource --watchAll=false`
-   - **Expected baseline**: 2 test suites, 74 tests passing (`index.test.ts`, `formatTransform.test.ts`)
-   - **Why**: Establishes a known-good baseline before making changes; DataSource tests cover streamEvent, replay delivery, format transforms, and subscription flow
+   - **Command** (from repo root): `npm run --workspace @tonylb/mtw-lambda-patterns test -- --testPathPattern=dataSource --watchAll=false`
+   - **Expected baseline**: 4 test suites, 139 tests passing (`index.test.ts`, `formatTransform.test.ts`, `streamEventPublisher.test.ts`, `sidecarResolve.test.ts`)
+   - **Why**: Establishes a known-good baseline before making changes; DataSource tests cover streamEvent, replay delivery, format transforms, stream-event publishing, and sidecar resolution flow
 
 ### Key Concepts
 - **Domain Authority**: Each data source owns its domain completely across all streams

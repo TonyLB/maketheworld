@@ -25,10 +25,14 @@ const PRIMARY_KEY_NAME = 'AssetId'
  */
 async function getLatestSnapshotTimestampFromDynamo(assetId: AssetUUID): Promise<number> {
     const primaryKey = `STREAM#${DATA_SOURCE_KEY}::${assetId}`
-    const result = await assetDB.getItem<{ snapshotHeader?: { timestamp?: number } }>({
+    const result = await assetDB.getItem<{ snapshotHeader?: { replayAt?: number; timestamp?: number } }>({
         Key: { [PRIMARY_KEY_NAME]: primaryKey, DataCategory: 'Meta::Snapshot' },
         ProjectionFields: ['snapshotHeader']
     })
+    const replayAt = result?.snapshotHeader?.replayAt
+    if (typeof replayAt === 'number') {
+        return replayAt
+    }
     const timestamp = result?.snapshotHeader?.timestamp
     return typeof timestamp === 'number' ? timestamp : 0
 }
@@ -44,14 +48,14 @@ async function getLatestSnapshotTimestampFromDynamo(assetId: AssetUUID): Promise
 export async function generateWmlSnapshotContent(
     assetId: AssetUUID
 ): Promise<{ wml: { sidecarUrl: string }, replayAt: number }> {
-    const replayAt = await getLatestSnapshotTimestampFromDynamo(assetId)
+    const replayAtQueryBound = await getLatestSnapshotTimestampFromDynamo(assetId)
 
     const primaryKey = `STREAM#${DATA_SOURCE_KEY}::${assetId}`
     const dynamoEvents = await assetDB.query<{ AssetId: string; DataCategory: string }>({
         Key: { [PRIMARY_KEY_NAME]: primaryKey },
         KeyConditionExpression: 'DataCategory BETWEEN :timestampPrefix AND :timestampEndRange',
         ExpressionAttributeValues: {
-            ':timestampPrefix': `EVENT#${replayAt}`,
+            ':timestampPrefix': `EVENT#${replayAtQueryBound}`,
             ':timestampEndRange': 'EVENT#99999999'
         },
         allFields: true
@@ -69,9 +73,9 @@ export async function generateWmlSnapshotContent(
         }
     }
 
-    const snapshotContent = await getPresignedSnapshotUrl(assetId, createSnapshotFirst)
+    const { snapshotTimestamp, ...snapshotContent } = await getPresignedSnapshotUrl(assetId, createSnapshotFirst)
     return {
         ...snapshotContent,
-        replayAt
+        replayAt: snapshotTimestamp
     }
 }
