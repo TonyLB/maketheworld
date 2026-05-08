@@ -2,7 +2,6 @@ import {
     MessageBus,
     isPublishMessage,
     isEphemeraUpdate,
-    isRegisterCharacterMessage,
     isFetchPlayerEphemera,
     isPerception,
     isMoveCharacter,
@@ -22,7 +21,6 @@ import {
 import publishMessage from '../publishMessage'
 import ephemeraUpdate from '../ephemeraUpdate'
 import { unregisterCharacterMessage, disconnectCharacterMessage } from '../disconnectMessage'
-import registerCharacter from '../registerCharacter'
 import { fetchPlayerEphemera } from '../fetchEphemera'
 import perceptionMessage from '../perception'
 import moveCharacter from '../moveCharacter'
@@ -46,12 +44,6 @@ messageBus.subscribe({
     priority: 10,
     filter: isEphemeraUpdate,
     callback: ephemeraUpdate
-})
-messageBus.subscribe({
-    tag: 'RegisterCharacter',
-    priority: 1,
-    filter: isRegisterCharacterMessage,
-    callback: registerCharacter
 })
 messageBus.subscribe({
     tag: 'UnregisterCharacter',

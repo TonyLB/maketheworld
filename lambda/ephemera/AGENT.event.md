@@ -94,6 +94,7 @@ The Ephemera Lambda subscribes to events from other system components:
 - **Content Update**: Triggers asset re-caching when content changes (source varies - may include WML, direct editing, etc.)
 - **Authorization Update**: Updates character access permissions
 - **Example Lifecycle (mtw.assets.componentExamples → mtw.ephemera.examples)**: Mirrors authored Example renders into the Ephemera cache via the `mtw.ephemera.examples` data source. `ExampleUpdated` (and future `ExampleAdded`) enqueue **`Put Cache Record`** via **`sendPutCacheRecord`**; `ExampleRemoved` enqueues **`Delete Cache Records`** via **`sendDeleteCacheRecords`**. Those run while the bus is already flushing EventBridge-originated work, so **`mtw.ephemera.renderCache`** is reached via recursive **`flush()`** without an extra flush in the examples handler.
+- **Character Presence (mtw.connections.characters → mtw.ephemera.positions)**: `Character Connected` and `Character Disconnected` envelopes are consumed by the `mtw.ephemera.positions` DataSource (see [`dataSource/positions/`](dataSource/positions/)). `Character Connected` queues a `CheckLocation` (forceMove) so the existing `moveCharacter` flow drives the `Meta::Room.activeCharacters` add + arrival `WorldMessage` + `CharacterInPlay` `EphemeraUpdate`. `Character Disconnected` runs a conditional `Meta::Room.activeCharacters` projection; when the projection actually changes (idempotency gate), the handler refreshes `RoomCharacterList`, invalidates `ComponentEphemeraMeta` and `ComponentStackMerge`, and publishes the departure `WorldMessage` + `RoomUpdate`. Producer-side delivery is at-least-once; consumer idempotency is the projection gate.
 
 #### **Asset Events**
 - **Asset Added/Removed**: Updates character access to new/removed content
@@ -102,7 +103,7 @@ The Ephemera Lambda subscribes to events from other system components:
 #### **Coordination Events** *(Legacy - Under Review)*
 - **Calculate Cascade**: Triggers Variable dependency cascade calculations
 - **Execute Action**: Executes Action code in response to external triggers
-- **Disconnect Character**: Handles character disconnection from external systems
+- **Disconnect Character**: Forward pointer -- character disconnection from external systems is now driven by the `mtw.connections.characters` -> `mtw.ephemera.positions` ingress described above; the legacy `Disconnect Character` direct event in [`app.ts`](app.ts) remains only for non-DataSource paths and should be removed when those paths are retired.
 
 #### **Blueprint Reconciliation Events**
 - **Asset Canonized/Decanonized**: No current path (reserved for when canonize/decanonize flows are extended). Would update character access to content and validate character states.

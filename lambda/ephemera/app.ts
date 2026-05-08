@@ -6,7 +6,6 @@ import getCurrentTimestamp from './internalUtils/dateUtil'
 
 import {
     EphemeraAPIMessage,
-    isRegisterCharacterAPIMessage,
     isFetchEphemeraAPIMessage,
     isSyncAPIMessage,
 
@@ -31,6 +30,7 @@ import { sfnClient } from './clients'
 import { confirmGuestCharacter } from './guestCharacter'
 import { AssetsEventSerializer, ComponentExamplesEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { DiagnosticsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
+import { ConnectionsCharactersEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
@@ -47,12 +47,14 @@ import './dataSource/actions'  // mtw.ephemera.actions DataSource (inert bus-onl
 import './dataSource/coyoteGame'  // mtw.ephemera.coyoteGame DataSource (stub; Coyote Game wiring follows)
 import './dataSource/objects'  // mtw.ephemera.objects DataSource (before state: shared Meta::Room ordering)
 import './dataSource/state'  // mtw.ephemera.state DataSource (see lambda/ephemera/dataSource/state/AGENT.planning.perceptionVertical.md)
+import './dataSource/positions'  // mtw.ephemera.positions DataSource (positions in play; first ingress: mtw.connections.characters)
 
 // Event deserializers for incoming EventBridge events
 const eventDeserializers = {
     'mtw.assets': new AssetsEventSerializer(),
     'mtw.assets.componentExamples': new ComponentExamplesEventSerializer(),
     'mtw.diagnostics': new DiagnosticsEventSerializer(createNodeDataSourceEnvironment()),
+    'mtw.connections.characters': new ConnectionsCharactersEventSerializer(createNodeDataSourceEnvironment()),
 } as const
 
 export const handler = async (event: any, context: any) => {
@@ -128,19 +130,7 @@ export const handler = async (event: any, context: any) => {
     }
     else {
         if (isEphemeraAPIMessage(request)) {
-            if (isRegisterCharacterAPIMessage(request)) {
-                // Phase 3 bridge: registration authority moved to connections service route.
-                // Remove once no registration calls target `service: 'ephemera'`.
-                messageBus.send({
-                    type: 'ReturnValue',
-                    body: {
-                        messageType: 'Error',
-                        message: 'registercharacter has moved to service=connections',
-                        ...(request.RequestId ? { RequestId: request.RequestId } : {})
-                    }
-                })
-            }
-            else if (isUnregisterCharacterAPIMessage(request)) {
+            if (isUnregisterCharacterAPIMessage(request)) {
                 if (request.CharacterId && isEphemeraCharacterId(request.CharacterId)) {
                     messageBus.send({
                         type: 'UnregisterCharacter',
