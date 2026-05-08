@@ -39,7 +39,7 @@ When changing session storage, update this section so the trade-off stays visibl
 - Guard ownership split follows newer ephemera conventions:
   - [`dataSource/apiConnections.ts`](dataSource/apiConnections.ts): synthetic `api.connections` contracts/guards/helpers.
   - [`dataSource/subscribedEvents.ts`](dataSource/subscribedEvents.ts): external subscribed-source guards (`mtw.diagnostics`).
-- Canonical connections EventBridge contracts now live in [`packages/mtw-interfaces/ts/eventBridge/connections`](../../packages/mtw-interfaces/ts/eventBridge/connections).
+- Canonical connections EventBridge contracts now live in [`packages/mtw-interfaces/ts/eventBridge/connections`](../../packages/mtw-interfaces/ts/eventBridge/connections) (`mtw.connections`, including `Character Registered`). Character presence transitions (`Character Connected`, `Character Disconnected`) are defined under [`packages/mtw-interfaces/ts/eventBridge/connections/characters`](../../packages/mtw-interfaces/ts/eventBridge/connections/characters) for `mtw.connections.characters`. Delivery semantics for the presence lane (at least once, duplicate-tolerant consumers) are documented in [`packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md`](../../packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md#connections-character-presence-delivery-semantics).
 
 **`Session Disconnect` (existing):** After a session is confirmed for drop via `checkSession` (Step Functions `dropConnection` path), the connections lambda removes session/character adjacency, emits `source: mtw.connections` / `detail-type: Session Disconnect` with `detail: { sessionId }`, then deletes the canonical `Meta::Session` row idempotently.
 

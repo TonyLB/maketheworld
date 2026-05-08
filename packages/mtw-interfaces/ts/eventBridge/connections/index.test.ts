@@ -1,4 +1,10 @@
-import { ConnectionsEventSerializer, isConnectionsEventUpdate, isSessionDisconnectEvent, isSessionDisconnectProblemEvent } from './index'
+import {
+    ConnectionsEventSerializer,
+    isCharacterRegisteredEvent,
+    isConnectionsEventUpdate,
+    isSessionDisconnectEvent,
+    isSessionDisconnectProblemEvent
+} from './index'
 import type { DataSourceEnvironment } from '@tonylb/mtw-interfaces/ts/DataSourceEnvironment'
 import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
@@ -65,6 +71,34 @@ describe('ConnectionsEventSerializer', () => {
         expect(deserialized).toBeNull()
     })
 
+    it('serializes and deserializes Character Registered', async () => {
+        const event = {
+            type: 'Character Registered' as const,
+            characterId: 'CHARACTER#abc' as const,
+            sessionId: 'session-1',
+            timestamp: '2026-01-01T00:02:00.000Z'
+        }
+        const serialized = serializer.serialize({
+            content: event,
+            header: connectionsHeader('Character Registered')
+        })
+        expect(serialized).toEqual(event)
+
+        const deserialized = await serializer.deserialize({
+            content: serialized,
+            header: connectionsHeader('Character Registered')
+        })
+        expect(deserialized).toEqual(event)
+    })
+
+    it('returns null for malformed Character Registered', async () => {
+        const deserialized = await serializer.deserialize({
+            content: { sessionId: 'session-1', characterId: 'ROOM#x' },
+            header: connectionsHeader('Character Registered')
+        })
+        expect(deserialized).toBeNull()
+    })
+
     it('throws on Snapshot serialization', () => {
         expect(() => serializer.serialize({
             content: {
@@ -106,6 +140,21 @@ describe('connections event guards', () => {
         })).toBe(false)
     })
 
+    it('validates Character Registered', () => {
+        expect(isCharacterRegisteredEvent({
+            type: 'Character Registered',
+            characterId: 'CHARACTER#abc',
+            sessionId: 'session-1',
+            timestamp: '2026-01-01T00:00:00.000Z'
+        })).toBe(true)
+        expect(isCharacterRegisteredEvent({
+            type: 'Character Registered',
+            characterId: 'ROOM#abc',
+            sessionId: 'session-1',
+            timestamp: '2026-01-01T00:00:00.000Z'
+        })).toBe(false)
+    })
+
     it('validates union update guard', () => {
         expect(isConnectionsEventUpdate({
             type: 'Session Disconnect',
@@ -118,6 +167,12 @@ describe('connections event guards', () => {
             sourceOperation: 'checkSession',
             attemptCount: 2,
             dedupeKey: 'key',
+            timestamp: '2026-01-01T00:00:00.000Z'
+        })).toBe(true)
+        expect(isConnectionsEventUpdate({
+            type: 'Character Registered',
+            characterId: 'CHARACTER#abc',
+            sessionId: 'session-1',
             timestamp: '2026-01-01T00:00:00.000Z'
         })).toBe(true)
         expect(isConnectionsEventUpdate({ type: 'Unknown Event' })).toBe(false)

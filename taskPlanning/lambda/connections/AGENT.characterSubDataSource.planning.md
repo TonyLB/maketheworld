@@ -1,6 +1,6 @@
 # Character Sub-DataSource Planning (`mtw.connections.characters`)
 
-**Status:** In progress. Planning drafted; next step is to align event contracts and migration slices so character registration authority moves from `ephemera` into `connections` without duplicate side effects.
+**Status:** In progress. Phase 1 (contracts and docs) is complete. Next: Phase 2 derived DataSource scaffold for `mtw.connections.characters`, then registration ingress and ephemera cutover.
 
 ## Purpose
 
@@ -40,6 +40,7 @@ This document is task-scoped and should be removed or archived after the initiat
    - [`lambda/connections/disconnect/index.ts`](../../../../lambda/connections/disconnect/index.ts)
 4. Existing event contracts and serializers:
    - [`packages/mtw-interfaces/ts/eventBridge/connections/index.ts`](../../../../packages/mtw-interfaces/ts/eventBridge/connections/index.ts)
+   - [`packages/mtw-interfaces/ts/eventBridge/connections/characters/index.ts`](../../../../packages/mtw-interfaces/ts/eventBridge/connections/characters/index.ts)
    - [`template.yaml`](../../../../template.yaml) (EventBridge subscriptions and wiring)
 5. Current ephemera registration and derivative handling to be migrated:
    - [`lambda/ephemera/registerCharacter/index.ts`](../../../../lambda/ephemera/registerCharacter/index.ts)
@@ -63,7 +64,7 @@ This document is task-scoped and should be removed or archived after the initiat
   - connect/registration path in `ephemera` (`registerCharacter`)
   - disconnect cleanup path in `connections` (`atomicallyRemoveCharacterAdjacency`)
 - First/last transition semantics are partially present today (`sessions.length > 1` suppression on register, delete-on-empty behavior on disconnect), but owned in different lambdas.
-- Current `connections` EventBridge interface does not yet include `Character Registered`, `Character Connected`, or `Character Disconnected` contracts.
+- Shared contracts for `Character Registered`, `Character Connected`, and `Character Disconnected` now live in [`packages/mtw-interfaces/ts/eventBridge/connections`](../../../../packages/mtw-interfaces/ts/eventBridge/connections); wiring and emission are still pending later phases.
 
 ## Target architecture (task outcome)
 
@@ -111,11 +112,11 @@ This document is task-scoped and should be removed or archived after the initiat
 
 Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each sub-step lands.
 
-- [ ] Phase 1 - contracts and authority alignment
-  - [ ] Extend `mtw.connections` event contracts to include `Character Registered` using locked canonical shape.
-  - [ ] Define `mtw.connections.characters` event contracts for `Character Connected` and `Character Disconnected` using locked canonical shapes.
-  - [ ] Define serializer/deserializer guards and tests in `packages/mtw-interfaces`.
-  - [ ] Document at-least-once delivery semantics and duplicate-tolerant consumer requirements in contract docs.
+- [X] Phase 1 - contracts and authority alignment
+  - [X] Extend `mtw.connections` event contracts to include `Character Registered` using locked canonical shape.
+  - [X] Define `mtw.connections.characters` event contracts for `Character Connected` and `Character Disconnected` using locked canonical shapes.
+  - [X] Define serializer/deserializer guards and tests in `packages/mtw-interfaces`.
+  - [X] Document at-least-once delivery semantics and duplicate-tolerant consumer requirements in contract docs.
 
 - [ ] Phase 2 - derived DataSource scaffold (`mtw.connections.characters`)
   - [ ] Add DataSource module wiring and subscribed-event guards for `Character Registered` and `Session Disconnect`.
@@ -143,7 +144,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 Run from the noted package directory.
 
 - Contracts/interfaces (`packages/mtw-interfaces/`):
-  - `npx jest --runInBand ts/eventBridge/connections/index.test.ts`
+  - `npx jest --runInBand ts/eventBridge/connections/index.test.ts ts/eventBridge/connections/characters/index.test.ts`
 - Connections lifecycle and derived DataSource (`lambda/connections/`):
   - `npx jest --config "/Users/anthonylower-basch/Code/maketheworld/lambda/connections/jest.config.js" --runInBand app.test.ts dataSource/index.test.ts staleSessionTeardown/index.test.ts`
 - Ephemera subscription/derivative behavior (`lambda/ephemera/`):
@@ -156,7 +157,7 @@ Run from the noted package directory.
 | Milestone | Status |
 | --- | --- |
 | Create task plan | Done |
-| Define contracts and authority ownership | Not started |
+| Define contracts and authority ownership | Done |
 | Implement `mtw.connections.characters` derived DataSource | Not started |
 | Migrate registration ingress to connections | Not started |
 | Cut ephemera to subscriber/projection role | Not started |

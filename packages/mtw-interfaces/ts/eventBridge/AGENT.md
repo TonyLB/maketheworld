@@ -60,7 +60,8 @@ All event contracts are now centralized in the `mtw-interfaces` package:
 - **WML Events**: Content and zone change events
 - **Assets Events**: Component and asset-level events with sub-sources
 - **Ephemera Events**: Real-time game state events
-- **Connections Events**: Session lifecycle and problem-report events (`mtw.connections`)
+- **Connections Events**: Session lifecycle, character registration, and problem-report events (`mtw.connections`); see [`connections/index.ts`](./connections/index.ts)
+- **Connections Characters (sub-source)**: Character presence transition events (`mtw.connections.characters`); see [`connections/characters/index.ts`](./connections/characters/index.ts)
 - **Diagnostics Events**: Findings and diagnostics-domain events (`mtw.diagnostics`)
 - **Cognito Events**: Signup-domain events (`mtw.cognito` / `New Player`)
 
