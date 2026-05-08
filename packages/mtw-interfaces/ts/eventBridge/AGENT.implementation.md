@@ -86,7 +86,7 @@ Contracts for `Character Connected` and `Character Disconnected` on `mtw.connect
 
 **Footgun:** Because `sessionId` is present on the payload, it is tempting to assume it must equal "the session we are processing right now" or that matching it against local state is sufficient for correctness. At-least-once delivery, races, and duplicate events mean that assumption can silently become a **false authority**: consumers should drive side effects from **durable projections and conditionals** (for example room presence gates), not from correlating this field to whatever session id happens to be in scope.
 
-`Character Registered` on `mtw.connections` follows the same stream key convention as character-presence events (`CHARACTER#${characterId}`); registration ingress is connections-owned in steady state (see area planning notes under `taskPlanning/lambda/connections/`).
+`Character Registered` on `mtw.connections` follows the same stream key convention as character-presence events (`CHARACTER#${characterId}`); registration ingress is connections-owned (see `lambda/connections/AGENT.md`).
 
 ### Implementation Guidelines
 

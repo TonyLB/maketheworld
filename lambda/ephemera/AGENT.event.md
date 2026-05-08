@@ -103,7 +103,7 @@ The Ephemera Lambda subscribes to events from other system components:
 #### **Coordination Events** *(Legacy - Under Review)*
 - **Calculate Cascade**: Triggers Variable dependency cascade calculations
 - **Execute Action**: Executes Action code in response to external triggers
-- **Disconnect Character**: Forward pointer -- character disconnection from external systems is now driven by the `mtw.connections.characters` -> `mtw.ephemera.positions` ingress described above; the legacy `Disconnect Character` direct event in [`app.ts`](app.ts) is retained only for non-DataSource paths and is targeted for Phase 5 cleanup in [`taskPlanning/lambda/connections/AGENT.characterSubDataSource.planning.md`](../../taskPlanning/lambda/connections/AGENT.characterSubDataSource.planning.md).
+- **Disconnect Character**: Forward pointer -- character disconnection from external systems is now driven by the `mtw.connections.characters` -> `mtw.ephemera.positions` ingress described above; the legacy `Disconnect Character` direct event in [`app.ts`](app.ts) remains only for non-DataSource paths and should be removed when those paths are retired.
 
 #### **Blueprint Reconciliation Events**
 - **Asset Canonized/Decanonized**: No current path (reserved for when canonize/decanonize flows are extended). Would update character access to content and validate character states.

@@ -86,7 +86,13 @@ Handlers (in [`dataSource/positions/handleConnectionsCharactersPresence.ts`](dat
 - **`Character Connected`**: queues `CheckLocation` with `forceMove: true` and `arriveMessage: ' has connected.'`. The existing `moveCharacter` flow then performs the `Meta::Room.activeCharacters` add, arrival `WorldMessage`, and `CharacterInPlay` `EphemeraUpdate`. Per-session deduplication is upstream (`mtw.connections.characters` only emits `Character Connected` when `Meta::Character.sessions` was empty pre-mutation), so `suppressArrival: false` is correct here.
 - **`Character Disconnected`**: runs an `optimisticUpdate` against the character's `Meta::Room.activeCharacters`, removing the character entry. If the projection actually changed (idempotency gate), the handler invalidates `ComponentEphemeraMeta` / `ComponentStackMerge`, refreshes `RoomCharacterList`, and emits the departure `WorldMessage` plus a `RoomUpdate`. Duplicate deliveries are no-ops because the second update finds nothing to remove.
 
-Ephemera no longer holds session adjacency authority: writes to `connections`-table session/character adjacency live in `lambda/connections` (see [`lambda/connections/AGENT.md`](../connections/AGENT.md)). The legacy [`registerCharacter/index.ts`](registerCharacter/index.ts) handler is a no-op shell pending Phase 5 cleanup.
+Ephemera no longer holds session adjacency authority: writes to `connections`-table session/character adjacency live in `lambda/connections` (see [`lambda/connections/AGENT.md`](../connections/AGENT.md)). Registration ingress authority is fully connections-owned (`service: connections`), and ephemera does not process `registercharacter` ingress.
+
+Operational guardrails for this integration:
+
+- Infrastructure subscription for `mtw.connections.characters` must remain deployed for consumer-side projection effects.
+- Avoid dual-ingress and dual-consume paths: registration traffic should target only `service: connections`.
+- Verification query in ephemera logs: search for registration message payload markers (`message\":\"registercharacter\"`) and expect zero results over a representative window.
 
 The lane is intentionally extensible: adding new position-affecting subscribers means registering a new header guard in [`dataSource/positions/subscribedEvents.ts`](dataSource/positions/subscribedEvents.ts) and a matching handler, not standing up a new DataSource.
 
