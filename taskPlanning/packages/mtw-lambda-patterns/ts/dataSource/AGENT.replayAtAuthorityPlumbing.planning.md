@@ -44,9 +44,9 @@ Durable constraint for **content vs auth** and why a single joined snapshot is m
 | Phase | Goal | Status | Notes |
 | --- | --- | --- | --- |
 | A | Presign path exposes sidecar mint time to the generator | Done | **`getPresignedSnapshotUrl`** returns **`snapshotTimestamp`** (ms) for the presigned manifest row; shared parse in [`lambda/wml/s3Storage/snapshotPresign.ts`](../../../../../lambda/wml/s3Storage/snapshotPresign.ts) |
-| B | WML generator sets `replayAt` from that authority after presign | Done | `generateWmlSnapshotContent` now returns presigned sidecar mint time (`snapshotTimestamp`) as `replayAt`; Dynamo timestamp remains query lower bound |
-| C | Optional: Meta::Snapshot read uses `replayAt` for event bound | Pending | Coordinate with stored header shape |
-| D | Tests + docs touch-up | In progress | Framework replayAt guard exists; WML tests for A/B/C still pending |
+| B | WML generator sets `replayAt` from that authority after presign | Done | `generateWmlSnapshotContent` now returns presigned sidecar mint time (`snapshotTimestamp`) as `replayAt` |
+| C | Optional: Meta::Snapshot read uses `replayAt` for event bound | Done | `getLatestSnapshotTimestampFromDynamo` now prefers `snapshotHeader.replayAt` with fallback to `snapshotHeader.timestamp` |
+| D | Tests + docs touch-up | In progress | Framework replayAt guard exists; WML tests are currently blocked by existing Jest transform/config issues in this workspace |
 
 ## Recommended order
 
@@ -58,9 +58,9 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
 - [X] **Phase B - mtw.wml generator**
   - [X] In **`generateWmlSnapshotContent`**, after **`getPresignedSnapshotUrl`**, set returned **`replayAt`** to the **mint time of the returned sidecar** (from Phase A), per [`lambda/wml/dataSource/AGENT.md`](../../../../../lambda/wml/dataSource/AGENT.md) (single descriptor for content; one `replayAt` matches one URL).
   - [X] Update [`lambda/wml/dataSource/snapshotContent.test.ts`](../../../../../lambda/wml/dataSource/snapshotContent.test.ts) (including manifest fallback / `createSnapshotFirst` true cases).
-- [ ] **Phase C - Dynamo cursor alignment (optional but recommended)**
-  - [ ] Evaluate **`getLatestSnapshotTimestampFromDynamo`**: use **`snapshotHeader.replayAt`** when present, else **`snapshotHeader.timestamp`**, so the event query lower bound matches the stored replay cursor contract.
-  - [ ] Add or adjust tests so **`Meta::Snapshot`** fixtures with **`replayAt`** differ from **`timestamp`** behave as intended.
+- [X] **Phase C - Dynamo cursor alignment (optional but recommended)**
+  - [X] Evaluate **`getLatestSnapshotTimestampFromDynamo`**: use **`snapshotHeader.replayAt`** when present, else **`snapshotHeader.timestamp`**, so the event query lower bound matches the stored replay cursor contract.
+  - [X] Add or adjust tests so **`Meta::Snapshot`** fixtures with **`replayAt`** differ from **`timestamp`** behave as intended.
 - [ ] **Phase D - Framework regression guard**
   - [X] Confirm **`generateSnapshot`** still merges generator **`replayAt`** correctly; existing coverage is present in [`packages/mtw-lambda-patterns/ts/dataSource/index.test.ts`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/index.test.ts) (`should preserve authoritative replayAt from snapshotContentGenerator`).
   - [ ] Run **`packages/mtw-lambda-patterns`** tests from package root (Jest per [`packages/mtw-lambda-patterns/AGENT.md`](../../../../../packages/mtw-lambda-patterns/AGENT.md) / `package.json` scripts) and WML tests covering **`snapshotContent`** / **`snapshotPresign`**.

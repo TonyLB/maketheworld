@@ -25,10 +25,14 @@ const PRIMARY_KEY_NAME = 'AssetId'
  */
 async function getLatestSnapshotTimestampFromDynamo(assetId: AssetUUID): Promise<number> {
     const primaryKey = `STREAM#${DATA_SOURCE_KEY}::${assetId}`
-    const result = await assetDB.getItem<{ snapshotHeader?: { timestamp?: number } }>({
+    const result = await assetDB.getItem<{ snapshotHeader?: { replayAt?: number; timestamp?: number } }>({
         Key: { [PRIMARY_KEY_NAME]: primaryKey, DataCategory: 'Meta::Snapshot' },
         ProjectionFields: ['snapshotHeader']
     })
+    const replayAt = result?.snapshotHeader?.replayAt
+    if (typeof replayAt === 'number') {
+        return replayAt
+    }
     const timestamp = result?.snapshotHeader?.timestamp
     return typeof timestamp === 'number' ? timestamp : 0
 }

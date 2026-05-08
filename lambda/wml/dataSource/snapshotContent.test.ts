@@ -69,7 +69,22 @@ describe('generateWmlSnapshotContent', () => {
         expect(result.replayAt).toBe(1729252900000)
     })
 
-    it('uses sinceTimestamp from Meta::Snapshot when present', async () => {
+    it('uses replayAt from Meta::Snapshot when replayAt and timestamp differ', async () => {
+        mockAssetDBGetItem.mockResolvedValue({ snapshotHeader: { replayAt: 1500, timestamp: 1000 } })
+
+        const result = await generateWmlSnapshotContent('ASSET#room')
+
+        expect(mockAssetDBQuery).toHaveBeenCalledWith(
+            expect.objectContaining({
+                ExpressionAttributeValues: expect.objectContaining({
+                    ':timestampPrefix': 'EVENT#1500'
+                })
+            })
+        )
+        expect(result.replayAt).toBe(4000)
+    })
+
+    it('falls back to timestamp when replayAt is missing', async () => {
         mockAssetDBGetItem.mockResolvedValue({ snapshotHeader: { timestamp: 1000 } })
 
         const result = await generateWmlSnapshotContent('ASSET#room')
@@ -78,6 +93,21 @@ describe('generateWmlSnapshotContent', () => {
             expect.objectContaining({
                 ExpressionAttributeValues: expect.objectContaining({
                     ':timestampPrefix': 'EVENT#1000'
+                })
+            })
+        )
+        expect(result.replayAt).toBe(4000)
+    })
+
+    it('falls back to timestamp when replayAt is non-numeric', async () => {
+        mockAssetDBGetItem.mockResolvedValue({ snapshotHeader: { replayAt: 'invalid', timestamp: 1200 } as unknown as { replayAt: number; timestamp: number } })
+
+        const result = await generateWmlSnapshotContent('ASSET#room')
+
+        expect(mockAssetDBQuery).toHaveBeenCalledWith(
+            expect.objectContaining({
+                ExpressionAttributeValues: expect.objectContaining({
+                    ':timestampPrefix': 'EVENT#1200'
                 })
             })
         )
