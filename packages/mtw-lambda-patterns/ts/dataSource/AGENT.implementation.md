@@ -29,7 +29,7 @@ This dual approach ensures efficient delivery while maintaining the correct scop
 
 ### **Replay Content**: The method delivers:
 1. **Current Snapshot**: The most recent materialized state for the stream
-2. **Recent Events**: Events that occurred since the snapshot was created
+2. **Recent Events**: Events that occurred strictly after the replay cursor (`replayAt ?? createdAt`)
 3. **Complete Context**: Everything the subscriber needs to understand the current state
 
 ### **Snapshot envelope conventions**

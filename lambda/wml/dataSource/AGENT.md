@@ -19,7 +19,7 @@ Therefore a **single** subscribe-time snapshot envelope **cannot honestly** expo
 
 Current subscribe contract for content: `replayAt` is sourced from the manifest mint time of the exact content snapshot row whose `s3Key` is presigned (`snapshotTimestamp`), not from presign call wall-clock time. This keeps one `replayAt` aligned to one returned sidecar URL. The Dynamo query lower bound for deciding whether to mint a fresh sidecar now prefers stored `Meta::Snapshot.snapshotHeader.replayAt` with fallback to `snapshotHeader.timestamp`.
 
-**Future work:** If downstream subscribers need auth delivery with the same rigor as content, prefer **explicit** contracts: two descriptors (each URL + its own `replayAt`), or a **separate** subscription stream / data source for auth, rather than implying one joined snapshot without reconciling the two mint times. Task planning: [`taskPlanning/packages/mtw-lambda-patterns/ts/dataSource/AGENT.replayAtAuthorityPlumbing.planning.md`](../../../taskPlanning/packages/mtw-lambda-patterns/ts/dataSource/AGENT.replayAtAuthorityPlumbing.planning.md).
+**Future work:** If downstream subscribers need auth delivery with the same rigor as content, prefer **explicit** contracts: two descriptors (each URL + its own `replayAt`), or a **separate** subscription stream / data source for auth, rather than implying one joined snapshot without reconciling the two mint times.
 
 ## Related files
 
