@@ -1,94 +1,13 @@
 import { RegisterCharacterMessage, MessageBus } from "../messageBus/baseClasses"
-import messageBus from "../messageBus"
-import { connectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/ts/dynamoDB"
 
-import internalCache from '../internalCache'
-import { unique } from "@tonylb/mtw-utilities/ts/lists"
-import { isEphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
-
-export const registerCharacter = async ({ payloads }: { payloads: RegisterCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
-
-    const sessionId = await internalCache.Global.get('SessionId')
-
-    if (sessionId) {
-        const RequestId = await internalCache.Global.get('RequestId')
-        const handleOneRegistry = async (payload: RegisterCharacterMessage): Promise<void> => {
-            const { characterId: CharacterId } = payload
-            if (!(isEphemeraCharacterId(CharacterId) && sessionId)) {
-                return
-            }
-            await exponentialBackoffWrapper(async () => {
-                const [characterFetch] = await Promise.all([
-                    internalCache.CharacterMeta.get(CharacterId),
-                ])
-                if (!characterFetch) {
-                    return
-                }
-                await connectionDB.transactWrite([
-                    {
-                        Put: {
-                            ConnectionId: `SESSION#${sessionId}`,
-                            DataCategory: CharacterId
-                        }
-                    },
-                    { Update: {
-                        Key: {
-                            ConnectionId: CharacterId,
-                            DataCategory: 'Meta::Character'
-                        },
-                        updateKeys: ['sessions'],
-                        updateReducer: (draft) => {
-                            draft.sessions = unique(draft.sessions || [], [sessionId])
-                        },
-                        successCallback: ({ sessions }) => {
-                            internalCache.CharacterSessions.set(CharacterId, sessions)
-                            messageBus.send({
-                                type: 'CheckLocation',
-                                characterId: CharacterId,
-                                forceMove: true,
-                                arriveMessage: ' has connected.',
-                                suppressArrival: sessions.length > 1
-                            })
-                            //
-                            // TODO: Create a path to checking character assets are cached as part of first registry
-                            // of a character as being in-play
-                            //
-
-                            // messageBus.send({
-                            //     type: 'CacheCharacterAssets',
-                            //     characterId: CharacterId
-                            // })
-                            messageBus.send({
-                                type: 'EphemeraUpdate',
-                                updates: [{
-                                    type: 'CharacterInPlay',
-                                    CharacterId,
-                                    Connected: true,
-                                    connectionTargets: ['GLOBAL', `SESSION#${sessionId}`]
-                                }]
-                            })
-                        }
-                    }}
-                ])
-    
-            }, { retryErrors: ['TransactionCanceledException']})
-    
-        }
-
-        await Promise.all(payloads.map(handleOneRegistry))
-
-        if (payloads.length > 0) {
-            messageBus.send({
-                type: 'ReturnValue',
-                body: {
-                    messageType: 'Registration',
-                    CharacterId: payloads[0].characterId,
-                    RequestId
-                }
-            })
-        }
-    }
-
+// Phase 4 cutover: ephemera no longer holds session adjacency authority.
+// Authoritative `registercharacter` ingress now lives in `lambda/connections`,
+// and `Meta::Room.activeCharacters` plus arrival messaging are driven by the
+// `mtw.ephemera.positions` DataSource (see `../dataSource/positions/`).
+// This handler is intentionally a no-op while the matching messageBus
+// subscription remains for compatibility; both are scheduled for removal in
+// Phase 5 of `taskPlanning/lambda/connections/AGENT.characterSubDataSource.planning.md`.
+export const registerCharacter = async (_params: { payloads: RegisterCharacterMessage[]; messageBus: MessageBus }): Promise<void> => {
 }
 
 export default registerCharacter

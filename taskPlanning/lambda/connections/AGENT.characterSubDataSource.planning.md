@@ -1,6 +1,6 @@
 # Character Sub-DataSource Planning (`mtw.connections.characters`)
 
-**Status:** In progress. Phase 1 (contracts and docs) is complete. Next: Phase 2 derived DataSource scaffold for `mtw.connections.characters`, then registration ingress and ephemera cutover.
+**Status:** In progress. Phases 1-4 complete (contracts/docs, derived DataSource, registration ingress refactor, and ephemera consumer cutover via `mtw.ephemera.positions`). Next: Phase 5 deployment safety and cleanup (template.yaml EventBridge wiring, bridge removal, durable doc tidy).
 
 ## Purpose
 
@@ -129,10 +129,10 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
   - [X] Move authoritative adjacency/session mutation from `ephemera/registerCharacter` into connections-owned path.
   - [X] Keep temporary compatibility bridge only as needed for safe rollout; mark with explicit removal criteria.
 
-- [ ] Phase 4 - ephemera consumer cutover
-  - [ ] Update ephemera to subscribe to `Character Connected`/`Character Disconnected` and perform denormalized updates (`Meta::Room.activeCharacters`, room notifications).
-  - [ ] Remove direct registration authority assumptions in ephemera handlers.
-  - [ ] Preserve user-visible behavior parity (arrival/departure messaging, room update triggering).
+- [X] Phase 4 - ephemera consumer cutover
+  - [X] Update ephemera to subscribe to `Character Connected`/`Character Disconnected` and perform denormalized updates (`Meta::Room.activeCharacters`, room notifications). Implemented via `mtw.ephemera.positions` DataSource at [`lambda/ephemera/dataSource/positions/`](../../../lambda/ephemera/dataSource/positions/) (general-purpose "positions in play" lane; first ingress is `mtw.connections.characters`).
+  - [X] Remove direct registration authority assumptions in ephemera handlers. [`lambda/ephemera/registerCharacter/index.ts`](../../../lambda/ephemera/registerCharacter/index.ts) is now a no-op shell; the `RegisterCharacter` messageBus subscription remains pending Phase 5 deletion.
+  - [X] Preserve user-visible behavior parity (arrival/departure messaging, room update triggering). `Character Connected` -> `CheckLocation` (forceMove) -> existing `moveCharacter` (room add + arrival WorldMessage + `CharacterInPlay`); `Character Disconnected` -> conditional `Meta::Room.activeCharacters` projection -> gated departure `WorldMessage` + `RoomUpdate`.
 
 - [ ] Phase 5 - deployment safety and cleanup
   - [ ] Update `template.yaml` EventBridge rules and lambda subscriptions for new event types/sources.
@@ -165,5 +165,5 @@ Run from the noted package directory.
 | Define contracts and authority ownership | Done |
 | Implement `mtw.connections.characters` derived DataSource | Done |
 | Migrate registration ingress to connections | Done |
-| Cut ephemera to subscriber/projection role | Not started |
+| Cut ephemera to subscriber/projection role | Done |
 | Update durable docs and remove bridges | Not started |

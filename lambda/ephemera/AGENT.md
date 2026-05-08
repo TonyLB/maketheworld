@@ -73,6 +73,23 @@ Current supported occupancy-healing finding:
   - Enforces post-repair contract: `RoomCharacterList` refresh, `ComponentEphemeraMeta` + `ComponentStackMerge` invalidation, and `RoomUpdate` signaling.
   - Queues `CheckLocation` for occupancy entries lacking authoritative room assignment.
 
+#### **`mtw.ephemera.positions` (positions in play)**
+
+Ephemera owns a general-purpose **positions in play** lane at [`dataSource/positions/`](dataSource/positions/) (`dataSourceKey: 'mtw.ephemera.positions'`). It is the home for any "where is X right now" projection ephemera owns -- characters today, additional entity kinds and refinements as we extend it.
+
+This iteration's behavior is deliberately narrow: **only character positions as already recorded** in `Meta::Room.activeCharacters`, character `RoomId`, and `RoomStack`. The lane name and folder are intentionally general so future extensions are additive.
+
+First external ingress: `mtw.connections.characters` (see [`packages/mtw-interfaces/ts/eventBridge/connections/characters`](../../packages/mtw-interfaces/ts/eventBridge/connections/characters/index.ts)). Wiring is via `eventDeserializers` in [`app.ts`](app.ts) and the side-effect import `import './dataSource/positions'`.
+
+Handlers (in [`dataSource/positions/handleConnectionsCharactersPresence.ts`](dataSource/positions/handleConnectionsCharactersPresence.ts)):
+
+- **`Character Connected`**: queues `CheckLocation` with `forceMove: true` and `arriveMessage: ' has connected.'`. The existing `moveCharacter` flow then performs the `Meta::Room.activeCharacters` add, arrival `WorldMessage`, and `CharacterInPlay` `EphemeraUpdate`. Per-session deduplication is upstream (`mtw.connections.characters` only emits `Character Connected` when `Meta::Character.sessions` was empty pre-mutation), so `suppressArrival: false` is correct here.
+- **`Character Disconnected`**: runs an `optimisticUpdate` against the character's `Meta::Room.activeCharacters`, removing the character entry. If the projection actually changed (idempotency gate), the handler invalidates `ComponentEphemeraMeta` / `ComponentStackMerge`, refreshes `RoomCharacterList`, and emits the departure `WorldMessage` plus a `RoomUpdate`. Duplicate deliveries are no-ops because the second update finds nothing to remove.
+
+Ephemera no longer holds session adjacency authority: writes to `connections`-table session/character adjacency live in `lambda/connections` (see [`lambda/connections/AGENT.md`](../connections/AGENT.md)). The legacy [`registerCharacter/index.ts`](registerCharacter/index.ts) handler is a no-op shell pending Phase 5 cleanup.
+
+The lane is intentionally extensible: adding new position-affecting subscribers means registering a new header guard in [`dataSource/positions/subscribedEvents.ts`](dataSource/positions/subscribedEvents.ts) and a matching handler, not standing up a new DataSource.
+
 ## Current System Architecture
 
 ### **Real-Time Communication Interface**

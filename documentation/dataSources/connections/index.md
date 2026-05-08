@@ -31,3 +31,7 @@ Events:
 - Character Disconnected
 
 These presence transitions are emitted with **at least once** delivery; consumers must tolerate duplicates for user-visible effects. See [`packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md`](../../../packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md#connections-character-presence-delivery-semantics) for delivery semantics and for how to interpret `sessionId` (boundary-correlation, not sole authority).
+
+Consumers:
+
+- **Ephemera projection (`mtw.ephemera.positions`)** at [`lambda/ephemera/dataSource/positions/`](../../../lambda/ephemera/dataSource/positions/) is the projection owner: `Character Connected` triggers `CheckLocation`/`MoveCharacter` (room arrival, `Meta::Room.activeCharacters` add); `Character Disconnected` runs a conditional `Meta::Room.activeCharacters` projection that gates departure `WorldMessage`/`RoomUpdate` on actual change. See [`lambda/ephemera/AGENT.md`](../../../lambda/ephemera/AGENT.md) and [`lambda/ephemera/AGENT.event.md`](../../../lambda/ephemera/AGENT.event.md).
