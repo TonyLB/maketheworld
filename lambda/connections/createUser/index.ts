@@ -1,6 +1,7 @@
 import { AdminCreateUserCommand, AdminSetUserPasswordCommand, InitiateAuthCommand } from "@aws-sdk/client-cognito-identity-provider";
 import { cognitoClient } from "../clients";
 import { connectionDB } from "@tonylb/mtw-utilities/ts/dynamoDB";
+import { eventBridgeClient } from "@tonylb/mtw-utilities/ts/eventBridge";
 
 const DEMO_SIGNUP_EMAIL = 'anthony.lowerbasch+mtwdemo@gmail.com'
 
@@ -23,6 +24,17 @@ type CreateUserResultsFailure = {
 }
 
 type CreateUserResult = CreateUserResultSuccess | CreateUserResultsFailure
+
+const publishNewPlayerEvent = async (player: string): Promise<void> => {
+    await eventBridgeClient.send([{
+        Source: 'mtw.cognito',
+        DetailType: 'New Player',
+        Detail: {
+            type: 'New Player',
+            player
+        }
+    }])
+}
 
 export const createCognitoUser = async ({ inviteCode, userName, password }: CreateUserRequest): Promise<CreateUserResult> => {
     let errorField: CreateUserResultsFailureErrorField | undefined
@@ -100,6 +112,7 @@ export const createCognitoUser = async ({ inviteCode, userName, password }: Crea
         }
         throw err
     }
+    await publishNewPlayerEvent(userName)
     //
     // Now sign in with the new username and password, in order to generate tokens to return in exchange for
     // the signUp request
