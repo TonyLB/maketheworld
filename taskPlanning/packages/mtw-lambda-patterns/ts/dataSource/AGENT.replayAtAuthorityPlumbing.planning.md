@@ -1,6 +1,6 @@
 # replayAt authority plumbing (DataSource + mtw.wml)
 
-**Status:** not started.
+**Status:** in progress (partially complete). Next: Phase B - wire **`snapshotTimestamp`** from **`getPresignedSnapshotUrl`** into **`generateWmlSnapshotContent`** **`replayAt`**.
 
 This file is task-scoped. See [`taskPlanning/AGENT.md`](../../../../AGENT.md) for durability, checkbox conventions, and what belongs here vs in package docs.
 
@@ -20,7 +20,7 @@ Durable constraint for **content vs auth** and why a single joined snapshot is m
 | [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) | `generateSnapshot`, `storeSnapshotToStore`, Meta::Snapshot shape |
 | [`packages/mtw-lambda-patterns/ts/dataSource/index.ts`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/index.ts) | `generateSnapshot`, `resolveReplayCursorTimestamp` |
 | [`lambda/wml/dataSource/snapshotContent.ts`](../../../../../lambda/wml/dataSource/snapshotContent.ts) | WML generator orchestration |
-| [`lambda/wml/s3Storage/snapshotPresign.ts`](../../../../../lambda/wml/s3Storage/snapshotPresign.ts) | Presign and optional `createManualSnapshot` |
+| [`lambda/wml/s3Storage/snapshotPresign.ts`](../../../../../lambda/wml/s3Storage/snapshotPresign.ts) | Presign, optional `createManualSnapshot`, **`snapshotTimestamp`** (manifest mint ms for the presigned row) |
 
 ## Background (problem statement)
 
@@ -43,18 +43,18 @@ Durable constraint for **content vs auth** and why a single joined snapshot is m
 
 | Phase | Goal | Status | Notes |
 | --- | --- | --- | --- |
-| A | Presign path exposes sidecar mint time to the generator | Pending | Return value or shared helper from manifest `newestSnapshot` |
+| A | Presign path exposes sidecar mint time to the generator | Done | **`getPresignedSnapshotUrl`** returns **`snapshotTimestamp`** (ms) for the presigned manifest row; shared parse in [`lambda/wml/s3Storage/snapshotPresign.ts`](../../../../../lambda/wml/s3Storage/snapshotPresign.ts) |
 | B | WML generator sets `replayAt` from that authority after presign | Pending | Keeps Dynamo query ordering; fixes returned cursor |
 | C | Optional: Meta::Snapshot read uses `replayAt` for event bound | Pending | Coordinate with stored header shape |
-| D | Tests + docs touch-up | Pending | `mtw-lambda-patterns` Jest + WML lambda tests |
+| D | Tests + docs touch-up | In progress | Framework replayAt guard exists; WML tests for A/B/C still pending |
 
 ## Recommended order
 
 Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` as it is completed so partial progress is visible.
 
-- [ ] **Phase A - Delegated authority (plumbing)**
-  - [ ] Extend **`getPresignedSnapshotUrl`** (or a small helper it calls) to return the **manifest timestamp** (ms) of the **same** snapshot object that was presigned, alongside **`wml.sidecarUrl`**. Reuse the same parsing logic as **`getLatestSnapshotTimestamp`** where practical to avoid drift.
-  - [ ] Update **`getPresignedSnapshotUrl`** unit tests in [`lambda/wml/s3Storage/snapshotPresign.test.ts`](../../../../../lambda/wml/s3Storage/snapshotPresign.test.ts).
+- [X] **Phase A - Delegated authority (plumbing)**
+  - [X] Extend **`getPresignedSnapshotUrl`** (or a small helper it calls) to return the **manifest timestamp** (ms) of the **same** snapshot object that was presigned, alongside **`wml.sidecarUrl`**. Reuse the same parsing logic as **`getLatestSnapshotTimestamp`** where practical to avoid drift.
+  - [X] Update **`getPresignedSnapshotUrl`** unit tests in [`lambda/wml/s3Storage/snapshotPresign.test.ts`](../../../../../lambda/wml/s3Storage/snapshotPresign.test.ts).
 - [ ] **Phase B - mtw.wml generator**
   - [ ] In **`generateWmlSnapshotContent`**, after **`getPresignedSnapshotUrl`**, set returned **`replayAt`** to the **mint time of the returned sidecar** (from Phase A), per [`lambda/wml/dataSource/AGENT.md`](../../../../../lambda/wml/dataSource/AGENT.md) (single descriptor for content; one `replayAt` matches one URL).
   - [ ] Update [`lambda/wml/dataSource/snapshotContent.test.ts`](../../../../../lambda/wml/dataSource/snapshotContent.test.ts) (including manifest fallback / `createSnapshotFirst` true cases).
@@ -62,7 +62,7 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
   - [ ] Evaluate **`getLatestSnapshotTimestampFromDynamo`**: use **`snapshotHeader.replayAt`** when present, else **`snapshotHeader.timestamp`**, so the event query lower bound matches the stored replay cursor contract.
   - [ ] Add or adjust tests so **`Meta::Snapshot`** fixtures with **`replayAt`** differ from **`timestamp`** behave as intended.
 - [ ] **Phase D - Framework regression guard**
-  - [ ] Confirm **`generateSnapshot`** still merges generator **`replayAt`** correctly; add or extend a test in [`packages/mtw-lambda-patterns/ts/dataSource/index.test.ts`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/index.test.ts) if a new edge appears (generator returns `replayAt` after async sub-step).
+  - [X] Confirm **`generateSnapshot`** still merges generator **`replayAt`** correctly; existing coverage is present in [`packages/mtw-lambda-patterns/ts/dataSource/index.test.ts`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/index.test.ts) (`should preserve authoritative replayAt from snapshotContentGenerator`).
   - [ ] Run **`packages/mtw-lambda-patterns`** tests from package root (Jest per [`packages/mtw-lambda-patterns/AGENT.md`](../../../../../packages/mtw-lambda-patterns/AGENT.md) / `package.json` scripts) and WML tests covering **`snapshotContent`** / **`snapshotPresign`**.
 
 ## Verification

@@ -12,12 +12,15 @@ import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
 import { buildPrefix } from './tools'
 import { loadManifest } from './manifest'
-import { isManifestSnapshotEvent } from './manifest/baseClasses'
+import { isManifestSnapshotEvent, ManifestSnapshotEvent } from './manifest/baseClasses'
 import { createManualSnapshot } from './manifest/orchestration'
 import AssetWorkspace from './AssetWorkspace'
 
 const S3_BUCKET = process.env.S3_BUCKET ?? 'Test'
 const PRESIGN_EXPIRY_SECONDS = 1800 // 30 minutes
+
+const parseManifestSnapshotTimestamp = (event: ManifestSnapshotEvent): number =>
+    Date.parse(event.timestamp) || 0
 
 /**
  * Get the timestamp (ms) of the latest snapshot in the manifest for an asset.
@@ -28,22 +31,26 @@ export async function getLatestSnapshotTimestamp(assetId: AssetUUID): Promise<nu
     const events = await loadManifest(prefix)
     const snapshotEvents = events.filter(isManifestSnapshotEvent)
     const latest = snapshotEvents.length > 0 ? snapshotEvents[snapshotEvents.length - 1] : undefined
-    return latest ? Date.parse(latest.timestamp) || 0 : 0
+    return latest ? parseManifestSnapshotTimestamp(latest) : 0
 }
 
 /**
- * Presign the newest S3 snapshot and return a domain-shaped payload.
- * If createSnapshotFirst is true, creates a new snapshot via createManualSnapshot first.
+ * Presign the newest S3 snapshot and return a domain-shaped payload plus manifest mint time.
+ * If createSnapshotFirst is true, creates a new snapshot via createManualSnapshot first,
+ * reloads the manifest, then presigns the newest snapshot row.
+ *
+ * snapshotTimestamp is the manifest event time (ms) for the same snapshot whose s3Key
+ * was presigned, including a row minted by createManualSnapshot on this call.
  *
  * @param assetId - Asset UUID
  * @param createSnapshotFirst - Whether to call createManualSnapshot before presigning
- * @returns Domain-shaped { wml: { sidecarUrl } }
+ * @returns Domain-shaped { wml: { sidecarUrl }, snapshotTimestamp }
  * @throws If no snapshot exists or the S3 object does not exist
  */
 export async function getPresignedSnapshotUrl(
     assetId: AssetUUID,
     createSnapshotFirst: boolean
-): Promise<{ wml: { sidecarUrl: string } }> {
+): Promise<{ wml: { sidecarUrl: string }; snapshotTimestamp: number }> {
     const prefix = buildPrefix(assetId, 'wml')
     const assetKey = assetId.replace('ASSET#', '')
 
@@ -81,5 +88,7 @@ export async function getPresignedSnapshotUrl(
         expiresIn: PRESIGN_EXPIRY_SECONDS
     })
 
-    return { wml: { sidecarUrl } }
+    const snapshotTimestamp = parseManifestSnapshotTimestamp(newestSnapshot)
+
+    return { wml: { sidecarUrl }, snapshotTimestamp }
 }

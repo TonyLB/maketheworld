@@ -80,7 +80,10 @@ describe('getPresignedSnapshotUrl', () => {
 
         const result = await getPresignedSnapshotUrl('ASSET#room', false)
 
-        expect(result).toEqual({ wml: { sidecarUrl: expect.stringContaining('https://') } })
+        expect(result).toEqual({
+            wml: { sidecarUrl: expect.stringContaining('https://') },
+            snapshotTimestamp: Date.parse('2025-10-18T12:00:00.000Z')
+        })
         expect(mockCreateManualSnapshot).not.toHaveBeenCalled()
     })
 
@@ -100,12 +103,14 @@ describe('getPresignedSnapshotUrl', () => {
             ])
         mockAssetWorkspaceFromUUID.mockResolvedValue({ zone: 'Draft' } as any)
 
-        await getPresignedSnapshotUrl('ASSET#room', true)
+        const result = await getPresignedSnapshotUrl('ASSET#room', true)
 
         expect(mockCreateManualSnapshot).toHaveBeenCalledWith({
             prefix: 'room.wml/',
             zone: 'Draft'
         })
+        expect(result.snapshotTimestamp).toBe(Date.parse('2025-10-18T12:10:00.000Z'))
+        expect(result.wml.sidecarUrl).toContain('https://')
     })
 
     it('uses 30-minute presign expiry', async () => {
@@ -135,5 +140,18 @@ describe('getPresignedSnapshotUrl', () => {
         await expect(getPresignedSnapshotUrl('ASSET#room', false)).rejects.toThrow(
             /Sidecar snapshot object not found/
         )
+    })
+
+    it('returns 0 snapshotTimestamp when manifest snapshot timestamp is unparseable', async () => {
+        const badTimestampEvent: ManifestSnapshotEvent = {
+            ...snapshotEvent,
+            timestamp: 'not-a-date'
+        }
+        mockLoadManifest.mockResolvedValue([badTimestampEvent])
+
+        const result = await getPresignedSnapshotUrl('ASSET#room', false)
+
+        expect(result.snapshotTimestamp).toBe(0)
+        expect(result.wml.sidecarUrl).toContain('https://')
     })
 })
