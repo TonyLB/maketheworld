@@ -4,6 +4,8 @@
 
 The `ComponentAssetMetaData` class is a specialized cache handler that manages **component metadata** from the `assetDB` DynamoDB table. It provides cross-asset component lookup capabilities and integrates with the WML StandardComponent system.
 
+**Shared read helpers:** Cache key format, DynamoDB query shaping for `getItems` / `getItem`, `Meta::${Type}` meta-row discovery, row normalization, and default `StandardComponent` synthesis for cache misses live in **`@tonylb/mtw-gateways/ts/assets/components/assetMeta`** (see [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md)). This file documents ephemera's **`DeferredCache`** adapter and `internalCache` integration only.
+
 > **Note**: This handler follows the standard `internalCache` patterns documented in [`AGENT.md`](./AGENT.md). See that file for common patterns like DeferredCache usage, dual storage, and core methods.
 
 ## Unique Features
@@ -159,14 +161,14 @@ const allAssets = await componentAssetMeta.getAcrossAllAssets('ROOM#mainHall-uui
 ## Navigation Tips
 
 1. **Start with `get()`**: Understand single component retrieval
-2. **Check `_getPromiseFactory()`**: See how DynamoDB queries are structured
-3. **Review cache key format**: Understand the `assetId::EphemeraId` pattern
+2. **Read the gateway module**: DynamoDB key lists and row mapping are in `@tonylb/mtw-gateways/ts/assets/components/assetMeta` (`fetchComponentsForAssets`, `fetchCachedAssetIdsForComponent`)
+3. **Review cache key format**: Understand the `assetId::EphemeraId` pattern (`generateCacheKey` / `cacheKeyComponents` in the same package)
 4. **Examine error handling**: See validation patterns for data integrity
 5. **Look at batching**: Understand how multiple requests are optimized
 
 ## Development Notes
 
-- **Cache Key Format**: Always use `generateCacheKey()` and `cacheKeyComponents()`
+- **Cache Key Format**: Use `generateCacheKey()` and `cacheKeyComponents()` from `@tonylb/mtw-gateways/ts/assets/components/assetMeta` (or via ephemera's class, which delegates to them).
 - **Validation**: Always validate both assetId and EphemeraId before database calls
 - **Default Components**: Missing components get default instances, not null
 - **Batching**: Multiple requests for same component share single database call
