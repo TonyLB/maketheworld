@@ -6,6 +6,11 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 
 const assetMock = assetDB as jest.Mocked<typeof assetDB>
 
+/** Non-paginated `query` returns `T[]`; overload resolution on mocks prefers the envelope type. */
+const mockAssetQueryResolved = (items: unknown) => {
+    (assetMock.query as jest.Mock).mockResolvedValue(items)
+}
+
 const FEATURE_ID = 'FEATURE#TestOne' as const
 
 describe('ExamplesData', () => {
@@ -18,7 +23,7 @@ describe('ExamplesData', () => {
     })
 
     it('should fetch examples correctly', async () => {
-        assetMock.query.mockResolvedValue([{
+        mockAssetQueryResolved([{
             AssetId: FEATURE_ID,
             DataCategory: 'EXAMPLE#Base::TestAsset',
             displayName: ['Example Name'],
@@ -52,7 +57,7 @@ describe('ExamplesData', () => {
     })
 
     it('should handle empty fetch results', async () => {
-        assetMock.query.mockResolvedValue([])
+        mockAssetQueryResolved([])
 
         const output = await examplesData.get([FEATURE_ID])
         expect(output).toEqual({
@@ -110,7 +115,7 @@ describe('ExamplesData', () => {
         examplesData.invalidate(FEATURE_ID)
         expect(examplesData.isOverridden(FEATURE_ID)).toBeUndefined()
 
-        assetMock.query.mockResolvedValue([{
+        mockAssetQueryResolved([{
             AssetId: FEATURE_ID,
             DataCategory: 'EXAMPLE#Base::TestAsset',
             displayName: ['Example Name'],

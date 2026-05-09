@@ -5,6 +5,11 @@ import { queryCacheRecordsForComponent } from './queryCacheRecordsForComponent'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
+/** Non-paginated `query` returns `T[]`; overload resolution on mocks prefers the envelope type. */
+const mockQueryResolved = (items: unknown) => {
+    (ephemeraDBMock.query as jest.Mock).mockResolvedValue(items)
+}
+
 const componentId = 'ROOM#test-room-uuid' as const
 
 const minimalRecord = {
@@ -32,7 +37,7 @@ describe('dataSource/renderCache/queryCacheRecordsForComponent', () => {
                 perspectiveMatcher: minimalRecord.perspectiveMatcher
             }
         ]
-        ephemeraDBMock.query.mockResolvedValue(items)
+        mockQueryResolved(items)
 
         const result = await queryCacheRecordsForComponent(componentId)
 
@@ -47,7 +52,7 @@ describe('dataSource/renderCache/queryCacheRecordsForComponent', () => {
     })
 
     it('returns empty array when query returns no items', async () => {
-        ephemeraDBMock.query.mockResolvedValue([])
+        mockQueryResolved([])
 
         const result = await queryCacheRecordsForComponent(componentId)
 
@@ -70,7 +75,7 @@ describe('dataSource/renderCache/queryCacheRecordsForComponent', () => {
             perspectiveId: minimalRecord.perspectiveId,
             perspectiveMatcher: minimalRecord.perspectiveMatcher
         }
-        ephemeraDBMock.query.mockResolvedValue([
+        mockQueryResolved([
             valid,
             { EphemeraId: componentId, DataCategory: 'OTHER#x' } as any,
             { EphemeraId: componentId, DataCategory: 'CACHE#bad', markState: null } as any

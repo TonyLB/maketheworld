@@ -2,7 +2,7 @@
 
 ## Status pointer (temporary)
 
-This package is **incubating**. While it is being populated, the migration plan and per-step worklist live in [`taskPlanning/packages/mtw-gateways/AGENT.shareableCachedGateways.planning.md`](../../taskPlanning/packages/mtw-gateways/AGENT.shareableCachedGateways.planning.md). **Remove this section** when that planning file is disposed.
+This package is **incubating**: the first gateway (**Component Asset Meta**) is implemented; remaining checklist items (verification housekeeping, disposal of the migration plan) live in [`taskPlanning/packages/mtw-gateways/AGENT.shareableCachedGateways.planning.md`](../../taskPlanning/packages/mtw-gateways/AGENT.shareableCachedGateways.planning.md). **Remove this section** when that planning file is disposed.
 
 ## Purpose
 
@@ -34,7 +34,7 @@ Each gateway in this package must have a row here. Add a row when a new gateway 
 
 | Gateway | Authoritative writer | Readers | Notes |
 | --- | --- | --- | --- |
-| _(none yet)_ | | | First gateway lands with the **Component Asset Meta** prototype tracked in [the task plan](../../taskPlanning/packages/mtw-gateways/AGENT.shareableCachedGateways.planning.md). |
+| **Component Asset Meta** | Assets DataSources that maintain `assetDB` component projections (see [`lambda/assets/dataSource/components/verticals/AGENT.md`](../../lambda/assets/dataSource/components/verticals/AGENT.md)); rows use universal component id as partition and asset id as `DataCategory`. | [`lambda/ephemera/internalCache/componentAssetMeta.ts`](../../lambda/ephemera/internalCache/componentAssetMeta.ts) imports [`ts/assets/components/assetMeta`](ts/assets/components/assetMeta/index.ts). | Pure helpers and injected `assetDB` reads; ephemera keeps `ComponentAssetMetaData` + `DeferredCache`. Deep import: `@tonylb/mtw-gateways/ts/assets/components/assetMeta`. |
 
 **Ownership rules:**
 
@@ -54,7 +54,7 @@ Each gateway in this package must have a row here. Add a row when a new gateway 
 
 ## Component asset reads: ephemera vs assets
 
-Ephemera and the assets lambda both read the **same** DynamoDB component rows (universal component id partition, NDJSON-ish lines keyed by asset), but with **different access patterns**. When the Component Asset Meta gateway lands here, it will be the shared low-level surface for both. The gateway must **not** collapse the two consumers into a single cache strategy in v1; document the distinction so future contributors do not "dedupe" them blindly.
+Ephemera and the assets lambda both read the **same** DynamoDB component rows (universal component id partition, NDJSON-ish lines keyed by asset), but with **different access patterns**. The **Component Asset Meta** gateway ([`ts/assets/components/assetMeta`](ts/assets/components/assetMeta/index.ts)) is the shared low-level surface for ephemera's read path; assets **`ComponentData`** may adopt additional shared helpers later without merging cache strategies. The gateway must **not** collapse the two consumers into a single cache identity in v1; document the distinction so future contributors do not "dedupe" them blindly.
 
 | | **Ephemera `ComponentAssetMeta`** | **Assets `ComponentData`** |
 | --- | --- | --- |

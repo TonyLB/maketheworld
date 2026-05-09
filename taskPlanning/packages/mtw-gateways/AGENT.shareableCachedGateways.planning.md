@@ -1,6 +1,6 @@
 # Shareable cached gateways (`packages/mtw-gateways`) - planning
 
-**Status:** In progress (Phase A complete: package scaffolded, `AGENT.md` authored). **In scope:** Define a **maintainability-focused** package layout for **read-only, shareable gateway code** (query helpers, key builders, optional `DeferredCache` factories) used by **multiple lambdas** that read the same Dynamo projections; prototype with **component asset meta** reads. **Out of scope:** Cross-lambda synchronization of `internalCache` instances (explicitly non-goal). **Next:** Extract Component Asset Meta read logic into the package and refactor [`lambda/ephemera/internalCache/componentAssetMeta.ts`](../../../lambda/ephemera/internalCache/componentAssetMeta.ts) to consume it.
+**Status:** In progress (Phase B complete: Component Asset Meta helpers extracted to `packages/mtw-gateways/ts/assets/components/assetMeta`; ephemera wired). **In scope:** Define a **maintainability-focused** package layout for **read-only, shareable gateway code** (query helpers, key builders, optional `DeferredCache` factories) used by **multiple lambdas** that read the same Dynamo projections; prototype with **component asset meta** reads. **Out of scope:** Cross-lambda synchronization of `internalCache` instances (explicitly non-goal). **Next:** Finalize Verification notes, optional follow-ups, then migrate lasting docs and **dispose** this plan per [`taskPlanning/AGENT.md`](../../AGENT.md).
 
 This document follows [`taskPlanning/AGENT.md`](../../AGENT.md) (durability, what belongs here vs package docs). **Dispose** after the initiative ships and lasting guidance lives under [`packages/mtw-gateways/`](../../../packages/mtw-gateways/) (or adjacent `AGENT.md` files).
 
@@ -47,11 +47,12 @@ packages/mtw-gateways/
   package.json
   tsconfig.json
   AGENT.md                          # ownership matrix + how to add a gateway
-  assets/
-    components/
-      assetMeta/                    # prototype: ComponentAssetMeta read helpers
-        index.ts                    # or split queries vs cache factory
-        ...
+  ts/
+    assets/
+      components/
+        assetMeta/                  # prototype: ComponentAssetMeta read helpers
+          index.ts
+          ...
 ```
 
 **Contents that belong here:**
@@ -79,10 +80,10 @@ packages/mtw-gateways/
 
 **Prototype success criteria:**
 
-- [ ] New package builds and tests pass in isolation.
-- [ ] Ephemera **`internalCache`** uses the shared module for the core fetch/key behavior (lambda keeps **`ComponentAssetMetaData`** name if desired as a thin adapter).
-- [ ] **No behavior change** in production paths (tests lock this down).
-- [ ] `packages/mtw-gateways/AGENT.md` lists **writers / readers** for the prototype **and** includes the ephemera-vs-assets component-read note described under [Relationship to assets ComponentData](#relationship-to-assets-componentdata-document-in-package).
+- [X] New package builds and tests pass in isolation.
+- [X] Ephemera **`internalCache`** uses the shared module for the core fetch/key behavior (lambda keeps **`ComponentAssetMetaData`** name if desired as a thin adapter).
+- [X] **No behavior change** in production paths (tests lock this down).
+- [X] `packages/mtw-gateways/AGENT.md` lists **writers / readers** for the prototype **and** includes the ephemera-vs-assets component-read note described under [Relationship to assets ComponentData](#relationship-to-assets-componentdata-document-in-package).
 
 **Follow-on gateways (not required for prototype closure):**
 
@@ -111,8 +112,8 @@ Pulling ephemera **`ComponentAssetMeta`** into **`mtw-gateways`** will likely **
 | Phase | Description | Status |
 | --- | --- | --- |
 | A | Scaffold `packages/mtw-gateways`, tooling, `AGENT.md` | Done |
-| B | Extract Component Asset Meta read logic; ephemera wires shared gateway | Not started |
-| C | Verification commands documented; checkboxes updated | In progress (Phase A baseline recorded; Phase B verification pending) |
+| B | Extract Component Asset Meta read logic; ephemera wires shared gateway | Done |
+| C | Verification commands documented; checkboxes updated | In progress (Phase B verification recorded below) |
 
 ---
 
@@ -122,11 +123,11 @@ Use `[ ]` for pending work and `[X]` for completed work. Mark nested lines `[X]`
 
 - [X] Add **`packages/mtw-gateways`** package scaffold (package.json, tsconfig, test runner aligned with monorepo).
 - [X] Author **`packages/mtw-gateways/AGENT.md`**: purpose, non-goals, ownership table pattern, link to this task plan until closed, plus **ephemera vs assets component-read** nuance per [Relationship to assets ComponentData](#relationship-to-assets-componentdata-document-in-package).
-- [ ] Create **`assets/components/assetMeta/`** (or agreed path) and move **pure** read/query + optional **`DeferredCache` factory** from ephemera `componentAssetMeta` implementation.
-- [ ] Refactor **`lambda/ephemera/internalCache/componentAssetMeta.ts`** to consume the shared module; keep **per-invocation** `internalCache` wiring unchanged from callers' perspective.
-- [ ] Add or extend **unit tests** in the package for key helpers and query shaping; keep ephemera integration tests passing.
-- [ ] Optional: **re-export** entry under `lambda/ephemera/internalCache/` or assets for discoverability (document in package `AGENT.md`).
-- [ ] Fill **Verification** below with exact commands used; run them after changes.
+- [X] Create **`ts/assets/components/assetMeta/`** (see [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md)) and move **pure** read/query helpers from ephemera `componentAssetMeta` implementation (`DeferredCache` stays in ephemera; **default entry** synthesis lives in the package as `defaultStoredEntryForCacheKey`).
+- [X] Refactor **`lambda/ephemera/internalCache/componentAssetMeta.ts`** to consume the shared module; keep **per-invocation** `internalCache` wiring unchanged from callers' perspective.
+- [X] Add or extend **unit tests** in the package for key helpers and query shaping; keep ephemera integration tests passing.
+- [X] Optional: **re-export** entry under `lambda/ephemera/internalCache/` or assets for discoverability (document in package `AGENT.md`). **Skipped** an extra barrel file; discoverability is via [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) ownership table, deep import path, and [`lambda/ephemera/internalCache/componentAssetMeta.AGENT.md`](../../../lambda/ephemera/internalCache/componentAssetMeta.AGENT.md).
+- [X] Fill **Verification** below with exact commands used; run them after changes.
 - [ ] Update **Progress** table and mark this plan **[done]** in **Status** when shipped; migrate lasting notes to package `AGENT.md` and **dispose** this file per [`taskPlanning/AGENT.md`](../../AGENT.md).
 
 ---
@@ -145,10 +146,12 @@ Package conventions copied from [`packages/mtw-sessions`](../../../packages/mtw-
 
 ### Phase B (Component Asset Meta extraction; ephemera wires shared gateway)
 
-Pending. To be filled in when Phase B runs. Expected commands:
+Recorded from the Phase B implementation run:
 
-- **Package unit tests:** `cd packages/mtw-gateways && npm test` --- expected to pass once gateway tests are added.
-- **Ephemera regression:** `cd lambda/ephemera && npm test -- --testPathPattern internalCache/componentAssetMeta` (confirm exact pattern and runner against [`lambda/ephemera/package.json`](../../../lambda/ephemera/package.json) when the slice runs).
+- **Package unit tests:** `cd packages/mtw-gateways && npm test` --- exits **0** (Jest; 8 tests in `ts/assets/components/assetMeta/index.test.ts`).
+- **Package build:** `cd <repo root> && npx tsc --build packages/mtw-gateways/tsconfig.ref.json` --- exits **0**.
+- **Repo graph build:** `cd <repo root> && npx tsc --build` --- exits **0**.
+- **Ephemera regression:** `cd lambda/ephemera && npm test -- --testPathPattern componentAssetMeta` --- exits **0** (4 tests in `internalCache/componentAssetMeta.test.ts`).
 
 ---
 
