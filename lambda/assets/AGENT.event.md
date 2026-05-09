@@ -9,12 +9,12 @@ The Assets Lambda serves as a domain authority for asset storage, caching, and m
 The Assets Lambda participates in the event mesh as:
 - **Event Consumer**: Processes WML content updates, diagnostic events, and coordination events
 - **Event Producer**: Publishes asset-level events to EventBridge for downstream subscribers
-- **Data Source Host**: Hosts 6 specialized data sources with different responsibilities
+- **Data Source Host**: Hosts 7 specialized data sources with different responsibilities
 - **Materialized View Authority**: Maintains cached component and asset metadata
 
 ## Data Sources
 
-The Assets Lambda hosts six data sources, each serving a specific purpose:
+The Assets Lambda hosts seven data sources, each serving a specific purpose:
 
 ### 1. **mtw.assets** (Main Assets DataSource)
 
@@ -173,6 +173,23 @@ Other component types (Character, Message, Guidance, etc.) are ignored by this d
 **Steady-state notes** (filter and enrichment): [`./componentExamples/AGENT.md`](./componentExamples/AGENT.md).
 
 For more on how these events are consumed to populate Ephemera's render cache, see `lambda/ephemera/AGENT.caching.planning.md` and `lambda/ephemera/dataSource/renderCache/AGENT.md`.
+
+### 7. **mtw.assets.components.verticals** (Component import vertical index)
+
+**Purpose**: Maintains **derived** DynamoDB **`Meta::Import::...`** rows keyed by **universal component id**, describing **cross-asset import hops** (`StandardComponent._from`) so future reads can assemble an import vertical with **bounded** Dynamo access (see [`taskPlanning/lambda/assets/AGENT.componentVertical.planning.md`](../../taskPlanning/lambda/assets/AGENT.componentVertical.planning.md)).
+
+**Type**: Non-replayable (integration projector; no subscription snapshots for this key).
+
+**Dynamo**: Under partition **`AssetId = universalKey`**, sort key **`Meta::Import::${parentStripped}::${childStripped}`** (asset ids with `ASSET#` stripped). **Single writer** for these rows: this DataSource only; **`cacheAsset`** does not author **`Meta::Import`** items.
+
+**Event Subscription**:
+
+- Subscribes to `mtw.assets` **`Component Updated`**, **`Component Republished`**, and **`Component Removed`**.
+- Projects hop rows from **`component.universalKey`**, **`streamKey`** (child asset), and **`_from`** (parent asset when present). Does **not** publish outbound mesh events in v1.
+
+**Implementation**: [`./dataSource/components/verticals/index.ts`](./dataSource/components/verticals/index.ts)
+
+**Steady-state schema and maintenance**: [`./dataSource/components/verticals/AGENT.md`](./dataSource/components/verticals/AGENT.md).
 
 ## Event Flow Patterns
 
