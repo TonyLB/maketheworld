@@ -22,6 +22,9 @@
         "path": "./packages/mtw-lambda-patterns/tsconfig.ref.json"
       },
       {
+        "path": "./packages/mtw-gateways/tsconfig.ref.json"
+      },
+      {
         "path": "./packages/mtw-interfaces/tsconfig.ref.json"
       },
       {
