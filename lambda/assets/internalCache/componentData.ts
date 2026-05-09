@@ -6,6 +6,8 @@ import { isStandardNDJSONLine, StandardComponentData } from '@tonylb/mtw-wml/ts/
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
 
+// Same Dynamo component rows as ephemera's ComponentAssetMeta; shared read helpers live in @tonylb/mtw-gateways (see packages/mtw-gateways/AGENT.md, "Component asset reads: ephemera vs assets").
+
 type ComponentDataCache = {
     ComponentId: EphemeraId;
     byAssets: {

@@ -1,9 +1,5 @@
 # MTW Gateways (`@tonylb/mtw-gateways`)
 
-## Status pointer (temporary)
-
-This package is **incubating**: the first gateway (**Component Asset Meta**) is implemented; remaining checklist items (verification housekeeping, disposal of the migration plan) live in [`taskPlanning/packages/mtw-gateways/AGENT.shareableCachedGateways.planning.md`](../../taskPlanning/packages/mtw-gateways/AGENT.shareableCachedGateways.planning.md). **Remove this section** when that planning file is disposed.
-
 ## Purpose
 
 `mtw-gateways` is the shared home for **read-only** gateway code that **multiple lambdas** import when they need on-demand access to materialized data in DynamoDB rows that are written and owned by **another** lambda's DataSource.
@@ -84,9 +80,16 @@ npx tsc --build packages/mtw-gateways/tsconfig.ref.json
 
 Add real tests alongside each gateway under `ts/<area>/<name>/index.test.ts`.
 
+### Consumer regression (ephemera)
+
+After changing shared helpers under [`ts/assets/components/assetMeta`](ts/assets/components/assetMeta/index.ts), run ephemera's `ComponentAssetMeta` integration tests:
+
+```sh
+cd lambda/ephemera && npm test -- --testPathPattern componentAssetMeta
+```
+
 ## Cross-references
 
-- [`taskPlanning/packages/mtw-gateways/AGENT.shareableCachedGateways.planning.md`](../../taskPlanning/packages/mtw-gateways/AGENT.shareableCachedGateways.planning.md) - migration plan; dispose when work ships.
 - [`packages/mtw-lambda-patterns/ts/internalCache/AGENT.md`](../mtw-lambda-patterns/ts/internalCache/AGENT.md) - the `DeferredCache` and `InternalCache` patterns this package composes with.
 - [`lambda/ephemera/internalCache/componentAssetMeta.AGENT.md`](../../lambda/ephemera/internalCache/componentAssetMeta.AGENT.md) - prototype reader's current shape.
 - [`lambda/assets/internalCache/componentData.ts`](../../lambda/assets/internalCache/componentData.ts) - sibling reader on the assets lambda.
