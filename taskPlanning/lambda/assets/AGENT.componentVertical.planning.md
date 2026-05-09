@@ -1,6 +1,6 @@
 # Component vertical denormalization (assets lambda / Dynamo) - planning
 
-**Status:** In progress (design exploration). **In scope:** building the **component vertical** denormalization (projector + Dynamo rows). **Out of scope for this initiative:** refactoring [`fetchImportDefaults`](../../../lambda/assets/fetchImportDefaults/index.ts) off `internalCache.Graph` (likely a **follow-on**). Next: resolve **Decision points** enough to spike schema + projector hooks.
+**Status:** In progress (design exploration). **In scope:** building the **component vertical** denormalization as a named **`mtw.assets.components.verticals`** DataSource (see [`DataSource and code layout for mtw.assets.components.verticals`](#datasource-and-code-layout-for-mtwassetscomponentsverticals)) plus Dynamo **`Meta::Import::...`** rows. **Out of scope for this initiative:** refactoring [`fetchImportDefaults`](../../../lambda/assets/fetchImportDefaults/index.ts) off `internalCache.Graph` (likely a **follow-on**). Next: spike DataSource + schema + projector behavior.
 
 This document follows [`taskPlanning/AGENT.md`](../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting notes live under [`lambda/assets/`](../../../lambda/assets/) (or adjacent `AGENT.md` files).
 
@@ -12,10 +12,13 @@ This document follows [`taskPlanning/AGENT.md`](../../AGENT.md) (durability, wha
 2. Read the current import / inheritance pain and intended component-level graph direction:
    - [`lambda/assets/fetchImportDefaults/AGENT.md`](../../../lambda/assets/fetchImportDefaults/AGENT.md)
    - [`lambda/assets/fetchImportDefaults/AGENT.graph-redesign.md`](../../../lambda/assets/fetchImportDefaults/AGENT.graph-redesign.md)
-3. Read asset table caching and component events (where a projector would attach):
+3. Read asset table caching and component events (authoritative component bodies):
    - [`lambda/assets/dataSource/caching/AGENT.md`](../../../lambda/assets/dataSource/caching/AGENT.md)
-4. **Command authority:** When this plan adds tests, prefer any future [`lambda/assets/AGENT.development.md`](../../../lambda/assets/AGENT.development.md) if it exists; otherwise follow the relevant package or lambda test patterns referenced from root [`AGENT.md`](../../../AGENT.md).
-5. **Baseline (before implementation edits):** No single command is mandated yet; once code exists, record the exact Vitest/Jest invocation for the touched package or lambda in **Verification** below.
+4. Read the **DataSource pattern** and an existing **derived** assets DataSource for subscription shape:
+   - [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.md)
+   - [`lambda/assets/componentExamples/index.ts`](../../../lambda/assets/componentExamples/index.ts) (`mtw.assets.componentExamples`, subscribes to **`mtw.assets`** component events)
+5. **Command authority:** When this plan adds tests, prefer any future [`lambda/assets/AGENT.development.md`](../../../lambda/assets/AGENT.development.md) if it exists; otherwise follow the relevant package or lambda test patterns referenced from root [`AGENT.md`](../../../AGENT.md).
+6. **Baseline (before implementation edits):** No single command is mandated yet; once code exists, record the exact Vitest/Jest invocation for the touched package or lambda in **Verification** below.
 
 ---
 
@@ -26,7 +29,7 @@ Introduce an **eventually consistent, denormalized view** of each component's **
 - **Future read paths** (notably a later refactor of [`fetchImportDefaults`](../../../lambda/assets/fetchImportDefaults/index.ts)) can replace **deep recursive asset loads** with a **bounded number of Dynamo operations**: e.g. one `Query` for all lightweight import-meta items under a stable partition, then **`BatchGetItem`** (or equivalent) for full `Meta::...` payloads needed for merge. **Shipping those reads is not required** for the first milestone of this task---see [`Graph source of truth and fetchImportDefaults`](#graph-source-of-truth-and-fetchimportdefaults).
 - **Downstream impact** queries ("what depends on this component or asset layer?") become feasible via **reverse indexes** or GSIs (secondary to the primary vertical-read story unless we scope them together).
 
-**Authoritative data** remains the existing asset / WML pipeline and cached component rows; this vertical is a **derived index**, maintained on cache / publish paths.
+**Authoritative data** remains the existing asset / WML pipeline and cached component rows; this vertical is a **derived index**. **Ownership:** the **`mtw.assets.components.verticals`** DataSource is the **functional center** for keeping that index eventually consistent (subscribe to **`mtw.assets`** component lifecycle, project Dynamo), not ad hoc hooks scattered only inside [`cacheAsset`](../../../lambda/assets/dataSource/caching/cacheAsset.ts)---see [`DataSource and code layout for mtw.assets.components.verticals`](#datasource-and-code-layout-for-mtwassetscomponentsverticals).
 
 ---
 
@@ -48,13 +51,13 @@ Introduce an **eventually consistent, denormalized view** of each component's **
 - **Second phase:** `BatchGetItem` (or parallel `GetItem`s within limits) for **full** per-asset component meta / payload rows referenced by that vertical.
 - **Optional third:** stub assembly using denormalized fields from import-meta rows where sufficient.
 
-**Maintenance:** Emit or update denormalized rows from existing **cache / diff** flows ([`cacheAsset`](../../../lambda/assets/dataSource/caching/cacheAsset.ts), `Component Updated` events per caching AGENT.md) so the vertical stays **eventually consistent** with authoritative stored components.
+**Maintenance:** Implement via **`mtw.assets.components.verticals`** ([`DataSource and code layout for mtw.assets.components.verticals`](#datasource-and-code-layout-for-mtwassetscomponentsverticals)): subscribe to **`mtw.assets`** **`Component Updated`** / **`Component Removed`** (same mesh as [`lambda/assets/componentExamples/index.ts`](../../../lambda/assets/componentExamples/index.ts)), detect **import-relevant** changes (`_from`, universal key, etc.), and **write / delete** `Meta::Import::...` rows. The cache pipeline remains **authoritative for component bodies**; this DataSource is **authoritative for the vertical projection**.
 
 ---
 
 ## Decision points
 
-Most topics below have a **strong lean** (or explicit **out of scope**) in the table and linked subsections---enough to **start implementing** the projector and rows. What remains are **implementation details** (exact attributes per hop item, Problem Report wiring shape if any, same-table vs split layout) and **follow-ons** (healing cycles, `fetchImportDefaults` refactor), not unresolved architectural forks.
+Most topics below have a **strong lean** (or explicit **out of scope**) in the table and linked subsections---enough to **start implementing** the **`mtw.assets.components.verticals`** DataSource and Dynamo rows. What remains are **implementation details** (`app.ts` wiring, exact attributes per hop item, import-diff heuristics, Problem Report wiring shape if any, idempotency vs [`cacheAsset`](../../../lambda/assets/dataSource/caching/cacheAsset.ts)) and **follow-ons** (healing cycles, `fetchImportDefaults` refactor), not unresolved architectural forks.
 
 | Topic | Question / notes |
 | --- | --- |
@@ -65,6 +68,7 @@ Most topics below have a **strong lean** (or explicit **out of scope**) in the t
 | **Cycles** | Long-term design question; pipeline limits strict rejection---see [`Cycles (imports)`](#cycles-imports). **Near-term lean:** emit **Problem Report** for diagnostics; defer **healing**. |
 | **Consistency UX** | **Lean:** eventual consistency is fine; editor assumes **concurrent edits** and shifting authoritative data---see [`Consistency UX`](#consistency-ux). |
 | **Naming** | **`Meta::Import::...`** encoding (stripped asset ids): [`Sort key and DataCategory for Meta::Import`](#sort-key-and-datacategory-for-metaimport). Also align with existing `Meta::Room`, caching conventions, and Dynamo key size limits. |
+| **DataSource ownership** | **`mtw.assets.components.verticals`** (`AssetsDataSource`, **non-replayable** lean). Code lives under [`lambda/assets/dataSource/components/verticals/`](../../../lambda/assets/dataSource/components/verticals/). See [`DataSource and code layout for mtw.assets.components.verticals`](#datasource-and-code-layout-for-mtwassetscomponentsverticals). |
 
 ### PK scope
 
@@ -131,6 +135,25 @@ The **editor** is being built to tolerate **concurrent edits** to underlying imp
 
 **Lean:** implement the vertical as **eventually consistent** without hard latency SLOs for catch-up. Optimize projector throughput and correctness first; **do not** block on strong read-after-write for the denormalized vertical unless a future caller proves it needs one.
 
+### DataSource and code layout for mtw.assets.components.verticals
+
+**Purpose:** Give the import-vertical index a **single owned place** in the event mesh: subscribe to authoritative **`mtw.assets`** streams, apply projection rules, write **`Meta::Import::...`** items (and optional **Problem Report** emissions per [`Cycles (imports)`](#cycles-imports)).
+
+**Name:** **`dataSourceKey: 'mtw.assets.components.verticals'`**---dots mirror the intended **component-derived** family without requiring a parent DataSource to exist yet.
+
+**Code path:** **`lambda/assets/dataSource/components/verticals/`** (new), aligned with **nested `dataSource/` layout** used in more recently organized lambdas (e.g. ephemera). Suggested starter files (exact names TBD): `index.ts` (export singleton), `subscribedEvents.ts` (type guards for subscribed envelopes), optional `publishedEvents.ts` / serializers when outbound publishing ships (timing **contingent**---see bullets below).
+
+**Pattern:** Extend [`AssetsDataSource`](../../../lambda/assets/dataSource/abstract.ts) like [`lambda/assets/componentExamples/index.ts`](../../../lambda/assets/componentExamples/index.ts): **`replayable: false`** unless we discover a need for subscription replay (unlikely for an integration projector). Wire with a **side-effect import** from [`lambda/assets/app.ts`](../../../lambda/assets/app.ts) next to other derived sources.
+
+**Decisions / unknowns to settle during implementation:**
+
+- **`receiveEvents` inputs:** **Today**, subscribed envelopes match **`mtw.assets`** the same way [`lambda/assets/componentExamples/subscribedEvents.ts`](../../../lambda/assets/componentExamples/subscribedEvents.ts) describes (**contingent reference only**---copy or mirror patterns when bootstrapping `verticals/subscribedEvents.ts`, but **`componentExamples` is not authoritative** for this DataSource's contract long-term). Expect **types and guards to diverge** once verticals narrows to import-related payloads or adds filters. Confirm **type guards** cover **`Component Updated`** / **`Component Removed`** and edge cases (e.g. asset purge?) that require **tombstoning** vertical rows.
+- **Import diff detection (required):** implement logic so projections run when **`_from`** (or equivalent import signals) **actually change**, not on every cache touch---avoid rewriting **`Meta::Import::...`** on noisy unrelated updates.
+- **Outbound events:** First ships may **emphasize** Dynamo writes + diagnostics **without** full EventBridge serializers---that is **contingent on v1 scope**, **not** a permanent architectural rule. **Likely soon:** at least **internal** publishing (`streamEvent` / mesh-visible updates for assets-local consumers). **Possible later:** cross-lambda EventBridge payloads---plan **`publishedEvents.ts` / serializers** when requirements surface; **do not** treat "omit serializers now" as binding policy.
+- **Tests:** Colocate **`*.test.ts`** under **`lambda/assets/dataSource/components/verticals/`** alongside **`subscribedEvents.ts`**, **`index.ts`**, and other modules (everything in this DataSource already lives in that folder); record concrete commands in **Verification** when conventions are chosen.
+
+**Directional note (not this task):** We are **not** introducing an internal **`mtw.assets.components`** parent DataSource or renaming **`mtw.assets.componentExamples`**---see **Out of scope**---but folder + key naming **starts aligning** with that future layout.
+
 ---
 
 ## Unknowns / risks
@@ -140,6 +163,8 @@ The **editor** is being built to tolerate **concurrent edits** to underlying imp
 - **Interaction with broken asset graph today:** Migration path: backfill from cached components vs rebuild job vs lazy rebuild on read.
 - **Testing:** Contract tests for "query vertical + merge equals recursive golden path" once both paths exist.
 - **Cycles:** Cross-asset cycles may exist only after **`wml`** commit; projector should **surface** problems (Problem Report) rather than pretending this initiative solves **acceptance** or **healing**---see [`Cycles (imports)`](#cycles-imports).
+- **DataSource bootstrap:** New **`mtw.assets.components.verticals`** module must be **imported** from [`lambda/assets/app.ts`](../../../lambda/assets/app.ts); failure to wire leaves the projector **dead**. EventBridge / subscription rules---follow whatever **`componentExamples`** and sibling sources already require; capture gaps during implementation.
+- **Ordering vs cacheAsset:** If **`cacheAsset`** and this DataSource both react to the same events, define **idempotent** writes so duplicate handling does not corrupt rows (prefer **single writer** path in code reviews).
 
 ---
 
@@ -148,6 +173,8 @@ The **editor** is being built to tolerate **concurrent edits** to underlying imp
 - Replacing **within-asset** structural parenting (`SchemaOrganization`, explicit parent) -- still authoritative in StandardForm; only **cross-asset import vertical** here unless we explicitly merge initiatives.
 - Client authoring **local-only** fragments before `finalize()` -- outside Dynamo contract.
 - **Refactoring `fetchImportDefaults`** to consume component verticals (and dropping or narrowing reliance on `internalCache.Graph` there) -- **follow-on** after the vertical index and projector exist; see [`Graph source of truth and fetchImportDefaults`](#graph-source-of-truth-and-fetchimportdefaults).
+- **Renaming `mtw.assets.componentExamples`** to a dotted form such as **`mtw.assets.component.examples`** (or similar) -- naming consistency cleanup for another initiative.
+- **Creating an internal-only parent DataSource `mtw.assets.components`** (or shared aggregator) to feed **enhanced** data to multiple derived component projections -- future refinement; **`mtw.assets.components.verticals`** ships **without** that parent.
 
 ---
 
@@ -159,6 +186,8 @@ The **editor** is being built to tolerate **concurrent edits** to underlying imp
 | [`lambda/assets/fetchImportDefaults/AGENT.md`](../../../lambda/assets/fetchImportDefaults/AGENT.md) | Fetch imports behavior |
 | [`lambda/assets/fetchImportDefaults/AGENT.graph-redesign.md`](../../../lambda/assets/fetchImportDefaults/AGENT.graph-redesign.md) | Component-level graph rationale |
 | [`lambda/assets/dataSource/caching/AGENT.md`](../../../lambda/assets/dataSource/caching/AGENT.md) | Cache pipeline / events |
+| [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.md) | DataSource pattern |
+| [`lambda/assets/componentExamples/index.ts`](../../../lambda/assets/componentExamples/index.ts) | Derived assets DataSource reference |
 
 ---
 
@@ -167,7 +196,8 @@ The **editor** is being built to tolerate **concurrent edits** to underlying imp
 Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to nested bullets when added.
 
 - [ ] Confirm **PK/SK** and item shapes with a short schema sketch (and Dynamo access patterns: vertical `Query`, optional reverse GSI).
-- [ ] Document **projector** placement: which function(s) run after diff vs on decache; idempotency and delete behavior.
+- [ ] Add **`lambda/assets/dataSource/components/verticals/`** with **`mtw.assets.components.verticals`** `AssetsDataSource` (`replayable: false` lean): **`subscribedEvents`** type guards, **`receiveEvents`** projector to Dynamo, side-effect **import** from [`lambda/assets/app.ts`](../../../lambda/assets/app.ts).
+- [ ] Document **import-diff** rules and **idempotency** (relationship to [`cacheAsset`](../../../lambda/assets/dataSource/caching/cacheAsset.ts); single writer expectations); **decache** / removal behavior for vertical rows.
 - [ ] Add **golden** or comparison tests for **vertical assembly** vs current merge behavior (fixtures / harness); may run **outside** `fetchImportDefaults` until that lambda is wired.
 - [ ] **Follow-on (separate initiative or later milestone):** refactor **`fetchImportDefaults`** to use vertical `Query` + `BatchGetItem` and retire reliance on `internalCache.Graph` for ancestry where appropriate.
 - [ ] Plan **backfill** job or lazy repair for existing Dynamo rows (if needed).
@@ -180,7 +210,8 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to neste
 | Milestone | Status |
 | --- | --- |
 | Problem framing + proposed denormalized access pattern | Done (this doc) |
-| Schema + projector design | Not started |
+| `mtw.assets.components.verticals` DataSource + folder scaffold | Not started |
+| Schema + projector behavior | Not started |
 | Implementation spike | Not started |
 | Tests / migration | Not started |
 
@@ -190,7 +221,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to neste
 
 When implementation exists, record **exact** commands here (cwd + runner). Until then:
 
-- [ ] Unit tests for **vertical assembly** pass (paths TBD).
+- [ ] Unit tests for **`dataSource/components/verticals`** and **vertical assembly** pass (paths TBD).
 - [ ] **Follow-on:** when `fetchImportDefaults` is refactored, `grep -r "fetchImportDefaults\\|recursiveFetchImports" lambda/assets/fetchImportDefaults` reflects vertical reads (or document deliberate interim behavior).
 
 ---
