@@ -185,6 +185,7 @@ For more on how these events are consumed to populate Ephemera's render cache, s
 **Event Subscription**:
 
 - Subscribes to `mtw.assets` **`Component Updated`**, **`Component Republished`**, and **`Component Removed`**.
+- Subscribes to **`mtw.diagnostics` / `Component Vertical Misaligned Finding`**: invokes **`healComponentVertical`** for the **`assetId`** carried on the finding (same salvage / partition sync semantics as **`api.assets`** **`HealComponentVertical`** ingress).
 - Projects hop rows from **`component.universalKey`**, **`streamKey`** (child asset), and **`_from`** (parent asset when present). Does **not** publish outbound mesh events in v1.
 
 **Implementation**: [`./dataSource/components/verticals/index.ts`](./dataSource/components/verticals/index.ts)
@@ -200,7 +201,7 @@ The Assets Lambda receives events from multiple sources:
 **EventBridge Events**:
 - `mtw.wml` events → Content Update, Zone Changed, Asset Purged
 - `mtw.diagnostics` events → Heal Global Values
-- `mtw.diagnostics` findings → Cache Consistency Finding, Ephemera RenderCache Finding, Player Misalignment Finding
+- `mtw.diagnostics` findings → Cache Consistency Finding, Ephemera RenderCache Finding, Player Misalignment Finding (handled by **`mtw.assets`**) plus **`Component Vertical Misaligned Finding`** (handled by **`mtw.assets.components.verticals`** via **`healComponentVertical`**)
 - `mtw.cognito` events → `New Player` triggers idempotent player heal in `mtw.assets` DataSource
 - `mtw.subscriptions` events → Initialize Subscription (for replayable data sources)
 - synthetic `api.assets` ingress → `HealPlayer` and **`HealComponentVertical`** direct invoke paths normalized onto the same DataSource lane as mesh events, with response payload returned through message-bus `ReturnValue` extraction

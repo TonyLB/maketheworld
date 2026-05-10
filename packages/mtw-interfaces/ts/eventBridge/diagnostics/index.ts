@@ -53,6 +53,16 @@ export type DiagnosticsPlayerMisalignmentFindingEvent = {
     timestamp: string
 }
 
+/** Indexed import vertical hops disagree with authoritative component `_from`; see heal path on `mtw.assets`. */
+export type DiagnosticsComponentVerticalMisalignedFindingEvent = {
+    type: 'Component Vertical Misaligned Finding'
+    assetId: string
+    /** `stale`: both orphans and misses in some partition (wrong hops); otherwise worst single kind. */
+    status: 'missing' | 'stale' | 'orphan'
+    diagnosticRunId: string
+    timestamp: string
+}
+
 /** Heal Global Values content shape (for deserialize only; produced elsewhere) */
 export type DiagnosticsHealGlobalValuesContent = {
     type: 'Heal Global Values'
@@ -68,6 +78,7 @@ export type DiagnosticsEventUpdate =
     | DiagnosticsStaleSessionIdFindingEvent
     | DiagnosticsRoomOccupancyDriftFindingEvent
     | DiagnosticsPlayerMisalignmentFindingEvent
+    | DiagnosticsComponentVerticalMisalignedFindingEvent
     | DiagnosticsHealGlobalValuesContent
 
 //
@@ -120,6 +131,14 @@ export type DiagnosticsPlayerMisalignmentFindingEventExternal = {
     timestamp?: string
 }
 
+export type DiagnosticsComponentVerticalMisalignedFindingEventExternal = {
+    type: 'Component Vertical Misaligned Finding'
+    assetId: string
+    status?: 'missing' | 'stale' | 'orphan'
+    diagnosticRunId?: string
+    timestamp?: string
+}
+
 export type DiagnosticsEventExternal =
     | DiagnosticsS3StructureFindingEventExternal
     | DiagnosticsCacheConsistencyFindingEventExternal
@@ -127,6 +146,7 @@ export type DiagnosticsEventExternal =
     | DiagnosticsStaleSessionIdFindingEventExternal
     | DiagnosticsRoomOccupancyDriftFindingEventExternal
     | DiagnosticsPlayerMisalignmentFindingEventExternal
+    | DiagnosticsComponentVerticalMisalignedFindingEventExternal
 
 //
 // Type guards
@@ -200,9 +220,23 @@ export const isPlayerMisalignmentFindingEvent = (event: any): event is Diagnosti
     )
 }
 
+export const isComponentVerticalMisalignedFindingEvent = (
+    event: any
+): event is DiagnosticsComponentVerticalMisalignedFindingEvent => {
+    return Boolean(
+        event &&
+        typeof event === 'object' &&
+        event.type === 'Component Vertical Misaligned Finding' &&
+        typeof event.assetId === 'string' &&
+        typeof event.status === 'string' &&
+        ['missing', 'stale', 'orphan'].includes(event.status)
+    )
+}
+
 export const isDiagnosticsEventUpdate = (event: unknown): event is DiagnosticsEventUpdate => {
     return isS3StructureFindingEvent(event) || isCacheConsistencyFindingEvent(event) || isEphemeraRenderCacheFindingEvent(event) ||
         isStaleSessionIdFindingEvent(event) || isRoomOccupancyDriftFindingEvent(event) || isPlayerMisalignmentFindingEvent(event) ||
+        isComponentVerticalMisalignedFindingEvent(event) ||
         (typeof event === 'object' && event !== null && (event as any).type === 'Heal Global Values')
 }
 
@@ -276,6 +310,15 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
             return {
                 type: 'Player Misalignment Finding',
                 player: content.player,
+                diagnosticRunId: content.diagnosticRunId,
+                timestamp: content.timestamp
+            }
+        }
+        if (header.type === 'Component Vertical Misaligned Finding' && isComponentVerticalMisalignedFindingEvent(content)) {
+            return {
+                type: 'Component Vertical Misaligned Finding',
+                assetId: content.assetId,
+                status: content.status,
                 diagnosticRunId: content.diagnosticRunId,
                 timestamp: content.timestamp
             }
@@ -387,6 +430,22 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
             return {
                 type: 'Player Misalignment Finding',
                 player: content.player,
+                diagnosticRunId: content.diagnosticRunId || 'unknown',
+                timestamp: content.timestamp || new Date().toISOString()
+            }
+        }
+
+        if (eventType === 'Component Vertical Misaligned Finding') {
+            if (typeof content.assetId !== 'string' || typeof content.status !== 'string') {
+                return null
+            }
+            if (!['missing', 'stale', 'orphan'].includes(content.status)) {
+                return null
+            }
+            return {
+                type: 'Component Vertical Misaligned Finding',
+                assetId: content.assetId,
+                status: content.status as 'missing' | 'stale' | 'orphan',
                 diagnosticRunId: content.diagnosticRunId || 'unknown',
                 timestamp: content.timestamp || new Date().toISOString()
             }

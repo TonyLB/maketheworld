@@ -5,12 +5,14 @@ import { DiagnosticsEventSerializer, DiagnosticsEventUpdate } from '@tonylb/mtw-
 import { isSessionDisconnectProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
 import messageBus from '../messageBus'
 import { roomOccupancyDriftSweep } from '../roomOccupancyDriftSweep'
+import { componentVerticalMisalignmentSweep } from '../componentVerticalMisalignmentSweep'
 import { playerMisalignmentSweep } from '../playerMisalignmentSweep'
 import { staleSessionSweep } from '../staleSessionSweep'
 import {
     DiagnosticsSubscribedContent,
     isConnectionsProblemEnvelope,
     isDiagnosticsApiRoomOccupancyDriftSweepEnvelope,
+    isDiagnosticsApiComponentVerticalMisalignmentSweepEnvelope,
     isDiagnosticsApiPlayerMisalignmentSweepEnvelope,
     isDiagnosticsApiStaleSessionSweepEnvelope,
     isDiagnosticsSubscribedEnvelope
@@ -90,6 +92,26 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
             if (isDiagnosticsApiPlayerMisalignmentSweepEnvelope(event as any)) {
                 const content = await event.getContent()
                 const result = await playerMisalignmentSweep({
+                    diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
+                    nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
+                })
+                messageBus.send({
+                    type: 'ReturnValue',
+                    body: result as Record<string, any>
+                })
+                return
+            }
+            if (isDiagnosticsApiComponentVerticalMisalignmentSweepEnvelope(event as any)) {
+                const content = await event.getContent()
+                if (typeof content.assetId !== 'string' || !content.assetId.length) {
+                    messageBus.send({
+                        type: 'Error',
+                        body: { error: 'ComponentVerticalMisalignmentSweep requires assetId', statusCode: 400 }
+                    })
+                    return
+                }
+                const result = await componentVerticalMisalignmentSweep({
+                    assetId: content.assetId,
                     diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
                     nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
                 })

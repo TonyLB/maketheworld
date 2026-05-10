@@ -241,7 +241,11 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
         //
         this.topologicalSort().flat()
             .filter((nodeKey) => (nodeKey in walkedNodes))
-            .forEach((key) => { callback({ key, node: this.getNode(key)?.node as T || { key, ...this._default }, edges: walkedNodes[key].edges || [] }) })
+            .forEach((key) => {
+                const node =
+                    ((this.getNode(key)?.node as T | undefined) ?? ({ key, ...this._default } as T))
+                callback({ key, node, edges: walkedNodes[key].edges || [] })
+            })
     }
 
     addEdge(edge: GraphEdge<K, E>): void {

@@ -219,7 +219,7 @@ The **editor** is being built to tolerate **concurrent edits** to underlying imp
 - [X] **Diagnostics parsing:** Use **`standardComponentFactory`** for component rows in the diagnostics sweep (standard, robust handling of stored Dynamo JSON).
 - [X] **Mismatch taxonomy:** **missing** (index lacks hop), **stale** (wrong parent/child vs authoritative **`_from`**), **orphan** (**`Meta::Import`** row with no matching authoritative hop). Aligns with repair operations **insert** / **update** / **delete** respectively.
 - [X] **Finding payload shape:** Mirror existing consistency-style findings (e.g. [**`Cache Consistency Finding`**](../../../packages/mtw-interfaces/ts/eventBridge/diagnostics/index.ts)---**`assetId`**, **`status`**, **`diagnosticRunId`**, **`timestamp`**); those types **mostly omit** rich optional detail---prefer the same minimal surface unless a concrete need requires extra fields.
-- [X] **Operational delivery:** Rely on **EventBridge** delivery semantics to the assets lambda (including back-pressure / how much is delivered per consumer); subscription wiring so **`mtw.assets.components.verticals`** receives **`Component Vertical Misaligned Finding`** is still required. Bulk operator jobs (Step Functions, scripts) choose their own batching separately.
+- [X] **Operational delivery:** Rely on **EventBridge** delivery semantics to the assets lambda (including back-pressure / how much is delivered per consumer); **`mtw.assets.components.verticals`** subscribes via [`lambda/assets/dataSource/components/verticals/subscribedEvents.ts`](../../../lambda/assets/dataSource/components/verticals/subscribedEvents.ts). Operators must ensure the assets lambda/EventBridge routing delivers this **`detail-type`** like other **`mtw.diagnostics`** heal triggers. Bulk operator jobs (Step Functions, scripts) choose their own batching separately.
 - [X] **`Query` pagination:** Large **`Meta::Import`** partitions may require paginated **`Query`** in sweep (same gap as production readers if any universal key grows very large).
 - [X] **`mtw-interfaces` + serializer:** Add **`Component Vertical Misaligned Finding`** types and **`DiagnosticsEventSerializer`** branches following the locked decisions above.
 - [X] **Cycles:** **`wml`** acceptance-time prevention deferred to [`lambda/wml/AGENT.importCycles.future.md`](../../../lambda/wml/AGENT.importCycles.future.md). **Index-only last resort:** deterministic omission of one hop (minimum parent id, tie-break child) when a cycle would otherwise be materialized---see [**Cycles (imports)**](#cycles-imports) and [`verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md). Emit **`cycleSuspected`** / Problem Report as needed; heal subscription must not infinite-loop; sweep aligned with **missing** / **stale** / **orphan** taxonomy under **Decisions (locked)** above.
@@ -227,7 +227,7 @@ The **editor** is being built to tolerate **concurrent edits** to underlying imp
 
 **Implementation backlog** (design locked; code not landed)
 
-- [X] Implement and wire cycle detection + hop omission in **`mtw-gateways`**, then integrate **`projectImportVerticalHop`**, **`HealComponentVertical`**, and diagnostics (**diagnostics sweep + subscription-driven heal** still open).
+- [X] Implement and wire cycle detection + hop omission in **`mtw-gateways`**, then integrate **`projectImportVerticalHop`**, **`HealComponentVertical`**, the **`assetId`** diagnostics sweep emitting **`Component Vertical Misaligned Finding`**, and **`mtw.assets.components.verticals`** subscription-driven heal for that finding.
 
 ---
 
@@ -267,8 +267,8 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to neste
 - [ ] **Backfill / heal / diagnostics** (spec: [**Backfill, healing, and diagnostics (planned)**](#backfill-healing-and-diagnostics-planned); decisions: [**Open decisions and unknowns for heal and diagnostics**](#open-decisions-and-unknowns-for-heal-and-diagnostics)):
     - [X] **Cycle salvage:** Implement the locked **`mtw-gateways`** pipeline (expected hops, SCC detection via **`Graph` / `topologicalSort`**, deterministic hop omission per [**Cycles (imports)**](#cycles-imports)); wire **`projectImportVerticalHop`** first, then **`HealComponentVertical`**, diagnostics sweep, and subscription-driven heal so every path calls the **same** helper (see **Decisions (locked)** **Cycle salvage pipeline (confirmed)** and [**Implementation backlog**](#implementation-backlog-design-locked-code-not-landed) above).
     - [X] **`HealComponentVertical`** on **`api.assets`** + shared heal helper under **`verticals/`**.
-    - [ ] Diagnostics **`assetId`** sweep emitting **`Component Vertical Misaligned Finding`**; **`mtw-interfaces`** contract + serializer.
-    - [ ] **`mtw.assets.components.verticals`** subscribes to that finding and runs the same heal path.
+    - [X] Diagnostics **`assetId`** sweep emitting **`Component Vertical Misaligned Finding`**; **`mtw-interfaces`** contract + serializer.
+    - [X] **`mtw.assets.components.verticals`** subscribes to that finding and runs the same heal path.
     - [ ] **Backfill** existing assets via sweep + findings and/or bulk **`api.assets`** invokes.
 - [ ] Move steady-state architecture notes to [`lambda/assets/`](../../../lambda/assets/) `AGENT.md` (or fetchImportDefaults doc) and trim this file when done.
 
@@ -293,6 +293,8 @@ When implementation exists, record **exact** commands here (cwd + runner). Until
 - [X] Unit tests for **`dataSource/components/verticals`** pass: `cd lambda/assets && npm test -- --testPathPattern=dataSource/components/verticals`
 - [X] **`Meta::Import`** read gateway tests: `cd packages/mtw-gateways && npm test -- --testPathPattern=ts/assets/components/verticals` (see [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md)). Assembly / merge golden tests and **`fetchImportDefaults`** verification live under [`AGENT.componentAggregate.planning.md`](./AGENT.componentAggregate.planning.md) **Verification**.
 - [X] **`mtw.assets`** **`api.assets`** **`HealComponentVertical`** routing: `cd lambda/assets && npm test -- --testPathPattern=dataSource/index.test`
+- [X] **`Component Vertical Misaligned Finding`** contract / serializer (`@tonylb/mtw-interfaces`): `cd packages/mtw-interfaces && npm test -- --testPathPattern=eventBridge/diagnostics/index.test.ts`
+- [X] Component vertical diagnostics sweep + diagnostics lambda routing: `cd lambda/diagnostics && npm test`
 
 ---
 

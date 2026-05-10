@@ -70,6 +70,8 @@ Subscribes to **`mtw.assets`**:
 - `Component Republished`
 - `Component Removed`
 
+Also subscribes to **`mtw.diagnostics`** when EventBridge carries **`Component Vertical Misaligned Finding`**: **`receiveEvents`** calls **`healComponentVertical`** for the finding **`assetId`**, matching the **`api.assets` / `HealComponentVertical`** imperative path idempotently without forking salvage rules.
+
 See **[`subscribedEvents.ts`](./subscribedEvents.ts)**.
 
 ## Cycles (imports)

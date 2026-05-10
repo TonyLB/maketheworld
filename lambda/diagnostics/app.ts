@@ -7,7 +7,12 @@ export const handler = async (event) => {
 
     if (
         (event?.source && event["detail-type"]) ||
-        ['StaleSessionSweep', 'RoomOccupancyDriftSweep', 'PlayerMisalignmentSweep'].includes(event?.type)
+        [
+            'StaleSessionSweep',
+            'RoomOccupancyDriftSweep',
+            'PlayerMisalignmentSweep',
+            'ComponentVerticalMisalignmentSweep',
+        ].includes(event?.type)
     ) {
         await routeDiagnosticsIngress(event)
     }

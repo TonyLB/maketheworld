@@ -66,7 +66,7 @@ When imports imply a **directed cycle**, pure helpers may also encode **determin
 
 **Implementation:** Salvage belongs in this package's **pure** helpers (writer, heal, and diagnostics call the same pipeline). For **detecting** cycles before applying the omission rule, prefer **`@tonylb/mtw-utilities`** **`Graph`** + **`topologicalSort`** ([`packages/mtw-utilities/ts/graphStorage/utils/graph/topologicalSort.ts`](../mtw-utilities/ts/graphStorage/utils/graph/topologicalSort.ts))---Tarjan SCCs; multi-node components indicate cycles (see tests in the same directory). Avoid duplicating Tarjan or ad-hoc DFS unless there is a hard dependency boundary.
 
-**Shipped exports** (component verticals module): **`deriveRawImportVerticalHopsFromComponents`**, **`salvageImportVerticalHops`**, and **`RawImportVerticalHop`** ([`ts/assets/components/verticals/salvage.ts`](ts/assets/components/verticals/salvage.ts)); consumed by the assets lambda **`syncImportVerticalPartition`** writer path and **`HealComponentVertical`** orchestration.
+**Shipped exports** (component verticals module): **`deriveRawImportVerticalHopsFromComponents`**, **`salvageImportVerticalHops`**, **`RawImportVerticalHop`** ([`ts/assets/components/verticals/salvage.ts`](ts/assets/components/verticals/salvage.ts)), and **`componentRowsFromUniversalPartitionLines`** ([`ts/assets/components/verticals/partitionComponentRows.ts`](ts/assets/components/verticals/partitionComponentRows.ts)) for parsing universal-key partition `Query` rows into `{ childAssetId, component }[]` (shared with **`syncImportVerticalPartition`** and diagnostics sweep).
 
 ## Wrapping gateways in InternalCache (playbook)
 
