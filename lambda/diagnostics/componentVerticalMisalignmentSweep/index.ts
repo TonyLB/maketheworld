@@ -6,8 +6,11 @@ import {
     DiagnosticsEventSerializer,
 } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import {
+    aggregateMisalignmentStatuses,
+    classifyImportVerticalSets,
     componentRowsFromUniversalPartitionLines,
     deriveRawImportVerticalHopsFromComponents,
+    META_IMPORT_PREFIX,
     metaImportDataCategory,
     salvageImportVerticalHops,
 } from '@tonylb/mtw-gateways/ts/assets/components/verticals'
@@ -19,11 +22,7 @@ import type { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseC
 import { isStandardNDJSONLine } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 
-import { aggregateMisalignmentStatuses, classifyImportVerticalSets } from './classification'
-
-const META_IMPORT_PREFIX = 'Meta::Import::'
-
-export { aggregateMisalignmentStatuses, classifyImportVerticalSets } from './classification'
+export { aggregateMisalignmentStatuses, classifyImportVerticalSets } from '@tonylb/mtw-gateways/ts/assets/components/verticals'
 
 async function analyzeUniversalPartition(universalKey: EphemeraId): Promise<
     'aligned' | 'missing' | 'orphan' | 'stale'

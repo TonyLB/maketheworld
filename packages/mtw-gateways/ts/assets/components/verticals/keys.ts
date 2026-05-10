@@ -1,7 +1,8 @@
 import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 
-const META_IMPORT_PREFIX = 'Meta::Import::'
+/** Prefix for `Meta::Import::${parentStripped}::${childStripped}` sort keys. */
+export const META_IMPORT_PREFIX = 'Meta::Import::'
 
 /**
  * Asset ids used in Meta::Import sort keys with the ASSET# prefix removed.

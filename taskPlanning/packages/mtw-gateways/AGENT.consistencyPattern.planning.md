@@ -1,6 +1,6 @@
 # Consistency analyzer pattern (gateway-injected reads) - planning
 
-**Status:** Not started. **In scope:** Introduce a **prototype** orchestration abstraction for **component import vertical** consistency (authoritative cached components vs projected **`Meta::Import::...`**), built in **`@tonylb/mtw-gateways`** with **injected async data access** so each lambda supplies **`assetDB`**, **`InternalCache`**-backed reads, or tests---without reversing package dependency arrows. **Out of scope (v1):** Promoting the abstraction into **`mtw-lambda-patterns`** before the vertical prototype is validated. **Documentation:** Add the **generalized** pattern to [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) **early**---same delivery window as the analyzer---per [**Decisions (locked)**](#decisions-locked) (**Package documentation timing**); do **not** wait for a second domain (see [**Promotion after prototype**](#promotion-after-prototype)).
+**Status:** In progress (injection + taxonomy landed; lambda refactors pending). **In scope:** Introduce a **prototype** orchestration abstraction for **component import vertical** consistency (authoritative cached components vs projected **`Meta::Import::...`**), built in **`@tonylb/mtw-gateways`** with **injected async data access** so each lambda supplies **`assetDB`**, **`InternalCache`**-backed reads, or tests---without reversing package dependency arrows. **Out of scope (v1):** Promoting the abstraction into **`mtw-lambda-patterns`** before the vertical prototype is validated. **Documentation:** Add the **generalized** pattern to [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) **early**---same delivery window as the analyzer---per [**Decisions (locked)**](#decisions-locked) (**Package documentation timing**); do **not** wait for a second domain (see [**Promotion after prototype**](#promotion-after-prototype)).
 
 This document follows [`taskPlanning/AGENT.md`](../../AGENT.md) (durability, what belongs here vs in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md)). **Dispose** after the initiative closes and lasting notes live under **`packages/mtw-gateways/AGENT.md`** (and optionally a short cross-reference from [`lambda/assets/dataSource/components/verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md)).
 
@@ -70,7 +70,7 @@ Exact names are **TBD** during implementation; the plan locks **separation of co
 | **Row typing** | **Reuse** the existing universal-partition **query row** shape used across vertical helpers: **`StandardComponentData` + `AssetId` + `DataCategory`** (same as [`componentRowsFromUniversalPartitionLines`](../../../packages/mtw-gateways/ts/assets/components/verticals/partitionComponentRows.ts) inputs). Do **not** introduce a narrower branded analyzer-only row type for v1 unless a concrete pain appears. |
 | **Stale semantics** | **Confirmed:** taxonomy unchanged---both **missing** and **orphan** **`Meta::Import`** categories vs expected implies **stale**. The analyzer **findings** after **`check`** must expose enough detail for **diagnostics** (labels) and **heal** (repair intents) under that same rule as today. |
 | **Package documentation timing** | **Generalize early:** when the vertical analyzer ships, add (or extend) a **generalized** consistency-analyzer subsection in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) describing injection, **`check`**, black-box processing, and dependency rules---**without** waiting for a second non-vertical analyzer. Vertical-specific exports remain documented beside it. |
-| **Classification and lambda-local config** | Shared **taxonomy** belongs with shared **semantics** (typically **`mtw-gateways`** once helpers move). Per-lambda concerns include **configuring** the constructed analyzer (how classification participates, aggregation across keys for diagnostics, etc.). Whether [`classification.ts`](../../../lambda/diagnostics/componentVerticalMisalignmentSweep/classification.ts) stays a **module** or is **inlined** at the wiring boundary is a **local** ergonomics decision later---not primarily a repo-wide "avoid duplicate taxonomies" problem once semantics are centralized. |
+| **Classification and lambda-local config** | Shared **taxonomy** belongs with shared **semantics** (typically **`mtw-gateways`** once helpers move). Per-lambda concerns include **configuring** the constructed analyzer (how classification participates, aggregation across keys for diagnostics, etc.). Whether a lambda keeps a thin re-export vs **inlining** imports at the wiring boundary is a **local** ergonomics decision later---not primarily a repo-wide "avoid duplicate taxonomies" problem once semantics are centralized ([`importVerticalClassification.ts`](../../../packages/mtw-gateways/ts/assets/components/verticals/importVerticalClassification.ts)). |
 | **Testing split** | Analyzer **unit** tests in **`mtw-gateways`**: **in-memory** fakes only for injected deps. **Integration** tests stay in **`lambda/assets`** / **`lambda/diagnostics`** with existing **`assetDB`** mocking patterns. |
 
 ---
@@ -93,13 +93,13 @@ No open items at present; resolved decisions live under [**Decisions (locked)**]
 
 Pending work uses `[ ]` and completed work uses `[X]`. Apply the same rule to nested bullets when added.
 
-- [ ] Implement **split constructor deps** (structural interfaces), **`async check`** signature, **findings** fields, and **output** accessors (types exported from `ts/assets/components/verticals/` or adjacent file); **name** interfaces and map **`InternalCache`** per [**Decisions (locked)**](#decisions-locked) (**Constructor deps shape**, improvisation); document wiring for assets and diagnostics when stable.
-- [ ] Implement **analyzer** as a **constructor-based class** with **`check`** + internal (non-public) load/compare steps using existing **`deriveRaw` / `salvage` / `metaImportDataCategory`** pipeline; no Dynamo except via injected deps.
-- [ ] Centralize shared taxonomy (**`classifyImportVerticalSets`**, **`aggregateMisalignmentStatuses`**) in **`mtw-gateways`** as appropriate; update **`lambda/diagnostics`** imports. Per [**Classification and lambda-local config**](#decisions-locked), lambda-side **configuration** of the analyzer vs keeping a small **`classification`** module vs **inlining** is decided locally when wiring.
+- [X] Implement **split constructor deps** (structural interfaces), **`async check`** signature, **findings** fields, and **output** accessors (types exported from `ts/assets/components/verticals/` or adjacent file); **name** interfaces and map **`InternalCache`** per [**Decisions (locked)**](#decisions-locked) (**Constructor deps shape**, improvisation); document wiring for assets and diagnostics when stable.
+- [X] Implement **analyzer** as a **constructor-based class** with **`check`** + internal (non-public) load/compare steps using existing **`deriveRaw` / `salvage` / `metaImportDataCategory`** pipeline; no Dynamo except via injected deps.
+- [X] Centralize shared taxonomy (**`classifyImportVerticalSets`**, **`aggregateMisalignmentStatuses`**) in **`mtw-gateways`** as appropriate; update **`lambda/diagnostics`** imports. Per [**Classification and lambda-local config**](#decisions-locked), lambda-side **configuration** of the analyzer vs keeping a small **`classification`** module vs **inlining** is decided locally when wiring.
 - [ ] Refactor **`syncImportVerticalPartition`** to use the analyzer output for **toPut** / **toDelete** (and single place for Meta row prefix filtering if extracted).
 - [ ] Refactor **`componentVerticalMisalignmentSweep`** `analyzeUniversalPartition` to use the same analyzer with **direct** `assetDB` injection (or adapter).
 - [ ] Optional: **assets** path passes a loader that uses **`InternalCache`** where it reduces duplicate reads (document in **`lambda/assets`** cache `AGENT.md` if non-obvious).
-- [ ] Update **`packages/mtw-gateways/AGENT.md`**: **Shipped exports** / shared helpers for the vertical analyzer **and** a **generalized** consistency-analyzer subsection per [**Package documentation timing**](#decisions-locked) (**generalize early**, same window as code); link from [`lambda/assets/dataSource/components/verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md) if the writer/heal story changes for readers.
+- [X] Update **`packages/mtw-gateways/AGENT.md`**: **Shipped exports** / shared helpers for the vertical analyzer **and** a **generalized** consistency-analyzer subsection per [**Package documentation timing**](#decisions-locked) (**generalize early**, same window as code); link from [`lambda/assets/dataSource/components/verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md) if the writer/heal story changes for readers.
 
 ---
 
@@ -116,9 +116,9 @@ Per [**Package documentation timing**](#decisions-locked), land the **generalize
 | Task plan agreed | Done (this doc) |
 | API shape (constructor class, **`check`** + findings, encapsulated loads, **split** deps / **`InternalCache`** alignment, pattern vs inheritance, modest generics) | Locked ([**Decisions (locked)**](#decisions-locked)) |
 | Row typing, stale semantics, **generalize early** doc policy, classification/config, testing split | Locked ([**Decisions (locked)**](#decisions-locked)) |
-| Injection + analyzer implementation | Not started |
-| Diagnostics + assets refactors | Not started |
-| Package doc promotion | Not started |
+| Injection + analyzer implementation | Done (`ImportVerticalConsistencyAnalyzer`, classification helpers, wiring notes in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md)) |
+| Diagnostics + assets refactors | Not started (sweep / **`syncImportVerticalPartition`** still inline; next bullets) |
+| Package doc promotion | Done for prototype scope ([`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md); optional InternalCache composition note still deferred) |
 
 ---
 
@@ -126,9 +126,9 @@ Per [**Package documentation timing**](#decisions-locked), land the **generalize
 
 Record **exact** commands in this section when implementation exists; prefer repeating cwd + runner from [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md).
 
-- [ ] `cd packages/mtw-gateways && npm test -- --testPathPattern=ts/assets/components/verticals` (gateway + new analyzer/classification tests).
-- [ ] `cd lambda/assets && npm test -- --testPathPattern=dataSource/components/verticals` (if sync/heal touched).
-- [ ] `cd lambda/diagnostics && npm test -- --testPathPattern=componentVerticalMisalignmentSweep` (if sweep touched).
+- [X] `cd packages/mtw-gateways && npm test -- --testPathPattern=ts/assets/components/verticals` (gateway + analyzer/classification tests).
+- [ ] `cd lambda/assets && npm test -- --testPathPattern=dataSource/components/verticals` (when sync/heal touched).
+- [X] `cd lambda/diagnostics && npm test -- --testPathPattern=dataSource/index` (dataSource invokes sweep; classification unit tests live in gateways).
 
 ---
 

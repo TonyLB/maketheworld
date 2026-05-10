@@ -1,5 +1,4 @@
-import { describe, it, expect } from '@jest/globals'
-import { aggregateMisalignmentStatuses, classifyImportVerticalSets } from './classification'
+import { aggregateMisalignmentStatuses, classifyImportVerticalSets } from './importVerticalClassification'
 
 describe('classifyImportVerticalSets', () => {
     it('returns aligned when sets match', () => {
