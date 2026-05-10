@@ -1,6 +1,6 @@
 # Component vertical denormalization (assets lambda / Dynamo) - planning
 
-**Status:** In progress. **In scope:** building the **component vertical** denormalization as a named **`mtw.assets.components.verticals`** DataSource (see [`DataSource and code layout for mtw.assets.components.verticals`](#datasource-and-code-layout-for-mtwassetscomponentsverticals)) plus Dynamo **`Meta::Import::...`** rows. **Out of scope for this initiative:** refactoring [`fetchImportDefaults`](../../../lambda/assets/fetchImportDefaults/index.ts) off `internalCache.Graph` (likely a **follow-on**). **Next:** document import-diff / idempotency, decache behavior, and **vertical assembly** tests; optional backfill.
+**Status:** In progress. **In scope:** building the **component vertical** denormalization as a named **`mtw.assets.components.verticals`** DataSource (see [`DataSource and code layout for mtw.assets.components.verticals`](#datasource-and-code-layout-for-mtwassetscomponentsverticals)) plus Dynamo **`Meta::Import::...`** rows. **Out of scope for this initiative:** refactoring [`fetchImportDefaults`](../../../lambda/assets/fetchImportDefaults/index.ts) off `internalCache.Graph` (likely a **follow-on**). **Next:** document import-diff / idempotency, decache behavior; coordinate **`Meta::Import`** **read-only gateway** deliverables with [`AGENT.componentAggregate.planning.md`](./AGENT.componentAggregate.planning.md); optional backfill.
 
 This document follows [`taskPlanning/AGENT.md`](../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting notes live under [`lambda/assets/`](../../../lambda/assets/) (or adjacent `AGENT.md` files).
 
@@ -161,7 +161,7 @@ The **editor** is being built to tolerate **concurrent edits** to underlying imp
 - **Invalidation granularity:** With **one partition per universal component id** and hop rows that describe **only that identity's** import vertical, a change to **`from` / import** for component **X** should normally touch **partition X only** (update or replace affected `Meta::Import::...` items there). **Fan-out across many partitions** would show up only if we **replicate** edges onto dependents or maintain separate **reverse** projections---not implied by the forward vertical index alone.
 - **Batch size limits:** Dynamo **`BatchGetItem`** caps (100 items, 16 MB per call) are **unlikely to bind** in the near term: current content uses **inheritance depth of at most about 2**, far below 100. Revisit only if product allows **very deep** chains or if each vertical pulls **many** additional keys per hop.
 - **Interaction with broken asset graph today:** Migration path: see [**Backfill, healing, and diagnostics (planned)**](#backfill-healing-and-diagnostics-planned); historically summarized as backfill from cached components vs rebuild job vs lazy rebuild on read.
-- **Testing:** Contract tests for "query vertical + merge equals recursive golden path" once both paths exist.
+- **Testing:** Contract tests for "query vertical + merge equals recursive golden path" are tracked under [`AGENT.componentAggregate.planning.md`](./AGENT.componentAggregate.planning.md) (assembly initiative).
 - **Cycles:** Cross-asset cycles may exist only after **`wml`** commit; projector should **surface** problems (Problem Report) rather than pretending this initiative solves **acceptance** or **healing**---see [`Cycles (imports)`](#cycles-imports).
 - **DataSource bootstrap:** New **`mtw.assets.components.verticals`** module must be **imported** from [`lambda/assets/app.ts`](../../../lambda/assets/app.ts); failure to wire leaves the projector **dead**. EventBridge / subscription rules---follow whatever **`componentExamples`** and sibling sources already require; capture gaps during implementation.
 - **Ordering vs cacheAsset:** If **`cacheAsset`** and this DataSource both react to the same events, define **idempotent** writes so duplicate handling does not corrupt rows (prefer **single writer** path in code reviews).
@@ -209,6 +209,7 @@ The **editor** is being built to tolerate **concurrent edits** to underlying imp
 
 | Doc | Role |
 | --- | --- |
+| [`AGENT.componentAggregate.planning.md`](./AGENT.componentAggregate.planning.md) | Sibling initiative: merged component aggregates (gateway-first, then `mtw.assets.components.aggregate` DataSource) |
 | [`taskPlanning/AGENT.md`](../../AGENT.md) | Task plan framework |
 | [`lambda/assets/fetchImportDefaults/AGENT.md`](../../../lambda/assets/fetchImportDefaults/AGENT.md) | Fetch imports behavior |
 | [`lambda/assets/fetchImportDefaults/AGENT.graph-redesign.md`](../../../lambda/assets/fetchImportDefaults/AGENT.graph-redesign.md) | Component-level graph rationale |
@@ -222,10 +223,12 @@ The **editor** is being built to tolerate **concurrent edits** to underlying imp
 
 Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to nested bullets when added.
 
+**Interconnection (`verticals` <> [`mtw.assets.components.aggregate`](./AGENT.componentAggregate.planning.md)):** **Merged assembly** (stack order + bodies + merge semantics) and **golden / comparison tests against legacy merge** are owned by the **aggregate** initiative, not this doc. This initiative **must still deliver** what aggregate needs to **read** the vertical index: a **read-only gateway** (likely **`mtw-gateways`**) for **`Meta::Import::...`** --- see checklist items below. **Dependency:** Work to **publish** that shared read surface **depends on** aggregate Phase 1 locking **normalized hop types**, **query composition**, and **`assembleMergedComponent`** call-site expectations---coordinate with the [**Recommended order** section of `AGENT.componentAggregate.planning.md`](./AGENT.componentAggregate.planning.md#recommended-order) (first items: vertical read surface, types, assembly core, golden tests). Until then, [`verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md) remains the writer contract; avoid duplicating SK builders outside the eventual gateway package.
+
 - [X] Confirm **PK/SK** and item shapes with a short schema sketch (and Dynamo access patterns: vertical `Query`, optional reverse GSI).
 - [X] Add **`lambda/assets/dataSource/components/verticals/`** with **`mtw.assets.components.verticals`** `AssetsDataSource` (`replayable: false` lean): **`subscribedEvents`** type guards, **`receiveEvents`** projector to Dynamo, side-effect **import** from [`lambda/assets/app.ts`](../../../lambda/assets/app.ts).
 - [ ] Document **import-diff** rules and **idempotency** (relationship to [`cacheAsset`](../../../lambda/assets/dataSource/caching/cacheAsset.ts); single writer expectations); **decache** / removal behavior for vertical rows.
-- [ ] Add **golden** or comparison tests for **vertical assembly** vs current merge behavior (fixtures / harness); may run **outside** `fetchImportDefaults` until that lambda is wired.
+- [ ] **Read-only gateway for aggregate:** Define and implement the **`mtw-gateways`** (or writer-adjacent re-export) surface that **`mtw.assets.components.aggregate`** will use to **`Query`** and normalize **`Meta::Import::...`** rows (stable key builders and hop projection types aligned with [`verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md)); update [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) ownership table when landed. **Coordinate** types and first consumers with [`AGENT.componentAggregate.planning.md`](./AGENT.componentAggregate.planning.md) so aggregate assembly does not fork Dynamo encoding.
 - [ ] **Follow-on (separate initiative or later milestone):** refactor **`fetchImportDefaults`** to use vertical `Query` + `BatchGetItem` and retire reliance on `internalCache.Graph` for ancestry where appropriate.
 - [ ] **Backfill / heal / diagnostics** (spec: [**Backfill, healing, and diagnostics (planned)**](#backfill-healing-and-diagnostics-planned)):
     - [ ] **`HealComponentVertical`** (name TBD) on **`api.assets`** + shared heal helper under **`verticals/`**.
@@ -244,7 +247,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to neste
 | `mtw.assets.components.verticals` DataSource + folder scaffold | Done |
 | Schema + projector behavior | Done |
 | Implementation spike | Done |
-| Tests / migration | In progress (unit tests for verticals DataSource; golden / comparison tests pending) |
+| Tests / migration | In progress (unit tests for verticals DataSource; merged-assembly golden tests tracked under aggregate plan) |
 
 ---
 
@@ -253,7 +256,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to neste
 When implementation exists, record **exact** commands here (cwd + runner). Until then:
 
 - [X] Unit tests for **`dataSource/components/verticals`** pass: `cd lambda/assets && npm test -- --testPathPattern=dataSource/components/verticals`
-- [ ] **Vertical assembly** comparison / golden tests (next milestones).
+- [ ] **`Meta::Import`** read gateway tests (when implemented): follow [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) and [`AGENT.componentAggregate.planning.md`](./AGENT.componentAggregate.planning.md) **Verification** (assembly / merge golden tests live there).
 - [ ] **Follow-on:** when `fetchImportDefaults` is refactored, `grep -r "fetchImportDefaults\\|recursiveFetchImports" lambda/assets/fetchImportDefaults` reflects vertical reads (or document deliberate interim behavior).
 
 ---
