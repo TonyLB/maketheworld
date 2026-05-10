@@ -47,8 +47,12 @@ export type AssetsIncomingEvent =
           getContent: () => Promise<CognitoNewPlayerEvent>;
       }
     | {
-          header: AssetsApiSubscribedHeader;
-          getContent: () => Promise<AssetsAPIPayload>;
+          header: StreamingEventHeader & { dataSourceKey: 'api.assets'; type: 'HealPlayer' };
+          getContent: () => Promise<Extract<AssetsAPIPayload, { type: 'HealPlayer' }>>;
+      }
+    | {
+          header: StreamingEventHeader & { dataSourceKey: 'api.assets'; type: 'HealComponentVertical' };
+          getContent: () => Promise<Extract<AssetsAPIPayload, { type: 'HealComponentVertical' }>>;
       };
 
 /** Payload types of events mtw.assets subscribes to (derived from envelope union for backward compatibility). */
@@ -80,8 +84,18 @@ const isDiagnosticsPlayerMisalignmentFindingHeader: HeaderGuard<StreamingEventHe
     h.dataSourceKey === 'mtw.diagnostics' && h.type === 'Player Misalignment Finding'
 const isCognitoNewPlayerHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.cognito'; type: 'New Player' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.cognito'; type: 'New Player' } =>
     h.dataSourceKey === 'mtw.cognito' && h.type === 'New Player'
-const isApiAssetsHealPlayerHeader: HeaderGuard<AssetsApiSubscribedHeader> = (h): h is AssetsApiSubscribedHeader =>
+const isApiAssetsHealPlayerHeader: HeaderGuard<
+    StreamingEventHeader & { dataSourceKey: 'api.assets'; type: 'HealPlayer' }
+> = (h): h is StreamingEventHeader & { dataSourceKey: 'api.assets'; type: 'HealPlayer' } =>
     h.dataSourceKey === 'api.assets' && h.type === 'HealPlayer'
+
+const isApiAssetsHealComponentVerticalHeader: HeaderGuard<
+    StreamingEventHeader & { dataSourceKey: 'api.assets'; type: 'HealComponentVertical' }
+> = (h): h is StreamingEventHeader & { dataSourceKey: 'api.assets'; type: 'HealComponentVertical' } =>
+    h.dataSourceKey === 'api.assets' && h.type === 'HealComponentVertical'
+
+const isApiAssetsIngressHeader: HeaderGuard<AssetsApiSubscribedHeader> = (h): h is AssetsApiSubscribedHeader =>
+    isApiAssetsHealPlayerHeader(h) || isApiAssetsHealComponentVerticalHeader(h)
 const isWMLContentUpdateHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Content Update' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Content Update' } =>
     h.dataSourceKey === 'mtw.wml' && h.type === 'Content Update'
 
@@ -93,7 +107,7 @@ export const isAssetsSubscribedHeader: HeaderGuard<AssetsSubscribedHeader> = (he
     isDiagnosticsEphemeraRenderCacheFindingHeader(header) ||
     isDiagnosticsPlayerMisalignmentFindingHeader(header) ||
     isCognitoNewPlayerHeader(header) ||
-    isApiAssetsHealPlayerHeader(header) ||
+    isApiAssetsIngressHeader(header) ||
     isWMLContentUpdateHeader(header)
 
 export const isAssetsSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<AssetsSubscribedContent, AssetsSubscribedHeader>(isAssetsSubscribedHeader)
@@ -105,5 +119,12 @@ export const isDiagnosticsCacheConsistencyFindingEvent = makeStreamingEnvelopeGu
 export const isDiagnosticsEphemeraRenderCacheFindingEvent = makeStreamingEnvelopeGuardFromHeaderGuard<DiagnosticsEphemeraRenderCacheFindingEvent, StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Ephemera RenderCache Finding' }>(isDiagnosticsEphemeraRenderCacheFindingHeader)
 export const isDiagnosticsPlayerMisalignmentFindingEvent = makeStreamingEnvelopeGuardFromHeaderGuard<DiagnosticsPlayerMisalignmentFindingEvent, StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Player Misalignment Finding' }>(isDiagnosticsPlayerMisalignmentFindingHeader)
 export const isCognitoNewPlayerEvent = makeStreamingEnvelopeGuardFromHeaderGuard<CognitoNewPlayerEvent, StreamingEventHeader & { dataSourceKey: 'mtw.cognito'; type: 'New Player' }>(isCognitoNewPlayerHeader)
-export const isApiAssetsHealPlayerEvent = makeStreamingEnvelopeGuardFromHeaderGuard<AssetsAPIPayload, AssetsApiSubscribedHeader>(isApiAssetsHealPlayerHeader)
+export const isApiAssetsHealPlayerEvent = makeStreamingEnvelopeGuardFromHeaderGuard<
+    Extract<AssetsAPIPayload, { type: 'HealPlayer' }>,
+    StreamingEventHeader & { dataSourceKey: 'api.assets'; type: 'HealPlayer' }
+>(isApiAssetsHealPlayerHeader)
+export const isApiAssetsHealComponentVerticalEvent = makeStreamingEnvelopeGuardFromHeaderGuard<
+    Extract<AssetsAPIPayload, { type: 'HealComponentVertical' }>,
+    StreamingEventHeader & { dataSourceKey: 'api.assets'; type: 'HealComponentVertical' }
+>(isApiAssetsHealComponentVerticalHeader)
 export const isWMLContentUpdateEvent = makeStreamingEnvelopeGuardFromHeaderGuard<WMLContentEvent, StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Content Update' }>(isWMLContentUpdateHeader)

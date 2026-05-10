@@ -9,6 +9,7 @@ import { cacheAsset, decacheAsset } from './caching'
 import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { reseedComponentExamplesFromDiagnostics } from '../componentExamples/reseedFromDiagnostics'
 import { healPlayer } from '../player/heal'
+import { healComponentVertical } from './components/verticals/healComponentVertical'
 import messageBus from '../messageBus'
 
 // Mock external dependencies
@@ -56,6 +57,12 @@ jest.mock('../componentExamples/reseedFromDiagnostics', () => ({
 jest.mock('../player/heal', () => ({
     healPlayer: jest.fn(async () => ({ Characters: [], Assets: [], guestName: '', guestId: '' }))
 }))
+jest.mock('./components/verticals/healComponentVertical', () => ({
+    healComponentVertical: jest.fn(async () => ({
+        assetId: 'ASSET#stub',
+        universalKeysProcessed: 0,
+    })),
+}))
 
 const assetDBMock = jest.mocked(assetDB, { shallow: false })
 const eventBridgeSendMock = jest.mocked(eventBridgeClient.send, { shallow: false })
@@ -63,6 +70,7 @@ const cacheAssetMock = jest.mocked(cacheAsset)
 const decacheAssetMock = jest.mocked(decacheAsset)
 const reseedComponentExamplesFromDiagnosticsMock = jest.mocked(reseedComponentExamplesFromDiagnostics)
 const healPlayerMock = jest.mocked(healPlayer)
+const healComponentVerticalMock = jest.mocked(healComponentVertical)
 
 describe('AssetsDataSource (mtw.assets)', () => {
     beforeEach(() => {
@@ -75,6 +83,11 @@ describe('AssetsDataSource (mtw.assets)', () => {
         reseedComponentExamplesFromDiagnosticsMock.mockResolvedValue(undefined)
         healPlayerMock.mockReset()
         healPlayerMock.mockResolvedValue({ Characters: [], Assets: [], guestName: '', guestId: '' } as any)
+        healComponentVerticalMock.mockReset()
+        healComponentVerticalMock.mockResolvedValue({
+            assetId: 'ASSET#stub',
+            universalKeysProcessed: 0,
+        })
         jest.mocked(messageBus.send).mockReset()
         // Mock assetDB.query for diagnostic tests
         assetDBMock.query.mockResolvedValue([] as any)
@@ -725,6 +738,42 @@ describe('AssetsDataSource (mtw.assets)', () => {
             })
         })
 
+        it('should process api.assets HealComponentVertical and emit ReturnValue', async () => {
+            healComponentVerticalMock.mockResolvedValueOnce({
+                assetId: 'ASSET#a',
+                universalKeysProcessed: 2,
+            })
+            const apiEvent: any = {
+                header: {
+                    dataSourceKey: 'api.assets',
+                    streamKey: 'ingress',
+                    timestamp: Date.now(),
+                    type: 'HealComponentVertical',
+                },
+                getContent: () =>
+                    Promise.resolve({
+                        type: 'HealComponentVertical',
+                        assetId: 'ASSET#a',
+                    }),
+            }
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+
+            await assetsDataSource.receiveEvents?.({
+                events: [apiEvent],
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined),
+            })
+
+            expect(healComponentVerticalMock).toHaveBeenCalledWith({
+                assetId: 'ASSET#a',
+                componentUniversalKeys: undefined,
+            })
+            expect(messageBus.send).toHaveBeenCalledWith({
+                type: 'ReturnValue',
+                body: { assetId: 'ASSET#a', universalKeysProcessed: 2 },
+            })
+        })
+
         it('should normalize short assetId to ASSET# prefix in Cache Consistency Finding', async () => {
             const cacheConsistencyEvent: any = {
                 header: {
@@ -826,7 +875,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 { dataSourceKey: 'mtw.diagnostics', type: 'Ephemera RenderCache Finding' },
                 { dataSourceKey: 'mtw.diagnostics', type: 'Player Misalignment Finding' },
                 { dataSourceKey: 'mtw.cognito', type: 'New Player' },
-                { dataSourceKey: 'api.assets', type: 'HealPlayer' }
+                { dataSourceKey: 'api.assets', type: 'HealPlayer' },
+                { dataSourceKey: 'api.assets', type: 'HealComponentVertical' }
             ]
 
             subscribedHeaderPairs.forEach(({ dataSourceKey, type }) => {

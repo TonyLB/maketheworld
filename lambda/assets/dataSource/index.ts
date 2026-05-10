@@ -1,3 +1,4 @@
+import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetsDataSource } from './abstract'
 import messageBus from '../messageBus'
 import { healGlobalValues } from '../selfHealing/globalValues'
@@ -11,6 +12,7 @@ import {
     AssetsIncomingEvent,
     AssetsSubscribedContent,
     isApiAssetsHealPlayerEvent,
+    isApiAssetsHealComponentVerticalEvent,
     isAssetsSubscribedEnvelope,
     isCognitoNewPlayerEvent,
     isWMLZoneChangedEvent,
@@ -23,6 +25,7 @@ import {
 } from './subscribedEvents'
 import { reseedComponentExamplesFromDiagnostics } from '../componentExamples/reseedFromDiagnostics'
 import { healPlayer } from '../player/heal'
+import { healComponentVertical } from './components/verticals/healComponentVertical'
 
 type StreamEventFn = (params: { update: AssetsEventUpdate; streamKey: string; header: { type: string } }) => Promise<void>
 
@@ -204,6 +207,26 @@ const handleApiHealPlayer = async (
     })
 }
 
+const handleApiHealComponentVertical = async (
+    event: Extract<
+        AssetsIncomingEvent,
+        { header: { dataSourceKey: 'api.assets'; type: 'HealComponentVertical' } }
+    >
+): Promise<void> => {
+    const content = await event.getContent()
+    if (content?.type !== 'HealComponentVertical' || !content.assetId || typeof content.assetId !== 'string') {
+        return
+    }
+    const result = await healComponentVertical({
+        assetId: content.assetId,
+        componentUniversalKeys: content.componentUniversalKeys as EphemeraId[] | undefined,
+    })
+    messageBus.send({
+        type: 'ReturnValue',
+        body: result as Record<string, any>,
+    })
+}
+
 //
 // Non-replayable DataSource singleton for mtw.assets
 // 
@@ -260,6 +283,10 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
             }
             if (isApiAssetsHealPlayerEvent(event)) {
                 await handleApiHealPlayer(event)
+                return
+            }
+            if (isApiAssetsHealComponentVerticalEvent(event)) {
+                await handleApiHealComponentVertical(event)
                 return
             }
         }))

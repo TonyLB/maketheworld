@@ -2,22 +2,32 @@ import { HeaderGuard, StreamingEventHeader, makeStreamingEnvelopeGuardFromHeader
 import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { StreamingEventMessage } from '../messageBus/baseClasses'
 
-export type AssetsAPIPayload = {
-    type: 'HealPlayer'
-    player: string
-}
+export type AssetsAPIPayload =
+    | {
+          type: 'HealPlayer'
+          player: string
+      }
+    | {
+          type: 'HealComponentVertical'
+          assetId: string
+          componentUniversalKeys?: string[]
+      }
 
-export type AssetsApiSubscribedHeader = StreamingEventHeader & {
-    dataSourceKey: 'api.assets';
-    type: AssetsAPIPayload['type'];
-}
+export type AssetsApiSubscribedHeader =
+    | (StreamingEventHeader & {
+          dataSourceKey: 'api.assets'
+          type: 'HealPlayer'
+      })
+    | (StreamingEventHeader & {
+          dataSourceKey: 'api.assets'
+          type: 'HealComponentVertical'
+      })
 
 const isApiAssetsHeader: HeaderGuard<AssetsApiSubscribedHeader> = (
     header
-): header is AssetsApiSubscribedHeader => (
+): header is AssetsApiSubscribedHeader =>
     header.dataSourceKey === 'api.assets' &&
-    header.type === 'HealPlayer'
-)
+    (header.type === 'HealPlayer' || header.type === 'HealComponentVertical')
 
 export const isApiAssetsEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     AssetsAPIPayload,

@@ -127,6 +127,10 @@ where **`${parentAssetId}` and `${childAssetId}` are asset ids with the `ASSET#`
 
 **Implication for this initiative:** Cycle enforcement on the **vertical projector** is not a hard gate we can rely on to block bad writes upstream. **Near-term lean:** when projection detects an inconsistent or cyclic import graph, emit a **`Problem Report`** (or equivalent) aimed at **diagnostics** / author tooling, and **defer** "how do we **heal** this?" to later work. That keeps the vertical index honest about failure without blocking delivery on a full healing story.
 
+**WML-side prevention (deferred):** Track acceptance-time cycle exploration in [`lambda/wml/AGENT.importCycles.future.md`](../../../lambda/wml/AGENT.importCycles.future.md); **true** fix is rejecting cyclic **`_from`** before commit when cross-asset graph visibility allows.
+
+**Last-resort index repair (`assets`):** When authoritative **`_from`** imply a directed cycle, **`Meta::Import`** projection may **omit one hop** deterministically so the stored vertical remains **acyclic** for bounded reads---e.g. drop the hop whose **parent** asset id is **minimum** under fixed string sort (stripped ids), tie-break on **child**. That **index may diverge** from **`_from`** until authoring fixes imports; see [**`verticals/AGENT.md`**](../../../lambda/assets/dataSource/components/verticals/AGENT.md) (**Cycles**). Apply the same rule in shared **`mtw-gateways`** helpers, live projector, and heal.
+
 **Testing:** Full **cycle regression** coverage is constrained by the same ordering (**committed `wml`** before **`assets`** validation). Treat exhaustive cycle-testing as **follow-on** once acceptance or healing strategy is clearer.
 
 ### Consistency UX
@@ -162,7 +166,7 @@ The **editor** is being built to tolerate **concurrent edits** to underlying imp
 - **Batch size limits:** Dynamo **`BatchGetItem`** caps (100 items, 16 MB per call) are **unlikely to bind** in the near term: current content uses **inheritance depth of at most about 2**, far below 100. Revisit only if product allows **very deep** chains or if each vertical pulls **many** additional keys per hop.
 - **Interaction with broken asset graph today:** Migration path: see [**Backfill, healing, and diagnostics (planned)**](#backfill-healing-and-diagnostics-planned); historically summarized as backfill from cached components vs rebuild job vs lazy rebuild on read.
 - **Testing:** Contract tests for "query vertical + merge equals recursive golden path" are tracked under [`AGENT.componentAggregate.planning.md`](./AGENT.componentAggregate.planning.md) (assembly initiative).
-- **Cycles:** Cross-asset cycles may exist only after **`wml`** commit; projector should **surface** problems (Problem Report) rather than pretending this initiative solves **acceptance** or **healing**---see [`Cycles (imports)`](#cycles-imports).
+- **Cycles:** Cross-asset cycles may exist only after **`wml`** commit; **`assets`** surfaces problems and may apply **index-only** deterministic hop omission as last resort---see [`Cycles (imports)`](#cycles-imports); defer acceptance-time prevention to [`lambda/wml/AGENT.importCycles.future.md`](../../../lambda/wml/AGENT.importCycles.future.md).
 - **DataSource bootstrap:** New **`mtw.assets.components.verticals`** module must be **imported** from [`lambda/assets/app.ts`](../../../lambda/assets/app.ts); failure to wire leaves the projector **dead**. EventBridge / subscription rules---follow whatever **`componentExamples`** and sibling sources already require; capture gaps during implementation.
 - **Ordering vs cacheAsset:** If **`cacheAsset`** and this DataSource both react to the same events, define **idempotent** writes so duplicate handling does not corrupt rows (prefer **single writer** path in code reviews).
 
@@ -190,7 +194,7 @@ The **editor** is being built to tolerate **concurrent edits** to underlying imp
 
 ### 2. Diagnostic sweep (diagnostics lambda)
 
-- Add a sweep (new module alongside **`playerMisalignmentSweep`**) that accepts an **`assetId`**, loads **authoritative import signals** for components **in that asset** (prefer **Dynamo component rows** keyed by **`DataCategory = asset id`** plus **`from`** in stored JSON---avoid pulling **`mtw-wml`** into diagnostics unless we deliberately expand dependencies), compares to **`Meta::Import::...`** rows under each **`AssetId = universalKey`**, and emits **`Component Vertical Misaligned`** (name TBD) **findings** when projected hops are missing, stale, or orphaned.
+- Add a sweep (new module alongside **`playerMisalignmentSweep`**) that accepts an **`assetId`**, loads **authoritative import signals** for components **in that asset** via **Dynamo component rows** keyed by **`DataCategory = asset id`**, parses them with **`standardComponentFactory`** (same robust path as elsewhere), compares to **`Meta::Import::...`** rows under each **`AssetId = universalKey`**, and emits **`Component Vertical Misaligned Finding`** **findings** when projected hops are missing, stale, or orphaned.
 - Define the finding payload in **`@tonylb/mtw-interfaces`** (**`eventBridge/diagnostics`**) with **`DiagnosticsEventSerializer`** support, mirroring **`Cache Consistency Finding`** / **`Player Misalignment Finding`**.
 
 ### 3. Subscribe verticals to findings + heal
@@ -202,6 +206,28 @@ The **editor** is being built to tolerate **concurrent edits** to underlying imp
 
 - **Operator / job:** run the diagnostic sweep across **library or enumerated assets**, emit findings, and let assets **self-heal**; or call **`HealComponentVertical`** in bulk (Step Functions, script, or **`api.assets`** batch) without diagnostics.
 - **Verification:** spot-check **`Query`** vertical partitions before/after; extend **Verification** in this doc with commands when implemented.
+
+### Open decisions and unknowns for heal and diagnostics
+
+**Shared read surfaces** ([`mtw-gateways`](../../../packages/mtw-gateways/AGENT.md) component bodies + **`Meta::Import`** verticals) reduce duplicate Dynamo encoding on the **index** side of comparisons; **shared pure helpers** (expected hops / comparison rules) also live in **`mtw-gateways`** next to the vertical module---see [**Shared helpers for diagnostics and healing**](../../../packages/mtw-gateways/AGENT.md#shared-helpers-for-diagnostics-and-healing) there.
+
+**Decisions (locked)**
+
+- [X] **`api.assets` heal name:** **`HealComponentVertical`** (asset context is already implied by **`api.assets`**).
+- [X] **Diagnostics finding name:** **`Component Vertical Misaligned Finding`** (exact **`detail-type`** / wire string when adding **`@tonylb/mtw-interfaces`**).
+- [X] **Expected-hop logic:** Implement shared helpers in **`@tonylb/mtw-gateways`** (colocated with [`ts/assets/components/verticals`](../../../packages/mtw-gateways/ts/assets/components/verticals/index.ts)) so imperative heal, diagnostics sweep, and the live projector consume one definition; document the pattern in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md).
+- [X] **Diagnostics parsing:** Use **`standardComponentFactory`** for component rows in the diagnostics sweep (standard, robust handling of stored Dynamo JSON).
+- [X] **Mismatch taxonomy:** **missing** (index lacks hop), **stale** (wrong parent/child vs authoritative **`_from`**), **orphan** (**`Meta::Import`** row with no matching authoritative hop). Aligns with repair operations **insert** / **update** / **delete** respectively.
+- [X] **Finding payload shape:** Mirror existing consistency-style findings (e.g. [**`Cache Consistency Finding`**](../../../packages/mtw-interfaces/ts/eventBridge/diagnostics/index.ts)---**`assetId`**, **`status`**, **`diagnosticRunId`**, **`timestamp`**); those types **mostly omit** rich optional detail---prefer the same minimal surface unless a concrete need requires extra fields.
+- [X] **Operational delivery:** Rely on **EventBridge** delivery semantics to the assets lambda (including back-pressure / how much is delivered per consumer); subscription wiring so **`mtw.assets.components.verticals`** receives **`Component Vertical Misaligned Finding`** is still required. Bulk operator jobs (Step Functions, scripts) choose their own batching separately.
+- [X] **`Query` pagination:** Large **`Meta::Import`** partitions may require paginated **`Query`** in sweep (same gap as production readers if any universal key grows very large).
+- [X] **`mtw-interfaces` + serializer:** Add **`Component Vertical Misaligned Finding`** types and **`DiagnosticsEventSerializer`** branches following the locked decisions above.
+- [X] **Cycles:** **`wml`** acceptance-time prevention deferred to [`lambda/wml/AGENT.importCycles.future.md`](../../../lambda/wml/AGENT.importCycles.future.md). **Index-only last resort:** deterministic omission of one hop (minimum parent id, tie-break child) when a cycle would otherwise be materialized---see [**Cycles (imports)**](#cycles-imports) and [`verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md). Emit **`cycleSuspected`** / Problem Report as needed; heal subscription must not infinite-loop; sweep aligned with **missing** / **stale** / **orphan** taxonomy under **Decisions (locked)** above.
+- [X] **Cycle salvage pipeline (confirmed):** **One** pure pipeline in **`@tonylb/mtw-gateways`**---derive expected hops from component state, then apply deterministic omission when needed. **`projectImportVerticalHop`**, imperative heal, and diagnostics **all** call it (not a heal-only branch) so writes and comparisons stay aligned. **Reuse** **`@tonylb/mtw-utilities`** [`Graph`](../../../packages/mtw-utilities/ts/graphStorage/utils/graph/index.ts) and [`topologicalSort`](../../../packages/mtw-utilities/ts/graphStorage/utils/graph/topologicalSort.ts) (Tarjan SCCs; multi-node components indicate cycles---[`topologicalSort.test.ts`](../../../packages/mtw-utilities/ts/graphStorage/utils/graph/topologicalSort.test.ts)). Optional [`generationOrder`](../../../packages/mtw-utilities/ts/graphStorage/utils/graph/topologicalSort.ts) only if layered ordering helps. Omission rule matches [**Cycles (imports)**](#cycles-imports) above.
+
+**Implementation backlog** (design locked; code not landed)
+
+- [X] Implement and wire cycle detection + hop omission in **`mtw-gateways`**, then integrate **`projectImportVerticalHop`**, **`HealComponentVertical`**, and diagnostics (**diagnostics sweep + subscription-driven heal** still open).
 
 ---
 
@@ -216,6 +242,7 @@ The **editor** is being built to tolerate **concurrent edits** to underlying imp
 | [`lambda/assets/dataSource/caching/AGENT.md`](../../../lambda/assets/dataSource/caching/AGENT.md) | Cache pipeline / events |
 | [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.md) | DataSource pattern |
 | [`lambda/assets/componentExamples/index.ts`](../../../lambda/assets/componentExamples/index.ts) | Derived assets DataSource reference |
+| [`lambda/wml/AGENT.importCycles.future.md`](../../../lambda/wml/AGENT.importCycles.future.md) | Deferred: prevent import cycles at WML acceptance |
 
 ---
 
@@ -237,9 +264,10 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to neste
 - [X] Add **`lambda/assets/dataSource/components/verticals/`** with **`mtw.assets.components.verticals`** `AssetsDataSource` (`replayable: false` lean): **`subscribedEvents`** type guards, **`receiveEvents`** projector to Dynamo, side-effect **import** from [`lambda/assets/app.ts`](../../../lambda/assets/app.ts).
 - [X] Document **import-diff** rules and **idempotency** (relationship to [`cacheAsset`](../../../lambda/assets/dataSource/caching/cacheAsset.ts); single writer expectations); **decache** / removal behavior for vertical rows.
 - [X] **Read-only gateway for vertical index:** Implement the **`mtw-gateways`** read surface for **`Meta::Import::...`** (see [**Read-only gateway for vertical storage**](#read-only-gateway-for-vertical-storage) above): **`Query`**, normalization, key builders, tests; update [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) ownership table (**Authoritative writer** = [`lambda/assets/dataSource/components/verticals/`](../../../lambda/assets/dataSource/components/verticals/)).
-- [ ] **Backfill / heal / diagnostics** (spec: [**Backfill, healing, and diagnostics (planned)**](#backfill-healing-and-diagnostics-planned)):
-    - [ ] **`HealComponentVertical`** (name TBD) on **`api.assets`** + shared heal helper under **`verticals/`**.
-    - [ ] Diagnostics **`assetId`** sweep emitting **`Component Vertical Misaligned`** (name TBD); **`mtw-interfaces`** contract + serializer.
+- [ ] **Backfill / heal / diagnostics** (spec: [**Backfill, healing, and diagnostics (planned)**](#backfill-healing-and-diagnostics-planned); decisions: [**Open decisions and unknowns for heal and diagnostics**](#open-decisions-and-unknowns-for-heal-and-diagnostics)):
+    - [X] **Cycle salvage:** Implement the locked **`mtw-gateways`** pipeline (expected hops, SCC detection via **`Graph` / `topologicalSort`**, deterministic hop omission per [**Cycles (imports)**](#cycles-imports)); wire **`projectImportVerticalHop`** first, then **`HealComponentVertical`**, diagnostics sweep, and subscription-driven heal so every path calls the **same** helper (see **Decisions (locked)** **Cycle salvage pipeline (confirmed)** and [**Implementation backlog**](#implementation-backlog-design-locked-code-not-landed) above).
+    - [X] **`HealComponentVertical`** on **`api.assets`** + shared heal helper under **`verticals/`**.
+    - [ ] Diagnostics **`assetId`** sweep emitting **`Component Vertical Misaligned Finding`**; **`mtw-interfaces`** contract + serializer.
     - [ ] **`mtw.assets.components.verticals`** subscribes to that finding and runs the same heal path.
     - [ ] **Backfill** existing assets via sweep + findings and/or bulk **`api.assets`** invokes.
 - [ ] Move steady-state architecture notes to [`lambda/assets/`](../../../lambda/assets/) `AGENT.md` (or fetchImportDefaults doc) and trim this file when done.
@@ -264,6 +292,7 @@ When implementation exists, record **exact** commands here (cwd + runner). Until
 
 - [X] Unit tests for **`dataSource/components/verticals`** pass: `cd lambda/assets && npm test -- --testPathPattern=dataSource/components/verticals`
 - [X] **`Meta::Import`** read gateway tests: `cd packages/mtw-gateways && npm test -- --testPathPattern=ts/assets/components/verticals` (see [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md)). Assembly / merge golden tests and **`fetchImportDefaults`** verification live under [`AGENT.componentAggregate.planning.md`](./AGENT.componentAggregate.planning.md) **Verification**.
+- [X] **`mtw.assets`** **`api.assets`** **`HealComponentVertical`** routing: `cd lambda/assets && npm test -- --testPathPattern=dataSource/index.test`
 
 ---
 
