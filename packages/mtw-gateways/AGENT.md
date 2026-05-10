@@ -30,7 +30,8 @@ Each gateway in this package must have a row here. Add a row when a new gateway 
 
 | Gateway | Authoritative writer | Readers | Notes |
 | --- | --- | --- | --- |
-| **Component Asset Meta** | Assets DataSources that maintain `assetDB` component projections (see [`lambda/assets/dataSource/components/verticals/AGENT.md`](../../lambda/assets/dataSource/components/verticals/AGENT.md)); rows use universal component id as partition and asset id as `DataCategory`. | [`lambda/ephemera/internalCache/componentAssetMeta.ts`](../../lambda/ephemera/internalCache/componentAssetMeta.ts) imports [`ts/assets/components/assetMeta`](ts/assets/components/assetMeta/index.ts). | Pure helpers and injected `assetDB` reads; ephemera keeps `ComponentAssetMetaData` + `DeferredCache`. Deep import: `@tonylb/mtw-gateways/ts/assets/components/assetMeta`. |
+| **Component Asset Meta** | [`lambda/assets/dataSource/caching/`](../../lambda/assets/dataSource/caching/) ([`cacheAsset`](../../lambda/assets/dataSource/caching/cacheAsset.ts) maintains universal-key component rows in `assetDB`). | [`lambda/ephemera/internalCache/componentAssetMeta.ts`](../../lambda/ephemera/internalCache/componentAssetMeta.ts) imports [`ts/assets/components/assetMeta`](ts/assets/components/assetMeta/index.ts). | Pure helpers and injected `assetDB` reads; ephemera keeps `ComponentAssetMetaData` + `DeferredCache`. Deep import: `@tonylb/mtw-gateways/ts/assets/components/assetMeta`. |
+| **Component import vertical (`Meta::Import`)** | [`lambda/assets/dataSource/components/verticals/`](../../lambda/assets/dataSource/components/verticals/) (`mtw.assets.components.verticals`). | TBD (e.g. [`AGENT.componentAggregate.planning.md`](../../taskPlanning/lambda/assets/AGENT.componentAggregate.planning.md) assembly, diagnostics). | Key builders, `Query` envelope, normalized hop types. Deep import: `@tonylb/mtw-gateways/ts/assets/components/verticals`. Discoverability: [`readModel.ts`](../../lambda/assets/dataSource/components/verticals/readModel.ts). |
 
 **Ownership rules:**
 
@@ -93,4 +94,4 @@ cd lambda/ephemera && npm test -- --testPathPattern componentAssetMeta
 - [`packages/mtw-lambda-patterns/ts/internalCache/AGENT.md`](../mtw-lambda-patterns/ts/internalCache/AGENT.md) - the `DeferredCache` and `InternalCache` patterns this package composes with.
 - [`lambda/ephemera/internalCache/componentAssetMeta.AGENT.md`](../../lambda/ephemera/internalCache/componentAssetMeta.AGENT.md) - prototype reader's current shape.
 - [`lambda/assets/internalCache/componentData.ts`](../../lambda/assets/internalCache/componentData.ts) - sibling reader on the assets lambda.
-- [`lambda/assets/dataSource/components/verticals/AGENT.md`](../../lambda/assets/dataSource/components/verticals/AGENT.md) - example authoritative writer for a likely future gateway (`Meta::Import::...`).
+- [`lambda/assets/dataSource/components/verticals/AGENT.md`](../../lambda/assets/dataSource/components/verticals/AGENT.md) - authoritative writer for **`Meta::Import::...`**; shared read helpers in [`ts/assets/components/verticals`](ts/assets/components/verticals/index.ts).

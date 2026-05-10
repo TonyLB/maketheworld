@@ -39,7 +39,7 @@ Deliver a **bounded-read** path and (later) **mesh-visible signals** for **merge
   - **Vertical envelope:** `Query` import-meta **`Meta::Import::...`** rows for **U** (same partition contract as [`verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md)).
   - **Authoritative bodies:** `BatchGetItem`-style reads of per-asset component projections already owned elsewhere (same Dynamo rows [`assetMeta`](../../../packages/mtw-gateways/ts/assets/components/assetMeta/) and related shapes touch).
   - **Merge assembly:** deterministic ordering + merge rules aligned with **`fetchImportDefaults`** / StandardForm expectations (exact code reuse is a **decision point** below).
-- **Tests:** **Vertical assembly** here means **merge-from-vertical + bodies** (not the vertical projector alone). Golden or comparison tests proving **gateway assembly** matches the **current merge baseline** for fixture stacks live in this initiative (may run **outside** [`fetchImportDefaults`](../../../lambda/assets/fetchImportDefaults/index.ts) until that lambda consumes the gateway). See sibling [`AGENT.componentVertical.planning.md`](./AGENT.componentVertical.planning.md) **Recommended order** interconnection: vertical **read gateway** delivery **depends on** this Phase 1 contract.
+- **Tests:** **Vertical assembly** here means **merge-from-vertical + bodies** (not the vertical projector alone). Golden or comparison tests proving **gateway assembly** matches the **current merge baseline** for fixture stacks live in this initiative (may run **outside** [`fetchImportDefaults`](../../../lambda/assets/fetchImportDefaults/index.ts) until that lambda consumes the gateway). **`Meta::Import`** **`Query`** / normalization are implemented under the vertical initiative [**Read-only gateway for vertical index**](./AGENT.componentVertical.planning.md#recommended-order); Phase 1 **imports** those helpers rather than re-encoding Dynamo keys here.
 
 **Phase 2 (DataSource):**
 
@@ -58,11 +58,13 @@ Deliver a **bounded-read** path and (later) **mesh-visible signals** for **merge
 | **Writes** | Owns **`Meta::Import::...`** projection maintenance | **No** Dynamo writes for merge payloads in v1 |
 | **Reads** | **`Query`** envelope under **`AssetId = U`** | **Uses** that envelope + batched component rows |
 | **Consistency** | Eventually consistent projector | Merge is **derived** at read or **signaled** on events |
-| **Gateway** | Writer AGENT docs + task plan call for a **shared read surface**; today vertical **query encoding** is documented on the writer side | **Establishes** the consumer-facing **`mtw-gateways`** module for vertical **`Meta::Import`** reads **if missing**, so aggregate (and ephemera / assets) share key builders |
+| **Gateway** | **Owns** **`mtw-gateways`** read surface for **`Meta::Import::...`** ([**Read-only gateway for vertical index**](./AGENT.componentVertical.planning.md#recommended-order)); writer [`verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md) stays authoritative for encoding | **Consumes** that vertical reader inside **`assembleMergedComponent`**; adds aggregate-specific types and merge only |
 
-**Sequencing note:** If Phase 1 discovers the vertical **read model** is only documented on the writer, implement **`mtw-gateways/ts/assets/components/verticals`** (name TBD) **before** or **in parallel with** the first aggregate assembly spike, and update [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) ownership table. Avoid duplicating SK builders between lambda and package.
+**Sequencing note:** Land [**Read-only gateway for vertical index**](./AGENT.componentVertical.planning.md#recommended-order) **before or with** the first **`assembleMergedComponent`** milestone so aggregate never forks SK/query logic. Update [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) when the vertical reader ships.
 
-**Dependency on this initiative (vertical task plan):** The vertical [**Read-only gateway for aggregate**](./AGENT.componentVertical.planning.md#recommended-order) checklist item should **not** ship in isolation---**normalized types**, **query helpers**, and **first `assembleMergedComponent` wiring** from **this** doc's early **Recommended order** items **gate** the shared package so the vertical writer and aggregate consumers stay aligned.
+**Vertical reader shipped:** Phase 1 should import **`@tonylb/mtw-gateways/ts/assets/components/verticals`** (`queryImportVerticalMeta`, key builders, normalized hop types) rather than duplicating partition/sort encoding.
+
+**Dependency (aggregate on vertical):** Phase 1 assembly **depends on** the vertical initiative shipping **`Meta::Import`** read helpers in **`mtw-gateways`**. Coordinate PR order with [**Recommended order** in `AGENT.componentVertical.planning.md`](./AGENT.componentVertical.planning.md#recommended-order).
 
 ---
 
@@ -115,7 +117,7 @@ Most rows below are **open**; this plan exists partly to force early answers wit
 ## Out of scope (for this planning doc unless explicitly pulled in)
 
 - Owning **`Meta::Import::...`** writes (remains **`mtw.assets.components.verticals`**).
-- Full **`fetchImportDefaults`** refactor (vertical plan treats as **follow-on**; aggregate gateway may still **inform** it).
+- Full **`fetchImportDefaults`** refactor is tracked in [**Recommended order**](#recommended-order) here (aggregate assembly gateway); it should depend on **this** initiative's **`mtw-gateways`** assembly surface, **not** on invoking the **`mtw.assets.components.aggregate` DataSource** for synchronous reads.
 - Renaming **`mtw.assets.componentExamples`** or introducing a formal parent **`mtw.assets.components`** umbrella DataSource (same stance as vertical plan; naming stays dotted under **`mtw.assets.components.*`**).
 
 ---
@@ -124,12 +126,12 @@ Most rows below are **open**; this plan exists partly to force early answers wit
 
 Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to nested bullets when added.
 
-**Interconnection:** Early items **unlock** the vertical plan's [**Read-only gateway for aggregate**](./AGENT.componentVertical.planning.md#recommended-order) item; treat Phase 1 here as **leading** the shared **`Meta::Import`** read contract.
+**Interconnection:** **[`mtw.assets.components.verticals`](./AGENT.componentVertical.planning.md)** owns [**Read-only gateway for vertical index**](./AGENT.componentVertical.planning.md#recommended-order) (**`Meta::Import`** **`mtw-gateways`** reader). This initiative **consumes** it inside assembly; **do not** duplicate vertical **`Query`** / SK logic here.
 
-- [ ] **Vertical read surface:** Define or implement **`mtw-gateways`** helpers for **`Meta::Import::...`** query + normalization (coordinate with [`AGENT.componentVertical.planning.md`](./AGENT.componentVertical.planning.md) verification and [`verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md)); update [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) ownership table.
 - [ ] **Aggregate types:** Sketch **`AggregatePerspective`** (names TBD), **`OrderedAssetStack`**, and **`MergedComponentResult`** in gateway package (pure types + factories).
-- [ ] **Assembly core:** Implement **`assembleMergedComponent`** (name TBD) = vertical query + batch component fetch + merge; inject `assetDB` via factory per gateway norms.
+- [ ] **Assembly core:** Implement **`assembleMergedComponent`** (name TBD) using **`Meta::Import`** reads from the vertical initiative's **`mtw-gateways`** surface ([**Read-only gateway for vertical index**](./AGENT.componentVertical.planning.md#recommended-order)) plus batch component fetch + merge; inject `assetDB` via factory per gateway norms.
 - [ ] **Golden / comparison tests:** Fixtures proving parity with legacy merge path for representative stacks; record commands in **Verification**.
+- [ ] **Follow-on (assets lambda):** refactor [`fetchImportDefaults`](../../../lambda/assets/fetchImportDefaults/index.ts) to call this **aggregate assembly** surface (Phase 1 gateway), replacing hand-rolled recursion / graph walks and retiring reliance on `internalCache.Graph` for ancestry where appropriate. **Do not** route synchronous reads through the **`mtw.assets.components.aggregate` DataSource**---that DataSource is for **mesh streaming** only.
 - [ ] **Scaffold DataSource:** Add [`lambda/assets/dataSource/components/aggregate/`](../../../lambda/assets/dataSource/components/aggregate/) with **`dataSourceKey: 'mtw.assets.components.aggregate'`**, **`replayable: false`**, **`subscribedEvents.ts`** stubs, side-effect import from [`lambda/assets/app.ts`](../../../lambda/assets/app.ts).
 - [ ] **Streaming design:** Decide **event granularity**, **`streamEvent`** payload shape (bus-only vs EventBridge), and **subscriber list** (ephemera / editor / none in v1).
 - [ ] **Implementation:** `receiveEvents` projection that emits aggregate signals; align import-diff / noise avoidance with vertical plan idempotency guidance.
@@ -142,7 +144,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to neste
 | Milestone | Status |
 | --- | --- |
 | Problem framing + phased gateway-first approach | Done (this doc) |
-| Vertical gateway (`Meta::Import` read helpers) | Not started |
+| Vertical **`Meta::Import`** read gateway ([vertical plan](./AGENT.componentVertical.planning.md)) | Not started |
 | Aggregate assembly core + tests | Not started |
 | `mtw.assets.components.aggregate` DataSource | Not started |
 | Subscriber wiring + serializers | Not started |
@@ -155,6 +157,7 @@ Record **exact** cwd + runner commands as slices land.
 
 - [ ] `packages/mtw-gateways`: `npm test` (and `npx tsc --build packages/mtw-gateways/tsconfig.ref.json` when types change).
 - [ ] `lambda/assets`: targeted pattern for aggregate DataSource once present, e.g. `npm test -- --testPathPattern=dataSource/components/aggregate`.
+- [ ] **Follow-on:** when **`fetchImportDefaults`** is refactored ([**Recommended order**](#recommended-order)), `grep -r "fetchImportDefaults\\|recursiveFetchImports" lambda/assets/fetchImportDefaults` reflects **aggregate gateway** assembly over vertical reads (or document deliberate interim behavior).
 - [ ] Consumer regression (if ephemera or others adopt gateway): follow notes in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md).
 
 ---

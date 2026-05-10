@@ -20,6 +20,7 @@
     "@aws-sdk/s3-request-presigner": "^3.44.0",
     "@tonylb/mtw-asset-workspace": "file:../../packages/mtw-asset-workspace",
     "@tonylb/mtw-base": "file:../../packages/mtw-base",
+    "@tonylb/mtw-gateways": "file:../../packages/mtw-gateways",
     "@tonylb/mtw-interfaces": "file:../../packages/mtw-interfaces",
     "@tonylb/mtw-lambda-patterns": "file:../../packages/mtw-lambda-patterns",
     "@tonylb/mtw-sessions": "file:../../packages/mtw-sessions",
