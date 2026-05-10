@@ -9,7 +9,11 @@ jest.mock('../roomOccupancyDriftSweep', () => ({
 jest.mock('../playerMisalignmentSweep', () => ({
     playerMisalignmentSweep: jest.fn(async () => ({ emittedCount: 0, players: [] as string[] }))
 }))
+jest.mock('../componentVerticalMisalignmentSweep', () => ({
+    componentVerticalMisalignmentSweep: jest.fn(async () => ({ emitted: false }))
+}))
 
+import { componentVerticalMisalignmentSweep } from '../componentVerticalMisalignmentSweep'
 import { staleSessionSweep } from '../staleSessionSweep'
 import { roomOccupancyDriftSweep } from '../roomOccupancyDriftSweep'
 import { playerMisalignmentSweep } from '../playerMisalignmentSweep'
@@ -34,6 +38,8 @@ describe('diagnosticsDataSource subscribed event processing', () => {
         jest.mocked(roomOccupancyDriftSweep).mockResolvedValue({ emittedCount: 0, roomIds: [] as string[], checkLocationCandidates: [] as string[] })
         jest.mocked(playerMisalignmentSweep).mockReset()
         jest.mocked(playerMisalignmentSweep).mockResolvedValue({ emittedCount: 0, players: [] as string[] })
+        jest.mocked(componentVerticalMisalignmentSweep).mockReset()
+        jest.mocked(componentVerticalMisalignmentSweep).mockResolvedValue({ emitted: false })
         messageBus.clear()
     })
 
@@ -128,6 +134,32 @@ describe('diagnosticsDataSource subscribed event processing', () => {
         ])
 
         expect(playerMisalignmentSweep).toHaveBeenCalledWith({ diagnosticRunId: 'diag-3', nowMs: 67890 })
+        const returnValueMessages = messageBus._stream.map(({ payload }) => payload).filter(({ type }) => type === 'ReturnValue')
+        expect(returnValueMessages).toHaveLength(1)
+    })
+
+    it('invokes componentVerticalMisalignmentSweep for ComponentVerticalMisalignmentSweep with assetId', async () => {
+        jest.mocked(componentVerticalMisalignmentSweep).mockResolvedValueOnce({
+            emitted: true,
+            status: 'missing',
+        })
+        await processDiagnosticsSubscribedEvents([
+            makeEnvelope(
+                { dataSourceKey: 'api.diagnostics', type: 'ComponentVerticalMisalignmentSweep' },
+                {
+                    type: 'ComponentVerticalMisalignmentSweep',
+                    assetId: 'ASSET#diag-asset',
+                    diagnosticRunId: 'diag-cv',
+                    nowMs: 11111,
+                }
+            )
+        ])
+
+        expect(componentVerticalMisalignmentSweep).toHaveBeenCalledWith({
+            assetId: 'ASSET#diag-asset',
+            diagnosticRunId: 'diag-cv',
+            nowMs: 11111,
+        })
         const returnValueMessages = messageBus._stream.map(({ payload }) => payload).filter(({ type }) => type === 'ReturnValue')
         expect(returnValueMessages).toHaveLength(1)
     })

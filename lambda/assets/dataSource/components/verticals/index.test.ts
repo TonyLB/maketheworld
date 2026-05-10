@@ -1,3 +1,4 @@
+import type { DiagnosticsComponentVerticalMisalignedFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { componentVerticalsDataSource } from './index'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
@@ -53,6 +54,15 @@ jest.mock('../../../internalCache', () => ({
     },
 }))
 
+jest.mock('./healComponentVertical', () => ({
+    healComponentVertical: jest.fn(async () => ({
+        assetId: 'ASSET#healed',
+        universalKeysProcessed: 1,
+    })),
+}))
+
+import { healComponentVertical } from './healComponentVertical'
+
 const assetDBMock = jest.mocked(assetDB, { shallow: false })
 
 describe('ComponentVerticalsDataSource (mtw.assets.components.verticals)', () => {
@@ -96,6 +106,26 @@ describe('ComponentVerticalsDataSource (mtw.assets.components.verticals)', () =>
                 getContent: () => Promise.resolve({}),
             }
             expect(componentVerticalsDataSource.subscribedEventTypeGuard?.(envelope)).toBe(false)
+        })
+
+        it('accepts Component Vertical Misaligned Finding from mtw.diagnostics', () => {
+            const envelope = {
+                header: {
+                    dataSourceKey: 'mtw.diagnostics',
+                    streamKey: 'global',
+                    timestamp: Date.now(),
+                    type: 'Component Vertical Misaligned Finding',
+                },
+                getContent: () =>
+                    Promise.resolve({
+                        type: 'Component Vertical Misaligned Finding',
+                        assetId: 'ASSET#a',
+                        status: 'missing',
+                        diagnosticRunId: 'run-1',
+                        timestamp: '2025-05-10T00:00:00.000Z',
+                    } satisfies DiagnosticsComponentVerticalMisalignedFindingEvent),
+            }
+            expect(componentVerticalsDataSource.subscribedEventTypeGuard?.(envelope)).toBe(true)
         })
     })
 
@@ -295,6 +325,35 @@ describe('ComponentVerticalsDataSource (mtw.assets.components.verticals)', () =>
                 AssetId: 'ROOM#r1',
                 DataCategory: 'Meta::Import::parentA::childB',
             })
+        })
+
+        it('runs healComponentVertical when diagnostics emits Component Vertical Misaligned Finding', async () => {
+            jest.mocked(healComponentVertical).mockClear()
+            await componentVerticalsDataSource.receiveEvents?.({
+                events: [
+                    {
+                        header: {
+                            dataSourceKey: 'mtw.diagnostics',
+                            streamKey: 'global',
+                            timestamp: 1,
+                            type: 'Component Vertical Misaligned Finding',
+                        },
+                        getContent: () =>
+                            Promise.resolve({
+                                type: 'Component Vertical Misaligned Finding',
+                                assetId: 'ASSET#childB',
+                                status: 'missing',
+                                diagnosticRunId: 'run-diag',
+                                timestamp: '2025-05-10T00:00:00.000Z',
+                            } satisfies DiagnosticsComponentVerticalMisalignedFindingEvent),
+                    },
+                ],
+                streamEvent,
+                streamEnvelope,
+            })
+
+            expect(healComponentVertical).toHaveBeenCalledWith({ assetId: 'ASSET#childB' })
+            expect(assetDBMock.query).not.toHaveBeenCalled()
         })
 
         it('skips Dynamo when universalKey is missing', async () => {

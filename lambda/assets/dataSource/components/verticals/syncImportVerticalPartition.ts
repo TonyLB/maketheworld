@@ -1,14 +1,12 @@
 import { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
+    componentRowsFromUniversalPartitionLines,
     deriveRawImportVerticalHopsFromComponents,
     metaImportDataCategory,
     salvageImportVerticalHops,
 } from '@tonylb/mtw-gateways/ts/assets/components/verticals'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
 import type { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
-import { isStandardNDJSONLine } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
-import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 import internalCache from '../../../internalCache'
 
 const META_IMPORT_PREFIX = 'Meta::Import::'
@@ -24,20 +22,7 @@ export async function syncImportVerticalPartition(universalKey: EphemeraId): Pro
             allFields: true,
         })) || []
 
-    const componentRows = rows
-        .filter(isStandardNDJSONLine)
-        .map((line) => {
-            const AssetId = line.DataCategory as `ASSET#${string}`
-            const { component } = standardComponentFactory(line)
-            if (AssetId && component) {
-                return {
-                    childAssetId: AssetId,
-                    component,
-                }
-            }
-            return undefined
-        })
-        .filter(excludeUndefined)
+    const componentRows = componentRowsFromUniversalPartitionLines(rows)
 
     const raw = deriveRawImportVerticalHopsFromComponents(componentRows)
     const salvaged = salvageImportVerticalHops(raw)

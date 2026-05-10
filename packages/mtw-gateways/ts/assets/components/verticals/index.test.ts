@@ -5,10 +5,35 @@ import {
     parseMetaImportDataCategory,
     prefixedAssetIdsFromHop,
     queryImportVerticalMeta,
+    componentRowsFromUniversalPartitionLines,
     type ImportVerticalAssetDB,
 } from './index'
 
 describe('component verticals gateway (Meta::Import)', () => {
+    describe('componentRowsFromUniversalPartitionLines', () => {
+        it('parses NDJSON component lines using DataCategory as child asset id', () => {
+            const line = {
+                AssetId: 'ROOM#r1',
+                DataCategory: 'ASSET#childB',
+                key: 'r1',
+                universalKey: 'ROOM#r1',
+                tag: 'Room' as const,
+                shortName: 'Room',
+                exits: [] as { reference: { tag: 'Room'; key: string }; payload: string }[],
+                examples: [{ key: 'base', tag: 'Example' as const }],
+                from: 'ASSET#parentA',
+            }
+            const rows = componentRowsFromUniversalPartitionLines([line as any])
+            expect(rows).toHaveLength(1)
+            expect(rows[0].childAssetId).toBe('ASSET#childB')
+            expect(rows[0].component.tag).toBe('Room')
+        })
+
+        it('returns empty when no valid NDJSON lines', () => {
+            expect(componentRowsFromUniversalPartitionLines([{ AssetId: 'x', DataCategory: 'ASSET#y' }] as any)).toEqual([])
+        })
+    })
+
     describe('stripAssetIdForSortKey', () => {
         it('removes ASSET# prefix', () => {
             expect(stripAssetIdForSortKey('ASSET#abc')).toBe('abc')

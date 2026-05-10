@@ -44,6 +44,17 @@ const normalizeApiDiagnosticsIngress = async (event: any) => {
                 ...(typeof event.nowMs === 'number' ? { nowMs: event.nowMs } : {})
             })
             return
+        case 'ComponentVerticalMisalignmentSweep':
+            if (typeof event.assetId !== 'string' || !event.assetId.length) {
+                return
+            }
+            sendApiDiagnosticsEvent(messageBus, {
+                type: 'ComponentVerticalMisalignmentSweep',
+                assetId: event.assetId,
+                ...(typeof event.diagnosticRunId === 'string' ? { diagnosticRunId: event.diagnosticRunId } : {}),
+                ...(typeof event.nowMs === 'number' ? { nowMs: event.nowMs } : {})
+            })
+            return
     }
 }
 

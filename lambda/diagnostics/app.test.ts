@@ -9,10 +9,14 @@ jest.mock('./roomOccupancyDriftSweep', () => ({
 jest.mock('./playerMisalignmentSweep', () => ({
     playerMisalignmentSweep: jest.fn(async () => ({ emittedCount: 0, players: [] as string[] }))
 }))
+jest.mock('./componentVerticalMisalignmentSweep', () => ({
+    componentVerticalMisalignmentSweep: jest.fn(async () => ({ emitted: false }))
+}))
 
 import { staleSessionSweep } from './staleSessionSweep'
 import { roomOccupancyDriftSweep } from './roomOccupancyDriftSweep'
 import { playerMisalignmentSweep } from './playerMisalignmentSweep'
+import { componentVerticalMisalignmentSweep } from './componentVerticalMisalignmentSweep'
 import { handler } from './app'
 
 describe('diagnostics handler', () => {
@@ -23,6 +27,8 @@ describe('diagnostics handler', () => {
         jest.mocked(roomOccupancyDriftSweep).mockResolvedValue({ emittedCount: 0, roomIds: [] as string[], checkLocationCandidates: [] as string[] })
         jest.mocked(playerMisalignmentSweep).mockReset()
         jest.mocked(playerMisalignmentSweep).mockResolvedValue({ emittedCount: 0, players: [] as string[] })
+        jest.mocked(componentVerticalMisalignmentSweep).mockReset()
+        jest.mocked(componentVerticalMisalignmentSweep).mockResolvedValue({ emitted: false })
     })
 
     it('invokes staleSessionSweep for direct StaleSessionSweep via api.diagnostics synthetic lane', async () => {
@@ -105,6 +111,26 @@ describe('diagnostics handler', () => {
             nowMs: 98765
         })
         expect(result).toEqual({ emittedCount: 0, players: [] })
+    })
+
+    it('invokes componentVerticalMisalignmentSweep for direct ComponentVerticalMisalignmentSweep type', async () => {
+        jest.mocked(componentVerticalMisalignmentSweep).mockResolvedValueOnce({
+            emitted: true,
+            status: 'missing',
+        })
+        const result = await handler({
+            type: 'ComponentVerticalMisalignmentSweep',
+            assetId: 'ASSET#sweep-asset',
+            diagnosticRunId: 'dr-cv',
+            nowMs: 4242,
+        })
+
+        expect(componentVerticalMisalignmentSweep).toHaveBeenCalledWith({
+            assetId: 'ASSET#sweep-asset',
+            diagnosticRunId: 'dr-cv',
+            nowMs: 4242,
+        })
+        expect(result).toEqual({ emitted: true, status: 'missing' })
     })
 
 })

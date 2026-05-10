@@ -7,6 +7,7 @@ import {
     isStaleSessionIdFindingEvent,
     isRoomOccupancyDriftFindingEvent,
     isPlayerMisalignmentFindingEvent,
+    isComponentVerticalMisalignedFindingEvent,
     isDiagnosticsEventUpdate
 } from './index'
 import type { DataSourceEnvironment } from '@tonylb/mtw-interfaces/ts/DataSourceEnvironment'
@@ -205,6 +206,29 @@ describe('DiagnosticsEventSerializer', () => {
                 player: 'alice',
                 diagnosticRunId: 'run-player-1',
                 timestamp: '2025-10-18T17:20:00.000Z'
+            })
+        })
+
+        it('should serialize Component Vertical Misaligned Finding event', () => {
+            const internalEvent: DiagnosticsEventUpdate = {
+                type: 'Component Vertical Misaligned Finding',
+                assetId: 'ASSET#primitives',
+                status: 'missing',
+                diagnosticRunId: 'run-cv-ser',
+                timestamp: '2025-10-18T17:30:00.000Z'
+            }
+
+            const external = serializer.serialize({
+                content: internalEvent,
+                header: diagnosticsHeader('Component Vertical Misaligned Finding')
+            })
+
+            expect(external).toEqual({
+                type: 'Component Vertical Misaligned Finding',
+                assetId: 'ASSET#primitives',
+                status: 'missing',
+                diagnosticRunId: 'run-cv-ser',
+                timestamp: '2025-10-18T17:30:00.000Z'
             })
         })
     })
@@ -549,6 +573,41 @@ describe('DiagnosticsEventSerializer', () => {
                 timestamp: '2025-10-18T17:25:00.000Z'
             })
         })
+
+        it('should deserialize Component Vertical Misaligned Finding event from EventBridge format', async () => {
+            const externalEvent: any = {
+                type: 'Component Vertical Misaligned Finding',
+                assetId: 'ASSET#one',
+                status: 'orphan',
+                diagnosticRunId: 'run-cv-des',
+                timestamp: '2025-10-18T17:35:00.000Z'
+            }
+
+            const internal = await serializer.deserialize({
+                content: externalEvent,
+                header: diagnosticsHeader('Component Vertical Misaligned Finding')
+            })
+
+            expect(internal).toEqual({
+                type: 'Component Vertical Misaligned Finding',
+                assetId: 'ASSET#one',
+                status: 'orphan',
+                diagnosticRunId: 'run-cv-des',
+                timestamp: '2025-10-18T17:35:00.000Z'
+            })
+        })
+
+        it('should return null for Component Vertical Misaligned Finding with invalid status', async () => {
+            const internal = await serializer.deserialize({
+                content: {
+                    type: 'Component Vertical Misaligned Finding',
+                    assetId: 'ASSET#x',
+                    status: 'invalid',
+                },
+                header: diagnosticsHeader('Component Vertical Misaligned Finding')
+            })
+            expect(internal).toBeNull()
+        })
     })
 
     describe('type guards', () => {
@@ -595,6 +654,13 @@ describe('DiagnosticsEventSerializer', () => {
                 expect(isDiagnosticsEventUpdate({
                     type: 'Stale SessionId Finding',
                     player: 'test-player',
+                    diagnosticRunId: 'test-123',
+                    timestamp: '2025-10-18T12:00:00.000Z'
+                })).toBe(true)
+                expect(isDiagnosticsEventUpdate({
+                    type: 'Component Vertical Misaligned Finding',
+                    assetId: 'ASSET#a',
+                    status: 'missing',
                     diagnosticRunId: 'test-123',
                     timestamp: '2025-10-18T12:00:00.000Z'
                 })).toBe(true)
@@ -696,6 +762,25 @@ describe('DiagnosticsEventSerializer', () => {
                 expect(isRoomOccupancyDriftFindingEvent({ type: 'Room Occupancy Drift Finding', roomId: '' })).toBe(false)
                 expect(isRoomOccupancyDriftFindingEvent({ type: 'Room Occupancy Drift Finding', roomId: 'one' })).toBe(false)
                 expect(isRoomOccupancyDriftFindingEvent({ type: 'Room Occupancy Drift Finding' })).toBe(false)
+            })
+        })
+
+        describe('isComponentVerticalMisalignedFindingEvent', () => {
+            it('should return true for valid Component Vertical Misaligned Finding event', () => {
+                const event = {
+                    type: 'Component Vertical Misaligned Finding',
+                    assetId: 'ASSET#x',
+                    status: 'stale',
+                    diagnosticRunId: 'run-1',
+                    timestamp: '2025-10-18T12:00:00.000Z'
+                }
+                expect(isComponentVerticalMisalignedFindingEvent(event)).toBe(true)
+            })
+
+            it('should return false for invalid payloads', () => {
+                expect(isComponentVerticalMisalignedFindingEvent(null)).toBe(false)
+                expect(isComponentVerticalMisalignedFindingEvent({ type: 'Component Vertical Misaligned Finding', assetId: 'x' })).toBe(false)
+                expect(isComponentVerticalMisalignedFindingEvent({ type: 'Component Vertical Misaligned Finding', assetId: 'x', status: 'nope' })).toBe(false)
             })
         })
 
@@ -838,6 +923,27 @@ describe('DiagnosticsEventSerializer', () => {
             const deserialized = await serializer.deserialize({
                 content: external,
                 header: diagnosticsHeader('Player Misalignment Finding')
+            })
+
+            expect(deserialized).toEqual(original)
+        })
+
+        it('should round-trip Component Vertical Misaligned Finding', async () => {
+            const original: DiagnosticsEventUpdate = {
+                type: 'Component Vertical Misaligned Finding',
+                assetId: 'ASSET#round',
+                status: 'missing',
+                diagnosticRunId: 'run-cv-rt',
+                timestamp: '2025-10-18T18:25:00.000Z'
+            }
+
+            const external = serializer.serialize({
+                content: original,
+                header: diagnosticsHeader('Component Vertical Misaligned Finding')
+            })
+            const deserialized = await serializer.deserialize({
+                content: external,
+                header: diagnosticsHeader('Component Vertical Misaligned Finding')
             })
 
             expect(deserialized).toEqual(original)
