@@ -74,6 +74,18 @@ export const handler = async (event, context) => {
                     await messageBus.flush()
                 }
                 return await extractReturnValue(messageBus)
+            case 'HealComponentVertical':
+                if (typeof event.assetId === 'string' && event.assetId.length > 0) {
+                    sendApiAssetsEvent(messageBus, {
+                        type: 'HealComponentVertical',
+                        assetId: event.assetId,
+                        ...(Array.isArray(event.componentUniversalKeys)
+                            ? { componentUniversalKeys: event.componentUniversalKeys }
+                            : {}),
+                    })
+                    await messageBus.flush()
+                }
+                return await extractReturnValue(messageBus)
             case 'cacheAsset': {
                 // Legacy Step Function call - publish as internal format StreamEvent for data source processing
                 const streamKey = `ASSET#${event.assetId}`
@@ -112,6 +124,18 @@ export const handler = async (event, context) => {
         sendApiAssetsEvent(messageBus, {
             type: 'HealPlayer',
             player: event.player
+        })
+        await messageBus.flush()
+        return await extractReturnValue(messageBus)
+    }
+
+    if (event?.type === 'HealComponentVertical' && typeof event.assetId === 'string' && event.assetId.length > 0) {
+        sendApiAssetsEvent(messageBus, {
+            type: 'HealComponentVertical',
+            assetId: event.assetId,
+            ...(Array.isArray(event.componentUniversalKeys)
+                ? { componentUniversalKeys: event.componentUniversalKeys }
+                : {}),
         })
         await messageBus.flush()
         return await extractReturnValue(messageBus)

@@ -66,6 +66,8 @@ When imports imply a **directed cycle**, pure helpers may also encode **determin
 
 **Implementation:** Salvage belongs in this package's **pure** helpers (writer, heal, and diagnostics call the same pipeline). For **detecting** cycles before applying the omission rule, prefer **`@tonylb/mtw-utilities`** **`Graph`** + **`topologicalSort`** ([`packages/mtw-utilities/ts/graphStorage/utils/graph/topologicalSort.ts`](../mtw-utilities/ts/graphStorage/utils/graph/topologicalSort.ts))---Tarjan SCCs; multi-node components indicate cycles (see tests in the same directory). Avoid duplicating Tarjan or ad-hoc DFS unless there is a hard dependency boundary.
 
+**Shipped exports** (component verticals module): **`deriveRawImportVerticalHopsFromComponents`**, **`salvageImportVerticalHops`**, and **`RawImportVerticalHop`** ([`ts/assets/components/verticals/salvage.ts`](ts/assets/components/verticals/salvage.ts)); consumed by the assets lambda **`syncImportVerticalPartition`** writer path and **`HealComponentVertical`** orchestration.
+
 ## Wrapping gateways in InternalCache (playbook)
 
 Gateways stay **pure read** helpers: inject **`assetDB`** (or a narrow interface), return normalized types. **`DeferredCache`** and **`InternalCache`** live in each lambda and own **per-invocation** policy: batching, **`clear()`**, **`flush()`**, and **when to invalidate**.

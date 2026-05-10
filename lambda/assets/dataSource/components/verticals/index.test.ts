@@ -2,6 +2,22 @@ import { componentVerticalsDataSource } from './index'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 
+const minimalRoomNdjson = (params: {
+    universalKey: string
+    dataCategory: string
+    from?: string
+}) => ({
+    AssetId: params.universalKey,
+    DataCategory: params.dataCategory,
+    key: 'r1',
+    universalKey: params.universalKey,
+    tag: 'Room' as const,
+    shortName: 'Room',
+    exits: [] as { reference: { tag: 'Room'; key: string }; payload: string }[],
+    examples: [{ key: 'base', tag: 'Example' as const }],
+    ...(params.from ? { from: params.from } : {}),
+})
+
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     assetDB: {
         putItem: jest.fn(),
@@ -30,12 +46,19 @@ jest.mock('../../../messageBus', () => ({
     subscribe: jest.fn(),
 }))
 
+jest.mock('../../../internalCache', () => ({
+    __esModule: true,
+    default: {
+        ComponentVerticals: { invalidate: jest.fn() },
+    },
+}))
+
 const assetDBMock = jest.mocked(assetDB, { shallow: false })
 
 describe('ComponentVerticalsDataSource (mtw.assets.components.verticals)', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        assetDBMock.query.mockResolvedValue([])
+        assetDBMock.query.mockResolvedValue([] as any)
         assetDBMock.putItem.mockResolvedValue(undefined as any)
         assetDBMock.deleteItem.mockResolvedValue(undefined as any)
     })
@@ -81,6 +104,13 @@ describe('ComponentVerticalsDataSource (mtw.assets.components.verticals)', () =>
         const streamEnvelope = jest.fn().mockResolvedValue(undefined)
 
         it('writes Meta::Import hop when Component Updated has _from and no prior row', async () => {
+            assetDBMock.query.mockResolvedValue([
+                minimalRoomNdjson({
+                    universalKey: 'ROOM#r1',
+                    dataCategory: 'ASSET#childB',
+                    from: 'ASSET#parentA',
+                }),
+            ] as any)
             const room = new StandardRoom({
                 tag: 'Room',
                 universalKey: 'ROOM#r1',
@@ -105,7 +135,7 @@ describe('ComponentVerticalsDataSource (mtw.assets.components.verticals)', () =>
             expect(assetDBMock.query).toHaveBeenCalledWith(
                 expect.objectContaining({
                     Key: { AssetId: 'ROOM#r1' },
-                    ExpressionAttributeValues: expect.objectContaining({ ':prefix': 'Meta::Import::' }),
+                    allFields: true,
                 })
             )
             expect(assetDBMock.deleteItem).not.toHaveBeenCalled()
@@ -117,11 +147,16 @@ describe('ComponentVerticalsDataSource (mtw.assets.components.verticals)', () =>
 
         it('deletes prior hop and writes new parent when import parent changes', async () => {
             assetDBMock.query.mockResolvedValue([
+                minimalRoomNdjson({
+                    universalKey: 'ROOM#r1',
+                    dataCategory: 'ASSET#childB',
+                    from: 'ASSET#newPar',
+                }),
                 {
                     AssetId: 'ROOM#r1',
                     DataCategory: 'Meta::Import::oldPar::childB',
                 },
-            ])
+            ] as any)
 
             const room = new StandardRoom({
                 tag: 'Room',
@@ -160,7 +195,7 @@ describe('ComponentVerticalsDataSource (mtw.assets.components.verticals)', () =>
                     AssetId: 'ROOM#r1',
                     DataCategory: 'Meta::Import::parentA::childB',
                 },
-            ])
+            ] as any)
 
             const room = new StandardRoom({
                 tag: 'Room',
@@ -192,11 +227,15 @@ describe('ComponentVerticalsDataSource (mtw.assets.components.verticals)', () =>
 
         it('clears import by deleting hop when Updated has no _from', async () => {
             assetDBMock.query.mockResolvedValue([
+                minimalRoomNdjson({
+                    universalKey: 'ROOM#r1',
+                    dataCategory: 'ASSET#childB',
+                }),
                 {
                     AssetId: 'ROOM#r1',
                     DataCategory: 'Meta::Import::parentA::childB',
                 },
-            ])
+            ] as any)
 
             const room = new StandardRoom({
                 tag: 'Room',
@@ -224,6 +263,13 @@ describe('ComponentVerticalsDataSource (mtw.assets.components.verticals)', () =>
         })
 
         it('Component Republished writes hop like Updated', async () => {
+            assetDBMock.query.mockResolvedValue([
+                minimalRoomNdjson({
+                    universalKey: 'ROOM#r1',
+                    dataCategory: 'ASSET#childB',
+                    from: 'ASSET#parentA',
+                }),
+            ] as any)
             const room = new StandardRoom({
                 tag: 'Room',
                 universalKey: 'ROOM#r1',

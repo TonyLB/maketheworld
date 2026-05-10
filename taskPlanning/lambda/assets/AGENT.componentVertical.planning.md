@@ -227,7 +227,7 @@ The **editor** is being built to tolerate **concurrent edits** to underlying imp
 
 **Implementation backlog** (design locked; code not landed)
 
-- [ ] Implement and wire cycle detection + hop omission in **`mtw-gateways`**, then integrate **`projectImportVerticalHop`**, heal, and diagnostics (schedule TBD).
+- [X] Implement and wire cycle detection + hop omission in **`mtw-gateways`**, then integrate **`projectImportVerticalHop`**, **`HealComponentVertical`**, and diagnostics (**diagnostics sweep + subscription-driven heal** still open).
 
 ---
 
@@ -265,8 +265,8 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to neste
 - [X] Document **import-diff** rules and **idempotency** (relationship to [`cacheAsset`](../../../lambda/assets/dataSource/caching/cacheAsset.ts); single writer expectations); **decache** / removal behavior for vertical rows.
 - [X] **Read-only gateway for vertical index:** Implement the **`mtw-gateways`** read surface for **`Meta::Import::...`** (see [**Read-only gateway for vertical storage**](#read-only-gateway-for-vertical-storage) above): **`Query`**, normalization, key builders, tests; update [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) ownership table (**Authoritative writer** = [`lambda/assets/dataSource/components/verticals/`](../../../lambda/assets/dataSource/components/verticals/)).
 - [ ] **Backfill / heal / diagnostics** (spec: [**Backfill, healing, and diagnostics (planned)**](#backfill-healing-and-diagnostics-planned); decisions: [**Open decisions and unknowns for heal and diagnostics**](#open-decisions-and-unknowns-for-heal-and-diagnostics)):
-    - [ ] **Cycle salvage:** Implement the locked **`mtw-gateways`** pipeline (expected hops, SCC detection via **`Graph` / `topologicalSort`**, deterministic hop omission per [**Cycles (imports)**](#cycles-imports)); wire **`projectImportVerticalHop`** first, then **`HealComponentVertical`**, diagnostics sweep, and subscription-driven heal so every path calls the **same** helper (see **Decisions (locked)** **Cycle salvage pipeline (confirmed)** and [**Implementation backlog**](#implementation-backlog-design-locked-code-not-landed) above).
-    - [ ] **`HealComponentVertical`** on **`api.assets`** + shared heal helper under **`verticals/`**.
+    - [X] **Cycle salvage:** Implement the locked **`mtw-gateways`** pipeline (expected hops, SCC detection via **`Graph` / `topologicalSort`**, deterministic hop omission per [**Cycles (imports)**](#cycles-imports)); wire **`projectImportVerticalHop`** first, then **`HealComponentVertical`**, diagnostics sweep, and subscription-driven heal so every path calls the **same** helper (see **Decisions (locked)** **Cycle salvage pipeline (confirmed)** and [**Implementation backlog**](#implementation-backlog-design-locked-code-not-landed) above).
+    - [X] **`HealComponentVertical`** on **`api.assets`** + shared heal helper under **`verticals/`**.
     - [ ] Diagnostics **`assetId`** sweep emitting **`Component Vertical Misaligned Finding`**; **`mtw-interfaces`** contract + serializer.
     - [ ] **`mtw.assets.components.verticals`** subscribes to that finding and runs the same heal path.
     - [ ] **Backfill** existing assets via sweep + findings and/or bulk **`api.assets`** invokes.
@@ -292,6 +292,7 @@ When implementation exists, record **exact** commands here (cwd + runner). Until
 
 - [X] Unit tests for **`dataSource/components/verticals`** pass: `cd lambda/assets && npm test -- --testPathPattern=dataSource/components/verticals`
 - [X] **`Meta::Import`** read gateway tests: `cd packages/mtw-gateways && npm test -- --testPathPattern=ts/assets/components/verticals` (see [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md)). Assembly / merge golden tests and **`fetchImportDefaults`** verification live under [`AGENT.componentAggregate.planning.md`](./AGENT.componentAggregate.planning.md) **Verification**.
+- [X] **`mtw.assets`** **`api.assets`** **`HealComponentVertical`** routing: `cd lambda/assets && npm test -- --testPathPattern=dataSource/index.test`
 
 ---
 
