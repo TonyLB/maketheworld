@@ -1,10 +1,14 @@
 import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
+import type { AuthoritativeComponentData } from '../assetMeta/dynamoStandardComponents'
+import { componentRowsFromAuthoritativeComponentData } from '../assetMeta/dynamoStandardComponents'
 import { classifyImportVerticalSets } from './importVerticalClassification'
 import { META_IMPORT_PREFIX, metaImportDataCategory } from './keys'
-import { componentRowsFromUniversalPartitionLines } from './partitionComponentRows'
 import { deriveRawImportVerticalHopsFromComponents, salvageImportVerticalHops } from './salvage'
+
+/** Same shape as {@link AuthoritativeComponentData}; stable name for import-vertical analyzer deps. */
+export type ImportVerticalAuthoritativeComponentData = AuthoritativeComponentData
 
 /**
  * Import-vertical consistency orchestration (authoritative partition vs `Meta::Import::...` projection).
@@ -18,16 +22,16 @@ export type ImportVerticalUniversalPartitionRow = StandardComponentData & {
 }
 
 /**
- * Loads authoritative cached component lines for one universal component partition (same envelope as
- * `syncImportVerticalPartition` / diagnostics sweep).
+ * Loads authoritative parsed components per universal id (same contract as assets lambda
+ * `internalCache.ComponentData.get`).
  */
-export interface ImportVerticalAuthoritativePartitionLoader {
-    loadPartitionRows(universalKey: EphemeraId): Promise<ReadonlyArray<ImportVerticalUniversalPartitionRow>>
+export interface ImportVerticalAuthoritativeComponentDataLoader {
+    get(ComponentIds: EphemeraId[]): Promise<ReadonlyArray<ImportVerticalAuthoritativeComponentData>>
 }
 
 /**
  * Loads projected `Meta::Import::...` index rows for the same partition (repair/delete targets).
- * Callers may use the same storage snapshot as {@link ImportVerticalAuthoritativePartitionLoader} (e.g. one
+ * Callers may use the same storage snapshot as {@link ImportVerticalAuthoritativeComponentDataLoader} (e.g. one
  * shared `Query` promise) or separate reads; `check()` still defensively filters using the `Meta::Import::...`
  * prefix from **`keys`** (`META_IMPORT_PREFIX`).
  */
@@ -36,7 +40,7 @@ export interface ImportVerticalMetaImportProjectionLoader {
 }
 
 export type ImportVerticalConsistencyAnalyzerDeps = {
-    authoritativePartition: ImportVerticalAuthoritativePartitionLoader
+    authoritativeComponentData: ImportVerticalAuthoritativeComponentDataLoader
     metaImportProjection: ImportVerticalMetaImportProjectionLoader
 }
 
@@ -62,15 +66,21 @@ export class ImportVerticalConsistencyAnalyzer {
      * Loads via injected deps, runs derive/salvage/meta category pipeline, classifies, and stores findings.
      */
     async check(universalKey: EphemeraId): Promise<void> {
-        const [partitionRows, metaRowsRaw] = await Promise.all([
-            this.deps.authoritativePartition.loadPartitionRows(universalKey),
+        const [cacheEntries, metaRowsRaw] = await Promise.all([
+            this.deps.authoritativeComponentData.get([universalKey]),
             this.deps.metaImportProjection.loadMetaImportRows(universalKey),
         ])
         const metaRows = metaRowsRaw.filter(
             (r) => typeof r.DataCategory === 'string' && r.DataCategory.startsWith(META_IMPORT_PREFIX)
         )
 
-        const componentRows = componentRowsFromUniversalPartitionLines(partitionRows)
+        const authoritativeEntry =
+            cacheEntries[0] ??
+            ({
+                ComponentId: universalKey,
+                byAssets: [],
+            } satisfies AuthoritativeComponentData)
+        const componentRows = componentRowsFromAuthoritativeComponentData(authoritativeEntry)
         const raw = deriveRawImportVerticalHopsFromComponents(componentRows)
         const salvaged = salvageImportVerticalHops(raw)
 

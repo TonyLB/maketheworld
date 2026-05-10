@@ -10,7 +10,8 @@ export type { MetaImportStrippedIds } from './keys'
 export { aggregateMisalignmentStatuses, classifyImportVerticalSets } from './importVerticalClassification'
 export {
     ImportVerticalConsistencyAnalyzer,
-    type ImportVerticalAuthoritativePartitionLoader,
+    type ImportVerticalAuthoritativeComponentData,
+    type ImportVerticalAuthoritativeComponentDataLoader,
     type ImportVerticalConsistencyAnalyzerDeps,
     type ImportVerticalConsistencyClassification,
     type ImportVerticalConsistencyFindings,
@@ -21,4 +22,9 @@ export type { ImportVerticalHop, ImportVerticalAssetDB } from './fetch'
 export { queryImportVerticalMeta } from './fetch'
 export type { RawImportVerticalHop } from './salvage'
 export { deriveRawImportVerticalHopsFromComponents, salvageImportVerticalHops } from './salvage'
-export { componentRowsFromUniversalPartitionLines } from './partitionComponentRows'
+export type { AuthoritativeComponentData } from '../assetMeta/dynamoStandardComponents'
+export {
+    authoritativeComponentDataFromUniversalPartitionRows,
+    componentRowsFromAuthoritativeComponentData,
+    componentRowsFromUniversalPartitionLines,
+} from '../assetMeta/dynamoStandardComponents'

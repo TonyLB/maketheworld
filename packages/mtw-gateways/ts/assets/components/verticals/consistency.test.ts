@@ -1,10 +1,11 @@
 import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { metaImportDataCategory } from './keys'
 import {
     ImportVerticalConsistencyAnalyzer,
     type ImportVerticalConsistencyAnalyzerDeps,
     type ImportVerticalUniversalPartitionRow,
 } from './consistency'
+import { metaImportDataCategory } from './keys'
+import { authoritativeComponentDataFromUniversalPartitionRows } from '../assetMeta/dynamoStandardComponents'
 
 const universalKey = 'ROOM#r1' as EphemeraId
 
@@ -25,7 +26,7 @@ function ndjsonRoomLine(childAssetId: string, fromParent: string): ImportVertica
 describe('ImportVerticalConsistencyAnalyzer', () => {
     it('throws when reading findings before check', () => {
         const deps: ImportVerticalConsistencyAnalyzerDeps = {
-            authoritativePartition: { loadPartitionRows: async () => [] },
+            authoritativeComponentData: { get: async () => [] },
             metaImportProjection: { loadMetaImportRows: async () => [] },
         }
         const analyzer = new ImportVerticalConsistencyAnalyzer(deps)
@@ -37,9 +38,10 @@ describe('ImportVerticalConsistencyAnalyzer', () => {
         const parent = 'ASSET#parentA'
         const expectedDc = metaImportDataCategory({ parentAssetId: parent, childAssetId: child })
         const partitionRow = ndjsonRoomLine(child, parent)
+        const auth = authoritativeComponentDataFromUniversalPartitionRows(universalKey, [partitionRow])
 
         const deps: ImportVerticalConsistencyAnalyzerDeps = {
-            authoritativePartition: { loadPartitionRows: async () => [partitionRow] },
+            authoritativeComponentData: { get: async () => [auth] },
             metaImportProjection: {
                 loadMetaImportRows: async () => [{ DataCategory: expectedDc }],
             },
@@ -56,9 +58,10 @@ describe('ImportVerticalConsistencyAnalyzer', () => {
         const child = 'ASSET#childB'
         const parent = 'ASSET#parentA'
         const partitionRow = ndjsonRoomLine(child, parent)
+        const auth = authoritativeComponentDataFromUniversalPartitionRows(universalKey, [partitionRow])
 
         const deps: ImportVerticalConsistencyAnalyzerDeps = {
-            authoritativePartition: { loadPartitionRows: async () => [partitionRow] },
+            authoritativeComponentData: { get: async () => [auth] },
             metaImportProjection: { loadMetaImportRows: async () => [] },
         }
         const analyzer = new ImportVerticalConsistencyAnalyzer(deps)
@@ -71,7 +74,11 @@ describe('ImportVerticalConsistencyAnalyzer', () => {
 
     it('classifies orphan when index has extra Meta row', async () => {
         const deps: ImportVerticalConsistencyAnalyzerDeps = {
-            authoritativePartition: { loadPartitionRows: async () => [] },
+            authoritativeComponentData: {
+                get: async () => [
+                    authoritativeComponentDataFromUniversalPartitionRows(universalKey, []),
+                ],
+            },
             metaImportProjection: {
                 loadMetaImportRows: async () => [{ DataCategory: 'Meta::Import::orphan::only' }],
             },
@@ -88,9 +95,10 @@ describe('ImportVerticalConsistencyAnalyzer', () => {
         const child = 'ASSET#childB'
         const parent = 'ASSET#parentA'
         const partitionRow = ndjsonRoomLine(child, parent)
+        const auth = authoritativeComponentDataFromUniversalPartitionRows(universalKey, [partitionRow])
 
         const deps: ImportVerticalConsistencyAnalyzerDeps = {
-            authoritativePartition: { loadPartitionRows: async () => [partitionRow] },
+            authoritativeComponentData: { get: async () => [auth] },
             metaImportProjection: {
                 loadMetaImportRows: async () => [{ DataCategory: 'Meta::Import::wrong::hop' }],
             },
@@ -105,7 +113,11 @@ describe('ImportVerticalConsistencyAnalyzer', () => {
 
     it('ignores non-Meta rows in metaImportProjection', async () => {
         const deps: ImportVerticalConsistencyAnalyzerDeps = {
-            authoritativePartition: { loadPartitionRows: async () => [] },
+            authoritativeComponentData: {
+                get: async () => [
+                    authoritativeComponentDataFromUniversalPartitionRows(universalKey, []),
+                ],
+            },
             metaImportProjection: {
                 loadMetaImportRows: async () => [
                     { DataCategory: 'Meta::Room' },

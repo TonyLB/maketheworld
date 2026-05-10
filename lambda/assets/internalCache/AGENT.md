@@ -10,7 +10,7 @@ The assets lambda exposes a per-invocation **[`InternalCache`](./index.ts)** sin
 
 | Property | Module | Notes |
 | --- | --- | --- |
-| **`ComponentData`** | [`componentData.ts`](./componentData.ts) | Universal-key partition reads for component authoring / `byAssets` views. |
+| **`ComponentData`** | [`componentData.ts`](./componentData.ts) | Universal-key partition reads for component authoring / `byAssets` views; NDJSON parse via [`authoritativeComponentDataFromUniversalPartitionRows`](../../../packages/mtw-gateways/ts/assets/components/assetMeta/dynamoStandardComponents.ts) in **`mtw-gateways`** **`assetMeta`**. |
 | **`ComponentVerticals`** | [`componentVerticals.ts`](./componentVerticals.ts) | `Meta::Import` hop envelope via [`queryImportVerticalMeta`](../../../packages/mtw-gateways/ts/assets/components/verticals/fetch.ts) keyed by universal component id. |
 | (others) | [`index.ts`](./index.ts) | Connection, asset meta, graph, library, sessions, etc. |
 

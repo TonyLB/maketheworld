@@ -5,13 +5,14 @@ import {
     DiagnosticsComponentVerticalMisalignedFindingEvent,
     DiagnosticsEventSerializer,
 } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
+import { authoritativeComponentDataFromUniversalPartitionRows } from '@tonylb/mtw-gateways/ts/assets/components/assetMeta'
 import {
     aggregateMisalignmentStatuses,
     classifyImportVerticalSets,
     ImportVerticalConsistencyAnalyzer,
+    queryImportVerticalMeta,
     type ImportVerticalConsistencyAnalyzerDeps,
     type ImportVerticalUniversalPartitionRow,
-    META_IMPORT_PREFIX,
 } from '@tonylb/mtw-gateways/ts/assets/components/verticals'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { publishStreamEvent, StreamEventPublisherSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/streamEventPublisher'
@@ -40,31 +41,20 @@ async function analyzeUniversalPartition(universalKey: EphemeraId): Promise<
     }
 
     const deps: ImportVerticalConsistencyAnalyzerDeps = {
-        authoritativePartition: {
-            loadPartitionRows: async (uk) => {
-                if (uk !== universalKey) {
-                    throw new Error(
-                        'analyzeUniversalPartition: loadPartitionRows called for unexpected universalKey'
-                    )
-                }
-                return ensureRows()
+        authoritativeComponentData: {
+            get: async (componentIds) => {
+                const rows = await ensureRows()
+                return componentIds.map((id) =>
+                    id === universalKey
+                        ? authoritativeComponentDataFromUniversalPartitionRows(id, rows)
+                        : authoritativeComponentDataFromUniversalPartitionRows(id, [])
+                )
             },
         },
         metaImportProjection: {
             loadMetaImportRows: async (uk) => {
-                if (uk !== universalKey) {
-                    throw new Error(
-                        'analyzeUniversalPartition: loadMetaImportRows called for unexpected universalKey'
-                    )
-                }
-                const rows = await ensureRows()
-                return rows
-                    .filter(
-                        (r) =>
-                            typeof r.DataCategory === 'string' &&
-                            r.DataCategory.startsWith(META_IMPORT_PREFIX)
-                    )
-                    .map((r) => ({ DataCategory: r.DataCategory }))
+                const hops = await queryImportVerticalMeta(assetDB, uk)
+                return hops.map((h) => ({ DataCategory: h.dataCategory }))
             },
         },
     }
