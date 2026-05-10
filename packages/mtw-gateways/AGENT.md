@@ -31,7 +31,7 @@ Each gateway in this package must have a row here. Add a row when a new gateway 
 | Gateway | Authoritative writer | Readers | Notes |
 | --- | --- | --- | --- |
 | **Component Asset Meta** | [`lambda/assets/dataSource/caching/`](../../lambda/assets/dataSource/caching/) ([`cacheAsset`](../../lambda/assets/dataSource/caching/cacheAsset.ts) maintains universal-key component rows in `assetDB`). | [`lambda/ephemera/internalCache/componentAssetMeta.ts`](../../lambda/ephemera/internalCache/componentAssetMeta.ts) imports [`ts/assets/components/assetMeta`](ts/assets/components/assetMeta/index.ts). | Pure helpers and injected `assetDB` reads; ephemera keeps `ComponentAssetMetaData` + `DeferredCache`. Deep import: `@tonylb/mtw-gateways/ts/assets/components/assetMeta`. |
-| **Component import vertical (`Meta::Import`)** | [`lambda/assets/dataSource/components/verticals/`](../../lambda/assets/dataSource/components/verticals/) (`mtw.assets.components.verticals`). | TBD (e.g. [`AGENT.componentAggregate.planning.md`](../../taskPlanning/lambda/assets/AGENT.componentAggregate.planning.md) assembly, diagnostics). | Key builders, `Query` envelope, normalized hop types. Deep import: `@tonylb/mtw-gateways/ts/assets/components/verticals`. Discoverability: [`readModel.ts`](../../lambda/assets/dataSource/components/verticals/readModel.ts). |
+| **Component import vertical (`Meta::Import`)** | [`lambda/assets/dataSource/components/verticals/`](../../lambda/assets/dataSource/components/verticals/) (`mtw.assets.components.verticals`). | [`lambda/assets/internalCache/componentVerticals.ts`](../../lambda/assets/internalCache/componentVerticals.ts); future aggregate / diagnostics (e.g. [`AGENT.componentAggregate.planning.md`](../../taskPlanning/lambda/assets/AGENT.componentAggregate.planning.md)). | Key builders, `Query` envelope, normalized hop types. Deep import: `@tonylb/mtw-gateways/ts/assets/components/verticals`. Discoverability: [`readModel.ts`](../../lambda/assets/dataSource/components/verticals/readModel.ts). |
 
 **Ownership rules:**
 
@@ -48,6 +48,27 @@ Each gateway in this package must have a row here. Add a row when a new gateway 
 5. **Update the ownership table** in this file in the same change that adds the gateway.
 6. **Document the reader's wiring** in the reader's `internalCache/AGENT.md` (or equivalent) rather than duplicating it here. This file describes the gateway; the reader's docs describe its `InternalCache` instance.
 7. **Tests** for the gateway live in this package and exercise the helpers in isolation (mock the data store). Integration tests stay in the consuming lambda.
+
+## Wrapping gateways in InternalCache (playbook)
+
+Gateways stay **pure read** helpers: inject **`assetDB`** (or a narrow interface), return normalized types. **`DeferredCache`** and **`InternalCache`** live in each lambda and own **per-invocation** policy: batching, **`clear()`**, **`flush()`**, and **when to invalidate**.
+
+**Checklist**
+
+1. **Choose the cache key** (one partition / one logical envelope per key is ideal; see **`ComponentData`** vs **`ComponentAssetMeta`** for contrasting shapes).
+2. **Implement `get`** using gateway exports + **`DeferredCache.add`** with **`promiseFactory`** / **`transform`** (mirror [`lambda/assets/internalCache/componentData.ts`](../../lambda/assets/internalCache/componentData.ts) or [`lambda/ephemera/internalCache/componentAssetMeta.ts`](../../lambda/ephemera/internalCache/componentAssetMeta.ts)).
+3. **Invalidate** when authoritative rows change: same lambda writers should call **`this._Cache.invalidate(cacheKey)`** on the **`DeferredCache` instance** after Dynamo writes (not `key in _Cache`, which does not apply to **`DeferredCache`**). Alternative heal paths that bypass the writer must invalidate explicitly.
+4. **Register** the handler on the lambda **`InternalCache`** singleton and include **`clear()`** on **`InternalCache.clear()`**.
+
+**Mechanics:** See [`packages/mtw-lambda-patterns/ts/internalCache/AGENT.md`](../mtw-lambda-patterns/ts/internalCache/AGENT.md) for **`DeferredCache`** behavior.
+
+**Canonical examples**
+
+| Lambda | Cache handler | Gateway |
+| --- | --- | --- |
+| Ephemera | [`componentAssetMeta.ts`](../../lambda/ephemera/internalCache/componentAssetMeta.ts) | [`ts/assets/components/assetMeta`](ts/assets/components/assetMeta/index.ts) |
+| Assets | [`componentData.ts`](../../lambda/assets/internalCache/componentData.ts) | (same component rows; mostly inline query today) |
+| Assets | [`componentVerticals.ts`](../../lambda/assets/internalCache/componentVerticals.ts) | [`ts/assets/components/verticals`](ts/assets/components/verticals/index.ts) |
 
 ## Component asset reads: ephemera vs assets
 
@@ -94,4 +115,5 @@ cd lambda/ephemera && npm test -- --testPathPattern componentAssetMeta
 - [`packages/mtw-lambda-patterns/ts/internalCache/AGENT.md`](../mtw-lambda-patterns/ts/internalCache/AGENT.md) - the `DeferredCache` and `InternalCache` patterns this package composes with.
 - [`lambda/ephemera/internalCache/componentAssetMeta.AGENT.md`](../../lambda/ephemera/internalCache/componentAssetMeta.AGENT.md) - prototype reader's current shape.
 - [`lambda/assets/internalCache/componentData.ts`](../../lambda/assets/internalCache/componentData.ts) - sibling reader on the assets lambda.
+- [`lambda/assets/internalCache/componentVerticals.ts`](../../lambda/assets/internalCache/componentVerticals.ts) - **`Meta::Import`** envelope cache (`DeferredCache` + [`ts/assets/components/verticals`](ts/assets/components/verticals/index.ts)).
 - [`lambda/assets/dataSource/components/verticals/AGENT.md`](../../lambda/assets/dataSource/components/verticals/AGENT.md) - authoritative writer for **`Meta::Import::...`**; shared read helpers in [`ts/assets/components/verticals`](ts/assets/components/verticals/index.ts).

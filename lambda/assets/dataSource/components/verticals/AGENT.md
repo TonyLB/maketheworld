@@ -23,6 +23,10 @@ Single-table assets store ([`assetDB`](../../../../../packages/mtw-utilities/ts/
 
 - **Reverse lookups** (“everything that depends on asset X” globally): **not** supported in v1; no reverse GSI is introduced with this DataSource. Follow-on if product needs global dependency walks.
 
+### Assets lambda cache (`internalCache.ComponentVerticals`)
+
+On the assets lambda, **[`internalCache.ComponentVerticals`](../../../internalCache/componentVerticals.ts)** caches **`queryImportVerticalMeta`** (from `@tonylb/mtw-gateways/ts/assets/components/verticals`) keyed by universal component id. **[`projectImportVerticalHop`](./projectImportVerticalHop.ts)** calls **`internalCache.ComponentVerticals.invalidate`** after mutating **`Meta::Import::...`** rows so later reads in the same invocation refetch. Any imperative heal or tooling that writes hops **without** going through **`projectImportVerticalHop`** must invalidate the same key (or call the shared projector helper).
+
 ## Write ownership
 
 Only **`mtw.assets.components.verticals`** writes or deletes **`Meta::Import::...`** rows. **`cacheAsset`** does not maintain these items; overlap would indicate a bug.
@@ -45,7 +49,7 @@ For each handled event, the projector **deletes** existing **`Meta::Import::...`
 
 **Removal:** When a component is **removed from the asset**, **`cacheAsset`** deletes the Dynamo component row **`(AssetId = universalKey, DataCategory = assetUUID)`** and emits **`Component Removed`**. The projector runs with **`Component Removed`** and **only deletes** hop rows for that child under the universal-key partition; it **does not** insert a new hop.
 
-**"Decache"** in this context means **authoritative Dynamo row removal plus the removal event**, not cache singleton invalidation inside this DataSource (this module does not own **`InternalCache`**).
+**"Decache"** in this context means **authoritative Dynamo row removal plus the removal event**. Read-side **`internalCache.ComponentVerticals`** invalidation is tied to **`projectImportVerticalHop`** on the assets lambda (see **Assets lambda cache** above), not to generic **`ComponentData`** invalidation.
 
 ## Maintenance rules (projector)
 
