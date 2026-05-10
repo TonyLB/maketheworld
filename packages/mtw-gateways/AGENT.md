@@ -14,13 +14,14 @@ What lives in this package:
 - **Pure read helpers**: `Query` / `GetItem` / `BatchGetItem` compositions, stable projection types, and DynamoDB row normalization.
 - **Key and prefix builders**: shared `AssetId` / `DataCategory` constructors so reader and writer agree on encoding (for example, mirroring the `Meta::Import::${parentStripped}::${childStripped}` encoding documented under [`lambda/assets/dataSource/components/verticals/AGENT.md`](../../lambda/assets/dataSource/components/verticals/AGENT.md)).
 - **Optional gateway factories**: `createXGateway(deps)` returning an object (`get`, `getAcrossAssets`, etc.) where `deps` inject the data-store interface (e.g. `assetDB`) so each lambda wires the gateway into its own per-invocation `InternalCache` once.
+- **Shared pure helpers for diagnostics and healing** (optional per gateway): deterministic functions---for example expected **`Meta::Import`** hop descriptors from **`StandardComponent`** state---so diagnostics sweeps, **`api.assets`** heal paths, and the live projector do not fork semantic rules. Co-locate under the same `ts/<area>/<name>/` tree as the read surface; see [**Shared helpers for diagnostics and healing**](#shared-helpers-for-diagnostics-and-healing).
 
 What stays out (see **Non-goals** below): cache singletons, `clear()` / `flush()` orchestration, and **any** write paths.
 
 ## Non-goals
 
 - **No cross-lambda cache coherence.** Each lambda keeps its own per-invocation `InternalCache` singleton. Reading via a shared gateway does not synchronize state across lambdas; if two lambdas need consistent values they coordinate via events, not via this package.
-- **No DataSource write logic.** All mutating helpers (puts, deletes, projection maintenance) stay in the authoritative `lambda/<owner>/dataSource/...` location. A gateway is a **read alias only**; if you find yourself writing here, the code belongs in the owner.
+- **No DataSource write logic.** All mutating helpers (puts, deletes, projection maintenance, orchestrating heals) stay in the authoritative `lambda/<owner>/dataSource/...` location. A gateway is a **read alias only** for Dynamo I/O; **pure** projection helpers used *before* writes (expected hops, diff inputs) may still live here---see [**Shared helpers for diagnostics and healing**](#shared-helpers-for-diagnostics-and-healing).
 - **No `DeferredCache` redefinition.** `mtw-gateways` **composes** with the `DeferredCache` and surrounding patterns in [`packages/mtw-lambda-patterns/ts/internalCache/AGENT.md`](../mtw-lambda-patterns/ts/internalCache/AGENT.md); it does not fork or replace them.
 - **No replacement for area `AGENT.md` files.** Gateway docs in this package describe the **gateway surface**. Steady-state architecture for the underlying projection still lives next to the writer (e.g. assets verticals `AGENT.md`).
 
@@ -31,7 +32,7 @@ Each gateway in this package must have a row here. Add a row when a new gateway 
 | Gateway | Authoritative writer | Readers | Notes |
 | --- | --- | --- | --- |
 | **Component Asset Meta** | [`lambda/assets/dataSource/caching/`](../../lambda/assets/dataSource/caching/) ([`cacheAsset`](../../lambda/assets/dataSource/caching/cacheAsset.ts) maintains universal-key component rows in `assetDB`). | [`lambda/ephemera/internalCache/componentAssetMeta.ts`](../../lambda/ephemera/internalCache/componentAssetMeta.ts) imports [`ts/assets/components/assetMeta`](ts/assets/components/assetMeta/index.ts). | Pure helpers and injected `assetDB` reads; ephemera keeps `ComponentAssetMetaData` + `DeferredCache`. Deep import: `@tonylb/mtw-gateways/ts/assets/components/assetMeta`. |
-| **Component import vertical (`Meta::Import`)** | [`lambda/assets/dataSource/components/verticals/`](../../lambda/assets/dataSource/components/verticals/) (`mtw.assets.components.verticals`). | [`lambda/assets/internalCache/componentVerticals.ts`](../../lambda/assets/internalCache/componentVerticals.ts); future aggregate / diagnostics (e.g. [`AGENT.componentAggregate.planning.md`](../../taskPlanning/lambda/assets/AGENT.componentAggregate.planning.md)). | Key builders, `Query` envelope, normalized hop types. Deep import: `@tonylb/mtw-gateways/ts/assets/components/verticals`. Discoverability: [`readModel.ts`](../../lambda/assets/dataSource/components/verticals/readModel.ts). |
+| **Component import vertical (`Meta::Import`)** | [`lambda/assets/dataSource/components/verticals/`](../../lambda/assets/dataSource/components/verticals/) (`mtw.assets.components.verticals`). | [`lambda/assets/internalCache/componentVerticals.ts`](../../lambda/assets/internalCache/componentVerticals.ts); future aggregate / diagnostics (e.g. [`AGENT.componentAggregate.planning.md`](../../taskPlanning/lambda/assets/AGENT.componentAggregate.planning.md)). | Key builders, `Query` envelope, normalized hop types; optional **pure** diagnostics/heal helpers per [**Shared helpers for diagnostics and healing**](#shared-helpers-for-diagnostics-and-healing). Deep import: `@tonylb/mtw-gateways/ts/assets/components/verticals`. Discoverability: [`readModel.ts`](../../lambda/assets/dataSource/components/verticals/readModel.ts). |
 
 **Ownership rules:**
 
@@ -48,6 +49,22 @@ Each gateway in this package must have a row here. Add a row when a new gateway 
 5. **Update the ownership table** in this file in the same change that adds the gateway.
 6. **Document the reader's wiring** in the reader's `internalCache/AGENT.md` (or equivalent) rather than duplicating it here. This file describes the gateway; the reader's docs describe its `InternalCache` instance.
 7. **Tests** for the gateway live in this package and exercise the helpers in isolation (mock the data store). Integration tests stay in the consuming lambda.
+
+## Shared helpers for diagnostics and healing
+
+Some consumers need **the same rules as the writer** without issuing Dynamo writes: compare authoritative component state to **`Meta::Import`** rows, drive **`HealComponentVertical`** on **`api.assets`**, or align diagnostics findings with repair actions (**insert** / **update** / **delete**).
+
+This package may expose **pure, deterministic** helpers next to the relevant gateway module (same directory as [`ts/assets/components/verticals`](ts/assets/components/verticals/index.ts), etc.):
+
+- **Inputs / outputs only** (typically **`StandardComponent`** or stored component JSON in memory, plus derived hop keys). No **`assetDB`** calls inside these helpers unless they are clearly part of an existing **`query`** helper.
+- **No heal orchestration** (no **`api.assets`** invokes, no EventBridge publish). Lambdas and DataSources own side effects.
+- **Tests** in this package mirror gateway tests: unit-test the pure functions in isolation.
+
+The authoritative writer remains the single owner of **what gets written**; shared helpers are the single owner of **how to derive expected vertical facts from component state** when that logic must be reused.
+
+When imports imply a **directed cycle**, pure helpers may also encode **deterministic index salvage** (e.g. omit one expected hop so projection stays acyclic)---same semantics as [`lambda/assets/dataSource/components/verticals/AGENT.md`](../../lambda/assets/dataSource/components/verticals/AGENT.md) (**Cycles**); index may temporarily diverge from **`_from`**.
+
+**Implementation:** Salvage belongs in this package's **pure** helpers (writer, heal, and diagnostics call the same pipeline). For **detecting** cycles before applying the omission rule, prefer **`@tonylb/mtw-utilities`** **`Graph`** + **`topologicalSort`** ([`packages/mtw-utilities/ts/graphStorage/utils/graph/topologicalSort.ts`](../mtw-utilities/ts/graphStorage/utils/graph/topologicalSort.ts))---Tarjan SCCs; multi-node components indicate cycles (see tests in the same directory). Avoid duplicating Tarjan or ad-hoc DFS unless there is a hard dependency boundary.
 
 ## Wrapping gateways in InternalCache (playbook)
 

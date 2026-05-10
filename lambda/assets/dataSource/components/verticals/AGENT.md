@@ -71,6 +71,14 @@ Subscribes to **`mtw.assets`**:
 
 See **[`subscribedEvents.ts`](./subscribedEvents.ts)**.
 
+## Cycles (imports)
+
+Cross-asset cycles can appear after **`wml`** commits edits **`assets`** did not reject; see [**Cycles (imports)** in task planning](../../../../../taskPlanning/lambda/assets/AGENT.componentVertical.planning.md#cycles-imports).
+
+**Proper fix:** Prevent cycles at **`wml`** acceptance when enough cross-asset graph is visible---deferred work in [`lambda/wml/AGENT.importCycles.future.md`](../../../../wml/AGENT.importCycles.future.md).
+
+**Index-only last resort (`assets`):** If authoritative **`_from`** imply a **directed cycle**, **`Meta::Import`** projection may **omit one hop** deterministically (e.g. drop the hop with **minimum parent** asset id under string sort of stripped `ASSET#` ids, tie-break on **child**) so the stored vertical envelope stays **acyclic** for bounded **`Query`**. That hop **may not match** **`_from`** until authoring fixes imports; this DataSource does **not** edit component rows. Shared **`mtw-gateways`** helpers, **`projectImportVerticalHop`**, and heal must use the **same** rule. Cycle detection should reuse **`@tonylb/mtw-utilities`** **`Graph`** / **`topologicalSort`** (SCCs) rather than new graph logic; see task planning **Still open** and **`packages/mtw-gateways/AGENT.md`** (**Shared helpers**).
+
 ## Related documentation
 
 - Assets event mesh overview: [`../../../AGENT.event.md`](../../../AGENT.event.md)
