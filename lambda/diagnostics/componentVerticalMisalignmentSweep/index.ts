@@ -8,11 +8,10 @@ import {
 import {
     aggregateMisalignmentStatuses,
     classifyImportVerticalSets,
-    componentRowsFromUniversalPartitionLines,
-    deriveRawImportVerticalHopsFromComponents,
+    ImportVerticalConsistencyAnalyzer,
+    type ImportVerticalConsistencyAnalyzerDeps,
+    type ImportVerticalUniversalPartitionRow,
     META_IMPORT_PREFIX,
-    metaImportDataCategory,
-    salvageImportVerticalHops,
 } from '@tonylb/mtw-gateways/ts/assets/components/verticals'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { publishStreamEvent, StreamEventPublisherSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/streamEventPublisher'
@@ -27,32 +26,52 @@ export { aggregateMisalignmentStatuses, classifyImportVerticalSets } from '@tony
 async function analyzeUniversalPartition(universalKey: EphemeraId): Promise<
     'aligned' | 'missing' | 'orphan' | 'stale'
 > {
-    const rows =
-        (await assetDB.query<StandardComponentData & { AssetId: string; DataCategory: string }>({
-            Key: { AssetId: universalKey },
-            allFields: true,
-        })) || []
+    let rowsPromise: Promise<ReadonlyArray<ImportVerticalUniversalPartitionRow>> | undefined
+    const ensureRows = () => {
+        rowsPromise ??= (async () => {
+            const rows =
+                (await assetDB.query<ImportVerticalUniversalPartitionRow>({
+                    Key: { AssetId: universalKey },
+                    allFields: true,
+                })) || []
+            return rows
+        })()
+        return rowsPromise
+    }
 
-    const componentRows = componentRowsFromUniversalPartitionLines(rows)
+    const deps: ImportVerticalConsistencyAnalyzerDeps = {
+        authoritativePartition: {
+            loadPartitionRows: async (uk) => {
+                if (uk !== universalKey) {
+                    throw new Error(
+                        'analyzeUniversalPartition: loadPartitionRows called for unexpected universalKey'
+                    )
+                }
+                return ensureRows()
+            },
+        },
+        metaImportProjection: {
+            loadMetaImportRows: async (uk) => {
+                if (uk !== universalKey) {
+                    throw new Error(
+                        'analyzeUniversalPartition: loadMetaImportRows called for unexpected universalKey'
+                    )
+                }
+                const rows = await ensureRows()
+                return rows
+                    .filter(
+                        (r) =>
+                            typeof r.DataCategory === 'string' &&
+                            r.DataCategory.startsWith(META_IMPORT_PREFIX)
+                    )
+                    .map((r) => ({ DataCategory: r.DataCategory }))
+            },
+        },
+    }
 
-    const raw = deriveRawImportVerticalHopsFromComponents(componentRows)
-    const salvaged = salvageImportVerticalHops(raw)
-
-    const expectedCategories = new Set(
-        salvaged.map((h) =>
-            metaImportDataCategory({
-                parentAssetId: h.parentAssetId,
-                childAssetId: h.childAssetId,
-            })
-        )
-    )
-
-    const existingMetaRows = rows.filter(
-        (r) => typeof r.DataCategory === 'string' && r.DataCategory.startsWith(META_IMPORT_PREFIX)
-    )
-    const existingCategories = new Set(existingMetaRows.map((r) => r.DataCategory))
-
-    return classifyImportVerticalSets(expectedCategories, existingCategories)
+    const analyzer = new ImportVerticalConsistencyAnalyzer(deps)
+    await analyzer.check(universalKey)
+    return analyzer.getClassification()
 }
 
 /**

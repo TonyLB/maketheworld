@@ -27,8 +27,9 @@ export interface ImportVerticalAuthoritativePartitionLoader {
 
 /**
  * Loads projected `Meta::Import::...` index rows for the same partition (repair/delete targets).
- * Implementations typically wrap the same `assetDB.query` as {@link ImportVerticalAuthoritativePartitionLoader}
- * with a memoized wrapper so Dynamo is not hit twice.
+ * Callers may use the same storage snapshot as {@link ImportVerticalAuthoritativePartitionLoader} (e.g. one
+ * shared `Query` promise) or separate reads; `check()` still defensively filters using the `Meta::Import::...`
+ * prefix from **`keys`** (`META_IMPORT_PREFIX`).
  */
 export interface ImportVerticalMetaImportProjectionLoader {
     loadMetaImportRows(universalKey: EphemeraId): Promise<ReadonlyArray<{ DataCategory: string }>>

@@ -1,51 +1,63 @@
 import { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
-    componentRowsFromUniversalPartitionLines,
-    deriveRawImportVerticalHopsFromComponents,
-    metaImportDataCategory,
-    salvageImportVerticalHops,
+    ImportVerticalConsistencyAnalyzer,
+    type ImportVerticalConsistencyAnalyzerDeps,
+    type ImportVerticalUniversalPartitionRow,
+    META_IMPORT_PREFIX,
 } from '@tonylb/mtw-gateways/ts/assets/components/verticals'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import type { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import internalCache from '../../../internalCache'
-
-const META_IMPORT_PREFIX = 'Meta::Import::'
 
 /**
  * Reconciles all `Meta::Import::...` rows for one universal component partition from authoritative
  * cached component rows (same derivation as live projector + heal).
  */
 export async function syncImportVerticalPartition(universalKey: EphemeraId): Promise<void> {
-    const rows =
-        (await assetDB.query<StandardComponentData & { AssetId: string; DataCategory: string }>({
-            Key: { AssetId: universalKey },
-            allFields: true,
-        })) || []
+    let rowsPromise: Promise<ReadonlyArray<ImportVerticalUniversalPartitionRow>> | undefined
+    const ensureRows = () => {
+        rowsPromise ??= (async () => {
+            const rows =
+                (await assetDB.query<ImportVerticalUniversalPartitionRow>({
+                    Key: { AssetId: universalKey },
+                    allFields: true,
+                })) || []
+            return rows
+        })()
+        return rowsPromise
+    }
 
-    const componentRows = componentRowsFromUniversalPartitionLines(rows)
+    const deps: ImportVerticalConsistencyAnalyzerDeps = {
+        authoritativePartition: {
+            loadPartitionRows: async (uk) => {
+                if (uk !== universalKey) {
+                    throw new Error('syncImportVerticalPartition: loadPartitionRows called for unexpected universalKey')
+                }
+                return ensureRows()
+            },
+        },
+        metaImportProjection: {
+            loadMetaImportRows: async (uk) => {
+                if (uk !== universalKey) {
+                    throw new Error('syncImportVerticalPartition: loadMetaImportRows called for unexpected universalKey')
+                }
+                const rows = await ensureRows()
+                return rows
+                    .filter(
+                        (r) =>
+                            typeof r.DataCategory === 'string' &&
+                            r.DataCategory.startsWith(META_IMPORT_PREFIX)
+                    )
+                    .map((r) => ({ DataCategory: r.DataCategory }))
+            },
+        },
+    }
 
-    const raw = deriveRawImportVerticalHopsFromComponents(componentRows)
-    const salvaged = salvageImportVerticalHops(raw)
-
-    const expectedCategories = new Set(
-        salvaged.map((h) =>
-            metaImportDataCategory({
-                parentAssetId: h.parentAssetId,
-                childAssetId: h.childAssetId,
-            })
-        )
-    )
-
-    const existingMetaRows = rows.filter(
-        (r) => typeof r.DataCategory === 'string' && r.DataCategory.startsWith(META_IMPORT_PREFIX)
-    )
-    const existingCategories = new Set(existingMetaRows.map((r) => r.DataCategory))
-
-    const toDelete = existingMetaRows.filter((r) => !expectedCategories.has(r.DataCategory))
-    const toPut = [...expectedCategories].filter((dc) => !existingCategories.has(dc))
+    const analyzer = new ImportVerticalConsistencyAnalyzer(deps)
+    await analyzer.check(universalKey)
+    const { categoriesToAdd, metaRowsToDelete } = analyzer.getFindings()
 
     await Promise.all(
-        toDelete.map((r) =>
+        metaRowsToDelete.map((r) =>
             assetDB.deleteItem({
                 AssetId: universalKey,
                 DataCategory: r.DataCategory,
@@ -54,7 +66,7 @@ export async function syncImportVerticalPartition(universalKey: EphemeraId): Pro
     )
 
     await Promise.all(
-        toPut.map((DataCategory) =>
+        categoriesToAdd.map((DataCategory) =>
             assetDB.putItem({
                 AssetId: universalKey,
                 DataCategory,

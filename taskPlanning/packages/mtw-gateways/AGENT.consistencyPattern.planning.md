@@ -80,6 +80,19 @@ Exact names are **TBD** during implementation; the plan locks **separation of co
 1. **`@tonylb/mtw-gateways`** must **not** import concrete **`InternalCache`** modules from **`lambda/...`**.
 2. Injection interfaces should depend only on **shared types** (e.g. `EphemeraId`, row shapes from **`mtw-wml`** / interfaces) and **`Promise`** return types. Prefer **several** small interfaces (see [**Decisions (locked)**](#decisions-locked), **Constructor deps shape**) so lambdas can **satisfy** them with cache surfaces **or** thin wrappers.
 3. Lambdas **construct** adapter objects that close over **`InternalCache`**, `assetDB`, or both; the analyzer depends only on the **structural** contract, not the concrete cache class.
+4. **Composition stays in lambdas.** Do **not** add exported wiring helpers from **`mtw-gateways`** that encode one lambda's Dynamo or cache strategy as the canonical way to build **`ImportVerticalConsistencyAnalyzerDeps`** (see [**Consistency analyzers: contract vs composition**](../../../packages/mtw-gateways/AGENT.md#consistency-analyzers-contract-vs-composition) in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md)). Performance concerns (e.g. **`check()`** parallel loaders) are addressed at the **call site**, not by blessing a shared orchestration layer in the package.
+
+---
+
+## Future work (assets lambda only): shared universal-key partition fetch
+
+**Out of scope for gateway package work**, but relevant when **`ImportVerticalConsistencyAnalyzer`** is wired from **`lambda/assets`**.
+
+Today **[`internalCache.ComponentData`](../../../lambda/assets/internalCache/componentData.ts)** and **[`internalCache.ComponentVerticals`](../../../lambda/assets/internalCache/componentVerticals.ts)** can each trigger Dynamo reads against the **same** universal component partition; an invocation that touches both may **double-query**.
+
+**Direction (recorded in [`lambda/assets/internalCache/AGENT.md`](../../../lambda/assets/internalCache/AGENT.md)):** introduce a **lower-level** **`DeferredCache`** (or equivalent) keyed by universal component id that memoizes **one** canonical **`Query`** for that partition; **`ComponentData`**, **`ComponentVerticals`**, and similar handlers **depend on** that shared promise and apply **domain-specific** projections in memory (instead of owning duplicate top-level partition fetches). Invalidation remains **lambda-owned** and must stay coherent with writers.
+
+Relying on **`ComponentData`** and **`ComponentVerticals`** independently **today** is acceptable; treat duplicate reads as a **known** interim cost until that layer exists.
 
 ---
 
@@ -96,9 +109,9 @@ Pending work uses `[ ]` and completed work uses `[X]`. Apply the same rule to ne
 - [X] Implement **split constructor deps** (structural interfaces), **`async check`** signature, **findings** fields, and **output** accessors (types exported from `ts/assets/components/verticals/` or adjacent file); **name** interfaces and map **`InternalCache`** per [**Decisions (locked)**](#decisions-locked) (**Constructor deps shape**, improvisation); document wiring for assets and diagnostics when stable.
 - [X] Implement **analyzer** as a **constructor-based class** with **`check`** + internal (non-public) load/compare steps using existing **`deriveRaw` / `salvage` / `metaImportDataCategory`** pipeline; no Dynamo except via injected deps.
 - [X] Centralize shared taxonomy (**`classifyImportVerticalSets`**, **`aggregateMisalignmentStatuses`**) in **`mtw-gateways`** as appropriate; update **`lambda/diagnostics`** imports. Per [**Classification and lambda-local config**](#decisions-locked), lambda-side **configuration** of the analyzer vs keeping a small **`classification`** module vs **inlining** is decided locally when wiring.
-- [ ] Refactor **`syncImportVerticalPartition`** to use the analyzer output for **toPut** / **toDelete** (and single place for Meta row prefix filtering if extracted).
-- [ ] Refactor **`componentVerticalMisalignmentSweep`** `analyzeUniversalPartition` to use the same analyzer with **direct** `assetDB` injection (or adapter).
-- [ ] Optional: **assets** path passes a loader that uses **`InternalCache`** where it reduces duplicate reads (document in **`lambda/assets`** cache `AGENT.md` if non-obvious).
+- [X] Refactor **`syncImportVerticalPartition`** to use the analyzer output for **toPut** / **toDelete** (and single place for Meta row prefix filtering if extracted).
+- [X] Refactor **`componentVerticalMisalignmentSweep`** `analyzeUniversalPartition` to use the same analyzer with **direct** `assetDB` injection (or adapter).
+- [ ] Deferred (assets lambda): shared universal-key partition **`DeferredCache`** used by **`ComponentData`** / **`ComponentVerticals`** (see [`lambda/assets/internalCache/AGENT.md`](../../../lambda/assets/internalCache/AGENT.md)). Wiring **`ImportVerticalConsistencyAnalyzer`** loaders stays **composition at the call site**; do **not** move fetch/cache orchestration into **`mtw-gateways`**.
 - [X] Update **`packages/mtw-gateways/AGENT.md`**: **Shipped exports** / shared helpers for the vertical analyzer **and** a **generalized** consistency-analyzer subsection per [**Package documentation timing**](#decisions-locked) (**generalize early**, same window as code); link from [`lambda/assets/dataSource/components/verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md) if the writer/heal story changes for readers.
 
 ---
@@ -117,8 +130,9 @@ Per [**Package documentation timing**](#decisions-locked), land the **generalize
 | API shape (constructor class, **`check`** + findings, encapsulated loads, **split** deps / **`InternalCache`** alignment, pattern vs inheritance, modest generics) | Locked ([**Decisions (locked)**](#decisions-locked)) |
 | Row typing, stale semantics, **generalize early** doc policy, classification/config, testing split | Locked ([**Decisions (locked)**](#decisions-locked)) |
 | Injection + analyzer implementation | Done (`ImportVerticalConsistencyAnalyzer`, classification helpers, wiring notes in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md)) |
-| Diagnostics + assets refactors | Not started (sweep / **`syncImportVerticalPartition`** still inline; next bullets) |
-| Package doc promotion | Done for prototype scope ([`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md); optional InternalCache composition note still deferred) |
+| Diagnostics + assets refactors | Done (**`syncImportVerticalPartition`** + **`analyzeUniversalPartition`** use **`ImportVerticalConsistencyAnalyzer`** with lambda-local deps) |
+| Package doc promotion | Done for prototype scope ([`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md); contract-vs-composition + deferred assets partition-cache note) |
+| Assets shared partition cache | Deferred (see [`lambda/assets/internalCache/AGENT.md`](../../../lambda/assets/internalCache/AGENT.md)) |
 
 ---
 
@@ -127,7 +141,7 @@ Per [**Package documentation timing**](#decisions-locked), land the **generalize
 Record **exact** commands in this section when implementation exists; prefer repeating cwd + runner from [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md).
 
 - [X] `cd packages/mtw-gateways && npm test -- --testPathPattern=ts/assets/components/verticals` (gateway + analyzer/classification tests).
-- [ ] `cd lambda/assets && npm test -- --testPathPattern=dataSource/components/verticals` (when sync/heal touched).
+- [X] `cd lambda/assets && npm test -- --testPathPattern=dataSource/components/verticals` (when sync/heal touched).
 - [X] `cd lambda/diagnostics && npm test -- --testPathPattern=dataSource/index` (dataSource invokes sweep; classification unit tests live in gateways).
 
 ---
@@ -140,6 +154,7 @@ Record **exact** commands in this section when implementation exists; prefer rep
 | [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) | Gateway purpose, non-goals, test runner |
 | [`taskPlanning/lambda/assets/AGENT.componentVertical.planning.md`](../../lambda/assets/AGENT.componentVertical.planning.md) | Vertical index initiative |
 | [`packages/mtw-lambda-patterns/ts/internalCache/AGENT.md`](../../../packages/mtw-lambda-patterns/ts/internalCache/AGENT.md) | `DeferredCache` / `InternalCache` |
+| [`lambda/assets/internalCache/AGENT.md`](../../../lambda/assets/internalCache/AGENT.md) | Assets lambda cache handlers; future shared universal-key partition fetch |
 
 ---
 
