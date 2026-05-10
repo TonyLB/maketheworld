@@ -1,6 +1,8 @@
+import { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
+import internalCache from '../../../internalCache'
 import { metaImportDataCategory, metaImportSortKeyEndsWithChild } from './importVerticalKeys'
 
 export type ImportVerticalHeaderType = 'Component Updated' | 'Component Republished' | 'Component Removed'
@@ -52,4 +54,6 @@ export async function projectImportVerticalHop(params: {
             }),
         })
     }
+
+    internalCache.ComponentVerticals.invalidate(universalKey as EphemeraId)
 }

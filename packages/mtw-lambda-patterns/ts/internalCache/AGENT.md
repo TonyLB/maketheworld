@@ -43,6 +43,10 @@ The system provides common patterns that can be reused across lambdas:
 - **AWS SDK**: Integration with AWS services (DynamoDB, S3, etc.)
 - **MTW Interfaces**: Type definitions and validation functions
 
+### **Composing with `mtw-gateways`**
+
+Read surfaces for Dynamo rows owned elsewhere live in [`packages/mtw-gateways`](../../../mtw-gateways/AGENT.md). Lambda cache handlers should **import gateway helpers** and inject **`assetDB`** (or the gateway's narrow store interface); **do not** duplicate partition/sort encoding in `internalCache`. **`DeferredCache.invalidate(key)`** invalidates a cached entry when authoritative data changes (see **Wrapping gateways in InternalCache** in [`packages/mtw-gateways/AGENT.md`](../../../mtw-gateways/AGENT.md)).
+
 ### **Cross-References**
 - **[Lambda Assets](../../../lambda/assets/AGENT.md)**: Asset management using internalCache
 - **[Lambda Ephemera](../../../lambda/ephemera/AGENT.md)**: Real-time game state using internalCache

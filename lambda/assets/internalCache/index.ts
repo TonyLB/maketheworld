@@ -13,6 +13,7 @@ import GraphNode from "@tonylb/mtw-utilities/ts/graphStorage/cache/graphNode"
 import GraphEdge from "@tonylb/mtw-utilities/ts/graphStorage/cache/graphEdge"
 import { AssetData } from './assetData'
 import { ComponentData } from './componentData'
+import { ComponentVerticals } from './componentVerticals'
 
 
 type CacheConnectionKeys = 'connectionId' | 'sessionId' | 'RequestId' | 'player' | 's3Client'
@@ -95,6 +96,7 @@ class InternalCache {
     AssetMetaData: AssetMetaData = new AssetMetaData()
     AssetData: AssetData = new AssetData()
     ComponentData: ComponentData = new ComponentData()
+    ComponentVerticals: ComponentVerticals = new ComponentVerticals()
     PlayerSettings: CachePlayerSettingData = new CachePlayerSettingData()
     PlayerLibrary: CachePlayerLibraryData = new CachePlayerLibraryData()
     // Note: Legacy Library cache removed - now using mtw.assets.library DataSource
@@ -114,6 +116,7 @@ class InternalCache {
         this.AssetMetaData.clear()
         this.AssetData.clear()
         this.ComponentData.clear()
+        this.ComponentVerticals.clear()
         this.PlayerSettings.clear()
         this.PlayerLibrary.clear()
         // Note: Legacy Library.clear() removed
