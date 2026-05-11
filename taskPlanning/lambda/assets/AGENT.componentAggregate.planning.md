@@ -4,16 +4,16 @@
 
 This document follows [`taskPlanning/AGENT.md`](../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting notes live under [`lambda/assets/`](../../../lambda/assets/) (or [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) for the gateway surface).
 
-**Sibling initiative:** [`AGENT.componentVertical.planning.md`](./AGENT.componentVertical.planning.md) (import vertical denormalization). Aggregates **consume** vertical hop metadata plus authoritative per-asset component rows; they do **not** replace the vertical projector.
+**Sibling initiative:** Vertical denormalization is shipped in durable docs: [`lambda/assets/dataSource/components/verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md) and [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md). Aggregates **consume** vertical hop metadata plus authoritative per-asset component rows; they do **not** replace the vertical projector.
 
 ---
 
 ## Getting Started
 
 1. Skim [`taskPlanning/AGENT.md`](../../AGENT.md) once for task-plan conventions (checkboxes, verification, durable vs transient content).
-2. Read the **vertical index** initiative and writer semantics (you will query the same Dynamo rows the vertical owner writes):
-   - [`AGENT.componentVertical.planning.md`](./AGENT.componentVertical.planning.md)
+2. Read the vertical writer semantics and shared gateway surface (you will query the same Dynamo rows the vertical owner writes):
    - [`lambda/assets/dataSource/components/verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md)
+   - [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md)
 3. Read **gateway rules** and existing assets gateways (pattern for shared read surfaces):
    - [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md)
    - [`packages/mtw-gateways/ts/assets/components/assetMeta/`](../../../packages/mtw-gateways/ts/assets/components/assetMeta/) (example of injected `assetDB` reads)
@@ -39,7 +39,7 @@ Deliver a **bounded-read** path and (later) **mesh-visible signals** for **merge
   - **Vertical envelope:** `Query` import-meta **`Meta::Import::...`** rows for **U** (same partition contract as [`verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md)).
   - **Authoritative bodies:** `BatchGetItem`-style reads of per-asset component projections already owned elsewhere (same Dynamo rows [`assetMeta`](../../../packages/mtw-gateways/ts/assets/components/assetMeta/) and related shapes touch).
   - **Merge assembly:** deterministic ordering + merge rules aligned with **`fetchImportDefaults`** / StandardForm expectations (exact code reuse is a **decision point** below).
-- **Tests:** **Vertical assembly** here means **merge-from-vertical + bodies** (not the vertical projector alone). Golden or comparison tests proving **gateway assembly** matches the **current merge baseline** for fixture stacks live in this initiative (may run **outside** [`fetchImportDefaults`](../../../lambda/assets/fetchImportDefaults/index.ts) until that lambda consumes the gateway). **`Meta::Import`** **`Query`** / normalization are implemented under the vertical initiative [**Read-only gateway for vertical index**](./AGENT.componentVertical.planning.md#recommended-order); Phase 1 **imports** those helpers rather than re-encoding Dynamo keys here.
+- **Tests:** **Vertical assembly** here means **merge-from-vertical + bodies** (not the vertical projector alone). Golden or comparison tests proving **gateway assembly** matches the **current merge baseline** for fixture stacks live in this initiative (may run **outside** [`fetchImportDefaults`](../../../lambda/assets/fetchImportDefaults/index.ts) until that lambda consumes the gateway). **`Meta::Import`** **`Query`** / normalization are already shipped in **`mtw-gateways`**; Phase 1 **imports** those helpers rather than re-encoding Dynamo keys here.
 
 **Phase 2 (DataSource):**
 
@@ -58,13 +58,13 @@ Deliver a **bounded-read** path and (later) **mesh-visible signals** for **merge
 | **Writes** | Owns **`Meta::Import::...`** projection maintenance | **No** Dynamo writes for merge payloads in v1 |
 | **Reads** | **`Query`** envelope under **`AssetId = U`** | **Uses** that envelope + batched component rows |
 | **Consistency** | Eventually consistent projector | Merge is **derived** at read or **signaled** on events |
-| **Gateway** | **Owns** **`mtw-gateways`** read surface for **`Meta::Import::...`** ([**Read-only gateway for vertical index**](./AGENT.componentVertical.planning.md#recommended-order)); writer [`verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md) stays authoritative for encoding | **Consumes** that vertical reader inside **`assembleMergedComponent`**; adds aggregate-specific types and merge only |
+| **Gateway** | **Owns** **`mtw-gateways`** read surface for **`Meta::Import::...`**; writer [`verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md) stays authoritative for encoding | **Consumes** that vertical reader inside **`assembleMergedComponent`**; adds aggregate-specific types and merge only |
 
-**Sequencing note:** Land [**Read-only gateway for vertical index**](./AGENT.componentVertical.planning.md#recommended-order) **before or with** the first **`assembleMergedComponent`** milestone so aggregate never forks SK/query logic. Update [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) when the vertical reader ships.
+**Sequencing note:** Keep aggregate assembly on the shipped vertical read helpers in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) so aggregate never forks SK/query logic.
 
 **Vertical reader shipped:** Phase 1 should import **`@tonylb/mtw-gateways/ts/assets/components/verticals`** (`queryImportVerticalMeta`, key builders, normalized hop types) rather than duplicating partition/sort encoding.
 
-**Dependency (aggregate on vertical):** Phase 1 assembly **depends on** the vertical initiative shipping **`Meta::Import`** read helpers in **`mtw-gateways`**. Coordinate PR order with [**Recommended order** in `AGENT.componentVertical.planning.md`](./AGENT.componentVertical.planning.md#recommended-order).
+**Dependency (aggregate on vertical):** Phase 1 assembly **depends on** the shipped **`Meta::Import`** read helpers in **`mtw-gateways`**.
 
 ---
 
@@ -126,15 +126,15 @@ Most rows below are **open**; this plan exists partly to force early answers wit
 
 Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to nested bullets when added.
 
-**Interconnection:** **[`mtw.assets.components.verticals`](./AGENT.componentVertical.planning.md)** owns [**Read-only gateway for vertical index**](./AGENT.componentVertical.planning.md#recommended-order) (**`Meta::Import`** **`mtw-gateways`** reader). This initiative **consumes** it inside assembly; **do not** duplicate vertical **`Query`** / SK logic here.
+**Interconnection:** **`mtw.assets.components.verticals`** owns **`Meta::Import`** storage and its **`mtw-gateways`** read surface. This initiative **consumes** it inside assembly; **do not** duplicate vertical **`Query`** / SK logic here.
 
 - [ ] **Aggregate types:** Sketch **`AggregatePerspective`** (names TBD), **`OrderedAssetStack`**, and **`MergedComponentResult`** in gateway package (pure types + factories).
-- [ ] **Assembly core:** Implement **`assembleMergedComponent`** (name TBD) using **`Meta::Import`** reads from the vertical initiative's **`mtw-gateways`** surface ([**Read-only gateway for vertical index**](./AGENT.componentVertical.planning.md#recommended-order)) plus batch component fetch + merge; inject `assetDB` via factory per gateway norms.
+- [ ] **Assembly core:** Implement **`assembleMergedComponent`** (name TBD) using **`Meta::Import`** reads from the shipped **`mtw-gateways`** vertical surface plus batch component fetch + merge; inject `assetDB` via factory per gateway norms.
 - [ ] **Golden / comparison tests:** Fixtures proving parity with legacy merge path for representative stacks; record commands in **Verification**.
 - [ ] **Follow-on (assets lambda):** refactor [`fetchImportDefaults`](../../../lambda/assets/fetchImportDefaults/index.ts) to call this **aggregate assembly** surface (Phase 1 gateway), replacing hand-rolled recursion / graph walks and retiring reliance on `internalCache.Graph` for ancestry where appropriate. **Do not** route synchronous reads through the **`mtw.assets.components.aggregate` DataSource**---that DataSource is for **mesh streaming** only.
 - [ ] **Scaffold DataSource:** Add [`lambda/assets/dataSource/components/aggregate/`](../../../lambda/assets/dataSource/components/aggregate/) with **`dataSourceKey: 'mtw.assets.components.aggregate'`**, **`replayable: false`**, **`subscribedEvents.ts`** stubs, side-effect import from [`lambda/assets/app.ts`](../../../lambda/assets/app.ts).
 - [ ] **Streaming design:** Decide **event granularity**, **`streamEvent`** payload shape (bus-only vs EventBridge), and **subscriber list** (ephemera / editor / none in v1).
-- [ ] **Implementation:** `receiveEvents` projection that emits aggregate signals; align import-diff / noise avoidance with vertical plan idempotency guidance.
+- [ ] **Implementation:** `receiveEvents` projection that emits aggregate signals; align import-diff / noise avoidance with verticals idempotency guidance in [`lambda/assets/dataSource/components/verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md).
 - [ ] **Steady-state docs:** Move surviving architecture notes to [`lambda/assets/`](../../../lambda/assets/) `AGENT.md` or [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md); trim this file when done.
 
 ---
@@ -144,7 +144,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to neste
 | Milestone | Status |
 | --- | --- |
 | Problem framing + phased gateway-first approach | Done (this doc) |
-| Vertical **`Meta::Import`** read gateway ([vertical plan](./AGENT.componentVertical.planning.md)) | Not started |
+| Vertical **`Meta::Import`** read gateway (`mtw-gateways`) | Done (shipped; consumed by aggregate work) |
 | Aggregate assembly core + tests | Not started |
 | `mtw.assets.components.aggregate` DataSource | Not started |
 | Subscriber wiring + serializers | Not started |
@@ -167,8 +167,7 @@ Record **exact** cwd + runner commands as slices land.
 | Doc | Role |
 | --- | --- |
 | [`taskPlanning/AGENT.md`](../../AGENT.md) | Task plan framework |
-| [`AGENT.componentVertical.planning.md`](./AGENT.componentVertical.planning.md) | Sibling: vertical denormalization |
-| [`lambda/assets/dataSource/components/verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md) | Vertical writer + Dynamo schema |
+| [`lambda/assets/dataSource/components/verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md) | Vertical writer + Dynamo schema / maintenance |
 | [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) | Gateway package norms |
 | [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.md) | DataSource pattern |
 | [`lambda/assets/fetchImportDefaults/AGENT.md`](../../../lambda/assets/fetchImportDefaults/AGENT.md) | Current merge / defaults behavior |

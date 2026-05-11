@@ -30,4 +30,3 @@ Writer-side behavior for **`Meta::Import::...`** remains in [`lambda/assets/data
 
 **Out of scope here:** how [`ImportVerticalConsistencyAnalyzer`](../../../packages/mtw-gateways/ts/assets/components/verticals/consistency/index.ts) is wired at call sites---that stays **lambda composition**; see gateway **AGENT** above.
 
-**Task-plan cross-reference:** [`taskPlanning/packages/mtw-gateways/AGENT.consistencyPattern.planning.md`](../../../taskPlanning/packages/mtw-gateways/AGENT.consistencyPattern.planning.md) (**Future work (assets lambda only)**).

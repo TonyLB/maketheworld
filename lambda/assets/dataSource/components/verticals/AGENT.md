@@ -11,7 +11,7 @@ Single-table assets store ([`assetDB`](../../../../../packages/mtw-utilities/ts/
 | Attribute | Value |
 | --- | --- |
 | **`AssetId` (partition key)** | Universal component id: `component.universalKey` (e.g. `ROOM#VORTEX`). |
-| **`DataCategory` (sort key)** | `Meta::Import::${parentStripped}::${childStripped}` where **`parentStripped`** / **`childStripped`** are asset identifiers **with the `ASSET#` prefix removed**. Encoding matches [task planning](../../../../../taskPlanning/lambda/assets/AGENT.componentVertical.planning.md#sort-key-and-datacategory-for-metaimport). |
+| **`DataCategory` (sort key)** | `Meta::Import::${parentStripped}::${childStripped}` where **`parentStripped`** / **`childStripped`** are asset identifiers **with the `ASSET#` prefix removed**. |
 
 **Semantics:** For universal identity **U**, in **child** asset **C**, if the component imports from parent asset **P** (`StandardComponent._from === 'ASSET#...'` pointing at **P**), there is at most one hop row for the pair **(U, C)**: sort key **`Meta::Import::${P_stripped}::${C_stripped}`**.
 
@@ -41,7 +41,7 @@ Authoritative per-asset component bodies and row deletes are performed by **[`ca
 
 **Today:** each subscribed **`Component Updated`**, **`Component Republished`**, or **`Component Removed`** event triggers **[`projectImportVerticalHop`](./projectImportVerticalHop.ts)**, which calls **[`syncImportVerticalPartition`](./syncImportVerticalPartition.ts)** for **`component.universalKey`**. **`syncImportVerticalPartition`** wires **`ImportVerticalConsistencyAnalyzer`** with **`internalCache.ComponentData`** (authoritative **`get`**) and **`queryImportVerticalMeta`** for the **`Meta::Import::...`** projection, runs **`check`**, then applies **`putItem`** / **`deleteItem`** from analyzer findings (**`categoriesToAdd`** / **`metaRowsToDelete`**). Authoritative reads come from the same partition **`Query`** path as **`ComponentData`**, not from the event payload alone. Diagnostics **`componentVerticalMisalignmentSweep`** uses the same analyzer with **`assetDB`**-backed adapters plus **`authoritativeComponentDataFromUniversalPartitionRows`** for parity.
 
-**Future:** optional **import-diff** optimization---skip **`syncImportVerticalPartition`** when import signals (**`_from`**, **`universalKey`**, child **`streamKey`**) are unchanged across noisy updates---may use richer comparison or events; see [task planning](../../../../../taskPlanning/lambda/assets/AGENT.componentVertical.planning.md#datasource-and-code-layout-for-mtwassetscomponentsverticals) (import diff detection).
+**Future:** optional **import-diff** optimization---skip **`syncImportVerticalPartition`** when import signals (**`_from`**, **`universalKey`**, child **`streamKey`**) are unchanged across noisy updates---may use richer comparison or events.
 
 ### Idempotency
 
@@ -78,7 +78,7 @@ See **[`subscribedEvents.ts`](./subscribedEvents.ts)**.
 
 ## Cycles (imports)
 
-Cross-asset cycles can appear after **`wml`** commits edits **`assets`** did not reject; see [**Cycles (imports)** in task planning](../../../../../taskPlanning/lambda/assets/AGENT.componentVertical.planning.md#cycles-imports).
+Cross-asset cycles can appear after **`wml`** commits edits **`assets`** did not reject.
 
 **Proper fix:** Prevent cycles at **`wml`** acceptance when enough cross-asset graph is visible---deferred work in [`lambda/wml/AGENT.importCycles.future.md`](../../../../wml/AGENT.importCycles.future.md).
 
@@ -87,5 +87,4 @@ Cross-asset cycles can appear after **`wml`** commits edits **`assets`** did not
 ## Related documentation
 
 - Assets event mesh overview: [`../../../AGENT.event.md`](../../../AGENT.event.md)
-- Planning initiative: [`../../../../../taskPlanning/lambda/assets/AGENT.componentVertical.planning.md`](../../../../../taskPlanning/lambda/assets/AGENT.componentVertical.planning.md)
 - Read-only **`Meta::Import`** gateway (shared types and `Query` helpers): **[`readModel.ts`](./readModel.ts)** re-exports [`@tonylb/mtw-gateways/ts/assets/components/verticals`](../../../../../packages/mtw-gateways/ts/assets/components/verticals/index.ts).
