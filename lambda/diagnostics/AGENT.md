@@ -76,14 +76,14 @@
 
 ## Component vertical misalignment sweep (import vertical diagnostics)
 
-**Purpose:** Read-only check for one asset: authoritative component `_from` hops (derived with the same **`mtw-gateways`** salvage rules as **`syncImportVerticalPartition`**) against existing **`Meta::Import::...`** rows for every **`universalKey`** found under that asset. Emits **`Component Vertical Misaligned Finding`** when any partition differs; **`mtw.assets.components.verticals`** consumes the finding and runs **`healComponentVertical`**.
+**Purpose:** Read-only check for one asset: authoritative component `_from` hops (derived with the same **`mtw-gateways`** salvage rules as **`syncImportVerticalPartition`**) against existing **`Meta::Import::...`** rows for every **`universalKey`** found under that asset. Partition comparison uses **`ImportVerticalConsistencyAnalyzer`** ([`componentVerticalMisalignmentSweep/index.ts`](componentVerticalMisalignmentSweep/index.ts)) with **`authoritativeComponentDataFromUniversalPartitionRows`** on **`assetDB`** partition reads (matching assets **`ComponentData`** semantics) and **`queryImportVerticalMeta`** for the Meta projection. Emits **`Component Vertical Misaligned Finding`** when any partition differs; **`mtw.assets.components.verticals`** consumes the finding and runs **`healComponentVertical`**.
 
 **Entrypoints:**
 
 - Direct invoke: `{ type: 'ComponentVerticalMisalignmentSweep', assetId, optional diagnosticRunId, optional nowMs }`, normalized through **`ingress.ts`** and synthetic **`api.diagnostics`** (**[`dataSource/index.ts`](dataSource/index.ts)**).
 - DataSource **`api.diagnostics`** message (**[`apiDiagnostics.ts`](dataSource/apiDiagnostics.ts)** payload union).
 
-**Classification helpers:** Stable partition-level statuses **`missing`** / **`orphan`** / **`stale`** and asset-level rollup live in **`[componentVerticalMisalignmentSweep/classification.ts](componentVerticalMisalignmentSweep/classification.ts)`**.
+**Classification helpers:** Per-partition statuses **`aligned`** / **`missing`** / **`orphan`** / **`stale`** are computed inside **`ImportVerticalConsistencyAnalyzer.check()`** ([`packages/mtw-gateways/ts/assets/components/verticals/consistency/index.ts`](../../packages/mtw-gateways/ts/assets/components/verticals/consistency/index.ts)) and surfaced via **`getClassification()`**. The asset-level rollup that decides what (if anything) to emit on the wire lives next to this sweep ([`componentVerticalMisalignmentSweep/classification.ts`](componentVerticalMisalignmentSweep/classification.ts)).
 
 **Finding contract:** `mtw.diagnostics` **`Component Vertical Misaligned Finding`**; internal + serializer shapes in **`@tonylb/mtw-interfaces/ts/eventBridge/diagnostics`**. **`status`** is **`missing`**, **`orphan`**, or **`stale`** (combined replace vs insert/delete semantics).
 

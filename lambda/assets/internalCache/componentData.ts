@@ -1,10 +1,9 @@
+import { authoritativeComponentDataFromUniversalPartitionRows } from '@tonylb/mtw-gateways/ts/assets/components/assetMeta'
 import { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
-import { isStandardNDJSONLine, StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
-import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
-import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
+import { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
 // Same Dynamo component rows as ephemera's ComponentAssetMeta; shared read helpers live in @tonylb/mtw-gateways (see packages/mtw-gateways/AGENT.md, "Component asset reads: ephemera vs assets").
 
@@ -41,28 +40,12 @@ export class ComponentData {
     async _getPromiseFactory(ComponentIds: EphemeraId[]): Promise<ComponentDataCache[]> {
         const queryResults = await Promise.all(
             ComponentIds.map(async (ComponentId) => {
-                const ndjsonLines = (await assetDB.query<StandardComponentData & { AssetId: string; DataCategory: string }>({
-                    Key: { AssetId: ComponentId },
-                    allFields: true
-                })) || []
-                const byAssets = ndjsonLines
-                    .filter(isStandardNDJSONLine)
-                    .map((line) => {
-                        const AssetId = line.DataCategory as `ASSET#${string}`
-                        const { component } = standardComponentFactory(line)
-                        if (AssetId && component) {
-                            return {
-                                AssetId,
-                                component
-                            }
-                        }
-                        return undefined
-                    })
-                    .filter(excludeUndefined)
-                return {
-                    ComponentId,
-                    byAssets
-                }
+                const ndjsonLines =
+                    (await assetDB.query<StandardComponentData & { AssetId: string; DataCategory: string }>({
+                        Key: { AssetId: ComponentId },
+                        allFields: true,
+                    })) || []
+                return authoritativeComponentDataFromUniversalPartitionRows(ComponentId, ndjsonLines)
             })
         )
         return queryResults

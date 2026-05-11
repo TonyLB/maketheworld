@@ -1,51 +1,32 @@
 import { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
-    componentRowsFromUniversalPartitionLines,
-    deriveRawImportVerticalHopsFromComponents,
-    metaImportDataCategory,
-    salvageImportVerticalHops,
+    ImportVerticalConsistencyAnalyzer,
+    type ImportVerticalConsistencyAnalyzerDeps,
 } from '@tonylb/mtw-gateways/ts/assets/components/verticals'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import type { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import internalCache from '../../../internalCache'
-
-const META_IMPORT_PREFIX = 'Meta::Import::'
 
 /**
  * Reconciles all `Meta::Import::...` rows for one universal component partition from authoritative
  * cached component rows (same derivation as live projector + heal).
+ *
+ * Cold path: both loaders are satisfied by the lambda `InternalCache` directly
+ * (`ComponentData.get` for the authoritative partition, `ComponentVerticals.get` for the
+ * `Meta::Import` projection); see `lambda/assets/internalCache/AGENT.md` for future shared
+ * partition memoization.
  */
 export async function syncImportVerticalPartition(universalKey: EphemeraId): Promise<void> {
-    const rows =
-        (await assetDB.query<StandardComponentData & { AssetId: string; DataCategory: string }>({
-            Key: { AssetId: universalKey },
-            allFields: true,
-        })) || []
+    const deps: ImportVerticalConsistencyAnalyzerDeps = {
+        authoritativeComponentData: internalCache.ComponentData,
+        metaImportProjection: internalCache.ComponentVerticals,
+    }
 
-    const componentRows = componentRowsFromUniversalPartitionLines(rows)
-
-    const raw = deriveRawImportVerticalHopsFromComponents(componentRows)
-    const salvaged = salvageImportVerticalHops(raw)
-
-    const expectedCategories = new Set(
-        salvaged.map((h) =>
-            metaImportDataCategory({
-                parentAssetId: h.parentAssetId,
-                childAssetId: h.childAssetId,
-            })
-        )
-    )
-
-    const existingMetaRows = rows.filter(
-        (r) => typeof r.DataCategory === 'string' && r.DataCategory.startsWith(META_IMPORT_PREFIX)
-    )
-    const existingCategories = new Set(existingMetaRows.map((r) => r.DataCategory))
-
-    const toDelete = existingMetaRows.filter((r) => !expectedCategories.has(r.DataCategory))
-    const toPut = [...expectedCategories].filter((dc) => !existingCategories.has(dc))
+    const analyzer = new ImportVerticalConsistencyAnalyzer(deps)
+    await analyzer.check(universalKey)
+    const { categoriesToAdd, metaRowsToDelete } = analyzer.getFindings()
 
     await Promise.all(
-        toDelete.map((r) =>
+        metaRowsToDelete.map((r) =>
             assetDB.deleteItem({
                 AssetId: universalKey,
                 DataCategory: r.DataCategory,
@@ -54,7 +35,7 @@ export async function syncImportVerticalPartition(universalKey: EphemeraId): Pro
     )
 
     await Promise.all(
-        toPut.map((DataCategory) =>
+        categoriesToAdd.map((DataCategory) =>
             assetDB.putItem({
                 AssetId: universalKey,
                 DataCategory,

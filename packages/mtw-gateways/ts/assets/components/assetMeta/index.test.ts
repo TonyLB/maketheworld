@@ -5,6 +5,9 @@ import {
     fetchComponentsForAssets,
     fetchCachedAssetIdsForComponent,
     defaultStoredEntryForCacheKey,
+    authoritativeComponentDataFromUniversalPartitionRows,
+    componentRowsFromUniversalPartitionLines,
+    standardComponentPairFromAssetDbGetItemsRow,
     type ComponentAssetMetaAssetDB,
 } from './index'
 
@@ -28,6 +31,56 @@ describe('component asset meta gateway', () => {
         it('matches Meta::Type casing used for vertical meta rows', () => {
             expect(metaDataCategoryForEphemeraId('ROOM#abc')).toBe('Meta::Room')
             expect(metaDataCategoryForEphemeraId('FEATURE#xyz')).toBe('Meta::Feature')
+        })
+    })
+
+    describe('dynamoStandardComponents', () => {
+        it('authoritativeComponentDataFromUniversalPartitionRows parses NDJSON partition lines', () => {
+            const universalKey = 'ROOM#r1'
+            const line = {
+                AssetId: universalKey,
+                DataCategory: 'ASSET#childB',
+                key: 'r1',
+                universalKey,
+                tag: 'Room' as const,
+                shortName: 'Room',
+                exits: [] as { reference: { tag: 'Room'; key: string }; payload: string }[],
+                examples: [{ key: 'base', tag: 'Example' as const }],
+                from: 'ASSET#parentA',
+            }
+            const auth = authoritativeComponentDataFromUniversalPartitionRows(universalKey as any, [line as any])
+            expect(auth.ComponentId).toBe(universalKey)
+            expect(auth.byAssets).toHaveLength(1)
+            expect(auth.byAssets[0].AssetId).toBe('ASSET#childB')
+            expect(auth.byAssets[0].component.tag).toBe('Room')
+        })
+
+        it('componentRowsFromUniversalPartitionLines matches partition rows to child rows', () => {
+            const line = {
+                AssetId: 'ROOM#r1',
+                DataCategory: 'ASSET#childB',
+                key: 'r1',
+                universalKey: 'ROOM#r1',
+                tag: 'Room' as const,
+                shortName: 'Room',
+                exits: [] as { reference: { tag: 'Room'; key: string }; payload: string }[],
+                examples: [{ key: 'base', tag: 'Example' as const }],
+                from: 'ASSET#parentA',
+            }
+            const rows = componentRowsFromUniversalPartitionLines([line as any])
+            expect(rows).toHaveLength(1)
+            expect(rows[0].childAssetId).toBe('ASSET#childB')
+        })
+
+        it('standardComponentPairFromAssetDbGetItemsRow matches fetchComponentsForAssets mapping', () => {
+            const row = {
+                DataCategory: 'ASSET#Layer',
+                AssetId: 'FEATURE#TestOne',
+                examples: ['EXAMPLE#ExampleTwo'],
+            }
+            const pair = standardComponentPairFromAssetDbGetItemsRow('FEATURE#TestOne', row as any)
+            expect(pair.assetId).toBe('ASSET#Layer')
+            expect(pair.component.universalKey).toBe('FEATURE#TestOne')
         })
     })
 

@@ -47,12 +47,41 @@ jest.mock('../../../messageBus', () => ({
     subscribe: jest.fn(),
 }))
 
-jest.mock('../../../internalCache', () => ({
-    __esModule: true,
-    default: {
-        ComponentVerticals: { invalidate: jest.fn() },
-    },
-}))
+jest.mock('../../../internalCache', () => {
+    const { authoritativeComponentDataFromUniversalPartitionRows } =
+        require('@tonylb/mtw-gateways/ts/assets/components/assetMeta')
+    const { queryImportVerticalMeta } =
+        require('@tonylb/mtw-gateways/ts/assets/components/verticals')
+    const { assetDB } = require('@tonylb/mtw-utilities/ts/dynamoDB')
+    return {
+        __esModule: true,
+        default: {
+            ComponentVerticals: {
+                invalidate: jest.fn(),
+                get: async (universalKeys: string[]) =>
+                    Promise.all(
+                        universalKeys.map(async (universalKey: string) => ({
+                            universalKey,
+                            hops: await queryImportVerticalMeta(assetDB, universalKey),
+                        }))
+                    ),
+            },
+            ComponentData: {
+                get: async (componentIds: string[]) =>
+                    Promise.all(
+                        componentIds.map(async (componentId: string) => {
+                            const ndjsonLines =
+                                (await assetDB.query({
+                                    Key: { AssetId: componentId },
+                                    allFields: true,
+                                })) || []
+                            return authoritativeComponentDataFromUniversalPartitionRows(componentId, ndjsonLines)
+                        })
+                    ),
+            },
+        },
+    }
+})
 
 jest.mock('./healComponentVertical', () => ({
     healComponentVertical: jest.fn(async () => ({

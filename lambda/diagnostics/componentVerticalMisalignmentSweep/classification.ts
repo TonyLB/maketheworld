@@ -1,25 +1,12 @@
-/** Per-partition: both orphan and missing rows implies stale (wrong hops). */
-export function classifyImportVerticalSets(
-    expectedCategories: Set<string>,
-    existingCategories: Set<string>
-): 'aligned' | 'missing' | 'orphan' | 'stale' {
-    let missing = false
-    for (const x of expectedCategories) {
-        if (!existingCategories.has(x)) missing = true
-    }
-    let orphan = false
-    for (const x of existingCategories) {
-        if (!expectedCategories.has(x)) orphan = true
-    }
-    if (!missing && !orphan) return 'aligned'
-    if (missing && orphan) return 'stale'
-    if (missing) return 'missing'
-    return 'orphan'
-}
+import type { ImportVerticalConsistencyClassification } from '@tonylb/mtw-gateways/ts/assets/components/verticals'
 
-/** Priority matches repair severity: stale (replace) over orphan over missing (insert-only). */
+/**
+ * Asset-level rollup over per-partition {@link ImportVerticalConsistencyClassification} statuses.
+ * Priority matches repair severity: stale (replace) over orphan over missing (insert-only).
+ * Returns `null` when every partition is aligned (no finding to emit).
+ */
 export function aggregateMisalignmentStatuses(
-    parts: Array<'aligned' | 'missing' | 'orphan' | 'stale'>
+    parts: Array<ImportVerticalConsistencyClassification>
 ): 'missing' | 'orphan' | 'stale' | null {
     const bad = parts.filter((s): s is 'missing' | 'orphan' | 'stale' => s !== 'aligned')
     if (bad.length === 0) return null

@@ -1,11 +1,9 @@
 import type { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses';
 import { AssetUUID, ComponentUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema';
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses';
-import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory';
-import { isStandardComponentData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes';
-import { tagFromEphemeraId } from '@tonylb/mtw-utilities/ts/graphStorage/cache';
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types';
 import { metaDataCategoryForEphemeraId } from './metaCategory'
+import { standardComponentPairFromAssetDbGetItemsRow } from './dynamoStandardComponents'
 
 export type ComponentAssetMetaAssetDB = {
     getItems: <Get extends Omit<StandardComponentData, 'universalKey' | 'tag'> & { DataCategory?: AssetUUID, AssetId: ComponentUUID }>(props: {
@@ -42,20 +40,7 @@ export async function fetchComponentsForAssets(
             return isSchemaAssetUUID(assetId)
         });
 
-    return filteredResults
-        .map((value) => {
-            const { DataCategory, AssetId: _assetId, ...rest } = value
-            const assetId = DataCategory as AssetUUID
-            const componentData = { universalKey: EphemeraId, tag: tagFromEphemeraId(EphemeraId), ...rest }
-            if (!isStandardComponentData(componentData)) {
-                throw new Error(`Invalid component data for EphemeraId: ${EphemeraId} and DataCategory: ${DataCategory}`)
-            }
-            const { component } = standardComponentFactory(componentData)
-            if (!component) {
-                throw new Error(`Failed to create component for EphemeraId: ${EphemeraId} and DataCategory: ${DataCategory}`)
-            }
-            return { assetId, component }
-        })
+    return filteredResults.map((value) => standardComponentPairFromAssetDbGetItemsRow(EphemeraId, value))
 }
 
 export async function fetchCachedAssetIdsForComponent(

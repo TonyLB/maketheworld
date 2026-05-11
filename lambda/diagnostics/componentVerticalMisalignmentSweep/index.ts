@@ -5,12 +5,14 @@ import {
     DiagnosticsComponentVerticalMisalignedFindingEvent,
     DiagnosticsEventSerializer,
 } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
+import { authoritativeComponentDataFromUniversalPartitionRows } from '@tonylb/mtw-gateways/ts/assets/components/assetMeta'
 import {
-    componentRowsFromUniversalPartitionLines,
-    deriveRawImportVerticalHopsFromComponents,
-    metaImportDataCategory,
-    salvageImportVerticalHops,
+    ImportVerticalConsistencyAnalyzer,
+    queryImportVerticalMeta,
+    type ImportVerticalConsistencyAnalyzerDeps,
+    type ImportVerticalUniversalPartitionRow,
 } from '@tonylb/mtw-gateways/ts/assets/components/verticals'
+import { aggregateMisalignmentStatuses } from './classification'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { publishStreamEvent, StreamEventPublisherSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/streamEventPublisher'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
@@ -19,41 +21,47 @@ import type { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseC
 import { isStandardNDJSONLine } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 
-import { aggregateMisalignmentStatuses, classifyImportVerticalSets } from './classification'
-
-const META_IMPORT_PREFIX = 'Meta::Import::'
-
-export { aggregateMisalignmentStatuses, classifyImportVerticalSets } from './classification'
-
 async function analyzeUniversalPartition(universalKey: EphemeraId): Promise<
     'aligned' | 'missing' | 'orphan' | 'stale'
 > {
-    const rows =
-        (await assetDB.query<StandardComponentData & { AssetId: string; DataCategory: string }>({
-            Key: { AssetId: universalKey },
-            allFields: true,
-        })) || []
+    let rowsPromise: Promise<ReadonlyArray<ImportVerticalUniversalPartitionRow>> | undefined
+    const ensureRows = () => {
+        rowsPromise ??= (async () => {
+            const rows =
+                (await assetDB.query<ImportVerticalUniversalPartitionRow>({
+                    Key: { AssetId: universalKey },
+                    allFields: true,
+                })) || []
+            return rows
+        })()
+        return rowsPromise
+    }
 
-    const componentRows = componentRowsFromUniversalPartitionLines(rows)
+    const deps: ImportVerticalConsistencyAnalyzerDeps = {
+        authoritativeComponentData: {
+            get: async (componentIds) => {
+                const rows = await ensureRows()
+                return componentIds.map((id) =>
+                    id === universalKey
+                        ? authoritativeComponentDataFromUniversalPartitionRows(id, rows)
+                        : authoritativeComponentDataFromUniversalPartitionRows(id, [])
+                )
+            },
+        },
+        metaImportProjection: {
+            get: async (universalKeys) =>
+                Promise.all(
+                    universalKeys.map(async (uk) => ({
+                        universalKey: uk,
+                        hops: await queryImportVerticalMeta(assetDB, uk),
+                    }))
+                ),
+        },
+    }
 
-    const raw = deriveRawImportVerticalHopsFromComponents(componentRows)
-    const salvaged = salvageImportVerticalHops(raw)
-
-    const expectedCategories = new Set(
-        salvaged.map((h) =>
-            metaImportDataCategory({
-                parentAssetId: h.parentAssetId,
-                childAssetId: h.childAssetId,
-            })
-        )
-    )
-
-    const existingMetaRows = rows.filter(
-        (r) => typeof r.DataCategory === 'string' && r.DataCategory.startsWith(META_IMPORT_PREFIX)
-    )
-    const existingCategories = new Set(existingMetaRows.map((r) => r.DataCategory))
-
-    return classifyImportVerticalSets(expectedCategories, existingCategories)
+    const analyzer = new ImportVerticalConsistencyAnalyzer(deps)
+    await analyzer.check(universalKey)
+    return analyzer.getClassification()
 }
 
 /**
