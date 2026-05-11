@@ -1,3 +1,4 @@
+export { mergeAuthoritativeAcrossParticipationOrder } from './assemble'
 export type { AggregateGatewayDeps } from './ports'
 export {
     AggregateInputError,

@@ -1,9 +1,12 @@
+import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
+import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 
 import {
     AggregateInputError,
     aggregatePerspectiveExplicit,
     createAggregateGateway,
+    mergeAuthoritativeAcrossParticipationOrder,
     mergedComponentResult,
     normalizeMergeParticipationOrder,
     participationAssetsInPerspective,
@@ -107,6 +110,110 @@ describe('component aggregate gateway (compute-only)', () => {
                 mergeParticipationOrder: [assetA, assetB],
             })
             expect(gateway.participationAssetsInPerspective(p)).toEqual(new Set([assetA, assetB]))
+        })
+    })
+
+    describe('mergeAuthoritativeAcrossParticipationOrder', () => {
+        it('throws on empty merge participation order', () => {
+            const p = aggregatePerspectiveExplicit({
+                universalKey: roomU,
+                mergeParticipationOrder: [],
+            })
+            expect(() =>
+                mergeAuthoritativeAcrossParticipationOrder(p, { ComponentId: roomU, byAssets: [] })
+            ).toThrow(AggregateInputError)
+        })
+
+        it('throws when authoritative ComponentId does not match universal key', () => {
+            const p = aggregatePerspectiveExplicit({
+                universalKey: roomU,
+                mergeParticipationOrder: [assetA],
+            })
+            expect(() =>
+                mergeAuthoritativeAcrossParticipationOrder(p, {
+                    ComponentId: 'ROOM#other' as typeof roomU,
+                    byAssets: [],
+                })
+            ).toThrow(AggregateInputError)
+        })
+    })
+
+    describe('assembleMergedComponent', () => {
+        const baseRoom = new StandardRoom(
+            deIndentWML(`
+            <Room key=(one) uuid=(ROOM#r1)>
+                <Situation key=(base) uuid=(SITUATION#base) />
+            </Room>
+        `)
+        )
+        const overrideRoom = new StandardRoom(
+            deIndentWML(`
+            <Room key=(one) uuid=(ROOM#r1)>
+                <Situation key=(override) uuid=(SITUATION#override) />
+            </Room>
+        `)
+        )
+
+        it('invokes metaImportProjection and authoritativeComponentData in parallel for universal key', async () => {
+            const authoritativeComponentData = { get: jest.fn().mockResolvedValue([]) }
+            const metaImportProjection = { get: jest.fn().mockResolvedValue([]) }
+            const gateway = createAggregateGateway({ authoritativeComponentData, metaImportProjection })
+            const p = aggregatePerspectiveExplicit({
+                universalKey: roomU,
+                mergeParticipationOrder: [],
+            })
+            await expect(gateway.assembleMergedComponent(p)).rejects.toThrow(AggregateInputError)
+            expect(authoritativeComponentData.get).toHaveBeenCalledWith([roomU])
+            expect(metaImportProjection.get).toHaveBeenCalledWith([roomU])
+            expect(authoritativeComponentData.get).toHaveBeenCalledTimes(1)
+            expect(metaImportProjection.get).toHaveBeenCalledTimes(1)
+        })
+
+        it('merges rooms in merge participation order (later asset overlays)', async () => {
+            const byAssets = [
+                { AssetId: assetA, component: baseRoom as unknown as StandardComponent },
+                { AssetId: assetB, component: overrideRoom as unknown as StandardComponent },
+            ]
+            const deps = {
+                authoritativeComponentData: {
+                    get: async () => [{ ComponentId: roomU, byAssets }],
+                },
+                metaImportProjection: {
+                    get: async () => [{ universalKey: roomU, hops: [] }],
+                },
+            }
+            const gateway = createAggregateGateway(deps)
+            const p = aggregatePerspectiveExplicit({
+                universalKey: roomU,
+                mergeParticipationOrder: [assetA, assetB],
+            })
+            const result = await gateway.assembleMergedComponent(p)
+            const situationIds = (result.merged as StandardRoom).situations.items.map(
+                (f) => f.reference.universalKey
+            )
+            expect(situationIds).toEqual(expect.arrayContaining(['SITUATION#base', 'SITUATION#override']))
+        })
+
+        it('uses default stub for a missing participation asset then merges overlay', async () => {
+            const byAssets = [{ AssetId: assetB, component: overrideRoom as unknown as StandardComponent }]
+            const deps = {
+                authoritativeComponentData: {
+                    get: async () => [{ ComponentId: roomU, byAssets }],
+                },
+                metaImportProjection: {
+                    get: async () => [{ universalKey: roomU, hops: [] }],
+                },
+            }
+            const gateway = createAggregateGateway(deps)
+            const p = aggregatePerspectiveExplicit({
+                universalKey: roomU,
+                mergeParticipationOrder: [assetA, assetB],
+            })
+            const result = await gateway.assembleMergedComponent(p)
+            const situationIds = (result.merged as StandardRoom).situations.items.map(
+                (f) => f.reference.universalKey
+            )
+            expect(situationIds).toContain('SITUATION#override')
         })
     })
 })
