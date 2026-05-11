@@ -7,7 +7,6 @@ export {
     META_IMPORT_PREFIX,
 } from './keys'
 export type { MetaImportStrippedIds } from './keys'
-export { aggregateMisalignmentStatuses, classifyImportVerticalSets } from './importVerticalClassification'
 export {
     ImportVerticalConsistencyAnalyzer,
     type ImportVerticalAuthoritativeComponentData,
@@ -21,8 +20,6 @@ export {
 } from './consistency'
 export type { ImportVerticalHop, ImportVerticalAssetDB } from './fetch'
 export { queryImportVerticalMeta } from './fetch'
-export type { RawImportVerticalHop } from './salvage'
-export { deriveRawImportVerticalHopsFromComponents, salvageImportVerticalHops } from './salvage'
 export type { AuthoritativeComponentData } from '../assetMeta/dynamoStandardComponents'
 export {
     authoritativeComponentDataFromUniversalPartitionRows,

@@ -4,10 +4,10 @@ import {
     ImportVerticalConsistencyAnalyzer,
     type ImportVerticalConsistencyAnalyzerDeps,
     type ImportVerticalUniversalPartitionRow,
-} from './consistency'
-import type { ImportVerticalHop } from './fetch'
-import { metaImportDataCategory, stripAssetIdForSortKey } from './keys'
-import { authoritativeComponentDataFromUniversalPartitionRows } from '../assetMeta/dynamoStandardComponents'
+} from './index'
+import type { ImportVerticalHop } from '../fetch'
+import { metaImportDataCategory, stripAssetIdForSortKey } from '../keys'
+import { authoritativeComponentDataFromUniversalPartitionRows } from '../../assetMeta/dynamoStandardComponents'
 
 const universalKey = 'ROOM#r1' as EphemeraId
 

@@ -1,11 +1,10 @@
 import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
-import type { AuthoritativeComponentData } from '../assetMeta/dynamoStandardComponents'
-import { componentRowsFromAuthoritativeComponentData } from '../assetMeta/dynamoStandardComponents'
-import type { ImportVerticalHop } from './fetch'
-import { classifyImportVerticalSets } from './importVerticalClassification'
-import { metaImportDataCategory } from './keys'
+import type { AuthoritativeComponentData } from '../../assetMeta/dynamoStandardComponents'
+import { componentRowsFromAuthoritativeComponentData } from '../../assetMeta/dynamoStandardComponents'
+import type { ImportVerticalHop } from '../fetch'
+import { metaImportDataCategory } from '../keys'
 import { deriveRawImportVerticalHopsFromComponents, salvageImportVerticalHops } from './salvage'
 
 /** Same shape as {@link AuthoritativeComponentData}; stable name for import-vertical analyzer deps. */
@@ -13,7 +12,7 @@ export type ImportVerticalAuthoritativeComponentData = AuthoritativeComponentDat
 
 /**
  * Import-vertical consistency orchestration (authoritative partition vs `Meta::Import::...` projection).
- * Other gateway trees can use the same `consistency.ts` filename next to their domain helpers.
+ * Other gateway trees can use the same `consistency/` directory pattern next to their domain helpers.
  */
 
 /** Universal-key partition row shape shared with {@link componentRowsFromUniversalPartitionLines}. */
@@ -65,6 +64,28 @@ export type ImportVerticalConsistencyFindings = {
     categoriesToAdd: readonly string[]
     /** Index rows to remove (minimal shape sufficient for `assetDB.deleteItem`). */
     metaRowsToDelete: ReadonlyArray<{ DataCategory: string }>
+}
+
+/**
+ * Per-partition: both orphan and missing rows implies stale (wrong hops). Analyzer-internal helper;
+ * not exported. The asset-level rollup lives with the diagnostics sweep that consumes it.
+ */
+function classifyImportVerticalSets(
+    expectedCategories: ReadonlySet<string>,
+    existingCategories: ReadonlySet<string>
+): ImportVerticalConsistencyClassification {
+    let missing = false
+    for (const x of expectedCategories) {
+        if (!existingCategories.has(x)) missing = true
+    }
+    let orphan = false
+    for (const x of existingCategories) {
+        if (!expectedCategories.has(x)) orphan = true
+    }
+    if (!missing && !orphan) return 'aligned'
+    if (missing && orphan) return 'stale'
+    if (missing) return 'missing'
+    return 'orphan'
 }
 
 export class ImportVerticalConsistencyAnalyzer {

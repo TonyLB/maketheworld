@@ -10,8 +10,8 @@ The assets lambda exposes a per-invocation **[`InternalCache`](./index.ts)** sin
 
 | Property | Module | Notes |
 | --- | --- | --- |
-| **`ComponentData`** | [`componentData.ts`](./componentData.ts) | Universal-key partition reads for component authoring / `byAssets` views; NDJSON parse via [`authoritativeComponentDataFromUniversalPartitionRows`](../../../packages/mtw-gateways/ts/assets/components/assetMeta/dynamoStandardComponents.ts) in **`mtw-gateways`** **`assetMeta`**. Satisfies **`ImportVerticalAuthoritativeComponentDataLoader`** ([`packages/mtw-gateways/ts/assets/components/verticals/consistency.ts`](../../../packages/mtw-gateways/ts/assets/components/verticals/consistency.ts)) directly (`get(ComponentIds)` shape). |
-| **`ComponentVerticals`** | [`componentVerticals.ts`](./componentVerticals.ts) | `Meta::Import` hop envelope via [`queryImportVerticalMeta`](../../../packages/mtw-gateways/ts/assets/components/verticals/fetch.ts) keyed by universal component id. Satisfies **`ImportVerticalMetaImportProjectionLoader`** ([`packages/mtw-gateways/ts/assets/components/verticals/consistency.ts`](../../../packages/mtw-gateways/ts/assets/components/verticals/consistency.ts)) directly (`get(universalKeys)` returning `{ universalKey, hops }` entries). |
+| **`ComponentData`** | [`componentData.ts`](./componentData.ts) | Universal-key partition reads for component authoring / `byAssets` views; NDJSON parse via [`authoritativeComponentDataFromUniversalPartitionRows`](../../../packages/mtw-gateways/ts/assets/components/assetMeta/dynamoStandardComponents.ts) in **`mtw-gateways`** **`assetMeta`**. Satisfies **`ImportVerticalAuthoritativeComponentDataLoader`** ([`packages/mtw-gateways/ts/assets/components/verticals/consistency/index.ts`](../../../packages/mtw-gateways/ts/assets/components/verticals/consistency/index.ts)) directly (`get(ComponentIds)` shape). |
+| **`ComponentVerticals`** | [`componentVerticals.ts`](./componentVerticals.ts) | `Meta::Import` hop envelope via [`queryImportVerticalMeta`](../../../packages/mtw-gateways/ts/assets/components/verticals/fetch.ts) keyed by universal component id. Satisfies **`ImportVerticalMetaImportProjectionLoader`** ([`packages/mtw-gateways/ts/assets/components/verticals/consistency/index.ts`](../../../packages/mtw-gateways/ts/assets/components/verticals/consistency/index.ts)) directly (`get(universalKeys)` returning `{ universalKey, hops }` entries). |
 | (others) | [`index.ts`](./index.ts) | Connection, asset meta, graph, library, sessions, etc. |
 
 Writer-side behavior for **`Meta::Import::...`** remains in [`lambda/assets/dataSource/components/verticals/AGENT.md`](../dataSource/components/verticals/AGENT.md).
@@ -28,6 +28,6 @@ Writer-side behavior for **`Meta::Import::...`** remains in [`lambda/assets/data
 
 **`ComponentData`** and **`ComponentVerticals`** (and any future reader of that partition) would **depend on** that shared fetch and **project** in memory (filter / parse) instead of each owning a separate top-level partition read where overlap exists.
 
-**Out of scope here:** how [`ImportVerticalConsistencyAnalyzer`](../../../packages/mtw-gateways/ts/assets/components/verticals/consistency.ts) is wired at call sites---that stays **lambda composition**; see gateway **AGENT** above.
+**Out of scope here:** how [`ImportVerticalConsistencyAnalyzer`](../../../packages/mtw-gateways/ts/assets/components/verticals/consistency/index.ts) is wired at call sites---that stays **lambda composition**; see gateway **AGENT** above.
 
 **Task-plan cross-reference:** [`taskPlanning/packages/mtw-gateways/AGENT.consistencyPattern.planning.md`](../../../taskPlanning/packages/mtw-gateways/AGENT.consistencyPattern.planning.md) (**Future work (assets lambda only)**).

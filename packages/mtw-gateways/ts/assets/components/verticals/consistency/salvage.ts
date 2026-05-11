@@ -3,7 +3,7 @@ import { Graph } from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph'
 import type { GraphEdge } from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph/baseClasses'
 import topologicalSort from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph/topologicalSort'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
-import { stripAssetIdForSortKey } from './keys'
+import { stripAssetIdForSortKey } from '../keys'
 
 export type RawImportVerticalHop = {
     parentAssetId: string

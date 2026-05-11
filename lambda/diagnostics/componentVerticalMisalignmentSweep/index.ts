@@ -7,13 +7,12 @@ import {
 } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { authoritativeComponentDataFromUniversalPartitionRows } from '@tonylb/mtw-gateways/ts/assets/components/assetMeta'
 import {
-    aggregateMisalignmentStatuses,
-    classifyImportVerticalSets,
     ImportVerticalConsistencyAnalyzer,
     queryImportVerticalMeta,
     type ImportVerticalConsistencyAnalyzerDeps,
     type ImportVerticalUniversalPartitionRow,
 } from '@tonylb/mtw-gateways/ts/assets/components/verticals'
+import { aggregateMisalignmentStatuses } from './classification'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { publishStreamEvent, StreamEventPublisherSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/streamEventPublisher'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
@@ -21,8 +20,6 @@ import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import type { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { isStandardNDJSONLine } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
-
-export { aggregateMisalignmentStatuses, classifyImportVerticalSets } from '@tonylb/mtw-gateways/ts/assets/components/verticals'
 
 async function analyzeUniversalPartition(universalKey: EphemeraId): Promise<
     'aligned' | 'missing' | 'orphan' | 'stale'
