@@ -3,9 +3,9 @@ import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 const assetDBMock = jest.mocked(assetDB)
 
-import { ComponentVerticals } from './componentVerticals'
+import { createImportVerticalMetaCacheHandler } from '@tonylb/mtw-gateways/ts/assets/components/verticals'
 
-const componentVerticals = new ComponentVerticals()
+const componentVerticals = createImportVerticalMetaCacheHandler(assetDBMock)
 
 describe('ComponentVerticals cache', () => {
     beforeEach(() => {

@@ -1,3 +1,13 @@
+export {
+    AuthoritativeComponentDataCache,
+    createAuthoritativeComponentDataCacheHandler,
+    type AuthoritativeComponentPartitionAssetDB,
+} from './authoritativeComponentDataCache'
+export {
+    EphemeraComponentAssetMetaCache,
+    createEphemeraComponentAssetMetaCacheHandler,
+    type ComponentAssetMetaItem,
+} from './ephemeraComponentAssetMetaCache'
 export { generateCacheKey, cacheKeyComponents } from './keys'
 export { metaDataCategoryForEphemeraId } from './metaCategory'
 export { tagFromEphemeraWrappedId, defaultStoredEntryForCacheKey } from './defaults'

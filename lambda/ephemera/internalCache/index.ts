@@ -4,7 +4,10 @@ import CacheRoomCharacterListsData from './roomCharacterLists';
 import CacheCharacterMetaData from './characterMeta';
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB';
 
-import ComponentAssetMetaData from './componentAssetMeta';
+import {
+    createEphemeraComponentAssetMetaCacheHandler,
+    EphemeraComponentAssetMetaCache,
+} from '@tonylb/mtw-gateways/ts/assets/components/assetMeta';
 import ComponentEphemeraMetaData from './componentEphemeraMeta';
 import { AssetMetaData } from './assetMeta';
 import { CacheAssetRoomsData, CacheRoomAssetsData } from './assetRooms';
@@ -64,7 +67,7 @@ export class InternalCache {
     GraphNodes: GraphNodeType;
     GraphEdges: GraphEdgeType;
     
-    ComponentAssetMeta: ComponentAssetMetaData = new ComponentAssetMetaData();
+    ComponentAssetMeta: EphemeraComponentAssetMetaCache = createEphemeraComponentAssetMetaCacheHandler(assetDB);
     ComponentEphemeraMeta: ComponentEphemeraMetaData = new ComponentEphemeraMetaData();
     AssetMetaData: AssetMetaData = new AssetMetaData();
 

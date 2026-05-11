@@ -11,6 +11,7 @@
   "license": "MIT",
   "dependencies": {
     "@tonylb/mtw-base": "file:../mtw-base",
+    "@tonylb/mtw-lambda-patterns": "file:../mtw-lambda-patterns",
     "@tonylb/mtw-interfaces": "file:../mtw-interfaces",
     "@tonylb/mtw-utilities": "file:../mtw-utilities",
     "@tonylb/mtw-wml": "file:../mtw-wml"

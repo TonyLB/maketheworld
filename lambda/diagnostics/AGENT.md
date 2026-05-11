@@ -76,7 +76,9 @@
 
 ## Component vertical misalignment sweep (import vertical diagnostics)
 
-**Purpose:** Read-only check for one asset: authoritative component `_from` hops (derived with the same **`mtw-gateways`** salvage rules as **`syncImportVerticalPartition`**) against existing **`Meta::Import::...`** rows for every **`universalKey`** found under that asset. Partition comparison uses **`ImportVerticalConsistencyAnalyzer`** ([`componentVerticalMisalignmentSweep/index.ts`](componentVerticalMisalignmentSweep/index.ts)) with **`authoritativeComponentDataFromUniversalPartitionRows`** on **`assetDB`** partition reads (matching assets **`ComponentData`** semantics) and **`queryImportVerticalMeta`** for the Meta projection. Emits **`Component Vertical Misaligned Finding`** when any partition differs; **`mtw.assets.components.verticals`** consumes the finding and runs **`healComponentVertical`**.
+**Purpose:** Read-only check for one asset: authoritative component `_from` hops (derived with the same **`mtw-gateways`** salvage rules as **`syncImportVerticalPartition`**) against existing **`Meta::Import::...`** rows for every **`universalKey`** found under that asset. Partition comparison uses **`ImportVerticalConsistencyAnalyzer`** ([`componentVerticalMisalignmentSweep/index.ts`](componentVerticalMisalignmentSweep/index.ts)) with the same tier-1 **`internalCache.ComponentData`** / **`ComponentVerticals`** handlers as assets (see [`internalCache/index.ts`](internalCache/index.ts)). Enumerating universal keys for the asset still uses **`assetDB`** **`DataCategoryIndex`** on the asset id. Emits **`Component Vertical Misaligned Finding`** when any partition differs; **`mtw.assets.components.verticals`** consumes the finding and runs **`healComponentVertical`**.
+
+**Vs assets projector:** Same analyzer **`deps`** shape as **`syncImportVerticalPartition`** and per-invocation **`internalCache.clear()`** at handler entry ([`app.ts`](app.ts)); assets additionally carries aggregate and unrelated caches. See **Blessed wiring sites for `ImportVerticalConsistencyAnalyzer`** in [`packages/mtw-gateways/AGENT.md`](../../packages/mtw-gateways/AGENT.md).
 
 **Entrypoints:**
 
@@ -89,6 +91,7 @@
 
 ## Related docs
 
+- Diagnostics **`internalCache`** slice: [`internalCache/AGENT.md`](internalCache/AGENT.md)
 - Assets heal authority and event flow: [`../assets/AGENT.event.md`](../assets/AGENT.event.md)
 - Cognito signup publish flow (`mtw.cognito` / `New Player`): [`../cognitoEvent/AGENT.md`](../cognitoEvent/AGENT.md)
 - Broader diagnostics schema notes: [`AGENT.schema.planning.md`](AGENT.schema.planning.md)
