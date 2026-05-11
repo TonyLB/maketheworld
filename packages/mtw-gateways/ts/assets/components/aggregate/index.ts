@@ -1,4 +1,10 @@
 export { mergeAuthoritativeAcrossParticipationOrder } from './assemble'
+export {
+    ComponentAggregateMergedCache,
+    createComponentAggregateCacheHandler,
+    mergedComponentFromAuthoritative,
+} from './factory'
+export { aggregatePerspectiveCacheKey } from './keys'
 export type { AggregateGatewayDeps, ComponentAggregateInternalCacheSlice } from './ports'
 export {
     AggregateInputError,
@@ -16,4 +22,4 @@ export {
     createComponentAggregateGateway,
     type AggregateGateway,
     type ComponentAggregateGatewayBundle,
-} from './factory'
+} from './uncached'

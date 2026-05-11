@@ -31,9 +31,9 @@ function componentByAssetMap(authoritative: AuthoritativeComponentData): Map<Ass
 }
 
 /**
- * Folds {@link StandardComponent.merge} along {@link AggregatePerspective.mergeParticipationOrder}
- * (ascending index: first id is the base; later ids overlay), matching `merge*AcrossStack` in
- * `lambda/assets/componentExamples/exampleEnrichment.ts`.
+ * Folds {@link StandardComponent} **`merge`** along {@link AggregatePerspective}
+ * **`mergeParticipationOrder`** (ascending index: first id is the base; later ids overlay),
+ * matching **`merge*AcrossStack`** in `lambda/assets/componentExamples/exampleEnrichment.ts`.
  */
 export function mergeAuthoritativeAcrossParticipationOrder(
     perspective: AggregatePerspective,
