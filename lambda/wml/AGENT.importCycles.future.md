@@ -4,7 +4,7 @@
 
 ## Context
 
-- [**`AGENT.componentVertical.planning.md`**](../../taskPlanning/lambda/assets/AGENT.componentVertical.planning.md) (**Cycles (imports)**) notes that **`assets`** runs **after** **`wml`** accepts edits, so cycle detection at **`assets`** is **diagnostic / index salvage**, not rejection-at-source.
+- [`lambda/assets/dataSource/components/verticals/AGENT.md`](../assets/dataSource/components/verticals/AGENT.md) documents that **`assets`** runs **after** **`wml`** accepts edits, so cycle detection at **`assets`** is **diagnostic / index salvage**, not rejection-at-source.
 - The **client** may already fence some edits when graph context is loaded.
 - **Proper** prevention requires **`wml`** (or a validation API invoked during accept) to see **enough cross-asset import edges**---possibly expensive (traverse imports / load asset closure).
 
@@ -16,5 +16,5 @@
 
 ## Related
 
-- [**Component vertical planning**](../../taskPlanning/lambda/assets/AGENT.componentVertical.planning.md) (**Cycles (imports)**).
+- [`lambda/assets/dataSource/components/verticals/AGENT.md`](../assets/dataSource/components/verticals/AGENT.md) (**Cycles (imports)** behavior and salvage boundary).
 - [**`mtw.assets.components.verticals` writer**](../assets/dataSource/components/verticals/AGENT.md) (index salvage vs authoring truth).

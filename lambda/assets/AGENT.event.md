@@ -176,7 +176,7 @@ For more on how these events are consumed to populate Ephemera's render cache, s
 
 ### 7. **mtw.assets.components.verticals** (Component import vertical index)
 
-**Purpose**: Maintains **derived** DynamoDB **`Meta::Import::...`** rows keyed by **universal component id**, describing **cross-asset import hops** (`StandardComponent._from`) so future reads can assemble an import vertical with **bounded** Dynamo access (see [`taskPlanning/lambda/assets/AGENT.componentVertical.planning.md`](../../taskPlanning/lambda/assets/AGENT.componentVertical.planning.md)).
+**Purpose**: Maintains **derived** DynamoDB **`Meta::Import::...`** rows keyed by **universal component id**, describing **cross-asset import hops** (`StandardComponent._from`) so future reads can assemble an import vertical with **bounded** Dynamo access.
 
 **Type**: Non-replayable (integration projector; no subscription snapshots for this key).
 
