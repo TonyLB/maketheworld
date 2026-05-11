@@ -1,6 +1,6 @@
 # Component aggregates (merged view + derived DataSource) - planning
 
-**Status:** Planning (not started). **In scope:** sequence work so **query / assembly logic** lands first as shared **read-only gateway** code under [`packages/mtw-gateways/ts/assets/components/aggregate/`](../../../packages/mtw-gateways/ts/assets/components/aggregate/) (see [**Gateway package layout**](#phase-1-gateway)), then add **`mtw.assets.components.aggregate`** as a **non-replayable** derived [`AssetsDataSource`](../../../lambda/assets/dataSource/abstract.ts) under [`lambda/assets/dataSource/components/aggregate/`](../../../lambda/assets/dataSource/components/aggregate/) for **streaming** and **invalidation-oriented** signals. **Next:** implement **`aggregate/`** types + **`assembleMergedComponent`** + goldens (Phase 1 [**Recommended order**](#recommended-order)); vertical contract is already shipped---touch base with verticals readers only when the **anchor-only participant closure** or batch shape needs alignment.
+**Status:** Phase 1 in progress (aggregate **compute-only** gateway assembly landed under **`mtw-gateways`**). **In scope:** sequence work so **query / assembly logic** lands first as shared **read-only gateway** code under [`packages/mtw-gateways/ts/assets/components/aggregate/`](../../../packages/mtw-gateways/ts/assets/components/aggregate/) (see [**Gateway package layout**](#phase-1-gateway)), then add **`mtw.assets.components.aggregate`** as a **non-replayable** derived [`AssetsDataSource`](../../../lambda/assets/dataSource/abstract.ts) under [`lambda/assets/dataSource/components/aggregate/`](../../../lambda/assets/dataSource/components/aggregate/) for **streaming** and **invalidation-oriented** signals. **Next:** **Golden / comparison tests** (Phase 1 [**Recommended order**](#recommended-order)); vertical contract is already shipped---touch base with verticals readers only when the **anchor-only participant closure** or batch shape needs alignment.
 
 This document follows [`taskPlanning/AGENT.md`](../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting notes live under [`lambda/assets/`](../../../lambda/assets/) (or [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) for the gateway surface).
 
@@ -14,9 +14,9 @@ This document follows [`taskPlanning/AGENT.md`](../../AGENT.md) (durability, wha
 2. Read the vertical writer semantics and shared gateway surface (you will query the same Dynamo rows the vertical owner writes):
    - [`lambda/assets/dataSource/components/verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md)
    - [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md)
-3. Read **gateway rules** and existing assets gateways (pattern for shared read surfaces):
-   - [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md)
-   - [`packages/mtw-gateways/ts/assets/components/assetMeta/`](../../../packages/mtw-gateways/ts/assets/components/assetMeta/) (example of injected `assetDB` reads)
+3. Read **gateway rules** and mirror existing assets gateway **layout** (shared read surfaces---do not invent a parallel package architecture):
+   - [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md): read at least [**How to add a gateway**](../../../packages/mtw-gateways/AGENT.md#how-to-add-a-gateway) and [**Consistency analyzers: contract vs composition**](../../../packages/mtw-gateways/AGENT.md#consistency-analyzers-contract-vs-composition) before sketching types or adding files under **`aggregate/`**. (Optional but useful: [**Wrapping gateways in InternalCache (playbook)**](../../../packages/mtw-gateways/AGENT.md#wrapping-gateways-in-internalcache-playbook) so lambda wiring stays out of the package.)
+   - Code to mirror: [`packages/mtw-gateways/ts/assets/components/assetMeta/`](../../../packages/mtw-gateways/ts/assets/components/assetMeta/) (row normalization; projection-read gateways inject `assetDB` here) and [`packages/mtw-gateways/ts/assets/components/verticals/`](../../../packages/mtw-gateways/ts/assets/components/verticals/) (sibling module; **`Meta::Import`** reads and **`ImportVerticalConsistencyAnalyzer`** loader **`deps`** this initiative composes). **Aggregate** is compute-only: **`createAggregateGateway(deps)`** with loader ports, not an in-package `assetDB` factory.
    - Planned aggregate home: [`packages/mtw-gateways/ts/assets/components/aggregate/`](../../../packages/mtw-gateways/ts/assets/components/aggregate/) ([**Gateway package layout**](#phase-1-gateway))
 4. Read **merge / stack** behavior today so golden tests have a comparison baseline:
    - [`lambda/assets/fetchImportDefaults/AGENT.md`](../../../lambda/assets/fetchImportDefaults/AGENT.md)
@@ -132,6 +132,18 @@ Deliver a **bounded-read** path and (later) **mesh-visible signals** for **merge
 
 **Implication for foundations:** Knowing that refactor is **planned** can nudge **narrow types**, **clear `(U, orderedAssetIds)` boundaries**, and **avoid entangling** aggregate gateway internals with **`componentExamples`** event shapes or Room/Situation fan-out. **Do not** block Phase 1 on **boiling the ocean** (solving first-class Situation-Facet verticals + aggregates end-to-end inside this slice).
 
+### InternalCache composition (Phase 1)
+
+**Problem:** Aggregate assembly needs **vertical hop envelopes** and **authoritative per-asset bodies**---the same facts **`internalCache.ComponentVerticals`** and **`internalCache.ComponentData`** already memoize on lambdas that have them.
+
+**Rule:** In **`mtw-gateways`**, the aggregate surface stays a **pure factory + assembly** with **narrow injected deps** (same **contract vs composition** split as **`ImportVerticalConsistencyAnalyzer`** in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md)): e.g. **`loadImportVerticalMeta(universalKeys)`** and **`loadAuthoritativeComponentData(universalKeys)`** (or reuse the existing **`ImportVerticalAuthoritativeComponentDataLoader`** / **`ImportVerticalMetaImportProjectionLoader`** shapes where they match). **No** `InternalCache` or `DeferredCache` types in the package.
+
+**Lambda composition:** Each lambda that already has sibling handlers wires **`createAggregateGateway(deps)`** (or equivalent) with **closures** that delegate to **`internalCache.ComponentVerticals.get`**, **`internalCache.ComponentData.get`**, etc. Unit tests in **`mtw-gateways`** mock **`deps`** with in-memory data.
+
+**Optional second `InternalCache` handler** (e.g. **`ComponentAggregate`** on assets): a **`DeferredCache`**-backed class whose **`promiseFactory`** calls those **same** sibling **`get`** methods, then runs the **pure** assembly function on the results---so merged reads participate in **`clear()`** / **`invalidate()`** like other handlers. Choose a **cache key** that matches how callers ask for merges (e.g. **`U` + serialized `orderedAssetIds`**); **invalidate** when either vertical or component data for keys that feed that merge change (start coarse, e.g. invalidate on **`U`** partition changes, then tighten if needed). Follow the **Wrapping gateways in InternalCache (playbook)** checklist in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md#wrapping-gateways-in-internalcache-playbook) and document the handler in that lambda's [`internalCache/AGENT.md`](../../../lambda/assets/internalCache/AGENT.md).
+
+**Ephemera** (or other lambdas) repeat the same pattern with their own **`ComponentAssetMeta`** / caches---**do not** import another lambda's **`InternalCache`** singleton into **`mtw-gateways`**.
+
 ### Phase 2 (DataSource, streaming, subscribers)
 
 | Topic | Question / notes |
@@ -175,9 +187,10 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to neste
 
 **Phase 1**
 
-- [ ] **Aggregate types:** Sketch **`AggregatePerspective`** (names TBD), **`OrderedAssetStack`**, and **`MergedComponentResult`** under [`packages/mtw-gateways/ts/assets/components/aggregate/`](../../../packages/mtw-gateways/ts/assets/components/aggregate/) (pure types + factories).
-- [ ] **Assembly core:** Implement **`assembleMergedComponent`** (name TBD) in the same **`aggregate/`** tree using **`Meta::Import`** reads from [`ts/assets/components/verticals`](../../../packages/mtw-gateways/ts/assets/components/verticals) plus batch component fetch + merge; inject `assetDB` via factory per gateway norms.
+- [X] **Aggregate types:** Sketch **`AggregatePerspective`** (names TBD), **`OrderedAssetStack`**, and **`MergedComponentResult`** under [`packages/mtw-gateways/ts/assets/components/aggregate/`](../../../packages/mtw-gateways/ts/assets/components/aggregate/) (pure types + factories). Follow **Getting Started** step 3: per-gateway **`index.ts`** public surface, **deep imports**, narrow **`create*Gateway(deps)`** per [**How to add a gateway**](../../../packages/mtw-gateways/AGENT.md#how-to-add-a-gateway) in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md); **no** `InternalCache` / lambda singleton types in **`mtw-gateways`**.
+- [X] **Assembly core:** Implement **`assembleMergedComponent`** in the same **`aggregate/`** tree: parallel loads via **`AggregateGatewayDeps`** (**`ImportVerticalMetaImportProjectionLoader`** / **`Meta::Import`** envelope + **`ImportVerticalAuthoritativeComponentDataLoader`** / authoritative **`byAssets`**), then pure merge along participation order (`assemble.ts`). **`createAggregateGateway(deps)`** only---lambdas satisfy **`deps`** with **`InternalCache`** (or ephemera equivalents), same loader contract as verticals **`ImportVerticalConsistencyAnalyzer`**; no **`assetDB`** factory inside **`mtw-gateways`** for this compute gateway.
 - [ ] **Golden / comparison tests:** Fixtures proving parity with legacy merge path for representative stacks; record commands in **Verification**.
+- [ ] **Optional `InternalCache` handler (assets):** Wire **`ComponentAggregate`** (or chosen name) per [**InternalCache composition (Phase 1)**](#internalcache-composition-phase-1); register in [`lambda/assets/internalCache/index.ts`](../../../lambda/assets/internalCache/index.ts) and document in [`lambda/assets/internalCache/AGENT.md`](../../../lambda/assets/internalCache/AGENT.md).
 - [ ] **Follow-on (assets lambda):** refactor [`fetchImportDefaults`](../../../lambda/assets/fetchImportDefaults/index.ts) to call this **aggregate assembly** surface (Phase 1 gateway), replacing hand-rolled recursion / graph walks and retiring reliance on `internalCache.Graph` for ancestry where appropriate. **Do not** route synchronous reads through the **`mtw.assets.components.aggregate` DataSource**---that DataSource is for **mesh streaming** only.
 
 **Phase 2**
@@ -198,7 +211,9 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to neste
 | --- | --- | --- |
 | Problem framing + phased gateway-first approach | n/a | Done (this doc) |
 | Vertical **`Meta::Import`** read gateway (`mtw-gateways`) | prerequisite | Done (shipped; consumed by aggregate work) |
-| Aggregate assembly core + tests | 1 | Not started |
+| Aggregate gateway types + `createAggregateGateway` skeleton (`ports` / `input` / `result` / `factory`) | 1 | Done |
+| Aggregate assembly core (`assembleMergedComponent`, `assemble.ts`, unit tests in `mtw-gateways`) | 1 | Done |
+| Golden / comparison tests vs legacy merge | 1 | Not started |
 | `mtw.assets.components.aggregate` DataSource | 2 | Not started |
 | Subscriber wiring + serializers | 2 | Not started |
 
@@ -210,7 +225,7 @@ Record **exact** cwd + runner commands as slices land.
 
 **Phase 1**
 
-- [ ] `packages/mtw-gateways`: `npm test` (and `npx tsc --build packages/mtw-gateways/tsconfig.ref.json` when types change).
+- [X] `packages/mtw-gateways` (repo root for `tsc`): `cd packages/mtw-gateways && npm test`; `npx tsc --build packages/mtw-gateways/tsconfig.ref.json` (run after aggregate types / gateway edits).
 - [ ] **Follow-on:** when **`fetchImportDefaults`** is refactored ([**Recommended order**](#recommended-order)), `grep -r "fetchImportDefaults\\|recursiveFetchImports" lambda/assets/fetchImportDefaults` reflects **aggregate gateway** assembly over vertical reads (or document deliberate interim behavior).
 - [ ] Consumer regression (if ephemera or others adopt gateway): follow notes in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md).
 
