@@ -6,11 +6,13 @@ import {
     AggregateInputError,
     aggregatePerspectiveExplicit,
     createAggregateGateway,
+    createComponentAggregateGateway,
     mergeAuthoritativeAcrossParticipationOrder,
     mergedComponentResult,
     normalizeMergeParticipationOrder,
     participationAssetsInPerspective,
 } from './index'
+import { inMemoryComponentAggregateInternalCacheSlice } from './testHarness'
 
 describe('component aggregate gateway (compute-only)', () => {
     const roomU = 'ROOM#r1' as const
@@ -94,8 +96,20 @@ describe('component aggregate gateway (compute-only)', () => {
         })
     })
 
+    describe('createComponentAggregateGateway', () => {
+        it('accepts InternalCache-shaped slice and exposes participation helper', () => {
+            const slice = inMemoryComponentAggregateInternalCacheSlice({})
+            const { gateway } = createComponentAggregateGateway(slice)
+            const p = aggregatePerspectiveExplicit({
+                universalKey: roomU,
+                mergeParticipationOrder: [assetA, assetB],
+            })
+            expect(gateway.participationAssetsInPerspective(p)).toEqual(new Set([assetA, assetB]))
+        })
+    })
+
     describe('createAggregateGateway', () => {
-        it('accepts loader-shaped deps and exposes participation helper', () => {
+        it('still accepts analyzer-shaped deps', () => {
             const deps = {
                 authoritativeComponentData: {
                     get: async () => [],
@@ -154,19 +168,19 @@ describe('component aggregate gateway (compute-only)', () => {
         `)
         )
 
-        it('invokes metaImportProjection and authoritativeComponentData in parallel for universal key', async () => {
-            const authoritativeComponentData = { get: jest.fn().mockResolvedValue([]) }
-            const metaImportProjection = { get: jest.fn().mockResolvedValue([]) }
-            const gateway = createAggregateGateway({ authoritativeComponentData, metaImportProjection })
+        it('invokes ComponentVerticals and ComponentData in parallel for universal key', async () => {
+            const ComponentData = { get: jest.fn().mockResolvedValue([]) }
+            const ComponentVerticals = { get: jest.fn().mockResolvedValue([]) }
+            const { gateway } = createComponentAggregateGateway({ ComponentData, ComponentVerticals })
             const p = aggregatePerspectiveExplicit({
                 universalKey: roomU,
                 mergeParticipationOrder: [],
             })
             await expect(gateway.assembleMergedComponent(p)).rejects.toThrow(AggregateInputError)
-            expect(authoritativeComponentData.get).toHaveBeenCalledWith([roomU])
-            expect(metaImportProjection.get).toHaveBeenCalledWith([roomU])
-            expect(authoritativeComponentData.get).toHaveBeenCalledTimes(1)
-            expect(metaImportProjection.get).toHaveBeenCalledTimes(1)
+            expect(ComponentData.get).toHaveBeenCalledWith([roomU])
+            expect(ComponentVerticals.get).toHaveBeenCalledWith([roomU])
+            expect(ComponentData.get).toHaveBeenCalledTimes(1)
+            expect(ComponentVerticals.get).toHaveBeenCalledTimes(1)
         })
 
         it('merges rooms in merge participation order (later asset overlays)', async () => {
@@ -174,15 +188,11 @@ describe('component aggregate gateway (compute-only)', () => {
                 { AssetId: assetA, component: baseRoom as unknown as StandardComponent },
                 { AssetId: assetB, component: overrideRoom as unknown as StandardComponent },
             ]
-            const deps = {
-                authoritativeComponentData: {
-                    get: async () => [{ ComponentId: roomU, byAssets }],
-                },
-                metaImportProjection: {
-                    get: async () => [{ universalKey: roomU, hops: [] }],
-                },
-            }
-            const gateway = createAggregateGateway(deps)
+            const slice = inMemoryComponentAggregateInternalCacheSlice({
+                authoritativeByUniversal: new Map([[roomU, { ComponentId: roomU, byAssets }]]),
+                verticalsByUniversal: new Map([[roomU, { universalKey: roomU, hops: [] }]]),
+            })
+            const { gateway } = createComponentAggregateGateway(slice)
             const p = aggregatePerspectiveExplicit({
                 universalKey: roomU,
                 mergeParticipationOrder: [assetA, assetB],
@@ -196,15 +206,11 @@ describe('component aggregate gateway (compute-only)', () => {
 
         it('uses default stub for a missing participation asset then merges overlay', async () => {
             const byAssets = [{ AssetId: assetB, component: overrideRoom as unknown as StandardComponent }]
-            const deps = {
-                authoritativeComponentData: {
-                    get: async () => [{ ComponentId: roomU, byAssets }],
-                },
-                metaImportProjection: {
-                    get: async () => [{ universalKey: roomU, hops: [] }],
-                },
-            }
-            const gateway = createAggregateGateway(deps)
+            const slice = inMemoryComponentAggregateInternalCacheSlice({
+                authoritativeByUniversal: new Map([[roomU, { ComponentId: roomU, byAssets }]]),
+                verticalsByUniversal: new Map([[roomU, { universalKey: roomU, hops: [] }]]),
+            })
+            const { gateway } = createComponentAggregateGateway(slice)
             const p = aggregatePerspectiveExplicit({
                 universalKey: roomU,
                 mergeParticipationOrder: [assetA, assetB],

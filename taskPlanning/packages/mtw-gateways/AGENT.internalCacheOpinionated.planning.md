@@ -4,7 +4,7 @@
 
 This document follows [`taskPlanning/AGENT.md`](../../AGENT.md) (durability, checklists, verification). **Dispose** after the migration ships and lasting norms live in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) (and related lambda `internalCache` docs).
 
-**Sibling initiative (in flight):** [`taskPlanning/lambda/assets/AGENT.componentAggregate.planning.md`](../../lambda/assets/AGENT.componentAggregate.planning.md) is **roughly halfway through Phase 1**: aggregate **types**, **`assemble.ts`**, **`createAggregateGateway(deps)`**, and package unit tests are landed; **golden/comparison tests**, assets **`InternalCache`** handler wiring, and **`fetchImportDefaults`** migration are **not**. That plan currently encodes the **old** split (**contract in `mtw-gateways`**, composition in lambdas; **no** `InternalCache` / `DeferredCache` types in the gateway package). **This migration supersedes that trajectory** for remaining aggregate work and for how **all** gateways in this package should integrate. When this initiative progresses, **update** the component-aggregate plan's **InternalCache composition**, **Recommended order**, and **Progress** rows so they do not contradict the opinionated model (or add an explicit **Superseded by** pointer at the top of that doc).
+**Sibling initiative (in flight):** [`taskPlanning/lambda/assets/AGENT.componentAggregate.planning.md`](../../lambda/assets/AGENT.componentAggregate.planning.md) is **roughly halfway through Phase 1**: aggregate **types**, **`assemble.ts`**, **`InternalCache`-slice composition** (`createComponentAggregateGateway`, **`ComponentAggregateInternalCacheSlice`**), and package unit tests are landed; **golden/comparison tests**, a **`DeferredCache`**-backed **handler factory** in **`mtw-gateways`** (next slice below), **minimal** assets **`InternalCache`** registration of that handler, and **`fetchImportDefaults`** migration are **not**. Older text in that doc may still describe **lambda-owned** `DeferredCache` glue; **reconcile** it when executing the **Sibling task plan** checklist item here. **This migration supersedes** the old split (**contract-only in `mtw-gateways`**, all cache mechanics in lambdas). When this initiative progresses, **update** the component-aggregate plan's **InternalCache composition**, **Recommended order**, and **Progress** rows so they do not contradict the opinionated model (or add an explicit **Superseded by** pointer at the top of that doc).
 
 ---
 
@@ -40,7 +40,7 @@ This document follows [`taskPlanning/AGENT.md`](../../AGENT.md) (durability, che
 | **Durable docs** | Rewrite [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) sections that forbid `InternalCache` types or stress "structural loaders only"; replace with the opinionated default and any remaining exceptions (e.g. **pure** normalizers that stay importable without cache). |
 | **Projection-read trees** (`assetMeta`, `verticals`) | Evolve factories (or add **parallel** `create...InternalCache` exports) so the **blessed** integration path registers `DeferredCache`-backed handlers; keep **pure** `keys` / `fetch` / row normalizers where lambdas still need them without full cache (document as **low-level** escape hatch if retained). |
 | **Consistency analyzers** (`ImportVerticalConsistencyAnalyzer`) | Reconcile with opinionated model: either remain **pure** with explicit injection of cache-backed getters, or gain a **factory** that closes over `InternalCache` slices---pick one documented story to avoid two competing patterns. |
-| **Aggregate** ([`ts/assets/components/aggregate`](../../../packages/mtw-gateways/ts/assets/components/aggregate)) | Replace or wrap **`createAggregateGateway(deps)`** loader-port style with **`InternalCache`**-first factory output; align pending [**component aggregate**](../../lambda/assets/AGENT.componentAggregate.planning.md) checklist items (golden tests, assets handler, `fetchImportDefaults`) with the new wiring. |
+| **Aggregate** ([`ts/assets/components/aggregate`](../../../packages/mtw-gateways/ts/assets/components/aggregate)) | **`InternalCache`**-slice-first **`createComponentAggregateGateway`** + **`{ gateway }`** bundle (done). **Next:** export a **`DeferredCache`**-orchestrated **cache-shaped handler factory** from the same tree so lambdas **instantiate** a per-invocation handler and **only** wire it onto **`InternalCache`** / **`clear`** / **`flush`**; then align [**component aggregate**](../../lambda/assets/AGENT.componentAggregate.planning.md) (golden tests, assets registration, `fetchImportDefaults`). |
 | **Consumers** | Update assets / ephemera / diagnostics wiring and their `internalCache` AGENT files so they use the new factories; adjust tests (package + lambda) to use **cache-shaped** test harnesses where appropriate. |
 
 **Deliberately deferred in this plan's body:** exact API shape (`register(internalCache: InternalCache, ...)` vs returning handler descriptors, naming, and whether **every** gateway gets one factory or split **pure** + **cache** exports). Record decisions in **Progress** or a short **Decision log** subsection as they land.
@@ -49,9 +49,9 @@ This document follows [`taskPlanning/AGENT.md`](../../AGENT.md) (durability, che
 
 ## Relationship to component aggregate initiative
 
-- **Already shipped under old model:** `AggregatePerspective`, `mergeAuthoritativeAcrossParticipationOrder`, `mergedComponentResult`, `createAggregateGateway` with **`AggregateGatewayDeps`** alias of analyzer deps, unit tests in `mtw-gateways`.
-- **Still open on aggregate plan:** golden/comparison tests, optional assets `ComponentAggregate` (or chosen name) `InternalCache` handler, `fetchImportDefaults` migration, Phase 2 DataSource.
-- **Impact of this migration:** Remaining aggregate work should **assume** gateways expose **`InternalCache`**-ready surfaces; the aggregate plan's text that says "**No** `InternalCache` or `DeferredCache` types in the package" and "**narrow injected deps**" is **obsolete** once this initiative's design is adopted. Update that sibling plan in the **same** PR series or immediately after the new norm is written in `packages/mtw-gateways/AGENT.md`, so contributors are not pulled in two directions.
+- **Shipped in `mtw-gateways`:** `AggregatePerspective`, merge/result pure helpers, **`createComponentAggregateGateway`** + **`ComponentAggregateInternalCacheSlice`** + **`{ gateway }`** bundle, **`createAggregateGateway(deps)`** (**`AggregateGatewayDeps`**), unit tests with **`InternalCache`**-shaped harnesses.
+- **Still open (aggregate + assets):** **`mtw-gateways`** **`DeferredCache`** **handler factory** for merge reads, minimal assets **`InternalCache`** registration + **`clear`/`flush`**, golden/comparison tests, `fetchImportDefaults` migration, Phase 2 DataSource.
+- **Impact of this migration:** Remaining aggregate work should **assume** package-owned **`DeferredCache`** orchestration for the **cache-shaped** handler; lambdas **wire** handlers only. Sibling plan prose that forbade **`DeferredCache`** in **`mtw-gateways`** is **obsolete** (see **Sibling task plan** checklist item to scrub stragglers).
 
 ---
 
@@ -74,10 +74,11 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets the same
 -     - **Decided:** Keep **pure** exports for inputs/outputs (keys, parsing, normalization, result DTOs), but **do not** export direct DynamoDB fetch helpers as part of the public surface. Dynamo access should be blackboxed inside the cache-backed handler.
 - [X] **Dependency:** Add `@tonylb/mtw-lambda-patterns` to [`packages/mtw-gateways/package.json`](../../../packages/mtw-gateways/package.json); fix `tsconfig` / imports; confirm **no** circular dependency.
 - [X] **Durable docs:** Update [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) to the opinionated model; remove or replace **contract vs composition** / **no InternalCache types** guidance that conflicts.
-- [ ] **Aggregate alignment:** Refactor [`packages/mtw-gateways/ts/assets/components/aggregate`](../../../packages/mtw-gateways/ts/assets/components/aggregate) to the new pattern; update [`packages/mtw-gateways/ts/assets/components/aggregate/index.test.ts`](../../../packages/mtw-gateways/ts/assets/components/aggregate/index.test.ts) (and related tests) to use **`InternalCache`**-shaped harnesses or approved doubles.
-- [ ] **Sibling task plan:** Edit [`taskPlanning/lambda/assets/AGENT.componentAggregate.planning.md`](../../lambda/assets/AGENT.componentAggregate.planning.md) --- **InternalCache composition**, **Recommended order**, **Progress**, and any **Getting Started** bullets that reference "no `InternalCache` in `mtw-gateways`" so they match post-migration reality; add a short **Architecture note** at top if partial edits leave historical context.
+- [X] **Aggregate alignment:** Refactor [`packages/mtw-gateways/ts/assets/components/aggregate`](../../../packages/mtw-gateways/ts/assets/components/aggregate) to the new pattern; update [`packages/mtw-gateways/ts/assets/components/aggregate/index.test.ts`](../../../packages/mtw-gateways/ts/assets/components/aggregate/index.test.ts) (and related tests) to use **`InternalCache`**-shaped harnesses or approved doubles.
+- [ ] **Aggregate cache handler factory (`mtw-gateways`):** Extend [`packages/mtw-gateways/ts/assets/components/aggregate`](../../../packages/mtw-gateways/ts/assets/components/aggregate) so the **blessed** surface exports a **`DeferredCache`**-backed **cache-shaped handler** (or a small **factory** that returns one), built from **`ComponentAggregateInternalCacheSlice`** / sibling loaders, with **`clear`/`flush`/`invalidate`** semantics consistent with [`packages/mtw-lambda-patterns/ts/internalCache/AGENT.md`](../../../packages/mtw-lambda-patterns/ts/internalCache/AGENT.md). **Goal:** lambdas do **not** re-implement aggregate `DeferredCache` orchestration. Add package tests for handler keys / batching / assembly delegation; update [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) when the API lands.
+- [ ] **Sibling task plan:** Edit [`taskPlanning/lambda/assets/AGENT.componentAggregate.planning.md`](../../lambda/assets/AGENT.componentAggregate.planning.md) --- scrub remaining stale bullets (**Getting Started**, **Decision points**, grep for "no `DeferredCache`", old **`createAggregateGateway` only** wording) so they match the **handler factory** slice above; keep the **Architecture note** accurate. **Include** the split: **handler factory** lives in **`mtw-gateways`**; lambdas **construct + register** only.
 - [ ] **Other gateways / analyzers:** Migrate or document `assetMeta`, `verticals`, and `ImportVerticalConsistencyAnalyzer` integration paths per the single blessed story.
-- [ ] **Lambda consumers:** Update assets / ephemera / diagnostics `internalCache` wiring and AGENT files; run targeted lambda tests where handlers change.
+- [ ] **Lambda consumers:** For aggregate (and other migrated gateways): **instantiate** the gateway-supplied **handler factory output** once per invocation, **assign** it on the lambda **`InternalCache`** singleton, and wire **`clear`/`flush`** (and invalidation hooks) per that lambda's playbook; run targeted lambda tests where handlers change. **Do not** hand-roll duplicate **`DeferredCache`** logic for aggregate assembly where the package factory exists.
 - [ ] **Close out:** After merge, ensure **Verification** commands still pass; move any lasting process text out of this file; **delete or archive** this plan per [`taskPlanning/AGENT.md`](../../AGENT.md).
 
 ---
@@ -89,7 +90,8 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets the same
 | Design: factory API + pure vs cache export split | Done (handler bundle, `create...`, no exported Dynamo fetch) |
 | `mtw-lambda-patterns` dependency + acyclic graph | Done (dependency added + package-level acyclic check) |
 | `packages/mtw-gateways/AGENT.md` updated | Done |
-| Aggregate module refactored + tests | Not started |
+| Aggregate module refactored + tests | Done |
+| Aggregate `DeferredCache` handler factory in `mtw-gateways` | Not started |
 | Component aggregate task plan reconciled | Not started |
 | `assetMeta` / `verticals` / consistency consumers updated | Not started |
 | Lambda `internalCache` wiring + regression tests | Not started |
@@ -100,8 +102,8 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets the same
 
 Record **exact** cwd + commands as slices land. If commands conflict, follow [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md).
 
-- [ ] `cd packages/mtw-gateways && npm test`
-- [ ] From repo root: `npx tsc --build packages/mtw-gateways/tsconfig.ref.json`
+- [X] `cd packages/mtw-gateways && npm test`
+- [X] From repo root: `npx tsc --build packages/mtw-gateways/tsconfig.ref.json`
 - [ ] After lambda wiring changes: add per-lambda commands here (e.g. assets / ephemera targeted `npm test` patterns) per that lambda's development doc.
 
 ---
