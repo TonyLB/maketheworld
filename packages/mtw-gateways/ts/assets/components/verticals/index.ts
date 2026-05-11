@@ -15,6 +15,7 @@ export {
     type ImportVerticalConsistencyAnalyzerDeps,
     type ImportVerticalConsistencyClassification,
     type ImportVerticalConsistencyFindings,
+    type ImportVerticalMetaImportProjectionEntry,
     type ImportVerticalMetaImportProjectionLoader,
     type ImportVerticalUniversalPartitionRow,
 } from './consistency'

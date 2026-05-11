@@ -1,10 +1,12 @@
+import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
     ImportVerticalConsistencyAnalyzer,
     type ImportVerticalConsistencyAnalyzerDeps,
     type ImportVerticalUniversalPartitionRow,
 } from './consistency'
-import { metaImportDataCategory } from './keys'
+import type { ImportVerticalHop } from './fetch'
+import { metaImportDataCategory, stripAssetIdForSortKey } from './keys'
 import { authoritativeComponentDataFromUniversalPartitionRows } from '../assetMeta/dynamoStandardComponents'
 
 const universalKey = 'ROOM#r1' as EphemeraId
@@ -23,11 +25,24 @@ function ndjsonRoomLine(childAssetId: string, fromParent: string): ImportVertica
     } as ImportVerticalUniversalPartitionRow
 }
 
+function makeHop(parentAssetId: string, childAssetId: string): ImportVerticalHop {
+    const parentStripped = stripAssetIdForSortKey(parentAssetId)
+    const childStripped = stripAssetIdForSortKey(childAssetId)
+    return {
+        universalKey,
+        dataCategory: metaImportDataCategory({ parentAssetId, childAssetId }),
+        parentStripped,
+        childStripped,
+        parentAssetId: parentAssetId as AssetUUID,
+        childAssetId: childAssetId as AssetUUID,
+    }
+}
+
 describe('ImportVerticalConsistencyAnalyzer', () => {
     it('throws when reading findings before check', () => {
         const deps: ImportVerticalConsistencyAnalyzerDeps = {
             authoritativeComponentData: { get: async () => [] },
-            metaImportProjection: { loadMetaImportRows: async () => [] },
+            metaImportProjection: { get: async () => [] },
         }
         const analyzer = new ImportVerticalConsistencyAnalyzer(deps)
         expect(() => analyzer.getFindings()).toThrow(/check\(\) first/)
@@ -36,14 +51,13 @@ describe('ImportVerticalConsistencyAnalyzer', () => {
     it('classifies aligned when expected Meta rows match derived hops', async () => {
         const child = 'ASSET#childB'
         const parent = 'ASSET#parentA'
-        const expectedDc = metaImportDataCategory({ parentAssetId: parent, childAssetId: child })
         const partitionRow = ndjsonRoomLine(child, parent)
         const auth = authoritativeComponentDataFromUniversalPartitionRows(universalKey, [partitionRow])
 
         const deps: ImportVerticalConsistencyAnalyzerDeps = {
             authoritativeComponentData: { get: async () => [auth] },
             metaImportProjection: {
-                loadMetaImportRows: async () => [{ DataCategory: expectedDc }],
+                get: async () => [{ universalKey, hops: [makeHop(parent, child)] }],
             },
         }
         const analyzer = new ImportVerticalConsistencyAnalyzer(deps)
@@ -62,7 +76,7 @@ describe('ImportVerticalConsistencyAnalyzer', () => {
 
         const deps: ImportVerticalConsistencyAnalyzerDeps = {
             authoritativeComponentData: { get: async () => [auth] },
-            metaImportProjection: { loadMetaImportRows: async () => [] },
+            metaImportProjection: { get: async () => [{ universalKey, hops: [] }] },
         }
         const analyzer = new ImportVerticalConsistencyAnalyzer(deps)
         await analyzer.check(universalKey)
@@ -80,7 +94,9 @@ describe('ImportVerticalConsistencyAnalyzer', () => {
                 ],
             },
             metaImportProjection: {
-                loadMetaImportRows: async () => [{ DataCategory: 'Meta::Import::orphan::only' }],
+                get: async () => [
+                    { universalKey, hops: [makeHop('ASSET#orphan', 'ASSET#only')] },
+                ],
             },
         }
         const analyzer = new ImportVerticalConsistencyAnalyzer(deps)
@@ -100,7 +116,9 @@ describe('ImportVerticalConsistencyAnalyzer', () => {
         const deps: ImportVerticalConsistencyAnalyzerDeps = {
             authoritativeComponentData: { get: async () => [auth] },
             metaImportProjection: {
-                loadMetaImportRows: async () => [{ DataCategory: 'Meta::Import::wrong::hop' }],
+                get: async () => [
+                    { universalKey, hops: [makeHop('ASSET#wrong', 'ASSET#hop')] },
+                ],
             },
         }
         const analyzer = new ImportVerticalConsistencyAnalyzer(deps)
@@ -111,24 +129,21 @@ describe('ImportVerticalConsistencyAnalyzer', () => {
         expect(f.metaRowsToDelete.length).toBe(1)
     })
 
-    it('ignores non-Meta rows in metaImportProjection', async () => {
+    it('treats a missing entry for the universalKey as no existing hops', async () => {
+        const child = 'ASSET#childB'
+        const parent = 'ASSET#parentA'
+        const partitionRow = ndjsonRoomLine(child, parent)
+        const auth = authoritativeComponentDataFromUniversalPartitionRows(universalKey, [partitionRow])
+
         const deps: ImportVerticalConsistencyAnalyzerDeps = {
-            authoritativeComponentData: {
-                get: async () => [
-                    authoritativeComponentDataFromUniversalPartitionRows(universalKey, []),
-                ],
-            },
-            metaImportProjection: {
-                loadMetaImportRows: async () => [
-                    { DataCategory: 'Meta::Room' },
-                    { DataCategory: 'Meta::Import::x::y' },
-                ],
-            },
+            authoritativeComponentData: { get: async () => [auth] },
+            metaImportProjection: { get: async () => [] },
         }
         const analyzer = new ImportVerticalConsistencyAnalyzer(deps)
         await analyzer.check(universalKey)
         const f = analyzer.getFindings()
-        expect(f.existingCategories).toEqual(['Meta::Import::x::y'])
-        expect(f.classification).toBe('orphan')
+        expect(f.existingCategories).toEqual([])
+        expect(f.classification).toBe('missing')
+        expect(f.metaRowsToDelete).toEqual([])
     })
 })

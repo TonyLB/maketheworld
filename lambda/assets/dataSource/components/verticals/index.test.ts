@@ -50,11 +50,22 @@ jest.mock('../../../messageBus', () => ({
 jest.mock('../../../internalCache', () => {
     const { authoritativeComponentDataFromUniversalPartitionRows } =
         require('@tonylb/mtw-gateways/ts/assets/components/assetMeta')
+    const { queryImportVerticalMeta } =
+        require('@tonylb/mtw-gateways/ts/assets/components/verticals')
     const { assetDB } = require('@tonylb/mtw-utilities/ts/dynamoDB')
     return {
         __esModule: true,
         default: {
-            ComponentVerticals: { invalidate: jest.fn() },
+            ComponentVerticals: {
+                invalidate: jest.fn(),
+                get: async (universalKeys: string[]) =>
+                    Promise.all(
+                        universalKeys.map(async (universalKey: string) => ({
+                            universalKey,
+                            hops: await queryImportVerticalMeta(assetDB, universalKey),
+                        }))
+                    ),
+            },
             ComponentData: {
                 get: async (componentIds: string[]) =>
                     Promise.all(

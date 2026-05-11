@@ -131,6 +131,7 @@ Per [**Package documentation timing**](#decisions-locked), land the **generalize
 | Row typing, stale semantics, **generalize early** doc policy, classification/config, testing split | Locked ([**Decisions (locked)**](#decisions-locked)) |
 | Injection + analyzer implementation | Done (`ImportVerticalConsistencyAnalyzer`, classification helpers, wiring notes in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md)) |
 | Diagnostics + assets refactors | Done (**`syncImportVerticalPartition`** + **`analyzeUniversalPartition`** use **`ImportVerticalConsistencyAnalyzer`** with lambda-local deps) |
+| Loader shape alignment | Done (both **`ImportVerticalAuthoritativeComponentDataLoader`** and **`ImportVerticalMetaImportProjectionLoader`** now expose **`get(EphemeraId[])`** returning entry arrays, paralleling assets **`internalCache.ComponentData.get`** and **`internalCache.ComponentVerticals.get`** so the cache handlers satisfy them directly without inline adapters) |
 | Package doc promotion | Done for prototype scope ([`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md); contract-vs-composition + deferred assets partition-cache note) |
 | Assets shared partition cache | Deferred (see [`lambda/assets/internalCache/AGENT.md`](../../../lambda/assets/internalCache/AGENT.md)) |
 

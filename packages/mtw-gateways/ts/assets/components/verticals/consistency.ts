@@ -3,8 +3,9 @@ import type { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseC
 
 import type { AuthoritativeComponentData } from '../assetMeta/dynamoStandardComponents'
 import { componentRowsFromAuthoritativeComponentData } from '../assetMeta/dynamoStandardComponents'
+import type { ImportVerticalHop } from './fetch'
 import { classifyImportVerticalSets } from './importVerticalClassification'
-import { META_IMPORT_PREFIX, metaImportDataCategory } from './keys'
+import { metaImportDataCategory } from './keys'
 import { deriveRawImportVerticalHopsFromComponents, salvageImportVerticalHops } from './salvage'
 
 /** Same shape as {@link AuthoritativeComponentData}; stable name for import-vertical analyzer deps. */
@@ -30,13 +31,22 @@ export interface ImportVerticalAuthoritativeComponentDataLoader {
 }
 
 /**
- * Loads projected `Meta::Import::...` index rows for the same partition (repair/delete targets).
- * Callers may use the same storage snapshot as {@link ImportVerticalAuthoritativeComponentDataLoader} (e.g. one
- * shared `Query` promise) or separate reads; `check()` still defensively filters using the `Meta::Import::...`
- * prefix from **`keys`** (`META_IMPORT_PREFIX`).
+ * One projected `Meta::Import::...` envelope keyed by universal id. Mirrors the assets lambda
+ * `internalCache.ComponentVerticals` cache entry shape so the cache satisfies
+ * {@link ImportVerticalMetaImportProjectionLoader} structurally without a wrapper.
+ */
+export type ImportVerticalMetaImportProjectionEntry = {
+    universalKey: EphemeraId
+    hops: readonly ImportVerticalHop[]
+}
+
+/**
+ * Loads projected `Meta::Import::...` hops per universal id (same contract as assets lambda
+ * `internalCache.ComponentVerticals.get`). Implementations parse rows into {@link ImportVerticalHop}
+ * before returning, so `check()` can rely on the hops being well-formed Meta::Import entries.
  */
 export interface ImportVerticalMetaImportProjectionLoader {
-    loadMetaImportRows(universalKey: EphemeraId): Promise<ReadonlyArray<{ DataCategory: string }>>
+    get(universalKeys: EphemeraId[]): Promise<ReadonlyArray<ImportVerticalMetaImportProjectionEntry>>
 }
 
 export type ImportVerticalConsistencyAnalyzerDeps = {
@@ -66,13 +76,10 @@ export class ImportVerticalConsistencyAnalyzer {
      * Loads via injected deps, runs derive/salvage/meta category pipeline, classifies, and stores findings.
      */
     async check(universalKey: EphemeraId): Promise<void> {
-        const [cacheEntries, metaRowsRaw] = await Promise.all([
+        const [cacheEntries, metaEntries] = await Promise.all([
             this.deps.authoritativeComponentData.get([universalKey]),
-            this.deps.metaImportProjection.loadMetaImportRows(universalKey),
+            this.deps.metaImportProjection.get([universalKey]),
         ])
-        const metaRows = metaRowsRaw.filter(
-            (r) => typeof r.DataCategory === 'string' && r.DataCategory.startsWith(META_IMPORT_PREFIX)
-        )
 
         const authoritativeEntry =
             cacheEntries[0] ??
@@ -93,11 +100,13 @@ export class ImportVerticalConsistencyAnalyzer {
             )
         )
 
-        const existingCategories = new Set(metaRows.map((r) => r.DataCategory))
+        const metaEntry = metaEntries.find((entry) => entry.universalKey === universalKey)
+        const metaHops = metaEntry?.hops ?? []
+        const existingCategories = new Set(metaHops.map((h) => h.dataCategory))
 
         const classification = classifyImportVerticalSets(expectedCategories, existingCategories)
 
-        const metaRowsToDelete = metaRows.filter((r) => !expectedCategories.has(r.DataCategory))
+        const metaRowsToDelete = metaHops.filter((h) => !expectedCategories.has(h.dataCategory))
         const categoriesToAdd = [...expectedCategories].filter((dc) => !existingCategories.has(dc))
 
         this.findings = {
@@ -106,7 +115,7 @@ export class ImportVerticalConsistencyAnalyzer {
             expectedCategories: Object.freeze([...expectedCategories].sort()),
             existingCategories: Object.freeze([...existingCategories].sort()),
             categoriesToAdd: Object.freeze([...categoriesToAdd].sort()),
-            metaRowsToDelete: Object.freeze(metaRowsToDelete.map((r) => ({ DataCategory: r.DataCategory }))),
+            metaRowsToDelete: Object.freeze(metaRowsToDelete.map((h) => ({ DataCategory: h.dataCategory }))),
         }
     }
 

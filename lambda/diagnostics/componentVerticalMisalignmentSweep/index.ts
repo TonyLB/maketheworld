@@ -52,10 +52,13 @@ async function analyzeUniversalPartition(universalKey: EphemeraId): Promise<
             },
         },
         metaImportProjection: {
-            loadMetaImportRows: async (uk) => {
-                const hops = await queryImportVerticalMeta(assetDB, uk)
-                return hops.map((h) => ({ DataCategory: h.dataCategory }))
-            },
+            get: async (universalKeys) =>
+                Promise.all(
+                    universalKeys.map(async (uk) => ({
+                        universalKey: uk,
+                        hops: await queryImportVerticalMeta(assetDB, uk),
+                    }))
+                ),
         },
     }
 
