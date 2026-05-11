@@ -50,7 +50,7 @@ export function standardComponentPairFromAssetDbGetItemsRow(
 
 /**
  * Universal-key partition `Query` rows (`AssetId` = universal component id, `DataCategory` = child asset id).
- * Same NDJSON mapping as assets lambda `ComponentData._getPromiseFactory`.
+ * Same NDJSON mapping as {@link AuthoritativeComponentDataCache} (partition `Query` inside **`createAuthoritativeComponentDataCacheHandler`**).
  */
 export function authoritativeComponentDataFromUniversalPartitionRows(
     componentId: EphemeraId,

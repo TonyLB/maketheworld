@@ -78,6 +78,8 @@
 
 **Purpose:** Read-only check for one asset: authoritative component `_from` hops (derived with the same **`mtw-gateways`** salvage rules as **`syncImportVerticalPartition`**) against existing **`Meta::Import::...`** rows for every **`universalKey`** found under that asset. Partition comparison uses **`ImportVerticalConsistencyAnalyzer`** ([`componentVerticalMisalignmentSweep/index.ts`](componentVerticalMisalignmentSweep/index.ts)) with **`authoritativeComponentDataFromUniversalPartitionRows`** on **`assetDB`** partition reads (matching assets **`ComponentData`** semantics) and **`queryImportVerticalMeta`** for the Meta projection. Emits **`Component Vertical Misaligned Finding`** when any partition differs; **`mtw.assets.components.verticals`** consumes the finding and runs **`healComponentVertical`**.
 
+**Vs assets projector:** The assets lambda wires the same analyzer semantics through **`internalCache.ComponentData`** / **`ComponentVerticals`** (tier-1 factories from **`mtw-gateways`**); this sweep has no **`InternalCache`** and builds **`deps`** over **`assetDB`** directly. See **Blessed wiring sites for `ImportVerticalConsistencyAnalyzer`** in [`packages/mtw-gateways/AGENT.md`](../../packages/mtw-gateways/AGENT.md).
+
 **Entrypoints:**
 
 - Direct invoke: `{ type: 'ComponentVerticalMisalignmentSweep', assetId, optional diagnosticRunId, optional nowMs }`, normalized through **`ingress.ts`** and synthetic **`api.diagnostics`** (**[`dataSource/index.ts`](dataSource/index.ts)**).

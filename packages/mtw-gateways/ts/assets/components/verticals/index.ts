@@ -1,4 +1,8 @@
 export {
+    ImportVerticalMetaCache,
+    createImportVerticalMetaCacheHandler,
+} from './importVerticalMetaCache'
+export {
     stripAssetIdForSortKey,
     metaImportDataCategory,
     metaImportSortKeyEndsWithChild,

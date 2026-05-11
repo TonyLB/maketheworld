@@ -18,7 +18,7 @@ export type AggregateGatewayDeps = ImportVerticalConsistencyAnalyzerDeps
 
 /**
  * Narrow slice of the assets lambda `internalCache` used for component aggregate assembly:
- * `ComponentData` and `ComponentVerticals` (see `lambda/assets/internalCache/index.ts`).
+ * `ComponentData` and `ComponentVerticals` (see `lambda/assets/internalCache/index.ts`; tier-1 factories from **`mtw-gateways`**).
  * Other lambdas may supply the same loader contracts under different concrete classes;
  * the default wiring path uses these handler names.
  */

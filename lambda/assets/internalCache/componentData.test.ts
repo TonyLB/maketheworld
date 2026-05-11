@@ -3,12 +3,12 @@ import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 const assetDBMock = jest.mocked(assetDB)
 
-import { ComponentData } from './componentData'
+import { createAuthoritativeComponentDataCacheHandler } from '@tonylb/mtw-gateways/ts/assets/components/assetMeta'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 
-const componentData = new ComponentData()
+const componentData = createAuthoritativeComponentDataCacheHandler(assetDBMock)
 
 describe('ComponentData cache class', () => {
     beforeEach(() => {

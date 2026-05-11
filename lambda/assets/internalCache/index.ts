@@ -2,7 +2,15 @@ import {
     ComponentAggregateMergedCache,
     createComponentAggregateCacheHandler,
 } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
-import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import {
+    createAuthoritativeComponentDataCacheHandler,
+    type AuthoritativeComponentDataCache,
+} from '@tonylb/mtw-gateways/ts/assets/components/assetMeta'
+import {
+    createImportVerticalMetaCacheHandler,
+    type ImportVerticalMetaCache,
+} from '@tonylb/mtw-gateways/ts/assets/components/verticals'
+import { assetDB, connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 import { S3Client } from "@aws-sdk/client-s3"
 import { CachePlayerLibraryData } from './playerLibrary'
@@ -16,8 +24,6 @@ import GraphCache from "@tonylb/mtw-utilities/ts/graphStorage/cache"
 import GraphNode from "@tonylb/mtw-utilities/ts/graphStorage/cache/graphNode"
 import GraphEdge from "@tonylb/mtw-utilities/ts/graphStorage/cache/graphEdge"
 import { AssetData } from './assetData'
-import { ComponentData } from './componentData'
-import { ComponentVerticals } from './componentVerticals'
 
 
 type CacheConnectionKeys = 'connectionId' | 'sessionId' | 'RequestId' | 'player' | 's3Client'
@@ -99,8 +105,8 @@ class InternalCache {
     Connection: CacheConnectionData = new CacheConnectionData()
     AssetMetaData: AssetMetaData = new AssetMetaData()
     AssetData: AssetData = new AssetData()
-    ComponentData: ComponentData = new ComponentData()
-    ComponentVerticals: ComponentVerticals = new ComponentVerticals()
+    ComponentData: AuthoritativeComponentDataCache = createAuthoritativeComponentDataCacheHandler(assetDB)
+    ComponentVerticals: ImportVerticalMetaCache = createImportVerticalMetaCacheHandler(assetDB)
     ComponentAggregate: ComponentAggregateMergedCache
     PlayerSettings: CachePlayerSettingData = new CachePlayerSettingData()
     PlayerLibrary: CachePlayerLibraryData = new CachePlayerLibraryData()
