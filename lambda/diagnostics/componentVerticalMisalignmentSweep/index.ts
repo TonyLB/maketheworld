@@ -5,13 +5,11 @@ import {
     DiagnosticsComponentVerticalMisalignedFindingEvent,
     DiagnosticsEventSerializer,
 } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
-import { authoritativeComponentDataFromUniversalPartitionRows } from '@tonylb/mtw-gateways/ts/assets/components/assetMeta'
 import {
     ImportVerticalConsistencyAnalyzer,
-    queryImportVerticalMeta,
     type ImportVerticalConsistencyAnalyzerDeps,
-    type ImportVerticalUniversalPartitionRow,
 } from '@tonylb/mtw-gateways/ts/assets/components/verticals'
+import internalCache from '../internalCache'
 import { aggregateMisalignmentStatuses } from './classification'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { publishStreamEvent, StreamEventPublisherSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/streamEventPublisher'
@@ -24,39 +22,9 @@ import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/compone
 async function analyzeUniversalPartition(universalKey: EphemeraId): Promise<
     'aligned' | 'missing' | 'orphan' | 'stale'
 > {
-    let rowsPromise: Promise<ReadonlyArray<ImportVerticalUniversalPartitionRow>> | undefined
-    const ensureRows = () => {
-        rowsPromise ??= (async () => {
-            const rows =
-                (await assetDB.query<ImportVerticalUniversalPartitionRow>({
-                    Key: { AssetId: universalKey },
-                    allFields: true,
-                })) || []
-            return rows
-        })()
-        return rowsPromise
-    }
-
     const deps: ImportVerticalConsistencyAnalyzerDeps = {
-        authoritativeComponentData: {
-            get: async (componentIds) => {
-                const rows = await ensureRows()
-                return componentIds.map((id) =>
-                    id === universalKey
-                        ? authoritativeComponentDataFromUniversalPartitionRows(id, rows)
-                        : authoritativeComponentDataFromUniversalPartitionRows(id, [])
-                )
-            },
-        },
-        metaImportProjection: {
-            get: async (universalKeys) =>
-                Promise.all(
-                    universalKeys.map(async (uk) => ({
-                        universalKey: uk,
-                        hops: await queryImportVerticalMeta(assetDB, uk),
-                    }))
-                ),
-        },
+        authoritativeComponentData: internalCache.ComponentData,
+        metaImportProjection: internalCache.ComponentVerticals,
     }
 
     const analyzer = new ImportVerticalConsistencyAnalyzer(deps)

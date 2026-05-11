@@ -1,8 +1,10 @@
 import { routeDiagnosticsIngress } from "./ingress"
+import internalCache from "./internalCache"
 import messageBus from "./messageBus"
 import { extractReturnValue } from "./returnValue"
 
 export const handler = async (event) => {
+    internalCache.clear()
     messageBus.clear()
 
     if (
