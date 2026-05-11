@@ -1,3 +1,7 @@
+import {
+    ComponentAggregateMergedCache,
+    createComponentAggregateCacheHandler,
+} from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 import { S3Client } from "@aws-sdk/client-s3"
@@ -97,6 +101,7 @@ class InternalCache {
     AssetData: AssetData = new AssetData()
     ComponentData: ComponentData = new ComponentData()
     ComponentVerticals: ComponentVerticals = new ComponentVerticals()
+    ComponentAggregate: ComponentAggregateMergedCache
     PlayerSettings: CachePlayerSettingData = new CachePlayerSettingData()
     PlayerLibrary: CachePlayerLibraryData = new CachePlayerLibraryData()
     // Note: Legacy Library cache removed - now using mtw.assets.library DataSource
@@ -109,6 +114,10 @@ class InternalCache {
     constructor() {
         this.Graph = this._graphCache.Graph
         this.GraphNodes = this._graphCache.Nodes
+        this.ComponentAggregate = createComponentAggregateCacheHandler({
+            ComponentData: this.ComponentData,
+            ComponentVerticals: this.ComponentVerticals,
+        })
     }
 
     clear(): void {
@@ -117,6 +126,7 @@ class InternalCache {
         this.AssetData.clear()
         this.ComponentData.clear()
         this.ComponentVerticals.clear()
+        this.ComponentAggregate.clear()
         this.PlayerSettings.clear()
         this.PlayerLibrary.clear()
         // Note: Legacy Library.clear() removed
@@ -127,7 +137,8 @@ class InternalCache {
     async flush(): Promise<void> {
         await Promise.all([
             this._graphCache.flush(),
-            this.AssetData.flush()
+            this.AssetData.flush(),
+            this.ComponentAggregate.flush(),
         ])
     }
 }
