@@ -68,8 +68,11 @@ This document follows [`taskPlanning/AGENT.md`](../../AGENT.md) (durability, che
 
 Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets the same way as you complete them.
 
-- [ ] **Design pass:** Choose the **canonical factory return type** (register function vs handler bundle), naming (`create...` vs `register...`), and whether **pure** exports remain alongside cache factories for `keys` / `fetch` / normalizers.
-- [ ] **Dependency:** Add `@tonylb/mtw-lambda-patterns` to [`packages/mtw-gateways/package.json`](../../../packages/mtw-gateways/package.json); fix `tsconfig` / imports; confirm **no** circular dependency.
+- [X] **Design pass:** Choose the **canonical factory return type** (register function vs handler bundle), naming (`create...` vs `register...`), and whether **pure** exports remain alongside cache factories for `keys` / `fetch` / normalizers.
+-     - **Decided:** Use a **handler bundle** (not a register function as the primary export).
+-     - **Decided:** Name cache factories `create...`.
+-     - **Decided:** Keep **pure** exports for inputs/outputs (keys, parsing, normalization, result DTOs), but **do not** export direct DynamoDB fetch helpers as part of the public surface. Dynamo access should be blackboxed inside the cache-backed handler.
+- [X] **Dependency:** Add `@tonylb/mtw-lambda-patterns` to [`packages/mtw-gateways/package.json`](../../../packages/mtw-gateways/package.json); fix `tsconfig` / imports; confirm **no** circular dependency.
 - [ ] **Durable docs:** Update [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) to the opinionated model; remove or replace **contract vs composition** / **no InternalCache types** guidance that conflicts.
 - [ ] **Aggregate alignment:** Refactor [`packages/mtw-gateways/ts/assets/components/aggregate`](../../../packages/mtw-gateways/ts/assets/components/aggregate) to the new pattern; update [`packages/mtw-gateways/ts/assets/components/aggregate/index.test.ts`](../../../packages/mtw-gateways/ts/assets/components/aggregate/index.test.ts) (and related tests) to use **`InternalCache`**-shaped harnesses or approved doubles.
 - [ ] **Sibling task plan:** Edit [`taskPlanning/lambda/assets/AGENT.componentAggregate.planning.md`](../../lambda/assets/AGENT.componentAggregate.planning.md) --- **InternalCache composition**, **Recommended order**, **Progress**, and any **Getting Started** bullets that reference "no `InternalCache` in `mtw-gateways`" so they match post-migration reality; add a short **Architecture note** at top if partial edits leave historical context.
@@ -83,8 +86,8 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets the same
 
 | Milestone | Status |
 | --- | --- |
-| Design: factory API + pure vs cache export split | Not started |
-| `mtw-lambda-patterns` dependency + acyclic graph | Not started |
+| Design: factory API + pure vs cache export split | Done (handler bundle, `create...`, no exported Dynamo fetch) |
+| `mtw-lambda-patterns` dependency + acyclic graph | Done (dependency added + package-level acyclic check) |
 | `packages/mtw-gateways/AGENT.md` updated | Not started |
 | Aggregate module refactored + tests | Not started |
 | Component aggregate task plan reconciled | Not started |
