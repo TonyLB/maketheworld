@@ -79,7 +79,7 @@ This package is opinionated that **aggregate-level** read orchestration (**`Defe
 **`createComponentAggregateGateway`** and **`createAggregateGateway`** (implemented in [`uncached.ts`](ts/assets/components/aggregate/uncached.ts)) remain **secondary**, not a competing blessed integration:
 
 - They expose **`assembleMergedComponent`** that invokes sibling loaders **per call** with **no** aggregate `DeferredCache`. That **sidesteps** the package-owned merge-cache story (while still routing Dynamo through those loaders, not through parallel fetch helpers).
-- **Intended uses:** package tests, golden or parity checks against the cache handler, tooling, and call sites that already use **`AggregateGatewayDeps`** / analyzer-shaped field names. **Do not** treat them as evidence that new lambda code should prefer uncached gateway factories over **`createComponentAggregateCacheHandler`** ([`factory.ts`](ts/assets/components/aggregate/factory.ts)) --- that would dilute the opinionated model.
+- **Intended uses:** package tests, golden or parity checks against the cache handler, tooling, and call sites that already use **`AggregateGatewayDeps`** / analyzer-shaped field names. Legacy **`merge*AcrossStack`** parity against **`mergeAuthoritativeAcrossParticipationOrder`** is asserted from **`lambda/assets/componentAggregate.mergeParity.test.ts`** (assets lambda depends on this package). **Do not** treat them as evidence that new lambda code should prefer uncached gateway factories over **`createComponentAggregateCacheHandler`** ([`factory.ts`](ts/assets/components/aggregate/factory.ts)) --- that would dilute the opinionated model.
 
 The first shipped instance is [`ts/assets/components/aggregate`](ts/assets/components/aggregate/index.ts).
 
