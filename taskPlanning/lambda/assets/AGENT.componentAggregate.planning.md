@@ -1,6 +1,6 @@
 # Component aggregates (merged view + derived DataSource) - planning
 
-**Status:** Planning (not started). **In scope:** sequence work so **query / assembly logic** lands first as shared **read-only gateway** code under [`packages/mtw-gateways/ts/assets/components/aggregate/`](../../../packages/mtw-gateways/ts/assets/components/aggregate/) (see [**Gateway package layout**](#phase-1-gateway)), then add **`mtw.assets.components.aggregate`** as a **non-replayable** derived [`AssetsDataSource`](../../../lambda/assets/dataSource/abstract.ts) under [`lambda/assets/dataSource/components/aggregate/`](../../../lambda/assets/dataSource/components/aggregate/) for **streaming** and **invalidation-oriented** signals. **Next:** implement **`aggregate/`** types + **`assembleMergedComponent`** + goldens (Phase 1 [**Recommended order**](#recommended-order)); vertical contract is already shipped---touch base with verticals readers only when the **anchor-only participant closure** or batch shape needs alignment.
+**Status:** Phase 1 in progress (aggregate **compute-only** gateway types landed under **`mtw-gateways`**). **In scope:** sequence work so **query / assembly logic** lands first as shared **read-only gateway** code under [`packages/mtw-gateways/ts/assets/components/aggregate/`](../../../packages/mtw-gateways/ts/assets/components/aggregate/) (see [**Gateway package layout**](#phase-1-gateway)), then add **`mtw.assets.components.aggregate`** as a **non-replayable** derived [`AssetsDataSource`](../../../lambda/assets/dataSource/abstract.ts) under [`lambda/assets/dataSource/components/aggregate/`](../../../lambda/assets/dataSource/components/aggregate/) for **streaming** and **invalidation-oriented** signals. **Next:** **`assembleMergedComponent`** + goldens (Phase 1 [**Recommended order**](#recommended-order)); vertical contract is already shipped---touch base with verticals readers only when the **anchor-only participant closure** or batch shape needs alignment.
 
 This document follows [`taskPlanning/AGENT.md`](../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting notes live under [`lambda/assets/`](../../../lambda/assets/) (or [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) for the gateway surface).
 
@@ -187,7 +187,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to neste
 
 **Phase 1**
 
-- [ ] **Aggregate types:** Sketch **`AggregatePerspective`** (names TBD), **`OrderedAssetStack`**, and **`MergedComponentResult`** under [`packages/mtw-gateways/ts/assets/components/aggregate/`](../../../packages/mtw-gateways/ts/assets/components/aggregate/) (pure types + factories). Follow **Getting Started** step 3: per-gateway **`index.ts`** public surface, **deep imports**, narrow **`create*Gateway(deps)`** per [**How to add a gateway**](../../../packages/mtw-gateways/AGENT.md#how-to-add-a-gateway) in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md); **no** `InternalCache` / lambda singleton types in **`mtw-gateways`**.
+- [X] **Aggregate types:** Sketch **`AggregatePerspective`** (names TBD), **`OrderedAssetStack`**, and **`MergedComponentResult`** under [`packages/mtw-gateways/ts/assets/components/aggregate/`](../../../packages/mtw-gateways/ts/assets/components/aggregate/) (pure types + factories). Follow **Getting Started** step 3: per-gateway **`index.ts`** public surface, **deep imports**, narrow **`create*Gateway(deps)`** per [**How to add a gateway**](../../../packages/mtw-gateways/AGENT.md#how-to-add-a-gateway) in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md); **no** `InternalCache` / lambda singleton types in **`mtw-gateways`**.
 - [ ] **Assembly core:** Implement **`assembleMergedComponent`** (name TBD) in the same **`aggregate/`** tree using **`Meta::Import`** reads from [`ts/assets/components/verticals`](../../../packages/mtw-gateways/ts/assets/components/verticals) plus batch component fetch + merge; inject `assetDB` via factory per gateway norms.
 - [ ] **Golden / comparison tests:** Fixtures proving parity with legacy merge path for representative stacks; record commands in **Verification**.
 - [ ] **Optional `InternalCache` handler (assets):** Wire **`ComponentAggregate`** (or chosen name) per [**InternalCache composition (Phase 1)**](#internalcache-composition-phase-1); register in [`lambda/assets/internalCache/index.ts`](../../../lambda/assets/internalCache/index.ts) and document in [`lambda/assets/internalCache/AGENT.md`](../../../lambda/assets/internalCache/AGENT.md).
@@ -211,6 +211,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to neste
 | --- | --- | --- |
 | Problem framing + phased gateway-first approach | n/a | Done (this doc) |
 | Vertical **`Meta::Import`** read gateway (`mtw-gateways`) | prerequisite | Done (shipped; consumed by aggregate work) |
+| Aggregate gateway types + `createAggregateGateway` skeleton (`ports` / `input` / `result` / `factory`) | 1 | Done |
 | Aggregate assembly core + tests | 1 | Not started |
 | `mtw.assets.components.aggregate` DataSource | 2 | Not started |
 | Subscriber wiring + serializers | 2 | Not started |
@@ -223,7 +224,7 @@ Record **exact** cwd + runner commands as slices land.
 
 **Phase 1**
 
-- [ ] `packages/mtw-gateways`: `npm test` (and `npx tsc --build packages/mtw-gateways/tsconfig.ref.json` when types change).
+- [X] `packages/mtw-gateways` (repo root for `tsc`): `cd packages/mtw-gateways && npm test`; `npx tsc --build packages/mtw-gateways/tsconfig.ref.json` (run after aggregate types / gateway edits).
 - [ ] **Follow-on:** when **`fetchImportDefaults`** is refactored ([**Recommended order**](#recommended-order)), `grep -r "fetchImportDefaults\\|recursiveFetchImports" lambda/assets/fetchImportDefaults` reflects **aggregate gateway** assembly over vertical reads (or document deliberate interim behavior).
 - [ ] Consumer regression (if ephemera or others adopt gateway): follow notes in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md).
 

@@ -14,6 +14,7 @@ What lives in this package:
 - **Pure read helpers**: `Query` / `GetItem` / `BatchGetItem` compositions, stable projection types, and DynamoDB row normalization.
 - **Key and prefix builders**: shared `AssetId` / `DataCategory` constructors so reader and writer agree on encoding (for example, mirroring the `Meta::Import::${parentStripped}::${childStripped}` encoding documented under [`lambda/assets/dataSource/components/verticals/AGENT.md`](../../lambda/assets/dataSource/components/verticals/AGENT.md)).
 - **Optional gateway factories**: `createXGateway(deps)` returning an object (`get`, `getAcrossAssets`, etc.) where `deps` inject the data-store interface (e.g. `assetDB`) so each lambda wires the gateway into its own per-invocation `InternalCache` once.
+- **Compute-only gateways** (see [**Projection-read vs compute-only gateways**](#projection-read-vs-compute-only-gateways)): deterministic composition over **injected ports** (narrow structural interfaces, never `InternalCache` types). They do not own Dynamo row shapes; add `keys.ts` / `fetch.ts` only if a gateway later grows direct I/O.
 - **Shared pure helpers for diagnostics and healing** (optional per gateway): deterministic functions---for example expected **`Meta::Import`** hop descriptors from **`StandardComponent`** state---so diagnostics sweeps, **`api.assets`** heal paths, and the live projector do not fork semantic rules. Co-locate under the same `ts/<area>/<name>/` tree as the read surface; see [**Shared helpers for diagnostics and healing**](#shared-helpers-for-diagnostics-and-healing).
 
 What stays out (see **Non-goals** below): cache singletons, `clear()` / `flush()` orchestration, and **any** write paths.
@@ -33,7 +34,8 @@ Each gateway in this package must have a row here. Add a row when a new gateway 
 | Gateway | Authoritative writer | Readers | Notes |
 | --- | --- | --- | --- |
 | **Component Asset Meta** | [`lambda/assets/dataSource/caching/`](../../lambda/assets/dataSource/caching/) ([`cacheAsset`](../../lambda/assets/dataSource/caching/cacheAsset.ts) maintains universal-key component rows in `assetDB`). | [`lambda/ephemera/internalCache/componentAssetMeta.ts`](../../lambda/ephemera/internalCache/componentAssetMeta.ts); assets [`componentData.ts`](../../lambda/assets/internalCache/componentData.ts) (partition parse). | [`dynamoStandardComponents.ts`](ts/assets/components/assetMeta/dynamoStandardComponents.ts): Dynamo component rows to **`StandardComponent`** (**`getItems`** rows vs partition **`Query`**). Deep import: `@tonylb/mtw-gateways/ts/assets/components/assetMeta`. |
-| **Component import vertical (`Meta::Import`)** | [`lambda/assets/dataSource/components/verticals/`](../../lambda/assets/dataSource/components/verticals/) (`mtw.assets.components.verticals`). | [`lambda/assets/internalCache/componentVerticals.ts`](../../lambda/assets/internalCache/componentVerticals.ts); [`lambda/diagnostics/componentVerticalMisalignmentSweep`](../../lambda/diagnostics/componentVerticalMisalignmentSweep/index.ts); future aggregate / diagnostics (e.g. [`AGENT.componentAggregate.planning.md`](../../taskPlanning/lambda/assets/AGENT.componentAggregate.planning.md)). | Key builders, `Query` envelope, normalized hop types, **`ImportVerticalConsistencyAnalyzer`**, classification helpers per [**Shared helpers for diagnostics and healing**](#shared-helpers-for-diagnostics-and-healing). Deep import: `@tonylb/mtw-gateways/ts/assets/components/verticals`. Discoverability: [`readModel.ts`](../../lambda/assets/dataSource/components/verticals/readModel.ts). |
+| **Component import vertical (`Meta::Import`)** | [`lambda/assets/dataSource/components/verticals/`](../../lambda/assets/dataSource/components/verticals/) (`mtw.assets.components.verticals`). | [`lambda/assets/internalCache/componentVerticals.ts`](../../lambda/assets/internalCache/componentVerticals.ts); [`lambda/diagnostics/componentVerticalMisalignmentSweep`](../../lambda/diagnostics/componentVerticalMisalignmentSweep/index.ts); aggregate assembly consumes vertical reads ([`ts/assets/components/aggregate`](ts/assets/components/aggregate/index.ts)). | Key builders, `Query` envelope, normalized hop types, **`ImportVerticalConsistencyAnalyzer`**, classification helpers per [**Shared helpers for diagnostics and healing**](#shared-helpers-for-diagnostics-and-healing). Deep import: `@tonylb/mtw-gateways/ts/assets/components/verticals`. Discoverability: [`readModel.ts`](../../lambda/assets/dataSource/components/verticals/readModel.ts). |
+| **Component aggregate (merge assembly)** | Composed on read from authoritative rows in [`lambda/assets/dataSource/caching/`](../../lambda/assets/dataSource/caching/) (per-asset component bodies) and [`lambda/assets/dataSource/components/verticals/`](../../lambda/assets/dataSource/components/verticals/) (`Meta::Import` hops). No separate Dynamo projection for merged blobs in v1. | (Planned) assets [`internalCache` aggregate handler](../../lambda/assets/internalCache/AGENT.md); future [`fetchImportDefaults`](../../lambda/assets/fetchImportDefaults/index.ts). | **Compute-only** tree [`aggregate/`](ts/assets/components/aggregate/index.ts): `ports.ts`, `input.ts`, `result.ts`, `factory.ts`, `createAggregateGateway`. Initiative: [`AGENT.componentAggregate.planning.md`](../../taskPlanning/lambda/assets/AGENT.componentAggregate.planning.md). Deep import: `@tonylb/mtw-gateways/ts/assets/components/aggregate`. |
 
 **Ownership rules:**
 
@@ -50,6 +52,23 @@ Each gateway in this package must have a row here. Add a row when a new gateway 
 5. **Update the ownership table** in this file in the same change that adds the gateway.
 6. **Document the reader's wiring** in the reader's `internalCache/AGENT.md` (or equivalent) rather than duplicating it here. This file describes the gateway; the reader's docs describe its `InternalCache` instance.
 7. **Tests** for the gateway live in this package and exercise the helpers in isolation (mock the data store). Integration tests stay in the consuming lambda.
+
+## Projection-read vs compute-only gateways
+
+**Projection-read gateways** (for example [`ts/assets/components/assetMeta`](ts/assets/components/assetMeta/index.ts), [`ts/assets/components/verticals`](ts/assets/components/verticals/index.ts)) align file names with **Dynamo and I/O** concerns: `keys.ts`, `fetch.ts`, row normalizers, optional `consistency/` analyzers.
+
+**Compute-only gateways** orchestrate **in-memory** work over **injected ports** (structural interfaces satisfied by `assetDB` wrappers, `DeferredCache` handlers, or tests). They do not introduce new materialized row types. Reuse this **file-role** layout when adding another compute-only tree:
+
+| File | Role |
+| --- | --- |
+| **`ports.ts`** | Narrow **`deps`** / loader contracts (no `InternalCache` types). Often aliases types from projection gateways (for example aggregate **`AggregateGatewayDeps`** matches **`ImportVerticalConsistencyAnalyzerDeps`**). |
+| **`input.ts`** | Computation **inputs**, validation, and pure normalizers for call parameters. |
+| **`result.ts`** | Stable **output** DTOs returned to callers or caches. |
+| **`factory.ts`** | **`create*Gateway(deps)`** and the object whose methods close over `deps`. |
+
+Split large orchestration into **`compute.ts`** / **`assemble.ts`** when needed. If a gateway later gains **owned** Dynamo reads or SK helpers, add **`fetch.ts` / `keys.ts`** at that time (it becomes a hybrid).
+
+The first shipped instance is [`ts/assets/components/aggregate`](ts/assets/components/aggregate/index.ts).
 
 ## Shared helpers for diagnostics and healing
 
@@ -148,3 +167,4 @@ cd lambda/ephemera && npm test -- --testPathPattern componentAssetMeta
 - [`lambda/assets/internalCache/AGENT.md`](../../lambda/assets/internalCache/AGENT.md) - assets lambda **`internalCache`** handlers; future shared universal-key partition fetch.
 - [`lambda/assets/internalCache/componentVerticals.ts`](../../lambda/assets/internalCache/componentVerticals.ts) - **`Meta::Import`** envelope cache (`DeferredCache` + [`ts/assets/components/verticals`](ts/assets/components/verticals/index.ts)).
 - [`lambda/assets/dataSource/components/verticals/AGENT.md`](../../lambda/assets/dataSource/components/verticals/AGENT.md) - authoritative writer for **`Meta::Import::...`**; shared read helpers in [`ts/assets/components/verticals`](ts/assets/components/verticals/index.ts).
+- [`taskPlanning/lambda/assets/AGENT.componentAggregate.planning.md`](../../taskPlanning/lambda/assets/AGENT.componentAggregate.planning.md) - merged component assembly initiative; compute-only [`ts/assets/components/aggregate`](ts/assets/components/aggregate/index.ts).
