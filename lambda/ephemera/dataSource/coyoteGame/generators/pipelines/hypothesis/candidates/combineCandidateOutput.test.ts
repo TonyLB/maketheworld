@@ -21,6 +21,7 @@ describe('combineCandidateOutput', () => {
         const candidates: ParsedCandidate[] = [
             {
                 candidateId: 'candidate-1',
+                gimmick: 'snare trap',
                 executionSummary: 'Use rope prep in the opening beat.',
                 tropeAssignments: {
                     Contraption: {
@@ -40,6 +41,7 @@ describe('combineCandidateOutput', () => {
             // Pool Markdown helper; narrative beat uses ## Committed plan, not this renderer.
             const md = renderCombinedCandidateOutputForNarrativeBeat(r.combined, roomMap)
             expect(md).toContain('Candidate candidate-1')
+            expect(md).toContain('**gimmick:** snare trap')
             expect(md).toContain('**tropeFunction:** connective rigging between setup pieces')
         }
     })
@@ -51,6 +53,7 @@ describe('combineCandidateOutput', () => {
         const candidates: ParsedCandidate[] = [
             {
                 candidateId: 'candidate-1',
+                gimmick: 'deliver damage',
                 executionSummary: 'Focus on one object only.',
                 tropeAssignments: {
                     'Finishing Move': {
@@ -91,6 +94,7 @@ describe('combineCandidateOutput', () => {
         const candidates: ParsedCandidate[] = [
             {
                 candidateId: 'candidate-1',
+                gimmick: 'glue trap',
                 executionSummary: 'Primary glue beat; rope unassigned in tropes.',
                 tropeAssignments: {
                     Disadvantage: {
@@ -115,7 +119,7 @@ describe('combineCandidateOutput', () => {
         }
     })
 
-    it('serializePlanSelectCandidateInput is stable JSON with schemaVersion 3 and outliers without tropeFunction', () => {
+    it('serializePlanSelectCandidateInput is stable JSON with schemaVersion 4 and outliers without tropeFunction', () => {
         const roomMap: CoyoteRoomObjectsByRoom = {
             'ROOM#VORTEX': [
                 {
@@ -133,6 +137,7 @@ describe('combineCandidateOutput', () => {
         const candidates: ParsedCandidate[] = [
             {
                 candidateId: 'candidate-1',
+                gimmick: 'glue trap',
                 executionSummary: 'Primary glue beat; rope unassigned in tropes.',
                 tropeAssignments: {
                     Disadvantage: {
@@ -151,7 +156,7 @@ describe('combineCandidateOutput', () => {
         const b = serializePlanSelectCandidateInput(r.combined, roomMap)
         expect(a).toBe(b)
         const parsed = JSON.parse(a) as { schemaVersion: number; candidates: unknown[] }
-        expect(parsed.schemaVersion).toBe(3)
+        expect(parsed.schemaVersion).toBe(4)
         expect(parsed.candidates).toHaveLength(1)
         const c0 = parsed.candidates[0] as {
             candidateId: string
@@ -162,6 +167,7 @@ describe('combineCandidateOutput', () => {
             outliers: Array<{ stableKey: string; shortName: string; room: string; tropeFunction?: string }>
         }
         expect(c0.candidateId).toBe('candidate-1')
+        expect((parsed.candidates[0] as { gimmick: string }).gimmick).toBe('glue trap')
         expect(Array.isArray(c0.tropeAssignments)).toBe(false)
         expect(c0.tropeAssignments.Disadvantage?.members[0]).toMatchObject({
             stableKey: 'glue-1',
@@ -192,6 +198,7 @@ describe('combineCandidateOutput', () => {
         }
         const candidates: ParsedCandidate[] = [{
             candidateId: 'candidate-1',
+            gimmick: 'glue trap',
             executionSummary: 'Glue constraint beat.',
             tropeAssignments: {
                 Disadvantage: {
@@ -243,6 +250,7 @@ describe('combineCandidateOutput', () => {
         }
         const candidates: ParsedCandidate[] = [{
             candidateId: 'candidate-1',
+            gimmick: 'glue trap',
             executionSummary: 'Glue only.',
             tropeAssignments: {
                 Disadvantage: {
@@ -282,6 +290,7 @@ describe('combineCandidateOutput', () => {
         }
         const candidates: ParsedCandidate[] = [{
             candidateId: 'candidate-1',
+            gimmick: 'high speed chase',
             executionSummary: 'Skates beat.',
             tropeAssignments: {
                 Contraption: {
@@ -333,6 +342,7 @@ describe('combineCandidateOutput', () => {
         }
         const candidates: ParsedCandidate[] = [{
             candidateId: 'candidate-1',
+            gimmick: 'glue trap',
             executionSummary: 'Glue only.',
             tropeAssignments: {
                 Disadvantage: {

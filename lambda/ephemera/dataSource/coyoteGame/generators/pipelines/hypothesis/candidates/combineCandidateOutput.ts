@@ -28,6 +28,8 @@ export type CombinedTropeAssignment = {
 
 export type CombinedTropeCandidate = {
     candidateId: string
+    /** Short causal spine tag from stage-one parse (always set after combine). */
+    gimmick: string
     executionSummary: string
     tropeAssignments: Partial<Record<CoyoteTrope, CombinedTropeAssignment>>
     outliers: CombinedOutlierIdentity[]
@@ -68,6 +70,8 @@ export type PlanSelectCombinedTropeAssignment = {
 
 export type PlanSelectCombinedCandidate = {
     candidateId: string
+    /** Present on plan-select **input** JSON from combine; optional on model `selectedCandidate` until G2 enforces mirror. */
+    gimmick?: string
     executionSummary: string
     tropeAssignments: Partial<Record<CoyoteTrope, PlanSelectCombinedTropeAssignment>>
     outliers: PlanSelectCombinedOutlier[]
@@ -191,6 +195,7 @@ export function combineCandidateOutput(
         const outliers: CombinedOutlierIdentity[] = derived.identifiers.map((identifier) => ({ identifier }))
         combinedCandidates.push({
             candidateId: candidate.candidateId,
+            gimmick: candidate.gimmick,
             executionSummary: candidate.executionSummary,
             tropeAssignments,
             outliers,
@@ -220,6 +225,7 @@ export function renderCombinedCandidateOutputForNarrativeBeat(
 
     for (const candidate of combined.candidates) {
         lines.push(`### Candidate ${candidate.candidateId}`, '')
+        lines.push(`- **gimmick:** ${candidate.gimmick}`, '')
         lines.push(`- **executionSummary:** ${candidate.executionSummary}`, '')
         for (const trope of TROPE_ORDER) {
             const assignment = candidate.tropeAssignments[trope]
@@ -363,7 +369,8 @@ function enrichOutlierForPlanSelectJson(
 
 /**
  * Deterministic JSON string for plan-selection prompts: same facts as
- * {@link renderCombinedCandidateOutputForNarrativeBeat} with `stableKey` / `shortName` / `room` on each staged prop.
+ * {@link renderCombinedCandidateOutputForNarrativeBeat} with `stableKey` / `shortName` / `room` on each staged prop,
+ * plus per-candidate **`gimmick`**. **`schemaVersion`** is **4** (gimmick on each candidate row).
  * Callers typically wrap the result in a Markdown ` ```json ` fence.
  */
 export function serializePlanSelectCandidateInput(
@@ -375,7 +382,7 @@ export function serializePlanSelectCandidateInput(
         schemaVersion: number
         candidates: PlanSelectCombinedCandidate[]
     } = {
-        schemaVersion: 3,
+        schemaVersion: 4,
         candidates: combined.candidates.map((candidate) => {
             const tropeAssignments: Partial<Record<CoyoteTrope, PlanSelectCombinedTropeAssignment>> = {}
             for (const trope of TROPE_ORDER) {
@@ -390,6 +397,7 @@ export function serializePlanSelectCandidateInput(
             }
             return {
                 candidateId: candidate.candidateId,
+                gimmick: candidate.gimmick,
                 executionSummary: candidate.executionSummary,
                 tropeAssignments,
                 outliers: candidate.outliers.map((o) => enrichOutlierForPlanSelectJson(o, byStableKey, roomObjectsByRoom)),

@@ -44,13 +44,15 @@ describe('serializeStagedObjectsAffinityForwardJson', () => {
         })
         expect(first).toBe(second)
         const parsed = JSON.parse(first) as {
-            decisionFocus: { ambiguousStableKeys: string[]; unassignedStableKeys: string[] }
+            decisionFocus: { anchorStableKeys: string[]; expanderStableKeys: string[] }
             objects: Array<{
                 stableKey: string
                 room: string
                 tropeAffinities?: Array<{ environmentAffordances?: unknown[] }>
             }>
         }
+        expect(parsed.decisionFocus.anchorStableKeys).toEqual([])
+        expect(parsed.decisionFocus.expanderStableKeys).toEqual(['a'])
         expect(parsed.objects.map((o) => o.stableKey)).toEqual(['a', 'z'])
         expect(parsed.objects[0].room).toBe('A')
         expect(parsed.objects[0].tropeAffinities?.[0].environmentAffordances).toEqual([
@@ -59,7 +61,7 @@ describe('serializeStagedObjectsAffinityForwardJson', () => {
         expect(JSON.stringify(first)).not.toContain('roomId')
     })
 
-    it('lists ambiguousStableKeys for multi-affinity objects and unassignedStableKeys for empty or failed', () => {
+    it('lists expanderStableKeys for multi non-poor affinities; omits failed or empty affinity objects', () => {
         const map: CoyoteRoomObjectsByRoom = {
             [room('ROOM#VORTEX')]: [
                 {
@@ -87,10 +89,87 @@ describe('serializeStagedObjectsAffinityForwardJson', () => {
         }
         const json = serializeStagedObjectsAffinityForwardJson(map)
         const parsed = JSON.parse(json) as {
-            decisionFocus: { ambiguousStableKeys: string[]; unassignedStableKeys: string[] }
+            decisionFocus: { anchorStableKeys: string[]; expanderStableKeys: string[] }
         }
-        expect(parsed.decisionFocus.ambiguousStableKeys).toEqual(['multi-0'])
-        expect(parsed.decisionFocus.unassignedStableKeys).toEqual(['fail-2', 'none-1'])
+        expect(parsed.decisionFocus.anchorStableKeys).toEqual([])
+        expect(parsed.decisionFocus.expanderStableKeys).toEqual(['multi-0'])
+    })
+
+    it('lists anchorStableKeys for single High with optional Poor satellites and no affordances on High', () => {
+        const json = serializeStagedObjectsAffinityForwardJson({
+            [room('ROOM#VORTEX')]: [{
+                uuid: 'OBJECT#c' as `OBJECT#${string}`,
+                shortName: 'catapult',
+                stableKey: 'catapult-0',
+                tropeAffinities: [
+                    { trope: 'Contraption', aptness: 'High', narrowing: 'launcher' },
+                    { trope: 'Finishing Move', aptness: 'Poor', narrowing: 'weak alternate' },
+                ],
+            }],
+        })
+        const parsed = JSON.parse(json) as {
+            decisionFocus: { anchorStableKeys: string[]; expanderStableKeys: string[] }
+        }
+        expect(parsed.decisionFocus.anchorStableKeys).toEqual(['catapult-0'])
+        expect(parsed.decisionFocus.expanderStableKeys).toEqual([])
+    })
+
+    it('lists expanderStableKeys when only affordances attach to a non-Poor row (single Good)', () => {
+        const json = serializeStagedObjectsAffinityForwardJson({
+            [room('ROOM#VORTEX')]: [{
+                uuid: 'OBJECT#g' as `OBJECT#${string}`,
+                shortName: 'gizmo',
+                stableKey: 'gizmo-1',
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'Good',
+                    narrowing: 'rig',
+                    environmentAffordances: [{ object: 'boulder', roles: ['Contraption'] }],
+                }],
+            }],
+        })
+        const parsed = JSON.parse(json) as {
+            decisionFocus: { anchorStableKeys: string[]; expanderStableKeys: string[] }
+        }
+        expect(parsed.decisionFocus.anchorStableKeys).toEqual([])
+        expect(parsed.decisionFocus.expanderStableKeys).toEqual(['gizmo-1'])
+    })
+
+    it('places neither anchor nor expander for single Good without affordances', () => {
+        const json = serializeStagedObjectsAffinityForwardJson({
+            [room('ROOM#VORTEX')]: [{
+                uuid: 'OBJECT#w' as `OBJECT#${string}`,
+                shortName: 'weak',
+                stableKey: 'weak-2',
+                tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'maybe' }],
+            }],
+        })
+        const parsed = JSON.parse(json) as {
+            decisionFocus: { anchorStableKeys: string[]; expanderStableKeys: string[] }
+        }
+        expect(parsed.decisionFocus.anchorStableKeys).toEqual([])
+        expect(parsed.decisionFocus.expanderStableKeys).toEqual([])
+    })
+
+    it('ignores affordances attached only to Poor rows for bucketing', () => {
+        const json = serializeStagedObjectsAffinityForwardJson({
+            [room('ROOM#VORTEX')]: [{
+                uuid: 'OBJECT#p' as `OBJECT#${string}`,
+                shortName: 'poor-only',
+                stableKey: 'poor-3',
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'Poor',
+                    narrowing: 'discard',
+                    environmentAffordances: [{ object: 'boulder', roles: ['Contraption'] }],
+                }],
+            }],
+        })
+        const parsed = JSON.parse(json) as {
+            decisionFocus: { anchorStableKeys: string[]; expanderStableKeys: string[] }
+        }
+        expect(parsed.decisionFocus.anchorStableKeys).toEqual([])
+        expect(parsed.decisionFocus.expanderStableKeys).toEqual([])
     })
 
     it('round-trips affordancesProvided nested under tropeAffinities', () => {

@@ -11,11 +11,13 @@ import {
     isEnvironmentAffordanceRef,
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { CANONICAL_TROPE_ORDER } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
+import { hypothesisDebugLog } from '../../../../utilities/hypothesisDebug'
 import { COYOTE_STRICT_FAIL_FAST_ENABLED } from '../../../../utilities/coyoteRuntimeToggles'
 
 /*
  * Stage 1 emits trope-first JSON: optional notes, required candidates[].
- * Each candidate includes tropeAssignments{} keyed by trope; optional outliers[] is scaffolding only (stableKey-only).
+ * Each candidate includes **`gimmick`** (short spine tag), tropeAssignments{} keyed by trope;
+ * optional outliers[] is scaffolding only (stableKey-only).
  * Trope members use stableKey + required tropeFunction. Authoritative outliers are derived in combine.
  */
 
@@ -34,9 +36,13 @@ export type ParsedCandidateTropeAssignment = {
 
 export type ParsedCandidate = {
     candidateId: string
+    gimmick: string
     executionSummary: string
     tropeAssignments: Partial<Record<CoyoteTrope, ParsedCandidateTropeAssignment>>
 }
+
+/** Safety cap for stage-one `gimmick` strings (truncate longer model output). */
+export const COYOTE_STAGE_ONE_GIMMICK_MAX_CHARS = 160
 
 export type ParseCandidateOutputSuccess = {
     ok: true
@@ -129,9 +135,47 @@ function isNonEmptyString(x: unknown): x is string {
     return typeof x === 'string' && x.trim().length > 0
 }
 
+function deriveFallbackGimmick(executionSummary: string): string {
+    const t = executionSummary.trim()
+    if (!t.length) {
+        return 'candidate spine'
+    }
+    const firstChunk = t.split(/[.!?]/)[0]?.trim() ?? t
+    const base = firstChunk.length > 0 ? firstChunk : t
+    const capped = base.slice(0, COYOTE_STAGE_ONE_GIMMICK_MAX_CHARS).trim()
+    return capped.length > 0 ? capped : 'candidate spine'
+}
+
+/**
+ * Model-supplied `gimmick` when valid; otherwise derive from `executionSummary` so downstream hops
+ * always receive a non-empty tag (graceful degradation per gimmick refactor decisions).
+ * Over-long strings are truncated (bounded prompts).
+ */
+function normalizeStageOneGimmick(
+    rawGimmick: unknown,
+    executionSummary: string,
+    candidateId: string
+): string {
+    if (typeof rawGimmick !== 'string') {
+        hypothesisDebugLog('stage one gimmick fallback', { candidateId, reason: 'missing_or_wrong_type' })
+        return deriveFallbackGimmick(executionSummary)
+    }
+    const trimmed = rawGimmick.trim()
+    if (!trimmed.length) {
+        hypothesisDebugLog('stage one gimmick fallback', { candidateId, reason: 'empty' })
+        return deriveFallbackGimmick(executionSummary)
+    }
+    if (trimmed.length > COYOTE_STAGE_ONE_GIMMICK_MAX_CHARS) {
+        hypothesisDebugLog('stage one gimmick truncated', { candidateId, originalLength: trimmed.length })
+        return trimmed.slice(0, COYOTE_STAGE_ONE_GIMMICK_MAX_CHARS).trim()
+    }
+    return trimmed
+}
+
 const STAGE_ONE_ROOT_ALLOWED_KEYS = new Set(['candidates', 'notes'])
 const STAGE_ONE_CANDIDATE_ALLOWED_KEYS = new Set([
     'candidateId',
+    'gimmick',
     'executionSummary',
     'tropeAssignments',
     'outliers',
@@ -380,6 +424,7 @@ function parseCandidatesFromPayload(
         }
         const candidateId = co.candidateId.trim()
         const executionSummary = co.executionSummary.trim()
+        const gimmick = normalizeStageOneGimmick(co.gimmick, executionSummary, candidateId)
         const tropeAssignmentsRaw = co.tropeAssignments
         if (
             typeof tropeAssignmentsRaw !== 'object'
@@ -533,6 +578,7 @@ function parseCandidatesFromPayload(
         }
         candidates.push({
             candidateId,
+            gimmick,
             executionSummary,
             tropeAssignments,
         })

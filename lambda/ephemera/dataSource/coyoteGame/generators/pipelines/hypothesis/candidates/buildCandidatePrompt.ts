@@ -36,13 +36,29 @@ const CANDIDATE_TROPE_VOCABULARY_LINES = [
     '- **Finishing Move**: terminal payoff or harm delivery aimed at the Road Runner.',
 ] as const
 
-/** Few-shot: trope-first candidate assignments with required tropeFunction member annotations. */
-const CANDIDATE_JSON_FEW_SHOT = `Example (shape -- use real **stableKey** strings from **Current staged objects** below):
+/**
+ * Per-candidate orienting line for plan-select diversity; expressive space, not a fixed template.
+ * Mechanics and staging stay in trope rows and executionSummary.
+ */
+const CANDIDATE_GIMMICK_GUIDANCE_LINES = [
+    '## Gimmick (per candidate)',
+    '- **`gimmick`** is **free-form orienting text**: it names how **this candidate reads as a distinct hypothesis** in the pool --- the through-line or payoff spine toward the Road Runner. **`executionSummary`** sketches **what happens**; **`tropeAssignments`** locks **props to tropes**; **`gimmick`** is only this row\'s **orienting headline** alongside those.',
+    '- There is **no fixed grammatical mold** (token count, fragment vs phrase, tone). Stay **legible at a glance** next to **`executionSummary`**; **brevity is typical**, not a scoring rule --- vary density when it helps distinguish candidates.',
+    '- **`gimmick`** voice is **pool-facing**: headline, hook, cluster shorthand, blunt label, or blended spine --- whatever **best telegraphs** this candidate\'s through-line to someone scanning the list.',
+    '- **`gimmick`** stays at **through-line scope** --- your label for this hypothesis. **Rooms, staging, prop choreography, and beat mechanics** are **out of scope here**; develop them in **`tropeAssignments`** and **`executionSummary`** where each candidate is spelled out.',
+    '- **Archetype clusters** pull attention (examples only --- not exhaustive, not mandatory labels): **delivered damage**, **high speed chase**, **unexpected approach**, **trap**. You may echo them, combine flavors, ignore them, or coin something else that fits the spine.',
+    '- **Permission:** reuse wording like those clusters or like the few-shot **`gimmick`** strings **when they fit**; you are **not required** to invent novelty --- use a **different label** when it fits better.',
+    '- Explore **different spines** across candidates (even unlikely ones) so the pool is not only trope permutations on the same idea.',
+] as const
+
+/** Few-shot: illustrative gimmick stances + trope-first assignments (shape); use real stableKeys from staged objects below. */
+const CANDIDATE_JSON_FEW_SHOT = `Example (**shape** --- few-shot **gimmick** strings are **samples**, not the only valid voices):
 \`\`\`json
 {
   "candidates": [
     {
       "candidateId": "candidate-1",
+      "gimmick": "deliver damage",
       "executionSummary": "Road Runner stops at birdseed while rope-and-pulley rig drops an anvil overhead.",
       "tropeAssignments": {
         "Contraption": {
@@ -64,6 +80,7 @@ const CANDIDATE_JSON_FEW_SHOT = `Example (shape -- use real **stableKey** string
     },
     {
       "candidateId": "candidate-2",
+      "gimmick": "snare trap",
       "executionSummary": "Road Runner stops at birdseed while rope, pulley, and anvil snap a snare trap shut.",
       "tropeAssignments": {
         "Contraption": {
@@ -91,6 +108,7 @@ Second example (simple one-candidate shape):
   "candidates": [
     {
       "candidateId": "candidate-1",
+      "gimmick": "high speed chase",
       "executionSummary": "Use a rocket sled at the base of the cliff as a speed-chase contraption.",
       "tropeAssignments": {
         "Contraption": {
@@ -111,6 +129,8 @@ const CANDIDATE_JSON_CONTRACT_LINES = [
     '    trope-first plan candidate. Each candidate object has:',
     '    - **`candidateId`** (required string): deterministic short id (for example',
     '      `candidate-1`, `candidate-2`).',
+    '    - **`gimmick`** (required non-empty string): orienting through-line for this candidate (see **Gimmick** above);',
+    '      **scannable** alongside **`executionSummary`**, not a duplicate of it; not constrained to **`tropeFunction`** style.',
     '    - **`executionSummary`** (required non-empty string): one concise line for',
     '      the candidate\'s provisional execution.',
     '    - **`tropeAssignments`** (required non-empty object, not an array): sparse',
@@ -153,7 +173,7 @@ const CANDIDATE_JSON_CONTRACT_LINES = [
     '- Good: `"lane bait"`, `"drop trigger"`, `"boom payload"`.',
     '- Bad: `"terminal projectile payload delivery for final beat"`.',
     '- **Strict keys:** root object may contain only **`candidates`** and optional',
-    '  **`notes`**. Candidate objects may contain only **`candidateId`**,',
+    '  **`notes`**. Candidate objects may contain only **`candidateId`**, **`gimmick`**,',
     '  **`executionSummary`**, **`tropeAssignments`**, and optional **`outliers`**.',
     '  Each trope-value object may contain only **`executionDetail`** and **`members`**.',
     '  Each **member** object may contain only **`stableKey`**, required',
@@ -163,12 +183,15 @@ const CANDIDATE_JSON_CONTRACT_LINES = [
     '- **Input evidence priority:** Use **`objects[*].tropeAffinities`** as the primary',
     '  decision signal when grouping members and writing **`tropeFunction`**; **`objects[*].room`** is execution context,',
     '  not the primary clustering axis.',
-    '- Use **`decisionFocus.ambiguousStableKeys`** and **`decisionFocus.unassignedStableKeys`** as steering',
-    '  for objects that warrant alternative readings vs props needing placement.',
-    '- Treat optional **`environmentAffordances`** and **`affordancesProvided`** nested under each',
-    '  affinity row as secondary advisory hints alongside primary **`tropeAffinities`** signals;',
-    '  they can refine placement, but should not override stronger affinity evidence (both may appear',
-    '  on the same row when justified).',
+    '- **`decisionFocus.anchorStableKeys`**: staged **`stableKey`**s that likely **ground** the candidate pool ---',
+    '  treat these props as a **shared spine** across candidates unless another prop forces a twist.',
+    '- **`decisionFocus.expanderStableKeys`**: staged **`stableKey`**s where you should **vary** candidates ---',
+    '  multiple strong affinity readings and/or optional **`environmentAffordances`** / **`affordancesProvided`** on',
+    '  non-Poor rows mean **different plausible hypotheses** (different trope placements and/or treating optional',
+    '  affordances as **in play vs omitted** across candidates). Each resolution can be its own candidate spine.',
+    '- Optional **`environmentAffordances`** / **`affordancesProvided`** on **non-Poor** affinity rows are **branching axes**',
+    '  where **`expanderStableKeys`** applies: explore alternatives rather than folding every hint into one story.',
+    '  Still respect **`tropeAffinities`** as the primary trope-placement signal when those rows conflict.',
 ] as const
 
 function candidatePromptLines(snapshotSection: string): string[] {
@@ -181,12 +204,14 @@ function candidatePromptLines(snapshotSection: string): string[] {
         '',
         ...COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
         '',
+        ...CANDIDATE_GIMMICK_GUIDANCE_LINES,
+        '',
         ...CANDIDATE_JSON_CONTRACT_LINES,
         '',
         CANDIDATE_JSON_FEW_SHOT,
         '',
         CANDIDATE_STAGED_OBJECTS_SECTION_HEADER,
-        'Use this JSON as authoritative staged-object input (`decisionFocus`, then `objects` rows with seam **`room`**, **`tropeAffinities`** including optional nested **`environmentAffordances`** and **`affordancesProvided`** when present).',
+        'Use this JSON as authoritative staged-object input (`decisionFocus.anchorStableKeys` / `expanderStableKeys`, then `objects` rows with seam **`room`**, **`tropeAffinities`** including optional nested **`environmentAffordances`** and **`affordancesProvided`** when present).',
         '',
         '```json',
         snapshotSection || '{}',

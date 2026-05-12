@@ -1,6 +1,10 @@
 import { harnessRoomObjects } from '../../../testHarness/coyoteEngineTestFixtures'
 import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
-import { parseCandidateOutput, stripCandidateOutputFence } from './parseCandidateOutput'
+import {
+    COYOTE_STAGE_ONE_GIMMICK_MAX_CHARS,
+    parseCandidateOutput,
+    stripCandidateOutputFence,
+} from './parseCandidateOutput'
 import { COYOTE_STRICT_FAIL_FAST_ENABLED } from '../../../../utilities/coyoteRuntimeToggles'
 
 const singleObjectRoomMap: CoyoteRoomObjectsByRoom = {
@@ -47,8 +51,57 @@ describe('parseCandidateOutput', () => {
         if (r.ok) {
             expect(r.normalizedJson).toContain('"stableKey":"anvil-0"')
             expect(r.candidates).toHaveLength(1)
+            expect(r.candidates[0].gimmick).toBe('Drop the anvil as the final beat')
             expect(r.candidates[0].tropeAssignments['Finishing Move']?.members[0].stableKey).toBe('anvil-0')
             expect(r.candidates[0].tropeAssignments['Finishing Move']?.members[0].tropeFunction).toBe('terminal drop payload')
+        }
+    })
+
+    it('preserves explicit gimmick when provided', () => {
+        const body = JSON.stringify({
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    gimmick: 'delivered damage lane',
+                    executionSummary: 'Drop the anvil as the final beat.',
+                    tropeAssignments: {
+                        'Finishing Move': {
+                            executionDetail: 'Anvil drops once Road Runner commits to the lane.',
+                            members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal drop payload' }],
+                        },
+                    },
+                },
+            ],
+        })
+        const r = parseCandidateOutput(body, singleObjectRoomMap)
+        expect(r.ok).toBe(true)
+        if (r.ok) {
+            expect(r.candidates[0].gimmick).toBe('delivered damage lane')
+        }
+    })
+
+    it('truncates gimmick longer than COYOTE_STAGE_ONE_GIMMICK_MAX_CHARS', () => {
+        const longGimmick = 'x'.repeat(COYOTE_STAGE_ONE_GIMMICK_MAX_CHARS + 40)
+        const body = JSON.stringify({
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    gimmick: longGimmick,
+                    executionSummary: 'Drop the anvil.',
+                    tropeAssignments: {
+                        'Finishing Move': {
+                            executionDetail: 'Trigger the terminal drop.',
+                            members: [{ stableKey: 'anvil-0', tropeFunction: 'terminal drop payload' }],
+                        },
+                    },
+                },
+            ],
+        })
+        const r = parseCandidateOutput(body, singleObjectRoomMap)
+        expect(r.ok).toBe(true)
+        if (r.ok) {
+            expect(r.candidates[0].gimmick).toHaveLength(COYOTE_STAGE_ONE_GIMMICK_MAX_CHARS)
+            expect(r.candidates[0].gimmick).toBe('x'.repeat(COYOTE_STAGE_ONE_GIMMICK_MAX_CHARS))
         }
     })
 
@@ -70,6 +123,7 @@ describe('parseCandidateOutput', () => {
         const r = parseCandidateOutput(body, singleObjectRoomMap)
         expect(r.ok).toBe(true)
         if (r.ok) {
+            expect(r.candidates[0].gimmick).toBe('Drop the anvil')
             expect(r.candidates[0].tropeAssignments['Finishing Move']?.members[0].tropeFunction).toBe('terminal drop payload')
         }
     })

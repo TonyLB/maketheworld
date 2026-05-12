@@ -11,13 +11,18 @@ import {
 } from '../../../../../llm/invokeBedrockConverseText'
 import {
     BEDROCK_NOVA_2_LITE_MODEL_ID,
+    BEDROCK_NOVA_MICRO_MODEL_ID,
     DEFAULT_NOVA_MODEL,
     type NovaModel,
     novaModelToBedrockModelId,
 } from '../../../../../llm/novaModel'
 import type { CoyotePromptParts } from './promptTypes'
 
+/** Used when callers invoke [`invokeBedrockHypothesis`] without a model (e.g. plan outcome). Not used for stage-one candidates ([`invokeBedrockHypothesisStageOne`] defaults to Nova Micro). */
 export const BEDROCK_HYPOTHESIS_MODEL_ID = BEDROCK_NOVA_2_LITE_MODEL_ID
+
+/** Stage-one (candidate clustering) defaults to **Nova Micro**; see [`invokeBedrockHypothesisStageOne`]. */
+export const BEDROCK_HYPOTHESIS_CANDIDATES_MODEL_ID = BEDROCK_NOVA_MICRO_MODEL_ID
 export const BEDROCK_HYPOTHESIS_TIMEOUT_MS = 30_000
 
 /** Candidates phase (first hop): seam Markdown only; shorter cap than post-combine hops. */
@@ -93,13 +98,14 @@ export async function invokeBedrockHypothesis(
 
 type InvokeBedrockHypothesisOptions = NonNullable<Parameters<typeof invokeBedrockHypothesis>[1]>
 
-/** Candidates phase: seam Markdown. Defaults to [`BEDROCK_HYPOTHESIS_CANDIDATES_MAX_TOKENS`]. */
+/** Candidates phase: seam Markdown. Defaults to Nova Micro and [`BEDROCK_HYPOTHESIS_CANDIDATES_MAX_TOKENS`]. */
 export async function invokeBedrockHypothesisStageOne(
     prompt: CoyotePromptParts,
     options: InvokeBedrockHypothesisOptions = {}
 ): Promise<InvokeBedrockHypothesisResult> {
     return invokeBedrockHypothesis(prompt, {
         ...options,
+        model: options.model ?? 'NovaMicro',
         maxTokens: options.maxTokens ?? BEDROCK_HYPOTHESIS_CANDIDATES_MAX_TOKENS,
     })
 }

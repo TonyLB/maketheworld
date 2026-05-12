@@ -114,6 +114,7 @@ const FIXTURE_01_GOLDEN_SEAM_BODY = JSON.stringify({
     candidates: [
         {
             candidateId: 'candidate-1',
+            gimmick: 'high speed chase',
             executionSummary: 'Coyote rides the rocket to chase down Road Runner.',
             tropeAssignments: {
                 Contraption: {
@@ -657,6 +658,7 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
         candidates: [
             {
                 candidateId: 'candidate-1',
+                gimmick: 'deliver damage',
                 executionSummary: 'Birdseed lures Road Runner while lever rig prepares the cliffside release.',
                 tropeAssignments: {
                     Contraption: {
@@ -675,6 +677,7 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
         candidates: [
             {
                 candidateId: 'candidate-1',
+                gimmick: 'hole trap',
                 executionSummary: 'Paint and skates prep a route while birdseed lures into a portable-hole finish.',
                 tropeAssignments: {
                     Contraption: {
@@ -700,6 +703,7 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
         candidates: [
             {
                 candidateId: 'candidate-1',
+                gimmick: 'deliver damage',
                 executionSummary: 'Magnet control narrows path and steel drum closes the impact beat.',
                 tropeAssignments: {
                     Disadvantage: {
@@ -718,11 +722,18 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
         candidates: [
             {
                 candidateId: 'candidate-1',
+                gimmick: 'unexpected approach',
                 executionSummary: 'Catapult alone serves as the contraption for a launch-based chase setup.',
                 tropeAssignments: {
                     Contraption: {
                         executionDetail: 'Catapult is pre-aimed at CLIFFBASE for launch timing.',
-                        members: [{ stableKey: 'catapult-0', tropeFunction: 'launch rig' }],
+                        members: [
+                            {
+                                stableKey: 'catapult-0',
+                                tropeFunction: 'launch rig',
+                                environmentAffordances: [{ object: 'boulder', roles: ['Finishing Move'] }],
+                            },
+                        ],
                     },
                 },
             },
@@ -732,6 +743,7 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
         candidates: [
             {
                 candidateId: 'candidate-1',
+                gimmick: 'deliver damage',
                 executionSummary: 'Birdseed lures, glue constrains, and anvil closes terminally.',
                 tropeAssignments: {
                     Bait: {
@@ -754,6 +766,7 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
         candidates: [
             {
                 candidateId: 'candidate-1',
+                gimmick: 'booby-trap',
                 executionSummary: 'Trampoline sets trajectory while net imposes terminal containment.',
                 tropeAssignments: {
                     Contraption: {
@@ -772,6 +785,7 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
         candidates: [
             {
                 candidateId: 'candidate-1',
+                gimmick: 'high speed unexpected approach',
                 executionSummary: 'Multi-prop straightaway rig builds speed and release timing before terminal spring impact.',
                 tropeAssignments: {
                     Contraption: {
@@ -779,8 +793,16 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
                         members: [
                             { stableKey: 'rocket-0', tropeFunction: 'thrust source' },
                             { stableKey: 'skis-1', tropeFunction: 'speed rail' },
-                            { stableKey: 'catapult-2', tropeFunction: 'launch arm' },
-                            { stableKey: 'springs-3', tropeFunction: 'launch' }
+                            {
+                                stableKey: 'catapult-2',
+                                tropeFunction: 'launch arm',
+                                environmentAffordances: [{ object: 'boulder', roles: ['Finishing Move'] }],
+                            },
+                            {
+                                stableKey: 'springs-3',
+                                tropeFunction: 'launch',
+                                environmentAffordances: [{ object: 'boulder', roles: ['Finishing Move'] }],
+                            },
                         ],
                     },
                     Disadvantage: {
@@ -795,6 +817,7 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
         candidates: [
             {
                 candidateId: 'candidate-1',
+                gimmick: 'complicated chase',
                 executionSummary: 'Umbrella, snorkel, and skis form one prep-heavy chase contraption.',
                 tropeAssignments: {
                     Contraption: {
@@ -813,6 +836,7 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
         candidates: [
             {
                 candidateId: 'candidate-1',
+                gimmick: 'deliver damage',
                 executionSummary: 'Paint and skates prep route, birdseed lures stop, cannon closes with terminal blast.',
                 tropeAssignments: {
                     Contraption: {

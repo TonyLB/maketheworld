@@ -13,6 +13,7 @@ describe('buildPlanSelectPrompt', () => {
                 candidates: [
                     {
                         candidateId: 'candidate-1',
+                        gimmick: 'deliver damage',
                         executionSummary: 'One-line summary.',
                         tropeAssignments: {
                             Contraption: {
@@ -77,7 +78,7 @@ describe('buildPlanSelectPrompt', () => {
         expect(full).toContain('`rubricJudgment`')
         expect(full).toContain('`winnerMerge`')
         expect(full).toContain('```json')
-        expect(full).toContain('"schemaVersion":3')
+        expect(full).toContain('"schemaVersion":4')
         expect(full).toContain('affordancesProvided')
         expect(full).toContain('environmentAffordances')
         expect(full).toContain('"candidateId":"candidate-1"')
@@ -92,6 +93,7 @@ describe('buildPlanSelectPrompt', () => {
                 candidates: [
                     {
                         candidateId: 'candidate-1',
+                        gimmick: 'deliver damage',
                         executionSummary: 'One-line summary.',
                         tropeAssignments: {
                             Contraption: {
@@ -103,6 +105,7 @@ describe('buildPlanSelectPrompt', () => {
                     },
                     {
                         candidateId: 'candidate-2',
+                        gimmick: 'booby-trap',
                         executionSummary: 'Another summary.',
                         tropeAssignments: {
                             Contraption: {
@@ -152,6 +155,7 @@ describe('buildPlanSelectPrompt', () => {
             combined: {
                 candidates: [{
                     candidateId: 'candidate-1',
+                    gimmick: 'delivery damage',
                     executionSummary: 'One-line summary.',
                     tropeAssignments: {
                         Contraption: {
