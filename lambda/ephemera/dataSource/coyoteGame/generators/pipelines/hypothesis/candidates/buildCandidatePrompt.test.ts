@@ -19,6 +19,7 @@ describe('buildCandidatePrompt', () => {
         expect(parts.invariantPrefix).toContain('## World topology')
         expect(full).toContain('affordancesProvided')
         expect(full).toContain('## Gimmick (per candidate)')
+        expect(full).toContain('free-form orienting text')
         expect(full).toContain('## Stage one JSON contract')
         expect(full).toContain('"tropeFunction":')
         expect(full).not.toContain('intendedRole')

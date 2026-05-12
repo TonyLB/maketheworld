@@ -36,18 +36,23 @@ const CANDIDATE_TROPE_VOCABULARY_LINES = [
     '- **Finishing Move**: terminal payoff or harm delivery aimed at the Road Runner.',
 ] as const
 
-/** Per-candidate causal spine tag; woven before the JSON contract (details belong in trope rows, not here). */
+/**
+ * Per-candidate orienting line for plan-select diversity; expressive space, not a fixed template.
+ * Mechanics and staging stay in trope rows and executionSummary.
+ */
 const CANDIDATE_GIMMICK_GUIDANCE_LINES = [
     '## Gimmick (per candidate)',
-    '- **`gimmick`** is a **short string** (often just a few words): the orienting tag for this candidate\'s **causal spine** --- how the cartoon beat is supposed to pay off toward the Road Runner.',
-    '- Think **backward from the intended cartoon outcome** (Road Runner interaction), then assign tropes and props; keep **`gimmick`** light --- mechanics and staging detail live in **`tropeAssignments`** and **`executionSummary`**, not in **`gimmick`**.',
-    '- **Archetype clusters** (examples only --- not an exhaustive list): **delivered damage**, **high speed chase**, **unexpected approach**, **trap**.',
-    '- **Permission:** you may reuse wording like those clusters or like the few-shot **`gimmick`** strings **when they fit**; you are **not required** to invent novelty --- and you may use a **different short label** when it fits better.',
-    '- Explore **different spines** across candidates so the pool is not only trope permutations on the same idea.',
+    '- **`gimmick`** is **free-form orienting text**: it names how **this candidate reads as a distinct hypothesis** in the pool --- the through-line or payoff spine toward the Road Runner. **`executionSummary`** sketches **what happens**; **`tropeAssignments`** locks **props to tropes**; **`gimmick`** is only this row\'s **orienting headline** alongside those.',
+    '- There is **no fixed grammatical mold** (token count, fragment vs phrase, tone). Stay **legible at a glance** next to **`executionSummary`**; **brevity is typical**, not a scoring rule --- vary density when it helps distinguish candidates.',
+    '- **`gimmick`** voice is **pool-facing**: headline, hook, cluster shorthand, blunt label, or blended spine --- whatever **best telegraphs** this candidate\'s through-line to someone scanning the list.',
+    '- **`gimmick`** stays at **through-line scope** --- your label for this hypothesis. **Rooms, staging, prop choreography, and beat mechanics** are **out of scope here**; develop them in **`tropeAssignments`** and **`executionSummary`** where each candidate is spelled out.',
+    '- **Archetype clusters** pull attention (examples only --- not exhaustive, not mandatory labels): **delivered damage**, **high speed chase**, **unexpected approach**, **trap**. You may echo them, combine flavors, ignore them, or coin something else that fits the spine.',
+    '- **Permission:** reuse wording like those clusters or like the few-shot **`gimmick`** strings **when they fit**; you are **not required** to invent novelty --- use a **different label** when it fits better.',
+    '- Explore **different spines** across candidates (even unlikely ones) so the pool is not only trope permutations on the same idea.',
 ] as const
 
-/** Few-shot: trope-first candidate assignments with required tropeFunction member annotations. */
-const CANDIDATE_JSON_FEW_SHOT = `Example (shape -- use real **stableKey** strings from **Current staged objects** below):
+/** Few-shot: illustrative gimmick stances + trope-first assignments (shape); use real stableKeys from staged objects below. */
+const CANDIDATE_JSON_FEW_SHOT = `Example (**shape** --- few-shot **gimmick** strings are **samples**, not the only valid voices):
 \`\`\`json
 {
   "candidates": [
@@ -124,8 +129,8 @@ const CANDIDATE_JSON_CONTRACT_LINES = [
     '    trope-first plan candidate. Each candidate object has:',
     '    - **`candidateId`** (required string): deterministic short id (for example',
     '      `candidate-1`, `candidate-2`).',
-    '    - **`gimmick`** (required non-empty string): **few words** --- the short spine tag for this candidate',
-    '      (see **Gimmick** above); not a second summary line.',
+    '    - **`gimmick`** (required non-empty string): orienting through-line for this candidate (see **Gimmick** above);',
+    '      **scannable** alongside **`executionSummary`**, not a duplicate of it; not constrained to **`tropeFunction`** style.',
     '    - **`executionSummary`** (required non-empty string): one concise line for',
     '      the candidate\'s provisional execution.',
     '    - **`tropeAssignments`** (required non-empty object, not an array): sparse',
