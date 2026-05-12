@@ -157,6 +157,7 @@ const FIXTURE_01_NARRATIVE_BEATS_HANDOFF: PlanSelectOutputWithWinner = {
     planIssues: [],
     selectedCandidate: {
         candidateId: 'candidate-1',
+        gimmick: 'high speed chase',
         executionSummary: 'Use the straightaway rocket lane as the main trap route.',
         tropeAssignments: {
             Contraption: {
@@ -867,6 +868,7 @@ const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFi
         planIssues: [],
         selectedCandidate: {
             candidateId: 'candidate-1',
+            gimmick: 'deliver damage',
             executionSummary: 'Birdseed lures Road Runner while lever rig prepares the cliffside release.',
             tropeAssignments: {
                 Contraption: {
@@ -900,6 +902,7 @@ const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFi
         planIssues: [],
         selectedCandidate: {
             candidateId: 'candidate-1',
+            gimmick: 'hole trap',
             executionSummary: 'Paint and skates prep a route while birdseed lures into a portable-hole finish.',
             tropeAssignments: {
                 Contraption: {
@@ -950,6 +953,7 @@ const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFi
         planIssues: [],
         selectedCandidate: {
             candidateId: 'candidate-1',
+            gimmick: 'deliver damage',
             executionSummary: 'Magnet control narrows path and steel drum closes the impact beat.',
             tropeAssignments: {
                 Contraption: {
@@ -983,6 +987,7 @@ const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFi
         planIssues: [],
         selectedCandidate: {
             candidateId: 'candidate-1',
+            gimmick: 'unexpected approach',
             executionSummary: 'Catapult launches a boulder at the Road Runner.',
             tropeAssignments: {
                 Contraption: {
@@ -1016,6 +1021,7 @@ const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFi
         planIssues: [],
         selectedCandidate: {
             candidateId: 'candidate-1',
+            gimmick: 'deliver damage',
             executionSummary: 'Birdseed lures, glue constrains, and anvil closes terminally.',
             tropeAssignments: {
                 Bait: {
@@ -1060,6 +1066,7 @@ const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFi
         planIssues: [],
         selectedCandidate: {
             candidateId: 'candidate-1',
+            gimmick: 'booby-trap',
             executionSummary: 'Trampoline sets trajectory while net imposes terminal containment.',
             tropeAssignments: {
                 Contraption: {
@@ -1104,6 +1111,7 @@ const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFi
         planIssues: [],
         selectedCandidate: {
             candidateId: 'candidate-1',
+            gimmick: 'high speed unexpected approach',
             executionSummary:
                 'Multi-prop straightaway rig builds speed and release timing before terminal spring impact.',
             tropeAssignments: {
@@ -1167,6 +1175,7 @@ const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFi
         planIssues: [],
         selectedCandidate: {
             candidateId: 'candidate-1',
+            gimmick: 'complicated chase',
             executionSummary: 'Umbrella, snorkel, and skis form one Rube-Goldberg contraption.',
             tropeAssignments: {
                 Contraption: {
@@ -1201,6 +1210,7 @@ const PLAN_SELECT_OUTPUT_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFi
         planIssues: [],
         selectedCandidate: {
             candidateId: 'candidate-1',
+            gimmick: 'deliver damage',
             executionSummary:
                 'Paint and birdseed lure stop, Coyote on skates starts a chase, then cannon finishes.',
             tropeAssignments: {

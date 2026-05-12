@@ -70,7 +70,7 @@ export type PlanSelectCombinedTropeAssignment = {
 
 export type PlanSelectCombinedCandidate = {
     candidateId: string
-    /** Present on plan-select **input** JSON from combine; optional on model `selectedCandidate` until G2 enforces mirror. */
+    /** Always present on plan-select **input** JSON from combine. Optional on raw model `selectedCandidate`; orchestration sets canonical value from combine on `candidateId` match. */
     gimmick?: string
     executionSummary: string
     tropeAssignments: Partial<Record<CoyoteTrope, PlanSelectCombinedTropeAssignment>>

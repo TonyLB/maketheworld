@@ -164,7 +164,7 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/pipelines/hypo
 | --- | --- | --- |
 | G0 | Lock decisions in **Decisions** (schema, prompts, persistence, harness, failure posture) | **Locked** |
 | G1 | Types + candidate parse/combine + serializers | **Done** |
-| G2 | Plan-select parse + prompt + fixture freeze for incoming plan-select | Not started |
+| G2 | Plan-select parse + prompt + fixture freeze for incoming plan-select | **Done** |
 | G3 | Narrative beat prompt + terminal behavior checks | Not started |
 | G4 | Outcome + optional Dynamo fields + end-to-end harness | Not started |
 | G5 | Durable doc updates; archive this plan | Not started |
@@ -185,11 +185,11 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Extend [`combineCandidateOutput.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/candidates/combineCandidateOutput.ts) and rendering helpers that feed plan-select.
   - [X] Add or update unit tests under `candidates/*.test.ts`.
 
-- [ ] Phase G2 - plan select (input/output, prompts)
+- [X] Phase G2 - plan select (input/output, prompts)
   - [X] Bump or extend plan-select input serialization (`schemaVersion` as locked in G0). (**Done in G1:** input JSON is **`schemaVersion: 4`** with per-candidate **`gimmick`**.)
-  - [ ] Update [`buildPlanSelectPrompt.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/buildPlanSelectPrompt.ts) for gimmick-aware rubric and comparison.
-  - [ ] Update [`parsePlanSelectOutput.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/parsePlanSelectOutput.ts) for `selectedCandidate` gimmick mirror rules.
-  - [ ] Refresh harness inject fixtures in **one** coordinated refreeze (per **Decisions**).
+  - [X] Update [`buildPlanSelectPrompt.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/buildPlanSelectPrompt.ts) for gimmick-aware rubric and comparison.
+  - [X] Update [`parsePlanSelectOutput.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/parsePlanSelectOutput.ts) for optional **`selectedCandidate.gimmick`** (validated when present); canonical **`gimmick`** from combine in **`parsePlanSelectionHandoff`**.
+  - [X] Refresh harness inject fixtures in **one** coordinated refreeze (per **Decisions**).
 
 - [ ] Phase G3 - narrative beats
   - [ ] Update [`buildNarrativeBeatPrompt.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/narrativeBeats/buildNarrativeBeatPrompt.ts) to consume committed gimmick + tropes.
@@ -231,6 +231,6 @@ Command authority: [`lambda/ephemera/AGENT.testing.md`](../../../../../../lambda
 
 ## Notes
 
-- **G1 seam:** Plan-select **input** JSON uses **`schemaVersion: 4`**; **`PlanSelectCombinedCandidate.gimmick`** is optional on the shared handoff type so plan-select **output** parsing can stay loose until **G2** enforces **`selectedCandidate.gimmick`** mirroring. Stage-one parse always yields a non-empty internal **`gimmick`** (model string trimmed/truncated, else derived from **`executionSummary`**).
+- **Plan-select seam:** Plan-select **input** JSON uses **`schemaVersion: 4`**. **`PlanSelectCombinedCandidate.gimmick`** remains optional on the **parsed model** `selectedCandidate` (graceful degradation); **`parsePlanSelectionHandoff`** sets **`gimmick: matched.gimmick`** from combine when the winner **`candidateId`** matches. Stage-one parse always yields a non-empty internal **`gimmick`** (model string trimmed/truncated, else derived from **`executionSummary`**).
 - **Seam room labels** ([`coyoteHypothesisPromptShared.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPromptShared.ts)) remain authoritative for geography strings in JSON; gimmick copy should not introduce a second room vocabulary.
 - **Synthetic `stableKey` affordance rows** ([`generators/pipelines/hypothesis/AGENT.md`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md)) remain valid; trope rows carry mechanistic detail while **`gimmick`** stays a short tag.

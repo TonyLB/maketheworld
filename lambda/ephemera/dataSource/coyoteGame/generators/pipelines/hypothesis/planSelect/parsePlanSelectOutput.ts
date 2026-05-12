@@ -8,6 +8,7 @@ import {
     MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX,
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { CANONICAL_TROPE_ORDER } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
+import { truncateCoyoteGimmickEcho } from '../candidates/parseCandidateOutput'
 import { hypothesisDebugLog } from '../../../../utilities/hypothesisDebug'
 import type {
     PlanSelectCombinedCandidate,
@@ -314,6 +315,13 @@ function validatePlanSelectWinningCandidate(
     if (typeof raw.executionSummary !== 'string') {
         return { ok: false, reason: 'selectedCandidate.executionSummary must be a string' }
     }
+    let gimmick: string | undefined
+    if ('gimmick' in raw && raw.gimmick !== undefined) {
+        if (typeof raw.gimmick !== 'string') {
+            return { ok: false, reason: 'selectedCandidate.gimmick must be a string when present' }
+        }
+        gimmick = truncateCoyoteGimmickEcho(raw.gimmick)
+    }
     const tropeAssignmentsRaw = raw.tropeAssignments
     if (Array.isArray(tropeAssignmentsRaw) || !isPlainObject(tropeAssignmentsRaw)) {
         return {
@@ -390,6 +398,7 @@ function validatePlanSelectWinningCandidate(
         selectedCandidate: {
             candidateId: raw.candidateId,
             executionSummary: raw.executionSummary,
+            ...(gimmick !== undefined ? { gimmick } : {}),
             tropeAssignments: narrowedTropeAssignments,
             outliers: narrowedOutliers,
         },

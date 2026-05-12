@@ -55,6 +55,7 @@ const stageOneSeamBody = JSON.stringify({
 
 const PLAN_SELECT_SELECTED_CANDIDATE = {
     candidateId: 'candidate-1',
+    gimmick: 'deliver damage',
     executionSummary: 'Birdseed lure then terminal drop.',
     tropeAssignments: {
         Bait: {
