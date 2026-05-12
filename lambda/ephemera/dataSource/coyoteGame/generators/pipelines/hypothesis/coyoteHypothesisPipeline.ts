@@ -313,6 +313,12 @@ function buildCoyoteHypothesisSteps(
                 const selected = planSelectOutput.selectedCandidate;
                 if (selected) {
                     const matched = combined.candidates.find((c) => c.candidateId === selected.candidateId);
+                    if (!matched) {
+                        hypothesisDebugLog('planSelectHandoff missing canonical merge', {
+                            candidateId: selected.candidateId,
+                            reason: 'no_combine_row_for_candidateId',
+                        });
+                    }
                     if (matched) {
                         if (
                             selected.gimmick !== undefined
@@ -335,6 +341,12 @@ function buildCoyoteHypothesisSteps(
                     }
                 }
                 draft.planSelectOutput = planSelectOutput;
+                const winner = planSelectOutput.selectedCandidate;
+                if (winner !== undefined && !(winner.gimmick?.trim() ?? '')) {
+                    hypothesisDebugLog('planSelectHandoff missing gimmick on winner', {
+                        candidateId: winner.candidateId,
+                    });
+                }
                 if (!planSelectOutput.selectedCandidate) {
                     hypothesisDebugLog('aborting hypothesis pipeline', {
                         reason: 'planSelectionMissingSelectedCandidate',
@@ -351,6 +363,7 @@ function buildCoyoteHypothesisSteps(
                 if (!roomObjectsByRoom || !handoff?.selectedCandidate) {
                     throw new Error('CoyoteHypothesisPipeline: hypothesisNarrativeBeatLlm preconditions');
                 }
+                // selectedCandidate.gimmick is optional; buildNarrativeBeatPrompt degrades to executionSummary + tropeAssignments.
                 const parts = buildNarrativeBeatPrompt({
                     roomObjectsByRoom,
                     planSelectOutput: handoff as PlanSelectOutputWithWinner,

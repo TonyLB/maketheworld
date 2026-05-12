@@ -1,4 +1,7 @@
-import { buildNarrativeBeatPrompt } from './buildNarrativeBeatPrompt'
+import {
+    buildNarrativeBeatPrompt,
+    NARRATIVE_BEAT_NO_GIMMICK_HANDOFF_LINE,
+} from './buildNarrativeBeatPrompt'
 import { harnessRoomObjects } from '../../../testHarness/coyoteEngineTestFixtures'
 
 describe('buildNarrativeBeatPrompt', () => {
@@ -47,6 +50,69 @@ describe('buildNarrativeBeatPrompt', () => {
         expect(parts.dynamicSuffix).not.toContain('## Combined clustering')
         expect(parts.dynamicSuffix).not.toContain('### Candidate')
         expect(full).toContain('candidateId: candidate-1')
+        expect(full).toContain(NARRATIVE_BEAT_NO_GIMMICK_HANDOFF_LINE)
+        expect(full).toContain('When **## Committed plan** lists a **gimmick** line')
+        expect(full).toContain('Keep beat ordering and prose aligned with the committed spine')
+    })
+
+    it('embeds gimmick line when selectedCandidate includes gimmick', () => {
+        const parts = buildNarrativeBeatPrompt({
+            roomObjectsByRoom: { 'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']) },
+            planSelectOutput: {
+                paragraphSummary: 'Summary line.',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    gimmick: 'high speed chase',
+                    executionSummary: 'Summary.',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'Detail.',
+                            members: [{
+                                stableKey: 'anvil-0',
+                                shortName: 'anvil',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'job',
+                            }],
+                        },
+                    },
+                    outliers: [],
+                },
+            },
+        })
+        const full = parts.invariantPrefix + parts.dynamicSuffix
+        expect(full).toContain('- gimmick: high speed chase')
+        expect(full).not.toContain(NARRATIVE_BEAT_NO_GIMMICK_HANDOFF_LINE)
+    })
+
+    it('uses fallback spine cue when gimmick is whitespace only', () => {
+        const parts = buildNarrativeBeatPrompt({
+            roomObjectsByRoom: { 'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']) },
+            planSelectOutput: {
+                paragraphSummary: 'Summary line.',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    gimmick: '   ',
+                    executionSummary: 'Summary.',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'Detail.',
+                            members: [{
+                                stableKey: 'anvil-0',
+                                shortName: 'anvil',
+                                room: 'CLIFFBASE',
+                                tropeFunction: 'job',
+                            }],
+                        },
+                    },
+                    outliers: [],
+                },
+            },
+        })
+        const full = parts.invariantPrefix + parts.dynamicSuffix
+        expect(full).toContain(NARRATIVE_BEAT_NO_GIMMICK_HANDOFF_LINE)
+        expect(full).not.toMatch(/- gimmick:\s+\S/)
     })
 
     it('does not invent drop-ready wording when staged trope environmentAffordances are present', () => {

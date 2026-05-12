@@ -165,7 +165,7 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/pipelines/hypo
 | G0 | Lock decisions in **Decisions** (schema, prompts, persistence, harness, failure posture) | **Locked** |
 | G1 | Types + candidate parse/combine + serializers | **Done** |
 | G2 | Plan-select parse + prompt + fixture freeze for incoming plan-select | **Done** |
-| G3 | Narrative beat prompt + terminal behavior checks | Not started |
+| G3 | Narrative beat prompt + terminal behavior checks | **Done** |
 | G4 | Outcome + optional Dynamo fields + end-to-end harness | Not started |
 | G5 | Durable doc updates; archive this plan | Not started |
 
@@ -191,10 +191,10 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Update [`parsePlanSelectOutput.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/parsePlanSelectOutput.ts) for optional **`selectedCandidate.gimmick`** (validated when present); canonical **`gimmick`** from combine in **`parsePlanSelectionHandoff`**.
   - [X] Refresh harness inject fixtures in **one** coordinated refreeze (per **Decisions**).
 
-- [ ] Phase G3 - narrative beats
-  - [ ] Update [`buildNarrativeBeatPrompt.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/narrativeBeats/buildNarrativeBeatPrompt.ts) to consume committed gimmick + tropes.
-  - [ ] Confirm [`coyoteHypothesisPipeline.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts) behavior when **`gimmick`** is missing post-parse (graceful degradation per **Decisions**, not necessarily full-run stub).
-  - [ ] Revisit token caps in [`invokeBedrockHypothesis.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/invokeBedrockHypothesis.ts) if gimmick sections materially grow prompts.
+- [X] Phase G3 - narrative beats
+  - [X] Update [`buildNarrativeBeatPrompt.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/narrativeBeats/buildNarrativeBeatPrompt.ts) to consume committed gimmick + tropes.
+  - [X] Confirm [`coyoteHypothesisPipeline.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts) behavior when **`gimmick`** is missing post-parse (graceful degradation per **Decisions**, not necessarily full-run stub).
+  - [X] Revisit token caps in [`invokeBedrockHypothesis.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/invokeBedrockHypothesis.ts) if gimmick sections materially grow prompts.
 
 - [ ] Phase G4 - outcome and persistence
   - [ ] Extend [`internalCache/coyoteGame.ts`](../../../../../../lambda/ephemera/internalCache/coyoteGame.ts) with Dynamo **`gimmick`** on intent row (types, normalize, `putItem` / projection lists per **Decisions**).
@@ -232,5 +232,6 @@ Command authority: [`lambda/ephemera/AGENT.testing.md`](../../../../../../lambda
 ## Notes
 
 - **Plan-select seam:** Plan-select **input** JSON uses **`schemaVersion: 4`**. **`PlanSelectCombinedCandidate.gimmick`** remains optional on the **parsed model** `selectedCandidate` (graceful degradation); **`parsePlanSelectionHandoff`** sets **`gimmick: matched.gimmick`** from combine when the winner **`candidateId`** matches. Stage-one parse always yields a non-empty internal **`gimmick`** (model string trimmed/truncated, else derived from **`executionSummary`**).
+- **Narrative beat (G3):** [`buildNarrativeBeatPrompt.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/narrativeBeats/buildNarrativeBeatPrompt.ts) surfaces **`gimmick`** (or explicit no-gimmick fallback) in **`## Committed plan`**; [`BEDROCK_HYPOTHESIS_NARRATIVE_BEAT_MAX_TOKENS`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/invokeBedrockHypothesis.ts) unchanged after review (input-side copy only). **`parsePlanSelectionHandoff`** logs `planSelectHandoff missing canonical merge` / `planSelectHandoff missing gimmick on winner` when applicable.
 - **Seam room labels** ([`coyoteHypothesisPromptShared.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPromptShared.ts)) remain authoritative for geography strings in JSON; gimmick copy should not introduce a second room vocabulary.
 - **Synthetic `stableKey` affordance rows** ([`generators/pipelines/hypothesis/AGENT.md`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md)) remain valid; trope rows carry mechanistic detail while **`gimmick`** stays a short tag.

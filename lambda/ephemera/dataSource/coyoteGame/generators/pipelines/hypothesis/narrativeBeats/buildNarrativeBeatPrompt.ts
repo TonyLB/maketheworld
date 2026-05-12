@@ -51,6 +51,8 @@ const NARRATIVE_BEAT_INTRO = [
     '- Underspecification codes (`DIRECTION_AMBIGUOUS`, `ROLE_CONFLICT`) bind how you **narrate** the committed maneuver:',
     '  commit to concrete timeline and role choices in the scratchpad JSON and in **## Cartoon play-by-play**.',
     '  Do **not** re-run winner-level rubric comparison; plan selection already chose the reading.',
+    '- When **## Committed plan** lists a **gimmick** line under the selected candidate, treat it as the short causal spine for the committed maneuver; keep the JSON scratchpad, **## Cartoon play-by-play**, and the Hypothesis line consistent with that spine while using **tropeAssignments** (including **tropeFunction** on each member row) for prop-level roles and sequencing detail.',
+    '- When no gimmick tag appears there, spine cues are **executionSummary** and **tropeAssignments** only; still align scratchpad, play-by-play, and Hypothesis with that combined reading.',
     '',
     '## Output order (strict)',
     '1. **First**, output **one** Markdown **` ```json ` ** fenced block whose JSON has',
@@ -79,6 +81,7 @@ const NARRATIVE_BEAT_INTRO = [
     '',
     '## Cartoon play-by-play and Hypothesis output',
     '- Your "## Cartoon play-by-play" section should commit to the single reading above.',
+    '- Keep beat ordering and prose aligned with the committed spine (**gimmick** when present, otherwise **executionSummary** plus **tropeAssignments**).',
     '- Ground it on **## Committed plan**, **## Outliers** within it, seam topology below, and staged snapshot keys.',
     '- Open **` ```text ` ** only after "## Cartoon play-by-play". The fenced interior must contain **only** the Hypothesis line.',
     '- No extra commentary outside the leading **` ```json ` ** scratchpad,',
@@ -88,7 +91,9 @@ const NARRATIVE_BEAT_INTRO = [
 /** How to read **## Committed plan** (single winner; inlined per hypothesis narrative-beats decision 3). */
 const COMMITTED_PLAN_MARKDOWN_CONTRACT_LINES = [
     '## Committed plan Markdown (how to read the grounding block)',
-    '- **## Committed plan** appears in this prompt before the seam room mapping block. It is the only plan-grounding Markdown: **Chosen plan summary**, **Plan issues**, and **Selected candidate (authoritative winner payload)**. There is no **## Combined trope candidates** section, no **### Candidate** blocks, and no additional candidate pool after seam topology.',
+    '- **## Committed plan** appears in this prompt before the seam room mapping block. It is the only plan-grounding Markdown: **Chosen plan summary**, **Plan issues**, and **Selected candidate (authoritative winner payload)** (including optional **gimmick** on that payload). There is no **## Combined trope candidates** section, no **### Candidate** blocks, and no additional candidate pool after seam topology.',
+    '- **gimmick** (when printed under the selected candidate) is a short causal spine tag; **tropeAssignments** remain authoritative for staged **stableKey** rows, **tropeFunction**, and per-trope **executionDetail**.',
+    '- If the committed plan states that no gimmick tag was supplied, use **executionSummary** and **tropeAssignments** as the only spine cues; do not invent a gimmick string.',
     '- Under **tropeAssignments**, each trope lists **executionDetail** and **member** lines (**stableKey**, **shortName**, **room**, **tropeFunction**). Treat each trope block as plan-local structure; do not merge member rows across tropes.',
     '- **executionDetail** is Stage One first-draft beat detail for that trope. Member bullets list staged objects; when **## Committed plan** lists **synthetic** materialized affordance members (**`stableKey`** values beginning with **`affordance:`**), those are not snapshot rows but are authoritative when present.',
     '- **tropeFunction** on each member line describes that object\'s trope-local job; use it as the canonical annotation for in-trope role intent.',
@@ -102,6 +107,10 @@ const CARTOON_PLAY_BY_PLAY_AND_FENCED_HYPOTHESIS_LINES = [
     '  reasoning channel.',
     '- The **final** ```text fence must contain **only** the Hypothesis line so parsers can slice it reliably.',
 ] as const
+
+/** Shown under **Selected candidate** when the handoff omits a usable gimmick (graceful degradation). */
+export const NARRATIVE_BEAT_NO_GIMMICK_HANDOFF_LINE =
+    'No gimmick tag was supplied for this winner; treat **executionSummary** and **tropeAssignments** below as the spine cues for JSON, play-by-play, and the Hypothesis line.'
 
 function formatCommittedPlanBlock(handoff: PlanSelectOutputWithWinner): string {
     const issues =
@@ -129,10 +138,16 @@ function formatCommittedPlanBlock(handoff: PlanSelectOutputWithWinner): string {
             )),
         ].join('\n'))
     }
+    const gimmickTrimmed = selected.gimmick?.trim() ?? ''
+    const gimmickOrFallbackLine =
+        gimmickTrimmed.length > 0
+            ? `- gimmick: ${gimmickTrimmed}`
+            : `- ${NARRATIVE_BEAT_NO_GIMMICK_HANDOFF_LINE}`
     const selectedCandidateLines = [
         '',
         '**Selected candidate (authoritative winner payload):**',
         `- candidateId: ${selected.candidateId}`,
+        gimmickOrFallbackLine,
         `- executionSummary: ${selected.executionSummary}`,
         '- tropeAssignments:',
         ...tropeAssignmentLines,

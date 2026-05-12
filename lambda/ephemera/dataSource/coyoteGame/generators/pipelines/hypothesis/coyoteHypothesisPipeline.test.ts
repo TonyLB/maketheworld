@@ -21,6 +21,7 @@ import {
     runCoyoteHypothesisPipeline,
     validateCoyoteHypothesisHarnessOptions,
 } from './coyoteHypothesisPipeline'
+import { NARRATIVE_BEAT_NO_GIMMICK_HANDOFF_LINE } from './narrativeBeats/buildNarrativeBeatPrompt'
 
 const stageOneMock = invokeBedrockHypothesisStageOne as jest.MockedFunction<
     typeof invokeBedrockHypothesisStageOne
@@ -81,6 +82,14 @@ const PLAN_SELECT_SELECTED_CANDIDATE = {
             ],
         },
     },
+    outliers: [] as const,
+}
+
+/** Winner id not in combine pool; no gimmick --- narrative hop still runs (graceful degradation). */
+const PLAN_SELECT_SELECTED_CANDIDATE_NO_CANONICAL_MERGE = {
+    candidateId: 'candidate-unknown',
+    executionSummary: 'Birdseed lure then terminal drop.',
+    tropeAssignments: PLAN_SELECT_SELECTED_CANDIDATE.tropeAssignments,
     outliers: [] as const,
 }
 
@@ -341,6 +350,38 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         )
         expect(result.kind).toBe('full')
         expect(narrativeBeatMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('continues to narrative beat when winner candidateId has no combine row and gimmick is absent', async () => {
+        planSelectionMock.mockResolvedValue({
+            success: true,
+            body: [
+                '## Intent conflicts',
+                '- candidate-unknown may misread intent.',
+                '',
+                '## Rubric comparison',
+                '- candidate-unknown selected.',
+                '',
+                '## Winner selection',
+                '- Winner: candidate-unknown.',
+                '',
+                '```json',
+                JSON.stringify({
+                    paragraphSummary: 'Stage the anvil.',
+                    planIssues: [{ code: 'DIRECTION_AMBIGUOUS', summary: 'timing is coarse' }],
+                    selectedCandidate: PLAN_SELECT_SELECTED_CANDIDATE_NO_CANONICAL_MERGE,
+                }),
+                '```',
+            ].join('\n'),
+            usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
+        })
+        const result = await runCoyoteHypothesisPipeline({ getGameRooms, getRoomMeta })
+        expect(result.kind).toBe('full')
+        expect(narrativeBeatMock).toHaveBeenCalledTimes(1)
+        const narrativeParts = narrativeBeatMock.mock.calls[0][0]
+        const narrativePrompt = narrativeParts.invariantPrefix + narrativeParts.dynamicSuffix
+        expect(narrativePrompt).toContain(NARRATIVE_BEAT_NO_GIMMICK_HANDOFF_LINE)
+        expect(narrativePrompt).not.toMatch(/- gimmick: deliver damage/)
     })
 
     it('runOnly planSelect uses inject and skips upstream LLMs', async () => {
