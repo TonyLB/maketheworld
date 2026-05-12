@@ -7,6 +7,34 @@ describe('buildPlanOutcomePrompt', () => {
         'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']),
     }
 
+    it('includes Plan gimmick section when gimmick is present', () => {
+        const prompt = buildPlanOutcomePrompt({
+            roomObjectsByRoom: baseRooms,
+            hypothesisLine: 'Hypothesis: It looks like you are trying to test the road.',
+            gimmick: 'high speed chase',
+        })
+        expect(prompt).toContain('## Plan gimmick')
+        expect(prompt).toContain('high speed chase')
+        expect(prompt).toContain('committed **causal spine**')
+    })
+
+    it('omits Plan gimmick section when gimmick is absent', () => {
+        const prompt = buildPlanOutcomePrompt({
+            roomObjectsByRoom: baseRooms,
+            hypothesisLine: 'Hypothesis: Minimal.',
+        })
+        expect(prompt).not.toContain('## Plan gimmick')
+    })
+
+    it('omits Plan gimmick section when gimmick is whitespace only', () => {
+        const prompt = buildPlanOutcomePrompt({
+            roomObjectsByRoom: baseRooms,
+            hypothesisLine: 'Hypothesis: Minimal.',
+            gimmick: '   ',
+        })
+        expect(prompt).not.toContain('## Plan gimmick')
+    })
+
     it('includes safety, backfire, hypothesis section, and staged objects', () => {
         const prompt = buildPlanOutcomePrompt({
             roomObjectsByRoom: baseRooms,

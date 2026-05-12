@@ -57,7 +57,7 @@ the planSelect output contract (including optional structured `selectedCandidate
 3. Flushes lane while remainder invalidates and reloads `internalCache.CoyoteGame.get('outcome')`.
 4. Publishes final world message and stream event payload.
 
-Outcome generation chain:
+Outcome generation chain (reads the same durable **intent** row as hypothesis, including optional **`gimmick`** for prompt context only):
 
 - Entry: [`generators/pipelines/outcome/generatePlanOutcome.ts`](generators/pipelines/outcome/generatePlanOutcome.ts)
 - Prompt builder: [`generators/pipelines/outcome/buildPlanOutcomePrompt.ts`](generators/pipelines/outcome/buildPlanOutcomePrompt.ts)

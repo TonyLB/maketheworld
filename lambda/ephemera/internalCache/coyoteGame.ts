@@ -4,12 +4,15 @@ import type { CoyoteNarrativeBeatsStructured } from '@tonylb/mtw-interfaces/ts/c
 import { CacheBase } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
+import { truncateCoyoteGimmickEcho } from '../dataSource/coyoteGame/generators/pipelines/hypothesis/candidates/parseCandidateOutput'
+
 export type CacheCoyoteGameKeys = 'gameRooms' | 'intent' | 'outcome'
 
 /**
  * Durable Coyote hypothesis row: the **`Hypothesis:`** line plus optional hop-2 **walkthrough** (internal cartoon prose under **`## Cartoon play-by-play`**) and **narrativeBeatsStructured** (when hop-2 JSON validated).
  * Dynamo-backed reads rewrite a legacy first-line **`## Scene analysis`** heading to **`## Cartoon play-by-play`**.
  * **Plan outcome** ([`generatePlanOutcome`](../dataSource/coyoteGame/generators/pipelines/outcome/generatePlanOutcome.ts)) and the Await RoadRunner path use the same cached **`get('intent')`** value (no extra Dynamo read for outcome). If **narrativeBeatsStructured** is absent (validation failed, or legacy data), outcome generation still uses **intent** and optional **walkthrough**; see [`coyoteGame/AGENT.md`](../dataSource/coyoteGame/AGENT.md) (plan outcome).
+ * Optional **`gimmick`**: internal-only short spine tag from the plan-select winner (not client-facing).
  */
 export type CoyoteGameIntentRecord = {
     intent: string
@@ -21,6 +24,8 @@ export type CoyoteGameIntentRecord = {
     walkthrough?: string
     /** Machine-checkable narrative beats when hop-2 JSON validates. */
     narrativeBeatsStructured?: CoyoteNarrativeBeatsStructured
+    /** Short spine tag from plan-select winner; absent on legacy rows. */
+    gimmick?: string
 }
 
 /** Dynamo row shape; **`sceneAnalysis`** may exist on legacy reads only (mapped into **`walkthrough`**). */
@@ -30,6 +35,7 @@ type CoyoteGameDurableIntentRow = {
     walkthrough?: string
     phasePlan?: unknown
     narrativeBeatsStructured?: CoyoteNarrativeBeatsStructured
+    gimmick?: string
 }
 
 type CoyoteGameCacheState = {
@@ -56,6 +62,14 @@ const COYOTE_GAME_OUTCOME_KEY = {
 
 const LEGACY_SCENE_ANALYSIS_HEADING_LINE = /^\s*##\s+Scene analysis\s*$/i
 const CANONICAL_WALKTHROUGH_HEADING_LINE = '## Cartoon play-by-play'
+
+function normalizeGimmickFromStorage(raw: unknown): string | undefined {
+    if (typeof raw !== 'string') {
+        return undefined
+    }
+    const normalized = truncateCoyoteGimmickEcho(raw)
+    return normalized.length > 0 ? normalized : undefined
+}
 
 /** Rewrites legacy first-line `## Scene analysis` to `## Cartoon play-by-play` when loading from Dynamo. */
 function normalizeWalkthroughHeadingFromStorage(walkthrough: string | undefined): string | undefined {
@@ -87,10 +101,12 @@ function normalizeDurableIntentRow(fetched: CoyoteGameDurableIntentRow | undefin
     walkthrough = normalizeWalkthroughHeadingFromStorage(walkthrough)
     const narrativeBeatsStructured = fetched.narrativeBeatsStructured
         ?? (fetched.phasePlan as CoyoteNarrativeBeatsStructured | undefined)
+    const gimmick = normalizeGimmickFromStorage(fetched.gimmick)
     return {
         intent,
         ...(walkthrough !== undefined ? { walkthrough } : {}),
         ...(narrativeBeatsStructured !== undefined ? { narrativeBeatsStructured } : {}),
+        ...(gimmick !== undefined ? { gimmick } : {}),
     }
 }
 
@@ -157,7 +173,14 @@ export class CacheCoyoteGameData extends CacheBase {
     private async loadIntent(): Promise<CoyoteGameIntentRecord> {
         const fetched = await ephemeraDB.getItem<CoyoteGameDurableIntentRow>({
             Key: COYOTE_GAME_INTENT_KEY,
-            ProjectionFields: ['intent', 'walkthrough', 'narrativeBeatsStructured', 'phasePlan', 'sceneAnalysis'],
+            ProjectionFields: [
+                'intent',
+                'walkthrough',
+                'narrativeBeatsStructured',
+                'phasePlan',
+                'sceneAnalysis',
+                'gimmick',
+            ],
         })
         const fromDynamo = normalizeDurableIntentRow(fetched ?? undefined)
         if (fromDynamo) {
@@ -165,16 +188,26 @@ export class CacheCoyoteGameData extends CacheBase {
             return fromDynamo
         }
         const generated = await this.deps.generateIntent()
-        await ephemeraDB.putItem({
-            ...COYOTE_GAME_INTENT_KEY,
+        const gimmickToStore = normalizeGimmickFromStorage(generated.gimmick)
+        const intentRecord: CoyoteGameIntentRecord = {
             intent: generated.intent,
             ...(generated.walkthrough !== undefined ? { walkthrough: generated.walkthrough } : {}),
             ...(generated.narrativeBeatsStructured !== undefined
                 ? { narrativeBeatsStructured: generated.narrativeBeatsStructured }
                 : {}),
+            ...(gimmickToStore !== undefined ? { gimmick: gimmickToStore } : {}),
+        }
+        await ephemeraDB.putItem({
+            ...COYOTE_GAME_INTENT_KEY,
+            intent: intentRecord.intent,
+            ...(intentRecord.walkthrough !== undefined ? { walkthrough: intentRecord.walkthrough } : {}),
+            ...(intentRecord.narrativeBeatsStructured !== undefined
+                ? { narrativeBeatsStructured: intentRecord.narrativeBeatsStructured }
+                : {}),
+            ...(gimmickToStore !== undefined ? { gimmick: gimmickToStore } : {}),
         })
-        this.state.intent = generated
-        return generated
+        this.state.intent = intentRecord
+        return intentRecord
     }
 
     private async loadOutcome(): Promise<RenderTree> {

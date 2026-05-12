@@ -66,6 +66,21 @@ describe('generatePlanOutcome', () => {
         expect(invokeBedrockHypothesisMock.mock.calls[0][1]).toEqual({ maxTokens: 384 })
     })
 
+    it('passes gimmick into Bedrock prompt when intent record includes it', async () => {
+        getIntentRecord.mockResolvedValueOnce({
+            intent: 'Hypothesis: It looks like you are trying to drop the anvil.',
+            gimmick: 'trap funnel',
+        })
+        await generatePlanOutcome({ getGameRooms, getRoomMeta, getIntentRecord })
+        const promptArg = invokeBedrockHypothesisMock.mock.calls[0][0] as {
+            invariantPrefix: string
+            dynamicSuffix: string
+        }
+        const fullPrompt = promptArg.invariantPrefix + promptArg.dynamicSuffix
+        expect(fullPrompt).toContain('## Plan gimmick')
+        expect(fullPrompt).toContain('trap funnel')
+    })
+
     it('uses both overrides without consulting room meta or getIntentRecord deps', async () => {
         await generatePlanOutcome({
             getGameRooms,

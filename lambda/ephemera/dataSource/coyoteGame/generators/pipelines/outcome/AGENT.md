@@ -11,7 +11,7 @@ Parent docs:
 The outcome pipeline is triggered by `Await RoadRunner` handling and produces a single player-facing `Outcome:` line (or stub fallback). It consumes:
 
 - Staged room objects (snapshot utilities in [`../../../utilities/`](../../../utilities/)).
-- Cached intent record from `internalCache.CoyoteGame.get('intent')` (hypothesis line, optional walkthrough, optional phase plan).
+- Cached intent record from `internalCache.CoyoteGame.get('intent')` (hypothesis line, optional walkthrough, optional narrative beats structured, optional internal **`gimmick`** spine tag for the Bedrock prompt).
 
 ## Key files
 

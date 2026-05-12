@@ -34,7 +34,7 @@ import {
     parseNarrativeBeatOutput,
     type ParseHypothesisModelOutputOptions,
 } from '../../sharedParsers/parseHypothesisModelOutput';
-import { parseCandidateOutput } from './candidates/parseCandidateOutput';
+import { parseCandidateOutput, truncateCoyoteGimmickEcho } from './candidates/parseCandidateOutput';
 import { hypothesisDebugLog } from '../../../utilities/hypothesisDebug';
 
 /**
@@ -394,7 +394,15 @@ function buildCoyoteHypothesisSteps(
                     narrativeBeatsCtx,
                     parseOptions
                 );
-                draft.record = parsed.record;
+                const winnerGimmickRaw = draft.planSelectOutput?.selectedCandidate?.gimmick;
+                const winnerGimmick =
+                    typeof winnerGimmickRaw === 'string' && winnerGimmickRaw.trim().length > 0
+                        ? truncateCoyoteGimmickEcho(winnerGimmickRaw)
+                        : undefined;
+                draft.record =
+                    winnerGimmick !== undefined && winnerGimmick.length > 0
+                        ? { ...parsed.record, gimmick: winnerGimmick }
+                        : parsed.record;
                 draft.narrativeBeatsStructuredJson = parsed.narrativeBeatsStructuredJson;
                 draft.narrativeBeatsStructuredValidationReason = parsed.narrativeBeatsStructuredValidationReason;
                 if (
@@ -407,6 +415,7 @@ function buildCoyoteHypothesisSteps(
                     intent: parsed.record.intent,
                     hasWalkthrough: parsed.record.walkthrough !== undefined,
                     hasNarrativeBeatsStructured: parsed.record.narrativeBeatsStructured !== undefined,
+                    hasGimmick: draft.record.gimmick !== undefined,
                     narrativeBeatsStructuredValidationReason: parsed.narrativeBeatsStructuredValidationReason,
                     narrativeBeatsStructuredJsonPresent: parsed.narrativeBeatsStructuredJson !== undefined,
                 });

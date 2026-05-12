@@ -166,7 +166,7 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/pipelines/hypo
 | G1 | Types + candidate parse/combine + serializers | **Done** |
 | G2 | Plan-select parse + prompt + fixture freeze for incoming plan-select | **Done** |
 | G3 | Narrative beat prompt + terminal behavior checks | **Done** |
-| G4 | Outcome + optional Dynamo fields + end-to-end harness | Not started |
+| G4 | Outcome + optional Dynamo fields + end-to-end harness | **Done** |
 | G5 | Durable doc updates; archive this plan | Not started |
 
 ## Recommended order
@@ -196,10 +196,10 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Confirm [`coyoteHypothesisPipeline.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts) behavior when **`gimmick`** is missing post-parse (graceful degradation per **Decisions**, not necessarily full-run stub).
   - [X] Revisit token caps in [`invokeBedrockHypothesis.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/invokeBedrockHypothesis.ts) if gimmick sections materially grow prompts.
 
-- [ ] Phase G4 - outcome and persistence
-  - [ ] Extend [`internalCache/coyoteGame.ts`](../../../../../../lambda/ephemera/internalCache/coyoteGame.ts) with Dynamo **`gimmick`** on intent row (types, normalize, `putItem` / projection lists per **Decisions**).
-  - [ ] Update [`buildPlanOutcomePrompt.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/outcome/buildPlanOutcomePrompt.ts) / [`formatPhasePlanForOutcomePrompt.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/outcome/formatPhasePlanForOutcomePrompt.ts) as needed.
-  - [ ] Run targeted outcome tests and full `dataSource/coyoteGame/` suite per **Verification**.
+- [X] Phase G4 - outcome and persistence
+  - [X] Extend [`internalCache/coyoteGame.ts`](../../../../../../lambda/ephemera/internalCache/coyoteGame.ts) with Dynamo **`gimmick`** on intent row (types, normalize, `putItem` / projection lists per **Decisions**).
+  - [X] Update [`buildPlanOutcomePrompt.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/outcome/buildPlanOutcomePrompt.ts) / [`formatPhasePlanForOutcomePrompt.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/outcome/formatPhasePlanForOutcomePrompt.ts) as needed.
+  - [X] Run targeted outcome tests and full `dataSource/coyoteGame/` suite per **Verification**.
 
 - [ ] Phase G5 - documentation and cleanup
   - [ ] Update [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) and [`generators/pipelines/hypothesis/AGENT.md`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md) with gimmick contracts (minimal delta, link here until done).
@@ -234,4 +234,5 @@ Command authority: [`lambda/ephemera/AGENT.testing.md`](../../../../../../lambda
 - **Plan-select seam:** Plan-select **input** JSON uses **`schemaVersion: 4`**. **`PlanSelectCombinedCandidate.gimmick`** remains optional on the **parsed model** `selectedCandidate` (graceful degradation); **`parsePlanSelectionHandoff`** sets **`gimmick: matched.gimmick`** from combine when the winner **`candidateId`** matches. Stage-one parse always yields a non-empty internal **`gimmick`** (model string trimmed/truncated, else derived from **`executionSummary`**).
 - **Narrative beat (G3):** [`buildNarrativeBeatPrompt.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/narrativeBeats/buildNarrativeBeatPrompt.ts) surfaces **`gimmick`** (or explicit no-gimmick fallback) in **`## Committed plan`**; [`BEDROCK_HYPOTHESIS_NARRATIVE_BEAT_MAX_TOKENS`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/invokeBedrockHypothesis.ts) unchanged after review (input-side copy only). **`parsePlanSelectionHandoff`** logs `planSelectHandoff missing canonical merge` / `planSelectHandoff missing gimmick on winner` when applicable.
 - **Seam room labels** ([`coyoteHypothesisPromptShared.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPromptShared.ts)) remain authoritative for geography strings in JSON; gimmick copy should not introduce a second room vocabulary.
+- **Outcome (G4):** After narrative beat parse, [`coyoteHypothesisPipeline.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts) merges canonical **`gimmick`** from **`planSelectOutput.selectedCandidate`** into **`CoyoteGameIntentRecord`**; [`internalCache/coyoteGame.ts`](../../../../../../lambda/ephemera/internalCache/coyoteGame.ts) reads/writes **`gimmick`** on the **`CoyoteGame#Intent`** Dynamo row (normalized with the same cap as plan-select echo). [`buildPlanOutcomePrompt.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/outcome/buildPlanOutcomePrompt.ts) adds **`## Plan gimmick`** when present; omitted on legacy rows or missing handoff (graceful degradation).
 - **Synthetic `stableKey` affordance rows** ([`generators/pipelines/hypothesis/AGENT.md`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md)) remain valid; trope rows carry mechanistic detail while **`gimmick`** stays a short tag.
