@@ -1,5 +1,6 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { CoyoteTropeAffinity, CoyoteTropeAptness } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
 import { seamRoomLabelFromEphemeraRoomId } from '../coyoteHypothesisPromptShared'
@@ -27,21 +28,55 @@ function objectRowForSnapshot(o: EphemeraMetaRoomObject, roomLabel: string): Rec
     }
 }
 
-function isUnassignedForDecisionFocus(o: EphemeraMetaRoomObject): boolean {
-    if (o.tropeAffinitiesFailed === true) {
-        return true
-    }
-    if (!o.tropeAffinities || o.tropeAffinities.length === 0) {
-        return true
-    }
-    return false
-}
-
-function isAmbiguousForDecisionFocus(o: EphemeraMetaRoomObject): boolean {
+function isAffinityEligibleForDecisionFocus(o: EphemeraMetaRoomObject): boolean {
     if (o.tropeAffinitiesFailed === true) {
         return false
     }
-    return Boolean(o.tropeAffinities && o.tropeAffinities.length >= 2)
+    return Boolean(o.tropeAffinities && o.tropeAffinities.length > 0)
+}
+
+function isNonPoorAptness(a: CoyoteTropeAptness): boolean {
+    return a === 'High' || a === 'Good'
+}
+
+function rowHasNonEmptyAffordanceArrays(row: CoyoteTropeAffinity): boolean {
+    return (row.environmentAffordances?.length ?? 0) > 0 || (row.affordancesProvided?.length ?? 0) > 0
+}
+
+/** Affordances on Poor rows are ignored for anchor/expander bucketing. */
+function rowHasNonPoorAffordances(row: CoyoteTropeAffinity): boolean {
+    return row.aptness !== 'Poor' && rowHasNonEmptyAffordanceArrays(row)
+}
+
+function isExpanderForDecisionFocus(o: EphemeraMetaRoomObject): boolean {
+    if (!isAffinityEligibleForDecisionFocus(o)) {
+        return false
+    }
+    const rows = o.tropeAffinities!
+    const nonPoorCount = rows.filter((r) => isNonPoorAptness(r.aptness)).length
+    if (nonPoorCount >= 2) {
+        return true
+    }
+    return rows.some((r) => rowHasNonPoorAffordances(r))
+}
+
+function isAnchorForDecisionFocus(o: EphemeraMetaRoomObject): boolean {
+    if (!isAffinityEligibleForDecisionFocus(o)) {
+        return false
+    }
+    if (isExpanderForDecisionFocus(o)) {
+        return false
+    }
+    const rows = o.tropeAffinities!
+    const nonPoorRows = rows.filter((r) => isNonPoorAptness(r.aptness))
+    if (nonPoorRows.length !== 1) {
+        return false
+    }
+    const pole = nonPoorRows[0]
+    if (pole.aptness !== 'High') {
+        return false
+    }
+    return !rowHasNonEmptyAffordanceArrays(pole)
 }
 
 /**
@@ -61,24 +96,24 @@ export function serializeStagedObjectsAffinityForwardJson(roomObjectsByRoom: Coy
         objectRowForSnapshot(o, seamRoomLabelFromEphemeraRoomId(roomId))
     )
 
-    const ambiguousStableKeys: string[] = []
-    const unassignedStableKeys: string[] = []
+    const anchorStableKeys: string[] = []
+    const expanderStableKeys: string[] = []
     for (const { o } of flat) {
         const sk = o.stableKey.trim()
-        if (isAmbiguousForDecisionFocus(o)) {
-            ambiguousStableKeys.push(sk)
+        if (isAnchorForDecisionFocus(o)) {
+            anchorStableKeys.push(sk)
         }
-        if (isUnassignedForDecisionFocus(o)) {
-            unassignedStableKeys.push(sk)
+        if (isExpanderForDecisionFocus(o)) {
+            expanderStableKeys.push(sk)
         }
     }
-    ambiguousStableKeys.sort((a, b) => a.localeCompare(b))
-    unassignedStableKeys.sort((a, b) => a.localeCompare(b))
+    anchorStableKeys.sort((a, b) => a.localeCompare(b))
+    expanderStableKeys.sort((a, b) => a.localeCompare(b))
 
     const payload = {
         decisionFocus: {
-            ambiguousStableKeys,
-            unassignedStableKeys,
+            anchorStableKeys,
+            expanderStableKeys,
         },
         objects,
     }

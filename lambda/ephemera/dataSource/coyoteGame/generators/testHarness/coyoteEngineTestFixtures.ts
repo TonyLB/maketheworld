@@ -727,7 +727,13 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
                 tropeAssignments: {
                     Contraption: {
                         executionDetail: 'Catapult is pre-aimed at CLIFFBASE for launch timing.',
-                        members: [{ stableKey: 'catapult-0', tropeFunction: 'launch rig' }],
+                        members: [
+                            {
+                                stableKey: 'catapult-0',
+                                tropeFunction: 'launch rig',
+                                environmentAffordances: [{ object: 'boulder', roles: ['Finishing Move'] }],
+                            },
+                        ],
                     },
                 },
             },
@@ -787,8 +793,16 @@ const STAGE_ONE_GOLDEN_BY_FIXTURE_ID: Partial<Record<CoyoteEngineTestFixture['id
                         members: [
                             { stableKey: 'rocket-0', tropeFunction: 'thrust source' },
                             { stableKey: 'skis-1', tropeFunction: 'speed rail' },
-                            { stableKey: 'catapult-2', tropeFunction: 'launch arm' },
-                            { stableKey: 'springs-3', tropeFunction: 'launch' }
+                            {
+                                stableKey: 'catapult-2',
+                                tropeFunction: 'launch arm',
+                                environmentAffordances: [{ object: 'boulder', roles: ['Finishing Move'] }],
+                            },
+                            {
+                                stableKey: 'springs-3',
+                                tropeFunction: 'launch',
+                                environmentAffordances: [{ object: 'boulder', roles: ['Finishing Move'] }],
+                            },
                         ],
                     },
                     Disadvantage: {

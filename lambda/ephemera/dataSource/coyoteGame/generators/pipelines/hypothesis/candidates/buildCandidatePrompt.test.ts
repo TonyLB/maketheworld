@@ -31,6 +31,8 @@ describe('buildCandidatePrompt', () => {
         expect(parts.dynamicSuffix).toContain('Use this JSON as authoritative staged-object input')
         expect(parts.dynamicSuffix).toContain('```json')
         expect(parts.dynamicSuffix).toContain('"decisionFocus"')
+        expect(parts.dynamicSuffix).toContain('"anchorStableKeys"')
+        expect(parts.dynamicSuffix).toContain('"expanderStableKeys"')
         expect(parts.dynamicSuffix).toContain('"objects"')
         expect(parts.dynamicSuffix).not.toContain('"roomId"')
         expect(parts.dynamicSuffix).toContain('"room": "STRAIGHTAWAY"')
