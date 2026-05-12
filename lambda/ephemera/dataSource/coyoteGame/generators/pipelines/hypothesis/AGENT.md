@@ -107,7 +107,8 @@ keyed by trope; rendering helpers (`renderCombinedCandidateOutputForNarrativeBea
 Markdown renders stay stable. Plan-select input JSON is **`schemaVersion: 4`** with per-candidate **`gimmick`**
 and `tropeAssignments` as a non-array object keyed by trope.
 
-**Boundary vs plan-select.** Plan-selection handoff JSON uses the **same** record shape:
+**Boundary vs plan-select.** Plan-selection handoff JSON uses the **same** record shape as plan-select input candidates:
+`selectedCandidate` includes optional **`gimmick`** (echo for reasoning alignment). Parser validates **`gimmick`** when present (trim + length cap; [`candidates/parseCandidateOutput.ts`](candidates/parseCandidateOutput.ts) **`truncateCoyoteGimmickEcho`**); omission does not fail parse. Canonical **`gimmick`** for downstream hops is set in **`parsePlanSelectionHandoff`** ([`coyoteHypothesisPipeline.ts`](coyoteHypothesisPipeline.ts)) from the combine row matching **`selectedCandidate.candidateId`** (mirror from staged combine, not model output alone).
 `selectedCandidate.tropeAssignments` is a non-array object keyed by trope. Array-shaped
 `tropeAssignments` is rejected by [`planSelect/parsePlanSelectOutput.ts`](planSelect/parsePlanSelectOutput.ts)
 (hard cutover, matching the candidate-output parser).
@@ -160,7 +161,7 @@ Parser safety posture:
 
 ### `selectedCandidate` (structured winner)
 
-- Hop-1 JSON may include optional `selectedCandidate` at parse time: the structured winning candidate, shaped like plan-select input candidates (mirror input shape in v1; sequencing hints are omitted in v1).
+- Hop-1 JSON may include optional `selectedCandidate` at parse time: the structured winning candidate, shaped like plan-select input candidates (mirror input shape in v1; sequencing hints are omitted in v1). Optional **`gimmick`** on the model payload is validated when present; orchestration overwrites with combine **`gimmick`** when **`candidateId`** matches (**`parsePlanSelectionHandoff`**).
 - `selectedCandidate.tropeAssignments` is a **non-array object keyed by trope** (`Contraption`, `Bait`, `Misdirection`, `Disadvantage`, `Finishing Move`); each value carries `executionDetail` and `members`. Array-shaped `tropeAssignments` is rejected at parse time.
 - **Pipeline:** [`hypothesis/coyoteHypothesisPipeline.ts`](coyoteHypothesisPipeline.ts) **requires** `selectedCandidate` after plan-select parse before invoking the narrative beat hop. If the parsed handoff lacks it, the run **aborts** to stub (same family as other hypothesis aborts); legacy-only JSON without `selectedCandidate` does **not** reach [`narrativeBeats/buildNarrativeBeatPrompt.ts`](narrativeBeats/buildNarrativeBeatPrompt.ts).
 

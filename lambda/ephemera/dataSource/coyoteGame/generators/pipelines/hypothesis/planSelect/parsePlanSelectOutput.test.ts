@@ -100,6 +100,7 @@ describe('parsePlanSelectOutput', () => {
             materializedCandidates: [
                 {
                     candidateId: 'candidate-1',
+                    gimmick: 'test gimmick',
                     executionSummary: 'Materialized summary.',
                     tropeAssignments: { Contraption: { executionDetail: 'd', members: [] } },
                     outliers: [],
@@ -144,6 +145,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [],
                 selectedCandidate: {
                     candidateId: 'candidate-2',
+                    gimmick: 'misdirection funnel',
                     executionSummary: 'Build a fake tunnel and redirect into it.',
                     tropeAssignments: {
                         Contraption: {
@@ -172,6 +174,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [],
                 selectedCandidate: {
                     candidateId: 'candidate-2',
+                    gimmick: 'misdirection funnel',
                     executionSummary: 'Build a fake tunnel and redirect into it.',
                     tropeAssignments: {
                         Contraption: {
@@ -258,6 +261,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [{ code: 'ROLE_CONFLICT', summary: 'clarify payload order' }],
                 selectedCandidate: {
                     candidateId: 'candidate-1',
+                    gimmick: 'test gimmick',
                     executionSummary: 'Keep one staged lane and resolve order.',
                     tropeAssignments: {
                         Contraption: {
@@ -282,6 +286,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [{ code: 'ROLE_CONFLICT', summary: 'clarify payload order' }],
                 selectedCandidate: {
                     candidateId: 'candidate-1',
+                    gimmick: 'test gimmick',
                     executionSummary: 'Keep one staged lane and resolve order.',
                     tropeAssignments: {
                         Contraption: {
@@ -384,6 +389,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [],
                 selectedCandidate: {
                     candidateId: 'candidate-1',
+                    gimmick: 'test gimmick',
                     executionSummary: 'Summary',
                     tropeAssignments: {
                         Contraption: {
@@ -409,6 +415,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [],
                 selectedCandidate: {
                     candidateId: 'candidate-1',
+                    gimmick: 'test gimmick',
                     executionSummary: 'Summary',
                     tropeAssignments: {
                         Contraption: {
@@ -437,6 +444,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [],
                 selectedCandidate: {
                     candidateId: 'candidate-1',
+                    gimmick: 'test gimmick',
                     executionSummary: 'Summary',
                     tropeAssignments: {
                         Contraption: {
@@ -466,6 +474,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [],
                 selectedCandidate: {
                     candidateId: 'candidate-1',
+                    gimmick: 'test gimmick',
                     executionSummary: 'Summary',
                     tropeAssignments: {
                         Contraption: {
@@ -498,6 +507,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [],
                 selectedCandidate: {
                     candidateId: 'candidate-1',
+                    gimmick: 'test gimmick',
                     executionSummary: 'Summary',
                     tropeAssignments: {
                         Contraption: {
@@ -528,6 +538,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [],
                 selectedCandidate: {
                     candidateId: 'candidate-1',
+                    gimmick: 'test gimmick',
                     executionSummary: 'Summary',
                     tropeAssignments: {
                         Contraption: {
@@ -560,6 +571,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [],
                 selectedCandidate: {
                     candidateId: 'candidate-1',
+                    gimmick: 'test gimmick',
                     executionSummary: 'Summary',
                     tropeAssignments: {
                         Contraption: {
@@ -592,6 +604,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [],
                 selectedCandidate: {
                     candidateId: 'candidate-1',
+                    gimmick: 'test gimmick',
                     executionSummary: 'Summary',
                     tropeAssignments: {
                         Contraption: {
@@ -624,6 +637,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [],
                 selectedCandidate: {
                     candidateId: 'candidate-1',
+                    gimmick: 'test gimmick',
                     executionSummary: 'Summary',
                     tropeAssignments: {
                         Contraption: {
@@ -656,6 +670,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [],
                 selectedCandidate: {
                     candidateId: 'candidate-1',
+                    gimmick: 'test gimmick',
                     executionSummary: 'Summary',
                     tropeAssignments: {
                         'Finishing Move': {
@@ -689,6 +704,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [],
                 selectedCandidate: {
                     candidateId: 'candidate-1',
+                    gimmick: 'test gimmick',
                     executionSummary: 'Summary',
                     tropeAssignments: {
                         'Finishing Move': {
@@ -724,6 +740,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [],
                 selectedCandidate: {
                     candidateId: 'candidate-1',
+                    gimmick: 'test gimmick',
                     executionSummary: 'Summary',
                     tropeAssignments: {
                         'Finishing Move': {
@@ -756,6 +773,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [],
                 selectedCandidate: {
                     candidateId: 'candidate-1',
+                    gimmick: 'test gimmick',
                     executionSummary: 'Summary',
                     tropeAssignments: {
                         'Finishing Move': {
@@ -788,6 +806,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [],
                 selectedCandidate: {
                     candidateId: 'candidate-1',
+                    gimmick: 'test gimmick',
                     executionSummary: 'Summary',
                     tropeAssignments: {
                         Contraption: {
@@ -820,6 +839,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [],
                 selectedCandidate: {
                     candidateId: 'candidate-1',
+                    gimmick: 'test gimmick',
                     executionSummary: 'Summary',
                     tropeAssignments: [{
                         trope: 'Contraption',
@@ -850,6 +870,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [],
                 selectedCandidate: {
                     candidateId: 'candidate-1',
+                    gimmick: 'test gimmick',
                     executionSummary: 'Summary',
                     tropeAssignments: {
                         NotARealTrope: {
@@ -876,6 +897,7 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [],
                 selectedCandidate: {
                     candidateId: 'candidate-1',
+                    gimmick: 'test gimmick',
                     executionSummary: 'Summary',
                     tropeAssignments: {},
                     outliers: [{ stableKey: 'anvil' }],
@@ -1001,5 +1023,57 @@ describe('parsePlanSelectOutput', () => {
                 planIssues: [],
             },
         })
+    })
+
+    it('parses selectedCandidate when gimmick key is omitted', () => {
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
+                    tropeAssignments: {},
+                    outliers: [],
+                },
+            }) +
+            '\n```'
+        const r = parsePlanSelectOutput(raw)
+        expect(r).toEqual({
+            ok: true,
+            handoff: {
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    executionSummary: 'Summary',
+                    tropeAssignments: {},
+                    outliers: [],
+                },
+            },
+        })
+    })
+
+    it('returns error when gimmick is present but not a string', () => {
+        const raw =
+            `${requiredSections.join('\n')}\n\n\`\`\`json\n` +
+            JSON.stringify({
+                paragraphSummary: 'x',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    gimmick: 99,
+                    executionSummary: 'Summary',
+                    tropeAssignments: {},
+                    outliers: [],
+                },
+            }) +
+            '\n```'
+        const r = parsePlanSelectOutput(raw)
+        expect(r.ok).toBe(false)
+        if (!r.ok) {
+            expect(r.reason).toContain('selectedCandidate.gimmick must be a string when present')
+        }
     })
 })

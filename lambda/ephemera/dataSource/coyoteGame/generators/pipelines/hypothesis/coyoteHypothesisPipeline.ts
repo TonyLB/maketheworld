@@ -314,10 +314,21 @@ function buildCoyoteHypothesisSteps(
                 if (selected) {
                     const matched = combined.candidates.find((c) => c.candidateId === selected.candidateId);
                     if (matched) {
+                        if (
+                            selected.gimmick !== undefined
+                            && selected.gimmick !== matched.gimmick
+                        ) {
+                            hypothesisDebugLog('planSelect selectedCandidate gimmick normalized from combine', {
+                                candidateId: selected.candidateId,
+                                modelGimmick: selected.gimmick,
+                                canonicalGimmick: matched.gimmick,
+                            });
+                        }
                         planSelectOutput = {
                             ...planSelectOutput,
                             selectedCandidate: {
                                 ...selected,
+                                gimmick: matched.gimmick,
                                 outliers: planSelectOutliersForCandidate(matched, roomObjectsByRoom),
                             },
                         };

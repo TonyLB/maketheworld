@@ -44,6 +44,18 @@ export type ParsedCandidate = {
 /** Safety cap for stage-one `gimmick` strings (truncate longer model output). */
 export const COYOTE_STAGE_ONE_GIMMICK_MAX_CHARS = 160
 
+/**
+ * Truncate-only normalization for echoed gimmick strings (e.g. plan-select `selectedCandidate.gimmick`).
+ * Does not invent fallbacks; use only when the model supplied a string.
+ */
+export function truncateCoyoteGimmickEcho(raw: string): string {
+    const trimmed = raw.trim()
+    if (trimmed.length <= COYOTE_STAGE_ONE_GIMMICK_MAX_CHARS) {
+        return trimmed
+    }
+    return trimmed.slice(0, COYOTE_STAGE_ONE_GIMMICK_MAX_CHARS).trim()
+}
+
 export type ParseCandidateOutputSuccess = {
     ok: true
     /** Canonical JSON string after validation (debug / tests). */
