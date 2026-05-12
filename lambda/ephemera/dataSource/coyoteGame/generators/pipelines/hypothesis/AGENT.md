@@ -47,7 +47,7 @@ This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock
 
 - [`generateHypothesis.ts`](generateHypothesis.ts): entrypoint used by production and harness code.
 - [`coyoteHypothesisPipeline.ts`](coyoteHypothesisPipeline.ts): ordered orchestration over the linear runner.
-- [`invokeBedrockHypothesis.ts`](invokeBedrockHypothesis.ts): stage-specific Bedrock invoke wrappers and token limits.
+- [`invokeBedrockHypothesis.ts`](invokeBedrockHypothesis.ts): stage-specific Bedrock invoke wrappers and token limits (candidates hop defaults to **Nova Micro**; later hops use **Nova 2 Lite** unless overridden).
 - [`candidates/buildCandidatePrompt.ts`](candidates/buildCandidatePrompt.ts): stage-one prompt parts.
 - [`candidates/parseCandidateOutput.ts`](candidates/parseCandidateOutput.ts): stage-one seam parsing and validation.
 - [`candidates/combineCandidateOutput.ts`](candidates/combineCandidateOutput.ts): combine and render candidate output for later hops.
