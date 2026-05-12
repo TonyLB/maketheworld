@@ -21,6 +21,7 @@ const stageOneSeamBody = JSON.stringify({
     candidates: [
         {
             candidateId: 'candidate-1',
+            gimmick: 'deliver damage',
             executionSummary: 'Birdseed lure then terminal drop.',
             tropeAssignments: {
                 Bait: {
@@ -247,6 +248,7 @@ describe('generateHypothesis', () => {
             candidates: [
                 {
                     candidateId: 'candidate-1',
+                    gimmick: 'deliver damage into trap',
                     executionSummary: 'Multi-room setup.',
                     tropeAssignments: {
                         Contraption: {

@@ -55,7 +55,7 @@ describe('COYOTE_ENGINE_TEST_FIXTURES', () => {
             combined: inject!.combined,
         })
         expect(parts.invariantPrefix.length).toBeGreaterThan(0)
-        expect(parts.dynamicSuffix).toContain('"schemaVersion":3')
+        expect(parts.dynamicSuffix).toContain('"schemaVersion":4')
         expect(parts.dynamicSuffix).toContain('candidate-1')
     })
 

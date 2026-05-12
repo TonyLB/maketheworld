@@ -96,16 +96,16 @@ strict unknown-key rejection at root, candidate, trope value, member, and option
 model; authoritative outliers are still **derived in combine** from staged multiset minus assigned
 members.
 
-**`normalizedJson`.** On successful parse, each candidate's `tropeAssignments` object is emitted
-with trope keys in **canonical order** (`Contraption`, then `Bait`, then `Misdirection`, then `Disadvantage`, then
-`Finishing Move`), omitting absent tropes. Root object order stays **`candidates`** then optional
-**`notes`**.
+**`normalizedJson`.** On successful parse, each candidate includes **`gimmick`** (short spine string),
+**`candidateId`**, **`executionSummary`**, and a `tropeAssignments` object emitted with trope keys in **canonical order**
+(`Contraption`, then `Bait`, then `Misdirection`, then `Disadvantage`, then `Finishing Move`), omitting absent tropes.
+Root object order stays **`candidates`** then optional **`notes`**.
 
 **Combine.** Parsed records flow through combine as a **`Partial<Record<CoyoteTrope, CombinedTropeAssignment>>`**
 keyed by trope; rendering helpers (`renderCombinedCandidateOutputForNarrativeBeat`,
 `serializePlanSelectCandidateInput`) iterate the canonical trope order so plan-select JSON and
-Markdown renders stay stable. Plan-select input JSON is **`schemaVersion: 3`** with
-`tropeAssignments` as a non-array object keyed by trope.
+Markdown renders stay stable. Plan-select input JSON is **`schemaVersion: 4`** with per-candidate **`gimmick`**
+and `tropeAssignments` as a non-array object keyed by trope.
 
 **Boundary vs plan-select.** Plan-selection handoff JSON uses the **same** record shape:
 `selectedCandidate.tropeAssignments` is a non-array object keyed by trope. Array-shaped

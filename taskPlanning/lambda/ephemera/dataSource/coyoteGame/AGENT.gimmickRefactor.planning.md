@@ -163,7 +163,7 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/pipelines/hypo
 | Phase | Description | State |
 | --- | --- | --- |
 | G0 | Lock decisions in **Decisions** (schema, prompts, persistence, harness, failure posture) | **Locked** |
-| G1 | Types + candidate parse/combine + serializers | Not started |
+| G1 | Types + candidate parse/combine + serializers | **Done** |
 | G2 | Plan-select parse + prompt + fixture freeze for incoming plan-select | Not started |
 | G3 | Narrative beat prompt + terminal behavior checks | Not started |
 | G4 | Outcome + optional Dynamo fields + end-to-end harness | Not started |
@@ -179,14 +179,14 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Lock Dynamo intent **`gimmick`** property and explicit outcome handoff.
   - [X] Precedence: [`AGENT.tuneLLMPipeline.planning.md`](AGENT.tuneLLMPipeline.planning.md) is **dormant**; this plan **owns** Coyote `schemaVersion` / harness refreeze until completed (see **Coordination**).
 
-- [ ] Phase G1 - candidates seam (parse, combine, prompts)
-  - [ ] Update [`buildCandidatePrompt.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/candidates/buildCandidatePrompt.ts) for short **`gimmick`** string, strong examples, and permission-to-reuse-or-innovate wording.
-  - [ ] Extend [`parseCandidateOutput.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/candidates/parseCandidateOutput.ts) and colocated tests.
-  - [ ] Extend [`combineCandidateOutput.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/candidates/combineCandidateOutput.ts) and rendering helpers that feed plan-select.
-  - [ ] Add or update unit tests under `candidates/*.test.ts`.
+- [X] Phase G1 - candidates seam (parse, combine, prompts)
+  - [X] Update [`buildCandidatePrompt.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/candidates/buildCandidatePrompt.ts) for short **`gimmick`** string, strong examples, and permission-to-reuse-or-innovate wording.
+  - [X] Extend [`parseCandidateOutput.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/candidates/parseCandidateOutput.ts) and colocated tests.
+  - [X] Extend [`combineCandidateOutput.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/candidates/combineCandidateOutput.ts) and rendering helpers that feed plan-select.
+  - [X] Add or update unit tests under `candidates/*.test.ts`.
 
 - [ ] Phase G2 - plan select (input/output, prompts)
-  - [ ] Bump or extend plan-select input serialization (`schemaVersion` as locked in G0).
+  - [X] Bump or extend plan-select input serialization (`schemaVersion` as locked in G0). (**Done in G1:** input JSON is **`schemaVersion: 4`** with per-candidate **`gimmick`**.)
   - [ ] Update [`buildPlanSelectPrompt.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/buildPlanSelectPrompt.ts) for gimmick-aware rubric and comparison.
   - [ ] Update [`parsePlanSelectOutput.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/planSelect/parsePlanSelectOutput.ts) for `selectedCandidate` gimmick mirror rules.
   - [ ] Refresh harness inject fixtures in **one** coordinated refreeze (per **Decisions**).
@@ -231,5 +231,6 @@ Command authority: [`lambda/ephemera/AGENT.testing.md`](../../../../../../lambda
 
 ## Notes
 
+- **G1 seam:** Plan-select **input** JSON uses **`schemaVersion: 4`**; **`PlanSelectCombinedCandidate.gimmick`** is optional on the shared handoff type so plan-select **output** parsing can stay loose until **G2** enforces **`selectedCandidate.gimmick`** mirroring. Stage-one parse always yields a non-empty internal **`gimmick`** (model string trimmed/truncated, else derived from **`executionSummary`**).
 - **Seam room labels** ([`coyoteHypothesisPromptShared.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPromptShared.ts)) remain authoritative for geography strings in JSON; gimmick copy should not introduce a second room vocabulary.
 - **Synthetic `stableKey` affordance rows** ([`generators/pipelines/hypothesis/AGENT.md`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md)) remain valid; trope rows carry mechanistic detail while **`gimmick`** stays a short tag.

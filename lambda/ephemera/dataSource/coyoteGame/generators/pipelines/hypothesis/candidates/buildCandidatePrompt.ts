@@ -36,6 +36,16 @@ const CANDIDATE_TROPE_VOCABULARY_LINES = [
     '- **Finishing Move**: terminal payoff or harm delivery aimed at the Road Runner.',
 ] as const
 
+/** Per-candidate causal spine tag; woven before the JSON contract (details belong in trope rows, not here). */
+const CANDIDATE_GIMMICK_GUIDANCE_LINES = [
+    '## Gimmick (per candidate)',
+    '- **`gimmick`** is a **short string** (often just a few words): the orienting tag for this candidate\'s **causal spine** --- how the cartoon beat is supposed to pay off toward the Road Runner.',
+    '- Think **backward from the intended cartoon outcome** (Road Runner interaction), then assign tropes and props; keep **`gimmick`** light --- mechanics and staging detail live in **`tropeAssignments`** and **`executionSummary`**, not in **`gimmick`**.',
+    '- **Archetype clusters** (examples only --- not an exhaustive list): **delivered damage**, **high speed chase**, **unexpected approach**, **trap**.',
+    '- **Permission:** you may reuse wording like those clusters or like the few-shot **`gimmick`** strings **when they fit**; you are **not required** to invent novelty --- and you may use a **different short label** when it fits better.',
+    '- Explore **different spines** across candidates so the pool is not only trope permutations on the same idea.',
+] as const
+
 /** Few-shot: trope-first candidate assignments with required tropeFunction member annotations. */
 const CANDIDATE_JSON_FEW_SHOT = `Example (shape -- use real **stableKey** strings from **Current staged objects** below):
 \`\`\`json
@@ -43,6 +53,7 @@ const CANDIDATE_JSON_FEW_SHOT = `Example (shape -- use real **stableKey** string
   "candidates": [
     {
       "candidateId": "candidate-1",
+      "gimmick": "deliver damage",
       "executionSummary": "Road Runner stops at birdseed while rope-and-pulley rig drops an anvil overhead.",
       "tropeAssignments": {
         "Contraption": {
@@ -64,6 +75,7 @@ const CANDIDATE_JSON_FEW_SHOT = `Example (shape -- use real **stableKey** string
     },
     {
       "candidateId": "candidate-2",
+      "gimmick": "snare trap",
       "executionSummary": "Road Runner stops at birdseed while rope, pulley, and anvil snap a snare trap shut.",
       "tropeAssignments": {
         "Contraption": {
@@ -91,6 +103,7 @@ Second example (simple one-candidate shape):
   "candidates": [
     {
       "candidateId": "candidate-1",
+      "gimmick": "high speed chase",
       "executionSummary": "Use a rocket sled at the base of the cliff as a speed-chase contraption.",
       "tropeAssignments": {
         "Contraption": {
@@ -111,6 +124,8 @@ const CANDIDATE_JSON_CONTRACT_LINES = [
     '    trope-first plan candidate. Each candidate object has:',
     '    - **`candidateId`** (required string): deterministic short id (for example',
     '      `candidate-1`, `candidate-2`).',
+    '    - **`gimmick`** (required non-empty string): **few words** --- the short spine tag for this candidate',
+    '      (see **Gimmick** above); not a second summary line.',
     '    - **`executionSummary`** (required non-empty string): one concise line for',
     '      the candidate\'s provisional execution.',
     '    - **`tropeAssignments`** (required non-empty object, not an array): sparse',
@@ -153,7 +168,7 @@ const CANDIDATE_JSON_CONTRACT_LINES = [
     '- Good: `"lane bait"`, `"drop trigger"`, `"boom payload"`.',
     '- Bad: `"terminal projectile payload delivery for final beat"`.',
     '- **Strict keys:** root object may contain only **`candidates`** and optional',
-    '  **`notes`**. Candidate objects may contain only **`candidateId`**,',
+    '  **`notes`**. Candidate objects may contain only **`candidateId`**, **`gimmick`**,',
     '  **`executionSummary`**, **`tropeAssignments`**, and optional **`outliers`**.',
     '  Each trope-value object may contain only **`executionDetail`** and **`members`**.',
     '  Each **member** object may contain only **`stableKey`**, required',
@@ -180,6 +195,8 @@ function candidatePromptLines(snapshotSection: string): string[] {
         ...COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
         '',
         ...COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
+        '',
+        ...CANDIDATE_GIMMICK_GUIDANCE_LINES,
         '',
         ...CANDIDATE_JSON_CONTRACT_LINES,
         '',
