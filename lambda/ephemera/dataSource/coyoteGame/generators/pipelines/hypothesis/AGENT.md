@@ -61,6 +61,12 @@ This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock
 
 Prompt and parser **keys** are **`CoyoteTrope`** literals in canonical order (`Contraption`, `Bait`, `Misdirection`, `Disadvantage`, `Finishing Move`). For **unawareness**, **first Road-Runner-facing** beats, and **Bait vs Misdirection vs Disadvantage** (voluntary lure vs perceptual misread vs imposed condition), use the shared conceptual spec in [`../../../AGENT.tropes.md`](../../../AGENT.tropes.md) --- do not duplicate the full rubric here.
 
+### Gimmick (policies)
+
+- **Parse:** two candidates may share the same normalized **`gimmick`** string; **`parseCandidateOutput`** does **not** reject duplicates (soft uniqueness is prompt-only).
+- **Combine:** there is **no** application-level check that **`gimmick`** text is consistent with **`stableKey`** membership (not reliably judgeable).
+- **Scope:** **`gimmick`** is an internal hypothesis-pipeline and downstream-prompt handoff (see cross-pipeline summary in [`../../../AGENT.md`](../../../AGENT.md)); beat semantics and trope keys remain [`../../../AGENT.tropes.md`](../../../AGENT.tropes.md).
+
 ### Stage-one candidate seam (`tropeAssignments`)
 
 Authority: [`candidates/buildCandidatePrompt.ts`](candidates/buildCandidatePrompt.ts) (prompt),

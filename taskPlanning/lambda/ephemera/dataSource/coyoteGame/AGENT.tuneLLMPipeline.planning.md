@@ -1,6 +1,6 @@
 # Coyote Game: tune trope-centered LLM pipeline (planning)
 
-**Status:** In progress. Next step is Phase T3 (`plan selection`) tuning using the newly frozen clustering outputs as incoming fixture expectations.
+**Status:** In progress. Next step is Phase T3 (`plan selection`) tuning using the newly frozen clustering outputs as incoming fixture expectations. Gimmick refactor coordination is complete (durable contracts in [`../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md)); when refreezing fixtures or bumping plan-select seams, account for per-candidate **`gimmick`** and **`schemaVersion: 4`**.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
