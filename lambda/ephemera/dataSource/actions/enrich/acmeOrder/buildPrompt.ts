@@ -3,6 +3,7 @@
  * filtered upstream by `discriminateIntent` as `MultipleCommands` and do not run this enrich step. Validates
  * catalog rules per line item, normalized titles, trope fits, and **`stableKey`** proposals. Coyote-wide
  * **`occupiedStableKeys`** embedding --- see **`LLM-first`** in [`../AGENT.md`](../AGENT.md).
+ * Optional **`intentRawOrders`** from intent classification are advisory hints for segmentation only.
  */
 
 import type { ParseAcmeOrderEnrichPromptParts } from '../../../../generateExample/invokeBedrockAcmeOrderEnrich'
@@ -10,6 +11,8 @@ import type { ParseAcmeOrderEnrichPromptParts } from '../../../../generateExampl
 export type BuildParseAcmeOrderEnrichPromptOptions = {
     /** Union of **`stableKey`** values already used on staged objects across Coyote game rooms (must not invent collisions when avoidable). */
     occupiedStableKeys?: readonly string[];
+    /** Raw product spans from intent classification; advisory hints for segmentation (enrich may override). */
+    intentRawOrders?: readonly string[];
     /** Deprecated compatibility flag; prompt remains compact regardless of value. */
     debugRationale?: boolean;
 };
@@ -318,6 +321,23 @@ function formatOccupiedStableKeysBlock(keys: readonly string[]): string {
     return uniqueSorted.map((k) => `- ${k}`).join('\n')
 }
 
+function formatIntentRawOrdersHintBlock(spans: readonly string[]): string {
+    const trimmed = spans.map((s) => s.trim()).filter((s) => s.length > 0)
+    if (trimmed.length === 0) {
+        return ''
+    }
+    const lines = trimmed.map((s) => `- ${s}`).join('\n')
+    return `## Intent classifier product spans (advisory only)
+
+The intent-discrimination step proposed these **raw** product string(s). They are **hints** for
+segmentation, not authoritative: you still segment from the **full player command** below, and
+you may merge, split, or override using your normal catalog rules when the hints disagree.
+
+${lines}
+
+`
+}
+
 export function buildParseAcmeOrderEnrichPrompt(
     command: string,
     options?: BuildParseAcmeOrderEnrichPromptOptions
@@ -335,6 +355,7 @@ ${AFTER_STEP1_INSTRUCTIONS}`
 
     const occupied = options?.occupiedStableKeys ?? []
     const occupiedBlock = formatOccupiedStableKeysBlock(occupied)
+    const intentHints = formatIntentRawOrdersHintBlock(options?.intentRawOrders ?? [])
 
     const dynamicSuffix = `## Coyote-wide stable keys already in use
 
@@ -344,7 +365,7 @@ Coyote play-space. Prefer **not** to reuse them; choose a distinct slug
 
 ${occupiedBlock}
 
-## Player command (full string)
+${intentHints}## Player command (full string)
 
 ${commandBlock}
 `

@@ -19,6 +19,8 @@ const ACME_ENRICH_DEBUG = false
 export type EnrichAcmeOrderInput = {
     command: string
     occupiedStableKeys?: readonly string[]
+    /** Raw product spans from intent classification; enrich prompt treats as advisory segmentation hints only. */
+    intentRawOrders?: readonly string[]
     /** Deprecated compatibility flag; prompt remains compact regardless of value. */
     debugRationale?: boolean
 }
@@ -94,6 +96,7 @@ export async function enrichAcmeOrder(
     const invokeEnrich = invokeBedrockAcmeOrderEnrichImpl ?? invokeBedrockAcmeOrderEnrich
     const enrichPromptParts = buildParseAcmeOrderEnrichPrompt(input.command, {
         occupiedStableKeys: input.occupiedStableKeys ?? [],
+        intentRawOrders: input.intentRawOrders,
     })
     const enrichInvoke = await invokeEnrich(enrichPromptParts)
     if (ACME_ENRICH_DEBUG) {

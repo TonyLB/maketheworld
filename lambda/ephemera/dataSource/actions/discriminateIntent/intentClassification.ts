@@ -38,6 +38,30 @@ function hasForbiddenNavigationIntentField(obj: Record<string, unknown>): boolea
     })
 }
 
+function parseAcmeOrderIntentRawOrders(obj: Record<string, unknown>): { rawOrders: string[] } | { error: string } {
+    if (!('orders' in obj)) {
+        return { error: 'AcmeOrder intent payload must include orders array of raw product spans' }
+    }
+    if (!Array.isArray(obj.orders)) {
+        return { error: 'AcmeOrder intent orders must be a non-empty array of strings' }
+    }
+    const rawOrders: string[] = []
+    for (const element of obj.orders) {
+        if (typeof element !== 'string') {
+            return { error: 'AcmeOrder intent orders must contain only non-empty strings' }
+        }
+        const trimmed = element.trim()
+        if (trimmed.length === 0) {
+            return { error: 'AcmeOrder intent orders entries must be non-empty after trim' }
+        }
+        rawOrders.push(trimmed)
+    }
+    if (rawOrders.length === 0) {
+        return { error: 'AcmeOrder intent orders array must be non-empty' }
+    }
+    return { rawOrders }
+}
+
 /** Strip markdown code fences and extract a JSON object from the model response. */
 function extractJsonBody(raw: string): string {
     let s = raw.trim()
@@ -53,8 +77,8 @@ function extractJsonBody(raw: string): string {
 
 /**
  * Parses and validates LLM output for the intent-classification prompt.
- * Accepts **`MultipleCommands`**, **`PromptInjectionAttempt`**, **`AwaitRoadRunner`**, **`AcmeOrder`** (intent-only, no **`orders`**), **`LookRoom`**,
- * **`Help`**, **`NavigationIntent`**, **`Unimplemented`**, or **`Unknown`**; anything else becomes **`Error`**.
+ * Accepts **`MultipleCommands`**, **`PromptInjectionAttempt`**, **`AwaitRoadRunner`**, **`AcmeOrder`** (with **`orders`**: raw product spans mapped to **`rawOrders`**),
+ * **`LookRoom`**, **`Help`**, **`NavigationIntent`**, **`Unimplemented`**, or **`Unknown`**; anything else becomes **`Error`**.
  * (**`CoyoteEngineTest`**, slash-only harness types, and deterministic **bare `look` / `l` / `help`** are handled before Bedrock in **`parseCommand`**.)
  */
 export function interpretIntentClassificationBody(body: string): IntentClassificationResult {
@@ -140,20 +164,19 @@ export function interpretIntentClassificationBody(body: string): IntentClassific
     }
 
     if (type === 'AcmeOrder') {
-        if ('orders' in obj && Array.isArray(obj.orders) && obj.orders.length > 0) {
-            return {
-                type: 'Error',
-                errorMessage: 'AcmeOrder intent payload must not include orders array; segmentation is handled in Acme order enrich',
-            }
-        }
         if (typeof obj.order === 'string') {
             return {
                 type: 'Error',
-                errorMessage: 'AcmeOrder intent payload must not include legacy order field; segmentation is handled in Acme order enrich',
+                errorMessage: 'AcmeOrder intent payload must not include legacy order field',
             }
+        }
+        const parsedOrders = parseAcmeOrderIntentRawOrders(obj)
+        if ('error' in parsedOrders) {
+            return { type: 'Error', errorMessage: parsedOrders.error }
         }
         const candidate: ParseCommandAcmeOrderIntentResult = {
             type: 'AcmeOrderIntent',
+            rawOrders: parsedOrders.rawOrders,
             confidence: obj.confidence as number,
         }
         if (isParseCommandAcmeOrderIntentResult(candidate)) {
@@ -194,6 +217,6 @@ export function interpretIntentClassificationBody(body: string): IntentClassific
     return {
         type: 'Error',
         errorMessage:
-            'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, Help, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
+            'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (orders array of raw spans), LookRoom, Help, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
     }
 }

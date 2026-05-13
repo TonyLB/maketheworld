@@ -51,6 +51,22 @@ describe('buildParseAcmeOrderEnrichPrompt', () => {
         expect(dynamicSuffix.indexOf('- beta')).toBeLessThan(dynamicSuffix.indexOf('- zebra'))
     })
 
+    it('embeds intent classifier raw order hints in dynamicSuffix when provided', () => {
+        const { dynamicSuffix } = buildParseAcmeOrderEnrichPrompt('order glue trap', {
+            intentRawOrders: ['glue trap'],
+        })
+        expect(dynamicSuffix).toContain('Intent classifier product spans')
+        expect(dynamicSuffix).toContain('- glue trap')
+        expect(dynamicSuffix).toContain('order glue trap')
+    })
+
+    it('omits intent classifier section when intentRawOrders is empty or only whitespace', () => {
+        expect(buildParseAcmeOrderEnrichPrompt('order rope', { intentRawOrders: [] }).dynamicSuffix)
+            .not.toContain('Intent classifier product spans')
+        expect(buildParseAcmeOrderEnrichPrompt('order rope', { intentRawOrders: ['  ', ''] }).dynamicSuffix)
+            .not.toContain('Intent classifier product spans')
+    })
+
     it('trims and drops empty occupied stable keys before dedupe + sort', () => {
         const { dynamicSuffix } = buildParseAcmeOrderEnrichPrompt('buy widget', {
             occupiedStableKeys: [' zebra ', '', '  ', 'alpha', 'alpha '],
