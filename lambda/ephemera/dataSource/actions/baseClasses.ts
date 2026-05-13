@@ -169,17 +169,19 @@ export type ParseCommandNavigationIntentResult = {
 }
 
 /**
- * Intent discrimination only: player intent is an Acme order (no segmentation or catalog validation).
- * `parseCommand` runs Acme order enrich next; under normal conditions that yields {@link ParseCommandAcmeOrderResult},
- * but enrich may return {@link ParseCommandErrorResult} (for example when Coyote placement count exceeds the cap).
+ * Intent discrimination only: player intent is an Acme order with **raw** product spans from the classifier.
+ * Catalog validation, tropes, and **`stableKey`** are produced by Acme order enrich into {@link ParseCommandAcmeOrderResult}.
+ * `parseCommand` runs enrich next; enrich may return {@link ParseCommandErrorResult} (for example when Coyote placement count exceeds the cap).
  */
 export type ParseCommandAcmeOrderIntentResult = {
     type: 'AcmeOrderIntent'
+    /** Unvalidated classifier-extracted product strings (trimmed). Not the same as {@link ParseCommandAcmeOrderResult.orders}. */
+    rawOrders: string[]
     confidence: ParseCommandConfidence
 }
 
 /**
- * Outcome of intent discrimination only (includes Acme intent without line items, and
+ * Outcome of intent discrimination only (includes Acme intent with **`rawOrders`** spans, and
  * `LookRoom` for full room description / examine-surroundings intent without Acme order enrich).
  */
 export type IntentClassificationResult =

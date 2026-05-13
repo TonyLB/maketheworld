@@ -796,7 +796,7 @@ describe('parseCommand LLM path', () => {
     it('returns AcmeOrder merged with enrich when both Bedrock calls succeed', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"AcmeOrder","confidence":0.82}',
+            body: '{"type":"AcmeOrder","orders":["dynamite","spring"],"confidence":0.82}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
             success: true,
@@ -848,7 +848,7 @@ describe('parseCommand LLM path', () => {
     it('returns Error when Coyote placement count exceeds cap without calling Acme enrich', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"AcmeOrder","confidence":0.82}',
+            body: '{"type":"AcmeOrder","orders":["rope"],"confidence":0.82}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
         const objects = Array.from({ length: 21 }, (_, i) => ({
@@ -884,7 +884,7 @@ describe('parseCommand LLM path', () => {
     it('calls Acme enrich when placement count is exactly at cap', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"AcmeOrder","confidence":0.82}',
+            body: '{"type":"AcmeOrder","orders":["rope"],"confidence":0.82}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
             success: true,
@@ -937,7 +937,7 @@ describe('parseCommand LLM path', () => {
     it('passes occupiedStableKeys into enrich prompt dynamicSuffix', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"AcmeOrder","confidence":0.82}',
+            body: '{"type":"AcmeOrder","orders":["rope"],"confidence":0.82}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
             success: true,
@@ -960,12 +960,14 @@ describe('parseCommand LLM path', () => {
         expect(parts.dynamicSuffix).toContain('Coyote-wide stable keys already in use')
         expect(parts.dynamicSuffix).toContain('- rocket-taken')
         expect(parts.dynamicSuffix).toContain('- anvil')
+        expect(parts.dynamicSuffix).toContain('## Product spans to validate')
+        expect(parts.dynamicSuffix).toContain('- rope')
     })
 
     it('parseCommand omits enrich Markdown on AcmeOrder; parseCommandWithEnrichReasoning returns it separately', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"AcmeOrder","confidence":0.82}',
+            body: '{"type":"AcmeOrder","orders":["rope"],"confidence":0.82}',
         })
         const payload = JSON.stringify({
             lines: [{
@@ -999,7 +1001,7 @@ describe('parseCommand LLM path', () => {
     it('merges per-line: one good enrich line and one unparseable line still returns AcmeOrder with combined confidence', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"AcmeOrder","confidence":0.82}',
+            body: '{"type":"AcmeOrder","orders":["dynamite","spring"],"confidence":0.82}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
             success: true,
@@ -1046,7 +1048,7 @@ describe('parseCommand LLM path', () => {
     it('marks tropeAffinitiesFailed and keeps intent confidence when enrich Bedrock fails', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"AcmeOrder","confidence":0.75}',
+            body: '{"type":"AcmeOrder","orders":["anvil"],"confidence":0.75}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
             success: false,
@@ -1074,7 +1076,7 @@ describe('parseCommand LLM path', () => {
     it('returns AcmeOrder with multi-role enrich for beehive, shovel, and rope line items', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"AcmeOrder","confidence":0.85}',
+            body: '{"type":"AcmeOrder","orders":["BEES!","trench shovel","climbing rope"],"confidence":0.85}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
             success: true,
@@ -1138,7 +1140,7 @@ describe('parseCommand LLM path', () => {
     it('runs enrich when Acme order enrich returns only invalid catalog lines', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"AcmeOrder","confidence":0.8}',
+            body: '{"type":"AcmeOrder","orders":["justice"],"confidence":0.8}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
             success: true,

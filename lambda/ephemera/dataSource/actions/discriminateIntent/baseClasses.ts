@@ -19,7 +19,15 @@ export function isParseCommandAcmeOrderIntentResult(
     if (result.type !== 'AcmeOrderIntent') {
         return false
     }
-    return isParseConfidence(result.confidence)
+    if (!isParseConfidence(result.confidence)) {
+        return false
+    }
+    if (!Array.isArray(result.rawOrders) || result.rawOrders.length === 0) {
+        return false
+    }
+    return result.rawOrders.every(
+        (s) => typeof s === 'string' && s.trim().length > 0 && s === s.trim()
+    )
 }
 
 export function isParseCommandNavigationIntentResult(

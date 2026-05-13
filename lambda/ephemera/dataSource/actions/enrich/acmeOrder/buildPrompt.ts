@@ -1,8 +1,19 @@
 /**
- * Acme order enrich: parse a **single** Acme-order verb-phrase (one action: order from Acme). Multi-command inputs are
- * filtered upstream by `discriminateIntent` as `MultipleCommands` and do not run this enrich step. Validates
- * catalog rules per line item, normalized titles, trope fits, and **`stableKey`** proposals. Coyote-wide
- * **`occupiedStableKeys`** embedding --- see **`LLM-first`** in [`../AGENT.md`](../AGENT.md).
+ * Acme order enrich: validate and enrich product spans for a **single** Acme-order action. Multi-command inputs are
+ * filtered upstream by `discriminateIntent` as `MultipleCommands` and do not run this step.
+ *
+ * **Segmentation contract:** When **`intentRawOrders`** is non-empty, those strings (from
+ * `ParseCommandAcmeOrderIntentResult.rawOrders`) are **authoritative** - emit one Step 1 row and one
+ * `lines[]` entry per span; do not re-segment from the full player command. Intent and enrich share the
+ * same conservative-merge rule upstream, so this avoids a second-guess pass that could disagree.
+ * When **`intentRawOrders`** is omitted or empty (e.g. affinities harness), the prompt falls back to
+ * segmenting from the full command only.
+ *
+ * **Deferred parallelization:** Each authoritative span is an independent unit of work; a future refactor
+ * could run one `invokeBedrockAcmeOrderEnrich` per span concurrently, merge `lines[]`, and pass
+ * `occupiedStableKeys` into every call. Not implemented in this module yet.
+ *
+ * Coyote-wide **`occupiedStableKeys`** embedding - see **`LLM-first`** in [`../AGENT.md`](../AGENT.md).
  */
 
 import type { ParseAcmeOrderEnrichPromptParts } from '../../../../generateExample/invokeBedrockAcmeOrderEnrich'
@@ -10,6 +21,8 @@ import type { ParseAcmeOrderEnrichPromptParts } from '../../../../generateExampl
 export type BuildParseAcmeOrderEnrichPromptOptions = {
     /** Union of **`stableKey`** values already used on staged objects across Coyote game rooms (must not invent collisions when avoidable). */
     occupiedStableKeys?: readonly string[];
+    /** When non-empty: authoritative product spans from intent classification (one `lines[]` row per span). */
+    intentRawOrders?: readonly string[];
     /** Deprecated compatibility flag; prompt remains compact regardless of value. */
     debugRationale?: boolean;
 };
@@ -30,7 +43,7 @@ of what it does for the Road Runner.
 
 `
 
-const COMPACT_STEP1_INSTRUCTIONS = `1. **Compact rationale lines:** For each **distinct product / line item** you extract (see **Segment line items**), emit **exactly one** pipe-separated row with these fields in order:
+const COMPACT_STEP1_INSTRUCTIONS = `1. **Compact rationale lines:** For each **distinct product / line item** you work on in this order (see **## Segment line items**), emit **exactly one** pipe-separated row with these fields in order:
 
 surface text | gloss: corrected phrase or (none) | physics: yes or no | primary: bucket | finishing-mechanisms: mechanism1, mechanism2 or none | packaging-alts: alt1; alt2 or n/a
 
@@ -46,7 +59,7 @@ Output compact rationale rows only for this section; avoid decorative Markdown h
 - **packaging-alts:** For **Phenomenon** or **Diffuse**, two short generator/package labels separated by **; ** (feeds Step 2 naming). Otherwise **n/a**.
 
 **Primary bucket checklist (correction -> physics -> primary):**
-Treat these seven checks as a decision waterfall for **each extracted line item**, not as seven output slots. Do **not** invent extra products to populate buckets.
+Treat these seven checks as a decision waterfall for **each product span or line item** in this order, not as seven output slots. Do **not** invent extra products to populate buckets.
 **Check 1 (exit -> Not a thing):** If, after any correction, the line still does **not** parse as a **product noun phrase** the player is asking to receive, or remains gibberish / not a named thing at all, emit **Not a thing** and **Stop**. **Never** use **Not a thing** for a plain physical noun the player clearly ordered (**paint**, **glue**, **rope**, **anvil**, **nails**) — those parse fine; continue to later checks and place in **Self-contained** / **Diffuse** / **Phenomenon** / **Too large** as appropriate.
 **Check 2 (exit -> Not tangible):** If check 1 did not exit and the phrase parses as a noun but names something abstract (**justice**, **hope**) rather than a physical deliverable (even with packaging), emit **Not tangible** and **Stop**. **Never** apply **Not tangible** merely because scale is exaggerated; if the object is physically real, continue to the scale check.
 **Check 3 (exit -> Too large):** If checks 1-2 did not exit and the requested thing is **cosmic / stage-breaking scale** as one SKU (Moon, continents, jet stream boxed), emit **Too large** and **Stop**. **Never** freight intuition: cranes, locomotives, grand pianos, moon rockets, Chuck Jones mega-props => continue to later checks and classify as **Self-contained** / **Diffuse** / **Phenomenon**, not **Too large**.
@@ -67,22 +80,31 @@ This step applies Acme catalog normalization, canonical **\`tropeAffinities\`**,
 that cartoon-contraption flavor belongs **here**, not in Step 1's eligibility decisions.
 For **\`valid\`: true** lines, the machine record is **only** **\`name\`**, **\`stableKey\`**, **\`tropeAffinities\`**, and (when needed) **\`tropeAffinitiesFailed\`** — one trope-scoring array, not a second parallel array.
 
-The **Coyote-wide keys already in use** list appears **after** these instructions (before the player command). The **full player command** appears at the end of this prompt.
+The **Coyote-wide keys already in use** list appears **after** these instructions. When upstream
+product spans are included, they appear before the **full player command** at the end of this prompt.
 
 ## Segment line items
 
-From that command, extract **one entry in \`lines[]\` per distinct product / line item** within a
-**single** Acme order line. Multi-command phrasing (two or more actions) is classified **before**
-this step; you only segment **one** order into product lines. Split on commas, **and**, or
-**also** to separate product names. Do not treat a leading order verb as a line item: ignore
-**order**, **get**, **send**, and **mail order** at the start.
-A **single** deliverable is often **several words** (e.g. **rocket skates**, **giant rubber band**,
-**a deluxe bag of birdseed**). **Do not** split on spaces inside one product; interior words are
-**not** separate line items. Only split where the player used explicit separators (commas, **and**,
-**also**). Example: **order rocket skates** → **one** line item (**rocket skates**), not two.
-Example: **order glue and springs** → exactly two lines (**glue**, **springs**).
-Preserve **speaker intent** — do not drop items.
-If the command names one product phrase with no explicit separators, extract exactly one line item. Do **not** fabricate a kit/bundle list to satisfy multiple categories.
+**When \`## Product spans to validate\` appears later in this prompt** (non-empty bullet list):
+those strings are **authoritative** segmentation from intent classification (same conservative-merge
+rule you would use here). Emit **exactly one** Step 1 rationale row and **one** \`lines[]\` entry per
+listed span, in list order. **Do not** re-segment, merge, or split spans from the full player command.
+If a span incorrectly begins with **order**, **get**, **send**, or **mail order**, strip that prefix;
+otherwise treat each span as the unit of work. Do **not** drop spans.
+
+**When that section is absent** (no upstream span list): multi-command phrasing is classified **before**
+this step. Segment from the **full player command** at the end of this prompt: extract **one** \`lines[]\`
+entry per distinct product within a **single** Acme order. Split on commas, **and**, or **also** to
+separate product names. Do not treat a leading order verb as a line item: ignore **order**, **get**,
+**send**, and **mail order** at the start. A **single** deliverable is often **several words** (e.g.
+**rocket skates**, **giant rubber band**). **Do not** split on spaces inside one product. Example:
+**order rocket skates** -> one line item (**rocket skates**). Example: **order glue and springs** -> two
+lines (**glue**, **springs**). Preserve **speaker intent**. If the command is one product phrase with
+no explicit separators, extract exactly one line item. Do **not** fabricate a kit/bundle list.
+
+**Parallelization (deferred, not implemented):** With authoritative spans, each span could be validated
+in a separate Bedrock call and results merged at the orchestration layer; \`occupiedStableKeys\` would
+still be supplied to every call to reduce \`stableKey\` collisions.
 
 ## Catalog validation per line
 
@@ -318,6 +340,22 @@ function formatOccupiedStableKeysBlock(keys: readonly string[]): string {
     return uniqueSorted.map((k) => `- ${k}`).join('\n')
 }
 
+function formatProductSpansToValidateBlock(spans: readonly string[]): string {
+    const trimmed = spans.map((s) => s.trim()).filter((s) => s.length > 0)
+    if (trimmed.length === 0) {
+        return ''
+    }
+    const lines = trimmed.map((s) => `- ${s}`).join('\n')
+    return `## Product spans to validate
+
+The intent-discrimination step extracted these product noun phrase(s). They are **authoritative**:
+emit one Step 1 row and one \`lines[]\` entry per span. Do not re-segment from the full player command.
+
+${lines}
+
+`
+}
+
 export function buildParseAcmeOrderEnrichPrompt(
     command: string,
     options?: BuildParseAcmeOrderEnrichPromptOptions
@@ -335,6 +373,7 @@ ${AFTER_STEP1_INSTRUCTIONS}`
 
     const occupied = options?.occupiedStableKeys ?? []
     const occupiedBlock = formatOccupiedStableKeysBlock(occupied)
+    const productSpansBlock = formatProductSpansToValidateBlock(options?.intentRawOrders ?? [])
 
     const dynamicSuffix = `## Coyote-wide stable keys already in use
 
@@ -344,7 +383,7 @@ Coyote play-space. Prefer **not** to reuse them; choose a distinct slug
 
 ${occupiedBlock}
 
-## Player command (full string)
+${productSpansBlock}## Player command (full string)
 
 ${commandBlock}
 `
