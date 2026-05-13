@@ -34,7 +34,7 @@ import {
     parseNarrativeBeatOutput,
     type ParseHypothesisModelOutputOptions,
 } from '../../sharedParsers/parseHypothesisModelOutput';
-import { parseCandidateOutput } from './candidates/parseCandidateOutput';
+import { parseCandidateOutput, truncateCoyoteGimmickEcho } from './candidates/parseCandidateOutput';
 import { hypothesisDebugLog } from '../../../utilities/hypothesisDebug';
 
 /**
@@ -313,6 +313,12 @@ function buildCoyoteHypothesisSteps(
                 const selected = planSelectOutput.selectedCandidate;
                 if (selected) {
                     const matched = combined.candidates.find((c) => c.candidateId === selected.candidateId);
+                    if (!matched) {
+                        hypothesisDebugLog('planSelectHandoff missing canonical merge', {
+                            candidateId: selected.candidateId,
+                            reason: 'no_combine_row_for_candidateId',
+                        });
+                    }
                     if (matched) {
                         if (
                             selected.gimmick !== undefined
@@ -335,6 +341,12 @@ function buildCoyoteHypothesisSteps(
                     }
                 }
                 draft.planSelectOutput = planSelectOutput;
+                const winner = planSelectOutput.selectedCandidate;
+                if (winner !== undefined && !(winner.gimmick?.trim() ?? '')) {
+                    hypothesisDebugLog('planSelectHandoff missing gimmick on winner', {
+                        candidateId: winner.candidateId,
+                    });
+                }
                 if (!planSelectOutput.selectedCandidate) {
                     hypothesisDebugLog('aborting hypothesis pipeline', {
                         reason: 'planSelectionMissingSelectedCandidate',
@@ -351,6 +363,7 @@ function buildCoyoteHypothesisSteps(
                 if (!roomObjectsByRoom || !handoff?.selectedCandidate) {
                     throw new Error('CoyoteHypothesisPipeline: hypothesisNarrativeBeatLlm preconditions');
                 }
+                // selectedCandidate.gimmick is optional; buildNarrativeBeatPrompt degrades to executionSummary + tropeAssignments.
                 const parts = buildNarrativeBeatPrompt({
                     roomObjectsByRoom,
                     planSelectOutput: handoff as PlanSelectOutputWithWinner,
@@ -381,7 +394,15 @@ function buildCoyoteHypothesisSteps(
                     narrativeBeatsCtx,
                     parseOptions
                 );
-                draft.record = parsed.record;
+                const winnerGimmickRaw = draft.planSelectOutput?.selectedCandidate?.gimmick;
+                const winnerGimmick =
+                    typeof winnerGimmickRaw === 'string' && winnerGimmickRaw.trim().length > 0
+                        ? truncateCoyoteGimmickEcho(winnerGimmickRaw)
+                        : undefined;
+                draft.record =
+                    winnerGimmick !== undefined && winnerGimmick.length > 0
+                        ? { ...parsed.record, gimmick: winnerGimmick }
+                        : parsed.record;
                 draft.narrativeBeatsStructuredJson = parsed.narrativeBeatsStructuredJson;
                 draft.narrativeBeatsStructuredValidationReason = parsed.narrativeBeatsStructuredValidationReason;
                 if (
@@ -394,6 +415,7 @@ function buildCoyoteHypothesisSteps(
                     intent: parsed.record.intent,
                     hasWalkthrough: parsed.record.walkthrough !== undefined,
                     hasNarrativeBeatsStructured: parsed.record.narrativeBeatsStructured !== undefined,
+                    hasGimmick: draft.record.gimmick !== undefined,
                     narrativeBeatsStructuredValidationReason: parsed.narrativeBeatsStructuredValidationReason,
                     narrativeBeatsStructuredJsonPresent: parsed.narrativeBeatsStructuredJson !== undefined,
                 });

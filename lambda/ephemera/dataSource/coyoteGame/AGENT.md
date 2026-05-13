@@ -48,6 +48,21 @@ Plan-selection to phase-plan handoff semantics are documented in
 the planSelect output contract (including optional structured `selectedCandidate`, residual `planIssues`, and legacy fallback), with parser/type authority in
 [`generators/pipelines/hypothesis/planSelect/parsePlanSelectOutput.ts`](generators/pipelines/hypothesis/planSelect/parsePlanSelectOutput.ts).
 
+## Gimmick (internal spine)
+
+Each hypothesis **candidate** carries a short string **`gimmick`**: a light narrative spine the plan aligns around. It is **internal reasoning and handoff only** (not shown in the client, not classified before the candidate hop, and **not** a reason to rewrite Acme enrich or durable **`tropeAffinities`** on room objects).
+
+Stable contracts (hop-level detail and parser authority: [`generators/pipelines/hypothesis/AGENT.md`](generators/pipelines/hypothesis/AGENT.md)):
+
+- **Candidates:** required root **`gimmick`** on successful parse; no closed enum for archetype text (examples live in prompts only).
+- **Plan-select input JSON:** **`schemaVersion: 4`** with per-candidate **`gimmick`**. Duplicate gimmick strings across candidates are **not** rejected at parse (soft uniqueness is prompt-only).
+- **Handoff:** canonical **`gimmick`** for downstream hops comes from **combine** via **`parsePlanSelectionHandoff`** when the winner **`candidateId`** matches; model echo on **`selectedCandidate.gimmick`** is optional at parse and validated when present.
+- **Combine:** carries **`gimmick`**; **no** deterministic gimmick-vs-**`stableKey`** member checks.
+- **Dynamo `CoyoteGame#Intent`:** optional **`gimmick`** on read (legacy rows); written from the plan-select winner on successful generation ([`../../internalCache/coyoteGame.ts`](../../internalCache/coyoteGame.ts), overview in [`../../internalCache/AGENT.md`](../../internalCache/AGENT.md)).
+- **Outcome:** prompt bundle includes explicit **`gimmick`** when present ([`generators/pipelines/outcome/AGENT.md`](generators/pipelines/outcome/AGENT.md), [`generators/pipelines/outcome/buildPlanOutcomePrompt.ts`](generators/pipelines/outcome/buildPlanOutcomePrompt.ts)).
+- **Harness / fixtures:** refreeze inject bundles when the handoff shape changes so gimmick stays consistent across partial runs.
+- **Missing or malformed `gimmick`:** degrade gracefully and continue from other handoff fields (exact step behavior is implementation-defined).
+
 ## Await RoadRunner (outcome path)
 
 [`handlers/handleAwaitRoadRunnerForPlanOutcome.ts`](handlers/handleAwaitRoadRunnerForPlanOutcome.ts):
@@ -57,7 +72,7 @@ the planSelect output contract (including optional structured `selectedCandidate
 3. Flushes lane while remainder invalidates and reloads `internalCache.CoyoteGame.get('outcome')`.
 4. Publishes final world message and stream event payload.
 
-Outcome generation chain:
+Outcome generation chain (reads the same durable **intent** row as hypothesis, including optional **`gimmick`** for prompt context only):
 
 - Entry: [`generators/pipelines/outcome/generatePlanOutcome.ts`](generators/pipelines/outcome/generatePlanOutcome.ts)
 - Prompt builder: [`generators/pipelines/outcome/buildPlanOutcomePrompt.ts`](generators/pipelines/outcome/buildPlanOutcomePrompt.ts)

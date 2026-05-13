@@ -44,7 +44,8 @@ export const BEDROCK_HYPOTHESIS_PLAN_SELECTION_MAX_TOKENS = 4096
 
 /**
  * Narrative beat hop (narrative-beats JSON scratchpad + "## Cartoon play-by-play" + fenced Hypothesis line).
- * Hypothesis pipeline: three sequential invokes (candidates phase + plan selection + narrative beat), each using [`BEDROCK_HYPOTHESIS_TIMEOUT_MS`] — ensure Lambda timeout fits all plus combine work (see [`AGENT.md`](./AGENT.md), template.yaml).
+ * Gimmick guidance is prompt **input** only (small delta vs pre-G3); G3 review left this cap equal to [`BEDROCK_HYPOTHESIS_DEFAULT_MAX_TOKENS`]. Raise only if harness **`usageNarrativeBeat`** shows systematic truncation.
+ * Hypothesis pipeline: three sequential invokes (candidates phase + plan selection + narrative beat), each using [`BEDROCK_HYPOTHESIS_TIMEOUT_MS`] --- ensure Lambda timeout fits all plus combine work (see [`AGENT.md`](./AGENT.md), template.yaml).
  */
 export const BEDROCK_HYPOTHESIS_NARRATIVE_BEAT_MAX_TOKENS = BEDROCK_HYPOTHESIS_DEFAULT_MAX_TOKENS
 

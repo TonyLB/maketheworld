@@ -178,6 +178,7 @@ describe('generateHypothesis', () => {
         expect(record.intent).toBe('Hypothesis: You are trying to drop something on the Road Runner.')
         expect(record.narrativeBeatsStructured?.beats).toHaveLength(1)
         expect(record.walkthrough).toBeUndefined()
+        expect(record.gimmick).toBe('deliver damage')
         expect(stageOneMock).toHaveBeenCalledTimes(1)
         expect(planSelectionMock).toHaveBeenCalledTimes(1)
         expect(narrativeBeatMock).toHaveBeenCalledTimes(1)
@@ -206,6 +207,7 @@ describe('generateHypothesis', () => {
         await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toMatchObject({
             intent: 'Hypothesis: You are trying to drop something on the Road Runner.',
             walkthrough: '## Cartoon play-by-play\nTrap setup.',
+            gimmick: 'deliver damage',
         })
     })
 
@@ -222,6 +224,7 @@ describe('generateHypothesis', () => {
             return
         }
         expect(result.record.intent).toBe('Hypothesis: With reasoning channel.')
+        expect(result.record.gimmick).toBe('deliver damage')
         expect(result.stageOneResult).toEqual(expect.objectContaining({ success: true }))
         expect(result.planSelectionResult).toEqual(expect.objectContaining({ success: true }))
         expect(result.narrativeBeatResult).toEqual(
@@ -418,6 +421,7 @@ describe('generateHypothesis', () => {
 
         await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
             intent: 'Hypothesis: You are trying to drop something on the Road Runner.',
+            gimmick: 'deliver damage',
             narrativeBeatsStructured: {
                 beats: [
                     {
@@ -488,5 +492,6 @@ describe('generateHypothesis', () => {
         const record = await generateHypothesis({ getGameRooms, getRoomMeta })
         expect(record.intent).toBe('Hypothesis: Prose still works.')
         expect(record.narrativeBeatsStructured).toBeUndefined()
+        expect(record.gimmick).toBe('deliver damage')
     })
 })

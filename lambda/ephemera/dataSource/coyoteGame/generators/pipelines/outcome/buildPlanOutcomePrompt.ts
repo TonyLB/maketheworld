@@ -9,6 +9,8 @@ export type BuildPlanOutcomePromptInput = {
     hypothesisLine: string
     walkthrough?: string
     narrativeBeatsStructured?: CoyoteNarrativeBeatsStructured
+    /** Internal spine tag from plan-select winner; optional on legacy intent rows. */
+    gimmick?: string
 }
 
 /**
@@ -53,6 +55,17 @@ function buildPlanOutcomeDynamicLines(input: BuildPlanOutcomePromptInput): strin
         '## Hypothesis line',
         hypothesisDisplay,
     ]
+
+    const gimmick = input.gimmick?.trim()
+    if (gimmick) {
+        lines.push(
+            '',
+            '## Plan gimmick',
+            gimmick,
+            '',
+            '- Treat this tag as the committed **causal spine** for the maneuver; let the Coyote backfire stay mechanically apt to that spine and the staged props.',
+        )
+    }
 
     const walkthrough = input.walkthrough?.trim()
     if (walkthrough) {
