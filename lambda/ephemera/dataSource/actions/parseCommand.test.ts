@@ -960,7 +960,7 @@ describe('parseCommand LLM path', () => {
         expect(parts.dynamicSuffix).toContain('Coyote-wide stable keys already in use')
         expect(parts.dynamicSuffix).toContain('- rocket-taken')
         expect(parts.dynamicSuffix).toContain('- anvil')
-        expect(parts.dynamicSuffix).toContain('Intent classifier product spans')
+        expect(parts.dynamicSuffix).toContain('## Product spans to validate')
         expect(parts.dynamicSuffix).toContain('- rope')
     })
 

@@ -19,7 +19,7 @@ const ACME_ENRICH_DEBUG = false
 export type EnrichAcmeOrderInput = {
     command: string
     occupiedStableKeys?: readonly string[]
-    /** Raw product spans from intent classification; enrich prompt treats as advisory segmentation hints only. */
+    /** When set: authoritative product spans from intent (`rawOrders`); one enrich line per span. Omit for harness-only enrich. */
     intentRawOrders?: readonly string[]
     /** Deprecated compatibility flag; prompt remains compact regardless of value. */
     debugRationale?: boolean
