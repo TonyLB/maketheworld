@@ -6,6 +6,7 @@ const dbMock = () => ({
     update: jest.fn(),
     optimisticUpdate: jest.fn(),
     putItem: jest.fn(),
+    nonCollidingPutItem: jest.fn(),
     deleteItem: jest.fn(),
     merge: jest.fn(),
     mergeTransact: jest.fn(),
