@@ -1,6 +1,6 @@
 # Ephemera: `mtw.ephemera.thinking` foundation (planning)
 
-**Status:** Not started. **Dynamo keys, per-task row shape, contracts home, verbose MVP, stub scheduling DS, index strategy, and API envelope (below) are locked.** Next step is implementation: **TypeScript contracts** in `mtw-interfaces`, then the **results spine**, then schedule/EventBridge + **subscriptions** wiring.
+**Status:** In progress. **Dynamo keys, per-task row shape, contracts home, verbose MVP, stub scheduling DS, index strategy, and API envelope (below) are locked.** **Design notes** and **TypeScript contracts** have landed (see [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md) and [`packages/mtw-interfaces/ts/eventBridge/ephemera/thinking/`](../../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/thinking/)). Next implementation slice: **results spine**, then schedule/EventBridge + **subscriptions** wiring.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -12,7 +12,7 @@ Introduce **`mtw.ephemera.thinking`** as infrastructure for **durable thinking a
 
 Near-term value is **results-side**: persisted **thinking results** aligned with harness inject shapes, plus **hypothesis pipeline integration** so production runs emit inspectable artifacts. **Schedule-side** DataSource, replay, and EventBridge follow once contracts and persistence patterns are proven.
 
-This file is task-scoped. When the initiative is done, **archive or remove** it and move steady-state docs next to code (for example [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md) once that package exists).
+This file is task-scoped. When the initiative is done, **archive or remove** it; steady-state notes for this subsystem live in [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md).
 
 ## Scope and boundaries
 
@@ -103,15 +103,16 @@ Use commands from [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/eph
   - `npm run test -- --watchAll=false`
 - After each slice:
   - `npm run test -- --watchAll=false` for touched trees (for example `dataSource/thinking`, `dataSource/coyoteGame`, `internalCache`).
+- For **`@tonylb/mtw-interfaces`** contract edits: from **`packages/mtw-interfaces/`**, `npm run test -- --watchAll=false` and `npm run build`.
 
 ## Recommended order (server)
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]` as each sub-step lands.
 
-- [ ] **Design notes** (short, link-heavy; avoid duplicating steady-state architecture)
-  - [ ] Add or link durable **`lambda/ephemera/dataSource/thinking/AGENT.md`** when the package exists (steady-state keys, gateway surface, query patterns; summarize **Decisions** including `JOB#` / `TASK#` / `Meta::Job`, schedule vs result **row types** and lifecycle, contracts path, verbose MVP, EventBridge + **subscriptions**).
+- [X] **Design notes** (short, link-heavy; avoid duplicating steady-state architecture)
+  - [X] Add or link durable **`lambda/ephemera/dataSource/thinking/AGENT.md`** when the package exists (steady-state keys, gateway surface, query patterns; summarize **Decisions** including `JOB#` / `TASK#` / `Meta::Job`, schedule vs result **row types** and lifecycle, contracts path, verbose MVP, EventBridge + **subscriptions**).
 
-- [ ] **TypeScript contracts** in **`@tonylb/mtw-interfaces`** under **`eventBridge/ephemera/thinking/`** (schedule + thinking-result envelopes, `schemaVersion`, `generationId`, `workItemId`, `segment`, verbose-first shapes toward harness inject types)
+- [X] **TypeScript contracts** in **`@tonylb/mtw-interfaces`** under **`eventBridge/ephemera/thinking/`** (schedule + thinking-result envelopes, `schemaVersion`, `generationId`, `workItemId`, `segment`, verbose-first shapes toward harness inject types)
 
 - [ ] **Results spine (phase-zero priority)**
   - [ ] Results **gateway** (single internal facade; no scattered `ephemeraDB` calls from prompt files).
@@ -134,7 +135,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 
 | Track | Notes |
 | --- | --- |
-| Contracts | |
+| Contracts | Durable [`AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md); [`ephemera/thinking`](../../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/thinking/) types + `ThinkingEventSerializer` + Jest |
 | Results persistence + pipeline | |
 | API | |
 | Schedule + EventBridge | |

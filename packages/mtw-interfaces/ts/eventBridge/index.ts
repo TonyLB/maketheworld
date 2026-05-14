@@ -31,6 +31,7 @@ export type EventBridgeUpdatePlayer = {
 // - @tonylb/mtw-interfaces/ts/eventBridge/wml
 // - @tonylb/mtw-interfaces/ts/eventBridge/assets  
 // - @tonylb/mtw-interfaces/ts/eventBridge/ephemera
+// - @tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking
 // - @tonylb/mtw-interfaces/ts/eventBridge/cognito
 // - @tonylb/mtw-interfaces/ts/eventBridge/baseClasses
 
