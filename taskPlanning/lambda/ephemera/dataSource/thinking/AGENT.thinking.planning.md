@@ -158,9 +158,9 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 
 - [ ] **Results spine (phase-zero priority)**
   - [X] Results **read gateway** in **`@tonylb/mtw-gateways`** (keys, query/`GetItem` helpers, row normalization; optional **`InternalCache`** handler factories). Ephemera **registers** handlers only. **No** scattered **`ephemeraDB`** calls from prompt files or ad-hoc lambda modules for those read shapes.
-  - [ ] Results **persistence** in ephemera (prefixed items in Ephemera table; idempotent finalize per `workItemId`; writes stay out of **`mtw-gateways`**).
+  - [X] Results **persistence** in ephemera (prefixed items in Ephemera table; idempotent finalize per `workItemId`; writes stay out of **`mtw-gateways`**).
   - [X] **`internalCache`** for thinking results (if needed for read-after-write and test injection; justify in PR if skipped).
-  - [ ] **Thinking results DataSource**: stub registration, then persistence integration if results publish on bus later; otherwise document why DS is deferred. See **[Thinking results DataSource and internal bus](#thinking-results-datasource-and-internal-bus)**.
+  - [X] **Thinking results DataSource**: stub registration, then persistence integration if results publish on bus later; otherwise document why DS is deferred. See **[Thinking results DataSource and internal bus](#thinking-results-datasource-and-internal-bus)**. *(Shipped: **`mtw.ephemera.thinking.results`** subscribes to **`Thinking Result`** from **`mtw.ephemera.coyoteGame`**; Coyote does not emit that envelope yet --- see [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md).)*
   - [ ] **Hypothesis pipeline migration** (`generateHypothesis` / `coyoteHypothesisPipeline`): mint `generationId`, pre-mint per-task `workItemId`s, persist per **Decisions**: **`JOB#${generationId}`** + **`Meta::Job`**; adjacency **`JOB#${generationId}`** + **`DataCategory` `TASK#${workItemId}`**; **schedule** payload on **`TASK#${workItemId}`** + **`Meta::Schedule`** when a unit is scheduled; **thinking result** on **`TASK#${workItemId}`** + **`Meta::Result`** when that unit **completes** (in sync MVP, result may land in the same invocation as schedule, or schedule may be elided until dispatch exists --- document in `AGENT.md`). **Verbose defaults on** for MVP; align payload shapes with [`coyoteHarnessInjectTypes.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHarnessInjectTypes.ts) / fixtures direction.
   - [ ] **Ephemera API** for results lookup (keys and JSON contract; block client plan until minimal contract exists).
 
@@ -178,7 +178,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 | Track | Notes |
 | --- | --- |
 | Contracts | Durable [`AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md); [`ephemera/thinking`](../../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/thinking/) types + `ThinkingEventSerializer` + Jest |
-| Results persistence + pipeline | Read gateway: [`@tonylb/mtw-gateways/ts/ephemera/thinking`](../../../../../packages/mtw-gateways/ts/ephemera/thinking/index.ts), `internalCache.ThinkingResults`; bus + DS handoff: [Thinking results DataSource and internal bus](#thinking-results-datasource-and-internal-bus); persistence + pipeline next. |
+| Results persistence + pipeline | Result writes + **`mtw.ephemera.thinking.results`**: [`lambda/ephemera/dataSource/thinking/results/`](../../../../../lambda/ephemera/dataSource/thinking/results/index.ts); read gateway + `internalCache.ThinkingResults`. **Coyote `Thinking Result` bus emit** remains for the **Hypothesis pipeline migration** row below. |
 | API | |
 | Schedule + EventBridge | Schedule read path: same gateway module + `internalCache.ThinkingSchedules`; [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md) documents **`Meta::Schedule`** row shape. Persistence + EventBridge remain. |
 
