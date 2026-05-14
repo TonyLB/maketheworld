@@ -24,7 +24,7 @@ Task-planning drafts (dispose after tasks land) live under [`taskPlanning/lambda
 | File | Role |
 | --- | --- |
 | [`abstract.ts`](abstract.ts) | `EphemeraDataSource` --- `ephemeraDB`, SNS, `messageBus`, `EphemeraId` primary key |
-| [`apiEphemera.ts`](apiEphemera.ts) | **`api.ephemera`** streaming helpers (`sendStateChange`, `sendObjectsChange`, cache primitives, etc.) and envelope guards |
+| [`apiEphemera.ts`](apiEphemera.ts) | **`api.ephemera`** streaming helpers (`sendStateChange`, `sendObjectsChange`, `sendPutThinkingSchedule`, cache primitives, etc.) and envelope guards |
 | [`localApiEvents.ts`](localApiEvents.ts) | Payload types for **`api.ephemera`** commands shared across packages |
 | [`subscribedEvents.ts`](subscribedEvents.ts) | Guards for **`mtw.assets`** envelopes consumed by the main ephemera DataSource ([`index.ts`](index.ts)) |
 | [`index.ts`](index.ts) | **`mtw.ephemera`** DataSource --- assets subscription, `processComponentUpdated`, etc. |
@@ -54,6 +54,7 @@ Side-effect **`import './dataSource/...'`** from [`../app.ts`](../app.ts) regist
 | **`mtw.ephemera.actions`** | [`actions/`](actions/) ([`actions/index.ts`](actions/index.ts)) | **`Parse Requested`** ingress; **`Acme Order`** (**`stableKey`** per line after deterministic finalize), **`Character Navigate`**, **`Await RoadRunner`**, harnesses --- normative **`stableKey`** contract [**`actions/AGENT.md`**](actions/AGENT.md); movement is currently **event + imperative** until cutover to positions; [`publishedEvents.ts`](actions/publishedEvents.ts), [`parseCommand.ts`](actions/parseCommand.ts) |
 | **`mtw.ephemera.coyoteGame`** | [`coyoteGame/`](coyoteGame/) | **`Objects Changed`** (Coyote + adds) and **`mtw.ephemera.actions` `Await RoadRunner`**; hypothesis and outcome pipelines + harness --- [`coyoteGame/AGENT.md`](coyoteGame/AGENT.md), [`coyoteGame/generators/pipelines/hypothesis/AGENT.md`](coyoteGame/generators/pipelines/hypothesis/AGENT.md), [`coyoteGame/generators/pipelines/outcome/AGENT.md`](coyoteGame/generators/pipelines/outcome/AGENT.md) |
 | **`mtw.ephemera.thinking.results`** | [`thinking/results/`](thinking/results/) | Subscribe-only: internal **`Thinking Result`** published by **`mtw.ephemera.coyoteGame`**; persists **`JOB#`** adjacency + **`TASK#`/`Meta::Result`** --- [`thinking/AGENT.md`](thinking/AGENT.md) |
+| **`mtw.ephemera.thinking.scheduling`** | [`thinking/scheduling/`](thinking/scheduling/) | **`api.ephemera`** **`Put Thinking Schedule`**; persists **`JOB#`** adjacency + **`TASK#`/`Meta::Schedule`** --- [`thinking/AGENT.md`](thinking/AGENT.md) |
 
 **Virtual / cross-cutting:** **`api.ephemera`** is not a `DataSource` class but the **`dataSourceKey`** for internal command envelopes consumed by multiple subscribers above.
 

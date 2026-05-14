@@ -46,6 +46,7 @@ import './dataSource/perception'  // mtw.ephemera.perception DataSource (see dat
 import './dataSource/actions'  // mtw.ephemera.actions DataSource (inert bus-only stub)
 import './dataSource/coyoteGame'  // mtw.ephemera.coyoteGame DataSource (stub; Coyote Game wiring follows)
 import './dataSource/thinking/results'  // mtw.ephemera.thinking.results (Thinking Result persistence from bus)
+import './dataSource/thinking/scheduling'  // mtw.ephemera.thinking.scheduling (Put Thinking Schedule via api.ephemera)
 import './dataSource/objects'  // mtw.ephemera.objects DataSource (before state: shared Meta::Room ordering)
 import './dataSource/state'  // mtw.ephemera.state DataSource (see lambda/ephemera/dataSource/state/AGENT.planning.perceptionVertical.md)
 import './dataSource/positions'  // mtw.ephemera.positions DataSource (positions in play; first ingress: mtw.connections.characters)

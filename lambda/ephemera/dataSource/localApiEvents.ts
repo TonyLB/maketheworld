@@ -1,10 +1,13 @@
 /**
  * Payload types and type guards for API-triggered internal events (dataSourceKey: 'api.ephemera').
  * Used by apiEphemera.ts send helpers and future DataSource receiveEvents. In-process only; no EventBridge.
+ * Includes cache commands, thinking schedule (`PutThinkingScheduleCommand`), room state, and parse requests.
  */
 import { isEphemeraObjectId, type EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { ThinkingScheduleEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
+import { isThinkingScheduleEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
 import type { EphemeraCacheComponentId, EphemeraCacheMarkState } from './renderCache/baseClasses'
 import type { PutCacheRecordInput } from './renderCache/putCacheRecord'
 
@@ -53,6 +56,12 @@ export type ParseRequestedCommand = {
     command: string;
     requestId?: string;
 }
+
+/** Thinking schedule row payload; paired with header `Put Thinking Schedule` on api.ephemera. */
+export type PutThinkingScheduleCommand = ThinkingScheduleEvent
+
+export const isPutThinkingScheduleCommand = (value: unknown): value is PutThinkingScheduleCommand =>
+    isThinkingScheduleEvent(value)
 
 const isMarkStateShape = (value: unknown): value is EphemeraCacheMarkState => {
     if (!value || typeof value !== 'object') {
@@ -167,3 +176,4 @@ export type EphemeraApiCommandPayload =
     | StateChangeCommand
     | ObjectsChangeCommand
     | ParseRequestedCommand
+    | PutThinkingScheduleCommand

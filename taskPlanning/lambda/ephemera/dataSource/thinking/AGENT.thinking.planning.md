@@ -1,6 +1,6 @@
 # Ephemera: `mtw.ephemera.thinking` foundation (planning)
 
-**Status:** In progress. **Dynamo keys, per-task row shape, contracts home, verbose MVP, stub scheduling DS, index strategy, and API envelope (below) are locked.** **Design notes** and **TypeScript contracts** have landed (see [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md) and [`packages/mtw-interfaces/ts/eventBridge/ephemera/thinking/`](../../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/thinking/)). Next implementation slice: **results spine**, then schedule/EventBridge + **subscriptions** wiring.
+**Status:** In progress. **Dynamo keys, per-task row shape, contracts home, verbose MVP, index strategy, and API envelope (below) are locked.** **Design notes** and **TypeScript contracts** have landed (see [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md) and [`packages/mtw-interfaces/ts/eventBridge/ephemera/thinking/`](../../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/thinking/)). **`mtw.ephemera.thinking.scheduling`** persistence via **`api.ephemera`** **`Put Thinking Schedule`** is shipped. Next implementation slices: hypothesis pipeline migration / **API**; then **EventBridge** replay for schedule + **subscriptions** wiring.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -22,7 +22,7 @@ This file is task-scoped. When the initiative is done, **archive or remove** it;
 - **Thinking row read surfaces** in **`@tonylb/mtw-gateways`** (key builders, `Query` / `GetItem` composition, row normalization, optional **`InternalCache`** handler factories) per [**Read surfaces in mtw-gateways vs writes in ephemera**](#read-surfaces-in-mtw-gateways-vs-writes-in-ephemera) below. **Authoritative writes** (puts, deletes, idempotent finalize, enqueue/claim) stay in **`lambda/ephemera/dataSource/...`** modules owned by the relevant **`EphemeraDataSource`**; **`mtw-gateways`** does not own mutation paths.
 - **Results persistence** in the Ephemera table (house style: clean `DataCategory` prefixes, UUID `workItemId`).
 - **`internalCache`** integration where it reduces duplicate Dynamo reads and matches existing Ephemera patterns.
-- **`mtw.ephemera.thinking`** family DataSources: **schedule** uses **`mtw.ephemera.thinking.scheduling`** (stub then persistence); **results** path as designed; schedule may remain minimal until dispatch exists.
+- **`mtw.ephemera.thinking`** family DataSources: **schedule** uses **`mtw.ephemera.thinking.scheduling`** (**`api.ephemera`** **`Put Thinking Schedule`** ingress); **results** use **`mtw.ephemera.thinking.results`** (CoyoteGame **`Thinking Result`**); richer dispatch / EventBridge replay can extend schedule without changing row keys.
 - **Hypothesis pipeline migration:** mint `generationId`, pre-mint per-task `workItemId`s, write **thinking results** at persistence boundaries (see **Decisions** and refinements from design discussion).
 - **Ephemera API** (or equivalent) for **thinking results lookup** by `generationId`, `workItemId`, and/or `(generationId, segment)` as decided (`segment` = neutral routing key, e.g. `candidates` \| `planSelect` \| `narrativeBeats`).
 - **Publish thinking schedule** as **replayable** with **EventBridge** when the server contract is ready (coordinates with client plan).
@@ -73,7 +73,7 @@ Primary **job-wide** access (dispatcher, dashboards, debugging): **list work ite
 
 ### Scheduling DataSource stub
 
-- A **stub** **`mtw.ephemera.thinking.scheduling`** `EphemeraDataSource` (registered `dataSourceKey`, minimal or empty `receiveEvents`) is **acceptable** for as long as needed; expect it to be short-lived in practice while implementation steps land.
+- A **stub** **`mtw.ephemera.thinking.scheduling`** `EphemeraDataSource` (registered `dataSourceKey`, minimal or empty `receiveEvents`) was **acceptable** during early sequencing; **MVP persistence** now uses **`api.ephemera`** **`Put Thinking Schedule`** (see durable **`AGENT.md`**).
 
 ### EventBridge and `subscriptions` lambda
 
@@ -165,8 +165,8 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [ ] **Ephemera API** for results lookup (keys and JSON contract; block client plan until minimal contract exists).
 
 - [ ] **Schedule spine**
-  - [X] Schedule **read helpers** in **`@tonylb/mtw-gateways`** once schedule rows are encoded (same read/write split as results): treat **`JOB#${generationId}`** + **`DataCategory` `TASK#${workItemId}`** as **adjacency only**; read schedule payloads with **`GetItem`** on **`TASK#${workItemId}`** + **`Meta::Schedule`** (mirror the results gateway pattern). **Enqueue / claim** mutations stay in the scheduling **`EphemeraDataSource`** (may no-op internally at first).
-  - [ ] **`mtw.ephemera.thinking.scheduling` DataSource**: stub, then persistence for work items when the schema is ready.
+  - [X] Schedule **read helpers** in **`@tonylb/mtw-gateways`** once schedule rows are encoded (same read/write split as results): treat **`JOB#${generationId}`** + **`DataCategory` `TASK#${workItemId}`** as **adjacency only**; read schedule payloads with **`GetItem`** on **`TASK#${workItemId}`** + **`Meta::Schedule`** (mirror the results gateway pattern). **Enqueue / claim** mutations stay in the scheduling **`EphemeraDataSource`** (writes **`Meta::Schedule`** via **`api.ephemera`** **`Put Thinking Schedule`**).
+  - [X] **`mtw.ephemera.thinking.scheduling` DataSource**: **`api.ephemera`** **`Put Thinking Schedule`** ingress + persistence for **`Meta::Schedule`** (see [`lambda/ephemera/dataSource/thinking/scheduling/`](../../../../../lambda/ephemera/dataSource/thinking/scheduling/)).
   - [ ] **Publish** **`mtw.ephemera.thinking.scheduling`** as **replayable** + **EventBridge** (template, IAM, publisher strategy; unblock client subscribe).
 
 - [ ] **Closeout**
@@ -180,7 +180,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 | Contracts | Durable [`AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md); [`ephemera/thinking`](../../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/thinking/) types + `ThinkingEventSerializer` + Jest |
 | Results persistence + pipeline | Result writes + **`mtw.ephemera.thinking.results`**: [`lambda/ephemera/dataSource/thinking/results/`](../../../../../lambda/ephemera/dataSource/thinking/results/index.ts); read gateway + `internalCache.ThinkingResults`. **Coyote `Thinking Result` bus emit** remains for the **Hypothesis pipeline migration** row below. |
 | API | |
-| Schedule + EventBridge | Schedule read path: same gateway module + `internalCache.ThinkingSchedules`; [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md) documents **`Meta::Schedule`** row shape. Persistence + EventBridge remain. |
+| Schedule + EventBridge | **`mtw.ephemera.thinking.scheduling`** + **`persistThinkingSchedule`**: [`lambda/ephemera/dataSource/thinking/scheduling/`](../../../../../lambda/ephemera/dataSource/thinking/scheduling/index.ts); ingress **`sendPutThinkingSchedule`**. **EventBridge** replay + **subscriptions** remain (row 170). |
 
 ## Related GitHub issues (optional index)
 
