@@ -1,8 +1,9 @@
 /**
  * api.ephemera: internal API stream for the ephemera lambda (parallel to api.wml / api.assets).
  * Header/envelope guards and typed messageBus send helpers. Not emitted from EventBridge.
- * Includes cache commands, State Change (`componentId` + `markState`), and Objects Change
- * (`componentId` + structured `add` / `remove`; see `ObjectsChangeCommand` in `localApiEvents.ts`).
+ * Includes cache commands, State Change (`componentId` + `markState`), Objects Change
+ * (`componentId` + structured `add` / `remove`; see `ObjectsChangeCommand` in `localApiEvents.ts`),
+ * and **Put Thinking Schedule** for thinking schedule persistence.
  */
 import {
     StreamingEventHeader,
@@ -17,6 +18,7 @@ import type {
     StateChangeCommand,
     ObjectsChangeCommand,
     ParseRequestedCommand,
+    PutThinkingScheduleCommand,
     EphemeraApiCommandPayload,
 } from './localApiEvents'
 
@@ -26,6 +28,7 @@ export type EphemeraApiSubscribedHeader =
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'State Change' })
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Objects Change' })
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Parse Requested' })
+    | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Schedule' })
 
 export type EphemeraApiIncomingEvent =
     | {
@@ -47,6 +50,10 @@ export type EphemeraApiIncomingEvent =
     | {
           header: StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Parse Requested' };
           getContent: () => Promise<ParseRequestedCommand>;
+      }
+    | {
+          header: StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Schedule' };
+          getContent: () => Promise<PutThinkingScheduleCommand>;
       }
 
 const isPutCacheRecordHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Cache Record' }> = (
@@ -74,6 +81,11 @@ const isParseRequestedHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey
 ): h is StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Parse Requested' } =>
     h.dataSourceKey === 'api.ephemera' && h.type === 'Parse Requested'
 
+const isPutThinkingScheduleHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Schedule' }> = (
+    h
+): h is StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Schedule' } =>
+    h.dataSourceKey === 'api.ephemera' && h.type === 'Put Thinking Schedule'
+
 export const isEphemeraApiPutCacheRecordEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     PutCacheRecordCommand,
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Cache Record' }
@@ -99,6 +111,11 @@ export const isEphemeraApiParseRequestedEnvelope = makeStreamingEnvelopeGuardFro
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Parse Requested' }
 >(isParseRequestedHeader)
 
+export const isEphemeraApiPutThinkingScheduleEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    PutThinkingScheduleCommand,
+    StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Schedule' }
+>(isPutThinkingScheduleHeader)
+
 export const isEphemeraApiSubscribedHeader: HeaderGuard<EphemeraApiSubscribedHeader> = (
     header
 ): header is EphemeraApiSubscribedHeader =>
@@ -107,6 +124,7 @@ export const isEphemeraApiSubscribedHeader: HeaderGuard<EphemeraApiSubscribedHea
     || isStateChangeHeader(header)
     || isObjectsChangeHeader(header)
     || isParseRequestedHeader(header)
+    || isPutThinkingScheduleHeader(header)
 
 export const isEphemeraApiSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     EphemeraApiCommandPayload,
@@ -215,6 +233,28 @@ export function sendParseRequested(bus: Bus, streamKey: string, content: ParseRe
         streamKey,
         timestamp,
         type: 'Parse Requested',
+    }
+    const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
+    bus.send({
+        type: 'StreamingEvent',
+        dataSourceKey: 'api.ephemera',
+        streamKey,
+        header: envelope.header,
+        getContent: envelope.getContent,
+        timestamp,
+    })
+}
+
+/**
+ * Post **Put Thinking Schedule** to the internal bus for `mtw.ephemera.thinking.scheduling` persistence.
+ */
+export function sendPutThinkingSchedule(bus: Bus, streamKey: string, content: PutThinkingScheduleCommand): void {
+    const timestamp = Date.now()
+    const header: StreamingEventHeader = {
+        dataSourceKey: 'api.ephemera',
+        streamKey,
+        timestamp,
+        type: 'Put Thinking Schedule',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
     bus.send({

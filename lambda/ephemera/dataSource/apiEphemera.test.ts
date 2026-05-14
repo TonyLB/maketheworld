@@ -3,11 +3,13 @@ import {
     sendDeleteCacheRecords,
     sendStateChange,
     sendObjectsChange,
+    sendPutThinkingSchedule,
     isEphemeraApiSubscribedEnvelope,
     isEphemeraApiPutCacheRecordEnvelope,
     isEphemeraApiDeleteCacheRecordsEnvelope,
     isEphemeraApiStateChangeEnvelope,
     isEphemeraApiObjectsChangeEnvelope,
+    isEphemeraApiPutThinkingScheduleEnvelope,
 } from './apiEphemera'
 import type { StreamingEventMessage } from '../messageBus/baseClasses'
 import type { StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
@@ -39,6 +41,14 @@ describe('apiEphemera', () => {
     const minimalDeleteRecords = {
         componentId: 'ROOM#room-one' as const,
         dataCategories: ['CACHE#one', 'CACHE#two'],
+    }
+
+    const minimalThinkingSchedule = {
+        schemaVersion: 1,
+        generationId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+        workItemId: '11111111-2222-3333-4444-555555555555',
+        segment: 'candidates' as const,
+        scheduleStatus: 'scheduled' as const,
     }
 
     it('sendPutCacheRecord posts StreamingEvent with api.ephemera header and streamKey', () => {
@@ -201,6 +211,46 @@ describe('apiEphemera', () => {
         }
         expect(isEphemeraApiSubscribedEnvelope(envelope)).toBe(true)
         expect(isEphemeraApiObjectsChangeEnvelope(envelope)).toBe(true)
+    })
+
+    it('sendPutThinkingSchedule posts StreamingEvent with Put Thinking Schedule type', async () => {
+        const { sent, bus } = makeBus()
+        sendPutThinkingSchedule(bus, 'JOB#aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', minimalThinkingSchedule)
+
+        expect(sent).toHaveLength(1)
+        const msg = sent[0]
+        expect(msg.type).toBe('StreamingEvent')
+        expect(msg.dataSourceKey).toBe('api.ephemera')
+        expect(msg.streamKey).toBe('JOB#aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')
+        expect(msg.header.type).toBe('Put Thinking Schedule')
+        const content = await msg.getContent()
+        expect(content).toEqual(minimalThinkingSchedule)
+    })
+
+    it('sendPutThinkingSchedule getContent includes optional enqueuedAt', async () => {
+        const { sent } = makeBus()
+        sendPutThinkingSchedule(
+            { send: (p) => sent.push(p) },
+            'JOB#g1',
+            { ...minimalThinkingSchedule, enqueuedAt: '2026-01-01T00:00:00.000Z' }
+        )
+        const internal = await sent[0].getContent()
+        expect(internal).toMatchObject({
+            enqueuedAt: '2026-01-01T00:00:00.000Z',
+            scheduleStatus: 'scheduled',
+        })
+    })
+
+    it('isEphemeraApiSubscribedEnvelope accepts api.ephemera Put Thinking Schedule envelope', async () => {
+        const { sent, bus } = makeBus()
+        sendPutThinkingSchedule(bus, 'JOB#x', minimalThinkingSchedule)
+        const msg = sent[0]
+        const envelope: StreamingEventEnvelope<unknown> = {
+            header: msg.header,
+            getContent: msg.getContent,
+        }
+        expect(isEphemeraApiSubscribedEnvelope(envelope)).toBe(true)
+        expect(isEphemeraApiPutThinkingScheduleEnvelope(envelope)).toBe(true)
     })
 
     it('isEphemeraApiSubscribedEnvelope rejects wrong dataSourceKey', () => {
