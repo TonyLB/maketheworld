@@ -60,6 +60,7 @@ All event contracts are now centralized in the `mtw-interfaces` package:
 - **WML Events**: Content and zone change events
 - **Assets Events**: Component and asset-level events with sub-sources
 - **Ephemera Events**: Real-time game state events
+- **Ephemera Thinking**: Schedule + thinking-result envelopes for `mtw.ephemera.thinking` (see [`ephemera/thinking/index.ts`](./ephemera/thinking/index.ts))
 - **Connections Events**: Session lifecycle, character registration, and problem-report events (`mtw.connections`); see [`connections/index.ts`](./connections/index.ts)
 - **Connections Characters (sub-source)**: Character presence transition events (`mtw.connections.characters`); see [`connections/characters/index.ts`](./connections/characters/index.ts)
 - **Diagnostics Events**: Findings and diagnostics-domain events (`mtw.diagnostics`)
