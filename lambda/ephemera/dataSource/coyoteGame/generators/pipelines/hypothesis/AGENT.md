@@ -36,6 +36,10 @@ The hypothesis pipeline is the production path for `Objects Changed` events in C
 
 This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock wrappers for that flow.
 
+## Thinking result reads (Ephemera)
+
+Do not add **raw `ephemeraDB`** reads for **`TASK#...` + `Meta::Result`** (or ad-hoc job/result key shapes) from prompts or pipeline modules. Use **`internalCache.ThinkingResults`** or **`@tonylb/mtw-gateways/ts/ephemera/thinking`** (`fetchThinkingResult`, `queryTaskRowsForJob`, etc.). See [`../../../../dataSource/thinking/AGENT.md`](../../../../dataSource/thinking/AGENT.md).
+
 ## Layout
 
 - `candidates/`: first-hop (**`candidates`** phase) prompt, parse, and combine modules.

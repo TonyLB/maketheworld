@@ -2,12 +2,16 @@
 
 import CacheRoomCharacterListsData from './roomCharacterLists';
 import CacheCharacterMetaData from './characterMeta';
-import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB';
+import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB';
 
 import {
     createEphemeraComponentAssetMetaCacheHandler,
     EphemeraComponentAssetMetaCache,
 } from '@tonylb/mtw-gateways/ts/assets/components/assetMeta';
+import {
+    createThinkingResultReadCacheHandler,
+    ThinkingResultReadCache,
+} from '@tonylb/mtw-gateways/ts/ephemera/thinking';
 import ComponentEphemeraMetaData from './componentEphemeraMeta';
 import { AssetMetaData } from './assetMeta';
 import { CacheAssetRoomsData, CacheRoomAssetsData } from './assetRooms';
@@ -68,6 +72,7 @@ export class InternalCache {
     GraphEdges: GraphEdgeType;
     
     ComponentAssetMeta: EphemeraComponentAssetMetaCache = createEphemeraComponentAssetMetaCacheHandler(assetDB);
+    ThinkingResults: ThinkingResultReadCache = createThinkingResultReadCacheHandler(ephemeraDB);
     ComponentEphemeraMeta: ComponentEphemeraMetaData = new ComponentEphemeraMetaData();
     AssetMetaData: AssetMetaData = new AssetMetaData();
 
@@ -136,6 +141,7 @@ export class InternalCache {
         this.PlayerSessions.clear()
         this._graphCache.clear()
         this.ComponentAssetMeta.clear()
+        this.ThinkingResults.clear()
         this.ComponentEphemeraMeta.clear()
         this.AssetMetaData.clear()
 
@@ -152,6 +158,7 @@ export class InternalCache {
         await Promise.all([
             this._graphCache.flush(),
             this.ComponentAssetMeta.flush(),
+            this.ThinkingResults.flush(),
             this.AssetMetaData.flush(),
             this.ComponentRender.flush(),
             this.ComponentStackMerge.flush(),

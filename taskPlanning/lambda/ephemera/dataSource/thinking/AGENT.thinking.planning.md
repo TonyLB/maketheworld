@@ -44,19 +44,20 @@ For **`mtw.ephemera.thinking`**:
 
 ## Decisions (locked)
 
-### Dynamo: job partition + task adjacency
+### Dynamo: job partition + task adjacency + task-owned payloads
 
-Primary access is **by run / generation** (dispatcher, dashboards, debugging): **list everything for one job in a single `Query`**.
+Primary **job-wide** access (dispatcher, dashboards, debugging): **list work items for one job in a single `Query`** on **`JOB#${generationId}`**.
 
-- **`EphemeraId`:** `JOB#${generationId}` (same id as the run's **generation** for the first consumer; if **job id** ever diverges from generation, document the mapping in durable `AGENT.md` and keep the `JOB#` prefix pattern).
-- **Job metadata row:** same partition, a single well-known sort key **`Meta::Job`** for run-level metadata (status, timestamps, optional denormalized summaries, pointers, etc.).
-- **Per-work-item rows:** same partition, **separate `DataCategory` values** for **schedule** vs **thinking result** (exact suffix grammar in code, e.g. `TASK#${workItemId}#Schedule` and `TASK#${workItemId}#Result` or another consistent pair). **Lifecycle:** the **schedule** line exists when the item is enqueued / claimable; the **thinking result** line appears when work **finishes** (success or failure), not at schedule time --- so a task may have **only** the schedule row for part of its life. Listing a job still uses `begins_with(DataCategory, "TASK#")` or tighter prefixes as needed.
+- **`EphemeraId` (job):** `JOB#${generationId}` (same id as the run's **generation** for the first consumer; if **job id** ever diverges from generation, document the mapping in durable `AGENT.md` and keep the `JOB#` prefix pattern).
+- **Job metadata row:** same partition, sort key **`Meta::Job`** for run-level metadata (status, timestamps, optional denormalized summaries, pointers, etc.).
+- **Job adjacency (membership):** same partition, one lightweight row per work item: **`DataCategory`:** `TASK#${workItemId}` (same string as the task partition id below). Associates the work item with the job; **payloads are not stored here**.
+- **Task-owned rows:** partition **`EphemeraId`:** `TASK#${workItemId}`. **`DataCategory`** distinguishes line types, including **`Meta::Result`** (thinking result payload) and **`Meta::Schedule`** (schedule state when implemented). **Lifecycle:** schedule / membership may exist before a unit finishes; the **result** line appears under **`Meta::Result`** when work **finishes** (success or failure). Listing a job still uses **`Query`** on **`JOB#${generationId}`** with `begins_with(DataCategory, "TASK#")` for adjacency lines.
 
 **Not** the primary pattern for this initiative: **`THINKING#${workItemId}`** as the hash key (that optimizes "one partition per task" but makes **job-wide listing** require a GSI). **Room-scoped** partitions are **out of scope** for current Coyote-global hypothesis work; a **future** scheduler that also drives **component-scoped** work (e.g. alongside **`renderCache`** generation) can reuse the same **`JOB#` / `TASK#` idea** with a different **`EphemeraId` namespace** (e.g. `ROOM#...` / `FEATURE#...`) without changing the mental model.
 
 ### Indexes
 
-- **Primary:** **`EphemeraId` + `DataCategory`** on the Ephemera table is the main access path (job-scoped `Query`, exact `GetItem` on schedule/result lines).
+- **Primary:** **`EphemeraId` + `DataCategory`** on the Ephemera table is the main access path (job-scoped **`Query`** for adjacency, **`GetItem`** on **`TASK#${workItemId}`** + **`Meta::Result`** / **`Meta::Schedule`** for task-owned payloads).
 - **Secondary:** use the existing **`DataCategoryIndex`** ([`template.yaml`](../../../../../template.yaml)) when a query pattern needs it. **No new GSI** is planned for MVP unless a concrete requirement appears (for example **`workItemId`-only** lookup without `generationId`).
 - **Throughput:** all writes for one generation share the **`JOB#...`** partition; acceptable for expected Coyote **N**; revisit if fan-out or coordinator churn grows large.
 
@@ -127,15 +128,15 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 - [X] **TypeScript contracts** in **`@tonylb/mtw-interfaces`** under **`eventBridge/ephemera/thinking/`** (schedule + thinking-result envelopes, `schemaVersion`, `generationId`, `workItemId`, `segment`, verbose-first shapes toward harness inject types)
 
 - [ ] **Results spine (phase-zero priority)**
-  - [ ] Results **read gateway** in **`@tonylb/mtw-gateways`** (keys, query/`GetItem` helpers, row normalization; optional **`InternalCache`** handler factories). Ephemera **registers** handlers only. **No** scattered **`ephemeraDB`** calls from prompt files or ad-hoc lambda modules for those read shapes.
+  - [X] Results **read gateway** in **`@tonylb/mtw-gateways`** (keys, query/`GetItem` helpers, row normalization; optional **`InternalCache`** handler factories). Ephemera **registers** handlers only. **No** scattered **`ephemeraDB`** calls from prompt files or ad-hoc lambda modules for those read shapes.
   - [ ] Results **persistence** in ephemera (prefixed items in Ephemera table; idempotent finalize per `workItemId`; writes stay out of **`mtw-gateways`**).
   - [ ] **`internalCache`** for thinking results (if needed for read-after-write and test injection; justify in PR if skipped).
   - [ ] **Thinking results DataSource**: stub registration, then persistence integration if results publish on bus later; otherwise document why DS is deferred.
-  - [ ] **Hypothesis pipeline migration** (`generateHypothesis` / `coyoteHypothesisPipeline`): mint `generationId`, pre-mint per-task `workItemId`s, persist rows under **`JOB#${generationId}`** per **Decisions** (`TASK#...` / `Meta::Job`): **schedule** row when a unit is scheduled; **thinking result** row when that unit **completes** (in sync MVP, result may land in the same invocation as schedule, or schedule may be elided until dispatch exists --- document in `AGENT.md`). **Verbose defaults on** for MVP; align payload shapes with [`coyoteHarnessInjectTypes.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHarnessInjectTypes.ts) / fixtures direction.
+  - [ ] **Hypothesis pipeline migration** (`generateHypothesis` / `coyoteHypothesisPipeline`): mint `generationId`, pre-mint per-task `workItemId`s, persist per **Decisions**: **`JOB#${generationId}`** + **`Meta::Job`**; adjacency **`JOB#${generationId}`** + **`DataCategory` `TASK#${workItemId}`**; **schedule** payload on **`TASK#${workItemId}`** + **`Meta::Schedule`** when a unit is scheduled; **thinking result** on **`TASK#${workItemId}`** + **`Meta::Result`** when that unit **completes** (in sync MVP, result may land in the same invocation as schedule, or schedule may be elided until dispatch exists --- document in `AGENT.md`). **Verbose defaults on** for MVP; align payload shapes with [`coyoteHarnessInjectTypes.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHarnessInjectTypes.ts) / fixtures direction.
   - [ ] **Ephemera API** for results lookup (keys and JSON contract; block client plan until minimal contract exists).
 
 - [ ] **Schedule spine**
-  - [ ] Schedule **read helpers** in **`@tonylb/mtw-gateways`** once schedule rows are encoded (same read/write split as results). **Enqueue / claim** mutations stay in the scheduling **`EphemeraDataSource`** (may no-op internally at first).
+  - [ ] Schedule **read helpers** in **`@tonylb/mtw-gateways`** once schedule rows are encoded (same read/write split as results): treat **`JOB#${generationId}`** + **`DataCategory` `TASK#${workItemId}`** as **adjacency only**; read schedule payloads with **`GetItem`** on **`TASK#${workItemId}`** + **`Meta::Schedule`** (mirror the results gateway pattern). **Enqueue / claim** mutations stay in the scheduling **`EphemeraDataSource`** (may no-op internally at first).
   - [ ] **`mtw.ephemera.thinking.scheduling` DataSource**: stub, then persistence for work items when the schema is ready.
   - [ ] **Publish** **`mtw.ephemera.thinking.scheduling`** as **replayable** + **EventBridge** (template, IAM, publisher strategy; unblock client subscribe).
 
@@ -148,7 +149,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 | Track | Notes |
 | --- | --- |
 | Contracts | Durable [`AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md); [`ephemera/thinking`](../../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/thinking/) types + `ThinkingEventSerializer` + Jest |
-| Results persistence + pipeline | |
+| Results persistence + pipeline | Read gateway: [`@tonylb/mtw-gateways/ts/ephemera/thinking`](../../../../../packages/mtw-gateways/ts/ephemera/thinking/index.ts), `internalCache.ThinkingResults`; persistence + pipeline next. |
 | API | |
 | Schedule + EventBridge | |
 
