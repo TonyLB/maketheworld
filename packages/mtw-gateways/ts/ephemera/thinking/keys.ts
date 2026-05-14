@@ -34,11 +34,14 @@ export const jobTaskAdjacencyDataCategory = (workItemId: string): string => task
 /** `DataCategory` for the thinking result payload on the **`TASK#${workItemId}`** partition. */
 export const thinkingResultMetaDataCategory = (): typeof META_RESULT => META_RESULT
 
-/** `DataCategory` for schedule state on the **`TASK#${workItemId}`** partition (read path TBD). */
+/** `DataCategory` for schedule state on the **`TASK#${workItemId}`** partition. */
 export const thinkingScheduleMetaDataCategory = (): typeof META_SCHEDULE => META_SCHEDULE
 
 export const isThinkingResultMetaDataCategory = (dataCategory: string): dataCategory is typeof META_RESULT =>
     dataCategory === META_RESULT
+
+export const isThinkingScheduleMetaDataCategory = (dataCategory: string): dataCategory is typeof META_SCHEDULE =>
+    dataCategory === META_SCHEDULE
 
 /** True when `EphemeraId` is the task partition for `workItemId` (same as `taskEphemeraId`). */
 export const isTaskPartitionEphemeraId = (ephemeraId: string, workItemId: string): boolean =>

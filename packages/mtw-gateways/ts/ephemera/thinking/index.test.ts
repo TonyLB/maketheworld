@@ -1,8 +1,11 @@
 import {
     createThinkingResultReadCacheHandler,
+    createThinkingScheduleReadCacheHandler,
     filterThinkingResultRows,
+    filterThinkingScheduleRows,
     getJobMetaItem,
     getTaskResultItem,
+    getTaskScheduleItem,
     jobEphemeraId,
     jobMetaDataCategory,
     jobTaskAdjacencyDataCategory,
@@ -11,6 +14,8 @@ import {
     taskEphemeraId,
     thinkingResultMetaDataCategory,
     thinkingResultFromEphemeraItem,
+    thinkingScheduleFromEphemeraItem,
+    thinkingScheduleMetaDataCategory,
 } from './index'
 
 describe('thinking ephemera gateway keys', () => {
@@ -21,6 +26,7 @@ describe('thinking ephemera gateway keys', () => {
         expect(taskEphemeraId(wid)).toBe(`TASK#${wid}`)
         expect(jobTaskAdjacencyDataCategory(wid)).toBe(`TASK#${wid}`)
         expect(thinkingResultMetaDataCategory()).toBe('Meta::Result')
+        expect(thinkingScheduleMetaDataCategory()).toBe('Meta::Schedule')
         expect(jobMetaDataCategory()).toBe('Meta::Job')
     })
 
@@ -57,6 +63,19 @@ describe('thinking ephemera gateway fetch', () => {
         await getTaskResultItem(db, wid)
         expect(db.getItem).toHaveBeenCalledWith({
             Key: { EphemeraId: `TASK#${wid}`, DataCategory: 'Meta::Result' },
+            getAllFields: true,
+        })
+    })
+
+    it('getTaskScheduleItem uses TASK partition and Meta::Schedule', async () => {
+        const db = {
+            query: jest.fn(),
+            getItem: jest.fn().mockResolvedValue(undefined),
+        }
+        const wid = '660e8400-e29b-41d4-a716-446655440001'
+        await getTaskScheduleItem(db, wid)
+        expect(db.getItem).toHaveBeenCalledWith({
+            Key: { EphemeraId: `TASK#${wid}`, DataCategory: 'Meta::Schedule' },
             getAllFields: true,
         })
     })
@@ -129,6 +148,63 @@ describe('filterThinkingResultRows', () => {
     })
 })
 
+describe('thinkingScheduleFromEphemeraItem', () => {
+    const validBody = {
+        schemaVersion: 1,
+        generationId: '550e8400-e29b-41d4-a716-446655440000',
+        workItemId: '660e8400-e29b-41d4-a716-446655440001',
+        segment: 'candidates' as const,
+        scheduleStatus: 'scheduled' as const,
+        enqueuedAt: '2026-01-01T00:00:00.000Z',
+    }
+
+    it('returns ThinkingScheduleEvent when contract fields are top-level', () => {
+        const item = {
+            EphemeraId: 'TASK#660e8400-e29b-41d4-a716-446655440001',
+            DataCategory: 'Meta::Schedule',
+            ...validBody,
+        }
+        expect(thinkingScheduleFromEphemeraItem(item)).toEqual(validBody)
+    })
+
+    it('returns null for malformed payloads', () => {
+        expect(thinkingScheduleFromEphemeraItem({ EphemeraId: 'x', DataCategory: 'y', scheduleStatus: 'scheduled' })).toBeNull()
+        expect(thinkingScheduleFromEphemeraItem(null)).toBeNull()
+    })
+})
+
+describe('filterThinkingScheduleRows', () => {
+    it('keeps TASK# partition + Meta::Schedule rows that normalize', () => {
+        const wid = '660e8400-e29b-41d4-a716-446655440001'
+        const good = {
+            EphemeraId: `TASK#${wid}`,
+            DataCategory: 'Meta::Schedule',
+            schemaVersion: 1,
+            generationId: '550e8400-e29b-41d4-a716-446655440000',
+            workItemId: wid,
+            segment: 'candidates',
+            scheduleStatus: 'claimed',
+        }
+        const result = {
+            EphemeraId: `TASK#${wid}`,
+            DataCategory: 'Meta::Result',
+            schemaVersion: 1,
+            generationId: '550e8400-e29b-41d4-a716-446655440000',
+            workItemId: wid,
+            segment: 'candidates',
+            ok: true,
+            completedAt: '2026-01-01T00:00:00.000Z',
+        }
+        const jobAdjacency = {
+            EphemeraId: 'JOB#550e8400-e29b-41d4-a716-446655440000',
+            DataCategory: `TASK#${wid}`,
+        }
+        const out = filterThinkingScheduleRows([good, result, jobAdjacency, { DataCategory: 'Meta::Job' }])
+        expect(out).toHaveLength(1)
+        expect(out[0]?.scheduleStatus).toBe('claimed')
+    })
+})
+
 describe('createThinkingResultReadCacheHandler', () => {
     it('dedupes parallel gets for the same workItemId into one getItem', async () => {
         const wid = '660e8400-e29b-41d4-a716-446655440001'
@@ -167,6 +243,50 @@ describe('createThinkingResultReadCacheHandler', () => {
             getItem: jest.fn().mockResolvedValue(item),
         }
         const cache = createThinkingResultReadCacheHandler(db)
+        await cache.get('w')
+        expect(db.getItem).toHaveBeenCalledTimes(1)
+        cache.clear()
+        await cache.get('w')
+        expect(db.getItem).toHaveBeenCalledTimes(2)
+    })
+})
+
+describe('createThinkingScheduleReadCacheHandler', () => {
+    it('dedupes parallel gets for the same workItemId into one getItem', async () => {
+        const wid = '660e8400-e29b-41d4-a716-446655440001'
+        const item = {
+            EphemeraId: `TASK#${wid}`,
+            DataCategory: 'Meta::Schedule',
+            schemaVersion: 1,
+            generationId: '550e8400-e29b-41d4-a716-446655440000',
+            workItemId: wid,
+            segment: 'candidates' as const,
+            scheduleStatus: 'scheduled' as const,
+        }
+        const db = {
+            query: jest.fn(),
+            getItem: jest.fn().mockResolvedValue(item),
+        }
+        const cache = createThinkingScheduleReadCacheHandler(db)
+        await Promise.all([cache.get(wid), cache.get(wid)])
+        expect(db.getItem).toHaveBeenCalledTimes(1)
+    })
+
+    it('clear allows a subsequent get to fetch again', async () => {
+        const item = {
+            EphemeraId: 'TASK#w',
+            DataCategory: 'Meta::Schedule',
+            schemaVersion: 1,
+            generationId: 'g',
+            workItemId: 'w',
+            segment: 'candidates' as const,
+            scheduleStatus: 'scheduled' as const,
+        }
+        const db = {
+            query: jest.fn(),
+            getItem: jest.fn().mockResolvedValue(item),
+        }
+        const cache = createThinkingScheduleReadCacheHandler(db)
         await cache.get('w')
         expect(db.getItem).toHaveBeenCalledTimes(1)
         cache.clear()

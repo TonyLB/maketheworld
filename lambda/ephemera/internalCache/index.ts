@@ -10,7 +10,9 @@ import {
 } from '@tonylb/mtw-gateways/ts/assets/components/assetMeta';
 import {
     createThinkingResultReadCacheHandler,
+    createThinkingScheduleReadCacheHandler,
     ThinkingResultReadCache,
+    ThinkingScheduleReadCache,
 } from '@tonylb/mtw-gateways/ts/ephemera/thinking';
 import ComponentEphemeraMetaData from './componentEphemeraMeta';
 import { AssetMetaData } from './assetMeta';
@@ -73,6 +75,7 @@ export class InternalCache {
     
     ComponentAssetMeta: EphemeraComponentAssetMetaCache = createEphemeraComponentAssetMetaCacheHandler(assetDB);
     ThinkingResults: ThinkingResultReadCache = createThinkingResultReadCacheHandler(ephemeraDB);
+    ThinkingSchedules: ThinkingScheduleReadCache = createThinkingScheduleReadCacheHandler(ephemeraDB);
     ComponentEphemeraMeta: ComponentEphemeraMetaData = new ComponentEphemeraMetaData();
     AssetMetaData: AssetMetaData = new AssetMetaData();
 
@@ -142,6 +145,7 @@ export class InternalCache {
         this._graphCache.clear()
         this.ComponentAssetMeta.clear()
         this.ThinkingResults.clear()
+        this.ThinkingSchedules.clear()
         this.ComponentEphemeraMeta.clear()
         this.AssetMetaData.clear()
 
@@ -159,6 +163,7 @@ export class InternalCache {
             this._graphCache.flush(),
             this.ComponentAssetMeta.flush(),
             this.ThinkingResults.flush(),
+            this.ThinkingSchedules.flush(),
             this.AssetMetaData.flush(),
             this.ComponentRender.flush(),
             this.ComponentStackMerge.flush(),

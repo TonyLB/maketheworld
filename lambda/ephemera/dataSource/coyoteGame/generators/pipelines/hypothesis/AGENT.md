@@ -38,7 +38,7 @@ This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock
 
 ## Thinking result reads (Ephemera)
 
-Do not add **raw `ephemeraDB`** reads for **`TASK#...` + `Meta::Result`** (or ad-hoc job/result key shapes) from prompts or pipeline modules. Use **`internalCache.ThinkingResults`** or **`@tonylb/mtw-gateways/ts/ephemera/thinking`** (`fetchThinkingResult`, `queryTaskRowsForJob`, etc.). See [`../../../../dataSource/thinking/AGENT.md`](../../../../dataSource/thinking/AGENT.md).
+Do not add **raw `ephemeraDB`** reads for **`TASK#...` + `Meta::Result`** or **`TASK#...` + `Meta::Schedule`** (or ad-hoc job/result/schedule key shapes) from prompts or pipeline modules. Use **`internalCache.ThinkingResults`** / **`internalCache.ThinkingSchedules`** or **`@tonylb/mtw-gateways/ts/ephemera/thinking`** (`fetchThinkingResult`, `fetchThinkingSchedule`, `queryTaskRowsForJob`, etc.). See [`../../../../dataSource/thinking/AGENT.md`](../../../../dataSource/thinking/AGENT.md).
 
 ## Layout
 

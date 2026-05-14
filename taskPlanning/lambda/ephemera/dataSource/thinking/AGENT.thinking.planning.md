@@ -130,13 +130,13 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 - [ ] **Results spine (phase-zero priority)**
   - [X] Results **read gateway** in **`@tonylb/mtw-gateways`** (keys, query/`GetItem` helpers, row normalization; optional **`InternalCache`** handler factories). Ephemera **registers** handlers only. **No** scattered **`ephemeraDB`** calls from prompt files or ad-hoc lambda modules for those read shapes.
   - [ ] Results **persistence** in ephemera (prefixed items in Ephemera table; idempotent finalize per `workItemId`; writes stay out of **`mtw-gateways`**).
-  - [ ] **`internalCache`** for thinking results (if needed for read-after-write and test injection; justify in PR if skipped).
+  - [X] **`internalCache`** for thinking results (if needed for read-after-write and test injection; justify in PR if skipped).
   - [ ] **Thinking results DataSource**: stub registration, then persistence integration if results publish on bus later; otherwise document why DS is deferred.
   - [ ] **Hypothesis pipeline migration** (`generateHypothesis` / `coyoteHypothesisPipeline`): mint `generationId`, pre-mint per-task `workItemId`s, persist per **Decisions**: **`JOB#${generationId}`** + **`Meta::Job`**; adjacency **`JOB#${generationId}`** + **`DataCategory` `TASK#${workItemId}`**; **schedule** payload on **`TASK#${workItemId}`** + **`Meta::Schedule`** when a unit is scheduled; **thinking result** on **`TASK#${workItemId}`** + **`Meta::Result`** when that unit **completes** (in sync MVP, result may land in the same invocation as schedule, or schedule may be elided until dispatch exists --- document in `AGENT.md`). **Verbose defaults on** for MVP; align payload shapes with [`coyoteHarnessInjectTypes.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHarnessInjectTypes.ts) / fixtures direction.
   - [ ] **Ephemera API** for results lookup (keys and JSON contract; block client plan until minimal contract exists).
 
 - [ ] **Schedule spine**
-  - [ ] Schedule **read helpers** in **`@tonylb/mtw-gateways`** once schedule rows are encoded (same read/write split as results): treat **`JOB#${generationId}`** + **`DataCategory` `TASK#${workItemId}`** as **adjacency only**; read schedule payloads with **`GetItem`** on **`TASK#${workItemId}`** + **`Meta::Schedule`** (mirror the results gateway pattern). **Enqueue / claim** mutations stay in the scheduling **`EphemeraDataSource`** (may no-op internally at first).
+  - [X] Schedule **read helpers** in **`@tonylb/mtw-gateways`** once schedule rows are encoded (same read/write split as results): treat **`JOB#${generationId}`** + **`DataCategory` `TASK#${workItemId}`** as **adjacency only**; read schedule payloads with **`GetItem`** on **`TASK#${workItemId}`** + **`Meta::Schedule`** (mirror the results gateway pattern). **Enqueue / claim** mutations stay in the scheduling **`EphemeraDataSource`** (may no-op internally at first).
   - [ ] **`mtw.ephemera.thinking.scheduling` DataSource**: stub, then persistence for work items when the schema is ready.
   - [ ] **Publish** **`mtw.ephemera.thinking.scheduling`** as **replayable** + **EventBridge** (template, IAM, publisher strategy; unblock client subscribe).
 
@@ -151,7 +151,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 | Contracts | Durable [`AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md); [`ephemera/thinking`](../../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/thinking/) types + `ThinkingEventSerializer` + Jest |
 | Results persistence + pipeline | Read gateway: [`@tonylb/mtw-gateways/ts/ephemera/thinking`](../../../../../packages/mtw-gateways/ts/ephemera/thinking/index.ts), `internalCache.ThinkingResults`; persistence + pipeline next. |
 | API | |
-| Schedule + EventBridge | |
+| Schedule + EventBridge | Schedule read path: same gateway module + `internalCache.ThinkingSchedules`; [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md) documents **`Meta::Schedule`** row shape. Persistence + EventBridge remain. |
 
 ## Related GitHub issues (optional index)
 

@@ -34,6 +34,7 @@ Different handlers use specific cache key formats:
 - **Character Meta**: `{CharacterId}`
 - **Asset State**: `{AssetId}::{StateType}`
 - **Thinking results** (`internalCache.ThinkingResults`): `{workItemId}`
+- **Thinking schedules** (`internalCache.ThinkingSchedules`): `{workItemId}`
 
 ## Common Cache Handler Patterns
 

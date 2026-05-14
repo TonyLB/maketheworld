@@ -1,11 +1,12 @@
-import { thinkingResultFromEphemeraItem } from './normalize'
-import type { ThinkingResultEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
+import { thinkingResultFromEphemeraItem, thinkingScheduleFromEphemeraItem } from './normalize'
+import type { ThinkingResultEvent, ThinkingScheduleEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
 
 import {
     jobEphemeraId,
     jobMetaDataCategory,
     taskEphemeraId,
     thinkingResultMetaDataCategory,
+    thinkingScheduleMetaDataCategory,
     THINKING_TASK_DATA_CATEGORY_PREFIX,
 } from './keys'
 
@@ -29,7 +30,7 @@ export type EphemeraThinkingReadDB = {
 
 /**
  * Adjacency rows under **`JOB#${generationId}`** (`DataCategory` begins with **`TASK#`**).
- * These rows associate work items with the job; payloads (results) live on **`TASK#${workItemId}`** + **`Meta::Result`**.
+ * These rows associate work items with the job; payloads live on **`TASK#${workItemId}`** + **`Meta::Result`** / **`Meta::Schedule`**.
  */
 export const queryTaskRowsForJob = async (
     db: EphemeraThinkingReadDB,
@@ -51,6 +52,19 @@ export const getTaskResultItem = async (
         Key: {
             EphemeraId: taskEphemeraId(workItemId),
             DataCategory: thinkingResultMetaDataCategory(),
+        },
+        getAllFields: true,
+    })
+}
+
+export const getTaskScheduleItem = async (
+    db: EphemeraThinkingReadDB,
+    workItemId: string
+): Promise<Record<string, unknown> | undefined> => {
+    return db.getItem({
+        Key: {
+            EphemeraId: taskEphemeraId(workItemId),
+            DataCategory: thinkingScheduleMetaDataCategory(),
         },
         getAllFields: true,
     })
@@ -78,4 +92,12 @@ export const fetchThinkingResult = async (
 ): Promise<ThinkingResultEvent | null> => {
     const item = await getTaskResultItem(db, workItemId)
     return item ? thinkingResultFromEphemeraItem(item) : null
+}
+
+export const fetchThinkingSchedule = async (
+    db: EphemeraThinkingReadDB,
+    workItemId: string
+): Promise<ThinkingScheduleEvent | null> => {
+    const item = await getTaskScheduleItem(db, workItemId)
+    return item ? thinkingScheduleFromEphemeraItem(item) : null
 }
