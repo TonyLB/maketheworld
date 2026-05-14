@@ -15,6 +15,13 @@ Subsystem for **durable thinking artifacts**: **schedule** rows (work queued / c
 
 Indexes and lookup patterns beyond this summary: see the task plan **Decisions** and [`template.yaml`](../../../../template.yaml) (`DataCategoryIndex`).
 
+## Read surfaces vs authoritative writes
+
+- **`@tonylb/mtw-gateways`:** shared **read** helpers for thinking rows (key builders, `Query` / `GetItem` composition, normalization, optional **`InternalCache`** / **`DeferredCache`** handler factories). Follow [`packages/mtw-gateways/AGENT.md`](../../../../packages/mtw-gateways/AGENT.md) and add an **ownership table** row when a thinking gateway lands. Ephemera **constructs and registers** handlers; it does not duplicate partition/sort rules outside the package for the same projection.
+- **`lambda/ephemera/dataSource/thinking` (and related ephemera modules):** **`EphemeraDataSource`** code and other ephemera-owned paths perform **writes** (puts, conditional finalize, enqueue/claim) and orchestration. **`mtw-gateways`** does not own mutation paths (see package **Non-goals**).
+
+Task plan split and checklists: [`taskPlanning/lambda/ephemera/dataSource/thinking/AGENT.thinking.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/thinking/AGENT.thinking.planning.md) (**Read surfaces in mtw-gateways vs writes in ephemera**).
+
 ## Shared TypeScript contracts (EventBridge-oriented)
 
 Import from **`@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking`** (schedule and thinking-result envelopes, `schemaVersion`, correlation ids, `segment`, type guards, serializer).
@@ -36,6 +43,7 @@ Publishing a **replayable** schedule feed and bridging **`mtw.ephemera.*`** even
 
 ## Related docs
 
+- Shared read gateways: [`packages/mtw-gateways/AGENT.md`](../../../../packages/mtw-gateways/AGENT.md)
 - Coyote data source: [`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md)
 - Hypothesis pipeline: [`../coyoteGame/generators/pipelines/hypothesis/AGENT.md`](../coyoteGame/generators/pipelines/hypothesis/AGENT.md)
 - In-process runner (orchestration stays separate): [`../../llm/pipeline/AGENT.md`](../../llm/pipeline/AGENT.md)
@@ -43,4 +51,4 @@ Publishing a **replayable** schedule feed and bridging **`mtw.ephemera.*`** even
 
 ## Implementation status
 
-**Gateways, DataSources, persistence, and API** are tracked in the task plan (**Results spine**, **Schedule spine**). This `AGENT.md` is the durable anchor for keys, lifecycle, and links; avoid duplicating full architecture here.
+**Read gateways (`mtw-gateways`), DataSources, persistence, and API** are tracked in the task plan (**Results spine**, **Schedule spine**). This `AGENT.md` is the durable anchor for keys, lifecycle, and links; avoid duplicating full architecture here.
