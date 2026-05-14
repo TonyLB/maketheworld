@@ -8,12 +8,21 @@ Subsystem for **durable thinking artifacts**: **schedule** rows (work queued / c
 
 ## Dynamo keys and row lifecycle (locked)
 
-- **`EphemeraId`:** `JOB#${generationId}` (UUID string; same as the run **generation** for the first consumer).
-- **Job metadata:** one row per job with sort key **`Meta::Job`**.
-- **Per work item:** rows under the same partition with **`DataCategory`** that distinguishes **schedule** vs **thinking result** (exact suffix grammar lives in implementation code, e.g. `TASK#${workItemId}#Schedule` and `TASK#${workItemId}#Result` or another consistent pair).
-- **Lifecycle:** a **schedule** line exists when the item is enqueued / claimable; a **thinking result** line appears when that unit **finishes** (success or failure), not necessarily at schedule time. A task may have **only** a schedule row for part of its life. Listing a job uses `begins_with(DataCategory, "TASK#")` (or a tighter prefix) as implemented.
+- **Job partition** **`EphemeraId`:** `JOB#${generationId}` (UUID string; same as the run **generation** for the first consumer).
+- **Job metadata:** one row per job on that partition with sort key **`Meta::Job`**.
+- **Job adjacency (membership):** for each work item, a lightweight row **`JOB#${generationId}`** + **`DataCategory`:** `TASK#${workItemId}` (same string as the task partition id below). Associates the work item with the job; **schedule and result bodies** live on **`TASK#${workItemId}`** (**`Meta::Schedule`**, **`Meta::Result`**), not on this adjacency row.
+- **Task partition** **`EphemeraId`:** `TASK#${workItemId}`. Holds task-owned rows addressed by **`DataCategory`**, including **`Meta::Result`** (thinking result payload) and **`Meta::Schedule`** (schedule state when implemented).
+- **Lifecycle:** schedule and membership may exist before a unit finishes; the **result** row appears under **`TASK#${workItemId}`** + **`Meta::Result`** when work completes (success or failure). Listing a job's work items still uses **`Query`** on **`JOB#${generationId}`** with `begins_with(DataCategory, "TASK#")` for adjacency lines.
 
 Indexes and lookup patterns beyond this summary: see the task plan **Decisions** and [`template.yaml`](../../../../template.yaml) (`DataCategoryIndex`).
+
+## Read surfaces vs authoritative writes
+
+- **`@tonylb/mtw-gateways`:** shared **read** helpers under **`@tonylb/mtw-gateways/ts/ephemera/thinking`**: key builders (`JOB#`, `TASK#`, `Meta::Job`, `Meta::Result`, `Meta::Schedule`), **`Query`** on the job partition for adjacency only, **`GetItem`** on **`TASK#${workItemId}`** + **`Meta::Result`** for results (and **`Meta::Schedule`** for schedule when that read path exists), normalization to **`ThinkingResultEvent`**, and **`createThinkingResultReadCacheHandler(ephemeraDB)`** (**`ThinkingResultReadCache`**; cache key **`workItemId`** only). Follow [`packages/mtw-gateways/AGENT.md`](../../../../packages/mtw-gateways/AGENT.md) and the package **ownership table**. Ephemera **`internalCache.ThinkingResults`** registers the cache handler; pipeline code should prefer that or the package **`fetch`** helpers over raw **`ephemeraDB`** for these row shapes.
+    - **Physical row (thinking result):** on **`TASK#${workItemId}`** + **`Meta::Result`**, persisted items carry **`ThinkingResultEvent`** fields at the **top level** (`schemaVersion`, `generationId`, `workItemId`, `segment`, `ok`, `completedAt`, optional `errorCode`, `errorMessage`, `verbose`) alongside `EphemeraId` and `DataCategory`. Keys are stripped before validation. The persistence slice must match this shape.
+- **`lambda/ephemera/dataSource/thinking` (and related ephemera modules):** **`EphemeraDataSource`** code and other ephemera-owned paths perform **writes** (puts, conditional finalize, enqueue/claim) and orchestration. **`mtw-gateways`** does not own mutation paths (see package **Non-goals**).
+
+Task plan split and checklists: [`taskPlanning/lambda/ephemera/dataSource/thinking/AGENT.thinking.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/thinking/AGENT.thinking.planning.md) (**Read surfaces in mtw-gateways vs writes in ephemera**).
 
 ## Shared TypeScript contracts (EventBridge-oriented)
 
@@ -36,6 +45,7 @@ Publishing a **replayable** schedule feed and bridging **`mtw.ephemera.*`** even
 
 ## Related docs
 
+- Shared read gateways: [`packages/mtw-gateways/AGENT.md`](../../../../packages/mtw-gateways/AGENT.md)
 - Coyote data source: [`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md)
 - Hypothesis pipeline: [`../coyoteGame/generators/pipelines/hypothesis/AGENT.md`](../coyoteGame/generators/pipelines/hypothesis/AGENT.md)
 - In-process runner (orchestration stays separate): [`../../llm/pipeline/AGENT.md`](../../llm/pipeline/AGENT.md)
@@ -43,4 +53,4 @@ Publishing a **replayable** schedule feed and bridging **`mtw.ephemera.*`** even
 
 ## Implementation status
 
-**Gateways, DataSources, persistence, and API** are tracked in the task plan (**Results spine**, **Schedule spine**). This `AGENT.md` is the durable anchor for keys, lifecycle, and links; avoid duplicating full architecture here.
+**Read gateway:** shipped in **`@tonylb/mtw-gateways/ts/ephemera/thinking`** (see package **`AGENT.md`** ownership row); ephemera **`internalCache.ThinkingResults`**. **Persistence, API, and schedule/EventBridge** remain in the task plan (**Results spine**, **Schedule spine**). This `AGENT.md` is the durable anchor for keys, lifecycle, and links; avoid duplicating full architecture here.

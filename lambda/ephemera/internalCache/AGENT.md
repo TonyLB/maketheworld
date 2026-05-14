@@ -33,6 +33,7 @@ Different handlers use specific cache key formats:
 - **Render cache rows**: `{EphemeraId}` (Room/Feature/Knowledge component ID; `DeferredCache` + `_Store` mirror, `getExactMatch` for exact lookup)
 - **Character Meta**: `{CharacterId}`
 - **Asset State**: `{AssetId}::{StateType}`
+- **Thinking results** (`internalCache.ThinkingResults`): `{workItemId}`
 
 ## Common Cache Handler Patterns
 
