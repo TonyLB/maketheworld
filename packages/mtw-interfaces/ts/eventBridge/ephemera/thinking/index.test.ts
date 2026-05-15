@@ -9,6 +9,8 @@ import {
     isThinkingEventUpdate,
     isThinkingJobCompletedEvent,
     isThinkingJobCompletedEventExternal,
+    isThinkingCompletedJobsSnapshot,
+    isThinkingCompletedJobsSnapshotExternal,
     isThinkingJobCreateEvent,
     isThinkingJobErrorEvent,
     isThinkingJobStatus,
@@ -196,6 +198,28 @@ describe('thinking eventBridge contracts', () => {
             expect(isThinkingJobCompletedEvent({ ...jobCompleted, jobStatus: 'running' })).toBe(false)
             expect(isThinkingJobCompletedEvent({ ...jobCompleted, jobStatus: 'failed' })).toBe(false)
         })
+
+        it('isThinkingCompletedJobsSnapshot', () => {
+            const scheduleItem = {
+                schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+                generationId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+                workItemId: '11111111-2222-3333-4444-555555555555',
+                segment: 'candidates' as const,
+                scheduleStatus: 'completed' as const
+            }
+            const jobCompleted = {
+                schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+                generationId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+                jobStatus: 'completed' as const,
+                completedAt: '2026-05-14T02:00:00.000Z',
+                schedules: [scheduleItem]
+            }
+            expect(isThinkingCompletedJobsSnapshot({ completedJobs: [] })).toBe(true)
+            expect(isThinkingCompletedJobsSnapshot({ completedJobs: [jobCompleted] })).toBe(true)
+            expect(isThinkingCompletedJobsSnapshotExternal({ completedJobs: [jobCompleted] })).toBe(true)
+            expect(isThinkingCompletedJobsSnapshot({ completedJobs: [{}] })).toBe(false)
+            expect(isThinkingCompletedJobsSnapshot({})).toBe(false)
+        })
     })
 
     describe('ThinkingEventSerializer', () => {
@@ -263,32 +287,50 @@ describe('thinking eventBridge contracts', () => {
             expect(back).toEqual(internal)
         })
 
-        it('throws on Snapshot serialize', () => {
-            expect(() =>
-                serializer.serialize({
-                    content: {
-                        schemaVersion: 1,
-                        generationId: 'g',
-                        workItemId: 'w',
-                        segment: 'candidates',
-                        scheduleStatus: 'scheduled'
-                    },
-                    header: { ...scheduleHeader(), type: 'Snapshot' }
-                })
-            ).toThrow('snapshot')
+        const snapshotHeader = (): StreamingEventHeader => ({
+            dataSourceKey: 'mtw.ephemera.thinking.scheduling',
+            streamKey: 'global',
+            timestamp: 0,
+            type: 'Snapshot'
         })
 
-        it('returns null on Snapshot deserialize', async () => {
+        it('round-trips Snapshot', async () => {
+            const scheduleItem = {
+                schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+                generationId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+                workItemId: '11111111-2222-3333-4444-555555555555',
+                segment: 'candidates' as const,
+                scheduleStatus: 'completed' as const
+            }
+            const internal = {
+                completedJobs: [
+                    {
+                        schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+                        generationId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+                        jobStatus: 'completed' as const,
+                        completedAt: '2026-05-14T02:00:00.000Z',
+                        schedules: [scheduleItem]
+                    }
+                ]
+            }
+            const external = serializer.serialize({ content: internal, header: snapshotHeader() })
+            expect(isThinkingCompletedJobsSnapshotExternal(external)).toBe(true)
+            const back = await serializer.deserialize({ content: external, header: snapshotHeader() })
+            expect(back).toEqual(internal)
+        })
+
+        it('serializes empty Snapshot', () => {
+            const external = serializer.serialize({
+                content: { completedJobs: [] },
+                header: snapshotHeader()
+            })
+            expect(external).toEqual({ completedJobs: [] })
+        })
+
+        it('returns null on invalid Snapshot deserialize', async () => {
             const r = await serializer.deserialize({
-                content: {
-                    type: THINKING_SCHEDULE_HEADER_TYPE,
-                    schemaVersion: 1,
-                    generationId: 'g',
-                    workItemId: 'w',
-                    segment: 'candidates',
-                    scheduleStatus: 'scheduled'
-                },
-                header: { ...scheduleHeader(), type: 'Snapshot' }
+                content: { completedJobs: [{}] } as never,
+                header: snapshotHeader()
             })
             expect(r).toBeNull()
         })

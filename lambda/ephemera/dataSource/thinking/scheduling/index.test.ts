@@ -30,10 +30,10 @@ const validJobError = {
 }
 
 describe('mtw.ephemera.thinking.scheduling DataSource', () => {
-    it('is bus-only with combined api.ephemera thinking scheduling subscription guard', () => {
+    it('is replayable with EventBridge+bus publish and combined api.ephemera subscription guard', () => {
         expect(ephemeraThinkingSchedulingDataSource.dataSourceKey).toBe('mtw.ephemera.thinking.scheduling')
-        expect(ephemeraThinkingSchedulingDataSource.replayable).toBe(false)
-        expect(ephemeraThinkingSchedulingDataSource.publisherStrategy).toBe('busOnly')
+        expect(ephemeraThinkingSchedulingDataSource.replayable).toBe(true)
+        expect(ephemeraThinkingSchedulingDataSource.publisherStrategy).toBe('eventBridge+bus')
         expect(ephemeraThinkingSchedulingDataSource.subscribedEventTypeGuard).toBe(isThinkingSchedulingSubscribedEnvelope)
         expect(typeof ephemeraThinkingSchedulingDataSource.receiveEvents).toBe('function')
     })

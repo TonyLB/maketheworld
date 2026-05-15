@@ -1,6 +1,6 @@
 # charcoal-client: Thinking dashboards and subscriptions (planning)
 
-**Status:** Not started. **Blocked** on server deliverables: **Ephemera API** for thinking results lookup and **EventBridge** replay for **`Job Completed`** (server MVP defers per-hop **`Thinking Schedule`** stream). Contracts for subscribe payloads largely exist in **`@tonylb/mtw-interfaces`**. See server plan **EventBridge publish phasing**.
+**Status:** Not started. **Blocked** on server **Ephemera API** for thinking results lookup. **EventBridge** **`Job Completed`** on streamKey **`global`** is shipped (server); per-hop **`Thinking Schedule`** stream deferred. Contracts for subscribe payloads exist in **`@tonylb/mtw-interfaces`**.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../AGENT.md).
 
@@ -72,7 +72,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 - [ ] **Prerequisites (server-owned; track in companion plan)**
   - [X] **`@tonylb/mtw-interfaces`** types under **`eventBridge/ephemera/thinking/`** for **`Job Completed`**, **`Thinking Schedule`** (wire shape; stream deferred), and thinking-result payloads (API response shapes TBD server-side).
   - [ ] **Ephemera API** for thinking results lookup (stable path and JSON).
-  - [ ] **EventBridge + replayable** **`Job Completed`** publisher for `mtw.ephemera.thinking.scheduling` so the subscriptions bridge delivers WebSocket events (**`Thinking Schedule`** stream not required for MVP).
+  - [X] **EventBridge + replayable** **`Job Completed`** publisher for `mtw.ephemera.thinking.scheduling` (streamKey **`global`**; **`Thinking Schedule`** stream not required for MVP).
 
 - [ ] **Redux slice for thinking results**
   - [ ] Actions/thunks for API fetch by agreed keys (`generationId`, `workItemId`, phase).

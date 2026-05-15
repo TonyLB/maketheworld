@@ -1,6 +1,6 @@
 # Ephemera: `mtw.ephemera.thinking` foundation (planning)
 
-**Status:** In progress. **Shipped:** contracts, read gateways (including **`listThinkingSchedulesForJob`** + **`internalCache.ThinkingJobs`**), **`mtw.ephemera.thinking.results`** + **`mtw.ephemera.thinking.scheduling`** (bootstrap, schedule puts, job error, job rollup + **`Job Completed`** bus emit), Coyote hypothesis persistence (bootstrap, schedule pre-items, **`Thinking Result`** emit, schedule **`completed`** on segment success, job error on failure). Steady-state: [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md). **Next:** **Ephemera API**; **EventBridge** replay + **subscriptions** for **`Job Completed`** only (per-hop **`Thinking Schedule`** stream deferred); archive.
+**Status:** In progress. **Shipped:** contracts, read gateways (including **`listThinkingSchedulesForJob`** + **`internalCache.ThinkingJobs`**), **`mtw.ephemera.thinking.results`** + **`mtw.ephemera.thinking.scheduling`** (bootstrap, schedule puts, job error, job rollup, **`Job Completed`** EventBridge + **subscriptions** on streamKey **`global`**), Coyote hypothesis persistence. Steady-state: [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md). **Next:** **Ephemera API**; archive when Results + Schedule spines close. Per-hop **`Thinking Schedule`** EventBridge stream is **not** in this plan.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -25,7 +25,7 @@ This file is task-scoped. When the initiative is done, **archive or remove** it;
 - **`mtw.ephemera.thinking`** family DataSources: **schedule** uses **`mtw.ephemera.thinking.scheduling`** (**`api.ephemera`** **`Put Thinking Schedule`** ingress); **results** use **`mtw.ephemera.thinking.results`** (CoyoteGame **`Thinking Result`**); richer dispatch / EventBridge replay can extend schedule without changing row keys.
 - **Hypothesis pipeline migration (done):** mint `generationId`, pre-mint per-task `workItemId`s, **`Meta::Job`** / adjacency / **`Meta::Schedule`** / **`Meta::Result`** at persistence boundaries (see durable [`AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md) and hypothesis [`AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md)).
 - **Ephemera API** (or equivalent) for **thinking results lookup** by `generationId`, `workItemId`, and/or `(generationId, segment)` as decided (`segment` = neutral routing key, e.g. `candidates` \| `planSelect` \| `narrativeBeats`).
-- **Publish `Job Completed`** from **`mtw.ephemera.thinking.scheduling`** as **replayable** with **EventBridge** (MVP; coordinates with client plan). Per-hop **`Thinking Schedule`** streaming is a **follow-on** (see [**EventBridge publish phasing**](#eventbridge-publish-phasing-locked)).
+- **Publish `Job Completed`** from **`mtw.ephemera.thinking.scheduling`** as **replayable** with **EventBridge** (MVP; coordinates with client plan). Per-hop **`Thinking Schedule`** EventBridge streaming is **not** in this task plan (see [**EventBridge publish phasing**](#eventbridge-publish-phasing-locked)).
 
 ### Out of scope (unless explicitly pulled in later)
 
@@ -33,6 +33,7 @@ This file is task-scoped. When the initiative is done, **archive or remove** it;
 - **Speculative work** promotion paths, **fan-out/fan-in** execution, and **worker claim pools** beyond schema hooks and documentation notes.
 - Replacing **`CoyoteGame#Intent`** semantics or adding **`generationId` to Intent** in phase zero (explicit follow-on when needed; not part of this plan's checklist).
 - **Finer-than-a-work-item** durable LLM checkpoints: persisting **streaming or partial** model output **while** a **`workItemId`** is still in flight (for example token deltas, incremental JSON, or extra **`DataCategory`** lines beyond **`Meta::Schedule`** / **`Meta::Result`** for that unit). **Not** out of scope: **one** **`Meta::Result`** per **`workItemId`** when **that** unit completes, nor **many** work items (and thus many result rows) per job --- that **is** the intended hop-level durability model.
+- **Per-hop `Thinking Schedule` EventBridge stream** (`streamEvent` after each **`persistThinkingSchedule`** for in-flight timelines). Contracts and serializer support the wire shape; this plan does **not** include implementing that publisher. Use Dynamo + gateways (and **`Job Completed`** + Ephemera API) for MVP debugging.
 
 ### Read surfaces in mtw-gateways vs writes in ephemera
 
@@ -83,13 +84,13 @@ Primary **job-wide** access (dispatcher, dashboards, debugging): **list work ite
 
 **MVP (next schedule-spine slice):** make **`mtw.ephemera.thinking.scheduling`** **replayable** and publish **only** the egress that already exists today --- header **`Job Completed`** (`ThinkingJobCompletedEvent`: terminal **`schedules[]`** snapshot per job, **no** result **`verbose`**). Wire **EventBridge** + **`subscriptions`** so clients can subscribe and replay **successfully completed jobs**. This unblocks operator/debug tooling for **finished** hypothesis runs when paired with the **Ephemera API** for result bodies.
 
-**Explicitly deferred from MVP:** **`streamEvent`** with header **`Thinking Schedule`** after each **`persistThinkingSchedule`** (`scheduled`, **`completed`**, etc.). Contracts and serializer support **`Thinking Schedule`** on the wire; ephemera does **not** emit it yet. Deferral is intentional: MVP value is **completed-job inventory**, not in-flight hop timelines.
+**Not in this task plan:** **`streamEvent`** with header **`Thinking Schedule`** after each **`persistThinkingSchedule`** (`scheduled`, **`completed`**, etc.). Contracts and serializer support **`Thinking Schedule`** on the wire; ephemera does **not** emit it. MVP value here is **completed-job inventory** via **`Job Completed`**, not in-flight hop timelines --- track schedule-stream work in a **separate** initiative if needed.
 
 **What MVP does not cover (document for follow-ons):**
 
 | Gap | Mitigation today | Follow-on |
 | --- | --- | --- |
-| **In-flight / partial progress** | Dynamo + gateways; no live Redux feed | **`Thinking Schedule`** stream per hop |
+| **In-flight / partial progress** | Dynamo + gateways; no live Redux feed | **`Thinking Schedule`** stream per hop (separate initiative; not this plan) |
 | **Failed runs** | **`Meta::Job`** + **`Put Thinking Job Error`** persisted; **no** bus/EventBridge egress | Optional **`Job Failed`** (or equivalent) stream; and/or list/query API |
 | **Result bodies in the stream** | **`Meta::Result`** + planned **Ephemera API** | API first; optional **`Thinking Result`** replay on **`mtw.ephemera.thinking.results`** |
 | **Job bootstrap on the wire** | **`api.ephemera`** commands only | Unlikely to stream; clients infer from first **`Job Completed`** or API |
@@ -231,7 +232,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] **Hypothesis pipeline migration**: mint `generationId`, pre-mint per-task `workItemId`s, **`Put Thinking Job Create`**, schedule pre-items, **`Thinking Result`** bus emit (success and failure), **`Put Thinking Job Error`** on run failure. Durable docs: [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md) (**Hypothesis bootstrap**), [`hypothesis/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md) (**Thinking writes and reads**); harness alignment per [`coyoteHarnessInjectTypes.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHarnessInjectTypes.ts).
   - [ ] **Ephemera API** for results lookup (keys and JSON contract; block client plan until minimal contract exists).
 
-- [ ] **Schedule spine** *(open: EventBridge **`Job Completed`** MVP; per-hop **`Thinking Schedule`** stream deferred)*
+- [X] **Schedule spine** *(complete for this plan; Ephemera API remains on Results spine)*
   - [X] Schedule **read helpers** in **`@tonylb/mtw-gateways`** once schedule rows are encoded (same read/write split as results): treat **`JOB#${generationId}`** + **`DataCategory` `TASK#${workItemId}`** as **adjacency only**; read schedule payloads with **`GetItem`** on **`TASK#${workItemId}`** + **`Meta::Schedule`**; job metadata via **`getJobMetaItem`** (mirror the results gateway pattern). Mutations stay in **`mtw.ephemera.thinking.scheduling`** via **`api.ephemera`** (**`Put Thinking Schedule`**, **`Put Thinking Job Create`**, **`Put Thinking Job Error`**).
   - [X] **`mtw.ephemera.thinking.scheduling` DataSource**: **`api.ephemera`** ingress + persistence for **`Meta::Schedule`**, **`Meta::Job`**, and job adjacency (see [`lambda/ephemera/dataSource/thinking/scheduling/`](../../../../../lambda/ephemera/dataSource/thinking/scheduling/)).
   - [X] **Schedule `completed` + job rollup** (see [Schedule completion and job closure](#schedule-completion-and-job-closure-shipped)):
@@ -241,8 +242,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
     - [X] **`persistThinkingSchedule`:** after schedule **`putItem`**, **`ThinkingJobs.invalidate(generationId)`** then job rollup via **`internalCache.ThinkingJobs.get`** (all schedules **`completed`** -> conditional **`Meta::Job`** **`completed`**).
     - [X] **`Job Completed` emit:** scheduling DataSource publishes once per job on first transition to **`completed`**; payload = schedule work items only (no results).
     - [X] **Coyote hypothesis:** after each successful segment **`Thinking Result`**, **`sendPutThinkingSchedule`** with **`scheduleStatus: 'completed'`**; tests.
-  - [ ] **Publish `Job Completed` (EventBridge MVP):** **`mtw.ephemera.thinking.scheduling`** **replayable** + EventBridge + **`subscriptions`** for existing **`Job Completed`** **`streamEvent`** only (template, IAM, publisher strategy). Unblocks client subscribe to **completed jobs**; pair with **Ephemera API** for result detail.
-  - [ ] **`Thinking Schedule` stream (deferred):** after each **`persistThinkingSchedule`**, **`streamEvent`** header **`Thinking Schedule`** for in-flight/progress UX and schedule timelines. Contracts already define the wire shape; not required for completed-job debugging MVP.
+  - [X] **Publish `Job Completed` (EventBridge MVP):** **`mtw.ephemera.thinking.scheduling`** **replayable** + EventBridge + **`subscriptions`** for **`Job Completed`** on streamKey **`global`** (template, IAM, `FEEDBACK_TOPIC`, Initialize Subscription). Unblocks client subscribe to **completed jobs**; pair with **Ephemera API** for result detail.
 
 - [ ] **Closeout**
   - [X] Move lasting subsystem description into **`lambda/ephemera/dataSource/thinking/AGENT.md`** (or adjacent).
@@ -256,7 +256,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 | Contracts | Durable [`AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md); [`ephemera/thinking`](../../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/thinking/) types + `ThinkingEventSerializer` + Jest. Schedule **`completed`**, **`ThinkingJobStatus`** / **`completed`**, **`ThinkingJobCompletedEvent`**, **`Job Completed`** serializer branch shipped. |
 | Results persistence + pipeline | **`mtw.ephemera.thinking.results`** + read gateway + `internalCache.ThinkingResults`. Coyote: **`Thinking Result`** bus emit + failure finalizer via [`hypothesisThinkingPersistence.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/hypothesisThinkingPersistence.ts). |
 | API | **Pending:** WebSocket results lookup (Recommended order, Results spine). |
-| Schedule + EventBridge | Persistence + rollup + internal-bus **`Job Completed`** shipped. **Next:** replayable/EventBridge/**subscriptions** for **`Job Completed` only** (MVP). **Deferred:** per-hop **`Thinking Schedule`** stream. See [**EventBridge publish phasing**](#eventbridge-publish-phasing-locked). |
+| Schedule + EventBridge | Persistence + rollup + **`Job Completed`** on **`global`** (replayable, EventBridge, **subscriptions**) shipped. Per-hop **`Thinking Schedule`** stream is **out of scope** for this plan. See [**EventBridge publish phasing**](#eventbridge-publish-phasing-locked). |
 
 ## Related GitHub issues (optional index)
 

@@ -35,6 +35,7 @@ import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { sendParseRequested, sendStateChange } from './dataSource/apiEphemera'
+import { sendInitializeSubscription } from './dataSource/initSubscription'
 import { isStateChangeCommand } from './dataSource/localApiEvents'
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
@@ -81,6 +82,20 @@ export const handler = async (event: any, context: any) => {
 
     // Handle EventBridge messages by publishing to messageBus for DataSource processing
     if (event?.source && event["detail-type"]) {
+        if (event.source === 'mtw.subscriptions' && event["detail-type"].startsWith('Initialize Subscription -')) {
+            const streamKey = event.detail?.streamKey || ''
+            const dataSourceKey = (event["detail-type"] as string).replace(/^Initialize Subscription - /, '')
+            sendInitializeSubscription(
+                messageBus,
+                dataSourceKey,
+                streamKey,
+                event.detail?.sessionId,
+                event.detail?.requestId
+            )
+            await messageBus.flush()
+            return
+        }
+
         // Find the appropriate deserializer for this data source
         const deserializer = eventDeserializers[event.source as keyof typeof eventDeserializers]
         

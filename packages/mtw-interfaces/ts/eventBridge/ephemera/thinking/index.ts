@@ -144,6 +144,14 @@ export type ThinkingJobCompletedEvent = {
 
 export type ThinkingEventUpdate = ThinkingScheduleEvent | ThinkingResultEvent | ThinkingJobCompletedEvent
 
+/**
+ * Subscribe-time snapshot for mtw.ephemera.thinking.scheduling (streamKey `global`).
+ * MVP may ship an empty `completedJobs` list; replay supplies Job Completed events after subscribe.
+ */
+export type ThinkingCompletedJobsSnapshot = {
+    completedJobs: ThinkingJobCompletedEvent[]
+}
+
 //
 // External (EventBridge Detail): includes `type` for wire / far-end header reconstruction.
 //
@@ -164,6 +172,8 @@ export type ThinkingEventExternal =
     | ThinkingScheduleEventExternal
     | ThinkingResultEventExternal
     | ThinkingJobCompletedEventExternal
+
+export type ThinkingCompletedJobsSnapshotExternal = ThinkingCompletedJobsSnapshot
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     Boolean(value && typeof value === 'object' && !Array.isArray(value))
@@ -329,15 +339,45 @@ export const isThinkingEventUpdate = (event: unknown): event is ThinkingEventUpd
     isThinkingResultEvent(event) ||
     isThinkingJobCompletedEvent(event)
 
+export const isThinkingCompletedJobsSnapshot = (event: unknown): event is ThinkingCompletedJobsSnapshot => {
+    if (!isRecord(event)) {
+        return false
+    }
+    if (!Array.isArray(event.completedJobs)) {
+        return false
+    }
+    return event.completedJobs.every((item) => isThinkingJobCompletedEvent(item))
+}
+
+export const isThinkingCompletedJobsSnapshotExternal = (
+    event: unknown
+): event is ThinkingCompletedJobsSnapshotExternal => isThinkingCompletedJobsSnapshot(event)
+
 /**
  * Serialize / deserialize thinking schedule, result, and job-completed payloads.
  * Routes on `header.type` only; external payloads include `type` for wire compatibility.
  */
-export class ThinkingEventSerializer implements DataSourceEventSerializer<ThinkingEventUpdate, ThinkingEventExternal> {
-    serialize(params: { content: ThinkingEventUpdate; header: StreamingEventHeader }): ThinkingEventExternal {
+export class ThinkingEventSerializer implements DataSourceEventSerializer<
+    ThinkingEventUpdate,
+    ThinkingEventExternal,
+    ThinkingCompletedJobsSnapshot,
+    ThinkingCompletedJobsSnapshotExternal
+> {
+    serialize(params: {
+        content: ThinkingEventUpdate | ThinkingCompletedJobsSnapshot
+        header: StreamingEventHeader
+    }): ThinkingEventExternal | ThinkingCompletedJobsSnapshotExternal {
         const { content, header } = params
         if (header?.type === 'Snapshot') {
-            throw new Error('ThinkingEventSerializer does not support snapshot serialization')
+            if (!isThinkingCompletedJobsSnapshot(content)) {
+                throw new Error('ThinkingEventSerializer: snapshot header with non-snapshot content')
+            }
+            return {
+                completedJobs: content.completedJobs.map((job) => ({
+                    ...job,
+                    schedules: job.schedules.map((schedule) => ({ ...schedule })),
+                })),
+            }
         }
         if (header.type === THINKING_SCHEDULE_HEADER_TYPE) {
             if (!isThinkingScheduleEvent(content)) {
@@ -387,12 +427,20 @@ export class ThinkingEventSerializer implements DataSourceEventSerializer<Thinki
     }
 
     async deserialize(params: {
-        content: ThinkingEventExternal
+        content: ThinkingEventExternal | ThinkingCompletedJobsSnapshotExternal
         header: StreamingEventHeader
-    }): Promise<ThinkingEventUpdate | null> {
+    }): Promise<ThinkingEventUpdate | ThinkingCompletedJobsSnapshot | null> {
         const { content, header } = params
         if (header?.type === 'Snapshot') {
-            return null
+            if (!isThinkingCompletedJobsSnapshotExternal(content)) {
+                return null
+            }
+            return {
+                completedJobs: content.completedJobs.map((job) => ({
+                    ...job,
+                    schedules: job.schedules.map((schedule) => ({ ...schedule })),
+                })),
+            }
         }
         if (header.type === THINKING_SCHEDULE_HEADER_TYPE) {
             if (!isThinkingScheduleEventExternal(content)) {

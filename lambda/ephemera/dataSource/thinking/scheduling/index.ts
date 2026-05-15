@@ -2,13 +2,17 @@
  * mtw.ephemera.thinking.scheduling DataSource: persists thinking schedule, job bootstrap (`Meta::Job`
  * + adjacency), and job-level errors from api.ephemera commands.
  */
-import type { ThinkingJobCompletedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
+import type {
+    ThinkingCompletedJobsSnapshot,
+    ThinkingJobCompletedEvent,
+} from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
 import {
     isThinkingScheduleEvent,
     ThinkingEventSerializer,
 } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
 
 import EphemeraDataSource from '../../abstract'
+import { generateThinkingCompletedJobsSnapshot } from './generateThinkingCompletedJobsSnapshot'
 import { maybeCompleteThinkingJob } from './maybeCompleteThinkingJob'
 import { persistThinkingJobCreate } from './persistThinkingJobCreate'
 import { persistThinkingJobError } from './persistThinkingJobError'
@@ -16,13 +20,13 @@ import { persistThinkingSchedule } from './persistThinkingSchedule'
 import { isThinkingSchedulingSubscribedEnvelope, type ThinkingSchedulingSubscribedCommand } from './subscribedEvents'
 
 export const ephemeraThinkingSchedulingDataSource = new EphemeraDataSource<
-    never,
+    ThinkingCompletedJobsSnapshot,
     ThinkingJobCompletedEvent,
     ThinkingSchedulingSubscribedCommand
 >({
     dataSourceKey: 'mtw.ephemera.thinking.scheduling',
-    replayable: false,
-    publisherStrategy: 'busOnly',
+    replayable: true,
+    snapshotContentGenerator: generateThinkingCompletedJobsSnapshot,
     eventSerializer: new ThinkingEventSerializer(),
     subscribedEventTypeGuard: isThinkingSchedulingSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {

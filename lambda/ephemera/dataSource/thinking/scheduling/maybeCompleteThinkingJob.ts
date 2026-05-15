@@ -107,7 +107,7 @@ export async function maybeCompleteThinkingJob(deps: {
     }
 
     await streamEvent({
-        streamKey: jobEphemeraId(generationId),
+        streamKey: 'global',
         header: { type: THINKING_JOB_COMPLETED_HEADER_TYPE },
         update: completedEvent,
     })

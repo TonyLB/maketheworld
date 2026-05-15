@@ -179,7 +179,7 @@ describe('maybeCompleteThinkingJob', () => {
 
         expect(streamEvent).toHaveBeenCalledTimes(1)
         const streamCall = streamEvent.mock.calls[0][0]
-        expect(streamCall.streamKey).toBe(`JOB#${generationId}`)
+        expect(streamCall.streamKey).toBe('global')
         expect(streamCall.header).toEqual({ type: THINKING_JOB_COMPLETED_HEADER_TYPE })
         expect(streamCall.update).toMatchObject({
             schemaVersion: 1,

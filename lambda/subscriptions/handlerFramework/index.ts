@@ -45,5 +45,9 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
     },
     {
         dataSourceKey: 'mtw.assets.players'
+    },
+    {
+        dataSourceKey: 'mtw.ephemera.thinking.scheduling',
+        type: 'Job Completed',
     }
 ])

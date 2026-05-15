@@ -54,21 +54,33 @@ EventBridge Rule:
     Arn: arn:aws:lambda:region:account:function:mtw-wml-lambda
 ```
 
-### Rule for Future DataSources
+### Rule for mtw.ephemera.thinking.scheduling
 
 ```yaml
-# Example for mtw.ephemera (when implemented)
+# EphemeraFunction (template.yaml InitializeThinkingScheduling)
 EventBridge Rule:
-  Name: InitializeSubscription-mtw-ephemera
   EventPattern:
     source:
       - mtw.subscriptions
     detail-type:
-      - Initialize Subscription - mtw.ephemera
+      - Initialize Subscription - mtw.ephemera.thinking.scheduling
   Target:
     Type: Lambda
-    Arn: arn:aws:lambda:region:account:function:mtw-ephemera-lambda
+    Arn: EphemeraFunction
+
+# SubscriptionsFunction (template.yaml ThinkingSchedulingJobCompleted)
+EventBridge Rule:
+  EventPattern:
+    source:
+      - mtw.ephemera.thinking.scheduling
+    detail-type:
+      - Job Completed
+  Target:
+    Type: Lambda
+    Arn: SubscriptionsFunction
 ```
+
+Clients subscribe with `dataSourceKey: mtw.ephemera.thinking.scheduling`, `streamKeys: ['global']`.
 
 ## DataSource Integration Pattern
 
