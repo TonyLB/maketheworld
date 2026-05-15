@@ -3,6 +3,10 @@ import { WMLContentEventExternal, isWMLContentEventExternal } from "./eventBridg
 import { ContentHeadersExternal, isContentHeadersExternal } from "./eventBridge/assets/contentHeaders";
 import { LibraryExternal, isLibraryExternal } from "./eventBridge/assets/library";
 import { PlayerExternal, isPlayerExternal } from "./eventBridge/assets/players";
+import {
+    ThinkingSchedulingExternal,
+    isThinkingSchedulingExternal
+} from "./eventBridge/ephemera/thinking";
 
 export type SubscribeAPIMessage = Record<string, any> & {
     message: 'subscribe';
@@ -62,12 +66,19 @@ export type PlayerSubscriptionClientMessage = WebSocketFormat & {
     RequestId?: string;
 };
 
+export type ThinkingSchedulingSubscriptionClientMessage = WebSocketFormat & {
+    dataSourceKey: 'mtw.ephemera.thinking.scheduling';
+    update: ThinkingSchedulingExternal;
+    RequestId?: string;
+};
+
 // Union of all subscription client messages
 export type SubscriptionClientMessage =
     | WMLSubscriptionClientMessage
     | ContentHeadersSubscriptionClientMessage
     | LibrarySubscriptionClientMessage
     | PlayerSubscriptionClientMessage
+    | ThinkingSchedulingSubscriptionClientMessage
 
 // Type guard for subscription client messages (StreamEvent)
 export const isSubscriptionClientMessage = (message: Record<string, any>): message is SubscriptionClientMessage => {
@@ -93,6 +104,8 @@ export const isSubscriptionClientMessage = (message: Record<string, any>): messa
             return isLibraryExternal(message.update)
         case 'mtw.assets.players':
             return isPlayerExternal(message.update)
+        case 'mtw.ephemera.thinking.scheduling':
+            return isThinkingSchedulingExternal(message.update)
         default:
             return false
     }

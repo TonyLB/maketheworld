@@ -19,6 +19,13 @@ import {
     isContentHeadersExternal,
     ContentHeadersEventSerializer,
 } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/contentHeaders'
+import {
+    ThinkingEventSerializer,
+    THINKING_JOB_COMPLETED_HEADER_TYPE,
+    THINKING_SCHEMA_VERSION_INITIAL,
+    isThinkingJobCompletedEvent,
+    isThinkingSchedulingExternal
+} from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
 
 const connectionDBMock = jest.mocked(connectionDB)
 const apiClientMock = apiClient as jest.Mocked<typeof apiClient>
@@ -824,6 +831,54 @@ describe('subscription handlerFramework', () => {
         expect(deserialized).toEqual({
             settings: { onboardCompleteTags: [] }
         })
+    })
+
+    it('should round-trip mtw.ephemera.thinking.scheduling Job Completed through EventBridge, subscriptions, WebSocket, and ThinkingEventSerializer', async () => {
+        const coreAtSource = {
+            header: {
+                dataSourceKey: 'mtw.ephemera.thinking.scheduling',
+                streamKey: 'global',
+                timestamp: 1234567890,
+                type: THINKING_JOB_COMPLETED_HEADER_TYPE,
+                RequestId: 'req-thinking-1'
+            },
+            update: {
+                schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+                generationId: '11111111-1111-1111-1111-111111111111',
+                jobStatus: 'completed',
+                completedAt: '2026-05-14T13:00:00.000Z',
+                schedules: [
+                    {
+                        schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+                        generationId: '11111111-1111-1111-1111-111111111111',
+                        workItemId: '22222222-2222-2222-2222-222222222222',
+                        segment: 'candidates',
+                        scheduleStatus: 'completed'
+                    }
+                ]
+            }
+        }
+        const eventBridgeEvent = toEventBridgeFormat(coreAtSource)
+        const coreAtSubscriptions = fromEventBridgeFormat(eventBridgeEvent)
+        connectionDBMock.query.mockResolvedValue([{
+            ConnectionId: 'STREAM#mtw.ephemera.thinking.scheduling::Job Completed::global',
+            DataCategory: 'SESSION#SESSION123'
+        }])
+        internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#CONN789'])
+        const match = subscriptionLibrary.matchEvent(coreAtSubscriptions)
+        expect(match).toBeDefined()
+        await match!.publish(coreAtSubscriptions)
+        const webSocketMessage = apiClientMock.send.mock.calls[0][1]
+        expect(isSubscriptionClientMessage(webSocketMessage)).toBe(true)
+        expect(isThinkingSchedulingExternal(webSocketMessage.update)).toBe(true)
+        expect(isThinkingJobCompletedEvent(webSocketMessage.update)).toBe(true)
+        const coreAtClient = fromWebSocketFormat(webSocketMessage as any)
+        const serializer = new ThinkingEventSerializer()
+        const deserialized = await serializer.deserialize({
+            header: coreAtClient.header,
+            content: coreAtClient.update as any
+        })
+        expect(deserialized).toEqual(coreAtSource.update)
     })
 
     describe('WML round-trip (EventBridge -> subscriptions -> WebSocket -> fromWebSocketFormat -> WMLDataSourceEventSerializer)', () => {

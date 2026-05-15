@@ -182,6 +182,7 @@ createDataSourceSlice<
 See these implementations using this pattern:
 
 - **Content Headers**: `../contentHeaders/` - First implementation for asset header data
+- **Thinking Jobs**: `../thinkingJobs/` - `mtw.ephemera.thinking.scheduling` / stream `global` (`Job Completed` + snapshot replay)
 - **More Coming**: Character data, room data, etc.
 
 ## Future Enhancements

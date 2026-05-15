@@ -1,6 +1,7 @@
 import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import {
     ThinkingEventSerializer,
+    ThinkingJobsAggregator,
     THINKING_JOB_COMPLETED_HEADER_TYPE,
     THINKING_RESULT_HEADER_TYPE,
     THINKING_SCHEDULE_HEADER_TYPE,
@@ -40,6 +41,29 @@ const jobCompletedHeader = (): StreamingEventHeader => ({
     streamKey: 'JOB#test-generation',
     timestamp: 0,
     type: THINKING_JOB_COMPLETED_HEADER_TYPE
+})
+
+const globalSchedulingHeader = (type: string): StreamingEventHeader => ({
+    dataSourceKey: 'mtw.ephemera.thinking.scheduling',
+    streamKey: 'global',
+    timestamp: 0,
+    type
+})
+
+const sampleJobCompleted = (generationId: string) => ({
+    schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+    generationId,
+    jobStatus: 'completed' as const,
+    completedAt: '2026-05-14T13:00:00.000Z',
+    schedules: [
+        {
+            schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+            generationId,
+            workItemId: '22222222-2222-2222-2222-222222222222',
+            segment: 'candidates' as const,
+            scheduleStatus: 'completed' as const
+        }
+    ]
 })
 
 describe('thinking eventBridge contracts', () => {
@@ -287,6 +311,29 @@ describe('thinking eventBridge contracts', () => {
             expect(back).toEqual(internal)
         })
 
+        it('deserializes Job Completed from WebSocket shape without update.type', async () => {
+            const internal = {
+                schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+                generationId: '11111111-1111-1111-1111-111111111111',
+                jobStatus: 'completed' as const,
+                completedAt: '2026-05-14T13:00:00.000Z',
+                schedules: [
+                    {
+                        schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+                        generationId: '11111111-1111-1111-1111-111111111111',
+                        workItemId: '22222222-2222-2222-2222-222222222222',
+                        segment: 'candidates' as const,
+                        scheduleStatus: 'completed' as const
+                    }
+                ]
+            }
+            const back = await serializer.deserialize({
+                content: internal as never,
+                header: jobCompletedHeader()
+            })
+            expect(back).toEqual(internal)
+        })
+
         const snapshotHeader = (): StreamingEventHeader => ({
             dataSourceKey: 'mtw.ephemera.thinking.scheduling',
             streamKey: 'global',
@@ -371,6 +418,94 @@ describe('thinking eventBridge contracts', () => {
             })
             const r = await serializer.deserialize({ content: external, header: scheduleHeader() })
             expect(r).toBeNull()
+        })
+    })
+
+    describe('ThinkingJobsAggregator', () => {
+        let aggregator: ThinkingJobsAggregator
+
+        beforeEach(() => {
+            aggregator = new ThinkingJobsAggregator()
+        })
+
+        it('createEmpty returns empty completedJobs', () => {
+            expect(aggregator.createEmpty('global')).toEqual({ completedJobs: [] })
+        })
+
+        it('replaces snapshot on Snapshot envelope', () => {
+            const empty = aggregator.createEmpty('global')
+            const job = sampleJobCompleted('gen-1')
+            const result = aggregator.applyUpdate(empty, {
+                header: globalSchedulingHeader('Snapshot'),
+                content: { completedJobs: [job] }
+            })
+            expect(result.success).toBe(true)
+            if (result.success) {
+                expect(result.snapshot.completedJobs).toHaveLength(1)
+                expect(result.snapshot.completedJobs[0].generationId).toBe('gen-1')
+            }
+        })
+
+        it('appends Job Completed events', () => {
+            const empty = aggregator.createEmpty('global')
+            const job1 = sampleJobCompleted('gen-1')
+            const job2 = sampleJobCompleted('gen-2')
+            const r1 = aggregator.applyUpdate(empty, {
+                header: globalSchedulingHeader(THINKING_JOB_COMPLETED_HEADER_TYPE),
+                content: job1
+            })
+            expect(r1.success).toBe(true)
+            if (!r1.success) return
+            const r2 = aggregator.applyUpdate(r1.snapshot, {
+                header: globalSchedulingHeader(THINKING_JOB_COMPLETED_HEADER_TYPE),
+                content: job2
+            })
+            expect(r2.success).toBe(true)
+            if (r2.success) {
+                expect(r2.snapshot.completedJobs.map((j) => j.generationId)).toEqual(['gen-1', 'gen-2'])
+            }
+        })
+
+        it('upserts Job Completed by generationId on replay', () => {
+            const empty = aggregator.createEmpty('global')
+            const jobV1 = sampleJobCompleted('gen-1')
+            const jobV2 = {
+                ...sampleJobCompleted('gen-1'),
+                completedAt: '2026-05-15T00:00:00.000Z'
+            }
+            const r1 = aggregator.applyUpdate(empty, {
+                header: globalSchedulingHeader(THINKING_JOB_COMPLETED_HEADER_TYPE),
+                content: jobV1
+            })
+            expect(r1.success).toBe(true)
+            if (!r1.success) return
+            const r2 = aggregator.applyUpdate(r1.snapshot, {
+                header: globalSchedulingHeader(THINKING_JOB_COMPLETED_HEADER_TYPE),
+                content: jobV2
+            })
+            expect(r2.success).toBe(true)
+            if (r2.success) {
+                expect(r2.snapshot.completedJobs).toHaveLength(1)
+                expect(r2.snapshot.completedJobs[0].completedAt).toBe('2026-05-15T00:00:00.000Z')
+            }
+        })
+
+        it('returns success false for unknown header types', () => {
+            const empty = aggregator.createEmpty('global')
+            const result = aggregator.applyUpdate(empty, {
+                header: globalSchedulingHeader(THINKING_SCHEDULE_HEADER_TYPE),
+                content: {
+                    schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+                    generationId: 'gen-1',
+                    workItemId: 'work-1',
+                    segment: 'candidates',
+                    scheduleStatus: 'scheduled'
+                }
+            })
+            expect(result.success).toBe(false)
+            if (!result.success) {
+                expect(result.snapshot).toEqual(empty)
+            }
         })
     })
 })

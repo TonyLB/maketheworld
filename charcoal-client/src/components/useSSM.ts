@@ -10,6 +10,7 @@ import { iterateContentHeaders } from '../slices/contentHeaders'
 import { iterateLibraryDataSource } from '../slices/libraryDataSource'
 import { iteratePlayerDataSource } from '../slices/player/playerDataSource'
 import { iterateWmlDataSource } from '../slices/wmlDataSource'
+import { iterateThinkingJobs } from '../slices/thinkingJobs'
 
 export const useStateSeekingMachines = () => {
     const dispatch = useDispatch()
@@ -24,6 +25,7 @@ export const useStateSeekingMachines = () => {
         dispatch(iterateLibraryDataSource)
         dispatch(iteratePlayerDataSource)
         dispatch(iterateWmlDataSource)
+        dispatch(iterateThinkingJobs)
     }, [dispatch, heartbeat])
 }
 
