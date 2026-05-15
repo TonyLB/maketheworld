@@ -3,7 +3,7 @@
  * Header/envelope guards and typed messageBus send helpers. Not emitted from EventBridge.
  * Includes cache commands, State Change (`componentId` + `markState`), Objects Change
  * (`componentId` + structured `add` / `remove`; see `ObjectsChangeCommand` in `localApiEvents.ts`),
- * and **Put Thinking Schedule** for thinking schedule persistence.
+ * and **Put Thinking Schedule**, **Put Thinking Job Create**, and **Put Thinking Job Error** for thinking persistence.
  */
 import {
     StreamingEventHeader,
@@ -19,6 +19,8 @@ import type {
     ObjectsChangeCommand,
     ParseRequestedCommand,
     PutThinkingScheduleCommand,
+    PutThinkingJobCreateCommand,
+    PutThinkingJobErrorCommand,
     EphemeraApiCommandPayload,
 } from './localApiEvents'
 
@@ -29,6 +31,8 @@ export type EphemeraApiSubscribedHeader =
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Objects Change' })
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Parse Requested' })
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Schedule' })
+    | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Job Create' })
+    | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Job Error' })
 
 export type EphemeraApiIncomingEvent =
     | {
@@ -54,6 +58,14 @@ export type EphemeraApiIncomingEvent =
     | {
           header: StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Schedule' };
           getContent: () => Promise<PutThinkingScheduleCommand>;
+      }
+    | {
+          header: StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Job Create' };
+          getContent: () => Promise<PutThinkingJobCreateCommand>;
+      }
+    | {
+          header: StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Job Error' };
+          getContent: () => Promise<PutThinkingJobErrorCommand>;
       }
 
 const isPutCacheRecordHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Cache Record' }> = (
@@ -86,6 +98,16 @@ const isPutThinkingScheduleHeader: HeaderGuard<StreamingEventHeader & { dataSour
 ): h is StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Schedule' } =>
     h.dataSourceKey === 'api.ephemera' && h.type === 'Put Thinking Schedule'
 
+const isPutThinkingJobCreateHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Job Create' }> = (
+    h
+): h is StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Job Create' } =>
+    h.dataSourceKey === 'api.ephemera' && h.type === 'Put Thinking Job Create'
+
+const isPutThinkingJobErrorHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Job Error' }> = (
+    h
+): h is StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Job Error' } =>
+    h.dataSourceKey === 'api.ephemera' && h.type === 'Put Thinking Job Error'
+
 export const isEphemeraApiPutCacheRecordEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     PutCacheRecordCommand,
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Cache Record' }
@@ -116,6 +138,16 @@ export const isEphemeraApiPutThinkingScheduleEnvelope = makeStreamingEnvelopeGua
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Schedule' }
 >(isPutThinkingScheduleHeader)
 
+export const isEphemeraApiPutThinkingJobCreateEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    PutThinkingJobCreateCommand,
+    StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Job Create' }
+>(isPutThinkingJobCreateHeader)
+
+export const isEphemeraApiPutThinkingJobErrorEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    PutThinkingJobErrorCommand,
+    StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Job Error' }
+>(isPutThinkingJobErrorHeader)
+
 export const isEphemeraApiSubscribedHeader: HeaderGuard<EphemeraApiSubscribedHeader> = (
     header
 ): header is EphemeraApiSubscribedHeader =>
@@ -125,6 +157,8 @@ export const isEphemeraApiSubscribedHeader: HeaderGuard<EphemeraApiSubscribedHea
     || isObjectsChangeHeader(header)
     || isParseRequestedHeader(header)
     || isPutThinkingScheduleHeader(header)
+    || isPutThinkingJobCreateHeader(header)
+    || isPutThinkingJobErrorHeader(header)
 
 export const isEphemeraApiSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     EphemeraApiCommandPayload,
@@ -255,6 +289,50 @@ export function sendPutThinkingSchedule(bus: Bus, streamKey: string, content: Pu
         streamKey,
         timestamp,
         type: 'Put Thinking Schedule',
+    }
+    const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
+    bus.send({
+        type: 'StreamingEvent',
+        dataSourceKey: 'api.ephemera',
+        streamKey,
+        header: envelope.header,
+        getContent: envelope.getContent,
+        timestamp,
+    })
+}
+
+/**
+ * Post **Put Thinking Job Create** to the internal bus (job bootstrap; consumer: thinking scheduling DataSource).
+ */
+export function sendPutThinkingJobCreate(bus: Bus, streamKey: string, content: PutThinkingJobCreateCommand): void {
+    const timestamp = Date.now()
+    const header: StreamingEventHeader = {
+        dataSourceKey: 'api.ephemera',
+        streamKey,
+        timestamp,
+        type: 'Put Thinking Job Create',
+    }
+    const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
+    bus.send({
+        type: 'StreamingEvent',
+        dataSourceKey: 'api.ephemera',
+        streamKey,
+        header: envelope.header,
+        getContent: envelope.getContent,
+        timestamp,
+    })
+}
+
+/**
+ * Post **Put Thinking Job Error** to the internal bus (run-level job failure on `Meta::Job`).
+ */
+export function sendPutThinkingJobError(bus: Bus, streamKey: string, content: PutThinkingJobErrorCommand): void {
+    const timestamp = Date.now()
+    const header: StreamingEventHeader = {
+        dataSourceKey: 'api.ephemera',
+        streamKey,
+        timestamp,
+        type: 'Put Thinking Job Error',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
     bus.send({

@@ -1,4 +1,4 @@
-// Ephemera thinking: schedule + thinking-result EventBridge contracts
+// Ephemera thinking: schedule + thinking-result EventBridge contracts + job bootstrap/error (api.ephemera)
 //
 // Wire shapes are consumed by ephemera, subscriptions, and charcoal-client.
 // Header discrimination uses StreamingEventHeader.type; external Detail carries payload `type`.
@@ -39,6 +39,12 @@ export type ThinkingWorkItemId = string
 /** Provisional schedule lifecycle for subscribe / replay MVP. */
 export type ThinkingScheduleStatus = 'scheduled' | 'claimed' | 'cancelled'
 
+/** Initial job row status for api.ephemera Put Thinking Job Create (Meta::Job bootstrap). */
+export type ThinkingJobCreateStatus = 'pending' | 'running'
+
+/** Run-level job failure (distinct from per-step ThinkingResultEvent). */
+export type ThinkingJobErrorStatus = 'failed'
+
 //
 // Internal (messageBus): no payload `type`; discriminate via envelope header.type only.
 //
@@ -68,6 +74,34 @@ export type ThinkingResultEvent = {
     errorCode?: string
     errorMessage?: string
     verbose?: unknown
+}
+
+/**
+ * Bootstrap a thinking job partition: Meta::Job fields plus membership work item ids
+ * (api.ephemera Put Thinking Job Create). Not part of ThinkingEventUpdate / EventBridge serializer.
+ */
+export type ThinkingJobCreateEvent = {
+    schemaVersion: number
+    generationId: ThinkingGenerationId
+    workItemIds: ThinkingWorkItemId[]
+    jobStatus: ThinkingJobCreateStatus
+    /** ISO-8601 job creation time when known. */
+    createdAt?: string
+}
+
+/**
+ * Mark a job as failed at run level (api.ephemera Put Thinking Job Error).
+ * Does not carry segment or per-step result semantics.
+ */
+export type ThinkingJobErrorEvent = {
+    schemaVersion: number
+    generationId: ThinkingGenerationId
+    jobStatus: ThinkingJobErrorStatus
+    /** ISO-8601 when the run was marked failed. */
+    failedAt: string
+    errorCode?: string
+    errorMessage?: string
+    lastFailedWorkItemId?: ThinkingWorkItemId
 }
 
 export type ThinkingEventUpdate = ThinkingScheduleEvent | ThinkingResultEvent
@@ -120,6 +154,58 @@ export const isThinkingResultEvent = (event: unknown): event is ThinkingResultEv
         (event.errorMessage === undefined || typeof event.errorMessage === 'string') &&
         !('type' in event) &&
         !('scheduleStatus' in event)
+    )
+}
+
+const isNonEmptyStringArray = (value: unknown): value is string[] =>
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((id) => typeof id === 'string' && id.length > 0)
+
+export const isThinkingJobCreateEvent = (event: unknown): event is ThinkingJobCreateEvent => {
+    if (!isRecord(event)) {
+        return false
+    }
+    if (
+        'failedAt' in event ||
+        'ok' in event ||
+        'scheduleStatus' in event ||
+        'workItemId' in event ||
+        'segment' in event
+    ) {
+        return false
+    }
+    if (!isNonEmptyStringArray(event.workItemIds)) {
+        return false
+    }
+    const status = event.jobStatus
+    if (status !== 'pending' && status !== 'running') {
+        return false
+    }
+    return (
+        typeof event.schemaVersion === 'number' &&
+        typeof event.generationId === 'string' &&
+        (event.createdAt === undefined || typeof event.createdAt === 'string')
+    )
+}
+
+export const isThinkingJobErrorEvent = (event: unknown): event is ThinkingJobErrorEvent => {
+    if (!isRecord(event)) {
+        return false
+    }
+    if ('workItemIds' in event || 'ok' in event || 'scheduleStatus' in event || 'segment' in event) {
+        return false
+    }
+    if (event.jobStatus !== 'failed') {
+        return false
+    }
+    return (
+        typeof event.schemaVersion === 'number' &&
+        typeof event.generationId === 'string' &&
+        typeof event.failedAt === 'string' &&
+        (event.errorCode === undefined || typeof event.errorCode === 'string') &&
+        (event.errorMessage === undefined || typeof event.errorMessage === 'string') &&
+        (event.lastFailedWorkItemId === undefined || typeof event.lastFailedWorkItemId === 'string')
     )
 }
 

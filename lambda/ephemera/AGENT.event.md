@@ -69,12 +69,14 @@ The message bus enables complex workflows such as:
 
 Parallel to **`api.wml`** and **`api.assets`** in other lambdas: **`dataSourceKey: 'api.ephemera'`** identifies **in-process** commands injected onto the message bus from the ephemera handler (or tests). These events are **not** produced by EventBridge and are **not** deserialized in `app.ts` from external `source` / `detail-type`.
 
-- **Definitions**: [`lambda/ephemera/dataSource/localApiEvents.ts`](dataSource/localApiEvents.ts) (payload types and shape guards), [`lambda/ephemera/dataSource/apiEphemera.ts`](dataSource/apiEphemera.ts) (header/envelope guards, `sendPutCacheRecord`, `sendDeleteCacheRecords`, `sendStateChange`, `sendPutThinkingSchedule`, and other send helpers).
+- **Definitions**: [`lambda/ephemera/dataSource/localApiEvents.ts`](dataSource/localApiEvents.ts) (payload types and shape guards), [`lambda/ephemera/dataSource/apiEphemera.ts`](dataSource/apiEphemera.ts) (header/envelope guards, `sendPutCacheRecord`, `sendDeleteCacheRecords`, `sendStateChange`, `sendPutThinkingSchedule`, `sendPutThinkingJobCreate`, `sendPutThinkingJobError`, and other send helpers).
 - **Initial event types**:
   - **`Put Cache Record`**: Payload aligns with `putCacheRecord(componentId, record, existingDataCategory?)` in the render cache layer. Consumed by **`mtw.ephemera.renderCache`** (see below). Production paths that participate in this thread should use **`sendPutCacheRecord`** from [`lambda/ephemera/dataSource/apiEphemera.ts`](dataSource/apiEphemera.ts) so the write and outbound signals stay consistent.
   - **`Delete Cache Records`**: Payload is `{ componentId, dataCategories }`. Consumed by **`mtw.ephemera.renderCache`**. Production paths should use **`sendDeleteCacheRecords`** (same pattern as `Put Cache Record`). When the handler is already inside an active **`messageBus.flush()`** (e.g. DataSource `receiveEvents`), nested **`send()`** calls are processed by that flush's recursion; top-level code paths may still **`await messageBus.flush()`** so work finishes before returning.
   - **`State Change`**: Payload is `{ componentId, markState }` (see `StateChangeCommand` in `localApiEvents.ts`). Production paths should use **`sendStateChange`**.
   - **`Put Thinking Schedule`**: Payload is a **`ThinkingScheduleEvent`** (see `PutThinkingScheduleCommand` in `localApiEvents.ts`). Consumed by **`mtw.ephemera.thinking.scheduling`**. Production paths should use **`sendPutThinkingSchedule`** from [`lambda/ephemera/dataSource/apiEphemera.ts`](dataSource/apiEphemera.ts). **`THINKING_SCHEDULE_HEADER_TYPE`** (`Thinking Schedule`) on the shared contract is for **EventBridge / replay** when that slice ships, not this internal header string.
+  - **`Put Thinking Job Create`**: Payload is a **`ThinkingJobCreateEvent`** (`PutThinkingJobCreateCommand` in `localApiEvents.ts`; types in **`@tonylb/mtw-interfaces`** `ts/eventBridge/ephemera/thinking`). Intended consumer is **`mtw.ephemera.thinking.scheduling`** once that source subscribes; production paths should use **`sendPutThinkingJobCreate`**. **No DataSource handles this header yet** until the job persistence slice wires `receiveEvents`; envelopes are valid for tests and early producers.
+  - **`Put Thinking Job Error`**: Payload is a **`ThinkingJobErrorEvent`** (`PutThinkingJobErrorCommand` in `localApiEvents.ts`). Run-level failure on **`Meta::Job`**, distinct from per-step **`Meta::Result`**. Use **`sendPutThinkingJobError`**. **No subscriber yet** (same note as job create).
 
 #### **mtw.ephemera.renderCache (render cache write + outbound signals)**
 
@@ -90,7 +92,7 @@ Parallel to **`api.wml`** and **`api.assets`** in other lambdas: **`dataSourceKe
 #### **mtw.ephemera.thinking.scheduling (thinking schedule writes)**
 
 - **Implementation**: [`lambda/ephemera/dataSource/thinking/scheduling/index.ts`](dataSource/thinking/scheduling/index.ts); persistence in [`persistThinkingSchedule.ts`](dataSource/thinking/scheduling/persistThinkingSchedule.ts).
-- **Inbound**: Subscribes to **`api.ephemera`** envelopes whose header type is **`Put Thinking Schedule`** (same shape as **`sendPutThinkingSchedule`**).
+- **Inbound**: Subscribes to **`api.ephemera`** envelopes whose header type is **`Put Thinking Schedule`** (same shape as **`sendPutThinkingSchedule`**). **`Put Thinking Job Create`** and **`Put Thinking Job Error`** are defined on the same bus surface and will be consumed here when the job row persistence slice lands; they are not handled yet.
 - **Behavior**: Writes **`JOB#`** adjacency + **`TASK#`/`Meta::Schedule`** (overwrite-safe **`putItem`** for schedule status transitions), then **`internalCache.ThinkingSchedules.invalidate(workItemId)`**.
 - **Publishing**: **`publisherStrategy: 'busOnly'`**, **`replayable: false`** until the EventBridge schedule slice lands.
 

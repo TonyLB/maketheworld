@@ -84,7 +84,7 @@ On each hop completion (success or failure), **`streamEvent`** **`Thinking Resul
 
 Record blocking forks here as they appear (for example exact **`Meta::Job`** field set, whether job create is one command or split, ordering with **`messageBus.flush()`**).
 
-- (None yet.)
+- **api.ephemera** internal header strings for job bootstrap and run failure: **`Put Thinking Job Create`**, **`Put Thinking Job Error`** (see [`lambda/ephemera/AGENT.event.md`](../../../../../lambda/ephemera/AGENT.event.md)).
 
 ## Success criteria
 
@@ -113,10 +113,10 @@ From **`lambda/ephemera/`**:
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]` as each sub-step lands.
 
-- [ ] **Contracts and `api.ephemera` surface for job bootstrap and job error**
-  - [ ] Extend **`@tonylb/mtw-interfaces`** (and **`localApiEvents` / header guards**) for **Job Create** (or equivalent name): payload covers **`generationId`**, initial **`Meta::Job`** fields, and the list of **`workItemId`**s (or enough to write adjacency).
-  - [ ] Add **Job Error** (or equivalent): payload updates **`Meta::Job`** for run-level failure without replacing per-step **`Meta::Result`** semantics.
-  - [ ] Wire **`send...`** helpers in [`apiEphemera.ts`](../../../../../lambda/ephemera/dataSource/apiEphemera.ts) parallel to **`sendPutThinkingSchedule`**.
+- [X] **Contracts and `api.ephemera` surface for job bootstrap and job error**
+  - [X] Extend **`@tonylb/mtw-interfaces`** (and **`localApiEvents` / header guards**) for **Job Create** (or equivalent name): payload covers **`generationId`**, initial **`Meta::Job`** fields, and the list of **`workItemId`**s (or enough to write adjacency).
+  - [X] Add **Job Error** (or equivalent): payload updates **`Meta::Job`** for run-level failure without replacing per-step **`Meta::Result`** semantics.
+  - [X] Wire **`send...`** helpers in [`apiEphemera.ts`](../../../../../lambda/ephemera/dataSource/apiEphemera.ts) parallel to **`sendPutThinkingSchedule`**.
 
 - [ ] **Scheduling Data Source: authoritative writes for `Meta::Job` and adjacency**
   - [ ] Subscribe to new **`api.ephemera`** envelope types; implement persistence modules (prefer colocated under [`scheduling/`](../../../../../lambda/ephemera/dataSource/thinking/scheduling/) or sibling files owned by the same DataSource).
@@ -144,7 +144,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 
 | Track | Notes |
 | --- | --- |
-| Contracts + `api.ephemera` | Job create / job error types and send helpers |
+| Contracts + `api.ephemera` | Done: **`Put Thinking Job Create`** / **`Put Thinking Job Error`** types, `sendPutThinkingJobCreate` / `sendPutThinkingJobError` (subscriber next) |
 | Scheduling DS writes | `Meta::Job`, adjacency, subscription guards, tests |
 | Pipeline | `generateHypothesis` / `coyoteHypothesisPipeline`: ids, sends, failure paths |
 | Results emit | CoyoteGame **`Thinking Result`**, payload + persistence E2E in lambda tests if feasible |

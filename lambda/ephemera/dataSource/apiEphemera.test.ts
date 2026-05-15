@@ -4,12 +4,16 @@ import {
     sendStateChange,
     sendObjectsChange,
     sendPutThinkingSchedule,
+    sendPutThinkingJobCreate,
+    sendPutThinkingJobError,
     isEphemeraApiSubscribedEnvelope,
     isEphemeraApiPutCacheRecordEnvelope,
     isEphemeraApiDeleteCacheRecordsEnvelope,
     isEphemeraApiStateChangeEnvelope,
     isEphemeraApiObjectsChangeEnvelope,
     isEphemeraApiPutThinkingScheduleEnvelope,
+    isEphemeraApiPutThinkingJobCreateEnvelope,
+    isEphemeraApiPutThinkingJobErrorEnvelope,
 } from './apiEphemera'
 import type { StreamingEventMessage } from '../messageBus/baseClasses'
 import type { StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
@@ -49,6 +53,20 @@ describe('apiEphemera', () => {
         workItemId: '11111111-2222-3333-4444-555555555555',
         segment: 'candidates' as const,
         scheduleStatus: 'scheduled' as const,
+    }
+
+    const minimalThinkingJobCreate = {
+        schemaVersion: 1,
+        generationId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+        workItemIds: ['11111111-2222-3333-4444-555555555555', '22222222-3333-4444-5555-666666666666'],
+        jobStatus: 'pending' as const,
+    }
+
+    const minimalThinkingJobError = {
+        schemaVersion: 1,
+        generationId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+        jobStatus: 'failed' as const,
+        failedAt: '2026-05-14T12:00:00.000Z',
     }
 
     it('sendPutCacheRecord posts StreamingEvent with api.ephemera header and streamKey', () => {
@@ -251,6 +269,59 @@ describe('apiEphemera', () => {
         }
         expect(isEphemeraApiSubscribedEnvelope(envelope)).toBe(true)
         expect(isEphemeraApiPutThinkingScheduleEnvelope(envelope)).toBe(true)
+    })
+
+    it('sendPutThinkingJobCreate posts StreamingEvent with Put Thinking Job Create type', async () => {
+        const { sent, bus } = makeBus()
+        sendPutThinkingJobCreate(bus, 'JOB#aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', minimalThinkingJobCreate)
+
+        expect(sent).toHaveLength(1)
+        const msg = sent[0]
+        expect(msg.type).toBe('StreamingEvent')
+        expect(msg.dataSourceKey).toBe('api.ephemera')
+        expect(msg.streamKey).toBe('JOB#aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')
+        expect(msg.header.type).toBe('Put Thinking Job Create')
+        const content = await msg.getContent()
+        expect(content).toEqual(minimalThinkingJobCreate)
+    })
+
+    it('sendPutThinkingJobError posts StreamingEvent with Put Thinking Job Error type', async () => {
+        const { sent, bus } = makeBus()
+        sendPutThinkingJobError(bus, 'JOB#g1', {
+            ...minimalThinkingJobError,
+            errorCode: 'X',
+            lastFailedWorkItemId: '11111111-2222-3333-4444-555555555555',
+        })
+
+        expect(sent).toHaveLength(1)
+        const msg = sent[0]
+        expect(msg.header.type).toBe('Put Thinking Job Error')
+        const content = await msg.getContent()
+        expect(content).toMatchObject({
+            jobStatus: 'failed',
+            errorCode: 'X',
+            lastFailedWorkItemId: '11111111-2222-3333-4444-555555555555',
+        })
+    })
+
+    it('isEphemeraApiSubscribedEnvelope accepts Put Thinking Job Create and Job Error envelopes', async () => {
+        const { sent, bus } = makeBus()
+        sendPutThinkingJobCreate(bus, 'JOB#a', minimalThinkingJobCreate)
+        const envCreate: StreamingEventEnvelope<unknown> = {
+            header: sent[0].header,
+            getContent: sent[0].getContent,
+        }
+        expect(isEphemeraApiSubscribedEnvelope(envCreate)).toBe(true)
+        expect(isEphemeraApiPutThinkingJobCreateEnvelope(envCreate)).toBe(true)
+
+        sent.length = 0
+        sendPutThinkingJobError(bus, 'JOB#a', minimalThinkingJobError)
+        const envErr: StreamingEventEnvelope<unknown> = {
+            header: sent[0].header,
+            getContent: sent[0].getContent,
+        }
+        expect(isEphemeraApiSubscribedEnvelope(envErr)).toBe(true)
+        expect(isEphemeraApiPutThinkingJobErrorEnvelope(envErr)).toBe(true)
     })
 
     it('isEphemeraApiSubscribedEnvelope rejects wrong dataSourceKey', () => {
