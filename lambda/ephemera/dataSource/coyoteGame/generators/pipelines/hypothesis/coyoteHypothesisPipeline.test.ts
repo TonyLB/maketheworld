@@ -100,6 +100,27 @@ const thinkingResultsOkFromBus = async (
     return results
 }
 
+const schedulePutsByStatus = (status: string) =>
+    sendPutThinkingSchedule.mock.calls
+        .map((call) => call[2])
+        .filter((payload) => payload.scheduleStatus === status)
+
+const expectCompletedSchedulePutsMatchBootstrap = (segments: string[]) => {
+    const completed = schedulePutsByStatus('completed')
+    expect(completed).toHaveLength(segments.length)
+    expect(completed.map((p) => p.segment)).toEqual(segments)
+    for (const segment of segments) {
+        const scheduled = sendPutThinkingSchedule.mock.calls.find(
+            (call) => call[2].segment === segment && call[2].scheduleStatus === 'scheduled'
+        )?.[2]
+        const done = completed.find((p) => p.segment === segment)
+        expect(scheduled).toBeDefined()
+        expect(done).toBeDefined()
+        expect(done!.generationId).toBe(scheduled!.generationId)
+        expect(done!.workItemId).toBe(scheduled!.workItemId)
+    }
+}
+
 /** Valid stage-1 JSON for parse + combine (matches generateHypothesis.test harness). */
 const stageOneSeamBody = JSON.stringify({
     candidates: [
@@ -493,6 +514,8 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
                 stageOneBody: stageOneSeamBody,
             })
         }
+
+        expectCompletedSchedulePutsMatchBootstrap(['candidates', 'planSelect', 'narrativeBeats'])
     })
 
     it('runUntil candidates emits one Thinking Result for candidates only', async () => {
@@ -503,6 +526,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         )
         expect(findCoyoteThinkingResultMessages(bus.send)).toHaveLength(1)
         expect(await thinkingResultSegmentsFromBus(bus.send)).toEqual(['candidates'])
+        expectCompletedSchedulePutsMatchBootstrap(['candidates'])
     })
 
     it('runUntil planSelect emits candidates and planSelect results', async () => {
@@ -513,6 +537,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         )
         expect(findCoyoteThinkingResultMessages(bus.send)).toHaveLength(2)
         expect(await thinkingResultSegmentsFromBus(bus.send)).toEqual(['candidates', 'planSelect'])
+        expectCompletedSchedulePutsMatchBootstrap(['candidates', 'planSelect'])
     })
 
     it('runOnly planSelect emits planSelect result only', async () => {
@@ -539,6 +564,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         )
         expect(findCoyoteThinkingResultMessages(bus.send)).toHaveLength(1)
         expect(await thinkingResultSegmentsFromBus(bus.send)).toEqual(['planSelect'])
+        expectCompletedSchedulePutsMatchBootstrap(['planSelect'])
     })
 
     it('emits planSelect failure result and job error when plan-select aborts before handoff', async () => {
@@ -574,6 +600,8 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
             lastFailedWorkItemId: planSelectWorkItemId,
         })
         expect(sendPutThinkingJobError.mock.calls[0][3]).toBe(thinkingResultsLaneId(generationId))
+        expect(schedulePutsByStatus('completed')).toHaveLength(1)
+        expect(schedulePutsByStatus('completed')[0].segment).toBe('candidates')
     })
 
     it('emits candidates failure result and job error when stage-one invoke fails', async () => {
@@ -598,6 +626,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
             lastFailedWorkItemId: candidatesWorkItemId,
             errorCode: 'stage_one_invoke_failed',
         })
+        expect(schedulePutsByStatus('completed')).toHaveLength(0)
     })
 
     it('runOnly planSelect emits planSelect failure and job error without stageOneResult', async () => {

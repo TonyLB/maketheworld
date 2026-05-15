@@ -255,19 +255,49 @@ describe('hypothesisThinkingPersistence', () => {
     })
 
     describe('emitHypothesisThinkingResult', () => {
-        it('sends and flushes thinkingResults lane', async () => {
+        const findThinkingResultMessage = (
+            send: jest.Mock
+        ): StreamingEventMessage | undefined => {
+            for (const call of send.mock.calls) {
+                const msg = call[0] as StreamingEventMessage
+                if (
+                    msg?.type === 'StreamingEvent' &&
+                    msg.dataSourceKey === EPHEMERA_COYOTE_GAME_DATA_SOURCE_KEY &&
+                    msg.header?.type === THINKING_RESULT_HEADER_TYPE
+                ) {
+                    return msg
+                }
+            }
+            return undefined
+        }
+
+        it('sends Thinking Result then completed schedule and flushes thinkingResults lane', async () => {
             const flush = jest.fn().mockResolvedValue(undefined)
             const send = jest.fn()
             const ids = mintHypothesisThinkingIds(['planSelect'])
+            const laneId = thinkingResultsLaneId(ids.generationId)
+            const workItemId = ids.workItems.planSelect!
+
             await emitHypothesisThinkingResult(
                 { messageBus: { send, flush } },
                 ids,
                 'planSelect',
                 { ok: true, verbose: { planSelectOutput: { paragraphSummary: 'x', planIssues: [] } } }
             )
+
             expect(send).toHaveBeenCalledTimes(1)
+            expect(findThinkingResultMessage(send)).toBeDefined()
+            expect(sendPutThinkingSchedule).toHaveBeenCalledTimes(1)
+            expect(sendPutThinkingSchedule.mock.calls[0][1]).toBe(thinkingStreamKey(ids.generationId))
+            expect(sendPutThinkingSchedule.mock.calls[0][2]).toMatchObject({
+                generationId: ids.generationId,
+                workItemId,
+                segment: 'planSelect',
+                scheduleStatus: 'completed',
+            })
+            expect(sendPutThinkingSchedule.mock.calls[0][3]).toBe(laneId)
             expect(flush).toHaveBeenCalledTimes(1)
-            expect(flush).toHaveBeenCalledWith(thinkingResultsLaneId(ids.generationId))
+            expect(flush).toHaveBeenCalledWith(laneId)
         })
     })
 
@@ -323,6 +353,9 @@ describe('hypothesisThinkingPersistence', () => {
             expect(send).toHaveBeenCalledTimes(1)
             expect(sendPutThinkingJobError).toHaveBeenCalledTimes(1)
             expect(sendPutThinkingJobError.mock.calls[0][3]).toBe(laneId)
+            expect(
+                sendPutThinkingSchedule.mock.calls.filter((call) => call[2].scheduleStatus === 'completed')
+            ).toHaveLength(0)
             expect(flush).toHaveBeenCalledTimes(1)
             expect(flush).toHaveBeenCalledWith(laneId)
 
