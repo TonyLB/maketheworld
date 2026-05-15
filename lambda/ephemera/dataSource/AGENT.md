@@ -24,7 +24,7 @@ Task-planning drafts (dispose after tasks land) live under [`taskPlanning/lambda
 | File | Role |
 | --- | --- |
 | [`abstract.ts`](abstract.ts) | `EphemeraDataSource` --- `ephemeraDB`, SNS, `messageBus`, `EphemeraId` primary key |
-| [`apiEphemera.ts`](apiEphemera.ts) | **`api.ephemera`** streaming helpers (`sendStateChange`, `sendObjectsChange`, `sendPutThinkingSchedule`, cache primitives, etc.) and envelope guards |
+| [`apiEphemera.ts`](apiEphemera.ts) | **`api.ephemera`** streaming helpers (`sendStateChange`, `sendObjectsChange`, `sendPutThinkingSchedule`, `sendPutThinkingJobCreate`, `sendPutThinkingJobError`, cache primitives, etc.) and envelope guards |
 | [`localApiEvents.ts`](localApiEvents.ts) | Payload types for **`api.ephemera`** commands shared across packages |
 | [`subscribedEvents.ts`](subscribedEvents.ts) | Guards for **`mtw.assets`** envelopes consumed by the main ephemera DataSource ([`index.ts`](index.ts)) |
 | [`index.ts`](index.ts) | **`mtw.ephemera`** DataSource --- assets subscription, `processComponentUpdated`, etc. |

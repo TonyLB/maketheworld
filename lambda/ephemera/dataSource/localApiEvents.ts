@@ -1,13 +1,22 @@
 /**
  * Payload types and type guards for API-triggered internal events (dataSourceKey: 'api.ephemera').
  * Used by apiEphemera.ts send helpers and future DataSource receiveEvents. In-process only; no EventBridge.
- * Includes cache commands, thinking schedule (`PutThinkingScheduleCommand`), room state, and parse requests.
+ * Includes cache commands, thinking schedule (`PutThinkingScheduleCommand`), thinking job create/error,
+ * room state, and parse requests.
  */
 import { isEphemeraObjectId, type EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { ThinkingScheduleEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
-import { isThinkingScheduleEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
+import type {
+    ThinkingJobCreateEvent,
+    ThinkingJobErrorEvent,
+    ThinkingScheduleEvent,
+} from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
+import {
+    isThinkingJobCreateEvent,
+    isThinkingJobErrorEvent,
+    isThinkingScheduleEvent,
+} from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
 import type { EphemeraCacheComponentId, EphemeraCacheMarkState } from './renderCache/baseClasses'
 import type { PutCacheRecordInput } from './renderCache/putCacheRecord'
 
@@ -62,6 +71,18 @@ export type PutThinkingScheduleCommand = ThinkingScheduleEvent
 
 export const isPutThinkingScheduleCommand = (value: unknown): value is PutThinkingScheduleCommand =>
     isThinkingScheduleEvent(value)
+
+/** Thinking job bootstrap (`Meta::Job` + membership); paired with header `Put Thinking Job Create` on api.ephemera. */
+export type PutThinkingJobCreateCommand = ThinkingJobCreateEvent
+
+export const isPutThinkingJobCreateCommand = (value: unknown): value is PutThinkingJobCreateCommand =>
+    isThinkingJobCreateEvent(value)
+
+/** Run-level job failure; paired with header `Put Thinking Job Error` on api.ephemera. */
+export type PutThinkingJobErrorCommand = ThinkingJobErrorEvent
+
+export const isPutThinkingJobErrorCommand = (value: unknown): value is PutThinkingJobErrorCommand =>
+    isThinkingJobErrorEvent(value)
 
 const isMarkStateShape = (value: unknown): value is EphemeraCacheMarkState => {
     if (!value || typeof value !== 'object') {
@@ -177,3 +198,5 @@ export type EphemeraApiCommandPayload =
     | ObjectsChangeCommand
     | ParseRequestedCommand
     | PutThinkingScheduleCommand
+    | PutThinkingJobCreateCommand
+    | PutThinkingJobErrorCommand

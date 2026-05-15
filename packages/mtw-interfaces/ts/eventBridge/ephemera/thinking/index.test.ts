@@ -6,6 +6,8 @@ import {
     THINKING_SCHEMA_VERSION_INITIAL,
     isThinkingEventExternal,
     isThinkingEventUpdate,
+    isThinkingJobCreateEvent,
+    isThinkingJobErrorEvent,
     isThinkingResultEvent,
     isThinkingResultEventExternal,
     isThinkingScheduleEvent,
@@ -89,6 +91,40 @@ describe('thinking eventBridge contracts', () => {
                 })
             ).toBe(true)
             expect(isThinkingEventExternal({ type: 'Other', foo: 1 })).toBe(false)
+        })
+
+        it('isThinkingJobCreateEvent', () => {
+            const jobCreate = {
+                schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+                generationId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+                workItemIds: ['11111111-2222-3333-4444-555555555555'],
+                jobStatus: 'pending' as const,
+                createdAt: '2026-05-14T00:00:00.000Z'
+            }
+            expect(isThinkingJobCreateEvent(jobCreate)).toBe(true)
+            expect(isThinkingJobCreateEvent({ ...jobCreate, jobStatus: 'running' })).toBe(true)
+            expect(isThinkingJobCreateEvent({ ...jobCreate, workItemIds: [] })).toBe(false)
+            expect(isThinkingJobCreateEvent({ ...jobCreate, workItemIds: [''] })).toBe(false)
+            expect(isThinkingJobCreateEvent({ ...jobCreate, failedAt: '2026-01-01T00:00:00.000Z' })).toBe(false)
+            expect(isThinkingJobCreateEvent({ ...jobCreate, segment: 'candidates' })).toBe(false)
+            expect(isThinkingJobCreateEvent({ ...jobCreate, jobStatus: 'failed' })).toBe(false)
+        })
+
+        it('isThinkingJobErrorEvent', () => {
+            const jobErr = {
+                schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+                generationId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+                jobStatus: 'failed' as const,
+                failedAt: '2026-05-14T01:00:00.000Z',
+                errorCode: 'PIPELINE_ABORT',
+                errorMessage: 'stopped',
+                lastFailedWorkItemId: '11111111-2222-3333-4444-555555555555'
+            }
+            expect(isThinkingJobErrorEvent(jobErr)).toBe(true)
+            expect(isThinkingJobErrorEvent({ ...jobErr, workItemIds: ['x'] })).toBe(false)
+            expect(isThinkingJobErrorEvent({ ...jobErr, segment: 'candidates' })).toBe(false)
+            expect(isThinkingJobErrorEvent({ ...jobErr, ok: false })).toBe(false)
+            expect(isThinkingJobErrorEvent({ ...jobErr, jobStatus: 'pending' })).toBe(false)
         })
     })
 
