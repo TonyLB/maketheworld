@@ -165,7 +165,30 @@ export const isEphemeraApiSubscribedEnvelope = makeStreamingEnvelopeGuardFromHea
     EphemeraApiSubscribedHeader
 >(isEphemeraApiSubscribedHeader)
 
-type Bus = { send: (payload: StreamingEventMessage) => void }
+type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }
+
+function postApiEphemeraStreamingEvent(
+    bus: Bus,
+    streamKey: string,
+    header: StreamingEventHeader,
+    getContent: () => Promise<unknown>,
+    laneId?: string
+): void {
+    const timestamp = Date.now()
+    const message: StreamingEventMessage = {
+        type: 'StreamingEvent',
+        dataSourceKey: 'api.ephemera',
+        streamKey,
+        header,
+        getContent: getContent as StreamingEventMessage['getContent'],
+        timestamp,
+    }
+    if (laneId !== undefined && laneId !== '') {
+        bus.send(message, laneId)
+    } else {
+        bus.send(message)
+    }
+}
 
 const apiEphemeraSerializer = {
     serialize: ({ content, header }: { content: object; header: StreamingEventHeader }) => ({
@@ -282,65 +305,56 @@ export function sendParseRequested(bus: Bus, streamKey: string, content: ParseRe
 /**
  * Post **Put Thinking Schedule** to the internal bus for `mtw.ephemera.thinking.scheduling` persistence.
  */
-export function sendPutThinkingSchedule(bus: Bus, streamKey: string, content: PutThinkingScheduleCommand): void {
-    const timestamp = Date.now()
+export function sendPutThinkingSchedule(
+    bus: Bus,
+    streamKey: string,
+    content: PutThinkingScheduleCommand,
+    laneId?: string
+): void {
     const header: StreamingEventHeader = {
         dataSourceKey: 'api.ephemera',
         streamKey,
-        timestamp,
+        timestamp: Date.now(),
         type: 'Put Thinking Schedule',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
-    bus.send({
-        type: 'StreamingEvent',
-        dataSourceKey: 'api.ephemera',
-        streamKey,
-        header: envelope.header,
-        getContent: envelope.getContent,
-        timestamp,
-    })
+    postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent, laneId)
 }
 
 /**
  * Post **Put Thinking Job Create** to the internal bus (job bootstrap; consumer: thinking scheduling DataSource).
  */
-export function sendPutThinkingJobCreate(bus: Bus, streamKey: string, content: PutThinkingJobCreateCommand): void {
-    const timestamp = Date.now()
+export function sendPutThinkingJobCreate(
+    bus: Bus,
+    streamKey: string,
+    content: PutThinkingJobCreateCommand,
+    laneId?: string
+): void {
     const header: StreamingEventHeader = {
         dataSourceKey: 'api.ephemera',
         streamKey,
-        timestamp,
+        timestamp: Date.now(),
         type: 'Put Thinking Job Create',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
-    bus.send({
-        type: 'StreamingEvent',
-        dataSourceKey: 'api.ephemera',
-        streamKey,
-        header: envelope.header,
-        getContent: envelope.getContent,
-        timestamp,
-    })
+    postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent, laneId)
 }
 
 /**
  * Post **Put Thinking Job Error** to the internal bus (run-level job failure on `Meta::Job`).
  */
-export function sendPutThinkingJobError(bus: Bus, streamKey: string, content: PutThinkingJobErrorCommand): void {
-    const timestamp = Date.now()
+export function sendPutThinkingJobError(
+    bus: Bus,
+    streamKey: string,
+    content: PutThinkingJobErrorCommand,
+    laneId?: string
+): void {
     const header: StreamingEventHeader = {
         dataSourceKey: 'api.ephemera',
         streamKey,
-        timestamp,
+        timestamp: Date.now(),
         type: 'Put Thinking Job Error',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
-    bus.send({
-        type: 'StreamingEvent',
-        dataSourceKey: 'api.ephemera',
-        streamKey,
-        header: envelope.header,
-        getContent: envelope.getContent,
-        timestamp,
-    })
+    postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent, laneId)
 }

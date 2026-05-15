@@ -450,6 +450,7 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                 getGameRooms: async () => [],
                 getRoomMeta: async () => undefined,
                 roomObjectsByRoomOverride: normalizeFixtureRoomObjects(fixture),
+                messageBus: deps.messageBus,
             }
 
             if (invocation.mode === 'partial') {

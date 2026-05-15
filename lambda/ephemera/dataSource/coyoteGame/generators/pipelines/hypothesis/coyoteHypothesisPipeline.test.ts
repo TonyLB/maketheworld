@@ -8,6 +8,14 @@ jest.mock('./invokeBedrockHypothesis', () => {
     }
 })
 
+jest.mock('../../../../apiEphemera', () => ({
+    sendPutThinkingJobCreate: jest.fn(),
+    sendPutThinkingSchedule: jest.fn(),
+    sendPutThinkingJobError: jest.fn(),
+}))
+
+import * as apiEphemera from '../../../../apiEphemera'
+
 import { COYOTE_ENGINE_TEST_FIXTURES } from '../../testHarness/coyoteEngineTestFixtures'
 import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 import {
@@ -32,6 +40,18 @@ const planSelectionMock = invokeBedrockHypothesisPlanSelection as jest.MockedFun
 const narrativeBeatMock = invokeBedrockHypothesisNarrativeBeat as jest.MockedFunction<
     typeof invokeBedrockHypothesisNarrativeBeat
 >
+
+const sendPutThinkingJobCreate = apiEphemera.sendPutThinkingJobCreate as jest.MockedFunction<
+    typeof apiEphemera.sendPutThinkingJobCreate
+>
+const sendPutThinkingSchedule = apiEphemera.sendPutThinkingSchedule as jest.MockedFunction<
+    typeof apiEphemera.sendPutThinkingSchedule
+>
+
+const mockMessageBus = () => ({
+    send: jest.fn(),
+    flush: jest.fn().mockResolvedValue(undefined),
+})
 
 /** Valid stage-1 JSON for parse + combine (matches generateHypothesis.test harness). */
 const stageOneSeamBody = JSON.stringify({
@@ -241,9 +261,83 @@ describe('validateCoyoteHypothesisHarnessOptions', () => {
     })
 })
 
+describe('runCoyoteHypothesisPipeline thinking bootstrap', () => {
+    const getGameRooms = jest.fn<Promise<string[]>, []>().mockResolvedValue(['VORTEX'])
+    const getRoomMeta = jest.fn().mockResolvedValue({
+        EphemeraId: 'ROOM#VORTEX',
+        DataCategory: 'Meta::Room',
+        objects: [],
+    })
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        stageOneMock.mockResolvedValue({
+            success: false,
+            errorMessage: 'stop after bootstrap',
+        })
+    })
+
+    it('bootstraps three segments on full production run', async () => {
+        const bus = mockMessageBus()
+        await runCoyoteHypothesisPipeline({ getGameRooms, getRoomMeta, messageBus: bus })
+        expect(sendPutThinkingJobCreate).toHaveBeenCalledTimes(1)
+        expect(sendPutThinkingJobCreate.mock.calls[0][2].workItemIds).toHaveLength(3)
+        expect(sendPutThinkingSchedule).toHaveBeenCalledTimes(3)
+        expect(bus.flush).toHaveBeenCalledTimes(1)
+        const lane = sendPutThinkingJobCreate.mock.calls[0][3]
+        expect(lane).toMatch(/^thinkingBootstrap:/)
+        expect(bus.flush).toHaveBeenCalledWith(lane)
+    })
+
+    it('bootstraps one segment for runUntil candidates', async () => {
+        const bus = mockMessageBus()
+        await runCoyoteHypothesisPipeline(
+            { getGameRooms, getRoomMeta, messageBus: bus },
+            { testOnly: 'candidates', harnessRunKind: 'runUntil' }
+        )
+        expect(sendPutThinkingJobCreate.mock.calls[0][2].workItemIds).toHaveLength(1)
+        expect(sendPutThinkingSchedule).toHaveBeenCalledTimes(1)
+    })
+
+    it('bootstraps planSelect only for runOnly planSelect', async () => {
+        const fixture01 = COYOTE_ENGINE_TEST_FIXTURES.find((f) => f.id === 'fixture-01')
+        expect(fixture01?.planSelectInject).toBeDefined()
+        const inject = fixture01!.planSelectInject!
+        planSelectionMock.mockResolvedValue({
+            success: true,
+            body: planSelectOutputBody,
+            usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
+        })
+        const bus = mockMessageBus()
+        await runCoyoteHypothesisPipeline(
+            {
+                getGameRooms: async () => [],
+                getRoomMeta: async () => undefined,
+                messageBus: bus,
+            },
+            {
+                testOnly: 'planSelect',
+                harnessRunKind: 'runOnly',
+                injectState: {
+                    roomObjectsByRoom: inject.roomObjectsByRoom,
+                    combined: inject.combined,
+                },
+            }
+        )
+        expect(sendPutThinkingJobCreate.mock.calls[0][2].workItemIds).toHaveLength(1)
+        expect(sendPutThinkingSchedule.mock.calls[0][2].segment).toBe('planSelect')
+    })
+})
+
 describe('runCoyoteHypothesisPipeline harness modes', () => {
     const getGameRooms = jest.fn<Promise<string[]>, []>()
     const getRoomMeta = jest.fn()
+
+    const pipelineDeps = () => ({
+        getGameRooms,
+        getRoomMeta,
+        messageBus: mockMessageBus(),
+    })
 
     beforeEach(() => {
         jest.clearAllMocks()
@@ -301,7 +395,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
 
     it('runUntil candidates invokes only stage-one Bedrock', async () => {
         const result = await runCoyoteHypothesisPipeline(
-            { getGameRooms, getRoomMeta },
+            pipelineDeps(),
             { testOnly: 'candidates', harnessRunKind: 'runUntil' }
         )
         expect(result.kind).toBe('harnessPartial')
@@ -316,7 +410,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
 
     it('runUntil planSelect invokes stage one and plan selection only', async () => {
         const result = await runCoyoteHypothesisPipeline(
-            { getGameRooms, getRoomMeta },
+            pipelineDeps(),
             { testOnly: 'planSelect', harnessRunKind: 'runUntil' }
         )
         expect(result.kind).toBe('harnessPartial')
@@ -345,9 +439,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
             ].join('\n'),
             usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
         })
-        const result = await runCoyoteHypothesisPipeline(
-            { getGameRooms, getRoomMeta }
-        )
+        const result = await runCoyoteHypothesisPipeline(pipelineDeps())
         expect(result.kind).toBe('full')
         expect(narrativeBeatMock).toHaveBeenCalledTimes(1)
     })
@@ -375,7 +467,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
             ].join('\n'),
             usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
         })
-        const result = await runCoyoteHypothesisPipeline({ getGameRooms, getRoomMeta })
+        const result = await runCoyoteHypothesisPipeline(pipelineDeps())
         expect(result.kind).toBe('full')
         expect(narrativeBeatMock).toHaveBeenCalledTimes(1)
         const narrativeParts = narrativeBeatMock.mock.calls[0][0]
@@ -394,6 +486,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
                 getGameRooms: async () => [],
                 getRoomMeta: async () => undefined,
                 roomObjectsByRoomOverride: inject.roomObjectsByRoom,
+                messageBus: mockMessageBus(),
             },
             {
                 testOnly: 'planSelect',
@@ -423,6 +516,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
                 getGameRooms: async () => [],
                 getRoomMeta: async () => undefined,
                 roomObjectsByRoomOverride: inject.roomObjectsByRoom,
+                messageBus: mockMessageBus(),
             },
             {
                 testOnly: 'narrativeBeats',
@@ -461,7 +555,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
             ].join('\n'),
             usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
         })
-        const result = await runCoyoteHypothesisPipeline({ getGameRooms, getRoomMeta })
+        const result = await runCoyoteHypothesisPipeline(pipelineDeps())
         expect(result.kind).toBe('stub')
         if (result.kind === 'stub') {
             expect(result.record.intent).toBe('Hypothesis: Something went wrong')

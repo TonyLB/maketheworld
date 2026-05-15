@@ -1,7 +1,10 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta';
+import type { ThinkingSegment } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking';
 
 import type { CoyoteGameIntentRecord } from '../../../../../internalCache/coyoteGame';
+import messageBus from '../../../../../messageBus';
+import type { MessageBus } from '../../../../../messageBus/baseClasses';
 import {
     createPipelineContext,
     type PipelineRunFailure,
@@ -36,6 +39,7 @@ import {
 } from '../../sharedParsers/parseHypothesisModelOutput';
 import { parseCandidateOutput, truncateCoyoteGimmickEcho } from './candidates/parseCandidateOutput';
 import { hypothesisDebugLog } from '../../../utilities/hypothesisDebug';
+import { bootstrapHypothesisThinkingAtRunStart } from './hypothesisThinkingPersistence';
 
 /**
  * Failure policy: Bedrock failure on Stage One, plan-selection hop, or narrative beat hop; invalid seam / combine;
@@ -47,6 +51,7 @@ export type GenerateHypothesisDeps = {
     getGameRooms: () => Promise<string[]>;
     getRoomMeta: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>;
     roomObjectsByRoomOverride?: CoyoteRoomObjectsByRoom;
+    messageBus?: Pick<MessageBus, 'send' | 'flush'>;
 };
 
 /** Phase alias aligned with slash / harness (`testOnly`). */
@@ -119,6 +124,10 @@ export type CoyoteHypothesisPipelineState = {
     narrativeBeatsStructuredValidationReason?: string;
     record?: CoyoteGameIntentRecord;
     narrativeBeatReasoningContent?: string;
+    thinking?: {
+        generationId: string;
+        workItems: Partial<Record<ThinkingSegment, string>>;
+    };
 };
 
 /** Thrown after partial state is written so [`runPipeline`] stops and the mapper returns a stub [`GenerateHypothesisPipelineResult`]. */
@@ -623,6 +632,21 @@ export async function runCoyoteHypothesisPipeline(
             initialState = initialStateForRunOnly(harnessOptions.testOnly, harnessOptions.injectState);
         }
     }
+
+    const bus = deps.messageBus ?? messageBus;
+    const thinkingIds = await bootstrapHypothesisThinkingAtRunStart(
+        { messageBus: bus },
+        harnessOptions !== undefined
+            ? {
+                  testOnly: harnessOptions.testOnly,
+                  harnessRunKind: harnessOptions.harnessRunKind,
+              }
+            : undefined
+    );
+    initialState = {
+        ...initialState,
+        thinking: thinkingIds,
+    };
 
     const runResult = await ctx.runPipeline(initialState, steps, {
         onStepStart: (stepName, stepIndex) => {

@@ -42,6 +42,7 @@ import PerceptionThreadsData from './perceptionThreads';
 import CacheCoyoteGameData from './coyoteGame';
 import { generateHypothesis } from '../dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis';
 import { generatePlanOutcome } from '../dataSource/coyoteGame/generators/pipelines/outcome/generatePlanOutcome';
+import messageBus from '../messageBus';
 import GenerationContextData from './generationContext';
 
 const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>()(withGetOperations<'PrimaryKey', string>()(DBHandlerBase)))({
@@ -90,10 +91,12 @@ export class InternalCache {
 
     constructor() {
         this.CoyoteGame = new CacheCoyoteGameData({
-            generateIntent: () => generateHypothesis({
-                getGameRooms: () => this.CoyoteGame.get('gameRooms'),
-                getRoomMeta: (roomId) => this.ComponentEphemeraMeta.get(roomId),
-            }),
+            generateIntent: () =>
+                generateHypothesis({
+                    getGameRooms: () => this.CoyoteGame.get('gameRooms'),
+                    getRoomMeta: (roomId) => this.ComponentEphemeraMeta.get(roomId),
+                    messageBus,
+                }),
             // Outcome reuses the same `CoyoteGame.get('intent')` record (intent, walkthrough, phasePlan) as hypothesis; no second intent fetch.
             generateOutcome: () => generatePlanOutcome({
                 getGameRooms: () => this.CoyoteGame.get('gameRooms'),
