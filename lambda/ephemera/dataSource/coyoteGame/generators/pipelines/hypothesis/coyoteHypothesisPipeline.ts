@@ -46,6 +46,7 @@ import {
     buildNarrativeBeatsThinkingResultVerbose,
     buildPlanSelectThinkingResultVerbose,
     emitHypothesisThinkingResult,
+    finalizeHypothesisThinkingOnRunFailure,
     type HypothesisThinkingHarnessOptions,
 } from './hypothesisThinkingPersistence';
 
@@ -245,7 +246,7 @@ async function emitThinkingResultForSegmentIfActive(
         return;
     }
     const bus = deps.messageBus ?? messageBus;
-    await emitHypothesisThinkingResult({ messageBus: bus }, thinking, segment, verbose);
+    await emitHypothesisThinkingResult({ messageBus: bus }, thinking, segment, { ok: true, verbose });
 }
 
 function buildCoyoteHypothesisSteps(
@@ -743,6 +744,19 @@ export async function runCoyoteHypothesisPipeline(
             failedStepIndex: runResult.failedStepIndex,
             ...errorDetails(runResult.error),
         });
+        if (runResult.state.thinking !== undefined) {
+            await finalizeHypothesisThinkingOnRunFailure(
+                { messageBus: bus },
+                {
+                    ids: runResult.state.thinking,
+                    failedStepName: runResult.failedStepName,
+                    failedStepIndex: runResult.failedStepIndex,
+                    error: runResult.error,
+                    state: runResult.state,
+                    thinkingHarness,
+                }
+            );
+        }
     }
     return mapPipelineRunToGenerateHypothesisResult(runResult, mapContext);
 }

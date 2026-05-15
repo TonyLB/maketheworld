@@ -15,6 +15,7 @@ import type { StreamingEventMessage } from '../../../../../messageBus/baseClasse
 import type { MessageBus } from '../../../../../messageBus/baseClasses'
 import {
     sendPutThinkingJobCreate,
+    sendPutThinkingJobError,
     sendPutThinkingSchedule,
 } from '../../../../apiEphemera'
 import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
@@ -44,7 +45,83 @@ export type HypothesisThinkingBootstrapDeps = {
 
 export type HypothesisThinkingResultDeps = HypothesisThinkingBootstrapDeps
 
+export type HypothesisThinkingResultOutcome = {
+    ok: boolean
+    verbose?: unknown
+    errorCode?: string
+    errorMessage?: string
+}
+
+/** Pipeline draft fields needed to build failure verbose payloads (avoids importing the pipeline module). */
+export type HypothesisThinkingPipelineStateSnapshot = {
+    roomObjectsByRoom?: CoyoteRoomObjectsByRoom
+    combined?: CombineCandidateOutputReturn
+    stageOneResult?: InvokeBedrockHypothesisResult
+    planSelectionResult?: InvokeBedrockHypothesisResult | null
+    narrativeBeatResult?: InvokeBedrockHypothesisResult | null
+    planSelectOutput?: PlanSelectOutput
+    selectionBody?: string
+    record?: CoyoteGameIntentRecord
+    narrativeBeatsStructuredJson?: string
+    narrativeBeatsStructuredValidationReason?: string
+    narrativeBeatReasoningContent?: string
+}
+
+export type FinalizeHypothesisThinkingOnRunFailureInput = {
+    ids: HypothesisThinkingIds
+    failedStepName: string
+    failedStepIndex: number
+    error: unknown
+    state: HypothesisThinkingPipelineStateSnapshot
+    thinkingHarness?: HypothesisThinkingHarnessOptions
+}
+
 const ALL_SEGMENTS: ThinkingSegment[] = ['candidates', 'planSelect', 'narrativeBeats']
+
+const FAILED_STEP_TO_SEGMENT: Record<string, ThinkingSegment> = {
+    hypothesisCandidatesLlm: 'candidates',
+    seamCombineRender: 'candidates',
+    hypothesisPlanSelectionLlm: 'planSelect',
+    parsePlanSelectionHandoff: 'planSelect',
+    hypothesisNarrativeBeatLlm: 'narrativeBeats',
+    parseNarrativeBeatRecord: 'narrativeBeats',
+}
+
+export function thinkingSegmentForFailedStepName(failedStepName: string): ThinkingSegment | undefined {
+    return FAILED_STEP_TO_SEGMENT[failedStepName]
+}
+
+export function errorMessageFromUnknown(error: unknown): string {
+    if (error instanceof Error) {
+        return error.message
+    }
+    return String(error)
+}
+
+export function deriveHypothesisFailureErrorCode(
+    failedStepName: string,
+    state: HypothesisThinkingPipelineStateSnapshot
+): string {
+    switch (failedStepName) {
+        case 'hypothesisCandidatesLlm':
+            return 'stage_one_invoke_failed'
+        case 'seamCombineRender':
+            return 'stage_one_parse_failed'
+        case 'hypothesisPlanSelectionLlm':
+            return 'plan_selection_invoke_failed'
+        case 'parsePlanSelectionHandoff':
+            if (state.planSelectOutput !== undefined && state.planSelectOutput.selectedCandidate === undefined) {
+                return 'plan_selection_missing_selected_candidate'
+            }
+            return 'plan_selection_handoff_parse_failed'
+        case 'hypothesisNarrativeBeatLlm':
+            return 'narrative_beat_invoke_failed'
+        case 'loadRoomObjects':
+            return 'load_room_objects_failed'
+        default:
+            return 'pipeline_step_failed'
+    }
+}
 
 export function thinkingStreamKey(generationId: string): string {
     return jobEphemeraId(generationId)
@@ -175,6 +252,117 @@ export function buildNarrativeBeatsThinkingResultVerbose(input: {
     return verbose
 }
 
+export function buildHypothesisFailureVerbose(
+    state: HypothesisThinkingPipelineStateSnapshot,
+    segment: ThinkingSegment,
+    failedStepName: string
+): unknown {
+    const roomObjectsByRoom = state.roomObjectsByRoom
+    if (segment === 'candidates') {
+        if (roomObjectsByRoom !== undefined && state.stageOneResult !== undefined) {
+            const combined = state.combined ?? { candidates: [] }
+            return buildCandidatesThinkingResultVerbose({
+                roomObjectsByRoom,
+                stageOneResult: state.stageOneResult,
+                combined,
+            })
+        }
+        return {
+            ...(roomObjectsByRoom !== undefined ? { roomObjectsByRoom } : {}),
+            failedStepName,
+            ...(state.stageOneResult !== undefined
+                ? { stageOneResult: summarizeInvokeResultForThinkingVerbose(state.stageOneResult) }
+                : {}),
+        }
+    }
+    if (segment === 'planSelect') {
+        if (
+            roomObjectsByRoom !== undefined &&
+            state.combined !== undefined &&
+            state.planSelectionResult !== undefined &&
+            state.planSelectionResult !== null &&
+            state.planSelectionResult.success &&
+            state.planSelectOutput !== undefined
+        ) {
+            return buildPlanSelectThinkingResultVerbose({
+                roomObjectsByRoom,
+                combined: state.combined,
+                planSelectionResult: state.planSelectionResult,
+                planSelectOutput: state.planSelectOutput,
+                selectionBody: state.selectionBody ?? state.planSelectionResult.body,
+            })
+        }
+        return {
+            ...(roomObjectsByRoom !== undefined ? { roomObjectsByRoom } : {}),
+            failedStepName,
+            ...(state.combined !== undefined ? { combined: state.combined } : {}),
+            ...(state.planSelectionResult !== undefined && state.planSelectionResult !== null
+                ? {
+                      planSelectionResult: summarizeInvokeResultForThinkingVerbose(state.planSelectionResult),
+                  }
+                : {}),
+            ...(state.selectionBody !== undefined ? { selectionBody: state.selectionBody } : {}),
+            ...(state.planSelectOutput !== undefined ? { planSelectOutput: state.planSelectOutput } : {}),
+        }
+    }
+    if (segment === 'narrativeBeats') {
+        if (
+            roomObjectsByRoom !== undefined &&
+            state.planSelectOutput !== undefined &&
+            state.narrativeBeatResult !== undefined &&
+            state.narrativeBeatResult !== null &&
+            state.record !== undefined
+        ) {
+            return buildNarrativeBeatsThinkingResultVerbose({
+                roomObjectsByRoom,
+                planSelectOutput: state.planSelectOutput,
+                narrativeBeatResult: state.narrativeBeatResult,
+                record: state.record,
+                narrativeBeatsStructuredJson: state.narrativeBeatsStructuredJson,
+                narrativeBeatsStructuredValidationReason: state.narrativeBeatsStructuredValidationReason,
+                narrativeBeatReasoningContent: state.narrativeBeatReasoningContent,
+            })
+        }
+        return {
+            ...(roomObjectsByRoom !== undefined ? { roomObjectsByRoom } : {}),
+            failedStepName,
+            ...(state.planSelectOutput !== undefined ? { planSelectOutput: state.planSelectOutput } : {}),
+            ...(state.narrativeBeatResult !== undefined && state.narrativeBeatResult !== null
+                ? {
+                      narrativeBeatResult: summarizeInvokeResultForThinkingVerbose(state.narrativeBeatResult),
+                  }
+                : {}),
+        }
+    }
+    return { failedStepName }
+}
+
+function postHypothesisThinkingResult(
+    deps: HypothesisThinkingResultDeps,
+    ids: HypothesisThinkingIds,
+    segment: ThinkingSegment,
+    outcome: HypothesisThinkingResultOutcome,
+    laneId: string
+): void {
+    const workItemId = ids.workItems[segment]
+    if (workItemId === undefined) {
+        throw new Error(`HypothesisThinkingPersistence: missing workItemId for segment ${segment}`)
+    }
+    const streamKey = thinkingStreamKey(ids.generationId)
+    const event: ThinkingResultEvent = {
+        schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+        generationId: ids.generationId,
+        workItemId,
+        segment,
+        ok: outcome.ok,
+        completedAt: new Date().toISOString(),
+        ...(outcome.verbose !== undefined ? { verbose: outcome.verbose } : {}),
+        ...(outcome.errorCode !== undefined ? { errorCode: outcome.errorCode } : {}),
+        ...(outcome.errorMessage !== undefined ? { errorMessage: outcome.errorMessage } : {}),
+    }
+    sendCoyoteThinkingResult(deps.messageBus, streamKey, event, laneId)
+}
+
 export function sendCoyoteThinkingResult(
     bus: Pick<MessageBus, 'send'>,
     streamKey: string,
@@ -208,25 +396,62 @@ export async function emitHypothesisThinkingResult(
     deps: HypothesisThinkingResultDeps,
     ids: HypothesisThinkingIds,
     segment: ThinkingSegment,
-    verbose: unknown
+    outcome: HypothesisThinkingResultOutcome
 ): Promise<void> {
-    const workItemId = ids.workItems[segment]
-    if (workItemId === undefined) {
-        throw new Error(`HypothesisThinkingPersistence: missing workItemId for segment ${segment}`)
-    }
+    const laneId = thinkingResultsLaneId(ids.generationId)
+    postHypothesisThinkingResult(deps, ids, segment, outcome, laneId)
+    await deps.messageBus.flush(laneId)
+}
+
+export async function finalizeHypothesisThinkingOnRunFailure(
+    deps: HypothesisThinkingResultDeps,
+    input: FinalizeHypothesisThinkingOnRunFailureInput
+): Promise<void> {
+    const { ids, failedStepName, error, state, thinkingHarness } = input
     const streamKey = thinkingStreamKey(ids.generationId)
     const laneId = thinkingResultsLaneId(ids.generationId)
-    const event: ThinkingResultEvent = {
-        schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
-        generationId: ids.generationId,
-        workItemId,
-        segment,
-        ok: true,
-        completedAt: new Date().toISOString(),
-        verbose,
+    const bus = deps.messageBus
+    const errorCode = deriveHypothesisFailureErrorCode(failedStepName, state)
+    const errorMessage = errorMessageFromUnknown(error)
+    const segment = thinkingSegmentForFailedStepName(failedStepName)
+
+    if (
+        segment !== undefined &&
+        activeThinkingSegmentsForRun(thinkingHarness).includes(segment)
+    ) {
+        postHypothesisThinkingResult(
+            deps,
+            ids,
+            segment,
+            {
+                ok: false,
+                verbose: buildHypothesisFailureVerbose(state, segment, failedStepName),
+                errorCode,
+                errorMessage,
+            },
+            laneId
+        )
     }
-    sendCoyoteThinkingResult(deps.messageBus, streamKey, event, laneId)
-    await deps.messageBus.flush(laneId)
+
+    const lastFailedWorkItemId =
+        segment !== undefined ? ids.workItems[segment] : undefined
+
+    sendPutThinkingJobError(
+        bus,
+        streamKey,
+        {
+            schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+            generationId: ids.generationId,
+            jobStatus: 'failed',
+            failedAt: new Date().toISOString(),
+            errorCode,
+            errorMessage,
+            ...(lastFailedWorkItemId !== undefined ? { lastFailedWorkItemId } : {}),
+        },
+        laneId
+    )
+
+    await bus.flush(laneId)
 }
 
 export async function bootstrapHypothesisThinkingAtRunStart(
