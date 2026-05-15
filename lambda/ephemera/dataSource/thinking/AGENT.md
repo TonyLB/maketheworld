@@ -59,9 +59,21 @@ When [`generateHypothesis`](../coyoteGame/generators/pipelines/hypothesis/genera
 
 **Segment** values in contracts align with routing keys such as **`candidates`**, **`planSelect`**, **`narrativeBeats`**. Verbose result payloads are **`unknown`** at the shared contract boundary; server code aligns them with harness inject shapes in [`../coyoteGame/generators/pipelines/hypothesis/coyoteHarnessInjectTypes.ts`](../coyoteGame/generators/pipelines/hypothesis/coyoteHarnessInjectTypes.ts) and related fixtures.
 
-## EventBridge and `subscriptions`
+## EventBridge and subscriptions
 
-Publishing a **replayable** schedule feed and bridging **`mtw.ephemera.*`** events to WebSocket clients may require **EventBridge** rules and **`subscriptions` lambda** work together with ephemera. That integration is a **separate slice** from contracts-only work; see the task plan **Schedule spine** and **Decisions**.
+**Today:** **`mtw.ephemera.thinking.scheduling`** is **`replayable: false`**, **`publisherStrategy: 'busOnly'`**. The only outbound **`streamEvent`** is **`Job Completed`** (`ThinkingJobCompletedEvent`: terminal **`schedules[]`**, no result **`verbose`**). Ingress remains **`api.ephemera`** commands (**`Put Thinking Schedule`**, job create/error); internal header **`Put Thinking Schedule`** is not the same as wire header **`Thinking Schedule`**.
+
+**EventBridge MVP (planned):** turn on replay + EventBridge + **`subscriptions`** for **`Job Completed` only** --- enough for client Redux to list **successfully completed jobs** and link to **Ephemera API** for hop results. See [`taskPlanning/.../AGENT.thinking.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/thinking/AGENT.thinking.planning.md) (**EventBridge publish phasing**).
+
+**Deferred (follow-on, not MVP):**
+
+| Stream | Purpose |
+| --- | --- |
+| **`Thinking Schedule`** per **`persistThinkingSchedule`** | In-flight progress, hop timelines (`scheduled` / **`completed`** / `claimed` / `cancelled`). Serializer + types exist; ephemera does not emit yet. |
+| **`Job Failed`** (or equivalent) | Failed runs today persist via **`Put Thinking Job Error`** only --- no scheduling DataSource egress. |
+| **`Thinking Result`** on **`mtw.ephemera.thinking.results`** | Live result streaming; optional if API + **`Job Completed`** suffice for debugging. |
+
+**MVP limitations:** no live view of runs in progress; failed hypothesis jobs do not emit **`Job Completed`** (only **`Meta::Job`** **`failed`** in Dynamo). Harness **`runUntil`** jobs that finish their bootstrapped segments still emit **`Job Completed`** when all listed hops reach **`completed`**.
 
 ## Related docs
 
@@ -74,4 +86,4 @@ Publishing a **replayable** schedule feed and bridging **`mtw.ephemera.*`** even
 
 ## Implementation status
 
-**Read gateway:** shipped in **`@tonylb/mtw-gateways/ts/ephemera/thinking`** (see package **`AGENT.md`** ownership row): results, schedule, and job read helpers (`getJobMetaItem`, `queryTaskRowsForJob`, `listThinkingSchedulesForJob`, `fetchThinkingJobSnapshot`) plus ephemera **`internalCache.ThinkingResults`**, **`internalCache.ThinkingSchedules`**, and **`internalCache.ThinkingJobs`**. **Thinking result persistence**, **`mtw.ephemera.thinking.results`**, and Coyote hypothesis **`Thinking Result` bus emit** (success and **`ok: false`** failure) ship under [`results/`](results/) and [`hypothesisThinkingPersistence.ts`](../coyoteGame/generators/pipelines/hypothesis/hypothesisThinkingPersistence.ts). **Schedule, `Meta::Job` bootstrap, job error, segment-success `completed` schedule puts, rollup, and `Job Completed` bus emit** ship under [`scheduling/`](scheduling/) (**`api.ephemera`** ingress + **`maybeCompleteThinkingJob`**). Coyote hypothesis invokes **`finalizeHypothesisThinkingOnRunFailure`** on run failure after bootstrap. Client **API** and **EventBridge** replay for schedule remain in the task plan. This `AGENT.md` is the durable anchor for keys, lifecycle, and links; avoid duplicating full architecture here.
+**Read gateway:** shipped in **`@tonylb/mtw-gateways/ts/ephemera/thinking`** (see package **`AGENT.md`** ownership row): results, schedule, and job read helpers (`getJobMetaItem`, `queryTaskRowsForJob`, `listThinkingSchedulesForJob`, `fetchThinkingJobSnapshot`) plus ephemera **`internalCache.ThinkingResults`**, **`internalCache.ThinkingSchedules`**, and **`internalCache.ThinkingJobs`**. **Thinking result persistence**, **`mtw.ephemera.thinking.results`**, and Coyote hypothesis **`Thinking Result` bus emit** (success and **`ok: false`** failure) ship under [`results/`](results/) and [`hypothesisThinkingPersistence.ts`](../coyoteGame/generators/pipelines/hypothesis/hypothesisThinkingPersistence.ts). **Schedule, `Meta::Job` bootstrap, job error, segment-success `completed` schedule puts, rollup, and internal-bus `Job Completed`** ship under [`scheduling/`](scheduling/) (**`api.ephemera`** ingress + **`maybeCompleteThinkingJob`**). Coyote hypothesis invokes **`finalizeHypothesisThinkingOnRunFailure`** on run failure after bootstrap. **Pending:** client **Ephemera API**; **EventBridge** replay for **`Job Completed`** only (per-hop **`Thinking Schedule`** stream deferred --- see **EventBridge and subscriptions** above). This `AGENT.md` is the durable anchor for keys, lifecycle, and links; avoid duplicating full architecture here.

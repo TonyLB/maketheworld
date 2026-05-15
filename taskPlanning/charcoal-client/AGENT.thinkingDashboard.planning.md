@@ -1,6 +1,6 @@
 # charcoal-client: Thinking dashboards and subscriptions (planning)
 
-**Status:** Not started. **Blocked** on server deliverables: **TypeScript contracts** for subscription payloads and **Ephemera API** (or equivalent) for thinking results lookup. See server plan for ordering.
+**Status:** Not started. **Blocked** on server deliverables: **Ephemera API** for thinking results lookup and **EventBridge** replay for **`Job Completed`** (server MVP defers per-hop **`Thinking Schedule`** stream). Contracts for subscribe payloads largely exist in **`@tonylb/mtw-interfaces`**. See server plan **EventBridge publish phasing**.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../AGENT.md).
 
@@ -16,8 +16,8 @@ This file is task-scoped. When the initiative is done, **archive or remove** it;
 
 ### In scope
 
-- **Subscribe** to thinking schedule updates over **WebSocket**, using the same **subscriptions lambda** bridge from **EventBridge**-published DataSource events into **Redux DataSource** patterns as today (see **Decisions** below).
-- **Thinking schedule dashboard** (first operator-facing surface: list or timeline of schedule events / generations as defined by server contract).
+- **Subscribe** to **`Job Completed`** from **`mtw.ephemera.thinking.scheduling`** over **WebSocket** (subscriptions lambda + EventBridge), using existing **Redux DataSource** patterns. Per-hop **`Thinking Schedule`** timeline is a **server follow-on** --- MVP UI is **completed jobs**, not in-flight progress.
+- **Completed thinking jobs dashboard** (first operator-facing surface: list of terminal jobs from **`Job Completed`**; optional link to results detail).
 - **Redux slice** (or agreed client state module) for **thinking results** fetched via the Ephemera API.
 - **Dashboard sub-panel** for **thinking results** (detail view keyed by `generationId`, `workItemId`, and/or phase per API).
 
@@ -29,11 +29,11 @@ This file is task-scoped. When the initiative is done, **archive or remove** it;
 
 ## Decisions (locked for this phase)
 
-1. **Subscription transport:** **WebSocket**, via the existing **`subscriptions` lambda** pattern that bridges **EventBridge**-published (replayable) DataSource updates into **WebSocket**-delivered events for client-side **Redux DataSource** wiring. Follow the same integration style as other ephemera DataSources, once `mtw.ephemera.thinking.scheduling` publishes on that path.
+1. **Subscription transport:** **WebSocket**, via the existing **`subscriptions` lambda** pattern that bridges **EventBridge**-published (replayable) DataSource updates into **WebSocket**-delivered events for client-side **Redux DataSource** wiring. **MVP:** subscribe to **`Job Completed` only** from `mtw.ephemera.thinking.scheduling`. **Follow-on:** **`Thinking Schedule`** hop updates for timelines / in-flight UX.
 2. **Payload / types:** Schedule- and results-facing envelopes align with types under **`@tonylb/mtw-interfaces`** in **`eventBridge/ephemera/thinking/`** (shared contracts; client imports from there rather than duplicating shapes).
 3. **Authorization:** **None** for this phase (dashboards and subscription wiring do not add AuthZ gates).
 4. **Feature flags:** **None** for this phase (no flag-gated rollout for this UI slice).
-5. **Redux layout:** New slice folders under `charcoal-client/src/slices/`, named **`thinkingSchedule`** (subscription-driven schedule state) and **`thinkingResults`** (API-fetched results), alongside existing ephemera-related slices (for example [`slices/ephemera/`](../../charcoal-client/src/slices/ephemera/), [`slices/dataSource/`](../../charcoal-client/src/slices/dataSource/)).
+5. **Redux layout:** New slice folders under `charcoal-client/src/slices/`, named **`thinkingJobs`** or **`thinkingCompletedJobs`** (subscription-driven **`Job Completed`** state; rename if **`Thinking Schedule`** stream lands later) and **`thinkingResults`** (API-fetched results), alongside existing ephemera-related slices (for example [`slices/ephemera/`](../../charcoal-client/src/slices/ephemera/), [`slices/dataSource/`](../../charcoal-client/src/slices/dataSource/)).
 
 ## Open decisions
 
@@ -41,8 +41,8 @@ This file is task-scoped. When the initiative is done, **archive or remove** it;
 
 ## Success criteria (client)
 
-- Connected clients can **subscribe** (or equivalent) to thinking schedule events without errors when the server publishes them.
-- **Schedule dashboard** renders a useful minimal view for at least one agreed query (for example latest generation or filtered list).
+- Connected clients can **subscribe** to **`Job Completed`** without errors when the server publishes them.
+- **Completed jobs dashboard** renders a useful minimal view (for example recent successful runs with `generationId` and segment list).
 - **Results** sub-panel loads data from the **Ephemera API** and displays core fields (phase, status, timestamps, optional verbose toggles if API exposes them).
 - **Tests**: Vitest + RTL per [`charcoal-client/AGENT.testing.md`](../../charcoal-client/AGENT.testing.md); meaningful coverage for slice reducers and primary UI paths.
 
@@ -61,7 +61,7 @@ Run from **`charcoal-client/`** (see [`AGENT.development.md`](./AGENT.developmen
 - Baseline before edits:
   - `npm run test:single`
 - After each slice (examples; adjust paths when files exist):
-  - `npm run test:single -- src/slices/thinkingSchedule/<file>.test.ts`
+  - `npm run test:single -- src/slices/thinkingCompletedJobs/<file>.test.ts` (or agreed slice name)
   - `npm run test:single -- src/slices/thinkingResults/<file>.test.ts`
   - `npm run test:single -- src/components/<dashboardPath>`
 
@@ -70,21 +70,24 @@ Run from **`charcoal-client/`** (see [`AGENT.development.md`](./AGENT.developmen
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]` as each sub-step lands.
 
 - [ ] **Prerequisites (server-owned; track in companion plan)**
-  - [ ] **`@tonylb/mtw-interfaces`** types under **`eventBridge/ephemera/thinking/`** for **`mtw.ephemera.thinking.scheduling`** and thinking-result payloads (and API response shapes as defined server-side) consumable from the client.
+  - [X] **`@tonylb/mtw-interfaces`** types under **`eventBridge/ephemera/thinking/`** for **`Job Completed`**, **`Thinking Schedule`** (wire shape; stream deferred), and thinking-result payloads (API response shapes TBD server-side).
   - [ ] **Ephemera API** for thinking results lookup (stable path and JSON).
-  - [ ] **EventBridge + replayable** schedule publisher live for `mtw.ephemera.thinking.scheduling` so the subscriptions bridge delivers WebSocket events.
+  - [ ] **EventBridge + replayable** **`Job Completed`** publisher for `mtw.ephemera.thinking.scheduling` so the subscriptions bridge delivers WebSocket events (**`Thinking Schedule`** stream not required for MVP).
 
 - [ ] **Redux slice for thinking results**
   - [ ] Actions/thunks for API fetch by agreed keys (`generationId`, `workItemId`, phase).
   - [ ] State shape, loading/error, and tests.
 
-- [ ] **Client-side subscribe to thinking schedule**
+- [ ] **Client-side subscribe to `Job Completed`**
   - [ ] Wire subscription through the **subscriptions lambda** WebSocket path (EventBridge to client), consistent with existing DataSource Redux patterns.
   - [ ] Tests for reducer or handler paths affected by incoming events.
 
-- [ ] **Thinking schedule dashboard**
+- [ ] **Completed thinking jobs dashboard**
   - [ ] Route or panel entry point.
-  - [ ] Minimal list or timeline per contract.
+  - [ ] Minimal list of completed jobs (`generationId`, `completedAt`, segment summary from **`schedules[]`**).
+
+- [ ] **`Thinking Schedule` timeline (deferred)**
+  - [ ] After server emits per-hop **`Thinking Schedule`**, extend subscribe + UI for in-flight/progress views.
 
 - [ ] **Dashboard sub-panel for thinking results**
   - [ ] Integrate slice + API into dashboard layout.
@@ -99,16 +102,18 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 | Area | Notes |
 | --- | --- |
 | Redux (results) | |
-| Subscribe (schedule) | |
-| Schedule dashboard | |
+| Subscribe (`Job Completed`) | Server MVP: no per-hop **`Thinking Schedule`** stream |
+| Completed jobs dashboard | Replaces schedule timeline for MVP |
 | Results sub-panel | |
+| Schedule timeline | **Deferred** until server **`Thinking Schedule`** stream |
 
 ## Coordination with server plan
 
 | Client step | Server dependency |
 | --- | --- |
-| Subscribe | Replayable + EventBridge for `mtw.ephemera.thinking.scheduling`; **`@tonylb/mtw-interfaces`** `eventBridge/ephemera/thinking/` types; subscriptions lambda WebSocket bridge |
-| Schedule dashboard | Same + optional list API if not embedded in stream |
+| Subscribe (`Job Completed`) | Replayable + EventBridge for **`Job Completed`** on `mtw.ephemera.thinking.scheduling`; subscriptions lambda WebSocket bridge |
+| Completed jobs dashboard | Same; optional list API if not embedded in replay |
+| Schedule timeline (deferred) | Server **`Thinking Schedule`** stream per hop |
 | Results slice / panel | Ephemera API (WebSocket envelope per existing client → ephemera pattern) + response types from **`eventBridge/ephemera/thinking/`** |
 
 Keep this table updated if contracts move between PRs.
