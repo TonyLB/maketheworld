@@ -122,11 +122,11 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Subscribe to new **`api.ephemera`** envelope types; implement persistence modules (prefer colocated under [`scheduling/`](../../../../../lambda/ephemera/dataSource/thinking/scheduling/) or sibling files owned by the same DataSource).
   - [X] **`internalCache`** invalidation strategy for job-scoped reads if new read paths are added (otherwise document "query Dynamo via gateway only" for MVP).
 
-- [ ] **Hypothesis pipeline: mint ids and call job create at run start**
-  - [ ] Mint **`generationId`** and per-hop **`workItemId`**s; invoke **Job Create** once before hops (or at first durable boundary---document choice in [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md) if non-obvious).
+- [X] **Hypothesis pipeline: mint ids and call job create at run start**
+  - [X] Mint **`generationId`** and per-hop **`workItemId`**s; invoke **Job Create** once before hops (or at first durable boundary---document choice in [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md) if non-obvious).
 
-- [ ] **Schedule pre-items**
-  - [ ] **`sendPutThinkingSchedule`** (or batch) for each hop when scheduled / at start, aligned with **`ThinkingScheduleEvent`** and existing **`persistThinkingSchedule`**.
+- [X] **Schedule pre-items**
+  - [X] **`sendPutThinkingSchedule`** (or batch) for each hop when scheduled / at start, aligned with **`ThinkingScheduleEvent`** and existing **`persistThinkingSchedule`**.
 
 - [ ] **Load-bearing `Thinking Result` payloads + bus emit per hop**
   - [ ] Ensure **`getContent`** satisfies persistence and harness alignment; add or extend Jest for serializer/guard paths as needed.
@@ -146,7 +146,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 | --- | --- |
 | Contracts + `api.ephemera` | Done: **`Put Thinking Job Create`** / **`Put Thinking Job Error`** types and send helpers |
 | Scheduling DS writes | Done: **`mtw.ephemera.thinking.scheduling`** subscribes to job commands; **`persistThinkingJobCreate`** / **`persistThinkingJobError`**; tests; no job **`internalCache`** (gateway / Dynamo reads documented in **`thinking/AGENT.md`**) |
-| Pipeline | `generateHypothesis` / `coyoteHypothesisPipeline`: ids, sends, failure paths |
+| Pipeline | Done (bootstrap slice): **`hypothesisThinkingPersistence.ts`** mints ids, **`Put Thinking Job Create`** + schedule pre-items at run start via **`thinkingBootstrap:${uuid}`** lane + **`flush(laneId)`**; harness-scoped segments |
 | Results emit | CoyoteGame **`Thinking Result`**, payload + persistence E2E in lambda tests if feasible |
 
 ## Related GitHub issues (optional index)

@@ -8,6 +8,12 @@ jest.mock('./invokeBedrockHypothesis', () => {
     }
 })
 
+jest.mock('../../../../apiEphemera', () => ({
+    sendPutThinkingJobCreate: jest.fn(),
+    sendPutThinkingSchedule: jest.fn(),
+    sendPutThinkingJobError: jest.fn(),
+}))
+
 import { generateHypothesis, generateHypothesisWithStageResults } from './generateHypothesis'
 import { harnessRoomObjects } from '../../testHarness/coyoteEngineTestFixtures'
 import {
@@ -126,6 +132,16 @@ describe('generateHypothesis', () => {
     const getGameRooms = jest.fn<Promise<string[]>, []>()
     const getRoomMeta = jest.fn()
 
+    const hypothesisDeps = (extra: Record<string, unknown> = {}) => ({
+        getGameRooms,
+        getRoomMeta,
+        messageBus: {
+            send: jest.fn(),
+            flush: jest.fn().mockResolvedValue(undefined),
+        },
+        ...extra,
+    })
+
     beforeEach(() => {
         jest.clearAllMocks()
         getGameRooms.mockResolvedValue(['VORTEX', 'STRAIGHTAWAY'])
@@ -174,7 +190,7 @@ describe('generateHypothesis', () => {
     })
 
     it('returns narrative-beats hop model output when all stages succeed', async () => {
-        const record = await generateHypothesis({ getGameRooms, getRoomMeta })
+        const record = await generateHypothesis(hypothesisDeps())
         expect(record.intent).toBe('Hypothesis: You are trying to drop something on the Road Runner.')
         expect(record.narrativeBeatsStructured?.beats).toHaveLength(1)
         expect(record.walkthrough).toBeUndefined()
@@ -185,7 +201,7 @@ describe('generateHypothesis', () => {
     })
 
     it('passes tropeFunction rendering into phase-plan hop prompt', async () => {
-        await generateHypothesis({ getGameRooms, getRoomMeta })
+        await generateHypothesis(hypothesisDeps())
         const narrativeBeatPrompt = narrativeBeatMock.mock.calls[0][0] as {
             invariantPrefix: string
             dynamicSuffix: string
@@ -204,7 +220,7 @@ describe('generateHypothesis', () => {
             ),
             usage: { inputTokens: 4, outputTokens: 5, totalTokens: 9 },
         })
-        await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toMatchObject({
+        await expect(generateHypothesis(hypothesisDeps())).resolves.toMatchObject({
             intent: 'Hypothesis: You are trying to drop something on the Road Runner.',
             walkthrough: '## Cartoon play-by-play\nTrap setup.',
             gimmick: 'deliver damage',
@@ -218,7 +234,7 @@ describe('generateHypothesis', () => {
             reasoningContent: 'plan ordering scratch',
             usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
         })
-        const result = await generateHypothesisWithStageResults({ getGameRooms, getRoomMeta })
+        const result = await generateHypothesisWithStageResults(hypothesisDeps())
         expect(result.kind).toBe('full')
         if (result.kind !== 'full') {
             return
@@ -239,7 +255,7 @@ describe('generateHypothesis', () => {
     })
 
     it('fetches room-local objects for all Coyote Game rooms when not overridden', async () => {
-        await generateHypothesis({ getGameRooms, getRoomMeta })
+        await generateHypothesis(hypothesisDeps())
 
         expect(getGameRooms).toHaveBeenCalledTimes(1)
         expect(getRoomMeta).toHaveBeenCalledTimes(2)
@@ -320,14 +336,14 @@ describe('generateHypothesis', () => {
             usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
         })
 
-        await generateHypothesis({
-            getGameRooms,
-            getRoomMeta,
-            roomObjectsByRoomOverride: {
-                'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']),
-                'ROOM#BRIDGE': harnessRoomObjects('bridge', ['portable hole', 'birdseed']),
-            },
-        })
+        await generateHypothesis(
+            hypothesisDeps({
+                roomObjectsByRoomOverride: {
+                    'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']),
+                    'ROOM#BRIDGE': harnessRoomObjects('bridge', ['portable hole', 'birdseed']),
+                },
+            })
+        )
 
         expect(getGameRooms).not.toHaveBeenCalled()
         expect(getRoomMeta).not.toHaveBeenCalled()
@@ -352,7 +368,7 @@ describe('generateHypothesis', () => {
             errorMessage: 'Throttled',
         })
 
-        await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
+        await expect(generateHypothesis(hypothesisDeps())).resolves.toEqual({
             intent: 'Hypothesis: Something went wrong',
         })
         expect(planSelectionMock).not.toHaveBeenCalled()
@@ -365,7 +381,7 @@ describe('generateHypothesis', () => {
             body: 'not valid stage 1 JSON',
         })
 
-        await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
+        await expect(generateHypothesis(hypothesisDeps())).resolves.toEqual({
             intent: 'Hypothesis: Something went wrong',
         })
         expect(planSelectionMock).not.toHaveBeenCalled()
@@ -378,7 +394,7 @@ describe('generateHypothesis', () => {
             errorMessage: 'Timeout',
         })
 
-        await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
+        await expect(generateHypothesis(hypothesisDeps())).resolves.toEqual({
             intent: 'Hypothesis: Something went wrong',
         })
         expect(planSelectionMock).toHaveBeenCalledTimes(1)
@@ -392,7 +408,7 @@ describe('generateHypothesis', () => {
             usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
         })
 
-        await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
+        await expect(generateHypothesis(hypothesisDeps())).resolves.toEqual({
             intent: 'Hypothesis: Something went wrong',
         })
         expect(narrativeBeatMock).not.toHaveBeenCalled()
@@ -419,7 +435,7 @@ describe('generateHypothesis', () => {
             usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
         })
 
-        await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
+        await expect(generateHypothesis(hypothesisDeps())).resolves.toEqual({
             intent: 'Hypothesis: You are trying to drop something on the Road Runner.',
             gimmick: 'deliver damage',
             narrativeBeatsStructured: {
@@ -455,7 +471,7 @@ describe('generateHypothesis', () => {
             ].join('\n'),
             usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
         })
-        const result = await generateHypothesisWithStageResults({ getGameRooms, getRoomMeta })
+        const result = await generateHypothesisWithStageResults(hypothesisDeps())
         expect(result.kind).toBe('stub')
         if (result.kind === 'stub') {
             expect(result.record.intent).toBe('Hypothesis: Something went wrong')
@@ -469,7 +485,7 @@ describe('generateHypothesis', () => {
             errorMessage: 'Timeout',
         })
 
-        await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
+        await expect(generateHypothesis(hypothesisDeps())).resolves.toEqual({
             intent: 'Hypothesis: Something went wrong',
         })
         expect(narrativeBeatMock).toHaveBeenCalledTimes(1)
@@ -489,7 +505,7 @@ describe('generateHypothesis', () => {
             ].join('\n'),
             usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
         })
-        const record = await generateHypothesis({ getGameRooms, getRoomMeta })
+        const record = await generateHypothesis(hypothesisDeps())
         expect(record.intent).toBe('Hypothesis: Prose still works.')
         expect(record.narrativeBeatsStructured).toBeUndefined()
         expect(record.gimmick).toBe('deliver damage')

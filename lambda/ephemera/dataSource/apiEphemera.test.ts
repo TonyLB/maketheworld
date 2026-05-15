@@ -20,16 +20,18 @@ import type { StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/data
 
 describe('apiEphemera', () => {
     const makeBus = () => {
-        const sent: StreamingEventMessage[] = []
+        const sent: { payload: StreamingEventMessage; laneId?: string }[] = []
         return {
             sent,
             bus: {
-                send: (payload: StreamingEventMessage) => {
-                    sent.push(payload)
+                send: (payload: StreamingEventMessage, laneId?: string) => {
+                    sent.push({ payload, laneId })
                 },
             },
         }
     }
+
+    const message = (entry: { payload: StreamingEventMessage; laneId?: string }) => entry.payload
 
     const minimalPutRecord = {
         componentId: 'ROOM#room-one' as const,
@@ -74,7 +76,7 @@ describe('apiEphemera', () => {
         sendPutCacheRecord(bus, 'ROOM#room-one', minimalPutRecord)
 
         expect(sent).toHaveLength(1)
-        const msg = sent[0]
+        const msg = message(sent[0])
         expect(msg.type).toBe('StreamingEvent')
         expect(msg.dataSourceKey).toBe('api.ephemera')
         expect(msg.streamKey).toBe('ROOM#room-one')
@@ -88,7 +90,7 @@ describe('apiEphemera', () => {
         sendDeleteCacheRecords(bus, 'ROOM#room-one', minimalDeleteRecords)
 
         expect(sent).toHaveLength(1)
-        const msg = sent[0]
+        const msg = message(sent[0])
         expect(msg.type).toBe('StreamingEvent')
         expect(msg.dataSourceKey).toBe('api.ephemera')
         expect(msg.streamKey).toBe('ROOM#room-one')
@@ -99,9 +101,9 @@ describe('apiEphemera', () => {
 
     it('sendPutCacheRecord getContent returns internal payload', async () => {
         const { sent } = makeBus()
-        sendPutCacheRecord({ send: (p) => sent.push(p) }, 'ROOM#room-one', minimalPutRecord)
+        sendPutCacheRecord({ send: (p) => sent.push({ payload: p }) }, 'ROOM#room-one', minimalPutRecord)
 
-        const msg = sent[0]
+        const msg = message(sent[0])
         const internal = await msg.getContent()
         expect(internal).toMatchObject({
             componentId: 'ROOM#room-one',
@@ -116,12 +118,12 @@ describe('apiEphemera', () => {
 
     it('sendPutCacheRecord getContent includes optional conversationId when provided', async () => {
         const { sent } = makeBus()
-        sendPutCacheRecord({ send: (p) => sent.push(p) }, 'ROOM#room-one', {
+        sendPutCacheRecord({ send: (p) => sent.push({ payload: p }) }, 'ROOM#room-one', {
             ...minimalPutRecord,
             conversationId: 'conv-abc',
         })
 
-        const internal = await sent[0].getContent()
+        const internal = await message(sent[0]).getContent()
         expect(internal).toMatchObject({
             componentId: 'ROOM#room-one',
             conversationId: 'conv-abc',
@@ -136,7 +138,7 @@ describe('apiEphemera', () => {
         })
 
         expect(sent).toHaveLength(1)
-        const msg = sent[0]
+        const msg = message(sent[0])
         expect(msg.type).toBe('StreamingEvent')
         expect(msg.dataSourceKey).toBe('api.ephemera')
         expect(msg.streamKey).toBe('ROOM#r3')
@@ -160,7 +162,7 @@ describe('apiEphemera', () => {
         })
 
         expect(sent).toHaveLength(1)
-        const msg = sent[0]
+        const msg = message(sent[0])
         expect(msg.type).toBe('StreamingEvent')
         expect(msg.dataSourceKey).toBe('api.ephemera')
         expect(msg.streamKey).toBe('ROOM#obj')
@@ -179,7 +181,7 @@ describe('apiEphemera', () => {
     it('isEphemeraApiSubscribedEnvelope accepts api.ephemera Put Cache Record envelope', async () => {
         const { sent, bus } = makeBus()
         sendPutCacheRecord(bus, 'ROOM#x', minimalPutRecord)
-        const msg = sent[0]
+        const msg = message(sent[0])
         const envelope: StreamingEventEnvelope<unknown> = {
             header: msg.header,
             getContent: msg.getContent,
@@ -191,7 +193,7 @@ describe('apiEphemera', () => {
     it('isEphemeraApiSubscribedEnvelope accepts api.ephemera Delete Cache Records envelope', async () => {
         const { sent, bus } = makeBus()
         sendDeleteCacheRecords(bus, 'ROOM#x', minimalDeleteRecords)
-        const msg = sent[0]
+        const msg = message(sent[0])
         const envelope: StreamingEventEnvelope<unknown> = {
             header: msg.header,
             getContent: msg.getContent,
@@ -206,7 +208,7 @@ describe('apiEphemera', () => {
             componentId: 'ROOM#sc',
             markState: { markValue: [] },
         })
-        const msg = sent[0]
+        const msg = message(sent[0])
         const envelope: StreamingEventEnvelope<unknown> = {
             header: msg.header,
             getContent: msg.getContent,
@@ -222,7 +224,7 @@ describe('apiEphemera', () => {
             add: [],
             remove: [],
         })
-        const msg = sent[0]
+        const msg = message(sent[0])
         const envelope: StreamingEventEnvelope<unknown> = {
             header: msg.header,
             getContent: msg.getContent,
@@ -236,7 +238,7 @@ describe('apiEphemera', () => {
         sendPutThinkingSchedule(bus, 'JOB#aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', minimalThinkingSchedule)
 
         expect(sent).toHaveLength(1)
-        const msg = sent[0]
+        const msg = message(sent[0])
         expect(msg.type).toBe('StreamingEvent')
         expect(msg.dataSourceKey).toBe('api.ephemera')
         expect(msg.streamKey).toBe('JOB#aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')
@@ -245,14 +247,21 @@ describe('apiEphemera', () => {
         expect(content).toEqual(minimalThinkingSchedule)
     })
 
+    it('sendPutThinkingSchedule forwards laneId to bus.send', () => {
+        const { sent, bus } = makeBus()
+        sendPutThinkingSchedule(bus, 'JOB#g1', minimalThinkingSchedule, 'thinkingBootstrap:lane-1')
+        expect(sent).toHaveLength(1)
+        expect(sent[0].laneId).toBe('thinkingBootstrap:lane-1')
+    })
+
     it('sendPutThinkingSchedule getContent includes optional enqueuedAt', async () => {
         const { sent } = makeBus()
         sendPutThinkingSchedule(
-            { send: (p) => sent.push(p) },
+            { send: (p) => sent.push({ payload: p }) },
             'JOB#g1',
             { ...minimalThinkingSchedule, enqueuedAt: '2026-01-01T00:00:00.000Z' }
         )
-        const internal = await sent[0].getContent()
+        const internal = await message(sent[0]).getContent()
         expect(internal).toMatchObject({
             enqueuedAt: '2026-01-01T00:00:00.000Z',
             scheduleStatus: 'scheduled',
@@ -262,7 +271,7 @@ describe('apiEphemera', () => {
     it('isEphemeraApiSubscribedEnvelope accepts api.ephemera Put Thinking Schedule envelope', async () => {
         const { sent, bus } = makeBus()
         sendPutThinkingSchedule(bus, 'JOB#x', minimalThinkingSchedule)
-        const msg = sent[0]
+        const msg = message(sent[0])
         const envelope: StreamingEventEnvelope<unknown> = {
             header: msg.header,
             getContent: msg.getContent,
@@ -276,7 +285,7 @@ describe('apiEphemera', () => {
         sendPutThinkingJobCreate(bus, 'JOB#aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', minimalThinkingJobCreate)
 
         expect(sent).toHaveLength(1)
-        const msg = sent[0]
+        const msg = message(sent[0])
         expect(msg.type).toBe('StreamingEvent')
         expect(msg.dataSourceKey).toBe('api.ephemera')
         expect(msg.streamKey).toBe('JOB#aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')
@@ -294,7 +303,7 @@ describe('apiEphemera', () => {
         })
 
         expect(sent).toHaveLength(1)
-        const msg = sent[0]
+        const msg = message(sent[0])
         expect(msg.header.type).toBe('Put Thinking Job Error')
         const content = await msg.getContent()
         expect(content).toMatchObject({
@@ -308,8 +317,8 @@ describe('apiEphemera', () => {
         const { sent, bus } = makeBus()
         sendPutThinkingJobCreate(bus, 'JOB#a', minimalThinkingJobCreate)
         const envCreate: StreamingEventEnvelope<unknown> = {
-            header: sent[0].header,
-            getContent: sent[0].getContent,
+            header: message(sent[0]).header,
+            getContent: message(sent[0]).getContent,
         }
         expect(isEphemeraApiSubscribedEnvelope(envCreate)).toBe(true)
         expect(isEphemeraApiPutThinkingJobCreateEnvelope(envCreate)).toBe(true)
@@ -317,8 +326,8 @@ describe('apiEphemera', () => {
         sent.length = 0
         sendPutThinkingJobError(bus, 'JOB#a', minimalThinkingJobError)
         const envErr: StreamingEventEnvelope<unknown> = {
-            header: sent[0].header,
-            getContent: sent[0].getContent,
+            header: message(sent[0]).header,
+            getContent: message(sent[0]).getContent,
         }
         expect(isEphemeraApiSubscribedEnvelope(envErr)).toBe(true)
         expect(isEphemeraApiPutThinkingJobErrorEnvelope(envErr)).toBe(true)

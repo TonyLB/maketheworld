@@ -36,9 +36,11 @@ The hypothesis pipeline is the production path for `Objects Changed` events in C
 
 This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock wrappers for that flow.
 
-## Thinking result reads (Ephemera)
+## Thinking writes and reads (Ephemera)
 
-Do not add **raw `ephemeraDB`** reads for **`TASK#...` + `Meta::Result`** or **`TASK#...` + `Meta::Schedule`** (or ad-hoc job/result/schedule key shapes) from prompts or pipeline modules. Use **`internalCache.ThinkingResults`** / **`internalCache.ThinkingSchedules`** or **`@tonylb/mtw-gateways/ts/ephemera/thinking`** (`fetchThinkingResult`, `fetchThinkingSchedule`, `queryTaskRowsForJob`, etc.). See [`../../../../dataSource/thinking/AGENT.md`](../../../../dataSource/thinking/AGENT.md).
+**Writes at run start** (not in LLM modules): [`hypothesisThinkingPersistence.ts`](hypothesisThinkingPersistence.ts) mints **`generationId`** / per-segment **`workItemId`**s, posts **`Put Thinking Job Create`** and **`Put Thinking Schedule`** pre-items via **`api.ephemera`**, and **`flush`es** a dedicated `thinkingBootstrap:*` message-bus lane before hops. See [`../../../../dataSource/thinking/AGENT.md`](../../../../dataSource/thinking/AGENT.md) (**Hypothesis bootstrap**).
+
+**Reads:** Do not add **raw `ephemeraDB`** reads for **`TASK#...` + `Meta::Result`** or **`TASK#...` + `Meta::Schedule`** from prompts or pipeline modules. Use **`internalCache.ThinkingResults`** / **`internalCache.ThinkingSchedules`** or **`@tonylb/mtw-gateways/ts/ephemera/thinking`** (`fetchThinkingResult`, `fetchThinkingSchedule`, `queryTaskRowsForJob`, etc.).
 
 ## Layout
 
@@ -50,6 +52,7 @@ Do not add **raw `ephemeraDB`** reads for **`TASK#...` + `Meta::Result`** or **`
 ## Key files
 
 - [`generateHypothesis.ts`](generateHypothesis.ts): entrypoint used by production and harness code.
+- [`hypothesisThinkingPersistence.ts`](hypothesisThinkingPersistence.ts): thinking job bootstrap + schedule pre-items at run start.
 - [`coyoteHypothesisPipeline.ts`](coyoteHypothesisPipeline.ts): ordered orchestration over the linear runner.
 - [`invokeBedrockHypothesis.ts`](invokeBedrockHypothesis.ts): stage-specific Bedrock invoke wrappers and token limits (candidates hop defaults to **Nova Micro**; later hops use **Nova 2 Lite** unless overridden).
 - [`candidates/buildCandidatePrompt.ts`](candidates/buildCandidatePrompt.ts): stage-one prompt parts.
