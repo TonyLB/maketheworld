@@ -14,7 +14,17 @@ jest.mock('../../../../apiEphemera', () => ({
     sendPutThinkingJobError: jest.fn(),
 }))
 
+import {
+    THINKING_RESULT_HEADER_TYPE,
+    isThinkingResultEvent,
+} from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
+
 import * as apiEphemera from '../../../../apiEphemera'
+import type { StreamingEventMessage } from '../../../../../messageBus/baseClasses'
+import {
+    EPHEMERA_COYOTE_GAME_DATA_SOURCE_KEY,
+    thinkingResultsLaneId,
+} from './hypothesisThinkingPersistence'
 
 import { COYOTE_ENGINE_TEST_FIXTURES } from '../../testHarness/coyoteEngineTestFixtures'
 import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
@@ -47,11 +57,48 @@ const sendPutThinkingJobCreate = apiEphemera.sendPutThinkingJobCreate as jest.Mo
 const sendPutThinkingSchedule = apiEphemera.sendPutThinkingSchedule as jest.MockedFunction<
     typeof apiEphemera.sendPutThinkingSchedule
 >
+const sendPutThinkingJobError = apiEphemera.sendPutThinkingJobError as jest.MockedFunction<
+    typeof apiEphemera.sendPutThinkingJobError
+>
 
 const mockMessageBus = () => ({
     send: jest.fn(),
     flush: jest.fn().mockResolvedValue(undefined),
 })
+
+const findCoyoteThinkingResultMessages = (send: jest.Mock): StreamingEventMessage[] =>
+    send.mock.calls
+        .map((call) => call[0] as StreamingEventMessage)
+        .filter(
+            (msg) =>
+                msg?.type === 'StreamingEvent' &&
+                msg.dataSourceKey === EPHEMERA_COYOTE_GAME_DATA_SOURCE_KEY &&
+                msg.header?.type === THINKING_RESULT_HEADER_TYPE
+        )
+
+const thinkingResultSegmentsFromBus = async (send: jest.Mock): Promise<string[]> => {
+    const segments: string[] = []
+    for (const msg of findCoyoteThinkingResultMessages(send)) {
+        const content = await msg.getContent()
+        if (isThinkingResultEvent(content)) {
+            segments.push(content.segment)
+        }
+    }
+    return segments
+}
+
+const thinkingResultsOkFromBus = async (
+    send: jest.Mock
+): Promise<Array<{ segment: string; ok: boolean }>> => {
+    const results: Array<{ segment: string; ok: boolean }> = []
+    for (const msg of findCoyoteThinkingResultMessages(send)) {
+        const content = await msg.getContent()
+        if (isThinkingResultEvent(content)) {
+            results.push({ segment: content.segment, ok: content.ok })
+        }
+    }
+    return results
+}
 
 /** Valid stage-1 JSON for parse + combine (matches generateHypothesis.test harness). */
 const stageOneSeamBody = JSON.stringify({
@@ -283,10 +330,10 @@ describe('runCoyoteHypothesisPipeline thinking bootstrap', () => {
         expect(sendPutThinkingJobCreate).toHaveBeenCalledTimes(1)
         expect(sendPutThinkingJobCreate.mock.calls[0][2].workItemIds).toHaveLength(3)
         expect(sendPutThinkingSchedule).toHaveBeenCalledTimes(3)
-        expect(bus.flush).toHaveBeenCalledTimes(1)
         const lane = sendPutThinkingJobCreate.mock.calls[0][3]
         expect(lane).toMatch(/^thinkingBootstrap:/)
         expect(bus.flush).toHaveBeenCalledWith(lane)
+        expect(sendPutThinkingJobError).toHaveBeenCalledTimes(1)
     })
 
     it('bootstraps one segment for runUntil candidates', async () => {
@@ -417,6 +464,194 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         expect(stageOneMock).toHaveBeenCalledTimes(1)
         expect(planSelectionMock).toHaveBeenCalledTimes(1)
         expect(narrativeBeatMock).not.toHaveBeenCalled()
+    })
+
+    it('emits three Thinking Result events on full successful run', async () => {
+        const bus = mockMessageBus()
+        const result = await runCoyoteHypothesisPipeline({ ...pipelineDeps(), messageBus: bus })
+        expect(result.kind).toBe('full')
+
+        const thinkingMsgs = findCoyoteThinkingResultMessages(bus.send)
+        expect(thinkingMsgs).toHaveLength(3)
+        expect(await thinkingResultSegmentsFromBus(bus.send)).toEqual([
+            'candidates',
+            'planSelect',
+            'narrativeBeats',
+        ])
+
+        const generationId = sendPutThinkingJobCreate.mock.calls[0][2].generationId
+        const resultsLane = thinkingResultsLaneId(generationId)
+        const resultFlushCalls = bus.flush.mock.calls.filter((call) => call[0] === resultsLane)
+        expect(resultFlushCalls).toHaveLength(3)
+
+        const candidatesContent = await thinkingMsgs[0].getContent()
+        expect(isThinkingResultEvent(candidatesContent)).toBe(true)
+        if (isThinkingResultEvent(candidatesContent)) {
+            expect(candidatesContent.ok).toBe(true)
+            expect(candidatesContent.verbose).toMatchObject({
+                combined: expect.objectContaining({ candidates: expect.any(Array) }),
+                stageOneBody: stageOneSeamBody,
+            })
+        }
+    })
+
+    it('runUntil candidates emits one Thinking Result for candidates only', async () => {
+        const bus = mockMessageBus()
+        await runCoyoteHypothesisPipeline(
+            { ...pipelineDeps(), messageBus: bus },
+            { testOnly: 'candidates', harnessRunKind: 'runUntil' }
+        )
+        expect(findCoyoteThinkingResultMessages(bus.send)).toHaveLength(1)
+        expect(await thinkingResultSegmentsFromBus(bus.send)).toEqual(['candidates'])
+    })
+
+    it('runUntil planSelect emits candidates and planSelect results', async () => {
+        const bus = mockMessageBus()
+        await runCoyoteHypothesisPipeline(
+            { ...pipelineDeps(), messageBus: bus },
+            { testOnly: 'planSelect', harnessRunKind: 'runUntil' }
+        )
+        expect(findCoyoteThinkingResultMessages(bus.send)).toHaveLength(2)
+        expect(await thinkingResultSegmentsFromBus(bus.send)).toEqual(['candidates', 'planSelect'])
+    })
+
+    it('runOnly planSelect emits planSelect result only', async () => {
+        const fixture01 = COYOTE_ENGINE_TEST_FIXTURES.find((f) => f.id === 'fixture-01')
+        expect(fixture01?.planSelectInject).toBeDefined()
+        const inject = fixture01!.planSelectInject!
+        const bus = mockMessageBus()
+
+        await runCoyoteHypothesisPipeline(
+            {
+                getGameRooms: async () => [],
+                getRoomMeta: async () => undefined,
+                roomObjectsByRoomOverride: inject.roomObjectsByRoom,
+                messageBus: bus,
+            },
+            {
+                testOnly: 'planSelect',
+                harnessRunKind: 'runOnly',
+                injectState: {
+                    roomObjectsByRoom: inject.roomObjectsByRoom,
+                    combined: inject.combined,
+                },
+            }
+        )
+        expect(findCoyoteThinkingResultMessages(bus.send)).toHaveLength(1)
+        expect(await thinkingResultSegmentsFromBus(bus.send)).toEqual(['planSelect'])
+    })
+
+    it('emits planSelect failure result and job error when plan-select aborts before handoff', async () => {
+        planSelectionMock.mockResolvedValue({
+            success: true,
+            body: [
+                '```json',
+                JSON.stringify({
+                    paragraphSummary: 'Stage the anvil.',
+                    planIssues: [{ code: 'DIRECTION_AMBIGUOUS', summary: 'timing is coarse' }],
+                }),
+                '```',
+            ].join('\n'),
+            usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
+        })
+        const bus = mockMessageBus()
+        const result = await runCoyoteHypothesisPipeline({ ...pipelineDeps(), messageBus: bus })
+        expect(result.kind).toBe('stub')
+
+        expect(await thinkingResultsOkFromBus(bus.send)).toEqual([
+            { segment: 'candidates', ok: true },
+            { segment: 'planSelect', ok: false },
+        ])
+
+        const generationId = sendPutThinkingJobCreate.mock.calls[0][2].generationId
+        const planSelectWorkItemId = sendPutThinkingSchedule.mock.calls.find(
+            (call) => call[2].segment === 'planSelect'
+        )?.[2].workItemId
+        expect(sendPutThinkingJobError).toHaveBeenCalledTimes(1)
+        expect(sendPutThinkingJobError.mock.calls[0][2]).toMatchObject({
+            generationId,
+            jobStatus: 'failed',
+            lastFailedWorkItemId: planSelectWorkItemId,
+        })
+        expect(sendPutThinkingJobError.mock.calls[0][3]).toBe(thinkingResultsLaneId(generationId))
+    })
+
+    it('emits candidates failure result and job error when stage-one invoke fails', async () => {
+        stageOneMock.mockResolvedValue({
+            success: false,
+            errorMessage: 'Throttled',
+        })
+        const bus = mockMessageBus()
+        const result = await runCoyoteHypothesisPipeline({ ...pipelineDeps(), messageBus: bus })
+        expect(result.kind).toBe('stub')
+
+        expect(await thinkingResultsOkFromBus(bus.send)).toEqual([{ segment: 'candidates', ok: false }])
+
+        const generationId = sendPutThinkingJobCreate.mock.calls[0][2].generationId
+        const candidatesWorkItemId = sendPutThinkingSchedule.mock.calls.find(
+            (call) => call[2].segment === 'candidates'
+        )?.[2].workItemId
+        expect(sendPutThinkingJobError).toHaveBeenCalledTimes(1)
+        expect(sendPutThinkingJobError.mock.calls[0][2]).toMatchObject({
+            generationId,
+            jobStatus: 'failed',
+            lastFailedWorkItemId: candidatesWorkItemId,
+            errorCode: 'stage_one_invoke_failed',
+        })
+    })
+
+    it('runOnly planSelect emits planSelect failure and job error without stageOneResult', async () => {
+        const fixture01 = COYOTE_ENGINE_TEST_FIXTURES.find((f) => f.id === 'fixture-01')
+        expect(fixture01?.planSelectInject).toBeDefined()
+        const inject = fixture01!.planSelectInject!
+        planSelectionMock.mockResolvedValue({
+            success: true,
+            body: [
+                '```json',
+                JSON.stringify({
+                    paragraphSummary: 'Stage the anvil.',
+                    planIssues: [{ code: 'DIRECTION_AMBIGUOUS', summary: 'timing is coarse' }],
+                }),
+                '```',
+            ].join('\n'),
+            usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
+        })
+        const bus = mockMessageBus()
+        await expect(
+            runCoyoteHypothesisPipeline(
+                {
+                    getGameRooms: async () => [],
+                    getRoomMeta: async () => undefined,
+                    roomObjectsByRoomOverride: inject.roomObjectsByRoom,
+                    messageBus: bus,
+                },
+                {
+                    testOnly: 'planSelect',
+                    harnessRunKind: 'runOnly',
+                    injectState: {
+                        roomObjectsByRoom: inject.roomObjectsByRoom,
+                        combined: inject.combined,
+                    },
+                }
+            )
+        ).rejects.toThrow(CoyoteHypothesisPipelineAbortError)
+        expect(await thinkingResultsOkFromBus(bus.send)).toEqual([{ segment: 'planSelect', ok: false }])
+        expect(sendPutThinkingJobError).toHaveBeenCalledTimes(1)
+    })
+
+    it('marks job failed without step result when loadRoomObjects throws', async () => {
+        getGameRooms.mockRejectedValue(new Error('network'))
+        const bus = mockMessageBus()
+        await expect(runCoyoteHypothesisPipeline({ ...pipelineDeps(), messageBus: bus })).rejects.toThrow(
+            'network'
+        )
+        expect(findCoyoteThinkingResultMessages(bus.send)).toHaveLength(0)
+        expect(sendPutThinkingJobError).toHaveBeenCalledTimes(1)
+        expect(sendPutThinkingJobError.mock.calls[0][2]).toMatchObject({
+            jobStatus: 'failed',
+            errorCode: 'load_room_objects_failed',
+        })
+        expect(sendPutThinkingJobError.mock.calls[0][2]).not.toHaveProperty('lastFailedWorkItemId')
     })
 
     it('continues full pipeline when plan-selection rubric markdown section is missing but JSON is valid', async () => {

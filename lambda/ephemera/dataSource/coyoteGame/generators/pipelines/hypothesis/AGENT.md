@@ -40,6 +40,10 @@ This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock
 
 **Writes at run start** (not in LLM modules): [`hypothesisThinkingPersistence.ts`](hypothesisThinkingPersistence.ts) mints **`generationId`** / per-segment **`workItemId`**s, posts **`Put Thinking Job Create`** and **`Put Thinking Schedule`** pre-items via **`api.ephemera`**, and **`flush`es** a dedicated `thinkingBootstrap:*` message-bus lane before hops. See [`../../../../dataSource/thinking/AGENT.md`](../../../../dataSource/thinking/AGENT.md) (**Hypothesis bootstrap**).
 
+**Writes on segment success** (same module): **`sendCoyoteThinkingResult`** posts **`Thinking Result`** on the internal bus (`header.dataSourceKey` **`mtw.ephemera.coyoteGame`**); **`mtw.ephemera.thinking.results`** persists **`Meta::Result`**. Emit after **`seamCombineRender`** (`candidates`), **`parsePlanSelectionHandoff`** (`planSelect`), and **`parseNarrativeBeatRecord`** (`narrativeBeats`), each followed by **`flush(thinkingResults:${generationId})`**. Verbose payloads align with harness inject shapes (`roomObjectsByRoom`, `combined`, `planSelectOutput`, Bedrock invoke summaries).
+
+**Writes on run failure** (centralized, not in per-step **`abort()`**): [`runCoyoteHypothesisPipeline`](coyoteHypothesisPipeline.ts) calls **`finalizeHypothesisThinkingOnRunFailure`** when **`runPipeline`** fails and **`state.thinking`** is set. That posts **`ok: false`** **`Thinking Result`** for the failing hop's segment (when mapped and harness-active) and **`Put Thinking Job Error`** on the same **`thinkingResults:${generationId}`** lane, then **`flush`**. **`loadRoomObjects`** and other unmapped steps mark the job failed without a step result row.
+
 **Reads:** Do not add **raw `ephemeraDB`** reads for **`TASK#...` + `Meta::Result`** or **`TASK#...` + `Meta::Schedule`** from prompts or pipeline modules. Use **`internalCache.ThinkingResults`** / **`internalCache.ThinkingSchedules`** or **`@tonylb/mtw-gateways/ts/ephemera/thinking`** (`fetchThinkingResult`, `fetchThinkingSchedule`, `queryTaskRowsForJob`, etc.).
 
 ## Layout
@@ -52,7 +56,7 @@ This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock
 ## Key files
 
 - [`generateHypothesis.ts`](generateHypothesis.ts): entrypoint used by production and harness code.
-- [`hypothesisThinkingPersistence.ts`](hypothesisThinkingPersistence.ts): thinking job bootstrap + schedule pre-items at run start.
+- [`hypothesisThinkingPersistence.ts`](hypothesisThinkingPersistence.ts): thinking job bootstrap, schedule pre-items, and **`Thinking Result`** bus publish helpers.
 - [`coyoteHypothesisPipeline.ts`](coyoteHypothesisPipeline.ts): ordered orchestration over the linear runner.
 - [`invokeBedrockHypothesis.ts`](invokeBedrockHypothesis.ts): stage-specific Bedrock invoke wrappers and token limits (candidates hop defaults to **Nova Micro**; later hops use **Nova 2 Lite** unless overridden).
 - [`candidates/buildCandidatePrompt.ts`](candidates/buildCandidatePrompt.ts): stage-one prompt parts.

@@ -96,6 +96,14 @@ Parallel to **`api.wml`** and **`api.assets`** in other lambdas: **`dataSourceKe
 - **Behavior**: Writes **`JOB#`** adjacency + **`TASK#`/`Meta::Schedule`** (overwrite-safe **`putItem`** for schedule status transitions), then **`internalCache.ThinkingSchedules.invalidate(workItemId)`**.
 - **Publishing**: **`publisherStrategy: 'busOnly'`**, **`replayable: false`** until the EventBridge schedule slice lands.
 
+#### **mtw.ephemera.thinking.results (thinking result writes from CoyoteGame bus)**
+
+- **Implementation**: [`lambda/ephemera/dataSource/thinking/results/index.ts`](dataSource/thinking/results/index.ts); persistence in [`persistThinkingResult.ts`](dataSource/thinking/results/persistThinkingResult.ts).
+- **Inbound**: Subscribes to **`StreamingEvent`** envelopes whose **`header.dataSourceKey`** is **`mtw.ephemera.coyoteGame`** and **`header.type`** is **`Thinking Result`** (shared contract in **`@tonylb/mtw-interfaces`** `ts/eventBridge/ephemera/thinking`). This is **not** an **`api.ephemera`** command.
+- **Producer**: Hypothesis pipeline **`sendCoyoteThinkingResult`** in [`hypothesisThinkingPersistence.ts`](dataSource/coyoteGame/generators/pipelines/hypothesis/hypothesisThinkingPersistence.ts); lane **`thinkingResults:${generationId}`** + **`flush(laneId)`** after each successful segment.
+- **Behavior**: Writes **`JOB#`** adjacency (if needed) + idempotent **`TASK#`/`Meta::Result`**, then **`internalCache.ThinkingResults.invalidate(workItemId)`**.
+- **Publishing**: **`publisherStrategy: 'busOnly'`**, **`replayable: false`**.
+
 ### **EventBridge Event Subscription**
 
 The Ephemera Lambda subscribes to events from other system components:
