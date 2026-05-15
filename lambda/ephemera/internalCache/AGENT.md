@@ -35,7 +35,7 @@ Different handlers use specific cache key formats:
 - **Asset State**: `{AssetId}::{StateType}`
 - **Thinking results** (`internalCache.ThinkingResults`): `{workItemId}`
 - **Thinking schedules** (`internalCache.ThinkingSchedules`): `{workItemId}`
-- **Thinking job partition** (`JOB#` / `Meta::Job`): no `internalCache` handler in MVP (see [`dataSource/thinking/AGENT.md`](../dataSource/thinking/AGENT.md)).
+- **Thinking jobs** (`internalCache.ThinkingJobs`): `{generationId}` (snapshot: normalized **`Meta::Job`** + adjacency **`workItemIds`** + **`schedules[]`**; see [`dataSource/thinking/AGENT.md`](../dataSource/thinking/AGENT.md)).
 
 ## Common Cache Handler Patterns
 

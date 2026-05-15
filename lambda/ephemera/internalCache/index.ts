@@ -9,8 +9,10 @@ import {
     EphemeraComponentAssetMetaCache,
 } from '@tonylb/mtw-gateways/ts/assets/components/assetMeta';
 import {
+    createThinkingJobReadCacheHandler,
     createThinkingResultReadCacheHandler,
     createThinkingScheduleReadCacheHandler,
+    ThinkingJobReadCache,
     ThinkingResultReadCache,
     ThinkingScheduleReadCache,
 } from '@tonylb/mtw-gateways/ts/ephemera/thinking';
@@ -77,6 +79,7 @@ export class InternalCache {
     ComponentAssetMeta: EphemeraComponentAssetMetaCache = createEphemeraComponentAssetMetaCacheHandler(assetDB);
     ThinkingResults: ThinkingResultReadCache = createThinkingResultReadCacheHandler(ephemeraDB);
     ThinkingSchedules: ThinkingScheduleReadCache = createThinkingScheduleReadCacheHandler(ephemeraDB);
+    ThinkingJobs: ThinkingJobReadCache = createThinkingJobReadCacheHandler(ephemeraDB);
     ComponentEphemeraMeta: ComponentEphemeraMetaData = new ComponentEphemeraMetaData();
     AssetMetaData: AssetMetaData = new AssetMetaData();
 
@@ -149,6 +152,7 @@ export class InternalCache {
         this.ComponentAssetMeta.clear()
         this.ThinkingResults.clear()
         this.ThinkingSchedules.clear()
+        this.ThinkingJobs.clear()
         this.ComponentEphemeraMeta.clear()
         this.AssetMetaData.clear()
 
@@ -167,6 +171,7 @@ export class InternalCache {
             this.ComponentAssetMeta.flush(),
             this.ThinkingResults.flush(),
             this.ThinkingSchedules.flush(),
+            this.ThinkingJobs.flush(),
             this.AssetMetaData.flush(),
             this.ComponentRender.flush(),
             this.ComponentStackMerge.flush(),

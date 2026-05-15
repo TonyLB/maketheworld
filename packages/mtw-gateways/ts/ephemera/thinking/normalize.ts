@@ -1,5 +1,13 @@
-import type { ThinkingResultEvent, ThinkingScheduleEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
-import { isThinkingResultEvent, isThinkingScheduleEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
+import type {
+    ThinkingJobStatus,
+    ThinkingResultEvent,
+    ThinkingScheduleEvent,
+} from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
+import {
+    isThinkingJobStatus,
+    isThinkingResultEvent,
+    isThinkingScheduleEvent,
+} from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
 
 import {
     isThinkingResultMetaDataCategory,
@@ -44,6 +52,62 @@ export const thinkingScheduleFromEphemeraItem = (item: unknown): ThinkingSchedul
     }
     const { EphemeraId: _e, DataCategory: _d, ...rest } = item
     return isThinkingScheduleEvent(rest) ? rest : null
+}
+
+/** Normalized fields from a persisted `Meta::Job` row (job partition). */
+export type ThinkingJobMeta = {
+    schemaVersion: number
+    generationId: string
+    jobStatus: ThinkingJobStatus
+    createdAt?: string
+    failedAt?: string
+    errorCode?: string
+    errorMessage?: string
+    lastFailedWorkItemId?: string
+}
+
+const isThinkingJobMetaPayload = (rest: Record<string, unknown>): rest is ThinkingJobMeta => {
+    if (typeof rest.schemaVersion !== 'number' || typeof rest.generationId !== 'string') {
+        return false
+    }
+    return isThinkingJobStatus(rest.jobStatus)
+}
+
+/**
+ * Normalize a Dynamo item into job metadata fields from **`Meta::Job`**.
+ *
+ * **Physical row contract:** `schemaVersion`, `generationId`, `jobStatus`, and optional run-level
+ * timestamps / error fields at the top level alongside `EphemeraId` and `DataCategory`.
+ */
+export const thinkingJobMetaFromEphemeraItem = (item: unknown): ThinkingJobMeta | null => {
+    if (!isRecord(item)) {
+        return null
+    }
+    const { EphemeraId: _e, DataCategory: _d, ...rest } = item
+    if (!isThinkingJobMetaPayload(rest)) {
+        return null
+    }
+    const meta: ThinkingJobMeta = {
+        schemaVersion: rest.schemaVersion,
+        generationId: rest.generationId,
+        jobStatus: rest.jobStatus,
+    }
+    if (typeof rest.createdAt === 'string') {
+        meta.createdAt = rest.createdAt
+    }
+    if (typeof rest.failedAt === 'string') {
+        meta.failedAt = rest.failedAt
+    }
+    if (typeof rest.errorCode === 'string') {
+        meta.errorCode = rest.errorCode
+    }
+    if (typeof rest.errorMessage === 'string') {
+        meta.errorMessage = rest.errorMessage
+    }
+    if (typeof rest.lastFailedWorkItemId === 'string') {
+        meta.lastFailedWorkItemId = rest.lastFailedWorkItemId
+    }
+    return meta
 }
 
 export const filterThinkingResultRows = (rows: unknown[]): ThinkingResultEvent[] => {

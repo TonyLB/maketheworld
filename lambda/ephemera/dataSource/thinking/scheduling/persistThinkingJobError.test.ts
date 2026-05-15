@@ -6,6 +6,16 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
         optimisticUpdate: jest.fn(),
     },
 }))
+jest.mock('../../../internalCache', () => ({
+    __esModule: true,
+    default: {
+        ThinkingJobs: {
+            invalidate: jest.fn(),
+        },
+    },
+}))
+
+import internalCache from '../../../internalCache'
 
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
@@ -79,6 +89,7 @@ describe('persistThinkingJobError', () => {
             failedAt: baseError.failedAt,
             schemaVersion: 1,
         })
+        expect(internalCache.ThinkingJobs.invalidate).toHaveBeenCalledWith(baseError.generationId)
     })
 
     it('includes optional keys in updateKeys and reducer when present on event', async () => {

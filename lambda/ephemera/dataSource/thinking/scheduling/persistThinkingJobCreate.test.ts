@@ -1,4 +1,14 @@
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
+jest.mock('../../../internalCache', () => ({
+    __esModule: true,
+    default: {
+        ThinkingJobs: {
+            invalidate: jest.fn(),
+        },
+    },
+}))
+
+import internalCache from '../../../internalCache'
 
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
@@ -42,6 +52,7 @@ describe('persistThinkingJobCreate', () => {
             EphemeraId: 'JOB#aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
             DataCategory: 'TASK#22222222-3333-4444-5555-666666666666',
         })
+        expect(internalCache.ThinkingJobs.invalidate).toHaveBeenCalledWith(validCreate.generationId)
     })
 
     it('includes optional createdAt on the Meta::Job item', async () => {

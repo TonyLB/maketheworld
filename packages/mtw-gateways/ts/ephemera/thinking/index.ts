@@ -13,7 +13,7 @@ export {
     isTaskPartitionEphemeraId,
     parseWorkItemIdFromTaskEphemeraId,
 } from './keys'
-export type { EphemeraThinkingReadDB } from './fetch'
+export type { EphemeraThinkingReadDB, ThinkingJobReadSnapshot } from './fetch'
 export {
     queryTaskRowsForJob,
     getTaskResultItem,
@@ -21,13 +21,17 @@ export {
     getJobMetaItem,
     fetchThinkingResult,
     fetchThinkingSchedule,
+    listThinkingSchedulesForJob,
+    fetchThinkingJobSnapshot,
 } from './fetch'
 export {
     thinkingResultFromEphemeraItem,
     thinkingScheduleFromEphemeraItem,
+    thinkingJobMetaFromEphemeraItem,
     filterThinkingResultRows,
     filterThinkingScheduleRows,
 } from './normalize'
+export type { ThinkingJobMeta } from './normalize'
 export {
     ThinkingResultReadCache,
     createThinkingResultReadCacheHandler,
@@ -36,3 +40,7 @@ export {
     ThinkingScheduleReadCache,
     createThinkingScheduleReadCacheHandler,
 } from './thinkingScheduleReadCache'
+export {
+    ThinkingJobReadCache,
+    createThinkingJobReadCacheHandler,
+} from './thinkingJobReadCache'

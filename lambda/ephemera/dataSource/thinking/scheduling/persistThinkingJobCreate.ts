@@ -6,6 +6,8 @@ import {
 import { isThinkingJobCreateEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
+import internalCache from '../../../internalCache'
+
 export type PersistThinkingJobCreateOutcome = 'written' | 'invalidPayload'
 
 /**
@@ -33,5 +35,6 @@ export async function persistThinkingJobCreate(payload: unknown): Promise<Persis
             })
         )
     )
+    internalCache.ThinkingJobs.invalidate(event.generationId)
     return 'written'
 }

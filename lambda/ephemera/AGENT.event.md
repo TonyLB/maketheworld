@@ -93,7 +93,7 @@ Parallel to **`api.wml`** and **`api.assets`** in other lambdas: **`dataSourceKe
 
 - **Implementation**: [`lambda/ephemera/dataSource/thinking/scheduling/index.ts`](dataSource/thinking/scheduling/index.ts); persistence in [`persistThinkingSchedule.ts`](dataSource/thinking/scheduling/persistThinkingSchedule.ts).
 - **Inbound**: Subscribes to **`api.ephemera`** envelopes whose header type is **`Put Thinking Schedule`**, **`Put Thinking Job Create`**, or **`Put Thinking Job Error`** (same shapes as the **`sendPutThinking*`** helpers).
-- **Behavior**: Writes **`JOB#`** adjacency + **`TASK#`/`Meta::Schedule`** (overwrite-safe **`putItem`** for schedule status transitions), then **`internalCache.ThinkingSchedules.invalidate(workItemId)`**.
+- **Behavior**: Writes **`JOB#`** adjacency + **`TASK#`/`Meta::Schedule`** (overwrite-safe **`putItem`** for schedule status transitions), then **`internalCache.ThinkingSchedules.invalidate(workItemId)`** and **`internalCache.ThinkingJobs.invalidate(generationId)`**. Job create and job error persistence invalidate **`ThinkingJobs`** by **`generationId`** only.
 - **Publishing**: **`publisherStrategy: 'busOnly'`**, **`replayable: false`** until the EventBridge schedule slice lands.
 
 #### **mtw.ephemera.thinking.results (thinking result writes from CoyoteGame bus)**
