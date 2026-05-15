@@ -15,6 +15,7 @@ import { contentHeadersSlice, subscribeToContentHeaders } from '../slices/conten
 import { libraryDataSourceSlice, subscribeToLibrary } from '../slices/libraryDataSource'
 import { playerDataSourceSlice } from '../slices/player/playerDataSource'
 import { wmlDataSourceSlice } from '../slices/wmlDataSource'
+import { thinkingJobsSlice, subscribeToThinkingJobs } from '../slices/thinkingJobs'
 
 export const store = configureStore({
     reducer: {
@@ -31,7 +32,8 @@ export const store = configureStore({
         contentHeaders: contentHeadersSlice.reducer,
         libraryDataSource: libraryDataSourceSlice.reducer,
         playerDataSource: playerDataSourceSlice.reducer,
-        wmlDataSource: wmlDataSourceSlice.reducer
+        wmlDataSource: wmlDataSourceSlice.reducer,
+        thinkingJobs: thinkingJobsSlice.reducer
     },
     middleware: [thunk]
 })
@@ -40,6 +42,7 @@ export const store = configureStore({
 // Queue subscription to 'global' stream for contentHeaders
 // This can be called immediately - the state machine will process it when ready
 store.dispatch(subscribeToContentHeaders(['global']) as any)
+store.dispatch(subscribeToThinkingJobs() as any)
 
 // Note: Library subscription is handled on-demand when user navigates to Library page
 // See components/Library/index.tsx for subscription logic

@@ -4,7 +4,15 @@
 // Wire shapes are consumed by ephemera, subscriptions, and charcoal-client.
 // Header discrimination uses StreamingEventHeader.type; external Detail carries payload `type`.
 
-import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import {
+    AggregationResult,
+    DataSourceAggregator
+} from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
+import {
+    DataSourceEventSerializer,
+    StreamingEventHeader
+} from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import type { ResolvedStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 /** EventBridge / streaming header `type` for a schedule-line update (provisional until publisher exists). */
 export const THINKING_SCHEDULE_HEADER_TYPE = 'Thinking Schedule' as const
@@ -174,6 +182,8 @@ export type ThinkingEventExternal =
     | ThinkingJobCompletedEventExternal
 
 export type ThinkingCompletedJobsSnapshotExternal = ThinkingCompletedJobsSnapshot
+
+export type ThinkingSchedulingExternal = ThinkingEventExternal | ThinkingCompletedJobsSnapshotExternal
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     Boolean(value && typeof value === 'object' && !Array.isArray(value))
@@ -353,6 +363,80 @@ export const isThinkingCompletedJobsSnapshotExternal = (
     event: unknown
 ): event is ThinkingCompletedJobsSnapshotExternal => isThinkingCompletedJobsSnapshot(event)
 
+/** Accepts external payloads (with `type`) and WebSocket updates (shape-only; `eventType` on envelope). */
+export const isThinkingSchedulingExternal = (event: unknown): event is ThinkingSchedulingExternal =>
+    isThinkingEventExternal(event) ||
+    isThinkingCompletedJobsSnapshotExternal(event) ||
+    isThinkingJobCompletedEvent(event) ||
+    isThinkingScheduleEvent(event) ||
+    isThinkingResultEvent(event)
+
+export type ThinkingJobsEventUpdate = ThinkingEventUpdate | ThinkingCompletedJobsSnapshot
+
+export type ThinkingJobsEnvelope = ResolvedStreamingEnvelope<ThinkingJobsEventUpdate, StreamingEventHeader>
+
+export function isThinkingJobsSnapshotEnvelope(
+    envelope: ThinkingJobsEnvelope
+): envelope is ResolvedStreamingEnvelope<ThinkingCompletedJobsSnapshot, StreamingEventHeader & { type: 'Snapshot' }> {
+    return envelope.header.type === 'Snapshot'
+}
+
+export function isThinkingJobCompletedEnvelope(
+    envelope: ThinkingJobsEnvelope
+): envelope is ResolvedStreamingEnvelope<ThinkingJobCompletedEvent, StreamingEventHeader & { type: typeof THINKING_JOB_COMPLETED_HEADER_TYPE }> {
+    return envelope.header.type === THINKING_JOB_COMPLETED_HEADER_TYPE
+}
+
+/**
+ * Aggregator for mtw.ephemera.thinking.scheduling (streamKey `global`).
+ * Materialized view is { completedJobs: ThinkingJobCompletedEvent[] }.
+ */
+export class ThinkingJobsAggregator implements DataSourceAggregator<ThinkingCompletedJobsSnapshot, ThinkingJobsEventUpdate> {
+    createEmpty(_streamKey: string): ThinkingCompletedJobsSnapshot {
+        return { completedJobs: [] }
+    }
+
+    applyUpdate(
+        snapshot: ThinkingCompletedJobsSnapshot,
+        envelope: ThinkingJobsEnvelope
+    ): AggregationResult<ThinkingCompletedJobsSnapshot> {
+        try {
+            if (isThinkingJobsSnapshotEnvelope(envelope)) {
+                if (!isThinkingCompletedJobsSnapshot(envelope.content)) {
+                    throw new Error('ThinkingJobsAggregator: invalid snapshot content')
+                }
+                return { success: true, snapshot: envelope.content }
+            }
+            if (isThinkingJobCompletedEnvelope(envelope)) {
+                if (!isThinkingJobCompletedEvent(envelope.content)) {
+                    throw new Error('ThinkingJobsAggregator: invalid Job Completed content')
+                }
+                const { generationId } = envelope.content
+                const withoutDuplicate = snapshot.completedJobs.filter(
+                    (job) => job.generationId !== generationId
+                )
+                return {
+                    success: true,
+                    snapshot: {
+                        completedJobs: [...withoutDuplicate, envelope.content]
+                    }
+                }
+            }
+            return {
+                success: false,
+                error: new Error(`Unknown update type: ${envelope.header.type}`),
+                snapshot
+            }
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error : new Error(String(error)),
+                snapshot
+            }
+        }
+    }
+}
+
 /**
  * Serialize / deserialize thinking schedule, result, and job-completed payloads.
  * Routes on `header.type` only; external payloads include `type` for wire compatibility.
@@ -443,25 +527,34 @@ export class ThinkingEventSerializer implements DataSourceEventSerializer<
             }
         }
         if (header.type === THINKING_SCHEDULE_HEADER_TYPE) {
-            if (!isThinkingScheduleEventExternal(content)) {
-                return null
+            if (isThinkingScheduleEventExternal(content)) {
+                const { type: _t, ...rest } = content
+                return rest
             }
-            const { type: _t, ...rest } = content
-            return rest
+            if (isThinkingScheduleEvent(content)) {
+                return content
+            }
+            return null
         }
         if (header.type === THINKING_RESULT_HEADER_TYPE) {
-            if (!isThinkingResultEventExternal(content)) {
-                return null
+            if (isThinkingResultEventExternal(content)) {
+                const { type: _t, ...rest } = content
+                return rest
             }
-            const { type: _t, ...rest } = content
-            return rest
+            if (isThinkingResultEvent(content)) {
+                return content
+            }
+            return null
         }
         if (header.type === THINKING_JOB_COMPLETED_HEADER_TYPE) {
-            if (!isThinkingJobCompletedEventExternal(content)) {
-                return null
+            if (isThinkingJobCompletedEventExternal(content)) {
+                const { type: _t, ...rest } = content
+                return rest
             }
-            const { type: _t, ...rest } = content
-            return rest
+            if (isThinkingJobCompletedEvent(content)) {
+                return content
+            }
+            return null
         }
         return null
     }

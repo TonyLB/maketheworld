@@ -1,6 +1,6 @@
 # charcoal-client: Thinking dashboards and subscriptions (planning)
 
-**Status:** Not started. **Blocked** on server **Ephemera API** for thinking results lookup. **EventBridge** **`Job Completed`** on streamKey **`global`** is shipped (server); per-hop **`Thinking Schedule`** stream deferred. Contracts for subscribe payloads exist in **`@tonylb/mtw-interfaces`**.
+**Status:** In progress. **Client subscribe** to **`Job Completed`** wired (`thinkingJobs` slice). **Blocked** on server **Ephemera API** for thinking results lookup and remaining UI slices. **EventBridge** **`Job Completed`** on streamKey **`global`** is shipped (server); per-hop **`Thinking Schedule`** stream deferred.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../AGENT.md).
 
@@ -61,7 +61,7 @@ Run from **`charcoal-client/`** (see [`AGENT.development.md`](./AGENT.developmen
 - Baseline before edits:
   - `npm run test:single`
 - After each slice (examples; adjust paths when files exist):
-  - `npm run test:single -- src/slices/thinkingCompletedJobs/<file>.test.ts` (or agreed slice name)
+  - `npm run test:single -- src/slices/thinkingJobs/<file>.test.ts`
   - `npm run test:single -- src/slices/thinkingResults/<file>.test.ts`
   - `npm run test:single -- src/components/<dashboardPath>`
 
@@ -78,9 +78,9 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [ ] Actions/thunks for API fetch by agreed keys (`generationId`, `workItemId`, phase).
   - [ ] State shape, loading/error, and tests.
 
-- [ ] **Client-side subscribe to `Job Completed`**
-  - [ ] Wire subscription through the **subscriptions lambda** WebSocket path (EventBridge to client), consistent with existing DataSource Redux patterns.
-  - [ ] Tests for reducer or handler paths affected by incoming events.
+- [X] **Client-side subscribe to `Job Completed`**
+  - [X] Wire subscription through the **subscriptions lambda** WebSocket path (EventBridge to client), consistent with existing DataSource Redux patterns.
+  - [X] Tests for reducer or handler paths affected by incoming events.
 
 - [ ] **Completed thinking jobs dashboard**
   - [ ] Route or panel entry point.
@@ -102,7 +102,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 | Area | Notes |
 | --- | --- |
 | Redux (results) | |
-| Subscribe (`Job Completed`) | Server MVP: no per-hop **`Thinking Schedule`** stream |
+| Subscribe (`Job Completed`) | **`thinkingJobs`** slice; `mtw.ephemera.thinking.scheduling` / `global`; mtw-interfaces guard + aggregator |
 | Completed jobs dashboard | Replaces schedule timeline for MVP |
 | Results sub-panel | |
 | Schedule timeline | **Deferred** until server **`Thinking Schedule`** stream |
