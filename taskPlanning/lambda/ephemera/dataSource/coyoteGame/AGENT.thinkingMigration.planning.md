@@ -128,9 +128,9 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 - [X] **Schedule pre-items**
   - [X] **`sendPutThinkingSchedule`** (or batch) for each hop when scheduled / at start, aligned with **`ThinkingScheduleEvent`** and existing **`persistThinkingSchedule`**.
 
-- [ ] **Load-bearing `Thinking Result` payloads + bus emit per hop**
-  - [ ] Ensure **`getContent`** satisfies persistence and harness alignment; add or extend Jest for serializer/guard paths as needed.
-  - [ ] Emit from CoyoteGame at step boundaries; verify **`mtw.ephemera.thinking.results`** writes **`Meta::Result`**.
+- [X] **Load-bearing `Thinking Result` payloads + bus emit per hop**
+  - [X] Ensure **`getContent`** satisfies persistence and harness alignment; add or extend Jest for serializer/guard paths as needed.
+  - [X] Emit from CoyoteGame at step boundaries; verify **`mtw.ephemera.thinking.results`** writes **`Meta::Result`**.
 
 - [ ] **Unified failure handling**
   - [ ] On per-step failure: finalize **`Meta::Result`** for that **`workItemId`** with **`ok: false`** where applicable.
@@ -147,7 +147,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 | Contracts + `api.ephemera` | Done: **`Put Thinking Job Create`** / **`Put Thinking Job Error`** types and send helpers |
 | Scheduling DS writes | Done: **`mtw.ephemera.thinking.scheduling`** subscribes to job commands; **`persistThinkingJobCreate`** / **`persistThinkingJobError`**; tests; no job **`internalCache`** (gateway / Dynamo reads documented in **`thinking/AGENT.md`**) |
 | Pipeline | Done (bootstrap slice): **`hypothesisThinkingPersistence.ts`** mints ids, **`Put Thinking Job Create`** + schedule pre-items at run start via **`thinkingBootstrap:${uuid}`** lane + **`flush(laneId)`**; harness-scoped segments |
-| Results emit | CoyoteGame **`Thinking Result`**, payload + persistence E2E in lambda tests if feasible |
+| Results emit | Done: **`sendCoyoteThinkingResult`** / **`emitHypothesisThinkingResult`** in **`hypothesisThinkingPersistence.ts`**; success-path emits after **`seamCombineRender`**, **`parsePlanSelectionHandoff`**, **`parseNarrativeBeatRecord`**; **`thinkingResults:${generationId}`** lane + flush; Jest covers **`getContent`**, pipeline emits, and bus → **`persistThinkingResult`** |
 
 ## Related GitHub issues (optional index)
 

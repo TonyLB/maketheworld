@@ -39,7 +39,15 @@ import {
 } from '../../sharedParsers/parseHypothesisModelOutput';
 import { parseCandidateOutput, truncateCoyoteGimmickEcho } from './candidates/parseCandidateOutput';
 import { hypothesisDebugLog } from '../../../utilities/hypothesisDebug';
-import { bootstrapHypothesisThinkingAtRunStart } from './hypothesisThinkingPersistence';
+import {
+    activeThinkingSegmentsForRun,
+    bootstrapHypothesisThinkingAtRunStart,
+    buildCandidatesThinkingResultVerbose,
+    buildNarrativeBeatsThinkingResultVerbose,
+    buildPlanSelectThinkingResultVerbose,
+    emitHypothesisThinkingResult,
+    type HypothesisThinkingHarnessOptions,
+} from './hypothesisThinkingPersistence';
 
 /**
  * Failure policy: Bedrock failure on Stage One, plan-selection hop, or narrative beat hop; invalid seam / combine;
@@ -212,17 +220,38 @@ export function validateCoyoteHypothesisHarnessOptions(options: CoyoteHypothesis
     }
 }
 
-/** Indices match [`buildCoyoteHypothesisSteps`] order. */
+/** Indices match [`buildCoyoteHypothesisSteps`] order. End at thinking-result boundaries per segment. */
 const RUN_UNTIL_LAST_STEP_INDEX: Record<CoyoteHypothesisTestPhase, number> = {
-    candidates: 1,
-    planSelect: 3,
+    /** Through {@link seamCombineRender} (candidates result emit). */
+    candidates: 2,
+    /** Through {@link parsePlanSelectionHandoff} (planSelect result emit). */
+    planSelect: 4,
     /** Includes {@link parseNarrativeBeatRecord} after {@link hypothesisNarrativeBeatLlm}. */
     narrativeBeats: 6,
 };
 
+async function emitThinkingResultForSegmentIfActive(
+    draft: CoyoteHypothesisPipelineState,
+    deps: GenerateHypothesisDeps,
+    thinkingHarness: HypothesisThinkingHarnessOptions | undefined,
+    segment: ThinkingSegment,
+    verbose: unknown
+): Promise<void> {
+    const thinking = draft.thinking;
+    if (thinking === undefined) {
+        return;
+    }
+    if (!activeThinkingSegmentsForRun(thinkingHarness).includes(segment)) {
+        return;
+    }
+    const bus = deps.messageBus ?? messageBus;
+    await emitHypothesisThinkingResult({ messageBus: bus }, thinking, segment, verbose);
+}
+
 function buildCoyoteHypothesisSteps(
     ctx: ReturnType<typeof createPipelineContext<CoyoteHypothesisPipelineState>>,
-    deps: GenerateHypothesisDeps
+    deps: GenerateHypothesisDeps,
+    thinkingHarness?: HypothesisThinkingHarnessOptions
 ): PipelineStep<CoyoteHypothesisPipelineState>[] {
     return [
         ctx.defineOrchestrationStep({
@@ -277,6 +306,17 @@ function buildCoyoteHypothesisSteps(
                     abort();
                 }
                 draft.combined = combinedResult.combined;
+                await emitThinkingResultForSegmentIfActive(
+                    draft,
+                    deps,
+                    thinkingHarness,
+                    'candidates',
+                    buildCandidatesThinkingResultVerbose({
+                        roomObjectsByRoom,
+                        stageOneResult,
+                        combined: combinedResult.combined,
+                    })
+                );
             },
         }),
         ctx.defineLlmStep({
@@ -362,6 +402,19 @@ function buildCoyoteHypothesisSteps(
                     });
                     abort();
                 }
+                await emitThinkingResultForSegmentIfActive(
+                    draft,
+                    deps,
+                    thinkingHarness,
+                    'planSelect',
+                    buildPlanSelectThinkingResultVerbose({
+                        roomObjectsByRoom,
+                        combined,
+                        planSelectionResult,
+                        planSelectOutput,
+                        selectionBody: planSelectionResult.body,
+                    })
+                );
             },
         }),
         ctx.defineLlmStep({
@@ -428,6 +481,25 @@ function buildCoyoteHypothesisSteps(
                     narrativeBeatsStructuredValidationReason: parsed.narrativeBeatsStructuredValidationReason,
                     narrativeBeatsStructuredJsonPresent: parsed.narrativeBeatsStructuredJson !== undefined,
                 });
+                const planSelectOutput = draft.planSelectOutput;
+                if (!planSelectOutput) {
+                    throw new Error('CoyoteHypothesisPipeline: parseNarrativeBeatRecord missing planSelectOutput');
+                }
+                await emitThinkingResultForSegmentIfActive(
+                    draft,
+                    deps,
+                    thinkingHarness,
+                    'narrativeBeats',
+                    buildNarrativeBeatsThinkingResultVerbose({
+                        roomObjectsByRoom,
+                        planSelectOutput,
+                        narrativeBeatResult,
+                        record: draft.record,
+                        narrativeBeatsStructuredJson: draft.narrativeBeatsStructuredJson,
+                        narrativeBeatsStructuredValidationReason: draft.narrativeBeatsStructuredValidationReason,
+                        narrativeBeatReasoningContent: draft.narrativeBeatReasoningContent,
+                    })
+                );
             },
         }),
     ];
@@ -602,7 +674,7 @@ function selectHarnessSteps(
         return allSteps.slice(0, 2);
     }
     if (testOnly === 'planSelect') {
-        return [allSteps[3]];
+        return [allSteps[3], allSteps[4]];
     }
     /** Narrative beat LLM plus parse into intent / narrative-beats structured JSON (same slice tail as `runUntil` for this phase). */
     return [allSteps[5], allSteps[6]];
@@ -613,20 +685,26 @@ export async function runCoyoteHypothesisPipeline(
     harnessOptions?: CoyoteHypothesisPipelineHarnessOptions
 ): Promise<GenerateHypothesisPipelineResult> {
     const ctx = createPipelineContext<CoyoteHypothesisPipelineState>();
-    const allSteps = buildCoyoteHypothesisSteps(ctx, deps);
 
     let initialState: CoyoteHypothesisPipelineState = {};
-    let steps = allSteps;
     let mapContext: MapPipelineHarnessContext = { harness: undefined };
+    let thinkingHarness: HypothesisThinkingHarnessOptions | undefined;
 
     if (harnessOptions !== undefined) {
         validateCoyoteHypothesisHarnessOptions(harnessOptions);
-        mapContext = {
-            harness: {
-                testOnly: harnessOptions.testOnly,
-                harnessRunKind: harnessOptions.harnessRunKind,
-            },
+        thinkingHarness = {
+            testOnly: harnessOptions.testOnly,
+            harnessRunKind: harnessOptions.harnessRunKind,
         };
+        mapContext = {
+            harness: thinkingHarness,
+        };
+    }
+
+    const allSteps = buildCoyoteHypothesisSteps(ctx, deps, thinkingHarness);
+    let steps = allSteps;
+
+    if (harnessOptions !== undefined) {
         steps = selectHarnessSteps(allSteps, harnessOptions);
         if (harnessOptions.harnessRunKind === 'runOnly') {
             initialState = initialStateForRunOnly(harnessOptions.testOnly, harnessOptions.injectState);
