@@ -1,12 +1,12 @@
 /**
- * mtw.ephemera.thinking.scheduling DataSource: persists schedule updates from api.ephemera Put Thinking Schedule.
+ * mtw.ephemera.thinking.scheduling DataSource: persists thinking schedule, job bootstrap (`Meta::Job`
+ * + adjacency), and job-level errors from api.ephemera commands.
  */
-import { isThinkingScheduleEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
-
 import EphemeraDataSource from '../../abstract'
-import type { PutThinkingScheduleCommand } from '../../localApiEvents'
+import { persistThinkingJobCreate } from './persistThinkingJobCreate'
+import { persistThinkingJobError } from './persistThinkingJobError'
 import { persistThinkingSchedule } from './persistThinkingSchedule'
-import { isThinkingSchedulingSubscribedEnvelope } from './subscribedEvents'
+import { isThinkingSchedulingSubscribedEnvelope, type ThinkingSchedulingSubscribedCommand } from './subscribedEvents'
 
 /** Placeholder publish payload; schedule feed is api.ephemera ingress for MVP. */
 type ThinkingSchedulingPublishedPayload = { type: 'Thinking Scheduling noop' }
@@ -14,7 +14,7 @@ type ThinkingSchedulingPublishedPayload = { type: 'Thinking Scheduling noop' }
 export const ephemeraThinkingSchedulingDataSource = new EphemeraDataSource<
     never,
     ThinkingSchedulingPublishedPayload,
-    PutThinkingScheduleCommand
+    ThinkingSchedulingSubscribedCommand
 >({
     dataSourceKey: 'mtw.ephemera.thinking.scheduling',
     replayable: false,
@@ -24,8 +24,18 @@ export const ephemeraThinkingSchedulingDataSource = new EphemeraDataSource<
         await Promise.all(
             events.map(async (event) => {
                 const raw = await event.getContent()
-                if (isThinkingScheduleEvent(raw)) {
-                    await persistThinkingSchedule(raw)
+                switch (event.header.type) {
+                    case 'Put Thinking Schedule':
+                        await persistThinkingSchedule(raw)
+                        break
+                    case 'Put Thinking Job Create':
+                        await persistThinkingJobCreate(raw)
+                        break
+                    case 'Put Thinking Job Error':
+                        await persistThinkingJobError(raw)
+                        break
+                    default:
+                        break
                 }
             })
         )

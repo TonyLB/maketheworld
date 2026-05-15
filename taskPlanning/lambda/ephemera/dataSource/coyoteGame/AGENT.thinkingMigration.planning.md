@@ -1,6 +1,6 @@
 # Coyote hypothesis: thinking row migration (planning)
 
-**Status:** Not started. **Parent initiative:** [`taskPlanning/lambda/ephemera/dataSource/thinking/AGENT.thinking.planning.md`](../thinking/AGENT.thinking.planning.md) (this file owns the **Hypothesis pipeline migration** slice only).
+**Status:** In progress. **Parent initiative:** [`taskPlanning/lambda/ephemera/dataSource/thinking/AGENT.thinking.planning.md`](../thinking/AGENT.thinking.planning.md) (this file owns the **Hypothesis pipeline migration** slice only).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -118,9 +118,9 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Add **Job Error** (or equivalent): payload updates **`Meta::Job`** for run-level failure without replacing per-step **`Meta::Result`** semantics.
   - [X] Wire **`send...`** helpers in [`apiEphemera.ts`](../../../../../lambda/ephemera/dataSource/apiEphemera.ts) parallel to **`sendPutThinkingSchedule`**.
 
-- [ ] **Scheduling Data Source: authoritative writes for `Meta::Job` and adjacency**
-  - [ ] Subscribe to new **`api.ephemera`** envelope types; implement persistence modules (prefer colocated under [`scheduling/`](../../../../../lambda/ephemera/dataSource/thinking/scheduling/) or sibling files owned by the same DataSource).
-  - [ ] **`internalCache`** invalidation strategy for job-scoped reads if new read paths are added (otherwise document "query Dynamo via gateway only" for MVP).
+- [X] **Scheduling Data Source: authoritative writes for `Meta::Job` and adjacency**
+  - [X] Subscribe to new **`api.ephemera`** envelope types; implement persistence modules (prefer colocated under [`scheduling/`](../../../../../lambda/ephemera/dataSource/thinking/scheduling/) or sibling files owned by the same DataSource).
+  - [X] **`internalCache`** invalidation strategy for job-scoped reads if new read paths are added (otherwise document "query Dynamo via gateway only" for MVP).
 
 - [ ] **Hypothesis pipeline: mint ids and call job create at run start**
   - [ ] Mint **`generationId`** and per-hop **`workItemId`**s; invoke **Job Create** once before hops (or at first durable boundary---document choice in [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md) if non-obvious).
@@ -144,8 +144,8 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 
 | Track | Notes |
 | --- | --- |
-| Contracts + `api.ephemera` | Done: **`Put Thinking Job Create`** / **`Put Thinking Job Error`** types, `sendPutThinkingJobCreate` / `sendPutThinkingJobError` (subscriber next) |
-| Scheduling DS writes | `Meta::Job`, adjacency, subscription guards, tests |
+| Contracts + `api.ephemera` | Done: **`Put Thinking Job Create`** / **`Put Thinking Job Error`** types and send helpers |
+| Scheduling DS writes | Done: **`mtw.ephemera.thinking.scheduling`** subscribes to job commands; **`persistThinkingJobCreate`** / **`persistThinkingJobError`**; tests; no job **`internalCache`** (gateway / Dynamo reads documented in **`thinking/AGENT.md`**) |
 | Pipeline | `generateHypothesis` / `coyoteHypothesisPipeline`: ids, sends, failure paths |
 | Results emit | CoyoteGame **`Thinking Result`**, payload + persistence E2E in lambda tests if feasible |
 
