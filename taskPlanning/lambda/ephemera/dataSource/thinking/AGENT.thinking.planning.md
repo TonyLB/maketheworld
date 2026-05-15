@@ -1,6 +1,6 @@
 # Ephemera: `mtw.ephemera.thinking` foundation (planning)
 
-**Status:** In progress. **Shipped:** contracts, read gateways (including **`listThinkingSchedulesForJob`** + **`internalCache.ThinkingJobs`**), **`mtw.ephemera.thinking.results`** + **`mtw.ephemera.thinking.scheduling`**, Coyote hypothesis persistence (bootstrap, schedule pre-items, **`Thinking Result`** emit, job error on failure). Steady-state: [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md). **Next:** job rollup + **`Job Completed`** emit, Coyote schedule **`completed`** puts; then **Ephemera API**; **EventBridge** replay + **subscriptions**; archive.
+**Status:** In progress. **Shipped:** contracts, read gateways (including **`listThinkingSchedulesForJob`** + **`internalCache.ThinkingJobs`**), **`mtw.ephemera.thinking.results`** + **`mtw.ephemera.thinking.scheduling`** (bootstrap, schedule puts, job error, job rollup + **`Job Completed`** bus emit), Coyote hypothesis persistence (bootstrap, schedule pre-items, **`Thinking Result`** emit, job error on failure). Steady-state: [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md). **Next:** Coyote schedule **`completed`** puts; then **Ephemera API**; **EventBridge** replay + **subscriptions**; archive.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -221,8 +221,8 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
     - [X] **`@tonylb/mtw-interfaces`:** add **`completed`** to **`ThinkingScheduleStatus`**; add **`ThinkingJobCompletedEvent`** (+ header type / serializer hook for **`Job Completed`**); add **`completed`** to job status vocabulary on **`Meta::Job`** (and guards).
     - [X] **`@tonylb/mtw-gateways`:** **`listThinkingSchedulesForJob`** (adjacency **`Query`** + per-**`workItemId`** schedule **`GetItem`**); **`ThinkingJobReadCache`** + **`createThinkingJobReadCacheHandler`** (snapshot via **`getJobMetaItem`** + **`listThinkingSchedulesForJob`**); gateway tests.
     - [X] **`internalCache.ThinkingJobs`:** register on ephemera **`InternalCache`**; wire **`invalidate(generationId)`** on schedule + job persistence writers (alongside existing **`ThinkingSchedules.invalidate(workItemId)`** on schedule puts).
-    - [ ] **`persistThinkingSchedule`:** after schedule **`putItem`**, **`ThinkingJobs.invalidate(generationId)`** then job rollup via **`internalCache.ThinkingJobs.get`** (all schedules **`completed`** -> conditional **`Meta::Job`** **`completed`**).
-    - [ ] **`Job Completed` emit:** scheduling DataSource publishes once per job on first transition to **`completed`**; payload = schedule work items only (no results).
+    - [X] **`persistThinkingSchedule`:** after schedule **`putItem`**, **`ThinkingJobs.invalidate(generationId)`** then job rollup via **`internalCache.ThinkingJobs.get`** (all schedules **`completed`** -> conditional **`Meta::Job`** **`completed`**).
+    - [X] **`Job Completed` emit:** scheduling DataSource publishes once per job on first transition to **`completed`**; payload = schedule work items only (no results).
     - [ ] **Coyote hypothesis:** after each successful segment **`Thinking Result`**, **`sendPutThinkingSchedule`** with **`scheduleStatus: 'completed'`**; tests.
   - [ ] **Publish** **`mtw.ephemera.thinking.scheduling`** as **replayable** + **EventBridge** (template, IAM, publisher strategy; unblock client subscribe; include **`Job Completed`** / schedule **`completed`** in wire contract when this lands).
 
@@ -237,7 +237,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 | Contracts | Durable [`AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md); [`ephemera/thinking`](../../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/thinking/) types + `ThinkingEventSerializer` + Jest. Schedule **`completed`**, **`ThinkingJobStatus`** / **`completed`**, **`ThinkingJobCompletedEvent`**, **`Job Completed`** serializer branch shipped. |
 | Results persistence + pipeline | **`mtw.ephemera.thinking.results`** + read gateway + `internalCache.ThinkingResults`. Coyote: **`Thinking Result`** bus emit + failure finalizer via [`hypothesisThinkingPersistence.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/hypothesisThinkingPersistence.ts). |
 | API | **Pending:** WebSocket results lookup (Recommended order, Results spine). |
-| Schedule + EventBridge | **`mtw.ephemera.thinking.scheduling`** shipped for bootstrap + schedule puts + job error. Contracts for schedule **`completed`** + **`Job Completed`** envelope shipped. **`listThinkingSchedulesForJob`** + **`internalCache.ThinkingJobs`** shipped. **Pending:** rollup + emit wiring, Coyote **`completed`** schedule puts; then replayable publisher + **subscriptions** (row 170). |
+| Schedule + EventBridge | **`mtw.ephemera.thinking.scheduling`** shipped for bootstrap + schedule puts + job error + rollup (**`maybeCompleteThinkingJob`**) + **`Job Completed`** bus emit. Contracts for schedule **`completed`** + **`Job Completed`** envelope shipped. **`listThinkingSchedulesForJob`** + **`internalCache.ThinkingJobs`** shipped. **Pending:** Coyote **`completed`** schedule puts; then replayable publisher + **subscriptions** (row 227). |
 
 ## Related GitHub issues (optional index)
 
