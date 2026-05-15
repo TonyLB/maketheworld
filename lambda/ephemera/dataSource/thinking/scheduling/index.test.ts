@@ -1,5 +1,6 @@
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 
+import * as maybeComplete from './maybeCompleteThinkingJob'
 import * as persistJobCreate from './persistThinkingJobCreate'
 import * as persistJobError from './persistThinkingJobError'
 import * as persistModule from './persistThinkingSchedule'
@@ -29,16 +30,18 @@ const validJobError = {
 }
 
 describe('mtw.ephemera.thinking.scheduling DataSource', () => {
-    it('is bus-only with combined api.ephemera thinking scheduling subscription guard', () => {
+    it('is replayable with EventBridge+bus publish and combined api.ephemera subscription guard', () => {
         expect(ephemeraThinkingSchedulingDataSource.dataSourceKey).toBe('mtw.ephemera.thinking.scheduling')
-        expect(ephemeraThinkingSchedulingDataSource.replayable).toBe(false)
-        expect(ephemeraThinkingSchedulingDataSource.publisherStrategy).toBe('busOnly')
+        expect(ephemeraThinkingSchedulingDataSource.replayable).toBe(true)
+        expect(ephemeraThinkingSchedulingDataSource.publisherStrategy).toBe('eventBridge+bus')
         expect(ephemeraThinkingSchedulingDataSource.subscribedEventTypeGuard).toBe(isThinkingSchedulingSubscribedEnvelope)
         expect(typeof ephemeraThinkingSchedulingDataSource.receiveEvents).toBe('function')
     })
 
     it('receiveEvents persists validated ThinkingScheduleEvent payloads', async () => {
-        const spy = jest.spyOn(persistModule, 'persistThinkingSchedule').mockResolvedValue('written')
+        const persistSpy = jest.spyOn(persistModule, 'persistThinkingSchedule').mockResolvedValue('written')
+        const rollupSpy = jest.spyOn(maybeComplete, 'maybeCompleteThinkingJob').mockResolvedValue('noop')
+        const streamEvent = jest.fn()
         await ephemeraThinkingSchedulingDataSource.receiveEvents!({
             events: [
                 {
@@ -51,11 +54,38 @@ describe('mtw.ephemera.thinking.scheduling DataSource', () => {
                     getContent: async () => validScheduleEvent,
                 },
             ],
+            streamEvent,
+            streamEnvelope: jest.fn(),
+        })
+        expect(persistSpy).toHaveBeenCalledWith(validScheduleEvent)
+        expect(rollupSpy).toHaveBeenCalledWith({
+            generationId: validScheduleEvent.generationId,
+            streamEvent,
+        })
+        persistSpy.mockRestore()
+        rollupSpy.mockRestore()
+    })
+
+    it('receiveEvents skips rollup when persistThinkingSchedule returns invalidPayload', async () => {
+        const persistSpy = jest.spyOn(persistModule, 'persistThinkingSchedule').mockResolvedValue('invalidPayload')
+        const rollupSpy = jest.spyOn(maybeComplete, 'maybeCompleteThinkingJob').mockResolvedValue('noop')
+        const invalidEnvelope = {
+            header: {
+                dataSourceKey: 'api.ephemera',
+                streamKey: 'JOB#x',
+                timestamp: 1,
+                type: 'Put Thinking Schedule',
+            },
+            getContent: async () => ({ not: 'a schedule' }),
+        }
+        await ephemeraThinkingSchedulingDataSource.receiveEvents!({
+            events: [invalidEnvelope as never],
             streamEvent: jest.fn(),
             streamEnvelope: jest.fn(),
         })
-        expect(spy).toHaveBeenCalledWith(validScheduleEvent)
-        spy.mockRestore()
+        expect(rollupSpy).not.toHaveBeenCalled()
+        persistSpy.mockRestore()
+        rollupSpy.mockRestore()
     })
 
     it('receiveEvents invokes persistThinkingSchedule for Put Thinking Schedule even when payload is invalid', async () => {

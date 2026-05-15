@@ -36,5 +36,6 @@ export async function persistThinkingSchedule(payload: unknown): Promise<Persist
     }
     await ephemeraDB.putItem(item)
     internalCache.ThinkingSchedules.invalidate(event.workItemId)
+    internalCache.ThinkingJobs.invalidate(event.generationId)
     return 'written'
 }

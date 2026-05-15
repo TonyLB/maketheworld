@@ -1,6 +1,8 @@
 import {
+    createThinkingJobReadCacheHandler,
     createThinkingResultReadCacheHandler,
     createThinkingScheduleReadCacheHandler,
+    fetchThinkingJobSnapshot,
     filterThinkingResultRows,
     filterThinkingScheduleRows,
     getJobMetaItem,
@@ -9,9 +11,11 @@ import {
     jobEphemeraId,
     jobMetaDataCategory,
     jobTaskAdjacencyDataCategory,
+    listThinkingSchedulesForJob,
     parseWorkItemIdFromTaskEphemeraId,
     queryTaskRowsForJob,
     taskEphemeraId,
+    thinkingJobMetaFromEphemeraItem,
     thinkingResultMetaDataCategory,
     thinkingResultFromEphemeraItem,
     thinkingScheduleFromEphemeraItem,
@@ -248,6 +252,219 @@ describe('createThinkingResultReadCacheHandler', () => {
         cache.clear()
         await cache.get('w')
         expect(db.getItem).toHaveBeenCalledTimes(2)
+    })
+})
+
+describe('thinkingJobMetaFromEphemeraItem', () => {
+    it('returns job meta when contract fields are top-level', () => {
+        const gen = '550e8400-e29b-41d4-a716-446655440000'
+        const item = {
+            EphemeraId: `JOB#${gen}`,
+            DataCategory: 'Meta::Job',
+            schemaVersion: 1,
+            generationId: gen,
+            jobStatus: 'running' as const,
+            createdAt: '2026-01-01T00:00:00.000Z',
+        }
+        expect(thinkingJobMetaFromEphemeraItem(item)).toEqual({
+            schemaVersion: 1,
+            generationId: gen,
+            jobStatus: 'running',
+            createdAt: '2026-01-01T00:00:00.000Z',
+        })
+    })
+
+    it('returns null for malformed payloads', () => {
+        expect(thinkingJobMetaFromEphemeraItem({ EphemeraId: 'x', DataCategory: 'Meta::Job' })).toBeNull()
+        expect(thinkingJobMetaFromEphemeraItem(null)).toBeNull()
+    })
+})
+
+describe('listThinkingSchedulesForJob', () => {
+    const gen = '550e8400-e29b-41d4-a716-446655440000'
+    const wid1 = '660e8400-e29b-41d4-a716-446655440001'
+    const wid2 = '770e8400-e29b-41d4-a716-446655440002'
+
+    const scheduleBody = (workItemId: string, segment: 'candidates' | 'planSelect') => ({
+        schemaVersion: 1,
+        generationId: gen,
+        workItemId,
+        segment,
+        scheduleStatus: 'scheduled' as const,
+    })
+
+    it('queries adjacency then getItem per workItemId in query order', async () => {
+        const db = {
+            query: jest.fn().mockResolvedValue([
+                { EphemeraId: `JOB#${gen}`, DataCategory: `TASK#${wid1}` },
+                { EphemeraId: `JOB#${gen}`, DataCategory: `TASK#${wid2}` },
+            ]),
+            getItem: jest.fn().mockImplementation(({ Key }: { Key: { EphemeraId: string } }) => {
+                if (Key.EphemeraId === `TASK#${wid1}`) {
+                    return Promise.resolve({
+                        EphemeraId: `TASK#${wid1}`,
+                        DataCategory: 'Meta::Schedule',
+                        ...scheduleBody(wid1, 'candidates'),
+                    })
+                }
+                if (Key.EphemeraId === `TASK#${wid2}`) {
+                    return Promise.resolve({
+                        EphemeraId: `TASK#${wid2}`,
+                        DataCategory: 'Meta::Schedule',
+                        ...scheduleBody(wid2, 'planSelect'),
+                    })
+                }
+                return Promise.resolve(undefined)
+            }),
+        }
+        const schedules = await listThinkingSchedulesForJob(db, gen)
+        expect(db.query).toHaveBeenCalledTimes(1)
+        expect(db.getItem).toHaveBeenCalledTimes(2)
+        expect(schedules).toHaveLength(2)
+        expect(schedules[0]?.workItemId).toBe(wid1)
+        expect(schedules[1]?.workItemId).toBe(wid2)
+    })
+
+    it('skips adjacency lines with missing or malformed schedule rows', async () => {
+        const db = {
+            query: jest.fn().mockResolvedValue([
+                { EphemeraId: `JOB#${gen}`, DataCategory: `TASK#${wid1}` },
+                { EphemeraId: `JOB#${gen}`, DataCategory: `TASK#${wid2}` },
+            ]),
+            getItem: jest.fn().mockImplementation(({ Key }: { Key: { EphemeraId: string } }) => {
+                if (Key.EphemeraId === `TASK#${wid1}`) {
+                    return Promise.resolve({
+                        EphemeraId: `TASK#${wid1}`,
+                        DataCategory: 'Meta::Schedule',
+                        ...scheduleBody(wid1, 'candidates'),
+                    })
+                }
+                return Promise.resolve(undefined)
+            }),
+        }
+        const schedules = await listThinkingSchedulesForJob(db, gen)
+        expect(schedules).toHaveLength(1)
+        expect(schedules[0]?.workItemId).toBe(wid1)
+    })
+})
+
+describe('fetchThinkingJobSnapshot', () => {
+    const gen = '550e8400-e29b-41d4-a716-446655440000'
+    const wid = '660e8400-e29b-41d4-a716-446655440001'
+
+    it('loads Meta::Job, adjacency workItemIds, and schedules', async () => {
+        const db = {
+            query: jest.fn().mockResolvedValue([
+                { EphemeraId: `JOB#${gen}`, DataCategory: `TASK#${wid}` },
+            ]),
+            getItem: jest.fn().mockImplementation(({ Key }: { Key: { EphemeraId: string; DataCategory: string } }) => {
+                if (Key.DataCategory === 'Meta::Job') {
+                    return Promise.resolve({
+                        EphemeraId: `JOB#${gen}`,
+                        DataCategory: 'Meta::Job',
+                        schemaVersion: 1,
+                        generationId: gen,
+                        jobStatus: 'running',
+                    })
+                }
+                if (Key.EphemeraId === `TASK#${wid}`) {
+                    return Promise.resolve({
+                        EphemeraId: `TASK#${wid}`,
+                        DataCategory: 'Meta::Schedule',
+                        schemaVersion: 1,
+                        generationId: gen,
+                        workItemId: wid,
+                        segment: 'candidates',
+                        scheduleStatus: 'scheduled',
+                    })
+                }
+                return Promise.resolve(undefined)
+            }),
+        }
+        const snap = await fetchThinkingJobSnapshot(db, gen)
+        expect(snap.generationId).toBe(gen)
+        expect(snap.jobStatus).toBe('running')
+        expect(snap.workItemIds).toEqual([wid])
+        expect(snap.schedules).toHaveLength(1)
+        expect(snap.schedules[0]?.workItemId).toBe(wid)
+    })
+})
+
+describe('createThinkingJobReadCacheHandler', () => {
+    const gen = '550e8400-e29b-41d4-a716-446655440000'
+    const wid = '660e8400-e29b-41d4-a716-446655440001'
+
+    it('dedupes parallel gets for the same generationId into one query batch', async () => {
+        const db = {
+            query: jest.fn().mockResolvedValue([
+                { EphemeraId: `JOB#${gen}`, DataCategory: `TASK#${wid}` },
+            ]),
+            getItem: jest.fn().mockImplementation(({ Key }: { Key: { EphemeraId: string; DataCategory: string } }) => {
+                if (Key.DataCategory === 'Meta::Job') {
+                    return Promise.resolve({
+                        EphemeraId: `JOB#${gen}`,
+                        DataCategory: 'Meta::Job',
+                        schemaVersion: 1,
+                        generationId: gen,
+                        jobStatus: 'running',
+                    })
+                }
+                if (Key.EphemeraId === `TASK#${wid}`) {
+                    return Promise.resolve({
+                        EphemeraId: `TASK#${wid}`,
+                        DataCategory: 'Meta::Schedule',
+                        schemaVersion: 1,
+                        generationId: gen,
+                        workItemId: wid,
+                        segment: 'candidates',
+                        scheduleStatus: 'scheduled',
+                    })
+                }
+                return Promise.resolve(undefined)
+            }),
+        }
+        const cache = createThinkingJobReadCacheHandler(db)
+        await Promise.all([cache.get(gen), cache.get(gen)])
+        expect(db.query).toHaveBeenCalledTimes(1)
+        expect(db.getItem).toHaveBeenCalledTimes(2)
+    })
+
+    it('invalidate allows a subsequent get to fetch again', async () => {
+        const db = {
+            query: jest.fn().mockResolvedValue([]),
+            getItem: jest.fn().mockResolvedValue({
+                EphemeraId: `JOB#${gen}`,
+                DataCategory: 'Meta::Job',
+                schemaVersion: 1,
+                generationId: gen,
+                jobStatus: 'running',
+            }),
+        }
+        const cache = createThinkingJobReadCacheHandler(db)
+        await cache.get(gen)
+        expect(db.query).toHaveBeenCalledTimes(1)
+        cache.invalidate(gen)
+        await cache.get(gen)
+        expect(db.query).toHaveBeenCalledTimes(2)
+    })
+
+    it('clear allows a subsequent get to fetch again', async () => {
+        const db = {
+            query: jest.fn().mockResolvedValue([]),
+            getItem: jest.fn().mockResolvedValue({
+                EphemeraId: `JOB#${gen}`,
+                DataCategory: 'Meta::Job',
+                schemaVersion: 1,
+                generationId: gen,
+                jobStatus: 'running',
+            }),
+        }
+        const cache = createThinkingJobReadCacheHandler(db)
+        await cache.get(gen)
+        expect(db.query).toHaveBeenCalledTimes(1)
+        cache.clear()
+        await cache.get(gen)
+        expect(db.query).toHaveBeenCalledTimes(2)
     })
 })
 

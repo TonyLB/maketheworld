@@ -17,8 +17,8 @@ const REPLAYABLE_DATA_SOURCES = [
     'mtw.assets.contentHeaders',
     'mtw.assets.library',
     'mtw.assets.players',
-    'mtw.wml' // Sidecar snapshot on subscribe; Dynamo replay of events since snapshot
-    // Future: 'mtw.ephemera'
+    'mtw.wml', // Sidecar snapshot on subscribe; Dynamo replay of events since snapshot
+    'mtw.ephemera.thinking.scheduling',
 ] as const
 
 /**

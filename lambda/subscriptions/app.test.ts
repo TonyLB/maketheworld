@@ -74,6 +74,45 @@ describe('subscriptions app handler', () => {
             })
         })
 
+        it('should trigger snapshot initialization for mtw.ephemera.thinking.scheduling', async () => {
+            const mockMatch = {
+                subscribe: jest.fn().mockResolvedValue(undefined)
+            }
+            subscriptionLibraryMock.matchAll.mockReturnValue([mockMatch] as any)
+            internalCacheMock.Global.get.mockResolvedValue('test-session-id')
+
+            const subscribeRequest = {
+                message: 'subscribe',
+                dataSourceKey: 'mtw.ephemera.thinking.scheduling',
+                streamKeys: ['global'],
+                RequestId: 'test-request-id'
+            }
+
+            const event = {
+                requestContext: { connectionId: 'test-connection' },
+                body: JSON.stringify(subscribeRequest)
+            }
+
+            const result = await handler(event)
+
+            expect(mockMatch.subscribe).toHaveBeenCalledWith(
+                subscribeRequest,
+                'SESSION#test-session-id'
+            )
+
+            expect(eventBridgeClientMock.send).toHaveBeenCalledWith([{
+                Source: 'mtw.subscriptions',
+                DetailType: 'Initialize Subscription - mtw.ephemera.thinking.scheduling',
+                Detail: {
+                    streamKey: 'global',
+                    sessionId: 'SESSION#test-session-id',
+                    requestId: 'test-request-id'
+                }
+            }])
+
+            expect(result.statusCode).toBe(200)
+        })
+
         it('should trigger snapshot initialization for mtw.wml (sidecar snapshot on subscribe)', async () => {
             const mockMatch = {
                 subscribe: jest.fn().mockResolvedValue(undefined)

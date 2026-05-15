@@ -3,6 +3,8 @@ import type { ThinkingJobErrorEvent } from '@tonylb/mtw-interfaces/ts/eventBridg
 import { isThinkingJobErrorEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
+import internalCache from '../../../internalCache'
+
 export type PersistThinkingJobErrorOutcome = 'written' | 'invalidPayload'
 
 /** Dynamo row shape for `Meta::Job` optimistic merge (subset of persisted fields). */
@@ -77,5 +79,6 @@ export async function persistThinkingJobError(payload: unknown): Promise<Persist
             }
         },
     })
+    internalCache.ThinkingJobs.invalidate(event.generationId)
     return 'written'
 }

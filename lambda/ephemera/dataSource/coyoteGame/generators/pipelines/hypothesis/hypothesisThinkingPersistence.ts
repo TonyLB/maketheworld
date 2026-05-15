@@ -399,7 +399,26 @@ export async function emitHypothesisThinkingResult(
     outcome: HypothesisThinkingResultOutcome
 ): Promise<void> {
     const laneId = thinkingResultsLaneId(ids.generationId)
+    const streamKey = thinkingStreamKey(ids.generationId)
     postHypothesisThinkingResult(deps, ids, segment, outcome, laneId)
+    if (outcome.ok) {
+        const workItemId = ids.workItems[segment]
+        if (workItemId === undefined) {
+            throw new Error(`HypothesisThinkingPersistence: missing workItemId for segment ${segment}`)
+        }
+        sendPutThinkingSchedule(
+            deps.messageBus,
+            streamKey,
+            {
+                schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+                generationId: ids.generationId,
+                workItemId,
+                segment,
+                scheduleStatus: 'completed',
+            },
+            laneId
+        )
+    }
     await deps.messageBus.flush(laneId)
 }
 

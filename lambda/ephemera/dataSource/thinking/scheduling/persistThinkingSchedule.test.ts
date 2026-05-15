@@ -5,6 +5,9 @@ jest.mock('../../../internalCache', () => ({
         ThinkingSchedules: {
             invalidate: jest.fn(),
         },
+        ThinkingJobs: {
+            invalidate: jest.fn(),
+        },
     },
 }))
 
@@ -51,6 +54,7 @@ describe('persistThinkingSchedule', () => {
             scheduleStatus: 'scheduled',
         })
         expect(internalCache.ThinkingSchedules.invalidate).toHaveBeenCalledWith(validEvent.workItemId)
+        expect(internalCache.ThinkingJobs.invalidate).toHaveBeenCalledWith(validEvent.generationId)
     })
 
     it('includes optional enqueuedAt on the Dynamo item', async () => {
