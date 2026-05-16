@@ -2,7 +2,7 @@
 
 Subsystem for **durable thinking artifacts**: **schedule** rows (work queued / claimable) and **thinking results** (completed work, success or failure), stored in the Ephemera Dynamo table and surfaced via **EventBridge**, the **Ephemera API**, and client dashboards.
 
-**Client (subscribe, dashboards, results UI):** [`taskPlanning/charcoal-client/AGENT.thinkingDashboard.planning.md`](../../../../taskPlanning/charcoal-client/AGENT.thinkingDashboard.planning.md); operator entry: [`charcoal-client/src/components/ThinkingDashboard/AGENT.md`](../../../../charcoal-client/src/components/ThinkingDashboard/AGENT.md).
+**Client (subscribe, dashboards, results UI):** [`charcoal-client/src/components/ThinkingDashboard/AGENT.md`](../../../../charcoal-client/src/components/ThinkingDashboard/AGENT.md); package index: [`charcoal-client/AGENT.md`](../../../../charcoal-client/AGENT.md).
 
 ## Dynamo keys and row lifecycle (locked)
 

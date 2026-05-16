@@ -204,7 +204,7 @@ The application uses React Router to enforce the authoring/playing distinction:
 ### Cross-References
 
 - **Message System**: [`src/components/Message/AGENT.md`](src/components/Message/AGENT.md) - Message routing and display
-- **Thinking jobs dashboard**: [`src/components/ThinkingDashboard/AGENT.md`](src/components/ThinkingDashboard/AGENT.md) - Completed thinking jobs overlay (Command `/dashboard`)
+- **Thinking jobs dashboard**: [`src/components/ThinkingDashboard/AGENT.md`](src/components/ThinkingDashboard/AGENT.md) - Completed jobs + per-segment results (`thinkingJobs`, `thinkingResults`; Command `/dashboard`)
 - **Room headers (play transcript)**: [`src/components/Message/AGENT.RoomDescription.md`](src/components/Message/AGENT.RoomDescription.md) - In sticky header mode, `RoomDescription` distinguishes **live** (last message group: blue shell, interactive exits and character chips) from **historical** (grey shell, outlined/muted affordances, no navigation from stale exits or character links). **Live** follows game reality (last group in the virtualized list), not which header is stuck at the top of the viewport. See that doc for `currentHeader`, `useLivePalette`, and `affordancesInactive` wiring.
 - **WML Standardization**: [`packages/mtw-wml/ts/standardize/AGENT.md`](../packages/mtw-wml/ts/standardize/AGENT.md) - Content structure
 - **Perception Engine**: [`lambda/ephemera/perception/AGENT.md`](../lambda/ephemera/perception/AGENT.md) - Character-filtered information
