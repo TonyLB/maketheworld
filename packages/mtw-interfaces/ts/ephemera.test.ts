@@ -6,6 +6,7 @@ import {
     isTerminalConversationStep,
     isEphemeraClientMessageEphemeraCommandSuccess,
     isEphemeraClientMessageError,
+    isEphemeraClientMessageThinkingResult,
 } from './ephemera'
 
 describe('EphemeraAPIMessage typeguard', () => {
@@ -409,6 +410,62 @@ describe('ephemera API wire (client and server)', () => {
                 markState: { markValue: [{ mark: 'm', value: 'v' }] },
             })
         ).toBe(true)
+    })
+
+    it('isEphemeraAPIMessage accepts fetchThinkingResult', () => {
+        expect(
+            isEphemeraAPIMessage({
+                message: 'fetchThinkingResult',
+                workItemId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                RequestId: 'req-1',
+            })
+        ).toBe(true)
+    })
+
+    it('isEphemeraAPIMessage rejects fetchThinkingResult with empty workItemId', () => {
+        expect(
+            isEphemeraAPIMessage({
+                message: 'fetchThinkingResult',
+                workItemId: '',
+            })
+        ).toBe(false)
+    })
+
+    it('isEphemeraClientMessageThinkingResult', () => {
+        expect(
+            isEphemeraClientMessageThinkingResult({
+                messageType: 'ThinkingResult',
+                RequestId: 'req-1',
+                result: {
+                    schemaVersion: 1,
+                    generationId: 'gen-1',
+                    workItemId: 'work-1',
+                    segment: 'candidates',
+                    ok: true,
+                    completedAt: '2026-05-14T13:00:00.000Z',
+                },
+            })
+        ).toBe(true)
+        expect(
+            isEphemeraClientMessage({
+                messageType: 'ThinkingResult',
+                RequestId: 'req-1',
+                result: {
+                    schemaVersion: 1,
+                    generationId: 'gen-1',
+                    workItemId: 'work-1',
+                    segment: 'candidates',
+                    ok: true,
+                    completedAt: '2026-05-14T13:00:00.000Z',
+                },
+            })
+        ).toBe(true)
+        expect(
+            isEphemeraClientMessageThinkingResult({
+                messageType: 'ThinkingResult',
+                result: { workItemId: 'work-1' },
+            })
+        ).toBe(false)
     })
 
     it('isEphemeraClientMessageEphemeraCommandSuccess', () => {

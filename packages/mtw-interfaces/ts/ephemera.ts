@@ -1,6 +1,7 @@
 import { EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraMapId, EphemeraRoomId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraRoomId } from "./baseClasses"
 import { LegalCharacterColor } from './baseClasses'
 import { isEphemeraCacheMarkState, type EphemeraCacheMarkState } from "./ephemeraMeta"
+import { isThinkingResultEvent, type ThinkingResultEvent } from "./eventBridge/ephemera/thinking"
 import { isMapDescribeData, isMessage, MapDescribeData, Message } from "./messages"
 import { checkAll, checkTypes } from "./utils";
 
@@ -116,6 +117,12 @@ export type EphemeraApiStateChangeRequest = {
     markState: EphemeraCacheMarkState;
 }
 
+/** Fetch one persisted thinking result by {@link ThinkingResultEvent.workItemId}. */
+export type FetchThinkingResultAPIMessage = {
+    message: 'fetchThinkingResult';
+    workItemId: string;
+}
+
 /** Correlates {@link EphemeraClientMessageEphemeraCommandSuccess} with the originating request. */
 export type EphemeraApiCommand = 'stateChange'
 
@@ -130,7 +137,8 @@ export type EphemeraAPIMessage = { RequestId?: string } & (
     ActionAPIMessage |
     LinkAPIMessage |
     CommandAPIMessage |
-    EphemeraApiStateChangeRequest
+    EphemeraApiStateChangeRequest |
+    FetchThinkingResultAPIMessage
 )
 
 export const isRegisterCharacterAPIMessage = (message: EphemeraAPIMessage): message is RegisterCharacterAPIMessage => (message.message === 'registercharacter')
@@ -166,6 +174,26 @@ const isEphemeraApiStateChangeWire = (message: any): boolean => {
 export const isEphemeraApiStateChangeAPIMessage = (message: EphemeraAPIMessage): message is EphemeraApiStateChangeRequest => (
     message.message === 'ephemeraStateChange'
 )
+
+export const isFetchThinkingResultAPIMessage = (message: EphemeraAPIMessage): message is FetchThinkingResultAPIMessage => (
+    message.message === 'fetchThinkingResult'
+)
+
+const isFetchThinkingResultWire = (message: any): boolean => {
+    if (!message || typeof message !== 'object') {
+        return false
+    }
+    if (message.message !== 'fetchThinkingResult') {
+        return false
+    }
+    if (typeof message.workItemId !== 'string' || message.workItemId.length === 0) {
+        return false
+    }
+    if (message.RequestId !== undefined && typeof message.RequestId !== 'string') {
+        return false
+    }
+    return true
+}
 
 export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessage => {
     if (typeof message !== 'object') {
@@ -254,6 +282,8 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
             }
         case 'ephemeraStateChange':
             return isEphemeraApiStateChangeWire(message)
+        case 'fetchThinkingResult':
+            return isFetchThinkingResultWire(message)
         default: return false
     }
 }
@@ -409,6 +439,13 @@ export type EphemeraClientMessageError = {
     error?: string;
 }
 
+/** Correlated success for {@link FetchThinkingResultAPIMessage}. */
+export type EphemeraClientMessageThinkingResult = {
+    messageType: 'ThinkingResult';
+    RequestId?: string;
+    result: ThinkingResultEvent;
+}
+
 /**
  * Correlated server-to-client streams use `messageType: 'ConversationStep'` (LifeLine
  * {@link isTerminalConversationStep} / client `socketDispatchConversation`). Preview-only
@@ -503,6 +540,7 @@ export type EphemeraClientMessage = EphemeraClientMessageEphemeraUpdate |
     EphemeraClientMessageUnsubscribeFromMapsMessage |
     EphemeraClientMessageEphemeraCommandSuccess |
     EphemeraClientMessageError |
+    EphemeraClientMessageThinkingResult |
     EphemeraClientMessageConversationStep
 
 export const isEphemeraClientMessageEphemeraCommandSuccess = (message: any): message is EphemeraClientMessageEphemeraCommandSuccess => {
@@ -535,6 +573,19 @@ export const isEphemeraClientMessageError = (message: any): message is EphemeraC
         return false
     }
     return true
+}
+
+export const isEphemeraClientMessageThinkingResult = (message: any): message is EphemeraClientMessageThinkingResult => {
+    if (!message || typeof message !== 'object') {
+        return false
+    }
+    if (message.messageType !== 'ThinkingResult') {
+        return false
+    }
+    if (message.RequestId !== undefined && typeof message.RequestId !== 'string') {
+        return false
+    }
+    return isThinkingResultEvent(message.result)
 }
 
 export const isEphemeraClientMessage = (message: any): message is EphemeraClientMessage => {
@@ -583,6 +634,8 @@ export const isEphemeraClientMessage = (message: any): message is EphemeraClient
             return isEphemeraClientMessageEphemeraCommandSuccess(message)
         case 'Error':
             return isEphemeraClientMessageError(message)
+        case 'ThinkingResult':
+            return isEphemeraClientMessageThinkingResult(message)
         default: return false
     }
 }

@@ -1,6 +1,6 @@
 # charcoal-client: Thinking dashboards and subscriptions (planning)
 
-**Status:** In progress. **Client subscribe** to **`Job Completed`** and **completed jobs dashboard** (Command **`/dashboard`** overlay) are wired. **Blocked** on server **Ephemera API** for thinking results lookup and results sub-panel. **EventBridge** **`Job Completed`** on streamKey **`global`** is shipped (server); per-hop **`Thinking Schedule`** stream deferred.
+**Status:** In progress. **Client subscribe** to **`Job Completed`** and **completed jobs dashboard** are wired. **Server Ephemera API** **`fetchThinkingResult`** (by **`workItemId`**) is shipped; **unblocked:** Redux **`thinkingResults`** slice and results sub-panel. **EventBridge** **`Job Completed`** on streamKey **`global`** is shipped; per-hop **`Thinking Schedule`** stream deferred.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../AGENT.md).
 
@@ -71,7 +71,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 
 - [ ] **Prerequisites (server-owned; track in companion plan)**
   - [X] **`@tonylb/mtw-interfaces`** types under **`eventBridge/ephemera/thinking/`** for **`Job Completed`**, **`Thinking Schedule`** (wire shape; stream deferred), and thinking-result payloads (API response shapes TBD server-side).
-  - [ ] **Ephemera API** for thinking results lookup (stable path and JSON).
+  - [X] **Ephemera API** for thinking results lookup: **`fetchThinkingResult`** + **`messageType: 'ThinkingResult'`** (`ThinkingResultEvent`); use **`workItemId`** from **`Job Completed.schedules[]`** per segment.
   - [X] **EventBridge + replayable** **`Job Completed`** publisher for `mtw.ephemera.thinking.scheduling` (streamKey **`global`**; **`Thinking Schedule`** stream not required for MVP).
 
 - [ ] **Redux slice for thinking results**
@@ -114,6 +114,6 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 | Subscribe (`Job Completed`) | Replayable + EventBridge for **`Job Completed`** on `mtw.ephemera.thinking.scheduling`; subscriptions lambda WebSocket bridge |
 | Completed jobs dashboard | Same; optional list API if not embedded in replay |
 | Schedule timeline (deferred) | Server **`Thinking Schedule`** stream per hop |
-| Results slice / panel | Ephemera API (WebSocket envelope per existing client → ephemera pattern) + response types from **`eventBridge/ephemera/thinking/`** |
+| Results slice / panel | **`fetchThinkingResult`** (`@tonylb/mtw-interfaces/ts/ephemera`); **`workItemId`** from job schedule rows |
 
 Keep this table updated if contracts move between PRs.

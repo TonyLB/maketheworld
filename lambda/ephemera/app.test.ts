@@ -1,12 +1,14 @@
 jest.mock('@aws-sdk/client-sfn')
 import { handler } from './app'
 import messageBus from './messageBus'
+import internalCache from './internalCache'
 
 // Mock dependencies
 jest.mock('./messageBus')
 jest.mock('./internalCache')
 
 const mockMessageBus = messageBus as jest.Mocked<typeof messageBus>
+let mockThinkingResultsGet: jest.Mock
 
 describe('app handler', () => {
     beforeEach(() => {
@@ -14,6 +16,10 @@ describe('app handler', () => {
         mockMessageBus.clear.mockReturnValue(undefined)
         mockMessageBus.flush.mockResolvedValue(undefined)
         mockMessageBus.send.mockReturnValue(undefined)
+        mockThinkingResultsGet = jest.fn()
+        ;(internalCache as unknown as { ThinkingResults: { get: jest.Mock } }).ThinkingResults = {
+            get: mockThinkingResultsGet,
+        }
     })
 
     describe('action message handling', () => {
@@ -274,6 +280,89 @@ describe('app handler', () => {
                     requestId: 'req-a',
                 })
             )
+        })
+
+        it('returns ThinkingResult for fetchThinkingResult', async () => {
+            const result = {
+                schemaVersion: 1,
+                generationId: 'gen-1',
+                workItemId: 'work-1',
+                segment: 'candidates' as const,
+                ok: true,
+                completedAt: '2026-05-14T13:00:00.000Z',
+            }
+            mockThinkingResultsGet.mockResolvedValue(result)
+
+            await handler(
+                {
+                    requestContext: { connectionId: 'test-connection' },
+                    body: JSON.stringify({
+                        message: 'fetchThinkingResult',
+                        workItemId: 'work-1',
+                        RequestId: 'req-tr',
+                    }),
+                },
+                {}
+            )
+
+            expect(mockThinkingResultsGet).toHaveBeenCalledWith('work-1')
+            expect(mockMessageBus.send).toHaveBeenCalledWith({
+                type: 'ReturnValue',
+                body: {
+                    messageType: 'ThinkingResult',
+                    RequestId: 'req-tr',
+                    result,
+                },
+            })
+        })
+
+        it('returns Error when fetchThinkingResult has no stored row', async () => {
+            mockThinkingResultsGet.mockResolvedValue(null)
+
+            await handler(
+                {
+                    requestContext: { connectionId: 'test-connection' },
+                    body: JSON.stringify({
+                        message: 'fetchThinkingResult',
+                        workItemId: 'work-missing',
+                        RequestId: 'req-miss',
+                    }),
+                },
+                {}
+            )
+
+            expect(mockMessageBus.send).toHaveBeenCalledWith({
+                type: 'ReturnValue',
+                body: {
+                    messageType: 'Error',
+                    RequestId: 'req-miss',
+                    message: 'No thinking result for workItemId work-missing',
+                    error: 'THINKING_RESULT_NOT_FOUND',
+                },
+            })
+        })
+
+        it('returns Error for fetchThinkingResult without RequestId', async () => {
+            await handler(
+                {
+                    requestContext: { connectionId: 'test-connection' },
+                    body: JSON.stringify({
+                        message: 'fetchThinkingResult',
+                        workItemId: 'work-1',
+                    }),
+                },
+                {}
+            )
+
+            expect(mockThinkingResultsGet).not.toHaveBeenCalled()
+            expect(mockMessageBus.send).toHaveBeenCalledWith({
+                type: 'ReturnValue',
+                body: {
+                    messageType: 'Error',
+                    message: 'RequestId is required for fetchThinkingResult',
+                    error: 'THINKING_RESULT_MISSING_REQUEST_ID',
+                },
+            })
         })
     })
 })
