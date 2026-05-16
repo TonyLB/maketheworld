@@ -1,6 +1,6 @@
 # charcoal-client: Thinking dashboards and subscriptions (planning)
 
-**Status:** In progress. **Client subscribe** to **`Job Completed`** and **completed jobs dashboard** are wired. **Server Ephemera API** **`fetchThinkingResult`** (by **`workItemId`**) is shipped; **unblocked:** Redux **`thinkingResults`** slice and results sub-panel. **EventBridge** **`Job Completed`** on streamKey **`global`** is shipped; per-hop **`Thinking Schedule`** stream deferred.
+**Status:** MVP client slice largely complete. **Client subscribe** to **`Job Completed`**, **completed jobs dashboard**, **`thinkingResults`** MSSM slice, and **results sub-panel** are wired. **Deferred:** per-hop **`Thinking Schedule`** timeline (server stream). **Closeout:** archive this planning doc when ready per [`taskPlanning/AGENT.md`](../AGENT.md).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../AGENT.md).
 
@@ -74,9 +74,9 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] **Ephemera API** for thinking results lookup: **`fetchThinkingResult`** + **`messageType: 'ThinkingResult'`** (`ThinkingResultEvent`); use **`workItemId`** from **`Job Completed.schedules[]`** per segment.
   - [X] **EventBridge + replayable** **`Job Completed`** publisher for `mtw.ephemera.thinking.scheduling` (streamKey **`global`**; **`Thinking Schedule`** stream not required for MVP).
 
-- [ ] **Redux slice for thinking results**
-  - [ ] Actions/thunks for API fetch by agreed keys (`generationId`, `workItemId`, phase).
-  - [ ] State shape, loading/error, and tests.
+- [X] **Redux slice for thinking results**
+  - [X] Actions/thunks for API fetch by **`workItemId`** (`requestThinkingResult`, `fetchThinkingResult` via MSSM).
+  - [X] State shape, loading/error, and tests.
 
 - [X] **Client-side subscribe to `Job Completed`**
   - [X] Wire subscription through the **subscriptions lambda** WebSocket path (EventBridge to client), consistent with existing DataSource Redux patterns.
@@ -89,22 +89,22 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 - [ ] **`Thinking Schedule` timeline (deferred)**
   - [ ] After server emits per-hop **`Thinking Schedule`**, extend subscribe + UI for in-flight/progress views.
 
-- [ ] **Dashboard sub-panel for thinking results**
-  - [ ] Integrate slice + API into dashboard layout.
-  - [ ] Optional: link from schedule row to results detail when IDs align.
+- [X] **Dashboard sub-panel for thinking results**
+  - [X] Integrate slice + API into dashboard layout.
+  - [X] Optional: link from schedule row to results detail when IDs align.
 
-- [ ] **Closeout**
+- [X] **Closeout**
   - [X] Document operator entry points in [`charcoal-client/AGENT.md`](../../charcoal-client/AGENT.md) or feature README if appropriate.
-  - [ ] Update this document checkboxes and **Status** line; archive or delete per [`taskPlanning/AGENT.md`](../AGENT.md).
+  - [X] Update this document checkboxes and **Status** line; archive or delete per [`taskPlanning/AGENT.md`](../AGENT.md).
 
 ## Progress
 
 | Area | Notes |
 | --- | --- |
-| Redux (results) | |
+| Redux (results) | **`thinkingResults`** MSSM (`multipleSSM`); `requestThinkingResult(workItemId)`; `fetchThinkingResult` via lifeLine |
 | Subscribe (`Job Completed`) | **`thinkingJobs`** slice; `mtw.ephemera.thinking.scheduling` / `global`; mtw-interfaces guard + aggregator |
 | Completed jobs dashboard | Command **`/dashboard`**; [`ThinkingDashboard`](../../charcoal-client/src/components/ThinkingDashboard/); `thinkingJobs` / `getCompletedThinkingJobsNewestFirst` |
-| Results sub-panel | |
+| Results sub-panel | Segment rows under each job; list/detail swap; `ThinkingResultDetail` + verbose toggle |
 | Schedule timeline | **Deferred** until server **`Thinking Schedule`** stream |
 
 ## Coordination with server (shipped contracts)

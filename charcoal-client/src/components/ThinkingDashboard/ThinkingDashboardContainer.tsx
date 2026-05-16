@@ -1,5 +1,5 @@
 import React, { FunctionComponent } from 'react'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import {
     Box,
     Button,
@@ -14,7 +14,13 @@ import {
     getCompletedThinkingJobsNewestFirst,
     getIsThinkingJobsSubscribed
 } from '../../slices/thinkingJobs'
+import {
+    clearThinkingResultSelection,
+    getSelectedThinkingWorkItemId,
+    openThinkingResultDetail
+} from '../../slices/UI/thinkingDashboard'
 import { CompletedJobsList } from './CompletedJobsList'
+import { ThinkingResultDetail } from './ThinkingResultDetail'
 
 type ThinkingDashboardContainerProps = {
     open: boolean
@@ -22,8 +28,19 @@ type ThinkingDashboardContainerProps = {
 }
 
 const ThinkingDashboardPanel: FunctionComponent<{ onClose: () => void }> = ({ onClose }) => {
+    const dispatch = useDispatch()
     const jobs = useSelector(getCompletedThinkingJobsNewestFirst)
     const subscribed = useSelector(getIsThinkingJobsSubscribed)
+    const selectedWorkItemId = useSelector(getSelectedThinkingWorkItemId)
+    const showingDetail = Boolean(selectedWorkItemId)
+
+    const handleSelectWorkItem = (workItemId: string) => {
+        dispatch(openThinkingResultDetail(workItemId))
+    }
+
+    const handleBackToList = () => {
+        dispatch(clearThinkingResultSelection())
+    }
 
     return (
         <Box
@@ -41,15 +58,29 @@ const ThinkingDashboardPanel: FunctionComponent<{ onClose: () => void }> = ({ on
                     minHeight: 64,
                     display: 'flex',
                     alignItems: 'center',
+                    gap: 1,
                     background: (theme) => (theme.palette as any).extras?.headerGradient
                 }}
             >
+                {showingDetail && (
+                    <Button size="small" onClick={handleBackToList} sx={{ minWidth: 'auto', px: 1 }}>
+                        Back
+                    </Button>
+                )}
                 <Typography variant="h6" component="h1" sx={{ fontWeight: 'bold' }}>
-                    Thinking jobs
+                    {showingDetail ? 'Thinking result' : 'Thinking jobs'}
                 </Typography>
             </Box>
 
-            <CompletedJobsList jobs={jobs} connecting={!subscribed} />
+            {showingDetail ? (
+                <ThinkingResultDetail />
+            ) : (
+                <CompletedJobsList
+                    jobs={jobs}
+                    connecting={!subscribed}
+                    onSelectWorkItem={handleSelectWorkItem}
+                />
+            )}
 
             <Box
                 sx={{

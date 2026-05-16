@@ -82,7 +82,7 @@ In playing mode, users experience the world **through the lens of their characte
 - **Active Character Context** (`/Character/:CharacterId/*`): Character-scoped interaction
 - **Message Panel** (`/Character/:CharacterId/Play`): Live messaging and interaction
 - **Character Map View** (`/Character/:CharacterId/Map/`): In-character map navigation
-- **Thinking jobs dashboard** (operator overlay): Command **`/dashboard`** in play opens a completed-jobs list backed by the **`thinkingJobs`** slice (`mtw.ephemera.thinking.scheduling` / streamKey **`global`**). See [`src/components/ThinkingDashboard/AGENT.md`](src/components/ThinkingDashboard/AGENT.md).
+- **Thinking jobs dashboard** (operator overlay): Command **`/dashboard`** in play opens completed jobs (**`thinkingJobs`**) and per-segment result detail (**`thinkingResults`** / **`fetchThinkingResult`**). See [`src/components/ThinkingDashboard/AGENT.md`](src/components/ThinkingDashboard/AGENT.md).
 - **Perception System**: Character-filtered world information
 
 **Routing Patterns:**

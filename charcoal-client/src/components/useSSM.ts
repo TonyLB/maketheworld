@@ -11,6 +11,7 @@ import { iterateLibraryDataSource } from '../slices/libraryDataSource'
 import { iteratePlayerDataSource } from '../slices/player/playerDataSource'
 import { iterateWmlDataSource } from '../slices/wmlDataSource'
 import { iterateThinkingJobs } from '../slices/thinkingJobs'
+import { iterateAllSSMs as iterateThinkingResults } from '../slices/thinkingResults'
 
 export const useStateSeekingMachines = () => {
     const dispatch = useDispatch()
@@ -26,6 +27,7 @@ export const useStateSeekingMachines = () => {
         dispatch(iteratePlayerDataSource)
         dispatch(iterateWmlDataSource)
         dispatch(iterateThinkingJobs)
+        dispatch(iterateThinkingResults)
     }, [dispatch, heartbeat])
 }
 

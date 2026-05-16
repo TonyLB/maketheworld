@@ -16,6 +16,7 @@ import { libraryDataSourceSlice, subscribeToLibrary } from '../slices/libraryDat
 import { playerDataSourceSlice } from '../slices/player/playerDataSource'
 import { wmlDataSourceSlice } from '../slices/wmlDataSource'
 import { thinkingJobsSlice, subscribeToThinkingJobs } from '../slices/thinkingJobs'
+import thinkingResults from '../slices/thinkingResults'
 
 export const store = configureStore({
     reducer: {
@@ -33,7 +34,8 @@ export const store = configureStore({
         libraryDataSource: libraryDataSourceSlice.reducer,
         playerDataSource: playerDataSourceSlice.reducer,
         wmlDataSource: wmlDataSourceSlice.reducer,
-        thinkingJobs: thinkingJobsSlice.reducer
+        thinkingJobs: thinkingJobsSlice.reducer,
+        thinkingResults
     },
     middleware: [thunk]
 })
