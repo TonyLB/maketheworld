@@ -4,7 +4,7 @@
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../AGENT.md).
 
-**Server-side companion plan:** [`taskPlanning/lambda/ephemera/dataSource/thinking/AGENT.thinking.planning.md`](../lambda/ephemera/dataSource/thinking/AGENT.thinking.planning.md) (contracts, persistence, pipeline migration, EventBridge, API).
+**Server steady-state docs:** [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../lambda/ephemera/dataSource/thinking/AGENT.md) (Dynamo keys, read/write split, EventBridge, **`fetchThinkingResult`** API).
 
 ## Purpose
 
@@ -51,7 +51,7 @@ This file is task-scoped. When the initiative is done, **archive or remove** it;
 1. Skim [`taskPlanning/AGENT.md`](../AGENT.md).
 2. Read **testing commands for this package**: [`taskPlanning/charcoal-client/AGENT.development.md`](./AGENT.development.md) (points to [`charcoal-client/AGENT.testing.md`](../../charcoal-client/AGENT.testing.md)). **Do not** assume Jest flags; client uses Vitest.
 3. Read [`charcoal-client/AGENT.md`](../../charcoal-client/AGENT.md) for architecture context (where ephemera / play subscriptions live).
-4. Read the **server companion plan** for blocker order: [`../lambda/ephemera/dataSource/thinking/AGENT.thinking.planning.md`](../lambda/ephemera/dataSource/thinking/AGENT.thinking.planning.md).
+4. Read **server contracts and API**: [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../lambda/ephemera/dataSource/thinking/AGENT.md) and `@tonylb/mtw-interfaces/ts/ephemera` (**`fetchThinkingResult`**).
 5. Confirm **API and subscription contracts** with server PRs before building final UI shapes.
 
 ## Verification
@@ -69,7 +69,7 @@ Run from **`charcoal-client/`** (see [`AGENT.development.md`](./AGENT.developmen
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]` as each sub-step lands.
 
-- [ ] **Prerequisites (server-owned; track in companion plan)**
+- [X] **Prerequisites (server-owned)**
   - [X] **`@tonylb/mtw-interfaces`** types under **`eventBridge/ephemera/thinking/`** for **`Job Completed`**, **`Thinking Schedule`** (wire shape; stream deferred), and thinking-result payloads (API response shapes TBD server-side).
   - [X] **Ephemera API** for thinking results lookup: **`fetchThinkingResult`** + **`messageType: 'ThinkingResult'`** (`ThinkingResultEvent`); use **`workItemId`** from **`Job Completed.schedules[]`** per segment.
   - [X] **EventBridge + replayable** **`Job Completed`** publisher for `mtw.ephemera.thinking.scheduling` (streamKey **`global`**; **`Thinking Schedule`** stream not required for MVP).
@@ -107,13 +107,13 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 | Results sub-panel | |
 | Schedule timeline | **Deferred** until server **`Thinking Schedule`** stream |
 
-## Coordination with server plan
+## Coordination with server (shipped contracts)
 
-| Client step | Server dependency |
+| Client step | Server surface |
 | --- | --- |
-| Subscribe (`Job Completed`) | Replayable + EventBridge for **`Job Completed`** on `mtw.ephemera.thinking.scheduling`; subscriptions lambda WebSocket bridge |
-| Completed jobs dashboard | Same; optional list API if not embedded in replay |
-| Schedule timeline (deferred) | Server **`Thinking Schedule`** stream per hop |
-| Results slice / panel | **`fetchThinkingResult`** (`@tonylb/mtw-interfaces/ts/ephemera`); **`workItemId`** from job schedule rows |
+| Subscribe (`Job Completed`) | Replayable + EventBridge on `mtw.ephemera.thinking.scheduling` / **`global`**; subscriptions WebSocket bridge |
+| Completed jobs dashboard | **`Job Completed`** replay (no separate list API for MVP) |
+| Schedule timeline (deferred) | Per-hop **`Thinking Schedule`** stream (not emitted yet) |
+| Results slice / panel | **`fetchThinkingResult`** (`@tonylb/mtw-interfaces/ts/ephemera`); **`workItemId`** from **`Job Completed.schedules[]`** |
 
-Keep this table updated if contracts move between PRs.
+See [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../lambda/ephemera/dataSource/thinking/AGENT.md) for steady-state server behavior.

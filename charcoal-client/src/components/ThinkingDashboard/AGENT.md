@@ -17,5 +17,5 @@ From play, in **Command** mode, type **`/dashboard`** (leading slash required). 
 ## Out of scope (this component)
 
 - Per-hop **`Thinking Schedule`** timeline (server stream deferred)
-- Thinking **results** detail (needs Ephemera API + `thinkingResults` slice)
+- Thinking **results** detail panel (server **`fetchThinkingResult`** is shipped; client **`thinkingResults`** slice + sub-panel still TODO --- see [`taskPlanning/charcoal-client/AGENT.thinkingDashboard.planning.md`](../../../../taskPlanning/charcoal-client/AGENT.thinkingDashboard.planning.md))
 - Bookmarkable URL route for the dashboard
