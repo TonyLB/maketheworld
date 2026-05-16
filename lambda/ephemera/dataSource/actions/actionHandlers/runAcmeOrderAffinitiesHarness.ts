@@ -17,7 +17,7 @@ import { parseCommand, parseCommandWithEnrichReasoning } from '../parseCommand'
 
 export type RunAcmeOrderAffinitiesHarnessDeps = {
     characterId: EphemeraCharacterId
-    messageBus: Pick<MessageBus, 'send'>
+    messageBus: Pick<MessageBus, 'send' | 'flush'>
     fixtures?: readonly AcmeOrderAffinitiesHarnessFixture[]
     /** Legacy override path for tests; internally converted to lightweight fixtures. */
     phrases?: readonly string[]
@@ -138,9 +138,10 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
         let displayReasoning = ''
         let displayRawBody = ''
         const acmeEnrichVerbose = deps.harnessInvocation?.verbose === true
-        const parseDeps: ParseCommandDeps = acmeEnrichVerbose
-            ? { debugAcmeOrderEnrichRationale: true }
-            : {}
+        const parseDeps: ParseCommandDeps = {
+            messageBus: deps.messageBus,
+            ...(acmeEnrichVerbose ? { debugAcmeOrderEnrichRationale: true } : {}),
+        }
         try {
             if (enrichOnly) {
                 const enriched = await enrichAcmeOrder(
@@ -149,8 +150,11 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
                         occupiedStableKeys: [],
                     },
                     1,
-                    invokeEnrich,
-                    deps.countCoyotePlacedObjectsAcrossRoomsDeps
+                    {
+                        messageBus: deps.messageBus,
+                        invokeBedrockAcmeOrderEnrichImpl: invokeEnrich,
+                        countCoyotePlacedObjectsAcrossRoomsDeps: deps.countCoyotePlacedObjectsAcrossRoomsDeps,
+                    }
                 )
                 result = enriched.result
                 displayReasoning = enriched.enrichReasoningMarkdown.trim()

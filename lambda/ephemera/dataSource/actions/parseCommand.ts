@@ -28,8 +28,11 @@ async function parseCommandCore(
             intentRawOrders: intentResult.rawOrders,
         },
         intentResult.confidence,
-        deps.invokeBedrockAcmeOrderEnrichImpl,
-        deps.countCoyotePlacedObjectsAcrossRoomsDeps
+        {
+            messageBus: deps.messageBus,
+            invokeBedrockAcmeOrderEnrichImpl: deps.invokeBedrockAcmeOrderEnrichImpl,
+            countCoyotePlacedObjectsAcrossRoomsDeps: deps.countCoyotePlacedObjectsAcrossRoomsDeps,
+        }
     )
     return { result, enrichReasoningMarkdown, enrichRawBody }
 }

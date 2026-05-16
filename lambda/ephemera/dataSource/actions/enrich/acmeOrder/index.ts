@@ -1,9 +1,22 @@
 import { invokeBedrockAcmeOrderEnrich } from '../../../../generateExample/invokeBedrockAcmeOrderEnrich'
+import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { AcmeOrderEnrichModelResponse } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import type { CollectCoyoteOccupiedStableKeysDeps } from '../../baseClasses'
 import type { ParseCommandAcmeOrderResult, ParseCommandErrorResult } from '../../baseClasses'
 import { countCoyotePlacedObjectsAcrossRooms } from '../../utilities/countCoyotePlacedObjectsAcrossRooms'
 import { buildParseAcmeOrderEnrichPrompt } from './buildPrompt'
+import {
+    acmeOrderEnrichErrorCodeForFailureKind,
+    bootstrapAcmeOrderThinkingAtRunStart,
+    buildAcmeOrderEnrichFailureVerbose,
+    buildAcmeOrderEnrichSuccessVerbose,
+    emitAcmeOrderThinkingResult,
+    errorMessageFromUnknown,
+    finalizeAcmeOrderThinkingOnFailure,
+    type AcmeOrderEnrichFailureKind,
+    type AcmeOrderEnrichThinkingVerboseInput,
+    type AcmeOrderThinkingIds,
+} from './acmeOrderThinkingPersistence'
 import {
     finalizeAcmeOrderFromEnrich,
     interpretAcmeOrderEnrichBody,
@@ -26,6 +39,12 @@ export type EnrichAcmeOrderInput = {
 }
 
 export type EnrichAcmeOrderResult = ParseCommandAcmeOrderResult | ParseCommandErrorResult
+
+export type EnrichAcmeOrderDeps = {
+    messageBus?: Pick<MessageBus, 'send' | 'flush'>
+    invokeBedrockAcmeOrderEnrichImpl?: typeof invokeBedrockAcmeOrderEnrich
+    countCoyotePlacedObjectsAcrossRoomsDeps?: Partial<CollectCoyoteOccupiedStableKeysDeps>
+}
 
 function summarizeTropeFailureReasons(
     enrichResponse: AcmeOrderEnrichModelResponse | null,
@@ -57,113 +76,202 @@ function summarizeTropeFailureReasons(
     return reasons.length > 0 ? reasons : ['none']
 }
 
+function buildVerboseInput(
+    input: EnrichAcmeOrderInput,
+    intentConfidence: number,
+    fields: Partial<AcmeOrderEnrichThinkingVerboseInput>
+): AcmeOrderEnrichThinkingVerboseInput {
+    return {
+        command: input.command,
+        occupiedStableKeys: input.occupiedStableKeys,
+        intentRawOrders: input.intentRawOrders,
+        intentConfidence,
+        ...fields,
+    }
+}
+
 export async function enrichAcmeOrder(
     input: EnrichAcmeOrderInput,
     intentConfidence: number,
-    invokeBedrockAcmeOrderEnrichImpl?: typeof invokeBedrockAcmeOrderEnrich,
-    countCoyoteDeps?: Partial<CollectCoyoteOccupiedStableKeysDeps>
+    deps: EnrichAcmeOrderDeps = {}
 ): Promise<{
     result: EnrichAcmeOrderResult
     enrichReasoningMarkdown: string
     enrichRawBody?: string
 }> {
-    const commandPreview = input.command.trim().slice(0, 200)
-    if (ACME_ENRICH_DEBUG) {
-        console.log('[mtw.ephemera.acmeEnrich] start', {
-            commandPreview,
-            occupiedStableKeysCount: input.occupiedStableKeys?.length ?? 0,
-            intentConfidence,
-        })
+    const thinkingBus = deps.messageBus
+    let thinkingIds: AcmeOrderThinkingIds | undefined
+
+    const finalizeThinking = async (
+        kind: AcmeOrderEnrichFailureKind,
+        errorMessage: string,
+        verboseFields: Partial<AcmeOrderEnrichThinkingVerboseInput>
+    ): Promise<void> => {
+        if (thinkingBus === undefined || thinkingIds === undefined) {
+            return
+        }
+        await finalizeAcmeOrderThinkingOnFailure(
+            { messageBus: thinkingBus },
+            {
+                ids: thinkingIds,
+                errorCode: acmeOrderEnrichErrorCodeForFailureKind(kind),
+                errorMessage,
+                verbose: buildAcmeOrderEnrichFailureVerbose(
+                    buildVerboseInput(input, intentConfidence, verboseFields)
+                ),
+            }
+        )
     }
-    const count = await countCoyotePlacedObjectsAcrossRooms(countCoyoteDeps)
-    if (count > ACME_ORDER_COYOTE_MAX_OBJECTS) {
+
+    try {
+        if (thinkingBus !== undefined) {
+            thinkingIds = await bootstrapAcmeOrderThinkingAtRunStart({ messageBus: thinkingBus })
+        }
+
+        const commandPreview = input.command.trim().slice(0, 200)
         if (ACME_ENRICH_DEBUG) {
-            console.warn('[mtw.ephemera.acmeEnrich] blocked_by_placed_objects_cap', {
-                placedObjectsCount: count,
-                cap: ACME_ORDER_COYOTE_MAX_OBJECTS,
+            console.log('[mtw.ephemera.acmeEnrich] start', {
+                commandPreview,
+                occupiedStableKeysCount: input.occupiedStableKeys?.length ?? 0,
+                intentConfidence,
             })
         }
-        return {
-            result: {
+
+        const count = await countCoyotePlacedObjectsAcrossRooms(deps.countCoyotePlacedObjectsAcrossRoomsDeps)
+        if (count > ACME_ORDER_COYOTE_MAX_OBJECTS) {
+            if (ACME_ENRICH_DEBUG) {
+                console.warn('[mtw.ephemera.acmeEnrich] blocked_by_placed_objects_cap', {
+                    placedObjectsCount: count,
+                    cap: ACME_ORDER_COYOTE_MAX_OBJECTS,
+                })
+            }
+            const capResult: ParseCommandErrorResult = {
                 type: 'Error',
                 errorMessage: ACME_ORDER_TOO_MANY_PLACED_OBJECTS_MESSAGE,
-            },
-            enrichReasoningMarkdown: '',
-            enrichRawBody: undefined,
-        }
-    }
-
-    const invokeEnrich = invokeBedrockAcmeOrderEnrichImpl ?? invokeBedrockAcmeOrderEnrich
-    const enrichPromptParts = buildParseAcmeOrderEnrichPrompt(input.command, {
-        occupiedStableKeys: input.occupiedStableKeys ?? [],
-        intentRawOrders: input.intentRawOrders,
-    })
-    const enrichInvoke = await invokeEnrich(enrichPromptParts)
-    if (ACME_ENRICH_DEBUG) {
-        console.log('[mtw.ephemera.acmeEnrich] invoke_complete', {
-            success: enrichInvoke.success,
-            bodyLength: enrichInvoke.success ? enrichInvoke.body.length : 0,
-            errorMessage: enrichInvoke.success ? undefined : enrichInvoke.errorMessage,
-        })
-    }
-
-    let enrichInvokeFailed = !enrichInvoke.success
-    let enrichResponse: AcmeOrderEnrichModelResponse | null = null
-    let enrichReasoningMarkdown = ''
-    let enrichRawBody: string | undefined = undefined
-    let parseFailureReason: string | undefined = undefined
-
-    if (enrichInvoke.success) {
-        enrichRawBody = enrichInvoke.body
-        const fallback = input.command.trim() || 'order'
-        const parsed = interpretAcmeOrderEnrichBody(enrichInvoke.body, {
-            emptyFallbackName: fallback,
-        })
-        if (parsed.success) {
-            enrichResponse = parsed.response
-            enrichReasoningMarkdown = parsed.reasoningMarkdown
-            if (ACME_ENRICH_DEBUG) {
-                console.log('[mtw.ephemera.acmeEnrich] parse_success', {
-                    linesCount: parsed.response.lines.length,
-                    reasoningLength: parsed.reasoningMarkdown.length,
-                })
             }
-        } else {
-            enrichInvokeFailed = true
-            parseFailureReason = parsed.errorMessage
-            if (ACME_ENRICH_DEBUG) {
-                console.warn('[mtw.ephemera.acmeEnrich] parse_failed', {
-                    errorMessage: parsed.errorMessage,
-                    bodyPreview: enrichInvoke.body.slice(0, 400),
-                })
+            await finalizeThinking('placed_objects_cap', ACME_ORDER_TOO_MANY_PLACED_OBJECTS_MESSAGE, {
+                placedObjectsCount: count,
+                result: capResult,
+            })
+            return {
+                result: capResult,
+                enrichReasoningMarkdown: '',
+                enrichRawBody: undefined,
             }
         }
-    }
 
-    const fallbackName = input.command.trim() || 'order'
-    const result = finalizeAcmeOrderFromEnrich(
-        intentConfidence,
-        enrichResponse,
-        enrichInvokeFailed,
-        fallbackName
-    )
-    if (ACME_ENRICH_DEBUG) {
-        console.log('[mtw.ephemera.acmeEnrich] finalize_complete', {
-            resultType: result.type,
+        const invokeEnrich = deps.invokeBedrockAcmeOrderEnrichImpl ?? invokeBedrockAcmeOrderEnrich
+        const enrichPromptParts = buildParseAcmeOrderEnrichPrompt(input.command, {
+            occupiedStableKeys: input.occupiedStableKeys ?? [],
+            intentRawOrders: input.intentRawOrders,
+        })
+        const enrichInvoke = await invokeEnrich(enrichPromptParts)
+        if (ACME_ENRICH_DEBUG) {
+            console.log('[mtw.ephemera.acmeEnrich] invoke_complete', {
+                success: enrichInvoke.success,
+                bodyLength: enrichInvoke.success ? enrichInvoke.body.length : 0,
+                errorMessage: enrichInvoke.success ? undefined : enrichInvoke.errorMessage,
+            })
+        }
+
+        let enrichInvokeFailed = !enrichInvoke.success
+        let enrichResponse: AcmeOrderEnrichModelResponse | null = null
+        let enrichReasoningMarkdown = ''
+        let enrichRawBody: string | undefined = undefined
+        let parseFailureReason: string | undefined = undefined
+
+        if (enrichInvoke.success) {
+            enrichRawBody = enrichInvoke.body
+            const fallback = input.command.trim() || 'order'
+            const parsed = interpretAcmeOrderEnrichBody(enrichInvoke.body, {
+                emptyFallbackName: fallback,
+            })
+            if (parsed.success) {
+                enrichResponse = parsed.response
+                enrichReasoningMarkdown = parsed.reasoningMarkdown
+                if (ACME_ENRICH_DEBUG) {
+                    console.log('[mtw.ephemera.acmeEnrich] parse_success', {
+                        linesCount: parsed.response.lines.length,
+                        reasoningLength: parsed.reasoningMarkdown.length,
+                    })
+                }
+            } else {
+                enrichInvokeFailed = true
+                parseFailureReason = parsed.errorMessage
+                if (ACME_ENRICH_DEBUG) {
+                    console.warn('[mtw.ephemera.acmeEnrich] parse_failed', {
+                        errorMessage: parsed.errorMessage,
+                        bodyPreview: enrichInvoke.body.slice(0, 400),
+                    })
+                }
+            }
+        }
+
+        const fallbackName = input.command.trim() || 'order'
+        const result = finalizeAcmeOrderFromEnrich(
+            intentConfidence,
+            enrichResponse,
             enrichInvokeFailed,
-            hasReasoning: enrichReasoningMarkdown.length > 0,
-            validOrdersCount: result.type === 'AcmeOrder'
-                ? result.orders.filter(({ valid }) => valid).length
-                : 0,
-            invalidOrdersCount: result.type === 'AcmeOrder'
-                ? result.orders.filter(({ valid }) => !valid).length
-                : 0,
-            tropeFailureReasons: summarizeTropeFailureReasons(
-                enrichResponse,
+            fallbackName
+        )
+
+        const tropeFailureReasons = summarizeTropeFailureReasons(
+            enrichResponse,
+            enrichInvokeFailed,
+            parseFailureReason
+        )
+
+        if (ACME_ENRICH_DEBUG) {
+            console.log('[mtw.ephemera.acmeEnrich] finalize_complete', {
+                resultType: result.type,
                 enrichInvokeFailed,
-                parseFailureReason
-            ),
-        })
+                hasReasoning: enrichReasoningMarkdown.length > 0,
+                validOrdersCount: result.type === 'AcmeOrder'
+                    ? result.orders.filter(({ valid }) => valid).length
+                    : 0,
+                invalidOrdersCount: result.type === 'AcmeOrder'
+                    ? result.orders.filter(({ valid }) => !valid).length
+                    : 0,
+                tropeFailureReasons,
+            })
+        }
+
+        if (thinkingBus !== undefined && thinkingIds !== undefined) {
+            const verboseFields: Partial<AcmeOrderEnrichThinkingVerboseInput> = {
+                enrichInvoke,
+                enrichRawBody,
+                enrichReasoningMarkdown,
+                enrichResponse,
+                parseFailureReason,
+                result,
+                tropeFailureReasons,
+            }
+            if (enrichInvokeFailed) {
+                const failureKind: AcmeOrderEnrichFailureKind = parseFailureReason !== undefined
+                    ? 'parse_failed'
+                    : 'invoke_failed'
+                const errorMessage = parseFailureReason
+                    ?? (enrichInvoke.success ? 'Acme enrich failed' : enrichInvoke.errorMessage ?? 'invoke failed')
+                await finalizeThinking(failureKind, errorMessage, verboseFields)
+            } else {
+                await emitAcmeOrderThinkingResult(
+                    { messageBus: thinkingBus },
+                    thinkingIds,
+                    {
+                        ok: true,
+                        verbose: buildAcmeOrderEnrichSuccessVerbose(
+                            buildVerboseInput(input, intentConfidence, verboseFields)
+                        ),
+                    }
+                )
+            }
+        }
+
+        return { result, enrichReasoningMarkdown, enrichRawBody }
+    } catch (error) {
+        if (thinkingBus !== undefined && thinkingIds !== undefined) {
+            await finalizeThinking('unknown', errorMessageFromUnknown(error), {})
+        }
+        throw error
     }
-    return { result, enrichReasoningMarkdown, enrichRawBody }
 }

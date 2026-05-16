@@ -1,6 +1,6 @@
 # Actions: Acme Order Enrich thinking instrumentation (planning)
 
-**Status:** Phase A2 done. Next step: Phase A3 (wire parseCommand / enrichAcmeOrder + messageBus).
+**Status:** Phase A3 done. Next step: Phase A4 (integration tests + manual verification).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -75,7 +75,7 @@ Align with what the affinities harness already surfaces; store on **`Meta::Resul
 | --- | --- | --- |
 | A1 | Contracts: `ThinkingSegment`, results ingress | Done |
 | A2 | `acmeOrderThinkingPersistence` module + tests | Done |
-| A3 | Wire `parseCommand` / `enrichAcmeOrder` + `messageBus` | Not started |
+| A3 | Wire `parseCommand` / `enrichAcmeOrder` + `messageBus` | Done |
 | A4 | Integration tests + manual verification | Not started |
 | A5 | Durable docs + closeout | Not started |
 
@@ -109,12 +109,12 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Implement: `mintAcmeOrderThinkingIds`, `bootstrapAcmeOrderThinkingAtRunStart` (one work item, segment `acmeOrderEnrich`), `emitAcmeOrderThinkingResult` (bus + schedule `completed` + `flush`), `finalizeAcmeOrderThinkingOnFailure` (`ok: false` result + `Put Thinking Job Error` + `flush`), `sendActionsThinkingResult` (publisher `mtw.ephemera.actions`).
   - [X] Colocated unit tests mirroring hypothesis patterns (lane ids, flush ordering, cap failure path).
 
-- [ ] Phase A3 - orchestration wiring
-  - [ ] Add optional `messageBus: Pick<MessageBus, 'send' | 'flush'>` to **`ParseCommandDeps`** and **`EnrichAcmeOrder` deps**; pass from [`actions/index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) on **`Parse Requested`**.
-  - [ ] Centralize lifecycle in **`enrichAcmeOrder`**: bootstrap at entry when `messageBus` present, emit on success, finalize on failure (including placement cap before Bedrock).
-  - [ ] **`parseCommandCore`**: pass `messageBus`, `intentConfidence`, and enrich input into **`enrichAcmeOrder`** only; no bootstrap/emit/finalize in parse layer.
-  - [ ] **`runAcmeOrderAffinitiesHarness`**: pass `messageBus` into **`enrichAcmeOrder`** for **`enrichOnly`** and full-parse paths so harness runs appear in **`/dashboard`**.
-  - [ ] Do not attach reasoning markdown to **`AcmeOrder`** bus payload (unchanged product contract); thinking **`verbose`** holds operator diagnostics (full **`occupiedStableKeys`** list).
+- [X] Phase A3 - orchestration wiring
+  - [X] Add optional `messageBus: Pick<MessageBus, 'send' | 'flush'>` to **`ParseCommandDeps`** and **`EnrichAcmeOrderDeps`**; pass from [`actions/index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) on **`Parse Requested`**.
+  - [X] Centralize lifecycle in **`enrichAcmeOrder`**: bootstrap at entry when `messageBus` present, emit on success, finalize on failure (including placement cap before Bedrock).
+  - [X] **`parseCommandCore`**: pass `messageBus`, `intentConfidence`, and enrich input into **`enrichAcmeOrder`** only; no bootstrap/emit/finalize in parse layer.
+  - [X] **`runAcmeOrderAffinitiesHarness`**: pass `messageBus` into **`enrichAcmeOrder`** for **`enrichOnly`** and full-parse paths so harness runs appear in **`/dashboard`**.
+  - [X] Do not attach reasoning markdown to **`AcmeOrder`** bus payload (unchanged product contract); thinking **`verbose`** holds operator diagnostics (full **`occupiedStableKeys`** list).
 
 - [ ] Phase A4 - verification
   - [ ] Extend [`parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts) (and/or new `acmeOrderThinkingPersistence.test.ts`) with messageBus mocks asserting Put Thinking Job Create, Thinking Result, Put Thinking Schedule, Put Thinking Job Error call order.

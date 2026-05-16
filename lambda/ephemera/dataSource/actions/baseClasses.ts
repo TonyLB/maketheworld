@@ -9,6 +9,7 @@ import type {
 import { isCoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 import type { CoyoteEngineTestHarnessInvocation } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
+import type { MessageBus } from '../../messageBus/baseClasses'
 
 /**
  * Injectable accessors for iterating Coyote demo rooms and **`Meta::Room`** (shared by
@@ -391,4 +392,6 @@ export type ParseCommandDeps = {
     countCoyotePlacedObjectsAcrossRoomsDeps?: Partial<CollectCoyoteOccupiedStableKeysDeps>;
     /** Deprecated compatibility flag; Acme enrich prompt is compact regardless of value. */
     debugAcmeOrderEnrichRationale?: boolean;
+    /** When set, Acme enrich bootstrap/emit/finalize thinking jobs (see enrich/acmeOrder/acmeOrderThinkingPersistence). */
+    messageBus?: Pick<MessageBus, 'send' | 'flush'>;
 }

@@ -19,7 +19,8 @@ Current implementation:
 - [`acmeOrder/index.ts`](./acmeOrder/index.ts) - placement-count guard, Bedrock **`invokeBedrockAcmeOrderEnrich`**, and wiring to **`finalizeAcmeOrderFromEnrich`**.
 - [`acmeOrder/buildPrompt.ts`](./acmeOrder/buildPrompt.ts) - builds Bedrock enrich prompt parts.
 - [`acmeOrder/interpretAndFinalize.ts`](./acmeOrder/interpretAndFinalize.ts) - interprets enrich output and finalizes **`ParseCommandAcmeOrderResult`**.
-- [`acmeOrder/acmeOrderThinkingPersistence.ts`](./acmeOrder/acmeOrderThinkingPersistence.ts) - bootstrap / emit / finalize helpers for segment **`acmeOrderEnrich`** (`mtw.ephemera.actions` **`Thinking Result`** publisher). Orchestration in **`enrichAcmeOrder`** when **`messageBus`** is set (Phase A3).
+- [`acmeOrder/acmeOrderThinkingPersistence.ts`](./acmeOrder/acmeOrderThinkingPersistence.ts) - bootstrap / emit / finalize helpers for segment **`acmeOrderEnrich`** (`mtw.ephemera.actions` **`Thinking Result`** publisher).
+- [`acmeOrder/index.ts`](./acmeOrder/index.ts) - when **`EnrichAcmeOrderDeps.messageBus`** is set: **`bootstrapAcmeOrderThinkingAtRunStart`** at entry, **`emitAcmeOrderThinkingResult`** on successful invoke+parse, **`finalizeAcmeOrderThinkingOnFailure`** on placement cap, invoke/parse failure, or uncaught error. **`parseCommandCore`** forwards **`ParseCommandDeps.messageBus`** only (no duplicate lifecycle).
 
 ## Notes
 

@@ -38,8 +38,10 @@ Check catalog.
         const output = await enrichAcmeOrder(
             { command: 'order rope', occupiedStableKeys: ['existing-key'] },
             0.8,
-            invokeBedrockAcmeOrderEnrichImpl,
-            underCapCountDeps
+            {
+                invokeBedrockAcmeOrderEnrichImpl,
+                countCoyotePlacedObjectsAcrossRoomsDeps: underCapCountDeps,
+            }
         )
 
         expect(output.result).toEqual({
@@ -69,8 +71,10 @@ Check catalog.
         const output = await enrichAcmeOrder(
             { command: 'order anvil from acme' },
             0.75,
-            invokeBedrockAcmeOrderEnrichImpl,
-            underCapCountDeps
+            {
+                invokeBedrockAcmeOrderEnrichImpl,
+                countCoyotePlacedObjectsAcrossRoomsDeps: underCapCountDeps,
+            }
         )
 
         expect(output.result).toEqual({
@@ -101,16 +105,18 @@ Check catalog.
         const output = await enrichAcmeOrder(
             { command: 'order rope' },
             0.8,
-            invokeBedrockAcmeOrderEnrichImpl,
             {
-                getGameRooms: async () => ['Over'],
-                getRoomMeta: async (roomId) =>
-                    (roomId === 'ROOM#Over'
-                        ? {
-                            ...emptyCoyoteRoomMeta('Over'),
-                            objects,
-                        }
-                        : undefined),
+                invokeBedrockAcmeOrderEnrichImpl,
+                countCoyotePlacedObjectsAcrossRoomsDeps: {
+                    getGameRooms: async () => ['Over'],
+                    getRoomMeta: async (roomId) =>
+                        (roomId === 'ROOM#Over'
+                            ? {
+                                ...emptyCoyoteRoomMeta('Over'),
+                                objects,
+                            }
+                            : undefined),
+                },
             }
         )
 
@@ -143,16 +149,18 @@ Check catalog.
         const output = await enrichAcmeOrder(
             { command: 'order rope' },
             0.5,
-            invokeBedrockAcmeOrderEnrichImpl,
             {
-                getGameRooms: async () => ['Edge'],
-                getRoomMeta: async (roomId) =>
-                    (roomId === 'ROOM#Edge'
-                        ? {
-                            ...emptyCoyoteRoomMeta('Edge'),
-                            objects,
-                        }
-                        : undefined),
+                invokeBedrockAcmeOrderEnrichImpl,
+                countCoyotePlacedObjectsAcrossRoomsDeps: {
+                    getGameRooms: async () => ['Edge'],
+                    getRoomMeta: async (roomId) =>
+                        (roomId === 'ROOM#Edge'
+                            ? {
+                                ...emptyCoyoteRoomMeta('Edge'),
+                                objects,
+                            }
+                            : undefined),
+                },
             }
         )
 
