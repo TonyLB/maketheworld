@@ -5,6 +5,7 @@ import lineEntry from './lineEntry'
 import collaborationStatus from './collaborationStatus'
 import workbench from './workbench'
 import playSpine from './playSpine'
+import thinkingDashboard from './thinkingDashboard'
 
 export const reducer = combineReducers({
     feedback,
@@ -12,7 +13,8 @@ export const reducer = combineReducers({
     lineEntry,
     collaborationStatus,
     workbench,
-    playSpine
+    playSpine,
+    thinkingDashboard
 })
 
 export default reducer

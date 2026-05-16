@@ -1,6 +1,6 @@
 # charcoal-client: Thinking dashboards and subscriptions (planning)
 
-**Status:** In progress. **Client subscribe** to **`Job Completed`** wired (`thinkingJobs` slice). **Blocked** on server **Ephemera API** for thinking results lookup and remaining UI slices. **EventBridge** **`Job Completed`** on streamKey **`global`** is shipped (server); per-hop **`Thinking Schedule`** stream deferred.
+**Status:** In progress. **Client subscribe** to **`Job Completed`** and **completed jobs dashboard** (Command **`/dashboard`** overlay) are wired. **Blocked** on server **Ephemera API** for thinking results lookup and results sub-panel. **EventBridge** **`Job Completed`** on streamKey **`global`** is shipped (server); per-hop **`Thinking Schedule`** stream deferred.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../AGENT.md).
 
@@ -37,7 +37,7 @@ This file is task-scoped. When the initiative is done, **archive or remove** it;
 
 ## Open decisions
 
-- **MUI / layout:** Reuse existing dashboard shells vs new route; coordinate with design if any.
+- **MUI / layout:** Completed jobs dashboard uses a **workbench-style overlay** (Drawer desktop / Dialog mobile), opened from Command **`/dashboard`** (no URL route in MVP).
 
 ## Success criteria (client)
 
@@ -82,9 +82,9 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Wire subscription through the **subscriptions lambda** WebSocket path (EventBridge to client), consistent with existing DataSource Redux patterns.
   - [X] Tests for reducer or handler paths affected by incoming events.
 
-- [ ] **Completed thinking jobs dashboard**
-  - [ ] Route or panel entry point.
-  - [ ] Minimal list of completed jobs (`generationId`, `completedAt`, segment summary from **`schedules[]`**).
+- [X] **Completed thinking jobs dashboard**
+  - [X] Panel entry point (Command **`/dashboard`**; `UI.thinkingDashboard` + `ThinkingDashboardContainer` in AppLayout).
+  - [X] Minimal list of completed jobs (`generationId`, `completedAt`, segment summary from **`schedules[]`**).
 
 - [ ] **`Thinking Schedule` timeline (deferred)**
   - [ ] After server emits per-hop **`Thinking Schedule`**, extend subscribe + UI for in-flight/progress views.
@@ -94,7 +94,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [ ] Optional: link from schedule row to results detail when IDs align.
 
 - [ ] **Closeout**
-  - [ ] Document operator entry points in [`charcoal-client/AGENT.md`](../../charcoal-client/AGENT.md) or feature README if appropriate.
+  - [X] Document operator entry points in [`charcoal-client/AGENT.md`](../../charcoal-client/AGENT.md) or feature README if appropriate.
   - [ ] Update this document checkboxes and **Status** line; archive or delete per [`taskPlanning/AGENT.md`](../AGENT.md).
 
 ## Progress
@@ -103,7 +103,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 | --- | --- |
 | Redux (results) | |
 | Subscribe (`Job Completed`) | **`thinkingJobs`** slice; `mtw.ephemera.thinking.scheduling` / `global`; mtw-interfaces guard + aggregator |
-| Completed jobs dashboard | Replaces schedule timeline for MVP |
+| Completed jobs dashboard | Command **`/dashboard`**; [`ThinkingDashboard`](../../charcoal-client/src/components/ThinkingDashboard/); `thinkingJobs` / `getCompletedThinkingJobsNewestFirst` |
 | Results sub-panel | |
 | Schedule timeline | **Deferred** until server **`Thinking Schedule`** stream |
 

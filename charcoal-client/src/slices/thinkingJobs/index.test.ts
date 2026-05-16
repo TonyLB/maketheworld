@@ -4,6 +4,7 @@ import {
     subscribeToThinkingJobs,
     unsubscribeFromThinkingJobs,
     getCompletedThinkingJobs,
+    getCompletedThinkingJobsNewestFirst,
     getIsThinkingJobsSubscribed,
     iterateThinkingJobs
 } from './index'
@@ -91,6 +92,55 @@ describe('thinkingJobs Slice', () => {
                     }
                 }
                 expect(getCompletedThinkingJobs(mockState)).toEqual([])
+            })
+        })
+
+        describe('getCompletedThinkingJobsNewestFirst', () => {
+            it('should sort jobs by completedAt descending', () => {
+                const older = {
+                    schemaVersion: 1,
+                    generationId: 'gen-old',
+                    jobStatus: 'completed' as const,
+                    completedAt: '2026-05-14T10:00:00.000Z',
+                    schedules: [
+                        {
+                            schemaVersion: 1,
+                            generationId: 'gen-old',
+                            workItemId: 'work-1',
+                            segment: 'candidates' as const,
+                            scheduleStatus: 'completed' as const
+                        }
+                    ]
+                }
+                const newer = {
+                    ...older,
+                    generationId: 'gen-new',
+                    completedAt: '2026-05-14T13:00:00.000Z',
+                    schedules: [
+                        {
+                            schemaVersion: 1,
+                            generationId: 'gen-new',
+                            workItemId: 'work-2',
+                            segment: 'planSelect' as const,
+                            scheduleStatus: 'completed' as const
+                        }
+                    ]
+                }
+                const mockState = {
+                    thinkingJobs: {
+                        publicData: {
+                            subscribedStreams: {
+                                global: {
+                                    materializedView: {
+                                        completedJobs: [older, newer]
+                                    },
+                                    recentEvents: []
+                                }
+                            }
+                        }
+                    }
+                }
+                expect(getCompletedThinkingJobsNewestFirst(mockState)).toEqual([newer, older])
             })
         })
 
