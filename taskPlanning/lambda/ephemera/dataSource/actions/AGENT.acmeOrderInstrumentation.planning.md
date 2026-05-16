@@ -1,6 +1,6 @@
 # Actions: Acme Order Enrich thinking instrumentation (planning)
 
-**Status:** Not started. Next step: Phase A1 (extend `ThinkingSegment` and results ingress for `mtw.ephemera.actions`).
+**Status:** Phase A1 done. Next step: Phase A2 (`acmeOrderThinkingPersistence` module + tests).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -46,7 +46,7 @@ Reuse the shipped thinking stack documented in [`lambda/ephemera/dataSource/thin
 | Orchestration | `runCoyoteHypothesisPipeline` + `hypothesisThinkingPersistence` | **`enrichAcmeOrder`** + **`acmeOrderThinkingPersistence`** (`parseCommandCore` passes `messageBus` + context only) |
 | Segments | `candidates`, `planSelect`, `narrativeBeats` | **`acmeOrderEnrich`** only |
 | `Thinking Result` publisher | `mtw.ephemera.coyoteGame` | **`mtw.ephemera.actions`** |
-| Bus consumer | `mtw.ephemera.thinking.results` (Coyote header guard) | Extend ingress to accept **actions** publisher |
+| Bus consumer | `mtw.ephemera.thinking.results` (Coyote header guard) | **`mtw.ephemera.thinking.results`** accepts Coyote + **actions** publisher ([`thinking/results/subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/thinking/results/subscribedEvents.ts)) |
 | `messageBus` | Pipeline deps + dedicated lanes (`thinkingBootstrap:*`, `thinkingResults:${generationId}`) | Thread via **`ParseCommandDeps`** from [`actions/index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) |
 
 ### `verbose` shape (locked)
@@ -73,7 +73,7 @@ Align with what the affinities harness already surfaces; store on **`Meta::Resul
 
 | Phase | Description | Status |
 | --- | --- | --- |
-| A1 | Contracts: `ThinkingSegment`, results ingress | Not started |
+| A1 | Contracts: `ThinkingSegment`, results ingress | Done |
 | A2 | `acmeOrderThinkingPersistence` module + tests | Not started |
 | A3 | Wire `parseCommand` / `enrichAcmeOrder` + `messageBus` | Not started |
 | A4 | Integration tests + manual verification | Not started |
@@ -99,10 +99,10 @@ npm run test -- --watchAll=false dataSource/actions/parseCommand.test.ts
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]` as each sub-step lands.
 
-- [ ] Phase A1 - contracts and results ingress
-  - [ ] Add **`acmeOrderEnrich`** to `ThinkingSegment` in [`packages/mtw-interfaces/ts/eventBridge/ephemera/thinking/index.ts`](../../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/thinking/index.ts); update `isThinkingSegment` and package tests.
-  - [ ] Extend [`thinking/results/subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/thinking/results/subscribedEvents.ts) to accept **`Thinking Result`** from **`mtw.ephemera.actions`** (multi-publisher guard or parallel guard; keep CoyoteGame path unchanged).
-  - [ ] Update [`thinking/results/index.test.ts`](../../../../../lambda/ephemera/dataSource/thinking/results/index.test.ts) (and interfaces tests if needed) for the new publisher key.
+- [X] Phase A1 - contracts and results ingress
+  - [X] Add **`acmeOrderEnrich`** to `ThinkingSegment` in [`packages/mtw-interfaces/ts/eventBridge/ephemera/thinking/index.ts`](../../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/thinking/index.ts); update `isThinkingSegment` and package tests.
+  - [X] Extend [`thinking/results/subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/thinking/results/subscribedEvents.ts) to accept **`Thinking Result`** from **`mtw.ephemera.actions`** (multi-publisher guard or parallel guard; keep CoyoteGame path unchanged).
+  - [X] Update [`thinking/results/index.test.ts`](../../../../../lambda/ephemera/dataSource/thinking/results/index.test.ts) (and interfaces tests if needed) for the new publisher key.
 
 - [ ] Phase A2 - persistence module
   - [ ] Add [`enrich/acmeOrder/acmeOrderThinkingPersistence.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/acmeOrder/acmeOrderThinkingPersistence.ts) (or `actions/acmeOrderThinkingPersistence.ts` if enrich should not import messageBus types from a sibling cycle --- avoid `enrich` importing `parseCommand`).

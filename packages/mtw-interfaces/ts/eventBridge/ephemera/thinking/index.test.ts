@@ -72,6 +72,7 @@ describe('thinking eventBridge contracts', () => {
             expect(isThinkingSegment('candidates')).toBe(true)
             expect(isThinkingSegment('planSelect')).toBe(true)
             expect(isThinkingSegment('narrativeBeats')).toBe(true)
+            expect(isThinkingSegment('acmeOrderEnrich')).toBe(true)
         })
         it('rejects unknown', () => {
             expect(isThinkingSegment('other')).toBe(false)
@@ -120,6 +121,12 @@ describe('thinking eventBridge contracts', () => {
             }
             expect(isThinkingResultEvent(result)).toBe(true)
             expect(isThinkingResultEvent({ ...result, scheduleStatus: 'scheduled' })).toBe(false)
+            expect(
+                isThinkingResultEvent({
+                    ...result,
+                    segment: 'acmeOrderEnrich' as const,
+                })
+            ).toBe(true)
         })
 
         it('isThinkingEventExternal', () => {

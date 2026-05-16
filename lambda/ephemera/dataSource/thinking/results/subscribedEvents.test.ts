@@ -1,7 +1,11 @@
 import type { StreamingEventEnvelope, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { THINKING_RESULT_HEADER_TYPE } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
 
-import { EPHEMERA_COYOTE_GAME_DATA_SOURCE_KEY, isThinkingResultsSubscribedEnvelope } from './subscribedEvents'
+import {
+    EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
+    EPHEMERA_COYOTE_GAME_DATA_SOURCE_KEY,
+    isThinkingResultsSubscribedEnvelope,
+} from './subscribedEvents'
 
 const baseHeader: StreamingEventHeader = {
     dataSourceKey: EPHEMERA_COYOTE_GAME_DATA_SOURCE_KEY,
@@ -30,6 +34,29 @@ describe('isThinkingResultsSubscribedEnvelope', () => {
     it('rejects wrong header type', () => {
         const envelope: StreamingEventEnvelope<unknown> = {
             header: { ...baseHeader, type: 'Hypothesis Generation Result' },
+            getContent: async () => ({}),
+        }
+        expect(isThinkingResultsSubscribedEnvelope(envelope)).toBe(false)
+    })
+
+    it('accepts actions publisher with Thinking Result header type', () => {
+        const envelope: StreamingEventEnvelope<unknown> = {
+            header: {
+                ...baseHeader,
+                dataSourceKey: EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
+            },
+            getContent: async () => ({}),
+        }
+        expect(isThinkingResultsSubscribedEnvelope(envelope)).toBe(true)
+    })
+
+    it('rejects actions publisher with non-Thinking-Result header type', () => {
+        const envelope: StreamingEventEnvelope<unknown> = {
+            header: {
+                ...baseHeader,
+                dataSourceKey: EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
+                type: 'Acme Order',
+            },
             getContent: async () => ({}),
         }
         expect(isThinkingResultsSubscribedEnvelope(envelope)).toBe(false)

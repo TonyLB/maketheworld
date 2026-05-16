@@ -37,9 +37,14 @@ export const THINKING_SCHEMA_VERSION_INITIAL = 1 as const
  * Neutral routing key for a work item (API / Dynamo denormalization / harness phase).
  * Spelling matches task-plan examples; server maps pipeline stages to these literals.
  */
-export type ThinkingSegment = 'candidates' | 'planSelect' | 'narrativeBeats'
+export type ThinkingSegment = 'candidates' | 'planSelect' | 'narrativeBeats' | 'acmeOrderEnrich'
 
-const THINKING_SEGMENTS: readonly ThinkingSegment[] = ['candidates', 'planSelect', 'narrativeBeats']
+const THINKING_SEGMENTS: readonly ThinkingSegment[] = [
+    'candidates',
+    'planSelect',
+    'narrativeBeats',
+    'acmeOrderEnrich',
+]
 
 export const isThinkingSegment = (value: unknown): value is ThinkingSegment =>
     typeof value === 'string' && (THINKING_SEGMENTS as readonly string[]).includes(value)
