@@ -1,10 +1,8 @@
 # Ephemera: `mtw.ephemera.thinking` (steady-state notes)
 
-Subsystem for **durable thinking artifacts**: **schedule** rows (work queued / claimable) and **thinking results** (completed work, success or failure), stored in the Ephemera Dynamo table and (later) surfaced via **EventBridge** and the **Ephemera API**.
+Subsystem for **durable thinking artifacts**: **schedule** rows (work queued / claimable) and **thinking results** (completed work, success or failure), stored in the Ephemera Dynamo table and surfaced via **EventBridge**, the **Ephemera API**, and client dashboards.
 
-**Task plan (process, ordering, verification):** [`taskPlanning/lambda/ephemera/dataSource/thinking/AGENT.thinking.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/thinking/AGENT.thinking.planning.md)
-
-**Client companion (subscribe, dashboards):** [`taskPlanning/charcoal-client/AGENT.thinkingDashboard.planning.md`](../../../../taskPlanning/charcoal-client/AGENT.thinkingDashboard.planning.md)
+**Client (subscribe, dashboards, results UI):** [`taskPlanning/charcoal-client/AGENT.thinkingDashboard.planning.md`](../../../../taskPlanning/charcoal-client/AGENT.thinkingDashboard.planning.md); operator entry: [`charcoal-client/src/components/ThinkingDashboard/AGENT.md`](../../../../charcoal-client/src/components/ThinkingDashboard/AGENT.md).
 
 ## Dynamo keys and row lifecycle (locked)
 
@@ -14,17 +12,21 @@ Subsystem for **durable thinking artifacts**: **schedule** rows (work queued / c
 - **Task partition** **`EphemeraId`:** `TASK#${workItemId}`. Holds task-owned rows addressed by **`DataCategory`**, including **`Meta::Result`** (thinking result payload) and **`Meta::Schedule`** (schedule state; persisted via **`mtw.ephemera.thinking.scheduling`** when callers use **`sendPutThinkingSchedule`**).
 - **Lifecycle:** schedule and membership may exist before a unit finishes; the **result** row appears under **`TASK#${workItemId}`** + **`Meta::Result`** when work completes (success or failure). Listing a job's work items still uses **`Query`** on **`JOB#${generationId}`** with `begins_with(DataCategory, "TASK#")` for adjacency lines.
 
-Indexes and lookup patterns beyond this summary: see the task plan **Decisions** and [`template.yaml`](../../../../template.yaml) (`DataCategoryIndex`).
+### Indexes
+
+- **Primary:** **`EphemeraId` + `DataCategory`** (job-scoped **`Query`** for adjacency; **`GetItem`** on **`TASK#${workItemId}`** + **`Meta::Result`** / **`Meta::Schedule`**).
+- **Secondary:** existing **`DataCategoryIndex`** in [`template.yaml`](../../../../template.yaml) when a pattern needs it. No new GSI for MVP unless **`workItemId`-only** lookup without **`generationId`** becomes a requirement.
+- **Throughput:** all writes for one generation share the **`JOB#...`** partition; acceptable for expected Coyote hop count; revisit if fan-out grows.
 
 ## Read surfaces vs authoritative writes
+
+**Split (locked):** **`@tonylb/mtw-gateways`** owns shared Dynamo read encoding, query helpers, normalization, and optional **`DeferredCache`** handler factories. **`lambda/ephemera`** owns all mutations and orchestration that write schedule/result rows next to the owning **`EphemeraDataSource`**. Ephemera registers gateway caches on **`InternalCache`**; pipeline and prompt code do not call **`ephemeraDB`** directly for thinking row shapes. See [`packages/mtw-gateways/AGENT.md`](../../../../packages/mtw-gateways/AGENT.md).
 
 - **`@tonylb/mtw-gateways`:** shared **read** helpers under **`@tonylb/mtw-gateways/ts/ephemera/thinking`**: key builders (`JOB#`, `TASK#`, `Meta::Job`, `Meta::Result`, `Meta::Schedule`), **`Query`** on the job partition for **adjacency only** (never treat those rows as schedule or result payloads), **`GetItem`** on **`JOB#${generationId}`** + **`Meta::Job`** (`getJobMetaItem`), **`GetItem`** on **`TASK#${workItemId}`** + **`Meta::Result`** for results and **`GetItem`** on **`TASK#${workItemId}`** + **`Meta::Schedule`** for schedule, **`listThinkingSchedulesForJob`** (adjacency + per-hop schedule loads; skips missing schedule rows), normalization to **`ThinkingResultEvent`** / **`ThinkingScheduleEvent`** / job meta fields, **`createThinkingResultReadCacheHandler(ephemeraDB)`** (**`ThinkingResultReadCache`**) and **`createThinkingScheduleReadCacheHandler(ephemeraDB)`** (**`ThinkingScheduleReadCache`**, key = **`workItemId`**) and **`createThinkingJobReadCacheHandler(ephemeraDB)`** (**`ThinkingJobReadCache`**, key = **`generationId`**, snapshot = **`fetchThinkingJobSnapshot`**: normalized **`Meta::Job`** fields + **`workItemIds`** from adjacency + **`schedules[]`** only --- no result bodies). Follow [`packages/mtw-gateways/AGENT.md`](../../../../packages/mtw-gateways/AGENT.md) and the package **ownership table**. Ephemera registers **`internalCache.ThinkingResults`**, **`internalCache.ThinkingSchedules`**, and **`internalCache.ThinkingJobs`**; scheduling rollup and **`Job Completed`** assembly **must** use **`internalCache.ThinkingJobs.get(generationId)`** (not ad-hoc **`ephemeraDB`** or uncached **`listThinkingSchedulesForJob`** in ephemera). Single-hop reads may still use **`ThinkingSchedules`** / **`ThinkingResults`** by **`workItemId`**.
     - **Physical row (thinking result):** on **`TASK#${workItemId}`** + **`Meta::Result`**, persisted items carry **`ThinkingResultEvent`** fields at the **top level** (`schemaVersion`, `generationId`, `workItemId`, `segment`, `ok`, `completedAt`, optional `errorCode`, `errorMessage`, `verbose`) alongside `EphemeraId` and `DataCategory`. Keys are stripped before validation. The persistence slice must match this shape.
     - **Physical row (schedule):** on **`TASK#${workItemId}`** + **`Meta::Schedule`**, persisted items carry **`ThinkingScheduleEvent`** fields at the **top level** (`schemaVersion`, `generationId`, `workItemId`, `segment`, `scheduleStatus`, optional `enqueuedAt`) alongside `EphemeraId` and `DataCategory`. Keys are stripped before validation. The scheduling **`EphemeraDataSource`** (or persistence module it owns) must match this shape; after writes, call **`internalCache.ThinkingSchedules.invalidate(workItemId)`** when reads in the same invocation must see fresh data.
     - **Physical row (job metadata):** on **`JOB#${generationId}`** + **`Meta::Job`**, the item stores **`schemaVersion`**, **`generationId`**, **`jobStatus`** (`ThinkingJobStatus`: `pending` | `running` | `failed` | **`completed`**), optional **`createdAt`** (from **`Put Thinking Job Create`**) alongside `EphemeraId` and `DataCategory`. **`workItemIds`** are not duplicated on this row; membership is **`TASK#${workItemId}`** adjacency lines only. Run-level failure fields from **`Put Thinking Job Error`** (`failedAt`, `errorCode`, `errorMessage`, `lastFailedWorkItemId`, updated `jobStatus`, `schemaVersion`) are merged with **`ephemeraDB.optimisticUpdate`** (after **`getItem`**; if the row is missing or has no **`generationId`**, the handler no-ops). Conflicting concurrent updates retry with backoff via the shared optimistic-update path. Run-level **`completed`** is written by scheduling rollup (not an **`api.ephemera`** command).
 - **`lambda/ephemera/dataSource/thinking` (and related ephemera modules):** **`EphemeraDataSource`** code and other ephemera-owned paths perform **writes** (puts, conditional finalize, enqueue/claim) and orchestration. Thinking **result** writes live in [`results/persistThinkingResult.ts`](results/persistThinkingResult.ts). **Schedule**, **job bootstrap**, and **job-level error** writes live under [`scheduling/`](scheduling/): [`persistThinkingSchedule.ts`](scheduling/persistThinkingSchedule.ts) (**`Meta::Schedule`**, overwrite **`putItem`**), [`persistThinkingJobCreate.ts`](scheduling/persistThinkingJobCreate.ts) (**`Meta::Job`** + adjacency **`putItem`**), [`persistThinkingJobError.ts`](scheduling/persistThinkingJobError.ts) (**`Meta::Job`** partial update). **`Meta::Schedule`** uses overwrite **`putItem`** so `scheduled` / `claimed` / `cancelled` / **`completed`** transitions replace the row; unlike **`Meta::Result`**, there is no **`nonCollidingPutItem`** gate on schedule. For job rollup, only **`scheduleStatus: 'completed'`** counts toward "all items complete"; **`cancelled`** is terminal per work item but does not satisfy that predicate. **`mtw-gateways`** does not own mutation paths (see package **Non-goals**).
-
-Task plan split and checklists: [`taskPlanning/lambda/ephemera/dataSource/thinking/AGENT.thinking.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/thinking/AGENT.thinking.planning.md) (**Read surfaces in mtw-gateways vs writes in ephemera**).
 
 ## Shared TypeScript contracts (EventBridge-oriented)
 
@@ -34,7 +36,7 @@ Do **not** duplicate those shapes in lambda or client; extend the package when t
 
 ## Verbose MVP and idempotency
 
-- **Verbose:** MVP defaults to **verbose** artifacts; tightening defaults and retention is a follow-on (see task plan).
+- **Verbose:** MVP defaults to **verbose** artifacts; tightening defaults, TTL, and PII posture is a follow-on.
 - **Idempotent writes:** **`Meta::Result`** uses **`ephemeraDB.nonCollidingPutItem`** (conditional **`attribute_not_exists(DataCategory)`** on the task partition sort key). **First successful write wins** for a given **`workItemId`**; duplicate finalize attempts are treated as **`alreadyFinalized`** (Lambda retry-safe). **`asyncSuppressExceptions`** on the Dynamo client can swallow other failures as a false return value; callers do not distinguish duplicate vs error for MVP. **Job adjacency** rows (**`JOB#${generationId}`** + **`DataCategory` `TASK#${workItemId}`**) use overwrite-safe **`putItem`** so membership stays aligned with finalize. **`Meta::Job`** bootstrap uses overwrite **`putItem`** (retry-safe). **`Put Thinking Job Error`** uses **`optimisticUpdate`** so concurrent patches merge with compare-and-set semantics (retries on conflict). **`Meta::Schedule`** uses overwrite **`putItem`** (status updates are last-write-wins for MVP).
 - **Job-level vs per-step failure:** **Per-step** failure is **`TASK#${workItemId}`** + **`Meta::Result`** with **`ok: false`** (and error metadata) for **that** hop. **Job-level** failure is **`Put Thinking Job Error`** updating **`Meta::Job`** so the whole run is not left **`running`** when a critical step fails. Coyote hypothesis often performs **both** in one handler (see **Failure handling** under **Hypothesis bootstrap**); the rows and contracts differ.
 - **Write path (results):** [`results/persistThinkingResult.ts`](results/persistThinkingResult.ts) and **`mtw.ephemera.thinking.results`** in [`results/index.ts`](results/index.ts). After a new result insert, **`internalCache.ThinkingResults.invalidate(workItemId)`** runs for read-after-write.
@@ -63,7 +65,7 @@ When [`generateHypothesis`](../coyoteGame/generators/pipelines/hypothesis/genera
 
 **Shipped (MVP):** **`mtw.ephemera.thinking.scheduling`** is **`replayable: true`** with default **`eventBridge+bus`** publish. The only outbound **`streamEvent`** is **`Job Completed`** on streamKey **`global`** (`ThinkingJobCompletedEvent`: terminal **`schedules[]`**, no result **`verbose`**). Clients subscribe via **`subscriptions`** (`dataSourceKey: mtw.ephemera.thinking.scheduling`, `streamKeys: ['global']`); Initialize Subscription is handled in [`lambda/ephemera/app.ts`](../../app.ts). Subscribe-time snapshot is **`ThinkingCompletedJobsSnapshot`** (MVP: empty **`completedJobs`**; replay supplies stored events). Ingress remains **`api.ephemera`** commands; internal header **`Put Thinking Schedule`** is not the same as wire header **`Thinking Schedule`**.
 
-**Pair with Ephemera API** for hop result bodies (see task plan Results spine).
+**Pair with Ephemera API** for hop result bodies (see **Ephemera API (results lookup)** below).
 
 **Deferred (follow-on, not MVP):**
 
@@ -75,6 +77,20 @@ When [`generateHypothesis`](../coyoteGame/generators/pipelines/hypothesis/genera
 
 **MVP limitations:** no live view of runs in progress; failed hypothesis jobs do not emit **`Job Completed`** (only **`Meta::Job`** **`failed`** in Dynamo). Harness **`runUntil`** jobs that finish their bootstrapped segments still emit **`Job Completed`** when all listed hops reach **`completed`**.
 
+## Ephemera API (results lookup)
+
+**Shipped (MVP):** WebSocket client → ephemera request **`fetchThinkingResult`** with **`workItemId`** (UUID) and correlated **`RequestId`**. Handler: [`../../fetchThinkingResult/index.ts`](../../fetchThinkingResult/index.ts); routed from [`../../app.ts`](../../app.ts).
+
+| Direction | Shape |
+| --- | --- |
+| Request | `{ message: 'fetchThinkingResult', workItemId, RequestId }` — types in `@tonylb/mtw-interfaces/ts/ephemera` (`FetchThinkingResultAPIMessage`) |
+| Success | `{ messageType: 'ThinkingResult', RequestId, result: ThinkingResultEvent }` — same payload as Dynamo / Coyote bus (`verbose` when stored) |
+| Errors | `{ messageType: 'Error', RequestId?, message, error? }` — `THINKING_RESULT_NOT_FOUND`, `THINKING_RESULT_INVALID_REQUEST`, `THINKING_RESULT_INVALID_STORED`, `THINKING_RESULT_MISSING_REQUEST_ID` |
+
+**Read path:** `internalCache.ThinkingResults.get(workItemId)` only (no ad-hoc **`ephemeraDB`** in the handler).
+
+**Client drill-down:** use **`workItemId`** from **`Job Completed.schedules[]`** (segment → id mapping is on the schedule row). Batch fetch by **`generationId`** and server-side **`(generationId, segment)`** lookup are follow-ons.
+
 ## Related docs
 
 - Shared read gateways: [`packages/mtw-gateways/AGENT.md`](../../../../packages/mtw-gateways/AGENT.md)
@@ -82,8 +98,9 @@ When [`generateHypothesis`](../coyoteGame/generators/pipelines/hypothesis/genera
 - Hypothesis pipeline: [`../coyoteGame/generators/pipelines/hypothesis/AGENT.md`](../coyoteGame/generators/pipelines/hypothesis/AGENT.md)
 - In-process runner (orchestration stays separate): [`../../llm/pipeline/AGENT.md`](../../llm/pipeline/AGENT.md)
 - Ephemera testing: [`../../AGENT.testing.md`](../../AGENT.testing.md)
-- **`api.ephemera`** thinking commands: [`../../AGENT.event.md`](../../AGENT.event.md)
+- **`api.ephemera`** thinking commands and **`fetchThinkingResult`**: [`../../AGENT.event.md`](../../AGENT.event.md)
+- WebSocket handler: [`../../fetchThinkingResult/index.ts`](../../fetchThinkingResult/index.ts)
 
 ## Implementation status
 
-**Read gateway:** shipped in **`@tonylb/mtw-gateways/ts/ephemera/thinking`** (see package **`AGENT.md`** ownership row): results, schedule, and job read helpers (`getJobMetaItem`, `queryTaskRowsForJob`, `listThinkingSchedulesForJob`, `fetchThinkingJobSnapshot`) plus ephemera **`internalCache.ThinkingResults`**, **`internalCache.ThinkingSchedules`**, and **`internalCache.ThinkingJobs`**. **Thinking result persistence**, **`mtw.ephemera.thinking.results`**, and Coyote hypothesis **`Thinking Result` bus emit** (success and **`ok: false`** failure) ship under [`results/`](results/) and [`hypothesisThinkingPersistence.ts`](../coyoteGame/generators/pipelines/hypothesis/hypothesisThinkingPersistence.ts). **Schedule, `Meta::Job` bootstrap, job error, segment-success `completed` schedule puts, rollup, and `Job Completed` EventBridge/subscriptions** ship under [`scheduling/`](scheduling/) (**`api.ephemera`** ingress + **`maybeCompleteThinkingJob`**). Coyote hypothesis invokes **`finalizeHypothesisThinkingOnRunFailure`** on run failure after bootstrap. **Pending:** client **Ephemera API** (result bodies); per-hop **`Thinking Schedule`** stream deferred --- see **EventBridge and subscriptions** above. This `AGENT.md` is the durable anchor for keys, lifecycle, and links; avoid duplicating full architecture here.
+**Read gateway:** shipped in **`@tonylb/mtw-gateways/ts/ephemera/thinking`** (see package **`AGENT.md`** ownership row): results, schedule, and job read helpers (`getJobMetaItem`, `queryTaskRowsForJob`, `listThinkingSchedulesForJob`, `fetchThinkingJobSnapshot`) plus ephemera **`internalCache.ThinkingResults`**, **`internalCache.ThinkingSchedules`**, and **`internalCache.ThinkingJobs`**. **Thinking result persistence**, **`mtw.ephemera.thinking.results`**, and Coyote hypothesis **`Thinking Result` bus emit** (success and **`ok: false`** failure) ship under [`results/`](results/) and [`hypothesisThinkingPersistence.ts`](../coyoteGame/generators/pipelines/hypothesis/hypothesisThinkingPersistence.ts). **Schedule, `Meta::Job` bootstrap, job error, segment-success `completed` schedule puts, rollup, and `Job Completed` EventBridge/subscriptions** ship under [`scheduling/`](scheduling/) (**`api.ephemera`** ingress + **`maybeCompleteThinkingJob`**). Coyote hypothesis invokes **`finalizeHypothesisThinkingOnRunFailure`** on run failure after bootstrap. **Ephemera API** **`fetchThinkingResult`** (by **`workItemId`**) ships for client result bodies --- see **Ephemera API (results lookup)**. Per-hop **`Thinking Schedule`** stream deferred --- see **EventBridge and subscriptions** above. This `AGENT.md` is the durable anchor for keys, lifecycle, and links; avoid duplicating full architecture here.

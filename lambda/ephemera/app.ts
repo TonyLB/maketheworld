@@ -18,10 +18,12 @@ import {
     isCommandAPIMessage,
     isActionAPIMessage,
     isEphemeraApiStateChangeAPIMessage,
+    isFetchThinkingResultAPIMessage,
 } from '@tonylb/mtw-interfaces/ts/ephemera'
 import { isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
+import { handleFetchThinkingResult } from './fetchThinkingResult'
 import internalCache from './internalCache'
 import messageBus from './messageBus'
 import { extractReturnValue } from './returnValue'
@@ -286,6 +288,10 @@ export const handler = async (event: any, context: any) => {
                 else {
                     sendStateChange(messageBus, request.componentId, cmd)
                 }
+            }
+
+            if (isFetchThinkingResultAPIMessage(request)) {
+                await handleFetchThinkingResult(request, messageBus)
             }
 
         }

@@ -34,6 +34,7 @@ The Ephemera Lambda serves as the primary WebSocket handler for real-time client
 #### **State Synchronization Events**
 - **`fetchEphemera`**: Provides initial state synchronization for new connections
 - **`sync`**: Delivers message history and state updates since specified timestamps
+- **`fetchThinkingResult`**: Returns one persisted **`ThinkingResultEvent`** by **`workItemId`** (correlated **`RequestId`**; read via **`internalCache.ThinkingResults`**). See [`dataSource/thinking/AGENT.md`](dataSource/thinking/AGENT.md#ephemera-api-results-lookup).
 
 #### **Content Integration Events** *(Legacy - Under Review)*
 - **`fetchImportDefaults`**: Provides asset import information for authoring tools
