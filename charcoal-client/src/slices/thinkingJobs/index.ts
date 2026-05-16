@@ -47,3 +47,8 @@ export const getIsThinkingJobsSubscribed = (state: any): boolean => {
     const activeStreamKeys = thinkingJobsSelectors.getActiveStreamKeys(state)
     return activeStreamKeys.includes('global')
 }
+
+export const getCompletedThinkingJobsNewestFirst = (state: any): ThinkingJobCompletedEvent[] =>
+    [...getCompletedThinkingJobs(state)].sort(
+        (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
+    )

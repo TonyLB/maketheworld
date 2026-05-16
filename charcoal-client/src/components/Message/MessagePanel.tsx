@@ -16,6 +16,7 @@ import { OnboardingKey } from '../Onboarding/checkpoints'
 import { getPlayer } from '../../slices/player'
 import { useNavigate } from 'react-router-dom'
 import { openWorkbench } from '../../slices/UI/workbench'
+import { openThinkingDashboard } from '../../slices/UI/thinkingDashboard'
 import { putClientSettings } from '../../slices/settings'
 import { setForceCharacterSelection } from '../../slices/UI/playSpine'
 
@@ -50,6 +51,9 @@ export const MessagePanel: FunctionComponent<{}> = () => {
         // TODO: Remove when Phase 3 entry ritual is implemented
         else if (mode === 'Command' && entry.toLowerCase().trim() === 'edit') {
             dispatch(openWorkbench())
+        }
+        else if (mode === 'Command' && entry.toLowerCase().trim() === '/dashboard') {
+            dispatch(openThinkingDashboard())
         }
         else {
             dispatch(parseCommand(CharacterId)({ entry, mode, raiseError: () => {} }))

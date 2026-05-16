@@ -40,7 +40,9 @@ import { getClientSettings, getCurrentCharacterId } from '../../slices/settings'
 import { getForceCharacterSelection, setForceCharacterSelection } from '../../slices/UI/playSpine'
 import { putClientSettings } from '../../slices/settings'
 import { getWorkbenchOpen, getCurrentAssetId, getSecondaryContext, closeWorkbench } from '../../slices/UI/workbench'
+import { getThinkingDashboardOpen, closeThinkingDashboard } from '../../slices/UI/thinkingDashboard'
 import { WorkbenchContainer, WorkbenchAssetEditor } from '../Workbench'
+import { ThinkingDashboardContainer } from '../ThinkingDashboard'
 
 type FeedbackSnackbarProps = {
     feedbackMessage: string;
@@ -207,6 +209,7 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
     
     // Workbench state
     const workbenchOpen = useSelector(getWorkbenchOpen)
+    const thinkingDashboardOpen = useSelector(getThinkingDashboardOpen)
     const currentAssetId = useSelector(getCurrentAssetId)
     const secondaryContext = useSelector(getSecondaryContext)
 
@@ -295,6 +298,10 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
             >
                 {currentAssetId !== null ? <WorkbenchAssetEditor /> : null}
             </WorkbenchContainer>
+            <ThinkingDashboardContainer
+                open={thinkingDashboardOpen}
+                onClose={() => dispatch(closeThinkingDashboard())}
+            />
         </Box>
     </Router>
 
