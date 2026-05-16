@@ -1,6 +1,6 @@
 # Actions: Acme Order Enrich thinking instrumentation (planning)
 
-**Status:** Phase A1 done. Next step: Phase A2 (`acmeOrderThinkingPersistence` module + tests).
+**Status:** Phase A2 done. Next step: Phase A3 (wire parseCommand / enrichAcmeOrder + messageBus).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -74,7 +74,7 @@ Align with what the affinities harness already surfaces; store on **`Meta::Resul
 | Phase | Description | Status |
 | --- | --- | --- |
 | A1 | Contracts: `ThinkingSegment`, results ingress | Done |
-| A2 | `acmeOrderThinkingPersistence` module + tests | Not started |
+| A2 | `acmeOrderThinkingPersistence` module + tests | Done |
 | A3 | Wire `parseCommand` / `enrichAcmeOrder` + `messageBus` | Not started |
 | A4 | Integration tests + manual verification | Not started |
 | A5 | Durable docs + closeout | Not started |
@@ -104,10 +104,10 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Extend [`thinking/results/subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/thinking/results/subscribedEvents.ts) to accept **`Thinking Result`** from **`mtw.ephemera.actions`** (multi-publisher guard or parallel guard; keep CoyoteGame path unchanged).
   - [X] Update [`thinking/results/index.test.ts`](../../../../../lambda/ephemera/dataSource/thinking/results/index.test.ts) (and interfaces tests if needed) for the new publisher key.
 
-- [ ] Phase A2 - persistence module
-  - [ ] Add [`enrich/acmeOrder/acmeOrderThinkingPersistence.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/acmeOrder/acmeOrderThinkingPersistence.ts) (or `actions/acmeOrderThinkingPersistence.ts` if enrich should not import messageBus types from a sibling cycle --- avoid `enrich` importing `parseCommand`).
-  - [ ] Implement: `mintAcmeOrderThinkingIds`, `bootstrapAcmeOrderThinkingAtRunStart` (one work item, segment `acmeOrderEnrich`), `emitAcmeOrderThinkingResult` (bus + schedule `completed` + `flush`), `finalizeAcmeOrderThinkingOnFailure` (`ok: false` result + `Put Thinking Job Error` + `flush`), `sendActionsThinkingResult` (publisher `mtw.ephemera.actions`).
-  - [ ] Colocated unit tests mirroring hypothesis patterns (lane ids, flush ordering, cap failure path).
+- [X] Phase A2 - persistence module
+  - [X] Add [`enrich/acmeOrder/acmeOrderThinkingPersistence.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/acmeOrder/acmeOrderThinkingPersistence.ts) (or `actions/acmeOrderThinkingPersistence.ts` if enrich should not import messageBus types from a sibling cycle --- avoid `enrich` importing `parseCommand`).
+  - [X] Implement: `mintAcmeOrderThinkingIds`, `bootstrapAcmeOrderThinkingAtRunStart` (one work item, segment `acmeOrderEnrich`), `emitAcmeOrderThinkingResult` (bus + schedule `completed` + `flush`), `finalizeAcmeOrderThinkingOnFailure` (`ok: false` result + `Put Thinking Job Error` + `flush`), `sendActionsThinkingResult` (publisher `mtw.ephemera.actions`).
+  - [X] Colocated unit tests mirroring hypothesis patterns (lane ids, flush ordering, cap failure path).
 
 - [ ] Phase A3 - orchestration wiring
   - [ ] Add optional `messageBus: Pick<MessageBus, 'send' | 'flush'>` to **`ParseCommandDeps`** and **`EnrichAcmeOrder` deps**; pass from [`actions/index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) on **`Parse Requested`**.
