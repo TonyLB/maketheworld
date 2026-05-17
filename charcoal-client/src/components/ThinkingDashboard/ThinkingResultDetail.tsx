@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useState } from 'react'
+import React, { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
     Box,
@@ -23,6 +23,24 @@ export const ThinkingResultDetail: FunctionComponent = () => {
     const fetchState = useSelector((state: RootState) => (workItemId ? getThinkingResultFetchState(workItemId)(state) : undefined))
     const displayError = useSelector((state: RootState) => (workItemId ? getThinkingResultDisplayError(workItemId)(state) : undefined))
     const [verboseOpen, setVerboseOpen] = useState(false)
+    const [copied, setCopied] = useState(false)
+    const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    const clearCopyTimeout = useCallback(() => {
+        if (copyTimeoutRef.current !== null) {
+            clearTimeout(copyTimeoutRef.current)
+            copyTimeoutRef.current = null
+        }
+    }, [])
+
+    useEffect(() => () => clearCopyTimeout(), [clearCopyTimeout])
+
+    useEffect(() => {
+        if (!verboseOpen) {
+            clearCopyTimeout()
+            setCopied(false)
+        }
+    }, [verboseOpen, clearCopyTimeout])
 
     if (!workItemId) {
         return null
@@ -113,28 +131,66 @@ export const ThinkingResultDetail: FunctionComponent = () => {
                         </>
                     )}
 
-                    {result.verbose !== undefined && (
-                        <Box sx={{ mt: 2 }}>
-                            <Button size="small" onClick={() => setVerboseOpen((open) => !open)}>
-                                {verboseOpen ? 'Hide verbose' : 'Show verbose'}
-                            </Button>
-                            <Collapse in={verboseOpen}>
-                                <Box
-                                    component="pre"
-                                    sx={{
-                                        mt: 1,
-                                        p: 1,
-                                        overflow: 'auto',
-                                        fontSize: '0.75rem',
-                                        bgcolor: 'action.hover',
-                                        borderRadius: 1
-                                    }}
-                                >
-                                    {JSON.stringify(result.verbose, null, 2)}
-                                </Box>
-                            </Collapse>
-                        </Box>
-                    )}
+                    {result.verbose !== undefined && (() => {
+                        const verboseText = JSON.stringify(result.verbose, null, 2)
+
+                        const handleCopyVerbose = async () => {
+                            try {
+                                await navigator.clipboard.writeText(verboseText)
+                                clearCopyTimeout()
+                                setCopied(true)
+                                copyTimeoutRef.current = setTimeout(() => {
+                                    setCopied(false)
+                                    copyTimeoutRef.current = null
+                                }, 2000)
+                            } catch {
+                                // Clipboard unavailable or denied; leave button unchanged.
+                            }
+                        }
+
+                        return (
+                            <Box sx={{ mt: 2 }}>
+                                <Button size="small" onClick={() => setVerboseOpen((open) => !open)}>
+                                    {verboseOpen ? 'Hide verbose' : 'Show verbose'}
+                                </Button>
+                                <Collapse in={verboseOpen}>
+                                    <Box sx={{ position: 'relative', mt: 1 }}>
+                                        <Button
+                                            size="small"
+                                            variant="outlined"
+                                            onClick={handleCopyVerbose}
+                                            disabled={copied}
+                                            aria-label={copied ? 'Copied to clipboard' : 'Copy verbose JSON'}
+                                            sx={{
+                                                position: 'absolute',
+                                                top: 8,
+                                                right: 8,
+                                                zIndex: 1,
+                                                minWidth: 'auto'
+                                            }}
+                                        >
+                                            {copied ? 'Copied!' : 'Copy'}
+                                        </Button>
+                                        <Box
+                                            component="pre"
+                                            sx={{
+                                                m: 0,
+                                                p: 1,
+                                                pr: 6,
+                                                pt: 4,
+                                                overflow: 'auto',
+                                                fontSize: '0.75rem',
+                                                bgcolor: 'action.hover',
+                                                borderRadius: 1
+                                            }}
+                                        >
+                                            {verboseText}
+                                        </Box>
+                                    </Box>
+                                </Collapse>
+                            </Box>
+                        )
+                    })()}
                 </Box>
             )}
         </Box>
