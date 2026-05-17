@@ -238,6 +238,7 @@ export async function enrichAcmeOrder(
 
         if (thinkingBus !== undefined && thinkingIds !== undefined) {
             const verboseFields: Partial<AcmeOrderEnrichThinkingVerboseInput> = {
+                enrichPromptParts,
                 enrichInvoke,
                 enrichRawBody,
                 enrichReasoningMarkdown,

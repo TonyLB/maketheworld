@@ -21,6 +21,7 @@ import {
 } from './narrativeBeats/buildNarrativeBeatPrompt';
 import { buildPlanSelectPrompt } from './planSelect/buildPlanSelectPrompt';
 import { buildCandidatePrompt } from './candidates/buildCandidatePrompt';
+import type { CoyotePromptParts } from './promptTypes';
 import {
     combineCandidateOutput,
     planSelectOutliersForCandidate,
@@ -127,6 +128,9 @@ export type CoyoteHypothesisPipelineState = {
     roomObjectsByRoom?: CoyoteRoomObjectsByRoom;
     /** Combined trope candidates after {@link combineCandidateOutput} (plan-select JSON input; outlier rehydration for {@link parsePlanSelectionHandoff}). */
     combined?: CombineCandidateOutputReturn;
+    stageOnePromptParts?: CoyotePromptParts;
+    planSelectPromptParts?: CoyotePromptParts;
+    narrativeBeatPromptParts?: CoyotePromptParts;
     stageOneResult?: InvokeBedrockHypothesisResult;
     planSelectionResult?: InvokeBedrockHypothesisResult | null;
     narrativeBeatResult?: InvokeBedrockHypothesisResult | null;
@@ -273,6 +277,7 @@ function buildCoyoteHypothesisSteps(
                     throw new Error('CoyoteHypothesisPipeline: missing roomObjectsByRoom');
                 }
                 const stageOneParts = buildCandidatePrompt({ roomObjectsByRoom });
+                draft.stageOnePromptParts = stageOneParts;
                 const stageOneResult = await invokeBedrockHypothesisStageOne(stageOneParts);
                 draft.stageOneResult = stageOneResult;
                 hypothesisDebugLog('stage one invoke complete', summarizeInvokeResult(stageOneResult));
@@ -319,6 +324,7 @@ function buildCoyoteHypothesisSteps(
                         roomObjectsByRoom,
                         stageOneResult,
                         combined: combinedResult.combined,
+                        stageOnePromptParts: draft.stageOnePromptParts,
                     })
                 );
             },
@@ -335,6 +341,7 @@ function buildCoyoteHypothesisSteps(
                     roomObjectsByRoom,
                     combined,
                 });
+                draft.planSelectPromptParts = parts;
                 const planSelectionResult = await invokeBedrockHypothesisPlanSelection(parts);
                 draft.planSelectionResult = planSelectionResult;
                 hypothesisDebugLog('plan selection invoke complete', summarizeInvokeResult(planSelectionResult));
@@ -417,6 +424,7 @@ function buildCoyoteHypothesisSteps(
                         planSelectionResult,
                         planSelectOutput,
                         selectionBody: planSelectionResult.body,
+                        planSelectPromptParts: draft.planSelectPromptParts,
                     })
                 );
             },
@@ -434,6 +442,7 @@ function buildCoyoteHypothesisSteps(
                     roomObjectsByRoom,
                     planSelectOutput: handoff as PlanSelectOutputWithWinner,
                 });
+                draft.narrativeBeatPromptParts = parts;
                 const narrativeBeatResult = await invokeBedrockHypothesisNarrativeBeat(parts);
                 draft.narrativeBeatResult = narrativeBeatResult;
                 hypothesisDebugLog('narrative beat invoke complete', summarizeInvokeResult(narrativeBeatResult));
@@ -502,6 +511,7 @@ function buildCoyoteHypothesisSteps(
                         narrativeBeatsStructuredJson: draft.narrativeBeatsStructuredJson,
                         narrativeBeatsStructuredValidationReason: draft.narrativeBeatsStructuredValidationReason,
                         narrativeBeatReasoningContent: draft.narrativeBeatReasoningContent,
+                        narrativeBeatPromptParts: draft.narrativeBeatPromptParts,
                     })
                 );
             },

@@ -18,7 +18,9 @@ import {
     sendPutThinkingJobError,
     sendPutThinkingSchedule,
 } from '../../../../apiEphemera'
+import { bedrockPromptForVerbose } from '../../../../../llm/bedrockPromptForVerbose'
 import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
+import type { CoyotePromptParts } from './promptTypes'
 import type { CombineCandidateOutputReturn } from './candidates/combineCandidateOutput'
 import type { InvokeBedrockHypothesisResult } from './invokeBedrockHypothesis'
 import type { PlanSelectOutput } from './planSelect/parsePlanSelectOutput'
@@ -56,6 +58,9 @@ export type HypothesisThinkingResultOutcome = {
 export type HypothesisThinkingPipelineStateSnapshot = {
     roomObjectsByRoom?: CoyoteRoomObjectsByRoom
     combined?: CombineCandidateOutputReturn
+    stageOnePromptParts?: CoyotePromptParts
+    planSelectPromptParts?: CoyotePromptParts
+    narrativeBeatPromptParts?: CoyotePromptParts
     stageOneResult?: InvokeBedrockHypothesisResult
     planSelectionResult?: InvokeBedrockHypothesisResult | null
     narrativeBeatResult?: InvokeBedrockHypothesisResult | null
@@ -173,17 +178,22 @@ export type CandidatesThinkingResultVerbose = {
     stageOneResult: Record<string, unknown>
     stageOneBody?: string
     combined: CombineCandidateOutputReturn
+    bedrockPrompt?: ReturnType<typeof bedrockPromptForVerbose>
 }
 
 export function buildCandidatesThinkingResultVerbose(input: {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
     stageOneResult: InvokeBedrockHypothesisResult
     combined: CombineCandidateOutputReturn
+    stageOnePromptParts?: CoyotePromptParts
 }): CandidatesThinkingResultVerbose {
     const verbose: CandidatesThinkingResultVerbose = {
         roomObjectsByRoom: input.roomObjectsByRoom,
         stageOneResult: summarizeInvokeResultForThinkingVerbose(input.stageOneResult),
         combined: input.combined,
+    }
+    if (input.stageOnePromptParts !== undefined) {
+        verbose.bedrockPrompt = bedrockPromptForVerbose(input.stageOnePromptParts)
     }
     if (input.stageOneResult.success) {
         verbose.stageOneBody = input.stageOneResult.body
@@ -197,6 +207,7 @@ export type PlanSelectThinkingResultVerbose = {
     planSelectionResult: Record<string, unknown>
     planSelectOutput: PlanSelectOutput
     selectionBody: string
+    bedrockPrompt?: ReturnType<typeof bedrockPromptForVerbose>
 }
 
 export function buildPlanSelectThinkingResultVerbose(input: {
@@ -205,14 +216,19 @@ export function buildPlanSelectThinkingResultVerbose(input: {
     planSelectionResult: InvokeBedrockHypothesisResult
     planSelectOutput: PlanSelectOutput
     selectionBody: string
+    planSelectPromptParts?: CoyotePromptParts
 }): PlanSelectThinkingResultVerbose {
-    return {
+    const verbose: PlanSelectThinkingResultVerbose = {
         roomObjectsByRoom: input.roomObjectsByRoom,
         combined: input.combined,
         planSelectionResult: summarizeInvokeResultForThinkingVerbose(input.planSelectionResult),
         planSelectOutput: input.planSelectOutput,
         selectionBody: input.selectionBody,
     }
+    if (input.planSelectPromptParts !== undefined) {
+        verbose.bedrockPrompt = bedrockPromptForVerbose(input.planSelectPromptParts)
+    }
+    return verbose
 }
 
 export type NarrativeBeatsThinkingResultVerbose = {
@@ -223,6 +239,7 @@ export type NarrativeBeatsThinkingResultVerbose = {
     narrativeBeatsStructuredJson?: string
     narrativeBeatsStructuredValidationReason?: string
     narrativeBeatReasoningContent?: string
+    bedrockPrompt?: ReturnType<typeof bedrockPromptForVerbose>
 }
 
 export function buildNarrativeBeatsThinkingResultVerbose(input: {
@@ -233,12 +250,16 @@ export function buildNarrativeBeatsThinkingResultVerbose(input: {
     narrativeBeatsStructuredJson?: string
     narrativeBeatsStructuredValidationReason?: string
     narrativeBeatReasoningContent?: string
+    narrativeBeatPromptParts?: CoyotePromptParts
 }): NarrativeBeatsThinkingResultVerbose {
     const verbose: NarrativeBeatsThinkingResultVerbose = {
         roomObjectsByRoom: input.roomObjectsByRoom,
         planSelectOutput: input.planSelectOutput,
         narrativeBeatResult: summarizeInvokeResultForThinkingVerbose(input.narrativeBeatResult),
         record: input.record,
+    }
+    if (input.narrativeBeatPromptParts !== undefined) {
+        verbose.bedrockPrompt = bedrockPromptForVerbose(input.narrativeBeatPromptParts)
     }
     if (input.narrativeBeatsStructuredJson !== undefined) {
         verbose.narrativeBeatsStructuredJson = input.narrativeBeatsStructuredJson
@@ -265,11 +286,17 @@ export function buildHypothesisFailureVerbose(
                 roomObjectsByRoom,
                 stageOneResult: state.stageOneResult,
                 combined,
+                ...(state.stageOnePromptParts !== undefined
+                    ? { stageOnePromptParts: state.stageOnePromptParts }
+                    : {}),
             })
         }
         return {
             ...(roomObjectsByRoom !== undefined ? { roomObjectsByRoom } : {}),
             failedStepName,
+            ...(state.stageOnePromptParts !== undefined
+                ? { bedrockPrompt: bedrockPromptForVerbose(state.stageOnePromptParts) }
+                : {}),
             ...(state.stageOneResult !== undefined
                 ? { stageOneResult: summarizeInvokeResultForThinkingVerbose(state.stageOneResult) }
                 : {}),
@@ -290,11 +317,17 @@ export function buildHypothesisFailureVerbose(
                 planSelectionResult: state.planSelectionResult,
                 planSelectOutput: state.planSelectOutput,
                 selectionBody: state.selectionBody ?? state.planSelectionResult.body,
+                ...(state.planSelectPromptParts !== undefined
+                    ? { planSelectPromptParts: state.planSelectPromptParts }
+                    : {}),
             })
         }
         return {
             ...(roomObjectsByRoom !== undefined ? { roomObjectsByRoom } : {}),
             failedStepName,
+            ...(state.planSelectPromptParts !== undefined
+                ? { bedrockPrompt: bedrockPromptForVerbose(state.planSelectPromptParts) }
+                : {}),
             ...(state.combined !== undefined ? { combined: state.combined } : {}),
             ...(state.planSelectionResult !== undefined && state.planSelectionResult !== null
                 ? {
@@ -321,11 +354,17 @@ export function buildHypothesisFailureVerbose(
                 narrativeBeatsStructuredJson: state.narrativeBeatsStructuredJson,
                 narrativeBeatsStructuredValidationReason: state.narrativeBeatsStructuredValidationReason,
                 narrativeBeatReasoningContent: state.narrativeBeatReasoningContent,
+                ...(state.narrativeBeatPromptParts !== undefined
+                    ? { narrativeBeatPromptParts: state.narrativeBeatPromptParts }
+                    : {}),
             })
         }
         return {
             ...(roomObjectsByRoom !== undefined ? { roomObjectsByRoom } : {}),
             failedStepName,
+            ...(state.narrativeBeatPromptParts !== undefined
+                ? { bedrockPrompt: bedrockPromptForVerbose(state.narrativeBeatPromptParts) }
+                : {}),
             ...(state.planSelectOutput !== undefined ? { planSelectOutput: state.planSelectOutput } : {}),
             ...(state.narrativeBeatResult !== undefined && state.narrativeBeatResult !== null
                 ? {
