@@ -60,6 +60,7 @@ export type ThinkingJobMeta = {
     generationId: string
     jobStatus: ThinkingJobStatus
     createdAt?: string
+    completedAt?: string
     failedAt?: string
     errorCode?: string
     errorMessage?: string
@@ -94,6 +95,9 @@ export const thinkingJobMetaFromEphemeraItem = (item: unknown): ThinkingJobMeta 
     }
     if (typeof rest.createdAt === 'string') {
         meta.createdAt = rest.createdAt
+    }
+    if (typeof rest.completedAt === 'string') {
+        meta.completedAt = rest.completedAt
     }
     if (typeof rest.failedAt === 'string') {
         meta.failedAt = rest.failedAt

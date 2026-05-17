@@ -3,7 +3,11 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 import * as persistModule from './persistThinkingResult'
 import { THINKING_RESULT_HEADER_TYPE } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
 import { ephemeraThinkingResultsDataSource } from './index'
-import { EPHEMERA_COYOTE_GAME_DATA_SOURCE_KEY, isThinkingResultsSubscribedEnvelope } from './subscribedEvents'
+import {
+    EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
+    EPHEMERA_COYOTE_GAME_DATA_SOURCE_KEY,
+    isThinkingResultsSubscribedEnvelope,
+} from './subscribedEvents'
 
 const validEvent = {
     schemaVersion: 1,
@@ -15,7 +19,7 @@ const validEvent = {
 }
 
 describe('mtw.ephemera.thinking.results DataSource', () => {
-    it('is bus-only with Coyote-scoped Thinking Result subscription guard', () => {
+    it('is bus-only with multi-publisher Thinking Result subscription guard', () => {
         expect(ephemeraThinkingResultsDataSource.dataSourceKey).toBe('mtw.ephemera.thinking.results')
         expect(ephemeraThinkingResultsDataSource.replayable).toBe(false)
         expect(ephemeraThinkingResultsDataSource.publisherStrategy).toBe('busOnly')
@@ -41,6 +45,31 @@ describe('mtw.ephemera.thinking.results DataSource', () => {
             streamEnvelope: jest.fn(),
         })
         expect(spy).toHaveBeenCalledWith(validEvent)
+        spy.mockRestore()
+    })
+
+    it('receiveEvents persists Thinking Result from actions publisher', async () => {
+        const acmeEvent = {
+            ...validEvent,
+            segment: 'acmeOrderEnrich' as const,
+        }
+        const spy = jest.spyOn(persistModule, 'persistThinkingResult').mockResolvedValue('written')
+        await ephemeraThinkingResultsDataSource.receiveEvents!({
+            events: [
+                {
+                    header: {
+                        dataSourceKey: EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
+                        streamKey: 'ROOM#x',
+                        timestamp: 1,
+                        type: THINKING_RESULT_HEADER_TYPE,
+                    },
+                    getContent: async () => acmeEvent,
+                },
+            ],
+            streamEvent: jest.fn(),
+            streamEnvelope: jest.fn(),
+        })
+        expect(spy).toHaveBeenCalledWith(acmeEvent)
         spy.mockRestore()
     })
 

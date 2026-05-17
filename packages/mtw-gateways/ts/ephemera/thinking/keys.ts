@@ -56,3 +56,13 @@ export const parseWorkItemIdFromTaskEphemeraId = (ephemeraId: string): string | 
     }
     return ephemeraId.slice(THINKING_TASK_EPHEMERA_PREFIX.length) || null
 }
+
+/**
+ * Parse `JOB#${generationId}` partition id into `generationId`, or `null` if the prefix does not match.
+ */
+export const parseGenerationIdFromJobEphemeraId = (ephemeraId: string): string | null => {
+    if (!ephemeraId.startsWith(THINKING_JOB_EPHEMERA_PREFIX)) {
+        return null
+    }
+    return ephemeraId.slice(THINKING_JOB_EPHEMERA_PREFIX.length) || null
+}

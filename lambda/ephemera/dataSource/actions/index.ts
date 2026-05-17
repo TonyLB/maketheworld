@@ -348,7 +348,7 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                     targetId: toRoomId,
                 })),
                 occupiedStableKeys: [...coyoteOccupiedStableKeys],
-            })
+            }, { messageBus })
             const responseContext: ResponseContext = {
                 characterId: content.characterId,
                 roomExitContext,

@@ -76,6 +76,12 @@ Clustering / combine behavior is documented under **[`../coyoteGame/AGENT.md`](.
 
 ---
 
+## Thinking writes (Acme order enrich)
+
+When **`Parse Requested`** runs Acme enrich, **`parseCommand`** passes **`messageBus`** into **`enrichAcmeOrder`**, which owns thinking bootstrap / emit / finalize for segment **`acmeOrderEnrich`** (publisher **`mtw.ephemera.actions`**). Persistence helpers: [`enrich/acmeOrder/acmeOrderThinkingPersistence.ts`](./enrich/acmeOrder/acmeOrderThinkingPersistence.ts). Full bootstrap / emit / finalize / failure semantics: **Acme order enrich thinking** in [`../thinking/AGENT.md`](../thinking/AGENT.md). Integration tests for **`parseCommand` -> `enrichAcmeOrder`** thinking call order: [`parseCommand.test.ts`](./parseCommand.test.ts) (**`parseCommand Acme enrich thinking (messageBus)`**; pattern mirrors [`coyoteHypothesisPipeline.test.ts`](../coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.test.ts)).
+
+---
+
 ## Related documentation
 
 | Doc | Role |

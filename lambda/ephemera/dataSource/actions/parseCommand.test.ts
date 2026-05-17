@@ -1,4 +1,17 @@
+jest.mock('../apiEphemera', () => ({
+    sendPutThinkingJobCreate: jest.fn(),
+    sendPutThinkingSchedule: jest.fn(),
+    sendPutThinkingJobError: jest.fn(),
+}))
+
+import {
+    THINKING_RESULT_HEADER_TYPE,
+    isThinkingResultEvent,
+} from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+
+import * as apiEphemera from '../apiEphemera'
+import type { StreamingEventMessage } from '../../messageBus/baseClasses'
 
 import {
     isParseCommandAcmeOrderResult,
@@ -15,10 +28,77 @@ import { isCoyoteAffinitiesTestSlashCommand } from './discriminateIntent/coyoteA
 import { isCoyoteEngineTestSlashCommand } from './discriminateIntent/coyoteEngineTestSlashCommand'
 import { ACME_ORDER_TOO_MANY_PLACED_OBJECTS_MESSAGE } from './enrich/acmeOrder'
 import {
+    ACME_ORDER_ENRICH_SEGMENT,
+    EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
+} from './enrich/acmeOrder/acmeOrderThinkingPersistence'
+import {
     navigationIntentErrorMessages,
     parseCommand,
     parseCommandWithEnrichReasoning,
 } from './parseCommand'
+
+const sendPutThinkingJobCreate = apiEphemera.sendPutThinkingJobCreate as jest.MockedFunction<
+    typeof apiEphemera.sendPutThinkingJobCreate
+>
+const sendPutThinkingSchedule = apiEphemera.sendPutThinkingSchedule as jest.MockedFunction<
+    typeof apiEphemera.sendPutThinkingSchedule
+>
+const sendPutThinkingJobError = apiEphemera.sendPutThinkingJobError as jest.MockedFunction<
+    typeof apiEphemera.sendPutThinkingJobError
+>
+
+const mockMessageBus = () => ({
+    send: jest.fn(),
+    flush: jest.fn().mockResolvedValue(undefined),
+})
+
+const findActionsThinkingResultMessages = (send: jest.Mock): StreamingEventMessage[] =>
+    send.mock.calls
+        .map((call) => call[0] as StreamingEventMessage)
+        .filter(
+            (msg) =>
+                msg?.type === 'StreamingEvent' &&
+                msg.dataSourceKey === EPHEMERA_ACTIONS_DATA_SOURCE_KEY &&
+                msg.header?.type === THINKING_RESULT_HEADER_TYPE
+        )
+
+const thinkingResultsOkFromBus = async (
+    send: jest.Mock
+): Promise<Array<{ segment: string; ok: boolean; errorCode?: string }>> => {
+    const results: Array<{ segment: string; ok: boolean; errorCode?: string }> = []
+    for (const msg of findActionsThinkingResultMessages(send)) {
+        const content = await msg.getContent()
+        if (isThinkingResultEvent(content)) {
+            results.push({
+                segment: content.segment,
+                ok: content.ok,
+                errorCode: content.errorCode,
+            })
+        }
+    }
+    return results
+}
+
+const schedulePutsByStatus = (status: string) =>
+    sendPutThinkingSchedule.mock.calls
+        .map((call) => call[2])
+        .filter((payload) => payload.scheduleStatus === status)
+
+const expectCompletedSchedulePutsMatchBootstrap = (segments: string[]) => {
+    const completed = schedulePutsByStatus('completed')
+    expect(completed).toHaveLength(segments.length)
+    expect(completed.map((p) => p.segment)).toEqual(segments)
+    for (const segment of segments) {
+        const scheduled = sendPutThinkingSchedule.mock.calls.find(
+            (call) => call[2].segment === segment && call[2].scheduleStatus === 'scheduled'
+        )?.[2]
+        const done = completed.find((p) => p.segment === segment)
+        expect(scheduled).toBeDefined()
+        expect(done).toBeDefined()
+        expect(done!.generationId).toBe(scheduled!.generationId)
+        expect(done!.workItemId).toBe(scheduled!.workItemId)
+    }
+}
 
 describe('parseCommand type guards', () => {
     const room = 'ROOM#x' as EphemeraRoomId
@@ -1070,6 +1150,247 @@ describe('parseCommand LLM path', () => {
                 tropeAffinitiesFailed: true,
             }],
             confidence: 0.75,
+        })
+    })
+
+    describe('parseCommand Acme enrich thinking (messageBus)', () => {
+        beforeEach(() => {
+            jest.clearAllMocks()
+        })
+
+        it('bootstraps, emits success Thinking Result, and completes schedule when enrich succeeds', async () => {
+            const bus = mockMessageBus()
+            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+                success: true,
+                body: '{"type":"AcmeOrder","orders":["dynamite","spring"],"confidence":0.82}',
+            })
+            const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
+                success: true,
+                body: JSON.stringify({
+                    lines: [
+                        { valid: true, name: 'dynamite sticks', stableKey: 'dynamite-sticks' },
+                        { valid: true, name: 'spring', stableKey: 'spring' },
+                    ],
+                    confidence: 0.9,
+                }),
+            })
+
+            const result = await parseCommand(
+                {
+                    command: 'mail order dynamite and a spring from acme',
+                    occupiedStableKeys: ['rocket-taken', 'anvil'],
+                },
+                {
+                    ...depsCoyoteUnderCap,
+                    messageBus: bus,
+                    invokeBedrockParseCommandImpl,
+                    invokeBedrockAcmeOrderEnrichImpl,
+                }
+            )
+
+            expect(result.type).toBe('AcmeOrder')
+            expect(sendPutThinkingJobCreate).toHaveBeenCalledTimes(1)
+            const bootstrapLane = sendPutThinkingJobCreate.mock.calls[0][3]
+            expect(bootstrapLane).toMatch(/^thinkingBootstrap:/)
+            expect(sendPutThinkingSchedule.mock.calls[0][3]).toBe(bootstrapLane)
+            expect(sendPutThinkingSchedule.mock.calls[0][2].scheduleStatus).toBe('scheduled')
+            expect(sendPutThinkingSchedule.mock.calls[0][2].segment).toBe(ACME_ORDER_ENRICH_SEGMENT)
+
+            const generationId = sendPutThinkingJobCreate.mock.calls[0][2].generationId
+            const resultsLane = `thinkingResults:${generationId}`
+            expect(bus.flush).toHaveBeenNthCalledWith(1, bootstrapLane)
+            expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
+
+            const thinkingResults = await thinkingResultsOkFromBus(bus.send)
+            expect(thinkingResults).toEqual([{ segment: ACME_ORDER_ENRICH_SEGMENT, ok: true }])
+            expect(findActionsThinkingResultMessages(bus.send)).toHaveLength(1)
+            expectCompletedSchedulePutsMatchBootstrap([ACME_ORDER_ENRICH_SEGMENT])
+            expect(sendPutThinkingSchedule.mock.calls.find(
+                (call) => call[2].scheduleStatus === 'completed'
+            )?.[3]).toBe(resultsLane)
+            expect(bus.flush).toHaveBeenNthCalledWith(2, resultsLane)
+            expect(sendPutThinkingJobError).not.toHaveBeenCalled()
+
+            const content = await findActionsThinkingResultMessages(bus.send)[0]!.getContent()
+            if (isThinkingResultEvent(content)) {
+                expect(content.verbose).toMatchObject({
+                    command: 'mail order dynamite and a spring from acme',
+                    intentConfidence: 0.82,
+                    occupiedStableKeys: ['rocket-taken', 'anvil'],
+                    intentRawOrders: ['dynamite', 'spring'],
+                })
+            }
+        })
+
+        it('finalizes thinking on placement cap without calling enrich Bedrock', async () => {
+            const bus = mockMessageBus()
+            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+                success: true,
+                body: '{"type":"AcmeOrder","orders":["rope"],"confidence":0.82}',
+            })
+            const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+            const objects = Array.from({ length: 21 }, (_, i) => ({
+                uuid: `OBJECT#cap${i}` as `OBJECT#${string}`,
+                shortName: 'o',
+                stableKey: 'sk',
+            }))
+
+            const result = await parseCommand(
+                { command: 'order rope' },
+                {
+                    messageBus: bus,
+                    invokeBedrockParseCommandImpl,
+                    invokeBedrockAcmeOrderEnrichImpl,
+                    countCoyotePlacedObjectsAcrossRoomsDeps: {
+                        getGameRooms: async () => ['CapR'],
+                        getRoomMeta: async (roomId) =>
+                            (roomId === 'ROOM#CapR'
+                                ? {
+                                    EphemeraId: 'ROOM#CapR' as EphemeraRoomId,
+                                    DataCategory: 'Meta::Room',
+                                    objects,
+                                }
+                                : undefined),
+                    },
+                }
+            )
+
+            expect(result.type).toBe('Error')
+            expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+            expect(sendPutThinkingJobCreate).toHaveBeenCalledTimes(1)
+            const thinkingResults = await thinkingResultsOkFromBus(bus.send)
+            expect(thinkingResults).toEqual([{
+                segment: ACME_ORDER_ENRICH_SEGMENT,
+                ok: false,
+                errorCode: 'acme_enrich_placed_objects_cap',
+            }])
+            expect(sendPutThinkingJobError).toHaveBeenCalledTimes(1)
+            expect(schedulePutsByStatus('completed')).toHaveLength(0)
+            expect(sendPutThinkingSchedule.mock.calls.filter(
+                (call) => call[2].scheduleStatus === 'scheduled'
+            )).toHaveLength(1)
+        })
+
+        it('returns AcmeOrder product but failed thinking when enrich Bedrock invoke fails', async () => {
+            const bus = mockMessageBus()
+            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+                success: true,
+                body: '{"type":"AcmeOrder","orders":["anvil"],"confidence":0.75}',
+            })
+            const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
+                success: false,
+                errorMessage: 'timeout',
+            })
+
+            const result = await parseCommand(
+                { command: 'order anvil from acme' },
+                {
+                    ...depsCoyoteUnderCap,
+                    messageBus: bus,
+                    invokeBedrockParseCommandImpl,
+                    invokeBedrockAcmeOrderEnrichImpl,
+                }
+            )
+
+            expect(result).toEqual({
+                type: 'AcmeOrder',
+                orders: [{
+                    valid: true,
+                    name: 'order anvil from acme',
+                    stableKey: 'order-anvil-from-acme',
+                    tropeAffinities: [],
+                    tropeAffinitiesFailed: true,
+                }],
+                confidence: 0.75,
+            })
+            const thinkingResults = await thinkingResultsOkFromBus(bus.send)
+            expect(thinkingResults).toEqual([{
+                segment: ACME_ORDER_ENRICH_SEGMENT,
+                ok: false,
+                errorCode: 'acme_enrich_invoke_failed',
+            }])
+            expect(sendPutThinkingJobError).toHaveBeenCalledTimes(1)
+            expect(schedulePutsByStatus('completed')).toHaveLength(0)
+        })
+
+        it('finalizes thinking with parse_failed when enrich body is invalid JSON', async () => {
+            const bus = mockMessageBus()
+            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+                success: true,
+                body: '{"type":"AcmeOrder","orders":["rope"],"confidence":0.82}',
+            })
+            const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
+                success: true,
+                body: 'not valid json at all',
+            })
+
+            const result = await parseCommand(
+                { command: 'order rope' },
+                {
+                    ...depsCoyoteUnderCap,
+                    messageBus: bus,
+                    invokeBedrockParseCommandImpl,
+                    invokeBedrockAcmeOrderEnrichImpl,
+                }
+            )
+
+            expect(result.type).toBe('AcmeOrder')
+            const thinkingResults = await thinkingResultsOkFromBus(bus.send)
+            expect(thinkingResults).toEqual([{
+                segment: ACME_ORDER_ENRICH_SEGMENT,
+                ok: false,
+                errorCode: 'acme_enrich_parse_failed',
+            }])
+            expect(sendPutThinkingJobError).toHaveBeenCalledTimes(1)
+            expect(schedulePutsByStatus('completed')).toHaveLength(0)
+
+            const content = await findActionsThinkingResultMessages(bus.send)[0]!.getContent()
+            if (isThinkingResultEvent(content)) {
+                expect(content.verbose).toMatchObject({
+                    parseFailureReason: expect.any(String),
+                    enrichRawBody: 'not valid json at all',
+                })
+            }
+        })
+
+        it('does not call thinking APIs when messageBus is omitted', async () => {
+            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+                success: true,
+                body: '{"type":"AcmeOrder","orders":["rope"],"confidence":0.82}',
+            })
+            const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
+                success: true,
+                body: JSON.stringify({
+                    lines: [{ valid: true, name: 'rope', stableKey: 'rope' }],
+                    confidence: 1,
+                }),
+            })
+
+            await parseCommand(
+                { command: 'order rope' },
+                { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+            )
+
+            expect(sendPutThinkingJobCreate).not.toHaveBeenCalled()
+            expect(sendPutThinkingSchedule).not.toHaveBeenCalled()
+            expect(sendPutThinkingJobError).not.toHaveBeenCalled()
+        })
+
+        it('does not bootstrap thinking for non-AcmeOrder intents when messageBus is present', async () => {
+            const bus = mockMessageBus()
+            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+                success: true,
+                body: '{"type":"AwaitRoadRunner","confidence":0.88}',
+            })
+
+            const result = await parseCommand(
+                { command: 'wait for the bird' },
+                { messageBus: bus, invokeBedrockParseCommandImpl }
+            )
+
+            expect(result).toEqual({ type: 'AwaitRoadRunner', confidence: 0.88 })
+            expect(sendPutThinkingJobCreate).not.toHaveBeenCalled()
+            expect(findActionsThinkingResultMessages(bus.send)).toHaveLength(0)
         })
     })
 

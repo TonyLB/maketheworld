@@ -8,6 +8,16 @@ jest.mock('../../../messageBus')
 
 const mockMessageBus = messageBus as jest.Mocked<typeof messageBus>
 
+function findPublishMessagePayload() {
+    for (const call of mockMessageBus.send.mock.calls) {
+        const payload = call[0]
+        if (isPublishMessage(payload)) {
+            return payload
+        }
+    }
+    throw new Error('expected PublishMessage')
+}
+
 const harnessValidOrderLine = {
     tropeAffinities: [{ trope: 'Contraption' as const, aptness: 'High' as const, narrowing: 'harness fixture' }],
     tropeAffinitiesFailed: false as const,
@@ -17,6 +27,7 @@ describe('runAcmeOrderAffinitiesHarness', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockMessageBus.send.mockReturnValue(undefined)
+        mockMessageBus.flush = jest.fn().mockResolvedValue(undefined)
     })
 
     it('runs parseCommand once per phrase and publishes one OOC message', async () => {
@@ -178,10 +189,7 @@ describe('runAcmeOrderAffinitiesHarness', () => {
 
         expect(parseCommandImpl).not.toHaveBeenCalled()
         expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
-        const payload = mockMessageBus.send.mock.calls[0][0]
-        if (!isPublishMessage(payload)) {
-            throw new Error('expected PublishMessage')
-        }
+        const payload = findPublishMessagePayload()
         if (!isPublishWorldLineMessage(payload)) {
             throw new Error('expected WorldMessage or WorldOOCMessage')
         }
@@ -219,10 +227,7 @@ describe('runAcmeOrderAffinitiesHarness', () => {
         })
 
         expect(parseCommandImpl).not.toHaveBeenCalled()
-        const payloadMsg = mockMessageBus.send.mock.calls[0][0]
-        if (!isPublishMessage(payloadMsg)) {
-            throw new Error('expected PublishMessage')
-        }
+        const payloadMsg = findPublishMessagePayload()
         if (!isPublishWorldLineMessage(payloadMsg)) {
             throw new Error('expected WorldMessage or WorldOOCMessage')
         }

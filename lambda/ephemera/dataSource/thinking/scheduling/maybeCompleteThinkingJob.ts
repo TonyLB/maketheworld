@@ -1,4 +1,8 @@
-import { jobEphemeraId, jobMetaDataCategory } from '@tonylb/mtw-gateways/ts/ephemera/thinking'
+import {
+    jobEphemeraId,
+    jobMetaDataCategory,
+    thinkingJobReadSnapshotToCompletedEvent,
+} from '@tonylb/mtw-gateways/ts/ephemera/thinking'
 import type { ThinkingJobReadSnapshot } from '@tonylb/mtw-gateways/ts/ephemera/thinking/fetch'
 import type { ThinkingJobCompletedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
 import {
@@ -98,12 +102,14 @@ export async function maybeCompleteThinkingJob(deps: {
 
     internalCache.ThinkingJobs.invalidate(generationId)
 
-    const completedEvent: ThinkingJobCompletedEvent = {
-        schemaVersion,
-        generationId,
+    const completedEvent = thinkingJobReadSnapshotToCompletedEvent({
+        ...snapshot,
         jobStatus: 'completed',
         completedAt,
-        schedules: snapshot.schedules,
+        schemaVersion,
+    })
+    if (!completedEvent) {
+        return 'noop'
     }
 
     await streamEvent({

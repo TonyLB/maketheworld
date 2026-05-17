@@ -5,6 +5,8 @@ import {
 } from './normalize'
 import type { ThinkingJobStatus, ThinkingResultEvent, ThinkingScheduleEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
 
+import type { QueryKeyProps, QueryPageEnvelope } from '@tonylb/mtw-utilities/ts/dynamoDB/mixins/query'
+
 import {
     jobEphemeraId,
     jobMetaDataCategory,
@@ -21,6 +23,7 @@ export type ThinkingJobReadSnapshot = {
     jobStatus: ThinkingJobStatus | null
     schemaVersion?: number
     createdAt?: string
+    completedAt?: string
     failedAt?: string
     errorCode?: string
     errorMessage?: string
@@ -64,23 +67,42 @@ const fetchSchedulesForWorkItemIds = async (
     return schedules
 }
 
+export type EphemeraThinkingReadDBQueryPage<Row extends Record<string, unknown>> = QueryPageEnvelope<Row>
+
+type EphemeraThinkingReadDBQueryExtendedProps = Partial<{
+    ProjectionFields: string[]
+    KeyConditionExpression: string
+    ExpressionAttributeValues: Record<string, unknown>
+    FilterExpression: string
+    allFields: boolean
+    /** Base-table queries only; ignored on GSI queries. */
+    ConsistentRead: boolean
+    pagination: { limit?: number; nextToken?: string } | true
+}>
+
+export type EphemeraThinkingReadDBQueryProps = QueryKeyProps<'EphemeraId', string> &
+    EphemeraThinkingReadDBQueryExtendedProps
+
 /**
  * Narrow store surface for thinking read gateway tests and production `ephemeraDB`.
  */
 export type EphemeraThinkingReadDB = {
-    query: <Row extends Record<string, unknown>>(props: {
-        Key: { EphemeraId: string }
-        KeyConditionExpression: string
-        ExpressionAttributeValues: Record<string, string>
-        allFields?: boolean
-        ProjectionFields?: string[]
-    }) => Promise<Row[]>
+    query: <Row extends Record<string, unknown>>(
+        props: EphemeraThinkingReadDBQueryProps
+    ) => Promise<Row[] | EphemeraThinkingReadDBQueryPage<Row>>
     getItem: <Row extends Record<string, unknown>>(props: {
         Key: { EphemeraId: string; DataCategory: string }
         getAllFields?: boolean
         ProjectionFields?: string[]
+        ConsistentRead?: boolean
     }) => Promise<Row | undefined>
 }
+
+const JOB_PARTITION_CONSISTENT_READ = { ConsistentRead: true as const }
+
+const asQueryRows = <Row extends Record<string, unknown>>(
+    result: Row[] | EphemeraThinkingReadDBQueryPage<Row>
+): Row[] => (Array.isArray(result) ? result : result.items)
 
 /**
  * Adjacency rows under **`JOB#${generationId}`** (`DataCategory` begins with **`TASK#`**).
@@ -90,12 +112,15 @@ export const queryTaskRowsForJob = async (
     db: EphemeraThinkingReadDB,
     generationId: string
 ): Promise<Record<string, unknown>[]> => {
-    return db.query({
-        Key: { EphemeraId: jobEphemeraId(generationId) },
-        KeyConditionExpression: 'begins_with(DataCategory, :taskPrefix)',
-        ExpressionAttributeValues: { ':taskPrefix': THINKING_TASK_DATA_CATEGORY_PREFIX },
-        allFields: true,
-    })
+    return asQueryRows(
+        await db.query({
+            Key: { EphemeraId: jobEphemeraId(generationId) },
+            KeyConditionExpression: 'begins_with(DataCategory, :taskPrefix)',
+            ExpressionAttributeValues: { ':taskPrefix': THINKING_TASK_DATA_CATEGORY_PREFIX },
+            allFields: true,
+            ...JOB_PARTITION_CONSISTENT_READ,
+        })
+    )
 }
 
 export const getTaskResultItem = async (
@@ -121,6 +146,7 @@ export const getTaskScheduleItem = async (
             DataCategory: thinkingScheduleMetaDataCategory(),
         },
         getAllFields: true,
+        ...JOB_PARTITION_CONSISTENT_READ,
     })
 }
 
@@ -137,6 +163,7 @@ export const getJobMetaItem = async (
             DataCategory: jobMetaDataCategory(),
         },
         getAllFields: true,
+        ...JOB_PARTITION_CONSISTENT_READ,
     })
 }
 
@@ -189,6 +216,7 @@ export const fetchThinkingJobSnapshot = async (
         jobStatus: meta?.jobStatus ?? null,
         ...(meta?.schemaVersion !== undefined ? { schemaVersion: meta.schemaVersion } : {}),
         ...(meta?.createdAt !== undefined ? { createdAt: meta.createdAt } : {}),
+        ...(meta?.completedAt !== undefined ? { completedAt: meta.completedAt } : {}),
         ...(meta?.failedAt !== undefined ? { failedAt: meta.failedAt } : {}),
         ...(meta?.errorCode !== undefined ? { errorCode: meta.errorCode } : {}),
         ...(meta?.errorMessage !== undefined ? { errorMessage: meta.errorMessage } : {}),

@@ -291,9 +291,12 @@ describe('ephemeraActionsDataSource', () => {
                 characterId: 'CHARACTER#123',
                 roomId: dest,
             })
-            expect(mockedParseCommand).toHaveBeenCalledWith(expect.objectContaining({
-                roomExits: [{ normalizedName: 'north', targetId: dest }],
-            }))
+            expect(mockedParseCommand).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    roomExits: [{ normalizedName: 'north', targetId: dest }],
+                }),
+                { messageBus: mockMessageBus }
+            )
             expect(mockMessageBus.send).toHaveBeenCalledWith({
                 type: 'ReturnValue',
                 body: {
@@ -530,11 +533,14 @@ describe('ephemeraActionsDataSource', () => {
             })
 
             expect(mockedCollectCoyoteOccupiedStableKeys).toHaveBeenCalledTimes(1)
-            expect(mockedParseCommand).toHaveBeenCalledWith({
-                command: 'order widget',
-                roomExits: [],
-                occupiedStableKeys: ['alpha', 'beta'],
-            })
+            expect(mockedParseCommand).toHaveBeenCalledWith(
+                {
+                    command: 'order widget',
+                    roomExits: [],
+                    occupiedStableKeys: ['alpha', 'beta'],
+                },
+                { messageBus: mockMessageBus }
+            )
         })
 
         it('publishes Acme Order streamEvent and WorldMessage delivery line when valid orders exist', async () => {

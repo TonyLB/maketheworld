@@ -1,4 +1,5 @@
 import {
+    buildThinkingCompletedJobsSnapshot,
     createThinkingJobReadCacheHandler,
     createThinkingResultReadCacheHandler,
     createThinkingScheduleReadCacheHandler,
@@ -12,10 +13,13 @@ import {
     jobMetaDataCategory,
     jobTaskAdjacencyDataCategory,
     listThinkingSchedulesForJob,
+    parseGenerationIdFromJobEphemeraId,
     parseWorkItemIdFromTaskEphemeraId,
+    queryCompletedJobGenerationIds,
     queryTaskRowsForJob,
     taskEphemeraId,
     thinkingJobMetaFromEphemeraItem,
+    thinkingJobReadSnapshotToCompletedEvent,
     thinkingResultMetaDataCategory,
     thinkingResultFromEphemeraItem,
     thinkingScheduleFromEphemeraItem,
@@ -40,6 +44,13 @@ describe('thinking ephemera gateway keys', () => {
         expect(parseWorkItemIdFromTaskEphemeraId('JOB#x')).toBeNull()
         expect(parseWorkItemIdFromTaskEphemeraId('TASK#')).toBeNull()
     })
+
+    it('parses generationId from job partition EphemeraId', () => {
+        const gen = '550e8400-e29b-41d4-a716-446655440000'
+        expect(parseGenerationIdFromJobEphemeraId(`JOB#${gen}`)).toBe(gen)
+        expect(parseGenerationIdFromJobEphemeraId('TASK#x')).toBeNull()
+        expect(parseGenerationIdFromJobEphemeraId('JOB#')).toBeNull()
+    })
 })
 
 describe('thinking ephemera gateway fetch', () => {
@@ -55,6 +66,7 @@ describe('thinking ephemera gateway fetch', () => {
             KeyConditionExpression: 'begins_with(DataCategory, :taskPrefix)',
             ExpressionAttributeValues: { ':taskPrefix': 'TASK#' },
             allFields: true,
+            ConsistentRead: true,
         })
     })
 
@@ -81,6 +93,7 @@ describe('thinking ephemera gateway fetch', () => {
         expect(db.getItem).toHaveBeenCalledWith({
             Key: { EphemeraId: `TASK#${wid}`, DataCategory: 'Meta::Schedule' },
             getAllFields: true,
+            ConsistentRead: true,
         })
     })
 
@@ -94,6 +107,7 @@ describe('thinking ephemera gateway fetch', () => {
         expect(db.getItem).toHaveBeenCalledWith({
             Key: { EphemeraId: `JOB#${gen}`, DataCategory: 'Meta::Job' },
             getAllFields: true,
+            ConsistentRead: true,
         })
         expect(row?.status).toBe('running')
     })
@@ -509,5 +523,169 @@ describe('createThinkingScheduleReadCacheHandler', () => {
         cache.clear()
         await cache.get('w')
         expect(db.getItem).toHaveBeenCalledTimes(2)
+    })
+})
+
+describe('queryCompletedJobGenerationIds', () => {
+    it('queries DataCategoryIndex for Meta::Job with completed filter and paginates', async () => {
+        const gen = '550e8400-e29b-41d4-a716-446655440000'
+        const db = {
+            query: jest
+                .fn()
+                .mockResolvedValueOnce({
+                    items: [{ EphemeraId: `JOB#${gen}`, DataCategory: 'Meta::Job', jobStatus: 'completed' }],
+                    nextToken: 'page-2',
+                })
+                .mockResolvedValueOnce({
+                    items: [{ EphemeraId: 'JOB#', DataCategory: 'Meta::Job', jobStatus: 'completed' }],
+                }),
+            getItem: jest.fn(),
+        }
+        const ids = await queryCompletedJobGenerationIds(db)
+        expect(ids).toEqual([gen])
+        expect(db.query).toHaveBeenNthCalledWith(1, {
+            IndexName: 'DataCategoryIndex',
+            Key: { DataCategory: 'Meta::Job' },
+            FilterExpression: 'jobStatus = :completed',
+            ExpressionAttributeValues: { ':completed': 'completed' },
+            allFields: true,
+            pagination: true,
+        })
+        expect(db.query).toHaveBeenNthCalledWith(2, expect.objectContaining({
+            pagination: { nextToken: 'page-2' },
+        }))
+    })
+})
+
+describe('thinkingJobReadSnapshotToCompletedEvent', () => {
+    const gen = '550e8400-e29b-41d4-a716-446655440000'
+    const wid = '660e8400-e29b-41d4-a716-446655440001'
+
+    it('returns Job Completed when snapshot is publishable', () => {
+        const event = thinkingJobReadSnapshotToCompletedEvent({
+            generationId: gen,
+            jobStatus: 'completed',
+            schemaVersion: 1,
+            completedAt: '2026-05-01T12:00:00.000Z',
+            workItemIds: [wid],
+            schedules: [
+                {
+                    schemaVersion: 1,
+                    generationId: gen,
+                    workItemId: wid,
+                    segment: 'candidates',
+                    scheduleStatus: 'completed',
+                },
+            ],
+        })
+        expect(event?.generationId).toBe(gen)
+        expect(event?.jobStatus).toBe('completed')
+    })
+
+    it('returns null when schedules are empty or job is not completed', () => {
+        expect(
+            thinkingJobReadSnapshotToCompletedEvent({
+                generationId: gen,
+                jobStatus: 'completed',
+                completedAt: '2026-05-01T12:00:00.000Z',
+                workItemIds: [],
+                schedules: [],
+            })
+        ).toBeNull()
+        expect(
+            thinkingJobReadSnapshotToCompletedEvent({
+                generationId: gen,
+                jobStatus: 'running',
+                completedAt: '2026-05-01T12:00:00.000Z',
+                workItemIds: [wid],
+                schedules: [
+                    {
+                        schemaVersion: 1,
+                        generationId: gen,
+                        workItemId: wid,
+                        segment: 'candidates',
+                        scheduleStatus: 'completed',
+                    },
+                ],
+            })
+        ).toBeNull()
+    })
+})
+
+describe('buildThinkingCompletedJobsSnapshot', () => {
+    const gen1 = '550e8400-e29b-41d4-a716-446655440000'
+    const gen2 = '660e8400-e29b-41d4-a716-446655440001'
+    const wid1 = '770e8400-e29b-41d4-a716-446655440002'
+    const wid2 = '880e8400-e29b-41d4-a716-446655440003'
+
+    it('builds completedJobs and replayAt from max completedAt', async () => {
+        const db = {
+            query: jest.fn().mockImplementation((props: { Key?: { EphemeraId?: string }; IndexName?: string }) => {
+                if (props.IndexName === 'DataCategoryIndex') {
+                    return Promise.resolve({
+                        items: [
+                            { EphemeraId: `JOB#${gen1}`, DataCategory: 'Meta::Job', jobStatus: 'completed' },
+                            { EphemeraId: `JOB#${gen2}`, DataCategory: 'Meta::Job', jobStatus: 'completed' },
+                        ],
+                    })
+                }
+                const generationId = props.Key?.EphemeraId?.replace(/^JOB#/, '') ?? gen1
+                const workItemId = generationId === gen1 ? wid1 : wid2
+                return Promise.resolve([{ EphemeraId: `JOB#${generationId}`, DataCategory: `TASK#${workItemId}` }])
+            }),
+            getItem: jest.fn().mockImplementation(({ Key }: { Key: { EphemeraId: string; DataCategory: string } }) => {
+                if (Key.DataCategory === 'Meta::Job') {
+                    const generationId = Key.EphemeraId.replace(/^JOB#/, '')
+                    const completedAt =
+                        generationId === gen1 ? '2026-05-01T10:00:00.000Z' : '2026-05-01T12:00:00.000Z'
+                    return Promise.resolve({
+                        EphemeraId: `JOB#${generationId}`,
+                        DataCategory: 'Meta::Job',
+                        schemaVersion: 1,
+                        generationId,
+                        jobStatus: 'completed',
+                        completedAt,
+                    })
+                }
+                if (Key.DataCategory === 'Meta::Schedule') {
+                    if (Key.EphemeraId === `TASK#${wid1}`) {
+                        return Promise.resolve({
+                            EphemeraId: `TASK#${wid1}`,
+                            DataCategory: 'Meta::Schedule',
+                            schemaVersion: 1,
+                            generationId: gen1,
+                            workItemId: wid1,
+                            segment: 'candidates',
+                            scheduleStatus: 'completed',
+                        })
+                    }
+                    if (Key.EphemeraId === `TASK#${wid2}`) {
+                        return Promise.resolve({
+                            EphemeraId: `TASK#${wid2}`,
+                            DataCategory: 'Meta::Schedule',
+                            schemaVersion: 1,
+                            generationId: gen2,
+                            workItemId: wid2,
+                            segment: 'candidates',
+                            scheduleStatus: 'completed',
+                        })
+                    }
+                }
+                return Promise.resolve(undefined)
+            }),
+        }
+
+        const snapshot = await buildThinkingCompletedJobsSnapshot(db)
+        expect(snapshot.completedJobs).toHaveLength(2)
+        expect(snapshot.replayAt).toBe(Date.parse('2026-05-01T12:00:00.000Z'))
+    })
+
+    it('returns empty completedJobs and replayAt 0 when index finds none', async () => {
+        const db = {
+            query: jest.fn().mockResolvedValue({ items: [] }),
+            getItem: jest.fn(),
+        }
+        const snapshot = await buildThinkingCompletedJobsSnapshot(db)
+        expect(snapshot).toEqual({ completedJobs: [], replayAt: 0 })
     })
 })

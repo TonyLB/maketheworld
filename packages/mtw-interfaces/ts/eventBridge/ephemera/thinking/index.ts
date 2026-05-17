@@ -37,9 +37,14 @@ export const THINKING_SCHEMA_VERSION_INITIAL = 1 as const
  * Neutral routing key for a work item (API / Dynamo denormalization / harness phase).
  * Spelling matches task-plan examples; server maps pipeline stages to these literals.
  */
-export type ThinkingSegment = 'candidates' | 'planSelect' | 'narrativeBeats'
+export type ThinkingSegment = 'candidates' | 'planSelect' | 'narrativeBeats' | 'acmeOrderEnrich'
 
-const THINKING_SEGMENTS: readonly ThinkingSegment[] = ['candidates', 'planSelect', 'narrativeBeats']
+const THINKING_SEGMENTS: readonly ThinkingSegment[] = [
+    'candidates',
+    'planSelect',
+    'narrativeBeats',
+    'acmeOrderEnrich',
+]
 
 export const isThinkingSegment = (value: unknown): value is ThinkingSegment =>
     typeof value === 'string' && (THINKING_SEGMENTS as readonly string[]).includes(value)
@@ -154,7 +159,7 @@ export type ThinkingEventUpdate = ThinkingScheduleEvent | ThinkingResultEvent | 
 
 /**
  * Subscribe-time snapshot for mtw.ephemera.thinking.scheduling (streamKey `global`).
- * MVP may ship an empty `completedJobs` list; replay supplies Job Completed events after subscribe.
+ * Built from completed `Meta::Job` rows in Dynamo; replay supplies `Job Completed` events after `replayAt`.
  */
 export type ThinkingCompletedJobsSnapshot = {
     completedJobs: ThinkingJobCompletedEvent[]

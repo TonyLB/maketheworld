@@ -1,11 +1,12 @@
+import { buildThinkingCompletedJobsSnapshot } from '@tonylb/mtw-gateways/ts/ephemera/thinking'
 import type { ThinkingCompletedJobsSnapshot } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 /**
  * Subscribe-time snapshot for streamKey `global`.
- * MVP returns an empty list; replay of stored Job Completed events supplies history after subscribe.
+ * Authoritative completed jobs from Dynamo; `replayAt` limits replay to newer stream events.
  */
 export const generateThinkingCompletedJobsSnapshot = async (
     _streamKey: string
-): Promise<ThinkingCompletedJobsSnapshot> => ({
-    completedJobs: [],
-})
+): Promise<ThinkingCompletedJobsSnapshot & { replayAt: number }> =>
+    buildThinkingCompletedJobsSnapshot(ephemeraDB)
