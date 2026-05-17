@@ -20,10 +20,11 @@ Current implementation:
 - [`acmeOrder/buildPrompt.ts`](./acmeOrder/buildPrompt.ts) - builds Bedrock enrich prompt parts.
 - [`acmeOrder/interpretAndFinalize.ts`](./acmeOrder/interpretAndFinalize.ts) - interprets enrich output and finalizes **`ParseCommandAcmeOrderResult`**.
 - [`acmeOrder/acmeOrderThinkingPersistence.ts`](./acmeOrder/acmeOrderThinkingPersistence.ts) - bootstrap / emit / finalize helpers for segment **`acmeOrderEnrich`** (`mtw.ephemera.actions` **`Thinking Result`** publisher).
-- [`acmeOrder/index.ts`](./acmeOrder/index.ts) - when **`EnrichAcmeOrderDeps.messageBus`** is set: **`bootstrapAcmeOrderThinkingAtRunStart`** at entry, **`emitAcmeOrderThinkingResult`** on successful invoke+parse, **`finalizeAcmeOrderThinkingOnFailure`** on placement cap, invoke/parse failure, or uncaught error. **`parseCommandCore`** forwards **`ParseCommandDeps.messageBus`** only (no duplicate lifecycle).
+- [`acmeOrder/index.ts`](./acmeOrder/index.ts) - orchestrates thinking lifecycle when **`EnrichAcmeOrderDeps.messageBus`** is set (see **Thinking** below).
 
 ## Notes
 
+- **Thinking:** lifecycle owner **`enrichAcmeOrder`**; steady-state keys, lanes, **`verbose`**, and failure **`errorCode`** mapping: **Acme order enrich thinking** in [`../thinking/AGENT.md`](../thinking/AGENT.md). **`parseCommandCore`** forwards **`ParseCommandDeps.messageBus`** only (no duplicate lifecycle).
 - Avoid importing `parseCommand` from enrich modules to prevent orchestration cycles.
 - Shared pure helper types may live under `actions/enrich/` if future enrich branches need common contracts.
 - **Tests:** unit helpers in [`acmeOrder/acmeOrderThinkingPersistence.test.ts`](./acmeOrder/acmeOrderThinkingPersistence.test.ts); end-to-end **`parseCommand` + `messageBus`** wiring in [`../parseCommand.test.ts`](../parseCommand.test.ts) (**`parseCommand Acme enrich thinking (messageBus)`**).
