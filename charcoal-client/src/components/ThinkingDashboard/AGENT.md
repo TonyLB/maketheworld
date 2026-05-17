@@ -16,7 +16,7 @@ From play, in **Command** mode, type **`/dashboard`** (leading slash required). 
 | --- | --- |
 | `ThinkingDashboardContainer.tsx` | Drawer (desktop) / full-screen Dialog (mobile); list vs detail body |
 | `CompletedJobsList.tsx` / `CompletedJobRow.tsx` | Completed jobs and clickable segment rows |
-| `ThinkingResultDetail.tsx` | Result fields + collapsible `verbose` JSON |
+| `ThinkingResultDetail.tsx` | Result fields + collapsible `verbose` JSON + copy to clipboard |
 
 ## Data
 

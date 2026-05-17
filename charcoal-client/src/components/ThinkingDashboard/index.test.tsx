@@ -3,11 +3,11 @@
  */
 
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
 import thunk from 'redux-thunk'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import '@testing-library/jest-dom'
 
 import { ThinkingDashboardContainer } from './ThinkingDashboardContainer'
@@ -78,7 +78,36 @@ const buildStore = (overrides: {
     })
 }
 
+const readyThinkingResultStore = () => buildStore({
+    jobs: [completedJob],
+    selectedWorkItemId: 'work-1',
+    thinkingResultsById: {
+        'work-1': {
+            internalData: { id: 'work-1', incrementalBackoff: 0.5 },
+            publicData: { result: thinkingResult },
+            meta: {
+                currentState: 'READY',
+                desiredStates: ['READY'],
+                inProgress: null,
+                onEnterPromises: {}
+            }
+        }
+    }
+})
+
+const writeText = vi.fn().mockResolvedValue(undefined)
+
 describe('ThinkingDashboardContainer', () => {
+    beforeEach(() => {
+        Object.assign(navigator, {
+            clipboard: { writeText }
+        })
+        writeText.mockClear()
+    })
+
+    afterEach(() => {
+        vi.useRealTimers()
+    })
     it('shows empty state when there are no completed jobs', () => {
         const store = buildStore({ jobs: [] })
         render(
@@ -188,5 +217,51 @@ describe('ThinkingDashboardContainer', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Back' }))
         const actions = store.getActions()
         expect(actions.some((a) => a.type === 'thinkingDashboard/clearThinkingResultSelection')).toBe(true)
+    })
+
+    it('copies pretty-printed verbose JSON to the clipboard', async () => {
+        const store = readyThinkingResultStore()
+        render(
+            <Provider store={store}>
+                <ThinkingDashboardContainer open={true} onClose={vi.fn()} />
+            </Provider>
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Show verbose' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Copy verbose JSON' }))
+        await waitFor(() => {
+            expect(writeText).toHaveBeenCalledTimes(1)
+        })
+        expect(writeText).toHaveBeenCalledWith(JSON.stringify(thinkingResult.verbose, null, 2))
+    })
+
+    it('shows Copied! feedback after copying verbose JSON', async () => {
+        const store = readyThinkingResultStore()
+        render(
+            <Provider store={store}>
+                <ThinkingDashboardContainer open={true} onClose={vi.fn()} />
+            </Provider>
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Show verbose' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Copy verbose JSON' }))
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'Copied to clipboard' })).toHaveTextContent('Copied!')
+        })
+    })
+
+    it('resets copy button label after feedback timeout', async () => {
+        const store = readyThinkingResultStore()
+        render(
+            <Provider store={store}>
+                <ThinkingDashboardContainer open={true} onClose={vi.fn()} />
+            </Provider>
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Show verbose' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Copy verbose JSON' }))
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'Copied to clipboard' })).toHaveTextContent('Copied!')
+        })
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'Copy verbose JSON' })).toHaveTextContent('Copy')
+        }, { timeout: 3000 })
     })
 })
