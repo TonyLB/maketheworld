@@ -26,3 +26,4 @@ Current implementation:
 
 - Avoid importing `parseCommand` from enrich modules to prevent orchestration cycles.
 - Shared pure helper types may live under `actions/enrich/` if future enrich branches need common contracts.
+- **Tests:** unit helpers in [`acmeOrder/acmeOrderThinkingPersistence.test.ts`](./acmeOrder/acmeOrderThinkingPersistence.test.ts); end-to-end **`parseCommand` + `messageBus`** wiring in [`../parseCommand.test.ts`](../parseCommand.test.ts) (**`parseCommand Acme enrich thinking (messageBus)`**).

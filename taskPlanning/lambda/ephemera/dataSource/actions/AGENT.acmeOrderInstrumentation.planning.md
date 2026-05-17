@@ -1,6 +1,6 @@
 # Actions: Acme Order Enrich thinking instrumentation (planning)
 
-**Status:** Phase A3 done. Next step: Phase A4 (integration tests + manual verification).
+**Status:** Phase A4 done (automated). Next step: Phase A5 (durable docs + closeout). Operator manual smoke on deployed/local stack still recommended before merge.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -76,7 +76,7 @@ Align with what the affinities harness already surfaces; store on **`Meta::Resul
 | A1 | Contracts: `ThinkingSegment`, results ingress | Done |
 | A2 | `acmeOrderThinkingPersistence` module + tests | Done |
 | A3 | Wire `parseCommand` / `enrichAcmeOrder` + `messageBus` | Done |
-| A4 | Integration tests + manual verification | Not started |
+| A4 | Integration tests + manual verification | Done (automated); operator dashboard smoke pending |
 | A5 | Durable docs + closeout | Not started |
 
 ## Getting started
@@ -116,18 +116,19 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] **`runAcmeOrderAffinitiesHarness`**: pass `messageBus` into **`enrichAcmeOrder`** for **`enrichOnly`** and full-parse paths so harness runs appear in **`/dashboard`**.
   - [X] Do not attach reasoning markdown to **`AcmeOrder`** bus payload (unchanged product contract); thinking **`verbose`** holds operator diagnostics (full **`occupiedStableKeys`** list).
 
-- [ ] Phase A4 - verification
-  - [ ] Extend [`parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts) (and/or new `acmeOrderThinkingPersistence.test.ts`) with messageBus mocks asserting Put Thinking Job Create, Thinking Result, Put Thinking Schedule, Put Thinking Job Error call order.
-  - [ ] Run targeted suites from `lambda/ephemera/`:
+- [X] Phase A4 - verification
+  - [X] Extend [`parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts) with messageBus mocks in **`parseCommand Acme enrich thinking (messageBus)`** (success, placement cap, invoke fail, parse fail, no bus, non-Acme guard). Persistence unit coverage remains in [`acmeOrderThinkingPersistence.test.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/acmeOrder/acmeOrderThinkingPersistence.test.ts).
+  - [X] Run targeted suites from `lambda/ephemera/` (and interfaces package for thinking contracts):
 
 ```bash
 npm run test -- --watchAll=false dataSource/actions/enrich/acmeOrder/acmeOrderThinkingPersistence.test.ts
 npm run test -- --watchAll=false dataSource/actions/parseCommand.test.ts
 npm run test -- --watchAll=false dataSource/thinking/results/index.test.ts
-npm run test -- --watchAll=false packages/mtw-interfaces/ts/eventBridge/ephemera/thinking/index.test.ts
+# from packages/mtw-interfaces/
+npm run test -- --watchAll=false ts/eventBridge/ephemera/thinking/index.test.ts
 ```
 
-  - [ ] Manual smoke (deployed or local stack): issue an Acme order command, open **`/dashboard`**, confirm **`acmeOrderEnrich`** segment and **`verbose`** drill-down.
+  - [ ] Manual smoke (deployed or local stack): issue an Acme order command, open **`/dashboard`**, confirm **`acmeOrderEnrich`** segment and **`verbose`** drill-down. (Not run in agent session; use **Verification** operator checklist below.)
 
 - [ ] Phase A5 - closeout
   - [ ] Add **Acme order enrich thinking** subsection to [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md) (bootstrap hook, segment, publisher key, failure notes).
