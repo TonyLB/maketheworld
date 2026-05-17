@@ -14,6 +14,8 @@ import {
     bootstrapHypothesisThinkingAtRunStart,
     buildCandidatesThinkingResultVerbose,
     buildHypothesisFailureVerbose,
+    buildNarrativeBeatsThinkingResultVerbose,
+    buildPlanSelectThinkingResultVerbose,
     deriveHypothesisFailureErrorCode,
     emitHypothesisThinkingResult,
     finalizeHypothesisThinkingOnRunFailure,
@@ -424,6 +426,52 @@ describe('hypothesisThinkingPersistence', () => {
         })
     })
 
+    describe('verbose builders bedrockPrompt', () => {
+        const promptParts = { invariantPrefix: 'INV_', dynamicSuffix: 'DYN' }
+
+        it('buildCandidatesThinkingResultVerbose includes bedrockPrompt from stageOnePromptParts', () => {
+            const verbose = buildCandidatesThinkingResultVerbose({
+                roomObjectsByRoom: { 'ROOM#VORTEX': [] },
+                stageOneResult: { success: false, errorMessage: 'fail' },
+                combined: { candidates: [] },
+                stageOnePromptParts: promptParts,
+            })
+            expect(verbose.bedrockPrompt?.fullText).toBe('INV_DYN')
+        })
+
+        it('buildPlanSelectThinkingResultVerbose includes bedrockPrompt from planSelectPromptParts', () => {
+            const verbose = buildPlanSelectThinkingResultVerbose({
+                roomObjectsByRoom: { 'ROOM#VORTEX': [] },
+                combined: { candidates: [] },
+                planSelectionResult: { success: true, body: '{}', usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 } },
+                planSelectOutput: { paragraphSummary: 'x', planIssues: [] },
+                selectionBody: '{}',
+                planSelectPromptParts: promptParts,
+            })
+            expect(verbose.bedrockPrompt?.fullText).toBe('INV_DYN')
+        })
+
+        it('buildNarrativeBeatsThinkingResultVerbose includes bedrockPrompt from narrativeBeatPromptParts', () => {
+            const verbose = buildNarrativeBeatsThinkingResultVerbose({
+                roomObjectsByRoom: { 'ROOM#VORTEX': [] },
+                planSelectOutput: {
+                    paragraphSummary: 'x',
+                    planIssues: [],
+                    selectedCandidate: {
+                        candidateId: 'c1',
+                        executionSummary: 'summary',
+                        tropeAssignments: {},
+                        outliers: [],
+                    },
+                },
+                narrativeBeatResult: { success: true, body: 'Hypothesis: test', usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 } },
+                record: { intent: 'Hypothesis: test' },
+                narrativeBeatPromptParts: promptParts,
+            })
+            expect(verbose.bedrockPrompt?.fullText).toBe('INV_DYN')
+        })
+    })
+
     describe('buildHypothesisFailureVerbose', () => {
         it('builds minimal candidates verbose when stageOneResult is missing', () => {
             const verbose = buildHypothesisFailureVerbose(
@@ -434,6 +482,21 @@ describe('hypothesisThinkingPersistence', () => {
             expect(verbose).toMatchObject({
                 roomObjectsByRoom: { 'ROOM#VORTEX': [] },
                 failedStepName: 'loadRoomObjects',
+            })
+        })
+
+        it('includes bedrockPrompt on candidates fallback when stageOnePromptParts exist', () => {
+            const verbose = buildHypothesisFailureVerbose(
+                {
+                    roomObjectsByRoom: { 'ROOM#VORTEX': [] },
+                    stageOnePromptParts: { invariantPrefix: 'A', dynamicSuffix: 'B' },
+                },
+                'candidates',
+                'hypothesisCandidatesLlm'
+            )
+            expect(verbose).toMatchObject({
+                failedStepName: 'hypothesisCandidatesLlm',
+                bedrockPrompt: { invariantPrefix: 'A', dynamicSuffix: 'B', fullText: 'AB' },
             })
         })
     })

@@ -10,7 +10,11 @@ import {
 } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
 import { v4 as uuidv4 } from 'uuid'
 
-import type { InvokeBedrockAcmeOrderEnrichResult } from '../../../../generateExample/invokeBedrockAcmeOrderEnrich'
+import type {
+    InvokeBedrockAcmeOrderEnrichResult,
+    ParseAcmeOrderEnrichPromptParts,
+} from '../../../../generateExample/invokeBedrockAcmeOrderEnrich'
+import { bedrockPromptForVerbose } from '../../../../llm/bedrockPromptForVerbose'
 import type { StreamingEventMessage, MessageBus } from '../../../../messageBus/baseClasses'
 import type { ParseCommandAcmeOrderResult, ParseCommandErrorResult } from '../../baseClasses'
 import {
@@ -66,6 +70,7 @@ export type AcmeOrderEnrichThinkingVerboseInput = {
     occupiedStableKeys?: readonly string[]
     intentRawOrders?: readonly string[]
     intentConfidence?: number
+    enrichPromptParts?: ParseAcmeOrderEnrichPromptParts
     enrichInvoke?: InvokeBedrockAcmeOrderEnrichResult
     enrichRawBody?: string
     enrichReasoningMarkdown?: string
@@ -138,6 +143,9 @@ function baseVerboseFields(input: AcmeOrderEnrichThinkingVerboseInput): AcmeOrde
     }
     if (input.intentConfidence !== undefined) {
         verbose.intentConfidence = input.intentConfidence
+    }
+    if (input.enrichPromptParts !== undefined) {
+        verbose.bedrockPrompt = bedrockPromptForVerbose(input.enrichPromptParts)
     }
     if (input.enrichInvoke !== undefined) {
         verbose.enrichInvoke = summarizeAcmeEnrichInvokeForVerbose(input.enrichInvoke)

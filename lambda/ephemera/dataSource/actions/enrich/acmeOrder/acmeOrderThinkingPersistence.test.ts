@@ -14,6 +14,7 @@ import {
     acmeOrderEnrichErrorCodeForFailureKind,
     bootstrapAcmeOrderThinkingAtRunStart,
     buildAcmeOrderEnrichFailureVerbose,
+    buildAcmeOrderEnrichSuccessVerbose,
     emitAcmeOrderThinkingResult,
     finalizeAcmeOrderThinkingOnFailure,
     mintAcmeOrderThinkingIds,
@@ -81,6 +82,23 @@ describe('acmeOrderThinkingPersistence', () => {
         })
     })
 
+    describe('buildAcmeOrderEnrichSuccessVerbose', () => {
+        it('includes bedrockPrompt when enrichPromptParts are provided', () => {
+            const verbose = buildAcmeOrderEnrichSuccessVerbose({
+                command: 'order rope',
+                enrichPromptParts: {
+                    invariantPrefix: 'STATIC_',
+                    dynamicSuffix: 'DYNAMIC',
+                },
+            })
+            expect(verbose.bedrockPrompt).toEqual({
+                invariantPrefix: 'STATIC_',
+                dynamicSuffix: 'DYNAMIC',
+                fullText: 'STATIC_DYNAMIC',
+            })
+        })
+    })
+
     describe('buildAcmeOrderEnrichFailureVerbose', () => {
         it('includes full occupiedStableKeys and cap fields for placement cap failures', () => {
             const verbose = buildAcmeOrderEnrichFailureVerbose({
@@ -95,6 +113,25 @@ describe('acmeOrderThinkingPersistence', () => {
                 placedObjectsCount: 21,
                 placementCap: 20,
                 resultType: 'Error',
+            })
+            expect(verbose.bedrockPrompt).toBeUndefined()
+        })
+
+        it('includes bedrockPrompt when enrichPromptParts are provided', () => {
+            const verbose = buildAcmeOrderEnrichFailureVerbose({
+                command: 'order rope',
+                enrichPromptParts: {
+                    invariantPrefix: 'RULES',
+                    dynamicSuffix: '## Player command\n\norder rope',
+                },
+                enrichInvoke: { success: false, errorMessage: 'timeout' },
+            })
+            expect(verbose).toMatchObject({
+                bedrockPrompt: {
+                    invariantPrefix: 'RULES',
+                    dynamicSuffix: '## Player command\n\norder rope',
+                    fullText: 'RULES## Player command\n\norder rope',
+                },
             })
         })
     })
