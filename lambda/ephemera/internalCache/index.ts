@@ -42,10 +42,11 @@ import { RenderCacheData } from './renderCache';
 import ConversationsData from './conversations';
 import PerceptionThreadsData from './perceptionThreads';
 import CacheCoyoteGameData from './coyoteGame';
-import { generateHypothesis } from '../dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis';
-import { generatePlanOutcome } from '../dataSource/coyoteGame/generators/pipelines/outcome/generatePlanOutcome';
-import messageBus from '../messageBus';
+import type { MessageBus } from '../messageBus/baseClasses';
 import GenerationContextData from './generationContext';
+
+/** Deferred requires break internalCache <-> messageBus init cycle (FetchPlayerEphemera subscribe). */
+const getMessageBus = (): MessageBus => require('../messageBus').default as MessageBus
 
 const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>()(withGetOperations<'PrimaryKey', string>()(DBHandlerBase)))({
     client: assetDB._client,
@@ -94,18 +95,23 @@ export class InternalCache {
 
     constructor() {
         this.CoyoteGame = new CacheCoyoteGameData({
-            generateIntent: () =>
-                generateHypothesis({
+            generateIntent: () => {
+                const { generateHypothesis } = require('../dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis') as typeof import('../dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis')
+                return generateHypothesis({
                     getGameRooms: () => this.CoyoteGame.get('gameRooms'),
                     getRoomMeta: (roomId) => this.ComponentEphemeraMeta.get(roomId),
-                    messageBus,
-                }),
+                    messageBus: getMessageBus(),
+                })
+            },
             // Outcome reuses the same `CoyoteGame.get('intent')` record (intent, walkthrough, phasePlan) as hypothesis; no second intent fetch.
-            generateOutcome: () => generatePlanOutcome({
-                getGameRooms: () => this.CoyoteGame.get('gameRooms'),
-                getRoomMeta: (roomId) => this.ComponentEphemeraMeta.get(roomId),
-                getIntentRecord: () => this.CoyoteGame.get('intent'),
-            }),
+            generateOutcome: () => {
+                const { generatePlanOutcome } = require('../dataSource/coyoteGame/generators/pipelines/outcome/generatePlanOutcome') as typeof import('../dataSource/coyoteGame/generators/pipelines/outcome/generatePlanOutcome')
+                return generatePlanOutcome({
+                    getGameRooms: () => this.CoyoteGame.get('gameRooms'),
+                    getRoomMeta: (roomId) => this.ComponentEphemeraMeta.get(roomId),
+                    getIntentRecord: () => this.CoyoteGame.get('intent'),
+                })
+            },
         })
         this.PlayerMeta = new CachePlayerMetaData(this.Global)
         this._graphCache = new (GraphCache(graphDBHandler)(GraphEdge(graphDBHandler)(GraphNode(graphDBHandler)(GraphCacheBase))))()

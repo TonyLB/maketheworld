@@ -3,8 +3,11 @@ import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta';
 import type { ThinkingSegment } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking';
 
 import type { CoyoteGameIntentRecord } from '../../../../../internalCache/coyoteGame';
-import messageBus from '../../../../../messageBus';
 import type { MessageBus } from '../../../../../messageBus/baseClasses';
+
+/** Deferred require breaks internalCache -> generateHypothesis -> messageBus init cycle. */
+const getDefaultMessageBus = (): Pick<MessageBus, 'send' | 'flush'> =>
+    require('../../../../../messageBus').default as MessageBus
 import {
     createPipelineContext,
     type PipelineRunFailure,
@@ -245,7 +248,7 @@ async function emitThinkingResultForSegmentIfActive(
     if (!activeThinkingSegmentsForRun(thinkingHarness).includes(segment)) {
         return;
     }
-    const bus = deps.messageBus ?? messageBus;
+    const bus = deps.messageBus ?? getDefaultMessageBus();
     await emitHypothesisThinkingResult({ messageBus: bus }, thinking, segment, { ok: true, verbose });
 }
 
@@ -698,7 +701,10 @@ export async function runCoyoteHypothesisPipeline(
             harnessRunKind: harnessOptions.harnessRunKind,
         };
         mapContext = {
-            harness: thinkingHarness,
+            harness: {
+                testOnly: harnessOptions.testOnly,
+                harnessRunKind: harnessOptions.harnessRunKind,
+            },
         };
     }
 
@@ -712,7 +718,7 @@ export async function runCoyoteHypothesisPipeline(
         }
     }
 
-    const bus = deps.messageBus ?? messageBus;
+    const bus = deps.messageBus ?? getDefaultMessageBus();
     const thinkingIds = await bootstrapHypothesisThinkingAtRunStart(
         { messageBus: bus },
         harnessOptions !== undefined
