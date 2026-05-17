@@ -159,7 +159,7 @@ export type ThinkingEventUpdate = ThinkingScheduleEvent | ThinkingResultEvent | 
 
 /**
  * Subscribe-time snapshot for mtw.ephemera.thinking.scheduling (streamKey `global`).
- * MVP may ship an empty `completedJobs` list; replay supplies Job Completed events after subscribe.
+ * Built from completed `Meta::Job` rows in Dynamo; replay supplies `Job Completed` events after `replayAt`.
  */
 export type ThinkingCompletedJobsSnapshot = {
     completedJobs: ThinkingJobCompletedEvent[]
