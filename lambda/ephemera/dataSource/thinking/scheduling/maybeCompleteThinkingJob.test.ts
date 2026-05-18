@@ -169,11 +169,12 @@ describe('maybeCompleteThinkingJob', () => {
             DataCategory: 'Meta::Job',
         })
         expect(updateCall.priorFetch).toEqual(metaJobRow)
-        expect(updateCall.updateKeys).toEqual(['jobStatus', 'completedAt', 'schemaVersion'])
+        expect(updateCall.updateKeys).toEqual(['jobStatus', 'completedAt', 'schemaVersion', 'deleteAt'])
         const draft: Record<string, unknown> = { ...metaJobRow }
         updateCall.updateReducer(draft)
         expect(draft.jobStatus).toBe('completed')
         expect(draft.completedAt).toEqual(expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/))
+        expect(draft.deleteAt).toEqual(expect.any(Number))
 
         expect(internalCache.ThinkingJobs.invalidate).toHaveBeenCalledWith(generationId)
 

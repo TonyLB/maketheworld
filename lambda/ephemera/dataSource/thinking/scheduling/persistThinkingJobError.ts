@@ -1,9 +1,15 @@
-import { jobEphemeraId, jobMetaDataCategory } from '@tonylb/mtw-gateways/ts/ephemera/thinking'
+import {
+    jobEphemeraId,
+    jobMetaDataCategory,
+    thinkingDeleteAtFromTerminalIso,
+} from '@tonylb/mtw-gateways/ts/ephemera/thinking'
 import type { ThinkingJobErrorEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
 import { isThinkingJobErrorEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 import internalCache from '../../../internalCache'
+
+import { cancelThinkingScheduleWithRetention } from './cancelThinkingScheduleWithRetention'
 
 export type PersistThinkingJobErrorOutcome = 'written' | 'invalidPayload'
 
@@ -19,6 +25,7 @@ type ThinkingMetaJobRow = {
     errorCode?: string;
     errorMessage?: string;
     lastFailedWorkItemId?: string;
+    deleteAt?: number;
 }
 
 const metaJobKey = (generationId: string) => ({
@@ -26,8 +33,10 @@ const metaJobKey = (generationId: string) => ({
     DataCategory: jobMetaDataCategory(),
 })
 
+const IN_FLIGHT_SCHEDULE_STATUSES = new Set<string>(['scheduled', 'claimed'])
+
 function jobErrorUpdateKeys(event: ThinkingJobErrorEvent): string[] {
-    const keys = ['jobStatus', 'failedAt', 'schemaVersion']
+    const keys = ['jobStatus', 'failedAt', 'schemaVersion', 'deleteAt']
     if (event.errorCode !== undefined) {
         keys.push('errorCode')
     }
@@ -42,14 +51,22 @@ function jobErrorUpdateKeys(event: ThinkingJobErrorEvent): string[] {
 
 /**
  * Run-level failure on `Meta::Job`. Expects **Put Thinking Job Create** to have run first for this
- * `generationId`. Uses **`optimisticUpdate`** so concurrent writers retry on conflict. If the row is
- * missing, no-ops without writing a partial item.
+ * `generationId`. Cancels outstanding in-flight schedules, then uses **`optimisticUpdate`** so
+ * concurrent writers retry on conflict. If the row is missing, no-ops without writing a partial item.
  */
 export async function persistThinkingJobError(payload: unknown): Promise<PersistThinkingJobErrorOutcome> {
     if (!isThinkingJobErrorEvent(payload)) {
         return 'invalidPayload'
     }
     const event = payload
+
+    const snapshot = await internalCache.ThinkingJobs.get(event.generationId)
+    const cancelTasks = snapshot.schedules
+        .filter((schedule) => IN_FLIGHT_SCHEDULE_STATUSES.has(schedule.scheduleStatus))
+        .map((schedule) => cancelThinkingScheduleWithRetention(schedule, event.failedAt))
+    if (cancelTasks.length > 0) {
+        await Promise.all(cancelTasks)
+    }
 
     const key = metaJobKey(event.generationId)
     const existing = await ephemeraDB.getItem<ThinkingMetaJobRow>({
@@ -60,6 +77,8 @@ export async function persistThinkingJobError(payload: unknown): Promise<Persist
         return 'written'
     }
 
+    const deleteAt = thinkingDeleteAtFromTerminalIso(event.failedAt)
+
     await ephemeraDB.optimisticUpdate({
         Key: key,
         priorFetch: existing,
@@ -68,6 +87,7 @@ export async function persistThinkingJobError(payload: unknown): Promise<Persist
             draft.jobStatus = event.jobStatus
             draft.failedAt = event.failedAt
             draft.schemaVersion = event.schemaVersion
+            draft.deleteAt = deleteAt
             if (event.errorCode !== undefined) {
                 draft.errorCode = event.errorCode
             }

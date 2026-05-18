@@ -1039,6 +1039,9 @@ Resources:
         TableName: !Sub '${TablePrefix}_ephemera'
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
+        TimeToLiveSpecification:
+          AttributeName: deleteAt
+          Enabled: true
   ConnectionsTable:
       Type: AWS::DynamoDB::Table
       Properties:

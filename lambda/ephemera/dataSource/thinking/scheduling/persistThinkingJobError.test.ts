@@ -10,15 +10,23 @@ jest.mock('../../../internalCache', () => ({
     __esModule: true,
     default: {
         ThinkingJobs: {
+            get: jest.fn(),
+            invalidate: jest.fn(),
+        },
+        ThinkingSchedules: {
             invalidate: jest.fn(),
         },
     },
+}))
+jest.mock('./cancelThinkingScheduleWithRetention', () => ({
+    cancelThinkingScheduleWithRetention: jest.fn(),
 }))
 
 import internalCache from '../../../internalCache'
 
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
+import { cancelThinkingScheduleWithRetention } from './cancelThinkingScheduleWithRetention'
 import { persistThinkingJobError } from './persistThinkingJobError'
 
 const baseError = {
@@ -37,9 +45,29 @@ const existingJobRow = {
     createdAt: '2025-12-31T00:00:00.000Z',
 }
 
+const scheduledWorkItem = {
+    schemaVersion: 1,
+    generationId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+    workItemId: '11111111-2222-3333-4444-555555555555',
+    segment: 'candidates' as const,
+    scheduleStatus: 'scheduled' as const,
+    enqueuedAt: '2025-12-31T00:00:00.000Z',
+}
+
+const jobSnapshot = {
+    generationId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+    jobStatus: 'running' as const,
+    schemaVersion: 1,
+    completedAt: null,
+    workItemIds: [scheduledWorkItem.workItemId],
+    schedules: [scheduledWorkItem],
+}
+
 describe('persistThinkingJobError', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        ;(internalCache.ThinkingJobs.get as jest.Mock).mockResolvedValue(jobSnapshot)
+        ;(cancelThinkingScheduleWithRetention as jest.Mock).mockResolvedValue(undefined)
         ;(ephemeraDB.getItem as jest.Mock).mockResolvedValue(existingJobRow)
         ;(ephemeraDB.optimisticUpdate as jest.Mock).mockResolvedValue(undefined)
     })
@@ -81,13 +109,14 @@ describe('persistThinkingJobError', () => {
             DataCategory: 'Meta::Job',
         })
         expect(call.priorFetch).toEqual(existingJobRow)
-        expect(call.updateKeys).toEqual(['jobStatus', 'failedAt', 'schemaVersion'])
+        expect(call.updateKeys).toEqual(['jobStatus', 'failedAt', 'schemaVersion', 'deleteAt'])
         const draft: Record<string, unknown> = { ...existingJobRow }
         call.updateReducer(draft)
         expect(draft).toMatchObject({
             jobStatus: 'failed',
             failedAt: baseError.failedAt,
             schemaVersion: 1,
+            deleteAt: expect.any(Number),
         })
         expect(internalCache.ThinkingJobs.invalidate).toHaveBeenCalledWith(baseError.generationId)
     })
@@ -104,6 +133,7 @@ describe('persistThinkingJobError', () => {
             'jobStatus',
             'failedAt',
             'schemaVersion',
+            'deleteAt',
             'errorCode',
             'errorMessage',
             'lastFailedWorkItemId',
@@ -115,5 +145,25 @@ describe('persistThinkingJobError', () => {
             errorMessage: 'boom',
             lastFailedWorkItemId: '11111111-2222-3333-4444-555555555555',
         })
+    })
+
+    it('cancels in-flight schedules before updating Meta::Job', async () => {
+        await persistThinkingJobError(baseError)
+        expect(cancelThinkingScheduleWithRetention).toHaveBeenCalledWith(
+            scheduledWorkItem,
+            baseError.failedAt
+        )
+    })
+
+    it('does not cancel completed or cancelled schedules', async () => {
+        ;(internalCache.ThinkingJobs.get as jest.Mock).mockResolvedValue({
+            ...jobSnapshot,
+            schedules: [
+                { ...scheduledWorkItem, scheduleStatus: 'completed' },
+                { ...scheduledWorkItem, workItemId: '22222222-3333-4444-5555-666666666666', scheduleStatus: 'cancelled' },
+            ],
+        })
+        await persistThinkingJobError(baseError)
+        expect(cancelThinkingScheduleWithRetention).not.toHaveBeenCalled()
     })
 })

@@ -546,8 +546,11 @@ describe('queryCompletedJobGenerationIds', () => {
         expect(db.query).toHaveBeenNthCalledWith(1, {
             IndexName: 'DataCategoryIndex',
             Key: { DataCategory: 'Meta::Job' },
-            FilterExpression: 'jobStatus = :completed',
-            ExpressionAttributeValues: { ':completed': 'completed' },
+            FilterExpression: 'jobStatus = :completed AND completedAt > :cutoff',
+            ExpressionAttributeValues: {
+                ':completed': 'completed',
+                ':cutoff': expect.any(String),
+            },
             allFields: true,
             pagination: true,
         })
