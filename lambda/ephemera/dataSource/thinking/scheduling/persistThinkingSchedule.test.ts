@@ -1,4 +1,11 @@
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
+jest.mock('@tonylb/mtw-gateways/ts/ephemera/thinking', () => {
+    const actual = jest.requireActual('@tonylb/mtw-gateways/ts/ephemera/thinking')
+    return {
+        ...actual,
+        thinkingDeleteAtFromTerminalIso: jest.fn(() => 1735689600),
+    }
+})
 jest.mock('../../../internalCache', () => ({
     __esModule: true,
     default: {
@@ -44,7 +51,7 @@ describe('persistThinkingSchedule', () => {
             EphemeraId: 'JOB#aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
             DataCategory: 'TASK#11111111-2222-3333-4444-555555555555',
         })
-        expect(ephemeraDB.putItem).toHaveBeenNthCalledWith(2, {
+        expect(ephemeraDB.putItem).toHaveBeenNthCalledWith(2, expect.objectContaining({
             EphemeraId: 'TASK#11111111-2222-3333-4444-555555555555',
             DataCategory: 'Meta::Schedule',
             schemaVersion: 1,
@@ -52,7 +59,8 @@ describe('persistThinkingSchedule', () => {
             workItemId: validEvent.workItemId,
             segment: 'candidates',
             scheduleStatus: 'scheduled',
-        })
+        }))
+        expect(ephemeraDB.putItem).toHaveBeenNthCalledWith(2, expect.not.objectContaining({ deleteAt: expect.anything() }))
         expect(internalCache.ThinkingSchedules.invalidate).toHaveBeenCalledWith(validEvent.workItemId)
         expect(internalCache.ThinkingJobs.invalidate).toHaveBeenCalledWith(validEvent.generationId)
     })
@@ -75,6 +83,22 @@ describe('persistThinkingSchedule', () => {
         expect(ephemeraDB.putItem).toHaveBeenNthCalledWith(
             2,
             expect.objectContaining({ scheduleStatus: 'claimed' })
+        )
+        expect(ephemeraDB.putItem).toHaveBeenNthCalledWith(
+            2,
+            expect.not.objectContaining({ deleteAt: expect.anything() })
+        )
+    })
+
+    it('sets deleteAt on terminal schedule status completed', async () => {
+        await persistThinkingSchedule({ ...validEvent, scheduleStatus: 'completed' })
+        expect(ephemeraDB.putItem).toHaveBeenNthCalledWith(
+            1,
+            expect.objectContaining({ deleteAt: 1735689600 })
+        )
+        expect(ephemeraDB.putItem).toHaveBeenNthCalledWith(
+            2,
+            expect.objectContaining({ scheduleStatus: 'completed', deleteAt: 1735689600 })
         )
     })
 })

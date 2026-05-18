@@ -1,4 +1,11 @@
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
+jest.mock('@tonylb/mtw-gateways/ts/ephemera/thinking', () => {
+    const actual = jest.requireActual('@tonylb/mtw-gateways/ts/ephemera/thinking')
+    return {
+        ...actual,
+        thinkingDeleteAtFromTerminalIso: jest.fn(() => 1735689600),
+    }
+})
 jest.mock('../../../internalCache', () => ({
     __esModule: true,
     default: {
@@ -41,6 +48,7 @@ describe('persistThinkingResult', () => {
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
             EphemeraId: 'JOB#aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
             DataCategory: 'TASK#11111111-2222-3333-4444-555555555555',
+            deleteAt: 1735689600,
         })
         expect(ephemeraDB.nonCollidingPutItem).toHaveBeenCalledWith({
             EphemeraId: 'TASK#11111111-2222-3333-4444-555555555555',
@@ -51,6 +59,7 @@ describe('persistThinkingResult', () => {
             segment: 'candidates',
             ok: true,
             completedAt: validEvent.completedAt,
+            deleteAt: 1735689600,
         })
         expect(internalCache.ThinkingResults.invalidate).toHaveBeenCalledWith(validEvent.workItemId)
     })

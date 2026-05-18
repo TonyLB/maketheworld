@@ -1,7 +1,9 @@
 import {
+    isTerminalThinkingScheduleStatus,
     jobEphemeraId,
     jobTaskAdjacencyDataCategory,
     taskEphemeraId,
+    thinkingDeleteAtFromTerminalIso,
     thinkingScheduleMetaDataCategory,
 } from '@tonylb/mtw-gateways/ts/ephemera/thinking'
 import { isThinkingScheduleEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
@@ -20,9 +22,14 @@ export async function persistThinkingSchedule(payload: unknown): Promise<Persist
         return 'invalidPayload'
     }
     const event = payload
+    const terminalRetention =
+        isTerminalThinkingScheduleStatus(event.scheduleStatus)
+            ? { deleteAt: thinkingDeleteAtFromTerminalIso(new Date().toISOString()) }
+            : {}
     await ephemeraDB.putItem({
         EphemeraId: jobEphemeraId(event.generationId),
         DataCategory: jobTaskAdjacencyDataCategory(event.workItemId),
+        ...terminalRetention,
     })
     const item = {
         EphemeraId: taskEphemeraId(event.workItemId),
@@ -32,6 +39,7 @@ export async function persistThinkingSchedule(payload: unknown): Promise<Persist
         workItemId: event.workItemId,
         segment: event.segment,
         scheduleStatus: event.scheduleStatus,
+        ...terminalRetention,
         ...(event.enqueuedAt !== undefined ? { enqueuedAt: event.enqueuedAt } : {}),
     }
     await ephemeraDB.putItem(item)

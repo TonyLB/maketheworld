@@ -1,6 +1,7 @@
 import {
     jobEphemeraId,
     jobMetaDataCategory,
+    thinkingDeleteAtFromTerminalIso,
     thinkingJobReadSnapshotToCompletedEvent,
 } from '@tonylb/mtw-gateways/ts/ephemera/thinking'
 import type { ThinkingJobReadSnapshot } from '@tonylb/mtw-gateways/ts/ephemera/thinking/fetch'
@@ -29,6 +30,7 @@ type ThinkingMetaJobRow = {
     createdAt?: string
     completedAt?: string
     failedAt?: string
+    deleteAt?: number
     errorCode?: string
     errorMessage?: string
     lastFailedWorkItemId?: string
@@ -86,17 +88,19 @@ export async function maybeCompleteThinkingJob(deps: {
     }
 
     const completedAt = new Date().toISOString()
+    const deleteAt = thinkingDeleteAtFromTerminalIso(completedAt)
     const schemaVersion =
         snapshot.schemaVersion ?? existing.schemaVersion ?? THINKING_SCHEMA_VERSION_INITIAL
 
     await ephemeraDB.optimisticUpdate({
         Key: key,
         priorFetch: existing,
-        updateKeys: ['jobStatus', 'completedAt', 'schemaVersion'],
+        updateKeys: ['jobStatus', 'completedAt', 'schemaVersion', 'deleteAt'],
         updateReducer: (draft) => {
             draft.jobStatus = 'completed'
             draft.completedAt = completedAt
             draft.schemaVersion = schemaVersion
+            draft.deleteAt = deleteAt
         },
     })
 

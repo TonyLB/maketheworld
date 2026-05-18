@@ -44,6 +44,9 @@ describe('persistThinkingJobCreate', () => {
             generationId: validCreate.generationId,
             jobStatus: 'pending',
         })
+        for (const call of (ephemeraDB.putItem as jest.Mock).mock.calls) {
+            expect(call[0]).not.toHaveProperty('deleteAt')
+        }
         expect(ephemeraDB.putItem).toHaveBeenNthCalledWith(2, {
             EphemeraId: 'JOB#aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
             DataCategory: 'TASK#11111111-2222-3333-4444-555555555555',

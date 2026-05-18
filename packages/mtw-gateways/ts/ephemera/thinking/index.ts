@@ -36,6 +36,13 @@ export {
     buildThinkingCompletedJobsSnapshot,
 } from './completedJobsSnapshot'
 export {
+    THINKING_SNAPSHOT_COMPLETED_MAX_AGE_MS,
+    THINKING_DYNAMO_TTL_AFTER_TERMINAL_MS,
+    isTerminalThinkingScheduleStatus,
+    thinkingSnapshotCompletedCutoffIso,
+    thinkingDeleteAtFromTerminalIso,
+} from './retention'
+export {
     thinkingResultFromEphemeraItem,
     thinkingScheduleFromEphemeraItem,
     thinkingJobMetaFromEphemeraItem,

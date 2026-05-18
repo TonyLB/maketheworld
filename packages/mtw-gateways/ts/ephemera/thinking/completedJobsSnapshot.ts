@@ -7,6 +7,7 @@ import { THINKING_SCHEMA_VERSION_INITIAL } from '@tonylb/mtw-interfaces/ts/event
 import type { EphemeraThinkingReadDB, EphemeraThinkingReadDBQueryPage, ThinkingJobReadSnapshot } from './fetch'
 import { fetchThinkingJobSnapshot } from './fetch'
 import { jobMetaDataCategory, parseGenerationIdFromJobEphemeraId } from './keys'
+import { thinkingSnapshotCompletedCutoffIso } from './retention'
 
 const isQueryPage = <Row extends Record<string, unknown>>(
     value: Row[] | EphemeraThinkingReadDBQueryPage<Row>
@@ -27,8 +28,11 @@ export const queryCompletedJobGenerationIds = async (db: EphemeraThinkingReadDB)
         const result = await db.query({
             IndexName: 'DataCategoryIndex',
             Key: { DataCategory: jobMetaDataCategory() },
-            FilterExpression: 'jobStatus = :completed',
-            ExpressionAttributeValues: { ':completed': 'completed' },
+            FilterExpression: 'jobStatus = :completed AND completedAt > :cutoff',
+            ExpressionAttributeValues: {
+                ':completed': 'completed',
+                ':cutoff': thinkingSnapshotCompletedCutoffIso(),
+            },
             allFields: true,
             pagination: nextToken ? { nextToken } : true,
         })
