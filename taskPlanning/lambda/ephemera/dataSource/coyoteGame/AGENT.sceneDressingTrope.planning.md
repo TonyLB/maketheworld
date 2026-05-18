@@ -1,6 +1,6 @@
 # Coyote Game: Scene Dressing trope (planning)
 
-**Status:** SS0 complete --- contract locked. Next step: Phase SS1 (`mtw-interfaces`: **`Scene Dressing`** first in **`CANONICAL_TROPE_ORDER`**).
+**Status:** SS1 complete --- types and canonical order in `mtw-interfaces`. Next step: Phase SS2 (Acme Order Enrich).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -146,11 +146,11 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Lock phase-plan: include Scene Dressing in **`tropeSequence`** like other tropes.
   - [X] Lock plan-select **`schemaVersion`:** no bump (stay **4**).
 
-- [ ] Phase SS1 - types and canonical order (`mtw-interfaces`)
-  - [ ] Add **`Scene Dressing`** to **`CoyoteTrope`** and **`isCoyoteTrope`**.
-  - [ ] Set **`CANONICAL_TROPE_ORDER`** to `Scene Dressing` -> `Contraption` -> `Bait` -> `Misdirection` -> `Disadvantage` -> `Finishing Move`.
-  - [ ] Extend role allowlists on **`EnvironmentAffordanceRef`** / **`AffordanceProvidedRef`** only if causal tropes still need them (Scene Dressing should not appear in **`roles`** arrays per handoff).
-  - [ ] Update **`coyotePhasePlan`** tests for six-trope **`tropeSequence`** ordering.
+- [X] Phase SS1 - types and canonical order (`mtw-interfaces`)
+  - [X] Add **`Scene Dressing`** to **`CoyoteTrope`** and **`isCoyoteTrope`**.
+  - [X] Set **`CANONICAL_TROPE_ORDER`** to `Scene Dressing` -> `Contraption` -> `Bait` -> `Misdirection` -> `Disadvantage` -> `Finishing Move`.
+  - [X] Extend role allowlists on **`EnvironmentAffordanceRef`** / **`AffordanceProvidedRef`** only if causal tropes still need them (Scene Dressing should not appear in **`roles`** arrays per handoff).
+  - [X] Update **`coyotePhasePlan`** tests for six-trope **`tropeSequence`** ordering.
 
 - [ ] Phase SS2 - Acme Order Enrich
   - [ ] Add Scene Dressing vocabulary block (locked copy in **Semantics**).
@@ -209,7 +209,7 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/testHarness/ru
 | Milestone | Status |
 | --- | --- |
 | SS0 Design handoff | Complete |
-| SS1 Types / canonical order | Not started |
+| SS1 Types / canonical order | Complete |
 | SS2 Acme enrich | Not started |
 | SS3 Persistence / snapshots | Not started |
 | SS4 Hypothesis pipeline | Not started |

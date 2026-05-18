@@ -6,7 +6,9 @@ import {
     normalizeAcmeOrderEnrichResponse,
     isCoyoteAffinityPossibility,
     isAffordanceProvidedRef,
+    isCoyoteTrope,
     isCoyoteTropeAffinity,
+    isEnvironmentAffordanceRef,
 } from './coyotePlanAffinities'
 
 describe('isSyntaxMaterializedAffordanceStableKey', () => {
@@ -32,6 +34,19 @@ describe('isNormalizedMaterializedAffordanceStableKey', () => {
     it('rejects non-materialized keys', () => {
         expect(isNormalizedMaterializedAffordanceStableKey('anvil-0')).toBe(false)
         expect(isNormalizedMaterializedAffordanceStableKey('affordance')).toBe(false)
+    })
+})
+
+describe('isCoyoteTrope', () => {
+    it('accepts Scene Dressing and the five causal tropes', () => {
+        expect(isCoyoteTrope('Scene Dressing')).toBe(true)
+        expect(isCoyoteTrope('Contraption')).toBe(true)
+        expect(isCoyoteTrope('Finishing Move')).toBe(true)
+    })
+
+    it('rejects unknown trope strings', () => {
+        expect(isCoyoteTrope('wizard')).toBe(false)
+        expect(isCoyoteTrope('')).toBe(false)
     })
 })
 
@@ -164,6 +179,21 @@ describe('isAffordanceProvidedRef', () => {
         ).toBe(false)
     })
 
+    it('rejects Scene Dressing in roles', () => {
+        expect(
+            isAffordanceProvidedRef({
+                object: 'crate',
+                roles: ['Scene Dressing'],
+            })
+        ).toBe(false)
+        expect(
+            isAffordanceProvidedRef({
+                object: 'crate',
+                roles: ['Contraption', 'Scene Dressing'],
+            })
+        ).toBe(false)
+    })
+
     it('rejects non-string object values', () => {
         expect(
             isAffordanceProvidedRef({
@@ -200,12 +230,39 @@ describe('isAffordanceProvidedRef', () => {
     })
 })
 
+describe('isEnvironmentAffordanceRef', () => {
+    it('rejects Scene Dressing in roles', () => {
+        expect(
+            isEnvironmentAffordanceRef({
+                object: 'boulder',
+                roles: ['Scene Dressing'],
+            })
+        ).toBe(false)
+        expect(
+            isEnvironmentAffordanceRef({
+                object: 'boulder',
+                roles: ['Finishing Move', 'Scene Dressing'],
+            })
+        ).toBe(false)
+    })
+})
+
 describe('isCoyoteTropeAffinity', () => {
     const baseAffinity = {
         trope: 'Contraption' as const,
         aptness: 'High' as const,
         narrowing: 'rig the crate to spring',
     }
+
+    it('accepts Scene Dressing trope without affordance arrays', () => {
+        expect(
+            isCoyoteTropeAffinity({
+                trope: 'Scene Dressing',
+                aptness: 'Good',
+                narrowing: 'protective equipment',
+            })
+        ).toBe(true)
+    })
 
     it('accepts a row without affordancesProvided (regression)', () => {
         expect(isCoyoteTropeAffinity({ ...baseAffinity })).toBe(true)

@@ -1,5 +1,6 @@
 import { COYOTE_RESERVED_VIRTUAL_GROUNDING_STABLE_KEY } from './coyotePlanAffinities'
 import {
+    CANONICAL_TROPE_ORDER,
     normalizedPhasePlanStableKey,
     validateCoyotePhasePlan,
     type CoyotePhasePlanValidationContext,
@@ -591,6 +592,86 @@ describe('validateCoyotePhasePlan', () => {
         }
     })
 
+    it('accepts Scene Dressing before Contraption in tropeSequence', () => {
+        const raw = {
+            tropeSequence: ['Scene Dressing', 'Contraption'],
+            deconflictionSummary: 'Dress the chase scene then rig hardware.',
+            phases: [
+                {
+                    trope: 'Scene Dressing',
+                    tropeBeat: 'Helmet and goggles signal racing gear around the skateboard anchor.',
+                    stableKeysUsed: ['outlier-prop'],
+                    virtualEntities: [
+                        {
+                            label: 'Racing gear cluster',
+                            derivedFrom: ['outlier-prop'],
+                            phaseKind: 'gathered',
+                        },
+                    ],
+                    achievement: 'Archetype visible',
+                },
+                {
+                    trope: 'Contraption',
+                    tropeBeat: 'Skateboard is the causal anchor.',
+                    stableKeysUsed: ['anvil-1'],
+                    virtualEntities: [
+                        {
+                            label: 'Board rig',
+                            derivedFrom: ['anvil-1'],
+                            phaseKind: 'deployed',
+                        },
+                    ],
+                    achievement: 'Hardware staged',
+                },
+            ],
+        }
+        const result = validateCoyotePhasePlan(raw, ctx())
+        expect(result.ok).toBe(true)
+        if (result.ok) {
+            expect(result.phasePlan.tropeSequence).toEqual(['Scene Dressing', 'Contraption'])
+        }
+    })
+
+    it('rejects Contraption before Scene Dressing in tropeSequence', () => {
+        const raw = {
+            tropeSequence: ['Contraption', 'Scene Dressing'],
+            deconflictionSummary: 'Wrong order for dressing beat.',
+            phases: [
+                {
+                    trope: 'Contraption',
+                    tropeBeat: 'Rig first.',
+                    stableKeysUsed: ['anvil-1'],
+                    virtualEntities: [
+                        {
+                            label: 'x',
+                            derivedFrom: ['anvil-1'],
+                            phaseKind: 'gathered',
+                        },
+                    ],
+                    achievement: 'a',
+                },
+                {
+                    trope: 'Scene Dressing',
+                    tropeBeat: 'Dress second.',
+                    stableKeysUsed: ['outlier-prop'],
+                    virtualEntities: [
+                        {
+                            label: 'y',
+                            derivedFrom: ['outlier-prop'],
+                            phaseKind: 'synthesized',
+                        },
+                    ],
+                    achievement: 'b',
+                },
+            ],
+        }
+        const result = validateCoyotePhasePlan(raw, ctx())
+        expect(result.ok).toBe(false)
+        if (!result.ok) {
+            expect(result.reason).toContain('canonical order')
+        }
+    })
+
     it('accepts a full five-trope plan in canonical order', () => {
         const raw = {
             tropeSequence: ['Contraption', 'Bait', 'Misdirection', 'Disadvantage', 'Finishing Move'],
@@ -638,6 +719,76 @@ describe('validateCoyotePhasePlan', () => {
         if (result.ok) {
             expect(result.phasePlan.phases).toHaveLength(5)
         }
+    })
+
+    it('accepts a full six-trope plan in canonical order', () => {
+        const raw = {
+            tropeSequence: [
+                'Scene Dressing',
+                'Contraption',
+                'Bait',
+                'Misdirection',
+                'Disadvantage',
+                'Finishing Move',
+            ],
+            deconflictionSummary: 'Golden path through every slot including dressing.',
+            phases: [
+                {
+                    trope: 'Scene Dressing',
+                    tropeBeat: 'Stage protective gear as associative signal.',
+                    stableKeysUsed: ['outlier-prop'],
+                    virtualEntities: [{ label: 's', derivedFrom: ['outlier-prop'], phaseKind: 'gathered' }],
+                    achievement: 'Scene dressed',
+                },
+                {
+                    trope: 'Contraption',
+                    tropeBeat: 'Rig approach hardware.',
+                    stableKeysUsed: ['anvil-1'],
+                    virtualEntities: [{ label: 'c', derivedFrom: ['anvil-1'], phaseKind: 'gathered' }],
+                    achievement: 'Hardware staged',
+                },
+                {
+                    trope: 'Bait',
+                    tropeBeat: 'Draw the runner.',
+                    stableKeysUsed: ['crate-2'],
+                    virtualEntities: [{ label: 'b', derivedFrom: ['crate-2'], phaseKind: 'deployed' }],
+                    achievement: 'Runner lured',
+                },
+                {
+                    trope: 'Misdirection',
+                    tropeBeat: 'Steer perception.',
+                    stableKeysUsed: ['outlier-prop'],
+                    virtualEntities: [{ label: 'm', derivedFrom: ['outlier-prop'], phaseKind: 'synthesized' }],
+                    achievement: 'Misread committed',
+                },
+                {
+                    trope: 'Disadvantage',
+                    tropeBeat: 'Impose mobility loss.',
+                    stableKeysUsed: ['anvil-1'],
+                    virtualEntities: [{ label: 'd', derivedFrom: ['anvil-1'], phaseKind: 'deployed' }],
+                    achievement: 'Runner impaired',
+                },
+                {
+                    trope: 'Finishing Move',
+                    tropeBeat: 'Terminal payload.',
+                    stableKeysUsed: ['crate-2'],
+                    virtualEntities: [{ label: 'f', derivedFrom: ['crate-2'], phaseKind: 'gathered' }],
+                    achievement: 'Finisher armed',
+                },
+            ],
+        }
+        const result = validateCoyotePhasePlan(raw, ctx())
+        expect(result.ok).toBe(true)
+        if (result.ok) {
+            expect(result.phasePlan.phases).toHaveLength(6)
+        }
+    })
+})
+
+describe('CANONICAL_TROPE_ORDER', () => {
+    it('lists six tropes with Scene Dressing first', () => {
+        expect(CANONICAL_TROPE_ORDER).toHaveLength(6)
+        expect(CANONICAL_TROPE_ORDER[0]).toBe('Scene Dressing')
     })
 })
 
