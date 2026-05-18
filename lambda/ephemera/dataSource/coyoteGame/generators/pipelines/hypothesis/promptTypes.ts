@@ -1,10 +1,9 @@
+import type { IncludeIconicFewShotsOptions } from '../../../../coyotePromptFewShot'
 import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
 
 export type BuildHypothesisPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
-    /** When false, omit harness-aligned iconic few-shots (harness candidate eval). Default true. */
-    includeIconicFewShots?: boolean
-}
+} & IncludeIconicFewShotsOptions
 
 export type CoyotePromptParts = {
     invariantPrefix: string

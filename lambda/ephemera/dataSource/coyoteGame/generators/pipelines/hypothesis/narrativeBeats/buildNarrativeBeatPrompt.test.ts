@@ -156,6 +156,47 @@ describe('buildNarrativeBeatPrompt', () => {
         expect(full).not.toContain('drop-ready')
     })
 
+    it('includes iconic few-shot beats by default', () => {
+        const parts = buildNarrativeBeatPrompt({
+            roomObjectsByRoom: { 'ROOM#STRAIGHTAWAY': harnessRoomObjects('straightaway', ['rocket skates']) },
+            planSelectOutput: {
+                paragraphSummary: 'Summary.',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    gimmick: 'high speed chase',
+                    executionSummary: 'Chase spine.',
+                    tropeAssignments: {},
+                    outliers: [],
+                },
+            },
+        })
+        expect(parts.invariantPrefix).toContain('rocket-skates-0')
+        expect(parts.invariantPrefix).toContain('portable-hole-0')
+        expect(parts.invariantPrefix).toContain('chemistry-set')
+    })
+
+    it('omits iconic few-shot when includeIconicFewShots is false', () => {
+        const parts = buildNarrativeBeatPrompt({
+            includeIconicFewShots: false,
+            roomObjectsByRoom: { 'ROOM#STRAIGHTAWAY': harnessRoomObjects('straightaway', ['rocket skates']) },
+            planSelectOutput: {
+                paragraphSummary: 'Summary.',
+                planIssues: [],
+                selectedCandidate: {
+                    candidateId: 'candidate-1',
+                    gimmick: 'high speed chase',
+                    executionSummary: 'Chase spine.',
+                    tropeAssignments: {},
+                    outliers: [],
+                },
+            },
+        })
+        expect(parts.invariantPrefix).toContain('chemistry-set')
+        expect(parts.invariantPrefix).not.toContain('Iconic genre examples')
+        expect(parts.invariantPrefix).not.toContain('portable-hole-0')
+    })
+
     it('renders structured selectedCandidate grounding when present', () => {
         const parts = buildNarrativeBeatPrompt({
             roomObjectsByRoom: { 'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil', 'rope']) },

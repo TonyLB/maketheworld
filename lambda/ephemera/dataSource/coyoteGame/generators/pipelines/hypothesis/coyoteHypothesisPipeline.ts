@@ -256,13 +256,13 @@ async function emitThinkingResultForSegmentIfActive(
     await emitHypothesisThinkingResult({ messageBus: bus }, thinking, segment, { ok: true, verbose });
 }
 
-type CandidatePromptOptions = Pick<BuildHypothesisPromptInput, 'includeIconicFewShots'>;
+type HypothesisFewShotOptions = Pick<BuildHypothesisPromptInput, 'includeIconicFewShots'>;
 
 function buildCoyoteHypothesisSteps(
     ctx: ReturnType<typeof createPipelineContext<CoyoteHypothesisPipelineState>>,
     deps: GenerateHypothesisDeps,
     thinkingHarness?: HypothesisThinkingHarnessOptions,
-    candidatePromptOptions?: CandidatePromptOptions
+    fewShotOptions?: HypothesisFewShotOptions
 ): PipelineStep<CoyoteHypothesisPipelineState>[] {
     return [
         ctx.defineOrchestrationStep({
@@ -281,7 +281,7 @@ function buildCoyoteHypothesisSteps(
                 }
                 const stageOneParts = buildCandidatePrompt({
                     roomObjectsByRoom,
-                    includeIconicFewShots: candidatePromptOptions?.includeIconicFewShots,
+                    includeIconicFewShots: fewShotOptions?.includeIconicFewShots,
                 });
                 draft.stageOnePromptParts = stageOneParts;
                 const stageOneResult = await invokeBedrockHypothesisStageOne(stageOneParts);
@@ -346,6 +346,7 @@ function buildCoyoteHypothesisSteps(
                 const parts = buildPlanSelectPrompt({
                     roomObjectsByRoom,
                     combined,
+                    includeIconicFewShots: fewShotOptions?.includeIconicFewShots,
                 });
                 draft.planSelectPromptParts = parts;
                 const planSelectionResult = await invokeBedrockHypothesisPlanSelection(parts);
@@ -447,6 +448,7 @@ function buildCoyoteHypothesisSteps(
                 const parts = buildNarrativeBeatPrompt({
                     roomObjectsByRoom,
                     planSelectOutput: handoff as PlanSelectOutputWithWinner,
+                    includeIconicFewShots: fewShotOptions?.includeIconicFewShots,
                 });
                 draft.narrativeBeatPromptParts = parts;
                 const narrativeBeatResult = await invokeBedrockHypothesisNarrativeBeat(parts);
@@ -724,9 +726,9 @@ export async function runCoyoteHypothesisPipeline(
         };
     }
 
-    const candidatePromptOptions: CandidatePromptOptions | undefined =
+    const fewShotOptions: HypothesisFewShotOptions | undefined =
         harnessOptions !== undefined ? { includeIconicFewShots: false } : undefined;
-    const allSteps = buildCoyoteHypothesisSteps(ctx, deps, thinkingHarness, candidatePromptOptions);
+    const allSteps = buildCoyoteHypothesisSteps(ctx, deps, thinkingHarness, fewShotOptions);
     let steps = allSteps;
 
     if (harnessOptions !== undefined) {

@@ -1,3 +1,4 @@
+import { joinFewShotBlocks, resolveIncludeIconicFewShots, type IncludeIconicFewShotsOptions } from '../../../../../coyotePromptFewShot'
 import type { CoyotePromptParts } from '../promptTypes'
 import {
     INTERPRETATION_RULES_LINES,
@@ -28,7 +29,7 @@ const TROPE_ORDER: CoyoteTrope[] = CANONICAL_TROPE_ORDER
 export type BuildNarrativeBeatPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
     planSelectOutput: PlanSelectOutputWithWinner
-}
+} & IncludeIconicFewShotsOptions
 
 const NARRATIVE_BEAT_INTRO = [
     'You are sketching an internal beat scratchpad, then a cartoon play-by-play, then a single player-facing Hypothesis line for a Coyote-vs-Road-Runner cartoon setup.',
@@ -108,6 +109,81 @@ const CARTOON_PLAY_BY_PLAY_AND_FENCED_HYPOTHESIS_LINES = [
     '- The **final** ```text fence must contain **only** the Hypothesis line so parsers can slice it reliably.',
 ] as const
 
+/** Core few-shot: beats scratchpad + Hypothesis line; fictional stableKeys only. */
+const NARRATIVE_BEAT_FEW_SHOT_CORE = `## Few-shot examples (output shape)
+
+Mad-science rig (**illustrative** stableKeys):
+
+\`\`\`json
+{
+  "beats": [
+    {
+      "beatId": "prep-lab",
+      "description": "You stage the chemistry set and tighten safety goggles before the reaction beat.",
+      "derivedFrom": ["chemistry-set", "safety-goggles", "setting"]
+    },
+    {
+      "beatId": "reaction",
+      "description": "You trigger the lab rig toward the Road Runner lane.",
+      "derivedFrom": ["chemistry-set", "lab-coat"]
+    }
+  ],
+  "linearizedSequence": ["prep-lab", "reaction"]
+}
+\`\`\`
+
+\`\`\`text
+Hypothesis: You will spring the mad-science reaction rig at the Road Runner once the lane is set.
+\`\`\`
+`
+
+// Mirrors FIXTURE_01_NARRATIVE_BEATS_HANDOFF and PLAN_SELECT_OUTPUT_GOLDEN fixture-03 spines.
+const NARRATIVE_BEAT_FEW_SHOT_ICONIC = `Iconic genre examples (**calibration** --- use **stableKey** tokens from **## Committed plan** and the room snapshot for this run, not these keys when they differ):
+
+High speed chase:
+\`\`\`json
+{
+  "beats": [
+    {
+      "beatId": "dress-chase",
+      "description": "You strap on rocket skates while helmet and goggles complete the racing-scene read.",
+      "derivedFrom": ["rocket-skates-0", "helmet-1", "goggles-2"]
+    },
+    {
+      "beatId": "pursuit",
+      "description": "You open the chase along the straightaway on the speed rig.",
+      "derivedFrom": ["rocket-skates-0", "setting"]
+    }
+  ],
+  "linearizedSequence": ["dress-chase", "pursuit"]
+}
+\`\`\`
+
+Hole trap:
+\`\`\`json
+{
+  "beats": [
+    {
+      "beatId": "route-prep",
+      "description": "You lay paint and skates to sell the route before the lure commits.",
+      "derivedFrom": ["paint-0", "roller-skates-0"]
+    },
+    {
+      "beatId": "lure",
+      "description": "You draw the Road Runner to birdseed at the bridge approach.",
+      "derivedFrom": ["birdseed-1"]
+    },
+    {
+      "beatId": "drop",
+      "description": "You spring the portable-hole finish at the commit point.",
+      "derivedFrom": ["portable-hole-0", "birdseed-1"]
+    }
+  ],
+  "linearizedSequence": ["route-prep", "lure", "drop"]
+}
+\`\`\`
+`
+
 /** Shown under **Selected candidate** when the handoff omits a usable gimmick (graceful degradation). */
 export const NARRATIVE_BEAT_NO_GIMMICK_HANDOFF_LINE =
     'No gimmick tag was supplied for this winner; treat **executionSummary** and **tropeAssignments** below as the spine cues for JSON, play-by-play, and the Hypothesis line.'
@@ -177,10 +253,17 @@ export function buildNarrativeBeatPrompt(
 ): CoyotePromptParts {
     const seamRoomMappingBlock = coyoteSeamRoomMappingLines(input.roomObjectsByRoom).join('\n')
     const committedPlanBlock = formatCommittedPlanBlock(input.planSelectOutput)
+    const fewShotBlock = joinFewShotBlocks(
+        NARRATIVE_BEAT_FEW_SHOT_CORE,
+        NARRATIVE_BEAT_FEW_SHOT_ICONIC,
+        resolveIncludeIconicFewShots(input)
+    )
     const invariantPrefix = [
         ...NARRATIVE_BEAT_INTRO,
         '',
         ...COMMITTED_PLAN_MARKDOWN_CONTRACT_LINES,
+        '',
+        fewShotBlock,
         '',
         ...COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
         '',

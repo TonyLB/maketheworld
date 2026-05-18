@@ -45,6 +45,8 @@ This file is task-scoped and should be archived or removed when this tuning pass
 
 For each hop in sequence:
 
+**Harness LLM eval:** when the fixture corpus includes a scenario also shown in **iconic** few-shots, run live Bedrock with **`includeIconicFewShots: false`** (core only) so scores measure recreation without the answer in the prompt. Production keeps iconic calibration on.
+
 1. Run baseline tests and fixture evaluation.
 2. Triage top failure clusters (contract, rubric quality, topology/spatial coherence, style constraints).
 3. Apply one bounded revision set.

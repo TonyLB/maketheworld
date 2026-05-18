@@ -17,6 +17,11 @@
  */
 
 import type { ParseAcmeOrderEnrichPromptParts } from '../../../../generateExample/invokeBedrockAcmeOrderEnrich'
+import {
+    joinFewShotBlocks,
+    resolveIncludeIconicFewShots,
+    type IncludeIconicFewShotsOptions,
+} from '../../../coyotePromptFewShot'
 
 export type BuildParseAcmeOrderEnrichPromptOptions = {
     /** Union of **`stableKey`** values already used on staged objects across Coyote game rooms (must not invent collisions when avoidable). */
@@ -25,7 +30,7 @@ export type BuildParseAcmeOrderEnrichPromptOptions = {
     intentRawOrders?: readonly string[];
     /** Deprecated compatibility flag; prompt remains compact regardless of value. */
     debugRationale?: boolean;
-};
+} & IncludeIconicFewShotsOptions;
 
 const INTRO_THROUGH_COYOTE_POV = `You validate and enrich **Acme mail-order** requests for a Coyote
 vs. Road Runner contraption game. Player requests are expected to name things they want Acme
@@ -153,31 +158,7 @@ Write **\`name\`** and implied use-cases in **cartoon physics / contraption** la
 - Normalize sloppy wording into polished **Acme-style product titles**.
 - For phenomena, diffuse objects, or hazardous substances or creatures, phrase the **shippable package or generator**, not loose reality (crates, cylinders, reinforced containers).
 
-Example **valid** line entry (inside **\`lines\`**):
-
-{
-  "valid": true,
-  "name": "Beehive",
-  "stableKey": "beehive",
-  "tropeAffinities": [
-    { "trope": "Bait", "aptness": "Good", "narrowing": "lure trail to swarm zone" },
-    { "trope": "Finishing Move", "aptness": "Poor", "narrowing": "swarm release payoff" }
-  ]
-}
-
-Example **invalid** line entry:
-
-{
-  "valid": false,
-  "name": "Justice",
-  "errorType": "Not tangible"
-}
-
-{
-  "valid": false,
-  "name": "Justice Sonia Sotomayor",
-  "errorType": "Celebrity cameo"
-}
+See **Few-shot examples** below for valid and invalid **\`lines[]\`** entry shape.
 
 ## Canonical trope fields (\`tropeAffinities\`) for **\`valid\`: true**
 
@@ -335,6 +316,138 @@ downward).
 \`\`\`
 `
 
+/** Core few-shot: JSON handoff shape; illustrative stableKeys only (not harness goldens). */
+const ACME_ENRICH_FEW_SHOT_CORE = `## Few-shot examples (shape)
+
+Example **valid** line entry (inside **\`lines\`**):
+
+{
+  "valid": true,
+  "name": "Beehive",
+  "stableKey": "beehive",
+  "tropeAffinities": [
+    { "trope": "Bait", "aptness": "Good", "narrowing": "lure trail to swarm zone" },
+    { "trope": "Finishing Move", "aptness": "Poor", "narrowing": "swarm release payoff" }
+  ]
+}
+
+Example **invalid** line entries:
+
+{
+  "valid": false,
+  "name": "Justice",
+  "errorType": "Not tangible"
+}
+
+{
+  "valid": false,
+  "name": "Justice Sonia Sotomayor",
+  "errorType": "Celebrity cameo"
+}
+
+Multi-line order (**two** \`lines[]\` rows --- illustrative stableKeys):
+
+\`\`\`json
+{
+  "lines": [
+    {
+      "valid": true,
+      "name": "Industrial Adhesive",
+      "stableKey": "workshop-glue",
+      "tropeAffinities": [
+        { "trope": "Disadvantage", "aptness": "High", "narrowing": "immobilize Road Runner on road surface" },
+        { "trope": "Contraption", "aptness": "Good", "narrowing": "adhesive rig component" }
+      ]
+    },
+    {
+      "valid": true,
+      "name": "Assorted Springs",
+      "stableKey": "workshop-springs",
+      "tropeAffinities": [
+        { "trope": "Contraption", "aptness": "High", "narrowing": "mechanical tension rig for launch or rebound" }
+      ]
+    }
+  ]
+}
+\`\`\`
+`
+
+// Mirrors clean-001-rocket-skates and borderline-001 hole-trap spread; keep in sync with acmeOrderAffinitiesHarnessPhrases / coyoteEngineTestFixtures.
+const ACME_ENRICH_FEW_SHOT_ICONIC = `Iconic genre examples (**calibration** --- assign **stableKey** slugs for this order; do not copy these slugs when **Coyote-wide keys already in use** forbids collision):
+
+Scene Dressing chase:
+\`\`\`json
+{
+  "lines": [
+    {
+      "valid": true,
+      "name": "Rocket Skates",
+      "stableKey": "rocket-skates",
+      "tropeAffinities": [
+        { "trope": "Contraption", "aptness": "High", "narrowing": "enhance Coyote pursuit speed" }
+      ]
+    },
+    {
+      "valid": true,
+      "name": "Protective Helmet",
+      "stableKey": "helmet",
+      "tropeAffinities": [
+        { "trope": "Scene Dressing", "aptness": "Good", "narrowing": "protective equipment" }
+      ]
+    },
+    {
+      "valid": true,
+      "name": "Racing Goggles",
+      "stableKey": "goggles",
+      "tropeAffinities": [
+        { "trope": "Scene Dressing", "aptness": "Good", "narrowing": "racing gear" }
+      ]
+    }
+  ]
+}
+\`\`\`
+
+Portable-hole spread:
+\`\`\`json
+{
+  "lines": [
+    {
+      "valid": true,
+      "name": "Roller Skates",
+      "stableKey": "roller-skates",
+      "tropeAffinities": [
+        { "trope": "Contraption", "aptness": "High", "narrowing": "mobility rig for setup and chase positioning" }
+      ]
+    },
+    {
+      "valid": true,
+      "name": "Tunnel Paint Kit",
+      "stableKey": "paint",
+      "tropeAffinities": [
+        { "trope": "Misdirection", "aptness": "High", "narrowing": "visual lure through fake passage cue", "environmentAffordances": [{ "object": "rock-wall", "roles": ["Finishing Move"] }] },
+        { "trope": "Bait", "aptness": "Good", "narrowing": "draw Road Runner attention to painted route" }
+      ]
+    },
+    {
+      "valid": true,
+      "name": "Portable Hole",
+      "stableKey": "portable-hole",
+      "tropeAffinities": [
+        { "trope": "Misdirection", "aptness": "High", "narrowing": "persistent route hazard", "environmentAffordances": [{ "object": "long-fall", "roles": ["Finishing Move"] }] }
+      ]
+    },
+    {
+      "valid": true,
+      "name": "Birdseed",
+      "stableKey": "birdseed",
+      "tropeAffinities": [
+        { "trope": "Bait", "aptness": "High", "narrowing": "voluntary lure or bait trail" }
+      ]
+    }
+  ]
+}
+\`\`\`
+`
 
 function formatOccupiedStableKeysBlock(keys: readonly string[]): string {
     const uniqueSorted = [...new Set(keys.map((k) => k.trim()).filter((k) => k.length > 0))].sort(
@@ -369,13 +482,21 @@ export function buildParseAcmeOrderEnrichPrompt(
     const trimmed = command.trim()
     const commandBlock = trimmed === '' ? '(empty command)' : trimmed
 
+    const fewShotBlock = joinFewShotBlocks(
+        ACME_ENRICH_FEW_SHOT_CORE,
+        ACME_ENRICH_FEW_SHOT_ICONIC,
+        resolveIncludeIconicFewShots(options)
+    )
+
     const invariantPrefix = `${INTRO_THROUGH_COYOTE_POV}
 
 Produce **two required parts in order**:
 
 ${COMPACT_STEP1_INSTRUCTIONS}
 
-${AFTER_STEP1_INSTRUCTIONS}`
+${AFTER_STEP1_INSTRUCTIONS}
+
+${fewShotBlock}`
 
     const occupied = options?.occupiedStableKeys ?? []
     const occupiedBlock = formatOccupiedStableKeysBlock(occupied)

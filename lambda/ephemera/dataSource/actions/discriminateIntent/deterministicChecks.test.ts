@@ -108,7 +108,7 @@ describe('deterministicIntentChecks', () => {
         const outOfRange = deterministicIntentChecks({ command: '/test affinities 99' })
         expect(outOfRange).toEqual({
             type: 'Error',
-            errorMessage: expect.stringContaining('Fixture index must be an integer from 1 to 11 (received 99).'),
+            errorMessage: expect.stringContaining('Fixture index must be an integer from 1 to 10 (received 99).'),
         })
 
         const unknownExtra = deterministicIntentChecks({ command: '/test affinities 1 extra' })

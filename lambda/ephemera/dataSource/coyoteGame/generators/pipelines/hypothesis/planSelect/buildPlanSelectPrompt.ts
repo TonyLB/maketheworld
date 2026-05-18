@@ -1,3 +1,4 @@
+import { joinFewShotBlocks, resolveIncludeIconicFewShots, type IncludeIconicFewShotsOptions } from '../../../../../coyotePromptFewShot'
 import { CANONICAL_TROPE_ORDER } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 import type { CoyotePromptParts } from '../promptTypes'
 import type { CombineCandidateOutputReturn } from '../candidates/combineCandidateOutput'
@@ -18,7 +19,7 @@ const PLAN_SELECT_TROPE_KEYS_LABEL = CANONICAL_TROPE_ORDER.map((t) => `**${t}**`
 export type BuildPlanSelectPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
     combined: CombineCandidateOutputReturn
-}
+} & IncludeIconicFewShotsOptions
 
 /** How to read the fenced JSON trope-candidates block in the dynamic tail. */
 const PLAN_SELECT_COMBINED_JSON_SCHEMA_LINES = [
@@ -356,6 +357,116 @@ const PLAN_SELECTION_INTRO_SINGLE_CANDIDATE = [
     '- In **`## Winner selection`**, the first line must be exactly: **`Winner: <candidateId>`**.',
 ] as const
 
+/** Core few-shot: trailing handoff shape; fictional stableKeys (not harness fixtures). */
+const PLAN_SELECT_FEW_SHOT_CORE = `## Few-shot examples (trailing handoff shape)
+
+Multi-candidate pool comparison ends with **one** trailing handoff fence. Example **Winner selection** prose:
+
+\`\`\`
+## Winner selection
+Winner: candidate-alpha
+candidate-alpha wins: bait plus contraption spine is coherent and complete after cleanup.
+\`\`\`
+
+Example trailing handoff JSON (**illustrative** stableKeys --- use keys from **Trope candidates** input for this run):
+
+\`\`\`json
+{
+  "paragraphSummary": "Choose candidate-alpha: workshop glue and springs rig the adhesive trap lane.",
+  "remainingPlanIssues": [],
+  "selectedCandidate": {
+    "candidateId": "candidate-alpha",
+    "gimmick": "snare trap",
+    "executionSummary": "Workshop glue slows the lane while springs tension a snare around the bait zone.",
+    "tropeAssignments": {
+      "Contraption": {
+        "executionDetail": "Springs and glue stage the snare rig.",
+        "members": [
+          { "stableKey": "workshop-springs", "shortName": "springs", "room": "STRAIGHTAWAY", "tropeFunction": "tension rig" },
+          { "stableKey": "workshop-glue", "shortName": "glue", "room": "STRAIGHTAWAY", "tropeFunction": "lane adhesive" }
+        ]
+      },
+      "Bait": {
+        "executionDetail": "Bait pile draws Road Runner into the snare zone.",
+        "members": [
+          { "stableKey": "workshop-bait", "shortName": "bait pile", "room": "CORNER", "tropeFunction": "target bait" }
+        ]
+      }
+    },
+    "outliers": []
+  }
+}
+\`\`\`
+`
+
+// Mirrors FIXTURE_01_NARRATIVE_BEATS_HANDOFF and PLAN_SELECT_OUTPUT_GOLDEN fixture-03.
+const PLAN_SELECT_FEW_SHOT_ICONIC = `Iconic genre examples (**calibration** --- use **stableKey** / **candidateId** values from **Trope candidates** input below, not these illustrative keys):
+
+Scene Dressing chase:
+\`\`\`json
+{
+  "paragraphSummary": "Choose candidate-1: cluster helmet and goggles as Scene Dressing around rocket-skates chase spine.",
+  "remainingPlanIssues": [],
+  "selectedCandidate": {
+    "candidateId": "candidate-1",
+    "gimmick": "high speed chase",
+    "executionSummary": "Rocket skates anchor a chase while helmet and goggles complete the racing-scene dressing.",
+    "tropeAssignments": {
+      "Scene Dressing": {
+        "executionDetail": "Helmet and goggles signal protective racing gear around the mobility anchor.",
+        "members": [
+          { "stableKey": "helmet-1", "shortName": "helmet", "room": "STRAIGHTAWAY", "tropeFunction": "protective gear" },
+          { "stableKey": "goggles-2", "shortName": "goggles", "room": "STRAIGHTAWAY", "tropeFunction": "racing gear" }
+        ]
+      },
+      "Contraption": {
+        "executionDetail": "Rocket skates provide the pursuit-speed rig for the chase spine.",
+        "members": [
+          { "stableKey": "rocket-skates-0", "shortName": "rocket skates", "room": "STRAIGHTAWAY", "tropeFunction": "speed rig" }
+        ]
+      }
+    },
+    "outliers": []
+  }
+}
+\`\`\`
+
+Portable-hole finish:
+\`\`\`json
+{
+  "paragraphSummary": "Choose candidate-1: preserve the paint-plus-skates setup, then commit the bridge portable-hole finish after lure confirmation.",
+  "remainingPlanIssues": [],
+  "selectedCandidate": {
+    "candidateId": "candidate-1",
+    "gimmick": "hole trap",
+    "executionSummary": "Paint and skates prep a route while birdseed lures into a portable-hole finish.",
+    "tropeAssignments": {
+      "Contraption": {
+        "executionDetail": "Roller skates and paint prep speed and route illusion before commitment.",
+        "members": [
+          { "stableKey": "roller-skates-0", "shortName": "roller skates", "room": "STRAIGHTAWAY", "tropeFunction": "speed rig" },
+          { "stableKey": "paint-0", "shortName": "paint", "room": "CORNER", "tropeFunction": "route edit" }
+        ]
+      },
+      "Bait": {
+        "executionDetail": "Road Runner pauses for birdseed at the bridge approach.",
+        "members": [
+          { "stableKey": "birdseed-1", "shortName": "birdseed", "room": "BRIDGE", "tropeFunction": "target bait" }
+        ]
+      },
+      "Finishing Move": {
+        "executionDetail": "Portable hole is used as the terminal drop endpoint.",
+        "members": [
+          { "stableKey": "portable-hole-0", "shortName": "portable hole", "room": "BRIDGE", "tropeFunction": "drop trap" }
+        ]
+      }
+    },
+    "outliers": []
+  }
+}
+\`\`\`
+`
+
 export function buildPlanSelectPrompt(
     input: BuildPlanSelectPromptInput
 ): CoyotePromptParts {
@@ -368,6 +479,11 @@ export function buildPlanSelectPrompt(
     const internalPhases = isSingleCandidate
         ? PLAN_SELECTION_INTERNAL_PHASES_SINGLE_CANDIDATE
         : PLAN_SELECTION_INTERNAL_PHASES_MULTI_CANDIDATE
+    const fewShotBlock = joinFewShotBlocks(
+        PLAN_SELECT_FEW_SHOT_CORE,
+        PLAN_SELECT_FEW_SHOT_ICONIC,
+        resolveIncludeIconicFewShots(input)
+    )
     const invariantPrefix = [
         ...intro,
         '',
@@ -383,6 +499,8 @@ export function buildPlanSelectPrompt(
         ...PLAN_SELECT_COMBINED_JSON_SCHEMA_LINES,
         '',
         ...internalPhases,
+        '',
+        fewShotBlock,
         '',
         ...COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
         '',

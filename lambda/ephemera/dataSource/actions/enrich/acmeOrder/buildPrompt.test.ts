@@ -16,6 +16,9 @@ describe('buildParseAcmeOrderEnrichPrompt', () => {
         expect(invariantPrefix).toContain('narrowing` POV rule (causal tropes only)')
         expect(invariantPrefix).toContain('On **`Scene Dressing`** trope entries, **omit** **`environmentAffordances`**')
         expect(invariantPrefix).toContain('On **`Scene Dressing`** trope entries, **omit** **`affordancesProvided`**')
+        expect(invariantPrefix).toContain('workshop-glue')
+        expect(invariantPrefix).toContain('portable-hole')
+        expect(invariantPrefix).toContain('Iconic genre examples')
         expect(dynamicSuffix).toContain('order rope')
         expect(dynamicSuffix).toContain('Player command')
         expect(dynamicSuffix).toContain('Coyote-wide stable keys already in use')
@@ -71,6 +74,16 @@ describe('buildParseAcmeOrderEnrichPrompt', () => {
             .not.toContain('## Product spans to validate')
         expect(buildParseAcmeOrderEnrichPrompt('order rope', { intentRawOrders: ['  ', ''] }).dynamicSuffix)
             .not.toContain('## Product spans to validate')
+    })
+
+    it('omits iconic few-shot when includeIconicFewShots is false', () => {
+        const { invariantPrefix } = buildParseAcmeOrderEnrichPrompt('order rope', {
+            includeIconicFewShots: false,
+        })
+        expect(invariantPrefix).toContain('beehive')
+        expect(invariantPrefix).toContain('workshop-glue')
+        expect(invariantPrefix).not.toContain('Iconic genre examples')
+        expect(invariantPrefix).not.toContain('portable-hole')
     })
 
     it('trims and drops empty occupied stable keys before dedupe + sort', () => {

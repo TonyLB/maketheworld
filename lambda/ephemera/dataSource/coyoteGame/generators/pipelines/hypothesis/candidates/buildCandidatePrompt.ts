@@ -1,3 +1,4 @@
+import { joinFewShotBlocks, resolveIncludeIconicFewShots } from '../../../../../coyotePromptFewShot'
 import type { BuildHypothesisPromptInput, CoyotePromptParts } from '../promptTypes'
 import type { CoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { CANONICAL_TROPE_ORDER } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
@@ -135,7 +136,7 @@ Second example (Scene Dressing cluster + Contraption anchor --- illustrative sta
 // Mirrors fixture-01 / clean-001 and fixture-03; keep in sync with STAGE_ONE_GOLDEN_BY_FIXTURE_ID in coyoteEngineTestFixtures.
 const CANDIDATE_JSON_FEW_SHOT_ICONIC = `Iconic genre examples (**calibration** --- use literal **stableKey** values from **Current staged objects** below, not these illustrative keys):
 
-Scene Dressing chase (fixture-01 / clean-001):
+Scene Dressing chase:
 \`\`\`json
 {
   "candidates": [
@@ -161,7 +162,7 @@ Scene Dressing chase (fixture-01 / clean-001):
 }
 \`\`\`
 
-Portable-hole finish (fixture-03):
+Portable-hole finish:
 \`\`\`json
 {
   "candidates": [
@@ -191,13 +192,6 @@ Portable-hole finish (fixture-03):
 }
 \`\`\`
 `
-
-function candidateFewShotBlock(includeIconicFewShots: boolean): string {
-    if (includeIconicFewShots) {
-        return `${CANDIDATE_JSON_FEW_SHOT_CORE}\n\n${CANDIDATE_JSON_FEW_SHOT_ICONIC}`
-    }
-    return CANDIDATE_JSON_FEW_SHOT_CORE
-}
 
 const CANDIDATE_JSON_CONTRACT_LINES = [
     '## Stage one JSON contract',
@@ -294,7 +288,7 @@ function candidatePromptLines(
         '',
         ...CANDIDATE_JSON_CONTRACT_LINES,
         '',
-        candidateFewShotBlock(options.includeIconicFewShots),
+        joinFewShotBlocks(CANDIDATE_JSON_FEW_SHOT_CORE, CANDIDATE_JSON_FEW_SHOT_ICONIC, options.includeIconicFewShots),
         '',
         CANDIDATE_STAGED_OBJECTS_SECTION_HEADER,
         'Use this JSON as authoritative staged-object input (`decisionFocus.anchorStableKeys` / `expanderStableKeys`, then `objects` rows with seam **`room`**, **`tropeAffinities`** including optional nested **`environmentAffordances`** and **`affordancesProvided`** when present).',
@@ -308,7 +302,7 @@ function candidatePromptLines(
 /** Stage 1 only: emits JSON clustering seam. Cache split before staged-objects snapshot. */
 export function buildCandidatePrompt(input: BuildHypothesisPromptInput): CoyotePromptParts {
     const snapshotSection = serializeStagedObjectsAffinityForwardJson(input.roomObjectsByRoom)
-    const includeIconicFewShots = input.includeIconicFewShots !== false
+    const includeIconicFewShots = resolveIncludeIconicFewShots(input)
     const lines = candidatePromptLines(snapshotSection, { includeIconicFewShots })
     const splitAt = splitCoyoteHypothesisLinesAtSnapshot(lines, CANDIDATE_STAGED_OBJECTS_SECTION_HEADER)
     const mappingBlock = coyoteSeamRoomMappingLines(input.roomObjectsByRoom).join('\n')
