@@ -1,6 +1,9 @@
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import { isRenderTree } from '@tonylb/mtw-base/ts/renderTree'
+import type { CoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import { isCoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import type { CoyoteNarrativeBeatsStructured } from '@tonylb/mtw-interfaces/ts/coyoteNarrativeBeatsStructured'
+import { CANONICAL_TROPE_ORDER } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 import { CacheBase } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
@@ -11,8 +14,9 @@ export type CacheCoyoteGameKeys = 'gameRooms' | 'intent' | 'outcome'
 /**
  * Durable Coyote hypothesis row: the **`Hypothesis:`** line plus optional hop-2 **walkthrough** (internal cartoon prose under **`## Cartoon play-by-play`**) and **narrativeBeatsStructured** (when hop-2 JSON validated).
  * Dynamo-backed reads rewrite a legacy first-line **`## Scene analysis`** heading to **`## Cartoon play-by-play`**.
- * **Plan outcome** ([`generatePlanOutcome`](../dataSource/coyoteGame/generators/pipelines/outcome/generatePlanOutcome.ts)) and the Await RoadRunner path use the same cached **`get('intent')`** value (no extra Dynamo read for outcome). If **narrativeBeatsStructured** is absent (validation failed, or legacy data), outcome generation still uses **intent** and optional **walkthrough**; see [`coyoteGame/AGENT.md`](../dataSource/coyoteGame/AGENT.md) (plan outcome).
+ * **Plan outcome** ([`generatePlanOutcome`](../dataSource/coyoteGame/generators/pipelines/outcome/generatePlanOutcome.ts)) and the Await RoadRunner path use the same cached **`get('intent')`** value (no extra Dynamo read for outcome). If **narrativeBeatsStructured** is absent (validation failed, or legacy data), outcome generation still uses **intent**, optional **walkthrough**, and optional **tropeSequence**; see [`coyoteGame/AGENT.md`](../dataSource/coyoteGame/AGENT.md) (plan outcome).
  * Optional **`gimmick`**: internal-only short spine tag from the plan-select winner (not client-facing).
+ * Optional **`tropeSequence`**: sparse committed tropes in canonical order (from plan-select winner; internal / outcome prompt only).
  */
 export type CoyoteGameIntentRecord = {
     intent: string
@@ -26,6 +30,8 @@ export type CoyoteGameIntentRecord = {
     narrativeBeatsStructured?: CoyoteNarrativeBeatsStructured
     /** Short spine tag from plan-select winner; absent on legacy rows. */
     gimmick?: string
+    /** Sparse trope order from plan-select winner; absent on legacy rows. */
+    tropeSequence?: CoyoteTrope[]
 }
 
 /** Dynamo row shape; **`sceneAnalysis`** may exist on legacy reads only (mapped into **`walkthrough`**). */
@@ -36,6 +42,7 @@ type CoyoteGameDurableIntentRow = {
     phasePlan?: unknown
     narrativeBeatsStructured?: CoyoteNarrativeBeatsStructured
     gimmick?: string
+    tropeSequence?: unknown
 }
 
 type CoyoteGameCacheState = {
@@ -71,6 +78,24 @@ function normalizeGimmickFromStorage(raw: unknown): string | undefined {
     return normalized.length > 0 ? normalized : undefined
 }
 
+/** Keeps only valid tropes in canonical order; drops malformed durable rows. */
+function normalizeTropeSequenceFromStorage(raw: unknown): CoyoteTrope[] | undefined {
+    if (!Array.isArray(raw) || raw.length === 0) {
+        return undefined
+    }
+    const present = new Set<CoyoteTrope>()
+    for (const item of raw) {
+        if (typeof item === 'string' && isCoyoteTrope(item)) {
+            present.add(item)
+        }
+    }
+    if (present.size === 0) {
+        return undefined
+    }
+    const ordered = CANONICAL_TROPE_ORDER.filter((trope) => present.has(trope))
+    return ordered.length > 0 ? ordered : undefined
+}
+
 /** Rewrites legacy first-line `## Scene analysis` to `## Cartoon play-by-play` when loading from Dynamo. */
 function normalizeWalkthroughHeadingFromStorage(walkthrough: string | undefined): string | undefined {
     if (walkthrough === undefined) {
@@ -102,11 +127,13 @@ function normalizeDurableIntentRow(fetched: CoyoteGameDurableIntentRow | undefin
     const narrativeBeatsStructured = fetched.narrativeBeatsStructured
         ?? (fetched.phasePlan as CoyoteNarrativeBeatsStructured | undefined)
     const gimmick = normalizeGimmickFromStorage(fetched.gimmick)
+    const tropeSequence = normalizeTropeSequenceFromStorage(fetched.tropeSequence)
     return {
         intent,
         ...(walkthrough !== undefined ? { walkthrough } : {}),
         ...(narrativeBeatsStructured !== undefined ? { narrativeBeatsStructured } : {}),
         ...(gimmick !== undefined ? { gimmick } : {}),
+        ...(tropeSequence !== undefined ? { tropeSequence } : {}),
     }
 }
 
@@ -180,6 +207,7 @@ export class CacheCoyoteGameData extends CacheBase {
                 'phasePlan',
                 'sceneAnalysis',
                 'gimmick',
+                'tropeSequence',
             ],
         })
         const fromDynamo = normalizeDurableIntentRow(fetched ?? undefined)
@@ -189,6 +217,7 @@ export class CacheCoyoteGameData extends CacheBase {
         }
         const generated = await this.deps.generateIntent()
         const gimmickToStore = normalizeGimmickFromStorage(generated.gimmick)
+        const tropeSequenceToStore = normalizeTropeSequenceFromStorage(generated.tropeSequence)
         const intentRecord: CoyoteGameIntentRecord = {
             intent: generated.intent,
             ...(generated.walkthrough !== undefined ? { walkthrough: generated.walkthrough } : {}),
@@ -196,6 +225,7 @@ export class CacheCoyoteGameData extends CacheBase {
                 ? { narrativeBeatsStructured: generated.narrativeBeatsStructured }
                 : {}),
             ...(gimmickToStore !== undefined ? { gimmick: gimmickToStore } : {}),
+            ...(tropeSequenceToStore !== undefined ? { tropeSequence: tropeSequenceToStore } : {}),
         }
         await ephemeraDB.putItem({
             ...COYOTE_GAME_INTENT_KEY,
@@ -205,6 +235,7 @@ export class CacheCoyoteGameData extends CacheBase {
                 ? { narrativeBeatsStructured: intentRecord.narrativeBeatsStructured }
                 : {}),
             ...(gimmickToStore !== undefined ? { gimmick: gimmickToStore } : {}),
+            ...(tropeSequenceToStore !== undefined ? { tropeSequence: tropeSequenceToStore } : {}),
         })
         this.state.intent = intentRecord
         return intentRecord

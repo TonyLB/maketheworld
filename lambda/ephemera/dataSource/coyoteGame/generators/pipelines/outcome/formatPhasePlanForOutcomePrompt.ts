@@ -3,6 +3,7 @@ import {
     isSyntaxMaterializedAffordanceStableKey,
     MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX,
     NORMALIZED_MATERIALIZED_AFFORDANCE_PREFIX,
+    type CoyoteTrope,
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { normalizedPhasePlanStableKey } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 import {
@@ -49,18 +50,29 @@ function resolveStableKeyLabel(rawKey: string, keyToShort: Map<string, string>):
     return rawKey
 }
 
+export type FormatNarrativeBeatsForOutcomeOptions = {
+    /** Sparse committed tropes in canonical order (from plan-select winner). */
+    tropeSequence?: CoyoteTrope[]
+}
+
 /**
  * Deterministic outline of **narrativeBeatsStructured** for plan-outcome prompting.
  */
 export function formatNarrativeBeatsStructuredForOutcomePrompt(
     narrativeBeatsStructured: CoyoteNarrativeBeatsStructured,
-    roomObjectsByRoom: CoyoteRoomObjectsByRoom
+    roomObjectsByRoom: CoyoteRoomObjectsByRoom,
+    options?: FormatNarrativeBeatsForOutcomeOptions
 ): string {
     const keyToShort = buildStableKeyToShortNameMap(roomObjectsByRoom)
-    const lines: string[] = [
+    const lines: string[] = []
+    const tropeSequence = options?.tropeSequence
+    if (tropeSequence !== undefined && tropeSequence.length > 0) {
+        lines.push(`Trope sequence: ${tropeSequence.join(' -> ')}`, '')
+    }
+    lines.push(
         `Linearized sequence: ${narrativeBeatsStructured.linearizedSequence.join(' -> ')}`,
         '',
-    ]
+    )
 
     narrativeBeatsStructured.beats.forEach((beat, index) => {
         const n = index + 1

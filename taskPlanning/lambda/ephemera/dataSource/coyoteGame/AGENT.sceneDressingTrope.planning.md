@@ -1,6 +1,6 @@
 # Coyote Game: Scene Dressing trope (planning)
 
-**Status:** SS4 complete --- hypothesis pipeline (decisionFocus, candidate prompt, fixture-01 / clean-001). Next step: Phase SS5 (phase-plan and outcome).
+**Status:** SS5 complete --- phase-plan validation (six-trope `tropeSequence`) and outcome trope-order labels on intent. Next step: Phase SS6 (conceptual docs and closeout).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -170,9 +170,9 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] **Plan select:** verify allowlist strings only; no rubric edits per handoff.
   - [X] Fixture: **`fixture-01`** (clean-001) dressing cluster -> chase archetype candidate (not three thin single-prop rows); harness eval uses core few-shot only (iconic clean-001 block production-only).
 
-- [ ] Phase SS5 - phase-plan and outcome
-  - [ ] **`validateCoyotePhasePlan`:** six-trope **`tropeSequence`** including Scene Dressing at index 0 when present.
-  - [ ] Outcome formatters: six-trope order labels when present in intent.
+- [X] Phase SS5 - phase-plan and outcome
+  - [X] **`validateCoyotePhasePlan`:** six-trope **`tropeSequence`** including Scene Dressing at index 0 when present (SS1 + [`tropeSequenceFromAssignments`](../../../../../../packages/mtw-interfaces/ts/coyotePhasePlan.ts); production hop-2 still uses **`narrativeBeatsStructured`**).
+  - [X] Outcome formatters: sparse **`tropeSequence`** on durable intent (from plan-select winner) + **`Trope sequence:`** labels in outcome prompt when present.
 
 - [ ] Phase SS6 - conceptual docs and closeout
   - [ ] **`AGENT.tropes.md`:** sixth trope section (associative vs causal registers); update sequence combinatorics count.
@@ -218,7 +218,7 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/testHarness/ru
 | SS2 Acme enrich | Complete |
 | SS3 Persistence / snapshots | Complete |
 | SS4 Hypothesis pipeline | Complete |
-| SS5 Phase-plan / outcome | Not started |
+| SS5 Phase-plan / outcome | Complete |
 | SS6 Docs / closeout | Not started |
 
 ## Locked decisions

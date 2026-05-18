@@ -19,6 +19,7 @@ const INTENT_PROJECTION_FIELDS = [
     'phasePlan',
     'sceneAnalysis',
     'gimmick',
+    'tropeSequence',
 ] as const
 
 describe('CacheCoyoteGameData', () => {
@@ -190,6 +191,55 @@ describe('CacheCoyoteGameData', () => {
                 ...intentKey,
                 intent: 'Hypothesis: Generated',
                 gimmick: 'deliver damage',
+            })
+        })
+
+        it('reads tropeSequence from durable row in canonical order', async () => {
+            const { generateIntent, generateOutcome } = defaultDeps()
+            ephemeraMock.getItem.mockResolvedValue({
+                intent: 'Hypothesis: Durable',
+                tropeSequence: ['Contraption', 'Scene Dressing'],
+            })
+            const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
+
+            await expect(cache.get('intent')).resolves.toEqual({
+                intent: 'Hypothesis: Durable',
+                tropeSequence: ['Scene Dressing', 'Contraption'],
+            })
+            expect(generateIntent).not.toHaveBeenCalled()
+        })
+
+        it('drops invalid tropeSequence entries from durable row', async () => {
+            const { generateIntent, generateOutcome } = defaultDeps()
+            ephemeraMock.getItem.mockResolvedValue({
+                intent: 'Hypothesis: Durable',
+                tropeSequence: ['NotARealTrope', 'Contraption'],
+            })
+            const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
+
+            await expect(cache.get('intent')).resolves.toEqual({
+                intent: 'Hypothesis: Durable',
+                tropeSequence: ['Contraption'],
+            })
+        })
+
+        it('persists tropeSequence when generator returns it', async () => {
+            const { generateIntent, generateOutcome } = defaultDeps()
+            generateIntent.mockResolvedValue({
+                intent: 'Hypothesis: Generated',
+                tropeSequence: ['Scene Dressing', 'Contraption'],
+            })
+            ephemeraMock.getItem.mockResolvedValue(undefined)
+            const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
+
+            await expect(cache.get('intent')).resolves.toEqual({
+                intent: 'Hypothesis: Generated',
+                tropeSequence: ['Scene Dressing', 'Contraption'],
+            })
+            expect(ephemeraMock.putItem).toHaveBeenCalledWith({
+                ...intentKey,
+                intent: 'Hypothesis: Generated',
+                tropeSequence: ['Scene Dressing', 'Contraption'],
             })
         })
 

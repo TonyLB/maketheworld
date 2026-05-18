@@ -72,6 +72,13 @@ const CANONICAL_TROPE_INDEX = new Map<CoyoteTrope, number>(
     CANONICAL_TROPE_ORDER.map((trope, index) => [trope, index])
 )
 
+/** Sparse trope sequence from a trope-keyed record, in canonical order (omits absent tropes). */
+export function tropeSequenceFromAssignments(
+    assignments: Partial<Record<CoyoteTrope, unknown>>
+): CoyoteTrope[] {
+    return CANONICAL_TROPE_ORDER.filter((trope) => assignments[trope] !== undefined)
+}
+
 function isPlainObject(v: unknown): v is Record<string, unknown> {
     return typeof v === 'object' && v !== null && !Array.isArray(v)
 }

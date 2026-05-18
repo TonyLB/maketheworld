@@ -162,6 +162,7 @@ describe('buildPlanOutcomePrompt', () => {
             },
             hypothesisLine: 'Hypothesis: Follow the beat order.',
             walkthrough: 'First prep the lane, then commit the final drop.',
+            tropeSequence: ['Scene Dressing', 'Contraption'],
             narrativeBeatsStructured: {
                 beats: [
                     {
@@ -180,9 +181,23 @@ describe('buildPlanOutcomePrompt', () => {
         })
         expect(prompt).toContain('## Cartoon play-by-play')
         expect(prompt).toContain('First prep the lane, then commit the final drop.')
+        expect(prompt).toContain('Trope sequence: Scene Dressing -> Contraption')
         expect(prompt).toContain('Linearized sequence: prep -> finish')
         expect(prompt).toContain('Follow')
         expect(prompt).toContain('linearized beat order and walkthrough beats')
+        expect(prompt).toContain('committed **trope sequence**')
+        expect(prompt).toContain('cartoon play-by-play timing with both the committed trope sequence')
+    })
+
+    it('includes committed trope sequence section when beats are absent', () => {
+        const prompt = buildPlanOutcomePrompt({
+            roomObjectsByRoom: baseRooms,
+            hypothesisLine: 'Hypothesis: Chase.',
+            tropeSequence: ['Scene Dressing', 'Contraption'],
+        })
+        expect(prompt).toContain('## Committed trope sequence')
+        expect(prompt).toContain('Scene Dressing -> Contraption')
+        expect(prompt).not.toContain('## Narrative beats structured (execution outline)')
     })
 
     it('omits scene analysis and phase sections when absent', () => {

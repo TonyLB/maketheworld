@@ -41,6 +41,7 @@ import {
     parseNarrativeBeatOutput,
     type ParseHypothesisModelOutputOptions,
 } from '../../sharedParsers/parseHypothesisModelOutput';
+import { tropeSequenceFromAssignments } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan';
 import { parseCandidateOutput, truncateCoyoteGimmickEcho } from './candidates/parseCandidateOutput';
 import { hypothesisDebugLog } from '../../../utilities/hypothesisDebug';
 import {
@@ -477,15 +478,23 @@ function buildCoyoteHypothesisSteps(
                     narrativeBeatsCtx,
                     parseOptions
                 );
-                const winnerGimmickRaw = draft.planSelectOutput?.selectedCandidate?.gimmick;
+                const selectedCandidate = draft.planSelectOutput?.selectedCandidate;
+                const winnerGimmickRaw = selectedCandidate?.gimmick;
                 const winnerGimmick =
                     typeof winnerGimmickRaw === 'string' && winnerGimmickRaw.trim().length > 0
                         ? truncateCoyoteGimmickEcho(winnerGimmickRaw)
                         : undefined;
-                draft.record =
-                    winnerGimmick !== undefined && winnerGimmick.length > 0
-                        ? { ...parsed.record, gimmick: winnerGimmick }
-                        : parsed.record;
+                const winnerTropeSequence =
+                    selectedCandidate !== undefined
+                        ? tropeSequenceFromAssignments(selectedCandidate.tropeAssignments)
+                        : [];
+                draft.record = {
+                    ...parsed.record,
+                    ...(winnerGimmick !== undefined && winnerGimmick.length > 0
+                        ? { gimmick: winnerGimmick }
+                        : {}),
+                    ...(winnerTropeSequence.length > 0 ? { tropeSequence: winnerTropeSequence } : {}),
+                };
                 draft.narrativeBeatsStructuredJson = parsed.narrativeBeatsStructuredJson;
                 draft.narrativeBeatsStructuredValidationReason = parsed.narrativeBeatsStructuredValidationReason;
                 if (

@@ -195,6 +195,7 @@ describe('generateHypothesis', () => {
         expect(record.narrativeBeatsStructured?.beats).toHaveLength(1)
         expect(record.walkthrough).toBeUndefined()
         expect(record.gimmick).toBe('deliver damage')
+        expect(record.tropeSequence).toEqual(['Bait', 'Finishing Move'])
         expect(stageOneMock).toHaveBeenCalledTimes(1)
         expect(planSelectionMock).toHaveBeenCalledTimes(1)
         expect(narrativeBeatMock).toHaveBeenCalledTimes(1)
@@ -438,6 +439,7 @@ describe('generateHypothesis', () => {
         await expect(generateHypothesis(hypothesisDeps())).resolves.toEqual({
             intent: 'Hypothesis: You are trying to drop something on the Road Runner.',
             gimmick: 'deliver damage',
+            tropeSequence: ['Bait', 'Finishing Move'],
             narrativeBeatsStructured: {
                 beats: [
                     {
@@ -509,5 +511,6 @@ describe('generateHypothesis', () => {
         expect(record.intent).toBe('Hypothesis: Prose still works.')
         expect(record.narrativeBeatsStructured).toBeUndefined()
         expect(record.gimmick).toBe('deliver damage')
+        expect(record.tropeSequence).toEqual(['Bait', 'Finishing Move'])
     })
 })

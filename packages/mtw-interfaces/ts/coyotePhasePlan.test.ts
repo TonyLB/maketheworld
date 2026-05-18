@@ -2,6 +2,7 @@ import { COYOTE_RESERVED_VIRTUAL_GROUNDING_STABLE_KEY } from './coyotePlanAffini
 import {
     CANONICAL_TROPE_ORDER,
     normalizedPhasePlanStableKey,
+    tropeSequenceFromAssignments,
     validateCoyotePhasePlan,
     type CoyotePhasePlanValidationContext,
 } from './coyotePhasePlan'
@@ -789,6 +790,30 @@ describe('CANONICAL_TROPE_ORDER', () => {
     it('lists six tropes with Scene Dressing first', () => {
         expect(CANONICAL_TROPE_ORDER).toHaveLength(6)
         expect(CANONICAL_TROPE_ORDER[0]).toBe('Scene Dressing')
+    })
+})
+
+describe('tropeSequenceFromAssignments', () => {
+    it('returns empty array when no tropes are assigned', () => {
+        expect(tropeSequenceFromAssignments({})).toEqual([])
+    })
+
+    it('orders fixture-01-shaped assignments with Scene Dressing before Contraption', () => {
+        expect(
+            tropeSequenceFromAssignments({
+                'Scene Dressing': { members: [] },
+                Contraption: { members: [] },
+            })
+        ).toEqual(['Scene Dressing', 'Contraption'])
+    })
+
+    it('omits tropes not present in assignments', () => {
+        expect(
+            tropeSequenceFromAssignments({
+                Bait: { members: [] },
+                'Finishing Move': { members: [] },
+            })
+        ).toEqual(['Bait', 'Finishing Move'])
     })
 })
 
