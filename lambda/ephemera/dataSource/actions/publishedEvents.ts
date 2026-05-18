@@ -1,6 +1,6 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import { isCoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import { areCoyoteObjectTropeFieldsValid } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 /**
  * Outbound stream payloads for mtw.ephemera.actions (bus-only DataSource).
@@ -95,21 +95,7 @@ export const isAcmeOrderPublishedOrder = (value: unknown): value is AcmeOrderPub
     if (typeof o.shortName !== 'string' || o.shortName.trim().length === 0) {
         return false
     }
-    if ('tropeAffinities' in o) {
-        if (!Array.isArray(o.tropeAffinities)) {
-            return false
-        }
-        if (o.tropeAffinities.length > 3) {
-            return false
-        }
-        if (!o.tropeAffinities.every((x) => isCoyoteTropeAffinity(x))) {
-            return false
-        }
-    }
-    if ('tropeAffinitiesFailed' in o && typeof o.tropeAffinitiesFailed !== 'boolean') {
-        return false
-    }
-    if (o.tropeAffinitiesFailed === true && Array.isArray(o.tropeAffinities) && o.tropeAffinities.length !== 0) {
+    if (!areCoyoteObjectTropeFieldsValid(o)) {
         return false
     }
     if (typeof o.stableKey !== 'string' || o.stableKey.trim().length === 0) {

@@ -251,6 +251,28 @@ export function isCoyoteTropeAffinity(entry: unknown): entry is CoyoteTropeAffin
     )
 }
 
+/** Validates optional `tropeAffinities` / `tropeAffinitiesFailed` on bus orders and persisted room objects. */
+export function areCoyoteObjectTropeFieldsValid(o: Record<string, unknown>): boolean {
+    if ('tropeAffinities' in o) {
+        if (!Array.isArray(o.tropeAffinities)) {
+            return false
+        }
+        if (o.tropeAffinities.length > 3) {
+            return false
+        }
+        if (!o.tropeAffinities.every((x) => isCoyoteTropeAffinity(x))) {
+            return false
+        }
+    }
+    if ('tropeAffinitiesFailed' in o && typeof o.tropeAffinitiesFailed !== 'boolean') {
+        return false
+    }
+    if (o.tropeAffinitiesFailed === true && Array.isArray(o.tropeAffinities) && o.tropeAffinities.length !== 0) {
+        return false
+    }
+    return true
+}
+
 export function isCoyoteAffinityPossibility(entry: unknown): entry is CoyoteAffinityPossibility {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
         return false

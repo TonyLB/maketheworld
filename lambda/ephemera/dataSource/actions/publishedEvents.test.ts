@@ -34,6 +34,37 @@ describe('isAcmeOrderPublishedOrder', () => {
         ).toBe(true)
     })
 
+    it('accepts Scene Dressing tropeAffinities', () => {
+        expect(
+            isAcmeOrderPublishedOrder({
+                shortName: 'helmet',
+                stableKey: 'helmet',
+                tropeAffinities: [{
+                    trope: 'Scene Dressing',
+                    aptness: 'Good',
+                    narrowing: 'protective equipment',
+                }],
+            })
+        ).toBe(true)
+    })
+
+    it('rejects Scene Dressing in affordance roles', () => {
+        expect(
+            isAcmeOrderPublishedOrder({
+                ...minimal,
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'launch rig',
+                    environmentAffordances: [{
+                        object: 'boulder',
+                        roles: ['Scene Dressing'],
+                    }],
+                }],
+            })
+        ).toBe(false)
+    })
+
     it('accepts tropeAffinities environmentAffordances when structured objects', () => {
         expect(
             isAcmeOrderPublishedOrder({

@@ -1,4 +1,5 @@
 import {
+    areCoyoteObjectTropeFieldsValid,
     isAcmeOrderEnrichModelLine,
     isNormalizedMaterializedAffordanceStableKey,
     isSyntaxMaterializedAffordanceStableKey,
@@ -334,5 +335,95 @@ describe('isCoyoteTropeAffinity', () => {
                 ],
             })
         ).toBe(false)
+    })
+})
+
+describe('areCoyoteObjectTropeFieldsValid', () => {
+    it('accepts rows with no trope fields', () => {
+        expect(areCoyoteObjectTropeFieldsValid({})).toBe(true)
+    })
+
+    it('accepts Scene Dressing tropeAffinities (up to three)', () => {
+        expect(
+            areCoyoteObjectTropeFieldsValid({
+                tropeAffinities: [{
+                    trope: 'Scene Dressing',
+                    aptness: 'Good',
+                    narrowing: 'protective equipment',
+                }],
+            })
+        ).toBe(true)
+        expect(
+            areCoyoteObjectTropeFieldsValid({
+                tropeAffinities: [
+                    { trope: 'Scene Dressing', aptness: 'Good', narrowing: 'racing gear' },
+                    { trope: 'Scene Dressing', aptness: 'High', narrowing: 'protective equipment' },
+                    { trope: 'Contraption', aptness: 'High', narrowing: 'mobility rig' },
+                ],
+            })
+        ).toBe(true)
+    })
+
+    it('accepts tropeAffinitiesFailed true with empty tropeAffinities', () => {
+        expect(
+            areCoyoteObjectTropeFieldsValid({
+                tropeAffinities: [],
+                tropeAffinitiesFailed: true,
+            })
+        ).toBe(true)
+    })
+
+    it('rejects unknown trope strings', () => {
+        expect(
+            areCoyoteObjectTropeFieldsValid({
+                tropeAffinities: [{ trope: 'wizard', aptness: 'High', narrowing: 'x' }],
+            })
+        ).toBe(false)
+    })
+
+    it('rejects more than three tropeAffinities', () => {
+        expect(
+            areCoyoteObjectTropeFieldsValid({
+                tropeAffinities: [
+                    { trope: 'Bait', aptness: 'High', narrowing: 'a' },
+                    { trope: 'Bait', aptness: 'Good', narrowing: 'b' },
+                    { trope: 'Bait', aptness: 'Poor', narrowing: 'c' },
+                    { trope: 'Bait', aptness: 'High', narrowing: 'd' },
+                ],
+            })
+        ).toBe(false)
+    })
+
+    it('rejects Scene Dressing in affordance roles', () => {
+        expect(
+            areCoyoteObjectTropeFieldsValid({
+                tropeAffinities: [{
+                    trope: 'Contraption',
+                    aptness: 'High',
+                    narrowing: 'rig',
+                    environmentAffordances: [{
+                        object: 'boulder',
+                        roles: ['Scene Dressing'],
+                    }],
+                }],
+            })
+        ).toBe(false)
+    })
+
+    it('rejects tropeAffinitiesFailed true with non-empty tropeAffinities', () => {
+        expect(
+            areCoyoteObjectTropeFieldsValid({
+                tropeAffinities: [{ trope: 'Contraption', aptness: 'High', narrowing: 'rig' }],
+                tropeAffinitiesFailed: true,
+            })
+        ).toBe(false)
+    })
+
+    it('rejects non-array tropeAffinities', () => {
+        expect(areCoyoteObjectTropeFieldsValid({ tropeAffinities: 'bad' })).toBe(false)
+    })
+
+    it('rejects non-boolean tropeAffinitiesFailed', () => {
+        expect(areCoyoteObjectTropeFieldsValid({ tropeAffinitiesFailed: 'yes' })).toBe(false)
     })
 })

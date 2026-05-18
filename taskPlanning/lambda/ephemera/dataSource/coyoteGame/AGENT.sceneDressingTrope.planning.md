@@ -1,6 +1,6 @@
 # Coyote Game: Scene Dressing trope (planning)
 
-**Status:** SS2 complete --- enrich prompt and **clean-001** harness retarget landed. Next step: Phase SS3 (persistence and snapshots).
+**Status:** SS3 complete --- persistence and snapshot validation landed. Next step: Phase SS4 (hypothesis pipeline).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -159,9 +159,9 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Retarget **clean-001** harness fixture (`rocket skates, helmet, and goggles`; Scene Dressing on gear, **Contraption** on skates; fixture count stays 10). Manual `/test affinities 1` calibration optional after deploy.
   - [X] Tests: **`coyotePlanAffinities.test.ts`**, **`enrich/acmeOrder/buildPrompt.test.ts`**; **`index.test.ts`** regression pass (no prompt-body changes required).
 
-- [ ] Phase SS3 - persistence and snapshots
-  - [ ] Bus/object validation accepts Scene Dressing on **`tropeAffinities`**.
-  - [ ] **`formatCoyoteObjectAffinitySuffix`** renders six-trope lines unchanged (no special casing required unless UX copy desired later).
+- [X] Phase SS3 - persistence and snapshots
+  - [X] Bus/object validation accepts Scene Dressing on **`tropeAffinities`** (`areCoyoteObjectTropeFieldsValid` on bus + **`isEphemeraMetaRoomObject`**).
+  - [X] **`formatCoyoteObjectAffinitySuffix`** renders six-trope lines unchanged (trope-agnostic; Scene Dressing regression tests added).
 
 - [ ] Phase SS4 - hypothesis pipeline (meaningful work)
   - [ ] **`decisionFocus`:** Scene-Dressing-only props -> **`expanderStableKeys`**; document mixed-prop behavior in tests.
@@ -186,12 +186,16 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 
 ```bash
 npm run test -- --watchAll=false ts/coyotePlanAffinities.test.ts
+npm run test -- --watchAll=false ts/ephemeraMeta.test.ts
 npm run test -- --watchAll=false ts/coyotePhasePlan.test.ts
 ```
 
 **Acme + decisionFocus + candidates (`lambda/ephemera/`):**
 
 ```bash
+npm run test -- --watchAll=false dataSource/actions/publishedEvents.test.ts
+npm run test -- --watchAll=false dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot.test.ts
+npm run test -- --watchAll=false dataSource/objects/mergePersistMetaRoomObjects.test.ts
 npm run test -- --watchAll=false dataSource/actions/enrich/acmeOrder/buildPrompt.test.ts
 npm run test -- --watchAll=false dataSource/actions/enrich/acmeOrder/index.test.ts
 npm run test -- --watchAll=false dataSource/coyoteGame/generators/pipelines/hypothesis/candidates/serializeStagedObjectsForCandidatePrompt.test.ts
@@ -212,7 +216,7 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/testHarness/ru
 | SS0 Design handoff | Complete |
 | SS1 Types / canonical order | Complete |
 | SS2 Acme enrich | Complete |
-| SS3 Persistence / snapshots | Not started |
+| SS3 Persistence / snapshots | Complete |
 | SS4 Hypothesis pipeline | Not started |
 | SS5 Phase-plan / outcome | Not started |
 | SS6 Docs / closeout | Not started |

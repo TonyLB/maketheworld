@@ -7,7 +7,7 @@ import {
     isEphemeraObjectId,
     type EphemeraObjectId,
 } from './baseClasses'
-import type { CoyoteTropeAffinity } from './coyotePlanAffinities'
+import { areCoyoteObjectTropeFieldsValid, type CoyoteTropeAffinity } from './coyotePlanAffinities'
 
 //
 // Shared types for Ephemera-table metadata records (ephemeraDB).
@@ -71,7 +71,7 @@ export type EphemeraMetaRoomObject = {
     shortName: string;
     /** Coyote-wide machine correlation key (`a-z` / `0-9` / `-`). */
     stableKey: string;
-    /** Canonical trope-centered possibilities for Coyote planning (1-3 entries). */
+    /** Canonical trope-centered possibilities for Coyote planning (1-3 entries; six tropes incl. Scene Dressing). */
     tropeAffinities?: CoyoteTropeAffinity[];
     /** True when trope affinities were unavailable from enrich processing. */
     tropeAffinitiesFailed?: boolean;
@@ -89,10 +89,7 @@ export const isEphemeraMetaRoomObject = (entry: unknown): entry is EphemeraMetaR
         return false
     }
     const o = entry as Record<string, unknown>
-    if ('tropeAffinities' in o && !Array.isArray(o.tropeAffinities)) {
-        return false
-    }
-    if ('tropeAffinitiesFailed' in o && typeof o.tropeAffinitiesFailed !== 'boolean') {
+    if (!areCoyoteObjectTropeFieldsValid(o)) {
         return false
     }
     if (typeof o.stableKey !== 'string' || o.stableKey.trim().length === 0) {
