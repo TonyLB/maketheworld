@@ -1,6 +1,10 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { CoyoteTropeAffinity, CoyoteTropeAptness } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import {
+    isCausalCoyoteTrope,
+    type CoyoteTropeAffinity,
+    type CoyoteTropeAptness,
+} from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
 import { seamRoomLabelFromEphemeraRoomId } from '../coyoteHypothesisPromptShared'
@@ -48,12 +52,36 @@ function rowHasNonPoorAffordances(row: CoyoteTropeAffinity): boolean {
     return row.aptness !== 'Poor' && rowHasNonEmptyAffordanceArrays(row)
 }
 
-function isExpanderForDecisionFocus(o: EphemeraMetaRoomObject): boolean {
+function nonPoorRows(rows: CoyoteTropeAffinity[]): CoyoteTropeAffinity[] {
+    return rows.filter((r) => isNonPoorAptness(r.aptness))
+}
+
+function hasNonPoorCausalAffinity(rows: CoyoteTropeAffinity[]): boolean {
+    return nonPoorRows(rows).some((r) => isCausalCoyoteTrope(r.trope))
+}
+
+function hasNonPoorSceneDressingAffinity(rows: CoyoteTropeAffinity[]): boolean {
+    return nonPoorRows(rows).some((r) => r.trope === 'Scene Dressing')
+}
+
+/** Scene Dressing only (no non-Poor causal fits): strong archetype expander signal. */
+function isSceneDressingOnlyExpander(o: EphemeraMetaRoomObject): boolean {
     if (!isAffinityEligibleForDecisionFocus(o)) {
         return false
     }
     const rows = o.tropeAffinities!
-    const nonPoorCount = rows.filter((r) => isNonPoorAptness(r.aptness)).length
+    return hasNonPoorSceneDressingAffinity(rows) && !hasNonPoorCausalAffinity(rows)
+}
+
+function isExpanderForDecisionFocus(o: EphemeraMetaRoomObject): boolean {
+    if (!isAffinityEligibleForDecisionFocus(o)) {
+        return false
+    }
+    if (isSceneDressingOnlyExpander(o)) {
+        return true
+    }
+    const rows = o.tropeAffinities!
+    const nonPoorCount = nonPoorRows(rows).length
     if (nonPoorCount >= 2) {
         return true
     }

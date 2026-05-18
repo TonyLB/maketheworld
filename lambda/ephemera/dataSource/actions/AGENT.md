@@ -63,7 +63,7 @@ Before **`invokeBedrockAcmeOrderEnrich`**, **[`enrich/acmeOrder/index.ts`](./enr
 
 ### Types and payloads
 
-- **[`AcmeOrderPublishedOrder`](publishedEvents.ts):** **`stableKey: string`** required on each bus order line after wiring.
+- **[`AcmeOrderPublishedOrder`](publishedEvents.ts):** **`stableKey: string`** required on each bus order line after wiring; optional **`tropeAffinities`** / **`tropeAffinitiesFailed`** validated by **`areCoyoteObjectTropeFieldsValid`** ([`coyotePlanAffinities.ts`](../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)) --- same rules as persisted **`EphemeraMetaRoomObject`** rows.
 - **`EphemeraMetaRoomObject`:** **`stableKey: string`** --- required on persisted rows (non-empty after trim); see **`isEphemeraMetaRoomObject`**.
 
 ### Coyote prompts vs stored fields

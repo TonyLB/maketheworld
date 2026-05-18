@@ -8,18 +8,35 @@ export const ACME_ORDER_AFFINITIES_HARNESS_FIXTURES: readonly AcmeOrderAffinitie
     {
         id: 'clean-001-rocket-skates',
         bucket: 'clean',
-        commandPhrase: 'rocket skates',
-        tags: ['mobility', 'contraption'],
-        expectedLines: [{
-            nameLike: 'rocket skates',
-            valid: true,
-            tropeAffinities: [
-                { trope: 'Contraption', aptness: 'High', narrowingLike: 'coyote mobility or pursuit rig' },
-            ],
-        }],
+        commandPhrase: 'rocket skates, helmet, and goggles',
+        tags: ['scene-dressing', 'chase-gear', 'multi-line', 'mobility', 'contraption'],
+        expectedLines: [
+            {
+                nameLike: 'rocket skates',
+                valid: true,
+                tropeAffinities: [
+                    { trope: 'Contraption', aptness: 'High', narrowingLike: 'coyote mobility or pursuit rig' },
+                ],
+            },
+            {
+                nameLike: 'helmet',
+                valid: true,
+                tropeAffinities: [
+                    { trope: 'Scene Dressing', aptness: 'Good', narrowingLike: 'protective equipment' },
+                ],
+            },
+            {
+                nameLike: 'goggles',
+                valid: true,
+                tropeAffinities: [
+                    { trope: 'Scene Dressing', aptness: 'Good', narrowingLike: 'racing gear' },
+                ],
+            },
+        ],
         likelyErrors: [
-            'Mislabel as Finishing Move due to speed lethality assumptions.',
-            'Empty tropeAffinities despite obvious in-genre fit.',
+            'Weak Disadvantage or Finishing Move on helmet/goggles instead of Scene Dressing.',
+            'Invented causal fits on helmet/goggles; missing Scene Dressing on gear.',
+            'Mislabel rocket skates as Scene Dressing only or omit Contraption on the mobility anchor.',
         ],
     },
     {
@@ -79,20 +96,46 @@ export const ACME_ORDER_AFFINITIES_HARNESS_FIXTURES: readonly AcmeOrderAffinitie
     {
         id: 'borderline-001-paint-kit',
         bucket: 'borderline',
-        commandPhrase: 'paint',
-        tags: ['art-supplies', 'cartoon-logic'],
-        expectedLines: [{
-            nameLike: 'paint',
-            valid: true,
-            tropeAffinities: [
-                { trope: 'Bait', aptness: 'Good', narrowingLike: 'fake route or visual lure' },
-                { trope: 'Misdirection', aptness: 'Good', narrowingLike: 'painted illusion misread as terrain' },
-                { trope: 'Finishing Move', aptness: 'High', narrowingLike: 'painted tunnel collision setup' },
-            ],
-        }],
+        commandPhrase: 'roller skates, paint, portable hole, and birdseed',
+        tags: ['hole-trap', 'misdirection', 'multi-line', 'art-supplies', 'cartoon-logic'],
+        expectedLines: [
+            {
+                nameLike: 'roller skates',
+                valid: true,
+                tropeAffinities: [
+                    { trope: 'Contraption', aptness: 'High', narrowingLike: 'mobility rig for setup and chase positioning' },
+                ],
+            },
+            {
+                nameLike: 'paint',
+                valid: true,
+                tropeAffinities: [
+                    { trope: 'Misdirection', aptness: 'High', narrowingLike: 'visual lure through fake passage' },
+                    { trope: 'Bait', aptness: 'Good', narrowingLike: 'draw attention to painted route' },
+                    { trope: 'Finishing Move', aptness: 'High', narrowingLike: 'painted tunnel collision setup' },
+                ],
+            },
+            {
+                nameLike: 'portable hole',
+                valid: true,
+                tropeAffinities: [
+                    { trope: 'Misdirection', aptness: 'High', narrowingLike: 'persistent route hazard or drop trap' },
+                ],
+            },
+            {
+                nameLike: 'birdseed',
+                valid: true,
+                tropeAffinities: [
+                    { trope: 'Bait', aptness: 'High', narrowingLike: 'voluntary lure or bait trail' },
+                ],
+            },
+        ],
         likelyErrors: [
             'Return no tropeAffinities (or tropeAffinitiesFailed) despite strong in-genre uses.',
-            'Collapse to a single trope without acknowledging overlap.',
+            'Collapse paint to a single trope without acknowledging overlap.',
+            'Omit environmentAffordances on paint (rock-wall) or portable hole (long-fall).',
+            'Collapse portable hole into Contraption only without Misdirection or finishing-path signal.',
+            'Mislabel roller skates as Scene Dressing only.',
         ],
     },
     {

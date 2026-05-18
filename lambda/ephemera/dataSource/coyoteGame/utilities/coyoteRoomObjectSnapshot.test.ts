@@ -43,6 +43,37 @@ describe('formatCoyoteObjectAffinitySuffix', () => {
         )
     })
 
+    it('formats Scene Dressing trope affinities', () => {
+        const o: EphemeraMetaRoomObject = {
+            uuid: 'OBJECT#h' as `OBJECT#${string}`,
+            shortName: 'helmet',
+            stableKey: 'helmet',
+            tropeAffinities: [{
+                trope: 'Scene Dressing',
+                aptness: 'Good',
+                narrowing: 'protective equipment',
+            }],
+        }
+        expect(formatCoyoteObjectAffinitySuffix(o)).toBe(
+            'tropes: Scene Dressing Good (protective equipment)'
+        )
+    })
+
+    it('formats mixed Scene Dressing and causal tropes on one object', () => {
+        const o: EphemeraMetaRoomObject = {
+            uuid: 'OBJECT#s' as `OBJECT#${string}`,
+            shortName: 'rocket skates',
+            stableKey: 'rocket-skates',
+            tropeAffinities: [
+                { trope: 'Contraption', aptness: 'High', narrowing: 'coyote mobility rig' },
+                { trope: 'Scene Dressing', aptness: 'Good', narrowing: 'racing gear' },
+            ],
+        }
+        expect(formatCoyoteObjectAffinitySuffix(o)).toBe(
+            'tropes: Contraption High (coyote mobility rig); Scene Dressing Good (racing gear)'
+        )
+    })
+
     it('ignores optional trope environmentAffordances in formatted suffix text', () => {
         const o: EphemeraMetaRoomObject = {
             uuid: 'OBJECT#a' as `OBJECT#${string}`,
@@ -131,6 +162,26 @@ describe('formatCoyoteStagedObjectsByRoom', () => {
         })
         expect(out).toContain(
             'magnet — stableKey: magnet — tropes: Contraption Good (ceiling track)'
+        )
+    })
+
+    it('renders Scene Dressing in staged line', () => {
+        const out = formatCoyoteStagedObjectsByRoom({
+            [room('ROOM#VORTEX')]: [
+                {
+                    uuid: 'OBJECT#g' as `OBJECT#${string}`,
+                    shortName: 'goggles',
+                    stableKey: 'goggles',
+                    tropeAffinities: [{
+                        trope: 'Scene Dressing',
+                        aptness: 'Good',
+                        narrowing: 'racing gear',
+                    }],
+                },
+            ],
+        })
+        expect(out).toContain(
+            'goggles — stableKey: goggles — tropes: Scene Dressing Good (racing gear)'
         )
     })
 

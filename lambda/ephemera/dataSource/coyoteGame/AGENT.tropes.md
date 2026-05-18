@@ -8,27 +8,56 @@
 
 Coyote plans are constructed from a small, fixed set of tropes. The trope system is intentionally constrained to reflect the genre conventions of the Road Runner cartoons specifically --- not all logically possible plans, but the recognizable formula that defines the format.
 
-Plans are assembled as **ordered sequences** of up to **five** optional trope slots (`Contraption`, `Bait`, `Misdirection`, `Disadvantage`, `Finishing Move`). At most **one phase per trope type** in a given plan. The ordering is fixed and genre-definitional: it reflects the production convention that Coyote always prepares in advance, alone, before the Road Runner arrives. A plan that violates the ordering is not merely suboptimal --- it is not a Wile E. Coyote plan.
+Plans are assembled as **ordered sequences** of up to **six** optional trope slots (`Scene Dressing`, `Contraption`, `Bait`, `Misdirection`, `Disadvantage`, `Finishing Move`). At most **one phase per trope type** in a given plan. The ordering is fixed and genre-definitional: it reflects the production convention that Coyote always prepares in advance, alone, before the Road Runner arrives. A plan that violates the ordering is not merely suboptimal --- it is not a Wile E. Coyote plan.
 
 ---
 
-## The five tropes
+## Two prop registers
 
-### 1. Contraption
+Looney Tunes plans read staged objects in two registers:
 
-**Position:** Always first among tropes, if present.
+1. **Causal tropes** (`Contraption` through `Finishing Move`) --- mechanical roles in the golden-path plan: devices, lures, illusions, imposed conditions, terminal payloads.
+2. **Scene Dressing** --- **associative** props that complete a visual or thematic scene **without** contributing a causal mechanism. A racing helmet does not save the Coyote; it signals **what kind of scene** is being staged.
+
+Without associative signal, enrich tends to invent weak causal readings on dressing props, candidate gen under-clusters obvious archetype spines, and plans miss beats like rocket skates plus helmet plus goggles (mobility anchor plus **racing-scene** dressing around a chase archetype). Archetype names emerge when dressing props **cluster** at candidate generation, not when each prop is tagged with a scenario label at enrich time.
+
+Enrich and wire-format details for Scene Dressing narrowing live in [`AGENT.tropes.implementation.md`](AGENT.tropes.implementation.md).
+
+---
+
+## The six tropes
+
+### 1. Scene Dressing
+
+**Position:** Always first in canonical order, if present.
+
+**Role:** Non-functional narrative association. Same `{ trope, aptness, narrowing }` shape as causal tropes on persisted objects, but the item **does not** supply a beat mechanism --- it makes association **machine-readable** for downstream clustering.
+
+**Narrowing grain:** Names an **aesthetic or material category**, not an effect, scenario, or archetype. Good: `"racing gear"`, `"protective equipment"`, `"scientific apparatus"`, `"adventurous clothing"`. Wrong at enrich time: `"aviation"`, `"high-speed chase"` --- those belong on the **candidate** when compatible dressing narrowings cluster around a causal anchor.
+
+**Affordances:** Scene Dressing rows do **not** carry `environmentAffordances` or `affordancesProvided` (non-functional trope).
+
+**Downstream (hypothesis):** Props with **only** Scene Dressing fits (no non-Poor causal fits) are strong **expander** signal in stage-one `decisionFocus` ([`serializeStagedObjectsForCandidatePrompt.ts`](generators/pipelines/hypothesis/candidates/serializeStagedObjectsForCandidatePrompt.ts)). Props with **both** Scene Dressing and causal fits supply archetype hint **and** functional placement. Candidate gen should cluster compatible dressing narrowings into one **`Scene Dressing`** trope row rather than thin single-prop candidates ([`buildCandidatePrompt.ts`](generators/pipelines/hypothesis/candidates/buildCandidatePrompt.ts)).
+
+Examples: helmet and goggles with `"protective equipment"` / `"racing gear"` around rocket skates; lab coat and safety goggles with `"scientific apparatus"` around a chemistry-set rig.
+
+---
+
+### 2. Contraption
+
+**Position:** First among **causal** tropes when Scene Dressing is absent; immediately after Scene Dressing when both are present.
 
 An elaborate system, device, or preparation that tilts things in the Coyote's favor --- typically independent of any direct effect on the Road Runner. The Coyote does something clever to himself, his capabilities, or his environment before engagement begins.
 
-Examples: rocket-powered roller skates, a motorcycle helmet, leg-muscle pills, an elaborate pipe-and-pulley delivery system, a catapult pre-aimed at a specific location.
+Examples: rocket-powered roller skates, leg-muscle pills, an elaborate pipe-and-pulley delivery system, a catapult pre-aimed at a specific location.
 
 The defining quality is Acme-ness and pre-commitment: the Coyote has assembled something and is ready to deploy it. The contraption is always built before the Road Runner arrives --- the cartoon never shows the Road Runner watching it being assembled.
 
 ---
 
-### 2. Bait
+### 3. Bait
 
-**Position:** Second, if present.
+**Position:** Third in canonical order (second causal slot), if present.
 
 Influences the Road Runner to **go to** or **stay in** a particular place or path through **voluntary** appetite, curiosity, or desire --- appetitive lure, desirable object, routing that the bird **chooses**.
 
@@ -38,9 +67,9 @@ Examples: a plate of birdseed, a fake detour sign that exploits trust or habit, 
 
 ---
 
-### 3. Misdirection
+### 4. Misdirection
 
-**Position:** Third, if present.
+**Position:** Fourth in canonical order (third causal slot), if present.
 
 Interferes with the Road Runner's ability to **accurately see or control** where he is going --- illusion of terrain, obscured vision, misleading optics, or steering/control failure framed as **misread** rather than a raw imposed debuff.
 
@@ -54,9 +83,9 @@ A plan **may** include both **Bait** and **Misdirection**; when both appear they
 
 ---
 
-### 4. Disadvantage
+### 5. Disadvantage
 
-**Position:** Fourth, if present. Can be the first Road-Runner-facing trope if **Bait** and **Misdirection** are both absent (for example **Contraption** prep then an imposed state on the bird).
+**Position:** Fifth in canonical order (fourth causal slot), if present. Can be the first Road-Runner-facing trope if **Bait** and **Misdirection** are both absent (for example **Contraption** prep then an imposed state on the bird).
 
 A persistent state imposed on the Road Runner that reduces his options, mobility, or effectiveness **independent of voluntary choice or mistaken perception** --- sticky feet, net, glue, knockout gas, ongoing impairment.
 
@@ -66,9 +95,9 @@ Unlike **Misdirection** (a perceptual misread at speed), **Disadvantage** is a *
 
 ---
 
-### 5. Finishing move
+### 6. Finishing move
 
-**Position:** Always last, if present.
+**Position:** Always last in canonical order, if present.
 
 The definitive, unambiguous, no-escape resolution the Coyote intends to deliver. Not merely a final action but a *committed* final action --- the Coyote is certain this ends things. This intentionality matters: the more definitive the intended finishing move, the more catastrophically it can misfire in execution.
 
@@ -87,21 +116,23 @@ When the final trope in a sequence is **Contraption**, **Bait**, **Misdirection*
 
 Chase can also appear as mid-sequence connective tissue when a Contraption is specifically an approach mechanism (rocket skates, a jet-powered pogo stick) --- in which case the contraption *is* the chase, and the sequence closes either implicitly or with a Finishing Move.
 
+**Scene Dressing** does not replace chase-as-connective-tissue and does not add a terminal beat --- it frames the scene around causal slots without changing chase resolution rules.
+
 The Coyote is a maximally optimistic planner. His plans are golden-path walkthroughs, not flowcharts. There are no contingencies, no branches, no fallback positions. This is genre-definitional and should be reflected in all plan generation.
 
 ---
 
 ## Sequence assembly
 
-A valid plan is any combination of the **five** tropes in the fixed order below, with **each slot optional** (sparse sequences are normal):
+A valid plan is any combination of the **six** tropes in the fixed order below, with **each slot optional** (sparse sequences are normal):
 
 ```
-[Contraption?] -> [Bait?] -> [Misdirection?] -> [Disadvantage?] -> [Finishing Move?]
+[Scene Dressing?] -> [Contraption?] -> [Bait?] -> [Misdirection?] -> [Disadvantage?] -> [Finishing Move?]
 ```
 
 The all-absent sequence (no tropes at all) is valid: it represents the Coyote's opening gambit of simply running after the Road Runner unaided.
 
-This yields **32 possible sequence shapes** (each of five ordered slots may be present or absent). The valid sequence for any given item set is determined by a **possibility mask** --- a prior assessment of which trope slots the available items could support (at varying confidence levels). The possibility mask constrains but does not determine the final sequence: multiple valid candidates can be generated from the same mask, and a rubric selects among them.
+This yields **64 possible sequence shapes** (each of six ordered slots may be present or absent). The valid sequence for any given item set is determined by a **possibility mask** --- a prior assessment of which trope slots the available items could support (at varying confidence levels). The possibility mask constrains but does not determine the final sequence: multiple valid candidates can be generated from the same mask, and a rubric selects among them.
 
 ---
 
@@ -171,6 +202,7 @@ This is additive to Acme gadgetry and Rube chains --- another vocabulary for tyi
 
 ## Key constraints summary
 
+- **Scene Dressing** is optional, always first when present, non-functional, and uses **categorical** narrowing only; omit `environmentAffordances` and `affordancesProvided` on Scene Dressing rows.
 - **Contraption** is always pre-engagement preparation; it cannot occur after Road Runner contact.
 - **Bait** covers **voluntary** routing and lure; **Misdirection** covers **perceptual** misread and misleading optics. When both apply, **Bait** precedes **Misdirection** in the fixed order.
 - **Misdirection** is not **Contraption**: the painted illusion is **Misdirection**; a machine that paints it is **Contraption**.

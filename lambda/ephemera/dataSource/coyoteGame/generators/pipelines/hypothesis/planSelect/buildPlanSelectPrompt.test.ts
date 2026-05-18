@@ -181,4 +181,53 @@ describe('buildPlanSelectPrompt', () => {
         expect(full).toContain('FM guarantee vs discretionary materialization')
         expect(full).toContain(MATERIALIZED_AFFORDANCE_STABLE_KEY_PREFIX)
     })
+
+    it('includes iconic few-shot handoffs by default', () => {
+        const parts = buildPlanSelectPrompt({
+            roomObjectsByRoom: { 'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']) },
+            combined: {
+                candidates: [{
+                    candidateId: 'candidate-1',
+                    gimmick: 'deliver damage',
+                    executionSummary: 'One-line summary.',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'Beat detail.',
+                            members: [{ identifier: 'anvil-0', tropeFunction: 'terminal payload' }],
+                        },
+                    },
+                    outliers: [],
+                }],
+            },
+        })
+        expect(parts.invariantPrefix).toContain('high speed chase')
+        expect(parts.invariantPrefix).toContain('hole trap')
+        expect(parts.invariantPrefix).toContain('helmet-1')
+        expect(parts.invariantPrefix).toContain('portable-hole-0')
+    })
+
+    it('omits iconic few-shot when includeIconicFewShots is false', () => {
+        const parts = buildPlanSelectPrompt({
+            includeIconicFewShots: false,
+            roomObjectsByRoom: { 'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']) },
+            combined: {
+                candidates: [{
+                    candidateId: 'candidate-1',
+                    gimmick: 'deliver damage',
+                    executionSummary: 'One-line summary.',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'Beat detail.',
+                            members: [{ identifier: 'anvil-0', tropeFunction: 'terminal payload' }],
+                        },
+                    },
+                    outliers: [],
+                }],
+            },
+        })
+        expect(parts.invariantPrefix).toContain('workshop-glue')
+        expect(parts.invariantPrefix).not.toContain('Iconic genre examples')
+        expect(parts.invariantPrefix).not.toContain('helmet-1')
+        expect(parts.invariantPrefix).not.toContain('portable-hole-0')
+    })
 })

@@ -11,13 +11,13 @@ Parent docs:
 The outcome pipeline is triggered by `Await RoadRunner` handling and produces a single player-facing `Outcome:` line (or stub fallback). It consumes:
 
 - Staged room objects (snapshot utilities in [`../../../utilities/`](../../../utilities/)).
-- Cached intent record from `internalCache.CoyoteGame.get('intent')` (hypothesis line, optional walkthrough, optional narrative beats structured, optional internal **`gimmick`** spine tag for the Bedrock prompt).
+- Cached intent record from `internalCache.CoyoteGame.get('intent')` (hypothesis line, optional walkthrough, optional narrative beats structured, optional internal **`gimmick`** spine tag, optional sparse **`tropeSequence`** in canonical order for the Bedrock prompt).
 
 ## Key files
 
 - [`generatePlanOutcome.ts`](generatePlanOutcome.ts): Bedrock call wrapper and final parse-to-render output.
 - [`buildPlanOutcomePrompt.ts`](buildPlanOutcomePrompt.ts): invariant + dynamic prompt split for caching.
-- [`formatPhasePlanForOutcomePrompt.ts`](formatPhasePlanForOutcomePrompt.ts): deterministic phase-plan formatting for the prompt tail (echoes whatever valid `CoyotePhasePlan` contains; no prompt-side trope lexicon or fixed phase count).
+- [`formatPhasePlanForOutcomePrompt.ts`](formatPhasePlanForOutcomePrompt.ts): deterministic **`narrativeBeatsStructured`** outline for the prompt tail; when intent carries **`tropeSequence`**, emits a **`Trope sequence:`** header (sparse committed tropes, canonical order) before linearized beat ids.
 
 ## Contracts and boundaries
 

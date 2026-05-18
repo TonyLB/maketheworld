@@ -1,3 +1,4 @@
+import type { CoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import type { CoyoteNarrativeBeatsStructured } from '@tonylb/mtw-interfaces/ts/coyoteNarrativeBeatsStructured'
 import { formatNarrativeBeatsStructuredForOutcomePrompt } from './formatPhasePlanForOutcomePrompt'
 import { formatCoyoteStagedObjectsByRoom, type CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
@@ -11,6 +12,8 @@ export type BuildPlanOutcomePromptInput = {
     narrativeBeatsStructured?: CoyoteNarrativeBeatsStructured
     /** Internal spine tag from plan-select winner; optional on legacy intent rows. */
     gimmick?: string
+    /** Sparse committed tropes in canonical order; optional on legacy intent rows. */
+    tropeSequence?: CoyoteTrope[]
 }
 
 /**
@@ -80,10 +83,14 @@ function buildPlanOutcomeDynamicLines(input: BuildPlanOutcomePromptInput): strin
         )
     }
 
+    const tropeSequence = input.tropeSequence
+    const hasTropeSequence = tropeSequence !== undefined && tropeSequence.length > 0
+
     if (input.narrativeBeatsStructured) {
         const outline = formatNarrativeBeatsStructuredForOutcomePrompt(
             input.narrativeBeatsStructured,
-            input.roomObjectsByRoom
+            input.roomObjectsByRoom,
+            hasTropeSequence ? { tropeSequence } : undefined
         )
         lines.push(
             '',
@@ -93,6 +100,28 @@ function buildPlanOutcomeDynamicLines(input: BuildPlanOutcomePromptInput): strin
             '- Turn this ordered beat structure into a single Outcome: line. Follow',
             '  linearized beat order and walkthrough beats; the failure should still',
             '  be on the Coyote, with the Road Runner unharmed and free to escape.',
+        )
+        if (hasTropeSequence) {
+            lines.push(
+                '- Respect the committed **trope sequence** above (including **Scene Dressing**',
+                '  before causal tropes when listed) while following linearized beat order.',
+            )
+        }
+    } else if (hasTropeSequence) {
+        lines.push(
+            '',
+            '## Committed trope sequence',
+            tropeSequence.join(' -> '),
+            '',
+            '- Respect this trope order when narrating execution (including **Scene Dressing**',
+            '  before causal tropes when listed).',
+        )
+    }
+
+    if (hasTropeSequence && walkthrough) {
+        lines.push(
+            '- Align cartoon play-by-play timing with both the committed trope sequence',
+            '  and the walkthrough beats above.',
         )
     }
 

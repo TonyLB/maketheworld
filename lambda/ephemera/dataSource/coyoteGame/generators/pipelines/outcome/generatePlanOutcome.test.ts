@@ -119,6 +119,7 @@ describe('generatePlanOutcome', () => {
             intentRecordOverride: {
                 intent: 'Hypothesis: Full record override.',
                 walkthrough: 'Scene beats align to the plan.',
+                tropeSequence: ['Scene Dressing', 'Contraption'],
                 narrativeBeatsStructured: {
                     beats: [
                         {
@@ -144,6 +145,7 @@ describe('generatePlanOutcome', () => {
         expect(fullPrompt).toContain('## Cartoon play-by-play')
         expect(fullPrompt).toContain('Scene beats align to the plan.')
         expect(fullPrompt).toContain('## Narrative beats structured (execution outline)')
+        expect(fullPrompt).toContain('Trope sequence: Scene Dressing -> Contraption')
         expect(fullPrompt).toContain('Prime the catapult and commit timing.')
         expect(fullPrompt).toContain('catapult')
     })

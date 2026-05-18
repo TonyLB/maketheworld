@@ -62,7 +62,16 @@ export type CoyoteAffinityPossibility =
         aptness: number;
       }
 
-export type CoyoteTrope = 'Contraption' | 'Bait' | 'Misdirection' | 'Disadvantage' | 'Finishing Move'
+export type CoyoteTrope =
+    | 'Scene Dressing'
+    | 'Contraption'
+    | 'Bait'
+    | 'Misdirection'
+    | 'Disadvantage'
+    | 'Finishing Move'
+
+/** Causal tropes only; Scene Dressing must not appear in affordance `roles` arrays. */
+export type CausalCoyoteTrope = Exclude<CoyoteTrope, 'Scene Dressing'>
 
 export type CoyoteTropeAptness = 'High' | 'Good' | 'Poor'
 
@@ -75,13 +84,13 @@ export type EnvironmentAffordanceObject =
 
 export type EnvironmentAffordanceRef = {
     object: EnvironmentAffordanceObject;
-    roles: CoyoteTrope[];
+    roles: CausalCoyoteTrope[];
 }
 
 export type AffordanceProvidedRef = {
     object: string;
     intended?: true;
-    roles: CoyoteTrope[];
+    roles: CausalCoyoteTrope[];
 }
 
 export type CoyoteTropeAffinity = {
@@ -159,12 +168,17 @@ export function isCoyoteGenerativeRole(value: unknown): value is CoyoteGenerativ
 
 export function isCoyoteTrope(value: unknown): value is CoyoteTrope {
     return (
-        value === 'Contraption'
+        value === 'Scene Dressing'
+        || value === 'Contraption'
         || value === 'Bait'
         || value === 'Misdirection'
         || value === 'Disadvantage'
         || value === 'Finishing Move'
     )
+}
+
+export function isCausalCoyoteTrope(value: unknown): value is CausalCoyoteTrope {
+    return isCoyoteTrope(value) && value !== 'Scene Dressing'
 }
 
 export function isCoyoteTropeAptness(value: unknown): value is CoyoteTropeAptness {
@@ -192,7 +206,7 @@ export function isEnvironmentAffordanceRef(entry: unknown): entry is Environment
     if (!Array.isArray(o.roles) || o.roles.length === 0) {
         return false
     }
-    return o.roles.every((role) => isCoyoteTrope(role))
+    return o.roles.every((role) => isCausalCoyoteTrope(role))
 }
 
 export function isAffordanceProvidedRef(entry: unknown): entry is AffordanceProvidedRef {
@@ -209,7 +223,7 @@ export function isAffordanceProvidedRef(entry: unknown): entry is AffordanceProv
     if (!Array.isArray(o.roles) || o.roles.length === 0) {
         return false
     }
-    return o.roles.every((role) => isCoyoteTrope(role))
+    return o.roles.every((role) => isCausalCoyoteTrope(role))
 }
 
 export function isCoyoteTropeAffinity(entry: unknown): entry is CoyoteTropeAffinity {
@@ -235,6 +249,28 @@ export function isCoyoteTropeAffinity(entry: unknown): entry is CoyoteTropeAffin
         && validAffordancesProvided
         && !hasLegacyAffordancesKey
     )
+}
+
+/** Validates optional `tropeAffinities` / `tropeAffinitiesFailed` on bus orders and persisted room objects. */
+export function areCoyoteObjectTropeFieldsValid(o: Record<string, unknown>): boolean {
+    if ('tropeAffinities' in o) {
+        if (!Array.isArray(o.tropeAffinities)) {
+            return false
+        }
+        if (o.tropeAffinities.length > 3) {
+            return false
+        }
+        if (!o.tropeAffinities.every((x) => isCoyoteTropeAffinity(x))) {
+            return false
+        }
+    }
+    if ('tropeAffinitiesFailed' in o && typeof o.tropeAffinitiesFailed !== 'boolean') {
+        return false
+    }
+    if (o.tropeAffinitiesFailed === true && Array.isArray(o.tropeAffinities) && o.tropeAffinities.length !== 0) {
+        return false
+    }
+    return true
 }
 
 export function isCoyoteAffinityPossibility(entry: unknown): entry is CoyoteAffinityPossibility {

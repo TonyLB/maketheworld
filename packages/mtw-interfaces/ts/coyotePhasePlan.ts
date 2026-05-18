@@ -61,6 +61,7 @@ const PHASE_KEYS_REQUIRED = new Set(['stableKeysUsed', 'virtualEntities', 'achie
 const VIRTUAL_KEYS = new Set(['label', 'derivedFrom', 'phaseKind'])
 /** Canonical trope order for prompts, parsers, and tropeSequence validation (single source of truth). */
 export const CANONICAL_TROPE_ORDER: CoyoteTrope[] = [
+    'Scene Dressing',
     'Contraption',
     'Bait',
     'Misdirection',
@@ -70,6 +71,13 @@ export const CANONICAL_TROPE_ORDER: CoyoteTrope[] = [
 const CANONICAL_TROPE_INDEX = new Map<CoyoteTrope, number>(
     CANONICAL_TROPE_ORDER.map((trope, index) => [trope, index])
 )
+
+/** Sparse trope sequence from a trope-keyed record, in canonical order (omits absent tropes). */
+export function tropeSequenceFromAssignments(
+    assignments: Partial<Record<CoyoteTrope, unknown>>
+): CoyoteTrope[] {
+    return CANONICAL_TROPE_ORDER.filter((trope) => assignments[trope] !== undefined)
+}
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
     return typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -245,7 +253,7 @@ function validatePhase(
     const tropeBeat = p.tropeBeat
     const stableKeysUsed = p.stableKeysUsed
     if (typeof trope !== 'string' || !isCoyoteTrope(trope)) {
-        return { ok: false, reason: 'trope must be one of Contraption, Bait, Misdirection, Disadvantage, Finishing Move' }
+        return { ok: false, reason: `trope must be one of ${CANONICAL_TROPE_ORDER.join(', ')}` }
     }
     if (typeof tropeBeat !== 'string' || tropeBeat.trim().length === 0) {
         return { ok: false, reason: 'tropeBeat must be a non-empty string' }

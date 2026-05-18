@@ -1,3 +1,4 @@
+import { joinFewShotBlocks, resolveIncludeIconicFewShots } from '../../../../../coyotePromptFewShot'
 import type { BuildHypothesisPromptInput, CoyotePromptParts } from '../promptTypes'
 import type { CoyoteTrope } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { CANONICAL_TROPE_ORDER } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
@@ -26,13 +27,15 @@ const CANDIDATE_PROMPT_INTRO_LINES = [
 
 const TROPE_ORDER: CoyoteTrope[] = CANONICAL_TROPE_ORDER
 const TROPE_ORDER_LABEL = TROPE_ORDER.join(' -> ')
+const TROPE_VALID_KEYS_LABEL = TROPE_ORDER.map((t) => `\`${t}\``).join(', ')
 
 const CANDIDATE_TROPE_VOCABULARY_LINES = [
     '## Trope vocabulary',
+    '- **Scene Dressing** (narrative association): completes a visual or thematic scene without a causal mechanism; **`narrowing`** names an aesthetic or material **category** (e.g. `"racing gear"`, `"protective equipment"`) --- not a scenario or archetype label.',
+    '- **Contraption**: setup machinery or capability deployed for the maneuver (rigs, launchers, prep hardware).',
     '- **Bait** (voluntary lure): Road Runner *chooses* a suboptimal stop or route (appetite, curiosity, desirable object).',
     '- **Misdirection** (illusion / perception): misread terrain or optics so motion lacks adequate control (fake tunnel, obscured vision); not the same as raw ability debuffs.',
     '- **Disadvantage**: impairment imposed independent of that choice or knowledge (sticky feet, net trap).',
-    '- **Contraption**: setup machinery or capability deployed for the maneuver (rigs, launchers, prep hardware).',
     '- **Finishing Move**: terminal payoff or harm delivery aimed at the Road Runner.',
 ] as const
 
@@ -51,8 +54,8 @@ const CANDIDATE_GIMMICK_GUIDANCE_LINES = [
     '- Explore **different spines** across candidates (even unlikely ones) so the pool is not only trope permutations on the same idea.',
 ] as const
 
-/** Few-shot: illustrative gimmick stances + trope-first assignments (shape); use real stableKeys from staged objects below. */
-const CANDIDATE_JSON_FEW_SHOT = `Example (**shape** --- few-shot **gimmick** strings are **samples**, not the only valid voices):
+/** Core few-shot: shape + tropes; illustrative stableKeys only (not harness fixtures). */
+const CANDIDATE_JSON_FEW_SHOT_CORE = `Example (**shape** --- few-shot **gimmick** strings are **samples**, not the only valid voices):
 \`\`\`json
 {
   "candidates": [
@@ -102,18 +105,86 @@ const CANDIDATE_JSON_FEW_SHOT = `Example (**shape** --- few-shot **gimmick** str
 }
 \`\`\`
 
-Second example (simple one-candidate shape):
+Second example (Scene Dressing cluster + Contraption anchor --- illustrative stableKeys):
+\`\`\`json
+{
+  "candidates": [
+    {
+      "candidateId": "candidate-1",
+      "gimmick": "unexpected approach",
+      "executionSummary": "Chemistry set stages a mad-science beat while lab coat and safety goggles complete the lab-scene dressing.",
+      "tropeAssignments": {
+        "Scene Dressing": {
+          "executionDetail": "Lab coat and safety goggles signal scientific-apparatus and protective-equipment dressing around the rig.",
+          "members": [
+            { "stableKey": "lab-coat", "tropeFunction": "scientific apparel" },
+            { "stableKey": "safety-goggles", "tropeFunction": "protective eyewear" }
+          ]
+        },
+        "Contraption": {
+          "executionDetail": "Chemistry set provides the mad-science rig for the beat spine.",
+          "members": [{ "stableKey": "chemistry-set", "tropeFunction": "lab rig" }]
+        }
+      }
+    }
+  ]
+}
+\`\`\`
+`
+
+/** Iconic few-shot: genre-calibration samples aligned with harness fixtures; omit during harness candidate eval. */
+// Mirrors fixture-01 / clean-001 and fixture-03; keep in sync with STAGE_ONE_GOLDEN_BY_FIXTURE_ID in coyoteEngineTestFixtures.
+const CANDIDATE_JSON_FEW_SHOT_ICONIC = `Iconic genre examples (**calibration** --- use literal **stableKey** values from **Current staged objects** below, not these illustrative keys):
+
+Scene Dressing chase:
 \`\`\`json
 {
   "candidates": [
     {
       "candidateId": "candidate-1",
       "gimmick": "high speed chase",
-      "executionSummary": "Use a rocket sled at the base of the cliff as a speed-chase contraption.",
+      "executionSummary": "Rocket skates anchor a chase while helmet and goggles complete the racing-scene dressing.",
+      "tropeAssignments": {
+        "Scene Dressing": {
+          "executionDetail": "Helmet and goggles signal protective racing gear around the mobility anchor.",
+          "members": [
+            { "stableKey": "helmet-1", "tropeFunction": "protective gear" },
+            { "stableKey": "goggles-2", "tropeFunction": "racing gear" }
+          ]
+        },
+        "Contraption": {
+          "executionDetail": "Rocket skates provide the pursuit-speed rig for the chase spine.",
+          "members": [{ "stableKey": "rocket-skates-0", "tropeFunction": "speed rig" }]
+        }
+      }
+    }
+  ]
+}
+\`\`\`
+
+Portable-hole finish:
+\`\`\`json
+{
+  "candidates": [
+    {
+      "candidateId": "candidate-1",
+      "gimmick": "hole trap",
+      "executionSummary": "Paint and skates prep a route while birdseed lures into a portable-hole finish.",
       "tropeAssignments": {
         "Contraption": {
-          "executionDetail": "Rocket sled launches from the cliff base to build immediate chase speed along the highway.",
-          "members": [{ "stableKey": "rocket-sled", "tropeFunction": "speed rig" }]
+          "executionDetail": "Roller skates and paint prep speed and route illusion before commitment.",
+          "members": [
+            { "stableKey": "roller-skates-0", "tropeFunction": "speed rig" },
+            { "stableKey": "paint-0", "tropeFunction": "route edit" }
+          ]
+        },
+        "Bait": {
+          "executionDetail": "Road Runner pauses for birdseed at the bridge approach.",
+          "members": [{ "stableKey": "birdseed-1", "tropeFunction": "target bait" }]
+        },
+        "Finishing Move": {
+          "executionDetail": "Portable hole is used as the terminal drop endpoint.",
+          "members": [{ "stableKey": "portable-hole-0", "tropeFunction": "drop trap" }]
         }
       }
     }
@@ -135,8 +206,7 @@ const CANDIDATE_JSON_CONTRACT_LINES = [
     '      the candidate\'s provisional execution.',
     '    - **`tropeAssignments`** (required non-empty object, not an array): sparse',
     `      record keyed by trope label in canonical order (**${TROPE_ORDER_LABEL}**).`,
-    '      Include only trope keys used in that candidate. Valid keys are',
-    '      `Contraption`, `Bait`, `Misdirection`, `Disadvantage`, `Finishing Move`.',
+    `      Include only trope keys used in that candidate. Valid keys are ${TROPE_VALID_KEYS_LABEL}.`,
     '      Each trope-value object has:',
     '      - **`executionDetail`** (required non-empty string): first-draft detail',
     '        for how this trope beat runs in this candidate.',
@@ -186,15 +256,25 @@ const CANDIDATE_JSON_CONTRACT_LINES = [
     '- **`decisionFocus.anchorStableKeys`**: staged **`stableKey`**s that likely **ground** the candidate pool ---',
     '  treat these props as a **shared spine** across candidates unless another prop forces a twist.',
     '- **`decisionFocus.expanderStableKeys`**: staged **`stableKey`**s where you should **vary** candidates ---',
-    '  multiple strong affinity readings and/or optional **`environmentAffordances`** / **`affordancesProvided`** on',
-    '  non-Poor rows mean **different plausible hypotheses** (different trope placements and/or treating optional',
-    '  affordances as **in play vs omitted** across candidates). Each resolution can be its own candidate spine.',
-    '- Optional **`environmentAffordances`** / **`affordancesProvided`** on **non-Poor** affinity rows are **branching axes**',
+    '  multiple strong affinity readings, **Scene Dressing-only** archetype signal, and/or optional',
+    '  **`environmentAffordances`** / **`affordancesProvided`** on non-Poor rows mean **different plausible hypotheses**',
+    '  (different trope placements and/or treating optional affordances as **in play vs omitted** across candidates).',
+    '  Each resolution can be its own candidate spine.',
+    '- **Scene Dressing clustering:** props listed only under **`expanderStableKeys`** because their **only** non-Poor',
+    '  fits are **Scene Dressing** support **archetype clustering** --- do **not** emit one thin candidate per dressing prop.',
+    '  When several dressing props share **matching or compatible** narrowings (e.g. `"racing gear"` + `"protective equipment"`',
+    '  around a causal anchor), prefer **one** candidate with a **`Scene Dressing`** trope row grouping those members and an',
+    '  archetype-appropriate **`gimmick`** (e.g. `high speed chase`, `trap`, `unexpected approach`), with the anchor in **`Contraption`**.',
+    '  **Scene Dressing** member rows do **not** carry **`environmentAffordances`** or **`affordancesProvided`**.',
+    '- Optional **`environmentAffordances`** / **`affordancesProvided`** on **non-Poor causal** affinity rows are **branching axes**',
     '  where **`expanderStableKeys`** applies: explore alternatives rather than folding every hint into one story.',
     '  Still respect **`tropeAffinities`** as the primary trope-placement signal when those rows conflict.',
 ] as const
 
-function candidatePromptLines(snapshotSection: string): string[] {
+function candidatePromptLines(
+    snapshotSection: string,
+    options: { includeIconicFewShots: boolean }
+): string[] {
     return [
         ...CANDIDATE_PROMPT_INTRO_LINES,
         '',
@@ -208,7 +288,7 @@ function candidatePromptLines(snapshotSection: string): string[] {
         '',
         ...CANDIDATE_JSON_CONTRACT_LINES,
         '',
-        CANDIDATE_JSON_FEW_SHOT,
+        joinFewShotBlocks(CANDIDATE_JSON_FEW_SHOT_CORE, CANDIDATE_JSON_FEW_SHOT_ICONIC, options.includeIconicFewShots),
         '',
         CANDIDATE_STAGED_OBJECTS_SECTION_HEADER,
         'Use this JSON as authoritative staged-object input (`decisionFocus.anchorStableKeys` / `expanderStableKeys`, then `objects` rows with seam **`room`**, **`tropeAffinities`** including optional nested **`environmentAffordances`** and **`affordancesProvided`** when present).',
@@ -222,7 +302,8 @@ function candidatePromptLines(snapshotSection: string): string[] {
 /** Stage 1 only: emits JSON clustering seam. Cache split before staged-objects snapshot. */
 export function buildCandidatePrompt(input: BuildHypothesisPromptInput): CoyotePromptParts {
     const snapshotSection = serializeStagedObjectsAffinityForwardJson(input.roomObjectsByRoom)
-    const lines = candidatePromptLines(snapshotSection)
+    const includeIconicFewShots = resolveIncludeIconicFewShots(input)
+    const lines = candidatePromptLines(snapshotSection, { includeIconicFewShots })
     const splitAt = splitCoyoteHypothesisLinesAtSnapshot(lines, CANDIDATE_STAGED_OBJECTS_SECTION_HEADER)
     const mappingBlock = coyoteSeamRoomMappingLines(input.roomObjectsByRoom).join('\n')
     const tailAfterSplit = lines.slice(splitAt).join('\n')

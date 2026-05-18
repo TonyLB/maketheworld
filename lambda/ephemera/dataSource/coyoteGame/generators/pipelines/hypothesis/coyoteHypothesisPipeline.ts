@@ -21,7 +21,7 @@ import {
 } from './narrativeBeats/buildNarrativeBeatPrompt';
 import { buildPlanSelectPrompt } from './planSelect/buildPlanSelectPrompt';
 import { buildCandidatePrompt } from './candidates/buildCandidatePrompt';
-import type { CoyotePromptParts } from './promptTypes';
+import type { BuildHypothesisPromptInput, CoyotePromptParts } from './promptTypes';
 import {
     combineCandidateOutput,
     planSelectOutliersForCandidate,
@@ -41,6 +41,7 @@ import {
     parseNarrativeBeatOutput,
     type ParseHypothesisModelOutputOptions,
 } from '../../sharedParsers/parseHypothesisModelOutput';
+import { tropeSequenceFromAssignments } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan';
 import { parseCandidateOutput, truncateCoyoteGimmickEcho } from './candidates/parseCandidateOutput';
 import { hypothesisDebugLog } from '../../../utilities/hypothesisDebug';
 import {
@@ -256,10 +257,13 @@ async function emitThinkingResultForSegmentIfActive(
     await emitHypothesisThinkingResult({ messageBus: bus }, thinking, segment, { ok: true, verbose });
 }
 
+type HypothesisFewShotOptions = Pick<BuildHypothesisPromptInput, 'includeIconicFewShots'>;
+
 function buildCoyoteHypothesisSteps(
     ctx: ReturnType<typeof createPipelineContext<CoyoteHypothesisPipelineState>>,
     deps: GenerateHypothesisDeps,
-    thinkingHarness?: HypothesisThinkingHarnessOptions
+    thinkingHarness?: HypothesisThinkingHarnessOptions,
+    fewShotOptions?: HypothesisFewShotOptions
 ): PipelineStep<CoyoteHypothesisPipelineState>[] {
     return [
         ctx.defineOrchestrationStep({
@@ -276,7 +280,10 @@ function buildCoyoteHypothesisSteps(
                 if (!roomObjectsByRoom) {
                     throw new Error('CoyoteHypothesisPipeline: missing roomObjectsByRoom');
                 }
-                const stageOneParts = buildCandidatePrompt({ roomObjectsByRoom });
+                const stageOneParts = buildCandidatePrompt({
+                    roomObjectsByRoom,
+                    includeIconicFewShots: fewShotOptions?.includeIconicFewShots,
+                });
                 draft.stageOnePromptParts = stageOneParts;
                 const stageOneResult = await invokeBedrockHypothesisStageOne(stageOneParts);
                 draft.stageOneResult = stageOneResult;
@@ -340,6 +347,7 @@ function buildCoyoteHypothesisSteps(
                 const parts = buildPlanSelectPrompt({
                     roomObjectsByRoom,
                     combined,
+                    includeIconicFewShots: fewShotOptions?.includeIconicFewShots,
                 });
                 draft.planSelectPromptParts = parts;
                 const planSelectionResult = await invokeBedrockHypothesisPlanSelection(parts);
@@ -441,6 +449,7 @@ function buildCoyoteHypothesisSteps(
                 const parts = buildNarrativeBeatPrompt({
                     roomObjectsByRoom,
                     planSelectOutput: handoff as PlanSelectOutputWithWinner,
+                    includeIconicFewShots: fewShotOptions?.includeIconicFewShots,
                 });
                 draft.narrativeBeatPromptParts = parts;
                 const narrativeBeatResult = await invokeBedrockHypothesisNarrativeBeat(parts);
@@ -469,15 +478,23 @@ function buildCoyoteHypothesisSteps(
                     narrativeBeatsCtx,
                     parseOptions
                 );
-                const winnerGimmickRaw = draft.planSelectOutput?.selectedCandidate?.gimmick;
+                const selectedCandidate = draft.planSelectOutput?.selectedCandidate;
+                const winnerGimmickRaw = selectedCandidate?.gimmick;
                 const winnerGimmick =
                     typeof winnerGimmickRaw === 'string' && winnerGimmickRaw.trim().length > 0
                         ? truncateCoyoteGimmickEcho(winnerGimmickRaw)
                         : undefined;
-                draft.record =
-                    winnerGimmick !== undefined && winnerGimmick.length > 0
-                        ? { ...parsed.record, gimmick: winnerGimmick }
-                        : parsed.record;
+                const winnerTropeSequence =
+                    selectedCandidate !== undefined
+                        ? tropeSequenceFromAssignments(selectedCandidate.tropeAssignments)
+                        : [];
+                draft.record = {
+                    ...parsed.record,
+                    ...(winnerGimmick !== undefined && winnerGimmick.length > 0
+                        ? { gimmick: winnerGimmick }
+                        : {}),
+                    ...(winnerTropeSequence.length > 0 ? { tropeSequence: winnerTropeSequence } : {}),
+                };
                 draft.narrativeBeatsStructuredJson = parsed.narrativeBeatsStructuredJson;
                 draft.narrativeBeatsStructuredValidationReason = parsed.narrativeBeatsStructuredValidationReason;
                 if (
@@ -718,7 +735,9 @@ export async function runCoyoteHypothesisPipeline(
         };
     }
 
-    const allSteps = buildCoyoteHypothesisSteps(ctx, deps, thinkingHarness);
+    const fewShotOptions: HypothesisFewShotOptions | undefined =
+        harnessOptions !== undefined ? { includeIconicFewShots: false } : undefined;
+    const allSteps = buildCoyoteHypothesisSteps(ctx, deps, thinkingHarness, fewShotOptions);
     let steps = allSteps;
 
     if (harnessOptions !== undefined) {

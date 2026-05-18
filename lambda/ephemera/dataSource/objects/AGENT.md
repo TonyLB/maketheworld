@@ -59,7 +59,7 @@ This does **not** couple the two DataSources automatically; it is **ordering pol
 | --- | --- |
 | **`dataSourceKey`** | **`mtw.ephemera.objects`** --- parallel to **`mtw.ephemera.state`**, not nested under a room-aggregate key. |
 | **v1 storage** | **`objects`** on **`Meta::Room`** only; room **`componentId`** only until a follow-on extends kind. |
-| **Field shape** | **`objects`:** **`EphemeraMetaRoomObject[]`** --- required **`uuid`**, **`shortName`**, **`stableKey`** ([**`EphemeraMetaRoomObject`**](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)); optional **`tropeAffinities`** and optional **`tropeAffinitiesFailed`** when trope scoring is unavailable for that row. |
+| **Field shape** | **`objects`:** **`EphemeraMetaRoomObject[]`** --- required **`uuid`**, **`shortName`**, **`stableKey`** ([**`EphemeraMetaRoomObject`**](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)); optional **`tropeAffinities`** (1-3 rows, six tropes incl. Scene Dressing, validated via **`areCoyoteObjectTropeFieldsValid`**) and optional **`tropeAffinitiesFailed`** when trope scoring is unavailable for that row. **`Objects Change`** ingress and **`Objects Changed`** outbound use the same trope-field guards as Acme bus orders. |
 | **Ingress payload** | **`Objects Change`:** **`add: EphemeraMetaRoomObject[]`**, **`remove: OBJECT#...[]`** with **`componentId`** ([`localApiEvents.ts`](../localApiEvents.ts)). |
 | **Bus helper** | **`sendObjectsChange`** (parallels **`sendStateChange`**). |
 | **Outbound header** | **`Objects Changed`** (Title Case, past tense; matches **`State Changed`**). |

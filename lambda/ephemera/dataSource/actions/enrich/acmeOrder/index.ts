@@ -17,6 +17,7 @@ import {
     type AcmeOrderEnrichThinkingVerboseInput,
     type AcmeOrderThinkingIds,
 } from './acmeOrderThinkingPersistence'
+import type { IncludeIconicFewShotsOptions } from '../../../coyotePromptFewShot'
 import {
     finalizeAcmeOrderFromEnrich,
     interpretAcmeOrderEnrichBody,
@@ -36,7 +37,7 @@ export type EnrichAcmeOrderInput = {
     intentRawOrders?: readonly string[]
     /** Deprecated compatibility flag; prompt remains compact regardless of value. */
     debugRationale?: boolean
-}
+} & IncludeIconicFewShotsOptions
 
 export type EnrichAcmeOrderResult = ParseCommandAcmeOrderResult | ParseCommandErrorResult
 
@@ -164,6 +165,7 @@ export async function enrichAcmeOrder(
         const enrichPromptParts = buildParseAcmeOrderEnrichPrompt(input.command, {
             occupiedStableKeys: input.occupiedStableKeys ?? [],
             intentRawOrders: input.intentRawOrders,
+            includeIconicFewShots: input.includeIconicFewShots,
         })
         const enrichInvoke = await invokeEnrich(enrichPromptParts)
         if (ACME_ENRICH_DEBUG) {

@@ -114,6 +114,30 @@ describe('formatPhasePlanForOutcomePrompt', () => {
         expect(text).toContain('Beat 3: misdirection')
         expect(text).toContain('Description: Runner treats wall tunnel as traversable.')
     })
+
+    it('includes trope sequence header when tropeSequence option is passed', () => {
+        const text = formatPhasePlanForOutcomePrompt(
+            {
+                beats: [
+                    {
+                        beatId: 'dress-chase',
+                        description: 'Strap on rocket skates while helmet and goggles complete the racing-scene read.',
+                        derivedFrom: ['rocket-skates-0'],
+                    },
+                    {
+                        beatId: 'pursuit',
+                        description: 'Open the chase along the straightaway.',
+                        derivedFrom: ['rocket-skates-0'],
+                    },
+                ],
+                linearizedSequence: ['dress-chase', 'pursuit'],
+            },
+            { 'ROOM#VORTEX': [] },
+            { tropeSequence: ['Scene Dressing', 'Contraption'] },
+        )
+        expect(text).toContain('Trope sequence: Scene Dressing -> Contraption')
+        expect(text).toContain('Linearized sequence: dress-chase -> pursuit')
+    })
 })
 
 describe('buildStableKeyToShortNameMap', () => {

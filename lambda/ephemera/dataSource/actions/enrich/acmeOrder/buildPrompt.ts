@@ -17,6 +17,11 @@
  */
 
 import type { ParseAcmeOrderEnrichPromptParts } from '../../../../generateExample/invokeBedrockAcmeOrderEnrich'
+import {
+    joinFewShotBlocks,
+    resolveIncludeIconicFewShots,
+    type IncludeIconicFewShotsOptions,
+} from '../../../coyotePromptFewShot'
 
 export type BuildParseAcmeOrderEnrichPromptOptions = {
     /** Union of **`stableKey`** values already used on staged objects across Coyote game rooms (must not invent collisions when avoidable). */
@@ -25,7 +30,7 @@ export type BuildParseAcmeOrderEnrichPromptOptions = {
     intentRawOrders?: readonly string[];
     /** Deprecated compatibility flag; prompt remains compact regardless of value. */
     debugRationale?: boolean;
-};
+} & IncludeIconicFewShotsOptions;
 
 const INTRO_THROUGH_COYOTE_POV = `You validate and enrich **Acme mail-order** requests for a Coyote
 vs. Road Runner contraption game. Player requests are expected to name things they want Acme
@@ -35,11 +40,13 @@ Your reply has **two required parts in fixed order**:
 1) compact Markdown rationale lines (classification only; no catalog JSON),
 2) one trailing fenced **json** handoff block (machine-readable Acme record).
 
-All trope assignments, narrowings, and plan reasoning in this prompt are evaluated from the
+**Causal** trope assignments, their narrowings, and plan reasoning in this prompt are evaluated from the
 **Coyote's perspective exclusively**. The Coyote is the sole planner. The Road Runner is the
-target in this model. When assigning tropes and writing narrowings, always ask: "What does
+target in this model. When assigning causal tropes and writing their narrowings, always ask: "What does
 this item do for the Coyote or against the Road Runner?" Never frame an item's role in terms
 of what it does for the Road Runner.
+**Scene Dressing** narrowings name **aesthetic or material categories** (for example racing gear,
+protective equipment) --- not Coyote-vs-Road-Runner mechanics.
 
 `
 
@@ -151,43 +158,21 @@ Write **\`name\`** and implied use-cases in **cartoon physics / contraption** la
 - Normalize sloppy wording into polished **Acme-style product titles**.
 - For phenomena, diffuse objects, or hazardous substances or creatures, phrase the **shippable package or generator**, not loose reality (crates, cylinders, reinforced containers).
 
-Example **valid** line entry (inside **\`lines\`**):
-
-{
-  "valid": true,
-  "name": "Beehive",
-  "stableKey": "beehive",
-  "tropeAffinities": [
-    { "trope": "Bait", "aptness": "Good", "narrowing": "lure trail to swarm zone" },
-    { "trope": "Finishing Move", "aptness": "Poor", "narrowing": "swarm release payoff" }
-  ]
-}
-
-Example **invalid** line entry:
-
-{
-  "valid": false,
-  "name": "Justice",
-  "errorType": "Not tangible"
-}
-
-{
-  "valid": false,
-  "name": "Justice Sonia Sotomayor",
-  "errorType": "Celebrity cameo"
-}
+See **Few-shot examples** below for valid and invalid **\`lines[]\`** entry shape.
 
 ## Canonical trope fields (\`tropeAffinities\`) for **\`valid\`: true**
 
 Emit **1-3** trope-fit entries per deliverable line. Each entry must be:
-- **\`trope\`**: exactly one of **\`Contraption\`**, **\`Bait\`**, **\`Misdirection\`**, **\`Disadvantage\`**, **\`Finishing Move\`**
+- **\`trope\`**: exactly one of **\`Scene Dressing\`**, **\`Contraption\`**, **\`Bait\`**, **\`Misdirection\`**, **\`Disadvantage\`**, **\`Finishing Move\`**
 - **\`aptness\`**: exactly one of **\`High\`**, **\`Good\`**, **\`Poor\`**
 - **\`narrowing\`**: concise free text for the specific use (no enum codes yet)
 - optional **\`environmentAffordances\`**: **\`{ object, roles }[]\`** scene affordances (see closed-world rule below)
 - optional **\`affordancesProvided\`**: **\`{ object, intended?, roles }[]\`** explicit affordances this item contributes (see rule below)
-- **\`trope\`** is an allowlist field: emit only **\`Contraption\`**, **\`Bait\`**, **\`Misdirection\`**, **\`Disadvantage\`**, or **\`Finishing Move\`**.
+- **\`trope\`** is an allowlist field: emit only **\`Scene Dressing\`**, **\`Contraption\`**, **\`Bait\`**, **\`Misdirection\`**, **\`Disadvantage\`**, or **\`Finishing Move\`**.
 
-**\`narrowing\` POV rule:** write each narrowing from the **Coyote's planning perspective**:
+**Scene Dressing** (narrative association): this item completes a visual or thematic scene without contributing a causal mechanism. Narrowing names the aesthetic or material category: e.g. **\`"racing gear"\`**, **\`"protective equipment"\`**, **\`"scientific apparatus"\`**, **\`"adventurous clothing"\`**.
+
+**\`narrowing\` POV rule (causal tropes only):** for **\`Contraption\`**, **\`Bait\`**, **\`Misdirection\`**, **\`Disadvantage\`**, and **\`Finishing Move\`**, write each narrowing from the **Coyote's planning perspective**:
 describe what the item does for the Coyote or to the Road Runner.
 Correct examples: "enhance Coyote pursuit speed", "immobilize Road Runner on road surface",
 "lure Road Runner into blast zone".
@@ -200,6 +185,7 @@ If a draft narrowing describes Road Runner goals/capabilities, reverse perspecti
   **\`environmentAffordances\`: [ { "object": "<object>", "roles": ["<trope>", "..."] } ]**
 - **\`object\`** allowlist (closed world, exact tokens): **\`boulder\`**, **\`cactus\`**, **\`tumbleweed\`**, **\`rock-wall\`**, **\`long-fall\`**.
 - **\`roles\`** allowlist (exact trope names): **\`Contraption\`**, **\`Bait\`**, **\`Misdirection\`**, **\`Disadvantage\`**, **\`Finishing Move\`**.
+- On **\`Scene Dressing\`** trope entries, **omit** **\`environmentAffordances\`** (non-functional trope).
 - For each entry, include one object and **1-2** roles that object can play for this trope beat.
 - If no meaningful environment dependency is needed, **omit** **\`environmentAffordances\`** (preferred) rather than emitting **\`[]\`**.
 - **Finishing-move exclusivity:** if item **finishing-mechanisms** is non-**none**, do **not** also claim **\`Finishing Move\`** in **\`environmentAffordances.roles\`** for that same beat.
@@ -217,9 +203,10 @@ If a draft narrowing describes Road Runner goals/capabilities, reverse perspecti
 - **\`object\`** is free text (non-empty string), not a closed-world token list.
 - **\`intended\`** is optional; when present it must be literal **\`true\`**.
 - **\`roles\`** allowlist (exact trope names): **\`Contraption\`**, **\`Bait\`**, **\`Misdirection\`**, **\`Disadvantage\`**, **\`Finishing Move\`**.
+- On **\`Scene Dressing\`** trope entries, **omit** **\`affordancesProvided\`** (non-functional trope).
 - For each entry, include one object and **1-2** roles.
 - If no explicit provided affordance is needed, **omit** **\`affordancesProvided\`** (preferred) rather than emitting **\`[]\`**.
-- **\`environmentAffordances\`** and **\`affordancesProvided\`** may coexist on the same trope entry when both signals are justified.
+- **\`environmentAffordances\`** and **\`affordancesProvided\`** may coexist on the same causal trope entry when both signals are justified.
 
 If you cannot justify trope fits for a valid line, set **\`tropeAffinitiesFailed\`**: true and **\`tropeAffinities\`**: [].
 
@@ -329,6 +316,138 @@ downward).
 \`\`\`
 `
 
+/** Core few-shot: JSON handoff shape; illustrative stableKeys only (not harness goldens). */
+const ACME_ENRICH_FEW_SHOT_CORE = `## Few-shot examples (shape)
+
+Example **valid** line entry (inside **\`lines\`**):
+
+{
+  "valid": true,
+  "name": "Beehive",
+  "stableKey": "beehive",
+  "tropeAffinities": [
+    { "trope": "Bait", "aptness": "Good", "narrowing": "lure trail to swarm zone" },
+    { "trope": "Finishing Move", "aptness": "Poor", "narrowing": "swarm release payoff" }
+  ]
+}
+
+Example **invalid** line entries:
+
+{
+  "valid": false,
+  "name": "Justice",
+  "errorType": "Not tangible"
+}
+
+{
+  "valid": false,
+  "name": "Justice Sonia Sotomayor",
+  "errorType": "Celebrity cameo"
+}
+
+Multi-line order (**two** \`lines[]\` rows --- illustrative stableKeys):
+
+\`\`\`json
+{
+  "lines": [
+    {
+      "valid": true,
+      "name": "Industrial Adhesive",
+      "stableKey": "workshop-glue",
+      "tropeAffinities": [
+        { "trope": "Disadvantage", "aptness": "High", "narrowing": "immobilize Road Runner on road surface" },
+        { "trope": "Contraption", "aptness": "Good", "narrowing": "adhesive rig component" }
+      ]
+    },
+    {
+      "valid": true,
+      "name": "Assorted Springs",
+      "stableKey": "workshop-springs",
+      "tropeAffinities": [
+        { "trope": "Contraption", "aptness": "High", "narrowing": "mechanical tension rig for launch or rebound" }
+      ]
+    }
+  ]
+}
+\`\`\`
+`
+
+// Mirrors clean-001-rocket-skates and borderline-001 hole-trap spread; keep in sync with acmeOrderAffinitiesHarnessPhrases / coyoteEngineTestFixtures.
+const ACME_ENRICH_FEW_SHOT_ICONIC = `Iconic genre examples (**calibration** --- assign **stableKey** slugs for this order; do not copy these slugs when **Coyote-wide keys already in use** forbids collision):
+
+Scene Dressing chase:
+\`\`\`json
+{
+  "lines": [
+    {
+      "valid": true,
+      "name": "Rocket Skates",
+      "stableKey": "rocket-skates",
+      "tropeAffinities": [
+        { "trope": "Contraption", "aptness": "High", "narrowing": "enhance Coyote pursuit speed" }
+      ]
+    },
+    {
+      "valid": true,
+      "name": "Protective Helmet",
+      "stableKey": "helmet",
+      "tropeAffinities": [
+        { "trope": "Scene Dressing", "aptness": "Good", "narrowing": "protective equipment" }
+      ]
+    },
+    {
+      "valid": true,
+      "name": "Racing Goggles",
+      "stableKey": "goggles",
+      "tropeAffinities": [
+        { "trope": "Scene Dressing", "aptness": "Good", "narrowing": "racing gear" }
+      ]
+    }
+  ]
+}
+\`\`\`
+
+Portable-hole spread:
+\`\`\`json
+{
+  "lines": [
+    {
+      "valid": true,
+      "name": "Roller Skates",
+      "stableKey": "roller-skates",
+      "tropeAffinities": [
+        { "trope": "Contraption", "aptness": "High", "narrowing": "mobility rig for setup and chase positioning" }
+      ]
+    },
+    {
+      "valid": true,
+      "name": "Tunnel Paint Kit",
+      "stableKey": "paint",
+      "tropeAffinities": [
+        { "trope": "Misdirection", "aptness": "High", "narrowing": "visual lure through fake passage cue", "environmentAffordances": [{ "object": "rock-wall", "roles": ["Finishing Move"] }] },
+        { "trope": "Bait", "aptness": "Good", "narrowing": "draw Road Runner attention to painted route" }
+      ]
+    },
+    {
+      "valid": true,
+      "name": "Portable Hole",
+      "stableKey": "portable-hole",
+      "tropeAffinities": [
+        { "trope": "Misdirection", "aptness": "High", "narrowing": "persistent route hazard", "environmentAffordances": [{ "object": "long-fall", "roles": ["Finishing Move"] }] }
+      ]
+    },
+    {
+      "valid": true,
+      "name": "Birdseed",
+      "stableKey": "birdseed",
+      "tropeAffinities": [
+        { "trope": "Bait", "aptness": "High", "narrowing": "voluntary lure or bait trail" }
+      ]
+    }
+  ]
+}
+\`\`\`
+`
 
 function formatOccupiedStableKeysBlock(keys: readonly string[]): string {
     const uniqueSorted = [...new Set(keys.map((k) => k.trim()).filter((k) => k.length > 0))].sort(
@@ -363,13 +482,21 @@ export function buildParseAcmeOrderEnrichPrompt(
     const trimmed = command.trim()
     const commandBlock = trimmed === '' ? '(empty command)' : trimmed
 
+    const fewShotBlock = joinFewShotBlocks(
+        ACME_ENRICH_FEW_SHOT_CORE,
+        ACME_ENRICH_FEW_SHOT_ICONIC,
+        resolveIncludeIconicFewShots(options)
+    )
+
     const invariantPrefix = `${INTRO_THROUGH_COYOTE_POV}
 
 Produce **two required parts in order**:
 
 ${COMPACT_STEP1_INSTRUCTIONS}
 
-${AFTER_STEP1_INSTRUCTIONS}`
+${AFTER_STEP1_INSTRUCTIONS}
+
+${fewShotBlock}`
 
     const occupied = options?.occupiedStableKeys ?? []
     const occupiedBlock = formatOccupiedStableKeysBlock(occupied)

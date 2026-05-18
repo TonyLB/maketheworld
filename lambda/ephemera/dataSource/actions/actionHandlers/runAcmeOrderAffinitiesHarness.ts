@@ -148,6 +148,7 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
                     {
                         command,
                         occupiedStableKeys: [],
+                        includeIconicFewShots: false,
                     },
                     1,
                     {

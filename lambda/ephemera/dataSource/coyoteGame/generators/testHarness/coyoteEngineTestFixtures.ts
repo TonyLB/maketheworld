@@ -86,20 +86,36 @@ const birdseedLureAffinities: CoyoteTropeAffinity[] = [
     },
 ]
 
+/** clean-001-rocket-skates: rocket skates + helmet + goggles (Scene Dressing chase cluster). */
 const FIXTURE_01_ROOM_OBJECTS: CoyoteEngineTestFixture['roomObjectsByRoom'] = {
     'ROOM#STRAIGHTAWAY': harnessRoomObjectsSpec('straightaway', [
         {
-            shortName: 'rocket',
+            shortName: 'rocket skates',
             tropeAffinities: [
                 {
                     trope: 'Contraption',
                     aptness: 'High',
-                    narrowing: 'self-powered lane setup hardware',
+                    narrowing: 'coyote mobility or pursuit rig',
                 },
+            ],
+        },
+        {
+            shortName: 'helmet',
+            tropeAffinities: [
                 {
-                    trope: 'Finishing Move',
+                    trope: 'Scene Dressing',
                     aptness: 'Good',
-                    narrowing: 'payload delivery into terminal beat'
+                    narrowing: 'protective equipment',
+                },
+            ],
+        },
+        {
+            shortName: 'goggles',
+            tropeAffinities: [
+                {
+                    trope: 'Scene Dressing',
+                    aptness: 'Good',
+                    narrowing: 'racing gear',
                 },
             ],
         },
@@ -108,23 +124,25 @@ const FIXTURE_01_ROOM_OBJECTS: CoyoteEngineTestFixture['roomObjectsByRoom'] = {
 
 /**
  * Frozen stage-one seam JSON used only to derive golden **`combined`** via the same parse and combine
- * path as **`seamCombineRender`** (`stableKey` **`rocket-0`** matches **`harnessRoomObjectsSpec`**).
+ * path as **`seamCombineRender`** (stableKeys match **`harnessRoomObjectsSpec`** indices).
  */
 const FIXTURE_01_GOLDEN_SEAM_BODY = JSON.stringify({
     candidates: [
         {
             candidateId: 'candidate-1',
             gimmick: 'high speed chase',
-            executionSummary: 'Coyote rides the rocket to chase down Road Runner.',
+            executionSummary: 'Rocket skates anchor a chase while helmet and goggles complete the racing-scene dressing.',
             tropeAssignments: {
-                Contraption: {
-                    executionDetail: 'Rocket accelerates down the straightaway.',
+                'Scene Dressing': {
+                    executionDetail: 'Helmet and goggles signal protective racing gear around the mobility anchor.',
                     members: [
-                        {
-                            stableKey: 'rocket-0',
-                            tropeFunction: 'vehicle',
-                        },
+                        { stableKey: 'helmet-1', tropeFunction: 'protective gear' },
+                        { stableKey: 'goggles-2', tropeFunction: 'racing gear' },
                     ],
+                },
+                Contraption: {
+                    executionDetail: 'Rocket skates provide the pursuit-speed rig for the chase spine.',
+                    members: [{ stableKey: 'rocket-skates-0', tropeFunction: 'speed rig' }],
                 },
             },
         },
@@ -153,32 +171,38 @@ function buildFixture01PlanSelectInject(): CoyoteHarnessPlanSelectInject {
 const FIXTURE_01_PLAN_SELECT_INJECT = buildFixture01PlanSelectInject()
 const FIXTURE_01_NARRATIVE_BEATS_HANDOFF: PlanSelectOutputWithWinner = {
     paragraphSummary:
-        'Conflict review favors candidate-1: lock a single Contraption-first lane using the straightaway rocket setup, materialize Coyote as the finishing-move affordance grounded on that same seam, then carry the lane through the terminal beat with no prop-role conflicts.',
+        'Choose candidate-1: cluster helmet and goggles as Scene Dressing around rocket-skates chase spine.',
     planIssues: [],
     selectedCandidate: {
         candidateId: 'candidate-1',
         gimmick: 'high speed chase',
-        executionSummary: 'Use the straightaway rocket lane as the main trap route.',
+        executionSummary: 'Rocket skates anchor a chase while helmet and goggles complete the racing-scene dressing.',
         tropeAssignments: {
-            Contraption: {
-                executionDetail: 'Rocket hardware is staged and aligned on the straightaway.',
+            'Scene Dressing': {
+                executionDetail: 'Helmet and goggles signal protective racing gear around the mobility anchor.',
                 members: [
                     {
-                        stableKey: 'rocket-0',
-                        shortName: 'rocket',
+                        stableKey: 'helmet-1',
+                        shortName: 'helmet',
                         room: 'STRAIGHTAWAY',
-                        tropeFunction: 'delivery lane hardware for straightaway setup',
+                        tropeFunction: 'protective gear',
+                    },
+                    {
+                        stableKey: 'goggles-2',
+                        shortName: 'goggles',
+                        room: 'STRAIGHTAWAY',
+                        tropeFunction: 'racing gear',
                     },
                 ],
             },
-            'Finishing Move': {
-                executionDetail: 'Coyote closes the beat as the terminal pursuit affordance tied to the rocket lane.',
+            Contraption: {
+                executionDetail: 'Rocket skates provide the pursuit-speed rig for the chase spine.',
                 members: [
                     {
-                        stableKey: 'affordance:coyote',
-                        shortName: 'Coyote',
+                        stableKey: 'rocket-skates-0',
+                        shortName: 'rocket skates',
                         room: 'STRAIGHTAWAY',
-                        tropeFunction: 'terminal chase beat',
+                        tropeFunction: 'speed rig',
                     },
                 ],
             },
@@ -217,7 +241,7 @@ function buildPlanSelectInjectFromGoldenSeam(args: {
 export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
     {
         id: 'fixture-01',
-        label: 'Rocket at the Straightaway',
+        label: 'Rocket skates at the Straightaway',
         roomObjectsByRoom: FIXTURE_01_ROOM_OBJECTS,
         planSelectInject: FIXTURE_01_PLAN_SELECT_INJECT,
         narrativeBeatsInject: FIXTURE_01_NARRATIVE_BEATS_INJECT,

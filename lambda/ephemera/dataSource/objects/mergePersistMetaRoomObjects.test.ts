@@ -242,6 +242,30 @@ describe('mergePersistMetaRoomObjects', () => {
         ])
     })
 
+    it('preserves Scene Dressing tropeAffinities in priorObjects and newObjects snapshots', async () => {
+        const sceneDressingRow = enrichedObj('helmet', 'helmet', {
+            tropeAffinities: [trope({
+                trope: 'Scene Dressing',
+                aptness: 'Good',
+                narrowing: 'protective equipment',
+            })],
+        })
+        const meta = baseMeta({ objects: [obj('a', 'A')] })
+        const optimisticUpdate = mockOptimisticUpdatePersisting(meta, roomId)
+
+        const result = await mergePersistMetaRoomObjects(
+            { roomId, add: [sceneDressingRow], remove: [] },
+            { getMetaRoom: async () => meta, optimisticUpdate }
+        )
+
+        expect(result.ok).toBe(true)
+        if (!result.ok || !result.persisted) {
+            throw new Error('expected ok with persisted')
+        }
+        expect(result.priorObjects).toEqual([obj('a', 'A')])
+        expect(result.newObjects).toEqual([obj('a', 'A'), sceneDressingRow])
+    })
+
     it('returns persisted false when optimistic update does not invoke successCallback', async () => {
         const meta = baseMeta({ objects: [obj('z', 'Z')] })
         const optimisticUpdate = jest.fn().mockResolvedValue({

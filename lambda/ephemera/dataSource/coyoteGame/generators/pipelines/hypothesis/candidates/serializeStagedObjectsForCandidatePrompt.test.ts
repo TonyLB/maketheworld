@@ -172,6 +172,107 @@ describe('serializeStagedObjectsAffinityForwardJson', () => {
         expect(parsed.decisionFocus.expanderStableKeys).toEqual([])
     })
 
+    it('lists expanderStableKeys for single Good Scene Dressing only (no causal non-Poor)', () => {
+        const json = serializeStagedObjectsAffinityForwardJson({
+            [room('ROOM#VORTEX')]: [{
+                uuid: 'OBJECT#h' as `OBJECT#${string}`,
+                shortName: 'helmet',
+                stableKey: 'helmet-0',
+                tropeAffinities: [{
+                    trope: 'Scene Dressing',
+                    aptness: 'Good',
+                    narrowing: 'protective equipment',
+                }],
+            }],
+        })
+        const parsed = JSON.parse(json) as {
+            decisionFocus: { anchorStableKeys: string[]; expanderStableKeys: string[] }
+        }
+        expect(parsed.decisionFocus.anchorStableKeys).toEqual([])
+        expect(parsed.decisionFocus.expanderStableKeys).toEqual(['helmet-0'])
+    })
+
+    it('lists expanderStableKeys for clean-001 dressing props (helmet and goggles Scene Dressing only)', () => {
+        const json = serializeStagedObjectsAffinityForwardJson({
+            [room('ROOM#STRAIGHTAWAY')]: [
+                {
+                    uuid: 'OBJECT#rs' as `OBJECT#${string}`,
+                    shortName: 'rocket skates',
+                    stableKey: 'rocket-skates-0',
+                    tropeAffinities: [{
+                        trope: 'Contraption',
+                        aptness: 'High',
+                        narrowing: 'coyote mobility or pursuit rig',
+                    }],
+                },
+                {
+                    uuid: 'OBJECT#h' as `OBJECT#${string}`,
+                    shortName: 'helmet',
+                    stableKey: 'helmet-0',
+                    tropeAffinities: [{
+                        trope: 'Scene Dressing',
+                        aptness: 'Good',
+                        narrowing: 'protective equipment',
+                    }],
+                },
+                {
+                    uuid: 'OBJECT#g' as `OBJECT#${string}`,
+                    shortName: 'goggles',
+                    stableKey: 'goggles-0',
+                    tropeAffinities: [{
+                        trope: 'Scene Dressing',
+                        aptness: 'Good',
+                        narrowing: 'racing gear',
+                    }],
+                },
+            ],
+        })
+        const parsed = JSON.parse(json) as {
+            decisionFocus: { anchorStableKeys: string[]; expanderStableKeys: string[] }
+        }
+        expect(parsed.decisionFocus.anchorStableKeys).toEqual(['rocket-skates-0'])
+        expect(parsed.decisionFocus.expanderStableKeys).toEqual(['goggles-0', 'helmet-0'])
+    })
+
+    it('lists expanderStableKeys for mixed Contraption High plus Scene Dressing Good on one prop', () => {
+        const json = serializeStagedObjectsAffinityForwardJson({
+            [room('ROOM#VORTEX')]: [{
+                uuid: 'OBJECT#m' as `OBJECT#${string}`,
+                shortName: 'mixed',
+                stableKey: 'mixed-0',
+                tropeAffinities: [
+                    { trope: 'Contraption', aptness: 'High', narrowing: 'mobility rig' },
+                    { trope: 'Scene Dressing', aptness: 'Good', narrowing: 'racing gear' },
+                ],
+            }],
+        })
+        const parsed = JSON.parse(json) as {
+            decisionFocus: { anchorStableKeys: string[]; expanderStableKeys: string[] }
+        }
+        expect(parsed.decisionFocus.anchorStableKeys).toEqual([])
+        expect(parsed.decisionFocus.expanderStableKeys).toEqual(['mixed-0'])
+    })
+
+    it('places neither anchor nor expander for Scene Dressing Poor only', () => {
+        const json = serializeStagedObjectsAffinityForwardJson({
+            [room('ROOM#VORTEX')]: [{
+                uuid: 'OBJECT#p' as `OBJECT#${string}`,
+                shortName: 'costume',
+                stableKey: 'costume-0',
+                tropeAffinities: [{
+                    trope: 'Scene Dressing',
+                    aptness: 'Poor',
+                    narrowing: 'weak thematic read',
+                }],
+            }],
+        })
+        const parsed = JSON.parse(json) as {
+            decisionFocus: { anchorStableKeys: string[]; expanderStableKeys: string[] }
+        }
+        expect(parsed.decisionFocus.anchorStableKeys).toEqual([])
+        expect(parsed.decisionFocus.expanderStableKeys).toEqual([])
+    })
+
     it('round-trips affordancesProvided nested under tropeAffinities', () => {
         const affordancesProvided = [
             { object: 'hidden catapult', intended: true as const, roles: ['Contraption' as const] },
