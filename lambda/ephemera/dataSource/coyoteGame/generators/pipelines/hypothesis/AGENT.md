@@ -74,6 +74,8 @@ Prompt and parser **keys** are **`CoyoteTrope`** literals in canonical order (`S
 
 **Scene Dressing (SS4):** non-functional narrative association at enrich time; stage-one **`decisionFocus`** marks Scene-Dressing-only props as **`expanderStableKeys`**, and [`candidates/buildCandidatePrompt.ts`](candidates/buildCandidatePrompt.ts) instructs clustering compatible dressing narrowings into one **`Scene Dressing`** trope row (see also [`serializeStagedObjectsForCandidatePrompt.ts`](candidates/serializeStagedObjectsForCandidatePrompt.ts)).
 
+**Stage-one few-shots:** [`buildCandidatePrompt.ts`](candidates/buildCandidatePrompt.ts) uses two layers in the invariant prefix: **core** examples (shape + Scene Dressing cluster using non-harness props; always included) and **iconic** examples (genre-calibration samples aligned with harness fixtures fixture-01 / clean-001 and fixture-03 portable-hole trap; included in production by default). When [`runCoyoteHypothesisPipeline`](coyoteHypothesisPipeline.ts) runs with harness options, it passes **`includeIconicFewShots: false`** so harness candidate LLM eval is not leaked the iconic answer.
+
 ### Gimmick (policies)
 
 - **Parse:** two candidates may share the same normalized **`gimmick`** string; **`parseCandidateOutput`** does **not** reject duplicates (soft uniqueness is prompt-only).

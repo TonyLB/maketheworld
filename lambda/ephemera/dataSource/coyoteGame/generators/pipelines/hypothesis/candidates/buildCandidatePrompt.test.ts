@@ -18,6 +18,11 @@ describe('buildCandidatePrompt', () => {
         // checkpoints by default when prompt wording changes.
         expect(parts.invariantPrefix).toContain('## World topology')
         expect(parts.invariantPrefix).toContain('Scene Dressing clustering')
+        expect(parts.invariantPrefix).toContain('lab-coat')
+        expect(parts.invariantPrefix).toContain('rocket-skates-0')
+        expect(parts.invariantPrefix).toContain('portable-hole-0')
+        expect(parts.invariantPrefix).toContain('hole trap')
+        expect(parts.invariantPrefix).toContain('Iconic genre examples')
         expect(full).toContain('affordancesProvided')
         expect(full).toContain('## Gimmick (per candidate)')
         expect(full).toContain('free-form orienting text')
@@ -42,8 +47,24 @@ describe('buildCandidatePrompt', () => {
         expect(parts.dynamicSuffix).toContain('"tropeAffinities"')
     })
 
+    it('omits iconic few-shot when includeIconicFewShots is false', () => {
+        const parts = buildCandidatePrompt({
+            roomObjectsByRoom: {
+                'ROOM#STRAIGHTAWAY': harnessRoomObjects('straightaway', ['rocket skates']),
+            },
+            includeIconicFewShots: false,
+        })
+        expect(parts.invariantPrefix).toContain('lab-coat')
+        expect(parts.invariantPrefix).toContain('birdseed')
+        expect(parts.invariantPrefix).not.toContain('rocket-skates-0')
+        expect(parts.invariantPrefix).not.toContain('helmet-1')
+        expect(parts.invariantPrefix).not.toContain('portable-hole-0')
+        expect(parts.invariantPrefix).not.toContain('Iconic genre examples')
+    })
+
     it('lists helmet and goggles under expanderStableKeys for clean-001-shaped staging', () => {
         const parts = buildCandidatePrompt({
+            includeIconicFewShots: false,
             roomObjectsByRoom: {
                 'ROOM#STRAIGHTAWAY': [
                     {

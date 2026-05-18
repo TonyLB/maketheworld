@@ -165,10 +165,10 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 
 - [X] Phase SS4 - hypothesis pipeline (meaningful work)
   - [X] **`decisionFocus`:** Scene-Dressing-only props -> **`expanderStableKeys`**; document mixed-prop behavior in tests.
-  - [X] **`buildCandidatePrompt`:** Scene Dressing vocabulary + cluster-by-compatible-narrowing guidance; few-shot optional.
+  - [X] **`buildCandidatePrompt`:** Scene Dressing vocabulary + cluster-by-compatible-narrowing guidance; core vs iconic few-shots (harness omits iconic).
   - [X] Parse/combine/plan-select/narrative: sixth key in trope allowlists and **`TROPE_ORDER`** iteration (mechanical).
   - [X] **Plan select:** verify allowlist strings only; no rubric edits per handoff.
-  - [X] Fixture: **`fixture-01`** (clean-001) dressing cluster -> chase archetype candidate (not three thin single-prop rows).
+  - [X] Fixture: **`fixture-01`** (clean-001) dressing cluster -> chase archetype candidate (not three thin single-prop rows); harness eval uses core few-shot only (iconic clean-001 block production-only).
 
 - [ ] Phase SS5 - phase-plan and outcome
   - [ ] **`validateCoyotePhasePlan`:** six-trope **`tropeSequence`** including Scene Dressing at index 0 when present.

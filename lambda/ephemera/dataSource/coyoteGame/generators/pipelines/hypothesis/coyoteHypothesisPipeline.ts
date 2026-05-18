@@ -21,7 +21,7 @@ import {
 } from './narrativeBeats/buildNarrativeBeatPrompt';
 import { buildPlanSelectPrompt } from './planSelect/buildPlanSelectPrompt';
 import { buildCandidatePrompt } from './candidates/buildCandidatePrompt';
-import type { CoyotePromptParts } from './promptTypes';
+import type { BuildHypothesisPromptInput, CoyotePromptParts } from './promptTypes';
 import {
     combineCandidateOutput,
     planSelectOutliersForCandidate,
@@ -256,10 +256,13 @@ async function emitThinkingResultForSegmentIfActive(
     await emitHypothesisThinkingResult({ messageBus: bus }, thinking, segment, { ok: true, verbose });
 }
 
+type CandidatePromptOptions = Pick<BuildHypothesisPromptInput, 'includeIconicFewShots'>;
+
 function buildCoyoteHypothesisSteps(
     ctx: ReturnType<typeof createPipelineContext<CoyoteHypothesisPipelineState>>,
     deps: GenerateHypothesisDeps,
-    thinkingHarness?: HypothesisThinkingHarnessOptions
+    thinkingHarness?: HypothesisThinkingHarnessOptions,
+    candidatePromptOptions?: CandidatePromptOptions
 ): PipelineStep<CoyoteHypothesisPipelineState>[] {
     return [
         ctx.defineOrchestrationStep({
@@ -276,7 +279,10 @@ function buildCoyoteHypothesisSteps(
                 if (!roomObjectsByRoom) {
                     throw new Error('CoyoteHypothesisPipeline: missing roomObjectsByRoom');
                 }
-                const stageOneParts = buildCandidatePrompt({ roomObjectsByRoom });
+                const stageOneParts = buildCandidatePrompt({
+                    roomObjectsByRoom,
+                    includeIconicFewShots: candidatePromptOptions?.includeIconicFewShots,
+                });
                 draft.stageOnePromptParts = stageOneParts;
                 const stageOneResult = await invokeBedrockHypothesisStageOne(stageOneParts);
                 draft.stageOneResult = stageOneResult;
@@ -718,7 +724,9 @@ export async function runCoyoteHypothesisPipeline(
         };
     }
 
-    const allSteps = buildCoyoteHypothesisSteps(ctx, deps, thinkingHarness);
+    const candidatePromptOptions: CandidatePromptOptions | undefined =
+        harnessOptions !== undefined ? { includeIconicFewShots: false } : undefined;
+    const allSteps = buildCoyoteHypothesisSteps(ctx, deps, thinkingHarness, candidatePromptOptions);
     let steps = allSteps;
 
     if (harnessOptions !== undefined) {
