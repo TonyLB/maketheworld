@@ -35,11 +35,13 @@ Your reply has **two required parts in fixed order**:
 1) compact Markdown rationale lines (classification only; no catalog JSON),
 2) one trailing fenced **json** handoff block (machine-readable Acme record).
 
-All trope assignments, narrowings, and plan reasoning in this prompt are evaluated from the
+**Causal** trope assignments, their narrowings, and plan reasoning in this prompt are evaluated from the
 **Coyote's perspective exclusively**. The Coyote is the sole planner. The Road Runner is the
-target in this model. When assigning tropes and writing narrowings, always ask: "What does
+target in this model. When assigning causal tropes and writing their narrowings, always ask: "What does
 this item do for the Coyote or against the Road Runner?" Never frame an item's role in terms
 of what it does for the Road Runner.
+**Scene Dressing** narrowings name **aesthetic or material categories** (for example racing gear,
+protective equipment) --- not Coyote-vs-Road-Runner mechanics.
 
 `
 
@@ -180,14 +182,16 @@ Example **invalid** line entry:
 ## Canonical trope fields (\`tropeAffinities\`) for **\`valid\`: true**
 
 Emit **1-3** trope-fit entries per deliverable line. Each entry must be:
-- **\`trope\`**: exactly one of **\`Contraption\`**, **\`Bait\`**, **\`Misdirection\`**, **\`Disadvantage\`**, **\`Finishing Move\`**
+- **\`trope\`**: exactly one of **\`Scene Dressing\`**, **\`Contraption\`**, **\`Bait\`**, **\`Misdirection\`**, **\`Disadvantage\`**, **\`Finishing Move\`**
 - **\`aptness\`**: exactly one of **\`High\`**, **\`Good\`**, **\`Poor\`**
 - **\`narrowing\`**: concise free text for the specific use (no enum codes yet)
 - optional **\`environmentAffordances\`**: **\`{ object, roles }[]\`** scene affordances (see closed-world rule below)
 - optional **\`affordancesProvided\`**: **\`{ object, intended?, roles }[]\`** explicit affordances this item contributes (see rule below)
-- **\`trope\`** is an allowlist field: emit only **\`Contraption\`**, **\`Bait\`**, **\`Misdirection\`**, **\`Disadvantage\`**, or **\`Finishing Move\`**.
+- **\`trope\`** is an allowlist field: emit only **\`Scene Dressing\`**, **\`Contraption\`**, **\`Bait\`**, **\`Misdirection\`**, **\`Disadvantage\`**, or **\`Finishing Move\`**.
 
-**\`narrowing\` POV rule:** write each narrowing from the **Coyote's planning perspective**:
+**Scene Dressing** (narrative association): this item completes a visual or thematic scene without contributing a causal mechanism. Narrowing names the aesthetic or material category: e.g. **\`"racing gear"\`**, **\`"protective equipment"\`**, **\`"scientific apparatus"\`**, **\`"adventurous clothing"\`**.
+
+**\`narrowing\` POV rule (causal tropes only):** for **\`Contraption\`**, **\`Bait\`**, **\`Misdirection\`**, **\`Disadvantage\`**, and **\`Finishing Move\`**, write each narrowing from the **Coyote's planning perspective**:
 describe what the item does for the Coyote or to the Road Runner.
 Correct examples: "enhance Coyote pursuit speed", "immobilize Road Runner on road surface",
 "lure Road Runner into blast zone".
@@ -200,6 +204,7 @@ If a draft narrowing describes Road Runner goals/capabilities, reverse perspecti
   **\`environmentAffordances\`: [ { "object": "<object>", "roles": ["<trope>", "..."] } ]**
 - **\`object\`** allowlist (closed world, exact tokens): **\`boulder\`**, **\`cactus\`**, **\`tumbleweed\`**, **\`rock-wall\`**, **\`long-fall\`**.
 - **\`roles\`** allowlist (exact trope names): **\`Contraption\`**, **\`Bait\`**, **\`Misdirection\`**, **\`Disadvantage\`**, **\`Finishing Move\`**.
+- On **\`Scene Dressing\`** trope entries, **omit** **\`environmentAffordances\`** (non-functional trope).
 - For each entry, include one object and **1-2** roles that object can play for this trope beat.
 - If no meaningful environment dependency is needed, **omit** **\`environmentAffordances\`** (preferred) rather than emitting **\`[]\`**.
 - **Finishing-move exclusivity:** if item **finishing-mechanisms** is non-**none**, do **not** also claim **\`Finishing Move\`** in **\`environmentAffordances.roles\`** for that same beat.
@@ -217,9 +222,10 @@ If a draft narrowing describes Road Runner goals/capabilities, reverse perspecti
 - **\`object\`** is free text (non-empty string), not a closed-world token list.
 - **\`intended\`** is optional; when present it must be literal **\`true\`**.
 - **\`roles\`** allowlist (exact trope names): **\`Contraption\`**, **\`Bait\`**, **\`Misdirection\`**, **\`Disadvantage\`**, **\`Finishing Move\`**.
+- On **\`Scene Dressing\`** trope entries, **omit** **\`affordancesProvided\`** (non-functional trope).
 - For each entry, include one object and **1-2** roles.
 - If no explicit provided affordance is needed, **omit** **\`affordancesProvided\`** (preferred) rather than emitting **\`[]\`**.
-- **\`environmentAffordances\`** and **\`affordancesProvided\`** may coexist on the same trope entry when both signals are justified.
+- **\`environmentAffordances\`** and **\`affordancesProvided\`** may coexist on the same causal trope entry when both signals are justified.
 
 If you cannot justify trope fits for a valid line, set **\`tropeAffinitiesFailed\`**: true and **\`tropeAffinities\`**: [].
 

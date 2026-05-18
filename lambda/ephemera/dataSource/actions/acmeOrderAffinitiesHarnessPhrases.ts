@@ -8,18 +8,35 @@ export const ACME_ORDER_AFFINITIES_HARNESS_FIXTURES: readonly AcmeOrderAffinitie
     {
         id: 'clean-001-rocket-skates',
         bucket: 'clean',
-        commandPhrase: 'rocket skates',
-        tags: ['mobility', 'contraption'],
-        expectedLines: [{
-            nameLike: 'rocket skates',
-            valid: true,
-            tropeAffinities: [
-                { trope: 'Contraption', aptness: 'High', narrowingLike: 'coyote mobility or pursuit rig' },
-            ],
-        }],
+        commandPhrase: 'rocket skates, helmet, and goggles',
+        tags: ['scene-dressing', 'chase-gear', 'multi-line', 'mobility', 'contraption'],
+        expectedLines: [
+            {
+                nameLike: 'rocket skates',
+                valid: true,
+                tropeAffinities: [
+                    { trope: 'Contraption', aptness: 'High', narrowingLike: 'coyote mobility or pursuit rig' },
+                ],
+            },
+            {
+                nameLike: 'helmet',
+                valid: true,
+                tropeAffinities: [
+                    { trope: 'Scene Dressing', aptness: 'Good', narrowingLike: 'protective equipment' },
+                ],
+            },
+            {
+                nameLike: 'goggles',
+                valid: true,
+                tropeAffinities: [
+                    { trope: 'Scene Dressing', aptness: 'Good', narrowingLike: 'racing gear' },
+                ],
+            },
+        ],
         likelyErrors: [
-            'Mislabel as Finishing Move due to speed lethality assumptions.',
-            'Empty tropeAffinities despite obvious in-genre fit.',
+            'Weak Disadvantage or Finishing Move on helmet/goggles instead of Scene Dressing.',
+            'Invented causal fits on helmet/goggles; missing Scene Dressing on gear.',
+            'Mislabel rocket skates as Scene Dressing only or omit Contraption on the mobility anchor.',
         ],
     },
     {

@@ -1,6 +1,6 @@
 # Coyote Game: Scene Dressing trope (planning)
 
-**Status:** SS1 complete --- types and canonical order in `mtw-interfaces`. Next step: Phase SS2 (Acme Order Enrich).
+**Status:** SS2 complete --- enrich prompt and **clean-001** harness retarget landed. Next step: Phase SS3 (persistence and snapshots).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -152,12 +152,12 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Extend role allowlists on **`EnvironmentAffordanceRef`** / **`AffordanceProvidedRef`** only if causal tropes still need them (Scene Dressing should not appear in **`roles`** arrays per handoff).
   - [X] Update **`coyotePhasePlan`** tests for six-trope **`tropeSequence`** ordering.
 
-- [ ] Phase SS2 - Acme Order Enrich
-  - [ ] Add Scene Dressing vocabulary block (locked copy in **Semantics**).
-  - [ ] Reframe **`narrowing` POV rule** to causal tropes only.
-  - [ ] Discourage **`environmentAffordances`** / **`affordancesProvided`** on Scene Dressing rows in prompt.
-  - [ ] Add harness phrase(s): skateboard + helmet + goggles (expect Scene Dressing on gear, causal fit on board).
-  - [ ] Tests: **`coyotePlanAffinities.test.ts`**, **`enrich/acmeOrder/index.test.ts`**.
+- [X] Phase SS2 - Acme Order Enrich
+  - [X] Add Scene Dressing vocabulary block (locked copy in **Semantics**).
+  - [X] Reframe **`narrowing` POV rule** to causal tropes only.
+  - [X] Discourage **`environmentAffordances`** / **`affordancesProvided`** on Scene Dressing rows in prompt.
+  - [X] Retarget **clean-001** harness fixture (`rocket skates, helmet, and goggles`; Scene Dressing on gear, **Contraption** on skates; fixture count stays 10). Manual `/test affinities 1` calibration optional after deploy.
+  - [X] Tests: **`coyotePlanAffinities.test.ts`**, **`enrich/acmeOrder/buildPrompt.test.ts`**; **`index.test.ts`** regression pass (no prompt-body changes required).
 
 - [ ] Phase SS3 - persistence and snapshots
   - [ ] Bus/object validation accepts Scene Dressing on **`tropeAffinities`**.
@@ -192,6 +192,7 @@ npm run test -- --watchAll=false ts/coyotePhasePlan.test.ts
 **Acme + decisionFocus + candidates (`lambda/ephemera/`):**
 
 ```bash
+npm run test -- --watchAll=false dataSource/actions/enrich/acmeOrder/buildPrompt.test.ts
 npm run test -- --watchAll=false dataSource/actions/enrich/acmeOrder/index.test.ts
 npm run test -- --watchAll=false dataSource/coyoteGame/generators/pipelines/hypothesis/candidates/serializeStagedObjectsForCandidatePrompt.test.ts
 npm run test -- --watchAll=false dataSource/coyoteGame/generators/pipelines/hypothesis/candidates/parseCandidateOutput.test.ts
@@ -210,7 +211,7 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/testHarness/ru
 | --- | --- |
 | SS0 Design handoff | Complete |
 | SS1 Types / canonical order | Complete |
-| SS2 Acme enrich | Not started |
+| SS2 Acme enrich | Complete |
 | SS3 Persistence / snapshots | Not started |
 | SS4 Hypothesis pipeline | Not started |
 | SS5 Phase-plan / outcome | Not started |
