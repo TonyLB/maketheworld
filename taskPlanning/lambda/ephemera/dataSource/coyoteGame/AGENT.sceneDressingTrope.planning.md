@@ -1,6 +1,6 @@
 # Coyote Game: Scene Dressing trope (planning)
 
-**Status:** SS3 complete --- persistence and snapshot validation landed. Next step: Phase SS4 (hypothesis pipeline).
+**Status:** SS4 complete --- hypothesis pipeline (decisionFocus, candidate prompt, fixture-01 / clean-001). Next step: Phase SS5 (phase-plan and outcome).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -163,12 +163,12 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Bus/object validation accepts Scene Dressing on **`tropeAffinities`** (`areCoyoteObjectTropeFieldsValid` on bus + **`isEphemeraMetaRoomObject`**).
   - [X] **`formatCoyoteObjectAffinitySuffix`** renders six-trope lines unchanged (trope-agnostic; Scene Dressing regression tests added).
 
-- [ ] Phase SS4 - hypothesis pipeline (meaningful work)
-  - [ ] **`decisionFocus`:** Scene-Dressing-only props -> **`expanderStableKeys`**; document mixed-prop behavior in tests.
-  - [ ] **`buildCandidatePrompt`:** Scene Dressing vocabulary + cluster-by-compatible-narrowing guidance; few-shot optional.
-  - [ ] Parse/combine/plan-select/narrative: sixth key in trope allowlists and **`TROPE_ORDER`** iteration (mechanical).
-  - [ ] **Plan select:** verify allowlist strings only; no rubric edits per handoff.
-  - [ ] Fixture: dressing cluster -> chase archetype candidate (not three thin single-prop rows).
+- [X] Phase SS4 - hypothesis pipeline (meaningful work)
+  - [X] **`decisionFocus`:** Scene-Dressing-only props -> **`expanderStableKeys`**; document mixed-prop behavior in tests.
+  - [X] **`buildCandidatePrompt`:** Scene Dressing vocabulary + cluster-by-compatible-narrowing guidance; few-shot optional.
+  - [X] Parse/combine/plan-select/narrative: sixth key in trope allowlists and **`TROPE_ORDER`** iteration (mechanical).
+  - [X] **Plan select:** verify allowlist strings only; no rubric edits per handoff.
+  - [X] Fixture: **`fixture-01`** (clean-001) dressing cluster -> chase archetype candidate (not three thin single-prop rows).
 
 - [ ] Phase SS5 - phase-plan and outcome
   - [ ] **`validateCoyotePhasePlan`:** six-trope **`tropeSequence`** including Scene Dressing at index 0 when present.
@@ -177,7 +177,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 - [ ] Phase SS6 - conceptual docs and closeout
   - [ ] **`AGENT.tropes.md`:** sixth trope section (associative vs causal registers); update sequence combinatorics count.
   - [ ] **`AGENT.tropes.implementation.md`:** Scene Dressing narrowing grain (categorical not scenario).
-  - [ ] Hypothesis **`AGENT.md`:** six tropes in rubric pointer.
+  - [X] Hypothesis **`AGENT.md`:** six tropes in rubric pointer (minimal SS4 pointer; full rubric in SS6).
   - [ ] Verification + archive plan per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
 ## Verification
@@ -217,7 +217,7 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/testHarness/ru
 | SS1 Types / canonical order | Complete |
 | SS2 Acme enrich | Complete |
 | SS3 Persistence / snapshots | Complete |
-| SS4 Hypothesis pipeline | Not started |
+| SS4 Hypothesis pipeline | Complete |
 | SS5 Phase-plan / outcome | Not started |
 | SS6 Docs / closeout | Not started |
 

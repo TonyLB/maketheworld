@@ -70,7 +70,9 @@ This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock
 
 ### Trope rubric (conceptual)
 
-Prompt and parser **keys** are **`CoyoteTrope`** literals in canonical order (`Contraption`, `Bait`, `Misdirection`, `Disadvantage`, `Finishing Move`). For **unawareness**, **first Road-Runner-facing** beats, and **Bait vs Misdirection vs Disadvantage** (voluntary lure vs perceptual misread vs imposed condition), use the shared conceptual spec in [`../../../AGENT.tropes.md`](../../../AGENT.tropes.md) --- do not duplicate the full rubric here.
+Prompt and parser **keys** are **`CoyoteTrope`** literals in canonical order (`Scene Dressing`, `Contraption`, `Bait`, `Misdirection`, `Disadvantage`, `Finishing Move`). For **unawareness**, **first Road-Runner-facing** beats, and **Bait vs Misdirection vs Disadvantage** (voluntary lure vs perceptual misread vs imposed condition), use the shared conceptual spec in [`../../../AGENT.tropes.md`](../../../AGENT.tropes.md) --- do not duplicate the full rubric here.
+
+**Scene Dressing (SS4):** non-functional narrative association at enrich time; stage-one **`decisionFocus`** marks Scene-Dressing-only props as **`expanderStableKeys`**, and [`candidates/buildCandidatePrompt.ts`](candidates/buildCandidatePrompt.ts) instructs clustering compatible dressing narrowings into one **`Scene Dressing`** trope row (see also [`serializeStagedObjectsForCandidatePrompt.ts`](candidates/serializeStagedObjectsForCandidatePrompt.ts)).
 
 ### Gimmick (policies)
 
@@ -85,9 +87,10 @@ Authority: [`candidates/buildCandidatePrompt.ts`](candidates/buildCandidatePromp
 [`candidates/combineCandidateOutput.ts`](candidates/combineCandidateOutput.ts) (hydrate + derive outliers).
 
 **Shape.** Each candidate must include `tropeAssignments` as a **non-array object** with **at least one**
-trope key. Keys must be `CoyoteTrope` literals only (`Contraption`, `Bait`, `Misdirection`, `Disadvantage`,
-`Finishing Move`); see [`isCoyoteTrope`](../../../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)
-in `@tonylb/mtw-interfaces`. Sparse records omit unused tropes; do **not** require all five tropes or
+trope key. Keys must be `CoyoteTrope` literals only (six tropes per **`CANONICAL_TROPE_ORDER`** in
+[`coyotePhasePlan.ts`](../../../../../../../packages/mtw-interfaces/ts/coyotePhasePlan.ts)); see
+[`isCoyoteTrope`](../../../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts) in `@tonylb/mtw-interfaces`.
+Sparse records omit unused tropes; do **not** require all six tropes or
 empty member lists. Each trope value is `{ "executionDetail": string, "members": [...] }` only (keep
 the **`executionDetail`** name).
 
@@ -115,7 +118,7 @@ members.
 
 **`normalizedJson`.** On successful parse, each candidate includes **`gimmick`** (short spine string),
 **`candidateId`**, **`executionSummary`**, and a `tropeAssignments` object emitted with trope keys in **canonical order**
-(`Contraption`, then `Bait`, then `Misdirection`, then `Disadvantage`, then `Finishing Move`), omitting absent tropes.
+(`Scene Dressing`, then `Contraption`, `Bait`, `Misdirection`, `Disadvantage`, `Finishing Move`), omitting absent tropes.
 Root object order stays **`candidates`** then optional **`notes`**.
 
 **Combine.** Parsed records flow through combine as a **`Partial<Record<CoyoteTrope, CombinedTropeAssignment>>`**
@@ -150,7 +153,7 @@ Plan-select may **materialize** chosen affordances as first-class `tropeAssignme
 **Regression tests.** Colocated under `candidates/*.test.ts`, pipeline tests in this folder, and
 [`../../testHarness/`](../../testHarness/). Run Jest from `lambda/ephemera` per [`AGENT.testing.md`](../../../../../AGENT.testing.md).
 
-**Harness example.** Coyote engine fixture-01 (`FIXTURE_01_NARRATIVE_BEATS_HANDOFF`) injects narrative-beat `planSelectOutput` with `selectedCandidate` that includes a **Finishing Move** member using **`affordance:coyote`**, exercised by [`coyoteEngineTestFixtures.test.ts`](../../testHarness/coyoteEngineTestFixtures.test.ts). Definition: [`coyoteEngineTestFixtures.ts`](../../testHarness/coyoteEngineTestFixtures.ts).
+**Harness example.** Coyote engine fixture-10 narrative-beat `planSelectOutput` inject includes a **Finishing Move** member using **`affordance:cannonball`**, exercised by [`coyoteEngineTestFixtures.test.ts`](../../testHarness/coyoteEngineTestFixtures.test.ts). Definition: [`coyoteEngineTestFixtures.ts`](../../testHarness/coyoteEngineTestFixtures.ts).
 
 **Narrative beat harness (`runOnly` `narrativeBeats`).** Injected pipeline state uses **`CoyoteHarnessNarrativeBeatsInject`**: **`{ planSelectOutput, roomObjectsByRoom }`** only (no **`combined`**). `selectedCandidate` is required on `planSelectOutput` for this path. Types: [`coyoteHarnessInjectTypes.ts`](coyoteHarnessInjectTypes.ts); orchestration and validation: [`coyoteHypothesisPipeline.ts`](coyoteHypothesisPipeline.ts).
 
@@ -179,7 +182,7 @@ Parser safety posture:
 ### `selectedCandidate` (structured winner)
 
 - Hop-1 JSON may include optional `selectedCandidate` at parse time: the structured winning candidate, shaped like plan-select input candidates (mirror input shape in v1; sequencing hints are omitted in v1). Optional **`gimmick`** on the model payload is validated when present; orchestration overwrites with combine **`gimmick`** when **`candidateId`** matches (**`parsePlanSelectionHandoff`**).
-- `selectedCandidate.tropeAssignments` is a **non-array object keyed by trope** (`Contraption`, `Bait`, `Misdirection`, `Disadvantage`, `Finishing Move`); each value carries `executionDetail` and `members`. Array-shaped `tropeAssignments` is rejected at parse time.
+- `selectedCandidate.tropeAssignments` is a **non-array object keyed by trope** (six **`CoyoteTrope`** literals per **`CANONICAL_TROPE_ORDER`**); each value carries `executionDetail` and `members`. Array-shaped `tropeAssignments` is rejected at parse time.
 - **Pipeline:** [`hypothesis/coyoteHypothesisPipeline.ts`](coyoteHypothesisPipeline.ts) **requires** `selectedCandidate` after plan-select parse before invoking the narrative beat hop. If the parsed handoff lacks it, the run **aborts** to stub (same family as other hypothesis aborts); legacy-only JSON without `selectedCandidate` does **not** reach [`narrativeBeats/buildNarrativeBeatPrompt.ts`](narrativeBeats/buildNarrativeBeatPrompt.ts).
 
 ### Plan-selection hop (single invocation)

@@ -591,6 +591,64 @@ describe('parseCandidateOutput', () => {
         }
     })
 
+    it('accepts Scene Dressing trope assignments and orders Scene Dressing before Contraption in normalizedJson', () => {
+        const map: CoyoteRoomObjectsByRoom = {
+            'ROOM#STRAIGHTAWAY': [
+                {
+                    uuid: 'OBJECT#rs' as `OBJECT#${string}`,
+                    shortName: 'rocket skates',
+                    stableKey: 'rocket-skates-0',
+                },
+                {
+                    uuid: 'OBJECT#h' as `OBJECT#${string}`,
+                    shortName: 'helmet',
+                    stableKey: 'helmet-0',
+                },
+                {
+                    uuid: 'OBJECT#g' as `OBJECT#${string}`,
+                    shortName: 'goggles',
+                    stableKey: 'goggles-0',
+                },
+            ],
+            'ROOM#VORTEX': [],
+            'ROOM#CLIFFTOP': [],
+            'ROOM#CORNER': [],
+            'ROOM#BRIDGE': [],
+        }
+        const body = JSON.stringify({
+            candidates: [
+                {
+                    candidateId: 'candidate-1',
+                    gimmick: 'high speed chase',
+                    executionSummary: 'Rocket skates anchor a chase while helmet and goggles complete racing-scene dressing.',
+                    tropeAssignments: {
+                        Contraption: {
+                            executionDetail: 'Rocket skates provide pursuit speed.',
+                            members: [{ stableKey: 'rocket-skates-0', tropeFunction: 'speed rig' }],
+                        },
+                        'Scene Dressing': {
+                            executionDetail: 'Helmet and goggles signal protective racing gear.',
+                            members: [
+                                { stableKey: 'helmet-0', tropeFunction: 'protective gear' },
+                                { stableKey: 'goggles-0', tropeFunction: 'racing gear' },
+                            ],
+                        },
+                    },
+                },
+            ],
+        })
+        const result = parseCandidateOutput(body, map)
+        expect(result.ok).toBe(true)
+        if (result.ok) {
+            expect(result.candidates[0].tropeAssignments['Scene Dressing']?.members).toHaveLength(2)
+            const sceneDressingIndex = result.normalizedJson.indexOf('"Scene Dressing"')
+            const contraptionIndex = result.normalizedJson.indexOf('"Contraption"')
+            expect(sceneDressingIndex).toBeGreaterThan(-1)
+            expect(contraptionIndex).toBeGreaterThan(-1)
+            expect(sceneDressingIndex).toBeLessThan(contraptionIndex)
+        }
+    })
+
     it('rejects array-shaped tropeAssignments (hard cutover)', () => {
         const body = JSON.stringify({
             candidates: [

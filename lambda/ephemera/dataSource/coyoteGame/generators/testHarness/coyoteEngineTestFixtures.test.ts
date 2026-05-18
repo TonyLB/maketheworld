@@ -59,16 +59,12 @@ describe('COYOTE_ENGINE_TEST_FIXTURES', () => {
         expect(parts.dynamicSuffix).toContain('candidate-1')
     })
 
-    it('fixture-01 narrativeBeatsInject planSelectOutput carries a materialized affordance Finishing Move member', () => {
-        const phaseInject = COYOTE_ENGINE_TEST_FIXTURES[0].narrativeBeatsInject
-        expect(phaseInject).toBeDefined()
-        const selected = phaseInject!.planSelectOutput.selectedCandidate
-        expect(selected).toBeDefined()
-        const fm = selected!.tropeAssignments['Finishing Move']
-        expect(fm?.members.length).toBeGreaterThan(0)
-        const coyoteRow = fm!.members.find((m) => m.stableKey === 'affordance:coyote')
-        expect(coyoteRow).toBeDefined()
-        expect(isValidMaterializedAffordanceStableKey(coyoteRow!.stableKey)).toBe(true)
+    it('fixture-01 planSelectInject clusters Scene Dressing members (clean-001 chase spine)', () => {
+        const combined = COYOTE_ENGINE_TEST_FIXTURES[0].planSelectInject?.combined
+        expect(combined?.candidates).toHaveLength(1)
+        const dressing = combined?.candidates[0]?.tropeAssignments['Scene Dressing']
+        expect(dressing?.members).toHaveLength(2)
+        expect(dressing?.members.map((m) => m.identifier).sort()).toEqual(['goggles-2', 'helmet-1'])
     })
 
     it('fixture-01 narrativeBeats handoff parses through parsePlanSelectOutput like production output', () => {
@@ -91,9 +87,20 @@ describe('COYOTE_ENGINE_TEST_FIXTURES', () => {
             throw new Error(parsed.reason)
         }
         expect(parsed.handoff.paragraphSummary).toBe(handoff.paragraphSummary)
-        expect(parsed.handoff.selectedCandidate?.tropeAssignments['Finishing Move']?.members[0]?.stableKey).toBe(
-            'affordance:coyote'
-        )
+        expect(parsed.handoff.selectedCandidate?.tropeAssignments['Scene Dressing']?.members).toHaveLength(2)
+    })
+
+    it('fixture-10 narrativeBeatsInject planSelectOutput carries a materialized affordance Finishing Move member', () => {
+        const fixture10 = COYOTE_ENGINE_TEST_FIXTURES.find(({ id }) => id === 'fixture-10')
+        const phaseInject = fixture10?.narrativeBeatsInject
+        expect(phaseInject).toBeDefined()
+        const selected = phaseInject!.planSelectOutput.selectedCandidate
+        expect(selected).toBeDefined()
+        const fm = selected!.tropeAssignments['Finishing Move']
+        expect(fm?.members.length).toBeGreaterThan(0)
+        const cannonballRow = fm!.members.find((m) => m.stableKey === 'affordance:cannonball')
+        expect(cannonballRow).toBeDefined()
+        expect(isValidMaterializedAffordanceStableKey(cannonballRow!.stableKey)).toBe(true)
     })
 
     it('fixture-10 planSelectInject includes cannon member in combined contraption lane', () => {
@@ -103,6 +110,7 @@ describe('COYOTE_ENGINE_TEST_FIXTURES', () => {
         const cannonMember = contraptionMembers.find((member) => member.identifier === 'cannon-0')
         expect(cannonMember).toBeDefined()
     })
+
 })
 
 describe('resolveCoyoteHarnessStartAtInject', () => {
