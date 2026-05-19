@@ -1,8 +1,8 @@
 # Phase 1 classification: `index.test.ts` and component integration inventory
 
-**Status:** Phase 1 complete. **Named-describe extraction (Phase 2 Layer A line 222) done** -- see Phase 2 extraction status below. Grab-bag and `standardizeMode` split still pending.  
+**Status:** Phase 1 complete. **Layer A extraction (named describes + grab-bag) done** -- see Phase 2 extraction status below. Layer B grab-bag and `standardizeMode` split still pending in `index.test.ts`.  
 **Baseline (2026-05-19):** `npm test -- ts/standardize/index.test.ts` + `ts/standardize/integration/` -- **217 passed** total.  
-**Source of truth for remaining Phase 2 moves:** this file.
+**Source of truth for remaining Phase 2 moves:** this file (Layer B rows in section 1; `standardizeMode` in section 2).
 
 ## Phase 2 extraction status (named describes)
 
@@ -10,21 +10,22 @@ All top-level named `describe` blocks except `standardizeMode` are extracted to 
 
 | File | Tests (approx) |
 | --- | ---: |
-| `standardForm.construct.test.ts` | 1 |
+| `standardForm.construct.test.ts` | 15 |
+| `standardForm.merge.test.ts` | 17 |
 | `standardForm.isEmpty.test.ts` | 12 |
 | `standardForm.equals.test.ts` | 6 |
 | `standardForm.assureComponents.test.ts` | 7 |
 | `standardForm.diff.test.ts` | 30 (includes grab-bag character diff at former L1838) |
 | `standardForm.subset.test.ts` | 12 |
 | `standardForm.keyChangesViaMerge.test.ts` | 9 |
-| `standardForm.lookup.test.ts` | 4 |
+| `standardForm.lookup.test.ts` | 5 |
 | `standardForm.finalize.test.ts` | 4 |
-| `standardForm.assetMeta.test.ts` | 30 |
+| `standardForm.assetMeta.test.ts` | 31 |
 | `standardForm.validate.test.ts` | 7 |
 | `standardForm.removeComponent.test.ts` | 12 |
 | `standardForm.referencedBy.test.ts` | 5 |
 
-`index.test.ts` retains `standardizeMode` (17 `it`) and ungrouped grab-bag (~64 `it` per Phase 1 count).
+`index.test.ts` retains `standardizeMode` (17 `it`), thin smoke (2 `it`), and Layer B ungrouped grab-bag (~26 `it`). Layer A grab-bag rows (clusters A partial, D partial, G partial, H, I partial, J partial merge row) are **moved**.
 
 Related: [`AGENT.testSuiteCleaning.planning.md`](./AGENT.testSuiteCleaning.planning.md)
 

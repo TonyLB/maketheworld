@@ -58,6 +58,29 @@ describe('StandardForm', () => {
                 </Asset>
             `))
         })
+
+        it('should correctly reflect empty imports in byId', () => {
+            const test = new StandardForm(`<Asset uuid=(Test)>
+            <Room uuid=(testRoomOne) key=(testRoomOne) from=(ASSET#test) />
+        </Asset>`)
+            const firstRoom = test.byId.testRoomOne
+            expect(firstRoom.toJSON()).toEqual({
+                key: 'testRoomOne',
+                universalKey: 'ROOM#testRoomOne',
+                tag: 'Room',
+                from: `ASSET#test`
+            })
+            const mapTest = new StandardForm(`<Asset uuid=(Test)>
+            <Map uuid=(testMap) key=(testMap)>
+                <Room uuid=(testRoomOne) key=(testRoomOne)><Position {0, 100} /></Room>
+            </Map>
+        </Asset>`)
+            expect(mapTest.byId.testRoomOne.toJSON()).toEqual({
+                key: 'testRoomOne',
+                universalKey: 'ROOM#testRoomOne',
+                tag: 'Room'
+            })
+        })
     })
 
     describe('byUniversalId', () => {

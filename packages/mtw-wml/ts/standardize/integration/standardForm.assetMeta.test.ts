@@ -695,4 +695,19 @@ describe('StandardForm', () => {
         })
 
     })
+
+    describe('imports through NDJSON', () => {
+            it('should round-trip imports through NDJSON', () => {
+                const testWML = deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room key=(testRoom) from=(ASSET#testImport)>
+                            <ShortName>Test</ShortName>
+                        </Room>
+                    </Asset>
+                `)
+                const testSource = new StandardForm(testWML)
+                const test = new StandardForm(testSource.toNDJSON())
+                expect(schemaToWML([test.schema])).toEqual(testWML)
+            })
+    })
 })
