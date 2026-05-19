@@ -253,49 +253,16 @@ Components will need to:
 - **Extract Content**: Pull relevant information from WML structure and component data
 - **Render Appropriately**: Display content with proper styling based on component type
 
-**⚠️ CRITICAL (Feature and Knowledge)**: When accessing WML content for **Feature** or **Knowledge**, display content (`name`, `summary`, `description`) is stored in `Example` components, not directly on those parents. You must:
+**CRITICAL (Feature and Knowledge)** — mirror Room (**D1**): In **`ComponentDescription.tsx`**, resolve prose from the parent component only (no child **`StandardExample`** lookup):
 
-1. Get the main component from `parsedWML.byUniversalId[componentUUID]`
-2. Use `instanceof` checks to verify the component type (e.g., `component instanceof StandardFeature` or `StandardKnowledge`)
-3. Access the `examples.payload[0]` to get the first Example reference
-4. Look up the Example component to get actual display content
+1. Get the parent from `parsedWML.byUniversalId[componentUUID]`; use `instanceof StandardFeature` or `StandardKnowledge`.
+2. Prefer **`component.render`** (ephemera **`<Render>`**, **`SituationProseFacetPayload`** shape); skip when empty.
+3. Else use the **`SITUATION#DEFAULT`** facet in **`component.situations`** (not `items[0]`).
+4. Map **`_displayName`** / **`_description`** from the payload; safe defaults when missing (**Unknown** / *No description*).
 
-**Room**: Do not follow the Example-first path for room prose. Use **`StandardRoom.render`** (ephemera wire), then the first **Situation** facet, with **`StandardRoom.examples`** only as a **legacy** fallback. See [`AGENT.RoomDescription.md`](./AGENT.RoomDescription.md) and [`packages/mtw-wml/ts/AGENT.md`](../../../../packages/mtw-wml/ts/AGENT.md).
+**Room**: Use **`StandardRoom.render`**, then the first **Situation** facet. See [`AGENT.RoomDescription.md`](./AGENT.RoomDescription.md) and [`packages/mtw-wml/ts/AGENT.md`](../../../../packages/mtw-wml/ts/AGENT.md).
 
-**Implementation Pattern:**
-```typescript
-// Initialize with proper types
-let name: StandardRender = new StandardRender(['Unknown'])  // Array, not string
-let description: StandardRender = new StandardRender([])
-
-if (parsedWML && componentUUID) {
-    // WML format: extract from StandardForm
-    const component = parsedWML.byUniversalId[componentUUID]
-    if (component instanceof StandardFeature || component instanceof StandardKnowledge) {
-        const firstExample = component.examples.payload[0]
-        if (firstExample && firstExample.universalKey) {
-            const exampleComponent = parsedWML.byUniversalId[firstExample.universalKey as ComponentUUID]
-            if (exampleComponent instanceof StandardExample) {
-                // NOTE: StandardExample properties return RenderTree, not StandardRender
-                // This is a technical debt that should be fixed in the WML system
-                name = exampleComponent.name ? new StandardRender(exampleComponent.name) : new StandardRender(['Unknown'])
-                description = exampleComponent.description ? new StandardRender(exampleComponent.description) : new StandardRender([])
-            }
-        }
-    }
-} else {
-    // Legacy format: only handle actual legacy message types
-    if (message.DisplayProtocol === 'FeatureDescription' || message.DisplayProtocol === 'KnowledgeDescription') {
-        const legacyMessage = message as FeatureDescriptionType | KnowledgeDescriptionType
-        name = new StandardRender(legacyMessage.Name || ['Unknown'])
-        description = new StandardRender(legacyMessage.Description || [])
-    }
-    // For PerceptionMessage without parsedWML, keep default values (Unknown/empty)
-}
-
-// For rendering, convert back to RenderTree
-<RenderTreeContent list={description.toJSON()} onClickLink={onClickLink} />
-```
+**Implementation reference:** [`ComponentDescription.tsx`](./ComponentDescription.tsx) (`resolveFeatureKnowledgeProse`).
 
 **⚠️ CRITICAL**: The `StandardRender` constructor expects:
 - **RenderTree arrays**: `new StandardRender(['text'])` ✅

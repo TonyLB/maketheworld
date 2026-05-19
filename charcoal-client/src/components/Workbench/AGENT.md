@@ -7,7 +7,7 @@ The Workbench is the **form-based authoring interface** for creating and editing
 ### Purpose
 
 - **Asset Editing**: Edit WML assets through structured forms rather than raw markup
-- **Component Navigation**: Navigate within an asset's component hierarchy (Rooms, Features, Examples, Lenses, Marks, etc.)
+- **Component Navigation**: Navigate within an asset's component hierarchy (Rooms, Features, Knowledge, Situations, Lenses, Marks, etc.)
 - **Contextual Overlay**: Present editing UI as a drawer (desktop) or full-screen overlay (mobile) relative to the viewport
 - **Draft-Centric**: Optimized for editing assets in the Draft zone; read-only behavior for published assets
 
@@ -17,9 +17,9 @@ The Workbench sits within the Charcoal Client's [dual-mode architecture](../../.
 
 ### Key Concepts
 
-- **Breadcrumb Stack**: Within-asset navigation history; `component` entries for parent components, `componentLayer` for layered sibling views (e.g., Examples, Marks within a Lens)
-- **Reference Lists**: WML `ReferenceList` fields (e.g. `examples`, `features`, `lens`, `marks`) rendered as accordion lists with add/remove; see [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md)
-- **Layered Context**: Sibling-in-context editing for groups like Examples (Photoshop-layer style); see [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md)
+- **Breadcrumb Stack**: Within-asset navigation history; `component` entries for parent components, `componentLayer` for layered sibling views (e.g., Room Situation facets, Guidance, Marks within a Lens)
+- **Reference Lists**: WML `ReferenceList` fields (e.g. `features`, `guidance`, `lens`, `marks`) rendered as accordion lists with add/remove; see [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md)
+- **Layered Context**: Sibling-in-context editing for Room Situation facets and Guidance (Photoshop-layer style); see [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md)
 - **StandardForm**: WML asset representation; the Workbench reads and mutates `StandardForm` via `updateStandard` from `useWorkbenchAsset`
 
 ---
@@ -30,14 +30,14 @@ The Workbench sits within the Charcoal Client's [dual-mode architecture](../../.
 
 Provide a form-based, component-centric editing experience for WML assets that:
 - Uses Redux state for within-asset navigation instead of React Router
-- Renders structured editors for Rooms, Features, Knowledge, Examples, Lenses, Marks, Maps, and Characters
+- Renders structured editors for Rooms, Features, Knowledge, Lenses, Marks, Maps, Situations, and Characters
 - Supports rich text editing (`StandardRender`) and literal editing (`StandardLiteral`) through shared editor components
 
 ### Key Responsibilities
 
 - **Navigation**: Maintain breadcrumb stack and route to asset, component, or component-layer views
 - **Data Binding**: Connect `StandardForm` (from `personalAssets` slice) to form controls via `useWorkbenchAsset`
-- **Reference List Management**: Add/remove/reorder components in reference lists (Examples, Features, Exits, Lenses, Marks)
+- **Reference List Management**: Add/remove/reorder components in reference lists (Features, Guidance, Exits, Lenses, Marks)
 - **Read-only for non-Draft assets**: Enforce via `readonly` from `useWorkbenchAsset`
 
 ---
@@ -110,7 +110,7 @@ type WorkbenchBreadcrumbEntry = {
 ### System Relationships
 
 - **AppLayout**: Renders `WorkbenchContainer` with `open`, `onClose`, `assetId`, `secondaryContext`; controls workbench visibility
-- **WorkbenchAssetEditor**: Orchestrates view routing based on `getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`; delegates to `AssetEditForm`, `RoomEditor`, `FeatureEditor`, `KnowledgeEditor`, `LayeredContextView` (Examples/Guidance tabs), `MarkEditor`, `MapEditor`, `CharacterEditor`
+- **WorkbenchAssetEditor**: Orchestrates view routing based on `getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`; delegates to `AssetEditForm`, `RoomEditor`, `FeatureEditor`, `KnowledgeEditor`, `LayeredContextView` (Room Situation/Guidance tabs), `MarkEditor`, `MapEditor`, `CharacterEditor`
 
 ---
 
@@ -163,7 +163,8 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 
 - Use `useWorkbenchAsset` instead of `useLibraryAsset` when in Workbench context
 - Resolve components via `standardForm.byUniversalId[id]` and use `instanceof` checks (e.g. `StandardRoom`, `StandardFeature`)
-- Prefer `referenceListToItems` for consistent list display across Examples, Features, Lenses, Marks
+- Prefer `referenceListToItems` for consistent list display across Features, Guidance, Lenses, Marks
+- **`ComponentSelectorDialog`**: Does not list **Example** components (D4); use **Situation** for world-state entities
 - Handle `readonly` from `useWorkbenchAsset` before allowing edits (non-Draft assets)
 
 ### Error Handling
@@ -194,8 +195,8 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 | `KnowledgeEdit/` | KnowledgeEditor (shortName + DefaultRenderEditor) |
 | `foundations/DefaultRenderEditor.tsx` | Inline DEFAULT situation facet prose (Room, Feature, Knowledge) |
 | `foundations/SituationFacetRenderFieldsEditor.tsx` | Shared facet field editor (layered Room situations + DEFAULT inline) |
-| `ExampleEdit/` | ExampleEditor |
-| `foundations/LayeredContext/` | LayeredContextView (layered Examples/Guidance tabs), LayeredTabs |
+| `ExampleEdit/` | ExampleEditor (Phase 4 legacy; not in component selector) |
+| `foundations/LayeredContext/` | LayeredContextView (Room Situation/Guidance tabs), LayeredTabs |
 | `MarkEdit/` | MarkEditor (full), InlineEditor (shortName only; used in LensMarkFacetsEditor) |
 | `MapEdit/` | MapEditor, MapArea, MapController, MapLayers, UnshownRooms |
 | `CharacterEdit/` | CharacterEditor |
@@ -205,7 +206,7 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 ### Related Documentation
 
 - [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md) - `ReferenceListEditor` vs `InlineReferenceList`, `referenceListToItems`, Mark inline pattern
-- [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md) - Layer strip, index bar, split-pane, MUI Tabs; Examples layered view design
+- [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md) - Layer strip, index bar, split-pane, MUI Tabs; Room layered views
 - [charcoal-client/AGENT.testing.slate.md](../../../AGENT.testing.slate.md) - Slate/rich text testing if modifying StandardRenderEditor
 
 ---
@@ -218,7 +219,7 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 - **Breadcrumb Navigation**: Redux-driven; no React Router within Workbench
 - **Responsive**: Drawer on desktop, full-screen on mobile
 - **Reference Lists**: `ReferenceListEditor` and `InlineReferenceList` with adapter
-- **Layered Examples/Guidance**: `LayeredTabs` (MUI Tabs) for sibling Example or Guidance navigation
+- **Layered Room contexts**: `LayeredTabs` (MUI Tabs) for non-DEFAULT Situation facets and Guidance on Room
 - **Read-only for non-Draft assets**: Enforced via `readonly` from `useWorkbenchAsset`
 - **Room runtime-state affordance**: `RoomEdit/RoomStateAffordance.tsx` is rendered from `RoomEditor` when `hasLens` is true; it uses the drop-in API `<RoomStateAffordance RoomId={roomId} />`, resolves Room/Lens/mark data via `useWorkbenchAsset`, validates outbound `markState` with `isEphemeraCacheMarkState`, and sends ack-only updates through `sendRoomEphemeraStateChange` (no live read-back subscription in this iteration)
 

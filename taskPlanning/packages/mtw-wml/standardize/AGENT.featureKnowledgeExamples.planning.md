@@ -56,7 +56,7 @@ See **D2** in [Decisions](#decisions): **shared SituationRoomFacetPayload-shaped
 
 ### Implementation gap (not a product fork)
 
-**Phase 2 lambdas (assets + ephemera D1):** complete (2026-05-19). **Phase 3 (partial, 2026-05-19):** F/K **`DefaultRenderEditor`** + **`layeredContextUtils`** cleanup shipped. **Remaining:** **`ComponentDescription`**, Workbench selector/docs, Phase 4 Example retirement.
+**Phase 2 lambdas (assets + ephemera D1):** complete (2026-05-19). **Phase 3 client:** complete (2026-05-19). **Remaining:** Phase 4 Example retirement.
 
 ### Pre-flight checklist
 
@@ -107,7 +107,7 @@ See **D2** in [Decisions](#decisions): **shared SituationRoomFacetPayload-shaped
 | --- | --- | --- |
 | Editor | **`RoomEditor`**: **`DefaultRenderEditor`**, situation facet list (non-DEFAULT), Guidance refs | **`FeatureEditor` / `KnowledgeEditor`**: **`DefaultRenderEditor`** (DEFAULT only; shipped 2026-05-19) |
 | Layered tabs | Situation / Guidance via **`layeredContextUtils`** | No layered tabs (**D5**; Example path removed 2026-05-19) |
-| Playing UI | **`RoomDescription`**: **`render`**, then situation facets | **`ComponentDescription`**: first **`StandardExample`** via **`examples.payload[0]`** (Phase 3 pending) |
+| Playing UI | **`RoomDescription`**: **`render`**, then situation facets | **`ComponentDescription`**: **`render`**, then **`SITUATION#DEFAULT`** facet (shipped 2026-05-19) |
 | Primitives | **`assureDefaultSituationFromPrimitives`** (**`SITUATION#DEFAULT`**) | Reused via **`SituationFacetRenderFieldsEditor`** (2026-05-19) |
 
 Reuse **`SituationFacetRenderFieldsEditor`** and a generalized **`DefaultRenderEditor`** for F/K (**D5**). Do **not** port Room's non-DEFAULT situation list or SituationFacet layered tabs to F/K in this initiative.
@@ -140,7 +140,7 @@ Reuse **`SituationFacetRenderFieldsEditor`** and a generalized **`DefaultRenderE
 | 0 | Code inventory and baseline | Complete (2026-05-18) | Call sites confirmed; baseline greps recorded below |
 | 1 | WML: facet types + Feature/Knowledge `situations` | Complete (2026-05-18) | **`SituationProseFacet*`**; **D6** no Example dual-read under F/K |
 | 2 | Assets + ephemera: facet-driven cache for F/K | Complete (2026-05-19) | **D1** render + renderCache shipped; client Phase 3 pending |
-| 3 | Client: DEFAULT editor + playing UI | In progress (2026-05-19) | **D5** editors + layered utils shipped; **`ComponentDescription`** pending |
+| 3 | Client: DEFAULT editor + playing UI | Complete (2026-05-19) | **`ComponentDescription`** + selector/docs shipped |
 | 4 | Remove **`<Example>`** from product surface | Pending | Schema/editors/factory cleanup; tests updated; **D3/D4 N/A** |
 | -- | Deferred: constellation / Guidance / Lens on F/K | -- | After steady-state DEFAULT path ships |
 
@@ -166,7 +166,7 @@ Phase 0 walk of seed rows plus related files. **Confirmed** summarizes current b
 
 | Location | Confirmed (current) | Target | Phase |
 | --- | --- | --- | --- |
-| [`ComponentDescription.tsx`](../../../../charcoal-client/src/components/Message/ComponentDescription.tsx) | F/K: **`examples.payload[0]`** -> child **`StandardExample`** for displayName/description; defaults **Unknown** / empty | **`render`** wire, then DEFAULT situation facet payload; same safe defaults (**D7**) | 3 |
+| [`ComponentDescription.tsx`](../../../../charcoal-client/src/components/Message/ComponentDescription.tsx) | **`render`**, then **`SITUATION#DEFAULT`** facet; **`SituationProseFacetPayload`**; defaults **Unknown** / empty (**D7**) | No change until Phase 4 | 3 (done) |
 | [`RoomDescription.tsx`](../../../../charcoal-client/src/components/Message/RoomDescription.tsx) | **`render`** then first **`situations`** facet via **`SituationRoomFacetPayload`**; no **`examples`** | No change; template for F/K Phase 3 | -- |
 | [`layeredContextUtils.ts`](../../../../charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts) | Room: **`situations`** / Guidance only; F/K Example path removed | No change until Phase 4 | 3 (done) |
 | [`FeatureEditor.tsx`](../../../../charcoal-client/src/components/Workbench/FeatureEdit/FeatureEditor.tsx) | **`DefaultRenderEditor`** + **`SituationFacetRenderFieldsEditor`**; **`assureDefaultSituationFromPrimitives`** | No change until Phase 4 | 3 (done) |
@@ -174,7 +174,7 @@ Phase 0 walk of seed rows plus related files. **Confirmed** summarizes current b
 | [`ExampleEditor.tsx`](../../../../charcoal-client/src/components/Workbench/ExampleEdit/ExampleEditor.tsx) | Edits **`StandardExample`** fields (displayName, summary, description) | Retire after Phase 4 | 4 |
 | [`WorkbenchAssetEditor.tsx`](../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditor.tsx) | Routes top-level **`StandardExample`** to **`ExampleEditor`** | Situation / facet routing only | 4 |
 | [`WorkbenchContainer.tsx`](../../../../charcoal-client/src/components/Workbench/WorkbenchContainer.tsx) | Breadcrumb labels for Example layers under F/K | Update when Example path removed | 3-4 |
-| [`ComponentSelectorDialog.tsx`](../../../../charcoal-client/src/components/Workbench/foundations/ComponentSelector/ComponentSelectorDialog.tsx) | **`instanceof StandardExample`** -> tag Example | Drop Example when Phase 4-ready | 4 |
+| [`ComponentSelectorDialog.tsx`](../../../../charcoal-client/src/components/Workbench/foundations/ComponentSelector/ComponentSelectorDialog.tsx) | Example not listed in grouped or tag-filtered selector (**D4**) | No change until Phase 4 | 3 (done) |
 | [`exampleAssociatedFilter.ts`](../../../../lambda/assets/componentExamples/exampleAssociatedFilter.ts) | **Example** only; Room/F/K excluded (early branch) | Future: rename/rescope `componentExamples` | 2 (done) |
 | [`exampleEnrichment.ts`](../../../../lambda/assets/componentExamples/exampleEnrichment.ts) | **`getParentIdsForSituation`**, **`mergeSituationAcrossStack`**, **`situationFacetToCacheShape`**; **`enrichExampleEvent`** does not perform parent discovery | No change until Phase 4 Example retirement | 2 (done) |
 | [`index.ts`](../../../../lambda/assets/componentExamples/index.ts) | Parent facet branch + Situation fan-out; Example path gated on **`parentIds`** | No change until Phase 4 | 2 (done) |
@@ -186,7 +186,7 @@ Phase 0 walk of seed rows plus related files. **Confirmed** summarizes current b
 
 | Location | Confirmed (current) | Target | Phase |
 | --- | --- | --- | --- |
-| [`feature.ts`](../../../../packages/mtw-wml/ts/standardize/components/feature.ts), [`knowledge.ts`](../../../../packages/mtw-wml/ts/standardize/components/knowledge.ts) | **`situations`** + ephemera **`render`** / **`<Render>`** | Client/editor consumption (Phase 3) | 3 |
+| [`feature.ts`](../../../../packages/mtw-wml/ts/standardize/components/feature.ts), [`knowledge.ts`](../../../../packages/mtw-wml/ts/standardize/components/knowledge.ts) | **`situations`** + ephemera **`render`** / **`<Render>`** | No change until Phase 4 | 3 (done) |
 | [`situationRoom.ts`](../../../../packages/mtw-wml/ts/standardize/keys/facets/situationRoom.ts) | **`SituationProseFacet*`** shared by Room, Feature, Knowledge | Deprecated **`SituationRoomFacet*`** aliases for client/lambda imports | 1 (done) |
 | [`example.ts`](../../../../packages/mtw-wml/ts/standardize/components/example.ts), [`componentFactory.ts`](../../../../packages/mtw-wml/ts/standardize/componentFactory.ts) | Example still first-class (marks) | Retire from product surface Phase 4 | 4 |
 | [`feature.test.ts`](../../../../packages/mtw-wml/ts/standardize/components/feature.test.ts), [`knowledge.test.ts`](../../../../packages/mtw-wml/ts/standardize/components/knowledge.test.ts) | **`situations`** fixtures; **0** **`.examples`** | Maintain with Phase 2+ changes | 1 (done) |
@@ -199,7 +199,7 @@ Recorded before Phase 1. Re-run [Verification](#verification) after each phase; 
 | --- | --- | --- |
 | `\.examples\b\|examples:` in `feature.ts` + `knowledge.ts` | **28** (14 each) | **0** |
 | `\.examples\b` in `packages/mtw-wml` `*.test.ts` | **56** (`feature.test.ts` 28 + `knowledge.test.ts` 28) | **0** |
-| `examples.payload\|_examples\|StandardExample` in `lambda/assets`, `lambda/ephemera`, `charcoal-client` (exclude `*.test.*`) | **52** (assets 12, ephemera 9, client 31) | unchanged (Phase 2-3) |
+| `examples.payload\|_examples\|StandardExample` in `lambda/assets`, `lambda/ephemera`, `charcoal-client` (exclude `*.test.*`) | **52** (assets 12, ephemera 9, client 31) | **~38** non-test after Phase 3 (client playing UI + selector cleared; Phase 4 legacy editors remain) |
 | `examples:` in `room.ts` + `dataTypes/room.ts` | **0** (regression guard) | **0** |
 | `npx tsc -p packages/mtw-wml/tsconfig.json --noEmit` | **pass** | **pass** |
 | `npm test -- ts/standardize` (`packages/mtw-wml`) | (not recorded) | **pass** (1385+ tests) |
@@ -234,8 +234,8 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
 
 - [X] **`FeatureEditor` / `KnowledgeEditor`**: **D5** -- generalized **`DefaultRenderEditor`** (DEFAULT facet only); **`assureDefaultSituationFromPrimitives`**; remove **Examples** reference list. Shipped 2026-05-19.
 - [X] **`layeredContextUtils`**: remove F/K **Example** layered-tab path; do **not** add F/K SituationFacet layered tabs. Shipped 2026-05-19.
-- [ ] **`ComponentDescription`**: **D1** -- read **`render`**, then DEFAULT facet; drop **`StandardExample`** path.
-- [ ] Update Workbench **`AGENT.md`**, component selector (**D4** -- drop **Example** when ready).
+- [X] **`ComponentDescription`**: **D1** -- read **`render`**, then DEFAULT facet; drop **`StandardExample`** path. Shipped 2026-05-19.
+- [X] Update Workbench **`AGENT.md`**, component selector (**D4** -- drop **Example** when ready). Shipped 2026-05-19.
 
 ### Phase 4: Example retirement (codebase only)
 

@@ -25,7 +25,6 @@ import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowled
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 import StandardImage from '@tonylb/mtw-wml/ts/standardize/components/image'
-import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import { StandardLens, StandardMark } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import StandardMessage from '@tonylb/mtw-wml/ts/standardize/components/message'
@@ -43,7 +42,6 @@ const SECTION_ORDER: DialogComponentTag[] = [
     'Character',
     'Image',
     'Lens',
-    'Example',
     'Situation',
     'Mark',
     'Message'
@@ -57,7 +55,6 @@ function componentToTag(component: StandardComponent): DialogComponentTag | null
     if (component instanceof StandardCharacter) return 'Character'
     if (component instanceof StandardImage) return 'Image'
     if (component instanceof StandardLens) return 'Lens'
-    if (component instanceof StandardExample) return 'Example'
     if (component instanceof StandardMark) return 'Mark'
     if (component instanceof StandardMessage) return 'Message'
     if (component instanceof StandardSituation) return 'Situation'
