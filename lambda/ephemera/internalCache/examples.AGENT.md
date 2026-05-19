@@ -26,19 +26,13 @@ When encountering **light snowfall** (a state not explicitly covered), the LLM c
 
 **Current:**
 
-- **Feature / Knowledge (blueprint):** Reference child **`Example`** components via **`examples`** lists.
-- **Content:** Rich text on **`StandardExample`**; stored in `ephemeraDB` with `DataCategory: 'EXAMPLE#'`.
+- **Feature / Knowledge (blueprint):** **`situations`** facets on parent WML (Phase 1); ephemera display prose via **`renderCache`** + wire **`render`** (Phase 2 D1).
+- **Legacy `EXAMPLE#` rows:** May still exist in Dynamo; **`ExamplesData`** loads them but **`ComponentRender`** does **not** use them for F/K display prose.
 - **`StandardRoom`** JSON does **not** include **`examples`**; Room prose uses **Situation** facets and wire **`render`**.
 
-**Target (Phase 2+):**
-
-- Feature/Knowledge prose moves to **`renderCache`** (same pipeline as Room); **`ExamplesData`** no longer used for F/K display prose in **`ComponentRender`**.
-- Asset-side updates flow through **`componentExamples`** parent **`situations`** branch with Situation ids.
-
-### **Naive rendering vs Room**
-- **Room:** **`ComponentRender`** builds header prose from **`renderCache`** only; does **not** call **`ExamplesData`** (see **[`componentRender.AGENT.md`](./componentRender.AGENT.md)**).
-- **Feature / Knowledge (current):** **`ComponentRender`** uses **first-example** via **`ExamplesData.get`** (matches today's DEFAULT-only consumption intent).
-- **Feature / Knowledge (target):** **`renderCache`** + **`render`** wire field; DEFAULT facet only in v1.
+### **Display prose vs Room**
+- **Room / Feature / Knowledge:** **`ComponentRender`** builds header prose from **`renderCache`** only; does **not** call **`ExamplesData`** for display (see **[`componentRender.AGENT.md`](./componentRender.AGENT.md)**).
+- **F/K cache selection (v1):** **`SITUATION#DEFAULT`** row only via **`selectDefaultSituationCacheRecord`**.
 - **Map:** May still use example-related paths where applicable.
 - No full state matching or intelligent selection yet; sufficient for integration, limited for narrative variety.
 

@@ -52,13 +52,11 @@ See **D2** in [Decisions](#decisions): **shared SituationRoomFacetPayload-shaped
 
 ### D1 detail (implementation)
 
-Today Feature/Knowledge perception builds a **`StandardForm`** with a fake **`EXAMPLE#rendered`** child ([`componentRender.ts`](../../../../lambda/ephemera/internalCache/componentRender.ts)); Room uses **`render`** from cache.
-
-**Phase 2:** extend **`StandardFeatureData` / `StandardKnowledgeData`** wire serialization; **`situationFacetToCacheShape`** + parent **Updated** branch in **`componentExamples`**; **`ComponentRender`** F/K uses **renderCache** + shared payload mapper.
+**Shipped (2026-05-19):** Feature/Knowledge perception uses **`renderCache`** + **`render`** on ephemera wire (mirror Room). **`ComponentRender`** selects **`SITUATION#DEFAULT`** cache rows only; no synthetic **`EXAMPLE#rendered`**. WML: **`StandardFeatureData` / `StandardKnowledgeData`** include optional **`render`**; **`<Render>`** under Feature/Knowledge in **`ephemeraWire`**.
 
 ### Implementation gap (not a product fork)
 
-**`componentExamples`** parent **Updated** / **Removed** on Feature/Knowledge with **`situations`** mirrors Room (2026-05-18). Filter/enrichment on **`situations`** shipped (2026-05-19). Situation-component fan-out via **`getParentIdsForSituation`** and Example path gated on non-empty **`parentIds`** shipped (2026-05-19). Remaining Phase 2 gap: ephemera **`render`** / **`componentRender`** for F/K (**D1**, line 235).
+**Phase 2 lambdas (assets + ephemera D1):** complete (2026-05-19). **Remaining:** client Phase 3 (editors, **`ComponentDescription`**), Phase 4 Example retirement.
 
 ### Pre-flight checklist
 
@@ -87,8 +85,8 @@ Today Feature/Knowledge perception builds a **`StandardForm`** with a fake **`EX
 | Component | `examples` | `situations` | Notes |
 | --- | --- | --- | --- |
 | **Room** | No serialized field; legacy inline **`ref={0}`** Example only for merge/subset | **`SituationProseFacetList`** | Wire prose via **`render`** / **`<Render>`** (`ephemeraWire`). Tests use **`<Situation uuid=(DEFAULT)>`**. |
-| **Feature** | *Removed (Phase 1)* | **`SituationProseFacetList`** | [`feature.ts`](../../../../packages/mtw-wml/ts/standardize/components/feature.ts); **D6** no Example dual-read |
-| **Knowledge** | *Removed (Phase 1)* | **`SituationProseFacetList`** | [`knowledge.ts`](../../../../packages/mtw-wml/ts/standardize/components/knowledge.ts); shared payload in [`situationRoom.ts`](../../../../packages/mtw-wml/ts/standardize/keys/facets/situationRoom.ts) |
+| **Feature** | *Removed (Phase 1)* | **`SituationProseFacetList`** | Wire prose via **`render`** / **`<Render>`** (`ephemeraWire`); **D6** no Example dual-read |
+| **Knowledge** | *Removed (Phase 1)* | **`SituationProseFacetList`** | Same as Feature; shared payload in [`situationRoom.ts`](../../../../packages/mtw-wml/ts/standardize/keys/facets/situationRoom.ts) |
 | **Situation** | N/A | N/A | Marks-only component ([`situation.ts`](../../../../packages/mtw-wml/ts/standardize/components/situation.ts)) |
 | **Example** | N/A | N/A | Still first-class for marks ([`example.ts`](../../../../packages/mtw-wml/ts/standardize/components/example.ts)); not F/K prose parent |
 
@@ -98,13 +96,10 @@ Today Feature/Knowledge perception builds a **`StandardForm`** with a fake **`EX
 
 - **Room:** **`Component Updated` / `Removed`** on Room with non-empty **`situations`** emits **`ExampleUpdated` / `ExampleRemoved`** per facet (**`exampleId` = Situation uuid**), **`situationFacetToCacheShape`**, optional lens marks ([`index.ts`](../../../../lambda/assets/componentExamples/index.ts)). Room is **not** in **`isExampleAssociatedComponent`** for the Example-component path.
 - **Feature / Knowledge:** Parent **Updated** / **Removed** with **`situations`** mirrors Room ([`index.ts`](../../../../lambda/assets/componentExamples/index.ts) **`emitParentSituationFacetEvents`**; 2026-05-18). **Situation** component **Updated** / **Removed** fans out to facet parents via **`getParentIdsForSituation`** (2026-05-19). Standalone **Example** path does not discover F/K parents; events publish only when **`parentIds`** is non-empty (marks-only interim until Phase 4).
-- **Target (remaining):** Ephemera **`render`** / **`componentRender`** for F/K (**D1**, line 235).
-
 ### Ephemera lambda
 
 - **Room prose:** **`renderCache`** only; **`ComponentRender`** does not call **`ExamplesData`** for Room ([`componentRender.AGENT.md`](../../../../lambda/ephemera/internalCache/componentRender.AGENT.md)).
-- **Feature / Knowledge:** **`ExamplesData`** + naive **`examples[0]`** in **`ComponentRender`**; cache rows may use **`authoredExampleId`** (Example uuid) or **`situationId`** ([`componentExamples.ts`](../../../../lambda/ephemera/dataSource/componentExamples.ts) already branches on id type).
-- **Target:** Feature/Knowledge mirror Room's facet-driven **`componentExamples`** -> **`renderCache`** path; DEFAULT facet only for v1 display selection.
+- **Feature / Knowledge (shipped 2026-05-19):** **`renderCache`** + **`render`** on ephemera wire; **`selectDefaultSituationCacheRecord`** (**`SITUATION#DEFAULT`** only). **`ExamplesData`** not used for F/K display prose in **`ComponentRender`**. Cache population via **`componentExamples`** -> **`situationId`** ([`componentExamples.ts`](../../../../lambda/ephemera/dataSource/componentExamples.ts)).
 
 ### Client (`charcoal-client`)
 
@@ -144,7 +139,7 @@ Reuse **`SituationFacetRenderFieldsEditor`** and a generalized **`DefaultRenderE
 | --- | --- | --- | --- |
 | 0 | Code inventory and baseline | Complete (2026-05-18) | Call sites confirmed; baseline greps recorded below |
 | 1 | WML: facet types + Feature/Knowledge `situations` | Complete (2026-05-18) | **`SituationProseFacet*`**; **D6** no Example dual-read under F/K |
-| 2 | Assets + ephemera: facet-driven cache for F/K | Pending | **D1** render + renderCache; parent **Updated** branch |
+| 2 | Assets + ephemera: facet-driven cache for F/K | Complete (2026-05-19) | **D1** render + renderCache shipped; client Phase 3 pending |
 | 3 | Client: DEFAULT editor + playing UI | Pending | **D5** inline DEFAULT only; **D1** **`ComponentDescription`** |
 | 4 | Remove **`<Example>`** from product surface | Pending | Schema/editors/factory cleanup; tests updated; **D3/D4 N/A** |
 | -- | Deferred: constellation / Guidance / Lens on F/K | -- | After steady-state DEFAULT path ships |
@@ -183,15 +178,15 @@ Phase 0 walk of seed rows plus related files. **Confirmed** summarizes current b
 | [`exampleAssociatedFilter.ts`](../../../../lambda/assets/componentExamples/exampleAssociatedFilter.ts) | **Example** only; Room/F/K excluded (early branch) | Future: rename/rescope `componentExamples` | 2 (done) |
 | [`exampleEnrichment.ts`](../../../../lambda/assets/componentExamples/exampleEnrichment.ts) | **`getParentIdsForSituation`**, **`mergeSituationAcrossStack`**, **`situationFacetToCacheShape`**; **`enrichExampleEvent`** does not perform parent discovery | No change until Phase 4 Example retirement | 2 (done) |
 | [`index.ts`](../../../../lambda/assets/componentExamples/index.ts) | Parent facet branch + Situation fan-out; Example path gated on **`parentIds`** | No change until Phase 4 | 2 (done) |
-| [`componentRender.ts`](../../../../lambda/ephemera/internalCache/componentRender.ts) | F/K: **`ExamplesData.get`** -> first example -> **`examples: ['EXAMPLE#rendered']`** + synthetic **`EXAMPLE#rendered`** child | **`renderCache`** + **`render`** field only (**D1**); drop synthetic Example | 2 |
-| [`componentExamples.ts`](../../../../lambda/ephemera/dataSource/componentExamples.ts) | Writes **`RenderCache`**; branches **`situationId`** vs **`authoredExampleId`** by id type | F/K events use Situation ids once assets branch exists | 2 |
-| [`examples.ts`](../../../../lambda/ephemera/internalCache/examples.ts) | **`EXAMPLE#`** Dynamo rows for Feature/Knowledge | Deprecate for F/K prose when renderCache-only | 2 |
+| [`componentRender.ts`](../../../../lambda/ephemera/internalCache/componentRender.ts) | F/K: **`renderCache`** + **`render`**; DEFAULT row only; no **`ExamplesData`** for prose | No change until Phase 4 | 2 (done) |
+| [`componentExamples.ts`](../../../../lambda/ephemera/dataSource/componentExamples.ts) | Writes **`RenderCache`**; branches **`situationId`** vs **`authoredExampleId`** by id type | No change until Phase 4 | 2 (done) |
+| [`examples.ts`](../../../../lambda/ephemera/internalCache/examples.ts) | **`EXAMPLE#`** Dynamo rows; not used for F/K display prose in **`ComponentRender`** | Retire F/K **`EXAMPLE#`** paths Phase 4 | 4 |
 
 ### WML package (representative)
 
 | Location | Confirmed (current) | Target | Phase |
 | --- | --- | --- | --- |
-| [`feature.ts`](../../../../packages/mtw-wml/ts/standardize/components/feature.ts), [`knowledge.ts`](../../../../packages/mtw-wml/ts/standardize/components/knowledge.ts) | **`situations`** (**`SituationProseFacetList`**); no **`examples`**; no **`render`** on payload yet | Ephemera **`render`** wire (Phase 2) | 2 |
+| [`feature.ts`](../../../../packages/mtw-wml/ts/standardize/components/feature.ts), [`knowledge.ts`](../../../../packages/mtw-wml/ts/standardize/components/knowledge.ts) | **`situations`** + ephemera **`render`** / **`<Render>`** | Client/editor consumption (Phase 3) | 3 |
 | [`situationRoom.ts`](../../../../packages/mtw-wml/ts/standardize/keys/facets/situationRoom.ts) | **`SituationProseFacet*`** shared by Room, Feature, Knowledge | Deprecated **`SituationRoomFacet*`** aliases for client/lambda imports | 1 (done) |
 | [`example.ts`](../../../../packages/mtw-wml/ts/standardize/components/example.ts), [`componentFactory.ts`](../../../../packages/mtw-wml/ts/standardize/componentFactory.ts) | Example still first-class (marks) | Retire from product surface Phase 4 | 4 |
 | [`feature.test.ts`](../../../../packages/mtw-wml/ts/standardize/components/feature.test.ts), [`knowledge.test.ts`](../../../../packages/mtw-wml/ts/standardize/components/knowledge.test.ts) | **`situations`** fixtures; **0** **`.examples`** | Maintain with Phase 2+ changes | 1 (done) |
@@ -232,8 +227,8 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
 - [X] **`componentExamples`**: Feature/Knowledge **`situations`** branch on **parent** **Updated** / **Removed** (mirror Room; fix gap noted in Decisions). Shipped 2026-05-18.
 - [X] Update **`exampleAssociatedFilter`** / enrichment for **`situations`** (drop **`examples`** gate when Phase 4-ready). Shipped 2026-05-19.
 - [X] **`componentExamples`**: Stop standalone **Example** path for F/K parent discovery once facets own prose. Shipped 2026-05-19 (Situation fan-out; Example path no publish when **`parentIds`** empty).
-- [ ] Ephemera **D1:** Feature/Knowledge **`render`** + **renderCache**; DEFAULT-only cache selection; remove **`EXAMPLE#rendered`** synthetic form.
-- [ ] Tests: [`exampleEnrichment.test.ts`](../../../../lambda/assets/componentExamples/exampleEnrichment.test.ts), [`index.test.ts`](../../../../lambda/assets/componentExamples/index.test.ts), ephemera **`componentExamples.test.ts`**, **`componentRender.test.ts`**.
+- [X] Ephemera **D1:** Feature/Knowledge **`render`** + **renderCache**; DEFAULT-only cache selection; remove **`EXAMPLE#rendered`** synthetic form. Shipped 2026-05-19.
+- [X] Tests: [`exampleEnrichment.test.ts`](../../../../lambda/assets/componentExamples/exampleEnrichment.test.ts), [`index.test.ts`](../../../../lambda/assets/componentExamples/index.test.ts), ephemera **`componentExamples.test.ts`**, **`componentRender.test.ts`**, **`selectDefaultSituationCacheRecord.test.ts`**.
 
 ### Phase 3: Client
 

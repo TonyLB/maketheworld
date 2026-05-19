@@ -111,7 +111,7 @@ Serialization format for Example components. Contains `name`, `summary`, and `de
 Serialization format for Room components. Contains `shortName`, `exits`, **Situation** facets (`situations`), optional **`lens`**, **`features`**, **`guidance`**, **`characters`**, optional ephemera **`render`** and **`objects`**. **No** **`examples`** property; Room prose lives on **Situation** / **`render`**, not an **`examples`** list. See [`../../AGENT.md`](../../AGENT.md) and [`../AGENT.implementation.md`](../AGENT.implementation.md) (**StandardRoom**).
 
 #### **StandardFeatureData** (`feature.ts`)
-Serialization format for Feature components. Contains `examples` array referencing `StandardExample` components for display content.
+Serialization format for Feature components. Contains **`situations`** (Situation prose facets) and optional ephemera wire **`render`** (same shape as Room **`render`**). **No** **`examples`** property.
 
 #### **StandardCharacterData** (`character.ts`)
 Serialization format for Character components. Contains `name`, `description`, and `location` as primitive types and references.
@@ -120,7 +120,7 @@ Serialization format for Character components. Contains `name`, `description`, a
 Serialization format for Message components. Contains `content` as `RenderTree`, plus `recipients` and `conditions` arrays.
 
 #### **StandardKnowledgeData** (`knowledge.ts`)
-Serialization format for Knowledge components. Contains `examples` array referencing `StandardExample` components for display content.
+Serialization format for Knowledge components. Contains **`situations`** and optional ephemera wire **`render`**. **No** **`examples`** property.
 
 #### **StandardMomentData** (`moment.ts`)
 Serialization format for Moment components. Contains `conditions`, `effects`, and `duration` as editable string arrays.

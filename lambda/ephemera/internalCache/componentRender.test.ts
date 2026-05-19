@@ -1,5 +1,4 @@
 import internalCache from "../internalCache"
-import StandardExample from "@tonylb/mtw-wml/ts/standardize/components/example"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature"
 import StandardKnowledge from "@tonylb/mtw-wml/ts/standardize/components/knowledge"
@@ -161,7 +160,22 @@ describe('ComponentRender cache handler', () => {
         expect(internalCache.Examples.get).not.toHaveBeenCalled()
     })
 
-    it('should render only features correctly', async () => {
+    it('should render Feature from renderCache DEFAULT row with Render', async () => {
+        const cacheRecord = {
+            EphemeraId: 'FEATURE#TestOne',
+            DataCategory: 'CACHE#test-uuid',
+            markState: { markValue: [] },
+            renderedContent: {
+                displayName: ['Example Name'],
+                description: ['Description'],
+            },
+            provenance: { type: 'authored' as const },
+            perspectiveId: 'PERSPECTIVE#test',
+            perspectiveMatcher: { requiredAssetIds: [], forbiddenAssetIds: [] },
+            situationId: 'SITUATION#DEFAULT',
+        }
+        jest.spyOn(internalCache.RenderCache, "get").mockResolvedValue([cacheRecord as any])
+        jest.spyOn(internalCache.Examples, "get")
         jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
         jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
             EphemeraId: 'CHARACTER#Test',
@@ -182,37 +196,39 @@ describe('ComponentRender cache handler', () => {
                 tag: 'Feature',
             })
         })
-        jest.spyOn(internalCache.Examples, "get").mockResolvedValue({
-            'FEATURE#TestOne': [{
-                assetId: 'Personal',
-                examples: [
-                    new StandardExample({
-                        tag: 'Example',
-                        universalKey: 'EXAMPLE#Base',
-                        displayName: 'Example Name',
-                        description: ['Description'],
-                        summary: []
-                    })
-                ]
-            }]
-        })
-        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
-            { EphemeraId: 'CHARACTER#TESS', DisplayName: 'Tess', Color: 'purple', SessionIds: [] }
-        ])
+        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
         expect(internalCache.ComponentAssetMeta.getAcrossAssets).toHaveBeenCalledWith('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
+        expect(internalCache.Examples.get).not.toHaveBeenCalled()
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
             <Asset uuid=(render)>
-                <Example uuid=(rendered) ref={0}>
-                    <DisplayName>Example Name</DisplayName>
-                    <Description>Description</Description>
-                </Example>
-                <Feature uuid=(TestOne) ref={0}><Example uuid=(rendered) /></Feature>
+                <Feature uuid=(TestOne) ref={0}>
+                    <Render>
+                        <DisplayName>Example Name</DisplayName>
+                        <Description>Description</Description>
+                    </Render>
+                </Feature>
             </Asset>
         `))
     })
 
-    it('should render only knowledge correctly', async () => {
+    it('should render Knowledge from renderCache DEFAULT row with Render', async () => {
+        const cacheRecord = {
+            EphemeraId: 'KNOWLEDGE#TestOne',
+            DataCategory: 'CACHE#test-uuid',
+            markState: { markValue: [] },
+            renderedContent: {
+                displayName: ['Example Name'],
+                summary: ['Summary'],
+                description: ['Description'],
+            },
+            provenance: { type: 'authored' as const },
+            perspectiveId: 'PERSPECTIVE#test',
+            perspectiveMatcher: { requiredAssetIds: [], forbiddenAssetIds: [] },
+            situationId: 'SITUATION#DEFAULT',
+        }
+        jest.spyOn(internalCache.RenderCache, "get").mockResolvedValue([cacheRecord as any])
+        jest.spyOn(internalCache.Examples, "get")
         jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
         jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
             EphemeraId: 'CHARACTER#Test',
@@ -233,36 +249,116 @@ describe('ComponentRender cache handler', () => {
                 tag: 'Knowledge',
             })
         })
-        jest.spyOn(internalCache.Examples, "get").mockResolvedValue({
-            'KNOWLEDGE#TestOne': [{
-                assetId: 'Personal',
-                examples: [
-                    new StandardExample({
-                        tag: 'Example',
-                        key: 'example1',
-                        universalKey: 'EXAMPLE#Base',
-                        displayName: 'Example Name',
-                        description: ['Description'],
-                        summary: ['Summary']
-                    })
-                ]
-            }]
-        })
-        // EvaluateCode removed - Variable/Computed evaluation no longer available
-        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
-            { EphemeraId: 'CHARACTER#TESS', DisplayName: 'Tess', Color: 'purple', SessionIds: [] }
-        ])
+        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "KNOWLEDGE#TestOne")
         expect(internalCache.ComponentAssetMeta.getAcrossAssets).toHaveBeenCalledWith('KNOWLEDGE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
+        expect(internalCache.Examples.get).not.toHaveBeenCalled()
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
             <Asset uuid=(render)>
-                <Example uuid=(rendered) key=(example1) ref={0}>
-                    <DisplayName>Example Name</DisplayName>
-                    <Summary>Summary</Summary>
-                    <Description>Description</Description>
-                </Example>
-                <Knowledge uuid=(TestOne) ref={0}><Example key=(example1) /></Knowledge>
+                <Knowledge uuid=(TestOne) ref={0}>
+                    <Render>
+                        <DisplayName>Example Name</DisplayName>
+                        <Summary>Summary</Summary>
+                        <Description>Description</Description>
+                    </Render>
+                </Knowledge>
             </Asset>
+        `))
+    })
+
+    it('should prefer SITUATION#DEFAULT cache row when multiple Feature cache rows exist', async () => {
+        const defaultRecord = {
+            EphemeraId: 'FEATURE#TestOne',
+            DataCategory: 'CACHE#default',
+            markState: { markValue: [] },
+            renderedContent: {
+                displayName: ['From DEFAULT'],
+                description: ['Default description'],
+            },
+            provenance: { type: 'authored' as const },
+            perspectiveId: 'PERSPECTIVE#test',
+            perspectiveMatcher: { requiredAssetIds: [], forbiddenAssetIds: [] },
+            situationId: 'SITUATION#DEFAULT',
+        }
+        const otherRecord = {
+            ...defaultRecord,
+            DataCategory: 'CACHE#other',
+            renderedContent: {
+                displayName: ['From other situation'],
+                description: ['Other description'],
+            },
+            situationId: 'SITUATION#other',
+        }
+        jest.spyOn(internalCache.RenderCache, "get").mockResolvedValue([otherRecord as any, defaultRecord as any])
+        jest.spyOn(internalCache.Examples, "get")
+        jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
+        jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
+            EphemeraId: 'CHARACTER#Test',
+            Name: 'Tess',
+            assets: [],
+            RoomId: 'ROOM#VORTEX',
+            RoomStack: [],
+            HomeId: 'ROOM#VORTEX',
+            Pronouns: 'she/her',
+        })
+        jest.spyOn(internalCache.ComponentAssetMeta, "getAcrossAssets").mockResolvedValue({
+            [`ASSET#Base`]: new StandardFeature({
+                universalKey: 'FEATURE#TestOne',
+                tag: 'Feature',
+            }),
+        })
+        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
+        const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
+        expect(internalCache.Examples.get).not.toHaveBeenCalled()
+        expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
+            <Asset uuid=(render)>
+                <Feature uuid=(TestOne) ref={0}>
+                    <Render>
+                        <DisplayName>From DEFAULT</DisplayName>
+                        <Description>Default description</Description>
+                    </Render>
+                </Feature>
+            </Asset>
+        `))
+    })
+
+    it('does not call Examples for Feature when render cache has no DEFAULT row', async () => {
+        const cacheRecord = {
+            EphemeraId: 'FEATURE#TestOne',
+            DataCategory: 'CACHE#other',
+            markState: { markValue: [] },
+            renderedContent: {
+                displayName: ['Other situation'],
+                description: ['Other description'],
+            },
+            provenance: { type: 'authored' as const },
+            perspectiveId: 'PERSPECTIVE#test',
+            perspectiveMatcher: { requiredAssetIds: [], forbiddenAssetIds: [] },
+            situationId: 'SITUATION#other',
+        }
+        jest.spyOn(internalCache.RenderCache, "get").mockResolvedValue([cacheRecord as any])
+        jest.spyOn(internalCache.Examples, "get")
+        jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
+        jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
+            EphemeraId: 'CHARACTER#Test',
+            Name: 'Tess',
+            assets: [],
+            RoomId: 'ROOM#VORTEX',
+            RoomStack: [],
+            HomeId: 'ROOM#VORTEX',
+            Pronouns: 'she/her',
+        })
+        jest.spyOn(internalCache.ComponentAssetMeta, "getAcrossAssets").mockResolvedValue({
+            [`ASSET#Base`]: new StandardFeature({
+                universalKey: 'FEATURE#TestOne',
+                tag: 'Feature',
+            }),
+        })
+        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
+        const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
+        expect(internalCache.Examples.get).not.toHaveBeenCalled()
+        expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
+            <Asset uuid=(render)><Feature uuid=(TestOne) ref={0} /></Asset>
         `))
     })
 

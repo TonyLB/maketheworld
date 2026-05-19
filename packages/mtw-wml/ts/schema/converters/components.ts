@@ -292,9 +292,11 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
      */
     Render: {
         initialize: ({ parseOpen, contextStack }): SchemaRenderTag => {
-            const hasRoomContext = contextStack.some(({ data }) => isSchemaRoom(data))
-            if (!hasRoomContext) {
-                throw new Error('Render tag can only be used inside a Room')
+            const hasEphemeraRenderParent = contextStack.some(({ data }) => (
+                isSchemaRoom(data) || isSchemaFeature(data) || isSchemaKnowledge(data)
+            ))
+            if (!hasEphemeraRenderParent) {
+                throw new Error('Render tag can only be used inside a Room, Feature, or Knowledge')
             }
             validateProperties(componentTemplates.Render)(parseOpen)
             return { tag: 'Render' }

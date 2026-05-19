@@ -32,12 +32,12 @@ import CacheCharacterMetaData, { CharacterMetaItem } from './characterMeta';
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/ts/types';
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree';
 import { ExampleComponentId, ExamplesData, ExamplesReturn } from './examples';
+import { selectDefaultSituationCacheRecord } from '../dataSource/renderCache/selectDefaultSituationCacheRecord';
 import { CacheRoomCharacterListsData } from './roomCharacterLists';
 import { AssetUUID, ComponentUUID, SchemaOutputTag } from '@tonylb/mtw-base/ts/schema';
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree';
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses';
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room';
-import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example';
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render';
 import StandardMessage from '@tonylb/mtw-wml/ts/standardize/components/message';
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map';
@@ -106,7 +106,13 @@ export class ComponentRenderData {
                 if (isEphemeraFeatureId(cacheKey)) {
                     return new StandardForm([
                         { tag: 'Asset', universalKey: 'ASSET#render' },
-                        { tag: 'Feature', universalKey: `FEATURE#${cacheKey}`, examples: [] }
+                        { tag: 'Feature', universalKey: `FEATURE#${cacheKey}` }
+                    ])
+                }
+                if (isEphemeraKnowledgeId(cacheKey)) {
+                    return new StandardForm([
+                        { tag: 'Asset', universalKey: 'ASSET#render' },
+                        { tag: 'Knowledge', universalKey: `KNOWLEDGE#${cacheKey}` }
                     ])
                 }
                 if (isEphemeraRoomId(cacheKey)) {
@@ -137,6 +143,24 @@ export class ComponentRenderData {
 
     _setStore(key: string, value: StandardForm): void {
         this._Store[key] = value
+    }
+
+    async _resolveRenderPayloadFromDefaultCache(
+        EphemeraId: EphemeraFeatureId | EphemeraKnowledgeId
+    ): Promise<SituationRoomFacetPayloadType | undefined> {
+        const cacheRecords = await this._renderCache.get(EphemeraId)
+        const record = selectDefaultSituationCacheRecord(cacheRecords)
+        let renderPayload = record
+            ? situationRoomRenderPayloadFromCacheRenderedContent(record.renderedContent)
+            : undefined
+
+        if (renderPayload) {
+            const payloadModel = new SituationRoomFacetPayload(renderPayload)
+            if (SituationRoomFacetPayload.isEmpty(payloadModel)) {
+                renderPayload = undefined
+            }
+        }
+        return renderPayload
     }
 
     async _getPromiseFactory(
@@ -197,51 +221,27 @@ export class ComponentRenderData {
             return new StandardForm(formComponents)
         }
         if (isEphemeraFeatureId(EphemeraId)) {
-            const assets = allAssets
-                .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
-            const exampleMap = await this._examples([EphemeraId])
-            const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
+            const renderPayload = await this._resolveRenderPayloadFromDefaultCache(EphemeraId)
             const featureRow: StandardFeatureData = {
                 tag: 'Feature',
                 universalKey: EphemeraId,
-                examples: naiveFirstExample ? ['EXAMPLE#rendered'] : [],
-            }
-            if (naiveFirstExample) {
-                const example = naiveFirstExample.clone()
-                example._universalKey = `EXAMPLE#rendered`;
-                return new StandardForm([
-                    { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
-                    featureRow,
-                    example.toJSON()
-                ])
+                ...(renderPayload ? { render: renderPayload } : {}),
             }
             return new StandardForm([
                 { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
-                featureRow
+                featureRow,
             ])
         }
         if (isEphemeraKnowledgeId(EphemeraId)) {
-            const assets = allAssets
-                .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
-            const exampleMap = await this._examples([EphemeraId])
-            const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
+            const renderPayload = await this._resolveRenderPayloadFromDefaultCache(EphemeraId)
             const knowledgeRow: StandardKnowledgeData = {
                 tag: 'Knowledge',
                 universalKey: EphemeraId,
-                examples: naiveFirstExample ? [`EXAMPLE#rendered`] : [],
-            }
-            if (naiveFirstExample) {
-                const example = naiveFirstExample.clone()
-                example._universalKey = `EXAMPLE#rendered`;
-                return new StandardForm([
-                    { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
-                    knowledgeRow,
-                    example.toJSON()
-                ])
+                ...(renderPayload ? { render: renderPayload } : {}),
             }
             return new StandardForm([
                 { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
-                knowledgeRow
+                knowledgeRow,
             ])
         }
         if (isEphemeraMessageId(EphemeraId)) {

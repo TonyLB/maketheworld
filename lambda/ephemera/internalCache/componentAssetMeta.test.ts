@@ -28,24 +28,24 @@ describe('ComponentAssetMeta', () => {
         assetMock.getItems.mockResolvedValue([{
             DataCategory: 'ASSET#Base',
             AssetId: 'FEATURE#TestOne',
-            examples: ['EXAMPLE#ExampleOne'],
+            situations: [{ reference: 'SITUATION#ExampleOne', payload: {} }],
         },
         {
             DataCategory: 'ASSET#Layer',
             AssetId: 'FEATURE#TestOne',
-            examples: ['EXAMPLE#ExampleTwo'],
+            situations: [{ reference: 'SITUATION#ExampleTwo', payload: {} }],
         }])
         const output = await internalCache.ComponentAssetMeta.getAcrossAssets('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Layer'])
         expect(mapToJSON(output)).toEqual({
             Base: {
                 tag: 'Feature',
                 universalKey: 'FEATURE#TestOne',
-                examples: ['EXAMPLE#ExampleOne']
+                situations: [{ reference: 'SITUATION#ExampleOne', payload: {} }],
             },
             Layer: {
                 tag: 'Feature',
                 universalKey: 'FEATURE#TestOne',
-                examples: ['EXAMPLE#ExampleTwo']
+                situations: [{ reference: 'SITUATION#ExampleTwo', payload: {} }],
             }
         })
         expect(assetMock.getItems).toHaveBeenCalledTimes(1)
@@ -62,12 +62,12 @@ describe('ComponentAssetMeta', () => {
         internalCache.ComponentAssetMeta.set('FEATURE#TestOne', 'ASSET#Layer', new StandardFeature({
             universalKey: 'FEATURE#TestOne',
             tag: 'Feature',
-            examples: [{ key: 'base', tag: 'Example' }],
+            situations: [{ reference: { key: 'base', tag: 'Situation' }, payload: {} }],
         }))
         assetMock.getItems.mockResolvedValue([{
             AssetId: 'FEATURE#TestOne',
             DataCategory: 'ASSET#Base',
-            examples: [{ key: 'test', tag: 'Example' }],
+            situations: [{ reference: { key: 'test', tag: 'Situation' }, payload: {} }],
             tag: 'Feature',
         }])
         const output = await internalCache.ComponentAssetMeta.getAcrossAssets('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Layer'])
@@ -75,13 +75,13 @@ describe('ComponentAssetMeta', () => {
             Base: {
                 universalKey: 'FEATURE#TestOne',
                 tag: 'Feature',
-                examples: [{ key: 'test', tag: 'Example' }]
+                situations: [{ reference: { key: 'test', tag: 'Situation' }, payload: {} }],
             },
             Layer: {
                 universalKey: 'FEATURE#TestOne',
                 tag: 'Feature',
-                examples: [{ key: 'base', tag: 'Example' }]
-            }
+                situations: [{ reference: { key: 'base', tag: 'Situation' }, payload: {} }],
+            },
         })
         expect(assetMock.getItems).toHaveBeenCalledTimes(1)
         expect(assetMock.getItems).toHaveBeenCalledWith({
@@ -95,7 +95,7 @@ describe('ComponentAssetMeta', () => {
     it('should default fetches that do not return', async () => {
         assetMock.getItems.mockResolvedValue([{
             DataCategory: 'ASSET#Base',
-            examples: [{ key: 'test', tag: 'Example' }],
+            situations: [{ reference: { key: 'test', tag: 'Situation' }, payload: {} }],
             AssetId: 'FEATURE#TestOne'
         }])
         const output = await internalCache.ComponentAssetMeta.getAcrossAssets('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Layer'])
@@ -103,7 +103,7 @@ describe('ComponentAssetMeta', () => {
             Base: {
                 tag: 'Feature',
                 universalKey: 'FEATURE#TestOne',
-                examples: [{ key: 'test', tag: 'Example' }]
+                situations: [{ reference: { key: 'test', tag: 'Situation' }, payload: {} }],
             },
             Layer: {
                 universalKey: 'FEATURE#TestOne',

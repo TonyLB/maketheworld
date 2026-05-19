@@ -5,6 +5,7 @@ import StandardKnowledge from './knowledge'
 import { mergeTest } from "./utils/testing"
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
+import { StandardForm } from "../index"
 
 describe('StandardKnowledge class', () => {
 
@@ -243,6 +244,81 @@ describe('StandardKnowledge class', () => {
             expect(result.situations.length).toBe(0)
             expect(result).not.toBe(knowledge._payload)
         })
+    })
+
+    it('round-trips render from StandardKnowledgeData to schema', () => {
+        const testKnowledgeData: StandardKnowledgeData = {
+            key: 'test',
+            tag: 'Knowledge',
+            render: {
+                displayName: 'Cached Name',
+                summary: ['Summary text'],
+                description: ['Description text'],
+            },
+        }
+        const testKnowledge = new StandardKnowledge(testKnowledgeData)
+        expect(testKnowledge.render).toEqual(testKnowledgeData.render)
+        expect(schemaToWML([testKnowledge.schema])).toEqual(deIndentWML(`
+            <Knowledge key=(test)>
+                <Render>
+                    <DisplayName>Cached Name</DisplayName>
+                    <Summary>Summary text</Summary>
+                    <Description>Description text</Description>
+                </Render>
+            </Knowledge>
+        `))
+    })
+
+    it('parses Render under Knowledge in ephemeraWire', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Knowledge key=(lore) uuid=(lore)>
+                    <Render>
+                        <DisplayName>Ancient lore</DisplayName>
+                        <Summary>Short summary</Summary>
+                        <Description>Full knowledge text.</Description>
+                    </Render>
+                </Knowledge>
+            </Asset>
+        `)
+        const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const knowledge = sf._lookup('KNOWLEDGE#lore') as StandardKnowledge
+        expect(knowledge.render).toEqual({
+            displayName: 'Ancient lore',
+            summary: ['Short summary'],
+            description: ['Full knowledge text.'],
+        })
+    })
+
+    it('round-trips Render under Knowledge in ephemeraWire', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Knowledge key=(lore) uuid=(lore)>
+                    <Render>
+                        <DisplayName>Ancient lore</DisplayName>
+                        <Summary>Short summary</Summary>
+                        <Description>Full knowledge text.</Description>
+                    </Render>
+                </Knowledge>
+            </Asset>
+        `)
+        const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const printed = schemaToWML([sf.schema])
+        const sfAgain = new StandardForm(printed, { standardizeMode: 'ephemeraWire' })
+        expect(schemaToWML([sfAgain.schema])).toEqual(printed)
+    })
+
+    it('rejects Render under Knowledge in asset mode', () => {
+        const wml = deIndentWML(`
+            <Knowledge key=(lore)>
+                <Render>
+                    <DisplayName>Ancient lore</DisplayName>
+                    <Summary>Short summary</Summary>
+                    <Description>Full knowledge text.</Description>
+                </Render>
+            </Knowledge>
+        `)
+        expect(() => new StandardKnowledge(wml)).toThrow()
     })
     
 })

@@ -235,6 +235,12 @@ export class SituationProseFacetPayload {
     }
 }
 
+/** Ephemera wire: `<Render>` node from resolved prose payload (Room, Feature, Knowledge). */
+export const renderPayloadToSchemaNode = (p: SituationProseFacetPayload): GenericTreeNode<SchemaTag> => ({
+    data: { tag: 'Render' },
+    children: p.toProseTripletChildren(),
+})
+
 function createSituationProseFacetPayload(arg: any): SituationProseFacetPayload {
     if (arg instanceof SituationProseFacetPayload) return new SituationProseFacetPayload(arg);
     if (isSituationProseFacetPayload(arg)) return new SituationProseFacetPayload(arg);

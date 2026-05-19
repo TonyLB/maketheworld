@@ -20,7 +20,7 @@ import { renderReference } from "./utils/schema"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
 import { ExitFacetList, StandardExitFacet } from "../keys/facets/exit"
-import { parseProseTripletChildren, SituationProseFacetList, SituationProseFacetPayload } from "../keys/facets/situationRoom"
+import { parseProseTripletChildren, renderPayloadToSchemaNode, SituationProseFacetList, SituationProseFacetPayload } from "../keys/facets/situationRoom"
 import { StandardExplicitParent } from "../explicit"
 import { StandardFormSubsetRequest } from "../baseClasses"
 import { processWithConsumers, StandardizeConsumerFacetListSituation, StandardizeConsumerReferenceList, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral, type StandardizeConsumer } from "./fromSchemaPipeline"
@@ -46,11 +46,6 @@ class StandardizeConsumerInlineRoomRefs implements StandardizeConsumer {
         }
     }
 }
-
-const renderPayloadToSchemaNode = (p: SituationProseFacetPayload): GenericTreeNode<SchemaTag> => ({
-    data: { tag: 'Render' },
-    children: p.toProseTripletChildren(),
-})
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomInputData, StandardRoomData> {
     _shortName?: StandardLiteral;

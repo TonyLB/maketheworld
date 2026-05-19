@@ -5,6 +5,7 @@ import StandardFeature from './feature'
 import { mergeTest } from "./utils/testing"
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
+import { StandardForm } from "../index"
 
 describe('StandardFeature class', () => {
 
@@ -307,6 +308,81 @@ describe('StandardFeature class', () => {
             expect(result.situations.length).toBe(0)
             expect(result).not.toBe(feature._payload)
         })
+    })
+
+    it('round-trips render from StandardFeatureData to schema', () => {
+        const testFeatureData: StandardFeatureData = {
+            key: 'test',
+            tag: 'Feature',
+            render: {
+                displayName: 'Cached Name',
+                summary: ['Summary text'],
+                description: ['Description text'],
+            },
+        }
+        const testFeature = new StandardFeature(testFeatureData)
+        expect(testFeature.render).toEqual(testFeatureData.render)
+        expect(schemaToWML([testFeature.schema])).toEqual(deIndentWML(`
+            <Feature key=(test)>
+                <Render>
+                    <DisplayName>Cached Name</DisplayName>
+                    <Summary>Summary text</Summary>
+                    <Description>Description text</Description>
+                </Render>
+            </Feature>
+        `))
+    })
+
+    it('parses Render under Feature in ephemeraWire', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Feature key=(fountain) uuid=(fountain)>
+                    <Render>
+                        <DisplayName>Fountain</DisplayName>
+                        <Summary>Sparkling water</Summary>
+                        <Description>A marble fountain.</Description>
+                    </Render>
+                </Feature>
+            </Asset>
+        `)
+        const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const feature = sf._lookup('FEATURE#fountain') as StandardFeature
+        expect(feature.render).toEqual({
+            displayName: 'Fountain',
+            summary: ['Sparkling water'],
+            description: ['A marble fountain.'],
+        })
+    })
+
+    it('round-trips Render under Feature in ephemeraWire', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Feature key=(fountain) uuid=(fountain)>
+                    <Render>
+                        <DisplayName>Fountain</DisplayName>
+                        <Summary>Sparkling water</Summary>
+                        <Description>A marble fountain.</Description>
+                    </Render>
+                </Feature>
+            </Asset>
+        `)
+        const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const printed = schemaToWML([sf.schema])
+        const sfAgain = new StandardForm(printed, { standardizeMode: 'ephemeraWire' })
+        expect(schemaToWML([sfAgain.schema])).toEqual(printed)
+    })
+
+    it('rejects Render under Feature in asset mode', () => {
+        const wml = deIndentWML(`
+            <Feature key=(fountain)>
+                <Render>
+                    <DisplayName>Fountain</DisplayName>
+                    <Summary>Sparkling water</Summary>
+                    <Description>A marble fountain.</Description>
+                </Render>
+            </Feature>
+        `)
+        expect(() => new StandardFeature(wml)).toThrow()
     })
     
 })

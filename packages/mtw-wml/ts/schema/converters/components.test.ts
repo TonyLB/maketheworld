@@ -555,11 +555,11 @@ describe('Render tag', () => {
                 </Render>
             </Asset>
         `))))
-        expect(() => schemaFromParse(testParse)).toThrow('Render tag can only be used inside a Room')
+        expect(() => schemaFromParse(testParse)).toThrow('Render tag can only be used inside a Room, Feature, or Knowledge')
     })
 
-    it('should reject Render under Feature', () => {
-        const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+    it('should parse Render under Feature', () => {
+        const testWML = deIndentWML(`
             <Asset uuid=(Test)>
                 <Feature key=(feature1)>
                     <Render>
@@ -569,8 +569,29 @@ describe('Render tag', () => {
                     </Render>
                 </Feature>
             </Asset>
-        `))))
-        expect(() => schemaFromParse(testParse)).toThrow('Render tag can only be used inside a Room')
+        `)
+        const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
+        const featureNode = schema[0].children.find(({ data }) => data.tag === 'Feature')
+        const renderNode = featureNode?.children.find(({ data }) => data.tag === 'Render')
+        expect(renderNode).toBeDefined()
+    })
+
+    it('should parse Render under Knowledge', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Knowledge key=(k1)>
+                    <Render>
+                        <DisplayName>X</DisplayName>
+                        <Summary>Y</Summary>
+                        <Description>Z</Description>
+                    </Render>
+                </Knowledge>
+            </Asset>
+        `)
+        const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
+        const knowledgeNode = schema[0].children.find(({ data }) => data.tag === 'Knowledge')
+        const renderNode = knowledgeNode?.children.find(({ data }) => data.tag === 'Render')
+        expect(renderNode).toBeDefined()
     })
 
     it('should reject wrong child order', () => {
