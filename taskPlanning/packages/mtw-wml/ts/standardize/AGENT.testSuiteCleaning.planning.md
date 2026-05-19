@@ -1,6 +1,6 @@
 # StandardForm test suite cleaning (`index.test.ts`)
 
-**Status:** In progress. Phase 1 complete. Layer A extraction complete (14 `integration/standardForm.*.test.ts` files). Next step: Layer B grab-bag and `standardizeMode` split. See [`AGENT.testSuiteCleaning.classification.md`](./AGENT.testSuiteCleaning.classification.md).
+**Status:** In progress. Phase 1 complete. Layer A extraction complete (14 `integration/standardForm.*.test.ts` files). Layer B grab-bag extraction complete (8 `components/*.integration.test.ts` files). Next step: informal integration from `room.test.ts`, then `standardizeMode` / ephemeraWire split. See [`AGENT.testSuiteCleaning.classification.md`](./AGENT.testSuiteCleaning.classification.md).
 
 ## Purpose
 
@@ -221,7 +221,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
 - [ ] Phase 2 - mechanical split (behavior-neutral)
   - [X] **Layer A:** Extract named asset-level `describe` blocks to `integration/standardForm.*.test.ts` one at a time (`diff`, `subset`, `validate`, ...); green after each
   - [X] **Layer A:** Move remaining asset-level grab-bag slices (generic construct/merge/NDJSON not owned by a component)
-  - [ ] **Layer B:** Create `components/*.integration.test.ts` files; move component-anchored grab-bag tests from `index.test.ts`
+  - [X] **Layer B:** Create `components/*.integration.test.ts` files; move component-anchored grab-bag tests from `index.test.ts`
   - [ ] **Layer B:** Move informal multi-component blocks from `room.test.ts` (and peers) into `*.integration.test.ts`; shrink unit files
   - [ ] Split `standardizeMode` / ephemeraWire per Phase 1 owner (Layer A vs `room.ephemeraWire.integration.test.ts`)
   - [ ] Remove or thin `index.test.ts` when empty
@@ -262,10 +262,10 @@ After each extraction PR/slice: same commands; no test count should drop without
 | Phase 1 classification spreadsheet | Done | [`AGENT.testSuiteCleaning.classification.md`](./AGENT.testSuiteCleaning.classification.md): 64 ungrouped `it`, 16 describes, 8 delete tags, 5 rename titles |
 | Layer A named-describe extraction | Done | 13 files under `integration/`; 139 tests; `index.test.ts` 78 tests (~2,400 lines); total 217 |
 | Layer A grab-bag extraction | Done | Added `standardForm.merge.test.ts` (17 tests); expanded `construct` (+14), `lookup` (+1), `assetMeta` (+1); thin smoke left in `index.test.ts` |
-| First Layer B split | Not started | Suggest situation-nesting grab-bag -> `room.integration.test.ts` |
-| Grab-bag fully classified and moved | Partial | Layer A grab-bag done; Layer B grab-bag + `standardizeMode` remain in `index.test.ts` (~45 tests, ~1,289 lines) |
+| First Layer B split | Done | 8 `components/*.integration.test.ts` files (29 tests); `room.integration.test.ts` largest (14 tests) |
+| Grab-bag fully classified and moved | Partial | Layer B grab-bag moved from `index.test.ts`; `standardizeMode` (17 tests) + thin smoke (2) remain (~328 lines) |
 | `room.test.ts` unit/integration split | Not started | Migrate `Lens output in schema` block |
-| AGENT.md test pointers updated | Not started | |
+| AGENT.md test pointers updated | Partial | Getting Started step 6 updated for two-layer layout; full Phase 3 pass pending |
 | Task plan archived | Not started | |
 
 ## Work log
@@ -276,3 +276,4 @@ After each extraction PR/slice: same commands; no test count should drop without
 - **2026-05-19:** Phase 1 complete. Baseline re-run: 217 passed, ~0.75s. Classification artifact: 64 ungrouped `it` + 16 top-level `describe` blocks tagged; `room.test.ts` Layer B inventory; overlap matrix vs facets + wmlStandardizeMode; 5 Example->Situation renames and 2 `standardizeMode` delete candidates noted for Phase 2/3.
 - **2026-05-19:** Layer A named-describe extraction. Created `packages/mtw-wml/ts/standardize/integration/` with 13 `standardForm.*.test.ts` files (construct, isEmpty, equals, assureComponents, diff, subset, keyChangesViaMerge, lookup, finalize, assetMeta, validate, removeComponent, referencedBy). `index.test.ts` retains `standardizeMode` + grab-bag (78 tests). Combined: 217 passed; `tsc --noEmit` clean.
 - **2026-05-19:** Layer A grab-bag extraction. Created `standardForm.merge.test.ts`; moved 33 asset-level ungrouped tests from `index.test.ts` into `merge`, `construct`, `lookup`, `assetMeta`. Left thin smoke (2 construct tests) plus Layer B grab-bag and `standardizeMode` in `index.test.ts` (45 tests, ~1,289 lines). `integration/` now 14 files, 172 tests; combined 217 passed; `tsc --noEmit` clean.
+- **2026-05-19:** Layer B grab-bag extraction. Created 8 `components/*.integration.test.ts` files (room 14, feature 3, knowledge 3, situation 3, worldState 2, map 2, message 1, moment 1). Moved finalize character/room test from `standardForm.finalize.test.ts` to `room.integration.test.ts`. `index.test.ts` now 19 tests (`standardizeMode` + smoke, ~328 lines). Combined 217 passed; `tsc --noEmit` clean.

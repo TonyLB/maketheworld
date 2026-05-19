@@ -1,8 +1,8 @@
 # Phase 1 classification: `index.test.ts` and component integration inventory
 
-**Status:** Phase 1 complete. **Layer A extraction (named describes + grab-bag) done** -- see Phase 2 extraction status below. Layer B grab-bag and `standardizeMode` split still pending in `index.test.ts`.  
-**Baseline (2026-05-19):** `npm test -- ts/standardize/index.test.ts` + `ts/standardize/integration/` -- **217 passed** total.  
-**Source of truth for remaining Phase 2 moves:** this file (Layer B rows in section 1; `standardizeMode` in section 2).
+**Status:** Phase 1 complete. **Layer A extraction (named describes + grab-bag) done.** **Layer B grab-bag from `index.test.ts` moved** to 8 `components/*.integration.test.ts` files (see Layer B table below). `standardizeMode` split and `room.test.ts` informal integration still pending.  
+**Baseline (2026-05-19):** `npm test -- ts/standardize/index.test.ts` + `ts/standardize/integration/` + `ts/standardize/components/*.integration.test.ts` -- **217 passed** total.  
+**Source of truth for remaining Phase 2 moves:** this file (`standardizeMode` in section 2; `room.test.ts` in section 3).
 
 ## Phase 2 extraction status (named describes)
 
@@ -25,7 +25,22 @@ All top-level named `describe` blocks except `standardizeMode` are extracted to 
 | `standardForm.removeComponent.test.ts` | 12 |
 | `standardForm.referencedBy.test.ts` | 5 |
 
-`index.test.ts` retains `standardizeMode` (17 `it`), thin smoke (2 `it`), and Layer B ungrouped grab-bag (~26 `it`). Layer A grab-bag rows (clusters A partial, D partial, G partial, H, I partial, J partial merge row) are **moved**.
+`index.test.ts` retains `standardizeMode` (17 `it`) and thin smoke (2 `it`) only (~328 lines). Layer A grab-bag rows are **moved**. Layer B grab-bag rows (clusters B partial, C partial, D partial, E, F, G partial, J partial) are **moved** to `components/*.integration.test.ts`.
+
+### Layer B extraction status (`components/*.integration.test.ts`)
+
+| File | Tests |
+| --- | ---: |
+| `room.integration.test.ts` | 14 (includes finalize character/room test from `standardForm.finalize.test.ts`) |
+| `feature.integration.test.ts` | 3 |
+| `knowledge.integration.test.ts` | 3 |
+| `situation.integration.test.ts` | 3 |
+| `worldState.integration.test.ts` | 2 |
+| `map.integration.test.ts` | 2 |
+| `message.integration.test.ts` | 1 |
+| `moment.integration.test.ts` | 1 |
+
+`standardForm.finalize.test.ts` now has 3 tests (character/room integration test moved to `room.integration.test.ts`).
 
 Related: [`AGENT.testSuiteCleaning.planning.md`](./AGENT.testSuiteCleaning.planning.md)
 
@@ -243,7 +258,7 @@ Top-level `it` (4-space indent, direct child of `describe('StandardForm')`).
 
 | Line | Title | Parent | Destination | notes |
 | --- | --- | --- | --- | --- |
-| 4334 | should integrate characters with rooms in StandardForm.schema scenarios | finalize | `components/room.integration.test.ts` | Move with character cluster; room-primary |
+| 4334 | should integrate characters with rooms in StandardForm.schema scenarios | finalize -> `room.integration.test.ts` | **moved** | Was in finalize; now in room.integration Character references |
 | 2730 | should return the diff for nested situation components | diff method | stays in diff.test.ts | Uses `Example1` fixture keys -- rename Phase 3 |
 
 ---
