@@ -23,7 +23,6 @@ function dynamoItemToPutInput(record: EphemeraCacheDynamoItem): PutCacheRecordIn
         perspectiveId: record.perspectiveId,
         perspectiveMatcher: record.perspectiveMatcher,
         ...(record.situationId !== undefined ? { situationId: record.situationId } : {}),
-        ...(record.authoredExampleId !== undefined ? { authoredExampleId: record.authoredExampleId } : {}),
     }
 }
 
@@ -84,7 +83,6 @@ async function handleOrchestrationGeneratePath(params: {
             perspectiveId: record.perspectiveId,
             perspectiveMatcher: record.perspectiveMatcher,
             ...(record.situationId !== undefined ? { situationId: record.situationId } : {}),
-            ...(record.authoredExampleId !== undefined ? { authoredExampleId: record.authoredExampleId } : {}),
         })
         const cacheRecord: EphemeraCacheDynamoItem = {
             ...content.cacheRecord,

@@ -5,12 +5,12 @@ import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isS
 import { isSchemaMatch, isSchemaMark, isSchemaLens, SchemaMatchTag, SchemaMarkTag, SchemaLensTag } from "./worldState"
 
 import { isSchemaEdit, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaEditTag, SchemaReplaceTag } from "./edit"
-import { isSchemaDescription, isSchemaExample, isSchemaSummary, isSchemaDisplayName, SchemaDescriptionTag, SchemaExampleTag, SchemaDisplayNameTag, SchemaSummaryTag } from "./example"
+import { isSchemaDescription, isSchemaSummary, isSchemaDisplayName, SchemaDescriptionTag, SchemaDisplayNameTag, SchemaSummaryTag } from "./prose"
 import { isSchemaImage, SchemaImageTag } from "./image"
 import { isSchemaImport, SchemaImportTag } from "./metaData"
 import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString, SchemaLineBreakTag, SchemaLinkTag, SchemaSpacerTag, SchemaStringTag, SchemaWhitespaceTag } from "./renderTree"
 
-export type SchemaAssetLegalContents = SchemaCharacterTag | SchemaGrantTag | SchemaExitTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaImageTag | SchemaImportTag | SchemaMapTag | SchemaMarkTag | SchemaLensTag | SchemaRoomTag | SchemaMessageTag | SchemaMomentTag | SchemaExampleTag | SchemaGuidanceTag | SchemaSituationTag | SchemaShortNameTag | SchemaInstructionsTag | SchemaDefaultTag | SchemaSummaryTag
+export type SchemaAssetLegalContents = SchemaCharacterTag | SchemaGrantTag | SchemaExitTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaImageTag | SchemaImportTag | SchemaMapTag | SchemaMarkTag | SchemaLensTag | SchemaRoomTag | SchemaMessageTag | SchemaMomentTag | SchemaGuidanceTag | SchemaSituationTag | SchemaShortNameTag | SchemaInstructionsTag | SchemaDefaultTag | SchemaSummaryTag
 
 
 export const isSchemaLiteralTag = (item: SchemaTag): item is SchemaShortNameTag | SchemaInstructionsTag | SchemaDefaultTag => (
@@ -53,7 +53,6 @@ export type SchemaTag = SchemaAssetTag |
     SchemaDefaultTag |
     SchemaMatchTag |
     SchemaDisplayNameTag |
-    SchemaExampleTag |
     SchemaRoomTag |
     SchemaFeatureTag |
     SchemaKnowledgeTag |
@@ -89,37 +88,36 @@ export type SchemaWithContents = SchemaAssetTag |
     SchemaDefaultTag |
     SchemaMatchTag |
     SchemaDisplayNameTag |
-    SchemaExampleTag |
     SchemaMessageTag |
     SchemaMomentTag |
     SchemaGuidanceTag |
     SchemaSituationTag |
     SchemaEditTag
 
-export const isSchemaAssetContents = (value: SchemaTag): value is SchemaAssetLegalContents => (isSchemaCharacter(value) || isSchemaGrant(value) || isSchemaExit(value) || isSchemaFeature(value) || isSchemaKnowledge(value) || isSchemaImage(value) || isSchemaImport(value) || isSchemaMap(value) || isSchemaMark(value) || isSchemaLens(value) || isSchemaRoom(value) || isSchemaMessage(value) || isSchemaMoment(value) || isSchemaExample(value) || isSchemaGuidance(value) || isSchemaSituation(value) || isSchemaRemove(value) || isSchemaReplace(value) || isSchemaImport(value) || isSchemaShortName(value) || isSchemaInstructions(value) || isSchemaDefault(value) || isSchemaSummary(value))
+export const isSchemaAssetContents = (value: SchemaTag): value is SchemaAssetLegalContents => (isSchemaCharacter(value) || isSchemaGrant(value) || isSchemaExit(value) || isSchemaFeature(value) || isSchemaKnowledge(value) || isSchemaImage(value) || isSchemaImport(value) || isSchemaMap(value) || isSchemaMark(value) || isSchemaLens(value) || isSchemaRoom(value) || isSchemaMessage(value) || isSchemaMoment(value) || isSchemaGuidance(value) || isSchemaSituation(value) || isSchemaRemove(value) || isSchemaReplace(value) || isSchemaImport(value) || isSchemaShortName(value) || isSchemaInstructions(value) || isSchemaDefault(value) || isSchemaSummary(value))
 export const isSchemaMapContents = (value: SchemaTag): value is SchemaMapLegalContents => (['Image', 'Exit', 'Room', 'ShortName'].includes(value.tag))
 
 export const isSchemaCharacter = (value: SchemaTag): value is SchemaCharacterTag => (value.tag === 'Character')
 export const isSchemaAsset = (value: SchemaTag): value is SchemaAssetTag => (value.tag === 'Asset')
 
 export const isSchemaWithContents = (value: SchemaTag): value is SchemaWithContents => (
-    ['Asset', 'Story', 'Example', 'Room', 'Feature', 'Knowledge', 'Description', 'Summary', 'Exit', 'Character', 'Map', 'Message', 'Moment', 'Guidance', 'Situation', 'DisplayName', 'ShortName', 'Instructions', 'Match', 'Replace', 'ReplaceMatch', 'ReplacePayload'].includes(value.tag)
+    ['Asset', 'Story', 'Room', 'Feature', 'Knowledge', 'Description', 'Summary', 'Exit', 'Character', 'Map', 'Message', 'Moment', 'Guidance', 'Situation', 'DisplayName', 'ShortName', 'Instructions', 'Match', 'Replace', 'ReplaceMatch', 'ReplacePayload'].includes(value.tag)
 )
 
 export const isImportable = (value: SchemaTag): value is SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaMapTag | SchemaMessageTag | SchemaMomentTag | SchemaMarkTag | SchemaLensTag => (
-    ['Example', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Mark', 'Lens'].includes(value?.tag)
+    ['Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Mark', 'Lens'].includes(value?.tag)
 )
 export const isImportableTag = (tag: string): boolean => (
-    ['Example', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Mark', 'Lens'].includes(tag)
+    ['Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Mark', 'Lens'].includes(tag)
 )
 
-export type SchemaWithKey = SchemaExampleTag | SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaMarkTag | SchemaLensTag | SchemaMessageTag | SchemaMomentTag | SchemaGuidanceTag | SchemaSituationTag
+export type SchemaWithKey = SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaMarkTag | SchemaLensTag | SchemaMessageTag | SchemaMomentTag | SchemaGuidanceTag | SchemaSituationTag
 export const isSchemaWithKey = (value: SchemaTag): value is SchemaWithKey => (
-    ['Example', 'Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Mark', 'Lens', 'Message', 'Moment', 'Guidance', 'Situation'].includes(value.tag)
+    ['Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Mark', 'Lens', 'Message', 'Moment', 'Guidance', 'Situation'].includes(value.tag)
 )
-export type SchemaComponent = SchemaExampleTag | SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaMarkTag | SchemaLensTag | SchemaMessageTag | SchemaMomentTag | SchemaGuidanceTag | SchemaSituationTag
+export type SchemaComponent = SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaMarkTag | SchemaLensTag | SchemaMessageTag | SchemaMomentTag | SchemaGuidanceTag | SchemaSituationTag
 export const isSchemaComponentTag = (tag: string): tag is SchemaComponent["tag"] => (
-    ['Example', 'Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Mark', 'Lens', 'Message', 'Moment', 'Guidance', 'Situation'].includes(tag)
+    ['Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Mark', 'Lens', 'Message', 'Moment', 'Guidance', 'Situation'].includes(tag)
 )
 export const isSchemaComponent = (value: SchemaTag): value is SchemaComponent => (
     isSchemaComponentTag(value.tag)
@@ -157,7 +155,6 @@ export const isSchemaTag = (value: any): value is SchemaTag => {
         isSchemaInstructions(value) ||
         isSchemaMatch(value) ||
         isSchemaDisplayName(value) ||
-        isSchemaExample(value) ||
         isSchemaGuidance(value) ||
         isSchemaSituation(value) ||
         isSchemaRoom(value) ||

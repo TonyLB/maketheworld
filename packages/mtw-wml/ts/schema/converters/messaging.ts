@@ -1,5 +1,5 @@
 import { isSchemaMessage, isSchemaMoment, isSchemaRoom, isSchemaShortName, SchemaMessageTag, SchemaMomentTag } from "@tonylb/mtw-base/ts/schema/components"
-import { isSchemaDescription } from "@tonylb/mtw-base/ts/schema/example"
+import { isSchemaDescription } from "@tonylb/mtw-base/ts/schema/prose"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"

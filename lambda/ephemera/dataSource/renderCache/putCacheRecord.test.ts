@@ -43,32 +43,6 @@ describe('dataSource/renderCache/putCacheRecord', () => {
         })
     })
 
-    it('includes authoredExampleId when provided', async () => {
-        ephemeraDBMock.putItem.mockResolvedValue(undefined)
-
-        await putCacheRecord(componentId, {
-            ...minimalRecord,
-            authoredExampleId: 'EXAMPLE#example-uuid'
-        })
-
-        expect(ephemeraDBMock.putItem).toHaveBeenCalledWith(
-            expect.objectContaining({
-                EphemeraId: componentId,
-                DataCategory: 'CACHE#new-uuid-1234',
-                authoredExampleId: 'EXAMPLE#example-uuid'
-            })
-        )
-    })
-
-    it('omits authoredExampleId when not provided', async () => {
-        ephemeraDBMock.putItem.mockResolvedValue(undefined)
-
-        await putCacheRecord(componentId, minimalRecord)
-
-        const call = ephemeraDBMock.putItem.mock.calls[0][0]
-        expect(call).not.toHaveProperty('authoredExampleId')
-    })
-
     it('includes situationId when provided', async () => {
         ephemeraDBMock.putItem.mockResolvedValue(undefined)
 

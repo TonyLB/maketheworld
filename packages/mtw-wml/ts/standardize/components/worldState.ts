@@ -26,7 +26,7 @@ import {
     StandardizeConsumerRender,
     StandardizeConsumerStandardLiteral,
 } from "./fromSchemaPipeline"
-import { SchemaDescriptionTag, isSchemaDescription } from "@tonylb/mtw-base/ts/schema/example"
+import { SchemaDescriptionTag, isSchemaDescription } from "@tonylb/mtw-base/ts/schema/prose"
 import { defaultedEquals } from "./utils"
 
 export class StandardMarkPayload implements HasShortName, ComponentConstructorMethods<StandardMarkData, StandardMarkData> {

@@ -1,6 +1,6 @@
-import { isSchemaDisplayName, isSchemaDescription, isSchemaSummary, isSchemaExample } from './example'
+import { isSchemaDisplayName, isSchemaDescription, isSchemaSummary } from './prose'
 
-describe('example tags', () => {
+describe('prose tags', () => {
     describe('isSchemaDisplayName', () => {
         it('should return true for valid SchemaDisplayNameTag', () => {
             const schema = { tag: 'DisplayName' }
@@ -35,28 +35,5 @@ describe('example tags', () => {
             const schema = { tag: 'Invalid' }
             expect(isSchemaSummary(schema)).toBe(false)
         })
-    })
-
-    describe('isSchemaExample', () => {
-        it('should return true for valid SchemaExampleTag', () => {
-            const schema = { tag: 'Example', key: 'exampleKey' }
-            expect(isSchemaExample(schema)).toBe(true)
-        })
-
-        it('should return true for valid SchemaExampleTag with origin', () => {
-            const schema = { tag: 'Example', key: 'exampleKey', origin: ['ASSET#123', 'ASSET#456'] }
-            expect(isSchemaExample(schema)).toBe(true)
-        })
-
-        it('should return true for valid SchemaExampleTag with empty origin array', () => {
-            const schema = { tag: 'Example', key: 'exampleKey', origin: [] }
-            expect(isSchemaExample(schema)).toBe(true)
-        })
-
-        it('should return false for invalid SchemaExampleTag', () => {
-            const schema = { tag: 'Invalid', key: 'exampleKey' }
-            expect(isSchemaExample(schema)).toBe(false)
-        })
-
     })
 })

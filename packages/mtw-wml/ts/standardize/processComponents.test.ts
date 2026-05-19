@@ -14,7 +14,7 @@ const componentOrder: string[] = [
     'Map',
     'Message',
     'Moment',
-    'Example'
+    'Situation'
 ]
 
 describe("processComponents", () => {
@@ -64,13 +64,15 @@ describe("processComponents", () => {
                     </Situation>
                 </Room>
             `),
+            `<Situation uuid=(DEFAULT) />`,
             deIndentWML(`
                 <Feature key=(testFeature)>
                     <Situation uuid=(testFeatureExample)>
                         <Description>Four</Description>
                     </Situation>
                 </Feature>
-            `)
+            `),
+            `<Situation uuid=(testFeatureExample) />`,
         ])
     })
 
@@ -117,6 +119,7 @@ describe("processComponents", () => {
                     </Situation>
                 </Feature>
             `),
+            `<Situation uuid=(testLocalExample) />`,
             deIndentWML(`
                 <Feature key=(testGlobal)>
                     <Situation uuid=(testGlobalExample)>
@@ -124,6 +127,8 @@ describe("processComponents", () => {
                     </Situation>
                 </Feature>
             `),
+            `<Situation uuid=(testGlobalExample) />`,
+            `<Situation uuid=(DEFAULT) />`,
         ])
         //
         // TODO: Test that context is correctly applied to local components
@@ -179,11 +184,13 @@ describe("processComponents", () => {
                     </Situation>
                 </Room>
             `),
+            `<Situation uuid=(DEFAULT) />`,
             deIndentWML(`
                 <Room key=(test)>
                     <Situation uuid=(DEFAULT)><Summary>Two</Summary></Situation>
                 </Room>
             `),
+            `<Situation uuid=(DEFAULT) />`,
             deIndentWML(`
                 <Feature key=(testFeature)>
                     <Situation uuid=(testFeatureExample)>
@@ -191,11 +198,13 @@ describe("processComponents", () => {
                     </Situation>
                 </Feature>
             `),
+            `<Situation uuid=(testFeatureExample) />`,
             deIndentWML(`
                 <Room key=(test)>
                     <Situation uuid=(DEFAULT)><DisplayName>Test Room</DisplayName></Situation>
                 </Room>
             `),
+            `<Situation uuid=(DEFAULT) />`,
         ])
     })
 
@@ -232,9 +241,10 @@ describe("processComponents", () => {
                     <Situation uuid=(DEFAULT)><Description>One<br /></Description></Situation>
                 </Room>
             `),
+            `<Situation uuid=(DEFAULT) />`,
             `<Room key=(testTwo) />`,
             `<Room key=(test)><Exit to=(testTwo)>Test Exit</Exit></Room>`,
-            `<Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>`
+            `<Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>`,
         ])
     })
 
@@ -279,6 +289,7 @@ describe("processComponents", () => {
                     <Situation uuid=(DEFAULT)><Description>One<br /></Description></Situation>
                 </Room>
             `),
+            `<Situation uuid=(DEFAULT) />`,
             `<Room key=(testTwo) />`,
             deIndentWML(`
                 <Message key=(testMessage)>
@@ -292,7 +303,8 @@ describe("processComponents", () => {
                     <Exit to=(testTwo)>Test Exit</Exit>
                 </Room>
             `),
-            `<Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>`
+            `<Situation uuid=(DEFAULT) />`,
+            `<Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>`,
         ])
     })
 
@@ -335,6 +347,7 @@ describe("processComponents", () => {
                     </Situation>
                 </Room>
             `),
+            `<Situation uuid=(DEFAULT) />`,
             deIndentWML(`
                 <Feature key=(testFeatureOne)>
                     <Situation uuid=(testFeatureOneExample)>
@@ -343,6 +356,7 @@ describe("processComponents", () => {
                     </Situation>
                 </Feature>
             `),
+            `<Situation uuid=(testFeatureOneExample) />`,
             deIndentWML(`
                 <Feature key=(testFeatureTwo)>
                     <Situation uuid=(testFeatureTwoExample)>
@@ -350,7 +364,8 @@ describe("processComponents", () => {
                         <Description>Test</Description>
                     </Situation>
                 </Feature>
-            `)
+            `),
+            `<Situation uuid=(testFeatureTwoExample) />`,
         ])
     })
 
@@ -383,9 +398,10 @@ describe("processComponents", () => {
                     <Exit to=(testTwo)>Test Exit</Exit>
                 </Room>
             `),
+            `<Situation uuid=(DEFAULT) />`,
             deIndentWML(`
                 <Room key=(testTwo) />
-            `)
+            `),
         ])
     })
 
@@ -407,6 +423,7 @@ describe("processComponents", () => {
         })
         expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
             `<Room key=(test)><Remove><Description>Test</Description></Remove></Room>`,
+            `<Situation uuid=(DEFAULT) />`,
         ])
     })
 
@@ -468,7 +485,7 @@ describe("processComponents", () => {
                 <Asset uuid=(Test)>
                     <Room key=(room1)>
                         <Feature key=(feature1) />
-                        <Example ref={0} uuid=(example1) />
+                        <Situation ref={0} uuid=(situation1) />
                     </Room>
                 </Asset>
             `
@@ -480,7 +497,7 @@ describe("processComponents", () => {
                 assetUUID: 'ASSET#Test'
             })
             
-            // Should only have Room in topLevel, not Feature or Example
+            // Should only have Room in topLevel, not Feature or Situation
             expect(result.topLevel.payload.length).toBe(1)
             const topLevelKey = result.topLevel.payload[0].standardKey.toJSON()
             expect(topLevelKey).toEqual({ key: 'room1' })
@@ -579,7 +596,7 @@ describe("processComponents", () => {
                 <Asset uuid=(Test)>
                     <Room key=(room1)>
                         <Feature key=(feature1) />
-                        <Example ref={0} uuid=(example1) />
+                        <Situation ref={0} uuid=(situation1) />
                     </Room>
                     <Feature key=(feature2) />
                 </Asset>
@@ -592,7 +609,7 @@ describe("processComponents", () => {
                 assetUUID: 'ASSET#Test'
             })
             
-            // Should include Room, Feature (nested), Example, and Feature (top-level)
+            // Should include Room, Feature (nested), Situation, and Feature (top-level)
             expect(result.referenceCollection.references.length).toBeGreaterThanOrEqual(3)
             
             const room1 = result.referenceCollection.lookup(new StandardKey({ key: 'room1' }))

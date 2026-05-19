@@ -20,7 +20,6 @@ import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
-import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import StandardImage from '@tonylb/mtw-wml/ts/standardize/components/image'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
@@ -39,7 +38,7 @@ export interface ComponentIconOptions {
  * @returns React element representing the icon, or null if tag is not recognized
  */
 export const getComponentIconByTag = (
-    tag: ComponentTag | 'Asset' | 'Example' | 'Image' | 'Situation',
+    tag: ComponentTag | 'Asset' | 'Image' | 'Situation',
     options?: ComponentIconOptions
 ): React.ReactNode => {
     const iconProps = {
@@ -61,8 +60,6 @@ export const getComponentIconByTag = (
             return <FeatureIcon {...iconProps} />
         case 'Knowledge':
             return <KnowledgeIcon {...iconProps} />
-        case 'Example':
-            return <TextSnippetIcon {...iconProps} />
         case 'Situation':
             return <TextSnippetIcon {...iconProps} />
         case 'Image':
@@ -90,7 +87,7 @@ export const getComponentIcon = (
     }
 
     // Determine tag from component instance
-    let tag: ComponentTag | 'Asset' | 'Example' | 'Image' | 'Situation' | undefined
+    let tag: ComponentTag | 'Asset' | 'Image' | 'Situation' | undefined
 
     if (component instanceof StandardRoom) {
         tag = 'Room'
@@ -102,8 +99,6 @@ export const getComponentIcon = (
         tag = 'Feature'
     } else if (component instanceof StandardKnowledge) {
         tag = 'Knowledge'
-    } else if (component instanceof StandardExample) {
-        tag = 'Example'
     } else if (component instanceof StandardSituation) {
         // Situation has no shortName; labels use Marks-summary. Future: shortName could be used for display.
         tag = 'Situation'

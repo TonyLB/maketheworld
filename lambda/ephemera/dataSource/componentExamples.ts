@@ -100,7 +100,7 @@ export const handleComponentExamplesEvent = async (
             provenance: example.provenance,
             perspectiveId,
             perspectiveMatcher: event.perspectiveMatcher,
-            ...(isEphemeraSituationId(exampleId) ? { situationId: exampleId } : { authoredExampleId: exampleId })
+            ...(isEphemeraSituationId(exampleId) ? { situationId: exampleId } : {})
         }
 
         await Promise.all(
@@ -145,7 +145,7 @@ export const handleComponentExamplesEvent = async (
                         const records = await getCache().RenderCache.get(parentId)
                         const matches = records.filter(
                             (item: EphemeraCacheDynamoItem) =>
-                                item.situationId === exampleId || item.authoredExampleId === exampleId
+                                item.situationId === exampleId
                         )
                         const dataCategories = matches.map((item) => item.DataCategory)
                         if (dataCategories.length > 0) {

@@ -81,9 +81,9 @@ describe('StandardReference', () => {
     })
 
     it('should correctly return schema for universalKey-only references', () => {
-        const testVariable = new StandardReference('EXAMPLE#1234')
+        const testVariable = new StandardReference('SITUATION#1234')
         expect(schemaToWML(testVariable.schema)).toEqual(deIndentWML(`
-            <Example uuid=(1234) />
+            <Situation uuid=(1234) />
         `))
     })
 
@@ -172,7 +172,7 @@ describe('StandardReference', () => {
             tag: 'Room'
         }
         const testReference = new StandardReference(testReferenceData)
-        expect(testReference.equal(new StandardReference('EXAMPLE#1234'))).toBe(false)
+        expect(testReference.equal(new StandardReference('SITUATION#1234'))).toBe(false)
     })
 
     it('should correctly lookup keys in reference callback', () => {
@@ -288,14 +288,14 @@ describe('ReferenceList', () => {
 
     it('should render Remove tags correctly in schemaToWML', () => {
         // Create a ReferenceList with a Remove tag (like when a Room removes an Example reference)
-        const exampleKey = new StandardKey({ key: 'ex1', tag: 'Example' })
-        const removedReference = new StandardReference(exampleKey, 'Example').withRef(-1)
+        const guidanceKey = new StandardKey({ key: 'g1', tag: 'Guidance' })
+        const removedReference = new StandardReference(guidanceKey, 'Guidance').withRef(-1)
         const referenceListWithRemove = new ReferenceList([removedReference])
         
         // Test that schemaToWML correctly renders the Remove tag
         const wml = schemaToWML(referenceListWithRemove.schema)
         expect(wml).toEqual(deIndentWML(`
-            <Remove><Example key=(ex1) /></Remove>
+            <Remove><Guidance key=(g1) /></Remove>
         `))
     })
 
@@ -303,8 +303,8 @@ describe('ReferenceList', () => {
         // Create a ReferenceList with both regular references and Remove tags
         const room1Ref = new StandardReference({ key: 'room1', tag: 'Room' })
         
-        const exampleKey = new StandardKey({ key: 'ex1', tag: 'Example' })
-        const removedRef = new StandardReference(exampleKey, 'Example').withRef(-1)
+        const guidanceKey = new StandardKey({ key: 'g1', tag: 'Guidance' })
+        const removedRef = new StandardReference(guidanceKey, 'Guidance').withRef(-1)
         
         const referenceList = new ReferenceList([room1Ref, removedRef])
         
@@ -312,7 +312,7 @@ describe('ReferenceList', () => {
         const wml = schemaToWML(referenceList.schema)
         expect(wml).toEqual(deIndentWML(`
             <Room key=(room1) />
-            <Remove><Example key=(ex1) /></Remove>
+            <Remove><Guidance key=(g1) /></Remove>
         `))
     })
     // Reference: See AGENT.referenceList.editAlgebra.md, "ReferenceList Inversion and Algebraic Properties"
@@ -331,35 +331,35 @@ describe('ReferenceList', () => {
     })
 
     it('should invert a ReferenceList with removed references', () => {
-        const exampleKey = new StandardKey({ key: 'ex1', tag: 'Example' })
-        const removedRef = new StandardReference(exampleKey, 'Example').withRef(-1)
+        const guidanceKey = new StandardKey({ key: 'g1', tag: 'Guidance' })
+        const removedRef = new StandardReference(guidanceKey, 'Guidance').withRef(-1)
         const testList = new ReferenceList([removedRef])
         const inverted = testList.invert()
         
         // Inverted should have Simple (Add) operations
         expect(inverted.toJSON()).toEqual([
-            { key: 'ex1', tag: 'Example' }
+            { key: 'g1', tag: 'Guidance' }
         ])
     })
 
     it('should invert a ReferenceList with mixed references', () => {
         const room1Ref = new StandardReference({ key: 'room1', tag: 'Room' })
-        const exampleKey = new StandardKey({ key: 'ex1', tag: 'Example' })
-        const removedRef = new StandardReference(exampleKey, 'Example').withRef(-1)
+        const guidanceKey = new StandardKey({ key: 'g1', tag: 'Guidance' })
+        const removedRef = new StandardReference(guidanceKey, 'Guidance').withRef(-1)
         const testList = new ReferenceList([room1Ref, removedRef])
         const inverted = testList.invert()
         
         // Inverted should swap Add and Remove
         expect(inverted.toJSON()).toEqual([
             { key: 'room1', tag: 'Room', ref: -1 },
-            { key: 'ex1', tag: 'Example' }
+            { key: 'g1', tag: 'Guidance' }
         ])
     })
 
     it('should satisfy double-inversion property (invert.invert returns equivalent)', () => {
         const room1Ref = new StandardReference({ key: 'room1', tag: 'Room' })
-        const exampleKey = new StandardKey({ key: 'ex1', tag: 'Example' })
-        const removedRef = new StandardReference(exampleKey, 'Example').withRef(-1)
+        const guidanceKey = new StandardKey({ key: 'g1', tag: 'Guidance' })
+        const removedRef = new StandardReference(guidanceKey, 'Guidance').withRef(-1)
         const testList = new ReferenceList([room1Ref, removedRef])
         
         // Double inversion should return to original state

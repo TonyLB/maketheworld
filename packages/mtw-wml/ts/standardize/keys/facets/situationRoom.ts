@@ -10,7 +10,7 @@ import type { StandardFacetData } from "./dataTypes/facet";
 import { isStandardFacetData } from "./dataTypes/facet";
 import { isSchemaSituation } from "@tonylb/mtw-base/ts/schema/components";
 import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit";
-import { isSchemaSummary, isSchemaDescription } from "@tonylb/mtw-base/ts/schema/example";
+import { isSchemaSummary, isSchemaDescription } from "@tonylb/mtw-base/ts/schema/prose";
 import { facetClassFactory } from "./facetFactory";
 import { isSchemaTreeNode, treeFromWML } from "../../../schema";
 import { StandardLiteral } from "../../literal";

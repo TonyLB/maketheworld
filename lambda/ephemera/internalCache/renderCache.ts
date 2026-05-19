@@ -26,7 +26,6 @@ export type RenderCacheSetParams = {
     perspectiveId: PutCacheRecordInput['perspectiveId'];
     perspectiveMatcher: PutCacheRecordInput['perspectiveMatcher'];
     situationId?: PutCacheRecordInput['situationId'];
-    authoredExampleId?: PutCacheRecordInput['authoredExampleId'];
 }
 
 const cacheKey = (componentId: EphemeraCacheComponentId): string => componentId as string
@@ -96,7 +95,6 @@ export class RenderCacheData {
             perspectiveId,
             perspectiveMatcher,
             ...(params.situationId !== undefined ? { situationId: params.situationId } : {}),
-            ...(params.authoredExampleId !== undefined ? { authoredExampleId: params.authoredExampleId } : {}),
         } satisfies Omit<EphemeraCacheDynamoItem, 'DataCategory'>
 
         if (cacheId !== undefined) {

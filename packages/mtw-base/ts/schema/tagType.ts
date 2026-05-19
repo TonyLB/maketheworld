@@ -25,7 +25,6 @@ export type SchemaTagType =
     'Default' |
     'Match' |
     'DisplayName' |
-    'Example' |
     'Room' |
     'Feature' |
     'Knowledge' |
@@ -67,7 +66,6 @@ export const isLegalSchemaTag = (value: any): value is SchemaTagType => (
         'Default',
         'Match',
         'DisplayName',
-        'Example',
         'Room',
         'Feature',
         'Knowledge',

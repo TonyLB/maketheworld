@@ -30,18 +30,18 @@ describe('SchemaTagTree', () => {
         const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
             <Asset uuid=(test)>
                 <Room key=(room1) uuid=(Room1)>
-                    <Example uuid=(room1-example)>
+                    <Situation uuid=(room1-example)>
                         <Description>Test description</Description>
                         <DisplayName>Test room</DisplayName>
-                    </Example>
+                    </Situation>
                     <Exit to=(room2) />
                 </Room>
                 <Room key=(room2) uuid=(Room2) />
                 <Map key=(map1) uuid=(Map1)>
                     <Room key=(room1) uuid=(Room1)>
-                        <Example uuid=(room1-example)>
+                        <Situation uuid=(room1-example)>
                             <Description>: Added</Description>
-                        </Example>
+                        </Situation>
                         <Position {0, 0} />
                     </Room>
                 </Map>
@@ -52,14 +52,14 @@ describe('SchemaTagTree', () => {
         expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
             <Asset uuid=(test)>
                 <Room uuid=(Room1) key=(room1)>
-                    <Example uuid=(room1-example)>
+                    <Situation uuid=(room1-example)>
                         <Description>Test description</Description>
                         <DisplayName>Test room</DisplayName>
-                    </Example>
+                    </Situation>
                     <Exit to=(room2) />
-                    <Example uuid=(room1-example)>
+                    <Situation uuid=(room1-example)>
                         <Description>: Added</Description>
-                    </Example>
+                    </Situation>
                     <Position {0, 0} />
                 </Room>
                 <Room uuid=(Room2) key=(room2) />
@@ -71,19 +71,19 @@ describe('SchemaTagTree', () => {
         const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
             <Asset uuid=(test)>
                 <Room key=(room1) uuid=(Room1)>
-                    <Example uuid=(room1-example)>
+                    <Situation uuid=(room1-example)>
                         <Description>Test description</Description>
                         <DisplayName>Test room</DisplayName>
-                    </Example>
+                    </Situation>
                     <Exit to=(room2) />
                 </Room>
                 <Room key=(room2) uuid=(Room2) />
                 <Map key=(map1) uuid=(Map1)>
                     <Room key=(room1) uuid=(Room1)>
-                        <Example uuid=(room1-example)>
+                        <Situation uuid=(room1-example)>
                             <Replace><Description>description</Description></Replace>
                             <With><Description>appearance</Description></With>
-                        </Example>
+                        </Situation>
                         <Position {0, 0} />
                     </Room>
                 </Map>
@@ -94,15 +94,15 @@ describe('SchemaTagTree', () => {
         expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
             <Asset uuid=(test)>
                 <Room uuid=(Room1) key=(room1)>
-                    <Example uuid=(room1-example)>
+                    <Situation uuid=(room1-example)>
                         <Description>Test description</Description>
                         <DisplayName>Test room</DisplayName>
-                    </Example>
+                    </Situation>
                     <Exit to=(room2) />
-                    <Example uuid=(room1-example)>
+                    <Situation uuid=(room1-example)>
                         <Replace><Description>description</Description></Replace>
                         <With><Description>appearance</Description></With>
-                    </Example>
+                    </Situation>
                     <Position {0, 0} />
                 </Room>
                 <Room uuid=(Room2) key=(room2) />
@@ -114,16 +114,16 @@ describe('SchemaTagTree', () => {
         const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
             <Asset uuid=(complex)>
                 <Feature key=(doors) uuid=(Feature1)>
-                    <Example uuid=(doors-example)>
+                    <Situation uuid=(doors-example)>
                         <DisplayName>Magic Doors</DisplayName>
                         <Description>Doors that respond to conditions</Description>
-                    </Example>
+                    </Situation>
                 </Feature>
                 <Map key=(map1) uuid=(Map1)>
                     <Room key=(doors-room) uuid=(DoorsRoom)>
-                        <Example uuid=(doors-room-example)>
+                        <Situation uuid=(doors-room-example)>
                             <Description>: They are enchanted</Description>
-                        </Example>
+                        </Situation>
                         <Position {50, 50} />
                     </Room>
                 </Map>
@@ -134,15 +134,15 @@ describe('SchemaTagTree', () => {
         expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
             <Asset uuid=(complex)>
                 <Feature uuid=(Feature1) key=(doors)>
-                    <Example uuid=(doors-example)>
+                    <Situation uuid=(doors-example)>
                         <DisplayName>Magic Doors</DisplayName>
                         <Description>Doors that respond to conditions</Description>
-                    </Example>
+                    </Situation>
                 </Feature>
                 <Room uuid=(DoorsRoom) key=(doors-room)>
-                    <Example uuid=(doors-room-example)>
+                    <Situation uuid=(doors-room-example)>
                         <Description>: They are enchanted</Description>
-                    </Example>
+                    </Situation>
                     <Position {50, 50} />
                 </Room>
             </Asset>
@@ -153,13 +153,13 @@ describe('SchemaTagTree', () => {
         const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
             <Asset uuid=(test)>
                 <Room key=(room1) uuid=(Room1)>
-                    <Example uuid=(room1-example)>
+                    <Situation uuid=(room1-example)>
                         <Description>One</Description>
                         <Replace><Description>One</Description></Replace>
                         <With><Description>Two</Description></With>
                         <Replace><Description>Two</Description></Replace>
                         <With><Description>Three</Description></With>
-                    </Example>
+                    </Situation>
                 </Room>
             </Asset>
         `))))
@@ -167,13 +167,13 @@ describe('SchemaTagTree', () => {
         expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
             <Asset uuid=(test)>
                 <Room uuid=(Room1) key=(room1)>
-                    <Example uuid=(room1-example)>
+                    <Situation uuid=(room1-example)>
                         <Description>One</Description>
                         <Replace><Description>One</Description></Replace>
                         <With><Description>Two</Description></With>
                         <Replace><Description>Two</Description></Replace>
                         <With><Description>Three</Description></With>
-                    </Example>
+                    </Situation>
                 </Room>
             </Asset>
         `))
@@ -183,16 +183,16 @@ describe('SchemaTagTree', () => {
         const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
             <Asset uuid=(order)>
                 <Knowledge key=(lore) uuid=(Knowledge1)>
-                    <Example uuid=(lore-example)>
+                    <Situation uuid=(lore-example)>
                         <DisplayName>Ancient Lore</DisplayName>
                         <Description>Knowledge of the ancients</Description>
-                    </Example>
+                    </Situation>
                 </Knowledge>
                 <Room key=(room1) uuid=(Room1)>
-                    <Example uuid=(room1-example)>
+                    <Situation uuid=(room1-example)>
                         <DisplayName>Main Hall</DisplayName>
                         <Description>A grand entrance hall</Description>
-                    </Example>
+                    </Situation>
                     <Exit to=(room2)>North</Exit>
                 </Room>
             </Asset>
@@ -201,16 +201,16 @@ describe('SchemaTagTree', () => {
         expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
             <Asset uuid=(order)>
                 <Knowledge uuid=(Knowledge1) key=(lore)>
-                    <Example uuid=(lore-example)>
+                    <Situation uuid=(lore-example)>
                         <DisplayName>Ancient Lore</DisplayName>
                         <Description>Knowledge of the ancients</Description>
-                    </Example>
+                    </Situation>
                 </Knowledge>
                 <Room uuid=(Room1) key=(room1)>
-                    <Example uuid=(room1-example)>
+                    <Situation uuid=(room1-example)>
                         <DisplayName>Main Hall</DisplayName>
                         <Description>A grand entrance hall</Description>
-                    </Example>
+                    </Situation>
                     <Exit to=(room2)>North</Exit>
                 </Room>
             </Asset>
@@ -221,16 +221,16 @@ describe('SchemaTagTree', () => {
         const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
             <Asset uuid=(merge)>
                 <Feature key=(trap) uuid=(Feature1)>
-                    <Example uuid=(trap-example)>
+                    <Situation uuid=(trap-example)>
                         <DisplayName>Hidden Trap</DisplayName>
                         <Description>A dangerous pit</Description>
-                    </Example>
+                    </Situation>
                 </Feature>
                 <Feature key=(parent) uuid=(ParentFeature)>
                     <Feature key=(trap) uuid=(Feature1)>
-                        <Example uuid=(trap-example)>
+                        <Situation uuid=(trap-example)>
                             <Description>: It's actually safe now</Description>
-                        </Example>
+                        </Situation>
                     </Feature>
                 </Feature>
             </Asset>
@@ -239,10 +239,10 @@ describe('SchemaTagTree', () => {
         // The system intelligently merges content from multiple sources
         expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
             <Asset uuid=(merge)>
-                <Example uuid=(trap-example)>
+                <Situation uuid=(trap-example)>
                     <DisplayName>Hidden Trap</DisplayName>
                     <Description>A dangerous pit: It's actually safe now</Description>
-                </Example>
+                </Situation>
             </Asset>
         `))
     })
@@ -251,17 +251,17 @@ describe('SchemaTagTree', () => {
         const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
             <Asset uuid=(edit)>
                 <Feature key=(trap) uuid=(Feature1)>
-                    <Example uuid=(trap-example)>
+                    <Situation uuid=(trap-example)>
                         <DisplayName>Hidden Trap</DisplayName>
                         <Description>A dangerous pit</Description>
-                    </Example>
+                    </Situation>
                 </Feature>
                 <Map key=(map1) uuid=(Map1)>
                     <Room key=(trap-room) uuid=(TrapRoom)>
-                        <Example uuid=(trap-room-example)>
+                        <Situation uuid=(trap-room-example)>
                             <Replace><Description>A dangerous pit</Description></Replace>
                             <With><Description>A safe passage</Description></With>
-                        </Example>
+                        </Situation>
                     </Room>
                 </Map>
             </Asset>
@@ -271,16 +271,16 @@ describe('SchemaTagTree', () => {
         expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
             <Asset uuid=(edit)>
                 <Feature uuid=(Feature1) key=(trap)>
-                    <Example uuid=(trap-example)>
+                    <Situation uuid=(trap-example)>
                         <DisplayName>Hidden Trap</DisplayName>
                         <Description>A dangerous pit</Description>
-                    </Example>
+                    </Situation>
                 </Feature>
                 <Room uuid=(TrapRoom) key=(trap-room)>
-                    <Example uuid=(trap-room-example)>
+                    <Situation uuid=(trap-room-example)>
                         <Replace><Description>A dangerous pit</Description></Replace>
                         <With><Description>A safe passage</Description></With>
-                    </Example>
+                    </Situation>
                 </Room>
             </Asset>
         `))

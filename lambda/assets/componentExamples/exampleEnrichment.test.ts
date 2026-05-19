@@ -1,5 +1,4 @@
 import internalCache from '../internalCache'
-import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
@@ -10,8 +9,6 @@ import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldSta
 import {
     computePerspectiveMatcherForParentSituation,
     computePerspectiveMatcherForRoomSituation,
-    enrichExampleEvent,
-    exampleToCacheShape,
     getOrderedAssetStack,
     getParentIdsForSituation,
     mergeLensAcrossStack,
@@ -45,121 +42,25 @@ describe('exampleEnrichment helpers', () => {
     })
 
     it('should order asset stack by _from depth with event asset preferred last', () => {
-        const exampleId = 'EXAMPLE#one' as const
+        const situationId = 'SITUATION#one' as const
         const eventAssetId = 'ASSET#child' as const
 
-        const baseExample = new StandardExample({
-            tag: 'Example',
-            universalKey: exampleId,
+        const baseSituation = new StandardSituation({
+            tag: 'Situation',
+            universalKey: situationId,
         })
-        const childExample = new StandardExample({
-            tag: 'Example',
-            universalKey: exampleId,
+        const childSituation = new StandardSituation({
+            tag: 'Situation',
+            universalKey: situationId,
         })
-        ;(childExample as any)._from = 'ASSET#base'
+        ;(childSituation as any)._from = 'ASSET#base'
 
-        const stack = getOrderedAssetStack(exampleId, eventAssetId, [
-            { AssetId: 'ASSET#base', component: baseExample },
-            { AssetId: 'ASSET#child', component: childExample },
+        const stack = getOrderedAssetStack(situationId, eventAssetId, [
+            { AssetId: 'ASSET#base', component: baseSituation },
+            { AssetId: 'ASSET#child', component: childSituation },
         ])
 
         expect(stack).toEqual(['ASSET#base', 'ASSET#child'])
-    })
-
-    it('should extract markState and renderedContent from Example', () => {
-        const example = new StandardExample(deIndentWML(`
-            <Example key=(ex) uuid=(EXAMPLE#one)>
-                <Description>Hello</Description>
-                <Mark key=(m1) uuid=(MARK#one)>
-                    <Match>match-value</Match>
-                </Mark>
-            </Example>
-        `))
-
-        const payload = exampleToCacheShape(example)
-
-        expect(payload.markState.markValue).toEqual([
-            { mark: 'MARK#one', value: 'match-value' },
-        ])
-        expect(payload.renderedContent.description).toEqual(['Hello'])
-        expect(payload.provenance.type).toBe('authored')
-    })
-
-    it('should not treat Room as Example parent in enrichExampleEvent', async () => {
-        const exampleId = 'EXAMPLE#one' as const
-        const eventAssetId = 'ASSET#asset1' as const
-
-        const exampleBase = new StandardExample(deIndentWML(`
-            <Example key=(base) uuid=(EXAMPLE#one)>
-                <Description>Hello</Description>
-            </Example>
-        `))
-
-        const room = new StandardRoom(deIndentWML(`
-            <Room key=(one) uuid=(ROOM#one)>
-                <Situation uuid=(DEFAULT)><DisplayName>Room prose</DisplayName></Situation>
-            </Room>
-        `))
-        const feature = new StandardFeature({
-            tag: 'Feature',
-            universalKey: 'FEATURE#one',
-            situations: [
-                { reference: 'SITUATION#DEFAULT', payload: { displayName: 'Feature prose' } },
-            ],
-        } as any)
-        const knowledge = new StandardKnowledge({
-            tag: 'Knowledge',
-            universalKey: 'KNOWLEDGE#one',
-            situations: [
-                { reference: 'SITUATION#DEFAULT', payload: { displayName: 'Knowledge prose' } },
-            ],
-        } as any)
-
-        const standardForm = new StandardForm([
-            {
-                tag: 'Asset',
-                key: 'asset1',
-                universalKey: eventAssetId,
-            } as any,
-            exampleBase.toJSON() as any,
-            room.toJSON() as any,
-            feature.toJSON() as any,
-            knowledge.toJSON() as any,
-        ])
-
-        mockInternalCache.ComponentData.get.mockResolvedValue([
-            {
-                ComponentId: exampleId,
-                byAssets: [
-                    {
-                        AssetId: eventAssetId,
-                        component: exampleBase,
-                    },
-                ],
-            },
-        ])
-
-        mockInternalCache.AssetData.get.mockResolvedValue([
-            {
-                AssetId: eventAssetId,
-                standardForm,
-            },
-        ])
-
-        const result = await enrichExampleEvent({
-            exampleId,
-            eventAssetId,
-            component: exampleBase,
-            eventType: 'Component Updated',
-        })
-
-        expect(result.exampleId).toBe(exampleId)
-        expect(result.assetStack).toEqual([eventAssetId])
-        // EXAMPLE# ids do not match situation facet refs on F/K/Room.
-        expect(result.parentIds).toEqual([])
-        expect(result.parentIds).not.toContain('ROOM#one')
-        expect(result.example).toBeDefined()
-        expect(result.example?.renderedContent.description.length).toBeGreaterThan(0)
     })
 
     describe('getParentIdsForSituation', () => {

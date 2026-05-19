@@ -2,7 +2,6 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { StandardComponent } from "./components/baseClasses"
 import StandardCharacter from "./components/character"
 import StandardFeature from "./components/feature"
-import StandardExample from "./components/example"
 import StandardGuidance from "./components/guidance"
 import StandardSituation from "./components/situation"
 import StandardImage from "./components/image"
@@ -15,8 +14,7 @@ import StandardMark, { StandardLens } from "./components/worldState"
 import { isSchemaCharacter, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaTreeNode } from "../schema"
 import { StandardComponentInputData } from "./baseClasses"
-import { isStandardCharacterData, isStandardExampleInputData, isStandardFeatureData, isStandardGuidanceInputData, isStandardImageData, isStandardKnowledgeData, isStandardMapInputData, isStandardMessageData, isStandardMomentData, isStandardRoomInputData, isStandardMarkData, isStandardLensInputData, isStandardSituationInputData } from "./components/dataTypes"
-import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
+import { isStandardCharacterData, isStandardFeatureData, isStandardGuidanceInputData, isStandardImageData, isStandardKnowledgeData, isStandardMapInputData, isStandardMessageData, isStandardMomentData, isStandardRoomInputData, isStandardMarkData, isStandardLensInputData, isStandardSituationInputData } from "./components/dataTypes"
 import { isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaRoom, isSchemaSituation } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image"
 import { isSchemaMark, isSchemaLens } from "@tonylb/mtw-base/ts/schema/worldState"
@@ -52,9 +50,6 @@ export const standardComponentFactory = (
     if (!isSchemaTreeNode(arg)) {
         if (isStandardCharacterData(arg)) {
             return { component: new StandardCharacter(arg), remainder: [] }
-        }
-        if (isStandardExampleInputData(arg)) {
-            return { component: new StandardExample(arg), remainder: [] }
         }
         if (isStandardGuidanceInputData(arg)) {
             return { component: new StandardGuidance(arg), remainder: [] }
@@ -101,11 +96,6 @@ export const standardComponentFactory = (
     const node = arg
     if (treeNodeTypeguard(isSchemaCharacter)(node)) {
         const instance = new StandardCharacter(undefined as any)
-        const remainder = instance.fromSchema(node, fromSchemaContext)
-        return { component: instance, remainder }
-    }
-    if (treeNodeTypeguard(isSchemaExample)(node)) {
-        const instance = new StandardExample(undefined as any)
         const remainder = instance.fromSchema(node, fromSchemaContext)
         return { component: instance, remainder }
     }

@@ -134,7 +134,7 @@ describe('findTaggedChildren', () => {
                 <Room key=(test)>
                     <Remove>
                         <Feature key=(feat1) />
-                        <Example key=(ex1) />
+                        <Situation key=(ex1) />
                     </Remove>
                 </Room>
             `))
@@ -148,10 +148,10 @@ describe('findTaggedChildren', () => {
             ])
             
             // Querying for Example should return Remove with only Example
-            const exampleResult = findTaggedChildren({ children: roomNode.children, tag: 'Example' })
+            const exampleResult = findTaggedChildren({ children: roomNode.children, tag: 'Situation' })
             expect(exampleResult.length).toBe(1)
             expect(exampleResult.map((node) => (schemaToWML([node])))).toEqual([
-                deIndentWML(`<Remove><Example key=(ex1) /></Remove>`)
+                deIndentWML(`<Remove><Situation key=(ex1) /></Remove>`)
             ])
         })
 
@@ -163,7 +163,7 @@ describe('findTaggedChildren', () => {
                     </Replace>
                     <With>
                         <Feature key=(feat2) />
-                        <Example key=(ex1) />
+                        <Situation key=(ex1) />
                     </With>
                 </Room>
             `))
@@ -178,7 +178,7 @@ describe('findTaggedChildren', () => {
             
             // Querying for Example should return Replace with Example only in ReplacePayload
             // (ReplaceMatch is preserved but empty, to maintain valid Replace structure)
-            const exampleResult = findTaggedChildren({ children: roomNode.children, tag: 'Example' })
+            const exampleResult = findTaggedChildren({ children: roomNode.children, tag: 'Situation' })
             expect(exampleResult.length).toBe(1)
             // Both ReplaceMatch and ReplacePayload should be preserved
             const exampleNode = exampleResult[0]
@@ -192,7 +192,7 @@ describe('findTaggedChildren', () => {
             const replacePayload = exampleNode.children.find(child => child.data.tag === 'ReplacePayload')
             expect(replacePayload).toBeDefined()
             expect(replacePayload?.children.length).toBe(1)
-            expect(replacePayload?.children[0].data.tag).toBe('Example')
+            expect(replacePayload?.children[0].data.tag).toBe('Situation')
             expect((replacePayload?.children[0].data as any).key).toBe('ex1')
         })
 
@@ -202,7 +202,7 @@ describe('findTaggedChildren', () => {
                     <Remove>
                         <Feature key=(feat1) />
                         <Feature key=(feat2) />
-                        <Example key=(ex1) />
+                        <Situation key=(ex1) />
                     </Remove>
                 </Room>
             `))

@@ -31,7 +31,6 @@ import { RoomCharacterListItem } from './baseClasses';
 import CacheCharacterMetaData, { CharacterMetaItem } from './characterMeta';
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/ts/types';
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree';
-import { ExampleComponentId, ExamplesData, ExamplesReturn } from './examples';
 import { selectDefaultSituationCacheRecord } from '../dataSource/renderCache/selectDefaultSituationCacheRecord';
 import { CacheRoomCharacterListsData } from './roomCharacterLists';
 import { AssetUUID, ComponentUUID, SchemaOutputTag } from '@tonylb/mtw-base/ts/schema';
@@ -73,7 +72,6 @@ export const isComponentTag = (tag) => (['Room', 'Feature'].includes(tag))
 export const isComponentKey = (key) => (['ROOM', 'FEATURE'].includes(splitType(key)[0]))
 
 export class ComponentRenderData {
-    _examples: (keys: ExampleComponentId[]) => Promise<Record<ExampleComponentId, ExamplesReturn[]>>;
     _renderCache: RenderCacheData;
     // _evaluateCode removed - Variable/Computed evaluation no longer needed
     _componentAssetMeta: (EphemeraId: ComponentUUID, assetList: AssetUUID[]) => Promise<Record<AssetUUID, StandardComponent>>;
@@ -84,14 +82,12 @@ export class ComponentRenderData {
     _Store: Record<ComponentUUID, StandardForm> = {}
     
     constructor(
-        examples: ExamplesData,
         componentAssetMeta: ComponentAssetMetaData,
         roomCharacterList: CacheRoomCharacterListsData,
         globalCache: CacheGlobalData,
         characterMeta: CacheCharacterMetaData,
         renderCache: RenderCacheData
     ) {
-        this._examples = (keys) => (examples.get(keys))
         this._renderCache = renderCache
         // _evaluateCode removed - Variable/Computed evaluation no longer needed
         this._componentAssetMeta = (EphemeraId, assetList) => (componentAssetMeta.getAcrossAssets(EphemeraId, assetList))

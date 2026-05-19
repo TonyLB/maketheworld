@@ -10,7 +10,7 @@ import { importExportConverters, importExportPrintMap } from "./importExport"
 import { messagingConverters, messagingPrintMap } from "./messaging"
 import { taggedMessageConverters, taggedMessagePrintMap } from "./taggedMessages"
 import { tagRender } from "./tagRender"
-import { exampleConverters, examplePrintMap } from "./example"
+import { proseConverters, prosePrintMap } from "./prose"
 import { worldStateConverters, worldStatePrintMap } from "./worldState"
 import { SchemaAssetTag } from "@tonylb/mtw-base/ts/schema/asset"
 import { isSchemaAsset } from "@tonylb/mtw-base/ts/schema"
@@ -37,7 +37,7 @@ export const converterMap: Record<string, ConverterMapEntry> = {
             }
         }
     },
-    ...exampleConverters,
+    ...proseConverters,
     ...characterConverters,
     ...componentConverters,
     ...editConverters,
@@ -64,7 +64,7 @@ export const printMap: Record<string, PrintMapEntry> = {
             node: { data: tag, children }
         })
     },
-    ...examplePrintMap,
+    ...prosePrintMap,
     ...characterPrintMap,
     ...componentPrintMap,
     ...editPrintMap,

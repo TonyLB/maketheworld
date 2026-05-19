@@ -13,7 +13,6 @@ import RoomEditor from './RoomEdit/RoomEditor'
 import FeatureEditor from './FeatureEdit/FeatureEditor'
 import KnowledgeEditor from './KnowledgeEdit/KnowledgeEditor'
 import { LayeredContextView } from './foundations/LayeredContext'
-import ExampleEditor from './ExampleEdit/ExampleEditor'
 import GuidanceEditor from './GuidanceEdit/GuidanceEditor'
 import SituationEditor from './SituationEdit/SituationEditor'
 import MarkEditor from './MarkEdit/MarkEditor'
@@ -26,7 +25,6 @@ import StandardMark, { StandardLens } from '@tonylb/mtw-wml/ts/standardize/compo
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
-import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import StandardGuidance from '@tonylb/mtw-wml/ts/standardize/components/guidance'
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
@@ -55,8 +53,8 @@ export const WorkbenchAssetEditor: FunctionComponent = () => {
     }
 
     // Route to appropriate view based on currentView and currentComponentId.
-    // Example and Guidance appear here when navigated as top-level (no siblings); when they are
-    // children of a parent's ref list, currentView is 'componentLayer' and LayeredContextView renders.
+    // Guidance appears here when navigated as top-level (no siblings); when it is a child of a
+    // parent's ref list, currentView is 'componentLayer' and LayeredContextView renders.
     if (currentView === 'component' && currentComponentId) {
         // Derive component type from standardForm
         const component = assetData.standardForm.byUniversalId[currentComponentId as ComponentUUID]
@@ -83,10 +81,6 @@ export const WorkbenchAssetEditor: FunctionComponent = () => {
 
         if (component instanceof StandardMark) {
             return <MarkEditor />
-        }
-
-        if (component instanceof StandardExample) {
-            return <ExampleEditor />
         }
 
         if (component instanceof StandardGuidance) {

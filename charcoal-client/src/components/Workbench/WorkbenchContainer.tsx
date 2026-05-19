@@ -19,7 +19,6 @@ import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { getAssetZone } from '../../slices/player'
 import { createWorkbenchTheme } from './workbenchTheme'
 import StandardGuidance from '@tonylb/mtw-wml/ts/standardize/components/guidance'
-import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { isReferenceListChild, isSituationFacetChild } from './foundations/LayeredContext/layeredContextUtils'
 import { situationIdToLabel } from '../../lib/situationLabel'
 import { hasDisplayName } from '@tonylb/mtw-wml/ts/standardize'
@@ -177,13 +176,10 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                 const layerId = entry.componentId as ComponentUUID | null
                 const layerComponent = layerId ? assetData.standardForm.byUniversalId[layerId] : undefined
                 const isGuidance = layerComponent instanceof StandardGuidance
-                const isExample = layerComponent instanceof StandardExample
-                const sn = (isGuidance || isExample) ? layerComponent.shortName?._payload?.plain?.toJSON() : undefined
+                const sn = isGuidance ? layerComponent.shortName?._payload?.plain?.toJSON() : undefined
                 const name = isGuidance
                     ? (typeof sn === 'string' && sn.trim() ? sn : 'Guidance')
-                    : isExample
-                        ? (typeof sn === 'string' && sn.trim() ? sn : 'Examples')
-                        : 'Examples'
+                    : 'Guidance'
                 return {
                     universalKey: (layerId || assetData.AssetId) as ComponentUUID,
                     name,

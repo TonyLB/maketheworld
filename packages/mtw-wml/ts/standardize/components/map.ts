@@ -46,7 +46,7 @@ class StandardizeConsumerImageList<D extends object = object> implements Standar
  * StandardMapPayload represents a Map component.
  * 
  * NOTE: Positions are stored using PositionFacetList, which follows the facet pattern
- * established by MarkFacetList in StandardExample. Each position facet contains a reference
+ * established by MarkFacetList on Situation (marks). Each position facet contains a reference
  * to a Room and a payload with x, y coordinates.
  */
 export class StandardMapPayload implements ComponentConstructorMethods<StandardMapInputData, StandardMapData> {

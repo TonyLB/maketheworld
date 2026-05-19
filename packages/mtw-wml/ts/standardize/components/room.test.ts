@@ -243,11 +243,11 @@ describe('StandardRoom class', () => {
     // it('should map contents on exits correctly', () => {
     //     const test = new StandardRoom(`
     //         <Room key=(testRoomOne)>
-    //             <Example key=(base)>
+    //             <Situation key=(base)>
     //                 <DisplayName>Lobby</DisplayName>
     //                 <Summary>A lobby</Summary>
     //                 <Description>A plain lobby.</Description>
-    //             </Example>
+    //             </Situation>
     //             <Exit to=(testRoomTwo)>exit</Exit>
     //         </Room>
     //     `)
@@ -269,7 +269,7 @@ describe('StandardRoom class', () => {
     //     }
     //     expect(schemaToWML([test.mapContents(callback).schema])).toEqual(deIndentWML(`
     //         <Room key=(testRoomOne)>
-    //             <Example key=(base) />
+    //             <Situation key=(base) />
     //             <Exit to=(testRoomTwo)>
     //                 exit
     //                 Narf!
@@ -336,16 +336,6 @@ describe('StandardRoom class', () => {
                 <Guidance uuid=(Guide1) />
             </Room>
         `))
-    })
-
-    it('should reject withChild for Example on Room', () => {
-        const test = new StandardRoom({
-            tag: 'Room',
-            key: 'testRoomOne',
-            features: [{ tag: 'Feature', universalKey: 'FEATURE#Feature1' }],
-        })
-        const example = new StandardKey('EXAMPLE#Example2')
-        expect(() => test.withChild(new StandardReference(example))).toThrow(/Invalid child type Example/)
     })
 
     it('should correctly add a character reference to a room', () => {
@@ -1333,13 +1323,13 @@ describe('StandardRoom class', () => {
         it('should add children with ref={0} when they do not exist', () => {
             const room = new StandardRoom({ tag: 'Room', key: 'test' })
             const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            const markRef = new StandardReference({ tag: 'Mark', key: 'mark1' })
             const charRef = new StandardReference({ tag: 'Character', key: 'char1' })
             
-            const { payload: result, inlineRemainder } = room._payload.assureReferences([featureRef, exampleRef, charRef])
+            const { payload: result, inlineRemainder } = room._payload.assureReferences([featureRef, markRef, charRef])
             
             expect(inlineRemainder.length).toBe(1)
-            expect(inlineRemainder[0].tag).toBe('Example')
+            expect(inlineRemainder[0].tag).toBe('Mark')
             expect(result.features.payload.length).toBe(1)
             expect(result.features.payload[0].ref).toBe(0)
             expect(result.features.payload[0].sameKey(featureRef)).toBe(true)

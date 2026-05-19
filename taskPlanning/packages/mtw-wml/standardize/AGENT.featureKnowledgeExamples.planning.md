@@ -1,6 +1,6 @@
 # Feature and Knowledge: Situation facets and Example retirement
 
-**Status:** Phase 0 complete (2026-05-18). Phase 1 WML storage complete (2026-05-18). Phase 2 may proceed. **Pre-flight decisions confirmed** (see [Decisions](#decisions)). Room **`examples`** removal is **complete**. This initiative migrates **`StandardFeature`** and **`StandardKnowledge`** to situation facets + ephemera **`render`**, then retires **`<Example>`**. **No production data migration:** extant database has no Feature/Knowledge/Example content to convert.
+**Status:** **Complete** (2026-05-19). Phases 0-4 shipped. **Pre-flight decisions confirmed** (see [Decisions](#decisions)). Room **`examples`** removal is **complete**. **`StandardFeature`** and **`StandardKnowledge`** use situation facets + ephemera **`render`**; **`<Example>`** / **`StandardExample`** retired from schema, lambdas, and Workbench. **No production data migration:** extant database has no Feature/Knowledge/Example content to convert.
 
 This file is task-scoped and temporary. See [`taskPlanning/AGENT.md`](../../../AGENT.md) for task-plan conventions.
 
@@ -23,7 +23,7 @@ This file is task-scoped and temporary. See [`taskPlanning/AGENT.md`](../../../A
 | **DEFAULT v1** | **`SITUATION#DEFAULT`** only: sole facet authored in Workbench, sole facet used for **render** / playing UI. Non-DEFAULT situation facets on F/K (list UI, layered tabs, multi-facet consumption) are **out of scope** until a later initiative. |
 | **Situation entity** | **`Situation`** is an independent WML component (like any other); it is **not owned** by Room/Feature/Knowledge that reference it via facets (**D8**). |
 | **Marks** | Live on **`Situation`** components, not on Example children. |
-| **Example tag** | **Removed** in code cleanup (Phase 4); no asset conversion required (**D3**, **D4**). **`StandardExample`** may remain temporarily in TypeScript to ease incremental refactors (**D6**). |
+| **Example tag** | **Removed** from schema and TypeScript (Phase 4, 2026-05-19); no asset conversion required (**D3**, **D4**). |
 | **Deferred** | Non-DEFAULT F/K facet authoring UI; Lens / Guidance on F/K; multi-facet render by **`markState`**; per-perspective Knowledge facets (**D9**). |
 
 **Why DEFAULT-only rendering is acceptable now:** Consumption already behaves that way. Ephemera **`ComponentRender`** and **`ComponentDescription`** use a **first-example** path, not mark matching. Committing to DEFAULT matches today's behavior while storage becomes future-proof.
@@ -45,7 +45,7 @@ See **D2** in [Decisions](#decisions): **shared SituationRoomFacetPayload-shaped
 | D3 | Multi-Example **data** migration | **Not required.** Extant database has been stripped of all Features and Knowledge; no legacy Examples to preserve or collapse. | **Confirmed (N/A)** |
 | D4 | Standalone **`<Example>`** in production data | **Not required** (no Examples in database). Phase 4 still **removes** Example from schema, selector, and editors; no bulk conversion script. | **Confirmed (N/A)** |
 | D5 | Authoring UX (v1) | **DEFAULT inline editor only** on Feature/Knowledge editors (generalize **`DefaultRenderEditor`** / **`SituationFacetRenderFieldsEditor`**). **No** non-DEFAULT situation facet list, **no** layered SituationFacet tabs on F/K until consumption supports more than DEFAULT. | **Confirmed** |
-| D6 | Dual-read **`examples`** in **`fromSchema`** | **No.** Nothing in production to read. New WML uses **`situations`** only on **`toJSON`**. **`StandardExample`** / **`<Example>`** may remain in the codebase temporarily to ease TypeScript migration; do **not** implement Example-to-facet parse mapping. | **Confirmed** |
+| D6 | Dual-read **`examples`** in **`fromSchema`** | **No.** Nothing in production to read. New WML uses **`situations`** only on **`toJSON`**. **`<Example>`** / **`StandardExample`** removed Phase 4; do **not** implement Example-to-facet parse mapping. | **Confirmed** |
 | D7 | Missing DEFAULT facet / empty prose | **Same as Room:** **`createOnEdit` / `removeWhenEmpty`**; playing UI safe defaults (**Unknown** / empty description). | **Confirmed** |
 | D8 | Sharing **Situation** across parents | **Allowed.** Situations are **independent** WML entities, not owned by components that reference them via facets. Document; no cross-parent validator in v1. | **Confirmed** |
 | D9 | Non-DEFAULT / per-perspective facets | **Out of scope.** Straight DEFAULT-only simplification for this initiative. No differentiated Knowledge facets; multi-situation Feature behavior deferred entirely. **`perspectiveId`** on cache unchanged. | **Confirmed** |
@@ -56,7 +56,7 @@ See **D2** in [Decisions](#decisions): **shared SituationRoomFacetPayload-shaped
 
 ### Implementation gap (not a product fork)
 
-**Phase 2 lambdas (assets + ephemera D1):** complete (2026-05-19). **Phase 3 client:** complete (2026-05-19). **Remaining:** Phase 4 Example retirement.
+**Phase 2 lambdas (assets + ephemera D1):** complete (2026-05-19). **Phase 3 client:** complete (2026-05-19). **Phase 4 Example retirement:** complete (2026-05-19).
 
 ### Pre-flight checklist
 
@@ -199,7 +199,7 @@ Recorded before Phase 1. Re-run [Verification](#verification) after each phase; 
 | --- | --- | --- |
 | `\.examples\b\|examples:` in `feature.ts` + `knowledge.ts` | **28** (14 each) | **0** |
 | `\.examples\b` in `packages/mtw-wml` `*.test.ts` | **56** (`feature.test.ts` 28 + `knowledge.test.ts` 28) | **0** |
-| `examples.payload\|_examples\|StandardExample` in `lambda/assets`, `lambda/ephemera`, `charcoal-client` (exclude `*.test.*`) | **52** (assets 12, ephemera 9, client 31) | **~38** non-test after Phase 3 (client playing UI + selector cleared; Phase 4 legacy editors remain) |
+| `examples.payload\|_examples\|StandardExample` in `lambda/assets`, `lambda/ephemera`, `charcoal-client` (exclude `*.test.*`) | **52** (assets 12, ephemera 9, client 31) | **0** (post-Phase 4, 2026-05-19) |
 | `examples:` in `room.ts` + `dataTypes/room.ts` | **0** (regression guard) | **0** |
 | `npx tsc -p packages/mtw-wml/tsconfig.json --noEmit` | **pass** | **pass** |
 | `npm test -- ts/standardize` (`packages/mtw-wml`) | (not recorded) | **pass** (1385+ tests) |
@@ -239,9 +239,11 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
 
 ### Phase 4: Example retirement (codebase only)
 
-- [ ] Remove **`<Example>`** from schema, **`StandardExample`**, factory, **`ExampleEditor`**, top-level Example routes, **`EXAMPLE#`**-only ephemera paths for F/K.
-- [ ] Update tests and [`AGENT.testing.mtw-wml-typescript.md`](../../../../packages/mtw-wml/AGENT.testing.mtw-wml-typescript.md) (F/K use **`situations`**, not **`.examples`**).
-- [ ] **No** production WML/DB migration script (**D3**, **D4**).
+**Status:** Complete (2026-05-19).
+
+- [X] Remove **`<Example>`** from schema, **`StandardExample`**, factory, **`ExampleEditor`**, top-level Example routes, **`EXAMPLE#`**-only ephemera paths for F/K.
+- [X] Update tests and [`AGENT.testing.mtw-wml-typescript.md`](../../../../packages/mtw-wml/AGENT.testing.mtw-wml-typescript.md) (F/K use **`situations`**, not **`.examples`**).
+- [X] **No** production WML/DB migration script (**D3**, **D4**).
 - [ ] Delete or archive this task plan when merged.
 
 ## Verification
@@ -265,7 +267,7 @@ rg "examples:" packages/mtw-wml/ts/standardize/components/room.ts packages/mtw-w
 npx tsc -p packages/mtw-wml/tsconfig.json --noEmit
 ```
 
-After Phase 4, Feature/Knowledge tests should prefer **`<Situation uuid=(DEFAULT)>`** under parent tags (same fixture convention as Room). See **Fixture tip** in [`AGENT.testing.mtw-wml-typescript.md`](../../../../packages/mtw-wml/AGENT.testing.mtw-wml-typescript.md).
+**Post-Phase 4 counts (2026-05-19):** check 1 **0**; check 2 **0**; check 3 **0** (non-test). Feature/Knowledge tests use **`<Situation uuid=(DEFAULT)>`** under parent tags (same fixture convention as Room). See **Fixture tip** in [`AGENT.testing.mtw-wml-typescript.md`](../../../../packages/mtw-wml/AGENT.testing.mtw-wml-typescript.md).
 
 ## Production data migration
 

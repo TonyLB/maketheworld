@@ -1,5 +1,5 @@
 import { SchemaImportableBase } from "./baseClasses";
-import { SchemaDisplayNameTag } from "./example";
+import { SchemaDisplayNameTag } from "./prose";
 import { SchemaImageTag } from "./image";
 import { SchemaImportTag } from "./metaData";
 import checkTypes, { CheckTypes } from "../utils/checkTypes";

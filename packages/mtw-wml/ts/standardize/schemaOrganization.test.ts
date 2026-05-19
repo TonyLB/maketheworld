@@ -1977,7 +1977,7 @@ describe('SchemaOrganization', () => {
                 <Asset uuid=(test)>
                     <Room uuid=(room1) key=(room1)>
                         <Feature uuid=(feature1) key=(feature1) />
-                        <Example ref={0} uuid=(example1) key=(example1) />
+                        <Situation ref={0} uuid=(example1) key=(example1) />
                         <Character uuid=(char1) key=(char1) />
                     </Room>
                 </Asset>

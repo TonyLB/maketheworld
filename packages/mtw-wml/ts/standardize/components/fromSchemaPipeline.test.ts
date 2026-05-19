@@ -5,8 +5,8 @@ import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { StandardLiteral } from "../literal"
 import { ReferenceList } from "./reference"
 import { StandardRender } from "../render"
-import { isSchemaDescription, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
-import { StandardizeConsumerInline, StandardizeConsumerReferenceList, StandardizeConsumerRender, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral, processWithConsumers } from "./fromSchemaPipeline"
+import { isSchemaDescription, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/prose"
+import { StandardizeConsumerInline, StandardizeConsumerReferenceList, StandardizeConsumerRender, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral, processWithConsumers, type StandardizeConsumer } from "./fromSchemaPipeline"
 
 describe("fromSchemaPipeline", () => {
     describe("StandardizeConsumerSimple", () => {
@@ -54,7 +54,7 @@ describe("fromSchemaPipeline", () => {
             const roomTree = treeFromWML(deIndentWML(`
                 <Room key=(test)>
                     <Feature key=(f1) />
-                    <Example key=(e1) />
+                    <Situation key=(e1) />
                 </Room>
             `))
             const children = roomTree[0].children
@@ -67,7 +67,7 @@ describe("fromSchemaPipeline", () => {
             const { parsingRemainder: remainder, returnRemainderAddition } = consumer.process(children)
             expect(update).not.toHaveBeenCalled()
             expect(remainder).toHaveLength(2)
-            expect(remainder.map((n) => n.data.tag)).toEqual(["Feature", "Example"])
+            expect(remainder.map((n) => n.data.tag)).toEqual(["Feature", "Situation"])
             expect(returnRemainderAddition).toEqual([])
         })
     })

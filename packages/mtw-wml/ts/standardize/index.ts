@@ -31,7 +31,6 @@ import { UUIDGenerator } from "@tonylb/mtw-utilities/ts/uuid/index"
 import StandardImage from "./components/image"
 import StandardMessage from "./components/message"
 import StandardMoment from "./components/moment"
-import StandardExample from "./components/example"
 import StandardGuidance from "./components/guidance"
 import StandardSituation from "./components/situation"
 import StandardMark, { StandardLens } from "./components/worldState"
@@ -58,7 +57,6 @@ const COMPONENT_ORDER: string[] = [
     'Map',
     'Message',
     'Moment',
-    'Example',
     'Guidance',
     'Situation',
     'Mark',
@@ -74,7 +72,6 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
         (value instanceof StandardMessage) ||
         (value instanceof StandardMoment) ||
         (value instanceof StandardRoom) ||
-        (value instanceof StandardExample) ||
         (value instanceof StandardGuidance) ||
         (value instanceof StandardSituation) ||
         (value instanceof StandardMark) ||
@@ -96,7 +93,7 @@ export const assertInstance = <C extends { new (...args: any[]) : any }>(value: 
 }
 
 export const hasDisplayName = (component: StandardComponent): component is StandardComponent & HasDisplayName => {
-    return (component instanceof StandardExample || component instanceof StandardCharacter)
+    return (component instanceof StandardCharacter)
 }
 
 export const hasDescription = (component: StandardComponent): component is StandardComponent & HasDescription => {
@@ -108,11 +105,12 @@ export const hasShortName = (component: StandardComponent): component is Standar
         (component instanceof StandardCharacter) ||
         (component instanceof StandardFeature) ||
         (component instanceof StandardKnowledge) ||
-        (component instanceof StandardExample) ||
         (component instanceof StandardMap) ||
         (component instanceof StandardImage) ||
         (component instanceof StandardMessage) ||
-        (component instanceof StandardMoment)
+        (component instanceof StandardMoment) ||
+        (component instanceof StandardSituation) ||
+        (component instanceof StandardGuidance)
 }
 
 export type StandardFormEqualsOptions = {

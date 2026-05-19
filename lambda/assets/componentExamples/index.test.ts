@@ -1,7 +1,5 @@
 import { componentExamplesDataSource } from './index'
-import { enrichExampleEvent } from './exampleEnrichment'
 import { ComponentExamplesIncomingEvent } from './subscribedEvents'
-import { StandardExample } from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
@@ -43,15 +41,6 @@ jest.mock('../internalCache', () => ({
     AssetData: { get: jest.fn() },
     ComponentData: { get: jest.fn() },
 }))
-
-jest.mock('./exampleEnrichment', () => {
-    const actual = jest.requireActual('./exampleEnrichment')
-    return {
-        __esModule: true,
-        ...actual,
-        enrichExampleEvent: jest.fn(),
-    }
-})
 
 describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
     const mockInternalCache = internalCache as unknown as {
@@ -138,7 +127,7 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
             jest.clearAllMocks()
         })
 
-        it('should ignore non-Example components even when events are subscribed', async () => {
+        it('should ignore unrelated components when events are subscribed', async () => {
             const events: ComponentExamplesIncomingEvent[] = [
                 {
                     header: {
@@ -175,240 +164,6 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
             })
 
             expect(mockStreamEvent).not.toHaveBeenCalled()
-        })
-
-        it('should not publish ExampleUpdated when enrichment yields empty parentIds', async () => {
-            ;(enrichExampleEvent as jest.Mock).mockResolvedValue({
-                exampleId: 'EXAMPLE#one',
-                assetStack: ['ASSET#asset1'],
-                parentIds: [],
-                example: {
-                    markState: { markValue: [] },
-                    renderedContent: { description: ['Hello'] },
-                    provenance: { type: 'authored' },
-                },
-            })
-
-            const events: ComponentExamplesIncomingEvent[] = [
-                {
-                    header: {
-                        dataSourceKey: 'mtw.assets',
-                        streamKey: 'ASSET#asset1',
-                        timestamp: 123,
-                        type: 'Component Updated',
-                    },
-                    getContent: () =>
-                        Promise.resolve({
-                            type: 'Component Updated',
-                            component: new StandardExample({
-                                tag: 'Example',
-                                universalKey: 'EXAMPLE#one',
-                            } as any),
-                        } as any),
-                },
-            ]
-
-            await componentExamplesDataSource.receiveEvents?.({
-                events,
-                streamEvent: mockStreamEvent,
-                streamEnvelope: mockStreamEnvelope,
-            })
-
-            expect(enrichExampleEvent).toHaveBeenCalled()
-            expect(mockStreamEvent).not.toHaveBeenCalled()
-        })
-
-        it('should publish ExampleUpdated for Example Component Updated events with enrichment', async () => {
-            ;(enrichExampleEvent as jest.Mock).mockResolvedValue({
-                exampleId: 'EXAMPLE#one',
-                assetStack: ['ASSET#asset1'],
-                parentIds: ['ROOM#one'],
-                example: {
-                    markState: { markValue: [] },
-                    renderedContent: { description: [] },
-                    provenance: { type: 'authored' },
-                },
-            })
-
-            const events: ComponentExamplesIncomingEvent[] = [
-                {
-                    header: {
-                        dataSourceKey: 'mtw.assets',
-                        streamKey: 'ASSET#asset1',
-                        timestamp: 123,
-                        type: 'Component Updated',
-                    },
-                    getContent: () =>
-                        Promise.resolve({
-                            type: 'Component Updated',
-                            component: new StandardExample({
-                                tag: 'Example',
-                                universalKey: 'EXAMPLE#one',
-                            } as any),
-                        } as any),
-                },
-            ]
-
-            await componentExamplesDataSource.receiveEvents?.({
-                events,
-                streamEvent: mockStreamEvent,
-                streamEnvelope: mockStreamEnvelope,
-            })
-
-            expect(enrichExampleEvent).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    exampleId: 'EXAMPLE#one',
-                    eventAssetId: 'ASSET#asset1',
-                    eventType: 'Component Updated',
-                })
-            )
-
-            const firstCall = (enrichExampleEvent as jest.Mock).mock.calls[0][0]
-            expect(firstCall.component.toJSON()).toEqual({
-                tag: 'Example',
-                universalKey: 'EXAMPLE#one',
-            })
-
-            expect(mockStreamEvent).toHaveBeenCalledTimes(1)
-            expect(mockStreamEvent).toHaveBeenCalledWith({
-                streamKey: 'EXAMPLE#one',
-                update: {
-                    type: 'ExampleUpdated',
-                    exampleId: 'EXAMPLE#one',
-                    parentIds: ['ROOM#one'],
-                    assetStack: ['ASSET#asset1'],
-                    perspectiveMatcher: { requiredAssetIds: ['ASSET#asset1'], forbiddenAssetIds: [] },
-                    example: {
-                        markState: { markValue: [] },
-                        renderedContent: { description: [] },
-                        provenance: { type: 'authored' },
-                    },
-                },
-                header: { type: 'ExampleUpdated' },
-            })
-        })
-
-        it('should publish ExampleUpdated for Example Component Republished events with enrichment', async () => {
-            ;(enrichExampleEvent as jest.Mock).mockResolvedValue({
-                exampleId: 'EXAMPLE#one',
-                assetStack: ['ASSET#asset1'],
-                parentIds: ['ROOM#one'],
-                example: {
-                    markState: { markValue: [] },
-                    renderedContent: { description: [] },
-                    provenance: { type: 'authored' },
-                },
-            })
-
-            const events: ComponentExamplesIncomingEvent[] = [
-                {
-                    header: {
-                        dataSourceKey: 'mtw.assets',
-                        streamKey: 'ASSET#asset1',
-                        timestamp: 123,
-                        type: 'Component Republished',
-                    },
-                    getContent: () =>
-                        Promise.resolve({
-                            type: 'Component Updated',
-                            component: new StandardExample({
-                                tag: 'Example',
-                                universalKey: 'EXAMPLE#one',
-                            } as any),
-                        } as any),
-                },
-            ]
-
-            await componentExamplesDataSource.receiveEvents?.({
-                events,
-                streamEvent: mockStreamEvent,
-                streamEnvelope: mockStreamEnvelope,
-            })
-
-            expect(enrichExampleEvent).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    exampleId: 'EXAMPLE#one',
-                    eventAssetId: 'ASSET#asset1',
-                    eventType: 'Component Updated',
-                })
-            )
-            expect(mockStreamEvent).toHaveBeenCalledTimes(1)
-            expect(mockStreamEvent).toHaveBeenCalledWith({
-                streamKey: 'EXAMPLE#one',
-                update: {
-                    type: 'ExampleUpdated',
-                    exampleId: 'EXAMPLE#one',
-                    parentIds: ['ROOM#one'],
-                    assetStack: ['ASSET#asset1'],
-                    perspectiveMatcher: { requiredAssetIds: ['ASSET#asset1'], forbiddenAssetIds: [] },
-                    example: {
-                        markState: { markValue: [] },
-                        renderedContent: { description: [] },
-                        provenance: { type: 'authored' },
-                    },
-                },
-                header: { type: 'ExampleUpdated' },
-            })
-        })
-
-        it('should publish ExampleRemoved for Example Component Removed events with enrichment', async () => {
-            ;(enrichExampleEvent as jest.Mock).mockResolvedValue({
-                exampleId: 'EXAMPLE#one',
-                assetStack: ['ASSET#asset1'],
-                parentIds: ['ROOM#one'],
-            })
-
-            const events: ComponentExamplesIncomingEvent[] = [
-                {
-                    header: {
-                        dataSourceKey: 'mtw.assets',
-                        streamKey: 'ASSET#asset1',
-                        timestamp: 123,
-                        type: 'Component Removed',
-                    },
-                    getContent: () =>
-                        Promise.resolve({
-                            type: 'Component Removed',
-                            component: new StandardExample({
-                                tag: 'Example',
-                                universalKey: 'EXAMPLE#one',
-                            } as any),
-                        } as any),
-                },
-            ]
-
-            await componentExamplesDataSource.receiveEvents?.({
-                events,
-                streamEvent: mockStreamEvent,
-                streamEnvelope: mockStreamEnvelope,
-            })
-
-            expect(enrichExampleEvent).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    exampleId: 'EXAMPLE#one',
-                    eventAssetId: 'ASSET#asset1',
-                    eventType: 'Component Removed',
-                })
-            )
-
-            const firstCall = (enrichExampleEvent as jest.Mock).mock.calls[0][0]
-            expect(firstCall.component.toJSON()).toEqual({
-                tag: 'Example',
-                universalKey: 'EXAMPLE#one',
-            })
-
-            expect(mockStreamEvent).toHaveBeenCalledTimes(1)
-            expect(mockStreamEvent).toHaveBeenCalledWith({
-                streamKey: 'EXAMPLE#one',
-                update: {
-                    type: 'ExampleRemoved',
-                    exampleId: 'EXAMPLE#one',
-                    parentIds: ['ROOM#one'],
-                    assetStack: ['ASSET#asset1'],
-                    perspectiveMatcher: { requiredAssetIds: ['ASSET#asset1'], forbiddenAssetIds: [] },
-                },
-                header: { type: 'ExampleRemoved' },
-            })
         })
 
         it('publishes ExampleUpdated for Room updates by mirroring Situation facets', async () => {

@@ -107,7 +107,7 @@ ComponentRender discovers accessible assets through:
 
 ### **Example Integration (rooms vs other types)**
 - **Rooms / Features / Knowledge**: **`renderCache`** only for display prose in **`ComponentRender`** (see **`_resolveRenderPayloadFromDefaultCache`** for F/K; Room branch uses first cache row today).
-- **`ExamplesData`**: Still constructed on **`ComponentRenderData`** but **not** called for Room, Feature, or Knowledge display prose. Legacy **`EXAMPLE#`** Dynamo rows may remain until Phase 4 Example retirement.
+- **`ExamplesData`**: Removed (Phase 4). Room, Feature, and Knowledge display prose use **`renderCache`** only.
 - **Maps**: Out of F/K initiative scope.
 
 ## Integration Points

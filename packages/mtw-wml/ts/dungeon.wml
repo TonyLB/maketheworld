@@ -1,7 +1,7 @@
 <Asset uuid=(Dungeon)>
     <Room key=(VORTEX)>
         <Exit to=(cave)>cave</Exit>
-        <Example ref={0} uuid=(example1)>
+        <Situation ref={0} uuid=(example1)>
             <Description>
                 Natural rock formations rise in a jagged cliff-face. An asymmetric
                 opening leads into a dimly lit cave. 
@@ -10,7 +10,7 @@
                 it had been created. But it hasn't)
             </Description>
             <DisplayName>Cave entrance</DisplayName>
-        </Example>
+        </Situation>
     </Room>
     <Map key=(dungeonMap)>
         <Image key=(dungeonImage) />
@@ -33,32 +33,32 @@
         </Room>
     </Map>
     <Room key=(cave)>
-        <Example ref={0} uuid=(example2)>
+        <Situation ref={0} uuid=(example2)>
             <DisplayName>Shallow cave</DisplayName>
             <Description>Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, a jumbled pile of jagged rocks against the wall make a far less hospitable space.</Description>
-        </Example>
-        <Example ref={0} uuid=(example3)>
+        </Situation>
+        <Situation ref={0} uuid=(example3)>
             <DisplayName>Shallow cave</DisplayName>
             <Description>Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, rocks have been cleared revealing a passage further underground.</Description>
-        </Example>
+        </Situation>
     </Room>
     <Room key=(curvingPassage)>
-        <Example ref={0} uuid=(example4)>
+        <Situation ref={0} uuid=(example4)>
             <DisplayName>Curving Passage</DisplayName>
             <Description>Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.</Description>
-        </Example>
+        </Situation>
     </Room>
     <Room key=(chamber)>
         <Feature key=(orc)>
         </Feature>
         <Feature key=(pie)>
         </Feature>
-        <Example ref={0} uuid=(example5)>
+        <Situation ref={0} uuid=(example5)>
             <Description>
                 A ten-by-ten squared off cut stone room. Across from the passage leading in is a table with a
                 <Link to=(pie)>pie</Link>. Standing before the table is an angry 
                 <Link to=(orc)>orc</Link>.
             </Description>
-        </Example>
+        </Situation>
     </Room>
 </Asset>
