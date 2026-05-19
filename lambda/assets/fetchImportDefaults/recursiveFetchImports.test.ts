@@ -223,9 +223,9 @@ describe('recursiveFetchImports', () => {
             </Asset>`),
             new StandardForm(`<Asset uuid=(testImport)>
                 <Feature uuid=(testFeature) key=(testFeature)>
-                    <Example uuid=(testFeatureBase)>
+                    <Situation uuid=(DEFAULT)>
                         <Description>Feature test</Description>
-                    </Example>
+                    </Situation>
                 </Feature>
                 <Room uuid=(testRoomWithFeatures) key=(testRoomWithFeatures)>
                     <Example ref={0} uuid=(testRoomBase)>
