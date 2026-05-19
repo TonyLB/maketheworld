@@ -1,6 +1,6 @@
 # Phase 1 classification: `index.test.ts` and component integration inventory
 
-**Status:** Phase 4 Step 0 complete (2026-05-19). Steps 1-3 not started. Section 8 Step 0 overlap context is the reference for Layer A/B sweeps.  
+**Status:** Phase 4 Step 1 complete (2026-05-19). Steps 2-3 not started. Section 8 Step 0 overlap context is the reference for Layer A/B sweeps.  
 **Baseline (2026-05-19):** gate suite -- **226 passed** total (`index` + `integration/` + `*.integration.test.ts`).  
 **Source of truth:** section 4 (Phase 1 overlap rules); section 5 (Phase 3 renames **done**); **section 8** (Phase 4 per-file sweep results).
 
@@ -450,28 +450,32 @@ Use this when sweeping Steps 1-3 so similar fixtures are not mis-tagged as dupli
 
 | File | ~`it` | Sweep | Redundancies | Gaps |
 | --- | ---: | --- | --- | --- |
-| `integration/standardForm.equals.test.ts` | 6 | [ ] | | |
-| `integration/standardForm.isEmpty.test.ts` | 12 | [ ] | | |
-| `integration/standardForm.referencedBy.test.ts` | 5 | [ ] | | |
-| `integration/standardForm.finalize.test.ts` | 3 | [ ] | | |
-| `integration/standardForm.lookup.test.ts` | 5 | [ ] | | |
-| `integration/standardForm.assureComponents.test.ts` | 7 | [ ] | | |
-| `integration/standardForm.validate.test.ts` | 7 | [ ] | | |
-| `integration/standardForm.standardizeMode.test.ts` | 4 | [ ] | | |
-| `integration/standardForm.removeComponent.test.ts` | 12 | [ ] | | |
+| `integration/standardForm.equals.test.ts` | 6 | [x] | **none**. All assert `form.equals` / `optimizeByUniversalKey`; no component-unit or org-API overlap. | **none**. Covers AGENT.md Semantic Optionals (`vacuous optional metadata`, `optimizeByUniversalKey` parity + fallback). |
+| `integration/standardForm.isEmpty.test.ts` | 12 | [x] | **none**. | **none**. Covers `_shortName`, `_summary`, `_topLevel`, and all-vacuous components per AGENT.md `isEmpty()` contract. |
+| `integration/standardForm.referencedBy.test.ts` | 5 | [x] | **none** vs `schemaOrganization` `isReferenced` (org API in isolation vs `form.referencedBy` on `StandardForm`). | **none** for direct/shared/universalKey referrers at Layer A. |
+| `integration/standardForm.finalize.test.ts` | 3 | [x] | **none** vs `room.integration` character/finalize scenarios (Room-centric integration vs `finalize` UUID + `_lookup` types). | **none**. UUID assignment, reference remap, `_lookup` instance types covered. |
+| `integration/standardForm.lookup.test.ts` | 5 | [x] | **none**. `byId` / `byUniversalId` setter paths distinct from smoke (see index row). | **none**. Includes empty-import `from` on Room. |
+| `integration/standardForm.assureComponents.test.ts` | 7 | [x] | **none** vs component `assureReferences` unit tests (asset-level `assureComponents` on `ReferenceList`). | **none**. Key-only, universalKey-only, multi-ref, immutability covered. |
+| `integration/standardForm.validate.test.ts` | 7 | [x] | **none** vs `schemaOrganization` explicit-parent describes (constructor/merge/diff throw paths vs direct org API). | **`_validateParentExists`**: no test for explicit `<Parent>` pointing at missing component (`index.ts` L781-791). Circular + valid-parent + merge/diff cycle paths covered. `should detect cycle in diff operation` documents invalid parent-type limit (Features cannot parent Features). |
+| `integration/standardForm.standardizeMode.test.ts` | 4 | [x] | **none** (reconfirms Step 0 vs `wmlStandardizeMode`, ephemeraWire integration). | **none** at policy layer. Optional defer: `resolveInitialStandardizeMode` (data field vs constructor options) not asserted here. |
+| `integration/standardForm.removeComponent.test.ts` | 12 | [x] | **none** vs `schemaOrganization` `implicitDescendantsOfAncestor` (org graph API vs `form.removeComponent` + ref scrubbing). | **none**. Basic remove, topLevel, ref cleanup, cascade true/false covered. |
+
+#### Step 1 smoke -- [`index.test.ts`](../../../../../packages/mtw-wml/ts/standardize/index.test.ts)
+
+| ~`it` | Sweep | Redundancies | Gaps |
+| ---: | --- | --- | --- |
+| 2 | [x] | **none** (intentional thin smoke; not dup of full `construct` suite). | **none**. `should return an empty wrapper unchanged` is smoke-only; `should accept parsed schema` exercises `Schema.loadWML` + `byId` / `byUniversalId` / full `schema` round-trip (partial overlap with `construct` schema paths is intentional guard). |
 
 ### Step 1b -- Layer A (heavy API files)
 
 | File | ~`it` | Sweep | Redundancies | Gaps |
 | --- | ---: | --- | --- | --- |
-| `integration/standardForm.construct.test.ts` | 15 | [ ] | | |
-| `integration/standardForm.merge.test.ts` | 17 | [ ] | | |
-| `integration/standardForm.keyChangesViaMerge.test.ts` | 9 | [ ] | | |
-| `integration/standardForm.subset.test.ts` | 12 | [ ] | | |
-| `integration/standardForm.diff.test.ts` | 30 | [ ] | | |
-| `integration/standardForm.assetMeta.test.ts` | 31 | [ ] | | |
-
-Also sweep [`index.test.ts`](../../../../../packages/mtw-wml/ts/standardize/index.test.ts) smoke (2 `it`) for gap-only check.
+| `integration/standardForm.construct.test.ts` | 15 | [x] | **none** vs `keys/facets/integration` (facet class `renderFacet` vs StandardForm JSON/NDJSON missing-payload injection). Typeguard `it` is StandardForm-data specific. | **none** for Layer A construct paths. Describes: `input vs normative typeguards` (1), `facet payload defaults` (4), `construction` (6), `NDJSON` (4). Relocation/hoisting distinct from org-only tests. |
+| `integration/standardForm.merge.test.ts` | 17 | [x] | **none** vs `processComponents` title pairs (Step 0: `should combine descriptions in rooms and features` and peers assert walker output, not `form.merge`). Component-level Knowledge `merge` cases exercise delegation, not dup asset merge. | **none** for asset-level merge/edit/origin/universalKey conflict. Includes missing-payload diff/merge roundtrip (StandardForm-specific). |
+| `integration/standardForm.keyChangesViaMerge.test.ts` | 9 | [x] | **none** vs `diff` `key changes` describe (merge-time Key tag orchestration + retarget vs diff output shape). | **none**. validation (2), reference updates (4), merge behavior (1), integration cycle (1). |
+| `integration/standardForm.subset.test.ts` | 12 | [x] | **none** vs `map.integration` / facet Position unit tests (`form.subset` request graphs vs map schema or `renderFacet`). | **none** for Full/Stub/ExitsAndShortName cascades, position/exit/map-editing graphs, loop handling. |
+| `integration/standardForm.diff.test.ts` | 30 | [x] | **none** vs `schemaOrganization` ordering/reparent describes (e2e WML diff vs direct org API). Root `it` character reference change is unique harness. | **Known debt** (keep): root `it` `should handle diff scenarios with character reference changes` -- TODO L84; documents missing nested ref in diff ([`AGENT.md`](../../../../../packages/mtw-wml/ts/standardize/AGENT.md) Technical Debt). Nested move/key describes (29 `it`) otherwise well covered. |
+| `integration/standardForm.assetMeta.test.ts` | 31 | [x] | **none**. Asset-level ShortName/Summary merge/diff/NDJSON distinct from component ShortName unit tests. | **none**. 28 `it` in `Asset-level ShortName and Summary`; `imports through NDJSON` (1) for import graph. Compaction-to-undefined for vacuous Summary/ShortName in diff covered. |
 
 ### Step 2a -- Layer B (thin integration + unit pairs)
 
@@ -510,15 +514,19 @@ Also sweep [`index.test.ts`](../../../../../packages/mtw-wml/ts/standardize/inde
 
 | Source file | Test (title) | Duplicate of | Proposed action |
 | --- | --- | --- | --- |
-| | | | |
+| *(Step 1: none)* | | | |
 
 **Gap backlog** (candidates for add / move from unit to integration):
 
 | Behavior / API | Suggested owner file | Priority | Notes |
 | --- | --- | --- | --- |
-| | | | |
+| Diff: nested reference to existing global component missing from diff output | `standardForm.diff.test.ts` (extend) or fix implementation | Medium | Known debt; existing TODO test documents expected vs actual. See AGENT.md Technical Debt. |
+| `validate()` / `_validateParentExists`: explicit parent references non-existent component | `standardForm.validate.test.ts` | Low | Constructor path only; no dedicated `it` yet. |
+| `StandardForm.mapContents()` asset orchestration | `standardForm.construct.test.ts` or new theme file | Low | Component-level `mapContents` covered in unit tests; no Layer A test. |
+| `resolveInitialStandardizeMode` (data vs constructor options) | `standardForm.standardizeMode.test.ts` | Low | Policy tests exist; resolution precedence not asserted. |
+| Deprecated `renameKey()` on StandardForm | *(none -- intentional)* | Defer | Superseded by Key tags via merge; no test expected. |
 
-**Phase 4 sign-off:** [ ] All Step 0-3 rows swept or explicitly deferred with reason; [ ] Consolidated tables reviewed; gate suite still 226+ pass if any fix slices landed.
+**Phase 4 sign-off:** [x] Step 0-1 rows swept; [ ] Steps 2-3; [ ] Consolidated tables final review at Step 4; gate suite still 226+ pass if any fix slices landed.
 
 ---
 
@@ -530,4 +538,5 @@ Also sweep [`index.test.ts`](../../../../../packages/mtw-wml/ts/standardize/inde
 - [x] Overlap with facets + wmlStandardizeMode documented
 - [x] Rename and delete candidates enumerated
 - [x] Baseline 217 pass recorded
-- [ ] Phase 4 section 8 sweeps complete (Step 0 [x]; Steps 1-3 pending)
+- [x] Phase 4 section 8 Step 1 (Layer A + smoke) complete
+- [ ] Phase 4 section 8 Steps 2-3 pending
