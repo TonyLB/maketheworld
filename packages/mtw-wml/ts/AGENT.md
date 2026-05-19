@@ -102,22 +102,19 @@ standard form, the data would be expresed as follows:
 
 For detailed information about all component types and their APIs, see [`standardize/components/AGENT.md`](./standardize/components/AGENT.md).
 
-**⚠️ CRITICAL (Feature and Knowledge)** — Task plan: [`taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md`](../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md).
-
-**WML storage (Phase 1 shipped in `packages/mtw-wml`):**
+**⚠️ CRITICAL (Feature and Knowledge)**
 
 - **Storage:** **`situations`** homogeneous facet list on Feature/Knowledge (**`SituationProseFacetList`**, shared with Room). Each facet references a **`Situation`** and carries a **payload** (DisplayName / Summary / Description for that parent in that world-state).
-- **DEFAULT-only (v1):** Author and render **`SITUATION#DEFAULT`** only in tests and client work. Non-DEFAULT facet list UI, layered SituationFacet tabs, and mark-matched multi-facet render are deferred.
+- **DEFAULT-only (v1):** Author and render **`SITUATION#DEFAULT`** only. Non-DEFAULT facet list UI, layered SituationFacet tabs, and mark-matched multi-facet render are deferred.
 - **Marks:** On **`Situation`** components, not on Example children under F/K.
-- **D6:** **`fromSchema`** does **not** dual-read **`<Example>`** under Feature/Knowledge; **`toJSON`** emits **`situations`**, not **`examples`**.
-- **Situation entity:** **`Situation`** is an **independent** WML component; Room/Feature/Knowledge reference it via facets but do **not** own it (**D8**).
-- **No production data migration:** Extant database has no Feature/Knowledge/Example content; Phase 4 is code/test cleanup only.
-
-**Client Phase 3-4 (shipped):** Playing UI (**`ComponentDescription`**) reads **`render`** then **`SITUATION#DEFAULT`** facet on Feature/Knowledge (**D1**). Workbench **`ComponentSelectorDialog`** no longer lists **Example** (**D4**). **`ExampleEditor`** and **`StandardExample`** removed (Phase 4, 2026-05-19).
+- **`fromSchema`:** Does **not** accept **`<Example>`** under Feature/Knowledge; **`toJSON`** emits **`situations`**, not **`examples`**.
+- **Situation entity:** **`Situation`** is an **independent** WML component; Room/Feature/Knowledge reference it via facets but do **not** own it.
+- **Ephemera wire:** Resolved header prose on **`render`** (**`<Render>`**, same JSON shape as **`SituationProseFacetPayloadType`**). Playing UI (**`ComponentDescription`**) reads **`render`** then **`SITUATION#DEFAULT`** facet fallback.
+- **`<Example>` / `StandardExample`:** Removed from schema, lambdas, and Workbench (2026-05-19). Unconsumed **`<Example>`** in imported WML fails parse or standardization.
 
 **Display prose (preferred)**: Author **Situation** facets on Room / Feature / Knowledge for blueprint display name, summary, and description. On ephemera wire, resolved header prose is carried on **`render`** (`<Render>`), the same JSON shape as **`SituationProseFacetPayloadType`**. See [`standardize/AGENT.md`](./standardize/AGENT.md) (**Payload vocabulary vs semantic mode**).
 
-**Room vs legacy `<Example>` WML:** **`StandardRoomData`** has **no** **`examples`** field. Room / Feature / Knowledge prose uses **Situation** facets (blueprint) and **`render`** (wire). The **`<Example>`** component tag was removed (Phase 4); unconsumed **`<Example>`** in imported WML fails parse or standardization. Authoring guidance: [`standardize/AGENT.md`](./standardize/AGENT.md) (**Room prose**), [`standardize/components/AGENT.implementation.md`](./standardize/components/AGENT.implementation.md) (**StandardRoom**). Regression searches: [`AGENT.testing.mtw-wml-typescript.md`](../AGENT.testing.mtw-wml-typescript.md).
+**Room vs legacy `<Example>` WML:** **`StandardRoomData`** has **no** **`examples`** field. Room / Feature / Knowledge prose uses **Situation** facets (blueprint) and **`render`** (wire). Authoring guidance: [`standardize/AGENT.md`](./standardize/AGENT.md) (**Room prose**), [`standardize/components/AGENT.implementation.md`](./standardize/components/AGENT.implementation.md) (**StandardRoom**). Regression searches: [`AGENT.testing.mtw-wml-typescript.md`](../AGENT.testing.mtw-wml-typescript.md).
 
 **Imported / third-party asset packs:** If you merge WML authored elsewhere, validate that Room display prose does not depend on serialized Room **`examples`** or nested Example ownership. Re-run targeted searches (see **`AGENT.testing.mtw-wml-typescript.md`**) if you suspect legacy shapes.
 

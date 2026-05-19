@@ -17,7 +17,7 @@ After changes to Room/Feature/Knowledge standardization or test fixtures, these 
 
 **Fixture tips:**
 
-- **Room, Feature, Knowledge prose:** Use **`<Situation uuid=(DEFAULT)>`** (or a bare **`uuid=(myKey)`** for entity ids) under the parent. WML **`uuid=(...)`** is unprefixed; JSON / **`byUniversalId`** use **`SITUATION#...`**. Do **not** use **`<Example>`** in new fixtures (tag removed Phase 4).
+- **Room, Feature, Knowledge prose:** Use **`<Situation uuid=(DEFAULT)>`** (or a bare **`uuid=(myKey)`** for entity ids) under the parent. WML **`uuid=(...)`** is unprefixed; JSON / **`byUniversalId`** use **`SITUATION#...`**. Do **not** use **`<Example>`** in new fixtures (tag removed).
 - **Feature / Knowledge:** Expect **`toJSON().situations`**, not **`examples`**. No **`.examples`** hits in **`feature.test.ts`** / **`knowledge.test.ts`**.
 - **Room wire:** Use **`<Render>`** under Room only when the case is explicitly about ephemera **`render`** shape.
 - **Marks:** Author on **`Situation`** components via **`SituationEditor`** / marks facets, not **`<Example>`**.

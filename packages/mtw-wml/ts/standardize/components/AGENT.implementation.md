@@ -68,11 +68,6 @@ Common combinations: A Room typically references and hosts its Features. A Room 
 
 ## Component Types
 
-### **StandardExample** ✅
-- **Purpose**: Represents examples with name, summary, and description
-- **Content Properties**: `name`, `summary`, `description` (all `StandardRender`)
-- **Status**: ✅ Technical debt resolved
-
 ### **StandardCharacter** ✅
 - **Purpose**: Represents characters with name, shortName, pronouns, and image
 - **Content Properties**: `name` (now `StandardRender`), `image` (remains `EditWrappedStandardNode`)
@@ -83,16 +78,8 @@ Common combinations: A Room typically references and hosts its Features. A Room 
 - **Content Properties**: `fileURL` (string)
 - **Status**: 🔴 Has critical technical debt (see Technical Debt section below)
 
-### **StandardFeature**
-- **Purpose**: Represents features with name and description
-- **Content Properties**: `name`, `description` (both `StandardRender`)
-
 ### **StandardAction**
 - **Purpose**: Represents actions with name and description
-- **Content Properties**: `name`, `description` (both `StandardRender`)
-
-### **StandardKnowledge**
-- **Purpose**: Represents knowledge with name and description
 - **Content Properties**: `name`, `description` (both `StandardRender`)
 
 ### **StandardRoom** 🟢
@@ -106,19 +93,16 @@ Common combinations: A Room typically references and hosts its Features. A Room 
 
 ### **StandardFeature** 🟢
 
-Task plan: [`taskPlanning/.../AGENT.featureKnowledgeExamples.planning.md`](../../../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md).
-
 - **Purpose**: Represents features with a short-name and display prose via **Situation** facets
-- **Content Properties**: `shortName` (`StandardLiteral`); **`situations`** as **`SituationProseFacetList`** (shared payload with Room)
-- **fromSchema**: `ShortName`, **`StandardizeConsumerFacetListSituation`**, inline `ref={0}` children; **D6:** `<Example>` under Feature is not consumed (throws on unconsumed remainder)
-- **Wire (Phase 2):** Ephemera **`render`** field (same payload shape as Room) -- not yet on F/K payloads
+- **Content Properties**: `shortName` (`StandardLiteral`); **`situations`** as **`SituationProseFacetList`** (shared payload with Room); optional ephemera **`render`** (`SituationProseFacetPayload`-shaped JSON)
+- **fromSchema**: `ShortName`, **`StandardizeConsumerFacetListSituation`**, inline `ref={0}` children; `<Example>` under Feature is not consumed (throws on unconsumed remainder)
 
 ### **StandardKnowledge** 🟢
 
-Same as **StandardFeature**: **`situations`** facet list, shared **`SituationProseFacetPayload`**, DEFAULT-only in v1 tests; no **`examples`** on **`StandardKnowledgeData`**.
+Same as **StandardFeature**: **`situations`** facet list, shared **`SituationProseFacetPayload`**, DEFAULT-only in v1; no **`examples`** on **`StandardKnowledgeData`**.
 
 - **Purpose**: Represents knowledge items with a short-name and display prose
-- **Content Properties**: `shortName` (`StandardLiteral`); **`situations`** as **`SituationProseFacetList`**
+- **Content Properties**: `shortName` (`StandardLiteral`); **`situations`** as **`SituationProseFacetList`**; optional ephemera **`render`**
 - **fromSchema**: Same consumer pattern as Feature (Situation facets only; no Example dual-read)
 
 ### **StandardMessage** 🟢
@@ -703,7 +687,7 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
 
 #### Components with Complex Properties
 
-**Example**: `StandardExample` (has `StandardRender` properties), `StandardCharacter` (has `EditWrappedStandardNode` for images)
+**Example**: `StandardSituation` (mark facets), `StandardCharacter` (has `EditWrappedStandardNode` for images)
 
 **Pattern**:
 - Use `StandardRender` for rich text content (name, description, etc.)

@@ -195,7 +195,7 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 | `KnowledgeEdit/` | KnowledgeEditor (shortName + DefaultRenderEditor) |
 | `foundations/DefaultRenderEditor.tsx` | Inline DEFAULT situation facet prose (Room, Feature, Knowledge) |
 | `foundations/SituationFacetRenderFieldsEditor.tsx` | Shared facet field editor (layered Room situations + DEFAULT inline) |
-| ~~`ExampleEdit/`~~ | **Removed** Phase 4 (2026-05-19); F/K prose via **`DefaultRenderEditor`** |
+| ~~`ExampleEdit/`~~ | **Removed** (2026-05-19); F/K prose via **`DefaultRenderEditor`** |
 | `foundations/LayeredContext/` | LayeredContextView (Room Situation/Guidance tabs), LayeredTabs |
 | `MarkEdit/` | MarkEditor (full), InlineEditor (shortName only; used in LensMarkFacetsEditor) |
 | `MapEdit/` | MapEditor, MapArea, MapController, MapLayers, UnshownRooms |
