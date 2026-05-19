@@ -56,7 +56,7 @@ See **D2** in [Decisions](#decisions): **shared SituationRoomFacetPayload-shaped
 
 ### Implementation gap (not a product fork)
 
-**Phase 2 lambdas (assets + ephemera D1):** complete (2026-05-19). **Remaining:** client Phase 3 (editors, **`ComponentDescription`**), Phase 4 Example retirement.
+**Phase 2 lambdas (assets + ephemera D1):** complete (2026-05-19). **Phase 3 (partial, 2026-05-19):** F/K **`DefaultRenderEditor`** + **`layeredContextUtils`** cleanup shipped. **Remaining:** **`ComponentDescription`**, Workbench selector/docs, Phase 4 Example retirement.
 
 ### Pre-flight checklist
 
@@ -103,12 +103,12 @@ See **D2** in [Decisions](#decisions): **shared SituationRoomFacetPayload-shaped
 
 ### Client (`charcoal-client`)
 
-| Area | Room (done) | Feature / Knowledge (legacy) |
+| Area | Room (done) | Feature / Knowledge |
 | --- | --- | --- |
-| Editor | **`RoomEditor`**: **`DefaultRenderEditor`**, situation facet list (non-DEFAULT), Guidance refs | **`FeatureEditor` / `KnowledgeEditor`**: **`examples`** **`ReferenceListEditor`**, navigate to **`ExampleEditor`** |
-| Layered tabs | Situation / Guidance via **`layeredContextUtils`** | Example siblings via **`parent.examples`** |
-| Playing UI | **`RoomDescription`**: **`render`**, then situation facets | **`ComponentDescription`**: first **`StandardExample`** via **`examples.payload[0]`** |
-| Primitives | **`assureDefaultSituationFromPrimitives`** (**`SITUATION#DEFAULT`**) | Should reuse for new situation facets |
+| Editor | **`RoomEditor`**: **`DefaultRenderEditor`**, situation facet list (non-DEFAULT), Guidance refs | **`FeatureEditor` / `KnowledgeEditor`**: **`DefaultRenderEditor`** (DEFAULT only; shipped 2026-05-19) |
+| Layered tabs | Situation / Guidance via **`layeredContextUtils`** | No layered tabs (**D5**; Example path removed 2026-05-19) |
+| Playing UI | **`RoomDescription`**: **`render`**, then situation facets | **`ComponentDescription`**: first **`StandardExample`** via **`examples.payload[0]`** (Phase 3 pending) |
+| Primitives | **`assureDefaultSituationFromPrimitives`** (**`SITUATION#DEFAULT`**) | Reused via **`SituationFacetRenderFieldsEditor`** (2026-05-19) |
 
 Reuse **`SituationFacetRenderFieldsEditor`** and a generalized **`DefaultRenderEditor`** for F/K (**D5**). Do **not** port Room's non-DEFAULT situation list or SituationFacet layered tabs to F/K in this initiative.
 
@@ -140,7 +140,7 @@ Reuse **`SituationFacetRenderFieldsEditor`** and a generalized **`DefaultRenderE
 | 0 | Code inventory and baseline | Complete (2026-05-18) | Call sites confirmed; baseline greps recorded below |
 | 1 | WML: facet types + Feature/Knowledge `situations` | Complete (2026-05-18) | **`SituationProseFacet*`**; **D6** no Example dual-read under F/K |
 | 2 | Assets + ephemera: facet-driven cache for F/K | Complete (2026-05-19) | **D1** render + renderCache shipped; client Phase 3 pending |
-| 3 | Client: DEFAULT editor + playing UI | Pending | **D5** inline DEFAULT only; **D1** **`ComponentDescription`** |
+| 3 | Client: DEFAULT editor + playing UI | In progress (2026-05-19) | **D5** editors + layered utils shipped; **`ComponentDescription`** pending |
 | 4 | Remove **`<Example>`** from product surface | Pending | Schema/editors/factory cleanup; tests updated; **D3/D4 N/A** |
 | -- | Deferred: constellation / Guidance / Lens on F/K | -- | After steady-state DEFAULT path ships |
 
@@ -168,9 +168,9 @@ Phase 0 walk of seed rows plus related files. **Confirmed** summarizes current b
 | --- | --- | --- | --- |
 | [`ComponentDescription.tsx`](../../../../charcoal-client/src/components/Message/ComponentDescription.tsx) | F/K: **`examples.payload[0]`** -> child **`StandardExample`** for displayName/description; defaults **Unknown** / empty | **`render`** wire, then DEFAULT situation facet payload; same safe defaults (**D7**) | 3 |
 | [`RoomDescription.tsx`](../../../../charcoal-client/src/components/Message/RoomDescription.tsx) | **`render`** then first **`situations`** facet via **`SituationRoomFacetPayload`**; no **`examples`** | No change; template for F/K Phase 3 | -- |
-| [`layeredContextUtils.ts`](../../../../charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts) | F/K: **`parent.examples`** for layered tabs and sibling checks; Room uses **`situations`** / Guidance | Remove F/K Example path; **no** F/K SituationFacet tabs (**D5**) | 3 |
-| [`FeatureEditor.tsx`](../../../../charcoal-client/src/components/Workbench/FeatureEdit/FeatureEditor.tsx) | **`ReferenceListEditor`** on **`_payload._examples`**; navigates to **`ExampleEditor`** | Generalized **`DefaultRenderEditor`** + **`SituationFacetRenderFieldsEditor`**; **`assureDefaultSituationFromPrimitives`** (**D5**) | 3 |
-| [`KnowledgeEditor.tsx`](../../../../charcoal-client/src/components/Workbench/KnowledgeEdit/KnowledgeEditor.tsx) | Same as FeatureEditor | Same as Feature | 3 |
+| [`layeredContextUtils.ts`](../../../../charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts) | Room: **`situations`** / Guidance only; F/K Example path removed | No change until Phase 4 | 3 (done) |
+| [`FeatureEditor.tsx`](../../../../charcoal-client/src/components/Workbench/FeatureEdit/FeatureEditor.tsx) | **`DefaultRenderEditor`** + **`SituationFacetRenderFieldsEditor`**; **`assureDefaultSituationFromPrimitives`** | No change until Phase 4 | 3 (done) |
+| [`KnowledgeEditor.tsx`](../../../../charcoal-client/src/components/Workbench/KnowledgeEdit/KnowledgeEditor.tsx) | Same as FeatureEditor | No change until Phase 4 | 3 (done) |
 | [`ExampleEditor.tsx`](../../../../charcoal-client/src/components/Workbench/ExampleEdit/ExampleEditor.tsx) | Edits **`StandardExample`** fields (displayName, summary, description) | Retire after Phase 4 | 4 |
 | [`WorkbenchAssetEditor.tsx`](../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditor.tsx) | Routes top-level **`StandardExample`** to **`ExampleEditor`** | Situation / facet routing only | 4 |
 | [`WorkbenchContainer.tsx`](../../../../charcoal-client/src/components/Workbench/WorkbenchContainer.tsx) | Breadcrumb labels for Example layers under F/K | Update when Example path removed | 3-4 |
@@ -232,8 +232,8 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
 
 ### Phase 3: Client
 
-- [ ] **`FeatureEditor` / `KnowledgeEditor`**: **D5** -- generalized **`DefaultRenderEditor`** (DEFAULT facet only); **`assureDefaultSituationFromPrimitives`**; remove **Examples** reference list.
-- [ ] **`layeredContextUtils`**: remove F/K **Example** layered-tab path; do **not** add F/K SituationFacet layered tabs.
+- [X] **`FeatureEditor` / `KnowledgeEditor`**: **D5** -- generalized **`DefaultRenderEditor`** (DEFAULT facet only); **`assureDefaultSituationFromPrimitives`**; remove **Examples** reference list. Shipped 2026-05-19.
+- [X] **`layeredContextUtils`**: remove F/K **Example** layered-tab path; do **not** add F/K SituationFacet layered tabs. Shipped 2026-05-19.
 - [ ] **`ComponentDescription`**: **D1** -- read **`render`**, then DEFAULT facet; drop **`StandardExample`** path.
 - [ ] Update Workbench **`AGENT.md`**, component selector (**D4** -- drop **Example** when ready).
 

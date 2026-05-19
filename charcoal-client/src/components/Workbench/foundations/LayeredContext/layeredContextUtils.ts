@@ -1,13 +1,11 @@
 /**
  * Layered context utils: detect when the breadcrumb stack represents a "layered tab"
- * context (e.g. Room → Example or Room → Guidance) and derive siblings for the tab strip.
+ * context (e.g. Room -> Guidance or Room -> Situation facet) and derive siblings for the tab strip.
  * No React/Redux; used by workbench selectors and WorkbenchContainer.
  */
 
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
-import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import StandardGuidance from '@tonylb/mtw-wml/ts/standardize/components/guidance'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
@@ -34,23 +32,10 @@ export type BreadcrumbEntryLike = {
     componentId: string | null
 }
 
-function getReferenceList(
-    parent: StandardRoom | StandardFeature | StandardKnowledge,
-    childTag: LayeredChildTag
-): StandardReference[] | null {
-    if (childTag === 'Example') {
-        if (parent instanceof StandardRoom) return null
-        return parent.examples.payload.filter(
-            (ref): ref is StandardReference => ref instanceof StandardReference
-        )
-    }
-    if (childTag === 'Guidance') {
-        if (!(parent instanceof StandardRoom)) return null
-        return parent.guidance.payload.filter(
-            (ref): ref is StandardReference => ref instanceof StandardReference
-        )
-    }
-    return null
+function getGuidanceReferenceList(parent: StandardRoom): StandardReference[] | null {
+    return parent.guidance.payload.filter(
+        (ref): ref is StandardReference => ref instanceof StandardReference
+    )
 }
 
 function isTagInLayeredTabs(tag: LayeredChildTag): boolean {
@@ -95,15 +80,15 @@ export function isSituationFacetChild(
 }
 
 /**
- * Returns siblings { id, label }[] for the given parent and child tag (Example or Guidance).
- * Room: examples + guidance; Feature/Knowledge: examples only.
+ * Returns siblings { id, label }[] for Room Guidance references.
  */
 export function findReferenceSiblings(
     standardForm: StandardForm,
-    parentComponent: StandardRoom | StandardFeature | StandardKnowledge,
+    parentComponent: StandardRoom,
     childTag: LayeredChildTag
 ): { id: ComponentUUID; label: string | null }[] {
-    const refs = getReferenceList(parentComponent, childTag)
+    if (childTag !== 'Guidance') return []
+    const refs = getGuidanceReferenceList(parentComponent)
     if (!refs) return []
 
     return refs
@@ -121,8 +106,7 @@ export function findReferenceSiblings(
 }
 
 /**
- * Returns true if childId appears in parent's guidance payload (Room) or examples payload
- * (Feature/Knowledge) by universalKey.
+ * Returns true if childId appears in parent's guidance payload (Room only) by universalKey.
  */
 export function isReferenceListChild(
     standardForm: StandardForm,
@@ -131,24 +115,15 @@ export function isReferenceListChild(
 ): boolean {
     if (!parentId || !childId) return false
     const parent = standardForm.byUniversalId[parentId]
-    if (!(parent instanceof StandardRoom) && !(parent instanceof StandardFeature) && !(parent instanceof StandardKnowledge)) {
-        return false
-    }
-    const inExamples = (parent instanceof StandardFeature || parent instanceof StandardKnowledge) && parent.examples.payload.some(
+    if (!(parent instanceof StandardRoom)) return false
+    return parent.guidance.payload.some(
         (ref) => ref instanceof StandardReference && ref.universalKey === childId
     )
-    if (inExamples) return true
-    if (parent instanceof StandardRoom) {
-        return parent.guidance.payload.some(
-            (ref) => ref instanceof StandardReference && ref.universalKey === childId
-        )
-    }
-    return false
 }
 
 /**
  * If the stack represents a layered tab context (parent + child where child is in parent's
- * examples, guidance, or situation facets and tag is in COMPONENT_TAGS_WITH_LAYERED_TABS),
+ * guidance or situation facets and tag is in COMPONENT_TAGS_WITH_LAYERED_TABS),
  * return context; else null.
  */
 export function getLayeredContext(
@@ -176,18 +151,15 @@ export function getLayeredContext(
     const child = standardForm.byUniversalId[currentId]
     if (!child) return null
 
-    if (!(parent instanceof StandardRoom) && !(parent instanceof StandardFeature) && !(parent instanceof StandardKnowledge)) {
+    if (!(parent instanceof StandardRoom)) {
         return null
     }
     if (child instanceof StandardMark) return null
 
-    const inExamples = (parent instanceof StandardFeature || parent instanceof StandardKnowledge) && parent.examples.payload.some(
+    const inGuidance = parent.guidance.payload.some(
         (ref) => ref instanceof StandardReference && ref.universalKey === currentId
     )
-    const inGuidance = parent instanceof StandardRoom && parent.guidance.payload.some(
-        (ref) => ref instanceof StandardReference && ref.universalKey === currentId
-    )
-    const tag: LayeredChildTag | null = inExamples ? 'Example' : inGuidance ? 'Guidance' : null
+    const tag: LayeredChildTag | null = inGuidance ? 'Guidance' : null
     if (!tag || !isTagInLayeredTabs(tag)) return null
 
     const siblings = findReferenceSiblings(standardForm, parent, tag)

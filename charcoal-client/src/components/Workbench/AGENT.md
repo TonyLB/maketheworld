@@ -145,24 +145,14 @@ dispatch(pushBreadcrumb({ id: exampleId, kind: 'component', componentId: example
 
 ### Reference List Editing
 
-Room display prose uses **Situation** facets on the Room and ephemera **`render`** payloads, not `StandardRoom.examples` (legacy; see [`packages/mtw-wml/ts/AGENT.md`](../../../../packages/mtw-wml/ts/AGENT.md)). **Feature** and **Knowledge** still store display content via their **`examples`** reference list.
+Room, Feature, and Knowledge display prose use **Situation** facets (`situations` on the parent) and ephemera **`render`** payloads, not legacy **`examples`** reference lists (see [`packages/mtw-wml/ts/AGENT.md`](../../../../packages/mtw-wml/ts/AGENT.md)). **FeatureEditor** and **KnowledgeEditor** edit DEFAULT facet prose inline via **`DefaultRenderEditor`** (no Examples list).
 
 ```typescript
-// Use referenceListToItems for list display
-const items = referenceListToItems({ referenceList, standardForm, tag: 'Example' })
+// DEFAULT situation facet prose (Feature, Knowledge, or Room)
+<DefaultRenderEditor parentId={universalKey} />
 
-// Add/remove via updateStandard and ReferenceList (Feature or Knowledge — not Room)
-updateStandard({
-    type: 'update',
-    update: (draft) => {
-        const base = draft.byUniversalId[universalKey]
-        if (base instanceof StandardFeature) {
-            const currentExamples = base._payload._examples ?? new ReferenceList([])
-            base._payload._examples = currentExamples.assureItem(new StandardReference({ universalKey: exampleId, tag: 'Example' }))
-        }
-        return draft
-    }
-})
+// Reference lists still used for Room Guidance, Room non-DEFAULT situations, Features in a Room, etc.
+const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance' })
 ```
 
 ### Rich Text Editing
@@ -190,7 +180,7 @@ updateStandard({
 1. **Workbench Flow**: Start at [`WorkbenchContainer.tsx`](./WorkbenchContainer.tsx) for layout and breadcrumb header; then [`WorkbenchAssetEditor.tsx`](./WorkbenchAssetEditor.tsx) for view routing
 2. **Asset Context**: Read [`foundations/useWorkbenchAsset.ts`](./foundations/useWorkbenchAsset.ts) to understand how asset data flows from `personalAssets` into Workbench components
 3. **Navigation State**: Read [`src/slices/UI/workbench/index.ts`](../../slices/UI/workbench/index.ts) for breadcrumb model and selectors
-4. **Component Editing**: One editor per component type, each under its own `{Component}Edit` directory (e.g. `RoomEdit/RoomEditor.tsx`, `FeatureEdit/FeatureEditor.tsx`, `KnowledgeEdit/KnowledgeEditor.tsx`). RoomEditor composes `ExitEditor`, `LensHeader` (from LensEdit), `FeatureListEditor`, and Examples `ReferenceListEditor`; FeatureEditor and KnowledgeEditor show shortName + Examples only.
+4. **Component Editing**: One editor per component type, each under its own `{Component}Edit` directory (e.g. `RoomEdit/RoomEditor.tsx`, `FeatureEdit/FeatureEditor.tsx`, `KnowledgeEdit/KnowledgeEditor.tsx`). RoomEditor composes `ExitEditor`, `LensHeader` (from LensEdit), `FeatureListEditor`, `DefaultRenderEditor`, situation list (non-DEFAULT), and Guidance; FeatureEditor and KnowledgeEditor show shortName + `DefaultRenderEditor` only.
 
 ### Key Files
 
@@ -200,8 +190,10 @@ updateStandard({
 | `WorkbenchAssetEditor.tsx` | View routing (asset / component / componentLayer) |
 | `WorkbenchAssetEditForm.tsx` | Asset-level metadata, component list, imports |
 | `RoomEdit/` | RoomEditor, ExitEditor, FeatureListEditor (Lens via LensEdit/LensHeader) |
-| `FeatureEdit/` | FeatureEditor (shortName + Examples) |
-| `KnowledgeEdit/` | KnowledgeEditor (shortName + Examples) |
+| `FeatureEdit/` | FeatureEditor (shortName + DefaultRenderEditor) |
+| `KnowledgeEdit/` | KnowledgeEditor (shortName + DefaultRenderEditor) |
+| `foundations/DefaultRenderEditor.tsx` | Inline DEFAULT situation facet prose (Room, Feature, Knowledge) |
+| `foundations/SituationFacetRenderFieldsEditor.tsx` | Shared facet field editor (layered Room situations + DEFAULT inline) |
 | `ExampleEdit/` | ExampleEditor |
 | `foundations/LayeredContext/` | LayeredContextView (layered Examples/Guidance tabs), LayeredTabs |
 | `MarkEdit/` | MarkEditor (full), InlineEditor (shortName only; used in LensMarkFacetsEditor) |

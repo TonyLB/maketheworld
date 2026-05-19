@@ -4,12 +4,14 @@ import { useDispatch } from 'react-redux'
 import { useWorkbenchAsset } from './useWorkbenchAsset'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
+import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import {
-    SituationRoomFacetList,
-    StandardSituationRoomFacet,
-    SituationRoomFacetPayload
+    SituationProseFacetList,
+    StandardSituationProseFacet,
+    SituationProseFacetPayload
 } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import StandardRenderEditor from './StandardRender/StandardRenderEditor'
@@ -23,13 +25,23 @@ import {
 } from '../../../slices/personalAssets'
 import { fetchImports } from '../../../slices/personalAssets/index.api'
 
+export type SituationProseParent = StandardRoom | StandardFeature | StandardKnowledge
+
+export function isSituationProseParent(component: unknown): component is SituationProseParent {
+    return (
+        component instanceof StandardRoom ||
+        component instanceof StandardFeature ||
+        component instanceof StandardKnowledge
+    )
+}
+
 export interface SituationFacetRenderFieldsEditorProps {
-    roomId: ComponentUUID
+    parentId: ComponentUUID
     situationId: ComponentUUID
     /** When true and an update would result in an empty payload, remove the facet instead of updating. */
     removeWhenEmpty?: boolean
     /**
-     * When true and the room has no facet for this situation, render empty fields and create the facet
+     * When true and the parent has no facet for this situation, render empty fields and create the facet
      * on first edit. Only applies when situationId is the default situation (SITUATION#DEFAULT).
      */
     createOnEdit?: boolean
@@ -37,13 +49,12 @@ export interface SituationFacetRenderFieldsEditorProps {
 
 /**
  * Edits the situation-facet render payload (displayName, summary, description) for a given
- * room and situation. Assumes the room has a situation facet for the given situationId;
- * returns null if the room or facet is missing. Uses useWorkbenchAsset() for standardForm,
- * updateStandard, and readonly. Intended for use in layered context (Room -> Situation) and
- * for future room-level default render editing with SITUATION#DEFAULT.
+ * parent (Room, Feature, or Knowledge) and situation. Returns null if the parent or facet is
+ * missing (unless createOnEdit with DEFAULT situation). Uses useWorkbenchAsset() for standardForm,
+ * updateStandard, and readonly.
  */
 export const SituationFacetRenderFieldsEditor: FunctionComponent<SituationFacetRenderFieldsEditorProps> = ({
-    roomId,
+    parentId,
     situationId,
     removeWhenEmpty = false,
     createOnEdit = false
@@ -51,76 +62,76 @@ export const SituationFacetRenderFieldsEditor: FunctionComponent<SituationFacetR
     const dispatch = useDispatch()
     const { standardForm, updateStandard, readonly, AssetId } = useWorkbenchAsset()
 
-    const room = useMemo(() => {
-        const c = standardForm.byUniversalId[roomId]
-        if (c && c instanceof StandardRoom) return c
+    const parent = useMemo(() => {
+        const c = standardForm.byUniversalId[parentId]
+        if (isSituationProseParent(c)) return c
         return undefined
-    }, [roomId, standardForm])
+    }, [parentId, standardForm])
 
     const facet = useMemo(() => {
-        if (!room) return undefined
-        return room.situations.items.find((f) => f.reference?.universalKey === situationId)
-    }, [room, situationId])
+        if (!parent) return undefined
+        return parent.situations.items.find((f) => f.reference?.universalKey === situationId)
+    }, [parent, situationId])
 
     const updateFacetPayload = useCallback(
-        (updatePayload: (prev: SituationRoomFacetPayload) => SituationRoomFacetPayload, options?: ScopedInstrumentationOptions) => {
-            if (!room || !facet || readonly) return
+        (updatePayload: (prev: SituationProseFacetPayload) => SituationProseFacetPayload, options?: ScopedInstrumentationOptions) => {
+            if (!parent || !facet || readonly) return
             updateStandard({
                 type: 'update',
                 update: (draft: StandardForm): StandardForm => {
-                    const draftRoom = draft.byUniversalId[roomId]
-                    if (!draftRoom || !(draftRoom instanceof StandardRoom)) return draft
-                    const facetToUpdate = draftRoom.situations.items.find((f) => f.reference?.universalKey === situationId)
+                    const draftParent = draft.byUniversalId[parentId]
+                    if (!isSituationProseParent(draftParent)) return draft
+                    const facetToUpdate = draftParent.situations.items.find((f) => f.reference?.universalKey === situationId)
                     if (!facetToUpdate) return draft
-                    const newPayload = updatePayload(facetToUpdate.payload as SituationRoomFacetPayload)
-                    if (removeWhenEmpty && SituationRoomFacetPayload.isEmpty(newPayload)) {
-                        const newItems = draftRoom.situations.items.filter(
+                    const newPayload = updatePayload(facetToUpdate.payload as SituationProseFacetPayload)
+                    if (removeWhenEmpty && SituationProseFacetPayload.isEmpty(newPayload)) {
+                        const newItems = draftParent.situations.items.filter(
                             (f) => f.reference?.universalKey !== situationId
                         )
-                        draftRoom._payload._situations = new SituationRoomFacetList(newItems)
+                        draftParent._payload._situations = new SituationProseFacetList(newItems)
                         return draft
                     }
-                    const newItems = draftRoom.situations.items.map((f) => {
+                    const newItems = draftParent.situations.items.map((f) => {
                         if (f.reference?.universalKey !== situationId) return f
-                        return new StandardSituationRoomFacet({
+                        return new StandardSituationProseFacet({
                             reference: f.reference ?? new StandardReference({ universalKey: situationId, tag: 'Situation' }),
                             payload: newPayload.toJSON()
                         })
                     })
-                    draftRoom._payload._situations = new SituationRoomFacetList(newItems)
+                    draftParent._payload._situations = new SituationProseFacetList(newItems)
                     return draft
                 }
             }, options)
         },
-        [roomId, situationId, room, facet, updateStandard, readonly, removeWhenEmpty]
+        [parentId, situationId, parent, facet, updateStandard, readonly, removeWhenEmpty]
     )
 
     const ensureFacetWithPayload = useCallback(
-        (payload: SituationRoomFacetPayload) => {
-            if (!room || readonly || situationId !== DEFAULT_SITUATION_ID) return
+        (payload: SituationProseFacetPayload) => {
+            if (!parent || readonly || situationId !== DEFAULT_SITUATION_ID) return
             let needsFetch = false
             updateStandard({
                 type: 'update',
                 update: (draft: StandardForm): StandardForm => {
                     needsFetch = assureDefaultSituationFromPrimitives(draft)
-                    const draftRoom = draft.byUniversalId[roomId]
-                    if (!draftRoom || !(draftRoom instanceof StandardRoom)) return draft
-                    const existingIndex = draftRoom.situations.items.findIndex(
+                    const draftParent = draft.byUniversalId[parentId]
+                    if (!isSituationProseParent(draftParent)) return draft
+                    const existingIndex = draftParent.situations.items.findIndex(
                         (f) => f.reference?.universalKey === situationId
                     )
-                    const existingFacet = existingIndex >= 0 ? draftRoom.situations.items[existingIndex] : undefined
+                    const existingFacet = existingIndex >= 0 ? draftParent.situations.items[existingIndex] : undefined
                     const existingJson =
-                        existingFacet?.payload instanceof SituationRoomFacetPayload
+                        existingFacet?.payload instanceof SituationProseFacetPayload
                             ? existingFacet.payload.toJSON()
                             : (existingFacet?.payload as Record<string, unknown> | undefined)
                     const mergedPayload = existingJson
-                        ? new SituationRoomFacetPayload({
+                        ? new SituationProseFacetPayload({
                               displayName: payload._displayName?.toJSON() ?? existingJson.displayName,
                               summary: payload._summary?.toJSON() ?? existingJson.summary,
                               description: payload._description?.toJSON() ?? existingJson.description
                           })
                         : payload
-                    const newFacet = new StandardSituationRoomFacet({
+                    const newFacet = new StandardSituationProseFacet({
                         reference: new StandardReference({
                             universalKey: situationId,
                             tag: 'Situation'
@@ -128,12 +139,12 @@ export const SituationFacetRenderFieldsEditor: FunctionComponent<SituationFacetR
                         payload: mergedPayload.toJSON()
                     })
                     if (existingIndex >= 0) {
-                        const newItems = draftRoom.situations.items.slice()
+                        const newItems = draftParent.situations.items.slice()
                         newItems[existingIndex] = newFacet
-                        draftRoom._payload._situations = new SituationRoomFacetList(newItems)
+                        draftParent._payload._situations = new SituationProseFacetList(newItems)
                     } else {
-                        draftRoom._payload._situations = new SituationRoomFacetList([
-                            ...draftRoom.situations.items,
+                        draftParent._payload._situations = new SituationProseFacetList([
+                            ...draftParent.situations.items,
                             newFacet
                         ])
                     }
@@ -144,26 +155,26 @@ export const SituationFacetRenderFieldsEditor: FunctionComponent<SituationFacetR
                 dispatch(fetchImports(AssetId))
             }
         },
-        [roomId, situationId, room, readonly, updateStandard, dispatch, AssetId]
+        [parentId, situationId, parent, readonly, updateStandard, dispatch, AssetId]
     )
 
     const handleDisplayNameChange = useCallback(
         (newDisplayName: StandardLiteral) => {
             if (facet) {
                 updateFacetPayload((prev) =>
-                    new SituationRoomFacetPayload({
+                    new SituationProseFacetPayload({
                         displayName: newDisplayName.toJSON(),
                         summary: prev._summary?.toJSON(),
                         description: prev._description?.toJSON()
                     })
                 )
             } else if (createOnEdit && situationId === DEFAULT_SITUATION_ID) {
-                const payload = new SituationRoomFacetPayload({
+                const payload = new SituationProseFacetPayload({
                     displayName: newDisplayName.toJSON(),
                     summary: undefined,
                     description: undefined
                 })
-                if (!SituationRoomFacetPayload.isEmpty(payload)) {
+                if (!SituationProseFacetPayload.isEmpty(payload)) {
                     ensureFacetWithPayload(payload)
                 }
             }
@@ -175,19 +186,19 @@ export const SituationFacetRenderFieldsEditor: FunctionComponent<SituationFacetR
         (newSummary: StandardRender) => {
             if (facet) {
                 updateFacetPayload((prev) =>
-                    new SituationRoomFacetPayload({
+                    new SituationProseFacetPayload({
                         displayName: prev._displayName?.toJSON(),
                         summary: newSummary.toJSON(),
                         description: prev._description?.toJSON()
                     })
                 )
             } else if (createOnEdit && situationId === DEFAULT_SITUATION_ID) {
-                const payload = new SituationRoomFacetPayload({
+                const payload = new SituationProseFacetPayload({
                     displayName: undefined,
                     summary: newSummary.toJSON(),
                     description: undefined
                 })
-                if (!SituationRoomFacetPayload.isEmpty(payload)) {
+                if (!SituationProseFacetPayload.isEmpty(payload)) {
                     ensureFacetWithPayload(payload)
                 }
             }
@@ -199,19 +210,19 @@ export const SituationFacetRenderFieldsEditor: FunctionComponent<SituationFacetR
         (newDescription: StandardRender) => {
             if (facet) {
                 updateFacetPayload((prev) =>
-                    new SituationRoomFacetPayload({
+                    new SituationProseFacetPayload({
                         displayName: prev._displayName?.toJSON(),
                         summary: prev._summary?.toJSON(),
                         description: newDescription.toJSON()
                     })
                 )
             } else if (createOnEdit && situationId === DEFAULT_SITUATION_ID) {
-                const payload = new SituationRoomFacetPayload({
+                const payload = new SituationProseFacetPayload({
                     displayName: undefined,
                     summary: undefined,
                     description: newDescription.toJSON()
                 })
-                if (!SituationRoomFacetPayload.isEmpty(payload)) {
+                if (!SituationProseFacetPayload.isEmpty(payload)) {
                     ensureFacetWithPayload(payload)
                 }
             }
@@ -220,10 +231,10 @@ export const SituationFacetRenderFieldsEditor: FunctionComponent<SituationFacetR
     )
 
     const canRenderEmpty = createOnEdit && situationId === DEFAULT_SITUATION_ID
-    if (!room || (!facet && !canRenderEmpty)) return null
+    if (!parent || (!facet && !canRenderEmpty)) return null
 
     const emptyRender = new StandardRender([])
-    const payload = facet ? (facet.payload as SituationRoomFacetPayload) : undefined
+    const payload = facet ? (facet.payload as SituationProseFacetPayload) : undefined
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
