@@ -36,7 +36,7 @@ The `standardize` directory contains the `StandardForm` class, which represents 
 
 6. **Use tests as executable documentation**
    - **Why**: Tests capture real-world calling patterns and clarify how merge/diff/subset should behave across many components and edge cases.
-   - **Read**: `index.test.ts`, `baseClasses.test.ts`, `processComponents.test.ts`, and representative component tests under `components/*.test.ts` (especially `room.test.ts`, `example.test.ts`, and `edits.test.ts`).
+   - **Read**: Asset-level integration tests under `integration/standardForm.*.test.ts` (e.g. `standardForm.diff.test.ts`, `standardForm.subset.test.ts`, `standardForm.merge.test.ts` when present), plus `index.test.ts` (grab-bag and mode tests until the suite is thinned), `baseClasses.test.ts`, `processComponents.test.ts`, and representative component tests under `components/*.test.ts` (especially `room.test.ts`, `example.test.ts`, and `edits.test.ts`).
    - **Focus**: Concrete examples of asset-level merges, edit components (`Replace`, `Remove`), subset extraction for maps/positions, and how reference changes are expected to appear in diffs.
    - **For edit operations**: When examining test cases involving `Remove`, `Replace`, or merge/diff operations, refer to [`./components/AGENT.editAlgebra.md`](./components/AGENT.editAlgebra.md) and [`./components/AGENT.referenceList.editAlgebra.md`](./components/AGENT.referenceList.editAlgebra.md) to understand the mathematical properties that govern these operations.
 

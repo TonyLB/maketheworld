@@ -1,6 +1,6 @@
 # StandardForm test suite cleaning (`index.test.ts`)
 
-**Status:** In progress. Phase 1 complete (classification only). Next step: Phase 2 mechanical split. See [`AGENT.testSuiteCleaning.classification.md`](./AGENT.testSuiteCleaning.classification.md).
+**Status:** In progress. Phase 1 complete. Layer A named-describe extraction complete (13 `integration/standardForm.*.test.ts` files). Next step: Layer A grab-bag moves and Layer B. See [`AGENT.testSuiteCleaning.classification.md`](./AGENT.testSuiteCleaning.classification.md).
 
 ## Purpose
 
@@ -219,7 +219,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Mark tests to rename (Example -> Situation) vs delete as redundant
 
 - [ ] Phase 2 - mechanical split (behavior-neutral)
-  - [ ] **Layer A:** Extract named asset-level `describe` blocks to `integration/standardForm.*.test.ts` one at a time (`diff`, `subset`, `validate`, ...); green after each
+  - [X] **Layer A:** Extract named asset-level `describe` blocks to `integration/standardForm.*.test.ts` one at a time (`diff`, `subset`, `validate`, ...); green after each
   - [ ] **Layer A:** Move remaining asset-level grab-bag slices (generic construct/merge/NDJSON not owned by a component)
   - [ ] **Layer B:** Create `components/*.integration.test.ts` files; move component-anchored grab-bag tests from `index.test.ts`
   - [ ] **Layer B:** Move informal multi-component blocks from `room.test.ts` (and peers) into `*.integration.test.ts`; shrink unit files
@@ -260,9 +260,9 @@ After each extraction PR/slice: same commands; no test count should drop without
 | Phase 0 baseline run | Done | 217 passed, ~0.73s (`npm test -- ts/standardize/index.test.ts`) |
 | Two-layer layout agreed | Done | Layer A `integration/` + Layer B `components/*.integration.test.ts` |
 | Phase 1 classification spreadsheet | Done | [`AGENT.testSuiteCleaning.classification.md`](./AGENT.testSuiteCleaning.classification.md): 64 ungrouped `it`, 16 describes, 8 delete tags, 5 rename titles |
-| First Layer A split | Not started | Suggest `diff method` or `subset method` (already grouped) |
+| Layer A named-describe extraction | Done | 13 files under `integration/`; 139 tests; `index.test.ts` 78 tests (~2,400 lines); total 217 |
 | First Layer B split | Not started | Suggest situation-nesting grab-bag -> `room.integration.test.ts` |
-| Grab-bag fully classified and moved | Not started | Classified; moves are Phase 2 |
+| Grab-bag fully classified and moved | Not started | Classified; Layer A grab-bag moves remain (Phase 2 line 223) |
 | `room.test.ts` unit/integration split | Not started | Migrate `Lens output in schema` block |
 | AGENT.md test pointers updated | Not started | |
 | Task plan archived | Not started | |
@@ -273,3 +273,4 @@ After each extraction PR/slice: same commands; no test count should drop without
 - **2026-05-19:** Baseline: 217 tests passing in ~0.73s from `packages/mtw-wml/`.
 - **2026-05-19:** Adopted two-layer integration model (asset-level `integration/` + component-adjacent `*.integration.test.ts`); updated placement rules and phases.
 - **2026-05-19:** Phase 1 complete. Baseline re-run: 217 passed, ~0.75s. Classification artifact: 64 ungrouped `it` + 16 top-level `describe` blocks tagged; `room.test.ts` Layer B inventory; overlap matrix vs facets + wmlStandardizeMode; 5 Example->Situation renames and 2 `standardizeMode` delete candidates noted for Phase 2/3.
+- **2026-05-19:** Layer A named-describe extraction. Created `packages/mtw-wml/ts/standardize/integration/` with 13 `standardForm.*.test.ts` files (construct, isEmpty, equals, assureComponents, diff, subset, keyChangesViaMerge, lookup, finalize, assetMeta, validate, removeComponent, referencedBy). `index.test.ts` retains `standardizeMode` + grab-bag (78 tests). Combined: 217 passed; `tsc --noEmit` clean.
