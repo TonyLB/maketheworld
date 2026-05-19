@@ -288,15 +288,15 @@ describe('StandardForm', () => {
         })
 
         it('should return the diff for nested situation components', () => {
-            const base = new StandardForm(`<Asset uuid=(Test)><Knowledge uuid=(testRoom) key=(testRoom)><Situation ref={0} uuid=(Example1) key=(Example1) /></Knowledge></Asset>`)
-            const incoming = new StandardForm(`<Asset uuid=(Test)><Knowledge uuid=(testRoom) key=(testRoom)><Situation ref={0} uuid=(Example1) key=(Example1) /><Situation ref={0} uuid=(Example2) key=(Example2) /></Knowledge></Asset>`)
+            const base = new StandardForm(`<Asset uuid=(Test)><Knowledge uuid=(testRoom) key=(testRoom)><Situation ref={0} uuid=(situation1) key=(situation1) /></Knowledge></Asset>`)
+            const incoming = new StandardForm(`<Asset uuid=(Test)><Knowledge uuid=(testRoom) key=(testRoom)><Situation ref={0} uuid=(situation1) key=(situation1) /><Situation ref={0} uuid=(situation2) key=(situation2) /></Knowledge></Asset>`)
             const diff = base.diff(incoming)
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                 <Asset uuid=(Test)>
                     <Knowledge uuid=(testRoom) key=(testRoom) ref={0}>
-                        <Situation key=(Example2) ref={0} />
+                        <Situation key=(situation2) ref={0} />
                     </Knowledge>
-                    <Situation uuid=(Example2) key=(Example2) ref={0} />
+                    <Situation uuid=(situation2) key=(situation2) ref={0} />
                 </Asset>
             `))
         })

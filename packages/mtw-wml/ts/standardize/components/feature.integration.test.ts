@@ -10,7 +10,7 @@ jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
 
 describe('StandardFeature integration', () => {
     describe('Situation nesting', () => {
-            it('should correct return JSON for examples nested in features nested in rooms', () => {
+            it('should correctly return JSON for situations nested in features nested in rooms', () => {
                 const test = new StandardForm(`<Asset uuid=(Test)>
                     <Room uuid=(test) key=(test)>
                         <Feature uuid=(testFeature) key=(testFeature)>
@@ -55,7 +55,7 @@ describe('StandardFeature integration', () => {
                     }]
                 })
             })
-            it('should correctly return schema for examples nested in features nested in rooms', () => {
+            it('should correctly return schema for situations nested in features nested in rooms', () => {
                 const testWML = deIndentWML(`
                     <Asset uuid=(Test)>
                         <Room uuid=(test) key=(test)>

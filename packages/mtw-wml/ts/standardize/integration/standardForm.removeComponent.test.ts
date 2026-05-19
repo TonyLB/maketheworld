@@ -157,7 +157,7 @@ describe('StandardForm', () => {
                 const room1Ref = new StandardReference({ tag: 'Room', key: 'room1', universalKey: 'ROOM#room1' })
                 const result = form.removeComponent(room1Ref, { cascade: true })
                 
-                // Room and both Examples should be removed
+                // Room and both Situations should be removed
                 expect(result._components.length).toBe(0)
                 expect(result._components.find(c => c.key === 'room1')).toBeUndefined()
                 expect(result._components.find(c => c.key === 'example1')).toBeUndefined()
@@ -178,7 +178,7 @@ describe('StandardForm', () => {
                 const room1Ref = new StandardReference({ tag: 'Room', key: 'room1', universalKey: 'ROOM#room1' })
                 const result = form.removeComponent(room1Ref, { cascade: true })
                 
-                // Room, Feature, and Example should all be removed
+                // Room, Feature, and Situation should all be removed
                 expect(result._components.length).toBe(0)
                 expect(result._components.find(c => c.key === 'room1')).toBeUndefined()
                 expect(result._components.find(c => c.key === 'feature1')).toBeUndefined()

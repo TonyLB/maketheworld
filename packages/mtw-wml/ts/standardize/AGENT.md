@@ -4,6 +4,17 @@
 
 The `standardize` directory contains the `StandardForm` class, which represents an Asset as a whole, first-class object. StandardForm handles aggregate operations on WML assets by orchestrating the known operations of the `StandardComponent` interface to make changes on each of the children components.
 
+## Test layout (two layers)
+
+StandardForm tests are split so no single file grows into an uneditable monolith:
+
+- **Layer 0 (unit):** `components/<tag>.test.ts` -- one component tag in isolation (`StandardRoom`, `StandardSituation`, etc.).
+- **Layer A (asset-level):** `integration/standardForm.<apiOrTheme>.test.ts` -- `StandardForm` APIs and asset-wide behavior (`merge`, `diff`, `subset`, `validate`, imports, NDJSON, ...).
+- **Layer B (component-adjacent integration):** `components/<tag>.integration.test.ts` and optional `components/<tag>.ephemeraWire.integration.test.ts` -- multi-tag `<Asset>` scenarios where the **primary assertion** targets one component's fields, schema, or localized round-trip.
+- **Smoke:** `index.test.ts` -- one or two minimal construct round-trips only.
+
+**Placement rule:** Put a test in the file owned by what you are asserting. Do not duplicate the same asset graph in two files. Facet payload algebra lives in `keys/facets/`; asset orchestration and schema organization live in Layer A or B as appropriate.
+
 ## Getting Started
 
 1. **Build fluency in WML and the WML schema**
@@ -42,8 +53,8 @@ The `standardize` directory contains the `StandardForm` class, which represents 
 
 7. **Check integration points and known wrinkles before extending behavior**
    - **Why**: StandardForm sits at the intersection of schema, components, render, and authorization; changes in one place often have subtle effects elsewhere.
-   - **Read**: This file’s **Integration Points** and **Technical Debt** notes (for example, the diff-system reference-change issue and the proposed explicit `<Parent>` tag behavior), plus `processComponents.ts`, `example.ts`, and `render/AGENT.md` as needed.
-   - **Focus**: Where parent/child relationships are resolved, how examples/features/knowledge get positioned, and how known limitations might affect new work.
+   - **Read**: This file’s **Integration Points** and **Technical Debt** notes (for example, the diff-system reference-change issue and the proposed explicit `<Parent>` tag behavior), plus `processComponents.ts`, [`components/situation.ts`](./components/situation.ts), and `render/AGENT.md` as needed.
+   - **Focus**: Where parent/child relationships are resolved, how situations/features/knowledge get positioned, and how known limitations might affect new work.
 
 ## Semantic Modes
 
@@ -512,7 +523,7 @@ const assetWithEdits = new StandardForm({
 - Modify merge logic to respect explicit parent when present
 - Ensure validation that parent UUID references valid components
 
-**Related Files**: `processComponents.ts`, `example.ts`, component merge logic
+**Related Files**: `processComponents.ts`, `components/situation.ts`, component merge logic
 
 ### Technical Debt
 
@@ -529,7 +540,7 @@ const assetWithEdits = new StandardForm({
 
 **Root Cause**: The `StandardForm.diff()` method's zippered component processing doesn't correctly handle reference changes in nested components when the referenced component already exists globally.
 
-**Impact**: Affects any reference list (characters, features, examples) in nested components when adding references to existing global components.
+**Impact**: Affects any reference list (characters, features, situations) in nested components when adding references to existing global components.
 
 **Priority**: Medium - affects diff accuracy but doesn't break core functionality.
 

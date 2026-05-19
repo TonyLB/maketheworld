@@ -40,7 +40,7 @@ describe("processComponents", () => {
                     </Situation>
                 </Room>
                 <Feature key=(testFeature)>
-                    <Situation uuid=(testFeatureExample)>
+                    <Situation uuid=(testFeatureSituation)>
                         <Description>Four</Description>
                     </Situation>
                 </Feature>
@@ -67,12 +67,12 @@ describe("processComponents", () => {
             `<Situation uuid=(DEFAULT) />`,
             deIndentWML(`
                 <Feature key=(testFeature)>
-                    <Situation uuid=(testFeatureExample)>
+                    <Situation uuid=(testFeatureSituation)>
                         <Description>Four</Description>
                     </Situation>
                 </Feature>
             `),
-            `<Situation uuid=(testFeatureExample) />`,
+            `<Situation uuid=(testFeatureSituation) />`,
         ])
     })
 
@@ -86,10 +86,10 @@ describe("processComponents", () => {
                         <Description>Three</Description>
                     </Situation>
                     <Feature key=(testLocal)>
-                        <Situation uuid=(testLocalExample)><Description>Local</Description></Situation>
+                        <Situation uuid=(testLocalSituation)><Description>Local</Description></Situation>
                     </Feature>
                     <Feature key=(testGlobal)>
-                        <Situation uuid=(testGlobalExample)><Description>Global</Description></Situation>
+                        <Situation uuid=(testGlobalSituation)><Description>Global</Description></Situation>
                     </Feature>
                 </Room>
             </Asset>
@@ -114,20 +114,20 @@ describe("processComponents", () => {
             `),
             deIndentWML(`
                 <Feature key=(testLocal)>
-                    <Situation uuid=(testLocalExample)>
+                    <Situation uuid=(testLocalSituation)>
                         <Description>Local</Description>
                     </Situation>
                 </Feature>
             `),
-            `<Situation uuid=(testLocalExample) />`,
+            `<Situation uuid=(testLocalSituation) />`,
             deIndentWML(`
                 <Feature key=(testGlobal)>
-                    <Situation uuid=(testGlobalExample)>
+                    <Situation uuid=(testGlobalSituation)>
                         <Description>Global</Description>
                     </Situation>
                 </Feature>
             `),
-            `<Situation uuid=(testGlobalExample) />`,
+            `<Situation uuid=(testGlobalSituation) />`,
             `<Situation uuid=(DEFAULT) />`,
         ])
         //
@@ -155,7 +155,7 @@ describe("processComponents", () => {
                     </Situation>
                 </Room>
                 <Feature key=(testFeature)>
-                    <Situation uuid=(testFeatureExample)>
+                    <Situation uuid=(testFeatureSituation)>
                         <Description>
                             Four
                         </Description>
@@ -193,12 +193,12 @@ describe("processComponents", () => {
             `<Situation uuid=(DEFAULT) />`,
             deIndentWML(`
                 <Feature key=(testFeature)>
-                    <Situation uuid=(testFeatureExample)>
+                    <Situation uuid=(testFeatureSituation)>
                         <Description>Four</Description>
                     </Situation>
                 </Feature>
             `),
-            `<Situation uuid=(testFeatureExample) />`,
+            `<Situation uuid=(testFeatureSituation) />`,
             deIndentWML(`
                 <Room key=(test)>
                     <Situation uuid=(DEFAULT)><DisplayName>Test Room</DisplayName></Situation>
@@ -319,13 +319,13 @@ describe("processComponents", () => {
                     </Situation>
                 </Room>
                 <Feature key=(testFeatureOne)>
-                    <Situation uuid=(testFeatureOneExample)>
+                    <Situation uuid=(testFeatureOneSituation)>
                         <DisplayName>TestOne</DisplayName>
                         <Description><Link to=(testFeatureTwo)>two</Link></Description>
                     </Situation>
                 </Feature>
                 <Feature key=(testFeatureTwo)>
-                    <Situation uuid=(testFeatureTwoExample)>
+                    <Situation uuid=(testFeatureTwoSituation)>
                         <DisplayName>TestTwo</DisplayName>
                         <Description>Test</Description>
                     </Situation>
@@ -350,22 +350,22 @@ describe("processComponents", () => {
             `<Situation uuid=(DEFAULT) />`,
             deIndentWML(`
                 <Feature key=(testFeatureOne)>
-                    <Situation uuid=(testFeatureOneExample)>
+                    <Situation uuid=(testFeatureOneSituation)>
                         <DisplayName>TestOne</DisplayName>
                         <Description><Link to=(testFeatureTwo)>two</Link></Description>
                     </Situation>
                 </Feature>
             `),
-            `<Situation uuid=(testFeatureOneExample) />`,
+            `<Situation uuid=(testFeatureOneSituation) />`,
             deIndentWML(`
                 <Feature key=(testFeatureTwo)>
-                    <Situation uuid=(testFeatureTwoExample)>
+                    <Situation uuid=(testFeatureTwoSituation)>
                         <DisplayName>TestTwo</DisplayName>
                         <Description>Test</Description>
                     </Situation>
                 </Feature>
             `),
-            `<Situation uuid=(testFeatureTwoExample) />`,
+            `<Situation uuid=(testFeatureTwoSituation) />`,
         ])
     })
 

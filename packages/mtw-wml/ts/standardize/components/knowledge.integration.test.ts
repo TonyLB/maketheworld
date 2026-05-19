@@ -10,7 +10,7 @@ jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
 
 describe('StandardKnowledge integration', () => {
     describe('Situation nesting', () => {
-            it('should correctly return JSON for examples nested in Knowledge', () => {
+            it('should correctly return JSON for situations nested in Knowledge', () => {
                 const test = new StandardForm(`<Asset uuid=(Test)>
                     <Knowledge uuid=(test) key=(test)>
                         <Situation uuid=(testLocal)>
@@ -37,7 +37,7 @@ describe('StandardKnowledge integration', () => {
                     }]
                 })
             })
-            it('should correctly return schema for examples nested in knowledge', () => {
+            it('should correctly return schema for situations nested in knowledge', () => {
                 const testSource = deIndentWML(`
                     <Asset uuid=(Test)>
                         <Knowledge uuid=(test) key=(test)>

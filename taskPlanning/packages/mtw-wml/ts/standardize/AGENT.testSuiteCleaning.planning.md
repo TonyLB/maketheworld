@@ -1,6 +1,6 @@
 # StandardForm test suite cleaning (`index.test.ts`)
 
-**Status:** In progress. Phase 2 nearly complete. Layer A extraction done (15 `integration/standardForm.*.test.ts` files including `standardizeMode`). Layer B informal integration from unit files and ephemeraWire split done. `index.test.ts` thinned to smoke only (~52 lines). Next step: Phase 3 staleness pass. See [`AGENT.testSuiteCleaning.classification.md`](./AGENT.testSuiteCleaning.classification.md).
+**Status:** In progress. Phase 3 complete. Phase 2 done (two-layer split shipped). `index.test.ts` smoke only (~52 lines). Next step: Phase 4 finish (full package test, archive plan). See [`AGENT.testSuiteCleaning.classification.md`](./AGENT.testSuiteCleaning.classification.md).
 
 ## Purpose
 
@@ -218,19 +218,19 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] List duplicate/overlapping coverage vs `keys/facets/integration.test.ts`, `wmlStandardizeMode.test.ts`
   - [X] Mark tests to rename (Example -> Situation) vs delete as redundant
 
-- [ ] Phase 2 - mechanical split (behavior-neutral)
+- [X] Phase 2 - mechanical split (behavior-neutral)
   - [X] **Layer A:** Extract named asset-level `describe` blocks to `integration/standardForm.*.test.ts` one at a time (`diff`, `subset`, `validate`, ...); green after each
   - [X] **Layer A:** Move remaining asset-level grab-bag slices (generic construct/merge/NDJSON not owned by a component)
   - [X] **Layer B:** Create `components/*.integration.test.ts` files; move component-anchored grab-bag tests from `index.test.ts`
   - [X] **Layer B:** Move informal multi-component blocks from `room.test.ts` (and peers) into `*.integration.test.ts`; shrink unit files
   - [X] Split `standardizeMode` / ephemeraWire per Phase 1 owner (Layer A vs `room.ephemeraWire.integration.test.ts`)
   - [X] Remove or thin `index.test.ts` when empty
-  - [ ] Add `testHelpers/` only if duplication across new files justifies it (see guidance above)
+  - [X] Add `testHelpers/` only if duplication across new files justifies it (see guidance above) — **not needed**; no `testHelpers/` added (see Progress)
 
-- [ ] Phase 3 - staleness pass
-  - [ ] Rename misleading test titles and fixture keys (Example -> Situation)
-  - [ ] Remove or relocate tests superseded by component/facet unit tests
-  - [ ] Update [`standardize/AGENT.md`](../../../../../packages/mtw-wml/ts/standardize/AGENT.md) Getting Started: two-layer layout, drop `example.test.ts`, list `integration/` + `*.integration.test.ts` convention
+- [X] Phase 3 - staleness pass
+  - [X] Rename misleading test titles and fixture keys (Example -> Situation)
+  - [X] Remove or relocate tests superseded by component/facet unit tests
+  - [X] Update [`standardize/AGENT.md`](../../../../../packages/mtw-wml/ts/standardize/AGENT.md) Getting Started: two-layer layout, drop `example.test.ts`, list `integration/` + `*.integration.test.ts` convention
 
 - [ ] Phase 4 - finish
   - [ ] Full `npm test` in `packages/mtw-wml`
@@ -269,7 +269,10 @@ After each extraction PR/slice: same commands; no test count should drop without
 | Peer informal integration | Done | map shared-ref -> `map.integration.test.ts`; guidance -> `guidance.integration.test.ts` |
 | `index.test.ts` thinned | Done | 2 smoke tests, ~52 lines |
 | Gate test count (`index` + `integration/` + `*.integration.test.ts`) | Done | **226 passed** (+9 vs 217: unit-file moves into gate; -2 dup deletes) |
-| AGENT.md test pointers updated | Partial | Getting Started step 6 updated for ephemeraWire files; full Phase 3 pass pending |
+| `testHelpers/` | Not needed | Phase 2 complete with no shared fixture dir; per-file WML is scenario-specific; existing `components/utils/testing.ts` (`mergeTest`) covers component unit merges |
+| Phase 3 staleness pass | Done | Example->Situation renames in Layer B + integration files; 0 tests deleted (overlap audit); `AGENT.md` Test layout section + `components/AGENT.implementation.md` |
+| AGENT.md test pointers updated | Done | Test layout (two layers); `situation.ts` replaces `example.ts`; no `example.test.ts` |
+| Gate test count post-Phase 3 | Done | **226 passed**, ~1.6s; `tsc --noEmit` clean |
 | Task plan archived | Not started | |
 
 ## Work log
@@ -282,3 +285,5 @@ After each extraction PR/slice: same commands; no test count should drop without
 - **2026-05-19:** Layer A grab-bag extraction. Created `standardForm.merge.test.ts`; moved 33 asset-level ungrouped tests from `index.test.ts` into `merge`, `construct`, `lookup`, `assetMeta`. Left thin smoke (2 construct tests) plus Layer B grab-bag and `standardizeMode` in `index.test.ts` (45 tests, ~1,289 lines). `integration/` now 14 files, 172 tests; combined 217 passed; `tsc --noEmit` clean.
 - **2026-05-19:** Layer B grab-bag extraction. Created 8 `components/*.integration.test.ts` files (room 14, feature 3, knowledge 3, situation 3, worldState 2, map 2, message 1, moment 1). Moved finalize character/room test from `standardForm.finalize.test.ts` to `room.integration.test.ts`. `index.test.ts` now 19 tests (`standardizeMode` + smoke, ~328 lines). Combined 217 passed; `tsc --noEmit` clean.
 - **2026-05-19:** Layer B informal integration + ephemeraWire split. Moved Situation facet + Lens from `room.test.ts` to `room.integration.test.ts` (19 tests); map shared-ref, guidance facet round-trip; feature/knowledge ephemeraWire files. Split `standardizeMode`: deleted 2 dups; `standardForm.standardizeMode.test.ts` (4); `room.ephemeraWire.integration.test.ts` (10). `index.test.ts` smoke only (2 tests, ~52 lines). Gate: 226 passed; `tsc --noEmit` clean.
+- **2026-05-19:** `testHelpers/` deferred permanently for this task: no cross-file duplicate WML asset snippets met the Phase 2 bar; repeated `<Asset uuid=(Test)>`-style setup is intentional per-scenario, not shared fixtures.
+- **2026-05-19:** Phase 3 staleness pass. Renamed 5 Layer B `it` titles and fixture keys (`testFeatureSituation`, `situation1`/`situation2`, etc.) in `room.integration.test.ts`, `feature.integration.test.ts`, `knowledge.integration.test.ts`, `standardForm.diff.test.ts`, `standardForm.construct.test.ts`; updated comments in `subset`, `removeComponent`, `keys/facets/integration.test.ts`; optional `processComponents.test.ts` key hygiene. Overlap audit (classification section 4): **0 deletions** -- retained distinct harnesses (StandardForm vs facet unit vs `processComponents`). Added **Test layout (two layers)** to `standardize/AGENT.md`; fixed `situation.ts` / `situation.test.ts` pointers in `components/AGENT.implementation.md`. Gate: 226 passed; `tsc --noEmit` clean.

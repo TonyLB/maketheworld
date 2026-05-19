@@ -312,7 +312,7 @@ describe('StandardRoom integration', () => {
                     }]
                 })
             })
-            it('should correctly return JSON for examples nested in rooms', () => {
+            it('should correctly return JSON for situations nested in rooms', () => {
                 const test = new StandardForm(`<Asset uuid=(Test)>
                     <Room uuid=(test) key=(test)>
                         <Situation ref={0} uuid=(testLocal)>
@@ -359,12 +359,12 @@ describe('StandardRoom integration', () => {
                     <Feature uuid=(testGlobal) key=(testGlobal) />
                     <Room uuid=(test) key=(test)>
                         <Feature uuid=(testLocal) key=(testLocal)>
-                            <Situation uuid=(testFeatureExample)>
+                            <Situation uuid=(testFeatureSituation)>
                                 <Description>Local</Description>
                             </Situation>
                         </Feature>
                         <Feature key=(testGlobal)>
-                            <Situation uuid=(testGlobalExample)>
+                            <Situation uuid=(testGlobalSituation)>
                                 <Description>Global</Description>
                             </Situation>
                         </Feature>
@@ -375,14 +375,14 @@ describe('StandardRoom integration', () => {
                 expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(Test)>
                         <Feature uuid=(testGlobal) key=(testGlobal)>
-                            <Situation uuid=(testGlobalExample)>
+                            <Situation uuid=(testGlobalSituation)>
                                 <Description>Global</Description>
                             </Situation>
                         </Feature>
                         <Room uuid=(test) key=(test)>
                             <Feature key=(testGlobal) />
                             <Feature uuid=(testLocal) key=(testLocal)>
-                                <Situation uuid=(testFeatureExample)>
+                                <Situation uuid=(testFeatureSituation)>
                                     <Description>Local</Description>
                                 </Situation>
                             </Feature>

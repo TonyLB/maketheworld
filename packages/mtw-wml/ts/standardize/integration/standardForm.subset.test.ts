@@ -45,8 +45,8 @@ describe('StandardForm', () => {
             `)
             const subset = test.subset([{ requestType: 'Full', keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })] }])
             //
-            // Note that the Example link cannot be resolved by `requestType: 'Full'`, because it is implicitly a reference
-            // to an Example component, which is not included in the subset due to the lack of cascades.
+            // Note that the Situation link cannot be resolved by `requestType: 'Full'`, because it is implicitly a reference
+            // to a Situation component, which is not included in the subset due to the lack of cascades.
             //
             expect(schemaToWML([subset.schema])).toEqual(deIndentWML(`
                 <Asset uuid=(test)>

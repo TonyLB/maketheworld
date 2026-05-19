@@ -536,7 +536,7 @@ export const isStandardKnowledgeData = (arg: any): arg is StandardKnowledgeData 
 **Reference Examples**:
 - **Simple component**: `knowledge.ts`, `feature.ts` - Basic properties with optional references
 - **Component with references**: `room.ts` - Multiple `ReferenceList` properties
-- **Component with complex properties**: `example.ts`, `character.ts` - Uses `StandardRender`, `EditWrappedStandardNode`, etc.
+- **Component with complex properties**: `situation.ts`, `character.ts` - Uses `StandardRender`, `EditWrappedStandardNode`, etc.
 
 #### Step 5: Component Implementation (`standardize/components/`)
 
@@ -574,11 +574,11 @@ export const isStandardKnowledgeData = (arg: any): arg is StandardKnowledgeData 
 **Reference Examples**:
 - **Simple component**: `knowledge.ts`, `feature.ts` - Minimal structure, optional references
 - **Component with references**: `room.ts` - Multiple `ReferenceList` properties, `assureReferences()` implementation
-- **Component with complex properties**: `example.ts`, `character.ts` - `StandardRender`, nested structures
+- **Component with complex properties**: `situation.ts`, `character.ts` - `StandardRender`, nested structures
 
 **Key Patterns**:
 - Use `ReferenceList` for child references (see `room.ts` for multiple buckets)
-- Use `StandardRender` for rich text content (see `example.ts`)
+- Use `StandardRender` for rich text content (see `situation.ts`)
 - Use `StandardLiteral` for simple string content (see `knowledge.ts`)
 - Follow omission-over-empty principle in `toJSON()` - omit empty arrays/objects
 - Use `excludeUndefined` helper when filtering optional fields in schema generation
@@ -739,14 +739,14 @@ After completing all steps, verify your implementation:
 - **Reference Implementation Examples**:
   - Simple component: `knowledge.ts`, `feature.ts`
   - Component with references: `room.ts`
-  - Component with complex properties: `example.ts`, `character.ts`
+  - Component with complex properties: `situation.ts`, `character.ts`
 
 ## Testing
 
 ### Running Tests
 ```bash
 # From packages/mtw-wml directory
-npm run test -- --watchAll=false ts/standardize/components/example.test.ts
+npm run test -- --watchAll=false ts/standardize/components/situation.test.ts
 npm run test -- --watchAll=false ts/standardize/components/character.test.ts
 ```
 

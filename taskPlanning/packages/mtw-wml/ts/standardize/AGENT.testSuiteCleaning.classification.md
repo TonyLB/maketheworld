@@ -1,8 +1,8 @@
 # Phase 1 classification: `index.test.ts` and component integration inventory
 
-**Status:** Phase 2 complete for informal integration and ephemeraWire split. Layer A + Layer B grab-bag done. `standardizeMode` split done. `room.test.ts` informal integration moved (Character Integration stays unit).  
-**Baseline (2026-05-19):** `npm test -- ts/standardize/index.test.ts` + `ts/standardize/integration/` + `ts/standardize/components/*.integration.test.ts` -- **226 passed** total.  
-**Source of truth for Phase 3:** rename/delete candidates in sections 5 and stale-term search.
+**Status:** Phase 3 complete. Phase 2 done (two-layer split). Renames applied; overlap audit: 0 test deletions.  
+**Baseline (2026-05-19):** gate suite -- **226 passed** total (`index` + `integration/` + `*.integration.test.ts`).  
+**Source of truth for Phase 3:** section 5 (renames **done**); section 4 overlap matrix (audit **done**, no deletes).
 
 ## Phase 2 extraction status (named describes)
 
@@ -331,25 +331,31 @@ Top-level `it` (4-space indent, direct child of `describe('StandardForm')`).
 
 ## 5. Rename (Example -> Situation) vs delete
 
-### Phase 3 rename (index.test.ts)
+### Phase 3 rename (**done** 2026-05-19)
 
-| Line | Current title / fixture | Action |
+| File | Was | Now |
 | --- | --- | --- |
-| 1262 | `examples nested in rooms` | Rename title; fixtures use Situation |
-| 1305 | `examples nested in Knowledge` | Rename |
-| 1333 | `examples nested in features nested in rooms` | Rename + fix "correct" typo |
-| 1421 | `examples nested in knowledge` | Rename |
-| 1448 | `examples nested in features nested in rooms` | Rename |
-| 1088, 1100, 1384, 1407 | `testFeatureExample` keys | Rename fixture keys Phase 3 |
-| 2731-2732 | `Example1`, `Example2` in diff fixtures | Rename Phase 3 |
+| `components/room.integration.test.ts` | `examples nested in rooms`; `testFeatureExample` / `testGlobalExample` | `situations nested in rooms`; `testFeatureSituation` / `testGlobalSituation` |
+| `components/knowledge.integration.test.ts` | `examples nested in Knowledge` / `knowledge` | `situations nested in ...` |
+| `components/feature.integration.test.ts` | `examples nested...`; typo `correct return` | `situations nested...`; `correctly return` |
+| `integration/standardForm.diff.test.ts` | `Example1`, `Example2` | `situation1`, `situation2` |
+| `integration/standardForm.construct.test.ts` | `testFeatureExample` | `testFeatureSituation` |
+| `integration/standardForm.subset.test.ts` | comment "Example link" | "Situation link" |
+| `integration/standardForm.removeComponent.test.ts` | comment "Examples" | "Situations" |
+| `keys/facets/integration.test.ts` | Mock Example / Examples with Mark | Mock Situation / Situations with Mark |
+| `processComponents.test.ts` (optional hygiene) | `*Example` uuid keys | `*Situation` uuid keys |
 
-### Stale-term search results (`standardize/**/*.test.ts`)
+### Phase 3 overlap audit (**done**; 0 deletions)
+
+Re-checked classification section 4. Kept all gate tests: construct missing-payload paths (StandardForm-specific), `situation.integration` Mark smoke, `map.integration` schema org, `room.integration` vs `room.test.ts` character blocks (unit vs asset harness), `processComponents` exit combine vs `room.integration` (different APIs). No relocations required.
+
+### Stale-term search results (`standardize/**/*.test.ts`, post-Phase 3)
 
 | Pattern | Matches (files) |
 | --- | --- |
-| `examples nested` | `index.test.ts` (5 titles) |
-| `Example1` / `testFeatureExample` | `index.test.ts`, `feature.test.ts`, `knowledge.test.ts`, `processComponents.test.ts` |
-| `<Example` | `feature.test.ts`, `knowledge.test.ts` |
+| `examples nested` | **0** |
+| `Example1` / `testFeatureExample` (misleading) | **0** in gate files; intentional legacy-parse only in `feature.test.ts`, `knowledge.test.ts` (`<Example key=(Example1)>`) |
+| `<Example` | `feature.test.ts`, `knowledge.test.ts` (legacy rejection tests) |
 | `.examples\b` | **0** in standardize test files |
 
 ### Phase 2 delete candidates (index only; 8 total)

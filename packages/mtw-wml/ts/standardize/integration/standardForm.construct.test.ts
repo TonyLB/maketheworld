@@ -319,7 +319,7 @@ describe('StandardForm', () => {
                     <Asset uuid=(Test)>
                         <Room uuid=(testRoom) key=(testRoom)>
                             <Feature key=(testFeature)>
-                                <Situation key=(testFeatureExample)>
+                                <Situation key=(testFeatureSituation)>
                                     <Description>Test Feature</Description>
                                 </Situation>
                             </Feature>
@@ -331,7 +331,7 @@ describe('StandardForm', () => {
                 expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(Test)>
                         <Feature uuid=(testFeature) key=(testFeature)>
-                            <Situation key=(testFeatureExample)>
+                            <Situation key=(testFeatureSituation)>
                                 <Description>Test Feature</Description>
                             </Situation>
                         </Feature>
