@@ -1,6 +1,5 @@
 import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
-import { StandardForm } from ".."
 import { StandardGuidanceData } from "./dataTypes/guidance"
 import StandardGuidance from "./guidance"
 
@@ -187,22 +186,5 @@ describe('StandardGuidance.equals semantic optionals', () => {
         })
         expect(withoutInstructions.equals(withEmptyInstructions)).toBe(true)
         expect(withEmptyInstructions.equals(withoutInstructions)).toBe(true)
-    })
-})
-
-describe('Guidance facet round-trip (WML -> StandardForm -> WML)', () => {
-    it('should not emit Mark at top level when Guidance has a Mark facet with Match value', () => {
-        const wml = deIndentWML(`
-            <Asset uuid=(asset-id)>
-                <Guidance uuid=(guidance-id) ref={0}>
-                    <Mark uuid=(mark-id) ref={0}><Match>Dark</Match></Mark>
-                </Guidance>
-            </Asset>
-        `)
-        const standardForm = new StandardForm(wml)
-        const roundTripWML = schemaToWML([standardForm.schema])
-
-        expect(roundTripWML).toEqual(wml)
-
     })
 })

@@ -7,7 +7,6 @@ import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { StandardExplicitParent } from "../explicit"
 import { StandardLens } from "./worldState"
-import { StandardForm } from "../"
 
 describe('StandardRoom class', () => {
 
@@ -114,59 +113,6 @@ describe('StandardRoom class', () => {
         const roomJSON = testRoom.toJSON() as StandardRoomData
         expect(roomJSON.situations).toBeDefined()
         expect(roomJSON.situations).toHaveLength(1)
-    })
-
-    it('should parse Room with Situation facet from WML and round-trip', () => {
-        const testSource = deIndentWML(`
-            <Room key=(lobby) uuid=(123)>
-                <ShortName>Lobby</ShortName>
-                <Situation key=(bright) ref={0}>
-                    <DisplayName>Bright Lobby</DisplayName>
-                </Situation>
-            </Room>
-        `)
-        const testRoom = new StandardRoom(testSource)
-        expect(testRoom.key).toBe('lobby')
-        expect(testRoom.situations.length).toBe(1)
-        expect(testRoom.situations.items[0].reference.key).toBe('bright')
-        const roundTrip = schemaToWML([testRoom.schema])
-        expect(roundTrip).toContain('Situation')
-        expect(roundTrip).toContain('key=(bright)')
-    })
-
-    it('should produce a non-no-op diff when SituationFacet summary has content removed', () => {
-        const baseRoom = new StandardRoom(deIndentWML(`
-            <Room uuid=(123) key=(tavern)>
-                <Situation key=(daylight)>
-                    <Summary>A cheery tavern by daylight</Summary>
-                </Situation>
-            </Room>
-        `))
-
-        const incomingRoom = new StandardRoom(deIndentWML(`
-            <Room uuid=(123) key=(tavern)>
-                <Situation key=(daylight)>
-                    <Summary>A cheery tavern</Summary>
-                </Situation>
-            </Room>
-        `))
-
-        const diff = baseRoom.diff(incomingRoom) as StandardRoom | undefined
-
-        expect(diff).toBeDefined()
-        expect(diff!.situations.length).toBe(1)
-        expect(diff!.situations.items[0].reference.key).toBe('daylight')
-
-        const facetPayloadJSON = diff!.situations.items[0].payload.toJSON()
-        expect(facetPayloadJSON.summary).toBeDefined()
-        // The diff should represent removal of content; summary should be a Remove edit (object with tag: 'Remove').
-        // If the round-trip is misinterpreted as no-op, the issue may be that summary is not in the expected
-        // shape (e.g. single-element array containing the Remove record) for downstream apply/merge.
-        expect(facetPayloadJSON.summary).toMatchObject({ tag: 'Remove' })
-        expect((facetPayloadJSON.summary as { tag: string; match?: unknown }).match).toBeDefined()
-
-        const merged = baseRoom.merge(diff!) as StandardRoom
-        expect(merged.equals(incomingRoom)).toBe(true)
     })
 
     it('should construct StandardRoom from StandardRoomData with missing exits', () => {
@@ -1513,55 +1459,6 @@ describe('StandardRoom class', () => {
             expect(result.features.payload.length).toBe(1)
             expect(result.guidance.payload.length).toBe(0)
             expect(result.characters.payload.length).toBe(0)
-        })
-    })
-
-    describe('Lens output in schema', () => {
-        it('should round-trip Room with Lens containing ShortName', () => {
-            const testSource = deIndentWML(`
-                <Asset uuid=(Test)>
-                    <Room uuid=(room1) key=(testRoom)>
-                        <ShortName>Test Room</ShortName>
-                        <Lens uuid=(lens1) key=(testLens)>
-                            <ShortName>Test Lens</ShortName>
-                        </Lens>
-                    </Room>
-                </Asset>
-            `)
-            const testForm = new StandardForm(testSource)
-            expect(schemaToWML([testForm.schema])).toEqual(testSource)
-        })
-
-        it('should round-trip Room with Lens containing ShortName and Description', () => {
-            const testSource = deIndentWML(`
-                <Asset uuid=(Test)>
-                    <Room uuid=(room1) key=(testRoom)>
-                        <Lens uuid=(lens1) key=(testLens)>
-                            <ShortName>Test Lens</ShortName>
-                            <Description>Test description.</Description>
-                        </Lens>
-                    </Room>
-                </Asset>
-            `)
-            const testForm = new StandardForm(testSource)
-            expect(schemaToWML([testForm.schema])).toEqual(testSource)
-        })
-
-        it('should round-trip Room with Lens containing Marks', () => {
-            const testSource = deIndentWML(`
-                <Asset uuid=(Test)>
-                    <Room uuid=(room1) key=(testRoom)>
-                        <Lens uuid=(lens1) key=(testLens)>
-                            <ShortName>Test Lens</ShortName>
-                            <Mark uuid=(mark1) key=(mark1)>
-                                <ShortName>Test Mark</ShortName>
-                            </Mark>
-                        </Lens>
-                    </Room>
-                </Asset>
-            `)
-            const testForm = new StandardForm(testSource)
-            expect(schemaToWML([testForm.schema])).toEqual(testSource)
         })
     })
 

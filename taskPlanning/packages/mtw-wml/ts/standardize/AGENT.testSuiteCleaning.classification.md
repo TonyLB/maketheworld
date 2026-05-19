@@ -1,12 +1,12 @@
 # Phase 1 classification: `index.test.ts` and component integration inventory
 
-**Status:** Phase 1 complete. **Layer A extraction (named describes + grab-bag) done.** **Layer B grab-bag from `index.test.ts` moved** to 8 `components/*.integration.test.ts` files (see Layer B table below). `standardizeMode` split and `room.test.ts` informal integration still pending.  
-**Baseline (2026-05-19):** `npm test -- ts/standardize/index.test.ts` + `ts/standardize/integration/` + `ts/standardize/components/*.integration.test.ts` -- **217 passed** total.  
-**Source of truth for remaining Phase 2 moves:** this file (`standardizeMode` in section 2; `room.test.ts` in section 3).
+**Status:** Phase 2 complete for informal integration and ephemeraWire split. Layer A + Layer B grab-bag done. `standardizeMode` split done. `room.test.ts` informal integration moved (Character Integration stays unit).  
+**Baseline (2026-05-19):** `npm test -- ts/standardize/index.test.ts` + `ts/standardize/integration/` + `ts/standardize/components/*.integration.test.ts` -- **226 passed** total.  
+**Source of truth for Phase 3:** rename/delete candidates in sections 5 and stale-term search.
 
 ## Phase 2 extraction status (named describes)
 
-All top-level named `describe` blocks except `standardizeMode` are extracted to `packages/mtw-wml/ts/standardize/integration/`:
+All top-level named `describe` blocks are extracted to `packages/mtw-wml/ts/standardize/integration/`:
 
 | File | Tests (approx) |
 | --- | ---: |
@@ -24,19 +24,24 @@ All top-level named `describe` blocks except `standardizeMode` are extracted to 
 | `standardForm.validate.test.ts` | 7 |
 | `standardForm.removeComponent.test.ts` | 12 |
 | `standardForm.referencedBy.test.ts` | 5 |
+| `standardForm.standardizeMode.test.ts` | 4 |
 
-`index.test.ts` retains `standardizeMode` (17 `it`) and thin smoke (2 `it`) only (~328 lines). Layer A grab-bag rows are **moved**. Layer B grab-bag rows (clusters B partial, C partial, D partial, E, F, G partial, J partial) are **moved** to `components/*.integration.test.ts`.
+`index.test.ts` retains thin smoke only (2 `it`, ~52 lines). Layer A grab-bag rows are **moved**. Layer B grab-bag rows are **moved** to `components/*.integration.test.ts`.
 
 ### Layer B extraction status (`components/*.integration.test.ts`)
 
 | File | Tests |
 | --- | ---: |
-| `room.integration.test.ts` | 14 (includes finalize character/room test from `standardForm.finalize.test.ts`) |
+| `room.integration.test.ts` | 19 (includes Situation facets on Room, Lens round-trips from `room.test.ts`) |
+| `room.ephemeraWire.integration.test.ts` | 10 |
 | `feature.integration.test.ts` | 3 |
+| `feature.ephemeraWire.integration.test.ts` | 2 |
 | `knowledge.integration.test.ts` | 3 |
+| `knowledge.ephemeraWire.integration.test.ts` | 2 |
 | `situation.integration.test.ts` | 3 |
 | `worldState.integration.test.ts` | 2 |
-| `map.integration.test.ts` | 2 |
+| `map.integration.test.ts` | 3 (includes shared Feature implicit parent from `map.test.ts`) |
+| `guidance.integration.test.ts` | 1 |
 | `message.integration.test.ts` | 1 |
 | `moment.integration.test.ts` | 1 |
 
@@ -200,7 +205,7 @@ Top-level `it` (4-space indent, direct child of `describe('StandardForm')`).
 | 28 | input vs normative typeguards | 28-54 | `integration/standardForm.construct.test.ts` | extract-describe | 1 `it`; facet typeguard overlap |
 | 56 | isEmpty() | 56-150 | `integration/standardForm.isEmpty.test.ts` | extract-describe | 11 `it` |
 | 152 | equals() | 152-261 | `integration/standardForm.equals.test.ts` | extract-describe | 6 `it` |
-| 263 | standardizeMode | 263-534 | **split** (see below) | extract-describe | 17 `it` |
+| 263 | standardizeMode | 263-534 | **split** (see below) | **done** | 17 `it` -> Layer A (4) + room.ephemeraWire (10) + 2 deleted |
 | 2466 | assureComponents method | 2466-2550 | `integration/standardForm.assureComponents.test.ts` | extract-describe | 7 `it` |
 | 2552 | diff method | 2552-3198 | `integration/standardForm.diff.test.ts` | extract-describe | 23 top-level + nested |
 | 3200 | subset method | 3200-3716 | `integration/standardForm.subset.test.ts` | extract-describe | 11 `it`; map/position overlap facets |
@@ -217,21 +222,21 @@ Top-level `it` (4-space indent, direct child of `describe('StandardForm')`).
 
 | Line | Title | Destination | phase2_action | notes |
 | --- | --- | --- | --- | --- |
-| 264 | defaults to asset | -- | **delete** | Dup `wmlStandardizeMode.test.ts` L9 |
-| 268 | accepts ephemeraWire via constructor options | -- | **delete** | Dup `resolveStandardizeMode` coverage |
-| 273 | includes standardizeMode in toJSON when not asset | `integration/standardForm.standardizeMode.test.ts` | move | Layer A StandardForm-specific |
-| 278 | parses Object children under Room in ephemeraWire | `components/room.ephemeraWire.integration.test.ts` | move | Layer B |
-| 303 | normalizes Object uuid=(OBJECT#id) same as bare id in ephemeraWire | `components/room.ephemeraWire.integration.test.ts` | move | Layer B |
-| 328 | throws when Object uuid has wrong typed prefix | `components/room.ephemeraWire.integration.test.ts` | move | Layer B |
-| 341 | round-trips Object uuid as bare key in WML output | `components/room.ephemeraWire.integration.test.ts` | move | Layer B |
-| 357 | rejects Object under Room in asset mode (unconsumed tag) | `integration/standardForm.standardizeMode.test.ts` | move | Layer A policy |
-| 370 | throws when Object ShortName is whitespace-only inside Room | `components/room.ephemeraWire.integration.test.ts` | move | Layer B |
-| 383 | parses Render under Room in ephemeraWire | `components/room.ephemeraWire.integration.test.ts` | move | Layer B |
-| 409 | round-trips Render under Room in ephemeraWire | `components/room.ephemeraWire.integration.test.ts` | move | Layer B |
-| 433 | rejects Render under Room in asset mode (unconsumed tag) | `integration/standardForm.standardizeMode.test.ts` | move | Layer A |
-| 448 | throws when more than one Render under Room in ephemeraWire | `components/room.ephemeraWire.integration.test.ts` | move | Layer B |
-| 468 | throws when Render DisplayName is whitespace-only inside Room | `components/room.ephemeraWire.integration.test.ts` | move | Layer B |
-| 487 | merges ephemeraWire render form with affordance form for the same room UUID | `integration/standardForm.standardizeMode.test.ts` | move | Layer A asset merge policy |
+| 264 | defaults to asset | -- | **deleted** | Dup `wmlStandardizeMode.test.ts` L9 |
+| 268 | accepts ephemeraWire via constructor options | -- | **deleted** | Dup `resolveStandardizeMode` coverage |
+| 273 | includes standardizeMode in toJSON when not asset | `integration/standardForm.standardizeMode.test.ts` | **moved** | Layer A StandardForm-specific |
+| 278 | parses Object children under Room in ephemeraWire | `components/room.ephemeraWire.integration.test.ts` | **moved** | Layer B |
+| 303 | normalizes Object uuid=(OBJECT#id) same as bare id in ephemeraWire | `components/room.ephemeraWire.integration.test.ts` | **moved** | Layer B |
+| 328 | throws when Object uuid has wrong typed prefix | `components/room.ephemeraWire.integration.test.ts` | **moved** | Layer B |
+| 341 | round-trips Object uuid as bare key in WML output | `components/room.ephemeraWire.integration.test.ts` | **moved** | Layer B |
+| 357 | rejects Object under Room in asset mode (unconsumed tag) | `integration/standardForm.standardizeMode.test.ts` | **moved** | Layer A policy |
+| 370 | throws when Object ShortName is whitespace-only inside Room | `components/room.ephemeraWire.integration.test.ts` | **moved** | Layer B |
+| 383 | parses Render under Room in ephemeraWire | `components/room.ephemeraWire.integration.test.ts` | **moved** | Layer B |
+| 409 | round-trips Render under Room in ephemeraWire | `components/room.ephemeraWire.integration.test.ts` | **moved** | Layer B |
+| 433 | rejects Render under Room in asset mode (unconsumed tag) | `integration/standardForm.standardizeMode.test.ts` | **moved** | Layer A |
+| 448 | throws when more than one Render under Room in ephemeraWire | `components/room.ephemeraWire.integration.test.ts` | **moved** | Layer B |
+| 468 | throws when Render DisplayName is whitespace-only inside Room | `components/room.ephemeraWire.integration.test.ts` | **moved** | Layer B |
+| 487 | merges ephemeraWire render form with affordance form for the same room UUID | `integration/standardForm.standardizeMode.test.ts` | **moved** | Layer A asset merge policy |
 
 ### Nested describes under `diff method` (5)
 
@@ -269,25 +274,25 @@ Top-level `it` (4-space indent, direct child of `describe('StandardForm')`).
 
 | Block | Line | Future home | phase2_action | notes |
 | --- | --- | --- | --- | --- |
-| (top-level) | 137 | `room.integration.test.ts` | move | Situation facet diff->merge chain |
-| (top-level) | 119 | `room.integration.test.ts` | move | Situation facet WML round-trip |
-| Character Integration | 361 | `room.integration.test.ts` | move | Dedupe index L1744-1971 |
+| (top-level) | 137 | `room.integration.test.ts` | **moved** | Situation facet diff->merge chain |
+| (top-level) | 119 | `room.integration.test.ts` | **moved** | Situation facet WML round-trip |
+| Character Integration | 361 | **unit** `room.test.ts` | **stay** | StandardRoom-only; asset-level coverage in `room.integration.test.ts` Character references |
 | Guidance references | 585 | **unit** `room.test.ts` | stay | Room reference buckets only |
 | explicitParent | 640 | **unit** `room.test.ts` | stay | Unless full asset needed |
 | invert method | 884 | **unit** `room.test.ts` | stay | |
 | explicitKey | 971 | **unit** `room.test.ts` | stay | |
 | assureReferences method | 1311 | **unit** `room.test.ts` | stay | Multi-bucket dispatch |
 | removeReferences method | 1459 | **unit** `room.test.ts` | stay | |
-| Lens output in schema | 1519 | `room.integration.test.ts` | move | StandardForm + full Asset; dedupe index L917 |
+| Lens output in schema | 1519 | `room.integration.test.ts` | **moved** | StandardForm + full Asset; merged into Lens in Room |
 
 ### Secondary component files
 
 | File | Signal | Future home | phase2_action |
 | --- | --- | --- | --- |
-| `map.test.ts` | `schema output with shared references` (L168) | `map.integration.test.ts` | move describe |
-| `feature.test.ts` | ephemeraWire Render parse/round-trip (L335, L356) | `feature.ephemeraWire.integration.test.ts` | move 2 `it` |
-| `knowledge.test.ts` | ephemeraWire Render parse/round-trip (L271, L292) | `knowledge.ephemeraWire.integration.test.ts` | move 2 `it` |
-| `guidance.test.ts` | `Guidance facet round-trip (WML -> StandardForm -> WML)` (L193) | `guidance.integration.test.ts` | move describe |
+| `map.test.ts` | `schema output with shared references` (L168) | `map.integration.test.ts` | **moved** |
+| `feature.test.ts` | ephemeraWire Render parse/round-trip (L335, L356) | `feature.ephemeraWire.integration.test.ts` | **moved** |
+| `knowledge.test.ts` | ephemeraWire Render parse/round-trip (L271, L292) | `knowledge.ephemeraWire.integration.test.ts` | **moved** |
+| `guidance.test.ts` | `Guidance facet round-trip (WML -> StandardForm -> WML)` (L193) | `guidance.integration.test.ts` | **moved** |
 | `worldState.test.ts` | Large; mostly unit + mergeTest | defer | No StandardForm multi-tag blocks found |
 | `utils/referenceCollection.test.ts` | `integration scenarios` | **unit** | Not StandardForm asset |
 | `utils/keyCollection.test.ts` | `integration scenarios` | **unit** | Not StandardForm asset |
@@ -312,7 +317,7 @@ Top-level `it` (4-space indent, direct child of `describe('StandardForm')`).
 | --- | --- | --- |
 | `defaults to asset` | wmlStandardizeMode | index L264 |
 | `isWmlStandardizeMode` / `resolveStandardizeMode` | wmlStandardizeMode | index L268 (constructor accepts ephemeraWire) |
-| ephemeraWire parse/merge/render | index -> split to Layer A/B files | Keep until extracted |
+| ephemeraWire parse/merge/render | Layer A/B integration files | **extracted** |
 
 ### vs `room.test.ts` (cross-file dedupe)
 

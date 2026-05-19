@@ -70,4 +70,69 @@ describe('StandardMap integration', () => {
                 `))
             })
     })
+
+    describe('schema output with shared references', () => {
+            it('should round-trip Map with shared Feature between two Rooms via implicit parent', () => {
+                //
+                // Map with two Rooms (Position facets); each Room references the same Feature (all Direct refs).
+                // SchemaOrganization assigns Feature's implicit parent to Map (common ancestor of the two Rooms).
+                // Map has no Feature bucket, so Feature should render at Map level with ref={0} (Phase 2 Item 2).
+                //
+                const originalWML = deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Map uuid=(map1) key=(mapX)>
+                            <ShortName>Map X</ShortName>
+                            <Room uuid=(room1) key=(room1)>
+                                <Position {0, 0} />
+                                <ShortName>Room One</ShortName>
+                                <Feature uuid=(feat1) key=(feat1)><ShortName>Shared Feature</ShortName></Feature>
+                            </Room>
+                            <Room uuid=(room2) key=(room2)>
+                                <Position {100, 0} />
+                                <ShortName>Room Two</ShortName>
+                                <Feature uuid=(feat1) key=(feat1) />
+                            </Room>
+                        </Map>
+                    </Asset>
+                `)
+
+                //
+                // Step 1: Parse. Feature content is under Room One; Room Two references it.
+                //
+                const formFromOriginal = new StandardForm(originalWML)
+
+                //
+                // Step 2: Serialize. SchemaOrganization places Feature under Map (implicit parent).
+                // Map has no Feature bucket; when Phase 2 Item 2 is done, Map will render Feature at Map level with ref={0}.
+                //
+                const implicitParentWML = deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Map uuid=(map1) key=(mapX)>
+                            <ShortName>Map X</ShortName>
+                            <Room uuid=(room1) key=(room1)>
+                                <Position {0, 0} />
+                                <ShortName>Room One</ShortName>
+                                <Feature key=(feat1) />
+                            </Room>
+                            <Room uuid=(room2) key=(room2)>
+                                <Position {100, 0} />
+                                <ShortName>Room Two</ShortName>
+                                <Feature key=(feat1) />
+                            </Room>
+                            <Feature uuid=(feat1) key=(feat1) ref={0}>
+                                <ShortName>Shared Feature</ShortName>
+                            </Feature>
+                        </Map>
+                    </Asset>
+                `)
+                expect(schemaToWML([formFromOriginal.schema])).toEqual(implicitParentWML)
+
+                //
+                // Step 3: Parse the implicit-parent WML and round-trip. Map accepts Feature as direct child (ref={0}) via StandardizeConsumerInline.
+                //
+                const formFromImplicitParent = new StandardForm(implicitParentWML)
+                const roundTrippedWML = schemaToWML([formFromImplicitParent.schema])
+                expect(roundTrippedWML).toEqual(implicitParentWML)
+            })
+    })
 })
