@@ -1,8 +1,8 @@
 # Phase 1 classification: `index.test.ts` and component integration inventory
 
-**Status:** Phase 3 complete. Phase 2 done (two-layer split). Renames applied; overlap audit: 0 test deletions.  
+**Status:** Phase 4 Step 0 complete (2026-05-19). Steps 1-3 not started. Section 8 Step 0 overlap context is the reference for Layer A/B sweeps.  
 **Baseline (2026-05-19):** gate suite -- **226 passed** total (`index` + `integration/` + `*.integration.test.ts`).  
-**Source of truth for Phase 3:** section 5 (renames **done**); section 4 overlap matrix (audit **done**, no deletes).
+**Source of truth:** section 4 (Phase 1 overlap rules); section 5 (Phase 3 renames **done**); **section 8** (Phase 4 per-file sweep results).
 
 ## Phase 2 extraction status (named describes)
 
@@ -389,6 +389,139 @@ Re-checked classification section 4. Kept all gate tests: construct missing-payl
 
 ---
 
+## 8. Phase 4 coverage sweeps (redundancy + gaps)
+
+**Goal:** Now that tests are sorted by topic (Layer A / Layer B / unit), systematically review each integration file and its paired unit file. Document **(a) redundancies** and **(b) gaps** without requiring fixes to close Phase 4.
+
+**Rubric (per test or describe block):**
+
+| Field | What to record |
+| --- | --- |
+| `primary_assertion` | What is under test (e.g. `form.diff`, `StandardRoom.merge`, Mark facet round-trip, implicit parent in schema) |
+| `harness` | `StandardForm` asset, single-component WML, facet class only, `processComponents`, etc. |
+| `redundancy` | `none`, or cite other file + title if same assertion **and** same harness |
+| `gap` | `none`, or cite API/behavior from `AGENT.md` / implementation missing at this layer |
+| `action` | `keep` / `delete` / `move` / `narrow` / `add` (implementation deferred unless doing a fix slice) |
+
+**Sweep depth:** Step 0 uses **file-level** summaries in the table below plus describe-level notes for large partners (`schemaOrganization`). Steps 1-3 may add per-`describe` detail when judging individual Layer A/B files.
+
+**Overlap rules:** See [section 4](#4-overlap-vs-existing-suites). Do not flag as redundant when harness differs (e.g. facet unit vs `StandardForm.schema`, `processComponents` vs `room.integration`). Do flag when the same asset graph and assertion appear twice at the same layer.
+
+### Step 0 -- Cross-cutting partners (sweep first)
+
+| File | ~`it` | Paired / related | Sweep | Redundancies | Gaps |
+| --- | ---: | --- | --- | --- | --- |
+| [`keys/facets/integration.test.ts`](../../../../../packages/mtw-wml/ts/standardize/keys/facets/integration.test.ts) | 39 | All Layer A/B using Position/Exit/Mark | [x] | **none** at facet-class harness. Layer consumers (`construct` missing-payload, `situation.integration` Mark smoke, `map.integration` / `subset` map position) use different APIs -- keep all per section 4. | **none** for Position/Mark/Exit family (`AGENT.facets.md`). Guidance / `situationProse` / `lensMark` facets intentionally absent here; covered in `guidance.integration.test.ts` + `guidance.test.ts`. Do not add facet-only dup of `renderFacet` in Layer A/B. |
+| [`wmlStandardizeMode.test.ts`](../../../../../packages/mtw-wml/ts/standardize/wmlStandardizeMode.test.ts) | 4 | `standardForm.standardizeMode.test.ts` (4), `room.ephemeraWire.integration.test.ts` (10) | [x] | **none** vs `standardForm.standardizeMode` (pure guards vs `StandardForm` policy). **none** vs ephemeraWire integration (parse/render hub vs literals). Index dups removed Phase 2. | **none** at this layer. EphemeraWire parse/merge/render gaps belong in Layer B ephemeraWire files, not here. |
+| [`processComponents.test.ts`](../../../../../packages/mtw-wml/ts/standardize/processComponents.test.ts) | 19 | Layer B combine/render tests; `standardForm.merge` | [x] | **none** -- same titles as `merge` / `room.integration` / `feature.integration` assert `processComponents()` output, not `StandardForm.merge` / `.schema` (Phase 3 audit; see overlap context below). | `standardizeMode` / ephemeraWire not passed in any test (AGENT.md threading); defer to Layer A/B if walker-level coverage needed. `should correctly localize subcomponents` has open **TODO** (context not asserted). |
+| [`schemaOrganization.test.ts`](../../../../../packages/mtw-wml/ts/standardize/schemaOrganization.test.ts) | 65 | `map.integration`, `subset`, `construct`, `validate`, `diff`, `referencedBy`, `removeComponent` | [x] | **none** vs integration files that assert end-to-end WML/schema (e.g. Gate D hoisting, shared Feature implicit parent) -- different harness than direct `getImplicitParent` / `getChildrenOfParent`. | Proposed WML `<Parent>` tag on Situation ([`AGENT.md`](../../../../../packages/mtw-wml/ts/standardize/AGENT.md) Future Plans) not implemented -- no test expected yet. `getExplicitParent` covers component-stored explicit parent, not that proposal. Diff reference-change debt lives in `standardForm.diff.test.ts` (TODO), not org API. |
+
+#### Step 0 overlap context (carry forward)
+
+Use this when sweeping Steps 1-3 so similar fixtures are not mis-tagged as duplicates.
+
+- **Harness matrix:** `keys/facets/integration` = facet class only; `wmlStandardizeMode` = mode guards; `standardForm.standardizeMode` = `StandardForm` asset policy; `*.ephemeraWire.integration` = Room/Feature/Knowledge wire parse/render; `processComponents` = `Schema` walker; `schemaOrganization` = org API in isolation; Layer A/B = `StandardForm` orchestration or component-primary integration.
+- **Facet vs StandardForm:** Never duplicate `renderFacet` / payload-only Mark round-trip from facets integration in Layer A/B. Keep `construct` missing-payload JSON/NDJSON paths and one `situation.integration` asset smoke.
+- **Same title, different API (keep both):**
+
+| `processComponents.test.ts` | Similar elsewhere | Verdict |
+| --- | --- | --- |
+| `should combine descriptions in rooms and features` | `standardForm.merge.test.ts` | keep both |
+| `should combine exits in rooms` | `room.integration.test.ts` | keep both |
+| `should combine render in nested rooms` | `room.integration.test.ts` | keep both |
+| `should render features and links correctly` | `feature.integration.test.ts` | keep both |
+
+- **`schemaOrganization` describe -> typical Layer A/B consumers:**
+
+| `describe` | ~`it` | Consumers (integration / API) |
+| --- | ---: | --- |
+| `getImplicitParent` | 8 | `map.integration` (shared Feature parent), `construct` relocation |
+| `getExplicitParent` | 8 | `validate`, diff reparent / key-change scenarios |
+| `getChildrenOfParent` | 9 | `subset`, nested JSON grouping in `construct` |
+| `createOrganizationContext` | 5 | Internal; subset/diff use context indirectly |
+| `isParentContext` | 6 | `subset` cascade, parent matching |
+| `buildAncestryChain` | 4 | `diff` ordering, nested moves |
+| `sortOrder` | 6 | `diff`, `subset` traversal order |
+| `isReferenced` | 10 | `referencedBy`, `removeComponent` |
+| `global preference for addition references` | 2 | edit-mode `merge`, `diff` |
+| `implicitDescendantsOfAncestor` | 7 | `removeComponent` cascade, `subset` |
+
+### Step 1a -- Layer A (smaller API files)
+
+| File | ~`it` | Sweep | Redundancies | Gaps |
+| --- | ---: | --- | --- | --- |
+| `integration/standardForm.equals.test.ts` | 6 | [ ] | | |
+| `integration/standardForm.isEmpty.test.ts` | 12 | [ ] | | |
+| `integration/standardForm.referencedBy.test.ts` | 5 | [ ] | | |
+| `integration/standardForm.finalize.test.ts` | 3 | [ ] | | |
+| `integration/standardForm.lookup.test.ts` | 5 | [ ] | | |
+| `integration/standardForm.assureComponents.test.ts` | 7 | [ ] | | |
+| `integration/standardForm.validate.test.ts` | 7 | [ ] | | |
+| `integration/standardForm.standardizeMode.test.ts` | 4 | [ ] | | |
+| `integration/standardForm.removeComponent.test.ts` | 12 | [ ] | | |
+
+### Step 1b -- Layer A (heavy API files)
+
+| File | ~`it` | Sweep | Redundancies | Gaps |
+| --- | ---: | --- | --- | --- |
+| `integration/standardForm.construct.test.ts` | 15 | [ ] | | |
+| `integration/standardForm.merge.test.ts` | 17 | [ ] | | |
+| `integration/standardForm.keyChangesViaMerge.test.ts` | 9 | [ ] | | |
+| `integration/standardForm.subset.test.ts` | 12 | [ ] | | |
+| `integration/standardForm.diff.test.ts` | 30 | [ ] | | |
+| `integration/standardForm.assetMeta.test.ts` | 31 | [ ] | | |
+
+Also sweep [`index.test.ts`](../../../../../packages/mtw-wml/ts/standardize/index.test.ts) smoke (2 `it`) for gap-only check.
+
+### Step 2a -- Layer B (thin integration + unit pairs)
+
+| Integration file | ~`it` | Unit pair | Sweep | Redundancies | Gaps |
+| --- | ---: | --- | --- | --- | --- |
+| `components/guidance.integration.test.ts` | 1 | `guidance.test.ts` | [ ] | | |
+| `components/message.integration.test.ts` | 1 | `message.test.ts` | [ ] | | |
+| `components/moment.integration.test.ts` | 1 | `moment.test.ts` | [ ] | | |
+| `components/worldState.integration.test.ts` | 2 | `worldState.test.ts` | [ ] | | |
+| `components/situation.integration.test.ts` | 3 | `situation.test.ts` | [ ] | | |
+| `components/feature.integration.test.ts` | 3 | `feature.test.ts` | [ ] | | |
+| `components/feature.ephemeraWire.integration.test.ts` | 2 | `feature.test.ts` | [ ] | | |
+| `components/knowledge.integration.test.ts` | 3 | `knowledge.test.ts` | [ ] | | |
+| `components/knowledge.ephemeraWire.integration.test.ts` | 2 | `knowledge.test.ts` | [ ] | | |
+
+### Step 2b -- Layer B (heavy integration + unit pairs)
+
+| Integration file | ~`it` | Unit pair | Sweep | Redundancies | Gaps |
+| --- | ---: | --- | --- | --- | --- |
+| `components/map.integration.test.ts` | 3 | `map.test.ts` | [ ] | | |
+| `components/room.integration.test.ts` | 19 | `room.test.ts` | [ ] | | |
+| `components/room.ephemeraWire.integration.test.ts` | 9 | `room.test.ts` | [ ] | | |
+
+### Step 3 -- Large unit files (informal integration check)
+
+| File | Notes | Sweep | Redundancies | Gaps |
+| --- | --- | --- | --- | --- |
+| `components/room.test.ts` | ~1,464 lines; Character Integration stays unit | [ ] | | |
+| `components/worldState.test.ts` | Lens/Mark unit bulk | [ ] | | |
+| `components/map.test.ts` | Shared-ref case moved; verify remainder | [ ] | | |
+| `components/guidance.test.ts` | Facet round-trip moved to integration | [ ] | | |
+
+### Step 4 -- Consolidated findings (fill when sweeps complete)
+
+**Redundancy backlog** (candidates for delete / move / narrow):
+
+| Source file | Test (title) | Duplicate of | Proposed action |
+| --- | --- | --- | --- |
+| | | | |
+
+**Gap backlog** (candidates for add / move from unit to integration):
+
+| Behavior / API | Suggested owner file | Priority | Notes |
+| --- | --- | --- | --- |
+| | | | |
+
+**Phase 4 sign-off:** [ ] All Step 0-3 rows swept or explicitly deferred with reason; [ ] Consolidated tables reviewed; gate suite still 226+ pass if any fix slices landed.
+
+---
+
 ## Verification checklist
 
 - [x] 64 ungrouped `it` rows classified
@@ -397,3 +530,4 @@ Re-checked classification section 4. Kept all gate tests: construct missing-payl
 - [x] Overlap with facets + wmlStandardizeMode documented
 - [x] Rename and delete candidates enumerated
 - [x] Baseline 217 pass recorded
+- [ ] Phase 4 section 8 sweeps complete (Step 0 [x]; Steps 1-3 pending)

@@ -1,6 +1,6 @@
 # StandardForm test suite cleaning (`index.test.ts`)
 
-**Status:** In progress. Phase 3 complete. Phase 2 done (two-layer split shipped). `index.test.ts` smoke only (~52 lines). Next step: Phase 4 finish (full package test, archive plan). See [`AGENT.testSuiteCleaning.classification.md`](./AGENT.testSuiteCleaning.classification.md).
+**Status:** In progress. Phase 3 complete. Phase 4 Step 0 complete (overlap partners swept). Next step: **Phase 4 Steps 1-3** (Layer A/B + large unit file sweeps). See [`AGENT.testSuiteCleaning.classification.md`](./AGENT.testSuiteCleaning.classification.md) section 8.
 
 ## Purpose
 
@@ -232,10 +232,58 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Remove or relocate tests superseded by component/facet unit tests
   - [X] Update [`standardize/AGENT.md`](../../../../../packages/mtw-wml/ts/standardize/AGENT.md) Getting Started: two-layer layout, drop `example.test.ts`, list `integration/` + `*.integration.test.ts` convention
 
-- [ ] Phase 4 - finish
+- [ ] Phase 4 - coverage sweeps (redundancy + gaps)
+  - [X] Add sweep rubric and per-file rows to [`AGENT.testSuiteCleaning.classification.md`](./AGENT.testSuiteCleaning.classification.md) section 8 (template + inventory)
+  - [X] **Step 0:** Cross-cutting partners -- `keys/facets/integration.test.ts`, `wmlStandardizeMode.test.ts`, `processComponents.test.ts`, `schemaOrganization.test.ts` (overlap context for later files)
+  - [ ] **Step 1:** Layer A -- `integration/standardForm.*.test.ts` (15 files; smallest API surface first: `equals`, `isEmpty`, `lookup`, ... then `construct`, `merge`, `diff`, `subset`, `assetMeta`)
+  - [ ] **Step 2:** Layer B -- each `components/*.integration.test.ts` + `*.ephemeraWire.integration.test.ts` paired with its `components/<tag>.test.ts` unit file
+  - [ ] **Step 3:** Large unit files still at integration risk -- `room.test.ts`, `worldState.test.ts`, `map.test.ts`, `guidance.test.ts`
+  - [ ] **Step 4:** Consolidate -- redundancy table, gap backlog, and triage (keep / delete / move / add) in classification section 8; no test changes required to complete Phase 4
+  - [ ] Gate green after any optional fix slices (if triage items are implemented before Phase 5)
+
+- [ ] Phase 5 - finish
   - [ ] Full `npm test` in `packages/mtw-wml`
   - [ ] `npx tsc -p tsconfig.json --noEmit`
   - [ ] Delete or archive this task plan
+
+## Phase 4 recommended order (coverage sweeps)
+
+Phase 4 is **read-only analysis** unless you explicitly implement a triage item in the same PR. Each sweep fills one row in classification section 8. Work **one file (or file pair) at a time** so overlap notes stay accurate.
+
+### Sweep questions (every file)
+
+For each `it` / `describe`, record:
+
+1. **Primary assertion** -- facet class, `StandardComponent` unit, `StandardForm.<api>`, `processComponents`, schema org, etc.
+2. **Redundancy (a)** -- same assertion + same harness elsewhere? (cite file + test title; distinguish "similar fixture" from true duplicate)
+3. **Gap (b)** -- behavior in implementation or AGENT.md with no test at this layer? (cite API / edge case)
+4. **Action** -- `keep` | `delete` | `move` | `narrow` | `add` (defer implementation unless doing a fix slice)
+
+### Execution order
+
+| Step | Scope | Why this order |
+| --- | --- | --- |
+| **0** | Overlap partners (facets integration, `wmlStandardizeMode`, `processComponents`, `schemaOrganization`) | Establishes what "already covered elsewhere" means before judging Layer A/B files |
+| **1a** | Layer A small APIs: `equals`, `isEmpty`, `referencedBy`, `finalize`, `lookup`, `assureComponents`, `validate`, `standardizeMode`, `removeComponent` | Fast passes; calibrate rubric |
+| **1b** | Layer A heavy APIs: `construct`, `merge`, `keyChangesViaMerge`, `subset`, `diff`, `assetMeta` | Highest cross-file overlap risk (merge/diff/subset/construct) |
+| **2a** | Layer B thin files: `guidance`, `message`, `moment`, `worldState`, `situation`, `feature`, `knowledge` (+ ephemeraWire siblings) | Pair each `*.integration.test.ts` with `<tag>.test.ts` |
+| **2b** | Layer B heavy: `map.integration`, `room.integration`, `room.ephemeraWire.integration` | Room/map/schema-org interactions |
+| **3** | Unit files with residual multi-tag risk: `room.test.ts`, `worldState.test.ts`, `map.test.ts`, `guidance.test.ts` | Find informal integration left in unit files |
+| **4** | Consolidate section 8 | Single redundancy matrix + gap backlog; link to Phase 1 section 4 overlap rules |
+
+### Per-file Jest (while sweeping)
+
+```bash
+cd packages/mtw-wml
+npm test -- ts/standardize/integration/standardForm.diff.test.ts   # example: one Layer A file
+npm test -- ts/standardize/components/room.integration.test.ts ts/standardize/components/room.test.ts
+```
+
+### Deliverables
+
+- Updated [`AGENT.testSuiteCleaning.classification.md`](./AGENT.testSuiteCleaning.classification.md) **section 8** (all rows filled or explicitly deferred)
+- Optional: short "top gaps" / "top redundancies" list in planning Progress when Step 4 completes
+- Implementation of delete/move/add items is **out of scope** for Phase 4 completion unless tracked as follow-up slices before Phase 5
 
 ## Verification
 
@@ -273,7 +321,9 @@ After each extraction PR/slice: same commands; no test count should drop without
 | Phase 3 staleness pass | Done | Example->Situation renames in Layer B + integration files; 0 tests deleted (overlap audit); `AGENT.md` Test layout section + `components/AGENT.implementation.md` |
 | AGENT.md test pointers updated | Done | Test layout (two layers); `situation.ts` replaces `example.ts`; no `example.test.ts` |
 | Gate test count post-Phase 3 | Done | **226 passed**, ~1.6s; `tsc --noEmit` clean |
-| Task plan archived | Not started | |
+| Phase 4 coverage sweeps | Step 0 done | Section 8 Step 0 filled (127 partner tests); overlap context for Steps 1-3; gate 226 pass |
+| Phase 4 Steps 1-3 | Not started | Layer A/B + large unit files per recommended order |
+| Task plan archived | Not started | Phase 5 |
 
 ## Work log
 
@@ -286,4 +336,6 @@ After each extraction PR/slice: same commands; no test count should drop without
 - **2026-05-19:** Layer B grab-bag extraction. Created 8 `components/*.integration.test.ts` files (room 14, feature 3, knowledge 3, situation 3, worldState 2, map 2, message 1, moment 1). Moved finalize character/room test from `standardForm.finalize.test.ts` to `room.integration.test.ts`. `index.test.ts` now 19 tests (`standardizeMode` + smoke, ~328 lines). Combined 217 passed; `tsc --noEmit` clean.
 - **2026-05-19:** Layer B informal integration + ephemeraWire split. Moved Situation facet + Lens from `room.test.ts` to `room.integration.test.ts` (19 tests); map shared-ref, guidance facet round-trip; feature/knowledge ephemeraWire files. Split `standardizeMode`: deleted 2 dups; `standardForm.standardizeMode.test.ts` (4); `room.ephemeraWire.integration.test.ts` (10). `index.test.ts` smoke only (2 tests, ~52 lines). Gate: 226 passed; `tsc --noEmit` clean.
 - **2026-05-19:** `testHelpers/` deferred permanently for this task: no cross-file duplicate WML asset snippets met the Phase 2 bar; repeated `<Asset uuid=(Test)>`-style setup is intentional per-scenario, not shared fixtures.
+- **2026-05-19:** Added **Phase 4** (systematic coverage sweeps: redundancy + gaps per file) and renumbered ship/verify to **Phase 5**. Extended classification **section 8** with sweep rubric, file inventory (~`it` counts), Step 0-4 tables, and consolidated backlog templates. Recommended execution order in planning doc (overlap partners -> Layer A small/heavy -> Layer B thin/heavy -> large unit files -> consolidate).
 - **2026-05-19:** Phase 3 staleness pass. Renamed 5 Layer B `it` titles and fixture keys (`testFeatureSituation`, `situation1`/`situation2`, etc.) in `room.integration.test.ts`, `feature.integration.test.ts`, `knowledge.integration.test.ts`, `standardForm.diff.test.ts`, `standardForm.construct.test.ts`; updated comments in `subset`, `removeComponent`, `keys/facets/integration.test.ts`; optional `processComponents.test.ts` key hygiene. Overlap audit (classification section 4): **0 deletions** -- retained distinct harnesses (StandardForm vs facet unit vs `processComponents`). Added **Test layout (two layers)** to `standardize/AGENT.md`; fixed `situation.ts` / `situation.test.ts` pointers in `components/AGENT.implementation.md`. Gate: 226 passed; `tsc --noEmit` clean.
+- **2026-05-19:** Phase 4 Step 0. Finalized classification section 8 (sweep depth, `it` counts, Step 0 table + overlap context). Swept facets integration (39), `wmlStandardizeMode` (4), `processComponents` (19), `schemaOrganization` (65): **0 redundancies** to delete; documented harness boundaries and processComponents title pairs; gaps noted (Guidance facets elsewhere, `standardizeMode` not in processComponents tests, proposed `<Parent>` tag deferred, diff reference-change in `diff.test`). Partner suite 127 pass; gate 226 pass; `tsc --noEmit` clean.
