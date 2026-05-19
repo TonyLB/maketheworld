@@ -9,9 +9,10 @@ import type { PerspectiveMatcher } from '../../perspective'
 // but live in the interfaces package so Ephemera and other consumers can
 // depend on a stable shape without importing lambda code.
 //
-// During migration (Phase 3+): exampleId may be an Example uuid (EXAMPLE#...)
-// or a Situation uuid (SITUATION#...). The payload shape (marks + render + provenance)
-// is the same for both. Phase 6 may rename for clarity (e.g. stateSliceId).
+// During migration: exampleId may be an Example uuid (EXAMPLE#...) or a Situation uuid
+// (SITUATION#...). parentIds lists Room / Feature / Knowledge facet parents for
+// situation-keyed events; standalone Example enrichment does not populate parentIds.
+// The payload shape (marks + render + provenance) is the same for both id types.
 //
 
 export type ComponentExamplesMarkValue = {

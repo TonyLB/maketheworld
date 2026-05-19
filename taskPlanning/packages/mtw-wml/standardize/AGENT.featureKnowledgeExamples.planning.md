@@ -58,7 +58,7 @@ Today Feature/Knowledge perception builds a **`StandardForm`** with a fake **`EX
 
 ### Implementation gap (not a product fork)
 
-**`componentExamples`** parent **Updated** / **Removed** on Feature/Knowledge with **`situations`** mirrors Room (2026-05-18). Filter/enrichment on **`situations`** shipped (2026-05-19). Remaining Phase 2 gaps: ephemera **`render`** / **`componentRender`** for F/K (**D1**); retire standalone **Example** path (line 234).
+**`componentExamples`** parent **Updated** / **Removed** on Feature/Knowledge with **`situations`** mirrors Room (2026-05-18). Filter/enrichment on **`situations`** shipped (2026-05-19). Situation-component fan-out via **`getParentIdsForSituation`** and Example path gated on non-empty **`parentIds`** shipped (2026-05-19). Remaining Phase 2 gap: ephemera **`render`** / **`componentRender`** for F/K (**D1**, line 235).
 
 ### Pre-flight checklist
 
@@ -97,8 +97,8 @@ Today Feature/Knowledge perception builds a **`StandardForm`** with a fake **`EX
 ### Assets lambda (`lambda/assets/componentExamples`)
 
 - **Room:** **`Component Updated` / `Removed`** on Room with non-empty **`situations`** emits **`ExampleUpdated` / `ExampleRemoved`** per facet (**`exampleId` = Situation uuid**), **`situationFacetToCacheShape`**, optional lens marks ([`index.ts`](../../../../lambda/assets/componentExamples/index.ts)). Room is **not** in **`isExampleAssociatedComponent`** for the Example-component path.
-- **Feature / Knowledge:** Parent **Updated** / **Removed** with **`situations`** mirrors Room ([`index.ts`](../../../../lambda/assets/componentExamples/index.ts) **`emitParentSituationFacetEvents`**; 2026-05-18). **`isExampleAssociatedComponent`** admits **Example** only; F/K use the early branch. **`getParentIdsForSituation`** resolves facet parents for **`SITUATION#`** but is not wired into **`enrichExampleEvent`** (gap at that seam; 2026-05-19).
-- **Target (remaining):** Retire standalone Example path for F/K prose (line 234); ephemera **`render`** / **`componentRender`** (**D1**).
+- **Feature / Knowledge:** Parent **Updated** / **Removed** with **`situations`** mirrors Room ([`index.ts`](../../../../lambda/assets/componentExamples/index.ts) **`emitParentSituationFacetEvents`**; 2026-05-18). **Situation** component **Updated** / **Removed** fans out to facet parents via **`getParentIdsForSituation`** (2026-05-19). Standalone **Example** path does not discover F/K parents; events publish only when **`parentIds`** is non-empty (marks-only interim until Phase 4).
+- **Target (remaining):** Ephemera **`render`** / **`componentRender`** for F/K (**D1**, line 235).
 
 ### Ephemera lambda
 
@@ -181,8 +181,8 @@ Phase 0 walk of seed rows plus related files. **Confirmed** summarizes current b
 | [`WorkbenchContainer.tsx`](../../../../charcoal-client/src/components/Workbench/WorkbenchContainer.tsx) | Breadcrumb labels for Example layers under F/K | Update when Example path removed | 3-4 |
 | [`ComponentSelectorDialog.tsx`](../../../../charcoal-client/src/components/Workbench/foundations/ComponentSelector/ComponentSelectorDialog.tsx) | **`instanceof StandardExample`** -> tag Example | Drop Example when Phase 4-ready | 4 |
 | [`exampleAssociatedFilter.ts`](../../../../lambda/assets/componentExamples/exampleAssociatedFilter.ts) | **Example** only; Room/F/K excluded (early branch) | Future: rename/rescope `componentExamples` | 2 (done) |
-| [`exampleEnrichment.ts`](../../../../lambda/assets/componentExamples/exampleEnrichment.ts) | **`getParentIdsForSituation`** for **`SITUATION#`** on Room/F/K; not wired into **`enrichExampleEvent`**; **`situationFacetToCacheShape`** shared | Rescope pipeline / wire Situation enrichment (line 234+) | 2 |
-| [`index.ts`](../../../../lambda/assets/componentExamples/index.ts) | Room + F/K: early parent branch via **`emitParentSituationFacetEvents`** on **`situations`** (2026-05-18). Standalone **Example** path unchanged | Retire standalone Example path (line 234) | 2 |
+| [`exampleEnrichment.ts`](../../../../lambda/assets/componentExamples/exampleEnrichment.ts) | **`getParentIdsForSituation`**, **`mergeSituationAcrossStack`**, **`situationFacetToCacheShape`**; **`enrichExampleEvent`** does not perform parent discovery | No change until Phase 4 Example retirement | 2 (done) |
+| [`index.ts`](../../../../lambda/assets/componentExamples/index.ts) | Parent facet branch + Situation fan-out; Example path gated on **`parentIds`** | No change until Phase 4 | 2 (done) |
 | [`componentRender.ts`](../../../../lambda/ephemera/internalCache/componentRender.ts) | F/K: **`ExamplesData.get`** -> first example -> **`examples: ['EXAMPLE#rendered']`** + synthetic **`EXAMPLE#rendered`** child | **`renderCache`** + **`render`** field only (**D1**); drop synthetic Example | 2 |
 | [`componentExamples.ts`](../../../../lambda/ephemera/dataSource/componentExamples.ts) | Writes **`RenderCache`**; branches **`situationId`** vs **`authoredExampleId`** by id type | F/K events use Situation ids once assets branch exists | 2 |
 | [`examples.ts`](../../../../lambda/ephemera/internalCache/examples.ts) | **`EXAMPLE#`** Dynamo rows for Feature/Knowledge | Deprecate for F/K prose when renderCache-only | 2 |
@@ -231,7 +231,7 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
 
 - [X] **`componentExamples`**: Feature/Knowledge **`situations`** branch on **parent** **Updated** / **Removed** (mirror Room; fix gap noted in Decisions). Shipped 2026-05-18.
 - [X] Update **`exampleAssociatedFilter`** / enrichment for **`situations`** (drop **`examples`** gate when Phase 4-ready). Shipped 2026-05-19.
-- [ ] **`componentExamples`**: Stop standalone **Example** path for F/K parent discovery once facets own prose.
+- [X] **`componentExamples`**: Stop standalone **Example** path for F/K parent discovery once facets own prose. Shipped 2026-05-19 (Situation fan-out; Example path no publish when **`parentIds`** empty).
 - [ ] Ephemera **D1:** Feature/Knowledge **`render`** + **renderCache**; DEFAULT-only cache selection; remove **`EXAMPLE#rendered`** synthetic form.
 - [ ] Tests: [`exampleEnrichment.test.ts`](../../../../lambda/assets/componentExamples/exampleEnrichment.test.ts), [`index.test.ts`](../../../../lambda/assets/componentExamples/index.test.ts), ephemera **`componentExamples.test.ts`**, **`componentRender.test.ts`**.
 

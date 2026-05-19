@@ -234,6 +234,41 @@ export const mergeExampleAcrossStack = (
     return merged
 }
 
+export const mergeSituationAcrossStack = (
+    byAssets: ComponentDataByAsset,
+    assetStack: AssetUUID[]
+): StandardSituation | undefined => {
+    if (!byAssets.length || !assetStack.length) {
+        return undefined
+    }
+
+    const indexByAsset = assetStack.reduce<Record<AssetUUID, number>>(
+        (previous, assetId, index) => ({
+            ...previous,
+            [assetId]: index,
+        }),
+        {}
+    )
+
+    const withIndex = byAssets
+        .map(({ AssetId, component }) => {
+            if (!(component instanceof StandardSituation)) return undefined
+            const index = indexByAsset[AssetId]
+            if (typeof index !== 'number') return undefined
+            return { index, situation: component } as { index: number; situation: StandardSituation }
+        })
+        .filter(excludeUndefined)
+        .sort((a, b) => a.index - b.index)
+
+    if (!withIndex.length) return undefined
+
+    let merged: StandardSituation = withIndex[0].situation as StandardSituation
+    for (let i = 1; i < withIndex.length; i++) {
+        merged = merged.merge(withIndex[i].situation) as StandardSituation
+    }
+    return merged
+}
+
 export const mergeRoomAcrossStack = (
     byAssets: ComponentDataByAsset,
     assetStack: AssetUUID[]
@@ -460,14 +495,10 @@ export const enrichExampleEvent = async (params: {
     const assetStack = getOrderedAssetStack(exampleId, eventAssetId, byAssets)
 
     //
-    // Seam / gap: Incoming Asset changes that affect Situation facets (Room, Feature,
-    // Knowledge parent Updated/Removed, or a Situation component edit) are handled in
-    // index.ts via emitParentSituationFacetEvents. That path can publish render-driving
-    // ExampleUpdated-shaped events with exampleId = SITUATION# and parentIds set on the
-    // parent. This function only runs for standalone Example (EXAMPLE#) components.
-    // getParentIdsForSituation implements facet-based parent discovery for SITUATION# ids
-    // but is not wired here, so parentIds stay empty until componentExamples is rescoped
-    // to deliver situation-keyed updates through one coherent pipeline.
+    // Situation-facet render updates (Room / Feature / Knowledge parents, or Situation
+    // component edits fanning out via getParentIdsForSituation) are handled in index.ts.
+    // This function only runs for standalone Example (EXAMPLE#) components and does not
+    // perform parent discovery (parentIds stay empty).
     //
     const parentIds: ComponentUUID[] = []
 

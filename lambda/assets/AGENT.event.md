@@ -143,8 +143,8 @@ The Assets Lambda hosts seven data sources, each serving a specific purpose:
 - `ExampleRemoved`: `{ type: 'ExampleRemoved'; exampleId; parentIds; assetStack }`
 
 Where:
-- `exampleId`: Example component UUID (blueprint Example)
-- `parentIds`: Component UUIDs of parents derived from **Feature**/**Knowledge** **`examples`** lists that reference this Example (`exampleEnrichment` does not walk **`Room.examples`**)
+- `exampleId`: Example component UUID (`EXAMPLE#...`) or Situation uuid (`SITUATION#...`) for situation-facet mirror events
+- `parentIds`: Component UUIDs of Room / Feature / Knowledge parents that reference this situation via **`situations`** facets (set on parent early branch or Situation fan-out via **`getParentIdsForSituation`**; standalone **`Example`** enrichment does not populate **`parentIds`**)
 - `assetStack`: Ordered list of AssetUUIDs in the Example's inheritance chain (base-first, event asset last)
 - `example`: Cache-shaped payload `{ markState, renderedContent, provenance: { type: 'authored' } }` matching Ephemera render-cache schema
 
@@ -155,7 +155,7 @@ Where:
   - **`Room`** / **`Feature`** / **`Knowledge`** updates use the early situation-facet branch in **`index.ts`** and do **not** pass this filter. See **[`componentExamples/AGENT.md`](./componentExamples/AGENT.md)** and **[`componentExamples/index.test.ts`](./componentExamples/index.test.ts)**.
 - For each Example-associated change, this data source:
   - Reconstructs the Example's **inheritance chain** via `_from` links across the Assets table to build the ordered `assetStack` (base-first, event asset last).
-  - Standalone **`Example`** enrichment sets empty **`parentIds`** (situation-facet parent discovery lives in **`getParentIdsForSituation`**, used on the **`index.ts`** early branch, not in **`enrichExampleEvent`**; see seam comment in **[`exampleEnrichment.ts`](./componentExamples/exampleEnrichment.ts)**).
+  - **`Room`** / **`Feature`** / **`Knowledge`** / **`Situation`** use early branches in **`index.ts`** (parent facet mirror or Situation fan-out via **`getParentIdsForSituation`**). Standalone **`Example`** enrichment sets empty **`parentIds`**; **`index.ts`** does not publish when **`parentIds`** is empty.
   - For `ExampleUpdated` (and eventually `ExampleAdded`), merges the Example across the asset stack into a single payload shaped for Ephemera's render cache (`{ markState, renderedContent, provenance: { type: 'authored' } }`).
   - For `ExampleRemoved`, computes `assetStack` and `parentIds` without emitting a new example payload.
 
