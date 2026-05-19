@@ -1,6 +1,6 @@
 # StandardForm test suite cleaning (`index.test.ts`)
 
-**Status:** In progress. Two-layer layout agreed (asset `integration/` + component `*.integration.test.ts`). Next step: Phase 1 classify each test as Layer A, Layer B, unit, or delete.
+**Status:** In progress. Phase 1 complete (classification only). Next step: Phase 2 mechanical split. See [`AGENT.testSuiteCleaning.classification.md`](./AGENT.testSuiteCleaning.classification.md).
 
 ## Purpose
 
@@ -155,11 +155,11 @@ Goals:
 - **Shared helpers** for repeated asset snippets where copy-paste hurts (optional `testHelpers/`).
 - **Rename** stale "example" tests to "situation" when touching them.
 
-Open questions (resolve in Phase 1):
+Open questions (resolved in Phase 1 -- see [`AGENT.testSuiteCleaning.classification.md`](./AGENT.testSuiteCleaning.classification.md) Decisions):
 
-- Whether `index.test.ts` is deleted outright or kept as a one-test smoke file.
-- Which ephemeraWire cases land in `room.ephemeraWire.integration.test.ts` vs `integration/standardForm.ephemeraWire.test.ts` (asset-wide merge/render vs Room-as-hub).
-- Whether any Layer B tests are better owned under `situation.integration.test.ts` vs `room.integration.test.ts` (document owner in classification table).
+- ~~Whether `index.test.ts` is deleted outright or kept as a one-test smoke file.~~ **Thin smoke** (1-2 construct round-trips) after split.
+- ~~Which ephemeraWire cases land in `room.ephemeraWire.integration.test.ts` vs `integration/standardForm.ephemeraWire.test.ts`.~~ **Room hub** -> Layer B; **asset-wide mode/merge policy** -> Layer A `standardForm.standardizeMode.test.ts`.
+- ~~Whether any Layer B tests are better owned under `situation.integration.test.ts` vs `room.integration.test.ts`.~~ **Room** for facet lists / hoisting; **feature** / **knowledge** when their child lists are primary.
 
 ## Getting started
 
@@ -211,12 +211,12 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
 
 **Shared test helpers (guidance, not a Phase 0 deliverable):** Do not add `testHelpers/` up front. Introduce shared fixtures only during Phase 2 when a concrete extraction duplicates the same WML asset snippet across files; copy-paste in one new file is fine.
 
-- [ ] Phase 1 - inventory and classify (no moves yet)
-  - [ ] Tag each ungrouped `it` (lines ~536-2464) with destination: **Layer A path**, **Layer B path** (`room.integration.test.ts`, etc.), unit elsewhere, or delete
-  - [ ] Tag named `describe` blocks in `index.test.ts` (most -> Layer A; note any -> Layer B)
-  - [ ] Inventory informal integration in `room.test.ts` (and other large `components/*.test.ts`) for Layer B migration
-  - [ ] List duplicate/overlapping coverage vs `keys/facets/integration.test.ts`, `wmlStandardizeMode.test.ts`
-  - [ ] Mark tests to rename (Example -> Situation) vs delete as redundant
+- [X] Phase 1 - inventory and classify (no moves yet)
+  - [X] Tag each ungrouped `it` (lines ~536-2464) with destination: **Layer A path**, **Layer B path** (`room.integration.test.ts`, etc.), unit elsewhere, or delete
+  - [X] Tag named `describe` blocks in `index.test.ts` (most -> Layer A; note any -> Layer B)
+  - [X] Inventory informal integration in `room.test.ts` (and other large `components/*.test.ts`) for Layer B migration
+  - [X] List duplicate/overlapping coverage vs `keys/facets/integration.test.ts`, `wmlStandardizeMode.test.ts`
+  - [X] Mark tests to rename (Example -> Situation) vs delete as redundant
 
 - [ ] Phase 2 - mechanical split (behavior-neutral)
   - [ ] **Layer A:** Extract named asset-level `describe` blocks to `integration/standardForm.*.test.ts` one at a time (`diff`, `subset`, `validate`, ...); green after each
@@ -259,10 +259,10 @@ After each extraction PR/slice: same commands; no test count should drop without
 | Create task plan | Done | This document |
 | Phase 0 baseline run | Done | 217 passed, ~0.73s (`npm test -- ts/standardize/index.test.ts`) |
 | Two-layer layout agreed | Done | Layer A `integration/` + Layer B `components/*.integration.test.ts` |
-| Phase 1 classification spreadsheet | Not started | Tag Layer A vs Layer B per test |
+| Phase 1 classification spreadsheet | Done | [`AGENT.testSuiteCleaning.classification.md`](./AGENT.testSuiteCleaning.classification.md): 64 ungrouped `it`, 16 describes, 8 delete tags, 5 rename titles |
 | First Layer A split | Not started | Suggest `diff method` or `subset method` (already grouped) |
 | First Layer B split | Not started | Suggest situation-nesting grab-bag -> `room.integration.test.ts` |
-| Grab-bag fully classified and moved | Not started | Largest risk |
+| Grab-bag fully classified and moved | Not started | Classified; moves are Phase 2 |
 | `room.test.ts` unit/integration split | Not started | Migrate `Lens output in schema` block |
 | AGENT.md test pointers updated | Not started | |
 | Task plan archived | Not started | |
@@ -272,3 +272,4 @@ After each extraction PR/slice: same commands; no test count should drop without
 - **2026-05-19:** Created plan from static analysis of `index.test.ts` (~5,599 lines, 16 top-level `describe` blocks, ~1,929-line ungrouped `it` region).
 - **2026-05-19:** Baseline: 217 tests passing in ~0.73s from `packages/mtw-wml/`.
 - **2026-05-19:** Adopted two-layer integration model (asset-level `integration/` + component-adjacent `*.integration.test.ts`); updated placement rules and phases.
+- **2026-05-19:** Phase 1 complete. Baseline re-run: 217 passed, ~0.75s. Classification artifact: 64 ungrouped `it` + 16 top-level `describe` blocks tagged; `room.test.ts` Layer B inventory; overlap matrix vs facets + wmlStandardizeMode; 5 Example->Situation renames and 2 `standardizeMode` delete candidates noted for Phase 2/3.
