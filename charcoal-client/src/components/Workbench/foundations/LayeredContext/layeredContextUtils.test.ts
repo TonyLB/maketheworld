@@ -10,12 +10,13 @@ describe('layeredContextUtils Room Example refactor slice', () => {
                 <Guidance key=(guide1) uuid=(GUIDANCE#guide1) />
             </Room>
             <Feature key=(feature1) uuid=(FEATURE#feature1)>
-                <Example key=(featureExample) uuid=(EXAMPLE#featureExample) />
+                <Situation uuid=(DEFAULT) />
             </Feature>
             <Knowledge key=(knowledge1) uuid=(KNOWLEDGE#knowledge1)>
-                <Example key=(knowledgeExample) uuid=(EXAMPLE#knowledgeExample) />
+                <Situation uuid=(DEFAULT) />
             </Knowledge>
             <Situation key=(bright) uuid=(SITUATION#bright) />
+            <Situation uuid=(DEFAULT) />
             <Guidance key=(guide1) uuid=(GUIDANCE#guide1) />
             <Example key=(roomExample) uuid=(EXAMPLE#roomExample) />
             <Example key=(featureExample) uuid=(EXAMPLE#featureExample) />
@@ -49,8 +50,27 @@ describe('layeredContextUtils Room Example refactor slice', () => {
         expect(isReferenceListChild(standardForm, 'ROOM#room1', 'EXAMPLE#roomExample')).toBe(false)
     })
 
-    it('preserves Feature and Knowledge Example membership', () => {
-        expect(isReferenceListChild(standardForm, 'FEATURE#feature1', 'EXAMPLE#featureExample')).toBe(true)
-        expect(isReferenceListChild(standardForm, 'KNOWLEDGE#knowledge1', 'EXAMPLE#knowledgeExample')).toBe(true)
+    it('removes Feature and Knowledge Example membership', () => {
+        expect(isReferenceListChild(standardForm, 'FEATURE#feature1', 'EXAMPLE#featureExample')).toBe(false)
+        expect(isReferenceListChild(standardForm, 'KNOWLEDGE#knowledge1', 'EXAMPLE#knowledgeExample')).toBe(false)
+        expect(getLayeredContext(standardForm, [
+            { id: 'FEATURE#feature1', kind: 'component', componentId: 'FEATURE#feature1' },
+            { id: 'EXAMPLE#featureExample', kind: 'component', componentId: 'EXAMPLE#featureExample' }
+        ])).toBeNull()
+        expect(getLayeredContext(standardForm, [
+            { id: 'KNOWLEDGE#knowledge1', kind: 'component', componentId: 'KNOWLEDGE#knowledge1' },
+            { id: 'EXAMPLE#knowledgeExample', kind: 'component', componentId: 'EXAMPLE#knowledgeExample' }
+        ])).toBeNull()
+    })
+
+    it('does not layer Feature or Knowledge Situation facets', () => {
+        expect(getLayeredContext(standardForm, [
+            { id: 'FEATURE#feature1', kind: 'component', componentId: 'FEATURE#feature1' },
+            { id: 'SITUATION#DEFAULT', kind: 'component', componentId: 'SITUATION#DEFAULT' }
+        ])).toBeNull()
+        expect(getLayeredContext(standardForm, [
+            { id: 'KNOWLEDGE#knowledge1', kind: 'component', componentId: 'KNOWLEDGE#knowledge1' },
+            { id: 'SITUATION#DEFAULT', kind: 'component', componentId: 'SITUATION#DEFAULT' }
+        ])).toBeNull()
     })
 })

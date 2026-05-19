@@ -1,19 +1,18 @@
-import React, { FunctionComponent, useMemo, useCallback } from 'react'
+import React, { FunctionComponent, useMemo } from 'react'
 import { Box } from '@mui/material'
 
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import { useSelector, useDispatch } from 'react-redux'
-import { getCurrentComponentId, pushBreadcrumb } from '../../../slices/UI/workbench'
+import { useSelector } from 'react-redux'
+import { getCurrentComponentId } from '../../../slices/UI/workbench'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
-import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import { TopLevelStandardLiteralEditor } from '../foundations/StandardLiteral'
-import { ReferenceListEditor } from '../foundations/ReferenceList'
+import DefaultRenderEditor from '../foundations/DefaultRenderEditor'
+import Spacer from '../WorkbenchSpacer'
 
 export const FeatureEditor: FunctionComponent = () => {
-    const dispatch = useDispatch()
     const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
     const currentComponentId = useSelector(getCurrentComponentId)
 
@@ -28,29 +27,6 @@ export const FeatureEditor: FunctionComponent = () => {
         if (c && c instanceof StandardFeature) return c
         return undefined
     }, [universalKey, standardForm])
-
-    const examplesListContext = useCallback(
-        (form: StandardForm) => {
-            const base = form.byUniversalId[universalKey!]
-            if (!base || !(base instanceof StandardFeature)) return null
-            const examples = base._payload._examples ?? new ReferenceList([])
-            return {
-                referenceList: examples,
-                setReferenceList: (list: ReferenceList) => {
-                    base._payload._examples = list
-                }
-            }
-        },
-        [universalKey]
-    )
-
-    const handleExamplesItemClick = useCallback(
-        (id: string) => {
-            if (!feature || readonly) return
-            dispatch(pushBreadcrumb({ id: id as ComponentUUID, kind: 'component', componentId: id as ComponentUUID }))
-        },
-        [feature, readonly, dispatch, universalKey]
-    )
 
     if (!universalKey || !(universalKey in standardForm.byUniversalId) || !feature) {
         return <Box />
@@ -87,15 +63,8 @@ export const FeatureEditor: FunctionComponent = () => {
                             placeholder="Enter short name..."
                             size="small"
                         />
-                        <Box sx={{ marginTop: '0.5em' }}>
-                            <ReferenceListEditor
-                                title="Examples"
-                                listContext={examplesListContext}
-                                tag="Example"
-                                disabled={readonly}
-                                onItemClick={handleExamplesItemClick}
-                            />
-                        </Box>
+                        <Spacer />
+                        <DefaultRenderEditor parentId={universalKey} />
                     </Box>
                 </Box>
             </Box>

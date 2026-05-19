@@ -79,14 +79,14 @@ componentRender.set('CHARACTER#player-uuid', 'ROOM#marketSquare-uuid', renderedF
 - **Short Name**: Merges short names from multiple assets
 
 #### **Feature Rendering**
+
 - **Metadata Assembly**: Combines feature data from all accessible assets
-- **Example Integration**: Uses first available example
-- **Context Integration**: Considers feature's room context
+- **Prose for perception**: **`renderCache`** only (same as Room). **`selectDefaultSituationCacheRecord`** picks **`SITUATION#DEFAULT`** row; maps to **`SituationRoomFacetPayloadType`** via **`situationRoomRenderPayloadFromCacheRenderedContent`**; sets parent **`render`** on wire form (**`<Render>`**). Does **not** call **`ExamplesData`**; no synthetic **`EXAMPLE#rendered`** child.
 
 #### **Knowledge Rendering**
+
 - **Metadata Assembly**: Combines knowledge data from all accessible assets
-- **Example Integration**: Uses first available example
-- **Content Processing**: Handles knowledge-specific content
+- **Prose for perception**: Same as Feature (**`renderCache`** + **`render`**; DEFAULT-only for v1 per **D9**).
 
 #### **Map Rendering**
 - **Position Processing**: Handles room positions and coordinates
@@ -106,12 +106,9 @@ ComponentRender discovers accessible assets through:
 - **Asset Filtering**: Only includes assets where component appears
 
 ### **Example Integration (rooms vs other types)**
-- **Rooms**: **`renderCache`** only for prose (see **`Room Rendering`** and **`componentRender.ts`** **`_getPromiseFactory`** Room branch).
-- **Features / knowledge / maps (current)**: Still use a **naive first-example** pattern where applicable:
-```typescript
-const exampleMap = await this._examples([EphemeraId])
-const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
-```
+- **Rooms / Features / Knowledge**: **`renderCache`** only for display prose in **`ComponentRender`** (see **`_resolveRenderPayloadFromDefaultCache`** for F/K; Room branch uses first cache row today).
+- **`ExamplesData`**: Still constructed on **`ComponentRenderData`** but **not** called for Room, Feature, or Knowledge display prose. Legacy **`EXAMPLE#`** Dynamo rows may remain until Phase 4 Example retirement.
+- **Maps**: Out of F/K initiative scope.
 
 ## Integration Points
 

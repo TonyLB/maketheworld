@@ -5,15 +5,19 @@ import StandardKnowledge from './knowledge'
 import { mergeTest } from "./utils/testing"
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
+import { StandardForm } from "../index"
 
 describe('StandardKnowledge class', () => {
 
     it('should construct StandardKnowledge from WML', () => {
         const testSource = deIndentWML(`
-            <Knowledge uuid=(001) key=(test)><Example key=(base) /></Knowledge>
+            <Knowledge uuid=(001) key=(test)>
+                <Situation uuid=(DEFAULT)><DisplayName>Base</DisplayName></Situation>
+            </Knowledge>
         `)
         const testKnowledge = new StandardKnowledge(testSource)
         expect(testKnowledge.key).toEqual('test')
+        expect(testKnowledge.situations.items[0].reference.universalKey).toEqual('SITUATION#DEFAULT')
         expect(schemaToWML([testKnowledge.schema])).toEqual(testSource)
     })
 
@@ -21,7 +25,7 @@ describe('StandardKnowledge class', () => {
         const testSource = deIndentWML(`
             <Knowledge key=(test)>
                 <ShortName>Test Knowledge</ShortName>
-                <Example key=(base) />
+                <Situation uuid=(DEFAULT)><DisplayName>Base</DisplayName></Situation>
             </Knowledge>
         `)
         const testKnowledge = new StandardKnowledge(testSource)
@@ -33,7 +37,9 @@ describe('StandardKnowledge class', () => {
     it('should construct StandardKnowledge from schema', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`
-            <Knowledge key=(test)><Example key=(base) /></Knowledge>
+            <Knowledge key=(test)>
+                <Situation uuid=(DEFAULT)><DisplayName>Base</DisplayName></Situation>
+            </Knowledge>
         `)
         schema.loadWML(testSource)
         const testKnowledge = new StandardKnowledge(schema.schema[0])
@@ -45,7 +51,10 @@ describe('StandardKnowledge class', () => {
         const testKnowledgeData: StandardKnowledgeData = {
             key: 'test',
             tag: 'Knowledge',
-            examples: [{ key: 'base', tag: 'Example' }]
+            situations: [{
+                reference: 'SITUATION#DEFAULT',
+                payload: { displayName: 'base' }
+            }]
         }
         const testKnowledge = new StandardKnowledge(testKnowledgeData)
         expect(testKnowledge.key).toEqual('test')
@@ -57,7 +66,10 @@ describe('StandardKnowledge class', () => {
             key: 'test',
             tag: 'Knowledge',
             shortName: 'Test Knowledge',
-            examples: [{ key: 'base', tag: 'Example' }]
+            situations: [{
+                reference: 'SITUATION#DEFAULT',
+                payload: { displayName: 'base' }
+            }]
         }
         const testKnowledge = new StandardKnowledge(testKnowledgeData)
         expect(testKnowledge.key).toEqual('test')
@@ -68,16 +80,16 @@ describe('StandardKnowledge class', () => {
     it('should merge correctly', () => {
         expect(mergeTest(
             `<Knowledge key=(testKnowledge)>
-                <Example key=(Example1) />
+                <Situation key=(sit1)><DisplayName>One</DisplayName></Situation>
             </Knowledge>`,
             StandardKnowledge,
             `<Knowledge key=(testKnowledge)>
-                <Example key=(Example2) />
+                <Situation key=(sit2)><DisplayName>Two</DisplayName></Situation>
             </Knowledge>`
         )).toEqual(deIndentWML(`
             <Knowledge key=(testKnowledge)>
-                <Example key=(Example1) />
-                <Example key=(Example2) />
+                <Situation key=(sit1)><DisplayName>One</DisplayName></Situation>
+                <Situation key=(sit2)><DisplayName>Two</DisplayName></Situation>
             </Knowledge>
         `))
     })
@@ -100,7 +112,7 @@ describe('StandardKnowledge class', () => {
     it('should throw on unconsumed child tags', () => {
         const testSource = deIndentWML(`
             <Knowledge key=(testKnowledge)>
-                <Example key=(Example1) />
+                <Situation uuid=(DEFAULT) />
                 <Map />
             </Knowledge>
         `)
@@ -108,18 +120,28 @@ describe('StandardKnowledge class', () => {
         expect(() => new StandardKnowledge(testSource)).toThrow(/Map/)
     })
 
-    it('should correctly add an example reference to knowledge', () => {
-        const test = new StandardKnowledge(`
+    it('should throw on legacy Example child (D6)', () => {
+        const testSource = deIndentWML(`
             <Knowledge key=(testKnowledge)>
-                <Example uuid=(Example1) />
+                <Example key=(Example1) />
             </Knowledge>
         `)
-        const example = new StandardKey("EXAMPLE#Example2")
-        const added = test.withChild(new StandardReference(example))
+        expect(() => new StandardKnowledge(testSource)).toThrow(/Unconsumed child tags:/)
+        expect(() => new StandardKnowledge(testSource)).toThrow(/Example/)
+    })
+
+    it('should correctly add a Situation reference to knowledge', () => {
+        const test = new StandardKnowledge(`
+            <Knowledge key=(testKnowledge)>
+                <Situation uuid=(DEFAULT) />
+            </Knowledge>
+        `)
+        const situation = new StandardKey("SITUATION#other")
+        const added = test.withChild(new StandardReference(situation))
         expect(schemaToWML([added.schema])).toEqual(deIndentWML(`
             <Knowledge key=(testKnowledge)>
-                <Example uuid=(Example1) />
-                <Example uuid=(Example2) />
+                <Situation uuid=(DEFAULT) />
+                <Situation uuid=(other) />
             </Knowledge>
         `))
     })
@@ -150,154 +172,153 @@ describe('StandardKnowledge class', () => {
             const knowledge = new StandardKnowledge({ tag: 'Knowledge', key: 'test' })
             const { payload: result, inlineRemainder } = knowledge._payload.assureReferences([])
             
-            expect(result.examples.payload.length).toBe(0)
+            expect(result.situations.length).toBe(0)
             expect(inlineRemainder).toEqual([])
-            // Verify it's a clone (original unchanged)
-            expect(knowledge._payload.examples.payload.length).toBe(0)
+            expect(knowledge._payload.situations.length).toBe(0)
         })
         
-        it('should add children with ref={0} when they do not exist', () => {
+        it('should put all children in inlineRemainder with ref={0}', () => {
             const knowledge = new StandardKnowledge({ tag: 'Knowledge', key: 'test' })
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            const situationRef = new StandardReference({ tag: 'Situation', key: 'ex1', universalKey: 'SITUATION#ex1' })
             
-            const { payload: result } = knowledge._payload.assureReferences([exampleRef])
+            const { payload: result, inlineRemainder } = knowledge._payload.assureReferences([situationRef])
             
-            // Verify reference was added with ref={0}
-            expect(result.examples.payload.length).toBe(1)
-            expect(result.examples.payload[0].ref).toBe(0)
-            expect(result.examples.payload[0].sameKey(exampleRef)).toBe(true)
-        })
-        
-        it('should leave existing references with non-zero ref unchanged', () => {
-            const knowledge = new StandardKnowledge(deIndentWML(`
-                <Knowledge key=(test)>
-                    <Example key=(ex1) />
-                </Knowledge>
-            `))
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
-            
-            const { payload: result } = knowledge._payload.assureReferences([exampleRef])
-            
-            // Verify existing reference was left unchanged
-            expect(result.examples.payload.length).toBe(1)
-            expect(result.examples.payload[0].ref).toBe(1) // Original ref value (default)
-        })
-        
-        it('should handle mixed scenarios (some exist, some do not)', () => {
-            const knowledge = new StandardKnowledge(deIndentWML(`
-                <Knowledge key=(test)>
-                    <Example key=(existingEx) />
-                </Knowledge>
-            `))
-            const existingExample = new StandardReference({ tag: 'Example', key: 'existingEx' })
-            const newExample = new StandardReference({ tag: 'Example', key: 'newEx' })
-            
-            const { payload: result } = knowledge._payload.assureReferences([existingExample, newExample])
-            
-            // Existing example should be unchanged
-            expect(result.examples.payload.length).toBe(2)
-            const existingExInResult = result.examples.payload.find(ref => ref.sameKey(existingExample))
-            expect(existingExInResult?.ref).toBe(1) // Original ref value
-            
-            // New example should be added with ref={0}
-            const newExInResult = result.examples.payload.find(ref => ref.sameKey(newExample))
-            expect(newExInResult?.ref).toBe(0)
+            expect(result.situations.length).toBe(0)
+            expect(inlineRemainder.length).toBe(1)
+            expect(inlineRemainder[0].ref).toBe(0)
+            expect(inlineRemainder[0].sameKey(situationRef)).toBe(true)
         })
         
         it('should return a clone without mutating the original', () => {
             const knowledge = new StandardKnowledge({ tag: 'Knowledge', key: 'test' })
-            const originalExamplesLength = knowledge._payload.examples.payload.length
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            const situationRef = new StandardReference({ tag: 'Situation', key: 'ex1', universalKey: 'SITUATION#ex1' })
             
-            const { payload: result } = knowledge._payload.assureReferences([exampleRef])
+            const { payload: result } = knowledge._payload.assureReferences([situationRef])
             
-            // Original should be unchanged
-            expect(knowledge._payload.examples.payload.length).toBe(originalExamplesLength)
-            // Result should have the new reference
-            expect(result.examples.payload.length).toBe(1)
-            // They should be different objects
+            expect(knowledge._payload.situations.length).toBe(0)
+            expect(result.situations.length).toBe(0)
             expect(result).not.toBe(knowledge._payload)
         })
         
-        it('should be idempotent (calling multiple times with same children produces same result)', () => {
-            const knowledge = new StandardKnowledge({ tag: 'Knowledge', key: 'test' })
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
-            
-            const { payload: firstPayload } = knowledge._payload.assureReferences([exampleRef])
-            const { payload: secondPayload } = firstPayload.assureReferences([exampleRef])
-            
-            // Both calls should produce the same result
-            expect(firstPayload.examples.payload.length).toBe(1)
-            expect(secondPayload.examples.payload.length).toBe(1)
-            expect(firstPayload.examples.payload[0].sameKey(secondPayload.examples.payload[0])).toBe(true)
-            expect(firstPayload.examples.payload[0].ref).toBe(0)
-            expect(secondPayload.examples.payload[0].ref).toBe(0)
-        })
-        
-        it('should dispatch children to correct bucket based on tag', () => {
-            const knowledge = new StandardKnowledge({ tag: 'Knowledge', key: 'test' })
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
-            
-            const { payload: result } = knowledge._payload.assureReferences([exampleRef])
-            
-            // Verify reference went to the correct bucket
-            expect(result.examples.payload.length).toBe(1)
-            expect(result.examples.payload[0].sameKey(exampleRef)).toBe(true)
-        })
-        
-        it('should put non-bucket children in inlineRemainder', () => {
+        it('should put non-Situation children in inlineRemainder', () => {
             const knowledge = new StandardKnowledge({ tag: 'Knowledge', key: 'test' })
             const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            const situationRef = new StandardReference({ tag: 'Situation', key: 'ex1', universalKey: 'SITUATION#ex1' })
             
-            const { payload: result, inlineRemainder } = knowledge._payload.assureReferences([featureRef, exampleRef])
+            const { payload: result, inlineRemainder } = knowledge._payload.assureReferences([featureRef, situationRef])
             
-            // Example goes to bucket
-            expect(result.examples.payload.length).toBe(1)
-            expect(result.examples.payload[0].sameKey(exampleRef)).toBe(true)
-            // Feature goes to remainder
-            expect(inlineRemainder.length).toBe(1)
-            expect(inlineRemainder[0].tag).toBe('Feature')
-            expect(inlineRemainder[0].sameKey(featureRef)).toBe(true)
-            expect(inlineRemainder[0].ref).toBe(0)
+            expect(result.situations.length).toBe(0)
+            expect(inlineRemainder.length).toBe(2)
+            expect(inlineRemainder.every((r) => r.ref === 0)).toBe(true)
         })
     })
 
     describe('removeReferences method', () => {
-        it('should remove matching references from examples bucket', () => {
+        it('should remove matching situation facets', () => {
             const knowledge = new StandardKnowledge(deIndentWML(`
                 <Knowledge key=(test)>
-                    <Example key=(ex1) />
-                    <Example key=(ex2) />
+                    <Situation key=(ex1) />
+                    <Situation key=(ex2) />
                 </Knowledge>
             `))
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            const situationRef = new StandardReference({ tag: 'Situation', key: 'ex1', universalKey: 'SITUATION#ex1' })
             
-            const result = knowledge._payload.removeReferences([exampleRef])
+            const result = knowledge._payload.removeReferences([situationRef])
             
-            // Verify matching reference was removed
-            expect(result.examples.payload.length).toBe(1)
-            expect(result.examples.payload[0].sameKey(new StandardReference({ tag: 'Example', key: 'ex2' }))).toBe(true)
+            expect(result.situations.length).toBe(1)
+            expect(result.situations.items[0].reference.sameKey(new StandardReference({ tag: 'Situation', key: 'ex2', universalKey: 'SITUATION#ex2' }))).toBe(true)
         })
         
         it('should return a clone without mutating the original', () => {
             const knowledge = new StandardKnowledge(deIndentWML(`
                 <Knowledge key=(test)>
-                    <Example key=(ex1) />
+                    <Situation key=(ex1) />
                 </Knowledge>
             `))
-            const originalExamplesLength = knowledge._payload.examples.payload.length
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            const originalLength = knowledge._payload.situations.length
+            const situationRef = new StandardReference({ tag: 'Situation', key: 'ex1', universalKey: 'SITUATION#ex1' })
             
-            const result = knowledge._payload.removeReferences([exampleRef])
+            const result = knowledge._payload.removeReferences([situationRef])
             
-            // Original should be unchanged
-            expect(knowledge._payload.examples.payload.length).toBe(originalExamplesLength)
-            // Result should have the reference removed
-            expect(result.examples.payload.length).toBe(0)
-            // They should be different objects
+            expect(knowledge._payload.situations.length).toBe(originalLength)
+            expect(result.situations.length).toBe(0)
             expect(result).not.toBe(knowledge._payload)
         })
+    })
+
+    it('round-trips render from StandardKnowledgeData to schema', () => {
+        const testKnowledgeData: StandardKnowledgeData = {
+            key: 'test',
+            tag: 'Knowledge',
+            render: {
+                displayName: 'Cached Name',
+                summary: ['Summary text'],
+                description: ['Description text'],
+            },
+        }
+        const testKnowledge = new StandardKnowledge(testKnowledgeData)
+        expect(testKnowledge.render).toEqual(testKnowledgeData.render)
+        expect(schemaToWML([testKnowledge.schema])).toEqual(deIndentWML(`
+            <Knowledge key=(test)>
+                <Render>
+                    <DisplayName>Cached Name</DisplayName>
+                    <Summary>Summary text</Summary>
+                    <Description>Description text</Description>
+                </Render>
+            </Knowledge>
+        `))
+    })
+
+    it('parses Render under Knowledge in ephemeraWire', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Knowledge key=(lore) uuid=(lore)>
+                    <Render>
+                        <DisplayName>Ancient lore</DisplayName>
+                        <Summary>Short summary</Summary>
+                        <Description>Full knowledge text.</Description>
+                    </Render>
+                </Knowledge>
+            </Asset>
+        `)
+        const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const knowledge = sf._lookup('KNOWLEDGE#lore') as StandardKnowledge
+        expect(knowledge.render).toEqual({
+            displayName: 'Ancient lore',
+            summary: ['Short summary'],
+            description: ['Full knowledge text.'],
+        })
+    })
+
+    it('round-trips Render under Knowledge in ephemeraWire', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Knowledge key=(lore) uuid=(lore)>
+                    <Render>
+                        <DisplayName>Ancient lore</DisplayName>
+                        <Summary>Short summary</Summary>
+                        <Description>Full knowledge text.</Description>
+                    </Render>
+                </Knowledge>
+            </Asset>
+        `)
+        const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const printed = schemaToWML([sf.schema])
+        const sfAgain = new StandardForm(printed, { standardizeMode: 'ephemeraWire' })
+        expect(schemaToWML([sfAgain.schema])).toEqual(printed)
+    })
+
+    it('rejects Render under Knowledge in asset mode', () => {
+        const wml = deIndentWML(`
+            <Knowledge key=(lore)>
+                <Render>
+                    <DisplayName>Ancient lore</DisplayName>
+                    <Summary>Short summary</Summary>
+                    <Description>Full knowledge text.</Description>
+                </Render>
+            </Knowledge>
+        `)
+        expect(() => new StandardKnowledge(wml)).toThrow()
     })
     
 })

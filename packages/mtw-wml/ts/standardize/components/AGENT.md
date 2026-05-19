@@ -147,7 +147,7 @@ A Component's data is structured as an independent set of data fields and refere
 Each different data tag (like `ShortName`, `Description`, etc.) and each different type of reference (like `Feature`, `Character`, etc.) are stored independently within a component:
 
 - **Data Tags**: Stored in dedicated types specific to that data field. For example, `ShortName` is stored as a `StandardLiteral` type, while `Description` might be stored as a `StandardRender` type.
-- **References**: Stored in `ReferenceList` types (and related structures such as **`SingleReference`**). Each reference collection (like `features`, `characters`, or on Feature/Knowledge `examples`) is maintained separately. **Room** does **not** serialize an **`examples`** list; use **Situation** facets and ephemera **`render`** for Room prose. **Feature** and **Knowledge** still use **`examples`** for display content.
+- **References**: Stored in `ReferenceList` types (and related structures such as **`SingleReference`**). Each reference collection (like `features`, `characters`) is maintained separately. **Room** does **not** serialize an **`examples`** list; use **Situation** facets and ephemera **`render`** for Room prose. **Feature** and **Knowledge** use **`situations`** facet lists (**`SituationProseFacetList`**, shared prose triplet, DEFAULT-only in v1); **`examples`** removed from F/K payloads in Phase 1 (see [`taskPlanning/.../AGENT.featureKnowledgeExamples.planning.md`](../../../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md)).
 
 This independent storage means that edits to one data field or reference collection do not affect others, allowing precise, targeted modifications to component content.
 

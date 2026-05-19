@@ -8,13 +8,15 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import {
+    computePerspectiveMatcherForParentSituation,
     computePerspectiveMatcherForRoomSituation,
     enrichExampleEvent,
     exampleToCacheShape,
     getOrderedAssetStack,
+    getParentIdsForSituation,
     mergeLensAcrossStack,
     mergeRoomAcrossStack,
-    roomHasFacetForSituation,
+    parentHasFacetForSituation,
     situationFacetToCacheShape,
     situationHasMarks,
 } from './exampleEnrichment'
@@ -83,7 +85,7 @@ describe('exampleEnrichment helpers', () => {
         expect(payload.provenance.type).toBe('authored')
     })
 
-    it('should not treat Room as Example parent but keep Feature and Knowledge parentIds in enrichExampleEvent', async () => {
+    it('should not treat Room as Example parent in enrichExampleEvent', async () => {
         const exampleId = 'EXAMPLE#one' as const
         const eventAssetId = 'ASSET#asset1' as const
 
@@ -101,15 +103,15 @@ describe('exampleEnrichment helpers', () => {
         const feature = new StandardFeature({
             tag: 'Feature',
             universalKey: 'FEATURE#one',
-            examples: [
-                { universalKey: exampleId, key: 'exampleRef', tag: 'Example' } as any,
+            situations: [
+                { reference: 'SITUATION#DEFAULT', payload: { displayName: 'Feature prose' } },
             ],
         } as any)
         const knowledge = new StandardKnowledge({
             tag: 'Knowledge',
             universalKey: 'KNOWLEDGE#one',
-            examples: [
-                { universalKey: exampleId, key: 'exampleRef', tag: 'Example' } as any,
+            situations: [
+                { reference: 'SITUATION#DEFAULT', payload: { displayName: 'Knowledge prose' } },
             ],
         } as any)
 
@@ -153,10 +155,103 @@ describe('exampleEnrichment helpers', () => {
 
         expect(result.exampleId).toBe(exampleId)
         expect(result.assetStack).toEqual([eventAssetId])
-        expect(result.parentIds).toEqual(expect.arrayContaining(['FEATURE#one', 'KNOWLEDGE#one']))
+        // EXAMPLE# ids do not match situation facet refs on F/K/Room.
+        expect(result.parentIds).toEqual([])
         expect(result.parentIds).not.toContain('ROOM#one')
         expect(result.example).toBeDefined()
         expect(result.example?.renderedContent.description.length).toBeGreaterThan(0)
+    })
+
+    describe('getParentIdsForSituation', () => {
+        it('should return Feature and Knowledge parents referencing the Situation via facets', async () => {
+            const situationId = 'SITUATION#DEFAULT' as const
+            const eventAssetId = 'ASSET#asset1' as const
+
+            const feature = new StandardFeature(deIndentWML(`
+                <Feature key=(feat) uuid=(FEATURE#one)>
+                    <Situation uuid=(DEFAULT)><DisplayName>Feature prose</DisplayName></Situation>
+                </Feature>
+            `))
+            const knowledge = new StandardKnowledge(deIndentWML(`
+                <Knowledge key=(know) uuid=(KNOWLEDGE#one)>
+                    <Situation uuid=(DEFAULT)><DisplayName>Knowledge prose</DisplayName></Situation>
+                </Knowledge>
+            `))
+
+            const standardForm = new StandardForm([
+                {
+                    tag: 'Asset',
+                    key: 'asset1',
+                    universalKey: eventAssetId,
+                } as any,
+                feature.toJSON() as any,
+                knowledge.toJSON() as any,
+            ])
+
+            mockInternalCache.AssetData.get.mockResolvedValue([
+                {
+                    AssetId: eventAssetId,
+                    standardForm,
+                },
+            ])
+
+            const parentIds = await getParentIdsForSituation(
+                situationId,
+                [eventAssetId],
+                eventAssetId
+            )
+
+            expect(parentIds).toEqual(
+                expect.arrayContaining(['FEATURE#one', 'KNOWLEDGE#one'])
+            )
+            expect(parentIds).toHaveLength(2)
+        })
+
+        it('should return Room parent when Room facet references the Situation', async () => {
+            const situationId = 'SITUATION#DEFAULT' as const
+            const eventAssetId = 'ASSET#asset1' as const
+
+            const room = new StandardRoom(deIndentWML(`
+                <Room key=(one) uuid=(ROOM#one)>
+                    <Situation uuid=(DEFAULT)><DisplayName>Room prose</DisplayName></Situation>
+                </Room>
+            `))
+
+            const standardForm = new StandardForm([
+                {
+                    tag: 'Asset',
+                    key: 'asset1',
+                    universalKey: eventAssetId,
+                } as any,
+                room.toJSON() as any,
+            ])
+
+            mockInternalCache.AssetData.get.mockResolvedValue([
+                {
+                    AssetId: eventAssetId,
+                    standardForm,
+                },
+            ])
+
+            const parentIds = await getParentIdsForSituation(
+                situationId,
+                [eventAssetId],
+                eventAssetId
+            )
+
+            expect(parentIds).toEqual(['ROOM#one'])
+        })
+
+        it('should return empty for EXAMPLE# ids', async () => {
+            const parentIds = await getParentIdsForSituation(
+                'EXAMPLE#one',
+                ['ASSET#asset1'],
+                'ASSET#asset1'
+            )
+
+            expect(parentIds).toEqual([])
+            expect(mockInternalCache.AssetData.get).not.toHaveBeenCalled()
+        })
     })
 
     it('mergeRoomAcrossStack should merge rooms in assetStack order', () => {
@@ -293,22 +388,22 @@ describe('exampleEnrichment helpers', () => {
     describe('perspective matcher (Phase 5.7)', () => {
         const situationId = 'SITUATION#s1' as const
 
-        it('roomHasFacetForSituation returns true when room has facet for situation', () => {
+        it('parentHasFacetForSituation returns true when room has facet for situation', () => {
             const room = {
                 situations: {
                     items: [{ reference: { universalKey: situationId } }],
                 },
             } as unknown as StandardRoom
-            expect(roomHasFacetForSituation(room, situationId)).toBe(true)
+            expect(parentHasFacetForSituation(room, situationId)).toBe(true)
         })
 
-        it('roomHasFacetForSituation returns false when room has no facet for situation', () => {
+        it('parentHasFacetForSituation returns false when room has no facet for situation', () => {
             const room = {
                 situations: {
                     items: [{ reference: { universalKey: 'SITUATION#other' } }],
                 },
             } as unknown as StandardRoom
-            expect(roomHasFacetForSituation(room, situationId)).toBe(false)
+            expect(parentHasFacetForSituation(room, situationId)).toBe(false)
         })
 
         it('situationHasMarks returns true when situation has marks', () => {
@@ -319,6 +414,31 @@ describe('exampleEnrichment helpers', () => {
         it('situationHasMarks returns false when situation has no marks', () => {
             const situation = new StandardSituation({ tag: 'Situation', universalKey: 'SITUATION#s1' } as any)
             expect(situationHasMarks(situation)).toBe(false)
+        })
+
+        it('computePerspectiveMatcherForParentSituation returns required and forbidden for Feature parent', () => {
+            const featureWithFacet = {
+                situations: { items: [{ reference: { universalKey: 'SITUATION#s1' } }] },
+            } as unknown as StandardFeature
+            const situationWithMarks = { marks: { length: 1 } } as unknown as StandardSituation
+            const parentByAssets = [
+                { AssetId: 'ASSET#a' as const, component: new StandardFeature({ tag: 'Feature', universalKey: 'FEATURE#one' } as any) },
+                { AssetId: 'ASSET#b' as const, component: featureWithFacet },
+            ]
+            const situationByAssets = [
+                { AssetId: 'ASSET#a' as const, component: new StandardSituation({ tag: 'Situation', universalKey: 'SITUATION#s1' } as any) },
+                { AssetId: 'ASSET#b' as const, component: situationWithMarks },
+            ]
+            const matcher = computePerspectiveMatcherForParentSituation({
+                parentId: 'FEATURE#one',
+                situationId: 'SITUATION#s1',
+                assetStack: ['ASSET#a', 'ASSET#b'],
+                parentByAssets,
+                situationByAssets,
+            })
+            expect(matcher.requiredAssetIds).toContain('ASSET#b')
+            expect(matcher.requiredAssetIds).not.toContain('ASSET#a')
+            expect(matcher.forbiddenAssetIds).toEqual([])
         })
 
         it('computePerspectiveMatcherForRoomSituation returns required and forbidden', () => {

@@ -1,5 +1,6 @@
 import internalCache from '../internalCache'
 import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraSituationId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
@@ -9,9 +10,11 @@ import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
-import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import { StandardMarkFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/mark'
-import { StandardSituationRoomFacet, SituationRoomFacetPayload } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
+import {
+    SituationProseFacetPayload,
+    StandardSituationProseFacet,
+} from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import { StandardEditableData, extractFromEditableData } from '@tonylb/mtw-base/ts/editable'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
@@ -147,21 +150,29 @@ export const getOrderedAssetStack = (
     return assetsWithDepth.map(({ assetId }) => assetId)
 }
 
-const getExamplesReferenceList = (component: StandardComponent): ReferenceList | undefined => {
-    if (component instanceof StandardFeature) {
-        return component.examples
-    }
-    if (component instanceof StandardKnowledge) {
-        return component.examples
-    }
-    return undefined
-}
+export type ParentWithSituationFacets = StandardRoom | StandardFeature | StandardKnowledge
 
-export const getParentIdsForExample = async (
-    exampleId: ComponentUUID,
+export const parentHasFacetForSituation = (
+    parent: ParentWithSituationFacets | undefined,
+    situationId: ComponentUUID
+): boolean =>
+    (parent?.situations?.items?.some(
+        (f) => (f as StandardSituationProseFacet).reference?.universalKey === situationId
+    )) === true
+
+/**
+ * Room / Feature / Knowledge parents whose `situations` facet references `situationId`.
+ * Not used on the standalone Example enrichment path (see `enrichExampleEvent`).
+ */
+export const getParentIdsForSituation = async (
+    situationId: ComponentUUID,
     assetStack: AssetUUID[],
     eventAssetId: AssetUUID
 ): Promise<ComponentUUID[]> => {
+    if (!isEphemeraSituationId(situationId)) {
+        return []
+    }
+
     const assetIds = Array.from(
         new Set<AssetUUID>([
             ...assetStack,
@@ -177,17 +188,12 @@ export const getParentIdsForExample = async (
 
     const parentIds = assetData
         .flatMap(({ standardForm }) => standardForm._components)
-        .filter((component) => {
-            const tag = (component as any).tag
-            return tag === 'Feature' || tag === 'Knowledge'
-        })
-        .filter((component) => {
-            const examples = getExamplesReferenceList(component)
-            if (!examples) {
-                return false
-            }
-            return examples.payload.some((reference) => reference.universalKey === exampleId)
-        })
+        .filter((component): component is ParentWithSituationFacets =>
+            component instanceof StandardRoom ||
+            component instanceof StandardFeature ||
+            component instanceof StandardKnowledge
+        )
+        .filter((component) => parentHasFacetForSituation(component, situationId))
         .map((component) => component.universalKey as ComponentUUID)
 
     return Array.from(new Set(parentIds))
@@ -224,6 +230,41 @@ export const mergeExampleAcrossStack = (
     let merged: StandardExample = withIndex[0].example as StandardExample
     for (let i = 1; i < withIndex.length; i++) {
         merged = merged.merge(withIndex[i].example) as StandardExample
+    }
+    return merged
+}
+
+export const mergeSituationAcrossStack = (
+    byAssets: ComponentDataByAsset,
+    assetStack: AssetUUID[]
+): StandardSituation | undefined => {
+    if (!byAssets.length || !assetStack.length) {
+        return undefined
+    }
+
+    const indexByAsset = assetStack.reduce<Record<AssetUUID, number>>(
+        (previous, assetId, index) => ({
+            ...previous,
+            [assetId]: index,
+        }),
+        {}
+    )
+
+    const withIndex = byAssets
+        .map(({ AssetId, component }) => {
+            if (!(component instanceof StandardSituation)) return undefined
+            const index = indexByAsset[AssetId]
+            if (typeof index !== 'number') return undefined
+            return { index, situation: component } as { index: number; situation: StandardSituation }
+        })
+        .filter(excludeUndefined)
+        .sort((a, b) => a.index - b.index)
+
+    if (!withIndex.length) return undefined
+
+    let merged: StandardSituation = withIndex[0].situation as StandardSituation
+    for (let i = 1; i < withIndex.length; i++) {
+        merged = merged.merge(withIndex[i].situation) as StandardSituation
     }
     return merged
 }
@@ -381,7 +422,7 @@ export type SituationFacetToCacheShapeOptions = {
  */
 export const situationFacetToCacheShape = (
     situation: StandardSituation,
-    facetPayload: SituationRoomFacetPayload,
+    facetPayload: SituationProseFacetPayload,
     options?: SituationFacetToCacheShapeOptions
 ): ComponentExamplesPayload => {
     const situationMarkValues = new Map<string, string>()
@@ -452,7 +493,14 @@ export const enrichExampleEvent = async (params: {
     const byAssets = componentData?.byAssets ?? []
 
     const assetStack = getOrderedAssetStack(exampleId, eventAssetId, byAssets)
-    const parentIds = await getParentIdsForExample(exampleId, assetStack, eventAssetId)
+
+    //
+    // Situation-facet render updates (Room / Feature / Knowledge parents, or Situation
+    // component edits fanning out via getParentIdsForSituation) are handled in index.ts.
+    // This function only runs for standalone Example (EXAMPLE#) components and does not
+    // perform parent discovery (parentIds stay empty).
+    //
+    const parentIds: ComponentUUID[] = []
 
     if (eventType === 'Component Removed') {
         return {
@@ -483,20 +531,49 @@ export const enrichExampleEvent = async (params: {
 }
 
 //
-// Perspective matcher for Room + Situation (Phase 5.7).
-// Structural test: Room has facet for this situationId; Situation has marks.
+// Perspective matcher for parent + Situation (Room, Feature, Knowledge).
+// Structural test: parent has facet for this situationId; Situation has marks.
 //
-
-export const roomHasFacetForSituation = (
-    room: StandardRoom | undefined,
-    situationId: ComponentUUID
-): boolean =>
-    (room?.situations?.items?.some(
-        (f) => (f as StandardSituationRoomFacet).reference?.universalKey === situationId
-    )) === true
 
 export const situationHasMarks = (situation: StandardSituation | undefined): boolean =>
     (situation?.marks?.length ?? 0) > 0
+
+export type ComputePerspectiveMatcherForParentSituationParams = {
+    parentId: ComponentUUID;
+    situationId: ComponentUUID;
+    assetStack: AssetUUID[];
+    parentByAssets: ComponentDataByAsset;
+    situationByAssets: ComponentDataByAsset;
+}
+
+export const computePerspectiveMatcherForParentSituation = ({
+    parentId: _parentId,
+    situationId,
+    assetStack,
+    parentByAssets,
+    situationByAssets,
+}: ComputePerspectiveMatcherForParentSituationParams): PerspectiveMatcher => {
+    const stackSet = new Set(assetStack)
+    const requiredAssetIds: AssetUUID[] = assetStack.filter((assetId) => {
+        const parentEntry = parentByAssets.find((a) => a.AssetId === assetId)
+        const situationEntry = situationByAssets.find((a) => a.AssetId === assetId)
+        const parent = parentEntry?.component as ParentWithSituationFacets | undefined
+        const situation = situationEntry?.component as StandardSituation | undefined
+        return parentHasFacetForSituation(parent, situationId) || situationHasMarks(situation)
+    })
+    const allAssetIds = new Set<AssetUUID>(
+        parentByAssets.map((a) => a.AssetId).concat(situationByAssets.map((a) => a.AssetId))
+    )
+    const candidates = [...allAssetIds].filter((id) => !stackSet.has(id))
+    const forbiddenAssetIds: AssetUUID[] = candidates.filter((assetId) => {
+        const parentEntry = parentByAssets.find((a) => a.AssetId === assetId)
+        const situationEntry = situationByAssets.find((a) => a.AssetId === assetId)
+        const parent = parentEntry?.component as ParentWithSituationFacets | undefined
+        const situation = situationEntry?.component as StandardSituation | undefined
+        return parentHasFacetForSituation(parent, situationId) || situationHasMarks(situation)
+    })
+    return { requiredAssetIds, forbiddenAssetIds }
+}
 
 export type ComputePerspectiveMatcherForRoomSituationParams = {
     roomId: ComponentUUID;
@@ -506,32 +583,14 @@ export type ComputePerspectiveMatcherForRoomSituationParams = {
     situationByAssets: ComponentDataByAsset;
 }
 
-export const computePerspectiveMatcherForRoomSituation = ({
-    roomId,
-    situationId,
-    assetStack,
-    roomByAssets,
-    situationByAssets,
-}: ComputePerspectiveMatcherForRoomSituationParams): PerspectiveMatcher => {
-    const stackSet = new Set(assetStack)
-    const requiredAssetIds: AssetUUID[] = assetStack.filter((assetId) => {
-        const roomEntry = roomByAssets.find((a) => a.AssetId === assetId)
-        const situationEntry = situationByAssets.find((a) => a.AssetId === assetId)
-        const room = roomEntry?.component as StandardRoom | undefined
-        const situation = situationEntry?.component as StandardSituation | undefined
-        return roomHasFacetForSituation(room, situationId) || situationHasMarks(situation)
+export const computePerspectiveMatcherForRoomSituation = (
+    params: ComputePerspectiveMatcherForRoomSituationParams
+): PerspectiveMatcher =>
+    computePerspectiveMatcherForParentSituation({
+        parentId: params.roomId,
+        situationId: params.situationId,
+        assetStack: params.assetStack,
+        parentByAssets: params.roomByAssets,
+        situationByAssets: params.situationByAssets,
     })
-    const allAssetIds = new Set<AssetUUID>(
-        roomByAssets.map((a) => a.AssetId).concat(situationByAssets.map((a) => a.AssetId))
-    )
-    const candidates = [...allAssetIds].filter((id) => !stackSet.has(id))
-    const forbiddenAssetIds: AssetUUID[] = candidates.filter((assetId) => {
-        const roomEntry = roomByAssets.find((a) => a.AssetId === assetId)
-        const situationEntry = situationByAssets.find((a) => a.AssetId === assetId)
-        const room = roomEntry?.component as StandardRoom | undefined
-        const situation = situationEntry?.component as StandardSituation | undefined
-        return roomHasFacetForSituation(room, situationId) || situationHasMarks(situation)
-    })
-    return { requiredAssetIds, forbiddenAssetIds }
-}
 

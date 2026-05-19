@@ -4,7 +4,7 @@ import { checkAll, checkTypes } from "./typeguards"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { FacetListData, FacetListInputData } from "../../keys/abstract"
 import { ExitPayload } from "../../keys/facets/dataTypes/facet"
-import { isSituationRoomFacetPayload, type SituationRoomFacetPayloadType } from "../../keys/facets/situationRoom"
+import { isSituationProseFacetPayload, type SituationProseFacetPayloadType } from "../../keys/facets/situationRoom"
 import { Override } from "../../types"
 
 export type StandardRoomObjectData = {
@@ -13,13 +13,13 @@ export type StandardRoomObjectData = {
 }
 
 /** Ephemera wire: prose from `<Render>`; same JSON shape as Situation room facet payload (literal + RenderTree fields). */
-export type StandardRoomRenderData = SituationRoomFacetPayloadType
+export type StandardRoomRenderData = SituationProseFacetPayloadType
 
 export type StandardRoomData = {
     tag: 'Room';
     shortName?: StandardEditableData<string>;
     exits?: FacetListData<ExitPayload>;
-    situations?: FacetListData<SituationRoomFacetPayloadType>;
+    situations?: FacetListData<SituationProseFacetPayloadType>;
     lens?: ReferenceListData;
     features?: ReferenceListData;
     guidance?: ReferenceListData;
@@ -32,7 +32,7 @@ export type StandardRoomData = {
 
 export type StandardRoomInputData = Override<StandardRoomData, {
     exits?: FacetListInputData<ExitPayload>;
-    situations?: FacetListInputData<SituationRoomFacetPayloadType>;
+    situations?: FacetListInputData<SituationProseFacetPayloadType>;
 }>
 
 const isStandardRoomObjectData = (x: unknown): x is StandardRoomObjectData => (
@@ -47,7 +47,7 @@ const isStandardRoomObjectData = (x: unknown): x is StandardRoomObjectData => (
 const isStandardRoomRenderData = (x: unknown): x is StandardRoomRenderData => (
     typeof x === 'object'
     && x !== null
-    && isSituationRoomFacetPayload(x)
+    && isSituationProseFacetPayload(x)
     && checkTypes(x as Record<string, unknown>, {}, {
         displayName: 'literal',
         summary: 'renderTree',

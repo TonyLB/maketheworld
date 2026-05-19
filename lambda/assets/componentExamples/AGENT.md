@@ -2,21 +2,56 @@
 
 ## Role
 
-Non-replayable Assets data source **[`index.ts`](./index.ts)** subscribes to **`mtw.assets`** **Component Updated** / **Component Removed**, enriches Example-related payloads, and publishes **ExampleAdded** / **ExampleUpdated** / **ExampleRemoved** for Ephemera render-cache mirroring. Event **names** still say **Example** for historical wire compatibility; payloads may carry situation-derived shapes where Room facets participate in separate flows.
+Non-replayable Assets data source **[`index.ts`](./index.ts)** subscribes to **`mtw.assets`** **Component Updated** / **Component Removed**, enriches Example-related payloads, and publishes **ExampleAdded** / **ExampleUpdated** / **ExampleRemoved** for Ephemera render-cache mirroring. Event **names** still say **Example** for historical wire compatibility; payloads may carry situation-derived shapes where Room (and Feature/Knowledge) facets participate.
+
+*Feature/Knowledge migration in progress.* Task plan: [`taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md`](../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md).
 
 ## Entry filter (`isExampleAssociatedComponent`)
 
 Implemented in **[`exampleAssociatedFilter.ts`](./exampleAssociatedFilter.ts)**:
 
-- **`Example`**: always associated.
-- **`Feature`** / **`Knowledge`**: associated only when **`examples.payload`** is non-empty.
-- **`Room`**: **not** Example-associated at this gate. Room display prose is **Situation** facets and ephemera **`render`**, not Room-owned **`examples`** lists. **`Room`** **Component Updated** events do **not** enter this pipeline (see **[`index.test.ts`](./index.test.ts)**).
+- **`Example`**: only tag that passes this gate (standalone **`enrichExampleEvent`** path).
+- **`Room`** / **`Feature`** / **`Knowledge`** / **`Situation`**: **do not** pass the filter. Situation-facet mirror events are emitted on early branches in **`index.ts`** before the filter runs.
 
-## Parent discovery (`enrichExampleEvent`)
+The filter name and **`EXAMPLE_ASSOCIATED_TAGS`** reflect legacy Example-centric wiring. WML now uses **`situations`** facets on parents; a future refactor should redefine what **`componentExamples`** tracks (see file header comment in **`exampleAssociatedFilter.ts`**).
 
-**[`exampleEnrichment.ts`](./exampleEnrichment.ts)** resolves **`parentIds`** for Example components by scanning parent **`examples`** reference lists on **Feature** and **Knowledge** only. It does **not** infer room parents from **`Room.examples`** (removed from the standardized model). **`index.ts`** may still contain situation-related branches for future or alternate entry points; with the current filter, **`Room`** **`Component Updated`** events do not pass **`isExampleAssociatedComponent`** (see **[`index.test.ts`](./index.test.ts)**), so they do not enter this data source or call **`enrichExampleEvent`**.
+## Room branch (shipped)
+
+**[`index.ts`](./index.ts)** handles **`tag === 'Room'`** before the Example-associated filter:
+
+- On **Component Updated** / **Removed** with non-empty **`situations`**, emits one **ExampleUpdated** / **ExampleRemoved** per facet.
+- **`exampleId`** = Situation uuid (not Example uuid).
+- Payload from **`situationFacetToCacheShape`** in **[`exampleEnrichment.ts`](./exampleEnrichment.ts)**.
+
+Room events never call **`enrichExampleEvent`** (Example-component path).
+
+## Feature / Knowledge
+
+**Parent branch (shipped 2026-05-18):**
+
+- Early branch in **`index.ts`** (shared **`emitParentSituationFacetEvents`**) for **`tag === 'Feature'`** / **`Knowledge`** before **`isExampleAssociatedComponent`**, same as Room.
+- On **Component Updated** / **Removed** with non-empty **`situations`**, emits **ExampleUpdated** / **ExampleRemoved** per facet; **`exampleId`** = Situation uuid; payload via **`situationFacetToCacheShape`** (no lens marks on F/K).
+- Perspective matcher: **`computePerspectiveMatcherForParentSituation`** in **`exampleEnrichment.ts`**.
+
+**Situation component branch (shipped 2026-05-19):**
+
+- On **Component Updated** / **Removed** for **`tag === 'Situation'`**, **`getParentIdsForSituation`** finds Room / Feature / Knowledge parents with a facet for that **`SITUATION#`**, then emits one event per parent (same payload shape as the parent branch).
+- Uses **`mergeSituationAcrossStack`** for merged mark state on the Situation entity.
+
+**Standalone Example path (marks-only interim):**
+
+- **`enrichExampleEvent`** does not perform parent discovery (**`parentIds`** always empty in production).
+- **`index.ts`** publishes Example lifecycle events only when **`parentIds`** is non-empty (Ephemera already no-ops otherwise). No F/K prose parent discovery on this path.
+
+## Parent discovery
+
+**[`exampleEnrichment.ts`](./exampleEnrichment.ts)**:
+
+- **`getParentIdsForSituation`**: scans Room / Feature / Knowledge for facets referencing a **`SITUATION#`** id (wired from the Situation branch in **`index.ts`**).
+- **`enrichExampleEvent`**: standalone **`EXAMPLE#`** only; does not set **`parentIds`**.
 
 ## Related docs
 
 - Assets event mesh overview: **[`../AGENT.event.md`](../AGENT.event.md)** (**mtw.assets.componentExamples**).
-- WML model (Room vs Feature/Knowledge Examples): **[`packages/mtw-wml/ts/AGENT.md`](../../../../packages/mtw-wml/ts/AGENT.md)**.
+- WML model (Room vs Feature/Knowledge): **[`packages/mtw-wml/ts/AGENT.md`](../../../../packages/mtw-wml/ts/AGENT.md)**.
+- Ephemera render cache: **[`lambda/ephemera/internalCache/componentRender.AGENT.md`](../../ephemera/internalCache/componentRender.AGENT.md)**.

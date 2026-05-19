@@ -52,12 +52,26 @@
   - `MarkFacet`: `{ reference: StandardReferenceData, payload: string }`
   - `ExitFacet`: `{ reference: StandardReferenceData, payload: string | undefined }`
 
+## Situation prose facets (Room, Feature, Knowledge)
+
+Task plan: [`taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md`](../../../../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md).
+
+| Parent | Facet list | Payload | Notes |
+| --- | --- | --- | --- |
+| **Room** | **`SituationProseFacetList`** ([`situationRoom.ts`](./situationRoom.ts); deprecated alias **`SituationRoomFacetList`**) | **`SituationProseFacetPayload`** (DisplayName / Summary / Description) | Shipped; ephemera **`render`** uses same shape |
+| **Feature** | **`SituationProseFacetList`** (shared module) | Same **`SituationProseFacetPayload`** (**D2**) | Phase 1 WML storage; v1: **`SITUATION#DEFAULT`** only in tests |
+| **Knowledge** | **`SituationProseFacetList`** (shared module) | Same triplet | Same as Feature; per-perspective facets deferred (**D9**) |
+
+**Situation references:** Facets point at independent **`Situation`** components (marks live on Situation, not on the facet payload). Parents do not own referenced Situations (**D8**).
+
+**Canonical types:** `SituationProseFacetPayload`, `StandardSituationProseFacet`, `SituationProseFacetList` in [`situationRoom.ts`](./situationRoom.ts). No separate `situationFeature.ts` / `situationKnowledge.ts` modules.
+
 ## Integration Points
 
 - **Dependencies**: 
   - Composes `StandardReference` for target component reference
   - Payload types defined in `dataTypes/facet.ts` (no union type - each type is independent)
-  - Integrates with component system (Examples use Mark Facets)
+  - Integrates with component system (Examples use Mark Facets; Room/F/K use Situation prose facets)
 - **Cross-References**: 
   - [`../AGENT.md`](../AGENT.md) - Keys directory overview
   - [`../AGENT.referenceList.md`](../AGENT.referenceList.md) - ReferenceList patterns (similar structure)

@@ -15,7 +15,7 @@ export const SituationFacetPayloadEditor: FunctionComponent = () => {
 
     if (roomId === null || situationId === null) return null
 
-    return <SituationFacetRenderFieldsEditor roomId={roomId} situationId={situationId} />
+    return <SituationFacetRenderFieldsEditor parentId={roomId} situationId={situationId} />
 }
 
 export default SituationFacetPayloadEditor

@@ -21,14 +21,19 @@ When encountering **light snowfall** (a state not explicitly covered), the LLM c
 ## Current Implementation
 
 ### **Basic Example Storage**
-Currently, examples are stored as `StandardExample` components without state conditions:
-- **Parent components (blueprint):** **`Feature`** and **`Knowledge`** reference Examples via **`examples`** lists. **`StandardRoom`** JSON does **not** include **`examples`**; Room prose uses **Situation** facets and wire **`render`** (see [`packages/mtw-wml/ts/AGENT.md`](../../../../packages/mtw-wml/ts/AGENT.md)).
-- **Content**: Rich text descriptions using `RenderTree` format
-- **Storage**: Stored in `ephemeraDB` with `DataCategory: 'EXAMPLE#'`
 
-### **Naive rendering vs Room**
-- **Room:** **`ComponentRender`** builds header prose from **`renderCache`** only for Room ids; it does **not** call **`ExamplesData`** for Room (see **[`componentRender.AGENT.md`](./componentRender.AGENT.md)**).
-- **Feature / Knowledge / Map (current):** **`ComponentRender`** may still use a **first-example** pattern via **`ExamplesData.get`** where applicable.
+*Feature/Knowledge migration in progress.* Task plan: [`taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md`](../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md).
+
+**Current:**
+
+- **Feature / Knowledge (blueprint):** **`situations`** facets on parent WML (Phase 1); ephemera display prose via **`renderCache`** + wire **`render`** (Phase 2 D1).
+- **Legacy `EXAMPLE#` rows:** May still exist in Dynamo; **`ExamplesData`** loads them but **`ComponentRender`** does **not** use them for F/K display prose.
+- **`StandardRoom`** JSON does **not** include **`examples`**; Room prose uses **Situation** facets and wire **`render`**.
+
+### **Display prose vs Room**
+- **Room / Feature / Knowledge:** **`ComponentRender`** builds header prose from **`renderCache`** only; does **not** call **`ExamplesData`** for display (see **[`componentRender.AGENT.md`](./componentRender.AGENT.md)**).
+- **F/K cache selection (v1):** **`SITUATION#DEFAULT`** row only via **`selectDefaultSituationCacheRecord`**.
+- **Map:** May still use example-related paths where applicable.
 - No full state matching or intelligent selection yet; sufficient for integration, limited for narrative variety.
 
 ## Cache Key Format

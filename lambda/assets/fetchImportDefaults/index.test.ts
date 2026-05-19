@@ -110,9 +110,9 @@ describe('fetchImportsMessage', () => {
         </Asset>`)
         const testImportFour = new StandardForm(`<Asset uuid=(testImportAssetFour)>
             <Feature uuid=(testFeature) key=(featureImport)>
-                <Example uuid=(testFeatureExample)>
+                <Situation uuid=(DEFAULT)>
                     <Description>Feature test</Description>
-                </Example>
+                </Situation>
             </Feature>
             <Room uuid=(testRoomWithFeatures) key=(testRoomWithFeatures)>
                 <Example ref={0} uuid=(testRoomWithFeaturesExample)>

@@ -5,15 +5,19 @@ import StandardFeature from './feature'
 import { mergeTest } from "./utils/testing"
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
+import { StandardForm } from "../index"
 
 describe('StandardFeature class', () => {
 
     it('should construct StandardFeature from WML', () => {
         const testSource = deIndentWML(`
-            <Feature key=(test)><Example key=(base) /></Feature>
+            <Feature key=(test)>
+                <Situation uuid=(DEFAULT)><DisplayName>Base</DisplayName></Situation>
+            </Feature>
         `)
         const testFeature = new StandardFeature(testSource)
         expect(testFeature.key).toEqual('test')
+        expect(testFeature.situations.items[0].reference.universalKey).toEqual('SITUATION#DEFAULT')
         expect(schemaToWML([testFeature.schema])).toEqual(testSource)
     })
 
@@ -21,7 +25,7 @@ describe('StandardFeature class', () => {
         const testSource = deIndentWML(`
             <Feature key=(test)>
                 <ShortName>Test Feature</ShortName>
-                <Example key=(base) />
+                <Situation uuid=(DEFAULT)><DisplayName>Base</DisplayName></Situation>
             </Feature>
         `)
         const testFeature = new StandardFeature(testSource)
@@ -33,7 +37,9 @@ describe('StandardFeature class', () => {
     it('should construct StandardFeature from schema', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`
-            <Feature key=(test)><Example key=(base) /></Feature>
+            <Feature key=(test)>
+                <Situation uuid=(DEFAULT)><DisplayName>Base</DisplayName></Situation>
+            </Feature>
         `)
         schema.loadWML(testSource)
         const testFeature = new StandardFeature(schema.schema[0])
@@ -45,7 +51,10 @@ describe('StandardFeature class', () => {
         const testFeatureData: StandardFeatureData = {
             key: 'test',
             tag: 'Feature',
-            examples: [{ key: 'Example1', tag: 'Example' }]
+            situations: [{
+                reference: 'SITUATION#DEFAULT',
+                payload: { displayName: 'Example1' }
+            }]
         }
         const testFeature = new StandardFeature(testFeatureData)
         expect(testFeature.key).toEqual('test')
@@ -57,7 +66,10 @@ describe('StandardFeature class', () => {
             key: 'test',
             tag: 'Feature',
             shortName: 'Test Feature',
-            examples: [{ key: 'Example1', tag: 'Example' }]
+            situations: [{
+                reference: 'SITUATION#DEFAULT',
+                payload: { displayName: 'Example1' }
+            }]
         }
         const testFeature = new StandardFeature(testFeatureData)
         expect(testFeature.key).toEqual('test')
@@ -68,16 +80,41 @@ describe('StandardFeature class', () => {
     it('should merge correctly', () => {
         expect(mergeTest(
             `<Feature key=(testFeature)>
-                <Example key=(Example1) />
+                <Situation key=(sit1)><DisplayName>One</DisplayName></Situation>
             </Feature>`,
             StandardFeature,
             `<Feature key=(testFeature)>
-                <Example key=(Example2) />
+                <Situation key=(sit2)><DisplayName>Two</DisplayName></Situation>
             </Feature>`
         )).toEqual(deIndentWML(`
             <Feature key=(testFeature)>
-                <Example key=(Example1) />
-                <Example key=(Example2) />
+                <Situation key=(sit1)><DisplayName>One</DisplayName></Situation>
+                <Situation key=(sit2)><DisplayName>Two</DisplayName></Situation>
+            </Feature>
+        `))
+    })
+
+    it('should merge DEFAULT situation facets with Replace/With on prose', () => {
+        expect(mergeTest(
+            `<Feature key=(testFeature)>
+                <Situation uuid=(DEFAULT)>
+                    <DisplayName>Lobby</DisplayName>
+                    <Description>A plain lobby.</Description>
+                </Situation>
+            </Feature>`,
+            StandardFeature,
+            `<Feature key=(testFeature) ref={0}>
+                <Situation uuid=(DEFAULT) ref={0}>
+                    <Replace><DisplayName>Lobby</DisplayName></Replace><With><DisplayName>Spooky Lobby</DisplayName></With>
+                    <Description><Space />Shadows cling to the corners.</Description>
+                </Situation>
+            </Feature>`
+        )).toEqual(deIndentWML(`
+            <Feature key=(testFeature)>
+                <Situation uuid=(DEFAULT)>
+                    <DisplayName>Spooky Lobby</DisplayName>
+                    <Description>A plain lobby. Shadows cling to the corners.</Description>
+                </Situation>
             </Feature>
         `))
     })
@@ -101,13 +138,19 @@ describe('StandardFeature class', () => {
         const withoutShortName = new StandardFeature({
             tag: 'Feature',
             key: 'test',
-            examples: [{ tag: 'Example', key: 'ex1' }]
+            situations: [{
+                reference: 'SITUATION#DEFAULT',
+                payload: { displayName: 'Name' }
+            }]
         })
         const withEmptyShortName = new StandardFeature({
             tag: 'Feature',
             key: 'test',
             shortName: '',
-            examples: [{ tag: 'Example', key: 'ex1' }]
+            situations: [{
+                reference: 'SITUATION#DEFAULT',
+                payload: { displayName: 'Name' }
+            }]
         })
 
         expect(withoutShortName.equals(withEmptyShortName)).toBe(true)
@@ -117,7 +160,7 @@ describe('StandardFeature class', () => {
     it('should throw on unconsumed child tags', () => {
         const testSource = deIndentWML(`
             <Feature key=(testFeature)>
-                <Example key=(Example1) />
+                <Situation uuid=(DEFAULT) />
                 <Map />
             </Feature>
         `)
@@ -125,19 +168,28 @@ describe('StandardFeature class', () => {
         expect(() => new StandardFeature(testSource)).toThrow(/Map/)
     })
 
-
-    it('should correctly add an example reference to a feature', () => {
-        const test = new StandardFeature(`
+    it('should throw on legacy Example child (D6)', () => {
+        const testSource = deIndentWML(`
             <Feature key=(testFeature)>
-                <Example uuid=(Example1) />
+                <Example key=(Example1) />
             </Feature>
         `)
-        const example = new StandardKey("EXAMPLE#Example2")
-        const added = test.withChild(new StandardReference(example))
+        expect(() => new StandardFeature(testSource)).toThrow(/Unconsumed child tags:/)
+        expect(() => new StandardFeature(testSource)).toThrow(/Example/)
+    })
+
+    it('should correctly add a Situation reference to a feature', () => {
+        const test = new StandardFeature(`
+            <Feature key=(testFeature)>
+                <Situation uuid=(DEFAULT) />
+            </Feature>
+        `)
+        const situation = new StandardKey("SITUATION#other")
+        const added = test.withChild(new StandardReference(situation))
         expect(schemaToWML([added.schema])).toEqual(deIndentWML(`
             <Feature key=(testFeature)>
-                <Example uuid=(Example1) />
-                <Example uuid=(Example2) />
+                <Situation uuid=(DEFAULT) />
+                <Situation uuid=(other) />
             </Feature>
         `))
     })
@@ -163,159 +215,174 @@ describe('StandardFeature class', () => {
         `))
     })
 
+    it('referencedKeys should include Direct Situation ref and Link keys from description', () => {
+        const test = new StandardFeature(deIndentWML(`
+            <Feature key=(test)>
+                <Situation uuid=(DEFAULT)>
+                    <Description>See <Link to=(featOne)>Feature</Link>.</Description>
+                </Situation>
+            </Feature>
+        `))
+        const mapping = [
+            new StandardReference({ key: 'featOne', tag: 'Feature', universalKey: 'FEATURE#featOne' }),
+        ]
+        const keys = test._payload.referencedKeys(mapping)
+        expect(keys.some((k) => k.referenceType === 'Direct' && k.reference.universalKey === 'SITUATION#DEFAULT')).toBe(true)
+        expect(keys.some((k) => k.referenceType === 'Link' && k.reference.sameKey(mapping[0]))).toBe(true)
+    })
+
     describe('assureReferences method', () => {
         it('should return unchanged feature when children array is empty', () => {
             const feature = new StandardFeature({ tag: 'Feature', key: 'test' })
             const { payload: result, inlineRemainder } = feature._payload.assureReferences([])
             
-            expect(result.examples.payload.length).toBe(0)
+            expect(result.situations.length).toBe(0)
             expect(inlineRemainder).toEqual([])
-            // Verify it's a clone (original unchanged)
-            expect(feature._payload.examples.payload.length).toBe(0)
+            expect(feature._payload.situations.length).toBe(0)
         })
         
-        it('should add children with ref={0} when they do not exist', () => {
+        it('should put all children in inlineRemainder with ref={0}', () => {
             const feature = new StandardFeature({ tag: 'Feature', key: 'test' })
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            const situationRef = new StandardReference({ tag: 'Situation', key: 'ex1', universalKey: 'SITUATION#ex1' })
             
-            const { payload: result } = feature._payload.assureReferences([exampleRef])
+            const { payload: result, inlineRemainder } = feature._payload.assureReferences([situationRef])
             
-            // Verify reference was added with ref={0}
-            expect(result.examples.payload.length).toBe(1)
-            expect(result.examples.payload[0].ref).toBe(0)
-            expect(result.examples.payload[0].sameKey(exampleRef)).toBe(true)
-        })
-        
-        it('should leave existing references with non-zero ref unchanged', () => {
-            const feature = new StandardFeature(deIndentWML(`
-                <Feature key=(test)>
-                    <Example key=(ex1) />
-                </Feature>
-            `))
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
-            
-            const { payload: result } = feature._payload.assureReferences([exampleRef])
-            
-            // Verify existing reference was left unchanged
-            expect(result.examples.payload.length).toBe(1)
-            expect(result.examples.payload[0].ref).toBe(1) // Original ref value (default)
-        })
-        
-        it('should handle mixed scenarios (some exist, some do not)', () => {
-            const feature = new StandardFeature(deIndentWML(`
-                <Feature key=(test)>
-                    <Example key=(existingEx) />
-                </Feature>
-            `))
-            const existingExample = new StandardReference({ tag: 'Example', key: 'existingEx' })
-            const newExample = new StandardReference({ tag: 'Example', key: 'newEx' })
-            
-            const { payload: result } = feature._payload.assureReferences([existingExample, newExample])
-            
-            // Existing example should be unchanged
-            expect(result.examples.payload.length).toBe(2)
-            const existingExInResult = result.examples.payload.find(ref => ref.sameKey(existingExample))
-            expect(existingExInResult?.ref).toBe(1) // Original ref value
-            
-            // New example should be added with ref={0}
-            const newExInResult = result.examples.payload.find(ref => ref.sameKey(newExample))
-            expect(newExInResult?.ref).toBe(0)
+            expect(result.situations.length).toBe(0)
+            expect(inlineRemainder.length).toBe(1)
+            expect(inlineRemainder[0].ref).toBe(0)
+            expect(inlineRemainder[0].sameKey(situationRef)).toBe(true)
         })
         
         it('should return a clone without mutating the original', () => {
             const feature = new StandardFeature({ tag: 'Feature', key: 'test' })
-            const originalExamplesLength = feature._payload.examples.payload.length
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            const situationRef = new StandardReference({ tag: 'Situation', key: 'ex1', universalKey: 'SITUATION#ex1' })
             
-            const { payload: result } = feature._payload.assureReferences([exampleRef])
+            const { payload: result } = feature._payload.assureReferences([situationRef])
             
-            // Original should be unchanged
-            expect(feature._payload.examples.payload.length).toBe(originalExamplesLength)
-            // Result should have the new reference
-            expect(result.examples.payload.length).toBe(1)
-            // They should be different objects
+            expect(feature._payload.situations.length).toBe(0)
+            expect(result.situations.length).toBe(0)
             expect(result).not.toBe(feature._payload)
         })
         
-        it('should be idempotent (calling multiple times with same children produces same result)', () => {
-            const feature = new StandardFeature({ tag: 'Feature', key: 'test' })
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
-            
-            const { payload: firstPayload } = feature._payload.assureReferences([exampleRef])
-            const { payload: secondPayload } = firstPayload.assureReferences([exampleRef])
-            
-            // Both calls should produce the same result
-            expect(firstPayload.examples.payload.length).toBe(1)
-            expect(secondPayload.examples.payload.length).toBe(1)
-            expect(firstPayload.examples.payload[0].sameKey(secondPayload.examples.payload[0])).toBe(true)
-            expect(firstPayload.examples.payload[0].ref).toBe(0)
-            expect(secondPayload.examples.payload[0].ref).toBe(0)
-        })
-        
-        it('should dispatch children to correct bucket based on tag', () => {
-            const feature = new StandardFeature({ tag: 'Feature', key: 'test' })
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
-            
-            const { payload: result } = feature._payload.assureReferences([exampleRef])
-            
-            // Verify reference went to the correct bucket
-            expect(result.examples.payload.length).toBe(1)
-            expect(result.examples.payload[0].sameKey(exampleRef)).toBe(true)
-        })
-        
-        it('should put non-bucket children in inlineRemainder', () => {
+        it('should put non-Situation children in inlineRemainder', () => {
             const feature = new StandardFeature({ tag: 'Feature', key: 'test' })
             const lensRef = new StandardReference({ tag: 'Lens', key: 'lens1' })
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            const situationRef = new StandardReference({ tag: 'Situation', key: 'ex1', universalKey: 'SITUATION#ex1' })
             
-            const { payload: result, inlineRemainder } = feature._payload.assureReferences([lensRef, exampleRef])
+            const { payload: result, inlineRemainder } = feature._payload.assureReferences([lensRef, situationRef])
             
-            // Example goes to bucket
-            expect(result.examples.payload.length).toBe(1)
-            expect(result.examples.payload[0].sameKey(exampleRef)).toBe(true)
-            // Lens goes to remainder
-            expect(inlineRemainder.length).toBe(1)
-            expect(inlineRemainder[0].tag).toBe('Lens')
-            expect(inlineRemainder[0].sameKey(lensRef)).toBe(true)
-            expect(inlineRemainder[0].ref).toBe(0)
+            expect(result.situations.length).toBe(0)
+            expect(inlineRemainder.length).toBe(2)
+            expect(inlineRemainder.every((r) => r.ref === 0)).toBe(true)
         })
     })
 
     describe('removeReferences method', () => {
-        it('should remove matching references from examples bucket', () => {
+        it('should remove matching situation facets', () => {
             const feature = new StandardFeature(deIndentWML(`
                 <Feature key=(test)>
-                    <Example key=(ex1) />
-                    <Example key=(ex2) />
+                    <Situation key=(ex1) />
+                    <Situation key=(ex2) />
                 </Feature>
             `))
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            const situationRef = new StandardReference({ tag: 'Situation', key: 'ex1', universalKey: 'SITUATION#ex1' })
             
-            const result = feature._payload.removeReferences([exampleRef])
+            const result = feature._payload.removeReferences([situationRef])
             
-            // Verify matching reference was removed
-            expect(result.examples.payload.length).toBe(1)
-            expect(result.examples.payload[0].sameKey(new StandardReference({ tag: 'Example', key: 'ex2' }))).toBe(true)
+            expect(result.situations.length).toBe(1)
+            expect(result.situations.items[0].reference.sameKey(new StandardReference({ tag: 'Situation', key: 'ex2', universalKey: 'SITUATION#ex2' }))).toBe(true)
         })
         
         it('should return a clone without mutating the original', () => {
             const feature = new StandardFeature(deIndentWML(`
                 <Feature key=(test)>
-                    <Example key=(ex1) />
+                    <Situation key=(ex1) />
                 </Feature>
             `))
-            const originalExamplesLength = feature._payload.examples.payload.length
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            const originalLength = feature._payload.situations.length
+            const situationRef = new StandardReference({ tag: 'Situation', key: 'ex1', universalKey: 'SITUATION#ex1' })
             
-            const result = feature._payload.removeReferences([exampleRef])
+            const result = feature._payload.removeReferences([situationRef])
             
-            // Original should be unchanged
-            expect(feature._payload.examples.payload.length).toBe(originalExamplesLength)
-            // Result should have the reference removed
-            expect(result.examples.payload.length).toBe(0)
-            // They should be different objects
+            expect(feature._payload.situations.length).toBe(originalLength)
+            expect(result.situations.length).toBe(0)
             expect(result).not.toBe(feature._payload)
         })
+    })
+
+    it('round-trips render from StandardFeatureData to schema', () => {
+        const testFeatureData: StandardFeatureData = {
+            key: 'test',
+            tag: 'Feature',
+            render: {
+                displayName: 'Cached Name',
+                summary: ['Summary text'],
+                description: ['Description text'],
+            },
+        }
+        const testFeature = new StandardFeature(testFeatureData)
+        expect(testFeature.render).toEqual(testFeatureData.render)
+        expect(schemaToWML([testFeature.schema])).toEqual(deIndentWML(`
+            <Feature key=(test)>
+                <Render>
+                    <DisplayName>Cached Name</DisplayName>
+                    <Summary>Summary text</Summary>
+                    <Description>Description text</Description>
+                </Render>
+            </Feature>
+        `))
+    })
+
+    it('parses Render under Feature in ephemeraWire', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Feature key=(fountain) uuid=(fountain)>
+                    <Render>
+                        <DisplayName>Fountain</DisplayName>
+                        <Summary>Sparkling water</Summary>
+                        <Description>A marble fountain.</Description>
+                    </Render>
+                </Feature>
+            </Asset>
+        `)
+        const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const feature = sf._lookup('FEATURE#fountain') as StandardFeature
+        expect(feature.render).toEqual({
+            displayName: 'Fountain',
+            summary: ['Sparkling water'],
+            description: ['A marble fountain.'],
+        })
+    })
+
+    it('round-trips Render under Feature in ephemeraWire', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Feature key=(fountain) uuid=(fountain)>
+                    <Render>
+                        <DisplayName>Fountain</DisplayName>
+                        <Summary>Sparkling water</Summary>
+                        <Description>A marble fountain.</Description>
+                    </Render>
+                </Feature>
+            </Asset>
+        `)
+        const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const printed = schemaToWML([sf.schema])
+        const sfAgain = new StandardForm(printed, { standardizeMode: 'ephemeraWire' })
+        expect(schemaToWML([sfAgain.schema])).toEqual(printed)
+    })
+
+    it('rejects Render under Feature in asset mode', () => {
+        const wml = deIndentWML(`
+            <Feature key=(fountain)>
+                <Render>
+                    <DisplayName>Fountain</DisplayName>
+                    <Summary>Sparkling water</Summary>
+                    <Description>A marble fountain.</Description>
+                </Render>
+            </Feature>
+        `)
+        expect(() => new StandardFeature(wml)).toThrow()
     })
     
 })
