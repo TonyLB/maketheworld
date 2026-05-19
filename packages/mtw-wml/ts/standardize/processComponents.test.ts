@@ -420,9 +420,23 @@ describe("processComponents", () => {
         const result = processComponents({
             componentOrder,
             schema: schema.schema,
+            assetUUID: 'ASSET#Test',
         })
+
+        // Asset-level remove: Room membership is ref arithmetic on topLevel, not a Remove-wrapped component.
+        const roomTopLevelRef = result.topLevel.payload.find((ref) => ref.key === 'test')
+        expect(roomTopLevelRef?.ref).toBe(-1)
+
+        // Situation facet: ref=-1 renders as Remove>Situation; prose stays plain (no inner
+        // Remove on Description -- that would algebraically cancel and re-add the text).
         expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
-            `<Room key=(test)><Remove><Description>Test</Description></Remove></Room>`,
+            deIndentWML(`
+                <Room key=(test)>
+                    <Remove>
+                        <Situation uuid=(DEFAULT)><Description>Test</Description></Situation>
+                    </Remove>
+                </Room>
+            `),
             `<Situation uuid=(DEFAULT) />`,
         ])
     })

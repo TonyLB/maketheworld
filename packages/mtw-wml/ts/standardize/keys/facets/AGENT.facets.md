@@ -223,12 +223,12 @@ The `merge`, `diff`, and `invert` methods work with this separation:
 When rendering a facet with `renderFacet()`:
 
 - **Normal rendering** (`ref >= 0`): Payload is rendered as-is
-- **Removal rendering** (`ref < 0`): Payload is **inverted before rendering** because removal is transitive
+- **Typical removal rendering** (`ref < 0` and payload already inverted, e.g. after `facet.invert()`): The usual stored shape after a unified remove (reduce ref-count and remove content). Outer `Remove` from `reference.schema`; payload renders as plain content inside (one remove wrapper). See `facetFactory.test.ts` `renderFacet` test "typical storage".
+- **Atypical `-a + b` rendering** (`ref < 0` and payload still plain): Also canonical, but uncommon in practice (e.g. undoing a payload removal while also decreasing ref-count). Algebraically "reduce ref-count but add content." WML normalizes to equivalent nested `Remove` as `-(a - b)`, not as two independent removes on the same dimension. `renderFacet()` inverts the plain payload at render time. See `facetFactory.test.ts` `renderFacet` test "transitivity edge case".
   - Example: Facet with `ref=-1` and `PlainClass("narrative")` renders as:
     ```xml
     <Remove><Mark uuid=(...)><Remove><Match>narrative</Match></Remove></Mark></Remove>
     ```
-  - The payload is inverted (Plain → Remove) to maintain correct semantics
 - **Design Decisions**: 
   - **Payload Storage**: Payloads are stored as class instances (payload classes like `PositionPayload`, `MarkFacetPayload`, `ExitPayload`)
     - Payload classes implement `FacetPayloadBase` interface for rendering and `StandardEditablePayload` for edit operations

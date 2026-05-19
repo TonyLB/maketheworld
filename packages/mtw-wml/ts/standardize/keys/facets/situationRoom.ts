@@ -21,6 +21,8 @@ import { StandardComponent } from "../../components/baseClasses";
 import { RenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree";
 import { StandardEditableData, extractFromEditableData } from "@tonylb/mtw-base/ts/editable";
 import { excludeUndefined } from "@tonylb/mtw-base/ts/utils/lists";
+import { TagMismatchError } from "@tonylb/mtw-base/ts/standardize";
+import { transformNestedChildren } from "../../../schema/utils";
 import type { StandardizeFromSchemaContext } from "../../wmlStandardizeMode";
 import type { StandardComponentReferenceKey } from "../../components/baseClasses";
 import linkReferenceKeys from "../../components/utils/references";
@@ -222,16 +224,28 @@ export class SituationProseFacetPayload {
         if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
             return { aggregatedNode: referenceRender };
         }
-        const children: GenericTree<SchemaTag> = this.toProseTripletChildren();
+
+        const transformSituationChildren = transformNestedChildren({
+            tag: "Situation",
+            transform: () => this.toProseTripletChildren(),
+        });
+
+        if (referenceRender) {
+            try {
+                return { aggregatedNode: transformSituationChildren(referenceRender) };
+            } catch (error) {
+                if (error instanceof TagMismatchError) {
+                    throw new Error("Invalid referenceRender: expected Situation tag");
+                }
+                throw error;
+            }
+        }
+
         const lookedUpReference = lookup ? (lookup(reference.standardKey)?.reference ?? reference) : reference;
         const formattedRef = lookedUpReference.toFormat("key").withRef(reference.ref);
         const refSchema = formattedRef.schema;
         if (refSchema.length === 0) throw new Error("Invalid reference schema: empty");
-        const aggregatedNode: GenericTreeNode<SchemaTag> = {
-            data: { ...refSchema[0].data },
-            children,
-        };
-        return { aggregatedNode };
+        return { aggregatedNode: transformSituationChildren(refSchema[0]) };
     }
 }
 

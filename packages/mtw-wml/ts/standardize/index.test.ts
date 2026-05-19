@@ -2994,73 +2994,58 @@ describe('StandardForm', () => {
             })
         })
 
+        // Case 4 revised (2025): reparenting via topLevel ref-counts + in-place situation prose diff;
+        // no explicit <Parent> in diff output. Cases 2-3 and related Parent-tag merge fixtures
+        // were left unchanged pending a systematic pass over this file.
         describe('Case 4: Component Moving from Asset-Level to Nested', () => {
-            it('should generate diff with Parent tag and topLevel removal when component moves to nested', () => {
-                const base = new StandardForm(deIndentWML(`
-                    <Asset uuid=(Test)>
-                        <Situation uuid=(ex1) key=(ex1) ref={0} />
-                        <Knowledge uuid=(room1) key=(room1)>
-                            <Situation uuid=(ex1) key=(ex1)>
-                                <DisplayName>Top-level</DisplayName>
-                            </Situation>
-                        </Knowledge>
-                    </Asset>
-                `))
-                const incoming = new StandardForm(deIndentWML(`
-                    <Asset uuid=(Test)>
-                        <Knowledge uuid=(room1) key=(room1)>
-                            <Situation ref={0} uuid=(ex1) key=(ex1)>
-                                <DisplayName>Now nested</DisplayName>
-                            </Situation>
-                        </Knowledge>
-                    </Asset>
-                `))
+            const case4BaseWML = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Situation uuid=(ex1) key=(ex1) />
+                    <Knowledge uuid=(room1) key=(room1)>
+                        <Situation uuid=(ex1) key=(ex1)>
+                            <DisplayName>Top-level</DisplayName>
+                        </Situation>
+                    </Knowledge>
+                </Asset>
+            `)
+            const case4IncomingWML = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Knowledge uuid=(room1) key=(room1)>
+                        <Situation uuid=(ex1) key=(ex1)>
+                            <DisplayName>Now nested</DisplayName>
+                        </Situation>
+                    </Knowledge>
+                </Asset>
+            `)
+
+            it('should generate diff with topLevel removal when Situation moves from Asset to nested', () => {
+                const base = new StandardForm(case4BaseWML)
+                const incoming = new StandardForm(case4IncomingWML)
                 const diff = base.diff(incoming)
 
                 expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(Test)>
                         <Knowledge uuid=(room1) key=(room1) ref={0}>
-                            <Remove>
-                                <Replace><DisplayName>Now nested</DisplayName></Replace>
-                                <With><DisplayName>Top-level</DisplayName></With>
-                            </Remove>
-                        </Knowledge>
-                    </Asset>
-                `))
-            })
-
-            it('should merge diff with Parent tag correctly, moving component to nested', () => {
-                const base = new StandardForm(deIndentWML(`
-                    <Asset uuid=(Test)>
-                        <Situation uuid=(ex1) key=(ex1) ref={0} />
-                        <Knowledge uuid=(room1) key=(room1)>
-                            <Situation uuid=(ex1) key=(ex1)>
-                                <DisplayName>Top-level</DisplayName>
-                            </Situation>
-                        </Knowledge>
-                    </Asset>
-                `))
-                const diff = new StandardForm(deIndentWML(`
-                    <Asset uuid=(Test)>
-                        <Remove><Situation uuid=(ex1) key=(ex1) ref={0} /></Remove>
-                        <Knowledge uuid=(room1) key=(room1) ref={0}>
-                            <Situation ref={0} uuid=(ex1) key=(ex1)>
-                                <Parent>room1</Parent>
+                            <Situation key=(ex1) ref={0}>
                                 <Replace><DisplayName>Top-level</DisplayName></Replace>
                                 <With><DisplayName>Now nested</DisplayName></With>
                             </Situation>
                         </Knowledge>
+                        <Remove><Situation uuid=(ex1) key=(ex1) /></Remove>
                     </Asset>
                 `))
+            })
+
+            it('should merge diff round-trip when Situation moves from Asset to nested', () => {
+                const base = new StandardForm(case4BaseWML)
+                const incoming = new StandardForm(case4IncomingWML)
+                const diff = base.diff(incoming)
                 const merged = base.merge(diff)
-                
-                expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
-                    <Asset uuid=(Test)>
-                        <Knowledge uuid=(room1) key=(room1)>
-                            <Situation key=(ex1)><DisplayName>Now nested</DisplayName></Situation>
-                        </Knowledge>
-                    </Asset>
-                `))
+
+                expect(schemaToWML([merged.schema])).toEqual(schemaToWML([incoming.schema]))
+
+                const situationComponent = merged.byUniversalId['SITUATION#ex1']
+                expect(situationComponent?.explicitParent).toBeUndefined()
             })
         })
 
