@@ -82,7 +82,7 @@ Inbound **`PerceptionMessage.wmlContent`** is parsed with **`standardizeMode: 'e
 
 ### **WML Structure for Rooms**
 
-**Room-render / perception** WML from ephemera typically uses **`<Render>`** for resolved header prose (see **`packages/mtw-wml`** **`standardize/AGENT.md`**). Asset authoring should prefer **Situation** facets; raw WML may still contain legacy **`<Example>`** under **`<Room>`** in old imports---the standardized model does not treat that as Room-owned **`examples`** (see **`packages/mtw-wml/ts/AGENT.md`**).
+**Room-render / perception** WML from ephemera typically uses **`<Render>`** for resolved header prose (see **`packages/mtw-wml`** **`standardize/AGENT.md`**). Asset authoring uses **Situation** facets on Room (see **`packages/mtw-wml/ts/AGENT.md`**).
 
 ```xml
 <Asset uuid=(render)>
@@ -143,20 +143,6 @@ if (parsedWML) {
             name = prosePayload._displayName || new StandardLiteral('Untitled', { tag: 'DisplayName' })
             description = prosePayload._description || new StandardRender([])
             summary = prosePayload._summary || new StandardRender([])
-        } else {
-            // Legacy fallback only (deprecated for new authoring; prefer Situation + render)
-            const firstExampleRef = component.examples.payload[0]
-            if (firstExampleRef) {
-                const firstExample = parsedWML._lookup(firstExampleRef.standardKey.toJSON())
-                if (firstExample && firstExample.universalKey) {
-                    const exampleComponent = parsedWML.byUniversalId[firstExample.universalKey as any]
-                    if (exampleComponent instanceof StandardExample) {
-                        name = exampleComponent.displayName || new StandardLiteral('Untitled', { tag: 'DisplayName' })
-                        description = exampleComponent.description || new StandardRender([])
-                        summary = exampleComponent.summary || new StandardRender([])
-                    }
-                }
-            }
         }
         exits = component.exits.items
         characters = component.characters.payload
@@ -341,14 +327,14 @@ For complete details on message timeline organization, see [`AGENT.md`](AGENT.md
 ### **Standard Format Architecture**
 1. **Standard Format Input**: Component accepts `parsedWML: StandardForm` via `PerceptionMessage` (built with **`ephemeraWire`** parsing for perception)
 2. **Room Data Extraction**: Extracts `StandardRoom` from `parsedWML.byUniversalId[componentUUID]`
-3. **Prose resolution**: **`render`** → **Situation** facet → **Example** (legacy fallback only; see **`SituationRoomFacetPayload`**)
+3. **Prose resolution**: **`render`** → **Situation** facet (see **`SituationProseFacetPayload`**)
 4. **Exit Handling**: Direct use of `StandardExitFacet[]` from `StandardRoom.exits.items`
 5. **Character Resolution**: Resolves `StandardCharacter[]` from `StandardRoom.characters.payload` references
 
 ### **Data Flow**
 1. **Input**: `PerceptionMessage` with `parsedWML` and `metaData.componentUUID`
 2. **Room Lookup**: `parsedWML.byUniversalId[componentUUID]` → `StandardRoom`
-3. **Prose**: **`StandardRoom.render`**, then first Situation facet, then first **`StandardExample`** under **`examples`** (legacy only; do not rely on this for new content)
+3. **Prose**: **`StandardRoom.render`**, then first Situation facet (`SITUATION#DEFAULT` when present)
 4. **Exit Direct Access**: `StandardRoom.exits.items` → `StandardExitFacet[]`
 5. **Character Resolution**: `StandardRoom.characters.payload` → resolve each reference → `StandardCharacter[]`
 

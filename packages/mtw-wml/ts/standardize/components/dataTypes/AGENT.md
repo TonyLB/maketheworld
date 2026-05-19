@@ -33,28 +33,24 @@ The WML system uses a **two-layer architecture** to separate concerns:
 
 ```typescript
 // 1. SERIALIZATION (Data Types) - JSON format for storage
-export type StandardExampleData = {
-    tag: 'Example';
-    name?: RenderTree;        // ← Serialization format
-    summary?: RenderTree;     // ← Serialization format
-    description?: RenderTree; // ← Serialization format
+export type StandardFeatureData = {
+    tag: 'Feature';
+    situations?: SituationProseFacetData[];  // ← Serialization format
 } & StandardBaseData
 
 // 2. MANIPULATION (Component Classes) - Active objects for operations
-export class StandardExamplePayload {
-    _name?: StandardRender;      // ← Runtime manipulation format
-    _summary?: StandardRender;   // ← Runtime manipulation format
-    _description?: StandardRender; // ← Runtime manipulation format
+export class StandardFeaturePayload {
+    _situations: SituationProseFacetList;  // ← Runtime manipulation format
     
-    fromJSON(props: StandardExampleData) {
+    fromJSON(props: StandardFeatureData) {
         // Convert: Serialization → Manipulation
-        this._name = props.name ? new StandardRender(props.name) : undefined
+        this._situations = new SituationProseFacetList(props.situations)
     }
     
-    toJSON(): StandardExampleData {
+    toJSON(): StandardFeatureData {
         // Convert: Manipulation → Serialization
         return {
-            name: this._name?.toJSON(),
+            ...(this._situations.items.length ? { situations: this._situations.toJSON() } : {}),
             // ...
         }
     }
@@ -104,9 +100,6 @@ Serialization format for `StandardReference` - standalone reference format. Can 
 
 ### **Component Data Types**
 
-#### **StandardExampleData** (`example.ts`)
-Serialization format for Example components. Contains `name`, `summary`, and `description` as `RenderTree` arrays for storage and transmission. Optional `shortName` (string or editable) is the *Example's own* label, used for UI (tabs, lists). **Name vs ShortName**: `name` is the name of the *item being exemplified* (Room/Feature/Knowledge); `shortName` is the label of the *Example itself*. Use `shortName` for the Example's tab/list label; do **not** use `name` as the Example's label.
-
 #### **StandardRoomData** (`room.ts`)
 Serialization format for Room components. Contains `shortName`, `exits`, **Situation** facets (`situations`), optional **`lens`**, **`features`**, **`guidance`**, **`characters`**, optional ephemera **`render`** and **`objects`**. **No** **`examples`** property; Room prose lives on **Situation** / **`render`**, not an **`examples`** list. See [`../../AGENT.md`](../../AGENT.md) and [`../AGENT.implementation.md`](../AGENT.implementation.md) (**StandardRoom**).
 
@@ -149,26 +142,23 @@ Component-level edit operations (Remove/Replace) are no longer supported. All ed
 Type guards validate that data conforms to the expected serialization format:
 
 ```typescript
-export const isStandardExample = (arg: any): arg is StandardExampleData => {
+export const isStandardFeature = (arg: any): arg is StandardFeatureData => {
     if (typeof arg !== 'object') {
         return false
     }
 
     return checkAll(
-        ('tag' in arg && arg.tag === 'Example'),
+        ('tag' in arg && arg.tag === 'Feature'),
         checkTypes(arg, {}, {
             key: 'string',
-            universalKey: 'string',
-            name: 'renderTree',
-            summary: 'renderTree',
-            description: 'renderTree'
+            universalKey: 'string'
         })
     )
 }
 ```
 
 ### **Available Type Guards**
-- `isStandardExampleData()` - Validates Example data
+- `isStandardFeatureData()` - Validates Feature data
 - `isStandardRoomData()` - Validates Room data
 - `isStandardFeatureData()` - Validates Feature data
 - `isStandardCharacterData()` - Validates Character data
@@ -181,42 +171,44 @@ export const isStandardExample = (arg: any): arg is StandardExampleData => {
 
 ### **Data Validation**
 ```typescript
-import { isStandardExample } from './dataTypes/example'
+import { isStandardFeature } from './dataTypes/feature'
 
-const data = { tag: 'Example', name: ['Test'] }
-if (isStandardExample(data)) {
-    // TypeScript knows this is StandardExampleData
-    console.log(data.name) // RenderTree
+const data = { tag: 'Feature', key: 'fountain' }
+if (isStandardFeature(data)) {
+    // TypeScript knows this is StandardFeatureData
+    console.log(data.key)
 }
 ```
 
 ### **API Response Handling**
 ```typescript
 // API returns serialization format
-const apiResponse: StandardExampleData = {
-    tag: 'Example',
-    name: ['API Content'],
-    summary: ['API Summary'],
-    description: ['API Description']
+const apiResponse: StandardFeatureData = {
+    tag: 'Feature',
+    key: 'fountain',
+    situations: [{
+        reference: { universalKey: 'SITUATION#DEFAULT', tag: 'Situation' },
+        payload: { description: ['API Content'] }
+    }]
 }
 
 // Convert to manipulation format for operations
-const example = new StandardExample(apiResponse)
-const merged = example.merge(otherExample)
+const feature = new StandardFeature(apiResponse)
+const merged = feature.merge(otherFeature)
 ```
 
 ### **Database Storage**
 ```typescript
 // Store serialization format
-const dataToStore: StandardExampleData = {
-    tag: 'Example',
-    name: ['Database Content'],
-    key: 'example-1'
+const dataToStore: StandardFeatureData = {
+    tag: 'Feature',
+    key: 'fountain-1',
+    situations: [{ reference: { universalKey: 'SITUATION#DEFAULT', tag: 'Situation' }, payload: {} }]
 }
 
 // Convert manipulation format back to serialization
-const example = new StandardExample(manipulationData)
-const serialized = example.toJSON() // Returns StandardExampleData
+const feature = new StandardFeature(manipulationData)
+const serialized = feature.toJSON() // Returns StandardFeatureData
 ```
 
 ## Integration Points

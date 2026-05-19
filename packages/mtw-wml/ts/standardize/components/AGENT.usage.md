@@ -8,33 +8,39 @@ This document provides practical code examples for working with Standard Compone
 
 ### From WML String
 ```typescript
-const example = new StandardExample(`
-    <Example key=(my-example)>
-        <Name>Example Name</Name>
-        <Summary>Example Summary</Summary>
-        <Description>Example Description</Description>
-    </Example>
+const room = new StandardRoom(`
+    <Room key=(tavern)>
+        <Situation uuid=(DEFAULT)>
+            <DisplayName>The Tavern</DisplayName>
+            <Description>A cozy inn with a roaring fireplace.</Description>
+        </Situation>
+    </Room>
 `)
 ```
 
 ### From JSON Data
 ```typescript
-const example = new StandardExample({
-    tag: 'Example',
-    key: 'my-example',
-    name: ['Example Name'],
-    summary: ['Example Summary'],
-    description: ['Example Description']
+const feature = new StandardFeature({
+    tag: 'Feature',
+    key: 'fountain',
+    universalKey: 'FEATURE#fountain-1',
+    situations: [{
+        reference: { universalKey: 'SITUATION#DEFAULT', tag: 'Situation' },
+        payload: {
+            displayName: 'Central Fountain',
+            description: ['A beautiful marble fountain.']
+        }
+    }]
 })
 ```
 
 ## Accessing Content Properties
 
-### StandardExample
+### Situation facet prose (Room / Feature / Knowledge)
 ```typescript
-const name = example.name.plainString
-const summary = example.summary.plainString
-const description = example.description.plainString
+const firstFacet = room.situations.items[0]
+const displayName = firstFacet?.payload._displayName?.plainString
+const description = firstFacet?.payload._description?.plainString
 ```
 
 ### StandardCharacter
@@ -52,7 +58,10 @@ const roomData: StandardRoomData = {
     universalKey: 'ROOM#tavern',
     characters: ['CHARACTER#innkeeper', 'CHARACTER#bard'],
     exits: [],
-    examples: ['EXAMPLE#tavernDescription']
+    situations: [{
+        reference: { universalKey: 'SITUATION#DEFAULT', tag: 'Situation' },
+        payload: { description: ['A busy tavern.'] }
+    }]
 }
 const room = new StandardRoom(roomData)
 ```
@@ -87,10 +96,10 @@ characters.forEach(character => {
 ### Basic Serialization
 ```typescript
 // To JSON for storage
-const json = example.toJSON()
+const json = room.toJSON()
 
 // From JSON for loading
-const example = new StandardExample(json)
+const room = new StandardRoom(json)
 ```
 
 ## Related Documentation
@@ -99,4 +108,3 @@ const example = new StandardExample(json)
 - [`AGENT.implementation.md`](./AGENT.implementation.md) - Component types, architectural patterns, and testing details
 - [`dataTypes/AGENT.md`](./dataTypes/AGENT.md) - Serialization vs. Manipulation Types architecture
 - [`render/AGENT.md`](../render/AGENT.md) - StandardRender system documentation
-

@@ -9,7 +9,7 @@ The `standardize` directory contains the `StandardForm` class, which represents 
 1. **Build fluency in WML and the WML schema**
    - **Why**: StandardForm, components, and most tests assume you can read and write WML comfortably; without that, you can’t interpret test setup, asset shapes, or expected results.
    - **Read**: [`../AGENT.md`](../AGENT.md) for the WML language and schema overview, plus WML-focused sections of `packages/mtw-wml/ts/AGENT.md`.
-   - **Focus**: How `<Asset>`, `<Room>`, `<Feature`, `<Example>`, and other tags map to schema types and StandardComponent shapes, and how unit tests use WML snippets to express both initial state and expectations.
+   - **Focus**: How `<Asset>`, `<Room>`, `<Feature>`, `<Situation>`, and other tags map to schema types and StandardComponent shapes, and how unit tests use WML snippets to express both initial state and expectations.
 
 2. **Understand the role of StandardForm in the WML ecosystem**
    - **Why**: StandardForm is the asset-level abstraction for WML; using it correctly depends on seeing it as “the whole asset” wrapper, not as an isolated data class.
@@ -18,7 +18,7 @@ The `standardize` directory contains the `StandardForm` class, which represents 
 
 3. **Connect StandardForm to StandardComponent types**
    - **Why**: Almost everything StandardForm does (`merge()`, `diff()`, `subset()`) is delegated to `StandardComponent` implementations; understanding those makes asset-level behavior predictable.
-   - **Read**: [`./components/AGENT.md`](./components/AGENT.md) for the StandardComponent family (Room, Feature, Example, etc.).
+   - **Read**: [`./components/AGENT.md`](./components/AGENT.md) for the StandardComponent family (Room, Feature, Situation, etc.).
    - **Focus**: How components expose `merge()`, `referencedKeys()`, and other operations that StandardForm orchestrates across the asset.
    - **For edit operations**: If your work involves understanding or modifying how edits (Remove, Replace, Add operations) work, their mathematical properties, or how merging/diffing operates at the component or reference list level, read:
      - [`./components/AGENT.editAlgebra.md`](./components/AGENT.editAlgebra.md) - Mathematical properties of component edit operations (inversion, reference vs. data payload distinction)
@@ -237,18 +237,18 @@ StandardForm merge operations combine two assets intelligently:
 // Merge two assets
 const base = new StandardForm(`<Asset uuid=(Test)>
     <Room key=(mainHall)>
-        <Example uuid=(base)>
+        <Situation uuid=(DEFAULT)>
             <Description>Main hall</Description>
-        </Example>
+        </Situation>
     </Room>
 </Asset>`)
 
 const incoming = new StandardForm(`<Asset uuid=(Test)>
     <Room key=(mainHall)><Exit to=(kitchen)>kitchen</Exit></Room>
     <Room key=(kitchen)>
-        <Example uuid=(kitchenBase)>
+        <Situation uuid=(DEFAULT)>
             <Description>Kitchen</Description>
-        </Example>
+        </Situation>
     </Room>
 </Asset>`)
 
@@ -257,14 +257,14 @@ const merged = base.merge(incoming)
 //
 // <Asset uuid=(Test)>
 //    <Room key=(kitchen)>
-//        <Example uuid=(kitchenBase)>
+//        <Situation uuid=(DEFAULT)>
 //            <Description>Kitchen</Description>
-//        </Example>
+//        </Situation>
 //    </Room>
 //    <Room key=(mainHall)>
-//        <Example uuid=(base)>
+//        <Situation uuid=(DEFAULT)>
 //            <Description>Main hall</Description>
-//        </Example>
+//        </Situation>
 //        <Exit to=(kitchen)>kitchen</Exit>
 //    </Room>
 // </Asset>
@@ -304,9 +304,9 @@ const base = new StandardForm(`<Asset uuid=(Test)>
         <ShortName>Clock Tower</ShortName>
     </Feature>
     <Room uuid=(ROOM#room1) key=(mainHall)>
-        <Example uuid=(base)>
+        <Situation uuid=(DEFAULT)>
             <Description><Link to=(clockTower)>See tower</Link></Description>
-        </Example>
+        </Situation>
     </Room>
 </Asset>`)
 
@@ -360,9 +360,9 @@ The cascade system uses a directed graph structure to define how component conne
 **Connection Types**: Uses `StandardComponentReferenceKey['referenceType']` values:
 
 **Structural references** (define structural relationships):
-- `'Direct'`: Direct component relationships (e.g., Room contains Example)
+- `'Direct'`: Direct component relationships (e.g., Room references a Feature or Character in a ReferenceList)
 - `'Position'`: Components positioned within other components (e.g., rooms in maps)
-- `'Facet'`: Structured relationships with associated data (e.g., Mark facets in Examples)
+- `'Facet'`: Structured relationships with associated payload (e.g., Room **Situation** prose facet referencing a Situation, or mark facets on Situation)
 
 **Non-structural references** (connections that don't define structure):
 - `'Link'`: General reference links between components
@@ -395,31 +395,31 @@ StandardForm diff creates a minimal representation of changes:
 // Create diff between assets
 const original = new StandardForm(`<Asset uuid=(Test)>
     <Room key=(mainHall)>
-        <Example uuid=(base)>
+        <Situation uuid=(DEFAULT)>
             <Description>Main hall</Description>
-        </Example>
+        </Situation>
     </Room>
 </Asset>`)
 
 const modified = new StandardForm(`<Asset uuid=(Test)>
     <Room key=(mainHall)>
-        <Example uuid=(base)>
+        <Situation uuid=(DEFAULT)>
             <Description>Grand hall</Description>
-        </Example>
+        </Situation>
     <Room key=(kitchen)>
-        <Example uuid=(kitchenBase)>
+        <Situation uuid=(DEFAULT)>
             <Description>Kitchen</Description>
-        </Example>
+        </Situation>
     </Room>
 </Asset>`)
 
 const diff = original.diff(modified)
 // Result: StandardForm with WML schema as follows:
 //    <Room key=(mainHall)>
-//        <Example uuid=(base)>
+//        <Situation uuid=(DEFAULT)>
 //            <Replace><Description>Main hall</Description></Replace>
 //            <With><Description>Grand hall</Description></With>
-//        </Example>
+//        </Situation>
 
 ```
 
@@ -480,11 +480,11 @@ const assetWithEdits = new StandardForm({
 - **Extensions**: Support for additional asset operations
 
 #### **Explicit Parent Control for Sub-Components**
-**Context**: When serializing assets to WML/JSON schema, sub-components (like Examples) are positioned in the tree structure based on their parent relationships, which are determined through `SchemaOrganization` using graph-based topological resolution. This means that a top-level Example in an edit asset will appear at the top level in the serialized schema, even if it was originally nested within a Room/Feature/Knowledge.
+**Context**: When serializing assets to WML/JSON schema, sub-components (like Situation entities and facet targets) are positioned in the tree structure based on their parent relationships, which are determined through `SchemaOrganization` using graph-based topological resolution. This means that a top-level Situation in an edit asset will appear at the top level in the serialized schema, even if it was originally referenced only from a Room/Feature/Knowledge facet.
 
 **Current Behavior** (as of 2025):
-- Examples can exist at top level (Asset parent) or nested (Room/Feature/Knowledge parent)
-- When an Example appears at top level in an edit merge, it appears at top level in the serialized schema
+- Situation components can exist at top level (Asset parent) or be referenced via facets on Room/Feature/Knowledge
+- When a Situation appears at top level in an edit merge, it appears at top level in the serialized schema
 - Parent relationships for tree structure are determined via `SchemaOrganization.getImplicitParent()` using graph-based topological resolution
 - `SchemaOrganization` is used for converting the data-centric `StandardForm` structure into a hierarchical tree for serialization (WML/JSON output)
 - Note: `StandardForm` operations (merge, diff, subset) work on the data-centric structure and don't require tree organization
@@ -493,22 +493,22 @@ const assetWithEdits = new StandardForm({
 
 ```wml
 <Asset uuid=(Test)>
-    <Example uuid=(room-example)>
+    <Situation uuid=(room-situation)>
         <Parent>ROOM#testRoom</Parent>
-        <Replace><Name>Old</Name></Replace>
-        <With><Name>New</Name></With>
-    </Example>
+        <Replace><DisplayName>Old</DisplayName></Replace>
+        <With><DisplayName>New</DisplayName></With>
+    </Situation>
 </Asset>
 ```
 
 **Benefits**:
-1. Explicit parent specification allows edit-mode convenience (top-level Examples) without affecting positioning
+1. Explicit parent specification allows edit-mode convenience (top-level Situation edits) without affecting positioning
 2. Users can choose whether to preserve or change parent relationships in edits
 3. Backward compatible: absence of `<Parent>` tag maintains current behavior
 4. Would enable more precise control over component organization during merges
 
 **Implementation Considerations**:
-- Add `<Parent>` as optional tag in Example, Feature, and other sub-component schemas
+- Add `<Parent>` as optional tag in Situation, Feature, and other sub-component schemas
 - Modify merge logic to respect explicit parent when present
 - Ensure validation that parent UUID references valid components
 

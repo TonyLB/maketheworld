@@ -90,16 +90,16 @@ There is no "cache per Example ID" or "RoomId + Mark state" key; this keeps the 
   - `displayName?: RenderTree`
   - `summary?: RenderTree`
   - `description: RenderTree`
-  - Mirrors `StandardExample` fields and format from Assets.
+  - Mirrors Situation facet prose (`displayName`, `summary`, `description`) from Assets.
 - `provenance`:
   - `{ type: 'authored' | 'generated' }`
-  - Distinguishes mirrored authored Examples from future generated renders.
+  - Distinguishes mirrored authored situation facets from future generated renders.
 - `perspectiveId`: string
   - **Known inactive** (not used for matching). Kept on the record pending possible later use for search optimization.
 - `perspectiveMatcher`: PerspectiveMatcher
   - Required and forbidden asset ids for matcher-based matching. Used by `perspectiveMatches(matcher, requestPerspective)` at lookup time.
 - `situationId?: string`
-  - Optional link to the Situation UUID for **Room** cache records (Phase 4). Used to target delete on ExampleRemoved when `exampleId` is SITUATION#.
+  - Optional link to the Situation UUID for cache records. Used to target delete on ExampleRemoved when `exampleId` is a Situation uuid.
 - `authoredExampleId?: string`
   - Optional link back to the blueprint Example UUID for **Feature/Knowledge** cache records. Used to precisely delete cache entries when Examples are removed (exampleId is EXAMPLE#).
 

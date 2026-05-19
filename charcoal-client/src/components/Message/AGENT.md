@@ -253,7 +253,7 @@ Components will need to:
 - **Extract Content**: Pull relevant information from WML structure and component data
 - **Render Appropriately**: Display content with proper styling based on component type
 
-**CRITICAL (Feature and Knowledge)** — mirror Room (**D1**): In **`ComponentDescription.tsx`**, resolve prose from the parent component only (no child **`StandardExample`** lookup):
+**CRITICAL (Feature and Knowledge)** — mirror Room: In **`ComponentDescription.tsx`**, resolve prose from the parent component only:
 
 1. Get the parent from `parsedWML.byUniversalId[componentUUID]`; use `instanceof StandardFeature` or `StandardKnowledge`.
 2. Prefer **`component.render`** (ephemera **`<Render>`**, **`SituationProseFacetPayload`** shape); skip when empty.
@@ -330,5 +330,4 @@ All message components now support dual format handling (legacy and WML Percepti
 ### **Technical Debt**
 - **Bridge State Complexity**: Components maintain both legacy and WML format support, adding complexity
 - **Legacy Message Types**: Multiple specific message types could be consolidated into PerceptionMessage
-- **StandardExample Type Inconsistency**: `StandardExample` properties return `RenderTree` instead of `StandardRender`, requiring conversion in client code (see WML Standard Components documentation for details)
 - **Component Dual Concerns**: Some components handle both message parsing and display logic 

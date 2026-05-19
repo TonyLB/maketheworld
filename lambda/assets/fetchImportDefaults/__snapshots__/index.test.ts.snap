@@ -68,19 +68,6 @@ Object {
     Object {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset uuid=(testFinal)>
-    <Example
-        uuid=(testRoomWithFeaturesExample)
-        origin=(ASSET#testImportAssetFour,ASSET#testFinal)
-        ref={0}
-    >
-        <Description>
-            <Link to=(testFeature)>
-                Test
-            </Link><Link to=(featureImport)>
-                Test
-            </Link>
-        </Description>
-    </Example>
     <Feature
         uuid=(testFeature)
         key=(featureImport)
@@ -90,7 +77,22 @@ Object {
         uuid=(testRoomWithFeatures)
         key=(testRoomWithFeatures)
         origin=(ASSET#testImportAssetFour,ASSET#testFinal)
-    />
+    >
+        <Situation
+            uuid=(DEFAULT)
+            origin=(ASSET#testImportAssetFour,ASSET#testFinal)
+            ref={0}
+        />
+        <Situation uuid=(DEFAULT) ref={2}>
+            <Description>
+                <Link to=(testFeature)>
+                    Test
+                </Link><Link to=(featureImport)>
+                    Test
+                </Link>
+            </Description>
+        </Situation>
+    </Room>
 </Asset>",
     },
   ],

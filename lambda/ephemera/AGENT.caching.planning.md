@@ -84,7 +84,7 @@ This gives us:
 
 Initial shape; allows adding a `remainder` field at a future juncture.
 
-**renderedContent** - The cached output. Parallels how Example component items are stored in the Assets DynamoDB table: `displayName`, `summary`, and `description` as RenderTree (same field names and format as StandardExample / Assets component records).
+**renderedContent** - The cached output. Parallels Situation facet prose on Assets: `displayName`, `summary`, and `description` as RenderTree (same field names and format as Assets component records).
 
 **provenance** - Source of the Example; supports author-provided vs. generated distinction and leaves room for confidence scores later:
 
@@ -165,19 +165,15 @@ Given this direction, we are unlikely ever to search by `RoomId + canonical Mark
 - **Search exhaustively** in early iterations (fetch by componentId, compare Mark patterns and optionally perspectiveId in memory).
 - **Search by Guidance-constellation** in later iterations (buckets, vector comparison); **filter by perspectiveId** when the client sends an asset stack.
 
-### Relationship to Future Example/Situation Iteration
+### Relationship to Situation + situation facets (shipped)
 
-A separate conceptual document, `packages/mtw-wml/ts/AGENT.exampleIteration.planning.md`, explores a possible second-iteration model in which:
+The WML model now uses **Situation** components (marks-only world-state slices) and **situation facets** on Room / Feature / Knowledge for parent-specific prose. See [`packages/mtw-wml/ts/AGENT.md`](../../packages/mtw-wml/ts/AGENT.md) and [`lambda/ephemera/dataSource/renderCache/AGENT.md`](dataSource/renderCache/AGENT.md).
 
-- `Situation` components represent world-state slices (MarkFacetLists only, no render fields).
-- Parent components (Room, Feature, Map, etc.) carry **situation facets** whose payloads define how that parent renders in a given Situation.
+This caching plan aligns with that model:
 
-This caching plan is intentionally compatible with that direction:
-
-- Cache keys already use synthetic `CACHE#uuid` values and store Mark:Match pairs directly, rather than relying on Example IDs or a canonical `RoomId + Mark state` key.
-- Each cache record is "one row per distinct render" identified by component, Mark state, and perspective, which can later be augmented with a `situationId` or derived Mark state from Situation components without changing the fundamental strategy.
-
-The first MVP should therefore proceed assuming Examples as they exist today, knowing that the cache schema does not prevent a later shift to a Situation + facet-based model for world-state dependent renders.
+- Cache keys use synthetic `CACHE#uuid` values and store Mark:Match pairs directly, not Example IDs or a canonical `RoomId + Mark state` key.
+- Each cache record is one row per distinct render, identified by component, Mark state, and perspective; Room records include optional **`situationId`** linking to the Situation uuid used for that slice.
+- Wire events on **`mtw.assets.componentExamples`** still use historical **Example*** names; payloads use **`situationId`**, not **`EXAMPLE#`**.
 
 ## First Iteration Schema Implications
 

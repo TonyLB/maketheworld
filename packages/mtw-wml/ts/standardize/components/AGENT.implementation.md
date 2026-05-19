@@ -85,17 +85,16 @@ Common combinations: A Room typically references and hosts its Features. A Room 
 ### **StandardRoom** 🟢
 - **Purpose**: Represents rooms with exits, situation facets, lens, features, guidance, characters, and optional ephemera **`render`** / **`objects`**
 - **Content Properties**: `shortName` (`StandardLiteral`); exits as **`ExitFacetList`**; **`situations`** as **`SituationProseFacetList`**; optional ephemera **`render`** (`SituationProseFacetPayload`-shaped JSON)
-- **Reference Properties**: **`lens`** (`SingleReference`), **`features`**, **`guidance`**, **`characters`** (`ReferenceList`). **No** serialized **`examples`** field on **`StandardRoomData`**. Room prose is **Situation** / **`render`**, not an **`examples`** list like Feature/Knowledge.
-- **Inline Example (`ref={0}`)**: **`fromSchema`** ends with a consumer that records **only** **`ref={0}`** **`<Example>`** schema nodes into **`_inlineRefs`** (for **`referencedKeys`** / subset cascade). Those refs are **not** emitted as **`examples:`** in **`toJSON()`**. Example nodes that are not consumed by the pipeline (including non-inline shapes) contribute to the **parsing remainder** and typically cause **`fromSchema`** to **fail** once unconsumed children remain.
+- **Reference Properties**: **`lens`** (`SingleReference`), **`features`**, **`guidance`**, **`characters`** (`ReferenceList`). **No** serialized **`examples`** field on **`StandardRoomData`**. Room prose is **Situation** facets and optional ephemera **`render`**.
 - **Room prose (preferred)**: Author **Situation** facets; resolved wire prose on **`StandardRoom.render`**. See [`../../AGENT.md`](../../AGENT.md) (**Room** bullets) and [`../AGENT.md`](../AGENT.md) (**Room prose**).
 - **Ephemera wire**: Optional **`objects`** (`{ uuid: string; shortName: string }[]`) from **`<Object uuid=(...)><ShortName>...</ShortName></Object>`** children. **`uuid`** values are canonical **`OBJECT#...`** in memory (WML may use a bare key; see **`standardize/AGENT.md`**). The **`Object`** consumer is registered only when **`standardizeMode === 'ephemeraWire'`** on **`StandardizeFromSchemaContext`**; in **`asset`** mode those tags are **unconsumed** and **`fromSchema`** throws. See **`standardize/AGENT.md`** (**Payload vocabulary vs semantic mode**).
-- **fromSchema**: Uses the process-and-remainder pipeline. Consumers include ShortName, Exit, Lens, Feature, Situation (facet list), Guidance, Character, Position (no-op), Grant, DisplayName (no-ops for backward compatibility), plus **`Object`** and **`Render`** when **`ephemeraWire`**, then the inline Example ref consumer above. See [fromSchema: process-and-remainder pipeline](#fromschema-process-and-remainder-pipeline) below.
+- **fromSchema**: Uses the process-and-remainder pipeline. Consumers include ShortName, Exit, Lens, Feature, Situation (facet list), Guidance, Character, Position (no-op), Grant, DisplayName (no-ops for backward compatibility), plus **`Object`** and **`Render`** when **`ephemeraWire`**. Unconsumed **`<Example>`** (tag removed) fails parse. See [fromSchema: process-and-remainder pipeline](#fromschema-process-and-remainder-pipeline) below.
 
 ### **StandardFeature** 🟢
 
 - **Purpose**: Represents features with a short-name and display prose via **Situation** facets
 - **Content Properties**: `shortName` (`StandardLiteral`); **`situations`** as **`SituationProseFacetList`** (shared payload with Room); optional ephemera **`render`** (`SituationProseFacetPayload`-shaped JSON)
-- **fromSchema**: `ShortName`, **`StandardizeConsumerFacetListSituation`**, inline `ref={0}` children; `<Example>` under Feature is not consumed (throws on unconsumed remainder)
+- **fromSchema**: `ShortName`, **`StandardizeConsumerFacetListSituation`**, inline `ref={0}` children; unconsumed **`<Example>`** fails parse
 
 ### **StandardKnowledge** 🟢
 
@@ -660,12 +659,12 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
 
 **Pattern**:
 - Minimal payload class with basic properties (e.g., `shortName?: StandardLiteral`)
-- Optional `ReferenceList` for child components (e.g., `examples: ReferenceList`)
+- Optional `ReferenceList` for child components (e.g., `features: ReferenceList`)
 - Simple `toJSON()` with omission-over-empty pattern
 - Straightforward `schema()` and `nestedSchema()` implementations
 
 **Common Pitfalls**:
-- Forgetting to omit empty arrays in `toJSON()` (use conditional spread: `...(this.examples.payload.length ? { examples: this.examples.toJSON() } : {})`)
+- Forgetting to omit empty arrays in `toJSON()` (use conditional spread: `...(this.situations.items.length ? { situations: this.situations.toJSON() } : {})`)
 - Not implementing `assureReferences()` for components with reference lists
 - Missing `isEmpty()` implementation
 

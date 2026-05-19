@@ -24,7 +24,8 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, fullKeys, stu
                 { graph: [
                     { name: 'start', requestType: 'Full', transitions: [
                         { connectionType: 'Exit', targetNode: 'exitTarget' },
-                        { connectionType: 'Direct', targetNode: 'example' }
+                        { connectionType: 'Direct', targetNode: 'example' },
+                        { connectionType: 'Link', targetNode: 'linkedComponent' }
                     ] },
                     { name: 'example', requestType: 'Full', transitions: [
                         { connectionType: 'Link', targetNode: 'linkedComponent' }

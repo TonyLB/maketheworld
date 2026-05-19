@@ -174,14 +174,13 @@ Use `equals` (and, for optional fields, `defaultedEquals` from the semantic-opti
 StandardRender is used within components for rich text content:
 
 ```typescript
-// In StandardExample
-class StandardExample {
-    _name?: StandardRender;
+// In SituationProseFacetPayload (Room / Feature / Knowledge facet prose)
+class SituationProseFacetPayload {
+    _summary?: StandardRender;
     _description?: StandardRender;
     
-    // Constructor handles render content
     constructor(props) {
-        this._name = props.name ? new StandardRender(props.name) : undefined
+        this._summary = props.summary ? new StandardRender(props.summary) : undefined
         this._description = props.description ? new StandardRender(props.description) : undefined
     }
 }
