@@ -82,24 +82,24 @@ The curly brace syntax indicates that the value must match a specific format or 
 
 ## Content Tags
 
-Tags *without* keys are generally some manner of content definine the details of things. So, for instance, in
+Tags *without* keys are generally some manner of content defining the details of things. So, for instance, in
 the following:
 
 ```
 <Asset uuid=(testAsset)>
     <Room key=(room1)>
-        <Example uuid=(room1-example)>
-            <Name>Lobby</Name>
+        <Situation uuid=(DEFAULT)>
+            <DisplayName>Lobby</DisplayName>
             <Description>A sterile corporate lobby, brightly lit by fluorescent bulbs.</Description>
-        </Example>
+        </Situation>
     </Room>
 </Asset>
 ```
 The Asset and Room are things being defined, in and of themselves. They have a relationship, but in theory they exist
-separately. The Name and Description tag do not have existence outside of the Room they are defined in ... they are
-details *of* that room, rather than things that exist on their own.
+separately. The **DisplayName** and **Description** tags do not have existence outside of the Room's **Situation** facet ... they are
+details *of* that parent in that world-state, rather than things that exist on their own.
 
-An **Example** may optionally contain a **`<ShortName>`** child (plain string), which is the *Example's own* label—used to identify the Example in tabs, lists, and other UI. **`<Name>`** on an Example is the name of the *item being exemplified* (e.g. the Room, Feature, or Knowledge the Example describes), **not** the name of the Example itself. Use `ShortName` for the Example's label; do **not** use `Name` as the Example's label.
+A **Situation** facet on Room, Feature, or Knowledge references a **Situation** component (by `uuid`) and may carry a **DisplayName**, **Summary**, and **Description** for how that parent appears in that world-state. Marks (conditions) live on the **Situation** entity itself, not in the facet prose. Authoring often uses `uuid=(DEFAULT)` for the sole default world-state slice in v1.
 
 Wrapped inside content tags is often (but not always) *free-text*. Technically, this is also a bunch of tags
 (String tags, and whitespace, and various formatting tags), but it is handled much more like normal text, and
@@ -108,21 +108,21 @@ has different rules around what spacing and line breaks mean (see *Whitespace*, 
 Independent property content tags can sort past each other. Successive content tags of the same type will, by default, just add their contents together. So
 ```
     <Room key=(room1)>
-        <Example uuid=(room1-example)>
-            <Name>Lobby</Name>
+        <Situation uuid=(DEFAULT)>
+            <DisplayName>Lobby</DisplayName>
             <Description>A corporate lobby</Description>
-            <Name>: at night</Name>
+            <DisplayName>: at night</DisplayName>
             <Description>, with shadows clinging to the corners.</Description>
-        </Example>
+        </Situation>
     </Room>
 ```
 is the same as:
 ```
     <Room key=(room1)>
-        <Example uuid=(room1-example)>
-            <Name>Lobby: at night</Name>
+        <Situation uuid=(DEFAULT)>
+            <DisplayName>Lobby: at night</DisplayName>
             <Description>A corporate lobby, with shadows clinging to the corners.</Description>
-        </Example>
+        </Situation>
     </Room>
 ```
 

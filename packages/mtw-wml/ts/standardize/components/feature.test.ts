@@ -168,14 +168,13 @@ describe('StandardFeature class', () => {
         expect(() => new StandardFeature(testSource)).toThrow(/Map/)
     })
 
-    it('should throw on legacy Example child (D6)', () => {
+    it('should reject legacy Example child WML at parse time (Phase 4)', () => {
         const testSource = deIndentWML(`
             <Feature key=(testFeature)>
                 <Example key=(Example1) />
             </Feature>
         `)
-        expect(() => new StandardFeature(testSource)).toThrow(/Unconsumed child tags:/)
-        expect(() => new StandardFeature(testSource)).toThrow(/Example/)
+        expect(() => new StandardFeature(testSource)).toThrow()
     })
 
     it('should correctly add a Situation reference to a feature', () => {

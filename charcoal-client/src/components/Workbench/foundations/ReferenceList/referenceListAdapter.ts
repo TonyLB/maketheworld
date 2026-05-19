@@ -11,7 +11,6 @@ type ComponentTag =
     | "Room"
     | "Feature"
     | "Knowledge"
-    | "Example"
     | "Guidance"
     | "Situation"
     | "Lens"

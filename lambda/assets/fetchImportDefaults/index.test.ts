@@ -26,10 +26,6 @@ describe('fetchImportsMessage', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
-        //
-        // Room prose: prefer <Situation uuid=(DEFAULT)> over <Example ref={0}> (Gate D). Exception for
-        // testRoomWithFeatures (Link in copy) — see the "should properly stub out features" test comment.
-        //
         const testFinal = new StandardForm(`<Asset uuid=(testFinal)>
             <Room uuid=(testNonImport) key=(testNonImport)>
                 <Situation uuid=(DEFAULT)>
@@ -58,11 +54,11 @@ describe('fetchImportsMessage', () => {
             </Room>
             <Room uuid=(testImportThree) key=(testImportThree) from=(ASSET#testImportAssetTwo) />
             <Room uuid=(testRoomWithFeatures) key=(testRoomWithFeatures) from=(ASSET#testImportAssetFour)>
-                <Example ref={0} uuid=(testRoomWithFeaturesExample)>
+                <Situation uuid=(DEFAULT)>
                     <Description>
                         <Link to=(featureImport)>Test</Link>
                     </Description>
-                </Example>
+                </Situation>
             </Room>
             <Feature uuid=(testFeature) key=(featureImport) from=(ASSET#testImportAssetFour) />
         </Asset>`)
@@ -115,9 +111,9 @@ describe('fetchImportsMessage', () => {
                 </Situation>
             </Feature>
             <Room uuid=(testRoomWithFeatures) key=(testRoomWithFeatures)>
-                <Example ref={0} uuid=(testRoomWithFeaturesExample)>
+                <Situation uuid=(DEFAULT)>
                     <Description><Link to=(testFeature)>Test</Link></Description>
-                </Example>
+                </Situation>
             </Room>
         </Asset>`)
         internalCacheMock.Graph.get.mockResolvedValue(new Graph<string, { key: string }, {}>({
@@ -194,12 +190,6 @@ describe('fetchImportsMessage', () => {
         expect(JSON.parse((snsClientMock.send.mock.calls[0][0].input as any).Message)).toMatchSnapshot()
     })
 
-    //
-    // Provisional: fixtures still use Room-hosted Example + Link because subset/import cascade
-    // resolves imported Features via Example referencedKeys. SituationFacet/Situation room prose does
-    // not yet raise Link references from Description for that traversal — once it does, switch
-    // testFinal / testImportFour testRoomWithFeatures to Situation like the other rooms.
-    //
     it('should properly stub out features in room description', async () => {
         await fetchImportsMessage({ payloads: [{ type: 'FetchImports', importsFromAsset: [{ assetId: 'ASSET#testFinal', keys: ['ROOM#testRoomWithFeatures'] }] }], messageBus })
         expect(JSON.parse((snsClientMock.send.mock.calls[0][0].input as any).Message)).toMatchSnapshot()

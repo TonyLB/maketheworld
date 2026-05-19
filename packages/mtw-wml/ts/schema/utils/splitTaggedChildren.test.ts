@@ -105,7 +105,7 @@ describe('splitTaggedChildren', () => {
                 <Room key=(test)>
                     <Remove>
                         <Feature key=(feat1) />
-                        <Example key=(ex1) />
+                        <Situation key=(ex1) />
                     </Remove>
                 </Room>
             `))
@@ -113,8 +113,8 @@ describe('splitTaggedChildren', () => {
             const featureFind = findTaggedChildren({ children: roomNode.children, tag: 'Feature' })
             const { matched: featureMatched } = splitTaggedChildren({ children: roomNode.children, tag: 'Feature' })
             expect(featureMatched.map((node) => schemaToWML([node]))).toEqual(featureFind.map((node) => schemaToWML([node])))
-            const exampleFind = findTaggedChildren({ children: roomNode.children, tag: 'Example' })
-            const { matched: exampleMatched } = splitTaggedChildren({ children: roomNode.children, tag: 'Example' })
+            const exampleFind = findTaggedChildren({ children: roomNode.children, tag: 'Situation' })
+            const { matched: exampleMatched } = splitTaggedChildren({ children: roomNode.children, tag: 'Situation' })
             expect(exampleMatched.map((node) => schemaToWML([node]))).toEqual(exampleFind.map((node) => schemaToWML([node])))
         })
 
@@ -122,7 +122,7 @@ describe('splitTaggedChildren', () => {
             const roomTree = treeFromWML(deIndentWML(`
                 <Room key=(test)>
                     <Replace><Feature key=(feat1) /></Replace>
-                    <With><Feature key=(feat2) /><Example key=(ex1) /></With>
+                    <With><Feature key=(feat2) /><Situation key=(ex1) /></With>
                 </Room>
             `))
             const roomNode = roomTree[0]
@@ -137,7 +137,7 @@ describe('splitTaggedChildren', () => {
                     <Remove>
                         <Feature key=(feat1) />
                         <Feature key=(feat2) />
-                        <Example key=(ex1) />
+                        <Situation key=(ex1) />
                     </Remove>
                 </Room>
             `))
@@ -280,7 +280,7 @@ describe('splitTaggedChildren', () => {
                 <Room key=(test)>
                     <Remove>
                         <Feature key=(feat1) />
-                        <Example key=(ex1) />
+                        <Situation key=(ex1) />
                     </Remove>
                 </Room>
             `))
@@ -291,7 +291,7 @@ describe('splitTaggedChildren', () => {
             ])
             expect(remainder.length).toBe(1)
             expect(remainder[0].data.tag).toBe('Remove')
-            expect(schemaToWML(remainder)).toEqual(deIndentWML(`<Remove><Example key=(ex1) /></Remove>`))
+            expect(schemaToWML(remainder)).toEqual(deIndentWML(`<Remove><Situation key=(ex1) /></Remove>`))
         })
     })
 
@@ -338,7 +338,7 @@ describe('splitTaggedChildren', () => {
                     </Replace>
                     <With>
                         <Feature key=(feat2) />
-                        <Example key=(ex1) />
+                        <Situation key=(ex1) />
                     </With>
                 </Room>
             `))
@@ -354,7 +354,7 @@ describe('splitTaggedChildren', () => {
             const replacePayload = remainder[0].children.find((c) => c.data.tag === 'ReplacePayload')
             expect(replaceMatch?.children.length).toBe(0)
             expect(replacePayload?.children.length).toBe(1)
-            expect(replacePayload?.children[0].data.tag).toBe('Example')
+            expect(replacePayload?.children[0].data.tag).toBe('Situation')
         })
     })
 
@@ -365,11 +365,11 @@ describe('splitTaggedChildren', () => {
                     <ShortName>Main</ShortName>
                     <Exit to=(r1)>North</Exit>
                     <Feature key=(f1) />
-                    <Example key=(e1) />
+                    <Situation key=(e1) />
                 </Room>
             `))
             const roomNode = roomTree[0]
-            const tags = ['ShortName', 'Exit', 'Feature', 'Example'] as const
+            const tags = ['ShortName', 'Exit', 'Feature', 'Situation'] as const
             let children = roomNode.children
             for (const tag of tags) {
                 const { remainder } = splitTaggedChildren({ children, tag })

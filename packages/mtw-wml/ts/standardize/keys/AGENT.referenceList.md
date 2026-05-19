@@ -125,7 +125,7 @@ Component payload classes use `ReferenceList` for reference collections:
 ```typescript
 class StandardRoomPayload {
     _features: ReferenceList;
-    _examples: ReferenceList;
+    _guidance: ReferenceList;
     _characters: ReferenceList;
 }
 ```

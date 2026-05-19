@@ -29,7 +29,6 @@ export const isStandardDataFactory = <T extends StandardComponentData>(tag: Stan
 
 export const defaultComponentFromTag = (tag: SchemaTag["tag"], key?: string, universalKey?: ComponentUUID): Exclude<StandardComponentNonEditData, string> => {
     switch(tag) {
-        case 'Example':
         case 'Character':
         case 'Room':
         case 'Feature':

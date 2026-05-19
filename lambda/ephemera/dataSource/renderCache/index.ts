@@ -64,7 +64,6 @@ export const ephemeraRenderCacheDataSource = new EphemeraDataSource<never, Rende
                             perspectiveId: record.perspectiveId,
                             perspectiveMatcher: record.perspectiveMatcher,
                             ...(record.situationId !== undefined ? { situationId: record.situationId } : {}),
-                            ...(record.authoredExampleId !== undefined ? { authoredExampleId: record.authoredExampleId } : {}),
                         })
                         await streamEvent({
                             streamKey: cmd.componentId,

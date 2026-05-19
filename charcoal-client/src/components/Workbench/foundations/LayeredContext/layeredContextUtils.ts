@@ -6,7 +6,6 @@
 
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import StandardGuidance from '@tonylb/mtw-wml/ts/standardize/components/guidance'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import StandardMark from '@tonylb/mtw-wml/ts/standardize/components/worldState'
@@ -14,9 +13,9 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { excludeUndefined } from '../../../../lib/lists'
 import { situationIdToLabel } from '../../../../lib/situationLabel'
 
-export const COMPONENT_TAGS_WITH_LAYERED_TABS = ['EXAMPLE', 'GUIDANCE', 'SITUATION_FACET'] as const
+export const COMPONENT_TAGS_WITH_LAYERED_TABS = ['GUIDANCE', 'SITUATION_FACET'] as const
 
-export type LayeredChildTag = 'Example' | 'Guidance' | 'SituationFacet'
+export type LayeredChildTag = 'Guidance' | 'SituationFacet'
 
 export type LayeredContextResult = {
     parentId: ComponentUUID
@@ -39,7 +38,6 @@ function getGuidanceReferenceList(parent: StandardRoom): StandardReference[] | n
 }
 
 function isTagInLayeredTabs(tag: LayeredChildTag): boolean {
-    if (tag === 'Example') return COMPONENT_TAGS_WITH_LAYERED_TABS.includes('EXAMPLE')
     if (tag === 'Guidance') return COMPONENT_TAGS_WITH_LAYERED_TABS.includes('GUIDANCE')
     if (tag === 'SituationFacet') return COMPONENT_TAGS_WITH_LAYERED_TABS.includes('SITUATION_FACET')
     return false
@@ -97,7 +95,7 @@ export function findReferenceSiblings(
         .map((universalKey) => {
             const comp = standardForm.byUniversalId[universalKey as ComponentUUID]
             let label: string | null = null
-            if (comp && (comp instanceof StandardExample || comp instanceof StandardGuidance)) {
+            if (comp && comp instanceof StandardGuidance) {
                 const labelLiteral = comp.shortName
                 label = labelLiteral ? labelLiteral._payload?.plain?.toJSON() ?? null : null
             }

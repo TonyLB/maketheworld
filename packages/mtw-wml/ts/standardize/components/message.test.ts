@@ -268,18 +268,18 @@ describe('StandardMessage class', () => {
         
         it('should put non-bucket children in inlineRemainder', () => {
             const message = new StandardMessage({ tag: 'Message', key: 'test' })
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            const markRef = new StandardReference({ tag: 'Mark', key: 'mark1' })
             const roomRef = new StandardReference({ tag: 'Room', key: 'room1' })
             
-            const { payload: result, inlineRemainder } = message._payload.assureReferences([exampleRef, roomRef])
+            const { payload: result, inlineRemainder } = message._payload.assureReferences([markRef, roomRef])
             
             // Room goes to bucket
             expect(result.rooms.payload.length).toBe(1)
             expect(result.rooms.payload[0].sameKey(roomRef)).toBe(true)
-            // Example goes to remainder
+            // Mark goes to remainder
             expect(inlineRemainder.length).toBe(1)
-            expect(inlineRemainder[0].tag).toBe('Example')
-            expect(inlineRemainder[0].sameKey(exampleRef)).toBe(true)
+            expect(inlineRemainder[0].tag).toBe('Mark')
+            expect(inlineRemainder[0].sameKey(markRef)).toBe(true)
             expect(inlineRemainder[0].ref).toBe(0)
         })
     })

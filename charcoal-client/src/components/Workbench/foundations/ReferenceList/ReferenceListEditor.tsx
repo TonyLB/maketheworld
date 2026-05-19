@@ -21,7 +21,6 @@ export type ComponentTag =
     | "Room"
     | "Feature"
     | "Knowledge"
-    | "Example"
     | "Guidance"
     | "Situation"
     | "Lens"
@@ -135,9 +134,9 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
         (onCreated: (ref: StandardReference) => void) => {
             if (disabled) return
             const enforceKey = enforceTypedKey(
-                tag.toUpperCase() as "ASSET" | "CHARACTER" | "ROOM" | "EXAMPLE" | "FEATURE" | "KNOWLEDGE" | "MAP" | "MESSAGE" | "MOMENT" | "IMAGE" | "MARK" | "LENS" | "SITUATION"
+                tag.toUpperCase() as "ASSET" | "CHARACTER" | "ROOM" | "FEATURE" | "KNOWLEDGE" | "MAP" | "MESSAGE" | "MOMENT" | "IMAGE" | "MARK" | "LENS" | "SITUATION"
             )
-            const uuid = tag === "Example" ? `example-${Date.now()}` : tag === "Situation" ? `situation-${Date.now()}` : uuidv4()
+            const uuid = tag === "Situation" ? `situation-${Date.now()}` : uuidv4()
             const universalKey = enforceKey(uuid) as ComponentUUID
             const reference = new StandardReference({ universalKey, tag })
 

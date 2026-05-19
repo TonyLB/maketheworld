@@ -20,17 +20,15 @@ WML uses XML-like syntax with custom tags and attributes:
 <Asset uuid=(Dungeon)>
     <Room key=(VORTEX)>
         <Exit to=(cave)>cave</Exit>
-        <Example uuid=(example1)>
+        <Situation uuid=(DEFAULT)>
             <Description>
                 Natural rock formations rise in a jagged cliff-face...
             </Description>
-            <Name>Cave entrance</Name>
-        </Example>
+            <DisplayName>Cave entrance</DisplayName>
+        </Situation>
     </Room>
 </Asset>
 ```
-
-**Legacy illustration:** The `<Example>` under `<Room>` above is **legacy-shaped WML** (older authoring). **Current** Room display prose uses **Situation** facets (asset WML) and **`StandardRoom.render`** / **`<Render>`** on ephemera wire; do not treat a Room-owned **`examples`** reference list or nested Example as the supported prose path. See the **Room** bullets under **Core Concepts** below.
 
 ### Core Concepts
 
@@ -54,46 +52,46 @@ changes to them are considered additive across the entire asset. While it is sta
 about a component in one place, and reference it simply at any other appearance, the WML parser does not *require*
 that behavior. Part of the process of *standardizing* a WML asset is to transform it into the standard format.
 
-For instance, in the following example (the `<Example>` under `<Room>` is a **legacy** prose pattern; it illustrates additive merge across appearances):
+For instance, in the following example, display prose is carried on **Situation** facets; additive merge applies across appearances of the same component:
 
 ```xml
 <Asset uuid=(MarketSquare)>
     <Feature key=(fountain) uuid=(fountain-123)>
-        <Example uuid=(fountain-example-1)>
-            <Name>Central Fountain</Name>
+        <Situation uuid=(DEFAULT)>
+            <DisplayName>Central Fountain</DisplayName>
             <Description>A beautiful marble fountain with flowing water.</Description>
-        </Example>
+        </Situation>
     </Feature>
     
     <Room key=(cafe) uuid=(cafe-456)>
-        <Example uuid=(cafe-example-1)>
-            <Name>Cafe</Name>
+        <Situation uuid=(DEFAULT)>
+            <DisplayName>Cafe</DisplayName>
             <Description>The cafe overlooks the central fountain.</Description>
-        </Example>
+        </Situation>
         <Feature key=(fountain) />
     </Room>
     
 </Asset>
 ```
 
-Both features are known to be the same (since they share the same local key). Therefore, the `Name` added in one
-place, and the `Description` added in another are aggregated to the same component. After being transformed to
-standard form, the data would be expresed as follows:
+Both features are known to be the same (since they share the same local key). Therefore, the **DisplayName** added in one
+place, and the **Description** added in another are aggregated to the same component. After being transformed to
+standard form, the data would be expressed as follows:
 
 ```xml
 <Asset uuid=(MarketSquare)>
     <Feature key=(fountain) uuid=(fountain-123)>
-        <Example uuid=(fountain-example-1)>
-            <Name>Central Fountain</Name>
+        <Situation uuid=(DEFAULT)>
+            <DisplayName>Central Fountain</DisplayName>
             <Description>A beautiful marble fountain with flowing water.</Description>
-        </Example>
+        </Situation>
     </Feature>
     
     <Room key=(cafe) uuid=(cafe-456)>
-        <Example uuid=(cafe-example-1)>
-            <Name>Cafe</Name>
+        <Situation uuid=(DEFAULT)>
+            <DisplayName>Cafe</DisplayName>
             <Description>The cafe overlooks the central fountain.</Description>
-        </Example>
+        </Situation>
         <Feature key=(fountain) />
     </Room>
     
@@ -102,22 +100,19 @@ standard form, the data would be expresed as follows:
 
 For detailed information about all component types and their APIs, see [`standardize/components/AGENT.md`](./standardize/components/AGENT.md).
 
-**⚠️ CRITICAL (Feature and Knowledge)** — Task plan: [`taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md`](../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md).
-
-**WML storage (Phase 1 shipped in `packages/mtw-wml`):**
+**⚠️ CRITICAL (Feature and Knowledge)**
 
 - **Storage:** **`situations`** homogeneous facet list on Feature/Knowledge (**`SituationProseFacetList`**, shared with Room). Each facet references a **`Situation`** and carries a **payload** (DisplayName / Summary / Description for that parent in that world-state).
-- **DEFAULT-only (v1):** Author and render **`SITUATION#DEFAULT`** only in tests and client work. Non-DEFAULT facet list UI, layered SituationFacet tabs, and mark-matched multi-facet render are deferred.
+- **DEFAULT-only (v1):** Author and render **`SITUATION#DEFAULT`** only. Non-DEFAULT facet list UI, layered SituationFacet tabs, and mark-matched multi-facet render are deferred.
 - **Marks:** On **`Situation`** components, not on Example children under F/K.
-- **D6:** **`fromSchema`** does **not** dual-read **`<Example>`** under Feature/Knowledge; **`toJSON`** emits **`situations`**, not **`examples`**.
-- **Situation entity:** **`Situation`** is an **independent** WML component; Room/Feature/Knowledge reference it via facets but do **not** own it (**D8**).
-- **No production data migration:** Extant database has no Feature/Knowledge/Example content; Phase 4 is code/test cleanup only.
-
-**Client Phase 3 (shipped):** Playing UI (**`ComponentDescription`**) reads **`render`** then **`SITUATION#DEFAULT`** facet on Feature/Knowledge (**D1**). Workbench **`ComponentSelectorDialog`** no longer lists **Example** (**D4** product surface). **`StandardExample`** remains for marks-only Example components until Phase 4.
+- **`fromSchema`:** Does **not** accept **`<Example>`** under Feature/Knowledge; **`toJSON`** emits **`situations`**, not **`examples`**.
+- **Situation entity:** **`Situation`** is an **independent** WML component; Room/Feature/Knowledge reference it via facets but do **not** own it.
+- **Ephemera wire:** Resolved header prose on **`render`** (**`<Render>`**, same JSON shape as **`SituationProseFacetPayloadType`**). Playing UI (**`ComponentDescription`**) reads **`render`** then **`SITUATION#DEFAULT`** facet fallback.
+- **`<Example>` / `StandardExample`:** Removed from schema, lambdas, and Workbench (2026-05-19). Unconsumed **`<Example>`** in imported WML fails parse or standardization.
 
 **Display prose (preferred)**: Author **Situation** facets on Room / Feature / Knowledge for blueprint display name, summary, and description. On ephemera wire, resolved header prose is carried on **`render`** (`<Render>`), the same JSON shape as **`SituationProseFacetPayloadType`**. See [`standardize/AGENT.md`](./standardize/AGENT.md) (**Payload vocabulary vs semantic mode**).
 
-**Room vs nested `<Example>` (legacy WML):** **`StandardRoomData`** / **`StandardRoom`** JSON **does not** include an **`examples`** field. Room prose belongs on **Situation** facets (blueprint) and **`render`** (wire). **`Feature`** and **`Knowledge`** use **`situations`** (Phase 1), ephemera **`render`** (Phase 2), Workbench **`DefaultRenderEditor`** (Phase 3), and playing UI **`ComponentDescription`** with the same **`render`**-then-DEFAULT resolution (Phase 3). Raw WML may still contain **`<Example>`** under **`<Room>`** in old assets; the standardized Room model does not persist those as Room **`examples`**. **`ref={0}`** Example nodes may still appear in schema for merge/subset plumbing and are tracked internally for **`referencedKeys`** only, not as serialized Room **`examples`**. Other unconsumed tags under Room surface as **standardization errors** (non-empty remainder). Authoring guidance: [`standardize/AGENT.md`](./standardize/AGENT.md) (**Room prose**), [`standardize/components/AGENT.implementation.md`](./standardize/components/AGENT.implementation.md) (**StandardRoom**). Optional **`rg`** checks when editing tests: [`AGENT.testing.mtw-wml-typescript.md`](../AGENT.testing.mtw-wml-typescript.md) (**Optional regression searches**). Feature/Knowledge Examples initiative (separate scope): [`taskPlanning` / Feature-Knowledge examples plan](../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md).
+**Room vs legacy `<Example>` WML:** **`StandardRoomData`** has **no** **`examples`** field. Room / Feature / Knowledge prose uses **Situation** facets (blueprint) and **`render`** (wire). Authoring guidance: [`standardize/AGENT.md`](./standardize/AGENT.md) (**Room prose**), [`standardize/components/AGENT.implementation.md`](./standardize/components/AGENT.implementation.md) (**StandardRoom**). Regression searches: [`AGENT.testing.mtw-wml-typescript.md`](../AGENT.testing.mtw-wml-typescript.md).
 
 **Imported / third-party asset packs:** If you merge WML authored elsewhere, validate that Room display prose does not depend on serialized Room **`examples`** or nested Example ownership. Re-run targeted searches (see **`AGENT.testing.mtw-wml-typescript.md`**) if you suspect legacy shapes.
 
@@ -186,10 +181,10 @@ Edit tags are processed by the standardization system to merge changes into the 
 ```xml
 <Asset uuid=(Test)>
     <Room key=(testRoom)>
-        <Example uuid=(testRoom-example)>
+        <Situation uuid=(DEFAULT)>
             <Replace><Description>bare and spindly trees.</Description></Replace>
             <With><Description>cherry trees lushly in bloom.</Description></With>
-        </Example>
+        </Situation>
     </Room>
     <Remove><Room key=(unwantedRoom) /></Remove>
 </Asset>
@@ -201,9 +196,9 @@ attempted. For instance, merging the above changes into the following:
 ```xml
 <Asset uuid=(Test)>
     <Room key=(testRoom)>
-        <Example uuid=(testRoom-example)>
+        <Situation uuid=(DEFAULT)>
             <Description>A walkway by a canal, winding through bare and spindly trees.</Description>
-        </Example>
+        </Situation>
     </Room>
     <Room key=(unwantedRoom) />
 </Asset>
@@ -214,9 +209,9 @@ attempted. For instance, merging the above changes into the following:
 ```xml
 <Asset uuid=(Test)>
     <Room key=(testRoom)>
-        <Example uuid=(testRoom-example)>
+        <Situation uuid=(DEFAULT)>
             <Description>A walkway by a canal, winding through cherry trees lushly in bloom.</Description>
-        </Example>
+        </Situation>
     </Room>
     <Room key=(unwantedRoom) />
 </Asset>

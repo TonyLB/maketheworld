@@ -23,8 +23,7 @@ const jsonHelperMock = (assets: StandardForm[]): jest.Mocked<InstanceType<typeof
 const testResult = async (...args: Parameters<typeof recursiveFetchImports>) => (schemaToWML([(await recursiveFetchImports(...args)).schema]))
 
 //
-// Prefer <Situation uuid=(DEFAULT)> for room prose (Gate D). Exception: "should properly stub out features"
-// — provisional until SituationFacet prose raises Link references for nested import traversal (same as index.test.ts).
+// Room prose uses <Situation uuid=(DEFAULT)>; import cascade follows Link refs from situation facet prose.
 //
 
 describe('recursiveFetchImports', () => {
@@ -213,9 +212,6 @@ describe('recursiveFetchImports', () => {
             `))
     })
 
-    //
-    // Provisional — Room-hosted Example + Link until SituationFacet prose exposes Link refs for subset (see index.test.ts).
-    //
     it('should properly stub out features in room description', async () => {
         const jsonHelper = jsonHelperMock([
             new StandardForm(`<Asset uuid=(testFinal)>
@@ -228,24 +224,30 @@ describe('recursiveFetchImports', () => {
                     </Situation>
                 </Feature>
                 <Room uuid=(testRoomWithFeatures) key=(testRoomWithFeatures)>
-                    <Example ref={0} uuid=(testRoomBase)>
+                    <Situation uuid=(DEFAULT)>
                         <Description><Link to=(testFeature)>Test</Link></Description>
-                    </Example>
+                    </Situation>
                 </Room>
             </Asset>`)
         ])
         expect(await testResult({ assetId: 'ASSET#testFinal', jsonHelper, fullKeys: ['ROOM#testRoomWithFeatures'], stubKeys: [] }))
             .toEqual(deIndentWML(`
                 <Asset uuid=(testFinal)>
-                    <Example uuid=(testRoomBase) origin=(ASSET#testImport) ref={0}>
-                        <Description><Link to=(FEATURE#testFeature)>Test</Link></Description>
-                    </Example>
-                    <Feature uuid=(testFeature) origin=(ASSET#testImport) ref={0} />
+                    <Feature uuid=(testFeature) origin=(ASSET#testImport) ref={0}>
+                        <Situation uuid=(DEFAULT)>
+                            <Description>Feature test</Description>
+                        </Situation>
+                    </Feature>
                     <Room
                         uuid=(testRoomWithFeatures)
                         key=(testRoomWithFeatures)
                         origin=(ASSET#testImport,ASSET#testFinal)
-                    />
+                    >
+                        <Situation uuid=(DEFAULT)>
+                            <Description><Link to=(testFeature)>Test</Link></Description>
+                        </Situation>
+                    </Room>
+                    <Situation uuid=(DEFAULT) origin=(ASSET#testImport) ref={0} />
                 </Asset>
             `))
     })

@@ -5,7 +5,7 @@ import { vi } from 'vitest'
 import { GenericTree, GenericTreeFiltered, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { nestOnChangeChildren, nestOnChangeSubItem, nestTransformTreeReducer } from "./context"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaDescription } from "@tonylb/mtw-base/ts/schema/example"
+import { isSchemaDescription } from "@tonylb/mtw-base/ts/schema/prose"
 import { isSchemaRoom, SchemaRoomTag } from "@tonylb/mtw-base/ts/schema/components"
 import { excludeUndefined } from "./lists"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"

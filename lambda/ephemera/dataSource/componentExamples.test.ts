@@ -47,7 +47,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
         jest.clearAllMocks()
     })
 
-    it('writes cache records for ExampleUpdated for each parent component', async () => {
+    it('writes cache records with situationId for ExampleUpdated across parents', async () => {
         const {
             deps,
             internalCacheOverride,
@@ -58,8 +58,8 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
 
         const event: ComponentExamplesMirrorEvent = {
             type: 'ExampleUpdated',
-            exampleId: 'EXAMPLE#one',
-            parentIds: ['ROOM#one', 'FEATURE#two', 'NOT#VALID'] as any,
+            exampleId: 'SITUATION#situation-one',
+            parentIds: ['ROOM#room-one', 'FEATURE#two', 'NOT#VALID'] as any,
             assetStack: ['ASSET#one', 'ASSET#two'],
             perspectiveMatcher: { requiredAssetIds: ['ASSET#one', 'ASSET#two'], forbiddenAssetIds: [] },
             example: {
@@ -85,14 +85,14 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
         expect(contents).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
-                    componentId: 'ROOM#one',
+                    componentId: 'ROOM#room-one',
                     record: expect.objectContaining({
                         markState: event.example.markState,
                         renderedContent: event.example.renderedContent,
                         provenance: event.example.provenance,
                         perspectiveId: 'PERSPECTIVE#v1#abc123',
                         perspectiveMatcher: event.perspectiveMatcher,
-                        authoredExampleId: 'EXAMPLE#one'
+                        situationId: 'SITUATION#situation-one'
                     })
                 }),
                 expect.objectContaining({
@@ -103,128 +103,17 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
                         provenance: event.example.provenance,
                         perspectiveId: 'PERSPECTIVE#v1#abc123',
                         perspectiveMatcher: event.perspectiveMatcher,
-                        authoredExampleId: 'EXAMPLE#one'
+                        situationId: 'SITUATION#situation-one'
                     })
                 })
             ])
         )
-        const putCommands = contents as Array<{ existingDataCategory?: string }>
+        const putCommands = contents as Array<{ existingDataCategory?: string; record: Record<string, unknown> }>
         expect(putCommands.every((c) => c.existingDataCategory === undefined)).toBe(true)
+        expect(putCommands.every((c) => !('authoredExampleId' in c.record))).toBe(true)
     })
 
-    it('writes cache records with situationId when exampleId is SITUATION# (Room path)', async () => {
-        const {
-            deps,
-            internalCacheOverride,
-            messageBus,
-            computePerspectiveKey
-        } = makeDeps()
-        ;(internalCacheOverride.RenderCache.getExactMatch as jest.Mock).mockResolvedValue(null)
-
-        const event: ComponentExamplesMirrorEvent = {
-            type: 'ExampleUpdated',
-            exampleId: 'SITUATION#situation-one',
-            parentIds: ['ROOM#room-one'],
-            assetStack: ['ASSET#one'],
-            perspectiveMatcher: { requiredAssetIds: ['ASSET#one'], forbiddenAssetIds: [] },
-            example: {
-                markState: { markValue: [] },
-                renderedContent: { description: [] },
-                provenance: { type: 'authored' }
-            }
-        }
-
-        await handleComponentExamplesEvent(event, deps)
-
-        expect(computePerspectiveKey).toHaveBeenCalledWith(['ASSET#one'])
-        expect(messageBus.send).toHaveBeenCalledTimes(1)
-
-        const msg = messageBus.send.mock.calls[0][0] as StreamingEventMessage
-        const content = await msg.getContent()
-        expect(content).toMatchObject({
-            componentId: 'ROOM#room-one',
-            record: expect.objectContaining({
-                markState: event.example.markState,
-                renderedContent: event.example.renderedContent,
-                provenance: event.example.provenance,
-                perspectiveId: 'PERSPECTIVE#v1#abc123',
-                perspectiveMatcher: event.perspectiveMatcher,
-                situationId: 'SITUATION#situation-one'
-            })
-        })
-        const putArg = (content as { record: Record<string, unknown> }).record
-        expect(putArg).not.toHaveProperty('authoredExampleId')
-    })
-
-    it('deletes cache records for ExampleRemoved across all parents', async () => {
-        const {
-            deps,
-            internalCacheOverride,
-            messageBus
-        } = makeDeps()
-
-        const records: EphemeraCacheDynamoItem[] = [
-            {
-                EphemeraId: 'ROOM#one' as any,
-                DataCategory: 'CACHE#one',
-                markState: { markValue: [] },
-                renderedContent: { description: [] },
-                provenance: { type: 'authored' },
-                perspectiveId: 'PERSPECTIVE#abc123',
-                perspectiveMatcher: { requiredAssetIds: [], forbiddenAssetIds: [] },
-                authoredExampleId: 'EXAMPLE#one'
-            },
-            {
-                EphemeraId: 'ROOM#one' as any,
-                DataCategory: 'CACHE#two',
-                markState: { markValue: [] },
-                renderedContent: { description: [] },
-                provenance: { type: 'authored' },
-                perspectiveId: 'PERSPECTIVE#def456',
-                perspectiveMatcher: { requiredAssetIds: [], forbiddenAssetIds: [] },
-                authoredExampleId: 'EXAMPLE#two'
-            }
-        ]
-
-        ;(internalCacheOverride.RenderCache.get as jest.Mock).mockResolvedValue(records)
-
-        const event: ComponentExamplesMirrorEvent = {
-            type: 'ExampleRemoved',
-            exampleId: 'EXAMPLE#one',
-            parentIds: ['ROOM#one', 'FEATURE#two'] as any,
-            assetStack: ['ASSET#one'],
-            perspectiveMatcher: { requiredAssetIds: ['ASSET#one'], forbiddenAssetIds: [] }
-        }
-
-        await handleComponentExamplesEvent(event, deps)
-
-        expect(internalCacheOverride.RenderCache.get).toHaveBeenCalledTimes(2)
-        expect(internalCacheOverride.RenderCache.get).toHaveBeenCalledWith('ROOM#one')
-        expect(internalCacheOverride.RenderCache.get).toHaveBeenCalledWith('FEATURE#two')
-
-        expect(messageBus.send).toHaveBeenCalledTimes(2)
-
-        const payloads = messageBus.send.mock.calls.map((c) => c[0] as StreamingEventMessage)
-        for (const msg of payloads) {
-            expect(msg.header.type).toBe('Delete Cache Records')
-        }
-
-        const contents = await Promise.all(payloads.map((m) => m.getContent()))
-        expect(contents).toEqual(
-            expect.arrayContaining([
-                {
-                    componentId: 'ROOM#one',
-                    dataCategories: ['CACHE#one']
-                },
-                {
-                    componentId: 'FEATURE#two',
-                    dataCategories: ['CACHE#one']
-                }
-            ])
-        )
-    })
-
-    it('deletes cache records by situationId when exampleId is SITUATION#', async () => {
+    it('deletes cache records by situationId for ExampleRemoved', async () => {
         const {
             deps,
             internalCacheOverride,

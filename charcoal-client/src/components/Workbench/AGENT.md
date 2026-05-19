@@ -93,7 +93,7 @@ type WorkbenchBreadcrumbEntry = {
 - **personalAssets Slice**: Asset loading, `StandardForm` data, `updateStandard` reducer, `getStatus`, `getAssetZone`
 - **workbench Slice** ([`src/slices/UI/workbench/`](../../slices/UI/workbench/)): Navigation state, `currentAssetId`, breadcrumb stack, selectors (`getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`, `getNavigationTrail`)
 - **cacheDB**: Persists `CurrentAssetId` via `putWorkbenchSettings` / `loadWorkbenchSettings`
-- **WML Standardize** ([`packages/mtw-wml/ts/standardize/`](../../../../packages/mtw-wml/ts/standardize/AGENT.md)): `StandardForm`, `StandardComponent`, `StandardRoom`, `StandardFeature`, `StandardExample`, `StandardLens`, `StandardMark`, `StandardRender`, `StandardLiteral`, `ReferenceList`
+- **WML Standardize** ([`packages/mtw-wml/ts/standardize/`](../../../../packages/mtw-wml/ts/standardize/AGENT.md)): `StandardForm`, `StandardComponent`, `StandardRoom`, `StandardFeature`, `StandardSituation`, `StandardLens`, `StandardMark`, `StandardRender`, `StandardLiteral`, `ReferenceList`
 
 ### Cross-References
 
@@ -195,7 +195,7 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 | `KnowledgeEdit/` | KnowledgeEditor (shortName + DefaultRenderEditor) |
 | `foundations/DefaultRenderEditor.tsx` | Inline DEFAULT situation facet prose (Room, Feature, Knowledge) |
 | `foundations/SituationFacetRenderFieldsEditor.tsx` | Shared facet field editor (layered Room situations + DEFAULT inline) |
-| `ExampleEdit/` | ExampleEditor (Phase 4 legacy; not in component selector) |
+| ~~`ExampleEdit/`~~ | **Removed** (2026-05-19); F/K prose via **`DefaultRenderEditor`** |
 | `foundations/LayeredContext/` | LayeredContextView (Room Situation/Guidance tabs), LayeredTabs |
 | `MarkEdit/` | MarkEditor (full), InlineEditor (shortName only; used in LensMarkFacetsEditor) |
 | `MapEdit/` | MapEditor, MapArea, MapController, MapLayers, UnshownRooms |

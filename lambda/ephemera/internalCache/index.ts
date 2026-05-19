@@ -31,7 +31,6 @@ import { CacheBase as GraphCacheBase, GraphDBHandler } from '@tonylb/mtw-utiliti
 import withPrimitives from '@tonylb/mtw-utilities/ts/dynamoDB/mixins/primitives';
 import withGetOperations from '@tonylb/mtw-utilities/ts/dynamoDB/mixins/get';
 import { DBHandlerBase } from '@tonylb/mtw-utilities/ts/dynamoDB/baseClasses';
-import ExamplesData from './examples';
 import ComponentRenderData from './componentRender';
 import ComponentStackMergeData from './componentStackMerge';
 import { queryCacheRecordsForComponent } from '../dataSource/renderCache/queryCacheRecordsForComponent';
@@ -86,8 +85,6 @@ export class InternalCache {
 
     _invalidateAssetCallback: (EphemeraId: string) => void;
     
-    Examples: ExamplesData = new ExamplesData()
-
     ComponentRender: ComponentRenderData;
     ComponentStackMerge: ComponentStackMergeData;
     GenerationContext: GenerationContextData;
@@ -120,7 +117,6 @@ export class InternalCache {
         this.GraphEdges = this._graphCache.Edges
         // AssetMap removed - was used for Variable/Computed dependency resolution
         this.ComponentRender = new ComponentRenderData(
-            this.Examples,
             this.ComponentAssetMeta,
             this.RoomCharacterList,
             this.Global,
@@ -162,7 +158,6 @@ export class InternalCache {
         this.ComponentEphemeraMeta.clear()
         this.AssetMetaData.clear()
 
-        this.Examples.clear()
         this.ComponentRender.clear()
         this.ComponentStackMerge.clear()
         this.GenerationContext.clear()

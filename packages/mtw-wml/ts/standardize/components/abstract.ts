@@ -2,7 +2,7 @@ import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 import { EditWrappedStandardNode } from "../baseClasses";
 import { StandardToJSONOptions } from "./baseClasses"
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
-import { SchemaDescriptionTag, SchemaDisplayNameTag } from "@tonylb/mtw-base/ts/schema/example";
+import { SchemaDescriptionTag, SchemaDisplayNameTag } from "@tonylb/mtw-base/ts/schema/prose";
 import { StandardLiteral } from "../literal";
 import { StandardReferenceData } from "./dataTypes/reference";
 import { StandardKey } from "../keys/key";

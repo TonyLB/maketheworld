@@ -6,7 +6,6 @@ import { StandardKeyData } from "../../keys/dataTypes/reference"
 
 import { isStandardCharacterData, StandardCharacterData } from "./character"
 
-import { isStandardExampleData, isStandardExampleInputData, StandardExampleData, StandardExampleInputData } from "./example"
 import { StandardFeatureData, isStandardFeatureData } from "./feature"
 import { StandardImageData, isStandardImageData } from "./image"
 import { StandardKnowledgeData, isStandardKnowledgeData } from "./knowledge"
@@ -29,8 +28,6 @@ import type { WmlStandardizeMode } from "../../wmlStandardizeMode"
 export type { StandardRoomObjectData, StandardRoomRenderData }
 export {
     isStandardCharacterData,
-    isStandardExampleData,
-    isStandardExampleInputData,
     isStandardRoomData,
     isStandardRoomInputData,
     isStandardFeatureData,
@@ -51,7 +48,6 @@ export {
 
 export type StandardComponentNonEditData =
     StandardCharacterData |
-    StandardExampleData |
     StandardRoomData |
     StandardFeatureData |
     StandardKnowledgeData |
@@ -66,7 +62,6 @@ export type StandardComponentNonEditData =
 
 export type StandardComponentInputNonEditData =
     StandardCharacterData |
-    StandardExampleInputData |
     StandardRoomInputData |
     StandardFeatureData |
     StandardKnowledgeData |
@@ -86,7 +81,6 @@ export const isStandardFactory = <T extends StandardComponentData>(tag: Standard
 
 export const isStandardComponentData = (value: any): value is StandardComponentData => (
     isStandardCharacterData(value) ||
-    isStandardExampleData(value) ||
     isStandardRoomData(value) ||
     isStandardFeatureData(value) ||
     isStandardKnowledgeData(value) ||
@@ -102,7 +96,6 @@ export const isStandardComponentData = (value: any): value is StandardComponentD
 
 export const isStandardComponentInputData = (value: any): value is StandardComponentInputData => (
     isStandardCharacterData(value) ||
-    isStandardExampleInputData(value) ||
     isStandardRoomInputData(value) ||
     isStandardFeatureData(value) ||
     isStandardKnowledgeData(value) ||

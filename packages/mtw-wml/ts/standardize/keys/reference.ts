@@ -592,7 +592,7 @@ export const referenceSortOrder = (
     }
     
     // Component tag order
-    const componentKeys: ComponentTag[] = ['Character', 'Image', 'Lens', 'Mark', 'Guidance', 'Example', 'Feature', 'Knowledge', 'Room', 'Map', 'Message', 'Moment']
+    const componentKeys: ComponentTag[] = ['Character', 'Image', 'Lens', 'Mark', 'Guidance', 'Feature', 'Knowledge', 'Room', 'Map', 'Message', 'Moment', 'Situation']
     const indexA = componentKeys.indexOf(tagA)
     const indexB = componentKeys.indexOf(tagB)
     

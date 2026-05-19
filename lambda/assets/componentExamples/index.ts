@@ -5,11 +5,8 @@
 // Example-lifecycle events (legacy wire names) for:
 // - Room / Feature / Knowledge parent updates (situation facets on parent)
 // - Situation component updates (fan-out to facet parents via getParentIdsForSituation)
-// - Standalone Example components only when enrichment yields parentIds (marks-only interim;
-//   no facet-based F/K parent discovery on the Example path)
 //
 import { AssetsDataSource } from '../dataSource/abstract'
-import { isExampleAssociatedComponent } from './exampleAssociatedFilter'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import {
     ComponentExamplesSubscribedContent,
@@ -17,7 +14,6 @@ import {
 } from './subscribedEvents'
 import {
     computePerspectiveMatcherForParentSituation,
-    enrichExampleEvent,
     getOrderedAssetStack,
     getParentIdsForSituation,
     mergeLensAcrossStack,
@@ -383,74 +379,6 @@ export const componentExamplesDataSource = new AssetsDataSource<
                     return
                 }
 
-                if (!isExampleAssociatedComponent(content.component)) {
-                    return
-                }
-
-                if (content.component.tag !== 'Example' || !content.component.universalKey) {
-                    return
-                }
-
-                const enrichmentEventType = (
-                    eventType === 'Component Republished'
-                        ? 'Component Updated'
-                        : eventType
-                )
-                const enriched = await enrichExampleEvent({
-                    exampleId: content.component.universalKey as ComponentUUID,
-                    eventAssetId: assetId,
-                    component: content.component,
-                    eventType: enrichmentEventType,
-                })
-
-                if (enriched.parentIds.length === 0) {
-                    return
-                }
-
-                const streamKey = enriched.exampleId
-
-                if (eventType === 'Component Removed') {
-                    const perspectiveMatcher: { requiredAssetIds: AssetUUID[]; forbiddenAssetIds: AssetUUID[] } = {
-                        requiredAssetIds: enriched.assetStack,
-                        forbiddenAssetIds: [],
-                    }
-                    const update: ExampleRemoved = {
-                        type: 'ExampleRemoved',
-                        exampleId: enriched.exampleId,
-                        parentIds: enriched.parentIds,
-                        assetStack: enriched.assetStack,
-                        perspectiveMatcher,
-                    }
-                    await streamEvent({
-                        update,
-                        streamKey,
-                        header: { type: 'ExampleRemoved' },
-                    })
-                    return
-                }
-
-                if (eventType === 'Component Updated' || eventType === 'Component Republished') {
-                    if (!enriched.example) {
-                        return
-                    }
-                    const perspectiveMatcher: { requiredAssetIds: AssetUUID[]; forbiddenAssetIds: AssetUUID[] } = {
-                        requiredAssetIds: enriched.assetStack,
-                        forbiddenAssetIds: [],
-                    }
-                    const update: ExampleUpdated = {
-                        type: 'ExampleUpdated',
-                        exampleId: enriched.exampleId,
-                        parentIds: enriched.parentIds,
-                        assetStack: enriched.assetStack,
-                        perspectiveMatcher,
-                        example: enriched.example,
-                    }
-                    await streamEvent({
-                        update,
-                        streamKey,
-                        header: { type: 'ExampleUpdated' },
-                    })
-                }
             })
         )
     },

@@ -2,7 +2,7 @@ import { StandardRender, PlainClass as StandardRenderSimple, RemoveClass as Stan
 import { Schema, schemaToWML } from '../../schema'
 import { deIndentWML } from '../../schema/utils'
 import StandardReference from '../keys/reference'
-import { isSchemaDescription } from '@tonylb/mtw-base/ts/schema/example'
+import { isSchemaDescription } from '@tonylb/mtw-base/ts/schema/prose'
 
 describe('StandardRenderRemove', () => {
     it('should create an instance from valid incoming schema', () => {

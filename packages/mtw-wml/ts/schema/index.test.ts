@@ -47,12 +47,12 @@ describe('schemaFromParse', () => {
                     <Exit to=(ABC)>vortex</Exit>
                 </Room>
                 <Knowledge key=(GHI)>
-                    <Example uuid=(123-GHI-example)>
+                    <Situation uuid=(123-GHI-example)>
                         <DisplayName>Learn</DisplayName>
                         <Description>
                             There is so much to know!
                         </Description>
-                    </Example>
+                    </Situation>
                 </Knowledge>
                 <Moment key=(openDoorMoment)>
                     <Message key=(openDoor)>
@@ -137,7 +137,7 @@ describe('schemaFromParse', () => {
                         key: "GHI"
                     },
                     children: [{
-                        data: { tag: 'Example', uuid: 'EXAMPLE#123-GHI-example' },
+                        data: { tag: 'Situation', uuid: 'SITUATION#123-GHI-example' },
                         children: [
                             { data: { tag: 'DisplayName' }, children : [{ data: { tag: 'String', value: 'Learn' }, children: [] }] },
                             {
@@ -565,18 +565,18 @@ describe('schemaToWML', () => {
                     </Situation>
                 </Room>
                 <Feature uuid=(123-doors) key=(doors)>
-                    <Example uuid=(456-example2) key=(example2)>
+                    <Situation uuid=(456-example2) key=(example2)>
                         <DisplayName>Drifting doors</DisplayName>
                         <Description>Doors drifting in space</Description>
-                    </Example>
+                    </Situation>
                 </Feature>
                 <Knowledge uuid=(123-knowledge) key=(knowledge1)>
-                    <Example uuid=(456-example3) key=(example3)>
+                    <Situation uuid=(456-example3) key=(example3)>
                         <DisplayName>Learning is power!</DisplayName>
                         <Description>
                             There is so very much to see and discover!
                         </Description>
-                    </Example>
+                    </Situation>
                 </Knowledge>
                 <Map uuid=(123-map) key=(map1)>
                     <ShortName>Test Map</ShortName>
@@ -642,10 +642,10 @@ describe('schemaToWML', () => {
                     <Exit to=(welcome)>Welcome room</Exit>
                 </Room>
                 <Feature key=(doors)>
-                    <Example uuid=(123-doors-example)>
+                    <Situation uuid=(123-doors-example)>
                         <DisplayName>Drifting doors</DisplayName>
                         <Description>Doors drifting in space</Description>
-                    </Example>
+                    </Situation>
                 </Feature>
                 <Room key=(welcome)>
                     <ShortName>Welcome</ShortName>
@@ -708,12 +708,12 @@ describe('schemaToWML', () => {
         const testWML = deIndentWML(`
             <Asset uuid=(Test)>
                 <Knowledge key=(test)>
-                    <Example uuid=(123-knowledge-test-example)>
+                    <Situation uuid=(123-knowledge-test-example)>
                         <DisplayName>Learning is power!</DisplayName>
                         <Description>
                             There is so very much to see and discover!
                         </Description>
-                    </Example>
+                    </Situation>
                 </Knowledge>
             </Asset>
         `)
@@ -754,13 +754,13 @@ describe('schemaToWML', () => {
         const testWML = deIndentWML(`
             <Asset uuid=(Test)>
                 <Feature key=(doors)>
-                    <Example uuid=(123-doors-linewrapped-example)>
+                    <Situation uuid=(123-doors-linewrapped-example)>
                         <DisplayName>Drifting doors</DisplayName>
                         <Description>
                             Testing a long text string that will require line wrapping to
                             render in its entirety
                         </Description>
-                    </Example>
+                    </Situation>
                 </Feature>
             </Asset>
         `)

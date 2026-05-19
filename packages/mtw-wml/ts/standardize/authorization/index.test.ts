@@ -237,12 +237,12 @@ describe('StandardAuthorizationCollection', () => {
             <Asset uuid=(Test)>
                 <Room key=(test)>
                     <Grant player=(testPlayer) actions="test" />
-                    <Example key=(base)>
+                    <Situation key=(base)>
                         <Description>
                             One
                             <br />
                         </Description>
-                    </Example>
+                    </Situation>
                 </Room>
             </Asset>
         `)

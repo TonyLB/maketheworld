@@ -120,14 +120,13 @@ describe('StandardKnowledge class', () => {
         expect(() => new StandardKnowledge(testSource)).toThrow(/Map/)
     })
 
-    it('should throw on legacy Example child (D6)', () => {
+    it('should reject legacy Example child WML at parse time (Phase 4)', () => {
         const testSource = deIndentWML(`
             <Knowledge key=(testKnowledge)>
                 <Example key=(Example1) />
             </Knowledge>
         `)
-        expect(() => new StandardKnowledge(testSource)).toThrow(/Unconsumed child tags:/)
-        expect(() => new StandardKnowledge(testSource)).toThrow(/Example/)
+        expect(() => new StandardKnowledge(testSource)).toThrow()
     })
 
     it('should correctly add a Situation reference to knowledge', () => {

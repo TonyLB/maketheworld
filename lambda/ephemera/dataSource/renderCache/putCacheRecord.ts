@@ -16,7 +16,6 @@ export type PutCacheRecordInput = {
     perspectiveId: EphemeraCacheDynamoItem['perspectiveId'];
     perspectiveMatcher: EphemeraCacheDynamoItem['perspectiveMatcher'];
     situationId?: EphemeraCacheDynamoItem['situationId'];
-    authoredExampleId?: EphemeraCacheDynamoItem['authoredExampleId'];
 }
 
 /**
@@ -41,8 +40,7 @@ export async function putCacheRecord(
         provenance: record.provenance,
         perspectiveId: record.perspectiveId,
         perspectiveMatcher: record.perspectiveMatcher,
-        ...(record.situationId !== undefined && { situationId: record.situationId }),
-        ...(record.authoredExampleId !== undefined && { authoredExampleId: record.authoredExampleId })
+        ...(record.situationId !== undefined && { situationId: record.situationId })
     }
     await ephemeraDB.putItem(item)
     return dataCategory

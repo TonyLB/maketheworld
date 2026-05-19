@@ -68,11 +68,6 @@ Common combinations: A Room typically references and hosts its Features. A Room 
 
 ## Component Types
 
-### **StandardExample** ✅
-- **Purpose**: Represents examples with name, summary, and description
-- **Content Properties**: `name`, `summary`, `description` (all `StandardRender`)
-- **Status**: ✅ Technical debt resolved
-
 ### **StandardCharacter** ✅
 - **Purpose**: Represents characters with name, shortName, pronouns, and image
 - **Content Properties**: `name` (now `StandardRender`), `image` (remains `EditWrappedStandardNode`)
@@ -83,42 +78,30 @@ Common combinations: A Room typically references and hosts its Features. A Room 
 - **Content Properties**: `fileURL` (string)
 - **Status**: 🔴 Has critical technical debt (see Technical Debt section below)
 
-### **StandardFeature**
-- **Purpose**: Represents features with name and description
-- **Content Properties**: `name`, `description` (both `StandardRender`)
-
 ### **StandardAction**
 - **Purpose**: Represents actions with name and description
-- **Content Properties**: `name`, `description` (both `StandardRender`)
-
-### **StandardKnowledge**
-- **Purpose**: Represents knowledge with name and description
 - **Content Properties**: `name`, `description` (both `StandardRender`)
 
 ### **StandardRoom** 🟢
 - **Purpose**: Represents rooms with exits, situation facets, lens, features, guidance, characters, and optional ephemera **`render`** / **`objects`**
 - **Content Properties**: `shortName` (`StandardLiteral`); exits as **`ExitFacetList`**; **`situations`** as **`SituationProseFacetList`**; optional ephemera **`render`** (`SituationProseFacetPayload`-shaped JSON)
-- **Reference Properties**: **`lens`** (`SingleReference`), **`features`**, **`guidance`**, **`characters`** (`ReferenceList`). **No** serialized **`examples`** field on **`StandardRoomData`**. Room prose is **Situation** / **`render`**, not an **`examples`** list like Feature/Knowledge.
-- **Inline Example (`ref={0}`)**: **`fromSchema`** ends with a consumer that records **only** **`ref={0}`** **`<Example>`** schema nodes into **`_inlineRefs`** (for **`referencedKeys`** / subset cascade). Those refs are **not** emitted as **`examples:`** in **`toJSON()`**. Example nodes that are not consumed by the pipeline (including non-inline shapes) contribute to the **parsing remainder** and typically cause **`fromSchema`** to **fail** once unconsumed children remain.
+- **Reference Properties**: **`lens`** (`SingleReference`), **`features`**, **`guidance`**, **`characters`** (`ReferenceList`). **No** serialized **`examples`** field on **`StandardRoomData`**. Room prose is **Situation** facets and optional ephemera **`render`**.
 - **Room prose (preferred)**: Author **Situation** facets; resolved wire prose on **`StandardRoom.render`**. See [`../../AGENT.md`](../../AGENT.md) (**Room** bullets) and [`../AGENT.md`](../AGENT.md) (**Room prose**).
 - **Ephemera wire**: Optional **`objects`** (`{ uuid: string; shortName: string }[]`) from **`<Object uuid=(...)><ShortName>...</ShortName></Object>`** children. **`uuid`** values are canonical **`OBJECT#...`** in memory (WML may use a bare key; see **`standardize/AGENT.md`**). The **`Object`** consumer is registered only when **`standardizeMode === 'ephemeraWire'`** on **`StandardizeFromSchemaContext`**; in **`asset`** mode those tags are **unconsumed** and **`fromSchema`** throws. See **`standardize/AGENT.md`** (**Payload vocabulary vs semantic mode**).
-- **fromSchema**: Uses the process-and-remainder pipeline. Consumers include ShortName, Exit, Lens, Feature, Situation (facet list), Guidance, Character, Position (no-op), Grant, DisplayName (no-ops for backward compatibility), plus **`Object`** and **`Render`** when **`ephemeraWire`**, then the inline Example ref consumer above. See [fromSchema: process-and-remainder pipeline](#fromschema-process-and-remainder-pipeline) below.
+- **fromSchema**: Uses the process-and-remainder pipeline. Consumers include ShortName, Exit, Lens, Feature, Situation (facet list), Guidance, Character, Position (no-op), Grant, DisplayName (no-ops for backward compatibility), plus **`Object`** and **`Render`** when **`ephemeraWire`**. Unconsumed **`<Example>`** (tag removed) fails parse. See [fromSchema: process-and-remainder pipeline](#fromschema-process-and-remainder-pipeline) below.
 
 ### **StandardFeature** 🟢
 
-Task plan: [`taskPlanning/.../AGENT.featureKnowledgeExamples.planning.md`](../../../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md).
-
 - **Purpose**: Represents features with a short-name and display prose via **Situation** facets
-- **Content Properties**: `shortName` (`StandardLiteral`); **`situations`** as **`SituationProseFacetList`** (shared payload with Room)
-- **fromSchema**: `ShortName`, **`StandardizeConsumerFacetListSituation`**, inline `ref={0}` children; **D6:** `<Example>` under Feature is not consumed (throws on unconsumed remainder)
-- **Wire (Phase 2):** Ephemera **`render`** field (same payload shape as Room) -- not yet on F/K payloads
+- **Content Properties**: `shortName` (`StandardLiteral`); **`situations`** as **`SituationProseFacetList`** (shared payload with Room); optional ephemera **`render`** (`SituationProseFacetPayload`-shaped JSON)
+- **fromSchema**: `ShortName`, **`StandardizeConsumerFacetListSituation`**, inline `ref={0}` children; unconsumed **`<Example>`** fails parse
 
 ### **StandardKnowledge** 🟢
 
-Same as **StandardFeature**: **`situations`** facet list, shared **`SituationProseFacetPayload`**, DEFAULT-only in v1 tests; no **`examples`** on **`StandardKnowledgeData`**.
+Same as **StandardFeature**: **`situations`** facet list, shared **`SituationProseFacetPayload`**, DEFAULT-only in v1; no **`examples`** on **`StandardKnowledgeData`**.
 
 - **Purpose**: Represents knowledge items with a short-name and display prose
-- **Content Properties**: `shortName` (`StandardLiteral`); **`situations`** as **`SituationProseFacetList`**
+- **Content Properties**: `shortName` (`StandardLiteral`); **`situations`** as **`SituationProseFacetList`**; optional ephemera **`render`**
 - **fromSchema**: Same consumer pattern as Feature (Situation facets only; no Example dual-read)
 
 ### **StandardMessage** 🟢
@@ -676,12 +659,12 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
 
 **Pattern**:
 - Minimal payload class with basic properties (e.g., `shortName?: StandardLiteral`)
-- Optional `ReferenceList` for child components (e.g., `examples: ReferenceList`)
+- Optional `ReferenceList` for child components (e.g., `features: ReferenceList`)
 - Simple `toJSON()` with omission-over-empty pattern
 - Straightforward `schema()` and `nestedSchema()` implementations
 
 **Common Pitfalls**:
-- Forgetting to omit empty arrays in `toJSON()` (use conditional spread: `...(this.examples.payload.length ? { examples: this.examples.toJSON() } : {})`)
+- Forgetting to omit empty arrays in `toJSON()` (use conditional spread: `...(this.situations.items.length ? { situations: this.situations.toJSON() } : {})`)
 - Not implementing `assureReferences()` for components with reference lists
 - Missing `isEmpty()` implementation
 
@@ -703,7 +686,7 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
 
 #### Components with Complex Properties
 
-**Example**: `StandardExample` (has `StandardRender` properties), `StandardCharacter` (has `EditWrappedStandardNode` for images)
+**Example**: `StandardSituation` (mark facets), `StandardCharacter` (has `EditWrappedStandardNode` for images)
 
 **Pattern**:
 - Use `StandardRender` for rich text content (name, description, etc.)

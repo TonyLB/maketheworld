@@ -32,7 +32,7 @@ export type EphemeraCacheComponentId =
 export type { EphemeraCacheMarkValue, EphemeraCacheMarkState }
 
 //
-// renderedContent: Cached description parallel to StandardExample
+// renderedContent: Cached description (displayName / summary / description triplet)
 //
 
 export type EphemeraCacheRenderedContent = {
@@ -60,17 +60,8 @@ export const EPHEMERA_CACHE_PROVENANCE_GENERATED = 'generated' as const
 export type EphemeraPerspectiveId = string
 
 //
-// situationId: Optional link to the Situation UUID for Room cache records.
-// Used to target delete on ExampleRemoved when exampleId is SITUATION#.
+// situationId: Link to the Situation UUID; used to target delete on ExampleRemoved wire events.
 //
-
-//
-// authoredExampleId: Optional link back to the blueprint Example UUID
-// that generated this cache record (Feature/Knowledge). Used to target
-// delete on ExampleRemoved events when exampleId is EXAMPLE#.
-//
-
-export type EphemeraAuthoredExampleId = string
 
 //
 // Domain-level cache record used within Ephemera code
@@ -84,7 +75,6 @@ export type EphemeraCacheRecord = {
     perspectiveId: EphemeraPerspectiveId;
     perspectiveMatcher: PerspectiveMatcher;
     situationId?: EphemeraSituationId;
-    authoredExampleId?: EphemeraAuthoredExampleId;
 }
 
 //
@@ -102,7 +92,6 @@ export type EphemeraCacheDynamoItem = {
     perspectiveId: EphemeraPerspectiveId;
     perspectiveMatcher: PerspectiveMatcher;
     situationId?: EphemeraSituationId;
-    authoredExampleId?: EphemeraAuthoredExampleId;
 }
 
 export const isEphemeraCacheDynamoItem = (item: any): item is EphemeraCacheDynamoItem => {

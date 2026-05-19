@@ -2,31 +2,22 @@ import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
-import { validateProperties, validateExpressionAsNonNegativeInteger } from "./utils"
+import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaDescription, isSchemaExample, isSchemaSummary, isSchemaDisplayName, SchemaDescriptionTag, SchemaExampleTag, SchemaDisplayNameTag, SchemaSummaryTag } from "@tonylb/mtw-base/ts/schema/example"
+import { isSchemaDescription, isSchemaSummary, isSchemaDisplayName, SchemaDescriptionTag, SchemaDisplayNameTag, SchemaSummaryTag } from "@tonylb/mtw-base/ts/schema/prose"
 import { isSchemaTaggedMessageLegalContents, SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
-import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
 
-const exampleTemplates = {
+const proseTemplates = {
     Description: {},
     Summary: {},
     DisplayName: {},
-    Example: {
-        uuid: { type: ParsePropertyTypes.Key },
-        key: { type: ParsePropertyTypes.Key },
-        from: { type: ParsePropertyTypes.Asset },
-        origin: { type: ParsePropertyTypes.AssetList },
-        ref: { type: ParsePropertyTypes.Expression }
-    },
 } as const
 
-export const exampleConverters: Record<string, ConverterMapEntry> = {
+export const proseConverters: Record<string, ConverterMapEntry> = {
     Description: {
         initialize: ({ parseOpen }): SchemaDescriptionTag => ({
             tag: 'Description',
-            ...validateProperties(exampleTemplates.Description)(parseOpen)
+            ...validateProperties(proseTemplates.Description)(parseOpen)
         }),
         typeCheckContents: isSchemaTaggedMessageLegalContents,
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaTag> => {
@@ -42,7 +33,7 @@ export const exampleConverters: Record<string, ConverterMapEntry> = {
     Summary: {
         initialize: ({ parseOpen }): SchemaSummaryTag => ({
             tag: 'Summary',
-            ...validateProperties(exampleTemplates.Summary)(parseOpen)
+            ...validateProperties(proseTemplates.Summary)(parseOpen)
         }),
         typeCheckContents: isSchemaTaggedMessageLegalContents,
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaSummaryTag, SchemaTag> => {
@@ -58,7 +49,7 @@ export const exampleConverters: Record<string, ConverterMapEntry> = {
     DisplayName: {
         initialize: ({ parseOpen }): SchemaDisplayNameTag => ({
             tag: 'DisplayName',
-            ...validateProperties(exampleTemplates.DisplayName)(parseOpen)
+            ...validateProperties(proseTemplates.DisplayName)(parseOpen)
         }),
         typeCheckContents: isSchemaTaggedMessageLegalContents,
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaDisplayNameTag, SchemaTag> => {
@@ -70,22 +61,10 @@ export const exampleConverters: Record<string, ConverterMapEntry> = {
                 children: compressWhitespace(children)
             }
         }
-    },
-    Example: {
-        initialize: ({ parseOpen }): SchemaExampleTag => {
-            const { uuid, ref, ...rest } = validateProperties(exampleTemplates.Example)(parseOpen)
-            const refValue = ref ? validateExpressionAsNonNegativeInteger(ref as string, 'ref', parseOpen.tag) : undefined
-            return {
-                tag: 'Example',
-                uuid: uuid ? enforceTypedKey('EXAMPLE')(uuid) : undefined,
-                ...(refValue !== undefined ? { ref: refValue } : {}),
-                ...rest
-            }
-        }
     }
 }
 
-export const examplePrintMap: Record<string, PrintMapEntry> = {
+export const prosePrintMap: Record<string, PrintMapEntry> = {
     Description: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
         tagRender({
             ...args,
@@ -109,25 +88,5 @@ export const examplePrintMap: Record<string, PrintMapEntry> = {
             properties: [],
             node: { data, children }
         })
-    ),
-    Example: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
-        //
-        // Reassemble the contents out of displayName and description fields
-        //
-        if (!isSchemaExample(tag)) {
-            return [{ printMode: PrintMode.naive, output: '' }]
-        }
-        return tagRender({
-            ...args,
-            tag: 'Example',
-            properties: [
-                { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('EXAMPLE')(tag.uuid) : '' },
-                { key: 'key', type: 'key', value: tag.key ?? '' },
-                { key: 'from', type: 'key', value: tag.from ?? '' },
-                ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
-                ...(tag.ref !== undefined ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
-            ],
-            node: { data: tag, children }
-        })
-    }
+    )
 }

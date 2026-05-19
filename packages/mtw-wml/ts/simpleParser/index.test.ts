@@ -73,20 +73,20 @@ describe('wml simple parser', () => {
                     <Room uuid=(123) key=(ABC) />
                 </Import>
                 <Room key=(ABC)>
-                    <Example uuid=(123-VORTEX-example)>
+                    <Situation uuid=(123-VORTEX-example)>
                         <DisplayName>Vortex</DisplayName>
                         <Description>
                             <Space />
                             Vortex
                             <Link to=(GHI)>(knowledge)</Link>
                         </Description>
-                    </Example>
+                    </Situation>
                     <Exit to=(DEF)>welcome</Exit>
                 </Room>
                 <Room key=(DEF)>
-                    <Example uuid=(123-Welcome-example)>
+                    <Situation uuid=(123-Welcome-example)>
                         <DisplayName>Welcome</DisplayName>
-                    </Example>
+                    </Situation>
                     <Exit to=(ABC)>vortex</Exit>
                 </Room>
                 <Knowledge key=(GHI)>
@@ -112,7 +112,7 @@ describe('wml simple parser', () => {
             ] },
             { type: ParseTypes.Close, tag: 'Import' },
             { type: ParseTypes.Open, tag: 'Room', properties: [{ type: ParsePropertyTypes.Key, key: 'key', value: 'ABC' }] },
-            { type: ParseTypes.Open, tag: 'Example', properties: [{ type: ParsePropertyTypes.Key, key: 'uuid', value: '123-VORTEX-example' }] },
+            { type: ParseTypes.Open, tag: 'Situation', properties: [{ type: ParsePropertyTypes.Key, key: 'uuid', value: '123-VORTEX-example' }] },
             { type: ParseTypes.Open, tag: 'DisplayName', properties: [] },
             { type: ParseTypes.Text, text: 'Vortex' },
             { type: ParseTypes.Close, tag: 'DisplayName' },
@@ -123,17 +123,17 @@ describe('wml simple parser', () => {
             { type: ParseTypes.Text, text: '(knowledge)' },
             { type: ParseTypes.Close, tag: 'Link' },
             { type: ParseTypes.Close, tag: 'Description' },
-            { type: ParseTypes.Close, tag: 'Example' },
+            { type: ParseTypes.Close, tag: 'Situation' },
             { type: ParseTypes.Open, tag: 'Exit', properties: [{ type: ParsePropertyTypes.Key, key: 'to', value: 'DEF' }] },
             { type: ParseTypes.Text, text: 'welcome' },
             { type: ParseTypes.Close, tag: 'Exit' },
             { type: ParseTypes.Close, tag: 'Room' },
             { type: ParseTypes.Open, tag: 'Room', properties: [{ type: ParsePropertyTypes.Key, key: 'key', value: 'DEF' }] },
-            { type: ParseTypes.Open, tag: 'Example', properties: [{ type: ParsePropertyTypes.Key, key: 'uuid', value: '123-Welcome-example' }] },
+            { type: ParseTypes.Open, tag: 'Situation', properties: [{ type: ParsePropertyTypes.Key, key: 'uuid', value: '123-Welcome-example' }] },
             { type: ParseTypes.Open, tag: 'DisplayName', properties: [] },
             { type: ParseTypes.Text, text: 'Welcome' },
             { type: ParseTypes.Close, tag: 'DisplayName' },
-            { type: ParseTypes.Close, tag: 'Example' },
+            { type: ParseTypes.Close, tag: 'Situation' },
             { type: ParseTypes.Open, tag: 'Exit', properties: [{ type: ParsePropertyTypes.Key, key: 'to', value: 'ABC' }] },
             { type: ParseTypes.Text, text: 'vortex' },
             { type: ParseTypes.Close, tag: 'Exit' },

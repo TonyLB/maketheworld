@@ -357,6 +357,12 @@ describe('facetClassFactory', () => {
     });
 
     describe('renderFacet', () => {
+        //
+        // Edit algebra: reference ref and payload are independent signed contributions.
+        // See ../../components/AGENT.editAlgebra.md, ../AGENT.referenceList.editAlgebra.md,
+        // and ./AGENT.facets.md (Edit Operations and Rendering Semantics).
+        //
+
         it('should delegate to payload class', () => {
             const facetData: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
@@ -391,18 +397,41 @@ describe('facetClassFactory', () => {
             }
         });
 
-        it('should invert payload when reference is negative (transitivity)', () => {
-            // Facet with negative reference and PlainClass payload
+        it('should render removed facet when ref is negative and payload is already inverted (typical storage)', () => {
+            // Typical storage after facet.invert(): ref=-1 AND Remove payload (reduce ref-count
+            // and remove content). Not the same as the atypical -a+b case below.
             const facetData: StandardFacetData<PositionPayloadType> = {
                 reference: { ...validReference, ref: -1 },
-                payload: positionPayload
+                payload: {
+                    tag: 'Remove' as const,
+                    match: positionPayload,
+                },
+            };
+            const facet = new TestFacetClass(facetData);
+            const result = facet.renderFacet();
+            expect(result.aggregatedNode).toBeDefined();
+
+            const renderedWML = schemaToWML([result.aggregatedNode!]);
+            // Single outer Remove (ref); plain Position inside (payload already removed in storage).
+            expect(renderedWML).toBe('<Remove><Room key=(room1)><Position {10, 20} /></Room></Remove>');
+        });
+
+        it('should render -(a - b) when ref is negative and payload is still plain (transitivity edge case)', () => {
+            // Atypical storage: ref=-1 with PLAIN payload means algebraically "-a + b"
+            // (reduce ref-count on the facet but ADD payload content), NOT a unified remove.
+            // WML can express negative ref (e.g. ref={-1}), but render normalizes to equivalent
+            // Remove nesting for readability: -(a - b) as outer Remove (ref side) around inner
+            // Remove (inverted plain payload at render time).
+            // See describe('invert') above for typical post-invert JSON shape.
+            const facetData: StandardFacetData<PositionPayloadType> = {
+                reference: { ...validReference, ref: -1 },
+                payload: positionPayload,
             };
             const facet = new TestFacetClass(facetData);
             const result = facet.renderFacet();
             expect(result).toHaveProperty('aggregatedNode');
             expect(result.aggregatedNode).toBeDefined();
-            
-            // Convert rendered schema to WML and compare against expected
+
             const renderedWML = schemaToWML([result.aggregatedNode!]);
             const expectedWML = deIndentWML(`
                 <Remove>

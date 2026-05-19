@@ -245,18 +245,18 @@ describe('StandardMoment class', () => {
         
         it('should put non-bucket children in inlineRemainder', () => {
             const moment = new StandardMoment({ tag: 'Moment', key: 'test' })
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            const markRef = new StandardReference({ tag: 'Mark', key: 'mark1' })
             const messageRef = new StandardReference({ tag: 'Message', key: 'msg1' })
             
-            const { payload: result, inlineRemainder } = moment._payload.assureReferences([exampleRef, messageRef])
+            const { payload: result, inlineRemainder } = moment._payload.assureReferences([markRef, messageRef])
             
             // Message goes to bucket
             expect(result.messages.payload.length).toBe(1)
             expect(result.messages.payload[0].sameKey(messageRef)).toBe(true)
-            // Example goes to remainder
+            // Mark goes to remainder
             expect(inlineRemainder.length).toBe(1)
-            expect(inlineRemainder[0].tag).toBe('Example')
-            expect(inlineRemainder[0].sameKey(exampleRef)).toBe(true)
+            expect(inlineRemainder[0].tag).toBe('Mark')
+            expect(inlineRemainder[0].sameKey(markRef)).toBe(true)
             expect(inlineRemainder[0].ref).toBe(0)
         })
     })

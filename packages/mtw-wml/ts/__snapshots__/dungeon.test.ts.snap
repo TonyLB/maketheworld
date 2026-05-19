@@ -56,7 +56,7 @@ exports[`large WML test should parse properly 1`] = `
         "value": "example1",
       },
     ],
-    "tag": "Example",
+    "tag": "Situation",
     "type": 0,
   },
   {
@@ -95,7 +95,7 @@ exports[`large WML test should parse properly 1`] = `
     "type": 2,
   },
   {
-    "tag": "Example",
+    "tag": "Situation",
     "type": 2,
   },
   {
@@ -351,7 +351,7 @@ exports[`large WML test should parse properly 1`] = `
         "value": "example2",
       },
     ],
-    "tag": "Example",
+    "tag": "Situation",
     "type": 0,
   },
   {
@@ -381,7 +381,7 @@ exports[`large WML test should parse properly 1`] = `
     "type": 2,
   },
   {
-    "tag": "Example",
+    "tag": "Situation",
     "type": 2,
   },
   {
@@ -397,7 +397,7 @@ exports[`large WML test should parse properly 1`] = `
         "value": "example3",
       },
     ],
-    "tag": "Example",
+    "tag": "Situation",
     "type": 0,
   },
   {
@@ -427,7 +427,7 @@ exports[`large WML test should parse properly 1`] = `
     "type": 2,
   },
   {
-    "tag": "Example",
+    "tag": "Situation",
     "type": 2,
   },
   {
@@ -458,7 +458,7 @@ exports[`large WML test should parse properly 1`] = `
         "value": "example4",
       },
     ],
-    "tag": "Example",
+    "tag": "Situation",
     "type": 0,
   },
   {
@@ -488,7 +488,7 @@ exports[`large WML test should parse properly 1`] = `
     "type": 2,
   },
   {
-    "tag": "Example",
+    "tag": "Situation",
     "type": 2,
   },
   {
@@ -549,7 +549,7 @@ exports[`large WML test should parse properly 1`] = `
         "value": "example5",
       },
     ],
-    "tag": "Example",
+    "tag": "Situation",
     "type": 0,
   },
   {
@@ -612,7 +612,7 @@ exports[`large WML test should parse properly 1`] = `
     "type": 2,
   },
   {
-    "tag": "Example",
+    "tag": "Situation",
     "type": 2,
   },
   {
@@ -629,95 +629,29 @@ exports[`large WML test should parse properly 1`] = `
 exports[`large WML test should standardize properly 1`] = `
 [
   {
-    "description": [
-      "Natural rock formations rise in a jagged cliff-face. An asymmetric opening leads into a dimly lit cave.",
-      {
-        "children": [],
-        "data": {
-          "tag": "br",
-        },
-      },
-      "(You could also go literally anywhere else in the world, if any of it had been created. But it hasn't)",
-    ],
-    "displayName": "Cave entrance",
     "key": undefined,
-    "summary": undefined,
-    "tag": "Example",
-    "universalKey": "EXAMPLE#example1",
+    "tag": "Situation",
+    "universalKey": "SITUATION#example1",
   },
   {
-    "description": [
-      "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, a jumbled pile of jagged rocks against the wall make a far less hospitable space.",
-    ],
-    "displayName": "Shallow cave",
     "key": undefined,
-    "summary": undefined,
-    "tag": "Example",
-    "universalKey": "EXAMPLE#example2",
+    "tag": "Situation",
+    "universalKey": "SITUATION#example2",
   },
   {
-    "description": [
-      "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, rocks have been cleared revealing a passage further underground.",
-    ],
-    "displayName": "Shallow cave",
     "key": undefined,
-    "summary": undefined,
-    "tag": "Example",
-    "universalKey": "EXAMPLE#example3",
+    "tag": "Situation",
+    "universalKey": "SITUATION#example3",
   },
   {
-    "description": [
-      "Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.",
-    ],
-    "displayName": "Curving Passage",
     "key": undefined,
-    "summary": undefined,
-    "tag": "Example",
-    "universalKey": "EXAMPLE#example4",
+    "tag": "Situation",
+    "universalKey": "SITUATION#example4",
   },
   {
-    "description": [
-      "A ten-by-ten squared off cut stone room. Across from the passage leading in is a table with a ",
-      {
-        "children": [
-          {
-            "children": [],
-            "data": {
-              "tag": "String",
-              "value": "pie",
-            },
-          },
-        ],
-        "data": {
-          "tag": "Link",
-          "text": "pie",
-          "to": "pie",
-        },
-      },
-      ". Standing before the table is an angry ",
-      {
-        "children": [
-          {
-            "children": [],
-            "data": {
-              "tag": "String",
-              "value": "orc",
-            },
-          },
-        ],
-        "data": {
-          "tag": "Link",
-          "text": "orc",
-          "to": "orc",
-        },
-      },
-      ".",
-    ],
-    "displayName": undefined,
     "key": undefined,
-    "summary": undefined,
-    "tag": "Example",
-    "universalKey": "EXAMPLE#example5",
+    "tag": "Situation",
+    "universalKey": "SITUATION#example5",
   },
   {
     "exits": [
@@ -740,6 +674,34 @@ exports[`large WML test should standardize properly 1`] = `
     ],
     "key": "cave",
     "shortName": undefined,
+    "situations": [
+      {
+        "payload": {
+          "description": [
+            "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, a jumbled pile of jagged rocks against the wall make a far less hospitable space.",
+          ],
+          "displayName": "Shallow cave",
+        },
+        "reference": {
+          "ref": 0,
+          "tag": "Situation",
+          "universalKey": "SITUATION#example2",
+        },
+      },
+      {
+        "payload": {
+          "description": [
+            "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, rocks have been cleared revealing a passage further underground.",
+          ],
+          "displayName": "Shallow cave",
+        },
+        "reference": {
+          "ref": 0,
+          "tag": "Situation",
+          "universalKey": "SITUATION#example3",
+        },
+      },
+    ],
     "tag": "Room",
     "universalKey": undefined,
   },
@@ -768,6 +730,42 @@ exports[`large WML test should standardize properly 1`] = `
     ],
     "key": "chamber",
     "shortName": undefined,
+    "situations": [
+      {
+        "payload": {
+          "description": [
+            "A ten-by-ten squared off cut stone room. Across from the passage leading in is a table with a ",
+            {
+              "children": [
+                "pie",
+              ],
+              "data": {
+                "tag": "Link",
+                "text": "pie",
+                "to": "pie",
+              },
+            },
+            ". Standing before the table is an angry ",
+            {
+              "children": [
+                "orc",
+              ],
+              "data": {
+                "tag": "Link",
+                "text": "orc",
+                "to": "orc",
+              },
+            },
+            ".",
+          ],
+        },
+        "reference": {
+          "ref": 0,
+          "tag": "Situation",
+          "universalKey": "SITUATION#example5",
+        },
+      },
+    ],
     "tag": "Room",
     "universalKey": undefined,
   },
@@ -804,6 +802,21 @@ exports[`large WML test should standardize properly 1`] = `
     ],
     "key": "curvingPassage",
     "shortName": undefined,
+    "situations": [
+      {
+        "payload": {
+          "description": [
+            "Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.",
+          ],
+          "displayName": "Curving Passage",
+        },
+        "reference": {
+          "ref": 0,
+          "tag": "Situation",
+          "universalKey": "SITUATION#example4",
+        },
+      },
+    ],
     "tag": "Room",
     "universalKey": undefined,
   },
@@ -886,6 +899,28 @@ exports[`large WML test should standardize properly 1`] = `
     ],
     "key": "VORTEX",
     "shortName": undefined,
+    "situations": [
+      {
+        "payload": {
+          "description": [
+            "Natural rock formations rise in a jagged cliff-face. An asymmetric opening leads into a dimly lit cave.",
+            {
+              "children": [],
+              "data": {
+                "tag": "br",
+              },
+            },
+            "(You could also go literally anywhere else in the world, if any of it had been created. But it hasn't)",
+          ],
+          "displayName": "Cave entrance",
+        },
+        "reference": {
+          "ref": 0,
+          "tag": "Situation",
+          "universalKey": "SITUATION#example1",
+        },
+      },
+    ],
     "tag": "Room",
     "universalKey": undefined,
   },

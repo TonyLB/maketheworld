@@ -62,12 +62,12 @@ describe('workbench navigation selectors', () => {
     it('derives view and component ids from asset → component → component (uniform stack)', () => {
         const stack: WorkbenchBreadcrumbEntry[] = [
             { id: 'ROOM#one', kind: 'component', componentId: 'ROOM#one' },
-            { id: 'EXAMPLE#one', kind: 'component', componentId: 'EXAMPLE#one' }
+            { id: 'SITUATION#one', kind: 'component', componentId: 'SITUATION#one' }
         ]
         const state = withBreadcrumbs(stack)
         // Without standardForm in state, getLayeredContext returns null so we get component view
         expect(getCurrentView(state)).toBe('component')
-        expect(getCurrentComponentId(state)).toBe('EXAMPLE#one')
+        expect(getCurrentComponentId(state)).toBe('SITUATION#one')
         expect(getCurrentComponentLayerId(state)).toBeNull()
     })
 
@@ -82,14 +82,14 @@ describe('workbench navigation selectors', () => {
         })
         const stack: WorkbenchBreadcrumbEntry[] = [
             { id: 'ROOM#one', kind: 'component', componentId: 'ROOM#one' },
-            { id: 'EXAMPLE#one', kind: 'component', componentId: 'EXAMPLE#one' }
+            { id: 'SITUATION#one', kind: 'component', componentId: 'SITUATION#one' }
         ]
         store.dispatch(setBreadcrumbStack(stack))
-        store.dispatch(replaceTopBreadcrumb('EXAMPLE#two' as any))
+        store.dispatch(replaceTopBreadcrumb('SITUATION#two' as any))
         const result = store.getState().UI.workbench.breadcrumbStack
         expect(result).toHaveLength(2)
         expect(result[0]).toMatchObject({ id: 'ROOM#one', componentId: 'ROOM#one' })
-        expect(result[1]).toMatchObject({ id: 'EXAMPLE#two', kind: 'component', componentId: 'EXAMPLE#two' })
+        expect(result[1]).toMatchObject({ id: 'SITUATION#two', kind: 'component', componentId: 'SITUATION#two' })
     })
 })
 

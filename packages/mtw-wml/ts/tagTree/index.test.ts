@@ -24,10 +24,10 @@ describe('TagTree', () => {
             const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
                 <Asset uuid=(test)>
                     <Room key=(room1) uuid=(Room1)>
-                        <Example uuid=(room1-example)>
+                        <Situation uuid=(room1-example)>
                             <Description>Test description</Description>
                             <DisplayName>Test room</DisplayName>
-                        </Example>
+                        </Situation>
                         <Exit to=(room2) />
                     </Room>
                     <Room key=(room2) uuid=(Room2) />
@@ -45,14 +45,14 @@ describe('TagTree', () => {
                 [
                     { data: { tag: 'Asset', uuid: 'ASSET#test' } },
                     { data: { tag: 'Room', key: 'room1', uuid: 'ROOM#Room1' } },
-                    { data: { tag: 'Example', uuid: 'EXAMPLE#room1-example' } },
+                    { data: { tag: 'Situation', uuid: 'SITUATION#room1-example' } },
                     { data: { tag: 'Description' } },
                     { data: { tag: 'String', value: 'Test description' } },
                 ],
                 [
                     { data: { tag: 'Asset', uuid: 'ASSET#test' } },
                     { data: { tag: 'Room', key: 'room1', uuid: 'ROOM#Room1' } },
-                    { data: { tag: 'Example', uuid: 'EXAMPLE#room1-example' } },
+                    { data: { tag: 'Situation', uuid: 'SITUATION#room1-example' } },
                     { data: { tag: 'DisplayName' } },
                     { data: { tag: 'String', value: 'Test room' } },
                 ],
@@ -72,10 +72,10 @@ describe('TagTree', () => {
             const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
                 <Asset uuid=(test)>
                     <Room key=(room1) uuid=(Room1)>
-                        <Example uuid=(room1-example)>
+                        <Situation uuid=(room1-example)>
                             <DisplayName>Main Hall</DisplayName>
                             <Description>A grand entrance hall</Description>
-                        </Example>
+                        </Situation>
                         <Exit to=(room2)>North</Exit>
                         <Exit to=(room3)>South</Exit>
                     </Room>
@@ -90,8 +90,8 @@ describe('TagTree', () => {
             
             // Each content tag creates a separate tag list entry
             expect(tagTree._tagList).toHaveLength(4)
-            expect(tagTree._tagList[0]).toContainEqual({ data: { tag: 'Example', uuid: 'EXAMPLE#room1-example' } })
-            expect(tagTree._tagList[1]).toContainEqual({ data: { tag: 'Example', uuid: 'EXAMPLE#room1-example' } })
+            expect(tagTree._tagList[0]).toContainEqual({ data: { tag: 'Situation', uuid: 'SITUATION#room1-example' } })
+            expect(tagTree._tagList[1]).toContainEqual({ data: { tag: 'Situation', uuid: 'SITUATION#room1-example' } })
             expect(tagTree._tagList[2]).toContainEqual({ data: { tag: 'Exit', to: 'room2' } })
             expect(tagTree._tagList[3]).toContainEqual({ data: { tag: 'Exit', to: 'room3' } })
         })
@@ -160,24 +160,24 @@ describe('TagTree', () => {
             const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
                 <Asset uuid=(test)>
                     <Room key=(room1) uuid=(Room1)>
-                        <Example uuid=(room1-example)>
+                        <Situation uuid=(room1-example)>
                             <DisplayName>Main Hall</DisplayName>
                             <Description>A grand entrance hall</Description>
-                        </Example>
+                        </Situation>
                         <Exit to=(room2)>North</Exit>
                         <Exit to=(room3)>South</Exit>
                     </Room>
                     <Room key=(room2) uuid=(Room2)>
-                        <Example uuid=(room2-example)>
+                        <Situation uuid=(room2-example)>
                             <DisplayName>North Wing</DisplayName>
                             <Description>A quiet study area</Description>
-                        </Example>
+                        </Situation>
                     </Room>
                     <Knowledge key=(info1) uuid=(Knowledge1)>
-                        <Example uuid=(info1-example)>
+                        <Situation uuid=(info1-example)>
                             <DisplayName>Ancient Lore</DisplayName>
                             <Description>Knowledge of the ancients</Description>
-                        </Example>
+                        </Situation>
                     </Knowledge>
                 </Asset>
             `))))
@@ -191,13 +191,13 @@ describe('TagTree', () => {
         })
 
         it('should filter tags by type', () => {
-            const filtered = tagTree.filter({ match: 'Example' })
+            const filtered = tagTree.filter({ match: 'Situation' })
             const transformed = filtered._transformedTags
             
             // Each content tag (Name, Description) creates a separate tag list entry
             expect(transformed).toHaveLength(6) // 3 Examples × 2 content tags each
             transformed.forEach(tagList => {
-                expect(tagList.some(tag => tag.data.tag === 'Example')).toBe(true)
+                expect(tagList.some(tag => tag.data.tag === 'Situation')).toBe(true)
             })
         })
 
@@ -205,7 +205,7 @@ describe('TagTree', () => {
             const filtered = tagTree.filter({ 
                 sequence: [
                     { match: 'Room' },
-                    { match: 'Example' }
+                    { match: 'Situation' }
                 ]
             })
             const transformed = filtered._transformedTags
@@ -214,7 +214,7 @@ describe('TagTree', () => {
             expect(transformed).toHaveLength(4) // 2 Rooms × 2 content tags each
             transformed.forEach(tagList => {
                 const roomIndex = tagList.findIndex(tag => tag.data.tag === 'Room')
-                const exampleIndex = tagList.findIndex(tag => tag.data.tag === 'Example')
+                const exampleIndex = tagList.findIndex(tag => tag.data.tag === 'Situation')
                 expect(exampleIndex).toBe(roomIndex + 1)
             })
         })
@@ -230,13 +230,13 @@ describe('TagTree', () => {
 
         it('should reorder tags by priority', () => {
             const reordered = tagTree.reordered([
-                { match: 'Example' },
+                { match: 'Situation' },
                 { match: 'Exit' }
             ])
             const transformed = reordered._transformedTags
             
             transformed.forEach(tagList => {
-                const exampleIndex = tagList.findIndex(tag => tag.data.tag === 'Example')
+                const exampleIndex = tagList.findIndex(tag => tag.data.tag === 'Situation')
                 const exitIndex = tagList.findIndex(tag => tag.data.tag === 'Exit')
                 
                 if (exampleIndex !== -1 && exitIndex !== -1) {
@@ -290,7 +290,7 @@ describe('TagTree', () => {
         it('should handle complex filtering with OR operations', () => {
             const filtered = tagTree.filter({
                 or: [
-                    { match: 'Example' },
+                    { match: 'Situation' },
                     { match: 'Exit' }
                 ]
             })
@@ -305,7 +305,7 @@ describe('TagTree', () => {
             const transformed = reordered._transformedTags
             
             transformed.forEach(tagList => {
-                const exampleIndex = tagList.findIndex(tag => tag.data.tag === 'Example')
+                const exampleIndex = tagList.findIndex(tag => tag.data.tag === 'Situation')
                 const exitIndex = tagList.findIndex(tag => tag.data.tag === 'Exit')
                 
                 if (exampleIndex !== -1 && exitIndex !== -1) {
@@ -323,13 +323,13 @@ describe('TagTree', () => {
 
         it('should handle functional reordering', () => {
             const reordered = tagTree.reorderFunctional(
-                [{ match: 'Example' }],
+                [{ match: 'Situation' }],
                 (tags) => tags.reverse()
             )
             const transformed = reordered._transformedTags
             
             // Examples should be in reverse order
-            const exampleTags = transformed.flat().filter(tag => tag.data.tag === 'Example')
+            const exampleTags = transformed.flat().filter(tag => tag.data.tag === 'Situation')
             expect(exampleTags).toHaveLength(6) // 3 Examples × 2 content tags each
         })
     })
@@ -341,15 +341,15 @@ describe('TagTree', () => {
             const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
                 <Asset uuid=(test)>
                     <Room key=(room1) uuid=(Room1)>
-                        <Example uuid=(room1-example)>
+                        <Situation uuid=(room1-example)>
                             <DisplayName>Hall</DisplayName>
-                        </Example>
+                        </Situation>
                         <Exit to=(room2)>North</Exit>
                     </Room>
                     <Room key=(room2) uuid=(Room2)>
-                        <Example uuid=(room2-example)>
+                        <Situation uuid=(room2-example)>
                             <DisplayName>Study</DisplayName>
-                        </Example>
+                        </Situation>
                         <Exit to=(room1)>South</Exit>
                     </Room>
                 </Asset>
@@ -367,7 +367,7 @@ describe('TagTree', () => {
             const filtered = tagTree.filter({
                 sequence: [
                     { match: 'Room' },
-                    { match: 'Example' }
+                    { match: 'Situation' }
                 ]
             })
             const transformed = filtered._transformedTags
@@ -375,7 +375,7 @@ describe('TagTree', () => {
             expect(transformed).toHaveLength(2)
             transformed.forEach(tagList => {
                 const roomIndex = tagList.findIndex(tag => tag.data.tag === 'Room')
-                const exampleIndex = tagList.findIndex(tag => tag.data.tag === 'Example')
+                const exampleIndex = tagList.findIndex(tag => tag.data.tag === 'Situation')
                 expect(exampleIndex).toBe(roomIndex + 1)
             })
         })
@@ -383,14 +383,14 @@ describe('TagTree', () => {
         it('should match before operations', () => {
             const filtered = tagTree.filter({
                 sequence: [
-                    { match: 'Example' },
+                    { match: 'Situation' },
                     { match: 'Exit' }
                 ]
             })
             const transformed = filtered._transformedTags
             
             transformed.forEach(tagList => {
-                const exampleIndex = tagList.findIndex(tag => tag.data.tag === 'Example')
+                const exampleIndex = tagList.findIndex(tag => tag.data.tag === 'Situation')
                 const exitIndex = tagList.findIndex(tag => tag.data.tag === 'Exit')
                 expect(exampleIndex).toBeLessThan(exitIndex)
             })
@@ -400,14 +400,14 @@ describe('TagTree', () => {
             const filtered = tagTree.filter({
                 sequence: [
                     { match: 'Room' },
-                    { match: 'Example' }
+                    { match: 'Situation' }
                 ]
             })
             const transformed = filtered._transformedTags
             
             transformed.forEach(tagList => {
                 const roomIndex = tagList.findIndex(tag => tag.data.tag === 'Room')
-                const exampleIndex = tagList.findIndex(tag => tag.data.tag === 'Example')
+                const exampleIndex = tagList.findIndex(tag => tag.data.tag === 'Situation')
                 expect(exampleIndex).toBe(roomIndex + 1)
             })
         })
@@ -418,18 +418,18 @@ describe('TagTree', () => {
             const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
                 <Asset uuid=(complex)>
                     <Feature key=(doors) uuid=(Feature1)>
-                        <Example uuid=(doors-example)>
+                        <Situation uuid=(doors-example)>
                             <DisplayName>Magic Doors</DisplayName>
                             <Description>Doors that respond to conditions</Description>
-                        </Example>
+                        </Situation>
                         <Exit to=(room1)>Main Entrance</Exit>
                         <Exit to=(room2)>Secret Passage</Exit>
                     </Feature>
                     <Knowledge key=(lore) uuid=(Knowledge1)>
-                        <Example uuid=(lore-example)>
+                        <Situation uuid=(lore-example)>
                             <DisplayName>Door Lore</DisplayName>
                             <Description>Ancient knowledge about doors</Description>
-                        </Example>
+                        </Situation>
                     </Knowledge>
                 </Asset>
             `))))
@@ -460,13 +460,13 @@ describe('TagTree', () => {
             const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
                 <Asset uuid=(text)>
                     <Room key=(room1) uuid=(Room1)>
-                        <Example uuid=(room1-example)>
+                        <Situation uuid=(room1-example)>
                             <Description>
                                 First paragraph of the description.
                                 Second paragraph with more details.
                                 Final paragraph concluding the description.
                             </Description>
-                        </Example>
+                        </Situation>
                     </Room>
                 </Asset>
             `))))
@@ -479,7 +479,7 @@ describe('TagTree', () => {
             })
             
             const exampleTags = tagTree._tagList.find(tagList => 
-                tagList.some(tag => tag.data.tag === 'Example')
+                tagList.some(tag => tag.data.tag === 'Situation')
             )
             
             expect(exampleTags).toBeDefined()

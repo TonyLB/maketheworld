@@ -1,6 +1,6 @@
 import { EditWrappedStandardNode, StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
-import { SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example";
+import { SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/prose";
 import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema";
 import { ReferenceListData } from "./reference";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";

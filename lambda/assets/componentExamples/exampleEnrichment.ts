@@ -3,8 +3,6 @@ import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraSituationId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
-import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
-import { isStandardExampleData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/example'
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
@@ -162,7 +160,6 @@ export const parentHasFacetForSituation = (
 
 /**
  * Room / Feature / Knowledge parents whose `situations` facet references `situationId`.
- * Not used on the standalone Example enrichment path (see `enrichExampleEvent`).
  */
 export const getParentIdsForSituation = async (
     situationId: ComponentUUID,
@@ -197,41 +194,6 @@ export const getParentIdsForSituation = async (
         .map((component) => component.universalKey as ComponentUUID)
 
     return Array.from(new Set(parentIds))
-}
-
-export const mergeExampleAcrossStack = (
-    byAssets: ComponentDataByAsset,
-    assetStack: AssetUUID[]
-): StandardExample | undefined => {
-    if (!byAssets.length || !assetStack.length) {
-        return undefined
-    }
-
-    const indexByAsset = assetStack.reduce<Record<AssetUUID, number>>(
-        (previous, assetId, index) => ({
-            ...previous,
-            [assetId]: index,
-        }),
-        {}
-    )
-
-    const withIndex = byAssets
-        .map(({ AssetId, component }) => {
-            if (!(component instanceof StandardExample)) return undefined
-            const index = indexByAsset[AssetId]
-            if (typeof index !== 'number') return undefined
-            return { index, example: component } as { index: number; example: StandardExample }
-        })
-        .filter(excludeUndefined)
-        .sort((a, b) => a.index - b.index)
-
-    if (!withIndex.length) return undefined
-
-    let merged: StandardExample = withIndex[0].example as StandardExample
-    for (let i = 1; i < withIndex.length; i++) {
-        merged = merged.merge(withIndex[i].example) as StandardExample
-    }
-    return merged
 }
 
 export const mergeSituationAcrossStack = (
@@ -339,83 +301,12 @@ export const mergeLensAcrossStack = (
     return merged
 }
 
-export const exampleToCacheShape = (example: StandardExample): ComponentExamplesPayload => {
-    //
-    // Extract markState from MarkFacetList
-    //
-    const markValue: ComponentExamplesMarkValue[] =
-        example.marks.items.map((facet) => {
-            const markFacet = facet as StandardMarkFacet
-            const mark = String(markFacet.reference.universalKey ?? '')
-            const payload = markFacet.payload as any
-
-            let value = ''
-            if (payload && typeof payload === 'object' && typeof payload.toJSON === 'function') {
-                //
-                // MarkFacetPayload extends StandardLiteral; toJSON returns
-                // StandardEditableData<string>. Extract the first string value.
-                //
-                const editable = payload.toJSON() as StandardEditableData<string>
-                const values = extractFromEditableData<string>(editable)
-                value = values[0] ?? ''
-            }
-            else if (typeof payload === 'string') {
-                value = payload
-            }
-
-            return { mark, value }
-        })
-
-    const markState: ComponentExamplesMarkState = {
-        markValue,
-    }
-
-    //
-    // Extract RenderTree-compatible content from StandardEditableData
-    // DisplayName is now a StandardLiteral (string-based) represented as StandardEditableData<string>
-    // Summary/description remain RenderTree-based.
-    //
-    const json = example.toJSON()
-    if (!isStandardExampleData(json)) {
-        throw new Error('Expected StandardExampleData from example.toJSON()')
-    }
-
-    const toRenderTree = (editable?: StandardEditableData<RenderTree>): RenderTree | undefined => {
-        if (!editable) return undefined
-        const trees = extractFromEditableData<RenderTree>(editable)
-        return trees[0]
-    }
-
-    const displayName = json.displayName
-        ? (extractFromEditableData<string>(json.displayName as unknown as StandardEditableData<string>) as unknown as RenderTree)
-        : undefined
-    const summary = toRenderTree(json.summary)
-    const description = toRenderTree(json.description) ?? []
-
-    const renderedContent: ComponentExamplesRenderedContent = {
-        ...(displayName && (displayName as RenderTree).length ? { displayName } : {}),
-        ...(summary ? { summary } : {}),
-        description,
-    }
-
-    const provenance: ComponentExamplesProvenance = {
-        type: 'authored',
-    }
-
-    return {
-        markState,
-        renderedContent,
-        provenance,
-    }
-}
-
 export type SituationFacetToCacheShapeOptions = {
     lensMarks?: LensMarkWithDefault[];
 }
 
 /**
- * Build ComponentExamplesPayload from a Situation and its Room facet payload.
- * Same shape as exampleToCacheShape so situation-facet events can reuse the stream.
+ * Build ComponentExamplesPayload from a Situation and its facet payload for render-cache mirroring.
  *
  * When options.lensMarks is provided, limit marks to those defined on the lens and
  * use lens defaults for any mark not explicitly set on the situation.
@@ -479,55 +370,6 @@ export const situationFacetToCacheShape = (
     }
     const provenance: ComponentExamplesProvenance = { type: 'authored' }
     return { markState, renderedContent, provenance }
-}
-
-export const enrichExampleEvent = async (params: {
-    exampleId: ComponentUUID;
-    eventAssetId: AssetUUID;
-    component: StandardComponent;
-    eventType: 'Component Updated' | 'Component Republished' | 'Component Removed';
-}): Promise<EnrichedExampleEvent> => {
-    const { exampleId, eventAssetId, eventType } = params
-
-    const [componentData] = await internalCache.ComponentData.get([exampleId as EphemeraId])
-    const byAssets = componentData?.byAssets ?? []
-
-    const assetStack = getOrderedAssetStack(exampleId, eventAssetId, byAssets)
-
-    //
-    // Situation-facet render updates (Room / Feature / Knowledge parents, or Situation
-    // component edits fanning out via getParentIdsForSituation) are handled in index.ts.
-    // This function only runs for standalone Example (EXAMPLE#) components and does not
-    // perform parent discovery (parentIds stay empty).
-    //
-    const parentIds: ComponentUUID[] = []
-
-    if (eventType === 'Component Removed') {
-        return {
-            exampleId,
-            assetStack,
-            parentIds,
-        }
-    }
-
-    const mergedExample = mergeExampleAcrossStack(byAssets, assetStack)
-
-    if (!mergedExample) {
-        return {
-            exampleId,
-            assetStack,
-            parentIds,
-        }
-    }
-
-    const example = exampleToCacheShape(mergedExample)
-
-    return {
-        exampleId,
-        assetStack,
-        parentIds,
-        example,
-    }
 }
 
 //
