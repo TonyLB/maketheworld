@@ -1,6 +1,6 @@
 # Phase 1 classification: `index.test.ts` and component integration inventory
 
-**Status:** Phase 4 Step 1 complete (2026-05-19). Steps 2-3 not started. Section 8 Step 0 overlap context is the reference for Layer A/B sweeps.  
+**Status:** Phase 4 Step 2 complete (2026-05-19). Step 3 not started. Section 8 Step 0 overlap context is the reference for Layer A/B sweeps.  
 **Baseline (2026-05-19):** gate suite -- **226 passed** total (`index` + `integration/` + `*.integration.test.ts`).  
 **Source of truth:** section 4 (Phase 1 overlap rules); section 5 (Phase 3 renames **done**); **section 8** (Phase 4 per-file sweep results).
 
@@ -481,23 +481,23 @@ Use this when sweeping Steps 1-3 so similar fixtures are not mis-tagged as dupli
 
 | Integration file | ~`it` | Unit pair | Sweep | Redundancies | Gaps |
 | --- | ---: | --- | --- | --- | --- |
-| `components/guidance.integration.test.ts` | 1 | `guidance.test.ts` | [ ] | | |
-| `components/message.integration.test.ts` | 1 | `message.test.ts` | [ ] | | |
-| `components/moment.integration.test.ts` | 1 | `moment.test.ts` | [ ] | | |
-| `components/worldState.integration.test.ts` | 2 | `worldState.test.ts` | [ ] | | |
-| `components/situation.integration.test.ts` | 3 | `situation.test.ts` | [ ] | | |
-| `components/feature.integration.test.ts` | 3 | `feature.test.ts` | [ ] | | |
-| `components/feature.ephemeraWire.integration.test.ts` | 2 | `feature.test.ts` | [ ] | | |
-| `components/knowledge.integration.test.ts` | 3 | `knowledge.test.ts` | [ ] | | |
-| `components/knowledge.ephemeraWire.integration.test.ts` | 2 | `knowledge.test.ts` | [ ] | | |
+| `components/guidance.integration.test.ts` | 1 | `guidance.test.ts` (13) | [x] | **none** vs unit (integration asserts `StandardForm.schema` Mark hosting / no top-level Mark emission; unit is single-component WML/JSON/merge). **none** vs `keys/facets/integration` (facet-class `renderFacet` only). | **none**. `Guidance facet round-trip` covers asset-level implicit-parent behavior for Mark under Guidance. Unit covers Mark facets, merge, invert; no `StandardForm` in unit file. |
+| `components/message.integration.test.ts` | 1 | `message.test.ts` (20) | [x] | **none**. Unit has no `StandardForm`; integration `Schema render` is unique multi-room asset graph. | **none**. Single `should render messages correctly` exercises Message+Room+Situation schema relocation. |
+| `components/moment.integration.test.ts` | 1 | `moment.test.ts` (21) | [x] | **none**. Unit has no `StandardForm`. | **none**. Single schema render with nested Message/Room graph. |
+| `components/worldState.integration.test.ts` | 2 | `worldState.test.ts` (69) | [x] | **none** vs unit (asset `StandardForm` + `byUniversalId` vs single-component Lens/Mark WML). **none** vs `room.integration` `Lens in Room` (standalone top-level Lens/Mark vs Lens nested under Room). | **none** at Layer B. Step 3 handoff: `worldState.test.ts` is large unit bulk with no `StandardForm` blocks found. |
+| `components/situation.integration.test.ts` | 3 | `situation.test.ts` (25) | [x] | **none** vs `keys/facets/integration` Mark payload round-trip (asset smoke + `byUniversalId` facet assertions vs facet class only; section 4). **none** vs unit (unit Mark/ShortName round-trips without full asset graph). | **none**. `Mark facets and ShortName` (2), `Nested facet edits via merge` (1) -- Room-nested Situation Replace merge is distinct from `standardForm.merge` title pairs. |
+| `components/feature.integration.test.ts` | 3 | `feature.test.ts` (22) | [x] | **none** vs `room.integration` Situation nesting (Feature-primary JSON/schema vs Room-primary). **none** vs `processComponents` `should render features and links correctly` (walker vs `form.schema`). | **none**. Situation nesting (2), schema render with cross-Feature links (1). |
+| `components/feature.ephemeraWire.integration.test.ts` | 2 | `feature.test.ts` | [x] | **none** vs unit `rejects Render under Feature in asset mode` (complementary: rejection vs ephemeraWire parse/round-trip). **none** vs `wmlStandardizeMode` / `standardForm.standardizeMode`. | **none**. Parse + round-trip Render under Feature in ephemeraWire mode. |
+| `components/knowledge.integration.test.ts` | 3 | `knowledge.test.ts` (19) | [x] | **none** (parallel to feature.integration). Unit legacy `<Example>` rejection tests are intentional asset-mode guards, not dup integration. | **none**. Situation nesting (2), schema render (1). |
+| `components/knowledge.ephemeraWire.integration.test.ts` | 2 | `knowledge.test.ts` | [x] | **none** (parallel to feature.ephemeraWire). | **none**. Parse + round-trip Render under Knowledge in ephemeraWire. |
 
 ### Step 2b -- Layer B (heavy integration + unit pairs)
 
 | Integration file | ~`it` | Unit pair | Sweep | Redundancies | Gaps |
 | --- | ---: | --- | --- | --- | --- |
-| `components/map.integration.test.ts` | 3 | `map.test.ts` | [ ] | | |
-| `components/room.integration.test.ts` | 19 | `room.test.ts` | [ ] | | |
-| `components/room.ephemeraWire.integration.test.ts` | 9 | `room.test.ts` | [ ] | | |
+| `components/map.integration.test.ts` | 3 | `map.test.ts` (8) | [x] | **none** vs `schemaOrganization` `getImplicitParent` (e2e shared-Feature WML vs direct org API). **none** vs `standardForm.subset` map/position graphs (`form.subset` vs `form.schema`). **none** vs unit (unit Map-only WML; shared-ref case moved from unit in Phase 2). | **none**. `Schema render` (2: full map, empty map), `schema output with shared references` (1: implicit parent + round-trip). Unit has no `StandardForm`. |
+| `components/room.integration.test.ts` | 19 | `room.test.ts` (91) | [x] | **none** to delete. Explicit **keep both**: unit `should correctly render a removed feature reference` vs integration `Removed Feature references` (unit render vs asset round-trip); unit `Character Integration` vs integration `Character references` (StandardRoom-only vs full `StandardForm.schema`); `processComponents` `should combine exits in rooms` / `should combine render in nested rooms` (walker vs `form.schema`); `worldState.integration` standalone Lens vs `Lens in Room`; facets integration Mark payload vs `Situation facets on Room`. | **none** for Layer B describes: Removed Feature (2), Lens in Room (4), Situation facets (2), Exits (1), Situation nesting (3), Gate D (1), Nested room render (1), Character references (5). Step 3: scan `room.test.ts` for residual informal integration (~1,464 lines). |
+| `components/room.ephemeraWire.integration.test.ts` | 9 | `room.test.ts` | [x] | **none** vs `wmlStandardizeMode` / `standardForm.standardizeMode` (mode guards/policy vs parse hub). **none** vs unit `should include Link refs from ephemera render` (JSON `render` + `withMapping` on StandardRoom, not ephemeraWire `StandardForm`). **none** vs feature/knowledge ephemeraWire (Room Object/Render hub vs Feature/Knowledge Render). | **none**. Object parse/normalize/throw/round-trip (5), Render parse/round-trip/validation (4). |
 
 ### Step 3 -- Large unit files (informal integration check)
 
@@ -526,7 +526,7 @@ Use this when sweeping Steps 1-3 so similar fixtures are not mis-tagged as dupli
 | `resolveInitialStandardizeMode` (data vs constructor options) | `standardForm.standardizeMode.test.ts` | Low | Policy tests exist; resolution precedence not asserted. |
 | Deprecated `renameKey()` on StandardForm | *(none -- intentional)* | Defer | Superseded by Key tags via merge; no test expected. |
 
-**Phase 4 sign-off:** [x] Step 0-1 rows swept; [ ] Steps 2-3; [ ] Consolidated tables final review at Step 4; gate suite still 226+ pass if any fix slices landed.
+**Phase 4 sign-off:** [x] Steps 0-2 rows swept (49 Layer B integration `it`); [ ] Step 3; [ ] Consolidated tables final review at Step 4; gate suite still 226+ pass if any fix slices landed.
 
 ---
 
@@ -539,4 +539,5 @@ Use this when sweeping Steps 1-3 so similar fixtures are not mis-tagged as dupli
 - [x] Rename and delete candidates enumerated
 - [x] Baseline 217 pass recorded
 - [x] Phase 4 section 8 Step 1 (Layer A + smoke) complete
-- [ ] Phase 4 section 8 Steps 2-3 pending
+- [x] Phase 4 section 8 Step 2 (Layer B integration + unit pairs) complete
+- [ ] Phase 4 section 8 Step 3 pending
