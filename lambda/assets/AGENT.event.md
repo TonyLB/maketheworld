@@ -151,13 +151,11 @@ Where:
 **Event Subscription and Enrichment**:
 
 - Subscribes to `mtw.assets` **Component Updated** and **Component Removed** events.
-- Filters to **Example-associated** component events via **[`isExampleAssociatedComponent`](./componentExamples/exampleAssociatedFilter.ts)**:
-  - Every **`Example`** component.
-  - **`Feature`** and **`Knowledge`** only when they have a non-empty **`examples`** reference list (`component.examples?.payload?.length > 0`).
-  - **`Room`** updates **do not** pass this filter (Room prose is **Situation** / **`render`**, not **`Room.examples`**). **`Room`** **`Component Updated`** therefore does **not** drive this data source today; see **[`componentExamples/AGENT.md`](./componentExamples/AGENT.md)** and **[`componentExamples/index.test.ts`](./componentExamples/index.test.ts)**.
+- Filters to standalone **`Example`** components via **[`isExampleAssociatedComponent`](./componentExamples/exampleAssociatedFilter.ts)** (legacy gate; see filter file header for the situation-facet / naming gap).
+  - **`Room`** / **`Feature`** / **`Knowledge`** updates use the early situation-facet branch in **`index.ts`** and do **not** pass this filter. See **[`componentExamples/AGENT.md`](./componentExamples/AGENT.md)** and **[`componentExamples/index.test.ts`](./componentExamples/index.test.ts)**.
 - For each Example-associated change, this data source:
   - Reconstructs the Example's **inheritance chain** via `_from` links across the Assets table to build the ordered `assetStack` (base-first, event asset last).
-  - Derives **`parentIds`** from **Feature**/**Knowledge** **`examples`** reference lists (via **[`exampleEnrichment.ts`](./componentExamples/exampleEnrichment.ts)**); **`Room.examples`** is not used for parent discovery after the standardized model dropped Room-owned example lists.
+  - Standalone **`Example`** enrichment sets empty **`parentIds`** (situation-facet parent discovery lives in **`getParentIdsForSituation`**, used on the **`index.ts`** early branch, not in **`enrichExampleEvent`**; see seam comment in **[`exampleEnrichment.ts`](./componentExamples/exampleEnrichment.ts)**).
   - For `ExampleUpdated` (and eventually `ExampleAdded`), merges the Example across the asset stack into a single payload shaped for Ephemera's render cache (`{ markState, renderedContent, provenance: { type: 'authored' } }`).
   - For `ExampleRemoved`, computes `assetStack` and `parentIds` without emitting a new example payload.
 
@@ -287,7 +285,7 @@ Each downstream data source applies its own filtering:
 - **characters**: Filters for character component changes only
 - **library**: Filters for zone changes involving Library zone
 - **players**: Filters for zone changes involving Personal/Draft zones and player settings updates
-- **componentExamples**: Filters for Component Updated and Component Removed, then to Example-associated components only (**Example**, **Feature** with non-empty **`examples`**, **Knowledge** with non-empty **`examples`**; see **[`componentExamples/exampleAssociatedFilter.ts`](./componentExamples/exampleAssociatedFilter.ts)**)
+- **componentExamples**: Filters for Component Updated and Component Removed; standalone **`Example`** path uses **[`exampleAssociatedFilter.ts`](./componentExamples/exampleAssociatedFilter.ts)**. **Room** / **Feature** / **Knowledge** use the early situation-facet branch in **`index.ts`**.
 
 This cascading pattern enables:
 - Specialized views of asset data

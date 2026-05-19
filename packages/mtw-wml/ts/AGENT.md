@@ -113,7 +113,7 @@ For detailed information about all component types and their APIs, see [`standar
 - **Situation entity:** **`Situation`** is an **independent** WML component; Room/Feature/Knowledge reference it via facets but do **not** own it (**D8**).
 - **No production data migration:** Extant database has no Feature/Knowledge/Example content; Phase 4 is code/test cleanup only.
 
-**Still Phase 2+ (lambdas / client):** Ephemera wire **`render`** on F/K (**D1**), **`componentExamples`** filter/enrichment on **`situations`**, playing UI and editors. Assets **`componentExamples`** F/K parent **Updated** / **Removed** branch on **`situations`** shipped (2026-05-18). **`StandardExample`** remains for marks-only Example components until Phase 4.
+**Still Phase 2+ (lambdas / client):** Ephemera wire **`render`** on F/K (**D1**), playing UI and editors. Assets **`componentExamples`**: F/K parent **Updated** / **Removed** branch and filter/enrichment on **`situations`** shipped (2026-05-18 / 2026-05-19). **`StandardExample`** remains for marks-only Example components until Phase 4.
 
 **Room display prose (preferred)**: Author **Situation** facets on the Room for blueprint display name, summary, and description. On ephemera wire, resolved header prose is carried on **`StandardRoom.render`** (`<Render>`), the same JSON shape as **`SituationRoomFacetPayloadType`**. See [`standardize/AGENT.md`](./standardize/AGENT.md) (**Payload vocabulary vs semantic mode**).
 

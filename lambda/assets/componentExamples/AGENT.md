@@ -10,10 +10,10 @@ Non-replayable Assets data source **[`index.ts`](./index.ts)** subscribes to **`
 
 Implemented in **[`exampleAssociatedFilter.ts`](./exampleAssociatedFilter.ts)**:
 
-- **`Example`**: always associated.
-- **`Feature`** / **`Knowledge`** (current): associated only when **`examples.payload`** is non-empty.
-- **`Feature`** / **`Knowledge`** (target, Phase 2): associated when parent has non-empty **`situations`** facet list (mirror Room gate).
-- **`Room`**: **not** Example-associated at this gate. Room display prose is **Situation** facets and ephemera **`render`**, not Room-owned **`examples`** lists. **`Room`** **Component Updated** events do **not** pass **`isExampleAssociatedComponent`** (see **[`index.test.ts`](./index.test.ts)**).
+- **`Example`**: only tag that passes this gate (standalone **`enrichExampleEvent`** path).
+- **`Room`** / **`Feature`** / **`Knowledge`**: **do not** pass the filter. Situation-facet mirror events are emitted on the early branch in **`index.ts`** before the filter runs.
+
+The filter name and **`EXAMPLE_ASSOCIATED_TAGS`** reflect legacy Example-centric wiring. WML now uses **`situations`** facets on parents; a future refactor should redefine what **`componentExamples`** tracks (see file header comment in **`exampleAssociatedFilter.ts`**).
 
 ## Room branch (shipped)
 
@@ -33,15 +33,17 @@ Room events never call **`enrichExampleEvent`** (Example-component path).
 - On **Component Updated** / **Removed** with non-empty **`situations`**, emits **ExampleUpdated** / **ExampleRemoved** per facet; **`exampleId`** = Situation uuid; payload via **`situationFacetToCacheShape`** (no lens marks on F/K).
 - Perspective matcher: **`computePerspectiveMatcherForParentSituation`** in **`exampleEnrichment.ts`**.
 
-**Still Phase 2 (not this slice):**
+**Enrichment (shipped 2026-05-19):**
 
-- **`exampleAssociatedFilter`** still gates F/K on legacy **`examples.payload`** (parent branch bypasses the filter, like Room).
-- **`getExamplesReferenceList`** / **`getParentIdsForExample`** still scan F/K **`examples`** for standalone **Example** component events.
-- Retire standalone Example-component discovery for F/K prose once facets own display content (Phase 4).
+- **`getParentIdsForSituation`** resolves parents for **`SITUATION#`** ids via **`parentHasFacetForSituation`** on **Room**, **Feature**, and **Knowledge**. Not called from **`enrichExampleEvent`** (see gap comment there); parent-facet updates set **`parentIds`** in **`index.ts`**.
+
+**Still Phase 2:**
+
+- Retire standalone **Example** component path in **`index.ts`** once facets own F/K prose (line 234).
 
 ## Parent discovery (`enrichExampleEvent`)
 
-**[`exampleEnrichment.ts`](./exampleEnrichment.ts)** resolves **`parentIds`** for **Example** components by scanning parent **`examples`** reference lists on **Feature** and **Knowledge** only. It does **not** infer room parents from **`Room.examples`** (removed from the standardized model).
+**[`exampleEnrichment.ts`](./exampleEnrichment.ts)**: **`getParentIdsForSituation`** scans facet parents for a **`SITUATION#`** id. **`enrichExampleEvent`** (standalone **`Example`** only) always emits empty **`parentIds`**; situation-facet render updates go through **`index.ts`** instead (documented at that seam).
 
 ## Related docs
 

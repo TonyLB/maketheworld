@@ -1,5 +1,6 @@
 import internalCache from '../internalCache'
 import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraSituationId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
@@ -9,7 +10,6 @@ import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
-import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import { StandardMarkFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/mark'
 import {
     SituationProseFacetPayload,
@@ -150,20 +150,29 @@ export const getOrderedAssetStack = (
     return assetsWithDepth.map(({ assetId }) => assetId)
 }
 
-const getExamplesReferenceList = (component: StandardComponent): ReferenceList | undefined => {
-    // Feature/Knowledge dropped examples in Phase 1; parent prose uses situations facets.
-    // Standalone Example parent discovery via situations is Phase 2 line 233.
-    if (component instanceof StandardFeature || component instanceof StandardKnowledge) {
-        return undefined
-    }
-    return undefined
-}
+export type ParentWithSituationFacets = StandardRoom | StandardFeature | StandardKnowledge
 
-export const getParentIdsForExample = async (
-    exampleId: ComponentUUID,
+export const parentHasFacetForSituation = (
+    parent: ParentWithSituationFacets | undefined,
+    situationId: ComponentUUID
+): boolean =>
+    (parent?.situations?.items?.some(
+        (f) => (f as StandardSituationProseFacet).reference?.universalKey === situationId
+    )) === true
+
+/**
+ * Room / Feature / Knowledge parents whose `situations` facet references `situationId`.
+ * Not used on the standalone Example enrichment path (see `enrichExampleEvent`).
+ */
+export const getParentIdsForSituation = async (
+    situationId: ComponentUUID,
     assetStack: AssetUUID[],
     eventAssetId: AssetUUID
 ): Promise<ComponentUUID[]> => {
+    if (!isEphemeraSituationId(situationId)) {
+        return []
+    }
+
     const assetIds = Array.from(
         new Set<AssetUUID>([
             ...assetStack,
@@ -179,17 +188,12 @@ export const getParentIdsForExample = async (
 
     const parentIds = assetData
         .flatMap(({ standardForm }) => standardForm._components)
-        .filter((component) => {
-            const tag = (component as any).tag
-            return tag === 'Feature' || tag === 'Knowledge'
-        })
-        .filter((component) => {
-            const examples = getExamplesReferenceList(component)
-            if (!examples) {
-                return false
-            }
-            return examples.payload.some((reference) => reference.universalKey === exampleId)
-        })
+        .filter((component): component is ParentWithSituationFacets =>
+            component instanceof StandardRoom ||
+            component instanceof StandardFeature ||
+            component instanceof StandardKnowledge
+        )
+        .filter((component) => parentHasFacetForSituation(component, situationId))
         .map((component) => component.universalKey as ComponentUUID)
 
     return Array.from(new Set(parentIds))
@@ -454,7 +458,18 @@ export const enrichExampleEvent = async (params: {
     const byAssets = componentData?.byAssets ?? []
 
     const assetStack = getOrderedAssetStack(exampleId, eventAssetId, byAssets)
-    const parentIds = await getParentIdsForExample(exampleId, assetStack, eventAssetId)
+
+    //
+    // Seam / gap: Incoming Asset changes that affect Situation facets (Room, Feature,
+    // Knowledge parent Updated/Removed, or a Situation component edit) are handled in
+    // index.ts via emitParentSituationFacetEvents. That path can publish render-driving
+    // ExampleUpdated-shaped events with exampleId = SITUATION# and parentIds set on the
+    // parent. This function only runs for standalone Example (EXAMPLE#) components.
+    // getParentIdsForSituation implements facet-based parent discovery for SITUATION# ids
+    // but is not wired here, so parentIds stay empty until componentExamples is rescoped
+    // to deliver situation-keyed updates through one coherent pipeline.
+    //
+    const parentIds: ComponentUUID[] = []
 
     if (eventType === 'Component Removed') {
         return {
@@ -488,21 +503,6 @@ export const enrichExampleEvent = async (params: {
 // Perspective matcher for parent + Situation (Room, Feature, Knowledge).
 // Structural test: parent has facet for this situationId; Situation has marks.
 //
-
-export type ParentWithSituationFacets = StandardRoom | StandardFeature | StandardKnowledge
-
-export const parentHasFacetForSituation = (
-    parent: ParentWithSituationFacets | undefined,
-    situationId: ComponentUUID
-): boolean =>
-    (parent?.situations?.items?.some(
-        (f) => (f as StandardSituationProseFacet).reference?.universalKey === situationId
-    )) === true
-
-export const roomHasFacetForSituation = (
-    room: StandardRoom | undefined,
-    situationId: ComponentUUID
-): boolean => parentHasFacetForSituation(room, situationId)
 
 export const situationHasMarks = (situation: StandardSituation | undefined): boolean =>
     (situation?.marks?.length ?? 0) > 0
