@@ -79,13 +79,19 @@ componentRender.set('CHARACTER#player-uuid', 'ROOM#marketSquare-uuid', renderedF
 - **Short Name**: Merges short names from multiple assets
 
 #### **Feature Rendering**
+
+*Migration in progress.* Task plan: [`taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md`](../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md).
+
 - **Metadata Assembly**: Combines feature data from all accessible assets
-- **Example Integration**: Uses first available example
+- **Prose for perception (current)**: **`ExamplesData.get`** -> first **`StandardExample`** -> synthetic **`EXAMPLE#rendered`** child on wire form; **`examples: ['EXAMPLE#rendered']`** on parent row
+- **Prose for perception (target, Phase 2)**: **`renderCache`** only, same as Room; **`render`** field with **`SituationRoomFacetPayloadType`** shape; no synthetic Example child (**D1**)
 - **Context Integration**: Considers feature's room context
 
 #### **Knowledge Rendering**
+
 - **Metadata Assembly**: Combines knowledge data from all accessible assets
-- **Example Integration**: Uses first available example
+- **Prose for perception (current)**: Same naive first-example path as Feature via **`ExamplesData`**
+- **Prose for perception (target, Phase 2)**: **`renderCache`** + **`render`** only; DEFAULT facet selection for v1 (**D9** defers per-perspective facets)
 - **Content Processing**: Handles knowledge-specific content
 
 #### **Map Rendering**
@@ -107,11 +113,14 @@ ComponentRender discovers accessible assets through:
 
 ### **Example Integration (rooms vs other types)**
 - **Rooms**: **`renderCache`** only for prose (see **`Room Rendering`** and **`componentRender.ts`** **`_getPromiseFactory`** Room branch).
-- **Features / knowledge / maps (current)**: Still use a **naive first-example** pattern where applicable:
+- **Features / Knowledge (current)**: **Naive first-example** via **`ExamplesData`** (legacy):
 ```typescript
 const exampleMap = await this._examples([EphemeraId])
 const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
+// Wire form adds synthetic EXAMPLE#rendered child (to be removed in Phase 2)
 ```
+- **Features / Knowledge (target)**: Mirror Room -- **`renderCache.get`**, map to **`SituationRoomFacetPayload`**, set parent **`render`** on ephemera wire; DEFAULT-only selection for v1.
+- **Maps**: May still use example-related paths where applicable (out of F/K initiative scope).
 
 ## Integration Points
 

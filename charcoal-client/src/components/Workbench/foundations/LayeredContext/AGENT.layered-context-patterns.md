@@ -4,6 +4,8 @@
 
 **Scope**: Reusable pattern for "layer-like" sibling groups (primary use case: Examples under **Feature** and **Knowledge**). **Room** layered tabs use **Situation** facets and **Guidance** (`layeredContextUtils`), not **`Room.examples`** / Example membership. **New** room prose uses **Situation** facets and ephemera **`render`** (see [`packages/mtw-wml/ts/AGENT.md`](../../../../../../packages/mtw-wml/ts/AGENT.md)). The pattern should be generic enough to apply elsewhere (e.g. Lenses, Marks) if we add similar sibling-in-context editing.
 
+**Feature/Knowledge migration (v1):** F/K will **not** get SituationFacet layered tabs or non-DEFAULT situation lists in the first slice. Authoring moves to a **DEFAULT inline editor** only (generalized **`DefaultRenderEditor`**). Remove the F/K **Example** layered-tab path when Phase 3 lands; do **not** port Room's SituationFacet tab UI to F/K until consumption supports more than DEFAULT. Task plan: [`taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md`](../../../../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md).
+
 ---
 
 ## Proposed Patterns

@@ -52,12 +52,26 @@
   - `MarkFacet`: `{ reference: StandardReferenceData, payload: string }`
   - `ExitFacet`: `{ reference: StandardReferenceData, payload: string | undefined }`
 
+## Situation prose facets (Room, Feature, Knowledge)
+
+*Migration in progress for Feature/Knowledge.* Task plan: [`taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md`](../../../../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md).
+
+| Parent | Facet list (current / planned) | Payload | Notes |
+| --- | --- | --- | --- |
+| **Room** | **`SituationRoomFacetList`** ([`situationRoom.ts`](./situationRoom.ts)) | **`SituationRoomFacetPayload`** (DisplayName / Summary / Description) | Shipped; ephemera **`render`** uses same shape |
+| **Feature** | Planned: homogeneous list reusing room payload machinery | Same **`SituationRoomFacetPayload`** (**D2**) | v1: **`SITUATION#DEFAULT`** only |
+| **Knowledge** | Planned: same as Feature | Same triplet | v1 DEFAULT-only; per-perspective facets deferred (**D9**) |
+
+**Situation references:** Facets point at independent **`Situation`** components (marks live on Situation, not on the facet payload). Parents do not own referenced Situations (**D8**).
+
+**Not yet in repo:** `situationFeature.ts` / `situationKnowledge.ts` (or a shared alias list class). Phase 1 adds facet types and wires **`StandardFeature`** / **`StandardKnowledge`** **`situations`** fields.
+
 ## Integration Points
 
 - **Dependencies**: 
   - Composes `StandardReference` for target component reference
   - Payload types defined in `dataTypes/facet.ts` (no union type - each type is independent)
-  - Integrates with component system (Examples use Mark Facets)
+  - Integrates with component system (Examples use Mark Facets; Room/F/K use Situation prose facets)
 - **Cross-References**: 
   - [`../AGENT.md`](../AGENT.md) - Keys directory overview
   - [`../AGENT.referenceList.md`](../AGENT.referenceList.md) - ReferenceList patterns (similar structure)

@@ -21,14 +21,25 @@ When encountering **light snowfall** (a state not explicitly covered), the LLM c
 ## Current Implementation
 
 ### **Basic Example Storage**
-Currently, examples are stored as `StandardExample` components without state conditions:
-- **Parent components (blueprint):** **`Feature`** and **`Knowledge`** reference Examples via **`examples`** lists. **`StandardRoom`** JSON does **not** include **`examples`**; Room prose uses **Situation** facets and wire **`render`** (see [`packages/mtw-wml/ts/AGENT.md`](../../../../packages/mtw-wml/ts/AGENT.md)).
-- **Content**: Rich text descriptions using `RenderTree` format
-- **Storage**: Stored in `ephemeraDB` with `DataCategory: 'EXAMPLE#'`
+
+*Feature/Knowledge migration in progress.* Task plan: [`taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md`](../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md).
+
+**Current:**
+
+- **Feature / Knowledge (blueprint):** Reference child **`Example`** components via **`examples`** lists.
+- **Content:** Rich text on **`StandardExample`**; stored in `ephemeraDB` with `DataCategory: 'EXAMPLE#'`.
+- **`StandardRoom`** JSON does **not** include **`examples`**; Room prose uses **Situation** facets and wire **`render`**.
+
+**Target (Phase 2+):**
+
+- Feature/Knowledge prose moves to **`renderCache`** (same pipeline as Room); **`ExamplesData`** no longer used for F/K display prose in **`ComponentRender`**.
+- Asset-side updates flow through **`componentExamples`** parent **`situations`** branch with Situation ids.
 
 ### **Naive rendering vs Room**
-- **Room:** **`ComponentRender`** builds header prose from **`renderCache`** only for Room ids; it does **not** call **`ExamplesData`** for Room (see **[`componentRender.AGENT.md`](./componentRender.AGENT.md)**).
-- **Feature / Knowledge / Map (current):** **`ComponentRender`** may still use a **first-example** pattern via **`ExamplesData.get`** where applicable.
+- **Room:** **`ComponentRender`** builds header prose from **`renderCache`** only; does **not** call **`ExamplesData`** (see **[`componentRender.AGENT.md`](./componentRender.AGENT.md)**).
+- **Feature / Knowledge (current):** **`ComponentRender`** uses **first-example** via **`ExamplesData.get`** (matches today's DEFAULT-only consumption intent).
+- **Feature / Knowledge (target):** **`renderCache`** + **`render`** wire field; DEFAULT facet only in v1.
+- **Map:** May still use example-related paths where applicable.
 - No full state matching or intelligent selection yet; sufficient for integration, limited for narrative variety.
 
 ## Cache Key Format

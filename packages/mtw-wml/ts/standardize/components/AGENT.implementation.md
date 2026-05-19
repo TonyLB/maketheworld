@@ -105,16 +105,27 @@ Common combinations: A Room typically references and hosts its Features. A Room 
 - **fromSchema**: Uses the process-and-remainder pipeline. Consumers include ShortName, Exit, Lens, Feature, Situation (facet list), Guidance, Character, Position (no-op), Grant, DisplayName (no-ops for backward compatibility), plus **`Object`** and **`Render`** when **`ephemeraWire`**, then the inline Example ref consumer above. See [fromSchema: process-and-remainder pipeline](#fromschema-process-and-remainder-pipeline) below.
 
 ### **StandardFeature** 🟢
-- **Purpose**: Represents features with a short-name and example references
+
+*Migrating to Situation facets.* Task plan: [`taskPlanning/.../AGENT.featureKnowledgeExamples.planning.md`](../../../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md).
+
+| | Current | Target (v1) |
+| --- | --- | --- |
+| Prose storage | **`examples`** (`ReferenceList` of **Example**) | **`situations`** facet list; **`SituationRoomFacetPayload`**; DEFAULT only |
+| Wire | (none) | **`render`** on ephemera wire (mirror Room) |
+
+- **Purpose**: Represents features with a short-name and display prose (via Examples today; Situation facets when migrated)
 - **Content Properties**: `shortName` (`StandardLiteral`)
-- **Reference Properties**: `examples` (`ReferenceList`)
-- **fromSchema**: Uses the process-and-remainder pipeline (tags: `ShortName`, `Example`). Unknown child tags are rejected as unconsumed.
+- **Reference Properties (current)**: `examples` (`ReferenceList`)
+- **fromSchema (current)**: `ShortName`, `Example` consumers
 
 ### **StandardKnowledge** 🟢
-- **Purpose**: Represents knowledge items with a short-name and example references
+
+Same migration as **StandardFeature** (DEFAULT-only **`situations`**, shared payload, **`render`** wire).
+
+- **Purpose**: Represents knowledge items with a short-name and display prose
 - **Content Properties**: `shortName` (`StandardLiteral`)
-- **Reference Properties**: `examples` (`ReferenceList`)
-- **fromSchema**: Uses the process-and-remainder pipeline (tags: `ShortName`, `Example`). Unknown child tags are rejected as unconsumed.
+- **Reference Properties (current)**: `examples` (`ReferenceList`)
+- **fromSchema (current)**: `ShortName`, `Example` consumers
 
 ### **StandardMessage** 🟢
 - **Purpose**: Represents messages with optional short-name, description, and room references
