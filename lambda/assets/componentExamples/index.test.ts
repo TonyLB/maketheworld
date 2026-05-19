@@ -3,6 +3,8 @@ import { enrichExampleEvent } from './exampleEnrichment'
 import { ComponentExamplesIncomingEvent } from './subscribedEvents'
 import { StandardExample } from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
+import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
@@ -474,6 +476,221 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                     assetStack: ['ASSET#room1'],
                 }),
                 header: { type: 'ExampleUpdated' },
+            })
+        })
+
+        it('publishes ExampleUpdated for Feature updates by mirroring Situation facets', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            const mockStreamEnvelope = jest.fn().mockResolvedValue(undefined)
+
+            const featureId = 'FEATURE#one' as const
+            const situationId = 'SITUATION#DEFAULT' as const
+
+            const feature = new StandardFeature(deIndentWML(`
+                <Feature key=(feat) uuid=(FEATURE#one)>
+                    <Situation uuid=(DEFAULT)><DisplayName>Feature prose</DisplayName></Situation>
+                </Feature>
+            `))
+
+            const situation = new StandardSituation(deIndentWML(`
+                <Situation uuid=(DEFAULT) />
+            `))
+
+            const featureComponentData = {
+                ComponentId: featureId,
+                byAssets: [
+                    {
+                        AssetId: 'ASSET#feat1',
+                        component: feature as any,
+                    },
+                ],
+            }
+            const situationComponentData = {
+                ComponentId: situationId,
+                byAssets: [
+                    {
+                        AssetId: 'ASSET#situation1',
+                        component: situation as any,
+                    },
+                ],
+            }
+
+            mockInternalCache.ComponentData.get
+                .mockResolvedValueOnce([featureComponentData])
+                .mockResolvedValueOnce([situationComponentData])
+
+            const events: ComponentExamplesIncomingEvent[] = [
+                {
+                    header: {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#feat1',
+                        timestamp: 123,
+                        type: 'Component Updated',
+                    },
+                    getContent: () =>
+                        Promise.resolve({
+                            type: 'Component Updated',
+                            component: feature as any,
+                        } as any),
+                },
+            ]
+
+            await componentExamplesDataSource.receiveEvents?.({
+                events,
+                streamEvent: mockStreamEvent,
+                streamEnvelope: mockStreamEnvelope,
+            })
+
+            expect(mockInternalCache.ComponentData.get).toHaveBeenCalledTimes(2)
+            expect(mockStreamEvent).toHaveBeenCalledTimes(1)
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                streamKey: 'SITUATION#DEFAULT',
+                update: expect.objectContaining({
+                    type: 'ExampleUpdated',
+                    exampleId: 'SITUATION#DEFAULT',
+                    parentIds: ['FEATURE#one'],
+                    assetStack: ['ASSET#feat1'],
+                    example: expect.objectContaining({
+                        renderedContent: expect.objectContaining({
+                            displayName: ['Feature prose'],
+                        }),
+                    }),
+                }),
+                header: { type: 'ExampleUpdated' },
+            })
+        })
+
+        it('does not publish when Feature has empty situations', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            const mockStreamEnvelope = jest.fn().mockResolvedValue(undefined)
+
+            const featureId = 'FEATURE#empty' as const
+            const feature = new StandardFeature({
+                tag: 'Feature',
+                universalKey: featureId,
+                key: 'empty',
+            } as any)
+
+            mockInternalCache.ComponentData.get.mockResolvedValueOnce([
+                {
+                    ComponentId: featureId,
+                    byAssets: [
+                        {
+                            AssetId: 'ASSET#feat1',
+                            component: feature as any,
+                        },
+                    ],
+                },
+            ])
+
+            const events: ComponentExamplesIncomingEvent[] = [
+                {
+                    header: {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#feat1',
+                        timestamp: 123,
+                        type: 'Component Updated',
+                    },
+                    getContent: () =>
+                        Promise.resolve({
+                            type: 'Component Updated',
+                            component: feature as any,
+                        } as any),
+                },
+            ]
+
+            await componentExamplesDataSource.receiveEvents?.({
+                events,
+                streamEvent: mockStreamEvent,
+                streamEnvelope: mockStreamEnvelope,
+            })
+
+            expect(mockStreamEvent).not.toHaveBeenCalled()
+        })
+
+        it('publishes ExampleRemoved for Knowledge removal by mirroring Situation facets', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            const mockStreamEnvelope = jest.fn().mockResolvedValue(undefined)
+
+            const knowledgeId = 'KNOWLEDGE#one' as const
+            const situationId1 = 'SITUATION#s1' as const
+            const situationId2 = 'SITUATION#s2' as const
+
+            const knowledge = new StandardKnowledge({
+                tag: 'Knowledge',
+                universalKey: knowledgeId,
+                key: 'know',
+                situations: [
+                    {
+                        reference: { universalKey: situationId1 },
+                        payload: {} as any,
+                    } as any,
+                    {
+                        reference: { universalKey: situationId2 },
+                        payload: {} as any,
+                    } as any,
+                ],
+            } as any)
+
+            const knowledgeComponentData = {
+                ComponentId: knowledgeId,
+                byAssets: [
+                    {
+                        AssetId: 'ASSET#know1',
+                        component: knowledge as any,
+                    },
+                ],
+            }
+
+            mockInternalCache.ComponentData.get
+                .mockResolvedValueOnce([knowledgeComponentData])
+                .mockResolvedValueOnce([
+                    { ComponentId: situationId1, byAssets: [] },
+                    { ComponentId: situationId2, byAssets: [] },
+                ])
+
+            const events: ComponentExamplesIncomingEvent[] = [
+                {
+                    header: {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#know1',
+                        timestamp: 123,
+                        type: 'Component Removed',
+                    },
+                    getContent: () =>
+                        Promise.resolve({
+                            type: 'Component Removed',
+                            component: knowledge as any,
+                        } as any),
+                },
+            ]
+
+            await componentExamplesDataSource.receiveEvents?.({
+                events,
+                streamEvent: mockStreamEvent,
+                streamEnvelope: mockStreamEnvelope,
+            })
+
+            expect(mockStreamEvent).toHaveBeenCalledTimes(2)
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                streamKey: 'SITUATION#s1',
+                update: expect.objectContaining({
+                    type: 'ExampleRemoved',
+                    exampleId: 'SITUATION#s1',
+                    parentIds: ['KNOWLEDGE#one'],
+                    assetStack: ['ASSET#know1'],
+                }),
+                header: { type: 'ExampleRemoved' },
+            })
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                streamKey: 'SITUATION#s2',
+                update: expect.objectContaining({
+                    type: 'ExampleRemoved',
+                    exampleId: 'SITUATION#s2',
+                    parentIds: ['KNOWLEDGE#one'],
+                    assetStack: ['ASSET#know1'],
+                }),
+                header: { type: 'ExampleRemoved' },
             })
         })
     })

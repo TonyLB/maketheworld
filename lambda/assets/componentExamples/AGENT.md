@@ -25,18 +25,18 @@ Implemented in **[`exampleAssociatedFilter.ts`](./exampleAssociatedFilter.ts)**:
 
 Room events never call **`enrichExampleEvent`** (Example-component path).
 
-## Feature / Knowledge (current vs target)
+## Feature / Knowledge
 
-**Current:**
+**Parent branch (shipped 2026-05-18):**
 
-- F/K **Component Updated** on the parent does **not** enter the Room branch; only standalone **`Example`** component updates pass the filter and call **`enrichExampleEvent`**.
-- **`getExamplesReferenceList`** / **`getParentIdsForExample`** scan F/K **`examples`** reference lists.
+- Early branch in **`index.ts`** (shared **`emitParentSituationFacetEvents`**) for **`tag === 'Feature'`** / **`Knowledge`** before **`isExampleAssociatedComponent`**, same as Room.
+- On **Component Updated** / **Removed** with non-empty **`situations`**, emits **ExampleUpdated** / **ExampleRemoved** per facet; **`exampleId`** = Situation uuid; payload via **`situationFacetToCacheShape`** (no lens marks on F/K).
+- Perspective matcher: **`computePerspectiveMatcherForParentSituation`** in **`exampleEnrichment.ts`**.
 
-**Target (Phase 2):**
+**Still Phase 2 (not this slice):**
 
-- Add a parent **Updated** / **Removed** branch for Feature/Knowledge parallel to Room (lines 54-157 pattern in **`index.ts`**).
-- Gate filter on **`situations.items.length`** instead of **`examples.payload`**.
-- Use **`situationFacetToCacheShape`** with facet payload from the parent; **`exampleId`** = Situation uuid.
+- **`exampleAssociatedFilter`** still gates F/K on legacy **`examples.payload`** (parent branch bypasses the filter, like Room).
+- **`getExamplesReferenceList`** / **`getParentIdsForExample`** still scan F/K **`examples`** for standalone **Example** component events.
 - Retire standalone Example-component discovery for F/K prose once facets own display content (Phase 4).
 
 ## Parent discovery (`enrichExampleEvent`)

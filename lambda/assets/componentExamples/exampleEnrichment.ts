@@ -11,7 +11,10 @@ import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import { StandardMarkFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/mark'
-import { StandardSituationRoomFacet, SituationRoomFacetPayload } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
+import {
+    SituationProseFacetPayload,
+    StandardSituationProseFacet,
+} from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import { StandardEditableData, extractFromEditableData } from '@tonylb/mtw-base/ts/editable'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
@@ -148,11 +151,10 @@ export const getOrderedAssetStack = (
 }
 
 const getExamplesReferenceList = (component: StandardComponent): ReferenceList | undefined => {
-    if (component instanceof StandardFeature) {
-        return component.examples
-    }
-    if (component instanceof StandardKnowledge) {
-        return component.examples
+    // Feature/Knowledge dropped examples in Phase 1; parent prose uses situations facets.
+    // Standalone Example parent discovery via situations is Phase 2 line 233.
+    if (component instanceof StandardFeature || component instanceof StandardKnowledge) {
+        return undefined
     }
     return undefined
 }
@@ -381,7 +383,7 @@ export type SituationFacetToCacheShapeOptions = {
  */
 export const situationFacetToCacheShape = (
     situation: StandardSituation,
-    facetPayload: SituationRoomFacetPayload,
+    facetPayload: SituationProseFacetPayload,
     options?: SituationFacetToCacheShapeOptions
 ): ComponentExamplesPayload => {
     const situationMarkValues = new Map<string, string>()
@@ -483,20 +485,64 @@ export const enrichExampleEvent = async (params: {
 }
 
 //
-// Perspective matcher for Room + Situation (Phase 5.7).
-// Structural test: Room has facet for this situationId; Situation has marks.
+// Perspective matcher for parent + Situation (Room, Feature, Knowledge).
+// Structural test: parent has facet for this situationId; Situation has marks.
 //
+
+export type ParentWithSituationFacets = StandardRoom | StandardFeature | StandardKnowledge
+
+export const parentHasFacetForSituation = (
+    parent: ParentWithSituationFacets | undefined,
+    situationId: ComponentUUID
+): boolean =>
+    (parent?.situations?.items?.some(
+        (f) => (f as StandardSituationProseFacet).reference?.universalKey === situationId
+    )) === true
 
 export const roomHasFacetForSituation = (
     room: StandardRoom | undefined,
     situationId: ComponentUUID
-): boolean =>
-    (room?.situations?.items?.some(
-        (f) => (f as StandardSituationRoomFacet).reference?.universalKey === situationId
-    )) === true
+): boolean => parentHasFacetForSituation(room, situationId)
 
 export const situationHasMarks = (situation: StandardSituation | undefined): boolean =>
     (situation?.marks?.length ?? 0) > 0
+
+export type ComputePerspectiveMatcherForParentSituationParams = {
+    parentId: ComponentUUID;
+    situationId: ComponentUUID;
+    assetStack: AssetUUID[];
+    parentByAssets: ComponentDataByAsset;
+    situationByAssets: ComponentDataByAsset;
+}
+
+export const computePerspectiveMatcherForParentSituation = ({
+    parentId: _parentId,
+    situationId,
+    assetStack,
+    parentByAssets,
+    situationByAssets,
+}: ComputePerspectiveMatcherForParentSituationParams): PerspectiveMatcher => {
+    const stackSet = new Set(assetStack)
+    const requiredAssetIds: AssetUUID[] = assetStack.filter((assetId) => {
+        const parentEntry = parentByAssets.find((a) => a.AssetId === assetId)
+        const situationEntry = situationByAssets.find((a) => a.AssetId === assetId)
+        const parent = parentEntry?.component as ParentWithSituationFacets | undefined
+        const situation = situationEntry?.component as StandardSituation | undefined
+        return parentHasFacetForSituation(parent, situationId) || situationHasMarks(situation)
+    })
+    const allAssetIds = new Set<AssetUUID>(
+        parentByAssets.map((a) => a.AssetId).concat(situationByAssets.map((a) => a.AssetId))
+    )
+    const candidates = [...allAssetIds].filter((id) => !stackSet.has(id))
+    const forbiddenAssetIds: AssetUUID[] = candidates.filter((assetId) => {
+        const parentEntry = parentByAssets.find((a) => a.AssetId === assetId)
+        const situationEntry = situationByAssets.find((a) => a.AssetId === assetId)
+        const parent = parentEntry?.component as ParentWithSituationFacets | undefined
+        const situation = situationEntry?.component as StandardSituation | undefined
+        return parentHasFacetForSituation(parent, situationId) || situationHasMarks(situation)
+    })
+    return { requiredAssetIds, forbiddenAssetIds }
+}
 
 export type ComputePerspectiveMatcherForRoomSituationParams = {
     roomId: ComponentUUID;
@@ -506,32 +552,14 @@ export type ComputePerspectiveMatcherForRoomSituationParams = {
     situationByAssets: ComponentDataByAsset;
 }
 
-export const computePerspectiveMatcherForRoomSituation = ({
-    roomId,
-    situationId,
-    assetStack,
-    roomByAssets,
-    situationByAssets,
-}: ComputePerspectiveMatcherForRoomSituationParams): PerspectiveMatcher => {
-    const stackSet = new Set(assetStack)
-    const requiredAssetIds: AssetUUID[] = assetStack.filter((assetId) => {
-        const roomEntry = roomByAssets.find((a) => a.AssetId === assetId)
-        const situationEntry = situationByAssets.find((a) => a.AssetId === assetId)
-        const room = roomEntry?.component as StandardRoom | undefined
-        const situation = situationEntry?.component as StandardSituation | undefined
-        return roomHasFacetForSituation(room, situationId) || situationHasMarks(situation)
+export const computePerspectiveMatcherForRoomSituation = (
+    params: ComputePerspectiveMatcherForRoomSituationParams
+): PerspectiveMatcher =>
+    computePerspectiveMatcherForParentSituation({
+        parentId: params.roomId,
+        situationId: params.situationId,
+        assetStack: params.assetStack,
+        parentByAssets: params.roomByAssets,
+        situationByAssets: params.situationByAssets,
     })
-    const allAssetIds = new Set<AssetUUID>(
-        roomByAssets.map((a) => a.AssetId).concat(situationByAssets.map((a) => a.AssetId))
-    )
-    const candidates = [...allAssetIds].filter((id) => !stackSet.has(id))
-    const forbiddenAssetIds: AssetUUID[] = candidates.filter((assetId) => {
-        const roomEntry = roomByAssets.find((a) => a.AssetId === assetId)
-        const situationEntry = situationByAssets.find((a) => a.AssetId === assetId)
-        const room = roomEntry?.component as StandardRoom | undefined
-        const situation = situationEntry?.component as StandardSituation | undefined
-        return roomHasFacetForSituation(room, situationId) || situationHasMarks(situation)
-    })
-    return { requiredAssetIds, forbiddenAssetIds }
-}
 

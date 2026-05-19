@@ -8,6 +8,7 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import {
+    computePerspectiveMatcherForParentSituation,
     computePerspectiveMatcherForRoomSituation,
     enrichExampleEvent,
     exampleToCacheShape,
@@ -83,7 +84,7 @@ describe('exampleEnrichment helpers', () => {
         expect(payload.provenance.type).toBe('authored')
     })
 
-    it('should not treat Room as Example parent but keep Feature and Knowledge parentIds in enrichExampleEvent', async () => {
+    it('should not treat Room as Example parent in enrichExampleEvent', async () => {
         const exampleId = 'EXAMPLE#one' as const
         const eventAssetId = 'ASSET#asset1' as const
 
@@ -101,15 +102,15 @@ describe('exampleEnrichment helpers', () => {
         const feature = new StandardFeature({
             tag: 'Feature',
             universalKey: 'FEATURE#one',
-            examples: [
-                { universalKey: exampleId, key: 'exampleRef', tag: 'Example' } as any,
+            situations: [
+                { reference: 'SITUATION#DEFAULT', payload: { displayName: 'Feature prose' } },
             ],
         } as any)
         const knowledge = new StandardKnowledge({
             tag: 'Knowledge',
             universalKey: 'KNOWLEDGE#one',
-            examples: [
-                { universalKey: exampleId, key: 'exampleRef', tag: 'Example' } as any,
+            situations: [
+                { reference: 'SITUATION#DEFAULT', payload: { displayName: 'Knowledge prose' } },
             ],
         } as any)
 
@@ -153,7 +154,8 @@ describe('exampleEnrichment helpers', () => {
 
         expect(result.exampleId).toBe(exampleId)
         expect(result.assetStack).toEqual([eventAssetId])
-        expect(result.parentIds).toEqual(expect.arrayContaining(['FEATURE#one', 'KNOWLEDGE#one']))
+        // F/K no longer expose examples refs; parent discovery via situations is Phase 2 line 233.
+        expect(result.parentIds).toEqual([])
         expect(result.parentIds).not.toContain('ROOM#one')
         expect(result.example).toBeDefined()
         expect(result.example?.renderedContent.description.length).toBeGreaterThan(0)
@@ -319,6 +321,31 @@ describe('exampleEnrichment helpers', () => {
         it('situationHasMarks returns false when situation has no marks', () => {
             const situation = new StandardSituation({ tag: 'Situation', universalKey: 'SITUATION#s1' } as any)
             expect(situationHasMarks(situation)).toBe(false)
+        })
+
+        it('computePerspectiveMatcherForParentSituation returns required and forbidden for Feature parent', () => {
+            const featureWithFacet = {
+                situations: { items: [{ reference: { universalKey: 'SITUATION#s1' } }] },
+            } as unknown as StandardFeature
+            const situationWithMarks = { marks: { length: 1 } } as unknown as StandardSituation
+            const parentByAssets = [
+                { AssetId: 'ASSET#a' as const, component: new StandardFeature({ tag: 'Feature', universalKey: 'FEATURE#one' } as any) },
+                { AssetId: 'ASSET#b' as const, component: featureWithFacet },
+            ]
+            const situationByAssets = [
+                { AssetId: 'ASSET#a' as const, component: new StandardSituation({ tag: 'Situation', universalKey: 'SITUATION#s1' } as any) },
+                { AssetId: 'ASSET#b' as const, component: situationWithMarks },
+            ]
+            const matcher = computePerspectiveMatcherForParentSituation({
+                parentId: 'FEATURE#one',
+                situationId: 'SITUATION#s1',
+                assetStack: ['ASSET#a', 'ASSET#b'],
+                parentByAssets,
+                situationByAssets,
+            })
+            expect(matcher.requiredAssetIds).toContain('ASSET#b')
+            expect(matcher.requiredAssetIds).not.toContain('ASSET#a')
+            expect(matcher.forbiddenAssetIds).toEqual([])
         })
 
         it('computePerspectiveMatcherForRoomSituation returns required and forbidden', () => {

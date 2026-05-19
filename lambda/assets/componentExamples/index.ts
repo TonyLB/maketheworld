@@ -2,8 +2,8 @@
 // Non-replayable DataSource for mtw.assets.componentExamples
 //
 // Subscribes to mtw.assets Component Updated / Component Removed and publishes
-// Example-lifecycle events for Example-associated components (Example, Feature, Knowledge per
-// exampleAssociatedFilter) plus Room Situation-facet mirror events.
+// Example-lifecycle events for Example-associated components (Example per exampleAssociatedFilter)
+// plus Room/Feature/Knowledge Situation-facet mirror events on parent Updated/Removed.
 // "Example" in event names is legacy.
 //
 import { AssetsDataSource } from '../dataSource/abstract'
@@ -14,24 +14,148 @@ import {
     isComponentExamplesSubscribedEnvelope,
 } from './subscribedEvents'
 import {
-    computePerspectiveMatcherForRoomSituation,
+    computePerspectiveMatcherForParentSituation,
     enrichExampleEvent,
     getOrderedAssetStack,
     mergeLensAcrossStack,
     mergeRoomAcrossStack,
+    ParentWithSituationFacets,
     situationFacetToCacheShape,
 } from './exampleEnrichment'
 import { getLensMarksWithDefaults } from '@tonylb/mtw-wml/ts/standardize/worldState/lensMarks'
 import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../internalCache'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
+import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
-import { StandardSituationRoomFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
+import { StandardSituationProseFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import {
     ComponentExamplesEventUpdate,
     ExampleRemoved,
     ExampleUpdated,
 } from './events'
+
+type StreamEventFn = (params: {
+    update: ComponentExamplesEventUpdate;
+    streamKey: string;
+    header: { type: 'ExampleRemoved' | 'ExampleUpdated' };
+}) => Promise<void>
+
+const emitParentSituationFacetEvents = async (params: {
+    parent: ParentWithSituationFacets;
+    parentId: ComponentUUID;
+    assetId: AssetUUID;
+    eventType: string;
+    streamEvent: StreamEventFn;
+    includeLensMarks: boolean;
+}): Promise<void> => {
+    const { parent, parentId, assetId, eventType, streamEvent, includeLensMarks } = params
+
+    const [parentData] = await internalCache.ComponentData.get([parentId as EphemeraId])
+    const byAssets = parentData?.byAssets ?? []
+    // Use content-mode parent from cache for this asset when available (post-write state),
+    // so we publish full render payloads instead of edit fragments from the diff.
+    const contentParent = byAssets.find((a) => a.AssetId === assetId)?.component as ParentWithSituationFacets | undefined
+    const parentForPayload = contentParent ?? parent
+    const assetStack = getOrderedAssetStack(parentId, assetId, byAssets)
+
+    let lensMarksWithDefaults = undefined as
+        | ReturnType<typeof getLensMarksWithDefaults>
+        | undefined
+
+    if (includeLensMarks && parent instanceof StandardRoom) {
+        const roomForLens = parentForPayload as StandardRoom
+        const mergedRoom = mergeRoomAcrossStack(byAssets, assetStack) ?? roomForLens
+        const lensRef = mergedRoom.lens?.payload?.[0]
+        const lensId = lensRef?.universalKey as ComponentUUID | undefined
+
+        if (lensId) {
+            const [lensData] = await internalCache.ComponentData.get([lensId as EphemeraId])
+            const lensByAssets = lensData?.byAssets ?? []
+            if (lensByAssets.length) {
+                const eventLensAssetId = lensByAssets[lensByAssets.length - 1]?.AssetId as AssetUUID
+                const lensAssetStack = getOrderedAssetStack(lensId, eventLensAssetId, lensByAssets)
+                const mergedLens = mergeLensAcrossStack(lensByAssets, lensAssetStack)
+                if (mergedLens) {
+                    lensMarksWithDefaults = getLensMarksWithDefaults(mergedLens)
+                }
+            }
+        }
+    }
+
+    const situationsListForPayload = parentForPayload.situations?.items ?? []
+    if (situationsListForPayload.length === 0) {
+        return
+    }
+    const situationIds = situationsListForPayload.map(
+        (f) => (f as StandardSituationProseFacet).reference.universalKey
+    )
+    const situationCaches = await internalCache.ComponentData.get(situationIds as EphemeraId[])
+
+    if (eventType === 'Component Removed') {
+        for (let idx = 0; idx < situationIds.length; idx++) {
+            const situationId = situationIds[idx]
+            if (!situationId) continue
+            const situationCache = situationCaches[idx]
+            const perspectiveMatcher = computePerspectiveMatcherForParentSituation({
+                parentId,
+                situationId: situationId as ComponentUUID,
+                assetStack,
+                parentByAssets: byAssets,
+                situationByAssets: situationCache?.byAssets ?? [],
+            })
+            await streamEvent({
+                update: {
+                    type: 'ExampleRemoved',
+                    exampleId: situationId as ComponentUUID,
+                    parentIds: [parentId],
+                    assetStack,
+                    perspectiveMatcher,
+                },
+                streamKey: situationId,
+                header: { type: 'ExampleRemoved' },
+            })
+        }
+        return
+    }
+
+    for (let i = 0; i < situationsListForPayload.length; i++) {
+        const facet = situationsListForPayload[i] as StandardSituationProseFacet
+        const situationId = facet.reference.universalKey as ComponentUUID
+        const cache = situationCaches[i]
+        const situationComponent = cache?.byAssets?.find(
+            (a) => a.component instanceof StandardSituation
+        )?.component as StandardSituation | undefined
+        if (!situationComponent) {
+            continue
+        }
+        const perspectiveMatcher = computePerspectiveMatcherForParentSituation({
+            parentId,
+            situationId,
+            assetStack,
+            parentByAssets: byAssets,
+            situationByAssets: cache?.byAssets ?? [],
+        })
+        const examplePayload = situationFacetToCacheShape(
+            situationComponent,
+            facet.payload,
+            lensMarksWithDefaults ? { lensMarks: lensMarksWithDefaults } : undefined
+        )
+        await streamEvent({
+            update: {
+                type: 'ExampleUpdated',
+                exampleId: situationId,
+                parentIds: [parentId],
+                assetStack,
+                perspectiveMatcher,
+                example: examplePayload,
+            },
+            streamKey: situationId,
+            header: { type: 'ExampleUpdated' },
+        })
+    }
+}
 
 export const componentExamplesDataSource = new AssetsDataSource<
     never,
@@ -51,109 +175,32 @@ export const componentExamplesDataSource = new AssetsDataSource<
                 const assetId = event.header.streamKey as AssetUUID
                 const eventType = event.header.type
 
-                // Room with situations: emit one event per situation facet (exampleId = situation uuid).
+                // Room / Feature / Knowledge with situations: emit one event per situation facet (exampleId = situation uuid).
                 if (content.component.tag === 'Room') {
                     const room = content.component as StandardRoom
                     const roomId = room.universalKey as ComponentUUID
-                    const [roomData] = await internalCache.ComponentData.get([roomId as EphemeraId])
-                    const byAssets = roomData?.byAssets ?? []
-                    // Use content-mode Room from cache for this asset when available (post-write state),
-                    // so we publish full render payloads instead of edit fragments from the diff.
-                    const contentRoom = byAssets.find((a) => a.AssetId === assetId)?.component as StandardRoom | undefined
-                    const roomForPayload = contentRoom ?? room
-                    const assetStack = getOrderedAssetStack(roomId, assetId, byAssets)
+                    await emitParentSituationFacetEvents({
+                        parent: room,
+                        parentId: roomId,
+                        assetId,
+                        eventType,
+                        streamEvent,
+                        includeLensMarks: true,
+                    })
+                    return
+                }
 
-                    const mergedRoom = mergeRoomAcrossStack(byAssets, assetStack) ?? roomForPayload
-                    const lensRef = mergedRoom?.lens?.payload?.[0]
-                    const lensId = lensRef?.universalKey as ComponentUUID | undefined
-                    let lensMarksWithDefaults = undefined as
-                        | ReturnType<typeof getLensMarksWithDefaults>
-                        | undefined
-
-                    if (lensId) {
-                        const [lensData] = await internalCache.ComponentData.get([lensId as EphemeraId])
-                        const lensByAssets = lensData?.byAssets ?? []
-                        if (lensByAssets.length) {
-                            const eventLensAssetId = lensByAssets[lensByAssets.length - 1]?.AssetId as AssetUUID
-                            const lensAssetStack = getOrderedAssetStack(lensId, eventLensAssetId, lensByAssets)
-                            const mergedLens = mergeLensAcrossStack(lensByAssets, lensAssetStack)
-                            if (mergedLens) {
-                                lensMarksWithDefaults = getLensMarksWithDefaults(mergedLens)
-                            }
-                        }
-                    }
-
-                    const situationsListForPayload = roomForPayload.situations?.items ?? []
-                    if (situationsListForPayload.length === 0) {
-                        return
-                    }
-                    const situationIds = situationsListForPayload.map(
-                        (f) => (f as StandardSituationRoomFacet).reference.universalKey
-                    )
-                    const situationCaches = await internalCache.ComponentData.get(situationIds as EphemeraId[])
-
-                    if (eventType === 'Component Removed') {
-                        for (let idx = 0; idx < situationIds.length; idx++) {
-                            const situationId = situationIds[idx]
-                            if (!situationId) continue
-                            const situationCache = situationCaches[idx]
-                            const perspectiveMatcher = computePerspectiveMatcherForRoomSituation({
-                                roomId,
-                                situationId: situationId as ComponentUUID,
-                                assetStack,
-                                roomByAssets: byAssets,
-                                situationByAssets: situationCache?.byAssets ?? [],
-                            })
-                            await streamEvent({
-                                update: {
-                                    type: 'ExampleRemoved',
-                                    exampleId: situationId as ComponentUUID,
-                                    parentIds: [roomId],
-                                    assetStack,
-                                    perspectiveMatcher,
-                                },
-                                streamKey: situationId,
-                                header: { type: 'ExampleRemoved' },
-                            })
-                        }
-                        return
-                    }
-
-                    for (let i = 0; i < situationsListForPayload.length; i++) {
-                        const facet = situationsListForPayload[i] as StandardSituationRoomFacet
-                        const situationId = facet.reference.universalKey as ComponentUUID
-                        const cache = situationCaches[i]
-                        const situationComponent = cache?.byAssets?.find(
-                            (a) => a.component instanceof StandardSituation
-                        )?.component as StandardSituation | undefined
-                        if (!situationComponent) {
-                            continue
-                        }
-                        const perspectiveMatcher = computePerspectiveMatcherForRoomSituation({
-                            roomId,
-                            situationId,
-                            assetStack,
-                            roomByAssets: byAssets,
-                            situationByAssets: cache?.byAssets ?? [],
-                        })
-                        const examplePayload = situationFacetToCacheShape(
-                            situationComponent,
-                            facet.payload,
-                            lensMarksWithDefaults ? { lensMarks: lensMarksWithDefaults } : undefined
-                        )
-                        await streamEvent({
-                            update: {
-                                type: 'ExampleUpdated',
-                                exampleId: situationId,
-                                parentIds: [roomId],
-                                assetStack,
-                                perspectiveMatcher,
-                                example: examplePayload,
-                            },
-                            streamKey: situationId,
-                            header: { type: 'ExampleUpdated' },
-                        })
-                    }
+                if (content.component.tag === 'Feature' || content.component.tag === 'Knowledge') {
+                    const parent = content.component as StandardFeature | StandardKnowledge
+                    const parentId = parent.universalKey as ComponentUUID
+                    await emitParentSituationFacetEvents({
+                        parent,
+                        parentId,
+                        assetId,
+                        eventType,
+                        streamEvent,
+                        includeLensMarks: false,
+                    })
                     return
                 }
 
