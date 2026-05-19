@@ -1,6 +1,6 @@
 # Feature and Knowledge: Situation facets and Example retirement
 
-**Status:** Phase 0 complete (2026-05-18). Phase 1 may proceed. **Pre-flight decisions confirmed** (see [Decisions](#decisions)). Room **`examples`** removal is **complete**. This initiative migrates **`StandardFeature`** and **`StandardKnowledge`** to situation facets + ephemera **`render`**, then retires **`<Example>`**. **No production data migration:** extant database has no Feature/Knowledge/Example content to convert.
+**Status:** Phase 0 complete (2026-05-18). Phase 1 WML storage complete (2026-05-18). Phase 2 may proceed. **Pre-flight decisions confirmed** (see [Decisions](#decisions)). Room **`examples`** removal is **complete**. This initiative migrates **`StandardFeature`** and **`StandardKnowledge`** to situation facets + ephemera **`render`**, then retires **`<Example>`**. **No production data migration:** extant database has no Feature/Knowledge/Example content to convert.
 
 This file is task-scoped and temporary. See [`taskPlanning/AGENT.md`](../../../AGENT.md) for task-plan conventions.
 
@@ -13,7 +13,7 @@ This file is task-scoped and temporary. See [`taskPlanning/AGENT.md`](../../../A
 1. **World-state slice** (Mark facets on the Example component)
 2. **Parent-specific prose** (DisplayName / Summary / Description on the Example)
 
-**Room** already split these: **`Situation`** holds marks only; **`Room.situations`** (`SituationRoomFacetList`) holds prose keyed by Situation reference. **Feature** and **Knowledge** still use **`examples: ReferenceList`** pointing at child **`StandardExample`** components.
+**Room** already split these: **`Situation`** holds marks only; **`Room.situations`** (`SituationProseFacetList`) holds prose keyed by Situation reference. **Feature** and **Knowledge** now use the same **`situations`** facet pattern (Phase 1, 2026-05-18); lambdas and client still reference legacy **`examples`** until Phases 2-3.
 
 ### Target (steady state)
 
@@ -86,13 +86,13 @@ Today Feature/Knowledge perception builds a **`StandardForm`** with a fake **`EX
 
 | Component | `examples` | `situations` | Notes |
 | --- | --- | --- | --- |
-| **Room** | No serialized field; legacy inline **`ref={0}`** Example only for merge/subset | **`SituationRoomFacetList`** | Wire prose via **`render`** / **`<Render>`** (`ephemeraWire`). Tests use **`<Situation uuid=(DEFAULT)>`**. |
-| **Feature** | **`ReferenceList`** of **Example** | *Not implemented* | [`feature.ts`](../../../../packages/mtw-wml/ts/standardize/components/feature.ts) |
-| **Knowledge** | **`ReferenceList`** of **Example** | *Not implemented* | [`knowledge.ts`](../../../../packages/mtw-wml/ts/standardize/components/knowledge.ts) |
+| **Room** | No serialized field; legacy inline **`ref={0}`** Example only for merge/subset | **`SituationProseFacetList`** | Wire prose via **`render`** / **`<Render>`** (`ephemeraWire`). Tests use **`<Situation uuid=(DEFAULT)>`**. |
+| **Feature** | *Removed (Phase 1)* | **`SituationProseFacetList`** | [`feature.ts`](../../../../packages/mtw-wml/ts/standardize/components/feature.ts); **D6** no Example dual-read |
+| **Knowledge** | *Removed (Phase 1)* | **`SituationProseFacetList`** | [`knowledge.ts`](../../../../packages/mtw-wml/ts/standardize/components/knowledge.ts); shared payload in [`situationRoom.ts`](../../../../packages/mtw-wml/ts/standardize/keys/facets/situationRoom.ts) |
 | **Situation** | N/A | N/A | Marks-only component ([`situation.ts`](../../../../packages/mtw-wml/ts/standardize/components/situation.ts)) |
-| **Example** | N/A | N/A | Still first-class ([`example.ts`](../../../../packages/mtw-wml/ts/standardize/components/example.ts)) |
+| **Example** | N/A | N/A | Still first-class for marks ([`example.ts`](../../../../packages/mtw-wml/ts/standardize/components/example.ts)); not F/K prose parent |
 
-**No** `situationFeature.ts` / `situationKnowledge.ts` facet modules exist yet; follow [`situationRoom.ts`](../../../../packages/mtw-wml/ts/standardize/keys/facets/situationRoom.ts) and Room **`fromSchema`** consumers as templates.
+**Naming:** Canonical types are **`SituationProseFacet*`**; **`SituationRoomFacet*`** names are deprecated aliases in [`situationRoom.ts`](../../../../packages/mtw-wml/ts/standardize/keys/facets/situationRoom.ts).
 
 ### Assets lambda (`lambda/assets/componentExamples`)
 
@@ -143,7 +143,7 @@ Reuse **`SituationFacetRenderFieldsEditor`** and a generalized **`DefaultRenderE
 | Phase | Goal | Status | Notes |
 | --- | --- | --- | --- |
 | 0 | Code inventory and baseline | Complete (2026-05-18) | Call sites confirmed; baseline greps recorded below |
-| 1 | WML: facet types + Feature/Knowledge `situations` | Pending | **D2** shared payload; **no** Example dual-read (**D6**) |
+| 1 | WML: facet types + Feature/Knowledge `situations` | Complete (2026-05-18) | **`SituationProseFacet*`**; **D6** no Example dual-read under F/K |
 | 2 | Assets + ephemera: facet-driven cache for F/K | Pending | **D1** render + renderCache; parent **Updated** branch |
 | 3 | Client: DEFAULT editor + playing UI | Pending | **D5** inline DEFAULT only; **D1** **`ComponentDescription`** |
 | 4 | Remove **`<Example>`** from product surface | Pending | Schema/editors/factory cleanup; tests updated; **D3/D4 N/A** |
@@ -191,22 +191,23 @@ Phase 0 walk of seed rows plus related files. **Confirmed** summarizes current b
 
 | Location | Confirmed (current) | Target | Phase |
 | --- | --- | --- | --- |
-| [`feature.ts`](../../../../packages/mtw-wml/ts/standardize/components/feature.ts), [`knowledge.ts`](../../../../packages/mtw-wml/ts/standardize/components/knowledge.ts) | **`_examples`** / serialized **`examples`**; no **`situations`**, no **`render`** | **`situations`** facet list; **`toJSON`** emits **`situations`** not **`examples`** (**D6**) | 1 |
-| [`situationRoom.ts`](../../../../packages/mtw-wml/ts/standardize/keys/facets/situationRoom.ts) | **`SituationRoomFacetPayload`** (Room); template for **D2** shared triplet | Reuse payload for F/K facet lists (new modules TBD) | 1 |
-| [`example.ts`](../../../../packages/mtw-wml/ts/standardize/components/example.ts), [`componentFactory.ts`](../../../../packages/mtw-wml/ts/standardize/componentFactory.ts) | Example still first-class | Retire from product surface Phase 4 | 4 |
-| [`feature.test.ts`](../../../../packages/mtw-wml/ts/standardize/components/feature.test.ts), [`knowledge.test.ts`](../../../../packages/mtw-wml/ts/standardize/components/knowledge.test.ts) | 28 **`.examples`** hits each (56 total) | DEFAULT **`<Situation uuid=(DEFAULT)>`** fixtures | 1+ |
+| [`feature.ts`](../../../../packages/mtw-wml/ts/standardize/components/feature.ts), [`knowledge.ts`](../../../../packages/mtw-wml/ts/standardize/components/knowledge.ts) | **`situations`** (**`SituationProseFacetList`**); no **`examples`**; no **`render`** on payload yet | Ephemera **`render`** wire (Phase 2) | 2 |
+| [`situationRoom.ts`](../../../../packages/mtw-wml/ts/standardize/keys/facets/situationRoom.ts) | **`SituationProseFacet*`** shared by Room, Feature, Knowledge | Deprecated **`SituationRoomFacet*`** aliases for client/lambda imports | 1 (done) |
+| [`example.ts`](../../../../packages/mtw-wml/ts/standardize/components/example.ts), [`componentFactory.ts`](../../../../packages/mtw-wml/ts/standardize/componentFactory.ts) | Example still first-class (marks) | Retire from product surface Phase 4 | 4 |
+| [`feature.test.ts`](../../../../packages/mtw-wml/ts/standardize/components/feature.test.ts), [`knowledge.test.ts`](../../../../packages/mtw-wml/ts/standardize/components/knowledge.test.ts) | **`situations`** fixtures; **0** **`.examples`** | Maintain with Phase 2+ changes | 1 (done) |
 
 ## Phase 0 baseline (2026-05-18)
 
 Recorded before Phase 1. Re-run [Verification](#verification) after each phase; counts should shrink for F/K **`examples`** patterns.
 
-| Check | Baseline hits |
-| --- | --- |
-| `\.examples\b\|examples:` in `feature.ts` + `knowledge.ts` | **28** (14 each) |
-| `\.examples\b` in `packages/mtw-wml` `*.test.ts` | **56** (`feature.test.ts` 28 + `knowledge.test.ts` 28 only) |
-| `examples.payload\|_examples\|StandardExample` in `lambda/assets`, `lambda/ephemera`, `charcoal-client` (exclude `*.test.*`) | **52** (assets 12, ephemera 9, client 31) |
-| `examples:` in `room.ts` + `dataTypes/room.ts` | **0** (regression guard) |
-| `npx tsc -p packages/mtw-wml/tsconfig.json --noEmit` | **pass** |
+| Check | Baseline (pre-Phase 1) | Post-Phase 1 (2026-05-18) |
+| --- | --- | --- |
+| `\.examples\b\|examples:` in `feature.ts` + `knowledge.ts` | **28** (14 each) | **0** |
+| `\.examples\b` in `packages/mtw-wml` `*.test.ts` | **56** (`feature.test.ts` 28 + `knowledge.test.ts` 28) | **0** |
+| `examples.payload\|_examples\|StandardExample` in `lambda/assets`, `lambda/ephemera`, `charcoal-client` (exclude `*.test.*`) | **52** (assets 12, ephemera 9, client 31) | unchanged (Phase 2-3) |
+| `examples:` in `room.ts` + `dataTypes/room.ts` | **0** (regression guard) | **0** |
+| `npx tsc -p packages/mtw-wml/tsconfig.json --noEmit` | **pass** | **pass** |
+| `npm test -- ts/standardize` (`packages/mtw-wml`) | (not recorded) | **pass** (1385+ tests) |
 
 ## Recommended order
 
@@ -221,10 +222,10 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
 
 ### Phase 1: WML storage (`packages/mtw-wml`)
 
-- [ ] Add facet list types (shared payload per **D2**; reuse room facet machinery where possible).
-- [ ] Add **`situations`** to **`StandardFeatureData`** / **`StandardKnowledgeData`** and payloads; **`fromSchema`** accepts **`<Situation>`** facets (DEFAULT in tests); **`toJSON`** emits **`situations`** not **`examples`**.
-- [ ] **D6:** Do **not** add Example-to-facet **`fromSchema`** mapping. Remove or narrow **`examples`** on F/K when call sites allow (may leave **`StandardExample`** type until Phase 4).
-- [ ] Wire merge, invert, diff, **`referencedKeys`**, schema round-trip tests (DEFAULT facet fixtures like Room).
+- [X] Add facet list types (shared payload per **D2**; **`SituationProseFacet*`** in [`situationRoom.ts`](../../../../packages/mtw-wml/ts/standardize/keys/facets/situationRoom.ts)).
+- [X] Add **`situations`** to **`StandardFeatureData`** / **`StandardKnowledgeData`** and payloads; **`fromSchema`** accepts **`<Situation>`** facets (DEFAULT in tests); **`toJSON`** emits **`situations`** not **`examples`**.
+- [X] **D6:** Do **not** add Example-to-facet **`fromSchema`** mapping. Removed **`examples`** on F/K payloads (**`StandardExample`** type remains until Phase 4).
+- [X] Wire merge, invert, diff, **`referencedKeys`**, schema round-trip tests (DEFAULT facet fixtures like Room).
 
 ### Phase 2: Lambdas
 

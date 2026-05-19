@@ -31,7 +31,7 @@ describe('SchemaOrganization', () => {
                 <Asset uuid=(test)>
                     <Room uuid=(testRoom) key=(testRoom)>
                         <Feature uuid=(testFeature) key=(testFeature)>
-                            <Example uuid=(testExample) />
+                            <Situation uuid=(testExample) />
                         </Feature>
                     </Room>
                 </Asset>
@@ -46,7 +46,7 @@ describe('SchemaOrganization', () => {
                 keyLookup
             })
 
-            const example = form._lookup('EXAMPLE#testExample')
+            const example = form._lookup('SITUATION#testExample')
             const feature = form._lookup('FEATURE#testFeature')
             const room = form._lookup('ROOM#testRoom')
 
@@ -117,9 +117,9 @@ describe('SchemaOrganization', () => {
                 <Asset uuid=(test)>
                     <Room uuid=(testRoom) key=(testRoom)>
                         <Feature uuid=(testFeature) key=(testFeature)>
-                            <Example uuid=(testExample)>
+                            <Situation uuid=(testExample)>
                                 <Description>Test Example</Description>
-                            </Example>
+                            </Situation>
                         </Feature>
                     </Room>
                 </Asset>
@@ -135,7 +135,7 @@ describe('SchemaOrganization', () => {
             })
 
             // Verify implicit parent calculations
-            const exampleKey = form._lookup('EXAMPLE#testExample')!.standardKey
+            const exampleKey = form._lookup('SITUATION#testExample')!.standardKey
             const featureKey = form._lookup('FEATURE#testFeature')!.standardKey
             const roomKey = form._lookup('ROOM#testRoom')!.standardKey
 
@@ -243,7 +243,7 @@ describe('SchemaOrganization', () => {
                 <Asset uuid=(test)>
                     <Room uuid=(room1) key=(room1)>
                         <Feature uuid=(feature1) key=(feature1)>
-                            <Example uuid=(example1) />
+                            <Situation uuid=(example1) />
                         </Feature>
                         <Feature uuid=(feature2) key=(feature2) />
                     </Room>
@@ -264,7 +264,7 @@ describe('SchemaOrganization', () => {
             const room2 = form._lookup('ROOM#room2')
             const feature1 = form._lookup('FEATURE#feature1')
             const feature2 = form._lookup('FEATURE#feature2')
-            const example1 = form._lookup('EXAMPLE#example1')
+            const example1 = form._lookup('SITUATION#example1')
 
             expect(room1).toBeDefined()
             expect(room2).toBeDefined()
@@ -1288,7 +1288,7 @@ describe('SchemaOrganization', () => {
                 <Asset uuid=(test)>
                     <Room uuid=(testRoom) key=(testRoom)>
                         <Feature uuid=(testFeature) key=(testFeature)>
-                            <Example uuid=(testExample) />
+                            <Situation uuid=(testExample) />
                         </Feature>
                     </Room>
                 </Asset>
@@ -1303,7 +1303,7 @@ describe('SchemaOrganization', () => {
                 keyLookup
             })
 
-            const example = form._lookup('EXAMPLE#testExample')
+            const example = form._lookup('SITUATION#testExample')
             const exampleKey = example?.standardKey
             expect(exampleKey).toBeDefined()
 
@@ -1313,7 +1313,7 @@ describe('SchemaOrganization', () => {
             expect(chain.length).toBe(3)
             expect(chain[0].tag).toBe('Room')
             expect(chain[1].tag).toBe('Feature')
-            expect(chain[2].tag).toBe('Example')
+            expect(chain[2].tag).toBe('Situation')
             expect(chain[2].standardKey.equals(exampleKey!)).toBe(true)
         })
 
@@ -1359,7 +1359,7 @@ describe('SchemaOrganization', () => {
                 <Asset uuid=(test)>
                     <Room uuid=(room1) key=(room1)>
                         <Feature uuid=(feature1) key=(feature1)>
-                            <Example uuid=(example1) />
+                            <Situation uuid=(example1) />
                         </Feature>
                     </Room>
                 </Asset>
@@ -1374,7 +1374,7 @@ describe('SchemaOrganization', () => {
                 keyLookup
             })
 
-            const example = form._lookup('EXAMPLE#example1')
+            const example = form._lookup('SITUATION#example1')
             const exampleKey = example?.standardKey
             expect(exampleKey).toBeDefined()
 
@@ -1384,7 +1384,7 @@ describe('SchemaOrganization', () => {
             expect(chain.length).toBe(3)
             expect(chain[0].tag).toBe('Room')
             expect(chain[1].tag).toBe('Feature')
-            expect(chain[2].tag).toBe('Example')
+            expect(chain[2].tag).toBe('Situation')
         })
     })
 
@@ -1671,7 +1671,7 @@ describe('SchemaOrganization', () => {
                 <Asset uuid=(test)>
                     <Room uuid=(room1) key=(room1)>
                         <Feature uuid=(feature1) key=(feature1)>
-                            <Example uuid=(example1) />
+                            <Situation uuid=(example1) />
                         </Feature>
                     </Room>
                 </Asset>
@@ -1686,7 +1686,7 @@ describe('SchemaOrganization', () => {
                 keyLookup
             })
 
-            const example1 = form._lookup('EXAMPLE#example1')
+            const example1 = form._lookup('SITUATION#example1')
             expect(example1).toBeDefined()
 
             const example1Key = example1!.standardKey
@@ -1871,7 +1871,7 @@ describe('SchemaOrganization', () => {
         it('should return empty array for component with no descendants', () => {
             const testWML = deIndentWML(`
                 <Asset uuid=(test)>
-                    <Room uuid=(ROOM#room1) key=(room1) />
+                    <Room uuid=(room1) key=(room1) />
                 </Asset>
             `)
             const form = new StandardForm(testWML)
@@ -1892,9 +1892,9 @@ describe('SchemaOrganization', () => {
         it('should return direct children for basic hierarchy', () => {
             const testWML = deIndentWML(`
                 <Asset uuid=(test)>
-                    <Room uuid=(ROOM#room1) key=(room1)>
-                        <Feature uuid=(FEATURE#feature1) key=(feature1) />
-                        <Feature uuid=(FEATURE#feature2) key=(feature2) />
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1) />
+                        <Feature uuid=(feature2) key=(feature2) />
                     </Room>
                 </Asset>
             `)
@@ -1918,9 +1918,9 @@ describe('SchemaOrganization', () => {
         it('should return all descendants for nested hierarchy', () => {
             const testWML = deIndentWML(`
                 <Asset uuid=(test)>
-                    <Room uuid=(ROOM#room1) key=(room1)>
-                        <Feature uuid=(FEATURE#feature1) key=(feature1)>
-                            <Example uuid=(EXAMPLE#example1) key=(example1) />
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1)>
+                            <Situation uuid=(example1) key=(example1) />
                         </Feature>
                     </Room>
                 </Asset>
@@ -1945,10 +1945,10 @@ describe('SchemaOrganization', () => {
         it('should not include components with undefined implicitParent (asset-level)', () => {
             const testWML = deIndentWML(`
                 <Asset uuid=(test)>
-                    <Room uuid=(ROOM#room1) key=(room1)>
-                        <Feature uuid=(FEATURE#feature1) key=(feature1) />
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1) />
                     </Room>
-                    <Room uuid=(ROOM#room2) key=(room2)>
+                    <Room uuid=(room2) key=(room2)>
                         <Feature key=(feature1) />
                     </Room>
                 </Asset>
@@ -1975,10 +1975,10 @@ describe('SchemaOrganization', () => {
         it('should handle multiple children at same level', () => {
             const testWML = deIndentWML(`
                 <Asset uuid=(test)>
-                    <Room uuid=(ROOM#room1) key=(room1)>
-                        <Feature uuid=(FEATURE#feature1) key=(feature1) />
-                        <Example ref={0} uuid=(EXAMPLE#example1) key=(example1) />
-                        <Character uuid=(CHARACTER#char1) key=(char1) />
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1) />
+                        <Example ref={0} uuid=(example1) key=(example1) />
+                        <Character uuid=(char1) key=(char1) />
                     </Room>
                 </Asset>
             `)

@@ -1,46 +1,45 @@
 import { excludeUndefined } from "../../lib/lists"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { AssureReferencesResult, componentClassFactory, ComponentConstructorMethods } from "./component"
-import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardDiffOptions, StandardToJSONOptions } from "./baseClasses"
+import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardToJSONOptions } from "./baseClasses"
 import { StandardFeatureData } from "./dataTypes/feature"
-import { ReferenceList } from "./reference"
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
-import { StandardReferenceData } from "./dataTypes/reference"
-import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaFeature } from "@tonylb/mtw-base/ts/schema/components"
-import { renderReference } from "./utils/schema"
 import { HasShortName } from "./abstract"
 import { StandardLiteral } from "../literal"
 import type { StandardizeFromSchemaContext } from "../wmlStandardizeMode"
-import { StandardExplicitParent } from "../explicit"
 import {
     processWithConsumers,
+    StandardizeConsumerFacetListSituation,
     StandardizeConsumerInline,
-    StandardizeConsumerReferenceList,
     StandardizeConsumerStandardLiteral,
 } from "./fromSchemaPipeline"
 import { ReferenceFormat } from "./utils/references"
+import { SituationProseFacetList, StandardSituationProseFacet } from "../keys/facets/situationRoom"
+import type { StandardFacetData } from "../keys/facets/dataTypes/facet"
+import type { SituationProseFacetPayloadType } from "../keys/facets/situationRoom"
 
 export class StandardFeaturePayload implements HasShortName, ComponentConstructorMethods<StandardFeatureData, StandardFeatureData> {
     _shortName?: StandardLiteral;
-    _examples: ReferenceList;
+    _situations: SituationProseFacetList;
     tag = 'Feature' as const
 
     constructor(previous?: StandardFeaturePayload) {
         if (previous) {
             this._shortName = previous._shortName
-            this._examples = previous._examples
+            this._situations = previous._situations.clone()
         }
         else {
-            this._examples = new ReferenceList([])
+            this._situations = new SituationProseFacetList([])
         }
     }
 
     fromJSON(props: StandardFeatureData) {
         const { shortName } = props
         this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
-        this._examples = new ReferenceList(props.examples?.map((reference) => (new StandardReference(reference))) ?? [])
+        this._situations = new SituationProseFacetList(props.situations ?? [])
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
@@ -52,10 +51,9 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
                         this._shortName = literal
                     },
                 }),
-                new StandardizeConsumerReferenceList(this, {
-                    tag: "Example",
+                new StandardizeConsumerFacetListSituation(this, {
                     update(list) {
-                        this._examples = list
+                        this._situations = list
                     },
                 }),
                 new StandardizeConsumerInline(),
@@ -67,48 +65,45 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
     }
 
     get shortName() { return this._shortName }
-    get examples() { return this._examples }
+    get situations() { return this._situations }
 
-    toJSON(options?: StandardToJSONOptions): Omit<StandardFeatureData, 'key' | 'universalKey'> {
+    toJSON(_options?: StandardToJSONOptions): Omit<StandardFeatureData, 'key' | 'universalKey'> {
         return {
             tag: 'Feature',
             shortName: this?.shortName?.toJSON(),
-            ...(this.examples.payload.length ? { examples: this.examples.toJSON() } : {})
+            ...(this.situations.length ? { situations: this.situations.toJSON() } : {})
         }
     }
 
     schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
+        const situationSchemas = this._situations.items.reduce<GenericTreeNode<SchemaTag>[]>((acc, facet) => {
+            const result = facet.renderFacet()
+            if (result.aggregatedNode) acc.push(result.aggregatedNode)
+            else if (result.newNode) acc.push(result.newNode)
+            return acc
+        }, [])
         return {
             data: { tag: 'Feature', key, uuid: universalKey },
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
-                ...this.examples.schema,
+                ...situationSchemas,
             ]
         }
     }
 
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         const { key } = options
-        
-        // If organization is available, use assured references from organization
-        // Otherwise, fall back to stored reference lists
-        let examplesToRender = this.examples
-        let inlineRemainder: StandardReference[] = []
-
-        if (options.organization) {
-            // Get children from organization and assure references
-            const children = options.organization.getChildrenOfParent(key) ?? []
-            const { payload: assured, inlineRemainder: remainder } = this.assureReferences(children)
-            examplesToRender = assured.examples
-            inlineRemainder = remainder
-        }
-
+        const situationSchemas = this._situations.items.reduce<GenericTreeNode<SchemaTag>[]>((acc, facet) => {
+            const result = facet.renderFacet(undefined, lookup)
+            if (result.aggregatedNode) acc.push(result.aggregatedNode)
+            else if (result.newNode) acc.push(result.newNode)
+            return acc
+        }, [])
         return {
             data: { tag: 'Feature', key: key.key ?? '', uuid: key.universalKey },
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
-                ...examplesToRender.payload.map(renderReference({ lookup, options })).filter(excludeUndefined),
-                ...inlineRemainder.map(renderReference({ lookup, options })).filter(excludeUndefined),
+                ...situationSchemas,
             ]
         }
     }
@@ -116,7 +111,8 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
     merge(incoming: this): this {
         const returnValue = new StandardFeaturePayload()
         returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
-        returnValue._examples = this.examples.merge(incoming.examples) ?? new ReferenceList([])
+        const mergedSituations = this._situations.merge(incoming._situations)
+        returnValue._situations = mergedSituations ?? new SituationProseFacetList([])
         return returnValue as this
     }
 
@@ -124,9 +120,15 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
         return new StandardFeaturePayload() as this
     }
 
-    referencedKeys(): StandardComponentReferenceKey[] {
+    referencedKeys(mapping: StandardReference[]): StandardComponentReferenceKey[] {
         return [
-            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, reference }))
+            ...this.situations.items.flatMap((facet) => {
+                const ref = facet.reference as StandardReference
+                return [
+                    { referenceType: 'Direct' as const, reference: ref },
+                    ...facet.payload.referencedLinkKeys(mapping),
+                ]
+            }),
         ]
     }
 
@@ -137,14 +139,19 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
 
     remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardFeaturePayload(this)
-        returnValue._examples = returnValue._examples.toFormat(props.mapTo, props.mappings)
+        returnValue._situations = returnValue._situations.lookup(props.mappings).toFormat(props.mapTo)
         return returnValue as this
     }
 
     withChild(child: StandardReference): this {
         const returnValue = new StandardFeaturePayload(this)
-        if (child.tag === 'Example') {
-            returnValue._examples = returnValue._examples.assureItem(child)
+        if (child.tag === 'Situation') {
+            const facetData: StandardFacetData<SituationProseFacetPayloadType> = {
+                reference: child.toJSON(),
+                payload: {},
+            }
+            const newFacet = new StandardSituationProseFacet(facetData)
+            returnValue._situations = this._situations.merge(new SituationProseFacetList([newFacet])) ?? new SituationProseFacetList([newFacet])
         }
         else {
             throw new Error(`Invalid child type ${child.tag} for StandardFeature`)
@@ -153,53 +160,39 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
     }
 
     isEmpty(): boolean {
-        // A feature is empty if it has no shortName and no examples
         const hasShortName = Boolean(this._shortName)
-        const hasExamples = this._examples.payload.length > 0
-        return !(hasShortName || hasExamples)
+        const hasSituations = this._situations.length > 0
+        return !(hasShortName || hasSituations)
     }
 
     invert(): this {
         const returnValue = new StandardFeaturePayload()
-        // Invert shortName if it exists (StandardLiteral has invert() from standardEditableFactory)
         returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
-        // Invert examples ReferenceList
-        returnValue._examples = this._examples.invert()
+        returnValue._situations = this._situations.invert()
         return returnValue as this
     }
 
     assureReferences(children: StandardReference[]): AssureReferencesResult<this> {
-        const BUCKET_TAGS = ['Example'] as const
-        const bucketChildren = children.filter(c => BUCKET_TAGS.includes(c.tag as (typeof BUCKET_TAGS)[number]))
-        const remainder = children.filter(c => !BUCKET_TAGS.includes(c.tag as (typeof BUCKET_TAGS)[number]))
-
-        const returnValue = new StandardFeaturePayload(this)
-        const exampleReferences = new ReferenceList(
-            bucketChildren.filter(child => child.tag === 'Example').map(child => child.withRef(0))
-        )
-        returnValue._examples = this._examples.merge(exampleReferences, { cleanEmptyReferences: false }) ?? this._examples
-
         return {
-            payload: returnValue as this,
-            inlineRemainder: remainder.map(c => c.withRef(0))
+            payload: new StandardFeaturePayload(this) as this,
+            inlineRemainder: children.map(c => c.withRef(0))
         }
     }
 
     removeReferences(references: StandardReference[]): this {
         const returnValue = new StandardFeaturePayload(this)
-        
-        // Filter reference list by removing items that match any reference in the input
-        returnValue._examples = this._examples.filter(
-            item => !references.some(ref => item.sameKey(ref))
+        returnValue._situations = new SituationProseFacetList(
+            this._situations.items.filter(
+                facet => !references.some(ref => facet.reference.sameKey(ref))
+            )
         )
-        
         return returnValue as this
     }
 }
 
 export class StandardFeature extends componentClassFactory(StandardFeaturePayload, 'StandardFeature') {
     get shortName() { return this._payload.shortName }
-    get examples() { return this._payload.examples }
+    get situations() { return this._payload.situations }
 
     override _wrap(instance: StandardComponent): this {
         return new StandardFeature(instance as StandardFeature) as this
@@ -216,7 +209,8 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
             return false
         }
         const shortNameEqual = (this.shortName ?? new StandardLiteral('')).equals(incoming.shortName ?? new StandardLiteral(''))
-        return !(this.examples.diff(incoming.examples)?.payload?.length) &&
+        const situationsDiff = this.situations.diff(incoming.situations)
+        return !(situationsDiff?.length) &&
             shortNameEqual
     }
 

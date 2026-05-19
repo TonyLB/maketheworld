@@ -54,17 +54,17 @@
 
 ## Situation prose facets (Room, Feature, Knowledge)
 
-*Migration in progress for Feature/Knowledge.* Task plan: [`taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md`](../../../../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md).
+Task plan: [`taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md`](../../../../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md).
 
-| Parent | Facet list (current / planned) | Payload | Notes |
+| Parent | Facet list | Payload | Notes |
 | --- | --- | --- | --- |
-| **Room** | **`SituationRoomFacetList`** ([`situationRoom.ts`](./situationRoom.ts)) | **`SituationRoomFacetPayload`** (DisplayName / Summary / Description) | Shipped; ephemera **`render`** uses same shape |
-| **Feature** | Planned: homogeneous list reusing room payload machinery | Same **`SituationRoomFacetPayload`** (**D2**) | v1: **`SITUATION#DEFAULT`** only |
-| **Knowledge** | Planned: same as Feature | Same triplet | v1 DEFAULT-only; per-perspective facets deferred (**D9**) |
+| **Room** | **`SituationProseFacetList`** ([`situationRoom.ts`](./situationRoom.ts); deprecated alias **`SituationRoomFacetList`**) | **`SituationProseFacetPayload`** (DisplayName / Summary / Description) | Shipped; ephemera **`render`** uses same shape |
+| **Feature** | **`SituationProseFacetList`** (shared module) | Same **`SituationProseFacetPayload`** (**D2**) | Phase 1 WML storage; v1: **`SITUATION#DEFAULT`** only in tests |
+| **Knowledge** | **`SituationProseFacetList`** (shared module) | Same triplet | Same as Feature; per-perspective facets deferred (**D9**) |
 
 **Situation references:** Facets point at independent **`Situation`** components (marks live on Situation, not on the facet payload). Parents do not own referenced Situations (**D8**).
 
-**Not yet in repo:** `situationFeature.ts` / `situationKnowledge.ts` (or a shared alias list class). Phase 1 adds facet types and wires **`StandardFeature`** / **`StandardKnowledge`** **`situations`** fields.
+**Canonical types:** `SituationProseFacetPayload`, `StandardSituationProseFacet`, `SituationProseFacetList` in [`situationRoom.ts`](./situationRoom.ts). No separate `situationFeature.ts` / `situationKnowledge.ts` modules.
 
 ## Integration Points
 

@@ -1,6 +1,6 @@
 /**
- * Situation room facet: Situation reference + optional DisplayName/Summary/Description.
- * Used on Room only (Phase 2); payload shape is Room-specific.
+ * Situation prose facet: Situation reference + optional DisplayName/Summary/Description.
+ * Shared by Room, Feature, and Knowledge (D2 prose triplet).
  */
 
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
@@ -28,14 +28,14 @@ import linkReferenceKeys from "../../components/utils/references";
 /** Payload shape: optional displayName/summary/description.
  *  displayName is a StandardLiteral (string-based), while summary/description remain StandardRender (RenderTree-based).
  */
-export type SituationRoomFacetPayloadType = {
+export type SituationProseFacetPayloadType = {
     displayName?: StandardEditableData<string>;
     summary?: StandardEditableData<RenderTree>;
     description?: StandardEditableData<RenderTree>;
 };
 
-/** Type guard for SituationRoomFacetPayloadType (object with optional displayName/summary/description). */
-export const isSituationRoomFacetPayload = (arg: any): arg is SituationRoomFacetPayloadType => {
+/** Type guard for SituationProseFacetPayloadType (object with optional displayName/summary/description). */
+export const isSituationProseFacetPayload = (arg: any): arg is SituationProseFacetPayloadType => {
     if (typeof arg !== "object" || arg === null) return false;
     const keys = Object.keys(arg);
     const allowed = ["displayName", "summary", "description"];
@@ -44,13 +44,13 @@ export const isSituationRoomFacetPayload = (arg: any): arg is SituationRoomFacet
 
 /**
  * Parse DisplayName / Summary / Description children (same pipeline as inside a Situation facet).
- * Used by SituationRoomFacetPayload.fromSchema and Room ephemera `<Render>`.
+ * Used by SituationProseFacetPayload.fromSchema and Room ephemera `<Render>`.
  */
 export function parseProseTripletChildren(
     children: GenericTree<SchemaTag>,
     options?: { allowUnconsumed?: boolean }
-): SituationRoomFacetPayloadType {
-    const result: SituationRoomFacetPayloadType = {};
+): SituationProseFacetPayloadType {
+    const result: SituationProseFacetPayloadType = {};
     const context = { result };
     const consumers = [
         new StandardizeConsumerStandardLiteral<typeof context>(context, {
@@ -81,30 +81,30 @@ export function parseProseTripletChildren(
 }
 
 /** Payload class: holds optional StandardLiteral for displayName, and StandardRender for summary/description. */
-export class SituationRoomFacetPayload {
+export class SituationProseFacetPayload {
     _displayName?: StandardLiteral;
     _summary?: StandardRender;
     _description?: StandardRender;
 
-    constructor(arg: SituationRoomFacetPayload | SituationRoomFacetPayloadType | Record<string, unknown>) {
-        if (arg instanceof SituationRoomFacetPayload) {
+    constructor(arg: SituationProseFacetPayload | SituationProseFacetPayloadType | Record<string, unknown>) {
+        if (arg instanceof SituationProseFacetPayload) {
             this._displayName = arg._displayName;
             this._summary = arg._summary;
             this._description = arg._description;
             return;
         }
-        const obj = arg as SituationRoomFacetPayloadType;
+        const obj = arg as SituationProseFacetPayloadType;
         this._displayName = obj.displayName !== undefined ? new StandardLiteral(obj.displayName, { tag: "DisplayName" }) : undefined;
         this._summary = obj.summary !== undefined ? new StandardRender(obj.summary) : undefined;
         this._description = obj.description !== undefined ? new StandardRender(obj.description) : undefined;
     }
 
-    clone(): SituationRoomFacetPayload {
-        return new SituationRoomFacetPayload(this.toJSON());
+    clone(): SituationProseFacetPayload {
+        return new SituationProseFacetPayload(this.toJSON());
     }
 
     /** Returns true if all displayName, summary, and description are absent or empty. */
-    static isEmpty(payload: SituationRoomFacetPayload): boolean {
+    static isEmpty(payload: SituationProseFacetPayload): boolean {
         const emptyLiteral = (l?: StandardLiteral) => !l || !String((l as any).plainString ?? (l as any)._payload?.plain?.data ?? "").trim();
         const emptyRender = (r?: StandardRender) => !r || !String(r.plainString ?? "").trim();
         return (
@@ -138,7 +138,7 @@ export class SituationRoomFacetPayload {
     }
 
     referencedLinkKeys(mapping: StandardReference[]): StandardComponentReferenceKey[] {
-        return SituationRoomFacetPayload.linkReferenceKeysFromSummaryDescription(mapping, this._summary, this._description);
+        return SituationProseFacetPayload.linkReferenceKeysFromSummaryDescription(mapping, this._summary, this._description);
     }
 
     /**
@@ -156,7 +156,7 @@ export class SituationRoomFacetPayload {
         ].filter(excludeUndefined);
     }
 
-    toJSON(): SituationRoomFacetPayloadType {
+    toJSON(): SituationProseFacetPayloadType {
         return {
             ...(this._displayName ? { displayName: this._displayName.toJSON() } : {}),
             ...(this._summary ? { summary: this._summary.toJSON() } : {}),
@@ -164,7 +164,7 @@ export class SituationRoomFacetPayload {
         };
     }
 
-    merge(incoming: SituationRoomFacetPayload): SituationRoomFacetPayload | undefined {
+    merge(incoming: SituationProseFacetPayload): SituationProseFacetPayload | undefined {
         const displayName = (this._displayName && incoming._displayName)
             ? this._displayName.merge(incoming._displayName)
             : this._displayName ?? incoming._displayName;
@@ -175,20 +175,20 @@ export class SituationRoomFacetPayload {
             ? this._description.merge(incoming._description)
             : this._description ?? incoming._description;
         if (displayName === undefined && summary === undefined && description === undefined) return undefined;
-        const out = new SituationRoomFacetPayload({});
+        const out = new SituationProseFacetPayload({});
         out._displayName = displayName ?? undefined;
         out._summary = summary ?? undefined;
         out._description = description ?? undefined;
         return out;
     }
 
-    diff(incoming: SituationRoomFacetPayload | undefined): SituationRoomFacetPayload | undefined {
+    diff(incoming: SituationProseFacetPayload | undefined): SituationProseFacetPayload | undefined {
         if (incoming) {
             const displayName = this._displayName?.diff(incoming._displayName);
             const summary = this._summary?.diff(incoming._summary);
             const description = this._description?.diff(incoming._description);
             if (displayName === undefined && summary === undefined && description === undefined) return undefined;
-            const out = new SituationRoomFacetPayload({});
+            const out = new SituationProseFacetPayload({});
             out._displayName = displayName ?? undefined;
             out._summary = summary ?? undefined;
             out._description = description ?? undefined;
@@ -197,15 +197,15 @@ export class SituationRoomFacetPayload {
         return this.invert();
     }
 
-    invert(): SituationRoomFacetPayload {
-        const out = new SituationRoomFacetPayload({});
+    invert(): SituationProseFacetPayload {
+        const out = new SituationProseFacetPayload({});
         out._displayName = this._displayName?.invert();
         out._summary = this._summary?.invert();
         out._description = this._description?.invert();
         return out;
     }
 
-    fromSchema(node: GenericTree<SchemaTag>, _reference: StandardReference, _schemaContext?: StandardizeFromSchemaContext): SituationRoomFacetPayloadType {
+    fromSchema(node: GenericTree<SchemaTag>, _reference: StandardReference, _schemaContext?: StandardizeFromSchemaContext): SituationProseFacetPayloadType {
         if (node.length === 0) throw new Error("Invalid schema: empty node");
         const first = node[0];
         if (!treeNodeTypeguard(isSchemaSituation)(first)) throw new Error("Invalid schema: expected Situation node");
@@ -215,7 +215,7 @@ export class SituationRoomFacetPayload {
 
     renderFacet(
         reference: StandardReference,
-        _payload: SituationRoomFacetPayloadType,
+        _payload: SituationProseFacetPayloadType,
         referenceRender?: GenericTreeNode<SchemaTag>,
         lookup?: (key: string | StandardKey) => StandardComponent | undefined
     ): { newNode?: GenericTreeNode<SchemaTag>; aggregatedNode?: GenericTreeNode<SchemaTag> } {
@@ -235,31 +235,31 @@ export class SituationRoomFacetPayload {
     }
 }
 
-function createSituationRoomFacetPayload(arg: any): SituationRoomFacetPayload {
-    if (arg instanceof SituationRoomFacetPayload) return new SituationRoomFacetPayload(arg);
-    if (isSituationRoomFacetPayload(arg)) return new SituationRoomFacetPayload(arg);
+function createSituationProseFacetPayload(arg: any): SituationProseFacetPayload {
+    if (arg instanceof SituationProseFacetPayload) return new SituationProseFacetPayload(arg);
+    if (isSituationProseFacetPayload(arg)) return new SituationProseFacetPayload(arg);
     if (typeof arg === "string" && (arg.includes("<") || arg.includes("["))) {
         const schema = treeFromWML(arg);
-        if (schema.length === 0) throw new Error("Invalid WML string in SituationRoomFacetPayload: empty schema");
+        if (schema.length === 0) throw new Error("Invalid WML string in SituationProseFacetPayload: empty schema");
         arg = schema;
     }
     if (Array.isArray(arg) && arg.length > 0 && arg.every(isSchemaTreeNode)) {
         const schema = arg as GenericTree<SchemaTag>;
         const first = schema[0];
         if (!treeNodeTypeguard(isSchemaSituation)(first)) throw new Error("Expected Situation node");
-        const payloadData = new SituationRoomFacetPayload({}).fromSchema(schema, new StandardReference(schema));
-        return new SituationRoomFacetPayload(payloadData);
+        const payloadData = new SituationProseFacetPayload({}).fromSchema(schema, new StandardReference(schema));
+        return new SituationProseFacetPayload(payloadData);
     }
     if (typeof arg === "object" && arg !== null && "reference" in arg && "payload" in arg && isStandardFacetData(arg)) {
-        return new SituationRoomFacetPayload((arg as StandardFacetData<SituationRoomFacetPayloadType>).payload);
+        return new SituationProseFacetPayload((arg as StandardFacetData<SituationProseFacetPayloadType>).payload);
     }
-    throw new Error("Invalid argument to createSituationRoomFacetPayload");
+    throw new Error("Invalid argument to createSituationProseFacetPayload");
 }
 
-export class StandardSituationRoomFacet extends facetClassFactory(
-    SituationRoomFacetPayload,
-    createSituationRoomFacetPayload,
-    "SituationRoomFacet",
+export class StandardSituationProseFacet extends facetClassFactory(
+    SituationProseFacetPayload,
+    createSituationProseFacetPayload,
+    "SituationProseFacet",
     undefined,
     {
         missingPayloadDefault: () => ({})
@@ -267,8 +267,8 @@ export class StandardSituationRoomFacet extends facetClassFactory(
 ) {
     constructor(
         props:
-            | StandardFacetData<SituationRoomFacetPayloadType>
-            | StandardSituationRoomFacet
+            | StandardFacetData<SituationProseFacetPayloadType>
+            | StandardSituationProseFacet
             | GenericTree<SchemaTag>
             | string
     ) {
@@ -276,18 +276,33 @@ export class StandardSituationRoomFacet extends facetClassFactory(
     }
 
     override _wrap(instance: any): this {
-        return new StandardSituationRoomFacet(instance as StandardSituationRoomFacet) as this;
+        return new StandardSituationProseFacet(instance as StandardSituationProseFacet) as this;
     }
 }
 
 import { facetListClassFactory } from "./facetListFactory";
 
-export class SituationRoomFacetList extends facetListClassFactory(StandardSituationRoomFacet, "SituationRoomFacetList") {
+export class SituationProseFacetList extends facetListClassFactory(StandardSituationProseFacet, "SituationProseFacetList") {
     constructor(arg: any) {
         super(arg);
     }
 
     override _wrap(instance: any): this {
-        return new SituationRoomFacetList(instance as SituationRoomFacetList) as this;
+        return new SituationProseFacetList(instance as SituationProseFacetList) as this;
     }
 }
+
+/** @deprecated Use SituationProseFacetPayloadType */
+export type SituationRoomFacetPayloadType = SituationProseFacetPayloadType;
+
+/** @deprecated Use isSituationProseFacetPayload */
+export const isSituationRoomFacetPayload = isSituationProseFacetPayload;
+
+/** @deprecated Use SituationProseFacetPayload */
+export const SituationRoomFacetPayload = SituationProseFacetPayload;
+
+/** @deprecated Use StandardSituationProseFacet */
+export const StandardSituationRoomFacet = StandardSituationProseFacet;
+
+/** @deprecated Use SituationProseFacetList */
+export const SituationRoomFacetList = SituationProseFacetList;

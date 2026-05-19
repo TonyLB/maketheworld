@@ -15,6 +15,8 @@ import { StandardRender } from "../render"
 import { PositionFacetList, StandardPositionFacet } from "../keys/facets/position"
 import { MarkFacetList, StandardMarkFacet } from "../keys/facets/mark"
 import { LensMarkFacetList, StandardLensMarkFacet } from "../keys/facets/lensMark"
+import { isSchemaSituation } from "@tonylb/mtw-base/ts/schema/components"
+import { SituationProseFacetList, StandardSituationProseFacet } from "../keys/facets/situationRoom"
 
 export interface StandardizeConsumer {
     /**
@@ -324,6 +326,53 @@ export class StandardizeConsumerFacetListLensMark<D extends object = object> imp
         return {
             parsingRemainder,
             returnRemainderAddition: cleanedMarks
+        }
+    }
+}
+
+/**
+ * Facet-list consumer for Situation prose facets (Situation reference + DisplayName/Summary/Description).
+ * Used on Room, Feature, and Knowledge.
+ */
+export class StandardizeConsumerFacetListSituation<D extends object = object> implements StandardizeConsumer {
+    constructor(
+        private readonly context: D,
+        private readonly options: {
+            update: (this: D, list: SituationProseFacetList) => void
+        }
+    ) {}
+
+    process(children: GenericTree<SchemaTag>): { parsingRemainder: GenericTree<SchemaTag>; returnRemainderAddition: GenericTree<SchemaTag> } {
+        const situationNodes: GenericTreeNode<SchemaTag>[] = children.filter(treeNodeTypeguard(isSchemaSituation))
+
+        const facets = situationNodes
+            .map((situationNode) => {
+                try {
+                    return new StandardSituationProseFacet([situationNode])
+                } catch {
+                    return undefined
+                }
+            })
+            .filter((facet): facet is StandardSituationProseFacet => Boolean(facet))
+
+        const list = new SituationProseFacetList(facets)
+        this.options.update.call(this.context, list)
+
+        const cleanedSituations: GenericTree<SchemaTag> = situationNodes.map((situationNode) => {
+            let remainder = situationNode.children ?? []
+            for (const tag of ["DisplayName", "Summary", "Description"] as const) {
+                remainder = splitTaggedChildren({ children: remainder, tag }).remainder
+            }
+            return {
+                ...situationNode,
+                children: remainder
+            }
+        })
+
+        const parsingRemainder: GenericTree<SchemaTag> = children.filter((child) => !treeNodeTypeguard(isSchemaSituation)(child))
+        return {
+            parsingRemainder,
+            returnRemainderAddition: cleanedSituations
         }
     }
 }

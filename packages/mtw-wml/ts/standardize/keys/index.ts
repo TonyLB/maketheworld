@@ -36,8 +36,17 @@ export type { ExitPayload } from "./facets/dataTypes/facet";
 export { StandardPositionFacet, PositionFacetList } from "./facets/position";
 export { StandardMarkFacet, MarkFacetList } from "./facets/mark";
 export { StandardExitFacet, ExitFacetList } from "./facets/exit";
-export { StandardSituationRoomFacet, SituationRoomFacetList, SituationRoomFacetPayload, isSituationRoomFacetPayload } from "./facets/situationRoom";
-export type { SituationRoomFacetPayloadType } from "./facets/situationRoom";
+export {
+    StandardSituationProseFacet,
+    SituationProseFacetList,
+    SituationProseFacetPayload,
+    isSituationProseFacetPayload,
+    StandardSituationRoomFacet,
+    SituationRoomFacetList,
+    SituationRoomFacetPayload,
+    isSituationRoomFacetPayload,
+} from "./facets/situationRoom";
+export type { SituationProseFacetPayloadType, SituationRoomFacetPayloadType } from "./facets/situationRoom";
 export { StandardLensMarkFacet, LensMarkFacetList, LensMarkFacetPayload } from "./facets/lensMark";
 
 // Export abstract interfaces

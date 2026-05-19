@@ -97,7 +97,7 @@ Common combinations: A Room typically references and hosts its Features. A Room 
 
 ### **StandardRoom** 🟢
 - **Purpose**: Represents rooms with exits, situation facets, lens, features, guidance, characters, and optional ephemera **`render`** / **`objects`**
-- **Content Properties**: `shortName` (`StandardLiteral`); exits as **`ExitFacetList`**; **`situations`** as **`SituationRoomFacetList`**; optional ephemera **`render`** (`SituationRoomFacetPayload`-shaped JSON)
+- **Content Properties**: `shortName` (`StandardLiteral`); exits as **`ExitFacetList`**; **`situations`** as **`SituationProseFacetList`**; optional ephemera **`render`** (`SituationProseFacetPayload`-shaped JSON)
 - **Reference Properties**: **`lens`** (`SingleReference`), **`features`**, **`guidance`**, **`characters`** (`ReferenceList`). **No** serialized **`examples`** field on **`StandardRoomData`**. Room prose is **Situation** / **`render`**, not an **`examples`** list like Feature/Knowledge.
 - **Inline Example (`ref={0}`)**: **`fromSchema`** ends with a consumer that records **only** **`ref={0}`** **`<Example>`** schema nodes into **`_inlineRefs`** (for **`referencedKeys`** / subset cascade). Those refs are **not** emitted as **`examples:`** in **`toJSON()`**. Example nodes that are not consumed by the pipeline (including non-inline shapes) contribute to the **parsing remainder** and typically cause **`fromSchema`** to **fail** once unconsumed children remain.
 - **Room prose (preferred)**: Author **Situation** facets; resolved wire prose on **`StandardRoom.render`**. See [`../../AGENT.md`](../../AGENT.md) (**Room** bullets) and [`../AGENT.md`](../AGENT.md) (**Room prose**).
@@ -106,26 +106,20 @@ Common combinations: A Room typically references and hosts its Features. A Room 
 
 ### **StandardFeature** 🟢
 
-*Migrating to Situation facets.* Task plan: [`taskPlanning/.../AGENT.featureKnowledgeExamples.planning.md`](../../../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md).
+Task plan: [`taskPlanning/.../AGENT.featureKnowledgeExamples.planning.md`](../../../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md).
 
-| | Current | Target (v1) |
-| --- | --- | --- |
-| Prose storage | **`examples`** (`ReferenceList` of **Example**) | **`situations`** facet list; **`SituationRoomFacetPayload`**; DEFAULT only |
-| Wire | (none) | **`render`** on ephemera wire (mirror Room) |
-
-- **Purpose**: Represents features with a short-name and display prose (via Examples today; Situation facets when migrated)
-- **Content Properties**: `shortName` (`StandardLiteral`)
-- **Reference Properties (current)**: `examples` (`ReferenceList`)
-- **fromSchema (current)**: `ShortName`, `Example` consumers
+- **Purpose**: Represents features with a short-name and display prose via **Situation** facets
+- **Content Properties**: `shortName` (`StandardLiteral`); **`situations`** as **`SituationProseFacetList`** (shared payload with Room)
+- **fromSchema**: `ShortName`, **`StandardizeConsumerFacetListSituation`**, inline `ref={0}` children; **D6:** `<Example>` under Feature is not consumed (throws on unconsumed remainder)
+- **Wire (Phase 2):** Ephemera **`render`** field (same payload shape as Room) -- not yet on F/K payloads
 
 ### **StandardKnowledge** 🟢
 
-Same migration as **StandardFeature** (DEFAULT-only **`situations`**, shared payload, **`render`** wire).
+Same as **StandardFeature**: **`situations`** facet list, shared **`SituationProseFacetPayload`**, DEFAULT-only in v1 tests; no **`examples`** on **`StandardKnowledgeData`**.
 
 - **Purpose**: Represents knowledge items with a short-name and display prose
-- **Content Properties**: `shortName` (`StandardLiteral`)
-- **Reference Properties (current)**: `examples` (`ReferenceList`)
-- **fromSchema (current)**: `ShortName`, `Example` consumers
+- **Content Properties**: `shortName` (`StandardLiteral`); **`situations`** as **`SituationProseFacetList`**
+- **fromSchema**: Same consumer pattern as Feature (Situation facets only; no Example dual-read)
 
 ### **StandardMessage** 🟢
 - **Purpose**: Represents messages with optional short-name, description, and room references
@@ -272,8 +266,8 @@ The `assureReferences` method is the single point where `ref={0}` references are
 
 Each component type implements its own dispatch logic (bucket tags); all other tags go to `inlineRemainder` (hosted children):
 - **StandardRoom**: Buckets Lens, Feature, Guidance, Character (`Example` is **not** a reference-list bucket on Room; inline **`ref={0}`** Examples are tracked separately for schema and subset; see **StandardRoom** section above)
-- **StandardFeature**: Bucket Example
-- **StandardKnowledge**: Bucket Example
+- **StandardFeature**: Situation facets via **`StandardizeConsumerFacetListSituation`** (not Example)
+- **StandardKnowledge**: Situation facets via **`StandardizeConsumerFacetListSituation`** (not Example)
 - **StandardMoment**: Bucket Message
 - **StandardMessage**: Bucket Room
 - **StandardLens**: Bucket Mark

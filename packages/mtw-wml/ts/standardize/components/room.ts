@@ -20,20 +20,13 @@ import { renderReference } from "./utils/schema"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
 import { ExitFacetList, StandardExitFacet } from "../keys/facets/exit"
-import { parseProseTripletChildren, SituationRoomFacetList, SituationRoomFacetPayload } from "../keys/facets/situationRoom"
+import { parseProseTripletChildren, SituationProseFacetList, SituationProseFacetPayload } from "../keys/facets/situationRoom"
 import { StandardExplicitParent } from "../explicit"
 import { StandardFormSubsetRequest } from "../baseClasses"
-import { processWithConsumers, StandardizeConsumerReferenceList, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral, type StandardizeConsumer } from "./fromSchemaPipeline"
-import { splitChildrenByPredicate, splitTaggedChildren } from "../../schema/utils"
-import { isSchemaSituation } from "@tonylb/mtw-base/ts/schema/components"
-import { StandardSituationRoomFacet } from "../keys/facets/situationRoom"
+import { processWithConsumers, StandardizeConsumerFacetListSituation, StandardizeConsumerReferenceList, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral, type StandardizeConsumer } from "./fromSchemaPipeline"
+import { splitChildrenByPredicate } from "../../schema/utils"
 import { SingleReference } from "../keys/singleReference"
 
-/**
- * Facet-list consumer for Situation facets under Room.
- * Parses Situation children (with DisplayName/Summary/Description payload) into SituationRoomFacetList.
- * Cleaned Situation nodes (render tags stripped) go to returnRemainderAddition for processComponents recursion.
- */
 /**
  * Like StandardizeConsumerInline, but records ref={0} Example refs on the Room payload so
  * referencedKeys() includes Direct edges for subset cascade (Examples hoist to asset scope).
@@ -54,50 +47,7 @@ class StandardizeConsumerInlineRoomRefs implements StandardizeConsumer {
     }
 }
 
-class StandardizeConsumerFacetListSituation<D extends object = object> implements StandardizeConsumer {
-    constructor(
-        private readonly context: D,
-        private readonly options: {
-            update: (this: D, list: SituationRoomFacetList) => void
-        }
-    ) {}
-
-    process(children: GenericTree<SchemaTag>): { parsingRemainder: GenericTree<SchemaTag>; returnRemainderAddition: GenericTree<SchemaTag> } {
-        const situationNodes: GenericTreeNode<SchemaTag>[] = children.filter(treeNodeTypeguard(isSchemaSituation))
-
-        const facets = situationNodes
-            .map((situationNode) => {
-                try {
-                    return new StandardSituationRoomFacet([situationNode])
-                } catch {
-                    return undefined
-                }
-            })
-            .filter((facet): facet is StandardSituationRoomFacet => Boolean(facet))
-
-        const list = new SituationRoomFacetList(facets)
-        this.options.update.call(this.context, list)
-
-        const cleanedSituations: GenericTree<SchemaTag> = situationNodes.map((situationNode) => {
-            let remainder = situationNode.children ?? []
-            for (const tag of ["DisplayName", "Summary", "Description"] as const) {
-                remainder = splitTaggedChildren({ children: remainder, tag }).remainder
-            }
-            return {
-                ...situationNode,
-                children: remainder
-            }
-        })
-
-        const parsingRemainder: GenericTree<SchemaTag> = children.filter((child) => !treeNodeTypeguard(isSchemaSituation)(child))
-        return {
-            parsingRemainder,
-            returnRemainderAddition: cleanedSituations
-        }
-    }
-}
-
-const renderPayloadToSchemaNode = (p: SituationRoomFacetPayload): GenericTreeNode<SchemaTag> => ({
+const renderPayloadToSchemaNode = (p: SituationProseFacetPayload): GenericTreeNode<SchemaTag> => ({
     data: { tag: 'Render' },
     children: p.toProseTripletChildren(),
 })
@@ -105,7 +55,7 @@ const renderPayloadToSchemaNode = (p: SituationRoomFacetPayload): GenericTreeNod
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomInputData, StandardRoomData> {
     _shortName?: StandardLiteral;
     _exits: ExitFacetList;
-    _situations: SituationRoomFacetList;
+    _situations: SituationProseFacetList;
     _lens: SingleReference;
     _features: ReferenceList;
     _guidance: ReferenceList;
@@ -113,7 +63,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     /** Direct refs to ref={0} inline children (e.g. Example); not persisted in toJSON — used for referencedKeys / subset. */
     _inlineRefs: ReferenceList;
     _objects: StandardRoomObjectData[];
-    _render?: SituationRoomFacetPayload;
+    _render?: SituationProseFacetPayload;
     tag = 'Room' as const
 
     constructor(previous?: StandardRoomPayload) {
@@ -131,7 +81,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         }
         else {
             this._exits = new ExitFacetList([])
-            this._situations = new SituationRoomFacetList([])
+            this._situations = new SituationProseFacetList([])
             this._lens = new SingleReference([])
             this._guidance = new ReferenceList([])
             this._features = new ReferenceList([])
@@ -151,7 +101,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         const { shortName } = props
         this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
         this._exits = new ExitFacetList(props.exits ?? [])
-        this._situations = new SituationRoomFacetList(props.situations ?? [])
+        this._situations = new SituationProseFacetList(props.situations ?? [])
         this._lens = SingleReference.fromData(props.lens)
         this._features = new ReferenceList(props.features?.map((reference) => (new StandardReference(reference))) ?? [])
         this._guidance = new ReferenceList(props.guidance?.map((reference) => (new StandardReference(reference))) ?? [])
@@ -160,7 +110,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             uuid: enforceTypedKey('OBJECT')(o.uuid),
             shortName: o.shortName,
         }))
-        this._render = props.render ? new SituationRoomFacetPayload(props.render) : undefined
+        this._render = props.render ? new SituationProseFacetPayload(props.render) : undefined
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>, context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
@@ -247,7 +197,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                                 throw new Error('Render tag must contain exactly three children: DisplayName, Summary, Description in order')
                             }
                             const payloadData = parseProseTripletChildren(children, { allowUnconsumed: false })
-                            const payload = new SituationRoomFacetPayload(payloadData)
+                            const payload = new SituationProseFacetPayload(payloadData)
                             if (!payload.hasNonEmptyDisplayName()) {
                                 throw new Error('Render DisplayName must contain non-empty text after trim')
                             }
@@ -420,7 +370,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         const mergedExits = this._exits.merge(incoming._exits)
         returnValue._exits = mergedExits ?? new ExitFacetList([])
         const mergedSituations = this._situations.merge(incoming._situations)
-        returnValue._situations = mergedSituations ?? new SituationRoomFacetList([])
+        returnValue._situations = mergedSituations ?? new SituationProseFacetList([])
         returnValue._lens = this._lens.merge(incoming._lens)
         returnValue._features = this._features.merge(incoming._features) ?? new ReferenceList([])
         returnValue._guidance = this._guidance.merge(incoming._guidance) ?? new ReferenceList([])

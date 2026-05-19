@@ -13,9 +13,14 @@
 
 ## Optional regression searches (Room vs Example)
 
-After changes to Room standardization, Example association, or test fixtures, these **repo-root** **`rg`** commands help spot accidental reintroduction of **Room-owned** **`.examples`** usage or large **`<Room>`** / **`<Example>`** pairings in tests. Adjust roots if you are only touching one package. **`Feature`** / **`Knowledge`** tests **should** still match **`.examples`**; for **`packages/mtw-wml`** the only expected **`.examples`** hits are usually **`feature.test.ts`** / **`knowledge.test.ts`**.
+After changes to Room/Feature/Knowledge standardization or test fixtures, these **repo-root** **`rg`** commands help spot regressions. Adjust roots if you are only touching one package.
 
-**Fixture tip:** When authoring Room prose in **`packages/mtw-wml`** tests, prefer **`<Situation uuid=(DEFAULT)>`** so the default situation facet matches primitives (**universal id** **`SITUATION#DEFAULT`**). Use **`<Render>`** under Room only when the case is explicitly about wire **`render`** shape.
+**Fixture tips:**
+
+- **Room, Feature, Knowledge prose:** Use **`<Situation uuid=(DEFAULT)>`** (or a bare **`uuid=(myKey)`** for entity ids) under the parent. WML **`uuid=(...)`** is unprefixed; JSON / **`byUniversalId`** use **`SITUATION#...`**. Do **not** put **`<Example>`** inside **`<Room>`** for display prose.
+- **Feature / Knowledge:** Expect **`toJSON().situations`**, not **`examples`**. No **`.examples`** hits in **`feature.test.ts`** / **`knowledge.test.ts`** after Phase 1.
+- **Room wire:** Use **`<Render>`** under Room only when the case is explicitly about ephemera **`render`** shape.
+- **StandardExample (marks):** Asset-level **`<Example>`** remains valid for Example-component tests until Phase 4.
 
 ```bash
 rg "\.examples\b" packages/mtw-wml --glob "*.test.ts"
