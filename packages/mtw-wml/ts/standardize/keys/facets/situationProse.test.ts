@@ -4,11 +4,13 @@ import {
     SituationProseFacetPayload,
     isSituationProseFacetPayload,
     SituationProseFacetPayloadType,
+    renderPayloadToSchemaNode,
 } from "./situationRoom"
 import { StandardFacetData } from "./dataTypes/facet"
 import StandardReference from "../reference"
 import { StandardReferenceData } from "../dataTypes/reference"
 import { treeFromWML } from "../../../schema"
+import { schemaToWML } from "../../../schema"
 import { StandardRender } from "../../render"
 
 describe("SituationProseFacet and SituationProseFacetList", () => {
@@ -103,6 +105,92 @@ describe("SituationProseFacet and SituationProseFacetList", () => {
             const fromInstance = new SituationProseFacetPayload({ summary }).referencedLinkKeys(mapping)
             expect(fromStatic).toEqual(fromInstance)
         })
+
+        describe("remapReferences", () => {
+            const featureMapping = [
+                new StandardReference({ key: "featOne", tag: "Feature", universalKey: "FEATURE#featOne" }),
+            ]
+
+            it("should remap description link to universal format", () => {
+                const payload = new SituationProseFacetPayload({
+                    description: [
+                        { data: { tag: "Link", to: "featOne", text: "Feature" }, children: [] },
+                    ],
+                })
+                const remapped = payload.remapReferences({ mappings: featureMapping, mapTo: "universal" })
+                expect(schemaToWML(remapped._description!.schema)).toEqual(
+                    '<Link to=(FEATURE#featOne)>Feature</Link>'
+                )
+            })
+
+            it("should remap summary link to key format from universal", () => {
+                const payload = new SituationProseFacetPayload({
+                    summary: [
+                        { data: { tag: "Link", to: "FEATURE#featOne", text: "Feature" }, children: [] },
+                    ],
+                })
+                const remapped = payload.remapReferences({ mappings: featureMapping, mapTo: "key" })
+                expect(schemaToWML(remapped._summary!.schema)).toEqual(
+                    '<Link to=(featOne)>Feature</Link>'
+                )
+            })
+
+            it("should remap both summary and description links to both format", () => {
+                const payload = new SituationProseFacetPayload({
+                    summary: [
+                        { data: { tag: "Link", to: "featOne", text: "A" }, children: [] },
+                    ],
+                    description: [
+                        { data: { tag: "Link", to: "featOne", text: "B" }, children: [] },
+                    ],
+                })
+                const remapped = payload.remapReferences({ mappings: featureMapping, mapTo: "both" })
+                expect(schemaToWML(remapped._summary!.schema)).toContain("featOne")
+                expect(schemaToWML(remapped._description!.schema)).toContain("featOne")
+            })
+
+            it("should leave displayName unchanged", () => {
+                const payload = new SituationProseFacetPayload({ displayName: ["Title"] })
+                const remapped = payload.remapReferences({ mappings: featureMapping, mapTo: "universal" })
+                expect(remapped.toJSON()).toMatchObject({ displayName: "Title" })
+            })
+        })
+
+        describe("toProseTripletChildren with mappings (display-time)", () => {
+            const featureMapping = [
+                new StandardReference({ key: "featOne", tag: "Feature", universalKey: "FEATURE#featOne" }),
+                new StandardReference({ key: "featTwo", tag: "Feature", universalKey: "FEATURE#featTwo" }),
+            ]
+
+            it("should emit local link keys when stored targets are universal", () => {
+                const payload = new SituationProseFacetPayload({
+                    description: [
+                        { data: { tag: "Link", to: "featOne", text: "One" }, children: [] },
+                    ],
+                })
+                const stored = payload.remapReferences({ mappings: featureMapping, mapTo: "universal" })
+                const children = stored.toProseTripletChildren({ mappings: featureMapping })
+                const descriptionNode = children.find((c) => c.data.tag === "Description")
+                expect(descriptionNode).toBeDefined()
+                expect(schemaToWML(descriptionNode!.children)).toEqual(
+                    '<Link to=(featOne)>One</Link>'
+                )
+            })
+
+            it("renderPayloadToSchemaNode should pass mappings to prose triplet", () => {
+                const payload = new SituationProseFacetPayload({
+                    summary: [
+                        { data: { tag: "Link", to: "FEATURE#featTwo", text: "Two" }, children: [] },
+                    ],
+                })
+                const renderNode = renderPayloadToSchemaNode(payload, featureMapping)
+                expect(renderNode.data.tag).toBe("Render")
+                const summaryChild = renderNode.children.find((c) => c.data.tag === "Summary")
+                expect(schemaToWML(summaryChild!.children)).toEqual(
+                    '<Link to=(featTwo)>Two</Link>'
+                )
+            })
+        })
     })
 
     describe("StandardSituationProseFacet", () => {
@@ -161,6 +249,45 @@ describe("SituationProseFacet and SituationProseFacetList", () => {
             expect(cloned.sameKey(facet)).toBe(true)
             expect(cloned.payload.toJSON()).toEqual(facet.payload.toJSON())
         })
+
+        it("should remapReferences on reference and payload prose", () => {
+            const mapping = [
+                new StandardReference({ key: "bright", tag: "Situation", universalKey: "SITUATION#bright" as any }),
+                new StandardReference({ key: "featOne", tag: "Feature", universalKey: "FEATURE#featOne" }),
+            ]
+            const facet = new StandardSituationProseFacet(
+                createFacetData("bright", {
+                    description: [
+                        { data: { tag: "Link", to: "featOne", text: "F" }, children: [] },
+                    ],
+                })
+            )
+            const remapped = facet.remapReferences({ mappings: mapping, mapTo: "universal" })
+            expect(remapped.reference.universalKey).toBe("SITUATION#bright")
+            expect(schemaToWML(remapped.payload._description!.schema)).toEqual(
+                '<Link to=(FEATURE#featOne)>F</Link>'
+            )
+        })
+
+        it("renderFacet with mappings should emit local link keys from universal storage", () => {
+            const mapping = [
+                new StandardReference({ key: "bright", tag: "Situation", universalKey: "SITUATION#bright" as any }),
+                new StandardReference({ key: "featOne", tag: "Feature", universalKey: "FEATURE#featOne" }),
+            ]
+            const facet = new StandardSituationProseFacet(
+                createFacetData("bright", {
+                    description: [
+                        { data: { tag: "Link", to: "featOne", text: "F" }, children: [] },
+                    ],
+                })
+            )
+            const stored = facet.remapReferences({ mappings: mapping, mapTo: "universal" })
+            const result = stored.renderFacet(undefined, undefined, mapping)
+            const descriptionChild = result.aggregatedNode!.children.find((c) => c.data.tag === "Description")
+            expect(schemaToWML(descriptionChild!.children)).toEqual(
+                '<Link to=(featOne)>F</Link>'
+            )
+        })
     })
 
     describe("SituationProseFacetList", () => {
@@ -199,6 +326,22 @@ describe("SituationProseFacet and SituationProseFacetList", () => {
             const cloned = list.clone()
             expect(cloned.length).toBe(list.length)
             expect(cloned).not.toBe(list)
+        })
+
+        it("should remapReferences on each facet", () => {
+            const mapping = [
+                new StandardReference({ key: "a", tag: "Feature", universalKey: "FEATURE#a" }),
+            ]
+            const list = new SituationProseFacetList([
+                createFacetData("sit1", {
+                    description: [{ data: { tag: "Link", to: "a", text: "A" }, children: [] }],
+                }),
+            ])
+            const remapped = list.remapReferences({ mappings: mapping, mapTo: "universal" })
+            const facet = remapped.items[0] as StandardSituationProseFacet
+            expect(schemaToWML(facet.payload._description!.schema)).toEqual(
+                '<Link to=(FEATURE#a)>A</Link>'
+            )
         })
     })
 

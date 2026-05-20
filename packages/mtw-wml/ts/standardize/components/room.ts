@@ -19,7 +19,7 @@ import { renderReference } from "./utils/schema"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
 import { ExitFacetList, StandardExitFacet } from "../keys/facets/exit"
-import { parseProseTripletChildren, renderPayloadToSchemaNode, SituationProseFacetList, SituationProseFacetPayload } from "../keys/facets/situationRoom"
+import { parseProseTripletChildren, renderPayloadToSchemaNode, SituationProseFacetList, SituationProseFacetPayload, StandardSituationProseFacet, mapSituationProsePayloadContents } from "../keys/facets/situationRoom"
 import { StandardExplicitParent } from "../explicit"
 import { StandardFormSubsetRequest } from "../baseClasses"
 import { processWithConsumers, StandardizeConsumerFacetListSituation, StandardizeConsumerReferenceList, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral, type StandardizeConsumer } from "./fromSchemaPipeline"
@@ -224,7 +224,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             ? this._situations.items.map((facet) => facet.lookup(mappings).toFormat('key'))
             : this._situations.items.map((facet) => facet.toFormat('key'))
         ).map((facet) => {
-            const result = facet.renderFacet()
+            const result = (facet as StandardSituationProseFacet).renderFacet(undefined, undefined, mappings)
             return result.newNode ?? result.aggregatedNode
         }).filter(excludeUndefined) as GenericTreeNode<SchemaTag>[]
         
@@ -237,7 +237,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 },
             ],
         }))
-        const renderSchemas: GenericTreeNode<SchemaTag>[] = this._render ? [renderPayloadToSchemaNode(this._render)] : []
+        const renderSchemas: GenericTreeNode<SchemaTag>[] = this._render ? [renderPayloadToSchemaNode(this._render, mappings)] : []
         return {
             data: { tag: 'Room', key, uuid: universalKey },
             children: [
@@ -255,7 +255,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     }
 
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
-        const { key } = options
+        const { key, mappings } = options
         
         // If organization is available, use assured references from organization
         // Otherwise, fall back to stored reference lists
@@ -292,7 +292,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         }, [])
 
         const situationSchemas = this._situations.items.reduce<GenericTreeNode<SchemaTag>[]>((acc, facet) => {
-            const result = facet.renderFacet(undefined, lookup)
+            const result = facet.renderFacet(undefined, lookup, mappings)
             if (result.aggregatedNode) acc.push(result.aggregatedNode)
             else if (result.newNode) acc.push(result.newNode)
             return acc
@@ -307,7 +307,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 },
             ],
         }))
-        const renderSchemas: GenericTreeNode<SchemaTag>[] = this._render ? [renderPayloadToSchemaNode(this._render)] : []
+        const renderSchemas: GenericTreeNode<SchemaTag>[] = this._render ? [renderPayloadToSchemaNode(this._render, mappings)] : []
         // Pass this Room's key as parent context to children for correct rendering
         return {
             data: { tag: 'Room', key: key.key ?? '', uuid: key.universalKey },
@@ -462,7 +462,18 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                     return returnValue[0].data.value
                 })
         }
-        // returnValue._exits = callback(returnValue._exits)
+        returnValue._situations = new SituationProseFacetList(
+            returnValue._situations.items.map((facet) => {
+                const remappedPayload = mapSituationProsePayloadContents(facet.payload, callback)
+                return new StandardSituationProseFacet({
+                    reference: facet.reference.toJSON(),
+                    payload: remappedPayload.toJSON(),
+                })
+            })
+        )
+        if (returnValue._render) {
+            returnValue._render = mapSituationProsePayloadContents(returnValue._render, callback)
+        }
         return returnValue as this
     }
 
@@ -471,8 +482,11 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         returnValue._lens = returnValue._lens.toFormat(props.mapTo, props.mappings)
         returnValue._features = returnValue._features.toFormat(props.mapTo, props.mappings)
         returnValue._guidance = returnValue._guidance.toFormat(props.mapTo, props.mappings)
-        returnValue._exits = this._exits.lookup(props.mappings).toFormat(props.mapTo)
-        returnValue._situations = this._situations.lookup(props.mappings).toFormat(props.mapTo)
+        returnValue._exits = returnValue._exits.lookup(props.mappings).toFormat(props.mapTo)
+        returnValue._situations = returnValue._situations.lookup(props.mappings).remapReferences(props)
+        if (returnValue._render) {
+            returnValue._render = returnValue._render.remapReferences(props)
+        }
         return returnValue as this
     }
 

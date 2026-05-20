@@ -1,6 +1,7 @@
 import { schemaToWML } from '../../schema'
 import { StandardForm } from '..'
 import { deIndentWML } from '../../schema/utils'
+import StandardFeature from './feature'
 
 jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
     return {
@@ -116,6 +117,40 @@ describe('StandardFeature integration', () => {
                             </Situation>
                         </Room>
                         <Situation uuid=(testBase) ref={0} />
+                    </Asset>
+                `))
+            })
+
+            it('should universalize cross-feature situation links on finalize while schema shows local keys', () => {
+                const test = new StandardForm(`<Asset uuid=(Test)>
+                    <Feature uuid=(testFeatureOne) key=(testFeatureOne)>
+                        <Situation uuid=(testFeatureOneBase)>
+                            <Description><Link to=(testFeatureTwo)>two</Link></Description>
+                        </Situation>
+                    </Feature>
+                    <Feature uuid=(testFeatureTwo) key=(testFeatureTwo)>
+                        <Situation uuid=(testFeatureTwoBase)>
+                            <Description><Link to=(testFeatureOne)>one</Link></Description>
+                        </Situation>
+                    </Feature>
+                </Asset>`).finalize()
+                const featureOne = test._lookup('FEATURE#testFeatureOne') as StandardFeature
+                const facet = featureOne.situations.items[0]
+                expect(schemaToWML(facet.payload._description!.schema)).toEqual(
+                    '<Link to=(FEATURE#testFeatureTwo)>two</Link>'
+                )
+                expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Feature uuid=(testFeatureOne) key=(testFeatureOne)>
+                            <Situation uuid=(testFeatureOneBase)>
+                                <Description><Link to=(testFeatureTwo)>two</Link></Description>
+                            </Situation>
+                        </Feature>
+                        <Feature uuid=(testFeatureTwo) key=(testFeatureTwo)>
+                            <Situation uuid=(testFeatureTwoBase)>
+                                <Description><Link to=(testFeatureOne)>one</Link></Description>
+                            </Situation>
+                        </Feature>
                     </Asset>
                 `))
             })

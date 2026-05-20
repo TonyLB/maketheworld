@@ -740,6 +740,78 @@ export class StandardForm {
         }
     }
 
+    private _collectKeyRenamesFromIncoming(incoming: StandardForm): { fromKey: string; toKey: string; universalKey?: ComponentUUID }[] {
+        return incoming._components.flatMap((component) => {
+            if (!component._key) {
+                return []
+            }
+            const keyData = component._key.toJSON()
+            if (keyData && typeof keyData === 'object' && keyData.tag === 'Replace') {
+                const match = typeof keyData.match === 'string' ? keyData.match : undefined
+                const payload = typeof keyData.payload === 'string' ? keyData.payload : undefined
+                if (match && payload) {
+                    return [{ fromKey: match, toKey: payload, universalKey: component.universalKey }]
+                }
+            }
+            return []
+        })
+    }
+
+    private _keyRenameContentsCallback(renames: { fromKey: string; toKey: string; universalKey?: ComponentUUID }[]): (tree: GenericTree<SchemaTag>) => GenericTree<SchemaTag> {
+        const findMatchingRename = (target: string): string | undefined => {
+            const prefixMatch = renames.find(({ fromKey }) => target.startsWith(fromKey))
+            if (prefixMatch) {
+                return `${prefixMatch.toKey}${target.slice(prefixMatch.fromKey.length)}`
+            }
+            const exactFrom = renames.find(({ fromKey }) => target === fromKey)
+            if (exactFrom) {
+                return exactFrom.toKey
+            }
+            const universalMatch = renames.find(({ universalKey }) => universalKey && target === universalKey)
+            if (universalMatch) {
+                return universalMatch.toKey
+            }
+            return undefined
+        }
+        const renameContentsCallback = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => (
+            tree.map((node) => {
+                if (treeNodeTypeguard(isSchemaWithKey)(node)) {
+                    const match = findMatchingRename(node.data.key ?? '')
+                    if (match) {
+                        return {
+                            data: { ...node.data, key: match },
+                            children: renameContentsCallback(node.children)
+                        }
+                    }
+                    return node
+                }
+                if (treeNodeTypeguard(isSchemaExit)(node)) {
+                    const matchTo = findMatchingRename(node.data.to)
+                    if (matchTo) {
+                        return {
+                            data: { ...node.data, to: matchTo },
+                            children: renameContentsCallback(node.children)
+                        }
+                    }
+                }
+                if (treeNodeTypeguard(isSchemaLink)(node)) {
+                    const matchTo = findMatchingRename(node.data.to)
+                    if (matchTo) {
+                        return {
+                            data: { ...node.data, to: matchTo },
+                            children: renameContentsCallback(node.children)
+                        }
+                    }
+                }
+                return {
+                    ...node,
+                    children: renameContentsCallback(node.children)
+                }
+            })
+        )
+        return renameContentsCallback
+    }
+
     /**
      * Detects if a StandardForm contains any Key changes (Replace or Remove operations).
      * Used to determine if pre-merge remapping is needed.
@@ -820,7 +892,12 @@ export class StandardForm {
             remappedIncoming._topLevel = remappedIncoming._topLevel?.toFormat('universal')
             
             // Merge the remapped forms
-            return remappedThis._mergeInternal(remappedIncoming)
+            const merged = remappedThis._mergeInternal(remappedIncoming)
+            const renames = this._collectKeyRenamesFromIncoming(incoming)
+            if (renames.length > 0) {
+                return merged.mapContents(this._keyRenameContentsCallback(renames))
+            }
+            return merged
         }
         
         // Normal merge path (no key changes)

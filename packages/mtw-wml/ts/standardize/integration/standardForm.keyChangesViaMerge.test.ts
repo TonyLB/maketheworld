@@ -69,7 +69,7 @@ describe('StandardForm', () => {
         })
 
         describe('reference updates', () => {
-            it('should retarget Links to the renamed key via merge', () => {
+            it('should retarget situation facet prose Links to the renamed key via merge', () => {
                 const base = new StandardForm(`
                     <Asset uuid=(test)>
                         <Feature uuid=(feature1) key=(testFeatureOne)>
@@ -104,7 +104,7 @@ describe('StandardForm', () => {
                         <Feature uuid=(feature1) key=(renamedFeature)>
                             <Situation uuid=(base1)>
                                 <Description>
-                                    <Link to=(testFeatureOne)>self link</Link>
+                                    <Link to=(renamedFeature)>self link</Link>
                                     <Link to=(testFeatureTwo)>other link</Link>
                                 </Description>
                             </Situation>
@@ -112,7 +112,7 @@ describe('StandardForm', () => {
                         <Feature uuid=(feature2) key=(testFeatureTwo)>
                             <Situation uuid=(base2)>
                                 <Description>
-                                    <Link to=(testFeatureOne)>back link</Link>
+                                    <Link to=(renamedFeature)>back link</Link>
                                 </Description>
                             </Situation>
                         </Feature>
@@ -222,14 +222,14 @@ describe('StandardForm', () => {
                         <Room uuid=(room1) key=(testRoomTwo)>
                             <Situation uuid=(base1) ref={0}>
                                 <Description>
-                                    Test One <Link to=(testRoomTwo)>link</Link>
+                                    Test One <Link to=(testRoomOne)>link</Link>
                                 </Description>
                             </Situation>
                         </Room>
                         <Room uuid=(room2) key=(testRoomOne)>
                             <Situation uuid=(base2) ref={0}>
                                 <Description>
-                                    Test Two <Link to=(testRoomOne)>link</Link>
+                                    Test Two <Link to=(testRoomTwo)>link</Link>
                                 </Description>
                             </Situation>
                         </Room>

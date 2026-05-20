@@ -606,8 +606,12 @@ describe('StandardForm', () => {
             })
         })
 
-        describe('key changes', () => {
-            it('should show key change in diff when component is renamed', () => {
+        //
+        // Local key assignment: diff emits explicit Key edits. Full merge retarget behavior
+        // (exits, map positions, prose links) lives in standardForm.keyChangesViaMerge.test.ts.
+        //
+        describe('local key assignment (diff)', () => {
+            it('should emit explicit Key Replace in diff when component key is renamed', () => {
                 const base = new StandardForm(`<Asset uuid=(Test)><Feature uuid=(Feature1) key=(Feature1)><ShortName>Test</ShortName></Feature></Asset>`)
                 const incoming = new StandardForm(`<Asset uuid=(Test)><Feature uuid=(Feature1) key=(clockTower)><ShortName>Test</ShortName></Feature></Asset>`)
                 const diff = base.diff(incoming)
@@ -620,7 +624,7 @@ describe('StandardForm', () => {
                 `))
             })
 
-            it('should show key addition in diff when component gains a local key', () => {
+            it('should emit key addition in diff when component gains a local key', () => {
                 const base = new StandardForm(`<Asset uuid=(Test)><Feature uuid=(Feature1)><ShortName>Test</ShortName></Feature></Asset>`)
                 const incoming = new StandardForm(`<Asset uuid=(Test)><Feature uuid=(Feature1) key=(clockTower)><ShortName>Test</ShortName></Feature></Asset>`)
                 const diff = base.diff(incoming)
@@ -630,7 +634,7 @@ describe('StandardForm', () => {
                 expect(component?.key).toBe('clockTower')
             })
 
-            it('should show key removal in diff when component loses a local key', () => {
+            it('should emit key removal in diff when component loses a local key', () => {
                 const base = new StandardForm(`<Asset uuid=(Test)><Feature uuid=(Feature1) key=(clockTower)><ShortName>Test</ShortName></Feature></Asset>`)
                 const incoming = new StandardForm(`<Asset uuid=(Test)><Feature uuid=(Feature1)><ShortName>Test</ShortName></Feature></Asset>`)
                 const diff = base.diff(incoming)
@@ -649,7 +653,7 @@ describe('StandardForm', () => {
                 }
             })
 
-            it('should show both key change and content changes in diff', () => {
+            it('should emit Key Replace and content Replace in diff when both change', () => {
                 const base = new StandardForm(`<Asset uuid=(Test)><Feature uuid=(Feature1) key=(Feature1)><ShortName>Old Name</ShortName></Feature></Asset>`)
                 const incoming = new StandardForm(`<Asset uuid=(Test)><Feature uuid=(Feature1) key=(clockTower)><ShortName>New Name</ShortName></Feature></Asset>`)
                 const diff = base.diff(incoming)
@@ -664,7 +668,7 @@ describe('StandardForm', () => {
                 `))
             })
 
-            it('should keep key-only room rename diff observable for exit retarget flow', () => {
+            it('should produce non-empty diff when room gains local key and exit uses resolved target', () => {
                 const base = new StandardForm(`
                     <Asset uuid=(testAsset)>
                         <Room uuid=(Room1)>
@@ -700,7 +704,7 @@ describe('StandardForm', () => {
                 expect(schemaToWML([base.merge(diff).schema])).toEqual(schemaToWML([incoming.schema]))
             })
 
-            it('should keep key-only room rename diff observable for map reference retarget flow', () => {
+            it('should produce non-empty diff with new local key when map position uses resolved key', () => {
                 const base = new StandardForm(`
                     <Asset uuid=(testAsset)>
                         <Room uuid=(Room2)>
@@ -722,7 +726,7 @@ describe('StandardForm', () => {
                 expect(diff._lookup('ROOM#Room2')?.key).toBe('garden')
             })
 
-            it('should keep key-only feature rename diff observable for link retarget flow', () => {
+            it('should emit Key Replace in diff for feature rename (prose link retarget via merge)', () => {
                 const base = new StandardForm(`
                     <Asset uuid=(testAsset)>
                         <Feature uuid=(Feature1) key=(Feature1)>
