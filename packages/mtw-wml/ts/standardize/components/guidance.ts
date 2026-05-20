@@ -14,11 +14,18 @@ import { MarkFacetList } from "../keys/facets/mark"
 import { StandardFormSubsetRequest } from "../baseClasses"
 import { StandardLiteral } from "../literal"
 import type { StandardFormConstructionOptions, StandardizeFromSchemaContext } from "../wmlStandardizeMode"
-import { HasShortName } from "./abstract"
+import {
+    createShortNameFromJSON,
+    invertShortName,
+    mergeShortName,
+    shortNameSchemaChildren,
+    shortNameToJSON,
+    standardizeShortNameConsumer,
+} from "./shortNameField"
 import { processWithConsumers, StandardizeConsumerFacetListMark, StandardizeConsumerInline, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
 import { defaultedEquals } from "./utils"
 
-export class StandardGuidancePayload implements HasShortName, ComponentConstructorMethods<StandardGuidanceNDJSONInputData | StandardGuidanceInputData, StandardGuidanceData> {
+export class StandardGuidancePayload implements ComponentConstructorMethods<StandardGuidanceNDJSONInputData | StandardGuidanceInputData, StandardGuidanceData> {
     _instructions?: StandardLiteral;
     _shortName?: StandardLiteral;
     _marks: MarkFacetList;
@@ -38,7 +45,7 @@ export class StandardGuidancePayload implements HasShortName, ComponentConstruct
     fromJSON(props: StandardGuidanceInputData | StandardGuidanceNDJSONInputData) {
         const { instructions, marks, shortName } = props
         this._instructions = instructions ? new StandardLiteral(instructions, { tag: 'Instructions' }) : undefined
-        this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
+        this._shortName = createShortNameFromJSON(shortName)
         this._marks = new MarkFacetList(marks ?? [])
     }
 
@@ -51,12 +58,7 @@ export class StandardGuidancePayload implements HasShortName, ComponentConstruct
                         this._instructions = literal
                     },
                 }),
-                new StandardizeConsumerStandardLiteral<StandardGuidancePayload>(this, {
-                    tag: "ShortName",
-                    update(literal) {
-                        this._shortName = literal
-                    },
-                }),
+                standardizeShortNameConsumer(this),
                 new StandardizeConsumerFacetListMark<StandardGuidancePayload>(this, {
                     update(list) {
                         this._marks = list
@@ -79,7 +81,7 @@ export class StandardGuidancePayload implements HasShortName, ComponentConstruct
         return {
             tag: 'Guidance',
             ...(this._instructions ? { instructions: this._instructions.toJSON() } : {}),
-            ...(this._shortName ? { shortName: this._shortName.toJSON() } : {}),
+            ...(this._shortName ? { shortName: shortNameToJSON(this._shortName) } : {}),
             ...(this.marks.length ? { marks: this.marks.toJSON() } : {})
         }
     }
@@ -88,7 +90,7 @@ export class StandardGuidancePayload implements HasShortName, ComponentConstruct
         return {
             tag: 'Guidance',
             ...(this._instructions ? { instructions: this._instructions.toJSON() } : {}),
-            ...(this._shortName ? { shortName: this._shortName.toJSON() } : {}),
+            ...(this._shortName ? { shortName: shortNameToJSON(this._shortName) } : {}),
             ...(this.marks.length ? { marks: this.marks.toJSON() } : {})
         }
     }
@@ -100,7 +102,7 @@ export class StandardGuidancePayload implements HasShortName, ComponentConstruct
             return node ? [node] : []
         })
         const children = [
-            ...[this._shortName].filter(excludeUndefined).map((s) => s.nestedSchema()).flat(1),
+            ...shortNameSchemaChildren(this._shortName),
             ...[this._instructions].filter(excludeUndefined).map((i) => i.nestedSchema()).flat(1),
             ...markNodes
         ].filter(excludeUndefined)
@@ -123,9 +125,7 @@ export class StandardGuidancePayload implements HasShortName, ComponentConstruct
         returnValue._instructions = (this._instructions && incoming._instructions)
             ? this._instructions.merge(incoming._instructions)
             : this._instructions ?? incoming._instructions
-        returnValue._shortName = (this._shortName && incoming._shortName)
-            ? this._shortName.merge(incoming._shortName)
-            : this._shortName ?? incoming._shortName
+        returnValue._shortName = mergeShortName(this._shortName, incoming._shortName)
         const mergedMarks = (this._marks && incoming._marks)
             ? this._marks.merge(incoming._marks)
             : this._marks ?? incoming._marks ?? new MarkFacetList([])
@@ -173,7 +173,7 @@ export class StandardGuidancePayload implements HasShortName, ComponentConstruct
     invert(): this {
         const returnValue = new StandardGuidancePayload()
         returnValue._instructions = this._instructions ? this._instructions.invert() as StandardLiteral : undefined
-        returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
+        returnValue._shortName = invertShortName(this._shortName)
         returnValue._marks = this._marks.invert()
         return returnValue as this
     }
@@ -200,7 +200,7 @@ export class StandardGuidancePayload implements HasShortName, ComponentConstruct
         }
 
         const children = [
-            ...[this._shortName].filter(excludeUndefined).map((s) => s.nestedSchema()).flat(1),
+            ...shortNameSchemaChildren(this._shortName),
             ...[this._instructions].filter(excludeUndefined).map((i) => i.nestedSchema()).flat(1),
             ...markNodes
         ].filter(excludeUndefined)
@@ -214,7 +214,6 @@ export class StandardGuidancePayload implements HasShortName, ComponentConstruct
 
 export class StandardGuidance extends componentClassFactory(StandardGuidancePayload, 'StandardGuidance') {
     get instructions() { return this._payload.instructions }
-    get shortName() { return this._payload.shortName }
     get marks() { return this._payload.marks }
 
     constructor(

@@ -17,6 +17,7 @@ import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import { StandardExitFacet } from "@tonylb/mtw-wml/ts/standardize/keys/facets/exit"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import ComponentSelectorDialog from "../foundations/ComponentSelector/ComponentSelectorDialog"
+import { componentDisplayLabel } from "../../../lib/componentDisplayLabel"
 
 export type ExitEditorProps = {
     RoomId: ComponentUUID;
@@ -62,14 +63,7 @@ const ExitRowEditor: FunctionComponent<{
         if (!targetRoom) {
             return 'Unknown room'
         }
-        const shortNameData = targetRoom.shortName?.toJSON()
-        if (typeof shortNameData === 'string' && shortNameData.trim().length) {
-            return shortNameData
-        }
-        if (targetRoom.key) {
-            return targetRoom.key
-        }
-        return 'Untitled'
+        return componentDisplayLabel(targetRoom, { fallbackLabel: 'Untitled' }) ?? 'Untitled'
     }, [exit.reference, standardForm])
 
     const currentDescription = useMemo(() => {

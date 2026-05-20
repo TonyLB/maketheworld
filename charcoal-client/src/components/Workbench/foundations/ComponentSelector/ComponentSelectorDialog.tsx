@@ -28,8 +28,7 @@ import StandardImage from '@tonylb/mtw-wml/ts/standardize/components/image'
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import { StandardLens, StandardMark } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import StandardMessage from '@tonylb/mtw-wml/ts/standardize/components/message'
-import { situationToMarksSummary } from '../../../../lib/situationLabel'
-import type { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { componentDisplayLabel } from '../../../../lib/componentDisplayLabel'
 
 /** ComponentTag plus Image (supported in selector). */
 type DialogComponentTag = ComponentTag | 'Image'
@@ -59,19 +58,6 @@ function componentToTag(component: StandardComponent): DialogComponentTag | null
     if (component instanceof StandardMessage) return 'Message'
     if (component instanceof StandardSituation) return 'Situation'
     return null
-}
-
-function getDisplayName(component: StandardComponent, standardForm?: StandardForm | null): string {
-    if (component instanceof StandardSituation) {
-        // Future: if Situation had shortName, prefer it here with Marks-summary as fallback.
-        return situationToMarksSummary(component, standardForm ?? null)
-    }
-    const plain = (component as { shortName?: { _payload?: { plain?: { toJSON?: () => unknown } } } }).shortName?._payload?.plain
-    const shortName = plain?.toJSON?.()
-    const str = typeof shortName === 'string' ? shortName : undefined
-    if (str?.trim()) return str
-    if (component.key) return component.key
-    return 'Untitled'
 }
 
 export interface ComponentSelectorDialogProps {
@@ -115,7 +101,7 @@ export const ComponentSelectorDialog: FunctionComponent<ComponentSelectorDialogP
                     typeof localKey === 'string' && localKey.trim() ? localKey : undefined
                 return {
                     universalKey: c.universalKey as ComponentUUID,
-                    displayName: getDisplayName(c, standardForm),
+                    displayName: componentDisplayLabel(c, { standardForm, fallbackLabel: 'Untitled' }) ?? 'Untitled',
                     secondaryKey,
                     tag: componentTag!
                 } as ListItem | null

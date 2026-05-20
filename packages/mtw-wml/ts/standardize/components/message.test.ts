@@ -284,6 +284,42 @@ describe('StandardMessage class', () => {
         })
     })
 
+    it('should merge shortName correctly', () => {
+        expect(mergeTest(
+            `<Message key=(test)>
+                <ShortName>Original</ShortName>
+            </Message>`,
+            StandardMessage,
+            `<Message key=(test)>
+                <Replace><ShortName>Original</ShortName></Replace>
+                <With><ShortName>Updated</ShortName></With>
+            </Message>`
+        )).toEqual(deIndentWML(`
+            <Message key=(test)><ShortName>Updated</ShortName></Message>
+        `))
+    })
+
+    it('should diff shortName correctly', () => {
+        const testMessage = new StandardMessage(`
+            <Message key=(test)>
+                <ShortName>Original</ShortName>
+            </Message>
+        `)
+        const testMessage2 = new StandardMessage(`
+            <Message key=(test)>
+                <ShortName>Updated</ShortName>
+            </Message>
+        `)
+        const diff = testMessage.diff(testMessage2)
+        expect(diff).toBeDefined()
+        expect(schemaToWML([diff!.schema])).toEqual(deIndentWML(`
+            <Message key=(test)>
+                <Replace><ShortName>Original</ShortName></Replace>
+                <With><ShortName>Updated</ShortName></With>
+            </Message>
+        `))
+    })
+
     describe('removeReferences method', () => {
         it('should remove matching references from rooms bucket', () => {
             const message = new StandardMessage(deIndentWML(`

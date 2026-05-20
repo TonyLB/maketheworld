@@ -7,6 +7,14 @@ import { AssetUUID, ComponentUUID, isSchemaCharacter, SchemaTag } from "@tonylb/
 import { isSchemaImage, SchemaImageTag } from "@tonylb/mtw-base/ts/schema/image"
 import { isSchemaDisplayName, SchemaDisplayNameTag } from "@tonylb/mtw-base/ts/schema/prose"
 import { StandardLiteral } from "../literal"
+import {
+    createShortNameFromJSON,
+    invertShortName,
+    mergeShortName,
+    shortNameSchemaChildren,
+    shortNameToJSON,
+    standardizeShortNameConsumer,
+} from "./shortNameField"
 import type { StandardFormConstructionOptions, StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { StandardComponent, StandardComponentReferenceKey } from "./baseClasses"
 import StandardReference from "../keys/reference"
@@ -38,7 +46,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
 
     fromJSON(props: StandardCharacterData) {
         const { shortName, pronouns, displayName } = props
-        this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
+        this._shortName = createShortNameFromJSON(shortName)
         this._pronouns = pronouns ? new StandardLiteral(pronouns, { tag: 'Pronouns' }) : undefined
         this._displayName = displayName ? new StandardLiteral(displayName, { tag: 'DisplayName' }) : undefined
         this._image = props.image
@@ -47,12 +55,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
     fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaCharacter)(node)) {
             const consumers = [
-                new StandardizeConsumerStandardLiteral(this, {
-                    tag: "ShortName",
-                    update(literal) {
-                        this._shortName = literal
-                    },
-                }),
+                standardizeShortNameConsumer(this),
                 new StandardizeConsumerStandardLiteral(this, {
                     tag: "Pronouns",
                     update(literal) {
@@ -98,7 +101,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
     toJSON(): Omit<StandardCharacterData, 'key' | 'universalKey'> {
         return {
             tag: 'Character',
-            shortName: this?.shortName?.toJSON(),
+            shortName: shortNameToJSON(this.shortName),
             pronouns: this?.pronouns?.toJSON(),
             displayName: this.displayName?.toJSON(),
             image: this.image,
@@ -109,7 +112,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         return {
             data: { tag: 'Character', key, uuid: universalKey },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
+                ...shortNameSchemaChildren(this.shortName),
                 ...[this.pronouns].filter(excludeUndefined).map((pronouns) => (pronouns.nestedSchema())).flat(1),
                 ...(this._displayName?.nestedSchema({ tag: 'DisplayName' }) ?? []),
                 this.image
@@ -122,7 +125,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
             throw new Error('Type mistmatch on StandardCharacter merge')
         }
         const returnValue = new StandardCharacterPayload()
-        returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
+        returnValue._shortName = mergeShortName(this._shortName, incoming._shortName)
         returnValue._pronouns = (this._pronouns && incoming._pronouns) ? this._pronouns.merge(incoming._pronouns) : this._pronouns ?? incoming._pronouns
         returnValue._displayName = (this._displayName && incoming._displayName) ? this._displayName.merge(incoming._displayName) : this._displayName ?? incoming._displayName
         returnValue._image = this._image ?? incoming._image
@@ -153,7 +156,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
     invert(): this {
         const returnValue = new StandardCharacterPayload()
         // Invert shortName if it exists (StandardLiteral has invert() from standardEditableFactory)
-        returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
+        returnValue._shortName = invertShortName(this._shortName)
         // Invert pronouns if it exists (StandardLiteral has invert() from standardEditableFactory)
         returnValue._pronouns = this._pronouns ? this._pronouns.invert() as StandardLiteral : undefined
         // Invert displayName if it exists (StandardLiteral has invert())
@@ -165,7 +168,6 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
 }
 
 export class StandardCharacter extends componentClassFactory(StandardCharacterPayload, 'StandardCharacter') {
-    get shortName() { return this._payload.shortName }
     get pronouns() { return this._payload.pronouns }
     get displayName() { return this._payload.displayName }
     get image() { return this._payload.image }

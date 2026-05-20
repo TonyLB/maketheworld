@@ -66,6 +66,54 @@ The component system maintains a clear separation between:
 
 Common combinations: A Room typically references and hosts its Features. A Room may host a shared Mark without referencing it (the Mark's content is rendered under the Room in WML but the Room has no marks list). When implementing or debugging tree structure, ask separately: does the parent reference this child? Does the parent host this child? See also [AGENT.schemaOrganization.md](../AGENT.schemaOrganization.md) for how the tree is derived.
 
+## shortName (platform contract)
+
+Optional **`shortName`** is a first-class field on every **`StandardComponent`** tag (13/13). It is the human-facing anchor for UI, maps, breadcrumbs, and prompts where a readable label is needed. It is **not** stable identity.
+
+### Identity vs display label
+
+| Concept | Role |
+| --- | --- |
+| **`universalKey`** | Stable identity across assets and systems |
+| **`key`** | Optional WML sugar for authoring and references |
+| **`shortName`** | Optional human-readable label stored on the component (`StandardLiteral`) |
+
+**Display labels in the UI** are a **charcoal-client presentation contract**, not part of mtw-wml serialization. mtw-wml exposes field accessors only (`component.shortName`, Character `displayName` via [`hasDisplayName`](../index.ts)). Human-readable titles in the client use [`componentDisplayLabel`](../../../../../charcoal-client/src/lib/componentDisplayLabel.ts) with this fallback chain: **shortName** -> **displayName** (Character only) -> **key** (when `includeKeyFallback` is true, default) -> **Situation marks-summary** when `standardForm` is passed (delegates to [`situationIdToLabel`](../../../../../charcoal-client/src/lib/situationLabel.ts)). The helper does **not** fall back to **universalKey** or uuid suffixes; callers pass **`fallbackLabel`** (e.g. `'Untitled'`) or apply their own default. See [`Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md) and [`contentHeaders` slice AGENT.md`](../../../../../charcoal-client/src/slices/contentHeaders/AGENT.md) for call-site patterns.
+
+**Lambda content headers** projection stays **shortName-only** ([`extractHeaderComponent`](../../../../../lambda/assets/contentHeaders/index.ts)) — not the full display-label chain.
+
+### Optional semantics
+
+`shortName` follows **omission-over-empty** everywhere: empty values are omitted from JSON/WML; the field is never required for a component to exist. Editors may still mark the field "required" in UX (e.g. Character) without model enforcement.
+
+### Implementation
+
+- **Interface:** `shortName?: StandardLiteral` on [`StandardComponent`](./baseClasses.ts).
+- **Payload helpers:** [`shortNameField.ts`](./shortNameField.ts) (`createShortNameFromJSON`, `mergeShortName`, `invertShortName`, `shortNameSchemaChildren`, `standardizeShortNameConsumer`, etc.). All component payloads with `shortName` (Character, Feature, Guidance, Image, Knowledge, Lens, Map, Mark, Message, Moment, Room, Situation) use these helpers for fromJSON/fromSchema/merge/invert/schema/toJSON.
+- **Wrapper access:** `componentClassFactory` exposes `get shortName()` delegating to the payload ([`component.ts`](./component.ts)).
+- **Round-trip tests:** [`shortNameRoundTrip.test.ts`](./shortNameRoundTrip.test.ts) (parameterized matrix across component tags).
+
+**Removed vestiges:** `HasShortName` and exported `hasShortName()` were removed as redundant with `StandardComponent.shortName`. Use `component.shortName` directly. Local `const hasShortName = Boolean(...)` inside payload `isEmpty()` methods is unrelated.
+
+**Direct `_payload._shortName` assignment** is allowed only in: Workbench `updateStandard` editors (charcoal-client), `StandardForm.subset` Room stub copy ([`index.ts`](../index.ts)), and tests. Optional follow-up: typed `withShortName()` on components.
+
+### Asset `StandardForm._shortName` (not component shortName)
+
+**Asset-level** `_shortName` on `StandardForm` is **asset title metadata**, separate from per-component `shortName`. Do not conflate the two. See [`../AGENT.md`](../AGENT.md) (omission-over-empty and asset metadata).
+
+### Character: `shortName` vs `displayName`
+
+**StandardCharacter** keeps both fields:
+
+- **`shortName`:** Authoring / Workbench "Short Name" tag.
+- **`displayName`:** In-world character name (`StandardRender`).
+
+[`HasDisplayName`](./abstract.ts) and [`hasDisplayName`](../index.ts) apply to **displayName only** — not a general shortName guard.
+
+### Ephemera `Object` exception (Room `objects[].shortName`)
+
+**`<Object uuid=(...)><ShortName>...</ShortName></Object>`** under **Room** is a **parallel ephemera wire shape**, not `StandardComponent` shortName. `StandardRoom` collects **`objects`** as `{ uuid, shortName }[]` only when **`standardizeMode === 'ephemeraWire'`**; in **asset** mode those tags are unconsumed and `fromSchema` errors. **`Object`** is not a `StandardComponent`. See **StandardRoom** above and [`../AGENT.md`](../AGENT.md) (**Ephemera-only tag: Object**).
+
 ## Component Types
 
 ### **StandardCharacter** ✅
@@ -179,6 +227,7 @@ Payloads that parse from WML schema use a **process-and-remainder pipeline** so 
 - **Simple components:** Use `StandardizeConsumerSimple`, `StandardizeConsumerStandardLiteral`, and/or `StandardizeConsumerReferenceList` with `{ tag, update }`; the order of steps is the contract for what the component accepts. Tags that should be accepted but not stored (e.g. Position, Grant) use a no-op `update`.
 - **Pipeline usage:** All component payloads use the process-and-remainder pipeline for `fromSchema`. Most use tag-based consumers only (see component sections above for each component's accepted tag set); Map, Example, and Guidance add facet-list consumers (e.g. `StandardizeConsumerFacetListPosition`, `StandardizeConsumerFacetListMark`).
 - **Consumer types:** Use `StandardizeConsumerSimple` or `StandardizeConsumerStandardLiteral` for a single tag → one property; `StandardizeConsumerRender` for rich-text tags (Description, DisplayName, etc.); `StandardizeConsumerReferenceList` for component references (Feature, Example, Room, Message, Mark under Lens, etc.); `StandardizeConsumerFacetListPosition` / `StandardizeConsumerFacetListMark` for facet data (Map positions, Example/Guidance mark facets); `StandardizeConsumerInline` as the last step when the component has reference or facet consumers, to accept and forward hosted component nodes (e.g. Mark under Room) that don't map to a bucket. Implementation: [fromSchemaPipeline.ts](./fromSchemaPipeline.ts), [fromSchemaPipeline.test.ts](./fromSchemaPipeline.test.ts).
+- **Shared `shortName` lifecycle:** See [shortName (platform contract)](#shortname-platform-contract) for lifecycle helpers, display-label boundaries, and assignment rules.
 
 #### Division of responsibility (Schema vs Standardize)
 
@@ -673,7 +722,7 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
 **Example**: `StandardKnowledge`, `StandardFeature`
 
 **Pattern**:
-- Minimal payload class with basic properties (e.g., `shortName?: StandardLiteral`)
+- Minimal payload class with basic properties (e.g., `shortName?: StandardLiteral`); use [`shortNameField.ts`](./shortNameField.ts) for fromJSON/merge/invert/schema consumer wiring when the tag has `shortName`
 - Optional `ReferenceList` for child components (e.g., `features: ReferenceList`)
 - Simple `toJSON()` with omission-over-empty pattern
 - Straightforward `schema()` and `nestedSchema()` implementations

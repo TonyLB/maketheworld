@@ -10,7 +10,7 @@ import StandardFeature, { StandardFeaturePayload } from "./components/feature"
 import StandardKnowledge, { StandardKnowledgePayload } from "./components/knowledge"
 import StandardMap from "./components/map"
 import { findTaggedChildren, wrappedNodeTypeGuard } from "../schema/utils"
-import { HasDescription, HasDisplayName, HasShortName } from "./components/abstract"
+import { HasDescription, HasDisplayName } from "./components/abstract"
 import { StandardBaseData } from "./components/dataTypes/abstract"
 import { StandardComponent, StandardComponentReferenceKey } from "./components/baseClasses"
 import processComponents from "./processComponents"
@@ -98,19 +98,6 @@ export const hasDisplayName = (component: StandardComponent): component is Stand
 
 export const hasDescription = (component: StandardComponent): component is StandardComponent & HasDescription => {
     return (component instanceof StandardRoom || component instanceof StandardFeature || component instanceof StandardKnowledge)
-}
-
-export const hasShortName = (component: StandardComponent): component is StandardComponent & HasShortName => {
-    return (component instanceof StandardRoom) ||
-        (component instanceof StandardCharacter) ||
-        (component instanceof StandardFeature) ||
-        (component instanceof StandardKnowledge) ||
-        (component instanceof StandardMap) ||
-        (component instanceof StandardImage) ||
-        (component instanceof StandardMessage) ||
-        (component instanceof StandardMoment) ||
-        (component instanceof StandardSituation) ||
-        (component instanceof StandardGuidance)
 }
 
 export type StandardFormEqualsOptions = {

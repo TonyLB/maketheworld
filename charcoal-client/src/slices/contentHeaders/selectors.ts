@@ -7,8 +7,6 @@ import { ContentHeadersSnapshot } from '@tonylb/mtw-interfaces/ts/eventBridge/as
 import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
-import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
-import { hasDisplayName } from '@tonylb/mtw-wml/ts/standardize'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
@@ -53,31 +51,6 @@ export const getComponentsForAsset = (state: any, assetId: AssetUUID): readonly 
         return []
     }
     return asset.standardForm.components || []
-}
-
-/**
- * Get display name for a component (shortName if available, then displayName, then key)
- */
-export const getComponentDisplayName = (component: StandardComponent): string => {
-    const shortNameValue = component.shortName?._payload?.plain?.toJSON()
-    if (typeof shortNameValue === 'string' && shortNameValue.trim()) {
-        return shortNameValue
-    }
-    if (hasDisplayName(component) && component.displayName) {
-        const dn = component.displayName
-        let displayNameStr: string | undefined
-        if (dn instanceof StandardLiteral) {
-            const raw = dn.toJSON()
-            displayNameStr = typeof raw === 'string' ? raw : undefined
-        } else if ('plainString' in dn && typeof (dn as { plainString?: string }).plainString === 'string') {
-            displayNameStr = (dn as { plainString: string }).plainString
-        }
-        if (typeof displayNameStr === 'string' && displayNameStr.trim()) {
-            return displayNameStr
-        }
-    }
-    // Fallback to key or universalKey
-    return component.key || component.universalKey?.split('#')[1] || 'Untitled'
 }
 
 /**

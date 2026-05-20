@@ -3,7 +3,6 @@ import { EditWrappedStandardNode } from "../baseClasses";
 import { StandardToJSONOptions } from "./baseClasses"
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { SchemaDescriptionTag, SchemaDisplayNameTag } from "@tonylb/mtw-base/ts/schema/prose";
-import { StandardLiteral } from "../literal";
 import { StandardReferenceData } from "./dataTypes/reference";
 import { StandardKey } from "../keys/key";
 
@@ -25,10 +24,6 @@ export interface HasDisplayName {
 
 export interface HasDescription {
     description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
-}
-
-export interface HasShortName {
-    shortName?: StandardLiteral;
 }
 
 export interface HasFileAssociation {

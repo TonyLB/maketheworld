@@ -28,6 +28,7 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { unique, excludeUndefined } from '@tonylb/mtw-base/ts/utils/lists'
 import { useMapContext } from './MapController'
+import { componentDisplayLabel } from '../../../lib/componentDisplayLabel'
 
 type MapLayersProps = {
     mapId: `MAP#${string}`;
@@ -234,8 +235,7 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
                 return null
             }
 
-            const roomKey = roomComponent.key
-            const roomName = roomComponent.shortName?._payload?.plain?.toJSON() ?? roomKey ?? 'Room'
+            const roomName = componentDisplayLabel(roomComponent, { fallbackLabel: 'Room' }) ?? 'Room'
 
             const positionFacet = localMapComponent.positions.items.find((facet) =>
                 facet.reference.universalKey === roomId
@@ -259,7 +259,7 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
                         }
                         const destinationComponent = standardForm._lookup(destinationKey)
                         const exitName = (destinationComponent && destinationComponent instanceof StandardRoom)
-                            ? destinationComponent.shortName?._payload?.plain?.toJSON() ?? destinationComponent.key ?? ''
+                            ? componentDisplayLabel(destinationComponent, { fallbackLabel: '' }) ?? ''
                             : ''
 
                         return (

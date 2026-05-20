@@ -33,6 +33,7 @@ import {
     type StandardFormConstructionOptions,
     type StandardizeFromSchemaContext,
 } from "../wmlStandardizeMode";
+import { StandardLiteral } from "../literal";
 
 export interface AssureReferencesResult<T> {
     payload: T
@@ -244,6 +245,9 @@ export const componentClassFactory = <
         }
         get fileName(): string | undefined { return undefined }
         get tag(): ComponentTag { return this._payload.tag }
+        get shortName(): StandardLiteral | undefined {
+            return (this._payload as { shortName?: StandardLiteral }).shortName
+        }
         get referenceData(): StandardReferenceData {
             if (!this.key) {
                 if (!this.universalKey) {

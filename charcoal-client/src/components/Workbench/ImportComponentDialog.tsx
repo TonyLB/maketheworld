@@ -35,10 +35,10 @@ import { SchemaImportMapping } from '@tonylb/mtw-base/ts/schema/metaData'
 import {
     getContentHeadersByZone,
     getComponentsForAsset,
-    getComponentDisplayName,
     groupComponentsByType,
     ComponentGroup
 } from '../../slices/contentHeaders/selectors'
+import { componentDisplayLabel } from '../../lib/componentDisplayLabel'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
@@ -393,7 +393,7 @@ export const ImportComponentDialog: FunctionComponent<ImportComponentDialogProps
                                                         </Box>
                                                     </ListSubheader>
                                                     {group.components.map((component) => {
-                                                        const displayName = getComponentDisplayName(component)
+                                                        const displayName = componentDisplayLabel(component, { fallbackLabel: 'Untitled' })
                                                         const isImported = isComponentImported(component)
                                                         const componentKey =
                                                             component.universalKey || component.key || 'unknown'

@@ -19,6 +19,7 @@ import { GenericTreeNode } from '@tonylb/mtw-base/ts/genericTree'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import StandardReference from '../keys/reference'
 import { deIndentWML } from '../../schema/utils'
+import { schemaToWML } from '../../schema'
 
 // Type for schema data that includes origin property
 type SchemaWithOrigin = SchemaTag & {
@@ -103,6 +104,15 @@ describe('componentClassFactory origin handling (via StandardRoom)', () => {
         
         const schema = room.schema
         expect((schema.data as SchemaWithOrigin).origin).toEqual([])
+    })
+})
+
+describe('componentClassFactory shortName (via StandardRoom)', () => {
+    it('should expose shortName from payload via factory getter', () => {
+        const wml = deIndentWML(`<Room key=(test)><ShortName>Main Room</ShortName></Room>`)
+        const room = new StandardRoom(wml)
+        expect(room.shortName?.toJSON()).toEqual('Main Room')
+        expect(schemaToWML([room.schema])).toEqual(wml)
     })
 })
 

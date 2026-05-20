@@ -1,6 +1,5 @@
 import { excludeUndefined } from "../../lib/lists"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { HasShortName } from "./abstract"
 import { AssureReferencesResult, componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
 import { StandardRoomData, StandardRoomInputData, StandardRoomObjectData } from "./dataTypes/room"
@@ -14,6 +13,14 @@ import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaObject, isSchemaRoom, isSchemaShortName, isSchemaRender } from "@tonylb/mtw-base/ts/schema/components"
 import { deepEqual } from "../../lib/objects"
 import { StandardLiteral } from "../literal"
+import {
+    createShortNameFromJSON,
+    invertShortName,
+    mergeShortName,
+    shortNameSchemaChildren,
+    shortNameToJSON,
+    standardizeShortNameConsumer,
+} from "./shortNameField"
 import { resolveStandardizeFromSchemaContext, type StandardFormConstructionOptions, type StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { renderReference } from "./utils/schema"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
@@ -22,10 +29,10 @@ import { ExitFacetList, StandardExitFacet } from "../keys/facets/exit"
 import { parseProseTripletChildren, renderPayloadToSchemaNode, SituationProseFacetList, SituationProseFacetPayload, StandardSituationProseFacet, mapSituationProsePayloadContents } from "../keys/facets/situationRoom"
 import { StandardExplicitParent } from "../explicit"
 import { StandardFormSubsetRequest } from "../baseClasses"
-import { processWithConsumers, StandardizeConsumerFacetListSituation, StandardizeConsumerReferenceList, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral, type StandardizeConsumer } from "./fromSchemaPipeline"
+import { processWithConsumers, StandardizeConsumerFacetListSituation, StandardizeConsumerReferenceList, StandardizeConsumerSimple, type StandardizeConsumer } from "./fromSchemaPipeline"
 import { SingleReference } from "../keys/singleReference"
 
-export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomInputData, StandardRoomData> {
+export class StandardRoomPayload implements ComponentConstructorMethods<StandardRoomInputData, StandardRoomData> {
     _shortName?: StandardLiteral;
     _exits: ExitFacetList;
     _situations: SituationProseFacetList;
@@ -62,7 +69,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     fromJSON(props: StandardRoomInputData) {
         const { shortName } = props
-        this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
+        this._shortName = createShortNameFromJSON(shortName)
         this._exits = new ExitFacetList(props.exits ?? [])
         this._situations = new SituationProseFacetList(props.situations ?? [])
         this._lens = SingleReference.fromData(props.lens)
@@ -81,12 +88,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             // Process-and-remainder pipeline: each step consumes one tag and passes remainder to the next.
             // Unconsumed children (e.g. unknown tags) cause processWithConsumers to throw. See AGENT.implementation.md (fromSchema: process-and-remainder pipeline).
             const consumers: StandardizeConsumer[] = [
-                new StandardizeConsumerStandardLiteral(this, {
-                    tag: "ShortName",
-                    update(literal) {
-                        this._shortName = literal
-                    },
-                }),
+                standardizeShortNameConsumer(this),
                 new StandardizeConsumerSimple(this, {
                     tag: "Exit",
                     update(matched) {
@@ -195,7 +197,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         const { stripUIFields: stripUI } = options ?? {}
         return {
             tag: 'Room',
-            shortName: this?.shortName?.toJSON(),
+            shortName: shortNameToJSON(this.shortName),
             ...(this.exits.length ? { exits: this.exits.toJSON() } : {}),
             ...(this.situations.length ? { situations: this.situations.toJSON() } : {}),
             ...(this.lens.payload.length ? { lens: this.lens.toJSON() } : {}),
@@ -241,7 +243,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return {
             data: { tag: 'Room', key, uuid: universalKey },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
+                ...shortNameSchemaChildren(this.shortName),
                 ...this.lens.schema,
                 ...this.features.schema,
                 ...this.guidance.schema,
@@ -312,7 +314,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return {
             data: { tag: 'Room', key: key.key ?? '', uuid: key.universalKey },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
+                ...shortNameSchemaChildren(this.shortName),
                 ...lensToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...featuresToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...guidanceToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
@@ -328,7 +330,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     merge(incoming: this): this {
         const returnValue = new StandardRoomPayload()
-        returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
+        returnValue._shortName = mergeShortName(this._shortName, incoming._shortName)
         const mergedExits = this._exits.merge(incoming._exits)
         returnValue._exits = mergedExits ?? new ExitFacetList([])
         const mergedSituations = this._situations.merge(incoming._situations)
@@ -352,7 +354,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     invert(): this {
         const returnValue = new StandardRoomPayload()
         // Invert shortName if it exists (StandardLiteral has invert() from standardEditableFactory)
-        returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
+        returnValue._shortName = invertShortName(this._shortName)
         // Invert exits using ExitFacetList.invert()
         returnValue._exits = this._exits.invert()
         returnValue._situations = this._situations.invert()
@@ -526,7 +528,6 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 }
 
 export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'StandardRoom') {
-    get shortName() { return this._payload.shortName }
     get exits() { return this._payload.exits }
     get situations() { return this._payload.situations }
     get lens() { return this._payload.lens }

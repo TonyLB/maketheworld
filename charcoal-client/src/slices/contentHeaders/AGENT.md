@@ -12,6 +12,8 @@ The Content Headers slice demonstrates the practical application of the generic 
 - Aggregating header updates into a coherent materialized view
 - Providing UI components with access to real-time header data
 
+**Component display labels:** Human-readable component titles in the UI use [`componentDisplayLabel`](../../lib/componentDisplayLabel.ts) (not selectors in this slice). Selectors here expose materialized `StandardForm` data and grouping only. mtw-wml data-layer contract: [shortName (platform contract)](../../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md#shortname-platform-contract).
+
 ## Architecture
 
 ### **Data Source Configuration**
