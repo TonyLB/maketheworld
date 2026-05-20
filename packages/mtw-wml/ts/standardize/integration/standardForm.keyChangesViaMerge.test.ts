@@ -105,7 +105,7 @@ describe('StandardForm', () => {
                             <Situation uuid=(base1)>
                                 <Description>
                                     <Link to=(renamedFeature)>self link</Link>
-                                    <Link to=(FEATURE#feature2)>other link</Link>
+                                    <Link to=(testFeatureTwo)>other link</Link>
                                 </Description>
                             </Situation>
                         </Feature>

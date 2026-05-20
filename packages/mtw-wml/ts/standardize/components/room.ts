@@ -224,7 +224,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             ? this._situations.items.map((facet) => facet.lookup(mappings).toFormat('key'))
             : this._situations.items.map((facet) => facet.toFormat('key'))
         ).map((facet) => {
-            const result = facet.renderFacet()
+            const result = (facet as StandardSituationProseFacet).renderFacet(undefined, undefined, mappings)
             return result.newNode ?? result.aggregatedNode
         }).filter(excludeUndefined) as GenericTreeNode<SchemaTag>[]
         
@@ -237,7 +237,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 },
             ],
         }))
-        const renderSchemas: GenericTreeNode<SchemaTag>[] = this._render ? [renderPayloadToSchemaNode(this._render)] : []
+        const renderSchemas: GenericTreeNode<SchemaTag>[] = this._render ? [renderPayloadToSchemaNode(this._render, mappings)] : []
         return {
             data: { tag: 'Room', key, uuid: universalKey },
             children: [
@@ -255,7 +255,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     }
 
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
-        const { key } = options
+        const { key, mappings } = options
         
         // If organization is available, use assured references from organization
         // Otherwise, fall back to stored reference lists
@@ -292,7 +292,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         }, [])
 
         const situationSchemas = this._situations.items.reduce<GenericTreeNode<SchemaTag>[]>((acc, facet) => {
-            const result = facet.renderFacet(undefined, lookup)
+            const result = facet.renderFacet(undefined, lookup, mappings)
             if (result.aggregatedNode) acc.push(result.aggregatedNode)
             else if (result.newNode) acc.push(result.newNode)
             return acc
@@ -307,7 +307,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 },
             ],
         }))
-        const renderSchemas: GenericTreeNode<SchemaTag>[] = this._render ? [renderPayloadToSchemaNode(this._render)] : []
+        const renderSchemas: GenericTreeNode<SchemaTag>[] = this._render ? [renderPayloadToSchemaNode(this._render, mappings)] : []
         // Pass this Room's key as parent context to children for correct rendering
         return {
             data: { tag: 'Room', key: key.key ?? '', uuid: key.universalKey },

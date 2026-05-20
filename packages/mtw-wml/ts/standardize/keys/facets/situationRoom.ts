@@ -180,11 +180,12 @@ export class SituationProseFacetPayload {
      * non-empty DisplayName on parse. Ephemera workarounds (for example invisible title in
      * `lambda/ephemera/dataSource/perception/orchestrate.ts`) exist until that contract is loosened.
      */
-    toProseTripletChildren(): GenericTree<SchemaTag> {
+    toProseTripletChildren(options?: { mappings?: StandardReference[] }): GenericTree<SchemaTag> {
+        const mappings = options?.mappings;
         return [
             ...(this._displayName?.nestedSchema({ tag: "DisplayName" }) ?? []),
-            ...(this._summary?.nestedSchema({ tag: "Summary" }) ?? []),
-            ...(this._description?.nestedSchema({ tag: "Description" }) ?? []),
+            ...(this._summary?.nestedSchema({ tag: "Summary", mappings }) ?? []),
+            ...(this._description?.nestedSchema({ tag: "Description", mappings }) ?? []),
         ].filter(excludeUndefined);
     }
 
@@ -249,7 +250,8 @@ export class SituationProseFacetPayload {
         reference: StandardReference,
         _payload: SituationProseFacetPayloadType,
         referenceRender?: GenericTreeNode<SchemaTag>,
-        lookup?: (key: string | StandardKey) => StandardComponent | undefined
+        lookup?: (key: string | StandardKey) => StandardComponent | undefined,
+        mappings?: StandardReference[]
     ): { newNode?: GenericTreeNode<SchemaTag>; aggregatedNode?: GenericTreeNode<SchemaTag> } {
         if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
             return { aggregatedNode: referenceRender };
@@ -257,7 +259,7 @@ export class SituationProseFacetPayload {
 
         const transformSituationChildren = transformNestedChildren({
             tag: "Situation",
-            transform: () => this.toProseTripletChildren(),
+            transform: () => this.toProseTripletChildren({ mappings }),
         });
 
         if (referenceRender) {
@@ -280,9 +282,12 @@ export class SituationProseFacetPayload {
 }
 
 /** Ephemera wire: `<Render>` node from resolved prose payload (Room, Feature, Knowledge). */
-export const renderPayloadToSchemaNode = (p: SituationProseFacetPayload): GenericTreeNode<SchemaTag> => ({
+export const renderPayloadToSchemaNode = (
+    p: SituationProseFacetPayload,
+    mappings?: StandardReference[]
+): GenericTreeNode<SchemaTag> => ({
     data: { tag: 'Render' },
-    children: p.toProseTripletChildren(),
+    children: p.toProseTripletChildren({ mappings }),
 })
 
 function createSituationProseFacetPayload(arg: any): SituationProseFacetPayload {
@@ -337,6 +342,23 @@ export class StandardSituationProseFacet extends facetClassFactory(
 
     override _wrap(instance: any): this {
         return new StandardSituationProseFacet(instance as StandardSituationProseFacet) as this;
+    }
+
+    /**
+     * @param mappings - Optional asset mappings for display-time link remapping in Summary/Description.
+     */
+    override renderFacet(
+        referenceRender?: GenericTreeNode<SchemaTag>,
+        lookup?: (key: string | StandardKey) => StandardComponent | undefined,
+        mappings?: StandardReference[]
+    ): { newNode?: GenericTreeNode<SchemaTag>; aggregatedNode?: GenericTreeNode<SchemaTag> } {
+        const refIsNegative = this._reference.ref < 0;
+        const invertedPayload = refIsNegative ? this.payload.invert() : null;
+        const payloadData = refIsNegative
+            ? invertedPayload!.toJSON()
+            : this.payload.toJSON();
+        const payloadInstance = refIsNegative ? invertedPayload! : this.payload;
+        return payloadInstance.renderFacet(this._reference, payloadData, referenceRender, lookup, mappings);
     }
 }
 

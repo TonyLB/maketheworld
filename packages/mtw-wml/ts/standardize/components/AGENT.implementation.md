@@ -357,6 +357,8 @@ Two paths serve different purposes; do not conflate them in tests or UI expectat
 
 **`remapReferences`** on embedders with situation prose must update **`SituationProseFacetList`** (facet reference + payload prose) and optional **`_render`** (`SituationProseFacetPayload`). **`referencedKeys(mapping)`** and **`remapReferences`** should cover the same link surfaces.
 
+**Situation prose schema emission**: **`StandardFeaturePayload`**, **`StandardKnowledgePayload`**, and **`StandardRoomPayload`** pass **`mappings`** from **`schema(..., mappings)`** / **`nestedSchema(..., { mappings })`** into situation facet **`renderFacet(..., lookup, mappings)`** and **`renderPayloadToSchemaNode(_render, mappings)`**, which thread into **`SituationProseFacetPayload.toProseTripletChildren({ mappings })`** for Summary/Description links.
+
 **Key rename on merge**: After `<Key>` Replace merges, `StandardForm.merge()` runs **`mapContents`** with collected renames so exits, map positions, and situation facet prose links retarget in **stored** data. See `standardForm.keyChangesViaMerge.test.ts`.
 
 ## Adding a New Component Type

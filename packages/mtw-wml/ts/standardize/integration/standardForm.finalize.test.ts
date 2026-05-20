@@ -81,5 +81,48 @@ describe('StandardForm', () => {
             expect(foundSituation).toBeInstanceOf(StandardSituation)
         })
 
+        it('should universalize situation facet prose links on finalize and show local keys in schema', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Feature uuid=(feature1) key=(testFeatureOne)>
+                        <Situation uuid=(base1)>
+                            <Description>
+                                <Link to=(testFeatureOne)>self</Link>
+                                <Link to=(testFeatureTwo)>other</Link>
+                            </Description>
+                        </Situation>
+                    </Feature>
+                    <Feature uuid=(feature2) key=(testFeatureTwo)>
+                        <Situation uuid=(base2)>
+                            <Description><Link to=(testFeatureOne)>back</Link></Description>
+                        </Situation>
+                    </Feature>
+                </Asset>
+            `)
+            const finalized = new StandardForm(testWML).finalize()
+            const featureOne = finalized._lookup('FEATURE#feature1') as StandardFeature
+            const facet = featureOne.situations.items[0]
+            const storedDescriptionWML = schemaToWML(facet.payload._description!.schema)
+            expect(storedDescriptionWML).toContain('<Link to=(FEATURE#feature1)>self</Link>')
+            expect(storedDescriptionWML).toContain('<Link to=(FEATURE#feature2)>other</Link>')
+            expect(schemaToWML([finalized.schema])).toEqual(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Feature uuid=(feature1) key=(testFeatureOne)>
+                        <Situation uuid=(base1)>
+                            <Description>
+                                <Link to=(testFeatureOne)>self</Link>
+                                <Link to=(testFeatureTwo)>other</Link>
+                            </Description>
+                        </Situation>
+                    </Feature>
+                    <Feature uuid=(feature2) key=(testFeatureTwo)>
+                        <Situation uuid=(base2)>
+                            <Description><Link to=(testFeatureOne)>back</Link></Description>
+                        </Situation>
+                    </Feature>
+                </Asset>
+            `))
+        })
+
     })
 })

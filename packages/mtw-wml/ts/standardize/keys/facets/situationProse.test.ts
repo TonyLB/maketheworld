@@ -4,6 +4,7 @@ import {
     SituationProseFacetPayload,
     isSituationProseFacetPayload,
     SituationProseFacetPayloadType,
+    renderPayloadToSchemaNode,
 } from "./situationRoom"
 import { StandardFacetData } from "./dataTypes/facet"
 import StandardReference from "../reference"
@@ -154,6 +155,42 @@ describe("SituationProseFacet and SituationProseFacetList", () => {
                 expect(remapped.toJSON()).toMatchObject({ displayName: "Title" })
             })
         })
+
+        describe("toProseTripletChildren with mappings (display-time)", () => {
+            const featureMapping = [
+                new StandardReference({ key: "featOne", tag: "Feature", universalKey: "FEATURE#featOne" }),
+                new StandardReference({ key: "featTwo", tag: "Feature", universalKey: "FEATURE#featTwo" }),
+            ]
+
+            it("should emit local link keys when stored targets are universal", () => {
+                const payload = new SituationProseFacetPayload({
+                    description: [
+                        { data: { tag: "Link", to: "featOne", text: "One" }, children: [] },
+                    ],
+                })
+                const stored = payload.remapReferences({ mappings: featureMapping, mapTo: "universal" })
+                const children = stored.toProseTripletChildren({ mappings: featureMapping })
+                const descriptionNode = children.find((c) => c.data.tag === "Description")
+                expect(descriptionNode).toBeDefined()
+                expect(schemaToWML(descriptionNode!.children)).toEqual(
+                    '<Link to=(featOne)>One</Link>'
+                )
+            })
+
+            it("renderPayloadToSchemaNode should pass mappings to prose triplet", () => {
+                const payload = new SituationProseFacetPayload({
+                    summary: [
+                        { data: { tag: "Link", to: "FEATURE#featTwo", text: "Two" }, children: [] },
+                    ],
+                })
+                const renderNode = renderPayloadToSchemaNode(payload, featureMapping)
+                expect(renderNode.data.tag).toBe("Render")
+                const summaryChild = renderNode.children.find((c) => c.data.tag === "Summary")
+                expect(schemaToWML(summaryChild!.children)).toEqual(
+                    '<Link to=(featTwo)>Two</Link>'
+                )
+            })
+        })
     })
 
     describe("StandardSituationProseFacet", () => {
@@ -229,6 +266,26 @@ describe("SituationProseFacet and SituationProseFacetList", () => {
             expect(remapped.reference.universalKey).toBe("SITUATION#bright")
             expect(schemaToWML(remapped.payload._description!.schema)).toEqual(
                 '<Link to=(FEATURE#featOne)>F</Link>'
+            )
+        })
+
+        it("renderFacet with mappings should emit local link keys from universal storage", () => {
+            const mapping = [
+                new StandardReference({ key: "bright", tag: "Situation", universalKey: "SITUATION#bright" as any }),
+                new StandardReference({ key: "featOne", tag: "Feature", universalKey: "FEATURE#featOne" }),
+            ]
+            const facet = new StandardSituationProseFacet(
+                createFacetData("bright", {
+                    description: [
+                        { data: { tag: "Link", to: "featOne", text: "F" }, children: [] },
+                    ],
+                })
+            )
+            const stored = facet.remapReferences({ mappings: mapping, mapTo: "universal" })
+            const result = stored.renderFacet(undefined, undefined, mapping)
+            const descriptionChild = result.aggregatedNode!.children.find((c) => c.data.tag === "Description")
+            expect(schemaToWML(descriptionChild!.children)).toEqual(
+                '<Link to=(featOne)>F</Link>'
             )
         })
     })

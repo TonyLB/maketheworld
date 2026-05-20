@@ -113,14 +113,14 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
         }
     }
 
-    schema(key: string, universalKey?: ComponentUUID, _mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
         const situationSchemas = this._situations.items.reduce<GenericTreeNode<SchemaTag>[]>((acc, facet) => {
-            const result = facet.renderFacet()
+            const result = facet.renderFacet(undefined, undefined, mappings)
             if (result.aggregatedNode) acc.push(result.aggregatedNode)
             else if (result.newNode) acc.push(result.newNode)
             return acc
         }, [])
-        const renderSchemas: GenericTreeNode<SchemaTag>[] = this._render ? [renderPayloadToSchemaNode(this._render)] : []
+        const renderSchemas: GenericTreeNode<SchemaTag>[] = this._render ? [renderPayloadToSchemaNode(this._render, mappings)] : []
         return {
             data: { tag: 'Knowledge', key, uuid: universalKey },
             children: [
@@ -132,14 +132,14 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
     }
 
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
-        const { key } = options
+        const { key, mappings } = options
         const situationSchemas = this._situations.items.reduce<GenericTreeNode<SchemaTag>[]>((acc, facet) => {
-            const result = facet.renderFacet(undefined, lookup)
+            const result = facet.renderFacet(undefined, lookup, mappings)
             if (result.aggregatedNode) acc.push(result.aggregatedNode)
             else if (result.newNode) acc.push(result.newNode)
             return acc
         }, [])
-        const renderSchemas: GenericTreeNode<SchemaTag>[] = this._render ? [renderPayloadToSchemaNode(this._render)] : []
+        const renderSchemas: GenericTreeNode<SchemaTag>[] = this._render ? [renderPayloadToSchemaNode(this._render, mappings)] : []
         return {
             data: { tag: 'Knowledge', key: key.key ?? '', uuid: key.universalKey },
             children: [
