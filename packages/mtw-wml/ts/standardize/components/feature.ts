@@ -19,7 +19,7 @@ import {
     type StandardizeConsumer,
 } from "./fromSchemaPipeline"
 import { ReferenceFormat } from "./utils/references"
-import { parseProseTripletChildren, renderPayloadToSchemaNode, SituationProseFacetList, SituationProseFacetPayload, StandardSituationProseFacet } from "../keys/facets/situationRoom"
+import { parseProseTripletChildren, renderPayloadToSchemaNode, SituationProseFacetList, SituationProseFacetPayload, StandardSituationProseFacet, mapSituationProsePayloadContents } from "../keys/facets/situationRoom"
 import type { StandardFacetData } from "../keys/facets/dataTypes/facet"
 import type { SituationProseFacetPayloadType } from "../keys/facets/situationRoom"
 
@@ -185,12 +185,27 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
         const returnValue = new StandardFeaturePayload(this)
+        returnValue._situations = new SituationProseFacetList(
+            returnValue._situations.items.map((facet) => {
+                const remappedPayload = mapSituationProsePayloadContents(facet.payload, callback)
+                return new StandardSituationProseFacet({
+                    reference: facet.reference.toJSON(),
+                    payload: remappedPayload.toJSON(),
+                })
+            })
+        )
+        if (returnValue._render) {
+            returnValue._render = mapSituationProsePayloadContents(returnValue._render, callback)
+        }
         return returnValue as this
     }
 
     remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardFeaturePayload(this)
-        returnValue._situations = returnValue._situations.lookup(props.mappings).toFormat(props.mapTo)
+        returnValue._situations = returnValue._situations.lookup(props.mappings).remapReferences(props)
+        if (returnValue._render) {
+            returnValue._render = returnValue._render.remapReferences(props)
+        }
         return returnValue as this
     }
 

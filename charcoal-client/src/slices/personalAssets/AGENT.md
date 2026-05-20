@@ -196,6 +196,15 @@ const standardForm = useSelector(getStandardForm(assetId))
 - Do not mutate `edit` or `pendingEdits` outside reducers
 - Base is authoritative from wmlDataSource; personalAssets never writes base
 
+### Local key assignment tests (`reducers.test.ts`)
+
+Tests under **`local key assignment`** validate the reducer **diff/merge** path when a component gains a local key via `updateStandard`. They intentionally separate expectations:
+
+- **`edit`**: minimal delta (usually a `Room` stub with `key=(...)` only).
+- **`standard` / `calculated`**: display WML where universal exit/map targets may resolve to the new local key via `StandardForm.schema` mappings.
+
+That is **not** the same as merge-time stored retarget of all references; see **`standardForm.keyChangesViaMerge.test.ts`** in mtw-wml for `<Key>` Replace merge behavior (exits, map positions, situation facet prose links).
+
 ### Error Handling
 
 - `FETCHERROR`, `SUBSCRIBEBACKOFF`: SSM handles retries with incremental backoff

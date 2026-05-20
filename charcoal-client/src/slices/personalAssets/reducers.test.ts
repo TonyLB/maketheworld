@@ -123,13 +123,13 @@ describe('personalAsset slice reducers', () => {
                 `),
                 edit: deIndentWML(`
                     <Asset uuid=(testAsset)>
-                        <Situation uuid=(DEFAULT) ref={0} />
                         <Room uuid=(testRoom) ref={0}>
                             <Situation uuid=(DEFAULT) ref={0}>
                                 <Replace><DisplayName>Room</DisplayName></Replace>
                                 <With><DisplayName>Update</DisplayName></With>
                             </Situation>
                         </Room>
+                        <Situation uuid=(DEFAULT) ref={0} />
                     </Asset>
                 `)
             })
@@ -260,19 +260,25 @@ describe('personalAsset slice reducers', () => {
                 `),
                 edit: deIndentWML(`
                     <Asset uuid=(testAsset)>
-                        <Situation uuid=(DEFAULT) ref={0} />
                         <Room uuid=(testRoom) ref={0}>
                             <Situation uuid=(DEFAULT) ref={0}>
                                 <Remove><DisplayName>Test Room</DisplayName></Remove>
                             </Situation>
                         </Room>
+                        <Situation uuid=(DEFAULT) ref={0} />
                     </Asset>
                 `)
             })
         })
 
-        it('should rename exit targets on rename of room', () => {
-            expect(transformWML(
+        //
+        // Local key assignment via updateStandard: edit stores minimal Key delta; standard/calculated
+        // WML resolves universal refs to local keys via StandardForm.schema mappings (not stored retarget).
+        // Merge-time retarget is covered in mtw-wml standardForm.keyChangesViaMerge.test.ts.
+        //
+        describe('local key assignment', () => {
+        it('should record only Key change in edit when room gains local key (exit display resolves via schema)', () => {
+            const result = transformWML(
                 `
                 <Asset uuid=(testAsset)>
                     <Room uuid=(Room1)>
@@ -301,63 +307,31 @@ describe('personalAsset slice reducers', () => {
                         return draft
                     }
                 }
-            )).toEqual({
-                base: deIndentWML(`
-                    <Asset uuid=(testAsset)>
-                        <Situation uuid=(DEFAULT) ref={0} />
-                        <Room uuid=(Room1)>
-                            <Situation uuid=(DEFAULT)>
-                                <DisplayName>Test Room</DisplayName>
-                                <Description>Test Description</Description>
-                            </Situation>
-                            <Exit to=(ROOM#Room2)>out</Exit>
-                        </Room>
-                        <Room uuid=(Room2)>
-                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
-                            <Exit to=(ROOM#Room1)>text</Exit>
-                        </Room>
-                    </Asset>
-                `),
-                standard: deIndentWML(`
-                    <Asset uuid=(testAsset)>
-                        <Situation uuid=(DEFAULT) ref={0} />
-                        <Room uuid=(Room1)>
-                            <Situation uuid=(DEFAULT)>
-                                <DisplayName>Test Room</DisplayName>
-                                <Description>Test Description</Description>
-                            </Situation>
-                            <Exit to=(garden)>out</Exit>
-                        </Room>
-                        <Room uuid=(Room2) key=(garden)>
-                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
-                            <Exit to=(ROOM#Room1)>text</Exit>
-                        </Room>
-                    </Asset>
-                `),
-                calculated: deIndentWML(`
-                    <Asset uuid=(testAsset)>
-                        <Situation uuid=(DEFAULT) ref={0} />
-                        <Room uuid=(Room1)>
-                            <Situation uuid=(DEFAULT)>
-                                <DisplayName>Test Room</DisplayName>
-                                <Description>Test Description</Description>
-                            </Situation>
-                            <Exit to=(garden)>out</Exit>
-                        </Room>
-                        <Room uuid=(Room2) key=(garden)>
-                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
-                            <Exit to=(ROOM#Room1)>text</Exit>
-                        </Room>
-                    </Asset>
-                `),
-                edit: deIndentWML(`
-                    <Asset uuid=(testAsset)><Room uuid=(Room2) key=(garden) ref={0} /></Asset>
-                `)
-            })
+            )
+            expect(result.edit).toEqual(deIndentWML(`
+                <Asset uuid=(testAsset)><Room uuid=(Room2) key=(garden) ref={0} /></Asset>
+            `))
+            expect(result.standard).toEqual(deIndentWML(`
+                <Asset uuid=(testAsset)>
+                    <Room uuid=(Room1)>
+                        <Situation uuid=(DEFAULT)>
+                            <DisplayName>Test Room</DisplayName>
+                            <Description>Test Description</Description>
+                        </Situation>
+                        <Exit to=(garden)>out</Exit>
+                    </Room>
+                    <Room uuid=(Room2) key=(garden)>
+                        <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
+                        <Exit to=(ROOM#Room1)>text</Exit>
+                    </Room>
+                    <Situation uuid=(DEFAULT) ref={0} />
+                </Asset>
+            `))
+            expect(result.calculated).toEqual(result.standard)
         })
 
-        it('should rename map references on rename of room', () => {
-            expect(transformWML(
+        it('should record only Key change in edit when room gains local key (map display resolves via schema)', () => {
+            const result = transformWML(
                 `
                 <Asset uuid=(testAsset)>
                     <Room uuid=(Room2)>
@@ -379,42 +353,22 @@ describe('personalAsset slice reducers', () => {
                         return draft
                     }
                 }
-            )).toEqual({
-                base: deIndentWML(`
-                    <Asset uuid=(testAsset)>
-                        <Room uuid=(Room2)>
-                            <Situation uuid=(DEFAULT) ref={0} />
-                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
-                        </Room>
-                        <Map uuid=(testMap)><Room uuid=(Room2)><Position {0, 0} /></Room></Map>
-                    </Asset>
-                `),
-                standard: deIndentWML(`
-                    <Asset uuid=(testAsset)>
-                        <Room uuid=(Room2) key=(garden)>
-                            <Situation uuid=(DEFAULT) ref={0} />
-                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
-                        </Room>
-                        <Map uuid=(testMap)><Room key=(garden)><Position {0, 0} /></Room></Map>
-                    </Asset>
-                `),
-                calculated: deIndentWML(`
-                    <Asset uuid=(testAsset)>
-                        <Room uuid=(Room2) key=(garden)>
-                            <Situation uuid=(DEFAULT) ref={0} />
-                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
-                        </Room>
-                        <Map uuid=(testMap)><Room key=(garden)><Position {0, 0} /></Room></Map>
-                    </Asset>
-                `),
-                edit: deIndentWML(`
-                    <Asset uuid=(testAsset)><Room uuid=(Room2) key=(garden) ref={0} /></Asset>
-                `)
-            })
+            )
+            expect(result.edit).toEqual(deIndentWML(`
+                <Asset uuid=(testAsset)><Room uuid=(Room2) key=(garden) ref={0} /></Asset>
+            `))
+            expect(result.standard).toEqual(deIndentWML(`
+                <Asset uuid=(testAsset)>
+                    <Room uuid=(Room2) key=(garden)>
+                        <Situation uuid=(DEFAULT) ref={0} />
+                        <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
+                    </Room>
+                    <Map uuid=(testMap)><Room key=(garden)><Position {0, 0} /></Room></Map>
+                </Asset>
+            `))
+            expect(result.calculated).toEqual(result.standard)
         })
-
-        // Feature/Knowledge link retarget on key rename (situation facet prose) deferred to mtw-wml:
-        // "Assess reference-remap functionality and tests on Feature/Knowledge situation prose payloads"
+        })
 
         it('should set lastUpdateDiff when a non-empty diff is merged (type update)', () => {
             const baseWML = `<Asset uuid=(test)><Room uuid=(testRoom) key=(testRoom) /></Asset>`

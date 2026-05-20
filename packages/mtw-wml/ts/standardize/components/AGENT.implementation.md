@@ -346,6 +346,19 @@ nestedSchema(lookup, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
 }
 ```
 
+#### Reference remapping contract (`remapReferences` vs `schema`)
+
+Two paths serve different purposes; do not conflate them in tests or UI expectations.
+
+| Mechanism | Typical `mapTo` | Mutates stored payload? | Used for |
+|-----------|-----------------|-------------------------|----------|
+| **`remapReferences(mapTo)`** on component / payload | `universal`, `both`, or `key` | Yes | `StandardForm.toJSON()`, `finalize()`, merge prep before key-change merge, diff baseline |
+| **`schema()` / `nestedSchema({ mappings })`** | Usually resolves to **`key`** for authoring WML | No (display-time lookup) | Human-readable WML in editors; may show local keys while stored exits/links remain universal |
+
+**`remapReferences`** on embedders with situation prose must update **`SituationProseFacetList`** (facet reference + payload prose) and optional **`_render`** (`SituationProseFacetPayload`). **`referencedKeys(mapping)`** and **`remapReferences`** should cover the same link surfaces.
+
+**Key rename on merge**: After `<Key>` Replace merges, `StandardForm.merge()` runs **`mapContents`** with collected renames so exits, map positions, and situation facet prose links retarget in **stored** data. See `standardForm.keyChangesViaMerge.test.ts`.
+
 ## Adding a New Component Type
 
 This section provides a step-by-step guide for adding new component types to the WML system. This process establishes the necessary infrastructure so that new components can be parsed from WML, created programmatically, stored in `StandardForm`, and participate in merge/diff operations.

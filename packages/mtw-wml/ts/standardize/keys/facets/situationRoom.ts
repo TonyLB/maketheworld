@@ -5,7 +5,7 @@
 
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
-import { StandardReference } from "../reference";
+import { LookupMappings, StandardReference } from "../reference";
 import type { StandardFacetData } from "./dataTypes/facet";
 import { isStandardFacetData } from "./dataTypes/facet";
 import { isSchemaSituation } from "@tonylb/mtw-base/ts/schema/components";
@@ -18,14 +18,14 @@ import { StandardRender } from "../../render";
 import { processWithConsumers, StandardizeConsumerRender, StandardizeConsumerStandardLiteral } from "../../components/fromSchemaPipeline";
 import { StandardKey } from "../key";
 import { StandardComponent } from "../../components/baseClasses";
-import { RenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree";
+import { RenderTree, renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree";
 import { StandardEditableData, extractFromEditableData } from "@tonylb/mtw-base/ts/editable";
 import { excludeUndefined } from "@tonylb/mtw-base/ts/utils/lists";
 import { TagMismatchError } from "@tonylb/mtw-base/ts/standardize";
 import { transformNestedChildren } from "../../../schema/utils";
 import type { StandardizeFromSchemaContext } from "../../wmlStandardizeMode";
 import type { StandardComponentReferenceKey } from "../../components/baseClasses";
-import linkReferenceKeys from "../../components/utils/references";
+import linkReferenceKeys, { ReferenceFormat } from "../../components/utils/references";
 
 /** Payload shape: optional displayName/summary/description.
  *  displayName is a StandardLiteral (string-based), while summary/description remain StandardRender (RenderTree-based).
@@ -81,6 +81,25 @@ export function parseProseTripletChildren(
     processWithConsumers(context, consumers, children, { allowUnconsumed: options?.allowUnconsumed ?? false });
     return result;
 }
+
+/** Apply a schema-tree callback to summary/description render fields (for mapContents / key rename propagation). */
+export const mapSituationProsePayloadContents = (
+    payload: SituationProseFacetPayload,
+    callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>
+): SituationProseFacetPayload => {
+    const returnValue = payload.clone();
+    if (returnValue._summary) {
+        returnValue._summary = returnValue._summary.mapContents((renderTree) =>
+            schemaToRenderTree(callback(renderTreeToSchema(renderTree)))
+        );
+    }
+    if (returnValue._description) {
+        returnValue._description = returnValue._description.mapContents((renderTree) =>
+            schemaToRenderTree(callback(renderTreeToSchema(renderTree)))
+        );
+    }
+    return returnValue;
+};
 
 /** Payload class: holds optional StandardLiteral for displayName, and StandardRender for summary/description. */
 export class SituationProseFacetPayload {
@@ -141,6 +160,17 @@ export class SituationProseFacetPayload {
 
     referencedLinkKeys(mapping: StandardReference[]): StandardComponentReferenceKey[] {
         return SituationProseFacetPayload.linkReferenceKeysFromSummaryDescription(mapping, this._summary, this._description);
+    }
+
+    remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): SituationProseFacetPayload {
+        const returnValue = this.clone();
+        if (returnValue._summary) {
+            returnValue._summary = returnValue._summary.remapReferences({ mapping: props.mappings, mapTo: props.mapTo });
+        }
+        if (returnValue._description) {
+            returnValue._description = returnValue._description.remapReferences({ mapping: props.mappings, mapTo: props.mapTo });
+        }
+        return returnValue;
     }
 
     /**
@@ -295,6 +325,16 @@ export class StandardSituationProseFacet extends facetClassFactory(
         super(props);
     }
 
+    remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
+        const formattedReference = this._reference.lookup(props.mappings).toFormat(props.mapTo);
+        const remappedPayload = this.payload.remapReferences(props);
+        const result = new StandardSituationProseFacet({
+            reference: formattedReference.toJSON(),
+            payload: remappedPayload.toJSON(),
+        });
+        return this._wrap(result);
+    }
+
     override _wrap(instance: any): this {
         return new StandardSituationProseFacet(instance as StandardSituationProseFacet) as this;
     }
@@ -305,6 +345,27 @@ import { facetListClassFactory } from "./facetListFactory";
 export class SituationProseFacetList extends facetListClassFactory(StandardSituationProseFacet, "SituationProseFacetList") {
     constructor(arg: any) {
         super(arg);
+    }
+
+    override clone(): SituationProseFacetList {
+        return super.clone() as SituationProseFacetList;
+    }
+
+    override lookup(mappings: LookupMappings): SituationProseFacetList {
+        return super.lookup(mappings) as SituationProseFacetList;
+    }
+
+    override merge(incoming: SituationProseFacetList): SituationProseFacetList | undefined {
+        return super.merge(incoming) as SituationProseFacetList | undefined;
+    }
+
+    override invert(): SituationProseFacetList {
+        return super.invert() as SituationProseFacetList;
+    }
+
+    remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): SituationProseFacetList {
+        const remappedItems = this._items.map((item) => item.remapReferences(props));
+        return this._wrap(new SituationProseFacetList(remappedItems));
     }
 
     override _wrap(instance: any): this {

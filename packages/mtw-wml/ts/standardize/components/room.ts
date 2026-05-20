@@ -19,7 +19,7 @@ import { renderReference } from "./utils/schema"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
 import { ExitFacetList, StandardExitFacet } from "../keys/facets/exit"
-import { parseProseTripletChildren, renderPayloadToSchemaNode, SituationProseFacetList, SituationProseFacetPayload } from "../keys/facets/situationRoom"
+import { parseProseTripletChildren, renderPayloadToSchemaNode, SituationProseFacetList, SituationProseFacetPayload, StandardSituationProseFacet, mapSituationProsePayloadContents } from "../keys/facets/situationRoom"
 import { StandardExplicitParent } from "../explicit"
 import { StandardFormSubsetRequest } from "../baseClasses"
 import { processWithConsumers, StandardizeConsumerFacetListSituation, StandardizeConsumerReferenceList, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral, type StandardizeConsumer } from "./fromSchemaPipeline"
@@ -462,7 +462,18 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                     return returnValue[0].data.value
                 })
         }
-        // returnValue._exits = callback(returnValue._exits)
+        returnValue._situations = new SituationProseFacetList(
+            returnValue._situations.items.map((facet) => {
+                const remappedPayload = mapSituationProsePayloadContents(facet.payload, callback)
+                return new StandardSituationProseFacet({
+                    reference: facet.reference.toJSON(),
+                    payload: remappedPayload.toJSON(),
+                })
+            })
+        )
+        if (returnValue._render) {
+            returnValue._render = mapSituationProsePayloadContents(returnValue._render, callback)
+        }
         return returnValue as this
     }
 
@@ -471,8 +482,11 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         returnValue._lens = returnValue._lens.toFormat(props.mapTo, props.mappings)
         returnValue._features = returnValue._features.toFormat(props.mapTo, props.mappings)
         returnValue._guidance = returnValue._guidance.toFormat(props.mapTo, props.mappings)
-        returnValue._exits = this._exits.lookup(props.mappings).toFormat(props.mapTo)
-        returnValue._situations = this._situations.lookup(props.mappings).toFormat(props.mapTo)
+        returnValue._exits = returnValue._exits.lookup(props.mappings).toFormat(props.mapTo)
+        returnValue._situations = returnValue._situations.lookup(props.mappings).remapReferences(props)
+        if (returnValue._render) {
+            returnValue._render = returnValue._render.remapReferences(props)
+        }
         return returnValue as this
     }
 
