@@ -1,8 +1,8 @@
 # Phase 1 classification: `index.test.ts` and component integration inventory
 
-**Status:** Phase 4 Step 3 complete (2026-05-19). Step 4 consolidation pending. Section 8 Step 0 overlap context is the reference for Layer A/B sweeps.  
+**Status:** Phase 4 complete (2026-05-19). Consolidated findings in **section 8 Step 4** below; per-file audit trail in Steps 0-3.  
 **Baseline (2026-05-19):** gate suite -- **226 passed** total (`index` + `integration/` + `*.integration.test.ts`).  
-**Source of truth:** section 4 (Phase 1 overlap rules); section 5 (Phase 3 renames **done**); **section 8** (Phase 4 per-file sweep results).
+**Source of truth:** section 4 (Phase 1 overlap rules); section 5 (Phase 3 renames **done**); **section 8 Step 4** (consolidated redundancy/gap/triage); Steps 0-3 (per-file sweeps).
 
 ## Phase 2 extraction status (named describes)
 
@@ -510,26 +510,84 @@ Use this when sweeping Steps 1-3 so similar fixtures are not mis-tagged as dupli
 
 **Step 3 moves/deletes:** 0. Informal integration from Phase 2 fully relocated; residual multi-tag WML in unit files is single-component harness (nested children under one tag), not asset graphs.
 
-### Step 4 -- Consolidated findings (fill when sweeps complete)
+### Step 4 -- Consolidated findings
 
-**Redundancy backlog** (candidates for delete / move / narrow):
+Executive summary for Phase 4 close. Per-file sweep detail remains in Steps 0-3 above. Overlap rules: [section 4](#4-overlap-vs-existing-suites); harness matrix: [Step 0 overlap context](#step-0-overlap-context-carry-forward).
+
+#### Sweep summary
+
+| Bucket | Files | ~`it` (section 8 tables) |
+| --- | ---: | ---: |
+| Step 0 partners | 4 | 127 (facets 39 + wmlMode 4 + processComponents 19 + schemaOrg 65) |
+| Step 1 Layer A + smoke | 16 | 177 |
+| Step 2 Layer B integration | 12 | 49 |
+| Step 3 large unit | 4 | 181 |
+| **Gate suite** (`index` + `integration/` + `*.integration.test.ts`) | -- | **226** |
+
+Partner and per-step counts are audit buckets; the gate count is the authoritative regression number.
+
+**Headline:** **0** delete / move / narrow candidates; **0** informal `StandardForm` in large unit files; placement correct after Phase 2. Gaps are known debt or optional coverage, not misplacement.
+
+#### Redundancy backlog (delete / move / narrow)
+
+**Delete / narrow / move candidates: 0** (Phase 4; Phase 2 already removed 2 `standardizeMode` dups from `index.test.ts`). Do not flag as redundant when harness differs (facet class vs `StandardForm`, `processComponents` vs `form.merge`, org API vs e2e WML).
 
 | Source file | Test (title) | Duplicate of | Proposed action |
 | --- | --- | --- | --- |
-| *(Step 1: none)* | | | |
+| *(none)* | -- | -- | -- |
 
-**Gap backlog** (candidates for add / move from unit to integration):
+#### Keep-both pairs (triage: keep -- not redundant)
 
-| Behavior / API | Suggested owner file | Priority | Notes |
-| --- | --- | --- | --- |
-| Diff: nested reference to existing global component missing from diff output | `standardForm.diff.test.ts` (extend) or fix implementation | Medium | Known debt; existing TODO test documents expected vs actual. See AGENT.md Technical Debt. |
-| `validate()` / `_validateParentExists`: explicit parent references non-existent component | `standardForm.validate.test.ts` | Low | Constructor path only; no dedicated `it` yet. |
-| `StandardForm.mapContents()` asset orchestration | `standardForm.construct.test.ts` or new theme file | Low | Component-level `mapContents` covered in unit tests; no Layer A test. |
-| `resolveInitialStandardizeMode` (data vs constructor options) | `standardForm.standardizeMode.test.ts` | Low | Policy tests exist; resolution precedence not asserted. |
-| Deprecated `renameKey()` on StandardForm | *(none -- intentional)* | Defer | Superseded by Key tags via merge; no test expected. |
-| Large unit file size (`room.test.ts`, `worldState.test.ts`) | split by top-level `describe` into sibling files (optional) | Low | Step 3: no informal `StandardForm` left; size-only ergonomics, not coverage gap. |
+Intentional dual coverage that may look duplicate by title or fixture shape:
 
-**Phase 4 sign-off:** [x] Steps 0-3 swept (181 unit `it` in Step 3 files + 49 Layer B integration `it`); [ ] Consolidated tables final review at Step 4; gate suite 226 pass (2026-05-19 Step 3; no fix slices).
+| Pair A | Pair B | Why both |
+| --- | --- | --- |
+| `processComponents.test.ts` `should combine descriptions in rooms and features` | `standardForm.merge.test.ts` same title | Walker vs `form.merge` |
+| `processComponents` `should combine exits in rooms` | `room.integration.test.ts` | Walker vs `form.schema` |
+| `processComponents` `should combine render in nested rooms` | `room.integration.test.ts` | Walker vs `form.schema` |
+| `processComponents` `should render features and links correctly` | `feature.integration.test.ts` | Walker vs `form.schema` |
+| `room.test.ts` removed-feature render | `room.integration` Removed Feature | Unit render vs asset round-trip |
+| `room.test.ts` Character Integration | `room.integration` Character references | StandardRoom-only vs `form.schema` |
+| `room.test.ts` Situation Link / ephemera mapping | `room.ephemeraWire.integration` | Unit JSON vs wire parse hub |
+| `keys/facets/integration` Mark payload | `situation.integration` Mark smoke | Facet class vs asset `byUniversalId` |
+| `worldState.integration` standalone Lens/Mark | `room.integration` Lens in Room | Top-level vs Room-nested |
+| `schemaOrganization` org APIs | Layer A/B e2e (Gate D, shared Feature parent, subset) | Direct API vs `StandardForm` orchestration |
+| `wmlStandardizeMode` guards | `standardForm.standardizeMode` + ephemeraWire integration | Literals vs policy vs parse hub |
+
+#### Gap backlog -- closed (2026-05-19)
+
+Seven actionable rows closed with tests (diff behavior already correct; stale TODO removed). Two **Defer** rows and one ergonomics row remain open by design (see below).
+
+| Behavior / API | Closed in | Notes |
+| --- | --- | --- |
+| Diff: nested global ref in diff output | `standardForm.diff.test.ts` | Regression test passes; implementation already correct |
+| `validate()` missing-parent | `standardForm.validate.test.ts` | `should throw when explicit Parent references a non-existent component` |
+| `StandardForm.mapContents()` | `standardForm.construct.test.ts` | `mapContents` describe |
+| `resolveInitialStandardizeMode` precedence | `standardForm.standardizeMode.test.ts` | Data wins over constructor options |
+| `processComponents` + `standardizeMode` | `processComponents.test.ts` | ephemeraWire Object + asset-mode rejection |
+| `processComponents` localize / context | `processComponents.test.ts` | topLevel assertions; obsolete TODO removed |
+
+#### Gap backlog -- still open (not in scope for gap-close slice)
+
+| Behavior / API | Priority | Notes |
+| --- | --- | --- |
+| Proposed WML `<Parent>` tag on Situation | Defer | Future Plans; no implementation yet |
+| Deprecated `renameKey()` on StandardForm | Defer | Superseded by Key tags via merge |
+| Large unit file size (`room.test.ts`, `worldState.test.ts`) | Low (ergonomics) | Optional describe-level split; not a coverage gap |
+
+#### Triage summary
+
+| Action | Count | Notes |
+| --- | ---: | --- |
+| **keep** | ~534 `it` across Steps 0-3 buckets | Default; placement correct post-Phase 2 |
+| **keep both** | 11 pairs (table above) | Documented; not redundant |
+| **delete** | 0 | Phase 4 |
+| **move** | 0 | Phase 2 complete |
+| **narrow** | 0 | Phase 4 |
+| **add** (closed) | 7 | Gap-close slice 2026-05-19 |
+| **add** (still open) | 3 | 2 Defer + 1 ergonomics |
+
+**Phase 4 sign-off:** [x] Steps 0-3 swept; [x] Consolidated tables final review at Step 4 (2026-05-19); [x] Gap backlog actionable rows closed (2026-05-19); gate suite **230 pass** (+4 in gate: validate, standardizeMode x2, construct mapContents); +3 in `processComponents.test.ts` (not in gate).
 
 ---
 
@@ -544,3 +602,4 @@ Use this when sweeping Steps 1-3 so similar fixtures are not mis-tagged as dupli
 - [x] Phase 4 section 8 Step 1 (Layer A + smoke) complete
 - [x] Phase 4 section 8 Step 2 (Layer B integration + unit pairs) complete
 - [x] Phase 4 section 8 Step 3 (large unit files) complete
+- [x] Phase 4 section 8 Step 4 consolidation complete

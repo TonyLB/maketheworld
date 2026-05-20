@@ -15,7 +15,7 @@ StandardForm tests are split so no single file grows into an uneditable monolith
 
 **Placement rule:** Put a test in the file owned by what you are asserting. Do not duplicate the same asset graph in two files. Facet payload algebra lives in `keys/facets/`; asset orchestration and schema organization live in Layer A or B as appropriate.
 
-**Large unit files:** `room.test.ts` and `worldState.test.ts` are intentionally large Layer 0 suites (nested child tags under a single component WML, no `StandardForm`). Full `<Asset>` graphs for those tags live in paired `*.integration.test.ts` files.
+**Large unit files:** `room.test.ts` and `worldState.test.ts` are intentionally large Layer 0 suites (nested child tags under a single component WML, no `StandardForm`). Full `<Asset>` graphs for those tags live in paired `*.integration.test.ts` files. Optional future work: split by top-level `describe` for ergonomics only (not a coverage gap).
 
 ## Getting Started
 
@@ -55,7 +55,7 @@ StandardForm tests are split so no single file grows into an uneditable monolith
 
 7. **Check integration points and known wrinkles before extending behavior**
    - **Why**: StandardForm sits at the intersection of schema, components, render, and authorization; changes in one place often have subtle effects elsewhere.
-   - **Read**: This file’s **Integration Points** and **Technical Debt** notes (for example, the diff-system reference-change issue and the proposed explicit `<Parent>` tag behavior), plus `processComponents.ts`, [`components/situation.ts`](./components/situation.ts), and `render/AGENT.md` as needed.
+   - **Read**: This file’s **Integration Points** and **Technical Debt** notes (for example, the proposed explicit `<Parent>` tag behavior), plus `processComponents.ts`, [`components/situation.ts`](./components/situation.ts), and `render/AGENT.md` as needed.
    - **Focus**: Where parent/child relationships are resolved, how situations/features/knowledge get positioned, and how known limitations might affect new work.
 
 ## Semantic Modes
@@ -528,23 +528,6 @@ const assetWithEdits = new StandardForm({
 **Related Files**: `processComponents.ts`, `components/situation.ts`, component merge logic
 
 ### Technical Debt
-
-#### **DIFF SYSTEM: Reference Changes in Nested Components** 🔴
-**Status**: Specific edge case where diff system fails to detect new references to existing global components.
-
-**Issue**: When a nested component (like Room) adds a reference to an existing global component, the diff system correctly identifies the global component but fails to include the new reference in the diff output.
-
-**Example**: 
-- Base: Global `char2` exists, Room has no `char2` reference
-- Modified: Global `char2` unchanged, Room adds `char2` reference
-- Expected: Diff should show `<Character key=(char2) />` in Room
-- Actual: Diff missing the `char2` reference entirely
-
-**Root Cause**: The `StandardForm.diff()` method's zippered component processing doesn't correctly handle reference changes in nested components when the referenced component already exists globally.
-
-**Impact**: Affects any reference list (characters, features, situations) in nested components when adding references to existing global components.
-
-**Priority**: Medium - affects diff accuracy but doesn't break core functionality.
 
 #### **General Issues**
 - **Error Handling**: Improve error messages for complex operations

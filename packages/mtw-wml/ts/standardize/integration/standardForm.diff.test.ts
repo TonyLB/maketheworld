@@ -78,12 +78,9 @@ describe('StandardForm', () => {
         // Generate diff
         const diff = baseForm.diff(modifiedForm)
         
-        // Verify diff contains character changes
+        // Verify diff contains character changes (including reference to existing global char2)
         expect(diff).toBeDefined()
         const diffWML = schemaToWML([diff.schema])
-        // TODO: Fix diff system to properly handle reference changes in nested components
-        // Current behavior: Missing char2 reference due to diff system edge case
-        // Expected behavior: Should include <Character key=(char2) /> in Room
         expect(diffWML).toEqual(deIndentWML(`
             <Asset uuid=(diff)>
                 <Character uuid=(char3) key=(char3)>

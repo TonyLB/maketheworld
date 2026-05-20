@@ -27,6 +27,18 @@ jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
 
 describe('StandardForm', () => {
     describe('validate()', () => {
+        it('should throw when explicit Parent references a non-existent component', () => {
+            const wml = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Feature uuid=(orphan) key=(orphan)>
+                        <Parent>ROOM#missingRoom</Parent>
+                    </Feature>
+                </Asset>
+            `)
+            expect(() => new StandardForm(wml)).toThrow(/non-existent component/)
+            expect(() => new StandardForm(wml)).toThrow(/missingRoom/)
+        })
+
         describe('circular explicit parent detection', () => {
             it('should throw error for simple 2-component cycle', () => {
                 const wml = deIndentWML(`

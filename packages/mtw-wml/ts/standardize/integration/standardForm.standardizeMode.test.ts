@@ -10,6 +10,31 @@ jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
 })
 
 describe('StandardForm.standardizeMode', () => {
+    it('uses standardizeMode from JSON data when constructor options also specify mode', () => {
+        const sf = new StandardForm(
+            {
+                universalKey: 'ASSET#Test',
+                metaData: [],
+                components: [],
+                standardizeMode: 'ephemeraWire',
+            },
+            { standardizeMode: 'asset' },
+        )
+        expect(sf.standardizeMode).toBe('ephemeraWire')
+    })
+
+    it('uses constructor options when data omits standardizeMode', () => {
+        const sf = new StandardForm(
+            {
+                universalKey: 'ASSET#Test',
+                metaData: [],
+                components: [],
+            },
+            { standardizeMode: 'ephemeraWire' },
+        )
+        expect(sf.standardizeMode).toBe('ephemeraWire')
+    })
+
     it('includes standardizeMode in toJSON when not asset', () => {
         const sf = new StandardForm(`<Asset uuid=(X)><Room key=(main) /></Asset>`).withStandardizeMode('ephemeraWire')
         expect(sf.toJSON().standardizeMode).toBe('ephemeraWire')

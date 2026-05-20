@@ -1,6 +1,6 @@
 # StandardForm test suite cleaning (`index.test.ts`)
 
-**Status:** In progress. Phase 3 complete. Phase 4 Step 3 complete (large unit files swept). Next step: **Phase 4 Step 4** (consolidate section 8). See [`AGENT.testSuiteCleaning.classification.md`](./AGENT.testSuiteCleaning.classification.md) section 8.
+**Status:** In progress. Phase 4 complete (coverage sweeps, consolidation, gap backlog closed). Next step: **Phase 5** (full package verify; archive or delete planning + classification docs). Consolidated findings: [`AGENT.testSuiteCleaning.classification.md`](./AGENT.testSuiteCleaning.classification.md) section 8 Step 4 (dispose in Phase 5).
 
 ## Purpose
 
@@ -10,7 +10,7 @@ Reorganize and refresh [`packages/mtw-wml/ts/standardize/index.test.ts`](../../.
 - Tests are **grouped by behavior**, not append order.
 - **Integration coverage** stays in a `StandardForm` context where needed, split across **two homes**: asset-level suites under `standardize/integration/`, and component-adjacent `*.integration.test.ts` files next to the component under test.
 
-This plan is task-scoped. Delete or archive it when the refactor ships.
+This plan is task-scoped. Delete or archive it and [`AGENT.testSuiteCleaning.classification.md`](./AGENT.testSuiteCleaning.classification.md) when the refactor ships (Phase 5).
 
 ## Task-planning framework
 
@@ -232,19 +232,21 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Remove or relocate tests superseded by component/facet unit tests
   - [X] Update [`standardize/AGENT.md`](../../../../../packages/mtw-wml/ts/standardize/AGENT.md) Getting Started: two-layer layout, drop `example.test.ts`, list `integration/` + `*.integration.test.ts` convention
 
-- [ ] Phase 4 - coverage sweeps (redundancy + gaps)
+- [X] Phase 4 - coverage sweeps (redundancy + gaps)
   - [X] Add sweep rubric and per-file rows to [`AGENT.testSuiteCleaning.classification.md`](./AGENT.testSuiteCleaning.classification.md) section 8 (template + inventory)
   - [X] **Step 0:** Cross-cutting partners -- `keys/facets/integration.test.ts`, `wmlStandardizeMode.test.ts`, `processComponents.test.ts`, `schemaOrganization.test.ts` (overlap context for later files)
   - [X] **Step 1:** Layer A -- `integration/standardForm.*.test.ts` (15 files; smallest API surface first: `equals`, `isEmpty`, `lookup`, ... then `construct`, `merge`, `diff`, `subset`, `assetMeta`)
   - [X] **Step 2:** Layer B -- each `components/*.integration.test.ts` + `*.ephemeraWire.integration.test.ts` paired with its `components/<tag>.test.ts` unit file
   - [X] **Step 3:** Large unit files still at integration risk -- `room.test.ts`, `worldState.test.ts`, `map.test.ts`, `guidance.test.ts`
-  - [ ] **Step 4:** Consolidate -- redundancy table, gap backlog, and triage (keep / delete / move / add) in classification section 8; no test changes required to complete Phase 4
-  - [ ] Gate green after any optional fix slices (if triage items are implemented before Phase 5)
+  - [X] **Step 4:** Consolidate -- redundancy table, gap backlog, and triage (keep / delete / move / add) in classification section 8; no test changes required to complete Phase 4
+  - [X] Gate green after any optional fix slices (gap backlog closed 2026-05-19; gate 230 pass)
 
 - [ ] Phase 5 - finish
   - [ ] Full `npm test` in `packages/mtw-wml`
   - [ ] `npx tsc -p tsconfig.json --noEmit`
-  - [ ] Delete or archive this task plan
+  - [ ] Delete or archive task artifacts (pair; durable outcomes live in `packages/mtw-wml/ts/standardize/AGENT.md` and the test tree):
+    - [ ] [`AGENT.testSuiteCleaning.planning.md`](./AGENT.testSuiteCleaning.planning.md) (this file)
+    - [ ] [`AGENT.testSuiteCleaning.classification.md`](./AGENT.testSuiteCleaning.classification.md) (Phase 1 inventory + Phase 4 sweeps; historical line numbers after split)
 
 ## Phase 4 recommended order (coverage sweeps)
 
@@ -321,9 +323,13 @@ After each extraction PR/slice: same commands; no test count should drop without
 | Phase 3 staleness pass | Done | Example->Situation renames in Layer B + integration files; 0 tests deleted (overlap audit); `AGENT.md` Test layout section + `components/AGENT.implementation.md` |
 | AGENT.md test pointers updated | Done | Test layout (two layers); `situation.ts` replaces `example.ts`; no `example.test.ts` |
 | Gate test count post-Phase 3 | Done | **226 passed**, ~1.6s; `tsc --noEmit` clean |
-| Phase 4 coverage sweeps | Step 3 done | Section 8 Step 3 filled (181 unit `it` in 4 large files); **0** informal `StandardForm` in unit files; **0** moves/deletes; size-only deferral in gap backlog; gate 226 pass |
+| Phase 4 coverage sweeps | Done | Steps 0-4 complete; consolidated section 8 Step 4; **0** redundancies to delete; 11 keep-both pairs; 9 gap backlog rows (1 Medium, 6 Low, 2 Defer); gate 226 pass |
 | Phase 4 Step 3 | Done | Swept 4 large unit files (181 `it`): 0 `StandardForm`/`<Asset>` in unit files; 0 redundancies to delete; 0 moves; gate 226 pass |
-| Task plan archived | Not started | Phase 5 |
+| Phase 4 Step 4 | Done | Consolidated redundancy matrix (empty), keep-both table, merged gap backlog, triage summary; `standardize/AGENT.md` known-gaps pointer; gate 226 pass |
+| Top redundancies (Phase 4) | None | No delete/move/narrow candidates after Steps 0-3 |
+| Top gaps (Phase 4) | Closed | 7 actionable rows closed 2026-05-19; 2 Defer + ergonomics remain |
+| Gap backlog close | Done | +7 tests: validate, mapContents, resolveInitialStandardizeMode (x2), processComponents (x3), diff TODO removed; gate **230 pass** (+4 in gate) |
+| Task artifacts archived | Not started | Phase 5: delete or archive planning + classification docs |
 
 ## Work log
 
@@ -342,3 +348,5 @@ After each extraction PR/slice: same commands; no test count should drop without
 - **2026-05-19:** Phase 4 Step 1. Swept all 15 Layer A `integration/standardForm.*.test.ts` files (175 `it`) + `index.test.ts` smoke (2 `it`). **0 redundancies** to delete (Step 0 overlap rules applied). Gaps deferred to classification section 8 backlog: diff nested reference debt (existing TODO), `validate` missing-parent, optional `mapContents` / `resolveInitialStandardizeMode`. Layer A-only gate: **177 passed**; full gate unchanged at 226; `tsc --noEmit` clean. No test or `AGENT.md` code changes (analysis-only).
 - **2026-05-19:** Phase 4 Step 2. Swept all 12 Layer B integration files (49 `it`) paired with unit files (`guidance` through `room.ephemeraWire`). **0 redundancies** to delete; documented keep-both pairs (room removed-feature, character unit vs integration, processComponents title pairs, facet unit vs situation asset smoke, worldState standalone vs room Lens-in-Room). **0 new gaps** at Layer B; Step 3 handoff noted for large unit files. Gate: **226 passed**; `tsc --noEmit` clean. No test or `AGENT.md` changes (analysis-only).
 - **2026-05-19:** Phase 4 Step 3. Swept `room.test.ts` (91), `worldState.test.ts` (69), `map.test.ts` (8), `guidance.test.ts` (13). **0** `StandardForm`/`<Asset>` in unit files; **0** redundancies to delete; **0** moves. Confirmed Phase 2 extractions complete; keep-both pairs unchanged from Step 2. Size-only deferral: `room`/`worldState` exceed ~800-line target (optional describe-level split in Step 4 backlog). Unit-only gate: **181 passed**; full gate **226 passed**; `tsc --noEmit` clean. Updated classification section 8 Step 3 + `AGENT.md` Test layout note.
+- **2026-05-19:** Phase 4 Step 4. Consolidated classification section 8: sweep summary, empty redundancy matrix, 11 keep-both pairs, 9-row gap backlog (1 Medium, 6 Low, 2 Defer), triage summary. **0** delete/move/narrow; no test changes. Added known-gaps pointer in `standardize/AGENT.md` Test layout. Gate **226 passed**; `tsc --noEmit` clean. Phase 4 analysis complete; Phase 5 next.
+- **2026-05-19:** Gap backlog close (pre-Phase 5). Added 7 tests across `standardForm.validate`, `standardForm.construct` (mapContents), `standardForm.standardizeMode` (x2), `processComponents` (x3); removed stale diff TODO (behavior already correct). Updated classification gap tables, planning Progress, `AGENT.md` Technical Debt. Gate **230 passed** (+4 in gate); `processComponents` +3; `tsc --noEmit` clean.

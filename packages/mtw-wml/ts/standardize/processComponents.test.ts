@@ -99,6 +99,7 @@ describe("processComponents", () => {
         const result = processComponents({
             componentOrder,
             schema: schema.schema,
+            assetUUID: 'ASSET#Test',
         })
         expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
             deIndentWML(`
@@ -130,9 +131,54 @@ describe("processComponents", () => {
             `<Situation uuid=(testGlobalSituation) />`,
             `<Situation uuid=(DEFAULT) />`,
         ])
-        //
-        // TODO: Test that context is correctly applied to local components
-        //
+        // componentContext is for topLevel only (direct Asset children); parent graph is SchemaOrganization.
+        expect(result.topLevel.payload.length).toBe(1)
+        expect(result.topLevel.payload[0].key).toBe('test')
+        const topLevelKeys = result.topLevel.payload.map((ref) => ref.key)
+        expect(topLevelKeys).not.toContain('testLocal')
+        expect(topLevelKeys).not.toContain('testGlobal')
+    })
+
+    it('should pass standardizeMode to component factory for ephemeraWire Object under Room', () => {
+        const testSource = `
+            <Asset uuid=(Test)>
+                <Room key=(main) uuid=(main)>
+                    <Object uuid=(skates)>
+                        <ShortName>roller skates</ShortName>
+                    </Object>
+                </Room>
+            </Asset>
+        `
+        const schema = new Schema()
+        schema.loadWML(testSource)
+        const result = processComponents({
+            componentOrder,
+            schema: schema.schema,
+            assetUUID: 'ASSET#Test',
+            standardizeMode: 'ephemeraWire',
+        })
+        const room = result.components.find((component) => component.tag === 'Room') as StandardRoom
+        expect(room.objects).toEqual([{ uuid: 'OBJECT#skates', shortName: 'roller skates' }])
+    })
+
+    it('should reject Object under Room when standardizeMode is asset', () => {
+        const testSource = `
+            <Asset uuid=(Test)>
+                <Room key=(main) uuid=(main)>
+                    <Object uuid=(skates)>
+                        <ShortName>roller skates</ShortName>
+                    </Object>
+                </Room>
+            </Asset>
+        `
+        const schema = new Schema()
+        schema.loadWML(testSource)
+        expect(() => processComponents({
+            componentOrder,
+            schema: schema.schema,
+            assetUUID: 'ASSET#Test',
+            standardizeMode: 'asset',
+        })).toThrow(/Unconsumed child tags: Object/)
     })
 
     it('should combine descriptions in rooms and features', () => {

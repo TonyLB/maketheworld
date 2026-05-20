@@ -1,6 +1,8 @@
 import { Schema, schemaToWML, treeFromWML } from '../../schema'
 import { StandardForm, hasShortName } from '..'
 import { deIndentWML } from '../../schema/utils'
+import { isSchemaString } from '@tonylb/mtw-base/ts/schema/renderTree'
+import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { GenericTreeNode } from '@tonylb/mtw-base/ts/genericTree'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import StandardRoom from '../components/room'
@@ -554,5 +556,39 @@ describe('StandardForm', () => {
         
                 expect(schemaToWML([test.schema])).toEqual(testWML)
             })
+    })
+
+    describe('mapContents', () => {
+        it('should apply mapContents callback across all components in the asset', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1)>
+                        <ShortName>Room One</ShortName>
+                    </Room>
+                    <Room uuid=(room2) key=(room2)>
+                        <ShortName>Room Two</ShortName>
+                    </Room>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const callback = (tree) => {
+                return tree.map((node) => {
+                    if (treeNodeTypeguard(isSchemaString)(node)) {
+                        return { data: { tag: 'String', value: `${node.data.value}!` }, children: [] }
+                    }
+                    return {
+                        ...node,
+                        children: callback(node.children),
+                    }
+                })
+            }
+            const mapped = form.mapContents(callback)
+            const room1 = mapped.byId['room1'] as StandardRoom
+            const room2 = mapped.byId['room2'] as StandardRoom
+            expect(room1.shortName?.toJSON()).toBe('Room One!')
+            expect(room2.shortName?.toJSON()).toBe('Room Two!')
+            expect(schemaToWML([room1.schema])).toContain('Room One!')
+            expect(schemaToWML([room2.schema])).toContain('Room Two!')
+        })
     })
 })
