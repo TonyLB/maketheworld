@@ -4,6 +4,37 @@
 
 The `standardize` directory contains the `StandardForm` class, which represents an Asset as a whole, first-class object. StandardForm handles aggregate operations on WML assets by orchestrating the known operations of the `StandardComponent` interface to make changes on each of the children components.
 
+## Test layout (two layers)
+
+StandardForm tests are split so no single file grows into an uneditable monolith:
+
+- **Layer 0 (unit):** `components/<tag>.test.ts` -- one component tag in isolation (`StandardRoom`, `StandardSituation`, etc.).
+- **Layer A (asset-level):** `integration/standardForm.<apiOrTheme>.test.ts` -- `StandardForm` APIs and asset-wide behavior (`merge`, `diff`, `subset`, `validate`, imports, NDJSON, ...).
+- **Layer B (component-adjacent integration):** `components/<tag>.integration.test.ts` and optional `components/<tag>.ephemeraWire.integration.test.ts` -- multi-tag `<Asset>` scenarios where the **primary assertion** targets one component's fields, schema, or localized round-trip.
+- **Smoke:** `index.test.ts` -- one or two minimal construct round-trips only.
+
+**Placement rule:** Put a test in the file owned by what you are asserting. Do not duplicate the same asset graph in two files. Facet payload algebra lives in `keys/facets/`; asset orchestration and schema organization live in Layer A or B as appropriate.
+
+**Large unit files:** `room.test.ts` and `worldState.test.ts` are intentionally large Layer 0 suites (nested child tags under a single component WML, no `StandardForm`). Full `<Asset>` graphs for those tags live in paired `*.integration.test.ts` files. Optional future work: split by top-level `describe` for ergonomics only (not a coverage gap).
+
+**Intentional overlap (keep both):** Duplicate *titles* across files are not bugs when the harness differs:
+
+- `processComponents.test.ts` vs `standardForm.merge.test.ts` / `room.integration.test.ts` / `feature.integration.test.ts` -- walker vs `form.merge` / `form.schema`
+- `room.test.ts` vs `room.integration.test.ts` / `room.ephemeraWire.integration.test.ts` -- unit render/refs vs asset round-trip vs wire parse hub
+- `keys/facets/integration.test.ts` vs `situation.integration.test.ts` -- facet class vs asset `byUniversalId`
+- `worldState.integration.test.ts` vs `room.integration.test.ts` (Lens) -- standalone vs Room-nested
+- `wmlStandardizeMode.test.ts` vs `standardForm.standardizeMode.test.ts` + ephemeraWire integration files -- literals vs policy vs parse hub
+- `schemaOrganization.test.ts` vs Layer A/B e2e -- org API vs `StandardForm` orchestration
+
+**Refactor gate** (smoke + Layer A + Layer B integration; ~230 tests):
+
+```bash
+cd packages/mtw-wml
+npm test -- ts/standardize/index.test.ts ts/standardize/integration/ \
+  ts/standardize/components/*.integration.test.ts \
+  ts/standardize/components/*.ephemeraWire.integration.test.ts
+```
+
 ## Getting Started
 
 1. **Build fluency in WML and the WML schema**
@@ -36,14 +67,14 @@ The `standardize` directory contains the `StandardForm` class, which represents 
 
 6. **Use tests as executable documentation**
    - **Why**: Tests capture real-world calling patterns and clarify how merge/diff/subset should behave across many components and edge cases.
-   - **Read**: `index.test.ts`, `baseClasses.test.ts`, `processComponents.test.ts`, and representative component tests under `components/*.test.ts` (especially `room.test.ts`, `example.test.ts`, and `edits.test.ts`).
+   - **Read**: Asset-level integration tests under `integration/standardForm.*.test.ts` (e.g. `standardForm.construct.test.ts`, `standardForm.merge.test.ts`, `standardForm.diff.test.ts`, `standardForm.subset.test.ts`, `standardForm.standardizeMode.test.ts`); component-adjacent multi-tag scenarios under `components/*.integration.test.ts` (e.g. `room.integration.test.ts`, `feature.integration.test.ts`, `situation.integration.test.ts`, `guidance.integration.test.ts`); ephemeraWire hubs under `components/*.ephemeraWire.integration.test.ts` (e.g. `room.ephemeraWire.integration.test.ts`, `feature.ephemeraWire.integration.test.ts`, `knowledge.ephemeraWire.integration.test.ts`); `index.test.ts` (thin smoke only); `wmlStandardizeMode.test.ts`; `baseClasses.test.ts`, `processComponents.test.ts`; and unit tests under `components/*.test.ts` (especially `room.test.ts`, `situation.test.ts`, `feature.test.ts`).
    - **Focus**: Concrete examples of asset-level merges, edit components (`Replace`, `Remove`), subset extraction for maps/positions, and how reference changes are expected to appear in diffs.
    - **For edit operations**: When examining test cases involving `Remove`, `Replace`, or merge/diff operations, refer to [`./components/AGENT.editAlgebra.md`](./components/AGENT.editAlgebra.md) and [`./components/AGENT.referenceList.editAlgebra.md`](./components/AGENT.referenceList.editAlgebra.md) to understand the mathematical properties that govern these operations.
 
 7. **Check integration points and known wrinkles before extending behavior**
    - **Why**: StandardForm sits at the intersection of schema, components, render, and authorization; changes in one place often have subtle effects elsewhere.
-   - **Read**: This file’s **Integration Points** and **Technical Debt** notes (for example, the diff-system reference-change issue and the proposed explicit `<Parent>` tag behavior), plus `processComponents.ts`, `example.ts`, and `render/AGENT.md` as needed.
-   - **Focus**: Where parent/child relationships are resolved, how examples/features/knowledge get positioned, and how known limitations might affect new work.
+   - **Read**: This file’s **Integration Points** and **Technical Debt** notes (for example, the proposed explicit `<Parent>` tag behavior), plus `processComponents.ts`, [`components/situation.ts`](./components/situation.ts), and `render/AGENT.md` as needed.
+   - **Focus**: Where parent/child relationships are resolved, how situations/features/knowledge get positioned, and how known limitations might affect new work.
 
 ## Semantic Modes
 
@@ -512,28 +543,12 @@ const assetWithEdits = new StandardForm({
 - Modify merge logic to respect explicit parent when present
 - Ensure validation that parent UUID references valid components
 
-**Related Files**: `processComponents.ts`, `example.ts`, component merge logic
+**Related Files**: `processComponents.ts`, `components/situation.ts`, component merge logic
 
 ### Technical Debt
-
-#### **DIFF SYSTEM: Reference Changes in Nested Components** 🔴
-**Status**: Specific edge case where diff system fails to detect new references to existing global components.
-
-**Issue**: When a nested component (like Room) adds a reference to an existing global component, the diff system correctly identifies the global component but fails to include the new reference in the diff output.
-
-**Example**: 
-- Base: Global `char2` exists, Room has no `char2` reference
-- Modified: Global `char2` unchanged, Room adds `char2` reference
-- Expected: Diff should show `<Character key=(char2) />` in Room
-- Actual: Diff missing the `char2` reference entirely
-
-**Root Cause**: The `StandardForm.diff()` method's zippered component processing doesn't correctly handle reference changes in nested components when the referenced component already exists globally.
-
-**Impact**: Affects any reference list (characters, features, examples) in nested components when adding references to existing global components.
-
-**Priority**: Medium - affects diff accuracy but doesn't break core functionality.
 
 #### **General Issues**
 - **Error Handling**: Improve error messages for complex operations
 - **Documentation**: Add more examples for complex asset operations
 - **Testing**: Expand test coverage for edge cases
+- **`renameKey()`**: Deprecated on `StandardForm`; superseded by explicit `<Key>` tags via `merge()`. No dedicated test coverage planned.

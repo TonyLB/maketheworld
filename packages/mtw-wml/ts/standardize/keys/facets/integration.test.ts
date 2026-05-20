@@ -620,7 +620,7 @@ describe('Facet Integration Tests', () => {
             });
         });
 
-        describe('Mock Example component with Mark facets', () => {
+        describe('Mock Situation component with Mark facets', () => {
             it('should enhance Mark references with Match children', () => {
                 // Mock rendering marks reference list first
                 const mark1Ref = new StandardReference('MARK#1', 'Mark');
@@ -751,7 +751,7 @@ describe('Facet Integration Tests', () => {
             expect(treeNodeTypeguard(isSchemaExit)(result.newNode!)).toBe(true);
         });
 
-        it('should handle Examples with Mark references but no facet payloads', () => {
+        it('should handle Situations with Mark references but no facet payloads', () => {
             const markRef = new StandardReference('MARK#1', 'Mark');
             const markRender = markRef.schema[0];
 
