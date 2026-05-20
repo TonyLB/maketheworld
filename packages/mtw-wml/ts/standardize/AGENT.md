@@ -17,6 +17,24 @@ StandardForm tests are split so no single file grows into an uneditable monolith
 
 **Large unit files:** `room.test.ts` and `worldState.test.ts` are intentionally large Layer 0 suites (nested child tags under a single component WML, no `StandardForm`). Full `<Asset>` graphs for those tags live in paired `*.integration.test.ts` files. Optional future work: split by top-level `describe` for ergonomics only (not a coverage gap).
 
+**Intentional overlap (keep both):** Duplicate *titles* across files are not bugs when the harness differs:
+
+- `processComponents.test.ts` vs `standardForm.merge.test.ts` / `room.integration.test.ts` / `feature.integration.test.ts` -- walker vs `form.merge` / `form.schema`
+- `room.test.ts` vs `room.integration.test.ts` / `room.ephemeraWire.integration.test.ts` -- unit render/refs vs asset round-trip vs wire parse hub
+- `keys/facets/integration.test.ts` vs `situation.integration.test.ts` -- facet class vs asset `byUniversalId`
+- `worldState.integration.test.ts` vs `room.integration.test.ts` (Lens) -- standalone vs Room-nested
+- `wmlStandardizeMode.test.ts` vs `standardForm.standardizeMode.test.ts` + ephemeraWire integration files -- literals vs policy vs parse hub
+- `schemaOrganization.test.ts` vs Layer A/B e2e -- org API vs `StandardForm` orchestration
+
+**Refactor gate** (smoke + Layer A + Layer B integration; ~230 tests):
+
+```bash
+cd packages/mtw-wml
+npm test -- ts/standardize/index.test.ts ts/standardize/integration/ \
+  ts/standardize/components/*.integration.test.ts \
+  ts/standardize/components/*.ephemeraWire.integration.test.ts
+```
+
 ## Getting Started
 
 1. **Build fluency in WML and the WML schema**
@@ -533,3 +551,4 @@ const assetWithEdits = new StandardForm({
 - **Error Handling**: Improve error messages for complex operations
 - **Documentation**: Add more examples for complex asset operations
 - **Testing**: Expand test coverage for edge cases
+- **`renameKey()`**: Deprecated on `StandardForm`; superseded by explicit `<Key>` tags via `merge()`. No dedicated test coverage planned.
