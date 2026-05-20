@@ -15,6 +15,8 @@ StandardForm tests are split so no single file grows into an uneditable monolith
 
 **Placement rule:** Put a test in the file owned by what you are asserting. Do not duplicate the same asset graph in two files. Facet payload algebra lives in `keys/facets/`; asset orchestration and schema organization live in Layer A or B as appropriate.
 
+**Large unit files:** `room.test.ts` and `worldState.test.ts` are intentionally large Layer 0 suites (nested child tags under a single component WML, no `StandardForm`). Full `<Asset>` graphs for those tags live in paired `*.integration.test.ts` files.
+
 ## Getting Started
 
 1. **Build fluency in WML and the WML schema**
