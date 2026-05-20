@@ -12,9 +12,16 @@ import { PositionFacetList, StandardPositionFacet } from "../keys/facets/positio
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { StandardLiteral } from "../literal"
+import {
+    createShortNameFromJSON,
+    mergeShortName,
+    shortNameSchemaChildren,
+    shortNameToJSON,
+    standardizeShortNameConsumer,
+} from "./shortNameField"
 import type { StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { StandardExplicitParent } from "../explicit"
-import { processWithConsumers, StandardizeConsumer, StandardizeConsumerFacetListPosition, StandardizeConsumerInline, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
+import { processWithConsumers, StandardizeConsumer, StandardizeConsumerFacetListPosition, StandardizeConsumerInline } from "./fromSchemaPipeline"
 import { splitTaggedChildren } from "../../schema/utils"
 import { renderReference } from "./utils/schema"
 
@@ -66,7 +73,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     }
 
     fromJSON(props: StandardMapInputData) {
-        this._shortName = props.shortName ? new StandardLiteral(props.shortName, { tag: 'ShortName' }) : undefined
+        this._shortName = createShortNameFromJSON(props.shortName)
         this._images = props.images ?? []
         this._positions = new PositionFacetList(props.positions ?? [])
     }
@@ -74,12 +81,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaMap)(node)) {
             const consumers = [
-                new StandardizeConsumerStandardLiteral<StandardMapPayload>(this, {
-                    tag: "ShortName",
-                    update(literal) {
-                        this._shortName = literal
-                    },
-                }),
+                standardizeShortNameConsumer(this),
                 new StandardizeConsumerImageList<StandardMapPayload>(this, {
                     tag: "Image",
                     update(nodes) {
@@ -107,7 +109,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     toJSON(): Omit<StandardMapData, 'key' | 'universalKey'> {
         return {
             tag: 'Map',
-            shortName: this.shortName?.toJSON(),
+            shortName: shortNameToJSON(this.shortName),
             ...(this.images.length ? { images: this.images } : {}),
             ...(this._positions.length ? { positions: this._positions.toJSON() } : {})
         }
@@ -124,7 +126,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         }).filter(excludeUndefined) as GenericTreeNode<SchemaTag>[]
         
         const children = [
-            ...this.shortName ? this.shortName.nestedSchema() : [],
+            ...shortNameSchemaChildren(this.shortName),
             ...this.images,
             ...positionSchemas
         ].filter(excludeUndefined)
@@ -210,7 +212,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         return {
             data: { tag: 'Map', key: mapKey.key ?? '', uuid: mapKey.universalKey },
             children: [
-                ...this.shortName ? this.shortName.nestedSchema() : [],
+                ...shortNameSchemaChildren(this.shortName),
                 ...this.images,
                 ...positionSchemas,
                 ...inlineSchemas
@@ -220,7 +222,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
 
     merge(incoming: this): this {
         const returnValue = new StandardMapPayload()
-        returnValue._shortName = this._shortName && incoming._shortName ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
+        returnValue._shortName = mergeShortName(this._shortName, incoming._shortName)
         returnValue._images = applyEdits([...this.images, ...incoming.images])
         const mergedPositions = this._positions.merge(incoming._positions)
         returnValue._positions = mergedPositions ?? new PositionFacetList([])
@@ -273,7 +275,6 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
 }
 
 export class StandardMap extends componentClassFactory(StandardMapPayload, 'StandardMap') {
-    get shortName() { return this._payload.shortName }
     get images() { return this._payload.images }
     get positions() { return this._payload.positions }
 

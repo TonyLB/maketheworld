@@ -1,5 +1,5 @@
 import { Schema, schemaToWML, treeFromWML } from '../../schema'
-import { StandardForm, hasShortName } from '..'
+import { StandardForm } from '..'
 import { deIndentWML } from '../../schema/utils'
 import { isSchemaString } from '@tonylb/mtw-base/ts/schema/renderTree'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'

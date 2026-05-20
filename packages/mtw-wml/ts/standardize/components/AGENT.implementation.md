@@ -179,6 +179,7 @@ Payloads that parse from WML schema use a **process-and-remainder pipeline** so 
 - **Simple components:** Use `StandardizeConsumerSimple`, `StandardizeConsumerStandardLiteral`, and/or `StandardizeConsumerReferenceList` with `{ tag, update }`; the order of steps is the contract for what the component accepts. Tags that should be accepted but not stored (e.g. Position, Grant) use a no-op `update`.
 - **Pipeline usage:** All component payloads use the process-and-remainder pipeline for `fromSchema`. Most use tag-based consumers only (see component sections above for each component's accepted tag set); Map, Example, and Guidance add facet-list consumers (e.g. `StandardizeConsumerFacetListPosition`, `StandardizeConsumerFacetListMark`).
 - **Consumer types:** Use `StandardizeConsumerSimple` or `StandardizeConsumerStandardLiteral` for a single tag → one property; `StandardizeConsumerRender` for rich-text tags (Description, DisplayName, etc.); `StandardizeConsumerReferenceList` for component references (Feature, Example, Room, Message, Mark under Lens, etc.); `StandardizeConsumerFacetListPosition` / `StandardizeConsumerFacetListMark` for facet data (Map positions, Example/Guidance mark facets); `StandardizeConsumerInline` as the last step when the component has reference or facet consumers, to accept and forward hosted component nodes (e.g. Mark under Room) that don't map to a bucket. Implementation: [fromSchemaPipeline.ts](./fromSchemaPipeline.ts), [fromSchemaPipeline.test.ts](./fromSchemaPipeline.test.ts).
+- **Shared `shortName` lifecycle:** Optional component `shortName` fields use helpers in [`shortNameField.ts`](./shortNameField.ts) (`createShortNameFromJSON`, `mergeShortName`, `invertShortName`, `shortNameSchemaChildren`, `standardizeShortNameConsumer`, etc.). All component payloads (Character, Feature, Guidance, Image, Knowledge, Lens, Map, Mark, Message, Moment, Room, Situation) use these helpers. Wrapper classes read `shortName` via `componentClassFactory` (delegates to payload). Vestigial `HasShortName` / `hasShortName()` were removed; `StandardComponent.shortName` is the contract. **Direct `_payload._shortName` assignment** is allowed only in: Workbench `updateStandard` editors (charcoal-client), `StandardForm.subset` Room stub copy ([`index.ts`](../index.ts)), and tests. Optional follow-up: typed `withShortName()` on components.
 
 #### Division of responsibility (Schema vs Standardize)
 
@@ -673,7 +674,7 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
 **Example**: `StandardKnowledge`, `StandardFeature`
 
 **Pattern**:
-- Minimal payload class with basic properties (e.g., `shortName?: StandardLiteral`)
+- Minimal payload class with basic properties (e.g., `shortName?: StandardLiteral`); use [`shortNameField.ts`](./shortNameField.ts) for fromJSON/merge/invert/schema consumer wiring when the tag has `shortName`
 - Optional `ReferenceList` for child components (e.g., `features: ReferenceList`)
 - Simple `toJSON()` with omission-over-empty pattern
 - Straightforward `schema()` and `nestedSchema()` implementations

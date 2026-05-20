@@ -12,12 +12,18 @@ import { MarkFacetList } from "../keys/facets/mark"
 import { StandardFormSubsetRequest } from "../baseClasses"
 import { StandardLiteral } from "../literal"
 import type { StandardFormConstructionOptions, StandardizeFromSchemaContext } from "../wmlStandardizeMode"
-import { HasShortName } from "./abstract"
-import { excludeUndefined } from "../../lib/lists"
-import { processWithConsumers, StandardizeConsumerFacetListMark, StandardizeConsumerInline, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
+import {
+    createShortNameFromJSON,
+    invertShortName,
+    mergeShortName,
+    shortNameSchemaChildren,
+    shortNameToJSON,
+    standardizeShortNameConsumer,
+} from "./shortNameField"
+import { processWithConsumers, StandardizeConsumerFacetListMark, StandardizeConsumerInline } from "./fromSchemaPipeline"
 import { defaultedEquals } from "./utils"
 
-export class StandardSituationPayload implements HasShortName, ComponentConstructorMethods<StandardSituationInputData, StandardSituationData> {
+export class StandardSituationPayload implements ComponentConstructorMethods<StandardSituationInputData, StandardSituationData> {
     _shortName?: StandardLiteral;
     _marks: MarkFacetList;
     tag = 'Situation' as const
@@ -34,19 +40,14 @@ export class StandardSituationPayload implements HasShortName, ComponentConstruc
 
     fromJSON(props: StandardSituationInputData) {
         const { shortName } = props
-        this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
+        this._shortName = createShortNameFromJSON(shortName)
         this._marks = new MarkFacetList(props.marks ?? [])
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaSituation)(node)) {
             const consumers = [
-                new StandardizeConsumerStandardLiteral(this, {
-                    tag: "ShortName",
-                    update(literal) {
-                        this._shortName = literal
-                    },
-                }),
+                standardizeShortNameConsumer(this),
                 new StandardizeConsumerFacetListMark<StandardSituationPayload>(this, {
                     update(list) {
                         this._marks = list
@@ -70,7 +71,7 @@ export class StandardSituationPayload implements HasShortName, ComponentConstruc
     toJSON(options?: StandardToJSONOptions): Omit<StandardSituationData, 'key' | 'universalKey'> {
         return {
             tag: 'Situation',
-            ...(this.shortName ? { shortName: this.shortName.toJSON() } : {}),
+            ...(this.shortName ? { shortName: shortNameToJSON(this.shortName) } : {}),
             ...(this.marks.length ? { marks: this.marks.toJSON() } : {})
         }
     }
@@ -84,7 +85,7 @@ export class StandardSituationPayload implements HasShortName, ComponentConstruc
         return {
             data: { tag: 'Situation', key, uuid: universalKey },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
+                ...shortNameSchemaChildren(this.shortName),
                 ...markNodes
             ]
         }
@@ -105,9 +106,7 @@ export class StandardSituationPayload implements HasShortName, ComponentConstruc
         //   so that diff/overlay semantics are respected.
         // - Otherwise, take whichever side has a value.
         //
-        returnValue._shortName = (this._shortName && incoming._shortName)
-            ? (this._shortName.merge(incoming._shortName) as StandardLiteral | undefined)
-            : this._shortName ?? incoming._shortName
+        returnValue._shortName = mergeShortName(this._shortName, incoming._shortName)
         const mergedMarks = (this._marks && incoming._marks)
             ? this._marks.merge(incoming._marks)
             : this._marks ?? incoming._marks ?? new MarkFacetList([])
@@ -128,7 +127,7 @@ export class StandardSituationPayload implements HasShortName, ComponentConstruc
 
     invert(): this {
         const returnValue = new StandardSituationPayload()
-        returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
+        returnValue._shortName = invertShortName(this._shortName)
         returnValue._marks = this._marks.invert()
         return returnValue as this
     }
@@ -161,7 +160,7 @@ export class StandardSituationPayload implements HasShortName, ComponentConstruc
         return {
             data: { tag: 'Situation', key: key.key ?? '', uuid: key.universalKey },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
+                ...shortNameSchemaChildren(this.shortName),
                 ...markNodes
             ]
         }
@@ -169,7 +168,6 @@ export class StandardSituationPayload implements HasShortName, ComponentConstruc
 }
 
 export class StandardSituation extends componentClassFactory(StandardSituationPayload, 'StandardSituation') {
-    get shortName() { return this._payload.shortName }
     get marks() { return this._payload.marks }
 
     constructor(

@@ -1,4 +1,3 @@
-import { excludeUndefined } from "../../lib/lists"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { AssureReferencesResult, componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardToJSONOptions } from "./baseClasses"
@@ -7,15 +6,21 @@ import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaFeature, isSchemaRender } from "@tonylb/mtw-base/ts/schema/components"
-import { HasShortName } from "./abstract"
 import { StandardLiteral } from "../literal"
+import {
+    createShortNameFromJSON,
+    invertShortName,
+    mergeShortName,
+    shortNameSchemaChildren,
+    shortNameToJSON,
+    standardizeShortNameConsumer,
+} from "./shortNameField"
 import { resolveStandardizeFromSchemaContext, type StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import {
     processWithConsumers,
     StandardizeConsumerFacetListSituation,
     StandardizeConsumerInline,
     StandardizeConsumerSimple,
-    StandardizeConsumerStandardLiteral,
     type StandardizeConsumer,
 } from "./fromSchemaPipeline"
 import { ReferenceFormat } from "./utils/references"
@@ -23,7 +28,7 @@ import { parseProseTripletChildren, renderPayloadToSchemaNode, SituationProseFac
 import type { StandardFacetData } from "../keys/facets/dataTypes/facet"
 import type { SituationProseFacetPayloadType } from "../keys/facets/situationRoom"
 
-export class StandardFeaturePayload implements HasShortName, ComponentConstructorMethods<StandardFeatureData, StandardFeatureData> {
+export class StandardFeaturePayload implements ComponentConstructorMethods<StandardFeatureData, StandardFeatureData> {
     _shortName?: StandardLiteral;
     _situations: SituationProseFacetList;
     _render?: SituationProseFacetPayload;
@@ -42,7 +47,7 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
 
     fromJSON(props: StandardFeatureData) {
         const { shortName } = props
-        this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
+        this._shortName = createShortNameFromJSON(shortName)
         this._situations = new SituationProseFacetList(props.situations ?? [])
         this._render = props.render ? new SituationProseFacetPayload(props.render) : undefined
     }
@@ -50,12 +55,7 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
     fromSchema(node: GenericTreeNode<SchemaTag>, context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaFeature)(node)) {
             const consumers: StandardizeConsumer[] = [
-                new StandardizeConsumerStandardLiteral(this, {
-                    tag: "ShortName",
-                    update(literal) {
-                        this._shortName = literal
-                    },
-                }),
+                standardizeShortNameConsumer(this),
                 new StandardizeConsumerFacetListSituation(this, {
                     update(list) {
                         this._situations = list
@@ -107,7 +107,7 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
     toJSON(_options?: StandardToJSONOptions): Omit<StandardFeatureData, 'key' | 'universalKey'> {
         return {
             tag: 'Feature',
-            shortName: this?.shortName?.toJSON(),
+            shortName: shortNameToJSON(this.shortName),
             ...(this.situations.length ? { situations: this.situations.toJSON() } : {}),
             ...(this._render ? { render: this._render.toJSON() } : {})
         }
@@ -124,7 +124,7 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
         return {
             data: { tag: 'Feature', key, uuid: universalKey },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
+                ...shortNameSchemaChildren(this.shortName),
                 ...situationSchemas,
                 ...renderSchemas,
             ]
@@ -143,7 +143,7 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
         return {
             data: { tag: 'Feature', key: key.key ?? '', uuid: key.universalKey },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
+                ...shortNameSchemaChildren(this.shortName),
                 ...situationSchemas,
                 ...renderSchemas,
             ]
@@ -152,7 +152,7 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
 
     merge(incoming: this): this {
         const returnValue = new StandardFeaturePayload()
-        returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
+        returnValue._shortName = mergeShortName(this._shortName, incoming._shortName)
         const mergedSituations = this._situations.merge(incoming._situations)
         returnValue._situations = mergedSituations ?? new SituationProseFacetList([])
         if (incoming._render !== undefined) {
@@ -234,7 +234,7 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
 
     invert(): this {
         const returnValue = new StandardFeaturePayload()
-        returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
+        returnValue._shortName = invertShortName(this._shortName)
         returnValue._situations = this._situations.invert()
         returnValue._render = this._render?.invert()
         return returnValue as this
@@ -259,7 +259,6 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
 }
 
 export class StandardFeature extends componentClassFactory(StandardFeaturePayload, 'StandardFeature') {
-    get shortName() { return this._payload.shortName }
     get situations() { return this._payload.situations }
     get render() { return this._payload.render }
 

@@ -1,6 +1,6 @@
 # shortName consolidation - planning
 
-**Status:** Not started. **Next:** Phase 0 decisions are recorded below; begin Phase 1 with a shared payload helper and removal of vestigial `hasShortName` / `HasShortName`.
+**Status:** Phase 1 complete. **Next:** Phase 2.1 -- implement `componentDisplayLabel` in mtw-wml.
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability, checkboxes, verification). **Dispose** after the initiative ships and lasting semantics live in [`packages/mtw-wml/ts/standardize/components/AGENT.implementation.md`](../../../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) (new **shortName** section) and any client doc updates.
 
@@ -27,8 +27,8 @@ Assessment (May 2026) found:
 | --- | --- |
 | **Data types** | All 13 `StandardComponent` tags expose optional `shortName` in `dataTypes/*` and `StandardComponentNonEditData`. |
 | **`StandardComponent` interface** | Declares `shortName?: StandardLiteral` on [`baseClasses.ts`](../../../../../packages/mtw-wml/ts/standardize/components/baseClasses.ts). |
-| **Implementations** | Each payload duplicates `_shortName`, `fromJSON`, `StandardizeConsumerStandardLiteral`, merge, `toJSON`, and each wrapper adds `get shortName() { return this._payload.shortName }`. |
-| **`HasShortName` / `hasShortName()`** | **Vestigial.** `StandardComponent` already declares `shortName`; the guard is called once in tests (~14 integration files import it unused). **`hasDisplayName`** remains (Character-only field not on `StandardComponent`). |
+| **Implementations** | Payloads use [`shortNameField.ts`](../../../../../packages/mtw-wml/ts/standardize/components/shortNameField.ts); wrapper `shortName` delegates via `componentClassFactory`. |
+| **`HasShortName` / `hasShortName()`** | **Removed** (Phase 1.4). `StandardComponent.shortName` is the contract. **`hasDisplayName`** remains (Character-only field not on `StandardComponent`). |
 | **Client** | Repeated `component.shortName?._payload?.plain?.toJSON()` with ad hoc fallbacks; some paths still use `key` or a **universalKey suffix** (opaque uuid fragment). [`getComponentDisplayName`](../../../../../charcoal-client/src/slices/contentHeaders/selectors.ts) exists only in charcoal-client. |
 | **Stale UI** | [`ComponentSelectorDialog`](../../../../../charcoal-client/src/components/Workbench/foundations/ComponentSelector/ComponentSelectorDialog.tsx) still special-cases Situation with a "Future: shortName" comment; [`situationIdToLabel`](../../../../../charcoal-client/src/lib/situationLabel.ts) already prefers shortName. |
 
@@ -42,7 +42,7 @@ Assessment (May 2026) found:
 2. Read steady-state architecture (link, do not duplicate here):
    - [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../../../packages/mtw-wml/ts/standardize/AGENT.md) (StandardForm role, test layout, refactor gate)
    - [`packages/mtw-wml/ts/standardize/components/AGENT.implementation.md`](../../../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) (per-tag content properties; will gain **shortName** section in Phase 3)
-   - [`packages/mtw-wml/ts/standardize/components/abstract.ts`](../../../../../packages/mtw-wml/ts/standardize/components/abstract.ts) (`HasShortName` to be removed; keep `HasDisplayName`)
+   - [`packages/mtw-wml/ts/standardize/components/abstract.ts`](../../../../../packages/mtw-wml/ts/standardize/components/abstract.ts) (keep `HasDisplayName`; `HasShortName` removed in 1.4)
 3. Skim one **reference implementation** and one **minimal** one:
    - Feature or Knowledge: full shortName + situations pattern
    - Image or Moment: shortName-only payload
@@ -86,7 +86,7 @@ These were open questions after the assessment; defaults below are **binding for
 | Phase | Description | Status |
 | --- | --- | --- |
 | 0 | Decisions recorded (this doc) | Done |
-| 1 | mtw-wml: shared shortName payload + factory getter + remove vestigial guards + tests | Not started |
+| 1 | mtw-wml: shared shortName payload + factory getter + remove vestigial guards + tests | Done |
 | 2 | Export `componentDisplayLabel`; migrate charcoal-client + lambda header paths | Not started |
 | 3 | Durable doc in `AGENT.implementation.md`; remove stale comments; dispose task plan | Not started |
 
@@ -98,20 +98,28 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets).
 
 ### Phase 1 - mtw-wml consolidation
 
-- [ ] **1.1** Add shared shortName payload utilities (new module under `components/`, e.g. `shortNameField.ts`):
-  - [ ] `createShortNameFromJSON` / `shortNameToJSON` / `mergeShortName` / `invertShortName`
-  - [ ] `shortNameSchemaChildren` for `nestedSchema`
-  - [ ] `standardizeShortNameConsumer()` returning `StandardizeConsumerStandardLiteral` config
-- [ ] **1.2** Migrate **two** reference payloads (Feature, Image) to prove pattern; run Layer 0 tests for those tags.
-- [ ] **1.3** Migrate remaining payloads (Room, Knowledge, Character, Map, Message, Moment, Situation, Guidance, Mark, Lens).
-- [ ] **1.4** Remove vestigial shortName typing artifacts:
-  - [ ] Delete `hasShortName()` from [`standardize/index.ts`](../../../../../packages/mtw-wml/ts/standardize/index.ts) (and `HasShortName` import there)
-  - [ ] Delete `HasShortName` from [`abstract.ts`](../../../../../packages/mtw-wml/ts/standardize/components/abstract.ts); drop `implements HasShortName` from all payloads
-  - [ ] Fix [`situation.integration.test.ts`](../../../../../packages/mtw-wml/ts/standardize/components/situation.integration.test.ts) to assert on `situation.shortName` directly
-  - [ ] Remove unused `hasShortName` imports from `integration/standardForm.*.test.ts` files
-- [ ] **1.5** Add factory-level `get shortName()` on `componentClassFactory` when payload has shortName getter (remove duplicate wrapper getters if safe).
-- [ ] **1.6** Add Layer 0 or integration test: **every** `StandardComponent` tag round-trips `<ShortName>` in minimal WML snippet.
-- [ ] **1.7** Grep cleanup: no new direct `_payload._shortName` assignments outside tests/editors (document exceptions for workbench `updateStandard` if still needed).
+- [X] **1.1** Add shared shortName payload utilities (new module under `components/`, [`shortNameField.ts`](../../../../../packages/mtw-wml/ts/standardize/components/shortNameField.ts)):
+  - [X] `createShortNameFromJSON` / `shortNameToJSON` / `mergeShortName` / `invertShortName`
+  - [X] `shortNameSchemaChildren` for `nestedSchema`
+  - [X] `standardizeShortNameConsumer()` returning `StandardizeConsumerStandardLiteral` config
+- [X] **1.2** Migrate **two** reference payloads (Feature, Image) to prove pattern; run Layer 0 tests for those tags.
+  - Image: added payload `invert()` (required for shortName diff); Layer 0 shortName tests added. Image `equals` undefined-vs-empty parity with Feature deferred (no wrapper override).
+- [X] **1.3** Migrate remaining payloads (Room, Knowledge, Character, Map, Message, Moment, Situation, Guidance, Mark, Lens).
+  - All 11 payloads use [`shortNameField.ts`](../../../../../packages/mtw-wml/ts/standardize/components/shortNameField.ts) helpers for fromJSON/fromSchema/merge/invert/schema/toJSON.
+  - **Message:** fixed `invert()` to include shortName (was omitted). Added merge/diff shortName Layer 0 tests in `message.test.ts`.
+  - **Mark:** `shortNameSchemaChildren` replaces `nestedSchema({ tag: 'ShortName' })` (equivalent output; worldState tests pass).
+  - Room ephemera `objects[].shortName` unchanged (out of scope).
+- [X] **1.4** Remove vestigial shortName typing artifacts:
+  - [X] Delete `hasShortName()` from [`standardize/index.ts`](../../../../../packages/mtw-wml/ts/standardize/index.ts) (and `HasShortName` import there)
+  - [X] Delete `HasShortName` from [`abstract.ts`](../../../../../packages/mtw-wml/ts/standardize/components/abstract.ts); drop `implements HasShortName` from all payloads
+  - [X] Fix [`situation.integration.test.ts`](../../../../../packages/mtw-wml/ts/standardize/components/situation.integration.test.ts) to assert on `situation.shortName` directly
+  - [X] Remove unused `hasShortName` imports from `integration/standardForm.*.test.ts` files
+- [X] **1.5** Add factory-level `get shortName()` on `componentClassFactory` when payload has shortName getter (remove duplicate wrapper getters if safe).
+  - Added `get shortName()` on [`component.ts`](../../../../../packages/mtw-wml/ts/standardize/components/component.ts); removed 12 duplicate wrapper getters; factory test in `component.test.ts`.
+- [X] **1.6** Add Layer 0 or integration test: **every** `StandardComponent` tag round-trips `<ShortName>` in minimal WML snippet.
+  - [`shortNameRoundTrip.test.ts`](../../../../../packages/mtw-wml/ts/standardize/components/shortNameRoundTrip.test.ts) (12 component tags; parameterized matrix).
+- [X] **1.7** Grep cleanup: no new direct `_payload._shortName` assignments outside tests/editors (document exceptions for workbench `updateStandard` if still needed).
+  - Documented allowed assignments in [`AGENT.implementation.md`](../../../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) shortName bullet.
 
 ### Phase 2 - display label contract
 
@@ -186,6 +194,7 @@ Expect **no** matches on the exported guard or `HasShortName` symbol after 1.4 (
 
 - **Land Phase 1 before Phase 2** so client imports a stable `componentDisplayLabel` from mtw-wml.
 - **No JSON / WML shape changes** in Phase 1 unless a bug is found; this is refactor-only.
+- **1.3 Message invert:** `StandardMessagePayload.invert()` now inverts shortName via `invertShortName` (bugfix; enables shortName diff).
 - **Workbench `updateStandard` patches** may continue to assign `base._payload._shortName` until a typed `withShortName()` exists (optional follow-up; not required for initiative completion).
 
 ---
@@ -207,7 +216,7 @@ Expect **no** matches on the exported guard or `HasShortName` symbol after 1.4 (
 | Area | Path |
 | --- | --- |
 | Interface | [`components/baseClasses.ts`](../../../../../packages/mtw-wml/ts/standardize/components/baseClasses.ts) |
-| Vestigial (remove in 1.4) | [`abstract.ts`](../../../../../packages/mtw-wml/ts/standardize/components/abstract.ts) (`HasShortName`), [`index.ts`](../../../../../packages/mtw-wml/ts/standardize/index.ts) (`hasShortName`) |
+| Round-trip matrix (1.6) | [`shortNameRoundTrip.test.ts`](../../../../../packages/mtw-wml/ts/standardize/components/shortNameRoundTrip.test.ts) |
 | Character-only guard (keep) | [`index.ts`](../../../../../packages/mtw-wml/ts/standardize/index.ts) (`hasDisplayName`) |
 | Factory | [`components/component.ts`](../../../../../packages/mtw-wml/ts/standardize/components/component.ts) |
 | fromSchema | [`components/fromSchemaPipeline.ts`](../../../../../packages/mtw-wml/ts/standardize/components/fromSchemaPipeline.ts) |

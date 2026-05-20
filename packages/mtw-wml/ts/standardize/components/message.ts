@@ -20,13 +20,20 @@ import { StandardKey } from "../keys/key"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { StandardExplicitParent } from "../explicit"
 import { StandardLiteral } from "../literal"
+import {
+    createShortNameFromJSON,
+    invertShortName,
+    mergeShortName,
+    shortNameSchemaChildren,
+    shortNameToJSON,
+    standardizeShortNameConsumer,
+} from "./shortNameField"
 import type { StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import {
     processWithConsumers,
     StandardizeConsumerInline,
     StandardizeConsumerReferenceList,
     StandardizeConsumerRender,
-    StandardizeConsumerStandardLiteral,
 } from "./fromSchemaPipeline"
 import { defaultedEquals } from "./utils"
 
@@ -56,12 +63,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
     fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaMessage)(node)) {
             const consumers = [
-                new StandardizeConsumerStandardLiteral(this, {
-                    tag: "ShortName",
-                    update(literal) {
-                        this._shortName = literal
-                    },
-                }),
+                standardizeShortNameConsumer(this),
                 new StandardizeConsumerRender<StandardMessagePayload, SchemaDescriptionTag>(this, {
                     tag: "Description",
                     nodeTypeGuard: isSchemaDescription,
@@ -91,7 +93,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
     toJSON(options?: StandardToJSONOptions): Omit<StandardMessageData, 'key' | 'universalKey'> {
         return {
             tag: 'Message',
-            ...(this._shortName ? { shortName: this._shortName.toJSON() } : {}),
+            ...(this._shortName ? { shortName: shortNameToJSON(this._shortName) } : {}),
             description: this._description?.nestedSchema({ tag: 'Description' })?.[0] as StandardMessageData['description'],
             ...(this.rooms.payload.length ? { rooms: this.rooms.toJSON() } : {})
         }
@@ -106,7 +108,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         return {
             data: { tag: 'Message', key, uuid: universalKey },
             children: [
-                ...(this._shortName ? this._shortName.nestedSchema() : []),
+                ...shortNameSchemaChildren(this._shortName),
                 ...roomsSchema,
                 ...(this.description?.nestedSchema({ tag: 'Description', mappings }) ?? [])
             ]
@@ -115,7 +117,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 
     merge(incoming: this): this {
         const returnValue = new StandardMessagePayload()
-        returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
+        returnValue._shortName = mergeShortName(this._shortName, incoming._shortName)
         returnValue._description = (this._description && incoming._description) ? this._description.merge(incoming._description) : this._description ?? incoming._description
         returnValue._rooms = this._rooms.merge(incoming._rooms) ?? new ReferenceList([])
         return returnValue as this
@@ -169,6 +171,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 
     invert(): this {
         const returnValue = new StandardMessagePayload()
+        returnValue._shortName = invertShortName(this._shortName)
         // Invert description if it exists (StandardRender has invert())
         returnValue._description = this._description ? this._description.invert() : undefined
         // Invert rooms ReferenceList
@@ -206,7 +209,6 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 }
 
 export class StandardMessage extends componentClassFactory(StandardMessagePayload, 'StandardMessage') {
-    get shortName() { return this._payload.shortName }
     get description() { return this._payload.description }
     get rooms() { return this._payload.rooms }
 

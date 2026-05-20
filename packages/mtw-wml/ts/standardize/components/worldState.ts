@@ -13,8 +13,15 @@ import { deepEqual } from "../../lib/objects"
 import { renderTreeToSchema, schemaToRenderTree, RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardKey } from "../keys/key"
 import StandardReference from "../keys/reference"
-import { HasShortName } from "./abstract"
 import { StandardLiteral } from "../literal"
+import {
+    createShortNameFromJSON,
+    invertShortName,
+    mergeShortName,
+    shortNameSchemaChildren,
+    shortNameToJSON,
+    standardizeShortNameConsumer,
+} from "./shortNameField"
 import type { StandardFormConstructionOptions, StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { LensMarkFacetList, StandardLensMarkFacet } from "../keys/facets/lensMark"
 import { renderReference } from "./utils/schema"
@@ -24,12 +31,11 @@ import {
     StandardizeConsumerInline,
     StandardizeConsumerFacetListLensMark,
     StandardizeConsumerRender,
-    StandardizeConsumerStandardLiteral,
 } from "./fromSchemaPipeline"
 import { SchemaDescriptionTag, isSchemaDescription } from "@tonylb/mtw-base/ts/schema/prose"
 import { defaultedEquals } from "./utils"
 
-export class StandardMarkPayload implements HasShortName, ComponentConstructorMethods<StandardMarkData, StandardMarkData> {
+export class StandardMarkPayload implements ComponentConstructorMethods<StandardMarkData, StandardMarkData> {
     _shortName?: StandardLiteral;
     _description?: StandardRender;
     tag = 'Mark' as const
@@ -43,19 +49,14 @@ export class StandardMarkPayload implements HasShortName, ComponentConstructorMe
 
     fromJSON(props: StandardMarkData) {
         const { shortName, description } = props
-        this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
+        this._shortName = createShortNameFromJSON(shortName)
         this._description = description ? new StandardRender(description) : undefined
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaMark)(node)) {
             const consumers = [
-                new StandardizeConsumerStandardLiteral<StandardMarkPayload>(this, {
-                    tag: "ShortName",
-                    update(literal) {
-                        this._shortName = literal
-                    },
-                }),
+                standardizeShortNameConsumer(this),
                 new StandardizeConsumerRender<StandardMarkPayload, SchemaDescriptionTag>(this, {
                     tag: "Description",
                     nodeTypeGuard: isSchemaDescription,
@@ -77,7 +78,7 @@ export class StandardMarkPayload implements HasShortName, ComponentConstructorMe
     toJSON(options?: StandardToJSONOptions): Omit<StandardMarkData, 'key' | 'universalKey'> {
         const result: Omit<StandardMarkData, 'key' | 'universalKey'> = {
             tag: 'Mark' as const,
-            ...(this?.shortName ? { shortName: this.shortName.toJSON() } : {}),
+            ...(this?.shortName ? { shortName: shortNameToJSON(this.shortName) } : {}),
             ...(this?.description ? { description: this.description.toJSON() } : {})
         }
         return result
@@ -85,7 +86,7 @@ export class StandardMarkPayload implements HasShortName, ComponentConstructorMe
 
     schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
         const children = [
-            ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
+            ...shortNameSchemaChildren(this.shortName),
             ...(this._description?.nestedSchema({ tag: 'Description', mappings }) ?? [])
         ].filter(excludeUndefined)
         return {
@@ -100,7 +101,7 @@ export class StandardMarkPayload implements HasShortName, ComponentConstructorMe
 
     merge(incoming: this): this {
         const returnValue = new StandardMarkPayload()
-        returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
+        returnValue._shortName = mergeShortName(this._shortName, incoming._shortName)
         returnValue._description = (this._description && incoming._description) ? this._description.merge(incoming._description) : this._description ?? incoming._description
         return returnValue as this
     }
@@ -131,7 +132,7 @@ export class StandardMarkPayload implements HasShortName, ComponentConstructorMe
 
     invert(): this {
         const returnValue = new StandardMarkPayload()
-        returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
+        returnValue._shortName = invertShortName(this._shortName)
         returnValue._description = this._description ? this._description.invert() : undefined
         return returnValue as this
     }
@@ -146,7 +147,6 @@ export class StandardMarkPayload implements HasShortName, ComponentConstructorMe
 }
 
 export class StandardMark extends componentClassFactory(StandardMarkPayload, 'StandardMark') {
-    get shortName() { return this._payload.shortName }
     get description() { return this._payload.description }
 
     constructor(
@@ -178,7 +178,7 @@ export class StandardMark extends componentClassFactory(StandardMarkPayload, 'St
 
 export default StandardMark
 
-export class StandardLensPayload implements HasShortName, ComponentConstructorMethods<StandardLensInputData, StandardLensData> {
+export class StandardLensPayload implements ComponentConstructorMethods<StandardLensInputData, StandardLensData> {
     _shortName?: StandardLiteral;
     _description?: StandardRender;
     _marks: LensMarkFacetList;
@@ -197,7 +197,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
 
     fromJSON(props: StandardLensInputData) {
         const { shortName, description, marks } = props
-        this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
+        this._shortName = createShortNameFromJSON(shortName)
         this._description = description ? new StandardRender(description) : undefined
         const normalizedMarks = (marks ?? []).map((item) => {
             if (item && typeof item === 'object' && 'reference' in item && 'payload' in item) {
@@ -211,12 +211,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
     fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaLens)(node)) {
             const consumers = [
-                new StandardizeConsumerStandardLiteral<StandardLensPayload>(this, {
-                    tag: "ShortName",
-                    update(literal) {
-                        this._shortName = literal
-                    },
-                }),
+                standardizeShortNameConsumer(this),
                 new StandardizeConsumerRender<StandardLensPayload, SchemaDescriptionTag>(this, {
                     tag: "Description",
                     nodeTypeGuard: isSchemaDescription,
@@ -245,7 +240,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
     toJSON(options?: StandardToJSONOptions): Omit<StandardLensData, 'key' | 'universalKey'> {
         return {
             tag: 'Lens' as const,
-            ...(this?.shortName ? { shortName: this.shortName.toJSON() } : {}),
+            ...(this?.shortName ? { shortName: shortNameToJSON(this.shortName) } : {}),
             ...(this?.description ? { description: this.description.toJSON() } : {}),
             ...(this.marks.length ? { marks: this.marks.toJSON() } : {})
         }
@@ -259,7 +254,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
         return {
             data: { tag: 'Lens', key, uuid: universalKey },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
+                ...shortNameSchemaChildren(this.shortName),
                 ...(this._description?.nestedSchema({ tag: 'Description', mappings }) ?? []),
                 ...markSchemas
             ].filter(excludeUndefined)
@@ -292,7 +287,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
         return {
             data: { tag: 'Lens', key: key.key ?? '', uuid: key.universalKey },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
+                ...shortNameSchemaChildren(this.shortName),
                 ...(this._description?.nestedSchema({ tag: 'Description', mappings: options.mappings }) ?? []),
                 ...markSchemas,
                 ...inlineRemainder.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined)
@@ -306,7 +301,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
 
     merge(incoming: this): this {
         const returnValue = new StandardLensPayload()
-        returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
+        returnValue._shortName = mergeShortName(this._shortName, incoming._shortName)
         returnValue._description = (this._description && incoming._description) ? this._description.merge(incoming._description) : this._description ?? incoming._description
         returnValue._marks = (this._marks.merge(incoming._marks) ?? new LensMarkFacetList([])) as LensMarkFacetList
         return returnValue as this
@@ -373,7 +368,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
 
     invert(): this {
         const returnValue = new StandardLensPayload()
-        returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
+        returnValue._shortName = invertShortName(this._shortName)
         returnValue._description = this._description ? this._description.invert() : undefined
         returnValue._marks = this._marks.invert() as LensMarkFacetList
         return returnValue as this
@@ -389,7 +384,6 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
 }
 
 export class StandardLens extends componentClassFactory(StandardLensPayload, 'StandardLens') {
-    get shortName() { return this._payload.shortName }
     get description() { return this._payload.description }
     get marks() { return this._payload.marks }
 

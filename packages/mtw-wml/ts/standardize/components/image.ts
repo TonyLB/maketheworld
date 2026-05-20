@@ -9,10 +9,16 @@ import { StandardKey } from "../keys/key";
 import { StandardExplicitParent } from "../explicit"
 import { StandardLiteral } from "../literal"
 import type { StandardizeFromSchemaContext } from "../wmlStandardizeMode"
-import { excludeUndefined } from "../../lib/lists"
+import {
+    createShortNameFromJSON,
+    invertShortName,
+    mergeShortName,
+    shortNameSchemaChildren,
+    shortNameToJSON,
+    standardizeShortNameConsumer,
+} from "./shortNameField"
 import {
     processWithConsumers,
-    StandardizeConsumerStandardLiteral,
 } from "./fromSchemaPipeline"
 
 export class StandardImagePayload implements ComponentConstructorMethods<StandardImageData, StandardImageData> {
@@ -26,18 +32,13 @@ export class StandardImagePayload implements ComponentConstructorMethods<Standar
     }
 
     fromJSON(props: StandardImageData) {
-        this._shortName = props.shortName ? new StandardLiteral(props.shortName, { tag: 'ShortName' }) : undefined
+        this._shortName = createShortNameFromJSON(props.shortName)
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaImage)(node)) {
             const consumers = [
-                new StandardizeConsumerStandardLiteral(this, {
-                    tag: "ShortName",
-                    update(literal) {
-                        this._shortName = literal
-                    },
-                }),
+                standardizeShortNameConsumer(this),
             ]
             const returnRemainder = processWithConsumers(this, consumers, node.children)
             return returnRemainder
@@ -50,7 +51,7 @@ export class StandardImagePayload implements ComponentConstructorMethods<Standar
     toJSON(): Omit<StandardImageData, 'key' | 'universalKey'> {
         return {
             tag: 'Image',
-            ...(this._shortName ? { shortName: this._shortName.toJSON() } : {})
+            ...(this._shortName ? { shortName: shortNameToJSON(this._shortName) } : {})
         }
     }
 
@@ -58,14 +59,14 @@ export class StandardImagePayload implements ComponentConstructorMethods<Standar
         return {
             data: { tag: 'Image', key },
             children: [
-                ...[this._shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1)
+                ...shortNameSchemaChildren(this._shortName)
             ]
         }
     }
 
     merge(incoming: this): this {
         const returnValue = new StandardImagePayload()
-        returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
+        returnValue._shortName = mergeShortName(this._shortName, incoming._shortName)
         return returnValue as this
     }
 
@@ -84,10 +85,15 @@ export class StandardImagePayload implements ComponentConstructorMethods<Standar
     isEmpty(): boolean {
         return !Boolean(this._shortName)
     }
+
+    invert(): this {
+        const returnValue = new StandardImagePayload()
+        returnValue._shortName = invertShortName(this._shortName)
+        return returnValue as this
+    }
 }
 
 export class StandardImage extends componentClassFactory(StandardImagePayload, 'StandardImage') {
-    get shortName() { return this._payload.shortName }
 
     override _wrap(instance: StandardComponent): this {
         return new StandardImage(instance as StandardImage) as this

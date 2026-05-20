@@ -1,5 +1,5 @@
 import { schemaToWML } from '../../schema'
-import { StandardForm, hasShortName } from '..'
+import { StandardForm } from '..'
 import { deIndentWML } from '../../schema/utils'
 import StandardSituation from './situation'
 import StandardMark from './worldState'
@@ -45,7 +45,7 @@ describe('StandardSituation integration', () => {
                 expect(situation.shortName?.toJSON()).toEqual('Situation label')
             })
 
-            it('should correctly parse Situation with ShortName and hasShortName', () => {
+            it('should correctly parse Situation with ShortName and expose shortName', () => {
                 const testWML = deIndentWML(`
                     <Asset uuid=(Test)>
                         <Situation uuid=(situation1) key=(situation1)>
@@ -57,7 +57,6 @@ describe('StandardSituation integration', () => {
                 const situation = test.byUniversalId['SITUATION#situation1'] as StandardSituation
                 expect(situation).toBeDefined()
                 expect(situation).toBeInstanceOf(StandardSituation)
-                expect(hasShortName(situation)).toBe(true)
                 expect(situation.shortName?.toJSON()).toEqual('Tab label')
             })
     })
