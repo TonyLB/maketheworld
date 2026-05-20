@@ -20,11 +20,8 @@ import { getAssetZone } from '../../slices/player'
 import { createWorkbenchTheme } from './workbenchTheme'
 import StandardGuidance from '@tonylb/mtw-wml/ts/standardize/components/guidance'
 import { isReferenceListChild, isSituationFacetChild } from './foundations/LayeredContext/layeredContextUtils'
-import { situationIdToLabel } from '../../lib/situationLabel'
-import { hasDisplayName } from '@tonylb/mtw-wml/ts/standardize'
-import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
-import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
-import { SchemaOutputTag } from '@tonylb/mtw-base/ts/schema'
+import { componentDisplayLabel } from '../../lib/componentDisplayLabel'
+import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import { getComponentIcon, getComponentIconByTag } from '../../lib/componentIcons'
 
 interface WorkbenchContainerProps {
@@ -161,7 +158,10 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
             const isSituationFacetLayer = isSituationFacetChild(assetData.standardForm, prevComponentId, entry.componentId as ComponentUUID | null)
             if (isSituationFacetLayer) {
                 const layerId = entry.componentId as ComponentUUID | null
-                const name = layerId ? situationIdToLabel(layerId, assetData.standardForm) : 'Situation'
+                const layerComponent = layerId ? assetData.standardForm.byUniversalId[layerId] : undefined
+                const name = layerComponent instanceof StandardSituation
+                    ? componentDisplayLabel(layerComponent, { standardForm: assetData.standardForm, fallbackLabel: 'Situation' })
+                    : 'Situation'
                 return {
                     universalKey: (layerId || assetData.AssetId) as ComponentUUID,
                     name,
@@ -193,24 +193,9 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
             // Component breadcrumb: look up the component for naming and icon.
             const universalKey = entry.componentId as ComponentUUID | null
             const refComponent = universalKey ? assetData.standardForm.byUniversalId[universalKey] : undefined
-            let name = 'Untitled'
-
-            if (refComponent) {
-                const shortNameValue = refComponent.shortName?._payload?.plain?.toJSON()
-                if (typeof shortNameValue === 'string' && shortNameValue.trim()) {
-                    name = shortNameValue
-                } else if (hasDisplayName(refComponent) && refComponent.displayName) {
-                    name = schemaOutputToString((refComponent.displayName?.children ?? []) as GenericTree<SchemaOutputTag>)
-                } else {
-                    const keyValue = refComponent.key
-                    if (typeof keyValue === 'string') {
-                        name = keyValue
-                    } else if (keyValue && typeof keyValue === 'object' && 'toJSON' in keyValue) {
-                        const jsonValue = (keyValue as any).toJSON()
-                        name = typeof jsonValue === 'string' ? jsonValue : 'Untitled'
-                    }
-                }
-            }
+            const name = refComponent
+                ? componentDisplayLabel(refComponent, { standardForm: assetData.standardForm, fallbackLabel: 'Untitled' })
+                : 'Untitled'
 
             const icon = getComponentIcon(refComponent, { fontSize: '1rem', verticalAlign: 'middle', marginRight: 0.5 })
 

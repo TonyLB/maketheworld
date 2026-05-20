@@ -7,9 +7,8 @@ import CallMadeIcon from '@mui/icons-material/CallMade'
 
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from '../Editor/AssetDataHeader'
 import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
-import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
-import { hasDisplayName } from '@tonylb/mtw-wml/ts/standardize'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import { componentDisplayLabel } from '../../lib/componentDisplayLabel'
 
 interface WMLComponentHeaderProps {
     ItemId: ComponentUUID;
@@ -25,16 +24,8 @@ const WMLComponentName: FunctionComponent<{ itemId: ComponentUUID }> = ({ itemId
     if (!component) {
         return <React.Fragment>Untitled</React.Fragment>
     }
-    const shortNameValue = component.shortName?._payload?.plain?.toJSON()
-    if (typeof shortNameValue === 'string' && shortNameValue.trim()) {
-        return <React.Fragment>{shortNameValue}</React.Fragment>
-    }
-    if (hasDisplayName(component) && component.displayName) {
-        return <React.Fragment>
-            { schemaOutputToString(component.displayName.children as any) || 'Untitled' }
-        </React.Fragment>
-    }
-    return <React.Fragment>{component.key || component.universalKey?.split('#')[1] || 'Untitled'}</React.Fragment>
+    const label = componentDisplayLabel(component, { standardForm, fallbackLabel: 'Untitled' })
+    return <React.Fragment>{label}</React.Fragment>
 }
 
 export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ ItemId, onClick, icon, sx, selected }) => {

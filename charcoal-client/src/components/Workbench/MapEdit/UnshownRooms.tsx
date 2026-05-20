@@ -16,6 +16,7 @@ import TutorialPopover from "../../Onboarding/TutorialPopover"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import { StandardMap } from "@tonylb/mtw-wml/ts/standardize/components/map"
 import { excludeUndefined } from "../../../lib/lists"
+import { componentDisplayLabel } from "../../../lib/componentDisplayLabel"
 
 type UnshownRoomsProps = {
 
@@ -47,7 +48,7 @@ export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
         if (!key) return 'Untitled'
         const component = standardForm.byId[key]
         if (component && component instanceof StandardRoom) {
-            return component.shortName?._payload.plain?.toJSON() || 'Untitled'
+            return componentDisplayLabel(component, { fallbackLabel: 'Untitled' }) ?? 'Untitled'
         }
         return 'Untitled'
     }, [standardForm])
