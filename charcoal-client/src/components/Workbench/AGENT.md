@@ -164,7 +164,7 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 - Use `useWorkbenchAsset` instead of `useLibraryAsset` when in Workbench context
 - Resolve components via `standardForm.byUniversalId[id]` and use `instanceof` checks (e.g. `StandardRoom`, `StandardFeature`)
 - Prefer `referenceListToItems` for consistent list display across Features, Guidance, Lenses, Marks
-- **`ComponentSelectorDialog`**: Does not list **Example** components (D4); use **Situation** for world-state entities. List labels use [`componentDisplayLabel`](../../lib/componentDisplayLabel.ts) (shortName, Character displayName, key, Situation marks-summary).
+- **`ComponentSelectorDialog`**: Does not list **Example** components (D4); use **Situation** for world-state entities. List labels use [`componentDisplayLabel`](../../lib/componentDisplayLabel.ts) (shortName, Character displayName, key, Situation marks-summary). Platform field semantics: [mtw-wml shortName contract](../../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md#shortname-platform-contract).
 - Handle `readonly` from `useWorkbenchAsset` before allowing edits (non-Draft assets)
 
 ### Error Handling

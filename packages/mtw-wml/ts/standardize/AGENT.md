@@ -487,6 +487,7 @@ const assetWithEdits = new StandardForm({
 - **Edit System**: Processes asset-level and content-level edit components according to the edit algebra
 - **WML Language**: See [`../AGENT.md`](../AGENT.md) for WML format details
 - **Standard Components**: See [`./components/AGENT.md`](./components/AGENT.md) for component details
+- **Component shortName and display labels**: Steady-state contract in [`./components/AGENT.implementation.md`](./components/AGENT.implementation.md#shortname-platform-contract) — optional `shortName` on every `StandardComponent`; asset `_shortName` is separate; UI display labels are charcoal-client [`componentDisplayLabel`](../../../../../charcoal-client/src/lib/componentDisplayLabel.ts), not exported from mtw-wml
 - **Rich Text Processing**: See [`./render/AGENT.md`](./render/AGENT.md) for content handling
 
 ## Navigation Tips
