@@ -1,6 +1,6 @@
 # On-demand authored examples (invalidate + hydrate) - planning
 
-**Status:** Design pass complete; **invalidation semantics refined** (layer-aware **`editAssetId`**, no Assets **`editAssetStack`** --- see [**Simplification vs deliberate complexity**](#simplification-vs-deliberate-complexity)). No implementation slices landed yet. **Next:** contracts + catalog schema + adjacency + implementation per [**Recommended order**](#recommended-order).
+**Status:** Design pass complete; **invalidation semantics refined** (**`editAssetId`** + layer participation); **hydrate read path** = **`mtw-gateways`** authored situation slices gateway ([**A3**](#aggregate-read-surface-cross-lambda)), not renderCache-local assembly. No implementation slices landed yet. **Next:** contracts + catalog schema + gateways module + implementation per [**Recommended order**](#recommended-order).
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting notes live under [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md), [`lambda/assets/componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md), and related steady-state docs.
 
@@ -42,8 +42,8 @@ The prototype's Situation branch uses **`getParentIdsForSituation`** ([`exampleE
 | Stage | What it was | Status for this plan |
 | --- | --- | --- |
 | 1. Simple wire + complicated processing | Mirror full payloads; Assets footprint stacks + **`perspectiveMatcher`**; blueprint **`getParentIdsForSituation`**; Ephemera **`putCacheRecord`** on every event | **Legacy --- retire**, do not extend or recreate |
-| 2. Richer Ephemera structures | **`Cache::`** catalog rows (with **`assetStack`**), version stamps, Situation adjacency, hydrate diff | **Build now** (catalog schema, adjacency, handlers) |
-| 3. Simpler processing | Skinny **`ExampleInvalidated`** + **`editAssetId`**; membership invalidation; hydrate on resolve | **Build now** (Assets emitter + Ephemera invalidation/hydrate) |
+| 2. Richer structures | Ephemera **`Cache::`** + adjacency; **`mtw-gateways`** authored situation slices (batch blueprint assembly) | **Build now** |
+| 3. Simpler processing | Skinny **`ExampleInvalidated`** + **`editAssetId`**; membership invalidation; gateway desired set + thin Ephemera hydrate diff | **Build now** |
 
 **Going forward:** implement **rows 2 and 3** of the table. Do **not** add new mirror payloads, footprint **`editAssetStack`**, or blueprint fan-out as a stepping stone.
 
@@ -54,7 +54,7 @@ The prototype's Situation branch uses **`getParentIdsForSituation`** ([`exampleE
 | **`perspectiveMatcher`** on invalidation wire | **Situation adjacency** partition + link rows |
 | Blueprint **`getParentIdsForSituation`** fan-out | **Hydrate diff** (desired set vs materialized **`CACHE#`** rows) |
 | Bump **all** `Cache::` rows under a component on any facet edit | **Layer participation rule:** bump only rows whose stored **`assetStack`** **contains** event **`editAssetId`** |
-| Prefix / "inheriting perspective" rules (**S3**, retired) on **`editAssetStack`** vs cached stack | **ComponentAggregate** + batch facet assembly on Ephemera (**A1**--**A4**) |
+| Prefix / "inheriting perspective" rules (**S3**, retired) on **`editAssetStack`** vs cached stack | **`ComponentAggregate`** + **authored situation slices** gateway (**A1**--**A4**) |
 | Eager mirror writes before resolve | **`ensureAuthoredCatalog`** only on orchestration resolve (**H1**, **H1b**) |
 
 **Naming (do not conflate):**
@@ -200,13 +200,61 @@ row.assetStack.includes(editAssetId)
 
 **Do not** use prototype **`perspectiveMatcher`** / sole **`required: [A,B]`** on the wire --- that both over- and under-counted materialized perspectives ([**undercount**](#invalidation-fan-out-blueprint-vs-materialized-cache) table).
 
-### 3. Read surface: merged component + batch facet catalog (hydrate)
+### 3. Read surface: blueprint assembly (gateway) + cache materialization (Ephemera)
 
-**Merge (cross-lambda):** **`mtw-gateways`** **`ComponentAggregate`** on Ephemera **`InternalCache`** ([**A1**](#aggregate-read-surface-cross-lambda)), with **`assetStack`** from **`resolveCanonAssetStackForRoom`** ([**A2**](#aggregate-read-surface-cross-lambda)).
+**Domain split:**
 
-**Desired set (renderCache-local):** one batch helper under **`renderCache/`** ([**A3**](#aggregate-read-surface-cross-lambda)) that, given merged cache-host component + stack + perspective, returns **all** situation-facet cache-shaped slices keyed by **`situationId`** for hydrate diff --- not a separate **`mtw-gateways`** tree.
+| Layer | Owns | Does not own |
+| --- | --- | --- |
+| **`mtw-gateways`** (assets / blueprint read model) | Merged components at a participation order; **batch authored situation slices** at that perspective ([**A3**](#aggregate-read-surface-cross-lambda)) | Dynamo **`CACHE#`** rows, catalog versions, adjacency, invalidation |
+| **`mtw.ephemera.renderCache`** | **`ensureAuthoredCatalog`**, hydrate **diff**, **`putCacheRecord`**, catalog/adjacency CRUD | Merge across assets; blueprint facet discovery |
 
-This replaces **`exampleEnrichment.ts`** merge-at-push-time for steady-state reads. Participation order is **explicit** at the call site (canon stack from state/orchestration). That order is **normative** --- a known product change from legacy **`getOrderedAssetStack`** mirroring ([**L2**](#legacy-mirroring-cleanup), [`AGENT.componentAggregate.planning.md`](../../../assets/AGENT.componentAggregate.planning.md)).
+**Merge primitive:** register **`ComponentAggregateMergedCache`** on each lambda **`InternalCache`** that needs reads ([**A1**](#aggregate-read-surface-cross-lambda)). Callers pass **`mergeParticipationOrder`** (= canon **`assetStack`** from [**A2**](#aggregate-read-surface-cross-lambda)).
+
+**Authored slices (new gateway):** add a **compute-only** module under **`packages/mtw-gateways/ts/assets/components/`** (working name **`authoredSituationSlices/`** --- final name TBD in implementation) that composes **`ComponentAggregateMergedCache`** and returns the **desired authored slice set** for a cache-host component at one perspective. **Consumers in v1:** Ephemera hydrate ([`ensureAuthoredCatalog`](#4-ephemera-lazy-hydration-before-exact-match--generation)); **expected soon:** **`lambda/diagnostics`** (compare blueprint truth to materialized cache without importing Ephemera). Follow [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) layout (**`ports.ts`**, **`input.ts`**, **`result.ts`**, **`assemble.ts`** or **`factory.ts`**).
+
+This replaces **`exampleEnrichment.ts`** merge-at-push-time. Participation order is **explicit** at the call site (canon stack from state/orchestration for Ephemera; caller-supplied order for diagnostics). That order is **normative** --- a known product change from legacy **`getOrderedAssetStack`** mirroring ([**L2**](#legacy-mirroring-cleanup), [`AGENT.componentAggregate.planning.md`](../../../assets/AGENT.componentAggregate.planning.md)).
+
+#### Authored situation slices gateway --- algorithm (A3)
+
+**Purpose:** answer "what authored situation-facet slices exist on this **cache-host** component at this **participation order**?" in one batched read. Output is the **hydrate desired set** keyed by **`situationId`** (before Ephemera stamps **`catalogVersion`** on **`CACHE#`** rows).
+
+**Inputs:**
+
+- **`hostUniversalKey`:** `ROOM#` / `FEATURE#` / `KNOWLEDGE#` (cache-capable host).
+- **`mergeParticipationOrder`:** readonly `AssetUUID[]` (canon stack; same validation as [`aggregatePerspectiveExplicit`](../../../../../packages/mtw-gateways/ts/assets/components/aggregate/input.ts)).
+- **`aggregate`:** **`ComponentAggregateMergedCache`** (or narrow port with **`get(perspectives: AggregatePerspective[]): Promise<MergedComponentResult[]>`**).
+- **`options` (v1):** `{ resolveRoomLensMarkDefaults?: boolean }` --- default **true** for **`ROOM#`**, **false** for F/K ([**A4**](#aggregate-read-surface-cross-lambda)).
+
+**Output (stable DTO in gateway `result.ts`; names TBD):**
+
+```typescript
+// One entry per situation facet on the merged host at this participation order.
+type AuthoredSituationSliceAtPerspective = {
+    situationId: ComponentUUID; // SITUATION#...
+    markState: { markValue: { mark: string; value: string }[] };
+    renderedContent: { displayName?: RenderTree; summary?: RenderTree; description: RenderTree };
+    provenance: { type: 'authored' };
+};
+
+// Map or Record keyed by situationId
+type AuthoredSituationSliceSet = Map<ComponentUUID, AuthoredSituationSliceAtPerspective>;
+```
+
+Ephemera maps each entry to **`putCacheRecord`** / **`EphemeraCacheDynamoItem`** fields (today's cache shape). The gateway DTO should stay **lambda-neutral** so diagnostics can diff against blueprint without depending on Ephemera types.
+
+**Steps:**
+
+1. **Merge host.** Build **`AggregatePerspective`** `{ universalKey: hostUniversalKey, mergeParticipationOrder }`. **`aggregate.get([hostPerspective])`** -> **`mergedHost`** (`StandardRoom` | `StandardFeature` | `StandardKnowledge`).
+2. **Enumerate facets on merged host.** Read **`mergedHost.situations`** (situation prose facets). For each item, **`situationId`** = facet reference universal key; retain **`StandardSituationProseFacet`** (or F/K equivalent) for **facet payload** used in shape conversion. If **no facets**, return **empty** set (hydrate diff will delete-by-absence per [**H5**](#hydration-scope-and-timing)).
+3. **Collect related universal keys.** Distinct **`situationId`**s from step 2. If **`ROOM#`** and **`resolveRoomLensMarkDefaults`**: read **`mergedHost.lens`** -> **`lensUniversalKey`** (if any).
+4. **Batch merge related components.** Build **`AggregatePerspective`** per distinct universal key (same **`mergeParticipationOrder`**). **`aggregate.get([hostPerspective, ...situationPerspectives, lensPerspective?])`** in **one** call (handler batches **`ComponentData.get`** internally --- do not loop per situation).
+5. **Room lens marks (optional).** When lens perspective was requested and merge returned **`StandardLens`**: **`getLensMarksWithDefaults(mergedLens)`** ([`@tonylb/mtw-wml` lens marks](../../../../../packages/mtw-wml/ts/standardize/worldState/lensMarks.ts)). Lift/port logic from [`resolveLensMarksWithDefaultsForRoom`](../../../../../lambda/assets/componentExamples/index.ts) into the gateway (same behavior as mirror path, but **`ComponentAggregate`** for merged room + lens instead of **`mergeRoomAcrossStack`** / **`mergeLensAcrossStack`**).
+6. **Per facet: slice shape.** For each host facet from step 2: look up **merged** **`StandardSituation`** for that **`situationId`** in the batch results; call **`situationFacetToCacheShape(mergedSituation, facet.payload, { lensMarks? })`** (lift from [`exampleEnrichment.ts`](../../../../../lambda/assets/componentExamples/exampleEnrichment.ts) into gateway). Insert into **`AuthoredSituationSliceSet`**.
+
+**Parity baseline:** behavioral reference is **`emitParentSituationFacetEvents`** + per-facet mirror in [`componentExamples/index.ts`](../../../../../lambda/assets/componentExamples/index.ts), with merge source swapped to **`ComponentAggregate`** ([**L2**](#legacy-mirroring-cleanup)). Golden tests in **`packages/mtw-gateways`** (fixture stacks); Ephemera integration tests assert hydrate diff + catalog, not byte-identical legacy merge order.
+
+**Ephemera hydrate (thin):** [`ensureAuthoredCatalog`](#4-ephemera-lazy-hydration-before-exact-match--generation) calls the gateway -> receives **`AuthoredSituationSliceSet`** -> version-guarded put/delete **`CACHE#`** + adjacency ([**H2**](#hydration-scope-and-timing), [**H5**](#hydration-scope-and-timing), [**S4**](#situation-adjacency-invalidation-fan-out)).
 
 ### 4. Ephemera: lazy hydration before exact match / generation
 
@@ -217,7 +265,7 @@ When **`renderOrchestration`** needs authored candidates for a resolve, call **`
 **`ensureAuthoredCatalog`** (renderCache module):
 
 1. Load **`Cache::${perspectiveKey}`** under the resolve component's **`EphemeraId`** (**create-on-first-hydrate** if missing: **`catalogVersion` >= 1**, **`hydratedCatalogVersion = 0`**, **`assetStack`** = canon stack for this resolve).
-2. If **`hydratedCatalogVersion < catalogVersion`**: **`ComponentAggregate`** + renderCache batch facet assembly (H2, A3) -> **diff** by **`situationId`** (H5) -> version-guarded put/delete -> conditional catalog ready (H6).
+2. If **`hydratedCatalogVersion < catalogVersion`**: call **authored situation slices** gateway ([**A3**](#aggregate-read-surface-cross-lambda), H2) -> **diff** by **`situationId`** (H5) -> version-guarded put/delete -> conditional catalog ready (H6).
 
 Then **`findRender`** proceeds with **version-aware** **`getExactMatch`** / generation / pointer paths ([`renderCache` AGENT.md](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md), [pass-through contract](../AGENT.passThrough.contract.planning.md)). Hydration is a **silent** preflight ([**O2**](#orchestration-integration)); no new orchestration outbound.
 
@@ -233,7 +281,8 @@ sequenceDiagram
     participant Adj as SITUATION adjacency
     participant Cat as Cache::perspectiveKey row
     participant Orch as renderOrchestration
-    participant GW as aggregate read surface
+    participant Agg as ComponentAggregate
+    participant Slices as authoredSituationSlices gateway
 
     alt Component facet edit
         Assets->>CE: Component Updated / Removed (Room/F/K)
@@ -249,8 +298,10 @@ sequenceDiagram
     Orch->>RC: ensureAuthoredCatalog (silent preflight)
     RC->>Cat: read Cache::perspectiveKey
     alt hydratedVersion less than catalogVersion
-        RC->>GW: assemble slices (component, situations, stack)
-        GW-->>RC: merged facet payloads
+        RC->>Slices: assembleAuthoredSituationSlicesAtPerspective(host, stack)
+        Slices->>Agg: get(host + situations + lens perspectives)
+        Agg-->>Slices: MergedComponentResult[]
+        Slices-->>RC: AuthoredSituationSliceSet
         RC->>RC: diff put/delete CACHE rows; maintain adjacency (S4)
         RC->>Cat: hydratedCatalogVersion=N
     end
@@ -292,9 +343,10 @@ Planning docs use **constellation** for future **Guidance-distance** search ([`l
 3. Read today's mirroring pipeline:
    - [`lambda/assets/componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md)
    - [`lambda/assets/componentExamples/exampleEnrichment.ts`](../../../../../lambda/assets/componentExamples/exampleEnrichment.ts)
-4. Read aggregate initiative (hydration read surface):
+4. Read aggregate + authored-slices gateway (hydration read surface):
    - [`taskPlanning/lambda/assets/AGENT.componentAggregate.planning.md`](../../../assets/AGENT.componentAggregate.planning.md)
-   - [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) (**Aggregate read surfaces**)
+   - [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) (**Aggregate read surfaces**, compute-only layout)
+   - This plan [**section 3**](#3-read-surface-blueprint-assembly-gateway--cache-materialization-ephemera) (**authored situation slices algorithm**)
 5. **Tests (command authority):** from [`lambda/ephemera/`](../../../../../lambda/ephemera/): `npm test`. Baseline before edits: `npm test -- --testPathPattern=renderCache` and `npm test -- --testPathPattern=componentExamples` (assets: `cd lambda/assets && npm test -- --testPathPattern=componentExamples`).
 
 ---
@@ -304,7 +356,8 @@ Planning docs use **constellation** for future **Guidance-distance** search ([`l
 | Milestone | Status |
 | --- | --- |
 | Problem + hybrid direction captured | Done |
-| Open decisions listed (incl. S1--S5, P1--P7; layer invalidation refined) | Done |
+| Open decisions listed (incl. S1--S5, P1--P7; layer invalidation + A3 gateway) | Done |
+| Authored situation slices gateway spec (algorithm) | Done |
 | Invalidation event contract drafted | Not started |
 | Meta freshness fields + writers | Not started |
 | Ephemera aggregate read wiring | Not started |
@@ -410,10 +463,10 @@ Closed before the contracts implementation slice so component/Situation emitters
 
 | # | Question | Decision / notes |
 | --- | --- | --- |
-| A1 | **Ephemera access:** how does Ephemera call merged-component assembly? | **Decided (pattern):** follow [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) **compute-only** playbook --- **not** a synchronous Assets Lambda API and **not** importing Assets **`internalCache`**. Register **`createComponentAggregateCacheHandler(slice)`** on Ephemera **`InternalCache`** (same primary surface as assets). **`slice`** = **`ComponentData`** + **`ComponentVerticals`** loaders with the **same `get` contracts** as assets ([`ComponentAggregateInternalCacheSlice`](../../../../../packages/mtw-gateways/ts/assets/components/aggregate/ports.ts)), typically **`createAuthoritativeComponentDataCacheHandler(assetDB)`** + **`createImportVerticalMetaCacheHandler(assetDB)`** on Ephemera's existing **`assetDB`** client. **Not** sufficient alone: **`ComponentAssetMeta`** (ephemera meta cache) uses a different read shape (`getItems` per asset list) than authoritative partition **`Query`** merge assembly expects. **Secondary** **`createComponentAggregateGateway`** is for tests/parity only. Hydration then calls [**A3**](#aggregate-read-surface-cross-lambda) (renderCache-local) on the merged parent. |
-| A2 | **Participation order:** always caller-supplied canon stack ([`resolveCanonAssetStackForRoom`](../../../../../lambda/ephemera/dataSource/state/resolveAssetStackForRoom.ts) / state helpers) vs ever graph-derived order from verticals? | **Decided (v1):** keep caller-supplied canon stack via **`resolveCanonAssetStackForRoom`** (and existing state helpers) for **`assetStack`** passed into aggregate + hydrate. **Defer** any optimization that derives participation order from **`ComponentVerticals`** / import graph to a later pass. |
-| A3 | **Facet assembly API:** batch **"all authored slices for component at stack"** vs per-situation calls; **`mtw-gateways`** or renderCache-local? | **Decided:** **batch** desired-set assembly in **one pass** (merged cache-host component -> all situation facet cache-shaped slices keyed by **`situationId`**). **Scope:** **`renderCache` / hydrate only** --- not a new **`mtw-gateways`** tree. Assets **`componentExamples`** moves to **invalidation-only** and does not need this surface post-migration; reuse or lift pure helpers from [`exampleEnrichment.ts`](../../../../../lambda/assets/componentExamples/exampleEnrichment.ts) (e.g. **`situationFacetToCacheShape`**) inside **`lambda/ephemera/dataSource/renderCache/`** rather than publishing a cross-lambda gateway. |
-| A4 | **Lens marks on Room:** lens default resolution inside hydration vs aggregate gateway vs pre-step? | **Decided:** **inside hydration** (renderCache batch assembly, [**A3**](#aggregate-read-surface-cross-lambda)), **not** on **`ComponentAggregate`**. **v1 Room-only:** when building cache-shaped slices for a **`ROOM#`** component, resolve lens marks with defaults the same way as today's [`resolveLensMarksWithDefaultsForRoom`](../../../../../lambda/assets/componentExamples/index.ts) (merged room's lens ref -> merged **`StandardLens`** at stack -> **`getLensMarksWithDefaults`** -> pass into **`situationFacetToCacheShape`**). Port or lift that helper into **`renderCache/`**; use [**A1**](#aggregate-read-surface-cross-lambda) for merged room/lens reads instead of legacy **`mergeRoomAcrossStack`** / **`getOrderedAssetStack`**. Feature/Knowledge hydrate without lens defaults until those paths need them. |
+| A1 | **Lambda access to merge:** how do Ephemera / diagnostics call **`ComponentAggregate`?** | **Decided (pattern):** follow [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) **compute-only** playbook --- **not** a synchronous Assets Lambda API and **not** importing Assets **`internalCache`**. Each lambda registers **`createComponentAggregateCacheHandler(slice)`** on its **`InternalCache`**. **`slice`** = **`ComponentData`** + **`ComponentVerticals`** with the **same `get` contracts** as assets ([`ComponentAggregateInternalCacheSlice`](../../../../../packages/mtw-gateways/ts/assets/components/aggregate/ports.ts)), typically **`createAuthoritativeComponentDataCacheHandler(assetDB)`** + **`createImportVerticalMetaCacheHandler(assetDB)`** on that lambda's **`assetDB`** client. **Not** sufficient alone on Ephemera: **`ComponentAssetMeta`** (`getItems` shape) vs authoritative partition **`Query`**. **Secondary** **`createComponentAggregateGateway`** is for tests/parity only. |
+| A2 | **Participation order:** always caller-supplied canon stack ([`resolveCanonAssetStackForRoom`](../../../../../lambda/ephemera/dataSource/state/resolveAssetStackForRoom.ts) / state helpers) vs ever graph-derived order from verticals? | **Decided (v1):** keep caller-supplied canon stack via **`resolveCanonAssetStackForRoom`** (and existing state helpers) for Ephemera **`assetStack`** / gateway **`mergeParticipationOrder`**. Diagnostics passes the perspective under test explicitly. **Defer** deriving order from **`ComponentVerticals`** only. |
+| A3 | **Facet assembly API:** batch **"all authored slices for component at stack"**; **`mtw-gateways`** or renderCache-local? | **Decided (revised):** new **compute-only** gateway under **`packages/mtw-gateways/ts/assets/components/`** (working dir **`authoredSituationSlices/`**). **Batch** desired-set assembly per [algorithm](#authored-situation-slices-gateway---algorithm-a3). Composes **`ComponentAggregateMergedCache`**; lifts **`situationFacetToCacheShape`** (+ Room lens-default path) from [`exampleEnrichment.ts`](../../../../../lambda/assets/componentExamples/exampleEnrichment.ts). Returns **lambda-neutral** slice DTOs keyed by **`situationId`**. **Consumers:** Ephemera **`ensureAuthoredCatalog`** (maps to **`CACHE#`**), **`lambda/diagnostics`** (blueprint vs cache truth). **Not** in **`renderCache/`** except thin mapping + diff. |
+| A4 | **Lens marks on Room:** where does lens-default resolution run? | **Decided (revised):** inside [**authored situation slices gateway**](#authored-situation-slices-gateway---algorithm-a3) (step 5), **not** on core **`ComponentAggregate`** merge and **not** duplicated in Ephemera hydrate. **v1 Room-only:** merged room lens ref -> merged **`StandardLens`** at same **`mergeParticipationOrder`** -> **`getLensMarksWithDefaults`** -> optional input to **`situationFacetToCacheShape`**. Feature/Knowledge: **`resolveRoomLensMarkDefaults: false`** until needed. |
 
 ### Orchestration integration
 
@@ -427,7 +480,7 @@ Closed before the contracts implementation slice so component/Situation emitters
 
 | # | Question | Decision / notes |
 | --- | --- | --- |
-| L1 | **`exampleEnrichment.ts`:** delete after parity, or keep matchers-only for invalidation emission? | **Decided:** **delete** the module after hydrate + invalidation parity. **Do not** retain **`getParentIdsForSituation`**, **`getOrderedAssetStack`**, or **`computePerspectiveMatcherForParentSituation`** for invalidation emit. Lift pure shape helpers (e.g. **`situationFacetToCacheShape`**) into **`renderCache/`** only as needed for hydrate ([**A3**](#aggregate-read-surface-cross-lambda)). |
+| L1 | **`exampleEnrichment.ts`:** delete after parity, or keep matchers-only for invalidation emission? | **Decided:** **delete** the module after hydrate + invalidation parity. **Do not** retain **`getParentIdsForSituation`**, **`getOrderedAssetStack`**, **`merge*AcrossStack`**, or **`computePerspectiveMatcherForParentSituation`**. Lift **`situationFacetToCacheShape`** (and Room lens-default helper) into **`mtw-gateways`** [**authored situation slices**](#authored-situation-slices-gateway---algorithm-a3) ([**A3**](#aggregate-read-surface-cross-lambda)), not Ephemera **`renderCache/`**. |
 | L2 | **Merge order:** legacy **`getOrderedAssetStack`** vs new aggregate / canon stack --- does order matter for players? | **Decided:** **known, intentional product change** --- already analyzed when **`ComponentAggregate`** and canon-stack perception were defined ([`AGENT.componentAggregate.planning.md`](../../../assets/AGENT.componentAggregate.planning.md)). **Normative** order for hydrate and resolve: caller-supplied **`mergeParticipationOrder`** / canon stack ([**A2**](#aggregate-read-surface-cross-lambda)), **not** **`getOrderedAssetStack`**. Do **not** treat row diffs vs old mirrored payloads as regressions; parity work validates invalidation + hydrate mechanics, not byte-identical legacy merge order. |
 | L3 | **`ExampleAdded`:** ever emitted, or remove from types when mirroring ends? | **Decided:** **remove** from EventBridge / handler types when mirroring ends. Production assets code today emits only **`ExampleUpdated`** / **`ExampleRemoved`**; **`ExampleAdded`** exists for wire compatibility only. |
 
@@ -445,11 +498,12 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` wh
 - [ ] **Contracts:** draft **`ExampleInvalidated`** per I1/P1 (component-scoped vs Situation-scoped; **`componentIds`** / **`editAssetId`**; optional **`affectedSituationIds`**); catalog + adjacency row types (**`assetStack`** on both); ephemera invalidation guards (**layer participation rule**); diagnostics finding handler types (P7)
 - [ ] **Catalog row schema:** define **`Cache::${perspectiveKey}`** / **`EphemeraCacheCatalogRow`** (incl. **`assetStack`**) in **`mtw.ephemera.renderCache`** (CRUD + conditional bump per M4/V1); migrate **`currentCacheId`** off **`Meta::Room`** (M2)
 - [ ] **Situation adjacency:** CRUD helpers + hydrate diff maintenance (S4); Situation invalidation handler with layer participation filter (S2/S3)
-- [ ] **Ephemera aggregate wiring:** callable hydration read surface (see A1--A4)
+- [ ] **Authored situation slices gateway (`mtw-gateways`):** new compute-only module per [**A3 algorithm**](#authored-situation-slices-gateway---algorithm-a3); lift shape helpers from **`exampleEnrichment.ts`**; package tests + mirror parity fixtures; document in [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) ownership table
+- [ ] **Lambda aggregate wiring:** register **`ComponentAggregateMergedCache`** on Ephemera (and diagnostics) **`InternalCache`** per **A1**; wire gateway into **`ensureAuthoredCatalog`**
 - [ ] **Invalidation handler:** in **`mtw.ephemera.renderCache`** (P3) --- component-scoped path (P1 + layer participation); Situation path (S2/S3, P5 cleanup on Removed); diagnostics finding (P7); retire [`componentExamples.ts`](../../../../../lambda/ephemera/dataSource/componentExamples.ts) mirror + Assets reseed
 - [ ] **Assets emitter:** refactor [`componentExamples/index.ts`](../../../../../lambda/assets/componentExamples/index.ts) to invalidations-only (P1: **`editAssetId`** from event asset); Situation path per S1; drop **`emitSituationComponentFacetEvents`** / **`getParentIdsForSituation`**
-- [ ] **Hydration step:** **`ensureAuthoredCatalog`** (O1/O2) + aggregate desired set + **diff** put/delete authored rows + catalog ready + coalescing; wire from **`orchestrationHandler`** before **`findRender`**
-- [ ] **Tests:** layer participation invalidation (A / B / C overlay: B facet edit stales `[A,B]` + `[A,B,C]`, not `[A]`); Situation adjacency hydrate + Situation-scoped filter; component-scoped invalidation; hydrate diff (facet removal); hydrate-then-exact-match; reseed/diagnostics parity
+- [ ] **Hydration step:** **`ensureAuthoredCatalog`** (O1/O2) calls authored-slices gateway + **diff** put/delete authored rows + catalog ready + coalescing; wire from **`orchestrationHandler`** before **`findRender`**
+- [ ] **Tests:** gateway golden/parity (**`authoredSituationSlices`**); layer participation invalidation (A/B/C overlay); Situation adjacency + filter; hydrate diff; hydrate-then-exact-match; diagnostics blueprint-vs-cache (gateway consumer)
 - [ ] **Docs:** update [`renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md) (**Mirroring vs runtime**), [`componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md), [`AGENT.event.md`](../../../../../lambda/assets/AGENT.event.md); trim stale Example-filter prose
 - [ ] **Dispose this plan** per [`taskPlanning/AGENT.md`](../../../../AGENT.md)
 
@@ -464,9 +518,10 @@ cd lambda/ephemera && npm test -- --testPathPattern=renderCache
 cd lambda/ephemera && npm test -- --testPathPattern=componentExamples
 cd lambda/assets && npm test -- --testPathPattern=componentExamples
 cd packages/mtw-gateways && npm test -- --testPathPattern=aggregate
+cd packages/mtw-gateways && npm test -- --testPathPattern=authoredSituationSlices
 ```
 
-After implementation, add slice-specific patterns (layer participation invalidation, Situation adjacency, hydration + exact match integration, meta stale/ready).
+After implementation, add slice-specific patterns (authored situation slices gateway, layer participation invalidation, Situation adjacency, hydration + exact match integration, meta stale/ready).
 
 ---
 
@@ -479,6 +534,7 @@ After implementation, add slice-specific patterns (layer participation invalidat
 | [`taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md) | Orchestration <-> renderCache contract |
 | [`lambda/ephemera/AGENT.caching.planning.md`](../../../../../lambda/ephemera/AGENT.caching.planning.md) | Caching system narrative |
 | [`taskPlanning/lambda/assets/AGENT.componentAggregate.planning.md`](../../../assets/AGENT.componentAggregate.planning.md) | Merged component assembly initiative |
+| [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) | Gateway layout; add **authored situation slices** to ownership table when shipped |
 | [`lambda/assets/componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md) | Current mirroring data source |
 
 ---
