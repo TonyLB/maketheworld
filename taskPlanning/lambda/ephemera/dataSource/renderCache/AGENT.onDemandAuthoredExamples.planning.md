@@ -1,6 +1,6 @@
 # On-demand authored examples (invalidate + hydrate) - planning
 
-**Status:** Design pass complete for [**Open decisions**](#open-decisions). No implementation slices landed yet. **Next:** contracts + catalog schema + implementation per [**Recommended order**](#recommended-order).
+**Status:** Design pass complete for [**Open decisions**](#open-decisions) including [**Situation adjacency**](#situation-adjacency-invalidation-fan-out). No implementation slices landed yet. **Next:** contracts + catalog schema + adjacency + implementation per [**Recommended order**](#recommended-order).
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting notes live under [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md), [`lambda/assets/componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md), and related steady-state docs.
 
@@ -22,6 +22,19 @@ That made sense for the first caching MVP (warm cache for Workbench preview and 
 
 **Practical rule (new direction):** *when* Ephemera materializes cache rows should align with **resolve-time need**, not with every Assets component event.
 
+### Invalidation fan-out: blueprint vs materialized cache
+
+**Historical framing:** Today's **`mtw.assets.componentExamples`** mirroring is a **first-iteration prototype**, not a requirements-authoritative spec. It did important work proving we could keep Ephemera **renderCache** roughly aligned with a changing blueprint (push enriched payloads, wire **`Example*`** events, exercise perspective matchers). The overcount/undercount gaps below are the sort of issues first prototypes often surface once the concept is viable. Treat the current code as a **first-swing draft that was good enough to validate the idea** --- not as the shape the steady-state system must preserve. This initiative replaces that draft with invalidate-on-change + hydrate-on-demand and Situation adjacency ([**S1**](#situation-adjacency-invalidation-fan-out)--[**S5**](#situation-adjacency-invalidation-fan-out)).
+
+The prototype's Situation branch uses **`getParentIdsForSituation`** ([`exampleEnrichment.ts`](../../../../../lambda/assets/componentExamples/exampleEnrichment.ts)) to scan blueprint in a small set of assets, then emits **one event per cache-host component** (prototype docs called this "parent") with a single **`assetStack`** derived from that component's **`ComponentData`**. That pattern **both overcounts and undercounts** relative to what Ephemera actually stores:
+
+| Failure mode | What happens |
+| --- | --- |
+| **Overcount** | Many rooms (or F/K components) reference a Situation in blueprint, but only a few were ever resolved/hydrated. Assets still emits one invalidation per blueprint component reference; Ephemera may no-op (V1: no catalog row yet), but bus and handler work scale with **blueprint references**, not **cached examples**. |
+| **Undercount** | The same cache-host component + Situation can exist at **multiple materialized perspectives** (e.g. canon `[A]` vs `[A,B]`). A single emitted stack (often the component's full import chain in the prototype, e.g. `[A,B]`) plus **`perspectiveMatches`** with **`requiredAssetIds`** spanning both assets does **not** bump a catalog at **`P([A])`** when the edit context was Asset A only. |
+
+**Target:** for **Situation entity** edits, stop blueprint-driven parent fan-out on Assets. Publish a **Situation-scoped** invalidation with **edit context** (ordered **`assetStack`** for where the change occurred). Ephemera **fans out at example granularity** via **Situation adjacency** rows maintained at hydrate time, applying **identical / inheriting perspective** rules ([**S3**](#situation-adjacency-invalidation-fan-out)). **Component-scoped** invalidations ([**S5**](#situation-adjacency-invalidation-fan-out)) cover **facet data on the component itself** (Room / Feature / Knowledge **Component Updated** / **Removed**) --- not a separate Example entity; legacy "parent" wording in old docs meant "component that hosts situation facets."
+
 ---
 
 ## Proposed direction (working model)
@@ -30,17 +43,22 @@ Hybrid **invalidate on blueprint change, hydrate on demand** (Option B extended)
 
 ### 1. Assets: wildcard invalidations (not full payloads)
 
-**`mtw.assets.componentExamples`** stops pushing enriched **`example`** bodies on every update. Instead it emits **invalidation** events scoped roughly to:
+**`mtw.assets.componentExamples`** stops pushing enriched **`example`** bodies on every update. Instead it emits **`ExampleInvalidated`** (no **`example`** body) on two paths:
 
-- **Parent** component (`ROOM#...`, and eventually `FEATURE#...` / `KNOWLEDGE#...`)
-- **Situation** id (`SITUATION#...`) when the change is situation-scoped
-- **`perspectiveMatcher`**: any request perspective whose **`assetStack`** **includes** the participation implied by the edit (same matcher family as today: `requiredAssetIds` / optional `forbiddenAssetIds`; see [`packages/mtw-interfaces/ts/perspective.ts`](../../../../../packages/mtw-interfaces/ts/perspective.ts))
+**Terminology:** **Component-scoped** = invalidation keyed by the **cache-host component** (`ROOM#` / `FEATURE#` / `KNOWLEDGE#`) whose **situation facets** changed. **Situation-scoped** = invalidation keyed by the **`SITUATION#`** entity. Avoid "parent-scoped" in new specs --- it reflects the old independent-**Example** model, not facet-on-component storage.
 
-Emit a new **`ExampleInvalidated`** event shape (no **`example`** payload): **`exampleId`** (Situation uuid), **`parentIds`**, **`perspectiveMatcher`**, optional scope fields as needed. Keep historical **Example\*** names for **`ExampleUpdated`** / **`ExampleRemoved`** only where legacy consumers still exist during migration; new path is invalidation-only from Assets.
+| Trigger | Scope | Payload emphasis |
+| --- | --- | --- |
+| **Component** (`Room` / `Feature` / `Knowledge` **Component Updated** / **Removed** --- facet data on that component) | That component (one event per component) | **`componentIds`**: `[componentId]`; **`editAssetStack`**: [**P2**](#contract-gaps-resolved-at-planning); optional **`affectedSituationIds`** (debug only). Ephemera bump: [**P1**](#contract-gaps-resolved-at-planning). |
+| **Situation** (`Situation` **Component Updated** / **Removed**) | Situation entity only | **`exampleId`**: `SITUATION#...`; **`editAssetStack`**: [**P2**](#contract-gaps-resolved-at-planning); **no `componentIds`**; **no** **`getParentIdsForSituation`** ([**S1**](#situation-adjacency-invalidation-fan-out)). Removed: adjacency cleanup [**P5**](#contract-gaps-resolved-at-planning). |
+
+Keep historical **Example\*** names for **`ExampleUpdated`** / **`ExampleRemoved`** only where legacy consumers still exist during migration; steady-state Assets path is invalidation-only.
+
+**Ephemera** resolves Situation invalidations via adjacency + perspective expansion ([**S3**](#situation-adjacency-invalidation-fan-out)), not by iterating **`componentIds`** from Assets.
 
 ### 2. Ephemera: catalog version (component + perspective) and optional row cleanup
 
-On invalidation, Ephemera (likely still via **`mtw.ephemera.examples`** subscriber, shape TBD):
+On invalidation, Ephemera via **`mtw.ephemera.renderCache`** subscriber to **`mtw.assets.componentExamples`** ([**P3**](#contract-gaps-resolved-at-planning)):
 
 **Leading idea:** maintain catalog state per **`(componentId, perspectiveKey)`** on a dedicated Ephemera row (not on **`Meta::Room`** or other **`Meta::\***`** blobs):
 
@@ -55,7 +73,13 @@ Each **`Cache::${perspectiveKey}`** row holds at least monotonic **`catalogVersi
 
 On invalidation (owned by **`mtw.ephemera.renderCache`** --- [**M3**](#catalog-rows-cacheperspectivekey)):
 
-- **(a) Conditional bump:** For each affected **`Cache::${perspectiveKey}`** row that **already exists** under the parent **`EphemeraId`** ([**V1**](#catalog-rows-cacheperspectivekey) --- do **not** create catalog rows on invalidation). If `hydratedCatalogVersion === catalogVersion`, increment **`catalogVersion`** (invalidates the current materialized catalog). If `hydratedCatalogVersion < catalogVersion` already, **no-op** (already invalid).
+**Component-scoped event** ([**P1**](#contract-gaps-resolved-at-planning)): facet (or facet list) changed on a Room / Feature / Knowledge component. For each **`componentId`** in the event, bump **every existing** **`Cache::...`** row under that **`EphemeraId`** (V1 --- catalog is the full facet set per perspective; any facet edit can change merged output).
+
+**Situation-scoped event** ([**S2**](#situation-adjacency-invalidation-fan-out)--[**S4**](#situation-adjacency-invalidation-fan-out)): **`Query`** adjacency partition **`EphemeraId = SITUATION#...`**; for each link whose cached **`assetStack`** is **identical to** or **inherits from** (ordered prefix/superset) the event's **`editAssetStack`**, bump **`Cache::${perspectiveKey}`** on the link's **host** **`EphemeraId`** (the `ROOM#` / `FEATURE#` / `KNOWLEDGE#` where that slice was materialized). No blueprint component discovery on Ephemera for this path.
+
+For each bump target:
+
+- **(a) Conditional bump:** Only if the **`Cache::${perspectiveKey}`** row **already exists** ([**V1**](#catalog-rows-cacheperspectivekey) --- do **not** create catalog rows on invalidation). If `hydratedCatalogVersion === catalogVersion`, increment **`catalogVersion`**. If `hydratedCatalogVersion < catalogVersion` already, **no-op** (already invalid).
 - **(b) Clear fast pointer** on the **`Cache::...`** catalog row (**`currentCacheId`**, [**M2**](#catalog-rows-cacheperspectivekey)); drop legacy **`Meta::Room.currentCacheByPerspective`** entries for that key as they are migrated off.
 - **(c) No eager delete / GC** of old-version rows for now ([**I2**](#invalidation-events-assets---ephemera)): one lingering **`CACHE#`** row per markState until re-rendered is acceptable; version gate + hydrate diff handle correctness.
 
@@ -63,11 +87,11 @@ On invalidation (owned by **`mtw.ephemera.renderCache`** --- [**M3**](#catalog-r
 
 **Hydration (sync, not append-only):** When `hydratedCatalogVersion < catalogVersion` on that catalog row:
 
-1. **Desired set:** aggregate assembly for the parent at this **`assetStack`** --- **all** situation facets on the merged parent at this perspective ([**H2**](#hydration-scope-and-timing)), one authored slice per **`situationId`**. Target stamp: **`incomingCatalogVersion`** = **`catalogVersion`** on the **`Cache::${perspectiveKey}`** row at hydrate start.
+1. **Desired set:** aggregate assembly for the cache-host component at this **`assetStack`** --- **all** situation facets on the merged component at this perspective ([**H2**](#hydration-scope-and-timing)), one authored slice per **`situationId`**. Target stamp: **`incomingCatalogVersion`** = **`catalogVersion`** on the **`Cache::${perspectiveKey}`** row at hydrate start.
 2. **Existing set (for diff):** all **`CACHE#...`** rows for this component with **`provenance.type: 'authored'`** and **`perspectiveMatches`** this resolve perspective --- **not** filtered to `catalogVersion === hydratedCatalogVersion`. In practice most rows will be at or below the last hydrated version, but any **out-of-date** authored row for this perspective should be reconciled. Rows at **`catalogVersion >= incomingCatalogVersion`** are **out of scope** for overwrite/delete (see guards below).
 3. **Diff:**
-   - **`deleteCacheRecords`:** authored rows whose **`situationId`** is **absent** from the desired set **and** `(row.catalogVersion ?? 0) < incomingCatalogVersion` ([**H5**](#hydration-scope-and-timing) --- slice identity is **`situationId`**; each Situation has a unique markState).
-   - **`putCacheRecord` (upsert) every slice in the desired set** at **`incomingCatalogVersion`**, even when content is unchanged (version stamp must advance). When reusing an **`existingDataCategory`**, put only if `(existing.catalogVersion ?? 0) < incomingCatalogVersion`; otherwise skip that upsert (lost race to a concurrent hydrator or writer).
+   - **`deleteCacheRecords`:** authored rows whose **`situationId`** is **absent** from the desired set **and** `(row.catalogVersion ?? 0) < incomingCatalogVersion` ([**H5**](#hydration-scope-and-timing) --- slice identity is **`situationId`**; each Situation has a unique markState). **Delete** matching **Situation adjacency** links for removed slices ([**S4**](#situation-adjacency-invalidation-fan-out)).
+   - **`putCacheRecord` (upsert) every slice in the desired set** at **`incomingCatalogVersion`**, even when content is unchanged (version stamp must advance). When reusing an **`existingDataCategory`**, put only if `(existing.catalogVersion ?? 0) < incomingCatalogVersion`; otherwise skip that upsert (lost race to a concurrent hydrator or writer). **Put/update** adjacency for each upserted **`situationId`** ([**S4**](#situation-adjacency-invalidation-fan-out)).
 4. Set **`hydratedCatalogVersion = catalogVersion`** on the **`Cache::${perspectiveKey}`** row only if **`catalogVersion`** still equals **`incomingCatalogVersion`** read at hydrate start; otherwise abort or retry ([**H6**](#hydration-scope-and-timing) --- per-row and catalog guards cover mid-hydrate invalidation).
 
 This keeps the materialized authored catalog aligned with Assets without relying on invalidation-time deletes. The diff is **delete-by-absence (version-guarded) + upsert-all-desired (version-guarded)**. Older **`catalogVersion`** rows that are not touched remain for versioning / future improvisation policy. **Generated** rows are out of scope for this diff unless a separate policy says otherwise (H4).
@@ -103,17 +127,52 @@ type EphemeraCacheCatalogRow = {
 // PK: EphemeraId = componentId ; SK: CACHE#${uuid}
 type EphemeraCacheDynamoItem = {
     // ... existing fields ...
-    catalogVersion?: number; // blueprint epoch at write time (matches parent Cache::${perspectiveKey} row)
+    catalogVersion?: number; // blueprint epoch at write time (matches host Cache::${perspectiveKey} row)
 };
 ```
 
 **`Meta::Room`** remains home for **`state`**, **`activeCharacters`**, **`objects`**, etc. ([`EphemeraMetaRoom`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)). Avoid per-perspective catalog maps on **`Meta::\***`** rows; **`Cache::${perspectiveKey}`** under each component **`EphemeraId`** is the shared pattern for Room now and Feature/Knowledge later.
 
-### 3. Read surface: merged parent + batch facet catalog (hydrate)
+#### Situation adjacency (invalidation fan-out authority)
+
+Adjacency is the **inverse index** from a Situation to **materialized** `(hostComponentId, perspective)` slots --- not blueprint facet references. Pattern aligns with thinking job membership ([`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md)): lightweight rows on a dedicated partition, authoritative body elsewhere.
+
+| Role | Key |
+| --- | --- |
+| **Partition** | `EphemeraId = SITUATION#${uuid}` |
+| **Sort key** | `Link::${hostEphemeraId}::Cache::${perspectiveKey}` where **`hostEphemeraId`** is the cache-host `ROOM#` / `FEATURE#` / `KNOWLEDGE#` (explicit prefix --- do not reuse bare **`Cache::...`** SK under the Situation PK) |
+| **Payload** | At minimum store **`assetStack`** (canonical ordered participation at hydrate time). **`perspectiveKey`** alone is not reversible from the hash; inheritance checks need the stack ([**S3**](#situation-adjacency-invalidation-fan-out)). |
+
+**Maintain (S4, M3):** only **`mtw.ephemera.renderCache`** hydrate diff (and coordinated deletes). Put/update link when an authored slice for **`situationId`** is upserted at **`(componentId, perspectiveKey)`**; delete link when hydrate delete-by-absence removes that slice. No adjacency writes from legacy mirroring after migration.
+
+**Situation invalidation handler:** load all links for **`SITUATION#...`**; filter by [**S3**](#situation-adjacency-invalidation-fan-out) vs event **`editAssetStack`**; conditional catalog bump + pointer clear per link. On **Situation Removed**, run bump then **delete entire adjacency partition** ([**P5**](#contract-gaps-resolved-at-planning)). **Empty adjacency** (Situation edited before any resolve hydrated it) is a no-op --- consistent with on-demand cache.
+
+```typescript
+// Ephemera table — Situation adjacency (membership only)
+// PK: EphemeraId = SITUATION#...
+// SK:  DataCategory = `Link::${hostEphemeraId}::Cache::${perspectiveKey}`
+type SituationCacheAdjacencyRow = {
+    EphemeraId: `SITUATION#${string}`;
+    DataCategory: `Link::${string}::Cache::${string}`;
+    assetStack: AssetUUID[]; // canon order at hydrate; used for identical/inheriting checks
+};
+```
+
+#### S3 explained (identical / inheriting perspectives)
+
+Use **ordered, duplicate-free `assetStack`** (same canonicalization as [`computePerspectiveKey`](../../../../../packages/mtw-interfaces/ts/perspective.ts)). Let **edit** = event **`editAssetStack`**, **cached** = adjacency **`assetStack`**.
+
+- **Identical:** `cached` and `edit` are the same ordered sequence (after canonicalization).
+- **Cached inherits edit:** `edit` is a **prefix** of `cached` (player stack strictly extends the edit context). Example: edit in Asset A only (`[A]`) invalidates adjacency at `[A]` and `[A,B]`.
+- **Edit inherits cached (subset bump):** `cached` is a **prefix** of `edit`. Example: edit with merged stack `[A,B]` invalidates both `P([A])` and `P([A,B])` when both were hydrated.
+
+**Do not** use a single component-event **`perspectiveMatcher`** with **`required: [A,B]`** as the sole rule for Situation edits --- that misses subset perspectives ([**undercount**](#invalidation-fan-out-blueprint-vs-materialized-cache) in the A / B / RoomY thought experiment).
+
+### 3. Read surface: merged component + batch facet catalog (hydrate)
 
 **Merge (cross-lambda):** **`mtw-gateways`** **`ComponentAggregate`** on Ephemera **`InternalCache`** ([**A1**](#aggregate-read-surface-cross-lambda)), with **`assetStack`** from **`resolveCanonAssetStackForRoom`** ([**A2**](#aggregate-read-surface-cross-lambda)).
 
-**Desired set (renderCache-local):** one batch helper under **`renderCache/`** ([**A3**](#aggregate-read-surface-cross-lambda)) that, given merged parent + stack + perspective, returns **all** situation-facet cache-shaped slices keyed by **`situationId`** for hydrate diff --- not a separate **`mtw-gateways`** tree.
+**Desired set (renderCache-local):** one batch helper under **`renderCache/`** ([**A3**](#aggregate-read-surface-cross-lambda)) that, given merged cache-host component + stack + perspective, returns **all** situation-facet cache-shaped slices keyed by **`situationId`** for hydrate diff --- not a separate **`mtw-gateways`** tree.
 
 This replaces **`exampleEnrichment.ts`** merge-at-push-time for steady-state reads. Participation order is **explicit** at the call site (canon stack from state/orchestration). That order is **normative** --- a known product change from legacy **`getOrderedAssetStack`** mirroring ([**L2**](#legacy-mirroring-cleanup), [`AGENT.componentAggregate.planning.md`](../../../assets/AGENT.componentAggregate.planning.md)).
 
@@ -121,7 +180,7 @@ This replaces **`exampleEnrichment.ts`** merge-at-push-time for steady-state rea
 
 **When (H1):** hydrate **only** on **orchestration resolve** (look, state fan-out, passive **`Render Requested`** --- not a separate authoring "warm catalog" API in v1).
 
-When **`renderOrchestration`** needs authored candidates for a resolve, call **`ensureAuthoredCatalog`** ([**O1**](#orchestration-integration)) from [`orchestrationHandler.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts) (and any other resolve entry points, e.g. state fan-out) **before** **`findRender`** --- not embedded inside **`findRender`**.
+When **`renderOrchestration`** needs authored candidates for a resolve, call **`ensureAuthoredCatalog`** ([**O1**](#orchestration-integration), [**H1b**](#contract-gaps-resolved-at-planning)) from [`orchestrationHandler.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts) (and any other resolve entry points, e.g. state fan-out) **before** **`findRender`** --- not embedded inside **`findRender`**.
 
 **`ensureAuthoredCatalog`** (renderCache module):
 
@@ -138,22 +197,29 @@ Then **`findRender`** proceeds with **version-aware** **`getExactMatch`** / gene
 sequenceDiagram
     participant Assets
     participant CE as mtw.assets.componentExamples
-    participant EE as mtw.ephemera.examples
+    participant RC as mtw.ephemera.renderCache
+    participant Adj as SITUATION adjacency
     participant Cat as Cache::perspectiveKey row
     participant Orch as renderOrchestration
     participant GW as aggregate read surface
-    participant RC as renderCache
 
-    Assets->>CE: Component Updated / Removed
-    CE->>EE: invalidation (parent, situation?, matcher)
-    EE->>Cat: bump catalogVersion; clear pointers
+    alt Component facet edit
+        Assets->>CE: Component Updated / Removed (Room/F/K)
+        CE->>RC: ExampleInvalidated (componentIds, editAssetStack)
+        RC->>Cat: bump all Cache:: rows under component
+    else Situation entity edit
+        Assets->>CE: Component Updated / Removed (Situation)
+        CE->>RC: ExampleInvalidated (SITUATION#, editAssetStack, no componentIds)
+        RC->>Adj: Query links; filter identical/inheriting stacks
+        RC->>Cat: bump Cache:: per link (host component + perspectiveKey)
+    end
 
     Orch->>RC: ensureAuthoredCatalog (silent preflight)
     RC->>Cat: read Cache::perspectiveKey
     alt hydratedVersion less than catalogVersion
-        RC->>GW: assemble slices (parent, situations, stack)
+        RC->>GW: assemble slices (component, situations, stack)
         GW-->>RC: merged facet payloads
-        RC->>RC: diff put/delete authored CACHE rows (catalogVersion=N)
+        RC->>RC: diff put/delete CACHE rows; maintain adjacency (S4)
         RC->>Cat: hydratedCatalogVersion=N
     end
     Orch->>RC: findRender getExactMatch (version=N only) / generate
@@ -165,14 +231,14 @@ sequenceDiagram
 
 | Piece | Today | Target |
 | --- | --- | --- |
-| [`lambda/assets/componentExamples/`](../../../../../lambda/assets/componentExamples/) | **`ExampleUpdated`** with full **`example`** payload; Situation fan-out implemented | **Invalidation** events; optional shrink of **`exampleEnrichment`** |
-| [`lambda/ephemera/dataSource/componentExamples.ts`](../../../../../lambda/ephemera/dataSource/componentExamples.ts) | **`putCacheRecord`** on Added/Updated | Meta stale + clear pointers; **no** eager put of authored bodies (optional row delete) |
+| [`lambda/assets/componentExamples/`](../../../../../lambda/assets/componentExamples/) | **`ExampleUpdated`** with full **`example`**; **`getParentIdsForSituation`** per-component fan-out | **Invalidation-only**; Situation path emits **one** Situation-scoped event (**no** blueprint scan); component path **one event per cache-host component** ([**S1**](#situation-adjacency-invalidation-fan-out), [**P1**](#contract-gaps-resolved-at-planning)) |
+| [`lambda/ephemera/dataSource/componentExamples.ts`](../../../../../lambda/ephemera/dataSource/componentExamples.ts) | **`putCacheRecord`** on Added/Updated | **Retire** mirror writes; invalidation moves to **`mtw.ephemera.renderCache`** ([**M3**](#catalog-rows-cacheperspectivekey), [**S2**](#situation-adjacency-invalidation-fan-out)) |
 | [`renderOrchestration/orchestrationHandler.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts) | intake -> **`findRender`** | **`ensureAuthoredCatalog`** after intake, before **`findRender`** ([**O1**](#orchestration-integration)) |
 | [`renderOrchestration/findRender.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts) | Pointer validate -> exact match -> generate | Unchanged sequencing; relies on catalog already hydrated |
 | [`packages/mtw-gateways/.../aggregate/`](../../../../../packages/mtw-gateways/ts/assets/components/aggregate/) | Assets **`InternalCache.ComponentAggregate`**; parity vs **`merge*AcrossStack`** | Ephemera-callable read surface for hydration (wiring TBD) |
 | Diagnostics reseed | Synthetic **`Component Republished`** -> mirroring path | **Remove** Assets reseed; Ephemera handles finding via **`Cache::`** version bump + hydrate on resolve |
 
-**Supersedes (intent):** old GitHub-issue thrust of "more mirroring" / "tighten **`exampleEnrichment`** for push" / "Situation must publish on update" as **primary** delivery---Situation fan-out may remain as **invalidation** only.
+**Supersedes (intent):** old GitHub-issue thrust of "more mirroring" / "tighten **`exampleEnrichment`** for push" / blueprint **`getParentIdsForSituation`** fan-out as **primary** delivery---Situation edits become **one** invalidation + Ephemera adjacency fan-out ([**S1**](#situation-adjacency-invalidation-fan-out)).
 
 **Does not replace:** LLM **generated** rows (`provenance.type: 'generated'`), orchestration pass-through for **`Render Generated`**, or state-driven **`fanOutStateChangedToPassiveRenders`**.
 
@@ -180,7 +246,7 @@ sequenceDiagram
 
 ## Terminology note
 
-Planning docs use **constellation** for future **Guidance-distance** search ([`lambda/ephemera/AGENT.caching.planning.md`](../../../../../lambda/ephemera/AGENT.caching.planning.md)). In **this** initiative, "constellation" means the **set of authored `CACHE#` candidate rows** for a parent at a **perspective** (asset stack), used for v1 **exact** markState match---not semantic Guidance buckets. Prefer precise names in specs (**authored slice set**, **facet catalog**) once we freeze types.
+Planning docs use **constellation** for future **Guidance-distance** search ([`lambda/ephemera/AGENT.caching.planning.md`](../../../../../lambda/ephemera/AGENT.caching.planning.md)). In **this** initiative, "constellation" means the **set of authored `CACHE#` candidate rows** for a cache-host component at a **perspective** (asset stack), used for v1 **exact** markState match---not semantic Guidance buckets. Prefer precise names in specs (**authored slice set**, **facet catalog**) once we freeze types.
 
 ---
 
@@ -206,7 +272,7 @@ Planning docs use **constellation** for future **Guidance-distance** search ([`l
 | Milestone | Status |
 | --- | --- |
 | Problem + hybrid direction captured | Done |
-| Open decisions listed | Done |
+| Open decisions listed (incl. S1--S5, P1--P7) | Done |
 | Invalidation event contract drafted | Not started |
 | Meta freshness fields + writers | Not started |
 | Ephemera aggregate read wiring | Not started |
@@ -218,16 +284,16 @@ Planning docs use **constellation** for future **Guidance-distance** search ([`l
 
 ## Open decisions
 
-All rows below are **decided** for the initial slice (recorded inline). Reopen only if implementation discovers a gap.
+All rows below are **decided** for the initial slice (recorded inline), including [**Contract gaps (P1--P7)**](#contract-gaps-resolved-at-planning) closed at planning time. Reopen only if implementation discovers a gap.
 
 ### Invalidation events (Assets -> Ephemera)
 
 | # | Question | Decision |
 | --- | --- | --- |
-| I1 | **Wire shape:** new **`ExampleInvalidated`** vs overload **`ExampleRemoved`** / **`ExampleUpdated`** without **`example`**? | **Decided:** new **`ExampleInvalidated`** (no payload body). |
+| I1 | **Wire shape:** new **`ExampleInvalidated`** vs overload **`ExampleRemoved`** / **`ExampleUpdated`** without **`example`**? | **Decided:** new **`ExampleInvalidated`** (no **`example`** body). Variants: **component-scoped** ([**P1**](#contract-gaps-resolved-at-planning), [**P2**](#contract-gaps-resolved-at-planning); **`componentIds`**, facet change on that component); **Situation-scoped** (`exampleId`, **`editAssetStack`**, no **`componentIds`** --- [**S1**](#situation-adjacency-invalidation-fan-out)). No **`perspectiveMatcher`** on wire in v1. |
 | I2 | **Physical delete timing:** eager delete / GC of old **`catalogVersion`** rows? | **Decided:** defer --- no eager delete or TTL for now; lingering rows per state are fine until a new render at that state updates them. Hydrate diff + version gate suffice. |
 | I2b | **If eager delete:** wildcard delete scope on **`CACHE#`** rows? | **N/A** while I2 defers eager delete. |
-| I3 | **Feature / Knowledge parents:** Room-only first vs generalize from day one? | **Decided:** generalize from day one (`ROOM#` / `FEATURE#` / `KNOWLEDGE#` parents, shared **`Cache::${perspectiveKey}`** under each **`EphemeraId`**) to avoid a second sync pipeline later. |
+| I3 | **Feature / Knowledge cache-host components:** Room-only first vs generalize from day one? | **Decided:** generalize from day one (`ROOM#` / `FEATURE#` / `KNOWLEDGE#`, shared **`Cache::${perspectiveKey}`** under each **`EphemeraId`**) to avoid a second sync pipeline later. |
 | I4 | **Component Republished** and diagnostics **reseed:** same invalidation as Updated, or special-case full heal? | **Decided (reseed path):** handle **`Ephemera RenderCache Finding`** in **Ephemera** via catalog invalidation + on-demand hydrate; **drop** Assets **`reseedComponentExamplesFromDiagnostics`** and synthetic **`Component Republished`** for cache heal. See [I4 explained](#i4-explained-component-republished-and-diagnostics-reseed). |
 
 #### I4 explained (Component Republished and diagnostics reseed)
@@ -250,9 +316,41 @@ Two separate mechanisms today both end up in **`mtw.assets.componentExamples`**;
 
 **Decision (reseed + synthetic Republished):** **[`reseedFromDiagnostics.ts`](../../../../../lambda/assets/componentExamples/reseedFromDiagnostics.ts)** and the Assets handler that calls it become **obsolete for cache heal**. Do **not** remap findings to **`ExampleInvalidated`** on Assets unless we intentionally keep a cross-lambda path. Prefer **`mtw.ephemera.*`** (or **`mtw.ephemera.renderCache`**) subscribing to **`Ephemera RenderCache Finding`** (today Ephemera does **not** --- see [`lambda/ephemera/dataSource/AGENT.md`](../../../../../lambda/ephemera/dataSource/AGENT.md)).
 
-**`Component Republished` is not globally dead:** **`mtw.assets`** may still emit it for other subscribers (e.g. **`mtw.assets.components.verticals`** treats Updated / Republished / Removed alike per [`verticals/AGENT.md`](../../../../../lambda/assets/dataSource/components/verticals/AGENT.md)). For **`mtw.assets.componentExamples`**, once reseed is gone, **drop `Component Republished` from the subscription** if nothing else needs a distinct examples invalidation --- **`Component Updated`** / **Removed** (+ Situation fan-out) suffice for blueprint-driven invalidation.
+**`Component Republished` is not globally dead:** **`mtw.assets`** may still emit it for other subscribers (e.g. **`mtw.assets.components.verticals`** treats Updated / Republished / Removed alike per [`verticals/AGENT.md`](../../../../../lambda/assets/dataSource/components/verticals/AGENT.md)). For **`mtw.assets.componentExamples`**, once reseed is gone, **drop `Component Republished` from the subscription** if nothing else needs a distinct examples invalidation --- **`Component Updated`** / **Removed** (component-scoped + Situation-scoped paths per [**S5**](#situation-adjacency-invalidation-fan-out) / [**S1**](#situation-adjacency-invalidation-fan-out)) suffice.
 
-**Lazy vs eager heal on finding:** default **invalidation-only** (same as blueprint edits); optional follow-up to trigger hydrate immediately when diagnostics require a stronger guarantee.
+**Lazy vs eager heal on finding:** **lazy** in v1 ([**P7**](#contract-gaps-resolved-at-planning)) --- invalidation-only; optional eager hydrate deferred unless diagnostics product requires it.
+
+### Situation adjacency (invalidation fan-out)
+
+| # | Question | Decision |
+| --- | --- | --- |
+| S1 | **Assets Situation path:** keep **`getParentIdsForSituation`** blueprint fan-out? | **Decided:** **remove** for Situation **Component Updated** / **Removed**. Emit **one** **`ExampleInvalidated`** per Situation change with **`exampleId`** + **`editAssetStack`** (Situation footprint / edit context). **No `componentIds`**. |
+| S2 | **Ephemera Situation invalidation:** who fans out to host components / perspectives? | **Decided:** **`mtw.ephemera.renderCache`** invalidation handler. **`Query`** **`SITUATION#`** adjacency partition; apply [**S3**](#s3-explained-identical--inheriting-perspectives); bump **`Cache::`** under each link's host **`EphemeraId`**. Subscriber may move off **`mtw.ephemera.examples`** ([**M3**](#catalog-rows-cacheperspectivekey)). |
+| S3 | **Which adjacency rows does one Situation edit invalidate?** | **Decided:** **identical** stacks, **cached superset** of edit (edit prefix of cached), and **cached subset** of edit (cached prefix of edit). See [S3 explained](#s3-explained-identical--inheriting-perspectives). **Not** a single component-event **`perspectiveMatcher`** on the wire for Situation entity edits. |
+| S4 | **When are adjacency rows written/deleted?** | **Decided:** **hydrate diff only** ([**M3**](#catalog-rows-cacheperspectivekey)): put/update on authored slice upsert; delete on delete-by-absence for that **`situationId`** at **`(componentId, perspectiveKey)`**. Store **`assetStack`** on the link. |
+| S5 | **Facet-on-component edits:** still component-scoped invalidation? | **Decided:** **yes**. Room / Feature / Knowledge **Component Updated** / **Removed** (situation facet data on that component) emit **one** component-scoped **`ExampleInvalidated`** per **`componentId`** ([**P1**](#contract-gaps-resolved-at-planning)). Ephemera bumps all existing **`Cache::`** under that **`EphemeraId`**. Adjacency for Situation slices updates on hydrate only. Situation-entity edits use the Situation path ([**S1**](#situation-adjacency-invalidation-fan-out)). |
+
+### Contract gaps (resolved at planning)
+
+Closed before the contracts implementation slice so component/Situation emitters and Ephemera handlers do not improvise.
+
+| # | Question | Decision |
+| --- | --- | --- |
+| P1 | **Component-scoped `ExampleInvalidated`:** one event per component vs per facet? Ephemera bump rule? | **Decided:** **One event per cache-host component** (`ROOM#` / `FEATURE#` / `KNOWLEDGE#`) per **Component Updated** / **Removed** when facet data on that component changed (not one per facet --- prototype per-facet emit is retired). Optional **`affectedSituationIds`** on the wire for logging only; **not** used for bump scope. **Ephemera:** for each **`componentId`** in **`componentIds`**, **`Query`** `DataCategory begins_with 'Cache::'` on that **`EphemeraId`**; **conditional bump every row returned** (V1/M4). Any facet change may change the merged facet catalog at that perspective ([**H2**](#hydration-scope-and-timing)); no matcher filter on component path in v1. |
+| P2 | **`editAssetStack` on Assets** (component and Situation): which algorithm? | **Decided:** shared helper **`editParticipationStackFromFootprint(componentId, eventAssetId, componentDataByAssets)`** in a small assets-local module (lifted from today's **`getOrderedAssetStack`** logic in [`exampleEnrichment.ts`](../../../../../lambda/assets/componentExamples/exampleEnrichment.ts)): assets = union of **`byAssets` `AssetId`s** and **`eventAssetId`**; order = depth along **`_from`** within that set, base-first, **`eventAssetId` last on depth ties**; then **`canonicalizePerspectiveAssetStack`**. This is **edit blast radius on Assets**, **not** Ephemera canon stack ([**A2**](#aggregate-read-surface-cross-lambda), [**L2**](#legacy-mirroring-cleanup)). **Situation** event: footprint = Situation **`ComponentData.byAssets`**. **Component** event: footprint = that component's **`ComponentData.byAssets`**. |
+| P3 | **Who subscribes to `mtw.assets.componentExamples` invalidations?** | **Decided:** **`mtw.ephemera.renderCache`** DataSource gains a subscribed envelope for **`ExampleInvalidated`** (EventBridge from Assets). **`mtw.ephemera.examples`** mirror handler (**`putCacheRecord`** on Example\*) is **removed** in the same migration slice (no long-lived forwarder). Invalidation + catalog/hydrate/adjacency stay in **`renderCache/`** per [**M3**](#catalog-rows-cacheperspectivekey). |
+| H1b | **Non-orchestration readers** (`ComponentRender`, raw **`RenderCache.get`):** call **`ensureAuthoredCatalog`?** | **Decided (v1):** **No.** **`ensureAuthoredCatalog`** runs only on **orchestration resolve** entry points: **`orchestrateRenderRequest`** after successful intake (including **`fanOutStateChangedToPassiveRenders`**). **`ComponentRender`** / perception paths that read cache directly may serve **version-gated** rows that are stale until the next resolve hydrates --- acceptable in v1; gameplay **look** and passive **`Render Requested`** are normative for freshness. Revisit if Workbench preview needs eager hydrate without orchestration. |
+| P5 | **Situation `Component Removed`:** adjacency partition cleanup? | **Decided:** after Situation-scoped invalidation bump ([**S2**](#situation-adjacency-invalidation-fan-out), [**S3**](#s3-explained-identical--inheriting-perspectives)), **delete all rows** under **`EphemeraId = SITUATION#...`** (paginated **`Query`** on partition). Idempotent; empty partition is fine. Do not leave orphan **`Link::...`** rows. |
+| P6 | **Migration / deploy order / dual-write?** | **Decided:** **No dual-write** of authored bodies after cutover. **Order:** (1) Ship Ephemera **catalog rows + invalidation handler + adjacency + `ensureAuthoredCatalog`** (tolerates legacy **`CACHE#`** without **`catalogVersion`** per [**V2**](#catalog-rows-cacheperspectivekey)); (2) Switch Assets to **`ExampleInvalidated`**-only and drop mirror puts; (3) Remove **`mtw.ephemera.examples`** subscriber. Brief overlap where Assets emits invalidations before Ephemera handler is live is OK (bumps no-op on missing **`Cache::`**). **No** byte-parity gate vs mirrored payloads ([**L2**](#legacy-mirroring-cleanup)). |
+| P7 | **Diagnostics `Ephemera RenderCache Finding`:** handler home; eager vs lazy heal? | **Decided:** **`mtw.ephemera.renderCache`** (same module as invalidation) subscribes to diagnostics findings on the Ephemera side; **drop** Assets **`reseedComponentExamplesFromDiagnostics`** ([**I4**](#i4-explained-component-republished-and-diagnostics-reseed)). **`editAssetStack`** = **`canonicalizePerspectiveAssetStack(finding.perspective)`**; **`perspectiveKey`** = **`computePerspectiveKey(editAssetStack)`**. **Targets:** each **`roomId`** in **`finding.roomIds`** (if present) else candidate **`ROOM#`** ids from the same **blueprint scan** as today's reseed **`resolveRoomIdsFromPerspective`** (assetDB/component read --- diagnostics-only, not steady-state Situation invalidation). Per target room: bump **only if** **`Cache::${perspectiveKey}`** exists (V1). **Lazy heal** --- no eager **`ensureAuthoredCatalog`** on finding ([**I4**](#i4-explained-component-republished-and-diagnostics-reseed)). F/K scoped findings deferred unless diagnostic adds F/K ids later. |
+
+#### P2 vs canon stack (context)
+
+**Assets `editAssetStack`** answers "where did this edit happen in component footprint?" **Ephemera `assetStack` on resolve** answers "what participation order does this player/room use?" ([**resolveCanonAssetStackForRoom**](../../../../../lambda/ephemera/dataSource/state/resolveAssetStackForRoom.ts) + [**A2**](#aggregate-read-surface-cross-lambda)). They **may differ** on branched imports; that is expected. Situation invalidation expansion ([**S3**](#s3-explained-identical--inheriting-perspectives)) compares **edit** stack to **adjacency `assetStack`** (stored at hydrate = canon stack for that resolve).
+
+#### S3 prefix rule (implementation)
+
+**Prefix** means **contiguous initial subsequence** after **`canonicalizePerspectiveAssetStack`** on both sides. Unequal stacks with no prefix relation do not match. Reordering assets changes **`perspectiveKey`**; no separate "set equality" rule in v1.
 
 ### Catalog rows (`Cache::${perspectiveKey}`)
 
@@ -271,8 +369,8 @@ Two separate mechanisms today both end up in **`mtw.assets.componentExamples`**;
 
 | # | Question | Decision |
 | --- | --- | --- |
-| H1 | **When to hydrate?** | **Decided:** **only** on orchestration resolve (no separate authoring warm-catalog action in v1). |
-| H2 | **What to materialize?** | **Decided (v1):** **all** situation facets on the merged parent at this **`assetStack`** / perspective (catalog is room x perspective; hydrate the full facet catalog per slice). |
+| H1 | **When to hydrate?** | **Decided:** **only** on orchestration resolve ([**H1b**](#contract-gaps-resolved-at-planning) --- not **`ComponentRender`** / raw cache reads in v1). |
+| H2 | **What to materialize?** | **Decided (v1):** **all** situation facets on the merged cache-host component at this **`assetStack`** / perspective (catalog is component x perspective; hydrate the full facet catalog per slice). |
 | H3 | **Coalescing?** | **Decided:** **separate** **`singleFlight`** cohort key from generation. |
 | H4 | **Delete generated rows on version bump?** | **Decided:** **no** --- leave old-version generated rows; v1 ignores them ([**V3**](#catalog-rows-cacheperspectivekey)). |
 | H5 | **Hydrate diff identity?** | **Decided:** **`situationId`** only (each Situation has a unique **markState**). **Delete-by-absence** and upsert keys use **`situationId`**. |
@@ -284,8 +382,8 @@ Two separate mechanisms today both end up in **`mtw.assets.componentExamples`**;
 | --- | --- | --- |
 | A1 | **Ephemera access:** how does Ephemera call merged-component assembly? | **Decided (pattern):** follow [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) **compute-only** playbook --- **not** a synchronous Assets Lambda API and **not** importing Assets **`internalCache`**. Register **`createComponentAggregateCacheHandler(slice)`** on Ephemera **`InternalCache`** (same primary surface as assets). **`slice`** = **`ComponentData`** + **`ComponentVerticals`** loaders with the **same `get` contracts** as assets ([`ComponentAggregateInternalCacheSlice`](../../../../../packages/mtw-gateways/ts/assets/components/aggregate/ports.ts)), typically **`createAuthoritativeComponentDataCacheHandler(assetDB)`** + **`createImportVerticalMetaCacheHandler(assetDB)`** on Ephemera's existing **`assetDB`** client. **Not** sufficient alone: **`ComponentAssetMeta`** (ephemera meta cache) uses a different read shape (`getItems` per asset list) than authoritative partition **`Query`** merge assembly expects. **Secondary** **`createComponentAggregateGateway`** is for tests/parity only. Hydration then calls [**A3**](#aggregate-read-surface-cross-lambda) (renderCache-local) on the merged parent. |
 | A2 | **Participation order:** always caller-supplied canon stack ([`resolveCanonAssetStackForRoom`](../../../../../lambda/ephemera/dataSource/state/resolveAssetStackForRoom.ts) / state helpers) vs ever graph-derived order from verticals? | **Decided (v1):** keep caller-supplied canon stack via **`resolveCanonAssetStackForRoom`** (and existing state helpers) for **`assetStack`** passed into aggregate + hydrate. **Defer** any optimization that derives participation order from **`ComponentVerticals`** / import graph to a later pass. |
-| A3 | **Facet assembly API:** batch **"all authored slices for parent at stack"** vs per-situation calls; **`mtw-gateways`** or renderCache-local? | **Decided:** **batch** desired-set assembly in **one pass** (merged parent -> all situation facet cache-shaped slices keyed by **`situationId`**). **Scope:** **`renderCache` / hydrate only** --- not a new **`mtw-gateways`** tree. Assets **`componentExamples`** moves to **invalidation-only** and does not need this surface post-migration; reuse or lift pure helpers from [`exampleEnrichment.ts`](../../../../../lambda/assets/componentExamples/exampleEnrichment.ts) (e.g. **`situationFacetToCacheShape`**) inside **`lambda/ephemera/dataSource/renderCache/`** rather than publishing a cross-lambda gateway. |
-| A4 | **Lens marks on Room:** lens default resolution inside hydration vs aggregate gateway vs pre-step? | **Decided:** **inside hydration** (renderCache batch assembly, [**A3**](#aggregate-read-surface-cross-lambda)), **not** on **`ComponentAggregate`**. **v1 Room-only:** when building cache-shaped slices for a **`ROOM#`** parent, resolve lens marks with defaults the same way as today's [`resolveLensMarksWithDefaultsForRoom`](../../../../../lambda/assets/componentExamples/index.ts) (merged room's lens ref -> merged **`StandardLens`** at stack -> **`getLensMarksWithDefaults`** -> pass into **`situationFacetToCacheShape`**). Port or lift that helper into **`renderCache/`**; use [**A1**](#aggregate-read-surface-cross-lambda) for merged room/lens reads instead of legacy **`mergeRoomAcrossStack`** / **`getOrderedAssetStack`**. Feature/Knowledge hydrate without lens defaults until those paths need them. |
+| A3 | **Facet assembly API:** batch **"all authored slices for component at stack"** vs per-situation calls; **`mtw-gateways`** or renderCache-local? | **Decided:** **batch** desired-set assembly in **one pass** (merged cache-host component -> all situation facet cache-shaped slices keyed by **`situationId`**). **Scope:** **`renderCache` / hydrate only** --- not a new **`mtw-gateways`** tree. Assets **`componentExamples`** moves to **invalidation-only** and does not need this surface post-migration; reuse or lift pure helpers from [`exampleEnrichment.ts`](../../../../../lambda/assets/componentExamples/exampleEnrichment.ts) (e.g. **`situationFacetToCacheShape`**) inside **`lambda/ephemera/dataSource/renderCache/`** rather than publishing a cross-lambda gateway. |
+| A4 | **Lens marks on Room:** lens default resolution inside hydration vs aggregate gateway vs pre-step? | **Decided:** **inside hydration** (renderCache batch assembly, [**A3**](#aggregate-read-surface-cross-lambda)), **not** on **`ComponentAggregate`**. **v1 Room-only:** when building cache-shaped slices for a **`ROOM#`** component, resolve lens marks with defaults the same way as today's [`resolveLensMarksWithDefaultsForRoom`](../../../../../lambda/assets/componentExamples/index.ts) (merged room's lens ref -> merged **`StandardLens`** at stack -> **`getLensMarksWithDefaults`** -> pass into **`situationFacetToCacheShape`**). Port or lift that helper into **`renderCache/`**; use [**A1**](#aggregate-read-surface-cross-lambda) for merged room/lens reads instead of legacy **`mergeRoomAcrossStack`** / **`getOrderedAssetStack`**. Feature/Knowledge hydrate without lens defaults until those paths need them. |
 
 ### Orchestration integration
 
@@ -293,13 +391,13 @@ Two separate mechanisms today both end up in **`mtw.assets.componentExamples`**;
 | --- | --- | --- |
 | O1 | **Placement:** hydrate inside **`findRender`** before **`getExactMatch`**, or separate **`ensureAuthoredCatalog`**? | **Decided:** separate **`ensureAuthoredCatalog`** in **`renderCache/`**, invoked from [`orchestrationHandler.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts) (and other resolve entry points such as state fan-out) **after** successful intake, **before** **`findRender`**. Keeps **`findRender`** focused on pointer / exact-match / generation policy. |
 | O2 | **Pass-through contract:** new orchestration outbound for "catalog hydrated", or silent side effect? | **Decided:** **silent** side effect --- no new **`mtw.ephemera.renderOrchestration`** outbound. Existing terminals (**`Exact Match Found`**, **`Current Cache Valid`**, generation events) unchanged; subscribers observe hydrated rows only via subsequent cache reads. |
-| O3 | **Feature/Knowledge perception:** still DEFAULT-only resolve; hydrate scope? | **Decided:** **no change** to v1 perception resolve semantics --- Feature/Knowledge (and primitive rooms without lens marks) still select the **`SITUATION#DEFAULT`** authored row via [`selectDefaultSituationCacheRecord`](../../../../../lambda/ephemera/dataSource/renderCache/selectDefaultSituationCacheRecord.ts) for exact match / generation. **Hydrate still runs first** and materializes the **full** facet catalog per parent at stack ([**H2**](#hydration-scope-and-timing), [**I3**](#invalidation-events-assets---ephemera)) so non-DEFAULT situations are in Dynamo when Room-scale perception needs them; DEFAULT-only **resolve** does not imply DEFAULT-only **hydrate**. Broader F/K perception (non-DEFAULT situations) remains out of scope for this initiative. |
+| O3 | **Feature/Knowledge perception:** still DEFAULT-only resolve; hydrate scope? | **Decided:** **no change** to v1 perception resolve semantics --- Feature/Knowledge (and primitive rooms without lens marks) still select the **`SITUATION#DEFAULT`** authored row via [`selectDefaultSituationCacheRecord`](../../../../../lambda/ephemera/dataSource/renderCache/selectDefaultSituationCacheRecord.ts) for exact match / generation. **Hydrate still runs first** and materializes the **full** facet catalog per component at stack ([**H2**](#hydration-scope-and-timing), [**I3**](#invalidation-events-assets---ephemera)) so non-DEFAULT situations are in Dynamo when Room-scale perception needs them; DEFAULT-only **resolve** does not imply DEFAULT-only **hydrate**. Broader F/K perception (non-DEFAULT situations) remains out of scope for this initiative. |
 
 ### Legacy mirroring cleanup
 
 | # | Question | Decision / notes |
 | --- | --- | --- |
-| L1 | **`exampleEnrichment.ts`:** delete after parity, or keep matchers-only for invalidation emission? | **Decided:** **delete** the module after hydrate + invalidation parity. Move any still-needed **invalidation matcher** helpers (e.g. parent/situation discovery, **`perspectiveMatcher`**) into a small assets-local file; do not keep merge-at-push or cache-payload builders. |
+| L1 | **`exampleEnrichment.ts`:** delete after parity, or keep matchers-only for invalidation emission? | **Decided:** **delete** the module after hydrate + invalidation parity. **Do not** retain **`getParentIdsForSituation`** ([**S1**](#situation-adjacency-invalidation-fan-out)). Component-path helpers only if still needed (e.g. **`editParticipationStackFromFootprint`** on component update); no merge-at-push or cache-payload builders. |
 | L2 | **Merge order:** legacy **`getOrderedAssetStack`** vs new aggregate / canon stack --- does order matter for players? | **Decided:** **known, intentional product change** --- already analyzed when **`ComponentAggregate`** and canon-stack perception were defined ([`AGENT.componentAggregate.planning.md`](../../../assets/AGENT.componentAggregate.planning.md)). **Normative** order for hydrate and resolve: caller-supplied **`mergeParticipationOrder`** / canon stack ([**A2**](#aggregate-read-surface-cross-lambda)), **not** **`getOrderedAssetStack`**. Do **not** treat row diffs vs old mirrored payloads as regressions; parity work validates invalidation + hydrate mechanics, not byte-identical legacy merge order. |
 | L3 | **`ExampleAdded`:** ever emitted, or remove from types when mirroring ends? | **Decided:** **remove** from EventBridge / handler types when mirroring ends. Production assets code today emits only **`ExampleUpdated`** / **`ExampleRemoved`**; **`ExampleAdded`** exists for wire compatibility only. |
 
@@ -313,14 +411,15 @@ Legacy mirroring used **`getOrderedAssetStack`** in [`exampleEnrichment.ts`](../
 
 Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` when done.
 
-- [X] **Design pass:** resolve [**Open decisions**](#open-decisions) I1--L3
-- [ ] **Contracts:** draft invalidation payload types (`mtw-interfaces` EventBridge + ephemera subscriber guard)
+- [X] **Design pass:** resolve [**Open decisions**](#open-decisions) I1--L3, S1--S5, P1--P7
+- [ ] **Contracts:** draft **`ExampleInvalidated`** per I1/P1/P2 (component-scoped vs Situation-scoped; **`componentIds`** / **`editAssetStack`**; optional **`affectedSituationIds`**); adjacency row types (`hostEphemeraId` in link SK); ephemera invalidation guards; diagnostics finding handler types (P7)
 - [ ] **Catalog row schema:** define **`Cache::${perspectiveKey}`** / **`EphemeraCacheCatalogRow`** in **`mtw.ephemera.renderCache`** (CRUD + conditional bump per M4/V1); migrate **`currentCacheId`** off **`Meta::Room`** (M2)
+- [ ] **Situation adjacency:** CRUD helpers + hydrate diff maintenance (S4); Situation invalidation handler with S3 perspective expansion (S2)
 - [ ] **Ephemera aggregate wiring:** callable hydration read surface (see A1--A4)
-- [ ] **Invalidation handler:** replace eager puts in [`componentExamples.ts`](../../../../../lambda/ephemera/dataSource/componentExamples.ts) (meta stale + pointer clear; row delete per I2)
-- [ ] **Assets emitter:** refactor [`componentExamples/index.ts`](../../../../../lambda/assets/componentExamples/index.ts) to invalidations-only
+- [ ] **Invalidation handler:** in **`mtw.ephemera.renderCache`** (P3) --- component-scoped path (P1); Situation path (S2/S3, P5 cleanup on Removed); diagnostics finding (P7); retire [`componentExamples.ts`](../../../../../lambda/ephemera/dataSource/componentExamples.ts) mirror + Assets reseed
+- [ ] **Assets emitter:** refactor [`componentExamples/index.ts`](../../../../../lambda/assets/componentExamples/index.ts) to invalidations-only (P1 one event per cache-host component, P2 **`editParticipationStackFromFootprint`**); Situation path per S1; drop **`emitSituationComponentFacetEvents`** / **`getParentIdsForSituation`**
 - [ ] **Hydration step:** **`ensureAuthoredCatalog`** (O1/O2) + aggregate desired set + **diff** put/delete authored rows + catalog ready + coalescing; wire from **`orchestrationHandler`** before **`findRender`**
-- [ ] **Tests:** invalidation matching, hydrate diff (including facet removal), hydrate-then-exact-match, reseed/diagnostics parity
+- [ ] **Tests:** Situation adjacency hydrate + S3 invalidation (A / A+B subset case), component-scoped invalidation, hydrate diff (facet removal), hydrate-then-exact-match, reseed/diagnostics parity
 - [ ] **Docs:** update [`renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md) (**Mirroring vs runtime**), [`componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md), [`AGENT.event.md`](../../../../../lambda/assets/AGENT.event.md); trim stale Example-filter prose
 - [ ] **Dispose this plan** per [`taskPlanning/AGENT.md`](../../../../AGENT.md)
 
@@ -337,7 +436,7 @@ cd lambda/assets && npm test -- --testPathPattern=componentExamples
 cd packages/mtw-gateways && npm test -- --testPathPattern=aggregate
 ```
 
-After implementation, add slice-specific patterns (invalidation deletes, hydration + exact match integration, meta stale/ready).
+After implementation, add slice-specific patterns (Situation adjacency + perspective expansion, component-scoped invalidation, hydration + exact match integration, meta stale/ready).
 
 ---
 
