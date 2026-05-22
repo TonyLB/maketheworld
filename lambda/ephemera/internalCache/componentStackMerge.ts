@@ -1,4 +1,4 @@
-import { ComponentAssetMetaData } from './componentAssetMeta'
+import type { ComponentDataCache } from '@tonylb/mtw-gateways/ts/assets/components/componentData'
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import CacheGlobalData from './global'
 import { excludeUndefined, unique } from '@tonylb/mtw-utilities/ts/lists'
@@ -85,7 +85,7 @@ export function roomCharacterListToStandardCharacterData(
 
 /** Room structural merge cache; key is (characterId, roomId). A future migration toward (componentId, perspectiveKey) would align with render / perception perspectiveKey usage. */
 export class ComponentStackMergeData {
-    _componentAssetMeta: (EphemeraId: ComponentUUID, assetList: AssetUUID[]) => Promise<Record<AssetUUID, StandardComponent>>
+    _componentData: (EphemeraId: ComponentUUID, assetList: AssetUUID[]) => Promise<Record<AssetUUID, StandardComponent>>
     _roomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>
     _getAssets: () => Promise<string[]>
     _characterMeta: (characterId: EphemeraCharacterId) => Promise<CharacterMetaItem>
@@ -94,13 +94,13 @@ export class ComponentStackMergeData {
     _Store: Record<string, StandardForm> = {}
 
     constructor(
-        componentAssetMeta: ComponentAssetMetaData,
+        componentData: ComponentDataCache,
         roomCharacterList: CacheRoomCharacterListsData,
         globalCache: CacheGlobalData,
         characterMeta: CacheCharacterMetaData,
         getMetaRoom: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
     ) {
-        this._componentAssetMeta = (EphemeraId, assetList) => componentAssetMeta.getAcrossAssets(EphemeraId, assetList)
+        this._componentData = (EphemeraId, assetList) => componentData.getAcrossAssets(EphemeraId, assetList)
         this._roomCharacterList = (RoomId) => roomCharacterList.get(RoomId)
         this._getAssets = async () => (await globalCache.get('assets')) || []
         this._characterMeta = (characterId) => characterMeta.get(characterId)
@@ -141,7 +141,7 @@ export class ComponentStackMergeData {
         ])
 
         const allAssets: AssetUUID[] = unique(globalAssets || [], characterAssets).map((key) => AssetKey(key))
-        const appearancesByAsset = (await this._componentAssetMeta(
+        const appearancesByAsset = (await this._componentData(
             EphemeraRoomId,
             allAssets.map((key) => AssetKey(key))
         )) as Record<AssetUUID, StandardComponent>

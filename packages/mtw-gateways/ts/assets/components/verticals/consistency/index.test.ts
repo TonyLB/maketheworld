@@ -7,7 +7,7 @@ import {
 } from './index'
 import type { ImportVerticalHop } from '../fetch'
 import { metaImportDataCategory, stripAssetIdForSortKey } from '../keys'
-import { authoritativeComponentDataFromUniversalPartitionRows } from '../../assetMeta/dynamoStandardComponents'
+import { authoritativeComponentDataFromUniversalPartitionRows } from '../../componentData/dynamoStandardComponents'
 
 const universalKey = 'ROOM#r1' as EphemeraId
 

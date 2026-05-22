@@ -2,7 +2,7 @@
 
 ## Overview
 
-`ComponentEphemeraMetaData` is a read-through cache for **ephemeraDB** rows that hold component-scoped **current-state** metadata, distinct from [`ComponentAssetMeta`](./componentAssetMeta.AGENT.md) (assetDB blueprint / WML `StandardComponent` data).
+`ComponentEphemeraMetaData` is a read-through cache for **ephemeraDB** rows that hold component-scoped **current-state** metadata, distinct from [`ComponentData`](./componentData.AGENT.md) (assetDB blueprint / WML `StandardComponent` data).
 
 **v1 scope:** `Meta::Room` only. Values use the shared type [`EphemeraMetaRoom`](../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) (`DataCategory: 'Meta::Room'`).
 

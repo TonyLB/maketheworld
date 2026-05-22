@@ -1,11 +1,11 @@
-import { createAuthoritativeComponentDataCacheHandler } from './authoritativeComponentDataCache'
+import { createExhaustiveScanCacheHandler } from './exhaustiveScanCache'
 
-describe('createAuthoritativeComponentDataCacheHandler', () => {
+describe('createExhaustiveScanCacheHandler', () => {
     it('returns default empty byAssets when partition query is empty', async () => {
         const assetDB = {
             query: jest.fn().mockResolvedValue([]),
         }
-        const cache = createAuthoritativeComponentDataCacheHandler(assetDB)
+        const cache = createExhaustiveScanCacheHandler(assetDB)
         const id = 'ROOM#onlyDefault' as const
         const [row] = await cache.get([id])
         expect(row.ComponentId).toBe(id)
@@ -20,7 +20,7 @@ describe('createAuthoritativeComponentDataCacheHandler', () => {
         const assetDB = {
             query: jest.fn().mockResolvedValue([]),
         }
-        const cache = createAuthoritativeComponentDataCacheHandler(assetDB)
+        const cache = createExhaustiveScanCacheHandler(assetDB)
         const id = 'FEATURE#inv' as const
         await cache.get([id])
         expect(assetDB.query).toHaveBeenCalledTimes(1)

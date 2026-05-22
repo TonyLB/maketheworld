@@ -588,7 +588,8 @@ export class StandardForm {
                 options: { 
                     key: placeholderKey, 
                     parent: undefined, 
-                    organization: organizationContext 
+                    organization: organizationContext,
+                    mappings: mapKeys,
                 } 
             }))
             .filter(excludeUndefined)

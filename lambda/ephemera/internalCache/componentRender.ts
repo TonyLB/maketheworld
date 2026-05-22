@@ -1,4 +1,4 @@
-import { ComponentAssetMetaData } from './componentAssetMeta'
+import type { ComponentDataCache } from '@tonylb/mtw-gateways/ts/assets/components/componentData'
 import {
     generateEphemeraComponentCacheKey,
     mergeRoomExitsToJSON,
@@ -74,7 +74,7 @@ export const isComponentKey = (key) => (['ROOM', 'FEATURE'].includes(splitType(k
 export class ComponentRenderData {
     _renderCache: RenderCacheData;
     // _evaluateCode removed - Variable/Computed evaluation no longer needed
-    _componentAssetMeta: (EphemeraId: ComponentUUID, assetList: AssetUUID[]) => Promise<Record<AssetUUID, StandardComponent>>;
+    _componentData: (EphemeraId: ComponentUUID, assetList: AssetUUID[]) => Promise<Record<AssetUUID, StandardComponent>>;
     _roomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>;
     _getAssets: () => Promise<string[]>;
     _characterMeta: (characterId: EphemeraCharacterId) => Promise<CharacterMetaItem>;
@@ -82,7 +82,7 @@ export class ComponentRenderData {
     _Store: Record<ComponentUUID, StandardForm> = {}
     
     constructor(
-        componentAssetMeta: ComponentAssetMetaData,
+        componentData: ComponentDataCache,
         roomCharacterList: CacheRoomCharacterListsData,
         globalCache: CacheGlobalData,
         characterMeta: CacheCharacterMetaData,
@@ -90,7 +90,7 @@ export class ComponentRenderData {
     ) {
         this._renderCache = renderCache
         // _evaluateCode removed - Variable/Computed evaluation no longer needed
-        this._componentAssetMeta = (EphemeraId, assetList) => (componentAssetMeta.getAcrossAssets(EphemeraId, assetList))
+        this._componentData = (EphemeraId, assetList) => (componentData.getAcrossAssets(EphemeraId, assetList))
         this._roomCharacterList = (RoomId) => (roomCharacterList.get(RoomId))
         this._getAssets = async () => (await globalCache.get('assets') || [])
         this._characterMeta = (characterId) => (characterMeta.get(characterId))
@@ -170,7 +170,7 @@ export class ComponentRenderData {
         ]);
 
         const allAssets: AssetUUID[] = unique(globalAssets || [], characterAssets).map((key) => AssetKey(key));
-        const appearancesByAsset = await this._componentAssetMeta(EphemeraId, allAssets.map((key) => AssetKey(key))) as Record<AssetUUID, StandardComponent>;
+        const appearancesByAsset = await this._componentData(EphemeraId, allAssets.map((key) => AssetKey(key))) as Record<AssetUUID, StandardComponent>;
 
         if (isEphemeraRoomId(EphemeraId)) {
             const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as StandardRoom[];
@@ -261,7 +261,7 @@ export class ComponentRenderData {
             //
             const roomMetaPromise = Promise.all((merged?.positions.items ?? []).map(async (facet) => {
                 const ephemeraId = facet.reference.universalKey as EphemeraRoomId
-                const metaByAsset = await this._componentAssetMeta(ephemeraId, unique(globalAssets || [], characterAssets) as AssetUUID[])
+                const metaByAsset = await this._componentData(ephemeraId, unique(globalAssets || [], characterAssets) as AssetUUID[])
                 const roomMeta = allAssets
                     .map((assetId) => (metaByAsset[assetId] ? [metaByAsset[assetId]] : []))
                     .flat(1) as StandardRoom[]

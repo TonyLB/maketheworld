@@ -1,16 +1,16 @@
 import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
-import { tagFromEphemeraId } from '@tonylb/mtw-utilities/ts/graphStorage/cache'
 import type { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { isStandardNDJSONLine } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
-import { isStandardComponentData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
+
+export type { AssetDbGetItemsComponentRow } from './fetch'
+export { standardComponentPairFromAssetDbGetItemsRow } from './fetch'
 
 /**
  * Parsed authoritative components for one universal component id (same envelope as assets lambda
- * `internalCache.ComponentData` `ComponentDataCache`).
+ * `internalCache.ComponentData` partition reads and participation-scoped batch assembly).
  */
 export type AuthoritativeComponentData = {
     ComponentId: EphemeraId
@@ -21,36 +21,8 @@ export type AuthoritativeComponentData = {
 }
 
 /**
- * One `getItems` row for `(EphemeraId, DataCategory = asset id)`; same row shape as `ComponentAssetMetaAssetDB.getItems`.
- */
-export type AssetDbGetItemsComponentRow = Omit<StandardComponentData, 'universalKey' | 'tag'> & {
-    DataCategory?: AssetUUID
-    AssetId: ComponentUUID
-}
-
-/**
- * Maps a keyed Dynamo row from `getItems` into `{ assetId, component }` (ephemera `ComponentAssetMeta` path).
- */
-export function standardComponentPairFromAssetDbGetItemsRow(
-    EphemeraId: ComponentUUID,
-    value: AssetDbGetItemsComponentRow
-): { assetId: AssetUUID; component: StandardComponent } {
-    const { DataCategory, AssetId: _assetId, ...rest } = value
-    const assetId = DataCategory as AssetUUID
-    const componentData = { universalKey: EphemeraId, tag: tagFromEphemeraId(EphemeraId), ...rest }
-    if (!isStandardComponentData(componentData)) {
-        throw new Error(`Invalid component data for EphemeraId: ${EphemeraId} and DataCategory: ${DataCategory}`)
-    }
-    const { component } = standardComponentFactory(componentData)
-    if (!component) {
-        throw new Error(`Failed to create component for EphemeraId: ${EphemeraId} and DataCategory: ${DataCategory}`)
-    }
-    return { assetId, component }
-}
-
-/**
  * Universal-key partition `Query` rows (`AssetId` = universal component id, `DataCategory` = child asset id).
- * Same NDJSON mapping as {@link AuthoritativeComponentDataCache} (partition `Query` inside **`createAuthoritativeComponentDataCacheHandler`**).
+ * Maintenance-only: use via {@link exhaustiveComponentPartitionScan}, not hot paths.
  */
 export function authoritativeComponentDataFromUniversalPartitionRows(
     componentId: EphemeraId,

@@ -5,19 +5,18 @@ import {
 } from '@tonylb/mtw-gateways/ts/assets/components/verticals'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../../internalCache'
+import { exhaustivePartitionLoader } from './exhaustivePartitionLoader'
 
 /**
  * Reconciles all `Meta::Import::...` rows for one universal component partition from authoritative
  * cached component rows (same derivation as live projector + heal).
  *
- * Cold path: both loaders are satisfied by the lambda `InternalCache` directly
- * (`ComponentData.get` for the authoritative partition, `ComponentVerticals.get` for the
- * `Meta::Import` projection); see `lambda/assets/internalCache/AGENT.md` for future shared
- * partition memoization.
+ * Authoritative partition reads use module-local `exhaustivePartitionLoader` (`exhaustiveScanCache`
+ * subpath). `Meta::Import` projection uses `internalCache.ComponentVerticals`.
  */
 export async function syncImportVerticalPartition(universalKey: EphemeraId): Promise<void> {
     const deps: ImportVerticalConsistencyAnalyzerDeps = {
-        authoritativeComponentData: internalCache.ComponentData,
+        authoritativeComponentData: exhaustivePartitionLoader,
         metaImportProjection: internalCache.ComponentVerticals,
     }
 

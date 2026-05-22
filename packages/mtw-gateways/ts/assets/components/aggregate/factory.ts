@@ -1,4 +1,4 @@
-import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 
 import { mergeAuthoritativeAcrossParticipationOrder } from './assemble'
@@ -7,7 +7,8 @@ import { aggregatePerspectiveCacheKey } from './keys'
 import type { ComponentAggregateInternalCacheSlice } from './ports'
 import { mergedComponentResult, type MergedComponentResult } from './result'
 
-import type { AuthoritativeComponentData } from '../assetMeta/dynamoStandardComponents'
+import type { AuthoritativeComponentData } from '../componentData/dynamoStandardComponents'
+import { authoritativeFromParticipationOrder } from '../componentData/participationBatch'
 
 type BatchMergePayload = {
     keys: string[]
@@ -71,28 +72,22 @@ export class ComponentAggregateMergedCache {
 
                 const universalKeys = [...new Set(batchPerspectives.map((p) => p.universalKey))]
                 const [authoritativeRows, verticalRows] = await Promise.all([
-                    this.slice.ComponentData.get(universalKeys),
+                    Promise.all(
+                        batchPerspectives.map((perspective) =>
+                            authoritativeFromParticipationOrder(
+                                perspective.universalKey as ComponentUUID,
+                                perspective.mergeParticipationOrder,
+                                this.slice.ComponentData
+                            )
+                        )
+                    ),
                     this.slice.ComponentVerticals.get(universalKeys),
                 ])
                 void verticalRows
 
-                const authoritativeByUniversal = new Map<EphemeraId, AuthoritativeComponentData>()
-                universalKeys.forEach((uk, i) => {
-                    authoritativeByUniversal.set(
-                        uk,
-                        authoritativeRows[i] ??
-                            ({ ComponentId: uk, byAssets: [] } satisfies AuthoritativeComponentData)
-                    )
-                })
-
-                const out = fetchNeeded.map((key) => {
+                const out = fetchNeeded.map((key, index) => {
                     const perspective = perspectiveByKey.get(key)!
-                    const authoritative =
-                        authoritativeByUniversal.get(perspective.universalKey) ??
-                        ({
-                            ComponentId: perspective.universalKey,
-                            byAssets: [],
-                        } satisfies AuthoritativeComponentData)
+                    const authoritative = authoritativeRows[index]!
                     return mergedComponentFromAuthoritative(perspective, authoritative)
                 })
                 return { keys: fetchNeeded, mergedResults: out }

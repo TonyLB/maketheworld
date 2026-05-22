@@ -11,6 +11,7 @@ describe('InternalCache ComponentAggregate registration', () => {
     beforeEach(() => {
         internalCache.clear()
         jest.clearAllMocks()
+        assetDBMock.getItems.mockResolvedValue([] as any)
         assetDBMock.query.mockResolvedValue([] as any)
     })
 
@@ -23,7 +24,7 @@ describe('InternalCache ComponentAggregate registration', () => {
         })
         const [result] = await internalCache.ComponentAggregate.get([perspective])
         expect(result.universalKey).toBe(roomU)
-        expect(assetDBMock.query).toHaveBeenCalled()
+        expect(assetDBMock.getItems).toHaveBeenCalled()
     })
 
     it('does not re-query Dynamo on aggregate cache hit until InternalCache.clear', async () => {
@@ -34,13 +35,13 @@ describe('InternalCache ComponentAggregate registration', () => {
             mergeParticipationOrder: [assetA],
         })
         await internalCache.ComponentAggregate.get([perspective])
-        const queriesAfterFirst = assetDBMock.query.mock.calls.length
+        const getItemsAfterFirst = assetDBMock.getItems.mock.calls.length
 
         await internalCache.ComponentAggregate.get([perspective])
-        expect(assetDBMock.query.mock.calls.length).toEqual(queriesAfterFirst)
+        expect(assetDBMock.getItems.mock.calls.length).toEqual(getItemsAfterFirst)
 
         internalCache.clear()
         await internalCache.ComponentAggregate.get([perspective])
-        expect(assetDBMock.query.mock.calls.length).toBeGreaterThan(queriesAfterFirst)
+        expect(assetDBMock.getItems.mock.calls.length).toBeGreaterThan(getItemsAfterFirst)
     })
 })

@@ -10,7 +10,7 @@ export type ComponentEphemeraMetaItem = EphemeraMetaRoom
 
 /**
  * Read-through cache for ephemeraDB `Meta::Room` rows (`EphemeraMetaRoom`).
- * Mirrors the lazy-map pattern in {@link characterMeta.ts}; not using DeferredCache (see componentAssetMeta).
+ * Mirrors the lazy-map pattern in {@link characterMeta.ts}; not using DeferredCache (see componentData).
  */
 export class ComponentEphemeraMetaData {
     /** Absent key = not cached; `null` = cached miss (no row). */

@@ -1,8 +1,8 @@
 import { componentTagFromUpperCase } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/abstract'
-import { defaultComponentFromTag } from '@tonylb/mtw-wml/ts/standardize/baseClasses';
-import { AssetUUID, ComponentUUID, isSchemaAssetUUID, isSchemaComponentUUID } from '@tonylb/mtw-base/ts/schema';
-import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses';
-import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory';
+import { defaultComponentFromTag } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { AssetUUID, ComponentUUID, isSchemaAssetUUID, isSchemaComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
+import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 import { cacheKeyComponents } from './keys'
 
 export const tagFromEphemeraWrappedId = (ephemeraId: string) => {
@@ -15,14 +15,14 @@ export const tagFromEphemeraWrappedId = (ephemeraId: string) => {
 
 export const defaultStoredEntryForCacheKey = (cacheKey: string): { assetId: AssetUUID; component: StandardComponent } => {
     if (typeof cacheKey !== 'string' || !cacheKey.includes('::')) {
-        throw new Error('Invalid cache key format in ComponentAssetMeta internalCache')
+        throw new Error('Invalid cache key format in ComponentData internalCache')
     }
     const { assetId, EphemeraId } = cacheKeyComponents(cacheKey as `${AssetUUID}::${ComponentUUID}`)
     if (!isSchemaComponentUUID(EphemeraId)) {
-        throw new Error('Invalid EphemeraId in ComponentAssetMeta internalCache')
+        throw new Error('Invalid EphemeraId in ComponentData internalCache')
     }
     if (!isSchemaAssetUUID(assetId)) {
-        throw new Error('Invalid assetId in ComponentAssetMeta internalCache')
+        throw new Error('Invalid assetId in ComponentData internalCache')
     }
     const tag = tagFromEphemeraWrappedId(EphemeraId)
     const defaultData = defaultComponentFromTag(tag, undefined, EphemeraId)
@@ -32,6 +32,6 @@ export const defaultStoredEntryForCacheKey = (cacheKey: string): { assetId: Asse
     }
     return {
         assetId,
-        component: defaultComponent
+        component: defaultComponent,
     }
 }

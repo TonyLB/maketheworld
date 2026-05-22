@@ -1,9 +1,9 @@
 import {
     generateCacheKey,
     cacheKeyComponents,
+    componentPairCacheKey,
     metaDataCategoryForEphemeraId,
     fetchComponentsForAssets,
-    fetchCachedAssetIdsForComponent,
     defaultStoredEntryForCacheKey,
     authoritativeComponentDataFromUniversalPartitionRows,
     componentRowsFromUniversalPartitionLines,
@@ -11,13 +11,14 @@ import {
     type ComponentAssetMetaAssetDB,
 } from './index'
 
-describe('component asset meta gateway', () => {
-    describe('generateCacheKey / cacheKeyComponents', () => {
+describe('component data gateway', () => {
+    describe('componentPairCacheKey / cacheKeyComponents', () => {
         it('round-trips a valid compound key', () => {
             const ephemeraId = 'ROOM#TestOne' as const
             const assetId = 'ASSET#Base' as const
-            const key = generateCacheKey(ephemeraId, assetId)
+            const key = componentPairCacheKey(ephemeraId, assetId)
             expect(key).toBe('ASSET#Base::ROOM#TestOne')
+            expect(generateCacheKey(ephemeraId, assetId)).toBe(key)
             expect(cacheKeyComponents(key)).toEqual({ EphemeraId: ephemeraId, assetId })
         })
 
@@ -125,21 +126,6 @@ describe('component asset meta gateway', () => {
 
             expect(rows).toHaveLength(1)
             expect(rows[0].assetId).toBe('ASSET#Base')
-        })
-    })
-
-    describe('fetchCachedAssetIdsForComponent', () => {
-        it('maps cached strings through AssetKey', async () => {
-            const getItem = jest.fn().mockResolvedValue({ cached: ['alpha', 'beta'] })
-            const assetDB = { getItems: jest.fn(), getItem } as unknown as ComponentAssetMetaAssetDB
-
-            const ids = await fetchCachedAssetIdsForComponent(assetDB, 'ROOM#TestOne')
-
-            expect(getItem).toHaveBeenCalledWith({
-                Key: { AssetId: 'ROOM#TestOne', DataCategory: 'Meta::Room' },
-                ProjectionFields: ['cached'],
-            })
-            expect(ids).toEqual(['ASSET#alpha', 'ASSET#beta'])
         })
     })
 

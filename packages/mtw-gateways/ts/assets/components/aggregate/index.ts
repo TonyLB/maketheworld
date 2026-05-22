@@ -5,7 +5,12 @@ export {
     mergedComponentFromAuthoritative,
 } from './factory'
 export { aggregatePerspectiveCacheKey } from './keys'
-export type { AggregateGatewayDeps, ComponentAggregateInternalCacheSlice } from './ports'
+export type {
+    AggregateGatewayDeps,
+    AggregateParticipationAssemblyDeps,
+    ComponentAggregateInternalCacheSlice,
+    ComponentDataParticipationLoader,
+} from './ports'
 export {
     AggregateInputError,
     aggregatePerspectiveExplicit,

@@ -28,7 +28,7 @@ describe('ComponentRender cache handler', () => {
             HomeId: 'ROOM#VORTEX',
             Pronouns: 'she/her'
         })
-        jest.spyOn(internalCache.ComponentAssetMeta, "getAcrossAssets").mockResolvedValue({
+        jest.spyOn(internalCache.ComponentData, "getAcrossAssets").mockResolvedValue({
             [`ASSET#Base`]: new StandardRoom(deIndentWML(`
                 <Room uuid=(TestOne)>
                     <ShortName>TestRoom</ShortName>
@@ -79,7 +79,7 @@ describe('ComponentRender cache handler', () => {
             HomeId: 'ROOM#VORTEX',
             Pronouns: 'she/her',
         })
-        jest.spyOn(internalCache.ComponentAssetMeta, "getAcrossAssets").mockResolvedValue({
+        jest.spyOn(internalCache.ComponentData, "getAcrossAssets").mockResolvedValue({
             [`ASSET#Base`]: new StandardRoom({
                 universalKey: 'ROOM#TestOne',
                 tag: 'Room',
@@ -128,7 +128,7 @@ describe('ComponentRender cache handler', () => {
             HomeId: 'ROOM#VORTEX',
             Pronouns: 'she/her',
         })
-        jest.spyOn(internalCache.ComponentAssetMeta, "getAcrossAssets").mockResolvedValue({
+        jest.spyOn(internalCache.ComponentData, "getAcrossAssets").mockResolvedValue({
             [`ASSET#Base`]: new StandardFeature({
                 universalKey: 'FEATURE#TestOne',
                 tag: 'Feature',
@@ -140,7 +140,7 @@ describe('ComponentRender cache handler', () => {
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
-        expect(internalCache.ComponentAssetMeta.getAcrossAssets).toHaveBeenCalledWith('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
+        expect(internalCache.ComponentData.getAcrossAssets).toHaveBeenCalledWith('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
             <Asset uuid=(render)>
                 <Feature uuid=(TestOne) ref={0}>
@@ -179,7 +179,7 @@ describe('ComponentRender cache handler', () => {
             HomeId: 'ROOM#VORTEX',
             Pronouns: 'she/her'
         })
-        jest.spyOn(internalCache.ComponentAssetMeta, "getAcrossAssets").mockResolvedValue({
+        jest.spyOn(internalCache.ComponentData, "getAcrossAssets").mockResolvedValue({
             [`ASSET#Base`]: new StandardKnowledge({
                 universalKey: 'KNOWLEDGE#TestOne',
                 tag: 'Knowledge',
@@ -191,7 +191,7 @@ describe('ComponentRender cache handler', () => {
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "KNOWLEDGE#TestOne")
-        expect(internalCache.ComponentAssetMeta.getAcrossAssets).toHaveBeenCalledWith('KNOWLEDGE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
+        expect(internalCache.ComponentData.getAcrossAssets).toHaveBeenCalledWith('KNOWLEDGE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
             <Asset uuid=(render)>
                 <Knowledge uuid=(TestOne) ref={0}>
@@ -239,7 +239,7 @@ describe('ComponentRender cache handler', () => {
             HomeId: 'ROOM#VORTEX',
             Pronouns: 'she/her',
         })
-        jest.spyOn(internalCache.ComponentAssetMeta, "getAcrossAssets").mockResolvedValue({
+        jest.spyOn(internalCache.ComponentData, "getAcrossAssets").mockResolvedValue({
             [`ASSET#Base`]: new StandardFeature({
                 universalKey: 'FEATURE#TestOne',
                 tag: 'Feature',
@@ -284,7 +284,7 @@ describe('ComponentRender cache handler', () => {
             HomeId: 'ROOM#VORTEX',
             Pronouns: 'she/her',
         })
-        jest.spyOn(internalCache.ComponentAssetMeta, "getAcrossAssets").mockResolvedValue({
+        jest.spyOn(internalCache.ComponentData, "getAcrossAssets").mockResolvedValue({
             [`ASSET#Base`]: new StandardFeature({
                 universalKey: 'FEATURE#TestOne',
                 tag: 'Feature',
@@ -308,7 +308,7 @@ describe('ComponentRender cache handler', () => {
             HomeId: 'ROOM#VORTEX',
             Pronouns: 'she/her'
         })
-        jest.spyOn(internalCache.ComponentAssetMeta, "getAcrossAssets").mockImplementation(async (ephemeraId) => {
+        jest.spyOn(internalCache.ComponentData, "getAcrossAssets").mockImplementation(async (ephemeraId) => {
             switch(ephemeraId) {
                 case 'MAP#TestOne':
                     return {

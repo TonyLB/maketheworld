@@ -4,8 +4,8 @@ import { defaultComponentFromTag } from '@tonylb/mtw-wml/ts/standardize/baseClas
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
-import { tagFromEphemeraWrappedId } from '../assetMeta/defaults'
-import type { AuthoritativeComponentData } from '../assetMeta/dynamoStandardComponents'
+import { tagFromEphemeraWrappedId } from '../componentData/defaults'
+import type { AuthoritativeComponentData } from '../componentData/dynamoStandardComponents'
 
 import type { AggregatePerspective } from './input'
 import { AggregateInputError } from './input'

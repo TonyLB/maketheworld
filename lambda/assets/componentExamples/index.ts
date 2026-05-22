@@ -23,8 +23,10 @@ import {
     situationFacetToCacheShape,
 } from './exampleEnrichment'
 import { getLensMarksWithDefaults } from '@tonylb/mtw-wml/ts/standardize/worldState/lensMarks'
-import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import internalCache from '../internalCache'
+import {
+    loadAuthoritativeBatchForMirroring,
+    loadAuthoritativeForMirroring,
+} from './loadAuthoritativeForMirroring'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
@@ -60,8 +62,15 @@ const resolveLensMarksWithDefaultsForRoom = async (
         return undefined
     }
 
-    const [lensData] = await internalCache.ComponentData.get([lensId as EphemeraId])
-    const lensByAssets = lensData?.byAssets ?? []
+    if (!assetStack.length) {
+        return undefined
+    }
+    const lensData = await loadAuthoritativeForMirroring(
+        lensId,
+        assetStack[assetStack.length - 1],
+        assetStack
+    )
+    const lensByAssets = lensData.byAssets ?? []
     if (!lensByAssets.length) {
         return undefined
     }
@@ -171,8 +180,8 @@ const emitParentSituationFacetEvents = async (params: {
 }): Promise<void> => {
     const { parent, parentId, assetId, eventType, streamEvent, includeLensMarks } = params
 
-    const [parentData] = await internalCache.ComponentData.get([parentId as EphemeraId])
-    const byAssets = parentData?.byAssets ?? []
+    const parentData = await loadAuthoritativeForMirroring(parentId, assetId)
+    const byAssets = parentData.byAssets ?? []
     const contentParent = byAssets.find((a) => a.AssetId === assetId)?.component as ParentWithSituationFacets | undefined
     const parentForPayload = contentParent ?? parent
     const assetStack = getOrderedAssetStack(parentId, assetId, byAssets)
@@ -193,7 +202,10 @@ const emitParentSituationFacetEvents = async (params: {
     const situationIds = situationsListForPayload.map(
         (f) => (f as StandardSituationProseFacet).reference.universalKey
     )
-    const situationCaches = await internalCache.ComponentData.get(situationIds as EphemeraId[])
+    const situationCaches = await loadAuthoritativeBatchForMirroring(
+        situationIds.filter((id): id is ComponentUUID => Boolean(id)),
+        assetId
+    )
 
     if (eventType === 'Component Removed') {
         for (let idx = 0; idx < situationIds.length; idx++) {
@@ -245,8 +257,8 @@ const emitSituationComponentFacetEvents = async (params: {
 }): Promise<void> => {
     const { situation, situationId, assetId, eventType, streamEvent } = params
 
-    const [situationData] = await internalCache.ComponentData.get([situationId as EphemeraId])
-    const situationByAssets = situationData?.byAssets ?? []
+    const situationData = await loadAuthoritativeForMirroring(situationId, assetId)
+    const situationByAssets = situationData.byAssets ?? []
     const contentSituation = situationByAssets.find((a) => a.AssetId === assetId)?.component as
         | StandardSituation
         | undefined
@@ -260,7 +272,7 @@ const emitSituationComponentFacetEvents = async (params: {
         return
     }
 
-    const parentCaches = await internalCache.ComponentData.get(parentIds as EphemeraId[])
+    const parentCaches = await loadAuthoritativeBatchForMirroring(parentIds, assetId)
 
     for (let i = 0; i < parentIds.length; i++) {
         const parentId = parentIds[i]

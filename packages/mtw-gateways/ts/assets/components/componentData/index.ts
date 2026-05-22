@@ -1,18 +1,21 @@
 export {
-    AuthoritativeComponentDataCache,
-    createAuthoritativeComponentDataCacheHandler,
-    type AuthoritativeComponentPartitionAssetDB,
-} from './authoritativeComponentDataCache'
-export {
-    EphemeraComponentAssetMetaCache,
-    createEphemeraComponentAssetMetaCacheHandler,
+    ComponentDataCache,
+    createComponentDataCacheHandler,
     type ComponentAssetMetaItem,
-} from './ephemeraComponentAssetMetaCache'
-export { generateCacheKey, cacheKeyComponents } from './keys'
+    type ComponentDataParticipationLoader,
+    type ComponentPairRow,
+} from './componentDataCache'
+export {
+    type ComponentAssetPair,
+    componentPairCacheKey,
+    generateCacheKey,
+    cacheKeyComponents,
+    parseComponentPairCacheKey,
+} from './keys'
 export { metaDataCategoryForEphemeraId } from './metaCategory'
 export { tagFromEphemeraWrappedId, defaultStoredEntryForCacheKey } from './defaults'
 export type { ComponentAssetMetaAssetDB } from './fetch'
-export { fetchComponentsForAssets, fetchCachedAssetIdsForComponent } from './fetch'
+export { fetchComponentsForAssets } from './fetch'
 export type { AuthoritativeComponentData, AssetDbGetItemsComponentRow } from './dynamoStandardComponents'
 export {
     authoritativeComponentDataFromUniversalPartitionRows,
@@ -20,3 +23,7 @@ export {
     componentRowsFromUniversalPartitionLines,
     standardComponentPairFromAssetDbGetItemsRow,
 } from './dynamoStandardComponents'
+export {
+    authoritativeFromParticipationOrder,
+    ParticipationBatchError,
+} from './participationBatch'

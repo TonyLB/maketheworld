@@ -5,9 +5,9 @@ import CacheCharacterMetaData from './characterMeta';
 import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB';
 
 import {
-    createEphemeraComponentAssetMetaCacheHandler,
-    EphemeraComponentAssetMetaCache,
-} from '@tonylb/mtw-gateways/ts/assets/components/assetMeta';
+    createComponentDataCacheHandler,
+    type ComponentDataCache,
+} from '@tonylb/mtw-gateways/ts/assets/components/componentData';
 import {
     createThinkingJobReadCacheHandler,
     createThinkingResultReadCacheHandler,
@@ -76,7 +76,7 @@ export class InternalCache {
     GraphNodes: GraphNodeType;
     GraphEdges: GraphEdgeType;
     
-    ComponentAssetMeta: EphemeraComponentAssetMetaCache = createEphemeraComponentAssetMetaCacheHandler(assetDB);
+    ComponentData: ComponentDataCache = createComponentDataCacheHandler(assetDB);
     ThinkingResults: ThinkingResultReadCache = createThinkingResultReadCacheHandler(ephemeraDB);
     ThinkingSchedules: ThinkingScheduleReadCache = createThinkingScheduleReadCacheHandler(ephemeraDB);
     ThinkingJobs: ThinkingJobReadCache = createThinkingJobReadCacheHandler(ephemeraDB);
@@ -117,20 +117,20 @@ export class InternalCache {
         this.GraphEdges = this._graphCache.Edges
         // AssetMap removed - was used for Variable/Computed dependency resolution
         this.ComponentRender = new ComponentRenderData(
-            this.ComponentAssetMeta,
+            this.ComponentData,
             this.RoomCharacterList,
             this.Global,
             this.CharacterMeta,
             this.RenderCache
         )
         this.ComponentStackMerge = new ComponentStackMergeData(
-            this.ComponentAssetMeta,
+            this.ComponentData,
             this.RoomCharacterList,
             this.Global,
             this.CharacterMeta,
             (roomId) => this.ComponentEphemeraMeta.get(roomId)
         )
-        this.GenerationContext = new GenerationContextData(this.ComponentAssetMeta)
+        this.GenerationContext = new GenerationContextData(this.ComponentData)
         this.CharacterPossibleMaps = new CacheCharacterPossibleMapsData(this.CharacterMeta, this.Graph)
         this._invalidateAssetCallback = (EphemeraId) => {
             // Variable/Computed invalidation removed - no longer needed
@@ -151,7 +151,7 @@ export class InternalCache {
         this.CharacterSessions.clear()
         this.PlayerSessions.clear()
         this._graphCache.clear()
-        this.ComponentAssetMeta.clear()
+        this.ComponentData.clear()
         this.ThinkingResults.clear()
         this.ThinkingSchedules.clear()
         this.ThinkingJobs.clear()
@@ -169,7 +169,7 @@ export class InternalCache {
     async flush() {
         await Promise.all([
             this._graphCache.flush(),
-            this.ComponentAssetMeta.flush(),
+            this.ComponentData.flush(),
             this.ThinkingResults.flush(),
             this.ThinkingSchedules.flush(),
             this.ThinkingJobs.flush(),

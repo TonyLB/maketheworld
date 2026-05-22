@@ -2,6 +2,7 @@ import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 
+import { ParticipationBatchError } from '../componentData/participationBatch'
 import {
     AggregateInputError,
     aggregatePerspectiveExplicit,
@@ -109,10 +110,10 @@ describe('component aggregate gateway (compute-only)', () => {
     })
 
     describe('createAggregateGateway', () => {
-        it('still accepts analyzer-shaped deps', () => {
+        it('still accepts analyzer-shaped field names with participation loader', () => {
             const deps = {
                 authoritativeComponentData: {
-                    get: async () => [],
+                    getAcrossAssets: async () => ({}),
                 },
                 metaImportProjection: {
                     get: async () => [],
@@ -168,18 +169,18 @@ describe('component aggregate gateway (compute-only)', () => {
         `)
         )
 
-        it('invokes ComponentVerticals and ComponentData in parallel for universal key', async () => {
-            const ComponentData = { get: jest.fn().mockResolvedValue([]) }
+        it('invokes ComponentVerticals in parallel with participation batch for universal key', async () => {
+            const getAcrossAssets = jest.fn().mockResolvedValue({})
+            const ComponentData = { getAcrossAssets }
             const ComponentVerticals = { get: jest.fn().mockResolvedValue([]) }
             const { gateway } = createComponentAggregateGateway({ ComponentData, ComponentVerticals })
             const p = aggregatePerspectiveExplicit({
                 universalKey: roomU,
                 mergeParticipationOrder: [],
             })
-            await expect(gateway.assembleMergedComponent(p)).rejects.toThrow(AggregateInputError)
-            expect(ComponentData.get).toHaveBeenCalledWith([roomU])
+            await expect(gateway.assembleMergedComponent(p)).rejects.toThrow(ParticipationBatchError)
+            expect(getAcrossAssets).not.toHaveBeenCalled()
             expect(ComponentVerticals.get).toHaveBeenCalledWith([roomU])
-            expect(ComponentData.get).toHaveBeenCalledTimes(1)
             expect(ComponentVerticals.get).toHaveBeenCalledTimes(1)
         })
 

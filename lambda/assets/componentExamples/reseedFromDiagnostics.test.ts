@@ -1,17 +1,27 @@
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
+import { authoritativeFromParticipationOrder } from '@tonylb/mtw-gateways/ts/assets/components/componentData'
 import internalCache from '../internalCache'
 import { reseedComponentExamplesFromDiagnostics } from './reseedFromDiagnostics'
 import { DiagnosticsEphemeraRenderCacheFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 
 jest.mock('../internalCache', () => ({
     AssetData: { get: jest.fn() },
-    ComponentData: { get: jest.fn() }
+    ComponentData: { get: jest.fn(), getAcrossAssets: jest.fn() },
 }))
+
+jest.mock('@tonylb/mtw-gateways/ts/assets/components/componentData', () => {
+    const actual = jest.requireActual('@tonylb/mtw-gateways/ts/assets/components/componentData')
+    return {
+        ...actual,
+        authoritativeFromParticipationOrder: jest.fn(),
+    }
+})
+
+const mockAuthoritativeFromParticipationOrder = jest.mocked(authoritativeFromParticipationOrder)
 
 describe('reseedComponentExamplesFromDiagnostics', () => {
     const mockInternalCache = internalCache as unknown as {
         AssetData: { get: jest.Mock };
-        ComponentData: { get: jest.Mock };
     }
 
     beforeEach(() => {
@@ -28,10 +38,10 @@ describe('reseedComponentExamplesFromDiagnostics', () => {
             AssetId: 'ASSET#primitives',
             standardForm: { _components: [room] }
         }])
-        mockInternalCache.ComponentData.get.mockResolvedValue([{
+        mockAuthoritativeFromParticipationOrder.mockResolvedValue({
             ComponentId: 'ROOM#alpha',
             byAssets: [{ AssetId: 'ASSET#primitives', component: room }]
-        }])
+        })
         const streamEvent = jest.fn().mockResolvedValue(undefined)
 
         await reseedComponentExamplesFromDiagnostics({
@@ -49,6 +59,11 @@ describe('reseedComponentExamplesFromDiagnostics', () => {
             streamKey: 'ASSET#primitives',
             header: { type: 'Component Republished' }
         })
+        expect(mockAuthoritativeFromParticipationOrder).toHaveBeenCalledWith(
+            'ROOM#alpha',
+            ['ASSET#primitives'],
+            internalCache.ComponentData
+        )
     })
 
     it('resolves eligible rooms from perspective when roomIds are omitted', async () => {
@@ -66,9 +81,9 @@ describe('reseedComponentExamplesFromDiagnostics', () => {
             AssetId: 'ASSET#primitives',
             standardForm: { _components: [roomOne, roomTwo] }
         }])
-        mockInternalCache.ComponentData.get
-            .mockResolvedValueOnce([{ ComponentId: 'ROOM#one', byAssets: [{ AssetId: 'ASSET#primitives', component: roomOne }] }])
-            .mockResolvedValueOnce([{ ComponentId: 'ROOM#two', byAssets: [{ AssetId: 'ASSET#primitives', component: roomTwo }] }])
+        mockAuthoritativeFromParticipationOrder
+            .mockResolvedValueOnce({ ComponentId: 'ROOM#one', byAssets: [{ AssetId: 'ASSET#primitives', component: roomOne }] })
+            .mockResolvedValueOnce({ ComponentId: 'ROOM#two', byAssets: [{ AssetId: 'ASSET#primitives', component: roomTwo }] })
         const streamEvent = jest.fn().mockResolvedValue(undefined)
 
         await reseedComponentExamplesFromDiagnostics({
@@ -103,7 +118,7 @@ describe('reseedComponentExamplesFromDiagnostics', () => {
             roomIds: ['ROOM#two']
         }, streamEvent)
 
-        expect(mockInternalCache.ComponentData.get).not.toHaveBeenCalled()
+        expect(mockAuthoritativeFromParticipationOrder).not.toHaveBeenCalled()
         expect(streamEvent).not.toHaveBeenCalled()
     })
 
@@ -117,10 +132,10 @@ describe('reseedComponentExamplesFromDiagnostics', () => {
             AssetId: 'ASSET#primitives',
             standardForm: { _components: [room] }
         }])
-        mockInternalCache.ComponentData.get.mockResolvedValue([{
+        mockAuthoritativeFromParticipationOrder.mockResolvedValue({
             ComponentId: 'ROOM#alpha',
             byAssets: [{ AssetId: 'ASSET#primitives', component: room }]
-        }])
+        })
         const streamEvent = jest.fn().mockResolvedValue(undefined)
 
         await reseedComponentExamplesFromDiagnostics({
@@ -133,7 +148,7 @@ describe('reseedComponentExamplesFromDiagnostics', () => {
         }, streamEvent)
 
         expect(mockInternalCache.AssetData.get).toHaveBeenCalledWith(['ASSET#primitives'])
-        expect(mockInternalCache.ComponentData.get).toHaveBeenCalledTimes(1)
+        expect(mockAuthoritativeFromParticipationOrder).toHaveBeenCalledTimes(1)
         expect(streamEvent).toHaveBeenCalledTimes(1)
     })
 
@@ -147,10 +162,10 @@ describe('reseedComponentExamplesFromDiagnostics', () => {
             AssetId: 'ASSET#primitives',
             standardForm: { _components: [room] }
         }])
-        mockInternalCache.ComponentData.get.mockResolvedValue([{
+        mockAuthoritativeFromParticipationOrder.mockResolvedValue({
             ComponentId: 'ROOM#alpha',
             byAssets: [{ AssetId: 'ASSET#primitives', component: room }]
-        }])
+        })
         const streamEvent = jest.fn().mockResolvedValue(undefined)
         const finding: DiagnosticsEphemeraRenderCacheFindingEvent = {
             type: 'Ephemera RenderCache Finding' as const,

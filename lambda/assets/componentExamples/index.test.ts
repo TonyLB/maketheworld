@@ -7,7 +7,22 @@ import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situati
 import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
+import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
+import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { AuthoritativeComponentData } from '@tonylb/mtw-gateways/ts/assets/components/componentData'
+import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import internalCache from '../internalCache'
+
+const mockAuthoritativeComponentData = (
+    ComponentId: string,
+    byAssets: { AssetId: string; component: unknown }[]
+): AuthoritativeComponentData => ({
+    ComponentId: ComponentId as EphemeraId,
+    byAssets: byAssets.map(({ AssetId, component }) => ({
+        AssetId: AssetId as AssetUUID,
+        component: component as StandardComponent,
+    })),
+})
 
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     assetDB: {
@@ -39,14 +54,26 @@ jest.mock('../messageBus', () => ({
 jest.mock('../internalCache', () => ({
     AssetMetaData: { get: jest.fn() },
     AssetData: { get: jest.fn() },
-    ComponentData: { get: jest.fn() },
 }))
+
+jest.mock('./loadAuthoritativeForMirroring', () => ({
+    loadAuthoritativeForMirroring: jest.fn(),
+    loadAuthoritativeBatchForMirroring: jest.fn(),
+    deriveMirroringParticipationOrder: jest.fn(),
+}))
+
+import {
+    loadAuthoritativeBatchForMirroring,
+    loadAuthoritativeForMirroring,
+} from './loadAuthoritativeForMirroring'
+
+const mockLoadAuthoritativeForMirroring = jest.mocked(loadAuthoritativeForMirroring)
+const mockLoadAuthoritativeBatchForMirroring = jest.mocked(loadAuthoritativeBatchForMirroring)
 
 describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
     const mockInternalCache = internalCache as unknown as {
         AssetMetaData: { get: jest.Mock };
         AssetData: { get: jest.Mock };
-        ComponentData: { get: jest.Mock };
     }
 
     beforeEach(() => {
@@ -210,38 +237,20 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 </Situation>
             `))
 
-            const roomComponentData = {
-                ComponentId: roomId,
-                byAssets: [
-                    {
-                        AssetId: 'ASSET#room1',
-                        component: room as any,
-                    },
-                ],
-            }
-            const lensComponentData = {
-                ComponentId: lensId,
-                byAssets: [
-                    {
-                        AssetId: 'ASSET#lens1',
-                        component: lens as any,
-                    },
-                ],
-            }
-            const situationComponentData = {
-                ComponentId: situationId,
-                byAssets: [
-                    {
-                        AssetId: 'ASSET#situation1',
-                        component: situation as any,
-                    },
-                ],
-            }
+            const roomComponentData = mockAuthoritativeComponentData(roomId, [
+                { AssetId: 'ASSET#room1', component: room },
+            ])
+            const lensComponentData = mockAuthoritativeComponentData(lensId, [
+                { AssetId: 'ASSET#lens1', component: lens },
+            ])
+            const situationComponentData = mockAuthoritativeComponentData(situationId, [
+                { AssetId: 'ASSET#situation1', component: situation },
+            ])
 
-            mockInternalCache.ComponentData.get
-                .mockResolvedValueOnce([roomComponentData])
-                .mockResolvedValueOnce([lensComponentData])
-                .mockResolvedValueOnce([situationComponentData])
+            mockLoadAuthoritativeForMirroring
+                .mockResolvedValueOnce(roomComponentData)
+                .mockResolvedValueOnce(lensComponentData)
+            mockLoadAuthoritativeBatchForMirroring.mockResolvedValueOnce([situationComponentData])
 
             const events: ComponentExamplesIncomingEvent[] = [
                 {
@@ -295,28 +304,15 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 <Situation uuid=(DEFAULT) />
             `))
 
-            const featureComponentData = {
-                ComponentId: featureId,
-                byAssets: [
-                    {
-                        AssetId: 'ASSET#feat1',
-                        component: feature as any,
-                    },
-                ],
-            }
-            const situationComponentData = {
-                ComponentId: situationId,
-                byAssets: [
-                    {
-                        AssetId: 'ASSET#situation1',
-                        component: situation as any,
-                    },
-                ],
-            }
+            const featureComponentData = mockAuthoritativeComponentData(featureId, [
+                { AssetId: 'ASSET#feat1', component: feature },
+            ])
+            const situationComponentData = mockAuthoritativeComponentData(situationId, [
+                { AssetId: 'ASSET#situation1', component: situation },
+            ])
 
-            mockInternalCache.ComponentData.get
-                .mockResolvedValueOnce([featureComponentData])
-                .mockResolvedValueOnce([situationComponentData])
+            mockLoadAuthoritativeForMirroring.mockResolvedValueOnce(featureComponentData)
+            mockLoadAuthoritativeBatchForMirroring.mockResolvedValueOnce([situationComponentData])
 
             const events: ComponentExamplesIncomingEvent[] = [
                 {
@@ -340,7 +336,8 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 streamEnvelope: mockStreamEnvelope,
             })
 
-            expect(mockInternalCache.ComponentData.get).toHaveBeenCalledTimes(2)
+            expect(mockLoadAuthoritativeForMirroring).toHaveBeenCalledTimes(1)
+            expect(mockLoadAuthoritativeBatchForMirroring).toHaveBeenCalledTimes(1)
             expect(mockStreamEvent).toHaveBeenCalledTimes(1)
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 streamKey: 'SITUATION#DEFAULT',
@@ -370,17 +367,11 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 key: 'empty',
             } as any)
 
-            mockInternalCache.ComponentData.get.mockResolvedValueOnce([
-                {
-                    ComponentId: featureId,
-                    byAssets: [
-                        {
-                            AssetId: 'ASSET#feat1',
-                            component: feature as any,
-                        },
-                    ],
-                },
-            ])
+            mockLoadAuthoritativeForMirroring.mockResolvedValueOnce(
+                mockAuthoritativeComponentData(featureId, [
+                    { AssetId: 'ASSET#feat1', component: feature },
+                ])
+            )
 
             const events: ComponentExamplesIncomingEvent[] = [
                 {
@@ -431,22 +422,15 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 ],
             } as any)
 
-            const knowledgeComponentData = {
-                ComponentId: knowledgeId,
-                byAssets: [
-                    {
-                        AssetId: 'ASSET#know1',
-                        component: knowledge as any,
-                    },
-                ],
-            }
+            const knowledgeComponentData = mockAuthoritativeComponentData(knowledgeId, [
+                { AssetId: 'ASSET#know1', component: knowledge },
+            ])
 
-            mockInternalCache.ComponentData.get
-                .mockResolvedValueOnce([knowledgeComponentData])
-                .mockResolvedValueOnce([
-                    { ComponentId: situationId1, byAssets: [] },
-                    { ComponentId: situationId2, byAssets: [] },
-                ])
+            mockLoadAuthoritativeForMirroring.mockResolvedValueOnce(knowledgeComponentData)
+            mockLoadAuthoritativeBatchForMirroring.mockResolvedValueOnce([
+                mockAuthoritativeComponentData(situationId1, []),
+                mockAuthoritativeComponentData(situationId2, []),
+            ])
 
             const events: ComponentExamplesIncomingEvent[] = [
                 {
@@ -527,37 +511,21 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 knowledge.toJSON() as any,
             ])
 
-            const situationComponentData = {
-                ComponentId: situationId,
-                byAssets: [
-                    {
-                        AssetId: eventAssetId,
-                        component: situation as any,
-                    },
-                ],
-            }
-            const featureComponentData = {
-                ComponentId: featureId,
-                byAssets: [
-                    {
-                        AssetId: eventAssetId,
-                        component: feature as any,
-                    },
-                ],
-            }
-            const knowledgeComponentData = {
-                ComponentId: knowledgeId,
-                byAssets: [
-                    {
-                        AssetId: eventAssetId,
-                        component: knowledge as any,
-                    },
-                ],
-            }
+            const situationComponentData = mockAuthoritativeComponentData(situationId, [
+                { AssetId: eventAssetId, component: situation },
+            ])
+            const featureComponentData = mockAuthoritativeComponentData(featureId, [
+                { AssetId: eventAssetId, component: feature },
+            ])
+            const knowledgeComponentData = mockAuthoritativeComponentData(knowledgeId, [
+                { AssetId: eventAssetId, component: knowledge },
+            ])
 
-            mockInternalCache.ComponentData.get
-                .mockResolvedValueOnce([situationComponentData])
-                .mockResolvedValueOnce([featureComponentData, knowledgeComponentData])
+            mockLoadAuthoritativeForMirroring.mockResolvedValueOnce(situationComponentData)
+            mockLoadAuthoritativeBatchForMirroring.mockResolvedValueOnce([
+                featureComponentData,
+                knowledgeComponentData,
+            ])
 
             mockInternalCache.AssetData.get.mockResolvedValue([
                 {
@@ -638,17 +606,11 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 situation.toJSON() as any,
             ])
 
-            mockInternalCache.ComponentData.get.mockResolvedValueOnce([
-                {
-                    ComponentId: situationId,
-                    byAssets: [
-                        {
-                            AssetId: eventAssetId,
-                            component: situation as any,
-                        },
-                    ],
-                },
-            ])
+            mockLoadAuthoritativeForMirroring.mockResolvedValueOnce(
+                mockAuthoritativeComponentData(situationId, [
+                    { AssetId: eventAssetId, component: situation },
+                ])
+            )
 
             mockInternalCache.AssetData.get.mockResolvedValue([
                 {

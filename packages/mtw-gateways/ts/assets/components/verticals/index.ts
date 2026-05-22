@@ -14,6 +14,7 @@ export type { MetaImportStrippedIds } from './keys'
 export {
     ImportVerticalConsistencyAnalyzer,
     type ImportVerticalAuthoritativeComponentData,
+    type ExhaustivePartitionLoader,
     type ImportVerticalAuthoritativeComponentDataLoader,
     type ImportVerticalConsistencyAnalyzerDeps,
     type ImportVerticalConsistencyClassification,
@@ -24,9 +25,9 @@ export {
 } from './consistency'
 export type { ImportVerticalHop, ImportVerticalAssetDB } from './fetch'
 export { queryImportVerticalMeta } from './fetch'
-export type { AuthoritativeComponentData } from '../assetMeta/dynamoStandardComponents'
+export type { AuthoritativeComponentData } from '../componentData/dynamoStandardComponents'
 export {
     authoritativeComponentDataFromUniversalPartitionRows,
     componentRowsFromAuthoritativeComponentData,
     componentRowsFromUniversalPartitionLines,
-} from '../assetMeta/dynamoStandardComponents'
+} from '../componentData/dynamoStandardComponents'

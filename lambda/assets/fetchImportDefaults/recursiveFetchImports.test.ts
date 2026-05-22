@@ -244,7 +244,9 @@ describe('recursiveFetchImports', () => {
                         origin=(ASSET#testImport,ASSET#testFinal)
                     >
                         <Situation uuid=(DEFAULT)>
-                            <Description><Link to=(testFeature)>Test</Link></Description>
+                            <Description>
+                                <Link to=(FEATURE#testFeature)>Test</Link>
+                            </Description>
                         </Situation>
                     </Room>
                     <Situation uuid=(DEFAULT) origin=(ASSET#testImport) ref={0} />

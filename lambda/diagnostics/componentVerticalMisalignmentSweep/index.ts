@@ -11,6 +11,7 @@ import {
 } from '@tonylb/mtw-gateways/ts/assets/components/verticals'
 import internalCache from '../internalCache'
 import { aggregateMisalignmentStatuses } from './classification'
+import { exhaustivePartitionLoader } from './exhaustivePartitionLoader'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { publishStreamEvent, StreamEventPublisherSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/streamEventPublisher'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
@@ -23,7 +24,7 @@ async function analyzeUniversalPartition(universalKey: EphemeraId): Promise<
     'aligned' | 'missing' | 'orphan' | 'stale'
 > {
     const deps: ImportVerticalConsistencyAnalyzerDeps = {
-        authoritativeComponentData: internalCache.ComponentData,
+        authoritativeComponentData: exhaustivePartitionLoader,
         metaImportProjection: internalCache.ComponentVerticals,
     }
 
