@@ -45,7 +45,7 @@ The system provides common patterns that can be reused across lambdas:
 
 ### **Composing with `mtw-gateways`**
 
-Read surfaces for Dynamo rows owned elsewhere live in [`packages/mtw-gateways`](../../../mtw-gateways/AGENT.md). Lambda cache handlers should **import gateway helpers** and inject **`assetDB`** (or the gateway's narrow store interface); **do not** duplicate partition/sort encoding in `internalCache`. **`DeferredCache.invalidate(key)`** invalidates a cached entry when authoritative data changes (see **Wrapping gateways in InternalCache** in [`packages/mtw-gateways/AGENT.md`](../../../mtw-gateways/AGENT.md)).
+Read surfaces for Dynamo rows owned elsewhere live in [`packages/mtw-gateways`](../../../mtw-gateways/AGENT.md). Lambda code should **register** package **`create*CacheHandler`** factories on **`InternalCache`** and read via **`internalCache.<Handler>.get`** --- including **compute-only** gateways (**`ComponentAggregate`**, **`ComponentExamples`**) that compose other handlers, not only projection-read gateways that inject **`assetDB`**. **Do not** duplicate partition/sort encoding in `internalCache`; **do not** call gateway **`assemble*`** exports directly in steady-state lambda paths when a cache handler is documented as primary. **`DeferredCache.invalidate(key)`** invalidates a cached entry when authoritative data changes (see **Wrapping gateways in InternalCache** in [`packages/mtw-gateways/AGENT.md`](../../../mtw-gateways/AGENT.md)).
 
 ### **Cross-References**
 - **[Lambda Assets](../../../lambda/assets/AGENT.md)**: Asset management using internalCache

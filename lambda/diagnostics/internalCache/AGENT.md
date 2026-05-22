@@ -12,9 +12,11 @@ The diagnostics lambda exposes a per-invocation **[`InternalCache`](./index.ts)*
 | --- | --- | --- |
 | **`ComponentData`** | **`createAuthoritativeComponentDataCacheHandler(assetDB)`** from [`authoritativeComponentDataCache.ts`](../../../packages/mtw-gateways/ts/assets/components/assetMeta/authoritativeComponentDataCache.ts) | Same as assets **`internalCache.ComponentData`**. |
 | **`ComponentVerticals`** | **`createImportVerticalMetaCacheHandler(assetDB)`** from [`importVerticalMetaCache.ts`](../../../packages/mtw-gateways/ts/assets/components/verticals/importVerticalMetaCache.ts) | Same as assets **`internalCache.ComponentVerticals`**. |
+| **`ComponentAggregate`** (wiring) | **`createComponentAggregateCacheHandler({ ComponentData, ComponentVerticals })`** from [`aggregate`](../../../packages/mtw-gateways/ts/assets/components/aggregate/index.ts) | Same pattern as assets **`internalCache.ComponentAggregate`**. |
+| **`ComponentExamples`** (wiring) | **`createComponentExamplesCacheHandler({ ComponentAggregate })`** from [`componentExamples`](../../../packages/mtw-gateways/ts/assets/components/componentExamples/index.ts) | Blueprint **`AuthoredExampleSet`** reads; call **`get`**, not **`assembleComponentExamplesAtPerspective`**, in steady-state code. |
 
-**Consumers:** [`componentVerticalMisalignmentSweep`](../componentVerticalMisalignmentSweep/index.ts) wires **`ImportVerticalConsistencyAnalyzer`** deps from these two entries.
+**Consumers:** [`componentVerticalMisalignmentSweep`](../componentVerticalMisalignmentSweep/index.ts) wires **`ImportVerticalConsistencyAnalyzer`** deps from **`ComponentData`** + **`ComponentVerticals`**. On-demand authored-examples initiative adds aggregate + examples handlers for blueprint diff ([`renderCache` planning](../../taskPlanning/lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md)).
 
 ## Scope
 
-This slice is intentionally small (no **`ComponentAggregate`**, graph, or connection caches). Extend here when other diagnostics paths need the same gateway-backed read surfaces.
+This slice stays smaller than assets/ephemera (no graph or connection caches). **Gateway normative rule:** register **`mtw-gateways`** read handlers on **`InternalCache`**; see [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) and [`lambda/ephemera/internalCache/AGENT.md`](../../ephemera/internalCache/AGENT.md) (**Gateway reads**).
