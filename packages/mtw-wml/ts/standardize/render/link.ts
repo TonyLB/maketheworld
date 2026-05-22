@@ -33,14 +33,14 @@ export class StandardRenderLink extends StandardRenderAbstract implements Standa
 
     override toJSON(): GenericTreeNodeFiltered<SchemaLinkTag, SchemaOutputTag> {
         return {
-            data: { tag: 'Link' as const, to: this._to instanceof StandardKey ? this._to.universalKey ?? this._to.key ?? '' : this._to, text: this._text },
+            data: { tag: 'Link' as const, to: this._to instanceof StandardKey ? this._to.key ?? this._to.universalKey ?? '' : this._to, text: this._text },
             children: [{ data: { tag: 'String' as const, value: this._text }, children: [] }]
         }
     }
 
     override toNDJSON() {
         return {
-            data: { tag: 'Link' as const, to: this._to instanceof StandardKey ? this._to.universalKey ?? this._to.key ?? '' : this._to, text: this._text },
+            data: { tag: 'Link' as const, to: this._to instanceof StandardKey ? this._to.key ?? this._to.universalKey ?? '' : this._to, text: this._text },
             children: []
         }
     }

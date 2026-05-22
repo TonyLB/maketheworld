@@ -3,12 +3,12 @@ import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 const assetDBMock = jest.mocked(assetDB)
 
-import { createAuthoritativeComponentDataCacheHandler } from '@tonylb/mtw-gateways/ts/assets/components/assetMeta'
+import { createComponentDataCacheHandler } from '@tonylb/mtw-gateways/ts/assets/components/componentData'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 
-const componentData = createAuthoritativeComponentDataCacheHandler(assetDBMock)
+const componentData = createComponentDataCacheHandler(assetDBMock)
 
 describe('ComponentData cache class', () => {
     beforeEach(() => {
@@ -17,19 +17,16 @@ describe('ComponentData cache class', () => {
     })
 
     it('should return the default value when no data is found', async () => {
-        assetDBMock.query.mockResolvedValue([])
-        const componentId = 'ROOM#12345'
-        const result = await componentData.get([componentId])
-        expect(result).toEqual([
-            {
-                ComponentId: componentId,
-                byAssets: []
-            }
-        ])
+        assetDBMock.getItems.mockResolvedValue([])
+        const componentId = 'ROOM#12345' as const
+        const assetId = 'ASSET#Test' as const
+        const result = await componentData.get(componentId, assetId)
+        expect(result.component.universalKey).toBe(componentId)
+        expect(result.assetId).toBe(assetId)
     })
 
     it('should return the data from the database when found', async () => {
-        const ComponentId = 'ROOM#Test'
+        const ComponentId = 'ROOM#Test' as const
         const roomBase = new StandardRoom(deIndentWML(`
             <Room uuid=(Test) key=(Room1)>
                 <ShortName>Lobby</ShortName>
@@ -41,7 +38,7 @@ describe('ComponentData cache class', () => {
                 <Situation key=(baseTwo) uuid=(SITUATION#baseTwo) />
             </Room>
         `))
-        const mockData = [
+        assetDBMock.getItems.mockResolvedValue([
             {
                 ...roomBase.toJSON(),
                 DataCategory: 'ASSET#Test',
@@ -52,26 +49,22 @@ describe('ComponentData cache class', () => {
                 DataCategory: 'ASSET#Extra',
                 AssetId: ComponentId,
             },
-        ]
-        assetDBMock.query.mockResolvedValue(mockData)
-        const result = await componentData.get([ComponentId])
-        expect(result).toEqual([
-            {
-                ComponentId,
-                byAssets: expect.any(Array)
-            }
         ])
-        expect(result[0].byAssets.map(({ component }) => (schemaToWML([component.schema])))).toEqual([
+        const byAssets = await componentData.getAcrossAssets(ComponentId, ['ASSET#Test', 'ASSET#Extra'])
+        expect(Object.keys(byAssets).sort()).toEqual(['ASSET#Extra', 'ASSET#Test'])
+        expect(schemaToWML([byAssets['ASSET#Test'].schema])).toEqual(
             deIndentWML(`
                 <Room uuid=(Test) key=(Room1)>
                     <ShortName>Lobby</ShortName>
                     <Situation key=(base) />
                 </Room>
-            `),
+            `)
+        )
+        expect(schemaToWML([byAssets['ASSET#Extra'].schema])).toEqual(
             deIndentWML(`
                 <Room uuid=(Test) key=(Room1)><Situation key=(baseTwo) /></Room>
             `)
-        ])
+        )
     })
 
 })

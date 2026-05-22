@@ -141,7 +141,7 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
             .filter((component) => (!!component.universalKey))
             .forEach(({ universalKey }) => {
                 if (universalKey && isEphemeraId(universalKey)) {
-                    internalCache.ComponentData.invalidate(universalKey)
+                    internalCache.ComponentData.invalidate(universalKey, assetUUID)
                     invalidateExhaustivePartitionCache(universalKey)
                 }
             })

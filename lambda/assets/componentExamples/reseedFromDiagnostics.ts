@@ -2,6 +2,7 @@ import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { DiagnosticsEphemeraRenderCacheFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { isEphemeraId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
+import { authoritativeFromParticipationOrder } from '@tonylb/mtw-gateways/ts/assets/components/componentData'
 import internalCache from '../internalCache'
 import { AssetsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 
@@ -80,8 +81,12 @@ export const reseedComponentExamplesFromDiagnostics = async (
         if (!isEphemeraId(roomId)) {
             continue
         }
-        const [roomData] = await internalCache.ComponentData.get([roomId])
-        const roomByAssets = (roomData?.byAssets ?? []) as { AssetId: AssetUUID; component: unknown }[]
+        const roomData = await authoritativeFromParticipationOrder(
+            roomId,
+            perspective,
+            internalCache.ComponentData
+        )
+        const roomByAssets = (roomData.byAssets ?? []) as { AssetId: AssetUUID; component: unknown }[]
         const { room, streamAssetId } = resolveRoomByAsset(roomByAssets, perspective)
         if (!room || !streamAssetId || !roomHasSituations(room)) {
             continue

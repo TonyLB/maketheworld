@@ -3,9 +3,9 @@ import {
     createComponentAggregateCacheHandler,
 } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import {
-    createAuthoritativeComponentDataCacheHandler,
-    type AuthoritativeComponentDataCache,
-} from '@tonylb/mtw-gateways/ts/assets/components/assetMeta'
+    createComponentDataCacheHandler,
+    type ComponentDataCache,
+} from '@tonylb/mtw-gateways/ts/assets/components/componentData'
 import {
     createImportVerticalMetaCacheHandler,
     type ImportVerticalMetaCache,
@@ -105,7 +105,7 @@ class InternalCache {
     Connection: CacheConnectionData = new CacheConnectionData()
     AssetMetaData: AssetMetaData = new AssetMetaData()
     AssetData: AssetData = new AssetData()
-    ComponentData: AuthoritativeComponentDataCache = createAuthoritativeComponentDataCacheHandler(assetDB)
+    ComponentData: ComponentDataCache = createComponentDataCacheHandler(assetDB)
     ComponentVerticals: ImportVerticalMetaCache = createImportVerticalMetaCacheHandler(assetDB)
     ComponentAggregate: ComponentAggregateMergedCache
     PlayerSettings: CachePlayerSettingData = new CachePlayerSettingData()
