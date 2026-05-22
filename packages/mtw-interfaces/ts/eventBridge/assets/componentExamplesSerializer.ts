@@ -3,7 +3,7 @@ import {
     StreamingEventHeader
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import {
-    ComponentExamplesMirrorEvent
+    ComponentExamplesEvent
 } from './componentExamples'
 
 //
@@ -12,8 +12,8 @@ import {
 // the DataSource boundary and keep the contract explicit.
 //
 
-export type ComponentExamplesEventUpdate = ComponentExamplesMirrorEvent
-export type ComponentExamplesEventExternal = ComponentExamplesMirrorEvent
+export type ComponentExamplesEventUpdate = ComponentExamplesEvent
+export type ComponentExamplesEventExternal = ComponentExamplesEvent
 
 export class ComponentExamplesEventSerializer implements DataSourceEventSerializer<
 ComponentExamplesEventUpdate,

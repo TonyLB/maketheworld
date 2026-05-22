@@ -25,11 +25,16 @@ describe('dataSource/renderOrchestration/intakeRenderRequested', () => {
         })
     })
 
+    const resolvePointerFromMeta = jest.fn(async (_roomId, perspectiveKey, metaRoom) =>
+        metaRoom?.currentCacheByPerspective?.[perspectiveKey] as 'CACHE#valid' | undefined
+    )
+
     it('uses empty markState and disables generation when Meta has no marks and room has no lens defaults', async () => {
         const r = await intakeRenderRequested(basePayload, {
             getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, state: undefined }),
             computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
             computeDefaultMarksForRoom: jest.fn().mockResolvedValue({ markValue: [] }),
+            resolvePerspectivePointer: resolvePointerFromMeta,
         })
         expect(r.type).toBe('success')
         if (r.type === 'success') {
@@ -39,12 +44,25 @@ describe('dataSource/renderOrchestration/intakeRenderRequested', () => {
         }
     })
 
+    it('prefers catalog pointer over legacy Meta map', async () => {
+        const r = await intakeRenderRequested(basePayload, {
+            getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
+            computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
+            resolvePerspectivePointer: jest.fn().mockResolvedValue('CACHE#from-catalog'),
+        })
+        expect(r.type).toBe('success')
+        if (r.type === 'success') {
+            expect(r.pointerHint).toBe('CACHE#from-catalog')
+        }
+    })
+
     it('uses computed defaults when Meta has no marks but room has lens defaults', async () => {
         const computed = { markValue: [{ mark: 'MARK#x', value: 'y' }] }
         const r = await intakeRenderRequested(basePayload, {
             getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, state: undefined }),
             computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
             computeDefaultMarksForRoom: jest.fn().mockResolvedValue(computed),
+            resolvePerspectivePointer: resolvePointerFromMeta,
         })
         expect(r.type).toBe('success')
         if (r.type === 'success') {
@@ -66,10 +84,11 @@ describe('dataSource/renderOrchestration/intakeRenderRequested', () => {
         })
     })
 
-    it('returns ok with RenderResolveInput including pointerHint when Meta has pointer', async () => {
+    it('returns ok with RenderResolveInput including pointerHint from catalog or Meta', async () => {
         const r = await intakeRenderRequested(basePayload, {
             getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
             computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
+            resolvePerspectivePointer: resolvePointerFromMeta,
         })
         expect(r.type).toBe('success')
         if (r.type === 'success') {

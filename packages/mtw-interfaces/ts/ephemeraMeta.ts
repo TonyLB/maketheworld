@@ -111,6 +111,7 @@ export type EphemeraMetaRoom = {
     // v1 world-state fields for state-driven, cache-backed Room rendering.
     //
     state?: EphemeraRoomState;
+    /** Legacy fast-pointer map; canonical pointer is `currentCacheId` on `Cache::${perspectiveKey}` catalog rows (M2 migration). */
     currentCacheByPerspective?: EphemeraRoomCurrentCacheByPerspective;
     currentCacheId?: EphemeraCacheId;
 

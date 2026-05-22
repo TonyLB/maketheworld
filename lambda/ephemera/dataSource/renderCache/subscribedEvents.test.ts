@@ -1,6 +1,8 @@
 import { sendPutCacheRecord } from '../apiEphemera'
 import messageBus from '../../messageBus'
 import {
+    isComponentExamplesInvalidatedEnvelope,
+    isDiagnosticsRenderCacheFindingEnvelope,
     isRenderCacheSubscribedEnvelope,
     isPutOrDeleteCacheCommandEnvelope,
 } from './subscribedEvents'
@@ -77,6 +79,44 @@ describe('renderCache subscribedEvents', () => {
             getContent: () => Promise.resolve({}),
         }
         expect(isRenderCacheSubscribedEnvelope(envelope as any)).toBe(false)
+    })
+
+    it('isComponentExamplesInvalidatedEnvelope accepts ExampleInvalidated from mtw.assets.componentExamples', async () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.assets.componentExamples',
+                streamKey: 'ASSET#canon',
+                timestamp: Date.now(),
+                type: 'ExampleInvalidated' as const,
+            },
+            getContent: () => Promise.resolve({
+                type: 'ExampleInvalidated' as const,
+                componentIds: ['ROOM#hall'],
+                editAssetId: 'ASSET#canon',
+            }),
+        }
+        expect(isComponentExamplesInvalidatedEnvelope(envelope as any)).toBe(true)
+        expect(isRenderCacheSubscribedEnvelope(envelope as any)).toBe(true)
+    })
+
+    it('isDiagnosticsRenderCacheFindingEnvelope accepts Ephemera RenderCache Finding', async () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.diagnostics',
+                streamKey: 'global',
+                timestamp: Date.now(),
+                type: 'Ephemera RenderCache Finding' as const,
+            },
+            getContent: () => Promise.resolve({
+                type: 'Ephemera RenderCache Finding' as const,
+                perspective: ['ASSET#a'],
+                status: 'corrupted' as const,
+                diagnosticRunId: 'run-1',
+                timestamp: '2025-01-01T00:00:00.000Z',
+            }),
+        }
+        expect(isDiagnosticsRenderCacheFindingEnvelope(envelope as any)).toBe(true)
+        expect(isRenderCacheSubscribedEnvelope(envelope as any)).toBe(true)
     })
 
     it('sendRenderOrchestrationPublish produces envelopes accepted by isRenderCacheSubscribedEnvelope', async () => {

@@ -16,11 +16,13 @@ import type { EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import type { RenderRequested } from '../../messageBus/baseClasses'
 import type { RenderResolveInput, RenderResolveInputSuccess } from './baseClasses'
 import { computeDefaultMarksForRoom } from '../state/computeDefaultMarksForRoom'
+import { resolvePerspectivePointer } from '../renderCache/perspectivePointer'
 
 export type RequestIntakeDependencies = {
     getMetaRoom?: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>;
     computePerspectiveKey?: typeof computePerspectiveKey;
     computeDefaultMarksForRoom?: typeof computeDefaultMarksForRoom;
+    resolvePerspectivePointer?: typeof resolvePerspectivePointer;
 }
 
 const defaultGetMetaRoom = async (roomId: EphemeraRoomId): Promise<EphemeraMetaRoom | undefined> => (
@@ -48,6 +50,7 @@ export const intakeRenderRequested = async (
         getMetaRoom: _deps?.getMetaRoom ?? defaultGetMetaRoom,
         computePerspectiveKey: _deps?.computePerspectiveKey ?? computePerspectiveKey,
         computeDefaultMarksForRoom: _deps?.computeDefaultMarksForRoom ?? computeDefaultMarksForRoom,
+        resolvePerspectivePointer: _deps?.resolvePerspectivePointer ?? resolvePerspectivePointer,
     }
 
     const roomId = payload.componentId
@@ -85,7 +88,7 @@ export const intakeRenderRequested = async (
     }
 
     const perspectiveKey = deps.computePerspectiveKey(perspective.assetStack)
-    const pointerId = metaRoom?.currentCacheByPerspective?.[perspectiveKey] as EphemeraCacheId | undefined
+    const pointerId = await deps.resolvePerspectivePointer(roomId, perspectiveKey, metaRoom)
 
     const input: RenderResolveInputSuccess = {
         type: 'success',

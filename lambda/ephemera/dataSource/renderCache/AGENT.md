@@ -75,6 +75,27 @@ Implications:
 
 There is no "cache per Example ID" or "RoomId + Mark state" key; this keeps the schema compatible with future semantic / constellation search.
 
+### On-demand authored examples
+
+Initiative: [`taskPlanning/.../AGENT.onDemandAuthoredExamples.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md).
+
+| Shape | SK / stream | Role |
+| --- | --- | --- |
+| **`EphemeraCacheCatalogRow`** | `Cache::${perspectiveKey}` under host `EphemeraId` | Per-perspective catalog: `catalogVersion`, `hydratedCatalogVersion`, canon **`assetStack`**, optional **`currentCacheId`** (fast pointer; M2). |
+| **`SituationCacheAdjacencyRow`** | `Link::${host}::Cache::${perspectiveKey}` under `SITUATION#` | Inverse index for Situation-scoped invalidation fan-out. |
+| **`ExampleInvalidated`** | `mtw.assets.componentExamples` | Skinny invalidation; handled in [`handleExampleInvalidated.ts`](handleExampleInvalidated.ts). |
+| **`AuthoredExample`** | `mtw-gateways` assembly | Blueprint desired set for hydrate (next slice). |
+
+**Catalog rows:** [`catalogRow.ts`](catalogRow.ts) (`queryCatalogRowsForComponent`, `getCatalogRow`, `putCatalogRow`, `conditionalInvalidateCatalogRow`, `createCatalogRowForHydrate`). Guards: [`catalogGuards.ts`](catalogGuards.ts).
+
+**Situation adjacency:** [`situationAdjacency.ts`](situationAdjacency.ts) (partition query/put/delete; S4 helpers `upsertAdjacencyForAuthoredSlice`, `deleteAdjacencyForRemovedSlice` for hydrate diff).
+
+**Perspective pointers:** [`perspectivePointer.ts`](perspectivePointer.ts) reads/writes `currentCacheId` on catalog rows; dual-reads legacy `Meta::Room.currentCacheByPerspective` during migration.
+
+**Invalidation:** [`handleExampleInvalidated.ts`](handleExampleInvalidated.ts) wired from [`index.ts`](index.ts) on `ExampleInvalidated`. Component path: query `Cache::` rows, layer-participation filter, M4 conditional bump. Situation path: adjacency fan-out; `entityRemoved: true` bumps all links and deletes the partition (P5).
+
+**Deferred:** `ensureAuthoredCatalog`, version-gated `getExactMatch`, diagnostics finding handler (P7).
+
 ### Record shape
 
 [`baseClasses.ts`](baseClasses.ts) defines the core types.
@@ -110,6 +131,7 @@ Stored directly in DynamoDB:
 - `EphemeraId`: component id (Room/Feature/Knowledge).
 - `DataCategory`: `CACHE#${uuid}`.
 - `markState`, `renderedContent`, `provenance`, `perspectiveId`, `perspectiveMatcher`, `situationId?`, `authoredExampleId?`.
+- `catalogVersion?` (optional; missing treated as **0** for version-gated lookup once catalog rows ship).
 
 `isEphemeraCacheDynamoItem` in [`baseClasses.ts`](baseClasses.ts) enforces the expected shape at read time.
 
@@ -140,6 +162,8 @@ Preview request sends `assetStack`; Ephemera builds `perspective = { assetStack 
 ## Persistence primitives
 
 [`putCacheRecord.ts`](putCacheRecord.ts) and [`deleteCacheRecord.ts`](deleteCacheRecord.ts) provide low-level write primitives (put/delete) over the Ephemera table. They operate strictly in terms of component ids and cache records (no knowledge of Events or WebSockets). `mtw.ephemera.renderCache` is the production entry that calls them after `api.ephemera` commands.
+
+Catalog and adjacency primitives are listed under **On-demand authored examples** above.
 
 ### DataSource-owned `queryCacheRecordsForComponent(componentId)`
 
@@ -284,7 +308,7 @@ For broader architectural context, see:
 
 ## Tests
 
-- Package: [`index.test.ts`](index.test.ts), [`putCacheRecord.test.ts`](putCacheRecord.test.ts), [`deleteCacheRecord.test.ts`](deleteCacheRecord.test.ts), [`queryCacheRecordsForComponent.test.ts`](queryCacheRecordsForComponent.test.ts).
+- Package: [`index.test.ts`](index.test.ts), [`putCacheRecord.test.ts`](putCacheRecord.test.ts), [`deleteCacheRecord.test.ts`](deleteCacheRecord.test.ts), [`queryCacheRecordsForComponent.test.ts`](queryCacheRecordsForComponent.test.ts), [`catalogRow.test.ts`](catalogRow.test.ts), [`situationAdjacency.test.ts`](situationAdjacency.test.ts), [`handleExampleInvalidated.test.ts`](handleExampleInvalidated.test.ts), [`perspectivePointer.test.ts`](perspectivePointer.test.ts).
 - Contract: [`passThroughContract.scaffold.test.ts`](passThroughContract.scaffold.test.ts), shared [`../passThroughContractFixtures.ts`](../passThroughContractFixtures.ts).
 - Cross-layer: [`../passThroughOrchestrationToCache.integration.test.ts`](../passThroughOrchestrationToCache.integration.test.ts).
 

@@ -1,6 +1,7 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
-import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCacheId, EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { PerspectivePointerEntry } from '../renderCache/perspectivePointer'
 import type { StateChangedPayload } from '../state/events'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import {
@@ -113,6 +114,19 @@ describe('fanOutStateChangedToPassiveRenders', () => {
         currentCacheByPerspective: {},
     })
 
+    const collectPointersFromMeta = async (
+        _roomId: EphemeraRoomId,
+        metaRoom?: EphemeraMetaRoom
+    ): Promise<PerspectivePointerEntry[]> => {
+        const map = metaRoom?.currentCacheByPerspective ?? {}
+        return Object.entries(map)
+            .filter(([, cacheId]) => typeof cacheId === 'string' && cacheId.startsWith('CACHE#'))
+            .map(([perspectiveKey, cacheId]) => ({
+                perspectiveKey,
+                cacheId: cacheId as EphemeraCacheId,
+            }))
+    }
+
     it('calls orchestrate once per perspective group with targets and merged getMetaRoom', async () => {
         const stateChanged = baseStateChanged()
         const orchestrateRenderRequestFn = jest.fn().mockResolvedValue(undefined)
@@ -140,6 +154,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
                 roomCharacterListGet,
                 characterMetaGet,
                 getMetaRoomBase,
+                collectPerspectivePointerEntries: collectPointersFromMeta,
             }
         )
 
@@ -197,6 +212,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
                 roomCharacterListGet,
                 characterMetaGet,
                 getMetaRoomBase,
+                collectPerspectivePointerEntries: collectPointersFromMeta,
             }
         )
 
@@ -230,6 +246,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
                 roomCharacterListGet,
                 characterMetaGet,
                 getMetaRoomBase,
+                collectPerspectivePointerEntries: collectPointersFromMeta,
             }
         )
 
@@ -264,6 +281,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
                 roomCharacterListGet,
                 getMetaRoomBase,
                 getCacheRecordById,
+                collectPerspectivePointerEntries: collectPointersFromMeta,
             }
         )
 
@@ -308,6 +326,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
                 characterMetaGet,
                 getMetaRoomBase,
                 getCacheRecordById,
+                collectPerspectivePointerEntries: collectPointersFromMeta,
             }
         )
 
@@ -362,6 +381,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
                 characterMetaGet,
                 getMetaRoomBase,
                 getCacheRecordById,
+                collectPerspectivePointerEntries: collectPointersFromMeta,
             }
         )
 

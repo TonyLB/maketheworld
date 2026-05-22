@@ -1,3 +1,12 @@
+jest.mock('../renderCache/perspectivePointer', () => ({
+    resolvePerspectivePointer: jest.fn(async (_roomId, perspectiveKey, metaRoom) => {
+        const id = metaRoom?.currentCacheByPerspective?.[perspectiveKey]
+        return typeof id === 'string' && id.startsWith('CACHE#') ? id : undefined
+    }),
+    clearPerspectivePointer: jest.fn().mockResolvedValue(undefined),
+    collectPerspectivePointerEntries: jest.fn().mockResolvedValue([]),
+}))
+
 import type { MessageBus as MessageBusType } from '../../messageBus/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
