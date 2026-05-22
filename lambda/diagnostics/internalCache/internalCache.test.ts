@@ -22,17 +22,17 @@ describe('diagnostics internalCache', () => {
         expect(verticalsClear).toHaveBeenCalledTimes(1)
     })
 
-    it('ComponentData.get delegates to assetDB query', async () => {
-        assetDBMock.query.mockResolvedValue([] as any)
-        const componentId = 'ROOM#12345'
-        const result = await internalCache.ComponentData.get([componentId])
-        expect(result).toEqual([
-            {
-                ComponentId: componentId,
-                byAssets: [],
-            },
-        ])
-        expect(assetDBMock.query).toHaveBeenCalled()
+    it('ComponentData.get delegates to assetDB getItems for pair reads', async () => {
+        assetDBMock.getItems.mockResolvedValue([])
+        const componentId = 'ROOM#12345' as const
+        const assetId = 'ASSET#Test' as const
+        const result = await internalCache.ComponentData.get(componentId, assetId)
+        expect(result.component.universalKey).toBe(componentId)
+        expect(result.assetId).toBe(assetId)
+        expect(assetDBMock.getItems).toHaveBeenCalledWith({
+            Keys: [{ AssetId: componentId, DataCategory: assetId }],
+            getAllFields: true,
+        })
     })
 
     it('ComponentVerticals.get delegates to assetDB query', async () => {

@@ -1,6 +1,6 @@
 # Component data gateway consolidation - planning
 
-**Status:** Assets and Ephemera lambdas use pair-addressed **`internalCache.ComponentData`** (`createComponentDataCacheHandler`). **Next:** Diagnostics `internalCache` swap (Recommended order 269+).
+**Status:** All three lambdas use pair-addressed **`internalCache.ComponentData`** (`createComponentDataCacheHandler`). **Next:** Retire hot-path partition reads (`componentExamples` mirroring + reseed; Recommended order 271).
 
 This document follows [`taskPlanning/AGENT.md`](../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting norms live in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) (**Component data read surfaces**, ownership table) and lambda **`internalCache`** AGENT files.
 
@@ -224,7 +224,7 @@ All rows decided at planning time. Reopen only if implementation discovers a gap
 | Verticals + diagnostics exhaustive whitelist wiring | Done |
 | Lambda **`internalCache.ComponentData`** swap (assets) | Done |
 | Lambda **`internalCache.ComponentData`** swap (ephemera) | Done |
-| Lambda **`internalCache.ComponentData`** swap (diagnostics) | Not started |
+| Lambda **`internalCache.ComponentData`** swap (diagnostics) | Done |
 | Legacy mirroring / reseed off partition reads | Assets interim pair + participation order (full retirement with on-demand examples) |
 | `mtw-gateways/AGENT.md` ownership table + remove `assetMeta/` | Not started |
 
@@ -267,7 +267,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` wh
 - [X] **Verticals + diagnostics:** wire **`ImportVerticalConsistencyAnalyzer`** and sweep to **`exhaustiveScan`** path only; **`syncImportVerticalPartition`** / heal unchanged semantically, new import paths
 - [X] **Assets `internalCache`:** replace partition **`ComponentData`** implementation with pair-addressed **`createComponentDataCacheHandler`**; keep field name **`ComponentData`**; update [`lambda/assets/internalCache/AGENT.md`](../../../lambda/assets/internalCache/AGENT.md)
 - [X] **Ephemera `internalCache`:** hard switchover **`ComponentAssetMeta` -> `ComponentData`** (all call sites, tests, docs); removed [`componentAssetMeta.ts`](../../../lambda/ephemera/internalCache/componentAssetMeta.ts) barrel
-- [ ] **Diagnostics `internalCache`:** keep **`ComponentData`** field; pair handler for any bounded reads; sweep/analyzer use **`exhaustiveScan`** subpath only; update [`lambda/diagnostics/internalCache/AGENT.md`](../../../lambda/diagnostics/internalCache/AGENT.md)
+- [X] **Diagnostics `internalCache`:** keep **`ComponentData`** field; pair handler for any bounded reads; sweep/analyzer use **`exhaustiveScan`** subpath only; update [`lambda/diagnostics/internalCache/AGENT.md`](../../../lambda/diagnostics/internalCache/AGENT.md)
 - [ ] **Retire hot-path partition reads:** **`componentExamples`** mirroring + reseed (coordinate [**on-demand examples**](../../lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md)); grep repo for **`createAuthoritativeComponentDataCacheHandler`** outside whitelist
 - [ ] **Remove `assetMeta/` shim:** delete directory; fix deep imports; update [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) ownership table (**Component data** row replaces **Component Asset Meta**)
 - [ ] **Dispose this plan** per [`taskPlanning/AGENT.md`](../../AGENT.md)
@@ -325,10 +325,12 @@ npx tsc --build packages/mtw-gateways/tsconfig.ref.json
 # rg 'ComponentAssetMeta|createEphemeraComponentAssetMetaCacheHandler' lambda/ephemera  # 0 matches (production + tests)
 ```
 
-**After diagnostics `internalCache` swap (pending):**
+**After diagnostics `internalCache` swap (2026-05-22):**
 
 ```bash
-cd lambda/assets && npm test -- --testPathPattern=componentAggregate
+cd lambda/diagnostics && npm test -- --testPathPattern='internalCache|componentVerticalMisalignmentSweep'  # 2 suites, 5 tests
+npx tsc --build packages/mtw-gateways/tsconfig.ref.json
+# rg 'createAuthoritativeComponentDataCacheHandler|authoritativeComponentDataCache' lambda/diagnostics  # 0 matches
 ```
 
 **After exhaustive whitelist migration (2026-05-22):**

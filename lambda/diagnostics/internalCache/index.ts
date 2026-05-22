@@ -1,7 +1,7 @@
 import {
-    createAuthoritativeComponentDataCacheHandler,
-    type AuthoritativeComponentDataCache,
-} from '@tonylb/mtw-gateways/ts/assets/components/assetMeta'
+    createComponentDataCacheHandler,
+    type ComponentDataCache,
+} from '@tonylb/mtw-gateways/ts/assets/components/componentData'
 import {
     createImportVerticalMetaCacheHandler,
     type ImportVerticalMetaCache,
@@ -9,7 +9,7 @@ import {
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 class InternalCache {
-    ComponentData: AuthoritativeComponentDataCache = createAuthoritativeComponentDataCacheHandler(assetDB)
+    ComponentData: ComponentDataCache = createComponentDataCacheHandler(assetDB)
     ComponentVerticals: ImportVerticalMetaCache = createImportVerticalMetaCacheHandler(assetDB)
 
     clear(): void {
