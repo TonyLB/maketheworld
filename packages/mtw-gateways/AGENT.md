@@ -126,7 +126,7 @@ When imports imply a **directed cycle**, pure helpers may also encode **determin
 - **In this package (contract):** analyzer class, **`ImportVerticalConsistencyAnalyzerDeps`** / loader interfaces, findings types, and **pure** helpers (derive, salvage, classification, keys). These define **what** data is needed and **how** it is interpreted---not **where** it is loaded from or **how** the lambda caches it.
 - **In each lambda (composition):** constructing **`ImportVerticalConsistencyAnalyzerDeps`** using the lambda's cache-backed loaders (via the `InternalCache` handlers) and/or `assetDB` wrappers, and any memoization so **`check()`** (which awaits **both** loaders in parallel) does not accidentally duplicate work unless that is an explicit, documented trade. Reader-facing **`internalCache` / `AGENT.md`** files describe those choices per lambda.
 - **Blessed wiring sites for `ImportVerticalConsistencyAnalyzer`:** (**1**) Assets [**`syncImportVerticalPartition`**](../../lambda/assets/dataSource/components/verticals/syncImportVerticalPartition.ts) --- module-local [**`exhaustivePartitionLoader`**](../../lambda/assets/dataSource/components/verticals/exhaustivePartitionLoader.ts) (`createExhaustiveScanCacheHandler` subpath) + **`internalCache.ComponentVerticals`**. (**2**) Diagnostics [**`componentVerticalMisalignmentSweep`**](../../lambda/diagnostics/componentVerticalMisalignmentSweep/index.ts) --- [**`exhaustivePartitionLoader`**](../../lambda/diagnostics/componentVerticalMisalignmentSweep/exhaustivePartitionLoader.ts) + **`internalCache.ComponentVerticals`**; universal-key discovery for the asset still **`Query`**s **`DataCategoryIndex`** outside those handlers. (**3**) Package and lambda tests --- mocks implementing **`ImportVerticalConsistencyAnalyzerDeps`**. **`cacheAsset`** invalidates the assets exhaustive loader alongside **`internalCache.ComponentData`** when component rows change.
-- **Anti-pattern:** passing **`internalCache.ComponentData`** into the analyzer after that field becomes pair-addressed (next consolidation slice). Use the documented **`exhaustivePartitionLoader`** modules instead.
+- **Anti-pattern:** passing **`internalCache.ComponentData`** into **`ImportVerticalConsistencyAnalyzer`** (pair-addressed reads only). Use the documented **`exhaustivePartitionLoader`** modules instead.
 
 ## Wrapping gateways in InternalCache (playbook)
 
@@ -190,6 +190,13 @@ After changing shared helpers under [`ts/assets/components/componentData`](ts/as
 
 ```sh
 cd lambda/ephemera && npm test -- --testPathPattern componentData
+```
+
+**Advisory hygiene (manual; not CI):** partition-handler names must not reappear outside **`componentData/`** / **`exhaustiveScan`**:
+
+```sh
+rg "createAuthoritativeComponentDataCacheHandler|authoritativeComponentDataCache" \
+  --glob '!**/componentData/**' --glob '!**/*.planning.md'
 ```
 
 ## Cross-references

@@ -334,7 +334,7 @@ sequenceDiagram
 
 ## Consolidation handoff (mirroring / reseed retirement)
 
-[`AGENT.componentDataConsolidation.planning.md`](../../../../packages/mtw-gateways/AGENT.componentDataConsolidation.planning.md) slice **271** is **partition-complete**: **`componentExamples`** mirroring and diagnostics reseed load component bodies via pair-addressed **`internalCache.ComponentData`** and **`authoritativeFromParticipationOrder`** ([`loadAuthoritativeForMirroring`](../../../../../lambda/assets/componentExamples/loadAuthoritativeForMirroring.ts)), not partition enumerate. **This initiative owns** retiring the remaining mirror/reseed **pipelines**.
+**Component data gateway consolidation shipped:** pair-addressed **`internalCache.ComponentData`**, **`authoritativeFromParticipationOrder`**, and **`assetMeta/`** removal are documented in [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) (**Component data reads: ephemera vs assets**). **`componentExamples`** mirroring and diagnostics reseed load bodies via that read path ([`loadAuthoritativeForMirroring`](../../../../../lambda/assets/componentExamples/loadAuthoritativeForMirroring.ts)), not partition enumerate. **This initiative owns** retiring the remaining mirror/reseed **pipelines**.
 
 | Consolidation item | Status | On-demand [**Recommended order**](#recommended-order) items |
 | --- | --- | --- |
@@ -342,7 +342,7 @@ sequenceDiagram
 | Retire **`ExampleUpdated`** / **`ExampleRemoved`** mirror payloads | **This plan** | **Assets emitter**; **Invalidation handler** (partial); retire [`componentExamples.ts`](../../../../../lambda/ephemera/dataSource/componentExamples.ts) |
 | Retire **`reseedComponentExamplesFromDiagnostics`** | **This plan** | **P7** diagnostics finding on Ephemera **`renderCache`**; remove Assets [`dataSource/index.ts`](../../../../../lambda/assets/dataSource/index.ts) routing |
 | Remove **`loadAuthoritativeForMirroring`**, legacy **`exampleEnrichment`** merge-at-push | **This plan** | After **Lambda wiring (A1)** + **Hydration**; **`internalCache.ComponentExamples`** replaces push-time merge |
-| Grep cleanup of **`createAuthoritativeComponentDataCacheHandler`** outside shim | [**Consolidation 272**](../../../../packages/mtw-gateways/AGENT.componentDataConsolidation.planning.md) | Do **not** reintroduce partition handler on lambdas |
+| Grep cleanup of **`createAuthoritativeComponentDataCacheHandler`** outside **`componentData/`** | **Done** (shim removed) | Do **not** reintroduce partition handler on lambdas; see [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) |
 
 Deploy sequence remains [**P6**](#contract-gaps-resolved-at-planning): Ephemera catalog + invalidation + **`ensureAuthoredCatalog`** first; then Assets invalidation-only; then drop **`mtw.ephemera.examples`** mirror subscriber.
 
