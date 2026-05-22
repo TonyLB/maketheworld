@@ -14,6 +14,7 @@ export type { MetaImportStrippedIds } from './keys'
 export {
     ImportVerticalConsistencyAnalyzer,
     type ImportVerticalAuthoritativeComponentData,
+    type ExhaustivePartitionLoader,
     type ImportVerticalAuthoritativeComponentDataLoader,
     type ImportVerticalConsistencyAnalyzerDeps,
     type ImportVerticalConsistencyClassification,

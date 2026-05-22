@@ -15,7 +15,7 @@ The diagnostics lambda exposes a per-invocation **[`InternalCache`](./index.ts)*
 | **`ComponentAggregate`** (wiring) | **`createComponentAggregateCacheHandler({ ComponentData, ComponentVerticals })`** from [`aggregate`](../../../packages/mtw-gateways/ts/assets/components/aggregate/index.ts) | Same pattern as assets **`internalCache.ComponentAggregate`**. |
 | **`ComponentExamples`** (wiring) | **`createComponentExamplesCacheHandler({ ComponentAggregate })`** from [`componentExamples`](../../../packages/mtw-gateways/ts/assets/components/componentExamples/index.ts) | Blueprint **`AuthoredExampleSet`** reads; call **`get`**, not **`assembleComponentExamplesAtPerspective`**, in steady-state code. |
 
-**Consumers:** [`componentVerticalMisalignmentSweep`](../componentVerticalMisalignmentSweep/index.ts) wires **`ImportVerticalConsistencyAnalyzer`** deps from **`ComponentData`** + **`ComponentVerticals`**. On-demand authored-examples initiative adds aggregate + examples handlers for blueprint diff ([`renderCache` planning](../../taskPlanning/lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md)).
+**Consumers:** [`componentVerticalMisalignmentSweep`](../componentVerticalMisalignmentSweep/index.ts) wires analyzer partition reads from [**`exhaustivePartitionLoader`**](../componentVerticalMisalignmentSweep/exhaustivePartitionLoader.ts), not **`ComponentData`**. **`ComponentVerticals`** remains tier-1. On-demand authored-examples initiative adds aggregate + examples handlers for blueprint diff ([`renderCache` planning](../../taskPlanning/lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md)).
 
 ## Scope
 

@@ -15,7 +15,10 @@ import type {
 
 export type { ComponentDataParticipationLoader }
 
-/** Analyzer-shaped deps (partition authoritative loader); not used for steady-state merge assembly. */
+/**
+ * Analyzer-shaped deps ({@link ExhaustivePartitionLoader} + vertical projection).
+ * Not used for steady-state merge assembly ({@link ComponentAggregateInternalCacheSlice}).
+ */
 export type AggregateGatewayDeps = ImportVerticalConsistencyAnalyzerDeps
 
 /**

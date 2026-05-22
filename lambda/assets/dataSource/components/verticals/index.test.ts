@@ -47,9 +47,29 @@ jest.mock('../../../messageBus', () => ({
     subscribe: jest.fn(),
 }))
 
-jest.mock('../../../internalCache', () => {
+jest.mock('./exhaustivePartitionLoader', () => {
     const { authoritativeComponentDataFromUniversalPartitionRows } =
         require('@tonylb/mtw-gateways/ts/assets/components/assetMeta')
+    const { assetDB } = require('@tonylb/mtw-utilities/ts/dynamoDB')
+    return {
+        exhaustivePartitionLoader: {
+            get: async (componentIds: string[]) =>
+                Promise.all(
+                    componentIds.map(async (componentId: string) => {
+                        const ndjsonLines =
+                            (await assetDB.query({
+                                Key: { AssetId: componentId },
+                                allFields: true,
+                            })) || []
+                        return authoritativeComponentDataFromUniversalPartitionRows(componentId, ndjsonLines)
+                    })
+                ),
+        },
+        invalidateExhaustivePartitionCache: jest.fn(),
+    }
+})
+
+jest.mock('../../../internalCache', () => {
     const { queryImportVerticalMeta } =
         require('@tonylb/mtw-gateways/ts/assets/components/verticals')
     const { assetDB } = require('@tonylb/mtw-utilities/ts/dynamoDB')
@@ -64,19 +84,6 @@ jest.mock('../../../internalCache', () => {
                             universalKey,
                             hops: await queryImportVerticalMeta(assetDB, universalKey),
                         }))
-                    ),
-            },
-            ComponentData: {
-                get: async (componentIds: string[]) =>
-                    Promise.all(
-                        componentIds.map(async (componentId: string) => {
-                            const ndjsonLines =
-                                (await assetDB.query({
-                                    Key: { AssetId: componentId },
-                                    allFields: true,
-                                })) || []
-                            return authoritativeComponentDataFromUniversalPartitionRows(componentId, ndjsonLines)
-                        })
                     ),
             },
         },

@@ -22,12 +22,18 @@ export type ImportVerticalUniversalPartitionRow = StandardComponentData & {
 }
 
 /**
- * Loads authoritative parsed components per universal id (same contract as assets lambda
- * `internalCache.ComponentData.get`).
+ * Maintenance/diagnostics partition enumerate per universal id (`exhaustiveScanCache` subpath).
+ * Whitelist call sites only --- not pair-addressed `internalCache.ComponentData`.
  */
-export interface ImportVerticalAuthoritativeComponentDataLoader {
+export interface ExhaustivePartitionLoader {
     get(ComponentIds: EphemeraId[]): Promise<ReadonlyArray<ImportVerticalAuthoritativeComponentData>>
 }
+
+/**
+ * @deprecated Use {@link ExhaustivePartitionLoader}. Same contract; old name implied assets
+ * `internalCache.ComponentData`, which is no longer the blessed analyzer loader.
+ */
+export type ImportVerticalAuthoritativeComponentDataLoader = ExhaustivePartitionLoader
 
 /**
  * One projected `Meta::Import::...` envelope keyed by universal id. Mirrors the assets lambda
@@ -49,7 +55,7 @@ export interface ImportVerticalMetaImportProjectionLoader {
 }
 
 export type ImportVerticalConsistencyAnalyzerDeps = {
-    authoritativeComponentData: ImportVerticalAuthoritativeComponentDataLoader
+    authoritativeComponentData: ExhaustivePartitionLoader
     metaImportProjection: ImportVerticalMetaImportProjectionLoader
 }
 
