@@ -89,6 +89,8 @@ export type SituationScopedExampleInvalidatedEvent = {
     type: 'ExampleInvalidated';
     situationId: ComponentUUID;
     editAssetId: AssetUUID;
+    /** When true (Situation Component Removed), bump all adjacency links and delete the partition (P5). */
+    entityRemoved?: true;
 }
 
 export type ComponentExamplesInvalidatedEvent =
@@ -164,6 +166,9 @@ export const isSituationScopedExampleInvalidated = (
         return false
     }
     if (typeof record.editAssetId !== 'string' || !isSchemaAssetUUID(record.editAssetId)) {
+        return false
+    }
+    if ('entityRemoved' in record && record.entityRemoved !== undefined && record.entityRemoved !== true) {
         return false
     }
     return !hasMirrorOnlyFields(record)

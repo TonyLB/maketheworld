@@ -24,6 +24,10 @@ import {
 import type { CharacterMetaItem } from '../../internalCache/characterMeta'
 import type { RoomCharacterListItem } from '../../internalCache/baseClasses'
 import internalCache from '../../internalCache'
+import {
+    collectPerspectivePointerEntries,
+    type PerspectivePointerEntry,
+} from '../renderCache/perspectivePointer'
 import { defaultGetCacheRecordById, orchestrateRenderRequest } from './orchestrationHandler'
 
 /** Room stack order preserved; keep assets that are Canon or present on the character. */
@@ -109,6 +113,10 @@ export type FanOutStateChangedDependencies = {
     characterMetaGet?: (characterId: EphemeraCharacterId) => Promise<CharacterMetaItem>;
     getMetaRoomBase?: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>;
     getCacheRecordById?: (roomId: EphemeraRoomId, cacheId: EphemeraCacheId) => Promise<EphemeraCacheDynamoItem | undefined>;
+    collectPerspectivePointerEntries?: (
+        roomId: EphemeraRoomId,
+        metaRoom?: EphemeraMetaRoom
+    ) => Promise<PerspectivePointerEntry[]>;
     computePerspectiveKey?: ComputePk;
     orchestrateRenderRequestFn?: typeof orchestrateRenderRequest;
 };
@@ -173,7 +181,8 @@ export const fanOutStateChangedToPassiveRenders = async (
     }
 
     const mergedMeta = await getMetaRoomMerged(roomId)
-    const pointerMap = mergedMeta?.currentCacheByPerspective ?? {}
+    const collectPointers = deps?.collectPerspectivePointerEntries ?? collectPerspectivePointerEntries
+    const pointerEntries = await collectPointers(roomId, mergedMeta)
 
     const workByKey = new Map<string, PassiveFanOutWorkItem>()
 
@@ -187,12 +196,8 @@ export const fanOutStateChangedToPassiveRenders = async (
     }
 
     const audienceKeys = new Set(workByKey.keys())
-    for (const perspectiveKey of Object.keys(pointerMap)) {
+    for (const { perspectiveKey, cacheId } of pointerEntries) {
         if (audienceKeys.has(perspectiveKey)) {
-            continue
-        }
-        const cacheId = pointerMap[perspectiveKey] as EphemeraCacheId | undefined
-        if (cacheId === undefined) {
             continue
         }
         const assetStack = await assetStackForPointerOnlyPerspective(

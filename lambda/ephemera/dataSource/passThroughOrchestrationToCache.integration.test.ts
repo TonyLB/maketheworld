@@ -9,6 +9,15 @@ jest.mock('./renderCache/putCacheRecord', () => ({
     putCacheRecord: jest.fn(),
 }))
 
+jest.mock('./renderCache/perspectivePointer', () => ({
+    resolvePerspectivePointer: jest.fn(async (_roomId, perspectiveKey, metaRoom) => {
+        const id = metaRoom?.currentCacheByPerspective?.[perspectiveKey]
+        return typeof id === 'string' && id.startsWith('CACHE#') ? id : undefined
+    }),
+    clearPerspectivePointer: jest.fn().mockResolvedValue(undefined),
+    collectPerspectivePointerEntries: jest.fn().mockResolvedValue([]),
+}))
+
 import './renderCache/index'
 import { putCacheRecord } from './renderCache/putCacheRecord'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'

@@ -28,6 +28,7 @@ import { generateRoomPreview } from './generateRoomPreview'
 import type { RunWithSingleFlight } from './singleFlightRenderGeneration'
 import { intakeRenderRequested } from './requestIntake'
 import type { RequestIntakeDependencies } from './requestIntake'
+import { clearPerspectivePointer as clearCatalogPerspectivePointer } from '../renderCache/perspectivePointer'
 import internalCache from '../../internalCache'
 
 export type OrchestrationHandlerDependencies = {
@@ -70,17 +71,7 @@ export const defaultGetCacheRecordById = async (
 }
 
 export const defaultClearPerspectivePointer = async (roomId: EphemeraRoomId, perspectiveKey: string): Promise<void> => {
-    await ephemeraDB.optimisticUpdate({
-        Key: { EphemeraId: roomId, DataCategory: 'Meta::Room' },
-        updateKeys: ['currentCacheByPerspective'],
-        updateReducer: (draft) => {
-            if (draft.currentCacheByPerspective && typeof draft.currentCacheByPerspective === 'object') {
-                delete draft.currentCacheByPerspective[perspectiveKey]
-            }
-        }
-    })
-    internalCache.ComponentEphemeraMeta.invalidate(roomId)
-    internalCache.ComponentStackMerge.invalidate(roomId)
+    await clearCatalogPerspectivePointer(roomId, perspectiveKey)
 }
 
 /**

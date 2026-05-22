@@ -17,8 +17,9 @@ import {
     isRenderOrchestrationPublishedStreamEnvelope,
 } from '../renderOrchestration/publishedEvents'
 import type { RenderCacheSubscribedContent } from './subscribedEvents'
-import { isRenderCacheSubscribedEnvelope } from './subscribedEvents'
+import { isComponentExamplesInvalidatedEnvelope, isRenderCacheSubscribedEnvelope } from './subscribedEvents'
 import { handleRenderOrchestrationInbound } from './handleRenderOrchestrationInbound'
+import { handleExampleInvalidated } from './handleExampleInvalidated'
 
 type CacheCommand = PutCacheRecordCommand | DeleteCacheRecordsCommand
 
@@ -40,6 +41,12 @@ export const ephemeraRenderCacheDataSource = new EphemeraDataSource<never, Rende
                         return
                     }
                     await handleRenderOrchestrationInbound({ content: raw, streamEvent })
+                    return
+                }
+
+                if (isComponentExamplesInvalidatedEnvelope(evt)) {
+                    const invalidated = await evt.getContent()
+                    await handleExampleInvalidated(invalidated)
                     return
                 }
 

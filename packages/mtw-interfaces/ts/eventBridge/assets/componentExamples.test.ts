@@ -40,6 +40,12 @@ describe('ComponentExamples invalidation guards', () => {
         expect(isComponentExamplesEvent(situationScoped)).toBe(true)
     })
 
+    it('accepts situation-scoped with entityRemoved flag', () => {
+        const removed = { ...situationScoped, entityRemoved: true as const }
+        expect(isSituationScopedExampleInvalidated(removed)).toBe(true)
+        expect(isSituationScopedExampleInvalidated({ ...situationScoped, entityRemoved: false })).toBe(false)
+    })
+
     it('rejects empty componentIds', () => {
         expect(isComponentScopedExampleInvalidated({
             type: 'ExampleInvalidated',
