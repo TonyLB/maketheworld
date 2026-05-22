@@ -1,6 +1,7 @@
 import {
     generateCacheKey,
     cacheKeyComponents,
+    componentPairCacheKey,
     metaDataCategoryForEphemeraId,
     fetchComponentsForAssets,
     defaultStoredEntryForCacheKey,
@@ -10,13 +11,14 @@ import {
     type ComponentAssetMetaAssetDB,
 } from './index'
 
-describe('component asset meta gateway', () => {
-    describe('generateCacheKey / cacheKeyComponents', () => {
+describe('component data gateway', () => {
+    describe('componentPairCacheKey / cacheKeyComponents', () => {
         it('round-trips a valid compound key', () => {
             const ephemeraId = 'ROOM#TestOne' as const
             const assetId = 'ASSET#Base' as const
-            const key = generateCacheKey(ephemeraId, assetId)
+            const key = componentPairCacheKey(ephemeraId, assetId)
             expect(key).toBe('ASSET#Base::ROOM#TestOne')
+            expect(generateCacheKey(ephemeraId, assetId)).toBe(key)
             expect(cacheKeyComponents(key)).toEqual({ EphemeraId: ephemeraId, assetId })
         })
 

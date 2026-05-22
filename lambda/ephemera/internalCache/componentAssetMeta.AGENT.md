@@ -23,15 +23,6 @@ const results = await componentAssetMeta.getAcrossAssets('ROOM#mainHall-uuid', [
 // Returns: Record<AssetUUID, StandardComponent>
 ```
 
-### **Complete Asset Discovery**
-Can find ALL assets containing a specific component:
-
-```typescript
-// Find all assets containing the mainHall room
-const allAssets = await componentAssetMeta.getAcrossAllAssets('ROOM#mainHall-uuid')
-// Returns: Record<AssetUUID, StandardComponent>
-```
-
 ### **Default Component Creation**
 When a component doesn't exist in the database, creates a default component:
 - Uses `tagFromEphemeraWrappedId()` to determine component type
@@ -76,14 +67,6 @@ const results = await componentAssetMeta.getAcrossAssets('ROOM#mainHall-uuid', [
 // Returns: Record<AssetUUID, StandardComponent>
 ```
 
-### **`getAcrossAllAssets(EphemeraId)`**
-Retrieves a component across ALL assets where it appears:
-
-```typescript
-const allAssets = await componentAssetMeta.getAcrossAllAssets('ROOM#mainHall-uuid')
-// Returns: Record<AssetUUID, StandardComponent>
-```
-
 ## DynamoDB Integration
 
 ### **Database Schema**
@@ -108,16 +91,7 @@ const result = await assetDB.getItems({
 })
 ```
 
-#### **Meta Lookup for Cross-Asset Discovery**
-```typescript
-const metaResult = await assetDB.getItem({
-    Key: {
-        AssetId: 'ROOM#mainHall-uuid',
-        DataCategory: 'Meta::Room'  // Component type metadata
-    },
-    ProjectionFields: ['cached']    // List of asset keys
-})
-```
+**Participation order / asset stack:** resolve via [`RoomAssets`](./assetRooms.ts) (`Meta::Room.cached`) or caller-supplied lists --- not via unbounded component-meta discovery on this handler.
 
 ## Integration Points
 
@@ -151,17 +125,10 @@ const appearances = await componentAssetMeta.getAcrossAssets('FEATURE#fountain-u
 // a viewpoint has access (to create the overall sense of the fountain as a whole)
 ```
 
-### **Complete Component Discovery**
-```typescript
-// Find all assets containing a specific component
-const allAssets = await componentAssetMeta.getAcrossAllAssets('ROOM#mainHall-uuid')
-// Useful for understanding component aggregate across the system
-```
-
 ## Navigation Tips
 
 1. **Start with `get()`**: Understand single component retrieval
-2. **Read the gateway module**: DynamoDB key lists and row mapping are in `@tonylb/mtw-gateways/ts/assets/components/assetMeta` (`fetchComponentsForAssets`, `fetchCachedAssetIdsForComponent`)
+2. **Read the gateway module**: DynamoDB pair batching and row mapping are in `@tonylb/mtw-gateways/ts/assets/components/componentData` (`fetchComponentsForAssets`; deprecated shim `assetMeta`)
 3. **Review cache key format**: Understand the `assetId::EphemeraId` pattern (`generateCacheKey` / `cacheKeyComponents` in the same package)
 4. **Examine error handling**: See validation patterns for data integrity
 5. **Look at batching**: Understand how multiple requests are optimized

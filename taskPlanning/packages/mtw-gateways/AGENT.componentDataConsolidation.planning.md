@@ -1,6 +1,6 @@
 # Component data gateway consolidation - planning
 
-**Status:** Design pass complete (D1--D5). **Next:** scaffold [`packages/mtw-gateways/ts/assets/components/componentData/`](../../../packages/mtw-gateways/ts/assets/components/componentData/) before migrating consumers off [`assetMeta/`](../../../packages/mtw-gateways/ts/assets/components/assetMeta/).
+**Status:** `componentData/` scaffold shipped (pair cache, participation batch, exhaustive scan subpath, `assetMeta/` shim). **Next:** aggregate factory participation batch + lambda `internalCache` swaps (Recommended order 264+).
 
 This document follows [`taskPlanning/AGENT.md`](../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting norms live in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) (**Component data read surfaces**, ownership table) and lambda **`internalCache`** AGENT files.
 
@@ -65,7 +65,7 @@ Mirror [**compute-only file roles**](../../../packages/mtw-gateways/AGENT.md#pro
 | File | Role |
 | --- | --- |
 | **`keys.ts`** | **`componentPairCacheKey(universalKey, assetId)`**, parse helpers; stable pair type **`ComponentAssetPair`**. |
-| **`fetch.ts`** | Narrow **`assetDB`** slice: **`getItems`** batch for pairs; optional meta-row discovery helpers moved from legacy **`assetMeta/fetch.ts`**. |
+| **`fetch.ts`** | Narrow **`assetDB`** slice: **`getItems`** batch for pairs only (removed orphaned **`fetchCachedAssetIdsForComponent`** / **`getAcrossAllAssets`**; stack discovery stays **`RoomAssets`** or caller order). |
 | **`dynamoStandardComponents.ts`** | Row normalization (**moved** from **`assetMeta/dynamoStandardComponents.ts`**): **`standardComponentPairFromAssetDbGetItemsRow`**, **`AuthoritativeComponentData`** envelope builders used **after** pair fetch or exhaustive scan. |
 | **`componentDataCache.ts`** | **`ComponentDataCache`**, **`createComponentDataCacheHandler(assetDB)`** --- **primary** tier-1 handler (pair-addressed; replaces partition **`AuthoritativeComponentDataCache`**). |
 | **`exhaustiveScan.ts`** | Pure partition **`Query`** + map to **`AuthoritativeComponentData`**; **module-level warning comment block**; **not** exported from barrel; **not** registered on lambda **`internalCache`**. |
@@ -217,9 +217,9 @@ All rows decided at planning time. Reopen only if implementation discovers a gap
 | --- | --- |
 | Requirements + migration inventory captured | Done |
 | Design pass (D1--D5) | Done |
-| `componentData/` scaffold + pair cache | Not started |
-| `exhaustiveScan` + stern docs + whitelist | Not started |
-| `assetMeta/` shim + deprecations | Not started |
+| `componentData/` scaffold + pair cache | Done |
+| `exhaustiveScan` + stern docs + whitelist | Done |
+| `assetMeta/` shim + deprecations | Done |
 | Aggregate factory uses participation batch | Not started |
 | Lambda **`internalCache.ComponentData`** swap (assets, ephemera, diagnostics) | Not started |
 | Legacy mirroring / reseed off partition reads | Not started (coordinate with on-demand examples) |
@@ -256,10 +256,10 @@ npx tsc --build packages/mtw-gateways/tsconfig.ref.json
 Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` when done.
 
 - [X] **Design pass:** [**Decisions (resolved)**](#decisions-resolved) D1--D5
-- [ ] **Scaffold `componentData/`:** `keys`, `fetch`, moved `dynamoStandardComponents`, **`componentDataCache`** + tests (parity with today **`EphemeraComponentAssetMetaCache`** behavior)
-- [ ] **`participationBatch` helper:** build **`AuthoritativeComponentData`** from pair cache + **`mergeParticipationOrder`**; package tests
-- [ ] **`exhaustiveScan` + `exhaustiveScanCache`:** stern module docs; move partition **`Query`** logic out of **`authoritativeComponentDataCache.ts`**; whitelist tests documenting allowed importers
-- [ ] **`assetMeta/` shim:** re-export from **`componentData/`**; deprecate old factory names; keep tests green via shim imports
+- [X] **Scaffold `componentData/`:** `keys`, `fetch`, moved `dynamoStandardComponents`, **`componentDataCache`** + tests (parity with today **`EphemeraComponentAssetMetaCache`** behavior)
+- [X] **`participationBatch` helper:** build **`AuthoritativeComponentData`** from pair cache + **`mergeParticipationOrder`**; package tests
+- [X] **`exhaustiveScan` + `exhaustiveScanCache`:** stern module docs; move partition **`Query`** logic out of **`authoritativeComponentDataCache.ts`**; whitelist tests documenting allowed importers
+- [X] **`assetMeta/` shim:** re-export from **`componentData/`**; deprecate old factory names; keep tests green via shim imports
 - [ ] **Aggregate gateway:** refactor **`factory.ts`** / **`uncached.ts`** so slice **`ComponentData`** uses participation batch (no partition get in merge batch); update **`cacheHandler.test.ts`**, **`testHarness`**
 - [ ] **Verticals + diagnostics:** wire **`ImportVerticalConsistencyAnalyzer`** and sweep to **`exhaustiveScan`** path only; **`syncImportVerticalPartition`** / heal unchanged semantically, new import paths
 - [ ] **Assets `internalCache`:** replace partition **`ComponentData`** implementation with pair-addressed **`createComponentDataCacheHandler`**; keep field name **`ComponentData`**; update [`lambda/assets/internalCache/AGENT.md`](../../../lambda/assets/internalCache/AGENT.md)
@@ -286,12 +286,16 @@ cd packages/mtw-gateways && npm test -- --testPathPattern=aggregate
 npx tsc --build packages/mtw-gateways/tsconfig.ref.json
 ```
 
-**After `componentData/` pair cache slice:**
+**After `componentData/` pair cache slice (2026-05-22):**
 
 ```bash
-cd packages/mtw-gateways && npm test -- --testPathPattern=componentData
-cd lambda/ephemera && npm test -- --testPathPattern=componentAssetMeta
+cd packages/mtw-gateways && npm test -- --testPathPattern=componentData   # 7 suites, 21 tests
+cd packages/mtw-gateways && npm test -- --testPathPattern=assetMeta       # 3 suites, 15 tests (shim)
+cd packages/mtw-gateways && npm test                                      # 22 suites, 141 tests
+npx tsc --build packages/mtw-gateways/tsconfig.ref.json
 ```
+
+Lambda tests deferred until **`internalCache`** swap slices (264+).
 
 **After aggregate refactor:**
 

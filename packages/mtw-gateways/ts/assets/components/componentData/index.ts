@@ -1,17 +1,16 @@
-/**
- * @deprecated Shim re-exports from `../componentData`. Import from `@tonylb/mtw-gateways/ts/assets/components/componentData` for new code.
- */
 export {
-    AuthoritativeComponentDataCache,
-    createAuthoritativeComponentDataCacheHandler,
-    type AuthoritativeComponentPartitionAssetDB,
-} from './authoritativeComponentDataCache'
-export {
-    EphemeraComponentAssetMetaCache,
-    createEphemeraComponentAssetMetaCacheHandler,
+    ComponentDataCache,
+    createComponentDataCacheHandler,
     type ComponentAssetMetaItem,
-} from './ephemeraComponentAssetMetaCache'
-export { generateCacheKey, cacheKeyComponents } from './keys'
+    type ComponentPairRow,
+} from './componentDataCache'
+export {
+    type ComponentAssetPair,
+    componentPairCacheKey,
+    generateCacheKey,
+    cacheKeyComponents,
+    parseComponentPairCacheKey,
+} from './keys'
 export { metaDataCategoryForEphemeraId } from './metaCategory'
 export { tagFromEphemeraWrappedId, defaultStoredEntryForCacheKey } from './defaults'
 export type { ComponentAssetMetaAssetDB } from './fetch'
@@ -23,3 +22,7 @@ export {
     componentRowsFromUniversalPartitionLines,
     standardComponentPairFromAssetDbGetItemsRow,
 } from './dynamoStandardComponents'
+export {
+    authoritativeFromParticipationOrder,
+    ParticipationBatchError,
+} from './participationBatch'
