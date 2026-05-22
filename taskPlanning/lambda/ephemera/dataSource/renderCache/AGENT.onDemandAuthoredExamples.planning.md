@@ -392,7 +392,7 @@ Do **not** overload **constellation** for v1 exact-match or hydrate --- reserve 
 | --- | --- |
 | Problem + hybrid direction captured | Done |
 | Open decisions listed (incl. S1--S5, P1--P7; layer invalidation + A3 gateway) | Done |
-| `componentExamples` gateway + **`AuthoredExample`** naming (algorithm) | Done |
+| `componentExamples` gateway + **`AuthoredExample`** naming (algorithm + implementation) | Done |
 | Invalidation event contract drafted | Done |
 | Catalog rows + adjacency CRUD + invalidation handler (M2/S2--S4) | Done |
 | Meta freshness fields + writers | Partial (catalog `currentCacheId`; legacy Meta fallback) |
@@ -534,7 +534,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` wh
 - [X] **Contracts:** draft **`ExampleInvalidated`** per I1/P1 (component-scoped vs Situation-scoped; Situation path uses **`situationId`** not **`exampleId`**); **`AuthoredExample`** / **`AuthoredExampleSet`** in gateways; catalog + adjacency types (**`assetStack`**); invalidation guards; diagnostics finding types (P7)
 - [X] **Catalog row schema:** define **`Cache::${perspectiveKey}`** / **`EphemeraCacheCatalogRow`** (incl. **`assetStack`**) in **`mtw.ephemera.renderCache`** (CRUD + conditional bump per M4/V1); migrate **`currentCacheId`** off **`Meta::Room`** (M2)
 - [X] **Situation adjacency:** CRUD helpers + hydrate diff maintenance (S4); Situation invalidation handler with layer participation filter (S2/S3)
-- [ ] **`componentExamples` gateway (`mtw-gateways`):** per [**A3 algorithm**](#componentexamples-gateway---algorithm-a3); **`AuthoredExample`** types; lift helpers from **`exampleEnrichment.ts`**; package tests + parity; [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) ownership row
+- [X] **`componentExamples` gateway (`mtw-gateways`):** per [**A3 algorithm**](#componentexamples-gateway---algorithm-a3); **`AuthoredExample`** types; lift helpers from **`exampleEnrichment.ts`**; package tests + parity; [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) ownership row
 - [ ] **Lambda wiring:** **`ComponentAggregateMergedCache`** on Ephemera + diagnostics (**A1**); **`assembleComponentExamplesAtPerspective`** in **`ensureAuthoredCatalog`**
 - [ ] **Invalidation handler:** in **`mtw.ephemera.renderCache`** (P3) --- component-scoped path (P1 + layer participation); Situation path (S2/S3, P5 cleanup on Removed); diagnostics finding (P7); retire [`componentExamples.ts`](../../../../../lambda/ephemera/dataSource/componentExamples.ts) mirror + Assets reseed
 - [ ] **Assets emitter:** refactor [`componentExamples/index.ts`](../../../../../lambda/assets/componentExamples/index.ts) to invalidations-only (P1: **`editAssetId`** from event asset); Situation path per S1; drop **`emitSituationComponentFacetEvents`** / **`getParentIdsForSituation`**
@@ -571,6 +571,15 @@ cd lambda/ephemera && npm test -- --testPathPattern='renderCache/(baseClasses|ca
 cd lambda/ephemera && npm test -- --testPathPattern='renderCache/(catalogRow|situationAdjacency|handleExampleInvalidated|perspectivePointer|catalogGuards)'
 cd lambda/ephemera && npm test -- --testPathPattern='requestIntake|fanOutStateChangedToPassiveRenders'
 ```
+
+**componentExamples gateway slice (landed):**
+
+```bash
+cd packages/mtw-gateways && npm test -- --testPathPattern=componentExamples
+npx tsc --build packages/mtw-gateways/tsconfig.ref.json
+```
+
+Gateway slice files: [`enrichment.ts`](../../../../../packages/mtw-gateways/ts/assets/components/componentExamples/enrichment.ts), [`perspectives.ts`](../../../../../packages/mtw-gateways/ts/assets/components/componentExamples/perspectives.ts), [`assemble.ts`](../../../../../packages/mtw-gateways/ts/assets/components/componentExamples/assemble.ts).
 
 Contract files: [`packages/mtw-interfaces/ts/eventBridge/assets/componentExamples.ts`](../../../../../packages/mtw-interfaces/ts/eventBridge/assets/componentExamples.ts); [`packages/mtw-gateways/ts/assets/components/componentExamples/`](../../../../../packages/mtw-gateways/ts/assets/components/componentExamples/); [`lambda/ephemera/dataSource/renderCache/baseClasses.ts`](../../../../../lambda/ephemera/dataSource/renderCache/baseClasses.ts), [`catalogGuards.ts`](../../../../../lambda/ephemera/dataSource/renderCache/catalogGuards.ts), [`diagnosticsFindingContract.ts`](../../../../../lambda/ephemera/dataSource/renderCache/diagnosticsFindingContract.ts), [`subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/renderCache/subscribedEvents.ts).
 

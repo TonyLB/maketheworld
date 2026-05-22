@@ -1,5 +1,20 @@
 export { assembleComponentExamplesAtPerspective, type AssembleComponentExamplesAtPerspectiveArgs } from './assemble'
 export {
+    authoredExampleFromSituationFacet,
+    situationFacetToCacheShape,
+    type SituationFacetToCacheShapeOptions,
+} from './enrichment'
+export {
+    buildComponentExamplesPerspectives,
+    collectLensUniversalKeyFromRoomAuthoritative,
+    collectSituationIdsFromHostAuthoritative,
+    isCacheHostWithSituationFacets,
+    mergedResultsByUniversalKey,
+    resolveLensMarksForMergedRoom,
+    type BuildComponentExamplesPerspectivesArgs,
+    type CacheHostWithSituationFacets,
+} from './perspectives'
+export {
     defaultResolveRoomLensMarkDefaults,
     isCacheHostEphemeraId,
     validateAssembleComponentExamplesInput,

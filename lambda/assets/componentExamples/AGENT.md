@@ -6,6 +6,8 @@ Non-replayable Assets data source **[`index.ts`](./index.ts)** subscribes to **`
 
 **2026-05-19:** Standalone **`Example`** component handling, **`enrichExampleEvent`**, and **`exampleAssociatedFilter.ts`** were removed. The pipeline is **Situation-facet-only** (Room / Feature / Knowledge parent branches + Situation fan-out).
 
+**Pull assembly (on-demand hydrate):** Steady-state **`AuthoredExample`** batch assembly for a cache-host at a participation order lives in **`@tonylb/mtw-gateways/ts/assets/components/componentExamples`** (**`assembleComponentExamplesAtPerspective`**). This mirror path still uses **[`exampleEnrichment.ts`](./exampleEnrichment.ts)** until the Assets invalidation-only slice lands.
+
 ## Parent branches (Room / Feature / Knowledge)
 
 **[`index.ts`](./index.ts)** **`emitParentSituationFacetEvents`**:
