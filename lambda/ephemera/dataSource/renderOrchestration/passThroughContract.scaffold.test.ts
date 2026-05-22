@@ -75,6 +75,7 @@ describe('renderOrchestration stream outcomes (pass-through six outbounds)', () 
             { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
+                resolvePerspectivePointer: jest.fn().mockResolvedValue('CACHE#valid'),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById,
                 getExactMatch,
@@ -96,6 +97,7 @@ describe('renderOrchestration stream outcomes (pass-through six outbounds)', () 
             { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
+                resolvePerspectivePointer: jest.fn().mockResolvedValue(undefined),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById: jest.fn(),
                 getExactMatch,
@@ -132,6 +134,7 @@ describe('renderOrchestration stream outcomes (pass-through six outbounds)', () 
             { payload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
+                resolvePerspectivePointer: jest.fn().mockResolvedValue(undefined),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById: jest.fn(),
                 getExactMatch: jest.fn().mockResolvedValue(null),
@@ -184,6 +187,7 @@ describe('renderOrchestration stream outcomes (pass-through six outbounds)', () 
             { payload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
+                resolvePerspectivePointer: jest.fn().mockResolvedValue(undefined),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById: jest.fn(),
                 getExactMatch: jest.fn().mockResolvedValue(null),
@@ -226,6 +230,7 @@ describe('renderOrchestration stream outcomes (pass-through six outbounds)', () 
             { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
+                resolvePerspectivePointer: jest.fn().mockResolvedValue(undefined),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById: jest.fn(),
                 getExactMatch,

@@ -50,7 +50,7 @@ export const perceptionMessage = async ({
     const getCache = () => internalCacheOverride || internalCache
     
     // Use getCache() instead of internalCache directly throughout the function
-    const messageMetaForCharacter = await getCache().ComponentAssetMeta.getAcrossAssets(ephemeraId, assetList)
+    const messageMetaForCharacter = await getCache().ComponentData.getAcrossAssets(ephemeraId, assetList)
     // ... rest of the function
 }
 ```
@@ -72,7 +72,7 @@ const mockInternalCache = {
             // ... other properties
         })
     },
-    ComponentAssetMeta: {
+    ComponentData: {
         getAcrossAssets: jest.fn().mockResolvedValue({
             [`ASSET#Base`]: new StandardMessage({
                 // ... component data

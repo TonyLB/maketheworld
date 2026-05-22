@@ -17,7 +17,7 @@ const mapToJSON = (data: Record<AssetUUID, StandardComponent>): Record<string, S
     )
 }
 
-describe('ComponentAssetMeta', () => {
+describe('ComponentData', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
@@ -35,7 +35,7 @@ describe('ComponentAssetMeta', () => {
             AssetId: 'FEATURE#TestOne',
             situations: [{ reference: 'SITUATION#ExampleTwo', payload: {} }],
         }])
-        const output = await internalCache.ComponentAssetMeta.getAcrossAssets('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Layer'])
+        const output = await internalCache.ComponentData.getAcrossAssets('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Layer'])
         expect(mapToJSON(output)).toEqual({
             Base: {
                 tag: 'Feature',
@@ -59,7 +59,7 @@ describe('ComponentAssetMeta', () => {
     })
 
     it('should send already cached items', async () => {
-        internalCache.ComponentAssetMeta.set('FEATURE#TestOne', 'ASSET#Layer', new StandardFeature({
+        internalCache.ComponentData.set('FEATURE#TestOne', 'ASSET#Layer', new StandardFeature({
             universalKey: 'FEATURE#TestOne',
             tag: 'Feature',
             situations: [{ reference: { key: 'base', tag: 'Situation' }, payload: {} }],
@@ -70,7 +70,7 @@ describe('ComponentAssetMeta', () => {
             situations: [{ reference: { key: 'test', tag: 'Situation' }, payload: {} }],
             tag: 'Feature',
         }])
-        const output = await internalCache.ComponentAssetMeta.getAcrossAssets('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Layer'])
+        const output = await internalCache.ComponentData.getAcrossAssets('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Layer'])
         expect(mapToJSON(output)).toEqual({
             Base: {
                 universalKey: 'FEATURE#TestOne',
@@ -98,7 +98,7 @@ describe('ComponentAssetMeta', () => {
             situations: [{ reference: { key: 'test', tag: 'Situation' }, payload: {} }],
             AssetId: 'FEATURE#TestOne'
         }])
-        const output = await internalCache.ComponentAssetMeta.getAcrossAssets('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Layer'])
+        const output = await internalCache.ComponentData.getAcrossAssets('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Layer'])
         expect(mapToJSON(output)).toEqual({
             Base: {
                 tag: 'Feature',
@@ -144,7 +144,7 @@ describe('ComponentAssetMeta', () => {
             }
         ])
 
-        const output = await internalCache.ComponentAssetMeta.getAcrossAssets('ROOM#TestOne', ['ASSET#Base', 'ASSET#Layer'])
+        const output = await internalCache.ComponentData.getAcrossAssets('ROOM#TestOne', ['ASSET#Base', 'ASSET#Layer'])
         expect(mapToJSON(output)).toEqual({
             Base: {
                 tag: 'Room',

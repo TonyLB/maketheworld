@@ -2,7 +2,7 @@ import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import type { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import type { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import type { ComponentAssetMetaData } from '../componentAssetMeta'
+import type { ComponentDataCache } from '@tonylb/mtw-gateways/ts/assets/components/componentData'
 import { mergeRoomShortNameLiteral } from '../componentStackMerge'
 
 export type GenerationContextRoomShortName = {
@@ -19,10 +19,10 @@ type GenerationContextStoreRecord = GenerationContextRoomShortName | undefined
 export class GenerationContextData {
     _Cache: DeferredCache<GenerationContextStoreRecord>;
     _Store: Record<string, GenerationContextStoreRecord> = {}
-    _componentAssetMeta: ComponentAssetMetaData;
+    _componentData: ComponentDataCache;
 
-    constructor(componentAssetMeta: ComponentAssetMetaData) {
-        this._componentAssetMeta = componentAssetMeta
+    constructor(componentData: ComponentDataCache) {
+        this._componentData = componentData
         this._Cache = new DeferredCache<GenerationContextStoreRecord>({
             callback: (key, value) => { this._setStore(key, value) },
             defaultValue: () => undefined,
@@ -43,7 +43,7 @@ export class GenerationContextData {
     }
 
     async _getPromiseFactory(roomId: ComponentUUID, assetStack: AssetUUID[]): Promise<GenerationContextStoreRecord> {
-        const roomMetaByAsset = await this._componentAssetMeta.getAcrossAssets(roomId, assetStack)
+        const roomMetaByAsset = await this._componentData.getAcrossAssets(roomId, assetStack)
         const roomsInAssetStackOrder = assetStack.flatMap((assetId) => {
             const component = roomMetaByAsset[assetId]
             return component instanceof StandardRoom ? [component] : []

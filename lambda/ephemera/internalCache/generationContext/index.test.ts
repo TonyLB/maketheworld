@@ -10,8 +10,8 @@ describe('GenerationContext cache handler', () => {
         internalCache.clear()
     })
 
-    it('derives room shortName context from ComponentAssetMeta', async () => {
-        jest.spyOn(internalCache.ComponentAssetMeta, 'getAcrossAssets').mockResolvedValue({
+    it('derives room shortName context from ComponentData', async () => {
+        jest.spyOn(internalCache.ComponentData, 'getAcrossAssets').mockResolvedValue({
             'ASSET#Base': new StandardRoom({
                 universalKey: 'ROOM#TestRoom',
                 tag: 'Room',
@@ -27,7 +27,7 @@ describe('GenerationContext cache handler', () => {
     })
 
     it('returns undefined when shortName cannot be derived', async () => {
-        jest.spyOn(internalCache.ComponentAssetMeta, 'getAcrossAssets').mockResolvedValue({
+        jest.spyOn(internalCache.ComponentData, 'getAcrossAssets').mockResolvedValue({
             'ASSET#Base': new StandardFeature({
                 universalKey: 'FEATURE#TestFeature',
                 tag: 'Feature',
@@ -52,7 +52,7 @@ describe('GenerationContext cache handler', () => {
             shortName: 'Override Room',
             exits: [],
         })
-        jest.spyOn(internalCache.ComponentAssetMeta, 'getAcrossAssets').mockResolvedValue({
+        jest.spyOn(internalCache.ComponentData, 'getAcrossAssets').mockResolvedValue({
             // Intentionally reverse insertion order to ensure merge logic follows assetStack, not object values
             'ASSET#Override': overrideRoom,
             'ASSET#Base': baseRoom,
@@ -66,7 +66,7 @@ describe('GenerationContext cache handler', () => {
     })
 
     it('clears cached entries through InternalCache.clear lifecycle', async () => {
-        const getAcrossAssetsSpy = jest.spyOn(internalCache.ComponentAssetMeta, 'getAcrossAssets').mockResolvedValue({
+        const getAcrossAssetsSpy = jest.spyOn(internalCache.ComponentData, 'getAcrossAssets').mockResolvedValue({
             'ASSET#Base': new StandardRoom({
                 universalKey: 'ROOM#TestRoom',
                 tag: 'Room',

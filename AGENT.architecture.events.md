@@ -248,7 +248,7 @@ internalCache.RoomCharacterList.set({ key: roomId, value: activeCharacters })
 
 ### Presence-Independent Caches
 
-#### **ComponentAssetMeta Cache**
+#### **ComponentData Cache**
 - **Population**: On-demand when needed for any processing
 - **Function**: Asset structure and relationship information
 - **Scope**: Asset-level (not character-specific)

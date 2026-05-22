@@ -25,7 +25,7 @@ describe('ComponentStackMerge cache handler', () => {
             HomeId: 'ROOM#VORTEX',
             Pronouns: 'she/her',
         })
-        jest.spyOn(internalCache.ComponentAssetMeta, 'getAcrossAssets').mockResolvedValue({
+        jest.spyOn(internalCache.ComponentData, 'getAcrossAssets').mockResolvedValue({
             [`ASSET#Base`]: new StandardRoom({
                 universalKey: 'ROOM#ParityOne',
                 tag: 'Room',
@@ -66,7 +66,7 @@ describe('ComponentStackMerge cache handler', () => {
             HomeId: 'ROOM#VORTEX',
             Pronouns: 'she/her',
         })
-        jest.spyOn(internalCache.ComponentAssetMeta, 'getAcrossAssets').mockResolvedValue({
+        jest.spyOn(internalCache.ComponentData, 'getAcrossAssets').mockResolvedValue({
             [`ASSET#Base`]: new StandardRoom({
                 universalKey: 'ROOM#MergeTwo',
                 tag: 'Room',
@@ -121,7 +121,7 @@ describe('ComponentStackMerge cache handler', () => {
             HomeId: 'ROOM#VORTEX',
             Pronouns: 'she/her',
         })
-        jest.spyOn(internalCache.ComponentAssetMeta, 'getAcrossAssets').mockResolvedValue({
+        jest.spyOn(internalCache.ComponentData, 'getAcrossAssets').mockResolvedValue({
             [`ASSET#Base`]: new StandardRoom({
                 universalKey: 'ROOM#ObjRoom',
                 tag: 'Room',
@@ -165,7 +165,7 @@ describe('ComponentStackMerge cache handler', () => {
                 shortName,
                 exits: [],
             })
-        const getAcrossAssets = jest.spyOn(internalCache.ComponentAssetMeta, 'getAcrossAssets').mockImplementation(
+        const getAcrossAssets = jest.spyOn(internalCache.ComponentData, 'getAcrossAssets').mockImplementation(
             async (ephemeraId: ComponentUUID) => ({
                 [`ASSET#Base`]: makeRoom(
                     ephemeraId as EphemeraRoomId,

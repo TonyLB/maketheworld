@@ -61,9 +61,9 @@ rather than relying on WML built from renderer-oriented `ComponentRender` output
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` as you complete them.
 
-- [X] First-draft MVP: add stub `internalCache.GenerationContext` that derives room short-name context from `ComponentAssetMeta` (without introducing significant standalone cache storage yet).
+- [X] First-draft MVP: add stub `internalCache.GenerationContext` that derives room short-name context from `ComponentData` (without introducing significant standalone cache storage yet).
   - [X] Return the minimal typed shape needed for current look orchestration context, e.g. `{ componentId: ComponentUUID; shortName: StandardLiteral }`.
-  - [X] Implement it using standard `internalCache` construction patterns (new handler wired through `internalCache/index.ts`), with `ComponentAssetMeta` as its primary dependency/input source.
+  - [X] Implement it using standard `internalCache` construction patterns (new handler wired through `internalCache/index.ts`), with `ComponentData` as its primary dependency/input source.
   - [X] Keep this MVP focused on derivation and API shape; defer broader room/lens/guidance/marks caching behavior to follow-on items below.
 - [ ] Define second-iteration data shape by expanding the current minimal cache value to include additional structured fields (for example `lens` and `guidance`) under [`lambda/ephemera/internalCache/generationContext/`](../../../../../lambda/ephemera/internalCache/generationContext/).
 - [ ] Implement cache key helper for `(roomId, perspectiveKey)` and clear/invalidate behavior aligned to `DeferredCache` patterns in [`internalCache/AGENT.md`](../../../../../lambda/ephemera/internalCache/AGENT.md).
