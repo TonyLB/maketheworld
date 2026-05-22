@@ -5,7 +5,7 @@ import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
-import type { AuthoritativeComponentData } from '../assetMeta/dynamoStandardComponents'
+import type { AuthoritativeComponentData } from '../componentData/dynamoStandardComponents'
 import { mergeAuthoritativeAcrossParticipationOrder } from '../aggregate/assemble'
 import { aggregatePerspectiveExplicit } from '../aggregate/input'
 import {

@@ -49,7 +49,7 @@ jest.mock('../../../messageBus', () => ({
 
 jest.mock('./exhaustivePartitionLoader', () => {
     const { authoritativeComponentDataFromUniversalPartitionRows } =
-        require('@tonylb/mtw-gateways/ts/assets/components/assetMeta')
+        require('@tonylb/mtw-gateways/ts/assets/components/componentData')
     const { assetDB } = require('@tonylb/mtw-utilities/ts/dynamoDB')
     return {
         exhaustivePartitionLoader: {

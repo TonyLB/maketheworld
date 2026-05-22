@@ -1,6 +1,6 @@
 # Component data gateway consolidation - planning
 
-**Status:** All three lambdas use pair-addressed **`internalCache.ComponentData`** (`createComponentDataCacheHandler`). **Next:** Remove `assetMeta/` shim (Recommended order 272). Mirroring/reseed **pipeline** retirement is owned by [**on-demand examples**](../../lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md).
+**Status:** `assetMeta/` shim removed; durable norms in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md). **Next:** Dispose this plan (Recommended order 276). Mirroring/reseed **pipeline** retirement is owned by [**on-demand examples**](../../lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md).
 
 This document follows [`taskPlanning/AGENT.md`](../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting norms live in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) (**Component data read surfaces**, ownership table) and lambda **`internalCache`** AGENT files.
 
@@ -226,7 +226,7 @@ All rows decided at planning time. Reopen only if implementation discovers a gap
 | Lambda **`internalCache.ComponentData`** swap (ephemera) | Done |
 | Lambda **`internalCache.ComponentData`** swap (diagnostics) | Done |
 | Legacy mirroring / reseed off partition reads | Done (pair + participation order); mirror/reseed pipeline retirement in on-demand plan |
-| `mtw-gateways/AGENT.md` ownership table + remove `assetMeta/` | Not started |
+| `mtw-gateways/AGENT.md` ownership table + remove `assetMeta/` | Done |
 
 ---
 
@@ -272,7 +272,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` wh
   - [X] **Done:** no **`ComponentData.get([universalKey])`** / partition handler on mirroring or reseed paths; **`authoritativeFromParticipationOrder`** + **`internalCache.ComponentData`** only
   - [X] **Grep (2026-05-22):** **`createAuthoritativeComponentDataCacheHandler`** only in [`assetMeta/`](../../../packages/mtw-gateways/ts/assets/components/assetMeta/) shim + tests; **0** matches under **`lambda/`**
   - **Deferred:** retire mirror push (`ExampleUpdated`/`ExampleRemoved`), Ephemera [`componentExamples.ts`](../../../lambda/ephemera/dataSource/componentExamples.ts), Assets **`reseedComponentExamplesFromDiagnostics`** -> [**on-demand examples**](../../lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md) (**Consolidation handoff**)
-- [ ] **Remove `assetMeta/` shim:** delete directory; fix deep imports; update [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) ownership table (**Component data** row replaces **Component Asset Meta**)
+- [X] **Remove `assetMeta/` shim:** delete directory; fix deep imports; update [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) ownership table (**Component data** row replaces **Component Asset Meta**)
 - [ ] **Dispose this plan** per [`taskPlanning/AGENT.md`](../../AGENT.md)
 
 **Sequencing note:** Complete **aggregate factory + participation batch** before Ephemera **on-demand examples Lambda wiring (A1)** so new handlers do not encode the partition-loader mistake.
@@ -359,6 +359,19 @@ Grep (workspace search): **`createAuthoritativeComponentDataCacheHandler`** / **
 ```bash
 cd lambda/assets && npm test -- --testPathPattern='loadAuthoritativeForMirroring|reseedFromDiagnostics'  # 2 suites, 10 tests
 cd packages/mtw-gateways && npm test -- --testPathPattern=componentData
+npx tsc --build packages/mtw-gateways/tsconfig.ref.json
+```
+
+**After slice 275 remove `assetMeta/` shim (2026-05-22):**
+
+Deleted [`packages/mtw-gateways/ts/assets/components/assetMeta/`](../../../packages/mtw-gateways/ts/assets/components/assetMeta/); retargeted aggregate, verticals, and componentExamples imports to [`componentData/`](../../../packages/mtw-gateways/ts/assets/components/componentData/); finalized [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) ownership table.
+
+```bash
+rg "ts/assets/components/assetMeta|createEphemeraComponentAssetMetaCacheHandler|createAuthoritativeComponentDataCacheHandler" \
+  --glob '!**/*.planning.md' --glob '!taskPlanning/**'
+cd packages/mtw-gateways && npm test
+cd packages/mtw-gateways && npm test -- --testPathPattern='componentData|aggregate|verticals|componentExamples'
+cd lambda/assets && npm test -- --testPathPattern=dataSource/components/verticals
 npx tsc --build packages/mtw-gateways/tsconfig.ref.json
 ```
 

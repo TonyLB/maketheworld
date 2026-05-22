@@ -1,8 +1,8 @@
 import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
-import type { AuthoritativeComponentData } from '../../assetMeta/dynamoStandardComponents'
-import { componentRowsFromAuthoritativeComponentData } from '../../assetMeta/dynamoStandardComponents'
+import type { AuthoritativeComponentData } from '../../componentData/dynamoStandardComponents'
+import { componentRowsFromAuthoritativeComponentData } from '../../componentData/dynamoStandardComponents'
 import type { ImportVerticalHop } from '../fetch'
 import { metaImportDataCategory } from '../keys'
 import { deriveRawImportVerticalHopsFromComponents, salvageImportVerticalHops } from './salvage'

@@ -7,7 +7,7 @@ import { aggregatePerspectiveCacheKey } from './keys'
 import type { ComponentAggregateInternalCacheSlice } from './ports'
 import { mergedComponentResult, type MergedComponentResult } from './result'
 
-import type { AuthoritativeComponentData } from '../assetMeta/dynamoStandardComponents'
+import type { AuthoritativeComponentData } from '../componentData/dynamoStandardComponents'
 import { authoritativeFromParticipationOrder } from '../componentData/participationBatch'
 
 type BatchMergePayload = {
