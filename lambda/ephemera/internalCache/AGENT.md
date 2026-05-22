@@ -4,6 +4,14 @@
 
 The `internalCache` system is a comprehensive caching layer that improves development velocity by providing **deferred loading** of asynchronous data sources. Cache handlers can request data anytime, but only make actual database calls on the first request for a particular item. Subsequent requests either refer to existing outstanding calls (if unfulfilled) or return cached data (if the call has previously completed).
 
+### Gateway reads (normative)
+
+Shared read surfaces from [`@tonylb/mtw-gateways`](../../../packages/mtw-gateways/AGENT.md) are consumed through **package `create*CacheHandler` factories** registered on this **`InternalCache`** singleton --- not by calling exported **`assemble*`**, **`fetch*`**, or **`query*`** helpers directly in steady-state lambda code (those are **secondary**: package tests, parity, tooling).
+
+**Shipped today:** **`ComponentAssetMeta`** ([`componentAssetMeta.AGENT.md`](./componentAssetMeta.AGENT.md)); **`ThinkingResults`**, **`ThinkingSchedules`**, **`ThinkingJobs`** ([`dataSource/thinking/AGENT.md`](../dataSource/thinking/AGENT.md) --- scheduling rollup **must** use **`internalCache.ThinkingJobs.get`**, not ad-hoc **`ephemeraDB`** reads).
+
+**Blueprint stack (on-demand authored examples wiring):** use **existing** **`internalCache.ComponentAssetMeta`** for merge inputs at the caller-supplied canon stack --- **not** assets-style **`ComponentData`** (partition **`Query`** / enumerate-all-assets). Register **`ComponentAggregate`** with a slice whose authoritative loader is a thin adapter over **`ComponentAssetMeta.getAcrossAssets`**, then **`ComponentExamples`** via **`createComponentExamplesCacheHandler({ ComponentAggregate })`**. Hydrate calls **`internalCache.ComponentExamples.get`**. Do **not** wire **`ensureAuthoredCatalog`** to **`assembleComponentExamplesAtPerspective`** when the handler exists. See [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) (**Component asset reads: ephemera vs assets**, **Component examples read surfaces**) and [`renderCache/AGENT.onDemandAuthoredExamples.planning.md`](../../../taskPlanning/lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md) (**A1**).
+
 ### Per-invocation process state (not only deferred loads)
 
 Some handlers are **process-supporting** state for the current lambda run: they may **not** use `DeferredCache`, but they still live on the [`InternalCache`](index.ts) singleton and reset in [`InternalCache.clear()`](index.ts). Examples: [`Global`](global.ts) (`internalCache.Global`, **`CacheGlobalData`**) for connection/session keyed fields; [`OrchestrateMessages`](orchestrateMessages.ts) for in-memory message-group graphs.

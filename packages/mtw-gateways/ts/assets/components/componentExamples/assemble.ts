@@ -2,9 +2,9 @@ import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import { StandardSituationProseFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
+import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 
-import type { AuthoritativeComponentData } from '../assetMeta/dynamoStandardComponents'
-import { AggregateInputError } from '../aggregate/input'
+import { aggregatePerspectiveExplicit } from '../aggregate/input'
 
 import { authoredExampleFromSituationFacet } from './enrichment'
 import {
@@ -14,10 +14,11 @@ import {
 } from './input'
 import type { ComponentExamplesAggregatePort } from './ports'
 import {
-    buildComponentExamplesPerspectives,
-    collectLensUniversalKeyFromRoomAuthoritative,
+    buildDependentsPerspectives,
+    collectLensUniversalKeyFromMergedRoom,
+    collectSituationIdsFromMergedHost,
     isCacheHostWithSituationFacets,
-    mergedResultsByUniversalKey,
+    mergeResultsByUniversalKey,
     resolveLensMarksForMergedRoom,
 } from './perspectives'
 import {
@@ -25,49 +26,32 @@ import {
     emptyAuthoredExampleSet,
     type AuthoredExampleSet,
 } from './result'
-import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 
 export type AssembleComponentExamplesAtPerspectiveArgs = {
     input: AssembleComponentExamplesInput;
     aggregate: ComponentExamplesAggregatePort;
-    /**
-     * Supplies authoritative host rows for perspective discovery (situation + lens ids).
-     * Ephemera/diagnostics wire this to ComponentData.get([host]).
-     */
-    getAuthoritative: (hostUniversalKey: EphemeraId) => Promise<AuthoritativeComponentData>;
 }
 
 /**
  * Batch assembly of all situation facets on a cache-host at one participation order (A3).
+ * Discovery uses merged host from ComponentAggregate; dependents merged in a second batch.
  */
 export async function assembleComponentExamplesAtPerspective(
     args: AssembleComponentExamplesAtPerspectiveArgs
 ): Promise<AuthoredExampleSet> {
-    const { input, aggregate, getAuthoritative } = args
+    const { input, aggregate } = args
     const validated = validateAssembleComponentExamplesInput(input)
     const { hostUniversalKey, mergeParticipationOrder, options } = validated
 
     const resolveRoomLensMarkDefaults =
         options?.resolveRoomLensMarkDefaults ?? defaultResolveRoomLensMarkDefaults(hostUniversalKey)
 
-    const hostAuthoritative = await getAuthoritative(hostUniversalKey)
-    if (hostAuthoritative.ComponentId !== hostUniversalKey) {
-        throw new AggregateInputError(
-            `Authoritative ComponentId ${hostAuthoritative.ComponentId} does not match host ${hostUniversalKey}`
-        )
-    }
-
-    const perspectives = buildComponentExamplesPerspectives({
-        hostUniversalKey,
+    const hostPerspective = aggregatePerspectiveExplicit({
+        universalKey: hostUniversalKey,
         mergeParticipationOrder,
-        hostAuthoritative,
-        resolveRoomLensMarkDefaults,
     })
 
-    const results = await aggregate.get(perspectives)
-    const resultsByKey = mergedResultsByUniversalKey(results)
-
-    const hostResult = resultsByKey.get(hostUniversalKey)
+    const [hostResult] = await aggregate.get([hostPerspective])
     if (!hostResult || !isCacheHostWithSituationFacets(hostResult.merged)) {
         return emptyAuthoredExampleSet()
     }
@@ -78,14 +62,28 @@ export async function assembleComponentExamplesAtPerspective(
         return emptyAuthoredExampleSet()
     }
 
+    const situationIds = collectSituationIdsFromMergedHost(mergedHost)
+    const lensId =
+        resolveRoomLensMarkDefaults && mergedHost instanceof StandardRoom
+            ? collectLensUniversalKeyFromMergedRoom(mergedHost)
+            : undefined
+
+    const dependentsPerspectives = buildDependentsPerspectives({
+        situationIds,
+        lensId,
+        mergeParticipationOrder,
+    })
+
+    const dependentResults =
+        dependentsPerspectives.length > 0 ? await aggregate.get(dependentsPerspectives) : []
+
+    const resultsByKey = mergeResultsByUniversalKey([hostResult], dependentResults)
+
     const lensMarks =
         mergedHost instanceof StandardRoom
             ? resolveLensMarksForMergedRoom(
                   mergedHost,
-                  (() => {
-                      const lensId = collectLensUniversalKeyFromRoomAuthoritative(hostAuthoritative)
-                      return lensId ? resultsByKey.get(lensId as EphemeraId)?.merged : undefined
-                  })()
+                  lensId ? resultsByKey.get(lensId as EphemeraId)?.merged : undefined
               )
             : undefined
 

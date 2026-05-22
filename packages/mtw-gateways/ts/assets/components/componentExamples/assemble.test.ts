@@ -17,6 +17,7 @@ import { inMemoryComponentAggregateInternalCacheSlice } from '../aggregate/testH
 import { assembleComponentExamplesAtPerspective } from './assemble'
 import { situationFacetToCacheShape } from './enrichment'
 import { authoredExampleSetSituationIds } from './result'
+
 describe('assembleComponentExamplesAtPerspective', () => {
     const roomU = 'ROOM#r1' as const
     const assetA = 'ASSET#a1' as const
@@ -65,12 +66,16 @@ describe('assembleComponentExamplesAtPerspective', () => {
             ]),
         })
         const aggregate = createComponentAggregateCacheHandler(slice)
+        const getSpy = jest.spyOn(aggregate, 'get')
         const set = await assembleComponentExamplesAtPerspective({
             input: { hostUniversalKey: roomU, mergeParticipationOrder: [assetA] },
             aggregate,
-            getAuthoritative: async () => ({ ComponentId: roomU, byAssets: [{ AssetId: assetA, component: bareRoom as unknown as StandardComponent }] }),
         })
         expect(set.size).toBe(0)
+        expect(getSpy).toHaveBeenCalledTimes(1)
+        expect(getSpy.mock.calls[0]?.[0]).toHaveLength(1)
+        expect(getSpy.mock.calls[0]?.[0][0]?.universalKey).toBe(roomU)
+        getSpy.mockRestore()
     })
 
     it('assembles one AuthoredExample per merged situation facet (two-layer room)', async () => {
@@ -78,22 +83,28 @@ describe('assembleComponentExamplesAtPerspective', () => {
             { AssetId: assetA, component: baseRoom as unknown as StandardComponent },
             { AssetId: assetB, component: overrideRoom as unknown as StandardComponent },
         ]
-        const authoritative: AuthoritativeComponentData = { ComponentId: roomU, byAssets }
         const authoritativeMap = new Map<EphemeraId, AuthoritativeComponentData>([
-            [roomU, authoritative],
+            [roomU, { ComponentId: roomU, byAssets }],
             [situationBase, { ComponentId: situationBase, byAssets: [{ AssetId: assetA, component: baseSituation as unknown as StandardComponent }] }],
             [situationOverride, { ComponentId: situationOverride, byAssets: [{ AssetId: assetB, component: overrideSituation as unknown as StandardComponent }] }],
         ])
         const aggregate = makeAggregate(authoritativeMap)
+        const getSpy = jest.spyOn(aggregate, 'get')
         const set = await assembleComponentExamplesAtPerspective({
             input: { hostUniversalKey: roomU, mergeParticipationOrder: [assetA, assetB] },
             aggregate,
-            getAuthoritative: async () => authoritative,
         })
         expect(authoredExampleSetSituationIds(set)).toEqual(
             expect.arrayContaining([situationBase, situationOverride])
         )
         expect(set.size).toBe(2)
+        expect(getSpy).toHaveBeenCalledTimes(2)
+        expect(getSpy.mock.calls[0]?.[0]).toHaveLength(1)
+        expect(getSpy.mock.calls[0]?.[0][0]?.universalKey).toBe(roomU)
+        const secondKeys = getSpy.mock.calls[1]?.[0].map((p) => p.universalKey) ?? []
+        expect(secondKeys).not.toContain(roomU)
+        expect(secondKeys).toEqual(expect.arrayContaining([situationBase, situationOverride]))
+        getSpy.mockRestore()
     })
 
     it('applies lens mark defaults for ROOM# when resolveRoomLensMarkDefaults is true', async () => {
@@ -124,10 +135,8 @@ describe('assembleComponentExamplesAtPerspective', () => {
         `)
         )
         const situationId = 'SITUATION#s1' as const
-        const byAssets = [{ AssetId: assetA, component: roomWithLens as unknown as StandardComponent }]
-        const authoritative: AuthoritativeComponentData = { ComponentId: roomU, byAssets }
         const authoritativeMap = new Map<EphemeraId, AuthoritativeComponentData>([
-            [roomU, authoritative],
+            [roomU, { ComponentId: roomU, byAssets: [{ AssetId: assetA, component: roomWithLens as unknown as StandardComponent }] }],
             [situationId, { ComponentId: situationId, byAssets: [{ AssetId: assetA, component: situation as unknown as StandardComponent }] }],
             [lensU, { ComponentId: lensU, byAssets: [{ AssetId: assetA, component: lens as unknown as StandardComponent }] }],
         ])
@@ -135,7 +144,6 @@ describe('assembleComponentExamplesAtPerspective', () => {
         const set = await assembleComponentExamplesAtPerspective({
             input: { hostUniversalKey: roomU, mergeParticipationOrder: [assetA] },
             aggregate,
-            getAuthoritative: async () => authoritative,
         })
         const example = set.get(situationId)
         expect(example?.markState.markValue).toEqual([
@@ -156,10 +164,8 @@ describe('assembleComponentExamplesAtPerspective', () => {
         const situation = new StandardSituation(
             deIndentWML(`<Situation key=(s1) uuid=(SITUATION#s1) />`)
         )
-        const byAssets = [{ AssetId: assetA, component: feature as unknown as StandardComponent }]
-        const authoritative: AuthoritativeComponentData = { ComponentId: featureU, byAssets }
         const authoritativeMap = new Map<EphemeraId, AuthoritativeComponentData>([
-            [featureU, authoritative],
+            [featureU, { ComponentId: featureU, byAssets: [{ AssetId: assetA, component: feature as unknown as StandardComponent }] }],
             [situationId, { ComponentId: situationId, byAssets: [{ AssetId: assetA, component: situation as unknown as StandardComponent }] }],
         ])
         const aggregate = makeAggregate(authoritativeMap)
@@ -171,10 +177,10 @@ describe('assembleComponentExamplesAtPerspective', () => {
                 options: { resolveRoomLensMarkDefaults: false },
             },
             aggregate,
-            getAuthoritative: async () => authoritative,
         })
-        const perspectives = getSpy.mock.calls[0]?.[0] ?? []
-        expect(perspectives.map((p) => p.universalKey)).not.toContain(lensU)
+        const secondKeys = getSpy.mock.calls[1]?.[0].map((p) => p.universalKey) ?? []
+        expect(secondKeys).not.toContain(lensU)
+        expect(secondKeys).toEqual([situationId])
         getSpy.mockRestore()
     })
 })
@@ -236,7 +242,6 @@ describe('assemble parity (explicit mergeParticipationOrder)', () => {
         const set = await assembleComponentExamplesAtPerspective({
             input: { hostUniversalKey: roomU, mergeParticipationOrder: mergeOrder },
             aggregate,
-            getAuthoritative: async () => ({ ComponentId: roomU, byAssets: roomByAssets }),
         })
 
         for (const facet of mergedHost.situations.items) {

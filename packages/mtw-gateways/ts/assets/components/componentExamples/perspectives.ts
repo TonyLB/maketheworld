@@ -11,7 +11,6 @@ import {
     type LensMarkWithDefault,
 } from '@tonylb/mtw-wml/ts/standardize/worldState/lensMarks'
 
-import type { AuthoritativeComponentData } from '../assetMeta/dynamoStandardComponents'
 import {
     aggregatePerspectiveExplicit,
     type AggregatePerspective,
@@ -31,95 +30,68 @@ export function isCacheHostWithSituationFacets(
     )
 }
 
-export function collectSituationIdsFromHostAuthoritative(
-    authoritative: AuthoritativeComponentData
-): ComponentUUID[] {
+/** Situation facet targets on the merged cache-host at this participation order. */
+export function collectSituationIdsFromMergedHost(host: CacheHostWithSituationFacets): ComponentUUID[] {
     const ids = new Set<ComponentUUID>()
-    for (const { component } of authoritative.byAssets) {
-        if (!isCacheHostWithSituationFacets(component)) {
-            continue
-        }
-        for (const facet of component.situations?.items ?? []) {
-            const situationId = (facet as StandardSituationProseFacet).reference?.universalKey
-            if (situationId) {
-                ids.add(situationId as ComponentUUID)
-            }
+    for (const facet of host.situations?.items ?? []) {
+        const situationId = (facet as StandardSituationProseFacet).reference?.universalKey
+        if (situationId) {
+            ids.add(situationId as ComponentUUID)
         }
     }
     return [...ids]
 }
 
-export function collectLensUniversalKeyFromRoomAuthoritative(
-    authoritative: AuthoritativeComponentData
-): ComponentUUID | undefined {
-    for (const { component } of authoritative.byAssets) {
-        if (!(component instanceof StandardRoom)) {
-            continue
-        }
-        const lensId = component.lens?.payload?.[0]?.universalKey as ComponentUUID | undefined
-        if (lensId) {
-            return lensId
-        }
-    }
-    return undefined
+export function collectLensUniversalKeyFromMergedRoom(room: StandardRoom): ComponentUUID | undefined {
+    return room.lens?.payload?.[0]?.universalKey as ComponentUUID | undefined
 }
 
-export type BuildComponentExamplesPerspectivesArgs = {
-    hostUniversalKey: EphemeraId;
+export type BuildDependentsPerspectivesArgs = {
+    situationIds: readonly ComponentUUID[];
+    lensId?: ComponentUUID;
     mergeParticipationOrder: MergeParticipationOrder;
-    hostAuthoritative: AuthoritativeComponentData;
-    resolveRoomLensMarkDefaults: boolean;
 }
 
 /**
- * Perspectives for a single aggregate.get batch: host, each situation referenced on the host,
- * and optional lens (Room only).
+ * Perspectives for the second aggregate.get batch (situations + optional lens; host omitted).
  */
-export function buildComponentExamplesPerspectives(
-    args: BuildComponentExamplesPerspectivesArgs
-): AggregatePerspective[] {
-    const {
-        hostUniversalKey,
-        mergeParticipationOrder,
-        hostAuthoritative,
-        resolveRoomLensMarkDefaults,
-    } = args
+export function buildDependentsPerspectives(args: BuildDependentsPerspectivesArgs): AggregatePerspective[] {
+    const { situationIds, lensId, mergeParticipationOrder } = args
 
-    const hostPerspective = aggregatePerspectiveExplicit({
-        universalKey: hostUniversalKey,
-        mergeParticipationOrder,
-    })
-
-    const situationIds = collectSituationIdsFromHostAuthoritative(hostAuthoritative)
-    const situationPerspectives = situationIds.map((situationId) =>
+    const perspectives = situationIds.map((situationId) =>
         aggregatePerspectiveExplicit({
             universalKey: situationId,
             mergeParticipationOrder,
         })
     )
 
-    const perspectives: AggregatePerspective[] = [hostPerspective, ...situationPerspectives]
-
-    if (resolveRoomLensMarkDefaults) {
-        const lensId = collectLensUniversalKeyFromRoomAuthoritative(hostAuthoritative)
-        if (lensId) {
-            // LENS# is not an EphemeraId tag but ComponentData stores lens rows by universal key.
-            perspectives.push(
-                Object.freeze({
-                    universalKey: lensId as EphemeraId,
-                    mergeParticipationOrder,
-                })
-            )
-        }
-    }
-
-    return perspectives
+    return lensId
+        ? [
+              ...perspectives,
+              Object.freeze({
+                  universalKey: lensId as EphemeraId,
+                  mergeParticipationOrder,
+              }),
+          ]
+        : perspectives
 }
 
 export function mergedResultsByUniversalKey(
     results: readonly MergedComponentResult[]
 ): Map<EphemeraId, MergedComponentResult> {
     return new Map(results.map((r) => [r.universalKey, r]))
+}
+
+export function mergeResultsByUniversalKey(
+    ...resultSets: readonly (readonly MergedComponentResult[])[]
+): Map<EphemeraId, MergedComponentResult> {
+    const map = new Map<EphemeraId, MergedComponentResult>()
+    for (const results of resultSets) {
+        for (const r of results) {
+            map.set(r.universalKey, r)
+        }
+    }
+    return map
 }
 
 export function resolveLensMarksForMergedRoom(

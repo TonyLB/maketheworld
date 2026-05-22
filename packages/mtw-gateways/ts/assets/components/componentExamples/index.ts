@@ -5,13 +5,14 @@ export {
     type SituationFacetToCacheShapeOptions,
 } from './enrichment'
 export {
-    buildComponentExamplesPerspectives,
-    collectLensUniversalKeyFromRoomAuthoritative,
-    collectSituationIdsFromHostAuthoritative,
+    buildDependentsPerspectives,
+    collectLensUniversalKeyFromMergedRoom,
+    collectSituationIdsFromMergedHost,
     isCacheHostWithSituationFacets,
+    mergeResultsByUniversalKey,
     mergedResultsByUniversalKey,
     resolveLensMarksForMergedRoom,
-    type BuildComponentExamplesPerspectivesArgs,
+    type BuildDependentsPerspectivesArgs,
     type CacheHostWithSituationFacets,
 } from './perspectives'
 export {

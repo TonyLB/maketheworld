@@ -6,7 +6,7 @@ Non-replayable Assets data source **[`index.ts`](./index.ts)** subscribes to **`
 
 **2026-05-19:** Standalone **`Example`** component handling, **`enrichExampleEvent`**, and **`exampleAssociatedFilter.ts`** were removed. The pipeline is **Situation-facet-only** (Room / Feature / Knowledge parent branches + Situation fan-out).
 
-**Pull assembly (on-demand hydrate):** Steady-state **`AuthoredExample`** batch assembly for a cache-host at a participation order lives in **`@tonylb/mtw-gateways/ts/assets/components/componentExamples`** (**`assembleComponentExamplesAtPerspective`**). This mirror path still uses **[`exampleEnrichment.ts`](./exampleEnrichment.ts)** until the Assets invalidation-only slice lands.
+**Pull assembly (on-demand hydrate):** Steady-state **`AuthoredExample`** batch assembly lives in **`@tonylb/mtw-gateways/ts/assets/components/componentExamples`**. Lambdas read via **`internalCache.ComponentExamples`** (**`createComponentExamplesCacheHandler({ ComponentAggregate })`** on Ephemera and diagnostics) --- not direct **`assembleComponentExamplesAtPerspective`** in production paths. Discovery uses **merged host** refs at **`mergeParticipationOrder`** through **`ComponentAggregate`** only. See [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) and [`renderCache` planning](../../../taskPlanning/lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md). This mirror path still uses **[`exampleEnrichment.ts`](./exampleEnrichment.ts)** until the Assets invalidation-only slice lands.
 
 ## Parent branches (Room / Feature / Knowledge)
 
