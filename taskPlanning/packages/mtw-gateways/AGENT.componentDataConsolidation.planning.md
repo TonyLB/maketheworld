@@ -1,6 +1,6 @@
 # Component data gateway consolidation - planning
 
-**Status:** `componentData/` scaffold shipped (pair cache, participation batch, exhaustive scan subpath, `assetMeta/` shim). **Next:** aggregate factory participation batch + lambda `internalCache` swaps (Recommended order 264+).
+**Status:** Aggregate gateway uses participation batch (`authoritativeFromParticipationOrder` + pair `getAcrossAssets`). **Next:** verticals/diagnostics exhaustive whitelist + lambda `internalCache` pair swap (Recommended order 265+).
 
 This document follows [`taskPlanning/AGENT.md`](../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting norms live in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) (**Component data read surfaces**, ownership table) and lambda **`internalCache`** AGENT files.
 
@@ -220,7 +220,7 @@ All rows decided at planning time. Reopen only if implementation discovers a gap
 | `componentData/` scaffold + pair cache | Done |
 | `exhaustiveScan` + stern docs + whitelist | Done |
 | `assetMeta/` shim + deprecations | Done |
-| Aggregate factory uses participation batch | Not started |
+| Aggregate factory uses participation batch | Done |
 | Lambda **`internalCache.ComponentData`** swap (assets, ephemera, diagnostics) | Not started |
 | Legacy mirroring / reseed off partition reads | Not started (coordinate with on-demand examples) |
 | `mtw-gateways/AGENT.md` ownership table + remove `assetMeta/` | Not started |
@@ -260,7 +260,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` wh
 - [X] **`participationBatch` helper:** build **`AuthoritativeComponentData`** from pair cache + **`mergeParticipationOrder`**; package tests
 - [X] **`exhaustiveScan` + `exhaustiveScanCache`:** stern module docs; move partition **`Query`** logic out of **`authoritativeComponentDataCache.ts`**; whitelist tests documenting allowed importers
 - [X] **`assetMeta/` shim:** re-export from **`componentData/`**; deprecate old factory names; keep tests green via shim imports
-- [ ] **Aggregate gateway:** refactor **`factory.ts`** / **`uncached.ts`** so slice **`ComponentData`** uses participation batch (no partition get in merge batch); update **`cacheHandler.test.ts`**, **`testHarness`**
+- [X] **Aggregate gateway:** refactor **`factory.ts`** / **`uncached.ts`** so slice **`ComponentData`** uses participation batch (no partition get in merge batch); update **`cacheHandler.test.ts`**, **`testHarness`**
 - [ ] **Verticals + diagnostics:** wire **`ImportVerticalConsistencyAnalyzer`** and sweep to **`exhaustiveScan`** path only; **`syncImportVerticalPartition`** / heal unchanged semantically, new import paths
 - [ ] **Assets `internalCache`:** replace partition **`ComponentData`** implementation with pair-addressed **`createComponentDataCacheHandler`**; keep field name **`ComponentData`**; update [`lambda/assets/internalCache/AGENT.md`](../../../lambda/assets/internalCache/AGENT.md)
 - [ ] **Ephemera `internalCache`:** hard switchover **`ComponentAssetMeta` -> `ComponentData`** (all call sites, tests, docs); fold or replace [`componentAssetMeta.ts`](../../../lambda/ephemera/internalCache/componentAssetMeta.ts) barrel
@@ -295,12 +295,20 @@ cd packages/mtw-gateways && npm test                                      # 22 s
 npx tsc --build packages/mtw-gateways/tsconfig.ref.json
 ```
 
-Lambda tests deferred until **`internalCache`** swap slices (264+).
+Lambda tests deferred until **`internalCache`** swap slices (265+).
 
-**After aggregate refactor:**
+**After aggregate refactor (2026-05-22):**
 
 ```bash
-cd packages/mtw-gateways && npm test -- --testPathPattern=aggregate
+cd packages/mtw-gateways && npm test -- --testPathPattern=aggregate      # 2 suites, 27 tests
+cd packages/mtw-gateways && npm test -- --testPathPattern=componentExamples  # 5 suites, 20 tests
+cd packages/mtw-gateways && npm test -- --testPathPattern=componentData  # 7 suites, 22 tests
+npx tsc --build packages/mtw-gateways/tsconfig.ref.json
+```
+
+**After lambda `internalCache` swap (pending):**
+
+```bash
 cd lambda/assets && npm test -- --testPathPattern=componentAggregate
 ```
 

@@ -1,7 +1,7 @@
 import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
-import type { ComponentDataCache } from './componentDataCache'
+import type { ComponentDataParticipationLoader } from './componentDataCache'
 import type { AuthoritativeComponentData } from './dynamoStandardComponents'
 
 export class ParticipationBatchError extends Error {
@@ -18,7 +18,7 @@ export class ParticipationBatchError extends Error {
 export async function authoritativeFromParticipationOrder(
     universalKey: ComponentUUID,
     mergeParticipationOrder: readonly AssetUUID[],
-    componentData: ComponentDataCache
+    componentData: ComponentDataParticipationLoader
 ): Promise<AuthoritativeComponentData> {
     if (mergeParticipationOrder.length === 0) {
         throw new ParticipationBatchError('Empty merge participation order')

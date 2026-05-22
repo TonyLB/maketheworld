@@ -36,9 +36,6 @@ export const isEphemeraFeatureId = isEphemeraTaggedId<'FEATURE'>('FEATURE')
 export type EphemeraKnowledgeId = EphemeraWrappedId<'KNOWLEDGE'>
 export const isEphemeraKnowledgeId = isEphemeraTaggedId<'KNOWLEDGE'>('KNOWLEDGE')
 
-export type EphemeraExampleId = EphemeraWrappedId<'EXAMPLE'>
-export const isEphemeraExampleId = isEphemeraTaggedId<'EXAMPLE'>('EXAMPLE')
-
 export type EphemeraRoomId = EphemeraWrappedId<'ROOM'>
 export const isEphemeraRoomId = isEphemeraTaggedId<'ROOM'>('ROOM')
 
@@ -64,17 +61,17 @@ export type EphemeraSituationId = EphemeraWrappedId<'SITUATION'>
 export const isEphemeraSituationId = isEphemeraTaggedId<'SITUATION'>('SITUATION')
 
 //
-// EphemeraId is the set of id tags that the ephemera/messaging layer treats as first-class
-// (cache keys, message targets, etc.). It is a subset of ComponentUUID (mtw-base/schema),
-// which is driven by SchemaComponent and includes additional tags (e.g. MARK, LENS, GUIDANCE).
-// When a new component type needs to be referenced in ephemera, add it here.
-// Redundancy: this union is maintained by hand; consider re-evaluating whether to derive
-// from ComponentUUID or a shared tag union in future.
+// EphemeraId is the allowlist of id tags the ephemera/messaging layer treats as first-class
+// (cache keys, message targets, aggregate universal keys, etc.). It is aligned with current
+// SchemaComponent-backed ComponentUUID tags where they overlap, but maintained by hand:
+// e.g. OBJECT# (room object facets in ephemera meta) is included here but not ComponentUUID;
+// MARK / LENS / GUIDANCE are ComponentUUID-only until ephemera adopts them.
+// EXAMPLE# was removed: Example is no longer a schema component (authored slices use SITUATION#).
+// Legacy EXAMPLE# strings may still appear in stored WML or PerceptionMessage metadata types.
 //
-export type EphemeraId = EphemeraWrappedId<'ASSET' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'ROOM' | 'MAP' | 'CHARACTER' | 'OBJECT' | 'MESSAGE' | 'MOMENT' | 'IMAGE' | 'SITUATION'>
+export type EphemeraId = EphemeraWrappedId<'ASSET' | 'FEATURE' | 'KNOWLEDGE' | 'ROOM' | 'MAP' | 'CHARACTER' | 'OBJECT' | 'MESSAGE' | 'MOMENT' | 'IMAGE' | 'SITUATION'>
 export const isEphemeraId = (value: string): value is EphemeraId => (
     isEphemeraAssetId(value) ||
-    isEphemeraExampleId(value) ||
     isEphemeraFeatureId(value) ||
     isEphemeraKnowledgeId(value) ||
     isEphemeraRoomId(value) ||

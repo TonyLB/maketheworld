@@ -185,3 +185,6 @@ export class ComponentDataCache {
 export function createComponentDataCacheHandler(assetDB: ComponentAssetMetaAssetDB): ComponentDataCache {
     return new ComponentDataCache(assetDB)
 }
+
+/** Participation-scoped reads for merge / aggregate (pair batch only; no partition enumerate). */
+export type ComponentDataParticipationLoader = Pick<ComponentDataCache, 'getAcrossAssets'>

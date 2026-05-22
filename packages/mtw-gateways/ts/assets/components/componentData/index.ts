@@ -2,6 +2,7 @@ export {
     ComponentDataCache,
     createComponentDataCacheHandler,
     type ComponentAssetMetaItem,
+    type ComponentDataParticipationLoader,
     type ComponentPairRow,
 } from './componentDataCache'
 export {

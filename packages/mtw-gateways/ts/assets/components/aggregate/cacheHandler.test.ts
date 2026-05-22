@@ -95,9 +95,9 @@ describe('ComponentAggregateMergedCache', () => {
         `)
     )
 
-    it('batches ComponentData and ComponentVerticals across distinct universal keys', async () => {
+    it('loads participation-scoped bodies per perspective and batches ComponentVerticals by universal key', async () => {
         const slice = inMemoryComponentAggregateInternalCacheSlice({})
-        const ComponentData = { get: jest.spyOn(slice.ComponentData, 'get') }
+        const getAcrossAssets = jest.spyOn(slice.ComponentData, 'getAcrossAssets')
         const ComponentVerticals = { get: jest.spyOn(slice.ComponentVerticals, 'get') }
 
         const handler = new ComponentAggregateMergedCache(slice)
@@ -111,15 +111,17 @@ describe('ComponentAggregateMergedCache', () => {
         })
         await handler.get([p1, p2])
 
-        expect(ComponentData.get).toHaveBeenCalledTimes(1)
+        expect(getAcrossAssets).toHaveBeenCalledTimes(2)
+        expect(getAcrossAssets).toHaveBeenCalledWith(roomU, [assetA])
+        expect(getAcrossAssets).toHaveBeenCalledWith(roomV, [assetB])
         expect(ComponentVerticals.get).toHaveBeenCalledTimes(1)
-        expect(new Set(ComponentData.get.mock.calls[0][0])).toEqual(new Set([roomU, roomV]))
         expect(new Set(ComponentVerticals.get.mock.calls[0][0])).toEqual(new Set([roomU, roomV]))
+        expect('get' in slice.ComponentData).toBe(false)
     })
 
-    it('dedupes universal keys when two perspectives share universal but differ on participation order', async () => {
+    it('calls getAcrossAssets separately when two perspectives share universal but differ on participation order', async () => {
         const slice = inMemoryComponentAggregateInternalCacheSlice({})
-        const ComponentData = { get: jest.spyOn(slice.ComponentData, 'get') }
+        const getAcrossAssets = jest.spyOn(slice.ComponentData, 'getAcrossAssets')
         const ComponentVerticals = { get: jest.spyOn(slice.ComponentVerticals, 'get') }
 
         const handler = createComponentAggregateCacheHandler(slice)
@@ -133,10 +135,40 @@ describe('ComponentAggregateMergedCache', () => {
         })
         await handler.get([pA, pB])
 
-        expect(ComponentData.get).toHaveBeenCalledTimes(1)
-        expect(ComponentData.get.mock.calls[0][0]).toEqual([roomU])
+        expect(getAcrossAssets).toHaveBeenCalledTimes(2)
+        expect(getAcrossAssets).toHaveBeenCalledWith(roomU, [assetA, assetB])
+        expect(getAcrossAssets).toHaveBeenCalledWith(roomU, [assetB, assetA])
         expect(ComponentVerticals.get.mock.calls[0][0]).toEqual([roomU])
         expect(aggregatePerspectiveCacheKey(pA)).not.toEqual(aggregatePerspectiveCacheKey(pB))
+    })
+
+    it('returns different merges for reversed participation order on the same universal key', async () => {
+        const byAssets = [
+            { AssetId: assetA, component: baseRoom as unknown as StandardComponent },
+            { AssetId: assetB, component: overrideRoom as unknown as StandardComponent },
+        ]
+        const slice = inMemoryComponentAggregateInternalCacheSlice({
+            authoritativeByUniversal: new Map([[roomU, { ComponentId: roomU, byAssets }]]),
+        })
+        const handler = createComponentAggregateCacheHandler(slice)
+        const pA = aggregatePerspectiveExplicit({
+            universalKey: roomU,
+            mergeParticipationOrder: [assetA, assetB],
+        })
+        const pB = aggregatePerspectiveExplicit({
+            universalKey: roomU,
+            mergeParticipationOrder: [assetB, assetA],
+        })
+        const [mergedAB, mergedBA] = await handler.get([pA, pB])
+        const situationsAB = (mergedAB.merged as StandardRoom).situations.items.map(
+            (f) => f.reference.universalKey
+        )
+        const situationsBA = (mergedBA.merged as StandardRoom).situations.items.map(
+            (f) => f.reference.universalKey
+        )
+        expect(situationsAB).toEqual(expect.arrayContaining(['SITUATION#base', 'SITUATION#override']))
+        expect(situationsBA).toEqual(expect.arrayContaining(['SITUATION#base', 'SITUATION#override']))
+        expect(situationsAB).not.toEqual(situationsBA)
     })
 
     it('matches gateway assembleMergedComponent for the same slice and perspective', async () => {
@@ -166,7 +198,7 @@ describe('ComponentAggregateMergedCache', () => {
 
     it('does not refetch sibling loaders on cache hit', async () => {
         const slice = inMemoryComponentAggregateInternalCacheSlice({})
-        const ComponentData = { get: jest.spyOn(slice.ComponentData, 'get') }
+        const getAcrossAssets = jest.spyOn(slice.ComponentData, 'getAcrossAssets')
         const handler = createComponentAggregateCacheHandler(slice)
         const p = aggregatePerspectiveExplicit({
             universalKey: roomU,
@@ -174,12 +206,12 @@ describe('ComponentAggregateMergedCache', () => {
         })
         await handler.get([p])
         await handler.get([p])
-        expect(ComponentData.get).toHaveBeenCalledTimes(1)
+        expect(getAcrossAssets).toHaveBeenCalledTimes(1)
     })
 
     it('refetches after clear', async () => {
         const slice = inMemoryComponentAggregateInternalCacheSlice({})
-        const ComponentData = { get: jest.spyOn(slice.ComponentData, 'get') }
+        const getAcrossAssets = jest.spyOn(slice.ComponentData, 'getAcrossAssets')
         const handler = createComponentAggregateCacheHandler(slice)
         const p = aggregatePerspectiveExplicit({
             universalKey: roomU,
@@ -188,12 +220,12 @@ describe('ComponentAggregateMergedCache', () => {
         await handler.get([p])
         handler.clear()
         await handler.get([p])
-        expect(ComponentData.get).toHaveBeenCalledTimes(2)
+        expect(getAcrossAssets).toHaveBeenCalledTimes(2)
     })
 
     it('refetches after invalidate on cache key', async () => {
         const slice = inMemoryComponentAggregateInternalCacheSlice({})
-        const ComponentData = { get: jest.spyOn(slice.ComponentData, 'get') }
+        const getAcrossAssets = jest.spyOn(slice.ComponentData, 'getAcrossAssets')
         const handler = createComponentAggregateCacheHandler(slice)
         const p = aggregatePerspectiveExplicit({
             universalKey: roomU,
@@ -203,6 +235,6 @@ describe('ComponentAggregateMergedCache', () => {
         await handler.get([p])
         handler.invalidate(cacheKey)
         await handler.get([p])
-        expect(ComponentData.get).toHaveBeenCalledTimes(2)
+        expect(getAcrossAssets).toHaveBeenCalledTimes(2)
     })
 })

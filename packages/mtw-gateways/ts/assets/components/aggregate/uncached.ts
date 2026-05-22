@@ -1,15 +1,19 @@
 import type { AggregatePerspective } from './input'
 import { participationAssetsInPerspective } from './input'
 import { mergedComponentFromAuthoritative } from './factory'
-import type { AggregateGatewayDeps, ComponentAggregateInternalCacheSlice } from './ports'
+import type {
+    AggregateParticipationAssemblyDeps,
+    ComponentAggregateInternalCacheSlice,
+} from './ports'
 
-import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
-import type { AuthoritativeComponentData } from '../assetMeta/dynamoStandardComponents'
+import type { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import type { MergedComponentResult } from './result'
+import { authoritativeFromParticipationOrder } from '../componentData/participationBatch'
 
 /**
  * Uncached aggregate gateway (compute-only). Injected loaders supply vertical and
- * authoritative component data; assembly methods close over {@link AggregateGatewayDeps}.
+ * participation-scoped component data; assembly methods close over
+ * {@link AggregateParticipationAssemblyDeps}.
  *
  * **Secondary** integration surface --- see `packages/mtw-gateways/AGENT.md` (Aggregate read surfaces).
  */
@@ -26,18 +30,20 @@ export type ComponentAggregateGatewayBundle = {
     gateway: AggregateGateway
 }
 
-function aggregateGatewayFromDeps(deps: AggregateGatewayDeps): AggregateGateway {
+function aggregateGatewayFromDeps(deps: AggregateParticipationAssemblyDeps): AggregateGateway {
     return {
         participationAssetsInPerspective,
         assembleMergedComponent: async (perspective) => {
             const universalKey = perspective.universalKey
-            const [metaResult, authoritativeRows] = await Promise.all([
+            const [metaResult, authoritative] = await Promise.all([
                 deps.metaImportProjection.get([universalKey]),
-                deps.authoritativeComponentData.get([universalKey]),
+                authoritativeFromParticipationOrder(
+                    universalKey as ComponentUUID,
+                    perspective.mergeParticipationOrder,
+                    deps.authoritativeComponentData
+                ),
             ])
             void metaResult
-            const authoritative: AuthoritativeComponentData =
-                authoritativeRows[0] ?? ({ ComponentId: universalKey, byAssets: [] } satisfies AuthoritativeComponentData)
             return mergedComponentFromAuthoritative(perspective, authoritative)
         },
     }
@@ -63,10 +69,10 @@ export function createComponentAggregateGateway(
 
 /**
  * **Secondary** surface: same as {@link createComponentAggregateGateway} but with
- * {@link AggregateGatewayDeps} / analyzer field names (`authoritativeComponentData`,
+ * {@link AggregateParticipationAssemblyDeps} / analyzer field names (`authoritativeComponentData`,
  * `metaImportProjection`). Prefer {@link createComponentAggregateCacheHandler} for runtime merge
  * reads; see `packages/mtw-gateways/AGENT.md` (Aggregate read surfaces).
  */
-export function createAggregateGateway(deps: AggregateGatewayDeps): AggregateGateway {
+export function createAggregateGateway(deps: AggregateParticipationAssemblyDeps): AggregateGateway {
     return aggregateGatewayFromDeps(deps)
 }
