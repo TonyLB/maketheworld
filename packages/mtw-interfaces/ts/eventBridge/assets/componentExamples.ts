@@ -1,5 +1,6 @@
-import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import { AssetUUID, ComponentUUID, isSchemaAssetUUID, isSchemaComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
+import { isEphemeraSituationId } from '../../baseClasses'
 import type { PerspectiveMatcher } from '../../perspective'
 
 //
@@ -70,4 +71,120 @@ export type ComponentExamplesMirrorEvent =
     | ComponentExamplesAddedEvent
     | ComponentExamplesUpdatedEvent
     | ComponentExamplesRemovedEvent
+
+//
+// Invalidation events (no example body). Component-scoped vs Situation-scoped are
+// mutually exclusive shapes distinguished by field presence, not a separate type string.
+//
+
+export type ComponentScopedExampleInvalidatedEvent = {
+    type: 'ExampleInvalidated';
+    componentIds: ComponentUUID[];
+    editAssetId: AssetUUID;
+    /** Debug/logging only (P1). */
+    affectedSituationIds?: ComponentUUID[];
+}
+
+export type SituationScopedExampleInvalidatedEvent = {
+    type: 'ExampleInvalidated';
+    situationId: ComponentUUID;
+    editAssetId: AssetUUID;
+}
+
+export type ComponentExamplesInvalidatedEvent =
+    | ComponentScopedExampleInvalidatedEvent
+    | SituationScopedExampleInvalidatedEvent
+
+export type ComponentExamplesEvent =
+    | ComponentExamplesMirrorEvent
+    | ComponentExamplesInvalidatedEvent
+
+const hasMirrorOnlyFields = (event: Record<string, unknown>): boolean => (
+    'example' in event
+    || 'exampleId' in event
+    || 'parentIds' in event
+    || 'assetStack' in event
+    || 'perspectiveMatcher' in event
+    || 'editAssetStack' in event
+)
+
+const isValidComponentUuidList = (value: unknown): value is ComponentUUID[] => (
+    Array.isArray(value)
+    && value.length > 0
+    && value.every((entry) => typeof entry === 'string' && isSchemaComponentUUID(entry))
+)
+
+const isValidOptionalComponentUuidList = (value: unknown): value is ComponentUUID[] | undefined => (
+    value === undefined
+    || (
+        Array.isArray(value)
+        && value.every((entry) => typeof entry === 'string' && isSchemaComponentUUID(entry))
+    )
+)
+
+export const isComponentScopedExampleInvalidated = (
+    event: unknown
+): event is ComponentScopedExampleInvalidatedEvent => {
+    if (!event || typeof event !== 'object') {
+        return false
+    }
+    const record = event as Record<string, unknown>
+    if (record.type !== 'ExampleInvalidated') {
+        return false
+    }
+    if ('situationId' in record) {
+        return false
+    }
+    if (!isValidComponentUuidList(record.componentIds)) {
+        return false
+    }
+    if (typeof record.editAssetId !== 'string' || !isSchemaAssetUUID(record.editAssetId)) {
+        return false
+    }
+    if (!isValidOptionalComponentUuidList(record.affectedSituationIds)) {
+        return false
+    }
+    return !hasMirrorOnlyFields(record)
+}
+
+export const isSituationScopedExampleInvalidated = (
+    event: unknown
+): event is SituationScopedExampleInvalidatedEvent => {
+    if (!event || typeof event !== 'object') {
+        return false
+    }
+    const record = event as Record<string, unknown>
+    if (record.type !== 'ExampleInvalidated') {
+        return false
+    }
+    if ('componentIds' in record) {
+        return false
+    }
+    if (typeof record.situationId !== 'string' || !isEphemeraSituationId(record.situationId)) {
+        return false
+    }
+    if (typeof record.editAssetId !== 'string' || !isSchemaAssetUUID(record.editAssetId)) {
+        return false
+    }
+    return !hasMirrorOnlyFields(record)
+}
+
+export const isExampleInvalidatedEvent = (event: unknown): event is ComponentExamplesInvalidatedEvent => (
+    isComponentScopedExampleInvalidated(event) || isSituationScopedExampleInvalidated(event)
+)
+
+/** Alias for {@link isExampleInvalidatedEvent}. */
+export const isComponentExamplesInvalidatedEvent = isExampleInvalidatedEvent
+
+export const isComponentExamplesEvent = (event: unknown): event is ComponentExamplesEvent => (
+    event != null
+    && typeof event === 'object'
+    && typeof (event as { type?: unknown }).type === 'string'
+    && (
+        (event as { type: string }).type === 'ExampleAdded'
+        || (event as { type: string }).type === 'ExampleUpdated'
+        || (event as { type: string }).type === 'ExampleRemoved'
+        || isExampleInvalidatedEvent(event)
+    )
+)
 

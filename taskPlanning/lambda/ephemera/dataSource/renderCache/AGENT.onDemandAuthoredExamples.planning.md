@@ -1,6 +1,6 @@
 # On-demand authored examples (invalidate + hydrate) - planning
 
-**Status:** Design pass complete; **invalidation semantics refined** (**`editAssetId`** + layer participation); **hydrate read path** = **`mtw-gateways`** **`componentExamples`** assembly gateway ([**A3**](#aggregate-read-surface-cross-lambda)); public slice type **`AuthoredExample`**. No implementation slices landed yet. **Next:** contracts + catalog schema + gateways module + implementation per [**Recommended order**](#recommended-order).
+**Status:** Design pass complete; **contracts slice landed** (**`ExampleInvalidated`**, **`AuthoredExample`** DTOs, catalog/adjacency types, guards). **Next:** catalog CRUD + adjacency + gateway assembly + handlers per [**Recommended order**](#recommended-order).
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting notes live under [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md), [`lambda/assets/componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md), and related steady-state docs.
 
@@ -393,7 +393,7 @@ Do **not** overload **constellation** for v1 exact-match or hydrate --- reserve 
 | Problem + hybrid direction captured | Done |
 | Open decisions listed (incl. S1--S5, P1--P7; layer invalidation + A3 gateway) | Done |
 | `componentExamples` gateway + **`AuthoredExample`** naming (algorithm) | Done |
-| Invalidation event contract drafted | Not started |
+| Invalidation event contract drafted | Done |
 | Meta freshness fields + writers | Not started |
 | Ephemera aggregate read wiring | Not started |
 | Hydration step in orchestration | Not started |
@@ -530,7 +530,7 @@ Legacy mirroring used **`getOrderedAssetStack`** in [`exampleEnrichment.ts`](../
 Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` when done.
 
 - [X] **Design pass:** resolve [**Open decisions**](#open-decisions) I1--L3, S1--S5, P1--P7
-- [ ] **Contracts:** draft **`ExampleInvalidated`** per I1/P1 (component-scoped vs Situation-scoped; Situation path uses **`situationId`** not **`exampleId`**); **`AuthoredExample`** / **`AuthoredExampleSet`** in gateways; catalog + adjacency types (**`assetStack`**); invalidation guards; diagnostics finding types (P7)
+- [X] **Contracts:** draft **`ExampleInvalidated`** per I1/P1 (component-scoped vs Situation-scoped; Situation path uses **`situationId`** not **`exampleId`**); **`AuthoredExample`** / **`AuthoredExampleSet`** in gateways; catalog + adjacency types (**`assetStack`**); invalidation guards; diagnostics finding types (P7)
 - [ ] **Catalog row schema:** define **`Cache::${perspectiveKey}`** / **`EphemeraCacheCatalogRow`** (incl. **`assetStack`**) in **`mtw.ephemera.renderCache`** (CRUD + conditional bump per M4/V1); migrate **`currentCacheId`** off **`Meta::Room`** (M2)
 - [ ] **Situation adjacency:** CRUD helpers + hydrate diff maintenance (S4); Situation invalidation handler with layer participation filter (S2/S3)
 - [ ] **`componentExamples` gateway (`mtw-gateways`):** per [**A3 algorithm**](#componentexamples-gateway---algorithm-a3); **`AuthoredExample`** types; lift helpers from **`exampleEnrichment.ts`**; package tests + parity; [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) ownership row
@@ -556,7 +556,17 @@ cd packages/mtw-gateways && npm test -- --testPathPattern=aggregate
 cd packages/mtw-gateways && npm test -- --testPathPattern=componentExamples
 ```
 
-After implementation, add slice-specific patterns (`componentExamples` gateway / **`AuthoredExample`**, layer participation invalidation, Situation adjacency, hydration + exact match integration, meta stale/ready).
+**Contracts slice (landed):**
+
+```bash
+cd packages/mtw-interfaces && npm test -- --testPathPattern=componentExamples
+cd packages/mtw-gateways && npm test -- --testPathPattern=componentExamples
+cd lambda/ephemera && npm test -- --testPathPattern='renderCache/(baseClasses|catalogGuards|subscribedEvents|diagnosticsFinding)'
+```
+
+Contract files: [`packages/mtw-interfaces/ts/eventBridge/assets/componentExamples.ts`](../../../../../packages/mtw-interfaces/ts/eventBridge/assets/componentExamples.ts); [`packages/mtw-gateways/ts/assets/components/componentExamples/`](../../../../../packages/mtw-gateways/ts/assets/components/componentExamples/); [`lambda/ephemera/dataSource/renderCache/baseClasses.ts`](../../../../../lambda/ephemera/dataSource/renderCache/baseClasses.ts), [`catalogGuards.ts`](../../../../../lambda/ephemera/dataSource/renderCache/catalogGuards.ts), [`diagnosticsFindingContract.ts`](../../../../../lambda/ephemera/dataSource/renderCache/diagnosticsFindingContract.ts), [`subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/renderCache/subscribedEvents.ts).
+
+After later slices, add patterns for layer participation invalidation, Situation adjacency handlers, hydrate diff, hydrate-then-exact-match.
 
 ---
 

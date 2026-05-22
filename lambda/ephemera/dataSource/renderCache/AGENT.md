@@ -75,6 +75,19 @@ Implications:
 
 There is no "cache per Example ID" or "RoomId + Mark state" key; this keeps the schema compatible with future semantic / constellation search.
 
+### On-demand authored examples (planned types; contracts slice)
+
+Initiative: [`taskPlanning/.../AGENT.onDemandAuthoredExamples.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md). **Types and guards only** until handler slices land; behavior below is target, not yet wired.
+
+| Shape | SK / stream | Role |
+| --- | --- | --- |
+| **`EphemeraCacheCatalogRow`** | `Cache::${perspectiveKey}` under host `EphemeraId` | Per-perspective catalog: `catalogVersion`, `hydratedCatalogVersion`, canon **`assetStack`**, optional **`currentCacheId`**. |
+| **`SituationCacheAdjacencyRow`** | `Link::${host}::Cache::${perspectiveKey}` under `SITUATION#` | Inverse index for Situation-scoped invalidation fan-out. |
+| **`ExampleInvalidated`** | `mtw.assets.componentExamples` | Skinny invalidation (component-scoped: `componentIds` + `editAssetId`; Situation-scoped: `situationId` + `editAssetId`; no `example` body). |
+| **`AuthoredExample`** | `mtw-gateways` assembly | Blueprint desired set for hydrate; see `@tonylb/mtw-gateways/ts/assets/components/componentExamples`. |
+
+Helpers: [`catalogGuards.ts`](catalogGuards.ts) (M4 bump, version gate, hydrate guards); [`diagnosticsFindingContract.ts`](diagnosticsFindingContract.ts) (P7 heal context); subscription envelopes in [`subscribedEvents.ts`](subscribedEvents.ts).
+
 ### Record shape
 
 [`baseClasses.ts`](baseClasses.ts) defines the core types.
@@ -110,6 +123,7 @@ Stored directly in DynamoDB:
 - `EphemeraId`: component id (Room/Feature/Knowledge).
 - `DataCategory`: `CACHE#${uuid}`.
 - `markState`, `renderedContent`, `provenance`, `perspectiveId`, `perspectiveMatcher`, `situationId?`, `authoredExampleId?`.
+- `catalogVersion?` (optional; missing treated as **0** for version-gated lookup once catalog rows ship).
 
 `isEphemeraCacheDynamoItem` in [`baseClasses.ts`](baseClasses.ts) enforces the expected shape at read time.
 

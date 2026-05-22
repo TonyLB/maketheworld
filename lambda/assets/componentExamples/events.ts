@@ -1,30 +1,25 @@
-import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import type { PerspectiveMatcher } from '@tonylb/mtw-interfaces/ts/perspective'
-import { ComponentExamplesPayload } from './exampleEnrichment'
+import type {
+    ComponentExamplesEvent,
+    ComponentExamplesInvalidatedEvent,
+    ComponentExamplesMirrorEvent,
+    ComponentScopedExampleInvalidatedEvent,
+    SituationScopedExampleInvalidatedEvent,
+} from '@tonylb/mtw-interfaces/ts/eventBridge/assets/componentExamples'
 
-export type ExampleLifecycleBase = {
-    exampleId: ComponentUUID;
-    parentIds: ComponentUUID[];
-    assetStack: AssetUUID[];
-    perspectiveMatcher: PerspectiveMatcher;
+export type {
+    ComponentExamplesEvent,
+    ComponentExamplesInvalidatedEvent,
+    ComponentExamplesMirrorEvent,
+    ComponentScopedExampleInvalidatedEvent,
+    SituationScopedExampleInvalidatedEvent,
 }
 
-export type ExampleAdded = ExampleLifecycleBase & {
-    type: 'ExampleAdded';
-    example: ComponentExamplesPayload;
-}
+/** @deprecated Use ComponentExamplesMirrorEvent from mtw-interfaces. */
+export type ExampleLifecycleBase = never
 
-export type ExampleUpdated = ExampleLifecycleBase & {
-    type: 'ExampleUpdated';
-    example: ComponentExamplesPayload;
-}
+/** Mirror-era aliases retained for index.ts until migration; prefer mtw-interfaces types. */
+export type ExampleAdded = Extract<ComponentExamplesMirrorEvent, { type: 'ExampleAdded' }>
+export type ExampleUpdated = Extract<ComponentExamplesMirrorEvent, { type: 'ExampleUpdated' }>
+export type ExampleRemoved = Extract<ComponentExamplesMirrorEvent, { type: 'ExampleRemoved' }>
 
-export type ExampleRemoved = ExampleLifecycleBase & {
-    type: 'ExampleRemoved';
-}
-
-export type ComponentExamplesEventUpdate =
-    | ExampleAdded
-    | ExampleUpdated
-    | ExampleRemoved
-
+export type ComponentExamplesEventUpdate = ComponentExamplesEvent

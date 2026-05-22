@@ -3,11 +3,17 @@
  * - Domain / DynamoDB cache record shapes (Ephemera table rows, guards, provenance constants).
  * - Outbound bus-only payloads for this DataSource (Cache Updated, Render Pertains, etc.).
  */
+import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
+import { isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
 import {
     EphemeraFeatureId,
     EphemeraKnowledgeId,
     EphemeraRoomId,
-    EphemeraSituationId
+    EphemeraSituationId,
+    isEphemeraFeatureId,
+    isEphemeraKnowledgeId,
+    isEphemeraRoomId,
+    isEphemeraSituationId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraCacheId, EphemeraCacheMarkState, EphemeraCacheMarkValue } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { PerspectiveMatcher } from '@tonylb/mtw-interfaces/ts/perspective'
@@ -83,6 +89,72 @@ export type EphemeraCacheRecord = {
 
 export const EPHEMERA_CACHE_DATA_CATEGORY_PREFIX = 'CACHE#' as const
 
+export const EPHEMERA_CACHE_CATALOG_DATA_CATEGORY_PREFIX = 'Cache::' as const
+export const EPHEMERA_SITUATION_ADJACENCY_LINK_PREFIX = 'Link::' as const
+
+export type EphemeraCacheCatalogDataCategory = `${typeof EPHEMERA_CACHE_CATALOG_DATA_CATEGORY_PREFIX}${string}`
+export type SituationCacheAdjacencyDataCategory = `${typeof EPHEMERA_SITUATION_ADJACENCY_LINK_PREFIX}${string}::${typeof EPHEMERA_CACHE_CATALOG_DATA_CATEGORY_PREFIX}${string}`
+
+export const buildCacheCatalogDataCategory = (perspectiveKey: string): EphemeraCacheCatalogDataCategory =>
+    `${EPHEMERA_CACHE_CATALOG_DATA_CATEGORY_PREFIX}${perspectiveKey}`
+
+export const buildSituationAdjacencyDataCategory = (
+    hostEphemeraId: EphemeraCacheComponentId,
+    perspectiveKey: string
+): SituationCacheAdjacencyDataCategory =>
+    `${EPHEMERA_SITUATION_ADJACENCY_LINK_PREFIX}${hostEphemeraId}::${EPHEMERA_CACHE_CATALOG_DATA_CATEGORY_PREFIX}${perspectiveKey}`
+
+export type ParsedSituationAdjacencyDataCategory = {
+    hostEphemeraId: EphemeraCacheComponentId;
+    perspectiveKey: string;
+}
+
+export const parseSituationAdjacencyDataCategory = (
+    dataCategory: string
+): ParsedSituationAdjacencyDataCategory | undefined => {
+    if (!dataCategory.startsWith(EPHEMERA_SITUATION_ADJACENCY_LINK_PREFIX)) {
+        return undefined
+    }
+    const withoutLink = dataCategory.slice(EPHEMERA_SITUATION_ADJACENCY_LINK_PREFIX.length)
+    const cacheMarker = `::${EPHEMERA_CACHE_CATALOG_DATA_CATEGORY_PREFIX}`
+    const cacheIndex = withoutLink.indexOf(cacheMarker)
+    if (cacheIndex < 0) {
+        return undefined
+    }
+    const hostEphemeraId = withoutLink.slice(0, cacheIndex)
+    if (!isEphemeraRoomId(hostEphemeraId) && !isEphemeraFeatureId(hostEphemeraId) && !isEphemeraKnowledgeId(hostEphemeraId)) {
+        return undefined
+    }
+    const perspectiveKey = withoutLink.slice(cacheIndex + cacheMarker.length)
+    if (!perspectiveKey) {
+        return undefined
+    }
+    return { hostEphemeraId, perspectiveKey }
+}
+
+//
+// Per-perspective catalog row (Cache::${perspectiveKey} under cache-host EphemeraId)
+//
+
+export type EphemeraCacheCatalogRow = {
+    EphemeraId: EphemeraCacheComponentId;
+    DataCategory: EphemeraCacheCatalogDataCategory;
+    assetStack: AssetUUID[];
+    catalogVersion: number;
+    hydratedCatalogVersion: number;
+    currentCacheId?: EphemeraCacheId;
+}
+
+//
+// Situation adjacency membership (inverse index for Situation-scoped invalidation)
+//
+
+export type SituationCacheAdjacencyRow = {
+    EphemeraId: EphemeraSituationId;
+    DataCategory: SituationCacheAdjacencyDataCategory;
+    assetStack: AssetUUID[];
+}
+
 export type EphemeraCacheDynamoItem = {
     EphemeraId: EphemeraCacheComponentId;
     DataCategory: string;
@@ -92,6 +164,8 @@ export type EphemeraCacheDynamoItem = {
     perspectiveId: EphemeraPerspectiveId;
     perspectiveMatcher: PerspectiveMatcher;
     situationId?: EphemeraSituationId;
+    /** Blueprint epoch at write time; missing treated as 0 (V2). */
+    catalogVersion?: number;
 }
 
 export const isEphemeraCacheDynamoItem = (item: any): item is EphemeraCacheDynamoItem => {
@@ -134,6 +208,67 @@ export const isEphemeraCacheDynamoItem = (item: any): item is EphemeraCacheDynam
         provenance.type !== EPHEMERA_CACHE_PROVENANCE_AUTHORED
         && provenance.type !== EPHEMERA_CACHE_PROVENANCE_GENERATED
     ) {
+        return false
+    }
+    if (item.catalogVersion !== undefined && (typeof item.catalogVersion !== 'number' || item.catalogVersion < 0)) {
+        return false
+    }
+    return true
+}
+
+const isValidAssetStack = (value: unknown): value is AssetUUID[] => (
+    Array.isArray(value)
+    && value.length > 0
+    && value.every((entry) => typeof entry === 'string' && isSchemaAssetUUID(entry))
+)
+
+export const isEphemeraCacheCatalogRow = (item: unknown): item is EphemeraCacheCatalogRow => {
+    if (!item || typeof item !== 'object') {
+        return false
+    }
+    const record = item as Record<string, unknown>
+    const { EphemeraId, DataCategory, assetStack, catalogVersion, hydratedCatalogVersion, currentCacheId } = record
+    if (
+        typeof EphemeraId !== 'string'
+        || (!isEphemeraRoomId(EphemeraId) && !isEphemeraFeatureId(EphemeraId) && !isEphemeraKnowledgeId(EphemeraId))
+    ) {
+        return false
+    }
+    if (typeof DataCategory !== 'string' || !DataCategory.startsWith(EPHEMERA_CACHE_CATALOG_DATA_CATEGORY_PREFIX)) {
+        return false
+    }
+    if (!isValidAssetStack(assetStack)) {
+        return false
+    }
+    if (typeof catalogVersion !== 'number' || catalogVersion < 1) {
+        return false
+    }
+    if (typeof hydratedCatalogVersion !== 'number' || hydratedCatalogVersion < 0) {
+        return false
+    }
+    if (currentCacheId !== undefined && (typeof currentCacheId !== 'string' || !currentCacheId.startsWith('CACHE#'))) {
+        return false
+    }
+    return true
+}
+
+export const isSituationCacheAdjacencyRow = (item: unknown): item is SituationCacheAdjacencyRow => {
+    if (!item || typeof item !== 'object') {
+        return false
+    }
+    const record = item as Record<string, unknown>
+    const { EphemeraId, DataCategory, assetStack } = record
+    if (typeof EphemeraId !== 'string' || !isEphemeraSituationId(EphemeraId)) {
+        return false
+    }
+    if (typeof DataCategory !== 'string') {
+        return false
+    }
+    const parsed = parseSituationAdjacencyDataCategory(DataCategory)
+    if (!parsed) {
+        return false
+    }
+    if (!isValidAssetStack(assetStack)) {
         return false
     }
     return true
