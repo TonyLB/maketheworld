@@ -23,7 +23,7 @@ export const deriveMirroringParticipationOrder = async (
     return dedupeSortedAssets([eventAssetId, ...fromHops])
 }
 
-/** Legacy mirroring pair load; full retirement in componentData consolidation slice 269. */
+/** Legacy mirroring pair load; pipeline retirement tracked in on-demand examples plan. */
 export const loadAuthoritativeForMirroring = async (
     universalKey: ComponentUUID,
     eventAssetId: AssetUUID,

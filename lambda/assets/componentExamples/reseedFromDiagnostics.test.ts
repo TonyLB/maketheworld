@@ -6,7 +6,7 @@ import { DiagnosticsEphemeraRenderCacheFindingEvent } from '@tonylb/mtw-interfac
 
 jest.mock('../internalCache', () => ({
     AssetData: { get: jest.fn() },
-    ComponentData: { getAcrossAssets: jest.fn() },
+    ComponentData: { get: jest.fn(), getAcrossAssets: jest.fn() },
 }))
 
 jest.mock('@tonylb/mtw-gateways/ts/assets/components/componentData', () => {
@@ -59,6 +59,11 @@ describe('reseedComponentExamplesFromDiagnostics', () => {
             streamKey: 'ASSET#primitives',
             header: { type: 'Component Republished' }
         })
+        expect(mockAuthoritativeFromParticipationOrder).toHaveBeenCalledWith(
+            'ROOM#alpha',
+            ['ASSET#primitives'],
+            internalCache.ComponentData
+        )
     })
 
     it('resolves eligible rooms from perspective when roomIds are omitted', async () => {

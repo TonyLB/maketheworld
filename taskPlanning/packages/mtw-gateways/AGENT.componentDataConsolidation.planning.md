@@ -1,6 +1,6 @@
 # Component data gateway consolidation - planning
 
-**Status:** All three lambdas use pair-addressed **`internalCache.ComponentData`** (`createComponentDataCacheHandler`). **Next:** Retire hot-path partition reads (`componentExamples` mirroring + reseed; Recommended order 271).
+**Status:** All three lambdas use pair-addressed **`internalCache.ComponentData`** (`createComponentDataCacheHandler`). **Next:** Remove `assetMeta/` shim (Recommended order 272). Mirroring/reseed **pipeline** retirement is owned by [**on-demand examples**](../../lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md).
 
 This document follows [`taskPlanning/AGENT.md`](../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting norms live in [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) (**Component data read surfaces**, ownership table) and lambda **`internalCache`** AGENT files.
 
@@ -225,7 +225,7 @@ All rows decided at planning time. Reopen only if implementation discovers a gap
 | Lambda **`internalCache.ComponentData`** swap (assets) | Done |
 | Lambda **`internalCache.ComponentData`** swap (ephemera) | Done |
 | Lambda **`internalCache.ComponentData`** swap (diagnostics) | Done |
-| Legacy mirroring / reseed off partition reads | Assets interim pair + participation order (full retirement with on-demand examples) |
+| Legacy mirroring / reseed off partition reads | Done (pair + participation order); mirror/reseed pipeline retirement in on-demand plan |
 | `mtw-gateways/AGENT.md` ownership table + remove `assetMeta/` | Not started |
 
 ---
@@ -268,7 +268,10 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` wh
 - [X] **Assets `internalCache`:** replace partition **`ComponentData`** implementation with pair-addressed **`createComponentDataCacheHandler`**; keep field name **`ComponentData`**; update [`lambda/assets/internalCache/AGENT.md`](../../../lambda/assets/internalCache/AGENT.md)
 - [X] **Ephemera `internalCache`:** hard switchover **`ComponentAssetMeta` -> `ComponentData`** (all call sites, tests, docs); removed [`componentAssetMeta.ts`](../../../lambda/ephemera/internalCache/componentAssetMeta.ts) barrel
 - [X] **Diagnostics `internalCache`:** keep **`ComponentData`** field; pair handler for any bounded reads; sweep/analyzer use **`exhaustiveScan`** subpath only; update [`lambda/diagnostics/internalCache/AGENT.md`](../../../lambda/diagnostics/internalCache/AGENT.md)
-- [ ] **Retire hot-path partition reads:** **`componentExamples`** mirroring + reseed (coordinate [**on-demand examples**](../../lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md)); grep repo for **`createAuthoritativeComponentDataCacheHandler`** outside whitelist
+- [X] **Retire hot-path partition reads:** partition enumerate off **`componentExamples`** mirroring + reseed (pair + participation order via [`loadAuthoritativeForMirroring`](../../../lambda/assets/componentExamples/loadAuthoritativeForMirroring.ts)); grep hygiene below
+  - [X] **Done:** no **`ComponentData.get([universalKey])`** / partition handler on mirroring or reseed paths; **`authoritativeFromParticipationOrder`** + **`internalCache.ComponentData`** only
+  - [X] **Grep (2026-05-22):** **`createAuthoritativeComponentDataCacheHandler`** only in [`assetMeta/`](../../../packages/mtw-gateways/ts/assets/components/assetMeta/) shim + tests; **0** matches under **`lambda/`**
+  - **Deferred:** retire mirror push (`ExampleUpdated`/`ExampleRemoved`), Ephemera [`componentExamples.ts`](../../../lambda/ephemera/dataSource/componentExamples.ts), Assets **`reseedComponentExamplesFromDiagnostics`** -> [**on-demand examples**](../../lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md) (**Consolidation handoff**)
 - [ ] **Remove `assetMeta/` shim:** delete directory; fix deep imports; update [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) ownership table (**Component data** row replaces **Component Asset Meta**)
 - [ ] **Dispose this plan** per [`taskPlanning/AGENT.md`](../../AGENT.md)
 
@@ -347,6 +350,16 @@ npx tsc --build packages/mtw-gateways/tsconfig.ref.json
 ```bash
 # Advisory during migration: should trend to zero outside componentData/exhaustiveScan and tests
 rg "createAuthoritativeComponentDataCacheHandler|authoritativeComponentDataCache" --glob '!**/componentData/**' --glob '!**/*.planning.md'
+```
+
+**After slice 271 partition-read retirement (2026-05-22):**
+
+Grep (workspace search): **`createAuthoritativeComponentDataCacheHandler`** / **`authoritativeComponentDataCache`** only in **`packages/mtw-gateways/ts/assets/components/assetMeta/`** (shim re-exports + tests) and planning/docs references; **no** **`lambda/`** production paths. **`ComponentData.get([`** in **`lambda/assets/componentExamples`**: **0** matches.
+
+```bash
+cd lambda/assets && npm test -- --testPathPattern='loadAuthoritativeForMirroring|reseedFromDiagnostics'  # 2 suites, 10 tests
+cd packages/mtw-gateways && npm test -- --testPathPattern=componentData
+npx tsc --build packages/mtw-gateways/tsconfig.ref.json
 ```
 
 ---
