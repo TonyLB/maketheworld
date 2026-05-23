@@ -416,7 +416,7 @@ Do **not** overload **constellation** for v1 exact-match or hydrate --- reserve 
 | Invalidation event contract drafted | Done |
 | Catalog rows + adjacency CRUD + invalidation handler (M2/S2--S4) | Done |
 | Meta freshness fields + writers | Partial (catalog `currentCacheId`; legacy Meta fallback) |
-| Ephemera aggregate read wiring | Not started |
+| Ephemera aggregate read wiring | Done |
 | Hydration step in orchestration | Not started |
 | Assets componentExamples emit invalidations only | Not started |
 | Steady-state AGENT.md updates | Not started |
@@ -555,7 +555,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` wh
 - [X] **Catalog row schema:** define **`Cache::${perspectiveKey}`** / **`EphemeraCacheCatalogRow`** (incl. **`assetStack`**) in **`mtw.ephemera.renderCache`** (CRUD + conditional bump per M4/V1); migrate **`currentCacheId`** off **`Meta::Room`** (M2)
 - [X] **Situation adjacency:** CRUD helpers + hydrate diff maintenance (S4); Situation invalidation handler with layer participation filter (S2/S3)
 - [X] **`componentExamples` gateway (`mtw-gateways`):** per [**A3 algorithm**](#componentexamples-gateway---algorithm-a3); **`AuthoredExample`** types; lift helpers from **`exampleEnrichment.ts`**; package tests + parity; [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) ownership row. **`assemble.ts`** shipped (**secondary**); **`factory.ts`** + **`createComponentExamplesCacheHandler`** land with [**Lambda wiring**](#recommended-order) (not a separate public API shape).
-- [ ] **Lambda wiring (**A1**):** **Diagnostics:** tier-1 **`ComponentData`** + **`ComponentVerticals`**; **`ComponentAggregate`**; **`ComponentExamples`**. **Ephemera:** **`ComponentAggregate`** + **`ComponentExamples`** with slice **`{ ComponentData: internalCache.ComponentData, ... }`** (pair **`getAcrossAssets`** at canon stack); stub **`ComponentVerticals`** if needed for slice shape. Hydrate: **`internalCache.ComponentExamples.get`** only (no **`assembleComponentExamplesAtPerspective`**, no partition enumerate at boundary).
+- [X] **Lambda wiring (**A1**):** **Diagnostics:** tier-1 **`ComponentData`** + **`ComponentVerticals`**; **`ComponentAggregate`**; **`ComponentExamples`**. **Ephemera:** **`ComponentAggregate`** + **`ComponentExamples`** with slice **`{ ComponentData: internalCache.ComponentData, ... }`** (pair **`getAcrossAssets`** at canon stack); stub **`ComponentVerticals`** if needed for slice shape. Hydrate: **`internalCache.ComponentExamples.get`** only (no **`assembleComponentExamplesAtPerspective`**, no partition enumerate at boundary).
 - [ ] **Invalidation handler:** in **`mtw.ephemera.renderCache`** (P3) --- component-scoped path (P1 + layer participation); Situation path (S2/S3, P5 cleanup on Removed); diagnostics finding (P7); retire [`componentExamples.ts`](../../../../../lambda/ephemera/dataSource/componentExamples.ts) mirror + Assets reseed
 - [ ] **Assets emitter:** refactor [`componentExamples/index.ts`](../../../../../lambda/assets/componentExamples/index.ts) to invalidations-only (P1: **`editAssetId`** from event asset); Situation path per S1; drop **`emitSituationComponentFacetEvents`** / **`getParentIdsForSituation`**
 - [ ] **Hydration step:** **`ensureAuthoredCatalog`** (O1/O2) calls **`internalCache.ComponentExamples.get`** + **diff** put/delete authored rows + catalog ready + coalescing; wire from **`orchestrationHandler`** before **`findRender`**
@@ -606,6 +606,18 @@ Gateway slice files: [`enrichment.ts`](../../../../../packages/mtw-gateways/ts/a
 Contract files: [`packages/mtw-interfaces/ts/eventBridge/assets/componentExamples.ts`](../../../../../packages/mtw-interfaces/ts/eventBridge/assets/componentExamples.ts); [`packages/mtw-gateways/ts/assets/components/componentExamples/`](../../../../../packages/mtw-gateways/ts/assets/components/componentExamples/); [`lambda/ephemera/dataSource/renderCache/baseClasses.ts`](../../../../../lambda/ephemera/dataSource/renderCache/baseClasses.ts), [`catalogGuards.ts`](../../../../../lambda/ephemera/dataSource/renderCache/catalogGuards.ts), [`diagnosticsFindingContract.ts`](../../../../../lambda/ephemera/dataSource/renderCache/diagnosticsFindingContract.ts), [`subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/renderCache/subscribedEvents.ts).
 
 Catalog/adjacency slice files: [`catalogRow.ts`](../../../../../lambda/ephemera/dataSource/renderCache/catalogRow.ts), [`situationAdjacency.ts`](../../../../../lambda/ephemera/dataSource/renderCache/situationAdjacency.ts), [`perspectivePointer.ts`](../../../../../lambda/ephemera/dataSource/renderCache/perspectivePointer.ts), [`handleExampleInvalidated.ts`](../../../../../lambda/ephemera/dataSource/renderCache/handleExampleInvalidated.ts).
+
+**Lambda wiring slice (A1, landed):**
+
+```bash
+cd packages/mtw-gateways && npm test -- --testPathPattern=componentExamples
+npx tsc --build packages/mtw-gateways/tsconfig.ref.json
+cd lambda/ephemera && npm test -- --testPathPattern=internalCache
+cd lambda/diagnostics && npm test -- --testPathPattern=internalCache
+cd lambda/assets && npm test -- --testPathPattern=componentAggregate
+```
+
+A1 files: [`factory.ts`](../../../../../packages/mtw-gateways/ts/assets/components/componentExamples/factory.ts), [`keys.ts`](../../../../../packages/mtw-gateways/ts/assets/components/componentExamples/keys.ts); [`lambda/ephemera/internalCache/index.ts`](../../../../../lambda/ephemera/internalCache/index.ts), [`lambda/diagnostics/internalCache/index.ts`](../../../../../lambda/diagnostics/internalCache/index.ts).
 
 After later slices, add patterns for hydrate diff, hydrate-then-exact-match, diagnostics finding handler.
 

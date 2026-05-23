@@ -1,3 +1,8 @@
+export {
+    ComponentExamplesMergedCache,
+    createComponentExamplesCacheHandler,
+} from './factory'
+export { componentExamplesPerspectiveCacheKey } from './keys'
 export { assembleComponentExamplesAtPerspective, type AssembleComponentExamplesAtPerspectiveArgs } from './assemble'
 export {
     authoredExampleFromSituationFacet,
@@ -24,7 +29,7 @@ export {
     type MergeParticipationOrder,
 } from './input'
 export { assetStackIncludesEditAssetId } from './membership'
-export type { ComponentExamplesAggregatePort } from './ports'
+export type { ComponentExamplesAggregatePort, ComponentExamplesInternalCacheSlice } from './ports'
 export {
     authoredExampleSetFromEntries,
     authoredExampleSetSituationIds,

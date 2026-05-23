@@ -9,6 +9,15 @@ import {
     type ComponentDataCache,
 } from '@tonylb/mtw-gateways/ts/assets/components/componentData';
 import {
+    ComponentAggregateMergedCache,
+    createComponentAggregateCacheHandler,
+} from '@tonylb/mtw-gateways/ts/assets/components/aggregate';
+import {
+    ComponentExamplesMergedCache,
+    createComponentExamplesCacheHandler,
+} from '@tonylb/mtw-gateways/ts/assets/components/componentExamples';
+import type { ImportVerticalMetaImportProjectionLoader } from '@tonylb/mtw-gateways/ts/assets/components/verticals';
+import {
     createThinkingJobReadCacheHandler,
     createThinkingResultReadCacheHandler,
     createThinkingScheduleReadCacheHandler,
@@ -55,6 +64,13 @@ const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>
     options: { getBatchSize: 50 }
 })
 
+/** Ephemera v1: vertical hops unused in merge; stub satisfies aggregate slice shape (A1). */
+const ephemeraComponentVerticalsStub: ImportVerticalMetaImportProjectionLoader = {
+    async get(universalKeys) {
+        return universalKeys.map((universalKey) => ({ universalKey, hops: [] }))
+    },
+}
+
 export class InternalCache {
     Global: CacheGlobalData = new CacheGlobalData()
     CoyoteGame: CacheCoyoteGameData;
@@ -77,6 +93,8 @@ export class InternalCache {
     GraphEdges: GraphEdgeType;
     
     ComponentData: ComponentDataCache = createComponentDataCacheHandler(assetDB);
+    ComponentAggregate: ComponentAggregateMergedCache;
+    ComponentExamples: ComponentExamplesMergedCache;
     ThinkingResults: ThinkingResultReadCache = createThinkingResultReadCacheHandler(ephemeraDB);
     ThinkingSchedules: ThinkingScheduleReadCache = createThinkingScheduleReadCacheHandler(ephemeraDB);
     ThinkingJobs: ThinkingJobReadCache = createThinkingJobReadCacheHandler(ephemeraDB);
@@ -132,6 +150,13 @@ export class InternalCache {
         )
         this.GenerationContext = new GenerationContextData(this.ComponentData)
         this.CharacterPossibleMaps = new CacheCharacterPossibleMapsData(this.CharacterMeta, this.Graph)
+        this.ComponentAggregate = createComponentAggregateCacheHandler({
+            ComponentData: this.ComponentData,
+            ComponentVerticals: ephemeraComponentVerticalsStub,
+        })
+        this.ComponentExamples = createComponentExamplesCacheHandler({
+            ComponentAggregate: this.ComponentAggregate,
+        })
         this._invalidateAssetCallback = (EphemeraId) => {
             // Variable/Computed invalidation removed - no longer needed
         }
@@ -152,6 +177,8 @@ export class InternalCache {
         this.PlayerSessions.clear()
         this._graphCache.clear()
         this.ComponentData.clear()
+        this.ComponentAggregate.clear()
+        this.ComponentExamples.clear()
         this.ThinkingResults.clear()
         this.ThinkingSchedules.clear()
         this.ThinkingJobs.clear()
@@ -170,6 +197,8 @@ export class InternalCache {
         await Promise.all([
             this._graphCache.flush(),
             this.ComponentData.flush(),
+            this.ComponentAggregate.flush(),
+            this.ComponentExamples.flush(),
             this.ThinkingResults.flush(),
             this.ThinkingSchedules.flush(),
             this.ThinkingJobs.flush(),

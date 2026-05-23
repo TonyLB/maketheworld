@@ -7,3 +7,8 @@ import type { MergedComponentResult } from '../aggregate/result'
 export type ComponentExamplesAggregatePort = {
     get(perspectives: readonly AggregatePerspective[]): Promise<readonly MergedComponentResult[]>
 }
+
+/** Slice for {@link createComponentExamplesCacheHandler}: compose aggregate only. */
+export type ComponentExamplesInternalCacheSlice = {
+    ComponentAggregate: ComponentExamplesAggregatePort
+}
