@@ -1,6 +1,6 @@
 # On-demand authored examples (invalidate + hydrate) - planning
 
-**Status:** Design pass complete; **contracts**, **catalog + adjacency**, **gateway (A3)**, **lambda wiring (A1)**, **invalidation handler slice**, **Assets invalidation-only emitter**, **hydration step (`ensureAuthoredCatalog`)**, and **Tests** slice landed. **Next:** **Diagnostics renderCache sweep** per [**Recommended order**](#recommended-order).
+**Status:** Design pass complete; **contracts**, **catalog + adjacency**, **gateway (A3)**, **lambda wiring (A1)**, **invalidation handler slice**, **Assets invalidation-only emitter**, **hydration step (`ensureAuthoredCatalog`)**, and **Tests** slice landed. **Next:** **`renderCache` gateway (`mtw-gateways`)**, then **Diagnostics renderCache sweep** per [**Recommended order**](#recommended-order).
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting notes live under [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md), [`lambda/assets/componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md), and related steady-state docs.
 
@@ -206,8 +206,8 @@ row.assetStack.includes(editAssetId)
 
 | Layer | Owns | Does not own |
 | --- | --- | --- |
-| **`mtw-gateways`** (assets / blueprint read model) | Merged components at a participation order; **`componentExamples`** gateway assembles **`AuthoredExample`** set at that perspective ([**A3**](#aggregate-read-surface-cross-lambda)) | Dynamo **`CACHE#`** rows, catalog versions, adjacency, invalidation |
-| **`mtw.ephemera.renderCache`** | **`ensureAuthoredCatalog`**, hydrate **diff**, **`putCacheRecord`**, catalog/adjacency CRUD | Merge across assets; blueprint facet discovery |
+| **`mtw-gateways`** (assets / blueprint read model) | Merged components at a participation order; **`componentExamples`** gateway assembles **`AuthoredExample`** set at that perspective ([**A3**](#aggregate-read-surface-cross-lambda)); **`renderCache`** gateway for **`Cache::`** + **`CACHE#`** **`get*`**, memo **`set*`**, drift classification ([**R1**](#rendercache-gateway-r1--r4)--[**R4**](#get-vs-set-placement-r4)) | Dynamo writes, adjacency CRUD, invalidation orchestration, hydrate orchestration |
+| **`mtw.ephemera.renderCache`** | **`ensureAuthoredCatalog`**, hydrate **diff**, **`putCacheRecord`**, catalog/adjacency CRUD (**Dynamo writes**); then **`internalCache.RenderCache.set`** / **`invalidate`** (memo only) | Merge across assets; blueprint facet discovery |
 
 **Merge primitive:** register **`ComponentAggregateMergedCache`** on each lambda **`InternalCache`** that needs reads ([**A1**](#aggregate-read-surface-cross-lambda)). Callers pass **`mergeParticipationOrder`** (= canon **`assetStack`** from [**A2**](#aggregate-read-surface-cross-lambda)).
 
@@ -421,13 +421,15 @@ Do **not** overload **constellation** for v1 exact-match or hydrate --- reserve 
 | Hydration step in orchestration | Done |
 | Assets componentExamples emit invalidations only | Done |
 | Tests (gateway parity, invalidation, hydrate diff, hydrate-then-exact-match) | Done |
+| **`renderCache` gateway (`mtw-gateways`)** | Not started |
+| Diagnostics renderCache sweep | Not started (blocked on renderCache gateway) |
 | Steady-state AGENT.md updates | Partial (renderCache + dataSource + assets event docs updated) |
 
 ---
 
 ## Open decisions
 
-All rows below are **decided** for the initial slice (recorded inline), including [**Contract gaps (P1--P7)**](#contract-gaps-resolved-at-planning) closed at planning time. **P2 (`editAssetStack` on Assets)** and **S3 (prefix expansion)** are **retired** in favor of **`editAssetId`** + [**layer participation rule**](#layer-participation-rule-invalidation). Reopen only if implementation discovers a gap.
+All rows below are **decided** for the initial slice (recorded inline), including [**Contract gaps (P1--P7, D1)**](#contract-gaps-resolved-at-planning) closed at planning time. **P2 (`editAssetStack` on Assets)** and **S3 (prefix expansion)** are **retired** in favor of **`editAssetId`** + [**layer participation rule**](#layer-participation-rule-invalidation). Reopen only if implementation discovers a gap.
 
 ### Invalidation events (Assets -> Ephemera)
 
@@ -485,7 +487,60 @@ Closed before the contracts implementation slice so component/Situation emitters
 | H1b | **Non-orchestration readers** (`ComponentRender`, raw **`RenderCache.get`):** call **`ensureAuthoredCatalog`?** | **Decided (v1):** **No.** **`ensureAuthoredCatalog`** runs only on **orchestration resolve** entry points: **`orchestrateRenderRequest`** after successful intake (including **`fanOutStateChangedToPassiveRenders`**). **`ComponentRender`** / perception paths that read cache directly may serve **version-gated** rows that are stale until the next resolve hydrates --- acceptable in v1; gameplay **look** and passive **`Render Requested`** are normative for freshness. Revisit if Workbench preview needs eager hydrate without orchestration. |
 | P5 | **Situation `Component Removed`:** adjacency partition cleanup? | **Decided:** after Situation-scoped invalidation bump **all** adjacency links ([**S2**](#situation-adjacency-invalidation-fan-out); entity removed), **delete all rows** under **`EphemeraId = SITUATION#...`** (paginated **`Query`** on partition). Idempotent; empty partition is fine. Do not leave orphan **`Link::...`** rows. |
 | P6 | **Migration / deploy order / dual-write?** | **Decided:** **No dual-write** of authored bodies after cutover. **Order:** (1) Ship Ephemera **catalog rows + invalidation handler + adjacency + `ensureAuthoredCatalog`** (tolerates legacy **`CACHE#`** without **`catalogVersion`** per [**V2**](#catalog-rows-cacheperspectivekey)); (2) Switch Assets to **`ExampleInvalidated`**-only and drop mirror puts; (3) Remove **`mtw.ephemera.examples`** subscriber. Brief overlap where Assets emits invalidations before Ephemera handler is live is OK (bumps no-op on missing **`Cache::`**). **No** byte-parity gate vs mirrored payloads ([**L2**](#legacy-mirroring-cleanup)). |
-| P7 | **Diagnostics `Ephemera RenderCache Finding`:** handler home; eager vs lazy heal? | **Decided:** **`mtw.ephemera.renderCache`** (same module as invalidation) subscribes on Ephemera; **drop** Assets **`reseedComponentExamplesFromDiagnostics`** ([**I4**](#i4-explained-component-republished-and-diagnostics-reseed)). **Heal targets:** **`finding.targetCatalogs`** --- `{ ephemeraId, perspectiveKey }[]` (empty = no-op). Ephemera handler is **receive-only bump**: **`getCatalogRow`** + **`conditionalInvalidateCatalogRow`** per entry; **no** blueprint scan on receive. Bump **only if** **`Cache::${perspectiveKey}`** exists (V1). **Lazy heal** --- no eager **`ensureAuthoredCatalog`** on finding. **Publisher** (future diagnostics sweep) owns enumeration and materialized-catalog checks; emits **`targetCatalogs`** only. F/K hosts deferred until sweep includes them (room-first v1). |
+| P7 | **Diagnostics `Ephemera RenderCache Finding`:** handler home; eager vs lazy heal? | **Decided:** **`mtw.ephemera.renderCache`** (same module as invalidation) subscribes on Ephemera; **drop** Assets **`reseedComponentExamplesFromDiagnostics`** ([**I4**](#i4-explained-component-republished-and-diagnostics-reseed)). **Heal targets:** **`finding.targetCatalogs`** --- `{ ephemeraId, perspectiveKey }[]` (empty = no-op). Ephemera handler is **receive-only bump**: **`getCatalogRow`** + **`conditionalInvalidateCatalogRow`** per entry; **no** blueprint scan on receive. Bump **only if** **`Cache::${perspectiveKey}`** exists (V1). **Lazy heal** --- no eager **`ensureAuthoredCatalog`** on finding. **Publisher** (diagnostics renderCache sweep) owns per-catalog materialized checks; emits **`targetCatalogs`** only on the finding wire (no **`roomIds`** / **`perspective`** on the event). Sweep **enumeration** per [**D1**](#diagnostics-rendercache-sweep-enumeration-d1). F/K hosts deferred until sweep includes them (room-first v1). |
+| D1 | **Diagnostics renderCache sweep:** how to enumerate catalogs to check (v1)? | **Decided (v1):** **caller-supplied `roomIds`** --- required sweep input (`ROOM#...` list on **`api.diagnostics`** / direct invoke). **No** automatic discovery in v1 (no Ephemera table scan, no **`Meta::Room`** fan-out, no Assets partition enumerate for all rooms). For each **`roomId`**, enumerate existing **`Cache::...`** catalog rows via **`internalCache.RenderCache.getCatalogRows`** ([**R1**](#rendercache-gateway-r1--r4)); per catalog row, compare blueprint (**`internalCache.ComponentExamples.get`** at **`catalogRow.assetStack`**) vs version-gated authored **`CACHE#`** rows (**`getCacheRows`** + package drift classifier). **`roomIds: []`** = no-op (no reads, no findings). Scheduled/cron runs must pass an explicit list until a later slice adds discovery. Retired for v1: reusing legacy finding fields **`roomIds`** / **`perspective`** on the EventBridge payload ([**P7**](#contract-gaps-resolved-at-planning)). **Prerequisite:** [**`renderCache` gateway**](#recommended-order) ([**R2**](#rendercache-gateway-r1--r4)). |
+
+#### Diagnostics renderCache sweep enumeration (D1)
+
+**v1 scope:** the sweep does **not** answer "which rooms exist in the world?" --- the **caller** supplies **`roomIds`**. That keeps v1 practical without a global **`Cache::`** index or full Ephemera scan.
+
+| Input | Role |
+| --- | --- |
+| **`roomIds`** (sweep params) | **Required** enumeration boundary. Each id is a cache-host **`ROOM#...`** to inspect. |
+| Per-room work | **`internalCache.RenderCache.getCatalogRows(roomId)`** -> one drift check per existing **`Cache::${perspectiveKey}`** row (blueprint via **`ComponentExamples.get`**; materialized via **`getCacheRows`** + package classifier --- [**R1**](#rendercache-gateway-r1--r4)). |
+| **`Ephemera RenderCache Finding`** (EventBridge) | **`targetCatalogs`** only --- drift targets for Ephemera bump; **not** the room list used to run the sweep. |
+
+**Manual sandbox / pre-schedule:** document example invoke with an explicit **`roomIds`** array (Workbench, script, or **`api.diagnostics`** envelope). Widen enumeration (e.g. asset-scoped room discovery) is a **later** slice, not v1.
+
+**Prerequisite:** [**`renderCache` gateway**](#recommended-order) (**R2**) must land before the diagnostics sweep slice; do not wire sweep reads against ad hoc **`ephemeraDB`** in **`lambda/diagnostics`**.
+
+#### RenderCache gateway (R1--R4)
+
+Closed at planning time for the remaining materialized-read + diagnostics slices. Normative package pattern: [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) [**Dynamo writes vs invocation memo**](#dynamo-writes-vs-invocation-memo).
+
+| # | Question | Decision |
+| --- | --- | --- |
+| R1 | **Lambda cache shape:** one **`internalCache.RenderCache`** vs separate catalog / row caches? | **Decided:** **one** package handler per lambda registration. **`createRenderCacheCacheHandler(ephemeraDB)`** (name TBD) on **`internalCache.RenderCache`** exposes **`getCatalogRows`**, **`getCacheRows`**, **`getCatalogRow`**, plus memo **`set`**, **`deleteCacheRecords`**, **`invalidate(componentId)`** on the **same** instance ([**R4**](#get-vs-set-placement-r4)). |
+| R2 | **Sequencing:** gateway migration vs diagnostics sweep? | **Decided:** **thorough `mtw-gateways` migration first** (fetch, guards, full cache handler, pure drift classifier, Ephemera + diagnostics registration, DataSource read delegation). **Diagnostics renderCache sweep** is a separate [**Recommended order**](#recommended-order) item that depends on R1/R2; do not start sweep wiring until the gateway item is checked. |
+| R3 | **Package surface beyond fetch:** drift rules and Dynamo writes? | **Decided:** package owns **`get*`**, memo **`set*`**, guards, and **`classifyAuthoredCatalogDrift`**; **Dynamo puts/deletes** stay in **`lambda/ephemera/dataSource/renderCache/`** per [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) non-goals (no **write-through** in the package). |
+| R4 | **`get*` vs `set*`:** what lives in the gateway vs Ephemera lambda? | **Decided:** see [**get* vs set* placement**](#get-vs-set-placement-r4). **Both** shared **`get*`** and shared **memo `set*` / `delete*` / `invalidate`** live in **`mtw-gateways`** (memo only --- no Dynamo). **Ephemera** registers the handler and may add **`getExactMatch`** only. **Diagnostics** registers the same handler; **`get*`** only. |
+
+#### get* vs set* placement (R4)
+
+**Terminology (do not conflate):**
+
+| Pattern | Meaning | In `mtw-gateways`? |
+| --- | --- | --- |
+| **Write-through** | `set` also writes Dynamo | **No** |
+| **Invocation memo patch** | DataSource wrote Dynamo; `set` / `delete*` updates in-memory cache for same invocation | **Yes** --- on the shared cache handler |
+
+**Post-write memo pattern stays.** After **`putCacheRecord`** writes Dynamo, Ephemera still calls **`internalCache.RenderCache.set`** so the same invocation sees the new row without re-querying. That logic moves into the **package-owned** handler (lifted from [`renderCacheData`](../../../../../lambda/ephemera/internalCache/renderCache.ts)), not duplicated in a lambda-only wrapper.
+
+```text
+putCacheRecord  -->  ephemeraDB.putItem()
+                  -->  internalCache.RenderCache.set(...)   // package handler; memo only
+
+internalCache.RenderCache  (mtw-gateways RenderCacheCacheHandler, one instance per lambda)
+  getCatalogRows / getCacheRows / getCatalogRow  -->  Dynamo + DeferredCache
+  set / deleteCacheRecords / invalidate          -->  in-memory only
+```
+
+| Layer | **`get*`** | **Memo `set*` / `invalidate`** | **Dynamo writes** |
+| --- | --- | --- | --- |
+| **`mtw-gateways` `RenderCacheCacheHandler`** | **`getCatalogRows`**, **`getCacheRows`**, **`getCatalogRow`**; shared guards | **`set`**, **`deleteCacheRecords`**, **`invalidate(componentId)`** (extend to drop catalog + **`CACHE#`** memo). **No `setCatalogRow`:** catalog body changes go through DataSource Dynamo, then **`invalidate(componentId)`**. | **None** |
+| **Ephemera `internalCache.RenderCache`** | Register package handler; optional thin **`getExactMatch`** compose ([`catalogGuards`](../../../../../lambda/ephemera/dataSource/renderCache/catalogGuards.ts)). Alias **`get`** -> **`getCacheRows`** if needed for refactor. | Same handler instance; DataSource calls memo APIs after persist. | **`renderCache/`** primitives only |
+| **Diagnostics `internalCache.RenderCache`** | Sweep + **`classifyAuthoredCatalogDrift`** | **Do not call** memo **`set*`** (report-only) | **None** |
+| **Ephemera `renderCache/` DataSource** | Steady-state reads via **`internalCache.RenderCache.get*`** | After Dynamo: **`putCacheRecord`** -> **`set`**; hydrate/delete -> **`deleteCacheRecords`**; catalog bump/ready -> **`invalidate`** ([`catalogRow.ts`](../../../../../lambda/ephemera/dataSource/renderCache/catalogRow.ts), [`handleRenderOrchestrationInbound`](../../../../../lambda/ephemera/dataSource/renderCache/handleRenderOrchestrationInbound.ts)) | Owns all **`ephemeraDB`** puts/deletes |
 
 #### Participation `assetStack` vs `editAssetId` (context)
 
@@ -562,8 +617,9 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` wh
 - [X] **Assets emitter:** refactor [`componentExamples/index.ts`](../../../../../lambda/assets/componentExamples/index.ts) to invalidations-only (P1: **`editAssetId`** from event asset); Situation path per S1; drop **`emitSituationComponentFacetEvents`** / **`getParentIdsForSituation`**
 - [X] **Hydration step:** **`ensureAuthoredCatalog`** (O1/O2) calls **`internalCache.ComponentExamples.get`** + **diff** put/delete authored rows + catalog ready + coalescing; wire from **`orchestrationHandler`** before **`findRender`**
 - [X] **Tests:** gateway golden/parity (**`componentExamples`**); layer participation invalidation (A/B/C overlay); Situation invalidation uses **`situationId`**; adjacency + filter; hydrate diff; hydrate-then-exact-match; diagnostics via gateway
-- [ ] **Diagnostics renderCache sweep:** in **`lambda/diagnostics/`** (new module, pattern: **`roomOccupancyDriftSweep`**) --- compare blueprint desired set (**`internalCache.ComponentExamples.get`**) vs Ephemera materialized state (**`ephemeraDB`** catalog + version-gated **`CACHE#`** where needed); emit **`Ephemera RenderCache Finding`** with **`targetCatalogs`** only (no **`perspective`** / **`roomIds`**). Manual emission docs for sandbox until scheduled.
-- [ ] **Docs:** update [`renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md) (**Mirroring vs runtime**), [`componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md), [`AGENT.event.md`](../../../../../lambda/assets/AGENT.event.md); trim stale Example-filter prose
+- [ ] **`renderCache` gateway (`mtw-gateways`)** ([**R1**](#rendercache-gateway-r1--r4)--[**R4**](#get-vs-set-placement-r4), [**R2**](#rendercache-gateway-r1--r4)): module at **`packages/mtw-gateways/ts/ephemera/renderCache/`** (authoritative **Dynamo** writer: **`mtw.ephemera.renderCache`** DataSource). **Package:** Dynamo **`fetch`**; shared guards/normalizers; pure **`classifyAuthoredCatalogDrift`**; **`createRenderCacheCacheHandler(ephemeraDB)`** with **`getCatalogRows`**, **`getCacheRows`**, **`getCatalogRow`**, and memo **`set`** / **`deleteCacheRecords`** / **`invalidate`** (no Dynamo in memo APIs --- [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) [**Dynamo writes vs invocation memo**](#dynamo-writes-vs-invocation-memo)); package tests; ownership row. **Ephemera:** register handler on **`internalCache.RenderCache`** (replace [`RenderCacheData`](../../../../../lambda/ephemera/internalCache/renderCache.ts) body with package handler + optional **`getExactMatch`**); DataSource primitives keep Dynamo writes, then call memo APIs. **Diagnostics:** register same handler; **`get*`** only. **Gate:** do not start the diagnostics sweep item until this is checked.
+- [ ] **Diagnostics renderCache sweep** ([**D1**](#diagnostics-rendercache-sweep-enumeration-d1); depends on **`renderCache` gateway** above): new module in **`lambda/diagnostics/`** (pattern: **`roomOccupancyDriftSweep`**). **Enumeration:** caller-supplied **`roomIds`** (`ROOM#...[]` on sweep invoke; empty = no-op). Per room: **`internalCache.RenderCache.getCatalogRows`**, per catalog **`internalCache.ComponentExamples.get`** at **`catalogRow.assetStack`**, materialized check via **`getCacheRows`** + package **`classifyAuthoredCatalogDrift`**. Emit **`Ephemera RenderCache Finding`** with **`targetCatalogs`** only (no **`perspective`** / **`roomIds`** on the finding wire). Manual emission docs for sandbox until scheduled.
+- [ ] **Docs:** update [`renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md) (**Mirroring vs runtime**), [`componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md), [`AGENT.event.md`](../../../../../lambda/assets/AGENT.event.md); trim stale Example-filter prose; **`mtw-gateways`** ownership row for **`renderCache`** gateway when shipped
 - [ ] **Dispose this plan** per [`taskPlanning/AGENT.md`](../../../../AGENT.md)
 
 ---
@@ -672,6 +728,23 @@ Coverage highlights:
 - **Hydrate diff:** extended [`hydrateAuthoredCatalogDiff.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/hydrateAuthoredCatalogDiff.test.ts) (perspective isolation, version-guard delete skip, multi-slice adjacency).
 - **Hydrate-then-exact-match:** [`authoredCatalogHydrateExactMatch.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/authoredCatalogHydrateExactMatch.test.ts) (`ensureAuthoredCatalog` -> versioned `CACHE#` -> `RenderCacheData.getExactMatch`).
 - **Diagnostics via gateway:** [`lambda/diagnostics/internalCache/internalCache.test.ts`](../../../../../lambda/diagnostics/internalCache/internalCache.test.ts) (`ComponentExamples.get` assembles from blueprint).
+
+**`renderCache` gateway slice (pending):**
+
+```bash
+cd packages/mtw-gateways && npm test -- --testPathPattern=renderCache
+npx tsc --build packages/mtw-gateways/tsconfig.ref.json
+cd lambda/ephemera && npm test -- --testPathPattern='internalCache/renderCache|renderCache/(queryCacheRecordsForComponent|catalogRow)'
+cd lambda/diagnostics && npm test -- --testPathPattern=internalCache
+```
+
+**Diagnostics renderCache sweep slice (pending; after renderCache gateway):**
+
+```bash
+cd packages/mtw-gateways && npm test -- --testPathPattern=renderCache
+cd lambda/diagnostics && npm test -- --testPathPattern=renderCacheDriftSweep
+cd packages/mtw-interfaces && npm test -- --testPathPattern=diagnostics
+```
 
 ---
 

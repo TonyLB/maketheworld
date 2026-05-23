@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`mtw-gateways` is the shared home for **read-only** gateway code that **multiple lambdas** import when they need on-demand access to materialized data in DynamoDB rows that are written and owned by **another** lambda's DataSource.
+`mtw-gateways` is the shared home for **cross-lambda read surfaces** (and shared cache-handler implementations) that **multiple lambdas** import when they need on-demand access to materialized data in DynamoDB rows that are written and owned by **another** lambda's DataSource.
 
 A "gateway" here is the small, deliberate surface that bridges:
 
@@ -13,18 +13,19 @@ What lives in this package:
 
 - **Pure read helpers**: `Query` / `GetItem` / `BatchGetItem` compositions, stable projection types, and DynamoDB row normalization.
 - **Key and prefix builders**: shared `AssetId` / `DataCategory` constructors so reader and writer agree on encoding (for example, mirroring the `Meta::Import::${parentStripped}::${childStripped}` encoding documented under [`lambda/assets/dataSource/components/verticals/AGENT.md`](../../lambda/assets/dataSource/components/verticals/AGENT.md)).
-- **Cache-backed gateway factories**: `createXGateway(...)` returning a cache handler bundle (or component) that lambdas register on their per-invocation `InternalCache`.
+- **Cache-backed gateway factories**: `createXCacheHandler(...)` returning a handler that lambdas register on their per-invocation `InternalCache`.
   - Any direct Dynamo reads are blackboxed inside the handler's `promiseFactory`.
+  - Handlers may also expose **`set*` / `delete*` / `invalidate`** that mutate **invocation-scoped memo only** (see [**Dynamo writes vs invocation memo**](#dynamo-writes-vs-invocation-memo)); they do **not** write Dynamo.
   - Any additional data dependencies arrive through the same `InternalCache`-consistent injection story (narrow deps, cache-backed loaders).
 - **Compute-only gateways** (see [**Projection-read vs compute-only gateways**](#projection-read-vs-compute-only-gateways)): deterministic composition over **injected ports** (narrow structural interfaces, not coupled to `InternalCache` internals). They do not own Dynamo row shapes; add `keys.ts` / `fetch.ts` only if a gateway later grows direct I/O.
 - **Shared pure helpers for diagnostics and healing** (optional per gateway): deterministic functions---for example expected **`Meta::Import`** hop descriptors from **`StandardComponent`** state---so diagnostics sweeps, **`api.assets`** heal paths, and the live projector do not fork semantic rules. Co-locate under the same `ts/<area>/<name>/` tree as the read surface; see [**Shared helpers for diagnostics and healing**](#shared-helpers-for-diagnostics-and-healing).
 
-What stays out (see **Non-goals** below): cache singletons, `clear()` / `flush()` orchestration, and **any** write paths.
+What stays out (see **Non-goals** below): cache singletons, `clear()` / `flush()` orchestration on the lambda `InternalCache`, and **Dynamo write paths** owned by DataSources.
 
 ## Non-goals
 
 - **No cross-lambda cache coherence.** Each lambda keeps its own per-invocation `InternalCache` singleton. Reading via a shared gateway does not synchronize state across lambdas; if two lambdas need consistent values they coordinate via events, not via this package.
-- **No DataSource write logic.** All mutating helpers (puts, deletes, projection maintenance, orchestrating heals) stay in the authoritative `lambda/<owner>/dataSource/...` location. A gateway is a **read alias only** for Dynamo I/O; **pure** projection helpers used *before* writes (expected hops, diff inputs) may still live here---see [**Shared helpers for diagnostics and healing**](#shared-helpers-for-diagnostics-and-healing).
+- **No DataSource write logic (no write-through).** All **Dynamo** mutating helpers (puts, deletes, projection maintenance, orchestrating heals) stay in the authoritative `lambda/<owner>/dataSource/...` location. Gateway cache **`set*` / `delete*` / `invalidate`** methods must **not** call `putItem` / `deleteItem` / orchestrate heals---they only update the **per-invocation** in-memory view after the lambda has already persisted (or when dropping stale memo). See [**Dynamo writes vs invocation memo**](#dynamo-writes-vs-invocation-memo). **Pure** projection helpers used *before* writes (expected hops, diff inputs) may still live here---see [**Shared helpers for diagnostics and healing**](#shared-helpers-for-diagnostics-and-healing).
 - **No `DeferredCache` redefinition.** `mtw-gateways` **composes** with the `DeferredCache` and surrounding patterns in [`packages/mtw-lambda-patterns/ts/internalCache/AGENT.md`](../mtw-lambda-patterns/ts/internalCache/AGENT.md); it does not fork or replace them.
 - **No replacement for area `AGENT.md` files.** Gateway docs in this package describe the **gateway surface**. Steady-state architecture for the underlying projection still lives next to the writer (e.g. assets verticals `AGENT.md`).
 - **No cross-lambda cache orchestration or shared cache instances exported from here.** Gateways may export cache handler bundles/factories for per-invocation `InternalCache` registration, but they must not coordinate cache coherence across lambdas or implement global subscription/streaming orchestration.
@@ -47,12 +48,34 @@ Each gateway in this package must have a row here. Add a row when a new gateway 
 2. Readers may include lambdas (`lambda/<reader>/...`) or other packages that compose a gateway into a richer surface. Each reader should also have a re-export barrel or import line that grep-finds back to the gateway.
 3. **Discoverability:** writers are encouraged to expose a thin re-export barrel next to their DataSource (for example `lambda/assets/dataSource/components/verticals/readModel.ts`) so engineers grepping from the writer's directory find the read surface immediately.
 
+## Dynamo writes vs invocation memo
+
+Gateways often need **two different kinds of "write"**, and the docs must not conflate them:
+
+| Kind | Who does it | Allowed in `mtw-gateways`? |
+| --- | --- | --- |
+| **Dynamo write (authoritative)** | Owning lambda DataSource (`putCacheRecord`, `putCatalogRow`, heal, etc.) | **No** --- stays in `lambda/<owner>/dataSource/...` |
+| **Write-through cache** | `cache.set(...)` also persists to Dynamo inside the package | **No** --- same as DataSource write logic |
+| **Invocation memo patch** | DataSource writes Dynamo, then `internalCache.X.set(...)` / `delete*` / `invalidate` so **same-handler** `get*` sees fresh data without re-query | **Yes** --- implement on the **shared cache handler** when multiple lambdas need the same read+memo semantics |
+
+**Blessed writer pattern (projection-read gateways with memo):**
+
+1. DataSource (or lambda module) performs the **Dynamo** put/delete/update.
+2. Same invocation calls **`internalCache.<Handler>.set(...)`** (or **`deleteCacheRecords`**, **`invalidate`**) on the **registered gateway handler instance**.
+3. Later **`get*`** in that invocation returns the patched memo (often the **same array reference** `get*` already returned).
+
+**Read-only consumers** (for example diagnostics sweeps) register the **same handler class** but only call **`get*`** --- they never call memo **`set*`**.
+
+**Invalidate-only variant:** some handlers expose only **`get`** + **`invalidate(workItemId)`** after a writer persists (for example [`ts/ephemera/thinking`](ts/ephemera/thinking/index.ts) --- writers drop memo and the next `get` re-fetches). **Memo patch variant:** handlers expose **`set`** / **`delete*`** when same-invocation readers must see new rows immediately without a second Dynamo query (for example Ephemera **`RenderCache`** --- see [`AGENT.onDemandAuthoredExamples.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md) **R4**). Prefer **one package-owned implementation** of the memo patch variant rather than duplicating `set` logic in each lambda wrapper.
+
+**Lambda-only additions:** thin compose helpers that are not needed cross-lambda (for example Ephemera **`getExactMatch`** combining `getCacheRows` + `getCatalogRow` + guards) may stay on the lambda `InternalCache` wrapper or a small ephemera module; the gateway still owns shared **`get*` / memo `set*`** and Dynamo **`fetch`**.
+
 ## How to add a gateway
 
 1. **Place pure helpers** under `ts/<area>/<name>/` (for example `ts/assets/components/componentData/`). Co-locate types, key builders, query helpers, and an optional `createXGateway(deps)` factory.
 2. **Per-gateway `index.ts`** is the public surface. Export key builders, projection types, and the factory. Top-level [`ts/index.ts`](ts/index.ts) re-exports nothing by default; **consumers use deep imports** (`@tonylb/mtw-gateways/ts/<area>/<name>`), matching how `@tonylb/mtw-base` and `@tonylb/mtw-lambda-patterns` are consumed today.
 3. **Inject the data store (projection-read gateways).** The factory receives the narrow store interface it needs (typically `assetDB` or a slice of it). **Compute-only** gateways inject **structural loader `deps`** instead (see [**Projection-read vs compute-only gateways**](#projection-read-vs-compute-only-gateways)); do not import singletons from consumer lambdas.
-4. **No mutation.** All writes stay in the owning DataSource. The gateway may surface validators or normalizers shared between read and write paths, but the act of writing must remain in the owner.
+4. **No Dynamo mutation in the package.** All **Dynamo** writes stay in the owning DataSource. The gateway may surface validators or normalizers shared between read and write paths, and cache handlers may expose **memo-only** **`set*` / `delete*` / `invalidate`** per [**Dynamo writes vs invocation memo**](#dynamo-writes-vs-invocation-memo).
 5. **Update the ownership table** in this file in the same change that adds the gateway.
 6. **Document the reader's wiring** in the reader's `internalCache/AGENT.md` (or equivalent) rather than duplicating it here. This file describes the gateway; the reader's docs describe its `InternalCache` instance.
 7. **Tests** for the gateway live in this package and exercise the helpers in isolation (mock **`assetDB`** for projection-read gateways, or mock **`deps`** / loader ports / **`InternalCache`**-shaped slices and harnesses for compute-only gateways). Integration tests stay in the consuming lambda.
@@ -136,7 +159,7 @@ Gateways export cache-backed handler factories. The gateway owns the read/normal
 
 1. **Choose the cache key** (pair keys for component bodies: **`componentPairCacheKey`**; merged assembly at a perspective: **`aggregatePerspectiveCacheKey`** from [`ts/assets/components/aggregate/keys.ts`](ts/assets/components/aggregate/keys.ts)).
 2. **Implement `get`** using package **`create...CacheHandler(assetDB)`** factories where they exist (**`createComponentDataCacheHandler`**, **`createImportVerticalMetaCacheHandler`**); otherwise use gateway exports + **`DeferredCache.add`** with **`promiseFactory`** / **`transform`** following [`componentDataCache.ts`](ts/assets/components/componentData/componentDataCache.ts) as the template for pair-addressed reads.
-3. **Invalidate** when authoritative rows change: same lambda writers should call **`this._Cache.invalidate(cacheKey)`** on the **`DeferredCache` instance** after Dynamo writes (not `key in _Cache`, which does not apply to **`DeferredCache`**). Alternative heal paths that bypass the writer must invalidate explicitly.
+3. **After Dynamo writes, refresh memo:** either (**a**) **`invalidate(cacheKey)`** on the handler so the next **`get`** re-queries Dynamo (thinking-style), or (**b**) **`set` / `delete*`** on the handler to patch the in-memory structure **without** a second query when same-invocation readers need immediate consistency (render-cache-style). See [**Dynamo writes vs invocation memo**](#dynamo-writes-vs-invocation-memo). Writers call these on the **registered handler instance**, not on a parallel lambda-only duplicate cache.
 4. **Register** the handler on the lambda **`InternalCache`** singleton and include **`clear()`** on **`InternalCache.clear()`**.
 
 **Mechanics:** See [`packages/mtw-lambda-patterns/ts/internalCache/AGENT.md`](../mtw-lambda-patterns/ts/internalCache/AGENT.md) for **`DeferredCache`** behavior.
