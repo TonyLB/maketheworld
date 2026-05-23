@@ -139,7 +139,7 @@ The Assets Lambda hosts seven data sources, each serving a specific purpose:
 | **Component-scoped** | **Component Updated** / **Removed** on Room / Feature / Knowledge | `{ type: 'ExampleInvalidated'; componentIds: [hostId]; editAssetId; affectedSituationIds? }` |
 | **Situation-scoped** | **Component Updated** / **Removed** on Situation | `{ type: 'ExampleInvalidated'; situationId; editAssetId; entityRemoved?: true }` |
 
-- **`editAssetId`**: Asset layer where the edit occurred (event asset id). Ephemera applies the layer participation rule (see [`AGENT.onDemandAuthoredExamples.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md)) against stored **`assetStack`** on catalog/adjacency rows.
+- **`editAssetId`**: Asset layer where the edit occurred (event asset id). Ephemera applies the [layer participation rule](../ephemera/dataSource/renderCache/AGENT.md#layer-participation-rule-invalidation) against stored **`assetStack`** on catalog/adjacency rows.
 - **`affectedSituationIds`**: Optional; facet Situation refs on the host component (debug/logging only).
 - **`entityRemoved`**: Set on Situation **Component Removed**; Ephemera bumps all adjacency links and deletes the Situation partition.
 
@@ -154,7 +154,7 @@ The Assets Lambda hosts seven data sources, each serving a specific purpose:
 
 **Module notes**: [`./componentExamples/AGENT.md`](./componentExamples/AGENT.md).
 
-For Ephemera catalog, adjacency, and hydrate, see `lambda/ephemera/dataSource/renderCache/AGENT.md` and [`taskPlanning/.../AGENT.onDemandAuthoredExamples.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md).
+For Ephemera catalog, adjacency, and hydrate, see [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../ephemera/dataSource/renderCache/AGENT.md) (**Authored cache**).
 
 ### 7. **mtw.assets.components.verticals** (Component import vertical index)
 
@@ -258,7 +258,7 @@ mtw.assets (Assets Lambda)
 ├─→ mtw.assets.characters (subscribes for character component updates)
 ├─→ mtw.assets.library (subscribes for Library zone filtering)
 ├─→ mtw.assets.players (subscribes for Personal/Draft zone changes)
-└─→ mtw.assets.componentExamples (subscribes for Component Updated/Removed; publishes Example lifecycle for Ephemera mirroring)
+└─→ mtw.assets.componentExamples (subscribes for Component Updated/Removed; publishes ExampleInvalidated for Ephemera renderCache catalog bumps)
 ```
 
 ### Event Filtering
@@ -269,7 +269,7 @@ Each downstream data source applies its own filtering:
 - **characters**: Filters for character component changes only
 - **library**: Filters for zone changes involving Library zone
 - **players**: Filters for zone changes involving Personal/Draft zones and player settings updates
-- **componentExamples**: Filters for Component Updated and Component Removed; standalone **`Example`** path uses **[`exampleAssociatedFilter.ts`](./componentExamples/exampleAssociatedFilter.ts)**. **Room** / **Feature** / **Knowledge** use the early situation-facet branch in **`index.ts`**.
+- **componentExamples**: Filters for **Component Updated** and **Component Removed** on **Room** / **Feature** / **Knowledge** (cache-host invalidation) and **Situation** (entity-scoped invalidation); other component types are ignored. See [`./componentExamples/AGENT.md`](./componentExamples/AGENT.md).
 
 This cascading pattern enables:
 - Specialized views of asset data

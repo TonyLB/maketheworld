@@ -26,7 +26,7 @@ Writer-side behavior for **`Meta::Import::...`** remains in [`lambda/assets/data
 
 ## Future: shared universal-key partition fetch (dedupe)
 
-**Today:** **`ComponentVerticals`** and mirroring helpers may both consult import-hop material for the same universal key. **`ComponentData`** no longer partition-enumerates on **`internalCache`**; maintenance partition reads stay on **`exhaustivePartitionLoader`** only.
+**Today:** **`ComponentVerticals`** and aggregate/examples assembly may both consult import-hop material for the same universal key. **`ComponentData`** no longer partition-enumerates on **`internalCache`**; maintenance partition reads stay on **`exhaustivePartitionLoader`** only.
 
 **Planned direction:** add a **lower-level** internal handler (or private module) that:
 
