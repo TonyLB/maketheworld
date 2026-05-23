@@ -318,7 +318,7 @@ Domain lambdas should:
 - [x] WML lambda listens for S3 Structure Finding and runs primitives init; publishes Content Update on create/repair
 - [ ] **Cache Consistency Finding**: Add contract, EventBridge rule, and assets handler; enable manual (or future automated) re-cache of a single asset
 - [ ] **Ephemera RenderCache Finding follow-ons**:
-  - [ ] **Diagnostics renderCache sweep:** compare blueprint (**`internalCache.ComponentExamples.get`**) vs Ephemera materialized catalogs; emit findings with **`targetCatalogs`** `{ ephemeraId, perspectiveKey }` only (contract in **`mtw-interfaces`**).
+  - [X] **Diagnostics renderCache sweep:** compare blueprint (**`internalCache.ComponentExamples.get`**) vs Ephemera materialized catalogs; emit findings with **`targetCatalogs`** `{ ephemeraId, perspectiveKey }` only (contract in **`mtw-interfaces`**). See [`renderCacheDriftSweep/index.ts`](renderCacheDriftSweep/index.ts).
   - [ ] Add observability/operator workflow (manual emission docs, correlation logging fields, sandbox runbook).
   - [ ] Plan and implement long-term authored publication architecture that reduces reseed dependence.
 - [ ] Migrate initialize lambda to emit findings instead of/in addition to imperative Initialize where appropriate

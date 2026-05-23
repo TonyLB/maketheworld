@@ -97,7 +97,7 @@ Initiative: [`taskPlanning/.../AGENT.onDemandAuthoredExamples.planning.md`](../.
 
 **Invalidation:** [`handleExampleInvalidated.ts`](handleExampleInvalidated.ts) wired from [`index.ts`](index.ts) on `ExampleInvalidated`. Component path: query `Cache::` rows, layer-participation filter, M4 conditional bump. Situation path: adjacency fan-out; `entityRemoved: true` bumps all links and deletes the partition (P5).
 
-**Diagnostics heal (P7):** [`handleRenderCacheFinding.ts`](handleRenderCacheFinding.ts) on `Ephemera RenderCache Finding`. Iterates `finding.targetCatalogs` (`{ ephemeraId, perspectiveKey }`); bumps existing `Cache::${perspectiveKey}` rows only (V1); empty array is a no-op; no blueprint scan on receive; no eager hydrate.
+**Diagnostics heal (P7):** [`handleRenderCacheFinding.ts`](handleRenderCacheFinding.ts) on `Ephemera RenderCache Finding`. Iterates `finding.targetCatalogs` (`{ ephemeraId, perspectiveKey }`); bumps existing `Cache::${perspectiveKey}` rows only (V1); empty array is a no-op; no blueprint scan on receive; no eager hydrate. Publisher: diagnostics [`renderCacheDriftSweep`](../../../diagnostics/renderCacheDriftSweep/index.ts) (caller-supplied `roomIds`, v1).
 
 **Version-gated lookup:** [`internalCache/renderCache.ts`](../../internalCache/renderCache.ts) `getExactMatch` uses `isAuthoritativeCacheRow` when a `Cache::` catalog row exists; legacy unversioned match when no catalog (H1b). [`findRender.ts`](../renderOrchestration/findRender.ts) pointer fast-path requires authoritative row + catalog.
 

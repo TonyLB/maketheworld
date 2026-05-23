@@ -25,7 +25,7 @@
 - [`ingress.ts`](ingress.ts) routes EventBridge ingress onto diagnostics message-bus streaming envelopes.
 - [`dataSource/subscribedEvents.ts`](dataSource/subscribedEvents.ts) owns subscribed header/envelope guards for:
   - `mtw.connections` / `Session Disconnect Problem`
-  - `api.diagnostics` synthetic command envelopes (`StaleSessionSweep`, `RoomOccupancyDriftSweep`, `PlayerMisalignmentSweep`, `ComponentVerticalMisalignmentSweep`)
+  - `api.diagnostics` synthetic command envelopes (`StaleSessionSweep`, `RoomOccupancyDriftSweep`, `PlayerMisalignmentSweep`, `ComponentVerticalMisalignmentSweep`, `RenderCacheDriftSweep`)
 - [`dataSource/index.ts`](dataSource/index.ts) owns subscribed-event handling.
 
 **Handling semantics:**
@@ -88,6 +88,32 @@
 **Classification helpers:** Per-partition statuses **`aligned`** / **`missing`** / **`orphan`** / **`stale`** are computed inside **`ImportVerticalConsistencyAnalyzer.check()`** ([`packages/mtw-gateways/ts/assets/components/verticals/consistency/index.ts`](../../packages/mtw-gateways/ts/assets/components/verticals/consistency/index.ts)) and surfaced via **`getClassification()`**. The asset-level rollup that decides what (if anything) to emit on the wire lives next to this sweep ([`componentVerticalMisalignmentSweep/classification.ts`](componentVerticalMisalignmentSweep/classification.ts)).
 
 **Finding contract:** `mtw.diagnostics` **`Component Vertical Misaligned Finding`**; internal + serializer shapes in **`@tonylb/mtw-interfaces/ts/eventBridge/diagnostics`**. **`status`** is **`missing`**, **`orphan`**, or **`stale`** (combined replace vs insert/delete semantics).
+
+## Render Cache Drift sweep (authored catalog consistency)
+
+**Purpose:** Read-only sweep comparing blueprint authored slices (**`internalCache.ComponentExamples.get`**) to version-gated materialized **`CACHE#`** rows for existing **`Cache::${perspectiveKey}`** catalog rows on caller-supplied rooms. Emits findings only; diagnostics does not mutate ephemera.
+
+**Entrypoints:**
+
+- Direct invoke: `{ type: 'RenderCacheDriftSweep', roomIds, optional diagnosticRunId, optional nowMs }`, normalized through **`ingress.ts`** and synthetic **`api.diagnostics`** (**[`dataSource/index.ts`](dataSource/index.ts)**).
+- **`roomIds: []`** (or all invalid ids) is a no-op: no Dynamo reads, no findings.
+- No scheduled/cron trigger in v1; operators must pass an explicit room list until a later discovery slice.
+
+**Example invoke:**
+
+```json
+{
+  "type": "RenderCacheDriftSweep",
+  "roomIds": ["ROOM#..."],
+  "diagnosticRunId": "optional-correlation-id"
+}
+```
+
+**Finding contract:** `mtw.diagnostics` / **`Ephemera RenderCache Finding`** with **`targetCatalogs`** (`{ ephemeraId, perspectiveKey }[]`) and **`status`** (`missing` | `corrupted`) only. Sweep **`roomIds`** are not included on the finding wire. Up to two findings per sweep (one per status bucket). Emission uses `publishStreamEvent` + `DiagnosticsEventSerializer`.
+
+**Evaluation:** For each **`ROOM#...`**, enumerate existing catalog rows via **`internalCache.RenderCache.getCatalogRows`**, load materialized rows once per room via **`getCacheRows`**, classify drift with package **`classifyAuthoredCatalogDrift`**. Implementation: [`renderCacheDriftSweep/index.ts`](renderCacheDriftSweep/index.ts).
+
+**Downstream handling:** **`mtw.ephemera.renderCache`** consumes **`Ephemera RenderCache Finding`** and performs lazy catalog invalidation only (**[`handleRenderCacheFinding.ts`](../ephemera/dataSource/renderCache/handleRenderCacheFinding.ts)**); hydrate runs on the next orchestration resolve, not on finding receipt.
 
 ## Related docs
 

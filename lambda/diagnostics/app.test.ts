@@ -1,4 +1,6 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
+import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { RenderCacheTargetCatalog } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 
 jest.mock('./staleSessionSweep', () => ({
     staleSessionSweep: jest.fn(async () => ({ emittedCount: 0, players: [] as string[] }))
@@ -12,11 +14,20 @@ jest.mock('./playerMisalignmentSweep', () => ({
 jest.mock('./componentVerticalMisalignmentSweep', () => ({
     componentVerticalMisalignmentSweep: jest.fn(async () => ({ emitted: false }))
 }))
+jest.mock('./renderCacheDriftSweep', () => ({
+    renderCacheDriftSweep: jest.fn(async () => ({
+        emittedCount: 0,
+        roomIds: [] as EphemeraRoomId[],
+        catalogsChecked: 0,
+        driftedCatalogs: [] as RenderCacheTargetCatalog[],
+    }))
+}))
 
 import { staleSessionSweep } from './staleSessionSweep'
 import { roomOccupancyDriftSweep } from './roomOccupancyDriftSweep'
 import { playerMisalignmentSweep } from './playerMisalignmentSweep'
 import { componentVerticalMisalignmentSweep } from './componentVerticalMisalignmentSweep'
+import { renderCacheDriftSweep } from './renderCacheDriftSweep'
 import { handler } from './app'
 
 describe('diagnostics handler', () => {
@@ -29,6 +40,13 @@ describe('diagnostics handler', () => {
         jest.mocked(playerMisalignmentSweep).mockResolvedValue({ emittedCount: 0, players: [] as string[] })
         jest.mocked(componentVerticalMisalignmentSweep).mockReset()
         jest.mocked(componentVerticalMisalignmentSweep).mockResolvedValue({ emitted: false })
+        jest.mocked(renderCacheDriftSweep).mockReset()
+        jest.mocked(renderCacheDriftSweep).mockResolvedValue({
+            emittedCount: 0,
+            roomIds: [] as EphemeraRoomId[],
+            catalogsChecked: 0,
+            driftedCatalogs: [] as RenderCacheTargetCatalog[],
+        })
     })
 
     it('invokes staleSessionSweep for direct StaleSessionSweep via api.diagnostics synthetic lane', async () => {
@@ -131,6 +149,33 @@ describe('diagnostics handler', () => {
             nowMs: 4242,
         })
         expect(result).toEqual({ emitted: true, status: 'missing' })
+    })
+
+    it('invokes renderCacheDriftSweep for direct RenderCacheDriftSweep type', async () => {
+        jest.mocked(renderCacheDriftSweep).mockResolvedValueOnce({
+            emittedCount: 0,
+            roomIds: ['ROOM#alpha' as EphemeraRoomId],
+            catalogsChecked: 0,
+            driftedCatalogs: [] as RenderCacheTargetCatalog[],
+        })
+        const result = await handler({
+            type: 'RenderCacheDriftSweep',
+            roomIds: ['ROOM#alpha', 'ROOM#alpha'],
+            diagnosticRunId: 'dr-rc',
+            nowMs: 3333,
+        })
+
+        expect(renderCacheDriftSweep).toHaveBeenCalledWith({
+            roomIds: ['ROOM#alpha', 'ROOM#alpha'],
+            diagnosticRunId: 'dr-rc',
+            nowMs: 3333,
+        })
+        expect(result).toEqual({
+            emittedCount: 0,
+            roomIds: ['ROOM#alpha'],
+            catalogsChecked: 0,
+            driftedCatalogs: [],
+        })
     })
 
 })

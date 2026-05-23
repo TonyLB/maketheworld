@@ -17,6 +17,9 @@ export type DiagnosticsApiPlayerMisalignmentSweepHeader =
 export type DiagnosticsApiComponentVerticalMisalignmentSweepHeader =
     StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'ComponentVerticalMisalignmentSweep' }
 
+export type DiagnosticsApiRenderCacheDriftSweepHeader =
+    StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'RenderCacheDriftSweep' }
+
 const isConnectionsProblemHeader: HeaderGuard<DiagnosticsConnectionsProblemHeader> = (
     header
 ): header is DiagnosticsConnectionsProblemHeader => (
@@ -47,6 +50,12 @@ const isDiagnosticsApiComponentVerticalMisalignmentSweepHeader: HeaderGuard<Diag
     header.dataSourceKey === 'api.diagnostics' && header.type === 'ComponentVerticalMisalignmentSweep'
 )
 
+const isDiagnosticsApiRenderCacheDriftSweepHeader: HeaderGuard<DiagnosticsApiRenderCacheDriftSweepHeader> = (
+    header
+): header is DiagnosticsApiRenderCacheDriftSweepHeader => (
+    header.dataSourceKey === 'api.diagnostics' && header.type === 'RenderCacheDriftSweep'
+)
+
 export const isDiagnosticsSubscribedHeader: HeaderGuard<DiagnosticsConnectionsProblemHeader | DiagnosticsApiSubscribedHeader> = (
     header
 ): header is DiagnosticsConnectionsProblemHeader | DiagnosticsApiSubscribedHeader => (
@@ -54,7 +63,8 @@ export const isDiagnosticsSubscribedHeader: HeaderGuard<DiagnosticsConnectionsPr
     isDiagnosticsApiStaleSessionSweepHeader(header) ||
     isDiagnosticsApiRoomOccupancyDriftSweepHeader(header) ||
     isDiagnosticsApiPlayerMisalignmentSweepHeader(header) ||
-    isDiagnosticsApiComponentVerticalMisalignmentSweepHeader(header)
+    isDiagnosticsApiComponentVerticalMisalignmentSweepHeader(header) ||
+    isDiagnosticsApiRenderCacheDriftSweepHeader(header)
 )
 
 export const isConnectionsProblemEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
@@ -81,6 +91,11 @@ export const isDiagnosticsApiComponentVerticalMisalignmentSweepEnvelope = makeSt
     Extract<DiagnosticsAPIPayload, { type: 'ComponentVerticalMisalignmentSweep' }>,
     DiagnosticsApiComponentVerticalMisalignmentSweepHeader
 >(isDiagnosticsApiComponentVerticalMisalignmentSweepHeader)
+
+export const isDiagnosticsApiRenderCacheDriftSweepEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    Extract<DiagnosticsAPIPayload, { type: 'RenderCacheDriftSweep' }>,
+    DiagnosticsApiRenderCacheDriftSweepHeader
+>(isDiagnosticsApiRenderCacheDriftSweepHeader)
 
 export const isDiagnosticsSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     ConnectionsSessionDisconnectProblemEvent | DiagnosticsAPIPayload,

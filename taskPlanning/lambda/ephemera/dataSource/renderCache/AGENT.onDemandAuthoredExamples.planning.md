@@ -1,6 +1,6 @@
 # On-demand authored examples (invalidate + hydrate) - planning
 
-**Status:** Design pass complete; **contracts**, **catalog + adjacency**, **gateway (A3)**, **lambda wiring (A1)**, **invalidation handler slice**, **Assets invalidation-only emitter**, **hydration step (`ensureAuthoredCatalog`)**, **Tests** slice, and **`renderCache` gateway (`mtw-gateways`)** landed. **Next:** **Diagnostics renderCache sweep** per [**Recommended order**](#recommended-order).
+**Status:** Design pass complete; **contracts**, **catalog + adjacency**, **gateway (A3)**, **lambda wiring (A1)**, **invalidation handler slice**, **Assets invalidation-only emitter**, **hydration step (`ensureAuthoredCatalog`)**, **Tests** slice, **`renderCache` gateway (`mtw-gateways`)**, and **Diagnostics renderCache sweep (D1)** landed. **Next:** **Docs** steady-state trim per [**Recommended order**](#recommended-order).
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting notes live under [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md), [`lambda/assets/componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md), and related steady-state docs.
 
@@ -422,7 +422,7 @@ Do **not** overload **constellation** for v1 exact-match or hydrate --- reserve 
 | Assets componentExamples emit invalidations only | Done |
 | Tests (gateway parity, invalidation, hydrate diff, hydrate-then-exact-match) | Done |
 | **`renderCache` gateway (`mtw-gateways`)** | Done |
-| Diagnostics renderCache sweep | Not started (blocked on renderCache gateway) |
+| Diagnostics renderCache sweep | Done |
 | Steady-state AGENT.md updates | Partial (renderCache + dataSource + assets event docs updated) |
 
 ---
@@ -618,7 +618,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` wh
 - [X] **Hydration step:** **`ensureAuthoredCatalog`** (O1/O2) calls **`internalCache.ComponentExamples.get`** + **diff** put/delete authored rows + catalog ready + coalescing; wire from **`orchestrationHandler`** before **`findRender`**
 - [X] **Tests:** gateway golden/parity (**`componentExamples`**); layer participation invalidation (A/B/C overlay); Situation invalidation uses **`situationId`**; adjacency + filter; hydrate diff; hydrate-then-exact-match; diagnostics via gateway
 - [X] **`renderCache` gateway (`mtw-gateways`)** ([**R1**](#rendercache-gateway-r1--r4)--[**R4**](#get-vs-set-placement-r4), [**R2**](#rendercache-gateway-r1--r4)): module at **`packages/mtw-gateways/ts/ephemera/renderCache/`** (authoritative **Dynamo** writer: **`mtw.ephemera.renderCache`** DataSource). **Package:** Dynamo **`fetch`**; shared guards/normalizers; pure **`classifyAuthoredCatalogDrift`**; **`createRenderCacheCacheHandler(ephemeraDB)`** with **`getCatalogRows`**, **`getCacheRows`**, **`getCatalogRow`**, and memo **`set`** / **`deleteCacheRecords`** / **`invalidate`** (no Dynamo in memo APIs --- [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) [**Dynamo writes vs invocation memo**](#dynamo-writes-vs-invocation-memo)); package tests; ownership row. **Ephemera:** register handler on **`internalCache.RenderCache`** (replace [`RenderCacheData`](../../../../../lambda/ephemera/internalCache/renderCache.ts) body with package handler + optional **`getExactMatch`**); DataSource primitives keep Dynamo writes, then call memo APIs. **Diagnostics:** register same handler; **`get*`** only. **Gate:** do not start the diagnostics sweep item until this is checked.
-- [ ] **Diagnostics renderCache sweep** ([**D1**](#diagnostics-rendercache-sweep-enumeration-d1); depends on **`renderCache` gateway** above): new module in **`lambda/diagnostics/`** (pattern: **`roomOccupancyDriftSweep`**). **Enumeration:** caller-supplied **`roomIds`** (`ROOM#...[]` on sweep invoke; empty = no-op). Per room: **`internalCache.RenderCache.getCatalogRows`**, per catalog **`internalCache.ComponentExamples.get`** at **`catalogRow.assetStack`**, materialized check via **`getCacheRows`** + package **`classifyAuthoredCatalogDrift`**. Emit **`Ephemera RenderCache Finding`** with **`targetCatalogs`** only (no **`perspective`** / **`roomIds`** on the finding wire). Manual emission docs for sandbox until scheduled.
+- [X] **Diagnostics renderCache sweep** ([**D1**](#diagnostics-rendercache-sweep-enumeration-d1); depends on **`renderCache` gateway** above): new module in **`lambda/diagnostics/`** (pattern: **`roomOccupancyDriftSweep`**). **Enumeration:** caller-supplied **`roomIds`** (`ROOM#...[]` on sweep invoke; empty = no-op). Per room: **`internalCache.RenderCache.getCatalogRows`**, per catalog **`internalCache.ComponentExamples.get`** at **`catalogRow.assetStack`**, materialized check via **`getCacheRows`** + package **`classifyAuthoredCatalogDrift`**. Emit **`Ephemera RenderCache Finding`** with **`targetCatalogs`** only (no **`perspective`** / **`roomIds`** on the finding wire). Manual emission docs for sandbox until scheduled.
 - [ ] **Docs:** update [`renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md) (**Mirroring vs runtime**), [`componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md), [`AGENT.event.md`](../../../../../lambda/assets/AGENT.event.md); trim stale Example-filter prose; **`mtw-gateways`** ownership row for **`renderCache`** gateway when shipped
 - [ ] **Dispose this plan** per [`taskPlanning/AGENT.md`](../../../../AGENT.md)
 
@@ -741,13 +741,16 @@ cd lambda/ephemera && npm test -- --testPathPattern=renderCache
 
 Slice files: [`packages/mtw-gateways/ts/ephemera/renderCache/`](../../../../../packages/mtw-gateways/ts/ephemera/renderCache/) (`fetch.ts`, `factory.ts`, `guards.ts`, `classifyAuthoredCatalogDrift.ts`); [`lambda/ephemera/internalCache/renderCache.ts`](../../../../../lambda/ephemera/internalCache/renderCache.ts) (extends package handler + **`getExactMatch`**); [`lambda/diagnostics/internalCache/index.ts`](../../../../../lambda/diagnostics/internalCache/index.ts) (get-only registration).
 
-**Diagnostics renderCache sweep slice (pending; after renderCache gateway):**
+**Diagnostics renderCache sweep slice (landed):**
 
 ```bash
 cd packages/mtw-gateways && npm test -- --testPathPattern=renderCache
 cd lambda/diagnostics && npm test -- --testPathPattern=renderCacheDriftSweep
+cd lambda/diagnostics && npm test -- --testPathPattern='app.test|dataSource/index.test'
 cd packages/mtw-interfaces && npm test -- --testPathPattern=diagnostics
 ```
+
+Slice files: [`lambda/diagnostics/renderCacheDriftSweep/`](../../../../../lambda/diagnostics/renderCacheDriftSweep/) (`index.ts`); ingress + DataSource wiring in [`lambda/diagnostics/ingress.ts`](../../../../../lambda/diagnostics/ingress.ts), [`lambda/diagnostics/dataSource/`](../../../../../lambda/diagnostics/dataSource/). Manual invoke documented in [`lambda/diagnostics/AGENT.md`](../../../../../lambda/diagnostics/AGENT.md).
 
 ---
 
