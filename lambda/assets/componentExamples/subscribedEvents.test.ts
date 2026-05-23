@@ -30,7 +30,7 @@ describe('componentExamples subscribedEvents', () => {
             expect(isComponentExamplesSubscribedEnvelope(envelope)).toBe(true)
         })
 
-        it('should return true for Component Republished events from mtw.assets', () => {
+        it('should return false for Component Republished events from mtw.assets', () => {
             const envelope = {
                 header: {
                     dataSourceKey: 'mtw.assets',
@@ -40,7 +40,7 @@ describe('componentExamples subscribedEvents', () => {
                 },
                 getContent: () => Promise.resolve({ component: {} }),
             }
-            expect(isComponentExamplesSubscribedEnvelope(envelope)).toBe(true)
+            expect(isComponentExamplesSubscribedEnvelope(envelope)).toBe(false)
         })
 
         it('should return false for other mtw.assets event types', () => {

@@ -139,7 +139,7 @@ The assets lambda will receive the event and call `cacheAsset({ assetId, streamE
 - **Diagnostic Run Completed** - Summary of findings from a run
 - **Player State Finding** - Player data corruption, permission mismatches
 - **S3 Structure Finding** - Additional listeners (e.g. `mtw.assets` for metadata issues)
-- **Ephemera RenderCache Finding follow-ups** - Facet-level limiter, observability/runbook hardening, and long-term authored publication architecture beyond first iteration reseed
+- **Ephemera RenderCache Finding follow-ups** - Diagnostics renderCache sweep (publisher emits **`targetCatalogs`**), observability/runbook hardening, and long-term authored publication architecture beyond first iteration reseed
 
 ---
 
@@ -318,7 +318,7 @@ Domain lambdas should:
 - [x] WML lambda listens for S3 Structure Finding and runs primitives init; publishes Content Update on create/repair
 - [ ] **Cache Consistency Finding**: Add contract, EventBridge rule, and assets handler; enable manual (or future automated) re-cache of a single asset
 - [ ] **Ephemera RenderCache Finding follow-ons**:
-  - [ ] Add optional facet-level limiter (`facets`) for narrower healing scope.
+  - [ ] **Diagnostics renderCache sweep:** compare blueprint (**`internalCache.ComponentExamples.get`**) vs Ephemera materialized catalogs; emit findings with **`targetCatalogs`** `{ ephemeraId, perspectiveKey }` only (contract in **`mtw-interfaces`**).
   - [ ] Add observability/operator workflow (manual emission docs, correlation logging fields, sandbox runbook).
   - [ ] Plan and implement long-term authored publication architecture that reduces reseed dependence.
 - [ ] Migrate initialize lambda to emit findings instead of/in addition to imperative Initialize where appropriate

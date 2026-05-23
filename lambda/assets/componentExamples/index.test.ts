@@ -4,25 +4,7 @@ import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
-import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
-import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
-import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
-import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { AuthoritativeComponentData } from '@tonylb/mtw-gateways/ts/assets/components/componentData'
-import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
-import internalCache from '../internalCache'
-
-const mockAuthoritativeComponentData = (
-    ComponentId: string,
-    byAssets: { AssetId: string; component: unknown }[]
-): AuthoritativeComponentData => ({
-    ComponentId: ComponentId as EphemeraId,
-    byAssets: byAssets.map(({ AssetId, component }) => ({
-        AssetId: AssetId as AssetUUID,
-        component: component as StandardComponent,
-    })),
-})
 
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     assetDB: {
@@ -51,31 +33,7 @@ jest.mock('../messageBus', () => ({
     subscribe: jest.fn(),
 }))
 
-jest.mock('../internalCache', () => ({
-    AssetMetaData: { get: jest.fn() },
-    AssetData: { get: jest.fn() },
-}))
-
-jest.mock('./loadAuthoritativeForMirroring', () => ({
-    loadAuthoritativeForMirroring: jest.fn(),
-    loadAuthoritativeBatchForMirroring: jest.fn(),
-    deriveMirroringParticipationOrder: jest.fn(),
-}))
-
-import {
-    loadAuthoritativeBatchForMirroring,
-    loadAuthoritativeForMirroring,
-} from './loadAuthoritativeForMirroring'
-
-const mockLoadAuthoritativeForMirroring = jest.mocked(loadAuthoritativeForMirroring)
-const mockLoadAuthoritativeBatchForMirroring = jest.mocked(loadAuthoritativeBatchForMirroring)
-
 describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
-    const mockInternalCache = internalCache as unknown as {
-        AssetMetaData: { get: jest.Mock };
-        AssetData: { get: jest.Mock };
-    }
-
     beforeEach(() => {
         jest.clearAllMocks()
     })
@@ -119,7 +77,7 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
             expect(componentExamplesDataSource.subscribedEventTypeGuard?.(envelope)).toBe(true)
         })
 
-        it('should subscribe to Component Republished events from mtw.assets', () => {
+        it('should not subscribe to Component Republished events from mtw.assets', () => {
             const envelope = {
                 header: {
                     dataSourceKey: 'mtw.assets',
@@ -129,7 +87,7 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 },
                 getContent: () => Promise.resolve({ component: {} }),
             }
-            expect(componentExamplesDataSource.subscribedEventTypeGuard?.(envelope)).toBe(true)
+            expect(componentExamplesDataSource.subscribedEventTypeGuard?.(envelope)).toBe(false)
         })
 
         it('should not subscribe to events from other data sources', () => {
@@ -193,20 +151,14 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
             expect(mockStreamEvent).not.toHaveBeenCalled()
         })
 
-        it('publishes ExampleUpdated for Room updates by mirroring Situation facets', async () => {
-            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
-            const mockStreamEnvelope = jest.fn().mockResolvedValue(undefined)
-
+        it('publishes one component-scoped ExampleInvalidated for Room updates', async () => {
             const roomId = 'ROOM#one' as const
             const situationId = 'SITUATION#s1' as const
-            const lensId = 'LENS#lens1' as const
+            const editAssetId = 'ASSET#room1' as const
 
             const room = new StandardRoom({
                 tag: 'Room',
                 universalKey: roomId,
-                lens: [
-                    { universalKey: lensId, key: 'roomLens', tag: 'Lens' } as any,
-                ],
                 situations: [
                     {
                         reference: { universalKey: situationId },
@@ -215,48 +167,11 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 ],
             } as any)
 
-            const lens = new StandardLens(deIndentWML(`
-                <Lens key=(illumination) uuid=(LENS#lens1)>
-                    <Mark key=(illumination) uuid=(MARK#illumination)>
-                        <Default>lighted</Default>
-                    </Mark>
-                    <Mark key=(timeofday) uuid=(MARK#timeofday)>
-                        <Default>Afternoon</Default>
-                    </Mark>
-                </Lens>
-            `))
-
-            const situation = new StandardSituation(deIndentWML(`
-                <Situation key=(s1) uuid=(SITUATION#s1)>
-                    <Mark key=(illumination) uuid=(MARK#illumination)>
-                        <Match>dim</Match>
-                    </Mark>
-                    <Mark key=(extraneous) uuid=(MARK#other)>
-                        <Match>ignored</Match>
-                    </Mark>
-                </Situation>
-            `))
-
-            const roomComponentData = mockAuthoritativeComponentData(roomId, [
-                { AssetId: 'ASSET#room1', component: room },
-            ])
-            const lensComponentData = mockAuthoritativeComponentData(lensId, [
-                { AssetId: 'ASSET#lens1', component: lens },
-            ])
-            const situationComponentData = mockAuthoritativeComponentData(situationId, [
-                { AssetId: 'ASSET#situation1', component: situation },
-            ])
-
-            mockLoadAuthoritativeForMirroring
-                .mockResolvedValueOnce(roomComponentData)
-                .mockResolvedValueOnce(lensComponentData)
-            mockLoadAuthoritativeBatchForMirroring.mockResolvedValueOnce([situationComponentData])
-
             const events: ComponentExamplesIncomingEvent[] = [
                 {
                     header: {
                         dataSourceKey: 'mtw.assets',
-                        streamKey: 'ASSET#room1',
+                        streamKey: editAssetId,
                         timestamp: 123,
                         type: 'Component Updated',
                     },
@@ -276,23 +191,21 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
 
             expect(mockStreamEvent).toHaveBeenCalledTimes(1)
             expect(mockStreamEvent).toHaveBeenCalledWith({
-                streamKey: 'SITUATION#s1',
-                update: expect.objectContaining({
-                    type: 'ExampleUpdated',
-                    exampleId: 'SITUATION#s1',
-                    parentIds: ['ROOM#one'],
-                    assetStack: ['ASSET#room1'],
-                }),
-                header: { type: 'ExampleUpdated' },
+                streamKey: editAssetId,
+                update: {
+                    type: 'ExampleInvalidated',
+                    componentIds: [roomId],
+                    editAssetId,
+                    affectedSituationIds: [situationId],
+                },
+                header: { type: 'ExampleInvalidated' },
             })
         })
 
-        it('publishes ExampleUpdated for Feature updates by mirroring Situation facets', async () => {
-            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
-            const mockStreamEnvelope = jest.fn().mockResolvedValue(undefined)
-
+        it('publishes one component-scoped ExampleInvalidated for Feature updates', async () => {
             const featureId = 'FEATURE#one' as const
             const situationId = 'SITUATION#DEFAULT' as const
+            const editAssetId = 'ASSET#feat1' as const
 
             const feature = new StandardFeature(deIndentWML(`
                 <Feature key=(feat) uuid=(FEATURE#one)>
@@ -300,25 +213,11 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 </Feature>
             `))
 
-            const situation = new StandardSituation(deIndentWML(`
-                <Situation uuid=(DEFAULT) />
-            `))
-
-            const featureComponentData = mockAuthoritativeComponentData(featureId, [
-                { AssetId: 'ASSET#feat1', component: feature },
-            ])
-            const situationComponentData = mockAuthoritativeComponentData(situationId, [
-                { AssetId: 'ASSET#situation1', component: situation },
-            ])
-
-            mockLoadAuthoritativeForMirroring.mockResolvedValueOnce(featureComponentData)
-            mockLoadAuthoritativeBatchForMirroring.mockResolvedValueOnce([situationComponentData])
-
             const events: ComponentExamplesIncomingEvent[] = [
                 {
                     header: {
                         dataSourceKey: 'mtw.assets',
-                        streamKey: 'ASSET#feat1',
+                        streamKey: editAssetId,
                         timestamp: 123,
                         type: 'Component Updated',
                     },
@@ -336,48 +235,33 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 streamEnvelope: mockStreamEnvelope,
             })
 
-            expect(mockLoadAuthoritativeForMirroring).toHaveBeenCalledTimes(1)
-            expect(mockLoadAuthoritativeBatchForMirroring).toHaveBeenCalledTimes(1)
             expect(mockStreamEvent).toHaveBeenCalledTimes(1)
             expect(mockStreamEvent).toHaveBeenCalledWith({
-                streamKey: 'SITUATION#DEFAULT',
-                update: expect.objectContaining({
-                    type: 'ExampleUpdated',
-                    exampleId: 'SITUATION#DEFAULT',
-                    parentIds: ['FEATURE#one'],
-                    assetStack: ['ASSET#feat1'],
-                    example: expect.objectContaining({
-                        renderedContent: expect.objectContaining({
-                            displayName: ['Feature prose'],
-                        }),
-                    }),
-                }),
-                header: { type: 'ExampleUpdated' },
+                streamKey: editAssetId,
+                update: {
+                    type: 'ExampleInvalidated',
+                    componentIds: [featureId],
+                    editAssetId,
+                    affectedSituationIds: [situationId],
+                },
+                header: { type: 'ExampleInvalidated' },
             })
         })
 
-        it('does not publish when Feature has empty situations', async () => {
-            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
-            const mockStreamEnvelope = jest.fn().mockResolvedValue(undefined)
-
+        it('publishes component-scoped ExampleInvalidated when Feature has empty situations', async () => {
             const featureId = 'FEATURE#empty' as const
+            const editAssetId = 'ASSET#feat1' as const
             const feature = new StandardFeature({
                 tag: 'Feature',
                 universalKey: featureId,
                 key: 'empty',
             } as any)
 
-            mockLoadAuthoritativeForMirroring.mockResolvedValueOnce(
-                mockAuthoritativeComponentData(featureId, [
-                    { AssetId: 'ASSET#feat1', component: feature },
-                ])
-            )
-
             const events: ComponentExamplesIncomingEvent[] = [
                 {
                     header: {
                         dataSourceKey: 'mtw.assets',
-                        streamKey: 'ASSET#feat1',
+                        streamKey: editAssetId,
                         timestamp: 123,
                         type: 'Component Updated',
                     },
@@ -395,16 +279,23 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 streamEnvelope: mockStreamEnvelope,
             })
 
-            expect(mockStreamEvent).not.toHaveBeenCalled()
+            expect(mockStreamEvent).toHaveBeenCalledTimes(1)
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                streamKey: editAssetId,
+                update: {
+                    type: 'ExampleInvalidated',
+                    componentIds: [featureId],
+                    editAssetId,
+                },
+                header: { type: 'ExampleInvalidated' },
+            })
         })
 
-        it('publishes ExampleRemoved for Knowledge removal by mirroring Situation facets', async () => {
-            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
-            const mockStreamEnvelope = jest.fn().mockResolvedValue(undefined)
-
+        it('publishes one component-scoped ExampleInvalidated for Knowledge removal', async () => {
             const knowledgeId = 'KNOWLEDGE#one' as const
             const situationId1 = 'SITUATION#s1' as const
             const situationId2 = 'SITUATION#s2' as const
+            const editAssetId = 'ASSET#know1' as const
 
             const knowledge = new StandardKnowledge({
                 tag: 'Knowledge',
@@ -422,21 +313,11 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 ],
             } as any)
 
-            const knowledgeComponentData = mockAuthoritativeComponentData(knowledgeId, [
-                { AssetId: 'ASSET#know1', component: knowledge },
-            ])
-
-            mockLoadAuthoritativeForMirroring.mockResolvedValueOnce(knowledgeComponentData)
-            mockLoadAuthoritativeBatchForMirroring.mockResolvedValueOnce([
-                mockAuthoritativeComponentData(situationId1, []),
-                mockAuthoritativeComponentData(situationId2, []),
-            ])
-
             const events: ComponentExamplesIncomingEvent[] = [
                 {
                     header: {
                         dataSourceKey: 'mtw.assets',
-                        streamKey: 'ASSET#know1',
+                        streamKey: editAssetId,
                         timestamp: 123,
                         type: 'Component Removed',
                     },
@@ -454,37 +335,22 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 streamEnvelope: mockStreamEnvelope,
             })
 
-            expect(mockStreamEvent).toHaveBeenCalledTimes(2)
+            expect(mockStreamEvent).toHaveBeenCalledTimes(1)
             expect(mockStreamEvent).toHaveBeenCalledWith({
-                streamKey: 'SITUATION#s1',
-                update: expect.objectContaining({
-                    type: 'ExampleRemoved',
-                    exampleId: 'SITUATION#s1',
-                    parentIds: ['KNOWLEDGE#one'],
-                    assetStack: ['ASSET#know1'],
-                }),
-                header: { type: 'ExampleRemoved' },
-            })
-            expect(mockStreamEvent).toHaveBeenCalledWith({
-                streamKey: 'SITUATION#s2',
-                update: expect.objectContaining({
-                    type: 'ExampleRemoved',
-                    exampleId: 'SITUATION#s2',
-                    parentIds: ['KNOWLEDGE#one'],
-                    assetStack: ['ASSET#know1'],
-                }),
-                header: { type: 'ExampleRemoved' },
+                streamKey: editAssetId,
+                update: {
+                    type: 'ExampleInvalidated',
+                    componentIds: [knowledgeId],
+                    editAssetId,
+                    affectedSituationIds: [situationId1, situationId2],
+                },
+                header: { type: 'ExampleInvalidated' },
             })
         })
 
-        it('publishes ExampleUpdated per parent when Situation is updated and facets reference it', async () => {
-            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
-            const mockStreamEnvelope = jest.fn().mockResolvedValue(undefined)
-
+        it('publishes one situation-scoped ExampleInvalidated when Situation is updated', async () => {
             const situationId = 'SITUATION#DEFAULT' as const
-            const featureId = 'FEATURE#one' as const
-            const knowledgeId = 'KNOWLEDGE#one' as const
-            const eventAssetId = 'ASSET#asset1' as const
+            const editAssetId = 'ASSET#asset1' as const
 
             const situation = new StandardSituation(deIndentWML(`
                 <Situation uuid=(DEFAULT)>
@@ -492,53 +358,11 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 </Situation>
             `))
 
-            const feature = new StandardFeature(deIndentWML(`
-                <Feature key=(feat) uuid=(FEATURE#one)>
-                    <Situation uuid=(DEFAULT)><DisplayName>Feature prose</DisplayName></Situation>
-                </Feature>
-            `))
-
-            const knowledge = new StandardKnowledge(deIndentWML(`
-                <Knowledge key=(know) uuid=(KNOWLEDGE#one)>
-                    <Situation uuid=(DEFAULT)><DisplayName>Knowledge prose</DisplayName></Situation>
-                </Knowledge>
-            `))
-
-            const standardForm = new StandardForm([
-                { tag: 'Asset', key: 'asset1', universalKey: eventAssetId } as any,
-                situation.toJSON() as any,
-                feature.toJSON() as any,
-                knowledge.toJSON() as any,
-            ])
-
-            const situationComponentData = mockAuthoritativeComponentData(situationId, [
-                { AssetId: eventAssetId, component: situation },
-            ])
-            const featureComponentData = mockAuthoritativeComponentData(featureId, [
-                { AssetId: eventAssetId, component: feature },
-            ])
-            const knowledgeComponentData = mockAuthoritativeComponentData(knowledgeId, [
-                { AssetId: eventAssetId, component: knowledge },
-            ])
-
-            mockLoadAuthoritativeForMirroring.mockResolvedValueOnce(situationComponentData)
-            mockLoadAuthoritativeBatchForMirroring.mockResolvedValueOnce([
-                featureComponentData,
-                knowledgeComponentData,
-            ])
-
-            mockInternalCache.AssetData.get.mockResolvedValue([
-                {
-                    AssetId: eventAssetId,
-                    standardForm,
-                },
-            ])
-
             const events: ComponentExamplesIncomingEvent[] = [
                 {
                     header: {
                         dataSourceKey: 'mtw.assets',
-                        streamKey: eventAssetId,
+                        streamKey: editAssetId,
                         timestamp: 123,
                         type: 'Component Updated',
                     },
@@ -556,44 +380,21 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 streamEnvelope: mockStreamEnvelope,
             })
 
-            expect(mockInternalCache.AssetData.get).toHaveBeenCalled()
-            expect(mockStreamEvent).toHaveBeenCalledTimes(2)
+            expect(mockStreamEvent).toHaveBeenCalledTimes(1)
             expect(mockStreamEvent).toHaveBeenCalledWith({
-                streamKey: 'SITUATION#DEFAULT',
-                update: expect.objectContaining({
-                    type: 'ExampleUpdated',
-                    exampleId: 'SITUATION#DEFAULT',
-                    parentIds: ['FEATURE#one'],
-                    example: expect.objectContaining({
-                        renderedContent: expect.objectContaining({
-                            displayName: ['Feature prose'],
-                        }),
-                    }),
-                }),
-                header: { type: 'ExampleUpdated' },
-            })
-            expect(mockStreamEvent).toHaveBeenCalledWith({
-                streamKey: 'SITUATION#DEFAULT',
-                update: expect.objectContaining({
-                    type: 'ExampleUpdated',
-                    exampleId: 'SITUATION#DEFAULT',
-                    parentIds: ['KNOWLEDGE#one'],
-                    example: expect.objectContaining({
-                        renderedContent: expect.objectContaining({
-                            displayName: ['Knowledge prose'],
-                        }),
-                    }),
-                }),
-                header: { type: 'ExampleUpdated' },
+                streamKey: editAssetId,
+                update: {
+                    type: 'ExampleInvalidated',
+                    situationId,
+                    editAssetId,
+                },
+                header: { type: 'ExampleInvalidated' },
             })
         })
 
-        it('does not publish when Situation update has no facet parents', async () => {
-            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
-            const mockStreamEnvelope = jest.fn().mockResolvedValue(undefined)
-
+        it('publishes situation-scoped ExampleInvalidated when Situation has no facet parents', async () => {
             const situationId = 'SITUATION#orphan' as const
-            const eventAssetId = 'ASSET#asset1' as const
+            const editAssetId = 'ASSET#asset1' as const
 
             const situation = new StandardSituation({
                 tag: 'Situation',
@@ -601,29 +402,11 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 key: 'orphan',
             } as any)
 
-            const standardForm = new StandardForm([
-                { tag: 'Asset', key: 'asset1', universalKey: eventAssetId } as any,
-                situation.toJSON() as any,
-            ])
-
-            mockLoadAuthoritativeForMirroring.mockResolvedValueOnce(
-                mockAuthoritativeComponentData(situationId, [
-                    { AssetId: eventAssetId, component: situation },
-                ])
-            )
-
-            mockInternalCache.AssetData.get.mockResolvedValue([
-                {
-                    AssetId: eventAssetId,
-                    standardForm,
-                },
-            ])
-
             const events: ComponentExamplesIncomingEvent[] = [
                 {
                     header: {
                         dataSourceKey: 'mtw.assets',
-                        streamKey: eventAssetId,
+                        streamKey: editAssetId,
                         timestamp: 123,
                         type: 'Component Updated',
                     },
@@ -641,7 +424,61 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 streamEnvelope: mockStreamEnvelope,
             })
 
-            expect(mockStreamEvent).not.toHaveBeenCalled()
+            expect(mockStreamEvent).toHaveBeenCalledTimes(1)
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                streamKey: editAssetId,
+                update: {
+                    type: 'ExampleInvalidated',
+                    situationId,
+                    editAssetId,
+                },
+                header: { type: 'ExampleInvalidated' },
+            })
+        })
+
+        it('publishes situation-scoped ExampleInvalidated with entityRemoved on Situation removal', async () => {
+            const situationId = 'SITUATION#gone' as const
+            const editAssetId = 'ASSET#asset1' as const
+
+            const situation = new StandardSituation({
+                tag: 'Situation',
+                universalKey: situationId,
+                key: 'gone',
+            } as any)
+
+            const events: ComponentExamplesIncomingEvent[] = [
+                {
+                    header: {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: editAssetId,
+                        timestamp: 123,
+                        type: 'Component Removed',
+                    },
+                    getContent: () =>
+                        Promise.resolve({
+                            type: 'Component Removed',
+                            component: situation as any,
+                        } as any),
+                },
+            ]
+
+            await componentExamplesDataSource.receiveEvents?.({
+                events,
+                streamEvent: mockStreamEvent,
+                streamEnvelope: mockStreamEnvelope,
+            })
+
+            expect(mockStreamEvent).toHaveBeenCalledTimes(1)
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                streamKey: editAssetId,
+                update: {
+                    type: 'ExampleInvalidated',
+                    situationId,
+                    editAssetId,
+                    entityRemoved: true,
+                },
+                header: { type: 'ExampleInvalidated' },
+            })
         })
     })
 })

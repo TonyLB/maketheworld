@@ -34,13 +34,8 @@ The Assets Lambda hosts seven data sources, each serving a specific purpose:
 **Diagnostics finding handling (steady state):**
 - Subscribes to `mtw.diagnostics` findings including:
   - `Cache Consistency Finding` -> calls `cacheAsset(...)`.
-  - `Ephemera RenderCache Finding` -> calls `reseedComponentExamplesFromDiagnostics(...)`.
   - `Player Misalignment Finding` -> calls `healPlayer(player)` idempotently.
-- `Ephemera RenderCache Finding` remediation is **assets-led** and **descriptive**:
-  - validates and normalizes `perspective` and optional `roomIds`,
-  - resolves target room set (`roomIds` scope when provided, else all perspective-eligible rooms),
-  - emits synthetic `Component Updated` events from Assets to drive `mtw.assets.componentExamples` fanout.
-- This path does **not** write ephemera render cache directly. It preserves ownership boundaries by healing through the existing publish/subscribe chain.
+- `Ephemera RenderCache Finding` is **not** handled on **`mtw.assets`**; **`mtw.ephemera.renderCache`** performs lazy catalog invalidation (see [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../ephemera/dataSource/renderCache/AGENT.md)).
 
 **Implementation**: [`./dataSource/index.ts`](./dataSource/index.ts)
 
@@ -131,46 +126,35 @@ The Assets Lambda hosts seven data sources, each serving a specific purpose:
 
 ### 6. **mtw.assets.componentExamples** (Component Examples)
 
-**Purpose**: Publishes Example lifecycle events (ExampleAdded, ExampleRemoved, ExampleUpdated) for Ephemera mirroring. Downstream (e.g. `mtw.ephemera.examples`) subscribes and writes render-cache records keyed by component and `perspectiveId`, using these events as the **authoritative bridge** between Assets blueprints and Ephemera's render cache.
+**Purpose**: Publishes **`ExampleInvalidated`** (no **`example`** body) when Room / Feature / Knowledge situation facets or Situation entities change. Consumed by **`mtw.ephemera.renderCache`** for catalog version bumps; materialized **`CACHE#`** rows refresh on orchestration resolve via hydrate-on-demand.
 
 **Type**: Non-replayable (no external client subscribes to this data source)
 
-**Streams**: Per-example streams using `exampleId` as streamKey.
+**Streams**: Per-asset streams using **`editAssetId`** (`ASSET#...`, same as the originating **`mtw.assets`** event **`streamKey`**) as streamKey.
 
-**Events Published**:
-- `ExampleAdded`: `{ type: 'ExampleAdded'; exampleId; parentIds; assetStack; example }`
-- `ExampleUpdated`: `{ type: 'ExampleUpdated'; exampleId; parentIds; assetStack; example }`
-- `ExampleRemoved`: `{ type: 'ExampleRemoved'; exampleId; parentIds; assetStack }`
+**Events Published** (`ExampleInvalidated` --- component-scoped vs Situation-scoped are mutually exclusive shapes):
 
-Where:
-- `exampleId`: Example component UUID (`EXAMPLE#...`) or Situation uuid (`SITUATION#...`) for situation-facet mirror events
-- `parentIds`: Component UUIDs of Room / Feature / Knowledge parents that reference this situation via **`situations`** facets (set on parent early branch or Situation fan-out via **`getParentIdsForSituation`**; standalone **`Example`** enrichment does not populate **`parentIds`**)
-- `assetStack`: Ordered list of AssetUUIDs in the Example's inheritance chain (base-first, event asset last)
-- `example`: Cache-shaped payload `{ markState, renderedContent, provenance: { type: 'authored' } }` matching Ephemera render-cache schema
+| Variant | When | Payload |
+| --- | --- | --- |
+| **Component-scoped** | **Component Updated** / **Removed** on Room / Feature / Knowledge | `{ type: 'ExampleInvalidated'; componentIds: [hostId]; editAssetId; affectedSituationIds? }` |
+| **Situation-scoped** | **Component Updated** / **Removed** on Situation | `{ type: 'ExampleInvalidated'; situationId; editAssetId; entityRemoved?: true }` |
 
-**Event Subscription and Enrichment**:
+- **`editAssetId`**: Asset layer where the edit occurred (event asset id). Ephemera applies the layer participation rule (see [`AGENT.onDemandAuthoredExamples.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md)) against stored **`assetStack`** on catalog/adjacency rows.
+- **`affectedSituationIds`**: Optional; facet Situation refs on the host component (debug/logging only).
+- **`entityRemoved`**: Set on Situation **Component Removed**; Ephemera bumps all adjacency links and deletes the Situation partition.
 
-- Subscribes to `mtw.assets` **Component Updated** and **Component Removed** events.
-- Filters to standalone **`Example`** components via **[`isExampleAssociatedComponent`](./componentExamples/exampleAssociatedFilter.ts)** (legacy gate; see filter file header for the situation-facet / naming gap).
-  - **`Room`** / **`Feature`** / **`Knowledge`** updates use the early situation-facet branch in **`index.ts`** and do **not** pass this filter. See **[`componentExamples/AGENT.md`](./componentExamples/AGENT.md)** and **[`componentExamples/index.test.ts`](./componentExamples/index.test.ts)**.
-- For each Example-associated change, this data source:
-  - Reconstructs the Example's **inheritance chain** via `_from` links across the Assets table to build the ordered `assetStack` (base-first, event asset last).
-  - **`Room`** / **`Feature`** / **`Knowledge`** / **`Situation`** use early branches in **`index.ts`** (parent facet mirror or Situation fan-out via **`getParentIdsForSituation`**). Standalone **`Example`** enrichment sets empty **`parentIds`**; **`index.ts`** does not publish when **`parentIds`** is empty.
-  - For `ExampleUpdated` (and eventually `ExampleAdded`), merges the Example across the asset stack into a single payload shaped for Ephemera's render cache (`{ markState, renderedContent, provenance: { type: 'authored' } }`).
-  - For `ExampleRemoved`, computes `assetStack` and `parentIds` without emitting a new example payload.
+**Event Subscription**:
 
-Other component types (Character, Message, Guidance, etc.) are ignored by this data source.
-
-**Diagnostics reseed integration (steady state):**
-- `Ephemera RenderCache Finding` remediation in `mtw.assets` uses synthetic `Component Updated` events to intentionally re-enter this enrichment pipeline.
-- As a result, reseed uses the same authored payload construction path as normal component updates rather than introducing a separate cache-healing event shape.
-- `status: 'missing'` and `status: 'corrupted'` currently share the same idempotent reseed behavior.
+- Subscribes to **`mtw.assets`** **Component Updated** and **Component Removed** only (not **Component Republished**).
+- **`Room`** / **`Feature`** / **`Knowledge`**: one invalidation per cache-host component per event.
+- **`Situation`**: one invalidation per Situation entity (no blueprint parent scan on Assets).
+- Other component types are ignored.
 
 **Implementation**: [`./componentExamples/index.ts`](./componentExamples/index.ts)
 
-**Steady-state notes** (filter and enrichment): [`./componentExamples/AGENT.md`](./componentExamples/AGENT.md).
+**Module notes**: [`./componentExamples/AGENT.md`](./componentExamples/AGENT.md).
 
-For more on how these events are consumed to populate Ephemera's render cache, see `lambda/ephemera/AGENT.caching.planning.md` and `lambda/ephemera/dataSource/renderCache/AGENT.md`.
+For Ephemera catalog, adjacency, and hydrate, see `lambda/ephemera/dataSource/renderCache/AGENT.md` and [`taskPlanning/.../AGENT.onDemandAuthoredExamples.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md).
 
 ### 7. **mtw.assets.components.verticals** (Component import vertical index)
 

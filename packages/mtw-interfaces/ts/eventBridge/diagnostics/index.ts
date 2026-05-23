@@ -1,7 +1,13 @@
 import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { DataSourceEnvironment } from '@tonylb/mtw-interfaces/ts/DataSourceEnvironment'
-import { AssetUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
-import { EphemeraRoomId, isEphemeraRoomId } from '../../baseClasses'
+import {
+    EphemeraFeatureId,
+    EphemeraKnowledgeId,
+    EphemeraRoomId,
+    isEphemeraFeatureId,
+    isEphemeraKnowledgeId,
+    isEphemeraRoomId,
+} from '../../baseClasses'
 
 //
 // Internal types for diagnostics events
@@ -23,13 +29,17 @@ export type DiagnosticsCacheConsistencyFindingEvent = {
     timestamp: string
 }
 
+export type RenderCacheTargetCatalog = {
+    ephemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId
+    perspectiveKey: string
+}
+
 export type DiagnosticsEphemeraRenderCacheFindingEvent = {
     type: 'Ephemera RenderCache Finding'
-    perspective: AssetUUID[]
+    targetCatalogs: RenderCacheTargetCatalog[]
     status: 'missing' | 'corrupted'
     diagnosticRunId: string
     timestamp: string
-    roomIds?: EphemeraRoomId[]
 }
 
 export type DiagnosticsStaleSessionIdFindingEvent = {
@@ -103,11 +113,10 @@ export type DiagnosticsCacheConsistencyFindingEventExternal = {
 
 export type DiagnosticsEphemeraRenderCacheFindingEventExternal = {
     type: 'Ephemera RenderCache Finding'
-    perspective: AssetUUID[]
+    targetCatalogs: RenderCacheTargetCatalog[]
     status: 'missing' | 'corrupted'
     diagnosticRunId?: string
     timestamp?: string
-    roomIds?: EphemeraRoomId[]
 }
 
 export type DiagnosticsStaleSessionIdFindingEventExternal = {
@@ -163,6 +172,46 @@ export const isS3StructureFindingEvent = (event: any): event is DiagnosticsS3Str
     )
 }
 
+const PERSPECTIVE_KEY_V1_PREFIX = 'PERSPECTIVE#v1#'
+
+export const isCacheHostEphemeraId = (
+    id: unknown
+): id is EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId => (
+    typeof id === 'string' &&
+    (isEphemeraRoomId(id) || isEphemeraFeatureId(id) || isEphemeraKnowledgeId(id))
+)
+
+export const isPerspectiveKeyV1 = (key: unknown): key is string => (
+    typeof key === 'string' &&
+    key.startsWith(PERSPECTIVE_KEY_V1_PREFIX) &&
+    key.length > PERSPECTIVE_KEY_V1_PREFIX.length
+)
+
+export const isRenderCacheTargetCatalog = (entry: unknown): entry is RenderCacheTargetCatalog => (
+    Boolean(
+        entry &&
+        typeof entry === 'object' &&
+        isCacheHostEphemeraId((entry as RenderCacheTargetCatalog).ephemeraId) &&
+        isPerspectiveKeyV1((entry as RenderCacheTargetCatalog).perspectiveKey)
+    )
+)
+
+export const dedupeRenderCacheTargetCatalogs = (
+    entries: RenderCacheTargetCatalog[]
+): RenderCacheTargetCatalog[] => {
+    const seen = new Set<string>()
+    const deduped: RenderCacheTargetCatalog[] = []
+    for (const entry of entries) {
+        const key = `${entry.ephemeraId}::${entry.perspectiveKey}`
+        if (seen.has(key)) {
+            continue
+        }
+        seen.add(key)
+        deduped.push(entry)
+    }
+    return deduped
+}
+
 export const isCacheConsistencyFindingEvent = (event: any): event is DiagnosticsCacheConsistencyFindingEvent => {
     return Boolean(
         event &&
@@ -179,14 +228,10 @@ export const isEphemeraRenderCacheFindingEvent = (event: any): event is Diagnost
         event &&
         typeof event === 'object' &&
         event.type === 'Ephemera RenderCache Finding' &&
-        Array.isArray(event.perspective) &&
-        event.perspective.every((entry: unknown) => typeof entry === 'string' && isSchemaAssetUUID(entry)) &&
+        Array.isArray(event.targetCatalogs) &&
+        event.targetCatalogs.every((entry: unknown) => isRenderCacheTargetCatalog(entry)) &&
         typeof event.status === 'string' &&
-        ['missing', 'corrupted'].includes(event.status) &&
-        (!event.roomIds || (
-            Array.isArray(event.roomIds) &&
-            event.roomIds.every((entry: unknown) => typeof entry === 'string' && isEphemeraRoomId(entry))
-        ))
+        ['missing', 'corrupted'].includes(event.status)
     )
 }
 
@@ -283,11 +328,10 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
         if (header.type === 'Ephemera RenderCache Finding' && isEphemeraRenderCacheFindingEvent(content)) {
             return {
                 type: 'Ephemera RenderCache Finding',
-                perspective: content.perspective,
+                targetCatalogs: content.targetCatalogs,
                 status: content.status,
                 diagnosticRunId: content.diagnosticRunId,
                 timestamp: content.timestamp,
-                ...(content.roomIds ? { roomIds: content.roomIds } : {})
             }
         }
         if (header.type === 'Stale SessionId Finding' && isStaleSessionIdFindingEvent(content)) {
@@ -375,27 +419,21 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
         }
 
         if (eventType === 'Ephemera RenderCache Finding') {
-            if (!Array.isArray(content.perspective) || typeof content.status !== 'string') {
+            if (!Array.isArray(content.targetCatalogs) || typeof content.status !== 'string') {
                 return null
             }
-            if (!content.perspective.every((entry: unknown) => typeof entry === 'string' && isSchemaAssetUUID(entry))) {
+            if (!content.targetCatalogs.every((entry: unknown) => isRenderCacheTargetCatalog(entry))) {
                 return null
             }
             if (!['missing', 'corrupted'].includes(content.status)) {
                 return null
             }
-            if (content.roomIds !== undefined) {
-                if (!Array.isArray(content.roomIds) || !content.roomIds.every((entry: unknown) => typeof entry === 'string' && isEphemeraRoomId(entry))) {
-                    return null
-                }
-            }
             return {
                 type: 'Ephemera RenderCache Finding',
-                perspective: content.perspective as AssetUUID[],
+                targetCatalogs: dedupeRenderCacheTargetCatalogs(content.targetCatalogs as RenderCacheTargetCatalog[]),
                 status: content.status as 'missing' | 'corrupted',
                 diagnosticRunId: content.diagnosticRunId || 'unknown',
                 timestamp: content.timestamp || new Date().toISOString(),
-                ...(content.roomIds ? { roomIds: content.roomIds as EphemeraRoomId[] } : {})
             }
         }
 

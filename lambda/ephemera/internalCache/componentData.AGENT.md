@@ -64,7 +64,7 @@ Rows live in **assetDB**:
 
 - **`ComponentRender`**, **`ComponentStackMerge`**, **`GenerationContext`**: inject **`getAcrossAssets`** at construction.
 - **`computeDefaultMarksForRoom`**: reads room/lens bodies across the asset stack.
-- **Future `ComponentAggregate` slice (A1):** register with **`{ ComponentData: internalCache.ComponentData, ... }`** --- same field, participation-scoped **`getAcrossAssets`**.
+- **Future `ComponentAggregate` slice (A1, shipped):** registered on [`index.ts`](./index.ts) with **`{ ComponentData: internalCache.ComponentData, ComponentVerticals: empty-hops stub }`**; **`ComponentExamples`** composes **`ComponentAggregate`**. See [`componentAggregate.test.ts`](./componentAggregate.test.ts).
 
 ## Navigation Tips
 

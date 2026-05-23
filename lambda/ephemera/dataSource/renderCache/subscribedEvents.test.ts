@@ -109,7 +109,9 @@ describe('renderCache subscribedEvents', () => {
             },
             getContent: () => Promise.resolve({
                 type: 'Ephemera RenderCache Finding' as const,
-                perspective: ['ASSET#a'],
+                targetCatalogs: [
+                    { ephemeraId: 'ROOM#a', perspectiveKey: 'PERSPECTIVE#v1#abc' },
+                ],
                 status: 'corrupted' as const,
                 diagnosticRunId: 'run-1',
                 timestamp: '2025-01-01T00:00:00.000Z',

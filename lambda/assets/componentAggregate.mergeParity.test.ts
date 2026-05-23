@@ -1,5 +1,5 @@
 /**
- * Parity between aggregate gateway merge and legacy `merge*AcrossStack` in `exampleEnrichment.ts`.
+ * Parity between aggregate gateway merge and legacy `mergeRoomAcrossStack` in `legacyMergeAcrossStack.ts`.
  * `aggregatePerspectiveExplicit` accepts only Ephemera universal keys; `LENS#` is not in that set,
  * so `mergeLensAcrossStack` is not duplicated here (same fold semantics as Room).
  */
@@ -15,7 +15,7 @@ import {
 } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { inMemoryComponentAggregateInternalCacheSlice } from '@tonylb/mtw-gateways/ts/assets/components/aggregate/testHarness'
 
-import { mergeRoomAcrossStack } from './componentExamples/exampleEnrichment'
+import { mergeRoomAcrossStack } from './componentExamples/legacyMergeAcrossStack'
 
 describe('component aggregate merge parity (gateway vs merge*AcrossStack)', () => {
     describe('mergeRoomAcrossStack', () => {
