@@ -12,6 +12,8 @@ jest.mock('../../internalCache', () => ({
     default: {
         RenderCache: {
             invalidate: jest.fn(),
+            getCatalogRows: jest.fn(),
+            getCatalogRow: jest.fn(),
         },
     },
 }))
@@ -31,6 +33,8 @@ import type { EphemeraCacheCatalogRow } from './baseClasses'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const renderCacheInvalidate = internalCache.RenderCache.invalidate as jest.Mock
+const renderCacheGetCatalogRows = internalCache.RenderCache.getCatalogRows as jest.Mock
+const renderCacheGetCatalogRow = internalCache.RenderCache.getCatalogRow as jest.Mock
 
 const componentId = 'ROOM#test-room' as const
 
@@ -51,26 +55,24 @@ describe('catalogRow', () => {
         ephemeraDBMock.putItem.mockResolvedValue(undefined)
     })
 
-    it('queryCatalogRowsForComponent filters invalid rows', async () => {
+    it('queryCatalogRowsForComponent delegates to internalCache.RenderCache', async () => {
         const valid = catalogRow()
-        ;(ephemeraDBMock.query as jest.Mock).mockResolvedValue([valid, { EphemeraId: componentId, DataCategory: 'Cache::' }])
+        renderCacheGetCatalogRows.mockResolvedValue([valid])
 
         const result = await queryCatalogRowsForComponent(componentId)
 
-        expect(ephemeraDBMock.query).toHaveBeenCalledWith(
-            expect.objectContaining({
-                ExpressionAttributeValues: { ':dcPrefix': 'Cache::' },
-            })
-        )
+        expect(renderCacheGetCatalogRows).toHaveBeenCalledWith(componentId)
         expect(result).toEqual([valid])
     })
 
-    it('getCatalogRow returns undefined for invalid shape', async () => {
-        ;(ephemeraDBMock.getItem as jest.Mock).mockResolvedValue({ EphemeraId: componentId, DataCategory: 'Cache::x' })
+    it('getCatalogRow delegates to internalCache.RenderCache', async () => {
+        const valid = catalogRow()
+        renderCacheGetCatalogRow.mockResolvedValue(valid)
 
-        const result = await getCatalogRow(componentId, 'PERSPECTIVE#v1#x')
+        const result = await getCatalogRow(componentId, 'PERSPECTIVE#v1#abc')
 
-        expect(result).toBeUndefined()
+        expect(renderCacheGetCatalogRow).toHaveBeenCalledWith(componentId, 'PERSPECTIVE#v1#abc')
+        expect(result).toEqual(valid)
     })
 
     it('conditionalInvalidateCatalogRow bumps when ready and clears pointer', async () => {

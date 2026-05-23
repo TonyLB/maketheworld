@@ -3,12 +3,13 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 import type { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
-import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 import { aggregatePerspectiveExplicit } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { authoredExampleSetSituationIds } from '@tonylb/mtw-gateways/ts/assets/components/componentExamples'
 
 const assetDBMock = jest.mocked(assetDB)
+const ephemeraDBMock = jest.mocked(ephemeraDB)
 
 import internalCache from './index'
 
@@ -18,6 +19,8 @@ describe('diagnostics internalCache', () => {
         jest.clearAllMocks()
         assetDBMock.getItems.mockResolvedValue([] as any)
         assetDBMock.query.mockResolvedValue([] as any)
+        ephemeraDBMock.query.mockResolvedValue([] as any)
+        ephemeraDBMock.getItem.mockResolvedValue(undefined)
     })
 
     it('clear invokes tier-1 and gateway handler clears', () => {
@@ -25,6 +28,7 @@ describe('diagnostics internalCache', () => {
         const verticalsClear = jest.spyOn(internalCache.ComponentVerticals, 'clear')
         const aggregateClear = jest.spyOn(internalCache.ComponentAggregate, 'clear')
         const examplesClear = jest.spyOn(internalCache.ComponentExamples, 'clear')
+        const renderCacheClear = jest.spyOn(internalCache.RenderCache, 'clear')
 
         internalCache.clear()
 
@@ -32,6 +36,7 @@ describe('diagnostics internalCache', () => {
         expect(verticalsClear).toHaveBeenCalledTimes(1)
         expect(aggregateClear).toHaveBeenCalledTimes(1)
         expect(examplesClear).toHaveBeenCalledTimes(1)
+        expect(renderCacheClear).toHaveBeenCalledTimes(1)
     })
 
     it('ComponentData.get delegates to assetDB getItems for pair reads', async () => {
@@ -131,5 +136,20 @@ describe('diagnostics internalCache', () => {
         expect(set.size).toBe(1)
         expect(authoredExampleSetSituationIds(set)).toEqual([situationId])
         expect(set.get(situationId)?.provenance).toEqual({ type: 'authored' })
+    })
+
+    it('RenderCache.getCatalogRows delegates to ephemeraDB query (get-only)', async () => {
+        const roomId = 'ROOM#diagCache' as const
+        ephemeraDBMock.query.mockResolvedValue([] as any)
+
+        const rows = await internalCache.RenderCache.getCatalogRows(roomId)
+
+        expect(rows).toEqual([])
+        expect(ephemeraDBMock.query).toHaveBeenCalledWith(
+            expect.objectContaining({
+                Key: { EphemeraId: roomId },
+                ExpressionAttributeValues: { ':dcPrefix': 'Cache::' },
+            })
+        )
     })
 })

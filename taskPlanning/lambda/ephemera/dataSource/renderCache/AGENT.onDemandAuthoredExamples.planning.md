@@ -1,6 +1,6 @@
 # On-demand authored examples (invalidate + hydrate) - planning
 
-**Status:** Design pass complete; **contracts**, **catalog + adjacency**, **gateway (A3)**, **lambda wiring (A1)**, **invalidation handler slice**, **Assets invalidation-only emitter**, **hydration step (`ensureAuthoredCatalog`)**, and **Tests** slice landed. **Next:** **`renderCache` gateway (`mtw-gateways`)**, then **Diagnostics renderCache sweep** per [**Recommended order**](#recommended-order).
+**Status:** Design pass complete; **contracts**, **catalog + adjacency**, **gateway (A3)**, **lambda wiring (A1)**, **invalidation handler slice**, **Assets invalidation-only emitter**, **hydration step (`ensureAuthoredCatalog`)**, **Tests** slice, and **`renderCache` gateway (`mtw-gateways`)** landed. **Next:** **Diagnostics renderCache sweep** per [**Recommended order**](#recommended-order).
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting notes live under [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md), [`lambda/assets/componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md), and related steady-state docs.
 
@@ -421,7 +421,7 @@ Do **not** overload **constellation** for v1 exact-match or hydrate --- reserve 
 | Hydration step in orchestration | Done |
 | Assets componentExamples emit invalidations only | Done |
 | Tests (gateway parity, invalidation, hydrate diff, hydrate-then-exact-match) | Done |
-| **`renderCache` gateway (`mtw-gateways`)** | Not started |
+| **`renderCache` gateway (`mtw-gateways`)** | Done |
 | Diagnostics renderCache sweep | Not started (blocked on renderCache gateway) |
 | Steady-state AGENT.md updates | Partial (renderCache + dataSource + assets event docs updated) |
 
@@ -617,7 +617,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` wh
 - [X] **Assets emitter:** refactor [`componentExamples/index.ts`](../../../../../lambda/assets/componentExamples/index.ts) to invalidations-only (P1: **`editAssetId`** from event asset); Situation path per S1; drop **`emitSituationComponentFacetEvents`** / **`getParentIdsForSituation`**
 - [X] **Hydration step:** **`ensureAuthoredCatalog`** (O1/O2) calls **`internalCache.ComponentExamples.get`** + **diff** put/delete authored rows + catalog ready + coalescing; wire from **`orchestrationHandler`** before **`findRender`**
 - [X] **Tests:** gateway golden/parity (**`componentExamples`**); layer participation invalidation (A/B/C overlay); Situation invalidation uses **`situationId`**; adjacency + filter; hydrate diff; hydrate-then-exact-match; diagnostics via gateway
-- [ ] **`renderCache` gateway (`mtw-gateways`)** ([**R1**](#rendercache-gateway-r1--r4)--[**R4**](#get-vs-set-placement-r4), [**R2**](#rendercache-gateway-r1--r4)): module at **`packages/mtw-gateways/ts/ephemera/renderCache/`** (authoritative **Dynamo** writer: **`mtw.ephemera.renderCache`** DataSource). **Package:** Dynamo **`fetch`**; shared guards/normalizers; pure **`classifyAuthoredCatalogDrift`**; **`createRenderCacheCacheHandler(ephemeraDB)`** with **`getCatalogRows`**, **`getCacheRows`**, **`getCatalogRow`**, and memo **`set`** / **`deleteCacheRecords`** / **`invalidate`** (no Dynamo in memo APIs --- [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) [**Dynamo writes vs invocation memo**](#dynamo-writes-vs-invocation-memo)); package tests; ownership row. **Ephemera:** register handler on **`internalCache.RenderCache`** (replace [`RenderCacheData`](../../../../../lambda/ephemera/internalCache/renderCache.ts) body with package handler + optional **`getExactMatch`**); DataSource primitives keep Dynamo writes, then call memo APIs. **Diagnostics:** register same handler; **`get*`** only. **Gate:** do not start the diagnostics sweep item until this is checked.
+- [X] **`renderCache` gateway (`mtw-gateways`)** ([**R1**](#rendercache-gateway-r1--r4)--[**R4**](#get-vs-set-placement-r4), [**R2**](#rendercache-gateway-r1--r4)): module at **`packages/mtw-gateways/ts/ephemera/renderCache/`** (authoritative **Dynamo** writer: **`mtw.ephemera.renderCache`** DataSource). **Package:** Dynamo **`fetch`**; shared guards/normalizers; pure **`classifyAuthoredCatalogDrift`**; **`createRenderCacheCacheHandler(ephemeraDB)`** with **`getCatalogRows`**, **`getCacheRows`**, **`getCatalogRow`**, and memo **`set`** / **`deleteCacheRecords`** / **`invalidate`** (no Dynamo in memo APIs --- [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) [**Dynamo writes vs invocation memo**](#dynamo-writes-vs-invocation-memo)); package tests; ownership row. **Ephemera:** register handler on **`internalCache.RenderCache`** (replace [`RenderCacheData`](../../../../../lambda/ephemera/internalCache/renderCache.ts) body with package handler + optional **`getExactMatch`**); DataSource primitives keep Dynamo writes, then call memo APIs. **Diagnostics:** register same handler; **`get*`** only. **Gate:** do not start the diagnostics sweep item until this is checked.
 - [ ] **Diagnostics renderCache sweep** ([**D1**](#diagnostics-rendercache-sweep-enumeration-d1); depends on **`renderCache` gateway** above): new module in **`lambda/diagnostics/`** (pattern: **`roomOccupancyDriftSweep`**). **Enumeration:** caller-supplied **`roomIds`** (`ROOM#...[]` on sweep invoke; empty = no-op). Per room: **`internalCache.RenderCache.getCatalogRows`**, per catalog **`internalCache.ComponentExamples.get`** at **`catalogRow.assetStack`**, materialized check via **`getCacheRows`** + package **`classifyAuthoredCatalogDrift`**. Emit **`Ephemera RenderCache Finding`** with **`targetCatalogs`** only (no **`perspective`** / **`roomIds`** on the finding wire). Manual emission docs for sandbox until scheduled.
 - [ ] **Docs:** update [`renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md) (**Mirroring vs runtime**), [`componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md), [`AGENT.event.md`](../../../../../lambda/assets/AGENT.event.md); trim stale Example-filter prose; **`mtw-gateways`** ownership row for **`renderCache`** gateway when shipped
 - [ ] **Dispose this plan** per [`taskPlanning/AGENT.md`](../../../../AGENT.md)
@@ -729,14 +729,17 @@ Coverage highlights:
 - **Hydrate-then-exact-match:** [`authoredCatalogHydrateExactMatch.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/authoredCatalogHydrateExactMatch.test.ts) (`ensureAuthoredCatalog` -> versioned `CACHE#` -> `RenderCacheData.getExactMatch`).
 - **Diagnostics via gateway:** [`lambda/diagnostics/internalCache/internalCache.test.ts`](../../../../../lambda/diagnostics/internalCache/internalCache.test.ts) (`ComponentExamples.get` assembles from blueprint).
 
-**`renderCache` gateway slice (pending):**
+**`renderCache` gateway slice (landed):**
 
 ```bash
 cd packages/mtw-gateways && npm test -- --testPathPattern=renderCache
 npx tsc --build packages/mtw-gateways/tsconfig.ref.json
 cd lambda/ephemera && npm test -- --testPathPattern='internalCache/renderCache|renderCache/(queryCacheRecordsForComponent|catalogRow)'
 cd lambda/diagnostics && npm test -- --testPathPattern=internalCache
+cd lambda/ephemera && npm test -- --testPathPattern=renderCache
 ```
+
+Slice files: [`packages/mtw-gateways/ts/ephemera/renderCache/`](../../../../../packages/mtw-gateways/ts/ephemera/renderCache/) (`fetch.ts`, `factory.ts`, `guards.ts`, `classifyAuthoredCatalogDrift.ts`); [`lambda/ephemera/internalCache/renderCache.ts`](../../../../../lambda/ephemera/internalCache/renderCache.ts) (extends package handler + **`getExactMatch`**); [`lambda/diagnostics/internalCache/index.ts`](../../../../../lambda/diagnostics/internalCache/index.ts) (get-only registration).
 
 **Diagnostics renderCache sweep slice (pending; after renderCache gateway):**
 

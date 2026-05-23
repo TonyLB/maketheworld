@@ -1,12 +1,13 @@
 /**
  * DataSource-owned Dynamo query for all `CACHE#...` rows under a component.
- *
- * This is intentionally in the DataSource "data-domain" so runtime layers (e.g.
- * `internalCache`) can couple only via an injected boundary function.
+ * Thin wrapper around mtw-gateways fetch (tests may mock this module).
  */
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import type { EphemeraCacheComponentId, EphemeraCacheDynamoItem } from './baseClasses'
-import { EPHEMERA_CACHE_DATA_CATEGORY_PREFIX, isEphemeraCacheDynamoItem } from './baseClasses'
+import {
+    queryCacheRowsForComponent,
+    type EphemeraCacheComponentId,
+    type EphemeraCacheDynamoItem,
+} from '@tonylb/mtw-gateways/ts/ephemera/renderCache'
 
 export type QueryCacheRecordsForComponentFn = (
     componentId: EphemeraCacheComponentId
@@ -19,12 +20,5 @@ export type QueryCacheRecordsForComponentFn = (
 export async function queryCacheRecordsForComponent(
     componentId: EphemeraCacheComponentId
 ): Promise<EphemeraCacheDynamoItem[]> {
-    const raw = await ephemeraDB.query<EphemeraCacheDynamoItem>({
-        Key: { EphemeraId: componentId },
-        KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
-        ExpressionAttributeValues: { ':dcPrefix': EPHEMERA_CACHE_DATA_CATEGORY_PREFIX },
-        allFields: true
-    })
-    return raw.filter(isEphemeraCacheDynamoItem)
+    return queryCacheRowsForComponent(ephemeraDB, componentId)
 }
-

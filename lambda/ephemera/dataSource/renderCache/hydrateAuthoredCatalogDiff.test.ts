@@ -4,6 +4,7 @@ jest.mock('../../internalCache', () => ({
     default: {
         RenderCache: {
             deleteCacheRecords: jest.fn(),
+            getCacheRows: jest.fn(),
         },
     },
 }))
@@ -16,15 +17,13 @@ import type { EphemeraCacheDynamoItem } from './baseClasses'
 import { deleteCacheRecord } from './deleteCacheRecord'
 import { hydrateAuthoredCatalogDiff } from './hydrateAuthoredCatalogDiff'
 import { putCacheRecord } from './putCacheRecord'
-import { queryCacheRecordsForComponent } from './queryCacheRecordsForComponent'
 import { deleteAdjacencyForRemovedSlice, upsertAdjacencyForAuthoredSlice } from './situationAdjacency'
 
-jest.mock('./queryCacheRecordsForComponent')
 jest.mock('./putCacheRecord')
 jest.mock('./deleteCacheRecord')
 jest.mock('./situationAdjacency')
 
-const queryMock = queryCacheRecordsForComponent as jest.MockedFunction<typeof queryCacheRecordsForComponent>
+const getCacheRowsMock = internalCache.RenderCache.getCacheRows as jest.Mock
 const putMock = putCacheRecord as jest.MockedFunction<typeof putCacheRecord>
 const deleteMock = deleteCacheRecord as jest.MockedFunction<typeof deleteCacheRecord>
 const upsertAdjacencyMock = upsertAdjacencyForAuthoredSlice as jest.MockedFunction<
@@ -66,7 +65,7 @@ describe('hydrateAuthoredCatalogDiff', () => {
     })
 
     it('deletes authored rows absent from desired set when version-guarded', async () => {
-        queryMock.mockResolvedValue([
+        getCacheRowsMock.mockResolvedValue([
             authoredRow({ situationId: 'SITUATION#gone', DataCategory: 'CACHE#gone', catalogVersion: 1 }),
         ])
 
@@ -87,7 +86,7 @@ describe('hydrateAuthoredCatalogDiff', () => {
     })
 
     it('upserts every desired slice at incoming catalog version', async () => {
-        queryMock.mockResolvedValue([])
+        getCacheRowsMock.mockResolvedValue([])
 
         await hydrateAuthoredCatalogDiff({
             componentId,
@@ -109,7 +108,7 @@ describe('hydrateAuthoredCatalogDiff', () => {
     })
 
     it('skips upsert when existing row is already at or above incoming version', async () => {
-        queryMock.mockResolvedValue([
+        getCacheRowsMock.mockResolvedValue([
             authoredRow({ catalogVersion: 2, DataCategory: 'CACHE#keep' }),
         ])
 
@@ -128,7 +127,7 @@ describe('hydrateAuthoredCatalogDiff', () => {
     })
 
     it('does not delete rows at or above incoming catalog version when absent from desired set', async () => {
-        queryMock.mockResolvedValue([
+        getCacheRowsMock.mockResolvedValue([
             authoredRow({
                 situationId: 'SITUATION#gone',
                 DataCategory: 'CACHE#gone',
@@ -150,7 +149,7 @@ describe('hydrateAuthoredCatalogDiff', () => {
     })
 
     it('does not delete authored rows for a different perspective', async () => {
-        queryMock.mockResolvedValue([
+        getCacheRowsMock.mockResolvedValue([
             authoredRow({
                 situationId: 'SITUATION#gone',
                 DataCategory: 'CACHE#otherPerspective',
@@ -172,7 +171,7 @@ describe('hydrateAuthoredCatalogDiff', () => {
     })
 
     it('upserts adjacency once per desired situation slice', async () => {
-        queryMock.mockResolvedValue([])
+        getCacheRowsMock.mockResolvedValue([])
 
         await hydrateAuthoredCatalogDiff({
             componentId,

@@ -11,7 +11,6 @@ import {
 import { canDeleteCacheRowOnHydrate, canUpsertCacheRowAtHydrate } from './catalogGuards'
 import { deleteCacheRecord } from './deleteCacheRecord'
 import { putCacheRecord } from './putCacheRecord'
-import { queryCacheRecordsForComponent } from './queryCacheRecordsForComponent'
 import { deleteAdjacencyForRemovedSlice, upsertAdjacencyForAuthoredSlice } from './situationAdjacency'
 import { authoredExampleToCacheRecord } from './authoredExampleToCacheRecord'
 
@@ -39,7 +38,7 @@ export async function hydrateAuthoredCatalogDiff(
         desiredSet,
     } = params
 
-    const allRows = await queryCacheRecordsForComponent(componentId)
+    const allRows = await internalCache.RenderCache.getCacheRows(componentId)
     const existingAuthored = allRows.filter(
         (row) =>
             row.provenance.type === EPHEMERA_CACHE_PROVENANCE_AUTHORED

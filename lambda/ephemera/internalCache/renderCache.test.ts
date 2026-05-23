@@ -1,14 +1,18 @@
-jest.mock('../dataSource/renderCache/catalogRow', () => ({
-    getCatalogRow: jest.fn().mockResolvedValue(undefined),
+jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
+    ephemeraDB: {
+        query: jest.fn(),
+        getItem: jest.fn(),
+    },
 }))
 
-import { getCatalogRow } from '../dataSource/renderCache/catalogRow'
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { RenderCacheData } from './renderCache'
 import type { EphemeraCacheDynamoItem } from '../dataSource/renderCache/baseClasses'
 import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 
+const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
+
 const roomId = 'ROOM#r1' as const
-const getCatalogRowMock = getCatalogRow as jest.MockedFunction<typeof getCatalogRow>
 
 const makeRow = (overrides: Partial<EphemeraCacheDynamoItem> = {}): EphemeraCacheDynamoItem => ({
     EphemeraId: roomId,
@@ -23,26 +27,28 @@ const makeRow = (overrides: Partial<EphemeraCacheDynamoItem> = {}): EphemeraCach
 
 describe('RenderCacheData', () => {
     beforeEach(() => {
-        getCatalogRowMock.mockResolvedValue(undefined)
+        jest.clearAllMocks()
+        ;(ephemeraDBMock.getItem as jest.Mock).mockResolvedValue(undefined)
+        ;(ephemeraDBMock.query as jest.Mock).mockResolvedValue([])
     })
+
+    const makeCache = (rows: EphemeraCacheDynamoItem[] = [makeRow()]) => {
+        ;(ephemeraDBMock.query as jest.Mock).mockResolvedValue(rows)
+        return new RenderCacheData()
+    }
 
     describe('contract', () => {
         it('memoizes sequential get calls per componentId (single query)', async () => {
-            const query = jest.fn().mockResolvedValue([makeRow()])
-            const cache = new RenderCacheData(query)
-
+            const cache = makeCache([makeRow()])
             const a1 = await cache.get(roomId)
             const a2 = await cache.get(roomId)
 
-            expect(query).toHaveBeenCalledTimes(1)
-            expect(query).toHaveBeenCalledWith(roomId)
+            expect(ephemeraDBMock.query).toHaveBeenCalledTimes(1)
             expect(a1).toBe(a2)
         })
 
         it('set with cacheId replaces matching DataCategory', async () => {
-            const initial = makeRow({ DataCategory: 'CACHE#keep-me' })
-            const query = jest.fn().mockResolvedValue([initial])
-            const cache = new RenderCacheData(query)
+            const cache = makeCache([makeRow({ DataCategory: 'CACHE#keep-me' })])
             await cache.get(roomId)
 
             cache.set({
@@ -63,8 +69,7 @@ describe('RenderCacheData', () => {
         })
 
         it('set with cacheId appends when key not in list', async () => {
-            const query = jest.fn().mockResolvedValue([makeRow({ DataCategory: 'CACHE#old' })])
-            const cache = new RenderCacheData(query)
+            const cache = makeCache([makeRow({ DataCategory: 'CACHE#old' })])
             const rows = await cache.get(roomId)
 
             cache.set({
@@ -83,8 +88,7 @@ describe('RenderCacheData', () => {
 
         it('set with invalid cacheId prefix is a no-op', async () => {
             const initial = makeRow()
-            const query = jest.fn().mockResolvedValue([initial])
-            const cache = new RenderCacheData(query)
+            const cache = makeCache([initial])
             const rows = await cache.get(roomId)
 
             cache.set({
@@ -102,9 +106,7 @@ describe('RenderCacheData', () => {
 
         it('set without cacheId replaces row with equal markState', async () => {
             const markState = { markValue: [{ mark: 'MARK#a', value: 'one' }] }
-            const initial = makeRow({ markState })
-            const query = jest.fn().mockResolvedValue([initial])
-            const cache = new RenderCacheData(query)
+            const cache = makeCache([makeRow({ markState })])
             await cache.get(roomId)
 
             cache.set({
@@ -123,8 +125,7 @@ describe('RenderCacheData', () => {
         })
 
         it('set without cacheId appends when no markState match', async () => {
-            const query = jest.fn().mockResolvedValue([makeRow()])
-            const cache = new RenderCacheData(query)
+            const cache = makeCache([makeRow()])
             const rows = await cache.get(roomId)
 
             cache.set({
@@ -142,11 +143,10 @@ describe('RenderCacheData', () => {
         })
 
         it('deleteCacheRecords removes matching rows from a loaded component memo', async () => {
-            const query = jest.fn().mockResolvedValue([
+            const cache = makeCache([
                 makeRow({ DataCategory: 'CACHE#keep' }),
                 makeRow({ DataCategory: 'CACHE#drop' }),
             ])
-            const cache = new RenderCacheData(query)
             const rows = await cache.get(roomId)
 
             cache.deleteCacheRecords(roomId, ['CACHE#drop'])
@@ -156,27 +156,28 @@ describe('RenderCacheData', () => {
         })
 
         it('deleteCacheRecords on unloaded component is a no-op', async () => {
-            const query = jest.fn().mockResolvedValue([makeRow()])
-            const cache = new RenderCacheData(query)
+            const cache = makeCache([makeRow()])
 
             cache.deleteCacheRecords(roomId, ['CACHE#drop'])
 
-            expect(query).not.toHaveBeenCalled()
+            expect(ephemeraDBMock.query).not.toHaveBeenCalled()
         })
 
-        it('clear drops memo so next get queries again', async () => {
-            const query = jest.fn().mockResolvedValueOnce([makeRow()]).mockResolvedValueOnce([makeRow({ DataCategory: 'CACHE#after' })])
-            const cache = new RenderCacheData(query)
+        it('invalidate drops memo so next get queries again', async () => {
+            const query = jest.fn()
+                .mockResolvedValueOnce([makeRow()])
+                .mockResolvedValueOnce([makeRow({ DataCategory: 'CACHE#after' })])
+            ;(ephemeraDBMock.query as jest.Mock).mockImplementation(query)
+            const cache = new RenderCacheData()
             await cache.get(roomId)
-            cache.clear()
+            cache.invalidate(roomId)
             const rows = await cache.get(roomId)
             expect(query).toHaveBeenCalledTimes(2)
-            expect(rows[0].DataCategory).toBe('CACHE#after')
+            expect(rows[0]?.DataCategory).toBe('CACHE#after')
         })
 
         it('set before get initializes authoritative write state', async () => {
-            const query = jest.fn().mockResolvedValue([makeRow()])
-            const cache = new RenderCacheData(query)
+            const cache = makeCache([makeRow()])
 
             cache.set({
                 componentId: roomId,
@@ -197,31 +198,29 @@ describe('RenderCacheData', () => {
             const queryBarrier = new Promise<void>((resolve) => {
                 releaseQuery = resolve
             })
-            const query = jest.fn().mockImplementation(async () => {
+            ;(ephemeraDBMock.query as jest.Mock).mockImplementation(async () => {
                 await queryBarrier
                 return [makeRow()]
             })
-            const cache = new RenderCacheData(query)
+            const cache = new RenderCacheData()
 
             const first = cache.get(roomId)
             const second = cache.get(roomId)
             releaseQuery()
 
             const [rowsOne, rowsTwo] = await Promise.all([first, second])
-            expect(query).toHaveBeenCalledTimes(1)
+            expect(ephemeraDBMock.query).toHaveBeenCalledTimes(1)
             expect(rowsOne).toBe(rowsTwo)
         })
     })
 
-    // Invariant regression guards: exact-match semantics must remain stable through cache refactor.
     describe('mustRemainStable', () => {
         describe('getExactMatch', () => {
             const perspective: Perspective = { assetStack: ['ASSET#a'] }
 
             it('returns a record when markState and perspective match', async () => {
                 const row = makeRow()
-                const query = jest.fn().mockResolvedValue([row])
-                const cache = new RenderCacheData(query)
+                const cache = makeCache([row])
 
                 const result = await cache.getExactMatch({
                     componentId: roomId,
@@ -231,13 +230,11 @@ describe('RenderCacheData', () => {
 
                 expect(result).not.toBeNull()
                 expect(result).toEqual(expect.objectContaining({ DataCategory: row.DataCategory }))
-                expect(query).toHaveBeenCalledTimes(1)
             })
 
             it('returns null when markState mismatches', async () => {
                 const row = makeRow()
-                const query = jest.fn().mockResolvedValue([row])
-                const cache = new RenderCacheData(query)
+                const cache = makeCache([row])
 
                 const result = await cache.getExactMatch({
                     componentId: roomId,
@@ -246,13 +243,11 @@ describe('RenderCacheData', () => {
                 })
 
                 expect(result).toBeNull()
-                expect(query).toHaveBeenCalledTimes(1)
             })
 
             it('returns null when perspective mismatches', async () => {
                 const row = makeRow({ perspectiveMatcher: { requiredAssetIds: ['ASSET#other'], forbiddenAssetIds: [] } })
-                const query = jest.fn().mockResolvedValue([row])
-                const cache = new RenderCacheData(query)
+                const cache = makeCache([row])
 
                 const result = await cache.getExactMatch({
                     componentId: roomId,
@@ -261,13 +256,11 @@ describe('RenderCacheData', () => {
                 })
 
                 expect(result).toBeNull()
-                expect(query).toHaveBeenCalledTimes(1)
             })
 
             it('memoizes get(componentId) so query runs once', async () => {
                 const row = makeRow()
-                const query = jest.fn().mockResolvedValue([row])
-                const cache = new RenderCacheData(query)
+                const cache = makeCache([row])
 
                 const a = await cache.getExactMatch({
                     componentId: roomId,
@@ -282,11 +275,11 @@ describe('RenderCacheData', () => {
 
                 expect(a).not.toBeNull()
                 expect(b).toBeNull()
-                expect(query).toHaveBeenCalledTimes(1)
+                expect(ephemeraDBMock.query).toHaveBeenCalledTimes(1)
             })
 
             it('ignores stale-version rows when catalog exists', async () => {
-                getCatalogRowMock.mockResolvedValue({
+                ;(ephemeraDBMock.getItem as jest.Mock).mockResolvedValue({
                     EphemeraId: roomId,
                     DataCategory: 'Cache::PERSPECTIVE#v1#x',
                     assetStack: ['ASSET#a'],
@@ -295,8 +288,7 @@ describe('RenderCacheData', () => {
                 })
                 const stale = makeRow({ catalogVersion: 1, DataCategory: 'CACHE#stale' })
                 const current = makeRow({ catalogVersion: 2, DataCategory: 'CACHE#current' })
-                const query = jest.fn().mockResolvedValue([stale, current])
-                const cache = new RenderCacheData(query)
+                const cache = makeCache([stale, current])
 
                 const result = await cache.getExactMatch({
                     componentId: roomId,

@@ -8,6 +8,8 @@ jest.mock('../../internalCache', () => ({
         },
         RenderCache: {
             invalidate: jest.fn(),
+            getCacheRows: jest.fn(),
+            deleteCacheRecords: jest.fn(),
         },
     },
 }))
@@ -24,6 +26,7 @@ jest.mock('./situationAdjacency', () => ({
 import { authoredExampleSetFromEntries } from '@tonylb/mtw-gateways/ts/assets/components/componentExamples'
 import type { AuthoredExample } from '@tonylb/mtw-gateways/ts/assets/components/componentExamples'
 import { computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../internalCache'
 import { RenderCacheData } from '../../internalCache/renderCache'
 import type { EphemeraCacheCatalogRow, EphemeraCacheDynamoItem } from './baseClasses'
@@ -105,6 +108,7 @@ describe('authored catalog hydrate then exact match', () => {
             return dataCategory
         })
         queryCacheMock.mockImplementation(async () => [...cacheRows])
+        ;(internalCache.RenderCache.getCacheRows as jest.Mock).mockImplementation(async () => [...cacheRows])
         componentExamplesGet.mockResolvedValue(
             authoredExampleSetFromEntries([['SITUATION#one', authoredExample]])
         )
@@ -141,7 +145,9 @@ describe('authored catalog hydrate then exact match', () => {
             catalogVersion: 1,
         })
 
-        const cache = new RenderCacheData(queryCacheMock)
+        ;(ephemeraDB.query as jest.Mock).mockResolvedValue(cacheRows)
+        ;(ephemeraDB.getItem as jest.Mock).mockResolvedValue(catalogState)
+        const cache = new RenderCacheData()
         const hit = await cache.getExactMatch({
             componentId,
             proposedMarkState: markState,
