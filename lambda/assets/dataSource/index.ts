@@ -19,11 +19,9 @@ import {
     isWMLAssetPurgedEvent,
     isDiagnosticsHealGlobalValuesEvent,
     isDiagnosticsCacheConsistencyFindingEvent,
-    isDiagnosticsEphemeraRenderCacheFindingEvent,
     isDiagnosticsPlayerMisalignmentFindingEvent,
     isWMLContentUpdateEvent,
 } from './subscribedEvents'
-import { reseedComponentExamplesFromDiagnostics } from '../componentExamples/reseedFromDiagnostics'
 import { healPlayer } from '../player/heal'
 import { healComponentVertical } from './components/verticals/healComponentVertical'
 
@@ -154,25 +152,6 @@ const handleCacheConsistencyFinding = async (
     }
 }
 
-const handleEphemeraRenderCacheFinding = async (
-    event: Extract<AssetsIncomingEvent, { header: { type: 'Ephemera RenderCache Finding' } }>,
-    streamEvent: StreamEventFn
-): Promise<void> => {
-    const content = await event.getContent()
-    if (!content) {
-        return
-    }
-    // This finding describes missing/corrupt data in ephemera render cache, but the source-of-truth
-    // for authored seed templates is Assets. We heal by republishing template-derived example updates
-    // from Assets so Ephemera rebuilds cache through its normal componentExamples mirror boundary.
-    console.info('Processing Ephemera RenderCache Finding for reseed', {
-        diagnosticRunId: content.diagnosticRunId,
-        status: content.status,
-        roomCount: content.roomIds?.length ?? null
-    })
-    await reseedComponentExamplesFromDiagnostics(content, streamEvent)
-}
-
 const handleNewPlayerHeal = async (
     event: Extract<AssetsIncomingEvent, { header: { type: 'New Player' } }>
 ): Promise<void> => {
@@ -267,10 +246,6 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
             }
             if (isDiagnosticsCacheConsistencyFindingEvent(event)) {
                 await handleCacheConsistencyFinding(event, streamEvent)
-                return
-            }
-            if (isDiagnosticsEphemeraRenderCacheFindingEvent(event)) {
-                await handleEphemeraRenderCacheFinding(event, streamEvent)
                 return
             }
             if (isDiagnosticsPlayerMisalignmentFindingEvent(event)) {

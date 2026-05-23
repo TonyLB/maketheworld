@@ -10,6 +10,11 @@ import { sendDeleteCacheRecords } from '../apiEphemera'
 import { isRenderCacheCacheDeletedPayload } from './baseClasses'
 import internalCache from '../../internalCache'
 import { ephemeraRenderCacheDataSource } from './index'
+import { handleExampleInvalidated } from './handleExampleInvalidated'
+import { handleRenderCacheFinding } from './handleRenderCacheFinding'
+
+const handleExampleInvalidatedMock = handleExampleInvalidated as jest.MockedFunction<typeof handleExampleInvalidated>
+const handleRenderCacheFindingMock = handleRenderCacheFinding as jest.MockedFunction<typeof handleRenderCacheFinding>
 import {
     makePassThroughCurrentCacheValidPayload,
     passThroughFixtureMinimalDynamoItem,
@@ -23,6 +28,12 @@ jest.mock('./putCacheRecord', () => ({
 }))
 jest.mock('./deleteCacheRecord', () => ({
     deleteCacheRecord: jest.fn(),
+}))
+jest.mock('./handleExampleInvalidated', () => ({
+    handleExampleInvalidated: jest.fn(),
+}))
+jest.mock('./handleRenderCacheFinding', () => ({
+    handleRenderCacheFinding: jest.fn(),
 }))
 
 const putCacheRecordMock = putCacheRecord as jest.MockedFunction<typeof putCacheRecord>
@@ -180,6 +191,68 @@ describe('mtw.ephemera.renderCache DataSource', () => {
             componentId: 'ROOM#room-one',
             dataCategories: ['CACHE#one', 'CACHE#two'],
         })
+    })
+
+    it('receiveEvents dispatches ExampleInvalidated to handleExampleInvalidated', async () => {
+        handleExampleInvalidatedMock.mockResolvedValue(undefined)
+        const invalidated = {
+            type: 'ExampleInvalidated' as const,
+            componentIds: ['ROOM#hall'],
+            editAssetId: 'ASSET#overlay',
+        }
+        const events: any[] = [
+            {
+                header: {
+                    dataSourceKey: 'mtw.assets.componentExamples',
+                    streamKey: 'ASSET#overlay',
+                    timestamp: Date.now(),
+                    type: 'ExampleInvalidated',
+                },
+                getContent: () => Promise.resolve(invalidated),
+            },
+        ]
+
+        await ephemeraRenderCacheDataSource.receiveEvents?.({
+            events,
+            streamEvent: jest.fn().mockResolvedValue(undefined),
+            streamEnvelope: jest.fn().mockResolvedValue(undefined),
+        })
+
+        expect(handleExampleInvalidatedMock).toHaveBeenCalledTimes(1)
+        expect(handleExampleInvalidatedMock).toHaveBeenCalledWith(invalidated)
+    })
+
+    it('receiveEvents dispatches Ephemera RenderCache Finding to handleRenderCacheFinding', async () => {
+        handleRenderCacheFindingMock.mockResolvedValue(undefined)
+        const finding = {
+            type: 'Ephemera RenderCache Finding' as const,
+            targetCatalogs: [
+                { ephemeraId: 'ROOM#hall' as const, perspectiveKey: 'PERSPECTIVE#v1#abc' },
+            ],
+            status: 'missing' as const,
+            diagnosticRunId: 'run-1',
+            timestamp: '2025-01-01T00:00:00.000Z',
+        }
+        const events: any[] = [
+            {
+                header: {
+                    dataSourceKey: 'mtw.diagnostics',
+                    streamKey: 'global',
+                    timestamp: Date.now(),
+                    type: 'Ephemera RenderCache Finding',
+                },
+                getContent: () => Promise.resolve(finding),
+            },
+        ]
+
+        await ephemeraRenderCacheDataSource.receiveEvents?.({
+            events,
+            streamEvent: jest.fn().mockResolvedValue(undefined),
+            streamEnvelope: jest.fn().mockResolvedValue(undefined),
+        })
+
+        expect(handleRenderCacheFindingMock).toHaveBeenCalledTimes(1)
+        expect(handleRenderCacheFindingMock).toHaveBeenCalledWith(finding)
     })
 
     it('receiveEvents handles Current Cache Valid with refetch and Render Pertains', async () => {

@@ -17,9 +17,14 @@ import {
     isRenderOrchestrationPublishedStreamEnvelope,
 } from '../renderOrchestration/publishedEvents'
 import type { RenderCacheSubscribedContent } from './subscribedEvents'
-import { isComponentExamplesInvalidatedEnvelope, isRenderCacheSubscribedEnvelope } from './subscribedEvents'
+import {
+    isComponentExamplesInvalidatedEnvelope,
+    isDiagnosticsRenderCacheFindingEnvelope,
+    isRenderCacheSubscribedEnvelope,
+} from './subscribedEvents'
 import { handleRenderOrchestrationInbound } from './handleRenderOrchestrationInbound'
 import { handleExampleInvalidated } from './handleExampleInvalidated'
+import { handleRenderCacheFinding } from './handleRenderCacheFinding'
 
 type CacheCommand = PutCacheRecordCommand | DeleteCacheRecordsCommand
 
@@ -47,6 +52,12 @@ export const ephemeraRenderCacheDataSource = new EphemeraDataSource<never, Rende
                 if (isComponentExamplesInvalidatedEnvelope(evt)) {
                     const invalidated = await evt.getContent()
                     await handleExampleInvalidated(invalidated)
+                    return
+                }
+
+                if (isDiagnosticsRenderCacheFindingEnvelope(evt)) {
+                    const finding = await evt.getContent()
+                    await handleRenderCacheFinding(finding)
                     return
                 }
 

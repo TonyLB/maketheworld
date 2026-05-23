@@ -42,7 +42,6 @@ import { isStateChangeCommand } from './dataSource/localApiEvents'
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
 import './dataSource'  // mtw.ephemera DataSource
-import './dataSource/componentExamples'  // mtw.ephemera.examples DataSource
 import './dataSource/renderCache'  // mtw.ephemera.renderCache DataSource
 import './dataSource/renderOrchestration'  // mtw.ephemera.renderOrchestration DataSource (evolving; see dataSource/renderOrchestration/AGENT.md)
 import './dataSource/perception'  // mtw.ephemera.perception DataSource (see dataSource/perception/AGENT.md)

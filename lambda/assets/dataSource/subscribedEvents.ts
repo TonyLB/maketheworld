@@ -4,7 +4,7 @@
  */
 import { StreamingEventHeader, StreamingEventEnvelope, HeaderGuard, makeStreamingEnvelopeGuardFromHeaderGuard } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { WMLContentEvent, WMLZoneEvent, WMLPurgeEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
-import type { DiagnosticsCacheConsistencyFindingEvent, DiagnosticsEphemeraRenderCacheFindingEvent, DiagnosticsPlayerMisalignmentFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
+import type { DiagnosticsCacheConsistencyFindingEvent, DiagnosticsPlayerMisalignmentFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import type { CognitoNewPlayerEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/cognito'
 import { AssetsAPIPayload, AssetsApiSubscribedHeader } from './apiAssets'
 
@@ -35,10 +35,6 @@ export type AssetsIncomingEvent =
           getContent: () => Promise<DiagnosticsCacheConsistencyFindingEvent>;
       }
     | {
-          header: StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Ephemera RenderCache Finding' };
-          getContent: () => Promise<DiagnosticsEphemeraRenderCacheFindingEvent>;
-      }
-    | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Player Misalignment Finding' };
           getContent: () => Promise<DiagnosticsPlayerMisalignmentFindingEvent>;
       }
@@ -56,7 +52,7 @@ export type AssetsIncomingEvent =
       };
 
 /** Payload types of events mtw.assets subscribes to (derived from envelope union for backward compatibility). */
-export type AssetsSubscribedContent = WMLContentEvent | WMLZoneEvent | WMLPurgeEvent | { type: 'Heal Global Values'; connections?: unknown; assets?: unknown } | DiagnosticsCacheConsistencyFindingEvent | DiagnosticsEphemeraRenderCacheFindingEvent | DiagnosticsPlayerMisalignmentFindingEvent | CognitoNewPlayerEvent | AssetsAPIPayload
+export type AssetsSubscribedContent = WMLContentEvent | WMLZoneEvent | WMLPurgeEvent | { type: 'Heal Global Values'; connections?: unknown; assets?: unknown } | DiagnosticsCacheConsistencyFindingEvent | DiagnosticsPlayerMisalignmentFindingEvent | CognitoNewPlayerEvent | AssetsAPIPayload
 
 /** Header union for events mtw.assets DataSource subscribes to. */
 export type AssetsSubscribedHeader =
@@ -65,7 +61,6 @@ export type AssetsSubscribedHeader =
     | (StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Content Update' })
     | (StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Heal Global Values' })
     | (StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Cache Consistency Finding' })
-    | (StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Ephemera RenderCache Finding' })
     | (StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Player Misalignment Finding' })
     | (StreamingEventHeader & { dataSourceKey: 'mtw.cognito'; type: 'New Player' })
     | AssetsApiSubscribedHeader
@@ -78,8 +73,6 @@ const isDiagnosticsHealGlobalValuesHeader: HeaderGuard<StreamingEventHeader & { 
     h.dataSourceKey === 'mtw.diagnostics' && h.type === 'Heal Global Values'
 const isDiagnosticsCacheConsistencyFindingHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Cache Consistency Finding' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Cache Consistency Finding' } =>
     h.dataSourceKey === 'mtw.diagnostics' && h.type === 'Cache Consistency Finding'
-const isDiagnosticsEphemeraRenderCacheFindingHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Ephemera RenderCache Finding' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Ephemera RenderCache Finding' } =>
-    h.dataSourceKey === 'mtw.diagnostics' && h.type === 'Ephemera RenderCache Finding'
 const isDiagnosticsPlayerMisalignmentFindingHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Player Misalignment Finding' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Player Misalignment Finding' } =>
     h.dataSourceKey === 'mtw.diagnostics' && h.type === 'Player Misalignment Finding'
 const isCognitoNewPlayerHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.cognito'; type: 'New Player' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.cognito'; type: 'New Player' } =>
@@ -104,7 +97,6 @@ export const isAssetsSubscribedHeader: HeaderGuard<AssetsSubscribedHeader> = (he
     isWMLAssetPurgedHeader(header) ||
     isDiagnosticsHealGlobalValuesHeader(header) ||
     isDiagnosticsCacheConsistencyFindingHeader(header) ||
-    isDiagnosticsEphemeraRenderCacheFindingHeader(header) ||
     isDiagnosticsPlayerMisalignmentFindingHeader(header) ||
     isCognitoNewPlayerHeader(header) ||
     isApiAssetsIngressHeader(header) ||
@@ -116,7 +108,6 @@ export const isWMLZoneChangedEvent = makeStreamingEnvelopeGuardFromHeaderGuard<W
 export const isWMLAssetPurgedEvent = makeStreamingEnvelopeGuardFromHeaderGuard<WMLPurgeEvent, StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Asset Purged' }>(isWMLAssetPurgedHeader)
 export const isDiagnosticsHealGlobalValuesEvent = makeStreamingEnvelopeGuardFromHeaderGuard<{ type: 'Heal Global Values'; connections?: unknown; assets?: unknown }, StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Heal Global Values' }>(isDiagnosticsHealGlobalValuesHeader)
 export const isDiagnosticsCacheConsistencyFindingEvent = makeStreamingEnvelopeGuardFromHeaderGuard<DiagnosticsCacheConsistencyFindingEvent, StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Cache Consistency Finding' }>(isDiagnosticsCacheConsistencyFindingHeader)
-export const isDiagnosticsEphemeraRenderCacheFindingEvent = makeStreamingEnvelopeGuardFromHeaderGuard<DiagnosticsEphemeraRenderCacheFindingEvent, StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Ephemera RenderCache Finding' }>(isDiagnosticsEphemeraRenderCacheFindingHeader)
 export const isDiagnosticsPlayerMisalignmentFindingEvent = makeStreamingEnvelopeGuardFromHeaderGuard<DiagnosticsPlayerMisalignmentFindingEvent, StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Player Misalignment Finding' }>(isDiagnosticsPlayerMisalignmentFindingHeader)
 export const isCognitoNewPlayerEvent = makeStreamingEnvelopeGuardFromHeaderGuard<CognitoNewPlayerEvent, StreamingEventHeader & { dataSourceKey: 'mtw.cognito'; type: 'New Player' }>(isCognitoNewPlayerHeader)
 export const isApiAssetsHealPlayerEvent = makeStreamingEnvelopeGuardFromHeaderGuard<

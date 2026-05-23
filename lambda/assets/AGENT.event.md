@@ -34,13 +34,8 @@ The Assets Lambda hosts seven data sources, each serving a specific purpose:
 **Diagnostics finding handling (steady state):**
 - Subscribes to `mtw.diagnostics` findings including:
   - `Cache Consistency Finding` -> calls `cacheAsset(...)`.
-  - `Ephemera RenderCache Finding` -> calls `reseedComponentExamplesFromDiagnostics(...)`.
   - `Player Misalignment Finding` -> calls `healPlayer(player)` idempotently.
-- `Ephemera RenderCache Finding` remediation is **assets-led** and **descriptive**:
-  - validates and normalizes `perspective` and optional `roomIds`,
-  - resolves target room set (`roomIds` scope when provided, else all perspective-eligible rooms),
-  - emits synthetic `Component Updated` events from Assets to drive `mtw.assets.componentExamples` fanout.
-- This path does **not** write ephemera render cache directly. It preserves ownership boundaries by healing through the existing publish/subscribe chain.
+- `Ephemera RenderCache Finding` is **not** handled on **`mtw.assets`**; **`mtw.ephemera.renderCache`** performs lazy catalog invalidation (see [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../ephemera/dataSource/renderCache/AGENT.md)).
 
 **Implementation**: [`./dataSource/index.ts`](./dataSource/index.ts)
 
@@ -131,7 +126,7 @@ The Assets Lambda hosts seven data sources, each serving a specific purpose:
 
 ### 6. **mtw.assets.componentExamples** (Component Examples)
 
-**Purpose**: Publishes Example lifecycle events (ExampleAdded, ExampleRemoved, ExampleUpdated) for Ephemera mirroring. Downstream (e.g. `mtw.ephemera.examples`) subscribes and writes render-cache records keyed by component and `perspectiveId`, using these events as the **authoritative bridge** between Assets blueprints and Ephemera's render cache.
+**Purpose**: Publishes Example lifecycle events (ExampleAdded, ExampleRemoved, ExampleUpdated) for Ephemera render cache (mirror path until invalidation-only emitter ships). Steady-state target: **`ExampleInvalidated`** consumed by **`mtw.ephemera.renderCache`** for catalog bumps + hydrate-on-demand.
 
 **Type**: Non-replayable (no external client subscribes to this data source)
 
@@ -160,11 +155,6 @@ Where:
   - For `ExampleRemoved`, computes `assetStack` and `parentIds` without emitting a new example payload.
 
 Other component types (Character, Message, Guidance, etc.) are ignored by this data source.
-
-**Diagnostics reseed integration (steady state):**
-- `Ephemera RenderCache Finding` remediation in `mtw.assets` uses synthetic `Component Updated` events to intentionally re-enter this enrichment pipeline.
-- As a result, reseed uses the same authored payload construction path as normal component updates rather than introducing a separate cache-healing event shape.
-- `status: 'missing'` and `status: 'corrupted'` currently share the same idempotent reseed behavior.
 
 **Implementation**: [`./componentExamples/index.ts`](./componentExamples/index.ts)
 

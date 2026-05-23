@@ -1,6 +1,6 @@
 # On-demand authored examples (invalidate + hydrate) - planning
 
-**Status:** Design pass complete; **contracts slice landed**; **catalog + adjacency slice landed** (Dynamo CRUD, **`ExampleInvalidated`** handler, M2 pointer migration). **Next:** gateway assembly + hydrate + remaining invalidation/diagnostics per [**Recommended order**](#recommended-order).
+**Status:** Design pass complete; **contracts**, **catalog + adjacency**, **gateway (A3)**, **lambda wiring (A1)**, and **invalidation handler slice** landed (P7 diagnostics, Assets reseed retired, **`mtw.ephemera.examples`** mirror retired). **Next:** Assets invalidation-only emitter + **`ensureAuthoredCatalog`** hydrate per [**Recommended order**](#recommended-order).
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting notes live under [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md), [`lambda/assets/componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md), and related steady-state docs.
 
@@ -340,7 +340,7 @@ sequenceDiagram
 | --- | --- | --- |
 | Partition **`ComponentData`** reads on mirroring/reseed | **Done** (pair loader) | N/A |
 | Retire **`ExampleUpdated`** / **`ExampleRemoved`** mirror payloads | **This plan** | **Assets emitter**; **Invalidation handler** (partial); retire [`componentExamples.ts`](../../../../../lambda/ephemera/dataSource/componentExamples.ts) |
-| Retire **`reseedComponentExamplesFromDiagnostics`** | **This plan** | **P7** diagnostics finding on Ephemera **`renderCache`**; remove Assets [`dataSource/index.ts`](../../../../../lambda/assets/dataSource/index.ts) routing |
+| Retire **`reseedComponentExamplesFromDiagnostics`** | **Done** | **P7** on Ephemera **`renderCache`**; Assets routing removed |
 | Remove **`loadAuthoritativeForMirroring`**, legacy **`exampleEnrichment`** merge-at-push | **This plan** | After **Lambda wiring (A1)** + **Hydration**; **`internalCache.ComponentExamples`** replaces push-time merge |
 | Grep cleanup of **`createAuthoritativeComponentDataCacheHandler`** outside **`componentData/`** | **Done** (shim removed) | Do **not** reintroduce partition handler on lambdas; see [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) |
 
@@ -415,11 +415,12 @@ Do **not** overload **constellation** for v1 exact-match or hydrate --- reserve 
 | `componentExamples` gateway + **`AuthoredExample`** naming (algorithm + implementation) | Done |
 | Invalidation event contract drafted | Done |
 | Catalog rows + adjacency CRUD + invalidation handler (M2/S2--S4) | Done |
+| Invalidation handler slice (P7, reseed + mirror retirement) | Done |
 | Meta freshness fields + writers | Partial (catalog `currentCacheId`; legacy Meta fallback) |
 | Ephemera aggregate read wiring | Done |
 | Hydration step in orchestration | Not started |
 | Assets componentExamples emit invalidations only | Not started |
-| Steady-state AGENT.md updates | Not started |
+| Steady-state AGENT.md updates | Partial (renderCache + dataSource + assets event docs updated) |
 
 ---
 
@@ -450,10 +451,10 @@ Two separate mechanisms today both end up in **`mtw.assets.componentExamples`**;
 
 **Diagnostics reseed (`Ephemera RenderCache Finding`)**
 
-- **What it is:** **`mtw.diagnostics`** emits **`Ephemera RenderCache Finding`** when a check decides Ephemera's render cache for a **perspective** (ordered **`ASSET#...`** list) is **`missing`** or **`corrupted`** relative to what Assets expects. Optional **`roomIds`** narrow which rooms to fix. See [`packages/mtw-interfaces/ts/eventBridge/diagnostics/index.ts`](../../../../../packages/mtw-interfaces/ts/eventBridge/diagnostics/index.ts).
+- **What it is:** **`mtw.diagnostics`** emits **`Ephemera RenderCache Finding`** when a check decides Ephemera catalog rows are **`missing`** or **`corrupted`** relative to blueprint. Wire shape: **`targetCatalogs`** --- `{ ephemeraId, perspectiveKey }[]` (may be empty = no-op). Publisher owns discovery; Ephemera only bumps listed catalogs. See [`packages/mtw-interfaces/ts/eventBridge/diagnostics/index.ts`](../../../../../packages/mtw-interfaces/ts/eventBridge/diagnostics/index.ts).
 - **Who handles it:** **`mtw.assets`** main data source ([`lambda/assets/dataSource/index.ts`](../../../../../lambda/assets/dataSource/index.ts)) calls **`reseedComponentExamplesFromDiagnostics`**, which loads each target Room from **`ComponentData`**, then **synthesizes** an internal **`mtw.assets`** event: content **`Component Updated`**, header **`Component Republished`**, so the **old** mirroring pipeline rebuilds cache rows.
 - **Why it existed:** Steady-state docs describe reseed as "re-use the same authored payload construction as normal updates" rather than a one-off heal API ([`lambda/assets/AGENT.event.md`](../../../../../lambda/assets/AGENT.event.md) **Diagnostics reseed integration**).
-- **Under on-demand authored examples:** A finding means "Ephemera cache for this perspective is wrong." With hydrate-on-demand, Ephemera can fix that **locally**: bump **`catalogVersion`** on affected **`Cache::${perspectiveKey}`** rows (for the finding's perspective and scoped **`roomIds`** / F/K **`EphemeraId`**s), clear pointers, **`RenderCache.invalidate`**. The next resolve (or optional eager hydrate) rebuilds from Assets aggregate --- **no Assets round-trip**.
+- **Under on-demand authored examples:** A finding means "these materialized catalogs are wrong." With hydrate-on-demand, Ephemera fixes that **locally**: for each **`targetCatalogs`** entry, bump **`catalogVersion`** on **`Cache::${perspectiveKey}`** if the row exists (V1), clear pointers, **`RenderCache.invalidate`**. The next resolve (or optional eager hydrate) rebuilds from Assets aggregate --- **no Assets round-trip**.
 
 **Decision (reseed + synthetic Republished):** **[`reseedFromDiagnostics.ts`](../../../../../lambda/assets/componentExamples/reseedFromDiagnostics.ts)** and the Assets handler that calls it become **obsolete for cache heal**. Do **not** remap findings to **`ExampleInvalidated`** on Assets unless we intentionally keep a cross-lambda path. Prefer **`mtw.ephemera.*`** (or **`mtw.ephemera.renderCache`**) subscribing to **`Ephemera RenderCache Finding`** (today Ephemera does **not** --- see [`lambda/ephemera/dataSource/AGENT.md`](../../../../../lambda/ephemera/dataSource/AGENT.md)).
 
@@ -483,7 +484,7 @@ Closed before the contracts implementation slice so component/Situation emitters
 | H1b | **Non-orchestration readers** (`ComponentRender`, raw **`RenderCache.get`):** call **`ensureAuthoredCatalog`?** | **Decided (v1):** **No.** **`ensureAuthoredCatalog`** runs only on **orchestration resolve** entry points: **`orchestrateRenderRequest`** after successful intake (including **`fanOutStateChangedToPassiveRenders`**). **`ComponentRender`** / perception paths that read cache directly may serve **version-gated** rows that are stale until the next resolve hydrates --- acceptable in v1; gameplay **look** and passive **`Render Requested`** are normative for freshness. Revisit if Workbench preview needs eager hydrate without orchestration. |
 | P5 | **Situation `Component Removed`:** adjacency partition cleanup? | **Decided:** after Situation-scoped invalidation bump **all** adjacency links ([**S2**](#situation-adjacency-invalidation-fan-out); entity removed), **delete all rows** under **`EphemeraId = SITUATION#...`** (paginated **`Query`** on partition). Idempotent; empty partition is fine. Do not leave orphan **`Link::...`** rows. |
 | P6 | **Migration / deploy order / dual-write?** | **Decided:** **No dual-write** of authored bodies after cutover. **Order:** (1) Ship Ephemera **catalog rows + invalidation handler + adjacency + `ensureAuthoredCatalog`** (tolerates legacy **`CACHE#`** without **`catalogVersion`** per [**V2**](#catalog-rows-cacheperspectivekey)); (2) Switch Assets to **`ExampleInvalidated`**-only and drop mirror puts; (3) Remove **`mtw.ephemera.examples`** subscriber. Brief overlap where Assets emits invalidations before Ephemera handler is live is OK (bumps no-op on missing **`Cache::`**). **No** byte-parity gate vs mirrored payloads ([**L2**](#legacy-mirroring-cleanup)). |
-| P7 | **Diagnostics `Ephemera RenderCache Finding`:** handler home; eager vs lazy heal? | **Decided:** **`mtw.ephemera.renderCache`** (same module as invalidation) subscribes to diagnostics findings on the Ephemera side; **drop** Assets **`reseedComponentExamplesFromDiagnostics`** ([**I4**](#i4-explained-component-republished-and-diagnostics-reseed)). **`assetStack`** = **`canonicalizePerspectiveAssetStack(finding.perspective)`** (the perspective being healed --- **not** an "edit" stack); **`perspectiveKey`** = **`computePerspectiveKey(assetStack)`**. **Targets:** each **`roomId`** in **`finding.roomIds`** (if present) else candidate **`ROOM#`** ids from the same **blueprint scan** as today's reseed **`resolveRoomIdsFromPerspective`** (assetDB/component read --- diagnostics-only, not steady-state Situation invalidation). Per target room: bump **only if** **`Cache::${perspectiveKey}`** exists (V1). **Lazy heal** --- no eager **`ensureAuthoredCatalog`** on finding ([**I4**](#i4-explained-component-republished-and-diagnostics-reseed)). F/K scoped findings deferred unless diagnostic adds F/K ids later. |
+| P7 | **Diagnostics `Ephemera RenderCache Finding`:** handler home; eager vs lazy heal? | **Decided:** **`mtw.ephemera.renderCache`** (same module as invalidation) subscribes on Ephemera; **drop** Assets **`reseedComponentExamplesFromDiagnostics`** ([**I4**](#i4-explained-component-republished-and-diagnostics-reseed)). **Heal targets:** **`finding.targetCatalogs`** --- `{ ephemeraId, perspectiveKey }[]` (empty = no-op). Ephemera handler is **receive-only bump**: **`getCatalogRow`** + **`conditionalInvalidateCatalogRow`** per entry; **no** blueprint scan on receive. Bump **only if** **`Cache::${perspectiveKey}`** exists (V1). **Lazy heal** --- no eager **`ensureAuthoredCatalog`** on finding. **Publisher** (future diagnostics sweep) owns enumeration and materialized-catalog checks; emits **`targetCatalogs`** only. F/K hosts deferred until sweep includes them (room-first v1). |
 
 #### Participation `assetStack` vs `editAssetId` (context)
 
@@ -556,10 +557,11 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` wh
 - [X] **Situation adjacency:** CRUD helpers + hydrate diff maintenance (S4); Situation invalidation handler with layer participation filter (S2/S3)
 - [X] **`componentExamples` gateway (`mtw-gateways`):** per [**A3 algorithm**](#componentexamples-gateway---algorithm-a3); **`AuthoredExample`** types; lift helpers from **`exampleEnrichment.ts`**; package tests + parity; [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) ownership row. **`assemble.ts`** shipped (**secondary**); **`factory.ts`** + **`createComponentExamplesCacheHandler`** land with [**Lambda wiring**](#recommended-order) (not a separate public API shape).
 - [X] **Lambda wiring (**A1**):** **Diagnostics:** tier-1 **`ComponentData`** + **`ComponentVerticals`**; **`ComponentAggregate`**; **`ComponentExamples`**. **Ephemera:** **`ComponentAggregate`** + **`ComponentExamples`** with slice **`{ ComponentData: internalCache.ComponentData, ... }`** (pair **`getAcrossAssets`** at canon stack); stub **`ComponentVerticals`** if needed for slice shape. Hydrate: **`internalCache.ComponentExamples.get`** only (no **`assembleComponentExamplesAtPerspective`**, no partition enumerate at boundary).
-- [ ] **Invalidation handler:** in **`mtw.ephemera.renderCache`** (P3) --- component-scoped path (P1 + layer participation); Situation path (S2/S3, P5 cleanup on Removed); diagnostics finding (P7); retire [`componentExamples.ts`](../../../../../lambda/ephemera/dataSource/componentExamples.ts) mirror + Assets reseed
+- [X] **Invalidation handler:** in **`mtw.ephemera.renderCache`** (P3) --- component-scoped path (P1 + layer participation); Situation path (S2/S3, P5 cleanup on Removed); diagnostics finding (P7); retire [`componentExamples.ts`](../../../../../lambda/ephemera/dataSource/componentExamples.ts) mirror + Assets reseed
 - [ ] **Assets emitter:** refactor [`componentExamples/index.ts`](../../../../../lambda/assets/componentExamples/index.ts) to invalidations-only (P1: **`editAssetId`** from event asset); Situation path per S1; drop **`emitSituationComponentFacetEvents`** / **`getParentIdsForSituation`**
 - [ ] **Hydration step:** **`ensureAuthoredCatalog`** (O1/O2) calls **`internalCache.ComponentExamples.get`** + **diff** put/delete authored rows + catalog ready + coalescing; wire from **`orchestrationHandler`** before **`findRender`**
 - [ ] **Tests:** gateway golden/parity (**`componentExamples`**); layer participation invalidation (A/B/C overlay); Situation invalidation uses **`situationId`**; adjacency + filter; hydrate diff; hydrate-then-exact-match; diagnostics via gateway
+- [ ] **Diagnostics renderCache sweep:** in **`lambda/diagnostics/`** (new module, pattern: **`roomOccupancyDriftSweep`**) --- compare blueprint desired set (**`internalCache.ComponentExamples.get`**) vs Ephemera materialized state (**`ephemeraDB`** catalog + version-gated **`CACHE#`** where needed); emit **`Ephemera RenderCache Finding`** with **`targetCatalogs`** only (no **`perspective`** / **`roomIds`**). Manual emission docs for sandbox until scheduled.
 - [ ] **Docs:** update [`renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md) (**Mirroring vs runtime**), [`componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md), [`AGENT.event.md`](../../../../../lambda/assets/AGENT.event.md); trim stale Example-filter prose
 - [ ] **Dispose this plan** per [`taskPlanning/AGENT.md`](../../../../AGENT.md)
 
@@ -582,7 +584,7 @@ cd packages/mtw-gateways && npm test -- --testPathPattern=componentExamples
 ```bash
 cd packages/mtw-interfaces && npm test -- --testPathPattern=componentExamples
 cd packages/mtw-gateways && npm test -- --testPathPattern=componentExamples
-cd lambda/ephemera && npm test -- --testPathPattern='renderCache/(baseClasses|catalogGuards|subscribedEvents|diagnosticsFinding)'
+cd lambda/ephemera && npm test -- --testPathPattern='renderCache/(baseClasses|catalogGuards|subscribedEvents)'
 ```
 
 **Catalog + adjacency slice (landed):**
@@ -603,9 +605,9 @@ Gateway slice files: [`enrichment.ts`](../../../../../packages/mtw-gateways/ts/a
 
 **Gateway correction (aggregate-only discovery):** An initial implementation used unmerged **`getAuthoritative`** / partition pre-scan to build one **`aggregate.get`** batch. Corrected to A3: merged-host discovery via **`aggregate.get([host])`**, then **`aggregate.get([situations, lens?])`** without repeating host. Tests: same **`componentExamples`** pattern as above.
 
-Contract files: [`packages/mtw-interfaces/ts/eventBridge/assets/componentExamples.ts`](../../../../../packages/mtw-interfaces/ts/eventBridge/assets/componentExamples.ts); [`packages/mtw-gateways/ts/assets/components/componentExamples/`](../../../../../packages/mtw-gateways/ts/assets/components/componentExamples/); [`lambda/ephemera/dataSource/renderCache/baseClasses.ts`](../../../../../lambda/ephemera/dataSource/renderCache/baseClasses.ts), [`catalogGuards.ts`](../../../../../lambda/ephemera/dataSource/renderCache/catalogGuards.ts), [`diagnosticsFindingContract.ts`](../../../../../lambda/ephemera/dataSource/renderCache/diagnosticsFindingContract.ts), [`subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/renderCache/subscribedEvents.ts).
+Contract files: [`packages/mtw-interfaces/ts/eventBridge/assets/componentExamples.ts`](../../../../../packages/mtw-interfaces/ts/eventBridge/assets/componentExamples.ts); [`packages/mtw-gateways/ts/assets/components/componentExamples/`](../../../../../packages/mtw-gateways/ts/assets/components/componentExamples/); [`lambda/ephemera/dataSource/renderCache/baseClasses.ts`](../../../../../lambda/ephemera/dataSource/renderCache/baseClasses.ts), [`catalogGuards.ts`](../../../../../lambda/ephemera/dataSource/renderCache/catalogGuards.ts), [`subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/renderCache/subscribedEvents.ts); diagnostics finding: [`packages/mtw-interfaces/ts/eventBridge/diagnostics/index.ts`](../../../../../packages/mtw-interfaces/ts/eventBridge/diagnostics/index.ts).
 
-Catalog/adjacency slice files: [`catalogRow.ts`](../../../../../lambda/ephemera/dataSource/renderCache/catalogRow.ts), [`situationAdjacency.ts`](../../../../../lambda/ephemera/dataSource/renderCache/situationAdjacency.ts), [`perspectivePointer.ts`](../../../../../lambda/ephemera/dataSource/renderCache/perspectivePointer.ts), [`handleExampleInvalidated.ts`](../../../../../lambda/ephemera/dataSource/renderCache/handleExampleInvalidated.ts).
+Catalog/adjacency slice files: [`catalogRow.ts`](../../../../../lambda/ephemera/dataSource/renderCache/catalogRow.ts), [`situationAdjacency.ts`](../../../../../lambda/ephemera/dataSource/renderCache/situationAdjacency.ts), [`perspectivePointer.ts`](../../../../../lambda/ephemera/dataSource/renderCache/perspectivePointer.ts), [`handleExampleInvalidated.ts`](../../../../../lambda/ephemera/dataSource/renderCache/handleExampleInvalidated.ts). P7: [`handleRenderCacheFinding.ts`](../../../../../lambda/ephemera/dataSource/renderCache/handleRenderCacheFinding.ts).
 
 **Lambda wiring slice (A1, landed):**
 
@@ -619,7 +621,17 @@ cd lambda/assets && npm test -- --testPathPattern=componentAggregate
 
 A1 files: [`factory.ts`](../../../../../packages/mtw-gateways/ts/assets/components/componentExamples/factory.ts), [`keys.ts`](../../../../../packages/mtw-gateways/ts/assets/components/componentExamples/keys.ts); [`lambda/ephemera/internalCache/index.ts`](../../../../../lambda/ephemera/internalCache/index.ts), [`lambda/diagnostics/internalCache/index.ts`](../../../../../lambda/diagnostics/internalCache/index.ts).
 
-After later slices, add patterns for hydrate diff, hydrate-then-exact-match, diagnostics finding handler.
+**Invalidation handler slice (landed):** P7 contract tightened in follow-up --- **`targetCatalogs`** on wire; Ephemera receive-only bump (no blueprint scan).
+
+```bash
+cd packages/mtw-interfaces && npm test -- --testPathPattern=diagnostics
+cd lambda/ephemera && npm test -- --testPathPattern='renderCache/(handleRenderCacheFinding|handleExampleInvalidated|index|subscribedEvents)'
+cd lambda/assets && npm test -- --testPathPattern='dataSource/index'
+```
+
+Slice files: [`handleRenderCacheFinding.ts`](../../../../../lambda/ephemera/dataSource/renderCache/handleRenderCacheFinding.ts); removed [`lambda/ephemera/dataSource/componentExamples.ts`](../../../../../lambda/ephemera/dataSource/componentExamples.ts), [`lambda/assets/componentExamples/reseedFromDiagnostics.ts`](../../../../../lambda/assets/componentExamples/reseedFromDiagnostics.ts), [`resolveDiagnosticTargetRooms.ts`](../../../../../lambda/ephemera/dataSource/renderCache/resolveDiagnosticTargetRooms.ts) (superseded by publisher-owned **`targetCatalogs`**).
+
+After later slices, add patterns for hydrate diff and hydrate-then-exact-match.
 
 ---
 

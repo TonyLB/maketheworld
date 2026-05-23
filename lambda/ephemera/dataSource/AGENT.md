@@ -32,9 +32,9 @@ Task-planning drafts (dispose after tasks land) live under [`taskPlanning/lambda
 **Ingress convention:** Many flows use **`dataSourceKey: 'api.ephemera'`** on the internal bus for lambda-invoked commands (not necessarily API Gateway). Package-local `localApiEvents.ts` files document additional **`api.ephemera`** header types.
 
 **Diagnostics boundary note (steady state):**
-- Ephemera DataSource does **not** directly subscribe to `mtw.diagnostics` `Ephemera RenderCache Finding`.
-- Render-cache self-healing for this finding is assets-led: diagnostics finding -> `mtw.assets` reseed -> `mtw.assets.componentExamples` -> `mtw.ephemera.examples` -> `mtw.ephemera.renderCache`.
-- This preserves `mtw.ephemera.renderCache` as the write-owner boundary for cache persistence.
+- **`mtw.ephemera`** (this [`index.ts`](index.ts)) does **not** subscribe to `Ephemera RenderCache Finding`.
+- **`mtw.ephemera.renderCache`** subscribes and performs lazy catalog invalidation (P7) via [`renderCache/handleRenderCacheFinding.ts`](renderCache/handleRenderCacheFinding.ts).
+- Assets **`mtw.assets`** no longer reseeds on this finding.
 
 ---
 
@@ -45,8 +45,7 @@ Side-effect **`import './dataSource/...'`** from [`../app.ts`](../app.ts) regist
 | Key | Directory | Notes |
 | --- | --- | --- |
 | **`mtw.ephemera`** | [`./`](./) ([`index.ts`](index.ts)) | Subscribes to **`mtw.assets`**; blueprint / component reconciliation |
-| **`mtw.ephemera.examples`** | [`componentExamples.ts`](componentExamples.ts) | Component examples stream |
-| **`mtw.ephemera.renderCache`** | [`renderCache/`](renderCache/) | Durable **`CACHE#...`** rows, **`Render Pertains`**, orchestration handoff --- [`renderCache/AGENT.md`](renderCache/AGENT.md) |
+| **`mtw.ephemera.renderCache`** | [`renderCache/`](renderCache/) | Durable **`CACHE#...`** rows, invalidation, diagnostics heal, **`Render Pertains`**, orchestration handoff --- [`renderCache/AGENT.md`](renderCache/AGENT.md) |
 | **`mtw.ephemera.renderOrchestration`** | [`renderOrchestration/`](renderOrchestration/) | **`findRender`**, generation, six outbound types --- [`renderOrchestration/AGENT.md`](renderOrchestration/AGENT.md) |
 | **`mtw.ephemera.perception`** | [`perception/`](perception/) | Audience fan-in, **`PublishMessage`** --- [`perception/AGENT.md`](perception/AGENT.md) |
 | **`mtw.ephemera.state`** | [`state/`](state/) | **`Meta::Room.state`** marks merge, **`State Changed`** --- [`state/AGENT.md`](state/AGENT.md) |
