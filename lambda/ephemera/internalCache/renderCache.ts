@@ -12,7 +12,9 @@ import {
 } from '../dataSource/renderCache/baseClasses'
 import type { PutCacheRecordInput } from '../dataSource/renderCache/putCacheRecord'
 import type { QueryCacheRecordsForComponentFn } from '../dataSource/renderCache/queryCacheRecordsForComponent'
-import { perspectiveMatches, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
+import { getCatalogRow } from '../dataSource/renderCache/catalogRow'
+import { isAuthoritativeCacheRow } from '../dataSource/renderCache/catalogGuards'
+import { perspectiveMatches, computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { markStatesEqual } from '../dataSource/renderCache/utils/markState'
 
 /** Fields to upsert into the in-memory array for `componentId`. */
@@ -26,6 +28,7 @@ export type RenderCacheSetParams = {
     perspectiveId: PutCacheRecordInput['perspectiveId'];
     perspectiveMatcher: PutCacheRecordInput['perspectiveMatcher'];
     situationId?: PutCacheRecordInput['situationId'];
+    catalogVersion?: PutCacheRecordInput['catalogVersion'];
 }
 
 const cacheKey = (componentId: EphemeraCacheComponentId): string => componentId as string
@@ -95,6 +98,7 @@ export class RenderCacheData {
             perspectiveId,
             perspectiveMatcher,
             ...(params.situationId !== undefined ? { situationId: params.situationId } : {}),
+            ...(params.catalogVersion !== undefined ? { catalogVersion: params.catalogVersion } : {}),
         } satisfies Omit<EphemeraCacheDynamoItem, 'DataCategory'>
 
         if (cacheId !== undefined) {
@@ -170,11 +174,16 @@ export class RenderCacheData {
     async getExactMatch(params: RenderCacheGetExactMatchParams): Promise<EphemeraCacheDynamoItem | null> {
         const { componentId, proposedMarkState, perspective } = params
         const rows = await this.get(componentId)
+        const perspectiveKey = computePerspectiveKey(perspective.assetStack)
+        const catalog = await getCatalogRow(componentId, perspectiveKey)
+
+        const versionFiltered = catalog !== undefined
+            ? rows.filter((record) => isAuthoritativeCacheRow(record, catalog))
+            : rows
+
         return (
-            rows
-                // First narrow to perspective-compatible records.
+            versionFiltered
                 .filter((record) => record.perspectiveMatcher && perspectiveMatches(record.perspectiveMatcher, perspective))
-                // Then narrow to exact mark-state matches.
                 .filter((record) => markStatesEqual(proposedMarkState, record.markState))[0] ?? null
         )
     }

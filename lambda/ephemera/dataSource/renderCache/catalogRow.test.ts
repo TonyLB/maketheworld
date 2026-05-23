@@ -22,6 +22,7 @@ import {
     conditionalInvalidateCatalogRow,
     createCatalogRowForHydrate,
     getCatalogRow,
+    markCatalogHydratedAtVersion,
     perspectiveKeyFromCatalogDataCategory,
     putCatalogRow,
     queryCatalogRowsForComponent,
@@ -117,5 +118,41 @@ describe('catalogRow', () => {
         const row = catalogRow()
         await putCatalogRow(row)
         expect(ephemeraDBMock.putItem).toHaveBeenCalledWith(row)
+    })
+
+    it('markCatalogHydratedAtVersion writes when catalogVersion unchanged', async () => {
+        const row = catalogRow({ catalogVersion: 2, hydratedCatalogVersion: 0 })
+        ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer, successCallback }) => {
+            const draft = { ...row }
+            updateReducer(draft)
+            await successCallback?.(draft, row)
+            return draft
+        })
+
+        const wrote = await markCatalogHydratedAtVersion(componentId, 'PERSPECTIVE#v1#abc', 2)
+
+        expect(wrote).toBe(true)
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith(
+            expect.objectContaining({ checkKeys: ['catalogVersion'] })
+        )
+        expect(renderCacheInvalidate).toHaveBeenCalledWith(componentId)
+    })
+
+    it('markCatalogHydratedAtVersion returns false when catalog bumped mid-hydrate', async () => {
+        const row = catalogRow({ catalogVersion: 3, hydratedCatalogVersion: 0 })
+        ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer, successCallback }) => {
+            const prior = { ...row }
+            const draft = { ...row }
+            updateReducer(draft)
+            if (draft.hydratedCatalogVersion !== prior.hydratedCatalogVersion) {
+                await successCallback?.(draft, prior)
+            }
+            return row
+        })
+
+        const wrote = await markCatalogHydratedAtVersion(componentId, 'PERSPECTIVE#v1#abc', 2)
+
+        expect(wrote).toBe(false)
+        expect(renderCacheInvalidate).not.toHaveBeenCalled()
     })
 })

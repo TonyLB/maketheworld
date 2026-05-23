@@ -1,3 +1,11 @@
+jest.mock('../renderCache/ensureAuthoredCatalog', () => ({
+    ensureAuthoredCatalog: jest.fn().mockResolvedValue(undefined),
+}))
+
+jest.mock('../renderCache/catalogRow', () => ({
+    getCatalogRow: jest.fn().mockResolvedValue(undefined),
+}))
+
 jest.mock('../renderCache/perspectivePointer', () => ({
     resolvePerspectivePointer: jest.fn(async (_roomId, perspectiveKey, metaRoom) => {
         const id = metaRoom?.currentCacheByPerspective?.[perspectiveKey]
@@ -11,6 +19,8 @@ import type { MessageBus as MessageBusType } from '../../messageBus/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
 import internalCache from '../../internalCache'
+import { ensureAuthoredCatalog } from '../renderCache/ensureAuthoredCatalog'
+import { getCatalogRow } from '../renderCache/catalogRow'
 import { orchestrateRenderRequest } from './orchestrationHandler'
 import {
     isRenderOrchestrationCurrentCacheValidPayload,
@@ -23,9 +33,15 @@ import {
 } from './publishedEvents'
 import type { RenderRequested } from '../../messageBus/baseClasses'
 
+const ensureAuthoredCatalogMock = ensureAuthoredCatalog as jest.MockedFunction<typeof ensureAuthoredCatalog>
+const getCatalogRowMock = getCatalogRow as jest.MockedFunction<typeof getCatalogRow>
+
 describe('dataSource/renderOrchestration/orchestrationHandler', () => {
     beforeEach(() => {
+        jest.clearAllMocks()
         internalCache.clear()
+        ensureAuthoredCatalogMock.mockResolvedValue(undefined)
+        getCatalogRowMock.mockResolvedValue(undefined)
     })
 
     const basePayload: RenderRequested = {
@@ -71,10 +87,38 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         return undefined
     }
 
+    it('calls ensureAuthoredCatalog after intake before findRender', async () => {
+        const messageBus = makeBus()
+        const getExactMatch = jest.fn().mockResolvedValue(null)
+        await orchestrateRenderRequest(
+            { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
+            {
+                getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
+                computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
+                getCacheRecordById: jest.fn(),
+                getExactMatch,
+                clearPerspectivePointer: jest.fn(),
+                markStatesEqual: jest.fn(),
+            }
+        )
+        expect(ensureAuthoredCatalogMock).toHaveBeenCalledWith({
+            componentId: 'ROOM#one',
+            perspective: basePayload.perspective,
+        })
+        expect(getExactMatch).toHaveBeenCalled()
+    })
+
     it('emits Current Cache Valid on valid fast-path hit', async () => {
         const messageBus = makeBus()
-        const getCacheRecordById = jest.fn().mockResolvedValue(baseCacheRecord)
+        const getCacheRecordById = jest.fn().mockResolvedValue({ ...baseCacheRecord, catalogVersion: 1 })
         const getExactMatch = jest.fn()
+        getCatalogRowMock.mockResolvedValue({
+            EphemeraId: 'ROOM#one',
+            DataCategory: 'Cache::PERSPECTIVE#v1#abc',
+            assetStack: ['ASSET#base'],
+            catalogVersion: 1,
+            hydratedCatalogVersion: 1,
+        })
         await orchestrateRenderRequest(
             { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {

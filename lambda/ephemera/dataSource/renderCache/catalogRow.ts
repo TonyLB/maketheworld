@@ -87,6 +87,38 @@ export async function conditionalInvalidateCatalogRow(row: EphemeraCacheCatalogR
     internalCache.RenderCache.invalidate(row.EphemeraId)
 }
 
+/**
+ * H6: mark catalog ready at incomingCatalogVersion only if catalogVersion unchanged since hydrate start.
+ * Returns true when hydratedCatalogVersion was written.
+ */
+export async function markCatalogHydratedAtVersion(
+    componentId: EphemeraCacheComponentId,
+    perspectiveKey: string,
+    incomingCatalogVersion: number
+): Promise<boolean> {
+    let wrote = false
+
+    await ephemeraDB.optimisticUpdate({
+        Key: {
+            EphemeraId: componentId,
+            DataCategory: buildCacheCatalogDataCategory(perspectiveKey),
+        },
+        updateKeys: ['hydratedCatalogVersion', 'catalogVersion'],
+        checkKeys: ['catalogVersion'],
+        updateReducer: (draft: EphemeraCacheCatalogRow) => {
+            if (draft.catalogVersion === incomingCatalogVersion) {
+                draft.hydratedCatalogVersion = incomingCatalogVersion
+            }
+        },
+        successCallback: () => {
+            wrote = true
+            internalCache.RenderCache.invalidate(componentId)
+        },
+    })
+
+    return wrote
+}
+
 export const perspectiveKeyFromCatalogDataCategory = (dataCategory: string): string | undefined => {
     if (!dataCategory.startsWith(EPHEMERA_CACHE_CATALOG_DATA_CATEGORY_PREFIX)) {
         return undefined

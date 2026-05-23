@@ -3,6 +3,8 @@ import { perspectiveMatches, computePerspectiveKey, type Perspective } from '@to
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { v4 as uuidv4 } from 'uuid'
 import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../renderCache/baseClasses'
+import { isAuthoritativeCacheRow } from '../renderCache/catalogGuards'
+import { getCatalogRow } from '../renderCache/catalogRow'
 import type { generateRoomPreview } from './generateRoomPreview'
 import type { RunWithSingleFlight } from './singleFlightRenderGeneration'
 import { buildOrchestrationRouting } from './orchestrationRouting'
@@ -54,9 +56,12 @@ export const findRender = async (
 
     if (pointerId !== undefined) {
         const cacheRecord = await deps.getCacheRecordById(resolve.roomId, pointerId)
+        const catalog = await getCatalogRow(resolve.roomId, perspectiveKey)
 
         const isValid = !!(
             cacheRecord
+            && catalog !== undefined
+            && isAuthoritativeCacheRow(cacheRecord, catalog)
             && deps.markStatesEqual(resolve.markState, cacheRecord.markState)
             && deps.perspectiveMatches(cacheRecord.perspectiveMatcher, resolve.perspective)
         )

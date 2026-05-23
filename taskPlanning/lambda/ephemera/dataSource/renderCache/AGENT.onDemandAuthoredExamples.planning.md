@@ -1,6 +1,6 @@
 # On-demand authored examples (invalidate + hydrate) - planning
 
-**Status:** Design pass complete; **contracts**, **catalog + adjacency**, **gateway (A3)**, **lambda wiring (A1)**, **invalidation handler slice**, and **Assets invalidation-only emitter** landed (P7 diagnostics, Assets reseed retired, **`mtw.ephemera.examples`** mirror retired, mirror modules deleted). **Next:** **`ensureAuthoredCatalog`** hydrate per [**Recommended order**](#recommended-order).
+**Status:** Design pass complete; **contracts**, **catalog + adjacency**, **gateway (A3)**, **lambda wiring (A1)**, **invalidation handler slice**, **Assets invalidation-only emitter**, and **hydration step (`ensureAuthoredCatalog`)** landed. **Next:** expanded **Tests** slice per [**Recommended order**](#recommended-order).
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting notes live under [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md), [`lambda/assets/componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md), and related steady-state docs.
 
@@ -418,7 +418,7 @@ Do **not** overload **constellation** for v1 exact-match or hydrate --- reserve 
 | Invalidation handler slice (P7, reseed + mirror retirement) | Done |
 | Meta freshness fields + writers | Partial (catalog `currentCacheId`; legacy Meta fallback) |
 | Ephemera aggregate read wiring | Done |
-| Hydration step in orchestration | Not started |
+| Hydration step in orchestration | Done |
 | Assets componentExamples emit invalidations only | Done |
 | Steady-state AGENT.md updates | Partial (renderCache + dataSource + assets event docs updated) |
 
@@ -559,7 +559,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` wh
 - [X] **Lambda wiring (**A1**):** **Diagnostics:** tier-1 **`ComponentData`** + **`ComponentVerticals`**; **`ComponentAggregate`**; **`ComponentExamples`**. **Ephemera:** **`ComponentAggregate`** + **`ComponentExamples`** with slice **`{ ComponentData: internalCache.ComponentData, ... }`** (pair **`getAcrossAssets`** at canon stack); stub **`ComponentVerticals`** if needed for slice shape. Hydrate: **`internalCache.ComponentExamples.get`** only (no **`assembleComponentExamplesAtPerspective`**, no partition enumerate at boundary).
 - [X] **Invalidation handler:** in **`mtw.ephemera.renderCache`** (P3) --- component-scoped path (P1 + layer participation); Situation path (S2/S3, P5 cleanup on Removed); diagnostics finding (P7); retire [`componentExamples.ts`](../../../../../lambda/ephemera/dataSource/componentExamples.ts) mirror + Assets reseed
 - [X] **Assets emitter:** refactor [`componentExamples/index.ts`](../../../../../lambda/assets/componentExamples/index.ts) to invalidations-only (P1: **`editAssetId`** from event asset); Situation path per S1; drop **`emitSituationComponentFacetEvents`** / **`getParentIdsForSituation`**
-- [ ] **Hydration step:** **`ensureAuthoredCatalog`** (O1/O2) calls **`internalCache.ComponentExamples.get`** + **diff** put/delete authored rows + catalog ready + coalescing; wire from **`orchestrationHandler`** before **`findRender`**
+- [X] **Hydration step:** **`ensureAuthoredCatalog`** (O1/O2) calls **`internalCache.ComponentExamples.get`** + **diff** put/delete authored rows + catalog ready + coalescing; wire from **`orchestrationHandler`** before **`findRender`**
 - [ ] **Tests:** gateway golden/parity (**`componentExamples`**); layer participation invalidation (A/B/C overlay); Situation invalidation uses **`situationId`**; adjacency + filter; hydrate diff; hydrate-then-exact-match; diagnostics via gateway
 - [ ] **Diagnostics renderCache sweep:** in **`lambda/diagnostics/`** (new module, pattern: **`roomOccupancyDriftSweep`**) --- compare blueprint desired set (**`internalCache.ComponentExamples.get`**) vs Ephemera materialized state (**`ephemeraDB`** catalog + version-gated **`CACHE#`** where needed); emit **`Ephemera RenderCache Finding`** with **`targetCatalogs`** only (no **`perspective`** / **`roomIds`**). Manual emission docs for sandbox until scheduled.
 - [ ] **Docs:** update [`renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md) (**Mirroring vs runtime**), [`componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md), [`AGENT.event.md`](../../../../../lambda/assets/AGENT.event.md); trim stale Example-filter prose
@@ -642,7 +642,14 @@ cd lambda/ephemera && npm test -- --testPathPattern='renderCache/(handleExampleI
 
 Slice files: [`lambda/assets/componentExamples/index.ts`](../../../../../lambda/assets/componentExamples/index.ts) (invalidation-only); removed [`exampleEnrichment.ts`](../../../../../lambda/assets/componentExamples/exampleEnrichment.ts), [`loadAuthoritativeForMirroring.ts`](../../../../../lambda/assets/componentExamples/loadAuthoritativeForMirroring.ts); [`legacyMergeAcrossStack.ts`](../../../../../lambda/assets/componentExamples/legacyMergeAcrossStack.ts) (parity tests only). Dropped **Component Republished** subscription (I4).
 
-After later slices, add patterns for hydrate diff and hydrate-then-exact-match.
+**Hydration step slice (landed):**
+
+```bash
+cd lambda/ephemera && npm test -- --testPathPattern='renderCache/(ensureAuthoredCatalog|hydrateAuthoredCatalog|catalogRow|putCacheRecord)|internalCache/renderCache|orchestrationHandler|findRender'
+cd lambda/ephemera && npm test -- --testPathPattern=renderCache
+```
+
+Slice files: [`ensureAuthoredCatalog.ts`](../../../../../lambda/ephemera/dataSource/renderCache/ensureAuthoredCatalog.ts), [`hydrateAuthoredCatalogDiff.ts`](../../../../../lambda/ephemera/dataSource/renderCache/hydrateAuthoredCatalogDiff.ts), [`authoredExampleToCacheRecord.ts`](../../../../../lambda/ephemera/dataSource/renderCache/authoredExampleToCacheRecord.ts), [`singleFlightAuthoredCatalogHydrate.ts`](../../../../../lambda/ephemera/dataSource/renderCache/singleFlightAuthoredCatalogHydrate.ts); [`catalogRow.ts`](../../../../../lambda/ephemera/dataSource/renderCache/catalogRow.ts) (`markCatalogHydratedAtVersion`); [`putCacheRecord.ts`](../../../../../lambda/ephemera/dataSource/renderCache/putCacheRecord.ts) (`catalogVersion`); version-gated [`internalCache/renderCache.ts`](../../../../../lambda/ephemera/internalCache/renderCache.ts) `getExactMatch`; [`findRender.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts) pointer gate; [`orchestrationHandler.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts) preflight wire.
 
 ---
 

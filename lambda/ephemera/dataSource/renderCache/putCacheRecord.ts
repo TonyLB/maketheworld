@@ -3,6 +3,7 @@
 //
 import { v4 as uuidv4 } from 'uuid'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import internalCache from '../../internalCache'
 import {
     EPHEMERA_CACHE_DATA_CATEGORY_PREFIX,
     type EphemeraCacheComponentId,
@@ -16,6 +17,8 @@ export type PutCacheRecordInput = {
     perspectiveId: EphemeraCacheDynamoItem['perspectiveId'];
     perspectiveMatcher: EphemeraCacheDynamoItem['perspectiveMatcher'];
     situationId?: EphemeraCacheDynamoItem['situationId'];
+    /** Blueprint epoch at write time (matches host Cache:: row catalogVersion). */
+    catalogVersion?: number;
 }
 
 /**
@@ -40,8 +43,20 @@ export async function putCacheRecord(
         provenance: record.provenance,
         perspectiveId: record.perspectiveId,
         perspectiveMatcher: record.perspectiveMatcher,
-        ...(record.situationId !== undefined && { situationId: record.situationId })
+        ...(record.situationId !== undefined && { situationId: record.situationId }),
+        ...(record.catalogVersion !== undefined && { catalogVersion: record.catalogVersion }),
     }
     await ephemeraDB.putItem(item)
+    internalCache.RenderCache.set({
+        componentId,
+        markState: record.markState,
+        cacheId: dataCategory,
+        renderedContent: record.renderedContent,
+        provenance: record.provenance,
+        perspectiveId: record.perspectiveId,
+        perspectiveMatcher: record.perspectiveMatcher,
+        ...(record.situationId !== undefined ? { situationId: record.situationId } : {}),
+        ...(record.catalogVersion !== undefined ? { catalogVersion: record.catalogVersion } : {}),
+    })
     return dataCategory
 }

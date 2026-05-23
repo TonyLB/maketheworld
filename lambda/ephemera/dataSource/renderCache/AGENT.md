@@ -85,9 +85,11 @@ Initiative: [`taskPlanning/.../AGENT.onDemandAuthoredExamples.planning.md`](../.
 | **`SituationCacheAdjacencyRow`** | `Link::${host}::Cache::${perspectiveKey}` under `SITUATION#` | Inverse index for Situation-scoped invalidation fan-out. |
 | **`ExampleInvalidated`** | `mtw.assets.componentExamples` | Skinny invalidation-only push from Assets; handled in [`handleExampleInvalidated.ts`](handleExampleInvalidated.ts). |
 | **`Ephemera RenderCache Finding`** | `mtw.diagnostics` | Lazy catalog bump (P7); handled in [`handleRenderCacheFinding.ts`](handleRenderCacheFinding.ts). |
-| **`AuthoredExample`** | `mtw-gateways` assembly | Blueprint desired set for hydrate (next slice). |
+| **`AuthoredExample`** | `mtw-gateways` assembly | Blueprint desired set for hydrate (`internalCache.ComponentExamples.get`). |
 
-**Catalog rows:** [`catalogRow.ts`](catalogRow.ts) (`queryCatalogRowsForComponent`, `getCatalogRow`, `putCatalogRow`, `conditionalInvalidateCatalogRow`, `createCatalogRowForHydrate`). Guards: [`catalogGuards.ts`](catalogGuards.ts).
+**Catalog rows:** [`catalogRow.ts`](catalogRow.ts) (`queryCatalogRowsForComponent`, `getCatalogRow`, `putCatalogRow`, `conditionalInvalidateCatalogRow`, `createCatalogRowForHydrate`, `markCatalogHydratedAtVersion`). Guards: [`catalogGuards.ts`](catalogGuards.ts).
+
+**Hydrate (orchestration preflight):** [`ensureAuthoredCatalog.ts`](ensureAuthoredCatalog.ts) (O1/O2) --- create-on-first-hydrate `Cache::` row, `internalCache.ComponentExamples.get` when stale, [`hydrateAuthoredCatalogDiff.ts`](hydrateAuthoredCatalogDiff.ts) (version-guarded put/delete `CACHE#` + adjacency), conditional catalog ready (H6). Coalescing: [`singleFlightAuthoredCatalogHydrate.ts`](singleFlightAuthoredCatalogHydrate.ts) (`EPHEMERA_AUTHORED_CATALOG_HYDRATE_CATEGORY`, cohort `componentId::perspectiveKey`). Mapping: [`authoredExampleToCacheRecord.ts`](authoredExampleToCacheRecord.ts). Wired from [`orchestrationHandler.ts`](../renderOrchestration/orchestrationHandler.ts) after intake, before `findRender`. **Does not** run on `ComponentRender` / raw cache reads in v1 (H1b).
 
 **Situation adjacency:** [`situationAdjacency.ts`](situationAdjacency.ts) (partition query/put/delete; S4 helpers `upsertAdjacencyForAuthoredSlice`, `deleteAdjacencyForRemovedSlice` for hydrate diff).
 
@@ -97,7 +99,7 @@ Initiative: [`taskPlanning/.../AGENT.onDemandAuthoredExamples.planning.md`](../.
 
 **Diagnostics heal (P7):** [`handleRenderCacheFinding.ts`](handleRenderCacheFinding.ts) on `Ephemera RenderCache Finding`. Iterates `finding.targetCatalogs` (`{ ephemeraId, perspectiveKey }`); bumps existing `Cache::${perspectiveKey}` rows only (V1); empty array is a no-op; no blueprint scan on receive; no eager hydrate.
 
-**Deferred:** `ensureAuthoredCatalog`, version-gated `getExactMatch`.
+**Version-gated lookup:** [`internalCache/renderCache.ts`](../../internalCache/renderCache.ts) `getExactMatch` uses `isAuthoritativeCacheRow` when a `Cache::` catalog row exists; legacy unversioned match when no catalog (H1b). [`findRender.ts`](../renderOrchestration/findRender.ts) pointer fast-path requires authoritative row + catalog.
 
 **Retired:** `mtw.ephemera.examples` mirror DataSource (was [`../componentExamples.ts`](../componentExamples.ts)). Steady-state invalidation and diagnostics heal run in this package only.
 

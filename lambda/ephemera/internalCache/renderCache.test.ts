@@ -1,8 +1,14 @@
+jest.mock('../dataSource/renderCache/catalogRow', () => ({
+    getCatalogRow: jest.fn().mockResolvedValue(undefined),
+}))
+
+import { getCatalogRow } from '../dataSource/renderCache/catalogRow'
 import { RenderCacheData } from './renderCache'
 import type { EphemeraCacheDynamoItem } from '../dataSource/renderCache/baseClasses'
 import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 
 const roomId = 'ROOM#r1' as const
+const getCatalogRowMock = getCatalogRow as jest.MockedFunction<typeof getCatalogRow>
 
 const makeRow = (overrides: Partial<EphemeraCacheDynamoItem> = {}): EphemeraCacheDynamoItem => ({
     EphemeraId: roomId,
@@ -16,6 +22,10 @@ const makeRow = (overrides: Partial<EphemeraCacheDynamoItem> = {}): EphemeraCach
 })
 
 describe('RenderCacheData', () => {
+    beforeEach(() => {
+        getCatalogRowMock.mockResolvedValue(undefined)
+    })
+
     describe('contract', () => {
         it('memoizes sequential get calls per componentId (single query)', async () => {
             const query = jest.fn().mockResolvedValue([makeRow()])
@@ -273,6 +283,28 @@ describe('RenderCacheData', () => {
                 expect(a).not.toBeNull()
                 expect(b).toBeNull()
                 expect(query).toHaveBeenCalledTimes(1)
+            })
+
+            it('ignores stale-version rows when catalog exists', async () => {
+                getCatalogRowMock.mockResolvedValue({
+                    EphemeraId: roomId,
+                    DataCategory: 'Cache::PERSPECTIVE#v1#x',
+                    assetStack: ['ASSET#a'],
+                    catalogVersion: 2,
+                    hydratedCatalogVersion: 2,
+                })
+                const stale = makeRow({ catalogVersion: 1, DataCategory: 'CACHE#stale' })
+                const current = makeRow({ catalogVersion: 2, DataCategory: 'CACHE#current' })
+                const query = jest.fn().mockResolvedValue([stale, current])
+                const cache = new RenderCacheData(query)
+
+                const result = await cache.getExactMatch({
+                    componentId: roomId,
+                    proposedMarkState: current.markState,
+                    perspective,
+                })
+
+                expect(result?.DataCategory).toBe('CACHE#current')
             })
         })
     })
