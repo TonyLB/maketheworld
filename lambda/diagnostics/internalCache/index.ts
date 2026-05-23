@@ -14,13 +14,18 @@ import {
     createImportVerticalMetaCacheHandler,
     type ImportVerticalMetaCache,
 } from '@tonylb/mtw-gateways/ts/assets/components/verticals'
-import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import {
+    createRenderCacheCacheHandler,
+    type RenderCacheCacheHandler,
+} from '@tonylb/mtw-gateways/ts/ephemera/renderCache'
+import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 class InternalCache {
     ComponentData: ComponentDataCache = createComponentDataCacheHandler(assetDB)
     ComponentVerticals: ImportVerticalMetaCache = createImportVerticalMetaCacheHandler(assetDB)
     ComponentAggregate: ComponentAggregateMergedCache
     ComponentExamples: ComponentExamplesMergedCache
+    RenderCache: RenderCacheCacheHandler = createRenderCacheCacheHandler(ephemeraDB)
 
     constructor() {
         this.ComponentAggregate = createComponentAggregateCacheHandler({
@@ -37,10 +42,15 @@ class InternalCache {
         this.ComponentVerticals.clear()
         this.ComponentAggregate.clear()
         this.ComponentExamples.clear()
+        this.RenderCache.clear()
     }
 
     async flush(): Promise<void> {
-        await Promise.all([this.ComponentAggregate.flush(), this.ComponentExamples.flush()])
+        await Promise.all([
+            this.ComponentAggregate.flush(),
+            this.ComponentExamples.flush(),
+            this.RenderCache.flush(),
+        ])
     }
 }
 

@@ -7,8 +7,15 @@ import type { AuthoritativeComponentData } from '../componentData/dynamoStandard
 import { createComponentAggregateCacheHandler } from '../aggregate/factory'
 import { inMemoryComponentAggregateInternalCacheSlice } from '../aggregate/testHarness'
 
+import { assembleComponentExamplesAtPerspective } from './assemble'
 import { createComponentExamplesCacheHandler } from './factory'
+import {
+    buildTwoLayerRoomAuthoritativeMap,
+    twoLayerRoomFixture,
+    twoLayerRoomMergeOrder,
+} from './fixtures/twoLayerRoom'
 import { componentExamplesPerspectiveCacheKey } from './keys'
+import { authoredExampleSetSituationIds } from './result'
 
 describe('ComponentExamplesMergedCache', () => {
     const roomU = 'ROOM#r1' as const
@@ -94,5 +101,34 @@ describe('ComponentExamplesMergedCache', () => {
         expect(aggregateGetSpy.mock.calls.length).toBeGreaterThan(callsAfterFirst)
 
         aggregateGetSpy.mockRestore()
+    })
+
+    it('handler.get matches assembleComponentExamplesAtPerspective for two-layer room', async () => {
+        const { roomU } = twoLayerRoomFixture
+        const authoritativeMap = buildTwoLayerRoomAuthoritativeMap()
+        const { handler, ComponentAggregate } = makeHandler(authoritativeMap)
+        const input = {
+            hostUniversalKey: roomU,
+            mergeParticipationOrder: [...twoLayerRoomMergeOrder],
+        } as const
+
+        const fromHandler = await handler.get(input)
+        const fromAssemble = await assembleComponentExamplesAtPerspective({
+            input,
+            aggregate: ComponentAggregate,
+        })
+
+        expect(authoredExampleSetSituationIds(fromHandler)).toEqual(
+            authoredExampleSetSituationIds(fromAssemble)
+        )
+        expect(fromHandler.size).toBe(2)
+
+        for (const situationId of authoredExampleSetSituationIds(fromAssemble)) {
+            const handlerExample = fromHandler.get(situationId)
+            const assembleExample = fromAssemble.get(situationId)
+            expect(handlerExample?.markState).toEqual(assembleExample?.markState)
+            expect(handlerExample?.renderedContent).toEqual(assembleExample?.renderedContent)
+            expect(handlerExample?.provenance).toEqual(assembleExample?.provenance)
+        }
     })
 })

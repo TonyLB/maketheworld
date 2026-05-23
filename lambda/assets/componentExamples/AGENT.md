@@ -8,7 +8,7 @@ Non-replayable Assets data source **[`index.ts`](./index.ts)** subscribes to **`
 
 **Push (this DataSource):** invalidation-only --- no blueprint merge, no **`internalCache`** reads on the hot path.
 
-**Pull (hydrate / diagnostics):** **`AuthoredExample`** batch assembly lives in **`@tonylb/mtw-gateways/ts/assets/components/componentExamples`**. Lambdas read via **`internalCache.ComponentExamples`** (**`createComponentExamplesCacheHandler({ ComponentAggregate })`** on Ephemera and diagnostics). See [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) and [`renderCache` planning](../../../taskPlanning/lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md).
+**Pull (hydrate / diagnostics):** **`AuthoredExample`** batch assembly lives in **`@tonylb/mtw-gateways/ts/assets/components/componentExamples`**. Lambdas read via **`internalCache.ComponentExamples`** (**`createComponentExamplesCacheHandler({ ComponentAggregate })`** on Ephemera and diagnostics). See [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) and [`renderCache` AGENT.md](../../ephemera/dataSource/renderCache/AGENT.md) (**Authored cache**).
 
 ## Component-scoped invalidation (Room / Feature / Knowledge)
 
@@ -16,7 +16,7 @@ On **Component Updated** or **Component Removed** for a cache-host component:
 
 - One **`ExampleInvalidated`** per event with **`componentIds: [hostId]`** and **`editAssetId`** (= event asset id / `streamKey`).
 - Optional **`affectedSituationIds`** from facet refs on the event component (debug/logging only).
-- Ephemera bumps existing **`Cache::${perspectiveKey}`** rows whose **`assetStack`** includes **`editAssetId`** ([layer participation rule](../../../taskPlanning/lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md)).
+- Ephemera bumps existing **`Cache::${perspectiveKey}`** rows whose **`assetStack`** includes **`editAssetId`** ([layer participation rule](../../ephemera/dataSource/renderCache/AGENT.md#layer-participation-rule-invalidation)).
 
 ## Situation-scoped invalidation (Situation entity)
 

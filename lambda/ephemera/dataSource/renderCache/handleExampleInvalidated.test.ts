@@ -68,6 +68,33 @@ describe('handleExampleInvalidated', () => {
         expect(mockConditionalInvalidate).toHaveBeenCalledWith(match)
     })
 
+    it('component-scoped: A/B/C overlay bumps only stacks that include edit layer B', async () => {
+        const soloA = catalogRow({
+            DataCategory: 'Cache::PERSPECTIVE#v1#soloA',
+            assetStack: ['ASSET#A'],
+        })
+        const ab = catalogRow({
+            DataCategory: 'Cache::PERSPECTIVE#v1#ab',
+            assetStack: ['ASSET#A', 'ASSET#B'],
+        })
+        const abc = catalogRow({
+            DataCategory: 'Cache::PERSPECTIVE#v1#abc',
+            assetStack: ['ASSET#A', 'ASSET#B', 'ASSET#C'],
+        })
+        mockQueryCatalog.mockResolvedValue([soloA, ab, abc])
+
+        await handleExampleInvalidated({
+            type: 'ExampleInvalidated',
+            componentIds: ['ROOM#hall'],
+            editAssetId: 'ASSET#B',
+        })
+
+        expect(mockConditionalInvalidate).toHaveBeenCalledTimes(2)
+        expect(mockConditionalInvalidate).toHaveBeenCalledWith(ab)
+        expect(mockConditionalInvalidate).toHaveBeenCalledWith(abc)
+        expect(mockConditionalInvalidate).not.toHaveBeenCalledWith(soloA)
+    })
+
     it('situation-scoped: fans out to host catalog rows with layer filter', async () => {
         mockQueryAdjacency.mockResolvedValue([
             adjacencyLink('ROOM#hall', ['ASSET#canon', 'ASSET#overlay']),
@@ -85,6 +112,30 @@ describe('handleExampleInvalidated', () => {
         expect(mockGetCatalog).toHaveBeenCalledWith('ROOM#hall', 'PERSPECTIVE#v1#abc')
         expect(mockConditionalInvalidate).toHaveBeenCalledTimes(1)
         expect(mockDeleteAllAdjacency).not.toHaveBeenCalled()
+    })
+
+    it('situation-scoped: three adjacency links filter to stacks including editAssetId', async () => {
+        const perspectiveKey = 'PERSPECTIVE#v1#abc'
+        mockQueryAdjacency.mockResolvedValue([
+            adjacencyLink('ROOM#soloA', ['ASSET#A']),
+            adjacencyLink('ROOM#ab', ['ASSET#A', 'ASSET#B']),
+            adjacencyLink('ROOM#abc', ['ASSET#A', 'ASSET#B', 'ASSET#C']),
+        ])
+        mockGetCatalog.mockImplementation(async (hostId: string) =>
+            catalogRow({ EphemeraId: hostId as EphemeraCacheCatalogRow['EphemeraId'] })
+        )
+
+        await handleExampleInvalidated({
+            type: 'ExampleInvalidated',
+            situationId: 'SITUATION#sit-1',
+            editAssetId: 'ASSET#B',
+        })
+
+        expect(mockGetCatalog).toHaveBeenCalledTimes(2)
+        expect(mockGetCatalog).toHaveBeenCalledWith('ROOM#ab', perspectiveKey)
+        expect(mockGetCatalog).toHaveBeenCalledWith('ROOM#abc', perspectiveKey)
+        expect(mockGetCatalog).not.toHaveBeenCalledWith('ROOM#soloA', perspectiveKey)
+        expect(mockConditionalInvalidate).toHaveBeenCalledTimes(2)
     })
 
     it('situation-scoped: no-op when adjacency partition is empty', async () => {

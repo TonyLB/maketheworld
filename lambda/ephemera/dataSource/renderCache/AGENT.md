@@ -75,29 +75,43 @@ Implications:
 
 There is no "cache per Example ID" or "RoomId + Mark state" key; this keeps the schema compatible with future semantic / constellation search.
 
-### On-demand authored examples
+### Authored cache (invalidate + hydrate)
 
-Initiative: [`taskPlanning/.../AGENT.onDemandAuthoredExamples.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md).
+Steady-state model: Assets pushes skinny invalidations; Ephemera bumps catalog versions and hydrates materialized rows on orchestration resolve; lookup is version-gated.
+
+**End-to-end flow:**
+
+1. **Invalidate on blueprint change:** [`mtw.assets.componentExamples`](../../../assets/componentExamples/index.ts) publishes **`ExampleInvalidated`** (no **`example`** body). This DataSource bumps **`catalogVersion`** on existing **`Cache::${perspectiveKey}`** rows only (no catalog row creation on invalidation).
+2. **Hydrate on resolve:** [`ensureAuthoredCatalog.ts`](ensureAuthoredCatalog.ts) runs from [`orchestrationHandler.ts`](../renderOrchestration/orchestrationHandler.ts) after intake, before **`findRender`**, when the catalog is stale. Desired set from **`internalCache.ComponentExamples.get`**; diff writes version-stamped authored **`CACHE#`** rows.
+3. **Lookup:** **`getExactMatch`** and pointer fast-path consider only **`CACHE#`** rows at the current **`catalogVersion`** on the perspective's catalog row.
 
 | Shape | SK / stream | Role |
 | --- | --- | --- |
-| **`EphemeraCacheCatalogRow`** | `Cache::${perspectiveKey}` under host `EphemeraId` | Per-perspective catalog: `catalogVersion`, `hydratedCatalogVersion`, canon **`assetStack`**, optional **`currentCacheId`** (fast pointer; M2). |
+| **`EphemeraCacheCatalogRow`** | `Cache::${perspectiveKey}` under host `EphemeraId` | Per-perspective catalog: `catalogVersion`, `hydratedCatalogVersion`, canon **`assetStack`**, optional **`currentCacheId`** (fast pointer on catalog row). |
 | **`SituationCacheAdjacencyRow`** | `Link::${host}::Cache::${perspectiveKey}` under `SITUATION#` | Inverse index for Situation-scoped invalidation fan-out. |
 | **`ExampleInvalidated`** | `mtw.assets.componentExamples` | Skinny invalidation-only push from Assets; handled in [`handleExampleInvalidated.ts`](handleExampleInvalidated.ts). |
-| **`Ephemera RenderCache Finding`** | `mtw.diagnostics` | Lazy catalog bump (P7); handled in [`handleRenderCacheFinding.ts`](handleRenderCacheFinding.ts). |
-| **`AuthoredExample`** | `mtw-gateways` assembly | Blueprint desired set for hydrate (next slice). |
+| **`Ephemera RenderCache Finding`** | `mtw.diagnostics` | Lazy catalog bump; handled in [`handleRenderCacheFinding.ts`](handleRenderCacheFinding.ts). |
+| **`AuthoredExample`** | `mtw-gateways` assembly | Blueprint desired set for hydrate (`internalCache.ComponentExamples.get`). |
 
-**Catalog rows:** [`catalogRow.ts`](catalogRow.ts) (`queryCatalogRowsForComponent`, `getCatalogRow`, `putCatalogRow`, `conditionalInvalidateCatalogRow`, `createCatalogRowForHydrate`). Guards: [`catalogGuards.ts`](catalogGuards.ts).
+#### Layer participation rule (invalidation)
 
-**Situation adjacency:** [`situationAdjacency.ts`](situationAdjacency.ts) (partition query/put/delete; S4 helpers `upsertAdjacencyForAuthoredSlice`, `deleteAdjacencyForRemovedSlice` for hydrate diff).
+A catalog or adjacency row is a **bump target** for an invalidation with **`editAssetId`** iff `row.assetStack.includes(editAssetId)` after stack canonicalization (same input shape as [`computePerspectiveKey`](../../../../packages/mtw-interfaces/ts/perspective.ts)). An edit in overlay asset **B** stales perspectives whose participation stack includes **B** (e.g. `[A,B]`, `[A,B,C]`) but not **`[A]`** alone.
+
+Implementation: [`assetStackIncludesEditAssetId`](../../../../packages/mtw-gateways/ts/assets/components/componentExamples/membership.ts) in **`mtw-gateways`**; used from [`packages/mtw-gateways/ts/ephemera/renderCache/guards.ts`](../../../../packages/mtw-gateways/ts/ephemera/renderCache/guards.ts). Applies to **component-scoped** (`Cache::` row filter) and **Situation-scoped** (adjacency link filter, then bump host catalog) paths in [`handleExampleInvalidated.ts`](handleExampleInvalidated.ts).
+
+**Catalog rows:** [`catalogRow.ts`](catalogRow.ts) (`queryCatalogRowsForComponent`, `getCatalogRow`, `putCatalogRow`, `conditionalInvalidateCatalogRow`, `createCatalogRowForHydrate`, `markCatalogHydratedAtVersion`). Guards: [`catalogGuards.ts`](catalogGuards.ts).
+
+**Hydrate (orchestration preflight):** [`ensureAuthoredCatalog.ts`](ensureAuthoredCatalog.ts) --- create-on-first-hydrate `Cache::` row, `internalCache.ComponentExamples.get` when stale, [`hydrateAuthoredCatalogDiff.ts`](hydrateAuthoredCatalogDiff.ts) (version-guarded put/delete `CACHE#` + adjacency), conditional catalog ready write. Coalescing: [`singleFlightAuthoredCatalogHydrate.ts`](singleFlightAuthoredCatalogHydrate.ts) (`EPHEMERA_AUTHORED_CATALOG_HYDRATE_CATEGORY`, cohort `componentId::perspectiveKey`). Mapping: [`authoredExampleToCacheRecord.ts`](authoredExampleToCacheRecord.ts). **Does not** run on `ComponentRender` / raw cache reads in v1.
+
+**Situation adjacency:** [`situationAdjacency.ts`](situationAdjacency.ts) (partition query/put/delete; `upsertAdjacencyForAuthoredSlice`, `deleteAdjacencyForRemovedSlice` for hydrate diff).
 
 **Perspective pointers:** [`perspectivePointer.ts`](perspectivePointer.ts) reads/writes `currentCacheId` on catalog rows; dual-reads legacy `Meta::Room.currentCacheByPerspective` during migration.
 
-**Invalidation:** [`handleExampleInvalidated.ts`](handleExampleInvalidated.ts) wired from [`index.ts`](index.ts) on `ExampleInvalidated`. Component path: query `Cache::` rows, layer-participation filter, M4 conditional bump. Situation path: adjacency fan-out; `entityRemoved: true` bumps all links and deletes the partition (P5).
+**Invalidation:** [`handleExampleInvalidated.ts`](handleExampleInvalidated.ts) wired from [`index.ts`](index.ts) on `ExampleInvalidated`. Component path: query `Cache::` rows, layer-participation filter, conditional bump when catalog was ready. Situation path: adjacency fan-out; `entityRemoved: true` bumps all links and deletes the partition.
 
-**Diagnostics heal (P7):** [`handleRenderCacheFinding.ts`](handleRenderCacheFinding.ts) on `Ephemera RenderCache Finding`. Iterates `finding.targetCatalogs` (`{ ephemeraId, perspectiveKey }`); bumps existing `Cache::${perspectiveKey}` rows only (V1); empty array is a no-op; no blueprint scan on receive; no eager hydrate.
+**Diagnostics heal:** [`handleRenderCacheFinding.ts`](handleRenderCacheFinding.ts) on `Ephemera RenderCache Finding`. Iterates `finding.targetCatalogs` (`{ ephemeraId, perspectiveKey }`); bumps existing `Cache::${perspectiveKey}` rows only; empty array is a no-op; no blueprint scan on receive; no eager hydrate. Publisher: diagnostics [`renderCacheDriftSweep`](../../../diagnostics/renderCacheDriftSweep/index.ts) (caller-supplied `roomIds`, v1).
 
-**Deferred:** `ensureAuthoredCatalog`, version-gated `getExactMatch`.
+**Version-gated lookup:** [`internalCache/renderCache.ts`](../../internalCache/renderCache.ts) `getExactMatch` uses `isAuthoritativeCacheRow` when a `Cache::` catalog row exists; legacy unversioned match when no catalog row yet. [`findRender.ts`](../renderOrchestration/findRender.ts) pointer fast-path requires authoritative row + catalog.
 
 **Retired:** `mtw.ephemera.examples` mirror DataSource (was [`../componentExamples.ts`](../componentExamples.ts)). Steady-state invalidation and diagnostics heal run in this package only.
 
@@ -119,15 +133,15 @@ Initiative: [`taskPlanning/.../AGENT.onDemandAuthoredExamples.planning.md`](../.
   - Mirrors Situation facet prose (`displayName`, `summary`, `description`) from Assets.
 - `provenance`:
   - `{ type: 'authored' | 'generated' }`
-  - Distinguishes mirrored authored situation facets from future generated renders.
+  - Distinguishes authored situation facets (hydrate) from LLM-generated renders.
 - `perspectiveId`: string
   - **Known inactive** (not used for matching). Kept on the record pending possible later use for search optimization.
 - `perspectiveMatcher`: PerspectiveMatcher
   - Required and forbidden asset ids for matcher-based matching. Used by `perspectiveMatches(matcher, requestPerspective)` at lookup time.
 - `situationId?: string`
-  - Optional link to the Situation UUID for cache records. Used to target delete on ExampleRemoved when `exampleId` is a Situation uuid.
+  - Optional link to the Situation UUID for authored slices. Hydrate diff keys upsert/delete and adjacency maintenance by **`situationId`**.
 - `authoredExampleId?: string`
-  - Optional link back to the blueprint Example UUID for **Feature/Knowledge** cache records. Used to precisely delete cache entries when Examples are removed (exampleId is EXAMPLE#).
+  - Optional legacy link for **Feature/Knowledge** rows when a distinct blueprint Example id was stored on the row.
 
 #### EphemeraCacheDynamoItem (storage model)
 
@@ -146,14 +160,14 @@ Stored directly in DynamoDB:
 
 Examples are authored against a **stack of assets** (inheritance chain). The same logical Example can render differently depending on which assets are in the stack and in what order. We treat each **distinct render** as a separate cache record and identify the context by a **perspective**:
 
-- `assetStack`: ordered list of asset ids that produced the render.
-- `perspectiveMatcher`: `{ requiredAssetIds, forbiddenAssetIds? }` published by the Assets lambda with each mirroring event. Lookup uses `perspectiveMatches(matcher, requestPerspective)` so a cache record matches when the request's asset stack contains all required and none of the forbidden assets.
+- `assetStack`: ordered list of asset ids that produced the render (canon participation at hydrate).
+- `perspectiveMatcher`: `{ requiredAssetIds, forbiddenAssetIds? }` written on each **`CACHE#`** row at hydrate from canon **`assetStack`**. Lookup uses `perspectiveMatches(matcher, requestPerspective)` so a cache record matches when the request's asset stack contains all required and none of the forbidden assets.
 - `perspectiveId`: stored on every record but **not used for matching** (known inactive); kept pending possible later use for search optimization.
 
 ### Asset stack sources
 
-- **Catalog rows and hydrate (on-demand):** canon **`assetStack`** on `Cache::${perspectiveKey}` rows is written at hydrate from state/orchestration participation order (not mirror-era footprint stacks).
-- **Legacy mirror (retired):** `ExampleUpdated` / `ExampleRemoved` no longer flow through a separate Ephemera forwarder; see on-demand planning for **`ExampleInvalidated`** + hydrate.
+- **Catalog rows and hydrate:** canon **`assetStack`** on `Cache::${perspectiveKey}` rows is written at hydrate from state/orchestration participation order.
+- **Assets invalidation:** **`ExampleInvalidated`** with **`editAssetId`** only (no footprint stack on the wire); see **Layer participation rule** above.
 - **Authoring Preview (RoomPreviewEditor)**:
   - On the client, `assetStack` is built from `useWorkbenchAsset()`:
     - `assetStack = [...inheritedByAssetId.map(({ assetId }) => assetId), AssetId]`
@@ -165,7 +179,7 @@ Preview request sends `assetStack`; Ephemera builds `perspective = { assetStack 
 
 [`putCacheRecord.ts`](putCacheRecord.ts) and [`deleteCacheRecord.ts`](deleteCacheRecord.ts) provide low-level write primitives (put/delete) over the Ephemera table. They operate strictly in terms of component ids and cache records (no knowledge of Events or WebSockets). `mtw.ephemera.renderCache` is the production entry that calls them after `api.ephemera` commands.
 
-Catalog and adjacency primitives are listed under **On-demand authored examples** above.
+Catalog and adjacency primitives are listed under **Authored cache (invalidate + hydrate)** above.
 
 ### DataSource-owned `queryCacheRecordsForComponent(componentId)`
 
@@ -179,13 +193,13 @@ Catalog and adjacency primitives are listed under **On-demand authored examples*
 
 ### Request-scoped read memo: `internalCache.RenderCache`
 
-[`../../internalCache/renderCache.ts`](../../internalCache/renderCache.ts) provides **`InternalCache.RenderCache`** (cleared with [`InternalCache.clear()`](../../internalCache/index.ts) each handler run):
+[`../../internalCache/renderCache.ts`](../../internalCache/renderCache.ts) extends **`RenderCacheCacheHandler`** from [`@tonylb/mtw-gateways/ts/ephemera/renderCache`](../../../../packages/mtw-gateways/ts/ephemera/renderCache/index.ts) (cleared with [`InternalCache.clear()`](../../internalCache/index.ts) each handler run). **Normative read path:** steady-state code calls **`internalCache.RenderCache.get*`** (not direct **`ephemeraDB`** or DataSource fetch helpers). Dynamo **`fetch`** and shared guards live in the gateway package; this DataSource owns **Dynamo writes** only.
 
-- **`get(componentId)`** – First call in an invocation (when the component is not yet cached) runs the underlying Dynamo `queryCacheRecordsForComponent` and stores the result; later calls return the **same array reference** for that `componentId`. Overlapping concurrent `get` calls for the same component share one query. **Ephemera production paths** (`generateRoomPreview`, `ComponentRender` for Rooms, orchestration pass-through) should use **`internalCache.RenderCache.get`** instead of calling `queryCacheRecordsForComponent` directly so reads dedupe within a handler.
-- **`set(...)`** – **Authoritative write-through:** upserts into the in-memory array even if `get` has not run yet for that `componentId` (initializes cache state as needed). With optional **`cacheId`** (`DataCategory`), replace matching row or append; without `cacheId`, replace first row whose **`markState` matches** via `markStatesEqual` from [`utils/markState.ts`](utils/markState.ts), else append (new `CACHE#` uuid). If `set` runs before the first `get` for that component, the primed rows are returned without loading Dynamo until **`invalidate`** or **`clear`** (same pattern as `ExamplesData` priming via `DeferredCache.set`).
-- **`flush()`** / **`invalidate(componentId)`** – Lifecycle hooks aligned with other internal caches; `InternalCache.flush()` awaits **`RenderCache.flush()`** to drain pending load promises.
-- **Consistency**: After successful DataSource-owned persistence writes (e.g. **`mtw.ephemera.renderCache`** after `putCacheRecord`), call **`RenderCache.set`** so same-invocation readers see the new row without re-querying.
-- **Boundary aspiration (read-only coupling)**: `internalCache` should couple to DataSource materialized state in a read-only way, and memo updates should come from DataSource write outcomes (stream/bus), not from performing persistence writes inside `internalCache` (which would effectively create a shadow data-source). This is currently prototyped in `ephemera`; if it proves valuable across more lambdas, we plan to promote the invariant to [`packages/mtw-lambda-patterns/ts/internalCache/AGENT.md`](../../../../packages/mtw-lambda-patterns/ts/internalCache/AGENT.md).
+- **`getCacheRows(componentId)`** / **`get(componentId)`** – Read-through memo over **`CACHE#`** rows; same array reference per component per invocation.
+- **`getCatalogRows(componentId)`** / **`getCatalogRow(componentId, perspectiveKey)`** – Catalog row reads (also memoized in the package handler).
+- **`set(...)`** / **`deleteCacheRecords`** / **`invalidate(componentId)`** – Invocation memo patch only (no Dynamo); call after DataSource writes. **`invalidate`** drops both **`CACHE#`** and **`Cache::`** memo for the component.
+- **`flush()`** – Lifecycle hook; `InternalCache.flush()` awaits **`RenderCache.flush()`**.
+- **Consistency**: After successful DataSource-owned persistence writes (e.g. **`putCacheRecord`**), call **`RenderCache.set`** so same-invocation readers see the new row without re-querying.
 
 ### `putCacheRecord(componentId, record, existingDataCategory?)`
 
@@ -206,9 +220,9 @@ Catalog and adjacency primitives are listed under **On-demand authored examples*
   - `DataCategory = dataCategory`
 - Typically used after an in-memory filter step to select the correct records to delete (e.g. by `situationId` or `authoredExampleId`).
 
-### Legacy ExampleRemoved mirror (retired)
+### Legacy mirror path (retired)
 
-Historical mirror path deleted **`CACHE#`** rows on `ExampleRemoved` from Assets. Steady-state removal is via hydrate diff (delete-by-absence) after catalog invalidation; see on-demand planning.
+Historical push-mirror path (`ExampleUpdated` / `ExampleRemoved` with full payloads, `mtw.ephemera.examples` forwarder) is removed. Steady-state authored row removal is via hydrate diff (delete-by-absence) after catalog invalidation.
 
 ## Exact-match lookup: `internalCache.RenderCache.getExactMatch`
 
@@ -241,12 +255,13 @@ This is the canonical "does this state exist in cache?" check. Passive render or
 
 ## Passive render orchestration and cache-miss generation
 
-Single-item orchestration lives in [`../renderOrchestration/orchestrationHandler.ts`](../renderOrchestration/orchestrationHandler.ts). For a **`Render Requested`** ingress, the handler runs **`intakeRenderRequested`**, then **`findRender`**, then **`generateRoomPreview`** on cache miss when policy allows. **Outcomes are published on `mtw.ephemera.renderOrchestration`** (`streamEvent`); the passive path does **not** register **`roomStateRender`** or deliver terminals via **`conversation.sendMessage`**.
+Single-item orchestration lives in [`../renderOrchestration/orchestrationHandler.ts`](../renderOrchestration/orchestrationHandler.ts). For a **`Render Requested`** ingress, the handler runs **`intakeRenderRequested`**, then **`ensureAuthoredCatalog`**, then **`findRender`**, then **`generateRoomPreview`** on cache miss when policy allows. **Outcomes are published on `mtw.ephemera.renderOrchestration`** (`streamEvent`); the passive path does **not** register **`roomStateRender`** or deliver terminals via **`conversation.sendMessage`**.
 
 1. Builds perspective from the passive request.
-2. Calls `internalCache.RenderCache.getExactMatch` (and pointer validation) as policy dictates.
-3. On hit: orchestration emits **`Current Cache Valid`** or **`Exact Match Found`** (IDs only); this DataSource refetches and emits **`Render Pertains`** (see **Pass-through** under **Responsibilities** and **Correlation vs routing** below).
-4. On miss (when generation is allowed): **`generateRoomPreview`** publishes **`Generation Started`** / **`Render Generated`** (or errors); this DataSource performs the durable **`putCacheRecord`** on **`Render Generated`** and emits **`Render Pertains`** / **`Cache Updated`**.
+2. Hydrates authored catalog when stale (`ensureAuthoredCatalog`).
+3. Calls `internalCache.RenderCache.getExactMatch` (and pointer validation) as policy dictates.
+4. On hit: orchestration emits **`Current Cache Valid`** or **`Exact Match Found`** (IDs only); this DataSource refetches and emits **`Render Pertains`** (see **Pass-through** under **Responsibilities** and **Correlation vs routing** below).
+5. On miss (when generation is allowed): **`generateRoomPreview`** publishes **`Generation Started`** / **`Render Generated`** (or errors); this DataSource performs the durable **`putCacheRecord`** on **`Render Generated`** and emits **`Render Pertains`** / **`Cache Updated`**.
 
 Durable behavior and types: [`../renderOrchestration/AGENT.md`](../renderOrchestration/AGENT.md), this file, and the [pass-through contract](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md).
 
@@ -289,10 +304,10 @@ If **`Current Cache Valid`** / **`Exact Match Found`** include a **`cacheId`** b
     - Later fuzzy/semantic search (constellation by Guidance).
     - LLM-based generation pipelines that treat existing records as prompts or neighbors.
 
-- **Mirroring vs runtime lookup**:
-  - Authored Examples enter the cache solely via the mirroring pipeline.
-  - Runtime lookup (orchestration / passive render) reads from the cache and exact-match helpers.
-  - This separation lets you change mirroring strategies without touching orchestration lookup logic.
+- **Invalidate + hydrate vs runtime lookup**:
+  - Authored **`CACHE#`** rows materialize via **`ensureAuthoredCatalog`** / hydrate diff when orchestration resolves (or when catalog is already stale from invalidation). Assets only pushes **`ExampleInvalidated`**; no full example bodies on the wire.
+  - Runtime lookup (orchestration / passive render) reads version-gated rows via **`getExactMatch`** and pointer helpers without reaching back into Assets during lookup.
+  - Invalidation, hydrate, and catalog/adjacency CRUD live in **`mtw.ephemera.renderCache`**; orchestration calls **`ensureAuthoredCatalog`** then **`findRender`**.
 
 For broader architectural context, see:
 
@@ -302,11 +317,13 @@ For broader architectural context, see:
 
 ## Tests
 
-- Package: [`index.test.ts`](index.test.ts), [`putCacheRecord.test.ts`](putCacheRecord.test.ts), [`deleteCacheRecord.test.ts`](deleteCacheRecord.test.ts), [`queryCacheRecordsForComponent.test.ts`](queryCacheRecordsForComponent.test.ts), [`catalogRow.test.ts`](catalogRow.test.ts), [`situationAdjacency.test.ts`](situationAdjacency.test.ts), [`handleExampleInvalidated.test.ts`](handleExampleInvalidated.test.ts), [`perspectivePointer.test.ts`](perspectivePointer.test.ts).
+- Package: [`index.test.ts`](index.test.ts), [`putCacheRecord.test.ts`](putCacheRecord.test.ts), [`deleteCacheRecord.test.ts`](deleteCacheRecord.test.ts), [`queryCacheRecordsForComponent.test.ts`](queryCacheRecordsForComponent.test.ts), [`catalogRow.test.ts`](catalogRow.test.ts), [`catalogGuards.test.ts`](catalogGuards.test.ts), [`situationAdjacency.test.ts`](situationAdjacency.test.ts), [`handleExampleInvalidated.test.ts`](handleExampleInvalidated.test.ts), [`handleRenderCacheFinding.test.ts`](handleRenderCacheFinding.test.ts), [`ensureAuthoredCatalog.test.ts`](ensureAuthoredCatalog.test.ts), [`hydrateAuthoredCatalogDiff.test.ts`](hydrateAuthoredCatalogDiff.test.ts), [`authoredCatalogHydrateExactMatch.test.ts`](authoredCatalogHydrateExactMatch.test.ts), [`perspectivePointer.test.ts`](perspectivePointer.test.ts).
+- **Authored catalog hydrate:** [`authoredCatalogHydrateExactMatch.test.ts`](authoredCatalogHydrateExactMatch.test.ts) chains **`ensureAuthoredCatalog`** -> version-stamped **`CACHE#`** rows -> **`internalCache.RenderCache.getExactMatch`** (only rows at the current **`catalogVersion`** on the perspective's **`Cache::`** row are authoritative).
 - Contract: [`passThroughContract.scaffold.test.ts`](passThroughContract.scaffold.test.ts), shared [`../passThroughContractFixtures.ts`](../passThroughContractFixtures.ts).
 - Cross-layer: [`../passThroughOrchestrationToCache.integration.test.ts`](../passThroughOrchestrationToCache.integration.test.ts).
+- **`internalCache`:** [`../../internalCache/renderCache.test.ts`](../../internalCache/renderCache.test.ts) (`getExactMatch` version gate).
 
-From [`lambda/ephemera/`](../../): `npm test` (Jest).
+From [`lambda/ephemera/`](../../): `npm test -- --testPathPattern=renderCache` (Jest).
 
 ## Related docs
 

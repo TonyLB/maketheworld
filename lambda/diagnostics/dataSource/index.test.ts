@@ -1,4 +1,6 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
+import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { RenderCacheTargetCatalog } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 
 jest.mock('../staleSessionSweep', () => ({
     staleSessionSweep: jest.fn(async () => ({ emittedCount: 0, players: [] as string[] }))
@@ -12,8 +14,17 @@ jest.mock('../playerMisalignmentSweep', () => ({
 jest.mock('../componentVerticalMisalignmentSweep', () => ({
     componentVerticalMisalignmentSweep: jest.fn(async () => ({ emitted: false }))
 }))
+jest.mock('../renderCacheDriftSweep', () => ({
+    renderCacheDriftSweep: jest.fn(async () => ({
+        emittedCount: 0,
+        roomIds: [] as EphemeraRoomId[],
+        catalogsChecked: 0,
+        driftedCatalogs: [] as RenderCacheTargetCatalog[],
+    }))
+}))
 
 import { componentVerticalMisalignmentSweep } from '../componentVerticalMisalignmentSweep'
+import { renderCacheDriftSweep } from '../renderCacheDriftSweep'
 import { staleSessionSweep } from '../staleSessionSweep'
 import { roomOccupancyDriftSweep } from '../roomOccupancyDriftSweep'
 import { playerMisalignmentSweep } from '../playerMisalignmentSweep'
@@ -40,6 +51,13 @@ describe('diagnosticsDataSource subscribed event processing', () => {
         jest.mocked(playerMisalignmentSweep).mockResolvedValue({ emittedCount: 0, players: [] as string[] })
         jest.mocked(componentVerticalMisalignmentSweep).mockReset()
         jest.mocked(componentVerticalMisalignmentSweep).mockResolvedValue({ emitted: false })
+        jest.mocked(renderCacheDriftSweep).mockReset()
+        jest.mocked(renderCacheDriftSweep).mockResolvedValue({
+            emittedCount: 0,
+            roomIds: [] as EphemeraRoomId[],
+            catalogsChecked: 0,
+            driftedCatalogs: [] as RenderCacheTargetCatalog[],
+        })
         messageBus.clear()
     })
 
@@ -162,5 +180,49 @@ describe('diagnosticsDataSource subscribed event processing', () => {
         })
         const returnValueMessages = messageBus._stream.map(({ payload }) => payload).filter(({ type }) => type === 'ReturnValue')
         expect(returnValueMessages).toHaveLength(1)
+    })
+
+    it('emits ReturnValue for api.diagnostics RenderCacheDriftSweep events', async () => {
+        jest.mocked(renderCacheDriftSweep).mockResolvedValueOnce({
+            emittedCount: 1,
+            roomIds: ['ROOM#alpha' as EphemeraRoomId],
+            catalogsChecked: 1,
+            driftedCatalogs: [{ ephemeraId: 'ROOM#alpha' as EphemeraRoomId, perspectiveKey: 'PERSPECTIVE#v1#abc' }],
+        })
+        await processDiagnosticsSubscribedEvents([
+            makeEnvelope(
+                { dataSourceKey: 'api.diagnostics', type: 'RenderCacheDriftSweep' },
+                {
+                    type: 'RenderCacheDriftSweep',
+                    roomIds: ['ROOM#alpha'],
+                    diagnosticRunId: 'diag-rc',
+                    nowMs: 22222,
+                }
+            )
+        ])
+
+        expect(renderCacheDriftSweep).toHaveBeenCalledWith({
+            roomIds: ['ROOM#alpha'],
+            diagnosticRunId: 'diag-rc',
+            nowMs: 22222,
+        })
+        const returnValueMessages = messageBus._stream.map(({ payload }) => payload).filter(({ type }) => type === 'ReturnValue')
+        expect(returnValueMessages).toHaveLength(1)
+    })
+
+    it('emits Error when RenderCacheDriftSweep roomIds is not an array', async () => {
+        await processDiagnosticsSubscribedEvents([
+            makeEnvelope(
+                { dataSourceKey: 'api.diagnostics', type: 'RenderCacheDriftSweep' },
+                {
+                    type: 'RenderCacheDriftSweep',
+                    roomIds: 'ROOM#alpha',
+                }
+            )
+        ])
+
+        expect(renderCacheDriftSweep).not.toHaveBeenCalled()
+        const errorMessages = messageBus._stream.map(({ payload }) => payload).filter(({ type }) => type === 'Error')
+        expect(errorMessages).toHaveLength(1)
     })
 })

@@ -222,6 +222,36 @@ describe('mtw.ephemera.renderCache DataSource', () => {
         expect(handleExampleInvalidatedMock).toHaveBeenCalledWith(invalidated)
     })
 
+    it('receiveEvents dispatches situation-scoped ExampleInvalidated by situationId', async () => {
+        handleExampleInvalidatedMock.mockResolvedValue(undefined)
+        const invalidated = {
+            type: 'ExampleInvalidated' as const,
+            situationId: 'SITUATION#sit-1',
+            editAssetId: 'ASSET#overlay',
+        }
+        const events: any[] = [
+            {
+                header: {
+                    dataSourceKey: 'mtw.assets.componentExamples',
+                    streamKey: 'ASSET#overlay',
+                    timestamp: Date.now(),
+                    type: 'ExampleInvalidated',
+                },
+                getContent: () => Promise.resolve(invalidated),
+            },
+        ]
+
+        await ephemeraRenderCacheDataSource.receiveEvents?.({
+            events,
+            streamEvent: jest.fn().mockResolvedValue(undefined),
+            streamEnvelope: jest.fn().mockResolvedValue(undefined),
+        })
+
+        expect(handleExampleInvalidatedMock).toHaveBeenCalledTimes(1)
+        expect(handleExampleInvalidatedMock).toHaveBeenCalledWith(invalidated)
+        expect(invalidated).not.toHaveProperty('componentIds')
+    })
+
     it('receiveEvents dispatches Ephemera RenderCache Finding to handleRenderCacheFinding', async () => {
         handleRenderCacheFindingMock.mockResolvedValue(undefined)
         const finding = {

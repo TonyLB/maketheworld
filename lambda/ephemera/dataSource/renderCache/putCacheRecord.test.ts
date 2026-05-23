@@ -1,5 +1,15 @@
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 jest.mock('uuid')
+jest.mock('../../internalCache', () => ({
+    __esModule: true,
+    default: {
+        RenderCache: {
+            set: jest.fn(),
+        },
+    },
+}))
+
+import internalCache from '../../internalCache'
 
 import { v4 as uuidv4 } from 'uuid'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
@@ -7,6 +17,7 @@ import { putCacheRecord, type PutCacheRecordInput } from './putCacheRecord'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const uuidv4Mock = uuidv4 as jest.Mock
+const renderCacheSetMock = internalCache.RenderCache.set as jest.Mock
 
 const componentId = 'ROOM#test-room-uuid' as const
 
@@ -86,6 +97,23 @@ describe('dataSource/renderCache/putCacheRecord', () => {
                 DataCategory: 'CACHE#existing-uuid',
                 markState: minimalRecord.markState,
                 renderedContent: minimalRecord.renderedContent
+            })
+        )
+    })
+
+    it('persists catalogVersion and updates RenderCache memo', async () => {
+        ephemeraDBMock.putItem.mockResolvedValue(undefined)
+
+        await putCacheRecord(componentId, { ...minimalRecord, catalogVersion: 3 })
+
+        expect(ephemeraDBMock.putItem).toHaveBeenCalledWith(
+            expect.objectContaining({ catalogVersion: 3 })
+        )
+        expect(renderCacheSetMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                componentId,
+                catalogVersion: 3,
+                cacheId: 'CACHE#new-uuid-1234',
             })
         )
     })

@@ -55,6 +55,14 @@ const normalizeApiDiagnosticsIngress = async (event: any) => {
                 ...(typeof event.nowMs === 'number' ? { nowMs: event.nowMs } : {})
             })
             return
+        case 'RenderCacheDriftSweep':
+            sendApiDiagnosticsEvent(messageBus, {
+                type: 'RenderCacheDriftSweep',
+                roomIds: Array.isArray(event.roomIds) ? event.roomIds : [],
+                ...(typeof event.diagnosticRunId === 'string' ? { diagnosticRunId: event.diagnosticRunId } : {}),
+                ...(typeof event.nowMs === 'number' ? { nowMs: event.nowMs } : {})
+            })
+            return
     }
 }
 

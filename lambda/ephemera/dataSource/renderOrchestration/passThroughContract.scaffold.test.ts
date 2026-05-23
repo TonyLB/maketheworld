@@ -2,10 +2,21 @@
  * Contract tests: orchestration emits mtw.ephemera.renderOrchestration StreamingEvents
  * (six outbounds); passive orchestration is stream-only (no legacy conversation bus).
  */
+jest.mock('../renderCache/ensureAuthoredCatalog', () => ({
+    ensureAuthoredCatalog: jest.fn().mockResolvedValue(undefined),
+}))
+
+jest.mock('../renderCache/catalogRow', () => ({
+    ...jest.requireActual('../renderCache/catalogRow'),
+    getCatalogRow: jest.fn().mockResolvedValue(undefined),
+}))
+
 import type { MessageBus as MessageBusType } from '../../messageBus/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
+import type { EphemeraCacheCatalogRow, EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
+import { buildCacheCatalogDataCategory } from '../renderCache/baseClasses'
 import internalCache from '../../internalCache'
+import { getCatalogRow } from '../renderCache/catalogRow'
 import { orchestrateRenderRequest } from './orchestrationHandler'
 import type { RenderRequested } from '../../messageBus/baseClasses'
 import {
@@ -26,6 +37,16 @@ const makeBus = (): MessageBusType & { send: jest.Mock; flush: jest.Mock } => (
     } as unknown as MessageBusType & { send: jest.Mock; flush: jest.Mock }
 )
 
+const getCatalogRowMock = getCatalogRow as jest.MockedFunction<typeof getCatalogRow>
+
+const readyCatalogForPerspective = (perspectiveKey: string, catalogVersion = 1): EphemeraCacheCatalogRow => ({
+    EphemeraId: 'ROOM#one',
+    DataCategory: buildCacheCatalogDataCategory(perspectiveKey),
+    assetStack: ['ASSET#base'],
+    catalogVersion,
+    hydratedCatalogVersion: catalogVersion,
+})
+
 const findOrchestrationStreamingEvent = (send: jest.Mock): { getContent: () => Promise<unknown> } | undefined => {
     for (const call of send.mock.calls) {
         const msg = call[0] as { type?: string; dataSourceKey?: string; getContent?: () => Promise<unknown> }
@@ -39,6 +60,7 @@ const findOrchestrationStreamingEvent = (send: jest.Mock): { getContent: () => P
 describe('renderOrchestration stream outcomes (pass-through six outbounds)', () => {
     beforeEach(() => {
         internalCache.clear()
+        getCatalogRowMock.mockResolvedValue(undefined)
     })
 
     const basePayload: RenderRequested = {
@@ -69,7 +91,9 @@ describe('renderOrchestration stream outcomes (pass-through six outbounds)', () 
 
     it('pointer fast-path emits Current Cache Valid on mtw.ephemera.renderOrchestration', async () => {
         const messageBus = makeBus()
-        const getCacheRecordById = jest.fn().mockResolvedValue(baseCacheRecord)
+        const perspectiveKey = 'PERSPECTIVE#v1#abc'
+        getCatalogRowMock.mockResolvedValue(readyCatalogForPerspective(perspectiveKey))
+        const getCacheRecordById = jest.fn().mockResolvedValue({ ...baseCacheRecord, catalogVersion: 1 })
         const getExactMatch = jest.fn()
         await orchestrateRenderRequest(
             { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },

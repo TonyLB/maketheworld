@@ -42,7 +42,6 @@ import withGetOperations from '@tonylb/mtw-utilities/ts/dynamoDB/mixins/get';
 import { DBHandlerBase } from '@tonylb/mtw-utilities/ts/dynamoDB/baseClasses';
 import ComponentRenderData from './componentRender';
 import ComponentStackMergeData from './componentStackMerge';
-import { queryCacheRecordsForComponent } from '../dataSource/renderCache/queryCacheRecordsForComponent';
 import CacheCharacterPossibleMapsData from './characterPossibleMaps';
 import CachePlayerMetaData from './playerMeta';
 import CacheGlobalData from './global';
@@ -75,7 +74,7 @@ export class InternalCache {
     Global: CacheGlobalData = new CacheGlobalData()
     CoyoteGame: CacheCoyoteGameData;
     Conversations: ConversationsData = new ConversationsData(this.Global)
-    RenderCache: RenderCacheData = new RenderCacheData(queryCacheRecordsForComponent)
+    RenderCache: RenderCacheData = new RenderCacheData()
     PlayerMeta: CachePlayerMetaData;
     OrchestrateMessages: OrchestrateMessagesData = new OrchestrateMessagesData()
     PerceptionThreads: PerceptionThreadsData = new PerceptionThreadsData()

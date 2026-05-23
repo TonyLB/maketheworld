@@ -7,6 +7,7 @@ import messageBus from '../messageBus'
 import { roomOccupancyDriftSweep } from '../roomOccupancyDriftSweep'
 import { componentVerticalMisalignmentSweep } from '../componentVerticalMisalignmentSweep'
 import { playerMisalignmentSweep } from '../playerMisalignmentSweep'
+import { renderCacheDriftSweep } from '../renderCacheDriftSweep'
 import { staleSessionSweep } from '../staleSessionSweep'
 import {
     DiagnosticsSubscribedContent,
@@ -14,6 +15,7 @@ import {
     isDiagnosticsApiRoomOccupancyDriftSweepEnvelope,
     isDiagnosticsApiComponentVerticalMisalignmentSweepEnvelope,
     isDiagnosticsApiPlayerMisalignmentSweepEnvelope,
+    isDiagnosticsApiRenderCacheDriftSweepEnvelope,
     isDiagnosticsApiStaleSessionSweepEnvelope,
     isDiagnosticsSubscribedEnvelope
 } from './subscribedEvents'
@@ -112,6 +114,26 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
                 }
                 const result = await componentVerticalMisalignmentSweep({
                     assetId: content.assetId,
+                    diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
+                    nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
+                })
+                messageBus.send({
+                    type: 'ReturnValue',
+                    body: result as Record<string, any>
+                })
+                return
+            }
+            if (isDiagnosticsApiRenderCacheDriftSweepEnvelope(event as any)) {
+                const content = await event.getContent()
+                if (!Array.isArray(content.roomIds)) {
+                    messageBus.send({
+                        type: 'Error',
+                        body: { error: 'RenderCacheDriftSweep requires roomIds array', statusCode: 400 }
+                    })
+                    return
+                }
+                const result = await renderCacheDriftSweep({
+                    roomIds: content.roomIds,
                     diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
                     nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
                 })

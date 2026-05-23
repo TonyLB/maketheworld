@@ -3,40 +3,50 @@
  */
 import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import internalCache from '../../internalCache'
 import {
     buildCacheCatalogDataCategory,
     EPHEMERA_CACHE_CATALOG_DATA_CATEGORY_PREFIX,
-    isEphemeraCacheCatalogRow,
+    fetchCatalogRow,
+    perspectiveKeyFromCatalogDataCategory,
+    queryCatalogRowsForComponent as queryCatalogRowsFromGateway,
     type EphemeraCacheCatalogRow,
     type EphemeraCacheComponentId,
-} from './baseClasses'
+} from '@tonylb/mtw-gateways/ts/ephemera/renderCache'
+import internalCache from '../../internalCache'
 import { shouldIncrementCatalogVersionOnInvalidation } from './catalogGuards'
+
+export {
+    buildCacheCatalogDataCategory,
+    EPHEMERA_CACHE_CATALOG_DATA_CATEGORY_PREFIX,
+    perspectiveKeyFromCatalogDataCategory,
+} from '@tonylb/mtw-gateways/ts/ephemera/renderCache'
 
 export async function queryCatalogRowsForComponent(
     componentId: EphemeraCacheComponentId
 ): Promise<EphemeraCacheCatalogRow[]> {
-    const raw = await ephemeraDB.query<EphemeraCacheCatalogRow>({
-        Key: { EphemeraId: componentId },
-        KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
-        ExpressionAttributeValues: { ':dcPrefix': EPHEMERA_CACHE_CATALOG_DATA_CATEGORY_PREFIX },
-        allFields: true,
-    })
-    return raw.filter(isEphemeraCacheCatalogRow)
+    return internalCache.RenderCache.getCatalogRows(componentId)
 }
 
 export async function getCatalogRow(
     componentId: EphemeraCacheComponentId,
     perspectiveKey: string
 ): Promise<EphemeraCacheCatalogRow | undefined> {
-    const item = await ephemeraDB.getItem<EphemeraCacheCatalogRow>({
-        Key: {
-            EphemeraId: componentId,
-            DataCategory: buildCacheCatalogDataCategory(perspectiveKey),
-        },
-        getAllFields: true,
-    })
-    return item && isEphemeraCacheCatalogRow(item) ? item : undefined
+    return internalCache.RenderCache.getCatalogRow(componentId, perspectiveKey)
+}
+
+/** Uncached fetch for tests and tooling only. */
+export async function getCatalogRowFromDynamo(
+    componentId: EphemeraCacheComponentId,
+    perspectiveKey: string
+): Promise<EphemeraCacheCatalogRow | undefined> {
+    return fetchCatalogRow(ephemeraDB, componentId, perspectiveKey)
+}
+
+/** Uncached query for tests and tooling only. */
+export async function queryCatalogRowsFromDynamo(
+    componentId: EphemeraCacheComponentId
+): Promise<EphemeraCacheCatalogRow[]> {
+    return queryCatalogRowsFromGateway(ephemeraDB, componentId)
 }
 
 export async function putCatalogRow(row: EphemeraCacheCatalogRow): Promise<void> {
@@ -87,10 +97,34 @@ export async function conditionalInvalidateCatalogRow(row: EphemeraCacheCatalogR
     internalCache.RenderCache.invalidate(row.EphemeraId)
 }
 
-export const perspectiveKeyFromCatalogDataCategory = (dataCategory: string): string | undefined => {
-    if (!dataCategory.startsWith(EPHEMERA_CACHE_CATALOG_DATA_CATEGORY_PREFIX)) {
-        return undefined
-    }
-    const key = dataCategory.slice(EPHEMERA_CACHE_CATALOG_DATA_CATEGORY_PREFIX.length)
-    return key.length > 0 ? key : undefined
+/**
+ * H6: mark catalog ready at incomingCatalogVersion only if catalogVersion unchanged since hydrate start.
+ * Returns true when hydratedCatalogVersion was written.
+ */
+export async function markCatalogHydratedAtVersion(
+    componentId: EphemeraCacheComponentId,
+    perspectiveKey: string,
+    incomingCatalogVersion: number
+): Promise<boolean> {
+    let wrote = false
+
+    await ephemeraDB.optimisticUpdate({
+        Key: {
+            EphemeraId: componentId,
+            DataCategory: buildCacheCatalogDataCategory(perspectiveKey),
+        },
+        updateKeys: ['hydratedCatalogVersion', 'catalogVersion'],
+        checkKeys: ['catalogVersion'],
+        updateReducer: (draft: EphemeraCacheCatalogRow) => {
+            if (draft.catalogVersion === incomingCatalogVersion) {
+                draft.hydratedCatalogVersion = incomingCatalogVersion
+            }
+        },
+        successCallback: () => {
+            wrote = true
+            internalCache.RenderCache.invalidate(componentId)
+        },
+    })
+
+    return wrote
 }

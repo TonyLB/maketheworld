@@ -1,4 +1,9 @@
+jest.mock('../renderCache/catalogRow', () => ({
+    getCatalogRow: jest.fn(),
+}))
+
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { getCatalogRow } from '../renderCache/catalogRow'
 import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { perspectiveMatches, computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../renderCache/baseClasses'
@@ -6,7 +11,14 @@ import { markStatesEqual } from '../renderCache/utils/markState'
 import { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION, type RenderResolveInputSuccess } from './baseClasses'
 import { findRender } from './findRender'
 
+const getCatalogRowMock = getCatalogRow as jest.MockedFunction<typeof getCatalogRow>
+
 describe('dataSource/renderOrchestration/findRender', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        getCatalogRowMock.mockResolvedValue(undefined)
+    })
+
     const roomId = 'ROOM#one' as EphemeraRoomId
     const markState: EphemeraCacheMarkState = { markValue: [{ mark: 'MARK#a', value: 'one' }] }
     const perspective: Perspective = { assetStack: ['ASSET#base'] }
@@ -43,7 +55,15 @@ describe('dataSource/renderOrchestration/findRender', () => {
 
     it('emits Current Cache Valid on valid pointer fast-path', async () => {
         const deps = baseDeps()
-        deps.getCacheRecordById.mockResolvedValue(baseCacheRecord)
+        const authoritativeRecord = { ...baseCacheRecord, catalogVersion: 1 }
+        deps.getCacheRecordById.mockResolvedValue(authoritativeRecord)
+        getCatalogRowMock.mockResolvedValue({
+            EphemeraId: roomId,
+            DataCategory: 'Cache::PERSPECTIVE#v1#abc',
+            assetStack: ['ASSET#base'],
+            catalogVersion: 1,
+            hydratedCatalogVersion: 1,
+        })
         const resolve: RenderResolveInputSuccess = {
             ...baseResolve,
             pointerHint: 'CACHE#valid',
@@ -101,6 +121,29 @@ describe('dataSource/renderOrchestration/findRender', () => {
             })
         )
         expect(deps.generateRoomPreview).not.toHaveBeenCalled()
+    })
+
+    it('clears pointer when row is not authoritative for catalog epoch', async () => {
+        const deps = baseDeps()
+        deps.getCacheRecordById.mockResolvedValue({ ...baseCacheRecord, catalogVersion: 1 })
+        getCatalogRowMock.mockResolvedValue({
+            EphemeraId: roomId,
+            DataCategory: 'Cache::PERSPECTIVE#v1#abc',
+            assetStack: ['ASSET#base'],
+            catalogVersion: 2,
+            hydratedCatalogVersion: 2,
+        })
+        deps.getExactMatch.mockResolvedValue(null)
+        const resolve: RenderResolveInputSuccess = {
+            ...baseResolve,
+            pointerHint: 'CACHE#valid',
+            allowGeneration: false,
+        }
+        await findRender(resolve, deps)
+        expect(deps.clearPerspectivePointer).toHaveBeenCalled()
+        expect(deps.publishOrchestration).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'Generation Deferred' })
+        )
     })
 
     it('continues after clear when pointer markState mismatches then exact match hits', async () => {

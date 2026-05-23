@@ -29,6 +29,7 @@ import type { RunWithSingleFlight } from './singleFlightRenderGeneration'
 import { intakeRenderRequested } from './requestIntake'
 import type { RequestIntakeDependencies } from './requestIntake'
 import { clearPerspectivePointer as clearCatalogPerspectivePointer } from '../renderCache/perspectivePointer'
+import { ensureAuthoredCatalog } from '../renderCache/ensureAuthoredCatalog'
 import internalCache from '../../internalCache'
 
 export type OrchestrationHandlerDependencies = {
@@ -45,6 +46,8 @@ export type OrchestrationHandlerDependencies = {
     generateRoomPreview?: typeof generateRoomPreview;
     /** Tests: {@link passThroughSingleFlight} from `./singleFlightRenderGeneration`; omit in production. */
     runWithSingleFlight?: RunWithSingleFlight;
+    /** Tests: override hydrate preflight; default is {@link ensureAuthoredCatalog}. */
+    ensureAuthoredCatalog?: typeof ensureAuthoredCatalog;
 };
 
 export type OrchestrationPipelineDependencies = RequestIntakeDependencies & OrchestrationHandlerDependencies
@@ -57,6 +60,7 @@ type OrchestrationHandlerDepsResolved = {
     markStatesEqual: NonNullable<OrchestrationHandlerDependencies['markStatesEqual']>;
     generateRoomPreview: typeof generateRoomPreview;
     runWithSingleFlight: RunWithSingleFlight | undefined;
+    ensureAuthoredCatalog: typeof ensureAuthoredCatalog;
 };
 
 export const defaultGetCacheRecordById = async (
@@ -98,6 +102,7 @@ export const orchestrateRenderRequest = async (
         markStatesEqual: _deps?.markStatesEqual ?? markStatesEqual,
         generateRoomPreview: _deps?.generateRoomPreview ?? generateRoomPreview,
         runWithSingleFlight: _deps?.runWithSingleFlight,
+        ensureAuthoredCatalog: _deps?.ensureAuthoredCatalog ?? ensureAuthoredCatalog,
     }
 
     const streamKey = payload.componentId
@@ -142,6 +147,11 @@ export const orchestrateRenderRequest = async (
         perspectiveKey: pkAfterIntake,
         perspectiveAssetStack: intake.perspective.assetStack,
         hasPointerHint: intake.pointerHint !== undefined,
+    })
+
+    await orchDeps.ensureAuthoredCatalog({
+        componentId: intake.roomId,
+        perspective: intake.perspective,
     })
 
     /**
