@@ -126,4 +126,73 @@ describe('hydrateAuthoredCatalogDiff', () => {
 
         expect(putMock).not.toHaveBeenCalled()
     })
+
+    it('does not delete rows at or above incoming catalog version when absent from desired set', async () => {
+        queryMock.mockResolvedValue([
+            authoredRow({
+                situationId: 'SITUATION#gone',
+                DataCategory: 'CACHE#gone',
+                catalogVersion: 2,
+            }),
+        ])
+
+        await hydrateAuthoredCatalogDiff({
+            componentId,
+            perspective,
+            perspectiveKey,
+            assetStack: ['ASSET#a'],
+            incomingCatalogVersion: 2,
+            desiredSet: authoredExampleSetFromEntries([]),
+        })
+
+        expect(deleteMock).not.toHaveBeenCalled()
+        expect(deleteAdjacencyMock).not.toHaveBeenCalled()
+    })
+
+    it('does not delete authored rows for a different perspective', async () => {
+        queryMock.mockResolvedValue([
+            authoredRow({
+                situationId: 'SITUATION#gone',
+                DataCategory: 'CACHE#otherPerspective',
+                catalogVersion: 1,
+                perspectiveMatcher: { requiredAssetIds: ['ASSET#other'], forbiddenAssetIds: [] },
+            }),
+        ])
+
+        await hydrateAuthoredCatalogDiff({
+            componentId,
+            perspective,
+            perspectiveKey,
+            assetStack: ['ASSET#a'],
+            incomingCatalogVersion: 2,
+            desiredSet: authoredExampleSetFromEntries([]),
+        })
+
+        expect(deleteMock).not.toHaveBeenCalled()
+    })
+
+    it('upserts adjacency once per desired situation slice', async () => {
+        queryMock.mockResolvedValue([])
+
+        await hydrateAuthoredCatalogDiff({
+            componentId,
+            perspective,
+            perspectiveKey,
+            assetStack: ['ASSET#a'],
+            incomingCatalogVersion: 2,
+            desiredSet: authoredExampleSetFromEntries([
+                ['SITUATION#one', example('SITUATION#one')],
+                ['SITUATION#two', example('SITUATION#two')],
+            ]),
+        })
+
+        expect(putMock).toHaveBeenCalledTimes(2)
+        expect(upsertAdjacencyMock).toHaveBeenCalledTimes(2)
+        expect(upsertAdjacencyMock).toHaveBeenCalledWith(
+            expect.objectContaining({ situationId: 'SITUATION#one' })
+        )
+        expect(upsertAdjacencyMock).toHaveBeenCalledWith(
+            expect.objectContaining({ situationId: 'SITUATION#two' })
+        )
+    })
 })

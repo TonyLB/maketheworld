@@ -69,6 +69,13 @@ describe('ComponentExamples invalidation guards', () => {
         })).toBe(false)
     })
 
+    it('rejects exampleId on situation-scoped ExampleInvalidated', () => {
+        expect(isSituationScopedExampleInvalidated({
+            ...situationScoped,
+            exampleId: 'SITUATION#x',
+        })).toBe(false)
+    })
+
     it('rejects mirror-only fields on invalidation payloads', () => {
         expect(isComponentScopedExampleInvalidated({
             ...componentScoped,

@@ -1,8 +1,12 @@
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 
+import type { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
+import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 import { aggregatePerspectiveExplicit } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
+import { authoredExampleSetSituationIds } from '@tonylb/mtw-gateways/ts/assets/components/componentExamples'
 
 const assetDBMock = jest.mocked(assetDB)
 
@@ -87,5 +91,45 @@ describe('diagnostics internalCache', () => {
         internalCache.clear()
         await internalCache.ComponentExamples.get(input)
         expect(assetDBMock.getItems.mock.calls.length).toBeGreaterThan(getItemsAfterFirst)
+    })
+
+    it('ComponentExamples.get assembles authored slices from blueprint via gateway', async () => {
+        const roomU = 'ROOM#diag' as const
+        const assetA = 'ASSET#diagA' as const
+        const situationId = 'SITUATION#diagS' as const
+
+        const room = new StandardRoom(
+            deIndentWML(`
+            <Room key=(diagRoom) uuid=(ROOM#diag)>
+                <Situation key=(diagSit) uuid=(SITUATION#diagS) />
+            </Room>
+        `)
+        )
+        const { universalKey: _roomU, tag: _roomTag, ...roomFields } = room.toJSON()
+
+        assetDBMock.getItems.mockImplementation(async ({ Keys }) =>
+            Keys.map((key) => {
+                if (key.AssetId === roomU && key.DataCategory === assetA) {
+                    return {
+                        AssetId: roomU,
+                        DataCategory: assetA,
+                        ...roomFields,
+                    } as Omit<StandardComponentData, 'universalKey' | 'tag'> & {
+                        DataCategory: typeof assetA
+                        AssetId: typeof roomU
+                    }
+                }
+                return []
+            }).flat()
+        )
+
+        const set = await internalCache.ComponentExamples.get({
+            hostUniversalKey: roomU,
+            mergeParticipationOrder: [assetA],
+        })
+
+        expect(set.size).toBe(1)
+        expect(authoredExampleSetSituationIds(set)).toEqual([situationId])
+        expect(set.get(situationId)?.provenance).toEqual({ type: 'authored' })
     })
 })

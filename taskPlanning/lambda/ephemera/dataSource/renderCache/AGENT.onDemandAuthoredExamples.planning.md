@@ -1,6 +1,6 @@
 # On-demand authored examples (invalidate + hydrate) - planning
 
-**Status:** Design pass complete; **contracts**, **catalog + adjacency**, **gateway (A3)**, **lambda wiring (A1)**, **invalidation handler slice**, **Assets invalidation-only emitter**, and **hydration step (`ensureAuthoredCatalog`)** landed. **Next:** expanded **Tests** slice per [**Recommended order**](#recommended-order).
+**Status:** Design pass complete; **contracts**, **catalog + adjacency**, **gateway (A3)**, **lambda wiring (A1)**, **invalidation handler slice**, **Assets invalidation-only emitter**, **hydration step (`ensureAuthoredCatalog`)**, and **Tests** slice landed. **Next:** **Diagnostics renderCache sweep** per [**Recommended order**](#recommended-order).
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting notes live under [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md), [`lambda/assets/componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md), and related steady-state docs.
 
@@ -420,6 +420,7 @@ Do **not** overload **constellation** for v1 exact-match or hydrate --- reserve 
 | Ephemera aggregate read wiring | Done |
 | Hydration step in orchestration | Done |
 | Assets componentExamples emit invalidations only | Done |
+| Tests (gateway parity, invalidation, hydrate diff, hydrate-then-exact-match) | Done |
 | Steady-state AGENT.md updates | Partial (renderCache + dataSource + assets event docs updated) |
 
 ---
@@ -560,7 +561,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` wh
 - [X] **Invalidation handler:** in **`mtw.ephemera.renderCache`** (P3) --- component-scoped path (P1 + layer participation); Situation path (S2/S3, P5 cleanup on Removed); diagnostics finding (P7); retire [`componentExamples.ts`](../../../../../lambda/ephemera/dataSource/componentExamples.ts) mirror + Assets reseed
 - [X] **Assets emitter:** refactor [`componentExamples/index.ts`](../../../../../lambda/assets/componentExamples/index.ts) to invalidations-only (P1: **`editAssetId`** from event asset); Situation path per S1; drop **`emitSituationComponentFacetEvents`** / **`getParentIdsForSituation`**
 - [X] **Hydration step:** **`ensureAuthoredCatalog`** (O1/O2) calls **`internalCache.ComponentExamples.get`** + **diff** put/delete authored rows + catalog ready + coalescing; wire from **`orchestrationHandler`** before **`findRender`**
-- [ ] **Tests:** gateway golden/parity (**`componentExamples`**); layer participation invalidation (A/B/C overlay); Situation invalidation uses **`situationId`**; adjacency + filter; hydrate diff; hydrate-then-exact-match; diagnostics via gateway
+- [X] **Tests:** gateway golden/parity (**`componentExamples`**); layer participation invalidation (A/B/C overlay); Situation invalidation uses **`situationId`**; adjacency + filter; hydrate diff; hydrate-then-exact-match; diagnostics via gateway
 - [ ] **Diagnostics renderCache sweep:** in **`lambda/diagnostics/`** (new module, pattern: **`roomOccupancyDriftSweep`**) --- compare blueprint desired set (**`internalCache.ComponentExamples.get`**) vs Ephemera materialized state (**`ephemeraDB`** catalog + version-gated **`CACHE#`** where needed); emit **`Ephemera RenderCache Finding`** with **`targetCatalogs`** only (no **`perspective`** / **`roomIds`**). Manual emission docs for sandbox until scheduled.
 - [ ] **Docs:** update [`renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md) (**Mirroring vs runtime**), [`componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md), [`AGENT.event.md`](../../../../../lambda/assets/AGENT.event.md); trim stale Example-filter prose
 - [ ] **Dispose this plan** per [`taskPlanning/AGENT.md`](../../../../AGENT.md)
@@ -650,6 +651,27 @@ cd lambda/ephemera && npm test -- --testPathPattern=renderCache
 ```
 
 Slice files: [`ensureAuthoredCatalog.ts`](../../../../../lambda/ephemera/dataSource/renderCache/ensureAuthoredCatalog.ts), [`hydrateAuthoredCatalogDiff.ts`](../../../../../lambda/ephemera/dataSource/renderCache/hydrateAuthoredCatalogDiff.ts), [`authoredExampleToCacheRecord.ts`](../../../../../lambda/ephemera/dataSource/renderCache/authoredExampleToCacheRecord.ts), [`singleFlightAuthoredCatalogHydrate.ts`](../../../../../lambda/ephemera/dataSource/renderCache/singleFlightAuthoredCatalogHydrate.ts); [`catalogRow.ts`](../../../../../lambda/ephemera/dataSource/renderCache/catalogRow.ts) (`markCatalogHydratedAtVersion`); [`putCacheRecord.ts`](../../../../../lambda/ephemera/dataSource/renderCache/putCacheRecord.ts) (`catalogVersion`); version-gated [`internalCache/renderCache.ts`](../../../../../lambda/ephemera/internalCache/renderCache.ts) `getExactMatch`; [`findRender.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts) pointer gate; [`orchestrationHandler.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts) preflight wire.
+
+**Tests slice (landed):**
+
+```bash
+cd packages/mtw-gateways && npm test -- --testPathPattern=componentExamples
+cd packages/mtw-interfaces && npm test -- --testPathPattern=componentExamples
+cd lambda/assets && npm test -- --testPathPattern=componentExamples
+cd lambda/ephemera && npm test -- --testPathPattern='renderCache/(handleExampleInvalidated|hydrateAuthoredCatalogDiff|authoredCatalogHydrateExactMatch|index)'
+cd lambda/ephemera && npm test -- --testPathPattern='internalCache/(renderCache|componentAggregate)'
+cd lambda/diagnostics && npm test -- --testPathPattern=internalCache
+cd lambda/ephemera && npm test -- --testPathPattern=renderCache
+```
+
+Coverage highlights:
+
+- **Gateway parity:** [`factory.test.ts`](../../../../../packages/mtw-gateways/ts/assets/components/componentExamples/factory.test.ts) (`handler.get` vs `assemble`); shared fixture [`fixtures/twoLayerRoom.ts`](../../../../../packages/mtw-gateways/ts/assets/components/componentExamples/fixtures/twoLayerRoom.ts).
+- **Layer participation (A/B/C):** [`handleExampleInvalidated.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/handleExampleInvalidated.test.ts) component-scoped + Situation adjacency three-link filter.
+- **`situationId` wire:** [`componentExamples.test.ts`](../../../../../packages/mtw-interfaces/ts/eventBridge/assets/componentExamples.test.ts); [`index.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.test.ts) situation-scoped dispatch.
+- **Hydrate diff:** extended [`hydrateAuthoredCatalogDiff.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/hydrateAuthoredCatalogDiff.test.ts) (perspective isolation, version-guard delete skip, multi-slice adjacency).
+- **Hydrate-then-exact-match:** [`authoredCatalogHydrateExactMatch.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/authoredCatalogHydrateExactMatch.test.ts) (`ensureAuthoredCatalog` -> versioned `CACHE#` -> `RenderCacheData.getExactMatch`).
+- **Diagnostics via gateway:** [`lambda/diagnostics/internalCache/internalCache.test.ts`](../../../../../lambda/diagnostics/internalCache/internalCache.test.ts) (`ComponentExamples.get` assembles from blueprint).
 
 ---
 

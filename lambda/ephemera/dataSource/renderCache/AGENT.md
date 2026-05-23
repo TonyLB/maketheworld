@@ -304,11 +304,13 @@ For broader architectural context, see:
 
 ## Tests
 
-- Package: [`index.test.ts`](index.test.ts), [`putCacheRecord.test.ts`](putCacheRecord.test.ts), [`deleteCacheRecord.test.ts`](deleteCacheRecord.test.ts), [`queryCacheRecordsForComponent.test.ts`](queryCacheRecordsForComponent.test.ts), [`catalogRow.test.ts`](catalogRow.test.ts), [`situationAdjacency.test.ts`](situationAdjacency.test.ts), [`handleExampleInvalidated.test.ts`](handleExampleInvalidated.test.ts), [`perspectivePointer.test.ts`](perspectivePointer.test.ts).
+- Package: [`index.test.ts`](index.test.ts), [`putCacheRecord.test.ts`](putCacheRecord.test.ts), [`deleteCacheRecord.test.ts`](deleteCacheRecord.test.ts), [`queryCacheRecordsForComponent.test.ts`](queryCacheRecordsForComponent.test.ts), [`catalogRow.test.ts`](catalogRow.test.ts), [`catalogGuards.test.ts`](catalogGuards.test.ts), [`situationAdjacency.test.ts`](situationAdjacency.test.ts), [`handleExampleInvalidated.test.ts`](handleExampleInvalidated.test.ts), [`handleRenderCacheFinding.test.ts`](handleRenderCacheFinding.test.ts), [`ensureAuthoredCatalog.test.ts`](ensureAuthoredCatalog.test.ts), [`hydrateAuthoredCatalogDiff.test.ts`](hydrateAuthoredCatalogDiff.test.ts), [`authoredCatalogHydrateExactMatch.test.ts`](authoredCatalogHydrateExactMatch.test.ts), [`perspectivePointer.test.ts`](perspectivePointer.test.ts).
+- **On-demand authored catalog:** [`authoredCatalogHydrateExactMatch.test.ts`](authoredCatalogHydrateExactMatch.test.ts) chains **`ensureAuthoredCatalog`** -> version-stamped **`CACHE#`** rows -> **`internalCache.RenderCache.getExactMatch`** (only rows at the current **`catalogVersion`** on the perspective's **`Cache::`** row are authoritative).
 - Contract: [`passThroughContract.scaffold.test.ts`](passThroughContract.scaffold.test.ts), shared [`../passThroughContractFixtures.ts`](../passThroughContractFixtures.ts).
 - Cross-layer: [`../passThroughOrchestrationToCache.integration.test.ts`](../passThroughOrchestrationToCache.integration.test.ts).
+- **`internalCache`:** [`../../internalCache/renderCache.test.ts`](../../internalCache/renderCache.test.ts) (`getExactMatch` version gate).
 
-From [`lambda/ephemera/`](../../): `npm test` (Jest).
+From [`lambda/ephemera/`](../../): `npm test -- --testPathPattern=renderCache` (Jest).
 
 ## Related docs
 
