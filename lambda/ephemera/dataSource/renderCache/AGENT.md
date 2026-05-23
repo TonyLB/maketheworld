@@ -83,7 +83,7 @@ Initiative: [`taskPlanning/.../AGENT.onDemandAuthoredExamples.planning.md`](../.
 | --- | --- | --- |
 | **`EphemeraCacheCatalogRow`** | `Cache::${perspectiveKey}` under host `EphemeraId` | Per-perspective catalog: `catalogVersion`, `hydratedCatalogVersion`, canon **`assetStack`**, optional **`currentCacheId`** (fast pointer; M2). |
 | **`SituationCacheAdjacencyRow`** | `Link::${host}::Cache::${perspectiveKey}` under `SITUATION#` | Inverse index for Situation-scoped invalidation fan-out. |
-| **`ExampleInvalidated`** | `mtw.assets.componentExamples` | Skinny invalidation; handled in [`handleExampleInvalidated.ts`](handleExampleInvalidated.ts). |
+| **`ExampleInvalidated`** | `mtw.assets.componentExamples` | Skinny invalidation-only push from Assets; handled in [`handleExampleInvalidated.ts`](handleExampleInvalidated.ts). |
 | **`Ephemera RenderCache Finding`** | `mtw.diagnostics` | Lazy catalog bump (P7); handled in [`handleRenderCacheFinding.ts`](handleRenderCacheFinding.ts). |
 | **`AuthoredExample`** | `mtw-gateways` assembly | Blueprint desired set for hydrate (next slice). |
 

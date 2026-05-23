@@ -1,6 +1,6 @@
 # On-demand authored examples (invalidate + hydrate) - planning
 
-**Status:** Design pass complete; **contracts**, **catalog + adjacency**, **gateway (A3)**, **lambda wiring (A1)**, and **invalidation handler slice** landed (P7 diagnostics, Assets reseed retired, **`mtw.ephemera.examples`** mirror retired). **Next:** Assets invalidation-only emitter + **`ensureAuthoredCatalog`** hydrate per [**Recommended order**](#recommended-order).
+**Status:** Design pass complete; **contracts**, **catalog + adjacency**, **gateway (A3)**, **lambda wiring (A1)**, **invalidation handler slice**, and **Assets invalidation-only emitter** landed (P7 diagnostics, Assets reseed retired, **`mtw.ephemera.examples`** mirror retired, mirror modules deleted). **Next:** **`ensureAuthoredCatalog`** hydrate per [**Recommended order**](#recommended-order).
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting notes live under [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md), [`lambda/assets/componentExamples/AGENT.md`](../../../../../lambda/assets/componentExamples/AGENT.md), and related steady-state docs.
 
@@ -341,7 +341,7 @@ sequenceDiagram
 | Partition **`ComponentData`** reads on mirroring/reseed | **Done** (pair loader) | N/A |
 | Retire **`ExampleUpdated`** / **`ExampleRemoved`** mirror payloads | **This plan** | **Assets emitter**; **Invalidation handler** (partial); retire [`componentExamples.ts`](../../../../../lambda/ephemera/dataSource/componentExamples.ts) |
 | Retire **`reseedComponentExamplesFromDiagnostics`** | **Done** | **P7** on Ephemera **`renderCache`**; Assets routing removed |
-| Remove **`loadAuthoritativeForMirroring`**, legacy **`exampleEnrichment`** merge-at-push | **This plan** | After **Lambda wiring (A1)** + **Hydration**; **`internalCache.ComponentExamples`** replaces push-time merge |
+| Remove **`loadAuthoritativeForMirroring`**, legacy **`exampleEnrichment`** merge-at-push | **Done** (Assets emitter slice) | **`internalCache.ComponentExamples`** replaces push-time merge at hydrate boundary (next slice) |
 | Grep cleanup of **`createAuthoritativeComponentDataCacheHandler`** outside **`componentData/`** | **Done** (shim removed) | Do **not** reintroduce partition handler on lambdas; see [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) |
 
 Deploy sequence remains [**P6**](#contract-gaps-resolved-at-planning): Ephemera catalog + invalidation + **`ensureAuthoredCatalog`** first; then Assets invalidation-only; then drop **`mtw.ephemera.examples`** mirror subscriber.
@@ -419,7 +419,7 @@ Do **not** overload **constellation** for v1 exact-match or hydrate --- reserve 
 | Meta freshness fields + writers | Partial (catalog `currentCacheId`; legacy Meta fallback) |
 | Ephemera aggregate read wiring | Done |
 | Hydration step in orchestration | Not started |
-| Assets componentExamples emit invalidations only | Not started |
+| Assets componentExamples emit invalidations only | Done |
 | Steady-state AGENT.md updates | Partial (renderCache + dataSource + assets event docs updated) |
 
 ---
@@ -558,7 +558,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` wh
 - [X] **`componentExamples` gateway (`mtw-gateways`):** per [**A3 algorithm**](#componentexamples-gateway---algorithm-a3); **`AuthoredExample`** types; lift helpers from **`exampleEnrichment.ts`**; package tests + parity; [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md) ownership row. **`assemble.ts`** shipped (**secondary**); **`factory.ts`** + **`createComponentExamplesCacheHandler`** land with [**Lambda wiring**](#recommended-order) (not a separate public API shape).
 - [X] **Lambda wiring (**A1**):** **Diagnostics:** tier-1 **`ComponentData`** + **`ComponentVerticals`**; **`ComponentAggregate`**; **`ComponentExamples`**. **Ephemera:** **`ComponentAggregate`** + **`ComponentExamples`** with slice **`{ ComponentData: internalCache.ComponentData, ... }`** (pair **`getAcrossAssets`** at canon stack); stub **`ComponentVerticals`** if needed for slice shape. Hydrate: **`internalCache.ComponentExamples.get`** only (no **`assembleComponentExamplesAtPerspective`**, no partition enumerate at boundary).
 - [X] **Invalidation handler:** in **`mtw.ephemera.renderCache`** (P3) --- component-scoped path (P1 + layer participation); Situation path (S2/S3, P5 cleanup on Removed); diagnostics finding (P7); retire [`componentExamples.ts`](../../../../../lambda/ephemera/dataSource/componentExamples.ts) mirror + Assets reseed
-- [ ] **Assets emitter:** refactor [`componentExamples/index.ts`](../../../../../lambda/assets/componentExamples/index.ts) to invalidations-only (P1: **`editAssetId`** from event asset); Situation path per S1; drop **`emitSituationComponentFacetEvents`** / **`getParentIdsForSituation`**
+- [X] **Assets emitter:** refactor [`componentExamples/index.ts`](../../../../../lambda/assets/componentExamples/index.ts) to invalidations-only (P1: **`editAssetId`** from event asset); Situation path per S1; drop **`emitSituationComponentFacetEvents`** / **`getParentIdsForSituation`**
 - [ ] **Hydration step:** **`ensureAuthoredCatalog`** (O1/O2) calls **`internalCache.ComponentExamples.get`** + **diff** put/delete authored rows + catalog ready + coalescing; wire from **`orchestrationHandler`** before **`findRender`**
 - [ ] **Tests:** gateway golden/parity (**`componentExamples`**); layer participation invalidation (A/B/C overlay); Situation invalidation uses **`situationId`**; adjacency + filter; hydrate diff; hydrate-then-exact-match; diagnostics via gateway
 - [ ] **Diagnostics renderCache sweep:** in **`lambda/diagnostics/`** (new module, pattern: **`roomOccupancyDriftSweep`**) --- compare blueprint desired set (**`internalCache.ComponentExamples.get`**) vs Ephemera materialized state (**`ephemeraDB`** catalog + version-gated **`CACHE#`** where needed); emit **`Ephemera RenderCache Finding`** with **`targetCatalogs`** only (no **`perspective`** / **`roomIds`**). Manual emission docs for sandbox until scheduled.
@@ -630,6 +630,17 @@ cd lambda/assets && npm test -- --testPathPattern='dataSource/index'
 ```
 
 Slice files: [`handleRenderCacheFinding.ts`](../../../../../lambda/ephemera/dataSource/renderCache/handleRenderCacheFinding.ts); removed [`lambda/ephemera/dataSource/componentExamples.ts`](../../../../../lambda/ephemera/dataSource/componentExamples.ts), [`lambda/assets/componentExamples/reseedFromDiagnostics.ts`](../../../../../lambda/assets/componentExamples/reseedFromDiagnostics.ts), [`resolveDiagnosticTargetRooms.ts`](../../../../../lambda/ephemera/dataSource/renderCache/resolveDiagnosticTargetRooms.ts) (superseded by publisher-owned **`targetCatalogs`**).
+
+**Assets invalidation-only emitter slice (landed):**
+
+```bash
+cd lambda/assets && npm test -- --testPathPattern=componentExamples
+cd lambda/assets && npm test -- --testPathPattern=componentAggregate.mergeParity
+cd packages/mtw-interfaces && npm test -- --testPathPattern=componentExamples
+cd lambda/ephemera && npm test -- --testPathPattern='renderCache/(handleExampleInvalidated|index|subscribedEvents)'
+```
+
+Slice files: [`lambda/assets/componentExamples/index.ts`](../../../../../lambda/assets/componentExamples/index.ts) (invalidation-only); removed [`exampleEnrichment.ts`](../../../../../lambda/assets/componentExamples/exampleEnrichment.ts), [`loadAuthoritativeForMirroring.ts`](../../../../../lambda/assets/componentExamples/loadAuthoritativeForMirroring.ts); [`legacyMergeAcrossStack.ts`](../../../../../lambda/assets/componentExamples/legacyMergeAcrossStack.ts) (parity tests only). Dropped **Component Republished** subscription (I4).
 
 After later slices, add patterns for hydrate diff and hydrate-then-exact-match.
 

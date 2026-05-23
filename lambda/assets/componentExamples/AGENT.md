@@ -2,38 +2,39 @@
 
 ## Role
 
-Non-replayable Assets data source **[`index.ts`](./index.ts)** subscribes to **`mtw.assets`** **Component Updated** / **Component Removed**, enriches situation-facet payloads, and publishes **ExampleAdded** / **ExampleUpdated** / **ExampleRemoved** for Ephemera **renderCache** mirroring. Event **names** still say **Example** for historical wire compatibility; payloads use **`situationId`** (Situation uuid), not **`EXAMPLE#`**.
+Non-replayable Assets data source **[`index.ts`](./index.ts)** subscribes to **`mtw.assets`** **Component Updated** / **Component Removed** and publishes **`ExampleInvalidated`** (no **`example`** body) for Ephemera **`mtw.ephemera.renderCache`** catalog bumps. Event **names** still say **Example** for historical wire compatibility; invalidation payloads use **`situationId`** or **`componentIds`**, not **`EXAMPLE#`**.
 
-**2026-05-19:** Standalone **`Example`** component handling, **`enrichExampleEvent`**, and **`exampleAssociatedFilter.ts`** were removed. The pipeline is **Situation-facet-only** (Room / Feature / Knowledge parent branches + Situation fan-out).
+**2026-05-19:** Standalone **`Example`** component handling was removed. The pipeline is **Situation-facet-only** (Room / Feature / Knowledge hosts + Situation entity).
 
-**Component body reads (partition retirement, done):** Mirroring loads bodies via **[`loadAuthoritativeForMirroring.ts`](./loadAuthoritativeForMirroring.ts)** --- **`authoritativeFromParticipationOrder`** + pair **`internalCache.ComponentData`** at explicit or vertical-derived participation order. **No** partition **`ComponentData.get([universalKey])`** and **no** **`exhaustiveScan`** on these paths. Diagnostics reseed on Ephemera findings is **retired** (handled on **`mtw.ephemera.renderCache`**).
+**Push (this DataSource):** invalidation-only --- no blueprint merge, no **`internalCache`** reads on the hot path.
 
-**Pull assembly (on-demand hydrate, target):** Steady-state **`AuthoredExample`** batch assembly lives in **`@tonylb/mtw-gateways/ts/assets/components/componentExamples`**. Lambdas read via **`internalCache.ComponentExamples`** (**`createComponentExamplesCacheHandler({ ComponentAggregate })`** on Ephemera and diagnostics) --- not direct **`assembleComponentExamplesAtPerspective`** in production paths. See [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) and [`renderCache` planning](../../../taskPlanning/lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md) (**Consolidation handoff**).
+**Pull (hydrate / diagnostics):** **`AuthoredExample`** batch assembly lives in **`@tonylb/mtw-gateways/ts/assets/components/componentExamples`**. Lambdas read via **`internalCache.ComponentExamples`** (**`createComponentExamplesCacheHandler({ ComponentAggregate })`** on Ephemera and diagnostics). See [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) and [`renderCache` planning](../../../taskPlanning/lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md).
 
-**Mirror pipeline (on-demand retirement, pending):** This DataSource still publishes **`ExampleUpdated`** / **`ExampleRemoved`** with enriched payloads via **[`exampleEnrichment.ts`](./exampleEnrichment.ts)** until the **Assets invalidation-only emitter** slice ships. Ephemera mirror forwarder and diagnostics reseed are **retired**; see on-demand planning.
+## Component-scoped invalidation (Room / Feature / Knowledge)
 
-## Parent branches (Room / Feature / Knowledge)
+On **Component Updated** or **Component Removed** for a cache-host component:
 
-**[`index.ts`](./index.ts)** **`emitParentSituationFacetEvents`**:
+- One **`ExampleInvalidated`** per event with **`componentIds: [hostId]`** and **`editAssetId`** (= event asset id / `streamKey`).
+- Optional **`affectedSituationIds`** from facet refs on the event component (debug/logging only).
+- Ephemera bumps existing **`Cache::${perspectiveKey}`** rows whose **`assetStack`** includes **`editAssetId`** ([layer participation rule](../../../taskPlanning/lambda/ephemera/dataSource/renderCache/AGENT.onDemandAuthoredExamples.planning.md)).
 
-- On **Component Updated** / **Removed** with non-empty **`situations`**, emits one **ExampleUpdated** / **ExampleRemoved** per facet.
-- **`exampleId`** = Situation uuid.
-- Payload from **`situationFacetToCacheShape`** in **[`exampleEnrichment.ts`](./exampleEnrichment.ts)**.
-- F/K perspective matcher: **`computePerspectiveMatcherForParentSituation`**.
+## Situation-scoped invalidation (Situation entity)
 
-## Situation component branch
+On **Component Updated** or **Component Removed** for **`tag === 'Situation'`**:
 
-On **Component Updated** / **Removed** for **`tag === 'Situation'`**, **`getParentIdsForSituation`** finds Room / Feature / Knowledge parents with a facet for that **`SITUATION#`**, then emits one event per parent. Uses **`mergeSituationAcrossStack`** for merged mark state on the Situation entity.
+- One **`ExampleInvalidated`** with **`situationId`** + **`editAssetId`** (no **`componentIds`**, no blueprint parent scan).
+- **Removed:** **`entityRemoved: true`** --- Ephemera bumps all adjacency links and deletes the **`SITUATION#`** partition.
+- Orphan Situations (no facet parents in blueprint) still publish; Ephemera no-ops until adjacency exists from hydrate.
 
-## Parent discovery
+## Subscription
 
-**[`exampleEnrichment.ts`](./exampleEnrichment.ts)**:
+**Component Updated** and **Component Removed** only. **`Component Republished`** is not subscribed (diagnostics reseed retired; invalidation matches **Updated** semantics).
 
-- **`getParentIdsForSituation`**: scans Room / Feature / Knowledge for facets referencing a **`SITUATION#`** id.
-- **`situationFacetToCacheShape`**: maps facet prose to cache **`renderedContent`**.
+## Legacy merge (tests only)
+
+**[`legacyMergeAcrossStack.ts`](./legacyMergeAcrossStack.ts)** retains **`mergeRoomAcrossStack`** for aggregate gateway parity tests only. Do not use in production paths.
 
 ## Related docs
 
-- Assets event mesh overview: **[`../AGENT.event.md`](../AGENT.event.md)** (**mtw.assets.componentExamples**).
-- WML model: **[`packages/mtw-wml/ts/AGENT.md`](../../../../packages/mtw-wml/ts/AGENT.md)**.
-- Ephemera render cache: **[`lambda/ephemera/internalCache/componentRender.AGENT.md`](../../ephemera/internalCache/componentRender.AGENT.md)**.
+- Assets event mesh: **[`../AGENT.event.md`](../AGENT.event.md)** (**mtw.assets.componentExamples**).
+- Ephemera render cache: **[`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../ephemera/dataSource/renderCache/AGENT.md)**.
