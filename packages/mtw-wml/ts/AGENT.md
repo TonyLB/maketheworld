@@ -100,6 +100,20 @@ standard form, the data would be expressed as follows:
 
 For detailed information about all component types and their APIs, see [`standardize/components/AGENT.md`](./standardize/components/AGENT.md).
 
+**Area (spatial regions):** **`<Area />`** is a first-class component for large spatial regions. Participant references (other Areas, Rooms, Features, Characters) are **direct children** of `<Area>` — there is no `<PositionGraph>` wrapper tag. JSON stores them in **`positionGraph: { nodes }`** only. Areas are strong candidates for asset **`topLevel`** authoring. Implementation: [**StandardArea**](./standardize/components/AGENT.implementation.md#standardarea-), [`dataTypes/AGENT.md`](./standardize/components/dataTypes/AGENT.md) (**StandardAreaData**), integration tests in [`area.integration.test.ts`](./standardize/components/area.integration.test.ts).
+
+```xml
+<Asset uuid=(World)>
+    <Area key=(downtown) uuid=(ABC)>
+        <ShortName>Downtown</ShortName>
+        <Area key=(oldTown) />
+        <Room key=(cafe) />
+        <Feature key=(fountain) />
+        <Character key=(guard) />
+    </Area>
+</Asset>
+```
+
 **⚠️ CRITICAL (Feature and Knowledge)**
 
 - **Storage:** **`situations`** homogeneous facet list on Feature/Knowledge (**`SituationProseFacetList`**, shared with Room). Each facet references a **`Situation`** and carries a **payload** (DisplayName / Summary / Description for that parent in that world-state).

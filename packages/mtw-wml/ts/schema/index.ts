@@ -280,6 +280,7 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
         case 'Knowledge':
         case 'Image':
         case 'Map':
+        case 'Area':
         case 'Message':
         case 'Moment':
             return {

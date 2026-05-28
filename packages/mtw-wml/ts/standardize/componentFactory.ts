@@ -9,13 +9,14 @@ import StandardKnowledge from "./components/knowledge"
 import StandardMap from "./components/map"
 import StandardMessage from "./components/message"
 import StandardMoment from "./components/moment"
+import StandardArea from "./components/area"
 import StandardRoom from "./components/room"
 import StandardMark, { StandardLens } from "./components/worldState"
 import { isSchemaCharacter, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaTreeNode } from "../schema"
 import { StandardComponentInputData } from "./baseClasses"
-import { isStandardCharacterData, isStandardFeatureData, isStandardGuidanceInputData, isStandardImageData, isStandardKnowledgeData, isStandardMapInputData, isStandardMessageData, isStandardMomentData, isStandardRoomInputData, isStandardMarkData, isStandardLensInputData, isStandardSituationInputData } from "./components/dataTypes"
-import { isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaRoom, isSchemaSituation } from "@tonylb/mtw-base/ts/schema/components"
+import { isStandardCharacterData, isStandardFeatureData, isStandardGuidanceInputData, isStandardImageData, isStandardKnowledgeData, isStandardMapInputData, isStandardMessageData, isStandardMomentData, isStandardAreaData, isStandardRoomInputData, isStandardMarkData, isStandardLensInputData, isStandardSituationInputData } from "./components/dataTypes"
+import { isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaArea, isSchemaRoom, isSchemaSituation } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image"
 import { isSchemaMark, isSchemaLens } from "@tonylb/mtw-base/ts/schema/worldState"
 import { resolveStandardizeFromSchemaContext, WmlStandardizeMode } from "./wmlStandardizeMode"
@@ -74,6 +75,9 @@ export const standardComponentFactory = (
         }
         if (isStandardMomentData(arg)) {
             return { component: new StandardMoment(arg), remainder: [] }
+        }
+        if (isStandardAreaData(arg)) {
+            return { component: new StandardArea(arg), remainder: [] }
         }
         if (isStandardImageData(arg)) {
             return { component: new StandardImage(arg), remainder: [] }
@@ -136,6 +140,11 @@ export const standardComponentFactory = (
     }
     if (treeNodeTypeguard(isSchemaMoment)(node)) {
         const instance = new StandardMoment(undefined as any)
+        const remainder = instance.fromSchema(node, fromSchemaContext)
+        return { component: instance, remainder }
+    }
+    if (treeNodeTypeguard(isSchemaArea)(node)) {
+        const instance = new StandardArea(undefined as any)
         const remainder = instance.fromSchema(node, fromSchemaContext)
         return { component: instance, remainder }
     }

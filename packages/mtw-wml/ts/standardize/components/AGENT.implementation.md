@@ -164,6 +164,18 @@ Same as **StandardFeature**: **`situations`** facet list, shared **`SituationPro
 - **Reference Properties**: `messages` (`ReferenceList`)
 - **fromSchema**: Uses the process-and-remainder pipeline (tags: `ShortName`, `Message`). Unknown child tags are rejected as unconsumed (subject to schema-layer validation of legal child tags).
 
+### **StandardArea** 🟢
+- **Purpose**: Large spatial regions (districts, biomes, building complexes, etc.). v1 models **participation in space** via participant references only (no edges, coordinates, or adjacency).
+- **Content Properties**: `shortName` (`StandardLiteral`); **`positionGraph`** via [`StandardPositionGraph`](./positionGraph.ts) (see [`dataTypes/positionGraph.ts`](./dataTypes/positionGraph.ts)).
+- **Reference Properties**: Single heterogeneous **`positionGraph.nodes`** (`ReferenceList`) with tags `Area`, `Room`, `Feature`, `Character` — not separate per-tag buckets. See [`../keys/AGENT.referenceList.md`](../keys/AGENT.referenceList.md) (**Heterogeneous lists (Area v1)**). Child vs border sub-areas share the same Area-typed refs; distinguish with **`ref`** semantics on those references.
+- **JSON**: `positionGraph: { nodes }` only; omit `positionGraph` when `nodes` is empty (omission-over-empty). Universal keys use prefix **`AREA#`**; WML wire form **`<Area uuid=(ABC) />`** for `AREA#ABC`.
+- **WML**: Participant refs are **direct children** of `<Area>` (no `<PositionGraph>` wrapper). **nestedSchema** walks `nodes` and emits the correct child tag per reference.
+- **fromSchema**: Four `StandardizeConsumerReferenceList` consumers (Area, Room, Feature, Character) append into `positionGraph.nodes`, then **strict remainder** (unconsumed children throw). **Self-reference** (this Area's identity in its own `nodes` as an Area ref) throws at `fromJSON` / `fromSchema`. Tests: [`area.test.ts`](./area.test.ts).
+- **`referencedKeys()`**: Participant refs from `positionGraph.nodes` as **Direct**, feeding **SchemaOrganization** like other reference-list components (no Area-specific hosting rules).
+- **Ephemera wire**: **`standardizeMode: 'ephemeraWire'`** supported from day one; see [`area.ephemeraWire.integration.test.ts`](./area.ephemeraWire.integration.test.ts). **Top-level** `<Area>` in asset `topLevel` is encouraged (primary candidate for world-region authoring).
+- **Cross-package (asset persistence)**: Lambda **`cacheAsset`** writes component rows with `AssetId = AREA#...` and `Meta::Area` via dynamic `Meta::${component.tag}` — same pattern as Room/Map (see [`lambda/assets/dataSource/caching/AGENT.diff.md`](../../../../../lambda/assets/dataSource/caching/AGENT.diff.md)). Ephemera render orchestration, `LegalDependencyTag`, and charcoal-client content headers do **not** include Area yet (intentional until play/UI follow-on). **`SchemaImportMapping`** in mtw-base does not list `Area` as an import `type` while `isImportable` includes Area — document as a known gap if import-of-Area mappings are needed.
+- **Follow-on (out of v1 scope)**: graph **edges** and coordinates; general Area **cycle** detection (only self-reference is enforced today); ephemera / **RoomAffordances** play impact; Workbench heterogeneous **ReferenceList** editor for `nodes`.
+
 ### **StandardImage** 🔴
 - **Purpose**: Represents images (see Technical Debt note above for storage)
 - **Content Properties**: `shortName` (`StandardLiteral`)
@@ -442,6 +454,8 @@ Before adding a new component type, you should understand:
 **Example Pattern**: Look at how `isSchemaRoom`, `isSchemaFeature`, or `isSchemaKnowledge` are implemented in `@tonylb/mtw-base/ts/schema/components.ts`
 
 **Note**: This step may require changes in the `@tonylb/mtw-base` package, which is a separate package. If you don't have access to modify that package, coordinate with the maintainer or document this as a prerequisite.
+
+**Area:** mtw-base `SchemaAreaTag` / `isSchemaArea` shipped; **`StandardArea`** and **`StandardPositionGraph`** implemented — see [**StandardArea**](#standardarea-) above and [`schema/converters/components.ts`](../../schema/converters/components.ts) (`PrefixKey` `'AREA'` in mtw-utilities).
 
 #### Step 2: Schema Converter Registration (`schema/converters/components.ts`)
 

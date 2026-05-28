@@ -118,6 +118,9 @@ Serialization format for Knowledge components. Contains **`situations`** and opt
 #### **StandardMomentData** (`moment.ts`)
 Serialization format for Moment components. Contains `conditions`, `effects`, and `duration` as editable string arrays.
 
+#### **StandardAreaData** (`area.ts`)
+Serialization format for Area components. Optional `shortName` (literal) and **`positionGraph`** (`{ nodes?: ReferenceListData }` only; omit when empty). Participant refs are heterogeneous (`Area`, `Room`, `Feature`, `Character`) in a single `nodes` list. WML parse/print via [`schema/converters/components.ts`](../../schema/converters/components.ts) (`AREA#` / `<Area uuid=(...) />`); see [`area.integration.test.ts`](../area.integration.test.ts).
+
 #### **StandardMapData** (`map.ts`)
 Serialization format for Map components. Contains `image`, `rooms`, and `positions` with spatial reference structures.
 
@@ -165,6 +168,7 @@ export const isStandardFeature = (arg: any): arg is StandardFeatureData => {
 - `isStandardMessageData()` - Validates Message data
 - `isStandardKnowledgeData()` - Validates Knowledge data
 - `isStandardMomentData()` - Validates Moment data
+- `isStandardAreaData()` - Validates Area data
 - `isStandardMapData()` - Validates Map data
 
 ## Usage Patterns

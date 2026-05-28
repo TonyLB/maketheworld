@@ -6,6 +6,7 @@ import StandardFeature from './feature'
 import StandardGuidance from './guidance'
 import StandardImage from './image'
 import StandardKnowledge from './knowledge'
+import StandardArea from './area'
 import StandardMap from './map'
 import StandardMessage from './message'
 import StandardMoment from './moment'
@@ -78,6 +79,12 @@ const shortNameRoundTripCases: RoundTripCase[] = [
         wml: `<Lens key=(test)><ShortName>${LABEL}</ShortName></Lens>`,
         expected: `<Lens key=(test)><ShortName>${LABEL}</ShortName></Lens>`,
         Component: StandardLens,
+    },
+    {
+        tag: 'Area',
+        wml: `<Area key=(test)><ShortName>${LABEL}</ShortName></Area>`,
+        expected: `<Area key=(test)><ShortName>${LABEL}</ShortName></Area>`,
+        Component: StandardArea,
     },
     {
         tag: 'Map',

@@ -94,6 +94,13 @@ export type SchemaSituationTag = {
     ref?: number;
 } & SchemaImportableBase
 
+export type SchemaAreaTag = {
+    tag: 'Area';
+    uuid?: ComponentUUID;
+    key?: string;
+    ref?: number;
+} & SchemaImportableBase
+
 const { typeGuard } = literalTagFactory<'ShortName'>('ShortName')
 export const isSchemaShortName = typeGuard
 
@@ -232,6 +239,18 @@ export const isSchemaSituation = (schema: any): schema is SchemaSituationTag => 
         optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING, ref: CheckTypes.NUMBER },
         values: { 
             tag: 'Situation', 
+            from: isSchemaAssetUUID,
+            origin: (origin: any) => (!origin || (Array.isArray(origin) && origin.every((item: any) => isSchemaAssetUUID(item))))
+        }
+    })(schema)
+)
+
+export const isSchemaArea = (schema: any): schema is SchemaAreaTag => (
+    checkTypes({
+        required: { tag: CheckTypes.STRING },
+        optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING, ref: CheckTypes.NUMBER },
+        values: {
+            tag: 'Area',
             from: isSchemaAssetUUID,
             origin: (origin: any) => (!origin || (Array.isArray(origin) && origin.every((item: any) => isSchemaAssetUUID(item))))
         }

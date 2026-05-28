@@ -1,4 +1,4 @@
-import { Schema, schemaToWML, treeFromWML } from '../../schema'
+import { schemaToWML } from '../../schema'
 import { StandardForm } from '..'
 import { deIndentWML } from '../../schema/utils'
 import { isSchemaString } from '@tonylb/mtw-base/ts/schema/renderTree'
@@ -6,18 +6,10 @@ import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { GenericTreeNode } from '@tonylb/mtw-base/ts/genericTree'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import StandardRoom from '../components/room'
-import StandardKnowledge from '../components/knowledge'
 import StandardCharacter from '../components/character'
-import { ReferenceList } from '../keys/referenceList'
-import StandardReference from '../keys/reference'
-import { StandardKey } from '../keys/key'
 import StandardFeature from '../components/feature'
-import StandardSituation from '../components/situation'
-import { StandardLiteral } from '../literal'
+import StandardArea from '../components/area'
 import StandardMap from '../components/map'
-import StandardMark, { StandardLens } from '../components/worldState'
-import { StandardMarkFacet } from '../keys/facets/mark'
-import { StandardExplicitKey } from '../explicit/key'
 import { isStandardForm, isStandardFormInput, StandardFormData } from '../components/dataTypes'
 
 jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
@@ -302,6 +294,9 @@ describe('StandardForm', () => {
             it('should correctly construct classes', () => {
                 const testWML = deIndentWML(`
                     <Asset uuid=(Test)>
+                        <Area uuid=(downtown) key=(downtown)>
+                            <Room key=(cafe) />
+                        </Area>
                         <Map uuid=(testMap)>
                             <Room uuid=(testRoom)>
                                 <Feature uuid=(testFeature) key=(testFeature) />
@@ -311,6 +306,7 @@ describe('StandardForm', () => {
                     </Asset>
                 `)
                 const test = new StandardForm(testWML)
+                expect(test.byUniversalId['AREA#downtown']).toBeInstanceOf(StandardArea)
                 expect(test.byUniversalId['ROOM#testRoom']).toBeInstanceOf(StandardRoom)
                 expect(test.byUniversalId['FEATURE#testFeature']).toBeInstanceOf(StandardFeature)
                 expect(test.byUniversalId['MAP#testMap']).toBeInstanceOf(StandardMap)
