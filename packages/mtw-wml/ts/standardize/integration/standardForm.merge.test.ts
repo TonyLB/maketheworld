@@ -514,6 +514,29 @@ describe('StandardForm', () => {
                 `))
             })
 
+            it('should merge top-level Area from JSON', () => {
+                const inherited = new StandardForm(`<Asset uuid=(Test) />`)
+                const testStandard = new StandardForm({
+                    universalKey: 'ASSET#Test',
+                    components: [
+                        {
+                            tag: 'Area',
+                            key: 'downtown',
+                            universalKey: 'AREA#downtown',
+                            shortName: 'Downtown',
+                        },
+                    ],
+                    metaData: [],
+                    topLevel: ['AREA#downtown'],
+                })
+                const standardizer = inherited.merge(testStandard)
+                expect(schemaToWML([standardizer.schema])).toEqual(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Area uuid=(downtown) key=(downtown)><ShortName>Downtown</ShortName></Area>
+                    </Asset>
+                `))
+            })
+
             it('should merge base component with universalKey', () => {
                 const base = new StandardKnowledge(deIndentWML(`<Knowledge uuid=(001) key=(test)><Situation key=(one) /></Knowledge>`))
                 const incoming = new StandardKnowledge(deIndentWML(`<Knowledge key=(test)><Situation key=(two) /></Knowledge>`))

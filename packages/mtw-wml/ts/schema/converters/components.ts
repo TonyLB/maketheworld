@@ -4,7 +4,7 @@ import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./base
 import { tagRender } from "./tagRender"
 import { validateProperties, validateExpressionAsNonNegativeInteger, parsePositionCoordinates } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaObject, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaParent, isSchemaKey, isSchemaSituation, isSchemaRender, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaObjectTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaKeyTag, SchemaSituationTag, SchemaRenderTag } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaObject, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaParent, isSchemaKey, isSchemaSituation, isSchemaArea, isSchemaRender, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaObjectTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaKeyTag, SchemaSituationTag, SchemaAreaTag, SchemaRenderTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaDescription, isSchemaDisplayName, isSchemaSummary } from "@tonylb/mtw-base/ts/schema/prose"
 import { isSchemaString, SchemaStringTag } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { SchemaTag, isSchemaComponent, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
@@ -55,6 +55,13 @@ const componentTemplates = {
         DEFAULT: { required: true, type: ParsePropertyTypes.Expression },
     },
     Map: {
+        uuid: { type: ParsePropertyTypes.Key },
+        key: { type: ParsePropertyTypes.Key },
+        from: { type: ParsePropertyTypes.Asset },
+        origin: { type: ParsePropertyTypes.AssetList },
+        ref: { type: ParsePropertyTypes.Expression }
+    },
+    Area: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Asset },
@@ -429,6 +436,18 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
                 ...rest
             }
         }
+    },
+    Area: {
+        initialize: ({ parseOpen }): SchemaAreaTag => {
+            const { uuid, ref, ...rest } = validateProperties(componentTemplates.Area)(parseOpen)
+            const refValue = ref ? validateExpressionAsNonNegativeInteger(ref as string, 'ref', parseOpen.tag) : undefined
+            return {
+                tag: 'Area',
+                uuid: uuid ? enforceTypedKey('AREA')(uuid) : undefined,
+                ...(refValue !== undefined ? { ref: refValue } : {}),
+                ...rest
+            }
+        }
     }
 }
 
@@ -605,6 +624,23 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             properties: [
                 { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('SITUATION')(tag.uuid) : '' },
                 ...(tag.key ? [{ key: 'key', type: 'key' as const, value: tag.key }] : []),
+                { key: 'from', type: 'key', value: tag.from ?? '' },
+                ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
+                ...(tag.ref !== undefined ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
+            ],
+            node: { data: tag, children }
+        })
+    },
+    Area: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
+        if (!isSchemaArea(tag)) {
+            return [{ printMode: PrintMode.naive, output: '' }]
+        }
+        return tagRender({
+            ...args,
+            tag: 'Area',
+            properties: [
+                { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('AREA')(tag.uuid) : '' },
+                { key: 'key', type: 'key', value: tag.key ?? '' },
                 { key: 'from', type: 'key', value: tag.from ?? '' },
                 ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
                 ...(tag.ref !== undefined ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])

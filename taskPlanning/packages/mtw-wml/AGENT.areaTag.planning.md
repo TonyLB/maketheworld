@@ -1,6 +1,6 @@
 # Area tag and `StandardPositionGraph` (mtw-wml)
 
-**Status:** Design locked; **mtw-base** `Area` schema, **`StandardPositionGraph`**, and **`StandardArea`** shipped. Next step: **WML converters / print** and WML-string round-trip tests.
+**Status:** mtw-wml Area v1 shipped (mtw-base schema, **`StandardArea`**, WML parse/print, tests). Remaining: archive this plan after any final cross-package tag sweeps (**X1**).
 
 Skim [`taskPlanning/AGENT.md`](../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -146,10 +146,10 @@ All items through **P4** are decided. Cross-package notes (**X1--X3**) are recor
 | mtw-base `Area` schema + guards | Done |
 | [`positionGraph.ts`](../../../packages/mtw-wml/ts/standardize/components/positionGraph.ts) | Done |
 | `StandardArea` + data types | Done |
-| WML converter / print map | |
+| WML converter / print map | Done |
 | Factory, `ComponentTag`, wiring | Done (factory, `COMPONENT_ORDER`, `componentKeys`) |
 | Self-reference validation + strict fromSchema | Done |
-| Unit + StandardForm tests (asset + ephemera wire) | Partial (JSON/schema-node + ephemera factory; WML-string tests deferred) |
+| Unit + StandardForm tests (asset + ephemera wire + WML-string) | Done |
 | Durable package doc updates | Done |
 
 ---
@@ -185,13 +185,14 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
   - [X] Self-reference check at standardize (**G4**).
   - [X] `standardComponentFactory`; ephemera wire tests (**C6**).
   - [X] `area.test.ts` + ephemera wire integration (JSON/schema-node).
-  - [ ] `shortNameRoundTrip.test.ts` Area case (deferred to WML schema slice).
-- [ ] **WML schema layer**
-  - [ ] `componentTemplates.Area`, converters, print map, [`schema/index.ts`](../../../packages/mtw-wml/ts/schema/index.ts).
+  - [X] `shortNameRoundTrip.test.ts` Area case.
+- [X] **WML schema layer**
+  - [X] `componentTemplates.Area`, converters, print map, [`schema/index.ts`](../../../packages/mtw-wml/ts/schema/index.ts) (`defaultSchemaTag`).
+  - [X] `PrefixKey` `'AREA'` in [`packages/mtw-utilities/ts/types.ts`](../../../packages/mtw-utilities/ts/types.ts).
   - [X] `componentKeys` includes `Area` (in [`reference.ts`](../../../packages/mtw-wml/ts/standardize/keys/reference.ts)).
-- [ ] **Integration sweep**
-  - [ ] `StandardForm` construct/merge with top-level Area fixtures.
-  - [ ] `tsc` + charcoal-client if types leak.
+- [X] **Integration sweep**
+  - [X] `StandardForm` construct/merge with top-level Area fixtures; [`area.integration.test.ts`](../../../packages/mtw-wml/ts/standardize/components/area.integration.test.ts).
+  - [X] `tsc` (mtw-wml); charcoal-client unchanged (no Area type leaks).
 - [ ] **Durable docs** then remove/archive this plan.
 
 ---
