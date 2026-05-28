@@ -1,6 +1,6 @@
 # Area tag and `StandardPositionGraph` (mtw-wml)
 
-**Status:** Design locked; **mtw-base** `Area` schema shipped (**C1**, **C2**). Next step: [`positionGraph.ts`](../../../packages/mtw-wml/ts/standardize/components/positionGraph.ts) and **`StandardArea`** (or WML converters if parseability is needed first).
+**Status:** Design locked; **mtw-base** `Area` schema and **`StandardPositionGraph`** shipped. Next step: **`StandardArea`**, WML converters, and factory wiring.
 
 Skim [`taskPlanning/AGENT.md`](../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -144,7 +144,7 @@ All items through **P4** are decided. Cross-package notes (**X1--X3**) are recor
 | --- | --- |
 | Task plan + design lock (G*, C*, P*) | Done |
 | mtw-base `Area` schema + guards | Done |
-| [`positionGraph.ts`](../../../packages/mtw-wml/ts/standardize/components/positionGraph.ts) | |
+| [`positionGraph.ts`](../../../packages/mtw-wml/ts/standardize/components/positionGraph.ts) | Done |
 | `StandardArea` + data types | |
 | WML converter / print map | |
 | Factory, `ComponentTag`, wiring | |
@@ -171,11 +171,11 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
   - [X] `SchemaAreaTag`, `isSchemaArea`, `SchemaWithKey`, asset legal contents + **topLevel** (**C2**).
   - [X] `AREA#` in component UUID validation (**C1**).
   - [X] Schema unit tests.
-- [ ] **`StandardPositionGraph`** in [`standardize/components/positionGraph.ts`](../../../packages/mtw-wml/ts/standardize/components/positionGraph.ts)
-  - [ ] Data type: `positionGraph: { nodes?: ReferenceListData }`.
-  - [ ] Class: `fromJSON` / `toJSON`, `merge`, `diff`, `equals` on `nodes` (**P2**).
-  - [ ] Helpers: filter `nodes` by tag for WML consumers / nestedSchema if useful.
-  - [ ] Unit tests: empty omission, heterogeneous merge, diff.
+- [X] **`StandardPositionGraph`** in [`standardize/components/positionGraph.ts`](../../../packages/mtw-wml/ts/standardize/components/positionGraph.ts)
+  - [X] Data type: `positionGraph: { nodes?: ReferenceListData }`.
+  - [X] Class: `fromJSON` / `toJSON`, `merge`, `diff`, `equals` on `nodes` (**P2**).
+  - [X] Helpers: filter `nodes` by tag for WML consumers / nestedSchema if useful.
+  - [X] Unit tests: empty omission, heterogeneous merge, diff.
 - [ ] **`StandardArea`**
   - [ ] `StandardAreaData` with `positionGraph` only (**P4**); `shortName` via shared helpers.
   - [ ] Payload holds graph; **merge** delegates to **`StandardPositionGraph.merge`** (**P2**).

@@ -17,6 +17,12 @@ import { StandardMarkData, isStandardMarkData } from "./mark"
 import { StandardLensData, StandardLensInputData, isStandardLensData, isStandardLensInputData } from "./lens"
 import { StandardGuidanceData, StandardGuidanceInputData, isStandardGuidanceData, isStandardGuidanceInputData } from "./guidance"
 import { StandardSituationData, StandardSituationInputData, isStandardSituationData, isStandardSituationInputData } from "./situation"
+import {
+    POSITION_GRAPH_NODE_TAGS,
+    StandardPositionGraphData,
+    isStandardPositionGraphData,
+} from "./positionGraph"
+import type { PositionGraphNodeTag } from "./positionGraph"
 
 import { checkAll } from "./typeguards"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -25,7 +31,8 @@ import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { ReferenceListData } from "../../keys/dataTypes/reference"
 import type { WmlStandardizeMode } from "../../wmlStandardizeMode"
 
-export type { StandardRoomObjectData, StandardRoomRenderData }
+export type { StandardRoomObjectData, StandardRoomRenderData, StandardPositionGraphData, PositionGraphNodeTag }
+export { POSITION_GRAPH_NODE_TAGS, isStandardPositionGraphData }
 export {
     isStandardCharacterData,
     isStandardRoomData,

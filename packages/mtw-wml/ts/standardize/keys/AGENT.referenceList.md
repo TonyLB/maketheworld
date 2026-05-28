@@ -130,6 +130,8 @@ class StandardRoomPayload {
 }
 ```
 
+**Heterogeneous lists (Area v1):** `StandardArea` stores spatial participants in a single `positionGraph.nodes` list (tags `Area`, `Room`, `Feature`, `Character`) wrapped by [`StandardPositionGraph`](../components/positionGraph.ts), rather than separate per-tag buckets like Room's `_features` / `_characters`. Use `nodesByTag()` when WML serde needs tag-grouped children under `<Area>`.
+
 ### Construction
 
 `ReferenceList` can be constructed from:
