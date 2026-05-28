@@ -17,6 +17,7 @@ import { StandardMarkData, isStandardMarkData } from "./mark"
 import { StandardLensData, StandardLensInputData, isStandardLensData, isStandardLensInputData } from "./lens"
 import { StandardGuidanceData, StandardGuidanceInputData, isStandardGuidanceData, isStandardGuidanceInputData } from "./guidance"
 import { StandardSituationData, StandardSituationInputData, isStandardSituationData, isStandardSituationInputData } from "./situation"
+import { StandardAreaData, isStandardAreaData } from "./area"
 import {
     POSITION_GRAPH_NODE_TAGS,
     StandardPositionGraphData,
@@ -50,7 +51,8 @@ export {
     isStandardGuidanceData,
     isStandardGuidanceInputData,
     isStandardSituationData,
-    isStandardSituationInputData
+    isStandardSituationInputData,
+    isStandardAreaData
 }
 
 export type StandardComponentNonEditData =
@@ -65,7 +67,8 @@ export type StandardComponentNonEditData =
     StandardMarkData |
     StandardLensData |
     StandardGuidanceData |
-    StandardSituationData
+    StandardSituationData |
+    StandardAreaData
 
 export type StandardComponentInputNonEditData =
     StandardCharacterData |
@@ -79,7 +82,8 @@ export type StandardComponentInputNonEditData =
     StandardMarkData |
     StandardLensInputData |
     StandardGuidanceInputData |
-    StandardSituationInputData
+    StandardSituationInputData |
+    StandardAreaData
 
 export type StandardComponentInputData = StandardComponentInputNonEditData
 
@@ -98,7 +102,8 @@ export const isStandardComponentData = (value: any): value is StandardComponentD
     isStandardMarkData(value) ||
     isStandardLensData(value) ||
     isStandardGuidanceData(value) ||
-    isStandardSituationData(value)
+    isStandardSituationData(value) ||
+    isStandardAreaData(value)
 )
 
 export const isStandardComponentInputData = (value: any): value is StandardComponentInputData => (
@@ -113,7 +118,8 @@ export const isStandardComponentInputData = (value: any): value is StandardCompo
     isStandardMarkData(value) ||
     isStandardLensInputData(value) ||
     isStandardGuidanceInputData(value) ||
-    isStandardSituationInputData(value)
+    isStandardSituationInputData(value) ||
+    isStandardAreaData(value)
 )
 
 

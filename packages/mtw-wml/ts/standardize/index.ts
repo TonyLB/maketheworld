@@ -31,6 +31,7 @@ import { UUIDGenerator } from "@tonylb/mtw-utilities/ts/uuid/index"
 import StandardImage from "./components/image"
 import StandardMessage from "./components/message"
 import StandardMoment from "./components/moment"
+import StandardArea from "./components/area"
 import StandardGuidance from "./components/guidance"
 import StandardSituation from "./components/situation"
 import StandardMark, { StandardLens } from "./components/worldState"
@@ -55,6 +56,7 @@ const COMPONENT_ORDER: string[] = [
     'Feature',
     'Knowledge',
     'Map',
+    'Area',
     'Message',
     'Moment',
     'Guidance',
@@ -71,6 +73,7 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
         (value instanceof StandardMap) ||
         (value instanceof StandardMessage) ||
         (value instanceof StandardMoment) ||
+        (value instanceof StandardArea) ||
         (value instanceof StandardRoom) ||
         (value instanceof StandardGuidance) ||
         (value instanceof StandardSituation) ||

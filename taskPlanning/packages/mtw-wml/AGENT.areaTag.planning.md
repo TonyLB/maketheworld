@@ -1,6 +1,6 @@
 # Area tag and `StandardPositionGraph` (mtw-wml)
 
-**Status:** Design locked; **mtw-base** `Area` schema and **`StandardPositionGraph`** shipped. Next step: **`StandardArea`**, WML converters, and factory wiring.
+**Status:** Design locked; **mtw-base** `Area` schema, **`StandardPositionGraph`**, and **`StandardArea`** shipped. Next step: **WML converters / print** and WML-string round-trip tests.
 
 Skim [`taskPlanning/AGENT.md`](../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -145,12 +145,12 @@ All items through **P4** are decided. Cross-package notes (**X1--X3**) are recor
 | Task plan + design lock (G*, C*, P*) | Done |
 | mtw-base `Area` schema + guards | Done |
 | [`positionGraph.ts`](../../../packages/mtw-wml/ts/standardize/components/positionGraph.ts) | Done |
-| `StandardArea` + data types | |
+| `StandardArea` + data types | Done |
 | WML converter / print map | |
-| Factory, `ComponentTag`, wiring | |
-| Self-reference validation + strict fromSchema | |
-| Unit + StandardForm tests (asset + ephemera wire) | |
-| Durable package doc updates | |
+| Factory, `ComponentTag`, wiring | Done (factory, `COMPONENT_ORDER`, `componentKeys`) |
+| Self-reference validation + strict fromSchema | Done |
+| Unit + StandardForm tests (asset + ephemera wire) | Partial (JSON/schema-node + ephemera factory; WML-string tests deferred) |
+| Durable package doc updates | Done |
 
 ---
 
@@ -176,18 +176,19 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
   - [X] Class: `fromJSON` / `toJSON`, `merge`, `diff`, `equals` on `nodes` (**P2**).
   - [X] Helpers: filter `nodes` by tag for WML consumers / nestedSchema if useful.
   - [X] Unit tests: empty omission, heterogeneous merge, diff.
-- [ ] **`StandardArea`**
-  - [ ] `StandardAreaData` with `positionGraph` only (**P4**); `shortName` via shared helpers.
-  - [ ] Payload holds graph; **merge** delegates to **`StandardPositionGraph.merge`** (**P2**).
-  - [ ] fromSchema: four reference consumers -> `nodes`; **throw** on remainder (**C5**).
-  - [ ] nestedSchema: emit flat children from `nodes` (tag-appropriate).
-  - [ ] `referencedKeys` / `assureReferences` from `nodes` (**C3**).
-  - [ ] Self-reference check at standardize (**G4**).
-  - [ ] `standardComponentFactory`; ephemera wire tests (**C6**).
-  - [ ] `shortNameRoundTrip.test.ts`; `area.test.ts` + integration tests.
+- [X] **`StandardArea`**
+  - [X] `StandardAreaData` with `positionGraph` only (**P4**); `shortName` via shared helpers.
+  - [X] Payload holds graph; **merge** delegates to **`StandardPositionGraph.merge`** (**P2**).
+  - [X] fromSchema: four reference consumers -> `nodes`; **throw** on remainder (**C5**).
+  - [X] nestedSchema: emit flat children from `nodes` (tag-appropriate).
+  - [X] `referencedKeys` / `assureReferences` from `nodes` (**C3**).
+  - [X] Self-reference check at standardize (**G4**).
+  - [X] `standardComponentFactory`; ephemera wire tests (**C6**).
+  - [X] `area.test.ts` + ephemera wire integration (JSON/schema-node).
+  - [ ] `shortNameRoundTrip.test.ts` Area case (deferred to WML schema slice).
 - [ ] **WML schema layer**
   - [ ] `componentTemplates.Area`, converters, print map, [`schema/index.ts`](../../../packages/mtw-wml/ts/schema/index.ts).
-  - [ ] `componentKeys` includes `Area`.
+  - [X] `componentKeys` includes `Area` (in [`reference.ts`](../../../packages/mtw-wml/ts/standardize/keys/reference.ts)).
 - [ ] **Integration sweep**
   - [ ] `StandardForm` construct/merge with top-level Area fixtures.
   - [ ] `tsc` + charcoal-client if types leak.
@@ -238,6 +239,8 @@ npx tsc -p packages/mtw-wml/tsconfig.json --noEmit
 npm --prefix packages/mtw-wml run test -- --watchAll=false --testPathPattern="area|positionGraph"
 npx tsc -p packages/mtw-wml/tsconfig.json --noEmit
 ```
+
+**WML-string tests** (`shortNameRoundTrip` Area case, `deIndentWML` round-trips, `StandardForm` top-level Area fixtures) run after the **WML schema layer** slice (converters + `PrefixKey 'AREA'`).
 
 **Regression greps (repo root):**
 
