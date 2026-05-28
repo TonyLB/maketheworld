@@ -443,6 +443,8 @@ Before adding a new component type, you should understand:
 
 **Note**: This step may require changes in the `@tonylb/mtw-base` package, which is a separate package. If you don't have access to modify that package, coordinate with the maintainer or document this as a prerequisite.
 
+**Area (2026-05-28):** Step 1 is complete in mtw-base (`SchemaAreaTag`, `isSchemaArea`, `SchemaWithKey`, asset-legal + importable, `AREA#` via `isSchemaComponentUUID`). WML converters, `PrefixKey` `'AREA'`, `StandardArea`, and factory wiring are Step 2+ (see [`taskPlanning/packages/mtw-wml/AGENT.areaTag.planning.md`](../../../../taskPlanning/packages/mtw-wml/AGENT.areaTag.planning.md)).
+
 #### Step 2: Schema Converter Registration (`schema/converters/components.ts`)
 
 **Location**: `packages/mtw-wml/ts/schema/converters/components.ts`

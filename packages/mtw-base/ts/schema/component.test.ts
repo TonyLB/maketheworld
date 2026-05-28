@@ -9,6 +9,7 @@ import {
     isSchemaMessage, 
     isSchemaMoment,
     isSchemaSituation,
+    isSchemaArea,
     isSchemaRender
 } from './components'
 
@@ -226,6 +227,38 @@ describe('components tags', () => {
         it('should return false for wrong tag', () => {
             const schema = { tag: 'Guidance', key: 'key' }
             expect(isSchemaSituation(schema)).toBe(false)
+        })
+    })
+
+    describe('isSchemaArea', () => {
+        it('should return true for valid SchemaAreaTag', () => {
+            const schema = { tag: 'Area', key: 'areaKey' }
+            expect(isSchemaArea(schema)).toBe(true)
+        })
+
+        it('should return true for valid SchemaAreaTag with optional props', () => {
+            const schema = { tag: 'Area', key: 'areaKey', uuid: 'AREA#abc', ref: 0 }
+            expect(isSchemaArea(schema)).toBe(true)
+        })
+
+        it('should return true for valid SchemaAreaTag with origin', () => {
+            const schema = { tag: 'Area', key: 'areaKey', origin: ['ASSET#123', 'ASSET#456'] }
+            expect(isSchemaArea(schema)).toBe(true)
+        })
+
+        it('should return true for valid SchemaAreaTag with empty origin array', () => {
+            const schema = { tag: 'Area', key: 'areaKey', origin: [] }
+            expect(isSchemaArea(schema)).toBe(true)
+        })
+
+        it('should return false for invalid SchemaAreaTag', () => {
+            const schema = { tag: 'Invalid', key: 'areaKey' }
+            expect(isSchemaArea(schema)).toBe(false)
+        })
+
+        it('should return false for wrong tag', () => {
+            const schema = { tag: 'Situation', key: 'key' }
+            expect(isSchemaArea(schema)).toBe(false)
         })
     })
 

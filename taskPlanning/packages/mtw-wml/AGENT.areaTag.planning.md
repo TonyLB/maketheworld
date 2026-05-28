@@ -1,6 +1,6 @@
 # Area tag and `StandardPositionGraph` (mtw-wml)
 
-**Status:** Design locked; implementation not started. Next step: **mtw-base** `Area` schema (**C1**, **C2**), then [`positionGraph.ts`](../../../packages/mtw-wml/ts/standardize/components/positionGraph.ts) and **`StandardArea`**.
+**Status:** Design locked; **mtw-base** `Area` schema shipped (**C1**, **C2**). Next step: [`positionGraph.ts`](../../../packages/mtw-wml/ts/standardize/components/positionGraph.ts) and **`StandardArea`** (or WML converters if parseability is needed first).
 
 Skim [`taskPlanning/AGENT.md`](../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -143,7 +143,7 @@ All items through **P4** are decided. Cross-package notes (**X1--X3**) are recor
 | Area | State |
 | --- | --- |
 | Task plan + design lock (G*, C*, P*) | Done |
-| mtw-base `Area` schema + guards | |
+| mtw-base `Area` schema + guards | Done |
 | [`positionGraph.ts`](../../../packages/mtw-wml/ts/standardize/components/positionGraph.ts) | |
 | `StandardArea` + data types | |
 | WML converter / print map | |
@@ -167,10 +167,10 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
   - [X] `AREA#` / `uuid=(ABC)`; top-level Area encouraged (**C1**, **C2**).
   - [X] `referencedKeys` from `nodes` (**C3**); strict fromSchema (**C5**); ephemera wire (**C6**).
   - [X] **`positionGraph.ts`**; merge chain Area -> graph -> nodes (**P1**, **P2**).
-- [ ] **mtw-base schema**
-  - [ ] `SchemaAreaTag`, `isSchemaArea`, `SchemaWithKey`, asset legal contents + **topLevel** (**C2**).
-  - [ ] `AREA#` in component UUID validation (**C1**).
-  - [ ] Schema unit tests.
+- [X] **mtw-base schema**
+  - [X] `SchemaAreaTag`, `isSchemaArea`, `SchemaWithKey`, asset legal contents + **topLevel** (**C2**).
+  - [X] `AREA#` in component UUID validation (**C1**).
+  - [X] Schema unit tests.
 - [ ] **`StandardPositionGraph`** in [`standardize/components/positionGraph.ts`](../../../packages/mtw-wml/ts/standardize/components/positionGraph.ts)
   - [ ] Data type: `positionGraph: { nodes?: ReferenceListData }`.
   - [ ] Class: `fromJSON` / `toJSON`, `merge`, `diff`, `equals` on `nodes` (**P2**).
@@ -217,6 +217,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
 | **X1** | Lambda persistence: same component-row pattern as other tags (`AREA#`, `Meta::Area`); no bespoke registry. | 2026-05-28 |
 | **X2** | Client: `nodes` = ReferenceList editor with heterogeneous tag picker; no special Area editor in this initiative. | 2026-05-28 |
 | **X3** | Ephemera / RoomAffordances / render: **deferred** to a future planned task; not in mtw-wml Area v1 scope. | 2026-05-28 |
+| **I1** | **mtw-base:** `Area` is **importable** (same list as Room/Map); asset-legal for direct `<Asset>` children (**C2** prerequisite). WML parse/print and `StandardArea` remain follow-on. | 2026-05-28 |
 
 ---
 
