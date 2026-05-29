@@ -1,8 +1,8 @@
 # Area topology exits (platform initiative)
 
-**Status:** In progress. Planning complete enough to execute **Milestone 0 (decisions)**; implementation not started.
+**Status:** In progress. **Milestone 0 (decisions)** complete; implementation not started.
 
-**Next step:** Close **D11-D13** and **D14-D17**; **D8-D10**, **D18**, **D30**, **D31**, and Milestone **1** data-model blockers **D1-D7**, **D5b**, **D26-D29** are decided (see [Milestone gates](#milestone-gates)).
+**Next step:** Execute **Milestone 1** (WML + **`StandardArea`** edges) per [Milestone gates](#milestone-gates); **M2** may proceed in parallel once gated.
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into package `AGENT.md` files next to code.
 
@@ -43,10 +43,10 @@ Standing in the **`From`** room, the player sees **`Forward`** toward **`To`**; 
 | [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../lambda/ephemera/dataSource/renderCache/AGENT.md) | Ephemera durable cache + hydrate-on-invalidate precedent (**D18**) |
 | [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) | `ComponentExamples` / `ComponentAggregate` gateway cache handlers |
 
-**Child plans (create when milestones start):**
+**Child plans (tracked in Milestones 2 and 4):**
 
-- Ephemera: `taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md` (**D30** **`ComponentStackMerge`** -> **`ComponentAggregate`**; **`mtw.ephemera.affordanceCache`**; affordance publish; navigation)
-- Assets: `taskPlanning/lambda/assets/AGENT.areaTopologyReferencedBy.planning.md` (inverse index **D8-D9**, **`mtw.assets.componentTopology`** invalidation DS)
+- **M2:** [`taskPlanning/lambda/assets/AGENT.areaTopologyReferencedBy.planning.md`](../../lambda/assets/AGENT.areaTopologyReferencedBy.planning.md) --- **`referencedBy`** / **`cacheAsset`**, **`mtw.assets.componentTopology`**
+- **M4:** [`taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md`](../../lambda/ephemera/AGENT.areaTopologyExits.planning.md) --- **D30**, **`affordanceCache`**, affordance publish, navigation; extend assets child plan for **`componentTopology`** integration
 
 ---
 
@@ -105,7 +105,7 @@ Mark decisions **`[X]`** in the **Status** column when normative. Milestone gate
 | **D4** | [X] | **Validation: one endpoint in graph** | For each **Exit** in **`positionGraph.edges`**: at least one of **`from`** or **`to`** must match a participant in **`positionGraph.nodes`** (same-key / same-universalKey as a node ref). **If neither endpoint is in `nodes`, standardization throws an error** (asset mode). One endpoint inside and one outside **`nodes`** is **allowed** (portal / border). |
 | **D5** | [X] | **Duplicates vs navigation ambiguity** | **Intentional (not a bug):** Multiple **`positionGraph.edges`** items (distinct **`uuid`**, distinct **Forward** / **Back** labels) may share the same **`(From, To)`** pair --- e.g. "door" vs "window" between the same two rooms. **Not ambiguous** in the data model. **Navigation (unchanged):** After projection, [`resolveExitLabelToTargetId`](../../../lambda/ephemera/dataSource/actions/discriminateIntent/exitResolution.ts) **`ambiguousMatch`** only when the player's normalized command matches **more than one distinct target room** from the current room; same label + same target dedupes to one resolution. Layered asset merge for edges: **D5b**. |
 | **D5b** | [X] | **Edge merge scope (`uuid`)** | Edges are **not** freestanding **`StandardComponent`**s, but **`uuid`** lets **`EdgeList.merge`** use **merge-by-`universalKey`** semantics **within one Area's `positionGraph`** when combining layered assets (e.g. canon defines **`<Exit uuid=(...)>`**, overlay **Replace**s **`<To>`** per **D29**). **Scope guard:** the same **`EXIT#...`** (or local uuid) in **different** Areas' **`positionGraph`s** is **not** the same edge --- edge identity is **local to the parent Area** / its **`positionGraph`**. Do not globalize edge uuids across Areas. |
-| **D6** | [X] | **Room `exits` in asset JSON (transition)** | **Dual-read period** for manual migration: asset mode may still **ingest** room-local **`exits`** / **`<Exit>`** under **`<Room>`** and map them into **Area `positionGraph.edges`** (tooling TBD). **ephemeraWire** projection unchanged. After migration, **forbid** room-local exits in asset mode (strip-on-standardize or hard error). |
+| **D6** | [X] | **Room `exits` in asset JSON (transition)** | **Dual-read** until production DB migrated (**D23**, **D24**): asset mode may still **ingest** room-local **`exits`** / **`<Exit>`** under **`<Room>`** (mapping into Area edges optional during dual-read). **ephemeraWire** projection unchanged. **Forbid** room-local exits in asset mode in **M6** after operator confirms migration (**D23** follow-up). |
 | **D7** | [X] | **`Edge` reference type** | Add **`'Edge'`** to **`StandardComponentReferenceKey`** ([`baseClasses.ts`](../../../packages/mtw-wml/ts/standardize/components/baseClasses.ts)) for **Area `positionGraph.edges`** endpoint refs (**From** / **To**). **Do not** reuse **`'Position'`** (Map placement + structural parent tiers) or legacy **`'Exit'`** (room-local **`ExitsAndShortName`** subset). **Subset (normative):** cascade **`connectionType: 'Edge'`** -> target **Room** with **`requestType: 'Stub'`** (empty shell; no Situation/prose; **no** room-local exits copied). Mirror **Position** stub behavior only, not Map semantics. **SchemaOrganization:** treat **`Edge`** as **non-structural** (like **`Link`** / legacy **`Exit`** in [`standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md)) --- do **not** add to **Direct**/**Position** parent tiers; **nodes** stay **Direct** for participation. **Milestone 1:** wire **`StandardArea.referencedKeys()`**, subset tests, and any cascade docs/examples that today say **Exit** for room-to-room. |
 
 ### Blockers --- persisted `referencedBy`
@@ -115,39 +115,39 @@ Mark decisions **`[X]`** in the **Status** column when normative. Milestone gate
 | **D8** | [X] | **Index granularity (logical)** | **Target:** any **`ComponentUUID`** (same as in-memory **`referencedBy(StandardReference)`**). **Entry:** `{ referrerUniversalKey, referenceType? }` --- tag is **not** stored (**`AREA#...`** prefix is sufficient). **`assetId` omitted** when stored on **`(target, ASSET#)`** forward row (**D9**). **v1 read filter:** topology pull reads **`referencedBy`** on **`ROOM#r`** rows and keeps **`AREA#`** referrers (per **D14**). Forward rows **`(ComponentUUID, ASSET#assetId)`** are component bodies; **`referencedBy`** is derived inverse data colocated per **D9**. **`Meta::Room.cached`** = assets with a forward row, not the inverse list. See [Persisted `referencedBy` (D8-D10)](#persisted-referencedby-d8-d10). |
 | **D9** | [X] | **Storage pattern** | **(B) Embed on forward row (chosen):** `referencedBy: [{ referrerUniversalKey, referenceType? }]` on **`(targetUniversalKey, ASSET#assetId)`** written by **`cacheAsset`**. Rejected for steady-state: **(A)** separate **`Meta::ReferencedBy::...`** rows (extra SK surface; **D12** diverges from **`ComponentAggregate`** batch); **(C)** rebuild-only scan. **(B)** aligns with **`ComponentPairRow`** + **`referencedByUnion`** (**D31**). |
 | **D10** | [X] | **Writer** | **`cacheAsset` only** (no separate vertical in v1). On each cache pass, maintain **`referencedBy`** for targets touched by **`referencedKeys()`** on changed components --- **not** only rows in **`StandardForm.diff`** (Area edge edits must update target room/stub rows). See [Persisted `referencedBy` (D8-D10)](#persisted-referencedby-d8-d10). |
-| **D11** | [ ] | **Invalidation** | Which caches flush on Room vs Area vs edge-only diffs (assets + ephemera). **Normative sketch (D18):** **`mtw.assets.componentTopology`** emits skinny **`TopologyInvalidated`** (component ids, `editAssetId`, optional area / edge uuid hints --- no projected body on bus). **`mtw.ephemera.affordanceCache`** bumps catalog / drops stale rows for affected **`ROOM#`** + **`perspectiveKey`** and hydrates via **`internalCache.ComponentTopology.get`**. **`referencedBy`** rows update on **`cacheAsset`** per **D10**. Ephemera-only: roster / **`Meta::Room.objects`** still invalidate affordance publish without rewriting topology cache rows. Detail in child plans. |
-| **D12** | [ ] | **Cross-asset scope** | For target **`ROOM#r`**: one **`ComponentAggregate.get({ universalKey: ROOM#r, mergeParticipationOrder })`** yields **`merged`** + **`referencedByUnion`** (**D31**). Filter **`AREA#`** referrers; batch **`ComponentAggregate.get`** for those Area perspectives at the same order (**D30**). Optional **`referencedByByAsset`** on authoritative envelope for diagnostics only. **`Meta::Import`** hops (**D13**) separate. |
-| **D13** | [ ] | **Imports / `_from`** | How import vertical affects "which Areas reference this room" |
+| **D11** | [X] | **Invalidation** | **Assets:** **`mtw.assets.componentTopology`** emits skinny **`TopologyInvalidated`** on Area **`positionGraph`** / edge edits, Room blueprint during **D6** dual-read, and **`referencedBy`** target patches from **`cacheAsset`** (**D10**) --- component ids, `editAssetId`, optional **`AREA#`** / edge **`uuid`** hints; **no** projected body on bus. **Ephemera:** **`mtw.ephemera.affordanceCache`** bumps catalog / drops stale rows for affected **`ROOM#`** + **`perspectiveKey`**; hydrate via **`internalCache.ComponentTopology.get`**. **Ephemera-only (no topology row rewrite):** **`RoomCharacterList`**, **`Meta::Room.objects`** still trigger affordance republish. **v1 allowed:** coarse invalidation (all perspectives for a room). Detail in child plans. |
+| **D12** | [X] | **Cross-asset scope** | For target **`ROOM#r`**: one **`ComponentAggregate.get({ universalKey: ROOM#r, mergeParticipationOrder })`** yields **`merged`** + **`referencedByUnion`** (**D31**). Filter **`AREA#`** referrers; batch **`ComponentAggregate.get`** for those Area perspectives at the **same** **`mergeParticipationOrder`** (**D30**). Optional per-asset **`referencedBy`** on authoritative envelope for diagnostics only. **Participation order** (ephemera perspective / asset stack) selects which **`(component, ASSET#)`** rows **`getAcrossAssets`** loads --- not **`Meta::Import`** (**D13**). |
+| **D13** | [X] | **Imports / import vertical (out of scope)** | **`Meta::Import::...`** ([`verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md)) records **inheritance hops** for one **universalKey** across assets (`_from`: child asset inherits parent asset's appearance). It answers **which parent asset rows to walk** on **`fetchImports`** / import-defaults assembly --- **not** "which **Area** components reference **ROOM#r**." Topology discovery uses **`referencedByUnion`** (**D8-D10**, **D31**) plus **`mergeParticipationOrder`** (**D12**). **No** topology read path queries the import vertical. **Track separately:** **`SchemaImportMapping`** / asset graph gaps (**C4**), not this initiative's referrer model. |
 | **D31** | [X] | **Plumb `referencedBy` (gateway envelope)** | **Dynamo:** **`referencedBy`** on forward row JSON (**D9 B**). **`mtw-wml`:** **do not** add **`referencedBy`** on **`StandardComponent`** --- not authoring state; must not run through **`StandardRoom.merge`**. **Gateways:** strip in [`fetch.ts`](../../../packages/mtw-gateways/ts/assets/components/componentData/fetch.ts); **`ComponentPairRow.referencedBy?`**; [`authoritativeFromParticipationOrder`](../../../packages/mtw-gateways/ts/assets/components/componentData/participationBatch.ts) preserves per-asset lists from the same **`getAcrossAssets`** batch already used for merge. Extend **[`MergedComponentResult`](../../../packages/mtw-gateways/ts/assets/components/aggregate/result.ts)** with **`referencedByUnion?: PersistedReferencedByEntry[]`** (union across **`mergeParticipationOrder`**, **D12** --- not **`merge()`**). **`ComponentAggregate.get`** returns **`Promise<MergedComponentResult[]>`**; existing callers use **`.merged`** only; topology uses **`.referencedByUnion`**. Rejected: optional field on all **`StandardComponent`** classes; separate topology-only **`getAcrossAssets`** when aggregate already loaded the row. See [Plumb persisted `referencedBy` (D31)](#plumb-persisted-referencedby-d31). |
 
-*Precedents:* forward component rows and **`Meta::${tag}.cached`** --- [`AGENT.diff.md`](../../../lambda/assets/dataSource/caching/AGENT.diff.md), [`lambda/assets/README.md`](../../../lambda/assets/README.md). Derived vertical --- [`Meta::Import::...`](../../../lambda/assets/dataSource/components/verticals/AGENT.md) (**D13** hop metadata vs simple referrer list).
+*Precedents:* forward component rows and **`Meta::${tag}.cached`** --- [`AGENT.diff.md`](../../../lambda/assets/dataSource/caching/AGENT.diff.md), [`lambda/assets/README.md`](../../../lambda/assets/README.md). Import vertical --- [`verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md) (orthogonal to topology; **D13**).
 
 ### Projection --- runtime assembly
 
 | ID | Status | Decision | Notes / options |
 | --- | --- | --- | --- |
-| **D14** | [ ] | **Which Areas to consult for room R** | **v1 sketch (D12):** **`AREA#`** entries in **`referencedByUnion`** from **`ComponentAggregate.get(ROOM#R)`** --- Areas that reference **R** as an edge endpoint. **Also consider:** Areas where **R** is only in **`nodes`** (no edge yet); import-only visibility (**D13**); future "active area" from positions. Rejected for v1 steady-state: scan every Area in the union without inverse index. |
-| **D15** | [ ] | **Merge order** | **`ComponentAggregate`** **`mergeParticipationOrder`** (same stable order as **D30** / **`perspectiveKey`**); **not** `mergeRoomExitsToJSON` concat |
-| **D16** | [ ] | **Outbound wire shape** | Project each Area edge to **up to two** room-local facets (one per endpoint): `reference` = other room; `payload` = **`Forward`** text when current room is **`from`**, **`Back`** text when current room is **`to`** (**D1**). Preserve today's `ExitFacetList` on **`StandardRoom`** in **ephemeraWire** for client/nav parity (**D21**). |
-| **D17** | [ ] | **Edges with outside endpoint** | Affordance shows exit from current room; `to` must resolve to `ROOM#` |
+| **D14** | [X] | **Which Areas to consult for room R** | **v1 (affordances / nav exits):** **`AREA#`** ids in **`referencedByUnion`** from **`ComponentAggregate.get(ROOM#R)`** where the Area references **R** as an edge endpoint (**`From`** / **`To`** only --- same filter as **D8** v1 consumer). Batch **`ComponentAggregate.get`** for those Areas (**D12**). **Out of scope v1:** Areas where **R** is only in **`positionGraph.nodes`** (no edge touching **R**) --- not needed for exit affordances as recorded today. **Future expansion (track only):** node-only membership may matter when **Area-level Features** (or similar) should be visible from every room in the Area without an edge; may also intersect **positions** "active area." Rejected v1: scan all Areas in the participation stack without **`referencedByUnion`**. |
+| **D15** | [X] | **Merge order** | Layer Area edge sets and room projection using **`ComponentAggregate`** **`mergeParticipationOrder`** --- the same stable order as **D30** / ephemera **`perspectiveKey`**. **Not** **`mergeRoomExitsToJSON`** concat. Area **`EdgeList.merge`** runs inside each merged **`StandardArea`** after cross-asset participation fold (**D5b**). |
+| **D16** | [X] | **Outbound wire shape** | **`projectRoomExits(ROOM#R, ...)`** builds one **`ExitFacetList`** for **R**. For each Area edge, **at most one** facet in **R**'s list: if **R** is **`from`**, emit `reference` = **`to`** room, payload = **`Forward`**; if **R** is **`to`**, emit `reference` = **`from`** room, payload = **`Back`** (**D1**). **Normal A -> B:** one facet on **A**'s list and one on **B**'s list from that edge --- not two on **A**. **Self-loop (`From` = `To` = R):** up to **two** facets on **R**'s list (both roles). **Portal (**D17**):** one facet when only one endpoint is **R**. Output on **`StandardRoom.exits`** in **ephemeraWire** for client/nav parity (**D21**). |
+| **D17** | [X] | **Portal / outside endpoint (**D4**)** | In-graph **R** gets **one** facet per edge (**D16**). Player-facing affordance from **R** when **R** is **`from`** or **`to`**. **`ExitFacet.reference`** / movement resolution requires the **other** endpoint to resolve to **`ROOM#`**; non-room peers are not nav targets in v1 (label-from-**R** behavior at implement time). |
 | **D18** | [X] | **Caching (`renderCache` analogue)** | **Assets:** **`mtw.assets.componentTopology`** DataSource (like **`mtw.assets.componentExamples`**) --- subscribe to topology-relevant **`Component Updated` / `Removed`** (Area **`positionGraph`**, Room during **D6** dual-read); publish skinny **`TopologyInvalidated`** only. **Gateways:** **`assembleRoomTopologyAtPerspective`** (name TBD) + **`createComponentTopologyCacheHandler({ ComponentAggregate })`** --- room perspective via **`ComponentAggregate.get`** -> **`referencedByUnion`** + batch Area **`merged`** (**D31**); **`projectRoomExits`** (**D16**). Ephemera registers **`internalCache.ComponentTopology`**. **Ephemera:** **`mtw.ephemera.affordanceCache`** --- Dynamo slice per **`(ROOM#, perspectiveKey)`**; hydrate on invalidation. **Publish:** hydrated topology + ephemera-only fields; **D30** for transitional room **`merged.exits`** until projection owns exits. See [Caching architecture (D18)](#caching-architecture-d18). |
 
 ### Product, authoring, client
 
 | ID | Status | Decision | Notes / options |
 | --- | --- | --- | --- |
-| **D19** | [ ] | **Workbench** | Area topology editor (select/update edges by **`uuid`**; retarget **`from`/`to`** in place); remove exits from room editor |
-| **D20** | [ ] | **Client merge** | Affordances channel still `render.merge(affordances)`; exits only on affordances projection |
-| **D21** | [ ] | **RoomExit UI** | Confirm chips unchanged if **D16** holds |
-| **D22** | [ ] | **Parse / LLM** | `movementExitLabels` stable if projection stable |
+| **D19** | [X] | **Workbench Area editor** | **Area** workbench surface (not edges-only): **`shortName`**, **`positionGraph.nodes`**, **`positionGraph.edges`**. **Edges:** select/update by **`uuid`**; retarget **`From`** / **`To`** in place; edit **`Forward`** / **`Back`**. **Room** editor: remove room-local exit authoring UI (**D23** follow-up timing --- after data migration, with asset-mode forbid). |
+| **D20** | [X] | **Client merge** | Affordances channel still `render.merge(affordances)`; exits only on affordances projection |
+| **D21** | [X] | **RoomExit UI** | **Confirmed:** **`RoomExit`** chips unchanged if **D16** holds (same **`StandardExitFacet`** wire). |
+| **D22** | [X] | **Parse / LLM** | `movementExitLabels` stable if projection stable |
 
 ### Migration
 
 | ID | Status | Decision | Notes / options |
 | --- | --- | --- | --- |
-| **D23** | [ ] | **Migration strategy** | Big-bang transform vs dual-read vs tool-assisted per asset |
-| **D24** | [ ] | **Canon / production** | Who runs migration; rollback |
-| **D25** | [ ] | **Test matrix** | New area edge tests; ephemera projection tests; retire room-local exit authoring tests |
+| **D23** | [X] | **Migration strategy** | **Dual-read** (**D6**): asset ingest keeps reading room-local **`<Exit>`** until production data is migrated. **In this initiative (manual step):** one-time migration of our single production DB --- move room-local exits into Area **`positionGraph.edges`**. **Follow-up (M6):** room-local exits **illegal** in asset authoring; strip-on-standardize or hard error; remove exit UI from Room edit component. **Not** big-bang code forbid before data migration. |
+| **D24** | [X] | **Canon / production** | **Operator:** Anthony runs the manual data migration and **confirms** completion before the **D23** follow-up forbid. Rollback via DB restore / re-run migration tooling (document in M5). |
+| **D25** | [X] | **Test matrix** | Add Area edge, **`projectRoomExits`**, and ephemera topology tests. **Retire** room-local exit **authoring** tests only when room-local authoring is removed (**D23** M6 follow-up) --- same gate as forbid, not earlier. |
 
 ### Ephemera --- `ComponentStackMerge` consolidation
 
@@ -174,11 +174,11 @@ Mark decisions **`[X]`** in the **Status** column when normative. Milestone gate
 | Milestone | Blocked until |
 | --- | --- |
 | **1** WML + `StandardArea` (asset mode) | **D1-D7**, **D5b**, **D26-D29** [X] |
-| **2** Persisted `referencedBy` | **D8-D10**, **D31** [X], **D11-D13**; **`cacheAsset`** + pair strip/carry + **`referencedByUnion`** on **`MergedComponentResult`** |
-| **3** Projection library + gateways pull | **D1-D6**, **D14-D17**, **D16**; **`assembleRoomTopologyAtPerspective`** contract; **D30** merge order |
+| **2** Persisted `referencedBy` | **D8-D13** [X], **D31** [X]; **`cacheAsset`** + pair strip/carry + **`referencedByUnion`** on **`MergedComponentResult`** |
+| **3** Projection library + gateways pull | **D1-D6**, **D14-D17** [X]; **`assembleRoomTopologyAtPerspective`** + **`projectRoomExits`** contract |
 | **4** Ephemera + assets caching integration | **D2**, **D11**, **D14-D18** [X], **D30** [X], Milestones **2-3**; **`componentTopology`** + **`affordanceCache`** |
-| **5** Authoring + migration | **D19-D24**, Milestone **1** |
-| **6** Cleanup + durable docs | Prior milestones complete |
+| **5** Authoring + migration | **D19-D24** [X], Milestone **1**; manual DB migration (**D24**); Area workbench (**D19**) |
+| **6** Cleanup + durable docs | Prior milestones; **D23** follow-up (forbid room-local exits + UI); **D25** test retirement |
 
 ---
 
@@ -186,26 +186,28 @@ Mark decisions **`[X]`** in the **Status** column when normative. Milestone gate
 
 Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as each sub-step lands.
 
-- [ ] **Milestone 0 --- Decision spike**
+- [X] **Milestone 0 --- Decision spike**
   - [X] **D1** --- bidirectional edges; **Forward** / **Back** WML shape (see [Decisions register](#decisions-register)).
   - [X] **D28** --- stable **`uuid`** per edge for edits; endpoints are not the identity key.
   - [X] **D2**, **D26**, **D3**, **D27**, **D29** --- payload, **`positionGraph.edges`**, edge pattern, **`From`** / **`To`** children.
   - [X] **D4** --- at least one endpoint in **`nodes`**; **error** if neither.
   - [X] **D5** --- multi-edge same room pair + distinct labels is allowed; nav **ambiguousMatch** only on label -> multiple targets.
   - [X] **D5b** --- merge edges by **`uuid`** within one Area **`positionGraph`**; **`uuid`** not global across Areas.
-  - [X] **D6** --- dual-read room-local exits during manual migration; forbid after.
+  - [X] **D6** --- dual-read room-local exits until DB migration; forbid in M6 (**D23**).
   - [X] **D7** --- new **`Edge`** `referenceType` for edge **From** / **To**; subset **Stub** via **`connectionType: 'Edge'`**; non-structural for org graph.
   - [X] **D18** --- **`componentTopology`** + **`affordanceCache`** split (see [Caching architecture (D18)](#caching-architecture-d18)).
   - [X] **D8-D10** --- embed **`referencedBy`** on **`(target, ASSET#)`** forward rows; **`cacheAsset`** writer (see [Persisted `referencedBy` (D8-D10)](#persisted-referencedby-d8-d10)).
   - [X] **D31** --- **`ComponentPairRow`** strip/carry; **`referencedByUnion`** on **`MergedComponentResult`** (see [Plumb persisted `referencedBy` (D31)](#plumb-persisted-referencedby-d31)).
   - [X] **D30** --- **`ComponentStackMerge`** -> **`ComponentAggregate`** (see [ComponentStackMerge refactor (D30)](#componentstackmerge-refactor-d30)).
-  - [ ] Close **D11-D13** (invalidation, cross-asset read details, imports).
-  - [ ] Close **D14-D17** (projection scope + wire shape + outside endpoints).
-  - [ ] Optional: inventory room-local `<Exit>` in canon assets (**D23** sizing).
-  - [ ] Create child plans under `taskPlanning/lambda/ephemera/` and `taskPlanning/lambda/assets/` when Milestones 2 and 4 start.
+  - [X] **D11-D13** --- invalidation sketch (**D18**); cross-asset read via **`referencedByUnion`** (**D12**); import vertical out of scope (**D13**).
+  - [X] **D14-D15** --- Area fan-out via **`referencedByUnion`** (edge endpoints only); **`mergeParticipationOrder`** for all folds (**D30**).
+  - [X] **D16-D17** --- **`projectRoomExits`** wire shape; portal / outside endpoint nav rules.
+  - [X] **D19-D22** --- Area workbench scope; client affordances merge; **RoomExit** confirmed; LLM labels stable with projection.
+  - [X] **D23-D25** --- dual-read + manual DB migration + post-migration forbid; operator-owned migration; test retirement gated on forbid.
+  - [X] Production room-local exit inventory (**D23**) --- see [Production exit inventory (Coyote demo)](#production-exit-inventory-coyote-demo).
 
 - [ ] **Milestone 1 --- WML + StandardArea (asset mode)**
-  - [ ] Schema: Area **`<Exit uuid=(...)>`** with **`From`**, **`To`**, **`Forward`**, **`Back`** (**D26**, **D29**); reject room-local `<Exit>` in asset mode.
+  - [ ] Schema: Area **`<Exit uuid=(...)>`** with **`From`**, **`To`**, **`Forward`**, **`Back`** (**D26**, **D29**); room-local **`<Exit>`** under **`<Room>`** stays **dual-read** per **D6** / **D23** (hard forbid in M6).
   - [ ] **Edge pattern** (**D27-D29**): **`uuid`** + editable **`from`** / **`to`** (**Parent**-style **From** / **To** tags) + literal payload; list class and factory; merge/diff keyed by **`uuid`**; layered **Replace** on **From** / **To**.
   - [ ] Add **`Edge`** to **`StandardComponentReferenceKey`**; subset cascade + tests for **`connectionType: 'Edge'`** -> **Stub** (**D7**).
   - [ ] Extend **`StandardPositionGraph`**: **`positionGraph.edges`** as **`EdgeList`** alongside **`nodes`**; **`referencedKeys()`** emits **From** / **To** as **`referenceType: 'Edge'`**.
@@ -213,13 +215,13 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [ ] Update [`AGENT.implementation.md`](../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) (**StandardArea** edges) when behavior is stable.
 
 - [ ] **Milestone 2 --- Persisted `referencedBy` (assets + gateways)**
+  - [ ] **Child plan:** create [`taskPlanning/lambda/assets/AGENT.areaTopologyReferencedBy.planning.md`](../../lambda/assets/AGENT.areaTopologyReferencedBy.planning.md) --- **`cacheAsset`** writer, **`referencedBy`** tests, **`mtw.assets.componentTopology`** invalidation (**D8-D11**).
   - [ ] Extend **`cacheAsset`**: compute **`referencedBy`** from in-memory **`fileAsset`** / diff; patch **`(target, ASSET#)`** rows beyond **`diff._components`** when inverse changes (**D10**).
   - [ ] **`mtw-gateways`:** **`PersistedReferencedByEntry`** type; strip **`referencedBy`** in **`fetch.ts`**; extend **`ComponentPairRow`** / **`ComponentDataCache`** (**D31**).
   - [ ] **`ComponentData`:** pair rows carry **`referencedBy`**; **`getAcrossAssets`** feeds **`participationBatch`** with per-asset lists.
   - [ ] **`MergedComponentResult.referencedByUnion`** + union helper (**D31**, **D12**); golden test: two assets, two referrers, dedupe rules documented.
   - [ ] **`ComponentExamples`** / other aggregate callers: verify unchanged (use **`.merged`** only).
-  - [ ] Invalidation contract (**D11**); tests in assets lambda; index updates must drive **`TopologyInvalidated`** once **`componentTopology`** exists.
-  - [ ] Child plan: `taskPlanning/lambda/assets/AGENT.areaTopologyReferencedBy.planning.md` (index + **`mtw.assets.componentTopology`**).
+  - [ ] Invalidation contract (**D11**); tests in assets lambda; index updates must drive **`TopologyInvalidated`** once **`componentTopology`** exists (detail in assets child plan).
 
 - [ ] **Milestone 3 --- Projection library + gateways pull (`mtw-wml` + `@tonylb/mtw-gateways`)**
   - [ ] Pure `projectRoomExits(...)` (name TBD): inputs = room id, merged Area edge sets (per **D14-D15**), index; output = `ExitFacetList` JSON.
@@ -228,23 +230,58 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [ ] Gateways: **`assembleRoomTopologyAtPerspective`** + **`createComponentTopologyCacheHandler`** (perspective key aligned with **`ComponentExamples`** / render cache).
 
 - [ ] **Milestone 4 --- Assets + ephemera caching integration**
+  - [ ] **Child plan:** create [`taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md`](../../lambda/ephemera/AGENT.areaTopologyExits.planning.md) (**D30**, **`internalCache.ComponentTopology`**, **`mtw.ephemera.affordanceCache`**, affordance publish, navigation, **D11** invalidation matrix).
+  - [ ] **Child plan:** extend assets [`AGENT.areaTopologyReferencedBy.planning.md`](../../lambda/assets/AGENT.areaTopologyReferencedBy.planning.md) for **`componentTopology`** + gateways pull integration with M3.
   - [ ] **D30:** Refactor **`ComponentStackMerge`** to **`ComponentAggregate`**; remove **`mergeRoomExitsToJSON`** from affordance path; tests for layered exit overlay (**D,E** + remove **D** + add **F** -> **E,F**).
   - [ ] Assets: **`mtw.assets.componentTopology`** DataSource --- skinny **`TopologyInvalidated`** on Area / Room topology diffs (**D11** sketch).
   - [ ] Ephemera: register **`internalCache.ComponentTopology`**; **`mtw.ephemera.affordanceCache`** --- hydrate, Dynamo rows, catalog bump on invalidation (**D18**).
   - [ ] Affordance publish + navigation use hydrated topology slice; **`ComponentStackMerge`** = aggregate blueprint slice (transitional room **`exits`** until projection) + ephemera-only fields (roster, **`objects`**).
   - [ ] `getRoomExitTargetsForCharacter` shares projection / cache path with affordances.
   - [ ] Close **D11** invalidation matrix in child plans; verify `roomChannel: 'affordances'`.
-  - [ ] Child plans: `taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md`, extend assets child plan for **`componentTopology`**.
 
 - [ ] **Milestone 5 --- Authoring + migration**
-  - [ ] Workbench Area topology UI (**D19**); remove room exit editing.
-  - [ ] Migration tool / dual-read (**D23-D24**).
-  - [ ] Charcoal-client: confirm merge + `RoomExit` (**D20-D21**).
+  - [ ] Workbench **Area** editor (**D19**): **`shortName`**, **`nodes`**, **`edges`** (by **`uuid`**, retarget **From** / **To**, **Forward** / **Back**).
+  - [ ] **Manual step (**D23**, **D24**):** migrate production DB --- room-local exits into Area **`positionGraph.edges`**; operator confirms before M6 forbid.
+  - [X] Inventory captured in plan ([Production exit inventory (Coyote demo)](#production-exit-inventory-coyote-demo)); migration script TBD.
+  - [ ] Charcoal-client: affordances merge (**D20**); **RoomExit** parity smoke (**D21**).
 
-- [ ] **Milestone 6 --- Cleanup**
-  - [ ] Remove deprecated room-local exit authoring paths and dual-read if any.
+- [ ] **Milestone 6 --- Cleanup (**D23** follow-up, **D25**)**
+  - [ ] Forbid room-local **`<Exit>`** under **`<Room>`** in asset mode; remove dual-read ingest.
+  - [ ] Remove room-local exit UI from Room edit component (**D19**).
+  - [ ] Retire room-local exit **authoring** tests (**D25** --- same gate as forbid).
   - [ ] Durable docs: `mtw-wml` AGENT files, ephemera internalCache AGENT, multi-channel contract cross-links.
   - [ ] Archive this plan.
+
+---
+
+## Production exit inventory (Coyote demo)
+
+**Scope (**D23**, **D24**):** Single production DB; Coyote demo topology. Canonical room ids (see [`AGENT.CoyoteGame.md`](../../../AGENT.CoyoteGame.md)): **`CLIFFBASE`** = **`ROOM#VORTEX`** (prompt seam label only).
+
+| Seam label | Canonical id |
+| --- | --- |
+| STRAIGHTAWAY | `ROOM#STRAIGHTAWAY` |
+| CLIFFBASE | `ROOM#VORTEX` |
+| CLIFFTOP | `ROOM#CLIFFTOP` |
+| CORNER | `ROOM#CORNER` |
+| BRIDGE | `ROOM#BRIDGE` |
+
+**Rooms in scope:** STRAIGHTAWAY, CLIFFBASE (VORTEX), CLIFFTOP, CORNER, BRIDGE.
+
+**Room-local exits to migrate** (4 edges, bidirectional **D1** --- **Forward** / **Back** are player-visible labels from **`From`** / **`To`**):
+
+| From (seam) | To (seam) | Forward | Back | Notes |
+| --- | --- | --- | --- | --- |
+| STRAIGHTAWAY | CLIFFBASE | east | west | Highway west -> east into cliff base |
+| CLIFFBASE | CLIFFTOP | up | down | Vertical cliff |
+| CLIFFBASE | CORNER | east | west | Highway east from cliff base to corner |
+| CORNER | BRIDGE | south | north | Turn south to bridge |
+
+**Target authoring shape (per edge, **D29**):** one **`<Exit uuid=(...)>`** on parent **Area** **`positionGraph.edges`** with **`<From>`**, **`<To>`**, **`<Forward>`**, **`<Back>`** --- not room-local **`<Exit>`** under **`<Room>`**.
+
+**Migration design TBD:** which **`AREA#`** owns **`nodes`** + these **`edges`** (likely one Area for the demo graph); assign stable edge **`uuid`** values at migrate time. **Verify after migrate:** **`projectRoomExits`** / affordances match today's labels (east, west, up, down, south, north) and nav pairs (**D16**, **D21**).
+
+**Spatial reference (non-normative):** [`AGENT.CoyoteGame.md`](../../../AGENT.CoyoteGame.md) --- STRAIGHTAWAY -> CLIFFBASE -> CORNER along highway; CLIFFTOP above CLIFFBASE; BRIDGE south of CORNER.
 
 ---
 
@@ -296,7 +333,7 @@ npm test
 | Milestone | Status |
 | --- | --- |
 | Create platform task plan | Done |
-| M0 Decision spike (D1-D7, D5b, D8-D10, D18, D26-D31 [X]; D11-D13, D14-D17) | In progress |
+| M0 Decision spike (D1-D7, D5b, D8-D31, D18-D25) | Done |
 | M1 WML + StandardArea edges | Not started |
 | M2 Persisted referencedBy | Not started |
 | M3 Projection library | Not started |
@@ -348,6 +385,22 @@ Projection shows **`east`** in `highway` toward `townCenter` and **`west`** in `
 - **D8-D10 (normative):** Embed **`referencedBy`** on **`(targetUniversalKey, ASSET#assetId)`**; **`cacheAsset`** writer; logical target = any **`ComponentUUID`**. See [Persisted `referencedBy` (D8-D10)](#persisted-referencedby-d8-d10).
 
 - **D31 (normative):** Strip before **`StandardComponent`**; carry per-asset lists on **`ComponentPairRow`**; union into **`referencedByUnion`** on **[`MergedComponentResult`](../../../packages/mtw-gateways/ts/assets/components/aggregate/result.ts)** in the same **`ComponentAggregate.get`** pass as **`merged`**. Topology reads **`.referencedByUnion`**; affordances / **D30** read **`.merged`** only. See [Plumb persisted `referencedBy` (D31)](#plumb-persisted-referencedby-d31).
+
+- **D11-D13 (normative):** **D11** invalidation per [Caching architecture (D18)](#caching-architecture-d18). **D12** one room **`ComponentAggregate.get`** + Area batch at same **`mergeParticipationOrder`**. **D13** **`Meta::Import`** vertical does not select topology referrers --- use **`referencedByUnion`**; import vertical remains for **`fetchImports`** / inheritance assembly only.
+
+- **D14 (normative):** Consult only **`AREA#`** referrers in **`referencedByUnion`** where **R** is an edge **`From`** / **`To`** endpoint. **Not v1:** Areas that list **R** only in **`nodes`**. **Future:** node-only membership for Area-scoped affordances (e.g. Area-level Features visible from all rooms in the Area).
+
+- **D15 (normative):** All cross-asset folds use **`mergeParticipationOrder`** / **`ComponentAggregate`** --- same as **D30**; never concat per-asset exit JSON.
+
+- **D16 (normative):** Per room **R**, each Area edge contributes **0 or 1** **`ExitFacet`** to **R**'s list (**Forward** when **R** is **`from`**, **Back** when **R** is **`to`**). **Two facets from one edge in the same list** only when **`From`** and **`To`** resolve to the same **R** (self-loop). Distinct endpoints **A -> B** yield one facet on **A**'s wire and one on **B**'s wire, not two on **A**.
+
+- **D17 (normative):** Portal edges (**D4**): one in-graph endpoint. Affordance from in-graph **R**; movement requires peer **`ROOM#`**.
+
+- **D19 (normative):** Workbench **Area** editor covers **`shortName`**, **`nodes`**, **`edges`**. Room editor drops exit UI after **D23** M6 forbid.
+
+- **D20-D22 (normative):** Exits on affordances channel only (**D20**); **RoomExit** UI unchanged (**D21**); stable **`movementExitLabels`** if projection stable (**D22**).
+
+- **D23-D25 (normative):** Dual-read until manual DB migration (**D24** operator confirm); then M6 forbid + test retirement (**D25**).
 
 - **D30 (normative):** **`ComponentStackMerge`** uses **`ComponentAggregate`**; retire **`mergeRoomExitsToJSON`** on affordance path. See [ComponentStackMerge refactor (D30)](#componentstackmerge-refactor-d30).
 
