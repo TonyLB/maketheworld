@@ -36,7 +36,8 @@ export type SchemaRenderTag = {
 
 export type SchemaExitTag = {
     tag: 'Exit';
-    to: string;
+    to?: string;
+    uuid?: string;
 } & SchemaBase
 
 export type SchemaRoomTag = {
@@ -170,7 +171,8 @@ export const isSchemaRender = (schema: any): schema is SchemaRenderTag => (
 
 export const isSchemaExit = (schema: any): schema is SchemaExitTag => (
     checkTypes({
-        required: { tag: CheckTypes.STRING, to: CheckTypes.STRING },
+        required: { tag: CheckTypes.STRING },
+        optional: { to: CheckTypes.STRING, uuid: CheckTypes.STRING },
         values: { tag: 'Exit' }
     })(schema)
 )

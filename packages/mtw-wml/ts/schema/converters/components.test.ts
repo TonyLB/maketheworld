@@ -683,3 +683,241 @@ describe('Render tag', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 })
+
+describe('From tag', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+    })
+
+    describe('parsing', () => {
+        it('should parse From tag inside an Exit with ComponentUUID', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Exit uuid=(edge1)><From>ROOM#highway</From></Exit>
+                </Asset>
+            `))))
+            const schema = schemaFromParse(testParse)
+            const exitNode = schema[0].children.find(({ data }) => data.tag === 'Exit')
+            expect(exitNode).toBeDefined()
+            const fromNode = exitNode?.children.find(({ data }) => data.tag === 'From')
+            expect(fromNode).toBeDefined()
+            expect(fromNode?.children[0].data).toEqual({ tag: 'String', value: 'ROOM#highway' })
+        })
+    })
+
+    describe('validation', () => {
+        it('should reject From tag when not inside an Exit', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(room1)><From>ROOM#highway</From></Room>
+                </Asset>
+            `))))
+            expect(() => schemaFromParse(testParse)).toThrow('From tag can only be used inside an Exit')
+        })
+
+        it('should reject From tag with invalid ComponentUUID content', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Exit uuid=(edge1)><From>not-a-valid-uuid</From></Exit>
+                </Asset>
+            `))))
+            expect(() => schemaFromParse(testParse)).toThrow('From tag content must be a ComponentUUID or legalKey, got: not-a-valid-uuid')
+        })
+
+        it('should accept empty From tag', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Exit uuid=(edge1)><From /></Exit>
+                </Asset>
+            `))))
+            const schema = schemaFromParse(testParse)
+            const exitNode = schema[0].children.find(({ data }) => data.tag === 'Exit')
+            const fromNode = exitNode?.children.find(({ data }) => data.tag === 'From')
+            expect(fromNode?.children.length).toBe(0)
+        })
+    })
+
+    describe('round-trip', () => {
+        it('should round-trip From tag inside Exit', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(Test)><Exit uuid=(edge1)><From>ROOM#highway</From></Exit></Asset>
+            `)
+            expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+        })
+    })
+})
+
+describe('To tag', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+    })
+
+    describe('parsing', () => {
+        it('should parse To tag inside an Exit with ComponentUUID', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Exit uuid=(edge1)><To>ROOM#townCenter</To></Exit>
+                </Asset>
+            `))))
+            const schema = schemaFromParse(testParse)
+            const exitNode = schema[0].children.find(({ data }) => data.tag === 'Exit')
+            const toNode = exitNode?.children.find(({ data }) => data.tag === 'To')
+            expect(toNode).toBeDefined()
+            expect(toNode?.children[0].data).toEqual({ tag: 'String', value: 'ROOM#townCenter' })
+        })
+    })
+
+    describe('validation', () => {
+        it('should reject To tag when not inside an Exit', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Area key=(area1)><To>ROOM#townCenter</To></Area>
+                </Asset>
+            `))))
+            expect(() => schemaFromParse(testParse)).toThrow('To tag can only be used inside an Exit')
+        })
+
+        it('should reject To tag with invalid ComponentUUID content', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Exit uuid=(edge1)><To>not-a-valid-uuid</To></Exit>
+                </Asset>
+            `))))
+            expect(() => schemaFromParse(testParse)).toThrow('To tag content must be a ComponentUUID or legalKey, got: not-a-valid-uuid')
+        })
+    })
+
+    describe('round-trip', () => {
+        it('should round-trip To tag inside Exit', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(Test)><Exit uuid=(edge1)><To>ROOM#townCenter</To></Exit></Asset>
+            `)
+            expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+        })
+    })
+})
+
+describe('Forward and Back tags', () => {
+    it('should parse Forward and Back literals under Exit', () => {
+        const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Exit uuid=(edge1)>
+                    <Forward>east</Forward>
+                    <Back>west</Back>
+                </Exit>
+            </Asset>
+        `))))
+        const schema = schemaFromParse(testParse)
+        const exitNode = schema[0].children.find(({ data }) => data.tag === 'Exit')
+        expect(exitNode?.children.find(({ data }) => data.tag === 'Forward')).toBeDefined()
+        expect(exitNode?.children.find(({ data }) => data.tag === 'Back')).toBeDefined()
+    })
+
+    it('should round-trip Forward and Back under Exit', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Exit uuid=(edge1)>
+                    <Forward>east</Forward>
+                    <Back>west</Back>
+                </Exit>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+})
+
+describe('Exit D29 topology shape', () => {
+    it('should parse full normative D29 Exit block', () => {
+        const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Exit uuid=(straightawayToCliffbase)>
+                    <From>ROOM#STRAIGHTAWAY</From>
+                    <To>ROOM#VORTEX</To>
+                    <Forward>east</Forward>
+                    <Back>west</Back>
+                </Exit>
+            </Asset>
+        `))))
+        const schema = schemaFromParse(testParse)
+        const exitNode = schema[0].children.find(({ data }) => data.tag === 'Exit')
+        expect(exitNode?.data).toEqual({ tag: 'Exit', uuid: 'straightawayToCliffbase' })
+        expect(exitNode?.children.map(({ data }) => data.tag)).toEqual(['From', 'To', 'Forward', 'Back'])
+    })
+
+    it('should round-trip full normative D29 Exit block', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Exit uuid=(straightawayToCliffbase)>
+                    <From>ROOM#STRAIGHTAWAY</From>
+                    <To>ROOM#VORTEX</To>
+                    <Forward>east</Forward>
+                    <Back>west</Back>
+                </Exit>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should parse layered Replace on To inside Exit', () => {
+        const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Exit uuid=(highwayToTown)>
+                    <From>ROOM#highway</From>
+                    <Replace><To>ROOM#townCenter</To></Replace>
+                    <With><To>ROOM#ghi</To></With>
+                    <Forward>east</Forward>
+                    <Back>west</Back>
+                </Exit>
+            </Asset>
+        `))))
+        const schema = schemaFromParse(testParse)
+        const exitNode = schema[0].children.find(({ data }) => data.tag === 'Exit')
+        const replaceNode = exitNode?.children.find(({ data }) => data.tag === 'Replace')
+        expect(replaceNode).toBeDefined()
+        const replaceMatchNode = replaceNode?.children.find(({ data }) => isSchemaReplaceMatch(data))
+        expect(replaceMatchNode?.children.find(({ data }) => data.tag === 'To')).toBeDefined()
+        const replacePayloadNode = replaceNode?.children.find(({ data }) => isSchemaReplacePayload(data))
+        expect(replacePayloadNode?.children.find(({ data }) => data.tag === 'To')).toBeDefined()
+    })
+
+    it('should round-trip layered Replace on To inside Exit', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Exit uuid=(highwayToTown)>
+                    <From>ROOM#highway</From>
+                    <Replace><To>ROOM#townCenter</To></Replace>
+                    <With><To>ROOM#ghi</To></With>
+                    <Forward>east</Forward>
+                    <Back>west</Back>
+                </Exit>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should still parse legacy Exit to= with String description', () => {
+        const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(room1)><Exit to=(room2)>out</Exit></Room>
+            </Asset>
+        `))))
+        const schema = schemaFromParse(testParse)
+        const roomNode = schema[0].children.find(({ data }) => data.tag === 'Room')
+        const exitNode = roomNode?.children.find(({ data }) => data.tag === 'Exit')
+        expect(exitNode?.data).toEqual({ tag: 'Exit', to: 'room2' })
+        expect(exitNode?.children[0].data).toEqual({ tag: 'String', value: 'out' })
+    })
+
+    it('should parse Exit with both uuid and to attributes at schema layer', () => {
+        const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Exit uuid=(e1) to=(room2) />
+            </Asset>
+        `))))
+        const schema = schemaFromParse(testParse)
+        const exitNode = schema[0].children.find(({ data }) => data.tag === 'Exit')
+        expect(exitNode?.data).toEqual({ tag: 'Exit', uuid: 'e1', to: 'room2' })
+    })
+})

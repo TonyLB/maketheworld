@@ -4,10 +4,11 @@ import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./base
 import { tagRender } from "./tagRender"
 import { validateProperties, validateExpressionAsNonNegativeInteger, parsePositionCoordinates } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaObject, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaParent, isSchemaKey, isSchemaSituation, isSchemaArea, isSchemaRender, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaObjectTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaKeyTag, SchemaSituationTag, SchemaAreaTag, SchemaRenderTag } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaObject, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaParent, isSchemaFrom, isSchemaTo, isSchemaForward, isSchemaBack, isSchemaKey, isSchemaSituation, isSchemaArea, isSchemaRender, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaObjectTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaFromTag, SchemaToTag, SchemaKeyTag, SchemaSituationTag, SchemaAreaTag, SchemaRenderTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaDescription, isSchemaDisplayName, isSchemaSummary } from "@tonylb/mtw-base/ts/schema/prose"
 import { isSchemaString, SchemaStringTag } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { SchemaTag, isSchemaComponent, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
 import { PrintMode, PrintMapResult } from "@tonylb/mtw-base/ts/schema/printMap"
 import { literalTagFactory } from "@tonylb/mtw-base/ts/schema/literalTagFactory"
 import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
@@ -15,7 +16,8 @@ import { isLegalKey } from "../../standardize/utils"
 
 const componentTemplates = {
     Exit: {
-        to: { type: ParsePropertyTypes.Key }
+        to: { type: ParsePropertyTypes.Key },
+        uuid: { type: ParsePropertyTypes.Key }
     },
     Description: {},
     Summary: {},
@@ -24,6 +26,10 @@ const componentTemplates = {
     Instructions: {},
     Default: {},
     Parent: {},
+    From: {},
+    To: {},
+    Forward: {},
+    Back: {},
     Key: {},
     Object: {
         uuid: { type: ParsePropertyTypes.Key, required: true },
@@ -87,6 +93,79 @@ const componentTemplates = {
 const { converter: shortNameConverter, printMap: shortNamePrintMap } = literalTagFactory('ShortName')
 const { converter: instructionsConverter, printMap: instructionsPrintMap } = literalTagFactory('Instructions')
 const { converter: defaultConverter, printMap: defaultPrintMap } = literalTagFactory('Default')
+const { converter: forwardConverter, printMap: forwardPrintMap } = literalTagFactory('Forward')
+const { converter: backConverter, printMap: backPrintMap } = literalTagFactory('Back')
+
+const isSchemaExitLegalContents = (item: SchemaTag): boolean => (
+    isSchemaString(item) ||
+    isSchemaFrom(item) ||
+    isSchemaTo(item) ||
+    isSchemaForward(item) ||
+    isSchemaBack(item) ||
+    isSchemaRemove(item) ||
+    isSchemaReplace(item)
+)
+
+const exitEndpointTagRenderLiteral = (
+    typeGuard: (schema: unknown) => schema is SchemaFromTag | SchemaToTag
+) => ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments): PrintMapResult[] => {
+    if (!typeGuard(tag)) {
+        return [{ printMode: PrintMode.naive, output: '' }]
+    }
+    if (children.length === 0) {
+        return [{ printMode: PrintMode.naive, output: `<${tag.tag} />` }]
+    }
+    const textValue = children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('') as string
+    const naive = `<${tag.tag}>${textValue}</${tag.tag}>`
+    if (naive.length + Math.min(10, args.options.indent * 4) > 80) {
+        return [
+            { printMode: PrintMode.nested, output: `<${tag.tag}>` },
+            { printMode: PrintMode.nested, output: `    ${textValue}` },
+            { printMode: PrintMode.nested, output: `</${tag.tag}>` }
+        ]
+    }
+    else {
+        return [{ printMode: PrintMode.naive, output: `<${tag.tag}>${textValue}</${tag.tag}>` }]
+    }
+}
+
+const exitEndpointTagConverter = (
+    tagName: 'From' | 'To',
+    typeGuard: (schema: unknown) => schema is SchemaFromTag | SchemaToTag
+): ConverterMapEntry => ({
+    initialize: ({ parseOpen, contextStack }): SchemaFromTag | SchemaToTag => {
+        const hasExitContext = contextStack.some(({ data }) => isSchemaExit(data))
+        if (!hasExitContext) {
+            throw new Error(`${tagName} tag can only be used inside an Exit`)
+        }
+        validateProperties(componentTemplates[tagName])(parseOpen)
+        return { tag: tagName }
+    },
+    typeCheckContents: (item: SchemaTag): boolean => isSchemaString(item),
+    finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaFromTag | SchemaToTag, SchemaStringTag> => {
+        if (!typeGuard(initialTag)) {
+            throw new Error('Type mismatch on schema finalize')
+        }
+        if (children.length === 0) {
+            return {
+                data: { tag: tagName },
+                children: []
+            }
+        }
+        const textValue = children
+            .map(({ data }) => data)
+            .filter(isSchemaString)
+            .map(({ value }) => value)
+            .join('')
+        if (!isSchemaComponentUUID(textValue) && !isLegalKey(textValue)) {
+            throw new Error(`${tagName} tag content must be a ComponentUUID or legalKey, got: ${textValue}`)
+        }
+        return {
+            data: { tag: tagName },
+            children: children.map(({ data }) => data).filter(isSchemaString).map(({ value }) => ({ data: { tag: 'String' as const, value }, children: [] }))
+        }
+    }
+})
 
 // Parent tag converter - similar to Literal but constrained to ComponentUUID content
 // and can only be placed inside ComponentUUID tags
@@ -134,15 +213,16 @@ const keyTagRenderLiteral = ({ tag: { data: tag, children }, ...args }: PrintMap
 
 export const componentConverters: Record<string, ConverterMapEntry> = {
     Exit: {
-        initialize: ({ parseOpen, contextStack }): SchemaExitTag => {
-            const { to, ...rest } = validateProperties(componentTemplates.Exit)(parseOpen)
+        initialize: ({ parseOpen }): SchemaExitTag => {
+            const { to, uuid, ...rest } = validateProperties(componentTemplates.Exit)(parseOpen)
             return {
                 tag: 'Exit',
-                to: to ?? '',
+                ...(to !== undefined ? { to } : {}),
+                ...(uuid !== undefined ? { uuid } : {}),
                 ...rest
             }
         },
-        typeCheckContents: isSchemaString,
+        typeCheckContents: isSchemaExitLegalContents,
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaExitTag, SchemaTag> => {
             if (!isSchemaExit(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')
@@ -156,6 +236,10 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
     ShortName: shortNameConverter,
     Instructions: instructionsConverter,
     Default: defaultConverter,
+    Forward: forwardConverter,
+    Back: backConverter,
+    From: exitEndpointTagConverter('From', isSchemaFrom),
+    To: exitEndpointTagConverter('To', isSchemaTo),
     Parent: {
         initialize: ({ parseOpen, contextStack }): SchemaParentTag => {
             // Validate that Parent tag is inside a ComponentUUID
@@ -455,9 +539,27 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
     Exit: ({ tag: { data: tag, children }, ...args }) => {
 
         const { context, persistentOnly } = args.options
-        if (!isSchemaExit(tag) || (persistentOnly && !tag.to)) {
+        if (!isSchemaExit(tag)) {
             return [{ printMode: PrintMode.naive, output: '' }]
         }
+        const isTopologyShape = Boolean(tag.uuid) ||
+            children.some(({ data }) => isSchemaFrom(data) || isSchemaTo(data) || isSchemaForward(data) || isSchemaBack(data))
+
+        if (persistentOnly && !tag.to && !tag.uuid) {
+            return [{ printMode: PrintMode.naive, output: '' }]
+        }
+
+        if (isTopologyShape) {
+            return tagRender({
+                ...args,
+                tag: 'Exit',
+                properties: [
+                    ...(tag.uuid ? [{ key: 'uuid', type: 'key' as const, value: tag.uuid }] : []),
+                ],
+                node: { data: tag, children }
+            })
+        }
+
         const roomsContextList = context.filter(isSchemaRoom)
         const roomContext: SchemaTag | undefined = roomsContextList.length > 0 ? roomsContextList.slice(-1)[0] : undefined
         const roomContextTypecheck = (roomContext: SchemaTag | undefined): roomContext is SchemaRoomTag | undefined => (!roomContext || isSchemaRoom(roomContext))
@@ -471,7 +573,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             // Do not render to/from properties when they can be derived from the room context
             //
             properties: [
-                { key: 'to', type: 'key' as 'key', value: tag.to },
+                { key: 'to', type: 'key' as 'key', value: tag.to ?? '' },
             ],
             node: { data: tag, children }
         })
@@ -479,6 +581,10 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
     ShortName: shortNamePrintMap,
     Instructions: instructionsPrintMap,
     Default: defaultPrintMap,
+    Forward: forwardPrintMap,
+    Back: backPrintMap,
+    From: exitEndpointTagRenderLiteral(isSchemaFrom),
+    To: exitEndpointTagRenderLiteral(isSchemaTo),
     Parent: parentTagRenderLiteral,
     Key: keyTagRenderLiteral,
     Object: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {

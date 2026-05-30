@@ -109,9 +109,14 @@ describe('components tags', () => {
             expect(isSchemaExit(schema)).toBe(false)
         })
 
-        it('should return false for SchemaExitTag missing to', () => {
+        it('should return true for SchemaExitTag with uuid only', () => {
+            const schema = { tag: 'Exit', uuid: 'highwayToTown' }
+            expect(isSchemaExit(schema)).toBe(true)
+        })
+
+        it('should return true for SchemaExitTag with no attributes', () => {
             const schema = { tag: 'Exit' }
-            expect(isSchemaExit(schema)).toBe(false)
+            expect(isSchemaExit(schema)).toBe(true)
         })
     })
 

@@ -63,6 +63,19 @@ Used for references to components or other keys. The value is treated as a key i
 <Exit to=(kitchen)>kitchen</Exit>
 ```
 
+Room-local exits use **`to=`** plus an optional description string. Area topology edges (authoring) use a separate shape with **`uuid=`** and endpoint/label child tags (**D29**):
+
+```
+<Exit uuid=(highwayToTown)>
+    <From>ROOM#highway</From>
+    <To>ROOM#townCenter</To>
+    <Forward>east</Forward>
+    <Back>west</Back>
+</Exit>
+```
+
+Both shapes parse at the schema layer during the **D6** dual-read transition; asset-mode validation of which shape is legal under **Room** vs **Area** is enforced in Standardize, not in the parser.
+
 ### Quoted Strings `"value"` - Literal Strings
 Used for string values that should be preserved exactly as written.
 
