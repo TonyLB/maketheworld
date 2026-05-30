@@ -28,9 +28,13 @@ export async function authoritativeFromParticipationOrder(
 
     return {
         ComponentId: universalKey as EphemeraId,
-        byAssets: mergeParticipationOrder.map((assetId) => ({
-            AssetId: assetId,
-            component: byAssetMap[assetId]!,
-        })),
+        byAssets: mergeParticipationOrder.map((assetId) => {
+            const row = byAssetMap[assetId]!
+            return {
+                AssetId: assetId,
+                component: row.component,
+                ...(row.referencedBy ? { referencedBy: row.referencedBy } : {}),
+            }
+        }),
     }
 }

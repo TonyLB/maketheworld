@@ -92,6 +92,29 @@ describe('StandardForm', () => {
             expect(result).toEqual([])
         })
 
+        it('returns Area referrers for Edge endpoint references (topology)', () => {
+            const form = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Area uuid=(region) key=(region)>
+                        <Room uuid=(highway) key=(highway) />
+                        <Exit uuid=(e1)>
+                            <From>highway</From>
+                            <To>outsideRoom</To>
+                            <Forward>east</Forward>
+                            <Back>west</Back>
+                        </Exit>
+                    </Area>
+                    <Room uuid=(outsideRoom) key=(outsideRoom) />
+                </Asset>
+            `))
+
+            const highwayRef = new StandardReference({ tag: 'Room', key: 'highway', universalKey: 'ROOM#highway' })
+            const result = form.referencedBy(highwayRef)
+
+            expect(result.length).toBe(1)
+            expect(result[0].sameKey(new StandardReference({ tag: 'Area', key: 'region', universalKey: 'AREA#region' }))).toBe(true)
+        })
+
         it('matches by universalKey when key differs', () => {
             const form = new StandardForm(deIndentWML(`
                 <Asset uuid=(test)>

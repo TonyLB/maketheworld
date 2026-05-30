@@ -83,6 +83,22 @@ describe('component data gateway', () => {
             expect(pair.assetId).toBe('ASSET#Layer')
             expect(pair.component.universalKey).toBe('FEATURE#TestOne')
         })
+
+        it('strips referencedBy before StandardComponent construction', () => {
+            const row = {
+                DataCategory: 'ASSET#Layer',
+                AssetId: 'ROOM#TestOne',
+                tag: 'Room' as const,
+                key: 'TestOne',
+                universalKey: 'ROOM#TestOne',
+                referencedBy: [{ referrerUniversalKey: 'AREA#region', referenceType: 'Edge' }],
+            }
+            const pair = standardComponentPairFromAssetDbGetItemsRow('ROOM#TestOne', row as any)
+            expect(pair.referencedBy).toEqual([
+                { referrerUniversalKey: 'AREA#region', referenceType: 'Edge' },
+            ])
+            expect((pair.component.toJSON() as { referencedBy?: unknown }).referencedBy).toBeUndefined()
+        })
     })
 
     describe('fetchComponentsForAssets', () => {

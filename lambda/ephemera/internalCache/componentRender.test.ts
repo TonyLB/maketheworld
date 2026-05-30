@@ -2,11 +2,13 @@ import internalCache from "../internalCache"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature"
 import StandardKnowledge from "@tonylb/mtw-wml/ts/standardize/components/knowledge"
-import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { StandardComponent } from "@tonylb/mtw-wml/ts/standardize/components/baseClasses"
 import StandardMap from "@tonylb/mtw-wml/ts/standardize/components/map"
 import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import { deIndentWML } from "@tonylb/mtw-wml/ts/schema/utils"
+import type { ComponentAcrossAssetsEntry } from '@tonylb/mtw-gateways/ts/assets/components/componentData'
+
+const componentEntry = (component: StandardComponent): ComponentAcrossAssetsEntry => ({ component })
 
 describe('ComponentRender cache handler', () => {
 
@@ -29,14 +31,14 @@ describe('ComponentRender cache handler', () => {
             Pronouns: 'she/her'
         })
         jest.spyOn(internalCache.ComponentData, "getAcrossAssets").mockResolvedValue({
-            [`ASSET#Base`]: new StandardRoom(deIndentWML(`
+            [`ASSET#Base`]: componentEntry(new StandardRoom(deIndentWML(`
                 <Room uuid=(TestOne)>
                     <ShortName>TestRoom</ShortName>
                     <Situation uuid=(DEFAULT)>
                         <DisplayName>Situation prose</DisplayName>
                     </Situation>
                 </Room>
-            `)),
+            `))),
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
             { EphemeraId: 'CHARACTER#TESS', DisplayName: 'Tess', Color: 'purple', SessionIds: [] }
@@ -80,12 +82,12 @@ describe('ComponentRender cache handler', () => {
             Pronouns: 'she/her',
         })
         jest.spyOn(internalCache.ComponentData, "getAcrossAssets").mockResolvedValue({
-            [`ASSET#Base`]: new StandardRoom({
+            [`ASSET#Base`]: componentEntry(new StandardRoom({
                 universalKey: 'ROOM#TestOne',
                 tag: 'Room',
                 shortName: 'TestRoom',
                 exits: [],
-            }),
+            })),
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
         const descriptionOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
@@ -129,14 +131,14 @@ describe('ComponentRender cache handler', () => {
             Pronouns: 'she/her',
         })
         jest.spyOn(internalCache.ComponentData, "getAcrossAssets").mockResolvedValue({
-            [`ASSET#Base`]: new StandardFeature({
+            [`ASSET#Base`]: componentEntry(new StandardFeature({
                 universalKey: 'FEATURE#TestOne',
                 tag: 'Feature',
-            }),
-            [`ASSET#Personal`]: new StandardFeature({
+            })),
+            [`ASSET#Personal`]: componentEntry(new StandardFeature({
                 universalKey: 'FEATURE#TestOne',
                 tag: 'Feature',
-            })
+            })),
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
@@ -180,14 +182,14 @@ describe('ComponentRender cache handler', () => {
             Pronouns: 'she/her'
         })
         jest.spyOn(internalCache.ComponentData, "getAcrossAssets").mockResolvedValue({
-            [`ASSET#Base`]: new StandardKnowledge({
+            [`ASSET#Base`]: componentEntry(new StandardKnowledge({
                 universalKey: 'KNOWLEDGE#TestOne',
                 tag: 'Knowledge',
-            }),
-            [`ASSET#Personal`]: new StandardKnowledge({
+            })),
+            [`ASSET#Personal`]: componentEntry(new StandardKnowledge({
                 universalKey: 'KNOWLEDGE#TestOne',
                 tag: 'Knowledge',
-            })
+            })),
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "KNOWLEDGE#TestOne")
@@ -240,10 +242,10 @@ describe('ComponentRender cache handler', () => {
             Pronouns: 'she/her',
         })
         jest.spyOn(internalCache.ComponentData, "getAcrossAssets").mockResolvedValue({
-            [`ASSET#Base`]: new StandardFeature({
+            [`ASSET#Base`]: componentEntry(new StandardFeature({
                 universalKey: 'FEATURE#TestOne',
                 tag: 'Feature',
-            }),
+            })),
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
@@ -285,10 +287,10 @@ describe('ComponentRender cache handler', () => {
             Pronouns: 'she/her',
         })
         jest.spyOn(internalCache.ComponentData, "getAcrossAssets").mockResolvedValue({
-            [`ASSET#Base`]: new StandardFeature({
+            [`ASSET#Base`]: componentEntry(new StandardFeature({
                 universalKey: 'FEATURE#TestOne',
                 tag: 'Feature',
-            }),
+            })),
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
@@ -312,23 +314,23 @@ describe('ComponentRender cache handler', () => {
             switch(ephemeraId) {
                 case 'MAP#TestOne':
                     return {
-                        [`ASSET#Base`]: new StandardMap({
+                        [`ASSET#Base`]: componentEntry(new StandardMap({
                             universalKey: 'MAP#TestOne',
                             shortName: 'Test Map',
                             images: [],
                             positions: [{ reference: 'ROOM#TestRoomOne', payload: { x: 0, y: 0 } }],
                             tag: 'Map',
-                        }),
-                        [`ASSET#Personal`]: new StandardMap({
+                        })),
+                        [`ASSET#Personal`]: componentEntry(new StandardMap({
                             universalKey: 'MAP#TestOne',
                             images: [],
                             positions: [{ reference: 'ROOM#TestRoomTwo', payload: { x: 100, y: 0 } }],
                             tag: 'Map',
-                        })
-                    } as Record<AssetUUID, StandardComponent>
+                        })),
+                    }
                 case 'ROOM#TestRoomOne':
                     return {
-                        [`ASSET#Base`]: new StandardRoom({
+                        [`ASSET#Base`]: componentEntry(new StandardRoom({
                             universalKey: 'ROOM#TestRoomOne',
                             shortName: 'Test Room One',
                             exits: [
@@ -336,24 +338,24 @@ describe('ComponentRender cache handler', () => {
                                 { reference: 'ROOM#TestRoomThree', payload: 'Not in Map' }
                             ],
                             tag: 'Room',
-                        }),
-                        [`ASSET#Personal`]: new StandardRoom({ universalKey: 'ROOM#TestRoomOne', exits: [], tag: 'Room' })
-                    } as Record<AssetUUID, StandardComponent>
+                        })),
+                        [`ASSET#Personal`]: componentEntry(new StandardRoom({ universalKey: 'ROOM#TestRoomOne', exits: [], tag: 'Room' })),
+                    }
                 case 'ROOM#TestRoomTwo':
                     return {
-                        [`ASSET#Base`]: new StandardRoom({
+                        [`ASSET#Base`]: componentEntry(new StandardRoom({
                             universalKey: 'ROOM#TestRoomTwo',
                             shortName: 'Test Room Two',
                             exits: [],
                             tag: 'Room',
-                        }),
-                        [`ASSET#Personal`]: new StandardRoom({
+                        })),
+                        [`ASSET#Personal`]: componentEntry(new StandardRoom({
                             universalKey: 'ROOM#TestRoomTwo',
                             exits: [
                                 { reference: 'ROOM#TestRoomOne', payload: 'First Room' }
                             ],
-                            tag: 'Room'
-                        })
+                            tag: 'Room',
+                        })),
                     }
             }
             throw new Error(`Invalid test EphemeraID: ${ephemeraId}`)

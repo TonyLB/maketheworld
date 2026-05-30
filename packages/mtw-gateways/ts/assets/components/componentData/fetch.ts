@@ -5,12 +5,15 @@ import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/bas
 import { isStandardComponentData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 
+import type { PersistedReferencedByEntry } from './referencedBy'
+
 /**
  * One `getItems` row for `(EphemeraId, DataCategory = asset id)`; same row shape as `ComponentAssetMetaAssetDB.getItems`.
  */
 export type AssetDbGetItemsComponentRow = Omit<StandardComponentData, 'universalKey' | 'tag'> & {
     DataCategory?: AssetUUID
     AssetId: ComponentUUID
+    referencedBy?: PersistedReferencedByEntry[]
 }
 
 /**
@@ -19,8 +22,8 @@ export type AssetDbGetItemsComponentRow = Omit<StandardComponentData, 'universal
 export function standardComponentPairFromAssetDbGetItemsRow(
     EphemeraId: ComponentUUID,
     value: AssetDbGetItemsComponentRow
-): { assetId: AssetUUID; component: StandardComponent } {
-    const { DataCategory, AssetId: _assetId, ...rest } = value
+): { assetId: AssetUUID; component: StandardComponent; referencedBy?: PersistedReferencedByEntry[] } {
+    const { DataCategory, AssetId: _assetId, referencedBy, ...rest } = value
     const assetId = DataCategory as AssetUUID
     const componentData = { universalKey: EphemeraId, tag: tagFromEphemeraId(EphemeraId), ...rest }
     if (!isStandardComponentData(componentData)) {
@@ -30,7 +33,11 @@ export function standardComponentPairFromAssetDbGetItemsRow(
     if (!component) {
         throw new Error(`Failed to create component for EphemeraId: ${EphemeraId} and DataCategory: ${DataCategory}`)
     }
-    return { assetId, component }
+    return {
+        assetId,
+        component,
+        ...(Array.isArray(referencedBy) ? { referencedBy: referencedBy as PersistedReferencedByEntry[] } : {}),
+    }
 }
 
 export type ComponentAssetMetaAssetDB = {
@@ -44,7 +51,7 @@ export async function fetchComponentsForAssets(
     assetDB: ComponentAssetMetaAssetDB,
     EphemeraId: ComponentUUID,
     assetIds: AssetUUID[]
-): Promise<{ assetId: AssetUUID; component: StandardComponent }[]> {
+): Promise<{ assetId: AssetUUID; component: StandardComponent; referencedBy?: PersistedReferencedByEntry[] }[]> {
     const queryKeys = assetIds.map((assetId) => ({
         AssetId: EphemeraId,
         DataCategory: assetId,

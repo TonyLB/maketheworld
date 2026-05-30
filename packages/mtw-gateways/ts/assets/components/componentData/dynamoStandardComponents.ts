@@ -5,6 +5,8 @@ import { isStandardNDJSONLine } from '@tonylb/mtw-wml/ts/standardize/baseClasses
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 
+import type { PersistedReferencedByEntry } from './referencedBy'
+
 export type { AssetDbGetItemsComponentRow } from './fetch'
 export { standardComponentPairFromAssetDbGetItemsRow } from './fetch'
 
@@ -17,6 +19,7 @@ export type AuthoritativeComponentData = {
     byAssets: {
         AssetId: `ASSET#${string}`
         component: StandardComponent
+        referencedBy?: PersistedReferencedByEntry[]
     }[]
 }
 

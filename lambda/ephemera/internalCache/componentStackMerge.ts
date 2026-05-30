@@ -1,4 +1,7 @@
-import type { ComponentDataCache } from '@tonylb/mtw-gateways/ts/assets/components/componentData'
+import type {
+    ComponentAcrossAssetsEntry,
+    ComponentDataCache,
+} from '@tonylb/mtw-gateways/ts/assets/components/componentData'
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import CacheGlobalData from './global'
 import { excludeUndefined, unique } from '@tonylb/mtw-utilities/ts/lists'
@@ -17,7 +20,6 @@ import CacheCharacterMetaData, { CharacterMetaItem } from './characterMeta'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import { CacheRoomCharacterListsData } from './roomCharacterLists'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { ExitFacetList } from '@tonylb/mtw-wml/ts/standardize/keys/facets/exit'
@@ -85,7 +87,10 @@ export function roomCharacterListToStandardCharacterData(
 
 /** Room structural merge cache; key is (characterId, roomId). A future migration toward (componentId, perspectiveKey) would align with render / perception perspectiveKey usage. */
 export class ComponentStackMergeData {
-    _componentData: (EphemeraId: ComponentUUID, assetList: AssetUUID[]) => Promise<Record<AssetUUID, StandardComponent>>
+    _componentData: (
+        EphemeraId: ComponentUUID,
+        assetList: AssetUUID[]
+    ) => Promise<Record<AssetUUID, ComponentAcrossAssetsEntry>>
     _roomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>
     _getAssets: () => Promise<string[]>
     _characterMeta: (characterId: EphemeraCharacterId) => Promise<CharacterMetaItem>
@@ -141,12 +146,17 @@ export class ComponentStackMergeData {
         ])
 
         const allAssets: AssetUUID[] = unique(globalAssets || [], characterAssets).map((key) => AssetKey(key))
-        const appearancesByAsset = (await this._componentData(
+        const appearancesByAsset = await this._componentData(
             EphemeraRoomId,
             allAssets.map((key) => AssetKey(key))
-        )) as Record<AssetUUID, StandardComponent>
+        )
 
-        const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as StandardRoom[]
+        const assetData = allAssets
+            .map((assetId) => {
+                const entry = appearancesByAsset[assetId]
+                return entry ? [entry.component] : []
+            })
+            .flat(1) as StandardRoom[]
 
         const [roomCharacterList, meta] = await Promise.all([
             this._roomCharacterList(EphemeraRoomId),

@@ -384,3 +384,5 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
 export * from './library'
 export * from './componentExamples'
 export * from './componentExamplesSerializer'
+export * from './componentTopology'
+export * from './componentTopologySerializer'

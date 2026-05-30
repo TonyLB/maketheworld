@@ -6,7 +6,10 @@ import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/component
 
 import type { AuthoritativeComponentData } from '../componentData/dynamoStandardComponents'
 import { tagFromEphemeraWrappedId } from '../componentData/defaults'
-import type { ComponentDataParticipationLoader } from '../componentData/componentDataCache'
+import type {
+    ComponentAcrossAssetsEntry,
+    ComponentDataParticipationLoader,
+} from '../componentData/componentDataCache'
 import type { ImportVerticalMetaImportProjectionEntry } from '../verticals/consistency'
 import type { ComponentAggregateInternalCacheSlice } from './ports'
 
@@ -31,14 +34,24 @@ export function inMemoryComponentDataParticipationLoader(options: {
     return {
         async getAcrossAssets(universalKey: ComponentUUID, assetList: AssetUUID[]) {
             const row = authoritativeByUniversal.get(universalKey as EphemeraId)
-            const byAsset = new Map<AssetUUID, StandardComponent>()
+            const byAsset = new Map<AssetUUID, ComponentAcrossAssetsEntry>()
             for (const entry of row?.byAssets ?? []) {
-                byAsset.set(entry.AssetId, entry.component)
+                byAsset.set(entry.AssetId, {
+                    component: entry.component,
+                    ...(entry.referencedBy ? { referencedBy: entry.referencedBy } : {}),
+                })
             }
-            return assetList.reduce<Record<AssetUUID, StandardComponent>>((previous, assetId) => {
+            return assetList.reduce<Record<AssetUUID, ComponentAcrossAssetsEntry>>((previous, assetId) => {
+                const existing = byAsset.get(assetId)
                 const component =
-                    byAsset.get(assetId) ?? defaultStubForUniversalComponent(universalKey as EphemeraId)
-                return { ...previous, [assetId]: component }
+                    existing?.component ?? defaultStubForUniversalComponent(universalKey as EphemeraId)
+                return {
+                    ...previous,
+                    [assetId]: {
+                        component,
+                        ...(existing?.referencedBy ? { referencedBy: existing.referencedBy } : {}),
+                    },
+                }
             }, {})
         },
     }

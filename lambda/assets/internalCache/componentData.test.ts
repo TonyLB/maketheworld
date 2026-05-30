@@ -52,7 +52,7 @@ describe('ComponentData cache class', () => {
         ])
         const byAssets = await componentData.getAcrossAssets(ComponentId, ['ASSET#Test', 'ASSET#Extra'])
         expect(Object.keys(byAssets).sort()).toEqual(['ASSET#Extra', 'ASSET#Test'])
-        expect(schemaToWML([byAssets['ASSET#Test'].schema])).toEqual(
+        expect(schemaToWML([byAssets['ASSET#Test'].component.schema])).toEqual(
             deIndentWML(`
                 <Room uuid=(Test) key=(Room1)>
                     <ShortName>Lobby</ShortName>
@@ -60,7 +60,7 @@ describe('ComponentData cache class', () => {
                 </Room>
             `)
         )
-        expect(schemaToWML([byAssets['ASSET#Extra'].schema])).toEqual(
+        expect(schemaToWML([byAssets['ASSET#Extra'].component.schema])).toEqual(
             deIndentWML(`
                 <Room uuid=(Test) key=(Room1)><Situation key=(baseTwo) /></Room>
             `)
