@@ -1,7 +1,7 @@
 import { SchemaAssetTag, SchemaStoryTag } from "./asset"
 import { isSchemaGrant, SchemaGrantTag } from "./authorization"
 import { isSchemaPronouns, SchemaCharacterLegalContents, SchemaCharacterTag, SchemaPronounsTag } from "./character"
-import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaObject, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaInstructions, isSchemaDefault, isSchemaParent, isSchemaKey, isSchemaSituation, isSchemaArea, isSchemaRender, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaObjectTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaInstructionsTag, SchemaDefaultTag, SchemaParentTag, SchemaKeyTag, SchemaSituationTag, SchemaAreaTag, SchemaRenderTag } from "./components"
+import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaObject, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaInstructions, isSchemaDefault, isSchemaForward, isSchemaBack, isSchemaParent, isSchemaFrom, isSchemaTo, isSchemaKey, isSchemaSituation, isSchemaArea, isSchemaRender, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaObjectTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaInstructionsTag, SchemaDefaultTag, SchemaForwardTag, SchemaBackTag, SchemaParentTag, SchemaFromTag, SchemaToTag, SchemaKeyTag, SchemaSituationTag, SchemaAreaTag, SchemaRenderTag } from "./components"
 import { isSchemaMatch, isSchemaMark, isSchemaLens, SchemaMatchTag, SchemaMarkTag, SchemaLensTag } from "./worldState"
 
 import { isSchemaEdit, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaEditTag, SchemaReplaceTag } from "./edit"
@@ -13,8 +13,8 @@ import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString, Schema
 export type SchemaAssetLegalContents = SchemaCharacterTag | SchemaGrantTag | SchemaExitTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaImageTag | SchemaImportTag | SchemaMapTag | SchemaMarkTag | SchemaLensTag | SchemaRoomTag | SchemaMessageTag | SchemaMomentTag | SchemaGuidanceTag | SchemaSituationTag | SchemaAreaTag | SchemaShortNameTag | SchemaInstructionsTag | SchemaDefaultTag | SchemaSummaryTag
 
 
-export const isSchemaLiteralTag = (item: SchemaTag): item is SchemaShortNameTag | SchemaInstructionsTag | SchemaDefaultTag => (
-    isSchemaShortName(item) || isSchemaInstructions(item) || isSchemaDefault(item)
+export const isSchemaLiteralTag = (item: SchemaTag): item is SchemaShortNameTag | SchemaInstructionsTag | SchemaDefaultTag | SchemaForwardTag | SchemaBackTag => (
+    isSchemaShortName(item) || isSchemaInstructions(item) || isSchemaDefault(item) || isSchemaForward(item) || isSchemaBack(item)
 )
 export const isSchemaCharacterContents = (item: SchemaTag): item is SchemaCharacterLegalContents => (
     isSchemaDisplayName(item) || isSchemaPronouns(item) || isSchemaImage(item) || isSchemaImport(item) || isSchemaShortName(item) || isSchemaRemove(item) || isSchemaReplace(item)
@@ -51,6 +51,8 @@ export type SchemaTag = SchemaAssetTag |
     SchemaShortNameTag |
     SchemaInstructionsTag |
     SchemaDefaultTag |
+    SchemaForwardTag |
+    SchemaBackTag |
     SchemaMatchTag |
     SchemaDisplayNameTag |
     SchemaRoomTag |
@@ -70,6 +72,8 @@ export type SchemaTag = SchemaAssetTag |
     SchemaEditTag |
     SchemaGrantTag |
     SchemaParentTag |
+    SchemaFromTag |
+    SchemaToTag |
     SchemaKeyTag |
     SchemaObjectTag |
     SchemaRenderTag
@@ -155,6 +159,8 @@ export const isSchemaTag = (value: any): value is SchemaTag => {
         isSchemaLink(value) ||
         isSchemaShortName(value) ||
         isSchemaInstructions(value) ||
+        isSchemaForward(value) ||
+        isSchemaBack(value) ||
         isSchemaMatch(value) ||
         isSchemaDisplayName(value) ||
         isSchemaGuidance(value) ||
@@ -173,6 +179,8 @@ export const isSchemaTag = (value: any): value is SchemaTag => {
         isSchemaEdit(value) ||
         isSchemaGrant(value) ||
         isSchemaParent(value) ||
+        isSchemaFrom(value) ||
+        isSchemaTo(value) ||
         isSchemaKey(value) ||
         isSchemaObject(value) ||
         isSchemaRender(value)

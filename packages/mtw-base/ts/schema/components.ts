@@ -6,9 +6,19 @@ import { ComponentUUID, isSchemaAssetUUID } from ".";
 export type SchemaShortNameTag = SchemaLiteralTag<'ShortName'>
 export type SchemaInstructionsTag = SchemaLiteralTag<'Instructions'>
 export type SchemaDefaultTag = SchemaLiteralTag<'Default'>
+export type SchemaForwardTag = SchemaLiteralTag<'Forward'>
+export type SchemaBackTag = SchemaLiteralTag<'Back'>
 
 export type SchemaParentTag = {
     tag: 'Parent';
+}
+
+export type SchemaFromTag = {
+    tag: 'From';
+}
+
+export type SchemaToTag = {
+    tag: 'To';
 }
 
 export type SchemaKeyTag = {
@@ -110,10 +120,30 @@ export const isSchemaInstructions = isSchemaInstructionsTypeGuard
 const { typeGuard: isSchemaDefaultTypeGuard } = literalTagFactory<'Default'>('Default')
 export const isSchemaDefault = isSchemaDefaultTypeGuard
 
+const { typeGuard: isSchemaForwardTypeGuard } = literalTagFactory<'Forward'>('Forward')
+export const isSchemaForward = isSchemaForwardTypeGuard
+
+const { typeGuard: isSchemaBackTypeGuard } = literalTagFactory<'Back'>('Back')
+export const isSchemaBack = isSchemaBackTypeGuard
+
 export const isSchemaParent = (schema: any): schema is SchemaParentTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING },
         values: { tag: 'Parent' }
+    })(schema)
+)
+
+export const isSchemaFrom = (schema: any): schema is SchemaFromTag => (
+    checkTypes({
+        required: { tag: CheckTypes.STRING },
+        values: { tag: 'From' }
+    })(schema)
+)
+
+export const isSchemaTo = (schema: any): schema is SchemaToTag => (
+    checkTypes({
+        required: { tag: CheckTypes.STRING },
+        values: { tag: 'To' }
     })(schema)
 )
 

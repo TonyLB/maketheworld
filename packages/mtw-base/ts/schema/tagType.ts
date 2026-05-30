@@ -15,6 +15,10 @@ export type SchemaTagType =
     'Replace' |
     'With' |
     'Exit' |
+    'From' |
+    'To' |
+    'Forward' |
+    'Back' |
     'Description' |
     'Summary' |
     'br' |
@@ -56,6 +60,10 @@ export const isLegalSchemaTag = (value: any): value is SchemaTagType => (
         'Replace',
         'With',
         'Exit',
+        'From',
+        'To',
+        'Forward',
+        'Back',
         'Description',
         'Summary',
         'br',

@@ -1,5 +1,9 @@
 import { 
     isSchemaShortName,
+    isSchemaForward,
+    isSchemaBack,
+    isSchemaFrom,
+    isSchemaTo,
     isSchemaExit,
     isSchemaRoom, 
     isSchemaFeature, 
@@ -23,6 +27,74 @@ describe('components tags', () => {
         it('should return false for invalid SchemaShortNameTag', () => {
             const schema = { tag: 'Invalid' }
             expect(isSchemaShortName(schema)).toBe(false)
+        })
+    })
+
+    describe('isSchemaForward', () => {
+        it('should return true for valid SchemaForwardTag', () => {
+            const schema = { tag: 'Forward' }
+            expect(isSchemaForward(schema)).toBe(true)
+        })
+
+        it('should return false for invalid SchemaForwardTag', () => {
+            const schema = { tag: 'Invalid' }
+            expect(isSchemaForward(schema)).toBe(false)
+        })
+
+        it('should return false when tag is missing', () => {
+            const schema = {}
+            expect(isSchemaForward(schema)).toBe(false)
+        })
+    })
+
+    describe('isSchemaBack', () => {
+        it('should return true for valid SchemaBackTag', () => {
+            const schema = { tag: 'Back' }
+            expect(isSchemaBack(schema)).toBe(true)
+        })
+
+        it('should return false for invalid SchemaBackTag', () => {
+            const schema = { tag: 'Invalid' }
+            expect(isSchemaBack(schema)).toBe(false)
+        })
+
+        it('should return false when tag is missing', () => {
+            const schema = {}
+            expect(isSchemaBack(schema)).toBe(false)
+        })
+    })
+
+    describe('isSchemaFrom', () => {
+        it('should return true for valid SchemaFromTag', () => {
+            const schema = { tag: 'From' }
+            expect(isSchemaFrom(schema)).toBe(true)
+        })
+
+        it('should return false for invalid SchemaFromTag', () => {
+            const schema = { tag: 'Invalid' }
+            expect(isSchemaFrom(schema)).toBe(false)
+        })
+
+        it('should return false when tag is missing', () => {
+            const schema = {}
+            expect(isSchemaFrom(schema)).toBe(false)
+        })
+    })
+
+    describe('isSchemaTo', () => {
+        it('should return true for valid SchemaToTag', () => {
+            const schema = { tag: 'To' }
+            expect(isSchemaTo(schema)).toBe(true)
+        })
+
+        it('should return false for invalid SchemaToTag', () => {
+            const schema = { tag: 'Invalid' }
+            expect(isSchemaTo(schema)).toBe(false)
+        })
+
+        it('should return false when tag is missing', () => {
+            const schema = {}
+            expect(isSchemaTo(schema)).toBe(false)
         })
     })
 

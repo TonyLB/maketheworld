@@ -1,8 +1,8 @@
 # Area topology exits (platform initiative)
 
-**Status:** In progress. **Milestone 0 (decisions)** complete; implementation not started.
+**Status:** In progress. **Milestone 0 (decisions)** complete; **Milestone 1** in progress (mtw-base exit child tags registered).
 
-**Next step:** Execute **Milestone 1** (WML + **`StandardArea`** edges) per [Milestone gates](#milestone-gates); **M2** may proceed in parallel once gated.
+**Next step:** Continue **Milestone 1** schema work (widen `<Exit>`, mtw-wml converters) per [Recommended order](#recommended-order); **M2** may proceed in parallel once gated.
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into package `AGENT.md` files next to code.
 
@@ -208,7 +208,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
 
 - [ ] **Milestone 1 --- WML + StandardArea (asset mode)**
   - [ ] **Schema (Area topology exits, D26 / D29):** one global **`<Exit>`** parse surface (no context-forked converters); legacy **`to=`** and new **`uuid=`** + child tags both parse; **D29** / **D6** rules enforced in **Standardize**, not schema parent context.
-    - [ ] **`mtw-base`:** register **`From`**, **`To`**, **`Forward`**, **`Back`** on **`tagType`** (Forward/Back via **`literalTagFactory`**; From/To like **`Parent`**).
+    - [X] **`mtw-base`:** register **`From`**, **`To`**, **`Forward`**, **`Back`** on **`tagType`** (Forward/Back via **`literalTagFactory`**; From/To like **`Parent`**).
     - [ ] **Widen `<Exit>`:** optional **`uuid`** and optional **`to`** on **`SchemaExitTag`**; **`typeCheckContents`** allows **From** / **To** / **Forward** / **Back** (and edit wrappers), not only **String**; print map round-trips both shapes (room/map **`to=`** path unchanged).
     - [ ] **Child converters + tests:** From/To ComponentUUID validation (**Parent** precedent); Forward/Back literals; fixtures for normative **D29** shape (including layered **Replace** on **To**).
     - [ ] **Dual-read guard:** **`<Exit to=(...)>`** under **`<Room>`** (and Map) still parses/round-trips (**D6**); **`StandardRoom`** ignores Area-shaped exits (no usable **`to`** / structural children --- see existing facet skip); M6 asset-mode forbid remains on **Room** ingest, not schema.
@@ -338,7 +338,7 @@ npm test
 | --- | --- |
 | Create platform task plan | Done |
 | M0 Decision spike (D1-D7, D5b, D8-D31, D18-D25) | Done |
-| M1 WML + StandardArea edges | Not started |
+| M1 WML + StandardArea edges | In progress (mtw-base `From`/`To`/`Forward`/`Back` tags) |
 | M2 Persisted referencedBy | Not started |
 | M3 Projection library | Not started |
 | M4 Ephemera integration | Not started |
