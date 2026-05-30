@@ -480,7 +480,67 @@ describe('StandardForm', () => {
                     <Room key=(testRoomTwo)><Exit to=(testRoomOne)>enter</Exit></Room>
                 </Asset>
             `))
-        })    
+        })
+
+        it('should properly subset an asset with area edge cascade', () => {
+            const test = new StandardForm(`
+                <Asset uuid=(test)>
+                    <Area key=(testArea)>
+                        <ShortName>Test Area</ShortName>
+                        <Room key=(testRoom) />
+                        <Exit uuid=(e1)>
+                            <From>testRoom</From>
+                            <To>outsideRoom</To>
+                            <Forward>east</Forward>
+                            <Back>west</Back>
+                        </Exit>
+                    </Area>
+                    <Room key=(testRoom)>
+                        <ShortName>Test Room</ShortName>
+                        <Situation uuid=(DEFAULT) ref={0} key=(base)>
+                            <Description>Prose</Description>
+                        </Situation>
+                    </Room>
+                    <Room key=(outsideRoom)>
+                        <ShortName>Outside</ShortName>
+                    </Room>
+                    <Feature key=(testFeature) />
+                    <Knowledge key=(testKnowledge) />
+                </Asset>
+            `)
+            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: [new StandardKey({ key: 'testArea', tag: 'Area' })], cascadeConditions: [{
+                graph: [
+                    {
+                        name: 'area',
+                        requestType: 'Full',
+                        transitions: [
+                            { connectionType: 'Edge', targetNode: 'room' }
+                        ]
+                    },
+                    {
+                        name: 'room',
+                        requestType: 'Stub',
+                        transitions: []
+                    }
+                ],
+                startNodes: ['area']
+            }] }]).schema])).toEqual(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room key=(outsideRoom) />
+                    <Area key=(testArea)>
+                        <ShortName>Test Area</ShortName>
+                        <Room key=(testRoom) />
+                        <Exit uuid=(e1)>
+                            <From>testRoom</From>
+                            <To>outsideRoom</To>
+                            <Forward>east</Forward>
+                            <Back>west</Back>
+                        </Exit>
+                    </Area>
+                    <Room key=(testRoom) />
+                </Asset>
+            `))
+        })
 
         it('should demonstrate recursive cascade structure for map editing', () => {
             const test = new StandardForm(`

@@ -49,13 +49,37 @@ WML (D29):
 
 ## StandardArea consumer
 
-[`StandardArea`](../../components/area.ts) ingests `<Exit>` after participant node refs. Asset-mode validation (**D29**):
+[`StandardArea`](../../components/area.ts) ingests `<Exit>` after participant node refs. Asset-mode validation:
 
-- Reject `to=` attribute (legacy room shape)
-- Require `uuid`, `<From>`, `<To>`
-- Reject bare String body (legacy description)
+- **D29:** Reject `to=` attribute (legacy room shape); require `uuid`, `<From>`, `<To>`; reject bare String body (legacy description)
+- **D4:** At least one of **`From`** / **`To`** must match a participant in **`positionGraph.nodes`** (`sameKey`); portal edges (one inside, one outside) allowed. Enforced on **`fromSchema`**, **`merge`**, and **`fromJSON`** when local nodes are present.
 
-See [`AGENT.areaTopologyExits.planning.md`](../../../../../taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md) for D4/D7 follow-on slices.
+**`referencedKeys()`:** **`From`** / **`To`** endpoints emit **`referenceType: 'Edge'`** (subset cascade -> Room **`Stub`**). See [`standardForm.subset.test.ts`](../../integration/standardForm.subset.test.ts).
+
+## Future edge members
+
+**D3 / D27:** `positionGraph.edges` is a **tagged union**; **Exit** is the first member only. Additional edge kinds add a new `tag`, payload module, and item class via [`edgeClassFactory`](./edgeFactory.ts) / [`edgeListClassFactory`](./edgeListFactory.ts) --- same list merge-by-`uuid` habit within one Area.
+
+### Endpoint wrapper (planned abstraction)
+
+v1 implements Parent-style endpoint slots in [`endpointReference.ts`](./endpointReference.ts) as **Exit-specific** names (`createExitEndpointClasses`, inner class `StandardExitEndpoint`, exports `StandardExitFromEndpoint` / `StandardExitToEndpoint`). That wrapper is **not** a second reference type: the plain value inside is still `StandardReferenceData`; `reference()` / `referenceFromExitEndpoint()` unwrap to `StandardReference` for graph/subset/inverse use.
+
+**When adding edge type #2:** if the new member also uses **D29-style** editable endpoint refs (`<From>` / `<To>` string bodies with Replace/merge rules), extract the shared wrapper before duplicating:
+
+| Layer | v1 (Exit-only names) | Target (shared) |
+| --- | --- | --- |
+| Factory | `createExitEndpointClasses(tagName)` | `createEdgeEndpointClasses(tagName)` (or equivalent) |
+| Class | `StandardExitEndpoint` | **`StandardEdgeEndpoint`** --- shared editable Parent-style wrapper around `StandardReferenceData` |
+| Exit exports | `StandardExitFromEndpoint`, `StandardExitToEndpoint` | Thin aliases or typed exports of `StandardEdgeEndpoint` for `From` / `To` |
+| Helper | `referenceFromExitEndpoint` | **`referenceFromEdgeEndpoint`** (Exit may re-export for backward compatibility) |
+
+No subclass hierarchy is required if the factory + shared class suffice; **`StandardExitEndpoint` may remain a type alias** for `StandardEdgeEndpoint` rather than a distinct subclass, unless Exit-specific validation or schema behavior diverges.
+
+**When endpoint wire differs** (non-`From`/`To` tags, non-reference payload, different merge rules): do **not** force-fit `StandardEdgeEndpoint`; only reuse **edge list / uuid-keyed item** infrastructure.
+
+### List typing note
+
+v1 [`StandardPositionGraph`](../../components/positionGraph.ts) holds **`ExitEdgeList`** only. A second union member implies a heterogeneous **`EdgeList`** (discriminated by item `tag`) or a parallel list type --- detail deferred until the second shape is designed; do not overload [`ExitEdgeList`](./exitEdge.ts) with mixed tags.
 
 ## Related docs
 

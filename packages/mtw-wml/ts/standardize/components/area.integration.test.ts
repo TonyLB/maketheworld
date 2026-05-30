@@ -41,5 +41,46 @@ describe('StandardArea integration', () => {
                 <Asset uuid=(Test)><Area uuid=(empty) key=(empty) /></Asset>
             `))
         })
+
+        it('should render Area with portal edge (D4)', () => {
+            const test = new StandardForm(`<Asset uuid=(Test)>
+                <Area uuid=(region) key=(region)>
+                    <Room key=(highway) />
+                    <Exit uuid=(e1)>
+                        <From>highway</From>
+                        <To>outsideRoom</To>
+                        <Forward>east</Forward>
+                        <Back>west</Back>
+                    </Exit>
+                </Area>
+                <Room key=(outsideRoom)><ShortName>Outside</ShortName></Room>
+            </Asset>`)
+            expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(outsideRoom)><ShortName>Outside</ShortName></Room>
+                    <Area uuid=(region) key=(region)>
+                        <Room key=(highway) />
+                        <Exit uuid=(e1)>
+                            <From>highway</From>
+                            <To>outsideRoom</To>
+                            <Forward>east</Forward>
+                            <Back>west</Back>
+                        </Exit>
+                    </Area>
+                </Asset>
+            `))
+        })
+
+        it('should reject Area edge with neither endpoint in nodes (D4)', () => {
+            expect(() => new StandardForm(`<Asset uuid=(Test)>
+                <Area uuid=(region) key=(region)>
+                    <Room key=(unrelated) />
+                    <Exit uuid=(e1)>
+                        <From>highway</From>
+                        <To>townCenter</To>
+                    </Exit>
+                </Area>
+            </Asset>`)).toThrow(/requires at least one endpoint in positionGraph.nodes \(D4\)/)
+        })
     })
 })

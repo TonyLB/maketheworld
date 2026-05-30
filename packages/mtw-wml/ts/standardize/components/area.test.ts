@@ -81,8 +81,8 @@ describe('StandardArea class', () => {
                 {
                     data: { tag: 'Exit', uuid: 'highwayToTown' },
                     children: [
-                        { data: { tag: 'From' }, children: [{ data: { tag: 'String', value: 'ROOM#highway' }, children: [] }] },
-                        { data: { tag: 'To' }, children: [{ data: { tag: 'String', value: 'ROOM#townCenter' }, children: [] }] },
+                        { data: { tag: 'From' }, children: [{ data: { tag: 'String', value: 'highway' }, children: [] }] },
+                        { data: { tag: 'To' }, children: [{ data: { tag: 'String', value: 'townCenter' }, children: [] }] },
                         { data: { tag: 'Forward' }, children: [{ data: { tag: 'String', value: 'east' }, children: [] }] },
                         { data: { tag: 'Back' }, children: [{ data: { tag: 'String', value: 'west' }, children: [] }] },
                     ],
@@ -94,8 +94,8 @@ describe('StandardArea class', () => {
         expect(instance.positionGraph.edges.toJSON()).toEqual([{
             tag: 'Exit',
             uuid: 'highwayToTown',
-            from: 'ROOM#highway',
-            to: 'ROOM#townCenter',
+            from: { key: 'highway', tag: 'Room' },
+            to: { key: 'townCenter', tag: 'Room' },
             payload: { forward: 'east', back: 'west' },
         }])
     })
@@ -236,6 +236,135 @@ describe('StandardArea class', () => {
         expect(keys).toHaveLength(2)
         expect(keys.every((k) => k.reference.key === 'room1')).toBe(true)
         expect(keys.map((k) => k.referenceType).sort()).toEqual(['Dependency', 'Direct'])
+    })
+
+    it('should expose Edge referencedKeys for exit endpoints', () => {
+        const testArea = new StandardArea({
+            tag: 'Area',
+            key: 'region',
+            positionGraph: {
+                nodes: [{ tag: 'Room', key: 'highway' }],
+                edges: [{
+                    tag: 'Exit',
+                    uuid: 'highwayToTown',
+                    from: { tag: 'Room', key: 'highway' },
+                    to: { tag: 'Room', key: 'outside' },
+                    payload: { forward: 'east', back: 'west' },
+                }],
+            },
+        })
+        const keys = testArea._payload.referencedKeys()
+        const edgeKeys = keys.filter((k) => k.referenceType === 'Edge')
+        expect(edgeKeys).toHaveLength(2)
+        expect(edgeKeys.some((k) => k.reference.key === 'highway')).toBe(true)
+        expect(edgeKeys.some((k) => k.reference.key === 'outside')).toBe(true)
+        expect(keys.filter((k) => k.referenceType === 'Direct')).toHaveLength(1)
+        expect(keys.filter((k) => k.referenceType === 'Dependency')).toHaveLength(1)
+    })
+
+    describe('D4 positionGraph edge validation', () => {
+        it('should accept edge when both endpoints are in nodes', () => {
+            expect(() => new StandardArea({
+                tag: 'Area',
+                key: 'region',
+                positionGraph: {
+                    nodes: [
+                        { tag: 'Room', key: 'highway' },
+                        { tag: 'Room', key: 'townCenter' },
+                    ],
+                    edges: [{
+                        tag: 'Exit',
+                        uuid: 'e1',
+                        from: { tag: 'Room', key: 'highway' },
+                        to: { tag: 'Room', key: 'townCenter' },
+                        payload: {},
+                    }],
+                },
+            })).not.toThrow()
+        })
+
+        it('should accept portal edge when only one endpoint is in nodes', () => {
+            expect(() => new StandardArea({
+                tag: 'Area',
+                key: 'region',
+                positionGraph: {
+                    nodes: [{ tag: 'Room', key: 'highway' }],
+                    edges: [{
+                        tag: 'Exit',
+                        uuid: 'e1',
+                        from: { tag: 'Room', key: 'highway' },
+                        to: { tag: 'Room', key: 'outside' },
+                        payload: {},
+                    }],
+                },
+            })).not.toThrow()
+        })
+
+        it('should reject edge when neither endpoint is in nodes from JSON', () => {
+            expect(() => new StandardArea({
+                tag: 'Area',
+                key: 'region',
+                positionGraph: {
+                    nodes: [{ tag: 'Room', key: 'unrelated' }],
+                    edges: [{
+                        tag: 'Exit',
+                        uuid: 'e1',
+                        from: { tag: 'Room', key: 'highway' },
+                        to: { tag: 'Room', key: 'townCenter' },
+                        payload: {},
+                    }],
+                },
+            })).toThrow(/requires at least one endpoint in positionGraph.nodes \(D4\)/)
+        })
+
+        it('should reject edge when neither endpoint is in nodes from schema', () => {
+            const node: GenericTreeNode<SchemaTag> = {
+                data: { tag: 'Area', key: 'region' },
+                children: [
+                    { data: { tag: 'Room', key: 'unrelated' }, children: [] },
+                    {
+                        data: { tag: 'Exit', uuid: 'e1' },
+                        children: [
+                            { data: { tag: 'From' }, children: [{ data: { tag: 'String', value: 'highway' }, children: [] }] },
+                            { data: { tag: 'To' }, children: [{ data: { tag: 'String', value: 'townCenter' }, children: [] }] },
+                        ],
+                    },
+                ],
+            }
+            const instance = new StandardArea(undefined as any)
+            expect(() => instance.fromSchema(node)).toThrow(/requires at least one endpoint in positionGraph.nodes \(D4\)/)
+        })
+
+        it('should reject merge when incoming edge has no endpoint in nodes', () => {
+            const base = new StandardArea({
+                tag: 'Area',
+                key: 'region',
+                positionGraph: {
+                    nodes: [{ tag: 'Room', key: 'highway' }],
+                    edges: [{
+                        tag: 'Exit',
+                        uuid: 'e1',
+                        from: { tag: 'Room', key: 'highway' },
+                        to: { tag: 'Room', key: 'outside' },
+                        payload: {},
+                    }],
+                },
+            })
+            const incoming = new StandardArea({
+                tag: 'Area',
+                key: 'region',
+                positionGraph: {
+                    edges: [{
+                        tag: 'Exit',
+                        uuid: 'e2',
+                        from: { tag: 'Room', key: 'roomA' },
+                        to: { tag: 'Room', key: 'roomB' },
+                        payload: {},
+                    }],
+                },
+            })
+            expect(() => base.merge(incoming)).toThrow(/requires at least one endpoint in positionGraph.nodes \(D4\)/)
+        })
     })
 
     describe('assureReferences method', () => {

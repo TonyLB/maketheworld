@@ -255,6 +255,23 @@ export const createExitEndpointClasses = (tagName: ExitEndpointTag) => {
             }
             return this
         }
+
+        reference(): StandardReference | undefined {
+            if (this._payload instanceof PlainClass) {
+                const plainValue = this._payload.plain?.toJSON()
+                if (plainValue && isStandardReferenceData(plainValue)) {
+                    return new StandardReference(plainValue)
+                }
+            }
+            if (this._payload instanceof ReplaceClass) {
+                const payload = (this._payload as InstanceType<typeof ReplaceClass> & { payload?: InstanceType<typeof PlainClass> }).payload
+                const plainValue = payload?.plain?.toJSON()
+                if (plainValue && isStandardReferenceData(plainValue)) {
+                    return new StandardReference(plainValue)
+                }
+            }
+            return undefined
+        }
     }
 
     return {
@@ -265,3 +282,8 @@ export const createExitEndpointClasses = (tagName: ExitEndpointTag) => {
 
 export const { StandardExitEndpoint: StandardExitFromEndpoint } = createExitEndpointClasses('From')
 export const { StandardExitEndpoint: StandardExitToEndpoint } = createExitEndpointClasses('To')
+
+type StandardExitEndpointInstance = InstanceType<typeof StandardExitFromEndpoint>
+
+export const referenceFromExitEndpoint = (endpoint: StandardExitEndpointInstance): StandardReference | undefined =>
+    endpoint.reference()

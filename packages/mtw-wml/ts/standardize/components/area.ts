@@ -31,6 +31,7 @@ import {
 import StandardPositionGraph from "./positionGraph"
 import { POSITION_GRAPH_NODE_TAGS } from "./dataTypes/positionGraph"
 import { ExitEdgeList, StandardExitEdge, validateAreaExitSchemaNode } from "../keys/edges/exitEdge"
+import { referenceFromExitEndpoint } from "../keys/edges/endpointReference"
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 
 const POSITION_GRAPH_NODE_TAG_SET = new Set<string>(POSITION_GRAPH_NODE_TAGS)
@@ -99,10 +100,35 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
         }
     }
 
+    private validatePositionGraphEdges(options?: { strict?: boolean }): void {
+        const hasEdges = this._positionGraph.edges.items.length > 0
+        const hasNodes = this._positionGraph.nodes.payload.length > 0
+        if (!hasEdges) {
+            return
+        }
+        if (!options?.strict && !hasNodes) {
+            return
+        }
+        const nodeRefs = this._positionGraph.nodes.payload
+        for (const edge of this._positionGraph.edges.items) {
+            const fromRef = referenceFromExitEndpoint(edge.from)
+            const toRef = referenceFromExitEndpoint(edge.to)
+            if (!fromRef || !toRef) {
+                continue
+            }
+            const fromInGraph = nodeRefs.some((node) => node.sameKey(fromRef))
+            const toInGraph = nodeRefs.some((node) => node.sameKey(toRef))
+            if (!fromInGraph && !toInGraph) {
+                throw new Error(`Area Exit ${edge.uuid} requires at least one endpoint in positionGraph.nodes (D4)`)
+            }
+        }
+    }
+
     fromJSON(props: StandardAreaData) {
         this._shortName = createShortNameFromJSON(props.shortName)
         this._positionGraph = StandardPositionGraph.fromJSON(props.positionGraph)
         this.assertNoSelfAreaReference({ key: props.key, universalKey: props.universalKey })
+        this.validatePositionGraphEdges({ strict: false })
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
@@ -135,6 +161,7 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
             ]
             const returnRemainder = processWithConsumers(this, consumers, node.children)
             this.assertNoSelfAreaReference({ key: node.data.key, universalKey: node.data.uuid })
+            this.validatePositionGraphEdges({ strict: true })
             return returnRemainder
         }
         throw new Error('Schema mismatch in StandardArea constructor')
@@ -188,6 +215,7 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
         const returnValue = new StandardAreaPayload()
         returnValue._shortName = mergeShortName(this._shortName, incoming._shortName)
         returnValue._positionGraph = this._positionGraph.merge(incoming._positionGraph)
+        returnValue.validatePositionGraphEdges({ strict: true })
         return returnValue as this
     }
 
@@ -196,10 +224,19 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
     }
 
     referencedKeys(): StandardComponentReferenceKey[] {
-        return [
+        const nodeKeys: StandardComponentReferenceKey[] = [
             ...this._positionGraph.nodes.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
             ...this._positionGraph.nodes.payload.map((reference) => ({ referenceType: 'Dependency' as const, reference })),
         ]
+        const edgeKeys: StandardComponentReferenceKey[] = this._positionGraph.edges.items.flatMap((edge) => {
+            const fromRef = referenceFromExitEndpoint(edge.from)
+            const toRef = referenceFromExitEndpoint(edge.to)
+            return [
+                ...(fromRef ? [{ referenceType: 'Edge' as const, reference: fromRef }] : []),
+                ...(toRef ? [{ referenceType: 'Edge' as const, reference: toRef }] : []),
+            ]
+        })
+        return [...nodeKeys, ...edgeKeys]
     }
 
     mapContents(_callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {

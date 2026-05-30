@@ -397,13 +397,18 @@ The cascade system uses a directed graph structure to define how component conne
 
 **Non-structural references** (connections that don't define structure):
 - `'Link'`: General reference links between components
-- `'Exit'`: Exit connections between components (e.g., room-to-room exits)
+- `'Exit'`: Room-local exit connections (e.g., room-to-room exits under **Room**; subset **`ExitsAndShortName`**)
+- `'Edge'`: Area topology exit endpoints (**`From`** / **`To`** on **`positionGraph.edges`**; subset **`Stub`** on target Room; distinct from room **`Exit`**)
 - `'Dependency'`: Component dependencies
 
 **Example**: Map editing cascade follows the pattern:
 1. Start at `'map'` node → follow `'Position'` connections → reach `'room'` nodes
 2. From `'room'` nodes → follow `'Exit'` connections → reach `'exitTarget'` nodes
 3. Each node specifies the `requestType` for components visited at that state
+
+**Example**: Area topology editing cascade:
+1. Start at `'area'` node → follow `'Edge'` connections → reach `'room'` nodes
+2. Room nodes use `requestType: 'Stub'` (empty shell; no Situation prose)
 
 #### Implementation Details
 
