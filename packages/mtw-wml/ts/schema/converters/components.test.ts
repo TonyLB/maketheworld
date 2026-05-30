@@ -921,3 +921,51 @@ describe('Exit D29 topology shape', () => {
         expect(exitNode?.data).toEqual({ tag: 'Exit', uuid: 'e1', to: 'room2' })
     })
 })
+
+describe('dual-read guard (D6)', () => {
+    it('should round-trip legacy Exit to= under Room', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)><Room key=(room1)><Exit to=(room2)>out</Exit></Room></Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should round-trip legacy Exit under Room inside Map', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Map key=(testMap)>
+                    <Room key=(room1)>
+                        <Position {0, 0} />
+                        <Exit to=(room2)>east</Exit>
+                    </Room>
+                </Map>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should round-trip legacy Exit as direct Map child', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Map key=(testMap)><Exit to=(room2)>east</Exit></Map>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should round-trip D29 Exit topology shape under Room at schema layer', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(room1)>
+                    <Exit uuid=(highwayToTown)>
+                        <From>ROOM#highway</From>
+                        <To>ROOM#townCenter</To>
+                        <Forward>east</Forward>
+                        <Back>west</Back>
+                    </Exit>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+})
