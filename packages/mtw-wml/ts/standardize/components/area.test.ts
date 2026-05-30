@@ -2,6 +2,7 @@ import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { StandardAreaData } from "./dataTypes/area"
 import StandardArea from './area'
+import { StandardExitEdgeData } from "../keys/edges/dataTypes/exitEdge"
 import StandardReference from "../keys/reference"
 import { standardComponentFactory } from "../componentFactory"
 
@@ -59,7 +60,7 @@ describe('StandardArea class', () => {
         expect(instance.shortName?.toJSON()).toEqual('Downtown')
     })
 
-    it('should throw on unconsumed child tags', () => {
+    it('should reject legacy Exit to= under Area (D29)', () => {
         const node: GenericTreeNode<SchemaTag> = {
             data: { tag: 'Area', key: 'test' },
             children: [
@@ -68,8 +69,67 @@ describe('StandardArea class', () => {
             ],
         }
         const instance = new StandardArea(undefined as any)
-        expect(() => instance.fromSchema(node)).toThrow(/Unconsumed child tags/)
-        expect(() => instance.fromSchema(node)).toThrow(/Exit/)
+        expect(() => instance.fromSchema(node)).toThrow(/rejects to= attribute/)
+    })
+
+    it('should ingest D29 Exit into positionGraph.edges', () => {
+        const node: GenericTreeNode<SchemaTag> = {
+            data: { tag: 'Area', key: 'region' },
+            children: [
+                { data: { tag: 'Room', key: 'highway' }, children: [] },
+                { data: { tag: 'Room', key: 'townCenter' }, children: [] },
+                {
+                    data: { tag: 'Exit', uuid: 'highwayToTown' },
+                    children: [
+                        { data: { tag: 'From' }, children: [{ data: { tag: 'String', value: 'ROOM#highway' }, children: [] }] },
+                        { data: { tag: 'To' }, children: [{ data: { tag: 'String', value: 'ROOM#townCenter' }, children: [] }] },
+                        { data: { tag: 'Forward' }, children: [{ data: { tag: 'String', value: 'east' }, children: [] }] },
+                        { data: { tag: 'Back' }, children: [{ data: { tag: 'String', value: 'west' }, children: [] }] },
+                    ],
+                },
+            ],
+        }
+        const instance = new StandardArea(undefined as any)
+        instance.fromSchema(node)
+        expect(instance.positionGraph.edges.toJSON()).toEqual([{
+            tag: 'Exit',
+            uuid: 'highwayToTown',
+            from: 'ROOM#highway',
+            to: 'ROOM#townCenter',
+            payload: { forward: 'east', back: 'west' },
+        }])
+    })
+
+    it('should merge positionGraph edges by uuid', () => {
+        const base = new StandardArea({
+            tag: 'Area',
+            key: 'region',
+            positionGraph: {
+                nodes: [{ tag: 'Room', universalKey: 'ROOM#highway' }],
+                edges: [{
+                    tag: 'Exit',
+                    uuid: 'highwayToTown',
+                    from: 'ROOM#highway',
+                    to: 'ROOM#townCenter',
+                    payload: { forward: 'east', back: 'west' },
+                }],
+            },
+        })
+        const incoming = new StandardArea({
+            tag: 'Area',
+            key: 'region',
+            positionGraph: {
+                edges: [{
+                    tag: 'Exit',
+                    uuid: 'highwayToTown',
+                    from: 'ROOM#highway',
+                    to: { tag: 'Replace', match: 'ROOM#townCenter', payload: 'ROOM#ghi' },
+                    payload: { forward: 'east', back: 'west' },
+                }],
+            },
+        })
+        const merged = base.merge(incoming)! as StandardArea
+        expect((merged.positionGraph.edges.toJSON()[0] as StandardExitEdgeData).to).toEqual('ROOM#ghi')
     })
 
     it('should reject self-reference in positionGraph.nodes from JSON', () => {
@@ -119,7 +179,7 @@ describe('StandardArea class', () => {
                 nodes: [{ tag: 'Feature', key: 'fountain' }],
             },
         })
-        const merged = base.merge(incoming)
+        const merged = base.merge(incoming) as StandardArea
         expect(merged.positionGraph.nodes.toJSON()).toEqual([
             { tag: 'Room', key: 'cafe' },
             { tag: 'Feature', key: 'fountain' },
@@ -153,7 +213,7 @@ describe('StandardArea class', () => {
             key: 'test',
             positionGraph: { nodes: [{ tag: 'Room', key: 'room1' }] },
         })
-        const added = test.withChild(new StandardReference({ tag: 'Feature', key: 'feat1' }))
+        const added = test.withChild(new StandardReference({ tag: 'Feature', key: 'feat1' })) as StandardArea
         expect(added.positionGraph.nodes.toJSON()).toEqual([
             { tag: 'Room', key: 'room1' },
             { tag: 'Feature', key: 'feat1' },

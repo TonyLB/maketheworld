@@ -25,10 +25,13 @@ import {
     processWithConsumers,
     StandardizeConsumerInline,
     StandardizeConsumerReferenceList,
+    StandardizeConsumerSimple,
     type StandardizeConsumer,
 } from "./fromSchemaPipeline"
 import StandardPositionGraph from "./positionGraph"
 import { POSITION_GRAPH_NODE_TAGS } from "./dataTypes/positionGraph"
+import { ExitEdgeList, StandardExitEdge, validateAreaExitSchemaNode } from "../keys/edges/exitEdge"
+import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 
 const POSITION_GRAPH_NODE_TAG_SET = new Set<string>(POSITION_GRAPH_NODE_TAGS)
 
@@ -53,9 +56,26 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
 
     get shortName() { return this._shortName }
 
+    private withPositionGraphNodes(nodes: ReferenceList): void {
+        const graphJSON = this._positionGraph.toJSON() ?? {}
+        this._positionGraph = new StandardPositionGraph({
+            ...graphJSON,
+            nodes: nodes.toJSON(),
+        })
+    }
+
     private appendPositionGraphNodes(list: ReferenceList): void {
         const merged = this._positionGraph.nodes.merge(list) ?? new ReferenceList([])
-        this._positionGraph = new StandardPositionGraph(merged)
+        this.withPositionGraphNodes(merged)
+    }
+
+    private appendPositionGraphEdges(list: ExitEdgeList): void {
+        const merged = this._positionGraph.edges.merge(list) ?? new ExitEdgeList([])
+        const graphJSON = this._positionGraph.toJSON() ?? {}
+        this._positionGraph = new StandardPositionGraph({
+            ...graphJSON,
+            edges: merged.toJSON(),
+        })
     }
 
     private assertNoSelfAreaReference(identity: {
@@ -98,6 +118,19 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
                         appendNodes.call(this, list)
                     },
                 })),
+                new StandardizeConsumerSimple(this, {
+                    tag: 'Exit',
+                    update(matched) {
+                        const parsedEdges = matched.map((exitNode) => {
+                            if (!treeNodeTypeguard(isSchemaExit)(exitNode)) {
+                                throw new Error('Expected Exit schema node')
+                            }
+                            validateAreaExitSchemaNode(exitNode)
+                            return new StandardExitEdge([exitNode])
+                        })
+                        this.appendPositionGraphEdges(new ExitEdgeList(parsedEdges))
+                    },
+                }),
                 new StandardizeConsumerInline(),
             ]
             const returnRemainder = processWithConsumers(this, consumers, node.children)
@@ -122,6 +155,7 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
             children: [
                 ...shortNameSchemaChildren(this._shortName),
                 ...this._positionGraph.nodes.schema,
+                ...this._positionGraph.edges.schema,
             ]
         }
     }
@@ -144,6 +178,7 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
             children: [
                 ...shortNameSchemaChildren(this._shortName),
                 ...nodesToRender.payload.map(renderReference({ lookup, options })).filter(excludeUndefined).flat(1),
+                ...this._positionGraph.edges.schema,
                 ...inlineRemainder.map(renderReference({ lookup, options })).filter(excludeUndefined),
             ]
         }
@@ -173,9 +208,12 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
 
     remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardAreaPayload(this)
-        returnValue._positionGraph = new StandardPositionGraph(
-            returnValue._positionGraph.nodes.toFormat(props.mapTo, props.mappings)
-        )
+        const graphJSON = returnValue._positionGraph.toJSON() ?? {}
+        returnValue._positionGraph = new StandardPositionGraph({
+            ...graphJSON,
+            nodes: returnValue._positionGraph.nodes.toFormat(props.mapTo, props.mappings).toJSON(),
+            edges: returnValue._positionGraph.edges.toFormat(props.mapTo).lookup(props.mappings).toJSON(),
+        })
         return returnValue as this
     }
 
@@ -189,13 +227,18 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
     }
 
     isEmpty(): boolean {
-        return this._positionGraph.nodes.payload.length === 0
+        return this._positionGraph.nodes.payload.length === 0 && this._positionGraph.edges.isEmpty()
     }
 
     invert(): this {
         const returnValue = new StandardAreaPayload()
         returnValue._shortName = invertShortName(this._shortName)
-        returnValue._positionGraph = new StandardPositionGraph(this._positionGraph.nodes.invert())
+        const graphJSON = this._positionGraph.toJSON() ?? {}
+        returnValue._positionGraph = new StandardPositionGraph({
+            ...graphJSON,
+            nodes: this._positionGraph.nodes.invert().toJSON(),
+            edges: this._positionGraph.edges.invert().toJSON(),
+        })
         return returnValue as this
     }
 
@@ -209,7 +252,11 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
         )
         const merged = returnValue._positionGraph.nodes.merge(bucketReferences, { cleanEmptyReferences: false })
             ?? returnValue._positionGraph.nodes
-        returnValue._positionGraph = new StandardPositionGraph(merged)
+        const graphJSON = returnValue._positionGraph.toJSON() ?? {}
+        returnValue._positionGraph = new StandardPositionGraph({
+            ...graphJSON,
+            nodes: merged.toJSON(),
+        })
 
         return {
             payload: returnValue as this,
@@ -219,11 +266,13 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
 
     removeReferences(references: StandardReference[]): this {
         const returnValue = new StandardAreaPayload(this)
-        returnValue._positionGraph = new StandardPositionGraph(
-            returnValue._positionGraph.nodes.filter(
+        const graphJSON = returnValue._positionGraph.toJSON() ?? {}
+        returnValue._positionGraph = new StandardPositionGraph({
+            ...graphJSON,
+            nodes: returnValue._positionGraph.nodes.filter(
                 (item) => !references.some((ref) => item.sameKey(ref))
-            )
-        )
+            ).toJSON(),
+        })
         return returnValue as this
     }
 }
