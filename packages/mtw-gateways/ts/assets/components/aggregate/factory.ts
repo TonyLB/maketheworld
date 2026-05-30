@@ -8,6 +8,7 @@ import type { ComponentAggregateInternalCacheSlice } from './ports'
 import { mergedComponentResult, type MergedComponentResult } from './result'
 
 import type { AuthoritativeComponentData } from '../componentData/dynamoStandardComponents'
+import { unionReferencedByAcrossParticipation } from '../componentData/referencedBy'
 import { authoritativeFromParticipationOrder } from '../componentData/participationBatch'
 
 type BatchMergePayload = {
@@ -21,10 +22,15 @@ export function mergedComponentFromAuthoritative(
     authoritative: AuthoritativeComponentData
 ): MergedComponentResult {
     const merged = mergeAuthoritativeAcrossParticipationOrder(perspective, authoritative)
+    const referencedByUnion = unionReferencedByAcrossParticipation(
+        authoritative.byAssets,
+        perspective.mergeParticipationOrder
+    )
     return mergedComponentResult({
         universalKey: perspective.universalKey,
         merged,
         mergeParticipationOrderApplied: perspective.mergeParticipationOrder,
+        ...(referencedByUnion.length ? { referencedByUnion } : {}),
     })
 }
 

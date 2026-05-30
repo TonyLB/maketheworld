@@ -5,6 +5,10 @@ import internalCache from '../internalCache'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
+import type { ComponentAcrossAssetsEntry } from '@tonylb/mtw-gateways/ts/assets/components/componentData'
+import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
+
+const componentEntry = (component: StandardComponent): ComponentAcrossAssetsEntry => ({ component })
 
 describe('ComponentStackMerge cache handler', () => {
     beforeEach(() => {
@@ -26,12 +30,12 @@ describe('ComponentStackMerge cache handler', () => {
             Pronouns: 'she/her',
         })
         jest.spyOn(internalCache.ComponentData, 'getAcrossAssets').mockResolvedValue({
-            [`ASSET#Base`]: new StandardRoom({
+            [`ASSET#Base`]: componentEntry(new StandardRoom({
                 universalKey: 'ROOM#ParityOne',
                 tag: 'Room',
                 shortName: 'Hall',
                 exits: [],
-            }),
+            })),
         })
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
             { EphemeraId: 'CHARACTER#TESS', DisplayName: 'Tess', Color: 'purple', SessionIds: [] },
@@ -67,7 +71,7 @@ describe('ComponentStackMerge cache handler', () => {
             Pronouns: 'she/her',
         })
         jest.spyOn(internalCache.ComponentData, 'getAcrossAssets').mockResolvedValue({
-            [`ASSET#Base`]: new StandardRoom({
+            [`ASSET#Base`]: componentEntry(new StandardRoom({
                 universalKey: 'ROOM#MergeTwo',
                 tag: 'Room',
                 shortName: 'NorthWing',
@@ -77,8 +81,8 @@ describe('ComponentStackMerge cache handler', () => {
                         payload: 'North door',
                     },
                 ],
-            }),
-            [`ASSET#Personal`]: new StandardRoom({
+            })),
+            [`ASSET#Personal`]: componentEntry(new StandardRoom({
                 universalKey: 'ROOM#MergeTwo',
                 tag: 'Room',
                 shortName: 'Annex',
@@ -88,7 +92,7 @@ describe('ComponentStackMerge cache handler', () => {
                         payload: 'East stair',
                     },
                 ],
-            }),
+            })),
         })
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([])
 
@@ -122,12 +126,12 @@ describe('ComponentStackMerge cache handler', () => {
             Pronouns: 'she/her',
         })
         jest.spyOn(internalCache.ComponentData, 'getAcrossAssets').mockResolvedValue({
-            [`ASSET#Base`]: new StandardRoom({
+            [`ASSET#Base`]: componentEntry(new StandardRoom({
                 universalKey: 'ROOM#ObjRoom',
                 tag: 'Room',
                 shortName: 'Hall',
                 exits: [],
-            }),
+            })),
         })
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([])
 
@@ -167,9 +171,11 @@ describe('ComponentStackMerge cache handler', () => {
             })
         const getAcrossAssets = jest.spyOn(internalCache.ComponentData, 'getAcrossAssets').mockImplementation(
             async (ephemeraId: ComponentUUID) => ({
-                [`ASSET#Base`]: makeRoom(
-                    ephemeraId as EphemeraRoomId,
-                    ephemeraId === roomA ? 'Alpha' : 'Beta'
+                [`ASSET#Base`]: componentEntry(
+                    makeRoom(
+                        ephemeraId as EphemeraRoomId,
+                        ephemeraId === roomA ? 'Alpha' : 'Beta'
+                    )
                 ),
             })
         )

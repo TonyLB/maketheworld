@@ -29,8 +29,8 @@ describe('authoritativeFromParticipationOrder', () => {
         const layer = defaultRoom(universalKey)
         const componentData = {
             getAcrossAssets: jest.fn().mockResolvedValue({
-                'ASSET#base': base,
-                'ASSET#layer': layer,
+                'ASSET#base': { component: base },
+                'ASSET#layer': { component: layer },
             }),
         } as unknown as ComponentDataCache
 

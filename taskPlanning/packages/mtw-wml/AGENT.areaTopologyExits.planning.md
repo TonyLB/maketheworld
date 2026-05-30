@@ -218,14 +218,14 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Validation for **D4** (error when neither endpoint in **`nodes`**); tests in `area.test.ts` / `area.integration.test.ts`.
   - [X] Update [`AGENT.implementation.md`](../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) (**StandardArea** edges) when behavior is stable.
 
-- [ ] **Milestone 2 --- Persisted `referencedBy` (assets + gateways)**
-  - [ ] **Child plan:** create [`taskPlanning/lambda/assets/AGENT.areaTopologyReferencedBy.planning.md`](../../lambda/assets/AGENT.areaTopologyReferencedBy.planning.md) --- **`cacheAsset`** writer, **`referencedBy`** tests, **`mtw.assets.componentTopology`** invalidation (**D8-D11**).
-  - [ ] Extend **`cacheAsset`**: compute **`referencedBy`** from in-memory **`fileAsset`** / diff; patch **`(target, ASSET#)`** rows beyond **`diff._components`** when inverse changes (**D10**).
-  - [ ] **`mtw-gateways`:** **`PersistedReferencedByEntry`** type; strip **`referencedBy`** in **`fetch.ts`**; extend **`ComponentPairRow`** / **`ComponentDataCache`** (**D31**).
-  - [ ] **`ComponentData`:** pair rows carry **`referencedBy`**; **`getAcrossAssets`** feeds **`participationBatch`** with per-asset lists.
-  - [ ] **`MergedComponentResult.referencedByUnion`** + union helper (**D31**, **D12**); golden test: two assets, two referrers, dedupe rules documented.
-  - [ ] **`ComponentExamples`** / other aggregate callers: verify unchanged (use **`.merged`** only).
-  - [ ] Invalidation contract (**D11**); tests in assets lambda; index updates must drive **`TopologyInvalidated`** once **`componentTopology`** exists (detail in assets child plan).
+- [X] **Milestone 2 --- Persisted `referencedBy` (assets + gateways)**
+  - [X] **Child plan:** create [`taskPlanning/lambda/assets/AGENT.areaTopologyReferencedBy.planning.md`](../../lambda/assets/AGENT.areaTopologyReferencedBy.planning.md) --- **`cacheAsset`** writer, **`referencedBy`** tests, **`mtw.assets.componentTopology`** invalidation (**D8-D11**).
+  - [X] Extend **`cacheAsset`**: compute **`referencedBy`** from in-memory **`fileAsset`** / diff; patch **`(target, ASSET#)`** rows beyond **`diff._components`** when inverse changes (**D10**).
+  - [X] **`mtw-gateways`:** **`PersistedReferencedByEntry`** type; strip **`referencedBy`** in **`fetch.ts`**; extend **`ComponentPairRow`** / **`ComponentDataCache`** (**D31**).
+  - [X] **`ComponentData`:** pair rows carry **`referencedBy`**; **`getAcrossAssets`** feeds **`participationBatch`** with per-asset lists.
+  - [X] **`MergedComponentResult.referencedByUnion`** + union helper (**D31**, **D12**); golden test: two assets, two referrers, dedupe rules documented.
+  - [X] **`ComponentExamples`** / other aggregate callers: verify unchanged (use **`.merged`** only).
+  - [X] Invalidation contract (**D11**); tests in assets lambda; index updates must drive **`TopologyInvalidated`** once **`componentTopology`** exists (detail in assets child plan).
 
 - [ ] **Milestone 3 --- Projection library + gateways pull (`mtw-wml` + `@tonylb/mtw-gateways`)**
   - [ ] Pure `projectRoomExits(...)` (name TBD): inputs = room id, merged Area edge sets (per **D14-D15**), index; output = `ExitFacetList` JSON.
@@ -320,7 +320,7 @@ npm run test -- --watchAll=false internalCache/componentStackMerge.test.ts dataS
 
 ```bash
 cd lambda/assets
-# Add concrete jest paths when meta writer tests exist (child plan)
+npm test -- --watchAll=false dataSource/caching/cacheAsset.test.ts dataSource/caching/referencedByPersistence.test.ts componentTopology/
 ```
 
 **Client (after Milestone 5):**
@@ -339,7 +339,7 @@ npm test
 | Create platform task plan | Done |
 | M0 Decision spike (D1-D7, D5b, D8-D31, D18-D25) | Done |
 | M1 WML + StandardArea edges | Done |
-| M2 Persisted referencedBy | Not started |
+| M2 Persisted referencedBy | Done (see child plan) |
 | M3 Projection library | Not started |
 | M4 Ephemera integration | Not started |
 | M5 Authoring + migration | Not started |

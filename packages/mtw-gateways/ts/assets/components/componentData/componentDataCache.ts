@@ -5,18 +5,25 @@ import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/component
 
 import { defaultStoredEntryForCacheKey } from './defaults'
 import { fetchComponentsForAssets, type ComponentAssetMetaAssetDB } from './fetch'
+import type { PersistedReferencedByEntry } from './referencedBy'
 import {
     cacheKeyComponents,
     componentPairCacheKey,
     type ComponentAssetPair,
 } from './keys'
 
-type CachedPairRow = { assetId: AssetUUID; component: StandardComponent }
+export type ComponentAcrossAssetsEntry = {
+    component: StandardComponent
+    referencedBy?: PersistedReferencedByEntry[]
+}
+
+type CachedPairRow = ComponentAcrossAssetsEntry & { assetId: AssetUUID }
 
 export type ComponentPairRow = {
     universalKey: ComponentUUID
     assetId: AssetUUID
     component: StandardComponent
+    referencedBy?: PersistedReferencedByEntry[]
 }
 
 type EphemeraKeyMappingMixin = { EphemeraId: string }
@@ -127,6 +134,7 @@ export class ComponentDataCache {
                     universalKey,
                     assetId: row.assetId,
                     component: row.component,
+                    ...(row.referencedBy ? { referencedBy: row.referencedBy } : {}),
                 }
             })
         )
@@ -135,7 +143,7 @@ export class ComponentDataCache {
     async getAcrossAssets(
         universalKey: ComponentUUID,
         assetList: AssetUUID[]
-    ): Promise<Record<AssetUUID, StandardComponent>> {
+    ): Promise<Record<AssetUUID, ComponentAcrossAssetsEntry>> {
         this._Cache.add({
             promiseFactory: (fetchNeeded) =>
                 this.fetchRowBatch(
@@ -155,10 +163,13 @@ export class ComponentDataCache {
                 }, {}),
         })
         const individualMetas = await Promise.all(assetList.map((assetId) => this.get(universalKey, assetId)))
-        return individualMetas.reduce<Record<AssetUUID, StandardComponent>>(
+        return individualMetas.reduce<Record<AssetUUID, ComponentAcrossAssetsEntry>>(
             (previous, item) => ({
                 ...previous,
-                [item.assetId]: item.component,
+                [item.assetId]: {
+                    component: item.component,
+                    ...(item.referencedBy ? { referencedBy: item.referencedBy } : {}),
+                },
             }),
             {}
         )
@@ -177,8 +188,9 @@ export class ComponentDataCache {
 
     set(universalKey: ComponentUUID, assetId: AssetUUID, value: StandardComponent): void {
         const cacheKey = componentPairCacheKey(universalKey, assetId)
-        this._Cache.set(Infinity, cacheKey, { assetId, component: value })
-        this._Store[cacheKey] = { assetId, component: value }
+        const row: CachedPairRow = { assetId, component: value }
+        this._Cache.set(Infinity, cacheKey, row)
+        this._Store[cacheKey] = row
     }
 }
 

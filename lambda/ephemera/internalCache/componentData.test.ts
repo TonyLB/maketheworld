@@ -5,14 +5,14 @@ import internalCache from "."
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
-import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
+import type { ComponentAcrossAssetsEntry } from '@tonylb/mtw-gateways/ts/assets/components/componentData'
 
 const assetMock = assetDB as jest.Mocked<typeof assetDB>
 
-const mapToJSON = (data: Record<AssetUUID, StandardComponent>): Record<string, StandardComponentData> => {
+const mapToJSON = (data: Record<AssetUUID, ComponentAcrossAssetsEntry>): Record<string, StandardComponentData> => {
     return Object.fromEntries(
-        Object.entries(data).map(([assetId, component]) => {
-            return [assetId.split('#')[1], component.toJSON()]
+        Object.entries(data).map(([assetId, entry]) => {
+            return [assetId.split('#')[1], entry.component.toJSON()]
         })
     )
 }

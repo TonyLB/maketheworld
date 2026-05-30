@@ -1,3 +1,4 @@
+import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
@@ -182,6 +183,35 @@ describe('component aggregate gateway (compute-only)', () => {
             expect(getAcrossAssets).not.toHaveBeenCalled()
             expect(ComponentVerticals.get).toHaveBeenCalledWith([roomU])
             expect(ComponentVerticals.get).toHaveBeenCalledTimes(1)
+        })
+
+        it('returns referencedByUnion across merge participation order', async () => {
+            const byAssets = [
+                {
+                    AssetId: assetA,
+                    component: baseRoom as unknown as StandardComponent,
+                    referencedBy: [{ referrerUniversalKey: 'AREA#a1' as ComponentUUID, referenceType: 'Edge' as const }],
+                },
+                {
+                    AssetId: assetB,
+                    component: overrideRoom as unknown as StandardComponent,
+                    referencedBy: [{ referrerUniversalKey: 'AREA#a2' as ComponentUUID, referenceType: 'Edge' as const }],
+                },
+            ]
+            const slice = inMemoryComponentAggregateInternalCacheSlice({
+                authoritativeByUniversal: new Map([[roomU, { ComponentId: roomU, byAssets }]]),
+                verticalsByUniversal: new Map([[roomU, { universalKey: roomU, hops: [] }]]),
+            })
+            const { gateway } = createComponentAggregateGateway(slice)
+            const p = aggregatePerspectiveExplicit({
+                universalKey: roomU,
+                mergeParticipationOrder: [assetA, assetB],
+            })
+            const result = await gateway.assembleMergedComponent(p)
+            expect(result.referencedByUnion).toEqual([
+                { referrerUniversalKey: 'AREA#a1', referenceType: 'Edge' },
+                { referrerUniversalKey: 'AREA#a2', referenceType: 'Edge' },
+            ])
         })
 
         it('merges rooms in merge participation order (later asset overlays)', async () => {

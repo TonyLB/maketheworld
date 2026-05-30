@@ -5,6 +5,7 @@ import { mergeRoomAcrossStack, mergeLensAcrossStack } from './mergeComponentsAcr
 import { getLensMarksWithDefaults } from '@tonylb/mtw-wml/ts/standardize/worldState/lensMarks'
 import type { EphemeraCacheMarkState, EphemeraCacheMarkValue } from '../renderCache/baseClasses'
 import { resolveCanonAssetStackForRoom } from './resolveAssetStackForRoom'
+import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 export type PerspectiveSpec = {
     assetStack: AssetUUID[];
@@ -51,9 +52,12 @@ export const computeDefaultMarksForRoom = async ({
         assetStack
     )
 
-    const byAssets = Object.entries(componentDataByAsset).map(([AssetId, component]) => ({
+    const byAssets = Object.entries(componentDataByAsset).map(([AssetId, row]) => ({
         AssetId: AssetId as AssetUUID,
-        component
+        component:
+            typeof row === 'object' && row !== null && 'component' in row
+                ? row.component
+                : (row as StandardComponent),
     }))
 
     const mergedRoom = mergeRoomAcrossStack(byAssets, assetStack)

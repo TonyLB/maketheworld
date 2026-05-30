@@ -2,6 +2,10 @@ import internalCache from '..'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import { mergeRoomShortNameLiteral } from '../componentStackMerge'
+import type { ComponentAcrossAssetsEntry } from '@tonylb/mtw-gateways/ts/assets/components/componentData'
+import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
+
+const componentEntry = (component: StandardComponent): ComponentAcrossAssetsEntry => ({ component })
 
 describe('GenerationContext cache handler', () => {
     beforeEach(() => {
@@ -12,12 +16,12 @@ describe('GenerationContext cache handler', () => {
 
     it('derives room shortName context from ComponentData', async () => {
         jest.spyOn(internalCache.ComponentData, 'getAcrossAssets').mockResolvedValue({
-            'ASSET#Base': new StandardRoom({
+            'ASSET#Base': componentEntry(new StandardRoom({
                 universalKey: 'ROOM#TestRoom',
                 tag: 'Room',
                 shortName: 'Test Room',
                 exits: [],
-            }),
+            })),
         })
 
         const result = await internalCache.GenerationContext.get('ROOM#TestRoom', ['ASSET#Base'])
@@ -28,10 +32,10 @@ describe('GenerationContext cache handler', () => {
 
     it('returns undefined when shortName cannot be derived', async () => {
         jest.spyOn(internalCache.ComponentData, 'getAcrossAssets').mockResolvedValue({
-            'ASSET#Base': new StandardFeature({
+            'ASSET#Base': componentEntry(new StandardFeature({
                 universalKey: 'FEATURE#TestFeature',
                 tag: 'Feature',
-            }),
+            })),
         })
 
         await expect(
@@ -54,8 +58,8 @@ describe('GenerationContext cache handler', () => {
         })
         jest.spyOn(internalCache.ComponentData, 'getAcrossAssets').mockResolvedValue({
             // Intentionally reverse insertion order to ensure merge logic follows assetStack, not object values
-            'ASSET#Override': overrideRoom,
-            'ASSET#Base': baseRoom,
+            'ASSET#Override': componentEntry(overrideRoom),
+            'ASSET#Base': componentEntry(baseRoom),
         })
 
         const assetStack = ['ASSET#Base', 'ASSET#Override'] as const
@@ -67,12 +71,12 @@ describe('GenerationContext cache handler', () => {
 
     it('clears cached entries through InternalCache.clear lifecycle', async () => {
         const getAcrossAssetsSpy = jest.spyOn(internalCache.ComponentData, 'getAcrossAssets').mockResolvedValue({
-            'ASSET#Base': new StandardRoom({
+            'ASSET#Base': componentEntry(new StandardRoom({
                 universalKey: 'ROOM#TestRoom',
                 tag: 'Room',
                 shortName: 'Test Room',
                 exits: [],
-            }),
+            })),
         })
 
         await internalCache.GenerationContext.get('ROOM#TestRoom', ['ASSET#Base'])

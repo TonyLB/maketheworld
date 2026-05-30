@@ -38,6 +38,7 @@ import './characters'  // mtw.assets.characters DataSource
 import './library'  // mtw.assets.library DataSource
 import './players'  // mtw.assets.players DataSource
 import './componentExamples'  // mtw.assets.componentExamples DataSource
+import './componentTopology'  // mtw.assets.componentTopology DataSource
 import './dataSource/components/verticals'  // mtw.assets.components.verticals DataSource
 
 const { FEEDBACK_TOPIC } = process.env

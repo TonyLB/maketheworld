@@ -1,4 +1,7 @@
-import type { ComponentDataCache } from '@tonylb/mtw-gateways/ts/assets/components/componentData'
+import type {
+    ComponentAcrossAssetsEntry,
+    ComponentDataCache,
+} from '@tonylb/mtw-gateways/ts/assets/components/componentData'
 import {
     generateEphemeraComponentCacheKey,
     mergeRoomExitsToJSON,
@@ -74,7 +77,10 @@ export const isComponentKey = (key) => (['ROOM', 'FEATURE'].includes(splitType(k
 export class ComponentRenderData {
     _renderCache: RenderCacheData;
     // _evaluateCode removed - Variable/Computed evaluation no longer needed
-    _componentData: (EphemeraId: ComponentUUID, assetList: AssetUUID[]) => Promise<Record<AssetUUID, StandardComponent>>;
+    _componentData: (
+        EphemeraId: ComponentUUID,
+        assetList: AssetUUID[]
+    ) => Promise<Record<AssetUUID, ComponentAcrossAssetsEntry>>;
     _roomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>;
     _getAssets: () => Promise<string[]>;
     _characterMeta: (characterId: EphemeraCharacterId) => Promise<CharacterMetaItem>;
@@ -170,10 +176,18 @@ export class ComponentRenderData {
         ]);
 
         const allAssets: AssetUUID[] = unique(globalAssets || [], characterAssets).map((key) => AssetKey(key));
-        const appearancesByAsset = await this._componentData(EphemeraId, allAssets.map((key) => AssetKey(key))) as Record<AssetUUID, StandardComponent>;
+        const appearancesByAsset = await this._componentData(
+            EphemeraId,
+            allAssets.map((key) => AssetKey(key))
+        )
 
         if (isEphemeraRoomId(EphemeraId)) {
-            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as StandardRoom[];
+            const assetData = allAssets
+                .map((assetId) => {
+                    const entry = appearancesByAsset[assetId]
+                    return entry ? [entry.component] : []
+                })
+                .flat(1) as StandardRoom[]
 
             // Room prose: render cache only (no ExamplesData fallback).
             const cacheRecords = await this._renderCache.get(EphemeraId);
@@ -243,7 +257,12 @@ export class ComponentRenderData {
         if (isEphemeraMessageId(EphemeraId)) {
             const assets = allAssets
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
-            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as StandardMessage[]
+            const assetData = allAssets
+                .map((assetId) => {
+                    const entry = appearancesByAsset[assetId]
+                    return entry ? [entry.component] : []
+                })
+                .flat(1) as StandardMessage[]
             const merged = assetData.reduce<StandardMessage | undefined>((previous, current) => (previous ? previous.merge(current) as StandardMessage | undefined : current), undefined)
             const { description = new StandardRender([]) } = merged ?? {}
             return new StandardForm([
@@ -254,7 +273,12 @@ export class ComponentRenderData {
         if (isEphemeraMapId(EphemeraId)) {
             const assets = allAssets
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
-            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as StandardMap[]
+            const assetData = allAssets
+                .map((assetId) => {
+                    const entry = appearancesByAsset[assetId]
+                    return entry ? [entry.component] : []
+                })
+                .flat(1) as StandardMap[]
             const merged = assetData.reduce<StandardMap | undefined>((previous, current) => (previous ? previous.merge(current) as StandardMap | undefined : current), undefined)
             //
             // Figure out how to properly map room keys to EphemeraId during extraction phases above
@@ -263,7 +287,10 @@ export class ComponentRenderData {
                 const ephemeraId = facet.reference.universalKey as EphemeraRoomId
                 const metaByAsset = await this._componentData(ephemeraId, unique(globalAssets || [], characterAssets) as AssetUUID[])
                 const roomMeta = allAssets
-                    .map((assetId) => (metaByAsset[assetId] ? [metaByAsset[assetId]] : []))
+                    .map((assetId) => {
+                        const entry = metaByAsset[assetId]
+                        return entry ? [entry.component] : []
+                    })
                     .flat(1) as StandardRoom[]
                 const mergedRoom = roomMeta.reduce<StandardRoom | undefined>((previous, current) => (previous ? previous.merge(current) as StandardRoom | undefined : current), undefined)
                 return {

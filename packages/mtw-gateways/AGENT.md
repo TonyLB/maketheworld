@@ -192,6 +192,8 @@ Ephemera and the assets lambda both read the **same** **assetDB** component rows
 
 **What differs is call pattern, not cache identity:** Ephemera supplies an explicit asset list per request; assets often derives participation order from **`ComponentVerticals`** + anchor before batching pair reads. **Do not** use partition **`Query`** on universal id from either lambda's steady-state **`internalCache.ComponentData`** reads.
 
+**Persisted `referencedBy` (area topology, D31):** Forward Dynamo rows may include **`referencedBy`** (inverse index, written by **`cacheAsset`**). **`standardComponentPairFromAssetDbGetItemsRow`** strips it before **`StandardComponent`** construction; **`getAcrossAssets`** returns **`{ component, referencedBy? }`** per asset. **`ComponentAggregate.get`** exposes **`referencedByUnion`** on **`MergedComponentResult`** (union across **`mergeParticipationOrder`**, not **`merge()`**). See [`referencedBy.ts`](ts/assets/components/componentData/referencedBy.ts) and [`taskPlanning/lambda/assets/AGENT.areaTopologyReferencedBy.planning.md`](../../taskPlanning/lambda/assets/AGENT.areaTopologyReferencedBy.planning.md).
+
 **Ephemera runtime state** (e.g. **`Meta::Room`**) remains **`internalCache.ComponentEphemeraMeta`** on **ephemeraDB** --- not this handler.
 
 ## Test runner

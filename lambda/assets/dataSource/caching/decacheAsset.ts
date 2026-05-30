@@ -3,6 +3,10 @@ import { ComponentEventUpdate, ComponentUpdatedEvent, ComponentRemovedEvent } fr
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import internalCache from "../../internalCache"
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
+import { isEphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import { clearReferencedByForDecache } from './referencedByPersistence'
+import { emitTopologyInvalidatedForRoomTargets } from '../../componentTopology'
 
 /**
  * Remove asset content from DynamoDB storage
@@ -57,27 +61,38 @@ export const decacheAsset = async ({ assetId, streamEvent }: {
                 })
             ])
 
-            const componentUpdatedEvent: ComponentUpdatedEvent = {
-                type: 'Component Updated',
-                component
-            }
-            const componentRemovedEvent: ComponentRemovedEvent = {
-                type: 'Component Removed',
-                component
-            }
+            const componentUpdatedEvent: ComponentUpdatedEvent = { component }
+            const componentRemovedEvent: ComponentRemovedEvent = { component }
             await Promise.all([
                 streamEvent({
                     update: componentUpdatedEvent,
                     streamKey: assetId,
-                    header: { type: componentUpdatedEvent.type }
+                    header: { type: 'Component Updated' },
                 }),
                 streamEvent({
                     update: componentRemovedEvent,
                     streamKey: assetId,
-                    header: { type: componentRemovedEvent.type }
-                })
+                    header: { type: 'Component Removed' },
+                }),
             ])
         }))
+
+        const { patchedTargetIds, roomIdsForTopology } = await clearReferencedByForDecache({
+            assetUUID,
+            assetId,
+            dbAsset,
+        })
+        patchedTargetIds.forEach((universalKey) => {
+            if (isEphemeraId(universalKey)) {
+                internalCache.ComponentData.invalidate(universalKey, assetUUID)
+            }
+        })
+        if (roomIdsForTopology.length > 0) {
+            await emitTopologyInvalidatedForRoomTargets({
+                roomIds: roomIdsForTopology,
+                editAssetId: assetUUID,
+            })
+        }
     }
 
     await assetDB.deleteItem({

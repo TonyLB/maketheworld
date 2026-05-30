@@ -27,3 +27,10 @@ export {
     authoritativeFromParticipationOrder,
     ParticipationBatchError,
 } from './participationBatch'
+export type { PersistedReferencedByEntry } from './referencedBy'
+export {
+    buildReferencedByPatchesForAsset,
+    collectReferencedTargetsInAsset,
+    unionReferencedByAcrossParticipation,
+} from './referencedBy'
+export type { ComponentAcrossAssetsEntry } from './componentDataCache'

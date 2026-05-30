@@ -5,7 +5,13 @@ import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB";
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types";
 import { AssetsEventUpdate, ComponentUpdatedEvent, ComponentRemovedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets';
 import { Zone, isEphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses';
+import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema';
 import { invalidateExhaustivePartitionCache } from '../components/verticals/exhaustivePartitionLoader';
+import {
+    applyReferencedByPatchesForAsset,
+    targetsNeedingInverseReconcile,
+} from './referencedByPersistence';
+import { emitTopologyInvalidatedForRoomTargets } from '../../componentTopology'
 
 /**
  * Cache asset content to DynamoDB storage
@@ -136,15 +142,31 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
                 return acc
             }, { componentsUpdated: [], componentsRemoved: [] })
         
-        // Invalidate component cache for all updated components (cache is keyed by EphemeraId only)
-        diff._components
-            .filter((component) => (!!component.universalKey))
-            .forEach(({ universalKey }) => {
-                if (universalKey && isEphemeraId(universalKey)) {
-                    internalCache.ComponentData.invalidate(universalKey, assetUUID)
-                    invalidateExhaustivePartitionCache(universalKey)
-                }
+        const inverseTargets = targetsNeedingInverseReconcile(dbAsset, fileAsset)
+        const { patchedTargetIds, roomIdsForTopology } = await applyReferencedByPatchesForAsset({
+            assetUUID,
+            assetId,
+            fileAsset,
+            targetUniversalKeys: inverseTargets,
+        })
+
+        const invalidateTargets = new Set<ComponentUUID>([
+            ...diff._components.map((c) => c.universalKey).filter((id): id is ComponentUUID => Boolean(id)),
+            ...patchedTargetIds,
+        ])
+        invalidateTargets.forEach((universalKey) => {
+            if (isEphemeraId(universalKey)) {
+                internalCache.ComponentData.invalidate(universalKey, assetUUID)
+                invalidateExhaustivePartitionCache(universalKey)
+            }
+        })
+
+        if (roomIdsForTopology.length > 0) {
+            await emitTopologyInvalidatedForRoomTargets({
+                roomIds: roomIdsForTopology,
+                editAssetId: assetUUID,
             })
+        }
         
         // Stream component events with StandardComponent objects; Character events will be handled by mtw.assets.characters data source
         await Promise.all([

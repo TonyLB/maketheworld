@@ -156,7 +156,19 @@ The Assets Lambda hosts seven data sources, each serving a specific purpose:
 
 For Ephemera catalog, adjacency, and hydrate, see [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../ephemera/dataSource/renderCache/AGENT.md) (**Authored cache**).
 
-### 7. **mtw.assets.components.verticals** (Component import vertical index)
+### 7. **mtw.assets.componentTopology** (Component topology invalidation)
+
+**Purpose**: Publishes **`TopologyInvalidated`** (no projected exit body) when **Area** `positionGraph` or **Room** exits (dual-read) change, and when **`cacheAsset`** patches **`referencedBy`** on **`ROOM#`** targets. Planned consumer: **`mtw.ephemera.affordanceCache`** (Milestone 4).
+
+**Type**: Non-replayable
+
+**Events Published**: `{ type: 'TopologyInvalidated'; roomIds?; areaId?; editAssetId; edgeUuids? }` --- see [`packages/mtw-interfaces/ts/eventBridge/assets/componentTopology.ts`](../../packages/mtw-interfaces/ts/eventBridge/assets/componentTopology.ts).
+
+**Event Subscription**: **`mtw.assets`** **Component Updated** / **Component Removed** on **Area** and **Room** (topology-relevant diffs only).
+
+**Implementation**: [`./componentTopology/index.ts`](./componentTopology/index.ts), [`./componentTopology/AGENT.md`](./componentTopology/AGENT.md).
+
+### 8. **mtw.assets.components.verticals** (Component import vertical index)
 
 **Purpose**: Maintains **derived** DynamoDB **`Meta::Import::...`** rows keyed by **universal component id**, describing **cross-asset import hops** (`StandardComponent._from`) so future reads can assemble an import vertical with **bounded** Dynamo access.
 
