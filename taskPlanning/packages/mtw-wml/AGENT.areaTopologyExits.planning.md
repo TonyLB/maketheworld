@@ -207,8 +207,12 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Production room-local exit inventory (**D23**) --- see [Production exit inventory (Coyote demo)](#production-exit-inventory-coyote-demo).
 
 - [ ] **Milestone 1 --- WML + StandardArea (asset mode)**
-  - [ ] Schema: Area **`<Exit uuid=(...)>`** with **`From`**, **`To`**, **`Forward`**, **`Back`** (**D26**, **D29**); room-local **`<Exit>`** under **`<Room>`** stays **dual-read** per **D6** / **D23** (hard forbid in M6).
-  - [ ] **Edge pattern** (**D27-D29**): **`uuid`** + editable **`from`** / **`to`** (**Parent**-style **From** / **To** tags) + literal payload; list class and factory; merge/diff keyed by **`uuid`**; layered **Replace** on **From** / **To**.
+  - [ ] **Schema (Area topology exits, D26 / D29):** one global **`<Exit>`** parse surface (no context-forked converters); legacy **`to=`** and new **`uuid=`** + child tags both parse; **D29** / **D6** rules enforced in **Standardize**, not schema parent context.
+    - [ ] **`mtw-base`:** register **`From`**, **`To`**, **`Forward`**, **`Back`** on **`tagType`** (Forward/Back via **`literalTagFactory`**; From/To like **`Parent`**).
+    - [ ] **Widen `<Exit>`:** optional **`uuid`** and optional **`to`** on **`SchemaExitTag`**; **`typeCheckContents`** allows **From** / **To** / **Forward** / **Back** (and edit wrappers), not only **String**; print map round-trips both shapes (room/map **`to=`** path unchanged).
+    - [ ] **Child converters + tests:** From/To ComponentUUID validation (**Parent** precedent); Forward/Back literals; fixtures for normative **D29** shape (including layered **Replace** on **To**).
+    - [ ] **Dual-read guard:** **`<Exit to=(...)>`** under **`<Room>`** (and Map) still parses/round-trips (**D6**); **`StandardRoom`** ignores Area-shaped exits (no usable **`to`** / structural children --- see existing facet skip); M6 asset-mode forbid remains on **Room** ingest, not schema.
+  - [ ] **Edge pattern** (**D27-D29**): **`uuid`** + editable **`from`** / **`to`** (**Parent**-style **From** / **To** tags) + literal payload; list class and factory; merge/diff keyed by **`uuid`**; layered **Replace** on **From** / **To**; **`StandardArea`** edge consumer enforces **D29** (reject **`from=`** / **`to=`** attributes, require child endpoints); asset-mode errors on bad Area edges --- defer strict Room-local forbid to M6 (**D23**).
   - [ ] Add **`Edge`** to **`StandardComponentReferenceKey`**; subset cascade + tests for **`connectionType: 'Edge'`** -> **Stub** (**D7**).
   - [ ] Extend **`StandardPositionGraph`**: **`positionGraph.edges`** as **`EdgeList`** alongside **`nodes`**; **`referencedKeys()`** emits **From** / **To** as **`referenceType: 'Edge'`**.
   - [ ] Validation for **D4** (error when neither endpoint in **`nodes`**); tests in `area.test.ts` / `area.integration.test.ts`.
