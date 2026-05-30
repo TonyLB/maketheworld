@@ -92,6 +92,9 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
                 new StandardizeConsumerSimple(this, {
                     tag: "Exit",
                     update(matched) {
+                        // D6 dual-read: legacy room-local exits (to=) ingest until M6 forbid.
+                        // Area topology exits (uuid + From/To/Forward/Back, no to=) may appear
+                        // under Room in transitional WML; consume the tag but skip storage.
                         const parsedFacets = matched.map((exitNode) => {
                             try {
                                 return new StandardExitFacet([exitNode])

@@ -777,7 +777,7 @@ export class StandardForm {
                     return node
                 }
                 if (treeNodeTypeguard(isSchemaExit)(node)) {
-                    const matchTo = findMatchingRename(node.data.to)
+                    const matchTo = node.data.to ? findMatchingRename(node.data.to) : undefined
                     if (matchTo) {
                         return {
                             data: { ...node.data, to: matchTo },
@@ -1208,7 +1208,7 @@ export class StandardForm {
                 }
                 else {
                     if (treeNodeTypeguard(isSchemaExit)(node)) {
-                        const matchTo = findMatchingRename(node.data.to)
+                        const matchTo = node.data.to ? findMatchingRename(node.data.to) : undefined
                         if (matchTo) {
                             return {
                                 data: {

@@ -1,8 +1,8 @@
 # Area topology exits (platform initiative)
 
-**Status:** In progress. **Milestone 0 (decisions)** complete; implementation not started.
+**Status:** In progress. **Milestone 0 (decisions)** complete; **Milestone 1** complete (WML + StandardArea asset mode).
 
-**Next step:** Execute **Milestone 1** (WML + **`StandardArea`** edges) per [Milestone gates](#milestone-gates); **M2** may proceed in parallel once gated.
+**Next step:** **Milestone 2** persisted `referencedBy` (assets + gateways); **M3** projection library may proceed in parallel once gated.
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into package `AGENT.md` files next to code.
 
@@ -206,13 +206,17 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] **D23-D25** --- dual-read + manual DB migration + post-migration forbid; operator-owned migration; test retirement gated on forbid.
   - [X] Production room-local exit inventory (**D23**) --- see [Production exit inventory (Coyote demo)](#production-exit-inventory-coyote-demo).
 
-- [ ] **Milestone 1 --- WML + StandardArea (asset mode)**
-  - [ ] Schema: Area **`<Exit uuid=(...)>`** with **`From`**, **`To`**, **`Forward`**, **`Back`** (**D26**, **D29**); room-local **`<Exit>`** under **`<Room>`** stays **dual-read** per **D6** / **D23** (hard forbid in M6).
-  - [ ] **Edge pattern** (**D27-D29**): **`uuid`** + editable **`from`** / **`to`** (**Parent**-style **From** / **To** tags) + literal payload; list class and factory; merge/diff keyed by **`uuid`**; layered **Replace** on **From** / **To**.
-  - [ ] Add **`Edge`** to **`StandardComponentReferenceKey`**; subset cascade + tests for **`connectionType: 'Edge'`** -> **Stub** (**D7**).
-  - [ ] Extend **`StandardPositionGraph`**: **`positionGraph.edges`** as **`EdgeList`** alongside **`nodes`**; **`referencedKeys()`** emits **From** / **To** as **`referenceType: 'Edge'`**.
-  - [ ] Validation for **D4** (error when neither endpoint in **`nodes`**); tests in `area.test.ts` / `area.integration.test.ts`.
-  - [ ] Update [`AGENT.implementation.md`](../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) (**StandardArea** edges) when behavior is stable.
+- [X] **Milestone 1 --- WML + StandardArea (asset mode)**
+  - [X] **Schema (Area topology exits, D26 / D29):** one global **`<Exit>`** parse surface (no context-forked converters); legacy **`to=`** and new **`uuid=`** + child tags both parse; **D29** / **D6** rules enforced in **Standardize**, not schema parent context.
+    - [X] **`mtw-base`:** register **`From`**, **`To`**, **`Forward`**, **`Back`** on **`tagType`** (Forward/Back via **`literalTagFactory`**; From/To like **`Parent`**).
+    - [X] **Widen `<Exit>`:** optional **`uuid`** and optional **`to`** on **`SchemaExitTag`**; **`typeCheckContents`** allows **From** / **To** / **Forward** / **Back** (and edit wrappers), not only **String**; print map round-trips both shapes (room/map **`to=`** path unchanged).
+    - [X] **Child converters + tests:** From/To ComponentUUID validation (**Parent** precedent); Forward/Back literals; fixtures for normative **D29** shape (including layered **Replace** on **To**).
+    - [X] **Dual-read guard:** **`<Exit to=(...)>`** under **`<Room>`** (and Map) still parses/round-trips (**D6**); **`StandardRoom`** ignores Area-shaped exits (no usable **`to`** / structural children --- see existing facet skip); M6 asset-mode forbid remains on **Room** ingest, not schema.
+  - [X] **Edge pattern** (**D27-D29**): **`uuid`** + editable **`from`** / **`to`** (**Parent**-style **From** / **To** tags) + literal payload; list class and factory; merge/diff keyed by **`uuid`**; layered **Replace** on **From** / **To**; **`StandardArea`** edge consumer enforces **D29** (reject **`from=`** / **`to=`** attributes, require child endpoints); asset-mode errors on bad Area edges --- defer strict Room-local forbid to M6 (**D23**).
+  - [X] Add **`Edge`** to **`StandardComponentReferenceKey`**; subset cascade + tests for **`connectionType: 'Edge'`** -> **Stub** (**D7**).
+  - [X] Extend **`StandardPositionGraph`**: **`positionGraph.edges`** as **`ExitEdgeList`** alongside **`nodes`**; **`referencedKeys()`** emits **From** / **To** as **`referenceType: 'Edge'`**.
+  - [X] Validation for **D4** (error when neither endpoint in **`nodes`**); tests in `area.test.ts` / `area.integration.test.ts`.
+  - [X] Update [`AGENT.implementation.md`](../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) (**StandardArea** edges) when behavior is stable.
 
 - [ ] **Milestone 2 --- Persisted `referencedBy` (assets + gateways)**
   - [ ] **Child plan:** create [`taskPlanning/lambda/assets/AGENT.areaTopologyReferencedBy.planning.md`](../../lambda/assets/AGENT.areaTopologyReferencedBy.planning.md) --- **`cacheAsset`** writer, **`referencedBy`** tests, **`mtw.assets.componentTopology`** invalidation (**D8-D11**).
@@ -334,7 +338,7 @@ npm test
 | --- | --- |
 | Create platform task plan | Done |
 | M0 Decision spike (D1-D7, D5b, D8-D31, D18-D25) | Done |
-| M1 WML + StandardArea edges | Not started |
+| M1 WML + StandardArea edges | Done |
 | M2 Persisted referencedBy | Not started |
 | M3 Projection library | Not started |
 | M4 Ephemera integration | Not started |

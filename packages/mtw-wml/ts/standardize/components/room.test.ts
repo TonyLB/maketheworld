@@ -1462,4 +1462,64 @@ describe('StandardRoom class', () => {
         })
     })
 
+    describe('dual-read guard (D6)', () => {
+        it('should ingest legacy Exit to= in asset mode', () => {
+            const testSource = deIndentWML(`
+                <Room key=(room1)>
+                    <Exit to=(target)>exit label</Exit>
+                </Room>
+            `)
+            const testRoom = new StandardRoom(testSource)
+            expect(testRoom.exits.toJSON()).toEqual([{ reference: { tag: 'Room', key: 'target' }, payload: 'exit label' }])
+        })
+
+        it('should ignore Area-shaped Exit under Room (no usable to)', () => {
+            const testSource = deIndentWML(`
+                <Room key=(room1)>
+                    <Exit uuid=(highwayToTown)>
+                        <From>ROOM#highway</From>
+                        <To>ROOM#townCenter</To>
+                        <Forward>east</Forward>
+                        <Back>west</Back>
+                    </Exit>
+                </Room>
+            `)
+            const testRoom = new StandardRoom(testSource)
+            expect(testRoom.exits.length).toBe(0)
+            expect((testRoom.toJSON() as StandardRoomData).exits).toBeUndefined()
+            expect(testRoom.referencedKeys()).toEqual([])
+        })
+
+        it('should keep only legacy exits when mixed with Area-shaped Exit', () => {
+            const testSource = deIndentWML(`
+                <Room key=(room1)>
+                    <Exit to=(target)>legacy</Exit>
+                    <Exit uuid=(edge1)>
+                        <From>ROOM#a</From>
+                        <To>ROOM#b</To>
+                        <Forward>east</Forward>
+                        <Back>west</Back>
+                    </Exit>
+                </Room>
+            `)
+            const testRoom = new StandardRoom(testSource)
+            expect(testRoom.exits.toJSON()).toEqual([{ reference: { tag: 'Room', key: 'target' }, payload: 'legacy' }])
+        })
+
+        it('should ignore Area-shaped Exit under Room in ephemeraWire mode', () => {
+            const testSource = deIndentWML(`
+                <Room key=(room1)>
+                    <Exit uuid=(edge1)>
+                        <From>ROOM#a</From>
+                        <To>ROOM#b</To>
+                        <Forward>east</Forward>
+                        <Back>west</Back>
+                    </Exit>
+                </Room>
+            `)
+            const testRoom = new StandardRoom(testSource, { standardizeMode: 'ephemeraWire' })
+            expect(testRoom.exits.length).toBe(0)
+        })
+    })
+
 })
