@@ -2,7 +2,7 @@
 
 ## Status
 
-**M4 ingress migration (landed).** This directory is the canonical home for the `mtw.ephemera.affordanceOrchestration` DataSource. Production adapters from **`RoomUpdate`** (reason: **`roster`**) and **`mtw.ephemera.objects` `Objects Changed`** (reason: **`objects`**) are wired. **`orchestrateAffordanceRequest`** is still a stub: it logs ingress and does **not** call **`ensureAffordanceTopology`**, emit stream outbounds, or drive terminal **`PublishMessage`** (that follows when **`affordanceCache`** + **`Affordances Pertain`** land).
+**M4 orchestration + cache handoff (landed).** This directory is the canonical home for the `mtw.ephemera.affordanceOrchestration` DataSource. Production adapters from **`RoomUpdate`** (reason: **`roster`**) and **`mtw.ephemera.objects` `Objects Changed`** (reason: **`objects`**) are wired. **`orchestrateAffordanceRequest`** calls **`ensureAffordanceTopology`** when needed and emits **`Slice Ready`** / **`Orchestration Error`**. Terminal **`PublishMessage`** follows when **`perception`** subscribes to **`Affordances Pertain`** (**D38**, next slice).
 
 **Initiative:** [`taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md`](../../../../taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md). **Parent decisions:** [`taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md`](../../../../taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md) (**D32-D38**, **D37** three-layer pipeline).
 
@@ -18,15 +18,15 @@
 
 | Layer | Owns | Does not own |
 | --- | --- | --- |
-| **`affordanceOrchestration`** | Ingress normalization; intake; **`ensureAffordanceTopology`** call (when wired); stream outbounds; future LLM slow path | Dynamo writes; **`PublishMessage`**; ephemeraWire compose |
-| **`affordanceCache`** (planned) | Invalidation; colocated **`Affordance::`** persist; **`Affordances Pertain`** | Terminal publish |
+| **`affordanceOrchestration`** | Ingress normalization; intake; **`ensureAffordanceTopology`** call; stream outbounds; future LLM slow path | Dynamo writes; **`PublishMessage`**; ephemeraWire compose |
+| **`affordanceCache`** | Invalidation; colocated **`Affordance::`** persist; **`Affordances Pertain`** | Terminal publish |
 | **`perception`** | Terminal **`PublishMessage`** on **`Affordances Pertain`** | Topology pull; hydrate policy |
 
 ## What this layer does today
 
 1. Subscribes to internal **`api.ephemera`** streaming envelopes with header type **`Affordances Requested`** (`sendAffordancesRequested` in [`subscribedEvents.ts`](subscribedEvents.ts)).
 2. Subscribes to **`mtw.ephemera.objects` `Objects Changed`** and fans out via [`fanOutAffordanceRefreshForRoom.ts`](fanOutAffordanceRefreshForRoom.ts) (direct **`orchestrateAffordanceRequest`**, mirror render **`State Changed`**).
-3. Maps **`Affordances Requested`** ingress to **`AffordancesRequested`** and calls **`orchestrateAffordanceRequest`** ([`orchestrationHandler.ts`](orchestrationHandler.ts)) --- log only; no **`streamEvent`** yet.
+3. Maps **`Affordances Requested`** ingress to **`AffordancesRequested`** and calls **`orchestrateAffordanceRequest`** ([`orchestrationHandler.ts`](orchestrationHandler.ts)) --- **`ensureAffordanceTopology`** when catalog stale or reason **`topology`**; emits **`Slice Ready`** / **`Orchestration Error`** via **`streamEvent`**.
 4. Defines **five outbound** payload types in [`publishedEvents.ts`](publishedEvents.ts). **v1-active:** **`Slice Ready`**, **`Orchestration Error`**. **Future LLM:** **`Enrichment Started`**, **`Enrichment Complete`**, **`Enrichment Deferred`** (contract encoded in skipped tests).
 
 **External adapters (outside this DataSource):**

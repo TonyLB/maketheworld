@@ -1,28 +1,73 @@
-import type { MessageBus } from '../../messageBus/baseClasses'
+jest.mock('../affordanceCache/catalogRow')
+jest.mock('../affordanceCache/ensureAffordanceTopology')
+
 import { orchestrateAffordanceRequest } from './orchestrationHandler'
-import type { AffordancesRequested } from './localApiEvents'
+import { getAffordanceRow } from '../affordanceCache/catalogRow'
+import { ensureAffordanceTopology } from '../affordanceCache/ensureAffordanceTopology'
 
-describe('orchestrateAffordanceRequest (scaffold)', () => {
-    const basePayload: AffordancesRequested = {
-        type: 'AffordancesRequested',
-        roomId: 'ROOM#one',
-        perspective: { assetStack: ['ASSET#base'] },
-        reason: 'topology',
-    }
+const getAffordanceRowMock = getAffordanceRow as jest.MockedFunction<typeof getAffordanceRow>
+const ensureTopologyMock = ensureAffordanceTopology as jest.MockedFunction<typeof ensureAffordanceTopology>
 
-    it('resolves without publishing stream events (stub)', async () => {
+describe('orchestrateAffordanceRequest', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        ensureTopologyMock.mockResolvedValue(undefined)
+    })
+
+    it('skips ensure when catalog is ready and reason is roster', async () => {
+        getAffordanceRowMock.mockResolvedValue({
+            EphemeraId: 'ROOM#one',
+            DataCategory: 'Affordance::PERSPECTIVE#v1#a',
+            assetStack: ['ASSET#a'],
+            catalogVersion: 1,
+            hydratedCatalogVersion: 1,
+            topology: { roomUniversalKey: 'ROOM#one', exits: [] },
+        })
+
         const streamEvent = jest.fn().mockResolvedValue(undefined)
-        const messageBus = {
-            send: jest.fn(),
-            flush: jest.fn().mockResolvedValue(undefined),
-        } as unknown as MessageBus
 
         await orchestrateAffordanceRequest({
-            payload: basePayload,
-            messageBus,
+            payload: {
+                type: 'AffordancesRequested',
+                roomId: 'ROOM#one',
+                perspective: { assetStack: ['ASSET#a'] },
+                reason: 'roster',
+            },
+            messageBus: { send: jest.fn() } as any,
             streamEvent,
         })
 
-        expect(streamEvent).not.toHaveBeenCalled()
+        expect(ensureTopologyMock).not.toHaveBeenCalled()
+        expect(streamEvent).toHaveBeenCalledWith(
+            expect.objectContaining({
+                update: expect.objectContaining({ type: 'Slice Ready' }),
+            })
+        )
+    })
+
+    it('calls ensureAffordanceTopology when reason is topology', async () => {
+        getAffordanceRowMock.mockResolvedValue({
+            EphemeraId: 'ROOM#one',
+            DataCategory: 'Affordance::PERSPECTIVE#v1#a',
+            assetStack: ['ASSET#a'],
+            catalogVersion: 1,
+            hydratedCatalogVersion: 1,
+            topology: { roomUniversalKey: 'ROOM#one', exits: [] },
+        })
+
+        const streamEvent = jest.fn().mockResolvedValue(undefined)
+
+        await orchestrateAffordanceRequest({
+            payload: {
+                type: 'AffordancesRequested',
+                roomId: 'ROOM#one',
+                perspective: { assetStack: ['ASSET#a'] },
+                reason: 'topology',
+            },
+            messageBus: { send: jest.fn() } as any,
+            streamEvent,
+        })
+
+        expect(ensureTopologyMock).toHaveBeenCalled()
     })
 })

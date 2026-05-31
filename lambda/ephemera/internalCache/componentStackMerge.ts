@@ -1,7 +1,6 @@
-import type {
-    ComponentAcrossAssetsEntry,
-    ComponentDataCache,
-} from '@tonylb/mtw-gateways/ts/assets/components/componentData'
+import type { ComponentAggregateMergedCache } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
+import { aggregatePerspectiveExplicit } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
+import type { AffordanceCacheData } from './affordanceCache'
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import CacheGlobalData from './global'
 import { excludeUndefined, unique } from '@tonylb/mtw-utilities/ts/lists'
@@ -15,11 +14,12 @@ import {
     isEphemeraCharacterId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import { RoomCharacterListItem } from './baseClasses'
 import CacheCharacterMetaData, { CharacterMetaItem } from './characterMeta'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import { CacheRoomCharacterListsData } from './roomCharacterLists'
-import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { ExitFacetList } from '@tonylb/mtw-wml/ts/standardize/keys/facets/exit'
@@ -87,10 +87,8 @@ export function roomCharacterListToStandardCharacterData(
 
 /** Room structural merge cache; key is (characterId, roomId). A future migration toward (componentId, perspectiveKey) would align with render / perception perspectiveKey usage. */
 export class ComponentStackMergeData {
-    _componentData: (
-        EphemeraId: ComponentUUID,
-        assetList: AssetUUID[]
-    ) => Promise<Record<AssetUUID, ComponentAcrossAssetsEntry>>
+    _componentAggregate: ComponentAggregateMergedCache
+    _affordanceCache: AffordanceCacheData
     _roomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>
     _getAssets: () => Promise<string[]>
     _characterMeta: (characterId: EphemeraCharacterId) => Promise<CharacterMetaItem>
@@ -99,13 +97,15 @@ export class ComponentStackMergeData {
     _Store: Record<string, StandardForm> = {}
 
     constructor(
-        componentData: ComponentDataCache,
+        componentAggregate: ComponentAggregateMergedCache,
+        affordanceCache: AffordanceCacheData,
         roomCharacterList: CacheRoomCharacterListsData,
         globalCache: CacheGlobalData,
         characterMeta: CacheCharacterMetaData,
         getMetaRoom: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
     ) {
-        this._componentData = (EphemeraId, assetList) => componentData.getAcrossAssets(EphemeraId, assetList)
+        this._componentAggregate = componentAggregate
+        this._affordanceCache = affordanceCache
         this._roomCharacterList = (RoomId) => roomCharacterList.get(RoomId)
         this._getAssets = async () => (await globalCache.get('assets')) || []
         this._characterMeta = (characterId) => characterMeta.get(characterId)
@@ -145,25 +145,34 @@ export class ComponentStackMergeData {
             isEphemeraCharacterId(CharacterId) ? this._characterMeta(CharacterId) : Promise.resolve({ assets: [] }),
         ])
 
-        const allAssets: AssetUUID[] = unique(globalAssets || [], characterAssets).map((key) => AssetKey(key))
-        const appearancesByAsset = await this._componentData(
-            EphemeraRoomId,
-            allAssets.map((key) => AssetKey(key))
-        )
+        const mergeParticipationOrder: AssetUUID[] = unique(globalAssets || [], characterAssets).map((key) => AssetKey(key))
+        const perspectiveKey = computePerspectiveKey(mergeParticipationOrder)
 
-        const assetData = allAssets
-            .map((assetId) => {
-                const entry = appearancesByAsset[assetId]
-                return entry ? [entry.component] : []
-            })
-            .flat(1) as StandardRoom[]
+        const perspective = aggregatePerspectiveExplicit({
+            universalKey: EphemeraRoomId,
+            mergeParticipationOrder,
+        })
 
-        const [roomCharacterList, meta] = await Promise.all([
+        const [aggregateResults, affordanceRow, roomCharacterList, meta] = await Promise.all([
+            this._componentAggregate.get([perspective]),
+            this._affordanceCache.getAffordanceRow(EphemeraRoomId, perspectiveKey),
             this._roomCharacterList(EphemeraRoomId),
             this._getMetaRoom(EphemeraRoomId),
         ])
-        const exits = mergeRoomExitsToJSON(assetData)
-        const shortNameLiteral = mergeRoomShortNameLiteral(assetData)
+
+        if (affordanceRow === undefined) {
+            throw new Error(
+                `AFFORDANCE_TOPOLOGY_NOT_READY: ${EphemeraRoomId} at ${perspectiveKey} (call ensureAffordanceTopology first)`
+            )
+        }
+
+        const mergedRoom = aggregateResults[0]?.merged
+        if (!(mergedRoom instanceof StandardRoom)) {
+            throw new Error(`ComponentAggregate did not return StandardRoom for ${EphemeraRoomId}`)
+        }
+
+        const exits = affordanceRow.topology.exits
+        const shortNameLiteral = mergedRoom.shortName
 
         const roomRow: StandardRoomData = {
             tag: 'Room',

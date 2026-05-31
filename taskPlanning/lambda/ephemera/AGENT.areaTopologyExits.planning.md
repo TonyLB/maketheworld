@@ -180,16 +180,16 @@ Pending work uses `[ ]`; completed work uses `[X]`.
 - [X] Scaffold **`mtw.ephemera.affordanceOrchestration`** (DataSource shell, skipped outbound tests, **`orchestrateAffordanceRequest`** stub).
 - [X] Migrate ingress adapters: **`roomUpdate`**, **`perception` `Objects Changed`** -> **`Affordances Requested`** (remove direct publish).
 - [X] Register **`internalCache.ComponentTopology`**.
-- [ ] **D30:** **`ComponentStackMerge`** -> **`ComponentAggregate`** for **`shortName`**; read topology from **`AffordanceCache`**; layered overlay tests.
-- [ ] Scaffold **`mtw.ephemera.affordanceCache`** + subscribe **`TopologyInvalidated`** + orchestration outbounds.
-- [ ] Implement **`handleTopologyInvalidated`** (catalog bump only).
-- [ ] Implement **`ensureAffordanceTopology`** + Dynamo persist + **`internalCache.AffordanceCache`** memo.
-- [ ] Wire orchestration -> cache -> **`Affordances Pertain`** (sync v1 path).
+- [X] **D30:** **`ComponentStackMerge`** -> **`ComponentAggregate`** for **`shortName`**; read topology from **`AffordanceCache`**; layered overlay tests.
+- [X] Scaffold **`mtw.ephemera.affordanceCache`** + subscribe **`TopologyInvalidated`** + orchestration outbounds.
+- [X] Implement **`handleTopologyInvalidated`** (catalog bump only).
+- [X] Implement **`ensureAffordanceTopology`** + Dynamo persist + **`internalCache.AffordanceCache`** memo.
+- [X] Wire orchestration -> cache -> **`Affordances Pertain`** (sync v1 path).
 - [ ] **`perception`:** subscribe **`Affordances Pertain`**; terminal publish via **`ComponentStackMerge`** (**D38**).
 - [ ] **D34:** Wire nav sync path (**`ensureAffordanceTopology`** + **`AffordanceCache.get`**); document limitations.
 - [ ] Topology fan-out on **`TopologyInvalidated`** -> **`Affordances Requested`**.
 - [ ] Affordance publish smoke + nav **`ambiguousMatch`** regression.
-- [ ] **`packages/mtw-gateways`** affordanceCache types + durable **`AGENT.md`** files.
+- [ ] **`packages/mtw-gateways`** affordanceCache types + durable **`AGENT.md`** files (gateway module landed; **`packages/mtw-gateways/AGENT.md`** subsection added).
 
 ---
 
@@ -198,10 +198,10 @@ Pending work uses `[ ]`; completed work uses `[X]`.
 ```bash
 cd lambda/ephemera
 npm test -- --watchAll=false dataSource/affordanceOrchestration/
-npm test -- --watchAll=false internalCache/componentStackMerge.test.ts dataSource/actions/index.test.ts
+npm test -- --watchAll=false internalCache/componentStackMerge.test.ts internalCache/affordanceCache.test.ts dataSource/affordanceCache/
 
 cd packages/mtw-gateways
-npm test -- --watchAll=false ts/assets/components/componentTopology/
+npm test -- --watchAll=false ts/assets/components/componentTopology/ ts/ephemera/affordanceCache/
 ```
 
 Expand as modules land: affordanceCache hydrate, orchestration-to-cache integration, perception **`Affordances Pertain`** handler.
@@ -219,7 +219,7 @@ Expand as modules land: affordanceCache hydrate, orchestration-to-cache integrat
 | `affordanceOrchestration` scaffold | Done |
 | Ingress adapters (RoomUpdate / Objects Changed) | Done |
 | `ComponentTopology` on InternalCache | Done |
-| D30 ComponentStackMerge refactor | Not started |
-| `affordanceCache` DataSource + hydrate | Not started |
+| D30 ComponentStackMerge refactor | Done |
+| `affordanceCache` DataSource + hydrate | Done |
 | Perception `Affordances Pertain` handler | Not started |
 | Nav shared topology path (D34 design) | Done |

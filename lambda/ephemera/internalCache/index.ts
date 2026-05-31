@@ -50,6 +50,7 @@ import CacheCharacterPossibleMapsData from './characterPossibleMaps';
 import CachePlayerMetaData from './playerMeta';
 import CacheGlobalData from './global';
 import { RenderCacheData } from './renderCache';
+import { AffordanceCacheData } from './affordanceCache';
 import ConversationsData from './conversations';
 import PerceptionThreadsData from './perceptionThreads';
 import CacheCoyoteGameData from './coyoteGame';
@@ -79,6 +80,7 @@ export class InternalCache {
     CoyoteGame: CacheCoyoteGameData;
     Conversations: ConversationsData = new ConversationsData(this.Global)
     RenderCache: RenderCacheData = new RenderCacheData()
+    AffordanceCache: AffordanceCacheData = new AffordanceCacheData()
     PlayerMeta: CachePlayerMetaData;
     OrchestrateMessages: OrchestrateMessagesData = new OrchestrateMessagesData()
     PerceptionThreads: PerceptionThreadsData = new PerceptionThreadsData()
@@ -145,15 +147,6 @@ export class InternalCache {
             this.CharacterMeta,
             this.RenderCache
         )
-        this.ComponentStackMerge = new ComponentStackMergeData(
-            this.ComponentData,
-            this.RoomCharacterList,
-            this.Global,
-            this.CharacterMeta,
-            (roomId) => this.ComponentEphemeraMeta.get(roomId)
-        )
-        this.GenerationContext = new GenerationContextData(this.ComponentData)
-        this.CharacterPossibleMaps = new CacheCharacterPossibleMapsData(this.CharacterMeta, this.Graph)
         this.ComponentAggregate = createComponentAggregateCacheHandler({
             ComponentData: this.ComponentData,
             ComponentVerticals: ephemeraComponentVerticalsStub,
@@ -164,9 +157,19 @@ export class InternalCache {
         this.ComponentTopology = createComponentTopologyCacheHandler({
             ComponentAggregate: this.ComponentAggregate,
         })
+        this.ComponentStackMerge = new ComponentStackMergeData(
+            this.ComponentAggregate,
+            this.AffordanceCache,
+            this.RoomCharacterList,
+            this.Global,
+            this.CharacterMeta,
+            (roomId) => this.ComponentEphemeraMeta.get(roomId)
+        )
+        this.GenerationContext = new GenerationContextData(this.ComponentData)
         this._invalidateAssetCallback = (EphemeraId) => {
             // Variable/Computed invalidation removed - no longer needed
         }
+        this.CharacterPossibleMaps = new CacheCharacterPossibleMapsData(this.CharacterMeta, this.Graph)
     }
 
     clear() {
@@ -199,6 +202,7 @@ export class InternalCache {
         this.CharacterPossibleMaps.clear()
         this.Conversations.clear()
         this.RenderCache.clear()
+        this.AffordanceCache.clear()
     }
 
     async flush() {
@@ -216,6 +220,7 @@ export class InternalCache {
             this.ComponentStackMerge.flush(),
             this.GenerationContext.flush(),
             this.RenderCache.flush(),
+            this.AffordanceCache.flush(),
         ])
     }
 
