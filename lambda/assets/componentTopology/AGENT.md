@@ -4,7 +4,7 @@ Non-replayable derived **Assets** DataSource that publishes skinny **`TopologyIn
 
 ## Purpose
 
-Notify downstream consumers (planned: **`mtw.ephemera.affordanceCache`**, Milestone 4) when room topology may have changed:
+Notify downstream consumers when room topology may have changed (**`mtw.ephemera.affordanceCache`** catalog bump + orchestration fan-out, shipped M4):
 
 - **Area** `positionGraph` **nodes** / **edges** edits
 - **Room** blueprint **`exits`** during **D6** dual-read
@@ -25,11 +25,11 @@ See [`packages/mtw-interfaces/ts/eventBridge/assets/componentTopology.ts`](../..
 
 ## Gateways pull (M3)
 
-Steady-state exit projection at a perspective is assembled by **`@tonylb/mtw-gateways/ts/assets/components/componentTopology`**: **`createComponentTopologyCacheHandler({ ComponentAggregate })`** (primary) composes **`ComponentAggregate.get`** + **`projectRoomExits`** in **`mtw-wml`**. Ephemera registered the handler on **`internalCache.ComponentTopology`**; **`mtw.ephemera.affordanceCache`** (planned) hydrates via **`ComponentTopology.get`** on **stale read** ( **`ensureAffordanceTopology`**, not in the invalidation handler). See [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) (**Component topology read surfaces**) and [`taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md`](../../../taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md).
+Steady-state exit projection at a perspective is assembled by **`@tonylb/mtw-gateways/ts/assets/components/componentTopology`**: **`createComponentTopologyCacheHandler({ ComponentAggregate })`** (primary) composes **`ComponentAggregate.get`** + **`projectRoomExits`** in **`mtw-wml`**. Ephemera registered the handler on **`internalCache.ComponentTopology`**; **`mtw.ephemera.affordanceCache`** hydrates via **`ComponentTopology.get`** on **stale read** (**`ensureAffordanceTopology`**, not in the invalidation handler). See [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) (**Component topology read surfaces**) and [`lambda/ephemera/dataSource/affordanceCache/AGENT.md`](../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md).
 
 ## Related
 
 - Parent initiative: [`taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md`](../../../taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md)
-- Assets child plan: [`taskPlanning/lambda/assets/AGENT.areaTopologyReferencedBy.planning.md`](../../../taskPlanning/lambda/assets/AGENT.areaTopologyReferencedBy.planning.md)
+- Persisted inverse index: [`../dataSource/caching/AGENT.diff.md`](../dataSource/caching/AGENT.diff.md) (**D10** `referencedBy` pass)
 - Precedent: [`../componentExamples/AGENT.md`](../componentExamples/AGENT.md)
-- Persisted inverse index: [`../dataSource/caching/AGENT.diff.md`](../dataSource/caching/AGENT.diff.md)
+- Downstream consumer: [`lambda/ephemera/dataSource/affordanceCache/AGENT.md`](../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md)

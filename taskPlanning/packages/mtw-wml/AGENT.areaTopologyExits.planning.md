@@ -43,10 +43,10 @@ Standing in the **`From`** room, the player sees **`Forward`** toward **`To`**; 
 | [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../lambda/ephemera/dataSource/renderCache/AGENT.md) | Ephemera durable cache + invalidate-then-hydrate-on-demand precedent (**D18**) |
 | [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) | `ComponentExamples` / `ComponentAggregate` gateway cache handlers |
 
-**Child plans (tracked in Milestones 2 and 4):**
+**Child plans (tracked in Milestones 2 and 4; both disposed --- see steady-state docs):**
 
-- **M2:** [`taskPlanning/lambda/assets/AGENT.areaTopologyReferencedBy.planning.md`](../../lambda/assets/AGENT.areaTopologyReferencedBy.planning.md) --- **`referencedBy`** / **`cacheAsset`**, **`mtw.assets.componentTopology`**
-- **M4:** [`taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md`](../../lambda/ephemera/AGENT.areaTopologyExits.planning.md) --- **D30**, **D32-D38**, **`affordanceOrchestration`** + **`affordanceCache`** + perception terminal publish, navigation
+- **M2 (disposed):** [`lambda/assets/dataSource/caching/AGENT.diff.md`](../../../lambda/assets/dataSource/caching/AGENT.diff.md) + [`lambda/assets/componentTopology/AGENT.md`](../../../lambda/assets/componentTopology/AGENT.md) --- **`referencedBy`** / **`cacheAsset`**, **`mtw.assets.componentTopology`**. *(Former task plan `taskPlanning/lambda/assets/AGENT.areaTopologyReferencedBy.planning.md` removed.)*
+- **M4 (disposed):** [`lambda/ephemera/dataSource/affordanceOrchestration/AGENT.md`](../../../lambda/ephemera/dataSource/affordanceOrchestration/AGENT.md) + [`affordanceCache/AGENT.md`](../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md) --- **D30**, **D32-D38**, three-layer affordance pipeline, navigation
 
 ---
 
@@ -234,13 +234,13 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Update [`AGENT.implementation.md`](../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) (**StandardArea** edges) when behavior is stable.
 
 - [X] **Milestone 2 --- Persisted `referencedBy` (assets + gateways)**
-  - [X] **Child plan:** create [`taskPlanning/lambda/assets/AGENT.areaTopologyReferencedBy.planning.md`](../../lambda/assets/AGENT.areaTopologyReferencedBy.planning.md) --- **`cacheAsset`** writer, **`referencedBy`** tests, **`mtw.assets.componentTopology`** invalidation (**D8-D11**).
+  - [X] **Assets (disposed child plan):** [`lambda/assets/dataSource/caching/AGENT.diff.md`](../../../lambda/assets/dataSource/caching/AGENT.diff.md) + [`componentTopology/AGENT.md`](../../../lambda/assets/componentTopology/AGENT.md) --- **`cacheAsset`** writer, **`referencedBy`** tests, **`mtw.assets.componentTopology`** invalidation (**D8-D11**). *(Former task plan `taskPlanning/lambda/assets/AGENT.areaTopologyReferencedBy.planning.md` removed.)*
   - [X] Extend **`cacheAsset`**: compute **`referencedBy`** from in-memory **`fileAsset`** / diff; patch **`(target, ASSET#)`** rows beyond **`diff._components`** when inverse changes (**D10**).
   - [X] **`mtw-gateways`:** **`PersistedReferencedByEntry`** type; strip **`referencedBy`** in **`fetch.ts`**; extend **`ComponentPairRow`** / **`ComponentDataCache`** (**D31**).
   - [X] **`ComponentData`:** pair rows carry **`referencedBy`**; **`getAcrossAssets`** feeds **`participationBatch`** with per-asset lists.
   - [X] **`MergedComponentResult.referencedByUnion`** + union helper (**D31**, **D12**); golden test: two assets, two referrers, dedupe rules documented.
   - [X] **`ComponentExamples`** / other aggregate callers: verify unchanged (use **`.merged`** only).
-  - [X] Invalidation contract (**D11**); tests in assets lambda; index updates must drive **`TopologyInvalidated`** once **`componentTopology`** exists (detail in assets child plan).
+  - [X] Invalidation contract (**D11**); tests in assets lambda; index updates drive **`TopologyInvalidated`** via **`mtw.assets.componentTopology`** (see [`componentTopology/AGENT.md`](../../../lambda/assets/componentTopology/AGENT.md)).
 
 - [X] **Milestone 3 --- Projection library + gateways pull (`mtw-wml` + `@tonylb/mtw-gateways`)**
   - [X] **Naming / layout (normative):** mirror **`componentExamples`** + **`renderCache`** split ([`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md)); detail in [Gateways `componentTopology` module (M3)](#gateways-componenttopology-module-m3).
@@ -253,9 +253,9 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
     - [X] Update **`packages/mtw-gateways/AGENT.md`**: ownership table row + **Component topology read surfaces (primary vs secondary)** subsection.
   - [X] **Explicit M3 non-goals:** Ephemera **`internalCache.ComponentTopology`** registration; **`mtw.ephemera.affordanceCache`** Dynamo rows; ephemeraWire **`StandardRoom.exits`** on affordance publish; **D30** **`ComponentStackMerge`** refactor (all **M4**).
 
-- [ ] **Milestone 4 --- Ephemera caching integration + affordance pipeline**
-  - [X] **Child plan:** [`taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md`](../../lambda/ephemera/AGENT.areaTopologyExits.planning.md) --- **D32-D38**, **`affordanceOrchestration`** + **`affordanceCache`**, perception terminal publish, navigation, **D11** invalidation matrix.
-  - [ ] **Child plan:** extend assets [`AGENT.areaTopologyReferencedBy.planning.md`](../../lambda/assets/AGENT.areaTopologyReferencedBy.planning.md) --- M3 gateways module landed; M4 wiring verification only (assets **`mtw.assets.componentTopology`** invalidation shipped in M2).
+- [X] **Milestone 4 --- Ephemera caching integration + affordance pipeline**
+  - [X] **Ephemera (disposed child plan):** [`lambda/ephemera/dataSource/affordanceOrchestration/`](../../../lambda/ephemera/dataSource/affordanceOrchestration/AGENT.md) + [`affordanceCache/`](../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md) --- **D32-D38**, perception terminal publish, navigation, **D11** invalidation matrix. *(Former task plan `taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md` removed after M4 shipped.)*
+  - [X] **Assets M4 verification (disposed with M2 child plan):** M3 gateways module landed; Ephemera hydrate via **`ComponentTopology.get`** shipped; assets **`componentTopology/`** tests pass.
   - [X] **D32-D38** locked (orchestration preflight, colocated row, nav sync bypass, layer participation, single-flight hydrate, pipeline, compose role).
   - [X] **D30:** Refactor **`ComponentStackMerge`** to **`ComponentAggregate`**; remove **`mergeRoomExitsToJSON`** from affordance path; tests for layered exit overlay (**D,E** + remove **D** + add **F** -> **E,F**).
   - [X] Scaffold **`mtw.ephemera.affordanceOrchestration`** DataSource --- shell, **`Affordances Requested`** ingress types, **`orchestrateAffordanceRequest`** stub, stream outbound contracts ([`lambda/ephemera/dataSource/affordanceOrchestration/`](../../../lambda/ephemera/dataSource/affordanceOrchestration/AGENT.md)).
@@ -566,7 +566,7 @@ TopologyInvalidated ----/       orchestrateAffordanceRequest          (when cata
 
 ## Affordance pipeline (M4)
 
-Ephemera child plan (implementation home): [`taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md`](../../lambda/ephemera/AGENT.areaTopologyExits.planning.md).
+Ephemera steady-state docs (implementation home): [`lambda/ephemera/dataSource/affordanceOrchestration/AGENT.md`](../../../lambda/ephemera/dataSource/affordanceOrchestration/AGENT.md), [`affordanceCache/AGENT.md`](../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md).
 
 **Why three layers (D37):** M4 lands substantial new boundaries (**D32**, durable cache, perception publish). Scaffolding **`affordanceOrchestration`** now --- thin, sync-only in v1 --- aligns with **`renderOrchestration` + `renderCache` + perception** and avoids **`ComponentStackMerge`** / direct publish paths becoming authoritative stop-gaps before future LLM topology enrichment.
 

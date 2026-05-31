@@ -1,6 +1,6 @@
 /**
  * Outgoing stream payloads for mtw.ephemera.affordanceOrchestration (bus-only DataSource).
- * See taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md (v1: Slice Ready, Orchestration Error).
+ * See ./AGENT.md (v1: Slice Ready, Orchestration Error).
  */
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { StreamingEventEnvelope, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
