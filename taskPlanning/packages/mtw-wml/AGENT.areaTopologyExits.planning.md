@@ -1,8 +1,8 @@
 # Area topology exits (platform initiative)
 
-**Status:** In progress. **Milestone 0 (decisions)** complete; **Milestone 1** complete (WML + StandardArea asset mode).
+**Status:** In progress. **Milestone 0 (decisions)** complete; **Milestone 1** complete (WML + StandardArea asset mode); **Milestone 2** complete (persisted `referencedBy`); **Milestone 3** complete (projection library + gateways pull).
 
-**Next step:** **Milestone 2** persisted `referencedBy` (assets + gateways); **M3** projection library may proceed in parallel once gated.
+**Next step:** **Milestone 4** Ephemera `ComponentTopology` + `affordanceCache` integration.
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into package `AGENT.md` files next to code.
 
@@ -175,8 +175,8 @@ Mark decisions **`[X]`** in the **Status** column when normative. Milestone gate
 | --- | --- |
 | **1** WML + `StandardArea` (asset mode) | **D1-D7**, **D5b**, **D26-D29** [X] |
 | **2** Persisted `referencedBy` | **D8-D13** [X], **D31** [X]; **`cacheAsset`** + pair strip/carry + **`referencedByUnion`** on **`MergedComponentResult`** |
-| **3** Projection library + gateways pull | **D1-D6**, **D14-D17** [X]; **`assembleRoomTopologyAtPerspective`** + **`projectRoomExits`** contract |
-| **4** Ephemera + assets caching integration | **D2**, **D11**, **D14-D18** [X], **D30** [X], Milestones **2-3**; **`componentTopology`** + **`affordanceCache`** |
+| **3** Projection library + gateways pull | **D1-D6**, **D14-D17** [X]; **`projectRoomExits`**; **`mtw-gateways/ts/assets/components/componentTopology/`** (**`createComponentTopologyCacheHandler`**, primary) |
+| **4** Ephemera + assets caching integration | **D2**, **D11**, **D14-D18** [X], **D30** [X], Milestones **2-3**; **`internalCache.ComponentTopology`** + **`mtw.ephemera.affordanceCache`** (M2 assets invalidation DataSource already shipped) |
 | **5** Authoring + migration | **D19-D24** [X], Milestone **1**; manual DB migration (**D24**); Area workbench (**D19**) |
 | **6** Cleanup + durable docs | Prior milestones; **D23** follow-up (forbid room-local exits + UI); **D25** test retirement |
 
@@ -227,20 +227,25 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] **`ComponentExamples`** / other aggregate callers: verify unchanged (use **`.merged`** only).
   - [X] Invalidation contract (**D11**); tests in assets lambda; index updates must drive **`TopologyInvalidated`** once **`componentTopology`** exists (detail in assets child plan).
 
-- [ ] **Milestone 3 --- Projection library + gateways pull (`mtw-wml` + `@tonylb/mtw-gateways`)**
-  - [ ] Pure `projectRoomExits(...)` (name TBD): inputs = room id, merged Area edge sets (per **D14-D15**), index; output = `ExitFacetList` JSON.
-  - [ ] Golden tests; document merge semantics (**D15**, **D5**).
-  - [ ] `StandardRoom` in ephemeraWire: populate `exits` only via projection helper (no asset-mode source).
-  - [ ] Gateways: **`assembleRoomTopologyAtPerspective`** + **`createComponentTopologyCacheHandler`** (perspective key aligned with **`ComponentExamples`** / render cache).
+- [X] **Milestone 3 --- Projection library + gateways pull (`mtw-wml` + `@tonylb/mtw-gateways`)**
+  - [X] **Naming / layout (normative):** mirror **`componentExamples`** + **`renderCache`** split ([`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md)); detail in [Gateways `componentTopology` module (M3)](#gateways-componenttopology-module-m3).
+  - [X] **`mtw-wml` --- `projectRoomExits`:** pure projector (finalize name per **D16**). Inputs = **`ROOM#`**, merged **`StandardArea`** edge sets at **`mergeParticipationOrder`** (**D14-D15**); output = **`ExitFacetList`** JSON. Golden tests; document merge semantics (**D15**, **D5**). No Dynamo, no **`InternalCache`**.
+  - [X] **mtw-gateways:** new [`ts/assets/components/componentTopology/`](../../../packages/mtw-gateways/ts/assets/components/componentTopology/) (compute-only; reuse **D31** types from **`componentData`** / **`aggregate`** --- do not duplicate **`referencedBy`** plumbing):
+    - [X] File roles: **`ports.ts`**, **`input.ts`**, **`result.ts`**, **`keys.ts`**, **`assemble.ts`**, **`factory.ts`**, **`index.ts`** (same layout as [`componentExamples/`](../../../packages/mtw-gateways/ts/assets/components/componentExamples/)).
+    - [X] **Primary:** **`ComponentTopologyMergedCache`** / **`createComponentTopologyCacheHandler({ ComponentAggregate })`**; **`componentTopologyPerspectiveCacheKey`** uses **`roomUniversalKey::computePerspectiveKey(mergeParticipationOrder)`** (aligned with **`aggregatePerspectiveCacheKey`** / **`componentExamplesPerspectiveCacheKey`**).
+    - [X] **Secondary:** **`assembleRoomTopologyAtPerspective`** in **`assemble.ts`** --- package tests, goldens, parity only; **not** lambda steady-state hydrate (same rule as **`assembleComponentExamplesAtPerspective`**).
+    - [X] Assembly pipeline: **`ComponentAggregate.get(ROOM#)`** -> **`.referencedByUnion`** (filter **`AREA#`**, edge endpoints only, **D14**) -> batch Area **`get`** at same **`mergeParticipationOrder`** (**D12**) -> **`projectRoomExits`** (**D16**). No second **`getAcrossAssets(ROOM#)`** beyond aggregate batch (**D31**).
+    - [X] Update **`packages/mtw-gateways/AGENT.md`**: ownership table row + **Component topology read surfaces (primary vs secondary)** subsection.
+  - [X] **Explicit M3 non-goals:** Ephemera **`internalCache.ComponentTopology`** registration; **`mtw.ephemera.affordanceCache`** Dynamo rows; ephemeraWire **`StandardRoom.exits`** on affordance publish; **D30** **`ComponentStackMerge`** refactor (all **M4**).
 
-- [ ] **Milestone 4 --- Assets + ephemera caching integration**
+- [ ] **Milestone 4 --- Ephemera caching integration + affordance path**
   - [ ] **Child plan:** create [`taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md`](../../lambda/ephemera/AGENT.areaTopologyExits.planning.md) (**D30**, **`internalCache.ComponentTopology`**, **`mtw.ephemera.affordanceCache`**, affordance publish, navigation, **D11** invalidation matrix).
-  - [ ] **Child plan:** extend assets [`AGENT.areaTopologyReferencedBy.planning.md`](../../lambda/assets/AGENT.areaTopologyReferencedBy.planning.md) for **`componentTopology`** + gateways pull integration with M3.
+  - [ ] **Child plan:** extend assets [`AGENT.areaTopologyReferencedBy.planning.md`](../../lambda/assets/AGENT.areaTopologyReferencedBy.planning.md) --- M3 gateways module landed; M4 wiring verification only (assets **`mtw.assets.componentTopology`** invalidation shipped in M2).
   - [ ] **D30:** Refactor **`ComponentStackMerge`** to **`ComponentAggregate`**; remove **`mergeRoomExitsToJSON`** from affordance path; tests for layered exit overlay (**D,E** + remove **D** + add **F** -> **E,F**).
-  - [ ] Assets: **`mtw.assets.componentTopology`** DataSource --- skinny **`TopologyInvalidated`** on Area / Room topology diffs (**D11** sketch).
-  - [ ] Ephemera: register **`internalCache.ComponentTopology`**; **`mtw.ephemera.affordanceCache`** --- hydrate, Dynamo rows, catalog bump on invalidation (**D18**).
-  - [ ] Affordance publish + navigation use hydrated topology slice; **`ComponentStackMerge`** = aggregate blueprint slice (transitional room **`exits`** until projection) + ephemera-only fields (roster, **`objects`**).
-  - [ ] `getRoomExitTargetsForCharacter` shares projection / cache path with affordances.
+  - [ ] Ephemera: register **`createComponentTopologyCacheHandler`** on **`internalCache.ComponentTopology`**; steady-state reads call **`get`**, not uncached **`assembleRoomTopologyAtPerspective`** ([`.cursor/rules/gateways-internal-cache.mdc`](../../../.cursor/rules/gateways-internal-cache.mdc)).
+  - [ ] Ephemera: **`mtw.ephemera.affordanceCache`** DataSource + **`ts/ephemera/affordanceCache/`** gateway ( **`renderCache`** precedent) --- durable rows per **`(ROOM#, perspectiveKey)`**; hydrate via **`internalCache.ComponentTopology.get`** on **`TopologyInvalidated`** (**D18**).
+  - [ ] **`StandardRoom` in ephemeraWire:** populate **`exits`** only via projected topology slice (no asset-mode source); affordance publish + **`getRoomExitTargetsForCharacter`** share hydrated path.
+  - [ ] **`ComponentStackMerge`** = projected exits from topology slice (post-**D30** transitional **`merged.exits`** retired) + ephemera-only fields (roster, **`objects`**).
   - [ ] Close **D11** invalidation matrix in child plans; verify `roomChannel: 'affordances'`.
 
 - [ ] **Milestone 5 --- Authoring + migration**
@@ -295,9 +300,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
 
 ```bash
 cd packages/mtw-wml
-npm test -- --watchAll=false ts/standardize/components/area.test.ts ts/standardize/components/area.integration.test.ts
-# After projection exists:
-npm test -- --watchAll=false ts/standardize/components/room.test.ts ts/standardize/integration/
+npm test -- --watchAll=false ts/standardize/projection/projectRoomExits.test.ts ts/standardize/components/area.test.ts ts/standardize/components/area.integration.test.ts
 npx tsc -p packages/mtw-wml/tsconfig.json --noEmit
 ```
 
@@ -316,7 +319,14 @@ npm run test -- --watchAll=false internalCache/componentStackMerge.test.ts dataS
 # Expand per child plan
 ```
 
-**Assets (after Milestone 2):**
+**Gateways (after Milestone 3):**
+
+```bash
+cd packages/mtw-gateways
+npm test -- --watchAll=false ts/assets/components/componentTopology/
+```
+
+**Assets (Milestone 2; re-run after M4 wiring):**
 
 ```bash
 cd lambda/assets
@@ -340,8 +350,8 @@ npm test
 | M0 Decision spike (D1-D7, D5b, D8-D31, D18-D25) | Done |
 | M1 WML + StandardArea edges | Done |
 | M2 Persisted referencedBy | Done (see child plan) |
-| M3 Projection library | Not started |
-| M4 Ephemera integration | Not started |
+| M3 Projection library + gateways `componentTopology/` | Done |
+| M4 Ephemera `ComponentTopology` + `affordanceCache` | Not started |
 | M5 Authoring + migration | Not started |
 | M6 Cleanup + archive plan | Not started |
 
@@ -467,9 +477,33 @@ ComponentAggregate.get(ROOM#, stack) --> { merged, referencedByUnion }
 
 ---
 
+## Gateways `componentTopology` module (M3)
+
+Normative **compute-only** pull surface for room exit projection at a perspective. Precedent: [**Component examples read surfaces**](../../../packages/mtw-gateways/AGENT.md) and [`ts/assets/components/componentExamples/`](../../../packages/mtw-gateways/ts/assets/components/componentExamples/).
+
+| Concern | Package / lambda home | Milestone |
+| --- | --- | --- |
+| Pure **`projectRoomExits`** | **`mtw-wml`** | **M3** |
+| Perspective assembly + **`DeferredCache`** | **`mtw-gateways/ts/assets/components/componentTopology/`** | **M3** |
+| Skinny **`TopologyInvalidated`** bus | **`lambda/assets/componentTopology/index.ts`** (`mtw.assets.componentTopology`) | **M2** (done) |
+| **`internalCache.ComponentTopology.get`** | Ephemera + diagnostics register **`createComponentTopologyCacheHandler`** | **M4** |
+| Durable hydrated topology rows | **`mtw.ephemera.affordanceCache`** + **`ts/ephemera/affordanceCache/`** ( **`renderCache`** analogue) | **M4** |
+
+**Deep import:** `@tonylb/mtw-gateways/ts/assets/components/componentTopology`
+
+**Primary (steady-state):** **`createComponentTopologyCacheHandler({ ComponentAggregate })`**, **`componentTopologyPerspectiveCacheKey`**, stable result DTO in **`result.ts`**.
+
+**Secondary (tests / parity only):** **`assembleRoomTopologyAtPerspective`** in **`assemble.ts`** --- do **not** wire new lambda hydrate paths to **`assemble*`** when the cache handler exists.
+
+**Composition slice:** `{ ComponentAggregate: internalCache.ComponentAggregate }` --- same injection shape as **`createComponentExamplesCacheHandler`**.
+
+**M3 non-goals:** **`referencedBy`** strip/carry / **`referencedByUnion`** (M2 **D31** in **`componentData`** / **`aggregate`**); Ephemera Dynamo; **`ComponentStackMerge`** / affordance publish (**M4**).
+
+---
+
 ## Caching architecture (D18)
 
-Normative split modeled on **`mtw.assets.componentExamples`** + **`mtw.ephemera.renderCache`** ([`componentExamples/AGENT.md`](../../../lambda/assets/componentExamples/AGENT.md), [`renderCache/AGENT.md`](../../../lambda/ephemera/dataSource/renderCache/AGENT.md)).
+Normative split modeled on **`mtw.assets.componentExamples`** + **`mtw.ephemera.renderCache`** ([`componentExamples/AGENT.md`](../../../lambda/assets/componentExamples/AGENT.md), [`renderCache/AGENT.md`](../../../lambda/ephemera/dataSource/renderCache/AGENT.md)). Module layout for the gateways pull layer: [Gateways `componentTopology` module (M3)](#gateways-componenttopology-module-m3).
 
 ```text
 cacheAsset / referencedBy meta     mtw.assets.componentTopology       mtw.ephemera.affordanceCache
@@ -484,7 +518,7 @@ cacheAsset / referencedBy meta     mtw.assets.componentTopology       mtw.epheme
 | --- | --- | --- |
 | **Persisted `referencedBy` (M2, D9 B)** | **`referencedBy`** on **`(target, ASSET#)`** forward rows; read as **`referencedByUnion`** via **`ComponentAggregate.get`** (**D31**) | Store merged exit facets; separate **`Meta::ReferencedBy`** SK rows |
 | **`mtw.assets.componentTopology`** | Detect topology-relevant blueprint diffs; emit skinny invalidation; optional diagnostics hooks | Ship full projected **`ExitFacetList`** on the event bus |
-| **Gateways `ComponentTopology`** | **`ComponentAggregate.get(ROOM#)`** -> **`referencedByUnion`**; batch Area **`merged`**; **`projectRoomExits`** | Put **`referencedBy`** on **`StandardComponent`**; duplicate ROOM# pair fetch |
+| **Gateways `componentTopology/` (M3)** | **`createComponentTopologyCacheHandler`**: **`ComponentAggregate.get(ROOM#)`** -> **`referencedByUnion`**; batch Area **`merged`**; **`projectRoomExits`** | Put **`referencedBy`** on **`StandardComponent`**; duplicate ROOM# pair fetch; uncached **`assemble*`** on hot paths |
 | **`mtw.ephemera.affordanceCache`** | Durable rows + hydrate-on-invalidate; memo via **`internalCache`** | Own **`RoomCharacterList`** or **`Meta::Room.objects`** |
 | **Affordance publish** | Assemble **ephemeraWire** WML from hydrated slice + runtime ephemera fields | Recompute Area fan-out on every perception tick |
 

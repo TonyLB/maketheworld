@@ -23,6 +23,10 @@ See [`packages/mtw-interfaces/ts/eventBridge/assets/componentTopology.ts`](../..
 
 **v1:** Coarse invalidation --- list affected **`roomIds`**; optional **`areaId`** hint. No **`ExitFacetList`** on the bus.
 
+## Gateways pull (M3)
+
+Steady-state exit projection at a perspective is assembled by **`@tonylb/mtw-gateways/ts/assets/components/componentTopology`**: **`createComponentTopologyCacheHandler({ ComponentAggregate })`** (primary) composes **`ComponentAggregate.get`** + **`projectRoomExits`** in **`mtw-wml`**. Ephemera registers the handler on **`internalCache.ComponentTopology`** in Milestone 4; **`mtw.ephemera.affordanceCache`** hydrates via **`ComponentTopology.get`** on **`TopologyInvalidated`**. See [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) (**Component topology read surfaces**).
+
 ## Related
 
 - Parent initiative: [`taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md`](../../../taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md)

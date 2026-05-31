@@ -41,5 +41,3 @@ export function validateAssembleComponentExamplesInput(
 export function defaultResolveRoomLensMarkDefaults(hostUniversalKey: EphemeraId): boolean {
     return isEphemeraRoomId(hostUniversalKey)
 }
-
-export type { MergeParticipationOrder }
