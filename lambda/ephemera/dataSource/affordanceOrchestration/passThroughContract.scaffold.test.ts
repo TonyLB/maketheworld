@@ -1,15 +1,23 @@
 /**
  * Contract tests: orchestration emits mtw.ephemera.affordanceOrchestration StreamingEvents.
- * v1-active outbounds: Slice Ready, Orchestration Error (emission tests skipped until handler wires streamEvent).
+ * v1-active outbounds: Slice Ready, Orchestration Error.
  * Enrichment outbounds: skipped until LLM enrichment path.
  */
+jest.mock('../affordanceCache/catalogRow')
+jest.mock('../affordanceCache/ensureAffordanceTopology')
+
 import type { MessageBus as MessageBusType } from '../../messageBus/baseClasses'
 import { orchestrateAffordanceRequest } from './orchestrationHandler'
+import { getAffordanceRow } from '../affordanceCache/catalogRow'
+import { ensureAffordanceTopology } from '../affordanceCache/ensureAffordanceTopology'
 import type { AffordancesRequested } from './localApiEvents'
 import {
     AFFORDANCE_ORCHESTRATION_DATA_SOURCE_KEY,
     streamEventFromMessageBus,
 } from './publishedEvents'
+
+const getAffordanceRowMock = getAffordanceRow as jest.MockedFunction<typeof getAffordanceRow>
+const ensureTopologyMock = ensureAffordanceTopology as jest.MockedFunction<typeof ensureAffordanceTopology>
 
 const makeBus = (): MessageBusType & { send: jest.Mock; flush: jest.Mock } => (
     {
@@ -49,7 +57,20 @@ describe.skip('affordanceOrchestration stream outcomes (enrichment outbounds; un
     })
 })
 
-describe.skip('affordanceOrchestration stream outcomes (v1 emission; until affordanceCache subscribes)', () => {
+describe('affordanceOrchestration stream outcomes (v1 emission)', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        ensureTopologyMock.mockResolvedValue(undefined)
+        getAffordanceRowMock.mockResolvedValue({
+            EphemeraId: 'ROOM#one',
+            DataCategory: 'Affordance::PERSPECTIVE#v1#a',
+            assetStack: ['ASSET#base'],
+            catalogVersion: 1,
+            hydratedCatalogVersion: 1,
+            topology: { roomUniversalKey: 'ROOM#one', exits: [] },
+        })
+    })
+
     it('success path emits Slice Ready on mtw.ephemera.affordanceOrchestration', async () => {
         const messageBus = makeBus()
         await orchestrateAffordanceRequest(
@@ -62,6 +83,7 @@ describe.skip('affordanceOrchestration stream outcomes (v1 emission; until affor
     })
 
     it('intake failure emits Orchestration Error on mtw.ephemera.affordanceOrchestration', async () => {
+        ensureTopologyMock.mockRejectedValue(new Error('hydrate failed'))
         const messageBus = makeBus()
         await orchestrateAffordanceRequest(
             { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },

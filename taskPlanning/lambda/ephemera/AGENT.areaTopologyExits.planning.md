@@ -187,9 +187,9 @@ Pending work uses `[ ]`; completed work uses `[X]`.
 - [X] Wire orchestration -> cache -> **`Affordances Pertain`** (sync v1 path).
 - [X] **`perception`:** subscribe **`Affordances Pertain`**; terminal publish via **`ComponentStackMerge`** (**D38**).
 - [X] **D34:** Wire nav sync path (**`ensureAffordanceTopology`** + **`AffordanceCache.get`**); document limitations.
-- [ ] Topology fan-out on **`TopologyInvalidated`** -> **`Affordances Requested`**.
-- [ ] Affordance publish smoke + nav **`ambiguousMatch`** regression.
-- [ ] **`packages/mtw-gateways`** affordanceCache types + durable **`AGENT.md`** files (gateway module landed; **`packages/mtw-gateways/AGENT.md`** subsection added).
+- [X] Topology fan-out on **`TopologyInvalidated`** -> **`Affordances Requested`**.
+- [X] Affordance publish smoke + nav **`ambiguousMatch`** regression.
+- [X] **`packages/mtw-gateways`** affordanceCache types + durable **`AGENT.md`** files (gateway module landed; **`packages/mtw-gateways/AGENT.md`** subsection added).
 
 ---
 
@@ -198,14 +198,16 @@ Pending work uses `[ ]`; completed work uses `[X]`.
 ```bash
 cd lambda/ephemera
 npm test -- --watchAll=false dataSource/affordanceOrchestration/
+npm test -- --watchAll=false dataSource/passThroughAffordanceOrchestrationToCache.integration.test.ts
 npm test -- --watchAll=false internalCache/componentStackMerge.test.ts internalCache/affordanceCache.test.ts dataSource/affordanceCache/
-npm test -- --watchAll=false dataSource/actions/roomExitTargetsForCharacter.test.ts
+npm test -- --watchAll=false dataSource/actions/roomExitTargetsForCharacter.test.ts dataSource/actions/roomExitAmbiguousMatch.regression.test.ts
+npm test -- --watchAll=false dataSource/perception/handleAffordancesPertain.test.ts
 
 cd packages/mtw-gateways
 npm test -- --watchAll=false ts/assets/components/componentTopology/ ts/ephemera/affordanceCache/
 ```
 
-Expand as modules land: affordanceCache hydrate, orchestration-to-cache integration, perception **`Affordances Pertain`** handler (shipped), nav sync path **D34** (shipped).
+Expand as modules land: affordanceCache hydrate, orchestration-to-cache integration (shipped), perception **`Affordances Pertain`** handler (shipped), nav sync path **D34** (shipped), topology fan-out + ambiguousMatch regression (shipped).
 
 **Hygiene (grep):** After migration, no production path outside **`affordanceOrchestration`** ingress should call **`publishRoomAffordancePerceptionMessages`** directly.
 
@@ -224,3 +226,6 @@ Expand as modules land: affordanceCache hydrate, orchestration-to-cache integrat
 | `affordanceCache` DataSource + hydrate | Done |
 | Perception `Affordances Pertain` handler | Done |
 | Nav shared topology path (D34 implementation) | Done |
+| Topology fan-out (TopologyInvalidated -> orchestration) | Done |
+| Publish smoke + ambiguousMatch regression | Done |
+| Gateway affordanceCache AGENT.md | Done |

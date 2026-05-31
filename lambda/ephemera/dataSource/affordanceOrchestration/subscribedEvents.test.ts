@@ -88,6 +88,17 @@ describe('affordanceOrchestration subscribedEvents', () => {
         expect(
             isAffordanceOrchestrationSubscribedEnvelope({
                 header: {
+                    dataSourceKey: 'mtw.assets.componentTopology',
+                    streamKey: 'ROOM#one',
+                    timestamp: Date.now(),
+                    type: 'TopologyInvalidated',
+                },
+                getContent: () => Promise.resolve({ type: 'TopologyInvalidated' }),
+            } as any)
+        ).toBe(true)
+        expect(
+            isAffordanceOrchestrationSubscribedEnvelope({
+                header: {
                     dataSourceKey: 'mtw.ephemera.state',
                     streamKey: 'ROOM#one',
                     timestamp: Date.now(),

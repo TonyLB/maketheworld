@@ -16,6 +16,8 @@ import type {
     AffordanceOrchestrationIngressCommand,
     AffordancesRequestedCommand,
 } from './localApiEvents'
+import type { ComponentTopologyInvalidatedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/componentTopology'
+import { isComponentTopologyInvalidatedEnvelope } from '../affordanceCache/subscribedEvents'
 import {
     isEphemeraObjectsObjectsChangedEnvelope,
     type ObjectsChangedPayload,
@@ -56,12 +58,14 @@ export const isAffordanceOrchestrationIngressEnvelope = makeStreamingEnvelopeGua
 export type AffordanceOrchestrationSubscribedContent =
     | AffordanceOrchestrationIngressCommand
     | ObjectsChangedPayload
+    | ComponentTopologyInvalidatedEvent
 
 export const isAffordanceOrchestrationSubscribedEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
 ): envelope is StreamingEventEnvelope<AffordanceOrchestrationSubscribedContent> => (
     isAffordanceOrchestrationIngressEnvelope(envelope)
         || isEphemeraObjectsObjectsChangedEnvelope(envelope)
+        || isComponentTopologyInvalidatedEnvelope(envelope)
 )
 
 type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }

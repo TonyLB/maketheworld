@@ -4,11 +4,14 @@
  * Canonical home for affordance-channel orchestration (Area topology exits, M4).
  * See ./AGENT.md for semantics and constraints.
  *
- * Ingress: api.ephemera Affordances Requested; mtw.ephemera.objects Objects Changed (fan-out).
+ * Ingress: api.ephemera Affordances Requested; mtw.ephemera.objects Objects Changed (fan-out);
+ * mtw.assets.componentTopology TopologyInvalidated (fan-out, reason: topology).
  * Outbounds: five-type stream on this DataSource via streamEvent (v1-active: Slice Ready, Orchestration Error).
  * replayable: false.
  */
 import EphemeraDataSource from '../abstract'
+import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isRoomScopedTopologyInvalidated } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/componentTopology'
 import {
     isAffordanceOrchestrationIngressEnvelope,
     isAffordanceOrchestrationSubscribedEnvelope,
@@ -16,6 +19,7 @@ import {
     type AffordanceOrchestrationIngressEvent,
     type AffordanceOrchestrationSubscribedContent,
 } from './subscribedEvents'
+import { isComponentTopologyInvalidatedEnvelope } from '../affordanceCache/subscribedEvents'
 import { isAffordancesRequestedCommand } from './localApiEvents'
 import { orchestrateAffordanceRequest } from './orchestrationHandler'
 import { fanOutAffordanceRefreshForRoom } from './fanOutAffordanceRefreshForRoom'
@@ -48,6 +52,24 @@ export const affordanceOrchestrationDataSource = new EphemeraDataSource<
     subscribedEventTypeGuard: isAffordanceOrchestrationSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (event) => {
+            if (isComponentTopologyInvalidatedEnvelope(event)) {
+                const raw = await event.getContent()
+                if (!isRoomScopedTopologyInvalidated(raw)) {
+                    return
+                }
+                for (const roomIdRaw of raw.roomIds) {
+                    if (!isEphemeraRoomId(roomIdRaw)) {
+                        continue
+                    }
+                    await fanOutAffordanceRefreshForRoom({
+                        roomId: roomIdRaw,
+                        reason: 'topology',
+                        messageBus,
+                        streamEvent,
+                    })
+                }
+                return
+            }
             if (isEphemeraObjectsObjectsChangedEnvelope(event)) {
                 const raw = await event.getContent()
                 if (!isObjectsChangedPayload(raw)) {

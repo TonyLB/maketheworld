@@ -25,6 +25,7 @@ export const ephemeraAffordanceCacheDataSource = new EphemeraDataSource<
 >({
     dataSourceKey: 'mtw.ephemera.affordanceCache',
     replayable: false,
+    subscriptionPriority: 4,
     publisherStrategy: 'busOnly',
     subscribedEventTypeGuard: isAffordanceCacheSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {

@@ -2,14 +2,14 @@
 
 ## Status
 
-**M4 D30 slice (landed).** Colocated **`Affordance::${perspectiveKey}`** rows, **`ensureAffordanceTopology`** hydrate preflight, **`TopologyInvalidated`** catalog bump, orchestration **`Slice Ready`** -> **`Affordances Pertain`** outbound.
+**M4 slice (landed).** Colocated **`Affordance::${perspectiveKey}`** rows, **`ensureAffordanceTopology`** hydrate preflight, **`TopologyInvalidated`** catalog bump, orchestration **`Slice Ready`** -> **`Affordances Pertain`** outbound.
 
 **Initiative:** [`taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md`](../../../../taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md). **Precedent:** [`../renderCache/AGENT.md`](../renderCache/AGENT.md).
 
 ## Getting Started
 
 1. **Child plan** --- affordance pipeline diagram and **D33** row shape.
-2. **Gateway module** --- [`packages/mtw-gateways/ts/ephemera/affordanceCache/`](../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/).
+2. **Gateway module** --- [`packages/mtw-gateways/ts/ephemera/affordanceCache/`](../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/) ([`AGENT.md`](../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/AGENT.md)).
 3. **InternalCache** --- [`internalCache/affordanceCache.ts`](../../internalCache/affordanceCache.ts).
 4. **Tests** --- `npm test -- --watchAll=false dataSource/affordanceCache/`.
 
@@ -36,7 +36,7 @@ One Dynamo item per **`(ROOM#, perspectiveKey)`**:
 
 ## Subscriptions
 
-- **`mtw.assets.componentTopology` `TopologyInvalidated`**
+- **`mtw.assets.componentTopology` `TopologyInvalidated`** --- **`subscriptionPriority: 4`** (catalog bump before orchestration topology fan-out at priority 5)
 - **`mtw.ephemera.affordanceOrchestration`** stream outbounds (**`Slice Ready`**, etc.)
 
 ## Outbounds
