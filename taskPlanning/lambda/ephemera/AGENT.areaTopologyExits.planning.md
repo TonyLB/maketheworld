@@ -1,6 +1,6 @@
 # Area topology exits (ephemera lambda) - planning
 
-**Status:** Not started. Milestone 4 consumer for parent initiative.
+**Status:** In progress (M4). Milestone 4 consumer for parent initiative.
 
 **Parent initiative:** [`taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md`](../../packages/mtw-wml/AGENT.areaTopologyExits.planning.md) (normative **D11**, **D18**, **D30**, **D32-D38** --- do not re-decide Area WML or assets invalidation here).
 
@@ -177,7 +177,7 @@ Orchestration **reason** gates whether **`ensureAffordanceTopology`** runs (see 
 Pending work uses `[ ]`; completed work uses `[X]`.
 
 - [X] **Lock D32-D38** in parent + this file.
-- [ ] Scaffold **`mtw.ephemera.affordanceOrchestration`** (DataSource shell, skipped outbound tests, **`orchestrateAffordanceRequest`** stub).
+- [X] Scaffold **`mtw.ephemera.affordanceOrchestration`** (DataSource shell, skipped outbound tests, **`orchestrateAffordanceRequest`** stub).
 - [ ] Migrate ingress adapters: **`roomUpdate`**, **`perception` `Objects Changed`** -> **`Affordances Requested`** (remove direct publish).
 - [ ] Register **`internalCache.ComponentTopology`**.
 - [ ] **D30:** **`ComponentStackMerge`** -> **`ComponentAggregate`** for **`shortName`**; read topology from **`AffordanceCache`**; layered overlay tests.
@@ -197,13 +197,14 @@ Pending work uses `[ ]`; completed work uses `[X]`.
 
 ```bash
 cd lambda/ephemera
+npm test -- --watchAll=false dataSource/affordanceOrchestration/
 npm test -- --watchAll=false internalCache/componentStackMerge.test.ts dataSource/actions/index.test.ts
 
 cd packages/mtw-gateways
 npm test -- --watchAll=false ts/assets/components/componentTopology/
 ```
 
-Expand as modules land: affordanceOrchestration contract scaffold, affordanceCache hydrate, orchestration-to-cache integration, perception **`Affordances Pertain`** handler.
+Expand as modules land: affordanceCache hydrate, orchestration-to-cache integration, perception **`Affordances Pertain`** handler.
 
 **Hygiene (grep):** After migration, no production path outside **`affordanceOrchestration`** ingress should call **`publishRoomAffordancePerceptionMessages`** directly.
 
@@ -215,7 +216,7 @@ Expand as modules land: affordanceOrchestration contract scaffold, affordanceCac
 | --- | --- |
 | Child plan (this file) | Done |
 | D32-D38 locked | Done |
-| `affordanceOrchestration` scaffold | Not started |
+| `affordanceOrchestration` scaffold | Done |
 | `ComponentTopology` on InternalCache | Not started |
 | D30 ComponentStackMerge refactor | Not started |
 | `affordanceCache` DataSource + hydrate | Not started |

@@ -37,7 +37,7 @@ The following is **normative intent** for how we **frame** player-visible room c
 ### Two logical channels
 
 1. **Room-render channel** --- **Summary-oriented** content that is **render-backed** (or otherwise tied to **`ComponentRender`** / orchestration): the **expensive** path that should **not** be the only way to reflect small runtime changes.
-2. **Room-affordances channel** --- **Structured** facts that should be refreshable on a **cheaper cadence**: e.g. **exits**, **characters present**, and **runtime objects** (as modeled on **`Meta::Room`** and related ephemera). This is the natural home for **`mtw.ephemera.objects`**-driven updates **unless** product requires summary text to change with every object mutation.
+2. **Room-affordances channel** --- **Structured** facts that should be refreshable on a **cheaper cadence**: e.g. **exits**, **characters present**, and **runtime objects** (as modeled on **`Meta::Room`** and related ephemera). This is the natural home for **`mtw.ephemera.objects`**-driven updates **unless** product requires summary text to change with every object mutation. **M4 target:** orchestration via **`mtw.ephemera.affordanceOrchestration`** + **`affordanceCache`** + perception terminal publish ([`taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md`](../../../taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md); scaffold: [`affordanceOrchestration/AGENT.md`](affordanceOrchestration/AGENT.md)).
 
 These are **logically distinct**: they **may** use different internal triggers, different perception handling, and different client composition rules.
 

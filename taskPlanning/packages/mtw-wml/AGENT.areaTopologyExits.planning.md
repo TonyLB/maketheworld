@@ -258,7 +258,8 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [ ] **Child plan:** extend assets [`AGENT.areaTopologyReferencedBy.planning.md`](../../lambda/assets/AGENT.areaTopologyReferencedBy.planning.md) --- M3 gateways module landed; M4 wiring verification only (assets **`mtw.assets.componentTopology`** invalidation shipped in M2).
   - [X] **D32-D38** locked (orchestration preflight, colocated row, nav sync bypass, layer participation, single-flight hydrate, pipeline, compose role).
   - [ ] **D30:** Refactor **`ComponentStackMerge`** to **`ComponentAggregate`**; remove **`mergeRoomExitsToJSON`** from affordance path; tests for layered exit overlay (**D,E** + remove **D** + add **F** -> **E,F**).
-  - [ ] Scaffold **`mtw.ephemera.affordanceOrchestration`** DataSource --- **`Affordances Requested`** ingress, **`orchestrateAffordanceRequest`**, stream outbounds; migrate **`RoomUpdate`** / **`Objects Changed`** adapters (**no direct publish**).
+  - [X] Scaffold **`mtw.ephemera.affordanceOrchestration`** DataSource --- shell, **`Affordances Requested`** ingress types, **`orchestrateAffordanceRequest`** stub, stream outbound contracts ([`lambda/ephemera/dataSource/affordanceOrchestration/`](../../../lambda/ephemera/dataSource/affordanceOrchestration/AGENT.md)).
+  - [ ] Migrate **`RoomUpdate`** / **`Objects Changed`** -> **`Affordances Requested`** (**no direct publish**; ephemera child plan).
   - [ ] Ephemera: register **`createComponentTopologyCacheHandler`** on **`internalCache.ComponentTopology`**; steady-state reads call **`get`**, not uncached **`assembleRoomTopologyAtPerspective`** ([`.cursor/rules/gateways-internal-cache.mdc`](../../../.cursor/rules/gateways-internal-cache.mdc)).
   - [ ] Ephemera: **`mtw.ephemera.affordanceCache`** DataSource + **`ts/ephemera/affordanceCache/`** gateway --- **`TopologyInvalidated`** catalog bump; **`ensureAffordanceTopology`** module; emit **`Affordances Pertain`** on slice ready.
   - [ ] **`mtw.ephemera.perception`:** subscribe **`Affordances Pertain`**; terminal publish via **`ComponentStackMerge`** compose (**D38**); retire direct **`publishRoomAffordancePerceptionMessages`** ingress.
@@ -368,7 +369,7 @@ npm test
 | M1 WML + StandardArea edges | Done |
 | M2 Persisted referencedBy | Done (see child plan) |
 | M3 Projection library + gateways `componentTopology/` | Done |
-| M4 Ephemera affordance pipeline (`affordanceOrchestration` + `affordanceCache` + perception) | Not started |
+| M4 Ephemera affordance pipeline (`affordanceOrchestration` + `affordanceCache` + perception) | In progress (`affordanceOrchestration` scaffold done) |
 | M5 Authoring + migration | Not started |
 | M6 Cleanup + archive plan | Not started |
 
