@@ -2,7 +2,7 @@
 
 ## Status
 
-**M4 orchestration + cache handoff (landed).** This directory is the canonical home for the `mtw.ephemera.affordanceOrchestration` DataSource. Production adapters from **`RoomUpdate`** (reason: **`roster`**) and **`mtw.ephemera.objects` `Objects Changed`** (reason: **`objects`**) are wired. **`orchestrateAffordanceRequest`** calls **`ensureAffordanceTopology`** when needed and emits **`Slice Ready`** / **`Orchestration Error`**. Terminal **`PublishMessage`** follows when **`perception`** subscribes to **`Affordances Pertain`** (**D38**, next slice).
+**M4 orchestration + cache + perception terminal (landed).** This directory is the canonical home for the `mtw.ephemera.affordanceOrchestration` DataSource. Production adapters from **`RoomUpdate`** (reason: **`roster`**) and **`mtw.ephemera.objects` `Objects Changed`** (reason: **`objects`**) are wired. **`orchestrateAffordanceRequest`** calls **`ensureAffordanceTopology`** when needed and emits **`Slice Ready`** / **`Orchestration Error`**. Terminal **`PublishMessage`** is emitted by **`mtw.ephemera.perception`** on **`Affordances Pertain`** (**D38**, [`../perception/handleAffordancesPertain.ts`](../perception/handleAffordancesPertain.ts)).
 
 **Initiative:** [`taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md`](../../../../taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md). **Parent decisions:** [`taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md`](../../../../taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md) (**D32-D38**, **D37** three-layer pipeline).
 
@@ -53,16 +53,12 @@ Handled in [`index.ts`](index.ts) **`receiveEvents`**: **`fanOutAffordanceRefres
 
 **Not yet wired:** **`TopologyInvalidated`** fan-out (reason: **`topology`**).
 
-## Interim behavior (until cache slice)
-
-Roster and object changes **do not** emit affordance **`PublishMessage`** rows yet. Legacy **`publishRoomAffordancePerceptionMessages`** has no production callers; terminal publish moves to perception on **`Affordances Pertain`** in a later slice.
-
 ## Stream outbounds (contract)
 
-| Outbound | v1 | Subscriber (planned) |
+| Outbound | v1 | Subscriber |
 | --- | --- | --- |
-| **`Slice Ready`** | Active types; emission deferred | **`affordanceCache`** handoff |
-| **`Orchestration Error`** | Active types; emission deferred | Diagnostics / cache |
+| **`Slice Ready`** | Active | **`affordanceCache`** handoff |
+| **`Orchestration Error`** | Active | Diagnostics / cache |
 | **`Enrichment Started`** | Skipped tests | Future slow path |
 | **`Enrichment Complete`** | Skipped tests | Future slow path |
 | **`Enrichment Deferred`** | Skipped tests | Future slow path |
@@ -93,7 +89,7 @@ npm test -- --watchAll=false dataSource/affordanceOrchestration/
 rg 'publishRoomAffordancePerceptionMessages' lambda/ephemera --glob '!**/affordanceOrchestration/**'
 ```
 
-Expected: definition in [`publishRoomAffordancePerceptionMessages.ts`](../perception/publishRoomAffordancePerceptionMessages.ts) only (retained for future **`Affordances Pertain`** terminal path).
+Expected: definition in [`publishRoomAffordancePerceptionMessages.ts`](../perception/publishRoomAffordancePerceptionMessages.ts) only (legacy export; production path is **`handleAffordancesPertain`** on **`Affordances Pertain`**).
 
 ## Key concepts
 

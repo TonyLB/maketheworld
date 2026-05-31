@@ -32,7 +32,7 @@ One Dynamo item per **`(ROOM#, perspectiveKey)`**:
 | Pull assembly | **`internalCache.ComponentTopology.get`** inside hydrate leader only |
 | Invalidation receive | **`handleTopologyInvalidated`** --- catalog bump only (**D35**); no hydrate |
 | Compose reads | **`ComponentStackMerge.get`** via **`internalCache.AffordanceCache.getAffordanceRow`** |
-| Terminal publish | **`perception`** on **`Affordances Pertain`** (next slice, **D38**) |
+| Terminal publish | **`perception`** on **`Affordances Pertain`** via [`handleAffordancesPertain`](../perception/handleAffordancesPertain.ts) (**D38**, shipped) |
 
 ## Subscriptions
 

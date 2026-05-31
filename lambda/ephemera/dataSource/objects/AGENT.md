@@ -1,4 +1,4 @@
-*Status: **Shipped** --- bus-only **`mtw.ephemera.objects`**; room-only **`Meta::Room.objects`**; affordance refresh enqueued via **`mtw.ephemera.affordanceOrchestration`** on **`Objects Changed`** (terminal **`PublishMessage`** deferred until **`Affordances Pertain`**).*
+*Status: **Shipped** --- bus-only **`mtw.ephemera.objects`**; room-only **`Meta::Room.objects`**; affordance refresh enqueued via **`mtw.ephemera.affordanceOrchestration`** on **`Objects Changed`**; terminal **`PublishMessage`** via **`Affordances Pertain`** -> [`../perception/handleAffordancesPertain.ts`](../perception/handleAffordancesPertain.ts).*
 
 ## Overview
 
@@ -42,7 +42,7 @@ This does **not** couple the two DataSources automatically; it is **ordering pol
 
 ## Player-visible delivery (affordances)
 
-**`mtw.ephemera.affordanceOrchestration`** subscribes to **`Objects Changed`** and fans out to **`orchestrateAffordanceRequest`** (reason: **`objects`**) via [`fanOutAffordanceRefreshForRoom.ts`](../affordanceOrchestration/fanOutAffordanceRefreshForRoom.ts). **Interim:** orchestration is log-only; affordance **`PublishMessage`** per character resumes when **`Affordances Pertain`** lands ([`../perception/AGENT.md`](../perception/AGENT.md) **Server publish sites (multi-channel)**; contract **Phase B server migration**).
+**`mtw.ephemera.affordanceOrchestration`** subscribes to **`Objects Changed`** and fans out to **`orchestrateAffordanceRequest`** (reason: **`objects`**) via [`fanOutAffordanceRefreshForRoom.ts`](../affordanceOrchestration/fanOutAffordanceRefreshForRoom.ts). Terminal affordance **`PublishMessage`** per character follows **`Affordances Pertain`** ([`../perception/handleAffordancesPertain.ts`](../perception/handleAffordancesPertain.ts); see [`../perception/AGENT.md`](../perception/AGENT.md) **Server publish sites (multi-channel)**.
 
 ## Ephemera wire WML (producers)
 

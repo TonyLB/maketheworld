@@ -185,7 +185,7 @@ Pending work uses `[ ]`; completed work uses `[X]`.
 - [X] Implement **`handleTopologyInvalidated`** (catalog bump only).
 - [X] Implement **`ensureAffordanceTopology`** + Dynamo persist + **`internalCache.AffordanceCache`** memo.
 - [X] Wire orchestration -> cache -> **`Affordances Pertain`** (sync v1 path).
-- [ ] **`perception`:** subscribe **`Affordances Pertain`**; terminal publish via **`ComponentStackMerge`** (**D38**).
+- [X] **`perception`:** subscribe **`Affordances Pertain`**; terminal publish via **`ComponentStackMerge`** (**D38**).
 - [ ] **D34:** Wire nav sync path (**`ensureAffordanceTopology`** + **`AffordanceCache.get`**); document limitations.
 - [ ] Topology fan-out on **`TopologyInvalidated`** -> **`Affordances Requested`**.
 - [ ] Affordance publish smoke + nav **`ambiguousMatch`** regression.
@@ -204,7 +204,7 @@ cd packages/mtw-gateways
 npm test -- --watchAll=false ts/assets/components/componentTopology/ ts/ephemera/affordanceCache/
 ```
 
-Expand as modules land: affordanceCache hydrate, orchestration-to-cache integration, perception **`Affordances Pertain`** handler.
+Expand as modules land: affordanceCache hydrate, orchestration-to-cache integration, perception **`Affordances Pertain`** handler (shipped).
 
 **Hygiene (grep):** After migration, no production path outside **`affordanceOrchestration`** ingress should call **`publishRoomAffordancePerceptionMessages`** directly.
 
@@ -221,5 +221,5 @@ Expand as modules land: affordanceCache hydrate, orchestration-to-cache integrat
 | `ComponentTopology` on InternalCache | Done |
 | D30 ComponentStackMerge refactor | Done |
 | `affordanceCache` DataSource + hydrate | Done |
-| Perception `Affordances Pertain` handler | Not started |
+| Perception `Affordances Pertain` handler | Done |
 | Nav shared topology path (D34 design) | Done |
