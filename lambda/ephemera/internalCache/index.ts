@@ -16,6 +16,10 @@ import {
     ComponentExamplesMergedCache,
     createComponentExamplesCacheHandler,
 } from '@tonylb/mtw-gateways/ts/assets/components/componentExamples';
+import {
+    ComponentTopologyMergedCache,
+    createComponentTopologyCacheHandler,
+} from '@tonylb/mtw-gateways/ts/assets/components/componentTopology';
 import type { ImportVerticalMetaImportProjectionLoader } from '@tonylb/mtw-gateways/ts/assets/components/verticals';
 import {
     createThinkingJobReadCacheHandler,
@@ -94,6 +98,7 @@ export class InternalCache {
     ComponentData: ComponentDataCache = createComponentDataCacheHandler(assetDB);
     ComponentAggregate: ComponentAggregateMergedCache;
     ComponentExamples: ComponentExamplesMergedCache;
+    ComponentTopology: ComponentTopologyMergedCache;
     ThinkingResults: ThinkingResultReadCache = createThinkingResultReadCacheHandler(ephemeraDB);
     ThinkingSchedules: ThinkingScheduleReadCache = createThinkingScheduleReadCacheHandler(ephemeraDB);
     ThinkingJobs: ThinkingJobReadCache = createThinkingJobReadCacheHandler(ephemeraDB);
@@ -156,6 +161,9 @@ export class InternalCache {
         this.ComponentExamples = createComponentExamplesCacheHandler({
             ComponentAggregate: this.ComponentAggregate,
         })
+        this.ComponentTopology = createComponentTopologyCacheHandler({
+            ComponentAggregate: this.ComponentAggregate,
+        })
         this._invalidateAssetCallback = (EphemeraId) => {
             // Variable/Computed invalidation removed - no longer needed
         }
@@ -176,8 +184,9 @@ export class InternalCache {
         this.PlayerSessions.clear()
         this._graphCache.clear()
         this.ComponentData.clear()
-        this.ComponentAggregate.clear()
+        this.ComponentTopology.clear()
         this.ComponentExamples.clear()
+        this.ComponentAggregate.clear()
         this.ThinkingResults.clear()
         this.ThinkingSchedules.clear()
         this.ThinkingJobs.clear()
@@ -196,8 +205,9 @@ export class InternalCache {
         await Promise.all([
             this._graphCache.flush(),
             this.ComponentData.flush(),
-            this.ComponentAggregate.flush(),
+            this.ComponentTopology.flush(),
             this.ComponentExamples.flush(),
+            this.ComponentAggregate.flush(),
             this.ThinkingResults.flush(),
             this.ThinkingSchedules.flush(),
             this.ThinkingJobs.flush(),

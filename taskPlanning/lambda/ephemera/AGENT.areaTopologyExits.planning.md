@@ -179,7 +179,7 @@ Pending work uses `[ ]`; completed work uses `[X]`.
 - [X] **Lock D32-D38** in parent + this file.
 - [X] Scaffold **`mtw.ephemera.affordanceOrchestration`** (DataSource shell, skipped outbound tests, **`orchestrateAffordanceRequest`** stub).
 - [X] Migrate ingress adapters: **`roomUpdate`**, **`perception` `Objects Changed`** -> **`Affordances Requested`** (remove direct publish).
-- [ ] Register **`internalCache.ComponentTopology`**.
+- [X] Register **`internalCache.ComponentTopology`**.
 - [ ] **D30:** **`ComponentStackMerge`** -> **`ComponentAggregate`** for **`shortName`**; read topology from **`AffordanceCache`**; layered overlay tests.
 - [ ] Scaffold **`mtw.ephemera.affordanceCache`** + subscribe **`TopologyInvalidated`** + orchestration outbounds.
 - [ ] Implement **`handleTopologyInvalidated`** (catalog bump only).
@@ -218,7 +218,7 @@ Expand as modules land: affordanceCache hydrate, orchestration-to-cache integrat
 | D32-D38 locked | Done |
 | `affordanceOrchestration` scaffold | Done |
 | Ingress adapters (RoomUpdate / Objects Changed) | Done |
-| `ComponentTopology` on InternalCache | Not started |
+| `ComponentTopology` on InternalCache | Done |
 | D30 ComponentStackMerge refactor | Not started |
 | `affordanceCache` DataSource + hydrate | Not started |
 | Perception `Affordances Pertain` handler | Not started |

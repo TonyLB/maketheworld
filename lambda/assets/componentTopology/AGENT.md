@@ -25,7 +25,7 @@ See [`packages/mtw-interfaces/ts/eventBridge/assets/componentTopology.ts`](../..
 
 ## Gateways pull (M3)
 
-Steady-state exit projection at a perspective is assembled by **`@tonylb/mtw-gateways/ts/assets/components/componentTopology`**: **`createComponentTopologyCacheHandler({ ComponentAggregate })`** (primary) composes **`ComponentAggregate.get`** + **`projectRoomExits`** in **`mtw-wml`**. Ephemera registers the handler on **`internalCache.ComponentTopology`** in Milestone 4; **`mtw.ephemera.affordanceCache`** hydrates via **`ComponentTopology.get`** on **stale read** ( **`ensureAffordanceTopology`**, not in the invalidation handler). See [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) (**Component topology read surfaces**) and [`taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md`](../../../taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md).
+Steady-state exit projection at a perspective is assembled by **`@tonylb/mtw-gateways/ts/assets/components/componentTopology`**: **`createComponentTopologyCacheHandler({ ComponentAggregate })`** (primary) composes **`ComponentAggregate.get`** + **`projectRoomExits`** in **`mtw-wml`**. Ephemera registered the handler on **`internalCache.ComponentTopology`**; **`mtw.ephemera.affordanceCache`** (planned) hydrates via **`ComponentTopology.get`** on **stale read** ( **`ensureAffordanceTopology`**, not in the invalidation handler). See [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) (**Component topology read surfaces**) and [`taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md`](../../../taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md).
 
 ## Related
 

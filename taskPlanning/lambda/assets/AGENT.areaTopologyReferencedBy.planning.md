@@ -113,7 +113,8 @@ Mark pending `[ ]` and completed `[X]` as each line lands.
 ### Milestone 4 (Ephemera; parent + ephemera child plan)
 
 - [X] **D32-D38** locked in [`AGENT.areaTopologyExits.planning.md`](../ephemera/AGENT.areaTopologyExits.planning.md).
-- [ ] Ephemera register **`internalCache.ComponentTopology`**; **`affordanceCache`** hydrate-on-demand via **`ComponentTopology.get`** (not on **`TopologyInvalidated`** receive).
+- [X] Ephemera register **`internalCache.ComponentTopology`**.
+- [ ] **`affordanceCache`** hydrate-on-demand via **`ComponentTopology.get`** (not on **`TopologyInvalidated`** receive).
 - [ ] Re-run assets **`componentTopology/`** tests if Ephemera wiring exposes integration gaps.
 
 ---
@@ -155,4 +156,5 @@ npm test -- --watchAll=false ts/assets/components/componentTopology/
 | Assets `mtw.assets.componentTopology` DataSource | Done |
 | Gateways D31 plumbing | Done |
 | Gateways `componentTopology/` pull module (M3) | Done |
-| Ephemera `ComponentTopology` + `affordanceCache` (M4) | Not started |
+| Ephemera `ComponentTopology` on InternalCache (M4) | Done |
+| Ephemera `affordanceCache` hydrate (M4) | Not started |

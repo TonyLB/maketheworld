@@ -2,6 +2,7 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 import { aggregatePerspectiveExplicit } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
+import { componentTopologyPerspectiveCacheKey } from '@tonylb/mtw-gateways/ts/assets/components/componentTopology'
 
 import internalCache from './index'
 
@@ -76,5 +77,55 @@ describe('InternalCache ComponentExamples registration', () => {
         internalCache.clear()
         await internalCache.ComponentExamples.get(input)
         expect(assetDBMock.getItems.mock.calls.length).toBeGreaterThan(getItemsAfterFirst)
+    })
+})
+
+describe('InternalCache ComponentTopology registration', () => {
+    beforeEach(() => {
+        internalCache.clear()
+        jest.clearAllMocks()
+        assetDBMock.getItems.mockResolvedValue([] as any)
+    })
+
+    it('exposes ComponentTopology wired to ComponentAggregate', async () => {
+        const roomU = 'ROOM#wireTest5' as const
+        const assetA = 'ASSET#wireA5' as const
+        const topology = await internalCache.ComponentTopology.get({
+            roomUniversalKey: roomU,
+            mergeParticipationOrder: [assetA],
+        })
+        expect(topology.roomUniversalKey).toBe(roomU)
+        expect(topology.exits).toEqual([])
+        expect(assetDBMock.getItems).toHaveBeenCalled()
+    })
+
+    it('does not re-query Dynamo on topology cache hit until InternalCache.clear', async () => {
+        const roomU = 'ROOM#wireTest6' as const
+        const assetA = 'ASSET#wireA6' as const
+        const input = { roomUniversalKey: roomU, mergeParticipationOrder: [assetA] } as const
+        await internalCache.ComponentTopology.get(input)
+        const getItemsAfterFirst = assetDBMock.getItems.mock.calls.length
+
+        await internalCache.ComponentTopology.get(input)
+        expect(assetDBMock.getItems.mock.calls.length).toEqual(getItemsAfterFirst)
+
+        internalCache.clear()
+        await internalCache.ComponentTopology.get(input)
+        expect(assetDBMock.getItems.mock.calls.length).toBeGreaterThan(getItemsAfterFirst)
+    })
+
+    it('invalidate forces re-assembly', async () => {
+        const roomU = 'ROOM#wireTest7' as const
+        const assetA = 'ASSET#wireA7' as const
+        const input = { roomUniversalKey: roomU, mergeParticipationOrder: [assetA] } as const
+        const aggregateGetSpy = jest.spyOn(internalCache.ComponentAggregate, 'get')
+        await internalCache.ComponentTopology.get(input)
+        const callsAfterFirst = aggregateGetSpy.mock.calls.length
+
+        internalCache.ComponentTopology.invalidate(componentTopologyPerspectiveCacheKey(input))
+        await internalCache.ComponentTopology.get(input)
+        expect(aggregateGetSpy.mock.calls.length).toBeGreaterThan(callsAfterFirst)
+
+        aggregateGetSpy.mockRestore()
     })
 })
