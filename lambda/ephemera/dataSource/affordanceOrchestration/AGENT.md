@@ -100,4 +100,4 @@ Expected: definition in [`publishRoomAffordancePerceptionMessages.ts`](../percep
 ## Current constraints
 
 - **`replayable: false`**; no EventBridge external contract in this scaffold.
-- **`ensureAffordanceTopology`** lives under **`affordanceCache/`** when implemented; orchestration **calls** it (**D32**), does not implement hydrate inline.
+- **`ensureAffordanceTopology`** lives under **`affordanceCache/`**; orchestration **calls** it (**D32**), does not implement hydrate inline. **Nav (**D34**): [`getRoomExitTargetsForCharacter`](../actions/roomExitTargetsForCharacter.ts) calls it directly (sync bypass; no bus orchestration or publish).

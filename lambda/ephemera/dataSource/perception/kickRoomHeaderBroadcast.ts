@@ -2,7 +2,7 @@
  * Room header refresh: group room occupants by perspectiveKey, register broadcast threads, kick passive render.
  */
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
+import { computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import internalCache from '../../internalCache'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import type { MessageGroupId } from '../../internalCache/orchestrateMessages'
@@ -67,13 +67,13 @@ export async function kickRoomHeaderBroadcastForRoom(options: {
 }
 
 /**
- * Perspective key for a character's filtered asset stack on a room, or null if the stack is empty.
- * Matches {@link kickPassiveRenderRequestedForCharacterInRoom} routing.
+ * Canon-filtered perspective for a character on a room (affordance orchestration / nav alignment).
+ * Returns null when the filtered asset stack is empty.
  */
-export async function getCharacterRoomPerspectiveKey(
+export async function resolveCharacterRoomPerspectiveForRoom(
     roomId: EphemeraRoomId,
-    assets: readonly string[]
-): Promise<string | null> {
+    characterAssets: readonly string[]
+): Promise<{ perspective: Perspective; perspectiveKey: string } | null> {
     const roomAssetStack = await resolveRoomAssetStackForRoom(roomId, {
         RoomAssets: internalCache.RoomAssets,
     })
@@ -81,11 +81,27 @@ export async function getCharacterRoomPerspectiveKey(
         RoomAssets: internalCache.RoomAssets,
         AssetMetaData: internalCache.AssetMetaData,
     })
-    const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomAssetStack, assets, roomCanonStack)
+    const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomAssetStack, characterAssets, roomCanonStack)
     if (filteredAssetStack.length === 0) {
         return null
     }
-    return computePerspectiveKey(filteredAssetStack)
+    const perspective: Perspective = { assetStack: filteredAssetStack }
+    return {
+        perspective,
+        perspectiveKey: computePerspectiveKey(filteredAssetStack),
+    }
+}
+
+/**
+ * Perspective key for a character's filtered asset stack on a room, or null if the stack is empty.
+ * Matches {@link kickPassiveRenderRequestedForCharacterInRoom} routing.
+ */
+export async function getCharacterRoomPerspectiveKey(
+    roomId: EphemeraRoomId,
+    assets: readonly string[]
+): Promise<string | null> {
+    const resolved = await resolveCharacterRoomPerspectiveForRoom(roomId, assets)
+    return resolved?.perspectiveKey ?? null
 }
 
 /**

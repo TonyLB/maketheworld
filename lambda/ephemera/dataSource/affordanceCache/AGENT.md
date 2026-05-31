@@ -28,7 +28,7 @@ One Dynamo item per **`(ROOM#, perspectiveKey)`**:
 
 | Concern | Owner |
 | --- | --- |
-| Hydrate preflight | **`ensureAffordanceTopology`** (orchestration + future nav **D34**) |
+| Hydrate preflight | **`ensureAffordanceTopology`** (orchestration + nav **D34**) |
 | Pull assembly | **`internalCache.ComponentTopology.get`** inside hydrate leader only |
 | Invalidation receive | **`handleTopologyInvalidated`** --- catalog bump only (**D35**); no hydrate |
 | Compose reads | **`ComponentStackMerge.get`** via **`internalCache.AffordanceCache.getAffordanceRow`** |
@@ -44,6 +44,12 @@ One Dynamo item per **`(ROOM#, perspectiveKey)`**:
 - **`Affordances Pertain`** --- lean routing + full **`affordanceRow`** / **`topology`** for perception terminal compose
 - **`Cache Error`** --- slice not ready after orchestration handoff
 
-## Navigation sync (D34, not yet wired)
+## Navigation sync (D34, shipped)
 
-[`getRoomExitTargetsForCharacter`](../../dataSource/actions/roomExitTargetsForCharacter.ts) will call exported **`ensureAffordanceTopology`**, then read **`exits`** via **`internalCache.AffordanceCache`** --- no **`Affordances Requested`** / publish. Documented limitations: synchronous hydrate, no occupant fan-out, deterministic slice only.
+[`getRoomExitTargetsForCharacter`](../../dataSource/actions/roomExitTargetsForCharacter.ts) calls exported **`ensureAffordanceTopology`**, then reads projected **`exits`** via **`internalCache.AffordanceCache.getAffordanceRow`** --- no **`Affordances Requested`** / publish. Perspective resolution uses **`resolveCharacterRoomPerspectiveForRoom`** (canon-filtered stack, same as orchestration fan-out).
+
+**Accepted v1 limitations:**
+
+1. **Synchronous command path** --- may await hydrate and single-flight (**D36**) in-process.
+2. **No affordance publish** --- resolving navigation does not refresh other occupants' affordance headers.
+3. **Deterministic slice only** --- future LLM enrichment rows are not consulted for nav.

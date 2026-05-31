@@ -263,7 +263,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Ephemera: register **`createComponentTopologyCacheHandler`** on **`internalCache.ComponentTopology`**; steady-state reads call **`get`**, not uncached **`assembleRoomTopologyAtPerspective`** ([`.cursor/rules/gateways-internal-cache.mdc`](../../../.cursor/rules/gateways-internal-cache.mdc)).
   - [X] Ephemera: **`mtw.ephemera.affordanceCache`** DataSource + **`ts/ephemera/affordanceCache/`** gateway --- **`TopologyInvalidated`** catalog bump; **`ensureAffordanceTopology`** module; emit **`Affordances Pertain`** on slice ready.
   - [X] **`mtw.ephemera.perception`:** subscribe **`Affordances Pertain`**; terminal publish via **`ComponentStackMerge`** compose (**D38**); retire direct **`publishRoomAffordancePerceptionMessages`** ingress.
-  - [ ] **`StandardRoom` in ephemeraWire:** populate **`exits`** from hydrated topology slice; **`getRoomExitTargetsForCharacter`** shares slice path (**D34**).
+  - [X] **`StandardRoom` in ephemeraWire:** populate **`exits`** from hydrated topology slice; **`getRoomExitTargetsForCharacter`** shares slice path (**D34**).
   - [ ] Close **D11** invalidation matrix in child plans; verify `roomChannel: 'affordances'`.
 
 - [ ] **Milestone 5 --- Authoring + migration**

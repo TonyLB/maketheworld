@@ -33,7 +33,7 @@ Wire Ephemera **affordance-channel exits** and **navigation** to **Area topology
 4. **`affordanceCache` hydrate module precedent:** [`renderCache/ensureAuthoredCatalog.ts`](../../../lambda/ephemera/dataSource/renderCache/ensureAuthoredCatalog.ts), [`handleExampleInvalidated.ts`](../../../lambda/ephemera/dataSource/renderCache/handleExampleInvalidated.ts).
 5. Gateways topology pull: [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) (**Component topology read surfaces**).
 6. Today affordance path (migration source): [`componentStackMerge.ts`](../../../lambda/ephemera/internalCache/componentStackMerge.ts), [`publishRoomAffordancePerceptionMessages.ts`](../../../lambda/ephemera/dataSource/perception/publishRoomAffordancePerceptionMessages.ts), [`roomUpdate/index.ts`](../../../lambda/ephemera/roomUpdate/index.ts).
-7. Today nav path: [`roomExitTargetsForCharacter.ts`](../../../lambda/ephemera/dataSource/actions/roomExitTargetsForCharacter.ts) (**uses `ComponentRender`** until **D34** implementation).
+7. Nav path: [`roomExitTargetsForCharacter.ts`](../../../lambda/ephemera/dataSource/actions/roomExitTargetsForCharacter.ts) --- sync **`ensureAffordanceTopology`** + **`AffordanceCache.getAffordanceRow`** (**D34**, shipped).
 8. Multi-channel contract: [`AGENT.multiChannel.contract.md`](../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md).
 
 **Test command authority:** `cd lambda/ephemera && npm test`. Gateways: `cd packages/mtw-gateways && npm test -- ts/assets/components/componentTopology/`.
@@ -186,7 +186,7 @@ Pending work uses `[ ]`; completed work uses `[X]`.
 - [X] Implement **`ensureAffordanceTopology`** + Dynamo persist + **`internalCache.AffordanceCache`** memo.
 - [X] Wire orchestration -> cache -> **`Affordances Pertain`** (sync v1 path).
 - [X] **`perception`:** subscribe **`Affordances Pertain`**; terminal publish via **`ComponentStackMerge`** (**D38**).
-- [ ] **D34:** Wire nav sync path (**`ensureAffordanceTopology`** + **`AffordanceCache.get`**); document limitations.
+- [X] **D34:** Wire nav sync path (**`ensureAffordanceTopology`** + **`AffordanceCache.get`**); document limitations.
 - [ ] Topology fan-out on **`TopologyInvalidated`** -> **`Affordances Requested`**.
 - [ ] Affordance publish smoke + nav **`ambiguousMatch`** regression.
 - [ ] **`packages/mtw-gateways`** affordanceCache types + durable **`AGENT.md`** files (gateway module landed; **`packages/mtw-gateways/AGENT.md`** subsection added).
@@ -199,12 +199,13 @@ Pending work uses `[ ]`; completed work uses `[X]`.
 cd lambda/ephemera
 npm test -- --watchAll=false dataSource/affordanceOrchestration/
 npm test -- --watchAll=false internalCache/componentStackMerge.test.ts internalCache/affordanceCache.test.ts dataSource/affordanceCache/
+npm test -- --watchAll=false dataSource/actions/roomExitTargetsForCharacter.test.ts
 
 cd packages/mtw-gateways
 npm test -- --watchAll=false ts/assets/components/componentTopology/ ts/ephemera/affordanceCache/
 ```
 
-Expand as modules land: affordanceCache hydrate, orchestration-to-cache integration, perception **`Affordances Pertain`** handler (shipped).
+Expand as modules land: affordanceCache hydrate, orchestration-to-cache integration, perception **`Affordances Pertain`** handler (shipped), nav sync path **D34** (shipped).
 
 **Hygiene (grep):** After migration, no production path outside **`affordanceOrchestration`** ingress should call **`publishRoomAffordancePerceptionMessages`** directly.
 
@@ -222,4 +223,4 @@ Expand as modules land: affordanceCache hydrate, orchestration-to-cache integrat
 | D30 ComponentStackMerge refactor | Done |
 | `affordanceCache` DataSource + hydrate | Done |
 | Perception `Affordances Pertain` handler | Done |
-| Nav shared topology path (D34 design) | Done |
+| Nav shared topology path (D34 implementation) | Done |
