@@ -20,7 +20,7 @@
 
 **Milestone 3 (this child plan tracks gateways only):** add compute-only pull assembly under [`packages/mtw-gateways/ts/assets/components/componentTopology/`](../../../packages/mtw-gateways/ts/assets/components/componentTopology/) --- mirror **`componentExamples`** naming ([parent M3 section](../packages/mtw-wml/AGENT.areaTopologyExits.planning.md#gateways-componenttopology-module-m3)).
 
-**Out of scope:** **`projectRoomExits`** implementation home is **`mtw-wml`** (parent M3). Ephemera **`affordanceCache`**, **`internalCache.ComponentTopology`** registration, affordance publish, **D30** (parent M4); [`taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md`](../ephemera/AGENT.areaTopologyExits.planning.md) (create in M4).
+**Out of scope:** **`projectRoomExits`** implementation home is **`mtw-wml`** (parent M3). Ephemera **`affordanceOrchestration`**, **`affordanceCache`**, **`internalCache.ComponentTopology`** registration, perception terminal publish, **D30** (parent M4); [`taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md`](../ephemera/AGENT.areaTopologyExits.planning.md). **M4 decisions (**D32-D38**) locked** --- implementation only.
 
 ---
 
@@ -112,7 +112,8 @@ Mark pending `[ ]` and completed `[X]` as each line lands.
 
 ### Milestone 4 (Ephemera; parent + ephemera child plan)
 
-- [ ] Ephemera register **`internalCache.ComponentTopology`**; **`affordanceCache`** hydrates via **`ComponentTopology.get`** (not uncached **`assemble*`**).
+- [X] **D32-D38** locked in [`AGENT.areaTopologyExits.planning.md`](../ephemera/AGENT.areaTopologyExits.planning.md).
+- [ ] Ephemera register **`internalCache.ComponentTopology`**; **`affordanceCache`** hydrate-on-demand via **`ComponentTopology.get`** (not on **`TopologyInvalidated`** receive).
 - [ ] Re-run assets **`componentTopology/`** tests if Ephemera wiring exposes integration gaps.
 
 ---
