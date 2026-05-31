@@ -1,47 +1,33 @@
 /**
- * Room-affordance PerceptionMessage: one bus PublishMessage per occupant, ComponentStackMerge (Option B).
+ * Legacy export: room-affordance PerceptionMessage for a single perspective group.
  *
- * Future: migrating ComponentStackMerge cache identity from (characterId, roomId) to (componentId, perspectiveKey)
- * (or equivalent) would align stack merge with render / perception perspectiveKey usage.
+ * Production path is handleAffordancesPertain on Affordances Pertain (D38).
+ * Retained for tests and hygiene grep; no production callers outside this file.
  */
-import { v4 as uuidv4 } from 'uuid'
-import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
-import internalCache from '../../internalCache'
+import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import type { MessageGroupId } from '../../internalCache/orchestrateMessages'
+import { resolveAffordanceTargetsForPerspective } from './handleAffordancesPertain'
+import { publishAffordancePerceptionForCharacters } from './publishAffordancePerceptionForCharacters'
 
 export type PublishRoomAffordancePerceptionMessagesArgs = {
     roomId: EphemeraRoomId;
+    perspectiveKey: string;
     messageBus: MessageBus;
     messageGroupId?: MessageGroupId;
 }
 
 export async function publishRoomAffordancePerceptionMessages({
     roomId,
+    perspectiveKey,
     messageBus,
     messageGroupId,
 }: PublishRoomAffordancePerceptionMessagesArgs): Promise<void> {
-    const occupants = await internalCache.RoomCharacterList.get(roomId)
-    if (!occupants?.length) {
-        return
-    }
-    for (const { EphemeraId } of occupants) {
-        const characterId = EphemeraId as EphemeraCharacterId
-        const merged = await internalCache.ComponentStackMerge.get(characterId, roomId)
-        const wmlContent = schemaToWML([merged.schema])
-        messageBus.send({
-            type: 'PublishMessage',
-            targets: [characterId],
-            displayProtocol: 'PerceptionMessage',
-            wmlContent,
-            metaData: {
-                componentUUID: roomId,
-                displayMode: 'header',
-                roomChannel: 'affordances',
-            },
-            messageGroupId,
-            messageId: `MESSAGE#${uuidv4()}`,
-        })
-    }
+    const targets = await resolveAffordanceTargetsForPerspective(roomId, perspectiveKey)
+    await publishAffordancePerceptionForCharacters({
+        roomId,
+        characterIds: targets,
+        messageBus,
+        messageGroupId,
+    })
 }

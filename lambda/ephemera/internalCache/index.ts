@@ -16,6 +16,10 @@ import {
     ComponentExamplesMergedCache,
     createComponentExamplesCacheHandler,
 } from '@tonylb/mtw-gateways/ts/assets/components/componentExamples';
+import {
+    ComponentTopologyMergedCache,
+    createComponentTopologyCacheHandler,
+} from '@tonylb/mtw-gateways/ts/assets/components/componentTopology';
 import type { ImportVerticalMetaImportProjectionLoader } from '@tonylb/mtw-gateways/ts/assets/components/verticals';
 import {
     createThinkingJobReadCacheHandler,
@@ -46,6 +50,7 @@ import CacheCharacterPossibleMapsData from './characterPossibleMaps';
 import CachePlayerMetaData from './playerMeta';
 import CacheGlobalData from './global';
 import { RenderCacheData } from './renderCache';
+import { AffordanceCacheData } from './affordanceCache';
 import ConversationsData from './conversations';
 import PerceptionThreadsData from './perceptionThreads';
 import CacheCoyoteGameData from './coyoteGame';
@@ -75,6 +80,7 @@ export class InternalCache {
     CoyoteGame: CacheCoyoteGameData;
     Conversations: ConversationsData = new ConversationsData(this.Global)
     RenderCache: RenderCacheData = new RenderCacheData()
+    AffordanceCache: AffordanceCacheData = new AffordanceCacheData()
     PlayerMeta: CachePlayerMetaData;
     OrchestrateMessages: OrchestrateMessagesData = new OrchestrateMessagesData()
     PerceptionThreads: PerceptionThreadsData = new PerceptionThreadsData()
@@ -94,6 +100,7 @@ export class InternalCache {
     ComponentData: ComponentDataCache = createComponentDataCacheHandler(assetDB);
     ComponentAggregate: ComponentAggregateMergedCache;
     ComponentExamples: ComponentExamplesMergedCache;
+    ComponentTopology: ComponentTopologyMergedCache;
     ThinkingResults: ThinkingResultReadCache = createThinkingResultReadCacheHandler(ephemeraDB);
     ThinkingSchedules: ThinkingScheduleReadCache = createThinkingScheduleReadCacheHandler(ephemeraDB);
     ThinkingJobs: ThinkingJobReadCache = createThinkingJobReadCacheHandler(ephemeraDB);
@@ -140,15 +147,6 @@ export class InternalCache {
             this.CharacterMeta,
             this.RenderCache
         )
-        this.ComponentStackMerge = new ComponentStackMergeData(
-            this.ComponentData,
-            this.RoomCharacterList,
-            this.Global,
-            this.CharacterMeta,
-            (roomId) => this.ComponentEphemeraMeta.get(roomId)
-        )
-        this.GenerationContext = new GenerationContextData(this.ComponentData)
-        this.CharacterPossibleMaps = new CacheCharacterPossibleMapsData(this.CharacterMeta, this.Graph)
         this.ComponentAggregate = createComponentAggregateCacheHandler({
             ComponentData: this.ComponentData,
             ComponentVerticals: ephemeraComponentVerticalsStub,
@@ -156,9 +154,22 @@ export class InternalCache {
         this.ComponentExamples = createComponentExamplesCacheHandler({
             ComponentAggregate: this.ComponentAggregate,
         })
+        this.ComponentTopology = createComponentTopologyCacheHandler({
+            ComponentAggregate: this.ComponentAggregate,
+        })
+        this.ComponentStackMerge = new ComponentStackMergeData(
+            this.ComponentAggregate,
+            this.AffordanceCache,
+            this.RoomCharacterList,
+            this.Global,
+            this.CharacterMeta,
+            (roomId) => this.ComponentEphemeraMeta.get(roomId)
+        )
+        this.GenerationContext = new GenerationContextData(this.ComponentData)
         this._invalidateAssetCallback = (EphemeraId) => {
             // Variable/Computed invalidation removed - no longer needed
         }
+        this.CharacterPossibleMaps = new CacheCharacterPossibleMapsData(this.CharacterMeta, this.Graph)
     }
 
     clear() {
@@ -176,8 +187,9 @@ export class InternalCache {
         this.PlayerSessions.clear()
         this._graphCache.clear()
         this.ComponentData.clear()
-        this.ComponentAggregate.clear()
+        this.ComponentTopology.clear()
         this.ComponentExamples.clear()
+        this.ComponentAggregate.clear()
         this.ThinkingResults.clear()
         this.ThinkingSchedules.clear()
         this.ThinkingJobs.clear()
@@ -190,14 +202,16 @@ export class InternalCache {
         this.CharacterPossibleMaps.clear()
         this.Conversations.clear()
         this.RenderCache.clear()
+        this.AffordanceCache.clear()
     }
 
     async flush() {
         await Promise.all([
             this._graphCache.flush(),
             this.ComponentData.flush(),
-            this.ComponentAggregate.flush(),
+            this.ComponentTopology.flush(),
             this.ComponentExamples.flush(),
+            this.ComponentAggregate.flush(),
             this.ThinkingResults.flush(),
             this.ThinkingSchedules.flush(),
             this.ThinkingJobs.flush(),
@@ -206,6 +220,7 @@ export class InternalCache {
             this.ComponentStackMerge.flush(),
             this.GenerationContext.flush(),
             this.RenderCache.flush(),
+            this.AffordanceCache.flush(),
         ])
     }
 

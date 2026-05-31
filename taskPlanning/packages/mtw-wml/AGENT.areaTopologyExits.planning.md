@@ -2,7 +2,7 @@
 
 **Status:** In progress. **Milestone 0 (decisions)** complete; **Milestone 1** complete (WML + StandardArea asset mode); **Milestone 2** complete (persisted `referencedBy`); **Milestone 3** complete (projection library + gateways pull).
 
-**Next step:** **Milestone 4** Ephemera `ComponentTopology` + `affordanceCache` integration.
+**Next step:** **Milestone 4** implementation --- **`affordanceOrchestration`** + **`affordanceCache`** + perception pipeline (**D37**; **D32-D38** locked).
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into package `AGENT.md` files next to code.
 
@@ -40,13 +40,13 @@ Standing in the **`From`** room, the player sees **`Forward`** toward **`To`**; 
 | [`packages/mtw-wml/ts/standardize/components/AGENT.implementation.md`](../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) | **StandardArea** v1; edges were explicitly deferred |
 | [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md) | `standardizeMode`, subset cascade, `referencedBy()` |
 | [`lambda/assets/componentExamples/AGENT.md`](../../../lambda/assets/componentExamples/AGENT.md) | Skinny invalidation + pull assembly precedent (**D18**) |
-| [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../lambda/ephemera/dataSource/renderCache/AGENT.md) | Ephemera durable cache + hydrate-on-invalidate precedent (**D18**) |
+| [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../lambda/ephemera/dataSource/renderCache/AGENT.md) | Ephemera durable cache + invalidate-then-hydrate-on-demand precedent (**D18**) |
 | [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) | `ComponentExamples` / `ComponentAggregate` gateway cache handlers |
 
-**Child plans (tracked in Milestones 2 and 4):**
+**Child plans (tracked in Milestones 2 and 4; both disposed --- see steady-state docs):**
 
-- **M2:** [`taskPlanning/lambda/assets/AGENT.areaTopologyReferencedBy.planning.md`](../../lambda/assets/AGENT.areaTopologyReferencedBy.planning.md) --- **`referencedBy`** / **`cacheAsset`**, **`mtw.assets.componentTopology`**
-- **M4:** [`taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md`](../../lambda/ephemera/AGENT.areaTopologyExits.planning.md) --- **D30**, **`affordanceCache`**, affordance publish, navigation; extend assets child plan for **`componentTopology`** integration
+- **M2 (disposed):** [`lambda/assets/dataSource/caching/AGENT.diff.md`](../../../lambda/assets/dataSource/caching/AGENT.diff.md) + [`lambda/assets/componentTopology/AGENT.md`](../../../lambda/assets/componentTopology/AGENT.md) --- **`referencedBy`** / **`cacheAsset`**, **`mtw.assets.componentTopology`**. *(Former task plan `taskPlanning/lambda/assets/AGENT.areaTopologyReferencedBy.planning.md` removed.)*
+- **M4 (disposed):** [`lambda/ephemera/dataSource/affordanceOrchestration/AGENT.md`](../../../lambda/ephemera/dataSource/affordanceOrchestration/AGENT.md) + [`affordanceCache/AGENT.md`](../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md) --- **D30**, **D32-D38**, three-layer affordance pipeline, navigation
 
 ---
 
@@ -58,10 +58,11 @@ Standing in the **`From`** room, the player sees **`Forward`** toward **`To`**; 
 4. **Persisted inverse references** (`referencedBy` or equivalent at blueprint / meta layer) are **required** for practical ephemera fetch --- in-memory `StandardForm.referencedBy()` is not sufficient at runtime scale. Index by **target `ComponentUUID`** (component-wide, not room-only); **v1 consumer** is topology (Areas referencing **`ROOM#`**). Align writer with per-component **`referencedKeys()`** ([`StandardForm.referencedBy`](../../../packages/mtw-wml/ts/standardize/index.ts)).
 5. Delivery is **phased**; dual-read or migration tooling may be required (see **D23**).
 6. **Bidirectional topology:** Every Area **exit edge** is traversable in both directions. Topology lives on **`StandardArea.positionGraph.edges`** (with **`nodes`**), not on Room blueprint rows. **`edges`** is a **union** (extensible); **`<Exit>`** is the **first** member shape (**D3**). Each edge has a stable **`uuid`** (**D28**) **local to that Area's `positionGraph`** (**D5b**). Layered assets merge edges by **`uuid`** inside one Area like components, but the same **`uuid` in two Areas is not one edge**. Endpoints are **`From`** / **`To`** (**D29**); labels are **`Forward`** / **`Back`** (**D26**). Runtime room wire still exposes a **single** outbound label per direction via projection (**D16**).
-7. **Caching (D18):** Follow the **`componentExamples` + `renderCache`** split. **Assets** owns skinny topology invalidation and **pull** assembly (`mtw.assets.componentTopology` + gateways **`ComponentTopology`** handler). **Ephemera** owns durable affordance-topology rows and hydrate-on-invalidate (`mtw.ephemera.affordanceCache`). **Persisted `referencedBy`** (**D8-D12**) is still required for cheap pull; the topology DataSource does **not** replace the inverse index.
+7. **Caching (D18):** Follow the **`componentExamples` + `renderCache`** split. **Assets** owns skinny topology invalidation and **pull** assembly (`mtw.assets.componentTopology` + gateways **`ComponentTopology`** handler). **Ephemera** owns durable affordance-topology rows: **push** catalog invalidation on **`TopologyInvalidated`**, **pull** hydrate-on-demand when a stale slice is next read (**D32**). **Persisted `referencedBy`** (**D8-D12**) is still required for cheap pull; the topology DataSource does **not** replace the inverse index.
 8. **Inverse index (D8-D10):** Embed **`referencedBy`** on existing forward rows **`(targetUniversalKey, ASSET#assetId)`**; maintain on **`cacheAsset`** (**D9 B**, **D10**). Read via **`ComponentData`** pair load inside **`ComponentAggregate.get`** (**D31**).
 9. **Plumbing (D31):** Strip **`referencedBy`** before **`StandardComponent`**; carry on **`ComponentPairRow`**; extend **[`MergedComponentResult`](../../../packages/mtw-gateways/ts/assets/components/aggregate/result.ts)** with **`referencedByUnion`** (same **`getAcrossAssets`** batch as merge --- no second fetch for topology). Callers that do not need inverse data use **`.merged`** only (**D30**, **ComponentExamples**).
 10. **`ComponentStackMerge` refactor (D30):** **`ComponentAggregate.get`** -> **`result.merged`** for blueprint room fields; ignore **`referencedByUnion`**. Keep ephemera-only roster / **`objects`** and **ephemeraWire** envelope.
+11. **Affordance pipeline (D37):** Mirror **`renderOrchestration` + `renderCache` + perception**. **`mtw.ephemera.affordanceOrchestration`** owns ingress (**`Affordances Requested`**), intake, **`ensureAffordanceTopology`** preflight, and stream outbounds. **`mtw.ephemera.affordanceCache`** owns invalidation, durable rows, and correlated **`Affordances Pertain`**. **`mtw.ephemera.perception`** owns terminal **`PublishMessage`** per occupant on **`Affordances Pertain`** --- legacy triggers (**`RoomUpdate`**, **`Objects Changed`**, topology fan-out) must **not** call publish helpers directly (**D37**). **`ComponentStackMerge`** remains an **`internalCache`** compose memo invoked from perception (and nav via shared slice helpers), not a pipeline ingress center (**D38**).
 
 ---
 
@@ -72,8 +73,9 @@ Standing in the **`From`** room, the player sees **`Forward`** toward **`To`**; 
 3. **Area implementation:** [`packages/mtw-wml/ts/standardize/components/AGENT.implementation.md`](../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) (**StandardArea**)
 4. **Facets today (one ref + payload):** [`packages/mtw-wml/ts/standardize/keys/facets/AGENT.facets.md`](../../../packages/mtw-wml/ts/standardize/keys/facets/AGENT.facets.md), [`exit.ts`](../../../packages/mtw-wml/ts/standardize/keys/facets/exit.ts) (room-local; superseded for Area topology by **D27**)
 5. **Ephemera affordances + navigation:** [`lambda/ephemera/internalCache/AGENT.md`](../../../lambda/ephemera/internalCache/AGENT.md) (`ComponentStackMerge`, `ComponentRender`), [`lambda/ephemera/dataSource/perception/publishRoomAffordancePerceptionMessages.ts`](../../../lambda/ephemera/dataSource/perception/publishRoomAffordancePerceptionMessages.ts), [`lambda/ephemera/dataSource/actions/roomExitTargetsForCharacter.ts`](../../../lambda/ephemera/dataSource/actions/roomExitTargetsForCharacter.ts)
-6. **Caching precedents (D18):** [`lambda/assets/componentExamples/AGENT.md`](../../../lambda/assets/componentExamples/AGENT.md), [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../lambda/ephemera/dataSource/renderCache/AGENT.md), [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) (**ComponentExamples** / **ComponentAggregate**)
-7. **Asset persistence:** [`lambda/assets/dataSource/caching/AGENT.diff.md`](../../../lambda/assets/dataSource/caching/AGENT.diff.md) (`Meta::${tag}`, `cacheAsset`)
+6. **Render pipeline precedent (required for M4):** [`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md), [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../lambda/ephemera/dataSource/renderCache/AGENT.md) (**`Render Requested`** -> **`ensureAuthoredCatalog`** -> **`Render Pertains`** -> perception terminal publish)
+7. **Caching precedents (D18):** [`lambda/assets/componentExamples/AGENT.md`](../../../lambda/assets/componentExamples/AGENT.md), [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md) (**ComponentExamples** / **ComponentAggregate**)
+8. **Asset persistence:** [`lambda/assets/dataSource/caching/AGENT.diff.md`](../../../lambda/assets/dataSource/caching/AGENT.diff.md) (`Meta::${tag}`, `cacheAsset`)
 
 **Test command authority:** [`packages/mtw-wml/AGENT.testing.mtw-wml-typescript.md`](../../../packages/mtw-wml/AGENT.testing.mtw-wml-typescript.md). If commands conflict, follow that file for `mtw-wml`; for ephemera/assets, use each lambda's `AGENT.testing.md` when child plans exist.
 
@@ -115,7 +117,7 @@ Mark decisions **`[X]`** in the **Status** column when normative. Milestone gate
 | **D8** | [X] | **Index granularity (logical)** | **Target:** any **`ComponentUUID`** (same as in-memory **`referencedBy(StandardReference)`**). **Entry:** `{ referrerUniversalKey, referenceType? }` --- tag is **not** stored (**`AREA#...`** prefix is sufficient). **`assetId` omitted** when stored on **`(target, ASSET#)`** forward row (**D9**). **v1 read filter:** topology pull reads **`referencedBy`** on **`ROOM#r`** rows and keeps **`AREA#`** referrers (per **D14**). Forward rows **`(ComponentUUID, ASSET#assetId)`** are component bodies; **`referencedBy`** is derived inverse data colocated per **D9**. **`Meta::Room.cached`** = assets with a forward row, not the inverse list. See [Persisted `referencedBy` (D8-D10)](#persisted-referencedby-d8-d10). |
 | **D9** | [X] | **Storage pattern** | **(B) Embed on forward row (chosen):** `referencedBy: [{ referrerUniversalKey, referenceType? }]` on **`(targetUniversalKey, ASSET#assetId)`** written by **`cacheAsset`**. Rejected for steady-state: **(A)** separate **`Meta::ReferencedBy::...`** rows (extra SK surface; **D12** diverges from **`ComponentAggregate`** batch); **(C)** rebuild-only scan. **(B)** aligns with **`ComponentPairRow`** + **`referencedByUnion`** (**D31**). |
 | **D10** | [X] | **Writer** | **`cacheAsset` only** (no separate vertical in v1). On each cache pass, maintain **`referencedBy`** for targets touched by **`referencedKeys()`** on changed components --- **not** only rows in **`StandardForm.diff`** (Area edge edits must update target room/stub rows). See [Persisted `referencedBy` (D8-D10)](#persisted-referencedby-d8-d10). |
-| **D11** | [X] | **Invalidation** | **Assets:** **`mtw.assets.componentTopology`** emits skinny **`TopologyInvalidated`** on Area **`positionGraph`** / edge edits, Room blueprint during **D6** dual-read, and **`referencedBy`** target patches from **`cacheAsset`** (**D10**) --- component ids, `editAssetId`, optional **`AREA#`** / edge **`uuid`** hints; **no** projected body on bus. **Ephemera:** **`mtw.ephemera.affordanceCache`** bumps catalog / drops stale rows for affected **`ROOM#`** + **`perspectiveKey`**; hydrate via **`internalCache.ComponentTopology.get`**. **Ephemera-only (no topology row rewrite):** **`RoomCharacterList`**, **`Meta::Room.objects`** still trigger affordance republish. **v1 allowed:** coarse invalidation (all perspectives for a room). Detail in child plans. |
+| **D11** | [X] | **Invalidation** | **Assets:** **`mtw.assets.componentTopology`** emits skinny **`TopologyInvalidated`** on Area **`positionGraph`** / edge edits, Room blueprint during **D6** dual-read, and **`referencedBy`** target patches from **`cacheAsset`** (**D10**) --- component ids, `editAssetId`, optional **`AREA#`** / edge **`uuid`** hints; **no** projected body on bus. **Ephemera (invalidate handler):** **`mtw.ephemera.affordanceCache`** bumps catalog / drops stale durable rows for affected **`ROOM#`** + **`perspectiveKey`** only --- **no** **`ComponentTopology.get`** on receive (mirror **`handleExampleInvalidated`**). **Layer participation (**D35**):** bump only catalog rows whose **`assetStack`** includes **`editAssetId`**. **Hydrate (pull):** deferred to **`affordanceOrchestration`** resolve (**D32**). **Republish:** **`TopologyInvalidated`** fans out **`Affordances Requested`** (**reason: topology**) via **`affordanceOrchestration`** (**D37**). **`RoomCharacterList`** / **`Meta::Room.objects`** -> **`Affordances Requested`** (**reason: roster** / **objects**). Detail: [Affordance pipeline (M4)](#affordance-pipeline-m4) and ephemera child plan. |
 | **D12** | [X] | **Cross-asset scope** | For target **`ROOM#r`**: one **`ComponentAggregate.get({ universalKey: ROOM#r, mergeParticipationOrder })`** yields **`merged`** + **`referencedByUnion`** (**D31**). Filter **`AREA#`** referrers; batch **`ComponentAggregate.get`** for those Area perspectives at the **same** **`mergeParticipationOrder`** (**D30**). Optional per-asset **`referencedBy`** on authoritative envelope for diagnostics only. **Participation order** (ephemera perspective / asset stack) selects which **`(component, ASSET#)`** rows **`getAcrossAssets`** loads --- not **`Meta::Import`** (**D13**). |
 | **D13** | [X] | **Imports / import vertical (out of scope)** | **`Meta::Import::...`** ([`verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md)) records **inheritance hops** for one **universalKey** across assets (`_from`: child asset inherits parent asset's appearance). It answers **which parent asset rows to walk** on **`fetchImports`** / import-defaults assembly --- **not** "which **Area** components reference **ROOM#r**." Topology discovery uses **`referencedByUnion`** (**D8-D10**, **D31**) plus **`mergeParticipationOrder`** (**D12**). **No** topology read path queries the import vertical. **Track separately:** **`SchemaImportMapping`** / asset graph gaps (**C4**), not this initiative's referrer model. |
 | **D31** | [X] | **Plumb `referencedBy` (gateway envelope)** | **Dynamo:** **`referencedBy`** on forward row JSON (**D9 B**). **`mtw-wml`:** **do not** add **`referencedBy`** on **`StandardComponent`** --- not authoring state; must not run through **`StandardRoom.merge`**. **Gateways:** strip in [`fetch.ts`](../../../packages/mtw-gateways/ts/assets/components/componentData/fetch.ts); **`ComponentPairRow.referencedBy?`**; [`authoritativeFromParticipationOrder`](../../../packages/mtw-gateways/ts/assets/components/componentData/participationBatch.ts) preserves per-asset lists from the same **`getAcrossAssets`** batch already used for merge. Extend **[`MergedComponentResult`](../../../packages/mtw-gateways/ts/assets/components/aggregate/result.ts)** with **`referencedByUnion?: PersistedReferencedByEntry[]`** (union across **`mergeParticipationOrder`**, **D12** --- not **`merge()`**). **`ComponentAggregate.get`** returns **`Promise<MergedComponentResult[]>`**; existing callers use **`.merged`** only; topology uses **`.referencedByUnion`**. Rejected: optional field on all **`StandardComponent`** classes; separate topology-only **`getAcrossAssets`** when aggregate already loaded the row. See [Plumb persisted `referencedBy` (D31)](#plumb-persisted-referencedby-d31). |
@@ -130,7 +132,7 @@ Mark decisions **`[X]`** in the **Status** column when normative. Milestone gate
 | **D15** | [X] | **Merge order** | Layer Area edge sets and room projection using **`ComponentAggregate`** **`mergeParticipationOrder`** --- the same stable order as **D30** / ephemera **`perspectiveKey`**. **Not** **`mergeRoomExitsToJSON`** concat. Area **`EdgeList.merge`** runs inside each merged **`StandardArea`** after cross-asset participation fold (**D5b**). |
 | **D16** | [X] | **Outbound wire shape** | **`projectRoomExits(ROOM#R, ...)`** builds one **`ExitFacetList`** for **R**. For each Area edge, **at most one** facet in **R**'s list: if **R** is **`from`**, emit `reference` = **`to`** room, payload = **`Forward`**; if **R** is **`to`**, emit `reference` = **`from`** room, payload = **`Back`** (**D1**). **Normal A -> B:** one facet on **A**'s list and one on **B**'s list from that edge --- not two on **A**. **Self-loop (`From` = `To` = R):** up to **two** facets on **R**'s list (both roles). **Portal (**D17**):** one facet when only one endpoint is **R**. Output on **`StandardRoom.exits`** in **ephemeraWire** for client/nav parity (**D21**). |
 | **D17** | [X] | **Portal / outside endpoint (**D4**)** | In-graph **R** gets **one** facet per edge (**D16**). Player-facing affordance from **R** when **R** is **`from`** or **`to`**. **`ExitFacet.reference`** / movement resolution requires the **other** endpoint to resolve to **`ROOM#`**; non-room peers are not nav targets in v1 (label-from-**R** behavior at implement time). |
-| **D18** | [X] | **Caching (`renderCache` analogue)** | **Assets:** **`mtw.assets.componentTopology`** DataSource (like **`mtw.assets.componentExamples`**) --- subscribe to topology-relevant **`Component Updated` / `Removed`** (Area **`positionGraph`**, Room during **D6** dual-read); publish skinny **`TopologyInvalidated`** only. **Gateways:** **`assembleRoomTopologyAtPerspective`** (name TBD) + **`createComponentTopologyCacheHandler({ ComponentAggregate })`** --- room perspective via **`ComponentAggregate.get`** -> **`referencedByUnion`** + batch Area **`merged`** (**D31**); **`projectRoomExits`** (**D16**). Ephemera registers **`internalCache.ComponentTopology`**. **Ephemera:** **`mtw.ephemera.affordanceCache`** --- Dynamo slice per **`(ROOM#, perspectiveKey)`**; hydrate on invalidation. **Publish:** hydrated topology + ephemera-only fields; **D30** for transitional room **`merged.exits`** until projection owns exits. See [Caching architecture (D18)](#caching-architecture-d18). |
+| **D18** | [X] | **Caching (`renderCache` analogue)** | **Assets:** **`mtw.assets.componentTopology`** DataSource (like **`mtw.assets.componentExamples`**) --- subscribe to topology-relevant **`Component Updated` / `Removed`** (Area **`positionGraph`**, Room during **D6** dual-read); publish skinny **`TopologyInvalidated`** only. **Gateways:** **`assembleRoomTopologyAtPerspective`** + **`createComponentTopologyCacheHandler({ ComponentAggregate })`** --- room perspective via **`ComponentAggregate.get`** -> **`referencedByUnion`** + batch Area **`merged`** (**D31**); **`projectRoomExits`** (**D16**). Ephemera registers **`internalCache.ComponentTopology`**. **Ephemera:** **`mtw.ephemera.affordanceOrchestration`** + **`mtw.ephemera.affordanceCache`** --- Dynamo slice per **`(ROOM#, perspectiveKey)`**; **invalidate on bus**, **hydrate-on-demand on orchestration resolve** (**D32**, not in invalidation handler); **`Affordances Pertain`** -> perception terminal publish (**D37**). See [Caching architecture (D18)](#caching-architecture-d18), [Affordance pipeline (M4)](#affordance-pipeline-m4). |
 
 ### Product, authoring, client
 
@@ -153,7 +155,19 @@ Mark decisions **`[X]`** in the **Status** column when normative. Milestone gate
 
 | ID | Status | Decision | Notes / options |
 | --- | --- | --- | --- |
-| **D30** | [X] | **`ComponentStackMerge` uses `ComponentAggregate`** | **Replace** [`componentStackMerge.ts`](../../../lambda/ephemera/internalCache/componentStackMerge.ts) **`getAcrossAssets` + `mergeRoomExitsToJSON` / `mergeRoomShortNameLiteral`** with **`internalCache.ComponentAggregate.get`** at **`mergeParticipationOrder`** derived from the same global + character asset list as today. **Discard** merged blueprint fields not needed for affordances (situations, features, lens, render on room, etc.). **Keep** ephemera-only: **`RoomCharacterList`**, **`Meta::Room.objects`**, **`ephemeraWire`** **`StandardForm`** envelope. **Why:** `mergeRoomExitsToJSON` **concatenates** per-asset room **`exits`** --- wrong for layered assets (e.g. canon **D,E** + import overlay removing **D** and adding **F** yields **D,E,F** instead of **E,F**). That divergence from **`StandardRoom.merge`** / **`ComponentAggregate`** is a **bug**, not a feature. **Cost:** extra in-memory merge work per miss; acceptable for one merge authority. **Follow-up (track, not D30):** **`ComponentRender`** still uses **`mergeRoomExitsToJSON`** for nav ([`roomExitTargetsForCharacter.ts`](../../../lambda/ephemera/dataSource/actions/roomExitTargetsForCharacter.ts)) --- align to aggregate or **affordanceCache** / topology slice in Milestone **4**. See [ComponentStackMerge refactor (D30)](#componentstackmerge-refactor-d30). **Gate:** land **before** or at start of Milestone **4**; **D8-D10** ephemera reads assume **D30** participation order. |
+| **D30** | [X] | **`ComponentStackMerge` uses `ComponentAggregate`** | **Replace** [`componentStackMerge.ts`](../../../lambda/ephemera/internalCache/componentStackMerge.ts) **`getAcrossAssets` + `mergeRoomExitsToJSON` / `mergeRoomShortNameLiteral`** with **`internalCache.ComponentAggregate.get`** at **`mergeParticipationOrder`** derived from the same global + character asset list as today. **Discard** merged blueprint fields not needed for affordances (situations, features, lens, render on room, etc.). **Keep** ephemera-only: **`RoomCharacterList`**, **`Meta::Room.objects`**, **`ephemeraWire`** **`StandardForm`** envelope. **Why:** `mergeRoomExitsToJSON` **concatenates** per-asset room **`exits`** --- wrong for layered assets (e.g. canon **D,E** + import overlay removing **D** and adding **F** yields **D,E,F** instead of **E,F**). That divergence from **`StandardRoom.merge`** / **`ComponentAggregate`** is a **bug**, not a feature. **Cost:** extra in-memory merge work per miss; acceptable for one merge authority. **Follow-up (track, not D30):** **`ComponentRender`** still uses **`mergeRoomExitsToJSON`** for nav ([`roomExitTargetsForCharacter.ts`](../../../lambda/ephemera/dataSource/actions/roomExitTargetsForCharacter.ts)) --- align to aggregate or **affordanceCache** / topology slice in Milestone **4** (**D34**). See [ComponentStackMerge refactor (D30)](#componentstackmerge-refactor-d30). **Gate:** land **before** or at start of Milestone **4**; **D8-D10** ephemera reads assume **D30** participation order. |
+
+### Blockers --- Ephemera affordance pipeline (M4)
+
+| ID | Status | Decision | Notes / options |
+| --- | --- | --- | --- |
+| **D32** | [X] | **Hydrate-on-demand entry point** | **Normative:** invalidation handler bumps catalog only; **`ensureAffordanceTopology`** runs in **`orchestrateAffordanceRequest`** ([`affordanceOrchestration`](../../../lambda/ephemera/dataSource/affordanceOrchestration/)) **after intake, before** slice read / cache handoff --- same placement as [`ensureAuthoredCatalog`](../../../lambda/ephemera/dataSource/renderCache/ensureAuthoredCatalog.ts) in [`orchestrationHandler.ts`](../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts). **Rejected:** eager hydrate in **`handleTopologyInvalidated`**; hydrate inside **`ComponentStackMerge.get`**; hydrate inside **`AffordanceCache.get`** as a hidden side effect. **Nav:** calls exported **`ensureAffordanceTopology`** + slice read directly (**D34**); does not run full publish orchestration. Module lives under **`affordanceCache/`**; orchestration **calls** it. Detail: [Affordance pipeline (M4)](#affordance-pipeline-m4). |
+| **D33** | [X] | **Durable row / catalog schema (colocated v1)** | **One row per perspective:** **`Affordance::${perspectiveKey}`** under **`ROOM#`** with **`assetStack`**, **`catalogVersion`**, **`hydratedCatalogVersion`**, and embedded **`ProjectedRoomTopology`** ( **`exits`** as **`ExitFacetList`** JSON from gateways [`result.ts`](../../../packages/mtw-gateways/ts/assets/components/componentTopology/result.ts)). **Rejected for M4:** split catalog + separate **`TOPOLOGY#`** / **`AFFORDANCES#`** body row(s) --- v1 is **1:1** deterministic projection (not render's multi-**`CACHE#`** cardinality). **Follow-on:** if a **second** durable slice per perspective is needed (e.g. LLM enrichment separate from deterministic exits), introduce a split row layout then --- do not pre-split for symmetry alone. **Must** gate reads on **`catalogVersion` / `hydratedCatalogVersion`** (stale **`exits`** on the row must not be served after invalidation). **Must not** store full ephemeraWire (roster / **`objects`** stay ephemera-only; composed in perception via **D38**). Catalog prefix mirrors render **`Cache::`** meta-row convention; affordance-specific prefix avoids collision with render rows on the same **`ROOM#`**. |
+| **D34** | [X] | **Navigation exit source (sync bypass)** | **Normative (M4):** [`getRoomExitTargetsForCharacter`](../../../lambda/ephemera/dataSource/actions/roomExitTargetsForCharacter.ts) calls exported **`ensureAffordanceTopology`**, then reads projected **`exits`** via **`internalCache.AffordanceCache`** (colocated **`Affordance::`** row, **D33**) --- **not** **`ComponentRender`**. **Does not** enqueue **`Affordances Requested`**, emit **`Affordances Pertain`**, or **`PublishMessage`**. **Shared projection:** same **`ProjectedRoomTopology`** / **`ExitFacetList`** as affordance publish (**D16**, **D21**). **Documented limitations (accepted v1):** (1) nav is a **synchronous command path** --- may block on hydrate / single-flight (**D36**) in-process; (2) nav does **not** fan out affordance-channel updates to room occupants; (3) future LLM enrichment slice (if any) is **out of scope** for nav until product revisits --- nav uses deterministic topology slice only. **Rejected:** routing nav through full **`affordanceOrchestration`** event pipeline for M4. |
+| **D35** | [X] | **Layer participation on invalidation** | **Normative:** mirror **`renderCache`** --- for each listed **`roomId`**, query **`Affordance::`** catalog rows and bump only those whose stored **`assetStack`** includes **`TopologyInvalidated.editAssetId`** ([`assetStackIncludesEditAssetId`](../../../packages/mtw-gateways/ts/assets/components/componentExamples/membership.ts)); same handler shape as [`handleExampleInvalidated`](../../../lambda/ephemera/dataSource/renderCache/handleExampleInvalidated.ts) + [`catalogRowMatchesEditAssetId`](../../../packages/mtw-gateways/ts/ephemera/renderCache). **Rejected:** coarse bump of all perspectives for a room regardless of edit layer. **Area-scoped v1 (**no `roomIds`**):** handler no-op (catalog bump and topology **`Affordances Requested`** fan-out require room targets); rare (e.g. Area removal with empty **`positionGraph`**). **Future:** assets expands affected **`roomIds`** on emit when recoverable from persisted state. |
+| **D36** | [X] | **Hydrate single-flight** | **Normative:** mirror [`ensureAuthoredCatalog`](../../../lambda/ephemera/dataSource/renderCache/ensureAuthoredCatalog.ts) + [`singleFlightAuthoredCatalogHydrate`](../../../lambda/ephemera/dataSource/renderCache/singleFlightAuthoredCatalogHydrate.ts) --- wrap stale hydrate in **`singleFlight`** (**coalesce** mode) keyed **`roomId::perspectiveKey`**. **All callers** (orchestration, nav) use the same exported **`ensureAffordanceTopology`**; concurrent callers join one cohort --- no separate nav vs orchestration pools. **Leader `computation`:** re-check stale, **`ComponentTopology.get`**, version-guarded persist. **Follower `retrieval`:** poll catalog until not stale (render **catalog hydrate** pattern --- **not** the asymmetric **`generateRoomPreview`** generation follower). **Accepted library limits:** leader timeout / self-promote may duplicate hydrate work; version-guarded writes keep this safe. **Rejected:** nav bypassing singleFlight; caller-type-specific follower policies. |
+| **D37** | [X] | **Three-layer affordance pipeline** | **Normative (M4):** mirror render pass-through. **`mtw.ephemera.affordanceOrchestration`:** subscribe **`Affordances Requested`** ingress (internal stream + adapters from **`RoomUpdate`**, **`Objects Changed`**, **`TopologyInvalidated`** fan-out); **`orchestrateAffordanceRequest`** runs intake -> **`ensureAffordanceTopology`** -> stream outbounds (**`Slice Ready`**, **`Orchestration Error`** v1-active; skipped tests for future enrichment outbounds). **`mtw.ephemera.affordanceCache`:** **`handleTopologyInvalidated`** (catalog bump only); subscribe orchestration outbounds; on hydrate / hit emit **`Affordances Pertain`**. **`mtw.ephemera.perception`:** subscribe **`Affordances Pertain`**; terminal **`PublishMessage`** per occupant (**`roomChannel: 'affordances'`**). **Rejected:** legacy triggers calling **`publishRoomAffordancePerceptionMessages`** directly once orchestration ships. Precedent: [`renderOrchestration`](../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md) -> [`renderCache`](../../../lambda/ephemera/dataSource/renderCache/AGENT.md) **`Render Pertains`** -> [`orchestrate.ts`](../../../lambda/ephemera/dataSource/perception/orchestrate.ts). Detail: [Affordance pipeline (M4)](#affordance-pipeline-m4). |
+| **D38** | [X] | **`ComponentStackMerge` role** | **Normative:** **`ComponentStackMerge`** stays in **`internalCache`** as an **invocation-memo compose helper** --- topology slice + **`ComponentAggregate`** **`shortName`** + ephemera-only **`RoomCharacterList`** / **`Meta::Room.objects`** -> **`ephemeraWire`** **`StandardForm`**. **Called from** perception terminal handler on **`Affordances Pertain`** (not from bus ingress). **Does not** own hydrate, orchestration, or **`PublishMessage`**. **Rejected for M4:** folding compose into perception inline with no memo; **`ComponentStackMerge`** as pipeline ingress center. **Future LLM enrichment:** slow path lives in **`affordanceOrchestration`** + durable slice in **`affordanceCache`**; perception still composes/publishes on **`Affordances Pertain`**. Detail: [ComponentStackMerge vs perception (D38)](#componentstackmerge-vs-perception-d38). |
 
 ### Coordination (track only)
 
@@ -166,6 +180,7 @@ Mark decisions **`[X]`** in the **Status** column when normative. Milestone gate
 | **C5** | Gateway cache registration --- [`.cursor/rules/gateways-internal-cache.mdc`](../../../.cursor/rules/gateways-internal-cache.mdc); **`ComponentTopology`** on Ephemera **`internalCache`** |
 | **C6** | **`ComponentStackMerge` -> `ComponentAggregate`** (**D30**); parity with [`componentAggregate.mergeParity.test.ts`](../../../lambda/assets/componentAggregate.mergeParity.test.ts) |
 | **C7** | **`referencedByUnion` on `MergedComponentResult`** (**D31**); [`aggregate/result.ts`](../../../packages/mtw-gateways/ts/assets/components/aggregate/result.ts), [`participationBatch.ts`](../../../packages/mtw-gateways/ts/assets/components/componentData/participationBatch.ts) |
+| **C8** | **Affordance pipeline** (**D32-D38**); **`affordanceOrchestration`** + **`affordanceCache`** + perception; ephemera child plan |
 
 ---
 
@@ -176,7 +191,7 @@ Mark decisions **`[X]`** in the **Status** column when normative. Milestone gate
 | **1** WML + `StandardArea` (asset mode) | **D1-D7**, **D5b**, **D26-D29** [X] |
 | **2** Persisted `referencedBy` | **D8-D13** [X], **D31** [X]; **`cacheAsset`** + pair strip/carry + **`referencedByUnion`** on **`MergedComponentResult`** |
 | **3** Projection library + gateways pull | **D1-D6**, **D14-D17** [X]; **`projectRoomExits`**; **`mtw-gateways/ts/assets/components/componentTopology/`** (**`createComponentTopologyCacheHandler`**, primary) |
-| **4** Ephemera + assets caching integration | **D2**, **D11**, **D14-D18** [X], **D30** [X], Milestones **2-3**; **`internalCache.ComponentTopology`** + **`mtw.ephemera.affordanceCache`** (M2 assets invalidation DataSource already shipped) |
+| **4** Ephemera + assets caching integration | **D2**, **D11**, **D14-D18** [X], **D30** [X], **D32-D38** [X], Milestones **2-3**; **`affordanceOrchestration`** + **`affordanceCache`** + perception (**D37**) |
 | **5** Authoring + migration | **D19-D24** [X], Milestone **1**; manual DB migration (**D24**); Area workbench (**D19**) |
 | **6** Cleanup + durable docs | Prior milestones; **D23** follow-up (forbid room-local exits + UI); **D25** test retirement |
 
@@ -195,7 +210,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] **D5b** --- merge edges by **`uuid`** within one Area **`positionGraph`**; **`uuid`** not global across Areas.
   - [X] **D6** --- dual-read room-local exits until DB migration; forbid in M6 (**D23**).
   - [X] **D7** --- new **`Edge`** `referenceType` for edge **From** / **To**; subset **Stub** via **`connectionType: 'Edge'`**; non-structural for org graph.
-  - [X] **D18** --- **`componentTopology`** + **`affordanceCache`** split (see [Caching architecture (D18)](#caching-architecture-d18)).
+  - [X] **D18** --- **`componentTopology`** + **`affordanceOrchestration`** + **`affordanceCache`** pipeline (see [Caching architecture (D18)](#caching-architecture-d18)).
   - [X] **D8-D10** --- embed **`referencedBy`** on **`(target, ASSET#)`** forward rows; **`cacheAsset`** writer (see [Persisted `referencedBy` (D8-D10)](#persisted-referencedby-d8-d10)).
   - [X] **D31** --- **`ComponentPairRow`** strip/carry; **`referencedByUnion`** on **`MergedComponentResult`** (see [Plumb persisted `referencedBy` (D31)](#plumb-persisted-referencedby-d31)).
   - [X] **D30** --- **`ComponentStackMerge`** -> **`ComponentAggregate`** (see [ComponentStackMerge refactor (D30)](#componentstackmerge-refactor-d30)).
@@ -219,13 +234,13 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Update [`AGENT.implementation.md`](../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) (**StandardArea** edges) when behavior is stable.
 
 - [X] **Milestone 2 --- Persisted `referencedBy` (assets + gateways)**
-  - [X] **Child plan:** create [`taskPlanning/lambda/assets/AGENT.areaTopologyReferencedBy.planning.md`](../../lambda/assets/AGENT.areaTopologyReferencedBy.planning.md) --- **`cacheAsset`** writer, **`referencedBy`** tests, **`mtw.assets.componentTopology`** invalidation (**D8-D11**).
+  - [X] **Assets (disposed child plan):** [`lambda/assets/dataSource/caching/AGENT.diff.md`](../../../lambda/assets/dataSource/caching/AGENT.diff.md) + [`componentTopology/AGENT.md`](../../../lambda/assets/componentTopology/AGENT.md) --- **`cacheAsset`** writer, **`referencedBy`** tests, **`mtw.assets.componentTopology`** invalidation (**D8-D11**). *(Former task plan `taskPlanning/lambda/assets/AGENT.areaTopologyReferencedBy.planning.md` removed.)*
   - [X] Extend **`cacheAsset`**: compute **`referencedBy`** from in-memory **`fileAsset`** / diff; patch **`(target, ASSET#)`** rows beyond **`diff._components`** when inverse changes (**D10**).
   - [X] **`mtw-gateways`:** **`PersistedReferencedByEntry`** type; strip **`referencedBy`** in **`fetch.ts`**; extend **`ComponentPairRow`** / **`ComponentDataCache`** (**D31**).
   - [X] **`ComponentData`:** pair rows carry **`referencedBy`**; **`getAcrossAssets`** feeds **`participationBatch`** with per-asset lists.
   - [X] **`MergedComponentResult.referencedByUnion`** + union helper (**D31**, **D12**); golden test: two assets, two referrers, dedupe rules documented.
   - [X] **`ComponentExamples`** / other aggregate callers: verify unchanged (use **`.merged`** only).
-  - [X] Invalidation contract (**D11**); tests in assets lambda; index updates must drive **`TopologyInvalidated`** once **`componentTopology`** exists (detail in assets child plan).
+  - [X] Invalidation contract (**D11**); tests in assets lambda; index updates drive **`TopologyInvalidated`** via **`mtw.assets.componentTopology`** (see [`componentTopology/AGENT.md`](../../../lambda/assets/componentTopology/AGENT.md)).
 
 - [X] **Milestone 3 --- Projection library + gateways pull (`mtw-wml` + `@tonylb/mtw-gateways`)**
   - [X] **Naming / layout (normative):** mirror **`componentExamples`** + **`renderCache`** split ([`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md)); detail in [Gateways `componentTopology` module (M3)](#gateways-componenttopology-module-m3).
@@ -238,15 +253,18 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
     - [X] Update **`packages/mtw-gateways/AGENT.md`**: ownership table row + **Component topology read surfaces (primary vs secondary)** subsection.
   - [X] **Explicit M3 non-goals:** Ephemera **`internalCache.ComponentTopology`** registration; **`mtw.ephemera.affordanceCache`** Dynamo rows; ephemeraWire **`StandardRoom.exits`** on affordance publish; **D30** **`ComponentStackMerge`** refactor (all **M4**).
 
-- [ ] **Milestone 4 --- Ephemera caching integration + affordance path**
-  - [ ] **Child plan:** create [`taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md`](../../lambda/ephemera/AGENT.areaTopologyExits.planning.md) (**D30**, **`internalCache.ComponentTopology`**, **`mtw.ephemera.affordanceCache`**, affordance publish, navigation, **D11** invalidation matrix).
-  - [ ] **Child plan:** extend assets [`AGENT.areaTopologyReferencedBy.planning.md`](../../lambda/assets/AGENT.areaTopologyReferencedBy.planning.md) --- M3 gateways module landed; M4 wiring verification only (assets **`mtw.assets.componentTopology`** invalidation shipped in M2).
-  - [ ] **D30:** Refactor **`ComponentStackMerge`** to **`ComponentAggregate`**; remove **`mergeRoomExitsToJSON`** from affordance path; tests for layered exit overlay (**D,E** + remove **D** + add **F** -> **E,F**).
-  - [ ] Ephemera: register **`createComponentTopologyCacheHandler`** on **`internalCache.ComponentTopology`**; steady-state reads call **`get`**, not uncached **`assembleRoomTopologyAtPerspective`** ([`.cursor/rules/gateways-internal-cache.mdc`](../../../.cursor/rules/gateways-internal-cache.mdc)).
-  - [ ] Ephemera: **`mtw.ephemera.affordanceCache`** DataSource + **`ts/ephemera/affordanceCache/`** gateway ( **`renderCache`** precedent) --- durable rows per **`(ROOM#, perspectiveKey)`**; hydrate via **`internalCache.ComponentTopology.get`** on **`TopologyInvalidated`** (**D18**).
-  - [ ] **`StandardRoom` in ephemeraWire:** populate **`exits`** only via projected topology slice (no asset-mode source); affordance publish + **`getRoomExitTargetsForCharacter`** share hydrated path.
-  - [ ] **`ComponentStackMerge`** = projected exits from topology slice (post-**D30** transitional **`merged.exits`** retired) + ephemera-only fields (roster, **`objects`**).
-  - [ ] Close **D11** invalidation matrix in child plans; verify `roomChannel: 'affordances'`.
+- [X] **Milestone 4 --- Ephemera caching integration + affordance pipeline**
+  - [X] **Ephemera (disposed child plan):** [`lambda/ephemera/dataSource/affordanceOrchestration/`](../../../lambda/ephemera/dataSource/affordanceOrchestration/AGENT.md) + [`affordanceCache/`](../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md) --- **D32-D38**, perception terminal publish, navigation, **D11** invalidation matrix. *(Former task plan `taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md` removed after M4 shipped.)*
+  - [X] **Assets M4 verification (disposed with M2 child plan):** M3 gateways module landed; Ephemera hydrate via **`ComponentTopology.get`** shipped; assets **`componentTopology/`** tests pass.
+  - [X] **D32-D38** locked (orchestration preflight, colocated row, nav sync bypass, layer participation, single-flight hydrate, pipeline, compose role).
+  - [X] **D30:** Refactor **`ComponentStackMerge`** to **`ComponentAggregate`**; remove **`mergeRoomExitsToJSON`** from affordance path; tests for layered exit overlay (**D,E** + remove **D** + add **F** -> **E,F**).
+  - [X] Scaffold **`mtw.ephemera.affordanceOrchestration`** DataSource --- shell, **`Affordances Requested`** ingress types, **`orchestrateAffordanceRequest`** stub, stream outbound contracts ([`lambda/ephemera/dataSource/affordanceOrchestration/`](../../../lambda/ephemera/dataSource/affordanceOrchestration/AGENT.md)).
+  - [X] Migrate **`RoomUpdate`** / **`Objects Changed`** -> **`Affordances Requested`** (**no direct publish**; ephemera child plan).
+  - [X] Ephemera: register **`createComponentTopologyCacheHandler`** on **`internalCache.ComponentTopology`**; steady-state reads call **`get`**, not uncached **`assembleRoomTopologyAtPerspective`** ([`.cursor/rules/gateways-internal-cache.mdc`](../../../.cursor/rules/gateways-internal-cache.mdc)).
+  - [X] Ephemera: **`mtw.ephemera.affordanceCache`** DataSource + **`ts/ephemera/affordanceCache/`** gateway --- **`TopologyInvalidated`** catalog bump; **`ensureAffordanceTopology`** module; emit **`Affordances Pertain`** on slice ready.
+  - [X] **`mtw.ephemera.perception`:** subscribe **`Affordances Pertain`**; terminal publish via **`ComponentStackMerge`** compose (**D38**); retire direct **`publishRoomAffordancePerceptionMessages`** ingress.
+  - [X] **`StandardRoom` in ephemeraWire:** populate **`exits`** from hydrated topology slice; **`getRoomExitTargetsForCharacter`** shares slice path (**D34**).
+  - [X] Close **D11** invalidation matrix in child plans; verify `roomChannel: 'affordances'`.
 
 - [ ] **Milestone 5 --- Authoring + migration**
   - [ ] Workbench **Area** editor (**D19**): **`shortName`**, **`nodes`**, **`edges`** (by **`uuid`**, retarget **From** / **To**, **Forward** / **Back**).
@@ -351,7 +369,7 @@ npm test
 | M1 WML + StandardArea edges | Done |
 | M2 Persisted referencedBy | Done (see child plan) |
 | M3 Projection library + gateways `componentTopology/` | Done |
-| M4 Ephemera `ComponentTopology` + `affordanceCache` | Not started |
+| M4 Ephemera affordance pipeline (`affordanceOrchestration` + `affordanceCache` + perception) | In progress (`affordanceOrchestration` scaffold done) |
 | M5 Authoring + migration | Not started |
 | M6 Cleanup + archive plan | Not started |
 
@@ -394,7 +412,7 @@ Projection shows **`east`** in `highway` toward `townCenter` and **`west`** in `
 
 - **D4 (normative):** Each Exit edge must have **at least one** of **`from`** / **`to`** present in **`positionGraph.nodes`**. **Neither** in **`nodes`** is a **hard error** at standardize time. One inside + one outside is valid.
 
-- **D18 (normative):** **`mtw.assets.componentTopology`** (skinny invalidation + gateways pull) + **`mtw.ephemera.affordanceCache`** (durable hydrate). Cache key **`(ROOM#, perspectiveKey)`**. **`referencedBy`** remains a separate persisted index (M2). Full diagram: [Caching architecture (D18)](#caching-architecture-d18).
+- **D18 (normative):** **`mtw.assets.componentTopology`** (skinny invalidation + gateways pull) + **`mtw.ephemera.affordanceOrchestration`** + **`mtw.ephemera.affordanceCache`** (durable rows; invalidate on bus, hydrate-on-demand on orchestration resolve). Cache key **`(ROOM#, perspectiveKey)`**; durable shape **`Affordance::${perspectiveKey}`** with colocated **`ProjectedRoomTopology`** (**D33**). Nav reads same slice via sync **`ensureAffordanceTopology`** + **`AffordanceCache.get`** (**D34**). Invalidation uses layer participation (**D35**); hydrate coalesces per **D36**. **`referencedBy`** remains a separate persisted index (M2). Full diagram: [Caching architecture (D18)](#caching-architecture-d18).
 
 - **D8-D10 (normative):** Embed **`referencedBy`** on **`(targetUniversalKey, ASSET#assetId)`**; **`cacheAsset`** writer; logical target = any **`ComponentUUID`**. See [Persisted `referencedBy` (D8-D10)](#persisted-referencedby-d8-d10).
 
@@ -469,11 +487,11 @@ ComponentAggregate.get(ROOM#, stack) --> { merged, referencedByUnion }
 
 **Problem:** [`mergeRoomExitsToJSON`](../../../lambda/ephemera/internalCache/componentStackMerge.ts) flattens **`exits`** from every asset appearance. Layered assets use **`StandardRoom.merge`** / **`ComponentAggregate`**, which applies **Remove** / overlay semantics. Affordances and navigation that relied on concat can show **stale exits** from lower layers.
 
-**Refactor:** **`ComponentStackMerge.get`** calls **`internalCache.ComponentAggregate.get([{ universalKey: roomId, mergeParticipationOrder }])`**, uses **`result.merged`** only (**`exits`**, **`shortName`**, etc. --- ignores **`referencedByUnion`**), then adds **`RoomCharacterList`**, **`Meta::Room.objects`**, and builds **`ephemeraWire`** **`StandardForm`** as today.
+**Refactor:** **`ComponentStackMerge.get`** reads hydrated topology slice from **`internalCache.AffordanceCache`**, uses **`ComponentAggregate.get`** -> **`result.merged`** for **`shortName`** only (**D30**), then adds **`RoomCharacterList`**, **`Meta::Room.objects`**, and builds **`ephemeraWire`** **`StandardForm`**. **Invoked from perception** on **`Affordances Pertain`** (**D38**), not from bus ingress. Nav uses **`ensureAffordanceTopology`** + slice read (**D34**).
 
-**Non-goals for D30:** Replacing **`ComponentRender`** (nav still uses render path until Milestone **4** topology/aggregate alignment). Materializing **`affordanceCache`** (**D18**) --- separate; after **D30**, transitional room **`exits`** on affordances at least respect layering until **Area** projection owns exits.
+**Non-goals for D30:** Materializing **`affordanceOrchestration`** / **`affordanceCache`** (**D18**, **D37**) --- separate M4 work. **`ensureAffordanceTopology`** runs from orchestration (**D32**), not from stack merge.
 
-**Tests:** Layered canon + import overlay exit case; affordance publish smoke.
+**Tests:** Layered canon + import overlay exit case; affordance publish smoke via **`Affordances Pertain`** path.
 
 ---
 
@@ -487,7 +505,7 @@ Normative **compute-only** pull surface for room exit projection at a perspectiv
 | Perspective assembly + **`DeferredCache`** | **`mtw-gateways/ts/assets/components/componentTopology/`** | **M3** |
 | Skinny **`TopologyInvalidated`** bus | **`lambda/assets/componentTopology/index.ts`** (`mtw.assets.componentTopology`) | **M2** (done) |
 | **`internalCache.ComponentTopology.get`** | Ephemera + diagnostics register **`createComponentTopologyCacheHandler`** | **M4** |
-| Durable hydrated topology rows | **`mtw.ephemera.affordanceCache`** + **`ts/ephemera/affordanceCache/`** ( **`renderCache`** analogue) | **M4** |
+| Durable hydrated topology rows | **`mtw.ephemera.affordanceOrchestration`** + **`mtw.ephemera.affordanceCache`** + **`ts/ephemera/affordanceCache/`** (invalidate-on-bus, hydrate-on-orchestration-resolve; **`renderCache`** analogue) | **M4** |
 
 **Deep import:** `@tonylb/mtw-gateways/ts/assets/components/componentTopology`
 
@@ -506,34 +524,119 @@ Normative **compute-only** pull surface for room exit projection at a perspectiv
 Normative split modeled on **`mtw.assets.componentExamples`** + **`mtw.ephemera.renderCache`** ([`componentExamples/AGENT.md`](../../../lambda/assets/componentExamples/AGENT.md), [`renderCache/AGENT.md`](../../../lambda/ephemera/dataSource/renderCache/AGENT.md)). Module layout for the gateways pull layer: [Gateways `componentTopology` module (M3)](#gateways-componenttopology-module-m3).
 
 ```text
-cacheAsset / referencedBy meta     mtw.assets.componentTopology       mtw.ephemera.affordanceCache
-        |                                    |                                  |
-        |                            TopologyInvalidated  ---------------->  catalog bump + hydrate
-        |                                    |                                  |
-        +-------- pull: ComponentTopology.get (gateways) <---------------------+
-                      (referencedByUnion + Area merged + projectRoomExits)
+Legacy triggers                 affordanceOrchestration              affordanceCache                 perception
+---------------                 -----------------------              ---------------                 ----------
+RoomUpdate          ----\
+Objects Changed     ----+---->  Affordances Requested  ------>  ensureAffordanceTopology (D32)
+TopologyInvalidated ----/       orchestrateAffordanceRequest          (when catalog stale)
+  (fan-out)                     intake + stream outbounds                |
+                                (Slice Ready / Error v1)                 v
+                                                                         ComponentTopology.get
+                                                                         persist slice + catalog ready
+                                                                                |
+                                                                                v
+                                                                         Affordances Pertain  ------>  PublishMessage
+                                                                                                   (roomChannel: affordances)
+                                                                                                   via ComponentStackMerge (D38)
 ```
+
+**End-to-end (mirror render pass-through):**
+
+1. **Invalidate on blueprint change:** **`TopologyInvalidated`** (no projected exit body). **`affordanceCache`** handler bumps **`catalogVersion`** only --- **no** **`ComponentTopology.get`**, **no** eager Dynamo materialization (precedent: [`handleExampleInvalidated`](../../../lambda/ephemera/dataSource/renderCache/handleExampleInvalidated.ts)). **`affordanceOrchestration`** may fan out **`Affordances Requested`** (**reason: topology**) for affected rooms.
+2. **Resolve on demand:** **`Affordances Requested`** -> **`orchestrateAffordanceRequest`** -> **`ensureAffordanceTopology`** when catalog stale (**D32**). Pull via **`internalCache.ComponentTopology.get`**, persist version-stamped topology slice, mark catalog ready (precedent: [`ensureAuthoredCatalog`](../../../lambda/ephemera/dataSource/renderCache/ensureAuthoredCatalog.ts) in [`orchestrationHandler.ts`](../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts)).
+3. **Terminal publish:** **`affordanceCache`** emits **`Affordances Pertain`** (precedent: **`Render Pertains`**). **`perception`** composes ephemeraWire via **`ComponentStackMerge`** (**D38**) and emits **`PublishMessage`** per occupant. **Nav (**D34**): synchronous **`ensureAffordanceTopology`** + **`AffordanceCache`** read --- no event pipeline, no publish (see D34 limitations).
 
 | Layer | Responsibility | Does **not** |
 | --- | --- | --- |
 | **Persisted `referencedBy` (M2, D9 B)** | **`referencedBy`** on **`(target, ASSET#)`** forward rows; read as **`referencedByUnion`** via **`ComponentAggregate.get`** (**D31**) | Store merged exit facets; separate **`Meta::ReferencedBy`** SK rows |
 | **`mtw.assets.componentTopology`** | Detect topology-relevant blueprint diffs; emit skinny invalidation; optional diagnostics hooks | Ship full projected **`ExitFacetList`** on the event bus |
 | **Gateways `componentTopology/` (M3)** | **`createComponentTopologyCacheHandler`**: **`ComponentAggregate.get(ROOM#)`** -> **`referencedByUnion`**; batch Area **`merged`**; **`projectRoomExits`** | Put **`referencedBy`** on **`StandardComponent`**; duplicate ROOM# pair fetch; uncached **`assemble*`** on hot paths |
-| **`mtw.ephemera.affordanceCache`** | Durable rows + hydrate-on-invalidate; memo via **`internalCache`** | Own **`RoomCharacterList`** or **`Meta::Room.objects`** |
-| **Affordance publish** | Assemble **ephemeraWire** WML from hydrated slice + runtime ephemera fields | Recompute Area fan-out on every perception tick |
+| **`mtw.ephemera.affordanceOrchestration` (D37)** | **`Affordances Requested`** ingress; intake (**reason:** roster / objects / topology); **`ensureAffordanceTopology`** preflight; stream outbounds; future slow-path / LLM enrichment | Dynamo writes; **`PublishMessage`**; compose ephemeraWire |
+| **`mtw.ephemera.affordanceCache`** | Colocated **`Affordance::${perspectiveKey}`** rows (**D33**): version metadata + embedded topology **`exits`**; **`handleTopologyInvalidated`**; hydrate persist; **`Affordances Pertain`** outbound; memo via **`internalCache`** | Eager hydrate in invalidation handler; separate **`TOPOLOGY#`** body rows (M4); own **`RoomCharacterList`** or **`Meta::Room.objects`**; terminal publish |
+| **`mtw.ephemera.perception`** | Subscribe **`Affordances Pertain`**; compose + terminal **`PublishMessage`** per occupant (**D38**) | Topology pull; catalog versioning; orchestration policy |
+| **`ComponentStackMerge` (D38)** | Invocation-memo compose: topology slice + **`shortName`** + roster + **`objects`** -> **`ephemeraWire`** | Bus ingress; hydrate; **`PublishMessage`** |
 
 **Cache identity:** **`(ROOM#id, perspectiveKey)`** --- same participation / asset-stack notion as render cache and planned **`ComponentStackMerge`** alignment ([`internalCache/AGENT.md`](../../../lambda/ephemera/internalCache/AGENT.md)). Character id selects perspective at hydrate time only.
 
-**v1 simplifications (allowed):** No LLM / mark-state constellation; coarse invalidation (all perspectives for a room on any topology event) before finer edge-uuid granularity.
+**v1 simplifications (allowed):** No LLM / mark-state constellation; no edge-**`uuid`**-scoped invalidation (room-level **`roomIds`** list only; layer participation per **D35**).
 
 **Lambda wiring:** Register gateway handlers on **`internalCache`** per [`.cursor/rules/gateways-internal-cache.mdc`](../../../.cursor/rules/gateways-internal-cache.mdc) --- Ephemera calls **`ComponentTopology.get`**, not uncached **`assemble*`** on hot paths.
+
+---
+
+## Affordance pipeline (M4)
+
+Ephemera steady-state docs (implementation home): [`lambda/ephemera/dataSource/affordanceOrchestration/AGENT.md`](../../../lambda/ephemera/dataSource/affordanceOrchestration/AGENT.md), [`affordanceCache/AGENT.md`](../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md).
+
+**Why three layers (D37):** M4 lands substantial new boundaries (**D32**, durable cache, perception publish). Scaffolding **`affordanceOrchestration`** now --- thin, sync-only in v1 --- aligns with **`renderOrchestration` + `renderCache` + perception** and avoids **`ComponentStackMerge`** / direct publish paths becoming authoritative stop-gaps before future LLM topology enrichment.
+
+**Precedent map (render -> affordance):**
+
+| Render | Affordance (M4) |
+| --- | --- |
+| **`Render Requested`** / state fan-out / look kick | **`Affordances Requested`** (adapters: **`RoomUpdate`**, **`Objects Changed`**, **`TopologyInvalidated`** fan-out) |
+| **`mtw.ephemera.renderOrchestration`** | **`mtw.ephemera.affordanceOrchestration`** |
+| **`orchestrateRenderRequest`** | **`orchestrateAffordanceRequest`** |
+| **`ensureAuthoredCatalog`** (orchestration preflight) | **`ensureAffordanceTopology`** (**D32**) |
+| **`internalCache.ComponentExamples.get`** inside hydrate | **`internalCache.ComponentTopology.get`** inside hydrate |
+| **`Current Cache Valid` / `Exact Match Found` / `Render Generated`** (stream) | **`Slice Ready`** / **`Orchestration Error`** (v1-active); enrichment outbounds **skipped tests** until LLM path |
+| **`mtw.ephemera.renderCache`** persists on **`Render Generated`** | **`mtw.ephemera.affordanceCache`** persists on hydrate / orchestration handoff |
+| **`Render Pertains`** | **`Affordances Pertain`** |
+| **`orchestrate.ts` `handleRenderPertains`** -> **`PublishMessage`** | **`handleAffordancesPertain`** -> **`PublishMessage`** (via **`ComponentStackMerge`**, **D38**) |
+| **`generateRoomPreview`** / LLM (shipped for render) | Future **`generateAffordanceEnrichment`** (out of scope v1) |
+
+**Planned code homes:**
+
+| Concern | Path | Notes |
+| --- | --- | --- |
+| Orchestration DataSource | [`lambda/ephemera/dataSource/affordanceOrchestration/`](../../../lambda/ephemera/dataSource/affordanceOrchestration/) | **`Affordances Requested`** ingress; **`orchestrateAffordanceRequest`**; **`publishedEvents.ts`** outbounds |
+| Ingress adapters | `sendAffordanceRefreshRequested.ts`, updates to [`roomUpdate/index.ts`](../../../lambda/ephemera/roomUpdate/index.ts), [`perception/index.ts`](../../../lambda/ephemera/dataSource/perception/index.ts) | **No direct** [`publishRoomAffordancePerceptionMessages`](../../../lambda/ephemera/dataSource/perception/publishRoomAffordancePerceptionMessages.ts) once migrated |
+| Cache DataSource | [`lambda/ephemera/dataSource/affordanceCache/`](../../../lambda/ephemera/dataSource/affordanceCache/) | Subscribe **`TopologyInvalidated`** + orchestration outbounds |
+| Invalidation handler | `handleTopologyInvalidated.ts` | Mirror [`handleExampleInvalidated.ts`](../../../lambda/ephemera/dataSource/renderCache/handleExampleInvalidated.ts) |
+| Hydrate preflight | `ensureAffordanceTopology.ts` | Mirror [`ensureAuthoredCatalog.ts`](../../../lambda/ephemera/dataSource/renderCache/ensureAuthoredCatalog.ts); orchestration (**D32**) + nav (**D34**); wraps stale path in singleFlight (**D36**) |
+| Single-flight hydrate | `singleFlightAffordanceTopologyHydrate.ts` | Mirror [`singleFlightAuthoredCatalogHydrate.ts`](../../../lambda/ephemera/dataSource/renderCache/singleFlightAuthoredCatalogHydrate.ts) (**D36**) |
+| Cache inbound / outbound | `handleAffordanceOrchestrationInbound.ts`, `handleAffordancesPertain.ts` (names TBD) | Mirror [`handleRenderOrchestrationInbound.ts`](../../../lambda/ephemera/dataSource/renderCache/handleRenderOrchestrationInbound.ts) |
+| Gateway types + memo | [`packages/mtw-gateways/ts/ephemera/affordanceCache/`](../../../packages/mtw-gateways/ts/ephemera/affordanceCache/) | Mirror [`renderCache`](../../../packages/mtw-gateways/ts/ephemera/renderCache/) layout |
+| Invocation memo | [`internalCache/affordanceCache.ts`](../../../lambda/ephemera/internalCache/affordanceCache.ts) | Register on **`InternalCache`** |
+| Compose memo | [`componentStackMerge.ts`](../../../lambda/ephemera/internalCache/componentStackMerge.ts) | Perception terminal only (**D38**) |
+| Terminal publish | [`perception/orchestrateAffordances.ts`](../../../lambda/ephemera/dataSource/perception/orchestrateAffordances.ts) (name TBD) + existing [`publishRoomAffordancePerceptionMessages.ts`](../../../lambda/ephemera/dataSource/perception/publishRoomAffordancePerceptionMessages.ts) | Refactor publish helper to accept composed WML or call **`ComponentStackMerge.get`** internally |
+| Navigation | [`roomExitTargetsForCharacter.ts`](../../../lambda/ephemera/dataSource/actions/roomExitTargetsForCharacter.ts) | Sync **`ensureAffordanceTopology`** + **`AffordanceCache.get`** (**D34**); document limitations in action / **`affordanceCache`** AGENT |
+
+**M4 decision register:** **D32-D38** locked (ephemera child plan).
+
+---
+
+## ComponentStackMerge vs perception (D38)
+
+**Question:** Should **`ComponentStackMerge`** remain a freestanding **`internalCache`** center, or move into **`mtw.ephemera.perception`** as a handler on **`Affordances Pertain`**?
+
+**Decision (D38):** Keep **`ComponentStackMerge`** in **`internalCache`**; **move the pipeline center** to **`affordanceOrchestration` + `affordanceCache` + perception**.
+
+| Option | Verdict | Rationale |
+| --- | --- | --- |
+| **A. Freestanding ingress center (today)** | **Rejected** | **`publishRoomAffordancePerceptionMessages`** calling **`ComponentStackMerge.get`** directly made stack merge the de facto orchestration layer --- no hydrate lifecycle, fragmented triggers, hard to add LLM slow path. |
+| **B. Perception inline compose (no stack merge)** | **Rejected for M4** | Duplicates merge logic; loses invocation memo for multi-occupant fan-out in one lambda run; nav would need a second copy. |
+| **C. `internalCache` compose memo + perception terminal (chosen)** | **Normative** | Parallel to render: terminal path uses [`roomRenderWmlFromCacheRecord`](../../../lambda/ephemera/dataSource/perception/roomRenderWmlFromCacheRecord.ts) fed by **`Render Pertains`**, not **`ComponentRender`**. Affordances: **`handleAffordancesPertain`** calls **`ComponentStackMerge.get(characterId, roomId)`** (or a thin wrapper) **after** orchestration/cache assert slice readiness. Stack merge **reads** **`internalCache.AffordanceCache`** topology slice + ephemera-only fields; it does **not** call **`ensureAffordanceTopology`**. |
+| **D. Fold stack merge entirely into perception module** | **Deferred** | Possible later refactor if compose moves to **`roomAffordanceWmlFromSlice.ts`** colocated with perception; **`internalCache`** would retain only memo keys. Not worth the churn in M4. |
+
+**Intake `reason` and compose work (orchestration policy):**
+
+| **`Affordances Requested` reason** | Topology **`ensure*`** | Compose |
+| --- | --- | --- |
+| **`roster`** | Skip when catalog already hydrated for perspective | Yes --- roster changed |
+| **`objects`** | Skip when catalog already hydrated | Yes --- **`objects`** changed |
+| **`topology`** | Run **`ensureAffordanceTopology`** when stale | Yes --- exits may have changed |
+
+Roster- and objects-only refreshes still flow through orchestration for **uniform ingress** (**D37**), but may skip topology hydrate when the catalog row is current.
+
+**Cache key follow-up (non-blocking):** migrate **`ComponentStackMerge`** memo from **`(characterId, roomId)`** toward **`(roomId, perspectiveKey)`** when perception routing stabilizes --- see [`internalCache/AGENT.md`](../../../lambda/ephemera/internalCache/AGENT.md).
 
 ---
 
 ## Discovery notes (non-normative)
 
 - Today ephemera: `componentData.getAcrossAssets(ROOM#id, allAssets)` then `mergeRoomExitsToJSON(assetData)` --- O(assets) point reads, no Area fan-out; **`ComponentStackMerge`** has no **`renderCache`**-style durable topology slice.
-- Today affordances: [`publishRoomAffordancePerceptionMessages`](../../../lambda/ephemera/dataSource/perception/publishRoomAffordancePerceptionMessages.ts) calls **`ComponentStackMerge.get(characterId, roomId)`** --- live merge every miss.
+- Today affordances: [`publishRoomAffordancePerceptionMessages`](../../../lambda/ephemera/dataSource/perception/publishRoomAffordancePerceptionMessages.ts) calls **`ComponentStackMerge.get(characterId, roomId)`** directly from **`RoomUpdate`** / **`Objects Changed`** --- no **`affordanceOrchestration`** / **`affordanceCache`** pipeline yet (**D37** migration target).
 - Today `StandardForm.referencedBy(ref)` scans loaded components in one asset --- prototype for inverse lookup, not blueprint storage.
 - **Forward vs inverse Dynamo grain:** **`(ROOM#r, ASSET#a)`** holds the body; **D9 (B)** adds **`referencedBy`** on that same row. **`mergeRoomExitsToJSON`** concat vs **`ComponentAggregate`** merge is the **D30** bug class.
 - Area v1 doc explicitly deferred **edges** and ephemera RoomAffordances impact; this initiative implements that follow-on.

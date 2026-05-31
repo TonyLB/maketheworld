@@ -5,6 +5,7 @@
 import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheDynamoItem, EphemeraCacheRenderedContent } from './renderCache/baseClasses'
 import { EPHEMERA_CACHE_PROVENANCE_GENERATED } from './renderCache/baseClasses'
+import type { AffordanceOrchestrationPublishedRouting } from './affordanceOrchestration/publishedEvents'
 import type {
     RenderOrchestrationCurrentCacheValidPayload,
     RenderOrchestrationExactMatchFoundPayload,
@@ -24,6 +25,13 @@ export const passThroughFixturePerspectiveKey = 'PERSPECTIVE#v1#abc123'
 /** Lean routing shared by all six orchestration outbounds (contract). */
 export const passThroughFixtureRouting: RenderOrchestrationPublishedRouting = {
     componentId: passThroughFixtureRoomId,
+    perspective: passThroughFixturePerspective,
+    perspectiveKey: passThroughFixturePerspectiveKey,
+}
+
+/** Lean routing shared by affordance orchestration outbounds (contract). */
+export const affordancePassThroughFixtureRouting: AffordanceOrchestrationPublishedRouting = {
+    roomId: passThroughFixtureRoomId,
     perspective: passThroughFixturePerspective,
     perspectiveKey: passThroughFixturePerspectiveKey,
 }

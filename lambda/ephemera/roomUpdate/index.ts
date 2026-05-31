@@ -1,12 +1,17 @@
 import { MessageBus, RoomUpdateMessage } from "../messageBus/baseClasses"
-import { publishRoomAffordancePerceptionMessages } from "../dataSource/perception/publishRoomAffordancePerceptionMessages"
+import { sendAffordanceRefreshRequestedForRoom } from "../dataSource/affordanceOrchestration/sendAffordanceRefreshRequestedForRoom"
 
-/** Bus `type: 'RoomUpdate'` is a roster-refresh hook only; wire `displayProtocol: 'RoomUpdate'` is retired (affordance PerceptionMessage only). */
+/** Bus `type: 'RoomUpdate'` is a roster-refresh hook; enqueues Affordances Requested (reason: roster). */
 export const roomUpdateMessage = async ({ payloads, messageBus }: { payloads: RoomUpdateMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(payloads
         .filter(({ roomId }) => (roomId))
         .map(async ({ roomId }) => {
-            await publishRoomAffordancePerceptionMessages({ roomId, messageBus })
+            await sendAffordanceRefreshRequestedForRoom({
+                roomId,
+                reason: 'roster',
+                messageBus,
+                useDefaultMessageBusLane: true,
+            })
         })
     )
 }

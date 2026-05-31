@@ -1,0 +1,148 @@
+import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+
+import {
+    getAffordanceRowFromDynamo,
+    queryAffordanceRowsForRoom,
+    type EphemeraAffordanceCacheReadDB,
+} from './fetch'
+import { createAffordanceCacheCacheHandler } from './factory'
+import { isCatalogRowStale, isAuthoritativeAffordanceRow } from './guards'
+import { buildAffordanceDataCategory } from './keys'
+import { createAffordanceCacheRow, type AffordanceCacheRow } from './types'
+
+const roomId = 'ROOM#MergeTwo' as EphemeraRoomId
+const perspectiveKey = 'PERSPECTIVE#v1#abc'
+
+const readyRow = (overrides: Partial<AffordanceCacheRow> = {}): AffordanceCacheRow =>
+    createAffordanceCacheRow({
+        roomId,
+        perspectiveKey,
+        assetStack: ['ASSET#Base', 'ASSET#Personal'],
+        catalogVersion: 1,
+        hydratedCatalogVersion: 1,
+        topology: {
+            roomUniversalKey: roomId,
+            exits: [
+                {
+                    reference: { tag: 'Room', universalKey: 'ROOM#DestEast' },
+                    payload: 'East stair',
+                },
+            ],
+        },
+        ...overrides,
+    })
+
+describe('affordanceCache fetch', () => {
+    it('queryAffordanceRowsForRoom filters invalid rows', async () => {
+        const valid = readyRow()
+        const db: EphemeraAffordanceCacheReadDB = {
+            query: jest.fn().mockResolvedValue([
+                valid,
+                { EphemeraId: roomId, DataCategory: 'OTHER#x' },
+                { EphemeraId: roomId, DataCategory: buildAffordanceDataCategory('bad'), assetStack: [] },
+            ]),
+            getItem: jest.fn(),
+        }
+
+        const result = await queryAffordanceRowsForRoom(db, roomId)
+
+        expect(db.query).toHaveBeenCalledWith({
+            Key: { EphemeraId: roomId },
+            KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
+            ExpressionAttributeValues: { ':dcPrefix': 'Affordance::' },
+            allFields: true,
+        })
+        expect(result).toEqual([valid])
+    })
+
+    it('getAffordanceRowFromDynamo returns undefined for invalid shape', async () => {
+        const db: EphemeraAffordanceCacheReadDB = {
+            query: jest.fn(),
+            getItem: jest.fn().mockResolvedValue({
+                EphemeraId: roomId,
+                DataCategory: buildAffordanceDataCategory(perspectiveKey),
+            }),
+        }
+
+        const result = await getAffordanceRowFromDynamo(db, roomId, perspectiveKey)
+
+        expect(result).toBeUndefined()
+    })
+})
+
+describe('affordanceCache guards', () => {
+    it('isCatalogRowStale when hydratedCatalogVersion lags catalogVersion', () => {
+        expect(isCatalogRowStale(readyRow({ catalogVersion: 2, hydratedCatalogVersion: 1 }))).toBe(true)
+        expect(isCatalogRowStale(readyRow())).toBe(false)
+    })
+
+    it('isAuthoritativeAffordanceRow requires hydrated catalog', () => {
+        expect(isAuthoritativeAffordanceRow(readyRow())).toBe(true)
+        expect(isAuthoritativeAffordanceRow(readyRow({ catalogVersion: 2, hydratedCatalogVersion: 1 }))).toBe(false)
+    })
+})
+
+describe('AffordanceCacheCacheHandler memo', () => {
+    const makeHandler = (row: AffordanceCacheRow = readyRow()) => {
+        const db: EphemeraAffordanceCacheReadDB = {
+            query: jest.fn().mockResolvedValue([row]),
+            getItem: jest.fn().mockResolvedValue(row),
+        }
+        return { handler: createAffordanceCacheCacheHandler(db), db }
+    }
+
+    it('getAffordanceRow returns hydrated row and hits memo on second call', async () => {
+        const { handler, db } = makeHandler()
+
+        const first = await handler.getAffordanceRow(roomId, perspectiveKey)
+        const second = await handler.getAffordanceRow(roomId, perspectiveKey)
+
+        expect(first).toEqual(readyRow())
+        expect(second).toEqual(first)
+        expect(db.getItem).toHaveBeenCalledTimes(1)
+    })
+
+    it('getAffordanceRow returns undefined for stale row', async () => {
+        const { handler } = makeHandler(readyRow({ catalogVersion: 2, hydratedCatalogVersion: 1 }))
+
+        const result = await handler.getAffordanceRow(roomId, perspectiveKey)
+
+        expect(result).toBeUndefined()
+    })
+
+    it('getAffordanceRowIncludingStale returns stale row', async () => {
+        const stale = readyRow({ catalogVersion: 2, hydratedCatalogVersion: 1 })
+        const { handler } = makeHandler(stale)
+
+        const result = await handler.getAffordanceRowIncludingStale(roomId, perspectiveKey)
+
+        expect(result).toEqual(stale)
+    })
+
+    it('set patches memo without Dynamo write', async () => {
+        const { handler, db } = makeHandler()
+        const updated = readyRow({
+            topology: {
+                roomUniversalKey: roomId,
+                exits: [],
+            },
+        })
+
+        await handler.getAffordanceRow(roomId, perspectiveKey)
+        handler.set({ row: updated })
+
+        const result = await handler.getAffordanceRow(roomId, perspectiveKey)
+        expect(result?.topology.exits).toEqual([])
+        expect(db.getItem).toHaveBeenCalledTimes(1)
+    })
+
+    it('invalidate clears memo for room', async () => {
+        const { handler, db } = makeHandler()
+
+        await handler.getAffordanceRow(roomId, perspectiveKey)
+        handler.invalidate(roomId)
+        await handler.getAffordanceRow(roomId, perspectiveKey)
+
+        expect(db.getItem).toHaveBeenCalledTimes(2)
+    })
+})

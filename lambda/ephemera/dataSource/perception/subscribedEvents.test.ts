@@ -1,10 +1,12 @@
 import {
     isCharacterPerceptionRequestedIngressEnvelope,
+    isPerceptionAffordancesPertainStreamEnvelope,
     isPerceptionSubscribedEnvelope,
     isPerceptionThreadRegisteredIngressEnvelope,
     sendCharacterPerceptionRequested,
     sendPerceptionThreadRegistered,
 } from './subscribedEvents'
+import { AFFORDANCE_CACHE_DATA_SOURCE_KEY } from '../affordanceCache/publishedEvents'
 
 describe('perception subscribedEvents', () => {
     it('sendCharacterPerceptionRequested emits api.ephemera StreamingEvent envelope', async () => {
@@ -166,5 +168,30 @@ describe('perception subscribedEvents', () => {
                 getContent: () => Promise.resolve({}),
             } as any)
         ).toBe(false)
+    })
+
+    it('isPerceptionAffordancesPertainStreamEnvelope accepts Affordances Pertain and rejects Cache Error', () => {
+        const accepted = {
+            header: {
+                dataSourceKey: AFFORDANCE_CACHE_DATA_SOURCE_KEY,
+                streamKey: 'ROOM#one',
+                timestamp: Date.now(),
+                type: 'Affordances Pertain',
+            },
+            getContent: () => Promise.resolve({ type: 'Affordances Pertain' }),
+        }
+        const rejected = {
+            header: {
+                dataSourceKey: AFFORDANCE_CACHE_DATA_SOURCE_KEY,
+                streamKey: 'ROOM#one',
+                timestamp: Date.now(),
+                type: 'Cache Error',
+            },
+            getContent: () => Promise.resolve({ type: 'Cache Error' }),
+        }
+        expect(isPerceptionAffordancesPertainStreamEnvelope(accepted)).toBe(true)
+        expect(isPerceptionAffordancesPertainStreamEnvelope(rejected)).toBe(false)
+        expect(isPerceptionSubscribedEnvelope(accepted as any)).toBe(true)
+        expect(isPerceptionSubscribedEnvelope(rejected as any)).toBe(false)
     })
 })

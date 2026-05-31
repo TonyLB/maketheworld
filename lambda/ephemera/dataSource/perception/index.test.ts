@@ -11,6 +11,7 @@ import * as schemaModule from '@tonylb/mtw-wml/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import {
+    affordancePassThroughFixtureRouting,
     makePassThroughGenerationDeferredPayload,
     makePassThroughGenerationStartedPayload,
     makePassThroughOrchestrationErrorPayload,
@@ -21,6 +22,8 @@ import {
 import { RENDER_CACHE_DATA_SOURCE_KEY } from '../renderCache/baseClasses'
 import { RENDER_ORCHESTRATION_DATA_SOURCE_KEY } from '../renderOrchestration/publishedEvents'
 import { EPHEMERA_OBJECTS_DATA_SOURCE_KEY } from '../objects/events'
+import { AFFORDANCE_CACHE_DATA_SOURCE_KEY } from '../affordanceCache/publishedEvents'
+import { createAffordanceCacheRow } from '@tonylb/mtw-gateways/ts/ephemera/affordanceCache'
 import { roomHeaderGeneratingPlaceholderWml } from './roomHeaderPlaceholderWml'
 import { sendCharacterPerceptionRequested, sendPerceptionThreadRegistered } from './subscribedEvents'
 import { ephemeraPerceptionDataSource } from './index'
@@ -665,15 +668,80 @@ describe('mtw.ephemera.perception DataSource', () => {
         sendSpy.mockRestore()
     })
 
-    it('receiveEvents publishes affordance PerceptionMessage per character on Objects Changed stream', async () => {
+    it('receiveEvents publishes affordance PerceptionMessage on Affordances Pertain stream', async () => {
         const sendSpy = jest.spyOn(messageBus, 'send')
-        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<RoomAffordance />')
-        const mergeSpy = jest.spyOn(internalCache.ComponentStackMerge, 'get').mockResolvedValue({ schema: {} } as any)
+        jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<AffordanceHeader />')
+        jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
+            { EphemeraId: 'CHARACTER#Match', DisplayName: 'Match', Color: 'blue', SessionIds: [] },
+        ])
+        jest.spyOn(roomHeaderBroadcastModule, 'getCharacterRoomPerspectiveKey')
+            .mockResolvedValue(passThroughFixturePerspectiveKey)
+        jest.spyOn(internalCache.CharacterMeta, 'get')
+            .mockResolvedValue({ EphemeraId: 'CHARACTER#Match', assets: ['match'] } as any)
+        jest.spyOn(internalCache.ComponentStackMerge, 'get')
+            .mockResolvedValue({ schema: {} } as any)
+
+        const { roomId, perspective, perspectiveKey } = affordancePassThroughFixtureRouting
+        const affordanceRow = createAffordanceCacheRow({
+            roomId,
+            perspectiveKey,
+            assetStack: perspective.assetStack,
+            catalogVersion: 1,
+            hydratedCatalogVersion: 1,
+            topology: {
+                roomUniversalKey: roomId,
+                exits: [],
+            },
+        })
+        const ts = Date.now()
+        messageBus.send({
+            type: 'StreamingEvent',
+            dataSourceKey: AFFORDANCE_CACHE_DATA_SOURCE_KEY,
+            streamKey: roomId,
+            timestamp: ts,
+            header: {
+                dataSourceKey: AFFORDANCE_CACHE_DATA_SOURCE_KEY,
+                streamKey: roomId,
+                timestamp: ts,
+                type: 'Affordances Pertain',
+            },
+            getContent: () =>
+                Promise.resolve({
+                    type: 'Affordances Pertain',
+                    roomId,
+                    perspective,
+                    perspectiveKey,
+                    affordanceRow,
+                    topology: affordanceRow.topology,
+                }),
+        })
+        await messageBus.flush()
+
+        const affordancePublishes = sendSpy.mock.calls.filter((c) => {
+            const m = c[0] as { type?: string; metaData?: { roomChannel?: string; displayMode?: string }; targets?: string[] }
+            return m?.type === 'PublishMessage' && m?.metaData?.roomChannel === 'affordances'
+        })
+        expect(affordancePublishes).toHaveLength(1)
+        const row = affordancePublishes[0][0] as {
+            targets?: string[];
+            metaData?: { displayMode?: string };
+            messageId?: string;
+            wmlContent?: string;
+        }
+        expect(row.targets).toEqual(['CHARACTER#Match'])
+        expect(row.metaData?.displayMode).toBe('header')
+        expect(row.wmlContent).toBe('<AffordanceHeader />')
+        expect(row.messageId).toMatch(/^MESSAGE#/)
+
+        sendSpy.mockRestore()
+    })
+
+    it('receiveEvents does not publish affordance PerceptionMessage on Objects Changed stream', async () => {
+        const sendSpy = jest.spyOn(messageBus, 'send')
+        jest.spyOn(internalCache.ComponentStackMerge, 'get').mockResolvedValue({ schema: {} } as any)
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
             { EphemeraId: 'CHARACTER#A', DisplayName: 'A', Color: 'blue', SessionIds: [] },
-            { EphemeraId: 'CHARACTER#B', DisplayName: 'B', Color: 'purple', SessionIds: [] },
         ])
-        jest.spyOn(internalCache.ComponentEphemeraMeta, 'get').mockResolvedValue(undefined)
 
         const roomId = 'ROOM#ObjAff' as const
         const ts = Date.now()
@@ -704,16 +772,8 @@ describe('mtw.ephemera.perception DataSource', () => {
             const m = c[0] as { type?: string; metaData?: { roomChannel?: string } }
             return m?.type === 'PublishMessage' && m?.metaData?.roomChannel === 'affordances'
         })
-        expect(affordancePublishes).toHaveLength(2)
-        const ids = affordancePublishes.map((c) => (c[0] as { messageId?: string }).messageId)
-        expect(new Set(ids).size).toBe(2)
-        expect(ids.every((id) => id?.startsWith('MESSAGE#'))).toBe(true)
-        expect(affordancePublishes[0][0]).toMatchObject({ targets: ['CHARACTER#A'], wmlContent: '<RoomAffordance />' })
-        expect(mergeSpy).toHaveBeenCalledWith('CHARACTER#A', roomId)
-        expect(mergeSpy).toHaveBeenCalledWith('CHARACTER#B', roomId)
+        expect(affordancePublishes).toHaveLength(0)
 
-        schemaSpy.mockRestore()
-        mergeSpy.mockRestore()
         sendSpy.mockRestore()
     })
 })

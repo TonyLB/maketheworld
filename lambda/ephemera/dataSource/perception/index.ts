@@ -8,11 +8,11 @@ import EphemeraDataSource from '../abstract'
 import type { PerceptionStubPublishedPayload } from './publishedEvents'
 import type { PerceptionSubscribedContent } from './subscribedEvents'
 import { isPerceptionSubscribedEnvelope } from './subscribedEvents'
+import { isAffordancesPertainPayload } from '../affordanceCache/publishedEvents'
 import { isCharacterPerceptionRequestedCommand, isPerceptionThreadRegisterCommand } from './localApiEvents'
 import { handleCharacterPerceptionRequested } from './characterPerception'
+import { handleAffordancesPertain } from './handleAffordancesPertain'
 import { orchestrateRoomDescriptionStreams } from './orchestrate'
-import { isObjectsChangedPayload } from '../objects/events'
-import { publishRoomAffordancePerceptionMessages } from './publishRoomAffordancePerceptionMessages'
 import messageBus from '../../messageBus'
 import internalCache from '../../internalCache'
 
@@ -36,11 +36,8 @@ export const ephemeraPerceptionDataSource = new EphemeraDataSource<
                 internalCache.PerceptionThreads.register(raw)
                 return
             }
-            if (isObjectsChangedPayload(raw)) {
-                await publishRoomAffordancePerceptionMessages({
-                    roomId: raw.componentId,
-                    messageBus,
-                })
+            if (isAffordancesPertainPayload(raw)) {
+                await handleAffordancesPertain(raw, messageBus)
                 return
             }
             await orchestrateRoomDescriptionStreams(raw, messageBus)

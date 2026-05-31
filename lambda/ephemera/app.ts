@@ -44,6 +44,8 @@ import { isStateChangeCommand } from './dataSource/localApiEvents'
 import './dataSource'  // mtw.ephemera DataSource
 import './dataSource/renderCache'  // mtw.ephemera.renderCache DataSource
 import './dataSource/renderOrchestration'  // mtw.ephemera.renderOrchestration DataSource (evolving; see dataSource/renderOrchestration/AGENT.md)
+import './dataSource/affordanceOrchestration'  // mtw.ephemera.affordanceOrchestration (M4 scaffold; see dataSource/affordanceOrchestration/AGENT.md)
+import './dataSource/affordanceCache'  // mtw.ephemera.affordanceCache (M4; see dataSource/affordanceCache/AGENT.md)
 import './dataSource/perception'  // mtw.ephemera.perception DataSource (see dataSource/perception/AGENT.md)
 import './dataSource/actions'  // mtw.ephemera.actions DataSource (inert bus-only stub)
 import './dataSource/coyoteGame'  // mtw.ephemera.coyoteGame DataSource (stub; Coyote Game wiring follows)

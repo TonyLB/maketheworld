@@ -19,7 +19,10 @@ import {
     type RenderOrchestrationGenerationStartedPayload,
     type RenderOrchestrationOrchestrationErrorPayload,
 } from '../renderOrchestration/publishedEvents'
-import { isEphemeraObjectsObjectsChangedEnvelope, type ObjectsChangedPayload } from '../objects/events'
+import {
+    AFFORDANCE_CACHE_DATA_SOURCE_KEY,
+    type AffordancesPertainPayload,
+} from '../affordanceCache/publishedEvents'
 
 export type CharacterPerceptionIngressHeader =
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Character Perception Requested' }
@@ -70,7 +73,7 @@ export type PerceptionSubscribedContent =
     | PerceptionThreadRegisterCommand
     | RenderCacheRenderPertainsPayload
     | PerceptionFanInOrchestrationPayload
-    | ObjectsChangedPayload
+    | AffordancesPertainPayload
 
 export const isPerceptionRenderPertainsStreamEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
@@ -86,6 +89,13 @@ export const isPerceptionRoomDescriptionOrchestrationStreamEnvelope = (
     && (PERCEPTION_FAN_IN_ORCHESTRATION_HEADER_TYPES as readonly string[]).includes(envelope.header.type)
 )
 
+export const isPerceptionAffordancesPertainStreamEnvelope = (
+    envelope: StreamingEventEnvelope<unknown>
+): envelope is StreamingEventEnvelope<AffordancesPertainPayload> => (
+    envelope.header.dataSourceKey === AFFORDANCE_CACHE_DATA_SOURCE_KEY
+    && envelope.header.type === 'Affordances Pertain'
+)
+
 export const isPerceptionSubscribedEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
 ): envelope is StreamingEventEnvelope<PerceptionSubscribedContent> => (
@@ -93,7 +103,7 @@ export const isPerceptionSubscribedEnvelope = (
         || isPerceptionThreadRegisteredIngressEnvelope(envelope)
         || isPerceptionRenderPertainsStreamEnvelope(envelope)
         || isPerceptionRoomDescriptionOrchestrationStreamEnvelope(envelope)
-        || isEphemeraObjectsObjectsChangedEnvelope(envelope)
+        || isPerceptionAffordancesPertainStreamEnvelope(envelope)
 )
 
 type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }
