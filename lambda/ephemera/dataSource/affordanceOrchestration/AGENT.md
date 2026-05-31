@@ -2,7 +2,7 @@
 
 ## Status
 
-**M4 scaffold (landed).** This directory is the canonical home for the `mtw.ephemera.affordanceOrchestration` DataSource. **`orchestrateAffordanceRequest`** is a stub: it logs ingress context and does **not** call **`ensureAffordanceTopology`**, emit stream outbounds, or replace legacy **`publishRoomAffordancePerceptionMessages`** (that migration is the next slice).
+**M4 ingress migration (landed).** This directory is the canonical home for the `mtw.ephemera.affordanceOrchestration` DataSource. Production adapters from **`RoomUpdate`** (reason: **`roster`**) and **`mtw.ephemera.objects` `Objects Changed`** (reason: **`objects`**) are wired. **`orchestrateAffordanceRequest`** is still a stub: it logs ingress and does **not** call **`ensureAffordanceTopology`**, emit stream outbounds, or drive terminal **`PublishMessage`** (that follows when **`affordanceCache`** + **`Affordances Pertain`** land).
 
 **Initiative:** [`taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md`](../../../../taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md). **Parent decisions:** [`taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md`](../../../../taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md) (**D32-D38**, **D37** three-layer pipeline).
 
@@ -11,7 +11,7 @@
 ## Getting Started
 
 1. **Child plan** --- [`taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md`](../../../../taskPlanning/lambda/ephemera/AGENT.areaTopologyExits.planning.md) (affordance pipeline diagram, module layout, D32 intake/`ensure*` placement).
-2. **Render analogue** --- [`../renderOrchestration/`](../renderOrchestration/) (`index.ts`, `publishedEvents.ts`, `subscribedEvents.ts`, `orchestrationHandler.ts`).
+2. **Render analogue** --- [`../renderOrchestration/`](../renderOrchestration/) (`index.ts`, `publishedEvents.ts`, `subscribedEvents.ts`, `orchestrationHandler.ts`, `fanOutStateChangedToPassiveRenders.ts`).
 3. **Tests** --- From [`lambda/ephemera/`](../../): `npm test -- --watchAll=false dataSource/affordanceOrchestration/`.
 
 ## Why this layer exists (D37)
@@ -22,15 +22,24 @@
 | **`affordanceCache`** (planned) | Invalidation; colocated **`Affordance::`** persist; **`Affordances Pertain`** | Terminal publish |
 | **`perception`** | Terminal **`PublishMessage`** on **`Affordances Pertain`** | Topology pull; hydrate policy |
 
-## What the scaffold does today
+## What this layer does today
 
 1. Subscribes to internal **`api.ephemera`** streaming envelopes with header type **`Affordances Requested`** (`sendAffordancesRequested` in [`subscribedEvents.ts`](subscribedEvents.ts)).
-2. Maps ingress to **`AffordancesRequested`** and calls **`orchestrateAffordanceRequest`** ([`orchestrationHandler.ts`](orchestrationHandler.ts)) --- log only; no **`streamEvent`** yet.
-3. Defines **five outbound** payload types in [`publishedEvents.ts`](publishedEvents.ts). **v1-active:** **`Slice Ready`**, **`Orchestration Error`**. **Future LLM:** **`Enrichment Started`**, **`Enrichment Complete`**, **`Enrichment Deferred`** (contract encoded in skipped tests).
+2. Subscribes to **`mtw.ephemera.objects` `Objects Changed`** and fans out via [`fanOutAffordanceRefreshForRoom.ts`](fanOutAffordanceRefreshForRoom.ts) (direct **`orchestrateAffordanceRequest`**, mirror render **`State Changed`**).
+3. Maps **`Affordances Requested`** ingress to **`AffordancesRequested`** and calls **`orchestrateAffordanceRequest`** ([`orchestrationHandler.ts`](orchestrationHandler.ts)) --- log only; no **`streamEvent`** yet.
+4. Defines **five outbound** payload types in [`publishedEvents.ts`](publishedEvents.ts). **v1-active:** **`Slice Ready`**, **`Orchestration Error`**. **Future LLM:** **`Enrichment Started`**, **`Enrichment Complete`**, **`Enrichment Deferred`** (contract encoded in skipped tests).
+
+**External adapters (outside this DataSource):**
+
+| Trigger | Helper | Dispatch |
+| --- | --- | --- |
+| Internal bus **`type: 'RoomUpdate'`** | [`sendAffordanceRefreshRequestedForRoom.ts`](sendAffordanceRefreshRequestedForRoom.ts) | **`sendAffordancesRequested`** (reason: **`roster`**, default bus lane) |
 
 Wiring: [`app.ts`](../../app.ts) side-effect imports `./dataSource/affordanceOrchestration` ([`index.ts`](index.ts)).
 
-## Ingress (`api.ephemera`)
+## Ingress
+
+### `api.ephemera` **`Affordances Requested`**
 
 | Field | Type |
 | --- | --- |
@@ -38,7 +47,15 @@ Wiring: [`app.ts`](../../app.ts) side-effect imports `./dataSource/affordanceOrc
 | `perspective` | `Perspective` |
 | `reason` | `'roster' \| 'objects' \| 'topology'` |
 
-**Not yet wired:** adapters from **`RoomUpdate`**, perception **`Objects Changed`**, or **`TopologyInvalidated`** fan-out (next slice).
+### `mtw.ephemera.objects` **`Objects Changed`**
+
+Handled in [`index.ts`](index.ts) **`receiveEvents`**: **`fanOutAffordanceRefreshForRoom`** with reason **`objects`** (one **`orchestrateAffordanceRequest`** per distinct occupant perspective).
+
+**Not yet wired:** **`TopologyInvalidated`** fan-out (reason: **`topology`**).
+
+## Interim behavior (until cache slice)
+
+Roster and object changes **do not** emit affordance **`PublishMessage`** rows yet. Legacy **`publishRoomAffordancePerceptionMessages`** has no production callers; terminal publish moves to perception on **`Affordances Pertain`** in a later slice.
 
 ## Stream outbounds (contract)
 
@@ -62,7 +79,7 @@ Order for the affordance pass-through slice (aligned with render):
 
 ## Tests and verification
 
-**Primary tests:** [`publishedEvents.test.ts`](publishedEvents.test.ts), [`subscribedEvents.test.ts`](subscribedEvents.test.ts), [`orchestrationHandler.test.ts`](orchestrationHandler.test.ts), [`index.test.ts`](index.test.ts), [`passThroughContract.scaffold.test.ts`](passThroughContract.scaffold.test.ts).
+**Primary tests:** [`publishedEvents.test.ts`](publishedEvents.test.ts), [`subscribedEvents.test.ts`](subscribedEvents.test.ts), [`orchestrationHandler.test.ts`](orchestrationHandler.test.ts), [`index.test.ts`](index.test.ts), [`fanOutAffordanceRefreshForRoom.test.ts`](fanOutAffordanceRefreshForRoom.test.ts), [`sendAffordanceRefreshRequestedForRoom.test.ts`](sendAffordanceRefreshRequestedForRoom.test.ts), [`passThroughContract.scaffold.test.ts`](passThroughContract.scaffold.test.ts).
 
 From [`lambda/ephemera/`](../../):
 
@@ -70,15 +87,18 @@ From [`lambda/ephemera/`](../../):
 npm test -- --watchAll=false dataSource/affordanceOrchestration/
 ```
 
-**Hygiene (grep; enforce after ingress migration):** no production path outside **`affordanceOrchestration`** ingress should call **`publishRoomAffordancePerceptionMessages`** directly:
+**Hygiene (grep):** no production path outside **`affordanceOrchestration`** ingress should call **`publishRoomAffordancePerceptionMessages`** directly:
 
 ```bash
 rg 'publishRoomAffordancePerceptionMessages' lambda/ephemera --glob '!**/affordanceOrchestration/**'
 ```
 
+Expected: definition in [`publishRoomAffordancePerceptionMessages.ts`](../perception/publishRoomAffordancePerceptionMessages.ts) only (retained for future **`Affordances Pertain`** terminal path).
+
 ## Key concepts
 
 - **`reason`** gates whether **`ensureAffordanceTopology`** runs when wired (**topology** vs roster/objects-only refresh). See parent [ComponentStackMerge vs perception (D38)](../../../../taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md#componentstackmerge-vs-perception-d38).
+- **Two dispatch paths:** external triggers (**`RoomUpdate`**) enqueue **`Affordances Requested`**; in-DS subscribers (**`Objects Changed`**) call **`orchestrateAffordanceRequest`** directly (mirror render **`State Changed`**).
 - **Outgoing types:** [`publishedEvents.ts`](publishedEvents.ts) (**`publisherStrategy: 'busOnly'`**); ephemera-local until a client boundary needs **`mtw-interfaces`**.
 
 ## Current constraints

@@ -4,7 +4,7 @@
  * Canonical home for affordance-channel orchestration (Area topology exits, M4).
  * See ./AGENT.md for semantics and constraints.
  *
- * Ingress: api.ephemera envelopes with header type Affordances Requested.
+ * Ingress: api.ephemera Affordances Requested; mtw.ephemera.objects Objects Changed (fan-out).
  * Outbounds: five-type stream on this DataSource via streamEvent (v1-active: Slice Ready, Orchestration Error).
  * replayable: false.
  */
@@ -18,6 +18,8 @@ import {
 } from './subscribedEvents'
 import { isAffordancesRequestedCommand } from './localApiEvents'
 import { orchestrateAffordanceRequest } from './orchestrationHandler'
+import { fanOutAffordanceRefreshForRoom } from './fanOutAffordanceRefreshForRoom'
+import { isEphemeraObjectsObjectsChangedEnvelope, isObjectsChangedPayload } from '../objects/events'
 import type { AffordanceOrchestrationPublishedPayload } from './publishedEvents'
 import messageBus from '../../messageBus'
 
@@ -46,6 +48,19 @@ export const affordanceOrchestrationDataSource = new EphemeraDataSource<
     subscribedEventTypeGuard: isAffordanceOrchestrationSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (event) => {
+            if (isEphemeraObjectsObjectsChangedEnvelope(event)) {
+                const raw = await event.getContent()
+                if (!isObjectsChangedPayload(raw)) {
+                    return
+                }
+                await fanOutAffordanceRefreshForRoom({
+                    roomId: raw.componentId,
+                    reason: 'objects',
+                    messageBus,
+                    streamEvent,
+                })
+                return
+            }
             if (!isAffordanceOrchestrationIngressEnvelope(event)) {
                 return
             }

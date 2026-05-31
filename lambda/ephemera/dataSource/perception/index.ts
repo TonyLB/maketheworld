@@ -11,8 +11,6 @@ import { isPerceptionSubscribedEnvelope } from './subscribedEvents'
 import { isCharacterPerceptionRequestedCommand, isPerceptionThreadRegisterCommand } from './localApiEvents'
 import { handleCharacterPerceptionRequested } from './characterPerception'
 import { orchestrateRoomDescriptionStreams } from './orchestrate'
-import { isObjectsChangedPayload } from '../objects/events'
-import { publishRoomAffordancePerceptionMessages } from './publishRoomAffordancePerceptionMessages'
 import messageBus from '../../messageBus'
 import internalCache from '../../internalCache'
 
@@ -34,13 +32,6 @@ export const ephemeraPerceptionDataSource = new EphemeraDataSource<
             }
             if (isPerceptionThreadRegisterCommand(raw)) {
                 internalCache.PerceptionThreads.register(raw)
-                return
-            }
-            if (isObjectsChangedPayload(raw)) {
-                await publishRoomAffordancePerceptionMessages({
-                    roomId: raw.componentId,
-                    messageBus,
-                })
                 return
             }
             await orchestrateRoomDescriptionStreams(raw, messageBus)

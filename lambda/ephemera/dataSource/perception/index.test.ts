@@ -665,15 +665,12 @@ describe('mtw.ephemera.perception DataSource', () => {
         sendSpy.mockRestore()
     })
 
-    it('receiveEvents publishes affordance PerceptionMessage per character on Objects Changed stream', async () => {
+    it('receiveEvents does not publish affordance PerceptionMessage on Objects Changed stream', async () => {
         const sendSpy = jest.spyOn(messageBus, 'send')
-        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<RoomAffordance />')
-        const mergeSpy = jest.spyOn(internalCache.ComponentStackMerge, 'get').mockResolvedValue({ schema: {} } as any)
+        jest.spyOn(internalCache.ComponentStackMerge, 'get').mockResolvedValue({ schema: {} } as any)
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
             { EphemeraId: 'CHARACTER#A', DisplayName: 'A', Color: 'blue', SessionIds: [] },
-            { EphemeraId: 'CHARACTER#B', DisplayName: 'B', Color: 'purple', SessionIds: [] },
         ])
-        jest.spyOn(internalCache.ComponentEphemeraMeta, 'get').mockResolvedValue(undefined)
 
         const roomId = 'ROOM#ObjAff' as const
         const ts = Date.now()
@@ -704,16 +701,8 @@ describe('mtw.ephemera.perception DataSource', () => {
             const m = c[0] as { type?: string; metaData?: { roomChannel?: string } }
             return m?.type === 'PublishMessage' && m?.metaData?.roomChannel === 'affordances'
         })
-        expect(affordancePublishes).toHaveLength(2)
-        const ids = affordancePublishes.map((c) => (c[0] as { messageId?: string }).messageId)
-        expect(new Set(ids).size).toBe(2)
-        expect(ids.every((id) => id?.startsWith('MESSAGE#'))).toBe(true)
-        expect(affordancePublishes[0][0]).toMatchObject({ targets: ['CHARACTER#A'], wmlContent: '<RoomAffordance />' })
-        expect(mergeSpy).toHaveBeenCalledWith('CHARACTER#A', roomId)
-        expect(mergeSpy).toHaveBeenCalledWith('CHARACTER#B', roomId)
+        expect(affordancePublishes).toHaveLength(0)
 
-        schemaSpy.mockRestore()
-        mergeSpy.mockRestore()
         sendSpy.mockRestore()
     })
 })

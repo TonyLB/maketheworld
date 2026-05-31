@@ -16,6 +16,10 @@ import type {
     AffordanceOrchestrationIngressCommand,
     AffordancesRequestedCommand,
 } from './localApiEvents'
+import {
+    isEphemeraObjectsObjectsChangedEnvelope,
+    type ObjectsChangedPayload,
+} from '../objects/events'
 
 export type AffordanceOrchestrationIngressHeader =
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Affordances Requested' }
@@ -49,12 +53,15 @@ export const isAffordanceOrchestrationIngressEnvelope = makeStreamingEnvelopeGua
     AffordanceOrchestrationIngressHeader
 >(isAffordanceOrchestrationIngressHeader)
 
-export type AffordanceOrchestrationSubscribedContent = AffordanceOrchestrationIngressCommand
+export type AffordanceOrchestrationSubscribedContent =
+    | AffordanceOrchestrationIngressCommand
+    | ObjectsChangedPayload
 
 export const isAffordanceOrchestrationSubscribedEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
 ): envelope is StreamingEventEnvelope<AffordanceOrchestrationSubscribedContent> => (
     isAffordanceOrchestrationIngressEnvelope(envelope)
+        || isEphemeraObjectsObjectsChangedEnvelope(envelope)
 )
 
 type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }

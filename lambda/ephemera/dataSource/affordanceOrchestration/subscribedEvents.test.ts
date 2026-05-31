@@ -62,7 +62,7 @@ describe('affordanceOrchestration subscribedEvents', () => {
         expect(isAffordanceOrchestrationIngressEnvelope(rejected)).toBe(false)
     })
 
-    it('isAffordanceOrchestrationSubscribedEnvelope accepts ingress only (v1 scaffold)', () => {
+    it('isAffordanceOrchestrationSubscribedEnvelope accepts ingress and mtw.ephemera.objects Objects Changed', () => {
         expect(
             isAffordanceOrchestrationSubscribedEnvelope({
                 header: {
@@ -72,6 +72,17 @@ describe('affordanceOrchestration subscribedEvents', () => {
                     type: 'Affordances Requested',
                 },
                 getContent: () => Promise.resolve({}),
+            } as any)
+        ).toBe(true)
+        expect(
+            isAffordanceOrchestrationSubscribedEnvelope({
+                header: {
+                    dataSourceKey: 'mtw.ephemera.objects',
+                    streamKey: 'ROOM#one',
+                    timestamp: Date.now(),
+                    type: 'Objects Changed',
+                },
+                getContent: () => Promise.resolve({ type: 'Objects Changed' }),
             } as any)
         ).toBe(true)
         expect(

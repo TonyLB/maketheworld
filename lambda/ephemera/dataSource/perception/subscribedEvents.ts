@@ -19,7 +19,6 @@ import {
     type RenderOrchestrationGenerationStartedPayload,
     type RenderOrchestrationOrchestrationErrorPayload,
 } from '../renderOrchestration/publishedEvents'
-import { isEphemeraObjectsObjectsChangedEnvelope, type ObjectsChangedPayload } from '../objects/events'
 
 export type CharacterPerceptionIngressHeader =
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Character Perception Requested' }
@@ -70,7 +69,6 @@ export type PerceptionSubscribedContent =
     | PerceptionThreadRegisterCommand
     | RenderCacheRenderPertainsPayload
     | PerceptionFanInOrchestrationPayload
-    | ObjectsChangedPayload
 
 export const isPerceptionRenderPertainsStreamEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
@@ -93,7 +91,6 @@ export const isPerceptionSubscribedEnvelope = (
         || isPerceptionThreadRegisteredIngressEnvelope(envelope)
         || isPerceptionRenderPertainsStreamEnvelope(envelope)
         || isPerceptionRoomDescriptionOrchestrationStreamEnvelope(envelope)
-        || isEphemeraObjectsObjectsChangedEnvelope(envelope)
 )
 
 type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }
