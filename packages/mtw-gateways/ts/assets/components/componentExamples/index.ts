@@ -26,7 +26,6 @@ export {
     validateAssembleComponentExamplesInput,
     type AssembleComponentExamplesInput,
     type AssembleComponentExamplesOptions,
-    type MergeParticipationOrder,
 } from './input'
 export { assetStackIncludesEditAssetId } from './membership'
 export type { ComponentExamplesAggregatePort, ComponentExamplesInternalCacheSlice } from './ports'
