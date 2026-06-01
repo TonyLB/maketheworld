@@ -4,7 +4,9 @@ import {
     ContentHeadersSnapshot,
     ContentHeadersSnapshotExternal,
     ContentHeadersUpdateExternal,
+    ZoneUpdatedEventExternal,
     isContentHeadersUpdate,
+    isZoneUpdatedEvent,
     isContentHeadersExternal
 } from './index'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
@@ -498,6 +500,23 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 expect(external.wml).toContain('<Asset uuid=(test)>')
                 expect(external.wml).toContain('<Room key=(room1)>')
             })
+
+            it('should serialize Zone Updated event to external format', () => {
+                const result = serializer.serialize({
+                    content: {
+                        assetId: 'ASSET#test',
+                        fromZone: 'Canon',
+                        toZone: 'Archive'
+                    },
+                    header: { dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'global', timestamp: 0, type: 'Zone Updated' }
+                })
+
+                expect(result).toEqual({
+                    assetId: 'ASSET#test',
+                    fromZone: 'Canon',
+                    toZone: 'Archive'
+                })
+            })
         })
 
         describe('deserialize', () => {
@@ -520,6 +539,28 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     expect(result.assetId).toBe('ASSET#test')
                     expect(result.zone).toBe('Canon')
                     expect(result.standardForm).toBeInstanceOf(StandardForm)
+                }
+            })
+
+            it('should deserialize Zone Updated event from external format', async () => {
+                const externalUpdate: ZoneUpdatedEventExternal = {
+                    assetId: 'ASSET#test',
+                    fromZone: 'Canon',
+                    toZone: 'Archive'
+                }
+
+                const result = await serializer.deserialize({
+                    content: externalUpdate,
+                    header: { dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'global', timestamp: 0, type: 'Zone Updated' }
+                })
+
+                expect(result).not.toBeNull()
+                if (!result) return
+                expect(isZoneUpdatedEvent(result)).toBe(true)
+                if (isZoneUpdatedEvent(result)) {
+                    expect(result.assetId).toBe('ASSET#test')
+                    expect(result.fromZone).toBe('Canon')
+                    expect(result.toZone).toBe('Archive')
                 }
             })
         })

@@ -60,9 +60,6 @@ export class ReadOnlyAssetWorkspace {
         if ((zone === 'Personal' || zone === 'Draft') && !player) {
             throw new AssetWorkspaceException('Player is required for Personal/Draft zones')
         }
-        if (zone === 'Archive') {
-            throw new AssetWorkspaceException('Archive zone not supported (deferred to Phase 2)')
-        }
         
         this.assetId = assetId
         this.zone = zone
@@ -200,12 +197,6 @@ export class ReadOnlyAssetWorkspace {
     }
 
     async loadJSON() {
-        if (this.zone === 'Archive') {
-            this.standard = new StandardForm(this.assetId)
-            this.status.json = 'Clean'
-            this.status.s3Missing = true  // Archive zone has no S3 objects
-            return
-        }
         const filePath = this.s3KeyFor('ndjson')
         
         let contents = ''
@@ -229,12 +220,6 @@ export class ReadOnlyAssetWorkspace {
     }
 
     async loadAuthorizationJSON() {
-        if (this.zone === 'Archive') {
-            this.authorizations = new StandardAuthorizationCollection(this.assetId)
-            this.authStatus.json = 'Clean'
-            this.authStatus.s3Missing = true  // Archive zone has no S3 objects
-            return
-        }
         const filePath = this.s3KeyFor('auth.ndjson')
         
         let contents = ''

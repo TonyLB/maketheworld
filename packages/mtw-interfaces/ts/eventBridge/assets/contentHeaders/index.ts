@@ -68,8 +68,12 @@ type ContentHeadersDeserializeParams = ResolvedStreamingEnvelope<ContentHeadersE
 
 const isHeadersUpdatedContentHeadersSerializeParams = (p: ContentHeadersSerializeParams): p is ContentHeadersSerializeParams & { header: StreamingEventHeader & { type: 'Headers Updated' }; content: ContentHeadersUpdate } =>
     p.header.type === 'Headers Updated'
+const isZoneUpdatedContentHeadersSerializeParams = (p: ContentHeadersSerializeParams): p is ContentHeadersSerializeParams & { header: StreamingEventHeader & { type: 'Zone Updated' }; content: ZoneUpdatedEvent } =>
+    p.header.type === 'Zone Updated'
 const isHeadersUpdatedContentHeadersDeserializeParams = (p: ContentHeadersDeserializeParams): p is ContentHeadersDeserializeParams & { header: StreamingEventHeader & { type: 'Headers Updated' }; content: ContentHeadersUpdateExternal } =>
     p.header.type === 'Headers Updated'
+const isZoneUpdatedContentHeadersDeserializeParams = (p: ContentHeadersDeserializeParams): p is ContentHeadersDeserializeParams & { header: StreamingEventHeader & { type: 'Zone Updated' }; content: ZoneUpdatedEventExternal } =>
+    p.header.type === 'Zone Updated'
 
 /**
  * Event serializer for the mtw.assets.contentHeaders data source.
@@ -97,6 +101,14 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
                 wml: schemaToWML([content.standardForm.schema])
             }
         }
+        if (isZoneUpdatedContentHeadersSerializeParams(params)) {
+            const { content } = params
+            return {
+                assetId: content.assetId,
+                fromZone: content.fromZone,
+                toZone: content.toZone
+            }
+        }
         throw new Error(`Unknown streaming event type in ContentHeadersEventUpdate: ${params.header.type}`)
     }
 
@@ -121,6 +133,14 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
                 assetId: content.assetId,
                 zone: content.zone,
                 standardForm: new StandardForm(content.wml)
+            }
+        }
+        if (isZoneUpdatedContentHeadersDeserializeParams(params)) {
+            const { content } = params
+            return {
+                assetId: content.assetId,
+                fromZone: content.fromZone,
+                toZone: content.toZone
             }
         }
         throw new Error(`Unknown external streaming event type: ${params.header.type}`)
