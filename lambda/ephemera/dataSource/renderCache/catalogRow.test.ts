@@ -12,6 +12,7 @@ jest.mock('../../internalCache', () => ({
     default: {
         RenderCache: {
             invalidate: jest.fn(),
+            setCatalogRow: jest.fn(),
             getCatalogRows: jest.fn(),
             getCatalogRow: jest.fn(),
         },
@@ -33,6 +34,7 @@ import type { EphemeraCacheCatalogRow } from './baseClasses'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const renderCacheInvalidate = internalCache.RenderCache.invalidate as jest.Mock
+const renderCacheSetCatalogRow = internalCache.RenderCache.setCatalogRow as jest.Mock
 const renderCacheGetCatalogRows = internalCache.RenderCache.getCatalogRows as jest.Mock
 const renderCacheGetCatalogRow = internalCache.RenderCache.getCatalogRow as jest.Mock
 
@@ -109,6 +111,8 @@ describe('catalogRow', () => {
         expect(created.catalogVersion).toBe(1)
         expect(created.hydratedCatalogVersion).toBe(0)
         expect(ephemeraDBMock.putItem).toHaveBeenCalledWith(created)
+        expect(renderCacheSetCatalogRow).toHaveBeenCalledWith({ row: created })
+        expect(renderCacheInvalidate).not.toHaveBeenCalled()
     })
 
     it('perspectiveKeyFromCatalogDataCategory parses SK suffix', () => {
@@ -120,6 +124,7 @@ describe('catalogRow', () => {
         const row = catalogRow()
         await putCatalogRow(row)
         expect(ephemeraDBMock.putItem).toHaveBeenCalledWith(row)
+        expect(renderCacheSetCatalogRow).toHaveBeenCalledWith({ row })
     })
 
     it('markCatalogHydratedAtVersion writes when catalogVersion unchanged', async () => {

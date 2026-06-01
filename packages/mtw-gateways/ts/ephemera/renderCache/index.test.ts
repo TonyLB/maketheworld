@@ -159,6 +159,57 @@ describe('RenderCacheCacheHandler memo', () => {
         expect(rows[0].DataCategory).toBe('CACHE#keep')
     })
 
+    it('setCatalogRow serves memoized row after prior miss without second getItem', async () => {
+        const catalog = readyCatalog({ hydratedCatalogVersion: 0 })
+        const db: EphemeraRenderCacheReadDB = {
+            query: jest.fn().mockResolvedValue([]),
+            getItem: jest.fn().mockResolvedValueOnce(undefined),
+        }
+        const handler = createRenderCacheCacheHandler(db)
+
+        const first = await handler.getCatalogRow(componentId, perspectiveKey)
+        expect(first).toBeUndefined()
+        expect(db.getItem).toHaveBeenCalledTimes(1)
+
+        handler.setCatalogRow({ row: catalog })
+
+        const second = await handler.getCatalogRow(componentId, perspectiveKey)
+        expect(second).toEqual(catalog)
+        expect(db.getItem).toHaveBeenCalledTimes(1)
+    })
+
+    it('setCatalogRow updates catalog list and single-key memo', async () => {
+        const initial = readyCatalog()
+        const db: EphemeraRenderCacheReadDB = {
+            query: jest.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([initial]),
+            getItem: jest.fn().mockResolvedValueOnce(initial),
+        }
+        const handler = createRenderCacheCacheHandler(db)
+
+        await handler.getCatalogRows(componentId)
+        await handler.getCatalogRow(componentId, perspectiveKey)
+
+        const updated = readyCatalog({ catalogVersion: 2, hydratedCatalogVersion: 2 })
+        handler.setCatalogRow({ row: updated })
+
+        expect(await handler.getCatalogRow(componentId, perspectiveKey)).toEqual(updated)
+        expect(await handler.getCatalogRows(componentId)).toEqual([updated])
+        expect(db.getItem).toHaveBeenCalledTimes(1)
+        expect(db.query).toHaveBeenCalledTimes(1)
+    })
+
+    it('setCatalogRow does not invalidate CACHE# memo', async () => {
+        const { handler, db } = makeHandler([makeRow()])
+        const rowsBefore = await handler.getCacheRows(componentId)
+        const queryCallsBefore = (db.query as jest.Mock).mock.calls.length
+
+        handler.setCatalogRow({ row: readyCatalog() })
+
+        const rowsAfter = await handler.getCacheRows(componentId)
+        expect(rowsAfter).toBe(rowsBefore)
+        expect(db.query).toHaveBeenCalledTimes(queryCallsBefore)
+    })
+
     it('invalidate clears cache rows and catalog memo', async () => {
         const catalog = readyCatalog()
         const db: EphemeraRenderCacheReadDB = {

@@ -17,6 +17,7 @@ export {
     catalogRowMatchesEditAssetId,
     isAuthoritativeAffordanceRow,
     canUpsertAffordanceRowAtHydrate,
+    shouldPersistAffordanceTopologyAtHydrate,
     shouldWriteHydratedCatalogVersion,
 } from './guards'
 

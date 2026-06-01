@@ -38,7 +38,8 @@ Type guard: **`isAffordanceCacheRow`**. Test factory: **`createAffordanceCacheRo
 | **`isCatalogRowStale`** | `hydratedCatalogVersion !== catalogVersion` --- hydrate required |
 | **`isCatalogRowHydrated`** | Row ready for read/publish |
 | **`catalogRowMatchesEditAssetId`** | Invalidation participation (**D35**) --- bump only when **`assetStack`** includes **`editAssetId`** |
-| **`canUpsertAffordanceRowAtHydrate`** | Conditional hydrate write |
+| **`shouldPersistAffordanceTopologyAtHydrate`** | Colocated topology write when stale at current epoch (or catalog lags incoming) |
+| **`canUpsertAffordanceRowAtHydrate`** | Version-only check (render CACHE# parity); **not** for colocated Affordance:: hydrate |
 | **`shouldIncrementCatalogVersionOnInvalidation`** | Catalog bump on **`TopologyInvalidated`** |
 
 ## Handler API ([`factory.ts`](factory.ts))

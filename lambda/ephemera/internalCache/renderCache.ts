@@ -11,11 +11,12 @@ import {
     type EphemeraCacheDynamoItem,
     type EphemeraCacheMarkState,
     type RenderCacheSetParams,
+    type RenderCacheSetCatalogRowParams,
 } from '@tonylb/mtw-gateways/ts/ephemera/renderCache'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { computePerspectiveKey, perspectiveMatches, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 
-export type { RenderCacheSetParams }
+export type { RenderCacheSetParams, RenderCacheSetCatalogRowParams }
 
 export type RenderCacheGetExactMatchParams = {
     componentId: EphemeraCacheComponentId;

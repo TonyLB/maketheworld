@@ -71,7 +71,11 @@ describe('ensureAffordanceTopology', () => {
 
     it('creates row on first resolve then hydrates when stale', async () => {
         const stale = affordanceRow({ hydratedCatalogVersion: 0 })
-        getAffordanceRowMock.mockResolvedValueOnce(undefined).mockResolvedValue(stale)
+        const ready = affordanceRow({ hydratedCatalogVersion: 1, catalogVersion: 1 })
+        getAffordanceRowMock
+            .mockResolvedValueOnce(undefined)
+            .mockResolvedValueOnce(stale)
+            .mockResolvedValue(ready)
         createAffordanceRowMock.mockResolvedValue(stale)
 
         await ensureAffordanceTopology(

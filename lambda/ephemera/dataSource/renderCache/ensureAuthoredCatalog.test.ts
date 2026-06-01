@@ -68,7 +68,11 @@ describe('ensureAuthoredCatalog', () => {
 
     it('creates catalog on first resolve then hydrates when stale', async () => {
         const stale = catalogRow({ hydratedCatalogVersion: 0 })
-        getCatalogRowMock.mockResolvedValueOnce(undefined).mockResolvedValue(stale)
+        const ready = catalogRow({ hydratedCatalogVersion: 1, catalogVersion: 1 })
+        getCatalogRowMock
+            .mockResolvedValueOnce(undefined)
+            .mockResolvedValueOnce(stale)
+            .mockResolvedValue(ready)
         createCatalogRowMock.mockResolvedValue(stale)
 
         await ensureAuthoredCatalog(
@@ -87,7 +91,8 @@ describe('ensureAuthoredCatalog', () => {
 
     it('hydrates stale catalog without creating a new row', async () => {
         const stale = catalogRow({ catalogVersion: 2, hydratedCatalogVersion: 1 })
-        getCatalogRowMock.mockResolvedValue(stale)
+        const ready = catalogRow({ catalogVersion: 2, hydratedCatalogVersion: 2 })
+        getCatalogRowMock.mockResolvedValueOnce(stale).mockResolvedValueOnce(stale).mockResolvedValue(ready)
 
         await ensureAuthoredCatalog(
             { componentId, perspective },

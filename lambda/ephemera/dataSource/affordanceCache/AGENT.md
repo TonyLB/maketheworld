@@ -24,6 +24,10 @@ One Dynamo item per **`(ROOM#, perspectiveKey)`**:
 | `catalogVersion` / `hydratedCatalogVersion` | Stale gate (mirror render **`Cache::`**) |
 | `topology` | Embedded **`ProjectedRoomTopology`** (`exits` JSON) |
 
+## CloudWatch instrumentation
+
+Catalog hydrate preflight logs structured lines filterable as **`[mtw.ephemera.affordanceCache] catalogHydrate`** (see [`ensureAffordanceTopology.ts`](ensureAffordanceTopology.ts), [`hydrateAffordanceTopology.ts`](hydrateAffordanceTopology.ts), shared [`../catalogHydrateInstrumentation.ts`](../catalogHydrateInstrumentation.ts)). Key **`event`** values: `start`, `catalog_row_loaded`, `skip_ready`, `single_flight_hydrate_start`, `computation_skip_row_missing`, `computation_skip_already_fresh`, `stale_path_*`, `hydrate_row_skip_version_guard`, `hydrate_row_wrote`, `mark_hydrated_catalog_ok` / `mark_hydrated_catalog_no_write`, `retrieval_not_ready`, `complete`, `complete_catalog_not_ready`, `failed`.
+
 ## Layer responsibilities
 
 | Concern | Owner |
