@@ -1,6 +1,6 @@
 # Workbench composition and Standard* binding (charcoal-client)
 
-**Status:** Draft plan --- design evolving. **Next step:** Lock **D8a**, **D1-D4**, then implement **Phase 1** (`useWorkbenchComponent` working copy + debounced flush + **D14** reconcile + `WorkbenchShortNameField`).
+**Status:** **Milestone 0 complete** --- decisions **D1-D14** (+ **D14a-c**) locked. **Next step:** **Phase 1** implementation (`useWorkbenchComponent` + test harness + `workbenchMutations` + debounced flush + **D14** reconcile + `WorkbenchShortNameField`).
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into [`charcoal-client/src/components/Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md) and related foundation docs.
 
@@ -22,6 +22,7 @@ Reduce repetitive Workbench editor code while making composition predictable:
 - A generic form generator for every `StandardComponent` type.
 - Replacing domain editors for facets, topology (`Area` exit edges), reference import, or layered navigation.
 - Changing `updateStandard` reducer semantics or persistence (clone / diff / merge stays as today).
+- Shared editor layout extraction (`WorkbenchComponentEditorLayout`) --- **D9** deferred to a separate UI sweep after data binding is standardized.
 
 ---
 
@@ -60,7 +61,7 @@ Workbench component editors (`RoomEditor`, `FeatureEditor`, `AreaEditor`, `Guida
 | Tier | What | Cost | When |
 | --- | --- | --- | --- |
 | **Working copy** | `StandardRoom` (etc.) in React state/context from `useWorkbenchComponent` | **Component** `clone()` + payload mutate | Every keystroke / field change via `updateComponent` |
-| **Committed copy** | `standardForm.byUniversalId[id]` in Redux via `useWorkbenchAsset` | **Asset** `standardForm._clone()` + `diff` + merge into `edit` | Debounced **`flushToStandardForm`** (per editor session), plus explicit flush (navigate away, blur policy TBD) |
+| **Committed copy** | `standardForm.byUniversalId[id]` in Redux via `useWorkbenchAsset` | **Asset** `standardForm._clone()` + `diff` + merge into `edit` | Debounced **`flushToStandardForm`** (per editor session, **D8a**), plus **`flushNow`** on unmount / breadcrumb |
 
 ```text
 User edit
@@ -153,29 +154,29 @@ Mark **Status** `[X]` when normative. Phases reference IDs.
 
 | ID | Status | Decision | Notes / options |
 | --- | --- | --- | --- |
-| **D1** | [ ] | **Where `useWorkbenchComponent` lives** | **(A)** `foundations/useWorkbenchComponent.ts` next to `useWorkbenchAsset`. **(B)** `foundations/bindings/` subtree for hooks + helpers. **(C)** defer hook; only ship field components first. |
-| **D2** | [ ] | **Mutation style (working vs flush)** | **Working (agreed):** `updateComponent` uses `working.clone()` then mutates clone (`_payload` or future `with*`). **Flush (pick one):** **(A)** `draft.byUniversalId[id] = working.clone()`. **(B)** in-place mutate component already on draft if same reference policy allows. **(C)** hybrid: assign clone on flush; optional `with*` when mtw-wml adds helpers. |
-| **D3** | [ ] | **`withShortName()` in mtw-wml** | **(A)** Phase 1 client-only helpers (`setShortNameOnPayload`, `normalizeOptionalLiteral`). **(B)** Add `withShortName()` on component wrapper in mtw-wml in parallel (AGENT.implementation already lists as follow-up). **(C)** defer mtw-wml; client-only until a second initiative. |
-| **D4** | [ ] | **`WorkbenchShortNameField` API** | Must consume **working** from `useWorkbenchComponent` context (preferred) or explicit `working` + `updateComponent` props. **(A)** context only. **(B)** props for tests/storybook. **(C)** both. Field calls `updateComponent` on change --- **no** own `updateStandard` or persist debounce. |
-| **D5** | [ ] | **Field accessor helpers** | With working-copy session, prefer **`updateComponent(room => ...)`** in field components. **(A)** defer generic `useWorkbenchLiteralField`. **(B)** thin accessor hook for `working.shortName` only. **(C)** reject; only `WorkbenchShortNameField` in Phase 1. |
-| **D6** | [ ] | **Reference list controlled mode** | **(A)** add `ReferenceListControlled` (`referenceList` + `onReferenceListChange`) alongside existing `ReferenceListEditor`. **(B)** refactor `ReferenceListEditor` to use controlled core internally. **(C)** defer; only document facet/exit pattern for new lists. |
-| **D7** | [ ] | **Inline editors and `updateStandard`** | **(A)** refactor `MarkInlineEditor` to `value`/`onChange` on `StandardLiteral` + parent owns mark update. **(B)** `MarkInlineEditor` takes `onShortNameChange` only. **(C)** leave inline editors until reference-list controlled mode exists. |
+| **D1** | [X] | **Where `useWorkbenchComponent` lives** | **Locked: (A)** [`foundations/useWorkbenchComponent.ts`](../../../../../charcoal-client/src/components/Workbench/foundations/useWorkbenchComponent.ts) next to `useWorkbenchAsset`. |
+| **D2** | [X] | **Mutation style (working vs flush)** | **Working:** `updateComponent` uses `working.clone()` then mutates clone (`_payload` or `withShortName()` per **D3**). **Flush: (A)** `draft.byUniversalId[id] = working.clone()`. |
+| **D3** | [X] | **`withShortName()` in mtw-wml** | **Locked: (B)** add `withShortName()` on component wrapper in **mtw-wml in parallel** with Phase 1 client work (AGENT.implementation follow-up). Client may still use `normalizeOptionalLiteral` / apply-on-flush until `with*` lands. |
+| **D4** | [X] | **`WorkbenchShortNameField` API** | **Locked: (A)** context only --- field consumes **working** + `updateComponent` from `useWorkbenchComponent` / `WorkbenchComponentProvider`. **No** `updateStandard` or persist debounce in the field. **Phase 1 task:** add **`useWorkbenchComponent` test harness** (provider wrapper + helpers to seed `standardForm` / `committed`, drive `updateComponent`, assert `working` and flush) for unit/RTL tests; do not add prop bypass on the field itself. |
+| **D5** | [X] | **Field accessor helpers** | **Locked: (A)** defer generic `useWorkbenchLiteralField`; field components use **`updateComponent(component => ...)`** inline. |
+| **D6** | [X] | **Reference list controlled mode** | **Locked: (A)** add **`ReferenceListControlled`** (`referenceList` + `onReferenceListChange`) alongside existing `ReferenceListEditor` (Phase 3 implementation; not Phase 1 blocker). |
+| **D7** | [X] | **Inline editors and `updateStandard`** | **Locked: (C)** leave **`MarkInlineEditor`** (and similar) calling `updateStandard` until **D6** controlled reference-list mode exists; document facet/exit pattern for new lists in Phase 1 docs only. |
 | **D8** | [X] | **Debouncing policy (agreed direction)** | **Per-component editor session:** debounce **`flushToStandardForm`** only (default ~1000ms, configurable). **`updateComponent`** is immediate (working copy). **Remove** persist debounce from primitives when under session provider; literals may stay uncontrolled string UI bound to `working` field. **Not** per-field persist timers (multiplies asset diffs). |
-| **D8a** | [ ] | **Debounce timing / flush triggers** | **(A)** timer reset on any `updateComponent`. **(B)** flush on blur per field in addition. **(C)** `flushNow` on unmount / breadcrumb navigation (required minimum). Default delay ms. |
+| **D8a** | [X] | **Debounce timing / flush triggers** | **Locked: (A) + (C).** Reset debounce timer on **any** `updateComponent`. **`flushNow`** on provider unmount and breadcrumb navigation (required). **Not** per-field blur flush (**B** rejected for Phase 1). **Default delay:** 1000ms (match **D8**; hook option to override). |
 | **D14** | [X] | **Sync working copy from Redux (three-way reconcile)** | See [Sync from Redux (D14)](#sync-from-redux-d14). Store **`lastReceived`** + **`working`**. On external `committed` change: `editDiff = lastReceived.diff(working)`; if empty, adopt `incoming`; else try `incoming.merge(editDiff)`; on throw/failure, supersede (`working = incoming`) + snackbar. Advance **`lastReceived`** after successful flush (**D14b**). |
-| **D14a** | [ ] | **Detect external vs self flush** | Ignore reconcile when Redux update is echo of this session's flush (e.g. generation counter / `lastFlushedAt` / compare pre-flush snapshot). **(A)** ref after flush. **(B)** `pendingFlush` flag until committed matches flushed working. |
-| **D14b** | [X] | **Advance `lastReceived` on flush** | After successful `flushToStandardForm`, set `lastReceived` to committed component (clone). Prevents re-applying already-persisted `editDiff` on next external sync. |
-| **D14c** | [ ] | **Reconcile vs debounced flush race** | **(A)** `flushNow()` before reconcile when both pending. **(B)** reconcile uses current `working` only (default). Document in hook. |
-| **D9** | [ ] | **Shared editor layout shell** | **(A)** extract `WorkbenchComponentEditorLayout` (scroll + padding + column). **(B)** defer layout extraction. **(C)** only extract when touching each editor for shortName anyway. |
-| **D10** | [ ] | **Pure updater module location** | **(A)** `foundations/workbenchMutations.ts` (cross-component). **(B)** colocate per domain (`AreaEdit/areaEditMutations.ts` pattern). **(C)** push shared pieces to mtw-wml when not UI-specific. |
+| **D14a** | [X] | **Detect external vs self flush** | **Locked: (A)** `lastFlushRef` set at flush dispatch to the **component snapshot flushed** (`working.clone()`). On `committed` change: if `incoming` is **semantically equal** to `lastFlushRef` (component `equals` / agreed comparison --- not reference identity), treat as **echo** --- skip three-way reconcile; apply **D14b** baseline advance if not already done on dispatch completion. **Rejected: (B)** `pendingFlush` until props match (prop-ack). **Rejected:** field-level or distributed "wait for props" modes. Echo handling lives only in `useWorkbenchComponent`. |
+| **D14b** | [X] | **Advance `lastReceived` on flush** | After successful `flushToStandardForm` dispatch (reducer completes synchronously today), set `lastReceived` from the **flushed snapshot** (same as `lastFlushRef`), not by waiting for selector echo. Prevents re-applying already-persisted `editDiff` on next external sync. **D14a** echo path is a safety net when `committed` updates later with the same semantic content. |
+| **D14c** | [X] | **Reconcile vs debounced flush race** | **Locked: (B) + debounce hygiene.** On **external** reconcile: **cancel** pending debounced flush, run three-way reconcile against **current** `working` (do **not** `flushNow()` first). **Reschedule** debounced flush **after** reconcile completes (post-merge `working`; full delay per **D8a**). Flush callback must read **latest** `working` via ref, never a stale closure. **Rejected: (A)** flush-before-reconcile on every external update (extra asset diffs; not required when `editDiff` encodes unflushed edits). See [Reconcile vs debounced flush (D14c)](#reconcile-vs-debounced-flush-d14c). |
+| **D9** | [X] | **Shared editor layout shell** | **Locked: (B)** defer --- duplicated `Box` scroll/padding/column scaffolding stays as-is for this initiative. Phase 1 editor refactors keep existing layout wrappers; extract `WorkbenchComponentEditorLayout` in a **follow-on UI sweep** after data binding is standardized. **Rejected for this plan:** **(A)** dedicated layout extraction milestone; **(C)** opportunistic extraction while touching shortName (would still widen Phase 1 PRs). |
+| **D10** | [X] | **Pure updater module location** | **Locked: (A)** new [`foundations/workbenchMutations.ts`](../../../../../charcoal-client/src/components/Workbench/foundations/workbenchMutations.ts) (+ `.test.ts`) for cross-component pure helpers: `reconcileCommittedComponent`, shortName normalize/apply-on-flush (**D11**). `useWorkbenchComponent` imports these; domain files keep domain-only mutators (e.g. `AreaEdit/areaEditMutations.ts`). **mtw-wml** helpers (**D3**) stay in package when not UI-specific. No-op flush suppression via reducer diff only (**D12**). |
 
 ### Semantics (must be consistent once D4-D8 land)
 
 | ID | Status | Decision | Notes |
 | --- | --- | --- | --- |
-| **D11** | [ ] | **shortName empty handling** | Align with omission-over-empty: empty -> `undefined` on payload (Mark/Guidance style) vs always assign `StandardLiteral` (Feature/Room style). Pick one norm; encode in shared helper. |
-| **D12** | [ ] | **No-op update suppression** | **(A)** skip `flushToStandardForm` when `working` deep-equals last flushed snapshot. **(B)** rely on reducer diff only. **(C)** both. Apply on flush path, not on every `updateComponent`. |
-| **D13** | [ ] | **readonly propagation** | Field components always combine `readonly` prop with `useWorkbenchAsset().readonly`. Document in Workbench AGENT. |
+| **D11** | [X] | **shortName empty handling** | **Locked:** **omission-over-empty** --- empty / whitespace-only shortName -> `undefined` on payload (clear field), not `new StandardLiteral('')`. Encode in `workbenchMutations` apply-on-flush + `updateComponent` path; aligns Mark/Guidance norm; replaces inconsistent Feature/Room "always assign literal" pattern in Phase 1 editors. |
+| **D12** | [X] | **No-op update suppression** | **Locked: (B)** rely on **`updateStandard` reducer diff** only --- no pre-flush deep-equals / snapshot compare in the hook (**A**, **C** rejected). Debounced flush may still run; reducer no-ops when there is no asset change. |
+| **D13** | [X] | **readonly propagation** | **Locked:** field components (e.g. `WorkbenchShortNameField`) combine optional `readonly` prop with `useWorkbenchAsset().readonly` (asset zone / published). Document in Workbench `AGENT.md` during Phase 4 (or when adding fields in Phase 1). |
 
 ---
 
@@ -192,6 +193,7 @@ Mark **Status** `[X]` when normative. Phases reference IDs.
 | **`committed`** | Live `standardForm.byUniversalId[componentId]` from `useWorkbenchAsset` (read-only selector view) |
 | **`lastReceived`** | Last Redux component snapshot this session uses as reconcile **baseline** (clone) |
 | **`working`** | Current editor copy; mutated only via `updateComponent` |
+| **`lastFlushRef`** | Component snapshot last dispatched on flush (**D14a**); used for semantic echo classification |
 
 Do **not** store `editDiff` --- derive when needed: `editDiff = lastReceived.diff(working)` (`undefined` if no local change vs baseline).
 
@@ -206,11 +208,31 @@ working      = committed.clone()
 
 **`updateComponent`:** mutate `working` only; leave `lastReceived` unchanged.
 
-**Successful `flushToStandardForm` (D14b):** when Redux `committed` reflects the flush (or immediately after dispatch if policy is optimistic), set `lastReceived = committed.clone()`. Optionally align `working` if treating post-flush as clean.
-
-**External `committed` change** (detect via **D14a** --- not an echo of this session's flush):
+**Successful `flushToStandardForm` (D14b + D14a):**
 
 ```text
+flushed = working.clone()
+lastFlushRef = flushed
+dispatch updateStandard(...)   // assign flushed to draft.byUniversalId[id] per D2
+lastReceived = flushed.clone() // D14b on dispatch completion (mutation-owned; do not wait for props)
+```
+
+**`committed` change** (selector subscription):
+
+```text
+incoming = committed.clone()
+
+if incoming semantically equals lastFlushRef:
+    echo -> skip reconcile (D14a); clear or retain lastFlushRef per hook policy
+else:
+    external -> cancel debounced flush (D14c), then three-way reconcile below
+```
+
+**External `committed` change** (not an echo of this session's flush):
+
+```text
+cancelPendingFlush()           // D14c: drop scheduled debounce before reconcile
+
 incoming = committed.clone()   // undefined if component removed -> close session / navigate back
 
 editDiff = lastReceived.diff(working)
@@ -227,6 +249,8 @@ else:
         lastReceived = incoming
         working      = incoming.clone()
         snackbar: ongoing edits superseded by external update
+
+rescheduleDebouncedFlush()     // D14c: from post-reconcile working; do not flush immediately unless user keeps typing
 ```
 
 **Component removed from asset:** if `incoming` is missing, do not merge; end session (empty editor / pop breadcrumb).
@@ -243,26 +267,64 @@ Extract for unit tests without React, e.g. `reconcileCommittedComponent({ lastRe
 - **Snackbar** on supersede: e.g. "This component was updated elsewhere; unsaved changes on this screen were discarded." (Undo optional later.)
 - **Import / `fetchImports`:** non-overlapping import + local shortName should **`merge` succeed**; same field changed locally and externally should supersede or throw then supersede.
 
+### Echo detection (D14a)
+
+`useWorkbenchComponent` is a **staging adapter** relative to `personalAssets` (fast component edits vs asset-level `updateStandard`). That is intentional; echo handling must still avoid **prop-ack** ("operate differently until `committed` matches what I sent").
+
+**Normative:**
+
+1. Set **`lastFlushRef`** when dispatching flush (semantic snapshot of what was written).
+2. Advance **`lastReceived` on flush completion** (**D14b**), same snapshot --- parallel to `pendingEdits` / RequestIds on the slice, not inferred from children.
+3. When **`committed`** updates: if **`incoming` equals `lastFlushRef`** semantically, **skip reconcile**; otherwise run three-way merge / supersede.
+
+Comparison uses mtw-wml component equality (or equivalent stable compare), not reference identity. Fields never read `lastFlushRef`.
+
+### Reconcile vs debounced flush (D14c)
+
+Two session actions run on different schedules: **debounced `flushToStandardForm`** (**D8** / **D8a**) and **external reconcile** (**D14**). While the user has unflushed edits in `working`, both can be "in flight" --- a timer may fire soon **and** `committed` may change (import, wml stream, another UI path).
+
+**Failure mode without D14c:** reconcile updates `working` to `merged`, but a debounce callback scheduled **before** reconcile still flushes **pre-reconcile** `working`, undoing the merge in Redux.
+
+```text
+T0  User types -> working updated, debounce scheduled (~1s)
+T1  External committed change -> reconcile would merge import + local editDiff
+T2  Stale debounce fires -> flush old working -> wrong Redux state
+```
+
+**Normative (locked):**
+
+1. Classify `committed` change (**D14a**): echo -> skip reconcile; external -> step 2.
+2. **`cancelPendingFlush()`** before running three-way reconcile.
+3. Reconcile using **current** `working` (`editDiff = lastReceived.diff(working)`); do **not** call `flushNow()` first --- unflushed edits are already in `editDiff`.
+4. **`rescheduleDebouncedFlush()`** after reconcile finishes (from post-merge `working`). If the user is still typing, the next `updateComponent` resets the timer per **D8a** anyway.
+5. Implement flush so the debounced callback always reads **latest** `working` from a ref (never a captured render closure).
+
+**Not chosen:** **(A)** `flushNow()` before every external reconcile --- persists locals first, but adds a full-asset diff on each import while typing; merge math does not require it.
+
 ### Rejected alternatives (reference)
 
 | Option | Why not alone |
 | --- | --- |
 | **R1. Blind reset** | Drops in-flight edits on any Redux twitch |
 | **R2. Dirty flag only** | Does not compose import + typing on different fields |
+| **R3. Prop-ack / pendingFlush (D14a-B)** | "Wait until `committed` matches flush" couples session to selector timing; rejected for **D14a** |
 | **R4. Manual banner** | Heavier UX; may add later for review-before-supersede |
+| **R5. Echo detection in field components** | Same anti-pattern at finer granularity; session hook only |
+| **R6. Flush-before-reconcile (D14c-A)** | Extra asset diff on external updates; **D14c** uses cancel + reconcile + reschedule instead |
 
 ---
 
-## Open questions (not yet decision-ready)
+## Open questions (deferred --- not in decisions register)
 
-1. **D14a** / **D14c** --- flush echo detection and reconcile-vs-flush race (**D14** core algorithm is locked).
-2. **Guidance `instructions`** --- raw string on payload vs `StandardLiteral`; same working-copy session or separate?
-3. **Character `displayName` vs `shortName`** --- separate field component or parameterized literal field?
-4. **Layered context component id** --- should `useWorkbenchComponent` read `getCurrentComponentLayerId` with fallback (like `GuidanceEditor`) via an option flag?
-5. **Instrumentation** --- forward `ScopedInstrumentationOptions` on `flushToStandardForm`?
-6. **Testing strategy** --- hook tests with mocked `updateStandard`; RTL for provider + shortName field; golden refactors: Feature + Room minimum?
-7. **Reference list + inline slot** --- after D7, does `renderItemEditor` receive `working` Mark from parent list context?
-8. **Provider scope** --- wrap each of `RoomEditor` / `FeatureEditor` vs single provider in `WorkbenchAssetEditor` routing?
+These do **not** block Phase 1. Resolve during implementation or later phases as noted.
+
+1. **Guidance `instructions`** --- raw string on payload vs `StandardLiteral`; same working-copy session or separate?
+2. **Character `displayName` vs `shortName`** --- separate field component or parameterized literal field?
+3. **Layered context component id** --- should `useWorkbenchComponent` read `getCurrentComponentLayerId` with fallback (like `GuidanceEditor`) via an option flag?
+4. **Instrumentation** --- forward `ScopedInstrumentationOptions` on `flushToStandardForm`?
+5. **Testing strategy** --- **partially locked via D4:** `useWorkbenchComponent` **test harness** seeds asset state and asserts `working` / flush; hook tests with mocked `updateStandard`; RTL for provider + shortName field; golden refactors: Feature + Room minimum?
+6. **Reference list + inline slot** --- after D7, does `renderItemEditor` receive `working` Mark from parent list context?
+7. **Provider scope** --- wrap each of `RoomEditor` / `FeatureEditor` vs single provider in `WorkbenchAssetEditor` routing?
 
 ---
 
@@ -270,14 +332,15 @@ Extract for unit tests without React, e.g. `reconcileCommittedComponent({ lastRe
 
 ### Phase 1 --- Component session + shortName (highest ROI)
 
-- `useWorkbenchComponent(componentId, guard)` -> `{ working, lastReceived, committed, updateComponent, flushToStandardForm, flushNow, isDirty?, readonly, missing }`
-- Debounced flush per **D8**; `flushNow` on unmount minimum (**D8a**); advance `lastReceived` on flush (**D14b**)
-- `reconcileCommittedComponent` helper + tests; wire external `committed` changes per **D14** (**D14a** for echo skip)
-- `normalizeOptionalLiteral` / apply-on-flush helpers (location per **D10**, **D11**)
-- `WorkbenchComponentProvider` + `WorkbenchShortNameField` (API per **D4**)
+- `useWorkbenchComponent(componentId, guard)` in **`foundations/useWorkbenchComponent.ts`** (**D1**) -> `{ working, lastReceived, committed, updateComponent, flushToStandardForm, flushNow, isDirty?, readonly, missing }`
+- Debounced flush per **D8** / **D8a** (timer reset on `updateComponent`; default 1000ms); `flushNow` on unmount + breadcrumb (**D8a**); advance `lastReceived` on flush (**D14b**)
+- Flush assigns `draft.byUniversalId[id] = working.clone()` (**D2**)
+- `reconcileCommittedComponent` helper + tests; wire external `committed` per **D14**; echo skip **D14a**; cancel/reschedule debounce on external reconcile **D14c**
+- `workbenchMutations.ts`: `normalizeOptionalLiteral` / apply-on-flush (**D10**, **D11**); `reconcileCommittedComponent`; prefer **`withShortName()`** in mtw-wml when landed (**D3**, parallel track)
+- `WorkbenchComponentProvider` + **`useWorkbenchComponent` test harness** + `WorkbenchShortNameField` (context-only **D4**)
 - `StandardLiteralEditor` used **without** internal persist debounce when `debounce={false}` or session prop
 - Refactor **FeatureEditor**, **KnowledgeEditor**, **RoomEditor**, **AreaEditor**
-- Unit tests: flush helper, hook flush debounce; one RTL test for shortName field
+- Unit tests: reconcile helper, hook flush debounce (via harness), harness mutation assertions; one RTL test for shortName field
 
 ### Phase 2 --- Facet / list sessions + inline editors
 
@@ -288,10 +351,10 @@ Extract for unit tests without React, e.g. `reconcileCommittedComponent({ lastRe
 
 ### Phase 3 --- Lists and mtw-wml ergonomics
 
-- Reference list controlled variant per **D6**
-- Optional mtw-wml `withShortName()` per **D3**
+- **`ReferenceListControlled`** per **D6** (alongside `ReferenceListEditor`)
+- Finish / adopt mtw-wml **`withShortName()`** across flush paths if not complete in Phase 1 (**D3**)
 - Migrate **GuidanceEditor**, **MarkEditor**, **LensDetail** shortName paths
-- Optional `WorkbenchComponentEditorLayout` per **D9**
+- Layout shell extraction **out of scope** (**D9** deferred)
 
 ### Phase 4 --- Cleanup and durable docs
 
@@ -305,7 +368,7 @@ Extract for unit tests without React, e.g. `reconcileCommittedComponent({ lastRe
 
 | Phase | Status | Notes |
 | --- | --- | --- |
-| Decisions D1-D14 | D8, D14, D14b agreed; D14a/D14c open | |
+| Decisions D1-D14 | All locked (incl. D11-D13, D14a-c) | Milestone 0 complete |
 | Phase 1 | Not started | |
 | Phase 2 | Not started | |
 | Phase 3 | Not started | |
@@ -317,18 +380,24 @@ Extract for unit tests without React, e.g. `reconcileCommittedComponent({ lastRe
 
 Mark pending work `[ ]` and completed work `[X]` (including nested bullets).
 
-- [ ] **Milestone 0 --- Lock decisions**
+- [X] **Milestone 0 --- Lock decisions**
   - [X] Resolve **D14** + **D14b** (three-way reconcile; advance baseline on flush)
-  - [ ] Resolve **D14a**, **D14c** (flush echo detection; reconcile vs flush race)
-  - [ ] Resolve **D8a** (flush triggers: unmount, blur, delay)
-  - [ ] Resolve **D1**, **D2**, **D3**, **D4**, **D10** (structure + working/flush mutation)
-  - [ ] Resolve **D11**, **D12**, **D13** (shortName semantics, dirty flush skip)
-  - [ ] Resolve **D5**, **D6**, **D7**, **D9** (scope for Phase 1 vs defer)
+  - [X] Resolve **D14a** (`lastFlushRef` + semantic echo skip; mutation-owned **D14b** baseline on flush)
+  - [X] Resolve **D14c** (cancel debounce before external reconcile; reschedule after; no flush-first)
+  - [X] Resolve **D8a** ((A) timer reset on `updateComponent`; (C) `flushNow` on unmount/breadcrumb; 1000ms default; no blur flush)
+  - [X] Resolve **D1**, **D2**, **D3**, **D4** (hook location, flush clone assign, parallel `withShortName`, context-only field + test harness)
+  - [X] Resolve **D10** (`foundations/workbenchMutations.ts` for shared pure helpers)
+  - [X] Resolve **D11** (omission-over-empty shortName)
+  - [X] Resolve **D12** (reducer diff only for no-op suppression)
+  - [X] Resolve **D13** (readonly = prop AND asset readonly)
+  - [X] Resolve **D5**, **D6**, **D7** (defer literal accessor; `ReferenceListControlled` in Phase 3; defer inline editors)
+  - [X] Resolve **D9** (defer layout shell --- separate UI sweep after data binding)
 - [ ] **Milestone 1 --- Phase 1 implementation**
-  - [ ] Add `useWorkbenchComponent` + provider (per **D1**, **D8**)
-  - [ ] Implement debounced `flushToStandardForm` + `flushNow` (per **D8**, **D8a**)
+  - [ ] Add `useWorkbenchComponent` + provider in `foundations/` (per **D1**, **D8**)
+  - [ ] Add `useWorkbenchComponent` **test harness** (per **D4**)
+  - [ ] Implement debounced `flushToStandardForm` + `flushNow` (per **D8**, **D8a**; flush `working.clone()` per **D2**)
   - [ ] Implement resync per **D14** + `reconcileCommittedComponent` tests
-  - [ ] Add flush/normalize helpers + tests (per **D10**, **D11**, **D12**)
+  - [ ] Add `workbenchMutations.ts` + tests (per **D10**, **D11**; no pre-flush equality guard per **D12**)
   - [ ] Add `WorkbenchShortNameField` + adjust literal editor debounce (per **D4**)
   - [ ] Refactor Feature, Knowledge, Room, Area editors
   - [ ] Update Recommended order checkboxes and Progress table in this doc
@@ -338,7 +407,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets).
 - [ ] **Milestone 3 --- Phase 3**
   - [ ] Reference list controlled mode (if **D6** not deferred)
   - [ ] mtw-wml `withShortName` (if **D3** not deferred)
-  - [ ] Remaining editors + optional layout shell
+  - [ ] Remaining editors (layout shell deferred per **D9**)
 - [ ] **Milestone 4 --- Phase 4**
   - [ ] Steady-state docs in Workbench `AGENT.md`
   - [ ] Archive/delete this planning file
