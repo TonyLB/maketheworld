@@ -28,6 +28,7 @@ import StandardImage from '@tonylb/mtw-wml/ts/standardize/components/image'
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import { StandardLens, StandardMark } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import StandardMessage from '@tonylb/mtw-wml/ts/standardize/components/message'
+import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
 import { componentDisplayLabel } from '../../../../lib/componentDisplayLabel'
 
 /** ComponentTag plus Image (supported in selector). */
@@ -35,6 +36,7 @@ type DialogComponentTag = ComponentTag | 'Image'
 
 const SECTION_ORDER: DialogComponentTag[] = [
     'Room',
+    'Area',
     'Feature',
     'Knowledge',
     'Map',
@@ -48,6 +50,7 @@ const SECTION_ORDER: DialogComponentTag[] = [
 
 function componentToTag(component: StandardComponent): DialogComponentTag | null {
     if (component instanceof StandardRoom) return 'Room'
+    if (component instanceof StandardArea) return 'Area'
     if (component instanceof StandardFeature) return 'Feature'
     if (component instanceof StandardKnowledge) return 'Knowledge'
     if (component instanceof StandardMap) return 'Map'

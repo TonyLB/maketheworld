@@ -7,7 +7,7 @@ The Workbench is the **form-based authoring interface** for creating and editing
 ### Purpose
 
 - **Asset Editing**: Edit WML assets through structured forms rather than raw markup
-- **Component Navigation**: Navigate within an asset's component hierarchy (Rooms, Features, Knowledge, Situations, Lenses, Marks, etc.)
+- **Component Navigation**: Navigate within an asset's component hierarchy (Rooms, Areas, Features, Knowledge, Situations, Lenses, Marks, etc.)
 - **Contextual Overlay**: Present editing UI as a drawer (desktop) or full-screen overlay (mobile) relative to the viewport
 - **Draft-Centric**: Optimized for editing assets in the Draft zone; read-only behavior for published assets
 
@@ -30,7 +30,7 @@ The Workbench sits within the Charcoal Client's [dual-mode architecture](../../.
 
 Provide a form-based, component-centric editing experience for WML assets that:
 - Uses Redux state for within-asset navigation instead of React Router
-- Renders structured editors for Rooms, Features, Knowledge, Lenses, Marks, Maps, Situations, and Characters
+- Renders structured editors for Rooms, Areas, Features, Knowledge, Lenses, Marks, Maps, Situations, and Characters
 - Supports rich text editing (`StandardRender`) and literal editing (`StandardLiteral`) through shared editor components
 
 ### Key Responsibilities
@@ -110,7 +110,7 @@ type WorkbenchBreadcrumbEntry = {
 ### System Relationships
 
 - **AppLayout**: Renders `WorkbenchContainer` with `open`, `onClose`, `assetId`, `secondaryContext`; controls workbench visibility
-- **WorkbenchAssetEditor**: Orchestrates view routing based on `getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`; delegates to `AssetEditForm`, `RoomEditor`, `FeatureEditor`, `KnowledgeEditor`, `LayeredContextView` (Room Situation/Guidance tabs), `MarkEditor`, `MapEditor`, `CharacterEditor`
+- **WorkbenchAssetEditor**: Orchestrates view routing based on `getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`; delegates to `AssetEditForm`, `AreaEditor`, `RoomEditor`, `FeatureEditor`, `KnowledgeEditor`, `LayeredContextView` (Room Situation/Guidance tabs), `MarkEditor`, `MapEditor`, `CharacterEditor`
 
 ---
 
@@ -181,7 +181,7 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 1. **Workbench Flow**: Start at [`WorkbenchContainer.tsx`](./WorkbenchContainer.tsx) for layout and breadcrumb header; then [`WorkbenchAssetEditor.tsx`](./WorkbenchAssetEditor.tsx) for view routing
 2. **Asset Context**: Read [`foundations/useWorkbenchAsset.ts`](./foundations/useWorkbenchAsset.ts) to understand how asset data flows from `personalAssets` into Workbench components
 3. **Navigation State**: Read [`src/slices/UI/workbench/index.ts`](../../slices/UI/workbench/index.ts) for breadcrumb model and selectors
-4. **Component Editing**: One editor per component type, each under its own `{Component}Edit` directory (e.g. `RoomEdit/RoomEditor.tsx`, `FeatureEdit/FeatureEditor.tsx`, `KnowledgeEdit/KnowledgeEditor.tsx`). RoomEditor composes `ExitEditor`, `LensHeader` (from LensEdit), `FeatureListEditor`, `DefaultRenderEditor`, situation list (non-DEFAULT), and Guidance; FeatureEditor and KnowledgeEditor show shortName + `DefaultRenderEditor` only.
+4. **Component Editing**: One editor per component type, each under its own `{Component}Edit` directory (e.g. `AreaEdit/AreaEditor.tsx`, `RoomEdit/RoomEditor.tsx`, `FeatureEdit/FeatureEditor.tsx`, `KnowledgeEdit/KnowledgeEditor.tsx`). **AreaEditor** edits `shortName`, heterogeneous **`positionGraph.nodes`** (Room / Feature / Character / Area participants), and uuid-keyed **`positionGraph.edges`** (`From` / `To` / `Forward` / `Back` per [D19/D29](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md)). RoomEditor composes `ExitEditor` (room-local facets --- **M6** removal), `LensHeader` (from LensEdit), `FeatureListEditor`, `DefaultRenderEditor`, situation list (non-DEFAULT), and Guidance; FeatureEditor and KnowledgeEditor show shortName + `DefaultRenderEditor` only.
 
 ### Key Files
 
@@ -190,6 +190,7 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 | `WorkbenchContainer.tsx` | Responsive layout, breadcrumbs, AssetSelector, theme |
 | `WorkbenchAssetEditor.tsx` | View routing (asset / component / componentLayer) |
 | `WorkbenchAssetEditForm.tsx` | Asset-level metadata, component list, imports |
+| `AreaEdit/` | AreaEditor, PositionGraphNodesEditor, ExitEdgeListEditor (D19 topology authoring) |
 | `RoomEdit/` | RoomEditor, ExitEditor, FeatureListEditor (Lens via LensEdit/LensHeader) |
 | `FeatureEdit/` | FeatureEditor (shortName + DefaultRenderEditor) |
 | `KnowledgeEdit/` | KnowledgeEditor (shortName + DefaultRenderEditor) |

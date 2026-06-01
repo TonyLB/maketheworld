@@ -1,0 +1,137 @@
+import React, { FunctionComponent, useCallback, useMemo } from 'react'
+import { Alert, Box } from '@mui/material'
+import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
+import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
+import { MakeTheWorldAccordion } from '../../UI'
+import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
+import { ReferenceListEditor } from '../foundations/ReferenceList'
+import type { ComponentTag } from '../foundations/ReferenceList/ReferenceListEditor'
+import {
+    POSITION_GRAPH_NODE_TAGS,
+    PositionGraphNodeTag,
+    findEdgesViolatingD4,
+    mergeNodesTagSlice,
+    setAreaPositionGraphNodes
+} from './areaEditMutations'
+
+export type PositionGraphNodesEditorProps = {
+    AreaId: ComponentUUID
+}
+
+const NODE_TAG_LABELS: Record<PositionGraphNodeTag, string> = {
+    Room: 'Rooms',
+    Feature: 'Features',
+    Character: 'Characters',
+    Area: 'Areas'
+}
+
+const NODE_TAG_IMPORT: Partial<Record<PositionGraphNodeTag, boolean>> = {
+    Room: true,
+    Feature: true,
+    Character: false,
+    Area: false
+}
+
+const TagNodesSection: FunctionComponent<{
+    areaId: ComponentUUID
+    nodeTag: PositionGraphNodeTag
+    excludeUniversalKey?: ComponentUUID
+}> = ({ areaId, nodeTag, excludeUniversalKey }) => {
+    const listContext = useCallback(
+        (form: import('@tonylb/mtw-wml/ts/standardize').StandardForm) => {
+            const base = form.byUniversalId[areaId]
+            if (!(base instanceof StandardArea)) {
+                return null
+            }
+            const fullNodes = base.positionGraph.nodes
+            const filtered = new ReferenceList(
+                fullNodes.payload.filter((ref) => ref.tag === nodeTag)
+            )
+            return {
+                referenceList: filtered,
+                setReferenceList: (list: ReferenceList) => {
+                    setAreaPositionGraphNodes(base, mergeNodesTagSlice(fullNodes, nodeTag, list))
+                }
+            }
+        },
+        [areaId, nodeTag]
+    )
+
+    const isExcludedExtra = useCallback(
+        (universalKey: ComponentUUID) =>
+            Boolean(excludeUniversalKey && universalKey === excludeUniversalKey),
+        [excludeUniversalKey]
+    )
+
+    return (
+        <ReferenceListEditor
+            title={NODE_TAG_LABELS[nodeTag]}
+            tag={nodeTag as ComponentTag}
+            listContext={listContext}
+            defaultExpanded={false}
+            isExcludedExtra={excludeUniversalKey ? isExcludedExtra : undefined}
+            affordance={{
+                enableReferenceExisting: true,
+                enableImport: NODE_TAG_IMPORT[nodeTag] ?? false
+            }}
+        />
+    )
+}
+
+export const PositionGraphNodesEditor: FunctionComponent<PositionGraphNodesEditorProps> = ({ AreaId }) => {
+    const { standardForm } = useWorkbenchAsset()
+
+    const area = useMemo(() => {
+        const component = standardForm.byUniversalId[AreaId]
+        if (component instanceof StandardArea) {
+            return component
+        }
+        return null
+    }, [AreaId, standardForm])
+
+    const d4Violations = useMemo(
+        () => (area ? findEdgesViolatingD4(area) : []),
+        [area]
+    )
+
+    const participantSummary = useMemo(() => {
+        if (!area) {
+            return undefined
+        }
+        const count = area.positionGraph.nodes.payload.length
+        return count ? `${count} participant${count === 1 ? '' : 's'}` : undefined
+    }, [area])
+
+    if (!area) {
+        return (
+            <MakeTheWorldAccordion title="Participants" defaultExpanded>
+                <Box sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>
+                    Area not found
+                </Box>
+            </MakeTheWorldAccordion>
+        )
+    }
+
+    return (
+        <MakeTheWorldAccordion title="Participants" defaultExpanded summary={participantSummary}>
+            {d4Violations.length > 0 && (
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                    {d4Violations.length} exit{d4Violations.length === 1 ? '' : 's'} no longer ha
+                    {d4Violations.length === 1 ? 's' : 've'} an endpoint in participants:{' '}
+                    {d4Violations.map((edge) => edge.uuid).join(', ')}
+                </Alert>
+            )}
+            {POSITION_GRAPH_NODE_TAGS.map((nodeTag) => (
+                <TagNodesSection
+                    key={nodeTag}
+                    areaId={AreaId}
+                    nodeTag={nodeTag}
+                    excludeUniversalKey={nodeTag === 'Area' ? AreaId : undefined}
+                />
+            ))}
+        </MakeTheWorldAccordion>
+    )
+}
+
+export default PositionGraphNodesEditor
