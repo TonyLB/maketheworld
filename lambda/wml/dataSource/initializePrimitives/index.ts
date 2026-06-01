@@ -2,6 +2,7 @@
  * Initialize Primitives - Idempotent System Bootstrap
  *
  * This function ensures the primitives asset exists with required system components:
+ * - WORLD area (importable root for future topology trees; empty stub until migration)
  * - VORTEX room (the initial game location)
  * - STRAIGHTAWAY, CLIFFTOP, CORNER, BRIDGE rooms (Coyote-game demo topology; stable ids for eval / prototypes)
  * - knowledgeRoot knowledge (the root of the knowledge graph)
@@ -15,14 +16,17 @@
  * This differs from applyEdit which would create a no-op chunk even if no changes needed.
  */
 
+import type { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly"
 import type { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { applyEdit } from "../applyEdit"
 
 export const PRIMITIVES_ASSET_ID = 'ASSET#primitives'
+export const WORLD_AREA_ID = 'AREA#WORLD' as const satisfies ComponentUUID
 
 // Coyote-game demo rooms (candidates to extract to a separate asset later); VORTEX remains the canonical default origin.
 const FULL_PRIMITIVES_WML = `<Asset uuid=(primitives)>
+    <Area uuid=(WORLD) />
     <Room uuid=(VORTEX) />
     <Room uuid=(STRAIGHTAWAY) />
     <Room uuid=(CLIFFTOP) />
@@ -75,6 +79,7 @@ export async function initializePrimitives(): Promise<{
         }
         
         // Check for required components using byUniversalId
+        const hasWorld = Boolean(existing.byUniversalId[WORLD_AREA_ID])
         const hasVortex = Boolean(existing.byUniversalId['ROOM#VORTEX'])
         const hasStraightaway = Boolean(existing.byUniversalId['ROOM#STRAIGHTAWAY'])
         const hasClifftop = Boolean(existing.byUniversalId['ROOM#CLIFFTOP'])
@@ -85,6 +90,7 @@ export async function initializePrimitives(): Promise<{
 
         // Case 2a: Already properly initialized
         if (
+            hasWorld &&
             hasVortex &&
             hasStraightaway &&
             hasClifftop &&
@@ -102,6 +108,9 @@ export async function initializePrimitives(): Promise<{
                 
         // Build edit that adds only the missing components
         const repairComponents: string[] = []
+        if (!hasWorld) {
+            repairComponents.push('    <Area uuid=(WORLD) />')
+        }
         if (!hasVortex) {
             repairComponents.push('    <Room uuid=(VORTEX) />')
         }
