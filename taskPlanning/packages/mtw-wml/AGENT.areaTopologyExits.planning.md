@@ -306,7 +306,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
 
 **Target authoring shape (per edge, **D29**):** one **`<Exit uuid=(...)>`** on parent **Area** **`positionGraph.edges`** with **`<From>`**, **`<To>`**, **`<Forward>`**, **`<Back>`** --- not room-local **`<Exit>`** under **`<Room>`**.
 
-**Migration design TBD:** which **`AREA#`** owns **`nodes`** + these **`edges`** (likely one Area for the demo graph); assign stable edge **`uuid`** values at migrate time. **Verify after migrate:** **`projectRoomExits`** / affordances match today's labels (east, west, up, down, south, north) and nav pairs (**D16**, **D21**).
+**Migration design TBD:** which **`AREA#`** owns **`nodes`** + these **`edges`** (likely one Area for the demo graph); assign stable edge **`uuid`** values at migrate time. **Normative topology root (bootstrap):** **`AREA#WORLD`** in **`ASSET#primitives`** (`<Area uuid=(WORLD) />`, empty stub until migrate); demo graph migration should target **`AREA#WORLD`**. **Verify after migrate:** **`projectRoomExits`** / affordances match today's labels (east, west, up, down, south, north) and nav pairs (**D16**, **D21**).
 
 **Spatial reference (non-normative):** [`AGENT.CoyoteGame.md`](../../../AGENT.CoyoteGame.md) --- STRAIGHTAWAY -> CLIFFBASE -> CORNER along highway; CLIFFTOP above CLIFFBASE; BRIDGE south of CORNER.
 

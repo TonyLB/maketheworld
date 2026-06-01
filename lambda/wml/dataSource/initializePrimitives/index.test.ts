@@ -10,7 +10,7 @@ jest.mock('../applyEdit')
 const MockAssetWorkspace = ReadOnlyAssetWorkspace as jest.MockedClass<typeof ReadOnlyAssetWorkspace>
 const applyEditMock = applyEdit as jest.MockedFunction<typeof applyEdit>
 
-const FULL_PRIMITIVES_WML_SINGLE_LINE = '<Asset uuid=(primitives)><Room uuid=(VORTEX) /><Room uuid=(STRAIGHTAWAY) /><Room uuid=(CLIFFTOP) /><Room uuid=(CORNER) /><Room uuid=(BRIDGE) /><Knowledge uuid=(knowledgeRoot) /><Situation uuid=(DEFAULT)><ShortName>Default</ShortName></Situation></Asset>'
+const FULL_PRIMITIVES_WML_SINGLE_LINE = '<Asset uuid=(primitives)><Area uuid=(WORLD) /><Room uuid=(VORTEX) /><Room uuid=(STRAIGHTAWAY) /><Room uuid=(CLIFFTOP) /><Room uuid=(CORNER) /><Room uuid=(BRIDGE) /><Knowledge uuid=(knowledgeRoot) /><Situation uuid=(DEFAULT)><ShortName>Default</ShortName></Situation></Asset>'
 
 describe('initializePrimitives', () => {
     beforeEach(() => {
@@ -153,7 +153,7 @@ describe('initializePrimitives', () => {
             expect(result).toEqual({
                 success: true,
                 action: 'repaired',
-                message: 'Primitives repaired (added 6 missing component(s))',
+                message: 'Primitives repaired (added 7 missing component(s))',
                 schema: expect.any(StandardForm)
             })
             
@@ -168,6 +168,39 @@ describe('initializePrimitives', () => {
             // Should NOT include knowledgeRoot (already present)
             const call = applyEditMock.mock.calls[0][0]
             expect(call.schema).not.toContain('knowledgeRoot')
+        })
+
+        it('should repair when missing WORLD area', async () => {
+            const partialWML = '<Asset uuid=(primitives)><Room uuid=(VORTEX) /><Room uuid=(STRAIGHTAWAY) /><Room uuid=(CLIFFTOP) /><Room uuid=(CORNER) /><Room uuid=(BRIDGE) /><Knowledge uuid=(knowledgeRoot) /><Situation uuid=(DEFAULT)><ShortName>Default</ShortName></Situation></Asset>'
+            const existingStandard = new StandardForm(partialWML)
+
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                status: { json: 'Clean' },
+                standard: existingStandard
+            }
+
+            MockAssetWorkspace.mockImplementation(() => mockWorkspace as any)
+
+            applyEditMock.mockResolvedValue({
+                success: true,
+                schema: new StandardForm(FULL_PRIMITIVES_WML_SINGLE_LINE)
+            })
+
+            const result = await initializePrimitives()
+
+            expect(result).toEqual({
+                success: true,
+                action: 'repaired',
+                message: 'Primitives repaired (added 1 missing component(s))',
+                schema: expect.any(StandardForm)
+            })
+
+            const call = applyEditMock.mock.calls[0][0]
+            expect(call.schema).toContain('<Area uuid=(WORLD) />')
+            expect(call.schema).not.toContain('<Room uuid=(VORTEX) />')
+            expect(call.schema).not.toContain('knowledgeRoot')
+            expect(call.schema).not.toContain('Situation uuid=(DEFAULT)')
         })
 
         it('should repair when missing knowledgeRoot knowledge', async () => {
@@ -192,7 +225,7 @@ describe('initializePrimitives', () => {
             expect(result).toEqual({
                 success: true,
                 action: 'repaired',
-                message: 'Primitives repaired (added 6 missing component(s))',
+                message: 'Primitives repaired (added 7 missing component(s))',
                 schema: expect.any(StandardForm)
             })
             
@@ -231,6 +264,7 @@ describe('initializePrimitives', () => {
             
             // Should call applyEdit with full primitives WML
             const call = applyEditMock.mock.calls[0][0]
+            expect(call.schema).toContain('<Area uuid=(WORLD) />')
             expect(call.schema).toContain('<Room uuid=(VORTEX) />')
             expect(call.schema).toContain('<Room uuid=(STRAIGHTAWAY) />')
             expect(call.schema).toContain('<Knowledge uuid=(knowledgeRoot) />')
@@ -261,7 +295,7 @@ describe('initializePrimitives', () => {
             expect(result).toEqual({
                 success: true,
                 action: 'repaired',
-                message: 'Primitives repaired (added 5 missing component(s))',
+                message: 'Primitives repaired (added 6 missing component(s))',
                 schema: expect.any(StandardForm)
             })
 

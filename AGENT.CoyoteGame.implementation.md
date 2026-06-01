@@ -46,7 +46,7 @@ Practical meaning:
 ### 2) WML primitives initialization: demo room topology in bootstrap
 
 - `lambda/wml/dataSource/initializePrimitives/index.ts`
-  - `FULL_PRIMITIVES_WML` includes Coyote demo rooms:
+  - `FULL_PRIMITIVES_WML` includes `AREA#WORLD` (empty topology root, importable from primitives) and Coyote demo rooms:
     - `VORTEX`
     - `STRAIGHTAWAY`
     - `CLIFFTOP`
