@@ -22,6 +22,7 @@ import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import StandardImage from '@tonylb/mtw-wml/ts/standardize/components/image'
+import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 export interface ComponentIconOptions {
@@ -66,6 +67,8 @@ export const getComponentIconByTag = (
             return <ImageIcon {...iconProps} />
         case 'Asset':
             return <AssetIcon {...iconProps} />
+        case 'Area':
+            return <AssetIcon {...iconProps} />
         default:
             return null
     }
@@ -104,6 +107,8 @@ export const getComponentIcon = (
         tag = 'Situation'
     } else if (component instanceof StandardImage) {
         tag = 'Image'
+    } else if (component instanceof StandardArea) {
+        tag = 'Area'
     } else {
         // Fallback to component.tag if available
         tag = (component as any).tag

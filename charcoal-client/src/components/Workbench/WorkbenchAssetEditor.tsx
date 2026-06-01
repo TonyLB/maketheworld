@@ -27,6 +27,8 @@ import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import StandardGuidance from '@tonylb/mtw-wml/ts/standardize/components/guidance'
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
+import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
+import AreaEditor from './AreaEdit/AreaEditor'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
 /**
@@ -69,6 +71,10 @@ export const WorkbenchAssetEditor: FunctionComponent = () => {
 
         if (component instanceof StandardRoom) {
             return <RoomEditor />
+        }
+
+        if (component instanceof StandardArea) {
+            return <AreaEditor />
         }
 
         if (component instanceof StandardFeature) {

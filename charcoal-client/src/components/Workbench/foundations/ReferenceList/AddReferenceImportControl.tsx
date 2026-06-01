@@ -20,6 +20,7 @@ export type ComponentTag =
     | "Character"
     | "Map"
     | "Room"
+    | "Area"
     | "Feature"
     | "Knowledge"
     | "Guidance"

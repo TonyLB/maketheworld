@@ -19,6 +19,7 @@ export type ComponentTag =
     | "Character"
     | "Map"
     | "Room"
+    | "Area"
     | "Feature"
     | "Knowledge"
     | "Guidance"
@@ -49,6 +50,8 @@ export interface ReferenceListEditorProps {
     defaultExpanded?: boolean
     disabled?: boolean
     onItemClick?: (id: string) => void
+    /** Additional exclusion predicate for reference/import selectors. */
+    isExcludedExtra?: (universalKey: ComponentUUID) => boolean
 }
 
 const IMPORTABLE_TAGS: ComponentTag[] = [
@@ -68,7 +71,8 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
     icon,
     defaultExpanded,
     disabled: disabledProp,
-    onItemClick
+    onItemClick,
+    isExcludedExtra
 }) => {
     const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
     const disabled = disabledProp ?? readonly
@@ -118,8 +122,9 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
 
     const isExcluded = useCallback(
         (universalKey: ComponentUUID) =>
-            referenceList.payload.some((ref) => ref.universalKey === universalKey),
-        [referenceList]
+            referenceList.payload.some((ref) => ref.universalKey === universalKey) ||
+            (isExcludedExtra?.(universalKey) ?? false),
+        [referenceList, isExcludedExtra]
     )
 
     const association = useCallback(
@@ -134,7 +139,7 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
         (onCreated: (ref: StandardReference) => void) => {
             if (disabled) return
             const enforceKey = enforceTypedKey(
-                tag.toUpperCase() as "ASSET" | "CHARACTER" | "ROOM" | "FEATURE" | "KNOWLEDGE" | "MAP" | "MESSAGE" | "MOMENT" | "IMAGE" | "MARK" | "LENS" | "SITUATION"
+                tag.toUpperCase() as "ASSET" | "AREA" | "CHARACTER" | "ROOM" | "FEATURE" | "KNOWLEDGE" | "MAP" | "MESSAGE" | "MOMENT" | "IMAGE" | "MARK" | "LENS" | "SITUATION"
             )
             const uuid = tag === "Situation" ? `situation-${Date.now()}` : uuidv4()
             const universalKey = enforceKey(uuid) as ComponentUUID

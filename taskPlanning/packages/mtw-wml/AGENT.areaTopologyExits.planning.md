@@ -1,8 +1,8 @@
 # Area topology exits (platform initiative)
 
-**Status:** In progress. **Milestone 0 (decisions)** complete; **Milestone 1** complete (WML + StandardArea asset mode); **Milestone 2** complete (persisted `referencedBy`); **Milestone 3** complete (projection library + gateways pull).
+**Status:** In progress. **Milestone 0 (decisions)** complete; **Milestone 1** complete (WML + StandardArea asset mode); **Milestone 2** complete (persisted `referencedBy`); **Milestone 3** complete (projection library + gateways pull); **Milestone 4** complete (ephemera affordance pipeline); **Milestone 5** in progress (Workbench Area editor shipped; migration + client affordances merge remain).
 
-**Next step:** **Milestone 4** implementation --- **`affordanceOrchestration`** + **`affordanceCache`** + perception pipeline (**D37**; **D32-D38** locked).
+**Next step:** **Milestone 5** --- production DB migration (**D23**, **D24**) and charcoal-client affordances merge (**D20**).
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into package `AGENT.md` files next to code.
 
@@ -267,7 +267,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Close **D11** invalidation matrix in child plans; verify `roomChannel: 'affordances'`.
 
 - [ ] **Milestone 5 --- Authoring + migration**
-  - [ ] Workbench **Area** editor (**D19**): **`shortName`**, **`nodes`**, **`edges`** (by **`uuid`**, retarget **From** / **To**, **Forward** / **Back**).
+  - [X] Workbench **Area** editor (**D19**): **`shortName`**, **`nodes`**, **`edges`** (by **`uuid`**, retarget **From** / **To**, **Forward** / **Back**). See [`charcoal-client/src/components/Workbench/AreaEdit/`](../../../charcoal-client/src/components/Workbench/AreaEdit/).
   - [ ] **Manual step (**D23**, **D24**):** migrate production DB --- room-local exits into Area **`positionGraph.edges`**; operator confirms before M6 forbid.
   - [X] Inventory captured in plan ([Production exit inventory (Coyote demo)](#production-exit-inventory-coyote-demo)); migration script TBD.
   - [ ] Charcoal-client: affordances merge (**D20**); **RoomExit** parity smoke (**D21**).
@@ -351,7 +351,15 @@ cd lambda/assets
 npm test -- --watchAll=false dataSource/caching/cacheAsset.test.ts dataSource/caching/referencedByPersistence.test.ts componentTopology/
 ```
 
-**Client (after Milestone 5):**
+**Client (Milestone 5 Area editor):**
+
+```bash
+cd charcoal-client
+npm run test:single -- src/components/Workbench/AreaEdit/areaEditMutations.test.ts
+npm run test:single
+```
+
+**Client (after Milestone 5 affordances merge):**
 
 ```bash
 cd charcoal-client
@@ -369,8 +377,8 @@ npm test
 | M1 WML + StandardArea edges | Done |
 | M2 Persisted referencedBy | Done (see child plan) |
 | M3 Projection library + gateways `componentTopology/` | Done |
-| M4 Ephemera affordance pipeline (`affordanceOrchestration` + `affordanceCache` + perception) | In progress (`affordanceOrchestration` scaffold done) |
-| M5 Authoring + migration | Not started |
+| M4 Ephemera affordance pipeline (`affordanceOrchestration` + `affordanceCache` + perception) | Done |
+| M5 Authoring + migration | In progress (Workbench Area editor done; migration + D20 remain) |
 | M6 Cleanup + archive plan | Not started |
 
 ---
