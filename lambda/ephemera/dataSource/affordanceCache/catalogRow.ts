@@ -50,6 +50,7 @@ export async function queryAffordanceRowsFromDynamo(
 
 export async function putAffordanceRow(row: AffordanceCacheRow): Promise<void> {
     await ephemeraDB.putItem(row)
+    internalCache.AffordanceCache.set({ row })
 }
 
 export type CreateAffordanceRowForHydrateParams = {
@@ -73,6 +74,7 @@ export async function createAffordanceRowForHydrate(
         topology: emptyProjectedRoomTopology(params.roomId),
     })
     await putAffordanceRow(row)
+    internalCache.AffordanceCache.set({ row })
     return row
 }
 
@@ -117,9 +119,28 @@ export async function markAffordanceCatalogHydratedAtVersion(
                 draft.hydratedCatalogVersion = incomingCatalogVersion
             }
         },
-        successCallback: () => {
+        successCallback: async (output: AffordanceCacheRow) => {
+            if (output.hydratedCatalogVersion !== incomingCatalogVersion) {
+                return
+            }
             wrote = true
-            internalCache.AffordanceCache.invalidate(roomId)
+            const prior = await internalCache.AffordanceCache.getAffordanceRowIncludingStale(
+                roomId,
+                perspectiveKey
+            )
+            if (prior !== undefined) {
+                internalCache.AffordanceCache.set({
+                    row: {
+                        ...prior,
+                        hydratedCatalogVersion: incomingCatalogVersion,
+                    },
+                })
+                return
+            }
+            const full = await getAffordanceRowFromDynamoUncached(roomId, perspectiveKey)
+            if (full !== undefined) {
+                internalCache.AffordanceCache.set({ row: full })
+            }
         },
     })
 

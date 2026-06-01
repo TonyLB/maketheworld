@@ -51,6 +51,7 @@ export async function queryCatalogRowsFromDynamo(
 
 export async function putCatalogRow(row: EphemeraCacheCatalogRow): Promise<void> {
     await ephemeraDB.putItem(row)
+    internalCache.RenderCache.setCatalogRow({ row })
 }
 
 export type CreateCatalogRowForHydrateParams = {

@@ -11,6 +11,7 @@ import {
     catalogRowCacheKey,
     catalogRowsCacheKey,
     EPHEMERA_CACHE_DATA_CATEGORY_PREFIX,
+    perspectiveKeyFromCatalogDataCategory,
 } from './keys'
 import type {
     EphemeraCacheCatalogRow,
@@ -37,6 +38,11 @@ export type RenderCacheSetParams = {
     perspectiveMatcher: PerspectiveMatcher;
     situationId?: EphemeraSituationId;
     catalogVersion?: number;
+}
+
+/** Memo-only patch for a `Cache::${perspectiveKey}` catalog row. */
+export type RenderCacheSetCatalogRowParams = {
+    row: EphemeraCacheCatalogRow;
 }
 
 const cacheRowsKey = (componentId: EphemeraCacheComponentId): string => componentId as string
@@ -193,6 +199,35 @@ export class RenderCacheCacheHandler {
         } else {
             rows.push(item)
         }
+    }
+
+    setCatalogRow(params: RenderCacheSetCatalogRowParams): void {
+        const { row } = params
+        const componentId = row.EphemeraId
+        const perspectiveKey = perspectiveKeyFromCatalogDataCategory(row.DataCategory)
+        if (perspectiveKey === undefined) {
+            return
+        }
+
+        const rowsKey = catalogRowsCacheKey(componentId)
+        const rowKey = catalogRowCacheKey(componentId, perspectiveKey)
+
+        let rows = this._CatalogRowsStore[rowsKey]
+        if (rows === undefined) {
+            rows = []
+            this._CatalogRowsStore[rowsKey] = rows
+            this._CatalogRowsCache.set(Infinity, rowsKey, rows)
+        }
+
+        const index = rows.findIndex((r) => r.DataCategory === row.DataCategory)
+        if (index >= 0) {
+            rows[index] = row
+        } else {
+            rows.push(row)
+        }
+
+        this._CatalogRowStore[rowKey] = row
+        this._CatalogRowCache.set(Infinity, rowKey, row)
     }
 
     deleteCacheRecords(componentId: EphemeraCacheComponentId, cacheIds: string[]): void {

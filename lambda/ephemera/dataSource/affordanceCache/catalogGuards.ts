@@ -5,5 +5,6 @@ export {
     catalogRowMatchesEditAssetId,
     isAuthoritativeAffordanceRow,
     canUpsertAffordanceRowAtHydrate,
+    shouldPersistAffordanceTopologyAtHydrate,
     shouldWriteHydratedCatalogVersion,
 } from '@tonylb/mtw-gateways/ts/ephemera/affordanceCache'

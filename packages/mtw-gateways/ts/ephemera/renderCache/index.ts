@@ -54,7 +54,7 @@ export {
     expectedCacheFieldsFromAuthoredExample,
 } from './classifyAuthoredCatalogDrift'
 
-export type { RenderCacheSetParams } from './factory'
+export type { RenderCacheSetParams, RenderCacheSetCatalogRowParams } from './factory'
 export {
     RenderCacheCacheHandler,
     createRenderCacheCacheHandler,

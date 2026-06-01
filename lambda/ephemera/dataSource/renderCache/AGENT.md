@@ -15,6 +15,10 @@ This directory implements the **`mtw.ephemera.renderCache`** DataSource: `api.ep
 5. **Tests** --- Run from [`lambda/ephemera/`](../../): `npm test`. Contract-focused: [`passThroughContract.scaffold.test.ts`](passThroughContract.scaffold.test.ts); cross-layer: [`../passThroughOrchestrationToCache.integration.test.ts`](../passThroughOrchestrationToCache.integration.test.ts).
 6. **DataSource pattern** --- [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**publishedEvents.ts** / **subscribedEvents.ts**).
 
+## CloudWatch instrumentation
+
+Catalog hydrate preflight logs structured lines filterable as **`[mtw.ephemera.renderCache] catalogHydrate`** (see [`ensureAuthoredCatalog.ts`](ensureAuthoredCatalog.ts), [`hydrateAuthoredCatalogDiff.ts`](hydrateAuthoredCatalogDiff.ts), shared [`../catalogHydrateInstrumentation.ts`](../catalogHydrateInstrumentation.ts)). Key **`event`** values: `start`, `catalog_row_loaded`, `skip_ready`, `single_flight_hydrate_start`, `computation_skip_row_missing`, `computation_skip_already_fresh`, `stale_path_*`, `diff_complete`, `mark_hydrated_catalog_ok` / `mark_hydrated_catalog_no_write`, `retrieval_not_ready`, `complete`, `complete_catalog_not_ready`, `failed`.
+
 ## Responsibilities
 
 - **Commands:** Validate `api.ephemera` envelopes, persist cache rows or delete them, update **`internalCache.RenderCache`**, publish **`Cache Updated`**, **`Cache Deleted`**, or **`Cache Error`** as appropriate (`index.ts`, `putCacheRecord.ts`, `deleteCacheRecord.ts`).
@@ -197,9 +201,18 @@ Catalog and adjacency primitives are listed under **Authored cache (invalidate +
 
 - **`getCacheRows(componentId)`** / **`get(componentId)`** – Read-through memo over **`CACHE#`** rows; same array reference per component per invocation.
 - **`getCatalogRows(componentId)`** / **`getCatalogRow(componentId, perspectiveKey)`** – Catalog row reads (also memoized in the package handler).
-- **`set(...)`** / **`deleteCacheRecords`** / **`invalidate(componentId)`** – Invocation memo patch only (no Dynamo); call after DataSource writes. **`invalidate`** drops both **`CACHE#`** and **`Cache::`** memo for the component.
 - **`flush()`** – Lifecycle hook; `InternalCache.flush()` awaits **`RenderCache.flush()`**.
-- **Consistency**: After successful DataSource-owned persistence writes (e.g. **`putCacheRecord`**), call **`RenderCache.set`** so same-invocation readers see the new row without re-querying.
+
+**Memo write APIs** (no Dynamo; call after DataSource persistence):
+
+| API | Memo target | Typical caller |
+| --- | --- | --- |
+| **`set(...)`** | **`CACHE#`** rows | **`putCacheRecord`**, pass-through **`Render Generated`** |
+| **`setCatalogRow({ row })`** | **`Cache::`** catalog row (+ per-component catalog list) | **`putCatalogRow`**, **`createCatalogRowForHydrate`** |
+| **`deleteCacheRecords`** | Remove **`CACHE#`** entries in memo | Hydrate diff, deletes |
+| **`invalidate(componentId)`** | All **`CACHE#`** and **`Cache::`** memo for the component | Catalog invalidation bump, **`markCatalogHydratedAtVersion`** success |
+
+**`setCatalogRow`** fixes create-on-first-resolve when an earlier **`getCatalogRow`** memoized **`undefined`**, without evicting materialized **`CACHE#`** memo. **`invalidate`** remains appropriate when the catalog epoch changes and readers need a full refetch.
 
 ### `putCacheRecord(componentId, record, existingDataCategory?)`
 

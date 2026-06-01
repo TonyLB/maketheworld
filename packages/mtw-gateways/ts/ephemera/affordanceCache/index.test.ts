@@ -6,7 +6,12 @@ import {
     type EphemeraAffordanceCacheReadDB,
 } from './fetch'
 import { createAffordanceCacheCacheHandler } from './factory'
-import { isCatalogRowStale, isAuthoritativeAffordanceRow } from './guards'
+import {
+    canUpsertAffordanceRowAtHydrate,
+    isCatalogRowStale,
+    isAuthoritativeAffordanceRow,
+    shouldPersistAffordanceTopologyAtHydrate,
+} from './guards'
 import { buildAffordanceDataCategory } from './keys'
 import { createAffordanceCacheRow, type AffordanceCacheRow } from './types'
 
@@ -79,6 +84,19 @@ describe('affordanceCache guards', () => {
     it('isAuthoritativeAffordanceRow requires hydrated catalog', () => {
         expect(isAuthoritativeAffordanceRow(readyRow())).toBe(true)
         expect(isAuthoritativeAffordanceRow(readyRow({ catalogVersion: 2, hydratedCatalogVersion: 1 }))).toBe(false)
+    })
+
+    it('canUpsertAffordanceRowAtHydrate rejects same catalog epoch', () => {
+        expect(canUpsertAffordanceRowAtHydrate(1, 1)).toBe(false)
+        expect(canUpsertAffordanceRowAtHydrate(undefined, 1)).toBe(true)
+    })
+
+    it('shouldPersistAffordanceTopologyAtHydrate allows first hydrate at current epoch', () => {
+        const stale = readyRow({ catalogVersion: 1, hydratedCatalogVersion: 0 })
+        expect(shouldPersistAffordanceTopologyAtHydrate(stale, 1)).toBe(true)
+        expect(shouldPersistAffordanceTopologyAtHydrate(readyRow(), 1)).toBe(false)
+        expect(shouldPersistAffordanceTopologyAtHydrate(stale, 2)).toBe(true)
+        expect(shouldPersistAffordanceTopologyAtHydrate(undefined, 1)).toBe(true)
     })
 })
 

@@ -2,6 +2,7 @@ import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import type { AuthoredExampleSet } from '@tonylb/mtw-gateways/ts/assets/components/componentExamples'
 import { perspectiveMatches, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 
+import { logCatalogHydrate } from '../catalogHydrateInstrumentation'
 import type { EphemeraSituationId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../internalCache'
 import {
@@ -13,6 +14,9 @@ import { deleteCacheRecord } from './deleteCacheRecord'
 import { putCacheRecord } from './putCacheRecord'
 import { deleteAdjacencyForRemovedSlice, upsertAdjacencyForAuthoredSlice } from './situationAdjacency'
 import { authoredExampleToCacheRecord } from './authoredExampleToCacheRecord'
+
+const RENDER_SCOPE = 'renderCache' as const
+const PIPELINE = 'hydrateAuthoredCatalogDiff' as const
 
 export type HydrateAuthoredCatalogDiffParams = {
     componentId: EphemeraCacheComponentId;
@@ -48,6 +52,7 @@ export async function hydrateAuthoredCatalogDiff(
 
     const desiredSituationIds = new Set(desiredSet.keys())
     const deletedDataCategories: string[] = []
+    let skippedDeleteCount = 0
 
     for (const row of existingAuthored) {
         const situationId = row.situationId
@@ -55,6 +60,7 @@ export async function hydrateAuthoredCatalogDiff(
             continue
         }
         if (!canDeleteCacheRowOnHydrate(row.catalogVersion, incomingCatalogVersion)) {
+            skippedDeleteCount += 1
             continue
         }
         await deleteCacheRecord(componentId, row.DataCategory)
@@ -81,12 +87,16 @@ export async function hydrateAuthoredCatalogDiff(
         })
     }
 
+    let upsertedCount = 0
+    let skippedUpsertCount = 0
+
     for (const [situationId, example] of desiredSet) {
         const existing = existingBySituationId.get(situationId)
         if (
             existing !== undefined
             && !canUpsertCacheRowAtHydrate(existing.catalogVersion, incomingCatalogVersion)
         ) {
+            skippedUpsertCount += 1
             continue
         }
 
@@ -100,6 +110,7 @@ export async function hydrateAuthoredCatalogDiff(
             { ...record, catalogVersion: incomingCatalogVersion },
             existing?.dataCategory
         )
+        upsertedCount += 1
 
         await upsertAdjacencyForAuthoredSlice({
             situationId: situationId as EphemeraSituationId,
@@ -108,4 +119,17 @@ export async function hydrateAuthoredCatalogDiff(
             assetStack,
         })
     }
+
+    logCatalogHydrate(RENDER_SCOPE, 'diff_complete', {
+        pipeline: PIPELINE,
+        componentId,
+        perspectiveKey,
+        incomingCatalogVersion,
+        desiredSituationCount: desiredSet.size,
+        existingAuthoredRowCount: existingAuthored.length,
+        deletedCount: deletedDataCategories.length,
+        skippedDeleteCount,
+        upsertedCount,
+        skippedUpsertCount,
+    })
 }
