@@ -223,7 +223,7 @@ export const RoomEditor: FunctionComponent = () => {
                         }}>
                             <WorkbenchShortNameField />
                             <Spacer />
-                            <DefaultRenderEditor parentId={universalKey} />
+                            <DefaultRenderEditor />
                             <ExitEditor RoomId={universalKey} />
                             <FeatureListEditor RoomId={universalKey} />
                             <LensHeader

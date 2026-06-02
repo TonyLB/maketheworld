@@ -52,7 +52,7 @@ export const KnowledgeEditor: FunctionComponent = () => {
                         }}>
                             <WorkbenchShortNameField />
                             <Spacer />
-                            <DefaultRenderEditor parentId={universalKey} />
+                            <DefaultRenderEditor />
                         </Box>
                     </Box>
                 </Box>

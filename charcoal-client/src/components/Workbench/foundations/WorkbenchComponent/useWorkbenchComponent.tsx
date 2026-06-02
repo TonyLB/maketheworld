@@ -14,7 +14,14 @@ import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/component
 
 import { push } from '../../../../slices/UI/feedback'
 import {
+    assureDefaultSituationFromPrimitives,
+    DEFAULT_SITUATION_ID
+} from '../../../../slices/personalAssets'
+import { fetchImports } from '../../../../slices/personalAssets/index.api'
+import {
     applyWorkingComponentToDraft,
+    findSituationFacet,
+    isSituationProseParent,
     prepareComponentForFlush,
     reconcileCommittedComponent
 } from '../workbenchMutations'
@@ -68,7 +75,7 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
     children
 }: WorkbenchComponentProviderProps<T>): React.ReactElement => {
     const dispatch = useDispatch()
-    const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
+    const { standardForm, updateStandard, readonly, AssetId } = useWorkbenchAsset()
     const { committed, missing } = useMemo(
         () => resolveCommitted<T>(standardForm, componentId, guard),
         [standardForm, componentId, guard]
@@ -115,16 +122,26 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
 
     const dispatchFlush = useCallback(
         (id: ComponentUUID, current: T) => {
+            let needsFetch = false
             updateStandard({
                 type: 'update',
                 update: (draft) => {
+                    const hasDefaultFacet =
+                        isSituationProseParent(current) &&
+                        findSituationFacet(current, DEFAULT_SITUATION_ID) !== undefined
+                    if (hasDefaultFacet) {
+                        needsFetch = assureDefaultSituationFromPrimitives(draft)
+                    }
                     const flushed = applyWorkingComponentToDraft(draft, id, current)
                     lastFlushRef.current = flushed
                     return draft
                 }
             })
+            if (needsFetch) {
+                dispatch(fetchImports(AssetId))
+            }
         },
-        [updateStandard]
+        [updateStandard, dispatch, AssetId]
     )
 
     const performFlush = useCallback(

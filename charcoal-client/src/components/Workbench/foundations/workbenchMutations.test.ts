@@ -8,11 +8,15 @@ import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import {
     applyShortNameOnComponent,
     applyWorkingComponentToDraft,
+    ensureSituationFacetWithPayloadOnParent,
+    findSituationFacet,
     literalPlainString,
     normalizeOptionalLiteral,
     prepareComponentForFlush,
-    reconcileCommittedComponent
+    reconcileCommittedComponent,
+    updateSituationFacetPayloadOnParent
 } from './workbenchMutations'
+import { SituationProseFacetPayload } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 
 const FEATURE_ID = 'FEATURE#feat1' as ComponentUUID
 
@@ -38,6 +42,92 @@ const featureWithShortNameAndSituation = (
             </Feature>
         `)
     )
+
+const DEFAULT_SITUATION_ID = 'SITUATION#DEFAULT' as ComponentUUID
+
+const featureWithoutSituation = (shortName: string): StandardFeature =>
+    new StandardFeature(
+        deIndentWML(`
+            <Feature key=(test)>
+                <ShortName>${shortName}</ShortName>
+            </Feature>
+        `)
+    )
+
+describe('situation facet mutations', () => {
+    it('findSituationFacet locates facet by situation id', () => {
+        const feature = featureWithShortName('Test')
+        const facet = findSituationFacet(feature, DEFAULT_SITUATION_ID)
+        expect(facet).toBeDefined()
+        expect((facet!.payload as SituationProseFacetPayload)._displayName?.toJSON()).toBe('Base')
+    })
+
+    it('updateSituationFacetPayloadOnParent updates displayName on existing facet', () => {
+        const feature = featureWithShortName('Test')
+        updateSituationFacetPayloadOnParent(feature, DEFAULT_SITUATION_ID, (prev) =>
+            new SituationProseFacetPayload({
+                displayName: 'Updated',
+                summary: prev._summary?.toJSON(),
+                description: prev._description?.toJSON()
+            })
+        )
+        const facet = findSituationFacet(feature, DEFAULT_SITUATION_ID)
+        expect((facet!.payload as SituationProseFacetPayload)._displayName?.toJSON()).toBe('Updated')
+    })
+
+    it('ensureSituationFacetWithPayloadOnParent creates facet when missing', () => {
+        const feature = featureWithoutSituation('Test')
+        expect(findSituationFacet(feature, DEFAULT_SITUATION_ID)).toBeUndefined()
+
+        ensureSituationFacetWithPayloadOnParent(
+            feature,
+            DEFAULT_SITUATION_ID,
+            new SituationProseFacetPayload({
+                displayName: 'New',
+                summary: undefined,
+                description: undefined
+            })
+        )
+
+        const facet = findSituationFacet(feature, DEFAULT_SITUATION_ID)
+        expect(facet).toBeDefined()
+        expect((facet!.payload as SituationProseFacetPayload)._displayName?.toJSON()).toBe('New')
+    })
+
+    it('updateSituationFacetPayloadOnParent removes facet when removeWhenEmpty and payload is empty', () => {
+        const feature = featureWithShortName('Test')
+        updateSituationFacetPayloadOnParent(
+            feature,
+            DEFAULT_SITUATION_ID,
+            () =>
+                new SituationProseFacetPayload({
+                    displayName: undefined,
+                    summary: undefined,
+                    description: undefined
+                }),
+            { removeWhenEmpty: true }
+        )
+        expect(findSituationFacet(feature, DEFAULT_SITUATION_ID)).toBeUndefined()
+        expect(feature.situations.items.length).toBe(0)
+    })
+
+    it('ensureSituationFacetWithPayloadOnParent merges into existing facet', () => {
+        const feature = featureWithShortName('Test')
+        ensureSituationFacetWithPayloadOnParent(
+            feature,
+            DEFAULT_SITUATION_ID,
+            new SituationProseFacetPayload({
+                displayName: undefined,
+                summary: ['Updated summary'],
+                description: undefined
+            })
+        )
+        const facet = findSituationFacet(feature, DEFAULT_SITUATION_ID)!
+        const payload = facet.payload as SituationProseFacetPayload
+        expect(payload._displayName?.toJSON()).toBe('Base')
+        expect(payload._summary?.toJSON()).toEqual(['Updated summary'])
+    })
+})
 
 describe('shortName mutations (D11)', () => {
     it('literalPlainString returns empty string when literal is missing', () => {
