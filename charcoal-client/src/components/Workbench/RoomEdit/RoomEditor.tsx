@@ -29,7 +29,8 @@ import {
     WorkbenchShortNameField
 } from '../foundations/WorkbenchComponent'
 import Spacer from '../WorkbenchSpacer'
-import { ReferenceListEditor } from '../foundations/ReferenceList'
+import { ReferenceListSessionEditor } from '../foundations/ReferenceList'
+import { roomGuidanceListAccessor } from './roomReferenceListAccessors'
 import { ReferenceListEditorGeneric } from '../foundations/ReferenceList/ReferenceListEditorGeneric'
 import { situationIdToLabel } from '../../../lib/situationLabel'
 import { DEFAULT_SITUATION_ID } from '../../../slices/personalAssets'
@@ -67,21 +68,6 @@ export const RoomEditor: FunctionComponent = () => {
 
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true })
     useOnboardingCheckpoint('navigateAssetWithImport', { requireSequence: true })
-
-    const guidanceListContext = useCallback(
-        (form: StandardForm) => {
-            const base = form.byUniversalId[universalKey!]
-            if (!base || !(base instanceof StandardRoom)) return null
-            const guidance = base._payload._guidance ?? new ReferenceList([])
-            return {
-                referenceList: guidance,
-                setReferenceList: (list: ReferenceList) => {
-                    base._payload._guidance = list
-                }
-            }
-        },
-        [universalKey]
-    )
 
     const handleGuidanceItemClick = useCallback(
         (id: string) => {
@@ -237,9 +223,9 @@ export const RoomEditor: FunctionComponent = () => {
                                     <RoomStateAffordance RoomId={universalKey} />
                                     {/* Room Examples are not shown in the UI; supplanted by Situation facets. */}
                                     <Box sx={{ marginTop: '0.5em' }}>
-                                        <ReferenceListEditor
+                                        <ReferenceListSessionEditor
                                             title="Guidance"
-                                            listContext={guidanceListContext}
+                                            listAccessor={roomGuidanceListAccessor}
                                             tag="Guidance"
                                             disabled={readonly}
                                             onItemClick={handleGuidanceItemClick}

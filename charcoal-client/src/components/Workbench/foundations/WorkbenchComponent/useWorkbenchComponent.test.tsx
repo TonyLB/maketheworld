@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, render } from '@testing-library/react'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
+import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 
@@ -26,6 +27,9 @@ vi.mock('../useWorkbenchAsset', () => ({
 
 import { useWorkbenchComponentContext } from './useWorkbenchComponent'
 import { setWorkingShortNameFromString } from '../workbenchMutations'
+import { roomGuidanceListAccessor } from '../../RoomEdit/roomReferenceListAccessors'
+import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
+import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 import {
     renderWorkbenchComponentSession,
     resetWorkbenchAssetMock,
@@ -37,6 +41,25 @@ const ROOM_ID = 'ROOM#room1' as ComponentUUID
 const OTHER_FEATURE_ID = 'FEATURE#feat2' as ComponentUUID
 
 const FLUSH_DELAY_MS = 100
+
+const GUIDANCE_ID = 'GUIDANCE#guid1' as ComponentUUID
+
+const roomWml = `
+    <Asset uuid=(test)>
+        <Room uuid=(room1)><ShortName>Room</ShortName></Room>
+    </Asset>
+`
+
+const roomGuard = (
+    component: StandardComponent | undefined
+): component is StandardRoom => component instanceof StandardRoom
+
+const roomSessionOptions = {
+    wml: roomWml,
+    componentId: ROOM_ID,
+    guard: roomGuard,
+    flushDelayMs: FLUSH_DELAY_MS
+}
 
 const featureWml = `
     <Asset uuid=(test)>
@@ -537,5 +560,73 @@ describe('useWorkbenchComponent', () => {
         const session = getSession()
         expect(session.working?.shortName?.toJSON()).toBe('After echo')
         expect(session.isDirty).toBe(true)
+    })
+
+    it('commitAssetScopedUpdate dispatches once and cancels pending debounced flush', () => {
+        const { getSession } = renderWorkbenchComponentSession({
+            options: roomSessionOptions
+        })
+
+        const ref = new StandardReference({ universalKey: GUIDANCE_ID, tag: 'Guidance' })
+
+        act(() => {
+            getSession().updateComponent((draft) => {
+                roomGuidanceListAccessor.setReferenceList(
+                    draft,
+                    roomGuidanceListAccessor.getReferenceList(draft).assureItem(ref)
+                )
+            })
+        })
+
+        act(() => {
+            getSession().commitAssetScopedUpdate((draft) => {
+                const { component } = standardComponentFactory({
+                    tag: 'Guidance',
+                    universalKey: GUIDANCE_ID
+                })
+                if (component) {
+                    draft.byUniversalId[GUIDANCE_ID] = component
+                }
+            })
+        })
+
+        expect(updateStandardMock).toHaveBeenCalledTimes(1)
+
+        act(() => {
+            vi.advanceTimersByTime(FLUSH_DELAY_MS)
+        })
+
+        expect(updateStandardMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('commitAssetScopedUpdate advances lastReceived baseline (D14b)', () => {
+        const { getSession } = renderWorkbenchComponentSession({
+            options: roomSessionOptions
+        })
+
+        const ref = new StandardReference({ universalKey: GUIDANCE_ID, tag: 'Guidance' })
+
+        act(() => {
+            getSession().updateComponent((draft) => {
+                roomGuidanceListAccessor.setReferenceList(
+                    draft,
+                    roomGuidanceListAccessor.getReferenceList(draft).assureItem(ref)
+                )
+            })
+            getSession().commitAssetScopedUpdate((draft) => {
+                const { component } = standardComponentFactory({
+                    tag: 'Guidance',
+                    universalKey: GUIDANCE_ID
+                })
+                if (component) {
+                    draft.byUniversalId[GUIDANCE_ID] = component
+                }
+            })
+        })
+
+        const session = getSession()
+        expect(session.isDirty).toBe(false)
+        expect(roomGuidanceListAccessor.getReferenceList(session.working!).payload.length).toBe(1)
+        expect(roomGuidanceListAccessor.getReferenceList(session.lastReceived!).payload.length).toBe(1)
     })
 })

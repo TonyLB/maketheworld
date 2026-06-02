@@ -37,6 +37,23 @@ For reference lists whose items are **small components** with lightweight inline
 
 ---
 
+## Parent-session lists (D15): `ReferenceListSessionEditor`
+
+On screens wrapped in **`WorkbenchComponentProvider`** (e.g. Room Guidance, Room Features), use **`ReferenceListSessionEditor`** instead of asset-mode **`ReferenceListEditor`**. List membership reads from session **`working`**; item titles still resolve referenced components from live **`standardForm`**.
+
+| Operation | Persist path |
+| --- | --- |
+| Remove, reference existing | **`updateComponent`** on parent `working` + session debounced flush |
+| Create new, import | **`updateComponent`** (immediate UI) + **`commitAssetScopedUpdate`** (one `updateStandard`: add to `draft.byUniversalId` + `applyWorkingComponentToDraft`) |
+
+- **Requires** `WorkbenchComponentProvider` with a parent component session. Call site passes **`listAccessor`** (`getReferenceList` / `setReferenceList` on the parent working copy), mirroring asset-mode `listContext`. Room Guidance/Features use [`roomReferenceListAccessors.ts`](../../RoomEdit/roomReferenceListAccessors.ts).
+- **Asset-mode** **`ReferenceListEditor`** (`listContext` + per-action `updateStandard`) remains for non-provider screens (e.g. Area position graph nodes, `TopLevelEditor`).
+- **Phase 3** will add **`ReferenceListControlled`** composable shell (**D6**); persistence tier is already on parent `working` where this editor is used.
+
+Domain-specific list accessors belong next to the editor that owns the parent component (per **D10**), not in [`workbenchMutations.ts`](../workbenchMutations.ts).
+
+---
+
 ## Related components
 
 - **`MarkInlineEditor`**: Inline editor for a Mark's **shortName only**. Used in `InlineReferenceList` edit slots. No affordances; no description. Description and remove are handled by the detail view and the list respectively.

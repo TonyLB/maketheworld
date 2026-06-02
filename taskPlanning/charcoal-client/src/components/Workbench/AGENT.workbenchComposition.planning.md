@@ -376,7 +376,7 @@ These do **not** block Phase 1. Resolve during implementation or later phases as
 | --- | --- | --- |
 | Decisions D1-D14 | All locked (incl. D11-D13, D14a-c) | Milestone 0 complete |
 | Phase 1 | Complete | Debounced flush + **D14** reconcile + `workbenchMutations` + `WorkbenchShortNameField` + literal `debounce={false}`; Feature/Knowledge/Room/Area editors use `WorkbenchComponentProvider` + `WorkbenchShortNameField` |
-| Phase 2 | In progress | Slice 1: `applyWorkingComponentToDraft`; slice 2: DEFAULT render on parent `working`; reference lists + Mark inline remain |
+| Phase 2 | In progress | Slice 1: `applyWorkingComponentToDraft`; slice 2: DEFAULT render on parent `working`; slice 3: `ReferenceListSessionEditor` on Room Guidance/Features; Mark inline remains |
 | Phase 3 | Not started | **`ReferenceListControlled`** shell + migration; remaining full-screen editors |
 | Phase 4 | Not started | |
 
@@ -412,7 +412,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets).
 - [ ] **Milestone 2 --- Phase 2** (**D15**)
   - [X] **`applyWorkingComponentToDraft`** in `workbenchMutations.ts`; refactor **`useWorkbenchComponent`** flush to use it (flush assign only)
   - [X] DEFAULT render / facet binding: **`SituationFacetRenderFieldsEditor`** (and **`DefaultRenderEditor`**) on parent **`working`** via **`updateComponent`**, not per-change **`updateStandard`**
-  - [ ] Parent-session **`ReferenceListEditor`** bridge on **`WorkbenchComponentProvider`** screens (e.g. Room guidance list): **`updateComponent`**, not per-action **`updateStandard`**
+  - [X] Parent-session **`ReferenceListEditor`** bridge on **`WorkbenchComponentProvider`** screens (e.g. Room guidance list): **`updateComponent`**, not per-action **`updateStandard`**
   - [ ] Refactor `MarkInlineEditor` and document inline list contract (**D7**)
 - [ ] **Milestone 3 --- Phase 3**
   - [ ] **`ReferenceListControlled`** per **D6** + migrate call sites (shell/API; persistence tier from Milestone 2)
