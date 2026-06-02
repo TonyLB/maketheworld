@@ -6,14 +6,15 @@ import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { useSelector } from 'react-redux'
 import { getCurrentComponentId } from '../../../slices/UI/workbench'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
-import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
-import { TopLevelStandardLiteralEditor } from '../foundations/StandardLiteral'
 import DefaultRenderEditor from '../foundations/DefaultRenderEditor'
+import {
+    WorkbenchComponentProvider,
+    WorkbenchShortNameField
+} from '../foundations/WorkbenchComponent'
 import Spacer from '../WorkbenchSpacer'
 
 export const FeatureEditor: FunctionComponent = () => {
-    const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
+    const { standardForm } = useWorkbenchAsset()
     const currentComponentId = useSelector(getCurrentComponentId)
 
     const universalKey = useMemo<ComponentUUID | undefined>(() => {
@@ -33,42 +34,30 @@ export const FeatureEditor: FunctionComponent = () => {
     }
 
     return (
-        <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-            <Box sx={{ flexGrow: 1, position: "relative", width: "100%", overflowY: 'auto' }}>
-                <Box sx={{ padding: 2 }}>
-                    <Box sx={{
-                        marginLeft: '0.5em',
-                        marginTop: '0.5em',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        rowGap: '0.25em',
-                        width: "calc(100% - 0.5em)",
-                        position: 'relative'
-                    }}>
-                        <TopLevelStandardLiteralEditor
-                            value={feature.shortName ?? new StandardLiteral('')}
-                            onChange={(newShortName) => {
-                                updateStandard({
-                                    type: 'update',
-                                    update: (incoming: StandardForm) => {
-                                        const base = incoming.byUniversalId[universalKey]
-                                        if (base instanceof StandardFeature) {
-                                            base._payload._shortName = newShortName
-                                        }
-                                        return incoming
-                                    }
-                                })
-                            }}
-                            label="Short Name"
-                            placeholder="Enter short name..."
-                            size="small"
-                        />
-                        <Spacer />
-                        <DefaultRenderEditor parentId={universalKey} />
+        <WorkbenchComponentProvider
+            componentId={universalKey}
+            guard={(c): c is StandardFeature => c instanceof StandardFeature}
+        >
+            <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+                <Box sx={{ flexGrow: 1, position: "relative", width: "100%", overflowY: 'auto' }}>
+                    <Box sx={{ padding: 2 }}>
+                        <Box sx={{
+                            marginLeft: '0.5em',
+                            marginTop: '0.5em',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            rowGap: '0.25em',
+                            width: "calc(100% - 0.5em)",
+                            position: 'relative'
+                        }}>
+                            <WorkbenchShortNameField />
+                            <Spacer />
+                            <DefaultRenderEditor parentId={universalKey} />
+                        </Box>
                     </Box>
                 </Box>
             </Box>
-        </Box>
+        </WorkbenchComponentProvider>
     )
 }
 

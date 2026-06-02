@@ -369,7 +369,7 @@ These do **not** block Phase 1. Resolve during implementation or later phases as
 | Phase | Status | Notes |
 | --- | --- | --- |
 | Decisions D1-D14 | All locked (incl. D11-D13, D14a-c) | Milestone 0 complete |
-| Phase 1 | In progress | Debounced flush + **D14** reconcile + `workbenchMutations` + `WorkbenchShortNameField` + literal `debounce={false}` landed; Feature/Knowledge/Room/Area editor refactors pending |
+| Phase 1 | Complete | Debounced flush + **D14** reconcile + `workbenchMutations` + `WorkbenchShortNameField` + literal `debounce={false}`; Feature/Knowledge/Room/Area editors use `WorkbenchComponentProvider` + `WorkbenchShortNameField` |
 | Phase 2 | Not started | |
 | Phase 3 | Not started | |
 | Phase 4 | Not started | |
@@ -392,7 +392,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets).
   - [X] Resolve **D13** (readonly = prop AND asset readonly)
   - [X] Resolve **D5**, **D6**, **D7** (defer literal accessor; `ReferenceListControlled` in Phase 3; defer inline editors)
   - [X] Resolve **D9** (defer layout shell --- separate UI sweep after data binding)
-- [ ] **Milestone 1 --- Phase 1 implementation**
+- [X] **Milestone 1 --- Phase 1 implementation**
   - [X] Add `useWorkbenchComponent` + provider in `foundations/` (per **D1**, **D8**)
   - [X] Add `useWorkbenchComponent` **test harness** (per **D4**)
   - [X] Reorganize session module into [`foundations/WorkbenchComponent/`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/) (`index.ts` barrel; `baseClasses.ts`; hook/provider in `useWorkbenchComponent.tsx`; colocate tests + `testing/` harness/mock)
@@ -400,8 +400,8 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets).
   - [X] Implement resync per **D14** + `reconcileCommittedComponent` tests
   - [X] Add `workbenchMutations.ts` + tests (per **D10**, **D11**; semantic `diff` skip per **D12**, not structural deep-equals)
   - [X] Add `WorkbenchShortNameField` + adjust literal editor debounce (per **D4**)
-  - [ ] Refactor Feature, Knowledge, Room, Area editors
-  - [ ] Update Recommended order checkboxes and Progress table in this doc
+  - [X] Refactor Feature, Knowledge, Room, Area editors
+  - [X] Update Recommended order checkboxes and Progress table in this doc
 - [ ] **Milestone 2 --- Phase 2**
   - [ ] `updateComponentInDraft` / facet binding hook
   - [ ] Refactor `MarkInlineEditor` and document inline list contract

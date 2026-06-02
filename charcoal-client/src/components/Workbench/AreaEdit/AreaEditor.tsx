@@ -3,17 +3,18 @@ import { Box } from '@mui/material'
 import { useSelector } from 'react-redux'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
-import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { getCurrentComponentId } from '../../../slices/UI/workbench'
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
-import { TopLevelStandardLiteralEditor } from '../foundations/StandardLiteral'
+import {
+    WorkbenchComponentProvider,
+    WorkbenchShortNameField
+} from '../foundations/WorkbenchComponent'
 import Spacer from '../WorkbenchSpacer'
 import PositionGraphNodesEditor from './PositionGraphNodesEditor'
 import ExitEdgeListEditor from './ExitEdgeListEditor'
 
 export const AreaEditor: FunctionComponent = () => {
-    const { standardForm, updateStandard } = useWorkbenchAsset()
+    const { standardForm } = useWorkbenchAsset()
     const currentComponentId = useSelector(getCurrentComponentId)
 
     const universalKey = useMemo<ComponentUUID | undefined>(() => {
@@ -39,46 +40,34 @@ export const AreaEditor: FunctionComponent = () => {
     }
 
     return (
-        <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-            <Box sx={{ flexGrow: 1, position: 'relative', width: '100%', overflowY: 'auto' }}>
-                <Box sx={{ padding: 2 }}>
-                    <Box
-                        sx={{
-                            marginLeft: '0.5em',
-                            marginTop: '0.5em',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            rowGap: '0.25em',
-                            width: 'calc(100% - 0.5em)',
-                            position: 'relative'
-                        }}
-                    >
-                        <TopLevelStandardLiteralEditor
-                            value={area.shortName ?? new StandardLiteral('')}
-                            onChange={(newShortName) => {
-                                updateStandard({
-                                    type: 'update',
-                                    update: (incoming: StandardForm) => {
-                                        const base = incoming.byUniversalId[universalKey]
-                                        if (base instanceof StandardArea) {
-                                            base._payload._shortName = newShortName
-                                        }
-                                        return incoming
-                                    }
-                                })
+        <WorkbenchComponentProvider
+            componentId={universalKey}
+            guard={(c): c is StandardArea => c instanceof StandardArea}
+        >
+            <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+                <Box sx={{ flexGrow: 1, position: 'relative', width: '100%', overflowY: 'auto' }}>
+                    <Box sx={{ padding: 2 }}>
+                        <Box
+                            sx={{
+                                marginLeft: '0.5em',
+                                marginTop: '0.5em',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                rowGap: '0.25em',
+                                width: 'calc(100% - 0.5em)',
+                                position: 'relative'
                             }}
-                            label="Short Name"
-                            placeholder="Enter short name..."
-                            size="small"
-                        />
-                        <Spacer />
-                        <PositionGraphNodesEditor AreaId={universalKey} />
-                        <Spacer />
-                        <ExitEdgeListEditor AreaId={universalKey} />
+                        >
+                            <WorkbenchShortNameField />
+                            <Spacer />
+                            <PositionGraphNodesEditor AreaId={universalKey} />
+                            <Spacer />
+                            <ExitEdgeListEditor AreaId={universalKey} />
+                        </Box>
                     </Box>
                 </Box>
             </Box>
-        </Box>
+        </WorkbenchComponentProvider>
     )
 }
 

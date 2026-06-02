@@ -15,7 +15,6 @@ import { getCurrentComponentId, pushBreadcrumb } from '../../../slices/UI/workbe
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import {
@@ -25,7 +24,10 @@ import {
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 import { enforceTypedKey } from '@tonylb/mtw-utilities/ts/types'
 import { v4 as uuidv4 } from 'uuid'
-import { TopLevelStandardLiteralEditor } from '../foundations/StandardLiteral'
+import {
+    WorkbenchComponentProvider,
+    WorkbenchShortNameField
+} from '../foundations/WorkbenchComponent'
 import Spacer from '../WorkbenchSpacer'
 import { ReferenceListEditor } from '../foundations/ReferenceList'
 import { ReferenceListEditorGeneric } from '../foundations/ReferenceList/ReferenceListEditorGeneric'
@@ -203,78 +205,66 @@ export const RoomEditor: FunctionComponent = () => {
     }
 
     return (
-        <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-            <Box sx={{ flexGrow: 1, position: "relative", width: "100%", overflowY: 'auto' }}>
-                <Box sx={{ padding: 2 }}>
-                    <Box sx={{
-                        marginLeft: '0.5em',
-                        marginTop: '0.5em',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        rowGap: '0.25em',
-                        width: "calc(100% - 0.5em)",
-                        position: 'relative'
-                    }}>
-                        <TopLevelStandardLiteralEditor
-                            value={room.shortName ?? new StandardLiteral('')}
-                            onChange={(newShortName) => {
-                                updateStandard({
-                                    type: 'update',
-                                    update: (incoming: StandardForm) => {
-                                        const base = incoming.byUniversalId[universalKey]
-                                        if (base instanceof StandardRoom) {
-                                            base._payload._shortName = newShortName
-                                        }
-                                        return incoming
-                                    }
-                                })
-                            }}
-                            label="Short Name"
-                            placeholder="Enter short name..."
-                            size="small"
-                        />
-                        <Spacer />
-                        <DefaultRenderEditor parentId={universalKey} />
-                        <ExitEditor RoomId={universalKey} />
-                        <FeatureListEditor RoomId={universalKey} />
-                        <LensHeader
-                            RoomId={universalKey}
-                            onEditLens={(lensId) =>
-                                dispatch(pushBreadcrumb({ id: lensId, kind: 'component', componentId: lensId }))
-                            }
-                        />
-                        {hasLens && (
-                            <>
-                                <RoomStateAffordance RoomId={universalKey} />
-                                {/* Room Examples are not shown in the UI; supplanted by Situation facets. */}
-                                <Box sx={{ marginTop: '0.5em' }}>
-                                    <ReferenceListEditor
-                                        title="Guidance"
-                                        listContext={guidanceListContext}
-                                        tag="Guidance"
-                                        disabled={readonly}
-                                        onItemClick={handleGuidanceItemClick}
-                                    />
-                                </Box>
-                                <Box sx={{ marginTop: '0.5em' }}>
-                                    <ReferenceListEditorGeneric
-                                        title="Situations"
-                                        items={situationItems}
-                                        defaultExpanded={!!situationItems.length}
-                                        disabled={readonly}
-                                        variant="table"
-                                        onItemClick={handleSituationItemClick}
-                                        onItemRemove={handleSituationRemove}
-                                        actionAffordances={situationActionRows}
-                                    />
-                                    {situationSelectorDialog}
-                                </Box>
-                            </>
-                        )}
+        <WorkbenchComponentProvider
+            componentId={universalKey}
+            guard={(c): c is StandardRoom => c instanceof StandardRoom}
+        >
+            <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+                <Box sx={{ flexGrow: 1, position: "relative", width: "100%", overflowY: 'auto' }}>
+                    <Box sx={{ padding: 2 }}>
+                        <Box sx={{
+                            marginLeft: '0.5em',
+                            marginTop: '0.5em',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            rowGap: '0.25em',
+                            width: "calc(100% - 0.5em)",
+                            position: 'relative'
+                        }}>
+                            <WorkbenchShortNameField />
+                            <Spacer />
+                            <DefaultRenderEditor parentId={universalKey} />
+                            <ExitEditor RoomId={universalKey} />
+                            <FeatureListEditor RoomId={universalKey} />
+                            <LensHeader
+                                RoomId={universalKey}
+                                onEditLens={(lensId) =>
+                                    dispatch(pushBreadcrumb({ id: lensId, kind: 'component', componentId: lensId }))
+                                }
+                            />
+                            {hasLens && (
+                                <>
+                                    <RoomStateAffordance RoomId={universalKey} />
+                                    {/* Room Examples are not shown in the UI; supplanted by Situation facets. */}
+                                    <Box sx={{ marginTop: '0.5em' }}>
+                                        <ReferenceListEditor
+                                            title="Guidance"
+                                            listContext={guidanceListContext}
+                                            tag="Guidance"
+                                            disabled={readonly}
+                                            onItemClick={handleGuidanceItemClick}
+                                        />
+                                    </Box>
+                                    <Box sx={{ marginTop: '0.5em' }}>
+                                        <ReferenceListEditorGeneric
+                                            title="Situations"
+                                            items={situationItems}
+                                            defaultExpanded={!!situationItems.length}
+                                            disabled={readonly}
+                                            variant="table"
+                                            onItemClick={handleSituationItemClick}
+                                            onItemRemove={handleSituationRemove}
+                                            actionAffordances={situationActionRows}
+                                        />
+                                        {situationSelectorDialog}
+                                    </Box>
+                                </>
+                            )}
+                        </Box>
                     </Box>
                 </Box>
             </Box>
-        </Box>
+        </WorkbenchComponentProvider>
     )
 }
 
