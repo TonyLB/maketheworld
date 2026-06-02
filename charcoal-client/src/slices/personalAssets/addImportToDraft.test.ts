@@ -6,6 +6,7 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 
 describe('addImportToDraft', () => {
@@ -58,6 +59,26 @@ describe('addImportToDraft', () => {
         const updated = draft.byUniversalId['ROOM#testRoomTwo']
         expect(updated).toBeDefined()
         expect(updated?.toJSON()).toMatchObject({ universalKey: 'ROOM#testRoomTwo', from: 'ASSET#testImportTwo' })
+    })
+
+    it('should add new Area component with from when not present', () => {
+        const base = new StandardForm(`<Asset uuid=(testAsset) />`)
+        const draft = base._clone()
+        const ref = addImportToDraft(draft, {
+            fromAsset: 'ASSET#primitives',
+            uuid: 'AREA#WORLD',
+            tag: 'Area'
+        })
+        const component = draft.byUniversalId['AREA#WORLD']
+        expect(component).toBeDefined()
+        expect(component instanceof StandardArea).toBe(true)
+        expect(component?.toJSON()).toMatchObject({
+            universalKey: 'AREA#WORLD',
+            from: 'ASSET#primitives'
+        })
+        expect(ref).toBeDefined()
+        expect(ref?.tag).toBe('Area')
+        expect(ref?.universalKey).toBe('AREA#WORLD')
     })
 
     it('returns the reference of the added or updated component', () => {

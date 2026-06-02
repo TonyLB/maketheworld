@@ -54,6 +54,7 @@ export interface AddReferenceImportProps {
 
 const IMPORTABLE_TAGS: ComponentTag[] = [
     "Room",
+    "Area",
     "Feature",
     "Knowledge",
     "Map",

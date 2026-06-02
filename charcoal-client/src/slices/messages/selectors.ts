@@ -399,6 +399,8 @@ export const getRecentlyVisited: (fromTime: number) => Selector<MessageRecentVis
                             tag = 'Feature'
                         } else if (ephemeraId.startsWith('KNOWLEDGE#')) {
                             tag = 'Knowledge'
+                        } else if (ephemeraId.startsWith('AREA#')) {
+                            tag = 'Area'
                         }
                         
                         // Try to extract name from parsed WML if available

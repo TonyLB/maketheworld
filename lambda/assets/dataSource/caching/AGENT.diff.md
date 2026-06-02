@@ -282,7 +282,7 @@ await assetDB.optimisticUpdate({
 
 **`cacheAsset`** persists each changed component with `AssetId = <universalKey>` (e.g. `AREA#...`, `ROOM#...`) and updates cross-reference meta with `DataCategory: Meta::${component.tag}` (e.g. `Meta::Area`, `Meta::Room`). There is **no** separate registry for **Area** — it follows the same diff/put/delete path as Room, Map, and other `StandardComponent` tags once present in a `StandardForm`.
 
-**Not Area-aware today (intentional):** `lambda/assets/componentExamples` branches on Room/Feature/Knowledge/Situation only; ephemera render and dependency tag unions exclude Area until play/UI work lands. **`SchemaImportMapping`** in mtw-base does not include `Area` as an import `type` while `isImportable` allows Area tags — add mapping support only when import-of-Area is required.
+**Not Area-aware today (intentional):** `lambda/assets/componentExamples` branches on Room/Feature/Knowledge/Situation only; ephemera render and dependency tag unions exclude Area until play/UI work lands. **`SchemaImportMapping`** includes `Area`; charcoal-client import UI lists and imports Area components. **`fetchImports`** subset cascade for Area topology edges is still out of scope until topology milestone work lands.
 
 ## Related Documentation
 

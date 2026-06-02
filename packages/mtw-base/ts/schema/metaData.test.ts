@@ -7,6 +7,11 @@ describe('metaData tags', () => {
             expect(isSchemaImportMapping(schema)).toBe(true)
         })
 
+        it('should return true for Area SchemaImportMapping', () => {
+            const schema = { key: 'world', type: 'Area' }
+            expect(isSchemaImportMapping(schema)).toBe(true)
+        })
+
         it('should return false for invalid SchemaImportMapping', () => {
             const schema = { key: 'exampleKey', type: 'Invalid' }
             expect(isSchemaImportMapping(schema)).toBe(false)
