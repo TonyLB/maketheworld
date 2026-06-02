@@ -3,7 +3,13 @@ import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 
-import { reconcileCommittedComponent } from './workbenchMutations'
+import {
+    applyShortNameOnComponent,
+    literalPlainString,
+    normalizeOptionalLiteral,
+    prepareComponentForFlush,
+    reconcileCommittedComponent
+} from './workbenchMutations'
 
 const featureWithShortName = (shortName: string): StandardFeature =>
     new StandardFeature(
@@ -27,6 +33,37 @@ const featureWithShortNameAndSituation = (
             </Feature>
         `)
     )
+
+describe('shortName mutations (D11)', () => {
+    it('literalPlainString returns empty string when literal is missing', () => {
+        expect(literalPlainString(undefined)).toBe('')
+    })
+
+    it('normalizeOptionalLiteral clears empty and whitespace-only literals', () => {
+        expect(normalizeOptionalLiteral(undefined)).toBeUndefined()
+        expect(normalizeOptionalLiteral(new StandardLiteral(''))).toBeUndefined()
+        expect(normalizeOptionalLiteral(new StandardLiteral('   '))).toBeUndefined()
+    })
+
+    it('normalizeOptionalLiteral trims non-empty literals', () => {
+        expect(normalizeOptionalLiteral(new StandardLiteral('  hello  '))?.toJSON()).toBe('hello')
+    })
+
+    it('applyShortNameOnComponent clears whitespace-only shortName on payload', () => {
+        const feature = featureWithShortName('Original')
+        feature._payload._shortName = new StandardLiteral('   ')
+        applyShortNameOnComponent(feature)
+        expect(feature.shortName).toBeUndefined()
+    })
+
+    it('prepareComponentForFlush clears shortName on payload for whitespace-only input', () => {
+        const feature = featureWithShortName('Original')
+        feature._payload._shortName = new StandardLiteral('   ')
+        const flushed = prepareComponentForFlush(feature)
+        expect(flushed.shortName).toBeUndefined()
+        expect((flushed.toJSON() as { shortName?: unknown }).shortName).toBeUndefined()
+    })
+})
 
 describe('reconcileCommittedComponent', () => {
     it('clears state when incoming is undefined (component removed)', () => {

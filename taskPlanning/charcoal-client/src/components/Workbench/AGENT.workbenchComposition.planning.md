@@ -369,7 +369,7 @@ These do **not** block Phase 1. Resolve during implementation or later phases as
 | Phase | Status | Notes |
 | --- | --- | --- |
 | Decisions D1-D14 | All locked (incl. D11-D13, D14a-c) | Milestone 0 complete |
-| Phase 1 | In progress | Debounced flush + **D14** reconcile landed; `workbenchMutations` shortName + fields pending |
+| Phase 1 | In progress | Debounced flush + **D14** reconcile + `workbenchMutations` shortName flush helpers landed; `WorkbenchShortNameField` + editor refactors pending |
 | Phase 2 | Not started | |
 | Phase 3 | Not started | |
 | Phase 4 | Not started | |
@@ -398,7 +398,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets).
   - [X] Reorganize session module into [`foundations/WorkbenchComponent/`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/) (`index.ts` barrel; `baseClasses.ts`; hook/provider in `useWorkbenchComponent.tsx`; colocate tests + `testing/` harness/mock)
   - [X] Implement debounced `flushToStandardForm` + `flushNow` (per **D8**, **D8a**; flush `working.clone()` per **D2**; **D14a/b** on flush; cancel/reschedule helpers ready for **D14c**)
   - [X] Implement resync per **D14** + `reconcileCommittedComponent` tests
-  - [ ] Add `workbenchMutations.ts` + tests (per **D10**, **D11**; no pre-flush equality guard per **D12**)
+  - [X] Add `workbenchMutations.ts` + tests (per **D10**, **D11**; semantic `diff` skip per **D12**, not structural deep-equals)
   - [ ] Add `WorkbenchShortNameField` + adjust literal editor debounce (per **D4**)
   - [ ] Refactor Feature, Knowledge, Room, Area editors
   - [ ] Update Recommended order checkboxes and Progress table in this doc

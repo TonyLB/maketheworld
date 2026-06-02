@@ -9,9 +9,6 @@ import { render, type RenderResult } from '@testing-library/react'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
-import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
-import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
-
 import {
     WorkbenchComponentProvider,
     useWorkbenchComponent,
@@ -150,9 +147,4 @@ export function renderWorkbenchComponentSession<T extends StandardComponent>({
         setCommittedWml,
         rerenderWithComponentId
     }
-}
-
-/** Test helper; matches editor pattern after `instanceof StandardFeature`. */
-export const setWorkingShortName = (draft: StandardFeature, value: string): void => {
-    draft._payload._shortName = value ? new StandardLiteral(value) : undefined
 }
