@@ -53,10 +53,10 @@ const WorkbenchComponentContext = createContext<
 export const WorkbenchComponentProvider = <T extends StandardComponent>({
     componentId,
     guard,
-    flushDelayMs: _flushDelayMs = 1000,
+    flushDelayMs = 1000,
     children
 }: WorkbenchComponentProviderProps<T>): React.ReactElement => {
-    const { standardForm, readonly } = useWorkbenchAsset()
+    const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
     const { committed, missing } = useMemo(
         () => resolveCommitted<T>(standardForm, componentId, guard),
         [standardForm, componentId, guard]
@@ -71,20 +71,116 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
     // Mirror of `working` for imperative reads: debounced flush and stable updateComponent
     // callbacks must read the latest clone without closing over stale render state (D14c).
     const workingRef = useRef<T | undefined>(working)
+    const lastReceivedRef = useRef<T | undefined>(lastReceived)
+    const lastFlushRef = useRef<T | undefined>(undefined)
+    const flushTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+    const performFlushRef = useRef<((overrideComponentId?: ComponentUUID) => void) | undefined>(
+        undefined
+    )
+    const cancelPendingFlushRef = useRef<(() => void) | undefined>(undefined)
+    const scheduleDebouncedFlushRef = useRef<(() => void) | undefined>(undefined)
 
     useEffect(() => {
+        lastReceivedRef.current = lastReceived
+    }, [lastReceived])
+
+    const cancelPendingFlush = useCallback(() => {
+        if (flushTimeoutRef.current !== undefined) {
+            clearTimeout(flushTimeoutRef.current)
+            flushTimeoutRef.current = undefined
+        }
+    }, [])
+
+    const dispatchFlush = useCallback(
+        (id: ComponentUUID, flushed: T) => {
+            lastFlushRef.current = flushed
+            updateStandard({
+                type: 'update',
+                update: (draft) => {
+                    draft.byUniversalId[id] = flushed
+                    return draft
+                }
+            })
+        },
+        [updateStandard]
+    )
+
+    const performFlush = useCallback(
+        (overrideComponentId?: ComponentUUID) => {
+            const current = workingRef.current
+            const id = overrideComponentId ?? componentId
+            if (!current) {
+                return
+            }
+            if (overrideComponentId === undefined && missing) {
+                return
+            }
+
+            const received = lastReceivedRef.current
+            if (received && received.diff(current) === undefined) {
+                return
+            }
+
+            const flushed = current.clone() as T
+            dispatchFlush(id, flushed)
+
+            if (overrideComponentId === undefined) {
+                const nextReceived = flushed.clone() as T
+                lastReceivedRef.current = nextReceived
+                setLastReceived(nextReceived)
+            }
+        },
+        [componentId, missing, dispatchFlush]
+    )
+
+    const scheduleDebouncedFlush = useCallback(() => {
+        cancelPendingFlush()
+        flushTimeoutRef.current = setTimeout(() => {
+            flushTimeoutRef.current = undefined
+            performFlushRef.current?.()
+        }, flushDelayMs)
+    }, [cancelPendingFlush, flushDelayMs])
+
+    const flushToStandardForm = useCallback(() => {
+        scheduleDebouncedFlush()
+    }, [scheduleDebouncedFlush])
+
+    const flushNow = useCallback(() => {
+        cancelPendingFlush()
+        performFlush()
+    }, [cancelPendingFlush, performFlush])
+
+    useEffect(() => {
+        performFlushRef.current = performFlush
+        cancelPendingFlushRef.current = cancelPendingFlush
+        scheduleDebouncedFlushRef.current = scheduleDebouncedFlush
+    })
+
+    useEffect(() => {
+        const outgoingId = componentId
+        const outgoingMissing = missing
+
         if (missing || !committed) {
             setWorking(undefined)
             setLastReceived(undefined)
             workingRef.current = undefined
-            return
+            lastReceivedRef.current = undefined
+        } else {
+            const received = committed.clone() as T
+            setLastReceived(received)
+            lastReceivedRef.current = received
+            const nextWorking = received.clone() as T
+            setWorking(nextWorking)
+            workingRef.current = nextWorking
         }
-        const received = committed.clone() as T
-        setLastReceived(received)
-        const nextWorking = received.clone() as T
-        setWorking(nextWorking)
-        workingRef.current = nextWorking
-    }, [componentId]) // mount / componentId only; D14 external reconcile in slice 399
+
+        return () => {
+            cancelPendingFlushRef.current?.()
+            if (!outgoingMissing) {
+                performFlushRef.current?.(outgoingId)
+            }
+        }
+    }, [componentId]) // mount / componentId only; D14 external reconcile in slice 400
 
     const updateComponent = useCallback(
         (updater: (draft: T) => void) => {
@@ -96,16 +192,10 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
             updater(next)
             workingRef.current = next // sync before setWorking; flush timers read the ref
             setWorking(next)
-            // slice 399: reset debounce timer here (D8a)
+            scheduleDebouncedFlush()
         },
-        [missing]
+        [missing, scheduleDebouncedFlush]
     )
-
-    // slice 399: debounced flushToStandardForm + D2 assign via updateStandard
-    const flushToStandardForm = useCallback(() => {}, [])
-
-    // slice 399: bypass debounce and flush workingRef to Redux
-    const flushNow = useCallback(() => {}, [])
 
     const isDirty = useMemo(() => {
         if (!lastReceived || !working) {

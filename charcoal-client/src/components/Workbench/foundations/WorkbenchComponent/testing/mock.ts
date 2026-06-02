@@ -1,5 +1,7 @@
 import { vi } from 'vitest'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 
 import type { useWorkbenchAsset } from '../../useWorkbenchAsset'
 
@@ -56,4 +58,22 @@ export const seedWorkbenchAsset = (
     mockWorkbenchReturn.localStandardForm = standardForm
     mockWorkbenchReturn.readonly = readonly
     return standardForm
+}
+
+/** Run the most recent updateStandard mock update fn against a draft clone. */
+export const applyLastUpdateStandardMock = (draft: StandardForm): StandardForm =>
+    updateStandardMock.mock.calls[updateStandardMock.mock.calls.length - 1][0].update(draft)
+
+/** Read shortName from the component assigned by the most recent flush mock call. */
+export const getFlushedFeatureShortName = (
+    componentId: ComponentUUID,
+    baseForm: StandardForm
+): string | undefined => {
+    const updated = applyLastUpdateStandardMock(baseForm._clone())
+    const component = updated.byUniversalId[componentId]
+    if (!(component instanceof StandardFeature)) {
+        return undefined
+    }
+    const shortNameJson = component.shortName?.toJSON()
+    return typeof shortNameJson === 'string' ? shortNameJson : undefined
 }
