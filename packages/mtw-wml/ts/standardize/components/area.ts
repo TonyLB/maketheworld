@@ -264,7 +264,10 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
     }
 
     isEmpty(): boolean {
-        return this._positionGraph.nodes.payload.length === 0 && this._positionGraph.edges.isEmpty()
+        const hasShortName = Boolean(this._shortName)
+        const hasPositionGraph =
+            this._positionGraph.nodes.payload.length > 0 || !this._positionGraph.edges.isEmpty()
+        return !(hasShortName || hasPositionGraph)
     }
 
     invert(): this {

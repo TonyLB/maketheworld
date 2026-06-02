@@ -5,6 +5,8 @@ import StandardArea from './area'
 import { StandardExitEdgeData } from "../keys/edges/dataTypes/exitEdge"
 import StandardReference from "../keys/reference"
 import { standardComponentFactory } from "../componentFactory"
+import { StandardForm } from "../index"
+import { StandardLiteral } from "../literal"
 
 describe('StandardArea class', () => {
 
@@ -184,6 +186,39 @@ describe('StandardArea class', () => {
             { tag: 'Room', key: 'cafe' },
             { tag: 'Feature', key: 'fountain' },
         ])
+    })
+
+    it('should return true for isEmpty when no shortName and empty position graph', () => {
+        const area = new StandardArea({
+            tag: 'Area',
+            universalKey: 'AREA#WORLD',
+        })
+        expect(area.isEmpty()).toBe(true)
+    })
+
+    it('should return false for isEmpty when only shortName is set', () => {
+        const area = new StandardArea({
+            tag: 'Area',
+            universalKey: 'AREA#WORLD',
+            shortName: 'Cartoon Southwest',
+        })
+        expect(area.isEmpty()).toBe(false)
+    })
+
+    it('should produce non-empty StandardForm diff when adding shortName to empty Area', () => {
+        const base = new StandardForm(`
+            <Asset uuid=(draft)>
+                <Area uuid=(WORLD) from=(ASSET#primitives) />
+            </Asset>
+        `)
+        const modified = base._clone()
+        const area = modified.byUniversalId['AREA#WORLD'].clone() as StandardArea
+        area._payload._shortName = new StandardLiteral('Cartoon Southwest')
+        modified.byUniversalId['AREA#WORLD'] = area
+
+        const diff = base.diff(modified)
+        expect(diff).toBeDefined()
+        expect(diff.isEmpty()).toBe(false)
     })
 
     it('should treat undefined and empty shortName as equal', () => {

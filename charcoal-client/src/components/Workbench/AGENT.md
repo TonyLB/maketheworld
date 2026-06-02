@@ -182,7 +182,7 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 1. **Workbench Flow**: Start at [`WorkbenchContainer.tsx`](./WorkbenchContainer.tsx) for layout and breadcrumb header; then [`WorkbenchAssetEditor.tsx`](./WorkbenchAssetEditor.tsx) for view routing
 2. **Asset Context**: Read [`foundations/useWorkbenchAsset.ts`](./foundations/useWorkbenchAsset.ts) to understand how asset data flows from `personalAssets` into Workbench components
 3. **Navigation State**: Read [`src/slices/UI/workbench/index.ts`](../../slices/UI/workbench/index.ts) for breadcrumb model and selectors
-4. **Component Editing**: One editor per component type, each under its own `{Component}Edit` directory (e.g. `AreaEdit/AreaEditor.tsx`, `RoomEdit/RoomEditor.tsx`, `FeatureEdit/FeatureEditor.tsx`, `KnowledgeEdit/KnowledgeEditor.tsx`). **AreaEditor** edits `shortName`, heterogeneous **`positionGraph.nodes`** (Room / Feature / Character / Area participants), and uuid-keyed **`positionGraph.edges`** (`From` / `To` / `Forward` / `Back` per [D19/D29](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md)). RoomEditor composes `ExitEditor` (room-local facets --- **M6** removal), `LensHeader` (from LensEdit), `FeatureListEditor`, `DefaultRenderEditor`, situation list (non-DEFAULT), and Guidance; FeatureEditor and KnowledgeEditor show shortName + `DefaultRenderEditor` only.
+4. **Component Editing**: One editor per component type, each under its own `{Component}Edit` directory (e.g. `AreaEdit/AreaEditor.tsx`, `RoomEdit/RoomEditor.tsx`, `FeatureEdit/FeatureEditor.tsx`, `KnowledgeEdit/KnowledgeEditor.tsx`). **FeatureEditor**, **KnowledgeEditor**, **RoomEditor**, and **AreaEditor** wrap their editor body in **`WorkbenchComponentProvider`** and use **`WorkbenchShortNameField`** for shortName (working copy + debounced flush to Redux; **D11** omission-over-empty on flush). Lists, DEFAULT prose (`DefaultRenderEditor`), and topology sections still use `updateStandard` on their existing paths. **AreaEditor** also edits heterogeneous **`positionGraph.nodes`** (Room / Feature / Character / Area participants) and uuid-keyed **`positionGraph.edges`** (`From` / `To` / `Forward` / `Back` per [D19/D29](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md)). RoomEditor composes `ExitEditor` (room-local facets --- **M6** removal), `LensHeader` (from LensEdit), `FeatureListEditor`, `DefaultRenderEditor`, situation list (non-DEFAULT), and Guidance.
 
 ### Key Files
 
@@ -191,10 +191,10 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 | `WorkbenchContainer.tsx` | Responsive layout, breadcrumbs, AssetSelector, theme |
 | `WorkbenchAssetEditor.tsx` | View routing (asset / component / componentLayer) |
 | `WorkbenchAssetEditForm.tsx` | Asset-level metadata, component list, imports |
-| `AreaEdit/` | AreaEditor, PositionGraphNodesEditor, ExitEdgeListEditor (D19 topology authoring) |
-| `RoomEdit/` | RoomEditor, ExitEditor, FeatureListEditor (Lens via LensEdit/LensHeader) |
-| `FeatureEdit/` | FeatureEditor (shortName + DefaultRenderEditor) |
-| `KnowledgeEdit/` | KnowledgeEditor (shortName + DefaultRenderEditor) |
+| `AreaEdit/` | AreaEditor (`WorkbenchComponentProvider` + shortName field; topology via PositionGraphNodesEditor, ExitEdgeListEditor) |
+| `RoomEdit/` | RoomEditor (component session for shortName; ExitEditor, FeatureListEditor, Lens via LensEdit/LensHeader) |
+| `FeatureEdit/` | FeatureEditor (component session for shortName; DefaultRenderEditor for DEFAULT prose) |
+| `KnowledgeEdit/` | KnowledgeEditor (component session for shortName; DefaultRenderEditor for DEFAULT prose) |
 | `foundations/WorkbenchComponent/WorkbenchShortNameField.tsx` | Context-only shortName field (`useWorkbenchComponent` session) |
 | `foundations/DefaultRenderEditor.tsx` | Inline DEFAULT situation facet prose (Room, Feature, Knowledge) |
 | `foundations/SituationFacetRenderFieldsEditor.tsx` | Shared facet field editor (layered Room situations + DEFAULT inline) |
