@@ -10,6 +10,8 @@ export type WorkbenchComponentProviderProps<T extends StandardComponent> = {
     componentId: ComponentUUID
     guard?: WorkbenchComponentGuard<T>
     flushDelayMs?: number
+    /** Called when external reconcile discards local edits (default: feedback snackbar). */
+    onSuperseded?: () => void
     children: ReactNode
 }
 

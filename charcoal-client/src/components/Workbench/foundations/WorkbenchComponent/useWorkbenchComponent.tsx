@@ -7,10 +7,13 @@ import React, {
     useRef,
     useState
 } from 'react'
+import { useDispatch } from 'react-redux'
 
 import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
+import { push } from '../../../../slices/UI/feedback'
+import { reconcileCommittedComponent } from '../workbenchMutations'
 import { useWorkbenchAsset } from '../useWorkbenchAsset'
 import type {
     WorkbenchComponentGuard,
@@ -50,12 +53,17 @@ const WorkbenchComponentContext = createContext<
     WorkbenchComponentContextValue<StandardComponent> | undefined
 >(undefined)
 
+const SUPERSEDED_MESSAGE =
+    'This component was updated elsewhere; unsaved changes on this screen were discarded.'
+
 export const WorkbenchComponentProvider = <T extends StandardComponent>({
     componentId,
     guard,
     flushDelayMs = 1000,
+    onSuperseded,
     children
 }: WorkbenchComponentProviderProps<T>): React.ReactElement => {
+    const dispatch = useDispatch()
     const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
     const { committed, missing } = useMemo(
         () => resolveCommitted<T>(standardForm, componentId, guard),
@@ -79,6 +87,16 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
     )
     const cancelPendingFlushRef = useRef<(() => void) | undefined>(undefined)
     const scheduleDebouncedFlushRef = useRef<(() => void) | undefined>(undefined)
+    const prevCommittedRef = useRef<T | undefined>(undefined)
+    const skipCommittedSyncRef = useRef(true)
+
+    const notifySuperseded = useCallback(() => {
+        if (onSuperseded) {
+            onSuperseded()
+        } else {
+            dispatch(push(SUPERSEDED_MESSAGE))
+        }
+    }, [dispatch, onSuperseded])
 
     useEffect(() => {
         lastReceivedRef.current = lastReceived
@@ -157,6 +175,11 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
     })
 
     useEffect(() => {
+        skipCommittedSyncRef.current = true
+        prevCommittedRef.current = undefined
+    }, [componentId])
+
+    useEffect(() => {
         const outgoingId = componentId
         const outgoingMissing = missing
 
@@ -180,7 +203,59 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
                 performFlushRef.current?.(outgoingId)
             }
         }
-    }, [componentId]) // mount / componentId only; D14 external reconcile in slice 400
+    }, [componentId])
+
+    useEffect(() => {
+        const prev = prevCommittedRef.current
+        prevCommittedRef.current = committed
+
+        if (skipCommittedSyncRef.current) {
+            skipCommittedSyncRef.current = false
+            return
+        }
+
+        const committedChanged =
+            (prev === undefined) !== (committed === undefined) ||
+            (prev !== undefined &&
+                committed !== undefined &&
+                !prev.equals(committed))
+
+        if (!committedChanged) {
+            return
+        }
+
+        const incoming = missing ? undefined : (committed?.clone() as T | undefined)
+        const lastFlush = lastFlushRef.current
+
+        if (incoming && lastFlush && incoming.equals(lastFlush)) {
+            return
+        }
+
+        cancelPendingFlush()
+
+        const result = reconcileCommittedComponent({
+            lastReceived: lastReceivedRef.current,
+            working: workingRef.current,
+            incoming
+        })
+
+        workingRef.current = result.working
+        lastReceivedRef.current = result.lastReceived
+        setWorking(result.working)
+        setLastReceived(result.lastReceived)
+
+        if (result.superseded) {
+            notifySuperseded()
+        }
+
+        scheduleDebouncedFlush()
+    }, [
+        committed,
+        missing,
+        cancelPendingFlush,
+        scheduleDebouncedFlush,
+        notifySuperseded
+    ])
 
     const updateComponent = useCallback(
         (updater: (draft: T) => void) => {

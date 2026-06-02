@@ -64,6 +64,14 @@ export const seedWorkbenchAsset = (
 export const applyLastUpdateStandardMock = (draft: StandardForm): StandardForm =>
     updateStandardMock.mock.calls[updateStandardMock.mock.calls.length - 1][0].update(draft)
 
+/** Apply the most recent flush to the mocked committed standardForm (simulate Redux echo). */
+export const applyLastFlushToCommitted = (): StandardForm => {
+    const updated = applyLastUpdateStandardMock(mockWorkbenchReturn.standardForm._clone())
+    mockWorkbenchReturn.standardForm = updated
+    mockWorkbenchReturn.localStandardForm = updated
+    return updated
+}
+
 /** Read shortName from the component assigned by the most recent flush mock call. */
 export const getFlushedFeatureShortName = (
     componentId: ComponentUUID,

@@ -9,7 +9,15 @@ import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
-import { getFlushedFeatureShortName, mockWorkbenchReturn } from './testing/mock'
+import {
+    applyLastFlushToCommitted,
+    getFlushedFeatureShortName,
+    mockWorkbenchReturn
+} from './testing/mock'
+
+vi.mock('react-redux', () => ({
+    useDispatch: () => vi.fn()
+}))
 
 vi.mock('../useWorkbenchAsset', () => ({
     useWorkbenchAsset: () => mockWorkbenchReturn
@@ -333,5 +341,149 @@ describe('useWorkbenchComponent', () => {
         vi.advanceTimersByTime(FLUSH_DELAY_MS)
 
         expect(updateStandardMock).not.toHaveBeenCalled()
+    })
+
+    it('adopts external committed change when session is clean', () => {
+        const { getSession, setCommittedWml } = renderWorkbenchComponentSession({
+            options: defaultSessionOptions
+        })
+
+        act(() => {
+            setCommittedWml(`
+                <Asset uuid=(test)>
+                    <Feature uuid=(feat1)><ShortName>Imported</ShortName></Feature>
+                    <Feature uuid=(feat2)><ShortName>Other</ShortName></Feature>
+                </Asset>
+            `)
+        })
+
+        const session = getSession()
+        expect(session.working?.shortName?.toJSON()).toBe('Imported')
+        expect(session.lastReceived?.shortName?.toJSON()).toBe('Imported')
+        expect(session.committed?.shortName?.toJSON()).toBe('Imported')
+        expect(updateStandardMock).not.toHaveBeenCalled()
+    })
+
+    it('merges local shortName with external change on another field', () => {
+        const { getSession, setCommittedWml } = renderWorkbenchComponentSession({
+            options: defaultSessionOptions
+        })
+
+        act(() => {
+            getSession().updateComponent((draft) => {
+                setWorkingShortName(draft, 'Local')
+            })
+        })
+
+        act(() => {
+            setCommittedWml(`
+                <Asset uuid=(test)>
+                    <Feature uuid=(feat1)>
+                        <ShortName>Original</ShortName>
+                        <Situation uuid=(night)><DisplayName>Night</DisplayName></Situation>
+                        <Situation uuid=(DEFAULT)><DisplayName>Base</DisplayName></Situation>
+                    </Feature>
+                    <Feature uuid=(feat2)><ShortName>Other</ShortName></Feature>
+                </Asset>
+            `)
+        })
+
+        const session = getSession()
+        expect(session.working?.shortName?.toJSON()).toBe('Local')
+        expect(
+            session.working?.situations.items.some(
+                (item) => item.reference.universalKey === 'SITUATION#night'
+            )
+        ).toBe(true)
+        expect(updateStandardMock).not.toHaveBeenCalled()
+    })
+
+    it('supersedes local edits on conflicting external shortName change', () => {
+        const onSuperseded = vi.fn()
+        const { getSession, setCommittedWml } = renderWorkbenchComponentSession({
+            options: { ...defaultSessionOptions, onSuperseded }
+        })
+
+        act(() => {
+            getSession().updateComponent((draft) => {
+                setWorkingShortName(draft, 'Local')
+            })
+        })
+
+        act(() => {
+            setCommittedWml(`
+                <Asset uuid=(test)>
+                    <Feature uuid=(feat1)><ShortName>External</ShortName></Feature>
+                    <Feature uuid=(feat2)><ShortName>Other</ShortName></Feature>
+                </Asset>
+            `)
+        })
+
+        const session = getSession()
+        expect(session.working?.shortName?.toJSON()).toBe('External')
+        expect(onSuperseded).toHaveBeenCalledTimes(1)
+        expect(updateStandardMock).not.toHaveBeenCalled()
+    })
+
+    it('does not flush pre-reconcile working after external update (D14c)', () => {
+        const { getSession, setCommittedWml } = renderWorkbenchComponentSession({
+            options: defaultSessionOptions
+        })
+
+        act(() => {
+            getSession().updateComponent((draft) => {
+                setWorkingShortName(draft, 'Local')
+            })
+        })
+
+        act(() => {
+            setCommittedWml(`
+                <Asset uuid=(test)>
+                    <Feature uuid=(feat1)>
+                        <ShortName>Original</ShortName>
+                        <Situation uuid=(night)><DisplayName>Night</DisplayName></Situation>
+                        <Situation uuid=(DEFAULT)><DisplayName>Base</DisplayName></Situation>
+                    </Feature>
+                    <Feature uuid=(feat2)><ShortName>Other</ShortName></Feature>
+                </Asset>
+            `)
+        })
+
+        act(() => {
+            vi.advanceTimersByTime(FLUSH_DELAY_MS)
+        })
+
+        expect(updateStandardMock).toHaveBeenCalledTimes(1)
+        expect(
+            getFlushedFeatureShortName(FEATURE_ID, mockWorkbenchReturn.standardForm)
+        ).toBe('Local')
+    })
+
+    it('skips reconcile on echo of last flush while preserving newer local edits (D14a)', () => {
+        const { getSession, setCommittedWml } = renderWorkbenchComponentSession({
+            options: defaultSessionOptions
+        })
+
+        act(() => {
+            getSession().updateComponent((draft) => {
+                setWorkingShortName(draft, 'Persisted')
+            })
+            vi.advanceTimersByTime(FLUSH_DELAY_MS)
+        })
+
+        act(() => {
+            applyLastFlushToCommitted()
+            setCommittedWml(mockWorkbenchReturn.standardForm)
+        })
+
+        act(() => {
+            getSession().updateComponent((draft) => {
+                setWorkingShortName(draft, 'After echo')
+            })
+        })
+
+        const session = getSession()
+        expect(session.working?.shortName?.toJSON()).toBe('After echo')
+        expect(session.isDirty).toBe(true)
     })
 })

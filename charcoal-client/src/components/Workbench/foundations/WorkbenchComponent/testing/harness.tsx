@@ -35,6 +35,7 @@ export type WorkbenchComponentHarnessOptions<T extends StandardComponent> = {
     guard?: WorkbenchComponentGuard<T>
     readonly?: boolean
     flushDelayMs?: number
+    onSuperseded?: () => void
 }
 
 export type RenderWorkbenchComponentSessionResult<T extends StandardComponent> = RenderResult & {
@@ -58,6 +59,7 @@ type SessionHarnessTreeProps<T extends StandardComponent> = {
     componentId: ComponentUUID
     guard?: WorkbenchComponentGuard<T>
     flushDelayMs?: number
+    onSuperseded?: () => void
     sessionRef: React.MutableRefObject<WorkbenchComponentSession<T> | null>
     children?: React.ReactNode
 }
@@ -66,6 +68,7 @@ const SessionHarnessTree = <T extends StandardComponent>({
     componentId,
     guard,
     flushDelayMs,
+    onSuperseded,
     sessionRef,
     children
 }: SessionHarnessTreeProps<T>): React.ReactElement => (
@@ -73,6 +76,7 @@ const SessionHarnessTree = <T extends StandardComponent>({
         componentId={componentId}
         guard={guard}
         flushDelayMs={flushDelayMs}
+        onSuperseded={onSuperseded}
     >
         <HookProbe<T> sessionRef={sessionRef} />
         {children}
@@ -99,6 +103,7 @@ export function renderWorkbenchComponentSession<T extends StandardComponent>({
                 componentId={componentId}
                 guard={options.guard}
                 flushDelayMs={options.flushDelayMs}
+                onSuperseded={options.onSuperseded}
                 sessionRef={sessionRef}
             >
                 {children}
@@ -120,6 +125,7 @@ export function renderWorkbenchComponentSession<T extends StandardComponent>({
                 componentId={componentId}
                 guard={options.guard}
                 flushDelayMs={options.flushDelayMs}
+                onSuperseded={options.onSuperseded}
                 sessionRef={sessionRef}
             >
                 {children}
