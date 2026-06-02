@@ -48,7 +48,7 @@ Workbench component editors (`RoomEditor`, `FeatureEditor`, `AreaEditor`, `Guida
 | List + composed handlers | [`FacetListEditorGeneric`](../../../../../charcoal-client/src/components/Workbench/foundations/FacetList/FacetListEditorGeneric.tsx) | `facets` + `onFacetsChange` + per-row handlers |
 | Row + pure updaters | [`ExitEdgeRowEditor`](../../../../../charcoal-client/src/components/Workbench/AreaEdit/ExitEdgeRowEditor.tsx) + [`areaEditMutations.ts`](../../../../../charcoal-client/src/components/Workbench/AreaEdit/areaEditMutations.ts) | `StandardExitEdge` in/out; list maps to `updateStandard` |
 | Reference list (view model) | [`ReferenceListEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListEditor.tsx) | `ReferenceListItem[]` for display; draft mutation via `updateReferenceList` |
-| Inline list slots | [`InlineReferenceList`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/InlineReferenceList.tsx) | Layout composition; [`MarkInlineEditor`](../../../../../charcoal-client/src/components/Workbench/MarkEdit/InlineEditor.tsx) still calls `updateStandard` internally |
+| Inline list slots | [`InlineReferenceList`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/InlineReferenceList.tsx) | Layout composition; [`MarkInlineEditorWithSession`](../../../../../charcoal-client/src/components/Workbench/MarkEdit/InlineEditor.tsx) per-row Mark session (wired in Lens mark facet rows) |
 
 **Platform note:** [`packages/mtw-wml/ts/standardize/components/AGENT.implementation.md`](../../../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) documents direct `_payload._shortName` assignment as Workbench-only today, with optional **`withShortName()`** on components as follow-up. [`shortNameField.ts`](../../../../../packages/mtw-wml/ts/standardize/components/shortNameField.ts) already centralizes merge/invert/schema helpers.
 
@@ -324,7 +324,7 @@ These do **not** block Phase 1. Resolve during implementation or later phases as
 3. **Layered context component id** --- should `useWorkbenchComponent` read `getCurrentComponentLayerId` with fallback (like `GuidanceEditor`) via an option flag?
 4. **Instrumentation** --- forward `ScopedInstrumentationOptions` on `flushToStandardForm`?
 5. **Testing strategy** --- **partially locked via D4:** `useWorkbenchComponent` **test harness** seeds asset state and asserts `working` / flush; hook tests with mocked `updateStandard`; RTL for provider + shortName field; golden refactors: Feature + Room minimum?
-6. **Reference list + inline slot** --- **Phase 2 (D15, D7):** `renderItemEditor` should receive Mark data from parent **`working`** (Lens/Room session) or a dedicated Mark session; finalize when wiring **`MarkInlineEditor`**.
+6. ~~**Reference list + inline slot**~~ --- **Resolved (D7):** inline edit slots use **per-row `WorkbenchComponentProvider`** + **`MarkInlineEditorWithSession`**; facet-list hybrid (Lens marks) documented in reference-list and facet-list AGENT docs.
 7. **Provider scope** --- wrap each of `RoomEditor` / `FeatureEditor` vs single provider in `WorkbenchAssetEditor` routing?
 
 ---
@@ -376,7 +376,7 @@ These do **not** block Phase 1. Resolve during implementation or later phases as
 | --- | --- | --- |
 | Decisions D1-D14 | All locked (incl. D11-D13, D14a-c) | Milestone 0 complete |
 | Phase 1 | Complete | Debounced flush + **D14** reconcile + `workbenchMutations` + `WorkbenchShortNameField` + literal `debounce={false}`; Feature/Knowledge/Room/Area editors use `WorkbenchComponentProvider` + `WorkbenchShortNameField` |
-| Phase 2 | In progress | Slice 1: `applyWorkingComponentToDraft`; slice 2: DEFAULT render on parent `working`; slice 3: `ReferenceListSessionEditor` on Room Guidance/Features; Mark inline remains |
+| Phase 2 | Complete | Parent-session lists + DEFAULT prose + `MarkInlineEditor` per-row session; inline list contract documented |
 | Phase 3 | Not started | **`ReferenceListControlled`** shell + migration; remaining full-screen editors |
 | Phase 4 | Not started | |
 
@@ -409,11 +409,11 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets).
   - [X] Add `WorkbenchShortNameField` + adjust literal editor debounce (per **D4**)
   - [X] Refactor Feature, Knowledge, Room, Area editors
   - [X] Update Recommended order checkboxes and Progress table in this doc
-- [ ] **Milestone 2 --- Phase 2** (**D15**)
+- [X] **Milestone 2 --- Phase 2** (**D15**)
   - [X] **`applyWorkingComponentToDraft`** in `workbenchMutations.ts`; refactor **`useWorkbenchComponent`** flush to use it (flush assign only)
   - [X] DEFAULT render / facet binding: **`SituationFacetRenderFieldsEditor`** (and **`DefaultRenderEditor`**) on parent **`working`** via **`updateComponent`**, not per-change **`updateStandard`**
   - [X] Parent-session **`ReferenceListEditor`** bridge on **`WorkbenchComponentProvider`** screens (e.g. Room guidance list): **`updateComponent`**, not per-action **`updateStandard`**
-  - [ ] Refactor `MarkInlineEditor` and document inline list contract (**D7**)
+  - [X] Refactor `MarkInlineEditor` and document inline list contract (**D7**)
 - [ ] **Milestone 3 --- Phase 3**
   - [ ] **`ReferenceListControlled`** per **D6** + migrate call sites (shell/API; persistence tier from Milestone 2)
   - [ ] mtw-wml `withShortName` (if **D3** not deferred)

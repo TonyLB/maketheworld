@@ -207,7 +207,7 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 | `foundations/SituationFacetRenderFieldsView.tsx` | Shared presentation for DEFAULT / situation facet prose fields |
 | ~~`ExampleEdit/`~~ | **Removed** (2026-05-19); F/K prose via **`DefaultRenderEditor`** |
 | `foundations/LayeredContext/` | LayeredContextView (Room Situation/Guidance tabs), LayeredTabs |
-| `MarkEdit/` | MarkEditor (full), InlineEditor (shortName only; used in LensMarkFacetsEditor) |
+| `MarkEdit/` | MarkEditor (full); `MarkInlineEditor` + `MarkInlineEditorWithSession` (per-row Mark shortName session; used in Lens mark facet rows) |
 | `MapEdit/` | MapEditor, MapArea, MapController, MapLayers, UnshownRooms |
 | `CharacterEdit/` | CharacterEditor |
 | `foundations/StandardRender/StandardRenderEditor.tsx` | Rich text (Slate); shared with Editor components |

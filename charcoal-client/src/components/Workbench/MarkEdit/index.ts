@@ -1,3 +1,9 @@
 export { default as MarkEditor } from './MarkEditor'
-export { MarkInlineEditor } from './InlineEditor'
-export type { MarkInlineEditorProps } from './InlineEditor'
+export {
+    MarkInlineEditor,
+    MarkInlineEditorWithSession
+} from './InlineEditor'
+export type {
+    MarkInlineEditorProps,
+    MarkInlineEditorWithSessionProps
+} from './InlineEditor'
