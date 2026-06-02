@@ -1,6 +1,6 @@
 # Workbench composition and Standard* binding (charcoal-client)
 
-**Status:** **Milestone 0 complete** --- decisions **D1-D14** (+ **D14a-c**) locked. **Next step:** **Phase 1** implementation (`useWorkbenchComponent` + test harness + `workbenchMutations` + debounced flush + **D14** reconcile + `WorkbenchShortNameField`).
+**Status:** **Milestone 1 complete** --- decisions **D1-D15** (+ **D14a-c**) locked. **Next step:** **Phase 2** (facet prose + parent-session reference lists + inline editors; see **D15**).
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into [`charcoal-client/src/components/Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md) and related foundation docs.
 
@@ -14,7 +14,7 @@ Reduce repetitive Workbench editor code while making composition predictable:
 
 1. **Two-tier editing:** a **working `StandardComponent`** in the editor session (cheap `clone()` + mutate on each change) and **debounced `updateStandard`** to Redux (expensive whole-asset clone + diff + merge).
 2. **Standard* in / Standard* out** at leaf and row UI (controlled components), reading/writing the **working** instance via `useWorkbenchComponent` --- not orphan leaf `localValue` that can drift from committed state.
-3. **Composable list editors** that derive row handlers from parent `items` + `onItemsChange` (facet pattern), or flush structural edits immediately when appropriate.
+3. **Composable list editors** that derive row handlers from parent `items` + `onItemsChange` (facet pattern), mutating the parent **`working`** copy where a **`WorkbenchComponentProvider`** session exists (**D15**).
 4. **Shared glue** for resolve, normalize, and flush (especially **`shortName`**).
 
 **Non-goals for this initiative:**
@@ -48,7 +48,7 @@ Workbench component editors (`RoomEditor`, `FeatureEditor`, `AreaEditor`, `Guida
 | List + composed handlers | [`FacetListEditorGeneric`](../../../../../charcoal-client/src/components/Workbench/foundations/FacetList/FacetListEditorGeneric.tsx) | `facets` + `onFacetsChange` + per-row handlers |
 | Row + pure updaters | [`ExitEdgeRowEditor`](../../../../../charcoal-client/src/components/Workbench/AreaEdit/ExitEdgeRowEditor.tsx) + [`areaEditMutations.ts`](../../../../../charcoal-client/src/components/Workbench/AreaEdit/areaEditMutations.ts) | `StandardExitEdge` in/out; list maps to `updateStandard` |
 | Reference list (view model) | [`ReferenceListEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListEditor.tsx) | `ReferenceListItem[]` for display; draft mutation via `updateReferenceList` |
-| Inline list slots | [`InlineReferenceList`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/InlineReferenceList.tsx) | Layout composition; [`MarkInlineEditor`](../../../../../charcoal-client/src/components/Workbench/MarkEdit/InlineEditor.tsx) still calls `updateStandard` internally |
+| Inline list slots | [`InlineReferenceList`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/InlineReferenceList.tsx) | Layout composition; [`MarkInlineEditorWithSession`](../../../../../charcoal-client/src/components/Workbench/MarkEdit/InlineEditor.tsx) per-row Mark session (wired in Lens mark facet rows) |
 
 **Platform note:** [`packages/mtw-wml/ts/standardize/components/AGENT.implementation.md`](../../../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) documents direct `_payload._shortName` assignment as Workbench-only today, with optional **`withShortName()`** on components as follow-up. [`shortNameField.ts`](../../../../../packages/mtw-wml/ts/standardize/components/shortNameField.ts) already centralizes merge/invert/schema helpers.
 
@@ -96,8 +96,8 @@ UI primitives (StandardLiteralEditor, StandardRenderEditor)  // no updateStandar
 
 1. **Component editor session:** one `useWorkbenchComponent` (or provider) per screen editing a single component (Room, Feature, Area, ...). Holds **`working`**, **`lastReceived`** (Redux baseline for reconcile), **`committed`** (live Redux), **`updateComponent`**, **`flushToStandardForm`** (debounced), **`flushNow`** (bypass debounce). See [Sync from Redux (D14)](#sync-from-redux-d14).
 2. **Leaf editors** expose **`value` / `onChange`** against **working** fields, wired by thin field components or `useWorkbenchComponent` consumers. **No `updateStandard` inside primitives**; **no persist debounce inside primitives** when mounted under a session provider.
-3. **List shells** (facets, reference lists, exit edges) may still call `updateStandard` immediately for **structural** changes (add/remove/import), or maintain their own working slice --- document per pattern. Scalar fields on the parent component use the session working copy.
-4. **Compose by sections** on the screen (shortName, DEFAULT prose, lists, topology), not by flattening into one generic form type --- but scalar sections on the **same** component share one working copy.
+3. **List shells on a parent `WorkbenchComponentProvider` screen** (reference lists, facet payloads on the parent, embedded DEFAULT prose): mutate the parent's **`working`** via **`updateComponent`** + session debounced flush (**D8**, **D15**). Rule #3 did **not** require a separate `updateStandard` path for structural list changes --- that was a **Phase 1 scope** escape hatch, not a target end state. Use optional **`flushNow`** after add/remove/import when edits must be durable before navigation. **Exceptions (document per pattern):** domain topology (e.g. Area `ExitEdgeListEditor`), asset-level lists (`TopLevelEditor`), navigated drill-down screens without a parent session.
+4. **Compose by sections** on the screen (shortName, DEFAULT prose, lists, topology), not by flattening into one generic form type --- but sections editing the **same** parent component share one **`working`** copy (scalars, reference-list fields, default situation facet on that parent).
 5. **Reference vs facet vs component:** row contract uses the editable **Standard*** slice; list rows may use facet/exit patterns with their own flush rules.
 
 ### What "two-way binding" means here
@@ -118,7 +118,7 @@ React controlled components + **working copy** in the editor session --- not Ang
 | Single editing truth | Scalar fields read `working`; no drift between leaf `localValue` and Redux during debounce |
 | Fewer asset diffs | Typing across multiple fields on one component batches into one debounced flush |
 | Consistent shortName semantics | Omission-over-empty and readonly enforced on flush path |
-| Clear list composition | New editable lists follow facet/exit-edge pattern; reference lists gain optional controlled mode where needed |
+| Clear list composition | Parent-session list mutations in Phase 2; **`ReferenceListControlled`** shell + migration in Phase 3 (**D15**, **D6**) |
 | Testable updaters | Pure functions for normalize + apply working -> draft; **`reconcileCommittedComponent`** (D14) unit tests |
 | Safe external updates | Import/collaborative Redux changes merge local edits when algebra allows; snackbar on supersede |
 | Durable docs updated | Workbench `AGENT.md` links two-tier model; this plan deleted when done |
@@ -159,8 +159,9 @@ Mark **Status** `[X]` when normative. Phases reference IDs.
 | **D3** | [X] | **`withShortName()` in mtw-wml** | **Locked: (B)** add `withShortName()` on component wrapper in **mtw-wml in parallel** with Phase 1 client work (AGENT.implementation follow-up). Client may still use `normalizeOptionalLiteral` / apply-on-flush until `with*` lands. |
 | **D4** | [X] | **`WorkbenchShortNameField` API** | **Locked: (A)** context only --- field consumes **working** + `updateComponent` from `useWorkbenchComponent` / `WorkbenchComponentProvider`. **No** `updateStandard` or persist debounce in the field. **Phase 1 task:** add **`useWorkbenchComponent` test harness** (provider wrapper + helpers to seed `standardForm` / `committed`, drive `updateComponent`, assert `working` and flush) for unit/RTL tests; do not add prop bypass on the field itself. |
 | **D5** | [X] | **Field accessor helpers** | **Locked: (A)** defer generic `useWorkbenchLiteralField`; field components use **`updateComponent(component => ...)`** inline. |
-| **D6** | [X] | **Reference list controlled mode** | **Locked: (A)** add **`ReferenceListControlled`** (`referenceList` + `onReferenceListChange`) alongside existing `ReferenceListEditor` (Phase 3 implementation; not Phase 1 blocker). |
-| **D7** | [X] | **Inline editors and `updateStandard`** | **Locked: (C)** leave **`MarkInlineEditor`** (and similar) calling `updateStandard` until **D6** controlled reference-list mode exists; document facet/exit pattern for new lists in Phase 1 docs only. |
+| **D6** | [X] | **Reference list controlled mode** | **Locked: (A)** add **`ReferenceListControlled`** (`referenceList` + `onReferenceListChange`) alongside existing `ReferenceListEditor` (**Phase 3** --- composable shell + call-site migration). **Amended (D15):** persistence tier moves to parent **`working`** in **Phase 2**; Phase 3 is not the first time lists participate in the session model. |
+| **D7** | [X] | **Inline editors and `updateStandard`** | **Locked: (C)** refactor **`MarkInlineEditor`** (and similar) in **Phase 2** via parent **`working`** / **`updateComponent`** or a per-row Mark session --- **not** blocked on **D6** (**D15**). Phase 1 deferred inline editors; document facet/exit pattern for new lists. |
+| **D15** | [X] | **Reference list persistence vs controlled shell** | **Phase 2:** On **`WorkbenchComponentProvider`** screens, existing **`ReferenceListEditor`** list mutations (add/remove/import) go through parent **`updateComponent`** on **`working`** + shared debounced flush; read list state from **`working`**, not live Redux alone. Facet prose on the same parent uses **`updateComponent`** on **`working`** (edit path); optional **`applyWorkingComponentToDraft`** extracts flush assign only. Optional **`flushNow`** after structural ops when needed. **Phase 3:** **`ReferenceListControlled`** per **D6**; migrate off `listContext` + internal `updateStandard`. **Out of Phase 2 unless scoped:** Area exit topology, `TopLevelEditor` asset lists, navigated-only editors (e.g. full `MarkEditor` screen). |
 | **D8** | [X] | **Debouncing policy (agreed direction)** | **Per-component editor session:** debounce **`flushToStandardForm`** only (default ~1000ms, configurable). **`updateComponent`** is immediate (working copy). **Remove** persist debounce from primitives when under session provider; literals may stay uncontrolled string UI bound to `working` field. **Not** per-field persist timers (multiplies asset diffs). |
 | **D8a** | [X] | **Debounce timing / flush triggers** | **Locked: (A) + (C).** Reset debounce timer on **any** `updateComponent`. **`flushNow`** on provider unmount and breadcrumb navigation (required). **Not** per-field blur flush (**B** rejected for Phase 1). **Default delay:** 1000ms (match **D8**; hook option to override). |
 | **D14** | [X] | **Sync working copy from Redux (three-way reconcile)** | See [Sync from Redux (D14)](#sync-from-redux-d14). Store **`lastReceived`** + **`working`**. On external `committed` change: `editDiff = lastReceived.diff(working)`; if empty, adopt `incoming`; else try `incoming.merge(editDiff)`; on throw/failure, supersede (`working = incoming`) + snackbar. Advance **`lastReceived`** after successful flush (**D14b**). |
@@ -323,7 +324,7 @@ These do **not** block Phase 1. Resolve during implementation or later phases as
 3. **Layered context component id** --- should `useWorkbenchComponent` read `getCurrentComponentLayerId` with fallback (like `GuidanceEditor`) via an option flag?
 4. **Instrumentation** --- forward `ScopedInstrumentationOptions` on `flushToStandardForm`?
 5. **Testing strategy** --- **partially locked via D4:** `useWorkbenchComponent` **test harness** seeds asset state and asserts `working` / flush; hook tests with mocked `updateStandard`; RTL for provider + shortName field; golden refactors: Feature + Room minimum?
-6. **Reference list + inline slot** --- after D7, does `renderItemEditor` receive `working` Mark from parent list context?
+6. ~~**Reference list + inline slot**~~ --- **Resolved (D7):** inline edit slots use **per-row `WorkbenchComponentProvider`** + **`MarkInlineEditorWithSession`**; facet-list hybrid (Lens marks) documented in reference-list and facet-list AGENT docs.
 7. **Provider scope** --- wrap each of `RoomEditor` / `FeatureEditor` vs single provider in `WorkbenchAssetEditor` routing?
 
 ---
@@ -342,18 +343,23 @@ These do **not** block Phase 1. Resolve during implementation or later phases as
 - Refactor **FeatureEditor**, **KnowledgeEditor**, **RoomEditor**, **AreaEditor**
 - Unit tests: reconcile helper, hook flush debounce (via harness), harness mutation assertions; one RTL test for shortName field
 
-### Phase 2 --- Facet / list sessions + inline editors
+### Phase 2 --- Facet prose, parent-session lists, inline editors (**D15**)
 
-- Facet prose: working sub-copy or commit-into-parent-`working` + shared flush (Slate caveat in Agreed direction)
-- `applyWorkingComponentToDraft(draft, id, working)` helper for flush path
-- Refactor **MarkInlineEditor** per **D7** (update parent `working` or separate Mark session)
-- Document in [`AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md) when to use inline vs typical list
+**Persistence tier (end split-brain on provider screens):**
 
-### Phase 3 --- Lists and mtw-wml ergonomics
+- **`applyWorkingComponentToDraft(draft, id, working)`** (or equivalent) in **`workbenchMutations.ts`** --- extract flush-side assign (`prepareComponentForFlush` + `draft.byUniversalId[id] = …`) from **`useWorkbenchComponent`**; **not** used on the edit path
+- **Facet prose on parent session:** DEFAULT render (`DefaultRenderEditor` / `SituationFacetRenderFieldsEditor` on Room, Feature, Knowledge) via parent **`updateComponent`** (facet binding hook or inline updater on **`working`**) + existing session debounced flush (Slate caveat in Agreed direction)
+- **Reference lists on parent session:** wire **`ReferenceListEditor`** (and Add/Import association paths) on **`WorkbenchComponentProvider`** screens to parent **`updateComponent`** + session flush --- e.g. Room guidance list; read **`working`** for display. **Not** a full **`ReferenceListControlled`** shell yet (**D6** / Phase 3)
+- Refactor **`MarkInlineEditor`** per **D7** / **D15** (parent **`working`** or per-row Mark session)
+- Document in [`AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md) when to use inline vs typical list and parent-session vs asset-level lists
 
-- **`ReferenceListControlled`** per **D6** (alongside `ReferenceListEditor`)
+**Explicitly out of Phase 2 unless scoped:** Area **`ExitEdgeListEditor`** (domain topology), **`TopLevelEditor`** asset lists, navigated drill-down editors (full **`MarkEditor`**, Situation-as-component screen).
+
+### Phase 3 --- Controlled list shell, remaining editors, mtw-wml
+
+- **`ReferenceListControlled`** per **D6** (`referenceList` + `onReferenceListChange`, facet-list-style composition); migrate call sites off **`ReferenceListEditor`** + `listContext` internal **`updateStandard`**. Persistence already on parent **`working`** where Phase 2 landed (**D15**)
 - Finish / adopt mtw-wml **`withShortName()`** across flush paths if not complete in Phase 1 (**D3**)
-- Migrate **GuidanceEditor**, **MarkEditor**, **LensDetail** shortName paths
+- Migrate **GuidanceEditor**, **MarkEditor**, **LensDetail** shortName paths (full-screen / non-provider sessions)
 - Layout shell extraction **out of scope** (**D9** deferred)
 
 ### Phase 4 --- Cleanup and durable docs
@@ -370,8 +376,8 @@ These do **not** block Phase 1. Resolve during implementation or later phases as
 | --- | --- | --- |
 | Decisions D1-D14 | All locked (incl. D11-D13, D14a-c) | Milestone 0 complete |
 | Phase 1 | Complete | Debounced flush + **D14** reconcile + `workbenchMutations` + `WorkbenchShortNameField` + literal `debounce={false}`; Feature/Knowledge/Room/Area editors use `WorkbenchComponentProvider` + `WorkbenchShortNameField` |
-| Phase 2 | Not started | |
-| Phase 3 | Not started | |
+| Phase 2 | Complete | Parent-session lists + DEFAULT prose + `MarkInlineEditor` per-row session; inline list contract documented |
+| Phase 3 | Not started | **`ReferenceListControlled`** shell + migration; remaining full-screen editors |
 | Phase 4 | Not started | |
 
 ---
@@ -390,7 +396,8 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets).
   - [X] Resolve **D11** (omission-over-empty shortName)
   - [X] Resolve **D12** (reducer diff only for no-op suppression)
   - [X] Resolve **D13** (readonly = prop AND asset readonly)
-  - [X] Resolve **D5**, **D6**, **D7** (defer literal accessor; `ReferenceListControlled` in Phase 3; defer inline editors)
+  - [X] Resolve **D5**, **D6**, **D7** (defer literal accessor; `ReferenceListControlled` shell in Phase 3; inline editors in Phase 2)
+  - [X] Resolve **D15** (reference-list persistence on parent **`working`** in Phase 2; controlled shell in Phase 3)
   - [X] Resolve **D9** (defer layout shell --- separate UI sweep after data binding)
 - [X] **Milestone 1 --- Phase 1 implementation**
   - [X] Add `useWorkbenchComponent` + provider in `foundations/` (per **D1**, **D8**)
@@ -402,13 +409,15 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets).
   - [X] Add `WorkbenchShortNameField` + adjust literal editor debounce (per **D4**)
   - [X] Refactor Feature, Knowledge, Room, Area editors
   - [X] Update Recommended order checkboxes and Progress table in this doc
-- [ ] **Milestone 2 --- Phase 2**
-  - [ ] `updateComponentInDraft` / facet binding hook
-  - [ ] Refactor `MarkInlineEditor` and document inline list contract
+- [X] **Milestone 2 --- Phase 2** (**D15**)
+  - [X] **`applyWorkingComponentToDraft`** in `workbenchMutations.ts`; refactor **`useWorkbenchComponent`** flush to use it (flush assign only)
+  - [X] DEFAULT render / facet binding: **`SituationFacetRenderFieldsEditor`** (and **`DefaultRenderEditor`**) on parent **`working`** via **`updateComponent`**, not per-change **`updateStandard`**
+  - [X] Parent-session **`ReferenceListEditor`** bridge on **`WorkbenchComponentProvider`** screens (e.g. Room guidance list): **`updateComponent`**, not per-action **`updateStandard`**
+  - [X] Refactor `MarkInlineEditor` and document inline list contract (**D7**)
 - [ ] **Milestone 3 --- Phase 3**
-  - [ ] Reference list controlled mode (if **D6** not deferred)
+  - [ ] **`ReferenceListControlled`** per **D6** + migrate call sites (shell/API; persistence tier from Milestone 2)
   - [ ] mtw-wml `withShortName` (if **D3** not deferred)
-  - [ ] Remaining editors (layout shell deferred per **D9**)
+  - [ ] Remaining full-screen editors (Guidance, Mark, LensDetail shortName; layout shell deferred per **D9**)
 - [ ] **Milestone 4 --- Phase 4**
   - [ ] Steady-state docs in Workbench `AGENT.md`
   - [ ] Archive/delete this planning file
@@ -433,17 +442,21 @@ Manual smoke (Draft asset):
 1. Open Workbench on a Draft asset; edit Room, Feature, Knowledge, Area **Short Name**; confirm persistence after navigation away and back.
 2. Confirm published/read-only asset: shortName fields disabled.
 
-After **Milestone 2+**:
+After **Milestone 2**:
 
-3. Edit shortName then description on same Room within debounce window -> one asset diff (batched flush).
+3. Edit shortName, DEFAULT description, and a reference-list change (e.g. add Guidance on Room) within one debounce window -> one asset diff (batched flush on parent **`working`**).
 4. Navigate away after edit -> `flushNow` persists (per **D8a** / **D14**).
-5. Situation facet / DEFAULT render editors still behave until Phase 2 (no regression).
+5. Room guidance list (and other Phase 2-wired **`ReferenceListEditor`** instances on provider screens) no longer call **`updateStandard`** per list action --- mutations go through parent session.
+
+After **Milestone 3+**:
+
+6. **`ReferenceListControlled`** call sites use `referenceList` + `onReferenceListChange` without `listContext` draft surgery.
 
 **D14 reconcile (unit tests on helper):**
 
-6. No local edits: `lastReceived` tracks `incoming`, `working` reset.
-7. Local shortName only + import updates different field: `incoming.merge(editDiff)` preserves local shortName.
-8. Conflicting merge (same field): supersede + `superseded: true` (snackbar in UI test optional).
+7. No local edits: `lastReceived` tracks `incoming`, `working` reset.
+8. Local shortName only + import updates different field: `incoming.merge(editDiff)` preserves local shortName.
+9. Conflicting merge (same field): supersede + `superseded: true` (snackbar in UI test optional).
 
 ---
 
@@ -461,6 +474,12 @@ After **Milestone 2+**:
 - Composing editors from **Standard* out** primitives scales; composing whole **StandardRoom** forms does not.
 - **Two-tier model:** working `StandardComponent` in hook state (`clone` + mutate per edit); debounced **`updateStandard`** only on flush (whole-asset diff). UI reads **`working`**, not orphan leaf state.
 - **Per-component debounce** on flush matches asset-level diff cost; **not** per-field persist timers.
-- **FacetListEditorGeneric** and **ExitEdgeRowEditor** are templates for list/row composition; structural list edits may still flush immediately.
+- **FacetListEditorGeneric** and **ExitEdgeRowEditor** are templates for list/row composition; on parent provider screens, list mutations should join the same **`working`** session (**D15**), not a parallel Redux path.
 - **ReferenceListEditor** optimizes navigation/summary (`ReferenceListItem`); editable lists use **items + onItemsChange** at the Standard* layer when row editing matters.
 - **D14:** three-way reconcile via `lastReceived.diff(working)` and `incoming.merge(editDiff)`; supersede + snackbar on failure; **D14b** advance `lastReceived` after flush.
+
+## Notes from design discussion (2026-06)
+
+- **Do not maintain split-brain** on **`WorkbenchComponentProvider`** screens (e.g. Room shortName on **`working`** while guidance list still **`updateStandard`** per action) until Phase 3. That deferral was **sequencing**, not architecture.
+- **D15:** Phase 2 = parent-session persistence for reference lists + facet prose; Phase 3 = **`ReferenceListControlled`** composable shell + migration.
+- Composition rule #3 **permits** immediate **`updateStandard`** for lists; it does **not** require it once a parent session exists.

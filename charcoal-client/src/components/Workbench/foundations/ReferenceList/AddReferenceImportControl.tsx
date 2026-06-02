@@ -50,6 +50,16 @@ export interface AddReferenceImportProps {
     disabled?: boolean
     /** When set, used for Import dialog tag filter; otherwise `tag` is used. */
     importTag?: ImportTag
+    /**
+     * When set, reference existing associates via this callback instead of updateStandard.
+     * Used by parent-session editors (updateComponent on working).
+     */
+    onAssociateReference?: (ref: StandardReference) => void
+    /**
+     * When set, replaces internal updateStandard for import and create-complete association.
+     * Used by parent-session editors (commitAssetScopedUpdate).
+     */
+    persistDraftUpdate?: (update: (draft: StandardForm) => void) => void
 }
 
 const IMPORTABLE_TAGS: ComponentTag[] = [
@@ -80,7 +90,9 @@ export function useAddReferenceImport(props: AddReferenceImportProps): {
         enableReferenceExisting = true,
         enableImport = defaultEnableImport(tag),
         disabled: disabledProp = false,
-        importTag
+        importTag,
+        onAssociateReference,
+        persistDraftUpdate
     } = props
 
     const { updateStandard, readonly, AssetId } = useWorkbenchAsset()
@@ -94,9 +106,18 @@ export function useAddReferenceImport(props: AddReferenceImportProps): {
     const refExistingLabel = labels?.referenceExisting ?? `Reference existing ${tag}`
     const importLabel = labels?.import ?? "Import"
 
-    const handleCreateNew = useCallback(() => {
-        if (disabled) return
-        requestCreate((ref) =>
+    const persistAssociation = useCallback(
+        (ref: StandardReference) => {
+            if (onAssociateReference) {
+                onAssociateReference(ref)
+                return
+            }
+            if (persistDraftUpdate) {
+                persistDraftUpdate((draft) => {
+                    association(ref, draft)
+                })
+                return
+            }
             updateStandard({
                 type: "update",
                 update: (draft) => {
@@ -104,39 +125,52 @@ export function useAddReferenceImport(props: AddReferenceImportProps): {
                     return draft
                 }
             })
-        )
-    }, [disabled, requestCreate, association, updateStandard])
+        },
+        [onAssociateReference, persistDraftUpdate, association, updateStandard]
+    )
+
+    const handleCreateNew = useCallback(() => {
+        if (disabled) return
+        requestCreate((ref) => persistAssociation(ref))
+    }, [disabled, requestCreate, persistAssociation])
 
     const handleReferenceSelect = useCallback(
         (universalKey: ComponentUUID) => {
             if (disabled) return
-            updateStandard({
-                type: "update",
-                update: (draft) => {
-                    const ref = new StandardReference({ universalKey, tag })
-                    association(ref, draft)
-                    return draft
-                }
-            })
+            const ref = new StandardReference({ universalKey, tag })
+            persistAssociation(ref)
             setSelectorOpen(false)
         },
-        [disabled, tag, association, updateStandard]
+        [disabled, tag, persistAssociation]
     )
 
     const handleImportSelect = useCallback(
         (fromAsset: AssetUUID, uuid: ComponentUUID, tagParam: ImportTag) => {
             if (disabled) return
-            updateStandard({
-                type: "update",
-                update: (draft) => {
-                    const ref = addImportToDraft(draft, { fromAsset, uuid, tag: tagParam })
-                    if (ref) association(ref, draft)
-                    return draft
-                }
-            })
+            const ref = new StandardReference({ universalKey: uuid, tag: tagParam })
+            if (onAssociateReference) {
+                onAssociateReference(ref)
+            }
+            if (persistDraftUpdate) {
+                persistDraftUpdate((draft) => {
+                    const importedRef = addImportToDraft(draft, { fromAsset, uuid, tag: tagParam })
+                    if (importedRef && !onAssociateReference) {
+                        association(importedRef, draft)
+                    }
+                })
+            } else {
+                updateStandard({
+                    type: "update",
+                    update: (draft) => {
+                        const importedRef = addImportToDraft(draft, { fromAsset, uuid, tag: tagParam })
+                        if (importedRef) association(importedRef, draft)
+                        return draft
+                    }
+                })
+            }
             setImportDialogOpen(false)
         },
-        [disabled, updateStandard, association]
+        [disabled, persistDraftUpdate, onAssociateReference, association, updateStandard]
     )
 
     const actionRows = useMemo(

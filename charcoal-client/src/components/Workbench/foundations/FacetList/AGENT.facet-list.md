@@ -16,4 +16,13 @@ Consumer (e.g. MarkFacetsEditor) wires FacetListEditorGeneric with:
 - `facets`, `onFacetsChange`, `createFacetWithPayload`, `tag`, `renderFacetRow`, `readonly`, `isExcluded`, **`association`**, **`requestCreate`**, optional **`affordance`** (labels and enable flags for reference/import rows).
 - `renderFacetRow` returns a layout wrapper (e.g. SingleLineFacetRow) with `payloadSlot={<PayloadEditor facet={...} onChange={handlers.onChangePayload} readonly={handlers.readonly} />}` and `onRemove={handlers.onRemove}`.
 
+## Hybrid: inline referenced-component fields (Lens marks)
+
+When a facet row edits both **referenced component data** (Mark `shortName`) and **facet payload** (Lens mark default) on the same row, split persistence:
+
+- **Mark shortName**: [`MarkInlineEditorWithSession`](../../MarkEdit/InlineEditor.tsx) in the payload slot (per-row Mark session; debounced flush per Mark). See [AGENT.reference-lists.md](../ReferenceList/AGENT.reference-lists.md) (**Inline edit slot persistence (D7)**).
+- **Facet payload**: parent **`onFacetsChange`** / asset-mode `updateStandard` until the parent screen has a **`WorkbenchComponentProvider`** session (Lens detail is Phase 3).
+
+Live example: [`LensMarkFacetPayloadEditor`](../../LensEdit/LensMarkFacetsEditor/LensMarkFacetPayloadEditor.tsx) in [`LensMarkFacetsEditor`](../../LensEdit/LensMarkFacetsEditor/LensMarkFacetsEditor.tsx).
+
 Out of scope for v1: Exits, Positions, multi-line wrapper, adapter for collapsed summary.

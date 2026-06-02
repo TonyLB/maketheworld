@@ -50,6 +50,8 @@ interface StandardRenderEditorProps {
     tag?: StandardFormTag;
     /** When set, the editor renders a bordered title box (WorkbenchTitledBox) with the toolbar in the title bar */
     title?: string;
+    /** When false, onChange fires on each Slate change (session flush debounces persist). Default true. */
+    debounce?: boolean;
 }
 
 const withInlines = (editor: Editor) => {
@@ -128,9 +130,15 @@ type StandardRenderSlateComponentProperties = {
     readonly: boolean;
     checkPoints?: string[];
     title?: string;
+    debounce?: boolean;
 }
 
-const useStandardRenderEditorHook = (standard: StandardForm, value: StandardRender, onChange: (value: StandardRender) => void): { editor: Editor, value: Descendant[], setValue: (value: Descendant[]) => void } => {
+const useStandardRenderEditorHook = (
+    standard: StandardForm,
+    value: StandardRender,
+    onChange: (value: StandardRender) => void,
+    debounce: boolean
+): { editor: Editor, value: Descendant[], setValue: (value: Descendant[]) => void } => {
     const defaultValue = useMemo(() => {
         const returnValue = descendantsFromRender(value, { standard })
         return returnValue
@@ -143,19 +151,38 @@ const useStandardRenderEditorHook = (standard: StandardForm, value: StandardRend
     })
     const [outputValue, setValue] = useState<Descendant[]>(defaultValue)
 
+    const propagateChange = useCallback(
+        (nextValue: Descendant[]) => {
+            const newRender = descendantsToRender(standard)((nextValue || []).filter(isCustomBlock))
+            onChange(newRender)
+        },
+        [onChange, standard]
+    )
+
     useDebouncedOnChange({
         value: outputValue,
         delay: 1000,
-        onChange: (value) => {
-            const newRender = descendantsToRender(standard)((value || []).filter(isCustomBlock))
-            onChange(newRender)
+        onChange: (nextValue) => {
+            if (debounce) {
+                propagateChange(nextValue)
+            }
         }
     })
+
+    const handleSlateChange = useCallback(
+        (nextValue: Descendant[]) => {
+            setValue(nextValue)
+            if (!debounce) {
+                propagateChange(nextValue)
+            }
+        },
+        [debounce, propagateChange]
+    )
 
     return {
         editor,
         value: outputValue,
-        setValue
+        setValue: handleSlateChange
     }
 }
 
@@ -168,11 +195,12 @@ const StandardRenderSlateComponent: FunctionComponent<StandardRenderSlateCompone
     toolbar,
     readonly,
     checkPoints = [],
-    title
+    title,
+    debounce = true
 }) => {
 
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
-    const { editor, value: slateValue, setValue } = useStandardRenderEditorHook(standard, value, onChange)
+    const { editor, value: slateValue, setValue } = useStandardRenderEditorHook(standard, value, onChange, debounce)
     // Slate 0.123+ uses initialValue (uncontrolled); capture first value so we don't change it after mount
     const [initialValue] = useState<Descendant[]>(() =>
         slateValue.length ? slateValue : [{ type: 'paragraph', children: [{ text: '' }] }]

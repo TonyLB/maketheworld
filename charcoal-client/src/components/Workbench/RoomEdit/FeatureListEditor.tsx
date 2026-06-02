@@ -1,47 +1,22 @@
-import React, { FunctionComponent, useCallback, useMemo } from "react"
+import React, { FunctionComponent, useCallback } from "react"
 import { Box } from "@mui/material"
 import FeatureIcon from "@mui/icons-material/Search"
 
-import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
-import { ReferenceListEditor } from "../foundations/ReferenceList"
-import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
-import { ReferenceList } from "@tonylb/mtw-wml/ts/standardize/keys/referenceList"
-import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import { ReferenceListSessionEditor } from '../foundations/ReferenceList'
+import { roomFeaturesListAccessor } from './roomReferenceListAccessors'
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { useDispatch } from "react-redux"
 import { navigateToComponent } from "../../../slices/UI/workbench"
+import { useWorkbenchComponent } from "../foundations/WorkbenchComponent"
+import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 
 type FeatureListEditorProps = {
     RoomId: ComponentUUID
 }
 
-export const FeatureListEditor: FunctionComponent<FeatureListEditorProps> = ({ RoomId }) => {
-    const { standardForm, readonly } = useWorkbenchAsset()
+export const FeatureListEditor: FunctionComponent<FeatureListEditorProps> = ({ RoomId: _RoomId }) => {
     const dispatch = useDispatch()
-
-    const room = useMemo(() => {
-        if (RoomId) {
-            const component = standardForm.byUniversalId[RoomId]
-            if (component && component instanceof StandardRoom) {
-                return component
-            }
-        }
-        return null
-    }, [RoomId, standardForm])
-
-    const listContext = useCallback(
-        (form: StandardForm) => {
-            const base = form.byUniversalId[RoomId]
-            if (!(base instanceof StandardRoom)) return null
-            return {
-                referenceList: base._payload._features,
-                setReferenceList: (list: ReferenceList) => {
-                    base._payload._features = list
-                }
-            }
-        },
-        [RoomId]
-    )
+    const { readonly, missing } = useWorkbenchComponent<StandardRoom>()
 
     const handleItemClick = useCallback(
         (id: string) => {
@@ -51,27 +26,17 @@ export const FeatureListEditor: FunctionComponent<FeatureListEditorProps> = ({ R
         [dispatch, readonly]
     )
 
-    if (!room) {
-        return (
-            <Box sx={{ marginTop: "0.5em" }}>
-                <ReferenceListEditor
-                    title="Features"
-                    listContext={listContext}
-                    tag="Feature"
-                    disabled={true}
-                />
-            </Box>
-        )
+    if (missing) {
+        return null
     }
 
     return (
         <Box sx={{ marginTop: "0.5em" }}>
-            <ReferenceListEditor
+            <ReferenceListSessionEditor
                 title="Features"
-                listContext={listContext}
+                listAccessor={roomFeaturesListAccessor}
                 tag="Feature"
                 affordance={{ enableReferenceExisting: true }}
-                defaultExpanded={undefined}
                 disabled={readonly}
                 onItemClick={handleItemClick}
                 icon={<FeatureIcon sx={{ fontSize: "1.1rem" }} />}

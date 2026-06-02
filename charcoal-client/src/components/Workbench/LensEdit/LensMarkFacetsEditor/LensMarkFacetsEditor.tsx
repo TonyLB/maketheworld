@@ -13,8 +13,7 @@ import {
 } from "@tonylb/mtw-wml/ts/standardize/keys/facets/lensMark"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
-import StandardMark, { StandardLens } from "@tonylb/mtw-wml/ts/standardize/components/worldState"
-import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
+import { StandardLens } from "@tonylb/mtw-wml/ts/standardize/components/worldState"
 import {
     FacetListEditorGeneric,
     FacetRowHandlers,
@@ -109,50 +108,6 @@ export const LensMarkFacetsEditor: FunctionComponent<LensMarkFacetsEditorProps> 
         [markAssociation, readonly, updateStandard]
     )
 
-    const getMarkShortName = useCallback(
-        (facet: StandardLensMarkFacet): StandardLiteral | undefined => {
-            const universalKey = facet.reference.universalKey as ComponentUUID | undefined
-            if (!universalKey) {
-                return undefined
-            }
-            const component = standardForm.byUniversalId[universalKey]
-            if (!component || !(component instanceof StandardMark)) {
-                return undefined
-            }
-            return component.shortName ?? new StandardLiteral("", { tag: "ShortName" })
-        },
-        [standardForm]
-    )
-
-    const updateMarkShortName = useCallback(
-        (markId: ComponentUUID, newShortName: StandardLiteral) => {
-            if (readonly) {
-                return
-            }
-            const newValue = newShortName._payload?.plain?.toJSON() ?? ""
-            const currentComponent = standardForm.byUniversalId[markId]
-            if (!currentComponent || !(currentComponent instanceof StandardMark)) {
-                return
-            }
-            const currentValue =
-                currentComponent.shortName?._payload?.plain?.toJSON() ?? ""
-            if (currentValue === newValue || (!currentValue && !newValue)) {
-                return
-            }
-            updateStandard({
-                type: "update",
-                update: (draft: StandardForm) => {
-                    const target = draft.byUniversalId[markId]
-                    if (target && target instanceof StandardMark) {
-                        target._payload._shortName = newValue ? newShortName : undefined
-                    }
-                    return draft
-                }
-            })
-        },
-        [readonly, standardForm, updateStandard]
-    )
-
     return (
         <>
             <FacetListEditorGeneric<StandardLensMarkFacet>
@@ -189,7 +144,6 @@ export const LensMarkFacetsEditor: FunctionComponent<LensMarkFacetsEditorProps> 
                     const universalKey = facet.reference.universalKey as
                         | ComponentUUID
                         | undefined
-                    const markShortName = getMarkShortName(facet)
 
                     return (
                         <SingleLineFacetRow
@@ -230,16 +184,7 @@ export const LensMarkFacetsEditor: FunctionComponent<LensMarkFacetsEditorProps> 
                                             facet,
                                             standardForm
                                         )}
-                                        markShortName={markShortName}
-                                        onChangeMarkShortName={
-                                            universalKey
-                                                ? (newLiteral: StandardLiteral) =>
-                                                      updateMarkShortName(
-                                                          universalKey,
-                                                          newLiteral
-                                                      )
-                                                : undefined
-                                        }
+                                        markId={universalKey}
                                     />
                                 </Box>
                             }

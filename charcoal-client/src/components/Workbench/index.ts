@@ -20,6 +20,13 @@ export { MapContext, useMapContext } from './MapEdit/MapController'
 export { default as WorkbenchTitledBox } from './WorkbenchTitledBox'
 export { createWorkbenchTheme, useWorkbenchTheme, workbenchTheme } from './workbenchTheme'
 export { InlineReferenceList } from './foundations/ReferenceList'
-export { MarkInlineEditor } from './MarkEdit/InlineEditor'
+export {
+    MarkInlineEditor,
+    MarkInlineEditorWithSession
+} from './MarkEdit/InlineEditor'
+export type {
+    MarkInlineEditorProps,
+    MarkInlineEditorWithSessionProps
+} from './MarkEdit/InlineEditor'
 export { default as MarkEditor } from './MarkEdit/MarkEditor'
 export type { ReferenceListItem } from './foundations/ReferenceList'

@@ -1,23 +1,23 @@
 import React, { FunctionComponent } from "react"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
+import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import {
     StandardLensMarkFacet,
     LensMarkFacetPayload
 } from "@tonylb/mtw-wml/ts/standardize/keys/facets/lensMark"
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 import { StandardLiteralEditor } from "../../foundations/StandardLiteral"
+import { MarkInlineEditorWithSession } from "../../MarkEdit/InlineEditor"
 
 export interface LensMarkFacetPayloadEditorProps {
     facet: StandardLensMarkFacet
     onChange: (payload: LensMarkFacetPayload) => void
     readonly?: boolean
-    /** Human-readable label for the referenced Mark (e.g. shortName). Falls back to key/universalKey when absent. */
+    /** Human-readable label for the referenced Mark when markId is absent. */
     referenceDisplayName?: string
-    /** Optional inline editor value for the Mark component's shortName. */
-    markShortName?: StandardLiteral
-    /** When provided, renders an inline editor for the Mark shortName. */
-    onChangeMarkShortName?: (value: StandardLiteral) => void
+    /** When provided, renders MarkInlineEditorWithSession for the Mark shortName. */
+    markId?: ComponentUUID
 }
 
 export const LensMarkFacetPayloadEditor: FunctionComponent<LensMarkFacetPayloadEditorProps> = ({
@@ -25,8 +25,7 @@ export const LensMarkFacetPayloadEditor: FunctionComponent<LensMarkFacetPayloadE
     onChange,
     readonly = false,
     referenceDisplayName,
-    markShortName,
-    onChangeMarkShortName
+    markId
 }) => {
     const ref = facet.reference
     const label = referenceDisplayName ?? ref.key ?? ref.universalKey ?? "Mark"
@@ -34,17 +33,9 @@ export const LensMarkFacetPayloadEditor: FunctionComponent<LensMarkFacetPayloadE
 
     return (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
-            {markShortName && onChangeMarkShortName ? (
+            {markId ? (
                 <Box sx={{ minWidth: 0, flexShrink: 0, maxWidth: "40%" }}>
-                    <StandardLiteralEditor
-                        value={markShortName}
-                        onChange={onChangeMarkShortName}
-                        placeholder={label}
-                        readonly={readonly}
-                        fullWidth
-                        size="small"
-                        variant="outlined"
-                    />
+                    <MarkInlineEditorWithSession markId={markId} />
                 </Box>
             ) : (
                 <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0 }}>

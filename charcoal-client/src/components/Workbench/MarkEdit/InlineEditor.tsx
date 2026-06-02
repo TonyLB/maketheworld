@@ -1,54 +1,86 @@
-import React, { FunctionComponent, useCallback } from "react"
-import StandardMark from "@tonylb/mtw-wml/ts/standardize/components/worldState"
-import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
-import { StandardLiteralEditor } from "../foundations/StandardLiteral"
-import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
+import React, { FunctionComponent, useCallback, useMemo } from "react"
 
-export interface MarkInlineEditorProps {
-    mark: StandardMark
-}
+import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
+import StandardMark from "@tonylb/mtw-wml/ts/standardize/components/worldState"
+import type { StandardComponent } from "@tonylb/mtw-wml/ts/standardize/components/baseClasses"
+import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
+
+import { StandardLiteralEditor } from "../foundations/StandardLiteral"
+import {
+    literalPlainString,
+    setWorkingShortNameFromString
+} from "../foundations/workbenchMutations"
+import {
+    WorkbenchComponentProvider,
+    useWorkbenchComponent
+} from "../foundations/WorkbenchComponent"
+
+export type MarkInlineEditorProps = Record<string, never>
+
+const markGuard = (
+    component: StandardComponent | undefined
+): component is StandardMark => component instanceof StandardMark
 
 /**
- * Inline editor for a Mark's shortName only. Used in InlineReferenceList
- * edit slots. Description and remove affordances are handled elsewhere (detail view, list).
+ * Context-only inline editor for a Mark's shortName (D7).
+ * Requires WorkbenchComponentProvider scoped to the Mark componentId.
+ * Description and remove affordances are handled elsewhere (detail view, list).
  */
-export const MarkInlineEditor: FunctionComponent<MarkInlineEditorProps> = ({ mark }) => {
-    const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
-    const markUniversalKey = mark.universalKey
+export const MarkInlineEditor: FunctionComponent<MarkInlineEditorProps> = () => {
+    const { working, updateComponent, readonly: sessionReadonly, missing } =
+        useWorkbenchComponent<StandardMark>()
 
-    const handleShortNameChange = useCallback(
-        (newShortName: StandardLiteral) => {
-            if (!markUniversalKey || readonly) return
-            const currentMark = standardForm.byUniversalId[markUniversalKey]
-            if (!currentMark || !(currentMark instanceof StandardMark)) return
-            const newValue = newShortName._payload?.plain?.toJSON() ?? ''
-            const currentValue = currentMark.shortName?._payload?.plain?.toJSON() ?? ''
-            if (currentValue === newValue || (!currentValue && !newValue)) return
-            updateStandard({
-                type: 'update',
-                update: (draft: StandardForm) => {
-                    const m = draft.byUniversalId[markUniversalKey]
-                    if (m && m instanceof StandardMark) {
-                        m._payload._shortName = newValue ? newShortName : undefined
-                    }
-                    return draft
-                }
+    const displayLiteral = useMemo(
+        () => working?.shortName ?? new StandardLiteral(""),
+        [working?.shortName]
+    )
+
+    const handleChange = useCallback(
+        (newLiteral: StandardLiteral) => {
+            updateComponent((draft) => {
+                setWorkingShortNameFromString(draft, literalPlainString(newLiteral))
             })
         },
-        [markUniversalKey, standardForm, updateStandard, readonly]
+        [updateComponent]
     )
+
+    if (missing || !working) {
+        return null
+    }
 
     return (
         <StandardLiteralEditor
-            value={mark.shortName ?? new StandardLiteral("")}
-            onChange={handleShortNameChange}
+            value={displayLiteral}
+            onChange={handleChange}
             placeholder="Untitled"
             size="small"
             variant="outlined"
-            readonly={readonly}
+            readonly={sessionReadonly}
+            debounce={false}
         />
     )
 }
+
+export interface MarkInlineEditorWithSessionProps {
+    markId: ComponentUUID
+    flushDelayMs?: number
+}
+
+/**
+ * Per-row Mark session wrapper for inline list edit slots and facet rows.
+ * Use in InlineReferenceList renderItemEditor(id) or facet rows that edit Mark shortName.
+ */
+export const MarkInlineEditorWithSession: FunctionComponent<MarkInlineEditorWithSessionProps> = ({
+    markId,
+    flushDelayMs = 1000
+}) => (
+    <WorkbenchComponentProvider
+        componentId={markId}
+        guard={markGuard}
+        flushDelayMs={flushDelayMs}
+    >
+        <MarkInlineEditor />
+    </WorkbenchComponentProvider>
+)
 
 export default MarkInlineEditor

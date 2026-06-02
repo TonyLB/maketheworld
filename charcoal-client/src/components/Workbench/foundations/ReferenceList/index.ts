@@ -1,4 +1,6 @@
 export { ReferenceListEditor } from './ReferenceListEditor'
+export { ReferenceListSessionEditor } from './ReferenceListSessionEditor'
+export type { ReferenceListSessionAccessor } from './ReferenceListSessionEditor'
 export { ReferenceListEditorGeneric } from './ReferenceListEditorGeneric'
 export { TopLevelEditor } from './TopLevelEditor'
 export { InlineReferenceList } from './InlineReferenceList'

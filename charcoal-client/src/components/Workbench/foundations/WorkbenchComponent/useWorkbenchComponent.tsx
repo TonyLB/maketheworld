@@ -10,10 +10,22 @@ import React, {
 import { useDispatch } from 'react-redux'
 
 import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import type { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 import { push } from '../../../../slices/UI/feedback'
-import { prepareComponentForFlush, reconcileCommittedComponent } from '../workbenchMutations'
+import {
+    assureDefaultSituationFromPrimitives,
+    DEFAULT_SITUATION_ID
+} from '../../../../slices/personalAssets'
+import { fetchImports } from '../../../../slices/personalAssets/index.api'
+import {
+    applyWorkingComponentToDraft,
+    findSituationFacet,
+    isSituationProseParent,
+    prepareComponentForFlush,
+    reconcileCommittedComponent
+} from '../workbenchMutations'
 import { useWorkbenchAsset } from '../useWorkbenchAsset'
 import type {
     WorkbenchComponentGuard,
@@ -64,7 +76,7 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
     children
 }: WorkbenchComponentProviderProps<T>): React.ReactElement => {
     const dispatch = useDispatch()
-    const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
+    const { standardForm, updateStandard, readonly, AssetId } = useWorkbenchAsset()
     const { committed, missing } = useMemo(
         () => resolveCommitted<T>(standardForm, componentId, guard),
         [standardForm, componentId, guard]
@@ -110,17 +122,32 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
     }, [])
 
     const dispatchFlush = useCallback(
-        (id: ComponentUUID, flushed: T) => {
-            lastFlushRef.current = flushed
+        (
+            id: ComponentUUID,
+            current: T,
+            options?: { beforeAssign?: (draft: StandardForm, working: T) => void }
+        ) => {
+            let needsFetch = false
             updateStandard({
                 type: 'update',
                 update: (draft) => {
-                    draft.byUniversalId[id] = flushed
+                    options?.beforeAssign?.(draft, current)
+                    const hasDefaultFacet =
+                        isSituationProseParent(current) &&
+                        findSituationFacet(current, DEFAULT_SITUATION_ID) !== undefined
+                    if (hasDefaultFacet) {
+                        needsFetch = assureDefaultSituationFromPrimitives(draft)
+                    }
+                    const flushed = applyWorkingComponentToDraft(draft, id, current)
+                    lastFlushRef.current = flushed
                     return draft
                 }
             })
+            if (needsFetch) {
+                dispatch(fetchImports(AssetId))
+            }
         },
-        [updateStandard]
+        [updateStandard, dispatch, AssetId]
     )
 
     const performFlush = useCallback(
@@ -144,7 +171,7 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
                 return
             }
 
-            dispatchFlush(id, flushed)
+            dispatchFlush(id, current)
 
             if (overrideComponentId === undefined) {
                 const nextReceived = flushed.clone() as T
@@ -171,6 +198,24 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
         cancelPendingFlush()
         performFlush()
     }, [cancelPendingFlush, performFlush])
+
+    const commitAssetScopedUpdate = useCallback(
+        (mutateDraft: (draft: StandardForm, working: T) => void) => {
+            cancelPendingFlush()
+            const current = workingRef.current
+            if (!current || missing) {
+                return
+            }
+
+            dispatchFlush(componentId, current, { beforeAssign: mutateDraft })
+
+            const flushed = prepareComponentForFlush(current)
+            const nextReceived = flushed.clone() as T
+            lastReceivedRef.current = nextReceived
+            setLastReceived(nextReceived)
+        },
+        [componentId, missing, cancelPendingFlush, dispatchFlush]
+    )
 
     useEffect(() => {
         performFlushRef.current = performFlush
@@ -292,6 +337,7 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
             updateComponent,
             flushToStandardForm,
             flushNow,
+            commitAssetScopedUpdate,
             isDirty,
             readonly,
             missing
@@ -304,6 +350,7 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
             updateComponent,
             flushToStandardForm,
             flushNow,
+            commitAssetScopedUpdate,
             isDirty,
             readonly,
             missing

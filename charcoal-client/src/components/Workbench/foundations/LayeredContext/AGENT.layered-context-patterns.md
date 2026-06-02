@@ -6,6 +6,8 @@
 
 **Feature/Knowledge (v1):** No SituationFacet layered tabs and no non-DEFAULT situation lists. **`DefaultRenderEditor`** on **`FeatureEditor`** / **`KnowledgeEditor`** only. **`layeredContextUtils`** does not include **Example** as a layered child tag.
 
+**Persistence (Phase 2):** Inline DEFAULT prose on Room / Feature / Knowledge parent editors uses **`DefaultRenderEditor`** inside **`WorkbenchComponentProvider`** (session **`working`** + debounced flush). Layered non-DEFAULT Room situation tabs use **`SituationFacetPayloadEditor`** -> **`SituationFacetRenderFieldsEditor`** (asset-mode **`updateStandard`** per change) until a future slice adds a parent session there.
+
 ---
 
 ## Proposed Patterns

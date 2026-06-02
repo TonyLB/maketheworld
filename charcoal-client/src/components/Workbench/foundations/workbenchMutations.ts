@@ -1,6 +1,110 @@
+import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import type { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
+import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
+import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
+import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
+import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import type { ShortNamePayloadHost } from '@tonylb/mtw-wml/ts/standardize/components/shortNameField'
+import {
+    SituationProseFacetList,
+    SituationProseFacetPayload,
+    StandardSituationProseFacet
+} from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
+
+export type SituationProseParent = StandardRoom | StandardFeature | StandardKnowledge
+
+export function isSituationProseParent(component: unknown): component is SituationProseParent {
+    return (
+        component instanceof StandardRoom ||
+        component instanceof StandardFeature ||
+        component instanceof StandardKnowledge
+    )
+}
+
+type SituationProseParentPayloadHost = {
+    _situations: SituationProseFacetList
+}
+
+export const findSituationFacet = (
+    parent: SituationProseParent,
+    situationId: ComponentUUID
+): StandardSituationProseFacet | undefined =>
+    parent.situations.items.find((f) => f.reference?.universalKey === situationId)
+
+export const updateSituationFacetPayloadOnParent = (
+    parent: SituationProseParent,
+    situationId: ComponentUUID,
+    updatePayload: (prev: SituationProseFacetPayload) => SituationProseFacetPayload,
+    options?: { removeWhenEmpty?: boolean }
+): void => {
+    const facet = findSituationFacet(parent, situationId)
+    if (!facet) {
+        return
+    }
+    const newPayload = updatePayload(facet.payload as SituationProseFacetPayload)
+    const payloadHost = parent._payload as unknown as SituationProseParentPayloadHost
+    if (options?.removeWhenEmpty && SituationProseFacetPayload.isEmpty(newPayload)) {
+        const newItems = parent.situations.items.filter(
+            (f) => f.reference?.universalKey !== situationId
+        )
+        payloadHost._situations = new SituationProseFacetList(newItems)
+        return
+    }
+    const newItems = parent.situations.items.map((f) => {
+        if (f.reference?.universalKey !== situationId) {
+            return f
+        }
+        return new StandardSituationProseFacet({
+            reference:
+                f.reference ??
+                new StandardReference({ universalKey: situationId, tag: 'Situation' }),
+            payload: newPayload.toJSON()
+        })
+    })
+    payloadHost._situations = new SituationProseFacetList(newItems)
+}
+
+export const ensureSituationFacetWithPayloadOnParent = (
+    parent: SituationProseParent,
+    situationId: ComponentUUID,
+    payload: SituationProseFacetPayload
+): void => {
+    const payloadHost = parent._payload as unknown as SituationProseParentPayloadHost
+    const existingIndex = parent.situations.items.findIndex(
+        (f) => f.reference?.universalKey === situationId
+    )
+    const existingFacet = existingIndex >= 0 ? parent.situations.items[existingIndex] : undefined
+    const existingJson =
+        existingFacet?.payload instanceof SituationProseFacetPayload
+            ? existingFacet.payload.toJSON()
+            : (existingFacet?.payload as Record<string, unknown> | undefined)
+    const mergedPayload = existingJson
+        ? new SituationProseFacetPayload({
+              displayName: payload._displayName?.toJSON() ?? existingJson.displayName,
+              summary: payload._summary?.toJSON() ?? existingJson.summary,
+              description: payload._description?.toJSON() ?? existingJson.description
+          })
+        : payload
+    const newFacet = new StandardSituationProseFacet({
+        reference: new StandardReference({
+            universalKey: situationId,
+            tag: 'Situation'
+        }),
+        payload: mergedPayload.toJSON()
+    })
+    if (existingIndex >= 0) {
+        const newItems = parent.situations.items.slice()
+        newItems[existingIndex] = newFacet
+        payloadHost._situations = new SituationProseFacetList(newItems)
+    } else {
+        payloadHost._situations = new SituationProseFacetList([
+            ...parent.situations.items,
+            newFacet
+        ])
+    }
+}
 
 export type ReconcileCommittedComponentParams<T extends StandardComponent> = {
     lastReceived: T | undefined
@@ -56,6 +160,20 @@ export const applyShortNameOnComponent = <T extends StandardComponent>(component
 export const prepareComponentForFlush = <T extends StandardComponent>(component: T): T => {
     const flushed = component.clone() as T
     applyShortNameOnComponent(flushed)
+    return flushed
+}
+
+/**
+ * Flush assign only (not the edit path): prepare `working` for persist (D11) and assign to
+ * `draft.byUniversalId[componentId]`. Returns the flushed clone written to the draft.
+ */
+export const applyWorkingComponentToDraft = <T extends StandardComponent>(
+    draft: StandardForm,
+    componentId: ComponentUUID,
+    working: T
+): T => {
+    const flushed = prepareComponentForFlush(working)
+    draft.byUniversalId[componentId] = flushed
     return flushed
 }
 

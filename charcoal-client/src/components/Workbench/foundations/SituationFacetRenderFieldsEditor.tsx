@@ -1,39 +1,28 @@
 import React, { FunctionComponent, useCallback, useMemo } from 'react'
-import { Box } from '@mui/material'
 import { useDispatch } from 'react-redux'
-import { useWorkbenchAsset } from './useWorkbenchAsset'
+
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
-import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import {
-    SituationProseFacetList,
-    StandardSituationProseFacet,
     SituationProseFacetPayload
 } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
-import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
-import StandardRenderEditor from './StandardRender/StandardRenderEditor'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
-import { TopLevelStandardLiteralEditor } from './StandardLiteral'
-import { MakeTheWorldAccordion } from '../../UI'
-import type { ScopedInstrumentationOptions } from '../../../testing/scopedInstrumentation'
+import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
+
 import {
     assureDefaultSituationFromPrimitives,
     DEFAULT_SITUATION_ID
 } from '../../../slices/personalAssets'
 import { fetchImports } from '../../../slices/personalAssets/index.api'
-
-export type SituationProseParent = StandardRoom | StandardFeature | StandardKnowledge
-
-export function isSituationProseParent(component: unknown): component is SituationProseParent {
-    return (
-        component instanceof StandardRoom ||
-        component instanceof StandardFeature ||
-        component instanceof StandardKnowledge
-    )
-}
+import type { ScopedInstrumentationOptions } from '../../../testing/scopedInstrumentation'
+import {
+    ensureSituationFacetWithPayloadOnParent,
+    findSituationFacet,
+    isSituationProseParent,
+    updateSituationFacetPayloadOnParent
+} from './workbenchMutations'
+import SituationFacetRenderFieldsView from './SituationFacetRenderFieldsView'
+import { useWorkbenchAsset } from './useWorkbenchAsset'
 
 export interface SituationFacetRenderFieldsEditorProps {
     parentId: ComponentUUID
@@ -48,10 +37,10 @@ export interface SituationFacetRenderFieldsEditorProps {
 }
 
 /**
- * Edits the situation-facet render payload (displayName, summary, description) for a given
- * parent (Room, Feature, or Knowledge) and situation. Returns null if the parent or facet is
- * missing (unless createOnEdit with DEFAULT situation). Uses useWorkbenchAsset() for standardForm,
- * updateStandard, and readonly.
+ * Asset-mode editor for situation-facet render payload (displayName, summary, description).
+ * Reads from Redux standardForm and persists via updateStandard. Used by layered Room
+ * situation views (SituationFacetPayloadEditor). For inline DEFAULT prose on provider
+ * screens, use DefaultRenderEditor instead.
  */
 export const SituationFacetRenderFieldsEditor: FunctionComponent<SituationFacetRenderFieldsEditorProps> = ({
     parentId,
@@ -70,7 +59,7 @@ export const SituationFacetRenderFieldsEditor: FunctionComponent<SituationFacetR
 
     const facet = useMemo(() => {
         if (!parent) return undefined
-        return parent.situations.items.find((f) => f.reference?.universalKey === situationId)
+        return findSituationFacet(parent, situationId)
     }, [parent, situationId])
 
     const updateFacetPayload = useCallback(
@@ -81,24 +70,9 @@ export const SituationFacetRenderFieldsEditor: FunctionComponent<SituationFacetR
                 update: (draft: StandardForm): StandardForm => {
                     const draftParent = draft.byUniversalId[parentId]
                     if (!isSituationProseParent(draftParent)) return draft
-                    const facetToUpdate = draftParent.situations.items.find((f) => f.reference?.universalKey === situationId)
-                    if (!facetToUpdate) return draft
-                    const newPayload = updatePayload(facetToUpdate.payload as SituationProseFacetPayload)
-                    if (removeWhenEmpty && SituationProseFacetPayload.isEmpty(newPayload)) {
-                        const newItems = draftParent.situations.items.filter(
-                            (f) => f.reference?.universalKey !== situationId
-                        )
-                        draftParent._payload._situations = new SituationProseFacetList(newItems)
-                        return draft
-                    }
-                    const newItems = draftParent.situations.items.map((f) => {
-                        if (f.reference?.universalKey !== situationId) return f
-                        return new StandardSituationProseFacet({
-                            reference: f.reference ?? new StandardReference({ universalKey: situationId, tag: 'Situation' }),
-                            payload: newPayload.toJSON()
-                        })
+                    updateSituationFacetPayloadOnParent(draftParent, situationId, updatePayload, {
+                        removeWhenEmpty
                     })
-                    draftParent._payload._situations = new SituationProseFacetList(newItems)
                     return draft
                 }
             }, options)
@@ -116,38 +90,7 @@ export const SituationFacetRenderFieldsEditor: FunctionComponent<SituationFacetR
                     needsFetch = assureDefaultSituationFromPrimitives(draft)
                     const draftParent = draft.byUniversalId[parentId]
                     if (!isSituationProseParent(draftParent)) return draft
-                    const existingIndex = draftParent.situations.items.findIndex(
-                        (f) => f.reference?.universalKey === situationId
-                    )
-                    const existingFacet = existingIndex >= 0 ? draftParent.situations.items[existingIndex] : undefined
-                    const existingJson =
-                        existingFacet?.payload instanceof SituationProseFacetPayload
-                            ? existingFacet.payload.toJSON()
-                            : (existingFacet?.payload as Record<string, unknown> | undefined)
-                    const mergedPayload = existingJson
-                        ? new SituationProseFacetPayload({
-                              displayName: payload._displayName?.toJSON() ?? existingJson.displayName,
-                              summary: payload._summary?.toJSON() ?? existingJson.summary,
-                              description: payload._description?.toJSON() ?? existingJson.description
-                          })
-                        : payload
-                    const newFacet = new StandardSituationProseFacet({
-                        reference: new StandardReference({
-                            universalKey: situationId,
-                            tag: 'Situation'
-                        }),
-                        payload: mergedPayload.toJSON()
-                    })
-                    if (existingIndex >= 0) {
-                        const newItems = draftParent.situations.items.slice()
-                        newItems[existingIndex] = newFacet
-                        draftParent._payload._situations = new SituationProseFacetList(newItems)
-                    } else {
-                        draftParent._payload._situations = new SituationProseFacetList([
-                            ...draftParent.situations.items,
-                            newFacet
-                        ])
-                    }
+                    ensureSituationFacetWithPayloadOnParent(draftParent, situationId, payload)
                     return draft
                 }
             })
@@ -233,43 +176,20 @@ export const SituationFacetRenderFieldsEditor: FunctionComponent<SituationFacetR
     const canRenderEmpty = createOnEdit && situationId === DEFAULT_SITUATION_ID
     if (!parent || (!facet && !canRenderEmpty)) return null
 
-    const emptyRender = new StandardRender([])
     const payload = facet ? (facet.payload as SituationProseFacetPayload) : undefined
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <MakeTheWorldAccordion title="Appearance" defaultExpanded>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
-                    <TopLevelStandardLiteralEditor
-                        value={payload?._displayName ?? new StandardLiteral('')}
-                        onChange={handleDisplayNameChange}
-                        label="Display Name"
-                        placeholder="Enter a Display Name"
-                        size="small"
-                        readonly={readonly}
-                    />
-                    <StandardRenderEditor
-                        title="Summary"
-                        value={payload?._summary ?? emptyRender}
-                        onChange={handleSummaryChange}
-                        validLinkTags={['Feature', 'Knowledge']}
-                        toolbar={true}
-                        placeholder="Enter a Summary"
-                        tag="Summary"
-                    />
-                    <StandardRenderEditor
-                        title="Description"
-                        value={payload?._description ?? emptyRender}
-                        onChange={handleDescriptionChange}
-                        validLinkTags={['Feature', 'Knowledge']}
-                        toolbar={true}
-                        placeholder="Enter a Description"
-                        tag="Description"
-                    />
-                </Box>
-            </MakeTheWorldAccordion>
-        </Box>
+        <SituationFacetRenderFieldsView
+            payload={payload}
+            readonly={readonly}
+            onDisplayNameChange={handleDisplayNameChange}
+            onSummaryChange={handleSummaryChange}
+            onDescriptionChange={handleDescriptionChange}
+        />
     )
 }
 
 export default SituationFacetRenderFieldsEditor
+
+export type { SituationProseParent } from './workbenchMutations'
+export { isSituationProseParent } from './workbenchMutations'
