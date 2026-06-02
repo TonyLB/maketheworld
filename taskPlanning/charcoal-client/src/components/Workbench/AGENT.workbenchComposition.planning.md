@@ -154,7 +154,7 @@ Mark **Status** `[X]` when normative. Phases reference IDs.
 
 | ID | Status | Decision | Notes / options |
 | --- | --- | --- | --- |
-| **D1** | [X] | **Where `useWorkbenchComponent` lives** | **Locked: (A)** [`foundations/useWorkbenchComponent.ts`](../../../../../charcoal-client/src/components/Workbench/foundations/useWorkbenchComponent.ts) next to `useWorkbenchAsset`. |
+| **D1** | [X] | **Where `useWorkbenchComponent` lives** | **Locked: (A)** [`foundations/WorkbenchComponent/`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/) (`index.ts` barrel; hook in `useWorkbenchComponent.tsx`) next to `useWorkbenchAsset`. |
 | **D2** | [X] | **Mutation style (working vs flush)** | **Working:** `updateComponent` uses `working.clone()` then mutates clone (`_payload` or `withShortName()` per **D3**). **Flush: (A)** `draft.byUniversalId[id] = working.clone()`. |
 | **D3** | [X] | **`withShortName()` in mtw-wml** | **Locked: (B)** add `withShortName()` on component wrapper in **mtw-wml in parallel** with Phase 1 client work (AGENT.implementation follow-up). Client may still use `normalizeOptionalLiteral` / apply-on-flush until `with*` lands. |
 | **D4** | [X] | **`WorkbenchShortNameField` API** | **Locked: (A)** context only --- field consumes **working** + `updateComponent` from `useWorkbenchComponent` / `WorkbenchComponentProvider`. **No** `updateStandard` or persist debounce in the field. **Phase 1 task:** add **`useWorkbenchComponent` test harness** (provider wrapper + helpers to seed `standardForm` / `committed`, drive `updateComponent`, assert `working` and flush) for unit/RTL tests; do not add prop bypass on the field itself. |
@@ -332,7 +332,7 @@ These do **not** block Phase 1. Resolve during implementation or later phases as
 
 ### Phase 1 --- Component session + shortName (highest ROI)
 
-- `useWorkbenchComponent(componentId, guard)` in **`foundations/useWorkbenchComponent.ts`** (**D1**) -> `{ working, lastReceived, committed, updateComponent, flushToStandardForm, flushNow, isDirty?, readonly, missing }`
+- `useWorkbenchComponent(componentId, guard)` in **`foundations/WorkbenchComponent/`** (**D1**) -> `{ working, lastReceived, committed, updateComponent, flushToStandardForm, flushNow, isDirty?, readonly, missing }`
 - Debounced flush per **D8** / **D8a** (timer reset on `updateComponent`; default 1000ms); `flushNow` on unmount + breadcrumb (**D8a**); advance `lastReceived` on flush (**D14b**)
 - Flush assigns `draft.byUniversalId[id] = working.clone()` (**D2**)
 - `reconcileCommittedComponent` helper + tests; wire external `committed` per **D14**; echo skip **D14a**; cancel/reschedule debounce on external reconcile **D14c**
@@ -369,7 +369,7 @@ These do **not** block Phase 1. Resolve during implementation or later phases as
 | Phase | Status | Notes |
 | --- | --- | --- |
 | Decisions D1-D14 | All locked (incl. D11-D13, D14a-c) | Milestone 0 complete |
-| Phase 1 | In progress | `useWorkbenchComponent` + provider + test harness landed; flush/reconcile/fields pending |
+| Phase 1 | In progress | Session module under `WorkbenchComponent/`; flush/reconcile/fields pending |
 | Phase 2 | Not started | |
 | Phase 3 | Not started | |
 | Phase 4 | Not started | |
@@ -395,7 +395,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets).
 - [ ] **Milestone 1 --- Phase 1 implementation**
   - [X] Add `useWorkbenchComponent` + provider in `foundations/` (per **D1**, **D8**)
   - [X] Add `useWorkbenchComponent` **test harness** (per **D4**)
-  - [ ] Reorganize session module into [`foundations/WorkbenchComponent/`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/) (`index.ts` barrel; hook/provider/types; colocate tests + `testing/` harness/mock --- drop `useWorkbenchComponent.*` filename prefix on non-hook files)
+  - [X] Reorganize session module into [`foundations/WorkbenchComponent/`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/) (`index.ts` barrel; `baseClasses.ts`; hook/provider in `useWorkbenchComponent.tsx`; colocate tests + `testing/` harness/mock)
   - [ ] Implement debounced `flushToStandardForm` + `flushNow` (per **D8**, **D8a**; flush `working.clone()` per **D2**)
   - [ ] Implement resync per **D14** + `reconcileCommittedComponent` tests
   - [ ] Add `workbenchMutations.ts` + tests (per **D10**, **D11**; no pre-flush equality guard per **D12**)

@@ -2,15 +2,16 @@
  * @vitest-environment jsdom
  */
 
+import React from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, waitFor } from '@testing-library/react'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
-import { mockWorkbenchReturn } from './useWorkbenchComponent.testMock'
+import { mockWorkbenchReturn } from './testing/mock'
 
-vi.mock('./useWorkbenchAsset', () => ({
+vi.mock('../useWorkbenchAsset', () => ({
     useWorkbenchAsset: () => mockWorkbenchReturn
 }))
 
@@ -20,7 +21,7 @@ import {
     resetWorkbenchAssetMock,
     setWorkingShortName,
     updateStandardMock
-} from './useWorkbenchComponent.testHarness'
+} from './testing/harness'
 
 const FEATURE_ID = 'FEATURE#feat1' as ComponentUUID
 const ROOM_ID = 'ROOM#room1' as ComponentUUID

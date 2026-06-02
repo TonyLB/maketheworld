@@ -6,12 +6,12 @@ export {
     WorkbenchComponentProvider,
     useWorkbenchComponent,
     useWorkbenchComponentContext
-} from './foundations/useWorkbenchComponent'
+} from './foundations/WorkbenchComponent'
 export type {
     WorkbenchComponentGuard,
     WorkbenchComponentProviderProps,
     WorkbenchComponentSession
-} from './foundations/useWorkbenchComponent'
+} from './foundations/WorkbenchComponent'
 export { WorkbenchAssetEditor } from './WorkbenchAssetEditor'
 export { default as AssetEditForm } from './WorkbenchAssetEditForm'
 export { default as CharacterEditor } from './CharacterEdit/CharacterEditor'

@@ -1,7 +1,7 @@
 import { vi } from 'vitest'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
-import type { useWorkbenchAsset } from './useWorkbenchAsset'
+import type { useWorkbenchAsset } from '../../useWorkbenchAsset'
 
 export const updateStandardMock = vi.fn()
 

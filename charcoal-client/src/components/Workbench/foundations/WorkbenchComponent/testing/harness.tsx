@@ -17,17 +17,17 @@ import {
     useWorkbenchComponent,
     type WorkbenchComponentGuard,
     type WorkbenchComponentSession
-} from './useWorkbenchComponent'
+} from '../useWorkbenchComponent'
 import {
     seedWorkbenchAsset,
     updateStandardMock
-} from './useWorkbenchComponent.testMock'
+} from './mock'
 
 export {
     resetWorkbenchAssetMock,
     seedWorkbenchAsset,
     updateStandardMock
-} from './useWorkbenchComponent.testMock'
+} from './mock'
 
 export type WorkbenchComponentHarnessOptions<T extends StandardComponent> = {
     wml: string | StandardForm

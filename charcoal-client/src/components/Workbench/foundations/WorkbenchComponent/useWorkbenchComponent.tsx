@@ -11,18 +11,18 @@ import React, {
 import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
-import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { useWorkbenchAsset } from '../useWorkbenchAsset'
 import type {
     WorkbenchComponentGuard,
     WorkbenchComponentProviderProps,
     WorkbenchComponentSession
-} from './useWorkbenchComponent.types'
+} from './baseClasses'
 
 export type {
     WorkbenchComponentGuard,
     WorkbenchComponentProviderProps,
     WorkbenchComponentSession
-} from './useWorkbenchComponent.types'
+} from './baseClasses'
 
 const defaultGuard = <T extends StandardComponent>(
     component: StandardComponent | undefined
@@ -96,15 +96,15 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
             updater(next)
             workingRef.current = next // sync before setWorking; flush timers read the ref
             setWorking(next)
-            // slice 398: reset debounce timer here (D8a)
+            // slice 399: reset debounce timer here (D8a)
         },
         [missing]
     )
 
-    // slice 398: debounced flushToStandardForm + D2 assign via updateStandard
+    // slice 399: debounced flushToStandardForm + D2 assign via updateStandard
     const flushToStandardForm = useCallback(() => {}, [])
 
-    // slice 398: bypass debounce and flush workingRef to Redux
+    // slice 399: bypass debounce and flush workingRef to Redux
     const flushNow = useCallback(() => {}, [])
 
     const isDirty = useMemo(() => {

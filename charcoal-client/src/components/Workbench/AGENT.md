@@ -73,7 +73,7 @@ type WorkbenchBreadcrumbEntry = {
 ### Core Methods
 
 - **`useWorkbenchAsset()`**: Hook providing `standardForm`, `updateStandard`, `readonly`, and other asset context; derives `AssetId` from workbench Redux state
-- **`WorkbenchComponentProvider`** / **`useWorkbenchComponent()`**: Component editing session --- holds `working`, `lastReceived`, and `committed` for one `componentId`; `updateComponent` mutates the working copy immediately; debounced flush to Redux is wired in a follow-on slice (see [`AGENT.workbenchComposition.planning.md`](../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchComposition.planning.md))
+- **`WorkbenchComponentProvider`** / **`useWorkbenchComponent()`** ([`foundations/WorkbenchComponent/`](./foundations/WorkbenchComponent/)): Component editing session --- holds `working`, `lastReceived`, and `committed` for one `componentId`; `updateComponent` mutates the working copy immediately; debounced flush to Redux is wired in a follow-on slice (see [`AGENT.workbenchComposition.planning.md`](../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchComposition.planning.md))
 - **`navigateToComponent(componentId)`**: Sets breadcrumb stack to a single component entry
 - **`pushBreadcrumb(entry)`**: Pushes a component entry (e.g. when navigating to an Example or Guidance from Room)
 - **`replaceTopBreadcrumb(newComponentId)`**: Replaces the top of the stack (e.g. when switching tabs in LayeredContextView)
@@ -235,4 +235,4 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 
 - **RoomEdit/ExitEditor**: May need further review for error handling, UX, accessibility (see [charcoal-client/AGENT.md](../../AGENT.md) Technical Debt)
 - **Component Complexity**: Some components mix layout, navigation, and editing concerns
-- **Testing Coverage**: Expand tests for Workbench components; follow [AGENT.testing.md](../../AGENT.testing.md) for Vitest patterns. For `useWorkbenchComponent` session tests, prefer [`foundations/useWorkbenchComponent.testHarness.tsx`](./foundations/useWorkbenchComponent.testHarness.tsx) over ad hoc `mockWorkbenchReturn` setup.
+- **Testing Coverage**: Expand tests for Workbench components; follow [AGENT.testing.md](../../AGENT.testing.md) for Vitest patterns. For `useWorkbenchComponent` session tests, import from [`foundations/WorkbenchComponent/testing/harness.tsx`](./foundations/WorkbenchComponent/testing/harness.tsx) (and [`testing/mock.ts`](./foundations/WorkbenchComponent/testing/mock.ts) for `seedWorkbenchAsset` / `updateStandardMock`); do not import test utilities from the production barrel.
