@@ -16,6 +16,8 @@ interface StandardLiteralEditorProps {
     fullWidth?: boolean;
     size?: 'small' | 'medium';
     variant?: 'outlined' | 'filled' | 'standard';
+    /** When false, onChange fires on each keystroke (session flush debounces persist). Default true. */
+    debounce?: boolean;
 }
 
 export const StandardLiteralEditor: FunctionComponent<StandardLiteralEditorProps> = ({
@@ -26,7 +28,8 @@ export const StandardLiteralEditor: FunctionComponent<StandardLiteralEditorProps
     readonly = false,
     fullWidth = true,
     size = 'medium',
-    variant = 'outlined'
+    variant = 'outlined',
+    debounce = true
 }) => {
     const { readonly: assetReadonly } = useWorkbenchAsset()
     const isReadonly = readonly || assetReadonly
@@ -46,16 +49,32 @@ export const StandardLiteralEditor: FunctionComponent<StandardLiteralEditorProps
         value: localValue,
         delay: 1000,
         onChange: (newValue: string) => {
-            if (newValue !== stringValue) {
+            if (debounce && newValue !== stringValue) {
                 const newLiteral = new StandardLiteral(newValue)
                 onChange(newLiteral)
             }
         }
     })
-    
-    const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        setLocalValue(event.target.value)
-    }, [])
+
+    const propagateChange = useCallback(
+        (newValue: string) => {
+            if (newValue !== stringValue) {
+                onChange(new StandardLiteral(newValue))
+            }
+        },
+        [onChange, stringValue]
+    )
+
+    const handleChange = useCallback(
+        (event: React.ChangeEvent<HTMLInputElement>) => {
+            const newValue = event.target.value
+            setLocalValue(newValue)
+            if (!debounce) {
+                propagateChange(newValue)
+            }
+        },
+        [debounce, propagateChange]
+    )
     
     return (
         <TextField

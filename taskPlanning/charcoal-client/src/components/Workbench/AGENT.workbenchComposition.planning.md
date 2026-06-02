@@ -338,7 +338,7 @@ These do **not** block Phase 1. Resolve during implementation or later phases as
 - `reconcileCommittedComponent` helper + tests; wire external `committed` per **D14**; echo skip **D14a**; cancel/reschedule debounce on external reconcile **D14c**
 - `workbenchMutations.ts`: `normalizeOptionalLiteral` / apply-on-flush (**D10**, **D11**); `reconcileCommittedComponent`; prefer **`withShortName()`** in mtw-wml when landed (**D3**, parallel track)
 - `WorkbenchComponentProvider` + **`useWorkbenchComponent` test harness** + `WorkbenchShortNameField` (context-only **D4**)
-- `StandardLiteralEditor` used **without** internal persist debounce when `debounce={false}` or session prop
+- `StandardLiteralEditor` / `TopLevelStandardLiteralEditor` use **`debounce={false}`** under `WorkbenchComponentProvider` (session owns persist debounce); default `debounce={true}` elsewhere
 - Refactor **FeatureEditor**, **KnowledgeEditor**, **RoomEditor**, **AreaEditor**
 - Unit tests: reconcile helper, hook flush debounce (via harness), harness mutation assertions; one RTL test for shortName field
 
@@ -369,7 +369,7 @@ These do **not** block Phase 1. Resolve during implementation or later phases as
 | Phase | Status | Notes |
 | --- | --- | --- |
 | Decisions D1-D14 | All locked (incl. D11-D13, D14a-c) | Milestone 0 complete |
-| Phase 1 | In progress | Debounced flush + **D14** reconcile + `workbenchMutations` shortName flush helpers landed; `WorkbenchShortNameField` + editor refactors pending |
+| Phase 1 | In progress | Debounced flush + **D14** reconcile + `workbenchMutations` + `WorkbenchShortNameField` + literal `debounce={false}` landed; Feature/Knowledge/Room/Area editor refactors pending |
 | Phase 2 | Not started | |
 | Phase 3 | Not started | |
 | Phase 4 | Not started | |
@@ -399,7 +399,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets).
   - [X] Implement debounced `flushToStandardForm` + `flushNow` (per **D8**, **D8a**; flush `working.clone()` per **D2**; **D14a/b** on flush; cancel/reschedule helpers ready for **D14c**)
   - [X] Implement resync per **D14** + `reconcileCommittedComponent` tests
   - [X] Add `workbenchMutations.ts` + tests (per **D10**, **D11**; semantic `diff` skip per **D12**, not structural deep-equals)
-  - [ ] Add `WorkbenchShortNameField` + adjust literal editor debounce (per **D4**)
+  - [X] Add `WorkbenchShortNameField` + adjust literal editor debounce (per **D4**)
   - [ ] Refactor Feature, Knowledge, Room, Area editors
   - [ ] Update Recommended order checkboxes and Progress table in this doc
 - [ ] **Milestone 2 --- Phase 2**
