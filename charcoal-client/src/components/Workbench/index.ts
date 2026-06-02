@@ -2,6 +2,16 @@ export { WorkbenchContainer } from './WorkbenchContainer'
 export { default as Content } from './WorkbenchContent'
 export { AssetSelector } from './AssetSelector'
 export { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
+export {
+    WorkbenchComponentProvider,
+    useWorkbenchComponent,
+    useWorkbenchComponentContext
+} from './foundations/WorkbenchComponent'
+export type {
+    WorkbenchComponentGuard,
+    WorkbenchComponentProviderProps,
+    WorkbenchComponentSession
+} from './foundations/WorkbenchComponent'
 export { WorkbenchAssetEditor } from './WorkbenchAssetEditor'
 export { default as AssetEditForm } from './WorkbenchAssetEditForm'
 export { default as CharacterEditor } from './CharacterEdit/CharacterEditor'

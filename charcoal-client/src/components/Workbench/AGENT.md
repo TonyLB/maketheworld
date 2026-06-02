@@ -20,7 +20,7 @@ The Workbench sits within the Charcoal Client's [dual-mode architecture](../../.
 - **Breadcrumb Stack**: Within-asset navigation history; `component` entries for parent components, `componentLayer` for layered sibling views (e.g., Room Situation facets, Guidance, Marks within a Lens)
 - **Reference Lists**: WML `ReferenceList` fields (e.g. `features`, `guidance`, `lens`, `marks`) rendered as accordion lists with add/remove; see [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md)
 - **Layered Context**: Sibling-in-context editing for Room Situation facets and Guidance (Photoshop-layer style); see [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md)
-- **StandardForm**: WML asset representation; the Workbench reads and mutates `StandardForm` via `updateStandard` from `useWorkbenchAsset`
+- **StandardForm**: WML asset representation; the Workbench reads and mutates `StandardForm` via `updateStandard` from `useWorkbenchAsset`; per-component scalar editing uses a **working copy** via `useWorkbenchComponent` (see composition plan)
 
 ---
 
@@ -36,7 +36,7 @@ Provide a form-based, component-centric editing experience for WML assets that:
 ### Key Responsibilities
 
 - **Navigation**: Maintain breadcrumb stack and route to asset, component, or component-layer views
-- **Data Binding**: Connect `StandardForm` (from `personalAssets` slice) to form controls via `useWorkbenchAsset`
+- **Data Binding**: Connect `StandardForm` (from `personalAssets` slice) to form controls via `useWorkbenchAsset`; component editor sessions add a working `StandardComponent` copy via `useWorkbenchComponent` (two-tier model --- see composition plan)
 - **Reference List Management**: Add/remove/reorder components in reference lists (Features, Guidance, Exits, Lenses, Marks)
 - **Read-only for non-Draft assets**: Enforce via `readonly` from `useWorkbenchAsset`
 
@@ -73,6 +73,7 @@ type WorkbenchBreadcrumbEntry = {
 ### Core Methods
 
 - **`useWorkbenchAsset()`**: Hook providing `standardForm`, `updateStandard`, `readonly`, and other asset context; derives `AssetId` from workbench Redux state
+- **`WorkbenchComponentProvider`** / **`useWorkbenchComponent()`** ([`foundations/WorkbenchComponent/`](./foundations/WorkbenchComponent/)): Component editing session for one `componentId` --- holds `working`, `lastReceived`, and `committed`. **`updateComponent`** mutates the working copy immediately (component `clone()` + payload mutate). **`flushToStandardForm`** schedules a debounced persist to Redux via `updateStandard` (default ~1000ms, overridable with `flushDelayMs` on the provider); the timer resets on each `updateComponent`. **`flushNow`** cancels any pending debounce and flushes immediately; also runs on provider unmount and `componentId` change so edits are not lost. Flush uses [`prepareComponentForFlush`](./foundations/workbenchMutations.ts) (clone + **D11** shortName omission-over-empty) then assigns to `draft.byUniversalId[id]` and advances `lastReceived` (**D14b**). Skips dispatch when `lastReceived.diff(working)` is undefined (**D12** semantic no-op at component scope); asset-level no-op suppression remains the `updateStandard` reducer diff. On external `committed` changes (import, stream, other UI paths): three-way reconcile via [`reconcileCommittedComponent`](./foundations/workbenchMutations.ts) (`lastReceived.diff(working)` then `incoming.merge(editDiff)`); semantic echo of the last flush is skipped (**D14a**); merge failure supersedes with a feedback snackbar (override with `onSuperseded` on the provider); pending debounced flush is cancelled before reconcile and rescheduled after (**D14c**). Shared pure helpers (`normalizeOptionalLiteral`, `setWorkingShortNameFromString`, etc.) live in [`workbenchMutations.ts`](./foundations/workbenchMutations.ts) (**D10**). **`WorkbenchShortNameField`** ([`WorkbenchShortNameField.tsx`](./foundations/WorkbenchComponent/WorkbenchShortNameField.tsx)) is the context-only shortName binding for component editors (**D4**): reads/writes `working` via `updateComponent`, no `updateStandard`. Uses `TopLevelStandardLiteralEditor` with **`debounce={false}`** so persist debounce is single-layer on the session (**D8**). Field `readonly` prop is combined with session `readonly` (**D13**). See [`AGENT.workbenchComposition.planning.md`](../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchComposition.planning.md).
 - **`navigateToComponent(componentId)`**: Sets breadcrumb stack to a single component entry
 - **`pushBreadcrumb(entry)`**: Pushes a component entry (e.g. when navigating to an Example or Guidance from Room)
 - **`replaceTopBreadcrumb(newComponentId)`**: Replaces the top of the stack (e.g. when switching tabs in LayeredContextView)
@@ -157,7 +158,7 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 
 ### Rich Text Editing
 
-`StandardRenderEditor` and `MarkEditor` use Slate for rich text; `StandardLiteralEditor` for plain text. Both integrate with `updateStandard` and `useDebouncedOnChange` for persistence.
+`StandardRenderEditor` and `MarkEditor` use Slate for rich text; `StandardLiteralEditor` for plain text. Both integrate with `updateStandard` and `useDebouncedOnChange` for persistence when used outside a component session. Under `WorkbenchComponentProvider`, use **`debounce={false}`** on literal editors (or **`WorkbenchShortNameField`**) so only the session debounces flush to Redux.
 
 ### Best Practices
 
@@ -194,6 +195,7 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 | `RoomEdit/` | RoomEditor, ExitEditor, FeatureListEditor (Lens via LensEdit/LensHeader) |
 | `FeatureEdit/` | FeatureEditor (shortName + DefaultRenderEditor) |
 | `KnowledgeEdit/` | KnowledgeEditor (shortName + DefaultRenderEditor) |
+| `foundations/WorkbenchComponent/WorkbenchShortNameField.tsx` | Context-only shortName field (`useWorkbenchComponent` session) |
 | `foundations/DefaultRenderEditor.tsx` | Inline DEFAULT situation facet prose (Room, Feature, Knowledge) |
 | `foundations/SituationFacetRenderFieldsEditor.tsx` | Shared facet field editor (layered Room situations + DEFAULT inline) |
 | ~~`ExampleEdit/`~~ | **Removed** (2026-05-19); F/K prose via **`DefaultRenderEditor`** |
@@ -234,4 +236,4 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 
 - **RoomEdit/ExitEditor**: May need further review for error handling, UX, accessibility (see [charcoal-client/AGENT.md](../../AGENT.md) Technical Debt)
 - **Component Complexity**: Some components mix layout, navigation, and editing concerns
-- **Testing Coverage**: Expand tests for Workbench components; follow [AGENT.testing.md](../../AGENT.testing.md) for Vitest patterns
+- **Testing Coverage**: Expand tests for Workbench components; follow [AGENT.testing.md](../../AGENT.testing.md) for Vitest patterns. For `useWorkbenchComponent` session tests, import from [`foundations/WorkbenchComponent/testing/harness.tsx`](./foundations/WorkbenchComponent/testing/harness.tsx) (and [`testing/mock.ts`](./foundations/WorkbenchComponent/testing/mock.ts) for `seedWorkbenchAsset` / `updateStandardMock`); do not import test utilities from the production barrel.

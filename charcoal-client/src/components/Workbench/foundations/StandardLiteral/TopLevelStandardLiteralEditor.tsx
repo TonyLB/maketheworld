@@ -14,6 +14,8 @@ interface TopLevelStandardLiteralEditorProps {
     placeholder?: string;
     readonly?: boolean;
     size?: 'small' | 'medium';
+    /** When false, onChange fires on each keystroke (session flush debounces persist). Default true. */
+    debounce?: boolean;
 }
 
 /**
@@ -35,7 +37,8 @@ export const TopLevelStandardLiteralEditor: FunctionComponent<TopLevelStandardLi
     label,
     placeholder = '',
     readonly = false,
-    size = 'medium'
+    size = 'medium',
+    debounce = true
 }) => {
     const { readonly: assetReadonly } = useWorkbenchAsset()
     const isReadonly = readonly || assetReadonly
@@ -53,21 +56,36 @@ export const TopLevelStandardLiteralEditor: FunctionComponent<TopLevelStandardLi
         setLocalValue(newValue)
     }, [value])
     
-    // Debounced onChange to avoid excessive updates
     useDebouncedOnChange({
         value: localValue,
         delay: 1000,
         onChange: (newValue: string) => {
-            if (newValue !== stringValue) {
+            if (debounce && newValue !== stringValue) {
                 const newLiteral = new StandardLiteral(newValue)
                 onChange(newLiteral)
             }
         }
     })
-    
-    const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        setLocalValue(event.target.value)
-    }, [])
+
+    const propagateChange = useCallback(
+        (newValue: string) => {
+            if (newValue !== stringValue) {
+                onChange(new StandardLiteral(newValue))
+            }
+        },
+        [onChange, stringValue]
+    )
+
+    const handleChange = useCallback(
+        (event: React.ChangeEvent<HTMLInputElement>) => {
+            const newValue = event.target.value
+            setLocalValue(newValue)
+            if (!debounce) {
+                propagateChange(newValue)
+            }
+        },
+        [debounce, propagateChange]
+    )
     
     return (
         <Box
