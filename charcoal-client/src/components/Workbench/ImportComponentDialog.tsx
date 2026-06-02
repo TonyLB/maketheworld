@@ -40,6 +40,7 @@ import {
 } from '../../slices/contentHeaders/selectors'
 import { componentDisplayLabel } from '../../lib/componentDisplayLabel'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
@@ -63,6 +64,7 @@ interface ImportComponentDialogProps {
 
 function componentToImportTag(component: StandardComponent): SchemaImportMapping['type'] | null {
     if (component instanceof StandardRoom) return 'Room'
+    if (component instanceof StandardArea) return 'Area'
     if (component instanceof StandardFeature) return 'Feature'
     if (component instanceof StandardKnowledge) return 'Knowledge'
     if (component instanceof StandardMap) return 'Map'
@@ -72,6 +74,7 @@ function componentToImportTag(component: StandardComponent): SchemaImportMapping
 
 const SECTION_ORDER: SchemaImportMapping['type'][] = [
     'Room',
+    'Area',
     'Feature',
     'Knowledge',
     'Map',
@@ -199,6 +202,8 @@ export const ImportComponentDialog: FunctionComponent<ImportComponentDialogProps
             let tag: SchemaImportMapping['type']
             if (component instanceof StandardRoom) {
                 tag = 'Room'
+            } else if (component instanceof StandardArea) {
+                tag = 'Area'
             } else if (component instanceof StandardFeature) {
                 tag = 'Feature'
             } else if (component instanceof StandardKnowledge) {

@@ -11,7 +11,7 @@
 - **ImportComponentDialog** ([charcoal-client/src/components/Workbench/ImportComponentDialog.tsx](charcoal-client/src/components/Workbench/ImportComponentDialog.tsx)): tabs (Recently Visited, Canon, Library, Personal), asset selector, components grouped by type. No tag filter, no search, no `isExcluded`.
 - **ComponentSelectorDialog** ([charcoal-client/src/components/Workbench/foundations/ComponentSelector/ComponentSelectorDialog.tsx](charcoal-client/src/components/Workbench/foundations/ComponentSelector/ComponentSelectorDialog.tsx)): optional `tag` (flat list vs grouped), `isExcluded`, section headers with icons, primary/secondary text.
 
-Schema import types ([packages/mtw-base/ts/schema/metaData.ts](packages/mtw-base/ts/schema/metaData.ts)): `Room | Feature | Knowledge | Map | Moment | Message`. Content headers' `groupComponentsByType` currently only groups Room, Feature, Knowledge, Map, Image, Character (no Moment/Message).
+Schema import types ([packages/mtw-base/ts/schema/metaData.ts](packages/mtw-base/ts/schema/metaData.ts)): `Room | Area | Feature | Knowledge | Map | Moment | Message | Lens`. Content headers' `groupComponentsByType` groups Room, Area, Feature, Knowledge, Map, Image, Character (no Moment/Message/Lens in grouping yet).
 
 ---
 
@@ -60,7 +60,7 @@ Ensure `listContext` can return not only `referenceList` / `setReferenceList` bu
 
 ## 4. Content headers and types (optional / follow-up)
 
-- [charcoal-client/src/slices/contentHeaders/selectors.ts](charcoal-client/src/slices/contentHeaders/selectors.ts): `getComponentsForAsset` and `groupComponentsByType` currently support Room, Feature, Knowledge, Map, Image, Character. SchemaImportMapping also includes **Moment** and **Message**. If the materialized view can expose those types, extend `groupComponentsByType` (or add a separate grouping for the import dialog) so that when the user filters by Moment or Message, components are shown. If the backend/content headers do not yet expose Moment/Message, document that and leave tag filter for those as "no results" for now.
+- [charcoal-client/src/slices/contentHeaders/selectors.ts](charcoal-client/src/slices/contentHeaders/selectors.ts): `groupComponentsByType` includes **Area** (done). Still no Moment/Message/Lens buckets. SchemaImportMapping also includes **Moment** and **Message**. If the materialized view can expose those types, extend `groupComponentsByType` (or add a separate grouping for the import dialog) so that when the user filters by Moment or Message, components are shown. If the backend/content headers do not yet expose Moment/Message, document that and leave tag filter for those as "no results" for now.
 
 ---
 

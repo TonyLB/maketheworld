@@ -30,7 +30,7 @@ const NODE_TAG_IMPORT: Partial<Record<PositionGraphNodeTag, boolean>> = {
     Room: true,
     Feature: true,
     Character: false,
-    Area: false
+    Area: true
 }
 
 const TagNodesSection: FunctionComponent<{

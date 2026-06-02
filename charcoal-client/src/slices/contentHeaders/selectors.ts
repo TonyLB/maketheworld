@@ -8,6 +8,7 @@ import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
@@ -57,13 +58,14 @@ export const getComponentsForAsset = (state: any, assetId: AssetUUID): readonly 
  * Group components by type
  */
 export type ComponentGroup = {
-    type: 'Room' | 'Feature' | 'Knowledge' | 'Map' | 'Image' | 'Character'
+    type: 'Room' | 'Area' | 'Feature' | 'Knowledge' | 'Map' | 'Image' | 'Character'
     components: StandardComponent[]
 }
 
 export const groupComponentsByType = (components: StandardComponent[]): ComponentGroup[] => {
     const groups: ComponentGroup[] = [
         { type: 'Room', components: [] },
+        { type: 'Area', components: [] },
         { type: 'Feature', components: [] },
         { type: 'Knowledge', components: [] },
         { type: 'Map', components: [] },
@@ -74,16 +76,18 @@ export const groupComponentsByType = (components: StandardComponent[]): Componen
     components.forEach(component => {
         if (component instanceof StandardRoom) {
             groups[0].components.push(component)
-        } else if (component instanceof StandardFeature) {
+        } else if (component instanceof StandardArea) {
             groups[1].components.push(component)
-        } else if (component instanceof StandardKnowledge) {
+        } else if (component instanceof StandardFeature) {
             groups[2].components.push(component)
-        } else if (component instanceof StandardMap) {
+        } else if (component instanceof StandardKnowledge) {
             groups[3].components.push(component)
-        } else if (component instanceof StandardImage) {
+        } else if (component instanceof StandardMap) {
             groups[4].components.push(component)
-        } else if (component instanceof StandardCharacter) {
+        } else if (component instanceof StandardImage) {
             groups[5].components.push(component)
+        } else if (component instanceof StandardCharacter) {
+            groups[6].components.push(component)
         }
     })
 

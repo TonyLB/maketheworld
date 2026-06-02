@@ -33,7 +33,7 @@ export interface ReferenceListAffordance {
     addLabel?: string
     /** When true, show "Reference existing {tag}" row that opens component selector. */
     enableReferenceExisting?: boolean
-    /** When true, show "Import" row that opens import dialog. Defaults to true when tag is Room|Feature|Knowledge|Map|Message. */
+    /** When true, show "Import" row that opens import dialog. Defaults to true when tag is Room|Area|Feature|Knowledge|Map|Message. */
     enableImport?: boolean
     /** Override for Reference existing button label; default "Reference existing {tag}". */
     referenceExistingLabel?: string
@@ -56,6 +56,7 @@ export interface ReferenceListEditorProps {
 
 const IMPORTABLE_TAGS: ComponentTag[] = [
     "Room",
+    "Area",
     "Feature",
     "Knowledge",
     "Map",
