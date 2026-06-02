@@ -20,7 +20,7 @@ The Workbench sits within the Charcoal Client's [dual-mode architecture](../../.
 - **Breadcrumb Stack**: Within-asset navigation history; `component` entries for parent components, `componentLayer` for layered sibling views (e.g., Room Situation facets, Guidance, Marks within a Lens)
 - **Reference Lists**: WML `ReferenceList` fields (e.g. `features`, `guidance`, `lens`, `marks`) rendered as accordion lists with add/remove; see [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md)
 - **Layered Context**: Sibling-in-context editing for Room Situation facets and Guidance (Photoshop-layer style); see [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md)
-- **StandardForm**: WML asset representation; the Workbench reads and mutates `StandardForm` via `updateStandard` from `useWorkbenchAsset`
+- **StandardForm**: WML asset representation; the Workbench reads and mutates `StandardForm` via `updateStandard` from `useWorkbenchAsset`; per-component scalar editing uses a **working copy** via `useWorkbenchComponent` (see composition plan)
 
 ---
 
@@ -36,7 +36,7 @@ Provide a form-based, component-centric editing experience for WML assets that:
 ### Key Responsibilities
 
 - **Navigation**: Maintain breadcrumb stack and route to asset, component, or component-layer views
-- **Data Binding**: Connect `StandardForm` (from `personalAssets` slice) to form controls via `useWorkbenchAsset`
+- **Data Binding**: Connect `StandardForm` (from `personalAssets` slice) to form controls via `useWorkbenchAsset`; component editor sessions add a working `StandardComponent` copy via `useWorkbenchComponent` (two-tier model --- see composition plan)
 - **Reference List Management**: Add/remove/reorder components in reference lists (Features, Guidance, Exits, Lenses, Marks)
 - **Read-only for non-Draft assets**: Enforce via `readonly` from `useWorkbenchAsset`
 
@@ -73,6 +73,7 @@ type WorkbenchBreadcrumbEntry = {
 ### Core Methods
 
 - **`useWorkbenchAsset()`**: Hook providing `standardForm`, `updateStandard`, `readonly`, and other asset context; derives `AssetId` from workbench Redux state
+- **`WorkbenchComponentProvider`** / **`useWorkbenchComponent()`**: Component editing session --- holds `working`, `lastReceived`, and `committed` for one `componentId`; `updateComponent` mutates the working copy immediately; debounced flush to Redux is wired in a follow-on slice (see [`AGENT.workbenchComposition.planning.md`](../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchComposition.planning.md))
 - **`navigateToComponent(componentId)`**: Sets breadcrumb stack to a single component entry
 - **`pushBreadcrumb(entry)`**: Pushes a component entry (e.g. when navigating to an Example or Guidance from Room)
 - **`replaceTopBreadcrumb(newComponentId)`**: Replaces the top of the stack (e.g. when switching tabs in LayeredContextView)
@@ -234,4 +235,4 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 
 - **RoomEdit/ExitEditor**: May need further review for error handling, UX, accessibility (see [charcoal-client/AGENT.md](../../AGENT.md) Technical Debt)
 - **Component Complexity**: Some components mix layout, navigation, and editing concerns
-- **Testing Coverage**: Expand tests for Workbench components; follow [AGENT.testing.md](../../AGENT.testing.md) for Vitest patterns
+- **Testing Coverage**: Expand tests for Workbench components; follow [AGENT.testing.md](../../AGENT.testing.md) for Vitest patterns. For `useWorkbenchComponent` session tests, prefer [`foundations/useWorkbenchComponent.testHarness.tsx`](./foundations/useWorkbenchComponent.testHarness.tsx) over ad hoc `mockWorkbenchReturn` setup.

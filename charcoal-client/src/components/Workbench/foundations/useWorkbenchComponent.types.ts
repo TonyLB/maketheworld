@@ -1,0 +1,27 @@
+import type { ReactNode } from 'react'
+import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
+
+export type WorkbenchComponentGuard<T extends StandardComponent> = (
+    component: StandardComponent | undefined
+) => component is T
+
+export type WorkbenchComponentProviderProps<T extends StandardComponent> = {
+    componentId: ComponentUUID
+    guard?: WorkbenchComponentGuard<T>
+    flushDelayMs?: number
+    children: ReactNode
+}
+
+export type WorkbenchComponentSession<T extends StandardComponent> = {
+    componentId: ComponentUUID
+    working: T | undefined
+    lastReceived: T | undefined
+    committed: T | undefined
+    updateComponent: (updater: (draft: T) => void) => void
+    flushToStandardForm: () => void
+    flushNow: () => void
+    isDirty: boolean
+    readonly: boolean
+    missing: boolean
+}

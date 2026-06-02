@@ -369,7 +369,7 @@ These do **not** block Phase 1. Resolve during implementation or later phases as
 | Phase | Status | Notes |
 | --- | --- | --- |
 | Decisions D1-D14 | All locked (incl. D11-D13, D14a-c) | Milestone 0 complete |
-| Phase 1 | Not started | |
+| Phase 1 | In progress | `useWorkbenchComponent` + provider + test harness landed; flush/reconcile/fields pending |
 | Phase 2 | Not started | |
 | Phase 3 | Not started | |
 | Phase 4 | Not started | |
@@ -393,8 +393,9 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets).
   - [X] Resolve **D5**, **D6**, **D7** (defer literal accessor; `ReferenceListControlled` in Phase 3; defer inline editors)
   - [X] Resolve **D9** (defer layout shell --- separate UI sweep after data binding)
 - [ ] **Milestone 1 --- Phase 1 implementation**
-  - [ ] Add `useWorkbenchComponent` + provider in `foundations/` (per **D1**, **D8**)
-  - [ ] Add `useWorkbenchComponent` **test harness** (per **D4**)
+  - [X] Add `useWorkbenchComponent` + provider in `foundations/` (per **D1**, **D8**)
+  - [X] Add `useWorkbenchComponent` **test harness** (per **D4**)
+  - [ ] Reorganize session module into [`foundations/WorkbenchComponent/`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/) (`index.ts` barrel; hook/provider/types; colocate tests + `testing/` harness/mock --- drop `useWorkbenchComponent.*` filename prefix on non-hook files)
   - [ ] Implement debounced `flushToStandardForm` + `flushNow` (per **D8**, **D8a**; flush `working.clone()` per **D2**)
   - [ ] Implement resync per **D14** + `reconcileCommittedComponent` tests
   - [ ] Add `workbenchMutations.ts` + tests (per **D10**, **D11**; no pre-flush equality guard per **D12**)
