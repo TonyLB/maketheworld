@@ -1,3 +1,5 @@
+import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import type { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import type { ShortNamePayloadHost } from '@tonylb/mtw-wml/ts/standardize/components/shortNameField'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
@@ -56,6 +58,20 @@ export const applyShortNameOnComponent = <T extends StandardComponent>(component
 export const prepareComponentForFlush = <T extends StandardComponent>(component: T): T => {
     const flushed = component.clone() as T
     applyShortNameOnComponent(flushed)
+    return flushed
+}
+
+/**
+ * Flush assign only (not the edit path): prepare `working` for persist (D11) and assign to
+ * `draft.byUniversalId[componentId]`. Returns the flushed clone written to the draft.
+ */
+export const applyWorkingComponentToDraft = <T extends StandardComponent>(
+    draft: StandardForm,
+    componentId: ComponentUUID,
+    working: T
+): T => {
+    const flushed = prepareComponentForFlush(working)
+    draft.byUniversalId[componentId] = flushed
     return flushed
 }
 

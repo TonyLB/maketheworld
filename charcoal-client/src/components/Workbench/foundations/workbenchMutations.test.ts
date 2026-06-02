@@ -1,15 +1,20 @@
 import { describe, expect, it } from 'vitest'
+import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 
 import {
     applyShortNameOnComponent,
+    applyWorkingComponentToDraft,
     literalPlainString,
     normalizeOptionalLiteral,
     prepareComponentForFlush,
     reconcileCommittedComponent
 } from './workbenchMutations'
+
+const FEATURE_ID = 'FEATURE#feat1' as ComponentUUID
 
 const featureWithShortName = (shortName: string): StandardFeature =>
     new StandardFeature(
@@ -62,6 +67,46 @@ describe('shortName mutations (D11)', () => {
         const flushed = prepareComponentForFlush(feature)
         expect(flushed.shortName).toBeUndefined()
         expect((flushed.toJSON() as { shortName?: unknown }).shortName).toBeUndefined()
+    })
+})
+
+describe('applyWorkingComponentToDraft', () => {
+    const assetWithFeature = (): StandardForm =>
+        new StandardForm(
+            deIndentWML(`
+                <Asset uuid=(test)>
+                    <Feature uuid=(feat1)>
+                        <ShortName>Original</ShortName>
+                        <Situation uuid=(DEFAULT)><DisplayName>Base</DisplayName></Situation>
+                    </Feature>
+                </Asset>
+            `)
+        )
+
+    it('assigns D11-normalized component to draft.byUniversalId and returns flushed clone', () => {
+        const draft = assetWithFeature()
+        const working = draft.byUniversalId[FEATURE_ID]!.clone() as StandardFeature
+        working._payload._shortName = new StandardLiteral('   ')
+
+        const flushed = applyWorkingComponentToDraft(draft, FEATURE_ID, working)
+        const inDraft = draft.byUniversalId[FEATURE_ID]
+
+        expect(inDraft).toBeDefined()
+        expect(inDraft?.shortName).toBeUndefined()
+        expect(flushed.shortName).toBeUndefined()
+        expect(flushed.equals(inDraft!)).toBe(true)
+        expect(working.shortName).toBeDefined()
+    })
+
+    it('writes trimmed shortName to draft when working has valid shortName', () => {
+        const draft = assetWithFeature()
+        const working = draft.byUniversalId[FEATURE_ID]!.clone() as StandardFeature
+        working._payload._shortName = new StandardLiteral('  Trimmed  ')
+
+        const flushed = applyWorkingComponentToDraft(draft, FEATURE_ID, working)
+
+        expect(flushed.shortName?.toJSON()).toBe('Trimmed')
+        expect(draft.byUniversalId[FEATURE_ID]?.shortName?.toJSON()).toBe('Trimmed')
     })
 })
 

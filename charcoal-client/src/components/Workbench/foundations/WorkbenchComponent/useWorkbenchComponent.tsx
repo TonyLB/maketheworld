@@ -13,7 +13,11 @@ import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 import { push } from '../../../../slices/UI/feedback'
-import { prepareComponentForFlush, reconcileCommittedComponent } from '../workbenchMutations'
+import {
+    applyWorkingComponentToDraft,
+    prepareComponentForFlush,
+    reconcileCommittedComponent
+} from '../workbenchMutations'
 import { useWorkbenchAsset } from '../useWorkbenchAsset'
 import type {
     WorkbenchComponentGuard,
@@ -110,12 +114,12 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
     }, [])
 
     const dispatchFlush = useCallback(
-        (id: ComponentUUID, flushed: T) => {
-            lastFlushRef.current = flushed
+        (id: ComponentUUID, current: T) => {
             updateStandard({
                 type: 'update',
                 update: (draft) => {
-                    draft.byUniversalId[id] = flushed
+                    const flushed = applyWorkingComponentToDraft(draft, id, current)
+                    lastFlushRef.current = flushed
                     return draft
                 }
             })
@@ -144,7 +148,7 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
                 return
             }
 
-            dispatchFlush(id, flushed)
+            dispatchFlush(id, current)
 
             if (overrideComponentId === undefined) {
                 const nextReceived = flushed.clone() as T
