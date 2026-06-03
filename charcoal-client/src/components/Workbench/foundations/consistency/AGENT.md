@@ -1,6 +1,6 @@
 # Workbench consistency layer
 
-**Status:** M1 complete; **M2** materialize + flush (**`applyWorkbenchFlush`**) shipped. Normative **D2**, **normalize**, **preview**, **ref scrub**, and timing detail lives here; cross-links expand in M6. Active task plan: [AGENT.workbenchConsistencyLayer.planning.md](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchConsistencyLayer.planning.md).
+**Status:** M1--M2 complete. Normative **D2**, **normalize**, **preview**, **ref scrub**, and timing detail lives here; cross-links expand in M6. Active task plan: [AGENT.workbenchConsistencyLayer.planning.md](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchConsistencyLayer.planning.md).
 
 ## Purpose
 
@@ -23,7 +23,7 @@ Pure functions in this module mutate a **`StandardForm` draft** passed into them
 | --- | --- | --- |
 | **`materializeComponent`** | Immediately on create/import (pure; use via **`materializeComponentInAsset`**) | See **`materializeComponentInAsset`** below. |
 | **`materializeComponentInAsset`** | Immediately on create/import | **Awaitable** thunk: **`updateStandard`** with **`type: 'updateLocal'`** on the Redux **local** draft (`getLocalStandardForm`). Fast-path when the body is already on the local form and **`fromAsset`** is unset. **Not** on component-session `working`. **Not** deferred to debounced flush. Exposed on [`useWorkbenchAsset`](../useWorkbenchAsset.ts). |
-| **`applyWorkbenchFlush`** | At flush | Pure pipeline: assign **`working`** + **`normalizeWorkbenchDraft`**. Wired from [`dispatchFlush`](../WorkbenchComponent/useWorkbenchComponent.tsx) via **`updateLocal`**; caller runs optional **`beforeAssign`** and [`assureDefaultSituationFromPrimitives`](../../../../slices/personalAssets/assureDefaultSituationFromPrimitives.ts) before **`applyWorkbenchFlush`**. **No** materialize. |
+| **`applyWorkbenchFlush`** | At flush | Pure pipeline: assign **`working`** + **`normalizeWorkbenchDraft`**. Wired from [`dispatchFlush`](../WorkbenchComponent/useWorkbenchComponent.tsx) via **`updateLocal`**; [`assureDefaultSituationFromPrimitives`](../../../../slices/personalAssets/assureDefaultSituationFromPrimitives.ts) may run before **`applyWorkbenchFlush`** when DEFAULT facet prose is present. **No** materialize. |
 | **`normalizeWorkbenchDraft`** | At flush (via **`applyWorkbenchFlush`**) | Fixpoint orphan GC on the **local** draft (**D2**). |
 
 Eager materialize commits a **different** `universalKey` than the open parent session id; it should not supersede that parent's `working` / `lastReceived`. Full normative text: task plan **Orchestration timing (D10)**.
@@ -107,7 +107,7 @@ materializeComponentInAsset(assetId)(spec: MaterializeSpec): Promise<StandardRef
 | **Dispatch path** | `await dispatch(updateStandard(assetId)({ type: 'updateLocal', update: (draft) => materializeComponent(draft, spec) }))`, then `setIntent` + `heartbeat`. Post-check: key present on local form after dispatch. |
 | **Import** | When **`fromAsset`** is set, always use the dispatch path so **`addImportToDraft`** can update **`from`**. |
 
-Call via **`useWorkbenchAsset().materializeComponentInAsset(spec)`** or `dispatch(materializeComponentInAsset(AssetId)(spec))`.
+Call via **`useWorkbenchAsset().materializeComponentInAsset(spec)`** or `dispatch(materializeComponentInAsset(AssetId)(spec))`. Session reference lists ([**`ReferenceListSessionEditor`**](../ReferenceList/ReferenceListSessionEditor.tsx)) and **`AddReferenceImportControl`** (when **`onAssociateReference`** is set) use this path for create/import before local associate on parent **`working`**.
 
 ## `applyWorkbenchFlush` (D10 flush pipeline)
 
@@ -128,7 +128,7 @@ function applyWorkbenchFlush<T extends StandardComponent>(
 
 **Order inside `applyWorkbenchFlush`:** optional **`beforeAssign`** -> [`applyWorkingComponentToDraft`](../workbenchMutations.ts) (D11 shortName prep) -> **`normalizeWorkbenchDraft`**.
 
-**[`useWorkbenchComponent`](../WorkbenchComponent/useWorkbenchComponent.tsx) `dispatchFlush`:** runs caller **`beforeAssign`** and situation DEFAULT assurance **first**, then **`applyWorkbenchFlush`** (without passing **`beforeAssign`** again). Dispatches **`updateStandard({ type: 'updateLocal', ... })`** so the reducer diffs against **`getLocalStandardForm`**, not merged **`getStandardForm`**.
+**[`useWorkbenchComponent`](../WorkbenchComponent/useWorkbenchComponent.tsx) `dispatchFlush`:** runs situation DEFAULT assurance when needed, then **`applyWorkbenchFlush`**. Dispatches **`updateStandard({ type: 'updateLocal', ... })`** so the reducer diffs against **`getLocalStandardForm`**, not merged **`getStandardForm`**.
 
 ## `normalizeWorkbenchDraft` (D3, D4)
 

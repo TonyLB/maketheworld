@@ -27,8 +27,6 @@ export interface ReferenceListControlledProps {
     isExcludedExtra?: (universalKey: ComponentUUID) => boolean
     /** Session-mode: associate without updateStandard. */
     onAssociateReference?: (ref: StandardReference) => void
-    /** Session-mode: import/create-complete association via commitAssetScopedUpdate. */
-    persistDraftUpdate?: (update: (draft: StandardForm) => void) => void
 }
 
 /**
@@ -49,8 +47,7 @@ export const ReferenceListControlled: FunctionComponent<ReferenceListControlledP
     disabled: disabledProp,
     onItemClick,
     isExcludedExtra,
-    onAssociateReference,
-    persistDraftUpdate
+    onAssociateReference
 }) => {
     const { standardForm, readonly: assetReadonly } = useWorkbenchAsset()
     const disabled = disabledProp ?? assetReadonly
@@ -101,8 +98,7 @@ export const ReferenceListControlled: FunctionComponent<ReferenceListControlledP
         enableReferenceExisting,
         enableImport,
         disabled,
-        onAssociateReference,
-        persistDraftUpdate
+        onAssociateReference
     })
 
     return (

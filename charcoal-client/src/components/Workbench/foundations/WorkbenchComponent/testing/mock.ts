@@ -1,12 +1,17 @@
 import { vi } from 'vitest'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import type { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
+import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
+import { componentTagFromUniversalKey } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/abstract'
 
+import { materializeComponent, type MaterializeSpec } from '../../consistency/materializeComponent'
 import type { useWorkbenchAsset } from '../../useWorkbenchAsset'
 
 export const updateStandardMock = vi.fn()
-export const materializeComponentInAssetMock = vi.fn(async () => {
+export const materializeComponentInAssetMock = vi.fn<
+    (spec: MaterializeSpec) => Promise<StandardReference>
+>(async () => {
     throw new Error('materializeComponentInAsset not mocked')
 })
 
@@ -64,6 +69,27 @@ export const seedWorkbenchAsset = (
     mockWorkbenchReturn.localStandardForm = standardForm
     mockWorkbenchReturn.readonly = readonly
     return standardForm
+}
+
+/** Default mock: materialize via pure materializeComponent on the mocked local draft. */
+export const mockMaterializeComponentInAsset = (): void => {
+    materializeComponentInAssetMock.mockImplementation(async (spec: MaterializeSpec) => {
+        const draft = mockWorkbenchReturn.localStandardForm._clone()
+        const ref = materializeComponent(draft, spec)
+        mockWorkbenchReturn.localStandardForm = draft
+        mockWorkbenchReturn.standardForm = draft
+        return ref
+    })
+}
+
+/** Import mock: return ref without requiring importData on the asset fixture. */
+export const mockMaterializeComponentInAssetImport = (): void => {
+    materializeComponentInAssetMock.mockImplementation(
+        async (spec: MaterializeSpec & { fromAsset?: AssetUUID }) => {
+            const tag = componentTagFromUniversalKey(spec.universalKey)
+            return new StandardReference({ universalKey: spec.universalKey, tag })
+        }
+    )
 }
 
 /** Run the most recent updateStandard mock update fn against a draft clone. */

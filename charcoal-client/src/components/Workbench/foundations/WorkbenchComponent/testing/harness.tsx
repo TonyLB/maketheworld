@@ -23,7 +23,10 @@ import {
 export {
     resetWorkbenchAssetMock,
     seedWorkbenchAsset,
-    updateStandardMock
+    updateStandardMock,
+    materializeComponentInAssetMock,
+    mockMaterializeComponentInAsset,
+    mockMaterializeComponentInAssetImport
 } from './mock'
 
 export type WorkbenchComponentHarnessOptions<T extends StandardComponent> = {

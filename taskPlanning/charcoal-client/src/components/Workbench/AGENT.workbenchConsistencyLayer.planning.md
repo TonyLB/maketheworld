@@ -1,6 +1,6 @@
 # Workbench consistency layer (authoring client)
 
-**Status:** In progress (M0--M1 complete; M2 materialize + flush normalize shipped). **Next step:** **M2** --- [`ReferenceListSessionEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListSessionEditor.tsx) create/import: await materialize, then associate (**D10**).
+**Status:** In progress (M0--M2 complete). **Next step:** **M3** --- [`TopLevelEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx) list remove + create/import (**D6**, **D10**).
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into [`charcoal-client/src/components/Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md), [`foundations/ReferenceList/AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md), and [`charcoal-client/src/slices/personalAssets/AGENT.md`](../../../../../charcoal-client/src/slices/personalAssets/AGENT.md).
 
@@ -237,7 +237,7 @@ Mark **Status** `[X]` when normative for implementation.
 | --- | --- | --- |
 | **M0** | Decisions **D1-D8** + API sketch in this doc | Complete |
 | **M1** | Pure **`materialize`**, **`normalizeWorkbenchDraft`** (fixpoint), **`previewOrphanClosure`** + unit tests | Complete |
-| **M2** | Eager global **materialize** thunk + flush **`applyWorkbenchFlush`** (normalize only) in **`commitAssetScopedUpdate`**; session list create/import path | In progress (flush normalize shipped) |
+| **M2** | Eager global **materialize** thunk + flush **`applyWorkbenchFlush`** (normalize only) in **`commitAssetScopedUpdate`**; session list create/import path | Complete |
 | **M3** | Migrate **TopLevelEditor** list remove + import/create association; drop row-level **`removeComponent`** | Not started |
 | **M4** | Migrate **`WMLComponentHeader`** delete + confirm via preview closure | Not started |
 | **M5** | Optional **asset-meta session** (`_shortName`, `_summary`, `_topLevel`); [`AssetEditForm`](../../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx) | Not started |
@@ -262,11 +262,11 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as y
   - [X] Add `previewOrphanClosure(localDraft, ...)` per **D5** (`applyLocal` on clone; `includesNonEmpty` for confirm)
   - [X] Unit tests (**D2**): top-level-only (`referencedBy` empty, still referenced); `ref={0}` stub; nested list ref; transitive GC after Room removed; inherited-only not counted
   - [X] Unit tests (scrub): no-op after valid disassociate + **D2** removal; separate fixture proving scrub repairs a deliberately broken draft only
-- [ ] **M2 --- Session integration** (**D10**)
+- [X] **M2 --- Session integration** (**D10**)
   - [X] **`materializeComponentInAsset`**: awaitable dispatch wrapping **`updateStandard`** (`updateLocal`) + **`materializeComponent`** on the Redux **local** draft only; local-draft early exit when body exists (create / reference-existing); no normalize in this path
   - [X] **`applyWorkbenchFlush`**: used from **`commitAssetScopedUpdate`** / debounced flush via **`updateLocal`** --- optional `beforeAssign` on draft (caller) -> assign **`working`** -> **`normalizeWorkbenchDraft`** on local clone -> existing diff path; **no** materialize
-  - [ ] [`ReferenceListSessionEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListSessionEditor.tsx) create/import: **await materialize** on Redux, then **`onAssociateReference`** on **`working`**; remove inline **`byUniversalId`** from **`commitAssetScopedUpdate`** create callback
-  - [ ] Update **Recommended order** checkboxes and run baseline Workbench + personalAssets tests
+  - [X] [`ReferenceListSessionEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListSessionEditor.tsx) create/import: **await materialize** on Redux, then **`onAssociateReference`** on **`working`**; remove inline **`byUniversalId`** from **`commitAssetScopedUpdate`** create callback
+  - [X] Update **Recommended order** checkboxes and run baseline Workbench + personalAssets tests
 - [ ] **M3 --- TopLevel**
   - [ ] **D6:** TopLevel row remove -> disassociate + flush + normalize
   - [ ] Create/import: **D10** eager materialize on Redux, then local associate on `_topLevel`

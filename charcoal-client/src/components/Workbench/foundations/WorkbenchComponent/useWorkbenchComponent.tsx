@@ -10,7 +10,6 @@ import React, {
 import { useDispatch } from 'react-redux'
 
 import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import type { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 import { push } from '../../../../slices/UI/feedback'
@@ -122,16 +121,11 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
     }, [])
 
     const dispatchFlush = useCallback(
-        (
-            id: ComponentUUID,
-            current: T,
-            options?: { beforeAssign?: (draft: StandardForm, working: T) => void }
-        ) => {
+        (id: ComponentUUID, current: T) => {
             let needsFetch = false
             updateStandard({
                 type: 'updateLocal',
                 update: (draft) => {
-                    options?.beforeAssign?.(draft, current)
                     const hasDefaultFacet =
                         isSituationProseParent(current) &&
                         findSituationFacet(current, DEFAULT_SITUATION_ID) !== undefined
@@ -201,24 +195,6 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
         cancelPendingFlush()
         performFlush()
     }, [cancelPendingFlush, performFlush])
-
-    const commitAssetScopedUpdate = useCallback(
-        (mutateDraft: (draft: StandardForm, working: T) => void) => {
-            cancelPendingFlush()
-            const current = workingRef.current
-            if (!current || missing) {
-                return
-            }
-
-            dispatchFlush(componentId, current, { beforeAssign: mutateDraft })
-
-            const flushed = prepareComponentForFlush(current)
-            const nextReceived = flushed.clone() as T
-            lastReceivedRef.current = nextReceived
-            setLastReceived(nextReceived)
-        },
-        [componentId, missing, cancelPendingFlush, dispatchFlush]
-    )
 
     useEffect(() => {
         performFlushRef.current = performFlush
@@ -340,7 +316,6 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
             updateComponent,
             flushToStandardForm,
             flushNow,
-            commitAssetScopedUpdate,
             isDirty,
             readonly,
             missing
@@ -353,7 +328,6 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
             updateComponent,
             flushToStandardForm,
             flushNow,
-            commitAssetScopedUpdate,
             isDirty,
             readonly,
             missing

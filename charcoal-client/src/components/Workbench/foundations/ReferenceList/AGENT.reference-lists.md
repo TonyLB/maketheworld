@@ -84,7 +84,7 @@ On screens wrapped in **`WorkbenchComponentProvider`** (e.g. Room Guidance, Room
 | Operation | Persist path |
 | --- | --- |
 | Remove, reference existing | **`updateComponent`** on parent `working` + session debounced flush |
-| Create new, import | **`updateComponent`** (immediate UI) + **`commitAssetScopedUpdate`** (one `updateStandard`: add to `draft.byUniversalId` + `applyWorkingComponentToDraft`) |
+| Create new, import | **`await materializeComponentInAsset`** on Redux local draft, then **`updateComponent`** (associate on parent **`working`**) + session debounced flush (**`applyWorkbenchFlush`**) |
 
 - **Requires** `WorkbenchComponentProvider`. Call site passes **`listAccessor`** (`getReferenceList` / `setReferenceList` on the parent working copy).
 - **Asset-mode** **`ReferenceListEditor`** (`listContext` + `updateStandard`) is a thin adapter over **`ReferenceListControlled`** for screens without a parent session.
