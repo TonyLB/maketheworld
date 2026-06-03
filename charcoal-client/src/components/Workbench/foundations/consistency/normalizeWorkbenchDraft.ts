@@ -37,10 +37,10 @@ export function scrubReferences(
 }
 
 /** One normalize pass: orphan detect, body removal, ref scrub. Returns bodies removed. */
-export function normalizeSinglePass(draft: StandardForm): number {
+export function normalizeSinglePass(draft: StandardForm): StandardComponent[] {
     const componentsToRemove = findOrphanComponents(draft)
     if (componentsToRemove.length === 0) {
-        return 0
+        return []
     }
 
     draft._components = draft._components.filter(
@@ -54,7 +54,7 @@ export function normalizeSinglePass(draft: StandardForm): number {
     draft.invalidateCache()
     draft.validate()
 
-    return componentsToRemove.length
+    return componentsToRemove
 }
 
 /**
@@ -64,8 +64,8 @@ export function normalizeSinglePass(draft: StandardForm): number {
  */
 export function normalizeWorkbenchDraft(draft: StandardForm): StandardForm {
     for (let i = 0; i < MAX_NORMALIZE_ITERATIONS; i++) {
-        const removedCount = normalizeSinglePass(draft)
-        if (removedCount === 0) {
+        const removed = normalizeSinglePass(draft)
+        if (removed.length === 0) {
             return draft
         }
         if (i === MAX_NORMALIZE_ITERATIONS - 1) {

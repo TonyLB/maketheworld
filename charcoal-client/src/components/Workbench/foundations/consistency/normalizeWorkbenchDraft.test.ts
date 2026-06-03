@@ -236,6 +236,6 @@ describe('normalizeSinglePass', () => {
             </Asset>
         `))
 
-        expect(normalizeSinglePass(draft)).toBe(0)
+        expect(normalizeSinglePass(draft)).toHaveLength(0)
     })
 })

@@ -1,6 +1,6 @@
 # Workbench consistency layer
 
-**Status:** M1 in progress (**D2**, **D9** `materializeComponent`, **D3/D4** `normalizeWorkbenchDraft` implemented). Normative **D2**, **normalize**, and **ref scrub** detail lives here; flush pipeline and cross-links expand in M6. Active task plan: [AGENT.workbenchConsistencyLayer.planning.md](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchConsistencyLayer.planning.md).
+**Status:** M1 in progress (**D2**, **D9** `materializeComponent`, **D3/D4** `normalizeWorkbenchDraft`, **D5** `previewOrphanClosure` implemented). Normative **D2**, **normalize**, **preview**, and **ref scrub** detail lives here; flush pipeline and cross-links expand in M6. Active task plan: [AGENT.workbenchConsistencyLayer.planning.md](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchConsistencyLayer.planning.md).
 
 ## Purpose
 
@@ -97,11 +97,30 @@ function normalizeWorkbenchDraft(draft: StandardForm): StandardForm
 
 Transitive removal (e.g. Area disassociate -> Room orphan -> Feature orphan) requires the fixpoint loop; one pass is not enough. Workbench authoring uses this fixpoint, **not** [`removeComponent({ cascade: true })`](../../../../../../packages/mtw-wml/ts/standardize/index.ts) (**D7**).
 
-Internal helpers (`findOrphanComponents`, `scrubReferences`, `normalizeSinglePass`) live in the same module for reuse by `previewOrphanClosure` (M1 follow-on).
+Internal helpers (`findOrphanComponents`, `scrubReferences`, `normalizeSinglePass`) live in [`normalizeWorkbenchDraft.ts`](./normalizeWorkbenchDraft.ts) and are shared with **`previewOrphanClosure`**.
+
+## `previewOrphanClosure` (D5)
+
+Simulate fixpoint orphan closure on a **local** draft **without mutating** the input. Uses the same passes as **`normalizeWorkbenchDraft`** via **`normalizeSinglePass`**.
+
+```typescript
+function previewOrphanClosure(
+  localDraft: StandardForm,
+  options?: { applyLocal?: (draft: StandardForm) => void }
+): { removedKeys: ComponentUUID[]; includesNonEmpty: boolean }
+```
+
+**Implementation:** [`previewOrphanClosure.ts`](./previewOrphanClosure.ts), exported from [`index.ts`](./index.ts).
+
+- **`applyLocal`:** run pending disassociates (or other local edits) on an internal **`_clone()`** before simulating normalize. Typed **`afterDisassociate: { site; ref }[]`** waits until **`AssociationSite`** / **`disassociateAtSite`** exist (M2+).
+- **`removedKeys`:** `universalKey` of each body removed across fixpoint passes, in pass order.
+- **`includesNonEmpty`:** `true` if any removed body had **`!isEmpty()`** at removal time. UI should confirm before flush when `true` (e.g. list row or header delete in **M3** / **M4**). Empty-only closure may proceed without that dialog.
+
+Does **not** mutate `localDraft`. Preview on **merged** `getStandardForm` is incorrect (inherited refs do not count for **D2**).
 
 ## Ref scrub (belt-and-suspenders)
 
-`normalizeWorkbenchDraft` runs a **fixpoint** loop; each pass includes a defensive **ref scrub** step after orphan body removal. Preview API and flush pipeline wiring land in M2+; this section defines scrub's role.
+`normalizeWorkbenchDraft` runs a **fixpoint** loop; each pass includes a defensive **ref scrub** step after orphan body removal. Flush pipeline wiring lands in M2+; this section defines scrub's role.
 
 Per pass, after **D2** orphan detection and body removal:
 
