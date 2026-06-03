@@ -1,6 +1,6 @@
 # Workbench consistency layer (authoring client)
 
-**Status:** In progress (M0 complete; M1 in progress). **Next step:** **M1** --- unit tests (**D2** matrix + scrub) in [`foundations/consistency/`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/) (`previewOrphanClosure` shipped).
+**Status:** In progress (M0 complete; M1 pure layer complete). **Next step:** **M2** --- `applyWorkbenchEdit` / flush pipeline wiring in [`commitAssetScopedUpdate`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx).
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into [`charcoal-client/src/components/Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md), [`foundations/ReferenceList/AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md), and [`charcoal-client/src/slices/personalAssets/AGENT.md`](../../../../../charcoal-client/src/slices/personalAssets/AGENT.md).
 
@@ -211,7 +211,7 @@ Mark **Status** `[X]` when normative for implementation.
 | Milestone | Scope | Status |
 | --- | --- | --- |
 | **M0** | Decisions **D1-D8** + API sketch in this doc | Complete |
-| **M1** | Pure **`materialize`**, **`normalizeWorkbenchDraft`** (fixpoint), **`previewOrphanClosure`** + unit tests | In progress (`previewOrphanClosure` shipped; D2/scrub tests pending) |
+| **M1** | Pure **`materialize`**, **`normalizeWorkbenchDraft`** (fixpoint), **`previewOrphanClosure`** + unit tests | Complete |
 | **M2** | Wire flush pipeline helper used by **`commitAssetScopedUpdate`** and one session list create/import path | Not started |
 | **M3** | Migrate **TopLevelEditor** list remove + import/create association; drop row-level **`removeComponent`** | Not started |
 | **M4** | Migrate **`WMLComponentHeader`** delete + confirm via preview closure | Not started |
@@ -228,14 +228,14 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as y
   - [X] **D1** module path: `foundations/consistency/`
   - [X] **D2** `isReferencedInAssetLayer` = `_topLevel` ∪ `referencedBy` on **local** form
   - [X] **D3-D8** normative (fixpoint = workbench cascade; Area v1 orphan GC OK)
-- [ ] **M1 --- Pure layer**
+- [X] **M1 --- Pure layer**
   - [X] Stub [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) with **D2** + **Ref scrub (belt-and-suspenders)** sections (expand in **M6**)
   - [X] Add `isReferencedInAssetLayer(localForm, ref)` per **D2**
   - [X] Add `materializeComponent(draft, { universalKey, fromAsset? })` per **D9** (derive `tag` from prefix; wrap factory + `addImportToDraft`)
   - [X] Add `normalizeWorkbenchDraft(draft)` fixpoint per **D3**, **D4** (uses **D2** on local draft)
   - [X] Add `previewOrphanClosure(localDraft, ...)` per **D5** (`applyLocal` on clone; `includesNonEmpty` for confirm)
-  - [ ] Unit tests (**D2**): top-level-only (`referencedBy` empty, still referenced); `ref={0}` stub; nested list ref; transitive GC after Room removed; inherited-only not counted
-  - [ ] Unit tests (scrub): no-op after valid disassociate + **D2** removal; separate fixture proving scrub repairs a deliberately broken draft only
+  - [X] Unit tests (**D2**): top-level-only (`referencedBy` empty, still referenced); `ref={0}` stub; nested list ref; transitive GC after Room removed; inherited-only not counted
+  - [X] Unit tests (scrub): no-op after valid disassociate + **D2** removal; separate fixture proving scrub repairs a deliberately broken draft only
 - [ ] **M2 --- Session integration**
   - [ ] `applyWorkbenchEdit(draft, { working, componentId?, materialize?, siteMutations? })` used from `commitAssetScopedUpdate`
   - [ ] [`ReferenceListSessionEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListSessionEditor.tsx) create/import uses layer materialize + normalize (remove inline `byUniversalId` in callback)

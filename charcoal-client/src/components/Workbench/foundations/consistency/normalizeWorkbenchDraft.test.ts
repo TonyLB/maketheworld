@@ -4,6 +4,7 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
+import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
 import {
@@ -94,6 +95,53 @@ describe('normalizeWorkbenchDraft', () => {
 
         expect(draft._components).toHaveLength(1)
         expect(draft.byUniversalId['FEATURE#feat1']).toBeDefined()
+    })
+
+    it('transitively removes Room and nested Feature after _topLevel disassociate (D4)', () => {
+        const draft = new StandardForm({
+            universalKey: ASSET_ID,
+            metaData: [],
+            components: [
+                {
+                    tag: 'Room',
+                    key: 'room1',
+                    universalKey: 'ROOM#room1' as ComponentUUID,
+                    features: [
+                        {
+                            tag: 'Feature',
+                            key: 'feature1',
+                            universalKey: 'FEATURE#feature1'
+                        }
+                    ]
+                },
+                {
+                    tag: 'Feature',
+                    key: 'feature1',
+                    universalKey: 'FEATURE#feature1' as ComponentUUID
+                }
+            ],
+            topLevel: [
+                {
+                    tag: 'Room',
+                    key: 'room1',
+                    universalKey: 'ROOM#room1',
+                    ref: 1
+                }
+            ]
+        })
+        const roomRef = new StandardReference({
+            tag: 'Room',
+            key: 'room1',
+            universalKey: 'ROOM#room1'
+        })
+        draft._topLevel = new ReferenceList(
+            draft._topLevel!.payload.filter((ref) => !ref.sameKey(roomRef))
+        )
+
+        normalizeWorkbenchDraft(draft)
+
+        expect(draft.byUniversalId['ROOM#room1']).toBeUndefined()
+        expect(draft.byUniversalId['FEATURE#feature1']).toBeUndefined()
     })
 
     it('transitively removes orphans in a fixpoint (D4)', () => {

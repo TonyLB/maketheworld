@@ -5,6 +5,8 @@ import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/referen
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
 import { isReferencedInAssetLayer } from './isReferencedInAssetLayer'
+import { normalizeWorkbenchDraft } from './normalizeWorkbenchDraft'
+import { previewOrphanClosure } from './previewOrphanClosure'
 
 const ASSET_ID = 'ASSET#test' as const
 
@@ -115,5 +117,46 @@ describe('isReferencedInAssetLayer', () => {
         })
 
         expect(isReferencedInAssetLayer(localForm, queryRef)).toBe(true)
+    })
+
+    it('does not count inherited-only references (local form vs merged display)', () => {
+        const inherited = new StandardForm(deIndentWML(`
+            <Asset uuid=(test)>
+                <Room uuid=(room1) key=(room1)>
+                    <Feature uuid=(feature1) key=(feature1) />
+                </Room>
+            </Asset>
+        `))
+        const local = new StandardForm({
+            universalKey: ASSET_ID,
+            metaData: [],
+            components: [
+                {
+                    tag: 'Feature',
+                    key: 'feature1',
+                    universalKey: 'FEATURE#feature1' as ComponentUUID,
+                    shortName: 'Glow'
+                }
+            ]
+        })
+        const merged = inherited.merge(local)
+        const featureRef = new StandardReference({
+            tag: 'Feature',
+            key: 'feature1',
+            universalKey: 'FEATURE#feature1'
+        })
+
+        expect(merged.referencedBy(featureRef).length).toBeGreaterThan(0)
+        expect(isReferencedInAssetLayer(merged, featureRef)).toBe(true)
+        expect(isReferencedInAssetLayer(local, featureRef)).toBe(false)
+
+        const localClone = local._clone()
+        normalizeWorkbenchDraft(localClone)
+        expect(localClone.byUniversalId['FEATURE#feature1']).toBeUndefined()
+
+        expect(previewOrphanClosure(local)).toEqual({
+            removedKeys: ['FEATURE#feature1'],
+            includesNonEmpty: true
+        })
     })
 })

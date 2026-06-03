@@ -1,6 +1,6 @@
 # Workbench consistency layer
 
-**Status:** M1 in progress (**D2**, **D9** `materializeComponent`, **D3/D4** `normalizeWorkbenchDraft`, **D5** `previewOrphanClosure` implemented). Normative **D2**, **normalize**, **preview**, and **ref scrub** detail lives here; flush pipeline and cross-links expand in M6. Active task plan: [AGENT.workbenchConsistencyLayer.planning.md](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchConsistencyLayer.planning.md).
+**Status:** M1 complete (**D2**, **D9** `materializeComponent`, **D3/D4** `normalizeWorkbenchDraft`, **D5** `previewOrphanClosure`, unit tests). Normative **D2**, **normalize**, **preview**, and **ref scrub** detail lives here; flush pipeline wiring is **M2**; cross-links expand in M6. Active task plan: [AGENT.workbenchConsistencyLayer.planning.md](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchConsistencyLayer.planning.md).
 
 ## Purpose
 
@@ -142,6 +142,17 @@ After **D2**, any key `K` removed in step 2 was **not** on `_topLevel` and had *
 | [`removeComponent`](../../../../../../packages/mtw-wml/ts/standardize/index.ts) (engine) | Scrub is **load-bearing** --- removes component bodies first, then `removeReferences` on survivors and strips `_topLevel` (different API, not workbench normalize) |
 
 See [`normalizeWorkbenchDraft.ts`](./normalizeWorkbenchDraft.ts) (`scrubReferences`) for implementation; code comment points here.
+
+## Tests
+
+Run from `charcoal-client/`: `npm run test:single -- src/components/Workbench/foundations/consistency`
+
+| File | Coverage |
+| --- | --- |
+| [`isReferencedInAssetLayer.test.ts`](./isReferencedInAssetLayer.test.ts) | **D2** matrix: `_topLevel`-only, `ref={0}` stub, nested list ref, inherited-only vs merged (`inherited.merge(local)`), `sameKey` matching |
+| [`materializeComponent.test.ts`](./materializeComponent.test.ts) | Create, idempotent materialize, import (`fromAsset`) |
+| [`normalizeWorkbenchDraft.test.ts`](./normalizeWorkbenchDraft.test.ts) | Fixpoint orphan GC (D3/D4), `_topLevel` transitive removal, Area-participant transitive path, happy-path scrub no-op, `scrubReferences` defensive fixtures |
+| [`previewOrphanClosure.test.ts`](./previewOrphanClosure.test.ts) | Non-mutation, `includesNonEmpty`, `applyLocal`, parity with `normalizeWorkbenchDraft` |
 
 ## Related documentation
 
