@@ -1,6 +1,6 @@
 # Workbench consistency layer (authoring client)
 
-**Status:** In progress (M0--M1 complete; M2 materialize thunk shipped). **Next step:** **M2** --- **`applyWorkbenchFlush`** (normalize at flush) in [`commitAssetScopedUpdate`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx) (**D10**).
+**Status:** In progress (M0--M1 complete; M2 materialize + flush normalize shipped). **Next step:** **M2** --- [`ReferenceListSessionEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListSessionEditor.tsx) create/import: await materialize, then associate (**D10**).
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into [`charcoal-client/src/components/Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md), [`foundations/ReferenceList/AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md), and [`charcoal-client/src/slices/personalAssets/AGENT.md`](../../../../../charcoal-client/src/slices/personalAssets/AGENT.md).
 
@@ -237,7 +237,7 @@ Mark **Status** `[X]` when normative for implementation.
 | --- | --- | --- |
 | **M0** | Decisions **D1-D8** + API sketch in this doc | Complete |
 | **M1** | Pure **`materialize`**, **`normalizeWorkbenchDraft`** (fixpoint), **`previewOrphanClosure`** + unit tests | Complete |
-| **M2** | Eager global **materialize** thunk + flush **`applyWorkbenchFlush`** (normalize only) in **`commitAssetScopedUpdate`**; session list create/import path | Not started |
+| **M2** | Eager global **materialize** thunk + flush **`applyWorkbenchFlush`** (normalize only) in **`commitAssetScopedUpdate`**; session list create/import path | In progress (flush normalize shipped) |
 | **M3** | Migrate **TopLevelEditor** list remove + import/create association; drop row-level **`removeComponent`** | Not started |
 | **M4** | Migrate **`WMLComponentHeader`** delete + confirm via preview closure | Not started |
 | **M5** | Optional **asset-meta session** (`_shortName`, `_summary`, `_topLevel`); [`AssetEditForm`](../../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx) | Not started |
@@ -264,7 +264,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as y
   - [X] Unit tests (scrub): no-op after valid disassociate + **D2** removal; separate fixture proving scrub repairs a deliberately broken draft only
 - [ ] **M2 --- Session integration** (**D10**)
   - [X] **`materializeComponentInAsset`**: awaitable dispatch wrapping **`updateStandard`** (`updateLocal`) + **`materializeComponent`** on the Redux **local** draft only; local-draft early exit when body exists (create / reference-existing); no normalize in this path
-  - [ ] **`applyWorkbenchFlush`** (name TBD): used from **`commitAssetScopedUpdate`** / debounced flush --- apply parent **`working`** (+ optional `beforeAssign` on draft) -> **`normalizeWorkbenchDraft`** on local clone -> existing diff path; **no** materialize
+  - [X] **`applyWorkbenchFlush`**: used from **`commitAssetScopedUpdate`** / debounced flush via **`updateLocal`** --- optional `beforeAssign` on draft (caller) -> assign **`working`** -> **`normalizeWorkbenchDraft`** on local clone -> existing diff path; **no** materialize
   - [ ] [`ReferenceListSessionEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListSessionEditor.tsx) create/import: **await materialize** on Redux, then **`onAssociateReference`** on **`working`**; remove inline **`byUniversalId`** from **`commitAssetScopedUpdate`** create callback
   - [ ] Update **Recommended order** checkboxes and run baseline Workbench + personalAssets tests
 - [ ] **M3 --- TopLevel**

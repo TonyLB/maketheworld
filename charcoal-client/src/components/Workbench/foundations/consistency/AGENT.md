@@ -1,6 +1,6 @@
 # Workbench consistency layer
 
-**Status:** M1 complete; **M2** wires **D10** orchestration. Normative **D2**, **normalize**, **preview**, **ref scrub**, and timing detail lives here; cross-links expand in M6. Active task plan: [AGENT.workbenchConsistencyLayer.planning.md](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchConsistencyLayer.planning.md).
+**Status:** M1 complete; **M2** materialize + flush (**`applyWorkbenchFlush`**) shipped. Normative **D2**, **normalize**, **preview**, **ref scrub**, and timing detail lives here; cross-links expand in M6. Active task plan: [AGENT.workbenchConsistencyLayer.planning.md](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchConsistencyLayer.planning.md).
 
 ## Purpose
 
@@ -23,7 +23,8 @@ Pure functions in this module mutate a **`StandardForm` draft** passed into them
 | --- | --- | --- |
 | **`materializeComponent`** | Immediately on create/import (pure; use via **`materializeComponentInAsset`**) | See **`materializeComponentInAsset`** below. |
 | **`materializeComponentInAsset`** | Immediately on create/import | **Awaitable** thunk: **`updateStandard`** with **`type: 'updateLocal'`** on the Redux **local** draft (`getLocalStandardForm`). Fast-path when the body is already on the local form and **`fromAsset`** is unset. **Not** on component-session `working`. **Not** deferred to debounced flush. Exposed on [`useWorkbenchAsset`](../useWorkbenchAsset.ts). |
-| **`normalizeWorkbenchDraft`** | At flush | Inside flush `updateStandard` after applying parent **`working`** (and any `beforeAssign` draft mutations): [`commitAssetScopedUpdate`](../WorkbenchComponent/useWorkbenchComponent.tsx), debounced `performFlush`. |
+| **`applyWorkbenchFlush`** | At flush | Pure pipeline: assign **`working`** + **`normalizeWorkbenchDraft`**. Wired from [`dispatchFlush`](../WorkbenchComponent/useWorkbenchComponent.tsx) via **`updateLocal`**; caller runs optional **`beforeAssign`** and [`assureDefaultSituationFromPrimitives`](../../../../slices/personalAssets/assureDefaultSituationFromPrimitives.ts) before **`applyWorkbenchFlush`**. **No** materialize. |
+| **`normalizeWorkbenchDraft`** | At flush (via **`applyWorkbenchFlush`**) | Fixpoint orphan GC on the **local** draft (**D2**). |
 
 Eager materialize commits a **different** `universalKey` than the open parent session id; it should not supersede that parent's `working` / `lastReceived`. Full normative text: task plan **Orchestration timing (D10)**.
 
@@ -108,6 +109,27 @@ materializeComponentInAsset(assetId)(spec: MaterializeSpec): Promise<StandardRef
 
 Call via **`useWorkbenchAsset().materializeComponentInAsset(spec)`** or `dispatch(materializeComponentInAsset(AssetId)(spec))`.
 
+## `applyWorkbenchFlush` (D10 flush pipeline)
+
+Apply component-session **`working`** to a **local** `StandardForm` draft, then normalize. **Does not** materialize.
+
+```typescript
+function applyWorkbenchFlush<T extends StandardComponent>(
+  draft: StandardForm,
+  edit: {
+    componentId: ComponentUUID
+    working: T
+    beforeAssign?: (draft: StandardForm, working: T) => void
+  }
+): T
+```
+
+**Implementation:** [`applyWorkbenchFlush.ts`](./applyWorkbenchFlush.ts), exported from [`index.ts`](./index.ts).
+
+**Order inside `applyWorkbenchFlush`:** optional **`beforeAssign`** -> [`applyWorkingComponentToDraft`](../workbenchMutations.ts) (D11 shortName prep) -> **`normalizeWorkbenchDraft`**.
+
+**[`useWorkbenchComponent`](../WorkbenchComponent/useWorkbenchComponent.tsx) `dispatchFlush`:** runs caller **`beforeAssign`** and situation DEFAULT assurance **first**, then **`applyWorkbenchFlush`** (without passing **`beforeAssign`** again). Dispatches **`updateStandard({ type: 'updateLocal', ... })`** so the reducer diffs against **`getLocalStandardForm`**, not merged **`getStandardForm`**.
+
 ## `normalizeWorkbenchDraft` (D3, D4)
 
 Workbench orphan GC on the **local** draft after local disassociations. **Mutates `draft` in place** (same pattern as `materializeComponent` and `updateStandard` callbacks); returns `draft` for chaining.
@@ -150,7 +172,7 @@ Does **not** mutate `localDraft`. Preview on **merged** `getStandardForm` is inc
 
 ## Ref scrub (belt-and-suspenders)
 
-`normalizeWorkbenchDraft` runs a **fixpoint** loop; each pass includes a defensive **ref scrub** step after orphan body removal. Flush pipeline wiring lands in M2+; this section defines scrub's role.
+`normalizeWorkbenchDraft` runs a **fixpoint** loop; each pass includes a defensive **ref scrub** step after orphan body removal. Flush invokes normalize via **`applyWorkbenchFlush`**; this section defines scrub's role.
 
 Per pass, after **D2** orphan detection and body removal:
 
@@ -182,6 +204,7 @@ Run from `charcoal-client/`: `npm run test:single -- src/components/Workbench/fo
 | [`isReferencedInAssetLayer.test.ts`](./isReferencedInAssetLayer.test.ts) | **D2** matrix: `_topLevel`-only, `ref={0}` stub, nested list ref, inherited-only vs merged (`inherited.merge(local)`), `sameKey` matching |
 | [`materializeComponent.test.ts`](./materializeComponent.test.ts) | Create, idempotent materialize, import (`fromAsset`) |
 | [`materializeComponentInAsset.test.ts`](./materializeComponentInAsset.test.ts) | `updateLocal` dispatch, local-draft early exit, import always dispatches, no normalize |
+| [`applyWorkbenchFlush.test.ts`](./applyWorkbenchFlush.test.ts) | Assign, `beforeAssign`, normalize after disassociate, no materialize |
 | [`normalizeWorkbenchDraft.test.ts`](./normalizeWorkbenchDraft.test.ts) | Fixpoint orphan GC (D3/D4), `_topLevel` transitive removal, Area-participant transitive path, happy-path scrub no-op, `scrubReferences` defensive fixtures |
 | [`previewOrphanClosure.test.ts`](./previewOrphanClosure.test.ts) | Non-mutation, `includesNonEmpty`, `applyLocal`, parity with `normalizeWorkbenchDraft` |
 

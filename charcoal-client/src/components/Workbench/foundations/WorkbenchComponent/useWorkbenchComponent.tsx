@@ -19,8 +19,8 @@ import {
     DEFAULT_SITUATION_ID
 } from '../../../../slices/personalAssets'
 import { fetchImports } from '../../../../slices/personalAssets/index.api'
+import { applyWorkbenchFlush } from '../consistency'
 import {
-    applyWorkingComponentToDraft,
     findSituationFacet,
     isSituationProseParent,
     prepareComponentForFlush,
@@ -129,7 +129,7 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
         ) => {
             let needsFetch = false
             updateStandard({
-                type: 'update',
+                type: 'updateLocal',
                 update: (draft) => {
                     options?.beforeAssign?.(draft, current)
                     const hasDefaultFacet =
@@ -138,7 +138,10 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
                     if (hasDefaultFacet) {
                         needsFetch = assureDefaultSituationFromPrimitives(draft)
                     }
-                    const flushed = applyWorkingComponentToDraft(draft, id, current)
+                    const flushed = applyWorkbenchFlush(draft, {
+                        componentId: id,
+                        working: current
+                    })
                     lastFlushRef.current = flushed
                     return draft
                 }

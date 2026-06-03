@@ -1,6 +1,7 @@
 export { isReferencedInAssetLayer } from './isReferencedInAssetLayer'
 export { materializeComponent, type MaterializeSpec } from './materializeComponent'
 export { materializeComponentInAsset } from './materializeComponentInAsset'
+export { applyWorkbenchFlush, type ApplyWorkbenchFlushEdit } from './applyWorkbenchFlush'
 export { normalizeWorkbenchDraft } from './normalizeWorkbenchDraft'
 export {
     previewOrphanClosure,

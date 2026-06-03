@@ -6,6 +6,9 @@ import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import type { useWorkbenchAsset } from '../../useWorkbenchAsset'
 
 export const updateStandardMock = vi.fn()
+export const materializeComponentInAssetMock = vi.fn(async () => {
+    throw new Error('materializeComponentInAsset not mocked')
+})
 
 const defaultStandardForm = new StandardForm({
     universalKey: 'ASSET#test',
@@ -21,6 +24,7 @@ export let mockWorkbenchReturn: ReturnType<typeof useWorkbenchAsset> = {
     inheritedStandardForm: defaultStandardForm,
     inheritedByAssetId: [],
     updateStandard: updateStandardMock,
+    materializeComponentInAsset: materializeComponentInAssetMock,
     loadedImages: {},
     properties: {},
     readonly: false,
@@ -33,6 +37,7 @@ const toStandardForm = (wml: string | StandardForm): StandardForm =>
 
 export const resetWorkbenchAssetMock = (): void => {
     updateStandardMock.mockClear()
+    materializeComponentInAssetMock.mockClear()
     mockWorkbenchReturn = {
         assetKey: 'test',
         AssetId: 'ASSET#test',
@@ -41,6 +46,7 @@ export const resetWorkbenchAssetMock = (): void => {
         inheritedStandardForm: defaultStandardForm,
         inheritedByAssetId: [],
         updateStandard: updateStandardMock,
+        materializeComponentInAsset: materializeComponentInAssetMock,
         loadedImages: {},
         properties: {},
         readonly: false,
@@ -61,12 +67,19 @@ export const seedWorkbenchAsset = (
 }
 
 /** Run the most recent updateStandard mock update fn against a draft clone. */
-export const applyLastUpdateStandardMock = (draft: StandardForm): StandardForm =>
-    updateStandardMock.mock.calls[updateStandardMock.mock.calls.length - 1][0].update(draft)
+export const applyLastUpdateStandardMock = (draft?: StandardForm): StandardForm => {
+    const lastCall = updateStandardMock.mock.calls[updateStandardMock.mock.calls.length - 1][0]
+    const base =
+        draft ??
+        (lastCall.type === 'updateLocal'
+            ? mockWorkbenchReturn.localStandardForm._clone()
+            : mockWorkbenchReturn.standardForm._clone())
+    return lastCall.update(base)
+}
 
 /** Apply the most recent flush to the mocked committed standardForm (simulate Redux echo). */
 export const applyLastFlushToCommitted = (): StandardForm => {
-    const updated = applyLastUpdateStandardMock(mockWorkbenchReturn.standardForm._clone())
+    const updated = applyLastUpdateStandardMock()
     mockWorkbenchReturn.standardForm = updated
     mockWorkbenchReturn.localStandardForm = updated
     return updated

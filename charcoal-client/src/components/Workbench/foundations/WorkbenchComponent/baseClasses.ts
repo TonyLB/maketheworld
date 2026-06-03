@@ -24,7 +24,7 @@ export type WorkbenchComponentSession<T extends StandardComponent> = {
     updateComponent: (updater: (draft: T) => void) => void
     flushToStandardForm: () => void
     flushNow: () => void
-    /** Asset-scoped persist (create/import): one updateStandard with draft surgery + flush assign. */
+    /** Asset-scoped persist (create/import): one updateLocal flush (beforeAssign + applyWorkbenchFlush normalize). */
     commitAssetScopedUpdate: (mutateDraft: (draft: StandardForm, working: T) => void) => void
     isDirty: boolean
     readonly: boolean
