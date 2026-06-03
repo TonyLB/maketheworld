@@ -226,7 +226,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as y
   - [X] **D2** `isReferencedInAssetLayer` = `_topLevel` ∪ `referencedBy` on **local** form
   - [X] **D3-D8** normative (fixpoint = workbench cascade; Area v1 orphan GC OK)
 - [ ] **M1 --- Pure layer**
-  - [ ] Stub [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) with **D2** + **Ref scrub (belt-and-suspenders)** sections (expand in **M6**)
+  - [X] Stub [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) with **D2** + **Ref scrub (belt-and-suspenders)** sections (expand in **M6**)
   - [ ] Add `isReferencedInAssetLayer(localForm, ref)` per **D2**
   - [ ] Add `materializeComponent(draft, { tag, universalKey, fromAsset? })` (wrap factory + `addImportToDraft`)
   - [ ] Add `normalizeWorkbenchDraft(draft)` fixpoint per **D3**, **D4** (uses **D2** on local draft)
