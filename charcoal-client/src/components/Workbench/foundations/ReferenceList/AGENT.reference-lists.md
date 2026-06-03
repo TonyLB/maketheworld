@@ -96,24 +96,18 @@ Domain-specific list accessors belong next to the editor that owns the parent co
 
 ## Asset root / `_topLevel` (D11)
 
-The asset top-level component list ([`TopLevelEditor`](TopLevelEditor.tsx) on [`WorkbenchAssetEditForm`](../../WorkbenchAssetEditForm.tsx)) uses the **same session list pattern** as component-parent lists, backed by **`useWorkbenchAssetMeta`** instead of **`useWorkbenchComponent`**. Normative direction: [Workbench AGENT.md](../../AGENT.md#asset-meta-editing-session-d11).
+The asset top-level component list ([`TopLevelEditor`](TopLevelEditor.tsx) on [`WorkbenchAssetEditForm`](../../WorkbenchAssetEditForm.tsx)) uses the **same session list pattern** as component-parent lists, backed by **`useWorkbenchAssetMeta`** instead of **`useWorkbenchComponent`**. Normative: [Workbench AGENT.md](../../AGENT.md#asset-meta-editing-session-d11).
 
-### Target (M5)
+- **`AssetEditForm`** wraps **`WorkbenchAssetMetaProvider`** (**M5**).
+- **`TopLevelEditor`** keeps TopLevel-specific UI (multi-tag add grid, **`ImageHeader`** rows, table variant) but persists like **`ReferenceListSessionEditor`**: list on asset-meta **`working.topLevel`**, mutations via **`updateAssetMeta`**, debounced flush via **`applyAssetMetaFlush`**.
 
-- Wrap **`AssetEditForm`** in **`WorkbenchAssetMetaProvider`** (**M5**).
-- **`TopLevelEditor`** becomes a thin host over **`ReferenceListControlled`**, wired like **`ReferenceListSessionEditor`**: **`listAccessor`** on asset-meta **`working._topLevel`**, list mutations via **`updateAssetMeta`**, debounced flush via **`applyAssetMetaFlush`**.
-
-| Operation | Persist path (target) |
+| Operation | Persist path |
 | --- | --- |
-| Remove | **`updateAssetMeta`** disassociate on **`working._topLevel`** + debounced flush + normalize (**D6**) |
-| Reference existing | Same local path |
-| Create / import | **`await materializeComponentInAsset`**, then associate on **`working._topLevel`** (**D10**) |
-| Confirm | **`previewOrphanClosure`** when non-empty orphan closure (**M5**) |
+| Remove | **`_topLevel` site only** --- disassociate on **`working.topLevel`** (does **not** clear other parents); debounced flush + normalize (**D6**) may drop **`byUniversalId`** only if **D2** orphan. **`confirmOrphanClosureBeforeAssetMetaDisassociate`** + **`pushChoice`** when non-empty closure. |
+| Reference existing | **`await materializeComponentInAsset`**, then associate on **`working.topLevel`** |
+| Create / import | **`await materializeComponentInAsset`**, then associate on **`working.topLevel`** (**D10**) |
 
-### Current (pre-M5)
-
-- **`TopLevelEditor`** uses **`ReferenceListEditorGeneric`** + asset-level **`updateStandard`** for add/create/import.
-- Row remove calls **`removeComponent`** --- legacy to migrate; not a permanent exception to the session pattern.
+List accessor: [`topLevelAssetMetaListAccessor.ts`](topLevelAssetMetaListAccessor.ts) (`getReferenceList` / `setReferenceList` on **`WorkbenchAssetMetaWorking`**).
 
 ---
 

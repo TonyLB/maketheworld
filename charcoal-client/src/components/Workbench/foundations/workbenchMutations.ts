@@ -309,6 +309,22 @@ export const setWorkingShortNameFromString = <T extends StandardComponent = Stan
     payload._shortName = value ? new StandardLiteral(value) : undefined
 }
 
+/** Set asset-meta shortName on working (edit path; flush uses prepareAssetMetaForFlush). */
+export const setWorkingAssetShortNameFromLiteral = (
+    meta: WorkbenchAssetMetaWorking,
+    literal: StandardLiteral
+): void => {
+    meta.shortName = literalPlainString(literal) ? literal : undefined
+}
+
+/** Set asset-meta summary on working (edit path; flush uses prepareAssetMetaForFlush). */
+export const setWorkingAssetSummary = (
+    meta: WorkbenchAssetMetaWorking,
+    summary: StandardRender
+): void => {
+    meta.summary = summary.isEmpty() ? undefined : summary
+}
+
 /**
  * Three-way reconcile when Redux `committed` changes without this session's flush (D14).
  * Pure helper for unit tests and `useWorkbenchComponent`.

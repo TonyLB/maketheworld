@@ -17,16 +17,17 @@ import LandscapeIcon from "@mui/icons-material/Landscape"
 import CallMadeIcon from "@mui/icons-material/CallMade"
 
 import { useWorkbenchAsset } from "../useWorkbenchAsset"
+import { useWorkbenchAssetMeta } from "../WorkbenchAssetMeta/useWorkbenchAssetMeta"
 import { useDispatch } from "react-redux"
 import { addOnboardingComplete } from "../../../../slices/player/index.api"
-import { addImportToDraft, getTopLevelAddToReferenceList } from "../../../../slices/personalAssets"
 import { navigateToComponent } from "../../../../slices/UI/workbench"
+import { confirmOrphanClosureBeforeAssetMetaDisassociate } from "../consistency/confirmOrphanClosureBeforeLocalEdit"
 import { ReferenceListEditorGeneric } from "./ReferenceListEditorGeneric"
 import { referenceListToItems } from "./referenceListAdapter"
+import { removeReferenceFromListById } from "./referenceListMutations"
 import ImportComponentDialog from "../../ImportComponentDialog"
 import { ComponentSelectorDialog } from "../ComponentSelector"
 import ImageHeader from "../../ImageHeader"
-import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { ReferenceList } from "@tonylb/mtw-wml/ts/standardize/keys/referenceList"
 import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
 import StandardCharacter from "@tonylb/mtw-wml/ts/standardize/components/character"
@@ -37,7 +38,6 @@ import StandardMap from "@tonylb/mtw-wml/ts/standardize/components/map"
 import StandardImage from "@tonylb/mtw-wml/ts/standardize/components/image"
 import StandardArea from "@tonylb/mtw-wml/ts/standardize/components/area"
 import { StandardComponent } from "@tonylb/mtw-wml/ts/standardize/components/baseClasses"
-import { standardComponentFactory } from "@tonylb/mtw-wml/ts/standardize/componentFactory"
 import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
 import { v4 as uuidv4 } from "uuid"
 import { AssetUUID, ComponentUUID } from "@tonylb/mtw-base/ts/schema"
@@ -67,6 +67,15 @@ const TAG_ICONS: Record<string, React.ReactNode> = {
     Situation: <TextSnippetIcon sx={{ fontSize: "1.25rem" }} />
 }
 
+const isTopLevelAssociable = (comp: StandardComponent): boolean =>
+    comp instanceof StandardRoom ||
+    comp instanceof StandardArea ||
+    comp instanceof StandardFeature ||
+    comp instanceof StandardKnowledge ||
+    comp instanceof StandardMap ||
+    comp instanceof StandardCharacter ||
+    comp instanceof StandardImage
+
 export interface TopLevelEditorProps {
     title?: string
     defaultExpanded?: boolean
@@ -78,22 +87,32 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
 }) => {
     const theme = useTheme()
     const dispatch = useDispatch()
-    const { standardForm, updateStandard, readonly, AssetId, inheritedStandardForm } = useWorkbenchAsset()
+    const {
+        standardForm,
+        localStandardForm,
+        materializeComponentInAsset,
+        readonly: assetReadonly,
+        AssetId,
+        inheritedStandardForm
+    } = useWorkbenchAsset()
+    const { working, updateAssetMeta, readonly: sessionReadonly } = useWorkbenchAssetMeta()
+    const readonly = assetReadonly || sessionReadonly
+
     const [addExpanded, setAddExpanded] = useState(false)
     const [importDialogOpen, setImportDialogOpen] = useState(false)
     const [referenceExistingOpen, setReferenceExistingOpen] = useState(false)
 
     const referenceList = useMemo(
-        () => standardForm._topLevel ?? new ReferenceList([]),
-        [standardForm._topLevel]
+        () => working?.topLevel ?? new ReferenceList([]),
+        [working?.topLevel]
     )
 
     const topLevelComponents = useMemo<StandardComponent[]>(() => {
-        if (!standardForm._topLevel) return []
-        return standardForm._topLevel.payload
+        if (!working?.topLevel) return []
+        return working.topLevel.payload
             .map((ref) => standardForm._lookup(ref.standardKey.toJSON()))
             .filter((c): c is StandardComponent => c !== undefined)
-    }, [standardForm])
+    }, [working?.topLevel, standardForm])
 
     const images = useMemo(
         () => topLevelComponents.filter((c): c is StandardImage => c instanceof StandardImage),
@@ -134,17 +153,44 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
         })
     }, [referenceList, standardForm, inheritedStandardForm])
 
-    const summary = useMemo(() => {
+    const listSummary = useMemo(() => {
         if (!items.length) return undefined
         return items.map(({ title: t }) => t).filter(Boolean).join(", ")
     }, [items])
 
+    const updateReferenceList = useCallback(
+        (mutate: (ctx: { referenceList: ReferenceList }) => void) => {
+            if (readonly || !working) {
+                return
+            }
+            updateAssetMeta((draft) => {
+                mutate({ referenceList: draft.topLevel })
+            })
+        },
+        [readonly, working, updateAssetMeta]
+    )
+
     const handleItemRemove = useCallback(
         (id: string) => {
-            if (readonly) return
-            updateStandard({ type: "removeComponent", componentKey: id })
+            if (readonly || !working) {
+                return
+            }
+            void (async () => {
+                const proceed = await confirmOrphanClosureBeforeAssetMetaDisassociate({
+                    dispatch,
+                    localStandardForm,
+                    working,
+                    removeId: id
+                })
+                if (!proceed) {
+                    return
+                }
+                updateAssetMeta((draft) => {
+                    removeReferenceFromListById(draft.topLevel, id)
+                })
+            })()
         },
-        [updateStandard, readonly]
+        [readonly, working, dispatch, localStandardForm, updateAssetMeta]
     )
 
     const handleItemClick = useCallback(
@@ -156,62 +202,50 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
 
     const addAsset = useCallback(
         (tag: AddComponentTag) => () => {
+            if (readonly || !working) {
+                return
+            }
             if (tag === "Room") {
                 dispatch(addOnboardingComplete(["addRoom"]))
             }
-            updateStandard({
-                type: "update",
-                update: (draft: StandardForm) => {
-                    const tagUpper = tag.toUpperCase() as
-                        | "ROOM"
-                        | "AREA"
-                        | "FEATURE"
-                        | "KNOWLEDGE"
-                        | "CHARACTER"
-                        | "MAP"
-                        | "IMAGE"
-                        | "SITUATION"
-                    const enforceKey = enforceTypedKey(tagUpper)
-                    const uuid = uuidv4()
-                    const universalKey = enforceKey(uuid) as ComponentUUID
+            const tagUpper = tag.toUpperCase() as
+                | "ROOM"
+                | "AREA"
+                | "FEATURE"
+                | "KNOWLEDGE"
+                | "CHARACTER"
+                | "MAP"
+                | "IMAGE"
+                | "SITUATION"
+            const enforceKey = enforceTypedKey(tagUpper)
+            const uuid = tag === "Situation" ? `situation-${Date.now()}` : uuidv4()
+            const universalKey = enforceKey(uuid) as ComponentUUID
 
-                    const { component } = standardComponentFactory({ tag, universalKey })
-                    if (component) {
-                        draft.byUniversalId[universalKey] = component
-                        const componentReference = new StandardReference({
-                            universalKey,
-                            tag
-                        })
-                        if (draft._topLevel) {
-                            draft._topLevel = draft._topLevel.assureItem(componentReference)
-                        } else {
-                            draft._topLevel = new ReferenceList([componentReference])
-                        }
-                    } else {
-                        throw new Error(`Invalid tag: ${tag}`)
-                    }
-                    return draft
-                }
-            })
+            void (async () => {
+                const ref = await materializeComponentInAsset({ universalKey })
+                updateAssetMeta((draft) => {
+                    draft.topLevel = draft.topLevel.assureItem(ref)
+                })
+            })()
             setAddExpanded(false)
         },
-        [updateStandard, dispatch]
+        [readonly, working, dispatch, materializeComponentInAsset, updateAssetMeta]
     )
 
     const handleImportSelect = useCallback(
         (fromAsset: AssetUUID, uuid: ComponentUUID, tag: SchemaImportMapping["type"]) => {
-            updateStandard({
-                type: "update",
-                update: (draft) => {
-                    const ref = addImportToDraft(draft, { fromAsset, uuid, tag })
-                    const descriptor = getTopLevelAddToReferenceList(draft)
-                    if (ref && descriptor) descriptor.setReferenceList(descriptor.referenceList.assureItem(ref))
-                    return draft
-                }
-            })
+            if (readonly || !working) {
+                return
+            }
+            void (async () => {
+                const ref = await materializeComponentInAsset({ universalKey: uuid, fromAsset })
+                updateAssetMeta((draft) => {
+                    draft.topLevel = draft.topLevel.assureItem(ref)
+                })
+            })()
             setImportDialogOpen(false)
         },
-        [updateStandard]
+        [readonly, working, materializeComponentInAsset, updateAssetMeta]
     )
 
     const isTopLevelExcluded = useCallback(
@@ -219,53 +253,29 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
             if (referenceList.payload.some((ref) => ref.universalKey === universalKey)) return true
             const comp = standardForm.byUniversalId[universalKey] as StandardComponent | undefined
             if (!comp) return true
-            return !(
-                comp instanceof StandardRoom ||
-                comp instanceof StandardArea ||
-                comp instanceof StandardFeature ||
-                comp instanceof StandardKnowledge ||
-                comp instanceof StandardMap ||
-                comp instanceof StandardCharacter ||
-                comp instanceof StandardImage
-            )
+            return !isTopLevelAssociable(comp)
         },
         [referenceList, standardForm]
     )
 
     const handleReferenceExistingSelect = useCallback(
         (universalKey: ComponentUUID) => {
-            if (readonly) return
-            const comp = standardForm.byUniversalId[universalKey] as StandardComponent | undefined
-            if (!comp) return
-            const tag = comp.tag as AddComponentTag
-            if (
-                !(
-                    comp instanceof StandardRoom ||
-                    comp instanceof StandardArea ||
-                    comp instanceof StandardFeature ||
-                    comp instanceof StandardKnowledge ||
-                    comp instanceof StandardMap ||
-                    comp instanceof StandardCharacter ||
-                    comp instanceof StandardImage
-                )
-            ) {
+            if (readonly || !working) {
                 return
             }
-            updateStandard({
-                type: "update",
-                update: (draft: StandardForm) => {
-                    const ref = new StandardReference({ universalKey, tag })
-                    if (draft._topLevel) {
-                        draft._topLevel = draft._topLevel.assureItem(ref)
-                    } else {
-                        draft._topLevel = new ReferenceList([ref])
-                    }
-                    return draft
-                }
-            })
+            const comp = standardForm.byUniversalId[universalKey] as StandardComponent | undefined
+            if (!comp || !isTopLevelAssociable(comp)) {
+                return
+            }
+            void (async () => {
+                const ref = await materializeComponentInAsset({ universalKey })
+                updateAssetMeta((draft) => {
+                    draft.topLevel = draft.topLevel.assureItem(ref)
+                })
+            })()
             setReferenceExistingOpen(false)
         },
-        [readonly, standardForm, updateStandard]
+        [readonly, working, standardForm, materializeComponentInAsset, updateAssetMeta]
     )
 
     const rowBg = alpha(
@@ -474,11 +484,15 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
         </>
     )
 
+    if (!working) {
+        return null
+    }
+
     return (
         <ReferenceListEditorGeneric
             title={title}
             items={items}
-            summary={summary}
+            summary={listSummary}
             defaultExpanded={defaultExpanded}
             disabled={readonly}
             variant="table"

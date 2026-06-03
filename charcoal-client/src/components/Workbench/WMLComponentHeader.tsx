@@ -1,3 +1,10 @@
+/**
+ * @deprecated Unused migration artifact (Library -> Workbench). Not mounted in any
+ * workbench route. Do not import for new UI. M6+: delete when confirmed, or replace
+ * with a deliberate list-row pattern if a sidebar component list returns.
+ * Legacy delete used `removeComponent` (wrong for single-site disassociate). See
+ * [`LensHeader`](./LensEdit/LensHeader.tsx) for a live site-specific delete path (M6 target).
+ */
 import React, { FunctionComponent, ReactChild, useCallback, useMemo } from 'react'
 
 import HomeIcon from '@mui/icons-material/Home'
@@ -28,6 +35,7 @@ const WMLComponentName: FunctionComponent<{ itemId: ComponentUUID }> = ({ itemId
     return <React.Fragment>{label}</React.Fragment>
 }
 
+/** @deprecated See file-level note. Not used in production UI. */
 export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ ItemId, onClick, icon, sx, selected }) => {
     const { updateStandard, inheritedStandardForm, standardForm } = useWorkbenchAsset()
     const primary = useCallback((key: string) => (<WMLComponentName itemId={key as ComponentUUID} />), [])

@@ -92,7 +92,7 @@ Import session test utilities from [`foundations/WorkbenchComponent/testing/harn
 
 The asset root ([`WorkbenchAssetEditForm`](./WorkbenchAssetEditForm.tsx)) will use the **same two-tier model** as component editors: a **working** asset-meta projection in React state and **debounced `updateLocal`** flush to Redux, not ad hoc per-field `updateStandard` or mixed debounce paths.
 
-**Implementation status:** **`useWorkbenchAssetMeta`** / **`WorkbenchAssetMetaProvider`** and **`applyAssetMetaFlush`** shipped in **M4** ([`foundations/WorkbenchAssetMeta/`](./foundations/WorkbenchAssetMeta/), [`foundations/consistency/`](./foundations/consistency/)). [`AssetEditForm`](./WorkbenchAssetEditForm.tsx) and [`TopLevelEditor`](./foundations/ReferenceList/TopLevelEditor.tsx) migrate onto this session in **M5**. Until **M5**, those screens use legacy asset-level `updateStandard` (documented under [Asset-level `updateStandard` (exceptions)](#asset-level-updatestandard-exceptions)).
+**Implementation status:** **`useWorkbenchAssetMeta`** / **`WorkbenchAssetMetaProvider`** and **`applyAssetMetaFlush`** shipped in **M4** ([`foundations/WorkbenchAssetMeta/`](./foundations/WorkbenchAssetMeta/), [`foundations/consistency/`](./foundations/consistency/)). [`AssetEditForm`](./WorkbenchAssetEditForm.tsx) and [`TopLevelEditor`](./foundations/ReferenceList/TopLevelEditor.tsx) use this session (**M5**): [`WorkbenchAssetShortNameField`](./foundations/WorkbenchAssetMeta/WorkbenchAssetShortNameField.tsx), [`WorkbenchAssetSummaryField`](./foundations/WorkbenchAssetMeta/WorkbenchAssetSummaryField.tsx), TopLevel list on **`working.topLevel`** with **`confirmOrphanClosureBeforeAssetMetaDisassociate`** + **`pushChoice`** when **`previewOrphanClosure`** reports non-empty closure.
 
 ### Two tiers
 
@@ -121,10 +121,10 @@ Module home: **`foundations/WorkbenchAssetMeta/`**, mirroring [`WorkbenchCompone
 - **List row remove (D6):** disassociate on **`working._topLevel`** + debounced flush + normalize; **never** `removeComponent` for list rows.
 - **Reconcile:** mirror **`useWorkbenchComponent`** --- `lastReceived` / `committed` / supersede when Redux changes without local edits; eager materialize of a **new** key must not supersede open asset-meta **`working`** when committed asset-meta is unchanged.
 
-### Session-bound fields (target, M5)
+### Session-bound fields (M5)
 
-- **ShortName / Summary:** context-only fields with **`debounce={false}`** on primitives so only the asset-meta session debounces flush.
-- **Top-level component list:** [`ReferenceListSessionEditor`](./foundations/ReferenceList/ReferenceListSessionEditor.tsx)-style host on **`working._topLevel`** via **`listAccessor`** + **`updateAssetMeta`**. See [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md#asset-root--_toplevel-d11).
+- **ShortName / Summary:** [`WorkbenchAssetShortNameField`](./foundations/WorkbenchAssetMeta/WorkbenchAssetShortNameField.tsx), [`WorkbenchAssetSummaryField`](./foundations/WorkbenchAssetMeta/WorkbenchAssetSummaryField.tsx) with **`debounce={false}`** on primitives so only the asset-meta session debounces flush.
+- **Top-level component list:** [`TopLevelEditor`](./foundations/ReferenceList/TopLevelEditor.tsx) on **`working.topLevel`** via **`updateAssetMeta`**; create/import via **`materializeComponentInAsset`** then associate; row remove via disassociate + [`confirmOrphanClosureBeforeAssetMetaDisassociate`](./foundations/consistency/confirmOrphanClosureBeforeLocalEdit.ts). See [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md#asset-root--_toplevel-d11).
 
 ---
 
@@ -140,8 +140,6 @@ Use asset-level paths when there is no parent session or domain topology require
 | Layered Room situation facets | `SituationFacetRenderFieldsEditor` (asset-mode per change) |
 | Lens mark create/associate | `LensMarkFacetsEditor.requestCreate` |
 | Guidance mark facets (non-Lens screens) | `MarkFacetsEditor` |
-| Asset ShortName / Summary | **Legacy (until M5):** [`WorkbenchAssetEditForm`](./WorkbenchAssetEditForm.tsx) uses immediate `updateStandard` (ShortName) and `useDebouncedOnChange` + `updateStandard` (Summary). **Target:** context fields with **`debounce={false}`** under **`WorkbenchAssetMetaProvider`** ([Asset-meta editing session](#asset-meta-editing-session-d11)). |
-| Top-level asset lists | **Legacy (until M5):** [`TopLevelEditor`](./foundations/ReferenceList/TopLevelEditor.tsx) uses imperative `updateStandard` and **`removeComponent`** on row remove. **Target:** asset-meta session + disassociate on **`working._topLevel`** + [`ReferenceListSessionEditor`](./foundations/ReferenceList/ReferenceListSessionEditor.tsx)-style host ([Asset-meta editing session](#asset-meta-editing-session-d11), [reference-lists AGENT](./foundations/ReferenceList/AGENT.reference-lists.md#asset-root--_toplevel-d11)). |
 | Character, Situation, Map editors | Not on component session yet |
 | Asset-mode reference list | `ReferenceListEditor` (`listContext` + `updateStandard`) |
 
@@ -319,7 +317,7 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 |------------------|---------|
 | `WorkbenchContainer.tsx` | Responsive layout, breadcrumbs, AssetSelector, theme |
 | `WorkbenchAssetEditor.tsx` | View routing (asset / component / componentLayer) |
-| `WorkbenchAssetEditForm.tsx` | Asset-level metadata, component list, imports (**pending M5** migration to **`WorkbenchAssetMetaProvider`**) |
+| `WorkbenchAssetEditForm.tsx` | Asset root: **`WorkbenchAssetMetaProvider`**, ShortName/Summary session fields, **`TopLevelEditor`** |
 | `AreaEdit/` | AreaEditor (`WorkbenchComponentProvider` + shortName; PositionGraphNodesEditor session reference lists; ExitEdgeListEditor) |
 | `RoomEdit/` | RoomEditor (component session for shortName; ExitEditor, FeatureListEditor, Lens via LensEdit/LensHeader) |
 | `FeatureEdit/` | FeatureEditor (component session; shortName + DEFAULT prose via session fields) |
@@ -331,14 +329,15 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 | `foundations/ReferenceList/ReferenceListControlled.tsx` | Composable shell: `referenceList` + `onReferenceListChange` |
 | `foundations/ReferenceList/ReferenceListSessionEditor.tsx` | Provider-screen wrapper over Controlled; `listAccessor` + session persist |
 | `foundations/ReferenceList/ReferenceListEditor.tsx` | Asset-mode thin wrapper over Controlled (`listContext` + `updateStandard`) |
-| `foundations/ReferenceList/TopLevelEditor.tsx` | Asset root component list (**pending M5**: asset-meta session, disassociate + normalize) |
+| `foundations/ReferenceList/TopLevelEditor.tsx` | Asset root component list (asset-meta session, D10 create/import, D6 disassociate + orphan confirm) |
 | `foundations/ReferenceList/referenceListMutations.ts` | List remove by ComponentUUID via `sameKey` |
 | `foundations/SituationFacetRenderFieldsEditor.tsx` | Asset-mode facet field editor (layered Room situations); `updateStandard` per change |
 | `foundations/SituationFacetRenderFieldsView.tsx` | Shared presentation for DEFAULT / situation facet prose fields |
 | ~~`ExampleEdit/`~~ | **Removed** (2026-05-19); F/K prose via **`DefaultRenderEditor`** |
 | `GuidanceEdit/` | GuidanceEditor (`WorkbenchComponentProvider`; layered + top-level; shortName, instructions, marks on session) |
 | `foundations/LayeredContext/` | LayeredContextView (Room Situation/Guidance tabs), LayeredTabs |
-| `LensEdit/` | LensDetail (component session: shortName, description, mark facets); LensHeader; LensMarkFacetsEditor |
+| `LensEdit/` | LensDetail (component session: shortName, description, mark facets); LensHeader (live delete UX; **M6** migrates off `removeComponent`); LensMarkFacetsEditor |
+| `WMLComponentHeader.tsx` | **Deprecated** --- unused Library migration artifact; not mounted. Do not import. |
 | `MarkEdit/` | MarkEditor (full-screen session); `MarkInlineEditor` + `MarkInlineEditorWithSession` (per-row Mark shortName; Lens mark facet rows) |
 | `MapEdit/` | MapEditor, MapArea, MapController, MapLayers, UnshownRooms |
 | `CharacterEdit/` | CharacterEditor |

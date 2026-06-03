@@ -72,7 +72,7 @@ export interface ReferenceListEditorGenericProps {
     /**
      * Called when the delete icon on an item is clicked.
      * When provided, takes precedence over updateReferenceList for remove.
-     * Use when remove semantics differ (e.g. TopLevel uses removeComponent).
+     * Use when remove needs async confirm before disassociate (e.g. TopLevel orphan preview).
      */
     onItemRemove?: (id: string) => void
 

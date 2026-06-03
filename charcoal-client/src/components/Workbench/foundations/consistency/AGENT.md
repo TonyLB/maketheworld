@@ -195,7 +195,9 @@ function previewOrphanClosure(
 
 - **`applyLocal`:** run pending disassociates (or other local edits) on an internal **`_clone()`** before simulating normalize. Typed **`afterDisassociate: { site; ref }[]`** waits until **`AssociationSite`** / **`disassociateAtSite`** exist (M2+).
 - **`removedKeys`:** `universalKey` of each body removed across fixpoint passes, in pass order.
-- **`includesNonEmpty`:** `true` if any removed body had **`!isEmpty()`** at removal time. UI should confirm before flush when `true` (e.g. TopLevel list row in **M5**, header delete in **M6**). Empty-only closure may proceed without that dialog.
+- **`includesNonEmpty`:** `true` if any removed body had **`!isEmpty()`** at removal time. UI should confirm before flush when `true` (e.g. TopLevel list row **M5**, Lens delete **M6**). Empty-only closure may proceed without that dialog.
+
+**Production confirm (M5):** [`confirmOrphanClosureBeforeAssetMetaDisassociate`](./confirmOrphanClosureBeforeLocalEdit.ts) simulates pending asset-meta working (including top-level disassociate) via **`applyWorkingAssetMetaToDraft`** inside **`applyLocal`**, then dispatches **`pushChoice`** when **`includesNonEmpty`**. Used by [`TopLevelEditor`](../ReferenceList/TopLevelEditor.tsx) row remove.
 
 Does **not** mutate `localDraft`. Preview on **merged** `getStandardForm` is incorrect (inherited refs do not count for **D2**).
 
