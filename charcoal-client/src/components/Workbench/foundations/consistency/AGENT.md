@@ -1,6 +1,6 @@
 # Workbench consistency layer
 
-**Status:** M1--M3 complete (M3: **D11** asset-meta flush documented below; **M4** implements **`applyAssetMetaFlush`**). Normative **D2**, **normalize**, **preview**, **ref scrub**, and timing detail lives here; full close-out expands in **M7**. Active task plan: [AGENT.workbenchConsistencyLayer.planning.md](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchConsistencyLayer.planning.md).
+**Status:** M1--M4 complete (**D11** asset-meta flush + [`useWorkbenchAssetMeta`](../WorkbenchAssetMeta/useWorkbenchAssetMeta.tsx)). Normative **D2**, **normalize**, **preview**, **ref scrub**, and timing detail lives here; full close-out expands in **M7**. Active task plan: [AGENT.workbenchConsistencyLayer.planning.md](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchConsistencyLayer.planning.md).
 
 ## Purpose
 
@@ -24,7 +24,7 @@ Pure functions in this module mutate a **`StandardForm` draft** passed into them
 | **`materializeComponent`** | Immediately on create/import (pure; use via **`materializeComponentInAsset`**) | See **`materializeComponentInAsset`** below. |
 | **`materializeComponentInAsset`** | Immediately on create/import | **Awaitable** thunk: **`updateStandard`** with **`type: 'updateLocal'`** on the Redux **local** draft (`getLocalStandardForm`). Fast-path when the body is already on the local form and **`fromAsset`** is unset. **Not** on component-session `working`. **Not** deferred to debounced flush. Exposed on [`useWorkbenchAsset`](../useWorkbenchAsset.ts). |
 | **`applyWorkbenchFlush`** | At component-session flush | Pure pipeline: assign component **`working`** + **`normalizeWorkbenchDraft`**. Wired from [`dispatchFlush`](../WorkbenchComponent/useWorkbenchComponent.tsx) via **`updateLocal`**; [`assureDefaultSituationFromPrimitives`](../../../../slices/personalAssets/assureDefaultSituationFromPrimitives.ts) may run before **`applyWorkbenchFlush`** when DEFAULT facet prose is present. **No** materialize. |
-| **`applyAssetMetaFlush`** | At asset-meta session flush (**M4**) | Pure pipeline: assign **`_shortName`**, **`_summary`**, **`_topLevel`** from asset-meta **`working`**, then **`normalizeWorkbenchDraft`**. Wired from **`useWorkbenchAssetMeta`** via **`updateLocal`** (mirror **`applyWorkbenchFlush`**). **No** materialize. See [stub below](#applyassetmetaflush-d11-m4). |
+| **`applyAssetMetaFlush`** | At asset-meta session flush | Pure pipeline: assign **`_shortName`**, **`_summary`**, **`_topLevel`** from asset-meta **`working`**, then **`normalizeWorkbenchDraft`**. Wired from [`useWorkbenchAssetMeta`](../WorkbenchAssetMeta/useWorkbenchAssetMeta.tsx) via **`updateLocal`** (mirror **`applyWorkbenchFlush`**). **No** materialize. See [below](#applyassetmetaflush-d11). |
 | **`normalizeWorkbenchDraft`** | At flush (via **`applyWorkbenchFlush`** or **`applyAssetMetaFlush`**) | Fixpoint orphan GC on the **local** draft (**D2**). |
 
 Eager materialize commits a **different** `universalKey` than the open parent session id; it should not supersede that parent's `working` / `lastReceived` (component session or open asset-meta **`working._topLevel`** when committed asset-meta is unchanged). Full normative text: task plan **Orchestration timing (D10)** and **Asset-meta session flush (D11)**.
@@ -131,9 +131,7 @@ function applyWorkbenchFlush<T extends StandardComponent>(
 
 **[`useWorkbenchComponent`](../WorkbenchComponent/useWorkbenchComponent.tsx) `dispatchFlush`:** runs situation DEFAULT assurance when needed, then **`applyWorkbenchFlush`**. Dispatches **`updateStandard({ type: 'updateLocal', ... })`** so the reducer diffs against **`getLocalStandardForm`**, not merged **`getStandardForm`**.
 
-## `applyAssetMetaFlush` (D11, M4)
-
-**Status:** Planned --- **M4** implements in this folder and exports from [`index.ts`](./index.ts). **M3** documents the contract only.
+## `applyAssetMetaFlush` (D11)
 
 Apply asset-meta session **`working`** to a **local** `StandardForm` draft, then normalize. **Does not** materialize. Same fixpoint **`normalizeWorkbenchDraft`** as component flush; different assign target (asset root fields, not `byUniversalId[componentId]`).
 
@@ -153,9 +151,11 @@ function applyAssetMetaFlush(
 ): WorkbenchAssetMetaWorking
 ```
 
-**Order inside `applyAssetMetaFlush`:** optional **`beforeAssign`** -> assign **`_shortName`**, **`_summary`**, **`_topLevel`** from **`working`** onto the draft -> **`normalizeWorkbenchDraft`**.
+**Order inside `applyAssetMetaFlush`:** optional **`beforeAssign`** -> [`applyWorkingAssetMetaToDraft`](../workbenchMutations.ts) (D11 shortName/summary prep) -> **`normalizeWorkbenchDraft`**.
 
-**Planned wiring:** [`useWorkbenchAssetMeta`](../WorkbenchAssetMeta/) debounced flush dispatches **`updateStandard({ type: 'updateLocal', ... })`** and calls **`applyAssetMetaFlush`** on the local draft clone (mirror **`applyWorkbenchFlush`**). Asset root list create/import still uses **`materializeComponentInAsset`** before associate on **`working._topLevel`** (**D10**).
+**Implementation:** [`applyAssetMetaFlush.ts`](./applyAssetMetaFlush.ts), exported from [`index.ts`](./index.ts).
+
+**[`useWorkbenchAssetMeta`](../WorkbenchAssetMeta/useWorkbenchAssetMeta.tsx) `dispatchFlush`:** debounced flush dispatches **`updateStandard({ type: 'updateLocal', ... })`** and calls **`applyAssetMetaFlush`** on the local draft clone. Asset root list create/import ( **M5** ) still uses **`materializeComponentInAsset`** before associate on **`working.topLevel`** (**D10**).
 
 See [Workbench AGENT.md](../../AGENT.md#asset-meta-editing-session-d11) and task plan **Asset-meta session flush**.
 
@@ -234,6 +234,7 @@ Run from `charcoal-client/`: `npm run test:single -- src/components/Workbench/fo
 | [`materializeComponent.test.ts`](./materializeComponent.test.ts) | Create, idempotent materialize, import (`fromAsset`) |
 | [`materializeComponentInAsset.test.ts`](./materializeComponentInAsset.test.ts) | `updateLocal` dispatch, local-draft early exit, import always dispatches, no normalize |
 | [`applyWorkbenchFlush.test.ts`](./applyWorkbenchFlush.test.ts) | Assign, `beforeAssign`, normalize after disassociate, no materialize |
+| [`applyAssetMetaFlush.test.ts`](./applyAssetMetaFlush.test.ts) | Assign asset-meta fields, `beforeAssign`, normalize after topLevel disassociate, D11 shortName, no materialize |
 | [`normalizeWorkbenchDraft.test.ts`](./normalizeWorkbenchDraft.test.ts) | Fixpoint orphan GC (D3/D4), `_topLevel` transitive removal, Area-participant transitive path, happy-path scrub no-op, `scrubReferences` defensive fixtures |
 | [`previewOrphanClosure.test.ts`](./previewOrphanClosure.test.ts) | Non-mutation, `includesNonEmpty`, `applyLocal`, parity with `normalizeWorkbenchDraft` |
 

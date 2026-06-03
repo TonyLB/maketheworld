@@ -18,7 +18,7 @@ Facet-list-style composition: **`referenceList`** + **`onReferenceListChange`** 
 | Wrapper | When to use |
 | --- | --- |
 | **`ReferenceListSessionEditor`** | On **`WorkbenchComponentProvider`** screens; pass **`listAccessor`** (`getReferenceList` / `setReferenceList` on parent `working`). |
-| **`ReferenceListSessionEditor` (asset-meta)** | On **`WorkbenchAssetMetaProvider`** screens (planned **M5**); **`listAccessor`** on asset-meta **`working._topLevel`**. |
+| **`ReferenceListSessionEditor` (asset-meta)** | On **`WorkbenchAssetMetaProvider`** screens (**M5** UI); **`listAccessor`** on asset-meta **`working.topLevel`**. Session tests: [`WorkbenchAssetMeta/testing/harness.tsx`](../WorkbenchAssetMeta/testing/harness.tsx). |
 | **`ReferenceListEditor`** | Asset-mode adapter: `listContext` + `updateStandard` (non-provider or legacy). |
 | **`ReferenceListControlled` directly** | Custom persistence (e.g. tests, new list hosts). |
 

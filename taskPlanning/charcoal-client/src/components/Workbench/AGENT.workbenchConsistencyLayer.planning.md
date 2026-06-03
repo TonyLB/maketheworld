@@ -1,6 +1,6 @@
 # Workbench consistency layer (authoring client)
 
-**Status:** In progress (M0--M3 complete). **Next step:** **M4** --- **`useWorkbenchAssetMeta`** foundation (parallel to [`useWorkbenchComponent`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx)).
+**Status:** In progress (M0--M4 complete). **Next step:** **M5** --- migrate [`AssetEditForm`](../../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx) + [`TopLevelEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx) onto **`useWorkbenchAssetMeta`**.
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into [`charcoal-client/src/components/Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md), [`foundations/ReferenceList/AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md), and [`charcoal-client/src/slices/personalAssets/AGENT.md`](../../../../../charcoal-client/src/slices/personalAssets/AGENT.md).
 
@@ -261,7 +261,7 @@ Mark **Status** `[X]` when normative for implementation.
 | **M1** | Pure **`materialize`**, **`normalizeWorkbenchDraft`** (fixpoint), **`previewOrphanClosure`** + unit tests | Complete |
 | **M2** | Eager global **materialize** thunk + flush **`applyWorkbenchFlush`** (normalize only) in **`commitAssetScopedUpdate`**; session list create/import path | Complete |
 | **M3** | **Durable doc alignment** for **D11** (asset-meta session direction in Workbench + reference-list **AGENT.md**; not full close-out) | Complete |
-| **M4** | **`useWorkbenchAssetMeta`** foundation: provider/hook, **`applyAssetMetaFlush`**, reconcile, tests | Not started |
+| **M4** | **`useWorkbenchAssetMeta`** foundation: provider/hook, **`applyAssetMetaFlush`**, reconcile, tests | Complete |
 | **M5** | **[`AssetEditForm`](../../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx) + [`TopLevelEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx)** on asset-meta session (**D6**, **D10**, preview confirm) | Not started |
 | **M6** | Migrate **`WMLComponentHeader`** delete + confirm via preview closure (**D7**) | Not started |
 | **M7** | Final durable doc updates (**close-out checklist**) + delete/archive this plan | Not started |
@@ -294,11 +294,11 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as y
   - [X] Update [`Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md): asset-meta two-tier session alongside component session; remove TopLevel from "asset-level exception" table once **M5** lands (may note pending migration here)
   - [X] Update [`AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md): TopLevel / asset root uses **`ReferenceListSessionEditor`** pattern on **`useWorkbenchAssetMeta`** **`working._topLevel`** (not out of scope)
   - [X] Short pointer in [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) for **`applyAssetMetaFlush`** (stub section OK until **M4** implements)
-- [ ] **M4 --- Asset-meta session foundation (D11)**
-  - [ ] **`WorkbenchAssetMetaProvider`** + **`useWorkbenchAssetMeta`**: `working` / `lastReceived` / `committed` for asset-meta projection; `updateAssetMeta`; debounced + `flushNow` flush; reconcile / supersede mirroring component session
-  - [ ] **`applyAssetMetaFlush`**: assign **`_shortName`**, **`_summary`**, **`_topLevel`** from working onto local draft clone, then **`normalizeWorkbenchDraft`**; exported from [`foundations/consistency/`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/)
-  - [ ] Session test harness (mirror [`WorkbenchComponent/testing/`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/testing/))
-  - [ ] Unit tests: flush assigns asset-meta fields + normalize; no materialize in flush path
+- [X] **M4 --- Asset-meta session foundation (D11)**
+  - [X] **`WorkbenchAssetMetaProvider`** + **`useWorkbenchAssetMeta`**: `working` / `lastReceived` / `committed` for asset-meta projection; `updateAssetMeta`; debounced + `flushNow` flush; reconcile / supersede mirroring component session
+  - [X] **`applyAssetMetaFlush`**: assign **`_shortName`**, **`_summary`**, **`_topLevel`** from working onto local draft clone, then **`normalizeWorkbenchDraft`**; exported from [`foundations/consistency/`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/)
+  - [X] Session test harness (mirror [`WorkbenchComponent/testing/`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/testing/))
+  - [X] Unit tests: flush assigns asset-meta fields + normalize; no materialize in flush path
 - [ ] **M5 --- AssetEditForm + TopLevel on session**
   - [ ] Wrap [`AssetEditForm`](../../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx) in **`WorkbenchAssetMetaProvider`**
   - [ ] ShortName/Summary: context-only fields, **`debounce={false}`** on primitives; remove ad hoc `useDebouncedOnChange` / per-keystroke `updateStandard`

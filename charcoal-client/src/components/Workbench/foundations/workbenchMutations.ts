@@ -11,7 +11,10 @@ import {
     SituationProseFacetPayload,
     StandardSituationProseFacet
 } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
+import { defaultedEquals } from '@tonylb/mtw-wml/ts/standardize/components/utils'
+import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
+import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 
 export type SituationProseParent = StandardRoom | StandardFeature | StandardKnowledge
 
@@ -106,6 +109,24 @@ export const ensureSituationFacetWithPayloadOnParent = (
     }
 }
 
+export type WorkbenchAssetMetaWorking = {
+    shortName: StandardLiteral | undefined
+    summary: StandardRender | undefined
+    topLevel: ReferenceList
+}
+
+export type ReconcileCommittedAssetMetaParams = {
+    committedBase: StandardForm
+    lastReceived: WorkbenchAssetMetaWorking | undefined
+    working: WorkbenchAssetMetaWorking | undefined
+}
+
+export type ReconcileCommittedAssetMetaResult = {
+    working: WorkbenchAssetMetaWorking | undefined
+    lastReceived: WorkbenchAssetMetaWorking | undefined
+    superseded: boolean
+}
+
 export type ReconcileCommittedComponentParams<T extends StandardComponent> = {
     lastReceived: T | undefined
     working: T | undefined
@@ -169,6 +190,117 @@ export const applyWorkingComponentToDraft = <T extends StandardComponent>(
  * Set shortName on working copy from a string (no trim; flush uses `withShortName` + D11).
  * Edit path assigns payload directly; prefer `withShortName` on flush via `prepareComponentForFlush`.
  */
+export const projectAssetMetaFromStandardForm = (form: StandardForm): WorkbenchAssetMetaWorking => ({
+    shortName: form.shortName,
+    summary: form.summary,
+    topLevel: (form._topLevel ?? new ReferenceList([])).clone()
+})
+
+const cloneAssetMetaWorking = (meta: WorkbenchAssetMetaWorking): WorkbenchAssetMetaWorking => ({
+    shortName: meta.shortName?.clone(),
+    summary: meta.summary?.clone(),
+    topLevel: meta.topLevel.clone()
+})
+
+export const assetMetaWorkingEquals = (
+    a: WorkbenchAssetMetaWorking,
+    b: WorkbenchAssetMetaWorking
+): boolean =>
+    defaultedEquals(a.shortName, b.shortName) &&
+    defaultedEquals(a.summary, b.summary) &&
+    defaultedEquals(a.topLevel, b.topLevel)
+
+export const prepareAssetMetaForFlush = (
+    meta: WorkbenchAssetMetaWorking
+): WorkbenchAssetMetaWorking => ({
+    shortName: normalizeOptionalLiteral(meta.shortName),
+    summary: meta.summary && !meta.summary.isEmpty() ? meta.summary : undefined,
+    topLevel: meta.topLevel.clone()
+})
+
+export const applyWorkingAssetMetaToDraft = (
+    draft: StandardForm,
+    working: WorkbenchAssetMetaWorking
+): WorkbenchAssetMetaWorking => {
+    const flushed = prepareAssetMetaForFlush(working)
+    draft._shortName = flushed.shortName
+    draft._summary = flushed.summary
+    draft._topLevel = flushed.topLevel
+    return flushed
+}
+
+const overlayAssetMetaOnForm = (
+    base: StandardForm,
+    meta: WorkbenchAssetMetaWorking
+): StandardForm => {
+    const clone = base._clone()
+    clone._shortName = meta.shortName
+    clone._summary = meta.summary
+    clone._topLevel = meta.topLevel.clone()
+    return clone
+}
+
+/**
+ * Three-way reconcile when Redux committed asset-meta changes without this session's flush (D11).
+ */
+export const reconcileCommittedAssetMeta = ({
+    committedBase,
+    lastReceived,
+    working
+}: ReconcileCommittedAssetMetaParams): ReconcileCommittedAssetMetaResult => {
+    const incoming = projectAssetMetaFromStandardForm(committedBase)
+    const incomingBaseline = cloneAssetMetaWorking(incoming)
+
+    if (lastReceived === undefined || working === undefined) {
+        return {
+            working: cloneAssetMetaWorking(incoming),
+            lastReceived: incomingBaseline,
+            superseded: false
+        }
+    }
+
+    const lastForm = overlayAssetMetaOnForm(committedBase, lastReceived)
+    const workForm = overlayAssetMetaOnForm(committedBase, working)
+    const editDiff = lastForm.diff(workForm)
+
+    if (editDiff === undefined) {
+        if (!assetMetaWorkingEquals(lastReceived, working)) {
+            return {
+                working: cloneAssetMetaWorking(incoming),
+                lastReceived: incomingBaseline,
+                superseded: true
+            }
+        }
+        return {
+            working: cloneAssetMetaWorking(incoming),
+            lastReceived: incomingBaseline,
+            superseded: false
+        }
+    }
+
+    try {
+        const merged = committedBase.merge(editDiff)
+        if (merged === undefined) {
+            return {
+                working: cloneAssetMetaWorking(incoming),
+                lastReceived: incomingBaseline,
+                superseded: false
+            }
+        }
+        return {
+            working: projectAssetMetaFromStandardForm(merged),
+            lastReceived: incomingBaseline,
+            superseded: false
+        }
+    } catch {
+        return {
+            working: cloneAssetMetaWorking(incoming),
+            lastReceived: incomingBaseline,
+            superseded: true
+        }
+    }
+}
+
 export const setWorkingShortNameFromString = <T extends StandardComponent = StandardComponent>(
     component: T,
     value: string

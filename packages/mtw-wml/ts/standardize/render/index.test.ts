@@ -147,6 +147,13 @@ describe('StandardRender', () => {
         expect(render.schema).toEqual(schema.schema)
     })
 
+    it('clone returns an equal independent instance', () => {
+        const render = new StandardRender(['Hello', { data: { tag: 'br' }, children: [] }, 'World'])
+        const cloned = render.clone()
+        expect(cloned).not.toBe(render)
+        expect(cloned.equals(render)).toBe(true)
+    })
+
     describe('constructor with options.tag (single schema node)', () => {
         it('should create instance from plain content-tag node (e.g. Description)', () => {
             const schema = new Schema()
