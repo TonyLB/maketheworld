@@ -1,4 +1,4 @@
-import { componentTagFromUpperCase } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/abstract'
+import { componentTagFromUniversalKey } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/abstract'
 import { defaultComponentFromTag } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { AssetUUID, ComponentUUID, isSchemaAssetUUID, isSchemaComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
@@ -6,11 +6,10 @@ import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/compone
 import { cacheKeyComponents } from './keys'
 
 export const tagFromEphemeraWrappedId = (ephemeraId: string) => {
-    const parts = ephemeraId.split('#')
-    if (parts.length !== 2) {
+    if (!isSchemaComponentUUID(ephemeraId)) {
         throw new Error(`Invalid ephemera ID format: ${ephemeraId}`)
     }
-    return componentTagFromUpperCase(parts[0] as any)
+    return componentTagFromUniversalKey(ephemeraId)
 }
 
 export const defaultStoredEntryForCacheKey = (cacheKey: string): { assetId: AssetUUID; component: StandardComponent } => {

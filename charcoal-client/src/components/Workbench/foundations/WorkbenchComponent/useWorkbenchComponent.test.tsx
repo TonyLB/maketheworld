@@ -27,9 +27,6 @@ vi.mock('../useWorkbenchAsset', () => ({
 
 import { useWorkbenchComponentContext } from './useWorkbenchComponent'
 import { setWorkingShortNameFromString } from '../workbenchMutations'
-import { roomGuidanceListAccessor } from '../../RoomEdit/roomReferenceListAccessors'
-import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
-import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 import {
     renderWorkbenchComponentSession,
     resetWorkbenchAssetMock,
@@ -41,8 +38,6 @@ const ROOM_ID = 'ROOM#room1' as ComponentUUID
 const OTHER_FEATURE_ID = 'FEATURE#feat2' as ComponentUUID
 
 const FLUSH_DELAY_MS = 100
-
-const GUIDANCE_ID = 'GUIDANCE#guid1' as ComponentUUID
 
 const roomWml = `
     <Asset uuid=(test)>
@@ -238,6 +233,7 @@ describe('useWorkbenchComponent', () => {
         expect(
             getFlushedFeatureShortName(FEATURE_ID, mockWorkbenchReturn.standardForm)
         ).toBe('Immediate')
+        expect(updateStandardMock.mock.calls[0][0]).toMatchObject({ type: 'updateLocal' })
     })
 
     it('debounces flush after updateComponent', () => {
@@ -258,6 +254,7 @@ describe('useWorkbenchComponent', () => {
         })
 
         expect(updateStandardMock).toHaveBeenCalledTimes(1)
+        expect(updateStandardMock.mock.calls[0][0]).toMatchObject({ type: 'updateLocal' })
         expect(
             getFlushedFeatureShortName(FEATURE_ID, mockWorkbenchReturn.standardForm)
         ).toBe('Debounced')
@@ -560,73 +557,5 @@ describe('useWorkbenchComponent', () => {
         const session = getSession()
         expect(session.working?.shortName?.toJSON()).toBe('After echo')
         expect(session.isDirty).toBe(true)
-    })
-
-    it('commitAssetScopedUpdate dispatches once and cancels pending debounced flush', () => {
-        const { getSession } = renderWorkbenchComponentSession({
-            options: roomSessionOptions
-        })
-
-        const ref = new StandardReference({ universalKey: GUIDANCE_ID, tag: 'Guidance' })
-
-        act(() => {
-            getSession().updateComponent((draft) => {
-                roomGuidanceListAccessor.setReferenceList(
-                    draft,
-                    roomGuidanceListAccessor.getReferenceList(draft).assureItem(ref)
-                )
-            })
-        })
-
-        act(() => {
-            getSession().commitAssetScopedUpdate((draft) => {
-                const { component } = standardComponentFactory({
-                    tag: 'Guidance',
-                    universalKey: GUIDANCE_ID
-                })
-                if (component) {
-                    draft.byUniversalId[GUIDANCE_ID] = component
-                }
-            })
-        })
-
-        expect(updateStandardMock).toHaveBeenCalledTimes(1)
-
-        act(() => {
-            vi.advanceTimersByTime(FLUSH_DELAY_MS)
-        })
-
-        expect(updateStandardMock).toHaveBeenCalledTimes(1)
-    })
-
-    it('commitAssetScopedUpdate advances lastReceived baseline (D14b)', () => {
-        const { getSession } = renderWorkbenchComponentSession({
-            options: roomSessionOptions
-        })
-
-        const ref = new StandardReference({ universalKey: GUIDANCE_ID, tag: 'Guidance' })
-
-        act(() => {
-            getSession().updateComponent((draft) => {
-                roomGuidanceListAccessor.setReferenceList(
-                    draft,
-                    roomGuidanceListAccessor.getReferenceList(draft).assureItem(ref)
-                )
-            })
-            getSession().commitAssetScopedUpdate((draft) => {
-                const { component } = standardComponentFactory({
-                    tag: 'Guidance',
-                    universalKey: GUIDANCE_ID
-                })
-                if (component) {
-                    draft.byUniversalId[GUIDANCE_ID] = component
-                }
-            })
-        })
-
-        const session = getSession()
-        expect(session.isDirty).toBe(false)
-        expect(roomGuidanceListAccessor.getReferenceList(session.working!).payload.length).toBe(1)
-        expect(roomGuidanceListAccessor.getReferenceList(session.lastReceived!).payload.length).toBe(1)
     })
 })

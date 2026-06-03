@@ -131,7 +131,7 @@ resume working once `properties[key]` is set. See subscribeAction deprecation co
 
 ### API Contracts
 
-- **updateStandard(key)(payload)**: Payload is `UpdateStandardPayload` (setInherited | update | updateLocal | removeComponent). The thunk adds `base` internally; callers do not pass base.
+- **updateStandard(key)(payload)**: Payload is `UpdateStandardPayload` (setInherited | update | updateLocal | removeComponent). The thunk adds `base` internally; callers do not pass base. Workbench consistency uses **`updateLocal`** on the local draft for eager **materialize** ([`materializeComponentInAsset`](../components/Workbench/foundations/consistency/materializeComponentInAsset.ts)) and component-session **flush** ([`applyWorkbenchFlush`](../components/Workbench/foundations/consistency/applyWorkbenchFlush.ts) via [`useWorkbenchComponent`](../components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx)); see [consistency AGENT.md](../components/Workbench/foundations/consistency/AGENT.md). WML merge orphan-with-content policy is unchanged.
 - **Selectors**: All key-scoped; e.g. `getStandardForm(assetId)(state)`. Return undefined if asset not in slice.
 - **receiveWMLEvent**: Guards on `header.dataSourceKey === 'mtw.wml'` and `RequestIds`; no-op if missing.
 

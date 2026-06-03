@@ -1,5 +1,5 @@
 import { ComponentUUID, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
-import { ComponentTag, componentTagFromUpperCase } from "../components/dataTypes/abstract";
+import { ComponentTag, componentTagFromUniversalKey } from "../components/dataTypes/abstract";
 import { StandardKeyData, StandardReferenceData } from "./dataTypes/reference";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
 import { StandardEditablePayload } from "../../generics/editable";
@@ -36,8 +36,7 @@ export class StandardKey implements StandardEditablePayload<StandardKeyData> {
         if (typeof this.universalKey === 'undefined') {
             return undefined
         }
-        const [upcaseTag] = this.universalKey.split('#')
-        return componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>)
+        return componentTagFromUniversalKey(this.universalKey)
     }
     get schema() {
         const tag = this.tag

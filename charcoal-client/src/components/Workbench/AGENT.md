@@ -21,6 +21,7 @@ The Workbench sits within the Charcoal Client's [dual-mode architecture](../../.
 - **Reference Lists**: WML `ReferenceList` fields (e.g. `features`, `guidance`, `lens`, `marks`) rendered as accordion lists with add/remove; see [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md)
 - **Layered Context**: Sibling-in-context editing for Room Situation facets and Guidance (Photoshop-layer style); see [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md)
 - **StandardForm**: WML asset representation; the Workbench reads and mutates `StandardForm` via `updateStandard` from `useWorkbenchAsset`; per-component scalar editing uses a **working copy** via `useWorkbenchComponent` ([Component editing session](#component-editing-session-two-tier-model))
+- **Consistency layer (M1--M2 shipped)**: **`materializeComponentInAsset`** eager on Redux local draft (`updateLocal`); **`applyWorkbenchFlush`** at component-session flush (`updateLocal` + **`normalizeWorkbenchDraft`**); session list create/import via **`ReferenceListSessionEditor`**; **`previewOrphanClosure`**, **`isReferencedInAssetLayer`**; see [foundations/consistency/AGENT.md](./foundations/consistency/AGENT.md)
 
 ---
 
@@ -65,9 +66,9 @@ UI primitives (StandardLiteralEditor, StandardRenderEditor)
 
 - **State:** `working` (editor copy), `lastReceived` (reconcile baseline), `committed` (live Redux selector view).
 - **`updateComponent`:** immediate `working.clone()` then mutate; resets debounce timer.
-- **`flushToStandardForm`:** debounced persist (default ~1000ms; `flushDelayMs` on provider). Flush uses [`applyWorkingComponentToDraft`](./foundations/workbenchMutations.ts) / [`prepareComponentForFlush`](./foundations/workbenchMutations.ts) (`withShortName`, omission-over-empty shortName). Skips dispatch when `lastReceived.diff(working)` is undefined (semantic no-op at component scope); reducer diff still applies at asset scope.
+- **`flushToStandardForm`:** debounced persist (default ~1000ms; `flushDelayMs` on provider). Flush dispatches **`updateLocal`** and runs [`applyWorkbenchFlush`](./foundations/consistency/applyWorkbenchFlush.ts) (assign **`working`** via [`applyWorkingComponentToDraft`](./foundations/workbenchMutations.ts) / D11 shortName prep, then **`normalizeWorkbenchDraft`**). Skips dispatch when `lastReceived.diff(working)` is undefined (semantic no-op at component scope).
 - **`flushNow`:** cancel pending debounce and flush immediately; runs on provider unmount and `componentId` change.
-- **`commitAssetScopedUpdate`:** one immediate `updateStandard` for create/import + flush assign; cancels pending debounce; advances `lastReceived`.
+- **Create/import (D10):** **`await materializeComponentInAsset`** on the Redux local draft, then associate on parent **`working`** via **`updateComponent`**; debounced flush (**`applyWorkbenchFlush`**) persists list edits.
 - **DEFAULT situation:** when `working` references **SITUATION#DEFAULT**, flush may call [`assureDefaultSituationFromPrimitives`](../../slices/personalAssets/assureDefaultSituationFromPrimitives.ts) before assign.
 - **External `committed` changes** (import, stream, other UI): [`reconcileCommittedComponent`](./foundations/workbenchMutations.ts) three-way merge (`lastReceived.diff(working)` then `incoming.merge(editDiff)`); echo of last flush skipped; merge failure supersedes with snackbar (`onSuperseded` override); cancel pending debounce before reconcile, reschedule after. Pure helpers in [`workbenchMutations.ts`](./foundations/workbenchMutations.ts); domain list accessors next to owning editor (e.g. [`roomReferenceListAccessors.ts`](./RoomEdit/roomReferenceListAccessors.ts)).
 
@@ -298,9 +299,11 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 | `CharacterEdit/` | CharacterEditor |
 | `foundations/StandardRender/StandardRenderEditor.tsx` | Rich text (Slate); shared with Editor components |
 | `foundations/ReferenceList/referenceListAdapter.ts` | `referenceListToItems` for list display |
+| `foundations/consistency/` | Pure TS + Redux thunk: **`isReferencedInAssetLayer`** (D2), **`materializeComponent`**, **`materializeComponentInAsset`**, **`normalizeWorkbenchDraft`**, **`previewOrphanClosure`** (fixpoint orphan GC + preview) |
 
 ### Related Documentation
 
+- [foundations/consistency/AGENT.md](./foundations/consistency/AGENT.md) - Local vs global ops; **D2** orphan predicate; **normalizeWorkbenchDraft** fixpoint; **previewOrphanClosure** (D5)
 - [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md) - `ReferenceListControlled`, session vs asset wrappers, `InlineReferenceList`, Mark inline pattern
 - [AGENT.facet-list.md](./foundations/FacetList/AGENT.facet-list.md) - Facet list handlers, Lens mark hybrid rows
 - [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md) - Layer strip, index bar, split-pane, MUI Tabs; Room layered views

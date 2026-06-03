@@ -8,7 +8,6 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
-import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 import { ReferenceListControlled } from './ReferenceListControlled'
 import {
@@ -100,10 +99,7 @@ describe('ReferenceListControlled', () => {
         expect(updateStandardMock).not.toHaveBeenCalled()
     })
 
-    it('invokes persistDraftUpdate when provided for association path', () => {
-        const persistDraftUpdate = vi.fn((update: (draft: StandardForm) => void) => {
-            update(new StandardForm(wml))
-        })
+    it('uses onAssociateReference when provided for reference existing path', () => {
         const onAssociateReference = vi.fn()
 
         render(
@@ -122,7 +118,6 @@ describe('ReferenceListControlled', () => {
                 association={() => {}}
                 requestCreate={() => {}}
                 onAssociateReference={onAssociateReference}
-                persistDraftUpdate={persistDraftUpdate}
                 affordance={{ enableReferenceExisting: true }}
             />
         )

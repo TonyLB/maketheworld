@@ -55,11 +55,6 @@ export interface AddReferenceImportProps {
      * Used by parent-session editors (updateComponent on working).
      */
     onAssociateReference?: (ref: StandardReference) => void
-    /**
-     * When set, replaces internal updateStandard for import and create-complete association.
-     * Used by parent-session editors (commitAssetScopedUpdate).
-     */
-    persistDraftUpdate?: (update: (draft: StandardForm) => void) => void
 }
 
 export function useAddReferenceImport(props: AddReferenceImportProps): {
@@ -77,11 +72,10 @@ export function useAddReferenceImport(props: AddReferenceImportProps): {
         enableImport = isImportableTag(tag),
         disabled: disabledProp = false,
         importTag,
-        onAssociateReference,
-        persistDraftUpdate
+        onAssociateReference
     } = props
 
-    const { updateStandard, readonly, AssetId } = useWorkbenchAsset()
+    const { updateStandard, materializeComponentInAsset, readonly, AssetId } = useWorkbenchAsset()
     const disabled = disabledProp ?? readonly
 
     const [selectorOpen, setSelectorOpen] = useState(false)
@@ -98,12 +92,8 @@ export function useAddReferenceImport(props: AddReferenceImportProps): {
                 onAssociateReference(ref)
                 return
             }
-            if (persistDraftUpdate) {
-                persistDraftUpdate((draft) => {
-                    association(ref, draft)
-                })
-                return
-            }
+            // Asset-mode (no session): legacy path. type "update" diffs against merged
+            // standardForm; migrate to materializeComponentInAsset + local associate (D10, M3+).
             updateStandard({
                 type: "update",
                 update: (draft) => {
@@ -112,7 +102,7 @@ export function useAddReferenceImport(props: AddReferenceImportProps): {
                 }
             })
         },
-        [onAssociateReference, persistDraftUpdate, association, updateStandard]
+        [onAssociateReference, association, updateStandard]
     )
 
     const handleCreateNew = useCallback(() => {
@@ -133,30 +123,30 @@ export function useAddReferenceImport(props: AddReferenceImportProps): {
     const handleImportSelect = useCallback(
         (fromAsset: AssetUUID, uuid: ComponentUUID, tagParam: ImportTag) => {
             if (disabled) return
-            const ref = new StandardReference({ universalKey: uuid, tag: tagParam })
             if (onAssociateReference) {
-                onAssociateReference(ref)
+                void (async () => {
+                    const ref = await materializeComponentInAsset({
+                        universalKey: uuid,
+                        fromAsset
+                    })
+                    onAssociateReference(ref)
+                    setImportDialogOpen(false)
+                })()
+                return
             }
-            if (persistDraftUpdate) {
-                persistDraftUpdate((draft) => {
+            // Asset-mode import: bundled addImportToDraft + association in one updateStandard
+            // on merged draft (pre-D10). Session path above uses materializeComponentInAsset.
+            updateStandard({
+                type: "update",
+                update: (draft) => {
                     const importedRef = addImportToDraft(draft, { fromAsset, uuid, tag: tagParam })
-                    if (importedRef && !onAssociateReference) {
-                        association(importedRef, draft)
-                    }
-                })
-            } else {
-                updateStandard({
-                    type: "update",
-                    update: (draft) => {
-                        const importedRef = addImportToDraft(draft, { fromAsset, uuid, tag: tagParam })
-                        if (importedRef) association(importedRef, draft)
-                        return draft
-                    }
-                })
-            }
+                    if (importedRef) association(importedRef, draft)
+                    return draft
+                }
+            })
             setImportDialogOpen(false)
         },
-        [disabled, persistDraftUpdate, onAssociateReference, association, updateStandard]
+        [disabled, onAssociateReference, association, updateStandard, materializeComponentInAsset]
     )
 
     const actionRows = useMemo(

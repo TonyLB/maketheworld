@@ -10,7 +10,7 @@ const PRIMITIVES_ASSET_ID: AssetUUID = 'ASSET#primitives'
  * imported from the primitives asset, so situation facets referencing it can be edited.
  * Mutates the draft in place.
  *
- * Intended for use inside an updateStandard(assetId)({ type: 'update', update: (draft) => { ... } })
+ * Intended for use inside an updateStandard(assetId)({ type: 'update' | 'updateLocal', update: (draft) => { ... } })
  * callback. The returned boolean indicates whether the draft was modified (e.g. the caller
  * may dispatch fetchImports(assetId) when true).
  *

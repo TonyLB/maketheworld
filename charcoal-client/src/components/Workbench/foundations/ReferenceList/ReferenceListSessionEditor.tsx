@@ -2,7 +2,6 @@ import React, { FunctionComponent, ReactNode, useCallback, useMemo } from "react
 
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
-import { standardComponentFactory } from "@tonylb/mtw-wml/ts/standardize/componentFactory"
 import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
 import type { StandardComponent } from "@tonylb/mtw-wml/ts/standardize/components/baseClasses"
 import { ReferenceList } from "@tonylb/mtw-wml/ts/standardize/keys/referenceList"
@@ -10,6 +9,7 @@ import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { v4 as uuidv4 } from "uuid"
 
 import { useWorkbenchComponent } from "../WorkbenchComponent"
+import { useWorkbenchAsset } from "../useWorkbenchAsset"
 import type { ComponentTag, ReferenceListAffordance } from "./ReferenceListEditor"
 import ReferenceListControlled from "./ReferenceListControlled"
 
@@ -59,10 +59,10 @@ export const ReferenceListSessionEditor = <T extends StandardComponent>({
     const {
         working,
         updateComponent,
-        commitAssetScopedUpdate,
         readonly: sessionReadonly,
         missing
     } = useWorkbenchComponent<T>()
+    const { materializeComponentInAsset } = useWorkbenchAsset()
 
     const disabled = disabledProp ?? sessionReadonly
 
@@ -97,18 +97,6 @@ export const ReferenceListSessionEditor = <T extends StandardComponent>({
             })
         },
         [disabled, missing, updateComponent, listAccessor]
-    )
-
-    const persistDraftUpdate = useCallback(
-        (update: (draft: StandardForm) => void) => {
-            if (disabled || missing) {
-                return
-            }
-            commitAssetScopedUpdate((draft) => {
-                update(draft)
-            })
-        },
-        [disabled, missing, commitAssetScopedUpdate]
     )
 
     const association = useCallback(
@@ -147,18 +135,13 @@ export const ReferenceListSessionEditor = <T extends StandardComponent>({
             )
             const uuid = tag === "Situation" ? `situation-${Date.now()}` : uuidv4()
             const universalKey = enforceKey(uuid) as ComponentUUID
-            const reference = new StandardReference({ universalKey, tag })
 
-            onCreated(reference)
-
-            commitAssetScopedUpdate((draft) => {
-                const { component } = standardComponentFactory({ tag, universalKey })
-                if (component) {
-                    draft.byUniversalId[universalKey] = component
-                }
-            })
+            void (async () => {
+                const ref = await materializeComponentInAsset({ universalKey })
+                onCreated(ref)
+            })()
         },
-        [disabled, missing, tag, commitAssetScopedUpdate]
+        [disabled, missing, tag, materializeComponentInAsset]
     )
 
     if (missing || !working) {
@@ -181,7 +164,6 @@ export const ReferenceListSessionEditor = <T extends StandardComponent>({
             onItemClick={onItemClick}
             isExcludedExtra={isExcludedExtra}
             onAssociateReference={onAssociateReference}
-            persistDraftUpdate={persistDraftUpdate}
         />
     )
 }

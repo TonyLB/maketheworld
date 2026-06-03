@@ -1,7 +1,7 @@
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { ComponentUUID, isSchemaComponent, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit";
-import { ComponentTag, componentTagFromUpperCase } from "../components/dataTypes/abstract";
+import { ComponentTag, componentTagFromUniversalKey } from "../components/dataTypes/abstract";
 import { isStandardKeyData, isStandardReferenceData, StandardReferenceData } from "./dataTypes/reference";
 import { ReferenceFormat } from "../components/utils/references";
 import { treeFromWML } from "../../schema";
@@ -14,9 +14,7 @@ export const standardReferenceDeserialize = (incoming: StandardReferenceData): E
         if (!isSchemaComponentUUID(incoming)) {
             throw new Error('Invalid StandardReferenceData passed to standardReferenceDeserialize')
         }
-        // Return object form with tag derived from ComponentUUID
-        const [upcaseTag] = incoming.split('#')
-        const tag = componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>)
+        const tag = componentTagFromUniversalKey(incoming)
         return { universalKey: incoming, key: '', tag }
     }
     return incoming;
@@ -64,18 +62,14 @@ const deriveTagFromReferenceData = (
         return data.tag
     }
     
-    // If data is ComponentUUID string, derive from prefix
     if (typeof data === 'string' && isSchemaComponentUUID(data)) {
-        const [upcaseTag] = data.split('#')
-        return componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>)
+        return componentTagFromUniversalKey(data)
     }
-    
-    // If data is object with universalKey, derive from it
+
     if (typeof data === 'object' && data !== null && 'universalKey' in data) {
         const obj = data as { universalKey?: ComponentUUID }
         if (obj.universalKey) {
-            const [upcaseTag] = obj.universalKey.split('#')
-            return componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>)
+            return componentTagFromUniversalKey(obj.universalKey)
         }
     }
     
@@ -201,13 +195,7 @@ export class StandardReference {
             if (explicitTag !== undefined) {
                 this._tag = explicitTag
             } else {
-                // Derive tag from ComponentUUID
-                const [upcaseTag] = arg.split('#')
-                const derivedTag = componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>)
-                if (!derivedTag) {
-                    throw new Error('Cannot derive tag from ComponentUUID')
-                }
-                this._tag = derivedTag
+                this._tag = componentTagFromUniversalKey(arg)
             }
             this._ref = 1 // Default to 1 for ComponentUUID string form
             return
