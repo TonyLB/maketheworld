@@ -1,6 +1,6 @@
 # Workbench consistency layer
 
-**Status:** M1 in progress (**D2** implemented). Normative **D2** and **ref scrub** detail lives here; full module API, flush pipeline, and cross-links expand in M6. Active task plan: [AGENT.workbenchConsistencyLayer.planning.md](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchConsistencyLayer.planning.md).
+**Status:** M1 in progress (**D2**, **D9** `materializeComponent` implemented). Normative **D2** and **ref scrub** detail lives here; full module API, flush pipeline, and cross-links expand in M6. Active task plan: [AGENT.workbenchConsistencyLayer.planning.md](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchConsistencyLayer.planning.md).
 
 ## Purpose
 
@@ -62,6 +62,22 @@ function isReferencedInAssetLayer(
 | **WML / generic merge** | Retained (supports `ref={0}` / inline orphan editing) |
 | **Authoring Workbench** | Removed by normalize when **`!isReferencedInAssetLayer`** on the local form; non-empty orphans are not left without UI to edit them |
 
+## `materializeComponent` (D9)
+
+Ensure `draft.byUniversalId` contains a component before a reference is meaningful. **Public spec:** `{ universalKey, fromAsset? }` only --- derive component **`tag`** from the `ComponentUUID` prefix via [`componentTagFromUniversalKey`](../../../../../../packages/mtw-wml/ts/standardize/components/dataTypes/abstract.ts) (same rule as `StandardReference`), then `standardComponentFactory` (create/stub) or [`addImportToDraft`](../../../../slices/personalAssets/addImportToDraft.ts) (when `fromAsset` is set). Callers do **not** pass `tag` separately.
+
+```typescript
+function materializeComponent(
+  draft: StandardForm,
+  spec: { universalKey: ComponentUUID; fromAsset?: AssetUUID }
+): StandardReference
+```
+
+**Implementation:** [`materializeComponent.ts`](./materializeComponent.ts), exported from [`index.ts`](./index.ts).
+
+- **Create:** idempotent when `universalKey` is already in `byUniversalId` (returns existing `reference`).
+- **Import:** requires a tag in [`SchemaImportMapping`](../../../../../../packages/mtw-base/ts/schema/metaData.ts) (`isSchemaImportMappingType`); throws for types like Character that cannot be imported via WML Import mapping.
+
 ## Ref scrub (belt-and-suspenders)
 
 `normalizeWorkbenchDraft` (M1) runs a **fixpoint** loop; each pass includes a defensive **ref scrub** step after orphan body removal. Full fixpoint semantics (iteration cap, preview API, flush pipeline) are documented when implementation lands; this section defines scrub's role only.
@@ -91,7 +107,7 @@ When implementing `normalizeWorkbenchDraft`, add a short code comment pointing t
 
 | Doc | Role |
 | --- | --- |
-| [Workbench consistency layer (task plan)](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchConsistencyLayer.planning.md) | Progress, decisions **D1-D8**, verification until archive |
+| [Workbench consistency layer (task plan)](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchConsistencyLayer.planning.md) | Progress, decisions **D1-D9**, verification until archive |
 | [Workbench AGENT.md](../../AGENT.md) | Workbench composition, component session |
 | [AGENT.reference-lists.md](../ReferenceList/AGENT.reference-lists.md) | List shells, associate/disassociate sites |
 | [personalAssets AGENT.md](../../../../slices/personalAssets/AGENT.md) | `updateStandard`, merge, diff |

@@ -21,7 +21,7 @@ The Workbench sits within the Charcoal Client's [dual-mode architecture](../../.
 - **Reference Lists**: WML `ReferenceList` fields (e.g. `features`, `guidance`, `lens`, `marks`) rendered as accordion lists with add/remove; see [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md)
 - **Layered Context**: Sibling-in-context editing for Room Situation facets and Guidance (Photoshop-layer style); see [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md)
 - **StandardForm**: WML asset representation; the Workbench reads and mutates `StandardForm` via `updateStandard` from `useWorkbenchAsset`; per-component scalar editing uses a **working copy** via `useWorkbenchComponent` ([Component editing session](#component-editing-session-two-tier-model))
-- **Consistency layer (in progress)**: Orphan GC and normalize use **`isReferencedInAssetLayer`** on the **local** form (`_topLevel` union `referencedBy`); see [foundations/consistency/AGENT.md](./foundations/consistency/AGENT.md)
+- **Consistency layer (in progress)**: **`materializeComponent`** and **`isReferencedInAssetLayer`** on the **local** form (`_topLevel` union `referencedBy` for orphan GC); see [foundations/consistency/AGENT.md](./foundations/consistency/AGENT.md)
 
 ---
 

@@ -1,6 +1,6 @@
 # Workbench consistency layer (authoring client)
 
-**Status:** In progress (M0 complete; M1 started). **Next step:** **M1** --- `materializeComponent`, `normalizeWorkbenchDraft`, `previewOrphanClosure` in [`foundations/consistency/`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/).
+**Status:** In progress (M0 complete; M1 started). **Next step:** **M1** --- `normalizeWorkbenchDraft`, `previewOrphanClosure` in [`foundations/consistency/`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/) (`materializeComponent` shipped).
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into [`charcoal-client/src/components/Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md), [`foundations/ReferenceList/AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md), and [`charcoal-client/src/slices/personalAssets/AGENT.md`](../../../../../charcoal-client/src/slices/personalAssets/AGENT.md).
 
@@ -41,6 +41,8 @@ Introduce a **Workbench-owned consistency layer** in the Charcoal Client that **
 **Associate / disassociate are local.** They mean: "this **site** (room.features, asset._topLevel, area position-graph participants, etc.) now does or does not list this key." They do **not** mean "delete component from asset."
 
 **Materialize** means: ensure `draft.byUniversalId` contains the component (create, import via [`addImportToDraft`](../../../../../charcoal-client/src/slices/personalAssets/addImportToDraft.ts), or stub) **before** a reference is meaningful. Runs on create/import completion or inside the flush pipeline when pending materializations are queued.
+
+**Normative (`materializeComponent`, M1):** Callers pass **`universalKey`** (and optional **`fromAsset`** for import). **Do not** require a separate **`tag`** --- derive component type from the `ComponentUUID` prefix (`componentTagFromUpperCase`, same rule as [`StandardReference`](../../../../../packages/mtw-wml/ts/standardize/keys/reference.ts)) before [`standardComponentFactory`](../../../../../packages/mtw-wml/ts/standardize/componentFactory.ts) / `addImportToDraft`. Optional explicit `tag` only for dev-time assert (`tag === derived`) if ever needed; not part of the public Workbench API.
 
 **Normalize** (workbench) means: enforce **authoring-surface** invariants on a **local** draft **after** local edits are applied --- distinct from generic WML merge GC (which only drops **unreferenced and empty** components; see [`StandardForm._mergeInternal`](../../../../../packages/mtw-wml/ts/standardize/index.ts)). Use **`getLocalStandardForm`](../../../../../charcoal-client/src/slices/personalAssets/selectors.ts) semantics (base + edit + pendingEdits), **not** merged [`getStandardForm`](../../../../../charcoal-client/src/slices/personalAssets/selectors.ts) (inherited + local).
 
@@ -200,6 +202,7 @@ Mark **Status** `[X]` when normative for implementation.
 | **D6** | [X] | **TopLevel row remove** | Disassociate from `_topLevel` only; never `removeComponent` for list row. Align [`TopLevelEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx). |
 | **D7** | [X] | **No workbench `removeComponent` / reducer cascade** | Workbench UI stops calling `type: 'removeComponent'` for list/header deletes; migrate legacy/maps call sites over time. **Transitive removal = fixpoint normalize**, not `cascade: true` on the reducer. Keep reducer branch only for non-workbench callers until fully migrated. |
 | **D8** | [X] | **Area + orphan closure (v1)** | **First iteration:** disassociating an Area such that Rooms (etc.) become unreferenced and are removed by fixpoint normalize is **acceptable**. Separate Area-specific confirm/UX polish is **out of scope** (likely future UI issue). |
+| **D9** | [X] | **`materializeComponent` spec = `universalKey` (+ optional `fromAsset`)** | Derive **`tag`** from `ComponentUUID` prefix internally; do not require callers to pass `tag`. Wrap `standardComponentFactory` (create/stub) and `addImportToDraft` (import). |
 
 ---
 
@@ -228,7 +231,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as y
 - [ ] **M1 --- Pure layer**
   - [X] Stub [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) with **D2** + **Ref scrub (belt-and-suspenders)** sections (expand in **M6**)
   - [X] Add `isReferencedInAssetLayer(localForm, ref)` per **D2**
-  - [ ] Add `materializeComponent(draft, { tag, universalKey, fromAsset? })` (wrap factory + `addImportToDraft`)
+  - [X] Add `materializeComponent(draft, { universalKey, fromAsset? })` per **D9** (derive `tag` from prefix; wrap factory + `addImportToDraft`)
   - [ ] Add `normalizeWorkbenchDraft(draft)` fixpoint per **D3**, **D4** (uses **D2** on local draft)
   - [ ] Add `previewOrphanClosure(localDraft, ...)` per **D5**
   - [ ] Unit tests (**D2**): top-level-only (`referencedBy` empty, still referenced); `ref={0}` stub; nested list ref; transitive GC after Room removed; inherited-only not counted
@@ -295,7 +298,14 @@ type AssociationSite =
   | { kind: 'componentList'; parentId: ComponentUUID; accessor: ReferenceListSessionAccessor<StandardComponent> }
   // facet slots, lens, area graph: extend as migrated
 
+type MaterializeSpec = {
+  universalKey: ComponentUUID
+  /** When set, import path (`addImportToDraft`); otherwise create/stub via factory. */
+  fromAsset?: AssetUUID
+}
+
 function materializeComponent(draft: StandardForm, spec: MaterializeSpec): StandardReference
+// Derives tag from universalKey prefix (D9); no separate tag param on public API.
 
 function disassociateAtSite(working: ..., site: AssociationSite, ref: StandardReference): void
 
@@ -323,6 +333,7 @@ function applyWorkbenchEdit(
 
 - **D2** --- **`isReferencedInAssetLayer`** on **local** form only; **`_topLevel` ∪ referencedBy**; any ref sign; not merged inherited view; not `SchemaOrganization`.
 - **D8** --- Area-driven GC of now-unreferenced Rooms via fixpoint is fine; dedicated Area remove UX is deferred.
+- **D9** --- **`materializeComponent({ universalKey, fromAsset? })`**; derive **`tag`** from UUID prefix; callers do not pass `tag`.
 
 ---
 

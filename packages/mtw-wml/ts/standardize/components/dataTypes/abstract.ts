@@ -1,5 +1,5 @@
 import { GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { ComponentUUID, SchemaTag, SchemaWithKey, AssetUUID, isSchemaComponentTag } from "@tonylb/mtw-base/ts/schema";
+import { ComponentUUID, SchemaTag, SchemaWithKey, AssetUUID, isSchemaComponentTag, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema";
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
 import { StandardKeyData } from "../../keys/dataTypes/reference";
 import { StandardEditablePayload } from "../../../generics/editable";
@@ -29,4 +29,13 @@ export const componentTagFromUpperCase = (tag: Uppercase<ComponentTag>): Compone
     const result = (tag.charAt(0) + tag.slice(1).toLowerCase()) as ComponentTag
     if (!isSchemaComponentTag(result)) throw new Error(`Unknown tag: ${tag}`)
     return result
+}
+
+/** Derive WML component tag from a ComponentUUID prefix (same rule as StandardReference). */
+export const componentTagFromUniversalKey = (universalKey: ComponentUUID): ComponentTag => {
+    if (!isSchemaComponentUUID(universalKey)) {
+        throw new Error(`Invalid ComponentUUID: ${universalKey}`)
+    }
+    const [upcaseTag] = universalKey.split('#')
+    return componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>)
 }
