@@ -91,11 +91,12 @@ Optional **`shortName`** is a first-class field on every **`StandardComponent`**
 - **Interface:** `shortName?: StandardLiteral` on [`StandardComponent`](./baseClasses.ts).
 - **Payload helpers:** [`shortNameField.ts`](./shortNameField.ts) (`createShortNameFromJSON`, `mergeShortName`, `invertShortName`, `shortNameSchemaChildren`, `standardizeShortNameConsumer`, etc.). All component payloads with `shortName` (Character, Feature, Guidance, Image, Knowledge, Lens, Map, Mark, Message, Moment, Room, Situation) use these helpers for fromJSON/fromSchema/merge/invert/schema/toJSON.
 - **Wrapper access:** `componentClassFactory` exposes `get shortName()` delegating to the payload ([`component.ts`](./component.ts)).
-- **Round-trip tests:** [`shortNameRoundTrip.test.ts`](./shortNameRoundTrip.test.ts) (parameterized matrix across component tags).
+- **Immutable update:** `withShortName(literal)` on [`StandardComponent`](./baseClasses.ts) clones the component and sets payload `_shortName` when the payload is a [`ShortNamePayloadHost`](./shortNameField.ts); otherwise returns an unchanged clone. Does not normalize empty/whitespace (callers such as Workbench `prepareComponentForFlush` apply omission-over-empty before calling).
+- **Round-trip tests:** [`shortNameRoundTrip.test.ts`](./shortNameRoundTrip.test.ts) (parameterized matrix across component tags); `withShortName` covered in [`component.test.ts`](./component.test.ts).
 
 **Removed vestiges:** `HasShortName` and exported `hasShortName()` were removed as redundant with `StandardComponent.shortName`. Use `component.shortName` directly. Local `const hasShortName = Boolean(...)` inside payload `isEmpty()` methods is unrelated.
 
-**Direct `_payload._shortName` assignment** is allowed only in: Workbench `updateStandard` editors (charcoal-client), `StandardForm.subset` Room stub copy ([`index.ts`](../index.ts)), and tests. Optional follow-up: typed `withShortName()` on components.
+**Direct `_payload._shortName` assignment** is allowed only in: legacy Workbench `updateStandard` editors not on `WorkbenchComponentProvider` (see asset-level exceptions in [Workbench AGENT.md](../../../../charcoal-client/src/components/Workbench/AGENT.md#asset-level-updatestandard-exceptions)), `StandardForm.subset` Room stub copy ([`index.ts`](../index.ts)), and tests. Feature, Knowledge, Room, Area, Guidance, Mark, and Lens shortName editors use the session + **`withShortName()`** on flush (`prepareComponentForFlush`). Prefer **`withShortName()`** for new code.
 
 ### Asset `StandardForm._shortName` (not component shortName)
 

@@ -6,6 +6,9 @@ import { StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
 
 export type ShortNamePayloadHost = { _shortName?: StandardLiteral }
 
+export const isShortNamePayloadHost = (payload: unknown): payload is ShortNamePayloadHost =>
+    typeof payload === 'object' && payload !== null && '_shortName' in payload
+
 export const createShortNameFromJSON = (
     data?: StandardEditableData<string>
 ): StandardLiteral | undefined =>

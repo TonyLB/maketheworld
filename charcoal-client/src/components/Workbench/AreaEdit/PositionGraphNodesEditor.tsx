@@ -2,18 +2,16 @@ import React, { FunctionComponent, useCallback, useMemo } from 'react'
 import { Alert, Box } from '@mui/material'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
-import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import { MakeTheWorldAccordion } from '../../UI'
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
-import { ReferenceListEditor } from '../foundations/ReferenceList'
+import { ReferenceListSessionEditor } from '../foundations/ReferenceList'
 import type { ComponentTag } from '../foundations/ReferenceList/ReferenceListEditor'
 import {
     POSITION_GRAPH_NODE_TAGS,
     PositionGraphNodeTag,
-    findEdgesViolatingD4,
-    mergeNodesTagSlice,
-    setAreaPositionGraphNodes
+    findEdgesViolatingD4
 } from './areaEditMutations'
+import { areaPositionGraphNodesTagAccessor } from './areaPositionGraphNodesAccessors'
 
 export type PositionGraphNodesEditorProps = {
     AreaId: ComponentUUID
@@ -34,28 +32,12 @@ const NODE_TAG_IMPORT: Partial<Record<PositionGraphNodeTag, boolean>> = {
 }
 
 const TagNodesSection: FunctionComponent<{
-    areaId: ComponentUUID
     nodeTag: PositionGraphNodeTag
     excludeUniversalKey?: ComponentUUID
-}> = ({ areaId, nodeTag, excludeUniversalKey }) => {
-    const listContext = useCallback(
-        (form: import('@tonylb/mtw-wml/ts/standardize').StandardForm) => {
-            const base = form.byUniversalId[areaId]
-            if (!(base instanceof StandardArea)) {
-                return null
-            }
-            const fullNodes = base.positionGraph.nodes
-            const filtered = new ReferenceList(
-                fullNodes.payload.filter((ref) => ref.tag === nodeTag)
-            )
-            return {
-                referenceList: filtered,
-                setReferenceList: (list: ReferenceList) => {
-                    setAreaPositionGraphNodes(base, mergeNodesTagSlice(fullNodes, nodeTag, list))
-                }
-            }
-        },
-        [areaId, nodeTag]
+}> = ({ nodeTag, excludeUniversalKey }) => {
+    const listAccessor = useMemo(
+        () => areaPositionGraphNodesTagAccessor(nodeTag),
+        [nodeTag]
     )
 
     const isExcludedExtra = useCallback(
@@ -65,10 +47,10 @@ const TagNodesSection: FunctionComponent<{
     )
 
     return (
-        <ReferenceListEditor
+        <ReferenceListSessionEditor<StandardArea>
             title={NODE_TAG_LABELS[nodeTag]}
             tag={nodeTag as ComponentTag}
-            listContext={listContext}
+            listAccessor={listAccessor}
             defaultExpanded={false}
             isExcludedExtra={excludeUniversalKey ? isExcludedExtra : undefined}
             affordance={{
@@ -79,7 +61,9 @@ const TagNodesSection: FunctionComponent<{
     )
 }
 
-export const PositionGraphNodesEditor: FunctionComponent<PositionGraphNodesEditorProps> = ({ AreaId }) => {
+export const PositionGraphNodesEditor: FunctionComponent<PositionGraphNodesEditorProps> = ({
+    AreaId
+}) => {
     const { standardForm } = useWorkbenchAsset()
 
     const area = useMemo(() => {
@@ -125,7 +109,6 @@ export const PositionGraphNodesEditor: FunctionComponent<PositionGraphNodesEdito
             {POSITION_GRAPH_NODE_TAGS.map((nodeTag) => (
                 <TagNodesSection
                     key={nodeTag}
-                    areaId={AreaId}
                     nodeTag={nodeTag}
                     excludeUniversalKey={nodeTag === 'Area' ? AreaId : undefined}
                 />

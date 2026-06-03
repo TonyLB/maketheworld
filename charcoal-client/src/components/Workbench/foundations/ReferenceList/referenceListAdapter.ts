@@ -34,16 +34,21 @@ export const referenceListToItems = ({
             }
             return ref.tag === tag
         })
-        .map<ReferenceListItem>((ref, index) => {
+        .map<ReferenceListItem>((ref) => {
             const universalKey = ref.universalKey
-            const component = universalKey ? standardForm.byUniversalId[universalKey] : undefined
+            if (!universalKey) {
+                throw new Error(
+                    'ReferenceList row requires universalKey; do not use local key as list item id'
+                )
+            }
+            const component = standardForm.byUniversalId[universalKey]
 
             const title = component
                 ? (componentDisplayLabel(component, { standardForm, fallbackLabel: "Untitled" }) ?? "Untitled")
                 : "Untitled"
 
             return {
-                id: universalKey ?? ref.standardKey.key ?? `${index}`,
+                id: universalKey,
                 title
             }
         })

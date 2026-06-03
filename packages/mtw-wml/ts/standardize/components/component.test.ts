@@ -20,6 +20,7 @@ import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import StandardReference from '../keys/reference'
 import { deIndentWML } from '../../schema/utils'
 import { schemaToWML } from '../../schema'
+import { StandardLiteral } from '../literal'
 
 // Type for schema data that includes origin property
 type SchemaWithOrigin = SchemaTag & {
@@ -113,6 +114,29 @@ describe('componentClassFactory shortName (via StandardRoom)', () => {
         const room = new StandardRoom(wml)
         expect(room.shortName?.toJSON()).toEqual('Main Room')
         expect(schemaToWML([room.schema])).toEqual(wml)
+    })
+
+    it('should set shortName using withShortName without mutating the original', () => {
+        const room = new StandardRoom({ tag: 'Room', key: 'test' })
+        const updated = room.withShortName(
+            new StandardLiteral('New Name', { tag: 'ShortName' })
+        ) as StandardRoom
+
+        expect(updated.shortName?.toJSON()).toEqual('New Name')
+        expect(room.shortName).toBeUndefined()
+        expect(schemaToWML([updated.schema])).toEqual(
+            deIndentWML(`<Room key=(test)><ShortName>New Name</ShortName></Room>`)
+        )
+    })
+
+    it('should clear shortName using withShortName(undefined)', () => {
+        const wml = deIndentWML(`<Room key=(test)><ShortName>Main Room</ShortName></Room>`)
+        const room = new StandardRoom(wml)
+        const cleared = room.withShortName(undefined) as StandardRoom
+
+        expect(cleared.shortName).toBeUndefined()
+        expect(room.shortName?.toJSON()).toEqual('Main Room')
+        expect(schemaToWML([cleared.schema])).toEqual(deIndentWML(`<Room key=(test) />`))
     })
 })
 

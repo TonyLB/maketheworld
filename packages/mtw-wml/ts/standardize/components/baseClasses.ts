@@ -62,6 +62,7 @@ export interface StandardComponent {
     withChild(child: StandardReference): StandardComponent;
     withImport(fromAsset: AssetUUID): StandardComponent;
     withOrigin(origin: AssetUUID[] | undefined): StandardComponent;
+    withShortName(shortName: StandardLiteral | undefined): StandardComponent;
     invert?(): StandardComponent;
     /**
      * Assures that the given child references exist in the appropriate buckets with ref={0} if needed.

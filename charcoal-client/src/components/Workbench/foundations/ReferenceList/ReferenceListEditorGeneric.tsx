@@ -12,6 +12,7 @@ import DeleteIcon from "@mui/icons-material/Delete"
 import { MakeTheWorldAccordion } from "../../../UI"
 import { ReferenceList } from "@tonylb/mtw-wml/ts/standardize/keys/referenceList"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import { removeReferenceFromListById } from "./referenceListMutations"
 import "../../../../theme/extensions"
 
 export interface ReferenceListItem {
@@ -101,11 +102,7 @@ export const ReferenceListEditorGeneric: FunctionComponent<ReferenceListEditorGe
             if (updateReferenceList) {
                 return () => {
                     updateReferenceList(({ referenceList }) => {
-                        const filtered = referenceList.payload.filter((ref) => {
-                            const resolvedId = ref.universalKey ?? ref.standardKey.key
-                            return resolvedId !== id
-                        })
-                        referenceList._items = filtered
+                        removeReferenceFromListById(referenceList, id)
                     })
                 }
             }

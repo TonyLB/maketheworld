@@ -20,7 +20,86 @@ The Workbench sits within the Charcoal Client's [dual-mode architecture](../../.
 - **Breadcrumb Stack**: Within-asset navigation history; `component` entries for parent components, `componentLayer` for layered sibling views (e.g., Room Situation facets, Guidance, Marks within a Lens)
 - **Reference Lists**: WML `ReferenceList` fields (e.g. `features`, `guidance`, `lens`, `marks`) rendered as accordion lists with add/remove; see [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md)
 - **Layered Context**: Sibling-in-context editing for Room Situation facets and Guidance (Photoshop-layer style); see [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md)
-- **StandardForm**: WML asset representation; the Workbench reads and mutates `StandardForm` via `updateStandard` from `useWorkbenchAsset`; per-component scalar editing uses a **working copy** via `useWorkbenchComponent` (see composition plan)
+- **StandardForm**: WML asset representation; the Workbench reads and mutates `StandardForm` via `updateStandard` from `useWorkbenchAsset`; per-component scalar editing uses a **working copy** via `useWorkbenchComponent` ([Component editing session](#component-editing-session-two-tier-model))
+
+---
+
+## Component editing session (two-tier model)
+
+Workbench component editors use a **working `StandardComponent`** in React state (cheap `clone()` + mutate per change) and **debounced `updateStandard`** to Redux (whole-asset `clone` + diff + merge). UI reads **`working`** while editing; Redux `standardForm` is authoritative after flush and across navigation.
+
+### Two tiers
+
+| Tier | What | Cost | When |
+| --- | --- | --- | --- |
+| **Working copy** | `StandardRoom` (etc.) in session state from `useWorkbenchComponent` | Component `clone()` + payload mutate | Every field change via `updateComponent` |
+| **Committed copy** | `standardForm.byUniversalId[id]` from `useWorkbenchAsset` | Asset `standardForm._clone()` + diff + merge into `edit` | Debounced **`flushToStandardForm`** (~1000ms default), plus **`flushNow`** on unmount / breadcrumb |
+
+```text
+User edit -> updateComponent (working = working.clone(); mutate) -> UI reads working.*
+  ... debounce ...
+  -> flushToStandardForm -> updateStandard assigns working to draft.byUniversalId[id]
+```
+
+**Per-component debounce (not per-field):** each `updateStandard` diffs the **entire asset**. One flush batches all pending edits on that component.
+
+### Layering
+
+```text
+UI primitives (StandardLiteralEditor, StandardRenderEditor)
+  <- field/section components (WorkbenchShortNameField, DefaultRenderEditor, ReferenceListSessionEditor)
+      <- useWorkbenchComponent / WorkbenchComponentProvider
+          <- workbenchMutations (normalize shortName, reconcileCommittedComponent, applyWorkingComponentToDraft)
+              <- updateStandard (asset clone -> diff -> merge)
+```
+
+### Composition rules
+
+1. **One session per screen** editing a single component (`WorkbenchComponentProvider` + `useWorkbenchComponent`).
+2. **Leaf editors** use **`value` / `onChange`** on **working** fields (or context-only field components). **No `updateStandard` on the edit path** inside primitives; **no persist debounce** in primitives under a provider.
+3. **List shells on a provider screen** mutate parent **`working`** via **`updateComponent`** + session debounced flush. Optional **`flushNow`** after structural add/remove/import before navigation. See [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md).
+4. **Compose by sections** (shortName, DEFAULT prose, lists, topology) on the same parent **`working`** copy when they edit the same component.
+5. **Row contract** at the **Standard*** slice; facet/exit rows use list + handler patterns documented in foundation AGENT files.
+
+### Session API ([`foundations/WorkbenchComponent/`](./foundations/WorkbenchComponent/))
+
+- **State:** `working` (editor copy), `lastReceived` (reconcile baseline), `committed` (live Redux selector view).
+- **`updateComponent`:** immediate `working.clone()` then mutate; resets debounce timer.
+- **`flushToStandardForm`:** debounced persist (default ~1000ms; `flushDelayMs` on provider). Flush uses [`applyWorkingComponentToDraft`](./foundations/workbenchMutations.ts) / [`prepareComponentForFlush`](./foundations/workbenchMutations.ts) (`withShortName`, omission-over-empty shortName). Skips dispatch when `lastReceived.diff(working)` is undefined (semantic no-op at component scope); reducer diff still applies at asset scope.
+- **`flushNow`:** cancel pending debounce and flush immediately; runs on provider unmount and `componentId` change.
+- **`commitAssetScopedUpdate`:** one immediate `updateStandard` for create/import + flush assign; cancels pending debounce; advances `lastReceived`.
+- **DEFAULT situation:** when `working` references **SITUATION#DEFAULT**, flush may call [`assureDefaultSituationFromPrimitives`](../../slices/personalAssets/assureDefaultSituationFromPrimitives.ts) before assign.
+- **External `committed` changes** (import, stream, other UI): [`reconcileCommittedComponent`](./foundations/workbenchMutations.ts) three-way merge (`lastReceived.diff(working)` then `incoming.merge(editDiff)`); echo of last flush skipped; merge failure supersedes with snackbar (`onSuperseded` override); cancel pending debounce before reconcile, reschedule after. Pure helpers in [`workbenchMutations.ts`](./foundations/workbenchMutations.ts); domain list accessors next to owning editor (e.g. [`roomReferenceListAccessors.ts`](./RoomEdit/roomReferenceListAccessors.ts)).
+
+### Session-bound field components
+
+- **`WorkbenchShortNameField`**, **`DefaultRenderEditor`**, **`ReferenceListSessionEditor`:** context-only; `updateComponent` on **`working`**; no per-action `updateStandard` on the edit path.
+- **`debounce={false}`** on `StandardLiteralEditor` / `StandardRenderEditor` under a provider so only the session debounces flush.
+- **`readonly`:** field prop **and** asset `readonly` from `useWorkbenchAsset` (non-Draft / published).
+
+### Slate / rich text
+
+`StandardRenderEditor` uses a local Slate buffer so parent `value` does not overwrite in-progress typing while Redux is stale. Under a session, commits go into **`working`**; only **`flushToStandardForm`** hits Redux.
+
+### Asset-level `updateStandard` (exceptions)
+
+Use asset-level paths when there is no parent session or domain topology requires immediate draft surgery. Do not add per-keystroke `updateStandard` on provider screens for fields that belong on **`working`**.
+
+| Area | Pattern |
+| --- | --- |
+| Area exit topology | `ExitEdgeListEditor` + `areaEditMutations` |
+| Room exits | `ExitEditor` |
+| Room non-DEFAULT situations list | create/associate in `RoomEditor` |
+| Layered Room situation facets | `SituationFacetRenderFieldsEditor` (asset-mode per change) |
+| Lens mark create/associate | `LensMarkFacetsEditor.requestCreate` |
+| Guidance mark facets (non-Lens screens) | `MarkFacetsEditor` |
+| Top-level asset lists | `TopLevelEditor` / `ReferenceListEditor` with `listContext` |
+| Character, Situation, Map editors | Not on component session yet |
+| Asset-mode reference list | `ReferenceListEditor` (`listContext` + `updateStandard`) |
+
+### Testing
+
+Import session test utilities from [`foundations/WorkbenchComponent/testing/harness.tsx`](./foundations/WorkbenchComponent/testing/harness.tsx) and [`testing/mock.ts`](./foundations/WorkbenchComponent/testing/mock.ts) --- not from the production barrel. See [Development Notes](#development-notes) and [charcoal-client/AGENT.testing.md](../../AGENT.testing.md).
 
 ---
 
@@ -36,7 +115,7 @@ Provide a form-based, component-centric editing experience for WML assets that:
 ### Key Responsibilities
 
 - **Navigation**: Maintain breadcrumb stack and route to asset, component, or component-layer views
-- **Data Binding**: Connect `StandardForm` (from `personalAssets` slice) to form controls via `useWorkbenchAsset`; component editor sessions add a working `StandardComponent` copy via `useWorkbenchComponent` (two-tier model --- see composition plan)
+- **Data Binding**: Connect `StandardForm` (from `personalAssets` slice) to form controls via `useWorkbenchAsset`; component editor sessions add a working `StandardComponent` copy via `useWorkbenchComponent` ([two-tier model](#component-editing-session-two-tier-model))
 - **Reference List Management**: Add/remove/reorder components in reference lists (Features, Guidance, Exits, Lenses, Marks)
 - **Read-only for non-Draft assets**: Enforce via `readonly` from `useWorkbenchAsset`
 
@@ -73,7 +152,7 @@ type WorkbenchBreadcrumbEntry = {
 ### Core Methods
 
 - **`useWorkbenchAsset()`**: Hook providing `standardForm`, `updateStandard`, `readonly`, and other asset context; derives `AssetId` from workbench Redux state
-- **`WorkbenchComponentProvider`** / **`useWorkbenchComponent()`** ([`foundations/WorkbenchComponent/`](./foundations/WorkbenchComponent/)): Component editing session for one `componentId` --- holds `working`, `lastReceived`, and `committed`. **`updateComponent`** mutates the working copy immediately (component `clone()` + payload mutate). **`flushToStandardForm`** schedules a debounced persist to Redux via `updateStandard` (default ~1000ms, overridable with `flushDelayMs` on the provider); the timer resets on each `updateComponent`. **`flushNow`** cancels any pending debounce and flushes immediately; also runs on provider unmount and `componentId` change so edits are not lost. **`commitAssetScopedUpdate`** runs one immediate `updateStandard` for asset-scoped draft surgery (create/import) plus flush assign, cancels pending debounce, and advances `lastReceived` (**D14b**). Flush calls [`applyWorkingComponentToDraft`](./foundations/workbenchMutations.ts) inside the `updateStandard` draft callback (flush assign only: [`prepareComponentForFlush`](./foundations/workbenchMutations.ts) for **D11** shortName omission-over-empty, then `draft.byUniversalId[id] = flushed`) and, when `working` references **SITUATION#DEFAULT**, [`assureDefaultSituationFromPrimitives`](../../slices/personalAssets/assureDefaultSituationFromPrimitives.ts) before assign (with `fetchImports` when the draft was modified). Skips dispatch when `lastReceived.diff(working)` is undefined (**D12** semantic no-op at component scope); asset-level no-op suppression remains the `updateStandard` reducer diff. On external `committed` changes (import, stream, other UI paths): three-way reconcile via [`reconcileCommittedComponent`](./foundations/workbenchMutations.ts) (`lastReceived.diff(working)` then `incoming.merge(editDiff)`); semantic echo of the last flush is skipped (**D14a**); merge failure supersedes with a feedback snackbar (override with `onSuperseded` on the provider); pending debounced flush is cancelled before reconcile and rescheduled after (**D14c**). Shared pure helpers (`normalizeOptionalLiteral`, `setWorkingShortNameFromString`, situation facet mutators, `applyWorkingComponentToDraft`, etc.) live in [`workbenchMutations.ts`](./foundations/workbenchMutations.ts) (**D10**). Domain-specific list accessors (e.g. Room Guidance/Features) live under the owning editor module (see [`RoomEdit/roomReferenceListAccessors.ts`](./RoomEdit/roomReferenceListAccessors.ts)). **`WorkbenchShortNameField`**, **`DefaultRenderEditor`**, and **`ReferenceListSessionEditor`** are context-only bindings for component editor sessions (**D4**, **D15**): read/write `working` via `updateComponent`, no per-action `updateStandard` on the edit path. Use `debounce={false}` on literal/render field editors under the provider so persist debounce is single-layer on the session (**D8**). Field `readonly` prop is combined with session `readonly` (**D13**). See [`AGENT.workbenchComposition.planning.md`](../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchComposition.planning.md).
+- **`WorkbenchComponentProvider`** / **`useWorkbenchComponent()`**: Component editing session for one `componentId`. See [Component editing session](#component-editing-session-two-tier-model).
 - **`navigateToComponent(componentId)`**: Sets breadcrumb stack to a single component entry
 - **`pushBreadcrumb(entry)`**: Pushes a component entry (e.g. when navigating to an Example or Guidance from Room)
 - **`replaceTopBreadcrumb(newComponentId)`**: Replaces the top of the stack (e.g. when switching tabs in LayeredContextView)
@@ -91,7 +170,7 @@ type WorkbenchBreadcrumbEntry = {
 
 ### Dependencies
 
-- **personalAssets Slice**: Asset loading, `StandardForm` data, `updateStandard` reducer, `getStatus`, `getAssetZone`
+- **personalAssets Slice**: Asset loading, `StandardForm` data, `updateStandard` reducer, `getStatus`, `getAssetZone`. Workbench batches per-component edits via session flush; reducer diff semantics are unchanged ([`personalAssets/AGENT.md`](../../slices/personalAssets/AGENT.md)).
 - **workbench Slice** ([`src/slices/UI/workbench/`](../../slices/UI/workbench/)): Navigation state, `currentAssetId`, breadcrumb stack, selectors (`getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`, `getNavigationTrail`)
 - **cacheDB**: Persists `CurrentAssetId` via `putWorkbenchSettings` / `loadWorkbenchSettings`
 - **WML Standardize** ([`packages/mtw-wml/ts/standardize/`](../../../../packages/mtw-wml/ts/standardize/AGENT.md)): `StandardForm`, `StandardComponent`, `StandardRoom`, `StandardFeature`, `StandardSituation`, `StandardLens`, `StandardMark`, `StandardRender`, `StandardLiteral`, `ReferenceList`
@@ -111,7 +190,7 @@ type WorkbenchBreadcrumbEntry = {
 ### System Relationships
 
 - **AppLayout**: Renders `WorkbenchContainer` with `open`, `onClose`, `assetId`, `secondaryContext`; controls workbench visibility
-- **WorkbenchAssetEditor**: Orchestrates view routing based on `getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`; delegates to `AssetEditForm`, `AreaEditor`, `RoomEditor`, `FeatureEditor`, `KnowledgeEditor`, `LayeredContextView` (Room Situation/Guidance tabs), `MarkEditor`, `MapEditor`, `CharacterEditor`
+- **WorkbenchAssetEditor**: Orchestrates view routing based on `getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`; delegates to `AssetEditForm`, `AreaEditor`, `RoomEditor`, `FeatureEditor`, `KnowledgeEditor`, `LayeredContextView` (Room Situation/Guidance tabs), `GuidanceEditor`, `MarkEditor`, `LensDetail`, `MapEditor`, `CharacterEditor`
 
 ---
 
@@ -127,14 +206,16 @@ dispatch(setCurrentAssetId(assetId))
 // 2. Navigate to a component
 dispatch(navigateToComponent('ROOM#room-uuid'))
 
-// 3. Edit via useWorkbenchAsset
+// 3. Edit via useWorkbenchAsset (prefer WorkbenchComponentProvider + WorkbenchShortNameField for shortName)
 const { updateStandard, standardForm, readonly } = useWorkbenchAsset()
 updateStandard({
     type: 'update',
     update: (draft) => {
         const room = draft.byUniversalId['ROOM#room-uuid']
         if (room instanceof StandardRoom) {
-            room._payload._shortName = new StandardLiteral('Updated Name')
+            draft.byUniversalId['ROOM#room-uuid'] = room.withShortName(
+                new StandardLiteral('Updated Name', { tag: 'ShortName' })
+            )
         }
         return draft
     }
@@ -155,8 +236,8 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 // Reference lists on WorkbenchComponentProvider screens (Room Guidance, Room Features)
 <ReferenceListSessionEditor title="Guidance" listAccessor={roomGuidanceListAccessor} tag="Guidance" onItemClick={...} />
 
-// Asset-mode reference lists (non-provider screens, e.g. Area position graph)
-const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance' })
+// Area position-graph participants (per tag) -- same session pattern as Room lists
+<ReferenceListSessionEditor title="Rooms" listAccessor={areaPositionGraphNodesTagAccessor('Room')} tag="Room" />
 ```
 
 ### Rich Text Editing
@@ -185,7 +266,7 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 1. **Workbench Flow**: Start at [`WorkbenchContainer.tsx`](./WorkbenchContainer.tsx) for layout and breadcrumb header; then [`WorkbenchAssetEditor.tsx`](./WorkbenchAssetEditor.tsx) for view routing
 2. **Asset Context**: Read [`foundations/useWorkbenchAsset.ts`](./foundations/useWorkbenchAsset.ts) to understand how asset data flows from `personalAssets` into Workbench components
 3. **Navigation State**: Read [`src/slices/UI/workbench/index.ts`](../../slices/UI/workbench/index.ts) for breadcrumb model and selectors
-4. **Component Editing**: One editor per component type, each under its own `{Component}Edit` directory (e.g. `AreaEdit/AreaEditor.tsx`, `RoomEdit/RoomEditor.tsx`, `FeatureEdit/FeatureEditor.tsx`, `KnowledgeEdit/KnowledgeEditor.tsx`). **FeatureEditor**, **KnowledgeEditor**, **RoomEditor**, and **AreaEditor** wrap their editor body in **`WorkbenchComponentProvider`**. **WorkbenchShortNameField**, **`DefaultRenderEditor`**, and **`ReferenceListSessionEditor`** (Room Guidance/Features) bind to the session **`working`** copy via **`updateComponent`** (debounced flush to Redux; **D11** omission-over-empty on flush for shortName). Room Situations list, Lens header, and Exit topology still use `updateStandard` on their existing paths. **AreaEditor** also edits heterogeneous **`positionGraph.nodes`** (Room / Feature / Character / Area participants) and uuid-keyed **`positionGraph.edges`** (`From` / `To` / `Forward` / `Back` per [D19/D29](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md)). RoomEditor composes `ExitEditor` (room-local facets --- **M6** removal), `LensHeader` (from LensEdit), `FeatureListEditor` (session reference list), `DefaultRenderEditor`, situation list (non-DEFAULT), and Guidance (`ReferenceListSessionEditor`).
+4. **Component Editing**: One editor per component type under `{Component}Edit`. Session-wrapped editors and asset-level exceptions are listed in [Component editing session](#component-editing-session-two-tier-model) and the Key Files table below. **GuidanceEditor** resolves `getCurrentComponentLayerId ?? getCurrentComponentId` for layered Room tabs.
 
 ### Key Files
 
@@ -194,20 +275,25 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 | `WorkbenchContainer.tsx` | Responsive layout, breadcrumbs, AssetSelector, theme |
 | `WorkbenchAssetEditor.tsx` | View routing (asset / component / componentLayer) |
 | `WorkbenchAssetEditForm.tsx` | Asset-level metadata, component list, imports |
-| `AreaEdit/` | AreaEditor (`WorkbenchComponentProvider` + shortName field; topology via PositionGraphNodesEditor, ExitEdgeListEditor) |
+| `AreaEdit/` | AreaEditor (`WorkbenchComponentProvider` + shortName; PositionGraphNodesEditor session reference lists; ExitEdgeListEditor) |
 | `RoomEdit/` | RoomEditor (component session for shortName; ExitEditor, FeatureListEditor, Lens via LensEdit/LensHeader) |
 | `FeatureEdit/` | FeatureEditor (component session; shortName + DEFAULT prose via session fields) |
 | `KnowledgeEdit/` | KnowledgeEditor (component session; shortName + DEFAULT prose via session fields) |
 | `foundations/WorkbenchComponent/WorkbenchShortNameField.tsx` | Context-only shortName field (`useWorkbenchComponent` session) |
 | `foundations/DefaultRenderEditor.tsx` | Context-only DEFAULT situation facet prose (Room, Feature, Knowledge); session `working` + `updateComponent` |
-| `RoomEdit/roomReferenceListAccessors.ts` | Room Guidance/Features `listAccessor` objects for `ReferenceListSessionEditor` |
-| `foundations/ReferenceList/ReferenceListSessionEditor.tsx` | Context-only reference list on provider screens; session `working` + `updateComponent` / `commitAssetScopedUpdate` |
-| `foundations/ReferenceList/ReferenceListEditor.tsx` | Asset-mode reference list (`listContext` + `updateStandard`); non-provider screens |
+| `RoomEdit/roomReferenceListAccessors.ts` | Room Guidance/Features `listAccessor` for `ReferenceListSessionEditor` |
+| `AreaEdit/areaPositionGraphNodesAccessors.ts` | Per-tag `positionGraph.nodes` slice accessors for `ReferenceListSessionEditor` |
+| `foundations/ReferenceList/ReferenceListControlled.tsx` | Composable shell: `referenceList` + `onReferenceListChange` |
+| `foundations/ReferenceList/ReferenceListSessionEditor.tsx` | Provider-screen wrapper over Controlled; `listAccessor` + session persist |
+| `foundations/ReferenceList/ReferenceListEditor.tsx` | Asset-mode thin wrapper over Controlled (`listContext` + `updateStandard`) |
+| `foundations/ReferenceList/referenceListMutations.ts` | List remove by ComponentUUID via `sameKey` |
 | `foundations/SituationFacetRenderFieldsEditor.tsx` | Asset-mode facet field editor (layered Room situations); `updateStandard` per change |
 | `foundations/SituationFacetRenderFieldsView.tsx` | Shared presentation for DEFAULT / situation facet prose fields |
 | ~~`ExampleEdit/`~~ | **Removed** (2026-05-19); F/K prose via **`DefaultRenderEditor`** |
+| `GuidanceEdit/` | GuidanceEditor (`WorkbenchComponentProvider`; layered + top-level; shortName, instructions, marks on session) |
 | `foundations/LayeredContext/` | LayeredContextView (Room Situation/Guidance tabs), LayeredTabs |
-| `MarkEdit/` | MarkEditor (full); `MarkInlineEditor` + `MarkInlineEditorWithSession` (per-row Mark shortName session; used in Lens mark facet rows) |
+| `LensEdit/` | LensDetail (component session: shortName, description, mark facets); LensHeader; LensMarkFacetsEditor |
+| `MarkEdit/` | MarkEditor (full-screen session); `MarkInlineEditor` + `MarkInlineEditorWithSession` (per-row Mark shortName; Lens mark facet rows) |
 | `MapEdit/` | MapEditor, MapArea, MapController, MapLayers, UnshownRooms |
 | `CharacterEdit/` | CharacterEditor |
 | `foundations/StandardRender/StandardRenderEditor.tsx` | Rich text (Slate); shared with Editor components |
@@ -215,7 +301,8 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 
 ### Related Documentation
 
-- [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md) - `ReferenceListEditor` vs `InlineReferenceList`, `referenceListToItems`, Mark inline pattern
+- [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md) - `ReferenceListControlled`, session vs asset wrappers, `InlineReferenceList`, Mark inline pattern
+- [AGENT.facet-list.md](./foundations/FacetList/AGENT.facet-list.md) - Facet list handlers, Lens mark hybrid rows
 - [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md) - Layer strip, index bar, split-pane, MUI Tabs; Room layered views
 - [charcoal-client/AGENT.testing.slate.md](../../../AGENT.testing.slate.md) - Slate/rich text testing if modifying StandardRenderEditor
 

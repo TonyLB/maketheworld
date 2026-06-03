@@ -10,11 +10,8 @@ import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { v4 as uuidv4 } from "uuid"
 
 import { useWorkbenchComponent } from "../WorkbenchComponent"
-import { useWorkbenchAsset } from "../useWorkbenchAsset"
-import { useAddReferenceImport } from "./AddReferenceImportControl"
-import { ReferenceListEditorGeneric } from "./ReferenceListEditorGeneric"
-import { referenceListToItems } from "./referenceListAdapter"
 import type { ComponentTag, ReferenceListAffordance } from "./ReferenceListEditor"
+import ReferenceListControlled from "./ReferenceListControlled"
 
 export type ReferenceListSessionAccessor<T extends StandardComponent> = {
     getReferenceList: (parent: T) => ReferenceList
@@ -34,7 +31,7 @@ export interface ReferenceListSessionEditorProps<T extends StandardComponent = S
     listAccessor: ReferenceListSessionAccessor<T>
     tag: ComponentTag
     affordance?: ReferenceListAffordance
-    variant?: "contained" | "table"
+    variant?: 'contained' | 'table'
     icon?: ReactNode
     defaultExpanded?: boolean
     disabled?: boolean
@@ -42,34 +39,23 @@ export interface ReferenceListSessionEditorProps<T extends StandardComponent = S
     isExcludedExtra?: (universalKey: ComponentUUID) => boolean
 }
 
-const IMPORTABLE_TAGS: ComponentTag[] = [
-    "Room",
-    "Area",
-    "Feature",
-    "Knowledge",
-    "Map",
-    "Message"
-]
-
 /**
- * Context-only reference list editor for WorkbenchComponentProvider sessions (D15).
- * Requires WorkbenchComponentProvider; call site supplies listAccessor (site-specific
- * get/set on parent working). List-only mutations via updateComponent; create/import
- * via commitAssetScopedUpdate (no per-action updateStandard on edit path).
+ * Context-only reference list editor for WorkbenchComponentProvider sessions.
+ * Thin wrapper over ReferenceListControlled; listAccessor maps to referenceList +
+ * onReferenceListChange on parent working.
  */
 export const ReferenceListSessionEditor = <T extends StandardComponent>({
     title,
     listAccessor,
     tag,
     affordance,
-    variant = "contained",
+    variant = 'contained',
     icon,
     defaultExpanded,
     disabled: disabledProp,
     onItemClick,
     isExcludedExtra
 }: ReferenceListSessionEditorProps<T>): React.ReactElement | null => {
-    const { standardForm } = useWorkbenchAsset()
     const {
         working,
         updateComponent,
@@ -79,11 +65,6 @@ export const ReferenceListSessionEditor = <T extends StandardComponent>({
     } = useWorkbenchComponent<T>()
 
     const disabled = disabledProp ?? sessionReadonly
-    const canImport = IMPORTABLE_TAGS.includes(tag)
-    const enableReferenceExisting = affordance?.enableReferenceExisting ?? false
-    const enableImport = affordance?.enableImport ?? canImport
-    const addButtonLabel = affordance?.addLabel ?? `Add ${tag}`
-    const refExistingLabel = affordance?.referenceExistingLabel ?? `Reference existing ${tag}`
 
     const referenceList = useMemo(() => {
         if (!working) {
@@ -92,39 +73,18 @@ export const ReferenceListSessionEditor = <T extends StandardComponent>({
         return listAccessor.getReferenceList(working)
     }, [working, listAccessor])
 
-    const items = useMemo(() => {
-        const baseItems = referenceListToItems({
-            referenceList,
-            standardForm,
-            tag
-        })
-        return icon ? baseItems.map((item) => ({ ...item, icon })) : baseItems
-    }, [referenceList, standardForm, tag, icon])
-
-    const summary = useMemo(() => {
-        if (!items.length) return undefined
-        return items.map(({ title: t }) => t).filter(Boolean).join(", ")
-    }, [items])
-
-    const isExcluded = useCallback(
-        (universalKey: ComponentUUID) =>
-            referenceList.payload.some((ref) => ref.universalKey === universalKey) ||
-            (isExcludedExtra?.(universalKey) ?? false),
-        [referenceList, isExcludedExtra]
-    )
-
-    const updateReferenceList = useCallback(
-        (mutate: (ctx: { referenceList: ReferenceList; standardForm: StandardForm }) => void) => {
+    const onReferenceListChange = useCallback(
+        (mutate: (list: ReferenceList) => void) => {
             if (disabled || missing) {
                 return
             }
             updateComponent((draft) => {
                 const list = listAccessor.getReferenceList(draft)
-                mutate({ referenceList: list, standardForm })
+                mutate(list)
                 listAccessor.setReferenceList(draft, list)
             })
         },
-        [disabled, missing, updateComponent, listAccessor, standardForm]
+        [disabled, missing, updateComponent, listAccessor]
     )
 
     const onAssociateReference = useCallback(
@@ -171,19 +131,19 @@ export const ReferenceListSessionEditor = <T extends StandardComponent>({
             }
             const enforceKey = enforceTypedKey(
                 tag.toUpperCase() as
-                    | "ASSET"
-                    | "AREA"
-                    | "CHARACTER"
-                    | "ROOM"
-                    | "FEATURE"
-                    | "KNOWLEDGE"
-                    | "MAP"
-                    | "MESSAGE"
-                    | "MOMENT"
-                    | "IMAGE"
-                    | "MARK"
-                    | "LENS"
-                    | "SITUATION"
+                    | 'ASSET'
+                    | 'AREA'
+                    | 'CHARACTER'
+                    | 'ROOM'
+                    | 'FEATURE'
+                    | 'KNOWLEDGE'
+                    | 'MAP'
+                    | 'MESSAGE'
+                    | 'MOMENT'
+                    | 'IMAGE'
+                    | 'MARK'
+                    | 'LENS'
+                    | 'SITUATION'
             )
             const uuid = tag === "Situation" ? `situation-${Date.now()}` : uuidv4()
             const universalKey = enforceKey(uuid) as ComponentUUID
@@ -201,39 +161,28 @@ export const ReferenceListSessionEditor = <T extends StandardComponent>({
         [disabled, missing, tag, commitAssetScopedUpdate]
     )
 
-    const { actionRows, selectorDialog, importDialog } = useAddReferenceImport({
-        tag,
-        isExcluded,
-        association,
-        requestCreate,
-        labels: { add: addButtonLabel, referenceExisting: refExistingLabel },
-        enableReferenceExisting,
-        enableImport,
-        disabled,
-        onAssociateReference,
-        persistDraftUpdate
-    })
-
     if (missing || !working) {
         return null
     }
 
     return (
-        <>
-            <ReferenceListEditorGeneric
-                title={title}
-                items={items}
-                summary={summary}
-                defaultExpanded={defaultExpanded ?? !!items.length}
-                disabled={disabled}
-                variant={variant}
-                onItemClick={onItemClick}
-                updateReferenceList={updateReferenceList}
-                actionAffordances={actionRows}
-            />
-            {selectorDialog}
-            {importDialog}
-        </>
+        <ReferenceListControlled
+            title={title}
+            referenceList={referenceList}
+            onReferenceListChange={onReferenceListChange}
+            tag={tag}
+            association={association}
+            requestCreate={requestCreate}
+            affordance={affordance}
+            variant={variant}
+            icon={icon}
+            defaultExpanded={defaultExpanded}
+            disabled={disabled}
+            onItemClick={onItemClick}
+            isExcludedExtra={isExcludedExtra}
+            onAssociateReference={onAssociateReference}
+            persistDraftUpdate={persistDraftUpdate}
+        />
     )
 }
 

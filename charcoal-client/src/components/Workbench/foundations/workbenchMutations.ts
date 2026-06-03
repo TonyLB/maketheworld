@@ -147,21 +147,9 @@ export const normalizeOptionalLiteral = (
     return new StandardLiteral(plain.trim())
 }
 
-/** Apply D11 shortName normalization on a component payload (mutates in place). */
-export const applyShortNameOnComponent = <T extends StandardComponent>(component: T): void => {
-    const payload = (component as unknown as ComponentWithShortNamePayload)._payload
-    if (!payload) {
-        return
-    }
-    payload._shortName = normalizeOptionalLiteral(component.shortName)
-}
-
-/** Clone working copy and normalize shortName before flush (D11). */
-export const prepareComponentForFlush = <T extends StandardComponent>(component: T): T => {
-    const flushed = component.clone() as T
-    applyShortNameOnComponent(flushed)
-    return flushed
-}
+/** Normalize shortName before flush (D11) via mtw-wml `withShortName` (returns new instance). */
+export const prepareComponentForFlush = <T extends StandardComponent>(component: T): T =>
+    component.withShortName(normalizeOptionalLiteral(component.shortName)) as T
 
 /**
  * Flush assign only (not the edit path): prepare `working` for persist (D11) and assign to
@@ -177,7 +165,10 @@ export const applyWorkingComponentToDraft = <T extends StandardComponent>(
     return flushed
 }
 
-/** Set shortName on working copy from a string (no trim; flush normalizes per D11). */
+/**
+ * Set shortName on working copy from a string (no trim; flush uses `withShortName` + D11).
+ * Edit path assigns payload directly; prefer `withShortName` on flush via `prepareComponentForFlush`.
+ */
 export const setWorkingShortNameFromString = <T extends StandardComponent = StandardComponent>(
     component: T,
     value: string

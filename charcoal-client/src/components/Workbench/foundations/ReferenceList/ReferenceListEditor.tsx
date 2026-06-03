@@ -12,6 +12,7 @@ import { standardComponentFactory } from "@tonylb/mtw-wml/ts/standardize/compone
 import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
 import { v4 as uuidv4 } from "uuid"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
+import ReferenceListControlled from "./ReferenceListControlled"
 
 export type { ReferenceListItem } from "./ReferenceListEditorGeneric"
 
@@ -45,8 +46,8 @@ export interface ReferenceListEditorProps {
     tag: ComponentTag
     /** Options for Add / Reference existing / Import rows. */
     affordance?: ReferenceListAffordance
-    variant?: "contained" | "table"
-    icon?: ReactNode
+    variant?: 'contained' | 'table'
+    icon?: React.ReactNode
     defaultExpanded?: boolean
     disabled?: boolean
     onItemClick?: (id: string) => void
@@ -54,15 +55,10 @@ export interface ReferenceListEditorProps {
     isExcludedExtra?: (universalKey: ComponentUUID) => boolean
 }
 
-const IMPORTABLE_TAGS: ComponentTag[] = [
-    "Room",
-    "Area",
-    "Feature",
-    "Knowledge",
-    "Map",
-    "Message"
-]
-
+/**
+ * Asset-mode reference list: listContext + updateStandard.
+ * Thin wrapper over ReferenceListControlled for non-provider screens.
+ */
 export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = ({
     title,
     listContext,
@@ -77,23 +73,21 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
 }) => {
     const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
     const disabled = disabledProp ?? readonly
-    const canImport = IMPORTABLE_TAGS.includes(tag)
-    const enableReferenceExisting = affordance?.enableReferenceExisting ?? false
-    const enableImport = affordance?.enableImport ?? canImport
-    const addButtonLabel = affordance?.addLabel ?? `Add ${tag}`
-    const refExistingLabel = affordance?.referenceExistingLabel ?? `Reference existing ${tag}`
 
-    const updateReferenceList = useCallback(
-        (mutate: (ctx: { referenceList: ReferenceList; standardForm: StandardForm }) => void) => {
+    const referenceList = useMemo(() => {
+        const descriptor = listContext(standardForm)
+        return descriptor?.referenceList ?? new ReferenceList([])
+    }, [listContext, standardForm])
+
+    const onReferenceListChange = useCallback(
+        (mutate: (list: ReferenceList) => void) => {
             updateStandard({
                 type: "update",
                 update: (draft: StandardForm) => {
                     const descriptor = listContext(draft)
                     if (descriptor) {
-                        mutate({
-                            referenceList: descriptor.referenceList,
-                            standardForm: draft
-                        })
+                        mutate(descriptor.referenceList)
+                        descriptor.setReferenceList(descriptor.referenceList)
                     }
                     return draft
                 }
@@ -102,36 +96,12 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
         [updateStandard, listContext]
     )
 
-    const referenceList = useMemo(() => {
-        const descriptor = listContext(standardForm)
-        return descriptor?.referenceList ?? new ReferenceList([])
-    }, [listContext, standardForm])
-
-    const items = useMemo(() => {
-        const baseItems = referenceListToItems({
-            referenceList,
-            standardForm,
-            tag
-        })
-        return icon ? baseItems.map((item) => ({ ...item, icon })) : baseItems
-    }, [referenceList, standardForm, tag, icon])
-
-    const summary = useMemo(() => {
-        if (!items.length) return undefined
-        return items.map(({ title: t }) => t).filter(Boolean).join(", ")
-    }, [items])
-
-    const isExcluded = useCallback(
-        (universalKey: ComponentUUID) =>
-            referenceList.payload.some((ref) => ref.universalKey === universalKey) ||
-            (isExcludedExtra?.(universalKey) ?? false),
-        [referenceList, isExcludedExtra]
-    )
-
     const association = useCallback(
         (ref: StandardReference, draft: StandardForm) => {
             const descriptor = listContext(draft)
-            if (descriptor) descriptor.setReferenceList(descriptor.referenceList.assureItem(ref))
+            if (descriptor) {
+                descriptor.setReferenceList(descriptor.referenceList.assureItem(ref))
+            }
         },
         [listContext]
     )
@@ -140,7 +110,20 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
         (onCreated: (ref: StandardReference) => void) => {
             if (disabled) return
             const enforceKey = enforceTypedKey(
-                tag.toUpperCase() as "ASSET" | "AREA" | "CHARACTER" | "ROOM" | "FEATURE" | "KNOWLEDGE" | "MAP" | "MESSAGE" | "MOMENT" | "IMAGE" | "MARK" | "LENS" | "SITUATION"
+                tag.toUpperCase() as
+                    | 'ASSET'
+                    | 'AREA'
+                    | 'CHARACTER'
+                    | 'ROOM'
+                    | 'FEATURE'
+                    | 'KNOWLEDGE'
+                    | 'MAP'
+                    | 'MESSAGE'
+                    | 'MOMENT'
+                    | 'IMAGE'
+                    | 'MARK'
+                    | 'LENS'
+                    | 'SITUATION'
             )
             const uuid = tag === "Situation" ? `situation-${Date.now()}` : uuidv4()
             const universalKey = enforceKey(uuid) as ComponentUUID
@@ -160,33 +143,22 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
         [disabled, tag, updateStandard]
     )
 
-    const { actionRows, selectorDialog, importDialog } = useAddReferenceImport({
-        tag,
-        isExcluded,
-        association,
-        requestCreate,
-        labels: { add: addButtonLabel, referenceExisting: refExistingLabel },
-        enableReferenceExisting,
-        enableImport,
-        disabled
-    })
-
     return (
-        <>
-            <ReferenceListEditorGeneric
-                title={title}
-                items={items}
-                summary={summary}
-                defaultExpanded={defaultExpanded ?? !!items.length}
-                disabled={disabled}
-                variant={variant}
-                onItemClick={onItemClick}
-                updateReferenceList={updateReferenceList}
-                actionAffordances={actionRows}
-            />
-            {selectorDialog}
-            {importDialog}
-        </>
+        <ReferenceListControlled
+            title={title}
+            referenceList={referenceList}
+            onReferenceListChange={onReferenceListChange}
+            tag={tag}
+            association={association}
+            requestCreate={requestCreate}
+            affordance={affordance}
+            variant={variant}
+            icon={icon}
+            defaultExpanded={defaultExpanded}
+            disabled={disabled}
+            onItemClick={onItemClick}
+            isExcludedExtra={isExcludedExtra}
+        />
     )
 }
 
