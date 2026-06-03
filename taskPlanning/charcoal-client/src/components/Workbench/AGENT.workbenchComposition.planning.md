@@ -1,6 +1,6 @@
 # Workbench composition and Standard* binding (charcoal-client)
 
-**Status:** **Milestone 1 complete** --- decisions **D1-D15** (+ **D14a-c**) locked. **Next step:** **Phase 2** (facet prose + parent-session reference lists + inline editors; see **D15**).
+**Status:** **Milestones 1-3 complete** --- decisions **D1-D15** (+ **D14a-c**) locked. **Next step:** **Phase 4** (steady-state docs in Workbench `AGENT.md`; archive this plan).
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into [`charcoal-client/src/components/Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md) and related foundation docs.
 
@@ -377,7 +377,7 @@ These do **not** block Phase 1. Resolve during implementation or later phases as
 | Decisions D1-D14 | All locked (incl. D11-D13, D14a-c) | Milestone 0 complete |
 | Phase 1 | Complete | Debounced flush + **D14** reconcile + `workbenchMutations` + `WorkbenchShortNameField` + literal `debounce={false}`; Feature/Knowledge/Room/Area editors use `WorkbenchComponentProvider` + `WorkbenchShortNameField` |
 | Phase 2 | Complete | Parent-session lists + DEFAULT prose + `MarkInlineEditor` per-row session; inline list contract documented |
-| Phase 3 | In progress | **`ReferenceListControlled`** + **`withShortName`** done; remaining: full-screen editors |
+| Phase 3 | Complete | **`ReferenceListControlled`** + **`withShortName`** + full-screen **GuidanceEditor** / **MarkEditor** / **LensDetail** component sessions (shortName + same-screen scalar fields on **`working`**) |
 | Phase 4 | Not started | |
 
 ---
@@ -414,10 +414,10 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets).
   - [X] DEFAULT render / facet binding: **`SituationFacetRenderFieldsEditor`** (and **`DefaultRenderEditor`**) on parent **`working`** via **`updateComponent`**, not per-change **`updateStandard`**
   - [X] Parent-session **`ReferenceListEditor`** bridge on **`WorkbenchComponentProvider`** screens (e.g. Room guidance list): **`updateComponent`**, not per-action **`updateStandard`**
   - [X] Refactor `MarkInlineEditor` and document inline list contract (**D7**)
-- [ ] **Milestone 3 --- Phase 3**
+- [X] **Milestone 3 --- Phase 3**
   - [X] **`ReferenceListControlled`** per **D6** + migrate call sites (shell/API; persistence tier from Milestone 2; Area position-graph nodes on session)
   - [X] mtw-wml `withShortName` (if **D3** not deferred)
-  - [ ] Remaining full-screen editors (Guidance, Mark, LensDetail shortName; layout shell deferred per **D9**)
+  - [X] Remaining full-screen editors (Guidance, Mark, LensDetail shortName; layout shell deferred per **D9**)
 - [ ] **Milestone 4 --- Phase 4**
   - [ ] Steady-state docs in Workbench `AGENT.md`
   - [ ] Archive/delete this planning file
@@ -448,9 +448,22 @@ After **Milestone 2**:
 4. Navigate away after edit -> `flushNow` persists (per **D8a** / **D14**).
 5. Room guidance list (and other Phase 2-wired **`ReferenceListEditor`** instances on provider screens) no longer call **`updateStandard`** per list action --- mutations go through parent session.
 
-After **Milestone 3+**:
+After **Milestone 3**:
 
 6. **`ReferenceListControlled`** call sites use `referenceList` + `onReferenceListChange` without `listContext` draft surgery.
+
+```bash
+cd charcoal-client
+npm run test:single -- src/components/Workbench/GuidanceEdit
+npm run test:single -- src/components/Workbench/MarkEdit
+```
+
+Manual smoke (Draft asset):
+
+10. **Guidance** (top-level and Room layered tab): edit shortName and instructions; switch Guidance tab; navigate away and back --- both fields persist.
+11. **Mark** (full editor): edit shortName and description; confirm persistence after navigation.
+12. **Lens** detail: edit shortName (header title tracks while typing), description, and mark facet list changes batched on session flush.
+13. Published/read-only asset: Guidance, Mark, and Lens fields disabled.
 
 **D14 reconcile (unit tests on helper):**
 

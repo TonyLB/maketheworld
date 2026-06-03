@@ -111,7 +111,7 @@ type WorkbenchBreadcrumbEntry = {
 ### System Relationships
 
 - **AppLayout**: Renders `WorkbenchContainer` with `open`, `onClose`, `assetId`, `secondaryContext`; controls workbench visibility
-- **WorkbenchAssetEditor**: Orchestrates view routing based on `getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`; delegates to `AssetEditForm`, `AreaEditor`, `RoomEditor`, `FeatureEditor`, `KnowledgeEditor`, `LayeredContextView` (Room Situation/Guidance tabs), `MarkEditor`, `MapEditor`, `CharacterEditor`
+- **WorkbenchAssetEditor**: Orchestrates view routing based on `getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`; delegates to `AssetEditForm`, `AreaEditor`, `RoomEditor`, `FeatureEditor`, `KnowledgeEditor`, `LayeredContextView` (Room Situation/Guidance tabs), `GuidanceEditor`, `MarkEditor`, `LensDetail`, `MapEditor`, `CharacterEditor`
 
 ---
 
@@ -187,7 +187,7 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 1. **Workbench Flow**: Start at [`WorkbenchContainer.tsx`](./WorkbenchContainer.tsx) for layout and breadcrumb header; then [`WorkbenchAssetEditor.tsx`](./WorkbenchAssetEditor.tsx) for view routing
 2. **Asset Context**: Read [`foundations/useWorkbenchAsset.ts`](./foundations/useWorkbenchAsset.ts) to understand how asset data flows from `personalAssets` into Workbench components
 3. **Navigation State**: Read [`src/slices/UI/workbench/index.ts`](../../slices/UI/workbench/index.ts) for breadcrumb model and selectors
-4. **Component Editing**: One editor per component type, each under its own `{Component}Edit` directory (e.g. `AreaEdit/AreaEditor.tsx`, `RoomEdit/RoomEditor.tsx`, `FeatureEdit/FeatureEditor.tsx`, `KnowledgeEdit/KnowledgeEditor.tsx`). **FeatureEditor**, **KnowledgeEditor**, **RoomEditor**, and **AreaEditor** wrap their editor body in **`WorkbenchComponentProvider`**. **WorkbenchShortNameField**, **`DefaultRenderEditor`**, and **`ReferenceListSessionEditor`** (Room Guidance/Features, Area position-graph participants) bind to the session **`working`** copy via **`updateComponent`** (debounced flush to Redux; **D11** omission-over-empty on flush for shortName). Room Situations list, Lens header, and Area exit topology still use `updateStandard` on their existing paths. **AreaEditor** also edits uuid-keyed **`positionGraph.edges`** (`From` / `To` / `Forward` / `Back` per [D19/D29](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md)). RoomEditor composes `ExitEditor` (room-local facets --- **M6** removal), `LensHeader` (from LensEdit), `FeatureListEditor` (session reference list), `DefaultRenderEditor`, situation list (non-DEFAULT), and Guidance (`ReferenceListSessionEditor`).
+4. **Component Editing**: One editor per component type, each under its own `{Component}Edit` directory. **FeatureEditor**, **KnowledgeEditor**, **RoomEditor**, **AreaEditor**, **GuidanceEditor**, **MarkEditor** (full screen), and **LensDetail** wrap editable payloads in **`WorkbenchComponentProvider`**. **WorkbenchShortNameField**, **`DefaultRenderEditor`**, and **`ReferenceListSessionEditor`** bind to session **`working`** via **`updateComponent`** (debounced flush; **D11** on shortName). **GuidanceEditor** resolves `getCurrentComponentLayerId ?? getCurrentComponentId` for layered Room tabs; instructions and marks on the same screen use **`updateComponent`** (not per-keystroke **`updateStandard`**). **MarkEditor** uses **`MarkInlineEditor`** for shortName and **`StandardRenderEditor`** with `debounce={false}` for description. **LensDetail** uses **`WorkbenchShortNameField`** plus session-bound description and mark facets. Room Situations list, Lens header navigation, Area exit topology, and **MarkFacetsEditor** / **LensMarkFacetsEditor** mark create/associate still use asset-level **`updateStandard`** where documented. **AreaEditor** also edits uuid-keyed **`positionGraph.edges`** ([D19/D29](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md)).
 
 ### Key Files
 
@@ -211,8 +211,10 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 | `foundations/SituationFacetRenderFieldsEditor.tsx` | Asset-mode facet field editor (layered Room situations); `updateStandard` per change |
 | `foundations/SituationFacetRenderFieldsView.tsx` | Shared presentation for DEFAULT / situation facet prose fields |
 | ~~`ExampleEdit/`~~ | **Removed** (2026-05-19); F/K prose via **`DefaultRenderEditor`** |
+| `GuidanceEdit/` | GuidanceEditor (`WorkbenchComponentProvider`; layered + top-level; shortName, instructions, marks on session) |
 | `foundations/LayeredContext/` | LayeredContextView (Room Situation/Guidance tabs), LayeredTabs |
-| `MarkEdit/` | MarkEditor (full); `MarkInlineEditor` + `MarkInlineEditorWithSession` (per-row Mark shortName session; used in Lens mark facet rows) |
+| `LensEdit/` | LensDetail (component session: shortName, description, mark facets); LensHeader; LensMarkFacetsEditor |
+| `MarkEdit/` | MarkEditor (full-screen session); `MarkInlineEditor` + `MarkInlineEditorWithSession` (per-row Mark shortName; Lens mark facet rows) |
 | `MapEdit/` | MapEditor, MapArea, MapController, MapLayers, UnshownRooms |
 | `CharacterEdit/` | CharacterEditor |
 | `foundations/StandardRender/StandardRenderEditor.tsx` | Rich text (Slate); shared with Editor components |
