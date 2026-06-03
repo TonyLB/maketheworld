@@ -1,6 +1,6 @@
 # Workbench consistency layer
 
-**Status:** M1 in progress (**D2**, **D9** `materializeComponent` implemented). Normative **D2** and **ref scrub** detail lives here; full module API, flush pipeline, and cross-links expand in M6. Active task plan: [AGENT.workbenchConsistencyLayer.planning.md](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchConsistencyLayer.planning.md).
+**Status:** M1 in progress (**D2**, **D9** `materializeComponent`, **D3/D4** `normalizeWorkbenchDraft` implemented). Normative **D2**, **normalize**, and **ref scrub** detail lives here; flush pipeline and cross-links expand in M6. Active task plan: [AGENT.workbenchConsistencyLayer.planning.md](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchConsistencyLayer.planning.md).
 
 ## Purpose
 
@@ -78,9 +78,30 @@ function materializeComponent(
 - **Create:** idempotent when `universalKey` is already in `byUniversalId` (returns existing `reference`).
 - **Import:** requires a tag in [`SchemaImportMapping`](../../../../../../packages/mtw-base/ts/schema/metaData.ts) (`isSchemaImportMappingType`); throws for types like Character that cannot be imported via WML Import mapping.
 
+## `normalizeWorkbenchDraft` (D3, D4)
+
+Workbench orphan GC on the **local** draft after local disassociations. **Mutates `draft` in place** (same pattern as `materializeComponent` and `updateStandard` callbacks); returns `draft` for chaining.
+
+```typescript
+function normalizeWorkbenchDraft(draft: StandardForm): StandardForm
+```
+
+**Implementation:** [`normalizeWorkbenchDraft.ts`](./normalizeWorkbenchDraft.ts), exported from [`index.ts`](./index.ts).
+
+**Fixpoint algorithm** (each pass):
+
+1. **Orphan detection (load-bearing):** `_components` entries where **`!isReferencedInAssetLayer`** (**D2**).
+2. **Body removal (load-bearing):** drop those keys from `_components` (empty **and** non-empty --- unlike WML merge, which retains orphans with content).
+3. **Ref scrub (defensive):** `removeReferences` on survivors + strip matching keys from `_topLevel` (see [Ref scrub](#ref-scrub-belt-and-suspenders) below).
+4. Repeat until a pass removes zero bodies, or **50 iterations** (**D4** cap --- throw in dev, `console.warn` in prod).
+
+Transitive removal (e.g. Area disassociate -> Room orphan -> Feature orphan) requires the fixpoint loop; one pass is not enough. Workbench authoring uses this fixpoint, **not** [`removeComponent({ cascade: true })`](../../../../../../packages/mtw-wml/ts/standardize/index.ts) (**D7**).
+
+Internal helpers (`findOrphanComponents`, `scrubReferences`, `normalizeSinglePass`) live in the same module for reuse by `previewOrphanClosure` (M1 follow-on).
+
 ## Ref scrub (belt-and-suspenders)
 
-`normalizeWorkbenchDraft` (M1) runs a **fixpoint** loop; each pass includes a defensive **ref scrub** step after orphan body removal. Full fixpoint semantics (iteration cap, preview API, flush pipeline) are documented when implementation lands; this section defines scrub's role only.
+`normalizeWorkbenchDraft` runs a **fixpoint** loop; each pass includes a defensive **ref scrub** step after orphan body removal. Preview API and flush pipeline wiring land in M2+; this section defines scrub's role.
 
 Per pass, after **D2** orphan detection and body removal:
 
@@ -101,7 +122,7 @@ After **D2**, any key `K` removed in step 2 was **not** on `_topLevel` and had *
 | Legacy/broken draft (e.g. body removed without disassociate, flush ordering bugs) | Repairs inconsistency; log/dev assert optional |
 | [`removeComponent`](../../../../../../packages/mtw-wml/ts/standardize/index.ts) (engine) | Scrub is **load-bearing** --- removes component bodies first, then `removeReferences` on survivors and strips `_topLevel` (different API, not workbench normalize) |
 
-When implementing `normalizeWorkbenchDraft`, add a short code comment pointing to this section.
+See [`normalizeWorkbenchDraft.ts`](./normalizeWorkbenchDraft.ts) (`scrubReferences`) for implementation; code comment points here.
 
 ## Related documentation
 

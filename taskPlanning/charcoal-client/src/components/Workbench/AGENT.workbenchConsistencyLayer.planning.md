@@ -1,6 +1,6 @@
 # Workbench consistency layer (authoring client)
 
-**Status:** In progress (M0 complete; M1 started). **Next step:** **M1** --- `normalizeWorkbenchDraft`, `previewOrphanClosure` in [`foundations/consistency/`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/) (`materializeComponent` shipped).
+**Status:** In progress (M0 complete; M1 in progress). **Next step:** **M1** --- `previewOrphanClosure` in [`foundations/consistency/`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/) (`normalizeWorkbenchDraft` shipped).
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into [`charcoal-client/src/components/Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md), [`foundations/ReferenceList/AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md), and [`charcoal-client/src/slices/personalAssets/AGENT.md`](../../../../../charcoal-client/src/slices/personalAssets/AGENT.md).
 
@@ -211,7 +211,7 @@ Mark **Status** `[X]` when normative for implementation.
 | Milestone | Scope | Status |
 | --- | --- | --- |
 | **M0** | Decisions **D1-D8** + API sketch in this doc | Complete |
-| **M1** | Pure **`materialize`**, **`normalizeWorkbenchDraft`** (fixpoint), **`previewOrphanClosure`** + unit tests | In progress (`isReferencedInAssetLayer` shipped) |
+| **M1** | Pure **`materialize`**, **`normalizeWorkbenchDraft`** (fixpoint), **`previewOrphanClosure`** + unit tests | In progress (`normalizeWorkbenchDraft` shipped) |
 | **M2** | Wire flush pipeline helper used by **`commitAssetScopedUpdate`** and one session list create/import path | Not started |
 | **M3** | Migrate **TopLevelEditor** list remove + import/create association; drop row-level **`removeComponent`** | Not started |
 | **M4** | Migrate **`WMLComponentHeader`** delete + confirm via preview closure | Not started |
@@ -232,7 +232,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as y
   - [X] Stub [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) with **D2** + **Ref scrub (belt-and-suspenders)** sections (expand in **M6**)
   - [X] Add `isReferencedInAssetLayer(localForm, ref)` per **D2**
   - [X] Add `materializeComponent(draft, { universalKey, fromAsset? })` per **D9** (derive `tag` from prefix; wrap factory + `addImportToDraft`)
-  - [ ] Add `normalizeWorkbenchDraft(draft)` fixpoint per **D3**, **D4** (uses **D2** on local draft)
+  - [X] Add `normalizeWorkbenchDraft(draft)` fixpoint per **D3**, **D4** (uses **D2** on local draft)
   - [ ] Add `previewOrphanClosure(localDraft, ...)` per **D5**
   - [ ] Unit tests (**D2**): top-level-only (`referencedBy` empty, still referenced); `ref={0}` stub; nested list ref; transitive GC after Room removed; inherited-only not counted
   - [ ] Unit tests (scrub): no-op after valid disassociate + **D2** removal; separate fixture proving scrub repairs a deliberately broken draft only
