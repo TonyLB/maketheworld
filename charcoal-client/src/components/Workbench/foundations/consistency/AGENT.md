@@ -1,6 +1,6 @@
 # Workbench consistency layer
 
-**Status:** M1 complete (**D2**, **D9** `materializeComponent`, **D3/D4** `normalizeWorkbenchDraft`, **D5** `previewOrphanClosure`, unit tests). Normative **D2**, **normalize**, **preview**, and **ref scrub** detail lives here; flush pipeline wiring is **M2**; cross-links expand in M6. Active task plan: [AGENT.workbenchConsistencyLayer.planning.md](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchConsistencyLayer.planning.md).
+**Status:** M1 complete; **M2** wires **D10** orchestration. Normative **D2**, **normalize**, **preview**, **ref scrub**, and timing detail lives here; cross-links expand in M6. Active task plan: [AGENT.workbenchConsistencyLayer.planning.md](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchConsistencyLayer.planning.md).
 
 ## Purpose
 
@@ -14,6 +14,17 @@ The consistency layer centralizes **global** operations on the **local** asset `
 | **Global** (consistency layer) | **Materialize**, **normalize** | `StandardForm` draft: `byUniversalId`, workbench orphan GC (**D2**); defensive ref scrub (below) |
 
 **Associate / disassociate** mean: this **site** (e.g. `room.features`, `asset._topLevel`) does or does not list a key. They do **not** mean "delete component from asset."
+
+## Orchestration timing (D10)
+
+Pure functions in this module mutate a **`StandardForm` draft** passed into them. **When** to call them is Workbench policy:
+
+| Operation | When | Call site |
+| --- | --- | --- |
+| **`materializeComponent`** | Immediately on create/import | **Awaitable** `updateStandard` on the Redux **local** asset draft (`getLocalStandardForm`). Run **before** parent **`working`** associate, list resolution, or child navigation. **Not** on component-session `working` (single-component clone). **Not** deferred to debounced flush. |
+| **`normalizeWorkbenchDraft`** | At flush | Inside flush `updateStandard` after applying parent **`working`** (and any `beforeAssign` draft mutations): [`commitAssetScopedUpdate`](../WorkbenchComponent/useWorkbenchComponent.tsx), debounced `performFlush`. |
+
+Eager materialize commits a **different** `universalKey` than the open parent session id; it should not supersede that parent's `working` / `lastReceived`. Full normative text: task plan **Orchestration timing (D10)**.
 
 ## Stored WML vs displayed UI
 

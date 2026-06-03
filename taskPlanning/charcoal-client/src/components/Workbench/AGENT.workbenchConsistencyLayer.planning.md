@@ -1,6 +1,6 @@
 # Workbench consistency layer (authoring client)
 
-**Status:** In progress (M0 complete; M1 pure layer complete). **Next step:** **M2** --- `applyWorkbenchEdit` / flush pipeline wiring in [`commitAssetScopedUpdate`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx).
+**Status:** In progress (M0--M1 complete). **Next step:** **M2** --- eager global **materialize** via `updateStandard` + flush-time **normalize** in [`commitAssetScopedUpdate`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx) (**D10**).
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into [`charcoal-client/src/components/Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md), [`foundations/ReferenceList/AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md), and [`charcoal-client/src/slices/personalAssets/AGENT.md`](../../../../../charcoal-client/src/slices/personalAssets/AGENT.md).
 
@@ -19,7 +19,7 @@ Introduce a **Workbench-owned consistency layer** in the Charcoal Client that **
 - [`WMLComponentHeader`](../../../../../charcoal-client/src/components/Workbench/WMLComponentHeader.tsx): header delete is **`removeComponent`**, not list disassociate + normalize.
 - [`AssetEditForm`](../../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx): asset ShortName/Summary use mixed debounce paths without a shared asset working session.
 
-**Goal:** One place owns **materialize**, **normalize** (workbench policy), and orchestration timing. Editors own **associate** / **disassociate** on working state and call the layer at flush boundaries.
+**Goal:** One place owns **materialize**, **normalize** (workbench policy), and **when** each runs (**D10**). Editors own **associate** / **disassociate** on **working** (single-component session state). **Materialize** runs eagerly on the Redux **local** asset draft; **normalize** runs at flush when committing session edits to that draft.
 
 **Non-goals (this initiative):**
 
@@ -40,7 +40,7 @@ Introduce a **Workbench-owned consistency layer** in the Charcoal Client that **
 
 **Associate / disassociate are local.** They mean: "this **site** (room.features, asset._topLevel, area position-graph participants, etc.) now does or does not list this key." They do **not** mean "delete component from asset."
 
-**Materialize** means: ensure `draft.byUniversalId` contains the component (create, import via [`addImportToDraft`](../../../../../charcoal-client/src/slices/personalAssets/addImportToDraft.ts), or stub) **before** a reference is meaningful. Runs on create/import completion or inside the flush pipeline when pending materializations are queued.
+**Materialize** means: ensure the **Redux local** `StandardForm` (`getLocalStandardForm` / `updateStandard` clone) has a `byUniversalId` entry for the component (create, import via [`addImportToDraft`](../../../../../charcoal-client/src/slices/personalAssets/addImportToDraft.ts), or stub) **before** associate / UI that assumes the key exists. **Not** on component-session **`working`** (a single component cannot perform global graph writes). See **D10** for timing.
 
 **Normative (`materializeComponent`, M1):** Callers pass **`universalKey`** (and optional **`fromAsset`** for import). **Do not** require a separate **`tag`** --- derive component type from the `ComponentUUID` prefix (`componentTagFromUpperCase`, same rule as [`StandardReference`](../../../../../packages/mtw-wml/ts/standardize/keys/reference.ts)) before [`standardComponentFactory`](../../../../../packages/mtw-wml/ts/standardize/componentFactory.ts) / `addImportToDraft`. Optional explicit `tag` only for dev-time assert (`tag === derived`) if ever needed; not part of the public Workbench API.
 
@@ -135,17 +135,41 @@ Local associate/disassociate needs a typed **site** descriptor (generalize [`get
 
 After Milestones 1-4, an optional **`useWorkbenchAssetMeta`** (or asset-root provider) can hold working **`_shortName`**, **`_summary`**, and **`_topLevel`** with the same flush/reconcile pattern as [`useWorkbenchComponent`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx). Top-level list row remove must **not** call **`removeComponent`** once the layer exists.
 
+### Orchestration timing (D10)
+
+**Two paths** --- do not bundle materialize into debounced component flush.
+
+| When | What | Where it runs |
+| --- | --- | --- |
+| **Create / import** (discrete) | **Materialize** only | Immediate **`updateStandard`** on the Redux **local** asset draft (`materializeComponent` inside the reducer callback). Expose as an **awaitable** dispatch (thunk or equivalent) so callers know `byUniversalId` / selectors include the new key **before** local **associate** on parent **`working`**, list item resolution, or navigation to a child editor. |
+| **Flush** (debounced `performFlush`, `commitAssetScopedUpdate`, asset `updateStandard`) | Apply session edits + **normalize** | Inside the flush `updateStandard` callback on the **local** draft clone: apply parent **`working`** (and any `beforeAssign` site mutations on the draft) -> **`normalizeWorkbenchDraft`** -> assign / **`diff`** -> **`mergeToEdit`**. **No** materialize in this path for create/import (those already materialized eagerly). |
+
+**Reconciliation:** Eager materialize updates a **different** `universalKey` than the open [`useWorkbenchComponent`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx) session's `componentId`. That may run the committed-sync effect, but it should **not** supersede the parent editor's **`working`** / **`lastReceived`** (the parent's committed snapshot is unchanged).
+
+**Obtain ref, then associate** (unchanged): create/import ends with a `StandardReference`; **materialize** commits the body globally; **associate** updates parent **`working`** (or flush-time draft mutation for asset-mode lists).
+
 ### Flush pipeline (target shape)
 
+**Eager materialize** (create / import only):
+
 ```text
-working local edits (associate / disassociate / scalars)
-  -> apply to draft clone
-  -> materialize (pending keys)
+dispatch materialize via updateStandard (local draft clone)
+  -> materializeComponent (and addImportToDraft when fromAsset)
+  -> diff -> mergeToEdit
+  -> await until selectors show new key
+  -> then onAssociateReference / working list update / navigation
+```
+
+**Session flush** (`commitAssetScopedUpdate`, debounced flush):
+
+```text
+working local edits (already applied on working for list-only paths)
+  -> updateStandard: apply working (+ beforeAssign) on local draft clone
   -> normalizeWorkbenchDraft (fixpoint: **D2** orphan GC; defensive ref scrub per pass)
   -> standardForm.diff -> mergeToEdit (existing reducer path)
 ```
 
-[`commitAssetScopedUpdate`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx) should shrink to: apply working + **materialize** + **normalize** + assign, or delegate to the layer entirely.
+[`commitAssetScopedUpdate`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx) should delegate flush steps to **`applyWorkbenchFlush`** (or equivalent): apply **`working`** + **normalize** only --- not materialize.
 
 ---
 
@@ -203,6 +227,7 @@ Mark **Status** `[X]` when normative for implementation.
 | **D7** | [X] | **No workbench `removeComponent` / reducer cascade** | Workbench UI stops calling `type: 'removeComponent'` for list/header deletes; migrate legacy/maps call sites over time. **Transitive removal = fixpoint normalize**, not `cascade: true` on the reducer. Keep reducer branch only for non-workbench callers until fully migrated. |
 | **D8** | [X] | **Area + orphan closure (v1)** | **First iteration:** disassociating an Area such that Rooms (etc.) become unreferenced and are removed by fixpoint normalize is **acceptable**. Separate Area-specific confirm/UX polish is **out of scope** (likely future UI issue). |
 | **D9** | [X] | **`materializeComponent` spec = `universalKey` (+ optional `fromAsset`)** | Derive **`tag`** from `ComponentUUID` prefix internally; do not require callers to pass `tag`. Wrap `standardComponentFactory` (create/stub) and `addImportToDraft` (import). |
+| **D10** | [X] | **Materialize eager on Redux; normalize at flush** | **Materialize:** immediate **`updateStandard`** on **local** asset draft (global graph), awaitable before associate / UI that needs `byUniversalId`. **Not** on component-session **`working`**; **not** deferred to debounced flush. **Normalize:** only in flush **`updateStandard`** after applying session edits to the local draft clone. Eager materialize of a **new** key should not supersede the parent **`useWorkbenchComponent`** session. |
 
 ---
 
@@ -212,7 +237,7 @@ Mark **Status** `[X]` when normative for implementation.
 | --- | --- | --- |
 | **M0** | Decisions **D1-D8** + API sketch in this doc | Complete |
 | **M1** | Pure **`materialize`**, **`normalizeWorkbenchDraft`** (fixpoint), **`previewOrphanClosure`** + unit tests | Complete |
-| **M2** | Wire flush pipeline helper used by **`commitAssetScopedUpdate`** and one session list create/import path | Not started |
+| **M2** | Eager global **materialize** thunk + flush **`applyWorkbenchFlush`** (normalize only) in **`commitAssetScopedUpdate`**; session list create/import path | Not started |
 | **M3** | Migrate **TopLevelEditor** list remove + import/create association; drop row-level **`removeComponent`** | Not started |
 | **M4** | Migrate **`WMLComponentHeader`** delete + confirm via preview closure | Not started |
 | **M5** | Optional **asset-meta session** (`_shortName`, `_summary`, `_topLevel`); [`AssetEditForm`](../../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx) | Not started |
@@ -228,6 +253,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as y
   - [X] **D1** module path: `foundations/consistency/`
   - [X] **D2** `isReferencedInAssetLayer` = `_topLevel` ∪ `referencedBy` on **local** form
   - [X] **D3-D8** normative (fixpoint = workbench cascade; Area v1 orphan GC OK)
+  - [X] **D10** materialize eager on Redux local draft; normalize at flush only
 - [X] **M1 --- Pure layer**
   - [X] Stub [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) with **D2** + **Ref scrub (belt-and-suspenders)** sections (expand in **M6**)
   - [X] Add `isReferencedInAssetLayer(localForm, ref)` per **D2**
@@ -236,13 +262,14 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as y
   - [X] Add `previewOrphanClosure(localDraft, ...)` per **D5** (`applyLocal` on clone; `includesNonEmpty` for confirm)
   - [X] Unit tests (**D2**): top-level-only (`referencedBy` empty, still referenced); `ref={0}` stub; nested list ref; transitive GC after Room removed; inherited-only not counted
   - [X] Unit tests (scrub): no-op after valid disassociate + **D2** removal; separate fixture proving scrub repairs a deliberately broken draft only
-- [ ] **M2 --- Session integration**
-  - [ ] `applyWorkbenchEdit(draft, { working, componentId?, materialize?, siteMutations? })` used from `commitAssetScopedUpdate`
-  - [ ] [`ReferenceListSessionEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListSessionEditor.tsx) create/import uses layer materialize + normalize (remove inline `byUniversalId` in callback)
+- [ ] **M2 --- Session integration** (**D10**)
+  - [ ] **`materializeComponentInAsset`** (name TBD): awaitable dispatch wrapping **`updateStandard`** + **`materializeComponent`** on the Redux **local** draft only; no normalize in this path
+  - [ ] **`applyWorkbenchFlush`** (name TBD): used from **`commitAssetScopedUpdate`** / debounced flush --- apply parent **`working`** (+ optional `beforeAssign` on draft) -> **`normalizeWorkbenchDraft`** on local clone -> existing diff path; **no** materialize
+  - [ ] [`ReferenceListSessionEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListSessionEditor.tsx) create/import: **await materialize** on Redux, then **`onAssociateReference`** on **`working`**; remove inline **`byUniversalId`** from **`commitAssetScopedUpdate`** create callback
   - [ ] Update **Recommended order** checkboxes and run baseline Workbench + personalAssets tests
 - [ ] **M3 --- TopLevel**
   - [ ] **D6:** TopLevel row remove -> disassociate + flush + normalize
-  - [ ] Create/import: materialize then local associate on `_topLevel`
+  - [ ] Create/import: **D10** eager materialize on Redux, then local associate on `_topLevel`
   - [ ] Confirm dialog when preview reports non-empty orphan closure
 - [ ] **M4 --- Header delete**
   - [ ] Replace [`WMLComponentHeader`](../../../../../charcoal-client/src/components/Workbench/WMLComponentHeader.tsx) `removeComponent` with disassociate-at-all-sites + fixpoint normalize + preview confirm (**D7**)
@@ -317,24 +344,34 @@ function previewOrphanClosure(
 ): { removedKeys: ComponentUUID[]; includesNonEmpty: boolean }
 // Typed afterDisassociate: { site; ref }[] deferred until AssociationSite exists (M2+).
 
-function applyWorkbenchEdit(
-  base: StandardForm,
-  edit: { applyLocal: (draft: StandardForm) => void }
-): StandardForm
+// D10: eager global materialize (Redux local draft via updateStandard). Await before associate.
+function materializeComponentInAsset(
+  spec: MaterializeSpec
+): Promise<StandardReference>  // thunk; implementation TBD
+
+// D10: flush only --- apply working + normalize on local draft inside updateStandard callback.
+function applyWorkbenchFlush(
+  draft: StandardForm,
+  edit: {
+    componentId?: ComponentUUID
+    working?: StandardComponent
+    beforeAssign?: (draft: StandardForm) => void
+  }
+): void  // mutates draft in place; caller runs diff -> mergeToEdit
 ```
 
 ---
 
 ## Open questions
 
-1. **`updateStandard` reducer:** Should normalize run inside every `type: 'update'` payload before `diff`, or only via explicit layer entry points (fewer surprises for non-workbench callers of the thunk)?
-2. **Maps / Library legacy:** [`Maps/View`](../../../../../charcoal-client/src/components/Maps/View/index.tsx) and other non-workbench `updateStandard` call sites --- migrate in this initiative or document as out of scope?
+1. **Maps / Library legacy:** [`Maps/View`](../../../../../charcoal-client/src/components/Maps/View/index.tsx) and other non-workbench `updateStandard` call sites --- migrate in this initiative or document as out of scope?
 
 **Resolved for v1:**
 
 - **D2** --- **`isReferencedInAssetLayer`** on **local** form only; **`_topLevel` ∪ referencedBy**; any ref sign; not merged inherited view; not `SchemaOrganization`.
 - **D8** --- Area-driven GC of now-unreferenced Rooms via fixpoint is fine; dedicated Area remove UX is deferred.
 - **D9** --- **`materializeComponent({ universalKey, fromAsset? })`**; derive **`tag`** from UUID prefix; callers do not pass `tag`.
+- **D10** --- **Materialize** eager on Redux **local** draft (**awaitable** `updateStandard`); **normalize** only at workbench flush entry points (**`applyWorkbenchFlush`** / **`commitAssetScopedUpdate`**), not on every personalAssets `updateStandard` unless that call site is a flush (see **Orchestration timing**).
 
 ---
 
@@ -346,7 +383,7 @@ function applyWorkbenchEdit(
 
 | Topic | Where to persist | What to say |
 | --- | --- | --- |
-| **Consistency module** | [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) + link from [`Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md) | Local vs global ops; flush pipeline; public APIs |
+| **Consistency module** | [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) + link from [`Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md) | Local vs global ops; **D10** orchestration (eager materialize vs flush normalize); public APIs |
 | **D2 orphan predicate** | Same module doc + short pointer in Workbench **AGENT.md** | **`isReferencedInAssetLayer`** = **`_topLevel` ∪ referencedBy`** on **local** `StandardForm` only; any ref sign; **not** `SchemaOrganization`; **not** merged `getStandardForm` |
 | **Stored WML vs UI** | Same (or personalAssets **AGENT.md**) | Local = asset-layer edits (`ref={0}` stubs, etc.); merged form = display / import ancestry --- not orphan GC |
 | **Ref scrub** | Same module doc (comment on `normalizeWorkbenchDraft`) | **Belt-and-suspenders:** expected **no-op** on happy path after **D2**; keep for draft hygiene; **not** why transitive GC happens; contrast engine **`removeComponent`** scrub |
