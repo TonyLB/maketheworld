@@ -18,6 +18,7 @@ Facet-list-style composition: **`referenceList`** + **`onReferenceListChange`** 
 | Wrapper | When to use |
 | --- | --- |
 | **`ReferenceListSessionEditor`** | On **`WorkbenchComponentProvider`** screens; pass **`listAccessor`** (`getReferenceList` / `setReferenceList` on parent `working`). |
+| **`ReferenceListSessionEditor` (asset-meta)** | On **`WorkbenchAssetMetaProvider`** screens (planned **M5**); **`listAccessor`** on asset-meta **`working._topLevel`**. |
 | **`ReferenceListEditor`** | Asset-mode adapter: `listContext` + `updateStandard` (non-provider or legacy). |
 | **`ReferenceListControlled` directly** | Custom persistence (e.g. tests, new list hosts). |
 
@@ -31,7 +32,7 @@ For lists where each item is **navigated to** or **selected via dialog** (e.g. R
 
 - **Structure**: `ReferenceListEditorGeneric` inside `MakeTheWorldAccordion`. Each item: card with `ListItemButton` (title, optional subtitle/icon), optional delete `IconButton`. Optional Add / Reference existing / Import rows.
 - **Session usage**: Room Guidance/Features ([`roomReferenceListAccessors.ts`](../../RoomEdit/roomReferenceListAccessors.ts)), Area position-graph participants per tag ([`areaPositionGraphNodesAccessors.ts`](../../AreaEdit/areaPositionGraphNodesAccessors.ts)).
-- **Asset usage**: `ReferenceListEditor` with `listContext` when no parent session (reserved for future non-provider call sites; **`TopLevelEditor`** uses `ReferenceListEditorGeneric` directly).
+- **Asset usage**: `ReferenceListEditor` with `listContext` when no parent session (reserved for future non-provider call sites). **`TopLevelEditor`** currently uses **`ReferenceListEditorGeneric`** directly with asset-level `updateStandard` (interim); **target** is asset-meta session + **`ReferenceListSessionEditor`**-style host ([Asset root / `_topLevel` (D11)](#asset-root--_toplevel-d11)).
 
 ---
 
@@ -87,10 +88,32 @@ On screens wrapped in **`WorkbenchComponentProvider`** (e.g. Room Guidance, Room
 | Create new, import | **`await materializeComponentInAsset`** on Redux local draft, then **`updateComponent`** (associate on parent **`working`**) + session debounced flush (**`applyWorkbenchFlush`**) |
 
 - **Requires** `WorkbenchComponentProvider`. Call site passes **`listAccessor`** (`getReferenceList` / `setReferenceList` on the parent working copy).
-- **Asset-mode** **`ReferenceListEditor`** (`listContext` + `updateStandard`) is a thin adapter over **`ReferenceListControlled`** for screens without a parent session.
-- **`TopLevelEditor`** remains asset-level and out of scope for this pattern.
+- **Asset-mode** **`ReferenceListEditor`** (`listContext` + `updateStandard`) is a thin adapter over **`ReferenceListControlled`** for screens without a parent component session.
 
-Domain-specific list accessors belong next to the editor that owns the parent component, not in [`workbenchMutations.ts`](../workbenchMutations.ts).
+Domain-specific list accessors belong next to the editor that owns the parent component (or asset root), not in [`workbenchMutations.ts`](../workbenchMutations.ts).
+
+---
+
+## Asset root / `_topLevel` (D11)
+
+The asset top-level component list ([`TopLevelEditor`](TopLevelEditor.tsx) on [`WorkbenchAssetEditForm`](../../WorkbenchAssetEditForm.tsx)) uses the **same session list pattern** as component-parent lists, backed by **`useWorkbenchAssetMeta`** instead of **`useWorkbenchComponent`**. Normative direction: [Workbench AGENT.md](../../AGENT.md#asset-meta-editing-session-d11).
+
+### Target (M5)
+
+- Wrap **`AssetEditForm`** in **`WorkbenchAssetMetaProvider`** (**M5**).
+- **`TopLevelEditor`** becomes a thin host over **`ReferenceListControlled`**, wired like **`ReferenceListSessionEditor`**: **`listAccessor`** on asset-meta **`working._topLevel`**, list mutations via **`updateAssetMeta`**, debounced flush via **`applyAssetMetaFlush`**.
+
+| Operation | Persist path (target) |
+| --- | --- |
+| Remove | **`updateAssetMeta`** disassociate on **`working._topLevel`** + debounced flush + normalize (**D6**) |
+| Reference existing | Same local path |
+| Create / import | **`await materializeComponentInAsset`**, then associate on **`working._topLevel`** (**D10**) |
+| Confirm | **`previewOrphanClosure`** when non-empty orphan closure (**M5**) |
+
+### Current (pre-M5)
+
+- **`TopLevelEditor`** uses **`ReferenceListEditorGeneric`** + asset-level **`updateStandard`** for add/create/import.
+- Row remove calls **`removeComponent`** --- legacy to migrate; not a permanent exception to the session pattern.
 
 ---
 

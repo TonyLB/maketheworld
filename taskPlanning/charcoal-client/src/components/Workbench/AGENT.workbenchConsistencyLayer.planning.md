@@ -1,6 +1,6 @@
 # Workbench consistency layer (authoring client)
 
-**Status:** In progress (M0--M2 complete). **Next step:** **M3** --- durable doc alignment for **D11** (asset-meta session); then **M4** --- **`useWorkbenchAssetMeta`** foundation (parallel to [`useWorkbenchComponent`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx)).
+**Status:** In progress (M0--M3 complete). **Next step:** **M4** --- **`useWorkbenchAssetMeta`** foundation (parallel to [`useWorkbenchComponent`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx)).
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into [`charcoal-client/src/components/Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md), [`foundations/ReferenceList/AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md), and [`charcoal-client/src/slices/personalAssets/AGENT.md`](../../../../../charcoal-client/src/slices/personalAssets/AGENT.md).
 
@@ -260,7 +260,7 @@ Mark **Status** `[X]` when normative for implementation.
 | **M0** | Decisions **D1-D8** + API sketch in this doc | Complete |
 | **M1** | Pure **`materialize`**, **`normalizeWorkbenchDraft`** (fixpoint), **`previewOrphanClosure`** + unit tests | Complete |
 | **M2** | Eager global **materialize** thunk + flush **`applyWorkbenchFlush`** (normalize only) in **`commitAssetScopedUpdate`**; session list create/import path | Complete |
-| **M3** | **Durable doc alignment** for **D11** (asset-meta session direction in Workbench + reference-list **AGENT.md**; not full close-out) | Not started |
+| **M3** | **Durable doc alignment** for **D11** (asset-meta session direction in Workbench + reference-list **AGENT.md**; not full close-out) | Complete |
 | **M4** | **`useWorkbenchAssetMeta`** foundation: provider/hook, **`applyAssetMetaFlush`**, reconcile, tests | Not started |
 | **M5** | **[`AssetEditForm`](../../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx) + [`TopLevelEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx)** on asset-meta session (**D6**, **D10**, preview confirm) | Not started |
 | **M6** | Migrate **`WMLComponentHeader`** delete + confirm via preview closure (**D7**) | Not started |
@@ -290,10 +290,10 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as y
   - [X] **`applyWorkbenchFlush`**: used from **`commitAssetScopedUpdate`** / debounced flush via **`updateLocal`** --- optional `beforeAssign` on draft (caller) -> assign **`working`** -> **`normalizeWorkbenchDraft`** on local clone -> existing diff path; **no** materialize
   - [X] [`ReferenceListSessionEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListSessionEditor.tsx) create/import: **await materialize** on Redux, then **`onAssociateReference`** on **`working`**; remove inline **`byUniversalId`** from **`commitAssetScopedUpdate`** create callback
   - [X] Update **Recommended order** checkboxes and run baseline Workbench + personalAssets tests
-- [ ] **M3 --- Durable doc alignment (D11 direction)**
-  - [ ] Update [`Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md): asset-meta two-tier session alongside component session; remove TopLevel from "asset-level exception" table once **M5** lands (may note pending migration here)
-  - [ ] Update [`AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md): TopLevel / asset root uses **`ReferenceListSessionEditor`** pattern on **`useWorkbenchAssetMeta`** **`working._topLevel`** (not out of scope)
-  - [ ] Short pointer in [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) for **`applyAssetMetaFlush`** (stub section OK until **M4** implements)
+- [X] **M3 --- Durable doc alignment (D11 direction)**
+  - [X] Update [`Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md): asset-meta two-tier session alongside component session; remove TopLevel from "asset-level exception" table once **M5** lands (may note pending migration here)
+  - [X] Update [`AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md): TopLevel / asset root uses **`ReferenceListSessionEditor`** pattern on **`useWorkbenchAssetMeta`** **`working._topLevel`** (not out of scope)
+  - [X] Short pointer in [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) for **`applyAssetMetaFlush`** (stub section OK until **M4** implements)
 - [ ] **M4 --- Asset-meta session foundation (D11)**
   - [ ] **`WorkbenchAssetMetaProvider`** + **`useWorkbenchAssetMeta`**: `working` / `lastReceived` / `committed` for asset-meta projection; `updateAssetMeta`; debounced + `flushNow` flush; reconcile / supersede mirroring component session
   - [ ] **`applyAssetMetaFlush`**: assign **`_shortName`**, **`_summary`**, **`_topLevel`** from working onto local draft clone, then **`normalizeWorkbenchDraft`**; exported from [`foundations/consistency/`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/)
@@ -448,7 +448,7 @@ function useWorkbenchAssetMeta(): {
 | **Ref scrub** | Same module doc (comment on `normalizeWorkbenchDraft`) | **Belt-and-suspenders:** expected **no-op** on happy path after **D2**; keep for draft hygiene; **not** why transitive GC happens; contrast engine **`removeComponent`** scrub |
 | **Fixpoint normalize** | Same | Transitive removal = repeated **D2** passes; **not** reducer `cascade: true` |
 | **List / TopLevel** | [`AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md) | Disassociate + normalize; TopLevel on **`useWorkbenchAssetMeta`** session; no row **`removeComponent`** |
-| **Asset-meta session (D11)** | [`Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md) + [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) | **`useWorkbenchAssetMeta`** two-tier model; **`applyAssetMetaFlush`**; TopLevel + ShortName/Summary on **`working`** |
+| **Asset-meta session (D11)** | [`Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md) + [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) | **`useWorkbenchAssetMeta`** two-tier model; **`applyAssetMetaFlush`**; TopLevel + ShortName/Summary on **`working`** (**M3:** direction in durable docs; implementation **M4**--**M5**) |
 | **personalAssets** | [`personalAssets/AGENT.md`](../../../../../charcoal-client/src/slices/personalAssets/AGENT.md) | Workbench normalize on **local** edit path; WML merge orphan-with-content unchanged |
 
 ### Steps
