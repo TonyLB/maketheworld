@@ -21,7 +21,8 @@ Pure functions in this module mutate a **`StandardForm` draft** passed into them
 
 | Operation | When | Call site |
 | --- | --- | --- |
-| **`materializeComponent`** | Immediately on create/import | **Awaitable** `updateStandard` on the Redux **local** asset draft (`getLocalStandardForm`). Run **before** parent **`working`** associate, list resolution, or child navigation. **Not** on component-session `working` (single-component clone). **Not** deferred to debounced flush. |
+| **`materializeComponent`** | Immediately on create/import (pure; use via **`materializeComponentInAsset`**) | See **`materializeComponentInAsset`** below. |
+| **`materializeComponentInAsset`** | Immediately on create/import | **Awaitable** thunk: **`updateStandard`** with **`type: 'updateLocal'`** on the Redux **local** draft (`getLocalStandardForm`). Fast-path when the body is already on the local form and **`fromAsset`** is unset. **Not** on component-session `working`. **Not** deferred to debounced flush. Exposed on [`useWorkbenchAsset`](../useWorkbenchAsset.ts). |
 | **`normalizeWorkbenchDraft`** | At flush | Inside flush `updateStandard` after applying parent **`working`** (and any `beforeAssign` draft mutations): [`commitAssetScopedUpdate`](../WorkbenchComponent/useWorkbenchComponent.tsx), debounced `performFlush`. |
 
 Eager materialize commits a **different** `universalKey` than the open parent session id; it should not supersede that parent's `working` / `lastReceived`. Full normative text: task plan **Orchestration timing (D10)**.
@@ -88,6 +89,24 @@ function materializeComponent(
 
 - **Create:** idempotent when `universalKey` is already in `byUniversalId` (returns existing `reference`).
 - **Import:** requires a tag in [`SchemaImportMapping`](../../../../../../packages/mtw-base/ts/schema/metaData.ts) (`isSchemaImportMappingType`); throws for types like Character that cannot be imported via WML Import mapping.
+
+## `materializeComponentInAsset` (D10 Redux wiring)
+
+Eager global materialize for Workbench create/import. **Does not** call **`normalizeWorkbenchDraft`**.
+
+```typescript
+materializeComponentInAsset(assetId)(spec: MaterializeSpec): Promise<StandardReference>
+```
+
+**Implementation:** [`materializeComponentInAsset.ts`](./materializeComponentInAsset.ts), exported from [`index.ts`](./index.ts).
+
+| Path | Behavior |
+| --- | --- |
+| **Fast path** | **`!spec.fromAsset`** and `getLocalStandardForm(assetId)` already has `byUniversalId[universalKey]` with a **`reference`**: return immediately (no `updateStandard`, no `setIntent` / `heartbeat`). |
+| **Dispatch path** | `await dispatch(updateStandard(assetId)({ type: 'updateLocal', update: (draft) => materializeComponent(draft, spec) }))`, then `setIntent` + `heartbeat`. Post-check: key present on local form after dispatch. |
+| **Import** | When **`fromAsset`** is set, always use the dispatch path so **`addImportToDraft`** can update **`from`**. |
+
+Call via **`useWorkbenchAsset().materializeComponentInAsset(spec)`** or `dispatch(materializeComponentInAsset(AssetId)(spec))`.
 
 ## `normalizeWorkbenchDraft` (D3, D4)
 
@@ -162,6 +181,7 @@ Run from `charcoal-client/`: `npm run test:single -- src/components/Workbench/fo
 | --- | --- |
 | [`isReferencedInAssetLayer.test.ts`](./isReferencedInAssetLayer.test.ts) | **D2** matrix: `_topLevel`-only, `ref={0}` stub, nested list ref, inherited-only vs merged (`inherited.merge(local)`), `sameKey` matching |
 | [`materializeComponent.test.ts`](./materializeComponent.test.ts) | Create, idempotent materialize, import (`fromAsset`) |
+| [`materializeComponentInAsset.test.ts`](./materializeComponentInAsset.test.ts) | `updateLocal` dispatch, local-draft early exit, import always dispatches, no normalize |
 | [`normalizeWorkbenchDraft.test.ts`](./normalizeWorkbenchDraft.test.ts) | Fixpoint orphan GC (D3/D4), `_topLevel` transitive removal, Area-participant transitive path, happy-path scrub no-op, `scrubReferences` defensive fixtures |
 | [`previewOrphanClosure.test.ts`](./previewOrphanClosure.test.ts) | Non-mutation, `includesNonEmpty`, `applyLocal`, parity with `normalizeWorkbenchDraft` |
 

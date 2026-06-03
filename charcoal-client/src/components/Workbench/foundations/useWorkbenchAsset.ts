@@ -25,16 +25,23 @@ import {
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { PersonalAssetsLoadedImage, PersonalAssetsNodes, PersonalAssetsPublic } from '../../../slices/personalAssets/baseClasses'
 import { UpdateStandardPayload } from '../../../slices/personalAssets/reducers'
-import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
+import { AssetUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
+import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { getAssetZone } from '../../../slices/player'
 import { getCurrentAssetId } from '../../../slices/UI/workbench'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
+import type { AnyAction } from 'redux'
+import type { ThunkDispatch } from 'redux-thunk'
 import { RootState } from '../../../store'
 import { getConfiguration } from '../../../slices/configuration'
 import { DevEnvironment } from '../../../environment'
 import type { ScopedInstrumentationOptions } from '../../../testing/scopedInstrumentation'
+import {
+    materializeComponentInAsset,
+    type MaterializeSpec
+} from './consistency'
 
 type WorkbenchAssetContextType = {
     assetKey: string;
@@ -44,6 +51,7 @@ type WorkbenchAssetContextType = {
     inheritedStandardForm: StandardForm;
     inheritedByAssetId: { assetId: string; standardForm: StandardFormData }[];
     updateStandard: (action: UpdateStandardPayload, options?: ScopedInstrumentationOptions) => void;
+    materializeComponentInAsset: (spec: MaterializeSpec) => Promise<StandardReference>;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     properties: Record<string, { fileName: string }>;
     readonly: boolean;
@@ -62,6 +70,9 @@ const uninitializedValues: WorkbenchAssetContextType = {
     inheritedStandardForm: new StandardForm({ universalKey: 'ASSET#uninitialized', components: [], metaData: [] }),
     inheritedByAssetId: [],
     updateStandard: () => {},
+    materializeComponentInAsset: async () => {
+        throw new Error('No asset selected')
+    },
     properties: {},
     loadedImages: {},
     readonly: true,
@@ -72,7 +83,7 @@ const uninitializedValues: WorkbenchAssetContextType = {
 
 export const useWorkbenchAsset = (): WorkbenchAssetContextType => {
     const currentAssetId = useSelector(getCurrentAssetId)
-    const dispatch = useDispatch()
+    const dispatch = useDispatch<ThunkDispatch<RootState, unknown, AnyAction>>()
     
     // Normalize asset ID and derive AssetId
     // AssetKey normalizes to 'ASSET#uuid' format
@@ -152,6 +163,16 @@ export const useWorkbenchAsset = (): WorkbenchAssetContextType => {
         dispatch(setIntent({ key: AssetId, intent: ['SCHEMADIRTY'] }))
         dispatch(heartbeat)
     }, [dispatch, AssetId])
+
+    const materializeComponentInAssetFn = useCallback(
+        (spec: MaterializeSpec): Promise<StandardReference> => {
+            if (!currentAssetId || !isSchemaAssetUUID(AssetId)) {
+                return Promise.reject(new Error('No asset selected'))
+            }
+            return dispatch(materializeComponentInAsset(AssetId)(spec))
+        },
+        [dispatch, currentAssetId, AssetId]
+    )
     
     // readonly is false for Draft zone assets, true for all others
     const readonly = zone !== 'Draft'
@@ -170,6 +191,7 @@ export const useWorkbenchAsset = (): WorkbenchAssetContextType => {
         inheritedStandardForm,
         inheritedByAssetId,
         updateStandard,
+        materializeComponentInAsset: materializeComponentInAssetFn,
         properties: properties ?? {},
         loadedImages,
         readonly,

@@ -1,6 +1,6 @@
 # Workbench consistency layer (authoring client)
 
-**Status:** In progress (M0--M1 complete). **Next step:** **M2** --- eager global **materialize** via `updateStandard` + flush-time **normalize** in [`commitAssetScopedUpdate`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx) (**D10**).
+**Status:** In progress (M0--M1 complete; M2 materialize thunk shipped). **Next step:** **M2** --- **`applyWorkbenchFlush`** (normalize at flush) in [`commitAssetScopedUpdate`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx) (**D10**).
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into [`charcoal-client/src/components/Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md), [`foundations/ReferenceList/AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md), and [`charcoal-client/src/slices/personalAssets/AGENT.md`](../../../../../charcoal-client/src/slices/personalAssets/AGENT.md).
 
@@ -263,7 +263,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as y
   - [X] Unit tests (**D2**): top-level-only (`referencedBy` empty, still referenced); `ref={0}` stub; nested list ref; transitive GC after Room removed; inherited-only not counted
   - [X] Unit tests (scrub): no-op after valid disassociate + **D2** removal; separate fixture proving scrub repairs a deliberately broken draft only
 - [ ] **M2 --- Session integration** (**D10**)
-  - [ ] **`materializeComponentInAsset`** (name TBD): awaitable dispatch wrapping **`updateStandard`** + **`materializeComponent`** on the Redux **local** draft only; no normalize in this path
+  - [X] **`materializeComponentInAsset`**: awaitable dispatch wrapping **`updateStandard`** (`updateLocal`) + **`materializeComponent`** on the Redux **local** draft only; local-draft early exit when body exists (create / reference-existing); no normalize in this path
   - [ ] **`applyWorkbenchFlush`** (name TBD): used from **`commitAssetScopedUpdate`** / debounced flush --- apply parent **`working`** (+ optional `beforeAssign` on draft) -> **`normalizeWorkbenchDraft`** on local clone -> existing diff path; **no** materialize
   - [ ] [`ReferenceListSessionEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListSessionEditor.tsx) create/import: **await materialize** on Redux, then **`onAssociateReference`** on **`working`**; remove inline **`byUniversalId`** from **`commitAssetScopedUpdate`** create callback
   - [ ] Update **Recommended order** checkboxes and run baseline Workbench + personalAssets tests

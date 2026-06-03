@@ -21,7 +21,7 @@ The Workbench sits within the Charcoal Client's [dual-mode architecture](../../.
 - **Reference Lists**: WML `ReferenceList` fields (e.g. `features`, `guidance`, `lens`, `marks`) rendered as accordion lists with add/remove; see [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md)
 - **Layered Context**: Sibling-in-context editing for Room Situation facets and Guidance (Photoshop-layer style); see [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md)
 - **StandardForm**: WML asset representation; the Workbench reads and mutates `StandardForm` via `updateStandard` from `useWorkbenchAsset`; per-component scalar editing uses a **working copy** via `useWorkbenchComponent` ([Component editing session](#component-editing-session-two-tier-model))
-- **Consistency layer (M1 shipped; M2 wiring pending)**: **`materializeComponent`** eager on Redux local draft, **`normalizeWorkbenchDraft`** at flush (**D10**); **`previewOrphanClosure`**, **`isReferencedInAssetLayer`**; see [foundations/consistency/AGENT.md](./foundations/consistency/AGENT.md)
+- **Consistency layer (M1 shipped; M2 materialize thunk shipped)**: **`materializeComponentInAsset`** eager on Redux local draft (`updateLocal`); **`normalizeWorkbenchDraft`** at flush pending (**D10**); **`previewOrphanClosure`**, **`isReferencedInAssetLayer`**; see [foundations/consistency/AGENT.md](./foundations/consistency/AGENT.md)
 
 ---
 
@@ -299,7 +299,7 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 | `CharacterEdit/` | CharacterEditor |
 | `foundations/StandardRender/StandardRenderEditor.tsx` | Rich text (Slate); shared with Editor components |
 | `foundations/ReferenceList/referenceListAdapter.ts` | `referenceListToItems` for list display |
-| `foundations/consistency/` | Pure TS: **`isReferencedInAssetLayer`** (D2), **`materializeComponent`**, **`normalizeWorkbenchDraft`**, **`previewOrphanClosure`** (fixpoint orphan GC + preview) |
+| `foundations/consistency/` | Pure TS + Redux thunk: **`isReferencedInAssetLayer`** (D2), **`materializeComponent`**, **`materializeComponentInAsset`**, **`normalizeWorkbenchDraft`**, **`previewOrphanClosure`** (fixpoint orphan GC + preview) |
 
 ### Related Documentation
 
