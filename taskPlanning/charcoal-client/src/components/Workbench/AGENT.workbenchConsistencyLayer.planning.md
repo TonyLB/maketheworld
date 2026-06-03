@@ -1,6 +1,6 @@
 # Workbench consistency layer (authoring client)
 
-**Status:** In progress (M0--M2 complete). **Next step:** **M3** --- [`TopLevelEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx) list remove + create/import (**D6**, **D10**).
+**Status:** In progress (M0--M2 complete). **Next step:** **M3** --- durable doc alignment for **D11** (asset-meta session); then **M4** --- **`useWorkbenchAssetMeta`** foundation (parallel to [`useWorkbenchComponent`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx)).
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into [`charcoal-client/src/components/Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md), [`foundations/ReferenceList/AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md), and [`charcoal-client/src/slices/personalAssets/AGENT.md`](../../../../../charcoal-client/src/slices/personalAssets/AGENT.md).
 
@@ -19,13 +19,13 @@ Introduce a **Workbench-owned consistency layer** in the Charcoal Client that **
 - [`WMLComponentHeader`](../../../../../charcoal-client/src/components/Workbench/WMLComponentHeader.tsx): header delete is **`removeComponent`**, not list disassociate + normalize.
 - [`AssetEditForm`](../../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx): asset ShortName/Summary use mixed debounce paths without a shared asset working session.
 
-**Goal:** One place owns **materialize**, **normalize** (workbench policy), and **when** each runs (**D10**). Editors own **associate** / **disassociate** on **working** (single-component session state). **Materialize** runs eagerly on the Redux **local** asset draft; **normalize** runs at flush when committing session edits to that draft.
+**Goal:** One place owns **materialize**, **normalize** (workbench policy), and **when** each runs (**D10**). Editors own **associate** / **disassociate** on **working** --- on **component** session state (`useWorkbenchComponent`) or **asset-meta** session state (`useWorkbenchAssetMeta`, **D11**). **Materialize** runs eagerly on the Redux **local** asset draft; **normalize** runs at flush when committing session edits to that draft.
 
 **Non-goals (this initiative):**
 
 - Changing WML / `StandardForm.merge` orphan-with-content behavior ( **`ref={0}`** editing remains valid in the format).
 - Replacing engine **`removeComponent({ cascade })`** in mtw-wml for non-workbench tooling; **Workbench authoring** uses **fixpoint normalize** for transitive removal instead of reducer **`cascade: true`** (**D7**).
-- **Area "cascade" UX** (e.g. clearer confirm when removing an Area would GC many Rooms) --- future UI; **v1** accepts fixpoint orphan closure when Area is disassociated and Rooms become unreferenced (**D8**). Coordinate with [`taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md`](../../../../packages/mtw-wml/AGENT.areaTopologyExits.planning.md) but do not block Milestones 1-3.
+- **Area "cascade" UX** (e.g. clearer confirm when removing an Area would GC many Rooms) --- future UI; **v1** accepts fixpoint orphan closure when Area is disassociated and Rooms become unreferenced (**D8**). Coordinate with [`taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md`](../../../../packages/mtw-wml/AGENT.areaTopologyExits.planning.md) but do not block Milestones 1-5.
 
 ---
 
@@ -131,9 +131,21 @@ After **D2**, any key `K` removed in step 2 was **not** on `_topLevel` and had *
 
 Local associate/disassociate needs a typed **site** descriptor (generalize [`getTopLevelAddToReferenceList`](../../../../../charcoal-client/src/slices/personalAssets/index.ts), [`ReferenceListSessionAccessor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListSessionEditor.tsx), facet list hosts). The consistency layer does **not** own site-specific list accessors; editors keep domain accessors next to owning screens per [AGENT.reference-lists.md](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md).
 
-### Asset-meta as local (follow-on)
+### Asset-meta session (**D11**)
 
-After Milestones 1-4, an optional **`useWorkbenchAssetMeta`** (or asset-root provider) can hold working **`_shortName`**, **`_summary`**, and **`_topLevel`** with the same flush/reconcile pattern as [`useWorkbenchComponent`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx). Top-level list row remove must **not** call **`removeComponent`** once the layer exists.
+The asset root ([`AssetEditForm`](../../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx)) uses the **same two-tier model** as component editors: a **working** projection in React state and **debounced flush** to Redux (**`updateLocal`**), not ad hoc per-field `updateStandard` or mixed debounce paths.
+
+**Normative:** **`useWorkbenchAssetMeta`** / **`WorkbenchAssetMetaProvider`** (planned: `foundations/WorkbenchAssetMeta/`, mirror [`WorkbenchComponent/`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/)) parallels [`useWorkbenchComponent`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx):
+
+| Concern | Component session | Asset-meta session (**D11**) |
+| --- | --- | --- |
+| **Working copy** | `StandardComponent` clone | Asset-meta projection: **`_shortName`**, **`_summary`**, **`_topLevel`** |
+| **Local edits** | `updateComponent` | `updateAssetMeta` (or equivalent) |
+| **Flush** | `applyWorkbenchFlush` (assign component + normalize) | **`applyAssetMetaFlush`** (assign asset-meta fields + normalize) |
+| **Create / import** | **`await materializeComponentInAsset`**, then associate on parent **`working`** | Same: materialize on Redux, associate on asset-meta **`working._topLevel`** |
+| **List row remove** | Disassociate on parent **`working`**, debounced flush + normalize | Disassociate on **`working._topLevel`**, debounced flush + normalize (**D6**) --- never **`removeComponent`** |
+
+Implement **immediately** after M2 (no interim imperative-only TopLevel migration). [`TopLevelEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx) becomes a session-backed list host (same patterns as [`ReferenceListSessionEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListSessionEditor.tsx)); ShortName/Summary use context-only fields with **`debounce={false}`** on primitives so only the session debounces persist.
 
 ### Orchestration timing (D10)
 
@@ -144,9 +156,9 @@ After Milestones 1-4, an optional **`useWorkbenchAssetMeta`** (or asset-root pro
 | **Create / import** (discrete) | **Materialize** only | Immediate **`updateStandard`** on the Redux **local** asset draft (`materializeComponent` inside the reducer callback). Expose as an **awaitable** dispatch (thunk or equivalent) so callers know `byUniversalId` / selectors include the new key **before** local **associate** on parent **`working`**, list item resolution, or navigation to a child editor. |
 | **Flush** (debounced `performFlush`, `commitAssetScopedUpdate`, asset `updateStandard`) | Apply session edits + **normalize** | Inside the flush `updateStandard` callback on the **local** draft clone: apply parent **`working`** (and any `beforeAssign` site mutations on the draft) -> **`normalizeWorkbenchDraft`** -> assign / **`diff`** -> **`mergeToEdit`**. **No** materialize in this path for create/import (those already materialized eagerly). |
 
-**Reconciliation:** Eager materialize updates a **different** `universalKey` than the open [`useWorkbenchComponent`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx) session's `componentId`. That may run the committed-sync effect, but it should **not** supersede the parent editor's **`working`** / **`lastReceived`** (the parent's committed snapshot is unchanged).
+**Reconciliation:** Eager materialize updates a **different** `universalKey` than the open [`useWorkbenchComponent`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx) session's `componentId` (or an open asset-meta session's **`working._topLevel`**). That may run the committed-sync effect, but it should **not** supersede the editor's **`working`** / **`lastReceived`** when the committed asset-meta / component snapshot for that session is unchanged.
 
-**Obtain ref, then associate** (unchanged): create/import ends with a `StandardReference`; **materialize** commits the body globally; **associate** updates parent **`working`** (or flush-time draft mutation for asset-mode lists).
+**Obtain ref, then associate** (unchanged): create/import ends with a `StandardReference`; **materialize** commits the body globally; **associate** updates parent **`working`** (component session or asset-meta **`_topLevel`**).
 
 ### Flush pipeline (target shape)
 
@@ -160,7 +172,7 @@ dispatch materialize via updateStandard (local draft clone)
   -> then onAssociateReference / working list update / navigation
 ```
 
-**Session flush** (`commitAssetScopedUpdate`, debounced flush):
+**Component session flush** (debounced `performFlush` in [`useWorkbenchComponent`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx)):
 
 ```text
 working local edits (already applied on working for list-only paths)
@@ -169,7 +181,16 @@ working local edits (already applied on working for list-only paths)
   -> standardForm.diff -> mergeToEdit (existing reducer path)
 ```
 
-[`commitAssetScopedUpdate`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx) should delegate flush steps to **`applyWorkbenchFlush`** (or equivalent): apply **`working`** + **normalize** only --- not materialize.
+**Asset-meta session flush** (debounced flush in **`useWorkbenchAssetMeta`**, **D11**):
+
+```text
+asset-meta working local edits (_shortName, _summary, _topLevel)
+  -> updateStandard (updateLocal): applyAssetMetaFlush on local draft clone
+  -> normalizeWorkbenchDraft (same fixpoint as component flush)
+  -> diff -> mergeToEdit
+```
+
+[`useWorkbenchComponent`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx) delegates to **`applyWorkbenchFlush`**: assign component **`working`** + **normalize** only --- not materialize. **`useWorkbenchAssetMeta`** delegates to **`applyAssetMetaFlush`**: assign asset-meta **`working`** + **normalize** only --- not materialize.
 
 ---
 
@@ -227,7 +248,8 @@ Mark **Status** `[X]` when normative for implementation.
 | **D7** | [X] | **No workbench `removeComponent` / reducer cascade** | Workbench UI stops calling `type: 'removeComponent'` for list/header deletes; migrate legacy/maps call sites over time. **Transitive removal = fixpoint normalize**, not `cascade: true` on the reducer. Keep reducer branch only for non-workbench callers until fully migrated. |
 | **D8** | [X] | **Area + orphan closure (v1)** | **First iteration:** disassociating an Area such that Rooms (etc.) become unreferenced and are removed by fixpoint normalize is **acceptable**. Separate Area-specific confirm/UX polish is **out of scope** (likely future UI issue). |
 | **D9** | [X] | **`materializeComponent` spec = `universalKey` (+ optional `fromAsset`)** | Derive **`tag`** from `ComponentUUID` prefix internally; do not require callers to pass `tag`. Wrap `standardComponentFactory` (create/stub) and `addImportToDraft` (import). |
-| **D10** | [X] | **Materialize eager on Redux; normalize at flush** | **Materialize:** immediate **`updateStandard`** on **local** asset draft (global graph), awaitable before associate / UI that needs `byUniversalId`. **Not** on component-session **`working`**; **not** deferred to debounced flush. **Normalize:** only in flush **`updateStandard`** after applying session edits to the local draft clone. Eager materialize of a **new** key should not supersede the parent **`useWorkbenchComponent`** session. |
+| **D10** | [X] | **Materialize eager on Redux; normalize at flush** | **Materialize:** immediate **`updateStandard`** on **local** asset draft (global graph), awaitable before associate / UI that needs `byUniversalId`. **Not** on session **`working`**; **not** deferred to debounced flush. **Normalize:** only in flush **`updateStandard`** after applying session edits to the local draft clone. Eager materialize of a **new** key should not supersede an open editor session's **`working`** / **`lastReceived`**. |
+| **D11** | [X] | **Asset-meta session parallels component session** | **`useWorkbenchAssetMeta`** (provider + hook) holds working **`_shortName`**, **`_summary`**, **`_topLevel`** with debounced **`updateLocal`** flush via **`applyAssetMetaFlush`** + **`normalizeWorkbenchDraft`**. **[`AssetEditForm`](../../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx)** and **[`TopLevelEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx)** migrate onto this session --- no interim imperative-only TopLevel path. Reconcile / supersede semantics mirror **`useWorkbenchComponent`**. |
 
 ---
 
@@ -238,10 +260,11 @@ Mark **Status** `[X]` when normative for implementation.
 | **M0** | Decisions **D1-D8** + API sketch in this doc | Complete |
 | **M1** | Pure **`materialize`**, **`normalizeWorkbenchDraft`** (fixpoint), **`previewOrphanClosure`** + unit tests | Complete |
 | **M2** | Eager global **materialize** thunk + flush **`applyWorkbenchFlush`** (normalize only) in **`commitAssetScopedUpdate`**; session list create/import path | Complete |
-| **M3** | Migrate **TopLevelEditor** list remove + import/create association; drop row-level **`removeComponent`** | Not started |
-| **M4** | Migrate **`WMLComponentHeader`** delete + confirm via preview closure | Not started |
-| **M5** | Optional **asset-meta session** (`_shortName`, `_summary`, `_topLevel`); [`AssetEditForm`](../../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx) | Not started |
-| **M6** | Durable doc updates (**close-out checklist**) + delete/archive this plan | Not started |
+| **M3** | **Durable doc alignment** for **D11** (asset-meta session direction in Workbench + reference-list **AGENT.md**; not full close-out) | Not started |
+| **M4** | **`useWorkbenchAssetMeta`** foundation: provider/hook, **`applyAssetMetaFlush`**, reconcile, tests | Not started |
+| **M5** | **[`AssetEditForm`](../../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx) + [`TopLevelEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx)** on asset-meta session (**D6**, **D10**, preview confirm) | Not started |
+| **M6** | Migrate **`WMLComponentHeader`** delete + confirm via preview closure (**D7**) | Not started |
+| **M7** | Final durable doc updates (**close-out checklist**) + delete/archive this plan | Not started |
 
 ---
 
@@ -255,7 +278,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as y
   - [X] **D3-D8** normative (fixpoint = workbench cascade; Area v1 orphan GC OK)
   - [X] **D10** materialize eager on Redux local draft; normalize at flush only
 - [X] **M1 --- Pure layer**
-  - [X] Stub [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) with **D2** + **Ref scrub (belt-and-suspenders)** sections (expand in **M6**)
+  - [X] Stub [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) with **D2** + **Ref scrub (belt-and-suspenders)** sections (expand in **M7**)
   - [X] Add `isReferencedInAssetLayer(localForm, ref)` per **D2**
   - [X] Add `materializeComponent(draft, { universalKey, fromAsset? })` per **D9** (derive `tag` from prefix; wrap factory + `addImportToDraft`)
   - [X] Add `normalizeWorkbenchDraft(draft)` fixpoint per **D3**, **D4** (uses **D2** on local draft)
@@ -267,17 +290,25 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as y
   - [X] **`applyWorkbenchFlush`**: used from **`commitAssetScopedUpdate`** / debounced flush via **`updateLocal`** --- optional `beforeAssign` on draft (caller) -> assign **`working`** -> **`normalizeWorkbenchDraft`** on local clone -> existing diff path; **no** materialize
   - [X] [`ReferenceListSessionEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListSessionEditor.tsx) create/import: **await materialize** on Redux, then **`onAssociateReference`** on **`working`**; remove inline **`byUniversalId`** from **`commitAssetScopedUpdate`** create callback
   - [X] Update **Recommended order** checkboxes and run baseline Workbench + personalAssets tests
-- [ ] **M3 --- TopLevel**
-  - [ ] **D6:** TopLevel row remove -> disassociate + flush + normalize
-  - [ ] Create/import: **D10** eager materialize on Redux, then local associate on `_topLevel`
-  - [ ] Confirm dialog when preview reports non-empty orphan closure
-- [ ] **M4 --- Header delete**
+- [ ] **M3 --- Durable doc alignment (D11 direction)**
+  - [ ] Update [`Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md): asset-meta two-tier session alongside component session; remove TopLevel from "asset-level exception" table once **M5** lands (may note pending migration here)
+  - [ ] Update [`AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md): TopLevel / asset root uses **`ReferenceListSessionEditor`** pattern on **`useWorkbenchAssetMeta`** **`working._topLevel`** (not out of scope)
+  - [ ] Short pointer in [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) for **`applyAssetMetaFlush`** (stub section OK until **M4** implements)
+- [ ] **M4 --- Asset-meta session foundation (D11)**
+  - [ ] **`WorkbenchAssetMetaProvider`** + **`useWorkbenchAssetMeta`**: `working` / `lastReceived` / `committed` for asset-meta projection; `updateAssetMeta`; debounced + `flushNow` flush; reconcile / supersede mirroring component session
+  - [ ] **`applyAssetMetaFlush`**: assign **`_shortName`**, **`_summary`**, **`_topLevel`** from working onto local draft clone, then **`normalizeWorkbenchDraft`**; exported from [`foundations/consistency/`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/)
+  - [ ] Session test harness (mirror [`WorkbenchComponent/testing/`](../../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/testing/))
+  - [ ] Unit tests: flush assigns asset-meta fields + normalize; no materialize in flush path
+- [ ] **M5 --- AssetEditForm + TopLevel on session**
+  - [ ] Wrap [`AssetEditForm`](../../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx) in **`WorkbenchAssetMetaProvider`**
+  - [ ] ShortName/Summary: context-only fields, **`debounce={false}`** on primitives; remove ad hoc `useDebouncedOnChange` / per-keystroke `updateStandard`
+  - [ ] **D6:** [`TopLevelEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx) row remove -> disassociate on **`working._topLevel`** + session flush + normalize (never **`removeComponent`**)
+  - [ ] Create/import: **D10** **`await materializeComponentInAsset`**, then associate on **`working._topLevel`** (same as [`ReferenceListSessionEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListSessionEditor.tsx))
+  - [ ] Confirm dialog when **`previewOrphanClosure`** reports non-empty orphan closure on TopLevel disassociate
+- [ ] **M6 --- Header delete**
   - [ ] Replace [`WMLComponentHeader`](../../../../../charcoal-client/src/components/Workbench/WMLComponentHeader.tsx) `removeComponent` with disassociate-at-all-sites + fixpoint normalize + preview confirm (**D7**)
-- [ ] **M5 --- Asset meta (optional)**
-  - [ ] Asset-root provider + debounced flush for ShortName/Summary
-  - [ ] `_topLevel` via same list patterns as **M3**
-- [ ] **M6 --- Close out (durable docs required before deleting this plan)**
-  - [ ] Add [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) (or module header in `index` + link from Workbench **AGENT.md**) --- normative API + **D2-D8** summaries; **do not** rely on this task-plan after archive
+- [ ] **M7 --- Close out (durable docs required before deleting this plan)**
+  - [ ] Expand [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) --- normative API + **D2-D11** summaries; **do not** rely on this task-plan after archive
   - [ ] Persist **close-out checklist** below into Workbench / reference-list / personalAssets **AGENT.md** (not only here)
   - [ ] Archive/delete this planning file
 
@@ -298,7 +329,7 @@ npm run test:single -- src/slices/personalAssets/addImportToDraft.test.ts
 npm run test:single -- src/slices/personalAssets/reducers.test.ts
 ```
 
-**Manual (M3+):** Draft asset -> add Room at top level -> remove row -> Room absent from Components list and `byUniversalId` after save path; Feature only on that Room -> confirm dialog mentions component removal.
+**Manual (M5+):** Draft asset -> add Room at top level -> remove row -> Room absent from Components list and `byUniversalId` after flush path; Feature only on that Room -> confirm dialog mentions component removal. ShortName/Summary edits batch to Redux on debounced flush, not per keystroke.
 
 **Grep hygiene (no new list-row removeComponent):**
 
@@ -306,7 +337,7 @@ npm run test:single -- src/slices/personalAssets/reducers.test.ts
 rg "removeComponent" charcoal-client/src/components/Workbench --glob '*.tsx'
 ```
 
-Expect **`removeComponent`** only in intentional purge/header paths until **M4** completes, not in **TopLevelEditor** list handlers.
+Expect **`removeComponent`** only in intentional purge/header paths until **M6** completes, not in **TopLevelEditor** list handlers.
 
 ---
 
@@ -349,15 +380,42 @@ function materializeComponentInAsset(
   spec: MaterializeSpec
 ): Promise<StandardReference>  // thunk; implementation TBD
 
-// D10: flush only --- apply working + normalize on local draft inside updateStandard callback.
+// D10: component session flush --- assign working + normalize on local draft.
 function applyWorkbenchFlush(
   draft: StandardForm,
   edit: {
-    componentId?: ComponentUUID
-    working?: StandardComponent
-    beforeAssign?: (draft: StandardForm) => void
+    componentId: ComponentUUID
+    working: StandardComponent
+    beforeAssign?: (draft: StandardForm, working: StandardComponent) => void
   }
-): void  // mutates draft in place; caller runs diff -> mergeToEdit
+): StandardComponent  // mutates draft in place; caller runs diff -> mergeToEdit
+
+// D11: asset-meta session flush --- assign _shortName / _summary / _topLevel + normalize.
+type WorkbenchAssetMetaWorking = {
+  shortName: StandardLiteral | undefined
+  summary: StandardRender | undefined
+  topLevel: ReferenceList
+}
+
+function applyAssetMetaFlush(
+  draft: StandardForm,
+  edit: {
+    working: WorkbenchAssetMetaWorking
+    beforeAssign?: (draft: StandardForm, working: WorkbenchAssetMetaWorking) => void
+  }
+): WorkbenchAssetMetaWorking  // mutates draft in place; caller runs diff -> mergeToEdit
+
+// D11: React provider/hook (foundations/WorkbenchAssetMeta/ or alongside WorkbenchComponent/)
+function useWorkbenchAssetMeta(): {
+  working: WorkbenchAssetMetaWorking | undefined
+  lastReceived: WorkbenchAssetMetaWorking | undefined
+  committed: WorkbenchAssetMetaWorking | undefined
+  updateAssetMeta: (updater: (draft: WorkbenchAssetMetaWorking) => void) => void
+  flushToStandardForm: () => void
+  flushNow: () => void
+  isDirty: boolean
+  readonly: boolean
+}
 ```
 
 ---
@@ -371,13 +429,14 @@ function applyWorkbenchFlush(
 - **D2** --- **`isReferencedInAssetLayer`** on **local** form only; **`_topLevel` ∪ referencedBy**; any ref sign; not merged inherited view; not `SchemaOrganization`.
 - **D8** --- Area-driven GC of now-unreferenced Rooms via fixpoint is fine; dedicated Area remove UX is deferred.
 - **D9** --- **`materializeComponent({ universalKey, fromAsset? })`**; derive **`tag`** from UUID prefix; callers do not pass `tag`.
-- **D10** --- **Materialize** eager on Redux **local** draft (**awaitable** `updateStandard`); **normalize** only at workbench flush entry points (**`applyWorkbenchFlush`** / **`commitAssetScopedUpdate`**), not on every personalAssets `updateStandard` unless that call site is a flush (see **Orchestration timing**).
+- **D10** --- **Materialize** eager on Redux **local** draft (**awaitable** `updateStandard`); **normalize** only at workbench flush entry points (**`applyWorkbenchFlush`**, **`applyAssetMetaFlush`**), not on every personalAssets `updateStandard` unless that call site is a flush (see **Orchestration timing**).
+- **D11** --- **Asset-meta session** via **`useWorkbenchAssetMeta`** parallels **`useWorkbenchComponent`**; **[`AssetEditForm`](../../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx)** and TopLevel list edits use **working** + debounced flush, not imperative per-handler `updateStandard`.
 
 ---
 
 ## When this task finishes
 
-**Gate:** Do **not** delete this task-plan until the items below are in **durable** docs (per [`taskPlanning/AGENT.md`](../../../../AGENT.md)). Implementation milestones should add or update those docs **as behavior lands** (especially **M1** for normalize semantics), not only at **M6**.
+**Gate:** Do **not** delete this task-plan until the items below are in **durable** docs (per [`taskPlanning/AGENT.md`](../../../../AGENT.md)). Implementation milestones should add or update those docs **as behavior lands** (especially **M1** for normalize semantics, **M3** for **D11** direction), not only at **M7**.
 
 ### Close-out checklist (copy into durable documentation)
 
@@ -388,7 +447,8 @@ function applyWorkbenchFlush(
 | **Stored WML vs UI** | Same (or personalAssets **AGENT.md**) | Local = asset-layer edits (`ref={0}` stubs, etc.); merged form = display / import ancestry --- not orphan GC |
 | **Ref scrub** | Same module doc (comment on `normalizeWorkbenchDraft`) | **Belt-and-suspenders:** expected **no-op** on happy path after **D2**; keep for draft hygiene; **not** why transitive GC happens; contrast engine **`removeComponent`** scrub |
 | **Fixpoint normalize** | Same | Transitive removal = repeated **D2** passes; **not** reducer `cascade: true` |
-| **List / TopLevel** | [`AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md) | Disassociate + normalize; TopLevel in scope; no row **`removeComponent`** |
+| **List / TopLevel** | [`AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md) | Disassociate + normalize; TopLevel on **`useWorkbenchAssetMeta`** session; no row **`removeComponent`** |
+| **Asset-meta session (D11)** | [`Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md) + [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) | **`useWorkbenchAssetMeta`** two-tier model; **`applyAssetMetaFlush`**; TopLevel + ShortName/Summary on **`working`** |
 | **personalAssets** | [`personalAssets/AGENT.md`](../../../../../charcoal-client/src/slices/personalAssets/AGENT.md) | Workbench normalize on **local** edit path; WML merge orphan-with-content unchanged |
 
 ### Steps
@@ -396,4 +456,4 @@ function applyWorkbenchFlush(
 1. Complete checklist rows (module **AGENT.md** is the canonical home for normalize/scrub/**D2** detail).
 2. Update [`Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md) and [`AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md) with links --- avoid duplicating full normalize prose.
 3. Note workbench vs WML orphan policy in [`personalAssets/AGENT.md`](../../../../../charcoal-client/src/slices/personalAssets/AGENT.md) if reducer behavior changes.
-4. Mark **M6** checklist `[X]`; then archive/delete this file per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
+4. Mark **M7** checklist `[X]`; then archive/delete this file per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
