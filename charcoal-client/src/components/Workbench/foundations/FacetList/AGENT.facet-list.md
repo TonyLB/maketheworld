@@ -22,8 +22,9 @@ Consumer (e.g. MarkFacetsEditor) wires FacetListEditorGeneric with:
 
 When a facet row edits both **referenced component data** (Mark `shortName`) and **facet payload** (Lens mark default) on the same row, split persistence:
 
-- **Mark shortName**: [`MarkInlineEditorWithSession`](../../MarkEdit/InlineEditor.tsx) in the payload slot (per-row Mark session; debounced flush per Mark). See [AGENT.reference-lists.md](../ReferenceList/AGENT.reference-lists.md) (**Inline edit slot persistence (D7)**).
-- **Facet payload**: parent **`onFacetsChange`** / asset-mode `updateStandard` until the parent screen has a **`WorkbenchComponentProvider`** session (Lens detail is Phase 3).
+- **Mark shortName**: [`MarkInlineEditorWithSession`](../../MarkEdit/InlineEditor.tsx) in the payload slot (per-row Mark session; debounced flush per Mark). See [AGENT.reference-lists.md](../ReferenceList/AGENT.reference-lists.md) (inline edit slot persistence).
+- **Facet list mutations** (add/remove, payload change): parent **`onFacetsChange`** wired to **`updateComponent`** on Lens **`working`** when [`LensDetail`](../../LensEdit/LensDetail.tsx) provides a session.
+- **Mark create/associate**: [`LensMarkFacetsEditor.requestCreate`](../../LensEdit/LensMarkFacetsEditor/LensMarkFacetsEditor.tsx) still uses asset-level **`updateStandard`** (add Mark to `draft.byUniversalId` + associate on Lens).
 
 Live example: [`LensMarkFacetPayloadEditor`](../../LensEdit/LensMarkFacetsEditor/LensMarkFacetPayloadEditor.tsx) in [`LensMarkFacetsEditor`](../../LensEdit/LensMarkFacetsEditor/LensMarkFacetsEditor.tsx).
 

@@ -11,7 +11,7 @@ Reference lists in the Workbench (WML `ReferenceList` on a component—e.g. `exa
 
 ---
 
-## Composable shell: `ReferenceListControlled` (D6)
+## Composable shell: `ReferenceListControlled`
 
 Facet-list-style composition: **`referenceList`** + **`onReferenceListChange`** (`(mutate: (list: ReferenceList) => void) => void`). Renders accordion UI, add/reference/import rows (`useAddReferenceImport`), and remove via [`referenceListMutations.ts`](referenceListMutations.ts). **Does not** call `updateStandard` or `useWorkbenchComponent` internally---the parent wires persistence.
 
@@ -47,11 +47,11 @@ For reference lists whose items are **small components** with lightweight inline
   - **`renderItemEditor?: (id: string) => ReactNode`** — Renders only the inline-edit content for each item. No affordances are passed in.
   - **`onItemClick?: (id: string) => void`** — When provided, the gap is clickable; click dispatches navigation to the detailed editor for that item.
 - **Fallback**: When `renderItemEditor` is omitted, each card falls back to a simple title + delete row. No gap, no `onItemClick`.
-- **Use case**: Pure **`ReferenceList`** of Marks when list membership is the only parent concern. `renderItemEditor(id)` returns **`MarkInlineEditorWithSession`** (shortName only). `onItemClick(id)` navigates to **`MarkEditor`** (shortName + description). Delete stays in the list affordances. **Lens marks today** use a **facet list** hybrid instead (see [Inline edit slot persistence (D7)](#inline-edit-slot-persistence-d7) and [AGENT.facet-list.md](../FacetList/AGENT.facet-list.md)).
+- **Use case**: Pure **`ReferenceList`** of Marks when list membership is the only parent concern. `renderItemEditor(id)` returns **`MarkInlineEditorWithSession`** (shortName only). `onItemClick(id)` navigates to **`MarkEditor`** (shortName + description). Delete stays in the list affordances. **Lens marks today** use a **facet list** hybrid instead (see [Inline edit slot persistence](#inline-edit-slot-persistence) and [AGENT.facet-list.md](../FacetList/AGENT.facet-list.md)).
 
 ---
 
-## Inline edit slot persistence (D7)
+## Inline edit slot persistence
 
 When a list row edits a **referenced component field** (e.g. Mark `shortName`) that lives on `draft.byUniversalId[refId]`---not on the parent component's `working` copy---use a **per-row `WorkbenchComponentProvider`** scoped to the referenced component id. Do **not** call `updateStandard` per keystroke from the inline editor.
 
@@ -59,7 +59,7 @@ When a list row edits a **referenced component field** (e.g. Mark `shortName`) t
 | --- | --- | --- | --- |
 | Typical / session reference list | `ReferenceList` on parent | None (navigate only) | Parent **`updateComponent`** via [`ReferenceListControlled`](ReferenceListControlled.tsx) / [`ReferenceListSessionEditor`](ReferenceListSessionEditor.tsx) |
 | Inline reference list | `ReferenceList` on parent | Referenced component field (e.g. Mark shortName) | **Per-row** `WorkbenchComponentProvider` + context-only inline editor; `renderItemEditor(id)` wraps **`MarkInlineEditorWithSession`** |
-| Facet list with inline reference field | Facet list on parent (e.g. Lens marks) | Referenced Mark shortName + facet payload on same row | Mark shortName: **`MarkInlineEditorWithSession`**; facet payload: parent list **`onFacetsChange`** (asset-mode until parent has a session) |
+| Facet list with inline reference field | Facet list on parent (e.g. Lens marks) | Referenced Mark shortName + facet payload on same row | Mark shortName: **`MarkInlineEditorWithSession`**; facet payload: parent **`onFacetsChange`** / **`updateComponent`** when parent has a session (Lens detail); mark create still asset-level **`updateStandard`** |
 
 ### `renderItemEditor` contract
 
@@ -77,7 +77,7 @@ onItemClick={(id) => dispatch(pushBreadcrumb({ id, kind: 'component', componentI
 
 ---
 
-## Parent-session lists (D15): `ReferenceListSessionEditor`
+## Parent-session lists: `ReferenceListSessionEditor`
 
 On screens wrapped in **`WorkbenchComponentProvider`** (e.g. Room Guidance, Room Features, Area position-graph participants), use **`ReferenceListSessionEditor`**. Thin wrapper over **`ReferenceListControlled`**: maps **`listAccessor`** to `referenceList` + `onReferenceListChange` on parent **`working`**. Item titles resolve from live **`standardForm`**.
 
@@ -90,7 +90,7 @@ On screens wrapped in **`WorkbenchComponentProvider`** (e.g. Room Guidance, Room
 - **Asset-mode** **`ReferenceListEditor`** (`listContext` + `updateStandard`) is a thin adapter over **`ReferenceListControlled`** for screens without a parent session.
 - **`TopLevelEditor`** remains asset-level and out of scope for this pattern.
 
-Domain-specific list accessors belong next to the editor that owns the parent component (per **D10**), not in [`workbenchMutations.ts`](../workbenchMutations.ts).
+Domain-specific list accessors belong next to the editor that owns the parent component, not in [`workbenchMutations.ts`](../workbenchMutations.ts).
 
 ---
 

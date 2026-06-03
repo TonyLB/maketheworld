@@ -125,7 +125,7 @@ resume working once `properties[key]` is set. See subscribeAction deprecation co
 
 ### Cross-References
 
-- **Workbench**: [charcoal-client/src/components/Workbench/AGENT.md](../components/Workbench/AGENT.md) - Consumes `getStandardForm`, `updateStandard`, `getStatus` via `useWorkbenchAsset`
+- **Workbench**: [charcoal-client/src/components/Workbench/AGENT.md](../components/Workbench/AGENT.md) - Consumes `getStandardForm`, `updateStandard`, `getStatus` via `useWorkbenchAsset`. Component editors batch field edits through `useWorkbenchComponent` session flush; this slice's `updateStandard` reducer diff semantics are unchanged.
 - **wmlDataSource**: [../wmlDataSource/AGENT.md](../wmlDataSource/AGENT.md) - Canonical backend WML view; owns subscribe/unsubscribe
 - **Root AGENT.md**: [AGENT.md](../../../AGENT.md) - Documentation standards, navigation
 

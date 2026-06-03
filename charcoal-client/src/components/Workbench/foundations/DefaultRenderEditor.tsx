@@ -16,8 +16,7 @@ import SituationFacetRenderFieldsView from './SituationFacetRenderFieldsView'
 import { useWorkbenchComponent } from './WorkbenchComponent'
 
 /**
- * Context-only DEFAULT situation facet prose editor for component editor sessions (D15).
- * Requires WorkbenchComponentProvider; updates working via updateComponent (no updateStandard).
+ * Context-only DEFAULT situation facet prose; requires WorkbenchComponentProvider.
  */
 export const DefaultRenderEditor: FunctionComponent = () => {
     const { working, updateComponent, readonly: sessionReadonly, missing } =

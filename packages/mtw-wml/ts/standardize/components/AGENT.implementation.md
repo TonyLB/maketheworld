@@ -96,7 +96,7 @@ Optional **`shortName`** is a first-class field on every **`StandardComponent`**
 
 **Removed vestiges:** `HasShortName` and exported `hasShortName()` were removed as redundant with `StandardComponent.shortName`. Use `component.shortName` directly. Local `const hasShortName = Boolean(...)` inside payload `isEmpty()` methods is unrelated.
 
-**Direct `_payload._shortName` assignment** is allowed only in: legacy Workbench `updateStandard` editors not yet on `WorkbenchComponentProvider` (charcoal-client), `StandardForm.subset` Room stub copy ([`index.ts`](../index.ts)), and tests. Prefer **`withShortName()`** for new code and for session flush paths (`prepareComponentForFlush`).
+**Direct `_payload._shortName` assignment** is allowed only in: legacy Workbench `updateStandard` editors not on `WorkbenchComponentProvider` (see asset-level exceptions in [Workbench AGENT.md](../../../../charcoal-client/src/components/Workbench/AGENT.md#asset-level-updatestandard-exceptions)), `StandardForm.subset` Room stub copy ([`index.ts`](../index.ts)), and tests. Feature, Knowledge, Room, Area, Guidance, Mark, and Lens shortName editors use the session + **`withShortName()`** on flush (`prepareComponentForFlush`). Prefer **`withShortName()`** for new code.
 
 ### Asset `StandardForm._shortName` (not component shortName)
 

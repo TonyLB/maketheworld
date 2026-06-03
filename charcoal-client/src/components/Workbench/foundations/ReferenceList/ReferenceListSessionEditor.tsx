@@ -40,7 +40,7 @@ export interface ReferenceListSessionEditorProps<T extends StandardComponent = S
 }
 
 /**
- * Context-only reference list editor for WorkbenchComponentProvider sessions (D15).
+ * Context-only reference list editor for WorkbenchComponentProvider sessions.
  * Thin wrapper over ReferenceListControlled; listAccessor maps to referenceList +
  * onReferenceListChange on parent working.
  */
