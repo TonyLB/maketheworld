@@ -136,6 +136,7 @@ Use asset-level paths when there is no parent session or domain topology require
 | --- | --- |
 | Area exit topology | `ExitEdgeListEditor` + `areaEditMutations` |
 | Room exits | `ExitEditor` |
+| Room lens delete | [`LensHeader`](./LensEdit/LensHeader.tsx): disassociate on Room **`working._lens`** + component-session flush + normalize; **`confirmOrphanClosureBeforeComponentDisassociate`** when non-empty closure (**M6**, **D6**) |
 | Room non-DEFAULT situations list | create/associate in `RoomEditor` |
 | Layered Room situation facets | `SituationFacetRenderFieldsEditor` (asset-mode per change) |
 | Lens mark create/associate | `LensMarkFacetsEditor.requestCreate` |
@@ -336,7 +337,7 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 | ~~`ExampleEdit/`~~ | **Removed** (2026-05-19); F/K prose via **`DefaultRenderEditor`** |
 | `GuidanceEdit/` | GuidanceEditor (`WorkbenchComponentProvider`; layered + top-level; shortName, instructions, marks on session) |
 | `foundations/LayeredContext/` | LayeredContextView (Room Situation/Guidance tabs), LayeredTabs |
-| `LensEdit/` | LensDetail (component session: shortName, description, mark facets); LensHeader (live delete UX; **M6** migrates off `removeComponent`); LensMarkFacetsEditor |
+| `LensEdit/` | LensDetail (component session: shortName, description, mark facets); LensHeader (Room **`_lens`** disassociate + orphan confirm via component session, **M6**); LensMarkFacetsEditor |
 | `WMLComponentHeader.tsx` | **Deprecated** --- unused Library migration artifact; not mounted. Do not import. |
 | `MarkEdit/` | MarkEditor (full-screen session); `MarkInlineEditor` + `MarkInlineEditorWithSession` (per-row Mark shortName; Lens mark facet rows) |
 | `MapEdit/` | MapEditor, MapArea, MapController, MapLayers, UnshownRooms |

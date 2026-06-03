@@ -109,6 +109,10 @@ The asset top-level component list ([`TopLevelEditor`](TopLevelEditor.tsx) on [`
 
 List accessor: [`topLevelAssetMetaListAccessor.ts`](topLevelAssetMetaListAccessor.ts) (`getReferenceList` / `setReferenceList` on **`WorkbenchAssetMetaWorking`**).
 
+### Room `_lens` (SingleReference, M6)
+
+[`LensHeader`](../LensEdit/LensHeader.tsx) on the Room component session clears the **`_lens`** slot only (same disassociate + normalize norm as list rows). Orphan body removal runs at component-session flush via **`applyWorkbenchFlush`**; **`confirmOrphanClosureBeforeComponentDisassociate`** when **`previewOrphanClosure`** reports non-empty closure.
+
 ---
 
 ## Related components

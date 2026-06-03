@@ -64,7 +64,7 @@ function isReferencedInAssetLayer(
 **Implementation:** [`isReferencedInAssetLayer.ts`](./isReferencedInAssetLayer.ts), exported from [`index.ts`](./index.ts). Call sites should use **local** `StandardForm` only (not merged `getStandardForm`).
 
 - **Orphan (workbench):** `byUniversalId` entry whose reference satisfies **`!isReferencedInAssetLayer(localForm, ref)`** after disassociations (fixpoint normalize may remove many keys).
-- **Precedent:** [`LensHeader.tsx`](../../LensEdit/LensHeader.tsx) already combines `referencedBy` + `_topLevel` when deciding whether clearing a lens removes the component.
+- **Precedent (M6):** [`LensHeader.tsx`](../../LensEdit/LensHeader.tsx) disassociates Room **`_lens`** on component **`working`**, confirms via **`previewOrphanClosure`**, and relies on flush **`normalizeWorkbenchDraft`** for orphan GC (**D2**).
 - Do **not** confuse with persisted **`referencedBy`** on blueprint rows (Area topology / lambda); **D2** uses in-memory **`StandardForm.referencedBy()`** only.
 
 **Examples and engine behavior:** [`standardForm.referencedBy.test.ts`](../../../../../../packages/mtw-wml/ts/standardize/integration/standardForm.referencedBy.test.ts).
@@ -197,7 +197,10 @@ function previewOrphanClosure(
 - **`removedKeys`:** `universalKey` of each body removed across fixpoint passes, in pass order.
 - **`includesNonEmpty`:** `true` if any removed body had **`!isEmpty()`** at removal time. UI should confirm before flush when `true` (e.g. TopLevel list row **M5**, Lens delete **M6**). Empty-only closure may proceed without that dialog.
 
-**Production confirm (M5):** [`confirmOrphanClosureBeforeAssetMetaDisassociate`](./confirmOrphanClosureBeforeLocalEdit.ts) simulates pending asset-meta working (including top-level disassociate) via **`applyWorkingAssetMetaToDraft`** inside **`applyLocal`**, then dispatches **`pushChoice`** when **`includesNonEmpty`**. Used by [`TopLevelEditor`](../ReferenceList/TopLevelEditor.tsx) row remove.
+**Production confirm (M5--M6):**
+
+- [`confirmOrphanClosureBeforeAssetMetaDisassociate`](./confirmOrphanClosureBeforeLocalEdit.ts) simulates pending asset-meta working (including top-level disassociate) via **`applyWorkingAssetMetaToDraft`** inside **`applyLocal`**, then dispatches **`pushChoice`** when **`includesNonEmpty`**. Used by [`TopLevelEditor`](../ReferenceList/TopLevelEditor.tsx) row remove.
+- [`confirmOrphanClosureBeforeComponentDisassociate`](./confirmOrphanClosureBeforeLocalEdit.ts) simulates pending component-session disassociate via **`applyWorkingComponentToDraft`** inside **`applyLocal`**, then **`pushChoice`** when **`includesNonEmpty`**. Used by [`LensHeader`](../LensEdit/LensHeader.tsx) Room **`_lens`** clear (**M6**).
 
 Does **not** mutate `localDraft`. Preview on **merged** `getStandardForm` is incorrect (inherited refs do not count for **D2**).
 

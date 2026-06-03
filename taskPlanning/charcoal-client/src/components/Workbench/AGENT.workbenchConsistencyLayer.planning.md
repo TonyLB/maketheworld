@@ -1,6 +1,6 @@
 # Workbench consistency layer (authoring client)
 
-**Status:** In progress (M0--M5 complete). **Next step:** **M6** --- migrate **live** Workbench delete paths off **`removeComponent`** (**D7**); deprecate unused [`WMLComponentHeader`](../../../../../charcoal-client/src/components/Workbench/WMLComponentHeader.tsx).
+**Status:** In progress (M0--M6 complete). **Next step:** **M7** --- final durable doc close-out + archive this plan.
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into [`charcoal-client/src/components/Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md), [`foundations/ReferenceList/AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md), and [`charcoal-client/src/slices/personalAssets/AGENT.md`](../../../../../charcoal-client/src/slices/personalAssets/AGENT.md).
 
@@ -16,7 +16,7 @@ Introduce a **Workbench-owned consistency layer** in the Charcoal Client that **
 
 - [`ReferenceListSessionEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListSessionEditor.tsx): local **disassociate** on `working`, but create/import uses **`commitAssetScopedUpdate`** (global bridge on the component session).
 - [`TopLevelEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx): row remove used **`removeComponent`** (legacy) --- wrongly purged the component from the asset when the author only removed a **`_topLevel`** list entry. **Fixed in M5** (D6): disassociate on **`_topLevel`** only; normalize may drop the body only if **D2** says it is orphaned.
-- [`WMLComponentHeader`](../../../../../charcoal-client/src/components/Workbench/WMLComponentHeader.tsx): **deprecated, not mounted** --- still contains legacy **`removeComponent`** from the Library migration; do not wire. Live delete work is **[`LensHeader`](../../../../../charcoal-client/src/components/Workbench/LensEdit/LensHeader.tsx)** (M6).
+- [`WMLComponentHeader`](../../../../../charcoal-client/src/components/Workbench/WMLComponentHeader.tsx): **deprecated, not mounted** --- legacy delete removed in **M6**; do not wire.
 - [`AssetEditForm`](../../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx): asset ShortName/Summary use mixed debounce paths without a shared asset working session.
 
 **Goal:** One place owns **materialize**, **normalize** (workbench policy), and **when** each runs (**D10**). Editors own **associate** / **disassociate** on **working** --- on **component** session state (`useWorkbenchComponent`) or **asset-meta** session state (`useWorkbenchAssetMeta`, **D11**). **Materialize** runs eagerly on the Redux **local** asset draft; **normalize** runs at flush when committing session edits to that draft.
@@ -271,7 +271,7 @@ Mark **Status** `[X]` when normative for implementation.
 | **M3** | **Durable doc alignment** for **D11** (asset-meta session direction in Workbench + reference-list **AGENT.md**; not full close-out) | Complete |
 | **M4** | **`useWorkbenchAssetMeta`** foundation: provider/hook, **`applyAssetMetaFlush`**, reconcile, tests | Complete |
 | **M5** | **[`AssetEditForm`](../../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx) + [`TopLevelEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx)** on asset-meta session (**D6**, **D10**, preview confirm) | Complete |
-| **M6** | Migrate **live** delete paths (**[`LensHeader`](../../../../../charcoal-client/src/components/Workbench/LensEdit/LensHeader.tsx)** etc.) off **`removeComponent`**; deprecate unused **`WMLComponentHeader`** (**D7**) | Not started |
+| **M6** | Migrate **live** delete paths (**[`LensHeader`](../../../../../charcoal-client/src/components/Workbench/LensEdit/LensHeader.tsx)** etc.) off **`removeComponent`**; deprecate unused **`WMLComponentHeader`** (**D7**) | Complete |
 | **M7** | Final durable doc updates (**close-out checklist**) + delete/archive this plan | Not started |
 
 ---
@@ -313,11 +313,11 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as y
   - [X] **D6:** [`TopLevelEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx) row remove -> disassociate on **`working._topLevel`** + session flush + normalize (never **`removeComponent`**)
   - [X] Create/import: **D10** **`await materializeComponentInAsset`**, then associate on **`working._topLevel`** (same as [`ReferenceListSessionEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListSessionEditor.tsx))
   - [X] Confirm dialog when **`previewOrphanClosure`** reports non-empty orphan closure on TopLevel disassociate
-- [ ] **M6 --- Live delete paths (not WMLComponentHeader purge)**
+- [X] **M6 --- Live delete paths (not WMLComponentHeader purge)**
   - [X] Mark [`WMLComponentHeader`](../../../../../charcoal-client/src/components/Workbench/WMLComponentHeader.tsx) **@deprecated** (unused; not mounted). **Do not** implement all-sites "component purge" for M6.
-  - [ ] **[`LensHeader`](../../../../../charcoal-client/src/components/Workbench/LensEdit/LensHeader.tsx)** `clearLensReference`: disassociate at **Room lens site only** (same product norm as D6); replace inline **`draft.removeComponent`** with **`updateLocal`** assign + **`normalizeWorkbenchDraft`** (or component-session flush if Room is on session). **`previewOrphanClosure`** confirm when non-empty closure.
-  - [ ] Audit Workbench for any other live **`removeComponent`** / reducer **`type: 'removeComponent'`** call sites; migrate each to **single-site** disassociate + normalize (**D7**).
-  - [ ] Grep hygiene: **no** **`removeComponent`** in Workbench production **`.tsx`** (tests may assert absence only).
+  - [X] **[`LensHeader`](../../../../../charcoal-client/src/components/Workbench/LensEdit/LensHeader.tsx)** `clearLensReference`: disassociate at **Room lens site only** (same product norm as D6); replace inline **`draft.removeComponent`** with **`updateLocal`** assign + **`normalizeWorkbenchDraft`** (or component-session flush if Room is on session). **`previewOrphanClosure`** confirm when non-empty closure.
+  - [X] Audit Workbench for any other live **`removeComponent`** / reducer **`type: 'removeComponent'`** call sites; migrate each to **single-site** disassociate + normalize (**D7**).
+  - [X] Grep hygiene: **no** **`removeComponent`** in Workbench production **`.tsx`** (tests may assert absence only).
 - [ ] **M7 --- Close out (durable docs required before deleting this plan)**
   - [ ] Expand [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) --- normative API + **D2-D11** summaries; **do not** rely on this task-plan after archive
   - [ ] Persist **close-out checklist** below into Workbench / reference-list / personalAssets **AGENT.md** (not only here)

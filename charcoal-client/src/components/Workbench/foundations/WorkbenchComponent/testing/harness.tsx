@@ -26,7 +26,8 @@ export {
     updateStandardMock,
     materializeComponentInAssetMock,
     mockMaterializeComponentInAsset,
-    mockMaterializeComponentInAssetImport
+    mockMaterializeComponentInAssetImport,
+    applyLastFlushToCommitted
 } from './mock'
 
 export type WorkbenchComponentHarnessOptions<T extends StandardComponent> = {

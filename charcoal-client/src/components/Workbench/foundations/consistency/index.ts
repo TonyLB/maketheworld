@@ -13,4 +13,7 @@ export {
     type PreviewOrphanClosureOptions,
     type PreviewOrphanClosureResult
 } from './previewOrphanClosure'
-export { confirmOrphanClosureBeforeAssetMetaDisassociate } from './confirmOrphanClosureBeforeLocalEdit'
+export {
+    confirmOrphanClosureBeforeAssetMetaDisassociate,
+    confirmOrphanClosureBeforeComponentDisassociate
+} from './confirmOrphanClosureBeforeLocalEdit'

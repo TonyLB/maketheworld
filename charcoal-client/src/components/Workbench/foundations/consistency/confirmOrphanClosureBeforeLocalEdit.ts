@@ -1,9 +1,12 @@
+import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import type { AppDispatch } from '../../../../store'
 import { pushChoice } from '../../../../slices/UI/choiceDialog'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 import {
     applyWorkingAssetMetaToDraft,
+    applyWorkingComponentToDraft,
     type WorkbenchAssetMetaWorking
 } from '../workbenchMutations'
 import { removeReferenceFromListById } from '../ReferenceList/referenceListMutations'
@@ -39,6 +42,53 @@ export async function confirmOrphanClosureBeforeAssetMetaDisassociate({
             }
             removeReferenceFromListById(simulated.topLevel, removeId)
             applyWorkingAssetMetaToDraft(draft, simulated)
+        }
+    })
+
+    if (!preview.includesNonEmpty) {
+        return true
+    }
+
+    const choice = await pushChoice({
+        title: ORPHAN_REMOVE_TITLE,
+        message: ORPHAN_REMOVE_MESSAGE,
+        options: [
+            { label: 'Cancel', returnValue: 'cancel' },
+            { label: 'Remove', returnValue: 'confirm' }
+        ]
+    })(dispatch)
+
+    return choice === 'confirm'
+}
+
+export type ConfirmOrphanClosureBeforeComponentDisassociateParams<
+    T extends StandardComponent = StandardComponent
+> = {
+    dispatch: AppDispatch
+    localStandardForm: StandardForm
+    componentId: ComponentUUID
+    working: T
+    applyDisassociateOnWorking: (simulated: T) => void
+}
+
+/**
+ * Preview fixpoint orphan closure for a pending component-session disassociate (D5).
+ * Returns true when the caller should proceed with the local disassociate.
+ */
+export async function confirmOrphanClosureBeforeComponentDisassociate<
+    T extends StandardComponent = StandardComponent
+>({
+    dispatch,
+    localStandardForm,
+    componentId,
+    working,
+    applyDisassociateOnWorking
+}: ConfirmOrphanClosureBeforeComponentDisassociateParams<T>): Promise<boolean> {
+    const preview = previewOrphanClosure(localStandardForm._clone(), {
+        applyLocal: (draft) => {
+            const simulated = working.clone() as T
+            applyDisassociateOnWorking(simulated)
+            applyWorkingComponentToDraft(draft, componentId, simulated)
         }
     })
 
