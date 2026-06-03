@@ -1,6 +1,6 @@
 # Workbench consistency layer
 
-**Status:** Stub (M1). Normative **D2** and **ref scrub** detail lives here; full module API, flush pipeline, and cross-links expand in M6. Active task plan: [AGENT.workbenchConsistencyLayer.planning.md](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchConsistencyLayer.planning.md).
+**Status:** M1 in progress (**D2** implemented). Normative **D2** and **ref scrub** detail lives here; full module API, flush pipeline, and cross-links expand in M6. Active task plan: [AGENT.workbenchConsistencyLayer.planning.md](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.workbenchConsistencyLayer.planning.md).
 
 ## Purpose
 
@@ -47,7 +47,7 @@ function isReferencedInAssetLayer(
 }
 ```
 
-Implementation and export from this module are in progress (M1). Call sites should use **local** `StandardForm` only.
+**Implementation:** [`isReferencedInAssetLayer.ts`](./isReferencedInAssetLayer.ts), exported from [`index.ts`](./index.ts). Call sites should use **local** `StandardForm` only (not merged `getStandardForm`).
 
 - **Orphan (workbench):** `byUniversalId` entry whose reference satisfies **`!isReferencedInAssetLayer(localForm, ref)`** after disassociations (fixpoint normalize may remove many keys).
 - **Precedent:** [`LensHeader.tsx`](../../LensEdit/LensHeader.tsx) already combines `referencedBy` + `_topLevel` when deciding whether clearing a lens removes the component.

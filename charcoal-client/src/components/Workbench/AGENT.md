@@ -21,6 +21,7 @@ The Workbench sits within the Charcoal Client's [dual-mode architecture](../../.
 - **Reference Lists**: WML `ReferenceList` fields (e.g. `features`, `guidance`, `lens`, `marks`) rendered as accordion lists with add/remove; see [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md)
 - **Layered Context**: Sibling-in-context editing for Room Situation facets and Guidance (Photoshop-layer style); see [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md)
 - **StandardForm**: WML asset representation; the Workbench reads and mutates `StandardForm` via `updateStandard` from `useWorkbenchAsset`; per-component scalar editing uses a **working copy** via `useWorkbenchComponent` ([Component editing session](#component-editing-session-two-tier-model))
+- **Consistency layer (in progress)**: Orphan GC and normalize use **`isReferencedInAssetLayer`** on the **local** form (`_topLevel` union `referencedBy`); see [foundations/consistency/AGENT.md](./foundations/consistency/AGENT.md)
 
 ---
 
@@ -298,9 +299,11 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 | `CharacterEdit/` | CharacterEditor |
 | `foundations/StandardRender/StandardRenderEditor.tsx` | Rich text (Slate); shared with Editor components |
 | `foundations/ReferenceList/referenceListAdapter.ts` | `referenceListToItems` for list display |
+| `foundations/consistency/` | Pure TS: **`isReferencedInAssetLayer`** (D2 orphan predicate on local `StandardForm`); normalize/preview in progress |
 
 ### Related Documentation
 
+- [foundations/consistency/AGENT.md](./foundations/consistency/AGENT.md) - Local vs global ops; **D2** orphan predicate; normalize fixpoint (in progress)
 - [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md) - `ReferenceListControlled`, session vs asset wrappers, `InlineReferenceList`, Mark inline pattern
 - [AGENT.facet-list.md](./foundations/FacetList/AGENT.facet-list.md) - Facet list handlers, Lens mark hybrid rows
 - [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md) - Layer strip, index bar, split-pane, MUI Tabs; Room layered views
