@@ -1,6 +1,6 @@
 # Workbench consistency layer (authoring client)
 
-**Status:** In progress (M0 partial). **Next step:** Resolve **D2** (reachability predicate), then **M1** --- pure module at [`foundations/consistency/`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/).
+**Status:** In progress (M0 complete). **Next step:** **M1** --- pure module at [`foundations/consistency/`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/) (`isReferencedInAssetLayer`, normalize, preview).
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into [`charcoal-client/src/components/Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md), [`foundations/ReferenceList/AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md), and [`charcoal-client/src/slices/personalAssets/AGENT.md`](../../../../../charcoal-client/src/slices/personalAssets/AGENT.md).
 
@@ -36,13 +36,44 @@ Introduce a **Workbench-owned consistency layer** in the Charcoal Client that **
 | Layer | Operations | Mutates (typical) |
 | --- | --- | --- |
 | **Local** (sessions / list shells) | **Associate**, **disassociate** | `ReferenceList` (or facet slot) on **working** component or asset-meta projection; scalar fields on **working** |
-| **Global** (consistency layer) | **Materialize**, **normalize** | `StandardForm` draft: `byUniversalId`, ref scrubbing, workbench orphan GC |
+| **Global** (consistency layer) | **Materialize**, **normalize** | `StandardForm` draft: `byUniversalId`, workbench orphan GC (**D2**); defensive ref scrub (see below) |
 
 **Associate / disassociate are local.** They mean: "this **site** (room.features, asset._topLevel, area position-graph participants, etc.) now does or does not list this key." They do **not** mean "delete component from asset."
 
 **Materialize** means: ensure `draft.byUniversalId` contains the component (create, import via [`addImportToDraft`](../../../../../charcoal-client/src/slices/personalAssets/addImportToDraft.ts), or stub) **before** a reference is meaningful. Runs on create/import completion or inside the flush pipeline when pending materializations are queued.
 
-**Normalize** (workbench) means: enforce **authoring-surface** invariants on a draft **after** local edits are applied --- distinct from generic WML merge GC (which only drops **unreferenced and empty** components; see [`StandardForm._mergeInternal`](../../../../../packages/mtw-wml/ts/standardize/index.ts)).
+**Normalize** (workbench) means: enforce **authoring-surface** invariants on a **local** draft **after** local edits are applied --- distinct from generic WML merge GC (which only drops **unreferenced and empty** components; see [`StandardForm._mergeInternal`](../../../../../packages/mtw-wml/ts/standardize/index.ts)). Use **`getLocalStandardForm`](../../../../../charcoal-client/src/slices/personalAssets/selectors.ts) semantics (base + edit + pendingEdits), **not** merged [`getStandardForm`](../../../../../charcoal-client/src/slices/personalAssets/selectors.ts) (inherited + local).
+
+### Asset-layer reference predicate (D2)
+
+**Question:** Is this component still **linked in this asset's edit data** (any ref sign), not "where does it appear in the schema tree?"
+
+| API | Answers |
+| --- | --- |
+| [`SchemaOrganization.isReferenced`](../../../../../packages/mtw-wml/ts/standardize/schemaOrganization.ts) | **No** for **D2** --- schema-tree / graph-tier semantics; can miss nested `ref={0}` Direct refs. |
+| [`StandardForm.referencedBy`](../../../../../packages/mtw-wml/ts/standardize/index.ts) alone | **No** --- scans component `referencedKeys()` only; **misses `_topLevel`** (e.g. import side-effect `ref={0}` stubs). |
+| **`isReferencedInAssetLayer` (D2)** | **Yes** --- **`_topLevel` ∪ referencedBy** on the **local** `StandardForm`. |
+
+**Normative (D2):**
+
+```typescript
+// Any ref sign (positive, negative, zero) counts. Match by sameKey on StandardReference.
+function isReferencedInAssetLayer(
+  localForm: StandardForm,
+  target: StandardReference
+): boolean {
+  const inTopLevel =
+    localForm._topLevel?.payload.some((r) => r.sameKey(target)) ?? false
+  if (inTopLevel) return true
+  return localForm.referencedBy(target).length > 0
+}
+```
+
+- **Stored WML vs displayed UI:** Local form holds asset-layer edits (`ref={0}` top-level import stubs, negative refs, etc.). Merged **standardForm** (inherited + local) is for **display** only --- inherited ancestry does **not** count as a local reference for orphan GC or preview.
+- **Orphan (workbench):** `byUniversalId` entry with **`!isReferencedInAssetLayer(localForm, ref)`** after disassociations (fixpoint may remove many keys).
+- **Precedent:** [`LensHeader.tsx`](../../../../../charcoal-client/src/components/Workbench/LensEdit/LensHeader.tsx) already combines `referencedBy` + `_topLevel` when deciding whether clearing a lens removes the component.
+
+Do **not** confuse with persisted **`referencedBy`** on blueprint rows (Area topology / lambda); **D2** uses in-memory **`StandardForm.referencedBy()`** only.
 
 ### WML vs Workbench orphan policy
 
@@ -51,7 +82,7 @@ Introduce a **Workbench-owned consistency layer** in the Charcoal Client that **
 | **WML / generic merge** | Retained (supports **`ref={0}`** / inline orphan editing) |
 | **Authoring Workbench** | Treated as nonsensical --- no UI to edit "invisible" components; should not survive normalize |
 
-Workbench normalize may remove **non-empty** orphans when they have no positive reference under the **workbench reachability** predicate (see **D2**). Empty orphans may be removed silently.
+Workbench normalize may remove **non-empty** orphans when **`!isReferencedInAssetLayer`** on the **local** form (**D2**). Empty orphans may be removed silently.
 
 ### User-facing removal (no separate "Delete" for list rows)
 
@@ -65,7 +96,7 @@ Workbench normalize may remove **non-empty** orphans when they have no positive 
 
 | Mechanism | Used in Workbench authoring? | Closure rule |
 | --- | --- | --- |
-| **Workbench normalize fixpoint** | **Yes** | Drop keys where `!isReferenced` under **D2**; scrub refs; repeat until no-op |
+| **Workbench normalize fixpoint** | **Yes** | Orphan closure via **`!isReferencedInAssetLayer`** (**D2**); repeat until no-op |
 | **`removeComponent({ cascade: true })`** | **No** (legacy call sites to migrate) | **`implicitDescendantsOfAncestor`** (hosting tree) --- engine semantics, not the workbench default |
 
 Examples:
@@ -73,7 +104,26 @@ Examples:
 - Removing an Area's participant refs then normalizing may GC Rooms that have no remaining refs --- **accepted for v1** (**D8**); richer confirm copy is future UI.
 - Removing an Area's links to Rooms while those Rooms remain on **`_topLevel`** --- Rooms stay referenced; fixpoint does **not** remove them.
 
-**Fixpoint normalize (required for transitive GC):** One pass is insufficient when A references B and both become orphans only after A is removed. Loop: compute unreferenced keys -> remove from `_components` -> scrub refs from survivors -> repeat until a pass removes zero keys (cap iterations, e.g. 50).
+**Fixpoint normalize (required for transitive GC):** One pass is insufficient when A references B and B only becomes an orphan after A is removed. Loop until a pass removes zero keys (cap iterations, e.g. 50):
+
+1. **Orphan detection (load-bearing):** keys where **`!isReferencedInAssetLayer`** (**D2**) on the current local draft.
+2. **Body removal (load-bearing):** drop those keys from `_components`.
+3. **Ref scrub (defensive):** `removeReferences` on survivors + strip matching keys from `_topLevel` --- see below.
+4. If step 2 removed any keys, go to 1; else done.
+
+#### Ref scrub: belt-and-suspenders (not an expected edit path)
+
+After **D2**, any key `K` removed in step 2 was **not** on `_topLevel` and had **empty** [`referencedBy(K)`](../../../../../packages/mtw-wml/ts/standardize/index.ts) --- so no surviving component's `referencedKeys()` and no asset top-level slot should still mention `K`. In a correct disassociate-then-normalize flow, step 3 should be a **no-op**.
+
+**Keep step 3 anyway** (mirror hygiene in [`removeComponent`](../../../../../packages/mtw-wml/ts/standardize/index.ts), cheap invariant enforcement). **Do not** read its presence as proof that authors routinely leave dangling list slots after disassociate; transitive GC comes from **step 1 on the next iteration**, not from scrub "finding" new orphans.
+
+| Situation | Scrub role |
+| --- | --- |
+| Happy path (local disassociate + **D2** + normalize) | Expected **no-op** |
+| Legacy/broken draft (e.g. body removed without disassociate, flush ordering bugs) | Repairs inconsistency; log/dev assert optional |
+| [`removeComponent`](../../../../../packages/mtw-wml/ts/standardize/index.ts) (engine) | Scrub is **load-bearing** there --- different API, not workbench normalize |
+
+**M1 tests:** assert scrub no-op on a draft that already satisfies **D2** before removal; separate test that scrub fixes an intentionally inconsistent clone (defensive path only).
 
 ### Association sites
 
@@ -89,7 +139,7 @@ After Milestones 1-4, an optional **`useWorkbenchAssetMeta`** (or asset-root pro
 working local edits (associate / disassociate / scalars)
   -> apply to draft clone
   -> materialize (pending keys)
-  -> normalizeWorkbenchDraft (fixpoint: orphan GC + ref scrub per pass)
+  -> normalizeWorkbenchDraft (fixpoint: **D2** orphan GC; defensive ref scrub per pass)
   -> standardForm.diff -> mergeToEdit (existing reducer path)
 ```
 
@@ -106,7 +156,10 @@ working local edits (associate / disassociate / scalars)
 | [`foundations/ReferenceList/AGENT.addReferenceImportControl.planning.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.addReferenceImportControl.planning.md) | Obtain ref vs associate |
 | [`charcoal-client/src/slices/personalAssets/AGENT.md`](../../../../../charcoal-client/src/slices/personalAssets/AGENT.md) | `updateStandard`, merge, diff |
 | [`packages/mtw-wml/ts/standardize/components/AGENT.implementation.md`](../../../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) | Reference vs hosting |
-| [`packages/mtw-wml/ts/standardize/schemaOrganization.ts`](../../../../../packages/mtw-wml/ts/standardize/schemaOrganization.ts) | `isReferenced`, `implicitDescendantsOfAncestor` |
+| [`packages/mtw-wml/ts/standardize/index.ts`](../../../../../packages/mtw-wml/ts/standardize/index.ts) | **`referencedBy()`** (**D2**); diff/merge |
+| [`integration/standardForm.referencedBy.test.ts`](../../../../../packages/mtw-wml/ts/standardize/integration/standardForm.referencedBy.test.ts) | **D2** examples (nested refs, Area topology) |
+| [`LensHeader.tsx`](../../../../../charcoal-client/src/components/Workbench/LensEdit/LensHeader.tsx) | **`referencedBy` + `_topLevel`** precedent |
+| [`packages/mtw-wml/ts/standardize/schemaOrganization.ts`](../../../../../packages/mtw-wml/ts/standardize/schemaOrganization.ts) | Schema tree / `implicitDescendantsOfAncestor` --- **not** **D2** |
 
 **Prior design conversation:** component session (`useWorkbenchComponent`), asset-meta locality, diff guards, TopLevel legacy, fixpoint normalize --- captured here as normative plan text.
 
@@ -140,10 +193,10 @@ Mark **Status** `[X]` when normative for implementation.
 | ID | Status | Decision | Notes |
 | --- | --- | --- | --- |
 | **D1** | [X] | **Module home** | [`charcoal-client/src/components/Workbench/foundations/consistency/`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/). Redux [`updateStandard`](../../../../../charcoal-client/src/slices/personalAssets/reducers.ts) calls into the layer; layer does not import React. |
-| **D2** | [ ] | **Workbench `isReferenced` predicate** | Start from [`SchemaOrganization.isReferenced`](../../../../../packages/mtw-wml/ts/standardize/schemaOrganization.ts) (topLevel + direct graph edges). Document whether import/inherited visibility affects "orphan" for confirm copy. Refine when asset-meta session lands. |
-| **D3** | [X] | **Normalize removes non-empty orphans** | Workbench-only; WML merge unchanged. Each pass: drop keys where `!isReferenced(key)` under **D2**, then scrub those keys from all lists/facets/topLevel on survivors. |
+| **D2** | [X] | **`isReferencedInAssetLayer` = `_topLevel` ∪ `referencedBy`** | On **local** `StandardForm` only (not merged inherited view). Any **ref** sign on `_topLevel` counts. Component mentions via [`referencedBy()`](../../../../../packages/mtw-wml/ts/standardize/index.ts) (all `referencedKeys()` payloads). **Not** [`SchemaOrganization.isReferenced`](../../../../../packages/mtw-wml/ts/standardize/schemaOrganization.ts). Export from `foundations/consistency/`. |
+| **D3** | [X] | **Normalize removes non-empty orphans** | Workbench-only; WML merge unchanged. Each pass: drop bodies where **`!isReferencedInAssetLayer`** (**D2**), then **defensive** ref scrub (expected no-op on happy path; see **Ref scrub** above). |
 | **D4** | [X] | **Fixpoint until no-op** | Required for transitive orphan closure (**D7**); max iteration cap with dev throw / prod log. |
-| **D5** | [X] | **Preview API** | `previewOrphanClosure(draft, edits?) => { keys, hasNonEmpty }` drives confirm dialog; simulate fixpoint on clone without persisting. |
+| **D5** | [X] | **Preview API** | `previewOrphanClosure(localDraft, edits?) => { keys, hasNonEmpty }` on **local** clone; uses **D2** + fixpoint simulate; drives confirm dialog. |
 | **D6** | [X] | **TopLevel row remove** | Disassociate from `_topLevel` only; never `removeComponent` for list row. Align [`TopLevelEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx). |
 | **D7** | [X] | **No workbench `removeComponent` / reducer cascade** | Workbench UI stops calling `type: 'removeComponent'` for list/header deletes; migrate legacy/maps call sites over time. **Transitive removal = fixpoint normalize**, not `cascade: true` on the reducer. Keep reducer branch only for non-workbench callers until fully migrated. |
 | **D8** | [X] | **Area + orphan closure (v1)** | **First iteration:** disassociating an Area such that Rooms (etc.) become unreferenced and are removed by fixpoint normalize is **acceptable**. Separate Area-specific confirm/UX polish is **out of scope** (likely future UI issue). |
@@ -154,13 +207,13 @@ Mark **Status** `[X]` when normative for implementation.
 
 | Milestone | Scope | Status |
 | --- | --- | --- |
-| **M0** | Decisions **D1-D8** + API sketch in this doc | In progress (**D1**, **D3-D8** decided; **D2** open) |
+| **M0** | Decisions **D1-D8** + API sketch in this doc | Complete |
 | **M1** | Pure **`materialize`**, **`normalizeWorkbenchDraft`** (fixpoint), **`previewOrphanClosure`** + unit tests | Not started |
 | **M2** | Wire flush pipeline helper used by **`commitAssetScopedUpdate`** and one session list create/import path | Not started |
 | **M3** | Migrate **TopLevelEditor** list remove + import/create association; drop row-level **`removeComponent`** | Not started |
 | **M4** | Migrate **`WMLComponentHeader`** delete + confirm via preview closure | Not started |
 | **M5** | Optional **asset-meta session** (`_shortName`, `_summary`, `_topLevel`); [`AssetEditForm`](../../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx) | Not started |
-| **M6** | Durable doc updates + delete/archive this plan | Not started |
+| **M6** | Durable doc updates (**close-out checklist**) + delete/archive this plan | Not started |
 
 ---
 
@@ -168,16 +221,18 @@ Mark **Status** `[X]` when normative for implementation.
 
 Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as you finish each slice.
 
-- [ ] **M0 --- Decisions**
+- [X] **M0 --- Decisions**
   - [X] **D1** module path: `foundations/consistency/`
-  - [ ] Resolve **D2** (reachability predicate) in this doc
+  - [X] **D2** `isReferencedInAssetLayer` = `_topLevel` ∪ `referencedBy` on **local** form
   - [X] **D3-D8** normative (fixpoint = workbench cascade; Area v1 orphan GC OK)
-  - [ ] Confirm **D3-D5** behavior with a minimal worked example in tests (**M1**)
 - [ ] **M1 --- Pure layer**
+  - [ ] Stub [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) with **D2** + **Ref scrub (belt-and-suspenders)** sections (expand in **M6**)
+  - [ ] Add `isReferencedInAssetLayer(localForm, ref)` per **D2**
   - [ ] Add `materializeComponent(draft, { tag, universalKey, fromAsset? })` (wrap factory + `addImportToDraft`)
-  - [ ] Add `normalizeWorkbenchDraft(draft)` fixpoint per **D3**, **D4**
-  - [ ] Add `previewOrphanClosure(draft, simulateDisassociate?)` per **D5**
-  - [ ] Unit tests: top-level ref-only diff shells; transitive Feature after Room removed; empty orphan silent
+  - [ ] Add `normalizeWorkbenchDraft(draft)` fixpoint per **D3**, **D4** (uses **D2** on local draft)
+  - [ ] Add `previewOrphanClosure(localDraft, ...)` per **D5**
+  - [ ] Unit tests (**D2**): top-level-only (`referencedBy` empty, still referenced); `ref={0}` stub; nested list ref; transitive GC after Room removed; inherited-only not counted
+  - [ ] Unit tests (scrub): no-op after valid disassociate + **D2** removal; separate fixture proving scrub repairs a deliberately broken draft only
 - [ ] **M2 --- Session integration**
   - [ ] `applyWorkbenchEdit(draft, { working, componentId?, materialize?, siteMutations? })` used from `commitAssetScopedUpdate`
   - [ ] [`ReferenceListSessionEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListSessionEditor.tsx) create/import uses layer materialize + normalize (remove inline `byUniversalId` in callback)
@@ -191,8 +246,9 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as y
 - [ ] **M5 --- Asset meta (optional)**
   - [ ] Asset-root provider + debounced flush for ShortName/Summary
   - [ ] `_topLevel` via same list patterns as **M3**
-- [ ] **M6 --- Close out**
-  - [ ] Move steady-state consistency rules into Workbench + personalAssets **AGENT.md**
+- [ ] **M6 --- Close out (durable docs required before deleting this plan)**
+  - [ ] Add [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) (or module header in `index` + link from Workbench **AGENT.md**) --- normative API + **D2-D8** summaries; **do not** rely on this task-plan after archive
+  - [ ] Persist **close-out checklist** below into Workbench / reference-list / personalAssets **AGENT.md** (not only here)
   - [ ] Archive/delete this planning file
 
 ---
@@ -227,7 +283,12 @@ Expect **`removeComponent`** only in intentional purge/header paths until **M4**
 ## API sketch (refine in M1)
 
 ```typescript
-// Illustrative --- module: foundations/consistency/ (D1).
+// Illustrative --- module: foundations/consistency/ (D1). All GC/preview on local StandardForm.
+
+function isReferencedInAssetLayer(
+  localForm: StandardForm,
+  target: StandardReference
+): boolean
 
 type AssociationSite =
   | { kind: 'topLevel' }
@@ -241,7 +302,7 @@ function disassociateAtSite(working: ..., site: AssociationSite, ref: StandardRe
 function normalizeWorkbenchDraft(draft: StandardForm): StandardForm
 
 function previewOrphanClosure(
-  draft: StandardForm,
+  localDraft: StandardForm,
   options?: { afterDisassociate?: { site; ref }[] }
 ): { removedKeys: ComponentUUID[]; includesNonEmpty: boolean }
 
@@ -255,17 +316,35 @@ function applyWorkbenchEdit(
 
 ## Open questions
 
-1. **Inherited-only components (**D2**):** Does the reachability predicate treat inherited materialization as "referenced" for orphan purposes, or only local draft + merged authoring view?
-2. **`updateStandard` reducer:** Should normalize run inside every `type: 'update'` payload before `diff`, or only via explicit layer entry points (fewer surprises for non-workbench callers of the thunk)?
-3. **Maps / Library legacy:** [`Maps/View`](../../../../../charcoal-client/src/components/Maps/View/index.tsx) and other non-workbench `updateStandard` call sites --- migrate in this initiative or document as out of scope?
+1. **`updateStandard` reducer:** Should normalize run inside every `type: 'update'` payload before `diff`, or only via explicit layer entry points (fewer surprises for non-workbench callers of the thunk)?
+2. **Maps / Library legacy:** [`Maps/View`](../../../../../charcoal-client/src/components/Maps/View/index.tsx) and other non-workbench `updateStandard` call sites --- migrate in this initiative or document as out of scope?
 
-**Resolved for v1:** **D8** --- Area-driven GC of now-unreferenced Rooms via fixpoint is fine; dedicated Area remove UX is deferred.
+**Resolved for v1:**
+
+- **D2** --- **`isReferencedInAssetLayer`** on **local** form only; **`_topLevel` ∪ referencedBy**; any ref sign; not merged inherited view; not `SchemaOrganization`.
+- **D8** --- Area-driven GC of now-unreferenced Rooms via fixpoint is fine; dedicated Area remove UX is deferred.
 
 ---
 
 ## When this task finishes
 
-1. Document **local associate/disassociate**, **materialize**, **normalize (fixpoint)**, and **preview confirm** in [`Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md) (short; link to module).
-2. Update [`AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md): TopLevel in scope; remove "out of scope" for session pattern where applicable.
+**Gate:** Do **not** delete this task-plan until the items below are in **durable** docs (per [`taskPlanning/AGENT.md`](../../../../AGENT.md)). Implementation milestones should add or update those docs **as behavior lands** (especially **M1** for normalize semantics), not only at **M6**.
+
+### Close-out checklist (copy into durable documentation)
+
+| Topic | Where to persist | What to say |
+| --- | --- | --- |
+| **Consistency module** | [`foundations/consistency/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) + link from [`Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md) | Local vs global ops; flush pipeline; public APIs |
+| **D2 orphan predicate** | Same module doc + short pointer in Workbench **AGENT.md** | **`isReferencedInAssetLayer`** = **`_topLevel` ∪ referencedBy`** on **local** `StandardForm` only; any ref sign; **not** `SchemaOrganization`; **not** merged `getStandardForm` |
+| **Stored WML vs UI** | Same (or personalAssets **AGENT.md**) | Local = asset-layer edits (`ref={0}` stubs, etc.); merged form = display / import ancestry --- not orphan GC |
+| **Ref scrub** | Same module doc (comment on `normalizeWorkbenchDraft`) | **Belt-and-suspenders:** expected **no-op** on happy path after **D2**; keep for draft hygiene; **not** why transitive GC happens; contrast engine **`removeComponent`** scrub |
+| **Fixpoint normalize** | Same | Transitive removal = repeated **D2** passes; **not** reducer `cascade: true` |
+| **List / TopLevel** | [`AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md) | Disassociate + normalize; TopLevel in scope; no row **`removeComponent`** |
+| **personalAssets** | [`personalAssets/AGENT.md`](../../../../../charcoal-client/src/slices/personalAssets/AGENT.md) | Workbench normalize on **local** edit path; WML merge orphan-with-content unchanged |
+
+### Steps
+
+1. Complete checklist rows (module **AGENT.md** is the canonical home for normalize/scrub/**D2** detail).
+2. Update [`Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md) and [`AGENT.reference-lists.md`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md) with links --- avoid duplicating full normalize prose.
 3. Note workbench vs WML orphan policy in [`personalAssets/AGENT.md`](../../../../../charcoal-client/src/slices/personalAssets/AGENT.md) if reducer behavior changes.
-4. Delete or archive this file per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
+4. Mark **M6** checklist `[X]`; then archive/delete this file per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
