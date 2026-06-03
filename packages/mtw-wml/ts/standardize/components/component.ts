@@ -34,6 +34,7 @@ import {
     type StandardizeFromSchemaContext,
 } from "../wmlStandardizeMode";
 import { StandardLiteral } from "../literal";
+import { isShortNamePayloadHost } from "./shortNameField";
 
 export interface AssureReferencesResult<T> {
     payload: T
@@ -619,6 +620,14 @@ export const componentClassFactory = <
         withOrigin(origin: AssetUUID[] | undefined): StandardComponent {
             const returnValue = this.clone() as GeneratedComponentClass
             returnValue._origin = origin
+            return this._wrap(returnValue)
+        }
+
+        withShortName(shortName: StandardLiteral | undefined): StandardComponent {
+            const returnValue = this.clone() as GeneratedComponentClass
+            if (isShortNamePayloadHost(returnValue._payload)) {
+                returnValue._payload._shortName = shortName
+            }
             return this._wrap(returnValue)
         }
 

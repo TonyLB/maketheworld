@@ -6,7 +6,6 @@ import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 
 import {
-    applyShortNameOnComponent,
     applyWorkingComponentToDraft,
     ensureSituationFacetWithPayloadOnParent,
     findSituationFacet,
@@ -144,19 +143,13 @@ describe('shortName mutations (D11)', () => {
         expect(normalizeOptionalLiteral(new StandardLiteral('  hello  '))?.toJSON()).toBe('hello')
     })
 
-    it('applyShortNameOnComponent clears whitespace-only shortName on payload', () => {
-        const feature = featureWithShortName('Original')
-        feature._payload._shortName = new StandardLiteral('   ')
-        applyShortNameOnComponent(feature)
-        expect(feature.shortName).toBeUndefined()
-    })
-
-    it('prepareComponentForFlush clears shortName on payload for whitespace-only input', () => {
+    it('prepareComponentForFlush clears whitespace-only shortName without mutating input', () => {
         const feature = featureWithShortName('Original')
         feature._payload._shortName = new StandardLiteral('   ')
         const flushed = prepareComponentForFlush(feature)
         expect(flushed.shortName).toBeUndefined()
         expect((flushed.toJSON() as { shortName?: unknown }).shortName).toBeUndefined()
+        expect(feature.shortName).toBeDefined()
     })
 })
 

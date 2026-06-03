@@ -50,7 +50,7 @@ Workbench component editors (`RoomEditor`, `FeatureEditor`, `AreaEditor`, `Guida
 | Reference list (view model) | [`ReferenceListEditor`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListEditor.tsx) | `ReferenceListItem[]` for display; draft mutation via `updateReferenceList` |
 | Inline list slots | [`InlineReferenceList`](../../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/InlineReferenceList.tsx) | Layout composition; [`MarkInlineEditorWithSession`](../../../../../charcoal-client/src/components/Workbench/MarkEdit/InlineEditor.tsx) per-row Mark session (wired in Lens mark facet rows) |
 
-**Platform note:** [`packages/mtw-wml/ts/standardize/components/AGENT.implementation.md`](../../../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) documents direct `_payload._shortName` assignment as Workbench-only today, with optional **`withShortName()`** on components as follow-up. [`shortNameField.ts`](../../../../../packages/mtw-wml/ts/standardize/components/shortNameField.ts) already centralizes merge/invert/schema helpers.
+**Platform note:** [`packages/mtw-wml/ts/standardize/components/AGENT.implementation.md`](../../../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) documents **`withShortName()`** on `StandardComponent` (normative mutation API). Session flush uses it via [`prepareComponentForFlush`](../../../../../charcoal-client/src/components/Workbench/foundations/workbenchMutations.ts). Legacy editors may still assign `_payload._shortName` until migrated. [`shortNameField.ts`](../../../../../packages/mtw-wml/ts/standardize/components/shortNameField.ts) centralizes merge/invert/schema helpers.
 
 ---
 
@@ -79,7 +79,7 @@ User edit
 
 **Why a full working `StandardComponent` (not only a partial `pending` map):** field changes compose naturally on one clone; UI always reflects the same object the flush will write. Cost while typing is O(component), not O(asset).
 
-**Not Immer today:** use mtw-wml `component.clone()` then mutate the clone's `_payload` (or future `withShortName()` / `with*` helpers). Same idea as immutable snapshots, implemented with existing APIs.
+**Not Immer today:** use mtw-wml `component.clone()` then mutate the clone's `_payload`, or immutable helpers such as **`withShortName()`** / other `with*` methods. Same idea as immutable snapshots, implemented with existing APIs.
 
 ### Layering model
 
@@ -377,7 +377,7 @@ These do **not** block Phase 1. Resolve during implementation or later phases as
 | Decisions D1-D14 | All locked (incl. D11-D13, D14a-c) | Milestone 0 complete |
 | Phase 1 | Complete | Debounced flush + **D14** reconcile + `workbenchMutations` + `WorkbenchShortNameField` + literal `debounce={false}`; Feature/Knowledge/Room/Area editors use `WorkbenchComponentProvider` + `WorkbenchShortNameField` |
 | Phase 2 | Complete | Parent-session lists + DEFAULT prose + `MarkInlineEditor` per-row session; inline list contract documented |
-| Phase 3 | In progress | **`ReferenceListControlled`** shell + migration done; remaining: `withShortName`, full-screen editors |
+| Phase 3 | In progress | **`ReferenceListControlled`** + **`withShortName`** done; remaining: full-screen editors |
 | Phase 4 | Not started | |
 
 ---
@@ -416,7 +416,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets).
   - [X] Refactor `MarkInlineEditor` and document inline list contract (**D7**)
 - [ ] **Milestone 3 --- Phase 3**
   - [X] **`ReferenceListControlled`** per **D6** + migrate call sites (shell/API; persistence tier from Milestone 2; Area position-graph nodes on session)
-  - [ ] mtw-wml `withShortName` (if **D3** not deferred)
+  - [X] mtw-wml `withShortName` (if **D3** not deferred)
   - [ ] Remaining full-screen editors (Guidance, Mark, LensDetail shortName; layout shell deferred per **D9**)
 - [ ] **Milestone 4 --- Phase 4**
   - [ ] Steady-state docs in Workbench `AGENT.md`
