@@ -13,7 +13,7 @@ import { ComponentSelectorDialog } from "../ComponentSelector"
 import ImportComponentDialog from "../../ImportComponentDialog"
 import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import { AssetUUID, ComponentUUID } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, ComponentUUID, isImportableTag } from "@tonylb/mtw-base/ts/schema"
 import type { SchemaImportMapping } from "@tonylb/mtw-base/ts/schema/metaData"
 
 export type ComponentTag =
@@ -62,20 +62,6 @@ export interface AddReferenceImportProps {
     persistDraftUpdate?: (update: (draft: StandardForm) => void) => void
 }
 
-const IMPORTABLE_TAGS: ComponentTag[] = [
-    "Room",
-    "Area",
-    "Feature",
-    "Knowledge",
-    "Map",
-    "Message",
-    "Lens"
-]
-
-function defaultEnableImport(tag: ComponentTag): boolean {
-    return IMPORTABLE_TAGS.includes(tag)
-}
-
 export function useAddReferenceImport(props: AddReferenceImportProps): {
     actionRows: React.ReactNode
     selectorDialog: React.ReactNode
@@ -88,7 +74,7 @@ export function useAddReferenceImport(props: AddReferenceImportProps): {
         requestCreate,
         labels,
         enableReferenceExisting = true,
-        enableImport = defaultEnableImport(tag),
+        enableImport = isImportableTag(tag),
         disabled: disabledProp = false,
         importTag,
         onAssociateReference,

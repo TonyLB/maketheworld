@@ -2,6 +2,8 @@
 
 Facet lists in the Workbench (WML facet lists such as `marks` on Guidance) are rendered as accordion lists with per-row payload editing. The pattern uses **handlers** for affordances (onRemove, onChangePayload), not injected components, so the payload editor (or a layout wrapper) can render and place affordances for full UI control.
 
+Reference lists use the parallel **`ReferenceListControlled`** shell (`referenceList` + `onReferenceListChange`); see [AGENT.reference-lists.md](../ReferenceList/AGENT.reference-lists.md).
+
 ## Structure
 
 - **FacetListEditorGeneric**: Owns the list and the add flow via **`useAddReferenceImport`** ([AddReferenceImportControl.tsx](../ReferenceList/AddReferenceImportControl.tsx)): Create new, Reference existing, and optional Import. The consumer supplies **`association(ref, draft)`** and **`requestCreate(onCreated)`** so new references are written into the correct facet list on `StandardForm`. For each facet, the generic calls `renderFacetRow(facet, index, handlers)`. Handlers are `onRemove`, `onChangePayload`, `readonly`. The generic does not own row layout; the consumer supplies the row renderer.

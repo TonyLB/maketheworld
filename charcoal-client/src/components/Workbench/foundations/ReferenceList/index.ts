@@ -1,4 +1,6 @@
 export { ReferenceListEditor } from './ReferenceListEditor'
+export { ReferenceListControlled } from './ReferenceListControlled'
+export type { ReferenceListControlledProps } from './ReferenceListControlled'
 export { ReferenceListSessionEditor } from './ReferenceListSessionEditor'
 export type { ReferenceListSessionAccessor } from './ReferenceListSessionEditor'
 export { ReferenceListEditorGeneric } from './ReferenceListEditorGeneric'

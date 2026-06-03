@@ -155,8 +155,8 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 // Reference lists on WorkbenchComponentProvider screens (Room Guidance, Room Features)
 <ReferenceListSessionEditor title="Guidance" listAccessor={roomGuidanceListAccessor} tag="Guidance" onItemClick={...} />
 
-// Asset-mode reference lists (non-provider screens, e.g. Area position graph)
-const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance' })
+// Area position-graph participants (per tag) -- same session pattern as Room lists
+<ReferenceListSessionEditor title="Rooms" listAccessor={areaPositionGraphNodesTagAccessor('Room')} tag="Room" />
 ```
 
 ### Rich Text Editing
@@ -185,7 +185,7 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 1. **Workbench Flow**: Start at [`WorkbenchContainer.tsx`](./WorkbenchContainer.tsx) for layout and breadcrumb header; then [`WorkbenchAssetEditor.tsx`](./WorkbenchAssetEditor.tsx) for view routing
 2. **Asset Context**: Read [`foundations/useWorkbenchAsset.ts`](./foundations/useWorkbenchAsset.ts) to understand how asset data flows from `personalAssets` into Workbench components
 3. **Navigation State**: Read [`src/slices/UI/workbench/index.ts`](../../slices/UI/workbench/index.ts) for breadcrumb model and selectors
-4. **Component Editing**: One editor per component type, each under its own `{Component}Edit` directory (e.g. `AreaEdit/AreaEditor.tsx`, `RoomEdit/RoomEditor.tsx`, `FeatureEdit/FeatureEditor.tsx`, `KnowledgeEdit/KnowledgeEditor.tsx`). **FeatureEditor**, **KnowledgeEditor**, **RoomEditor**, and **AreaEditor** wrap their editor body in **`WorkbenchComponentProvider`**. **WorkbenchShortNameField**, **`DefaultRenderEditor`**, and **`ReferenceListSessionEditor`** (Room Guidance/Features) bind to the session **`working`** copy via **`updateComponent`** (debounced flush to Redux; **D11** omission-over-empty on flush for shortName). Room Situations list, Lens header, and Exit topology still use `updateStandard` on their existing paths. **AreaEditor** also edits heterogeneous **`positionGraph.nodes`** (Room / Feature / Character / Area participants) and uuid-keyed **`positionGraph.edges`** (`From` / `To` / `Forward` / `Back` per [D19/D29](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md)). RoomEditor composes `ExitEditor` (room-local facets --- **M6** removal), `LensHeader` (from LensEdit), `FeatureListEditor` (session reference list), `DefaultRenderEditor`, situation list (non-DEFAULT), and Guidance (`ReferenceListSessionEditor`).
+4. **Component Editing**: One editor per component type, each under its own `{Component}Edit` directory (e.g. `AreaEdit/AreaEditor.tsx`, `RoomEdit/RoomEditor.tsx`, `FeatureEdit/FeatureEditor.tsx`, `KnowledgeEdit/KnowledgeEditor.tsx`). **FeatureEditor**, **KnowledgeEditor**, **RoomEditor**, and **AreaEditor** wrap their editor body in **`WorkbenchComponentProvider`**. **WorkbenchShortNameField**, **`DefaultRenderEditor`**, and **`ReferenceListSessionEditor`** (Room Guidance/Features, Area position-graph participants) bind to the session **`working`** copy via **`updateComponent`** (debounced flush to Redux; **D11** omission-over-empty on flush for shortName). Room Situations list, Lens header, and Area exit topology still use `updateStandard` on their existing paths. **AreaEditor** also edits uuid-keyed **`positionGraph.edges`** (`From` / `To` / `Forward` / `Back` per [D19/D29](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md)). RoomEditor composes `ExitEditor` (room-local facets --- **M6** removal), `LensHeader` (from LensEdit), `FeatureListEditor` (session reference list), `DefaultRenderEditor`, situation list (non-DEFAULT), and Guidance (`ReferenceListSessionEditor`).
 
 ### Key Files
 
@@ -194,15 +194,18 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 | `WorkbenchContainer.tsx` | Responsive layout, breadcrumbs, AssetSelector, theme |
 | `WorkbenchAssetEditor.tsx` | View routing (asset / component / componentLayer) |
 | `WorkbenchAssetEditForm.tsx` | Asset-level metadata, component list, imports |
-| `AreaEdit/` | AreaEditor (`WorkbenchComponentProvider` + shortName field; topology via PositionGraphNodesEditor, ExitEdgeListEditor) |
+| `AreaEdit/` | AreaEditor (`WorkbenchComponentProvider` + shortName; PositionGraphNodesEditor session reference lists; ExitEdgeListEditor) |
 | `RoomEdit/` | RoomEditor (component session for shortName; ExitEditor, FeatureListEditor, Lens via LensEdit/LensHeader) |
 | `FeatureEdit/` | FeatureEditor (component session; shortName + DEFAULT prose via session fields) |
 | `KnowledgeEdit/` | KnowledgeEditor (component session; shortName + DEFAULT prose via session fields) |
 | `foundations/WorkbenchComponent/WorkbenchShortNameField.tsx` | Context-only shortName field (`useWorkbenchComponent` session) |
 | `foundations/DefaultRenderEditor.tsx` | Context-only DEFAULT situation facet prose (Room, Feature, Knowledge); session `working` + `updateComponent` |
-| `RoomEdit/roomReferenceListAccessors.ts` | Room Guidance/Features `listAccessor` objects for `ReferenceListSessionEditor` |
-| `foundations/ReferenceList/ReferenceListSessionEditor.tsx` | Context-only reference list on provider screens; session `working` + `updateComponent` / `commitAssetScopedUpdate` |
-| `foundations/ReferenceList/ReferenceListEditor.tsx` | Asset-mode reference list (`listContext` + `updateStandard`); non-provider screens |
+| `RoomEdit/roomReferenceListAccessors.ts` | Room Guidance/Features `listAccessor` for `ReferenceListSessionEditor` |
+| `AreaEdit/areaPositionGraphNodesAccessors.ts` | Per-tag `positionGraph.nodes` slice accessors for `ReferenceListSessionEditor` |
+| `foundations/ReferenceList/ReferenceListControlled.tsx` | Composable shell: `referenceList` + `onReferenceListChange` (D6) |
+| `foundations/ReferenceList/ReferenceListSessionEditor.tsx` | Provider-screen wrapper over Controlled; `listAccessor` + session persist |
+| `foundations/ReferenceList/ReferenceListEditor.tsx` | Asset-mode thin wrapper over Controlled (`listContext` + `updateStandard`) |
+| `foundations/ReferenceList/referenceListMutations.ts` | List remove by ComponentUUID via `sameKey` |
 | `foundations/SituationFacetRenderFieldsEditor.tsx` | Asset-mode facet field editor (layered Room situations); `updateStandard` per change |
 | `foundations/SituationFacetRenderFieldsView.tsx` | Shared presentation for DEFAULT / situation facet prose fields |
 | ~~`ExampleEdit/`~~ | **Removed** (2026-05-19); F/K prose via **`DefaultRenderEditor`** |
@@ -215,7 +218,7 @@ const items = referenceListToItems({ referenceList, standardForm, tag: 'Guidance
 
 ### Related Documentation
 
-- [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md) - `ReferenceListEditor` vs `InlineReferenceList`, `referenceListToItems`, Mark inline pattern
+- [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md) - `ReferenceListControlled`, session vs asset wrappers, `InlineReferenceList`, Mark inline pattern
 - [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md) - Layer strip, index bar, split-pane, MUI Tabs; Room layered views
 - [charcoal-client/AGENT.testing.slate.md](../../../AGENT.testing.slate.md) - Slate/rich text testing if modifying StandardRenderEditor
 

@@ -7,17 +7,31 @@ Reference lists in the Workbench (WML `ReferenceList` on a component—e.g. `exa
 ## Shared item type and adapter
 
 - **`ReferenceListItem`**: `{ id: string, title: string, subtitle?: string, icon?: ReactNode }`. Used by both list components.
-- **`referenceListToItems`** (`referenceListAdapter.ts`): Converts a WML `ReferenceList` + `StandardForm` + optional `tag` into `ReferenceListItem[]`. Resolves each reference's component and uses `shortName` for `title` when present; `id` is the reference's `universalKey` (or fallback). Use for Examples, Features, Lenses, Marks, etc.
+- **`referenceListToItems`** (`referenceListAdapter.ts`): Converts a WML `ReferenceList` + `StandardForm` + optional `tag` into `ReferenceListItem[]`. Resolves each referenced component via **`standardForm._lookup(ref.standardKey.toJSON())`** (key or universalKey). **`id` is `ref.universalKey` only** (ComponentUUID); references without `universalKey` throw. List remove uses [`referenceListMutations.ts`](referenceListMutations.ts) **`sameKey`** matching---never `universalKey ?? local key`.
 
 ---
 
-## Typical reference list: `ReferenceListEditor`
+## Composable shell: `ReferenceListControlled` (D6)
 
-For lists where each item is **navigated to** (e.g. Examples) or **selected via dialog** (e.g. Features). No per-item data editing in the list itself.
+Facet-list-style composition: **`referenceList`** + **`onReferenceListChange`** (`(mutate: (list: ReferenceList) => void) => void`). Renders accordion UI, add/reference/import rows (`useAddReferenceImport`), and remove via [`referenceListMutations.ts`](referenceListMutations.ts). **Does not** call `updateStandard` or `useWorkbenchComponent` internally---the parent wires persistence.
 
-- **Structure**: `MakeTheWorldAccordion` wrapping a list. Each item: card with `ListItemButton` (title, optional subtitle/icon), optional delete `IconButton`. Optional "Add" row at the bottom.
-- **Props**: `title`, `items`, `summary`, `defaultExpanded`, `disabled`, `onItemClick`, `onItemRemove`, `onAddClick`, `addLabel`, `emptyStateText`.
-- **Usage**: Examples (click → navigate to Example layer), Features (Add → open feature selector dialog; click item could navigate to Feature). Exits and Lenses use similar list UI but are wired separately (e.g. Lens selector dialog, single-lens vs multi-lens).
+| Wrapper | When to use |
+| --- | --- |
+| **`ReferenceListSessionEditor`** | On **`WorkbenchComponentProvider`** screens; pass **`listAccessor`** (`getReferenceList` / `setReferenceList` on parent `working`). |
+| **`ReferenceListEditor`** | Asset-mode adapter: `listContext` + `updateStandard` (non-provider or legacy). |
+| **`ReferenceListControlled` directly** | Custom persistence (e.g. tests, new list hosts). |
+
+List-only helper: [`referenceListMutations.ts`](referenceListMutations.ts) (`removeReferenceFromListById` via `sameKey`). Add uses `ReferenceList.assureItem` at call sites.
+
+---
+
+## Typical reference list: `ReferenceListEditor` / `ReferenceListSessionEditor`
+
+For lists where each item is **navigated to** or **selected via dialog** (e.g. Room Features, Guidance). No per-item data editing in the list itself. Both delegate to **`ReferenceListControlled`**.
+
+- **Structure**: `ReferenceListEditorGeneric` inside `MakeTheWorldAccordion`. Each item: card with `ListItemButton` (title, optional subtitle/icon), optional delete `IconButton`. Optional Add / Reference existing / Import rows.
+- **Session usage**: Room Guidance/Features ([`roomReferenceListAccessors.ts`](../../RoomEdit/roomReferenceListAccessors.ts)), Area position-graph participants per tag ([`areaPositionGraphNodesAccessors.ts`](../../AreaEdit/areaPositionGraphNodesAccessors.ts)).
+- **Asset usage**: `ReferenceListEditor` with `listContext` when no parent session (reserved for future non-provider call sites; **`TopLevelEditor`** uses `ReferenceListEditorGeneric` directly).
 
 ---
 
@@ -43,7 +57,7 @@ When a list row edits a **referenced component field** (e.g. Mark `shortName`) t
 
 | List pattern | List data | Inline field target | Persist path |
 | --- | --- | --- | --- |
-| Typical / session reference list | `ReferenceList` on parent | None (navigate only) | Parent **`updateComponent`** ([`ReferenceListSessionEditor`](ReferenceListSessionEditor.tsx)) |
+| Typical / session reference list | `ReferenceList` on parent | None (navigate only) | Parent **`updateComponent`** via [`ReferenceListControlled`](ReferenceListControlled.tsx) / [`ReferenceListSessionEditor`](ReferenceListSessionEditor.tsx) |
 | Inline reference list | `ReferenceList` on parent | Referenced component field (e.g. Mark shortName) | **Per-row** `WorkbenchComponentProvider` + context-only inline editor; `renderItemEditor(id)` wraps **`MarkInlineEditorWithSession`** |
 | Facet list with inline reference field | Facet list on parent (e.g. Lens marks) | Referenced Mark shortName + facet payload on same row | Mark shortName: **`MarkInlineEditorWithSession`**; facet payload: parent list **`onFacetsChange`** (asset-mode until parent has a session) |
 
@@ -65,16 +79,16 @@ onItemClick={(id) => dispatch(pushBreadcrumb({ id, kind: 'component', componentI
 
 ## Parent-session lists (D15): `ReferenceListSessionEditor`
 
-On screens wrapped in **`WorkbenchComponentProvider`** (e.g. Room Guidance, Room Features), use **`ReferenceListSessionEditor`** instead of asset-mode **`ReferenceListEditor`**. List membership reads from session **`working`**; item titles still resolve referenced components from live **`standardForm`**.
+On screens wrapped in **`WorkbenchComponentProvider`** (e.g. Room Guidance, Room Features, Area position-graph participants), use **`ReferenceListSessionEditor`**. Thin wrapper over **`ReferenceListControlled`**: maps **`listAccessor`** to `referenceList` + `onReferenceListChange` on parent **`working`**. Item titles resolve from live **`standardForm`**.
 
 | Operation | Persist path |
 | --- | --- |
 | Remove, reference existing | **`updateComponent`** on parent `working` + session debounced flush |
 | Create new, import | **`updateComponent`** (immediate UI) + **`commitAssetScopedUpdate`** (one `updateStandard`: add to `draft.byUniversalId` + `applyWorkingComponentToDraft`) |
 
-- **Requires** `WorkbenchComponentProvider` with a parent component session. Call site passes **`listAccessor`** (`getReferenceList` / `setReferenceList` on the parent working copy), mirroring asset-mode `listContext`. Room Guidance/Features use [`roomReferenceListAccessors.ts`](../../RoomEdit/roomReferenceListAccessors.ts).
-- **Asset-mode** **`ReferenceListEditor`** (`listContext` + per-action `updateStandard`) remains for non-provider screens (e.g. Area position graph nodes, `TopLevelEditor`).
-- **Phase 3** will add **`ReferenceListControlled`** composable shell (**D6**); persistence tier is already on parent `working` where this editor is used.
+- **Requires** `WorkbenchComponentProvider`. Call site passes **`listAccessor`** (`getReferenceList` / `setReferenceList` on the parent working copy).
+- **Asset-mode** **`ReferenceListEditor`** (`listContext` + `updateStandard`) is a thin adapter over **`ReferenceListControlled`** for screens without a parent session.
+- **`TopLevelEditor`** remains asset-level and out of scope for this pattern.
 
 Domain-specific list accessors belong next to the editor that owns the parent component (per **D10**), not in [`workbenchMutations.ts`](../workbenchMutations.ts).
 
