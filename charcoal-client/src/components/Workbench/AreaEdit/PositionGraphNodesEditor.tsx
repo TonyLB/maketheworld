@@ -1,8 +1,11 @@
 import React, { FunctionComponent, useCallback, useMemo } from 'react'
+import { useDispatch } from 'react-redux'
 import { Alert, Box } from '@mui/material'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
 import { MakeTheWorldAccordion } from '../../UI'
+import { pushBreadcrumb } from '../../../slices/UI/workbench'
+import { useWorkbenchComponent } from '../foundations/WorkbenchComponent'
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
 import { ReferenceListSessionEditor } from '../foundations/ReferenceList'
 import type { ComponentTag } from '../foundations/ReferenceList/ReferenceListEditor'
@@ -33,8 +36,9 @@ const NODE_TAG_IMPORT: Partial<Record<PositionGraphNodeTag, boolean>> = {
 
 const TagNodesSection: FunctionComponent<{
     nodeTag: PositionGraphNodeTag
+    onItemClick: (id: string) => void
     excludeUniversalKey?: ComponentUUID
-}> = ({ nodeTag, excludeUniversalKey }) => {
+}> = ({ nodeTag, onItemClick, excludeUniversalKey }) => {
     const listAccessor = useMemo(
         () => areaPositionGraphNodesTagAccessor(nodeTag),
         [nodeTag]
@@ -57,6 +61,7 @@ const TagNodesSection: FunctionComponent<{
                 enableReferenceExisting: true,
                 enableImport: NODE_TAG_IMPORT[nodeTag] ?? false
             }}
+            onItemClick={onItemClick}
         />
     )
 }
@@ -64,7 +69,23 @@ const TagNodesSection: FunctionComponent<{
 export const PositionGraphNodesEditor: FunctionComponent<PositionGraphNodesEditorProps> = ({
     AreaId
 }) => {
+    const dispatch = useDispatch()
+    const { readonly } = useWorkbenchComponent<StandardArea>()
     const { standardForm } = useWorkbenchAsset()
+
+    const handleParticipantClick = useCallback(
+        (id: string) => {
+            if (readonly) return
+            dispatch(
+                pushBreadcrumb({
+                    id: id as ComponentUUID,
+                    kind: 'component',
+                    componentId: id as ComponentUUID
+                })
+            )
+        },
+        [readonly, dispatch]
+    )
 
     const area = useMemo(() => {
         const component = standardForm.byUniversalId[AreaId]
@@ -110,6 +131,7 @@ export const PositionGraphNodesEditor: FunctionComponent<PositionGraphNodesEdito
                 <TagNodesSection
                     key={nodeTag}
                     nodeTag={nodeTag}
+                    onItemClick={handleParticipantClick}
                     excludeUniversalKey={nodeTag === 'Area' ? AreaId : undefined}
                 />
             ))}
