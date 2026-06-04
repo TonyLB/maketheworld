@@ -11,9 +11,10 @@ export type ApplyWorkbenchFlushEdit<T extends StandardComponent = StandardCompon
 }
 
 /**
- * Workbench flush pipeline (D10): apply session working to a local draft clone.
+ * Workbench flush pipeline (D10): apply session working to a draft clone.
  * Assign only (optional beforeAssign, then applyWorkingComponentToDraft).
  * Does not materialize or run orphan GC. Mutates draft in place.
+ * Component session passes a merged clone via updateStandard type: 'update'.
  */
 export function applyWorkbenchFlush<T extends StandardComponent>(
     draft: StandardForm,

@@ -739,7 +739,7 @@ describe('personalAsset slice reducers', () => {
         )
     }
 
-    describe('inherited shortName and updateLocal flush (Phase 0)', () => {
+    describe('inherited shortName and component flush persist (Phase 0)', () => {
         const ROOM_ID = 'ROOM#lobby' as ComponentUUID
         const inheritedWml = `
             <Asset uuid=(assetC)>
@@ -809,7 +809,7 @@ describe('personalAsset slice reducers', () => {
             expect(localRoomShortName(postFlushState, baseJSON, ROOM_ID)).toBe('Lobby in the pitch-black')
         })
 
-        it.skip('merged shortName after updateLocal flush does not double inherited Lobby prefix (Phase 3 gate)', () => {
+        it('merged shortName after update flush does not double inherited Lobby prefix (Phase 4 gate)', () => {
             const baseJSON = wmlToJSON(baseWml)
             const preFlushState = minimalPersonalAssetsState({
                 inherited: wmlToJSON(inheritedWml),
@@ -825,7 +825,7 @@ describe('personalAsset slice reducers', () => {
             )
 
             const postFlushState = runUpdateLocalWithLayers(baseWml, inheritedWml, editWml, {
-                type: 'updateLocal',
+                type: 'update',
                 update: (draft) => {
                     applyWorkbenchFlush(draft, { componentId: ROOM_ID, working })
                     return draft

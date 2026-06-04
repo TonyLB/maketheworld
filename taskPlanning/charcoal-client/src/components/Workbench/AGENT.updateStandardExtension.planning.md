@@ -1,6 +1,6 @@
 # updateStandard batch extension (layered editing / session flush)
 
-**Status:** **In progress** (active 2026-06-04). **Phase 0 (2026-06-04):** body retention at flush **PASS** (2b); merged shortName gate **SKIP** until fix lands (`it.skip` in [`reducers.test.ts`](../../../../charcoal-client/src/slices/personalAssets/reducers.test.ts) --- confirmed **`LobbyLobby in the pitch-black`** when un-skipped). **Phase 1-2:** complete. **Phase 3 (2026-06-04): spec complete** --- see [Phase 3 decision](#phase-3-decision-layered-flush-persist-2026-06-04). **Next:** **spike** component flush with **`type: 'update'`** (same `applyWorkbenchFlush`); implement **`type: 'batch'`** only if spike fails. Asset-meta flush: **N/A** (stay **`updateLocal`**).
+**Status:** **In progress** (active 2026-06-04). **Phase 0-4:** complete (merged shortName gate **PASS** with `type: 'update'`). **Phase 5 (2026-06-04):** production component flush wired --- [`useWorkbenchComponent`](../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx) `dispatchFlush` uses **`update`**; asset-meta stays **`updateLocal`**; flush opcode docs updated in Workbench / personalAssets / consistency AGENT. **Next:** Phase 6 archive plan + remaining durable docs.
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into [`personalAssets/AGENT.md`](../../../../charcoal-client/src/slices/personalAssets/AGENT.md) and [`Workbench/AGENT.md`](../../../../charcoal-client/src/components/Workbench/AGENT.md).
 
@@ -51,11 +51,11 @@ From [`reducers.ts`](../../../../charcoal-client/src/slices/personalAssets/reduc
 
 Both **`update`** and **`updateLocal`** persist via the **same** `mergeToEdit` --- the difference is **which draft the diff is computed against**, not a separate storage target.
 
-Session flush ([`useWorkbenchComponent.tsx`](../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx)):
+Session flush ([`useWorkbenchComponent.tsx`](../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx)) --- **shipped Phase 5:**
 
 ```typescript
 updateStandard({
-  type: 'updateLocal',
+  type: 'update',
   update: (draft) => {
     applyWorkbenchFlush(draft, { componentId, working }) // working from merged committed
     return draft
@@ -184,12 +184,12 @@ No normalize step (retired Phase 2).
 
 | Phase | Scope | Status |
 | --- | --- | --- |
-| 0 | Failing (or passing) regression: inherited + Room shortName + session flush | [X] FAIL (2026-06-04) |
+| 0 | Failing (or passing) regression: inherited + Room shortName + session flush | [X] gate PASS with `update` (2026-06-04) |
 | 1 | Investigate **normalize** / orphan GC on flush (Phase 0 diagnostics) | [X] (2026-06-04) |
 | 2 | **Purge migration** + authoring UX (display union, pin/unpin, list confirms) | [X] (2026-06-04) |
 | 3 | Flush persist spec (`update` spike, batch fallback; asset-meta N/A) | [X] (2026-06-04) |
-| 4 | Fix component flush (`update` spike; batch if needed) | [ ] |
-| 5 | Wire Workbench component flush; confirm asset-meta unchanged | [ ] |
+| 4 | Fix component flush (`update` spike; batch if needed) | [X] (2026-06-04; batch N/A) |
+| 5 | Wire Workbench component flush; confirm asset-meta unchanged | [X] (2026-06-04) |
 | 6 | Durable docs + dispose this plan | [ ] |
 
 ---
@@ -240,18 +240,18 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as e
   - [X] **List row remove (2c):** site-local disassociate; copy lists **remaining `referencedBy`**
   - [X] **Tests (2d):** [`topLevelDisplayAdapter.test.ts`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/topLevelDisplayAdapter.test.ts), [`TopLevelEditor.test.tsx`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.test.tsx); Phase 0 import body retained in [`applyWorkbenchFlush.test.ts`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/applyWorkbenchFlush.test.ts)
 - [X] **Phase 3 --- Layered flush persist (spec)** (implementation in Phase 4-5)
-  - [X] **Regression gate:** `LobbyLobby in the pitch-black` when un-skipped; remains `it.skip` until fix lands.
+  - [X] **Regression gate:** was `LobbyLobby in the pitch-black` under `updateLocal`; **PASS** under `type: 'update'` (Phase 4 spike, gate un-skipped).
   - [X] **Asset-meta flush:** **N/A** --- local-only session; keep **`updateLocal`** (no batch / merged persist).
   - [X] **Component fix strategy:** **`type: 'update'`** spike first (merged baseline + same flush callback); **`type: 'batch'`** fallback only if spike fails. See [Phase 3 decision](#phase-3-decision-layered-flush-persist-2026-06-04).
   - [X] **Not chosen:** always-array payload; flush-only `updateLocal` helper as primary path.
-- [ ] **Phase 4 --- Fix component flush persist**
-  - [ ] **Spike:** Phase 0 harness with `type: 'update'` instead of `updateLocal` (same `applyWorkbenchFlush`); un-skip gate when green.
-  - [ ] **If spike passes:** no `type: 'batch'` reducer work required for this bug class (document flush rule: component session -> `update`).
-  - [ ] **If spike fails:** implement `type: 'batch'` + merged persist helper (`lastReceived.diff(working)` or form-equivalent); unit tests (two-step batch, order sensitivity).
-- [ ] **Phase 5 --- Wire Workbench**
-  - [ ] `useWorkbenchComponent` `dispatchFlush` uses spike-approved opcode (`update` expected).
-  - [ ] **Asset-meta:** no change (`updateLocal`).
-  - [ ] Re-run Phase 0 test green; update Workbench / personalAssets AGENT flush tables.
+- [X] **Phase 4 --- Fix component flush persist**
+  - [X] **Spike:** Phase 0 harness with `type: 'update'` instead of `updateLocal` (same `applyWorkbenchFlush`); un-skip gate when green. (2026-06-04: **PASS** --- merged `"Lobby in the pitch-black"`, edit overlay `" in the pitch-black"`, `lastUpdateDiff` Replace/With on suffix.)
+  - [X] **If spike passes:** no `type: 'batch'` reducer work required for this bug class (document flush rule: component session -> `update` in Phase 5-6).
+  - [X] **If spike fails:** implement `type: 'batch'` + merged persist helper (`lastReceived.diff(working)` or form-equivalent); unit tests (two-step batch, order sensitivity). **N/A** --- spike passed; condition not met, no work required.
+- [X] **Phase 5 --- Wire Workbench** (2026-06-04)
+  - [X] `useWorkbenchComponent` `dispatchFlush` uses spike-approved opcode (`update`).
+  - [X] **Asset-meta:** no change (`updateLocal`); TopLevelEditor / useWorkbenchAssetMeta tests unchanged.
+  - [X] Phase 0 gate green; Workbench / personalAssets / consistency AGENT flush tables updated; component-session tests expect `update`.
 - [ ] **Phase 6 --- Docs and cleanup**
   - [ ] Update `personalAssets/AGENT.md` (component flush -> `update` or batch fallback; Purge vs `removeComponent`; when to use perspectives).
   - [ ] Update Workbench AGENT (session flush, top-level pin vs display union, deletion intents).
@@ -268,21 +268,8 @@ When implementation starts, from `charcoal-client/`:
 ```bash
 cd charcoal-client
 
-# Phase 4 spike: change Phase 0 flush payload to type: 'update', then un-skip merged shortName gate
+# Phase 0 gate + Phase 5 wire-up (2026-06-04)
 npm run test:single -- src/slices/personalAssets/reducers.test.ts -t "inherited shortName"
-npm run test:single -- src/components/Workbench/foundations/consistency/applyWorkbenchFlush.test.ts
-
-# Phase 2 (purge migration, top-level UX, reference list)
-npm run test:single -- src/components/Workbench/foundations/consistency/confirmSiteDisassociateBeforeLocalEdit.test.ts
-npm run test:single -- src/components/Workbench/foundations/consistency/previewPurgeClosure.test.ts
-npm run test:single -- src/components/Workbench/foundations/consistency/confirmPurgeBeforeRemove.test.ts
-npm run test:single -- src/components/Workbench/foundations/ReferenceList
-npm run test:single -- src/components/Workbench/foundations/consistency
-
-# After reducer change (Phase 4)
-npm run test:single -- src/slices/personalAssets
-
-# After session flush wire-up (Phase 5)
 npm run test:single -- src/components/Workbench/foundations/WorkbenchComponent
 npm run test:single -- src/components/Workbench/foundations/WorkbenchAssetMeta
 ```
@@ -482,7 +469,7 @@ function previewPurgeClosure(
 4. **Asset-meta under inheritance?** **N/A** --- [`useWorkbenchAssetMeta`](../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchAssetMeta/useWorkbenchAssetMeta.tsx) uses **local** `committed`; keep **`updateLocal`**.
 5. **If batch needed:** optional **`local`** `assureDefaultSituationFromPrimitives` then **`merged`** persist via `lastReceived.diff(working)` --- not wholesale assign.
 
-**Open for Phase 4 spike only:** does `applyWorkbenchFlush` on a **merged** clone (via `update`) produce a correct `mergeToEdit` diff for the Phase 0 fixture?
+**Open for Phase 4 spike only:** does `applyWorkbenchFlush` on a **merged** clone (via `update`) produce a correct `mergeToEdit` diff for the Phase 0 fixture? **Yes (2026-06-04):** `standardForm.diff(modified)` yields Replace/With on the shortName suffix; merged display is `"Lobby in the pitch-black"`; edit layer retains additive `" in the pitch-black"` overlay. **`type: 'batch'` not needed** for this fixture.
 
 ---
 

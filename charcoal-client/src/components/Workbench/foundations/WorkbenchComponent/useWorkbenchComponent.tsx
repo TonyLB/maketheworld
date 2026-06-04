@@ -124,7 +124,7 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
         (id: ComponentUUID, current: T) => {
             let needsFetch = false
             updateStandard({
-                type: 'updateLocal',
+                type: 'update',
                 update: (draft) => {
                     const hasDefaultFacet =
                         isSituationProseParent(current) &&

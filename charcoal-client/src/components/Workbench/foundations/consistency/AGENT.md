@@ -60,7 +60,7 @@ Public surface from [`index.ts`](./index.ts):
 | Operation | When | Call site |
 | --- | --- | --- |
 | **`materializeComponentInAsset`** | Immediately on create/import | [`useWorkbenchAsset`](../useWorkbenchAsset.ts); list shells |
-| **`applyWorkbenchFlush`** | Component-session flush | [`dispatchFlush`](../WorkbenchComponent/useWorkbenchComponent.tsx) via **`updateLocal`** |
+| **`applyWorkbenchFlush`** | Component-session flush | [`dispatchFlush`](../WorkbenchComponent/useWorkbenchComponent.tsx) via **`update`** (merged baseline) |
 | **`applyAssetMetaFlush`** | Asset-meta session flush | [`useWorkbenchAssetMeta`](../WorkbenchAssetMeta/useWorkbenchAssetMeta.tsx) via **`updateLocal`** |
 | **`confirmSiteDisassociateBefore*`** | Before list-row / site disassociate on **working** | [`TopLevelEditor`](../ReferenceList/TopLevelEditor.tsx), [`LensHeader`](../../LensEdit/LensHeader.tsx), [`RoomSituationsListEditor`](../../RoomEdit/RoomSituationsListEditor.tsx) |
 | **`purgeComponentFromAssetFlow`** | TopLevel **Purge** action | [`TopLevelEditor`](../ReferenceList/TopLevelEditor.tsx) only (Phase 2c) |
@@ -97,13 +97,13 @@ Eager global materialize for Workbench create/import.
 
 ## `applyWorkbenchFlush`
 
-Apply component-session **`working`** to a **local** `StandardForm` draft (assign only).
+Apply component-session **`working`** to a `StandardForm` draft clone (assign only). Production flush passes a **merged** clone via **`type: 'update'`** in [`dispatchFlush`](../WorkbenchComponent/useWorkbenchComponent.tsx); the opcode determines diff baseline, not this helper.
 
 **Implementation:** [`applyWorkbenchFlush.ts`](./applyWorkbenchFlush.ts).
 
 ### Imported component flush (linkage + merged `working`)
 
-For **import + inline edit**, the local form may have a body with **no roster pin** (`_topLevel` without **`ref>=1`**) and **`referencedBy(room)` empty**. Flush **assign only** retains that body. Authors still **see** the component in the asset Components list via **display union** ([`topLevelDisplayAdapter`](../ReferenceList/topLevelDisplayAdapter.ts) + merged **`getChildrenOfParent`**). Merged **`shortName`** persist under inheritance is a **Phase 3-5** fix.
+For **import + inline edit**, the local form may have a body with **no roster pin** (`_topLevel` without **`ref>=1`**) and **`referencedBy(room)` empty**. Flush **assign only** retains that body. Authors still **see** the component in the asset Components list via **display union** ([`topLevelDisplayAdapter`](../ReferenceList/topLevelDisplayAdapter.ts) + merged **`getChildrenOfParent`**). Merged **`shortName`** persist under inheritance uses **`type: 'update'`** flush (merged baseline).
 
 ## `applyAssetMetaFlush`
 

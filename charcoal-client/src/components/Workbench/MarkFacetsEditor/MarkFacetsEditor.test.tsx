@@ -144,7 +144,7 @@ describe('MarkFacetsEditor', () => {
         expect(updateStandardMock).not.toHaveBeenCalled()
     })
 
-    it('create new debounced flush uses updateLocal', async () => {
+    it('create new debounced flush uses update', async () => {
         mockMaterializeComponentInAsset()
 
         renderMarkFacets(guidanceWithoutMarksWml)
@@ -164,7 +164,7 @@ describe('MarkFacetsEditor', () => {
         })
 
         expect(updateStandardMock).toHaveBeenCalledTimes(1)
-        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'updateLocal' })
+        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'update' })
 
         const flushUpdate = updateStandardMock.mock.calls[0]![0]!.update
         const { mockWorkbenchReturn } = await import(
@@ -221,7 +221,7 @@ describe('MarkFacetsEditor', () => {
         expect(updateStandardMock).not.toHaveBeenCalled()
     })
 
-    it('debounced flush persists facet remove via updateLocal', () => {
+    it('debounced flush persists facet remove via update', () => {
         renderMarkFacets(guidanceWithOneMarkWml)
 
         const deleteButtons = screen.getAllByLabelText('remove')
@@ -231,6 +231,6 @@ describe('MarkFacetsEditor', () => {
         })
 
         expect(updateStandardMock).toHaveBeenCalledTimes(1)
-        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'updateLocal' })
+        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'update' })
     })
 })

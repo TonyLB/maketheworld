@@ -233,7 +233,7 @@ describe('useWorkbenchComponent', () => {
         expect(
             getFlushedFeatureShortName(FEATURE_ID, mockWorkbenchReturn.standardForm)
         ).toBe('Immediate')
-        expect(updateStandardMock.mock.calls[0][0]).toMatchObject({ type: 'updateLocal' })
+        expect(updateStandardMock.mock.calls[0][0]).toMatchObject({ type: 'update' })
     })
 
     it('debounces flush after updateComponent', () => {
@@ -254,7 +254,7 @@ describe('useWorkbenchComponent', () => {
         })
 
         expect(updateStandardMock).toHaveBeenCalledTimes(1)
-        expect(updateStandardMock.mock.calls[0][0]).toMatchObject({ type: 'updateLocal' })
+        expect(updateStandardMock.mock.calls[0][0]).toMatchObject({ type: 'update' })
         expect(
             getFlushedFeatureShortName(FEATURE_ID, mockWorkbenchReturn.standardForm)
         ).toBe('Debounced')

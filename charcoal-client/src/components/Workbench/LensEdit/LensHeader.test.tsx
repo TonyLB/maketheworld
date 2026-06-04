@@ -190,7 +190,7 @@ describe('LensHeader', () => {
         expect(updateStandardMock).not.toHaveBeenCalled()
     })
 
-    it('create new debounced flush uses updateLocal', async () => {
+    it('create new debounced flush uses update', async () => {
         mockMaterializeComponentInAsset()
 
         renderLensHeader(roomWithoutLensWml)
@@ -210,7 +210,7 @@ describe('LensHeader', () => {
         })
 
         expect(updateStandardMock).toHaveBeenCalledTimes(1)
-        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'updateLocal' })
+        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'update' })
 
         const flushUpdate = updateStandardMock.mock.calls[0]![0]!.update
         const { mockWorkbenchReturn } = await import('../foundations/WorkbenchComponent/testing/mock')
@@ -310,7 +310,7 @@ describe('LensHeader', () => {
         )
     })
 
-    it('debounced flush persists lens disassociate via updateLocal', async () => {
+    it('debounced flush persists lens disassociate via update', async () => {
         renderLensHeader(roomWithLensWml)
 
         await act(async () => {
@@ -320,7 +320,7 @@ describe('LensHeader', () => {
         })
 
         expect(updateStandardMock).toHaveBeenCalledTimes(1)
-        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'updateLocal' })
+        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'update' })
     })
 
     it('flush after delete retains orphaned nested lens in byUniversalId (assign only)', async () => {

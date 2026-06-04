@@ -194,7 +194,7 @@ describe('RoomSituationsListEditor', () => {
         )
     })
 
-    it('create new debounced flush uses updateLocal', async () => {
+    it('create new debounced flush uses update', async () => {
         mockMaterializeComponentInAsset()
 
         renderSituationsList(roomWithLensWml)
@@ -212,7 +212,7 @@ describe('RoomSituationsListEditor', () => {
         })
 
         expect(updateStandardMock).toHaveBeenCalledTimes(1)
-        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'updateLocal' })
+        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'update' })
 
         const flushUpdate = updateStandardMock.mock.calls[0]![0]!.update
         const { mockWorkbenchReturn } = await import(
@@ -295,7 +295,7 @@ describe('RoomSituationsListEditor', () => {
         expect(updateStandardMock).not.toHaveBeenCalled()
     })
 
-    it('debounced flush persists situation disassociate via updateLocal', async () => {
+    it('debounced flush persists situation disassociate via update', async () => {
         renderSituationsList(roomWithLensAndSituationWml)
         expandSituationsAccordion()
 
@@ -307,6 +307,6 @@ describe('RoomSituationsListEditor', () => {
         })
 
         expect(updateStandardMock).toHaveBeenCalledTimes(1)
-        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'updateLocal' })
+        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'update' })
     })
 })
