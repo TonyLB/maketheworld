@@ -103,7 +103,7 @@ Apply component-session **`working`** to a **local** `StandardForm` draft (assig
 
 ### Imported component flush (linkage + merged `working`)
 
-For **import + inline edit**, the local form may have a body with **`_topLevel` empty** and **`referencedBy(room)` empty**. Flush **assign only** retains that body. Merged **`shortName`** persist under inheritance is a **Phase 3-5** fix.
+For **import + inline edit**, the local form may have a body with **no roster pin** (`_topLevel` without **`ref>=1`**) and **`referencedBy(room)` empty**. Flush **assign only** retains that body. Authors still **see** the component in the asset Components list via **display union** ([`topLevelDisplayAdapter`](../ReferenceList/topLevelDisplayAdapter.ts) + merged **`getChildrenOfParent`**). Merged **`shortName`** persist under inheritance is a **Phase 3-5** fix.
 
 ## `applyAssetMetaFlush`
 

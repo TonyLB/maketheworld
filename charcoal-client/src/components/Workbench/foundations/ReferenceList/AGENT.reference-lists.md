@@ -103,12 +103,16 @@ The asset top-level component list ([`TopLevelEditor`](TopLevelEditor.tsx) on [`
 
 | Operation | Persist path |
 | --- | --- |
-| Remove | **`_topLevel` site only** --- disassociate on **`working.topLevel`** (does **not** clear other parents); body **remains** until Purge. **`confirmSiteDisassociateBeforeAssetMetaDisassociate`** (site-local copy; lists remaining **`referencedBy`** when applicable). |
-| Purge | **TopLevel only** --- **`purgeComponentFromAssetFlow`** (`removeComponent` with rehome/cascade confirm). Distinct from row **remove**. |
-| Reference existing | **`await materializeComponentInAsset`**, then associate on **`working.topLevel`** |
-| Create / import | **`await materializeComponentInAsset`**, then associate on **`working.topLevel`** |
+| **List display** | **Display union** via [`topLevelDisplayAdapter.ts`](topLevelDisplayAdapter.ts): merged **`standardForm._getSchemaOrganization().getChildrenOfParent(undefined)`** plus **`working.topLevel`** entries with **`ref >= 1`** (roster pins). Rows are **pinned** or **display-only** (visible in asset, not pinned). |
+| Pin | Add **`ref={1}`** on **`working.topLevel`** ([`pinReferenceOnTopLevel`](referenceListMutations.ts)); debounced flush. |
+| Unpin | **`_topLevel` site only** --- disassociate on **`working.topLevel`** (does **not** clear other parents); body **remains** until Purge; row may stay as **display-only** if still asset-visible. **`confirmSiteDisassociateBeforeAssetMetaDisassociate`**. |
+| Purge | **TopLevel only** --- **`purgeComponentFromAssetFlow`** (`removeComponent` with rehome/cascade confirm). Available on pinned and display-only rows. |
+| Reference existing | **`await materializeComponentInAsset`**, then **pin** on **`working.topLevel`** (`assureItem`, roster intent) |
+| Create / import | **`await materializeComponentInAsset`**, then **pin** on **`working.topLevel`** (`assureItem`, roster intent) |
 
 List accessor: [`topLevelAssetMetaListAccessor.ts`](topLevelAssetMetaListAccessor.ts) (`getReferenceList` / `setReferenceList` on **`WorkbenchAssetMetaWorking`**).
+
+**Semantics:** **`_topLevel` `ref={1}`** = roster pin only. Structural placement uses nested **`referencedBy`** on other parents. Component/schema **`ref={0}`** is display organization; discoverability without a pin comes from the display union (e.g. import stub at asset level, rehomed descendants).
 
 ### Room `_lens` (SingleReference)
 

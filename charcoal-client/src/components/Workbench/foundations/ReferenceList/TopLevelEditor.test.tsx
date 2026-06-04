@@ -8,6 +8,7 @@ import { act, fireEvent, screen } from '@testing-library/react'
 import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
 import { TopLevelEditor } from './TopLevelEditor'
+import { isPinnedOnTopLevel } from './referenceListMutations'
 import {
     applyLastFlushToCommitted,
     getFlushedTopLevelUniversalKeys,
@@ -79,6 +80,12 @@ const assetWithRoomAndFeatureWml = `
     </Asset>
 `
 
+const assetWithImportDisplayOnlyWml = `
+    <Asset uuid=(test)>
+        <Room uuid=(lobby) key=(lobby) from=(ASSET#assetA) ref={0} />
+    </Asset>
+`
+
 const flushAsync = async (): Promise<void> => {
     await act(async () => {
         await Promise.resolve()
@@ -116,9 +123,9 @@ describe('TopLevelEditor', () => {
             children: <TopLevelEditor />
         })
 
-        const deleteButtons = screen.getAllByLabelText('remove')
+        const unpinButtons = screen.getAllByLabelText('unpin')
         await act(async () => {
-            fireEvent.click(deleteButtons[0])
+            fireEvent.click(unpinButtons[0])
             await flushAsync()
         })
 
@@ -153,9 +160,9 @@ describe('TopLevelEditor', () => {
             children: <TopLevelEditor />
         })
 
-        const deleteButtons = screen.getAllByLabelText('remove')
+        const unpinButtons = screen.getAllByLabelText('unpin')
         await act(async () => {
-            fireEvent.click(deleteButtons[0])
+            fireEvent.click(unpinButtons[0])
             await flushAsync()
             vi.advanceTimersByTime(FLUSH_DELAY_MS)
         })
@@ -171,13 +178,59 @@ describe('TopLevelEditor', () => {
             children: <TopLevelEditor />
         })
 
-        const deleteButtons = screen.getAllByLabelText('remove')
+        const unpinButtons = screen.getAllByLabelText('unpin')
         await act(async () => {
-            fireEvent.click(deleteButtons[0])
+            fireEvent.click(unpinButtons[0])
             await flushAsync()
         })
 
         expect(pushChoiceMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('shows display-only import row with pin affordance and no unpin', () => {
+        renderWorkbenchAssetMetaSession({
+            options: { wml: assetWithImportDisplayOnlyWml, flushDelayMs: FLUSH_DELAY_MS },
+            children: <TopLevelEditor />
+        })
+
+        expect(screen.getByText('Visible in asset')).toBeDefined()
+        expect(screen.getByLabelText('pin to roster')).toBeDefined()
+        expect(screen.queryByLabelText('unpin')).toBeNull()
+    })
+
+    it('pin adds ref={1} on working.topLevel for display-only row', async () => {
+        const { getSession } = renderWorkbenchAssetMetaSession({
+            options: { wml: assetWithImportDisplayOnlyWml, flushDelayMs: FLUSH_DELAY_MS },
+            children: <TopLevelEditor />
+        })
+
+        expect(isPinnedOnTopLevel(getSession().working!.topLevel, 'ROOM#lobby')).toBe(false)
+
+        await act(async () => {
+            fireEvent.click(screen.getByLabelText('pin to roster'))
+        })
+
+        expect(
+            getSession().working?.topLevel.payload.some(
+                (ref) => ref.universalKey === 'ROOM#lobby' && ref.ref >= 1
+            )
+        ).toBe(true)
+    })
+
+    it('unpin removes pin but row remains visible when still in display union', async () => {
+        renderWorkbenchAssetMetaSession({
+            options: { wml: assetWithRoomWml, flushDelayMs: FLUSH_DELAY_MS },
+            children: <TopLevelEditor />
+        })
+
+        const unpinButtons = screen.getAllByLabelText('unpin')
+        await act(async () => {
+            fireEvent.click(unpinButtons[0])
+            await flushAsync()
+        })
+
+        expect(screen.getAllByText('Room One').length).toBeGreaterThan(0)
+        expect(screen.getByText('Visible in asset')).toBeDefined()
     })
 
     it('create awaits materialize then associates on working without immediate flush', async () => {
@@ -233,9 +286,9 @@ describe('TopLevelEditor', () => {
             children: <TopLevelEditor />
         })
 
-        const deleteButtons = screen.getAllByLabelText('remove')
+        const unpinButtons = screen.getAllByLabelText('unpin')
         await act(async () => {
-            fireEvent.click(deleteButtons[0])
+            fireEvent.click(unpinButtons[0])
             await flushAsync()
             vi.advanceTimersByTime(FLUSH_DELAY_MS)
         })

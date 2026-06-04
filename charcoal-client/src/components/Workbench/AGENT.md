@@ -118,13 +118,14 @@ Module home: **`foundations/WorkbenchAssetMeta/`**, mirroring [`WorkbenchCompone
 - **`flushToStandardForm`:** debounced persist via **`updateLocal`** and [`applyAssetMetaFlush`](./foundations/consistency/AGENT.md#applyassetmetaflush) (assign **`_shortName`**, **`_summary`**, **`_topLevel`** from working only). **No** materialize or orphan GC in flush.
 - **`flushNow`:** cancel pending debounce and flush immediately; runs on provider unmount.
 - **Create/import:** **`await materializeComponentInAsset`** on the Redux local draft, then associate on **`working._topLevel`** (same as [`ReferenceListSessionEditor`](./foundations/ReferenceList/ReferenceListSessionEditor.tsx) on a component parent).
-- **List row remove:** disassociate on **`working._topLevel`** + debounced flush + normalize; **never** `removeComponent` for list rows.
+- **Top-level list:** **display union** (merged organization + pins on **`working.topLevel`**); **Pin** / **Unpin** / **Purge** per row kind; see [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md#asset-root--_toplevel).
+- **List row Unpin:** disassociate on **`working._topLevel`** + debounced flush; **never** `removeComponent` for list rows.
 - **Reconcile:** mirror **`useWorkbenchComponent`** --- `lastReceived` / `committed` / supersede when Redux changes without local edits; eager materialize of a **new** key must not supersede open asset-meta **`working`** when committed asset-meta is unchanged.
 
 ### Session-bound fields
 
 - **ShortName / Summary:** [`WorkbenchAssetShortNameField`](./foundations/WorkbenchAssetMeta/WorkbenchAssetShortNameField.tsx), [`WorkbenchAssetSummaryField`](./foundations/WorkbenchAssetMeta/WorkbenchAssetSummaryField.tsx) with **`debounce={false}`** on primitives so only the asset-meta session debounces flush.
-- **Top-level component list:** [`TopLevelEditor`](./foundations/ReferenceList/TopLevelEditor.tsx) on **`working.topLevel`** via **`updateAssetMeta`**; create/import via **`materializeComponentInAsset`** then associate; row **remove** = disassociate + site-local confirm; row **purge** = explicit **`removeComponent`**. See [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md#asset-root--_toplevel).
+- **Top-level component list:** [`TopLevelEditor`](./foundations/ReferenceList/TopLevelEditor.tsx) --- display union + Pin/Unpin/Purge; create/import/reference-existing **pin** on **`working.topLevel`** after **`materializeComponentInAsset`**. See [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md#asset-root--_toplevel).
 
 ---
 

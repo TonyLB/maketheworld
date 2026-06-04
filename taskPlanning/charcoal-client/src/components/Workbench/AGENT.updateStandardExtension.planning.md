@@ -1,6 +1,6 @@
 # updateStandard batch extension (layered editing / session flush)
 
-**Status:** **In progress** (active 2026-06-04). **Phase 0 (2026-06-04):** body retention at flush **PASS** (2b); merged shortName gate **SKIP** until Phase 3 (`it.skip` in [`reducers.test.ts`](../../../../charcoal-client/src/slices/personalAssets/reducers.test.ts) --- receives `LobbyLobby in the pitch-black`). **Phase 1 (2026-06-04): complete** --- orphan GC at flush is **misaligned** with import/overlay storage (predicate vs schema tree); see [Phase 1 findings](#phase-1-findings-2026-06-04). **Phase 2 (in progress):** **2a-2c complete** (2026-06-04) --- Purge helper, flush assign-only, orphan stack retired, TopLevel Purge + site-local disassociate confirms; **next 2d** (display union, pin/unpin). **Phase 3+:** layered flush persist (batch or helper).
+**Status:** **In progress** (active 2026-06-04). **Phase 0 (2026-06-04):** body retention at flush **PASS** (2b); merged shortName gate **SKIP** until fix lands (`it.skip` in [`reducers.test.ts`](../../../../charcoal-client/src/slices/personalAssets/reducers.test.ts) --- confirmed **`LobbyLobby in the pitch-black`** when un-skipped). **Phase 1-2:** complete. **Phase 3 (2026-06-04): spec complete** --- see [Phase 3 decision](#phase-3-decision-layered-flush-persist-2026-06-04). **Next:** **spike** component flush with **`type: 'update'`** (same `applyWorkbenchFlush`); implement **`type: 'batch'`** only if spike fails. Asset-meta flush: **N/A** (stay **`updateLocal`**).
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into [`personalAssets/AGENT.md`](../../../../charcoal-client/src/slices/personalAssets/AGENT.md) and [`Workbench/AGENT.md`](../../../../charcoal-client/src/components/Workbench/AGENT.md).
 
@@ -14,11 +14,12 @@ This plan is task-scoped. Archive or delete it after the initiative ships; move 
 
 Record and eventually fix a **structural mismatch** between:
 
-1. **Component / asset-meta editing sessions** --- `working` is cloned from **`getStandardForm`** (merged **inherited + local** view: what the author sees).
-2. **`updateStandard` reducer paths** --- each dispatch uses **one** diff baseline: either **merged** (`type: 'update'`) or **edit-layer only** (`type: 'updateLocal'`).
-3. **Session flush today** --- a **single** `updateLocal` callback runs **`applyWorkbenchFlush`** (assign merged-shaped `working` onto a **local** draft clone, then **`normalizeWorkbenchDraft`**).
+1. **Component editing sessions** --- `working` / `committed` come from **`getStandardForm`** (merged **inherited + local**).
+2. **Asset-meta sessions** --- `working` / `committed` come from **`getLocalStandardForm`** only ([`useWorkbenchAssetMeta`](../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchAssetMeta/useWorkbenchAssetMeta.tsx)); asset `ShortName` / `Summary` / `_topLevel` are not layered through import inheritance the way component bodies are.
+3. **`updateStandard` reducer paths** --- each dispatch uses **one** diff baseline: **merged** (`type: 'update'`) or **edit-layer** (`type: 'updateLocal'`).
+4. **Component session flush today** --- **`updateLocal`** runs **`applyWorkbenchFlush`** (assign merged-shaped `working` onto a **local** clone). **Baseline mismatch** vs merged-shaped `working` causes the `LobbyLobby` bug. Normalize at flush was removed in Phase 2b; the old objection to **`update`** flush (normalize on merged clone) no longer applies.
 
-That bundles **display-shaped persist** and **edit-layer normalize** into one operation, but only **`updateLocal`**'s baseline is available in the callback. Neither opcode alone models both perspectives cleanly; swapping flush to `update` would break running **normalize** on the correct draft (local only, per [consistency AGENT.md](../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md)).
+**Preferred fix (spike first):** rewire component flush to **`type: 'update'`** so `standardForm.diff(modified)` matches author display. **`type: 'batch'`** remains the fallback if the spike fails or multi-step baselines are required later.
 
 **Risk if unfixed:** layered imports + local overlays (e.g. Room `shortName`) can produce **wrong merged display** after flush (e.g. plain literal **concat** across inherited and local --- `"Lobby"` + `"Lobby in the pitch-black"`). See [Failure mode](#failure-mode-why-this-matters).
 
@@ -32,7 +33,7 @@ Workbench consistency migration cleanup shipped first (2026-06); that migration 
 | --- | --- |
 | **Edit-layer** | `getLocalStandardForm` / `updateLocal` baseline: `base + pendingEdits + edit` for **this asset only** (no `inherited` folded in). |
 | **Merged view** | `getStandardForm`: `inherited.merge(localStandardForm)` --- **display** and session **`committed` / `working`**. |
-| **Consistency layer** | Pure ops on **edit-layer** draft (`materializeComponent`, flush assign; **normalize slated for removal**). Correctly uses **`updateLocal`** today. |
+| **Consistency layer** | Pure ops on **edit-layer** draft (`materializeComponent`, flush assign). Uses **`updateLocal`** for eager materialize; component flush persist TBD (`update` spike). |
 
 Session "local working copy" in UI docs means **in-memory `working`**, not edit-layer --- easy to confuse with **`updateLocal`**.
 
@@ -76,7 +77,7 @@ updateStandard({
 4. Author changes to `"Lobby in the pitch-black"`; session **flush** runs.
 5. **Bug class:** `getStandardForm` shows **`"LobbyLobby in the pitch-black"`** (or repeated prefix on subsequent flushes) if edit layer stores a **plain absolute** string while **inherited** still has plain `"Lobby"`, because WML **`StandardLiteral.merge`** on two plain strings **concatenates** (see [`standardForm.assetMeta.test.ts`](../../../../packages/mtw-wml/ts/standardize/integration/standardForm.assetMeta.test.ts)).
 
-**Note:** Whether production code hits this today depends on whether `localStandardForm.diff(modified)` after wholesale `applyWorkingComponentToDraft` preserves **Replace/With** overlay semantics. **There is no Workbench test** with non-empty `inherited` + session flush on `shortName` --- treat as **unknown until tested**.
+**Note:** Confirmed via reducer integration test (Phase 0 gate): `localStandardForm.diff(modified)` after wholesale assign does **not** preserve overlay semantics under inheritance; **`update`**-baseline diff is the first fix to try.
 
 ---
 
@@ -91,9 +92,23 @@ Allow **one** `updateStandard(assetId)(...)` dispatch (one debounced save, one `
 | **`merged`** | `type: 'update'` | Mutations authored against **display / merged** shape (session persist delta). |
 | **`local`** | `type: 'updateLocal'` | Mutations on **edit-layer** only (`normalizeWorkbenchDraft`, materialize side effects already on local draft, etc.). |
 
-### Normative reducer behavior (sketch)
+### Phase 3 decision (layered flush persist, 2026-06-04)
 
-Payload shape (name TBD), e.g.:
+**Root cause:** component `working` is **merged-shaped** but flush diffs against **local** (`updateLocal` + wholesale assign) -> plain literal on edit + inherited concat.
+
+**Preferred fix (try first):** component **`dispatchFlush`** uses existing **`type: 'update'`** --- same callback (`assureDefaultSituationFromPrimitives` when needed, then `applyWorkbenchFlush` on the **merged** clone). One dispatch, `standardForm.diff(modified)` -> `mergeToEdit`. No new payload type if Phase 0 gate passes.
+
+**Fallback:** extend **`UpdateStandardPayload`** with **`type: 'batch'`** (ordered `steps`, baseline refresh between steps) if the **`update`** spike fails or a second committed baseline is required mid-dispatch.
+
+| Option | Verdict |
+| --- | --- |
+| **Component flush -> `type: 'update'`** | **Try first** (post-2b; normalize no longer blocks) |
+| **`type: 'batch'`** on the union | **Fallback** --- explicit multi-step / `lastReceived.diff(working)` persist if `update` assign is insufficient |
+| Always-array top-level payload | **Defer** |
+| Flush-only helper inside one `updateLocal` | **Reject** |
+| **Asset-meta flush** | **N/A** for this bug --- session uses **local** form only; keep **`updateLocal`** + [`applyAssetMetaFlush`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/applyAssetMetaFlush.ts) |
+
+**Normative payload shape:**
 
 ```typescript
 type UpdateStandardPayloadBatch = {
@@ -102,9 +117,14 @@ type UpdateStandardPayloadBatch = {
     perspective: 'merged' | 'local'
     update: (draft: StandardForm) => StandardForm
   }>
+  base?: StandardFormData
   options?: ScopedInstrumentationOptions
 }
 ```
+
+**`lastUpdateDiff` (initial):** last step that produced a non-empty diff (same as today's single-step overwrite); document in Phase 4 if composite diff is needed for `fetchImports`.
+
+### Normative reducer behavior
 
 **Per step (in order):**
 
@@ -113,16 +133,39 @@ type UpdateStandardPayloadBatch = {
 3. `modified = step.update(baseline.clone())`.
 4. `diff = baseline.diff(modified)`; if non-empty, `mergeToEdit(diff)`.
 
-**Example: component session flush (two steps):**
+**Component session flush (implement Phase 4-5):**
 
-1. **`merged`:** apply session edit relative to merged view (alternative to assigning full `working` onto local draft) --- e.g. derive `lastReceived.diff(working)` and merge into draft, or patch `byUniversalId[id]` in merged-safe form.
-2. **`local`:** `normalizeWorkbenchDraft(draft)` on **updated** edit-layer draft (no inherited in clone).
+**Spike path (`type: 'update'` --- one callback, merged baseline):**
 
-Exact step bodies are **design deliverables** in Phase 3; the batch mechanism is the enabler.
+```typescript
+updateStandard({
+  type: 'update',
+  update: (draft) => {
+    if (hasDefaultFacet) {
+      needsFetch = assureDefaultSituationFromPrimitives(draft)
+    }
+    applyWorkbenchFlush(draft, { componentId, working })
+    return draft
+  },
+})
+```
 
-### Alternative (smaller scope)
+Run Phase 0 gate with this opcode in [`reducers.test.ts`](../../../../charcoal-client/src/slices/personalAssets/reducers.test.ts). D11: [`prepareComponentForFlush`](../../../../charcoal-client/src/components/Workbench/foundations/workbenchMutations.ts) on **`working`** in `performFlush` before dispatch (unchanged).
 
-**Flush-only pure helper** inside a single `updateLocal` step: compute persist diff in merged space, apply to local clone, then normalize --- **no** new payload type. Phase 0 regression + Phase 1 normalize investigation inform whether a normalize-only fix suffices; if not, choose batch vs helper in Phase 2.
+**Fallback batch path** (only if spike fails) --- two steps on union `type: 'batch'`:
+
+| Order | Perspective | Body |
+| --- | --- | --- |
+| 1 (when needed) | **`local`** | `assureDefaultSituationFromPrimitives` |
+| 2 | **`merged`** | Persist via `lastReceived.diff(working)` on merged baseline --- **not** wholesale assign as persist |
+
+No normalize step (retired Phase 2).
+
+**Asset-meta flush:** **out of scope** --- [`useWorkbenchAssetMeta`](../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchAssetMeta/useWorkbenchAssetMeta.tsx) already uses **local** `committed` / **`updateLocal`**; no inherited overlay on asset title/summary.
+
+### Alternative (smaller scope) --- rejected 2026-06-04
+
+**Flush-only pure helper** inside a single `updateLocal` step was considered when normalize caused annihilation; after 2b, the confirmed bug is **baseline mismatch** (`LobbyLobby`). **`type: 'update'`** may suffice without batch; batch is the fallback for explicit multi-step merged persist.
 
 ---
 
@@ -130,8 +173,9 @@ Exact step bodies are **design deliverables** in Phase 3; the batch mechanism is
 
 | Item | Notes |
 | --- | --- |
-| Replacing **`updateLocal`** for consistency layer | **materializeComponentInAsset**, orphan normalize, asset-meta flush stay **edit-layer** / single-step **`updateLocal`**. |
-| Flipping session flush to **`update` only** | Would run normalize on **merged** clone --- wrong for orphan predicate and [consistency AGENT.md](../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md). |
+| Replacing **`updateLocal`** for consistency layer | **materializeComponentInAsset** and **asset-meta** flush stay **`updateLocal`**. |
+| **Component** flush -> **`update`** | **Preferred** post-2b (normalize removed from flush). Assign on **merged** clone so diff baseline matches `working`. |
+| **`type: 'batch'`** for every flush | **Only if** `update` spike fails or multi-step baseline refresh is required. |
 | Same work as consistency migration cleanup (shipped) | Migration fixed **call-site** patterns (materialize, `onAssociateReference`); this plan fixes **persist semantics under inheritance**. |
 
 ---
@@ -142,10 +186,10 @@ Exact step bodies are **design deliverables** in Phase 3; the batch mechanism is
 | --- | --- | --- |
 | 0 | Failing (or passing) regression: inherited + Room shortName + session flush | [X] FAIL (2026-06-04) |
 | 1 | Investigate **normalize** / orphan GC on flush (Phase 0 diagnostics) | [X] (2026-06-04) |
-| 2 | **Purge migration** + authoring UX (display union, pin/unpin, list confirms) | [ ] in progress (2a-2c done) |
-| 3 | Design decision: **batch API** vs **flush-only helper** (layered flush persist) | [ ] |
-| 4 | Implement reducer + types + thunk passthrough | [ ] |
-| 5 | Rewire `useWorkbenchComponent` / `useWorkbenchAssetMeta` flush | [ ] |
+| 2 | **Purge migration** + authoring UX (display union, pin/unpin, list confirms) | [X] (2026-06-04) |
+| 3 | Flush persist spec (`update` spike, batch fallback; asset-meta N/A) | [X] (2026-06-04) |
+| 4 | Fix component flush (`update` spike; batch if needed) | [ ] |
+| 5 | Wire Workbench component flush; confirm asset-meta unchanged | [ ] |
 | 6 | Durable docs + dispose this plan | [ ] |
 
 ---
@@ -158,7 +202,7 @@ Exact step bodies are **design deliverables** in Phase 3; the batch mechanism is
 4. **Session flush:** [`useWorkbenchComponent.tsx`](../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx), [`applyWorkbenchFlush.ts`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/applyWorkbenchFlush.ts), [`workbenchMutations.ts`](../../../../charcoal-client/src/components/Workbench/foundations/workbenchMutations.ts) (`reconcileCommittedComponent`)
 5. **WML merge / shortName:** [`shortNameField.ts`](../../../../packages/mtw-wml/ts/standardize/components/shortNameField.ts), [`standardForm.assetMeta.test.ts`](../../../../packages/mtw-wml/ts/standardize/integration/standardForm.assetMeta.test.ts)
 6. **Phase 1 normalize:** [`normalizeWorkbenchDraft.ts`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/normalizeWorkbenchDraft.ts), [`isReferencedInAssetLayer.ts`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/isReferencedInAssetLayer.ts); Phase 0 diagnostics in [`reducers.test.ts`](../../../../charcoal-client/src/slices/personalAssets/reducers.test.ts)
-7. **Phase 2 top-level UX:** [`TopLevelEditor.tsx`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx), [`referenceListAdapter.ts`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/referenceListAdapter.ts), [`schemaOrganization.ts`](../../../../packages/mtw-wml/ts/standardize/schemaOrganization.ts) (`getChildrenOfParent`)
+7. **Phase 2 top-level UX:** [`TopLevelEditor.tsx`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx), [`topLevelDisplayAdapter.ts`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/topLevelDisplayAdapter.ts), [`schemaOrganization.ts`](../../../../packages/mtw-wml/ts/standardize/schemaOrganization.ts) (`getChildrenOfParent`)
 
 **Baseline (before edits):**
 
@@ -185,30 +229,31 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as e
   - [X] Trace normalize + predicate: [`applyWorkbenchFlush.test.ts`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/applyWorkbenchFlush.test.ts) (`imported Room shortName` describe). Import `ref={0}` on Room tag does **not** populate `_topLevel` or `referencedBy`; wholesale assign does not add linkage.
   - [X] Fix locus: **Phase 2** authoring UX (deletion intents, display union, no normalize-as-deletion); **Phase 3-5** flush persist (batch or helper, overlay shape).
   - [X] Record conclusion in **Status** and Progress table.
-- [ ] **Phase 2 --- Authoring UX + Purge migration** (implement [migration order](#phase-2-migration-purge-in-normalize-out) first)
+- [X] **Phase 2 --- Authoring UX + Purge migration** (implement [migration order](#phase-2-migration-purge-in-normalize-out) first)
   - [X] **2a Purge helper (consistency layer)** (2026-06-04) --- [`previewPurgeClosure`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/previewPurgeClosure.ts), [`confirmPurgeBeforeRemove`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/confirmPurgeBeforeRemove.ts), [`purgeComponentInAsset`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/purgeComponentInAsset.ts); reducer `removeComponent` accepts **`cascade?: boolean`** (default `true`). See [Purge API sketch](#purge-api-sketch-consistency-layer).
   - [X] **2b Remove normalize from flush** (2026-06-04) --- **`normalizeWorkbenchDraft`** removed from [`applyWorkbenchFlush`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/applyWorkbenchFlush.ts) / [`applyAssetMetaFlush`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/applyAssetMetaFlush.ts); Phase 0 body retention test green; merged shortName gate skipped until Phase 3. Orphan stack deletion deferred to **2c** per [evaluation](#normalize-removal-evaluation-phase-2)
   - [X] **2c Wire Purge UX** (2026-06-04) --- TopLevel **Purge** via [`purgeComponentFromAssetFlow`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/purgeComponentFromAssetFlow.ts); [`confirmSiteDisassociateBeforeLocalEdit`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/confirmSiteDisassociateBeforeLocalEdit.ts) on list rows; orphan stack deleted
-  - [ ] **2d Display union + pin/unpin + import** --- product model in [`AGENT.reference-lists.md`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md) / [`consistency/AGENT.md`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md): **`_topLevel` `ref={1}` = roster pin only**; structural = nested **`referencedBy`**; schema **`ref={0}`** = display/organization
-  - [ ] **Import / Add at top-level:** [`materializeComponentInAsset`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/materializeComponentInAsset.ts) -> **`_components` only**; do **not** auto-`assureItem` on [`working.topLevel`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx)
-  - [ ] **Components list display:** union pins + **`SchemaOrganization.getChildrenOfParent(asset)`** via adapter; **pinned** vs **display-only** rows
-  - [ ] **Pin / Unpin:** explicit **`ref={1}`** on `_topLevel` only
-  - [ ] **List row remove:** site-local disassociate; copy lists **remaining `referencedBy`** (no normalize simulation)
-  - [ ] Tests: `previewPurgeClosure` / `confirmPurge*`; flush assign-only; purge rehome vs cascade; TopLevel import; display union; Phase 0 import body not deleted at flush
-- [ ] **Phase 3 --- Design decision (layered flush persist)**
-  - [ ] Phase 0 still fails until persist fixed; choose **batch payload** vs **flush-only helper** (`lastReceived.diff(working)` / merge-on-local overlay, not merged wholesale assign). Document tradeoffs (`lastUpdateDiff`, asset-meta parity).
-  - [ ] Define step order for component flush and asset-meta flush; flush steps are **assign/persist only** (normalize removed in Phase 2).
-  - [ ] Re-run Phase 0 test green as gate after Phase 4-5.
-- [ ] **Phase 4 --- Implement (reducer / flush)**
-  - [ ] Extend `UpdateStandardPayload` + reducer loop with baseline refresh between steps (if Phase 3 selects batch).
-  - [ ] Thunk in [`index.ts`](../../../../charcoal-client/src/slices/personalAssets/index.ts) unchanged except accepting new payload (still one dispatch).
-  - [ ] Unit tests: two-step batch (merged then local), empty second step, order sensitivity.
-- [ ] **Phase 5 --- Wire Workbench (session flush)**
-  - [ ] `dispatchFlush` in `useWorkbenchComponent` uses batch (or approved helper).
-  - [ ] `useWorkbenchAssetMeta` flush if same bug class applies to `_shortName` / `_summary` under inheritance.
-  - [ ] Re-run Phase 0 test green.
+  - [X] **2d Display union + pin/unpin** (2026-06-04) --- [`topLevelDisplayAdapter.ts`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/topLevelDisplayAdapter.ts); merged-form **`getChildrenOfParent(undefined)`** + **`working.topLevel` `ref>=1`** pins; Pin/Unpin row actions in [`TopLevelEditor`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx) / [`ReferenceListEditorGeneric`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListEditorGeneric.tsx)
+  - [X] **Top-level Add / Import / Reference existing:** [`materializeComponentInAsset`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/materializeComponentInAsset.ts) then **`assureItem` on `working.topLevel`** (roster pin / `ref={1}`) --- explicit author intent at the Components list site
+  - [X] **Components list display:** union via adapter; **pinned** vs **display-only** subtitles and row actions
+  - [X] **Pin / Unpin:** Pin adds **`ref={1}`** on `_topLevel`; Unpin = site-local disassociate (2c confirm)
+  - [X] **List row remove (2c):** site-local disassociate; copy lists **remaining `referencedBy`**
+  - [X] **Tests (2d):** [`topLevelDisplayAdapter.test.ts`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/topLevelDisplayAdapter.test.ts), [`TopLevelEditor.test.tsx`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.test.tsx); Phase 0 import body retained in [`applyWorkbenchFlush.test.ts`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/applyWorkbenchFlush.test.ts)
+- [X] **Phase 3 --- Layered flush persist (spec)** (implementation in Phase 4-5)
+  - [X] **Regression gate:** `LobbyLobby in the pitch-black` when un-skipped; remains `it.skip` until fix lands.
+  - [X] **Asset-meta flush:** **N/A** --- local-only session; keep **`updateLocal`** (no batch / merged persist).
+  - [X] **Component fix strategy:** **`type: 'update'`** spike first (merged baseline + same flush callback); **`type: 'batch'`** fallback only if spike fails. See [Phase 3 decision](#phase-3-decision-layered-flush-persist-2026-06-04).
+  - [X] **Not chosen:** always-array payload; flush-only `updateLocal` helper as primary path.
+- [ ] **Phase 4 --- Fix component flush persist**
+  - [ ] **Spike:** Phase 0 harness with `type: 'update'` instead of `updateLocal` (same `applyWorkbenchFlush`); un-skip gate when green.
+  - [ ] **If spike passes:** no `type: 'batch'` reducer work required for this bug class (document flush rule: component session -> `update`).
+  - [ ] **If spike fails:** implement `type: 'batch'` + merged persist helper (`lastReceived.diff(working)` or form-equivalent); unit tests (two-step batch, order sensitivity).
+- [ ] **Phase 5 --- Wire Workbench**
+  - [ ] `useWorkbenchComponent` `dispatchFlush` uses spike-approved opcode (`update` expected).
+  - [ ] **Asset-meta:** no change (`updateLocal`).
+  - [ ] Re-run Phase 0 test green; update Workbench / personalAssets AGENT flush tables.
 - [ ] **Phase 6 --- Docs and cleanup**
-  - [ ] Update `personalAssets/AGENT.md` (batch API and/or flush rules; Purge vs `removeComponent`; when to use perspectives).
+  - [ ] Update `personalAssets/AGENT.md` (component flush -> `update` or batch fallback; Purge vs `removeComponent`; when to use perspectives).
   - [ ] Update Workbench AGENT (session flush, top-level pin vs display union, deletion intents).
   - [ ] Update consistency AGENT (retire normalize-as-deletion norm; Purge path).
   - [X] Consistency migration cleanup shipped; norms in Workbench `AGENT.md` (no separate task plan).
@@ -223,7 +268,7 @@ When implementation starts, from `charcoal-client/`:
 ```bash
 cd charcoal-client
 
-# Phase 0+ gate (stdout: Phase 0 flush diagnostics)
+# Phase 4 spike: change Phase 0 flush payload to type: 'update', then un-skip merged shortName gate
 npm run test:single -- src/slices/personalAssets/reducers.test.ts -t "inherited shortName"
 npm run test:single -- src/components/Workbench/foundations/consistency/applyWorkbenchFlush.test.ts
 
@@ -420,20 +465,24 @@ function previewPurgeClosure(
 
 **Evidence:** Phase 0 test split logging; [`applyWorkbenchFlush.test.ts`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/applyWorkbenchFlush.test.ts) `imported Room shortName` describe.
 
-### Phase 2 (authoring UX)
+### Phase 2 (authoring UX) --- answered 2026-06-04 (2d)
 
-1. Display union on **merged** or **local** `StandardForm` for `getChildrenOfParent`?
-2. **Rehome** confirm: is asset-scoped visibility (display union) enough, or should rehome also **auto-pin** `ref={1}` on `_topLevel`?
-3. Row actions when **display-only** vs **pinned** (Unpin visible only when `ref={1}` present)?
-4. After normalize removal, any **empty** orphan bodies worth a passive UI hint before Purge?
-5. Purge entry points: component header only, TopLevel row, or both?
+1. **Display union form:** **Merged** `standardForm` for `getChildrenOfParent`; pins on **`working.topLevel`** (session -> local `_topLevel` on flush).
+2. **Rehome auto-pin:** Deferred; display union is enough for visibility.
+3. **Row actions:** **Pinned** = Unpin + Purge; **display-only** = Pin + Purge (no Unpin).
+4. **Empty orphan hint:** Deferred.
+5. **Purge entry points:** TopLevel row (shipped 2c); component header TBD.
+6. **Top-level Add/Import/Reference existing:** Auto-pin on `working.topLevel` (roster intent at that site).
 
-### Phase 3 (layered flush persist, after Phase 2)
+### Phase 3 (layered flush persist) --- answered 2026-06-04
 
-1. Should **`merged`** step use **`incoming.merge(lastReceived.diff(working))`** at **form** scope instead of component wholesale assign?
-2. Is **asset-meta** flush (`applyAssetMetaFlush`) affected for inherited asset `ShortName` / `Summary`?
-3. Should **`lastUpdateDiff`** reflect composite diff, last step only, or remain diagnostic-only?
-4. Can **`assureDefaultSituationFromPrimitives`** stay in **local** step only (no normalize GC)?
+1. **Component flush opcode?** Try **`type: 'update'`** first (post-2b: normalize no longer blocks). **`type: 'batch'`** only if spike fails.
+2. **Batch vs always-array vs helper?** Batch union member is **fallback**, not mandatory first ship; defer always-array.
+3. **`lastUpdateDiff`?** Last non-empty diff (single `update` step or last batch step).
+4. **Asset-meta under inheritance?** **N/A** --- [`useWorkbenchAssetMeta`](../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchAssetMeta/useWorkbenchAssetMeta.tsx) uses **local** `committed`; keep **`updateLocal`**.
+5. **If batch needed:** optional **`local`** `assureDefaultSituationFromPrimitives` then **`merged`** persist via `lastReceived.diff(working)` --- not wholesale assign.
+
+**Open for Phase 4 spike only:** does `applyWorkbenchFlush` on a **merged** clone (via `update`) produce a correct `mergeToEdit` diff for the Phase 0 fixture?
 
 ---
 
