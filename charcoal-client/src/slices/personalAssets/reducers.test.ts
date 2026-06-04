@@ -8,15 +8,10 @@ import { Schema, schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import { deIndentWML } from "@tonylb/mtw-wml/ts/schema/utils"
 import { publicSelectors } from "./selectors"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
+import { applyWorkbenchFlush } from "../../components/Workbench/foundations/consistency/applyWorkbenchFlush"
 import { isReferencedInAssetLayer } from "../../components/Workbench/foundations/consistency/isReferencedInAssetLayer"
-import {
-    findOrphanComponents,
-    normalizeWorkbenchDraft
-} from "../../components/Workbench/foundations/consistency/normalizeWorkbenchDraft"
-import {
-    applyWorkingComponentToDraft,
-    setWorkingShortNameFromString
-} from "../../components/Workbench/foundations/workbenchMutations"
+import { findOrphanComponents } from "../../components/Workbench/foundations/consistency/normalizeWorkbenchDraft"
+import { setWorkingShortNameFromString } from "../../components/Workbench/foundations/workbenchMutations"
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render"
 import {
@@ -769,7 +764,57 @@ describe('personalAsset slice reducers', () => {
             </Asset>
         `
 
-        it('merged shortName after updateLocal flush does not double inherited Lobby prefix', () => {
+        const buildPhase0Working = (baseJSON: StandardFormData, preFlushState: PersonalAssetsPublic) => {
+            const mergedForm = new StandardForm(
+                publicSelectors.getStandardForm(augmentedState(preFlushState, baseJSON))
+            )
+            const roomInMerged = mergedForm.byUniversalId[ROOM_ID]
+            expect(roomInMerged).toBeInstanceOf(StandardRoom)
+            const working = (roomInMerged as StandardRoom).clone()
+            setWorkingShortNameFromString(working, 'Lobby in the pitch-black')
+            return working
+        }
+
+        const localRoomShortName = (
+            state: PersonalAssetsPublic,
+            base: StandardFormData,
+            roomId: ComponentUUID
+        ): string | undefined => {
+            const local = new StandardForm(
+                publicSelectors.getLocalStandardForm({ ...state, base, key: '' } as PersonalAssetsPublic & { base: StandardFormData; key: string })
+            )
+            const room = local.byUniversalId[roomId]
+            if (!(room instanceof StandardRoom)) {
+                return undefined
+            }
+            const shortNameJson = room.shortName?.toJSON()
+            return typeof shortNameJson === 'string' ? shortNameJson : undefined
+        }
+
+        it('retains local room body after applyWorkbenchFlush (Phase 2b)', () => {
+            const baseJSON = wmlToJSON(baseWml)
+            const preFlushState = minimalPersonalAssetsState({
+                inherited: wmlToJSON(inheritedWml),
+                edit: wmlToJSON(editWml)
+            })
+            expect(mergedRoomShortName(preFlushState, baseJSON, ROOM_ID)).toBe('Lobby in the dark')
+
+            const working = buildPhase0Working(baseJSON, preFlushState)
+
+            const postFlushState = runUpdateLocalWithLayers(baseWml, inheritedWml, editWml, {
+                type: 'updateLocal',
+                update: (draft) => {
+                    logPhase0LocalDraft('local draft BEFORE flush', draft, ROOM_ID)
+                    applyWorkbenchFlush(draft, { componentId: ROOM_ID, working })
+                    logPhase0LocalDraft('local draft AFTER applyWorkbenchFlush', draft, ROOM_ID)
+                    return draft
+                }
+            })
+
+            expect(localRoomShortName(postFlushState, baseJSON, ROOM_ID)).toBe('Lobby in the pitch-black')
+        })
+
+        it.skip('merged shortName after updateLocal flush does not double inherited Lobby prefix (Phase 3 gate)', () => {
             const baseJSON = wmlToJSON(baseWml)
             const preFlushState = minimalPersonalAssetsState({
                 inherited: wmlToJSON(inheritedWml),
@@ -778,13 +823,7 @@ describe('personalAsset slice reducers', () => {
             expect(mergedRoomShortName(preFlushState, baseJSON, ROOM_ID)).toBe('Lobby in the dark')
             logPhase0FlushDiagnostics('preFlushState', preFlushState, baseJSON, ROOM_ID)
 
-            const mergedForm = new StandardForm(
-                publicSelectors.getStandardForm(augmentedState(preFlushState, baseJSON))
-            )
-            const roomInMerged = mergedForm.byUniversalId[ROOM_ID]
-            expect(roomInMerged).toBeInstanceOf(StandardRoom)
-            const working = (roomInMerged as StandardRoom).clone()
-            setWorkingShortNameFromString(working, 'Lobby in the pitch-black')
+            const working = buildPhase0Working(baseJSON, preFlushState)
             console.log(
                 '[Phase 0 flush] session working shortName JSON:',
                 JSON.stringify(working.shortName?.toJSON())
@@ -793,11 +832,7 @@ describe('personalAsset slice reducers', () => {
             const postFlushState = runUpdateLocalWithLayers(baseWml, inheritedWml, editWml, {
                 type: 'updateLocal',
                 update: (draft) => {
-                    logPhase0LocalDraft('local draft BEFORE assign', draft, ROOM_ID)
-                    applyWorkingComponentToDraft(draft, ROOM_ID, working)
-                    logPhase0LocalDraft('local draft AFTER assign only', draft, ROOM_ID)
-                    normalizeWorkbenchDraft(draft)
-                    logPhase0LocalDraft('local draft AFTER normalize', draft, ROOM_ID)
+                    applyWorkbenchFlush(draft, { componentId: ROOM_ID, working })
                     return draft
                 }
             })

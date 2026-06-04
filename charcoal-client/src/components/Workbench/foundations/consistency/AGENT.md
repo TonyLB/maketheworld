@@ -19,7 +19,7 @@ The consistency layer centralizes **global** operations on the **local** asset `
 | **Transitive GC** | Fixpoint normalize today; **planned:** explicit Purge **cascade** only after author confirms (normalize retired). |
 | **Area orphan closure** | Disassociating an Area such that Rooms become unreferenced and are GC'd by fixpoint is **acceptable** in v1; richer Area confirm UX is future work. |
 | **Materialize spec** | [`materializeComponent`](#materializecomponent): `{ universalKey, fromAsset? }`; derive tag from UUID prefix. |
-| **Materialize vs normalize timing** | Eager **`materializeComponentInAsset`** on Redux local draft; **`normalizeWorkbenchDraft`** only at flush. |
+| **Materialize vs normalize timing** | Eager **`materializeComponentInAsset`** on Redux local draft. Session flush is **assign only** (no normalize). **`normalizeWorkbenchDraft`** remains for **`previewOrphanClosure`** until Phase 2c. |
 | **Asset-meta flush** | [`applyAssetMetaFlush`](#applyassetmetaflush) + [`useWorkbenchAssetMeta`](../WorkbenchAssetMeta/useWorkbenchAssetMeta.tsx) mirror component session. |
 
 ## User-facing removal
@@ -72,9 +72,9 @@ Pure functions in this module mutate a **`StandardForm` draft** passed into them
 | --- | --- | --- |
 | **`materializeComponent`** | Immediately on create/import (pure; use via **`materializeComponentInAsset`**) | See **`materializeComponentInAsset`** below. |
 | **`materializeComponentInAsset`** | Immediately on create/import | **Awaitable** thunk: **`updateStandard`** with **`type: 'updateLocal'`** on the Redux **local** draft (`getLocalStandardForm`). Fast-path when the body is already on the local form and **`fromAsset`** is unset. **Not** on component-session `working`. **Not** deferred to debounced flush. Exposed on [`useWorkbenchAsset`](../useWorkbenchAsset.ts). |
-| **`applyWorkbenchFlush`** | At component-session flush | Pure pipeline: assign component **`working`** + **`normalizeWorkbenchDraft`**. Wired from [`dispatchFlush`](../WorkbenchComponent/useWorkbenchComponent.tsx) via **`updateLocal`**; [`assureDefaultSituationFromPrimitives`](../../../../slices/personalAssets/assureDefaultSituationFromPrimitives.ts) may run before **`applyWorkbenchFlush`** when DEFAULT facet prose is present. **No** materialize. |
-| **`applyAssetMetaFlush`** | At asset-meta session flush | Pure pipeline: assign **`_shortName`**, **`_summary`**, **`_topLevel`** from asset-meta **`working`**, then **`normalizeWorkbenchDraft`**. Wired from [`useWorkbenchAssetMeta`](../WorkbenchAssetMeta/useWorkbenchAssetMeta.tsx) via **`updateLocal`** (mirror **`applyWorkbenchFlush`**). **No** materialize. See [below](#applyassetmetaflush). |
-| **`normalizeWorkbenchDraft`** | At flush (via **`applyWorkbenchFlush`** or **`applyAssetMetaFlush`**) | Fixpoint orphan GC on the **local** draft. |
+| **`applyWorkbenchFlush`** | At component-session flush | Pure pipeline: assign component **`working`** only (optional **`beforeAssign`**). Wired from [`dispatchFlush`](../WorkbenchComponent/useWorkbenchComponent.tsx) via **`updateLocal`**; [`assureDefaultSituationFromPrimitives`](../../../../slices/personalAssets/assureDefaultSituationFromPrimitives.ts) may run before **`applyWorkbenchFlush`** when DEFAULT facet prose is present. **No** materialize, **no** orphan GC. |
+| **`applyAssetMetaFlush`** | At asset-meta session flush | Pure pipeline: assign **`_shortName`**, **`_summary`**, **`_topLevel`** from asset-meta **`working`** only. Wired from [`useWorkbenchAssetMeta`](../WorkbenchAssetMeta/useWorkbenchAssetMeta.tsx) via **`updateLocal`** (mirror **`applyWorkbenchFlush`**). **No** materialize, **no** orphan GC. See [below](#applyassetmetaflush). |
+| **`normalizeWorkbenchDraft`** | Orphan preview only (until Phase 2c) | Fixpoint orphan GC on the **local** draft. **Not** called at flush. Used by **`previewOrphanClosure`** for list-row confirm. |
 
 Eager materialize commits a **different** `universalKey` than the open parent session id; it should not supersede that parent's `working` / `lastReceived` (component session or open asset-meta **`working._topLevel`** when committed asset-meta is unchanged). See [Orchestration timing](#orchestration-timing) and [`applyAssetMetaFlush`](#applyassetmetaflush).
 
@@ -161,7 +161,7 @@ Call via **`useWorkbenchAsset().materializeComponentInAsset(spec)`** or `dispatc
 
 ## `applyWorkbenchFlush`
 
-Apply component-session **`working`** to a **local** `StandardForm` draft, then normalize. **Does not** materialize.
+Apply component-session **`working`** to a **local** `StandardForm` draft (assign only). **Does not** materialize or run orphan GC.
 
 ```typescript
 function applyWorkbenchFlush<T extends StandardComponent>(
@@ -176,19 +176,19 @@ function applyWorkbenchFlush<T extends StandardComponent>(
 
 **Implementation:** [`applyWorkbenchFlush.ts`](./applyWorkbenchFlush.ts), exported from [`index.ts`](./index.ts).
 
-**Order inside `applyWorkbenchFlush`:** optional **`beforeAssign`** -> [`applyWorkingComponentToDraft`](../workbenchMutations.ts) (shortName prep) -> **`normalizeWorkbenchDraft`**.
+**Order inside `applyWorkbenchFlush`:** optional **`beforeAssign`** -> [`applyWorkingComponentToDraft`](../workbenchMutations.ts) (shortName prep).
 
 **[`useWorkbenchComponent`](../WorkbenchComponent/useWorkbenchComponent.tsx) `dispatchFlush`:** runs situation DEFAULT assurance when needed, then **`applyWorkbenchFlush`**. Dispatches **`updateStandard({ type: 'updateLocal', ... })`** so the reducer diffs against **`getLocalStandardForm`**, not merged **`getStandardForm`**.
 
 ### Imported component flush (linkage + merged `working`)
 
-For **import + inline edit** (e.g. base `<Room from=(...) ref={0} />` plus edit-layer overlay on `shortName`), the parsed **local** form may have the Room body in `byUniversalId` but **`_topLevel` empty** and **`referencedBy(room)` empty**. [`isReferencedInAssetLayer`](./isReferencedInAssetLayer.ts) is then **false** even before flush assign; **`normalizeWorkbenchFlush` at flush removes** that body (D3 non-empty orphan). Assigning merged-session **`working`** via [`applyWorkingComponentToDraft`](../workbenchMutations.ts) does not restore linkage and writes a **plain** merged `shortName`, not the edit-layer additive overlay.
+For **import + inline edit** (e.g. base `<Room from=(...) ref={0} />` plus edit-layer overlay on `shortName`), the parsed **local** form may have the Room body in `byUniversalId` but **`_topLevel` empty** and **`referencedBy(room)` empty**. Flush **assign only** retains that body (Phase 2b); it no longer runs **`normalizeWorkbenchDraft`**. Assigning merged-session **`working`** via [`applyWorkingComponentToDraft`](../workbenchMutations.ts) still writes a **plain** merged `shortName`, not the edit-layer additive overlay --- merged display under inheritance is a **Phase 3-5** persist fix.
 
-**Norm until fixed:** session flush must not rely on wholesale merged assign + normalize alone for this pattern; preserve asset-layer reference (typically `_topLevel` import `ref={0}`) and persist edit-layer overlay shape. See [`applyWorkbenchFlush.test.ts`](./applyWorkbenchFlush.test.ts) (`imported Room shortName`) and task plan [`AGENT.updateStandardExtension.planning.md`](../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.updateStandardExtension.planning.md) Phase 1.
+See [`applyWorkbenchFlush.test.ts`](./applyWorkbenchFlush.test.ts) (`imported Room shortName`) and task plan [`AGENT.updateStandardExtension.planning.md`](../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.updateStandardExtension.planning.md).
 
 ## `applyAssetMetaFlush`
 
-Apply asset-meta session **`working`** to a **local** `StandardForm` draft, then normalize. **Does not** materialize. Same fixpoint **`normalizeWorkbenchDraft`** as component flush; different assign target (asset root fields, not `byUniversalId[componentId]`).
+Apply asset-meta session **`working`** to a **local** `StandardForm` draft (assign only). **Does not** materialize or run orphan GC. Same assign-only pattern as component flush; different assign target (asset root fields, not `byUniversalId[componentId]`).
 
 ```typescript
 type WorkbenchAssetMetaWorking = {
@@ -206,7 +206,7 @@ function applyAssetMetaFlush(
 ): WorkbenchAssetMetaWorking
 ```
 
-**Order inside `applyAssetMetaFlush`:** optional **`beforeAssign`** -> [`applyWorkingAssetMetaToDraft`](../workbenchMutations.ts) (shortName/summary prep) -> **`normalizeWorkbenchDraft`**.
+**Order inside `applyAssetMetaFlush`:** optional **`beforeAssign`** -> [`applyWorkingAssetMetaToDraft`](../workbenchMutations.ts) (shortName/summary prep).
 
 **Implementation:** [`applyAssetMetaFlush.ts`](./applyAssetMetaFlush.ts), exported from [`index.ts`](./index.ts).
 
@@ -296,7 +296,7 @@ purgeComponentInAsset(assetId)({ reference, disposition: 'rehome' | 'cascade' })
 
 ## Ref scrub (belt-and-suspenders)
 
-`normalizeWorkbenchDraft` runs a **fixpoint** loop; each pass includes a defensive **ref scrub** step after orphan body removal. Flush invokes normalize via **`applyWorkbenchFlush`** or **`applyAssetMetaFlush`**; this section defines scrub's role.
+`normalizeWorkbenchDraft` runs a **fixpoint** loop; each pass includes a defensive **ref scrub** step after orphan body removal. **Not** invoked at flush (Phase 2b); used by **`previewOrphanClosure`** until Phase 2c. This section defines scrub's role.
 
 Per pass, after orphan detection and body removal:
 

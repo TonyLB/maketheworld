@@ -1,6 +1,6 @@
 # updateStandard batch extension (layered editing / session flush)
 
-**Status:** **In progress** (active 2026-06-04). **Phase 0 (2026-06-04): FAIL** --- reducer integration test `merged shortName after updateLocal flush does not double inherited Lobby prefix` in [`reducers.test.ts`](../../../../charcoal-client/src/slices/personalAssets/reducers.test.ts). **Phase 1 (2026-06-04): complete** --- orphan GC at flush is **misaligned** with import/overlay storage (predicate vs schema tree); see [Phase 1 findings](#phase-1-findings-2026-06-04). **Phase 2 (in progress):** **2a complete** (Purge helper); **next 2b** --- remove normalize from flush, then 2c-2d authoring UX (see [migration](#phase-2-migration-purge-in-normalize-out)). **Phase 3+:** layered flush persist (batch or helper); Phase 0 gate still applies.
+**Status:** **In progress** (active 2026-06-04). **Phase 0 (2026-06-04):** body retention at flush **PASS** (2b); merged shortName gate **SKIP** until Phase 3 (`it.skip` in [`reducers.test.ts`](../../../../charcoal-client/src/slices/personalAssets/reducers.test.ts) --- receives `LobbyLobby in the pitch-black`). **Phase 1 (2026-06-04): complete** --- orphan GC at flush is **misaligned** with import/overlay storage (predicate vs schema tree); see [Phase 1 findings](#phase-1-findings-2026-06-04). **Phase 2 (in progress):** **2a-2b complete** (Purge helper; flush assign-only); **next 2c** --- delete orphan stack, wire Purge UX, then 2d (see [migration](#phase-2-migration-purge-in-normalize-out)). **Phase 3+:** layered flush persist (batch or helper).
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into [`personalAssets/AGENT.md`](../../../../charcoal-client/src/slices/personalAssets/AGENT.md) and [`Workbench/AGENT.md`](../../../../charcoal-client/src/components/Workbench/AGENT.md).
 
@@ -142,7 +142,7 @@ Exact step bodies are **design deliverables** in Phase 3; the batch mechanism is
 | --- | --- | --- |
 | 0 | Failing (or passing) regression: inherited + Room shortName + session flush | [X] FAIL (2026-06-04) |
 | 1 | Investigate **normalize** / orphan GC on flush (Phase 0 diagnostics) | [X] (2026-06-04) |
-| 2 | **Purge migration** + authoring UX (display union, pin/unpin, list confirms) | [ ] in progress (2a done) |
+| 2 | **Purge migration** + authoring UX (display union, pin/unpin, list confirms) | [ ] in progress (2a-2b done) |
 | 3 | Design decision: **batch API** vs **flush-only helper** (layered flush persist) | [ ] |
 | 4 | Implement reducer + types + thunk passthrough | [ ] |
 | 5 | Rewire `useWorkbenchComponent` / `useWorkbenchAssetMeta` flush | [ ] |
@@ -187,7 +187,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as e
   - [X] Record conclusion in **Status** and Progress table.
 - [ ] **Phase 2 --- Authoring UX + Purge migration** (implement [migration order](#phase-2-migration-purge-in-normalize-out) first)
   - [X] **2a Purge helper (consistency layer)** (2026-06-04) --- [`previewPurgeClosure`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/previewPurgeClosure.ts), [`confirmPurgeBeforeRemove`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/confirmPurgeBeforeRemove.ts), [`purgeComponentInAsset`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/purgeComponentInAsset.ts); reducer `removeComponent` accepts **`cascade?: boolean`** (default `true`). See [Purge API sketch](#purge-api-sketch-consistency-layer).
-  - [ ] **2b Remove normalize from flush** --- strip **`normalizeWorkbenchDraft`** from [`applyWorkbenchFlush`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/applyWorkbenchFlush.ts) / [`applyAssetMetaFlush`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/applyAssetMetaFlush.ts) (unblocks Phase 0 body retention); delete orphan stack per [evaluation](#normalize-removal-evaluation-phase-2)
+  - [X] **2b Remove normalize from flush** (2026-06-04) --- **`normalizeWorkbenchDraft`** removed from [`applyWorkbenchFlush`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/applyWorkbenchFlush.ts) / [`applyAssetMetaFlush`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/applyAssetMetaFlush.ts); Phase 0 body retention test green; merged shortName gate skipped until Phase 3. Orphan stack deletion deferred to **2c** per [evaluation](#normalize-removal-evaluation-phase-2)
   - [ ] **2c Wire Purge UX** --- mount explicit Purge actions; replace [`confirmOrphanClosure*`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/confirmOrphanClosureBeforeLocalEdit.ts) on list rows with site-local copy only
   - [ ] **2d Display union + pin/unpin + import** --- product model in [`AGENT.reference-lists.md`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md) / [`consistency/AGENT.md`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md): **`_topLevel` `ref={1}` = roster pin only**; structural = nested **`referencedBy`**; schema **`ref={0}`** = display/organization
   - [ ] **Import / Add at top-level:** [`materializeComponentInAsset`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/materializeComponentInAsset.ts) -> **`_components` only**; do **not** auto-`assureItem` on [`working.topLevel`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx)
@@ -257,7 +257,7 @@ npm run test:single -- src/components/Workbench/foundations/WorkbenchAssetMeta
 | Finding | Fix locus (phases) |
 | --- | --- |
 | `_topLevel` empty; `referencedBy` empty on fixture | **Phase 2:** display union for discoverability; pin optional; **do not** treat as orphan for deletion |
-| Normalize removes room (expected D3) | **Phase 2:** retire normalize-as-deletion; **Phase 3-5:** flush without body GC |
+| Normalize removes room (expected D3) | **Phase 2b (done):** flush assign-only (no body GC at flush); **2c:** retire normalize-as-deletion in preview/confirm; **Phase 3-5:** overlay persist |
 | `prepareComponentForFlush` writes plain merged string | **Phase 3-5:** overlay persist (`lastReceived.diff(working)` / batch or helper) |
 | Annihilation + wrong literal shape | **Phase 2** Purge vs disassociate + **Phase 3-5** flush persist |
 

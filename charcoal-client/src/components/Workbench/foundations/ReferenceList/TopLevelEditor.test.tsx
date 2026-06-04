@@ -196,7 +196,7 @@ describe('TopLevelEditor', () => {
         expect(keys[0]).toMatch(/^ROOM#/)
     })
 
-    it('flush remove normalizes room and nested feature from byUniversalId', async () => {
+    it('flush remove retains room and nested feature in byUniversalId (assign only)', async () => {
         renderWorkbenchAssetMetaSession({
             options: { wml: assetWithRoomAndFeatureWml, flushDelayMs: FLUSH_DELAY_MS },
             children: <TopLevelEditor />
@@ -210,7 +210,8 @@ describe('TopLevelEditor', () => {
         })
 
         const flushed = applyLastFlushToCommitted()
-        expect(flushed.byUniversalId['ROOM#room1' as ComponentUUID]).toBeUndefined()
-        expect(flushed.byUniversalId['FEATURE#feat1' as ComponentUUID]).toBeUndefined()
+        expect(flushed.byUniversalId['ROOM#room1' as ComponentUUID]).toBeDefined()
+        expect(flushed.byUniversalId['FEATURE#feat1' as ComponentUUID]).toBeDefined()
+        expect(flushed._topLevel?.payload ?? []).toHaveLength(0)
     })
 })

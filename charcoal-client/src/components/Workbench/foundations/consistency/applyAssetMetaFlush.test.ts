@@ -43,7 +43,7 @@ describe('applyAssetMetaFlush', () => {
         expect(draft._topLevel?.payload[0].universalKey).toBe(ROOM_ID)
     })
 
-    it('invokes beforeAssign before assign and normalize', () => {
+    it('invokes beforeAssign before assign only', () => {
         const draft = new StandardForm(deIndentWML(`
             <Asset uuid=(test)>
                 <ShortName>Old</ShortName>
@@ -67,7 +67,7 @@ describe('applyAssetMetaFlush', () => {
         expect(draft.shortName?.toJSON()).toBe('New')
     })
 
-    it('normalizes orphans after working disassociates topLevel', () => {
+    it('does not remove bodies after working disassociates topLevel', () => {
         const draft = new StandardForm({
             universalKey: ASSET_ID,
             metaData: [],
@@ -111,8 +111,9 @@ describe('applyAssetMetaFlush', () => {
 
         applyAssetMetaFlush(draft, { working })
 
-        expect(draft.byUniversalId[ROOM_ID]).toBeUndefined()
-        expect(draft.byUniversalId[FEATURE_ID]).toBeUndefined()
+        expect(draft.byUniversalId[ROOM_ID]).toBeDefined()
+        expect(draft.byUniversalId[FEATURE_ID]).toBeDefined()
+        expect(draft._topLevel?.payload ?? []).toHaveLength(0)
     })
 
     it('omits whitespace-only shortName on flush (D11)', () => {

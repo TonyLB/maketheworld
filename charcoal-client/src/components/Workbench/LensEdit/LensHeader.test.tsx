@@ -323,7 +323,7 @@ describe('LensHeader', () => {
         expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'updateLocal' })
     })
 
-    it('flush after delete normalizes orphaned nested lens from byUniversalId', async () => {
+    it('flush after delete retains orphaned nested lens in byUniversalId (assign only)', async () => {
         renderLensHeader(nestedOnlyLensWml)
 
         await act(async () => {
@@ -333,7 +333,7 @@ describe('LensHeader', () => {
         })
 
         const flushed = applyLastFlushToCommitted()
-        expect(flushed.byUniversalId[LENS_ID]).toBeUndefined()
+        expect(flushed.byUniversalId[LENS_ID]).toBeDefined()
     })
 
     it('keeps lens body when deleted from room but lens is on top level', async () => {

@@ -41,7 +41,7 @@ describe('applyWorkbenchFlush', () => {
         expect((flushed as StandardFeature).shortName?.toJSON()).toBe('New')
     })
 
-    it('runs beforeAssign before assign and normalize', () => {
+    it('runs beforeAssign before assign only', () => {
         const draft = new StandardForm(deIndentWML(`
             <Asset uuid=(test)>
                 <Room uuid=(room1) key=(room1)><ShortName>Room</ShortName></Room>
@@ -74,7 +74,7 @@ describe('applyWorkbenchFlush', () => {
         expect(draft.byUniversalId[GUIDANCE_ID]).toBeDefined()
     })
 
-    it('normalizes orphans after beforeAssign disassociates _topLevel', () => {
+    it('does not remove bodies after beforeAssign disassociates _topLevel', () => {
         const draft = new StandardForm({
             universalKey: ASSET_ID,
             metaData: [],
@@ -123,8 +123,8 @@ describe('applyWorkbenchFlush', () => {
             }
         })
 
-        expect(draft.byUniversalId[ROOM_ID]).toBeUndefined()
-        expect(draft.byUniversalId[FEATURE_ID]).toBeUndefined()
+        expect(draft.byUniversalId[ROOM_ID]).toBeDefined()
+        expect(draft.byUniversalId[FEATURE_ID]).toBeDefined()
     })
 
     describe('imported Room shortName (Phase 0 / Phase 1 fixture)', () => {
@@ -174,7 +174,7 @@ describe('applyWorkbenchFlush', () => {
             expect(findOrphanComponents(local).map((c) => c.universalKey)).toEqual([ROOM_LOBBY_ID])
         })
 
-        it('assign leaves room on draft but normalize removes orphan (predicate false before normalize)', () => {
+        it('assign leaves room on draft with plain merged shortName', () => {
             const { local, working } = buildPhase0Forms()
             const draft = local._clone()
             const roomRef = draft.byUniversalId[ROOM_LOBBY_ID]!.reference
@@ -189,10 +189,18 @@ describe('applyWorkbenchFlush', () => {
             )
             expect(isReferencedInAssetLayer(draft, roomRef)).toBe(false)
             expect(findOrphanComponents(draft).map((c) => c.universalKey)).toEqual([ROOM_LOBBY_ID])
+        })
+
+        it('flush retains imported room body (assign only, no orphan GC)', () => {
+            const { local, working } = buildPhase0Forms()
+            const draft = local._clone()
 
             applyWorkbenchFlush(draft, { componentId: ROOM_LOBBY_ID, working })
 
-            expect(draft.byUniversalId[ROOM_LOBBY_ID]).toBeUndefined()
+            expect(draft.byUniversalId[ROOM_LOBBY_ID]).toBeInstanceOf(StandardRoom)
+            expect((draft.byUniversalId[ROOM_LOBBY_ID] as StandardRoom).shortName?.toJSON()).toBe(
+                'Lobby in the pitch-black'
+            )
             expect(draft._topLevel?.payload ?? []).toHaveLength(0)
         })
 

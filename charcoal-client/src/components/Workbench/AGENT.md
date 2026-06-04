@@ -66,7 +66,7 @@ UI primitives (StandardLiteralEditor, StandardRenderEditor)
 
 - **State:** `working` (editor copy), `lastReceived` (reconcile baseline), `committed` (live Redux selector view).
 - **`updateComponent`:** immediate `working.clone()` then mutate; resets debounce timer.
-- **`flushToStandardForm`:** debounced persist (default ~1000ms; `flushDelayMs` on provider). Flush dispatches **`updateLocal`** and runs [`applyWorkbenchFlush`](./foundations/consistency/applyWorkbenchFlush.ts) (assign **`working`** via [`applyWorkingComponentToDraft`](./foundations/workbenchMutations.ts) / shortName prep, then **`normalizeWorkbenchDraft`**). Skips dispatch when `lastReceived.diff(working)` is undefined (semantic no-op at component scope).
+- **`flushToStandardForm`:** debounced persist (default ~1000ms; `flushDelayMs` on provider). Flush dispatches **`updateLocal`** and runs [`applyWorkbenchFlush`](./foundations/consistency/applyWorkbenchFlush.ts) (assign **`working`** via [`applyWorkingComponentToDraft`](./foundations/workbenchMutations.ts) / shortName prep only). Skips dispatch when `lastReceived.diff(working)` is undefined (semantic no-op at component scope).
 - **`flushNow`:** cancel pending debounce and flush immediately; runs on provider unmount and `componentId` change.
 - **Create/import:** **`await materializeComponentInAsset`** on the Redux local draft, then associate on parent **`working`** via **`updateComponent`**; debounced flush (**`applyWorkbenchFlush`**) persists list edits.
 - **DEFAULT situation:** when `working` references **SITUATION#DEFAULT**, flush may call [`assureDefaultSituationFromPrimitives`](../../slices/personalAssets/assureDefaultSituationFromPrimitives.ts) before assign.
@@ -115,7 +115,7 @@ Module home: **`foundations/WorkbenchAssetMeta/`**, mirroring [`WorkbenchCompone
 
 - **State:** `working` (editor copy), `lastReceived` (reconcile baseline), `committed` (live Redux asset-meta view).
 - **`updateAssetMeta`:** immediate working mutate; resets debounce timer.
-- **`flushToStandardForm`:** debounced persist via **`updateLocal`** and [`applyAssetMetaFlush`](./foundations/consistency/AGENT.md#applyassetmetaflush) (assign **`_shortName`**, **`_summary`**, **`_topLevel`** from working, then **`normalizeWorkbenchDraft`**). **No** materialize in flush.
+- **`flushToStandardForm`:** debounced persist via **`updateLocal`** and [`applyAssetMetaFlush`](./foundations/consistency/AGENT.md#applyassetmetaflush) (assign **`_shortName`**, **`_summary`**, **`_topLevel`** from working only). **No** materialize or orphan GC in flush.
 - **`flushNow`:** cancel pending debounce and flush immediately; runs on provider unmount.
 - **Create/import:** **`await materializeComponentInAsset`** on the Redux local draft, then associate on **`working._topLevel`** (same as [`ReferenceListSessionEditor`](./foundations/ReferenceList/ReferenceListSessionEditor.tsx) on a component parent).
 - **List row remove:** disassociate on **`working._topLevel`** + debounced flush + normalize; **never** `removeComponent` for list rows.
