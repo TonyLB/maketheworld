@@ -16,7 +16,8 @@ The consistency layer centralizes **global** operations on the **local** asset `
 | **Site-local confirm** | [`confirmSiteDisassociateBefore*`](#confirmsitedisassociatebeforelocaledit) always confirms (except empty local body); copy explains asset-level retention and remaining **`referencedBy`**. |
 | **Explicit Purge** | [`purgeComponentFromAssetFlow`](#purgecomponentfromassetflow) on **TopLevel** rows only (Phase 2c); uses [`previewPurgeClosure`](#previewpurgeclosure) + [`confirmPurgeBeforeRemove`](#confirmpurgebeforeremove) + [`purgeComponentInAsset`](#purgecomponentinasset). |
 | **Materialize spec** | [`materializeComponent`](#materializecomponent): `{ universalKey, fromAsset? }`; derive tag from UUID prefix. |
-| **Materialize vs flush** | Eager **`materializeComponentInAsset`** on Redux local draft. Session flush is **assign only** (no orphan GC). |
+| **Materialize vs flush** | Eager **`materializeComponentInAsset`** on Redux local draft. Session flush is **assign only** (no body GC at flush). |
+| **Retired (2026-06)** | Flush-time **`normalizeWorkbenchDraft`** and orphan-preview-as-deletion; bodies stay until **Purge**. |
 | **Asset-meta flush** | [`applyAssetMetaFlush`](#applyassetmetaflush) + [`useWorkbenchAssetMeta`](../WorkbenchAssetMeta/useWorkbenchAssetMeta.tsx) mirror component session. |
 
 ## User-facing removal
@@ -97,7 +98,7 @@ Eager global materialize for Workbench create/import.
 
 ## `applyWorkbenchFlush`
 
-Apply component-session **`working`** to a `StandardForm` draft clone (assign only). Production flush passes a **merged** clone via **`type: 'update'`** in [`dispatchFlush`](../WorkbenchComponent/useWorkbenchComponent.tsx); the opcode determines diff baseline, not this helper.
+Apply component-session **`working`** to a `StandardForm` draft clone (assign only). Production flush passes a **merged** clone via **`type: 'update'`** in [`dispatchFlush`](../WorkbenchComponent/useWorkbenchComponent.tsx); the opcode determines diff baseline, not this helper. When **`working`** references **SITUATION#DEFAULT**, [`assureDefaultSituationFromPrimitives`](../../../../slices/personalAssets/assureDefaultSituationFromPrimitives.ts) runs in the same **`update`** callback before assign (see [`useWorkbenchComponent`](../WorkbenchComponent/useWorkbenchComponent.tsx)).
 
 **Implementation:** [`applyWorkbenchFlush.ts`](./applyWorkbenchFlush.ts).
 
@@ -155,5 +156,5 @@ Run from `charcoal-client/`: `npm run test:single -- src/components/Workbench/fo
 | --- | --- |
 | [Workbench AGENT.md](../../AGENT.md) | Workbench composition; sessions |
 | [AGENT.reference-lists.md](../ReferenceList/AGENT.reference-lists.md) | List shells, associate/disassociate |
-| [personalAssets AGENT.md](../../../../slices/personalAssets/AGENT.md) | `updateStandard`, Purge vs disassociate |
+| [personalAssets AGENT.md](../../../../slices/personalAssets/AGENT.md) | [updateStandard perspectives](../../../../slices/personalAssets/AGENT.md#updatestandard-perspectives-workbench), Purge vs disassociate; deferred `batch` |
 | [`standardForm.removeComponent.test.ts`](../../../../../../packages/mtw-wml/ts/standardize/integration/standardForm.removeComponent.test.ts) | Engine `removeComponent` |

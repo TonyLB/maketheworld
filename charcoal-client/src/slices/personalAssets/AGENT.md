@@ -18,6 +18,14 @@ personalAssets sits between the [Workbench](../components/Workbench/AGENT.md) (f
 - **inherited**: Standard form data inherited from imports (from other assets).
 - **StandardForm / StandardFormData**: WML representation; see [Standard Form](../../../packages/mtw-wml/ts/standardize/AGENT.md).
 - **Local vs merged StandardForm**: **`getLocalStandardForm`** (base + edit + pendingEdits) holds this asset's **edit-layer** WML --- `ref={0}` top-level import stubs, negative refs, etc. Workbench **Purge** and site-local disassociate simulation use the **local** form only. **`getStandardForm`** merges inherited import ancestry with local edits for **display**. See [consistency AGENT.md](../components/Workbench/foundations/consistency/AGENT.md#stored-wml-vs-displayed-ui).
+- **Terminology (avoid overloaded "local")**:
+
+| Term | Meaning |
+| --- | --- |
+| **Edit-layer** | `getLocalStandardForm` / `updateLocal` baseline: this asset's WML only (`base + pendingEdits + edit`), no `inherited` folded in. |
+| **Merged view** | `getStandardForm`: `inherited.merge(localStandardForm)` --- display and component session **`committed` / `working`**. |
+| **Session working copy** | In-memory `working` in `useWorkbenchComponent` / `useWorkbenchAssetMeta` --- not the same as edit-layer or `updateLocal`. |
+
 - **updateStandard (thunk vs reducer)**: The public `updateStandard(key)(payload)` in [index.ts](./index.ts) is a **thunk** that orchestrates base from getWMLBase and dispatches. The reducer `updateStandard` in [reducers.ts](./reducers.ts) is internal; it receives base via the action payload.
 
 ---
@@ -126,17 +134,33 @@ resume working once `properties[key]` is set. See subscribeAction deprecation co
 
 ### Cross-References
 
-- **Workbench**: [charcoal-client/src/components/Workbench/AGENT.md](../components/Workbench/AGENT.md) - Consumes `getStandardForm`, `updateStandard`, `getStatus` via `useWorkbenchAsset`. Component editors batch field edits through `useWorkbenchComponent` session flush; this slice's `updateStandard` reducer diff semantics are unchanged.
+- **Workbench**: [charcoal-client/src/components/Workbench/AGENT.md](../components/Workbench/AGENT.md) - Consumes `getStandardForm`, `updateStandard`, `getStatus` via `useWorkbenchAsset`. Component editors batch field edits through `useWorkbenchComponent` session flush; opcode choice is documented in [updateStandard perspectives (Workbench)](#updatestandard-perspectives-workbench) below.
 - **wmlDataSource**: [../wmlDataSource/AGENT.md](../wmlDataSource/AGENT.md) - Canonical backend WML view; owns subscribe/unsubscribe
 - **Root AGENT.md**: [AGENT.md](../../../AGENT.md) - Documentation standards, navigation
 
 ### API Contracts
 
-- **updateStandard(key)(payload)**: Payload is `UpdateStandardPayload` (setInherited | update | updateLocal | removeComponent). The thunk adds `base` internally; callers do not pass base.
+- **updateStandard(key)(payload)**: Payload is `UpdateStandardPayload` (setInherited | update | updateLocal | removeComponent). The thunk adds `base` internally; callers do not pass base. Workbench opcode rules: [updateStandard perspectives (Workbench)](#updatestandard-perspectives-workbench).
 
-  **Workbench consistency:** Workbench authoring uses **`type: 'updateLocal'`** on the edit-layer draft for eager **materialize** ([`materializeComponentInAsset`](../components/Workbench/foundations/consistency/materializeComponentInAsset.ts)) and **asset-meta** session flush ([`applyAssetMetaFlush`](../components/Workbench/foundations/consistency/applyAssetMetaFlush.ts)). **Component** session flush ([`applyWorkbenchFlush`](../components/Workbench/foundations/consistency/applyWorkbenchFlush.ts)) uses **`type: 'update'`** (merged baseline; assign only, no body GC at flush). Explicit **Purge** uses **`type: 'removeComponent'`** via [`purgeComponentInAsset`](../components/Workbench/foundations/consistency/purgeComponentInAsset.ts) (TopLevel rows). List-row **remove** and site disassociates do **not** call **`removeComponent`**. See [consistency AGENT.md](../components/Workbench/foundations/consistency/AGENT.md).
+### updateStandard perspectives (Workbench)
 
-  **WML vs Workbench body retention:** Generic WML merge retains unreferenced components **with content** (supports `ref={0}` editing). Workbench list **remove** leaves bodies on the local draft until **Purge**. The reducer **`removeComponent`** branch accepts **`cascade?: boolean`** (default **`true`** for non-Workbench callers).
+Both **`update`** and **`updateLocal`** persist via the same `mergeToEdit` into `state.edit`; the difference is **which draft the diff is computed against** ([`reducers.ts`](./reducers.ts)).
+
+| Caller intent | Payload | Diff baseline | Notes |
+| --- | --- | --- | --- |
+| Display-shaped / inherited overlays | `update` | Merged `standardForm` | **Component session flush**; ad hoc edits that match author display |
+| Edit-layer only | `updateLocal` | `localStandardForm` | **Materialize** ([`materializeComponentInAsset`](../components/Workbench/foundations/consistency/materializeComponentInAsset.ts)), **asset-meta flush** ([`applyAssetMetaFlush`](../components/Workbench/foundations/consistency/applyAssetMetaFlush.ts)); no inherited fold-in |
+| Remove body from this asset | `removeComponent` | vs `localStandardForm` | **Purge** only; list-row remove and site disassociates **must not** use this |
+
+**Why component flush uses `update`:** Component session **`working`** / **`committed`** come from **`getStandardForm`** (merged). Flushing with **`updateLocal`** and wholesale assign on the edit-layer baseline produced wrong merged display under inheritance (e.g. plain literal **concat** across inherited and local `shortName` --- `"LobbyLobby in the pitch-black"`). **`type: 'update'`** runs `standardForm.diff(modified)` so the persist delta matches author display. Regression: [`reducers.test.ts`](./reducers.test.ts) inherited shortName gate.
+
+**Why asset-meta flush stays `updateLocal`:** Asset-meta session **`working`** is built from **local** `committed` only ([`useWorkbenchAssetMeta`](../components/Workbench/foundations/WorkbenchAssetMeta/useWorkbenchAssetMeta.tsx)); asset `ShortName` / `Summary` / `_topLevel` are not layered through import inheritance the way component bodies are.
+
+**Deferred `type: 'batch'`:** Not in the reducer union today. Reserved as a **future fallback** if multi-step baselines (e.g. ordered `updateLocal` then merged persist) are required; the 2026-06 spike showed **`update`** alone fixes the inherited shortName bug class.
+
+**Purge vs `removeComponent`:** List-row **remove** and site **disassociate** only drop a reference at one site; bodies stay on the local draft until explicit **Purge**. Purge dispatches via [`purgeComponentInAsset`](../components/Workbench/foundations/consistency/purgeComponentInAsset.ts) with author choice **rehome** (`cascade: false`) or **cascade** (`cascade: true`, reducer default for non-Workbench callers). See [consistency AGENT.md](../components/Workbench/foundations/consistency/AGENT.md).
+
+**WML vs Workbench body retention:** Generic WML merge retains unreferenced components **with content** (supports `ref={0}` editing). Workbench list **remove** leaves bodies on the local draft until **Purge**.
 - **Selectors**: All key-scoped; e.g. `getStandardForm(assetId)(state)`. Return undefined if asset not in slice.
 - **receiveWMLEvent**: Guards on `header.dataSourceKey === 'mtw.wml'` and `RequestIds`; no-op if missing.
 

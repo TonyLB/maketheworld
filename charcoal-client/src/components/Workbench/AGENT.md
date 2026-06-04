@@ -50,7 +50,7 @@ User edit -> updateComponent (working = working.clone(); mutate) -> UI reads wor
 UI primitives (StandardLiteralEditor, StandardRenderEditor)
   <- field/section components (WorkbenchShortNameField, DefaultRenderEditor, ReferenceListSessionEditor)
       <- useWorkbenchComponent / WorkbenchComponentProvider
-          <- workbenchMutations (normalize shortName, reconcileCommittedComponent, applyWorkingComponentToDraft)
+          <- workbenchMutations (prepareComponentForFlush shortName prep, reconcileCommittedComponent, applyWorkingComponentToDraft)
               <- updateStandard (asset clone -> diff -> merge)
 ```
 
@@ -67,6 +67,7 @@ UI primitives (StandardLiteralEditor, StandardRenderEditor)
 - **State:** `working` (editor copy), `lastReceived` (reconcile baseline), `committed` (live Redux selector view).
 - **`updateComponent`:** immediate `working.clone()` then mutate; resets debounce timer.
 - **`flushToStandardForm`:** debounced persist (default ~1000ms; `flushDelayMs` on provider). Flush dispatches **`update`** (merged baseline) and runs [`applyWorkbenchFlush`](./foundations/consistency/applyWorkbenchFlush.ts) (assign **`working`** via [`applyWorkingComponentToDraft`](./foundations/workbenchMutations.ts) / shortName prep only). Skips dispatch when `lastReceived.diff(working)` is undefined (semantic no-op at component scope).
+- **Merged baseline under imports:** Session **`working`** / **`committed`** come from **`getStandardForm`** (inherited + local). Flush must use **`type: 'update'`** so `standardForm.diff(modified)` matches display-shaped fields (e.g. inherited `shortName` overlays). **`updateLocal`** flush caused wrong merged literals when assign targeted the edit layer only. See [personalAssets updateStandard perspectives](../../slices/personalAssets/AGENT.md#updatestandard-perspectives-workbench).
 - **`flushNow`:** cancel pending debounce and flush immediately; runs on provider unmount and `componentId` change.
 - **Create/import:** **`await materializeComponentInAsset`** on the Redux local draft, then associate on parent **`working`** via **`updateComponent`**; debounced flush (**`applyWorkbenchFlush`**) persists list edits.
 - **DEFAULT situation:** when `working` references **SITUATION#DEFAULT**, flush may call [`assureDefaultSituationFromPrimitives`](../../slices/personalAssets/assureDefaultSituationFromPrimitives.ts) before assign.
@@ -85,6 +86,21 @@ UI primitives (StandardLiteralEditor, StandardRenderEditor)
 ### Testing
 
 Import session test utilities from [`foundations/WorkbenchComponent/testing/harness.tsx`](./foundations/WorkbenchComponent/testing/harness.tsx) and [`testing/mock.ts`](./foundations/WorkbenchComponent/testing/mock.ts), or [`foundations/WorkbenchAssetMeta/testing/harness.tsx`](./foundations/WorkbenchAssetMeta/testing/harness.tsx) for asset-meta sessions --- not from the production barrel. See [Development Notes](#development-notes) and [charcoal-client/AGENT.testing.md](../../AGENT.testing.md).
+
+### Authoring operations (deletion and visibility)
+
+Normative mapping from author intent to operation (asset root details in [AGENT.reference-lists.md#asset-root--_toplevel](./foundations/ReferenceList/AGENT.reference-lists.md#asset-root--_toplevel)):
+
+| Author intent | Operation |
+| --- | --- |
+| Create / import local body | **Materialize** + associate at chosen site |
+| See at asset root | **Display union** ([`topLevelDisplayAdapter`](./foundations/ReferenceList/topLevelDisplayAdapter.ts)) |
+| List on asset Components roster | **Pin** (`ref={1}` on `_topLevel`) |
+| Stop roster listing | **Unpin** (site-local disassociate on `_topLevel` only) |
+| Remove one parent's link | **Disassociate** + [`confirmSiteDisassociateBefore*`](./foundations/consistency/AGENT.md#confirmsitedisassociatebeforelocaledit) |
+| Remove from this asset's edit data | **Purge** (`removeComponent` via [`purgeComponentFromAssetFlow`](./foundations/consistency/purgeComponentFromAssetFlow.ts)) |
+
+**Example:** A Room in two Areas, visible at asset via display union --- remove from both Areas and the body **remains** until **Purge**.
 
 ---
 
@@ -330,7 +346,7 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 | `foundations/ReferenceList/ReferenceListControlled.tsx` | Composable shell: `referenceList` + `onReferenceListChange` |
 | `foundations/ReferenceList/ReferenceListSessionEditor.tsx` | Provider-screen wrapper over Controlled; `listAccessor` + session persist |
 | `foundations/ReferenceList/ReferenceListEditor.tsx` | Asset-mode thin wrapper over Controlled (`listContext` + `updateStandard`) |
-| `foundations/ReferenceList/TopLevelEditor.tsx` | Asset root component list (asset-meta session, eager materialize, single-site disassociate + orphan confirm) |
+| `foundations/ReferenceList/TopLevelEditor.tsx` | Asset root component list (asset-meta session, eager materialize, site-local disassociate confirm, Purge) |
 | `foundations/ReferenceList/referenceListMutations.ts` | List remove by ComponentUUID via `sameKey` |
 | `foundations/FacetList/FacetListSessionEditor.tsx` | Provider-screen facet list shell (mirrors `ReferenceListSessionEditor`) |
 | `foundations/SituationFacetRenderFieldsEditor.tsx` | Asset-mode facet field editor (layered Room situations); `updateStandard` per change |
@@ -350,7 +366,7 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 
 ### Related Documentation
 
-- [foundations/consistency/AGENT.md](./foundations/consistency/AGENT.md) - Local vs global ops; orphan predicate; flush pipelines; fixpoint normalize; orphan preview
+- [foundations/consistency/AGENT.md](./foundations/consistency/AGENT.md) - Materialize, flush assign, site-local confirm, Purge
 - [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md) - `ReferenceListControlled`, session vs asset wrappers, `InlineReferenceList`, Mark inline pattern
 - [AGENT.facet-list.md](./foundations/FacetList/AGENT.facet-list.md) - Facet list handlers, Lens mark hybrid rows
 - [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md) - Layer strip, index bar, split-pane, MUI Tabs; Room layered views
