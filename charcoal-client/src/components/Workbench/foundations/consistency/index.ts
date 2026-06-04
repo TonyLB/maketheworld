@@ -17,3 +17,18 @@ export {
     confirmOrphanClosureBeforeAssetMetaDisassociate,
     confirmOrphanClosureBeforeComponentDisassociate
 } from './confirmOrphanClosureBeforeLocalEdit'
+export {
+    previewPurgeClosure,
+    type PreviewPurgeClosureOptions,
+    type PreviewPurgeClosureResult
+} from './previewPurgeClosure'
+export {
+    confirmPurgeBeforeRemove,
+    type ConfirmPurgeBeforeRemoveParams,
+    type PurgeDisposition
+} from './confirmPurgeBeforeRemove'
+export {
+    purgeComponentInAsset,
+    type PurgeComponentInAssetParams,
+    type PurgeComponentInAssetThunk
+} from './purgeComponentInAsset'

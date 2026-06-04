@@ -1,6 +1,6 @@
 # updateStandard batch extension (layered editing / session flush)
 
-**Status:** **Deferred** (discovered 2026-06; not scheduled). **Phase 0 (2026-06-04): FAIL** --- reducer integration test `merged shortName after updateLocal flush does not double inherited Lobby prefix` in [`reducers.test.ts`](../../../../charcoal-client/src/slices/personalAssets/reducers.test.ts). **Phase 1 (2026-06-04): complete** --- orphan GC at flush is **misaligned** with import/overlay storage (predicate vs schema tree); see [Phase 1 findings](#phase-1-findings-2026-06-04). **Phase 2 next:** **Purge migration** (consistency-layer helper + confirm) **paired with** normalize removal (see [migration](#phase-2-migration-purge-in-normalize-out)); then display union, pin/unpin, list disassociate copy. **Phase 3+:** layered flush persist (batch or helper); Phase 0 gate still applies.
+**Status:** **In progress** (active 2026-06-04). **Phase 0 (2026-06-04): FAIL** --- reducer integration test `merged shortName after updateLocal flush does not double inherited Lobby prefix` in [`reducers.test.ts`](../../../../charcoal-client/src/slices/personalAssets/reducers.test.ts). **Phase 1 (2026-06-04): complete** --- orphan GC at flush is **misaligned** with import/overlay storage (predicate vs schema tree); see [Phase 1 findings](#phase-1-findings-2026-06-04). **Phase 2 (in progress):** **2a complete** (Purge helper); **next 2b** --- remove normalize from flush, then 2c-2d authoring UX (see [migration](#phase-2-migration-purge-in-normalize-out)). **Phase 3+:** layered flush persist (batch or helper); Phase 0 gate still applies.
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into [`personalAssets/AGENT.md`](../../../../charcoal-client/src/slices/personalAssets/AGENT.md) and [`Workbench/AGENT.md`](../../../../charcoal-client/src/components/Workbench/AGENT.md).
 
@@ -22,7 +22,7 @@ That bundles **display-shaped persist** and **edit-layer normalize** into one op
 
 **Risk if unfixed:** layered imports + local overlays (e.g. Room `shortName`) can produce **wrong merged display** after flush (e.g. plain literal **concat** across inherited and local --- `"Lobby"` + `"Lobby in the pitch-black"`). See [Failure mode](#failure-mode-why-this-matters).
 
-This initiative is **intentionally deferred** so Workbench consistency migration cleanup could land without blocking on reducer design (that migration is **complete**). **Do not forget:** flush correctness under inheritance is a **first-class** follow-up, not an edge case.
+Workbench consistency migration cleanup shipped first (2026-06); that migration is **complete** and this plan is **active** again. Flush correctness under inheritance is a **first-class** goal, not an edge case.
 
 ---
 
@@ -142,7 +142,7 @@ Exact step bodies are **design deliverables** in Phase 3; the batch mechanism is
 | --- | --- | --- |
 | 0 | Failing (or passing) regression: inherited + Room shortName + session flush | [X] FAIL (2026-06-04) |
 | 1 | Investigate **normalize** / orphan GC on flush (Phase 0 diagnostics) | [X] (2026-06-04) |
-| 2 | **Purge migration** + authoring UX (display union, pin/unpin, list confirms) | [ ] |
+| 2 | **Purge migration** + authoring UX (display union, pin/unpin, list confirms) | [ ] in progress (2a done) |
 | 3 | Design decision: **batch API** vs **flush-only helper** (layered flush persist) | [ ] |
 | 4 | Implement reducer + types + thunk passthrough | [ ] |
 | 5 | Rewire `useWorkbenchComponent` / `useWorkbenchAssetMeta` flush | [ ] |
@@ -186,7 +186,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as e
   - [X] Fix locus: **Phase 2** authoring UX (deletion intents, display union, no normalize-as-deletion); **Phase 3-5** flush persist (batch or helper, overlay shape).
   - [X] Record conclusion in **Status** and Progress table.
 - [ ] **Phase 2 --- Authoring UX + Purge migration** (implement [migration order](#phase-2-migration-purge-in-normalize-out) first)
-  - [ ] **2a Purge helper (consistency layer)** --- see [Purge API sketch](#purge-api-sketch-consistency-layer)
+  - [X] **2a Purge helper (consistency layer)** (2026-06-04) --- [`previewPurgeClosure`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/previewPurgeClosure.ts), [`confirmPurgeBeforeRemove`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/confirmPurgeBeforeRemove.ts), [`purgeComponentInAsset`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/purgeComponentInAsset.ts); reducer `removeComponent` accepts **`cascade?: boolean`** (default `true`). See [Purge API sketch](#purge-api-sketch-consistency-layer).
   - [ ] **2b Remove normalize from flush** --- strip **`normalizeWorkbenchDraft`** from [`applyWorkbenchFlush`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/applyWorkbenchFlush.ts) / [`applyAssetMetaFlush`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/applyAssetMetaFlush.ts) (unblocks Phase 0 body retention); delete orphan stack per [evaluation](#normalize-removal-evaluation-phase-2)
   - [ ] **2c Wire Purge UX** --- mount explicit Purge actions; replace [`confirmOrphanClosure*`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/confirmOrphanClosureBeforeLocalEdit.ts) on list rows with site-local copy only
   - [ ] **2d Display union + pin/unpin + import** --- product model in [`AGENT.reference-lists.md`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md) / [`consistency/AGENT.md`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md): **`_topLevel` `ref={1}` = roster pin only**; structural = nested **`referencedBy`**; schema **`ref={0}`** = display/organization
@@ -346,7 +346,7 @@ When purging **X**, any **implicit descendant** ([`implicitDescendantsOfAncestor
 
 **When no descendants:** single confirm (non-empty body and/or **`referencedBy`** / pins) listing **bodies removed** and **reference scrub** on parents; no rehome branch.
 
-**Reducer follow-up:** [`removeComponent`](../../../../charcoal-client/src/slices/personalAssets/reducers.ts) today hardcodes **`cascade: true`**. Extend payload with **`cascade?: boolean`** (default `true` for non-Workbench callers) so Purge can dispatch the author's choice.
+**Reducer (shipped 2a):** [`removeComponent`](../../../../charcoal-client/src/slices/personalAssets/reducers.ts) payload includes **`cascade?: boolean`** (default **`true`** for non-Workbench callers). Purge dispatches the author's choice via [`purgeComponentInAsset`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/purgeComponentInAsset.ts).
 
 ### Purge API sketch (consistency layer)
 

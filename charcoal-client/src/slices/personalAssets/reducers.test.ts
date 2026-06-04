@@ -493,6 +493,52 @@ describe('personalAsset slice reducers', () => {
             expect(newState.lastUpdateDiff).toBeDefined()
             expect(newState.edit.summary).toBeDefined()
         })
+
+        describe('removeComponent cascade', () => {
+            const roomWithNestedFeatureWml = `
+                <Asset uuid=(testAsset)>
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1)>
+                            <Situation uuid=(example1) key=(example1) />
+                        </Feature>
+                    </Room>
+                </Asset>
+            `
+
+            it('rehomes implicit descendants when cascade is false', () => {
+                const result = transformWML(
+                    roomWithNestedFeatureWml,
+                    `<Asset uuid=(testAsset) />`,
+                    {
+                        type: 'removeComponent',
+                        componentKey: 'ROOM#room1',
+                        cascade: false
+                    }
+                )
+                expect(result.calculated).toEqual(deIndentWML(`
+                    <Asset uuid=(testAsset)>
+                        <Feature uuid=(feature1) key=(feature1) ref={0}>
+                            <Situation key=(example1) />
+                        </Feature>
+                    </Asset>
+                `))
+            })
+
+            it('removes implicit descendants when cascade is true (default)', () => {
+                const result = transformWML(
+                    roomWithNestedFeatureWml,
+                    `<Asset uuid=(testAsset) />`,
+                    {
+                        type: 'removeComponent',
+                        componentKey: 'ROOM#room1',
+                        cascade: true
+                    }
+                )
+                expect(result.calculated).toEqual(deIndentWML(`
+                    <Asset uuid=(testAsset) />
+                `))
+            })
+        })
     })
 
     describe('clearLastUpdateDiff', () => {

@@ -30,10 +30,10 @@ The consistency layer centralizes **global** operations on the **local** asset `
 | --- | --- | --- |
 | **List row remove** (incl. TopLevel / **`_topLevel`**) | **One site** only | Only if orphaned after flush + normalize |
 | **Site-specific delete** (e.g. [`LensHeader`](../../LensEdit/LensHeader.tsx) "Delete Lens reference") | **That site only** (Room **`_lens`**) | Flush + normalize when orphaned; **not** `removeComponent` |
-| **Global "purge component from asset"** | **Planned (Phase 2)** | Explicit **Purge** via consistency-layer helper + **`removeComponent`**; see [updateStandardExtension planning](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.updateStandardExtension.planning.md#phase-2-migration-purge-in-normalize-out). **Not** list-row disassociate. |
+| **Global "purge component from asset"** | **Planned UI (Phase 2c)** | Explicit **Purge** via [`previewPurgeClosure`](#previewpurgeclosure) + [`confirmPurgeBeforeRemove`](#confirmpurgebeforeremove) + [`purgeComponentInAsset`](#purgecomponentinasset) (`removeComponent` with **`cascade`**). **Not** list-row disassociate. |
 
 - **Confirm when (today):** [`previewOrphanClosure`](#previeworphanclosure) reports **`includesNonEmpty`** --- e.g. "Removing this reference will also remove the component and all its contents." Empty-only closure may proceed without dialog.
-- **Confirm when (planned Purge):** [`previewPurgeClosure`](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.updateStandardExtension.planning.md#purge-api-sketch-consistency-layer) on **edit-layer** clone; when descendants exist, author chooses **rehome** (`cascade: false`, bodies stay at asset scope / display union) vs **cascade delete** (`cascade: true`). List-row remove uses **site-local** copy only (no body deletion preview).
+- **Confirm when (Purge):** [`previewPurgeClosure`](#previewpurgeclosure) on **edit-layer** clone; [`confirmPurgeBeforeRemove`](#confirmpurgebeforeremove) when **`includesNonEmpty`** or **`needsDescendantChoice`** (rehome vs cascade). List-row remove still uses orphan preview until Phase 2c.
 - **[`WMLComponentHeader`](../../WMLComponentHeader.tsx)** is **deprecated**, unused, and not mounted. Do not wire legacy purge UX.
 
 ## Exports
@@ -51,6 +51,9 @@ Public surface from [`index.ts`](./index.ts):
 | **`previewOrphanClosure`**, options/result types | Orphan closure preview |
 | **`confirmOrphanClosureBeforeAssetMetaDisassociate`** | TopLevel row remove confirm |
 | **`confirmOrphanClosureBeforeComponentDisassociate`** | Component-site disassociate confirm (Lens) |
+| **`previewPurgeClosure`**, options/result types | Purge impact preview (rehome vs cascade) |
+| **`confirmPurgeBeforeRemove`**, **`PurgeDisposition`** | Purge confirm dialog |
+| **`purgeComponentInAsset`** | Awaitable Redux thunk for explicit purge |
 
 ## Local vs global
 
@@ -256,6 +259,41 @@ function previewOrphanClosure(
 
 Does **not** mutate `localDraft`. Preview on **merged** `getStandardForm` is incorrect (inherited refs do not count for the asset-layer predicate).
 
+## `previewPurgeClosure`
+
+Simulate **`removeComponent`** on a **local** draft clone (rehome vs cascade). Does **not** mutate `localDraft`.
+
+```typescript
+function previewPurgeClosure(
+  localDraft: StandardForm,
+  reference: StandardReference,
+  options?: { applyLocal?: (draft: StandardForm) => void }
+): PreviewPurgeClosureResult
+```
+
+**Implementation:** [`previewPurgeClosure.ts`](./previewPurgeClosure.ts).
+
+- Runs **`removeComponent(reference, { cascade: false })`** and **`{ cascade: true }`** on a clone.
+- **`bodiesRehomed`:** keys present after rehome but removed under cascade (author must choose when non-empty).
+- **`needsDescendantChoice`:** `bodiesRehomed.length > 0`.
+- **`includesNonEmpty`:** any removed or rehomed body was non-empty on the pre-purge clone.
+
+## `confirmPurgeBeforeRemove`
+
+Confirm explicit purge before dispatch. Returns **`'cancel' | 'rehome' | 'cascade'`**. Empty-only purge proceeds without dialog.
+
+**Implementation:** [`confirmPurgeBeforeRemove.ts`](./confirmPurgeBeforeRemove.ts).
+
+## `purgeComponentInAsset`
+
+Awaitable thunk: **`updateStandard({ type: 'removeComponent', componentKey, cascade })`** plus **`setIntent`** / **`heartbeat`**.
+
+```typescript
+purgeComponentInAsset(assetId)({ reference, disposition: 'rehome' | 'cascade' }): Promise<void>
+```
+
+**Implementation:** [`purgeComponentInAsset.ts`](./purgeComponentInAsset.ts). Not mounted in UI until Phase 2c.
+
 ## Ref scrub (belt-and-suspenders)
 
 `normalizeWorkbenchDraft` runs a **fixpoint** loop; each pass includes a defensive **ref scrub** step after orphan body removal. Flush invokes normalize via **`applyWorkbenchFlush`** or **`applyAssetMetaFlush`**; this section defines scrub's role.
@@ -294,6 +332,8 @@ Run from `charcoal-client/`: `npm run test:single -- src/components/Workbench/fo
 | [`applyAssetMetaFlush.test.ts`](./applyAssetMetaFlush.test.ts) | Assign asset-meta fields, `beforeAssign`, normalize after topLevel disassociate, shortName, no materialize |
 | [`normalizeWorkbenchDraft.test.ts`](./normalizeWorkbenchDraft.test.ts) | Fixpoint orphan GC, `_topLevel` transitive removal, Area-participant transitive path, happy-path scrub no-op, `scrubReferences` defensive fixtures |
 | [`previewOrphanClosure.test.ts`](./previewOrphanClosure.test.ts) | Non-mutation, `includesNonEmpty`, `applyLocal`, parity with `normalizeWorkbenchDraft` |
+| [`previewPurgeClosure.test.ts`](./previewPurgeClosure.test.ts) | Purge preview: rehome vs cascade key sets, `includesNonEmpty`, non-mutation |
+| [`confirmPurgeBeforeRemove.test.ts`](./confirmPurgeBeforeRemove.test.ts) | Dialog branches (skip, two-option, three-option) |
 
 ## Related documentation
 
