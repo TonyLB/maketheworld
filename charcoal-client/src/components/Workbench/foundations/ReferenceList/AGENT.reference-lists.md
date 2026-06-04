@@ -18,7 +18,7 @@ Facet-list-style composition: **`referenceList`** + **`onReferenceListChange`** 
 | Wrapper | When to use |
 | --- | --- |
 | **`ReferenceListSessionEditor`** | On **`WorkbenchComponentProvider`** screens; pass **`listAccessor`** (`getReferenceList` / `setReferenceList` on parent `working`). |
-| **`ReferenceListSessionEditor` (asset-meta)** | On **`WorkbenchAssetMetaProvider`** screens (**M5** UI); **`listAccessor`** on asset-meta **`working.topLevel`**. Session tests: [`WorkbenchAssetMeta/testing/harness.tsx`](../WorkbenchAssetMeta/testing/harness.tsx). |
+| **`ReferenceListSessionEditor` (asset-meta)** | On **`WorkbenchAssetMetaProvider`** screens; **`listAccessor`** on asset-meta **`working.topLevel`**. Session tests: [`WorkbenchAssetMeta/testing/harness.tsx`](../WorkbenchAssetMeta/testing/harness.tsx). |
 | **`ReferenceListEditor`** | Asset-mode adapter: `listContext` + `updateStandard` (non-provider or legacy). |
 | **`ReferenceListControlled` directly** | Custom persistence (e.g. tests, new list hosts). |
 
@@ -32,7 +32,7 @@ For lists where each item is **navigated to** or **selected via dialog** (e.g. R
 
 - **Structure**: `ReferenceListEditorGeneric` inside `MakeTheWorldAccordion`. Each item: card with `ListItemButton` (title, optional subtitle/icon), optional delete `IconButton`. Optional Add / Reference existing / Import rows.
 - **Session usage**: Room Guidance/Features ([`roomReferenceListAccessors.ts`](../../RoomEdit/roomReferenceListAccessors.ts)), Area position-graph participants per tag ([`areaPositionGraphNodesAccessors.ts`](../../AreaEdit/areaPositionGraphNodesAccessors.ts)).
-- **Asset usage**: `ReferenceListEditor` with `listContext` when no parent session (reserved for future non-provider call sites). **`TopLevelEditor`** currently uses **`ReferenceListEditorGeneric`** directly with asset-level `updateStandard` (interim); **target** is asset-meta session + **`ReferenceListSessionEditor`**-style host ([Asset root / `_topLevel` (D11)](#asset-root--_toplevel-d11)).
+- **Asset usage**: `ReferenceListEditor` with `listContext` when no parent session (reserved for future non-provider call sites). **[`TopLevelEditor`](TopLevelEditor.tsx)** uses the asset-meta session pattern on **`working.topLevel`**; see [Asset root / `_topLevel`](#asset-root--_toplevel).
 
 ---
 
@@ -94,22 +94,22 @@ Domain-specific list accessors belong next to the editor that owns the parent co
 
 ---
 
-## Asset root / `_topLevel` (D11)
+## Asset root / `_topLevel`
 
-The asset top-level component list ([`TopLevelEditor`](TopLevelEditor.tsx) on [`WorkbenchAssetEditForm`](../../WorkbenchAssetEditForm.tsx)) uses the **same session list pattern** as component-parent lists, backed by **`useWorkbenchAssetMeta`** instead of **`useWorkbenchComponent`**. Normative: [Workbench AGENT.md](../../AGENT.md#asset-meta-editing-session-d11).
+The asset top-level component list ([`TopLevelEditor`](TopLevelEditor.tsx) on [`WorkbenchAssetEditForm`](../../WorkbenchAssetEditForm.tsx)) uses the **same session list pattern** as component-parent lists, backed by **`useWorkbenchAssetMeta`** instead of **`useWorkbenchComponent`**. Normative: [Workbench AGENT.md](../../AGENT.md#asset-meta-editing-session).
 
-- **`AssetEditForm`** wraps **`WorkbenchAssetMetaProvider`** (**M5**).
+- **`AssetEditForm`** wraps **`WorkbenchAssetMetaProvider`**.
 - **`TopLevelEditor`** keeps TopLevel-specific UI (multi-tag add grid, **`ImageHeader`** rows, table variant) but persists like **`ReferenceListSessionEditor`**: list on asset-meta **`working.topLevel`**, mutations via **`updateAssetMeta`**, debounced flush via **`applyAssetMetaFlush`**.
 
 | Operation | Persist path |
 | --- | --- |
-| Remove | **`_topLevel` site only** --- disassociate on **`working.topLevel`** (does **not** clear other parents); debounced flush + normalize (**D6**) may drop **`byUniversalId`** only if **D2** orphan. **`confirmOrphanClosureBeforeAssetMetaDisassociate`** + **`pushChoice`** when non-empty closure. |
+| Remove | **`_topLevel` site only** --- disassociate on **`working.topLevel`** (does **not** clear other parents); debounced flush + normalize may drop **`byUniversalId`** only if orphaned per asset-layer predicate. **`confirmOrphanClosureBeforeAssetMetaDisassociate`** + **`pushChoice`** when non-empty closure. |
 | Reference existing | **`await materializeComponentInAsset`**, then associate on **`working.topLevel`** |
-| Create / import | **`await materializeComponentInAsset`**, then associate on **`working.topLevel`** (**D10**) |
+| Create / import | **`await materializeComponentInAsset`**, then associate on **`working.topLevel`** |
 
 List accessor: [`topLevelAssetMetaListAccessor.ts`](topLevelAssetMetaListAccessor.ts) (`getReferenceList` / `setReferenceList` on **`WorkbenchAssetMetaWorking`**).
 
-### Room `_lens` (SingleReference, M6)
+### Room `_lens` (SingleReference)
 
 [`LensHeader`](../LensEdit/LensHeader.tsx) on the Room component session clears the **`_lens`** slot only (same disassociate + normalize norm as list rows). Orphan body removal runs at component-session flush via **`applyWorkbenchFlush`**; **`confirmOrphanClosureBeforeComponentDisassociate`** when **`previewOrphanClosure`** reports non-empty closure.
 
