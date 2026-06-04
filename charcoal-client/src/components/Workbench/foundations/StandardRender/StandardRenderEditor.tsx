@@ -139,17 +139,28 @@ const useStandardRenderEditorHook = (
     onChange: (value: StandardRender) => void,
     debounce: boolean
 ): { editor: Editor, value: Descendant[], setValue: (value: Descendant[]) => void } => {
-    const defaultValue = useMemo(() => {
-        const returnValue = descendantsFromRender(value, { standard })
-        return returnValue
+    const lastSyncedRenderRef = useRef(value)
+    const lastStandardRef = useRef(standard)
+    const syncedDescendantsRef = useRef<Descendant[]>(descendantsFromRender(value, { standard }))
+    // Parent clones StandardRender on reconcile; domain equals prevents Slate sync storms when debounce={false}.
+    const slateSyncValue = useMemo(() => {
+        const renderUnchanged = lastSyncedRenderRef.current.equals(value)
+        const standardUnchanged = lastStandardRef.current === standard
+        if (renderUnchanged && standardUnchanged) {
+            return syncedDescendantsRef.current
+        }
+        lastSyncedRenderRef.current = value
+        lastStandardRef.current = standard
+        const next = descendantsFromRender(value, { standard })
+        syncedDescendantsRef.current = next
+        return next
     }, [value, standard])
     // useUpdatedSlate syncs external value via Transforms (removeNodes/insertNodes), not by mutating editor.children
     const { editor, isProgrammaticSyncRef } = useUpdatedSlate({
         initializeEditor: () => withConstrainedWhitespace(withInlines(withHistory(withReact(createEditor())))),
-        value: defaultValue,
-        comparisonOutput: descendantsToRender(standard)
+        value: slateSyncValue
     })
-    const [outputValue, setValue] = useState<Descendant[]>(defaultValue)
+    const [outputValue, setValue] = useState<Descendant[]>(slateSyncValue)
 
     const propagateChange = useCallback(
         (nextValue: Descendant[]) => {
