@@ -74,7 +74,7 @@ UI primitives (StandardLiteralEditor, StandardRenderEditor)
 
 ### Session-bound field components
 
-- **`WorkbenchShortNameField`**, **`DefaultRenderEditor`**, **`ReferenceListSessionEditor`**, **`RoomSituationsListEditor`:** context-only; `updateComponent` on **`working`**; no per-action `updateStandard` on the edit path. Room non-DEFAULT situations: create/reference via **`materializeComponentInAsset`** + **`onAssociateReference`**; remove via **`confirmOrphanClosureBeforeComponentDisassociate`** then disassociate on **`working.situations`** only (no eager `_topLevel` on create).
+- **`WorkbenchShortNameField`**, **`DefaultRenderEditor`**, **`ReferenceListSessionEditor`**, **`FacetListSessionEditor`**, **`LensHeader`** (Room **`_lens`**), **`RoomSituationsListEditor`:** context-only; `updateComponent` on **`working`**; no per-action `updateStandard` on the edit path. Room **`_lens`**: create/reference/import via **`materializeComponentInAsset`** + **`onAssociateReference`**; remove via **`confirmOrphanClosureBeforeComponentDisassociate`** then disassociate on **`working._lens`** only. Room non-DEFAULT situations: create/reference via **`materializeComponentInAsset`** + **`onAssociateReference`**; remove via **`confirmOrphanClosureBeforeComponentDisassociate`** then disassociate on **`working.situations`** only (no eager `_topLevel` on create). Facet lists (Lens marks, Guidance marks): **`FacetListSessionEditor`** + domain accessors; see [AGENT.facet-list.md](./foundations/FacetList/AGENT.facet-list.md).
 - **`debounce={false}`** on `StandardLiteralEditor` / `StandardRenderEditor` under a provider so only the session debounces flush.
 - **`readonly`:** field prop **and** asset `readonly` from `useWorkbenchAsset` (non-Draft / published).
 
@@ -136,7 +136,6 @@ Use asset-level paths when there is no parent session or domain topology require
 | --- | --- |
 | Area exit topology | `ExitEdgeListEditor` + `areaEditMutations` |
 | Room exits | `ExitEditor` |
-| Room lens delete | [`LensHeader`](./LensEdit/LensHeader.tsx): disassociate on Room **`working._lens`** + component-session flush + normalize; **`confirmOrphanClosureBeforeComponentDisassociate`** when non-empty closure |
 | Layered Room situation facets | `SituationFacetRenderFieldsEditor` (asset-mode per change) |
 | Character, Situation, Map editors | Not on component session yet |
 | Asset-mode reference list | `ReferenceListEditor` (`listContext` + `updateStandard`) |
@@ -279,6 +278,9 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 
 // Area position-graph participants (per tag) -- same session pattern as Room lists
 <ReferenceListSessionEditor title="Rooms" listAccessor={areaPositionGraphNodesTagAccessor('Room')} tag="Room" />
+
+// Facet lists on WorkbenchComponentProvider screens (Lens marks, Guidance marks)
+// See AGENT.facet-list.md -- FacetListSessionEditor + facetListAccessor + renderFacetRow
 ```
 
 ### Rich Text Editing
@@ -317,7 +319,7 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 | `WorkbenchAssetEditor.tsx` | View routing (asset / component / componentLayer) |
 | `WorkbenchAssetEditForm.tsx` | Asset root: **`WorkbenchAssetMetaProvider`**, ShortName/Summary session fields, **`TopLevelEditor`** |
 | `AreaEdit/` | AreaEditor (`WorkbenchComponentProvider` + shortName; PositionGraphNodesEditor session reference lists; ExitEdgeListEditor) |
-| `RoomEdit/` | RoomEditor (component session for shortName; ExitEditor, FeatureListEditor, Lens via LensEdit/LensHeader) |
+| `RoomEdit/` | RoomEditor (component session for shortName; ExitEditor, FeatureListEditor, Lens via LensEdit/LensHeader, **`RoomSituationsListEditor`** for non-DEFAULT situations) |
 | `FeatureEdit/` | FeatureEditor (component session; shortName + DEFAULT prose via session fields) |
 | `KnowledgeEdit/` | KnowledgeEditor (component session; shortName + DEFAULT prose via session fields) |
 | `foundations/WorkbenchComponent/WorkbenchShortNameField.tsx` | Context-only shortName field (`useWorkbenchComponent` session) |
@@ -329,12 +331,14 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 | `foundations/ReferenceList/ReferenceListEditor.tsx` | Asset-mode thin wrapper over Controlled (`listContext` + `updateStandard`) |
 | `foundations/ReferenceList/TopLevelEditor.tsx` | Asset root component list (asset-meta session, eager materialize, single-site disassociate + orphan confirm) |
 | `foundations/ReferenceList/referenceListMutations.ts` | List remove by ComponentUUID via `sameKey` |
+| `foundations/FacetList/FacetListSessionEditor.tsx` | Provider-screen facet list shell (mirrors `ReferenceListSessionEditor`) |
 | `foundations/SituationFacetRenderFieldsEditor.tsx` | Asset-mode facet field editor (layered Room situations); `updateStandard` per change |
 | `foundations/SituationFacetRenderFieldsView.tsx` | Shared presentation for DEFAULT / situation facet prose fields |
 | ~~`ExampleEdit/`~~ | **Removed** (2026-05-19); F/K prose via **`DefaultRenderEditor`** |
-| `GuidanceEdit/` | GuidanceEditor (`WorkbenchComponentProvider`; layered + top-level; shortName, instructions, marks on session) |
+| `GuidanceEdit/` | GuidanceEditor (`WorkbenchComponentProvider`; layered + top-level; shortName, instructions; marks via **`MarkFacetsEditor`** + **`markFacetAccessors`**) |
+| `MarkFacetsEditor/` | Guidance session marks (`FacetListSessionEditor`); controlled path for asset-mode **`SituationEditor`** |
 | `foundations/LayeredContext/` | LayeredContextView (Room Situation/Guidance tabs), LayeredTabs |
-| `LensEdit/` | LensDetail (component session: shortName, description, mark facets); LensHeader (Room **`_lens`** disassociate + orphan confirm via component session); LensMarkFacetsEditor |
+| `LensEdit/` | LensDetail (component session: shortName, description); **`LensMarkFacetsEditor`** + **`lensMarkFacetAccessors`** via **`FacetListSessionEditor`**; **`LensHeader`** (Room **`_lens`** session create/import/reference/remove) |
 | `WMLComponentHeader.tsx` | **Deprecated** --- unused Library migration artifact; not mounted. Do not import. |
 | `MarkEdit/` | MarkEditor (full-screen session); `MarkInlineEditor` + `MarkInlineEditorWithSession` (per-row Mark shortName; Lens mark facet rows) |
 | `MapEdit/` | MapEditor, MapArea, MapController, MapLayers, UnshownRooms |

@@ -6,7 +6,7 @@ This plan is task-scoped. Archive or delete it after the initiative ships; move 
 
 **Framework:** [`taskPlanning/AGENT.md`](../../../AGENT.md)
 
-**Related (separate, can proceed first):** [`AGENT.consistencyMigrationCleanup.planning.md`](AGENT.consistencyMigrationCleanup.planning.md) --- wire Workbench call sites to consistency helpers and session associate; does **not** fix layered flush semantics by itself.
+**Related (shipped 2026-06):** Workbench consistency migration cleanup --- call sites use **`materializeComponentInAsset`**, **`onAssociateReference`**, and session associate; norms in [`Workbench/AGENT.md`](../../../../charcoal-client/src/components/Workbench/AGENT.md) and [`foundations/consistency/AGENT.md`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md). That work does **not** fix layered flush semantics by itself.
 
 ---
 
@@ -22,7 +22,7 @@ That bundles **display-shaped persist** and **edit-layer normalize** into one op
 
 **Risk if unfixed:** layered imports + local overlays (e.g. Room `shortName`) can produce **wrong merged display** after flush (e.g. plain literal **concat** across inherited and local --- `"Lobby"` + `"Lobby in the pitch-black"`). See [Failure mode](#failure-mode-why-this-matters).
 
-This initiative is **intentionally deferred** so [consistency migration cleanup](AGENT.consistencyMigrationCleanup.planning.md) can land without blocking on reducer design. **Do not forget:** flush correctness under inheritance is a **first-class** follow-up, not an edge case.
+This initiative is **intentionally deferred** so Workbench consistency migration cleanup could land without blocking on reducer design (that migration is **complete**). **Do not forget:** flush correctness under inheritance is a **first-class** follow-up, not an edge case.
 
 ---
 
@@ -132,7 +132,7 @@ Exact step bodies are **design deliverables** in Phase 2; the batch mechanism is
 | --- | --- |
 | Replacing **`updateLocal`** for consistency layer | **materializeComponentInAsset**, orphan normalize, asset-meta flush stay **edit-layer** / single-step **`updateLocal`**. |
 | Flipping session flush to **`update` only** | Would run normalize on **merged** clone --- wrong for orphan predicate and [consistency AGENT.md](../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md). |
-| Same work as [consistency migration cleanup](AGENT.consistencyMigrationCleanup.planning.md) | Migration fixes **call-site** patterns (materialize, `onAssociateReference`); this plan fixes **persist semantics under inheritance**. |
+| Same work as consistency migration cleanup (shipped) | Migration fixed **call-site** patterns (materialize, `onAssociateReference`); this plan fixes **persist semantics under inheritance**. |
 
 ---
 
@@ -190,7 +190,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as e
 - [ ] **Phase 4 --- Docs and cleanup**
   - [ ] Update `personalAssets/AGENT.md` (batch API, when to use perspectives).
   - [ ] Update Workbench AGENT session section (edit-layer vs merged working; flush pipeline).
-  - [ ] Cross-link from [consistency migration cleanup](AGENT.consistencyMigrationCleanup.planning.md) if still open.
+  - [X] Consistency migration cleanup shipped; norms in Workbench `AGENT.md` (no separate task plan).
   - [ ] Archive or delete this plan.
 
 ---

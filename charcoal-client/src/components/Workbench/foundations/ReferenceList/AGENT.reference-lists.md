@@ -60,7 +60,7 @@ When a list row edits a **referenced component field** (e.g. Mark `shortName`) t
 | --- | --- | --- | --- |
 | Typical / session reference list | `ReferenceList` on parent | None (navigate only) | Parent **`updateComponent`** via [`ReferenceListControlled`](ReferenceListControlled.tsx) / [`ReferenceListSessionEditor`](ReferenceListSessionEditor.tsx) |
 | Inline reference list | `ReferenceList` on parent | Referenced component field (e.g. Mark shortName) | **Per-row** `WorkbenchComponentProvider` + context-only inline editor; `renderItemEditor(id)` wraps **`MarkInlineEditorWithSession`** |
-| Facet list with inline reference field | Facet list on parent (e.g. Lens marks) | Referenced Mark shortName + facet payload on same row | Mark shortName: **`MarkInlineEditorWithSession`**; facet payload and list add/remove: parent **`onFacetsChange`** / **`updateComponent`** when parent has a session (Lens detail); mark create/import/reference: **`materializeComponentInAsset`** + **`onAssociateReference`** on Lens marks (see [`LensMarkFacetsEditor`](../../LensEdit/LensMarkFacetsEditor/LensMarkFacetsEditor.tsx)) |
+| Facet list with inline reference field | Facet list on parent (e.g. Lens marks) | Referenced Mark shortName + facet payload on same row | Mark shortName: **`MarkInlineEditorWithSession`**; facet payload and list add/remove: **`FacetListSessionEditor`** -> **`updateComponent`** on parent **`working`**; mark create/import/reference: **`materializeComponentInAsset`** + **`onAssociateReference`** (see [`LensMarkFacetsEditor`](../../LensEdit/LensMarkFacetsEditor/LensMarkFacetsEditor.tsx), [AGENT.facet-list.md](../FacetList/AGENT.facet-list.md)) |
 
 ### `renderItemEditor` contract
 
@@ -116,8 +116,9 @@ List accessor: [`topLevelAssetMetaListAccessor.ts`](topLevelAssetMetaListAccesso
 | Operation | Persist path |
 | --- | --- |
 | Remove | **`_lens` site only** --- disassociate on **`working._lens`** (does **not** clear other parents); debounced flush + normalize may drop **`byUniversalId`** only if orphaned per asset-layer predicate. **`confirmOrphanClosureBeforeComponentDisassociate`** when non-empty closure. |
-| Reference existing | **`await materializeComponentInAsset`** (fast-path when body already local), then associate on **`working._lens`** via **`updateComponent`** |
-| Create / import | **`await materializeComponentInAsset`**, then associate on **`working._lens`** via **`onAssociateReference`** / **`updateComponent`** |
+| Reference existing | **`onAssociateReference`** on **`working._lens`** via **`updateComponent`** (selector ref; fast-path materialize when body already on local draft is unchanged) |
+| Create | **`requestCreate`** -> **`await materializeComponentInAsset({ universalKey })`**, then **`onAssociateReference`** / **`updateComponent`** |
+| Import | **`await materializeComponentInAsset({ universalKey, fromAsset })`**, then **`onAssociateReference`** --- **not** asset-mode `addImportToDraft` in one merged **`update`** |
 
 ---
 

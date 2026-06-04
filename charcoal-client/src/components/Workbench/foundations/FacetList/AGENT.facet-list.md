@@ -11,6 +11,7 @@ Reference lists use the parallel **`ReferenceListControlled`** / **`ReferenceLis
 - **Layout wrappers** (e.g. SingleLineFacetRow): Receive a payload slot (ReactNode) and affordance handlers (e.g. onRemove). Wrappers render affordance UI using shared primitives; they do not own persistence.
 - **Affordance primitives**: Small components (e.g. FacetListAffordance.Remove) for consistent remove look/behavior.
 - **Payload editor**: Renders only the payload content (e.g. reference label + Match field for Mark facets).
+- **Tests**: [`FacetListSessionEditor.test.tsx`](./FacetListSessionEditor.test.tsx) --- create/import/reference session wiring (mock `materializeComponentInAsset`; flush via `updateLocal`).
 
 ## Usage
 
@@ -32,8 +33,12 @@ Wire **`FacetListEditorGeneric`** directly with `facets`, `onFacetsChange`, **`a
 When a facet row edits both **referenced component data** (Mark `shortName`) and **facet payload** (Lens mark default) on the same row, split persistence:
 
 - **Mark shortName**: [`MarkInlineEditorWithSession`](../../MarkEdit/InlineEditor.tsx) in the payload slot (per-row Mark session; debounced flush per Mark). See [AGENT.reference-lists.md](../ReferenceList/AGENT.reference-lists.md) (inline edit slot persistence).
-- **Facet list mutations** (add/remove, payload change): **`FacetListSessionEditor`** -> **`updateComponent`** on Lens **`working`**.
-- **Mark create/associate**: session shell above; not asset-level **`updateStandard`**.
+- **Facet list mutations** (add/remove, payload change): **`FacetListSessionEditor`** -> **`updateComponent`** on parent **`working`** (Lens or Guidance).
+- **Mark create / reference / import** (via **`FacetListSessionEditor`** + **`useAddReferenceImport`**):
+  - **Create:** `requestCreate` -> **`await materializeComponentInAsset({ universalKey })`**, then **`onAssociateReference`** / **`updateComponent`** on parent facet list.
+  - **Reference existing:** **`onAssociateReference`** only (no merged-draft `persistAssociation`).
+  - **Import:** **`await materializeComponentInAsset({ universalKey, fromAsset })`**, then associate on parent **`working`** (session branch in [`AddReferenceImportControl.tsx`](../ReferenceList/AddReferenceImportControl.tsx)).
+  - Not asset-level **`updateStandard`** on provider screens.
 
 Live example: [`LensMarkFacetPayloadEditor`](../../LensEdit/LensMarkFacetsEditor/LensMarkFacetPayloadEditor.tsx) in [`LensMarkFacetsEditor`](../../LensEdit/LensMarkFacetsEditor/LensMarkFacetsEditor.tsx).
 
