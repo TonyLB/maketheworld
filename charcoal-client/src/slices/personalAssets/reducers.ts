@@ -38,6 +38,8 @@ export type UpdateStandardPayloadUpdateLocal = {
 export type UpdateStandardPayloadRemoveComponent = {
     type: 'removeComponent';
     componentKey: string;
+    /** When false, implicit descendants are rehomed (bodies remain). Default true. */
+    cascade?: boolean;
     base?: StandardFormData;
     options?: ScopedInstrumentationOptions;
 }
@@ -107,7 +109,9 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         // Create a StandardReference from the componentKey (ComponentUUID string)
         const componentReference = new StandardReference(payload.componentKey)
         // Remove the component with cascade to also remove sub-components
-        const componentRemoved = localStandardForm.removeComponent(componentReference, { cascade: true })
+        const componentRemoved = localStandardForm.removeComponent(componentReference, {
+            cascade: payload.cascade ?? true
+        })
         const diff = localStandardForm.diff(componentRemoved)
         if (diff) {
             mergeToEdit(diff)

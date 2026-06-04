@@ -176,7 +176,7 @@ describe('FacetListSessionEditor', () => {
         expect(updateStandardMock).not.toHaveBeenCalled()
     })
 
-    it('debounced flush persists facet remove via updateLocal', () => {
+    it('debounced flush persists facet remove via update', () => {
         renderWorkbenchComponentSession({
             options: {
                 wml: guidanceWithOneMarkWml,
@@ -194,7 +194,7 @@ describe('FacetListSessionEditor', () => {
         })
 
         expect(updateStandardMock).toHaveBeenCalledTimes(1)
-        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'updateLocal' })
+        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'update' })
     })
 
     it('create new awaits materialize then associates on working without immediate flush', async () => {

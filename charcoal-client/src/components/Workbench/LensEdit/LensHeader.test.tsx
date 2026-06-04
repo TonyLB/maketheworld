@@ -22,7 +22,7 @@ import {
 } from '../foundations/WorkbenchComponent/testing/harness'
 
 const pushChoiceMock = vi.fn()
-const confirmOrphanClosureMock = vi.fn().mockResolvedValue(true)
+const confirmSiteDisassociateMock = vi.fn().mockResolvedValue(true)
 
 const ROOM_ID = 'ROOM#room1' as ComponentUUID
 const ROOM2_ID = 'ROOM#room2' as ComponentUUID
@@ -54,9 +54,9 @@ vi.mock('../../../../slices/UI/choiceDialog', () => ({
     }
 }))
 
-vi.mock('../foundations/consistency/confirmOrphanClosureBeforeLocalEdit', () => ({
-    confirmOrphanClosureBeforeComponentDisassociate: (...args: unknown[]) =>
-        confirmOrphanClosureMock(...args)
+vi.mock('../foundations/consistency/confirmSiteDisassociateBeforeLocalEdit', () => ({
+    confirmSiteDisassociateBeforeComponentDisassociate: (...args: unknown[]) =>
+        confirmSiteDisassociateMock(...args)
 }))
 
 vi.mock('../ImportComponentDialog', () => ({
@@ -145,8 +145,8 @@ describe('LensHeader', () => {
         vi.useFakeTimers()
         resetWorkbenchAssetMock()
         pushChoiceMock.mockClear()
-        confirmOrphanClosureMock.mockClear()
-        confirmOrphanClosureMock.mockResolvedValue(true)
+        confirmSiteDisassociateMock.mockClear()
+        confirmSiteDisassociateMock.mockResolvedValue(true)
     })
 
     afterEach(() => {
@@ -190,7 +190,7 @@ describe('LensHeader', () => {
         expect(updateStandardMock).not.toHaveBeenCalled()
     })
 
-    it('create new debounced flush uses updateLocal', async () => {
+    it('create new debounced flush uses update', async () => {
         mockMaterializeComponentInAsset()
 
         renderLensHeader(roomWithoutLensWml)
@@ -210,7 +210,7 @@ describe('LensHeader', () => {
         })
 
         expect(updateStandardMock).toHaveBeenCalledTimes(1)
-        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'updateLocal' })
+        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'update' })
 
         const flushUpdate = updateStandardMock.mock.calls[0]![0]!.update
         const { mockWorkbenchReturn } = await import('../foundations/WorkbenchComponent/testing/mock')
@@ -310,7 +310,7 @@ describe('LensHeader', () => {
         )
     })
 
-    it('debounced flush persists lens disassociate via updateLocal', async () => {
+    it('debounced flush persists lens disassociate via update', async () => {
         renderLensHeader(roomWithLensWml)
 
         await act(async () => {
@@ -320,10 +320,10 @@ describe('LensHeader', () => {
         })
 
         expect(updateStandardMock).toHaveBeenCalledTimes(1)
-        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'updateLocal' })
+        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'update' })
     })
 
-    it('flush after delete normalizes orphaned nested lens from byUniversalId', async () => {
+    it('flush after delete retains orphaned nested lens in byUniversalId (assign only)', async () => {
         renderLensHeader(nestedOnlyLensWml)
 
         await act(async () => {
@@ -333,7 +333,7 @@ describe('LensHeader', () => {
         })
 
         const flushed = applyLastFlushToCommitted()
-        expect(flushed.byUniversalId[LENS_ID]).toBeUndefined()
+        expect(flushed.byUniversalId[LENS_ID]).toBeDefined()
     })
 
     it('keeps lens body when deleted from room but lens is on top level', async () => {
@@ -373,9 +373,10 @@ describe('LensHeader', () => {
             await flushAsync()
         })
 
-        expect(confirmOrphanClosureMock).toHaveBeenCalledTimes(1)
-        expect(confirmOrphanClosureMock.mock.calls[0]![0]).toMatchObject({
-            componentId: ROOM_ID
+        expect(confirmSiteDisassociateMock).toHaveBeenCalledTimes(1)
+        expect(confirmSiteDisassociateMock.mock.calls[0]![0]).toMatchObject({
+            componentId: ROOM_ID,
+            siteLabel: "this Room's Lens"
         })
     })
 })

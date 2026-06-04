@@ -21,10 +21,17 @@ import { useWorkbenchAssetMeta } from "../WorkbenchAssetMeta/useWorkbenchAssetMe
 import { useDispatch } from "react-redux"
 import { addOnboardingComplete } from "../../../../slices/player/index.api"
 import { navigateToComponent } from "../../../../slices/UI/workbench"
-import { confirmOrphanClosureBeforeAssetMetaDisassociate } from "../consistency/confirmOrphanClosureBeforeLocalEdit"
+import { confirmSiteDisassociateBeforeAssetMetaDisassociate } from "../consistency/confirmSiteDisassociateBeforeLocalEdit"
+import { purgeComponentFromAssetFlow } from "../consistency/purgeComponentFromAssetFlow"
+import { componentDisplayLabel } from "../../../../lib/componentDisplayLabel"
+import { applyWorkingAssetMetaToDraft } from "../workbenchMutations"
 import { ReferenceListEditorGeneric } from "./ReferenceListEditorGeneric"
-import { referenceListToItems } from "./referenceListAdapter"
-import { removeReferenceFromListById } from "./referenceListMutations"
+import {
+    isPinnedOnTopLevel,
+    pinReferenceOnTopLevel,
+    removeReferenceFromListById
+} from "./referenceListMutations"
+import { buildTopLevelDisplayItems } from "./topLevelDisplayAdapter"
 import ImportComponentDialog from "../../ImportComponentDialog"
 import { ComponentSelectorDialog } from "../ComponentSelector"
 import ImageHeader from "../../ImageHeader"
@@ -125,13 +132,9 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
     )
 
     const items = useMemo(() => {
-        const baseItems = referenceListToItems({
-            referenceList,
+        const baseItems = buildTopLevelDisplayItems({
             standardForm,
-            tag: undefined
-        }).filter((item) => {
-            const comp = standardForm.byUniversalId[item.id as ComponentUUID] as StandardComponent | undefined
-            return !(comp instanceof StandardImage)
+            pinnedList: referenceList
         })
         return baseItems.map((item) => {
             const comp = standardForm.byUniversalId[item.id as ComponentUUID] as StandardComponent | undefined
@@ -141,6 +144,8 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
                 Boolean(inheritedStandardForm.byUniversalId[item.id as ComponentUUID]) || Boolean(comp?._from)
             return {
                 ...item,
+                showPinAction: item.rowKind === "displayOnly",
+                showUnpinAction: item.rowKind === "pinned",
                 icon: (
                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                         {icon}
@@ -170,15 +175,33 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
         [readonly, working, updateAssetMeta]
     )
 
+    const handleItemPin = useCallback(
+        (id: string) => {
+            if (readonly || !working) {
+                return
+            }
+            const comp = standardForm.byUniversalId[id as ComponentUUID]
+            const ref = comp?.reference ?? new StandardReference(id as ComponentUUID)
+            updateAssetMeta((draft) => {
+                draft.topLevel = pinReferenceOnTopLevel(draft.topLevel, ref)
+            })
+        },
+        [readonly, working, standardForm, updateAssetMeta]
+    )
+
     const handleItemRemove = useCallback(
         (id: string) => {
             if (readonly || !working) {
                 return
             }
+            if (!isPinnedOnTopLevel(working.topLevel, id)) {
+                return
+            }
             void (async () => {
-                const proceed = await confirmOrphanClosureBeforeAssetMetaDisassociate({
+                const proceed = await confirmSiteDisassociateBeforeAssetMetaDisassociate({
                     dispatch,
                     localStandardForm,
+                    standardForm,
                     working,
                     removeId: id
                 })
@@ -190,7 +213,38 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
                 })
             })()
         },
-        [readonly, working, dispatch, localStandardForm, updateAssetMeta]
+        [readonly, working, dispatch, localStandardForm, standardForm, updateAssetMeta]
+    )
+
+    const handleItemPurge = useCallback(
+        (id: string) => {
+            if (readonly || !working) {
+                return
+            }
+            void (async () => {
+                const comp = standardForm.byUniversalId[id as ComponentUUID]
+                const reference =
+                    working.topLevel.payload.find(
+                        (ref) => ref.universalKey === id || ref.key === id
+                    ) ?? new StandardReference(id as ComponentUUID)
+                const targetLabel = comp
+                    ? componentDisplayLabel(comp, { standardForm, fallbackLabel: 'Untitled' })
+                    : undefined
+                await purgeComponentFromAssetFlow({
+                    dispatch,
+                    assetId: AssetId,
+                    localStandardForm,
+                    reference,
+                    targetLabel,
+                    previewOptions: {
+                        applyLocal: (draft) => {
+                            applyWorkingAssetMetaToDraft(draft, working)
+                        }
+                    }
+                })
+            })()
+        },
+        [readonly, working, dispatch, localStandardForm, standardForm, AssetId]
     )
 
     const handleItemClick = useCallback(
@@ -250,7 +304,7 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
 
     const isTopLevelExcluded = useCallback(
         (universalKey: ComponentUUID) => {
-            if (referenceList.payload.some((ref) => ref.universalKey === universalKey)) return true
+            if (isPinnedOnTopLevel(referenceList, universalKey)) return true
             const comp = standardForm.byUniversalId[universalKey] as StandardComponent | undefined
             if (!comp) return true
             return !isTopLevelAssociable(comp)
@@ -497,7 +551,9 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
             disabled={readonly}
             variant="table"
             onItemClick={handleItemClick}
+            onItemPin={handleItemPin}
             onItemRemove={handleItemRemove}
+            onItemPurge={handleItemPurge}
             actionAffordances={actionAffordances}
         />
     )

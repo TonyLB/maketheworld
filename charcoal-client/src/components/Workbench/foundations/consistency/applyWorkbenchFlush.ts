@@ -3,7 +3,6 @@ import type { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 import { applyWorkingComponentToDraft } from '../workbenchMutations'
-import { normalizeWorkbenchDraft } from './normalizeWorkbenchDraft'
 
 export type ApplyWorkbenchFlushEdit<T extends StandardComponent = StandardComponent> = {
     componentId: ComponentUUID
@@ -12,15 +11,15 @@ export type ApplyWorkbenchFlushEdit<T extends StandardComponent = StandardCompon
 }
 
 /**
- * Workbench flush pipeline (D10): apply session working to a local draft clone,
- * then normalize. Does not materialize. Mutates draft in place.
+ * Workbench flush pipeline (D10): apply session working to a draft clone.
+ * Assign only (optional beforeAssign, then applyWorkingComponentToDraft).
+ * Does not materialize or run orphan GC. Mutates draft in place.
+ * Component session passes a merged clone via updateStandard type: 'update'.
  */
 export function applyWorkbenchFlush<T extends StandardComponent>(
     draft: StandardForm,
     edit: ApplyWorkbenchFlushEdit<T>
 ): T {
     edit.beforeAssign?.(draft, edit.working)
-    const flushed = applyWorkingComponentToDraft(draft, edit.componentId, edit.working)
-    normalizeWorkbenchDraft(draft)
-    return flushed
+    return applyWorkingComponentToDraft(draft, edit.componentId, edit.working)
 }

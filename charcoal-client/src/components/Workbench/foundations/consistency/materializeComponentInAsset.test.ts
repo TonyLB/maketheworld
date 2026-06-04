@@ -11,8 +11,6 @@ import type { PersonalAssetsPublic } from '../../../../slices/personalAssets/bas
 import { getLocalStandardForm } from '../../../../slices/personalAssets'
 import { updateStandard as updateStandardReducer } from '../../../../slices/personalAssets/reducers'
 import { getWMLBase } from '../../../../slices/wmlDataSource/selectors'
-import * as normalizeModule from './normalizeWorkbenchDraft'
-
 const assetId = 'ASSET#test' as AssetUUID
 
 const { setIntentMock, heartbeatMock, updateStandardCaptured } = vi.hoisted(() => ({
@@ -109,7 +107,6 @@ describe('materializeComponentInAsset', () => {
         setIntentMock.mockClear()
         heartbeatMock.mockClear()
         updateStandardCaptured.calls = []
-        vi.spyOn(normalizeModule, 'normalizeWorkbenchDraft')
     })
 
     it('creates a new Room on the local draft via updateLocal', async () => {
@@ -191,9 +188,4 @@ describe('materializeComponentInAsset', () => {
         })
     })
 
-    it('does not call normalizeWorkbenchDraft', async () => {
-        const state = baseStateFromWML(`<Asset uuid=(test) />`)
-        await runThunk(state, { universalKey: 'ROOM#norm' as ComponentUUID })
-        expect(normalizeModule.normalizeWorkbenchDraft).not.toHaveBeenCalled()
-    })
 })

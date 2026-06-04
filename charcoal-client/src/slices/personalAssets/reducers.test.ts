@@ -1,11 +1,15 @@
 import produce from "immer"
+import type { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import type { PersonalAssetsPublic } from "./baseClasses"
 import { updateStandard, UpdateStandardPayload, clearPendingEditsByRequestIds, clearLastUpdateDiff } from "./reducers"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import type { StandardFormData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes"
 import { Schema, schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import { deIndentWML } from "@tonylb/mtw-wml/ts/schema/utils"
 import { publicSelectors } from "./selectors"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
+import { applyWorkbenchFlush } from "../../components/Workbench/foundations/consistency/applyWorkbenchFlush"
+import { setWorkingShortNameFromString } from "../../components/Workbench/foundations/workbenchMutations"
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render"
 import {
@@ -482,6 +486,52 @@ describe('personalAsset slice reducers', () => {
             expect(newState.lastUpdateDiff).toBeDefined()
             expect(newState.edit.summary).toBeDefined()
         })
+
+        describe('removeComponent cascade', () => {
+            const roomWithNestedFeatureWml = `
+                <Asset uuid=(testAsset)>
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1)>
+                            <Situation uuid=(example1) key=(example1) />
+                        </Feature>
+                    </Room>
+                </Asset>
+            `
+
+            it('rehomes implicit descendants when cascade is false', () => {
+                const result = transformWML(
+                    roomWithNestedFeatureWml,
+                    `<Asset uuid=(testAsset) />`,
+                    {
+                        type: 'removeComponent',
+                        componentKey: 'ROOM#room1',
+                        cascade: false
+                    }
+                )
+                expect(result.calculated).toEqual(deIndentWML(`
+                    <Asset uuid=(testAsset)>
+                        <Feature uuid=(feature1) key=(feature1) ref={0}>
+                            <Situation key=(example1) />
+                        </Feature>
+                    </Asset>
+                `))
+            })
+
+            it('removes implicit descendants when cascade is true (default)', () => {
+                const result = transformWML(
+                    roomWithNestedFeatureWml,
+                    `<Asset uuid=(testAsset) />`,
+                    {
+                        type: 'removeComponent',
+                        componentKey: 'ROOM#room1',
+                        cascade: true
+                    }
+                )
+                expect(result.calculated).toEqual(deIndentWML(`
+                    <Asset uuid=(testAsset) />
+                `))
+            })
+        })
     })
 
     describe('clearLastUpdateDiff', () => {
@@ -551,6 +601,240 @@ describe('personalAsset slice reducers', () => {
                 })
             }) as unknown as PersonalAssetsPublic
             expect(state.pendingEdits).toHaveLength(2)
+        })
+    })
+
+    const wmlToJSON = (wml: string): StandardFormData => {
+        const schema = new Schema()
+        schema.loadWML(deIndentWML(wml))
+        return new StandardForm(schema.schema[0]).toJSON()
+    }
+
+    const minimalPersonalAssetsState = (
+        partial: Pick<PersonalAssetsPublic, 'inherited' | 'edit'> & {
+            pendingEdits?: PersonalAssetsPublic['pendingEdits']
+        }
+    ): PersonalAssetsPublic => ({
+        importData: {},
+        properties: {},
+        loadedImages: {},
+        pendingEdits: partial.pendingEdits ?? [],
+        inherited: partial.inherited,
+        edit: partial.edit
+    })
+
+    const runUpdateLocalWithLayers = (
+        baseWml: string,
+        inheritedWml: string,
+        editWml: string,
+        payload: UpdateStandardPayload
+    ): PersonalAssetsPublic => {
+        const baseJSON = wmlToJSON(baseWml)
+        const inheritedJSON = wmlToJSON(inheritedWml)
+        const editJSON = wmlToJSON(editWml)
+        const payloadWithBase =
+            payload.type === 'update' ||
+            payload.type === 'updateLocal' ||
+            payload.type === 'removeComponent'
+                ? { ...payload, base: baseJSON }
+                : payload
+        return produce(
+            minimalPersonalAssetsState({
+                inherited: inheritedJSON,
+                edit: editJSON
+            }),
+            (state) => {
+                updateStandard(state, {
+                    type: 'updateStandard',
+                    payload: payloadWithBase
+                })
+            }
+        )
+    }
+
+    const mergedRoomShortName = (
+        state: PersonalAssetsPublic,
+        base: StandardFormData,
+        roomId: ComponentUUID
+    ): string | undefined => {
+        const merged = new StandardForm(
+            publicSelectors.getStandardForm({ ...state, base, key: '' } as PersonalAssetsPublic & { base: StandardFormData; key: string })
+        )
+        const room = merged.byUniversalId[roomId]
+        if (!(room instanceof StandardRoom)) {
+            return undefined
+        }
+        const shortNameJson = room.shortName?.toJSON()
+        return typeof shortNameJson === 'string' ? shortNameJson : undefined
+    }
+
+    const augmentedState = (
+        state: PersonalAssetsPublic,
+        base: StandardFormData
+    ): PersonalAssetsPublic & { base: StandardFormData; key: string } => ({
+        ...state,
+        base,
+        key: ''
+    })
+
+    /** Console diagnostics for Phase 0 flush characterization (visible when test runs). */
+    const logPhase0FlushDiagnostics = (
+        label: string,
+        state: PersonalAssetsPublic,
+        base: StandardFormData,
+        roomId: ComponentUUID
+    ): void => {
+        const tag = `[Phase 0 flush] ${label}`
+        const formFromData = (data: StandardFormData) => new StandardForm(data)
+        const roomShortNameLine = (form: StandardForm): string => {
+            const room = form.byUniversalId[roomId]
+            if (!(room instanceof StandardRoom)) {
+                return `${tag} room ${roomId}: (missing or not StandardRoom)`
+            }
+            return `${tag} room ${roomId} shortName JSON: ${JSON.stringify(room.shortName?.toJSON())}`
+        }
+        console.log(`\n${tag}`)
+        console.log(`${tag} --- edit slice ---`)
+        console.log(schemaToWML([formFromData(state.edit).schema]))
+        console.log(roomShortNameLine(formFromData(state.edit)))
+        console.log(`${tag} --- getLocalStandardForm (base + edit) ---`)
+        const local = formFromData(publicSelectors.getLocalStandardForm(augmentedState(state, base)))
+        console.log(schemaToWML([local.schema]))
+        console.log(roomShortNameLine(local))
+        console.log(`${tag} --- getStandardForm (inherited + local) ---`)
+        const merged = formFromData(publicSelectors.getStandardForm(augmentedState(state, base)))
+        console.log(schemaToWML([merged.schema]))
+        console.log(roomShortNameLine(merged))
+        if (state.lastUpdateDiff) {
+            console.log(`${tag} --- lastUpdateDiff ---`)
+            console.log(schemaToWML([formFromData(state.lastUpdateDiff).schema]))
+            console.log(roomShortNameLine(formFromData(state.lastUpdateDiff)))
+        }
+    }
+
+    const logPhase0LocalDraft = (label: string, draft: StandardForm, roomId: ComponentUUID): void => {
+        const tag = `[Phase 0 flush] ${label}`
+        console.log(`\n${tag}`)
+        try {
+            console.log(schemaToWML([draft.schema]))
+        } catch (error) {
+            console.log(`${tag} schemaToWML failed:`, (error as Error).message)
+        }
+        const room = draft.byUniversalId[roomId]
+        if (room instanceof StandardRoom) {
+            console.log(`${tag} room shortName JSON:`, JSON.stringify(room.shortName?.toJSON()))
+        } else {
+            console.log(`${tag} room ${roomId}: (missing or not StandardRoom)`)
+        }
+        const roomRef = room?.reference
+        if (roomRef) {
+            console.log(
+                `${tag} referencedBy(room):`,
+                draft.referencedBy(roomRef).map((r) => r.universalKey)
+            )
+        }
+        console.log(
+            `${tag} _topLevel:`,
+            JSON.stringify(draft._topLevel?.payload.map((r) => r.toJSON()) ?? [])
+        )
+    }
+
+    describe('inherited shortName and component flush persist (Phase 0)', () => {
+        const ROOM_ID = 'ROOM#lobby' as ComponentUUID
+        const inheritedWml = `
+            <Asset uuid=(assetC)>
+                <Room uuid=(lobby) key=(lobby)><ShortName>Lobby</ShortName></Room>
+            </Asset>
+        `
+        const baseWml = `
+            <Asset uuid=(assetC)>
+                <Room uuid=(lobby) from=(ASSET#assetA) ref={0} />
+            </Asset>
+        `
+        const editWml = `
+            <Asset uuid=(assetC)>
+                <Room uuid=(lobby) ref={0}>
+                    <ShortName><Space />in the dark</ShortName>
+                </Room>
+            </Asset>
+        `
+
+        const buildPhase0Working = (baseJSON: StandardFormData, preFlushState: PersonalAssetsPublic) => {
+            const mergedForm = new StandardForm(
+                publicSelectors.getStandardForm(augmentedState(preFlushState, baseJSON))
+            )
+            const roomInMerged = mergedForm.byUniversalId[ROOM_ID]
+            expect(roomInMerged).toBeInstanceOf(StandardRoom)
+            const working = (roomInMerged as StandardRoom).clone()
+            setWorkingShortNameFromString(working, 'Lobby in the pitch-black')
+            return working
+        }
+
+        const localRoomShortName = (
+            state: PersonalAssetsPublic,
+            base: StandardFormData,
+            roomId: ComponentUUID
+        ): string | undefined => {
+            const local = new StandardForm(
+                publicSelectors.getLocalStandardForm({ ...state, base, key: '' } as PersonalAssetsPublic & { base: StandardFormData; key: string })
+            )
+            const room = local.byUniversalId[roomId]
+            if (!(room instanceof StandardRoom)) {
+                return undefined
+            }
+            const shortNameJson = room.shortName?.toJSON()
+            return typeof shortNameJson === 'string' ? shortNameJson : undefined
+        }
+
+        it('retains local room body after applyWorkbenchFlush (Phase 2b)', () => {
+            const baseJSON = wmlToJSON(baseWml)
+            const preFlushState = minimalPersonalAssetsState({
+                inherited: wmlToJSON(inheritedWml),
+                edit: wmlToJSON(editWml)
+            })
+            expect(mergedRoomShortName(preFlushState, baseJSON, ROOM_ID)).toBe('Lobby in the dark')
+
+            const working = buildPhase0Working(baseJSON, preFlushState)
+
+            const postFlushState = runUpdateLocalWithLayers(baseWml, inheritedWml, editWml, {
+                type: 'updateLocal',
+                update: (draft) => {
+                    logPhase0LocalDraft('local draft BEFORE flush', draft, ROOM_ID)
+                    applyWorkbenchFlush(draft, { componentId: ROOM_ID, working })
+                    logPhase0LocalDraft('local draft AFTER applyWorkbenchFlush', draft, ROOM_ID)
+                    return draft
+                }
+            })
+
+            expect(localRoomShortName(postFlushState, baseJSON, ROOM_ID)).toBe('Lobby in the pitch-black')
+        })
+
+        it('merged shortName after update flush does not double inherited Lobby prefix (Phase 4 gate)', () => {
+            const baseJSON = wmlToJSON(baseWml)
+            const preFlushState = minimalPersonalAssetsState({
+                inherited: wmlToJSON(inheritedWml),
+                edit: wmlToJSON(editWml)
+            })
+            expect(mergedRoomShortName(preFlushState, baseJSON, ROOM_ID)).toBe('Lobby in the dark')
+            logPhase0FlushDiagnostics('preFlushState', preFlushState, baseJSON, ROOM_ID)
+
+            const working = buildPhase0Working(baseJSON, preFlushState)
+            console.log(
+                '[Phase 0 flush] session working shortName JSON:',
+                JSON.stringify(working.shortName?.toJSON())
+            )
+
+            const postFlushState = runUpdateLocalWithLayers(baseWml, inheritedWml, editWml, {
+                type: 'update',
+                update: (draft) => {
+                    applyWorkbenchFlush(draft, { componentId: ROOM_ID, working })
+                    return draft
+                }
+            })
+
+            logPhase0FlushDiagnostics('postFlushState', postFlushState, baseJSON, ROOM_ID)
+
+            expect(mergedRoomShortName(postFlushState, baseJSON, ROOM_ID)).toBe('Lobby in the pitch-black')
         })
     })
 })

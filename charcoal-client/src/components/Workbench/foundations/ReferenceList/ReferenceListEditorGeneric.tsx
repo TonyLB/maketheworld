@@ -8,6 +8,8 @@ import ListItemText from "@mui/material/ListItemText"
 import IconButton from "@mui/material/IconButton"
 import Typography from "@mui/material/Typography"
 import DeleteIcon from "@mui/icons-material/Delete"
+import DeleteForeverIcon from "@mui/icons-material/DeleteForever"
+import PushPinIcon from "@mui/icons-material/PushPin"
 
 import { MakeTheWorldAccordion } from "../../../UI"
 import { ReferenceList } from "@tonylb/mtw-wml/ts/standardize/keys/referenceList"
@@ -20,6 +22,10 @@ export interface ReferenceListItem {
     title: string
     subtitle?: string
     icon?: ReactNode
+    /** When true with onItemPin, show pin-to-roster action (TopLevel display-only rows). */
+    showPinAction?: boolean
+    /** When true with onItemRemove, show unpin action instead of generic remove label. */
+    showUnpinAction?: boolean
 }
 
 export interface ReferenceListContext {
@@ -77,6 +83,17 @@ export interface ReferenceListEditorGenericProps {
     onItemRemove?: (id: string) => void
 
     /**
+     * Called when the purge icon is clicked (explicit removeComponent from asset).
+     * When provided, shows a second action beside row remove / disassociate.
+     */
+    onItemPurge?: (id: string) => void
+
+    /**
+     * Called when pin icon is clicked (add ref={1} on _topLevel). Item must set showPinAction.
+     */
+    onItemPin?: (id: string) => void
+
+    /**
      * Slot for Add/Import rows. Wrapper supplies the actual UI.
      */
     actionAffordances?: ReactNode
@@ -92,6 +109,8 @@ export const ReferenceListEditorGeneric: FunctionComponent<ReferenceListEditorGe
     onItemClick,
     updateReferenceList,
     onItemRemove,
+    onItemPurge,
+    onItemPin,
     actionAffordances
 }) => {
     const getItemRemoveHandler = useCallback(
@@ -112,6 +131,9 @@ export const ReferenceListEditorGeneric: FunctionComponent<ReferenceListEditorGe
     )
 
     const hasRemove = Boolean(onItemRemove ?? updateReferenceList)
+    const hasPurge = Boolean(onItemPurge)
+    const hasPin = Boolean(onItemPin)
+    const hasRowActions = hasRemove || hasPurge || hasPin
 
     const handleItemClick = useCallback(
         (id: string) => () => {
@@ -137,6 +159,94 @@ export const ReferenceListEditorGeneric: FunctionComponent<ReferenceListEditorGe
         [disabled, getItemRemoveHandler]
     )
 
+    const handleItemPurge = useCallback(
+        (id: string) => (event: React.MouseEvent) => {
+            event.stopPropagation()
+            if (disabled || !onItemPurge) {
+                return
+            }
+            onItemPurge(id)
+        },
+        [disabled, onItemPurge]
+    )
+
+    const handleItemPin = useCallback(
+        (id: string) => (event: React.MouseEvent) => {
+            event.stopPropagation()
+            if (disabled || !onItemPin) {
+                return
+            }
+            onItemPin(id)
+        },
+        [disabled, onItemPin]
+    )
+
+    const rowSecondaryActions = useCallback(
+        (item: ReferenceListItem) => {
+            const { id, showPinAction, showUnpinAction } = item
+            const showPin = hasPin && showPinAction
+            const showUnpin = hasRemove && showUnpinAction
+            const showRemove = hasRemove && !showUnpinAction
+
+            if (!showPin && !showUnpin && !showRemove && !hasPurge) {
+                return undefined
+            }
+
+            return (
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
+                    {hasPurge && (
+                        <IconButton
+                            edge="end"
+                            aria-label="purge from asset"
+                            onClick={handleItemPurge(id)}
+                            disabled={disabled}
+                            color="error"
+                            size="small"
+                        >
+                            <DeleteForeverIcon fontSize="small" />
+                        </IconButton>
+                    )}
+                    {showPin && (
+                        <IconButton
+                            edge="end"
+                            aria-label="pin to roster"
+                            onClick={handleItemPin(id)}
+                            disabled={disabled}
+                            size="small"
+                        >
+                            <PushPinIcon fontSize="small" />
+                        </IconButton>
+                    )}
+                    {showUnpin && (
+                        <IconButton
+                            edge="end"
+                            aria-label="unpin"
+                            onClick={handleItemRemove(id)}
+                            disabled={disabled}
+                            color="error"
+                            size="small"
+                        >
+                            <DeleteIcon fontSize="small" />
+                        </IconButton>
+                    )}
+                    {showRemove && (
+                        <IconButton
+                            edge="end"
+                            aria-label="remove"
+                            onClick={handleItemRemove(id)}
+                            disabled={disabled}
+                            color="error"
+                            size="small"
+                        >
+                            <DeleteIcon fontSize="small" />
+                        </IconButton>
+                    )}
+                </Box>
+            )
+        },
+        [hasPin, hasRemove, hasPurge, disabled, handleItemPin, handleItemPurge, handleItemRemove]
+    )
+
     const hasItems = items.length > 0
 
     return (
@@ -148,25 +258,13 @@ export const ReferenceListEditorGeneric: FunctionComponent<ReferenceListEditorGe
         >
             <List>
                 {hasItems ? (
-                    items.map(({ id, title: itemTitle, subtitle, icon }) =>
-                        variant === "table" ? (
+                    items.map((item) => {
+                        const { id, title: itemTitle, subtitle, icon } = item
+                        return variant === "table" ? (
                             <ListItem
                                 key={id}
                                 disablePadding
-                                secondaryAction={
-                                    hasRemove ? (
-                                        <IconButton
-                                            edge="end"
-                                            aria-label="remove"
-                                            onClick={handleItemRemove(id)}
-                                            disabled={disabled}
-                                            color="error"
-                                            size="small"
-                                        >
-                                            <DeleteIcon fontSize="small" />
-                                        </IconButton>
-                                    ) : undefined
-                                }
+                                secondaryAction={rowSecondaryActions(item)}
                             >
                                 <ListItemButton
                                     onClick={handleItemClick(id)}
@@ -214,7 +312,7 @@ export const ReferenceListEditorGeneric: FunctionComponent<ReferenceListEditorGe
                                 <ListItemButton
                                     onClick={handleItemClick(id)}
                                     disabled={disabled || !onItemClick}
-                                    sx={{ paddingRight: hasRemove ? "3rem" : undefined }}
+                                    sx={{ paddingRight: hasRowActions ? "5rem" : undefined }}
                                 >
                                     {icon && (
                                         <ListItemIcon sx={{ minWidth: 32 }}>
@@ -240,7 +338,7 @@ export const ReferenceListEditorGeneric: FunctionComponent<ReferenceListEditorGe
                                         }
                                     />
                                 </ListItemButton>
-                                {hasRemove && (
+                                {hasRowActions && (
                                     <Box
                                         sx={{
                                             display: "flex",
@@ -249,21 +347,12 @@ export const ReferenceListEditorGeneric: FunctionComponent<ReferenceListEditorGe
                                             paddingRight: 1
                                         }}
                                     >
-                                        <IconButton
-                                            edge="end"
-                                            aria-label="remove"
-                                            onClick={handleItemRemove(id)}
-                                            disabled={disabled}
-                                            color="error"
-                                            size="small"
-                                        >
-                                            <DeleteIcon fontSize="small" />
-                                        </IconButton>
+                                        {rowSecondaryActions(item)}
                                     </Box>
                                 )}
                             </ListItem>
                         )
-                    )
+                    })
                 ) : (
                     <ListItem>
                         <Box

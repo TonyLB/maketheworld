@@ -14,3 +14,16 @@ export function removeReferenceFromListById(list: ReferenceList, id: string): vo
     const target = new StandardReference(id)
     list._items = list.payload.filter((ref) => !ref.sameKey(target))
 }
+
+/** Roster pin: positive ref on _topLevel (ref={1} is the default pin). */
+export function isPinnedOnTopLevel(list: ReferenceList, id: string): boolean {
+    if (!isSchemaComponentUUID(id)) {
+        return false
+    }
+    const target = new StandardReference(id)
+    return list.payload.some((ref) => ref.sameKey(target) && ref.ref >= 1)
+}
+
+export function pinReferenceOnTopLevel(list: ReferenceList, ref: StandardReference): ReferenceList {
+    return list.assureItem(ref.withRef(1))
+}

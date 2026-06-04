@@ -21,7 +21,7 @@ The Workbench sits within the Charcoal Client's [dual-mode architecture](../../.
 - **Reference Lists**: WML `ReferenceList` fields (e.g. `features`, `guidance`, `lens`, `marks`) rendered as accordion lists with add/remove; see [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md)
 - **Layered Context**: Sibling-in-context editing for Room Situation facets and Guidance (Photoshop-layer style); see [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md)
 - **StandardForm**: WML asset representation; the Workbench reads and mutates `StandardForm` via `updateStandard` from `useWorkbenchAsset`; per-component editing uses **`useWorkbenchComponent`** ([Component editing session](#component-editing-session-two-tier-model)); asset root ShortName, Summary, and `_topLevel` use **`useWorkbenchAssetMeta`** ([Asset-meta editing session](#asset-meta-editing-session))
-- **Consistency layer**: **`materializeComponentInAsset`** eager on Redux local draft (`updateLocal`); **`applyWorkbenchFlush`** at component-session flush; **`applyAssetMetaFlush`** at asset-meta session flush; session list create/import via **`ReferenceListSessionEditor`**; **`previewOrphanClosure`**, **`isReferencedInAssetLayer`** (**`_topLevel` union `referencedBy`** on **local** form only --- not [`SchemaOrganization`](../../../../packages/mtw-wml/ts/standardize/schemaOrganization.ts), not merged `getStandardForm`) --- see [foundations/consistency/AGENT.md](./foundations/consistency/AGENT.md)
+- **Consistency layer**: **`materializeComponentInAsset`** eager on Redux local draft (`updateLocal`); **`applyWorkbenchFlush`** at component session flush via **`update`** (merged baseline); **`applyAssetMetaFlush`** at asset-meta flush via **`updateLocal`**; **`confirmSiteDisassociateBefore*`** on list disassociates; TopLevel **Purge** via **`purgeComponentFromAssetFlow`** --- see [foundations/consistency/AGENT.md](./foundations/consistency/AGENT.md)
 
 ---
 
@@ -50,7 +50,7 @@ User edit -> updateComponent (working = working.clone(); mutate) -> UI reads wor
 UI primitives (StandardLiteralEditor, StandardRenderEditor)
   <- field/section components (WorkbenchShortNameField, DefaultRenderEditor, ReferenceListSessionEditor)
       <- useWorkbenchComponent / WorkbenchComponentProvider
-          <- workbenchMutations (normalize shortName, reconcileCommittedComponent, applyWorkingComponentToDraft)
+          <- workbenchMutations (prepareComponentForFlush shortName prep, reconcileCommittedComponent, applyWorkingComponentToDraft)
               <- updateStandard (asset clone -> diff -> merge)
 ```
 
@@ -66,7 +66,8 @@ UI primitives (StandardLiteralEditor, StandardRenderEditor)
 
 - **State:** `working` (editor copy), `lastReceived` (reconcile baseline), `committed` (live Redux selector view).
 - **`updateComponent`:** immediate `working.clone()` then mutate; resets debounce timer.
-- **`flushToStandardForm`:** debounced persist (default ~1000ms; `flushDelayMs` on provider). Flush dispatches **`updateLocal`** and runs [`applyWorkbenchFlush`](./foundations/consistency/applyWorkbenchFlush.ts) (assign **`working`** via [`applyWorkingComponentToDraft`](./foundations/workbenchMutations.ts) / shortName prep, then **`normalizeWorkbenchDraft`**). Skips dispatch when `lastReceived.diff(working)` is undefined (semantic no-op at component scope).
+- **`flushToStandardForm`:** debounced persist (default ~1000ms; `flushDelayMs` on provider). Flush dispatches **`update`** (merged baseline) and runs [`applyWorkbenchFlush`](./foundations/consistency/applyWorkbenchFlush.ts) (assign **`working`** via [`applyWorkingComponentToDraft`](./foundations/workbenchMutations.ts) / shortName prep only). Skips dispatch when `lastReceived.diff(working)` is undefined (semantic no-op at component scope).
+- **Merged baseline under imports:** Session **`working`** / **`committed`** come from **`getStandardForm`** (inherited + local). Flush must use **`type: 'update'`** so `standardForm.diff(modified)` matches display-shaped fields (e.g. inherited `shortName` overlays). **`updateLocal`** flush caused wrong merged literals when assign targeted the edit layer only. See [personalAssets updateStandard perspectives](../../slices/personalAssets/AGENT.md#updatestandard-perspectives-workbench).
 - **`flushNow`:** cancel pending debounce and flush immediately; runs on provider unmount and `componentId` change.
 - **Create/import:** **`await materializeComponentInAsset`** on the Redux local draft, then associate on parent **`working`** via **`updateComponent`**; debounced flush (**`applyWorkbenchFlush`**) persists list edits.
 - **DEFAULT situation:** when `working` references **SITUATION#DEFAULT**, flush may call [`assureDefaultSituationFromPrimitives`](../../slices/personalAssets/assureDefaultSituationFromPrimitives.ts) before assign.
@@ -74,7 +75,7 @@ UI primitives (StandardLiteralEditor, StandardRenderEditor)
 
 ### Session-bound field components
 
-- **`WorkbenchShortNameField`**, **`DefaultRenderEditor`**, **`ReferenceListSessionEditor`**, **`FacetListSessionEditor`**, **`LensHeader`** (Room **`_lens`**), **`RoomSituationsListEditor`:** context-only; `updateComponent` on **`working`**; no per-action `updateStandard` on the edit path. Room **`_lens`**: create/reference/import via **`materializeComponentInAsset`** + **`onAssociateReference`**; remove via **`confirmOrphanClosureBeforeComponentDisassociate`** then disassociate on **`working._lens`** only. Room non-DEFAULT situations: create/reference via **`materializeComponentInAsset`** + **`onAssociateReference`**; remove via **`confirmOrphanClosureBeforeComponentDisassociate`** then disassociate on **`working.situations`** only (no eager `_topLevel` on create). Facet lists (Lens marks, Guidance marks): **`FacetListSessionEditor`** + domain accessors; see [AGENT.facet-list.md](./foundations/FacetList/AGENT.facet-list.md).
+- **`WorkbenchShortNameField`**, **`DefaultRenderEditor`**, **`ReferenceListSessionEditor`**, **`FacetListSessionEditor`**, **`LensHeader`** (Room **`_lens`**), **`RoomSituationsListEditor`:** context-only; `updateComponent` on **`working`**; no per-action `updateStandard` on the edit path. Room **`_lens`**: create/reference/import via **`materializeComponentInAsset`** + **`onAssociateReference`**; remove via **`confirmSiteDisassociateBeforeComponentDisassociate`** then disassociate on **`working._lens`** only. Room non-DEFAULT situations: create/reference via **`materializeComponentInAsset`** + **`onAssociateReference`**; remove via **`confirmSiteDisassociateBeforeComponentDisassociate`** then disassociate on **`working.situations`** only (no eager `_topLevel` on create). Facet lists (Lens marks, Guidance marks): **`FacetListSessionEditor`** + domain accessors; see [AGENT.facet-list.md](./foundations/FacetList/AGENT.facet-list.md).
 - **`debounce={false}`** on `StandardLiteralEditor` / `StandardRenderEditor` under a provider so only the session debounces flush.
 - **`readonly`:** field prop **and** asset `readonly` from `useWorkbenchAsset` (non-Draft / published).
 
@@ -86,13 +87,28 @@ UI primitives (StandardLiteralEditor, StandardRenderEditor)
 
 Import session test utilities from [`foundations/WorkbenchComponent/testing/harness.tsx`](./foundations/WorkbenchComponent/testing/harness.tsx) and [`testing/mock.ts`](./foundations/WorkbenchComponent/testing/mock.ts), or [`foundations/WorkbenchAssetMeta/testing/harness.tsx`](./foundations/WorkbenchAssetMeta/testing/harness.tsx) for asset-meta sessions --- not from the production barrel. See [Development Notes](#development-notes) and [charcoal-client/AGENT.testing.md](../../AGENT.testing.md).
 
+### Authoring operations (deletion and visibility)
+
+Normative mapping from author intent to operation (asset root details in [AGENT.reference-lists.md#asset-root--_toplevel](./foundations/ReferenceList/AGENT.reference-lists.md#asset-root--_toplevel)):
+
+| Author intent | Operation |
+| --- | --- |
+| Create / import local body | **Materialize** + associate at chosen site |
+| See at asset root | **Display union** ([`topLevelDisplayAdapter`](./foundations/ReferenceList/topLevelDisplayAdapter.ts)) |
+| List on asset Components roster | **Pin** (`ref={1}` on `_topLevel`) |
+| Stop roster listing | **Unpin** (site-local disassociate on `_topLevel` only) |
+| Remove one parent's link | **Disassociate** + [`confirmSiteDisassociateBefore*`](./foundations/consistency/AGENT.md#confirmsitedisassociatebeforelocaledit) |
+| Remove from this asset's edit data | **Purge** (`removeComponent` via [`purgeComponentFromAssetFlow`](./foundations/consistency/purgeComponentFromAssetFlow.ts)) |
+
+**Example:** A Room in two Areas, visible at asset via display union --- remove from both Areas and the body **remains** until **Purge**.
+
 ---
 
 ## Asset-meta editing session
 
 The asset root ([`WorkbenchAssetEditForm`](./WorkbenchAssetEditForm.tsx)) uses the **same two-tier model** as component editors: a **working** asset-meta projection in React state and **debounced `updateLocal`** flush to Redux, not ad hoc per-field `updateStandard` or mixed debounce paths.
 
-[`AssetEditForm`](./WorkbenchAssetEditForm.tsx) and [`TopLevelEditor`](./foundations/ReferenceList/TopLevelEditor.tsx) use **`useWorkbenchAssetMeta`** / **`WorkbenchAssetMetaProvider`** and **`applyAssetMetaFlush`** ([`foundations/WorkbenchAssetMeta/`](./foundations/WorkbenchAssetMeta/), [`foundations/consistency/`](./foundations/consistency/)): [`WorkbenchAssetShortNameField`](./foundations/WorkbenchAssetMeta/WorkbenchAssetShortNameField.tsx), [`WorkbenchAssetSummaryField`](./foundations/WorkbenchAssetMeta/WorkbenchAssetSummaryField.tsx), TopLevel list on **`working.topLevel`** with **`confirmOrphanClosureBeforeAssetMetaDisassociate`** + **`pushChoice`** when **`previewOrphanClosure`** reports non-empty closure.
+[`AssetEditForm`](./WorkbenchAssetEditForm.tsx) and [`TopLevelEditor`](./foundations/ReferenceList/TopLevelEditor.tsx) use **`useWorkbenchAssetMeta`** / **`WorkbenchAssetMetaProvider`** and **`applyAssetMetaFlush`** ([`foundations/WorkbenchAssetMeta/`](./foundations/WorkbenchAssetMeta/), [`foundations/consistency/`](./foundations/consistency/)): [`WorkbenchAssetShortNameField`](./foundations/WorkbenchAssetMeta/WorkbenchAssetShortNameField.tsx), [`WorkbenchAssetSummaryField`](./foundations/WorkbenchAssetMeta/WorkbenchAssetSummaryField.tsx), TopLevel list on **`working.topLevel`**: row **remove** via **`confirmSiteDisassociateBeforeAssetMetaDisassociate`**; row **purge** via **`purgeComponentFromAssetFlow`**.
 
 ### Two tiers
 
@@ -115,16 +131,17 @@ Module home: **`foundations/WorkbenchAssetMeta/`**, mirroring [`WorkbenchCompone
 
 - **State:** `working` (editor copy), `lastReceived` (reconcile baseline), `committed` (live Redux asset-meta view).
 - **`updateAssetMeta`:** immediate working mutate; resets debounce timer.
-- **`flushToStandardForm`:** debounced persist via **`updateLocal`** and [`applyAssetMetaFlush`](./foundations/consistency/AGENT.md#applyassetmetaflush) (assign **`_shortName`**, **`_summary`**, **`_topLevel`** from working, then **`normalizeWorkbenchDraft`**). **No** materialize in flush.
+- **`flushToStandardForm`:** debounced persist via **`updateLocal`** and [`applyAssetMetaFlush`](./foundations/consistency/AGENT.md#applyassetmetaflush) (assign **`_shortName`**, **`_summary`**, **`_topLevel`** from working only). **No** materialize or orphan GC in flush.
 - **`flushNow`:** cancel pending debounce and flush immediately; runs on provider unmount.
 - **Create/import:** **`await materializeComponentInAsset`** on the Redux local draft, then associate on **`working._topLevel`** (same as [`ReferenceListSessionEditor`](./foundations/ReferenceList/ReferenceListSessionEditor.tsx) on a component parent).
-- **List row remove:** disassociate on **`working._topLevel`** + debounced flush + normalize; **never** `removeComponent` for list rows.
+- **Top-level list:** **display union** (merged organization + pins on **`working.topLevel`**); **Pin** / **Unpin** / **Purge** per row kind; see [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md#asset-root--_toplevel).
+- **List row Unpin:** disassociate on **`working._topLevel`** + debounced flush; **never** `removeComponent` for list rows.
 - **Reconcile:** mirror **`useWorkbenchComponent`** --- `lastReceived` / `committed` / supersede when Redux changes without local edits; eager materialize of a **new** key must not supersede open asset-meta **`working`** when committed asset-meta is unchanged.
 
 ### Session-bound fields
 
 - **ShortName / Summary:** [`WorkbenchAssetShortNameField`](./foundations/WorkbenchAssetMeta/WorkbenchAssetShortNameField.tsx), [`WorkbenchAssetSummaryField`](./foundations/WorkbenchAssetMeta/WorkbenchAssetSummaryField.tsx) with **`debounce={false}`** on primitives so only the asset-meta session debounces flush.
-- **Top-level component list:** [`TopLevelEditor`](./foundations/ReferenceList/TopLevelEditor.tsx) on **`working.topLevel`** via **`updateAssetMeta`**; create/import via **`materializeComponentInAsset`** then associate; row remove via disassociate + [`confirmOrphanClosureBeforeAssetMetaDisassociate`](./foundations/consistency/confirmOrphanClosureBeforeLocalEdit.ts). See [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md#asset-root--_toplevel).
+- **Top-level component list:** [`TopLevelEditor`](./foundations/ReferenceList/TopLevelEditor.tsx) --- display union + Pin/Unpin/Purge; create/import/reference-existing **pin** on **`working.topLevel`** after **`materializeComponentInAsset`**. See [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md#asset-root--_toplevel).
 
 ---
 
@@ -329,7 +346,7 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 | `foundations/ReferenceList/ReferenceListControlled.tsx` | Composable shell: `referenceList` + `onReferenceListChange` |
 | `foundations/ReferenceList/ReferenceListSessionEditor.tsx` | Provider-screen wrapper over Controlled; `listAccessor` + session persist |
 | `foundations/ReferenceList/ReferenceListEditor.tsx` | Asset-mode thin wrapper over Controlled (`listContext` + `updateStandard`) |
-| `foundations/ReferenceList/TopLevelEditor.tsx` | Asset root component list (asset-meta session, eager materialize, single-site disassociate + orphan confirm) |
+| `foundations/ReferenceList/TopLevelEditor.tsx` | Asset root component list (asset-meta session, eager materialize, site-local disassociate confirm, Purge) |
 | `foundations/ReferenceList/referenceListMutations.ts` | List remove by ComponentUUID via `sameKey` |
 | `foundations/FacetList/FacetListSessionEditor.tsx` | Provider-screen facet list shell (mirrors `ReferenceListSessionEditor`) |
 | `foundations/SituationFacetRenderFieldsEditor.tsx` | Asset-mode facet field editor (layered Room situations); `updateStandard` per change |
@@ -345,11 +362,11 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 | `CharacterEdit/` | CharacterEditor |
 | `foundations/StandardRender/StandardRenderEditor.tsx` | Rich text (Slate); shared with Editor components |
 | `foundations/ReferenceList/referenceListAdapter.ts` | `referenceListToItems` for list display |
-| `foundations/consistency/` | Pure TS + Redux thunk: **`isReferencedInAssetLayer`**, **`materializeComponent`**, **`materializeComponentInAsset`**, **`applyWorkbenchFlush`**, **`applyAssetMetaFlush`**, **`normalizeWorkbenchDraft`**, **`previewOrphanClosure`** |
+| `foundations/consistency/` | Pure TS + Redux thunk: **`materializeComponent`**, **`materializeComponentInAsset`**, **`applyWorkbenchFlush`**, **`applyAssetMetaFlush`**, **`confirmSiteDisassociateBefore*`**, **`purgeComponentFromAssetFlow`**, **`previewPurgeClosure`** |
 
 ### Related Documentation
 
-- [foundations/consistency/AGENT.md](./foundations/consistency/AGENT.md) - Local vs global ops; orphan predicate; flush pipelines; fixpoint normalize; orphan preview
+- [foundations/consistency/AGENT.md](./foundations/consistency/AGENT.md) - Materialize, flush assign, site-local confirm, Purge
 - [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md) - `ReferenceListControlled`, session vs asset wrappers, `InlineReferenceList`, Mark inline pattern
 - [AGENT.facet-list.md](./foundations/FacetList/AGENT.facet-list.md) - Facet list handlers, Lens mark hybrid rows
 - [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md) - Layer strip, index bar, split-pane, MUI Tabs; Room layered views

@@ -8,6 +8,7 @@ import { act, fireEvent, screen } from '@testing-library/react'
 import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
 import { TopLevelEditor } from './TopLevelEditor'
+import { isPinnedOnTopLevel } from './referenceListMutations'
 import {
     applyLastFlushToCommitted,
     getFlushedTopLevelUniversalKeys,
@@ -34,8 +35,12 @@ vi.mock('../useWorkbenchAsset', async (importOriginal) => {
 })
 
 vi.mock('../../../../slices/UI/choiceDialog', () => ({
-    pushChoice: (choice: unknown) => {
+    pushChoice: (choice: { options?: { returnValue: string }[] }) => {
         pushChoiceMock(choice)
+        const values = choice.options?.map((o) => o.returnValue) ?? []
+        if (values.includes('cascade')) {
+            return () => Promise.resolve('cascade')
+        }
         return () => Promise.resolve('confirm')
     }
 }))
@@ -50,6 +55,12 @@ vi.mock('../ComponentSelector', () => ({
 
 vi.mock('../../ImageHeader', () => ({
     default: () => null
+}))
+
+const purgeComponentFromAssetFlowMock = vi.fn()
+
+vi.mock('../consistency/purgeComponentFromAssetFlow', () => ({
+    purgeComponentFromAssetFlow: (...args: unknown[]) => purgeComponentFromAssetFlowMock(...args)
 }))
 
 const FLUSH_DELAY_MS = 100
@@ -69,6 +80,12 @@ const assetWithRoomAndFeatureWml = `
     </Asset>
 `
 
+const assetWithImportDisplayOnlyWml = `
+    <Asset uuid=(test)>
+        <Room uuid=(lobby) key=(lobby) from=(ASSET#assetA) ref={0} />
+    </Asset>
+`
+
 const flushAsync = async (): Promise<void> => {
     await act(async () => {
         await Promise.resolve()
@@ -81,6 +98,8 @@ describe('TopLevelEditor', () => {
         vi.useFakeTimers()
         resetWorkbenchAssetMock()
         pushChoiceMock.mockClear()
+        purgeComponentFromAssetFlowMock.mockClear()
+        purgeComponentFromAssetFlowMock.mockResolvedValue(undefined)
     })
 
     afterEach(() => {
@@ -104,16 +123,35 @@ describe('TopLevelEditor', () => {
             children: <TopLevelEditor />
         })
 
-        const deleteButtons = screen.getAllByLabelText('remove')
+        const unpinButtons = screen.getAllByLabelText('unpin')
         await act(async () => {
-            fireEvent.click(deleteButtons[0])
+            fireEvent.click(unpinButtons[0])
             await flushAsync()
         })
 
+        expect(pushChoiceMock).toHaveBeenCalled()
         expect(getSession().working?.topLevel.payload.length).toBe(0)
         expect(updateStandardMock).not.toHaveBeenCalledWith(
             expect.objectContaining({ type: 'removeComponent' })
         )
+    })
+
+    it('purge invokes purgeComponentFromAssetFlow for row', async () => {
+        renderWorkbenchAssetMetaSession({
+            options: { wml: assetWithRoomWml, flushDelayMs: FLUSH_DELAY_MS },
+            children: <TopLevelEditor />
+        })
+
+        const purgeButtons = screen.getAllByLabelText('purge from asset')
+        await act(async () => {
+            fireEvent.click(purgeButtons[0])
+            await flushAsync()
+        })
+
+        expect(purgeComponentFromAssetFlowMock).toHaveBeenCalledTimes(1)
+        expect(purgeComponentFromAssetFlowMock.mock.calls[0]![0]).toMatchObject({
+            reference: expect.objectContaining({ universalKey: 'ROOM#room1' })
+        })
     })
 
     it('debounced flush persists topLevel disassociate via updateLocal', async () => {
@@ -122,9 +160,9 @@ describe('TopLevelEditor', () => {
             children: <TopLevelEditor />
         })
 
-        const deleteButtons = screen.getAllByLabelText('remove')
+        const unpinButtons = screen.getAllByLabelText('unpin')
         await act(async () => {
-            fireEvent.click(deleteButtons[0])
+            fireEvent.click(unpinButtons[0])
             await flushAsync()
             vi.advanceTimersByTime(FLUSH_DELAY_MS)
         })
@@ -134,19 +172,65 @@ describe('TopLevelEditor', () => {
         expect(getFlushedTopLevelUniversalKeys()).toEqual([])
     })
 
-    it('remove with non-empty orphan closure prompts before disassociate', async () => {
+    it('remove with non-empty body prompts site-local confirm before disassociate', async () => {
         renderWorkbenchAssetMetaSession({
             options: { wml: assetWithRoomAndFeatureWml, flushDelayMs: FLUSH_DELAY_MS },
             children: <TopLevelEditor />
         })
 
-        const deleteButtons = screen.getAllByLabelText('remove')
+        const unpinButtons = screen.getAllByLabelText('unpin')
         await act(async () => {
-            fireEvent.click(deleteButtons[0])
+            fireEvent.click(unpinButtons[0])
             await flushAsync()
         })
 
         expect(pushChoiceMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('shows display-only import row with pin affordance and no unpin', () => {
+        renderWorkbenchAssetMetaSession({
+            options: { wml: assetWithImportDisplayOnlyWml, flushDelayMs: FLUSH_DELAY_MS },
+            children: <TopLevelEditor />
+        })
+
+        expect(screen.getByText('Visible in asset')).toBeDefined()
+        expect(screen.getByLabelText('pin to roster')).toBeDefined()
+        expect(screen.queryByLabelText('unpin')).toBeNull()
+    })
+
+    it('pin adds ref={1} on working.topLevel for display-only row', async () => {
+        const { getSession } = renderWorkbenchAssetMetaSession({
+            options: { wml: assetWithImportDisplayOnlyWml, flushDelayMs: FLUSH_DELAY_MS },
+            children: <TopLevelEditor />
+        })
+
+        expect(isPinnedOnTopLevel(getSession().working!.topLevel, 'ROOM#lobby')).toBe(false)
+
+        await act(async () => {
+            fireEvent.click(screen.getByLabelText('pin to roster'))
+        })
+
+        expect(
+            getSession().working?.topLevel.payload.some(
+                (ref) => ref.universalKey === 'ROOM#lobby' && ref.ref >= 1
+            )
+        ).toBe(true)
+    })
+
+    it('unpin removes pin but row remains visible when still in display union', async () => {
+        renderWorkbenchAssetMetaSession({
+            options: { wml: assetWithRoomWml, flushDelayMs: FLUSH_DELAY_MS },
+            children: <TopLevelEditor />
+        })
+
+        const unpinButtons = screen.getAllByLabelText('unpin')
+        await act(async () => {
+            fireEvent.click(unpinButtons[0])
+            await flushAsync()
+        })
+
+        expect(screen.getAllByText('Room One').length).toBeGreaterThan(0)
+        expect(screen.getByText('Visible in asset')).toBeDefined()
     })
 
     it('create awaits materialize then associates on working without immediate flush', async () => {
@@ -196,21 +280,22 @@ describe('TopLevelEditor', () => {
         expect(keys[0]).toMatch(/^ROOM#/)
     })
 
-    it('flush remove normalizes room and nested feature from byUniversalId', async () => {
+    it('flush remove retains room and nested feature in byUniversalId (assign only)', async () => {
         renderWorkbenchAssetMetaSession({
             options: { wml: assetWithRoomAndFeatureWml, flushDelayMs: FLUSH_DELAY_MS },
             children: <TopLevelEditor />
         })
 
-        const deleteButtons = screen.getAllByLabelText('remove')
+        const unpinButtons = screen.getAllByLabelText('unpin')
         await act(async () => {
-            fireEvent.click(deleteButtons[0])
+            fireEvent.click(unpinButtons[0])
             await flushAsync()
             vi.advanceTimersByTime(FLUSH_DELAY_MS)
         })
 
         const flushed = applyLastFlushToCommitted()
-        expect(flushed.byUniversalId['ROOM#room1' as ComponentUUID]).toBeUndefined()
-        expect(flushed.byUniversalId['FEATURE#feat1' as ComponentUUID]).toBeUndefined()
+        expect(flushed.byUniversalId['ROOM#room1' as ComponentUUID]).toBeDefined()
+        expect(flushed.byUniversalId['FEATURE#feat1' as ComponentUUID]).toBeDefined()
+        expect(flushed._topLevel?.payload ?? []).toHaveLength(0)
     })
 })

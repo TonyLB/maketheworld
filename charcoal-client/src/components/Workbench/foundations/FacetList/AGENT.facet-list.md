@@ -11,7 +11,7 @@ Reference lists use the parallel **`ReferenceListControlled`** / **`ReferenceLis
 - **Layout wrappers** (e.g. SingleLineFacetRow): Receive a payload slot (ReactNode) and affordance handlers (e.g. onRemove). Wrappers render affordance UI using shared primitives; they do not own persistence.
 - **Affordance primitives**: Small components (e.g. FacetListAffordance.Remove) for consistent remove look/behavior.
 - **Payload editor**: Renders only the payload content (e.g. reference label + Match field for Mark facets).
-- **Tests**: [`FacetListSessionEditor.test.tsx`](./FacetListSessionEditor.test.tsx) --- create/import/reference session wiring (mock `materializeComponentInAsset`; flush via `updateLocal`).
+- **Tests**: [`FacetListSessionEditor.test.tsx`](./FacetListSessionEditor.test.tsx) --- create/import/reference session wiring (mock `materializeComponentInAsset`; flush via `update`).
 
 ## Usage
 

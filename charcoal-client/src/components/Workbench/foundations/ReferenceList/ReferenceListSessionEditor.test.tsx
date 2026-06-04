@@ -221,7 +221,7 @@ describe('ReferenceListSessionEditor', () => {
         expect(updateStandardMock).not.toHaveBeenCalled()
     })
 
-    it('create new debounced flush uses updateLocal without inline byUniversalId create', async () => {
+    it('create new debounced flush uses update without inline byUniversalId create', async () => {
         mockMaterializeComponentInAsset()
 
         const { getSession } = renderWorkbenchComponentSession({
@@ -254,7 +254,7 @@ describe('ReferenceListSessionEditor', () => {
         })
 
         expect(updateStandardMock).toHaveBeenCalledTimes(1)
-        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'updateLocal' })
+        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'update' })
 
         const flushUpdate = updateStandardMock.mock.calls[0]![0]!.update
         const { mockWorkbenchReturn } = await import('../WorkbenchComponent/testing/mock')

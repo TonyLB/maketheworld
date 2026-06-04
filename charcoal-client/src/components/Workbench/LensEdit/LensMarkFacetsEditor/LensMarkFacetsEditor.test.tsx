@@ -148,7 +148,7 @@ describe('LensMarkFacetsEditor', () => {
         expect(updateStandardMock).not.toHaveBeenCalled()
     })
 
-    it('create new debounced flush uses updateLocal', async () => {
+    it('create new debounced flush uses update', async () => {
         mockMaterializeComponentInAsset()
 
         renderLensMarkFacets(lensWithoutMarksWml)
@@ -168,7 +168,7 @@ describe('LensMarkFacetsEditor', () => {
         })
 
         expect(updateStandardMock).toHaveBeenCalledTimes(1)
-        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'updateLocal' })
+        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'update' })
 
         const flushUpdate = updateStandardMock.mock.calls[0]![0]!.update
         const { mockWorkbenchReturn } = await import(
@@ -225,7 +225,7 @@ describe('LensMarkFacetsEditor', () => {
         expect(updateStandardMock).not.toHaveBeenCalled()
     })
 
-    it('debounced flush persists facet remove via updateLocal', () => {
+    it('debounced flush persists facet remove via update', () => {
         renderLensMarkFacets(lensWithOneMarkWml)
 
         const deleteButtons = screen.getAllByLabelText('remove')
@@ -235,6 +235,6 @@ describe('LensMarkFacetsEditor', () => {
         })
 
         expect(updateStandardMock).toHaveBeenCalledTimes(1)
-        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'updateLocal' })
+        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'update' })
     })
 })
