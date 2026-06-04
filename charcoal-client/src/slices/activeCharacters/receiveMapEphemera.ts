@@ -52,11 +52,14 @@ const extractMapDataFromStandardForm = (standardForm: StandardForm, mapId: Ephem
             // Extract exits
             const exits = roomComponent.exits.items
                 .map((exitFacet) => {
-                    const to = exitFacet.reference.universalKey ?? ''
+                    const to = exitFacet.reference.universalKey
+                    if (!to) {
+                        return undefined
+                    }
                     const description = exitFacet.payload.toJSON() ?? ''
                     return { description, to }
                 })
-                .filter((exit) => exit.to !== '')
+                .filter((exit): exit is { description: string; to: ComponentUUID } => exit !== undefined)
 
             return {
                 roomId: roomId as string,

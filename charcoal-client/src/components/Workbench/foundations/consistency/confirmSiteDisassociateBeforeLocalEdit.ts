@@ -11,7 +11,10 @@ import {
     applyWorkingComponentToDraft,
     type WorkbenchAssetMetaWorking
 } from '../workbenchMutations'
-import { removeReferenceFromListById } from '../ReferenceList/referenceListMutations'
+import {
+    findReferenceInListById,
+    removeReferenceFromListById
+} from '../ReferenceList/referenceListMutations'
 
 const DISASSOCIATE_TITLE = 'Remove link?'
 const CHOICE_CANCEL = 'cancel'
@@ -63,7 +66,7 @@ function targetLabelForReference(
     if (typeof keyPart === 'string' && keyPart.trim()) {
         return keyPart
     }
-    return target.universalKey ?? 'this component'
+    return 'this component'
 }
 
 function isEmptyLocalBody(localStandardForm: StandardForm, target: StandardReference): boolean {
@@ -169,9 +172,8 @@ export async function confirmSiteDisassociateBeforeAssetMetaDisassociate({
     removeId
 }: ConfirmSiteDisassociateBeforeAssetMetaDisassociateParams): Promise<boolean> {
     const target =
-        working.topLevel.payload.find(
-            (ref) => ref.universalKey === removeId || ref.key === removeId
-        ) ?? new StandardReference(removeId as ComponentUUID)
+        findReferenceInListById(working.topLevel, removeId) ??
+        new StandardReference(removeId as ComponentUUID)
 
     return confirmSiteDisassociate({
         dispatch,

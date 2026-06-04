@@ -22,7 +22,7 @@ export const RoomExit = ({ exit, inactive = false }: RoomExitProps) => {
         return <Chip label="Unknown Exit" icon={<ExitIcon />} />
     }
     const exitName = exit.payload.toJSON() ?? 'Unknown Exit'
-    const targetRoomId = exit.reference.universalKey ?? ''
+    const targetRoomId = exit.reference.universalKey
 
     const { CharacterId } = useActiveCharacter()
     const dispatch = useDispatch()
@@ -43,17 +43,17 @@ export const RoomExit = ({ exit, inactive = false }: RoomExitProps) => {
         />
     }
 
-    //
-    // TODO: Create locking mechanism, and embed something akin to "clickable" into
-    // the data structure for the Exit
-    //
-    const clickable = true
-    const clickHandler = clickable ? () => {
-        if (isEphemeraCharacterId(CharacterId) && isEphemeraRoomId(targetRoomId)) {
-            dispatch(addOnboardingComplete(['exitLink']))
-            dispatch(moveCharacter(CharacterId)({ RoomId: targetRoomId, ExitName: exitName }))
-        }
-    } : () => {}
+    const canNavigate =
+        targetRoomId !== undefined &&
+        isEphemeraCharacterId(CharacterId) &&
+        isEphemeraRoomId(targetRoomId)
+
+    const clickHandler = canNavigate
+        ? () => {
+              dispatch(addOnboardingComplete(['exitLink']))
+              dispatch(moveCharacter(CharacterId)({ RoomId: targetRoomId, ExitName: exitName }))
+          }
+        : undefined
 
     return <Chip
             label={exitName}

@@ -14,7 +14,7 @@ export interface LensMarkFacetPayloadEditorProps {
     facet: StandardLensMarkFacet
     onChange: (payload: LensMarkFacetPayload) => void
     readonly?: boolean
-    /** Human-readable label for the referenced Mark when markId is absent. */
+    /** Human-readable label for the referenced Mark when markId is absent. Display only, not identity. */
     referenceDisplayName?: string
     /** When provided, renders MarkInlineEditorWithSession for the Mark shortName. */
     markId?: ComponentUUID
@@ -27,8 +27,7 @@ export const LensMarkFacetPayloadEditor: FunctionComponent<LensMarkFacetPayloadE
     referenceDisplayName,
     markId
 }) => {
-    const ref = facet.reference
-    const label = referenceDisplayName ?? ref.key ?? ref.universalKey ?? "Mark"
+    const label = referenceDisplayName ?? "Mark"
     const value = facet.payload.default ?? new StandardLiteral("", { tag: "Default" })
 
     return (

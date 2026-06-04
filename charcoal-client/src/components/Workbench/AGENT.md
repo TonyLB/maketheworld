@@ -364,6 +364,19 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 | `foundations/ReferenceList/referenceListAdapter.ts` | `referenceListToItems` for list display |
 | `foundations/consistency/` | Pure TS + Redux thunk: **`materializeComponent`**, **`materializeComponentInAsset`**, **`applyWorkbenchFlush`**, **`applyAssetMetaFlush`**, **`confirmSiteDisassociateBefore*`**, **`purgeComponentFromAssetFlow`**, **`previewPurgeClosure`** |
 
+### Component identity (client)
+
+When wiring list rows, navigation, `byUniversalId`, or reference remove/match in charcoal-client (especially Workbench):
+
+| Use case | Rule |
+| --- | --- |
+| List row `id`, breadcrumb / `navigateToComponent`, `byUniversalId[...]` | **`ComponentUUID`** = `ref.universalKey` only. Throw or skip the row when missing (see [`referenceListAdapter.ts`](./foundations/ReferenceList/referenceListAdapter.ts)). |
+| Remove or find a row in a `ReferenceList` | `new StandardReference(id)` + **`sameKey`** ([`referenceListMutations.ts`](./foundations/ReferenceList/referenceListMutations.ts)); never `universalKey === id \|\| ref.key === id`. |
+| Human-readable labels | [`componentDisplayLabel`](../../lib/componentDisplayLabel.ts) or a parent-provided display name (e.g. `referenceDisplayName`). Do not chain `ref.key` / `ref.universalKey` as label fallbacks. |
+| WML semantics | [`packages/mtw-wml/.../AGENT.implementation.md`](../../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) (`universalKey`); list UI: [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md). |
+
+Playing-mode exit chips ([`Message/RoomExit`](../Message/RoomExit.tsx), map ephemera) navigate only when `exit.reference.universalKey` is a valid ephemera room id.
+
 ### Related Documentation
 
 - [foundations/consistency/AGENT.md](./foundations/consistency/AGENT.md) - Materialize, flush assign, site-local confirm, Purge

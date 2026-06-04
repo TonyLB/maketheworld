@@ -110,6 +110,27 @@ describe('RoomExit', () => {
         expect(screen.getByText('Unknown Exit')).toBeInTheDocument()
     })
 
+    it('should not dispatch moveCharacter when exit reference has no universalKey', () => {
+        const exit = new StandardExitFacet({
+            reference: { tag: 'Room', key: 'localRoom' },
+            payload: 'No UUID Exit'
+        })
+
+        render(
+            <Provider store={store}>
+                <RoomExit exit={exit} />
+            </Provider>
+        )
+
+        fireEvent.click(screen.getByText('No UUID Exit'))
+
+        expect(mockDispatch).not.toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: expect.stringContaining('lifeLine/moveCharacter')
+            })
+        )
+    })
+
     it('should handle missing target room gracefully', () => {
         const exit = new StandardExitFacet(`
             <Exit to=(unknown-room)>

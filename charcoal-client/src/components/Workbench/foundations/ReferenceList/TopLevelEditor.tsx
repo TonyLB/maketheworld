@@ -27,6 +27,7 @@ import { componentDisplayLabel } from "../../../../lib/componentDisplayLabel"
 import { applyWorkingAssetMetaToDraft } from "../workbenchMutations"
 import { ReferenceListEditorGeneric } from "./ReferenceListEditorGeneric"
 import {
+    findReferenceInListById,
     isPinnedOnTopLevel,
     pinReferenceOnTopLevel,
     removeReferenceFromListById
@@ -224,9 +225,8 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
             void (async () => {
                 const comp = standardForm.byUniversalId[id as ComponentUUID]
                 const reference =
-                    working.topLevel.payload.find(
-                        (ref) => ref.universalKey === id || ref.key === id
-                    ) ?? new StandardReference(id as ComponentUUID)
+                    findReferenceInListById(working.topLevel, id) ??
+                    new StandardReference(id as ComponentUUID)
                 const targetLabel = comp
                     ? componentDisplayLabel(comp, { standardForm, fallbackLabel: 'Untitled' })
                     : undefined
@@ -346,13 +346,17 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
 
     const actionAffordances = (
         <>
-            {images.map((image) => (
-                <ImageHeader
-                    key={image.universalKey ?? image.key}
-                    ItemId={image.universalKey ?? ""}
-                    onClick={() => {}}
-                />
-            ))}
+            {images
+                .filter((image): image is StandardImage & { universalKey: ComponentUUID } =>
+                    Boolean(image.universalKey)
+                )
+                .map((image) => (
+                    <ImageHeader
+                        key={image.universalKey}
+                        ItemId={image.universalKey}
+                        onClick={() => {}}
+                    />
+                ))}
             {!readonly && (
                 <>
                     <Box

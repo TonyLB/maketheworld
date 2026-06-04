@@ -174,16 +174,20 @@ export const RoomExit = ({ exit }: RoomExitProps) => {
     // Extract exit name from facet payload
     const exitName = exit.payload.toJSON() ?? 'Unknown Exit'
     // Extract target room ID from facet reference
-    const targetRoomId = exit.reference.universalKey ?? ''
-    
-    // Navigation logic
-    const clickHandler = () => {
-        if (isEphemeraCharacterId(CharacterId) && isEphemeraRoomId(targetRoomId)) {
-            dispatch(addOnboardingComplete(['exitLink']))
-            dispatch(moveCharacter(CharacterId)({ RoomId: targetRoomId, ExitName: exitName }))
-        }
-    }
-    
+    const targetRoomId = exit.reference.universalKey
+
+    const canNavigate =
+        Boolean(targetRoomId) &&
+        isEphemeraCharacterId(CharacterId) &&
+        isEphemeraRoomId(targetRoomId)
+
+    const clickHandler = canNavigate
+        ? () => {
+              dispatch(addOnboardingComplete(['exitLink']))
+              dispatch(moveCharacter(CharacterId)({ RoomId: targetRoomId!, ExitName: exitName }))
+          }
+        : undefined
+
     return <Chip label={exitName} icon={<ExitIcon />} onClick={clickHandler} />
 }
 ```

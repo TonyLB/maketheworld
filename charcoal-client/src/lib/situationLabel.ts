@@ -62,18 +62,25 @@ export function situationToMarksSummary(
  * mark's universalKey and the facet payload as a string. Useful where callers
  * need a compact { markValue } object for APIs or prompts that accept that shape.
  */
-export function situationMarksToMarkState(situation: StandardSituation): { markValue: { mark: string; value: string }[] } {
+export function situationMarksToMarkState(
+    situation: StandardSituation
+): { markValue: { mark: ComponentUUID; value: string }[] } {
     const items = situation.marks?.items ?? []
-    const markValue = items.map((facet: StandardMarkFacet) => {
-        const mark = String(facet.reference?.universalKey ?? '')
-        const payload = facet.payload as { toJSON?: () => unknown }
-        let value = ''
-        if (payload && typeof payload.toJSON === 'function') {
-            const v = payload.toJSON()
-            value = typeof v === 'string' ? v : ''
-        }
-        return { mark, value }
-    })
+    const markValue = items
+        .map((facet: StandardMarkFacet) => {
+            const mark = facet.reference?.universalKey
+            if (!mark) {
+                return undefined
+            }
+            const payload = facet.payload as { toJSON?: () => unknown }
+            let value = ''
+            if (payload && typeof payload.toJSON === 'function') {
+                const v = payload.toJSON()
+                value = typeof v === 'string' ? v : ''
+            }
+            return { mark, value }
+        })
+        .filter((entry): entry is { mark: ComponentUUID; value: string } => entry !== undefined)
     return { markValue }
 }
 

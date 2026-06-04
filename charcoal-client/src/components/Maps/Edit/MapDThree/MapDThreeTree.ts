@@ -51,11 +51,13 @@ export const mapTranslate = ({
     const exits = extractExitsFromStandardForm(standardForm, mapId)
     
     // Transform exits into D3.js link format
-    const links: MapLinks = exits.map((exit) => ({
-        id: `${exit.from}:${exit.to}`,
-        source: exit.from,
-        target: exit.to
-    }))
+    const links: MapLinks = exits
+        .filter((exit): exit is typeof exit & { to: string } => Boolean(exit.to))
+        .map((exit) => ({
+            id: `${exit.from}:${exit.to}`,
+            source: exit.from,
+            target: exit.to
+        }))
     
     return { nodes, links }
 }
