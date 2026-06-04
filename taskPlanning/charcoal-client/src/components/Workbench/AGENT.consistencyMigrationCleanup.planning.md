@@ -1,6 +1,6 @@
 # Workbench consistency migration cleanup (client)
 
-**Status:** Not started. **Next step:** Phase 1 --- migrate [`LensHeader`](../../../../charcoal-client/src/components/Workbench/LensEdit/LensHeader.tsx) create/reference/import to `materializeComponentInAsset` + component-session associate.
+**Status:** Phase 1 complete. **Next step:** Phase 2 --- migrate [`LensMarkFacetsEditor`](../../../../charcoal-client/src/components/Workbench/LensEdit/LensMarkFacetsEditor/LensMarkFacetsEditor.tsx) create/reference/import to `materializeComponentInAsset` + session associate.
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move any lasting norms into Workbench `AGENT.md` files next to code.
 
@@ -28,7 +28,7 @@ This initiative finishes that wiring on **provider screens** and consolidates du
 | --- | --- |
 | Reference lists on component session | [`ReferenceListSessionEditor`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListSessionEditor.tsx) |
 | Asset `_topLevel` | [`TopLevelEditor`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx) + [`useWorkbenchAssetMeta`](../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchAssetMeta/useWorkbenchAssetMeta.tsx) |
-| Room `_lens` disassociate | [`LensHeader`](../../../../charcoal-client/src/components/Workbench/LensEdit/LensHeader.tsx) `clearLensReference` + [`confirmOrphanClosureBeforeComponentDisassociate`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/confirmOrphanClosureBeforeLocalEdit.ts) |
+| Room `_lens` (SingleReference) | [`LensHeader`](../../../../charcoal-client/src/components/Workbench/LensEdit/LensHeader.tsx): create/import/reference via **`materializeComponentInAsset`** + **`onAssociateReference`** on **`working._lens`**; disassociate via `clearLensReference` + [`confirmOrphanClosureBeforeComponentDisassociate`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/confirmOrphanClosureBeforeLocalEdit.ts) |
 | DEFAULT situation prose on session screens | [`DefaultRenderEditor`](../../../../charcoal-client/src/components/Workbench/foundations/DefaultRenderEditor.tsx) |
 | Feature / Knowledge / Area shortName + session lists | [`FeatureEditor`](../../../../charcoal-client/src/components/Workbench/FeatureEdit/FeatureEditor.tsx), [`KnowledgeEditor`](../../../../charcoal-client/src/components/Workbench/KnowledgeEdit/KnowledgeEditor.tsx), [`AreaEditor`](../../../../charcoal-client/src/components/Workbench/AreaEdit/AreaEditor.tsx) |
 
@@ -54,8 +54,8 @@ This initiative finishes that wiring on **provider screens** and consolidates du
 
 | Phase | Scope | Status |
 | --- | --- | --- |
-| 0 | Baseline tests green | [ ] |
-| 1 | [`LensHeader`](../../../../charcoal-client/src/components/Workbench/LensEdit/LensHeader.tsx) create / reference / import | [ ] |
+| 0 | Baseline tests green | [X] |
+| 1 | [`LensHeader`](../../../../charcoal-client/src/components/Workbench/LensEdit/LensHeader.tsx) create / reference / import | [X] |
 | 2 | [`LensMarkFacetsEditor`](../../../../charcoal-client/src/components/Workbench/LensEdit/LensMarkFacetsEditor/LensMarkFacetsEditor.tsx) (Lens session) | [ ] |
 | 3 | [`MarkFacetsEditor`](../../../../charcoal-client/src/components/Workbench/MarkFacetsEditor/MarkFacetsEditor.tsx) (Guidance session) | [ ] |
 | 4 | [`RoomEditor`](../../../../charcoal-client/src/components/Workbench/RoomEdit/RoomEditor.tsx) non-DEFAULT **Situations** list | [ ] |
@@ -89,13 +89,13 @@ npm run test:single -- src/components/Workbench/foundations/ReferenceList/Refere
 
 Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as each slice lands.
 
-- [ ] **Phase 0 --- Baseline**
-  - [ ] Run baseline commands above; fix any pre-existing failures before Phase 1.
-- [ ] **Phase 1 --- LensHeader (Room `_lens`)**
-  - [ ] **`requestCreate`:** replace inline `StandardLens` + `update({ type: 'update' })` with `await materializeComponentInAsset({ universalKey })`, then associate on Room **`working._lens`** via `updateComponent` (after `onCreated(ref)`).
-  - [ ] **Reference existing / import:** pass **`onAssociateReference`** into `useAddReferenceImport` (set `SingleReference.fromValue(ref)` on `working`); remove reliance on merged-draft `persistAssociation` for session path.
-  - [ ] Keep **`clearLensReference`** as-is (already uses `confirmOrphanClosureBeforeComponentDisassociate` + `updateComponent`).
-  - [ ] Update [`LensHeader.test.tsx`](../../../../charcoal-client/src/components/Workbench/LensEdit/LensHeader.test.tsx): create/import expect `materializeComponentInAsset` + session associate; flush still `updateLocal`.
+- [X] **Phase 0 --- Baseline**
+  - [X] Run baseline commands above; fix any pre-existing failures before Phase 1.
+- [X] **Phase 1 --- LensHeader (Room `_lens`)**
+  - [X] **`requestCreate`:** replace inline `StandardLens` + `update({ type: 'update' })` with `await materializeComponentInAsset({ universalKey })`, then associate on Room **`working._lens`** via `updateComponent` (after `onCreated(ref)`).
+  - [X] **Reference existing / import:** pass **`onAssociateReference`** into `useAddReferenceImport` (set `SingleReference.fromValue(ref)` on `working`); remove reliance on merged-draft `persistAssociation` for session path.
+  - [X] Keep **`clearLensReference`** as-is (already uses `confirmOrphanClosureBeforeComponentDisassociate` + `updateComponent`).
+  - [X] Update [`LensHeader.test.tsx`](../../../../charcoal-client/src/components/Workbench/LensEdit/LensHeader.test.tsx): create/import expect `materializeComponentInAsset` + session associate; flush still `updateLocal`.
 - [ ] **Phase 2 --- Lens mark facets (LensDetail session)**
   - [ ] **`LensMarkFacetsEditor.requestCreate`:** `materializeComponentInAsset` for Mark body only; associate facet on Lens via existing **`onFacetsChange`** -> `updateComponent` in [`LensDetail`](../../../../charcoal-client/src/components/Workbench/LensEdit/LensDetail.tsx) (do not bundle create+associate in one `update`).
   - [ ] **Reference existing / import:** thread **`onAssociateReference`** (or facet-session equivalent) so `FacetListEditorGeneric` / `useAddReferenceImport` does not call merged `update`.

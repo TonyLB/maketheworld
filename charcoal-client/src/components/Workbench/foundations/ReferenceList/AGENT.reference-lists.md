@@ -111,7 +111,13 @@ List accessor: [`topLevelAssetMetaListAccessor.ts`](topLevelAssetMetaListAccesso
 
 ### Room `_lens` (SingleReference)
 
-[`LensHeader`](../LensEdit/LensHeader.tsx) on the Room component session clears the **`_lens`** slot only (same disassociate + normalize norm as list rows). Orphan body removal runs at component-session flush via **`applyWorkbenchFlush`**; **`confirmOrphanClosureBeforeComponentDisassociate`** when **`previewOrphanClosure`** reports non-empty closure.
+[`LensHeader`](../LensEdit/LensHeader.tsx) on the Room component session uses the same session pattern as **`ReferenceListSessionEditor`**, with a single **`SingleReference`** slot on **`working._lens`** instead of a list accessor.
+
+| Operation | Persist path |
+| --- | --- |
+| Remove | **`_lens` site only** --- disassociate on **`working._lens`** (does **not** clear other parents); debounced flush + normalize may drop **`byUniversalId`** only if orphaned per asset-layer predicate. **`confirmOrphanClosureBeforeComponentDisassociate`** when non-empty closure. |
+| Reference existing | **`await materializeComponentInAsset`** (fast-path when body already local), then associate on **`working._lens`** via **`updateComponent`** |
+| Create / import | **`await materializeComponentInAsset`**, then associate on **`working._lens`** via **`onAssociateReference`** / **`updateComponent`** |
 
 ---
 

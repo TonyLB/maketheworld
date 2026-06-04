@@ -40,7 +40,7 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
     const {
         standardForm,
         localStandardForm,
-        updateStandard,
+        materializeComponentInAsset,
         readonly: assetReadonly
     } = useWorkbenchAsset()
     const {
@@ -107,6 +107,16 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
         updateComponent
     ])
 
+    const onAssociateReference = useCallback(
+        (ref: StandardReference) => {
+            if (readonly || missing || !working) return
+            updateComponent((draft) => {
+                draft._payload._lens = SingleReference.fromValue(ref)
+            })
+        },
+        [readonly, missing, working, updateComponent]
+    )
+
     const association = useCallback(
         (ref: StandardReference, draft: StandardForm) => {
             const base = draft.byUniversalId[RoomId]
@@ -120,23 +130,13 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
     const requestCreate = useCallback(
         (onCreated: (ref: StandardReference) => void) => {
             if (missing || !working || readonly) return
-            const LensKey = enforceTypedKey("LENS")
-            const lensUniversalKey = LensKey(uuidv4()) as ComponentUUID
-            const ref = new StandardReference({ universalKey: lensUniversalKey, tag: "Lens" })
-            updateStandard({
-                type: "update",
-                update: (draft: StandardForm) => {
-                    const newLens = new StandardLens({
-                        tag: "Lens",
-                        universalKey: lensUniversalKey
-                    })
-                    draft.byUniversalId[lensUniversalKey] = newLens
-                    return draft
-                }
-            })
-            onCreated(ref)
+            const universalKey = enforceTypedKey("LENS")(uuidv4()) as ComponentUUID
+            void (async () => {
+                const ref = await materializeComponentInAsset({ universalKey })
+                onCreated(ref)
+            })()
         },
-        [missing, working, updateStandard, readonly]
+        [missing, working, readonly, materializeComponentInAsset]
     )
 
     const { actionRows, selectorDialog, importDialog } = useAddReferenceImport({
@@ -144,6 +144,7 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
         isExcluded: isLensExcluded,
         association,
         requestCreate,
+        onAssociateReference,
         labels: {
             add: "Create New Lens",
             referenceExisting: "Reference Existing Lens",
