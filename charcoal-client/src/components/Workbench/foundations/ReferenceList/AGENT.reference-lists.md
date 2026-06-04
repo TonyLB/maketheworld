@@ -60,7 +60,7 @@ When a list row edits a **referenced component field** (e.g. Mark `shortName`) t
 | --- | --- | --- | --- |
 | Typical / session reference list | `ReferenceList` on parent | None (navigate only) | Parent **`updateComponent`** via [`ReferenceListControlled`](ReferenceListControlled.tsx) / [`ReferenceListSessionEditor`](ReferenceListSessionEditor.tsx) |
 | Inline reference list | `ReferenceList` on parent | Referenced component field (e.g. Mark shortName) | **Per-row** `WorkbenchComponentProvider` + context-only inline editor; `renderItemEditor(id)` wraps **`MarkInlineEditorWithSession`** |
-| Facet list with inline reference field | Facet list on parent (e.g. Lens marks) | Referenced Mark shortName + facet payload on same row | Mark shortName: **`MarkInlineEditorWithSession`**; facet payload: parent **`onFacetsChange`** / **`updateComponent`** when parent has a session (Lens detail); mark create still asset-level **`updateStandard`** |
+| Facet list with inline reference field | Facet list on parent (e.g. Lens marks) | Referenced Mark shortName + facet payload on same row | Mark shortName: **`MarkInlineEditorWithSession`**; facet payload and list add/remove: parent **`onFacetsChange`** / **`updateComponent`** when parent has a session (Lens detail); mark create/import/reference: **`materializeComponentInAsset`** + **`onAssociateReference`** on Lens marks (see [`LensMarkFacetsEditor`](../../LensEdit/LensMarkFacetsEditor/LensMarkFacetsEditor.tsx)) |
 
 ### `renderItemEditor` contract
 

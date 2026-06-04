@@ -20,7 +20,6 @@ import {
     SingleLineFacetRow
 } from "../../foundations/FacetList"
 import { useWorkbenchAsset } from "../../foundations/useWorkbenchAsset"
-import { standardComponentFactory } from "@tonylb/mtw-wml/ts/standardize/componentFactory"
 import { pushBreadcrumb } from "../../../../slices/UI/workbench"
 import { LensMarkFacetPayloadEditor } from "./LensMarkFacetPayloadEditor"
 
@@ -33,6 +32,24 @@ function lensMarkDisplayName(facet: StandardLensMarkFacet, standardForm: Standar
         .shortName?._payload?.plain?.toJSON?.()
     if (typeof shortNameData === "string" && shortNameData.trim().length) return shortNameData
     return undefined
+}
+
+function appendLensMarkFacetIfNew(
+    marks: LensMarkFacetList,
+    ref: StandardReference
+): LensMarkFacetList | null {
+    const universalKeyFromRef = ref.universalKey as ComponentUUID
+    const already = marks.items.some(
+        (f) => f.reference.universalKey === universalKeyFromRef
+    )
+    if (already) {
+        return null
+    }
+    const newFacet = new StandardLensMarkFacet({
+        reference: ref.toJSON(),
+        payload: {}
+    })
+    return new LensMarkFacetList([...marks.items, newFacet])
 }
 
 export interface LensMarkFacetsEditorProps {
@@ -48,7 +65,7 @@ export const LensMarkFacetsEditor: FunctionComponent<LensMarkFacetsEditorProps> 
     onChange,
     readonly = false
 }) => {
-    const { standardForm, updateStandard } = useWorkbenchAsset()
+    const { standardForm, materializeComponentInAsset } = useWorkbenchAsset()
     const dispatch = useDispatch()
 
     const isMarkExcluded = useCallback(
@@ -62,20 +79,25 @@ export const LensMarkFacetsEditor: FunctionComponent<LensMarkFacetsEditorProps> 
             if (!base || !(base instanceof StandardLens)) {
                 return
             }
-            const universalKeyFromRef = ref.universalKey as ComponentUUID
-            const already = base.marks.items.some(
-                (f) => f.reference.universalKey === universalKeyFromRef
-            )
-            if (already) {
-                return
+            const next = appendLensMarkFacetIfNew(base.marks, ref)
+            if (next) {
+                base._payload._marks = next
             }
-            const newFacet = new StandardLensMarkFacet({
-                reference: ref.toJSON(),
-                payload: {}
-            })
-            base._payload._marks = new LensMarkFacetList([...base.marks.items, newFacet])
         },
         [lensId]
+    )
+
+    const onAssociateReference = useCallback(
+        (ref: StandardReference) => {
+            if (readonly) {
+                return
+            }
+            const next = appendLensMarkFacetIfNew(marks, ref)
+            if (next) {
+                onChange?.(next)
+            }
+        },
+        [readonly, marks, onChange]
     )
 
     const requestCreate = useCallback(
@@ -85,27 +107,13 @@ export const LensMarkFacetsEditor: FunctionComponent<LensMarkFacetsEditorProps> 
             }
             const markKey = enforceTypedKey("MARK")
             const newMarkId = markKey(uuidv4()) as ComponentUUID
-            const ref = new StandardReference({ universalKey: newMarkId, tag: "Mark" })
 
-            updateStandard({
-                type: "update",
-                update: (draft: StandardForm) => {
-                    const { component } = standardComponentFactory({
-                        tag: "Mark",
-                        universalKey: newMarkId
-                    })
-                    if (!component) {
-                        return draft
-                    }
-                    draft.byUniversalId[newMarkId] = component
-                    markAssociation(ref, draft)
-                    return draft
-                }
-            })
-
-            onCreated(ref)
+            void (async () => {
+                const ref = await materializeComponentInAsset({ universalKey: newMarkId })
+                onCreated(ref)
+            })()
         },
-        [markAssociation, readonly, updateStandard]
+        [readonly, materializeComponentInAsset]
     )
 
     return (
@@ -130,6 +138,7 @@ export const LensMarkFacetsEditor: FunctionComponent<LensMarkFacetsEditorProps> 
                 tag="Mark"
                 association={markAssociation}
                 requestCreate={requestCreate}
+                onAssociateReference={onAssociateReference}
                 affordance={{
                     addLabel: "Create new Mark",
                     referenceExistingLabel: "Reference existing Mark",

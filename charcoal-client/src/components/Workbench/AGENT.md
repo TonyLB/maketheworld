@@ -139,7 +139,6 @@ Use asset-level paths when there is no parent session or domain topology require
 | Room lens delete | [`LensHeader`](./LensEdit/LensHeader.tsx): disassociate on Room **`working._lens`** + component-session flush + normalize; **`confirmOrphanClosureBeforeComponentDisassociate`** when non-empty closure |
 | Room non-DEFAULT situations list | create/associate in `RoomEditor` |
 | Layered Room situation facets | `SituationFacetRenderFieldsEditor` (asset-mode per change) |
-| Lens mark create/associate | `LensMarkFacetsEditor.requestCreate` |
 | Guidance mark facets (non-Lens screens) | `MarkFacetsEditor` |
 | Character, Situation, Map editors | Not on component session yet |
 | Asset-mode reference list | `ReferenceListEditor` (`listContext` + `updateStandard`) |

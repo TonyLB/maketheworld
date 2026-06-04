@@ -15,7 +15,7 @@ Reference lists use the parallel **`ReferenceListControlled`** shell (`reference
 
 Consumer (e.g. MarkFacetsEditor) wires FacetListEditorGeneric with:
 
-- `facets`, `onFacetsChange`, `createFacetWithPayload`, `tag`, `renderFacetRow`, `readonly`, `isExcluded`, **`association`**, **`requestCreate`**, optional **`affordance`** (labels and enable flags for reference/import rows).
+- `facets`, `onFacetsChange`, `createFacetWithPayload`, `tag`, `renderFacetRow`, `readonly`, `isExcluded`, **`association`**, **`requestCreate`**, optional **`onAssociateReference`** (session path; skips merged-draft `persistAssociation`), optional **`affordance`** (labels and enable flags for reference/import rows).
 - `renderFacetRow` returns a layout wrapper (e.g. SingleLineFacetRow) with `payloadSlot={<PayloadEditor facet={...} onChange={handlers.onChangePayload} readonly={handlers.readonly} />}` and `onRemove={handlers.onRemove}`.
 
 ## Hybrid: inline referenced-component fields (Lens marks)
@@ -24,7 +24,7 @@ When a facet row edits both **referenced component data** (Mark `shortName`) and
 
 - **Mark shortName**: [`MarkInlineEditorWithSession`](../../MarkEdit/InlineEditor.tsx) in the payload slot (per-row Mark session; debounced flush per Mark). See [AGENT.reference-lists.md](../ReferenceList/AGENT.reference-lists.md) (inline edit slot persistence).
 - **Facet list mutations** (add/remove, payload change): parent **`onFacetsChange`** wired to **`updateComponent`** on Lens **`working`** when [`LensDetail`](../../LensEdit/LensDetail.tsx) provides a session.
-- **Mark create/associate**: [`LensMarkFacetsEditor.requestCreate`](../../LensEdit/LensMarkFacetsEditor/LensMarkFacetsEditor.tsx) still uses asset-level **`updateStandard`** (add Mark to `draft.byUniversalId` + associate on Lens).
+- **Mark create/associate**: [`LensMarkFacetsEditor`](../../LensEdit/LensMarkFacetsEditor/LensMarkFacetsEditor.tsx) uses **`materializeComponentInAsset`** + **`onAssociateReference`** -> parent **`onChange`** / **`updateComponent`** (via optional **`onAssociateReference`** on [`FacetListEditorGeneric`](FacetListEditorGeneric.tsx)); not asset-level **`updateStandard`** on the session path.
 
 Live example: [`LensMarkFacetPayloadEditor`](../../LensEdit/LensMarkFacetsEditor/LensMarkFacetPayloadEditor.tsx) in [`LensMarkFacetsEditor`](../../LensEdit/LensMarkFacetsEditor/LensMarkFacetsEditor.tsx).
 
