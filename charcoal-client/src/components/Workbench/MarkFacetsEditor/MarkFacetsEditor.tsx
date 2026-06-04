@@ -5,7 +5,6 @@ import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/referen
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import StandardGuidance from "@tonylb/mtw-wml/ts/standardize/components/guidance"
 import StandardSituation from "@tonylb/mtw-wml/ts/standardize/components/situation"
-import { standardComponentFactory } from "@tonylb/mtw-wml/ts/standardize/componentFactory"
 import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
 import { v4 as uuidv4 } from "uuid"
 import {
@@ -28,6 +27,24 @@ function markDisplayName(facet: StandardMarkFacet, standardForm: StandardForm): 
     return undefined
 }
 
+function appendMarkFacetIfNew(
+    marks: MarkFacetList,
+    ref: StandardReference
+): MarkFacetList | null {
+    const universalKeyFromRef = ref.universalKey as ComponentUUID
+    const already = marks.items.some(
+        (f) => f.reference.universalKey === universalKeyFromRef
+    )
+    if (already) {
+        return null
+    }
+    const newFacet = new StandardMarkFacet({
+        reference: ref.toJSON(),
+        payload: ""
+    })
+    return new MarkFacetList([...marks.items, newFacet])
+}
+
 export interface MarkFacetsEditorProps {
     componentId: ComponentUUID
     marks: MarkFacetList
@@ -43,7 +60,12 @@ export const MarkFacetsEditor: FunctionComponent<MarkFacetsEditorProps> = ({
     readonly = false,
     options
 }) => {
-    const { standardForm, updateStandard } = useWorkbenchAsset()
+    const { standardForm, materializeComponentInAsset } = useWorkbenchAsset()
+
+    const isMarkExcluded = useCallback(
+        (id: ComponentUUID) => marks.items.some((f) => f.reference.universalKey === id),
+        [marks.items]
+    )
 
     const markAssociation = useCallback(
         (ref: StandardReference, draft: StandardForm) => {
@@ -51,18 +73,25 @@ export const MarkFacetsEditor: FunctionComponent<MarkFacetsEditorProps> = ({
             if (!base || (!(base instanceof StandardGuidance) && !(base instanceof StandardSituation))) {
                 return
             }
-            const universalKeyFromRef = ref.universalKey as ComponentUUID
-            const already = base.marks.items.some((f) => f.reference.universalKey === universalKeyFromRef)
-            if (already) {
-                return
+            const next = appendMarkFacetIfNew(base.marks, ref)
+            if (next) {
+                base._payload._marks = next
             }
-            const newFacet = new StandardMarkFacet({
-                reference: ref.toJSON(),
-                payload: ""
-            })
-            base._payload._marks = new MarkFacetList([...base.marks.items, newFacet])
         },
         [componentId]
+    )
+
+    const onAssociateReference = useCallback(
+        (ref: StandardReference) => {
+            if (readonly) {
+                return
+            }
+            const next = appendMarkFacetIfNew(marks, ref)
+            if (next) {
+                onChange?.(next)
+            }
+        },
+        [readonly, marks, onChange]
     )
 
     const requestCreate = useCallback(
@@ -72,27 +101,13 @@ export const MarkFacetsEditor: FunctionComponent<MarkFacetsEditorProps> = ({
             }
             const markKey = enforceTypedKey("MARK")
             const newMarkId = markKey(uuidv4()) as ComponentUUID
-            const ref = new StandardReference({ universalKey: newMarkId, tag: "Mark" })
 
-            updateStandard({
-                type: "update",
-                update: (draft: StandardForm) => {
-                    const { component } = standardComponentFactory({
-                        tag: "Mark",
-                        universalKey: newMarkId
-                    })
-                    if (!component) {
-                        return draft
-                    }
-                    draft.byUniversalId[newMarkId] = component
-                    markAssociation(ref, draft)
-                    return draft
-                }
-            })
-
-            onCreated(ref)
+            void (async () => {
+                const ref = await materializeComponentInAsset({ universalKey: newMarkId })
+                onCreated(ref)
+            })()
         },
-        [markAssociation, readonly, updateStandard]
+        [readonly, materializeComponentInAsset]
     )
 
     return (
@@ -106,6 +121,7 @@ export const MarkFacetsEditor: FunctionComponent<MarkFacetsEditorProps> = ({
             tag="Mark"
             association={markAssociation}
             requestCreate={requestCreate}
+            onAssociateReference={onAssociateReference}
             affordance={{
                 addLabel: "Create new Mark",
                 referenceExistingLabel: "Reference existing Mark",
@@ -129,7 +145,7 @@ export const MarkFacetsEditor: FunctionComponent<MarkFacetsEditorProps> = ({
             )}
             readonly={readonly}
             emptyStateText="No marks specified (applies to all situations)"
-            isExcluded={(id: ComponentUUID) => marks.items.some((f) => f.reference.universalKey === id)}
+            isExcluded={isMarkExcluded}
         />
     )
 }

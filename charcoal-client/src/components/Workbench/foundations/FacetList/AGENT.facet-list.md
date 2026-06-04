@@ -24,7 +24,7 @@ When a facet row edits both **referenced component data** (Mark `shortName`) and
 
 - **Mark shortName**: [`MarkInlineEditorWithSession`](../../MarkEdit/InlineEditor.tsx) in the payload slot (per-row Mark session; debounced flush per Mark). See [AGENT.reference-lists.md](../ReferenceList/AGENT.reference-lists.md) (inline edit slot persistence).
 - **Facet list mutations** (add/remove, payload change): parent **`onFacetsChange`** wired to **`updateComponent`** on Lens **`working`** when [`LensDetail`](../../LensEdit/LensDetail.tsx) provides a session.
-- **Mark create/associate**: [`LensMarkFacetsEditor`](../../LensEdit/LensMarkFacetsEditor/LensMarkFacetsEditor.tsx) uses **`materializeComponentInAsset`** + **`onAssociateReference`** -> parent **`onChange`** / **`updateComponent`** (via optional **`onAssociateReference`** on [`FacetListEditorGeneric`](FacetListEditorGeneric.tsx)); not asset-level **`updateStandard`** on the session path.
+- **Mark create/associate**: [`LensMarkFacetsEditor`](../../LensEdit/LensMarkFacetsEditor/LensMarkFacetsEditor.tsx) and [`MarkFacetsEditor`](../../MarkFacetsEditor/MarkFacetsEditor.tsx) use **`materializeComponentInAsset`** + **`onAssociateReference`** -> parent **`onChange`** / **`updateComponent`** (via optional **`onAssociateReference`** on [`FacetListEditorGeneric`](FacetListEditorGeneric.tsx)); not asset-level **`updateStandard`** on the session path. Guidance: [`GuidanceEditorBody`](../../GuidanceEdit/GuidanceEditor.tsx).
 
 Live example: [`LensMarkFacetPayloadEditor`](../../LensEdit/LensMarkFacetsEditor/LensMarkFacetPayloadEditor.tsx) in [`LensMarkFacetsEditor`](../../LensEdit/LensMarkFacetsEditor/LensMarkFacetsEditor.tsx).
 
