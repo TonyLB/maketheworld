@@ -11,6 +11,7 @@ The Charcoal Client is a React-based frontend that provides users with two disti
 
 ### Key Concepts
 
+- **Component identity (authoring)**: List rows, navigation, and `byUniversalId` use `ComponentUUID` (`ref.universalKey`); reference list remove/match uses `StandardReference.sameKey`. Labels use `componentDisplayLabel` only. See [Workbench AGENT.md](src/components/Workbench/AGENT.md#component-identity-client).
 - **Dual Mode Architecture**: Clear separation between authoring capabilities and character-based gameplay
 - **Character-Centric Play**: All in-game interaction happens through character context
 - **Asset-Based Authoring**: World building through structured asset creation and editing

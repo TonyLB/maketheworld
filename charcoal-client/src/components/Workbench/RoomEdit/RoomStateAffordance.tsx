@@ -9,13 +9,14 @@ import StandardMark, { StandardLens } from '@tonylb/mtw-wml/ts/standardize/compo
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { isEphemeraCacheMarkState } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { sendRoomEphemeraStateChange } from './ephemeraStateChange'
+import { componentDisplayLabel } from '../../../lib/componentDisplayLabel'
 
 type RoomStateAffordanceProps = {
     RoomId: ComponentUUID
 }
 
 type LensMarkControl = {
-    mark: string
+    mark: ComponentUUID
     label: string
 }
 
@@ -72,9 +73,13 @@ export const RoomStateAffordance: FunctionComponent<RoomStateAffordanceProps> = 
                     return undefined
                 }
                 const markComponent = standardForm.byUniversalId[markId]
-                const fallbackMark = markFacet.reference.key ?? markId
+                const fallbackMark =
+                    markComponent instanceof StandardMark
+                        ? (componentDisplayLabel(markComponent, { standardForm, fallbackLabel: markId }) ??
+                          markId)
+                        : markId
                 return {
-                    mark: fallbackMark,
+                    mark: markId,
                     label: markLabel({
                         markComponent: markComponent instanceof StandardMark ? markComponent : undefined,
                         fallbackMark,

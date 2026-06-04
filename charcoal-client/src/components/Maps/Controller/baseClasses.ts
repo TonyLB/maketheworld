@@ -1,7 +1,7 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import MapDThree from "../Edit/MapDThree"
 import { SchemaExitTag, SchemaRoomTag } from "@tonylb/mtw-base/ts/schema/components"
-import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema"
+import { ComponentUUID, SchemaOutputTag } from "@tonylb/mtw-base/ts/schema"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { StandardExitFacet } from "@tonylb/mtw-wml/ts/standardize/keys/facets/exit"
 
@@ -42,8 +42,8 @@ export class MapExit {
     /**
      * Get the target room identifier
      */
-    get to(): string {
-        return this._facet.reference.universalKey ?? ''
+    get to(): ComponentUUID | undefined {
+        return this._facet.reference.universalKey
     }
 
     /**

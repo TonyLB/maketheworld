@@ -10,7 +10,7 @@ export interface MarkFacetPayloadEditorProps {
     facet: StandardMarkFacet
     onChange: (newPayload: string) => void
     readonly?: boolean
-    /** Human-readable label for the referenced Mark (e.g. shortName). Falls back to key/universalKey when absent. */
+    /** Human-readable label for the referenced Mark (e.g. shortName). Display only, not identity. */
     referenceDisplayName?: string
     options?: ScopedInstrumentationOptions
 }
@@ -33,8 +33,7 @@ export const MarkFacetPayloadEditor: FunctionComponent<MarkFacetPayloadEditorPro
     referenceDisplayName,
     options
 }) => {
-    const ref = facet.reference
-    const label = referenceDisplayName ?? ref.key ?? ref.universalKey ?? "Mark"
+    const label = referenceDisplayName ?? "Mark"
 
     const incomingValue = useMemo(() => payloadDisplay(facet), [facet])
     const [localValue, setLocalValue] = useState<string>(incomingValue)

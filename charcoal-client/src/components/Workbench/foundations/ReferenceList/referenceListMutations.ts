@@ -7,20 +7,39 @@ import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList
  * universalKey-then-local-key string fallback). Row id must be a ComponentUUID
  * (as from referenceListToItems); invalid ids no-op.
  */
-export function removeReferenceFromListById(list: ReferenceList, id: string): void {
+export function referenceTargetFromId(id: string): StandardReference | undefined {
     if (!isSchemaComponentUUID(id)) {
+        return undefined
+    }
+    return new StandardReference(id)
+}
+
+/** Find a list entry by ComponentUUID row id (sameKey, not key string equality). */
+export function findReferenceInListById(
+    list: ReferenceList,
+    id: string
+): StandardReference | undefined {
+    const target = referenceTargetFromId(id)
+    if (!target) {
+        return undefined
+    }
+    return list.payload.find((ref) => ref.sameKey(target))
+}
+
+export function removeReferenceFromListById(list: ReferenceList, id: string): void {
+    const target = referenceTargetFromId(id)
+    if (!target) {
         return
     }
-    const target = new StandardReference(id)
     list._items = list.payload.filter((ref) => !ref.sameKey(target))
 }
 
 /** Roster pin: positive ref on _topLevel (ref={1} is the default pin). */
 export function isPinnedOnTopLevel(list: ReferenceList, id: string): boolean {
-    if (!isSchemaComponentUUID(id)) {
+    const target = referenceTargetFromId(id)
+    if (!target) {
         return false
     }
-    const target = new StandardReference(id)
     return list.payload.some((ref) => ref.sameKey(target) && ref.ref >= 1)
 }
 

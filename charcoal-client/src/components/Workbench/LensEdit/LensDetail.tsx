@@ -20,6 +20,7 @@ import {
     useWorkbenchComponent
 } from "../foundations/WorkbenchComponent"
 import { literalPlainString } from "../foundations/workbenchMutations"
+import { componentDisplayLabel } from "../../../lib/componentDisplayLabel"
 
 const lensGuard = (
     component: StandardComponent | undefined
@@ -93,10 +94,7 @@ export const LensDetail: FunctionComponent = () => {
         return null
     }, [currentComponentId, standardForm])
 
-    const lensId = useMemo(
-        () => (lens?.universalKey ?? currentComponentId) as ComponentUUID | null,
-        [lens?.universalKey, currentComponentId]
-    )
+    const lensId = currentComponentId as ComponentUUID | null
 
     const otherReferrers = useMemo(() => {
         if (!lens) return []
@@ -128,12 +126,7 @@ export const LensDetail: FunctionComponent = () => {
         if (!universalKey) return "Untitled"
         const comp = standardForm.byUniversalId[universalKey as ComponentUUID]
         if (!comp) return "Untitled"
-        const sn = (comp as { shortName?: { _payload?: { plain?: { toJSON?: () => unknown } } } })
-            .shortName?._payload?.plain?.toJSON?.()
-        const str = typeof sn === "string" && sn.trim() ? sn : undefined
-        if (str) return str
-        const k = comp.key
-        return typeof k === "string" ? k : "Untitled"
+        return componentDisplayLabel(comp, { standardForm, fallbackLabel: "Untitled" }) ?? "Untitled"
     }
 
     return (
@@ -170,7 +163,7 @@ export const LensDetail: FunctionComponent = () => {
                          */}
                         {otherReferrers.map((ref, index) => (
                             <Chip
-                                key={ref.universalKey ?? ref.key ?? `ref-${index}`}
+                                key={ref.universalKey ?? `ref-${index}`}
                                 label={getReferrerDisplayName(ref.universalKey)}
                                 size="small"
                                 variant="outlined"

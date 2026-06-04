@@ -1,6 +1,10 @@
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { situationIdToLabel, situationToMarksSummary } from './situationLabel'
+import {
+    situationIdToLabel,
+    situationMarksToMarkState,
+    situationToMarksSummary
+} from './situationLabel'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
 describe('situation label helpers', () => {
@@ -49,6 +53,16 @@ describe('situation label helpers', () => {
         const situation = form.components.find((c) => c instanceof StandardSituation) as StandardSituation
         const label = situationIdToLabel(situation.universalKey!, form)
         expect(label).toBe('Untitled (Untitled: Dark, Untitled: Somber)')
+    })
+
+    it('situationMarksToMarkState omits mark facets without universalKey', () => {
+        const withMarks = new StandardSituation(deIndentWML(`
+            <Situation key=(test) uuid=(SITUATION#s1)>
+                <Mark uuid=(MARK#m1)><Match>bright</Match></Mark>
+            </Situation>
+        `))
+        const state = situationMarksToMarkState(withMarks)
+        expect(state.markValue).toEqual([{ mark: 'MARK#m1', value: 'bright' }])
     })
 
     it('situationIdToLabel should fall back to "Untitled (Situation)" when no marks or key and no shortName', () => {
