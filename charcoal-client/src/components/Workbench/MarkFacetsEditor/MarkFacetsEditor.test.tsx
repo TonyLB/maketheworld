@@ -2,19 +2,15 @@
  * @vitest-environment jsdom
  */
 
-import React, { useCallback } from 'react'
+import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, screen } from '@testing-library/react'
 import type { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardGuidance from '@tonylb/mtw-wml/ts/standardize/components/guidance'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
-import { MarkFacetList } from '@tonylb/mtw-wml/ts/standardize/keys/facets/mark'
 
 import { MarkFacetsEditor } from './MarkFacetsEditor'
-import {
-    useWorkbenchComponent,
-    type WorkbenchComponentGuard
-} from '../foundations/WorkbenchComponent'
+import { type WorkbenchComponentGuard } from '../foundations/WorkbenchComponent'
 import {
     materializeComponentInAssetMock,
     mockMaterializeComponentInAsset,
@@ -97,34 +93,6 @@ const flushAsync = async (): Promise<void> => {
     })
 }
 
-const MarkFacetsSessionHarness: React.FunctionComponent<{ componentId: ComponentUUID }> = ({
-    componentId
-}) => {
-    const { working, updateComponent, readonly } = useWorkbenchComponent<StandardGuidance>()
-
-    const handleMarksChange = useCallback(
-        (newMarks: MarkFacetList) => {
-            updateComponent((draft) => {
-                draft._payload._marks = newMarks
-            })
-        },
-        [updateComponent]
-    )
-
-    if (!working) {
-        return null
-    }
-
-    return (
-        <MarkFacetsEditor
-            componentId={componentId}
-            marks={working.marks}
-            onChange={handleMarksChange}
-            readonly={readonly}
-        />
-    )
-}
-
 const expandMarksAccordion = (): void => {
     fireEvent.click(screen.getByRole('button', { name: /Marks/i }))
 }
@@ -137,7 +105,7 @@ const renderMarkFacets = (wml: string) =>
             guard: guidanceGuard,
             flushDelayMs: FLUSH_DELAY_MS
         },
-        children: <MarkFacetsSessionHarness componentId={GUIDANCE_ID} />
+        children: <MarkFacetsEditor />
     })
 
 describe('MarkFacetsEditor', () => {

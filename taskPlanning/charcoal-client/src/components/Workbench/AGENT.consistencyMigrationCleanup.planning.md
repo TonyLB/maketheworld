@@ -1,6 +1,6 @@
 # Workbench consistency migration cleanup (client)
 
-**Status:** Phase 4 complete. **Next step:** Phase 5 --- optional `FacetListSessionEditor` / shared facet-list shell ([`FacetListEditorGeneric`](../../../../charcoal-client/src/components/Workbench/foundations/FacetList/FacetListEditorGeneric.tsx)).
+**Status:** Phase 5 complete. **Next step:** Phase 6 --- durable doc trim ([`Workbench/AGENT.md`](../../../../charcoal-client/src/components/Workbench/AGENT.md) exceptions table, facet-list AGENT polish).
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move any lasting norms into Workbench `AGENT.md` files next to code.
 
@@ -29,8 +29,8 @@ This initiative finishes that wiring on **provider screens** and consolidates du
 | Reference lists on component session | [`ReferenceListSessionEditor`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListSessionEditor.tsx) |
 | Asset `_topLevel` | [`TopLevelEditor`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx) + [`useWorkbenchAssetMeta`](../../../../charcoal-client/src/components/Workbench/foundations/WorkbenchAssetMeta/useWorkbenchAssetMeta.tsx) |
 | Room `_lens` (SingleReference) | [`LensHeader`](../../../../charcoal-client/src/components/Workbench/LensEdit/LensHeader.tsx): create/import/reference via **`materializeComponentInAsset`** + **`onAssociateReference`** on **`working._lens`**; disassociate via `clearLensReference` + [`confirmOrphanClosureBeforeComponentDisassociate`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/confirmOrphanClosureBeforeLocalEdit.ts) |
-| Lens mark facets | [`LensMarkFacetsEditor`](../../../../charcoal-client/src/components/Workbench/LensEdit/LensMarkFacetsEditor/LensMarkFacetsEditor.tsx): create/import/reference via **`materializeComponentInAsset`** + **`onAssociateReference`** -> **`onChange`** / **`updateComponent`** in [`LensDetail`](../../../../charcoal-client/src/components/Workbench/LensEdit/LensDetail.tsx); remove/payload via **`onFacetsChange`** only |
-| Guidance mark facets | [`MarkFacetsEditor`](../../../../charcoal-client/src/components/Workbench/MarkFacetsEditor/MarkFacetsEditor.tsx): create/import/reference via **`materializeComponentInAsset`** + **`onAssociateReference`** -> **`onChange`** / **`updateComponent`** in [`GuidanceEditorBody`](../../../../charcoal-client/src/components/Workbench/GuidanceEdit/GuidanceEditor.tsx); remove/payload via **`onFacetsChange`** only |
+| Lens mark facets | [`LensMarkFacetsEditor`](../../../../charcoal-client/src/components/Workbench/LensEdit/LensMarkFacetsEditor/LensMarkFacetsEditor.tsx) on [`FacetListSessionEditor`](../../../../charcoal-client/src/components/Workbench/foundations/FacetList/FacetListSessionEditor.tsx) + [`lensMarkFacetAccessor`](../../../../charcoal-client/src/components/Workbench/LensEdit/LensMarkFacetsEditor/lensMarkFacetAccessors.ts) (LensDetail session) |
+| Guidance mark facets | [`MarkFacetsEditor`](../../../../charcoal-client/src/components/Workbench/MarkFacetsEditor/MarkFacetsEditor.tsx) session path: **`FacetListSessionEditor`** + [`guidanceMarkFacetAccessor`](../../../../charcoal-client/src/components/Workbench/MarkFacetsEditor/markFacetAccessors.ts) in [`GuidanceEditorBody`](../../../../charcoal-client/src/components/Workbench/GuidanceEdit/GuidanceEditor.tsx) |
 | Room non-DEFAULT situations list | [`RoomSituationsListEditor`](../../../../charcoal-client/src/components/Workbench/RoomEdit/RoomSituationsListEditor.tsx): create/reference via **`materializeComponentInAsset`** + **`onAssociateReference`** on **`working.situations`**; remove via **`confirmOrphanClosureBeforeComponentDisassociate`** + **`updateComponent`** ([`roomSituationsFacetAccessor`](../../../../charcoal-client/src/components/Workbench/RoomEdit/roomReferenceListAccessors.ts)) |
 | DEFAULT situation prose on session screens | [`DefaultRenderEditor`](../../../../charcoal-client/src/components/Workbench/foundations/DefaultRenderEditor.tsx) |
 | Feature / Knowledge / Area shortName + session lists | [`FeatureEditor`](../../../../charcoal-client/src/components/Workbench/FeatureEdit/FeatureEditor.tsx), [`KnowledgeEditor`](../../../../charcoal-client/src/components/Workbench/KnowledgeEdit/KnowledgeEditor.tsx), [`AreaEditor`](../../../../charcoal-client/src/components/Workbench/AreaEdit/AreaEditor.tsx) |
@@ -62,7 +62,7 @@ This initiative finishes that wiring on **provider screens** and consolidates du
 | 2 | [`LensMarkFacetsEditor`](../../../../charcoal-client/src/components/Workbench/LensEdit/LensMarkFacetsEditor/LensMarkFacetsEditor.tsx) (Lens session) | [X] |
 | 3 | [`MarkFacetsEditor`](../../../../charcoal-client/src/components/Workbench/MarkFacetsEditor/MarkFacetsEditor.tsx) (Guidance session) | [X] |
 | 4 | [`RoomEditor`](../../../../charcoal-client/src/components/Workbench/RoomEdit/RoomEditor.tsx) non-DEFAULT **Situations** list | [X] |
-| 5 | Optional: `FacetListSessionEditor` or `onAssociateReference` on [`FacetListEditorGeneric`](../../../../charcoal-client/src/components/Workbench/foundations/FacetList/FacetListEditorGeneric.tsx) | [ ] (partial: `onAssociateReference` passthrough added in Phase 2) |
+| 5 | [`FacetListSessionEditor`](../../../../charcoal-client/src/components/Workbench/foundations/FacetList/FacetListSessionEditor.tsx); Lens/Guidance mark editors refactored | [X] |
 | 6 | Durable doc trim (exceptions table, facet-list AGENT) | [ ] |
 
 ---
@@ -115,9 +115,9 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as e
   - [X] **Reference existing:** `onAssociateReference` pattern (facet associate on `working`), not `updateStandard`.
   - [X] **`roomSituationsFacetAccessor`** + thin wrapper in [`roomReferenceListAccessors.ts`](../../../../charcoal-client/src/components/Workbench/RoomEdit/roomReferenceListAccessors.ts).
   - [X] Tests: [`RoomSituationsListEditor.test.tsx`](../../../../charcoal-client/src/components/Workbench/RoomEdit/RoomSituationsListEditor.test.tsx).
-- [ ] **Phase 5 --- Facet list infrastructure (optional but reduces duplication)**
-  - [ ] Add **`onAssociateReference`** (and session-aware **`requestCreate`**) to [`FacetListEditorGeneric`](../../../../charcoal-client/src/components/Workbench/foundations/FacetList/FacetListEditorGeneric.tsx), **or** introduce **`FacetListSessionEditor`** mirroring `ReferenceListSessionEditor`.
-  - [ ] Refactor Lens/Guidance mark editors to use shared shell; delete duplicated `association` / `requestCreate` blocks if fully subsumed.
+- [X] **Phase 5 --- Facet list infrastructure (optional but reduces duplication)**
+  - [X] Introduce **`FacetListSessionEditor`** mirroring [`ReferenceListSessionEditor`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListSessionEditor.tsx) (not extending generic alone). [`FacetListSessionEditor.test.tsx`](../../../../charcoal-client/src/components/Workbench/foundations/FacetList/FacetListSessionEditor.test.tsx).
+  - [X] Refactor Lens/Guidance mark editors to use shared shell; accessors in [`lensMarkFacetAccessors.ts`](../../../../charcoal-client/src/components/Workbench/LensEdit/LensMarkFacetsEditor/lensMarkFacetAccessors.ts) and [`markFacetAccessors.ts`](../../../../charcoal-client/src/components/Workbench/MarkFacetsEditor/markFacetAccessors.ts). [`MarkFacetsEditor`](../../../../charcoal-client/src/components/Workbench/MarkFacetsEditor/MarkFacetsEditor.tsx) keeps controlled path for asset-mode [`SituationEditor`](../../../../charcoal-client/src/components/Workbench/SituationEdit/SituationEditor.tsx).
 - [ ] **Phase 6 --- Durable docs**
   - [ ] Update [`Workbench/AGENT.md`](../../../../charcoal-client/src/components/Workbench/AGENT.md) **Asset-level `updateStandard` (exceptions)** --- remove Lens mark create, Room situations, Room lens create once migrated.
   - [ ] Update [`AGENT.facet-list.md`](../../../../charcoal-client/src/components/Workbench/foundations/FacetList/AGENT.facet-list.md) mark-create bullet.
@@ -138,7 +138,8 @@ npm run test:single -- src/components/Workbench/foundations/consistency
 # Phase 1
 npm run test:single -- src/components/Workbench/LensEdit/LensHeader.test.tsx
 
-# Phase 2-3 (adjust paths if new tests added)
+# Phase 2-5
+npm run test:single -- src/components/Workbench/foundations/FacetList
 npm run test:single -- src/components/Workbench/LensEdit
 npm run test:single -- src/components/Workbench/GuidanceEdit/GuidanceEditor.test.tsx
 npm run test:single -- src/components/Workbench/MarkFacetsEditor

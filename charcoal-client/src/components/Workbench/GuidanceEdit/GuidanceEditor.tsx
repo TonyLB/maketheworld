@@ -7,7 +7,6 @@ import type { StandardComponent } from "@tonylb/mtw-wml/ts/standardize/component
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { MarkFacetsEditor } from "../MarkFacetsEditor"
-import { MarkFacetList } from "@tonylb/mtw-wml/ts/standardize/keys/facets/mark"
 import { getCurrentComponentId, getCurrentComponentLayerId } from "../../../slices/UI/workbench"
 import type { ScopedInstrumentationOptions } from "../../../testing/scopedInstrumentation"
 import {
@@ -27,14 +26,10 @@ const guidanceGuard = (
 ): component is StandardGuidance => component instanceof StandardGuidance
 
 type GuidanceEditorBodyProps = {
-    componentId: ComponentUUID
     options?: ScopedInstrumentationOptions
 }
 
-export const GuidanceEditorBody: FunctionComponent<GuidanceEditorBodyProps> = ({
-    componentId,
-    options
-}) => {
+export const GuidanceEditorBody: FunctionComponent<GuidanceEditorBodyProps> = ({ options }) => {
     const { working, updateComponent, readonly: sessionReadonly } =
         useWorkbenchComponent<StandardGuidance>()
 
@@ -50,15 +45,6 @@ export const GuidanceEditorBody: FunctionComponent<GuidanceEditorBodyProps> = ({
                 draft._payload._instructions = newValue.trim()
                     ? new StandardLiteral(newValue, { tag: "Instructions" })
                     : undefined
-            })
-        },
-        [updateComponent]
-    )
-
-    const handleMarksChange = useCallback(
-        (newMarks: MarkFacetList) => {
-            updateComponent((draft) => {
-                draft._payload._marks = newMarks
             })
         },
         [updateComponent]
@@ -118,13 +104,7 @@ export const GuidanceEditorBody: FunctionComponent<GuidanceEditorBodyProps> = ({
                     />
                 </Box>
             </Box>
-            <MarkFacetsEditor
-                componentId={componentId}
-                marks={working.marks}
-                onChange={handleMarksChange}
-                readonly={sessionReadonly}
-                options={options}
-            />
+            <MarkFacetsEditor options={options} />
         </Box>
     )
 }
@@ -154,7 +134,7 @@ export const GuidanceEditor: FunctionComponent<GuidanceEditorProps> = ({ options
             componentId={componentId}
             guard={guidanceGuard}
         >
-            <GuidanceEditorBody componentId={componentId} options={options} />
+            <GuidanceEditorBody options={options} />
         </WorkbenchComponentProvider>
     )
 }

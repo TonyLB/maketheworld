@@ -2,19 +2,15 @@
  * @vitest-environment jsdom
  */
 
-import React, { useCallback } from 'react'
+import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, screen } from '@testing-library/react'
 import type { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
-import { LensMarkFacetList } from '@tonylb/mtw-wml/ts/standardize/keys/facets/lensMark'
 
 import { LensMarkFacetsEditor } from './LensMarkFacetsEditor'
-import {
-    useWorkbenchComponent,
-    type WorkbenchComponentGuard
-} from '../../foundations/WorkbenchComponent'
+import { type WorkbenchComponentGuard } from '../../foundations/WorkbenchComponent'
 import {
     materializeComponentInAssetMock,
     mockMaterializeComponentInAsset,
@@ -101,34 +97,6 @@ const flushAsync = async (): Promise<void> => {
     })
 }
 
-const LensMarkFacetsSessionHarness: React.FunctionComponent<{ lensId: ComponentUUID }> = ({
-    lensId
-}) => {
-    const { working, updateComponent, readonly } = useWorkbenchComponent<StandardLens>()
-
-    const handleLensMarksChange = useCallback(
-        (newMarks: LensMarkFacetList) => {
-            updateComponent((draft) => {
-                draft._payload._marks = newMarks
-            })
-        },
-        [updateComponent]
-    )
-
-    if (!working) {
-        return null
-    }
-
-    return (
-        <LensMarkFacetsEditor
-            lensId={lensId}
-            marks={working.marks}
-            onChange={handleLensMarksChange}
-            readonly={readonly}
-        />
-    )
-}
-
 const expandMarksAccordion = (): void => {
     fireEvent.click(screen.getByRole('button', { name: /Marks/i }))
 }
@@ -141,7 +109,7 @@ const renderLensMarkFacets = (wml: string) =>
             guard: lensGuard,
             flushDelayMs: FLUSH_DELAY_MS
         },
-        children: <LensMarkFacetsSessionHarness lensId={LENS_ID} />
+        children: <LensMarkFacetsEditor />
     })
 
 describe('LensMarkFacetsEditor', () => {

@@ -3,18 +3,24 @@ import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { MarkFacetList, StandardMarkFacet } from "@tonylb/mtw-wml/ts/standardize/keys/facets/mark"
 import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import StandardGuidance from "@tonylb/mtw-wml/ts/standardize/components/guidance"
-import StandardSituation from "@tonylb/mtw-wml/ts/standardize/components/situation"
 import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
 import { v4 as uuidv4 } from "uuid"
 import {
     FacetListEditorGeneric,
+    FacetListSessionEditor,
     FacetRowHandlers,
     SingleLineFacetRow
 } from "../foundations/FacetList"
 import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
+import { useWorkbenchComponent } from "../foundations/WorkbenchComponent"
+import StandardGuidance from "@tonylb/mtw-wml/ts/standardize/components/guidance"
 import { MarkFacetPayloadEditor } from "./MarkFacetPayloadEditor"
 import type { ScopedInstrumentationOptions } from "../../../testing/scopedInstrumentation"
+import {
+    appendMarkFacetIfNew,
+    associateMarkFacetOnDraft,
+    guidanceMarkFacetAccessor
+} from "./markFacetAccessors"
 
 function markDisplayName(facet: StandardMarkFacet, standardForm: StandardForm): string | undefined {
     const universalKey = facet.reference.universalKey
@@ -27,25 +33,13 @@ function markDisplayName(facet: StandardMarkFacet, standardForm: StandardForm): 
     return undefined
 }
 
-function appendMarkFacetIfNew(
-    marks: MarkFacetList,
-    ref: StandardReference
-): MarkFacetList | null {
-    const universalKeyFromRef = ref.universalKey as ComponentUUID
-    const already = marks.items.some(
-        (f) => f.reference.universalKey === universalKeyFromRef
-    )
-    if (already) {
-        return null
-    }
-    const newFacet = new StandardMarkFacet({
-        reference: ref.toJSON(),
-        payload: ""
-    })
-    return new MarkFacetList([...marks.items, newFacet])
+const rebuildMarkFacetList = (items: StandardMarkFacet[]): MarkFacetList => new MarkFacetList(items)
+
+export type MarkFacetsEditorSessionProps = {
+    options?: ScopedInstrumentationOptions
 }
 
-export interface MarkFacetsEditorProps {
+export type MarkFacetsEditorControlledProps = {
     componentId: ComponentUUID
     marks: MarkFacetList
     onChange?: (marks: MarkFacetList) => void
@@ -53,7 +47,60 @@ export interface MarkFacetsEditorProps {
     options?: ScopedInstrumentationOptions
 }
 
-export const MarkFacetsEditor: FunctionComponent<MarkFacetsEditorProps> = ({
+export type MarkFacetsEditorProps = MarkFacetsEditorSessionProps | MarkFacetsEditorControlledProps
+
+function isControlledProps(
+    props: MarkFacetsEditorProps
+): props is MarkFacetsEditorControlledProps {
+    return "marks" in props && props.marks !== undefined
+}
+
+const MarkFacetsEditorSession: FunctionComponent<MarkFacetsEditorSessionProps> = ({ options }) => {
+    const { standardForm } = useWorkbenchAsset()
+    const { readonly: sessionReadonly } = useWorkbenchComponent<StandardGuidance>()
+
+    const renderFacetRow = useCallback(
+        (facet: StandardMarkFacet, _index: number, handlers: FacetRowHandlers) => (
+            <SingleLineFacetRow
+                payloadSlot={
+                    <MarkFacetPayloadEditor
+                        facet={facet}
+                        onChange={handlers.onChangePayload}
+                        readonly={handlers.readonly}
+                        referenceDisplayName={markDisplayName(facet, standardForm)}
+                        options={options}
+                    />
+                }
+                onRemove={handlers.onRemove}
+                readonly={handlers.readonly}
+            />
+        ),
+        [standardForm, options]
+    )
+
+    return (
+        <FacetListSessionEditor<StandardGuidance, StandardMarkFacet, MarkFacetList>
+            title="Marks"
+            facetListAccessor={guidanceMarkFacetAccessor}
+            rebuildFacetList={rebuildMarkFacetList}
+            createFacetWithPayload={(facet: StandardMarkFacet, newPayload: unknown) =>
+                new StandardMarkFacet({ reference: facet.reference, payload: newPayload as string })
+            }
+            tag="Mark"
+            renderFacetRow={renderFacetRow}
+            affordance={{
+                addLabel: "Create new Mark",
+                referenceExistingLabel: "Reference existing Mark",
+                enableReferenceExisting: true,
+                enableImport: true
+            }}
+            emptyStateText="No marks specified (applies to all situations)"
+            disabled={sessionReadonly}
+        />
+    )
+}
+
+const MarkFacetsEditorControlled: FunctionComponent<MarkFacetsEditorControlledProps> = ({
     componentId,
     marks,
     onChange,
@@ -69,14 +116,7 @@ export const MarkFacetsEditor: FunctionComponent<MarkFacetsEditorProps> = ({
 
     const markAssociation = useCallback(
         (ref: StandardReference, draft: StandardForm) => {
-            const base = draft.byUniversalId[componentId]
-            if (!base || (!(base instanceof StandardGuidance) && !(base instanceof StandardSituation))) {
-                return
-            }
-            const next = appendMarkFacetIfNew(base.marks, ref)
-            if (next) {
-                base._payload._marks = next
-            }
+            associateMarkFacetOnDraft(componentId, ref, draft)
         },
         [componentId]
     )
@@ -148,6 +188,13 @@ export const MarkFacetsEditor: FunctionComponent<MarkFacetsEditorProps> = ({
             isExcluded={isMarkExcluded}
         />
     )
+}
+
+export const MarkFacetsEditor: FunctionComponent<MarkFacetsEditorProps> = (props) => {
+    if (isControlledProps(props)) {
+        return <MarkFacetsEditorControlled {...props} />
+    }
+    return <MarkFacetsEditorSession {...props} />
 }
 
 export default MarkFacetsEditor
