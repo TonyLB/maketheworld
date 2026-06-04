@@ -152,6 +152,7 @@ export const WorkbenchAssetMetaProvider = ({
     useEffect(() => {
         skipCommittedSyncRef.current = true
         prevCommittedRef.current = undefined
+        lastFlushRef.current = undefined
     }, [localStandardForm.universalKey])
 
     useEffect(() => {

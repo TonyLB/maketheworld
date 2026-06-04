@@ -205,6 +205,7 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
     useEffect(() => {
         skipCommittedSyncRef.current = true
         prevCommittedRef.current = undefined
+        lastFlushRef.current = undefined
     }, [componentId])
 
     useEffect(() => {
@@ -216,6 +217,7 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
             setLastReceived(undefined)
             workingRef.current = undefined
             lastReceivedRef.current = undefined
+            lastFlushRef.current = undefined
         } else {
             const received = committed.clone() as T
             setLastReceived(received)
