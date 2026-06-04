@@ -1,8 +1,14 @@
+/**
+ * @deprecated Unused migration artifact (Library -> Workbench). Not mounted in any
+ * workbench route. Do not import for new UI. M6+: delete when confirmed, or replace
+ * with a deliberate list-row pattern if a sidebar component list returns.
+ * Legacy delete removed in M6; see [`LensHeader`](./LensEdit/LensHeader.tsx)
+ * for the live site-specific disassociate pattern.
+ */
 import React, { FunctionComponent, ReactChild, useCallback, useMemo } from 'react'
 
 import HomeIcon from '@mui/icons-material/Home'
-import { IconButton, SxProps } from '@mui/material'
-import DeleteIcon from '@mui/icons-material/Delete'
+import { SxProps } from '@mui/material'
 import CallMadeIcon from '@mui/icons-material/CallMade'
 
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from '../Editor/AssetDataHeader'
@@ -28,8 +34,9 @@ const WMLComponentName: FunctionComponent<{ itemId: ComponentUUID }> = ({ itemId
     return <React.Fragment>{label}</React.Fragment>
 }
 
+/** @deprecated See file-level note. Not used in production UI. */
 export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ ItemId, onClick, icon, sx, selected }) => {
-    const { updateStandard, inheritedStandardForm, standardForm } = useWorkbenchAsset()
+    const { inheritedStandardForm, standardForm } = useWorkbenchAsset()
     const primary = useCallback((key: string) => (<WMLComponentName itemId={key as ComponentUUID} />), [])
 
     const secondaryBase: AssetDataHeaderRenderFunction = (key) => (key)
@@ -54,15 +61,6 @@ export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({
         onClick={onClick}
         sx={sx}
         selected={selected}
-        actions={
-            <IconButton
-                onClick={() => {
-                    updateStandard({ type: 'removeComponent', componentKey: ItemId })
-                }}
-            >
-                <DeleteIcon />
-            </IconButton>
-        }
     />
 }
 

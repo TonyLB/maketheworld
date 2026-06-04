@@ -488,6 +488,10 @@ export class StandardRender {
         return this._payload.diff(other._payload) === undefined
     }
 
+    clone(): StandardRender {
+        return new StandardRender(this)
+    }
+
     get schema(): GenericTree<SchemaTag> {
         return this._payload.schema
     }

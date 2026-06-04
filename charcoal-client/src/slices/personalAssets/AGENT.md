@@ -17,6 +17,7 @@ personalAssets sits between the [Workbench](../components/Workbench/AGENT.md) (f
 - **pendingEdits**: Edits that have been sent to the backend (applyEdit) but not yet confirmed via Content Update RequestIds.
 - **inherited**: Standard form data inherited from imports (from other assets).
 - **StandardForm / StandardFormData**: WML representation; see [Standard Form](../../../packages/mtw-wml/ts/standardize/AGENT.md).
+- **Local vs merged StandardForm**: **`getLocalStandardForm`** (base + edit + pendingEdits) holds this asset's **edit-layer** WML --- `ref={0}` top-level import stubs, negative refs, etc. Workbench orphan GC and **`previewOrphanClosure`** use the **local** form only. **`getStandardForm`** merges inherited import ancestry with local edits for **display**; inherited refs do **not** count as local references for Workbench normalize. See [consistency AGENT.md](../components/Workbench/foundations/consistency/AGENT.md#stored-wml-vs-displayed-ui).
 - **updateStandard (thunk vs reducer)**: The public `updateStandard(key)(payload)` in [index.ts](./index.ts) is a **thunk** that orchestrates base from getWMLBase and dispatches. The reducer `updateStandard` in [reducers.ts](./reducers.ts) is internal; it receives base via the action payload.
 
 ---
@@ -131,7 +132,11 @@ resume working once `properties[key]` is set. See subscribeAction deprecation co
 
 ### API Contracts
 
-- **updateStandard(key)(payload)**: Payload is `UpdateStandardPayload` (setInherited | update | updateLocal | removeComponent). The thunk adds `base` internally; callers do not pass base. Workbench consistency uses **`updateLocal`** on the local draft for eager **materialize** ([`materializeComponentInAsset`](../components/Workbench/foundations/consistency/materializeComponentInAsset.ts)) and component-session **flush** ([`applyWorkbenchFlush`](../components/Workbench/foundations/consistency/applyWorkbenchFlush.ts) via [`useWorkbenchComponent`](../components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.tsx)); see [consistency AGENT.md](../components/Workbench/foundations/consistency/AGENT.md). WML merge orphan-with-content policy is unchanged.
+- **updateStandard(key)(payload)**: Payload is `UpdateStandardPayload` (setInherited | update | updateLocal | removeComponent). The thunk adds `base` internally; callers do not pass base.
+
+  **Workbench consistency (local edit path):** Workbench authoring uses **`type: 'updateLocal'`** on the local draft for eager **materialize** ([`materializeComponentInAsset`](../components/Workbench/foundations/consistency/materializeComponentInAsset.ts)) and session **flush** ([`applyWorkbenchFlush`](../components/Workbench/foundations/consistency/applyWorkbenchFlush.ts), [`applyAssetMetaFlush`](../components/Workbench/foundations/consistency/applyAssetMetaFlush.ts) via session hooks). **`normalizeWorkbenchDraft`** runs **only** inside those flush helpers --- not on every `updateStandard` dispatch. See [consistency AGENT.md](../components/Workbench/foundations/consistency/AGENT.md).
+
+  **WML vs Workbench orphan policy:** Generic WML merge retains unreferenced components **with content** (supports `ref={0}` editing). Workbench **`normalizeWorkbenchDraft`** removes such bodies when **`!isReferencedInAssetLayer`** on the **local** form. The reducer **`removeComponent`** branch remains for non-Workbench callers; Workbench UI does not use it for list rows or site-specific deletes.
 - **Selectors**: All key-scoped; e.g. `getStandardForm(assetId)(state)`. Return undefined if asset not in slice.
 - **receiveWMLEvent**: Guards on `header.dataSourceKey === 'mtw.wml'` and `RequestIds`; no-op if missing.
 

@@ -1,193 +1,278 @@
-import React from "react"
-import { render, screen, fireEvent } from "@testing-library/react"
-import { vi } from "vitest"
-import { Provider } from "react-redux"
-import { configureStore } from "@reduxjs/toolkit"
-import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
-import { LensHeader } from "./LensHeader"
-import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+/**
+ * @vitest-environment jsdom
+ */
 
-const ROOM_ID = "ROOM#room1" as ComponentUUID
-const LENS_ID = "LENS#lens1" as ComponentUUID
+import React from 'react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, fireEvent, screen } from '@testing-library/react'
+import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 
-const updateStandardMock = vi.fn()
-let mockWorkbenchReturn: ReturnType<typeof import("../foundations/useWorkbenchAsset").useWorkbenchAsset> = {
-    standardForm: new StandardForm({ universalKey: "ASSET#test", components: [], metaData: [] }),
-    updateStandard: updateStandardMock,
-    readonly: false,
-    AssetId: "ASSET#test"
-} as any
+import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
-vi.mock("../foundations/useWorkbenchAsset", () => ({
-    useWorkbenchAsset: () => mockWorkbenchReturn
+import { LensHeader } from './LensHeader'
+import {
+    applyLastFlushToCommitted,
+    renderWorkbenchComponentSession,
+    resetWorkbenchAssetMock,
+    updateStandardMock
+} from '../foundations/WorkbenchComponent/testing/harness'
+
+const pushChoiceMock = vi.fn()
+const confirmOrphanClosureMock = vi.fn().mockResolvedValue(true)
+
+const ROOM_ID = 'ROOM#room1' as ComponentUUID
+const ROOM2_ID = 'ROOM#room2' as ComponentUUID
+const LENS_ID = 'LENS#lens1' as ComponentUUID
+
+const FLUSH_DELAY_MS = 100
+
+vi.mock('react-redux', () => ({
+    useDispatch: () =>
+        vi.fn((action: unknown) => {
+            if (typeof action === 'function') {
+                return (action as (dispatch: unknown) => unknown)(vi.fn())
+            }
+            return action
+        })
 }))
 
-vi.mock("../ImportComponentDialog", () => ({
+vi.mock('../foundations/useWorkbenchAsset', async (importOriginal) => {
+    const mock = await import('../foundations/WorkbenchComponent/testing/mock')
+    return {
+        useWorkbenchAsset: () => mock.mockWorkbenchReturn
+    }
+})
+
+vi.mock('../../../../slices/UI/choiceDialog', () => ({
+    pushChoice: (choice: unknown) => {
+        pushChoiceMock(choice)
+        return () => Promise.resolve('confirm')
+    }
+}))
+
+vi.mock('../foundations/consistency/confirmOrphanClosureBeforeLocalEdit', () => ({
+    confirmOrphanClosureBeforeComponentDisassociate: (...args: unknown[]) =>
+        confirmOrphanClosureMock(...args)
+}))
+
+vi.mock('../ImportComponentDialog', () => ({
     default: () => null
 }))
 
-const createStore = () =>
-    configureStore({
-        reducer: {
-            UI: (state = { workbench: { breadcrumbStack: [] } }) => state
-        }
-    })
+const roomWithLensWml = `
+    <Asset uuid=(test)>
+        <Room uuid=(room1) key=(room1)><ShortName>R1</ShortName><Lens uuid=(lens1)/></Room>
+        <Lens uuid=(lens1)><ShortName>My Lens</ShortName></Lens>
+    </Asset>
+`
 
-function renderWithStore(ui: React.ReactElement) {
-    const store = createStore()
-    return {
-        ...render(<Provider store={store}>{ui}</Provider>),
-        store
-    }
+const nestedOnlyLensWml = deIndentWML(`
+    <Asset uuid=(test)>
+        <Room uuid=(room1) key=(room1)><ShortName>R1</ShortName><Lens uuid=(lens1)><ShortName>My Lens</ShortName></Lens></Room>
+    </Asset>
+`)
+
+const topLevelLensWml = `
+    <Asset uuid=(test)>
+        <Room uuid=(room1) key=(room1)><ShortName>R1</ShortName><Lens uuid=(lens1)/></Room>
+        <Lens uuid=(lens1)><ShortName>My Lens</ShortName></Lens>
+    </Asset>
+`
+
+const sharedLensWml = `
+    <Asset uuid=(test)>
+        <Room uuid=(room1) key=(room1)><ShortName>R1</ShortName><Lens uuid=(lens1)/></Room>
+        <Room uuid=(room2) key=(room2)><ShortName>R2</ShortName><Lens uuid=(lens1)/></Room>
+        <Lens uuid=(lens1)><ShortName>Shared Lens</ShortName></Lens>
+    </Asset>
+`
+
+const roomWithoutLensWml = `
+    <Asset uuid=(test)>
+        <Room uuid=(room1) key=(room1)><ShortName>R1</ShortName></Room>
+    </Asset>
+`
+
+const flushAsync = async (): Promise<void> => {
+    await act(async () => {
+        await Promise.resolve()
+        await Promise.resolve()
+    })
 }
 
-describe("LensHeader", () => {
+const renderLensHeader = (wml: string, roomId: ComponentUUID = ROOM_ID) =>
+    renderWorkbenchComponentSession<StandardRoom>({
+        options: {
+            wml,
+            componentId: roomId,
+            guard: (c): c is StandardRoom => c instanceof StandardRoom,
+            flushDelayMs: FLUSH_DELAY_MS
+        },
+        children: <LensHeader RoomId={roomId} />
+    })
+
+describe('LensHeader', () => {
     beforeEach(() => {
-        updateStandardMock.mockClear()
-        mockWorkbenchReturn = {
-            standardForm: new StandardForm({ universalKey: "ASSET#test", components: [], metaData: [] }),
-            updateStandard: updateStandardMock,
-            readonly: false,
-            AssetId: "ASSET#test"
-        } as any
+        vi.useFakeTimers()
+        resetWorkbenchAssetMock()
+        pushChoiceMock.mockClear()
+        confirmOrphanClosureMock.mockClear()
+        confirmOrphanClosureMock.mockResolvedValue(true)
     })
 
-    it("shows Room not found when RoomId is not in standardForm", () => {
-        mockWorkbenchReturn.standardForm = new StandardForm({
-            universalKey: "ASSET#test",
-            components: [],
-            metaData: []
-        })
-        renderWithStore(<LensHeader RoomId={ROOM_ID} />)
-        expect(screen.getByText("Room not found")).toBeTruthy()
+    afterEach(() => {
+        vi.clearAllTimers()
+        vi.useRealTimers()
     })
 
-    it("shows Create New Lens, Reference Existing Lens, and Import Lens when room has no lens", () => {
-        mockWorkbenchReturn.standardForm = new StandardForm(`
-            <Asset uuid=(test)>
-                <Room uuid=(room1)><ShortName>R1</ShortName></Room>
-            </Asset>
-        `)
-        renderWithStore(<LensHeader RoomId={ROOM_ID} />)
-        fireEvent.click(screen.getByRole("button", { name: /Dynamic Rendering/i }))
-        expect(screen.getByText("Create New Lens")).toBeTruthy()
-        expect(screen.getByText("Reference Existing Lens")).toBeTruthy()
-        expect(screen.getByText("Import Lens")).toBeTruthy()
+    it('shows Room not found when RoomId is not in standardForm', () => {
+        renderLensHeader('<Asset uuid=(test) />')
+        expect(screen.getByText('Room not found')).toBeTruthy()
     })
 
-    it("calls updateStandard when Create New Lens is clicked", () => {
-        mockWorkbenchReturn.standardForm = new StandardForm(`
-            <Asset uuid=(test)>
-                <Room uuid=(room1)><ShortName>R1</ShortName></Room>
-            </Asset>
-        `)
-        renderWithStore(<LensHeader RoomId={ROOM_ID} />)
-        fireEvent.click(screen.getByRole("button", { name: /Dynamic Rendering/i }))
-        fireEvent.click(screen.getByRole("button", { name: /Create New Lens/i }))
+    it('shows Create New Lens, Reference Existing Lens, and Import Lens when room has no lens', () => {
+        renderLensHeader(roomWithoutLensWml)
+        fireEvent.click(screen.getByRole('button', { name: /Dynamic Rendering/i }))
+        expect(screen.getByText('Create New Lens')).toBeTruthy()
+        expect(screen.getByText('Reference Existing Lens')).toBeTruthy()
+        expect(screen.getByText('Import Lens')).toBeTruthy()
+    })
+
+    it('calls updateStandard when Create New Lens is clicked', () => {
+        renderLensHeader(roomWithoutLensWml)
+        fireEvent.click(screen.getByRole('button', { name: /Dynamic Rendering/i }))
+        fireEvent.click(screen.getByRole('button', { name: /Create New Lens/i }))
         expect(updateStandardMock).toHaveBeenCalledWith(
             expect.objectContaining({
-                type: "update",
+                type: 'update',
                 update: expect.any(Function)
             })
         )
     })
 
-    it("shows lens summary and Edit/Delete when room has a lens", () => {
-        mockWorkbenchReturn.standardForm = new StandardForm(`
-            <Asset uuid=(test)>
-                <Room uuid=(room1)><ShortName>R1</ShortName><Lens uuid=(lens1)/></Room>
-                <Lens uuid=(lens1)><ShortName>My Lens</ShortName></Lens>
-            </Asset>
-        `)
+    it('shows lens summary and Edit when room has a lens', () => {
         const onEditLens = vi.fn()
-        renderWithStore(<LensHeader RoomId={ROOM_ID} onEditLens={onEditLens} />)
-        expect(screen.getByText("My Lens")).toBeTruthy()
-        const editButton = screen.getByLabelText("Edit Lens")
-        fireEvent.click(editButton)
+        renderWorkbenchComponentSession<StandardRoom>({
+            options: {
+                wml: roomWithLensWml,
+                componentId: ROOM_ID,
+                guard: (c): c is StandardRoom => c instanceof StandardRoom,
+                flushDelayMs: FLUSH_DELAY_MS
+            },
+            children: <LensHeader RoomId={ROOM_ID} onEditLens={onEditLens} />
+        })
+        expect(screen.getByText('My Lens')).toBeTruthy()
+        fireEvent.click(screen.getByLabelText('Edit Lens'))
         expect(onEditLens).toHaveBeenCalledWith(LENS_ID)
     })
 
-    it("shows fallback label when lens has no short name", () => {
-        mockWorkbenchReturn.standardForm = new StandardForm(`
+    it('shows fallback label when lens has no short name', () => {
+        renderLensHeader(`
             <Asset uuid=(test)>
-                <Room uuid=(room1)><ShortName>R1</ShortName><Lens uuid=(lens1)/></Room>
+                <Room uuid=(room1) key=(room1)><ShortName>R1</ShortName><Lens uuid=(lens1)/></Room>
                 <Lens uuid=(lens1)></Lens>
             </Asset>
         `)
-        renderWithStore(<LensHeader RoomId={ROOM_ID} />)
-        expect(screen.getByText("Lens (no short name)")).toBeTruthy()
+        expect(screen.getByText('Lens (no short name)')).toBeTruthy()
     })
 
-    it("disables action buttons when readonly", () => {
-        mockWorkbenchReturn.standardForm = new StandardForm(`
-            <Asset uuid=(test)>
-                <Room uuid=(room1)><ShortName>R1</ShortName></Room>
-            </Asset>
-        `)
-        mockWorkbenchReturn.readonly = true
-        renderWithStore(<LensHeader RoomId={ROOM_ID} />)
-        fireEvent.click(screen.getByRole("button", { name: /Dynamic Rendering/i }))
-        const createButton = screen.getByRole("button", { name: /Create New Lens/i })
-        expect(createButton.getAttribute("aria-disabled")).toBe("true")
+    it('disables action buttons when readonly', () => {
+        renderWorkbenchComponentSession<StandardRoom>({
+            options: {
+                wml: roomWithoutLensWml,
+                componentId: ROOM_ID,
+                guard: (c): c is StandardRoom => c instanceof StandardRoom,
+                flushDelayMs: FLUSH_DELAY_MS,
+                readonly: true
+            },
+            children: <LensHeader RoomId={ROOM_ID} />
+        })
+        fireEvent.click(screen.getByRole('button', { name: /Dynamic Rendering/i }))
+        const createButton = screen.getByRole('button', { name: /Create New Lens/i })
+        expect(createButton.getAttribute('aria-disabled')).toBe('true')
     })
 
-    it("removes Lens component when Delete Lens reference is clicked and Lens is pure child of Room", () => {
-        const formWithNestedLens = new StandardForm(`
-            <Asset uuid=(test)>
-                <Room uuid=(room1)><ShortName>R1</ShortName><Lens uuid=(lens1)><ShortName>My Lens</ShortName></Lens></Room>
-            </Asset>
-        `)
-        mockWorkbenchReturn.standardForm = formWithNestedLens
-        renderWithStore(<LensHeader RoomId={ROOM_ID} />)
-        fireEvent.click(screen.getByLabelText("Delete Lens reference"))
+    it('delete disassociates lens on working without removeComponent', async () => {
+        const { getSession } = renderLensHeader(roomWithLensWml)
 
-        expect(updateStandardMock).toHaveBeenCalledWith(
-            expect.objectContaining({
-                type: "update",
-                update: expect.any(Function)
-            })
+        await act(async () => {
+            fireEvent.click(screen.getByLabelText('Delete Lens reference'))
+            await flushAsync()
+        })
+
+        expect(getSession().working?.lens.payload.length).toBe(0)
+        expect(updateStandardMock).not.toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'removeComponent' })
         )
-        const updateFn = updateStandardMock.mock.calls[0][0].update
-        const draft = formWithNestedLens._clone()
-        const result = updateFn(draft)
-
-        expect(result._components.find((c) => c.universalKey === LENS_ID)).toBeUndefined()
     })
 
-    it("keeps Lens component when Delete Lens reference is clicked and Lens is in topLevel", () => {
-        const formWithTopLevelLens = new StandardForm(`
-            <Asset uuid=(test)>
-                <Room uuid=(room1)><ShortName>R1</ShortName><Lens uuid=(lens1)/></Room>
-                <Lens uuid=(lens1)><ShortName>My Lens</ShortName></Lens>
-            </Asset>
-        `)
-        mockWorkbenchReturn.standardForm = formWithTopLevelLens
-        renderWithStore(<LensHeader RoomId={ROOM_ID} />)
-        fireEvent.click(screen.getByLabelText("Delete Lens reference"))
+    it('debounced flush persists lens disassociate via updateLocal', async () => {
+        renderLensHeader(roomWithLensWml)
 
-        const updateFn = updateStandardMock.mock.calls[0][0].update
-        const draft = formWithTopLevelLens._clone()
-        const result = updateFn(draft)
+        await act(async () => {
+            fireEvent.click(screen.getByLabelText('Delete Lens reference'))
+            await flushAsync()
+            vi.advanceTimersByTime(FLUSH_DELAY_MS)
+        })
 
-        expect(result._components.find((c) => c.universalKey === LENS_ID)).toBeDefined()
+        expect(updateStandardMock).toHaveBeenCalledTimes(1)
+        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'updateLocal' })
     })
 
-    it("keeps Lens component when Delete Lens reference is clicked but Lens has another referrer", () => {
-        const formWithSharedLens = new StandardForm(`
-            <Asset uuid=(test)>
-                <Room uuid=(room1)><ShortName>R1</ShortName><Lens uuid=(lens1)/></Room>
-                <Room uuid=(room2)><ShortName>R2</ShortName><Lens uuid=(lens1)/></Room>
-                <Lens uuid=(lens1)><ShortName>Shared Lens</ShortName></Lens>
-            </Asset>
-        `)
-        mockWorkbenchReturn.standardForm = formWithSharedLens
-        renderWithStore(<LensHeader RoomId={ROOM_ID} />)
-        fireEvent.click(screen.getByLabelText("Delete Lens reference"))
+    it('flush after delete normalizes orphaned nested lens from byUniversalId', async () => {
+        renderLensHeader(nestedOnlyLensWml)
 
-        const updateFn = updateStandardMock.mock.calls[0][0].update
-        const draft = formWithSharedLens._clone()
-        const result = updateFn(draft)
+        await act(async () => {
+            fireEvent.click(screen.getByLabelText('Delete Lens reference'))
+            await flushAsync()
+            vi.advanceTimersByTime(FLUSH_DELAY_MS)
+        })
 
-        expect(result._components.find((c) => c.universalKey === LENS_ID)).toBeDefined()
+        const flushed = applyLastFlushToCommitted()
+        expect(flushed.byUniversalId[LENS_ID]).toBeUndefined()
+    })
+
+    it('keeps lens body when deleted from room but lens is on top level', async () => {
+        renderLensHeader(topLevelLensWml)
+
+        await act(async () => {
+            fireEvent.click(screen.getByLabelText('Delete Lens reference'))
+            await flushAsync()
+            vi.advanceTimersByTime(FLUSH_DELAY_MS)
+        })
+
+        const flushed = applyLastFlushToCommitted()
+        expect(flushed.byUniversalId[LENS_ID]).toBeDefined()
+    })
+
+    it('keeps lens body when deleted from one room but shared by another', async () => {
+        renderLensHeader(sharedLensWml, ROOM_ID)
+
+        await act(async () => {
+            fireEvent.click(screen.getByLabelText('Delete Lens reference'))
+            await flushAsync()
+            vi.advanceTimersByTime(FLUSH_DELAY_MS)
+        })
+
+        const flushed = applyLastFlushToCommitted()
+        expect(flushed.byUniversalId[LENS_ID]).toBeDefined()
+        const room2 = flushed.byUniversalId[ROOM2_ID] as StandardRoom
+        expect(room2.lens.payload.length).toBe(1)
+    })
+
+    it('delete with non-empty nested lens calls confirm before disassociate', async () => {
+        renderLensHeader(nestedOnlyLensWml)
+        expect(screen.getByText('My Lens')).toBeTruthy()
+
+        await act(async () => {
+            fireEvent.click(screen.getByLabelText('Delete Lens reference'))
+            await flushAsync()
+        })
+
+        expect(confirmOrphanClosureMock).toHaveBeenCalledTimes(1)
+        expect(confirmOrphanClosureMock.mock.calls[0]![0]).toMatchObject({
+            componentId: ROOM_ID
+        })
     })
 })

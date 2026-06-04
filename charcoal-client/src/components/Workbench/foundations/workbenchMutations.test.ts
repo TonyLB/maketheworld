@@ -3,6 +3,7 @@ import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
+import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 
 import {
@@ -12,6 +13,8 @@ import {
     literalPlainString,
     normalizeOptionalLiteral,
     prepareComponentForFlush,
+    projectAssetMetaFromStandardForm,
+    reconcileCommittedAssetMeta,
     reconcileCommittedComponent,
     updateSituationFacetPayloadOnParent
 } from './workbenchMutations'
@@ -268,5 +271,97 @@ describe('reconcileCommittedComponent', () => {
         expect(result.superseded).toBe(true)
         expect(result.working?.shortName?.toJSON()).toBe('External')
         expect(result.working?.equals(incoming)).toBe(true)
+    })
+})
+
+const ASSET_ID = 'ASSET#test' as const
+const ROOM_ID = 'ROOM#room1' as ComponentUUID
+
+const assetFormWithShortName = (shortName: string): StandardForm =>
+    new StandardForm(deIndentWML(`
+        <Asset uuid=(test)>
+            <ShortName>${shortName}</ShortName>
+        </Asset>
+    `))
+
+const assetFormWithShortNameAndTopLevel = (
+    shortName: string,
+    topLevelWml: string
+): StandardForm =>
+    new StandardForm(deIndentWML(`
+        <Asset uuid=(test)>
+            <ShortName>${shortName}</ShortName>
+            ${topLevelWml}
+            <Room uuid=(room1) key=(room1)><ShortName>Room</ShortName></Room>
+        </Asset>
+    `))
+
+describe('reconcileCommittedAssetMeta', () => {
+    it('adopts incoming when there are no local edits', () => {
+        const committedBase = assetFormWithShortName('Original')
+        const lastReceived = projectAssetMetaFromStandardForm(committedBase)
+        const working = {
+            shortName: lastReceived.shortName?.clone(),
+            summary: lastReceived.summary?.clone(),
+            topLevel: lastReceived.topLevel.clone()
+        }
+        const incomingBase = assetFormWithShortName('Updated')
+
+        const result = reconcileCommittedAssetMeta({
+            committedBase: incomingBase,
+            lastReceived,
+            working
+        })
+
+        expect(result.superseded).toBe(false)
+        expect(result.working?.shortName?.toJSON()).toBe('Updated')
+        expect(result.lastReceived?.shortName?.toJSON()).toBe('Updated')
+    })
+
+    it('merges local shortName with incoming topLevel change', () => {
+        const committedBase = assetFormWithShortName('Original')
+        const lastReceived = projectAssetMetaFromStandardForm(committedBase)
+        const working = {
+            shortName: new StandardLiteral('Local'),
+            summary: lastReceived.summary?.clone(),
+            topLevel: lastReceived.topLevel.clone()
+        }
+        const incomingBase = assetFormWithShortNameAndTopLevel(
+            'Original',
+            '<Room uuid=(room1) key=(room1) ref={1} />'
+        )
+
+        const result = reconcileCommittedAssetMeta({
+            committedBase: incomingBase,
+            lastReceived,
+            working
+        })
+
+        expect(result.superseded).toBe(false)
+        expect(result.working?.shortName?.toJSON()).toBe('Local')
+        expect(result.working?.topLevel.payload).toHaveLength(1)
+        expect(result.working?.topLevel.payload[0].sameKey(
+            new StandardReference({ tag: 'Room', key: 'room1', universalKey: ROOM_ID })
+        )).toBe(true)
+    })
+
+    it('supersedes when shortName conflicts locally and externally', () => {
+        const committedBase = assetFormWithShortName('Original')
+        const lastReceived = projectAssetMetaFromStandardForm(committedBase)
+        const working = {
+            shortName: new StandardLiteral('Local'),
+            summary: lastReceived.summary?.clone(),
+            topLevel: lastReceived.topLevel.clone()
+        }
+        const incomingBase = assetFormWithShortName('External')
+
+        const result = reconcileCommittedAssetMeta({
+            committedBase: incomingBase,
+            lastReceived,
+            working
+        })
+
+        expect(result.superseded).toBe(true)
+        expect(result.working?.shortName?.toJSON()).toBe('External')
     })
 })

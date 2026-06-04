@@ -43,6 +43,19 @@ import {
     type MaterializeSpec
 } from './consistency'
 
+/** One StandardForm instance per Redux StandardFormData snapshot (shared across hook callers). */
+const standardFormInstanceCache = new WeakMap<StandardFormData, StandardForm>()
+
+export const standardFormFromData = (data: StandardFormData): StandardForm => {
+    const cached = standardFormInstanceCache.get(data)
+    if (cached) {
+        return cached
+    }
+    const form = new StandardForm(data)
+    standardFormInstanceCache.set(data, form)
+    return form
+}
+
 type WorkbenchAssetContextType = {
     assetKey: string;
     AssetId: AssetUUID;
@@ -132,7 +145,7 @@ export const useWorkbenchAsset = (): WorkbenchAssetContextType => {
         if (localStandardFormData === undefined) {
             return uninitializedValues.localStandardForm
         }
-        return new StandardForm(localStandardFormData)
+        return standardFormFromData(localStandardFormData)
     }, [localStandardFormData])
     const standardFormData = useSelector(getStandardForm(AssetId))
     const standardForm = useMemo(() => {
@@ -140,7 +153,7 @@ export const useWorkbenchAsset = (): WorkbenchAssetContextType => {
         if (standardFormData === undefined) {
             return uninitializedValues.standardForm
         }
-        return new StandardForm(standardFormData)
+        return standardFormFromData(standardFormData)
     }, [standardFormData])
 
     const pendingEdits = useSelector(getPendingEdits(AssetId))
@@ -150,7 +163,7 @@ export const useWorkbenchAsset = (): WorkbenchAssetContextType => {
         if (inheritedStandardFormData === undefined) {
             return uninitializedValues.inheritedStandardForm
         }
-        return new StandardForm(inheritedStandardFormData)
+        return standardFormFromData(inheritedStandardFormData)
     }, [inheritedStandardFormData])
     const inheritedByAssetId = useSelector(getInheritedByAssetId(AssetId))
     const loadedImages = useSelector(getLoadedImages(AssetId))

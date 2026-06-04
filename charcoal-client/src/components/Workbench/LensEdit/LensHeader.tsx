@@ -1,4 +1,5 @@
 import React, { FunctionComponent, useCallback, useMemo } from "react"
+import { useDispatch } from "react-redux"
 import Box from "@mui/material/Box"
 import List from "@mui/material/List"
 import IconButton from "@mui/material/IconButton"
@@ -6,6 +7,8 @@ import Typography from "@mui/material/Typography"
 import Alert from "@mui/material/Alert"
 import Button from "@mui/material/Button"
 import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
+import { useWorkbenchComponent } from "../foundations/WorkbenchComponent"
+import { confirmOrphanClosureBeforeComponentDisassociate } from "../foundations/consistency/confirmOrphanClosureBeforeLocalEdit"
 import DeleteIcon from "@mui/icons-material/Delete"
 import EditIcon from "@mui/icons-material/Edit"
 import { MakeTheWorldAccordion } from "../../UI"
@@ -33,19 +36,22 @@ function getLensSummaryLabel(lens: StandardLens): string {
 }
 
 export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditLens }) => {
-    const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
+    const dispatch = useDispatch()
+    const {
+        standardForm,
+        localStandardForm,
+        updateStandard,
+        readonly: assetReadonly
+    } = useWorkbenchAsset()
+    const {
+        working,
+        updateComponent,
+        readonly: sessionReadonly,
+        missing
+    } = useWorkbenchComponent<StandardRoom>()
+    const readonly = assetReadonly || sessionReadonly
 
-    const room = useMemo(() => {
-        if (RoomId) {
-            const component = standardForm.byUniversalId[RoomId]
-            if (component && component instanceof StandardRoom) {
-                return component
-            }
-        }
-        return null
-    }, [RoomId, standardForm])
-
-    const lensPayload = useMemo(() => room?.lens.payload ?? [], [room])
+    const lensPayload = useMemo(() => working?.lens.payload ?? [], [working])
     const singleLensRef = useMemo(() => {
         if (lensPayload.length !== 1) return undefined
         const ref = lensPayload[0]
@@ -73,36 +79,33 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
     )
 
     const clearLensReference = useCallback(() => {
-        if (!room || readonly) return
-        if (!lensUniversalKey) return
-        updateStandard({
-            type: "update",
-            update: (draft: StandardForm) => {
-                const base = draft.byUniversalId[RoomId]
-                if (!(base instanceof StandardRoom)) return draft
-
-                const lensRef = new StandardReference({
-                    universalKey: lensUniversalKey,
-                    tag: "Lens"
-                })
-                const referrers = draft.referencedBy(lensRef)
-                const isInTopLevel =
-                    (draft._topLevel?.payload.some((r) => r.sameKey(lensRef)) ??
-                        false)
-                const isLastReferrer =
-                    referrers.length === 1 &&
-                    referrers.some((r) => r.universalKey === RoomId) &&
-                    !isInTopLevel
-
-                base._payload._lens = new SingleReference([])
-
-                if (isLastReferrer) {
-                    return draft.removeComponent(lensRef)
+        if (!working || readonly || !lensUniversalKey) return
+        void (async () => {
+            const proceed = await confirmOrphanClosureBeforeComponentDisassociate({
+                dispatch,
+                localStandardForm,
+                componentId: RoomId,
+                working,
+                applyDisassociateOnWorking: (sim) => {
+                    sim._payload._lens = new SingleReference([])
                 }
-                return draft
+            })
+            if (!proceed) {
+                return
             }
-        })
-    }, [room, RoomId, lensUniversalKey, updateStandard, readonly])
+            updateComponent((draft) => {
+                draft._payload._lens = new SingleReference([])
+            })
+        })()
+    }, [
+        working,
+        readonly,
+        lensUniversalKey,
+        dispatch,
+        localStandardForm,
+        RoomId,
+        updateComponent
+    ])
 
     const association = useCallback(
         (ref: StandardReference, draft: StandardForm) => {
@@ -116,7 +119,7 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
 
     const requestCreate = useCallback(
         (onCreated: (ref: StandardReference) => void) => {
-            if (!room || readonly) return
+            if (missing || !working || readonly) return
             const LensKey = enforceTypedKey("LENS")
             const lensUniversalKey = LensKey(uuidv4()) as ComponentUUID
             const ref = new StandardReference({ universalKey: lensUniversalKey, tag: "Lens" })
@@ -133,7 +136,7 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
             })
             onCreated(ref)
         },
-        [room, updateStandard, readonly]
+        [missing, working, updateStandard, readonly]
     )
 
     const { actionRows, selectorDialog, importDialog } = useAddReferenceImport({
@@ -167,7 +170,7 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
         return count === 1 ? "1 mark" : `${count} marks`
     }, [singleLens?.marks])
 
-    if (!room) {
+    if (missing || !working) {
         return (
             <MakeTheWorldAccordion title="Lens" defaultExpanded>
                 <Box sx={{ p: 2, textAlign: "center", color: "text.secondary" }}>
