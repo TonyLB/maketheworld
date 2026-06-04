@@ -5,7 +5,6 @@ import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { enforceTypedKey } from '@tonylb/mtw-utilities/ts/types'
 import { v4 as uuidv4 } from 'uuid'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import {
     SituationProseFacetList,
@@ -18,7 +17,8 @@ import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
 import { useWorkbenchComponent } from '../foundations/WorkbenchComponent'
 import { useAddReferenceImport } from '../foundations/ReferenceList/AddReferenceImportControl'
 import { ReferenceListEditorGeneric } from '../foundations/ReferenceList/ReferenceListEditorGeneric'
-import { confirmOrphanClosureBeforeComponentDisassociate } from '../foundations/consistency/confirmOrphanClosureBeforeLocalEdit'
+import { confirmSiteDisassociateBeforeComponentDisassociate } from '../foundations/consistency/confirmSiteDisassociateBeforeLocalEdit'
+import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import { situationIdToLabel } from '../../../lib/situationLabel'
 import { DEFAULT_SITUATION_ID } from '../../../slices/personalAssets'
 import { pushBreadcrumb } from '../../../slices/UI/workbench'
@@ -108,11 +108,14 @@ export const RoomSituationsListEditor: FunctionComponent<RoomSituationsListEdito
         (situationId: string) => {
             if (!working || readonly || missing) return
             void (async () => {
-                const proceed = await confirmOrphanClosureBeforeComponentDisassociate({
+                const proceed = await confirmSiteDisassociateBeforeComponentDisassociate({
                     dispatch,
                     localStandardForm,
+                    standardForm,
                     componentId: RoomId,
                     working,
+                    target: new StandardReference(situationId as ComponentUUID),
+                    siteLabel: "this Room's situations",
                     applyDisassociateOnWorking: (sim) => {
                         roomSituationsFacetAccessor.setFacetList(
                             sim,
@@ -137,6 +140,7 @@ export const RoomSituationsListEditor: FunctionComponent<RoomSituationsListEdito
             missing,
             dispatch,
             localStandardForm,
+            standardForm,
             RoomId,
             updateComponent
         ]

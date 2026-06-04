@@ -8,6 +8,7 @@ import ListItemText from "@mui/material/ListItemText"
 import IconButton from "@mui/material/IconButton"
 import Typography from "@mui/material/Typography"
 import DeleteIcon from "@mui/icons-material/Delete"
+import DeleteForeverIcon from "@mui/icons-material/DeleteForever"
 
 import { MakeTheWorldAccordion } from "../../../UI"
 import { ReferenceList } from "@tonylb/mtw-wml/ts/standardize/keys/referenceList"
@@ -77,6 +78,12 @@ export interface ReferenceListEditorGenericProps {
     onItemRemove?: (id: string) => void
 
     /**
+     * Called when the purge icon is clicked (explicit removeComponent from asset).
+     * When provided, shows a second action beside row remove / disassociate.
+     */
+    onItemPurge?: (id: string) => void
+
+    /**
      * Slot for Add/Import rows. Wrapper supplies the actual UI.
      */
     actionAffordances?: ReactNode
@@ -92,6 +99,7 @@ export const ReferenceListEditorGeneric: FunctionComponent<ReferenceListEditorGe
     onItemClick,
     updateReferenceList,
     onItemRemove,
+    onItemPurge,
     actionAffordances
 }) => {
     const getItemRemoveHandler = useCallback(
@@ -112,6 +120,8 @@ export const ReferenceListEditorGeneric: FunctionComponent<ReferenceListEditorGe
     )
 
     const hasRemove = Boolean(onItemRemove ?? updateReferenceList)
+    const hasPurge = Boolean(onItemPurge)
+    const hasRowActions = hasRemove || hasPurge
 
     const handleItemClick = useCallback(
         (id: string) => () => {
@@ -137,6 +147,50 @@ export const ReferenceListEditorGeneric: FunctionComponent<ReferenceListEditorGe
         [disabled, getItemRemoveHandler]
     )
 
+    const handleItemPurge = useCallback(
+        (id: string) => (event: React.MouseEvent) => {
+            event.stopPropagation()
+            if (disabled || !onItemPurge) {
+                return
+            }
+            onItemPurge(id)
+        },
+        [disabled, onItemPurge]
+    )
+
+    const rowSecondaryActions = useCallback(
+        (id: string) =>
+            hasRowActions ? (
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
+                    {hasPurge && (
+                        <IconButton
+                            edge="end"
+                            aria-label="purge from asset"
+                            onClick={handleItemPurge(id)}
+                            disabled={disabled}
+                            color="error"
+                            size="small"
+                        >
+                            <DeleteForeverIcon fontSize="small" />
+                        </IconButton>
+                    )}
+                    {hasRemove && (
+                        <IconButton
+                            edge="end"
+                            aria-label="remove"
+                            onClick={handleItemRemove(id)}
+                            disabled={disabled}
+                            color="error"
+                            size="small"
+                        >
+                            <DeleteIcon fontSize="small" />
+                        </IconButton>
+                    )}
+                </Box>
+            ) : undefined,
+        [hasRowActions, hasPurge, hasRemove, disabled, handleItemPurge, handleItemRemove]
+    )
+
     const hasItems = items.length > 0
 
     return (
@@ -153,20 +207,7 @@ export const ReferenceListEditorGeneric: FunctionComponent<ReferenceListEditorGe
                             <ListItem
                                 key={id}
                                 disablePadding
-                                secondaryAction={
-                                    hasRemove ? (
-                                        <IconButton
-                                            edge="end"
-                                            aria-label="remove"
-                                            onClick={handleItemRemove(id)}
-                                            disabled={disabled}
-                                            color="error"
-                                            size="small"
-                                        >
-                                            <DeleteIcon fontSize="small" />
-                                        </IconButton>
-                                    ) : undefined
-                                }
+                                secondaryAction={rowSecondaryActions(id)}
                             >
                                 <ListItemButton
                                     onClick={handleItemClick(id)}
@@ -214,7 +255,7 @@ export const ReferenceListEditorGeneric: FunctionComponent<ReferenceListEditorGe
                                 <ListItemButton
                                     onClick={handleItemClick(id)}
                                     disabled={disabled || !onItemClick}
-                                    sx={{ paddingRight: hasRemove ? "3rem" : undefined }}
+                                    sx={{ paddingRight: hasRowActions ? "5rem" : undefined }}
                                 >
                                     {icon && (
                                         <ListItemIcon sx={{ minWidth: 32 }}>
@@ -240,7 +281,7 @@ export const ReferenceListEditorGeneric: FunctionComponent<ReferenceListEditorGe
                                         }
                                     />
                                 </ListItemButton>
-                                {hasRemove && (
+                                {hasRowActions && (
                                     <Box
                                         sx={{
                                             display: "flex",
@@ -249,16 +290,7 @@ export const ReferenceListEditorGeneric: FunctionComponent<ReferenceListEditorGe
                                             paddingRight: 1
                                         }}
                                     >
-                                        <IconButton
-                                            edge="end"
-                                            aria-label="remove"
-                                            onClick={handleItemRemove(id)}
-                                            disabled={disabled}
-                                            color="error"
-                                            size="small"
-                                        >
-                                            <DeleteIcon fontSize="small" />
-                                        </IconButton>
+                                        {rowSecondaryActions(id)}
                                     </Box>
                                 )}
                             </ListItem>

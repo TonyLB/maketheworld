@@ -9,8 +9,6 @@ import { deIndentWML } from "@tonylb/mtw-wml/ts/schema/utils"
 import { publicSelectors } from "./selectors"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import { applyWorkbenchFlush } from "../../components/Workbench/foundations/consistency/applyWorkbenchFlush"
-import { isReferencedInAssetLayer } from "../../components/Workbench/foundations/consistency/isReferencedInAssetLayer"
-import { findOrphanComponents } from "../../components/Workbench/foundations/consistency/normalizeWorkbenchDraft"
 import { setWorkingShortNameFromString } from "../../components/Workbench/foundations/workbenchMutations"
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render"
@@ -730,17 +728,14 @@ describe('personalAsset slice reducers', () => {
         }
         const roomRef = room?.reference
         if (roomRef) {
-            console.log(`${tag} isReferencedInAssetLayer:`, isReferencedInAssetLayer(draft, roomRef))
-        } else {
-            console.log(`${tag} isReferencedInAssetLayer: (no room reference)`)
+            console.log(
+                `${tag} referencedBy(room):`,
+                draft.referencedBy(roomRef).map((r) => r.universalKey)
+            )
         }
         console.log(
             `${tag} _topLevel:`,
             JSON.stringify(draft._topLevel?.payload.map((r) => r.toJSON()) ?? [])
-        )
-        console.log(
-            `${tag} findOrphanComponents:`,
-            findOrphanComponents(draft).map((c) => c.universalKey)
         )
     }
 

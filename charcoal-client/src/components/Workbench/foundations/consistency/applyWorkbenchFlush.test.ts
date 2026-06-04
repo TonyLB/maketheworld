@@ -16,8 +16,6 @@ import {
 import { roomGuidanceListAccessor } from '../../RoomEdit/roomReferenceListAccessors'
 import * as materializeModule from './materializeComponent'
 import { applyWorkbenchFlush } from './applyWorkbenchFlush'
-import { isReferencedInAssetLayer } from './isReferencedInAssetLayer'
-import { findOrphanComponents } from './normalizeWorkbenchDraft'
 
 const ASSET_ID = 'ASSET#test' as const
 const ROOM_ID = 'ROOM#room1' as ComponentUUID
@@ -160,7 +158,7 @@ describe('applyWorkbenchFlush', () => {
             return { base, inherited, edit, local, merged, working }
         }
 
-        it('local form has no _topLevel link and empty referencedBy so room is orphan before flush', () => {
+        it('local form has no _topLevel link and empty referencedBy before flush', () => {
             const { base, edit, local } = buildPhase0Forms()
             const roomRef = local.byUniversalId[ROOM_LOBBY_ID]!.reference
 
@@ -170,16 +168,11 @@ describe('applyWorkbenchFlush', () => {
             expect(edit._topLevel?.payload ?? []).toHaveLength(0)
             expect(local.referencedBy(roomRef)).toEqual([])
             expect(local._topLevel?.payload ?? []).toHaveLength(0)
-            expect(isReferencedInAssetLayer(local, roomRef)).toBe(false)
-            expect(findOrphanComponents(local).map((c) => c.universalKey)).toEqual([ROOM_LOBBY_ID])
         })
 
         it('assign leaves room on draft with plain merged shortName', () => {
             const { local, working } = buildPhase0Forms()
             const draft = local._clone()
-            const roomRef = draft.byUniversalId[ROOM_LOBBY_ID]!.reference
-
-            expect(isReferencedInAssetLayer(draft, roomRef)).toBe(false)
 
             applyWorkingComponentToDraft(draft, ROOM_LOBBY_ID, working)
 
@@ -187,8 +180,6 @@ describe('applyWorkbenchFlush', () => {
             expect((draft.byUniversalId[ROOM_LOBBY_ID] as StandardRoom).shortName?.toJSON()).toBe(
                 'Lobby in the pitch-black'
             )
-            expect(isReferencedInAssetLayer(draft, roomRef)).toBe(false)
-            expect(findOrphanComponents(draft).map((c) => c.universalKey)).toEqual([ROOM_LOBBY_ID])
         })
 
         it('flush retains imported room body (assign only, no orphan GC)', () => {

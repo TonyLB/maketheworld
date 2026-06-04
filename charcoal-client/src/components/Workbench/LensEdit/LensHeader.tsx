@@ -8,7 +8,7 @@ import Alert from "@mui/material/Alert"
 import Button from "@mui/material/Button"
 import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
 import { useWorkbenchComponent } from "../foundations/WorkbenchComponent"
-import { confirmOrphanClosureBeforeComponentDisassociate } from "../foundations/consistency/confirmOrphanClosureBeforeLocalEdit"
+import { confirmSiteDisassociateBeforeComponentDisassociate } from "../foundations/consistency/confirmSiteDisassociateBeforeLocalEdit"
 import DeleteIcon from "@mui/icons-material/Delete"
 import EditIcon from "@mui/icons-material/Edit"
 import { MakeTheWorldAccordion } from "../../UI"
@@ -81,11 +81,14 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
     const clearLensReference = useCallback(() => {
         if (!working || readonly || !lensUniversalKey) return
         void (async () => {
-            const proceed = await confirmOrphanClosureBeforeComponentDisassociate({
+            const proceed = await confirmSiteDisassociateBeforeComponentDisassociate({
                 dispatch,
                 localStandardForm,
+                standardForm,
                 componentId: RoomId,
                 working,
+                target: singleLensRef!,
+                siteLabel: "this Room's Lens",
                 applyDisassociateOnWorking: (sim) => {
                     sim._payload._lens = new SingleReference([])
                 }
@@ -103,6 +106,8 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
         lensUniversalKey,
         dispatch,
         localStandardForm,
+        standardForm,
+        singleLensRef,
         RoomId,
         updateComponent
     ])

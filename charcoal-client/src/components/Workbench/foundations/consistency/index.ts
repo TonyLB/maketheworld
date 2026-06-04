@@ -1,4 +1,3 @@
-export { isReferencedInAssetLayer } from './isReferencedInAssetLayer'
 export { materializeComponent, type MaterializeSpec } from './materializeComponent'
 export { materializeComponentInAsset } from './materializeComponentInAsset'
 export { applyWorkbenchFlush, type ApplyWorkbenchFlushEdit } from './applyWorkbenchFlush'
@@ -7,16 +6,10 @@ export {
     type ApplyAssetMetaFlushEdit,
     type WorkbenchAssetMetaWorking
 } from './applyAssetMetaFlush'
-export { normalizeWorkbenchDraft } from './normalizeWorkbenchDraft'
 export {
-    previewOrphanClosure,
-    type PreviewOrphanClosureOptions,
-    type PreviewOrphanClosureResult
-} from './previewOrphanClosure'
-export {
-    confirmOrphanClosureBeforeAssetMetaDisassociate,
-    confirmOrphanClosureBeforeComponentDisassociate
-} from './confirmOrphanClosureBeforeLocalEdit'
+    confirmSiteDisassociateBeforeAssetMetaDisassociate,
+    confirmSiteDisassociateBeforeComponentDisassociate
+} from './confirmSiteDisassociateBeforeLocalEdit'
 export {
     previewPurgeClosure,
     type PreviewPurgeClosureOptions,
@@ -32,3 +25,4 @@ export {
     type PurgeComponentInAssetParams,
     type PurgeComponentInAssetThunk
 } from './purgeComponentInAsset'
+export { purgeComponentFromAssetFlow, type PurgeComponentFromAssetFlowParams } from './purgeComponentFromAssetFlow'

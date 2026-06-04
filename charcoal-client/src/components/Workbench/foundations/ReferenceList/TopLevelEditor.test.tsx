@@ -34,8 +34,12 @@ vi.mock('../useWorkbenchAsset', async (importOriginal) => {
 })
 
 vi.mock('../../../../slices/UI/choiceDialog', () => ({
-    pushChoice: (choice: unknown) => {
+    pushChoice: (choice: { options?: { returnValue: string }[] }) => {
         pushChoiceMock(choice)
+        const values = choice.options?.map((o) => o.returnValue) ?? []
+        if (values.includes('cascade')) {
+            return () => Promise.resolve('cascade')
+        }
         return () => Promise.resolve('confirm')
     }
 }))
@@ -50,6 +54,12 @@ vi.mock('../ComponentSelector', () => ({
 
 vi.mock('../../ImageHeader', () => ({
     default: () => null
+}))
+
+const purgeComponentFromAssetFlowMock = vi.fn()
+
+vi.mock('../consistency/purgeComponentFromAssetFlow', () => ({
+    purgeComponentFromAssetFlow: (...args: unknown[]) => purgeComponentFromAssetFlowMock(...args)
 }))
 
 const FLUSH_DELAY_MS = 100
@@ -81,6 +91,8 @@ describe('TopLevelEditor', () => {
         vi.useFakeTimers()
         resetWorkbenchAssetMock()
         pushChoiceMock.mockClear()
+        purgeComponentFromAssetFlowMock.mockClear()
+        purgeComponentFromAssetFlowMock.mockResolvedValue(undefined)
     })
 
     afterEach(() => {
@@ -110,10 +122,29 @@ describe('TopLevelEditor', () => {
             await flushAsync()
         })
 
+        expect(pushChoiceMock).toHaveBeenCalled()
         expect(getSession().working?.topLevel.payload.length).toBe(0)
         expect(updateStandardMock).not.toHaveBeenCalledWith(
             expect.objectContaining({ type: 'removeComponent' })
         )
+    })
+
+    it('purge invokes purgeComponentFromAssetFlow for row', async () => {
+        renderWorkbenchAssetMetaSession({
+            options: { wml: assetWithRoomWml, flushDelayMs: FLUSH_DELAY_MS },
+            children: <TopLevelEditor />
+        })
+
+        const purgeButtons = screen.getAllByLabelText('purge from asset')
+        await act(async () => {
+            fireEvent.click(purgeButtons[0])
+            await flushAsync()
+        })
+
+        expect(purgeComponentFromAssetFlowMock).toHaveBeenCalledTimes(1)
+        expect(purgeComponentFromAssetFlowMock.mock.calls[0]![0]).toMatchObject({
+            reference: expect.objectContaining({ universalKey: 'ROOM#room1' })
+        })
     })
 
     it('debounced flush persists topLevel disassociate via updateLocal', async () => {
@@ -134,7 +165,7 @@ describe('TopLevelEditor', () => {
         expect(getFlushedTopLevelUniversalKeys()).toEqual([])
     })
 
-    it('remove with non-empty orphan closure prompts before disassociate', async () => {
+    it('remove with non-empty body prompts site-local confirm before disassociate', async () => {
         renderWorkbenchAssetMetaSession({
             options: { wml: assetWithRoomAndFeatureWml, flushDelayMs: FLUSH_DELAY_MS },
             children: <TopLevelEditor />

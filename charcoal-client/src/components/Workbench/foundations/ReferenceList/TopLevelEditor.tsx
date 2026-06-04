@@ -21,7 +21,10 @@ import { useWorkbenchAssetMeta } from "../WorkbenchAssetMeta/useWorkbenchAssetMe
 import { useDispatch } from "react-redux"
 import { addOnboardingComplete } from "../../../../slices/player/index.api"
 import { navigateToComponent } from "../../../../slices/UI/workbench"
-import { confirmOrphanClosureBeforeAssetMetaDisassociate } from "../consistency/confirmOrphanClosureBeforeLocalEdit"
+import { confirmSiteDisassociateBeforeAssetMetaDisassociate } from "../consistency/confirmSiteDisassociateBeforeLocalEdit"
+import { purgeComponentFromAssetFlow } from "../consistency/purgeComponentFromAssetFlow"
+import { componentDisplayLabel } from "../../../../lib/componentDisplayLabel"
+import { applyWorkingAssetMetaToDraft } from "../workbenchMutations"
 import { ReferenceListEditorGeneric } from "./ReferenceListEditorGeneric"
 import { referenceListToItems } from "./referenceListAdapter"
 import { removeReferenceFromListById } from "./referenceListMutations"
@@ -176,9 +179,10 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
                 return
             }
             void (async () => {
-                const proceed = await confirmOrphanClosureBeforeAssetMetaDisassociate({
+                const proceed = await confirmSiteDisassociateBeforeAssetMetaDisassociate({
                     dispatch,
                     localStandardForm,
+                    standardForm,
                     working,
                     removeId: id
                 })
@@ -190,7 +194,38 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
                 })
             })()
         },
-        [readonly, working, dispatch, localStandardForm, updateAssetMeta]
+        [readonly, working, dispatch, localStandardForm, standardForm, updateAssetMeta]
+    )
+
+    const handleItemPurge = useCallback(
+        (id: string) => {
+            if (readonly || !working) {
+                return
+            }
+            void (async () => {
+                const comp = standardForm.byUniversalId[id as ComponentUUID]
+                const reference =
+                    working.topLevel.payload.find(
+                        (ref) => ref.universalKey === id || ref.key === id
+                    ) ?? new StandardReference(id as ComponentUUID)
+                const targetLabel = comp
+                    ? componentDisplayLabel(comp, { standardForm, fallbackLabel: 'Untitled' })
+                    : undefined
+                await purgeComponentFromAssetFlow({
+                    dispatch,
+                    assetId: AssetId,
+                    localStandardForm,
+                    reference,
+                    targetLabel,
+                    previewOptions: {
+                        applyLocal: (draft) => {
+                            applyWorkingAssetMetaToDraft(draft, working)
+                        }
+                    }
+                })
+            })()
+        },
+        [readonly, working, dispatch, localStandardForm, standardForm, AssetId]
     )
 
     const handleItemClick = useCallback(
@@ -498,6 +533,7 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
             variant="table"
             onItemClick={handleItemClick}
             onItemRemove={handleItemRemove}
+            onItemPurge={handleItemPurge}
             actionAffordances={actionAffordances}
         />
     )

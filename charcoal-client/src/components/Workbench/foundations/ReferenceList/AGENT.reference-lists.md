@@ -103,7 +103,8 @@ The asset top-level component list ([`TopLevelEditor`](TopLevelEditor.tsx) on [`
 
 | Operation | Persist path |
 | --- | --- |
-| Remove | **`_topLevel` site only** --- disassociate on **`working.topLevel`** (does **not** clear other parents); debounced flush + normalize may drop **`byUniversalId`** only if orphaned per asset-layer predicate. **`confirmOrphanClosureBeforeAssetMetaDisassociate`** + **`pushChoice`** when non-empty closure. |
+| Remove | **`_topLevel` site only** --- disassociate on **`working.topLevel`** (does **not** clear other parents); body **remains** until Purge. **`confirmSiteDisassociateBeforeAssetMetaDisassociate`** (site-local copy; lists remaining **`referencedBy`** when applicable). |
+| Purge | **TopLevel only** --- **`purgeComponentFromAssetFlow`** (`removeComponent` with rehome/cascade confirm). Distinct from row **remove**. |
 | Reference existing | **`await materializeComponentInAsset`**, then associate on **`working.topLevel`** |
 | Create / import | **`await materializeComponentInAsset`**, then associate on **`working.topLevel`** |
 
@@ -115,7 +116,7 @@ List accessor: [`topLevelAssetMetaListAccessor.ts`](topLevelAssetMetaListAccesso
 
 | Operation | Persist path |
 | --- | --- |
-| Remove | **`_lens` site only** --- disassociate on **`working._lens`** (does **not** clear other parents); debounced flush + normalize may drop **`byUniversalId`** only if orphaned per asset-layer predicate. **`confirmOrphanClosureBeforeComponentDisassociate`** when non-empty closure. |
+| Remove | **`_lens` site only** --- disassociate on **`working._lens`** (does **not** clear other parents); body **remains** until Purge elsewhere. **`confirmSiteDisassociateBeforeComponentDisassociate`** with site-local copy. |
 | Reference existing | **`onAssociateReference`** on **`working._lens`** via **`updateComponent`** (selector ref; fast-path materialize when body already on local draft is unchanged) |
 | Create | **`requestCreate`** -> **`await materializeComponentInAsset({ universalKey })`**, then **`onAssociateReference`** / **`updateComponent`** |
 | Import | **`await materializeComponentInAsset({ universalKey, fromAsset })`**, then **`onAssociateReference`** --- **not** asset-mode `addImportToDraft` in one merged **`update`** |

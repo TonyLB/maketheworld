@@ -19,7 +19,7 @@ import {
     updateStandardMock
 } from '../foundations/WorkbenchComponent/testing/harness'
 
-const confirmOrphanClosureMock = vi.fn().mockResolvedValue(true)
+const confirmSiteDisassociateMock = vi.fn().mockResolvedValue(true)
 
 const ROOM_ID = 'ROOM#room1' as ComponentUUID
 const SITUATION_ID = 'SITUATION#sit1' as ComponentUUID
@@ -37,9 +37,9 @@ vi.mock('../foundations/useWorkbenchAsset', async () => {
     }
 })
 
-vi.mock('../foundations/consistency/confirmOrphanClosureBeforeLocalEdit', () => ({
-    confirmOrphanClosureBeforeComponentDisassociate: (...args: unknown[]) =>
-        confirmOrphanClosureMock(...args)
+vi.mock('../foundations/consistency/confirmSiteDisassociateBeforeLocalEdit', () => ({
+    confirmSiteDisassociateBeforeComponentDisassociate: (...args: unknown[]) =>
+        confirmSiteDisassociateMock(...args)
 }))
 
 vi.mock('../foundations/ComponentSelector', () => ({
@@ -118,8 +118,8 @@ describe('RoomSituationsListEditor', () => {
     beforeEach(() => {
         vi.useFakeTimers()
         resetWorkbenchAssetMock()
-        confirmOrphanClosureMock.mockClear()
-        confirmOrphanClosureMock.mockResolvedValue(true)
+        confirmSiteDisassociateMock.mockClear()
+        confirmSiteDisassociateMock.mockResolvedValue(true)
     })
 
     afterEach(() => {
@@ -263,9 +263,10 @@ describe('RoomSituationsListEditor', () => {
             await flushAsync()
         })
 
-        expect(confirmOrphanClosureMock).toHaveBeenCalledTimes(1)
-        expect(confirmOrphanClosureMock.mock.calls[0]![0]).toMatchObject({
-            componentId: ROOM_ID
+        expect(confirmSiteDisassociateMock).toHaveBeenCalledTimes(1)
+        expect(confirmSiteDisassociateMock.mock.calls[0]![0]).toMatchObject({
+            componentId: ROOM_ID,
+            siteLabel: "this Room's situations"
         })
 
         const nonDefault = roomSituationsFacetAccessor
@@ -276,7 +277,7 @@ describe('RoomSituationsListEditor', () => {
     })
 
     it('remove cancel skips disassociate on working', async () => {
-        confirmOrphanClosureMock.mockResolvedValueOnce(false)
+        confirmSiteDisassociateMock.mockResolvedValueOnce(false)
 
         const { getSession } = renderSituationsList(roomWithLensAndSituationWml)
         expandSituationsAccordion()

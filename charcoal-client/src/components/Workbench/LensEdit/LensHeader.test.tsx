@@ -22,7 +22,7 @@ import {
 } from '../foundations/WorkbenchComponent/testing/harness'
 
 const pushChoiceMock = vi.fn()
-const confirmOrphanClosureMock = vi.fn().mockResolvedValue(true)
+const confirmSiteDisassociateMock = vi.fn().mockResolvedValue(true)
 
 const ROOM_ID = 'ROOM#room1' as ComponentUUID
 const ROOM2_ID = 'ROOM#room2' as ComponentUUID
@@ -54,9 +54,9 @@ vi.mock('../../../../slices/UI/choiceDialog', () => ({
     }
 }))
 
-vi.mock('../foundations/consistency/confirmOrphanClosureBeforeLocalEdit', () => ({
-    confirmOrphanClosureBeforeComponentDisassociate: (...args: unknown[]) =>
-        confirmOrphanClosureMock(...args)
+vi.mock('../foundations/consistency/confirmSiteDisassociateBeforeLocalEdit', () => ({
+    confirmSiteDisassociateBeforeComponentDisassociate: (...args: unknown[]) =>
+        confirmSiteDisassociateMock(...args)
 }))
 
 vi.mock('../ImportComponentDialog', () => ({
@@ -145,8 +145,8 @@ describe('LensHeader', () => {
         vi.useFakeTimers()
         resetWorkbenchAssetMock()
         pushChoiceMock.mockClear()
-        confirmOrphanClosureMock.mockClear()
-        confirmOrphanClosureMock.mockResolvedValue(true)
+        confirmSiteDisassociateMock.mockClear()
+        confirmSiteDisassociateMock.mockResolvedValue(true)
     })
 
     afterEach(() => {
@@ -373,9 +373,10 @@ describe('LensHeader', () => {
             await flushAsync()
         })
 
-        expect(confirmOrphanClosureMock).toHaveBeenCalledTimes(1)
-        expect(confirmOrphanClosureMock.mock.calls[0]![0]).toMatchObject({
-            componentId: ROOM_ID
+        expect(confirmSiteDisassociateMock).toHaveBeenCalledTimes(1)
+        expect(confirmSiteDisassociateMock.mock.calls[0]![0]).toMatchObject({
+            componentId: ROOM_ID,
+            siteLabel: "this Room's Lens"
         })
     })
 })

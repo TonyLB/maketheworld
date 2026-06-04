@@ -1,6 +1,6 @@
 # updateStandard batch extension (layered editing / session flush)
 
-**Status:** **In progress** (active 2026-06-04). **Phase 0 (2026-06-04):** body retention at flush **PASS** (2b); merged shortName gate **SKIP** until Phase 3 (`it.skip` in [`reducers.test.ts`](../../../../charcoal-client/src/slices/personalAssets/reducers.test.ts) --- receives `LobbyLobby in the pitch-black`). **Phase 1 (2026-06-04): complete** --- orphan GC at flush is **misaligned** with import/overlay storage (predicate vs schema tree); see [Phase 1 findings](#phase-1-findings-2026-06-04). **Phase 2 (in progress):** **2a-2b complete** (Purge helper; flush assign-only); **next 2c** --- delete orphan stack, wire Purge UX, then 2d (see [migration](#phase-2-migration-purge-in-normalize-out)). **Phase 3+:** layered flush persist (batch or helper).
+**Status:** **In progress** (active 2026-06-04). **Phase 0 (2026-06-04):** body retention at flush **PASS** (2b); merged shortName gate **SKIP** until Phase 3 (`it.skip` in [`reducers.test.ts`](../../../../charcoal-client/src/slices/personalAssets/reducers.test.ts) --- receives `LobbyLobby in the pitch-black`). **Phase 1 (2026-06-04): complete** --- orphan GC at flush is **misaligned** with import/overlay storage (predicate vs schema tree); see [Phase 1 findings](#phase-1-findings-2026-06-04). **Phase 2 (in progress):** **2a-2c complete** (2026-06-04) --- Purge helper, flush assign-only, orphan stack retired, TopLevel Purge + site-local disassociate confirms; **next 2d** (display union, pin/unpin). **Phase 3+:** layered flush persist (batch or helper).
 
 This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into [`personalAssets/AGENT.md`](../../../../charcoal-client/src/slices/personalAssets/AGENT.md) and [`Workbench/AGENT.md`](../../../../charcoal-client/src/components/Workbench/AGENT.md).
 
@@ -142,7 +142,7 @@ Exact step bodies are **design deliverables** in Phase 3; the batch mechanism is
 | --- | --- | --- |
 | 0 | Failing (or passing) regression: inherited + Room shortName + session flush | [X] FAIL (2026-06-04) |
 | 1 | Investigate **normalize** / orphan GC on flush (Phase 0 diagnostics) | [X] (2026-06-04) |
-| 2 | **Purge migration** + authoring UX (display union, pin/unpin, list confirms) | [ ] in progress (2a-2b done) |
+| 2 | **Purge migration** + authoring UX (display union, pin/unpin, list confirms) | [ ] in progress (2a-2c done) |
 | 3 | Design decision: **batch API** vs **flush-only helper** (layered flush persist) | [ ] |
 | 4 | Implement reducer + types + thunk passthrough | [ ] |
 | 5 | Rewire `useWorkbenchComponent` / `useWorkbenchAssetMeta` flush | [ ] |
@@ -188,7 +188,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets) as e
 - [ ] **Phase 2 --- Authoring UX + Purge migration** (implement [migration order](#phase-2-migration-purge-in-normalize-out) first)
   - [X] **2a Purge helper (consistency layer)** (2026-06-04) --- [`previewPurgeClosure`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/previewPurgeClosure.ts), [`confirmPurgeBeforeRemove`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/confirmPurgeBeforeRemove.ts), [`purgeComponentInAsset`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/purgeComponentInAsset.ts); reducer `removeComponent` accepts **`cascade?: boolean`** (default `true`). See [Purge API sketch](#purge-api-sketch-consistency-layer).
   - [X] **2b Remove normalize from flush** (2026-06-04) --- **`normalizeWorkbenchDraft`** removed from [`applyWorkbenchFlush`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/applyWorkbenchFlush.ts) / [`applyAssetMetaFlush`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/applyAssetMetaFlush.ts); Phase 0 body retention test green; merged shortName gate skipped until Phase 3. Orphan stack deletion deferred to **2c** per [evaluation](#normalize-removal-evaluation-phase-2)
-  - [ ] **2c Wire Purge UX** --- mount explicit Purge actions; replace [`confirmOrphanClosure*`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/confirmOrphanClosureBeforeLocalEdit.ts) on list rows with site-local copy only
+  - [X] **2c Wire Purge UX** (2026-06-04) --- TopLevel **Purge** via [`purgeComponentFromAssetFlow`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/purgeComponentFromAssetFlow.ts); [`confirmSiteDisassociateBeforeLocalEdit`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/confirmSiteDisassociateBeforeLocalEdit.ts) on list rows; orphan stack deleted
   - [ ] **2d Display union + pin/unpin + import** --- product model in [`AGENT.reference-lists.md`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md) / [`consistency/AGENT.md`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md): **`_topLevel` `ref={1}` = roster pin only**; structural = nested **`referencedBy`**; schema **`ref={0}`** = display/organization
   - [ ] **Import / Add at top-level:** [`materializeComponentInAsset`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/materializeComponentInAsset.ts) -> **`_components` only**; do **not** auto-`assureItem` on [`working.topLevel`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx)
   - [ ] **Components list display:** union pins + **`SchemaOrganization.getChildrenOfParent(asset)`** via adapter; **pinned** vs **display-only** rows
@@ -225,12 +225,12 @@ cd charcoal-client
 
 # Phase 0+ gate (stdout: Phase 0 flush diagnostics)
 npm run test:single -- src/slices/personalAssets/reducers.test.ts -t "inherited shortName"
-npm run test:single -- src/components/Workbench/foundations/consistency/normalizeWorkbenchDraft.test.ts
-npm run test:single -- src/components/Workbench/foundations/consistency/isReferencedInAssetLayer.test.ts
 npm run test:single -- src/components/Workbench/foundations/consistency/applyWorkbenchFlush.test.ts
 
 # Phase 2 (purge migration, top-level UX, reference list)
+npm run test:single -- src/components/Workbench/foundations/consistency/confirmSiteDisassociateBeforeLocalEdit.test.ts
 npm run test:single -- src/components/Workbench/foundations/consistency/previewPurgeClosure.test.ts
+npm run test:single -- src/components/Workbench/foundations/consistency/confirmPurgeBeforeRemove.test.ts
 npm run test:single -- src/components/Workbench/foundations/ReferenceList
 npm run test:single -- src/components/Workbench/foundations/consistency
 
@@ -298,12 +298,12 @@ npm run test:single -- src/components/Workbench/foundations/WorkbenchAssetMeta
 
 ### Removal scope (Phase 2 sub-task; after 2a/2b)
 
-- [ ] Remove **`normalizeWorkbenchDraft`** (+ `findOrphanComponents`, `scrubReferences`, `normalizeSinglePass` exports used only by preview).
-- [ ] Remove **`previewOrphanClosure`** and **`confirmOrphanClosureBeforeLocalEdit.ts`**; update TopLevel / Lens / Situations list removes.
-- [ ] Remove **`isReferencedInAssetLayer`** unless a thin helper is needed for Purge copy (prefer inline **`localForm.referencedBy`** + `_topLevel` pin check).
-- [ ] Trim [`consistency/index.ts`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/index.ts) exports and delete or rewrite tests: `normalizeWorkbenchDraft.test.ts`, `previewOrphanClosure.test.ts`, `isReferencedInAssetLayer.test.ts` (predicate tests optional if helper kept).
-- [ ] Update [`applyWorkbenchFlush.test.ts`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/applyWorkbenchFlush.test.ts) (e.g. "normalizes orphans" example -> assign-only); [`AGENT.md`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) policy tables (WML vs Workbench orphan row goes away).
-- [ ] **`reducers.test.ts`** Phase 0 diagnostics may keep **`findOrphanComponents`** imports temporarily or drop once flush no longer deletes bodies.
+- [X] Remove **`normalizeWorkbenchDraft`** (+ `findOrphanComponents`, `scrubReferences`, `normalizeSinglePass` exports used only by preview).
+- [X] Remove **`previewOrphanClosure`** and **`confirmOrphanClosureBeforeLocalEdit.ts`**; update TopLevel / Lens / Situations list removes.
+- [X] Remove **`isReferencedInAssetLayer`** (site-local confirm uses **`localForm.referencedBy`**).
+- [X] Trim [`consistency/index.ts`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/index.ts) exports; delete orphan tests; add [`confirmSiteDisassociateBeforeLocalEdit.test.ts`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/confirmSiteDisassociateBeforeLocalEdit.test.ts).
+- [X] Update [`applyWorkbenchFlush.test.ts`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/applyWorkbenchFlush.test.ts); [`AGENT.md`](../../../../charcoal-client/src/components/Workbench/foundations/consistency/AGENT.md) policy tables.
+- [X] **`reducers.test.ts`** Phase 0 diagnostics use **`referencedBy`** only (no **`findOrphanComponents`**).
 
 ### Residual risks (acceptable)
 
