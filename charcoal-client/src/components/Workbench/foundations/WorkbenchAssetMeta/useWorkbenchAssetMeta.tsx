@@ -46,11 +46,11 @@ export const WorkbenchAssetMetaProvider = ({
     children
 }: WorkbenchAssetMetaProviderProps): React.ReactElement => {
     const dispatch = useDispatch()
-    const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
+    const { localStandardForm, updateStandard, readonly } = useWorkbenchAsset()
 
     const committed = useMemo(
-        () => projectAssetMetaFromStandardForm(standardForm),
-        [standardForm]
+        () => projectAssetMetaFromStandardForm(localStandardForm),
+        [localStandardForm]
     )
 
     const [working, setWorking] = useState<WorkbenchAssetMetaWorking | undefined>(() =>
@@ -152,21 +152,29 @@ export const WorkbenchAssetMetaProvider = ({
     useEffect(() => {
         skipCommittedSyncRef.current = true
         prevCommittedRef.current = undefined
-    }, [standardForm.universalKey])
+    }, [localStandardForm.universalKey])
 
     useEffect(() => {
         const received = cloneAssetMetaWorking(committed)
-        setLastReceived(received)
-        lastReceivedRef.current = received
         const nextWorking = cloneAssetMetaWorking(committed)
-        setWorking(nextWorking)
-        workingRef.current = nextWorking
+        const alreadySynced =
+            workingRef.current !== undefined &&
+            lastReceivedRef.current !== undefined &&
+            assetMetaWorkingEquals(workingRef.current, nextWorking) &&
+            assetMetaWorkingEquals(lastReceivedRef.current, received)
+
+        if (!alreadySynced) {
+            setLastReceived(received)
+            lastReceivedRef.current = received
+            setWorking(nextWorking)
+            workingRef.current = nextWorking
+        }
 
         return () => {
             cancelPendingFlushRef.current?.()
             performFlushRef.current?.()
         }
-    }, [standardForm.universalKey])
+    }, [localStandardForm.universalKey])
 
     useEffect(() => {
         const prev = prevCommittedRef.current
@@ -194,24 +202,41 @@ export const WorkbenchAssetMetaProvider = ({
         cancelPendingFlush()
 
         const result = reconcileCommittedAssetMeta({
-            committedBase: standardForm,
+            committedBase: localStandardForm,
             lastReceived: lastReceivedRef.current,
             working: workingRef.current
         })
 
-        workingRef.current = result.working
-        lastReceivedRef.current = result.lastReceived
-        setWorking(result.working)
-        setLastReceived(result.lastReceived)
+        const workingChanged =
+            result.working === undefined
+                ? workingRef.current !== undefined
+                : workingRef.current === undefined ||
+                  !assetMetaWorkingEquals(workingRef.current, result.working)
+        const lastReceivedChanged =
+            result.lastReceived === undefined
+                ? lastReceivedRef.current !== undefined
+                : lastReceivedRef.current === undefined ||
+                  !assetMetaWorkingEquals(lastReceivedRef.current, result.lastReceived)
+
+        if (workingChanged) {
+            workingRef.current = result.working
+            setWorking(result.working)
+        }
+        if (lastReceivedChanged) {
+            lastReceivedRef.current = result.lastReceived
+            setLastReceived(result.lastReceived)
+        }
 
         if (result.superseded) {
             notifySuperseded()
         }
 
-        scheduleDebouncedFlush()
+        if (workingChanged || lastReceivedChanged) {
+            scheduleDebouncedFlush()
+        }
     }, [
         committed,
-        standardForm,
+        localStandardForm,
         cancelPendingFlush,
         scheduleDebouncedFlush,
         notifySuperseded

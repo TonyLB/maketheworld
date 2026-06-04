@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { Descendant, Editor, Range, Transforms } from "slate"
 import { deepEqual } from "../lib/objects";
 
@@ -8,9 +8,16 @@ type UseUpdatedSlateProps<T> = {
     value: Descendant[];
 }
 
-export const useUpdatedSlate = <T>({ initializeEditor, value, comparisonOutput }: UseUpdatedSlateProps<T>) => {
+export type UpdatedSlateHandle<T = unknown> = {
+    editor: Editor;
+    /** True while programmatic Transforms sync is in flight (ignore Slate onChange). */
+    isProgrammaticSyncRef: MutableRefObject<boolean>;
+}
+
+export const useUpdatedSlate = <T>({ initializeEditor, value, comparisonOutput }: UseUpdatedSlateProps<T>): UpdatedSlateHandle<T> => {
     const [editor] = useState(initializeEditor())
     const lastSyncedRef = useRef<T | undefined>(undefined)
+    const isProgrammaticSyncRef = useRef(false)
     useEffect(() => {
         Editor.normalize(editor, { force: true })
     }, [editor])
@@ -27,6 +34,7 @@ export const useUpdatedSlate = <T>({ initializeEditor, value, comparisonOutput }
             lastSyncedRef.current = incomingOutput
             const previousSelection = editor.selection ? { ...editor.selection } : null
 
+            isProgrammaticSyncRef.current = true
             // Replace root content via Transforms so Slate's pipeline (history, selection, etc.) stays intact
             for (let i = editor.children.length - 1; i >= 0; i--) {
                 Transforms.removeNodes(editor, { at: [i] })
@@ -34,9 +42,12 @@ export const useUpdatedSlate = <T>({ initializeEditor, value, comparisonOutput }
             Transforms.insertNodes(editor, incomingValue, { at: [0] })
             Editor.normalize(editor, { force: true })
             Transforms.select(editor, (previousSelection && Range.intersection(previousSelection, Editor.range(editor, []))) || { anchor: Editor.end(editor, []), focus: Editor.end(editor, []) })
+            queueMicrotask(() => {
+                isProgrammaticSyncRef.current = false
+            })
         }
     }, [editor, value])
-    return editor
+    return { editor, isProgrammaticSyncRef }
 }
 
 export default useUpdatedSlate

@@ -144,7 +144,7 @@ const useStandardRenderEditorHook = (
         return returnValue
     }, [value, standard])
     // useUpdatedSlate syncs external value via Transforms (removeNodes/insertNodes), not by mutating editor.children
-    const editor = useUpdatedSlate({
+    const { editor, isProgrammaticSyncRef } = useUpdatedSlate({
         initializeEditor: () => withConstrainedWhitespace(withInlines(withHistory(withReact(createEditor())))),
         value: defaultValue,
         comparisonOutput: descendantsToRender(standard)
@@ -172,11 +172,14 @@ const useStandardRenderEditorHook = (
     const handleSlateChange = useCallback(
         (nextValue: Descendant[]) => {
             setValue(nextValue)
+            if (isProgrammaticSyncRef.current) {
+                return
+            }
             if (!debounce) {
                 propagateChange(nextValue)
             }
         },
-        [debounce, propagateChange]
+        [debounce, propagateChange, isProgrammaticSyncRef]
     )
 
     return {

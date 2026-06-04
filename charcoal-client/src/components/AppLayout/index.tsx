@@ -296,7 +296,7 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
                 assetId={currentAssetId}
                 secondaryContext={secondaryContext}
             >
-                {currentAssetId !== null ? <WorkbenchAssetEditor /> : null}
+                {workbenchOpen && currentAssetId !== null ? <WorkbenchAssetEditor /> : null}
             </WorkbenchContainer>
             <ThinkingDashboardContainer
                 open={thinkingDashboardOpen}
