@@ -16,7 +16,7 @@ The consistency layer centralizes **global** operations on the **local** asset `
 | **Fixpoint normalize** | Loop until no-op; max 50 iterations (dev throw / prod warn). |
 | **Orphan preview** | [`previewOrphanClosure`](#previeworphanclosure) simulates fixpoint on clone; drives confirm dialog. |
 | **Single-site list remove** | Row remove = disassociate at **one site** only (incl. **`_topLevel`**); never `removeComponent` for rows. |
-| **Transitive GC** | Fixpoint normalize, **not** `removeComponent({ cascade: true })`. |
+| **Transitive GC** | Fixpoint normalize today; **planned:** explicit Purge **cascade** only after author confirms (normalize retired). |
 | **Area orphan closure** | Disassociating an Area such that Rooms become unreferenced and are GC'd by fixpoint is **acceptable** in v1; richer Area confirm UX is future work. |
 | **Materialize spec** | [`materializeComponent`](#materializecomponent): `{ universalKey, fromAsset? }`; derive tag from UUID prefix. |
 | **Materialize vs normalize timing** | Eager **`materializeComponentInAsset`** on Redux local draft; **`normalizeWorkbenchDraft`** only at flush. |
@@ -30,9 +30,10 @@ The consistency layer centralizes **global** operations on the **local** asset `
 | --- | --- | --- |
 | **List row remove** (incl. TopLevel / **`_topLevel`**) | **One site** only | Only if orphaned after flush + normalize |
 | **Site-specific delete** (e.g. [`LensHeader`](../../LensEdit/LensHeader.tsx) "Delete Lens reference") | **That site only** (Room **`_lens`**) | Flush + normalize when orphaned; **not** `removeComponent` |
-| **Global "purge component from asset"** | **Not in v1** | Do not add all-sites disassociate unless product requests it |
+| **Global "purge component from asset"** | **Planned (Phase 2)** | Explicit **Purge** via consistency-layer helper + **`removeComponent`**; see [updateStandardExtension planning](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.updateStandardExtension.planning.md#phase-2-migration-purge-in-normalize-out). **Not** list-row disassociate. |
 
-- **Confirm when:** [`previewOrphanClosure`](#previeworphanclosure) reports **`includesNonEmpty`** --- e.g. "Removing this reference will also remove the component and all its contents." Empty-only closure may proceed without dialog.
+- **Confirm when (today):** [`previewOrphanClosure`](#previeworphanclosure) reports **`includesNonEmpty`** --- e.g. "Removing this reference will also remove the component and all its contents." Empty-only closure may proceed without dialog.
+- **Confirm when (planned Purge):** [`previewPurgeClosure`](../../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.updateStandardExtension.planning.md#purge-api-sketch-consistency-layer) on **edit-layer** clone; when descendants exist, author chooses **rehome** (`cascade: false`, bodies stay at asset scope / display union) vs **cascade delete** (`cascade: true`). List-row remove uses **site-local** copy only (no body deletion preview).
 - **[`WMLComponentHeader`](../../WMLComponentHeader.tsx)** is **deprecated**, unused, and not mounted. Do not wire legacy purge UX.
 
 ## Exports
@@ -176,6 +177,12 @@ function applyWorkbenchFlush<T extends StandardComponent>(
 
 **[`useWorkbenchComponent`](../WorkbenchComponent/useWorkbenchComponent.tsx) `dispatchFlush`:** runs situation DEFAULT assurance when needed, then **`applyWorkbenchFlush`**. Dispatches **`updateStandard({ type: 'updateLocal', ... })`** so the reducer diffs against **`getLocalStandardForm`**, not merged **`getStandardForm`**.
 
+### Imported component flush (linkage + merged `working`)
+
+For **import + inline edit** (e.g. base `<Room from=(...) ref={0} />` plus edit-layer overlay on `shortName`), the parsed **local** form may have the Room body in `byUniversalId` but **`_topLevel` empty** and **`referencedBy(room)` empty**. [`isReferencedInAssetLayer`](./isReferencedInAssetLayer.ts) is then **false** even before flush assign; **`normalizeWorkbenchFlush` at flush removes** that body (D3 non-empty orphan). Assigning merged-session **`working`** via [`applyWorkingComponentToDraft`](../workbenchMutations.ts) does not restore linkage and writes a **plain** merged `shortName`, not the edit-layer additive overlay.
+
+**Norm until fixed:** session flush must not rely on wholesale merged assign + normalize alone for this pattern; preserve asset-layer reference (typically `_topLevel` import `ref={0}`) and persist edit-layer overlay shape. See [`applyWorkbenchFlush.test.ts`](./applyWorkbenchFlush.test.ts) (`imported Room shortName`) and task plan [`AGENT.updateStandardExtension.planning.md`](../../../../../taskPlanning/charcoal-client/src/components/Workbench/AGENT.updateStandardExtension.planning.md) Phase 1.
+
 ## `applyAssetMetaFlush`
 
 Apply asset-meta session **`working`** to a **local** `StandardForm` draft, then normalize. **Does not** materialize. Same fixpoint **`normalizeWorkbenchDraft`** as component flush; different assign target (asset root fields, not `byUniversalId[componentId]`).
@@ -283,7 +290,7 @@ Run from `charcoal-client/`: `npm run test:single -- src/components/Workbench/fo
 | [`isReferencedInAssetLayer.test.ts`](./isReferencedInAssetLayer.test.ts) | Predicate matrix: `_topLevel`-only, `ref={0}` stub, nested list ref, inherited-only vs merged (`inherited.merge(local)`), `sameKey` matching |
 | [`materializeComponent.test.ts`](./materializeComponent.test.ts) | Create, idempotent materialize, import (`fromAsset`) |
 | [`materializeComponentInAsset.test.ts`](./materializeComponentInAsset.test.ts) | `updateLocal` dispatch, local-draft early exit, import always dispatches, no normalize |
-| [`applyWorkbenchFlush.test.ts`](./applyWorkbenchFlush.test.ts) | Assign, `beforeAssign`, normalize after disassociate, no materialize |
+| [`applyWorkbenchFlush.test.ts`](./applyWorkbenchFlush.test.ts) | Assign, `beforeAssign`, normalize after disassociate, imported Room shortName (Phase 0/1 fixture), no materialize |
 | [`applyAssetMetaFlush.test.ts`](./applyAssetMetaFlush.test.ts) | Assign asset-meta fields, `beforeAssign`, normalize after topLevel disassociate, shortName, no materialize |
 | [`normalizeWorkbenchDraft.test.ts`](./normalizeWorkbenchDraft.test.ts) | Fixpoint orphan GC, `_topLevel` transitive removal, Area-participant transitive path, happy-path scrub no-op, `scrubReferences` defensive fixtures |
 | [`previewOrphanClosure.test.ts`](./previewOrphanClosure.test.ts) | Non-mutation, `includesNonEmpty`, `applyLocal`, parity with `normalizeWorkbenchDraft` |

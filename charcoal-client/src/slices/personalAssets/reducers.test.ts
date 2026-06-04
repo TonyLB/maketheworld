@@ -8,8 +8,15 @@ import { Schema, schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import { deIndentWML } from "@tonylb/mtw-wml/ts/schema/utils"
 import { publicSelectors } from "./selectors"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
-import { applyWorkbenchFlush } from "../../components/Workbench/foundations/consistency/applyWorkbenchFlush"
-import { setWorkingShortNameFromString } from "../../components/Workbench/foundations/workbenchMutations"
+import { isReferencedInAssetLayer } from "../../components/Workbench/foundations/consistency/isReferencedInAssetLayer"
+import {
+    findOrphanComponents,
+    normalizeWorkbenchDraft
+} from "../../components/Workbench/foundations/consistency/normalizeWorkbenchDraft"
+import {
+    applyWorkingComponentToDraft,
+    setWorkingShortNameFromString
+} from "../../components/Workbench/foundations/workbenchMutations"
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render"
 import {
@@ -669,13 +676,31 @@ describe('personalAsset slice reducers', () => {
     const logPhase0LocalDraft = (label: string, draft: StandardForm, roomId: ComponentUUID): void => {
         const tag = `[Phase 0 flush] ${label}`
         console.log(`\n${tag}`)
-        console.log(schemaToWML([draft.schema]))
+        try {
+            console.log(schemaToWML([draft.schema]))
+        } catch (error) {
+            console.log(`${tag} schemaToWML failed:`, (error as Error).message)
+        }
         const room = draft.byUniversalId[roomId]
         if (room instanceof StandardRoom) {
             console.log(`${tag} room shortName JSON:`, JSON.stringify(room.shortName?.toJSON()))
         } else {
             console.log(`${tag} room ${roomId}: (missing or not StandardRoom)`)
         }
+        const roomRef = room?.reference
+        if (roomRef) {
+            console.log(`${tag} isReferencedInAssetLayer:`, isReferencedInAssetLayer(draft, roomRef))
+        } else {
+            console.log(`${tag} isReferencedInAssetLayer: (no room reference)`)
+        }
+        console.log(
+            `${tag} _topLevel:`,
+            JSON.stringify(draft._topLevel?.payload.map((r) => r.toJSON()) ?? [])
+        )
+        console.log(
+            `${tag} findOrphanComponents:`,
+            findOrphanComponents(draft).map((c) => c.universalKey)
+        )
     }
 
     describe('inherited shortName and updateLocal flush (Phase 0)', () => {
@@ -722,9 +747,11 @@ describe('personalAsset slice reducers', () => {
             const postFlushState = runUpdateLocalWithLayers(baseWml, inheritedWml, editWml, {
                 type: 'updateLocal',
                 update: (draft) => {
-                    logPhase0LocalDraft('local draft BEFORE applyWorkbenchFlush', draft, ROOM_ID)
-                    applyWorkbenchFlush(draft, { componentId: ROOM_ID, working })
-                    logPhase0LocalDraft('local draft AFTER applyWorkbenchFlush', draft, ROOM_ID)
+                    logPhase0LocalDraft('local draft BEFORE assign', draft, ROOM_ID)
+                    applyWorkingComponentToDraft(draft, ROOM_ID, working)
+                    logPhase0LocalDraft('local draft AFTER assign only', draft, ROOM_ID)
+                    normalizeWorkbenchDraft(draft)
+                    logPhase0LocalDraft('local draft AFTER normalize', draft, ROOM_ID)
                     return draft
                 }
             })
