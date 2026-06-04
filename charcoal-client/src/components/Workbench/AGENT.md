@@ -70,11 +70,11 @@ UI primitives (StandardLiteralEditor, StandardRenderEditor)
 - **`flushNow`:** cancel pending debounce and flush immediately; runs on provider unmount and `componentId` change.
 - **Create/import:** **`await materializeComponentInAsset`** on the Redux local draft, then associate on parent **`working`** via **`updateComponent`**; debounced flush (**`applyWorkbenchFlush`**) persists list edits.
 - **DEFAULT situation:** when `working` references **SITUATION#DEFAULT**, flush may call [`assureDefaultSituationFromPrimitives`](../../slices/personalAssets/assureDefaultSituationFromPrimitives.ts) before assign.
-- **External `committed` changes** (import, stream, other UI): [`reconcileCommittedComponent`](./foundations/workbenchMutations.ts) three-way merge (`lastReceived.diff(working)` then `incoming.merge(editDiff)`); echo of last flush skipped; merge failure supersedes with snackbar (`onSuperseded` override); cancel pending debounce before reconcile, reschedule after. Pure helpers in [`workbenchMutations.ts`](./foundations/workbenchMutations.ts); domain list accessors next to owning editor (e.g. [`roomReferenceListAccessors.ts`](./RoomEdit/roomReferenceListAccessors.ts)).
+- **External `committed` changes** (import, stream, other UI): [`reconcileCommittedComponent`](./foundations/workbenchMutations.ts) three-way merge (`lastReceived.diff(working)` then `incoming.merge(editDiff)`); echo of last flush skipped; merge failure supersedes with snackbar (`onSuperseded` override); cancel pending debounce before reconcile, reschedule after. Pure helpers in [`workbenchMutations.ts`](./foundations/workbenchMutations.ts); domain list accessors next to owning editor (e.g. [`roomReferenceListAccessors.ts`](./RoomEdit/roomReferenceListAccessors.ts) for guidance/features reference lists and **`roomSituationsFacetAccessor`** for Room situation facets).
 
 ### Session-bound field components
 
-- **`WorkbenchShortNameField`**, **`DefaultRenderEditor`**, **`ReferenceListSessionEditor`:** context-only; `updateComponent` on **`working`**; no per-action `updateStandard` on the edit path.
+- **`WorkbenchShortNameField`**, **`DefaultRenderEditor`**, **`ReferenceListSessionEditor`**, **`RoomSituationsListEditor`:** context-only; `updateComponent` on **`working`**; no per-action `updateStandard` on the edit path. Room non-DEFAULT situations: create/reference via **`materializeComponentInAsset`** + **`onAssociateReference`**; remove via **`confirmOrphanClosureBeforeComponentDisassociate`** then disassociate on **`working.situations`** only (no eager `_topLevel` on create).
 - **`debounce={false}`** on `StandardLiteralEditor` / `StandardRenderEditor` under a provider so only the session debounces flush.
 - **`readonly`:** field prop **and** asset `readonly` from `useWorkbenchAsset` (non-Draft / published).
 
@@ -137,9 +137,7 @@ Use asset-level paths when there is no parent session or domain topology require
 | Area exit topology | `ExitEdgeListEditor` + `areaEditMutations` |
 | Room exits | `ExitEditor` |
 | Room lens delete | [`LensHeader`](./LensEdit/LensHeader.tsx): disassociate on Room **`working._lens`** + component-session flush + normalize; **`confirmOrphanClosureBeforeComponentDisassociate`** when non-empty closure |
-| Room non-DEFAULT situations list | create/associate in `RoomEditor` |
 | Layered Room situation facets | `SituationFacetRenderFieldsEditor` (asset-mode per change) |
-| Guidance mark facets (non-Lens screens) | `MarkFacetsEditor` |
 | Character, Situation, Map editors | Not on component session yet |
 | Asset-mode reference list | `ReferenceListEditor` (`listContext` + `updateStandard`) |
 
