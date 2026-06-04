@@ -1,7 +1,22 @@
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
+import { SituationProseFacetList } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 
 import type { ReferenceListSessionAccessor } from '../foundations/ReferenceList/ReferenceListSessionEditor'
+
+type SituationProseFacetListInstance = InstanceType<typeof SituationProseFacetList>
+
+export type SituationFacetSessionAccessor = {
+    getFacetList: (room: StandardRoom) => SituationProseFacetListInstance
+    setFacetList: (room: StandardRoom, list: SituationProseFacetListInstance) => void
+}
+
+export const roomSituationsFacetAccessor: SituationFacetSessionAccessor = {
+    getFacetList: (room) => room.situations,
+    setFacetList: (room, list) => {
+        room._payload._situations = list
+    }
+}
 
 type RoomReferenceListPayloadHost = {
     _guidance?: ReferenceList

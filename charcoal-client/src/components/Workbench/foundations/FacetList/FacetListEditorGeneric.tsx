@@ -31,6 +31,7 @@ export interface FacetListEditorGenericProps<TFacet> {
     isExcluded?: (id: ComponentUUID) => boolean
     association: (ref: StandardReference, draft: StandardForm) => void
     requestCreate: (onCreated: (ref: StandardReference) => void) => void
+    onAssociateReference?: (ref: StandardReference) => void
     affordance?: {
         addLabel?: string
         referenceExistingLabel?: string
@@ -52,6 +53,7 @@ export function FacetListEditorGeneric<TFacet>({
     isExcluded,
     association,
     requestCreate,
+    onAssociateReference,
     affordance
 }: FacetListEditorGenericProps<TFacet>): React.ReactElement {
     const disabled = !!readonly
@@ -76,6 +78,7 @@ export function FacetListEditorGeneric<TFacet>({
         isExcluded: safeIsExcluded,
         association,
         requestCreate,
+        onAssociateReference,
         labels: { add: addButtonLabel, referenceExisting: refExistingLabel },
         enableReferenceExisting,
         enableImport,

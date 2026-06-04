@@ -60,7 +60,7 @@ When a list row edits a **referenced component field** (e.g. Mark `shortName`) t
 | --- | --- | --- | --- |
 | Typical / session reference list | `ReferenceList` on parent | None (navigate only) | Parent **`updateComponent`** via [`ReferenceListControlled`](ReferenceListControlled.tsx) / [`ReferenceListSessionEditor`](ReferenceListSessionEditor.tsx) |
 | Inline reference list | `ReferenceList` on parent | Referenced component field (e.g. Mark shortName) | **Per-row** `WorkbenchComponentProvider` + context-only inline editor; `renderItemEditor(id)` wraps **`MarkInlineEditorWithSession`** |
-| Facet list with inline reference field | Facet list on parent (e.g. Lens marks) | Referenced Mark shortName + facet payload on same row | Mark shortName: **`MarkInlineEditorWithSession`**; facet payload: parent **`onFacetsChange`** / **`updateComponent`** when parent has a session (Lens detail); mark create still asset-level **`updateStandard`** |
+| Facet list with inline reference field | Facet list on parent (e.g. Lens marks) | Referenced Mark shortName + facet payload on same row | Mark shortName: **`MarkInlineEditorWithSession`**; facet payload and list add/remove: **`FacetListSessionEditor`** -> **`updateComponent`** on parent **`working`**; mark create/import/reference: **`materializeComponentInAsset`** + **`onAssociateReference`** (see [`LensMarkFacetsEditor`](../../LensEdit/LensMarkFacetsEditor/LensMarkFacetsEditor.tsx), [AGENT.facet-list.md](../FacetList/AGENT.facet-list.md)) |
 
 ### `renderItemEditor` contract
 
@@ -111,7 +111,14 @@ List accessor: [`topLevelAssetMetaListAccessor.ts`](topLevelAssetMetaListAccesso
 
 ### Room `_lens` (SingleReference)
 
-[`LensHeader`](../LensEdit/LensHeader.tsx) on the Room component session clears the **`_lens`** slot only (same disassociate + normalize norm as list rows). Orphan body removal runs at component-session flush via **`applyWorkbenchFlush`**; **`confirmOrphanClosureBeforeComponentDisassociate`** when **`previewOrphanClosure`** reports non-empty closure.
+[`LensHeader`](../LensEdit/LensHeader.tsx) on the Room component session uses the same session pattern as **`ReferenceListSessionEditor`**, with a single **`SingleReference`** slot on **`working._lens`** instead of a list accessor.
+
+| Operation | Persist path |
+| --- | --- |
+| Remove | **`_lens` site only** --- disassociate on **`working._lens`** (does **not** clear other parents); debounced flush + normalize may drop **`byUniversalId`** only if orphaned per asset-layer predicate. **`confirmOrphanClosureBeforeComponentDisassociate`** when non-empty closure. |
+| Reference existing | **`onAssociateReference`** on **`working._lens`** via **`updateComponent`** (selector ref; fast-path materialize when body already on local draft is unchanged) |
+| Create | **`requestCreate`** -> **`await materializeComponentInAsset({ universalKey })`**, then **`onAssociateReference`** / **`updateComponent`** |
+| Import | **`await materializeComponentInAsset({ universalKey, fromAsset })`**, then **`onAssociateReference`** --- **not** asset-mode `addImportToDraft` in one merged **`update`** |
 
 ---
 

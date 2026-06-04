@@ -11,7 +11,6 @@ import { StandardLens } from "@tonylb/mtw-wml/ts/standardize/components/worldSta
 import type { StandardComponent } from "@tonylb/mtw-wml/ts/standardize/components/baseClasses"
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render"
 import { defaultedEquals } from "@tonylb/mtw-wml/ts/standardize/components/utils"
-import { LensMarkFacetList } from "@tonylb/mtw-wml/ts/standardize/keys/facets/lensMark"
 import { StandardRenderEditor } from "../foundations/StandardRender"
 import { LensMarkFacetsEditor } from "./LensMarkFacetsEditor"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
@@ -26,11 +25,7 @@ const lensGuard = (
     component: StandardComponent | undefined
 ): component is StandardLens => component instanceof StandardLens
 
-type LensDetailEditBodyProps = {
-    lensId: ComponentUUID
-}
-
-const LensDetailEditBody: FunctionComponent<LensDetailEditBodyProps> = ({ lensId }) => {
+const LensDetailEditBody: FunctionComponent = () => {
     const { working, updateComponent, readonly: sessionReadonly } =
         useWorkbenchComponent<StandardLens>()
 
@@ -38,15 +33,6 @@ const LensDetailEditBody: FunctionComponent<LensDetailEditBodyProps> = ({ lensId
         const shortName = literalPlainString(working?.shortName)
         return shortName.trim() || "Lens (no short name)"
     }, [working?.shortName])
-
-    const handleLensMarksChange = useCallback(
-        (newMarks: LensMarkFacetList) => {
-            updateComponent((draft) => {
-                draft._payload._marks = newMarks
-            })
-        },
-        [updateComponent]
-    )
 
     const updateLensDescription = useCallback(
         (newDescription: StandardRender) => {
@@ -72,12 +58,7 @@ const LensDetailEditBody: FunctionComponent<LensDetailEditBodyProps> = ({ lensId
 
             <WorkbenchShortNameField placeholder="Enter lens short name..." />
 
-            <LensMarkFacetsEditor
-                lensId={lensId}
-                marks={working.marks}
-                onChange={handleLensMarksChange}
-                readonly={sessionReadonly}
-            />
+            <LensMarkFacetsEditor />
 
             <StandardRenderEditor
                 title="Description"
@@ -199,7 +180,7 @@ export const LensDetail: FunctionComponent = () => {
                 </Box>
             )}
             <WorkbenchComponentProvider componentId={lensId} guard={lensGuard}>
-                <LensDetailEditBody lensId={lensId} />
+                <LensDetailEditBody />
             </WorkbenchComponentProvider>
         </Box>
     )

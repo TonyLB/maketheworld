@@ -5,7 +5,7 @@
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, screen } from '@testing-library/react'
-import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import type { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
@@ -13,6 +13,9 @@ import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { LensHeader } from './LensHeader'
 import {
     applyLastFlushToCommitted,
+    materializeComponentInAssetMock,
+    mockMaterializeComponentInAsset,
+    mockMaterializeComponentInAssetImport,
     renderWorkbenchComponentSession,
     resetWorkbenchAssetMock,
     updateStandardMock
@@ -57,7 +60,32 @@ vi.mock('../foundations/consistency/confirmOrphanClosureBeforeLocalEdit', () => 
 }))
 
 vi.mock('../ImportComponentDialog', () => ({
-    default: () => null
+    default: ({
+        open,
+        onImportSelect
+    }: {
+        open: boolean
+        onImportSelect: (
+            fromAsset: AssetUUID,
+            uuid: ComponentUUID,
+            tag: 'Lens'
+        ) => void
+    }) =>
+        open ? (
+            <button
+                type="button"
+                data-testid="mock-import-select"
+                onClick={() =>
+                    onImportSelect(
+                        'ASSET#source' as AssetUUID,
+                        'LENS#imported' as ComponentUUID,
+                        'Lens'
+                    )
+                }
+            >
+                Mock Import Select
+            </button>
+        ) : null
 }))
 
 const roomWithLensWml = `
@@ -139,16 +167,91 @@ describe('LensHeader', () => {
         expect(screen.getByText('Import Lens')).toBeTruthy()
     })
 
-    it('calls updateStandard when Create New Lens is clicked', () => {
+    it('create new awaits materialize then associates on working without immediate flush', async () => {
+        mockMaterializeComponentInAsset()
+
+        const { getSession } = renderLensHeader(roomWithoutLensWml)
+        fireEvent.click(screen.getByRole('button', { name: /Dynamic Rendering/i }))
+
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Create New Lens/i }))
+        })
+        await flushAsync()
+
+        expect(materializeComponentInAssetMock).toHaveBeenCalledTimes(1)
+
+        const spec = materializeComponentInAssetMock.mock.calls[0]![0]!
+        expect(spec.universalKey).toMatch(/^LENS#/)
+        expect(spec.fromAsset).toBeUndefined()
+
+        expect(getSession().working?.lens.payload.length).toBe(1)
+        expect(getSession().working?.lens.payload[0]!.universalKey).toBe(spec.universalKey)
+
+        expect(updateStandardMock).not.toHaveBeenCalled()
+    })
+
+    it('create new debounced flush uses updateLocal', async () => {
+        mockMaterializeComponentInAsset()
+
         renderLensHeader(roomWithoutLensWml)
         fireEvent.click(screen.getByRole('button', { name: /Dynamic Rendering/i }))
-        fireEvent.click(screen.getByRole('button', { name: /Create New Lens/i }))
-        expect(updateStandardMock).toHaveBeenCalledWith(
-            expect.objectContaining({
-                type: 'update',
-                update: expect.any(Function)
-            })
-        )
+
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Create New Lens/i }))
+        })
+        await flushAsync()
+
+        expect(materializeComponentInAssetMock).toHaveBeenCalledTimes(1)
+
+        const materializedKey = materializeComponentInAssetMock.mock.calls[0]![0]!.universalKey
+
+        act(() => {
+            vi.advanceTimersByTime(FLUSH_DELAY_MS)
+        })
+
+        expect(updateStandardMock).toHaveBeenCalledTimes(1)
+        expect(updateStandardMock.mock.calls[0]![0]).toMatchObject({ type: 'updateLocal' })
+
+        const flushUpdate = updateStandardMock.mock.calls[0]![0]!.update
+        const { mockWorkbenchReturn } = await import('../foundations/WorkbenchComponent/testing/mock')
+        const draft = mockWorkbenchReturn.localStandardForm._clone()
+        expect(draft.byUniversalId[materializedKey]).toBeDefined()
+
+        flushUpdate(draft)
+
+        expect(draft.byUniversalId[materializedKey]).toBeDefined()
+        const room = draft.byUniversalId[ROOM_ID]
+        expect(room instanceof StandardRoom).toBe(true)
+        if (room instanceof StandardRoom) {
+            expect(room.lens.payload.length).toBe(1)
+        }
+    })
+
+    it('import awaits materialize then associates on working', async () => {
+        mockMaterializeComponentInAssetImport()
+
+        const { getSession } = renderLensHeader(roomWithoutLensWml)
+        fireEvent.click(screen.getByRole('button', { name: /Dynamic Rendering/i }))
+
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Import Lens/i }))
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('mock-import-select'))
+        })
+        await flushAsync()
+
+        expect(materializeComponentInAssetMock).toHaveBeenCalledTimes(1)
+
+        expect(materializeComponentInAssetMock.mock.calls[0]![0]).toEqual({
+            universalKey: 'LENS#imported',
+            fromAsset: 'ASSET#source'
+        })
+
+        expect(getSession().working?.lens.payload.length).toBe(1)
+        expect(getSession().working?.lens.payload[0]!.universalKey).toBe('LENS#imported')
+
+        expect(updateStandardMock).not.toHaveBeenCalled()
     })
 
     it('shows lens summary and Edit when room has a lens', () => {
