@@ -1,6 +1,8 @@
 # WML subscribe merge investigation (charcoal-client)
 
-**Status:** In progress. **Next step:** Phase 2 --- enable `wml-stream-sync`, reproduce reload bug, record findings in **Discoveries**.
+**Status:** In progress. **Next step:** Phase 2.5 --- instrument `performCleanup` and confirm why it runs during subscribe reload (ledger consolidation before sidecar merge).
+
+**Deferred (separate task):** [`AGENT.extendedHeaderRequestIdFix.planning.md`](AGENT.extendedHeaderRequestIdFix.planning.md) --- wire `extendedHeader.RequestIds` vs client `header.RequestIds` (not this bug's root cause).
 
 This plan is task-scoped. Archive or delete it after the bug is fixed and instrumentation is removed; move any lasting norms into slice `AGENT.md` files next to code.
 
@@ -87,8 +89,9 @@ npm run test:single -- src/slices/wmlDataSource/index.test.ts
 | --- | --- | --- |
 | 0 | Investigation / hypothesis (no code) | Done |
 | 1 | Add gated `wml-stream-sync` instrumentation | Done |
-| 2 | Reproduce with logs; record findings in **Discoveries** | Not started |
-| 3 | Fix root cause (code or contract) | Not started |
+| 2 | Reproduce with logs; record findings in **Discoveries** | Done |
+| 2.5 | Instrument `performCleanup`; confirm cleanup role on subscribe reload | Not started |
+| 3 | Fix root cause (ingest ordering + snapshot-path cleanup policy) | Not started |
 | 4 | Regression test(s) | Not started |
 | 5 | Remove instrumentation; update durable docs if needed | Not started |
 
@@ -127,6 +130,162 @@ After reload + subsequent edits, `wmlDataSource.subscribedStreams[assetId]` show
 **Working hypothesis:** the **placement** Content Update (topology / Area ref) never entered the merge chain that produced `materializedView`, while **room-only** deltas (shortName, default render) did apply on top of the sidecar baseline. UI "edit diff only" may mean missing topology / graph placement, not necessarily empty `materializedView`.
 
 **"Wait for next snapshot" fix** is consistent with a **fresh server-side sidecar** bypassing the broken client merge chain, not with 30s cleanup alone fixing merge logic.
+
+### 2026-06-05 --- Manual smoke test (`wml-stream-sync` on)
+
+**Sessions:** one **happy-path** reload (`ASSET#36fd91da-...`) and one **failure** reload (`ASSET#280e2f0c-...`). Instrumentation enabled via `sessionStorage` before reload.
+
+#### Happy path (no UI bug)
+
+After reload, subscribe Snapshot sidecar fetch (~136ms) completed **before** replay Content Updates were processed. Snapshot `processEnvelope`: `eventsAfterSnapshotCount: 0`. Sidecar `materializedView` already included full graph (e.g. `ROOM#BRIDGE` in `positionGraphNodes`); replay CUs were redundant field merges. **Not a useful failure capture** --- backend snapshot had already incorporated prior edits.
+
+#### Failure repro (`ASSET#280e2f0c-1840-451f-a2ce-8742e86350c1`)
+
+**Wall-clock:** browser reload via `Navigated to http://localhost:3000/` (2026-06-05 session). **UI:** thin asset (one room + edited situation fields), not full world.
+
+**Network subscribe bundle (wire order):**
+
+| Event | WS `timestamp` | RequestId(s) | Role |
+| --- | --- | --- | --- |
+| Snapshot | `1780693218706` | --- | `replayAt: 1780693219008`; sidecar `.../1780693219008.wml` |
+| Content Update | `1780693238927` | `c8b77015-...` | **Placement** (Area wraps `ROOM#STRAIGHTAWAY`) |
+| Content Update | `1780693245326` | `c58bd1f9-...` | ShortName |
+| Content Update | `1780693328753` | `09cb6763-...` | DisplayName |
+| *(+ later CUs in Redux)* | `1780693334305`, `1780693341574` | `052c5567-...`, `321dca67-...` | Summary, Description |
+
+**Client processing order (console; not the same as event timestamps):**
+
+1. **Before** Snapshot `lifelineReceived`: Description CU (`3341574`) `event-in-order` on empty `recentEvents`; Summary CU (`3334305`) `event-reagg`.
+2. Snapshot `lifelineReceived` + `deserializeStart` (`3218706`).
+3. Placement CU (`3238927`) `processEnvelope` **`event-reagg`** --- **before** Snapshot `deserializeDone`.
+4. ShortName CU (`3245326`) `event-reagg`.
+5. Snapshot `deserializeDone` -> `processEnvelope` **`path: snapshot`**, **`eventsAfterSnapshotCount: 3`**, `latestCachedTimestamp: 1780693341574`.
+6. DisplayName CU (`3328753`) `event-reagg` after snapshot.
+
+**Final Redux (`subscribedStreams`):**
+
+- `materializedView`: thin --- `AREA#WORLD` with only `ROOM#STRAIGHTAWAY` in graph; situation fields merged on that room.
+- `recentEvents`: **no** subscribe Snapshot row with real `mtw.wml` header; **synthetic** Snapshot at `1780693311574` (placeholder header); surviving field-edit CUs only --- placement (`c8b77015`) and shortName (`c58bd1f9`) **absent** from event list.
+- `confirmedRequestIds: []` (RequestIds on wire live under `extendedHeader`; instrumentation/tracking read top-level `header.RequestIds` --- separate plumbing gap).
+
+**Hypothesis verdicts (this repro):**
+
+| ID | Verdict | Notes |
+| --- | --- | --- |
+| H1 | **Rejected** | Placement and other CUs reached `deserializeDone`, `published`, and `processEnvelope`. |
+| H2 | **Confirmed (variant)** | Snapshot ran with **`eventsAfterSnapshotCount: 3`**; replay CUs were already in `recentEvents` and several had been merged **before** sidecar snapshot `processEnvelope`. |
+| H3 | **Rejected** (field-edit path) | Situation displayName/summary/description merged correctly onto the thin room; not a `StandardForm.merge` failure for those deltas. |
+| H4 | **Confirmed in play** | Only snapshot in storage is **synthetic** cleanup; subscribe Snapshot row gone. Cleanup `thirtySecondsAgo` derived from **newest CU**, not subscribe snapshot time. |
+| H5 | **Secondary / open** | Sidecar content at `1780693219008.wml` not fetched in-session; failure explained without proving thin sidecar bytes. Ordering + cleanup suffice for this repro. |
+
+**Root cause (failure repro):** not missing WS delivery and not deserialize drops. **`streamEventPubSub` fire-and-forget async** lets fast inline CUs publish before slow sidecar Snapshot; **`performCleanup` on the snapshot path** can consolidate replay CUs into a synthetic baseline **before** sidecar merge, so snapshot `applyEvents(sidecar, updatesAfter)` sees a **truncated** replay set. Reducer out-of-order logic exists but **preconditions were violated** (see **Failure model** below).
+
+---
+
+## Failure model (abstract)
+
+Use this as the mental model for Phase 3; details stay in **Discoveries** above.
+
+**Invariant the client needs on subscribe reload:**
+
+> **Authoritative snapshot first** --- the sidecar Snapshot must become the merge baseline before any replay Content Update for that stream is applied (or must be the sole baseline used when it lands).
+
+**Three layers (where things break):**
+
+```text
+  WebSocket          streamEventPubSub          processEnvelope (reducer)
+  (delivery)         (async deserialize)        (merge + cleanup)
+       |                      |                          |
+       |    fire-and-forget     |   assumes snapshot in    |
+       |    sidecar slow       |   recentEvents OR empty  |
+       +----------------------+--------------------------+
+```
+
+1. **Ingest (`streamEventPubSub`):** Snapshot and CUs deserialize in parallel. Sidecar fetch is slow; inline CUs are fast -> **CUs can hit the reducer first** even when Network lists Snapshot first.
+2. **Reducer event path:** Out-of-order **re-aggregation** works only if a **trustworthy snapshot** is already in `recentEvents`. Otherwise baseline is `createEmpty` or a **synthetic** cleanup snapshot built from wrong prior merges.
+3. **Reducer snapshot path:** Intended recovery: `materializedView = applyEvents(sidecar, updates with timestamp > snapshot)`. But **`performCleanup` runs first**, using `max(recentEvents, incoming)` as "now". When replay CUs arrived early and timestamps span >30s, cleanup **folds early replay CUs into synthetic** and removes them from the list sidecar re-apply uses.
+
+**Why "diff only" UI:**
+
+- User sees **edit deltas merged onto a thin baseline** (one room, partial graph), not **sidecar full asset + replay**.
+- Waiting for **next snapshot** fixes it because a **fresh sidecar** bypasses the broken chain (same as happy-path session).
+
+**Fix directions (Phase 3):**
+
+| Priority | Target | Idea |
+| --- | --- | --- |
+| 1 | [`streamEventPubSub/index.ts`](../../../../charcoal-client/src/slices/dataSource/streamEventPubSub/index.ts) | Per-`streamKey` queue: hold replay CUs until subscribe Snapshot for that stream has **published** (or serialize deserialize). |
+| 2 | [`dataSource/reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts) | On authoritative Snapshot ingest, skip or defer `performCleanup` that would consolidate not-yet-rebased replay CUs. |
+| 3 | (Optional) | Read `replayAt` for merge boundary (H5 secondary). |
+
+**Out-of-order handling is not worthless** --- it was never designed for "replay deltas applied minutes (timestamp-space) ahead of a subscribe snapshot that is still fetching." That is the gap.
+
+---
+
+## Phase 2.5 --- Confirm `performCleanup` role
+
+Phase 2 proved **ingest ordering** and inferred **cleanup consolidation** from ledger diffs + synthetic snapshot rows. Phase 2.5 turns H4 from inference into **observed** behavior: log every `performCleanup` invocation during `wml-stream-sync` and answer **why it runs when we expect subscribe recovery to need a full replay ledger**.
+
+### Why we think cleanup is suspicious on subscribe reload
+
+`performCleanup` ([`reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts)) implements a **30-second rolling window** for `recentEvents` storage hygiene. It is invoked at the **start of every** `processEnvelope` (both Snapshot and Content Update paths), before merge logic runs.
+
+On subscribe reload we **expect**:
+
+1. Authoritative **sidecar Snapshot** becomes baseline.
+2. **All replay Content Updates** with `timestamp > snapshot.createdAt` remain available for snapshot-path `applyEvents(sidecar, updatesAfter)`.
+
+We **do not expect** (for this scenario):
+
+- Cleanup to use **newest replay CU timestamp** as "now" while processing an **older** subscribe Snapshot envelope (`incomingTimestamp` << `max(recentEvents)`).
+- Early replay rows (placement, shortName) to be **folded into synthetic** and removed as separate envelopes **before** sidecar merge completes.
+
+Failure repro math (see **Discoveries** 2026-06-05): when incoming CU `1780693341574` runs cleanup, `thirtySecondsAgo = 1780693311574`. Placement `1780693238927` and shortName `1780693245326` are `<= thirtySecondsAgo` and fall into `oldEvents` per code. That is **by design** of the 30s window, not an accident --- the open question is whether cleanup should run at all in this subscribe window.
+
+### Phase 2.5 questions (answer from logs + one optional repro)
+
+| # | Question |
+| --- | --- |
+| Q1 | **Which caller** triggered cleanup? (`caller: 'snapshot' \| 'event'`, plus `headerType` / `path` from the surrounding `processEnvelope`) |
+| Q2 | What were **`incomingTimestamp`**, **`latestTimestamp`**, **`thirtySecondsAgo`**? Does `latestTimestamp` come from a CU while `incomingTimestamp` is the subscribe Snapshot? |
+| Q3 | **`oldEventsCount`** vs **`stillRecentCount`** --- which replay RequestIds / timestamps landed in `oldEvents`? |
+| Q4 | Did cleanup **`consolidate`** (synthetic created) or **no-op** (`oldEvents.length === 0`)? |
+| Q5 | If consolidated: **`syntheticTimestamp`**, **`baselineSource`** (`empty` \| `snapshot-in-oldEvents` \| `synthetic-prior`), and summary of consolidated event types/timestamps |
+| Q6 | On subscribe Snapshot `processEnvelope`: what was **`eventsAfterSnapshotCount`** after cleanup had already run on the same `recentEvents`? |
+
+### Planned instrumentation (not yet in code)
+
+Gate on `wml-stream-sync` + `dataSourceKey === 'mtw.wml'` (same as `processEnvelope` trace). Log from inside or immediately around `performCleanup` return:
+
+| Field | Purpose |
+| --- | --- |
+| `caller` | `'snapshot'` or `'event'` (passed from `processEnvelope` branch) |
+| `streamKey` | Asset stream |
+| `incomingTimestamp` | Envelope being processed |
+| `latestTimestamp` | `max(recentEvents, incoming)` per cleanup |
+| `thirtySecondsAgo` | Window boundary |
+| `oldEventsSummary` | `{ type, timestamp }[]` before consolidation |
+| `stillRecentSummary` | `{ type, timestamp }[]` kept as-is |
+| `action` | `'no-op'` \| `'consolidated'` |
+| `syntheticTimestamp` | When consolidated |
+| `baselineSource` | How baseline snapshot content was chosen |
+
+Prefix: `[wml-stream-sync] performCleanup`. Implementation home: [`wmlStreamSyncInstrumentation.ts`](../../../../charcoal-client/src/testing/wmlStreamSyncInstrumentation.ts) + call from [`reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts).
+
+### Instrumentation signal triage (Phase 2 learnings)
+
+| Site | Keep for Phase 2.5? | Notes |
+| --- | --- | --- |
+| `ingest` | **Yes** | Processing order vs event timestamps |
+| `processEnvelope` | **Yes** | `path`, `eventsAfterSnapshotCount` |
+| `performCleanup` | **Add** | Primary Phase 2.5 deliverable |
+| `afterEnvelope` | **Low** | personalAssets layer; not where thin `materializedView` failed |
+
+### Exit criteria for Phase 2.5
+
+- At least one failure or success reload log shows **`performCleanup`** lines bracketing subscribe Snapshot + replay CUs.
+- **Discoveries** entry updates H4 to **Confirmed** or revises mechanism (e.g. cleanup no-op on snapshot path but event path already consolidated).
+- Phase 3 fix scope is explicit: ingest queue only, cleanup policy only, or **both** (current **Failure model** assumes both).
 
 ---
 
@@ -168,13 +327,13 @@ Follow [`charcoal-client/AGENT.testing.instrumentation.md`](../../../../charcoal
 
 ## Hypotheses to confirm or reject
 
-| ID | Hypothesis | How to test |
+| ID | Hypothesis | Status (2026-06-05 smoke test) |
 | --- | --- | --- |
-| H1 | Placement CU never reaches `processEnvelope` (deserialize drop / race) | Ingest log: WS CU `fa55489f` never reaches `published` |
-| H2 | Snapshot `processEnvelope` runs with empty `recentEvents`; placement CU never re-applied afterward | Reducer log: snapshot with `eventsAfterSnapshotCount: 0`, then no subsequent CU with same RequestId |
-| H3 | Placement CU applies but `StandardForm.merge` does not update `positionGraph.nodes` | Reducer log: CU published + applied, `positionGraphNodes` unchanged |
-| H4 | `performCleanup` consolidation drops placement CU from synthetic snapshot | Compare synthetic snapshot content vs events in window before cleanup |
-| H5 | Stale sidecar at subscribe; replay CU excluded by timestamp semantics | Compare sidecar WML fetch vs CU WML; check backend `replayAt` vs CU timestamp |
+| H1 | Placement CU never reaches `processEnvelope` (deserialize drop / race) | **Rejected** --- CUs reach `published` and `processEnvelope`; failure is **ordering**, not drops. |
+| H2 | Snapshot `processEnvelope` runs with replay CUs already merged on wrong baseline; sidecar re-apply incomplete | **Confirmed** --- `eventsAfterSnapshotCount: 3`; placement `processEnvelope` before Snapshot `deserializeDone`. |
+| H3 | Placement CU applies but `StandardForm.merge` does not update `positionGraph.nodes` | **Rejected** for field-edit repro; **open** for Phase 0 BRIDGE placement-only case (different session). |
+| H4 | `performCleanup` consolidation drops replay CUs before sidecar snapshot merge | **Strong inference** --- synthetic snapshot in `recentEvents`; placement/shortName gone from ledger vs Network. **Phase 2.5** adds direct cleanup logs. |
+| H5 | Stale sidecar at subscribe; replay CU excluded by timestamp semantics | **Open / secondary** --- failure repro explained by H2+H4 without sidecar byte inspection; `replayAt` still unused on client. |
 
 ---
 
@@ -188,13 +347,18 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets as yo
   - [X] Implement `processEnvelope` trace in `reducers.ts` (gate on `mtw.wml` via passed config or header check in wrapper --- prefer minimal coupling)
   - [X] Implement `afterEnvelope` trace in `personalAssets` consumer
   - [X] Update **Instrumentation registry** table with file paths and dates
-- [ ] **Phase 2 --- Reproduce and record**
-  - [ ] Enable `sessionStorage` activation **before** edit/save/reload (see **Manual smoke testing constraints**)
-  - [ ] Create fresh edit (import + shortName + render + save); reload **immediately** while case is live
-  - [ ] Capture in one pass: Network Snapshot + CU timestamps/RequestIds; console ingest + reducer sequence; Redux `subscribedStreams` snapshot
-  - [ ] Append findings to **Discoveries** (include wall-clock time; note if snapshot had since regenerated); mark H1--H5 confirmed/rejected
+- [X] **Phase 2 --- Reproduce and record**
+  - [X] Enable `sessionStorage` activation **before** edit/save/reload (see **Manual smoke testing constraints**)
+  - [X] Create fresh edit (import + shortName + render + save); reload **immediately** while case is live
+  - [X] Capture in one pass: Network Snapshot + CU timestamps/RequestIds; console ingest + reducer sequence; Redux `subscribedStreams` snapshot
+  - [X] Append findings to **Discoveries** (include wall-clock time; note if snapshot had since regenerated); mark H1--H5 confirmed/rejected
+- [ ] **Phase 2.5 --- Confirm `performCleanup` role**
+  - [ ] Add gated `[wml-stream-sync] performCleanup` trace in [`reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts) (see **Phase 2.5** below)
+  - [ ] Update **Instrumentation registry** with cleanup log site and date
+  - [ ] Optional: one confirmatory reload; append **Discoveries** with cleanup lines tied to subscribe Snapshot / replay CUs
+  - [ ] Record answers to **Phase 2.5 questions** (why cleanup runs; which events consolidated; caller path snapshot vs event)
 - [ ] **Phase 3 --- Fix**
-  - [ ] Implement fix (candidate areas: async ordering in `streamEventPubSub`, snapshot `replayAt` on client, merge semantics for Area placement deltas, cleanup consolidation)
+  - [ ] Implement fix (see **Failure model**: per-stream ingest queue in `streamEventPubSub`; snapshot-path cleanup exemption in `reducers.ts`)
   - [ ] Manual verify: reload -> full merged UI without waiting for next snapshot
 - [ ] **Phase 4 --- Tests**
   - [ ] Add reducer or integration test: CU before sidecar snapshot completes; assert final `materializedView` includes placement (including `positionGraph.nodes` if applicable)
@@ -215,6 +379,12 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets as yo
 3. Confirm log sequence includes subscribe Snapshot and replay Content Update; record timestamps/RequestIds for **this** session only.
 4. Inspect Redux immediately: `wmlDataSource.publicData.subscribedStreams[<assetId>].materializedView` and `AREA#WORLD.positionGraph.nodes`.
 
+**Phase 2.5 (cleanup confirmation):**
+
+1. After cleanup instrumentation lands, reload with `wml-stream-sync` enabled.
+2. Capture `[wml-stream-sync] performCleanup` lines for the subscribe window.
+3. Answer **Phase 2.5 questions** Q1--Q6 in **Discoveries** (one dated entry).
+
 **Automated (after fix):**
 
 ```bash
@@ -233,5 +403,6 @@ npm run test:single -- src/slices/wmlDataSource/index.test.ts
 
 ## Coordination notes
 
-- Backend subscribe delivers Snapshot with **`createdAt`** envelope time and **`replayAt`** in payload; replay queries Dynamo strictly after **`replayAt`**. Client merge boundary today uses **`createdAt` only** --- document or fix if investigation confirms H5.
+- Backend subscribe delivers Snapshot with **`createdAt`** envelope time and **`replayAt`** in payload; replay queries Dynamo strictly after **`replayAt`**. Client merge boundary today uses **`createdAt` only** --- optional follow-up (H5 secondary).
+- **`extendedHeader.RequestIds`:** separate deferred task --- [`AGENT.extendedHeaderRequestIdFix.planning.md`](AGENT.extendedHeaderRequestIdFix.planning.md). Not root cause of thin `materializedView` on reload; track via GitHub Issue after WML timing fix ships.
 - Do not duplicate full `dataSource` algorithm docs here; link [`AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) **Event Processing** and **Sidecar Snapshot Handling** sections.
