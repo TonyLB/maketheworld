@@ -1,5 +1,6 @@
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
+import { getConfirmedRequestIds } from './index'
 
 /**
  * Get the materialized WML view (base) for a given asset from the WML dataSource slice.
@@ -26,4 +27,17 @@ export function getWMLBaseStandardForm(state: any, assetId: string): StandardFor
   } catch {
     return undefined
   }
+}
+
+/**
+ * Confirmed applyEdit RequestIds for an asset (stream key), with 5m selector TTL.
+ * Cross-slice consumers (e.g. personalAssets getEffectivePendingEdits) should use this,
+ * not raw confirmedRequestIds storage.
+ */
+export function getWMLConfirmedRequestIds(
+  state: any,
+  assetId: string,
+  now?: number
+): string[] {
+  return getConfirmedRequestIds(state, assetId, now)
 }

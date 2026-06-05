@@ -16,18 +16,24 @@ import {
     type WorkbenchComponentSession
 } from '../useWorkbenchComponent'
 import {
+    isLayeredWorkbenchAssetMockActive,
     seedWorkbenchAsset,
+    syncLayeredMockFromState,
     updateStandardMock
 } from './mock'
 
 export {
     resetWorkbenchAssetMock,
     seedWorkbenchAsset,
+    seedLayeredWorkbenchAsset,
+    getLayeredMergedRoomShortName,
     updateStandardMock,
     materializeComponentInAssetMock,
     mockMaterializeComponentInAsset,
     mockMaterializeComponentInAssetImport,
-    applyLastFlushToCommitted
+    applyLastFlushToCommitted,
+    type LayeredWorkbenchAssetFixture,
+    isLayeredWorkbenchAssetMockActive
 } from './mock'
 
 export type WorkbenchComponentHarnessOptions<T extends StandardComponent> = {
@@ -37,6 +43,8 @@ export type WorkbenchComponentHarnessOptions<T extends StandardComponent> = {
     readonly?: boolean
     flushDelayMs?: number
     onSuperseded?: () => void
+    /** When true, skip seedWorkbenchAsset; layered mock must already be seeded. */
+    skipSeedWorkbenchAsset?: boolean
 }
 
 export type RenderWorkbenchComponentSessionResult<T extends StandardComponent> = RenderResult & {
@@ -91,7 +99,9 @@ export function renderWorkbenchComponentSession<T extends StandardComponent>({
     options: WorkbenchComponentHarnessOptions<T>
     children?: React.ReactNode
 }): RenderWorkbenchComponentSessionResult<T> {
-    seedWorkbenchAsset(options.wml, options.readonly ?? false)
+    if (!options.skipSeedWorkbenchAsset) {
+        seedWorkbenchAsset(options.wml, options.readonly ?? false)
+    }
 
     const sessionRef: React.MutableRefObject<WorkbenchComponentSession<T> | null> = {
         current: null
@@ -135,7 +145,11 @@ export function renderWorkbenchComponentSession<T extends StandardComponent>({
     }
 
     const setCommittedWml = (wml: string | StandardForm): void => {
-        seedWorkbenchAsset(wml, options.readonly ?? false)
+        if (isLayeredWorkbenchAssetMockActive()) {
+            syncLayeredMockFromState()
+        } else {
+            seedWorkbenchAsset(wml, options.readonly ?? false)
+        }
         rerenderHarness(currentComponentId)
     }
 

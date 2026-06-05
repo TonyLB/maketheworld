@@ -107,7 +107,7 @@ type LibraryEntry = {
 - **Unsubscribe**: `UnsubscribeAPIMessage` - Remove event stream subscription
 
 #### Outgoing WebSocket Messages
-- **Subscription Events**: `SubscriptionClientMessage` - Transformed backend events. For mtw.wml (Content Update, Merge Conflict), top-level `RequestIds` in the client message is sourced from the event's header (after format merge), not from the update payload.
+- **Subscription Events**: `SubscriptionClientMessage` - Transformed backend events. Extended header correlation ids are merged to the WebSocket top level, not copied from the update payload. For **mtw.wml**, top-level `RequestIds` is sourced from the event header; non-empty values originate only from WML `processApplyEdit` when Apply Edit included `RequestId`. For **mtw.assets.*** and **mtw.ephemera.thinking.scheduling**, top-level `RequestId` is wire-supported per `mtw-interfaces/ts/subscriptions.ts` but most producers omit it today.
 
 #### EventBridge Events
 - **Session Disconnect**: `mtw.connections` source - Triggers subscription cleanup

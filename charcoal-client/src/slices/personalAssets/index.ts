@@ -16,8 +16,10 @@ import {
     setLoadedImage as setLoadedImageReducer,
     updateStandard as updateStandardReducer,
     clearPendingEditsByRequestIds as clearPendingEditsByRequestIdsReducer,
+    trimStalePendingEdits as trimStalePendingEditsReducer,
     clearLastUpdateDiff as clearLastUpdateDiffReducer,
     saveEdit as saveEditReducer,
+    revertSaveEdit as revertSaveEditReducer,
     UpdateStandardPayload
 } from './reducers'
 import { PromiseCache } from '../promiseCache'
@@ -25,7 +27,7 @@ import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import { socketDispatchPromise } from '../lifeLine'
 import { isStandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
-import type { WMLStreamingEventHeader, WMLContentEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
+import type { WMLStreamingEventHeader } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { push } from '../UI/feedback'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
@@ -38,7 +40,9 @@ import { deepEqual } from '../../lib/objects'
 import { AssetUUID, ComponentUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import type { ScopedInstrumentationOptions } from '../../testing/scopedInstrumentation'
-import { getWMLBase } from '../wmlDataSource/selectors'
+import { getWMLBase, getWMLConfirmedRequestIds } from '../wmlDataSource/selectors'
+import { registerWmlAfterProcessEnvelopeConsumer } from '../wmlDataSource'
+import type { StreamEventDeserializedPayload } from '../dataSource/streamEventPubSub'
 import { createSelector } from '@reduxjs/toolkit'
 import { derivePerspectiveForRoom } from '../../lib/perspectiveFromOrigins'
 import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
@@ -53,6 +57,7 @@ import {
 } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 
 const autoSaveDebounce = new Debounce()
+const saveEditChainByKey = new Map<string, Promise<void>>()
 
 const EMPTY_BASE: StandardFormData = { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
 
@@ -104,13 +109,19 @@ export const {
         }
     },
     sliceSelector: ({ personalAssets }) => (personalAssets),
-    augmentPublicDataForSelect: (state, key, publicData) => ({ ...publicData, base: getWMLBase(state, key) ?? EMPTY_BASE }),
+    augmentPublicDataForSelect: (state, key, publicData) => ({
+        ...publicData,
+        base: getWMLBase(state, key) ?? EMPTY_BASE,
+        confirmedRequestIds: getWMLConfirmedRequestIds(state, key)
+    }),
     publicReducers: {
         setLoadedImage: setLoadedImageReducer,
         updateStandard: updateStandardReducer,
         clearPendingEditsByRequestIds: clearPendingEditsByRequestIdsReducer,
+        trimStalePendingEdits: trimStalePendingEditsReducer,
         clearLastUpdateDiff: clearLastUpdateDiffReducer,
-        saveEdit: saveEditReducer
+        saveEdit: saveEditReducer,
+        revertSaveEdit: revertSaveEditReducer
     },
     publicSelectors,
     template: {
@@ -218,7 +229,8 @@ export const {
     getSerialized,
     getError,
     getAll,
-    getPendingEdits
+    getPendingEdits,
+    getEffectivePendingEdits
 } = selectors
 
 /**
@@ -242,15 +254,27 @@ export const newAsset = (assetId: AssetUUID) => (dispatch: any) => {
     dispatch(addItem({ key: assetId, options: { initialState: 'NEW' }}))
 }
 
-export const receiveWMLEvent = (key: string) => (args: { header: WMLStreamingEventHeader; content: WMLContentEvent }) => (dispatch: any, getState: any) => {
-    const { header, content } = args
-    if (header.dataSourceKey !== 'mtw.wml') return
-    const RequestIds = header.RequestIds
-    if (!RequestIds || RequestIds.length === 0) return
-    const pendingEdits = getPendingEdits(key)(getState())
-    dispatch(publicActions.clearPendingEditsByRequestIds(key)({ assetKey: key, RequestIds }))
-    if (header.type === 'Merge Conflict' && RequestIds.some(id => pendingEdits.some((p) => p.meta.key === id))) {
-        push('Merge conflict prevented saving your changes')
+export const pendingHygieneCheck = (
+    assetId: string,
+    envelope: StreamEventDeserializedPayload
+) => (dispatch: any, getState: any) => {
+    if (!isSchemaAssetUUID(assetId)) {
+        return
+    }
+    const pendingBefore = getPendingEdits(assetId)(getState())
+    const header = envelope.header as WMLStreamingEventHeader
+    const confirmedIds = getWMLConfirmedRequestIds(getState(), assetId)
+    const headerIds = header.RequestIds ?? []
+    const idsToClear = [...new Set([...confirmedIds, ...headerIds])]
+    if (idsToClear.length > 0) {
+        dispatch(publicActions.clearPendingEditsByRequestIds(assetId)({ assetKey: assetId, RequestIds: idsToClear }))
+    }
+    dispatch(publicActions.trimStalePendingEdits(assetId)({}))
+    if (
+        header.type === 'Merge Conflict' &&
+        headerIds.some((id: string) => pendingBefore.some((p) => p.meta.key === id))
+    ) {
+        dispatch(push('Merge conflict prevented saving your changes'))
     }
 }
 
@@ -274,28 +298,52 @@ export const updateStandard = (key: string) => (payload: UpdateStandardPayload, 
     )
 }
 
-export const saveEdit = (key: string) => async (dispatch: any, getState: any) => {
-    if (!isSchemaAssetUUID(key)) {
-        return
-    }
-    const state = getState()
-    const edit = selectors.getEdit(key)(state)
-    const standardForm = new StandardForm(edit)
-    if (!standardForm.isEmpty()) {
-        // Ensure the universalKey is set to the correct asset key
-        // (it may be 'ASSET#uninitialized' if the edit was never properly initialized)
-        if (standardForm.universalKey !== key) {
-            standardForm._universalKey = key as AssetUUID
+export const saveEdit = (key: string) => {
+    const executeSave = async (dispatch: any, getState: any) => {
+        if (!isSchemaAssetUUID(key)) {
+            return
         }
-        const schema = schemaToWML([standardForm.schema])
-        const requestId = uuidv4()
-        await dispatch(socketDispatchPromise({
-            message: 'applyEdit',
-            RequestId: requestId,
-            AssetId: key,
-            schema
-        }, { service: 'wml' }))
-        dispatch(publicActions.saveEdit(key)({ requestId }))
+        const state = getState()
+        const edit = selectors.getEdit(key)(state)
+        const standardForm = new StandardForm(edit)
+        if (!standardForm.isEmpty()) {
+            if (standardForm.universalKey !== key) {
+                standardForm._universalKey = key as AssetUUID
+            }
+            const requestId = uuidv4()
+            dispatch(publicActions.saveEdit(key)({ requestId }))
+            const pendingRow = selectors.getPendingEdits(key)(getState()).find(({ meta }) => meta.key === requestId)
+            if (!pendingRow) {
+                return
+            }
+            const schema = schemaToWML([new StandardForm(pendingRow.edit).schema])
+            try {
+                await dispatch(socketDispatchPromise({
+                    message: 'applyEdit',
+                    RequestId: requestId,
+                    AssetId: key,
+                    schema
+                }, { service: 'wml' }))
+            } catch {
+                const confirmed = getWMLConfirmedRequestIds(getState(), key)
+                if (!confirmed.includes(requestId)) {
+                    dispatch(publicActions.revertSaveEdit(key)({ requestId }))
+                }
+            }
+        }
+    }
+    return async (dispatch: any, getState: any) => {
+        const previous = saveEditChainByKey.get(key) ?? Promise.resolve()
+        const next = previous
+            .catch(() => undefined)
+            .then(() => executeSave(dispatch, getState))
+            .finally(() => {
+                if (saveEditChainByKey.get(key) === next) {
+                    saveEditChainByKey.delete(key)
+                }
+            })
+        saveEditChainByKey.set(key, next)
+        return next
     }
 }
 
@@ -372,6 +420,13 @@ export const requestLLMGeneration = ({ assetId, roomId }: { assetId: AssetUUID, 
     }
 
 }
+
+registerWmlAfterProcessEnvelopeConsumer((dispatch: any, _getState: any, payload: StreamEventDeserializedPayload) => {
+    if (!isSchemaAssetUUID(payload.streamKey)) {
+        return
+    }
+    dispatch(pendingHygieneCheck(payload.streamKey, payload))
+})
 
 // type PersonalAssetsSlice = multipleSSMSlice<PersonalAssetsNodes>
 

@@ -1,7 +1,8 @@
 import produce from "immer"
 import type { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import type { PersonalAssetsPublic } from "./baseClasses"
-import { updateStandard, UpdateStandardPayload, clearPendingEditsByRequestIds, clearLastUpdateDiff } from "./reducers"
+import { updateStandard, UpdateStandardPayload, clearPendingEditsByRequestIds, trimStalePendingEdits, clearLastUpdateDiff, saveEdit, revertSaveEdit } from "./reducers"
+import { PENDING_TTL_MS } from '../dataSource'
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import type { StandardFormData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes"
 import { Schema, schemaToWML } from "@tonylb/mtw-wml/ts/schema"
@@ -604,6 +605,62 @@ describe('personalAsset slice reducers', () => {
         })
     })
 
+    describe('trimStalePendingEdits', () => {
+        const NOW = 1_000_000
+
+        it('removes pending rows older than PENDING_TTL_MS', () => {
+            const state = produce({
+                edit: { universalKey: 'ASSET#test', components: [], metaData: [] },
+                pendingEdits: [
+                    { meta: { key: 'stale', time: NOW - PENDING_TTL_MS }, edit: { universalKey: 'ASSET#test', components: [], metaData: [] } },
+                    { meta: { key: 'fresh', time: NOW - PENDING_TTL_MS + 1 }, edit: { universalKey: 'ASSET#test', components: [], metaData: [] } }
+                ]
+            } as PersonalAssetsPublic, (draft) => {
+                trimStalePendingEdits(draft, {
+                    type: 'trimStalePendingEdits',
+                    payload: { now: NOW }
+                })
+            }) as PersonalAssetsPublic
+            expect(state.pendingEdits).toHaveLength(1)
+            expect(state.pendingEdits[0].meta.key).toBe('fresh')
+        })
+
+        it('no-ops when all pending rows are fresh', () => {
+            const pendingEdits = [
+                { meta: { key: 'fresh-a', time: NOW }, edit: { universalKey: 'ASSET#test', components: [], metaData: [] } },
+                { meta: { key: 'fresh-b', time: NOW - 1 }, edit: { universalKey: 'ASSET#test', components: [], metaData: [] } }
+            ]
+            const state = produce({
+                edit: { universalKey: 'ASSET#test', components: [], metaData: [] },
+                pendingEdits
+            } as PersonalAssetsPublic, (draft) => {
+                trimStalePendingEdits(draft, {
+                    type: 'trimStalePendingEdits',
+                    payload: { now: NOW }
+                })
+            }) as PersonalAssetsPublic
+            expect(state.pendingEdits).toHaveLength(2)
+        })
+    })
+
+    describe('saveEdit lazy TTL purge', () => {
+        it('trims stale pending rows before enqueueing new save', () => {
+            const NOW = Date.now()
+            const edit = { universalKey: 'ASSET#test', components: [], metaData: [] }
+            const state = {
+                edit,
+                pendingEdits: [
+                    { meta: { key: 'stale', time: NOW - PENDING_TTL_MS }, edit },
+                    { meta: { key: 'fresh', time: NOW - PENDING_TTL_MS + 1 }, edit }
+                ]
+            } as PersonalAssetsPublic
+            const next = produce(state, (draft) => {
+                saveEdit(draft, { type: 'saveEdit', payload: { requestId: 'req-new' } })
+            }) as PersonalAssetsPublic
+            expect(next.pendingEdits.map((p) => p.meta.key)).toEqual(['fresh', 'req-new'])
+        })
+    })
+
     const wmlToJSON = (wml: string): StandardFormData => {
         const schema = new Schema()
         schema.loadWML(deIndentWML(wml))
@@ -670,11 +727,13 @@ describe('personalAsset slice reducers', () => {
 
     const augmentedState = (
         state: PersonalAssetsPublic,
-        base: StandardFormData
-    ): PersonalAssetsPublic & { base: StandardFormData; key: string } => ({
+        base: StandardFormData,
+        options?: { confirmedRequestIds?: string[] }
+    ): PersonalAssetsPublic & { base: StandardFormData; key: string; confirmedRequestIds?: string[] } => ({
         ...state,
         base,
-        key: ''
+        key: '',
+        ...(options?.confirmedRequestIds ? { confirmedRequestIds: options.confirmedRequestIds } : {})
     })
 
     /** Console diagnostics for Phase 0 flush characterization (visible when test runs). */
@@ -773,10 +832,11 @@ describe('personalAsset slice reducers', () => {
         const localRoomShortName = (
             state: PersonalAssetsPublic,
             base: StandardFormData,
-            roomId: ComponentUUID
+            roomId: ComponentUUID,
+            options?: { confirmedRequestIds?: string[] }
         ): string | undefined => {
             const local = new StandardForm(
-                publicSelectors.getLocalStandardForm({ ...state, base, key: '' } as PersonalAssetsPublic & { base: StandardFormData; key: string })
+                publicSelectors.getLocalStandardForm(augmentedState(state, base, options))
             )
             const room = local.byUniversalId[roomId]
             if (!(room instanceof StandardRoom)) {
@@ -835,6 +895,310 @@ describe('personalAsset slice reducers', () => {
             logPhase0FlushDiagnostics('postFlushState', postFlushState, baseJSON, ROOM_ID)
 
             expect(mergedRoomShortName(postFlushState, baseJSON, ROOM_ID)).toBe('Lobby in the pitch-black')
+        })
+
+        it('first shortName on empty imported room does not double merged or edit layer', () => {
+            const ROOM_ID = 'ROOM#vortex' as ComponentUUID
+            const inheritedWml = `
+                <Asset uuid=(assetC)>
+                    <Room uuid=(vortex) from=(ASSET#primitives) ref={0} />
+                </Asset>
+            `
+            const baseWml = `
+                <Asset uuid=(assetC)>
+                    <Room uuid=(vortex) from=(ASSET#primitives) ref={0} />
+                </Asset>
+            `
+            const baseJSON = wmlToJSON(baseWml)
+            const preFlushState = minimalPersonalAssetsState({
+                inherited: wmlToJSON(inheritedWml),
+                edit: wmlToJSON(`<Asset uuid=(assetC) />`)
+            })
+            expect(mergedRoomShortName(preFlushState, baseJSON, ROOM_ID)).toBeUndefined()
+
+            const working = new StandardRoom(deIndentWML(`
+                <Room uuid=(vortex) from=(ASSET#primitives) />
+            `))
+            setWorkingShortNameFromString(working, 'Cliff Base')
+
+            const postFlushState = runUpdateLocalWithLayers(
+                baseWml,
+                inheritedWml,
+                `<Asset uuid=(assetC) />`,
+                {
+                    type: 'update',
+                    update: (draft) => {
+                        applyWorkbenchFlush(draft, { componentId: ROOM_ID, working })
+                        return draft
+                    }
+                }
+            )
+
+            expect(mergedRoomShortName(postFlushState, baseJSON, ROOM_ID)).toBe('Cliff Base')
+            const local = new StandardForm(
+                publicSelectors.getLocalStandardForm({
+                    ...postFlushState,
+                    base: baseJSON,
+                    key: ''
+                } as PersonalAssetsPublic & { base: StandardFormData; key: string })
+            )
+            expect(localRoomShortName(postFlushState, baseJSON, ROOM_ID)).toBe('Cliff Base')
+        })
+
+        it('second flush with unchanged shortName does not double on empty imported room', () => {
+            const ROOM_ID = 'ROOM#vortex' as ComponentUUID
+            const inheritedWml = `
+                <Asset uuid=(assetC)>
+                    <Room uuid=(vortex) from=(ASSET#primitives) ref={0} />
+                </Asset>
+            `
+            const baseWml = `
+                <Asset uuid=(assetC)>
+                    <Room uuid=(vortex) from=(ASSET#primitives) ref={0} />
+                </Asset>
+            `
+            const baseJSON = wmlToJSON(baseWml)
+            const working = new StandardRoom(deIndentWML(`
+                <Room uuid=(vortex) from=(ASSET#primitives) />
+            `))
+            setWorkingShortNameFromString(working, 'Cliff Base')
+
+            const flush = (state: PersonalAssetsPublic): PersonalAssetsPublic =>
+                produce(state, (draft) => {
+                    updateStandard(draft, {
+                        type: 'updateStandard',
+                        payload: {
+                            type: 'update',
+                            base: baseJSON,
+                            update: (standardDraft) => {
+                                applyWorkbenchFlush(standardDraft, {
+                                    componentId: ROOM_ID,
+                                    working
+                                })
+                                return standardDraft
+                            }
+                        }
+                    })
+                })
+
+            const afterFirst = flush(
+                minimalPersonalAssetsState({
+                    inherited: wmlToJSON(inheritedWml),
+                    edit: wmlToJSON(`<Asset uuid=(assetC) />`)
+                })
+            )
+            expect(mergedRoomShortName(afterFirst, baseJSON, ROOM_ID)).toBe('Cliff Base')
+
+            const afterSecond = flush(afterFirst)
+            expect(mergedRoomShortName(afterSecond, baseJSON, ROOM_ID)).toBe('Cliff Base')
+            expect(localRoomShortName(afterSecond, baseJSON, ROOM_ID)).toBe('Cliff Base')
+        })
+    })
+
+    describe('optimistic saveEdit and revertSaveEdit', () => {
+        const VORTEX_ID = 'ROOM#vortex' as ComponentUUID
+
+        const localRoomShortName = (
+            state: PersonalAssetsPublic,
+            base: StandardFormData,
+            roomId: ComponentUUID,
+            options?: { confirmedRequestIds?: string[] }
+        ): string | undefined => {
+            const local = new StandardForm(
+                publicSelectors.getLocalStandardForm(augmentedState(state, base, options))
+            )
+            const room = local.byUniversalId[roomId]
+            if (!(room instanceof StandardRoom)) {
+                return undefined
+            }
+            const shortNameJson = room.shortName?.toJSON()
+            return typeof shortNameJson === 'string' ? shortNameJson : undefined
+        }
+
+        const editWithVortexShortName = wmlToJSON(`
+            <Asset uuid=(assetC)>
+                <Room uuid=(vortex) ref={0}><ShortName>Cliff Base</ShortName></Room>
+            </Asset>
+        `)
+
+        const baseWithoutShortName = wmlToJSON(`
+            <Asset uuid=(assetC)>
+                <Room uuid=(vortex) from=(ASSET#primitives) ref={0} />
+            </Asset>
+        `)
+
+        const baseWithShortName = wmlToJSON(`
+            <Asset uuid=(assetC)>
+                <Room uuid=(vortex) from=(ASSET#primitives) ref={0}>
+                    <ShortName>Cliff Base</ShortName>
+                </Room>
+            </Asset>
+        `)
+
+        it('saveEdit enqueues pending and clears edit', () => {
+            const state = minimalPersonalAssetsState({
+                inherited: wmlToJSON(`<Asset uuid=(assetC) />`),
+                edit: editWithVortexShortName
+            })
+            const next = produce(state, (draft) => {
+                saveEdit(draft, { type: 'saveEdit', payload: { requestId: 'req-a' } })
+            }) as PersonalAssetsPublic
+            expect(next.pendingEdits).toHaveLength(1)
+            expect(next.pendingEdits[0].meta.key).toBe('req-a')
+            expect(next.pendingEdits[0].edit.components?.length).toBeGreaterThan(0)
+            expect(next.edit.components).toEqual([])
+            expect(next.edit.metaData).toEqual([])
+        })
+
+        it('revertSaveEdit restores snapshot when pending row still exists', () => {
+            const state = minimalPersonalAssetsState({
+                inherited: wmlToJSON(`<Asset uuid=(assetC) />`),
+                edit: editWithVortexShortName
+            })
+            const enqueued = produce(state, (draft) => {
+                saveEdit(draft, { type: 'saveEdit', payload: { requestId: 'req-a' } })
+            }) as PersonalAssetsPublic
+            const reverted = produce(enqueued, (draft) => {
+                revertSaveEdit(draft, { type: 'revertSaveEdit', payload: { requestId: 'req-a' } })
+            }) as PersonalAssetsPublic
+            expect(reverted.pendingEdits).toHaveLength(0)
+            expect(localRoomShortName(reverted, baseWithoutShortName, VORTEX_ID)).toBe('Cliff Base')
+        })
+
+        it('revertSaveEdit is no-op when pending row already cleared by stream', () => {
+            const state = minimalPersonalAssetsState({
+                inherited: wmlToJSON(`<Asset uuid=(assetC) />`),
+                edit: editWithVortexShortName
+            })
+            const enqueued = produce(state, (draft) => {
+                saveEdit(draft, { type: 'saveEdit', payload: { requestId: 'req-a' } })
+            }) as PersonalAssetsPublic
+            const afterStream = produce(enqueued, (draft) => {
+                clearPendingEditsByRequestIds(draft, {
+                    type: 'clearPendingEditsByRequestIds',
+                    payload: { assetKey: 'ASSET#assetC', RequestIds: ['req-a'] }
+                })
+            }) as PersonalAssetsPublic
+            const reverted = produce(afterStream, (draft) => {
+                revertSaveEdit(draft, { type: 'revertSaveEdit', payload: { requestId: 'req-a' } })
+            }) as PersonalAssetsPublic
+            expect(reverted).toEqual(afterStream)
+        })
+
+        it('revertSaveEdit merges snapshot into newer edit accumulated during flight', () => {
+            const state = minimalPersonalAssetsState({
+                inherited: wmlToJSON(`<Asset uuid=(assetC) />`),
+                edit: editWithVortexShortName
+            })
+            const enqueued = produce(state, (draft) => {
+                saveEdit(draft, { type: 'saveEdit', payload: { requestId: 'req-a' } })
+            }) as PersonalAssetsPublic
+            const withNewEdit = produce(enqueued, (draft) => {
+                draft.edit = wmlToJSON(`
+                    <Asset uuid=(assetC)>
+                        <Feature uuid=(feat1) key=(feat1)><ShortName>New Feature</ShortName></Feature>
+                    </Asset>
+                `)
+            }) as PersonalAssetsPublic
+            const reverted = produce(withNewEdit, (draft) => {
+                revertSaveEdit(draft, { type: 'revertSaveEdit', payload: { requestId: 'req-a' } })
+            }) as PersonalAssetsPublic
+            expect(reverted.pendingEdits).toHaveLength(0)
+            expect(localRoomShortName(reverted, baseWithoutShortName, VORTEX_ID)).toBe('Cliff Base')
+            const local = new StandardForm(
+                publicSelectors.getLocalStandardForm({
+                    ...reverted,
+                    base: baseWithoutShortName,
+                    key: ''
+                } as PersonalAssetsPublic & { base: StandardFormData; key: string })
+            )
+            expect(local.byUniversalId['FEATURE#feat1']).toBeDefined()
+        })
+
+        it('optimistic saveEdit local view matches pre-enqueue edit overlay (single copy)', () => {
+            const inherited = wmlToJSON(`
+                <Asset uuid=(assetC)>
+                    <Room uuid=(vortex) from=(ASSET#primitives) ref={0} />
+                </Asset>
+            `)
+            const state = minimalPersonalAssetsState({
+                inherited,
+                edit: editWithVortexShortName
+            })
+            const beforeLocal = localRoomShortName(state, baseWithoutShortName, VORTEX_ID)
+            const enqueued = produce(state, (draft) => {
+                saveEdit(draft, { type: 'saveEdit', payload: { requestId: 'req-a' } })
+            }) as PersonalAssetsPublic
+            const afterLocal = localRoomShortName(enqueued, baseWithoutShortName, VORTEX_ID)
+            expect(beforeLocal).toBe('Cliff Base')
+            expect(afterLocal).toBe('Cliff Base')
+        })
+
+        it('base updated before clearPending doubles local shortName without confirmed ids (pre-fix path)', () => {
+            const state = minimalPersonalAssetsState({
+                inherited: wmlToJSON(`
+                    <Asset uuid=(assetC)>
+                        <Room uuid=(vortex) from=(ASSET#primitives) ref={0} />
+                    </Asset>
+                `),
+                edit: editWithVortexShortName
+            })
+            const enqueued = produce(state, (draft) => {
+                saveEdit(draft, { type: 'saveEdit', payload: { requestId: 'req-a' } })
+            }) as PersonalAssetsPublic
+            const baseUpdatedFirst = produce(enqueued, (draft) => {
+                // wmlDataSource Content Update runs before personalAssets clearPending
+            }) as PersonalAssetsPublic
+            expect(localRoomShortName(baseUpdatedFirst, baseWithShortName, VORTEX_ID)).toBe('Cliff BaseCliff Base')
+            const clearedAfter = produce(baseUpdatedFirst, (draft) => {
+                clearPendingEditsByRequestIds(draft, {
+                    type: 'clearPendingEditsByRequestIds',
+                    payload: { assetKey: 'ASSET#assetC', RequestIds: ['req-a'] }
+                })
+            }) as PersonalAssetsPublic
+            expect(localRoomShortName(clearedAfter, baseWithShortName, VORTEX_ID)).toBe('Cliff Base')
+        })
+
+        it('base updated with confirmed id suppresses pending overlay (no double)', () => {
+            const state = minimalPersonalAssetsState({
+                inherited: wmlToJSON(`
+                    <Asset uuid=(assetC)>
+                        <Room uuid=(vortex) from=(ASSET#primitives) ref={0} />
+                    </Asset>
+                `),
+                edit: editWithVortexShortName
+            })
+            const enqueued = produce(state, (draft) => {
+                saveEdit(draft, { type: 'saveEdit', payload: { requestId: 'req-a' } })
+            }) as PersonalAssetsPublic
+            expect(
+                localRoomShortName(enqueued, baseWithShortName, VORTEX_ID, {
+                    confirmedRequestIds: ['req-a']
+                })
+            ).toBe('Cliff Base')
+        })
+
+        it('stream-first clear after optimistic enqueue leaves base-only local view', () => {
+            const state = minimalPersonalAssetsState({
+                inherited: wmlToJSON(`
+                    <Asset uuid=(assetC)>
+                        <Room uuid=(vortex) from=(ASSET#primitives) ref={0} />
+                    </Asset>
+                `),
+                edit: editWithVortexShortName
+            })
+            const enqueued = produce(state, (draft) => {
+                saveEdit(draft, { type: 'saveEdit', payload: { requestId: 'req-a' } })
+            }) as PersonalAssetsPublic
+            expect(localRoomShortName(enqueued, baseWithoutShortName, VORTEX_ID)).toBe('Cliff Base')
+            const afterStream = produce(enqueued, (draft) => {
+                clearPendingEditsByRequestIds(draft, {
+                    type: 'clearPendingEditsByRequestIds',
+                    payload: { assetKey: 'ASSET#assetC', RequestIds: ['req-a'] }
+                })
+            }) as PersonalAssetsPublic
+            expect(afterStream.pendingEdits).toHaveLength(0)
+            expect(localRoomShortName(afterStream, baseWithShortName, VORTEX_ID)).toBe('Cliff Base')
         })
     })
 })

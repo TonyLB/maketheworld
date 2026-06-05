@@ -24,6 +24,17 @@ export type RecentEventEnvelope<Payload, Header extends StreamingEventHeader = S
     timestamp: number;
 }
 
+export type RequestIdTrackingHeaderField = 'RequestIds' | 'RequestId' | 'both'
+
+export type RequestIdTrackingConfig = {
+    /** Which extended header field(s) to read. Default: 'both'. */
+    headerField?: RequestIdTrackingHeaderField
+    /** Selector TTL for confirmed ids (default 5 minutes); applied at read time, not in reducer */
+    confirmedTtlMs?: number
+}
+
+export type ConfirmedRequestId = { id: string; seenAt: number }
+
 export interface DataSourcePublic<
     SnapshotPayload,
     UpdatePayload,
@@ -39,6 +50,8 @@ export interface DataSourcePublic<
         [streamKey: string]: {
             materializedView: SnapshotPayload;
             recentEvents: Array<RecentEventEnvelope<UpdatePayload | SnapshotPayload, Header>>;
+            /** Present only when requestIdTracking is enabled on the slice factory */
+            confirmedRequestIds?: ConfirmedRequestId[];
         }
     }
 }

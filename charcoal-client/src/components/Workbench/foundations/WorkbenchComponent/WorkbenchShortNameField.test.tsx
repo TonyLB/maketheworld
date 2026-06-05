@@ -141,4 +141,34 @@ describe('TopLevelStandardLiteralEditor debounce=false', () => {
 
         expect(onChange).toHaveBeenCalledTimes(1)
     })
+
+    it('does not fire debounced onChange after prop sync when debounce is false', () => {
+        const onChange = vi.fn()
+        const { rerender } = render(
+            <TopLevelStandardLiteralEditor
+                value={new StandardLiteral('Cliff BaseCliff Base')}
+                onChange={onChange}
+                label="Short Name"
+                debounce={false}
+            />
+        )
+
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Cliff Base' } })
+        expect(onChange).toHaveBeenCalledTimes(1)
+
+        rerender(
+            <TopLevelStandardLiteralEditor
+                value={new StandardLiteral('')}
+                onChange={onChange}
+                label="Short Name"
+                debounce={false}
+            />
+        )
+
+        act(() => {
+            vi.advanceTimersByTime(1000)
+        })
+
+        expect(onChange).toHaveBeenCalledTimes(1)
+    })
 })

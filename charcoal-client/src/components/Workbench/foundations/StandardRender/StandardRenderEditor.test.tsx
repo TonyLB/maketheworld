@@ -6,6 +6,7 @@ import React from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render } from '@testing-library/react'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import type { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 
 import { mockWorkbenchReturn, resetWorkbenchAssetMock } from '../WorkbenchComponent/testing/mock'
@@ -110,5 +111,44 @@ describe('StandardRenderEditor', () => {
         )
 
         expect(onChange.mock.calls.length).toBeLessThan(5)
+    })
+
+    it('does not storm onChange when standardForm reference churns but domain unchanged with stable value (debounce=false)', () => {
+            const onChange = vi.fn()
+            const baseData: StandardFormData = {
+                universalKey: 'ASSET#test',
+                components: [],
+                metaData: []
+            }
+            const initialValue = new StandardRender(['Hello'])
+
+            mockWorkbenchReturn.standardForm = new StandardForm(baseData)
+            mockWorkbenchReturn.localStandardForm = mockWorkbenchReturn.standardForm
+
+            const { rerender } = render(
+                <StandardRenderEditor
+                    value={initialValue}
+                    onChange={onChange}
+                    debounce={false}
+                    tag="Summary"
+                />
+            )
+
+            expect(onChange).toHaveBeenCalledTimes(0)
+
+            for (let i = 0; i < 4; i++) {
+                mockWorkbenchReturn.standardForm = new StandardForm(baseData)
+                mockWorkbenchReturn.localStandardForm = mockWorkbenchReturn.standardForm
+                rerender(
+                    <StandardRenderEditor
+                        value={initialValue}
+                        onChange={onChange}
+                        debounce={false}
+                        tag="Summary"
+                    />
+                )
+            }
+
+            expect(onChange).toHaveBeenCalledTimes(0)
     })
 })

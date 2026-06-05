@@ -15,7 +15,11 @@ import { nodeFromWML } from '@tonylb/mtw-wml/ts/schema'
 import { Zone, isZone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 
-/** Extended header for mtw.wml: RequestIds is envelope-level only (routing/client correlation), not in content. */
+/**
+ * Extended header for mtw.wml. RequestIds is envelope-level only (client edit correlation), not in content.
+ * Non-empty only when the triggering Apply Edit carried RequestId (client optimistic save resolved).
+ * Omitted or [] on Zone Changed, Snapshot Created, Asset Purged, server-side applies, and primitives bootstrap.
+ */
 export type WMLStreamingEventHeader = StreamingEventHeader & { RequestIds?: string[] }
 
 // Internal types for WML events (no type field; discrimination by envelope.header.type only).

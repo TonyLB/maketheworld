@@ -1,17 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { configureStore } from '@reduxjs/toolkit'
 import { createDataSourceSlice, DataSourceSliceConfig } from './index'
-import type { StreamEventDeserializedPayload } from './streamEventPubSub'
+import { createSubscribeAction } from './index.api'
+import { StreamEventPubSub, type StreamEventDeserializedPayload } from './streamEventPubSub'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
-// Capture the processEnvelope (action creator) passed to createInitializeAction
+const { socketDispatchPromiseMock } = vi.hoisted(() => ({
+    socketDispatchPromiseMock: vi.fn()
+}))
+
+vi.mock('../lifeLine', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../lifeLine')>()
+    return {
+        ...actual,
+        getStatus: vi.fn(() => 'CONNECTED'),
+        socketDispatchPromise: socketDispatchPromiseMock
+    }
+})
+
+// Capture args passed to createInitializeAction
 let capturedProcessEnvelope: ((payload: StreamEventDeserializedPayload) => any) | null = null
+let capturedAfterProcessEnvelope: ((dispatch: any, getState: any, payload: StreamEventDeserializedPayload) => void) | undefined
 vi.mock('./index.api', async (importOriginal) => {
     const mod = await importOriginal<typeof import('./index.api')>()
     return {
         ...mod,
         createInitializeAction: (...args: any[]) => {
             capturedProcessEnvelope = args[1]
+            capturedAfterProcessEnvelope = args[4]
             return (mod.createInitializeAction as (...a: any[]) => any)(...args)
         }
     }
@@ -56,6 +73,72 @@ const mockAggregator: DataSourceAggregator<TestSnapshot, TestUpdate> = {
 const mockSerializer: DataSourceEventSerializer<TestUpdate, any, TestSnapshot, any> = {
     serialize: (params) => params.content as any,
     deserialize: async (params) => params.content
+}
+
+const baseSliceConfig = (): DataSourceSliceConfig<TestSnapshot, TestUpdate, any, any> => ({
+    name: 'testDataSource',
+    dataSourceKey: 'test.dataSource',
+    aggregator: mockAggregator,
+    eventSerializer: mockSerializer,
+    sliceSelector: (state) => state.testDataSource
+})
+
+const buildIncrementPayload = (overrides?: Partial<StreamEventDeserializedPayload>): StreamEventDeserializedPayload => ({
+    dataSourceKey: 'test.dataSource',
+    streamKey: 'stream1',
+    timestamp: 1000,
+    header: {
+        dataSourceKey: 'test.dataSource',
+        streamKey: 'stream1',
+        timestamp: 1000,
+        type: 'Increment'
+    },
+    content: { type: 'Increment' as const },
+    ...overrides
+})
+
+async function setupStoreWithStreamSubscriber(options: {
+    afterProcessEnvelope?: (dispatch: any, getState: any, payload: StreamEventDeserializedPayload) => void
+    requestIdTracking?: { headerField: 'RequestIds' }
+}) {
+    const sliceSelector = (state: any) => state.testDataSource
+    const result = createDataSourceSlice({
+        ...baseSliceConfig(),
+        sliceSelector,
+        ...options
+    })
+    const initial = result.slice.getInitialState()
+    const store = configureStore({
+        reducer: { testDataSource: result.slice.reducer },
+        preloadedState: {
+            testDataSource: {
+                ...initial,
+                publicData: {
+                    activeStreamKeys: ['stream1'],
+                    subscribedStreams: {
+                        stream1: {
+                            materializedView: { type: 'Snapshot', value: 0 },
+                            recentEvents: [],
+                            ...(options.requestIdTracking ? { confirmedRequestIds: [] as const } : {})
+                        }
+                    }
+                }
+            }
+        }
+    })
+    const { createInitializeAction } = await vi.importActual<typeof import('./index.api')>('./index.api')
+    const initThunk = createInitializeAction(
+        'test.dataSource',
+        result.publicActions.processEnvelope,
+        undefined,
+        sliceSelector,
+        options.afterProcessEnvelope
+    )
+    await store.dispatch(initThunk({
+        internalData: initial.internalData,
+        publicData: store.getState().testDataSource.publicData
+    }) as any)
+    return { store, result, sliceSelector }
 }
 
 describe('dataSource slice', () => {
@@ -170,9 +253,154 @@ describe('dataSource slice', () => {
             expect(slice.reducer).toBeDefined()
         })
 
+        describe('requestIdTracking', () => {
+            beforeEach(() => {
+                vi.clearAllMocks()
+                socketDispatchPromiseMock.mockReturnValue((() => Promise.resolve({})) as any)
+            })
+
+            it('exports getConfirmedRequestIds when requestIdTracking is enabled', () => {
+                const result = createDataSourceSlice({
+                    name: 'testDataSource',
+                    dataSourceKey: 'test.dataSource',
+                    aggregator: mockAggregator,
+                    eventSerializer: mockSerializer,
+                    sliceSelector: (state) => state.testDataSource,
+                    requestIdTracking: { headerField: 'RequestIds' }
+                })
+
+                expect(result.getConfirmedRequestIds).toBeDefined()
+                expect(typeof result.getConfirmedRequestIds).toBe('function')
+            })
+
+            it('does not export getConfirmedRequestIds when requestIdTracking is disabled', () => {
+                const result = createDataSourceSlice({
+                    name: 'testDataSource',
+                    dataSourceKey: 'test.dataSource',
+                    aggregator: mockAggregator,
+                    eventSerializer: mockSerializer,
+                    sliceSelector: (state) => state.testDataSource
+                })
+
+                expect(result.getConfirmedRequestIds).toBeUndefined()
+            })
+
+            it('initializes confirmedRequestIds on subscribe when tracking is enabled', async () => {
+                const subscribeAction = createSubscribeAction(
+                    'test.dataSource',
+                    (streamKey) => mockAggregator.createEmpty(streamKey),
+                    { headerField: 'RequestIds' }
+                )
+
+                const action = subscribeAction({
+                    internalData: {
+                        incrementalBackoff: 0.5,
+                        subscribeStreamKeys: ['newStream'],
+                        unsubscribeStreamKeys: [],
+                        streamEventSubscription: 'sub-1'
+                    },
+                    publicData: {
+                        activeStreamKeys: [],
+                        subscribedStreams: {}
+                    }
+                })
+
+                const dispatch = vi.fn((thunk: any) => (
+                    typeof thunk === 'function' ? thunk(dispatch, vi.fn()) : thunk
+                ))
+
+                const result = await action(dispatch, vi.fn())
+
+                expect(result.publicData.subscribedStreams.newStream).toEqual({
+                    materializedView: { type: 'Snapshot', value: 0 },
+                    recentEvents: [],
+                    confirmedRequestIds: []
+                })
+            })
+        })
+
+        describe('afterProcessEnvelope', () => {
+            beforeEach(() => {
+                capturedProcessEnvelope = null
+                capturedAfterProcessEnvelope = undefined
+            })
+
+            it('passes afterProcessEnvelope to createInitializeAction when configured', () => {
+                const afterSpy = vi.fn()
+                createDataSourceSlice({
+                    ...baseSliceConfig(),
+                    afterProcessEnvelope: afterSpy
+                })
+                expect(capturedAfterProcessEnvelope).toBe(afterSpy)
+            })
+
+            it('passes undefined when afterProcessEnvelope is omitted', () => {
+                createDataSourceSlice(baseSliceConfig())
+                expect(capturedAfterProcessEnvelope).toBeUndefined()
+            })
+
+            it('invokes callback after processEnvelope when configured', async () => {
+                const afterSpy = vi.fn()
+                const payload = buildIncrementPayload()
+                const { store } = await setupStoreWithStreamSubscriber({ afterProcessEnvelope: afterSpy })
+
+                StreamEventPubSub.publish(payload)
+
+                expect(afterSpy).toHaveBeenCalledTimes(1)
+                expect(afterSpy).toHaveBeenCalledWith(
+                    expect.any(Function),
+                    expect.any(Function),
+                    payload
+                )
+                expect(afterSpy.mock.calls[0][1]()).toEqual(store.getState())
+            })
+
+            it('does not invoke callback when afterProcessEnvelope is omitted', async () => {
+                const afterSpy = vi.fn()
+                await setupStoreWithStreamSubscriber({})
+
+                StreamEventPubSub.publish(buildIncrementPayload())
+
+                expect(afterSpy).not.toHaveBeenCalled()
+            })
+
+            it('getState inside callback sees reducer commit after processEnvelope', async () => {
+                const payload = buildIncrementPayload({
+                    timestamp: 2000,
+                    header: {
+                        dataSourceKey: 'test.dataSource',
+                        streamKey: 'stream1',
+                        timestamp: 2000,
+                        type: 'Increment',
+                        RequestIds: ['req-A']
+                    }
+                })
+                const now = 2500
+                let confirmedAtCallback: string[] = []
+                let sliceResult!: ReturnType<typeof createDataSourceSlice<TestSnapshot, TestUpdate>>
+                const { store, result } = await setupStoreWithStreamSubscriber({
+                    requestIdTracking: { headerField: 'RequestIds' },
+                    afterProcessEnvelope: (dispatch, getState, envelope) => {
+                        confirmedAtCallback = sliceResult.getConfirmedRequestIds!(getState(), envelope.streamKey, now)
+                    }
+                })
+                sliceResult = result
+
+                StreamEventPubSub.publish(payload)
+
+                expect(confirmedAtCallback).toEqual(['req-A'])
+                expect(result.getConfirmedRequestIds!(store.getState(), 'stream1', now)).toEqual(['req-A'])
+                expect(store.getState().testDataSource.publicData.subscribedStreams.stream1.materializedView).toEqual({
+                    type: 'Snapshot',
+                    value: 1
+                })
+            })
+        })
+
         describe('processEnvelope action creator', () => {
             beforeEach(() => {
                 capturedProcessEnvelope = null
+                capturedAfterProcessEnvelope = undefined
             })
 
             it('when Snapshot is passed, returns action object with correct payload', () => {

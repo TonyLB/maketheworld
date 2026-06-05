@@ -6,6 +6,7 @@ import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/data
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import type { ScopedInstrumentationOptions } from '../../testing/scopedInstrumentation'
 import { unique } from '../../lib/lists'
+import { PENDING_TTL_MS } from '../dataSource'
 
 export const setLoadedImage = (state: PersonalAssetsPublic, action: PayloadAction<{ itemId: string; file: File }>) => {
     state.loadedImages[action.payload.itemId] = {
@@ -126,18 +127,26 @@ export const clearPendingEditsByRequestIds = (state: PersonalAssetsPublic, actio
     state.pendingEdits = state.pendingEdits.filter(({ meta }) => !RequestIds.includes(meta.key))
 }
 
+export const trimStalePendingEdits = (state: PersonalAssetsPublic, action: PayloadAction<{ now?: number }>) => {
+    const now = action.payload.now ?? Date.now()
+    state.pendingEdits = state.pendingEdits.filter(({ meta }) => now - meta.time < PENDING_TTL_MS)
+}
+
 export const clearLastUpdateDiff = (state: PersonalAssetsPublic, _action: PayloadAction<void>) => {
     state.lastUpdateDiff = undefined
 }
 
 export const saveEdit = (state: PersonalAssetsPublic, action: PayloadAction<{ requestId: string }>) => {
     const instrumentationOptions = state.instrumentationOptionsForCurrentEdit
+    const now = Date.now()
+    // Invoked before applyEdit send (optimistic pending); stream clearPending matches meta.key.
+    state.pendingEdits = state.pendingEdits.filter(({ meta }) => now - meta.time < PENDING_TTL_MS)
     state.pendingEdits = [
         ...state.pendingEdits,
         {
             meta: {
                 key: action.payload.requestId,
-                time: Date.now(),
+                time: now,
                 ...(instrumentationOptions?.instrumentation?.length ? { instrumentationOptions } : {})
             },
             edit: JSON.parse(JSON.stringify(state.edit))
@@ -149,4 +158,16 @@ export const saveEdit = (state: PersonalAssetsPublic, action: PayloadAction<{ re
     delete state.edit.shortName
     delete state.edit.summary
     delete state.instrumentationOptionsForCurrentEdit
+}
+
+/** Roll back optimistic pending when applyEdit fails; no-op if pending row missing (stream cleared or confirmed). */
+export const revertSaveEdit = (state: PersonalAssetsPublic, action: PayloadAction<{ requestId: string }>) => {
+    const index = state.pendingEdits.findIndex(({ meta }) => meta.key === action.payload.requestId)
+    if (index === -1) {
+        return
+    }
+    const snapshot = state.pendingEdits[index].edit
+    state.pendingEdits = state.pendingEdits.filter(({ meta }) => meta.key !== action.payload.requestId)
+    const editForm = new StandardForm(state.edit)
+    state.edit = editForm.merge(new StandardForm(snapshot)).toJSON()
 }

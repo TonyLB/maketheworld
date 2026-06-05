@@ -6,9 +6,11 @@ import {
   unsubscribeFromWmlDataSource,
   getActiveStreamKeys,
   getSubscribedStreams,
-  processEnvelope
+  processEnvelope,
+  registerWmlAfterProcessEnvelopeConsumer
 } from './index'
-import { getWMLBase } from './selectors'
+import { getWMLBase, getWMLConfirmedRequestIds } from './selectors'
+import { CONFIRMED_TTL_MS } from '../dataSource'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 
 describe('wmlDataSource slice', () => {
@@ -39,6 +41,11 @@ describe('wmlDataSource slice', () => {
 
     it('should export processEnvelope', () => {
       expect(processEnvelope).toBeDefined()
+    })
+
+    it('should export registerWmlAfterProcessEnvelopeConsumer', () => {
+      expect(registerWmlAfterProcessEnvelopeConsumer).toBeDefined()
+      expect(typeof registerWmlAfterProcessEnvelopeConsumer).toBe('function')
     })
   })
 
@@ -78,6 +85,76 @@ describe('wmlDataSource slice', () => {
         }
       }
       expect(getWMLBase(state, 'ASSET#test')).toBe(view)
+    })
+  })
+
+  describe('getWMLConfirmedRequestIds selector', () => {
+    it('should be exported and callable', () => {
+      expect(getWMLConfirmedRequestIds).toBeDefined()
+      expect(typeof getWMLConfirmedRequestIds).toBe('function')
+    })
+
+    it('should return an empty array when stream is not subscribed', () => {
+      const state = {
+        wmlDataSource: {
+          publicData: {
+            subscribedStreams: {}
+          }
+        }
+      }
+      expect(getWMLConfirmedRequestIds(state, 'ASSET#test')).toEqual([])
+    })
+
+    it('should return ids within TTL and exclude stale rows when now is injected', () => {
+      const now = CONFIRMED_TTL_MS
+      const state = {
+        wmlDataSource: {
+          publicData: {
+            subscribedStreams: {
+              'ASSET#test': {
+                materializedView: {
+                  universalKey: 'ASSET#test' as any,
+                  components: [],
+                  metaData: []
+                },
+                recentEvents: [],
+                confirmedRequestIds: [
+                  { id: 'stale', seenAt: 0 },
+                  { id: 'fresh', seenAt: now - 1 }
+                ]
+              }
+            }
+          }
+        }
+      }
+      expect(getWMLConfirmedRequestIds(state, 'ASSET#test', now)).toEqual(['fresh'])
+    })
+
+    it('returns same reference on double read with unchanged storage and fixed now (I1)', () => {
+      const now = CONFIRMED_TTL_MS
+      const state = {
+        wmlDataSource: {
+          publicData: {
+            subscribedStreams: {
+              'ASSET#test': {
+                materializedView: {
+                  universalKey: 'ASSET#test' as any,
+                  components: [],
+                  metaData: []
+                },
+                recentEvents: [],
+                confirmedRequestIds: [
+                  { id: 'req-a', seenAt: now - 1 },
+                  { id: 'req-b', seenAt: now - 2 }
+                ]
+              }
+            }
+          }
+        }
+      }
+      const first = getWMLConfirmedRequestIds(state, 'ASSET#test', now)
+      const second = getWMLConfirmedRequestIds(state, 'ASSET#test', now)
+      expect(second).toBe(first)
     })
   })
 

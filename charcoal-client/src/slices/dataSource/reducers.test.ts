@@ -1,8 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import produce from 'immer'
+import { createDataSourceSlice } from './index'
 import { applyEvents, performCleanup, processEnvelope } from './reducers'
+import {
+    CONFIRMED_TTL_MS,
+    selectConfirmedRequestIdStrings
+} from './requestIdTracking'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
-import type { RecentEventEnvelope } from './baseClasses'
+import type { RecentEventEnvelope, RequestIdTrackingConfig } from './baseClasses'
 
 // Test types
 type TestSnapshot = {
@@ -492,6 +497,484 @@ describe('dataSource reducers', () => {
             // Materialized view should be unchanged - only events AFTER snapshot are applied
             // The old event is NOT applied to the materialized view
             expect(newState.subscribedStreams['stream1'].materializedView.items).toEqual(['a', 'b', 'c'])
+        })
+    })
+
+    describe('processEnvelope requestIdTracking', () => {
+        const trackingConfig = { headerField: 'RequestIds' as const }
+
+        const conflictAwareAggregator: DataSourceAggregator<TestSnapshot, TestUpdate> = {
+            createEmpty: (_streamKey) => ({ type: 'Snapshot', items: [] }),
+            applyUpdate: (snapshot, envelope) => {
+                if (envelope.header.type === 'Conflict') {
+                    return {
+                        success: false,
+                        error: new Error('Merge conflict'),
+                        snapshot
+                    }
+                }
+                return mockAggregator.applyUpdate(snapshot, envelope)
+            }
+        }
+
+        const applyEventsWithAggregator = applyEvents(conflictAwareAggregator)
+        const performCleanupWithConfig = performCleanup(conflictAwareAggregator, applyEventsWithAggregator)
+
+        const createProcessEnvelopeReducer = (requestIdTracking?: RequestIdTrackingConfig) => processEnvelope(
+            'test.dataSource',
+            conflictAwareAggregator,
+            performCleanupWithConfig,
+            applyEventsWithAggregator,
+            requestIdTracking
+        )
+
+        const processEnvelopeReducer = createProcessEnvelopeReducer(trackingConfig)
+
+        const stream1WithConfirmed = (confirmedRequestIds: Array<{ id: string; seenAt: number }>) => ({
+            stream1: {
+                materializedView: { type: 'Snapshot' as const, items: ['a'] },
+                recentEvents: [
+                    testEnvelope({ type: 'Item Added' as const, item: 'a' }, 10000)
+                ],
+                confirmedRequestIds
+            }
+        })
+
+        it('records confirmed id and updates materializedView in one processEnvelope action', () => {
+            const initialPublicData = {
+                subscribedStreams: {
+                    stream1: {
+                        materializedView: { type: 'Snapshot' as const, items: ['a'] },
+                        recentEvents: [
+                            testEnvelope({ type: 'Item Added' as const, item: 'a' }, 10000)
+                        ],
+                        confirmedRequestIds: [] as Array<{ id: string; seenAt: number }>
+                    }
+                }
+            }
+
+            const action = {
+                payload: {
+                    dataSourceKey: 'test.dataSource',
+                    streamKey: 'stream1',
+                    timestamp: 20000,
+                    header: {
+                        dataSourceKey: 'test.dataSource',
+                        streamKey: 'stream1',
+                        timestamp: 20000,
+                        type: 'Item Added',
+                        RequestIds: ['req-A']
+                    },
+                    content: { type: 'Item Added' as const, item: 'b' }
+                }
+            }
+
+            const newState = produce(initialPublicData, (draft) => {
+                processEnvelopeReducer(draft, action as any)
+            })
+
+            expect(newState.subscribedStreams.stream1.materializedView.items).toEqual(['a', 'b'])
+            expect(newState.subscribedStreams.stream1.confirmedRequestIds).toEqual([
+                { id: 'req-A', seenAt: 20000 }
+            ])
+        })
+
+        it('records confirmed id without changing materializedView on Merge Conflict analog', () => {
+            const initialPublicData = {
+                subscribedStreams: {
+                    stream1: {
+                        materializedView: { type: 'Snapshot' as const, items: ['a'] },
+                        recentEvents: [
+                            testEnvelope({ type: 'Item Added' as const, item: 'a' }, 10000)
+                        ],
+                        confirmedRequestIds: [] as Array<{ id: string; seenAt: number }>
+                    }
+                }
+            }
+
+            const action = {
+                payload: {
+                    dataSourceKey: 'test.dataSource',
+                    streamKey: 'stream1',
+                    timestamp: 20000,
+                    header: {
+                        dataSourceKey: 'test.dataSource',
+                        streamKey: 'stream1',
+                        timestamp: 20000,
+                        type: 'Conflict',
+                        RequestIds: ['req-B']
+                    },
+                    content: { type: 'Item Added' as const, item: 'ignored' }
+                }
+            }
+
+            const newState = produce(initialPublicData, (draft) => {
+                processEnvelopeReducer(draft, action as any)
+            })
+
+            expect(newState.subscribedStreams.stream1.materializedView.items).toEqual(['a'])
+            expect(newState.subscribedStreams.stream1.confirmedRequestIds).toEqual([
+                { id: 'req-B', seenAt: 20000 }
+            ])
+        })
+
+        it('leaves confirmedRequestIds unchanged when RequestIds is empty', () => {
+            const existingConfirmed = [{ id: 'old', seenAt: 1 }]
+            const initialPublicData = {
+                subscribedStreams: stream1WithConfirmed(existingConfirmed)
+            }
+
+            const action = {
+                payload: {
+                    dataSourceKey: 'test.dataSource',
+                    streamKey: 'stream1',
+                    timestamp: 20000,
+                    header: {
+                        dataSourceKey: 'test.dataSource',
+                        streamKey: 'stream1',
+                        timestamp: 20000,
+                        type: 'Item Added',
+                        RequestIds: []
+                    },
+                    content: { type: 'Item Added' as const, item: 'b' }
+                }
+            }
+
+            const newState = produce(initialPublicData, (draft) => {
+                processEnvelopeReducer(draft, action as any)
+            })
+
+            expect(newState.subscribedStreams.stream1.confirmedRequestIds).toEqual(existingConfirmed)
+            expect(newState.subscribedStreams.stream1.materializedView.items).toEqual(['a', 'b'])
+        })
+
+        it('leaves confirmedRequestIds unchanged when RequestIds is omitted', () => {
+            const existingConfirmed = [{ id: 'old', seenAt: 1 }]
+            const initialPublicData = {
+                subscribedStreams: stream1WithConfirmed(existingConfirmed)
+            }
+
+            const action = {
+                payload: {
+                    dataSourceKey: 'test.dataSource',
+                    streamKey: 'stream1',
+                    timestamp: 20000,
+                    header: {
+                        dataSourceKey: 'test.dataSource',
+                        streamKey: 'stream1',
+                        timestamp: 20000,
+                        type: 'Item Added'
+                    },
+                    content: { type: 'Item Added' as const, item: 'b' }
+                }
+            }
+
+            const newState = produce(initialPublicData, (draft) => {
+                processEnvelopeReducer(draft, action as any)
+            })
+
+            expect(newState.subscribedStreams.stream1.confirmedRequestIds).toEqual(existingConfirmed)
+        })
+
+        it('ignores singular RequestId when headerField is RequestIds', () => {
+            const reducer = createProcessEnvelopeReducer({ headerField: 'RequestIds' })
+            const initialPublicData = {
+                subscribedStreams: stream1WithConfirmed([])
+            }
+
+            const action = {
+                payload: {
+                    dataSourceKey: 'test.dataSource',
+                    streamKey: 'stream1',
+                    timestamp: 20000,
+                    header: {
+                        dataSourceKey: 'test.dataSource',
+                        streamKey: 'stream1',
+                        timestamp: 20000,
+                        type: 'Item Added',
+                        RequestId: 'x'
+                    },
+                    content: { type: 'Item Added' as const, item: 'b' }
+                }
+            }
+
+            const newState = produce(initialPublicData, (draft) => {
+                reducer(draft, action as any)
+            })
+
+            expect(newState.subscribedStreams.stream1.confirmedRequestIds).toEqual([])
+        })
+
+        it('records singular RequestId when headerField is RequestId', () => {
+            const reducer = createProcessEnvelopeReducer({ headerField: 'RequestId' })
+            const initialPublicData = {
+                subscribedStreams: stream1WithConfirmed([])
+            }
+
+            const action = {
+                payload: {
+                    dataSourceKey: 'test.dataSource',
+                    streamKey: 'stream1',
+                    timestamp: 20000,
+                    header: {
+                        dataSourceKey: 'test.dataSource',
+                        streamKey: 'stream1',
+                        timestamp: 20000,
+                        type: 'Item Added',
+                        RequestId: 'x'
+                    },
+                    content: { type: 'Item Added' as const, item: 'b' }
+                }
+            }
+
+            const newState = produce(initialPublicData, (draft) => {
+                reducer(draft, action as any)
+            })
+
+            expect(newState.subscribedStreams.stream1.confirmedRequestIds).toEqual([
+                { id: 'x', seenAt: 20000 }
+            ])
+        })
+
+        it('dedupes when headerField is both and RequestIds and RequestId match', () => {
+            const reducer = createProcessEnvelopeReducer({ headerField: 'both' })
+            const initialPublicData = {
+                subscribedStreams: stream1WithConfirmed([])
+            }
+
+            const action = {
+                payload: {
+                    dataSourceKey: 'test.dataSource',
+                    streamKey: 'stream1',
+                    timestamp: 20000,
+                    header: {
+                        dataSourceKey: 'test.dataSource',
+                        streamKey: 'stream1',
+                        timestamp: 20000,
+                        type: 'Item Added',
+                        RequestIds: ['a'],
+                        RequestId: 'a'
+                    },
+                    content: { type: 'Item Added' as const, item: 'b' }
+                }
+            }
+
+            const newState = produce(initialPublicData, (draft) => {
+                reducer(draft, action as any)
+            })
+
+            expect(newState.subscribedStreams.stream1.confirmedRequestIds).toEqual([
+                { id: 'a', seenAt: 20000 }
+            ])
+        })
+
+        it('isolates confirmedRequestIds per stream key', () => {
+            const initialPublicData = {
+                subscribedStreams: {
+                    ...stream1WithConfirmed([]),
+                    stream2: {
+                        materializedView: { type: 'Snapshot' as const, items: ['z'] },
+                        recentEvents: [
+                            testEnvelope({ type: 'Item Added' as const, item: 'z' }, 10000, 'stream2')
+                        ],
+                        confirmedRequestIds: [{ id: 'stream2-only', seenAt: 5000 }]
+                    }
+                }
+            }
+
+            const action = {
+                payload: {
+                    dataSourceKey: 'test.dataSource',
+                    streamKey: 'stream1',
+                    timestamp: 20000,
+                    header: {
+                        dataSourceKey: 'test.dataSource',
+                        streamKey: 'stream1',
+                        timestamp: 20000,
+                        type: 'Item Added',
+                        RequestIds: ['req-stream1']
+                    },
+                    content: { type: 'Item Added' as const, item: 'b' }
+                }
+            }
+
+            const newState = produce(initialPublicData, (draft) => {
+                processEnvelopeReducer(draft, action as any)
+            })
+
+            expect(newState.subscribedStreams.stream1.confirmedRequestIds).toEqual([
+                { id: 'req-stream1', seenAt: 20000 }
+            ])
+            expect(newState.subscribedStreams.stream2.confirmedRequestIds).toEqual([
+                { id: 'stream2-only', seenAt: 5000 }
+            ])
+        })
+
+        it('does not add confirmedRequestIds when tracking is disabled', () => {
+            const reducer = createProcessEnvelopeReducer(undefined)
+            const initialPublicData = {
+                subscribedStreams: {
+                    stream1: {
+                        materializedView: { type: 'Snapshot' as const, items: ['a'] },
+                        recentEvents: [
+                            testEnvelope({ type: 'Item Added' as const, item: 'a' }, 10000)
+                        ]
+                    }
+                }
+            }
+
+            const action = {
+                payload: {
+                    dataSourceKey: 'test.dataSource',
+                    streamKey: 'stream1',
+                    timestamp: 20000,
+                    header: {
+                        dataSourceKey: 'test.dataSource',
+                        streamKey: 'stream1',
+                        timestamp: 20000,
+                        type: 'Item Added',
+                        RequestIds: ['req-A']
+                    },
+                    content: { type: 'Item Added' as const, item: 'b' }
+                }
+            }
+
+            const newState = produce(initialPublicData, (draft) => {
+                reducer(draft, action as any)
+            })
+
+            expect(newState.subscribedStreams.stream1).not.toHaveProperty('confirmedRequestIds')
+        })
+
+        it('appends confirmed ids across events without eager prune', () => {
+            const existingConfirmed = [{ id: 'old', seenAt: 1 }]
+            const initialPublicData = {
+                subscribedStreams: stream1WithConfirmed(existingConfirmed)
+            }
+
+            const action = {
+                payload: {
+                    dataSourceKey: 'test.dataSource',
+                    streamKey: 'stream1',
+                    timestamp: 20000,
+                    header: {
+                        dataSourceKey: 'test.dataSource',
+                        streamKey: 'stream1',
+                        timestamp: 20000,
+                        type: 'Item Added',
+                        RequestIds: ['new']
+                    },
+                    content: { type: 'Item Added' as const, item: 'b' }
+                }
+            }
+
+            const newState = produce(initialPublicData, (draft) => {
+                processEnvelopeReducer(draft, action as any)
+            })
+
+            expect(newState.subscribedStreams.stream1.confirmedRequestIds).toEqual([
+                { id: 'old', seenAt: 1 },
+                { id: 'new', seenAt: 20000 }
+            ])
+        })
+    })
+
+    describe('selectConfirmedRequestIds / getConfirmedRequestIds', () => {
+        it('includes ids within the confirmed TTL window', () => {
+            const now = 100_000
+            const rows = [{ id: 'fresh', seenAt: now - CONFIRMED_TTL_MS + 1 }]
+            expect(selectConfirmedRequestIdStrings(rows, now)).toEqual(['fresh'])
+        })
+
+        it('excludes ids at or beyond the confirmed TTL window', () => {
+            const now = CONFIRMED_TTL_MS
+            const rows = [{ id: 'stale', seenAt: 0 }]
+            expect(selectConfirmedRequestIdStrings(rows, now)).toEqual([])
+        })
+
+        it('excludes ids exactly at the TTL boundary', () => {
+            const now = CONFIRMED_TTL_MS
+            const rows = [{ id: 'boundary', seenAt: 0 }]
+            expect(now - rows[0].seenAt).toBe(CONFIRMED_TTL_MS)
+            expect(selectConfirmedRequestIdStrings(rows, now)).toEqual([])
+        })
+
+        it('honors a custom confirmedTtlMs', () => {
+            const customTtl = 60_000
+            const now = 100_000
+            const rows = [
+                { id: 'inside', seenAt: now - customTtl + 1 },
+                { id: 'outside', seenAt: now - customTtl }
+            ]
+            expect(selectConfirmedRequestIdStrings(rows, now, customTtl)).toEqual(['inside'])
+        })
+
+        it('returns an empty array for undefined rows', () => {
+            expect(selectConfirmedRequestIdStrings(undefined, 0)).toEqual([])
+        })
+
+        it('returns same reference on double read with unchanged storage and fixed now (I1)', () => {
+            const now = CONFIRMED_TTL_MS
+            const rows = [
+                { id: 'req-a', seenAt: now - 1 },
+                { id: 'req-b', seenAt: now - 2 }
+            ]
+            const first = selectConfirmedRequestIdStrings(rows, now)
+            const second = selectConfirmedRequestIdStrings(rows, now)
+            expect(second).toBe(first)
+        })
+
+        it('filters stale storage rows via getConfirmedRequestIds while fresh ids remain', () => {
+            const staleSeenAt = 0
+            const freshSeenAt = CONFIRMED_TTL_MS - 1
+            const now = CONFIRMED_TTL_MS
+            const { getConfirmedRequestIds } = createDataSourceSlice({
+                name: 'trackingDataSource',
+                dataSourceKey: 'test.tracking',
+                aggregator: mockAggregator,
+                eventSerializer: {
+                    serialize: (params) => params.content as any,
+                    deserialize: async (params) => params.content
+                },
+                sliceSelector: (state) => state.trackingDataSource,
+                requestIdTracking: { headerField: 'RequestIds' }
+            })
+
+            const state = {
+                trackingDataSource: {
+                    publicData: {
+                        subscribedStreams: {
+                            stream1: {
+                                confirmedRequestIds: [
+                                    { id: 'stale', seenAt: staleSeenAt },
+                                    { id: 'fresh', seenAt: freshSeenAt }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+
+            expect(getConfirmedRequestIds!(state, 'stream1', now)).toEqual(['fresh'])
+            expect(
+                state.trackingDataSource.publicData.subscribedStreams.stream1.confirmedRequestIds
+            ).toHaveLength(2)
+        })
+
+        it('returns an empty array when the stream is missing', () => {
+            const { getConfirmedRequestIds } = createDataSourceSlice({
+                name: 'trackingDataSource',
+                dataSourceKey: 'test.tracking',
+                aggregator: mockAggregator,
+                eventSerializer: {
+                    serialize: (params) => params.content as any,
+                    deserialize: async (params) => params.content
+                },
+                sliceSelector: (state) => state.trackingDataSource,
+                requestIdTracking: { headerField: 'RequestIds' }
+            })
+
+            expect(getConfirmedRequestIds!({ trackingDataSource: { publicData: { subscribedStreams: {} } } }, 'missing', 0)).toEqual([])
         })
     })
 })

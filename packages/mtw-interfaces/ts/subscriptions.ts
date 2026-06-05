@@ -41,31 +41,39 @@ export const isSubscriptionsAPIMessage = (message: Record<string, any>): message
     }
 }
 
-// Subscription client message types extend the flat WebSocket base from patterns (domain union here)
+// Subscription client message types extend the flat WebSocket base from patterns (domain union here).
+// Stream correlation ids are extended-header fields merged to the WebSocket top level (not in update payload).
+// See packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md (Stream correlation ids).
+
+/** mtw.wml: plural RequestIds in header. Non-empty only when applyEdit resolution confirms client pending edits. */
 export type WMLSubscriptionClientMessage = WebSocketFormat & {
     dataSourceKey: 'mtw.wml';
     update: WMLContentEventExternal;
     RequestIds?: string[];
 };
 
+/** mtw.assets.contentHeaders: singular RequestId reserved; producers omit until wired. */
 export type ContentHeadersSubscriptionClientMessage = WebSocketFormat & {
     dataSourceKey: 'mtw.assets.contentHeaders';
     update: ContentHeadersExternal;
     RequestId?: string;
 };
 
+/** mtw.assets.library: singular RequestId reserved; producers omit until wired. */
 export type LibrarySubscriptionClientMessage = WebSocketFormat & {
     dataSourceKey: 'mtw.assets.library';
     update: LibraryExternal;
     RequestId?: string;
 };
 
+/** mtw.assets.players: singular RequestId reserved; producers omit until wired. */
 export type PlayerSubscriptionClientMessage = WebSocketFormat & {
     dataSourceKey: 'mtw.assets.players';
     update: PlayerExternal;
     RequestId?: string;
 };
 
+/** mtw.ephemera.thinking.scheduling: singular RequestId reserved; Job Completed omits today. */
 export type ThinkingSchedulingSubscriptionClientMessage = WebSocketFormat & {
     dataSourceKey: 'mtw.ephemera.thinking.scheduling';
     update: ThinkingSchedulingExternal;

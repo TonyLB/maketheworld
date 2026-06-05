@@ -1,10 +1,18 @@
+import produce from 'immer'
 import { vi } from 'vitest'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import type { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import type { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import { Schema } from '@tonylb/mtw-wml/ts/schema'
+import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
+import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import { componentTagFromUniversalKey } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/abstract'
 
+import type { PersonalAssetsPublic } from '../../../../../slices/personalAssets/baseClasses'
+import { updateStandard, type UpdateStandardPayload } from '../../../../../slices/personalAssets/reducers'
+import { publicSelectors } from '../../../../../slices/personalAssets/selectors'
 import { materializeComponent, type MaterializeSpec } from '../../consistency/materializeComponent'
 import type { useWorkbenchAsset } from '../../useWorkbenchAsset'
 
@@ -40,9 +48,94 @@ export let mockWorkbenchReturn: ReturnType<typeof useWorkbenchAsset> = {
 const toStandardForm = (wml: string | StandardForm): StandardForm =>
     wml instanceof StandardForm ? wml : new StandardForm(wml)
 
+export type LayeredWorkbenchAssetFixture = {
+    baseWml: string
+    inheritedWml: string
+    editWml: string
+}
+
+type LayeredPersonalAssetsStorage = PersonalAssetsPublic & { base: StandardFormData }
+type LayeredPersonalAssetsState = LayeredPersonalAssetsStorage & { key: string }
+
+let layeredPersonalAssetsState: LayeredPersonalAssetsStorage | undefined
+
+const wmlToJSON = (wml: string): StandardFormData => {
+    const schema = new Schema()
+    schema.loadWML(deIndentWML(wml))
+    return new StandardForm(schema.schema[0]).toJSON()
+}
+
+const augmentedLayeredState = (): LayeredPersonalAssetsState => {
+    if (layeredPersonalAssetsState === undefined) {
+        throw new Error('Layered workbench asset mock not seeded')
+    }
+    return { ...layeredPersonalAssetsState, key: '' }
+}
+
+export const syncLayeredMockFromState = (): void => {
+    const state = augmentedLayeredState()
+    const mergedData = publicSelectors.getStandardForm(state)
+    mockWorkbenchReturn.AssetId = state.base.universalKey as AssetUUID
+    mockWorkbenchReturn.inheritedStandardForm = new StandardForm(state.inherited)
+    mockWorkbenchReturn.localStandardForm = new StandardForm(
+        publicSelectors.getLocalStandardForm(state)
+    )
+    mockWorkbenchReturn.standardForm = new StandardForm(mergedData)
+}
+
+const runLayeredUpdateStandardMock = (payload: UpdateStandardPayload): void => {
+    if (layeredPersonalAssetsState === undefined) {
+        throw new Error('Layered workbench asset mock not seeded')
+    }
+    const base = layeredPersonalAssetsState.base
+    const payloadWithBase =
+        payload.type === 'update' ||
+        payload.type === 'updateLocal' ||
+        payload.type === 'removeComponent'
+            ? { ...payload, base }
+            : payload
+    layeredPersonalAssetsState = produce(layeredPersonalAssetsState, (draft) => {
+        updateStandard(draft, {
+            type: 'updateStandard',
+            payload: payloadWithBase
+        })
+    })
+    syncLayeredMockFromState()
+}
+
+/** Seed mock with inherited/base/edit layers; updateStandard runs the real reducer. */
+export const seedLayeredWorkbenchAsset = (fixture: LayeredWorkbenchAssetFixture): StandardForm => {
+    const base = wmlToJSON(fixture.baseWml)
+    layeredPersonalAssetsState = {
+        importData: {},
+        properties: {},
+        loadedImages: {},
+        pendingEdits: [],
+        inherited: wmlToJSON(fixture.inheritedWml),
+        edit: wmlToJSON(fixture.editWml),
+        base
+    }
+    syncLayeredMockFromState()
+    updateStandardMock.mockImplementation(runLayeredUpdateStandardMock)
+    return mockWorkbenchReturn.standardForm
+}
+
+export const isLayeredWorkbenchAssetMockActive = (): boolean =>
+    layeredPersonalAssetsState !== undefined
+
+export const getLayeredMergedRoomShortName = (roomId: ComponentUUID): string | undefined => {
+    const room = mockWorkbenchReturn.standardForm.byUniversalId[roomId]
+    if (!(room instanceof StandardRoom)) {
+        return undefined
+    }
+    const shortNameJson = room.shortName?.toJSON()
+    return typeof shortNameJson === 'string' ? shortNameJson : undefined
+}
+
 export const resetWorkbenchAssetMock = (): void => {
-    updateStandardMock.mockClear()
-    materializeComponentInAssetMock.mockClear()
+    layeredPersonalAssetsState = undefined
+    updateStandardMock.mockReset()
+    materializeComponentInAssetMock.mockReset()
     mockWorkbenchReturn = {
         assetKey: 'test',
         AssetId: 'ASSET#test',
@@ -105,6 +198,10 @@ export const applyLastUpdateStandardMock = (draft?: StandardForm): StandardForm 
 
 /** Apply the most recent flush to the mocked committed standardForm (simulate Redux echo). */
 export const applyLastFlushToCommitted = (): StandardForm => {
+    if (layeredPersonalAssetsState !== undefined) {
+        syncLayeredMockFromState()
+        return mockWorkbenchReturn.standardForm
+    }
     const updated = applyLastUpdateStandardMock()
     mockWorkbenchReturn.standardForm = updated
     mockWorkbenchReturn.localStandardForm = updated

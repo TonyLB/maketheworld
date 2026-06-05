@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react'
 
+import type { ScopedInstrumentationOptions } from '../../../../testing/scopedInstrumentation'
 import type { WorkbenchAssetMetaWorking } from '../consistency'
 
 export type WorkbenchAssetMetaProviderProps = {
     flushDelayMs?: number
+    /** Scoped instrumentation (e.g. flush / reconcile). See workbenchSessionInstrumentation.ts. */
+    instrumentation?: ScopedInstrumentationOptions
     /** Called when external reconcile discards local edits (default: feedback snackbar). */
     onSuperseded?: () => void
     children: ReactNode

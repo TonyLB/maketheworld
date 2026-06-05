@@ -33,12 +33,15 @@ export const useDebouncedOnChange = <T>({
     value,
     delay,
     onChange,
+    enabled = true,
     options,
     instrumentationKey
 }: {
     value: T
     delay: number
     onChange: (value: T) => void
+    /** When false, debounce timers and onChange side effects are disabled (immediate editors use handleChange only). */
+    enabled?: boolean
     options?: ScopedInstrumentationOptions
     instrumentationKey?: string
 }): [T, (value: T) => void] => {
@@ -46,6 +49,9 @@ export const useDebouncedOnChange = <T>({
     const [debouncedValue, setDebouncedValue] = useState<T>(value);
     useEffect(
         () => {
+            if (!enabled) {
+                return
+            }
             // Update debounced value after delay
             const handler = setTimeout(() => {
                 setDebouncedValue(value)
@@ -57,10 +63,13 @@ export const useDebouncedOnChange = <T>({
                 clearTimeout(handler)
             }
         },
-        [value, delay] // Only re-call effect if value or delay changes
+        [enabled, value, delay] // Only re-call effect if value or delay changes
     )
     useEffect(
         () => {
+            if (!enabled) {
+                return
+            }
             if (!deepEqual(baseValue, debouncedValue)) {
                 const hasInstrumentation = !!(instrumentationKey && options?.instrumentation?.includes(instrumentationKey))
                 if (hasInstrumentation) {
@@ -72,7 +81,7 @@ export const useDebouncedOnChange = <T>({
                 setBaseValue(debouncedValue)
             }
         },
-        [baseValue, debouncedValue, onChange, setBaseValue, instrumentationKey, options]
+        [enabled, baseValue, debouncedValue, onChange, setBaseValue, instrumentationKey, options]
     )
     return [debouncedValue, (value) => {
         onChange(value)

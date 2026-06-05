@@ -2,6 +2,7 @@ import React, { FunctionComponent, useMemo, useEffect, useState, useCallback } f
 import { TextField } from '@mui/material'
 import { useDebouncedOnChange } from '../../../../hooks/useDebounce'
 import { useWorkbenchAsset } from '../useWorkbenchAsset'
+import { literalPlainString } from '../workbenchMutations'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 
 // Import theme extensions so palette.extras is available when inside workbench theme
@@ -34,24 +35,21 @@ export const StandardLiteralEditor: FunctionComponent<StandardLiteralEditorProps
     const { readonly: assetReadonly } = useWorkbenchAsset()
     const isReadonly = readonly || assetReadonly
     
-    const stringValue = useMemo(() => {
-        return value?._payload?.plain?.toJSON() ?? ''
-    }, [value])
-    
+    const stringValue = useMemo(() => literalPlainString(value), [value])
+
     const [localValue, setLocalValue] = useState<string>(stringValue)
-    
+
     useEffect(() => {
-        const newValue = value?._payload?.plain?.toJSON() ?? ''
-        setLocalValue(newValue)
-    }, [value])
-    
+        setLocalValue(stringValue)
+    }, [stringValue])
+
     useDebouncedOnChange({
         value: localValue,
         delay: 1000,
+        enabled: debounce,
         onChange: (newValue: string) => {
-            if (debounce && newValue !== stringValue) {
-                const newLiteral = new StandardLiteral(newValue)
-                onChange(newLiteral)
+            if (newValue !== stringValue) {
+                onChange(new StandardLiteral(newValue))
             }
         }
     })

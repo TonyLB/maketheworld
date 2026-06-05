@@ -4,11 +4,10 @@ import {
     socketDispatchPromise,
     getStatus
 } from '../lifeLine'
-import { StreamEventPubSub } from '../dataSource/streamEventPubSub'
 import delayPromise from '../../lib/delayPromise'
 import { AssetClientFetchImports } from '@tonylb/mtw-interfaces/ts/asset'
 import { Schema } from '@tonylb/mtw-wml/ts/schema'
-import { getStandardForm, updateStandard, receiveWMLEvent } from '.'
+import { getStandardForm, updateStandard } from '.'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
@@ -16,7 +15,6 @@ import { publicSelectors, PersonalAssetsPublicAugmented } from './selectors'
 import { getWMLBase } from '../wmlDataSource/selectors'
 import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
 import { isImportable, ComponentUUID, AssetUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
-import type { WMLStreamingEventHeader, WMLContentEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { subscribeToWmlDataSource, unsubscribeFromWmlDataSource } from '../wmlDataSource'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
@@ -31,9 +29,10 @@ export const wmlDataSourceReadyCondition: PersonalAssetsCondition = (_data, getS
 }
 
 /**
- * Subscribe to mtw.wml via WML dataSource slice; register LifeLine listener for
- * clearPendingEditsByRequestIds and Merge Conflict toast. Base comes from dataSource
- * Snapshot (no fetch for WML body). See personalAssets AGENT.md "WML dataSource integration".
+ * Subscribe to mtw.wml via WML dataSource slice. clearPendingEditsByRequestIds, TTL trim, and
+ * Merge Conflict toast are handled by pendingHygieneCheck via wmlDataSource afterProcessEnvelope.
+ * Base comes from dataSource Snapshot (no fetch for WML body).
+ * See personalAssets AGENT.md "WML dataSource integration".
  *
  * DEPRECATED: getFetchURL (message: 'fetch') previously returned properties (image filenames).
  * Image items will use uuid-as-filename; restore a getProperties flow when that refactor lands.
@@ -42,13 +41,6 @@ export const wmlDataSourceReadyCondition: PersonalAssetsCondition = (_data, getS
 export const subscribeAction: PersonalAssetsAction = (data) => async (dispatch) => {
     const { internalData: { id }, publicData } = data
     const properties = {}
-
-    // Subscribe to StreamEventPubSub to receive pre-deserialized mtw.wml StreamEvent messages for this asset
-    const subscription = id ? StreamEventPubSub.subscribe(({ payload }) => {
-        if (payload.dataSourceKey === 'mtw.wml' && payload.streamKey === id) {
-            dispatch(receiveWMLEvent(id)({ header: payload.header as WMLStreamingEventHeader, content: payload.content as WMLContentEvent }))
-        }
-    }) : undefined
 
     // WML dataSource owns subscribe; backend sends Snapshot with sidecarUrl
     if (id && isSchemaAssetUUID(id)) {
@@ -69,7 +61,7 @@ export const subscribeAction: PersonalAssetsAction = (data) => async (dispatch) 
             pendingEdits: [],
             serialized: false
         },
-        internalData: { subscription }
+        internalData: {}
     }
 }
 
@@ -142,18 +134,12 @@ export const fetchImportsStateAction: PersonalAssetsAction = ({ internalData: { 
     return {}
 }
 
-export const clearAction: PersonalAssetsAction = ({ internalData: { id, subscription } }) => async (dispatch) => {
-    // Unsubscribe from StreamEventPubSub when clearing the asset
-    if (subscription) {
-        StreamEventPubSub.unsubscribe(subscription)
-    }
+export const clearAction: PersonalAssetsAction = ({ internalData: { id } }) => async (dispatch) => {
     // wmlDataSource owns mtw.wml unsubscribe; triggers socket unsubscribe via UNSUBSCRIBE state
     if (id) {
         dispatch(unsubscribeFromWmlDataSource([id]))
     }
-    return { 
-        internalData: { subscription: undefined }
-    }
+    return {}
 }
 
 export const backoffAction: PersonalAssetsAction = ({ internalData: { incrementalBackoff = 0.5 }}) => async (dispatch) => {

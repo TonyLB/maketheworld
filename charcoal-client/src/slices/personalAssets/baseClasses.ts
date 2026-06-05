@@ -20,7 +20,6 @@ export interface PersonalAssetsInternal {
         errorStart?: number;
         errorEnd?: number;
     };
-    subscription?: any;
 }
 
 export type PersonalAssetsLoadedImage = {
@@ -39,9 +38,8 @@ export interface PersonalAssetsPublic {
     //
     inherited: StandardFormData;
     //
-    // pendingEdits holds the edit assets that have been streamed out to WML for update into the
-    // relevant personalAsset (but which have not yet been reflected back through the asset
-    // subscription)
+    // pendingEdits holds optimistic edits enqueued before applyEdit send; stream confirm clears
+    // rows via wmlDataSource afterProcessEnvelope -> pendingHygieneCheck
     //
     pendingEdits: {
         meta: PendingEditMeta;

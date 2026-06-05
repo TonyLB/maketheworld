@@ -189,9 +189,11 @@ const processEnvelope = (aggregator, serializer, ...) =>
 #### **2. Pure Functions Throughout**
 
 All event processing is deterministic:
-- ❌ No `Date.now()` - timestamps come from action payloads
-- ❌ No side effects - only state transformations
+- ❌ No `Date.now()` in reducers - timestamps come from action payloads
+- ❌ No side effects in reducers - only state transformations
 - ✅ Testable with simple inputs and outputs
+
+**Exception (selectors, not reducers):** Opt-in **requestIdTracking** and cross-slice pending selectors may call `Date.now()` at read time for TTL filtering. See [Selector-time TTL (intentional impurity)](#selector-time-ttl-intentional-impurity) below and the carve-out in [AGENT.md](./AGENT.md) **Pure Functions**.
 
 **Why**: Easier testing, debugging, and reasoning about behavior.
 
@@ -252,7 +254,7 @@ Three main functions handle event processing:
 
 Three action factories manage lifecycle:
 
-1. **`createInitializeAction`**: Subscribe to StreamEventPubSub
+1. **`createInitializeAction`**: Subscribe to StreamEventPubSub; optionally invoke `afterProcessEnvelope` after each `dispatch(processEnvelope(payload))`
 2. **`createSubscribeAction`**: Call backend API to subscribe
 3. **`createUnsubscribeAction`**: Call backend API to unsubscribe
 
@@ -421,6 +423,143 @@ Quick reference for what each file does:
 
 ---
 
+## requestIdTracking (opt-in factory extension)
+
+**Status:** Production. `wmlDataSource` is the only enabled consumer today (`headerField: 'RequestIds'`). Cross-slice consumers use `getWMLConfirmedRequestIds` in [../wmlDataSource/selectors.ts](../wmlDataSource/selectors.ts).
+
+Opt-in on `createDataSourceSlice` for slices whose backend streams carry client-action correlation ids on the **envelope header** (not LifeLine RPC).
+
+```typescript
+requestIdTracking?: {
+  /** Which extended header field(s) to read. Default: 'both'. */
+  headerField?: 'RequestIds' | 'RequestId' | 'both'
+  /** Selector TTL for confirmed ids (default 5 minutes); applied at read time, not in reducer */
+  confirmedTtlMs?: number
+}
+```
+
+When enabled, per `subscribedStreams[streamKey]` store `confirmedRequestIds: Array<{ id: string; seenAt: number }>`. New streams initialized via `createSubscribeAction` get `confirmedRequestIds: []`.
+
+**TTL constants** (shared with `personalAssets` effective-pending):
+
+| Constant | Value | Module |
+| --- | --- | --- |
+| `PENDING_TTL_MS` | 3 minutes | [`requestIdTracking.ts`](./requestIdTracking.ts) (re-exported from [`index.ts`](./index.ts)) |
+| `CONFIRMED_TTL_MS` | 5 minutes | same |
+
+**Confirmed-id selector** (only when `requestIdTracking` is set on the factory):
+
+- Pure helper: `selectConfirmedRequestIdStrings(rows, now, confirmedTtlMs?)` in [`requestIdTracking.ts`](./requestIdTracking.ts) --- returns `string[]` of ids where `now - seenAt < confirmedTtlMs` (default `CONFIRMED_TTL_MS`; strict `<`, not `<=`). **Referential stability (I1):** when `rows` storage reference, `now`, and `confirmedTtlMs` are unchanged between reads, returns the same `string[]` reference (WeakMap cache keyed by rows ref; `STABLE_EMPTY_CONFIRMED_IDS` for empty results). See [../AGENT.client-sync-invariants.md](../AGENT.client-sync-invariants.md).
+- Factory export: `getConfirmedRequestIds(state, streamKey, now?)` on the `createDataSourceSlice` return value (not `publicSelectors` --- needs `streamKey` and injectable `now`). Uses `requestIdTracking.confirmedTtlMs ?? CONFIRMED_TTL_MS`. Omitted when tracking is disabled.
+
+**Implementation modules:**
+
+| Module | Role |
+| --- | --- |
+| [`requestIdTracking.ts`](./requestIdTracking.ts) | TTL constants; `extractConfirmedIdsFromHeader`, `appendConfirmedRequestIds`, `selectConfirmedRequestIdStrings` |
+| [`reducers.ts`](./reducers.ts) | `buildStreamUpdate` appends ids in the same `processEnvelope` pass as aggregator |
+| [`index.ts`](./index.ts) | Conditional `getConfirmedRequestIds`; re-exports `PENDING_TTL_MS`, `CONFIRMED_TTL_MS`, `STABLE_EMPTY_CONFIRMED_IDS` |
+| [`index.api.ts`](./index.api.ts) | Subscribe init includes `confirmedRequestIds: []` when tracking enabled |
+
+**`seenAt`:** Envelope `timestamp` from the dispatched action (not `Date.now()`), matching the pure-timestamp pattern used by `performCleanup`.
+
+**Normalization (storage always `{ id, seenAt }[]`):**
+
+| `headerField` | Record in `processEnvelope` when |
+| --- | --- |
+| `RequestIds` | `Array.isArray(v) && v.length > 0` -> append each string |
+| `RequestId` | `typeof v === 'string' && v.length > 0` -> append one id |
+| `both` (default) | Non-empty `RequestIds` array and/or non-empty `RequestId` string; dedupe within the pass |
+
+**Recording rule:** No runtime `header.type` allowlist. Non-empty header field = resolved client-originated action; empty `[]` or omitted = no confirmation. Merge Conflict records ids even when `materializedView` is unchanged.
+
+**Not in scope:** LifeLine `socketDispatchPromise` / `ReturnValue` correlation (see [`../lifeLine/AGENT.md`](../lifeLine/AGENT.md)).
+
+**Slices today:** Only `wmlDataSource` enables tracking (`headerField: 'RequestIds'`). Other `createDataSourceSlice` instances (`contentHeaders`, `libraryDataSource`, `thinkingJobs`) may enable when producers set stream-header `RequestId`.
+
+**Authoritative producer inventory:** [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**Stream correlation ids**).
+
+### Selector-time TTL (intentional impurity)
+
+Merge correctness for pending overlays depends on **read-time** filtering, not dispatched cleanup, stream handler ordering, or background timers. Stale physical rows may remain in Redux storage; selectors define the effective view.
+
+**Why `Date.now()` in selectors:** `getConfirmedRequestIds(state, streamKey, now?)` and `selectEffectivePendingEdits(pendingEdits, confirmedIds, now)` default `now` to `Date.now()`. This is an intentional carve-out from reducer purity --- TTL is evaluated when UI/selectors read, not when events arrive. Reducers still use envelope `timestamp` for `seenAt` and `meta.time` from optimistic enqueue for pending age; client `now` compares against both at select time.
+
+**Memoization:** Selectors re-evaluate TTL on each read; acceptable for small per-asset arrays. Tests inject fixed `now` (see [`personalAssets/selectors.test.ts`](../personalAssets/selectors.test.ts), [`reducers.test.ts`](./reducers.test.ts)).
+
+**Idle tab:** TTL advances on the next read after idle; no timer required. A pending overlay can drop from the effective view after 3 minutes even if the tab was backgrounded --- by design. Slow or failed stream confirm past 3 minutes produces a missing-edit symptom, not doubling.
+
+**Rejected as correctness dependencies:** Timer-based eviction and reducer-side TTL pruning. Both exist only as secondary hygiene (`pendingHygieneCheck`, lazy trim on `saveEdit`).
+
+**Constants and asymmetry:**
+
+| Constant | Value | Applied in |
+| --- | --- | --- |
+| `PENDING_TTL_MS` | 3 minutes | `getEffectivePendingEdits` (personalAssets); lazy purge on `saveEdit` |
+| `CONFIRMED_TTL_MS` | 5 minutes | `getConfirmedRequestIds` / `getWMLConfirmedRequestIds` |
+
+Confirmed ids outlive the pending overlay cap (5m > 3m) so a physical pending row that lingers in storage is still suppressed by confirmed filtering for an extra window after the pending age cap alone would apply.
+
+**Cross-link:** Reducer purity norms and this carve-out are summarized in [AGENT.md](./AGENT.md) **Pure Functions**.
+
+### Characterization tests (requestIdTracking)
+
+All cases implemented in [`reducers.test.ts`](./reducers.test.ts) (`processEnvelope requestIdTracking`) and [`index.test.ts`](./index.test.ts) (case 9 subscribe init). Selector TTL tests in `reducers.test.ts` (`selectConfirmedRequestIds / getConfirmedRequestIds`):
+
+| # | Case | Setup | Action | Assert |
+| --- | --- | --- | --- | --- |
+| 1 | Content Update + ids | tracking on; base view `['a']` | `processEnvelope` with successful update + `RequestIds: ['req-A']` | `materializedView` includes delta; `confirmedRequestIds` has `req-A` with `seenAt === timestamp` |
+| 2 | Merge Conflict + ids | tracking on; base view `['a']` | failing aggregator + `RequestIds: ['req-B']` | `materializedView` still `['a']`; `confirmedRequestIds` has `req-B` |
+| 3 | Empty / omitted ids | tracking on; existing confirmed rows | event with `RequestIds: []` or omitted | `confirmedRequestIds` unchanged; view per aggregator |
+| 4 | `headerField: 'RequestIds'` | tracking with field mode | header with only `RequestId: 'x'` | no new rows |
+| 5 | `headerField: 'RequestId'` | tracking with field mode | header with only `RequestId: 'x'` | one row `x` |
+| 6 | `headerField: 'both'` + dedupe | both fields set | `RequestIds: ['a']`, `RequestId: 'a'` | one row `a` (not duplicated) |
+| 7 | Stream key isolation | two subscribed streams | confirm id on `stream1` only | `stream2.confirmedRequestIds` untouched |
+| 8 | Tracking disabled | no `requestIdTracking` config | event with `RequestIds` | no `confirmedRequestIds` key on stream |
+| 9 | Subscribe init | factory subscribe new stream | (integration) | new stream has `confirmedRequestIds: []` when tracking enabled |
+| 10 | Append across events | existing `[{ id: 'old', seenAt: 1 }]` | second event `RequestIds: ['new']` | array is `[old, new]` (no eager prune in reducer) |
+
+**Selector tests:** `getConfirmedRequestIds` / `selectConfirmedRequestIdStrings` exclude ids where `now - seenAt >= confirmedTtlMs`; tests inject fixed `now`. Stale rows may remain in storage; selector read is authoritative for the effective confirmed set.
+
+---
+
+## afterProcessEnvelope (opt-in factory extension)
+
+**Status:** Production. `wmlDataSource` is the only consumer today. `personalAssets` registers `pendingHygieneCheck` via `registerWmlAfterProcessEnvelopeConsumer` at module load (avoids import cycle).
+
+Opt-in on `createDataSourceSlice` for cross-slice work that must run **after** the owning slice's `processEnvelope` reducer commits (parallel to `onReady`, but per-stream-event rather than at INITIALIZE).
+
+```typescript
+afterProcessEnvelope?: (
+  dispatch: any,
+  getState: any,
+  payload: StreamEventDeserializedPayload
+) => void
+```
+
+**Wiring:**
+
+| Touchpoint | Role |
+| --- | --- |
+| [`index.ts`](./index.ts) | `afterProcessEnvelope?` on `DataSourceSliceConfig`; passed as 5th arg to `createInitializeAction` |
+| [`index.api.ts`](./index.api.ts) | StreamEventPubSub subscriber: `dispatch(processEnvelope(payload))` then `afterProcessEnvelope?.(dispatch, getState, payload)` |
+
+**Ordering guarantee:** RTK dispatches reducers synchronously. `getState()` inside the callback sees updated `materializedView` and `confirmedRequestIds` (when `requestIdTracking` is enabled). The callback is not invoked when the data-source guard rejects the envelope.
+
+**Consumer (wired):** `wmlDataSource` invokes a delegate registered by `personalAssets` (`registerWmlAfterProcessEnvelopeConsumer` in [`wmlDataSource/index.ts`](../wmlDataSource/index.ts); registration in [`personalAssets/index.ts`](../personalAssets/index.ts)). The callback dispatches `pendingHygieneCheck(streamKey, payload)` when `streamKey` is a valid asset UUID. Other `createDataSourceSlice` instances omit the hook.
+
+### Characterization tests (afterProcessEnvelope)
+
+Implemented in [`index.test.ts`](./index.test.ts) (`afterProcessEnvelope` describe):
+
+| # | Case | Assert |
+| --- | --- | --- |
+| 1 | Configured | Factory passes callback to `createInitializeAction`; publish invokes `(dispatch, getState, payload)` once |
+| 2 | Omitted | Factory passes `undefined`; publish does not invoke a callback |
+| 3 | Post-commit `getState` | With `requestIdTracking`, callback `getConfirmedRequestIds(getState(), streamKey, now)` includes ids from the same envelope; `materializedView` updated |
+
+---
+
 ## Quick Reference: Common Tasks
 
 ### **Creating a New Instance**
@@ -455,4 +594,4 @@ Quick reference for what each file does:
 
 ---
 
-*Last Updated: 2025-10-11*
+*Last Updated: 2026-06-05*

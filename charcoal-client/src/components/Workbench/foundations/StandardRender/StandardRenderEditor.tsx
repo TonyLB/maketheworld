@@ -142,10 +142,12 @@ const useStandardRenderEditorHook = (
     const lastSyncedRenderRef = useRef(value)
     const lastStandardRef = useRef(standard)
     const syncedDescendantsRef = useRef<Descendant[]>(descendantsFromRender(value, { standard }))
-    // Parent clones StandardRender on reconcile; domain equals prevents Slate sync storms when debounce={false}.
+    // Reference check first (I1 fast path); .equals() when parent passes clone-equal props (debounce={false}).
     const slateSyncValue = useMemo(() => {
-        const renderUnchanged = lastSyncedRenderRef.current.equals(value)
-        const standardUnchanged = lastStandardRef.current === standard
+        const renderUnchanged =
+            lastSyncedRenderRef.current === value || lastSyncedRenderRef.current.equals(value)
+        const standardUnchanged =
+            lastStandardRef.current === standard || lastStandardRef.current.equals(standard)
         if (renderUnchanged && standardUnchanged) {
             return syncedDescendantsRef.current
         }

@@ -272,6 +272,7 @@ describe('reconcileCommittedComponent', () => {
         expect(result.working?.shortName?.toJSON()).toBe('External')
         expect(result.working?.equals(incoming)).toBe(true)
     })
+
 })
 
 const ASSET_ID = 'ASSET#test' as const

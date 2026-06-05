@@ -4,7 +4,7 @@ import { socketDispatchPromise, getStatus } from '../lifeLine'
 import { StreamEventPubSub, makeStreamEventGuardForDataSource } from './streamEventPubSub'
 import delayPromise from '../../lib/delayPromise'
 import { ISSMHoldCondition } from '../stateSeekingMachine/baseClasses'
-import { DataSourceInternal, DataSourcePublic } from './baseClasses'
+import { DataSourceInternal, DataSourcePublic, type RequestIdTrackingConfig } from './baseClasses'
 
 //
 // Condition to check if LifeLine is connected
@@ -35,7 +35,8 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
     dataSourceKey: string,
     processEnvelope: (payload: StreamEventDeserializedPayload) => any,
     onReady?: (dispatch: any, getState: any, sliceActions: any) => void,
-    sliceSelector?: (state: any) => any
+    sliceSelector?: (state: any) => any,
+    afterProcessEnvelope?: (dispatch: any, getState: any, payload: StreamEventDeserializedPayload) => void
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
     return ({ internalData, publicData }) => async (dispatch, getState) => {
         try {
@@ -45,6 +46,7 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
                 const envelope = { header: payload.header, content: payload.content }
                 if (!isForThisDataSource(envelope)) return
                 dispatch(processEnvelope(payload))
+                afterProcessEnvelope?.(dispatch, getState, payload)
             })
             
             // Call onReady callback if provided (after successful initialization)
@@ -93,7 +95,8 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
 //
 export const createSubscribeAction = <SnapshotPayload, UpdatePayload>(
     dataSourceKey: string,
-    createEmptyView: (streamKey: string) => SnapshotPayload
+    createEmptyView: (streamKey: string) => SnapshotPayload,
+    requestIdTracking?: RequestIdTrackingConfig
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
     return ({ internalData, publicData }) => async (dispatch) => {
         const { subscribeStreamKeys, streamEventSubscription } = internalData
@@ -123,7 +126,8 @@ export const createSubscribeAction = <SnapshotPayload, UpdatePayload>(
                 if (!newSubscribedStreams[streamKey]) {
                     newSubscribedStreams[streamKey] = {
                         materializedView: createEmptyView(streamKey),
-                        recentEvents: []
+                        recentEvents: [],
+                        ...(requestIdTracking ? { confirmedRequestIds: [] as const } : {})
                     }
                 }
                 if (!newActiveStreamKeys.includes(streamKey)) {
