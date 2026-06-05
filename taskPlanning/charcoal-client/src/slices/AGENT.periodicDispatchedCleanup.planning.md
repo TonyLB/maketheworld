@@ -1,6 +1,6 @@
 # Periodic dispatched cleanup (pending / confirmed correlation) - planning
 
-**Status:** Phase 2 complete. **Next:** Phase 3 -- remove selector-time TTL; pure derivation from storage.
+**Status:** Phase 3 complete. **Next:** Phase 4 -- durable docs and retirement.
 
 This document follows [`taskPlanning/AGENT.md`](../../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting notes live in slice `AGENT.md` files (especially [`charcoal-client/src/slices/AGENT.client-sync-invariants.md`](../../../../charcoal-client/src/slices/AGENT.client-sync-invariants.md), [`charcoal-client/src/slices/dataSource/AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md), [`charcoal-client/src/slices/personalAssets/AGENT.md`](../../../../charcoal-client/src/slices/personalAssets/AGENT.md)).
 
@@ -27,17 +27,17 @@ The real problem being solved is a **millisecond-scale race** between optimistic
 
 ---
 
-## Background (what we are undoing)
+## Background (steady state after Phase 3)
 
-Today (2026-06-05 Phase 3):
+Selector-time TTL has been removed. Selectors are **pure** reads of Redux storage:
 
-- [`selectConfirmedRequestIdStrings`](../../../../charcoal-client/src/slices/dataSource/requestIdTracking.ts) filters `confirmedRequestIds` storage at read time (`Date.now()`, WeakMap cache keyed on exact `now`).
-- [`getEffectivePendingEdits`](../../../../charcoal-client/src/slices/personalAssets/selectors.ts) calls `Date.now()` inside a Reselect combiner and filters by confirmed ids **and** pending age.
-- [`augmentPublicDataForSelect`](../../../../charcoal-client/src/slices/personalAssets/index.ts) injects TTL-derived `confirmedRequestIds` before every wrapped selector read.
+- [`storedConfirmedRequestIdStrings`](../../../../charcoal-client/src/slices/dataSource/requestIdTracking.ts) maps `confirmedRequestIds` storage to id strings (no `Date.now()`). [`getWMLConfirmedRequestIds`](../../../../charcoal-client/src/slices/wmlDataSource/selectors.ts) and factory `getConfirmedRequestIds` use `createSelector` for I1 referential stability.
+- [`getEffectivePendingEdits`](../../../../charcoal-client/src/slices/personalAssets/selectors.ts) filters pending rows by confirmed id only; age eviction is **not** selector-time.
+- [`augmentPublicDataForSelect`](../../../../charcoal-client/src/slices/personalAssets/index.ts) injects storage-derived `confirmedRequestIds`.
 
-Secondary hygiene already exists but was documented as non-primary: [`pendingHygieneCheck`](../../../../charcoal-client/src/slices/personalAssets/index.ts), [`trimStalePendingEdits`](../../../../charcoal-client/src/slices/personalAssets/reducers.ts), lazy trim on [`saveEdit`](../../../../charcoal-client/src/slices/personalAssets/reducers.ts).
+**TTL owners:** dispatched storage GC --- [`pendingHygieneCheck`](../../../../charcoal-client/src/slices/personalAssets/index.ts) (event-driven), lazy trim on [`saveEdit`](../../../../charcoal-client/src/slices/personalAssets/reducers.ts), and [`pruneStaleRequestCorrelation`](../../../../charcoal-client/src/slices/personalAssets/pruneStaleRequestCorrelation.ts) on `LifeLinePubSub` `PeriodicTick` (~30s).
 
-**Keep** the optimistic enqueue + same-tick `afterProcessEnvelope` hygiene path; **retire** selector-time TTL as a correctness backstop.
+**Keep** the optimistic enqueue + same-tick `afterProcessEnvelope` hygiene path; periodic cleanup is **GC**, not the primary confirm path.
 
 ---
 
@@ -175,11 +175,11 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to neste
 
 **Phase 3 -- Remove selector-time TTL**
 
-- [ ] **Pure confirmed ids:** Replace TTL in [`requestIdTracking.ts`](../../../../charcoal-client/src/slices/dataSource/requestIdTracking.ts) / [`getConfirmedRequestIds`](../../../../charcoal-client/src/slices/dataSource/index.ts) with storage map; remove WeakMap cache.
-- [ ] **Pure effective pending:** Remove `Date.now()` from [`personalAssets/selectors.ts`](../../../../charcoal-client/src/slices/personalAssets/selectors.ts) `getEffectivePendingEdits`.
-- [ ] **Thunk call sites:** Update [`saveEdit`](../../../../charcoal-client/src/slices/personalAssets/index.ts) revert guard and [`pendingHygieneCheck`](../../../../charcoal-client/src/slices/personalAssets/index.ts) to use storage confirmed ids.
-- [ ] **Tests:** Update [`selectors.test.ts`](../../../../charcoal-client/src/slices/personalAssets/selectors.test.ts), [`wmlDataSource/index.test.ts`](../../../../charcoal-client/src/slices/wmlDataSource/index.test.ts), [`reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts) --- remove TTL-at-select assertions; add cleanup-thunk TTL assertions.
-- [ ] **I1 tests:** Keep referential stability tests; they should pass without frozen `now` in augment path once selectors are pure.
+- [X] **Pure confirmed ids:** Replace TTL in [`requestIdTracking.ts`](../../../../charcoal-client/src/slices/dataSource/requestIdTracking.ts) / [`getConfirmedRequestIds`](../../../../charcoal-client/src/slices/dataSource/index.ts) with storage map; remove WeakMap cache.
+- [X] **Pure effective pending:** Remove `Date.now()` from [`personalAssets/selectors.ts`](../../../../charcoal-client/src/slices/personalAssets/selectors.ts) `getEffectivePendingEdits`.
+- [X] **Thunk call sites:** Update [`saveEdit`](../../../../charcoal-client/src/slices/personalAssets/index.ts) revert guard and [`pendingHygieneCheck`](../../../../charcoal-client/src/slices/personalAssets/index.ts) to use storage confirmed ids.
+- [X] **Tests:** Update [`selectors.test.ts`](../../../../charcoal-client/src/slices/personalAssets/selectors.test.ts), [`wmlDataSource/index.test.ts`](../../../../charcoal-client/src/slices/wmlDataSource/index.test.ts), [`reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts) --- remove TTL-at-select assertions; add cleanup-thunk TTL assertions.
+- [X] **I1 tests:** Keep referential stability tests; they should pass without frozen `now` in augment path once selectors are pure.
 
 **Phase 4 -- Docs and retirement**
 
@@ -196,7 +196,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to neste
 | `PeriodicTick` on `LifeLinePubSub` + publisher + tests | 0 | Done |
 | Cleanup reducers + orchestration thunk | 1 | Done |
 | Subscriber dispatches cleanup on tick | 2 | Done |
-| Selector-time TTL removed; pure derivation | 3 | Not started |
+| Selector-time TTL removed; pure derivation | 3 | Done |
 | Durable docs updated; task plan disposed | 4 | Not started |
 
 ---

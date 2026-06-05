@@ -17,8 +17,8 @@ describe('storedConfirmedRequestIdStrings', () => {
         ])).toEqual(['req-a', 'req-b'])
     })
 
-    it('returns empty array for undefined rows', () => {
-        expect(storedConfirmedRequestIdStrings(undefined)).toEqual([])
+    it('returns STABLE_EMPTY for empty rows', () => {
+        expect(storedConfirmedRequestIdStrings([])).toEqual([])
     })
 })
 

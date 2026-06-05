@@ -4,7 +4,7 @@ import { createDataSourceSlice } from './index'
 import { applyEvents, performCleanup, processEnvelope, pruneStaleConfirmedRequestIds } from './reducers'
 import {
     CONFIRMED_TTL_MS,
-    selectConfirmedRequestIdStrings
+    storedConfirmedRequestIdStrings
 } from './requestIdTracking'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import type { RecentEventEnvelope, RequestIdTrackingConfig } from './baseClasses'
@@ -951,54 +951,53 @@ describe('dataSource reducers', () => {
         })
     })
 
-    describe('selectConfirmedRequestIds / getConfirmedRequestIds', () => {
-        it('includes ids within the confirmed TTL window', () => {
-            const now = 100_000
-            const rows = [{ id: 'fresh', seenAt: now - CONFIRMED_TTL_MS + 1 }]
-            expect(selectConfirmedRequestIdStrings(rows, now)).toEqual(['fresh'])
-        })
-
-        it('excludes ids at or beyond the confirmed TTL window', () => {
-            const now = CONFIRMED_TTL_MS
-            const rows = [{ id: 'stale', seenAt: 0 }]
-            expect(selectConfirmedRequestIdStrings(rows, now)).toEqual([])
-        })
-
-        it('excludes ids exactly at the TTL boundary', () => {
-            const now = CONFIRMED_TTL_MS
-            const rows = [{ id: 'boundary', seenAt: 0 }]
-            expect(now - rows[0].seenAt).toBe(CONFIRMED_TTL_MS)
-            expect(selectConfirmedRequestIdStrings(rows, now)).toEqual([])
-        })
-
-        it('honors a custom confirmedTtlMs', () => {
-            const customTtl = 60_000
-            const now = 100_000
+    describe('storedConfirmedRequestIdStrings / getConfirmedRequestIds', () => {
+        it('maps all storage rows to id strings', () => {
             const rows = [
-                { id: 'inside', seenAt: now - customTtl + 1 },
-                { id: 'outside', seenAt: now - customTtl }
+                { id: 'fresh', seenAt: 99_999 },
+                { id: 'stale', seenAt: 0 }
             ]
-            expect(selectConfirmedRequestIdStrings(rows, now, customTtl)).toEqual(['inside'])
+            expect(storedConfirmedRequestIdStrings(rows)).toEqual(['fresh', 'stale'])
         })
 
-        it('returns an empty array for undefined rows', () => {
-            expect(selectConfirmedRequestIdStrings(undefined, 0)).toEqual([])
+        it('returns STABLE_EMPTY for undefined rows', () => {
+            expect(storedConfirmedRequestIdStrings(undefined)).toEqual([])
         })
 
-        it('returns same reference on double read with unchanged storage and fixed now (I1)', () => {
-            const now = CONFIRMED_TTL_MS
+        it('returns same reference on double read with unchanged storage (I1)', () => {
             const rows = [
-                { id: 'req-a', seenAt: now - 1 },
-                { id: 'req-b', seenAt: now - 2 }
+                { id: 'req-a', seenAt: 1 },
+                { id: 'req-b', seenAt: 2 }
             ]
-            const first = selectConfirmedRequestIdStrings(rows, now)
-            const second = selectConfirmedRequestIdStrings(rows, now)
+            const { getConfirmedRequestIds } = createDataSourceSlice({
+                name: 'trackingDataSource',
+                dataSourceKey: 'test.tracking',
+                aggregator: mockAggregator,
+                eventSerializer: {
+                    serialize: (params) => params.content as any,
+                    deserialize: async (params) => params.content
+                },
+                sliceSelector: (state) => state.trackingDataSource,
+                requestIdTracking: { headerField: 'RequestIds' }
+            })
+
+            const state = {
+                trackingDataSource: {
+                    publicData: {
+                        subscribedStreams: {
+                            stream1: { confirmedRequestIds: rows }
+                        }
+                    }
+                }
+            }
+
+            const first = getConfirmedRequestIds!(state, 'stream1')
+            const second = getConfirmedRequestIds!(state, 'stream1')
             expect(second).toBe(first)
+            expect(first).toEqual(['req-a', 'req-b'])
         })
 
-        it('filters stale storage rows via getConfirmedRequestIds while fresh ids remain', () => {
-            const staleSeenAt = 0
-            const freshSeenAt = CONFIRMED_TTL_MS - 1
+        it('returns all storage ids via getConfirmedRequestIds including stale rows', () => {
             const now = CONFIRMED_TTL_MS
             const { getConfirmedRequestIds } = createDataSourceSlice({
                 name: 'trackingDataSource',
@@ -1018,8 +1017,8 @@ describe('dataSource reducers', () => {
                         subscribedStreams: {
                             stream1: {
                                 confirmedRequestIds: [
-                                    { id: 'stale', seenAt: staleSeenAt },
-                                    { id: 'fresh', seenAt: freshSeenAt }
+                                    { id: 'stale', seenAt: 0 },
+                                    { id: 'fresh', seenAt: now - 1 }
                                 ]
                             }
                         }
@@ -1027,7 +1026,7 @@ describe('dataSource reducers', () => {
                 }
             }
 
-            expect(getConfirmedRequestIds!(state, 'stream1', now)).toEqual(['fresh'])
+            expect(getConfirmedRequestIds!(state, 'stream1')).toEqual(['stale', 'fresh'])
             expect(
                 state.trackingDataSource.publicData.subscribedStreams.stream1.confirmedRequestIds
             ).toHaveLength(2)
@@ -1046,7 +1045,7 @@ describe('dataSource reducers', () => {
                 requestIdTracking: { headerField: 'RequestIds' }
             })
 
-            expect(getConfirmedRequestIds!({ trackingDataSource: { publicData: { subscribedStreams: {} } } }, 'missing', 0)).toEqual([])
+            expect(getConfirmedRequestIds!({ trackingDataSource: { publicData: { subscribedStreams: {} } } }, 'missing')).toEqual([])
         })
     })
 })

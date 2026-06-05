@@ -105,8 +105,7 @@ describe('wmlDataSource slice', () => {
       expect(getWMLConfirmedRequestIds(state, 'ASSET#test')).toEqual([])
     })
 
-    it('should return ids within TTL and exclude stale rows when now is injected', () => {
-      const now = CONFIRMED_TTL_MS
+    it('should return all stored ids including stale rows', () => {
       const state = {
         wmlDataSource: {
           publicData: {
@@ -120,18 +119,17 @@ describe('wmlDataSource slice', () => {
                 recentEvents: [],
                 confirmedRequestIds: [
                   { id: 'stale', seenAt: 0 },
-                  { id: 'fresh', seenAt: now - 1 }
+                  { id: 'fresh', seenAt: CONFIRMED_TTL_MS - 1 }
                 ]
               }
             }
           }
         }
       }
-      expect(getWMLConfirmedRequestIds(state, 'ASSET#test', now)).toEqual(['fresh'])
+      expect(getWMLConfirmedRequestIds(state, 'ASSET#test')).toEqual(['stale', 'fresh'])
     })
 
-    it('returns same reference on double read with unchanged storage and fixed now (I1)', () => {
-      const now = CONFIRMED_TTL_MS
+    it('returns same reference on double read with unchanged storage (I1)', () => {
       const state = {
         wmlDataSource: {
           publicData: {
@@ -144,16 +142,16 @@ describe('wmlDataSource slice', () => {
                 },
                 recentEvents: [],
                 confirmedRequestIds: [
-                  { id: 'req-a', seenAt: now - 1 },
-                  { id: 'req-b', seenAt: now - 2 }
+                  { id: 'req-a', seenAt: 1 },
+                  { id: 'req-b', seenAt: 2 }
                 ]
               }
             }
           }
         }
       }
-      const first = getWMLConfirmedRequestIds(state, 'ASSET#test', now)
-      const second = getWMLConfirmedRequestIds(state, 'ASSET#test', now)
+      const first = getWMLConfirmedRequestIds(state, 'ASSET#test')
+      const second = getWMLConfirmedRequestIds(state, 'ASSET#test')
       expect(second).toBe(first)
     })
   })

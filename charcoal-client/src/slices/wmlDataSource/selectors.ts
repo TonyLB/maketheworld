@@ -1,6 +1,7 @@
+import { createSelector } from '@reduxjs/toolkit'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
-import { getConfirmedRequestIds } from './index'
+import { storedConfirmedRequestIdStrings } from '../dataSource'
 
 /**
  * Get the materialized WML view (base) for a given asset from the WML dataSource slice.
@@ -29,15 +30,15 @@ export function getWMLBaseStandardForm(state: any, assetId: string): StandardFor
   }
 }
 
+const selectWMLConfirmedRequestIdRows = (state: any, assetId: string) =>
+  state?.wmlDataSource?.publicData?.subscribedStreams?.[assetId]?.confirmedRequestIds
+
 /**
- * Confirmed applyEdit RequestIds for an asset (stream key), with 5m selector TTL.
+ * Confirmed applyEdit RequestIds for an asset (stream key), derived from storage.
  * Cross-slice consumers (e.g. personalAssets getEffectivePendingEdits) should use this,
- * not raw confirmedRequestIds storage.
+ * not raw confirmedRequestIds storage. TTL eviction is dispatched cleanup, not selector-time.
  */
-export function getWMLConfirmedRequestIds(
-  state: any,
-  assetId: string,
-  now?: number
-): string[] {
-  return getConfirmedRequestIds(state, assetId, now)
-}
+export const getWMLConfirmedRequestIds = createSelector(
+  [selectWMLConfirmedRequestIdRows],
+  (rows) => storedConfirmedRequestIdStrings(rows)
+)

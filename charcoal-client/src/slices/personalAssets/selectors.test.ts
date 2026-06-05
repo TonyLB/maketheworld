@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { getBase, getEffectivePendingEdits, getLocalStandardForm, getStandardForm } from '.'
 import { selectEffectivePendingEdits } from './selectors'
-import { PENDING_TTL_MS, CONFIRMED_TTL_MS } from '../dataSource'
+import { CONFIRMED_TTL_MS } from '../dataSource'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { Schema } from '@tonylb/mtw-wml/ts/schema'
@@ -164,14 +164,6 @@ describe('personalAssets selectors', () => {
     const VORTEX_ID = 'ROOM#vortex' as ComponentUUID
     const NOW = 1_000_000
 
-    beforeEach(() => {
-      vi.setSystemTime(NOW)
-    })
-
-    afterEach(() => {
-      vi.useRealTimers()
-    })
-
     const editWithVortexShortName = wmlToJSON(`
       <Asset uuid=(assetC)>
         <Room uuid=(vortex) ref={0}><ShortName>Cliff Base</ShortName></Room>
@@ -220,19 +212,9 @@ describe('personalAssets selectors', () => {
         pendingRow('req-a', NOW),
         pendingRow('req-b', NOW)
       ]
-      const effective = selectEffectivePendingEdits(pendingEdits, ['req-a'], NOW)
+      const effective = selectEffectivePendingEdits(pendingEdits, ['req-a'])
       expect(effective).toHaveLength(1)
       expect(effective[0].meta.key).toBe('req-b')
-    })
-
-    it('selectEffectivePendingEdits excludes pending older than PENDING_TTL_MS', () => {
-      const pendingEdits = [
-        pendingRow('stale', NOW - PENDING_TTL_MS),
-        pendingRow('fresh', NOW - PENDING_TTL_MS + 1)
-      ]
-      const effective = selectEffectivePendingEdits(pendingEdits, [], NOW)
-      expect(effective).toHaveLength(1)
-      expect(effective[0].meta.key).toBe('fresh')
     })
 
     it('getEffectivePendingEdits via augment excludes confirmed ids from wmlDataSource', () => {

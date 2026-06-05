@@ -135,23 +135,23 @@ describe('periodicCleanupSubscriber', () => {
         ])
     })
 
-    it('preserves active-row selector semantics before and after tick', () => {
+    it('preserves effective pending for active rows and prunes stale storage on tick', () => {
         const store = createStore(fullCleanupFixture())
         registerPeriodicCleanupSubscriber(store.dispatch)
 
         const effectiveBefore = getEffectivePendingEdits(ASSET_ID)(store.getState())
         const confirmedBefore = getWMLConfirmedRequestIds(store.getState(), ASSET_ID)
 
+        expect(effectiveBefore?.map((row) => row.meta.key)).toEqual(['stale-pending', 'fresh'])
+        expect(confirmedBefore).toEqual(['confirmed', 'stale-confirmed', 'fresh-confirmed'])
+
         LifeLinePubSub.publish({ messageType: 'PeriodicTick', now: NOW })
 
         const effectiveAfter = getEffectivePendingEdits(ASSET_ID)(store.getState())
         const confirmedAfter = getWMLConfirmedRequestIds(store.getState(), ASSET_ID)
 
-        expect(effectiveAfter?.map((row) => row.meta.key)).toEqual(
-            effectiveBefore?.map((row) => row.meta.key)
-        )
-        expect(confirmedAfter).toEqual(confirmedBefore)
         expect(effectiveAfter?.map((row) => row.meta.key)).toEqual(['fresh'])
+        expect(confirmedAfter).toEqual(['confirmed', 'fresh-confirmed'])
     })
 
     describe('periodic tick publisher path', () => {

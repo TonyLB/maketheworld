@@ -13,8 +13,7 @@ import {
 
 export type GetConfirmedRequestIds = (
   state: any,
-  streamKey: string,
-  now?: number
+  streamKey: string
 ) => string[]
 
 type AfterProcessEnvelopeConsumer = (
