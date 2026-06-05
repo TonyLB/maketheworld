@@ -173,12 +173,21 @@ When storage semantics are unchanged **and** `now` is unchanged between reads, d
 
 ## Verification
 
+### Automated
+
 ```bash
 cd charcoal-client
 npm run test:single -- src/slices/personalAssets/selectors.test.ts
 npm run test:single -- src/slices/wmlDataSource/index.test.ts
+npm run test:single -- src/slices/personalAssets/pendingHygiene.test.ts
 npm run test:single -- src/components/Workbench/foundations/StandardRender/StandardRenderEditor.test.tsx
 npm run test:single -- src/components/Workbench/foundations/DefaultRenderEditor.test.tsx
+npm run test:single -- src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.test.tsx
 ```
 
-I1 referential-stability tests in `selectors.test.ts` and `wmlDataSource/index.test.ts` are enforced (`it`). I3/I5 editor tests assert bounded work in bounded churn iterations. Area -> Room with `debounce={false}` verified manually (2026-06-05).
+I1 referential-stability tests in `selectors.test.ts` and `wmlDataSource/index.test.ts` are enforced (`it`). I3/I5 editor tests assert bounded work in bounded churn iterations. Pending overlay doubling is covered in `selectors.test.ts` and `pendingHygiene.test.ts`.
+
+### Manual verification
+
+- Area -> Room navigation with `debounce={false}` on a Draft asset (2026-06-05).
+- Edit -> flush -> stream confirm: no doubled `shortName` / overlay in Workbench UI (see [personalAssets/AGENT.md](./personalAssets/AGENT.md) **Optimistic persist flow** race fix; verified 2026-06-05).
