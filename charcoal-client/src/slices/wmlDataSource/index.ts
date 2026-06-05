@@ -64,7 +64,8 @@ export const {
 } = wmlDataSourceSelectors
 
 export const {
-  processEnvelope
+  processEnvelope,
+  pruneStaleConfirmedRequestIds
 } = wmlDataSourceActions
 
 export * from './selectors'

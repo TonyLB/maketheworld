@@ -32,6 +32,7 @@ Uses `createDataSourceSlice` with `dataSourceKey: 'mtw.wml'`:
 - **Aggregator**: WMLAggregator (createEmpty, applyUpdate for Content Update; Merge Conflict leaves view unchanged)
 - **Serializer**: WMLDataSourceEventSerializer with `createBrowserDataSourceEnvironment()`; handles sidecar resolution internally
 - **requestIdTracking**: `{ headerField: 'RequestIds' }` --- persists confirmed correlation ids per subscribed stream
+- **pruneStaleConfirmedRequestIds**: public reducer (when `requestIdTracking` enabled) --- dispatched storage GC for stale `confirmedRequestIds`; skips ids with live pending keys (oscillation invariant). Exported from [index.ts](./index.ts) alongside `processEnvelope`. Selector-time TTL on `getWMLConfirmedRequestIds` remains until Phase 3.
 - **afterProcessEnvelope**: delegates to `registerWmlAfterProcessEnvelopeConsumer` callback; personalAssets registers `pendingHygieneCheck` at module load (valid asset UUID `streamKey` only)
 
 ### Relationship to personalAssets

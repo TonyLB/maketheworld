@@ -82,3 +82,59 @@ export const selectConfirmedRequestIdStrings = (
     confirmedIdsCacheByRows.set(rows, { now, ttl: confirmedTtlMs, result })
     return result
 }
+
+/** Map raw storage rows to id strings (no TTL filter). */
+export const storedConfirmedRequestIdStrings = (
+    rows: ConfirmedRequestId[] | undefined
+): string[] => (rows ?? []).map(({ id }) => id)
+
+export type PendingEditRow = {
+    meta: { key: string; time: number }
+}
+
+/**
+ * Storage GC for pendingEdits: clear by confirmed ids, then trim by age.
+ * Uses a `.some` fast-path before `.filter` so no-op periodic cleanup (the common
+ * case) returns the original array reference without allocating a throwaway copy.
+ * Trade-off: when rows are actually removed, we scan twice (some + filter).
+ */
+export const prunePendingEditsStorage = <T extends PendingEditRow>(
+    pendingEdits: T[],
+    { now, confirmedIds }: { now: number; confirmedIds?: string[] }
+): T[] => {
+    const confirmedSet = confirmedIds?.length ? new Set(confirmedIds) : null
+    const wouldPrune = pendingEdits.some(
+        ({ meta }) => confirmedSet?.has(meta.key) || now - meta.time >= PENDING_TTL_MS
+    )
+    if (!wouldPrune) {
+        return pendingEdits
+    }
+    return pendingEdits.filter(({ meta }) => {
+        if (confirmedSet?.has(meta.key)) {
+            return false
+        }
+        return now - meta.time < PENDING_TTL_MS
+    })
+}
+
+/**
+ * Storage GC for confirmedRequestIds; retains rows with live pending keys (oscillation invariant).
+ * Same `.some` fast-path as prunePendingEditsStorage: no allocation on no-op, double scan when pruning.
+ */
+export const pruneStaleConfirmedRequestIdRows = (
+    rows: ConfirmedRequestId[],
+    now: number,
+    confirmedTtlMs: number,
+    pendingKeys: Iterable<string>
+): ConfirmedRequestId[] => {
+    const pendingSet = pendingKeys instanceof Set ? pendingKeys : new Set(pendingKeys)
+    const wouldPrune = rows.some(
+        ({ id, seenAt }) => !pendingSet.has(id) && now - seenAt >= confirmedTtlMs
+    )
+    if (!wouldPrune) {
+        return rows
+    }
+    return rows.filter(({ id, seenAt }) =>
+        pendingSet.has(id) || now - seenAt < confirmedTtlMs
+    )
+}

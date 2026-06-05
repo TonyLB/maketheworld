@@ -456,12 +456,14 @@ When enabled, per `subscribedStreams[streamKey]` store `confirmedRequestIds: Arr
 
 | Module | Role |
 | --- | --- |
-| [`requestIdTracking.ts`](./requestIdTracking.ts) | TTL constants; `extractConfirmedIdsFromHeader`, `appendConfirmedRequestIds`, `selectConfirmedRequestIdStrings` |
-| [`reducers.ts`](./reducers.ts) | `buildStreamUpdate` appends ids in the same `processEnvelope` pass as aggregator |
+| [`requestIdTracking.ts`](./requestIdTracking.ts) | TTL constants; `extractConfirmedIdsFromHeader`, `appendConfirmedRequestIds`, `selectConfirmedRequestIdStrings`; storage GC helpers `storedConfirmedRequestIdStrings`, `prunePendingEditsStorage`, `pruneStaleConfirmedRequestIdRows` |
+| [`reducers.ts`](./reducers.ts) | `buildStreamUpdate` appends ids in the same `processEnvelope` pass as aggregator; `pruneStaleConfirmedRequestIds` when tracking enabled |
 | [`index.ts`](./index.ts) | Conditional `getConfirmedRequestIds`; re-exports `PENDING_TTL_MS`, `CONFIRMED_TTL_MS`, `STABLE_EMPTY_CONFIRMED_IDS` |
 | [`index.api.ts`](./index.api.ts) | Subscribe init includes `confirmedRequestIds: []` when tracking enabled |
 
 **`seenAt`:** Envelope `timestamp` from the dispatched action (not `Date.now()`), matching the pure-timestamp pattern used by `performCleanup`.
+
+**Dispatched storage GC (Phase 1):** When `requestIdTracking` is enabled, `pruneStaleConfirmedRequestIds` removes stale rows from `confirmedRequestIds` storage (injectable `now`, default `CONFIRMED_TTL_MS`). Skips any id present in `pendingKeys` (oscillation invariant). Selector-time TTL on `getConfirmedRequestIds` / `selectConfirmedRequestIdStrings` remains load-bearing until Phase 3 removes it; periodic cleanup is orchestrated by `personalAssets.pruneStaleRequestCorrelation` (Phase 2 wires it to `LifeLinePubSub` `PeriodicTick`).
 
 **Normalization (storage always `{ id, seenAt }[]`):**
 

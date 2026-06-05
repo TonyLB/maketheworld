@@ -42,6 +42,7 @@ import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList
 import type { ScopedInstrumentationOptions } from '../../testing/scopedInstrumentation'
 import { getWMLBase, getWMLConfirmedRequestIds } from '../wmlDataSource/selectors'
 import { registerWmlAfterProcessEnvelopeConsumer } from '../wmlDataSource'
+import { createPruneStaleRequestCorrelation, type PruneStaleRequestCorrelationDeps } from './pruneStaleRequestCorrelation'
 import type { StreamEventDeserializedPayload } from '../dataSource/streamEventPubSub'
 import { createSelector } from '@reduxjs/toolkit'
 import { derivePerspectiveForRoom } from '../../lib/perspectiveFromOrigins'
@@ -426,6 +427,11 @@ registerWmlAfterProcessEnvelopeConsumer((dispatch: any, _getState: any, payload:
         return
     }
     dispatch(pendingHygieneCheck(payload.streamKey, payload))
+})
+
+export const pruneStaleRequestCorrelation = createPruneStaleRequestCorrelation({
+    publicActions: publicActions as PruneStaleRequestCorrelationDeps['publicActions'],
+    getPendingEdits
 })
 
 // type PersonalAssetsSlice = multipleSSMSlice<PersonalAssetsNodes>

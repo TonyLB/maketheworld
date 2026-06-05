@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import produce from 'immer'
 import { createDataSourceSlice } from './index'
-import { applyEvents, performCleanup, processEnvelope } from './reducers'
+import { applyEvents, performCleanup, processEnvelope, pruneStaleConfirmedRequestIds } from './reducers'
 import {
     CONFIRMED_TTL_MS,
     selectConfirmedRequestIdStrings
@@ -876,6 +876,78 @@ describe('dataSource reducers', () => {
                 { id: 'old', seenAt: 1 },
                 { id: 'new', seenAt: 20000 }
             ])
+        })
+    })
+
+    describe('pruneStaleConfirmedRequestIds', () => {
+        const NOW = 1_000_000
+        const pruneReducer = pruneStaleConfirmedRequestIds(CONFIRMED_TTL_MS)
+
+        const stateWithConfirmed = (confirmedRequestIds: Array<{ id: string; seenAt: number }>) => ({
+            subscribedStreams: {
+                stream1: {
+                    materializedView: { type: 'Snapshot' as const, items: ['a'] },
+                    recentEvents: [],
+                    confirmedRequestIds
+                }
+            }
+        })
+
+        it('removes confirmed rows older than CONFIRMED_TTL_MS', () => {
+            const initial = stateWithConfirmed([
+                { id: 'stale', seenAt: NOW - CONFIRMED_TTL_MS },
+                { id: 'fresh', seenAt: NOW - CONFIRMED_TTL_MS + 1 }
+            ])
+            const newState = produce(initial, (draft) => {
+                pruneReducer(draft, {
+                    type: 'pruneStaleConfirmedRequestIds',
+                    payload: { streamKey: 'stream1', now: NOW, pendingKeys: [] }
+                })
+            })
+            expect(newState.subscribedStreams.stream1.confirmedRequestIds).toEqual([
+                { id: 'fresh', seenAt: NOW - CONFIRMED_TTL_MS + 1 }
+            ])
+        })
+
+        it('retains stale confirmed row when pending key matches (oscillation invariant)', () => {
+            const staleRow = { id: 'req-a', seenAt: NOW - CONFIRMED_TTL_MS }
+            const initial = stateWithConfirmed([staleRow])
+            const newState = produce(initial, (draft) => {
+                pruneReducer(draft, {
+                    type: 'pruneStaleConfirmedRequestIds',
+                    payload: { streamKey: 'stream1', now: NOW, pendingKeys: ['req-a'] }
+                })
+            })
+            expect(newState.subscribedStreams.stream1.confirmedRequestIds).toEqual([staleRow])
+        })
+
+        it('no-ops when stream is missing', () => {
+            const initial = { subscribedStreams: {} }
+            const newState = produce(initial, (draft) => {
+                pruneReducer(draft, {
+                    type: 'pruneStaleConfirmedRequestIds',
+                    payload: { streamKey: 'missing', now: NOW, pendingKeys: [] }
+                })
+            })
+            expect(newState.subscribedStreams).toEqual({})
+        })
+
+        it('no-ops when confirmedRequestIds is undefined', () => {
+            const initial = {
+                subscribedStreams: {
+                    stream1: {
+                        materializedView: { type: 'Snapshot' as const, items: ['a'] },
+                        recentEvents: []
+                    }
+                }
+            }
+            const newState = produce(initial, (draft) => {
+                pruneReducer(draft, {
+                    type: 'pruneStaleConfirmedRequestIds',
+                    payload: { streamKey: 'stream1', now: NOW, pendingKeys: [] }
+                })
+            })
+            expect(newState.subscribedStreams.stream1).not.toHaveProperty('confirmedRequestIds')
         })
     })
 

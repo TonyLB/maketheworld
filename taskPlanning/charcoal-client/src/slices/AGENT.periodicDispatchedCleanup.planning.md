@@ -1,6 +1,6 @@
 # Periodic dispatched cleanup (pending / confirmed correlation) - planning
 
-**Status:** Phase 0 complete. **Next:** Phase 1 -- dispatched cleanup reducers and orchestration thunk (`pruneStaleRequestCorrelation`).
+**Status:** Phase 1 complete. **Next:** Phase 2 -- register `LifeLinePubSub` subscriber to dispatch `pruneStaleRequestCorrelation` on `PeriodicTick`.
 
 This document follows [`taskPlanning/AGENT.md`](../../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting notes live in slice `AGENT.md` files (especially [`charcoal-client/src/slices/AGENT.client-sync-invariants.md`](../../../../charcoal-client/src/slices/AGENT.client-sync-invariants.md), [`charcoal-client/src/slices/dataSource/AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md), [`charcoal-client/src/slices/personalAssets/AGENT.md`](../../../../charcoal-client/src/slices/personalAssets/AGENT.md)).
 
@@ -163,10 +163,10 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to neste
 
 **Phase 1 -- Dispatched cleanup reducers**
 
-- [ ] **Confirmed prune reducer:** Add `pruneStaleConfirmedRequestIds` (name TBD) on `wmlDataSource` / `dataSource` stream state --- respects **oscillation invariant** (skip ids with live pending row).
-- [ ] **Pending prune reducer:** Reuse or extend [`trimStalePendingEdits`](../../../../charcoal-client/src/slices/personalAssets/reducers.ts); add step to clear pending by confirmed ids before age trim.
-- [ ] **Orchestration thunk:** `pruneStaleRequestCorrelation(getState, dispatch, { now })` walking open `personalAssets` keys and subscribed wml streams (or only assets with pending/confirmed rows).
-- [ ] **Reducer/thunk tests:** Characterization tests with injectable `now`; cover oscillation invariant explicitly.
+- [X] **Confirmed prune reducer:** Add `pruneStaleConfirmedRequestIds` (name TBD) on `wmlDataSource` / `dataSource` stream state --- respects **oscillation invariant** (skip ids with live pending row).
+- [X] **Pending prune reducer:** Reuse or extend [`trimStalePendingEdits`](../../../../charcoal-client/src/slices/personalAssets/reducers.ts); add step to clear pending by confirmed ids before age trim.
+- [X] **Orchestration thunk:** `pruneStaleRequestCorrelation(getState, dispatch, { now })` walking open `personalAssets` keys and subscribed wml streams (or only assets with pending/confirmed rows).
+- [X] **Reducer/thunk tests:** Characterization tests with injectable `now`; cover oscillation invariant explicitly.
 
 **Phase 2 -- Subscribe cleanup handler**
 
@@ -194,7 +194,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to neste
 | --- | --- | --- |
 | Problem framing + architecture direction | n/a | Done (this doc) |
 | `PeriodicTick` on `LifeLinePubSub` + publisher + tests | 0 | Done |
-| Cleanup reducers + orchestration thunk | 1 | Not started |
+| Cleanup reducers + orchestration thunk | 1 | Done |
 | Subscriber dispatches cleanup on tick | 2 | Not started |
 | Selector-time TTL removed; pure derivation | 3 | Not started |
 | Durable docs updated; task plan disposed | 4 | Not started |
@@ -225,10 +225,11 @@ npm run test:single -- src/slices/lifeLine/periodicTick.test.ts
 
 ```bash
 cd charcoal-client
+npm run test:single -- src/slices/dataSource/requestIdTracking.test.ts
 npm run test:single -- src/slices/personalAssets/pendingHygiene.test.ts
 npm run test:single -- src/slices/personalAssets/reducers.test.ts
 npm run test:single -- src/slices/dataSource/reducers.test.ts
-# Add path for new prune/correlation tests when files exist
+npm run test:single -- src/slices/personalAssets/pruneStaleRequestCorrelation.test.ts
 ```
 
 **Phase 3 (regression suite from client-sync invariants)**

@@ -1,11 +1,18 @@
 import { PayloadAction } from '@reduxjs/toolkit'
+import type { Draft } from 'immer'
 import type { EventPayload, SerializableObject, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
-import type { RecentEventEnvelope, RequestIdTrackingConfig } from './baseClasses'
+import type { DataSourcePublic, RecentEventEnvelope, RequestIdTrackingConfig } from './baseClasses'
 import type { StreamEventDeserializedPayload } from './streamEventPubSub'
-import { appendConfirmedRequestIds, extractConfirmedIdsFromHeader } from './requestIdTracking'
+import { appendConfirmedRequestIds, extractConfirmedIdsFromHeader, pruneStaleConfirmedRequestIdRows } from './requestIdTracking'
 
 const SNAPSHOT_HEADER_TYPE = 'Snapshot'
+
+/** publicData fields touched by pruneStaleConfirmedRequestIds */
+type PruneConfirmedRequestIdsState = Pick<
+    DataSourcePublic<SerializableObject, EventPayload>,
+    'subscribedStreams'
+>
 
 type StreamStateUpdate<
     SnapshotPayload extends SerializableObject,
@@ -257,4 +264,22 @@ export const processEnvelope = <
             )
         }
     }
+}
+
+export const pruneStaleConfirmedRequestIds = (confirmedTtlMs: number) => (
+    state: Draft<PruneConfirmedRequestIdsState>,
+    action: PayloadAction<{ streamKey: string; now?: number; pendingKeys?: string[] }>
+) => {
+    const { streamKey, pendingKeys = [] } = action.payload
+    const now = action.payload.now ?? Date.now()
+    const stream = state.subscribedStreams[streamKey]
+    if (!stream?.confirmedRequestIds) {
+        return
+    }
+    stream.confirmedRequestIds = pruneStaleConfirmedRequestIdRows(
+        stream.confirmedRequestIds,
+        now,
+        confirmedTtlMs,
+        pendingKeys
+    )
 }

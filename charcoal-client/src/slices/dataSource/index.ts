@@ -8,10 +8,10 @@ import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import type { DataSourceEventSerializer, EventPayload, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
-import { applyEvents, performCleanup, processEnvelope } from './reducers'
+import { applyEvents, performCleanup, processEnvelope, pruneStaleConfirmedRequestIds } from './reducers'
 import { CONFIRMED_TTL_MS, selectConfirmedRequestIdStrings } from './requestIdTracking'
 
-export { PENDING_TTL_MS, CONFIRMED_TTL_MS, STABLE_EMPTY_CONFIRMED_IDS } from './requestIdTracking'
+export { PENDING_TTL_MS, CONFIRMED_TTL_MS, STABLE_EMPTY_CONFIRMED_IDS, storedConfirmedRequestIdStrings, prunePendingEditsStorage } from './requestIdTracking'
 import type { ISSMHoldCondition } from '../stateSeekingMachine/baseClasses'
 
 //
@@ -177,7 +177,14 @@ export const createDataSourceSlice = <
                 performCleanupWithConfig,
                 applyEventsWithAggregator,
                 requestIdTracking
-            )
+            ),
+            ...(requestIdTracking
+                ? {
+                    pruneStaleConfirmedRequestIds: pruneStaleConfirmedRequestIds(
+                        requestIdTracking.confirmedTtlMs ?? CONFIRMED_TTL_MS
+                    )
+                }
+                : {})
         },
         publicSelectors: {
             getActiveStreamKeys: (state) => state.activeStreamKeys,
