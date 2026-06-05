@@ -6,7 +6,8 @@ import {
   unsubscribeFromWmlDataSource,
   getActiveStreamKeys,
   getSubscribedStreams,
-  processEnvelope
+  processEnvelope,
+  registerWmlAfterProcessEnvelopeConsumer
 } from './index'
 import { getWMLBase, getWMLConfirmedRequestIds } from './selectors'
 import { CONFIRMED_TTL_MS } from '../dataSource'
@@ -40,6 +41,11 @@ describe('wmlDataSource slice', () => {
 
     it('should export processEnvelope', () => {
       expect(processEnvelope).toBeDefined()
+    })
+
+    it('should export registerWmlAfterProcessEnvelopeConsumer', () => {
+      expect(registerWmlAfterProcessEnvelopeConsumer).toBeDefined()
+      expect(typeof registerWmlAfterProcessEnvelopeConsumer).toBe('function')
     })
   })
 

@@ -1,6 +1,6 @@
 # RequestId tracking and pending-edit derivation (wmlDataSource + personalAssets)
 
-**Status:** Phase 4a slice 1 complete (`afterProcessEnvelope` factory hook). **Next:** Phase 4a slice 2 (pending hygiene thunk + wml wiring), then band-aid rollback.
+**Status:** Phase 4a slice 2 complete (`pendingHygieneCheck` + wml `afterProcessEnvelope` wiring). **Next:** Phase 4b (lazy purge on `saveEdit`, band-aid rollback). `subscribeFirst` band-aid still active until 4b.
 
 Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md) once for durability rules (this file is task-scoped; delete after merge). Client test commands: [`taskPlanning/charcoal-client/AGENT.development.md`](../../../AGENT.development.md).
 
@@ -406,10 +406,10 @@ Complete [Recorded changes](#recorded-changes-2026-06-04-working-tree) category 
 - [X] Add opt-in `afterProcessEnvelope?` to `DataSourceSliceConfig` in [`dataSource/index.ts`](../../../../charcoal-client/src/slices/dataSource/index.ts) (parallel to `onReady`; receives `dispatch`, `getState`, full `StreamEventDeserializedPayload`)
 - [X] Thread callback through `createDataSourceSlice` -> `createInitializeAction` in [`dataSource/index.api.ts`](../../../../charcoal-client/src/slices/dataSource/index.api.ts): invoke **after** `dispatch(processEnvelope(payload))` in the StreamEventPubSub subscriber
 - [X] Factory tests in [`dataSource/index.test.ts`](../../../../charcoal-client/src/slices/dataSource/index.test.ts): callback runs when configured; omitted when not; `getState()` after invoke sees reducer commit (mock reducer or spy dispatch order)
-- [ ] Add `pendingHygieneCheck(assetId, envelope)` thunk in [`personalAssets/index.ts`](../../../../charcoal-client/src/slices/personalAssets/index.ts): clear raw `pendingEdits` by effective confirmed RequestIds (`getWMLConfirmedRequestIds`); TTL-trim stale rows; Merge Conflict toast (pre-clear pending snapshot + `header.type`); fold or replace [`receiveWMLEvent`](../../../../charcoal-client/src/slices/personalAssets/index.ts) clear/toast paths
-- [ ] `revertSaveEdit` confirmed guard: no-op when `requestId` is already in effective confirmed set (not only when physical row missing)
-- [ ] Wire [`wmlDataSource/index.ts`](../../../../charcoal-client/src/slices/wmlDataSource/index.ts) `afterProcessEnvelope` to dispatch `pendingHygieneCheck(payload.streamKey, payload)` when `streamKey` is a valid asset UUID
-- [ ] Tests: hygiene clears confirmed pending + drops saving indicator; Merge Conflict toast when pending matched; TTL trim; ordering --- wml `processEnvelope` then hygiene (no doubling in `getLocalStandardForm`); extend [`reducers.test.ts`](../../../../charcoal-client/src/slices/personalAssets/reducers.test.ts) / [`selectors.test.ts`](../../../../charcoal-client/src/slices/personalAssets/selectors.test.ts) as needed
+- [X] Add `pendingHygieneCheck(assetId, envelope)` thunk in [`personalAssets/index.ts`](../../../../charcoal-client/src/slices/personalAssets/index.ts): clear raw `pendingEdits` by effective confirmed RequestIds (`getWMLConfirmedRequestIds`); TTL-trim stale rows; Merge Conflict toast (pre-clear pending snapshot + `header.type`); fold or replace [`receiveWMLEvent`](../../../../charcoal-client/src/slices/personalAssets/index.ts) clear/toast paths
+- [X] `revertSaveEdit` confirmed guard: no-op when `requestId` is already in effective confirmed set (not only when physical row missing)
+- [X] Wire [`wmlDataSource/index.ts`](../../../../charcoal-client/src/slices/wmlDataSource/index.ts) `afterProcessEnvelope` to dispatch `pendingHygieneCheck(payload.streamKey, payload)` when `streamKey` is a valid asset UUID (via `registerWmlAfterProcessEnvelopeConsumer` registered from personalAssets at module load)
+- [X] Tests: hygiene clears confirmed pending + drops saving indicator; Merge Conflict toast when pending matched; TTL trim; ordering --- wml `processEnvelope` then hygiene (no doubling in `getLocalStandardForm`); extend [`reducers.test.ts`](../../../../charcoal-client/src/slices/personalAssets/reducers.test.ts) / [`pendingHygiene.test.ts`](../../../../charcoal-client/src/slices/personalAssets/pendingHygiene.test.ts) as needed
 
 #### 4b --- Lazy purge, band-aid rollback, category B cleanup, verification
 

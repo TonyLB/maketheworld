@@ -5,6 +5,7 @@
 // Snapshot events (sidecar URL); Content Update and Merge Conflict events update the view.
 
 import { createDataSourceSlice, createBrowserDataSourceEnvironment } from '../dataSource'
+import type { StreamEventDeserializedPayload } from '../dataSource/streamEventPubSub'
 import {
   WMLAggregator,
   WMLDataSourceEventSerializer
@@ -16,6 +17,19 @@ export type GetConfirmedRequestIds = (
   now?: number
 ) => string[]
 
+type AfterProcessEnvelopeConsumer = (
+  dispatch: any,
+  getState: any,
+  payload: StreamEventDeserializedPayload
+) => void
+
+let afterProcessEnvelopeConsumer: AfterProcessEnvelopeConsumer | undefined
+
+/** Registered by personalAssets at module load to avoid wml -> personalAssets import cycle. */
+export const registerWmlAfterProcessEnvelopeConsumer = (fn: AfterProcessEnvelopeConsumer): void => {
+  afterProcessEnvelopeConsumer = fn
+}
+
 // Create the slice using the generic factory
 const wmlDataSourceFactory = createDataSourceSlice({
   name: 'wmlDataSource',
@@ -23,7 +37,10 @@ const wmlDataSourceFactory = createDataSourceSlice({
   aggregator: new WMLAggregator(),
   eventSerializer: new WMLDataSourceEventSerializer(createBrowserDataSourceEnvironment()),
   sliceSelector: (state: any) => state.wmlDataSource,
-  requestIdTracking: { headerField: 'RequestIds' }
+  requestIdTracking: { headerField: 'RequestIds' },
+  afterProcessEnvelope: (dispatch, getState, payload: StreamEventDeserializedPayload) => {
+    afterProcessEnvelopeConsumer?.(dispatch, getState, payload)
+  }
 })
 
 export const {

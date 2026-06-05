@@ -1,7 +1,8 @@
 import produce from "immer"
 import type { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import type { PersonalAssetsPublic } from "./baseClasses"
-import { updateStandard, UpdateStandardPayload, clearPendingEditsByRequestIds, clearLastUpdateDiff, saveEdit, revertSaveEdit } from "./reducers"
+import { updateStandard, UpdateStandardPayload, clearPendingEditsByRequestIds, trimStalePendingEdits, clearLastUpdateDiff, saveEdit, revertSaveEdit } from "./reducers"
+import { PENDING_TTL_MS } from '../dataSource'
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import type { StandardFormData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes"
 import { Schema, schemaToWML } from "@tonylb/mtw-wml/ts/schema"
@@ -600,6 +601,44 @@ describe('personalAsset slice reducers', () => {
                     payload: { assetKey: 'ASSET#test', RequestIds: [] }
                 })
             }) as unknown as PersonalAssetsPublic
+            expect(state.pendingEdits).toHaveLength(2)
+        })
+    })
+
+    describe('trimStalePendingEdits', () => {
+        const NOW = 1_000_000
+
+        it('removes pending rows older than PENDING_TTL_MS', () => {
+            const state = produce({
+                edit: { universalKey: 'ASSET#test', components: [], metaData: [] },
+                pendingEdits: [
+                    { meta: { key: 'stale', time: NOW - PENDING_TTL_MS }, edit: { universalKey: 'ASSET#test', components: [], metaData: [] } },
+                    { meta: { key: 'fresh', time: NOW - PENDING_TTL_MS + 1 }, edit: { universalKey: 'ASSET#test', components: [], metaData: [] } }
+                ]
+            } as PersonalAssetsPublic, (draft) => {
+                trimStalePendingEdits(draft, {
+                    type: 'trimStalePendingEdits',
+                    payload: { now: NOW }
+                })
+            }) as PersonalAssetsPublic
+            expect(state.pendingEdits).toHaveLength(1)
+            expect(state.pendingEdits[0].meta.key).toBe('fresh')
+        })
+
+        it('no-ops when all pending rows are fresh', () => {
+            const pendingEdits = [
+                { meta: { key: 'fresh-a', time: NOW }, edit: { universalKey: 'ASSET#test', components: [], metaData: [] } },
+                { meta: { key: 'fresh-b', time: NOW - 1 }, edit: { universalKey: 'ASSET#test', components: [], metaData: [] } }
+            ]
+            const state = produce({
+                edit: { universalKey: 'ASSET#test', components: [], metaData: [] },
+                pendingEdits
+            } as PersonalAssetsPublic, (draft) => {
+                trimStalePendingEdits(draft, {
+                    type: 'trimStalePendingEdits',
+                    payload: { now: NOW }
+                })
+            }) as PersonalAssetsPublic
             expect(state.pendingEdits).toHaveLength(2)
         })
     })

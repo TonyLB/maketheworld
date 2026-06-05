@@ -500,7 +500,7 @@ All cases implemented in [`reducers.test.ts`](./reducers.test.ts) (`processEnvel
 
 ## afterProcessEnvelope (opt-in factory extension)
 
-**Status:** Phase 4a factory hook complete (config, subscriber wiring, factory tests). Consumer wiring (`wmlDataSource` -> `personalAssets` pending hygiene) is the next slice.
+**Status:** Phase 4a complete (factory hook + `wmlDataSource` consumer). `personalAssets` registers `pendingHygieneCheck` via `registerWmlAfterProcessEnvelopeConsumer` at module load (avoids import cycle).
 
 Opt-in on `createDataSourceSlice` for cross-slice work that must run **after** the owning slice's `processEnvelope` reducer commits (parallel to `onReady`, but per-stream-event rather than at INITIALIZE).
 
@@ -521,7 +521,7 @@ afterProcessEnvelope?: (
 
 **Ordering guarantee:** RTK dispatches reducers synchronously. `getState()` inside the callback sees updated `materializedView` and `confirmedRequestIds` (when `requestIdTracking` is enabled). The callback is not invoked when the data-source guard rejects the envelope.
 
-**Intended consumer:** `wmlDataSource` will pass a callback that dispatches `personalAssets` pending hygiene for `payload.streamKey` (see task plan design note G in [`AGENT.requestIdTracking.planning.md`](../../../../taskPlanning/charcoal-client/src/slices/wmlDataSource/AGENT.requestIdTracking.planning.md)). Other `createDataSourceSlice` instances omit the hook.
+**Consumer (wired):** `wmlDataSource` invokes a delegate registered by `personalAssets` (`registerWmlAfterProcessEnvelopeConsumer` in [`wmlDataSource/index.ts`](../wmlDataSource/index.ts); registration in [`personalAssets/index.ts`](../personalAssets/index.ts)). The callback dispatches `pendingHygieneCheck(streamKey, payload)` when `streamKey` is a valid asset UUID. Other `createDataSourceSlice` instances omit the hook.
 
 ### Characterization tests (Phase 4a)
 

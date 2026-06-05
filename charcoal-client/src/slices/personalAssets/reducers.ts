@@ -6,6 +6,7 @@ import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/data
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import type { ScopedInstrumentationOptions } from '../../testing/scopedInstrumentation'
 import { unique } from '../../lib/lists'
+import { PENDING_TTL_MS } from '../dataSource'
 
 export const setLoadedImage = (state: PersonalAssetsPublic, action: PayloadAction<{ itemId: string; file: File }>) => {
     state.loadedImages[action.payload.itemId] = {
@@ -126,6 +127,11 @@ export const clearPendingEditsByRequestIds = (state: PersonalAssetsPublic, actio
     state.pendingEdits = state.pendingEdits.filter(({ meta }) => !RequestIds.includes(meta.key))
 }
 
+export const trimStalePendingEdits = (state: PersonalAssetsPublic, action: PayloadAction<{ now?: number }>) => {
+    const now = action.payload.now ?? Date.now()
+    state.pendingEdits = state.pendingEdits.filter(({ meta }) => now - meta.time < PENDING_TTL_MS)
+}
+
 export const clearLastUpdateDiff = (state: PersonalAssetsPublic, _action: PayloadAction<void>) => {
     state.lastUpdateDiff = undefined
 }
@@ -152,7 +158,7 @@ export const saveEdit = (state: PersonalAssetsPublic, action: PayloadAction<{ re
     delete state.instrumentationOptionsForCurrentEdit
 }
 
-/** Roll back optimistic pending when applyEdit fails; no-op if stream already cleared the row. */
+/** Roll back optimistic pending when applyEdit fails; no-op if pending row missing (stream cleared or confirmed). */
 export const revertSaveEdit = (state: PersonalAssetsPublic, action: PayloadAction<{ requestId: string }>) => {
     const index = state.pendingEdits.findIndex(({ meta }) => meta.key === action.payload.requestId)
     if (index === -1) {
