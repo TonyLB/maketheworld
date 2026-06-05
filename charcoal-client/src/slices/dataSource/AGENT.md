@@ -165,7 +165,7 @@ All event processing logic uses pure functions that depend only on their inputs:
 - Deterministic behavior for testing and debugging
 - Easy to reason about and maintain
 
-**Carve-out:** Opt-in **requestIdTracking** confirmed-id selectors and cross-slice pending selectors (e.g. `getEffectivePendingEdits`) may call `Date.now()` at read time for TTL filtering. Correctness depends on selector-time expiry, not reducer-side eviction. See [AGENT.implementation.md](./AGENT.implementation.md) **Selector-time TTL (intentional impurity)**.
+**requestIdTracking selectors:** Confirmed-id selectors and cross-slice pending selectors (e.g. `getEffectivePendingEdits`) are **pure** reads of Redux storage. TTL eviction is **dispatched** cleanup only. See [AGENT.implementation.md](./AGENT.implementation.md) **Dispatched correlation cleanup**.
 
 ### **Type Safety**
 

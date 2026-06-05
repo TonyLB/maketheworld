@@ -6,7 +6,7 @@ Subsystem docs (steady-state architecture; link here rather than duplicating):
 
 - [personalAssets/AGENT.md](./personalAssets/AGENT.md) -- effective pending overlay, `getLocalStandardForm`
 - [wmlDataSource/AGENT.md](./wmlDataSource/AGENT.md) -- `confirmedRequestIds`, `getWMLConfirmedRequestIds`
-- [dataSource/AGENT.implementation.md](./dataSource/AGENT.implementation.md) -- selector-time TTL, `requestIdTracking`
+- [dataSource/AGENT.implementation.md](./dataSource/AGENT.implementation.md) -- dispatched correlation cleanup, `requestIdTracking`
 - [Workbench/AGENT.md](../components/Workbench/AGENT.md) -- `useWorkbenchComponent` session model
 
 Regression tests: see **Verification** at the end of this doc.
@@ -15,7 +15,7 @@ Regression tests: see **Verification** at the end of this doc.
 
 ## Memoization-plus (aspirational)
 
-**Memoization-plus** is the name for an architectural target this doc works toward: **derived views keep stable references when domain semantics are unchanged** (at a fixed `now` where selector-time TTL applies). It extends the contract Redux and Reselect already provide for **stored** slice data upward through the WML derivation graph (layers 3-5 in I4).
+**Memoization-plus** is the name for an architectural target this doc works toward: **derived views keep stable references when domain semantics are unchanged**. It extends the contract Redux and Reselect already provide for **stored** slice data upward through the WML derivation graph (layers 3-5 in I4).
 
 Plain Reselect memoization: same **input references** -> same **output reference**.
 
@@ -89,7 +89,7 @@ If selectors and [`standardFormFromData`](../components/Workbench/foundations/us
 #### Design constraints (apply to both primitives)
 
 1. **Immutability** -- cached canonical instances must not be mutated in place; session `working` continues to use `clone()` before edit.
-2. **TTL** -- impure hops using `Date.now()` must include time (or bucketed `now`) in cache inputs, or semantic memo must not span TTL boundaries on unchanged storage.
+2. **TTL** -- `Date.now()` for correlation cleanup belongs in **dispatched** thunks/reducers (`pruneStaleRequestCorrelation`, `trimStalePendingEdits`), not selector memo inputs.
 3. **Cost** -- prefer `deepEqual` on `StandardFormData` at merge boundaries; domain `.equals()` on whole `StandardForm` or per-component slices where cheaper.
 4. **Correctness over `===` at collaboration boundaries** -- even with systematic semantic memo, keep I2-style `.equals()` at reconcile until tests prove the proactive layer is complete; then demote to belt-and-suspenders, do not remove the invariant.
 
@@ -108,7 +108,7 @@ The table below is the **interim contract** until derived hops implement Memoiza
 
 | ID | Invariant | Rationale |
 | --- | --- | --- |
-| **I1** | **Derived-view referential stability:** `getLocalStandardForm`, `getStandardForm`, and cross-slice inputs to their Reselect chain (e.g. effective confirmed id lists, `getEffectivePendingEdits`) return the **same reference** when store semantics are unchanged. | Unstable merges force new `StandardFormData` instances and break editor guards. Selector-time TTL (`Date.now()`) is an intentional carve-out --- document where impurity is allowed and how stability is preserved around it. |
+| **I1** | **Derived-view referential stability:** `getLocalStandardForm`, `getStandardForm`, and cross-slice inputs to their Reselect chain (e.g. effective confirmed id lists, `getEffectivePendingEdits`) return the **same reference** when store semantics are unchanged. | Unstable merges force new `StandardFormData` instances and break editor guards. Confirmed-id and effective-pending selectors are pure Reselect chains over storage. |
 | **I2** | **Churn vs collaboration:** Session `committed` / reconcile react to **semantic** asset changes (flush, stream, import), not referential noise from selector recompute. | Reconcile exists for collaborative external updates; it must not be triggered (and downstream must not react) to identity-only churn. |
 | **I3** | **Session editor boundary:** Under `useWorkbenchComponent`, field editors mutate **`working`**; **`committed`** is for reconcile. Consumers of `useWorkbenchAsset().standardForm` on session screens treat it as display/link context unless using **domain** equality. Props feeding Slate must not change reference when domain is unchanged. | Workbench AGENT documents Slate buffering against stale Redux; unstable `standardForm` references defeat that guard when `debounce={false}`. |
 | **I4** | **Layer ordering (collaboration path):** Each hop documents what constitutes a change and what must be idempotent. | Makes it obvious when a new derived field belongs in which layer. |
@@ -122,7 +122,7 @@ Collaboration and display flow (left to right):
 
 1. **Stream** -- mtw.wml Snapshot / Content Update / Merge Conflict envelopes
 2. **wmlDataSource base** -- `materializedView` per subscribed asset (`getWMLBase`)
-3. **Effective pending filter** -- exclude confirmed RequestIds (`getWMLConfirmedRequestIds`) and stale pending (3m TTL); output `getEffectivePendingEdits`
+3. **Effective pending filter** -- exclude confirmed RequestIds (`getWMLConfirmedRequestIds`); output `getEffectivePendingEdits`
 4. **Local form** -- `base + effectivePendingEdits + edit` via `getLocalStandardForm` (edit-layer WML)
 5. **Merged display** -- `inherited.merge(local)` via `getStandardForm`
 6. **Session `committed`** -- `standardForm.byUniversalId[componentId]` from `useWorkbenchAsset`
@@ -142,15 +142,17 @@ flowchart LR
   working --> editors[field editors]
 ```
 
-**Idempotency expectation:** steps 3-5 are pure functions of upstream storage at a fixed `now` (for TTL). Steps 6-8 must not treat identity-only churn at step 5 as a semantic external update.
+**Idempotency expectation:** steps 3-5 are pure functions of upstream storage. Steps 6-8 must not treat identity-only churn at step 5 as a semantic external update.
 
 ---
 
-## Selector-time TTL carve-out (I1)
+## Dispatched correlation cleanup
 
-`getEffectivePendingEdits` and `getWMLConfirmedRequestIds` intentionally use read-time `now` to filter stale rows. That is **not** a violation of I1 when `now` is fixed (same clock tick, or `vi.setSystemTime` in tests).
+Pending/confirmed TTL eviction is **dispatched storage GC**, not selector-time filtering. Selectors (`getWMLConfirmedRequestIds`, `getEffectivePendingEdits`) are pure reads of storage.
 
-When storage semantics are unchanged **and** `now` is unchanged between reads, derived outputs must still be referentially stable. See [dataSource/AGENT.implementation.md](./dataSource/AGENT.implementation.md) (**Selector-time TTL**).
+**GC owners:** `pendingHygieneCheck` (event-driven, primary confirm path), lazy trim on `saveEdit`, and `pruneStaleRequestCorrelation` on `LifeLinePubSub` `PeriodicTick` (~30s). **Oscillation invariant:** never prune a confirmed id while a pending row with the same `meta.key` still exists in storage.
+
+Confirmed-id referential churn was an original I1 pain point; pure Reselect over storage (`storedConfirmedRequestIdStrings`, `STABLE_EMPTY_CONFIRMED_IDS`) addresses it without read-time clocks. See [dataSource/AGENT.implementation.md](./dataSource/AGENT.implementation.md) (**Dispatched correlation cleanup**).
 
 ---
 
@@ -161,11 +163,11 @@ When storage semantics are unchanged **and** `now` is unchanged between reads, d
 
 ---
 
-## Phase 3 fixes (2026-06-05)
+## Collaboration sync fixes (2026-06)
 
 | Invariant | Fix |
 | --- | --- |
-| **I1** | `selectConfirmedRequestIdStrings` in [`dataSource/requestIdTracking.ts`](./dataSource/requestIdTracking.ts) returns stable `string[]` refs when storage rows ref + `now` + TTL unchanged; `STABLE_EMPTY_CONFIRMED_IDS` for empty results. |
+| **I1** | `storedConfirmedRequestIdStrings` + Reselect in [`dataSource/requestIdTracking.ts`](./dataSource/requestIdTracking.ts) and [`wmlDataSource/selectors.ts`](./wmlDataSource/selectors.ts); `STABLE_EMPTY_CONFIRMED_IDS` for empty results. Pure `getEffectivePendingEdits` (confirmed-id filter only). |
 | **I3** | `useStandardRenderEditorHook` uses reference-or-domain check (`===` then `.equals()`) for `value` and `standard`. |
 | **I5** | Area -> Room with `debounce={false}` accepted (automated bounded-mount tests + manual navigation, 2026-06-05). E3 interim mitigation superseded. |
 

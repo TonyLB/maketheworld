@@ -137,7 +137,7 @@ async function setupStoreWithStreamSubscriber(options: {
     await store.dispatch(initThunk({
         internalData: initial.internalData,
         publicData: store.getState().testDataSource.publicData
-    }) as any)
+    } as any) as any)
     return { store, result, sliceSelector }
 }
 
@@ -303,7 +303,7 @@ describe('dataSource slice', () => {
                         activeStreamKeys: [],
                         subscribedStreams: {}
                     }
-                })
+                } as any)
 
                 const dispatch = vi.fn((thunk: any) => (
                     typeof thunk === 'function' ? thunk(dispatch, vi.fn()) : thunk
@@ -311,7 +311,7 @@ describe('dataSource slice', () => {
 
                 const result = await action(dispatch, vi.fn())
 
-                expect(result.publicData.subscribedStreams.newStream).toEqual({
+                expect(result.publicData?.subscribedStreams?.newStream).toEqual({
                     materializedView: { type: 'Snapshot', value: 0 },
                     recentEvents: [],
                     confirmedRequestIds: []
