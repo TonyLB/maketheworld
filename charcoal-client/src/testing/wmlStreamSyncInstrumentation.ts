@@ -138,6 +138,15 @@ export const positionGraphNodesFromForm = (data: StandardFormData | undefined): 
     return []
 }
 
+export type WmlPerformCleanupCaller = 'snapshot' | 'event'
+
+export type WmlPerformCleanupBaselineSource = 'empty' | 'snapshot-in-oldEvents' | 'synthetic-prior'
+
+export type WmlPerformCleanupContext = {
+    caller: WmlPerformCleanupCaller
+    headerType?: string
+}
+
 export type WmlProcessEnvelopePath = 'snapshot' | 'event-in-order' | 'event-reagg'
 
 export const logWmlProcessEnvelope = <Payload, Header extends StreamingEventHeader>(params: {
@@ -164,6 +173,37 @@ export const logWmlProcessEnvelope = <Payload, Header extends StreamingEventHead
         recentEventsSummary: summarizeRecentEvents(params.recentEvents),
         positionGraphNodes: positionGraphNodesFromForm(view),
         materializedViewDigest: truncatedMaterializedViewDigest(view)
+    })
+}
+
+export const logWmlPerformCleanup = <Payload, Header extends StreamingEventHeader>(params: {
+    caller: WmlPerformCleanupCaller
+    headerType?: string
+    streamKey: string
+    incomingTimestamp: number
+    latestTimestamp: number
+    thirtySecondsAgo: number
+    oldEvents: Array<RecentEventEnvelope<Payload, Header>>
+    stillRecentEvents: Array<RecentEventEnvelope<Payload, Header>>
+    action: 'no-op' | 'consolidated'
+    syntheticTimestamp?: number
+    baselineSource?: WmlPerformCleanupBaselineSource
+}): void => {
+    if (!isWmlStreamSyncEnabled()) {
+        return
+    }
+    logWmlStreamSync('performCleanup', {
+        caller: params.caller,
+        ...(params.headerType !== undefined ? { headerType: params.headerType } : {}),
+        streamKey: params.streamKey,
+        incomingTimestamp: params.incomingTimestamp,
+        latestTimestamp: params.latestTimestamp,
+        thirtySecondsAgo: params.thirtySecondsAgo,
+        oldEventsSummary: summarizeRecentEvents(params.oldEvents),
+        stillRecentSummary: summarizeRecentEvents(params.stillRecentEvents),
+        action: params.action,
+        ...(params.syntheticTimestamp !== undefined ? { syntheticTimestamp: params.syntheticTimestamp } : {}),
+        ...(params.baselineSource !== undefined ? { baselineSource: params.baselineSource } : {})
     })
 }
 

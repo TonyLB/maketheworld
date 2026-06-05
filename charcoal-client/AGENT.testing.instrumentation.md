@@ -70,6 +70,7 @@ Disable: `sessionStorage.removeItem('mtw-instrumentation')`.
 | --- | --- | --- |
 | `ingest` | `streamEventPubSub` | `phase`: `lifelineReceived`, `deserializeStart`, `deserializeDone`, `published`, `droppedNull`, `failed`; includes `replayAt` on Snapshot, `deserializeMs`, `requestIds` |
 | `processEnvelope` | `dataSource/reducers.ts` | `path`: `snapshot`, `event-in-order`, `event-reagg`; `recentEventsSummary`, `positionGraphNodes`, truncated `materializedViewDigest` |
+| `performCleanup` | `dataSource/reducers.ts` | `caller`: `snapshot`, `event`; `headerType`; `incomingTimestamp`, `latestTimestamp`, `thirtySecondsAgo`; `oldEventsSummary`, `stillRecentSummary`; `action`: `no-op`, `consolidated`; `syntheticTimestamp`, `baselineSource` when consolidated |
 | `afterEnvelope` | `personalAssets` consumer | Post-`processEnvelope`, pre-`pendingHygieneCheck`; `baseComponentCount`, `effectivePendingCount`, `localFormComponentCount` |
 
 Implementation: [`wmlStreamSyncInstrumentation.ts`](src/testing/wmlStreamSyncInstrumentation.ts). Activation key: `INSTRUMENTATION_KEYS.WML_STREAM_SYNC` in [`scopedInstrumentation.ts`](src/testing/scopedInstrumentation.ts).

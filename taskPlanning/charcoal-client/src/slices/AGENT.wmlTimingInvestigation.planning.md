@@ -1,6 +1,6 @@
 # WML subscribe merge investigation (charcoal-client)
 
-**Status:** In progress. **Next step:** Phase 2.5 --- instrument `performCleanup` and confirm why it runs during subscribe reload (ledger consolidation before sidecar merge).
+**Status:** In progress. **Next step:** Phase 3 --- implement fix (ingest queue + snapshot-path cleanup policy); see **Failure model**.
 
 **Deferred (separate task):** [`AGENT.extendedHeaderRequestIdFix.planning.md`](AGENT.extendedHeaderRequestIdFix.planning.md) --- wire `extendedHeader.RequestIds` vs client `header.RequestIds` (not this bug's root cause).
 
@@ -90,7 +90,7 @@ npm run test:single -- src/slices/wmlDataSource/index.test.ts
 | 0 | Investigation / hypothesis (no code) | Done |
 | 1 | Add gated `wml-stream-sync` instrumentation | Done |
 | 2 | Reproduce with logs; record findings in **Discoveries** | Done |
-| 2.5 | Instrument `performCleanup`; confirm cleanup role on subscribe reload | Not started |
+| 2.5 | Instrument `performCleanup`; confirm cleanup role on subscribe reload | Done |
 | 3 | Fix root cause (ingest ordering + snapshot-path cleanup policy) | Not started |
 | 4 | Regression test(s) | Not started |
 | 5 | Remove instrumentation; update durable docs if needed | Not started |
@@ -180,6 +180,73 @@ After reload, subscribe Snapshot sidecar fetch (~136ms) completed **before** rep
 
 **Root cause (failure repro):** not missing WS delivery and not deserialize drops. **`streamEventPubSub` fire-and-forget async** lets fast inline CUs publish before slow sidecar Snapshot; **`performCleanup` on the snapshot path** can consolidate replay CUs into a synthetic baseline **before** sidecar merge, so snapshot `applyEvents(sidecar, updatesAfter)` sees a **truncated** replay set. Reducer out-of-order logic exists but **preconditions were violated** (see **Failure model** below).
 
+### 2026-06-05 --- Phase 2.5 confirmatory reload (`performCleanup` logs)
+
+**Asset:** `ASSET#280e2f0c-1840-451f-a2ce-8742e86350c1` (same asset as Phase 2 failure; fresh edit: import `ROOM#VORTEX`, shortName + default render fields, save, reload). **Wall-clock:** browser reload via `Navigated to http://localhost:3000/`. **UI:** thin --- `ROOM#VORTEX` present with situation text but **not** in `positionGraph`; graph shows only `ROOM#STRAIGHTAWAY`.
+
+**Replay bundle (event timestamps):**
+
+| Event | WS `timestamp` | RequestId | Role |
+| --- | --- | --- | --- |
+| Snapshot | `1780700419588` | --- | Subscribe sidecar baseline |
+| Content Update | `1780700532599` | *(placement)* | **Placement** (Area / topology for `ROOM#VORTEX`) |
+| Content Update | `1780700538002` | `984eb650-...` | ShortName (`Cliff Base`) |
+| Content Update | `1780700549590` | `1a2981e4-...` | DisplayName |
+| Content Update | `1780700556914` | `dd50fd64-...` | Summary |
+| Content Update | `1780700563578` | `9235693e-...` | Description |
+
+**Client processing order (console; sidecar Snapshot last):**
+
+1. CU `1780700538002` (shortName) --- `performCleanup` no-op; `processEnvelope` **`event-in-order`** on empty ledger.
+2. CU `1780700563578` (description) --- `event-in-order`.
+3. CU `1780700556914` (summary) --- `event-reagg`.
+4. CU `1780700532599` (placement) --- `event-reagg` (**before** Snapshot `deserializeDone`).
+5. CU `1780700549590` (displayName) --- `event-reagg`.
+6. Snapshot `1780700419588` --- `performCleanup` with `caller: snapshot`, `incomingTimestamp: 1780700419588`, `latestTimestamp: 1780700563578`; `processEnvelope` **`path: snapshot`**, **`eventsAfterSnapshotCount: 5`**.
+
+**Cleanup consolidation (H4 confirmed):**
+
+When newest CU (`1780700563578`) drove cleanup on the event path:
+
+- `latestTimestamp` = `1780700563578`; `thirtySecondsAgo` = `1780700533578`.
+- Placement CU `1780700532599` **<=** `thirtySecondsAgo` --- folded into **`oldEvents`** and consolidated.
+- ShortName `1780700538002` and later field CUs **>** `thirtySecondsAgo` --- kept as separate ledger rows.
+
+**Final Redux (`subscribedStreams`):**
+
+- `materializedView`: `AREA#WORLD.positionGraph.nodes` = **`ROOM#STRAIGHTAWAY` only**; `ROOM#VORTEX` component exists with full situation fields but **absent from graph**.
+- `recentEvents`:
+  1. Real subscribe Snapshot @ `1780700419588` (sidecar: STRAIGHTAWAY-only graph).
+  2. **Synthetic** Snapshot @ `1780700533578` (placeholder header; consolidated placement --- VORTEX-only graph).
+  3. Field-edit CUs only (shortName, displayName, summary, description).
+  - **Placement CU `1780700532599` absent** as a standalone row --- consolidated away before subscribe Snapshot merge.
+- `confirmedRequestIds: []` (`extendedHeader.RequestIds` not read by instrumentation --- separate task).
+
+**Why snapshot-path recovery failed despite `eventsAfterSnapshotCount: 5`:**
+
+Snapshot `applyEvents(sidecar, updatesAfter)` re-applies only **non-Snapshot** envelopes with `timestamp > snapshotTimestamp`. The synthetic Snapshot row (`header.type === 'Snapshot'`) is **skipped**. Consolidated placement lived inside synthetic #2, not as a replay CU the sidecar merge could re-apply. Remaining CUs are field-only edits on `ROOM#VORTEX` --- they do not restore full-world topology.
+
+**Phase 2.5 question answers (Q1--Q6):**
+
+| # | Answer |
+| --- | --- |
+| Q1 | Cleanup triggered by **`event`** for all replay CUs; **`snapshot`** when subscribe Snapshot processed. |
+| Q2 | On snapshot cleanup: `incomingTimestamp: 1780700419588`, `latestTimestamp: 1780700563578` --- window anchored on **newest CU**, not subscribe Snapshot time. |
+| Q3 | Placement `1780700532599` in **`oldEvents`** (consolidated); field CUs after `1780700533578` in **`stillRecent`**. |
+| Q4 | **`consolidated`** --- synthetic Snapshot created at `1780700533578` before subscribe Snapshot `processEnvelope`. |
+| Q5 | `syntheticTimestamp: 1780700533578`; synthetic content: `AREA#WORLD` with **`ROOM#VORTEX` only** in graph (consolidated placement baseline); `baselineSource: empty` on first consolidation (no prior snapshot in `oldEvents`). |
+| Q6 | Snapshot reported **`eventsAfterSnapshotCount: 5`**, but count includes **synthetic Snapshot row**; standalone placement envelope **not** available for sidecar re-apply. |
+
+**Hypothesis verdicts (this repro):**
+
+| ID | Verdict | Notes |
+| --- | --- | --- |
+| H2 | **Confirmed** | Five replay CUs merged before Snapshot `deserializeDone`; snapshot `eventsAfterSnapshotCount: 5`. |
+| H4 | **Confirmed** | Direct `performCleanup` logs + synthetic row @ `1780700533578` + placement CU gone from ledger. |
+| H3 | **Rejected** (placement) | Placement loss is ledger consolidation, not `StandardForm.merge` failure on topology delta. |
+
+**Phase 3 scope (explicit):** both **ingest queue** (hold replay CUs until subscribe Snapshot published) and **cleanup policy** (defer consolidation during subscribe recovery) per **Failure model**.
+
 ---
 
 ## Failure model (abstract)
@@ -253,7 +320,7 @@ Failure repro math (see **Discoveries** 2026-06-05): when incoming CU `178069334
 | Q5 | If consolidated: **`syntheticTimestamp`**, **`baselineSource`** (`empty` \| `snapshot-in-oldEvents` \| `synthetic-prior`), and summary of consolidated event types/timestamps |
 | Q6 | On subscribe Snapshot `processEnvelope`: what was **`eventsAfterSnapshotCount`** after cleanup had already run on the same `recentEvents`? |
 
-### Planned instrumentation (not yet in code)
+### Planned instrumentation (implemented 2026-06-05)
 
 Gate on `wml-stream-sync` + `dataSourceKey === 'mtw.wml'` (same as `processEnvelope` trace). Log from inside or immediately around `performCleanup` return:
 
@@ -278,14 +345,14 @@ Prefix: `[wml-stream-sync] performCleanup`. Implementation home: [`wmlStreamSync
 | --- | --- | --- |
 | `ingest` | **Yes** | Processing order vs event timestamps |
 | `processEnvelope` | **Yes** | `path`, `eventsAfterSnapshotCount` |
-| `performCleanup` | **Add** | Primary Phase 2.5 deliverable |
+| `performCleanup` | **Yes** | Implemented 2026-06-05; primary Phase 2.5 deliverable |
 | `afterEnvelope` | **Low** | personalAssets layer; not where thin `materializedView` failed |
 
 ### Exit criteria for Phase 2.5
 
-- At least one failure or success reload log shows **`performCleanup`** lines bracketing subscribe Snapshot + replay CUs.
-- **Discoveries** entry updates H4 to **Confirmed** or revises mechanism (e.g. cleanup no-op on snapshot path but event path already consolidated).
-- Phase 3 fix scope is explicit: ingest queue only, cleanup policy only, or **both** (current **Failure model** assumes both).
+- [X] At least one failure or success reload log shows **`performCleanup`** lines bracketing subscribe Snapshot + replay CUs.
+- [X] **Discoveries** entry updates H4 to **Confirmed** (2026-06-05 Phase 2.5 confirmatory reload).
+- [X] Phase 3 fix scope is explicit: ingest queue only, cleanup policy only, or **both** (current **Failure model** assumes both).
 
 ---
 
@@ -295,7 +362,7 @@ Track **every** temporary log/gate added for this task. Phase 5 must remove or r
 
 | ID | Activation key | File(s) | What it logs | Added | Removed |
 | --- | --- | --- | --- | --- | --- |
-| wml-stream-sync | `wml-stream-sync` | [`scopedInstrumentation.ts`](../../../../charcoal-client/src/testing/scopedInstrumentation.ts), [`wmlStreamSyncInstrumentation.ts`](../../../../charcoal-client/src/testing/wmlStreamSyncInstrumentation.ts), [`streamEventPubSub/index.ts`](../../../../charcoal-client/src/slices/dataSource/streamEventPubSub/index.ts), [`dataSource/reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts), [`personalAssets/index.ts`](../../../../charcoal-client/src/slices/personalAssets/index.ts) | `ingest` phases, `processEnvelope`, `afterEnvelope` (see table below) | 2026-06-05 | --- |
+| wml-stream-sync | `wml-stream-sync` | [`scopedInstrumentation.ts`](../../../../charcoal-client/src/testing/scopedInstrumentation.ts), [`wmlStreamSyncInstrumentation.ts`](../../../../charcoal-client/src/testing/wmlStreamSyncInstrumentation.ts), [`streamEventPubSub/index.ts`](../../../../charcoal-client/src/slices/dataSource/streamEventPubSub/index.ts), [`dataSource/reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts), [`personalAssets/index.ts`](../../../../charcoal-client/src/slices/personalAssets/index.ts) | `ingest` phases, `processEnvelope`, `performCleanup`, `afterEnvelope` (see table below) | 2026-06-05 | --- |
 
 **Activation:**
 
@@ -314,6 +381,7 @@ Follow [`charcoal-client/AGENT.testing.instrumentation.md`](../../../../charcoal
 | --- | --- | --- |
 | [`streamEventPubSub/index.ts`](../../../../charcoal-client/src/slices/dataSource/streamEventPubSub/index.ts) | `[wml-stream-sync] ingest` | `phase` (`lifelineReceived` / `deserializeStart` / `deserializeDone` / `published` / `droppedNull` / `failed`), `dataSourceKey`, `streamKey`, `header.type`, envelope `timestamp`, `replayAt` (from raw update when Snapshot), `deserializeMs`, `RequestIds` |
 | [`dataSource/reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts) `processEnvelope` | `[wml-stream-sync] processEnvelope` | `path` (`snapshot` / `event-in-order` / `event-reagg`), `incomingTimestamp`, `latestCachedTimestamp`, `eventsAfterSnapshotCount`, `recentEventsSummary` (`{ type, timestamp, requestIds }[]`), `positionGraphNodes` (from `AREA#*` in materialized view if present), truncated WML digest of `materializedView` |
+| [`dataSource/reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts) `performCleanup` | `[wml-stream-sync] performCleanup` | `caller` (`snapshot` / `event`), `headerType`, `streamKey`, `incomingTimestamp`, `latestTimestamp`, `thirtySecondsAgo`, `oldEventsSummary`, `stillRecentSummary`, `action` (`no-op` / `consolidated`), `syntheticTimestamp`, `baselineSource` (`empty` / `snapshot-in-oldEvents` / `synthetic-prior`) |
 | [`personalAssets/index.ts`](../../../../charcoal-client/src/slices/personalAssets/index.ts) `registerWmlAfterProcessEnvelopeConsumer` | `[wml-stream-sync] afterEnvelope` | same envelope ids; `baseComponentCount`, `positionGraphNodes`, `effectivePendingCount`, `localFormComponentCount` |
 
 **Cleanup checklist (Phase 5):**
@@ -330,9 +398,9 @@ Follow [`charcoal-client/AGENT.testing.instrumentation.md`](../../../../charcoal
 | ID | Hypothesis | Status (2026-06-05 smoke test) |
 | --- | --- | --- |
 | H1 | Placement CU never reaches `processEnvelope` (deserialize drop / race) | **Rejected** --- CUs reach `published` and `processEnvelope`; failure is **ordering**, not drops. |
-| H2 | Snapshot `processEnvelope` runs with replay CUs already merged on wrong baseline; sidecar re-apply incomplete | **Confirmed** --- `eventsAfterSnapshotCount: 3`; placement `processEnvelope` before Snapshot `deserializeDone`. |
-| H3 | Placement CU applies but `StandardForm.merge` does not update `positionGraph.nodes` | **Rejected** for field-edit repro; **open** for Phase 0 BRIDGE placement-only case (different session). |
-| H4 | `performCleanup` consolidation drops replay CUs before sidecar snapshot merge | **Strong inference** --- synthetic snapshot in `recentEvents`; placement/shortName gone from ledger vs Network. **Phase 2.5** adds direct cleanup logs. |
+| H2 | Snapshot `processEnvelope` runs with replay CUs already merged on wrong baseline; sidecar re-apply incomplete | **Confirmed** --- Phase 2 and Phase 2.5 repros; placement CU processed before Snapshot `deserializeDone`. |
+| H3 | Placement CU applies but `StandardForm.merge` does not update `positionGraph.nodes` | **Rejected** --- placement loss is cleanup consolidation / ledger truncation, not merge failure on topology delta. |
+| H4 | `performCleanup` consolidation drops replay CUs before sidecar snapshot merge | **Confirmed** --- Phase 2.5: synthetic @ `1780700533578`, placement `1780700532599` absent from ledger; snapshot re-apply skips synthetic Snapshot rows. |
 | H5 | Stale sidecar at subscribe; replay CU excluded by timestamp semantics | **Open / secondary** --- failure repro explained by H2+H4 without sidecar byte inspection; `replayAt` still unused on client. |
 
 ---
@@ -352,11 +420,11 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets as yo
   - [X] Create fresh edit (import + shortName + render + save); reload **immediately** while case is live
   - [X] Capture in one pass: Network Snapshot + CU timestamps/RequestIds; console ingest + reducer sequence; Redux `subscribedStreams` snapshot
   - [X] Append findings to **Discoveries** (include wall-clock time; note if snapshot had since regenerated); mark H1--H5 confirmed/rejected
-- [ ] **Phase 2.5 --- Confirm `performCleanup` role**
-  - [ ] Add gated `[wml-stream-sync] performCleanup` trace in [`reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts) (see **Phase 2.5** below)
-  - [ ] Update **Instrumentation registry** with cleanup log site and date
-  - [ ] Optional: one confirmatory reload; append **Discoveries** with cleanup lines tied to subscribe Snapshot / replay CUs
-  - [ ] Record answers to **Phase 2.5 questions** (why cleanup runs; which events consolidated; caller path snapshot vs event)
+- [X] **Phase 2.5 --- Confirm `performCleanup` role**
+  - [X] Add gated `[wml-stream-sync] performCleanup` trace in [`reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts) (see **Phase 2.5** below)
+  - [X] Update **Instrumentation registry** with cleanup log site and date
+  - [X] Optional: one confirmatory reload; append **Discoveries** with cleanup lines tied to subscribe Snapshot / replay CUs
+  - [X] Record answers to **Phase 2.5 questions** (why cleanup runs; which events consolidated; caller path snapshot vs event)
 - [ ] **Phase 3 --- Fix**
   - [ ] Implement fix (see **Failure model**: per-stream ingest queue in `streamEventPubSub`; snapshot-path cleanup exemption in `reducers.ts`)
   - [ ] Manual verify: reload -> full merged UI without waiting for next snapshot

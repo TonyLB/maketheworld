@@ -5,10 +5,29 @@ import type { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSo
 import type { DataSourcePublic, RecentEventEnvelope, RequestIdTrackingConfig } from './baseClasses'
 import type { StreamEventDeserializedPayload } from './streamEventPubSub'
 import { appendConfirmedRequestIds, extractConfirmedIdsFromHeader, pruneStaleConfirmedRequestIdRows } from './requestIdTracking'
-import { logWmlProcessEnvelope } from '../../testing/wmlStreamSyncInstrumentation'
+import {
+    logWmlPerformCleanup,
+    logWmlProcessEnvelope,
+    type WmlPerformCleanupBaselineSource,
+    type WmlPerformCleanupContext
+} from '../../testing/wmlStreamSyncInstrumentation'
 
 const SNAPSHOT_HEADER_TYPE = 'Snapshot'
 const WML_DATA_SOURCE_KEY = 'mtw.wml'
+
+const baselineSourceFromSnapshotEvents = <
+    SnapshotPayload extends SerializableObject,
+    Header extends StreamingEventHeader
+>(
+    snapshotEvents: Array<RecentEventEnvelope<SnapshotPayload, Header>>
+): WmlPerformCleanupBaselineSource => {
+    if (snapshotEvents.length === 0) {
+        return 'empty'
+    }
+    const lastSnapshot = snapshotEvents[snapshotEvents.length - 1]
+    const dataSourceKey = (lastSnapshot.header as Record<string, unknown>).dataSourceKey
+    return dataSourceKey === '' ? 'synthetic-prior' : 'snapshot-in-oldEvents'
+}
 
 /** publicData fields touched by pruneStaleConfirmedRequestIds */
 type PruneConfirmedRequestIdsState = Pick<
@@ -105,7 +124,8 @@ export const performCleanup = <
 ) => (
     recentEvents: Array<RecentEventEnvelope<UpdatePayload | SnapshotPayload, Header>>,
     incomingTimestamp: number,
-    streamKey: string
+    streamKey: string,
+    instrumentation?: WmlPerformCleanupContext
 ): Array<RecentEventEnvelope<UpdatePayload | SnapshotPayload, Header>> => {
         // Use the latest timestamp (including incoming event) as "now" (pure function - no Date.now())
         // If recentEvents is empty, the spread becomes no-op and Math.max(incomingTimestamp) = incomingTimestamp
@@ -117,12 +137,26 @@ export const performCleanup = <
         const stillRecentEvents = recentEvents.filter(e => e.timestamp > thirtySecondsAgo)
 
         if (oldEvents.length === 0) {
+            if (instrumentation) {
+                logWmlPerformCleanup({
+                    caller: instrumentation.caller,
+                    headerType: instrumentation.headerType,
+                    streamKey,
+                    incomingTimestamp,
+                    latestTimestamp,
+                    thirtySecondsAgo,
+                    oldEvents,
+                    stillRecentEvents,
+                    action: 'no-op'
+                })
+            }
             // No cleanup needed
             return recentEvents
         }
 
         // Find the most recent snapshot in oldEvents (or use empty as baseline)
         const snapshotEvents = oldEvents.filter((e): e is RecentEventEnvelope<SnapshotPayload, Header> => e.header.type === SNAPSHOT_HEADER_TYPE)
+        const baselineSource = baselineSourceFromSnapshotEvents(snapshotEvents)
         const baselineSnapshot = snapshotEvents.length > 0
             ? snapshotEvents[snapshotEvents.length - 1].content
             : aggregator.createEmpty(streamKey)
@@ -142,6 +176,22 @@ export const performCleanup = <
         header: { dataSourceKey: '', streamKey: '', timestamp: thirtySecondsAgo, type: SNAPSHOT_HEADER_TYPE } as Header,
         content: consolidatedSnapshot,
         timestamp: thirtySecondsAgo
+    }
+
+    if (instrumentation) {
+        logWmlPerformCleanup({
+            caller: instrumentation.caller,
+            headerType: instrumentation.headerType,
+            streamKey,
+            incomingTimestamp,
+            latestTimestamp,
+            thirtySecondsAgo,
+            oldEvents,
+            stillRecentEvents,
+            action: 'consolidated',
+            syntheticTimestamp: thirtySecondsAgo,
+            baselineSource
+        })
     }
 
     // Return cleaned up recentEvents with synthetic snapshot + recent events
@@ -187,7 +237,15 @@ export const processEnvelope = <
         // Snapshot path - content is already internal
         const snapshot = content as SnapshotPayload
         const snapshotTimestamp = timestamp
-        const cleanedRecentEvents = performCleanupWithConfig(stream.recentEvents, snapshotTimestamp, streamKey)
+        const cleanupInstrumentation = dataSourceKey === WML_DATA_SOURCE_KEY
+            ? { caller: 'snapshot' as const, headerType: header.type }
+            : undefined
+        const cleanedRecentEvents = performCleanupWithConfig(
+            stream.recentEvents,
+            snapshotTimestamp,
+            streamKey,
+            cleanupInstrumentation
+        )
         const eventsAfterSnapshot = cleanedRecentEvents.filter(e => e.timestamp > snapshotTimestamp)
 
         const snapshotEvent: RecentEventEnvelope<SnapshotPayload, Header> = { header: streamingHeader, content: snapshot, timestamp: snapshotTimestamp }
@@ -222,7 +280,15 @@ export const processEnvelope = <
         // Event path - content is already internal
         const event = content as UpdatePayload
         const eventTimestamp = timestamp
-        const cleanedRecentEvents = performCleanupWithConfig(stream.recentEvents, eventTimestamp, streamKey)
+        const cleanupInstrumentation = dataSourceKey === WML_DATA_SOURCE_KEY
+            ? { caller: 'event' as const, headerType: header.type }
+            : undefined
+        const cleanedRecentEvents = performCleanupWithConfig(
+            stream.recentEvents,
+            eventTimestamp,
+            streamKey,
+            cleanupInstrumentation
+        )
         const latestTimestamp = cleanedRecentEvents.length > 0
             ? Math.max(...cleanedRecentEvents.map(e => e.timestamp))
             : 0
