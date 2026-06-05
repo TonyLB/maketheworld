@@ -4,6 +4,28 @@
 
 **lifeLine** owns the WebSocket connection to Ephemera (and related services), publishes inbound payloads to **`LifeLinePubSub`**, and exposes thunks for **request/response** and **multi-message (conversation)** patterns over the socket. See [`index.api.ts`](index.api.ts) for implementation.
 
+## `LifeLinePubSub` (common client bus)
+
+**Location:** [`lifeLinePubSub.ts`](lifeLinePubSub.ts) (singleton); re-exported from [`index.api.ts`](index.api.ts).
+
+Inbound WebSocket payloads and client-local synthetic messages share this **`PubSub`**. Subscribers must narrow by `messageType` or package type guards before handling.
+
+## `PeriodicTick` (client-local)
+
+**Location:** [`periodicTick.ts`](periodicTick.ts).
+
+**Payload:** `{ messageType: 'PeriodicTick'; now: number }` (type `PeriodicTickLifeLineMessage` in [`lifeLine.d.ts`](lifeLine.d.ts)).
+
+**Guard:** `isPeriodicTickLifeLineMessage(payload)` --- required before handling in subscribers.
+
+**Publisher:** `startPeriodicTickPublisher({ intervalMs?, getNow? })` / `stopPeriodicTickPublisher()`. Default interval **30_000** ms (`PERIODIC_TICK_DEFAULT_INTERVAL_MS`). Publishes via **`LifeLinePubSub`**; never parsed from WebSocket JSON.
+
+**Activation:** lifeLine SSM only --- started in **`establishWebSocket`** `onopen` (alongside `pingInterval`), stopped in **`disconnectWebSocket`** via `stopPeriodicTickPublisher()`. Handle stored on **`LifeLineInternal.periodicTickInterval`**. Not activated from app root or `useSSM.ts`.
+
+**Subscribers:** Long-lived `LifeLinePubSub.subscribe` with `isPeriodicTickLifeLineMessage` guard. Phase 0 includes a noop smoke subscriber at module init; Phase 2 will dispatch periodic GC (`pruneStaleRequestCorrelation`).
+
+**Tests:** [`periodicTick.test.ts`](periodicTick.test.ts).
+
 ## `socketDispatchPromise` (current)
 
 **Location:** [`index.api.ts`](index.api.ts) (`socketDispatchPromise`).

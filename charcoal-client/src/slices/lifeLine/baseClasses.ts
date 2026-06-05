@@ -6,6 +6,7 @@ type TimeoutType = ReturnType<typeof setTimeout>
 export interface LifeLineInternal {
     pingInterval: IntervalType | null;
     refreshTimeout: TimeoutType | null;
+    periodicTickInterval: IntervalType | null;
     messageSubscription: string | null;
     coordinationSubscription: string | null;
     incrementalBackoff: number;

@@ -1,6 +1,6 @@
 # Periodic dispatched cleanup (pending / confirmed correlation) - planning
 
-**Status:** Not started. **Next:** Phase 0 -- extend `LifeLinePubSub` with a client-local `PeriodicTick` message, activated from lifeLine SSM (`establishWebSocket` / `disconnectWebSocket`, ~30s interval).
+**Status:** Phase 0 complete. **Next:** Phase 1 -- dispatched cleanup reducers and orchestration thunk (`pruneStaleRequestCorrelation`).
 
 This document follows [`taskPlanning/AGENT.md`](../../../AGENT.md) (durability, what belongs here vs in package docs). **Dispose** after the initiative ships and lasting notes live in slice `AGENT.md` files (especially [`charcoal-client/src/slices/AGENT.client-sync-invariants.md`](../../../../charcoal-client/src/slices/AGENT.client-sync-invariants.md), [`charcoal-client/src/slices/dataSource/AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md), [`charcoal-client/src/slices/personalAssets/AGENT.md`](../../../../charcoal-client/src/slices/personalAssets/AGENT.md)).
 
@@ -153,13 +153,13 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to neste
 
 **Phase 0 -- `PeriodicTick` on `LifeLinePubSub` (do this first)**
 
-- [ ] **Design:** Agree payload shape (`{ messageType: 'PeriodicTick'; now: number }`), default interval (30s), module path under `lifeLine/`, and **SSM-gated** lifecycle (`periodicTickInterval` on `LifeLineInternal`; start/stop with connect/disconnect).
-- [ ] **Extend `LifeLinePubSubData`:** Add client-local `PeriodicTick` variant to [`lifeLine.d.ts`](../../../../charcoal-client/src/slices/lifeLine/lifeLine.d.ts); export payload type and `isPeriodicTickLifeLineMessage` guard from `lifeLine/periodicTick.ts` (name TBD).
-- [ ] **Implement publisher helpers:** `startPeriodicTickPublisher({ intervalMs?, getNow? })` and `stopPeriodicTickPublisher()` publish via `LifeLinePubSub.publish(...)`; idempotent start and test teardown support.
-- [ ] **Extend `LifeLineInternal`:** Add `periodicTickInterval` handle (nullable); initialize in [`lifeLine/index.ts`](../../../../charcoal-client/src/slices/lifeLine/index.ts) `initialData` alongside `pingInterval`.
-- [ ] **Wire publisher in lifeLine SSM actions:** Start in [`establishWebSocket`](../../../../charcoal-client/src/slices/lifeLine/index.api.ts) `onopen` (with `pingInterval`); stop in [`disconnectWebSocket`](../../../../charcoal-client/src/slices/lifeLine/index.api.ts). **Do not** add activation to [`useSSM.ts`](../../../../charcoal-client/src/components/useSSM.ts) or other app-root hooks.
-- [ ] **Tests:** Vitest coverage for guard, publish/subscribe on `LifeLinePubSub`, and publisher interval (fake timers); file under `src/slices/lifeLine/periodicTick.test.ts` (or adjacent to helper module).
-- [ ] **Smoke subscriber (optional but recommended):** Module-init `LifeLinePubSub.subscribe` that ignores non-`PeriodicTick` payloads --- prove cross-module subscription before cleanup lands.
+- [X] **Design:** Agree payload shape (`{ messageType: 'PeriodicTick'; now: number }`), default interval (30s), module path under `lifeLine/`, and **SSM-gated** lifecycle (`periodicTickInterval` on `LifeLineInternal`; start/stop with connect/disconnect).
+- [X] **Extend `LifeLinePubSubData`:** Add client-local `PeriodicTick` variant to [`lifeLine.d.ts`](../../../../charcoal-client/src/slices/lifeLine/lifeLine.d.ts); export payload type and `isPeriodicTickLifeLineMessage` guard from `lifeLine/periodicTick.ts` (name TBD).
+- [X] **Implement publisher helpers:** `startPeriodicTickPublisher({ intervalMs?, getNow? })` and `stopPeriodicTickPublisher()` publish via `LifeLinePubSub.publish(...)`; idempotent start and test teardown support.
+- [X] **Extend `LifeLineInternal`:** Add `periodicTickInterval` handle (nullable); initialize in [`lifeLine/index.ts`](../../../../charcoal-client/src/slices/lifeLine/index.ts) `initialData` alongside `pingInterval`.
+- [X] **Wire publisher in lifeLine SSM actions:** Start in [`establishWebSocket`](../../../../charcoal-client/src/slices/lifeLine/index.api.ts) `onopen` (with `pingInterval`); stop in [`disconnectWebSocket`](../../../../charcoal-client/src/slices/lifeLine/index.api.ts). **Do not** add activation to [`useSSM.ts`](../../../../charcoal-client/src/components/useSSM.ts) or other app-root hooks.
+- [X] **Tests:** Vitest coverage for guard, publish/subscribe on `LifeLinePubSub`, and publisher interval (fake timers); file under `src/slices/lifeLine/periodicTick.test.ts` (or adjacent to helper module).
+- [X] **Smoke subscriber (optional but recommended):** Module-init `LifeLinePubSub.subscribe` that ignores non-`PeriodicTick` payloads --- prove cross-module subscription before cleanup lands.
 
 **Phase 1 -- Dispatched cleanup reducers**
 
@@ -193,7 +193,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same rule to neste
 | Milestone | Phase | Status |
 | --- | --- | --- |
 | Problem framing + architecture direction | n/a | Done (this doc) |
-| `PeriodicTick` on `LifeLinePubSub` + publisher + tests | 0 | Not started |
+| `PeriodicTick` on `LifeLinePubSub` + publisher + tests | 0 | Done |
 | Cleanup reducers + orchestration thunk | 1 | Not started |
 | Subscriber dispatches cleanup on tick | 2 | Not started |
 | Selector-time TTL removed; pure derivation | 3 | Not started |
