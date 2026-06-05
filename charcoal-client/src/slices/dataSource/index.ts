@@ -2,7 +2,7 @@ import { singleSSM } from '../stateSeekingMachine/singleSSM'
 import { DataSourceNodes, DataSourcePublic, DataSourceInternal, DataSourceData, type RequestIdTrackingConfig } from './baseClasses'
 
 export { createBrowserDataSourceEnvironment } from './browserEnvironment'
-import { registerDeserializer } from './streamEventPubSub'
+import { registerDeserializer, type StreamEventDeserializedPayload } from './streamEventPubSub'
 import { backoffAction, createSubscribeAction, createUnsubscribeAction, createInitializeAction, lifelineCondition } from './index.api'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
@@ -32,6 +32,8 @@ export interface DataSourceSliceConfig<
     onReady?: (dispatch: any, getState: any, sliceActions: any) => void  // Optional callback when slice reaches READY state (after INITIALIZE completes). Receives dispatch, getState, and slice actions for subscription management.
     holdCondition?: ISSMHoldCondition<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>  // Optional additional hold condition (checked alongside lifelineCondition)
     requestIdTracking?: RequestIdTrackingConfig  // Opt-in: persist confirmed stream-header correlation ids per subscribed stream
+    /** Runs after dispatch(processEnvelope(payload)) in the StreamEventPubSub subscriber; getState() reflects committed reducer state. */
+    afterProcessEnvelope?: (dispatch: any, getState: any, payload: StreamEventDeserializedPayload) => void
 }
 
 //
@@ -207,7 +209,8 @@ export const createDataSourceSlice = <
         dataSourceKey,
         processEnvelopeAction,
         onReadyWrapper,
-        sliceSelector  // Pass sliceSelector so we can read current state after onReady
+        sliceSelector,  // Pass sliceSelector so we can read current state after onReady
+        config.afterProcessEnvelope
     )
 
     // Create subscription/unsubscription helpers

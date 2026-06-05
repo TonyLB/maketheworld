@@ -35,7 +35,8 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
     dataSourceKey: string,
     processEnvelope: (payload: StreamEventDeserializedPayload) => any,
     onReady?: (dispatch: any, getState: any, sliceActions: any) => void,
-    sliceSelector?: (state: any) => any
+    sliceSelector?: (state: any) => any,
+    afterProcessEnvelope?: (dispatch: any, getState: any, payload: StreamEventDeserializedPayload) => void
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
     return ({ internalData, publicData }) => async (dispatch, getState) => {
         try {
@@ -45,6 +46,7 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
                 const envelope = { header: payload.header, content: payload.content }
                 if (!isForThisDataSource(envelope)) return
                 dispatch(processEnvelope(payload))
+                afterProcessEnvelope?.(dispatch, getState, payload)
             })
             
             // Call onReady callback if provided (after successful initialization)

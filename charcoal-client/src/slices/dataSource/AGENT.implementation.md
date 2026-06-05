@@ -252,7 +252,7 @@ Three main functions handle event processing:
 
 Three action factories manage lifecycle:
 
-1. **`createInitializeAction`**: Subscribe to StreamEventPubSub
+1. **`createInitializeAction`**: Subscribe to StreamEventPubSub; optionally invoke `afterProcessEnvelope` after each `dispatch(processEnvelope(payload))`
 2. **`createSubscribeAction`**: Call backend API to subscribe
 3. **`createUnsubscribeAction`**: Call backend API to unsubscribe
 
@@ -495,6 +495,43 @@ All cases implemented in [`reducers.test.ts`](./reducers.test.ts) (`processEnvel
 | 10 | Append across events | existing `[{ id: 'old', seenAt: 1 }]` | second event `RequestIds: ['new']` | array is `[old, new]` (no eager prune in reducer) |
 
 **Selector tests:** `getConfirmedRequestIds` / `selectConfirmedRequestIdStrings` exclude ids where `now - seenAt >= confirmedTtlMs`; tests inject fixed `now`. Stale rows may remain in storage; selector read is authoritative for the effective confirmed set.
+
+---
+
+## afterProcessEnvelope (opt-in factory extension)
+
+**Status:** Phase 4a factory hook complete (config, subscriber wiring, factory tests). Consumer wiring (`wmlDataSource` -> `personalAssets` pending hygiene) is the next slice.
+
+Opt-in on `createDataSourceSlice` for cross-slice work that must run **after** the owning slice's `processEnvelope` reducer commits (parallel to `onReady`, but per-stream-event rather than at INITIALIZE).
+
+```typescript
+afterProcessEnvelope?: (
+  dispatch: any,
+  getState: any,
+  payload: StreamEventDeserializedPayload
+) => void
+```
+
+**Wiring:**
+
+| Touchpoint | Role |
+| --- | --- |
+| [`index.ts`](./index.ts) | `afterProcessEnvelope?` on `DataSourceSliceConfig`; passed as 5th arg to `createInitializeAction` |
+| [`index.api.ts`](./index.api.ts) | StreamEventPubSub subscriber: `dispatch(processEnvelope(payload))` then `afterProcessEnvelope?.(dispatch, getState, payload)` |
+
+**Ordering guarantee:** RTK dispatches reducers synchronously. `getState()` inside the callback sees updated `materializedView` and `confirmedRequestIds` (when `requestIdTracking` is enabled). The callback is not invoked when the data-source guard rejects the envelope.
+
+**Intended consumer:** `wmlDataSource` will pass a callback that dispatches `personalAssets` pending hygiene for `payload.streamKey` (see task plan design note G in [`AGENT.requestIdTracking.planning.md`](../../../../taskPlanning/charcoal-client/src/slices/wmlDataSource/AGENT.requestIdTracking.planning.md)). Other `createDataSourceSlice` instances omit the hook.
+
+### Characterization tests (Phase 4a)
+
+Implemented in [`index.test.ts`](./index.test.ts) (`afterProcessEnvelope` describe):
+
+| # | Case | Assert |
+| --- | --- | --- |
+| 1 | Configured | Factory passes callback to `createInitializeAction`; publish invokes `(dispatch, getState, payload)` once |
+| 2 | Omitted | Factory passes `undefined`; publish does not invoke a callback |
+| 3 | Post-commit `getState` | With `requestIdTracking`, callback `getConfirmedRequestIds(getState(), streamKey, now)` includes ids from the same envelope; `materializedView` updated |
 
 ---
 

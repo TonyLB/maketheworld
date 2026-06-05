@@ -1,6 +1,6 @@
 # RequestId tracking and pending-edit derivation (wmlDataSource + personalAssets)
 
-**Status:** Phase 3 complete. **Next:** Phase 4 (hygiene, band-aid rollback, verification).
+**Status:** Phase 4a slice 1 complete (`afterProcessEnvelope` factory hook). **Next:** Phase 4a slice 2 (pending hygiene thunk + wml wiring), then band-aid rollback.
 
 Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md) once for durability rules (this file is task-scoped; delete after merge). Client test commands: [`taskPlanning/charcoal-client/AGENT.development.md`](../../../AGENT.development.md).
 
@@ -38,6 +38,13 @@ wmlDataSource.processEnvelope  (single dispatch)
   - confirmedRequestIds += req-A (with seenAt)
         |
         v
+afterProcessEnvelope(streamKey, payload)   // factory hook; strictly after reducer commit
+  -> personalAssets pendingHygieneCheck(assetId)
+       - clear raw pendingEdits by confirmed RequestIds (storage + saving indicator)
+       - TTL-trim stale pending rows
+       - Merge Conflict toast when header.type matches and pending had row
+        |
+        v
 getEffectivePendingEdits(assetId, now)
   = pendingEdits
       .filter(p => !confirmedSet.has(p.meta.key))   // confirmed first
@@ -60,7 +67,7 @@ confirmedSet from wmlDataSource selector:
 
 Confirmed ids outlive effective pending overlay (5m > 3m) so a physical pending row that lingers in storage is still suppressed by confirmed filtering for an extra window after the pending age cap would alone apply.
 
-**Lazy storage hygiene (secondary):** On `saveEdit` enqueue, remove raw `pendingEdits` rows with `meta.time` older than `PENDING_TTL_MS` (same threshold as selector). Optional eager `clearPendingEditsByRequestIds` on stream events is **not** required for correctness. Physical arrays may retain stale rows until the next save; selectors never merge them into the view.
+**Lazy storage hygiene (secondary):** On stream confirm, `afterProcessEnvelope` dispatches `personalAssets` pending hygiene (clear by confirmed RequestIds + TTL trim). On `saveEdit` enqueue, also remove raw `pendingEdits` rows with `meta.time` older than `PENDING_TTL_MS` (same threshold as selector). Eager clear is **not** required for merge correctness (selectors handle that); it **is** required for saving indicator, `revertSaveEdit`, and storage trim promptly after confirm.
 
 **Merge Conflict:** RequestIds on conflict events should also enter the confirmed set (edit failed; overlay must not merge on top of base).
 
@@ -74,7 +81,7 @@ Confirmed ids outlive effective pending overlay (5m > 3m) so a physical pending 
 | 1 | Confirmed RequestId storage in `createDataSourceSlice` | Complete |
 | 2 | `wmlDataSource` enable + selectors | Complete |
 | 3 | `personalAssets` effective-pending derivation | Complete |
-| 4 | Hygiene, band-aid rollback (inventory A/B), verification | Not started |
+| 4 | `afterProcessEnvelope` hygiene, band-aid rollback (inventory A/B), verification | In progress (factory hook landed) |
 | 5 | Durable docs + retire this plan | Not started |
 
 ---
@@ -169,9 +176,10 @@ Update **`getLocalStandardForm`** to merge **effective** pending, not raw array.
 | Concern | After structural fix |
 | --- | --- |
 | Correctness of merged view | Selector filtering + selector TTL (primary) |
-| Merge Conflict toast | Keep `receiveWMLEvent` (prefer keeping thunk for UX) |
-| Storage hygiene | Lazy purge on `saveEdit` (secondary; same 3m threshold as pending selector) |
-| `subscribeFirst` handler | Remove once tests prove selector fix |
+| Storage hygiene + saving indicator + `revertSaveEdit` | `afterProcessEnvelope` -> `personalAssets` pending hygiene (strictly after wml reducer); belt-and-suspenders TTL trim on `saveEdit` |
+| Merge Conflict toast | Fold into pending hygiene thunk (`header.type` + pre-clear pending snapshot); no separate PubSub subscription |
+| `subscribeFirst` / `wmlStreamHandlers` | Remove once hygiene hook + tests land (ordering band-aid obsolete) |
+| `receiveWMLEvent` | Retire or reduce to internal helper called from hygiene thunk; no store-init PubSub handler |
 
 ### E. TTL: belt-and-suspenders (chosen)
 
@@ -188,6 +196,7 @@ Correctness must not depend on dispatch order, stream handlers, or background ti
 
 | Action | Rule |
 | --- | --- |
+| `afterProcessEnvelope` (per stream event) | Dispatch pending hygiene for `streamKey`: clear rows whose `meta.key` is in effective confirmed set; TTL-trim stale rows; Merge Conflict toast when applicable |
 | `saveEdit` enqueue | Remove raw `pendingEdits` rows with `now - meta.time >= PENDING_TTL_MS` (same 3m threshold) |
 
 **Why asymmetric 3m / 5m:** Confirmed ids live longer than the pending overlay cap. Between 3-5 minutes, confirmed filtering still suppresses a lingering physical pending row even if the age filter alone would not.
@@ -243,9 +252,50 @@ export function makeStreamEventGuardForDataSource<H extends StreamingEventHeader
 - [`streamEventPubSub/index.ts`](../../../../charcoal-client/src/slices/dataSource/streamEventPubSub/index.ts) --- generic payload alias; extend guard factory
 - [`createDataSourceSlice`](../../../../charcoal-client/src/slices/dataSource/index.ts) / [`reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts) --- `Header` type param; typed `processEnvelope`
 - [`wmlDataSource/index.ts`](../../../../charcoal-client/src/slices/wmlDataSource/index.ts) --- pass `WMLStreamingEventHeader` (from serializer) at slice creation
-- [`wmlStreamHandlers.ts`](../../../../charcoal-client/src/slices/personalAssets/wmlStreamHandlers.ts) --- switch to guard when touched (Phase 4 band-aid removal or earlier if convenient)
+- [`wmlStreamHandlers.ts`](../../../../charcoal-client/src/slices/personalAssets/wmlStreamHandlers.ts) --- **delete** in Phase 4b after `afterProcessEnvelope` hygiene lands (design note **G**)
 
 **Rejected alternative:** Per-data-source narrow helper types only (Option B) without factory generics --- would leave `requestIdTracking` reading `(header as Record<string, unknown>)` and duplicate casts at every consumer.
+
+### G. Cross-slice pending hygiene via `afterProcessEnvelope` (chosen 2026-06-05)
+
+**Problem:** Phase 3 fixes merge correctness at selector read time, but raw `pendingEdits` still drives the saving indicator, `revertSaveEdit`, and storage size. TTL-only lazy purge on `saveEdit` does not run on stream confirm. A parallel `StreamEventPubSub` subscriber (`subscribeFirst` band-aid) cleared pending before wml merge --- ordering hack, not a durable cross-slice contract.
+
+**Decision:** Add an opt-in factory callback on `DataSourceSliceConfig`, parallel to `onReady`:
+
+```typescript
+afterProcessEnvelope?: (
+  dispatch: AppDispatch,
+  getState: () => RootState,
+  payload: StreamEventDeserializedPayload
+) => void
+```
+
+**Wiring (mirror `onReady`):**
+
+| Touchpoint | Change |
+| --- | --- |
+| [`dataSource/index.ts`](../../../../charcoal-client/src/slices/dataSource/index.ts) | Add `afterProcessEnvelope?` to `DataSourceSliceConfig`; pass through to `createInitializeAction` |
+| [`dataSource/index.api.ts`](../../../../charcoal-client/src/slices/dataSource/index.api.ts) | In StreamEventPubSub subscriber: `dispatch(processEnvelope(payload))` then `afterProcessEnvelope?.(dispatch, getState, payload)` |
+| [`wmlDataSource/index.ts`](../../../../charcoal-client/src/slices/wmlDataSource/index.ts) | Supply callback that dispatches `personalAssets` pending hygiene for `payload.streamKey` |
+| [`personalAssets/index.ts`](../../../../charcoal-client/src/slices/personalAssets/index.ts) | New thunk (e.g. `pendingHygieneCheck(assetId, envelope)`) --- not a second PubSub subscription |
+
+**Ordering guarantee:** Callback runs in the **same** subscriber that dispatches `processEnvelope`, **after** the synchronous reducer commit. `getState()` inside the callback sees updated `materializedView` and `confirmedRequestIds`. Replaces `subscribeFirst` ordering without a second personalAssets stream listener.
+
+**Pending hygiene thunk responsibilities (asset-scoped):**
+
+1. Read effective confirmed RequestIds via `getWMLConfirmedRequestIds(state, assetId)` (post-envelope state).
+2. Dispatch `clearPendingEditsByRequestIds` for ids present in raw `pendingEdits` (physical trim + saving indicator off).
+3. TTL-trim stale `pendingEdits` rows (`meta.time` older than `PENDING_TTL_MS`).
+4. Merge Conflict toast: when `header.type === 'Merge Conflict'` and a matching pending row existed **before** clear (capture snapshot pre-dispatch).
+5. `revertSaveEdit` guard: no-op when `requestId` is already in confirmed set (belt-and-suspenders if clear races wire failure).
+
+**wml-only coupling:** Generic factory defines the hook; only `wmlDataSource` passes a callback that imports `personalAssets`. Other `createDataSourceSlice` instances omit it.
+
+**Rejected alternatives:**
+
+- **Normal `StreamEventPubSub.subscribe` from personalAssets** --- subscriber registration order vs wml INITIALIZE timing is fragile.
+- **RTK listener middleware on `processEnvelope`** --- not established in this store; less discoverable than factory hook beside `onReady`.
+- **Selector-only (no physical clear)** --- leaves `saving: pendingEdits.length > 0` stuck after confirm; `revertSaveEdit` can incorrectly roll back after stream confirm.
 
 ---
 
@@ -261,7 +311,7 @@ export function makeStreamEventGuardForDataSource<H extends StreamingEventHeader
 | **A** | [`store/index.ts`](../../../../charcoal-client/src/store/index.ts) | Import + `registerPersonalAssetsWmlStreamHandlers(store.dispatch)` immediately after `configureStore`. | **Remove** import + call |
 | **A** | [`lib/pubSub/index.ts`](../../../../charcoal-client/src/lib/pubSub/index.ts) | New `subscribeFirst(callback)`: prepends subscriber so it runs before existing subscribers on each `publish`. | **Remove method** if no other caller |
 | **A** | [`lib/pubSub/index.test.ts`](../../../../charcoal-client/src/lib/pubSub/index.test.ts) | Test: `subscribeFirst` callback runs before `subscribe` callback on publish. | **Remove test** with method |
-| **B** | [`index.api.ts`](../../../../charcoal-client/src/slices/personalAssets/index.api.ts) | Removed `StreamEventPubSub` / `receiveWMLEvent` imports. **`subscribeAction`:** deleted per-asset `StreamEventPubSub.subscribe` block; returns `internalData: {}` instead of `{ subscription }`. **`clearAction`:** removed `StreamEventPubSub.unsubscribe(subscription)` and `internalData: { subscription: undefined }`; returns `{}`. Doc comment points at store-init handler. | After Phase 4: **Option 1** keep global handler with normal `subscribe` (toast only). **Option 2** restore per-asset subscribe/unsubscribe here |
+| **B** | [`index.api.ts`](../../../../charcoal-client/src/slices/personalAssets/index.api.ts) | Removed `StreamEventPubSub` / `receiveWMLEvent` imports. **`subscribeAction`:** deleted per-asset `StreamEventPubSub.subscribe` block; returns `internalData: {}` instead of `{ subscription }`. **`clearAction`:** removed `StreamEventPubSub.unsubscribe(subscription)` and `internalData: { subscription: undefined }`; returns `{}`. Doc comment points at store-init handler. | After Phase 4: **keep** no per-asset PubSub subscription; hygiene via `afterProcessEnvelope`; update comments; remove dead `subscription` field |
 | **B** | [`baseClasses.ts`](../../../../charcoal-client/src/slices/personalAssets/baseClasses.ts) | **Unchanged in working tree**; `internalData.subscription?: any` still declared but no longer written. | Remove dead field when settling **B** |
 | **C** | [`index.ts`](../../../../charcoal-client/src/slices/personalAssets/index.ts) | Register `revertSaveEdit` reducer. Module-level `saveEditChainByKey` Map serializes concurrent saves per asset key. **`saveEdit`:** generate `requestId`, dispatch `saveEdit` reducer **before** `socketDispatchPromise(applyEdit)`, build WML from pending row snapshot, `catch` -> `revertSaveEdit`. | **Keep** (optimistic persist + wire failure + serialization) |
 | **C** | [`reducers.ts`](../../../../charcoal-client/src/slices/personalAssets/reducers.ts) | Comment on optimistic `saveEdit`. New **`revertSaveEdit`:** remove pending row by `requestId` if present, merge snapshot back into `edit`; no-op if stream already cleared. | **Keep** |
@@ -284,14 +334,14 @@ export function makeStreamEventGuardForDataSource<H extends StreamingEventHeader
 | **E** | [`workbenchMutations.test.ts`](../../../../charcoal-client/src/components/Workbench/foundations/workbenchMutations.test.ts) | Trailing blank line only (no logic change). | **Keep** or drop whitespace in cleanup |
 | **-** | This plan (`AGENT.requestIdTracking.planning.md`) | RequestId tracking design + this inventory. | Update as work progresses |
 
-**Not modified in working tree (referenced by rollback):** [`receiveWMLEvent`](../../../../charcoal-client/src/slices/personalAssets/index.ts) thunk --- pre-existing; still used by band-aid handler and after Phase 4 for toast / optional hygiene.
+**Not modified in working tree (referenced by rollback):** [`receiveWMLEvent`](../../../../charcoal-client/src/slices/personalAssets/index.ts) thunk --- pre-existing; used by band-aid handler today; Phase 4 folds clear + toast into pending hygiene thunk via `afterProcessEnvelope`, then retires band-aid and PubSub wiring.
 
 ### Category summary (Phase 4 intent)
 
 | Cat | Rollback when `getEffectivePendingEdits` is verified |
 | --- | --- |
 | **A** | Delete ordering band-aid: `wmlStreamHandlers`, store registration, `subscribeFirst` (+ test) |
-| **B** | Restore or simplify stream wiring (`index.api.ts`; dead `subscription` field) --- **A alone is insufficient** |
+| **B** | Settle stream wiring: no personalAssets `StreamEventPubSub` subscription (hygiene via `afterProcessEnvelope`); remove dead `subscription` field in `baseClasses.ts`; update `index.api.ts` comments --- **A alone is insufficient** |
 | **C** | **Do not roll back** --- optimistic save, revert, tests, docs (trim band-aid prose in Phase 5) |
 | **D** | **Keep** --- lambda Merge Conflict stream on applyEdit failure |
 | **E** | **Do not roll back during Phase 4** --- separate workbench/editor/instrumentation track |
@@ -307,8 +357,8 @@ cd charcoal-client
 rg "subscribeFirst|wmlStreamHandlers|registerPersonalAssetsWmlStreamHandlers" src
 # Expect: no matches (or only comments in this plan)
 
-rg "receiveWMLEvent" src/slices/personalAssets
-# Expect: thunk still present for toast / optional hygiene
+rg "receiveWMLEvent|wmlStreamHandlers|registerPersonalAssetsWmlStreamHandlers" src/slices/personalAssets
+# Expect: no PubSub handler; pending hygiene via afterProcessEnvelope (receiveWMLEvent retired or internal-only)
 ```
 
 Update durable docs to remove `subscribeFirst` / "clear before merge" language (Phase 5).
@@ -347,25 +397,36 @@ Mark pending work `[ ]` and completed work `[X]`. Mark nested bullets `[X]` as e
 - [X] Selector tests: base updated + raw pending present + confirmed id -> effective empty (no double); pending older than 3m excluded; inject fixed `now`
 - [X] Add tests in [`selectors.test.ts`](../../../../charcoal-client/src/slices/personalAssets/selectors.test.ts) if present
 
-### Phase 4 --- Hygiene, band-aid rollback, and verification
+### Phase 4 --- Cross-slice hygiene, band-aid rollback, and verification
 
-Complete [Recorded changes](#recorded-changes-2026-06-04-working-tree) category **A** only after Phase 3 selector tests pass.
+Complete [Recorded changes](#recorded-changes-2026-06-04-working-tree) category **A** only after **4a** lands and tests pass. See design note **G**.
 
-- [ ] Lazy purge on `saveEdit` enqueue: remove raw `pendingEdits` with `meta.time` older than `PENDING_TTL_MS` (3m; secondary storage trim)
-- [ ] Decide post-fix stream wiring (**B**): global `receiveWMLEvent` handler vs restore per-asset `subscribeAction` subscription
+#### 4a --- `afterProcessEnvelope` factory hook + personalAssets pending hygiene (do first)
+
+- [X] Add opt-in `afterProcessEnvelope?` to `DataSourceSliceConfig` in [`dataSource/index.ts`](../../../../charcoal-client/src/slices/dataSource/index.ts) (parallel to `onReady`; receives `dispatch`, `getState`, full `StreamEventDeserializedPayload`)
+- [X] Thread callback through `createDataSourceSlice` -> `createInitializeAction` in [`dataSource/index.api.ts`](../../../../charcoal-client/src/slices/dataSource/index.api.ts): invoke **after** `dispatch(processEnvelope(payload))` in the StreamEventPubSub subscriber
+- [X] Factory tests in [`dataSource/index.test.ts`](../../../../charcoal-client/src/slices/dataSource/index.test.ts): callback runs when configured; omitted when not; `getState()` after invoke sees reducer commit (mock reducer or spy dispatch order)
+- [ ] Add `pendingHygieneCheck(assetId, envelope)` thunk in [`personalAssets/index.ts`](../../../../charcoal-client/src/slices/personalAssets/index.ts): clear raw `pendingEdits` by effective confirmed RequestIds (`getWMLConfirmedRequestIds`); TTL-trim stale rows; Merge Conflict toast (pre-clear pending snapshot + `header.type`); fold or replace [`receiveWMLEvent`](../../../../charcoal-client/src/slices/personalAssets/index.ts) clear/toast paths
+- [ ] `revertSaveEdit` confirmed guard: no-op when `requestId` is already in effective confirmed set (not only when physical row missing)
+- [ ] Wire [`wmlDataSource/index.ts`](../../../../charcoal-client/src/slices/wmlDataSource/index.ts) `afterProcessEnvelope` to dispatch `pendingHygieneCheck(payload.streamKey, payload)` when `streamKey` is a valid asset UUID
+- [ ] Tests: hygiene clears confirmed pending + drops saving indicator; Merge Conflict toast when pending matched; TTL trim; ordering --- wml `processEnvelope` then hygiene (no doubling in `getLocalStandardForm`); extend [`reducers.test.ts`](../../../../charcoal-client/src/slices/personalAssets/reducers.test.ts) / [`selectors.test.ts`](../../../../charcoal-client/src/slices/personalAssets/selectors.test.ts) as needed
+
+#### 4b --- Lazy purge, band-aid rollback, category B cleanup, verification
+
+- [ ] Lazy purge on `saveEdit` enqueue: remove raw `pendingEdits` with `meta.time` older than `PENDING_TTL_MS` (3m; secondary storage trim on user activity)
 - [ ] **Delete** [`wmlStreamHandlers.ts`](../../../../charcoal-client/src/slices/personalAssets/wmlStreamHandlers.ts)
 - [ ] **Remove** [`store/index.ts`](../../../../charcoal-client/src/store/index.ts) `registerPersonalAssetsWmlStreamHandlers` import and call
 - [ ] **Remove** `PubSub.subscribeFirst` and its test if grep shows no other callers
-- [ ] **Revert** [`index.api.ts`](../../../../charcoal-client/src/slices/personalAssets/index.api.ts) / `clearAction` subscription shape per decision above (if restoring per-asset pattern)
+- [ ] Settle category **B**: no personalAssets `StreamEventPubSub` subscription; remove dead `internalData.subscription` from [`baseClasses.ts`](../../../../charcoal-client/src/slices/personalAssets/baseClasses.ts); update [`index.api.ts`](../../../../charcoal-client/src/slices/personalAssets/index.api.ts) comments (hygiene via `afterProcessEnvelope`, not store-init handler)
 - [ ] **Do not revert** section **C** (optimistic save / `revertSaveEdit` / save chain) or section **E** (workbench editor/session files)
 - [ ] Run band-aid rollback grep commands (inventory section)
-- [ ] Manual repro: imported room shortName/summary through flush + autosave --- no doubling, no visible revert flash
+- [ ] Manual repro: imported room shortName/summary through flush + autosave --- no doubling, no visible revert flash; saving indicator clears on stream confirm
 
 ### Phase 5 --- Durable docs and cleanup
 
-- [ ] Update [`personalAssets/AGENT.md`](../../../../charcoal-client/src/slices/personalAssets/AGENT.md) --- `getEffectivePendingEdits` vs raw `pendingEdits`; `getLocalStandardForm` uses effective pending; confirmed set from wmlDataSource; eager clear / band-aid no longer required for merge correctness (short pointer to implementation doc for TTL rationale)
-- [ ] Update [`wmlDataSource/AGENT.md`](../../../../charcoal-client/src/slices/wmlDataSource/AGENT.md) --- `requestIdTracking` enabled; confirmed-id selector as cross-slice source (link to implementation doc)
-- [ ] Update [`dataSource/AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) --- `requestIdTracking` option (recording, selectors, tests)
+- [ ] Update [`personalAssets/AGENT.md`](../../../../charcoal-client/src/slices/personalAssets/AGENT.md) --- `getEffectivePendingEdits` vs raw `pendingEdits`; pending hygiene via wml `afterProcessEnvelope`; band-aid removed; short pointer to implementation doc for TTL rationale
+- [ ] Update [`wmlDataSource/AGENT.md`](../../../../charcoal-client/src/slices/wmlDataSource/AGENT.md) --- `requestIdTracking` enabled; `afterProcessEnvelope` -> personalAssets hygiene; confirmed-id selector as cross-slice source (link to implementation doc)
+- [ ] Update [`dataSource/AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) --- `requestIdTracking` option (recording, selectors, tests); `afterProcessEnvelope` hook (wiring, ordering guarantee, wml -> personalAssets example)
 - [ ] In same file, **requestIdTracking** section: add durable **Selector-time TTL (intentional impurity)** note --- correctness at read (not wall-clock-driven UI expiry); why select-time `now` is acceptable vs Redux purity/memoization norms; idle-tab behavior; backend `seenAt` vs client `now` / `meta.time`; rejected timer/reducer-eviction as correctness deps; carve-out from reducer "no `Date.now()`" rule (cross-link [`dataSource/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.md) Pure Functions if needed)
 - [ ] Delete this task plan (git retains history)
 
@@ -376,8 +437,9 @@ Complete [Recorded changes](#recorded-changes-2026-06-04-working-tree) category 
 ```bash
 cd charcoal-client
 
-# DataSource factory + wml slice
+# DataSource factory + afterProcessEnvelope hook
 npm run test:single -- src/slices/dataSource/reducers.test.ts
+npm run test:single -- src/slices/dataSource/index.test.ts
 npm run test:single -- src/lib/pubSub/index.test.ts
 
 # personalAssets pending / local form
@@ -396,7 +458,7 @@ npm run test:single -- src/components/Workbench/foundations/workbenchMutations.t
 rg "subscribeFirst|wmlStreamHandlers|registerPersonalAssetsWmlStreamHandlers" charcoal-client/src
 ```
 
-Expect no production use of the ordering band-aid. `receiveWMLEvent` may remain for toast.
+Expect no production use of the ordering band-aid or personalAssets PubSub stream handler. Pending hygiene runs via `afterProcessEnvelope` on `wmlDataSource`.
 
 ---
 
