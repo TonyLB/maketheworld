@@ -27,7 +27,7 @@ import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import { socketDispatchPromise } from '../lifeLine'
 import { isStandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
-import type { WMLStreamingEventHeader, WMLContentEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
+import type { WMLStreamingEventHeader } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { push } from '../UI/feedback'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
@@ -276,19 +276,6 @@ export const pendingHygieneCheck = (
     ) {
         dispatch(push('Merge conflict prevented saving your changes'))
     }
-}
-
-export const receiveWMLEvent = (key: string) => (args: { header: WMLStreamingEventHeader; content: WMLContentEvent }) => (dispatch: any, getState: any) => {
-    const { header, content } = args
-    if (header.dataSourceKey !== 'mtw.wml') return
-    if (!header.RequestIds?.length) return
-    dispatch(pendingHygieneCheck(key, {
-        dataSourceKey: 'mtw.wml',
-        streamKey: key,
-        timestamp: header.timestamp,
-        header,
-        content
-    }))
 }
 
 export const updateStandard = (key: string) => (payload: UpdateStandardPayload, options?: ScopedInstrumentationOptions) => async (dispatch: any, getState: any) => {

@@ -81,8 +81,7 @@ Manage per-asset editing state and lifecycle so the Workbench can:
 - `addItem({ key, options? })` - Add asset to slice; triggers SSM lifecycle
 - `updateStandard(key)(payload)` - **Thunk**. Apply edits; orchestrates base from getWMLBase, dispatches to reducer
 - `saveEdit(key)` - **Thunk**. Enqueues `edit` to `pendingEdits` (optimistic), sends `applyEdit` with client `requestId`, reverts on wire failure if the pending row still exists
-- `pendingHygieneCheck(assetId, envelope)` - Thunk. Post-envelope hygiene: clear pending by confirmed/header RequestIds, TTL-trim, Merge Conflict toast
-- `receiveWMLEvent(key)({ header, content })` - Thunk. Delegates to `pendingHygieneCheck`; retained for `subscribeFirst` band-aid until Phase 4b
+- `pendingHygieneCheck(assetId, envelope)` - Thunk. Post-envelope hygiene: clear pending by confirmed/header RequestIds, TTL-trim, Merge Conflict toast (invoked via wml `afterProcessEnvelope`)
 - `addImportToDraft(draft, { fromAsset, uuid, tag })` - Pure helper (re-exported from [addImportToDraft.ts](./addImportToDraft.ts)). Mutates a draft to add or update an imported component. Callers combine it with `updateStandard` from `useWorkbenchAsset` (or the `updateStandard` thunk) and optional `getTopLevelAddToReferenceList` / custom descriptors to place the new reference. See Usage Patterns.
 - `assureDefaultSituationFromPrimitives(draft, fromAsset?)` - Pure helper: ensures draft has SITUATION#DEFAULT imported from primitives; mutates draft, returns true if it made a change. See below.
 - `getStandardForm(key)(state)`, `getLocalStandardForm(key)(state)`, `getBase(key)(state)`, `getEffectivePendingEdits(key)(state)`, `getPendingEdits(key)(state)` - Selectors (key-scoped); `getPendingEdits` is raw storage, `getEffectivePendingEdits` is for merge views
@@ -92,7 +91,7 @@ Manage per-asset editing state and lifecycle so the Workbench can:
 - `updateStandard` - Merges payload.update diffs into edit; uses `payload.base` (from thunk)
 - `clearPendingEditsByRequestIds` - Filters pendingEdits by RequestIds
 - `trimStalePendingEdits` - Removes pending rows older than `PENDING_TTL_MS` (lazy storage trim)
-- `saveEdit` - Moves edit to pendingEdits, clears edit (invoked **before** `applyEdit` send)
+- `saveEdit` - TTL-trims stale pending rows, moves edit to pendingEdits, clears edit (invoked **before** `applyEdit` send)
 - `revertSaveEdit` - On `applyEdit` wire failure: if a pending row for `requestId` still exists, remove it and merge its snapshot back into `edit`; no-op if stream already cleared the row
 
 ### Optimistic persist flow (`saveEdit`)
@@ -134,15 +133,13 @@ Defined in [assureDefaultSituationFromPrimitives.ts](./assureDefaultSituationFro
 - **wmlDataSource** ([../wmlDataSource/](../wmlDataSource/)): Owns `materializedView` (backend WML); personalAssets derives base via `getWMLBase`
 - **multipleSSM** ([../stateSeekingMachine/multipleSSM.ts](../stateSeekingMachine/multipleSSM.ts)): SSM factory; `augmentPublicDataForSelect` for base injection
 - **lifeLine** ([../lifeLine.ts](../lifeLine.ts)): socketDispatch for applyEdit
-- **streamEventPubSub** ([../dataSource/streamEventPubSub/](../dataSource/streamEventPubSub/)): Pre-deserialized mtw.wml StreamEvents for receiveWMLEvent
 - **player** slice: `getAssetZone` for Draft vs published (readonly)
 - **StandardForm** ([packages/mtw-wml/ts/standardize/](../../../packages/mtw-wml/ts/standardize/AGENT.md)): Merge, diff, toJSON
 
 ### WML dataSource integration
 
 - **Subscribe/unsubscribe ownership**: wmlDataSource owns mtw.wml subscribe/unsubscribe. personalAssets triggers via `subscribeToStreams([id])` / `unsubscribeFromStreams([id])`; personalAssets does **not** send subscribe/unsubscribe messages itself.
-- **Post-envelope hygiene (steady-state path)**: wml `afterProcessEnvelope` dispatches `pendingHygieneCheck` after `processEnvelope` commits (clears raw pending, TTL-trim, toast). Selector-time `getEffectivePendingEdits` remains the correctness backstop.
-- **Band-aid (until Phase 4b)**: `registerPersonalAssetsWmlStreamHandlers` still uses `StreamEventPubSub.subscribeFirst` at store init; `receiveWMLEvent` delegates to `pendingHygieneCheck` before wml merges Content Update.
+- **Post-envelope hygiene**: wml `afterProcessEnvelope` dispatches `pendingHygieneCheck` after `processEnvelope` commits (clears raw pending, TTL-trim, toast). Selector-time `getEffectivePendingEdits` remains the correctness backstop. Lazy TTL trim on `saveEdit` enqueue is secondary storage hygiene.
 
 ### Deprecated: Image properties (fetch)
 
@@ -182,7 +179,6 @@ Both **`update`** and **`updateLocal`** persist via the same `mergeToEdit` into 
 
 **WML vs Workbench body retention:** Generic WML merge retains unreferenced components **with content** (supports `ref={0}` editing). Workbench list **remove** leaves bodies on the local draft until **Purge**.
 - **Selectors**: All key-scoped; e.g. `getStandardForm(assetId)(state)`. Return undefined if asset not in slice.
-- **receiveWMLEvent**: Guards on `header.dataSourceKey === 'mtw.wml'` and `RequestIds`; no-op if missing.
 
 ### System Relationships
 
@@ -257,7 +253,7 @@ That is **not** the same as merge-time stored retarget of all references; see **
 ### Error Handling
 
 - `FETCHERROR`, `SUBSCRIBEBACKOFF`: SSM handles retries with incremental backoff
-- Merge Conflict: Toast shown when `receiveWMLEvent` sees Merge Conflict with matching RequestIds
+- Merge Conflict: Toast shown when `pendingHygieneCheck` sees Merge Conflict with matching pending RequestIds
 
 ---
 

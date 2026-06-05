@@ -1,6 +1,6 @@
 # RequestId tracking and pending-edit derivation (wmlDataSource + personalAssets)
 
-**Status:** Phase 4a slice 2 complete (`pendingHygieneCheck` + wml `afterProcessEnvelope` wiring). **Next:** Phase 4b (lazy purge on `saveEdit`, band-aid rollback). `subscribeFirst` band-aid still active until 4b.
+**Status:** Phase 4b complete (lazy purge on `saveEdit`, band-aid rollback, category B settled). **Next:** Phase 5 (durable docs + retire this plan).
 
 Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md) once for durability rules (this file is task-scoped; delete after merge). Client test commands: [`taskPlanning/charcoal-client/AGENT.development.md`](../../../AGENT.development.md).
 
@@ -81,7 +81,7 @@ Confirmed ids outlive effective pending overlay (5m > 3m) so a physical pending 
 | 1 | Confirmed RequestId storage in `createDataSourceSlice` | Complete |
 | 2 | `wmlDataSource` enable + selectors | Complete |
 | 3 | `personalAssets` effective-pending derivation | Complete |
-| 4 | `afterProcessEnvelope` hygiene, band-aid rollback (inventory A/B), verification | In progress (factory hook landed) |
+| 4 | `afterProcessEnvelope` hygiene, band-aid rollback (inventory A/B), verification | Complete |
 | 5 | Durable docs + retire this plan | Not started |
 
 ---
@@ -413,14 +413,14 @@ Complete [Recorded changes](#recorded-changes-2026-06-04-working-tree) category 
 
 #### 4b --- Lazy purge, band-aid rollback, category B cleanup, verification
 
-- [ ] Lazy purge on `saveEdit` enqueue: remove raw `pendingEdits` with `meta.time` older than `PENDING_TTL_MS` (3m; secondary storage trim on user activity)
-- [ ] **Delete** [`wmlStreamHandlers.ts`](../../../../charcoal-client/src/slices/personalAssets/wmlStreamHandlers.ts)
-- [ ] **Remove** [`store/index.ts`](../../../../charcoal-client/src/store/index.ts) `registerPersonalAssetsWmlStreamHandlers` import and call
-- [ ] **Remove** `PubSub.subscribeFirst` and its test if grep shows no other callers
-- [ ] Settle category **B**: no personalAssets `StreamEventPubSub` subscription; remove dead `internalData.subscription` from [`baseClasses.ts`](../../../../charcoal-client/src/slices/personalAssets/baseClasses.ts); update [`index.api.ts`](../../../../charcoal-client/src/slices/personalAssets/index.api.ts) comments (hygiene via `afterProcessEnvelope`, not store-init handler)
-- [ ] **Do not revert** section **C** (optimistic save / `revertSaveEdit` / save chain) or section **E** (workbench editor/session files)
-- [ ] Run band-aid rollback grep commands (inventory section)
-- [ ] Manual repro: imported room shortName/summary through flush + autosave --- no doubling, no visible revert flash; saving indicator clears on stream confirm
+- [X] Lazy purge on `saveEdit` enqueue: remove raw `pendingEdits` with `meta.time` older than `PENDING_TTL_MS` (3m; secondary storage trim on user activity)
+- [X] **Delete** [`wmlStreamHandlers.ts`](../../../../charcoal-client/src/slices/personalAssets/wmlStreamHandlers.ts)
+- [X] **Remove** [`store/index.ts`](../../../../charcoal-client/src/store/index.ts) `registerPersonalAssetsWmlStreamHandlers` import and call
+- [X] **Remove** `PubSub.subscribeFirst` and its test if grep shows no other callers
+- [X] Settle category **B**: no personalAssets `StreamEventPubSub` subscription; remove dead `internalData.subscription` from [`baseClasses.ts`](../../../../charcoal-client/src/slices/personalAssets/baseClasses.ts); update [`index.api.ts`](../../../../charcoal-client/src/slices/personalAssets/index.api.ts) comments (hygiene via `afterProcessEnvelope`, not store-init handler)
+- [X] **Do not revert** section **C** (optimistic save / `revertSaveEdit` / save chain) or section **E** (workbench editor/session files)
+- [X] Run band-aid rollback grep commands (inventory section)
+- [X] Manual repro: imported room shortName/summary through flush + autosave --- no doubling, no visible revert flash; saving indicator clears on stream confirm
 
 ### Phase 5 --- Durable docs and cleanup
 

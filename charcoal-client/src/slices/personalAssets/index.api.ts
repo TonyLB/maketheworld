@@ -29,8 +29,8 @@ export const wmlDataSourceReadyCondition: PersonalAssetsCondition = (_data, getS
 }
 
 /**
- * Subscribe to mtw.wml via WML dataSource slice. clearPendingEditsByRequestIds and Merge
- * Conflict toast are handled by registerPersonalAssetsWmlStreamHandlers (store init).
+ * Subscribe to mtw.wml via WML dataSource slice. clearPendingEditsByRequestIds, TTL trim, and
+ * Merge Conflict toast are handled by pendingHygieneCheck via wmlDataSource afterProcessEnvelope.
  * Base comes from dataSource Snapshot (no fetch for WML body).
  * See personalAssets AGENT.md "WML dataSource integration".
  *

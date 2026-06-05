@@ -643,6 +643,24 @@ describe('personalAsset slice reducers', () => {
         })
     })
 
+    describe('saveEdit lazy TTL purge', () => {
+        it('trims stale pending rows before enqueueing new save', () => {
+            const NOW = Date.now()
+            const edit = { universalKey: 'ASSET#test', components: [], metaData: [] }
+            const state = {
+                edit,
+                pendingEdits: [
+                    { meta: { key: 'stale', time: NOW - PENDING_TTL_MS }, edit },
+                    { meta: { key: 'fresh', time: NOW - PENDING_TTL_MS + 1 }, edit }
+                ]
+            } as PersonalAssetsPublic
+            const next = produce(state, (draft) => {
+                saveEdit(draft, { type: 'saveEdit', payload: { requestId: 'req-new' } })
+            }) as PersonalAssetsPublic
+            expect(next.pendingEdits.map((p) => p.meta.key)).toEqual(['fresh', 'req-new'])
+        })
+    })
+
     const wmlToJSON = (wml: string): StandardFormData => {
         const schema = new Schema()
         schema.loadWML(deIndentWML(wml))

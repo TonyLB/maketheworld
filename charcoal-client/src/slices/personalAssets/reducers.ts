@@ -138,13 +138,15 @@ export const clearLastUpdateDiff = (state: PersonalAssetsPublic, _action: Payloa
 
 export const saveEdit = (state: PersonalAssetsPublic, action: PayloadAction<{ requestId: string }>) => {
     const instrumentationOptions = state.instrumentationOptionsForCurrentEdit
+    const now = Date.now()
     // Invoked before applyEdit send (optimistic pending); stream clearPending matches meta.key.
+    state.pendingEdits = state.pendingEdits.filter(({ meta }) => now - meta.time < PENDING_TTL_MS)
     state.pendingEdits = [
         ...state.pendingEdits,
         {
             meta: {
                 key: action.payload.requestId,
-                time: Date.now(),
+                time: now,
                 ...(instrumentationOptions?.instrumentation?.length ? { instrumentationOptions } : {})
             },
             edit: JSON.parse(JSON.stringify(state.edit))

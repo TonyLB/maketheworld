@@ -55,14 +55,6 @@ describe('PubSub class', () => {
             callback: callbackTwo
         }])
     })
-    it('should call subscribeFirst callbacks before subscribe callbacks on publish', () => {
-        const order: string[] = []
-        uuid.mockReturnValueOnce('first' as any).mockReturnValueOnce('second' as any)
-        testPubSub.subscribe(() => { order.push('second') })
-        testPubSub.subscribeFirst(() => { order.push('first') })
-        testPubSub.publish({ value: 'Test' })
-        expect(order).toEqual(['first', 'second'])
-    })
     it('should call all callbacks on publish', () => {
         expect(testPubSub.subscriptions).toEqual([])
         uuid.mockReturnValueOnce('testUUID1' as any).mockReturnValueOnce('testUUID2' as any)
