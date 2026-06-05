@@ -87,6 +87,15 @@ const processApplyEdit = async (
         }
     } catch (error) {
         console.error(`Error processing applyEdit for ${AssetId}:`, error)
+        try {
+            await streamEvent({
+                update: { error: error instanceof Error ? error.message : String(error) },
+                streamKey: AssetId,
+                header: { type: 'Merge Conflict', RequestIds: payload.RequestId != null ? [payload.RequestId] : [] }
+            })
+        } catch (streamError) {
+            console.error(`Error streaming Merge Conflict after applyEdit failure for ${AssetId}:`, streamError)
+        }
     }
 }
 

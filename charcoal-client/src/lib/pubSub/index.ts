@@ -31,4 +31,16 @@ export class PubSub<D extends any> {
         ]
         return id
     }
+    /** Register a subscriber that runs before all existing subscribers on each publish. */
+    subscribeFirst = (callback: (args: { payload: D; unsubscribe: () => void}) => void) => {
+        const id = uuidv4()
+        this.subscriptions = [
+            {
+                id,
+                callback
+            },
+            ...this.subscriptions
+        ]
+        return id
+    }
 }

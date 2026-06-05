@@ -18,6 +18,7 @@ import {
     clearPendingEditsByRequestIds as clearPendingEditsByRequestIdsReducer,
     clearLastUpdateDiff as clearLastUpdateDiffReducer,
     saveEdit as saveEditReducer,
+    revertSaveEdit as revertSaveEditReducer,
     UpdateStandardPayload
 } from './reducers'
 import { PromiseCache } from '../promiseCache'
@@ -53,6 +54,7 @@ import {
 } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 
 const autoSaveDebounce = new Debounce()
+const saveEditChainByKey = new Map<string, Promise<void>>()
 
 const EMPTY_BASE: StandardFormData = { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
 
@@ -110,7 +112,8 @@ export const {
         updateStandard: updateStandardReducer,
         clearPendingEditsByRequestIds: clearPendingEditsByRequestIdsReducer,
         clearLastUpdateDiff: clearLastUpdateDiffReducer,
-        saveEdit: saveEditReducer
+        saveEdit: saveEditReducer,
+        revertSaveEdit: revertSaveEditReducer
     },
     publicSelectors,
     template: {
@@ -274,28 +277,49 @@ export const updateStandard = (key: string) => (payload: UpdateStandardPayload, 
     )
 }
 
-export const saveEdit = (key: string) => async (dispatch: any, getState: any) => {
-    if (!isSchemaAssetUUID(key)) {
-        return
-    }
-    const state = getState()
-    const edit = selectors.getEdit(key)(state)
-    const standardForm = new StandardForm(edit)
-    if (!standardForm.isEmpty()) {
-        // Ensure the universalKey is set to the correct asset key
-        // (it may be 'ASSET#uninitialized' if the edit was never properly initialized)
-        if (standardForm.universalKey !== key) {
-            standardForm._universalKey = key as AssetUUID
+export const saveEdit = (key: string) => {
+    const executeSave = async (dispatch: any, getState: any) => {
+        if (!isSchemaAssetUUID(key)) {
+            return
         }
-        const schema = schemaToWML([standardForm.schema])
-        const requestId = uuidv4()
-        await dispatch(socketDispatchPromise({
-            message: 'applyEdit',
-            RequestId: requestId,
-            AssetId: key,
-            schema
-        }, { service: 'wml' }))
-        dispatch(publicActions.saveEdit(key)({ requestId }))
+        const state = getState()
+        const edit = selectors.getEdit(key)(state)
+        const standardForm = new StandardForm(edit)
+        if (!standardForm.isEmpty()) {
+            if (standardForm.universalKey !== key) {
+                standardForm._universalKey = key as AssetUUID
+            }
+            const requestId = uuidv4()
+            dispatch(publicActions.saveEdit(key)({ requestId }))
+            const pendingRow = selectors.getPendingEdits(key)(getState()).find(({ meta }) => meta.key === requestId)
+            if (!pendingRow) {
+                return
+            }
+            const schema = schemaToWML([new StandardForm(pendingRow.edit).schema])
+            try {
+                await dispatch(socketDispatchPromise({
+                    message: 'applyEdit',
+                    RequestId: requestId,
+                    AssetId: key,
+                    schema
+                }, { service: 'wml' }))
+            } catch {
+                dispatch(publicActions.revertSaveEdit(key)({ requestId }))
+            }
+        }
+    }
+    return async (dispatch: any, getState: any) => {
+        const previous = saveEditChainByKey.get(key) ?? Promise.resolve()
+        const next = previous
+            .catch(() => undefined)
+            .then(() => executeSave(dispatch, getState))
+            .finally(() => {
+                if (saveEditChainByKey.get(key) === next) {
+                    saveEditChainByKey.delete(key)
+                }
+            })
+        saveEditChainByKey.set(key, next)
+        return next
     }
 }
 

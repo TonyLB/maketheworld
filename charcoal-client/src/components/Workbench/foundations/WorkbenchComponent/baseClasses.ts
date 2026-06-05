@@ -2,6 +2,8 @@ import type { ReactNode } from 'react'
 import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
+import type { ScopedInstrumentationOptions } from '../../../../testing/scopedInstrumentation'
+
 export type WorkbenchComponentGuard<T extends StandardComponent> = (
     component: StandardComponent | undefined
 ) => component is T
@@ -10,6 +12,8 @@ export type WorkbenchComponentProviderProps<T extends StandardComponent> = {
     componentId: ComponentUUID
     guard?: WorkbenchComponentGuard<T>
     flushDelayMs?: number
+    /** Scoped instrumentation (e.g. flush / reconcile). See workbenchSessionInstrumentation.ts. */
+    instrumentation?: ScopedInstrumentationOptions
     /** Called when external reconcile discards local edits (default: feedback snackbar). */
     onSuperseded?: () => void
     children: ReactNode

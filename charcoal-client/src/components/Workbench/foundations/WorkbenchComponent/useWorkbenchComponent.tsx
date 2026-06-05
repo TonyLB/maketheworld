@@ -26,6 +26,11 @@ import {
     reconcileCommittedComponent
 } from '../workbenchMutations'
 import { useWorkbenchAsset } from '../useWorkbenchAsset'
+import {
+    componentSessionSnapshot,
+    logWorkbenchSession,
+    WORKBENCH_COMPONENT_SESSION_INSTRUMENTATION_KEY
+} from '../workbenchSessionInstrumentation'
 import type {
     WorkbenchComponentGuard,
     WorkbenchComponentProviderProps,
@@ -71,6 +76,7 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
     componentId,
     guard,
     flushDelayMs = 1000,
+    instrumentation,
     onSuperseded,
     children
 }: WorkbenchComponentProviderProps<T>): React.ReactElement => {
@@ -100,6 +106,20 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
     const scheduleDebouncedFlushRef = useRef<(() => void) | undefined>(undefined)
     const prevCommittedRef = useRef<T | undefined>(undefined)
     const skipCommittedSyncRef = useRef(true)
+    const instrumentationRef = useRef(instrumentation)
+    instrumentationRef.current = instrumentation
+
+    const logSession = useCallback(
+        (event: string, detail: Record<string, unknown>) => {
+            logWorkbenchSession(
+                WORKBENCH_COMPONENT_SESSION_INSTRUMENTATION_KEY,
+                instrumentationRef.current,
+                event,
+                { componentId, ...detail }
+            )
+        },
+        [componentId]
+    )
 
     const notifySuperseded = useCallback(() => {
         if (onSuperseded) {
@@ -137,6 +157,10 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
                         working: current
                     })
                     lastFlushRef.current = flushed
+                    logSession('dispatchFlushApplied', {
+                        flushTargetId: id,
+                        lastFlush: componentSessionSnapshot(flushed)
+                    })
                     return draft
                 }
             })
@@ -144,7 +168,7 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
                 dispatch(fetchImports(AssetId))
             }
         },
-        [updateStandard, dispatch, AssetId]
+        [updateStandard, dispatch, AssetId, logSession]
     )
 
     const performFlush = useCallback(
@@ -152,31 +176,52 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
             const current = workingRef.current
             const id = overrideComponentId ?? componentId
             if (!current) {
+                logSession('performFlushSkipped', { reason: 'noWorking' })
                 return
             }
             if (overrideComponentId === undefined && missing) {
+                logSession('performFlushSkipped', { reason: 'missing' })
                 return
             }
 
             const received = lastReceivedRef.current
             if (received && received.diff(current) === undefined) {
+                logSession('performFlushSkipped', {
+                    reason: 'workingMatchesLastReceived',
+                    working: componentSessionSnapshot(current),
+                    lastReceived: componentSessionSnapshot(received)
+                })
                 return
             }
 
             const flushed = prepareComponentForFlush(current)
             if (received && received.diff(flushed) === undefined) {
+                logSession('performFlushSkipped', {
+                    reason: 'flushedMatchesLastReceived',
+                    flushed: componentSessionSnapshot(flushed),
+                    lastReceived: componentSessionSnapshot(received)
+                })
                 return
             }
 
+            logSession('performFlushDispatch', {
+                overrideComponentId,
+                working: componentSessionSnapshot(current),
+                lastReceived: componentSessionSnapshot(received),
+                flushed: componentSessionSnapshot(flushed)
+            })
             dispatchFlush(id, current)
 
             if (overrideComponentId === undefined) {
                 const nextReceived = flushed.clone() as T
                 lastReceivedRef.current = nextReceived
                 setLastReceived(nextReceived)
+                logSession('performFlushAdvancedLastReceived', {
+                    lastReceived: componentSessionSnapshot(nextReceived)
+                })
             }
         },
-        [componentId, missing, dispatchFlush]
+        [componentId, missing, dispatchFlush, logSession]
     )
 
     const scheduleDebouncedFlush = useCallback(() => {
@@ -206,7 +251,8 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
         skipCommittedSyncRef.current = true
         prevCommittedRef.current = undefined
         lastFlushRef.current = undefined
-    }, [componentId])
+        logSession('sessionReset', { reason: 'componentIdChange' })
+    }, [componentId, logSession])
 
     useEffect(() => {
         const outgoingId = componentId
@@ -241,6 +287,10 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
 
         if (skipCommittedSyncRef.current) {
             skipCommittedSyncRef.current = false
+            logSession('committedSyncSkipped', {
+                reason: 'initialOrComponentIdChange',
+                committed: componentSessionSnapshot(committed)
+            })
             return
         }
 
@@ -256,16 +306,38 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
 
         const incoming = missing ? undefined : (committed?.clone() as T | undefined)
         const lastFlush = lastFlushRef.current
+        const lastReceived = lastReceivedRef.current
+        const working = workingRef.current
+        const editDiff =
+            lastReceived && working ? lastReceived.diff(working) : undefined
 
         if (incoming && lastFlush && incoming.equals(lastFlush)) {
+            logSession('committedEchoSkipped', {
+                incoming: componentSessionSnapshot(incoming),
+                lastFlush: componentSessionSnapshot(lastFlush),
+                working: componentSessionSnapshot(working),
+                lastReceived: componentSessionSnapshot(lastReceived)
+            })
             return
         }
+
+        logSession('reconcileStart', {
+            incoming: componentSessionSnapshot(incoming),
+            lastFlush: componentSessionSnapshot(lastFlush),
+            working: componentSessionSnapshot(working),
+            lastReceived: componentSessionSnapshot(lastReceived),
+            editDiff: componentSessionSnapshot(editDiff),
+            incomingEqualsLastFlush:
+                incoming !== undefined &&
+                lastFlush !== undefined &&
+                incoming.equals(lastFlush)
+        })
 
         cancelPendingFlush()
 
         const result = reconcileCommittedComponent({
-            lastReceived: lastReceivedRef.current,
-            working: workingRef.current,
+            lastReceived,
+            working,
             incoming
         })
 
@@ -274,17 +346,30 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
         setWorking(result.working)
         setLastReceived(result.lastReceived)
 
+        logSession('reconcileDone', {
+            superseded: result.superseded,
+            working: componentSessionSnapshot(result.working),
+            lastReceived: componentSessionSnapshot(result.lastReceived)
+        })
+
         if (result.superseded) {
             notifySuperseded()
         }
 
-        scheduleDebouncedFlush()
+        const hasLocalEdits =
+            result.working !== undefined &&
+            result.lastReceived !== undefined &&
+            result.lastReceived.diff(result.working) !== undefined
+        if (hasLocalEdits) {
+            scheduleDebouncedFlush()
+        }
     }, [
         committed,
         missing,
         cancelPendingFlush,
         scheduleDebouncedFlush,
-        notifySuperseded
+        notifySuperseded,
+        logSession
     ])
 
     const updateComponent = useCallback(

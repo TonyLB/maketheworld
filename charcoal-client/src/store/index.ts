@@ -15,6 +15,7 @@ import { contentHeadersSlice, subscribeToContentHeaders } from '../slices/conten
 import { libraryDataSourceSlice, subscribeToLibrary } from '../slices/libraryDataSource'
 import { playerDataSourceSlice } from '../slices/player/playerDataSource'
 import { wmlDataSourceSlice } from '../slices/wmlDataSource'
+import { registerPersonalAssetsWmlStreamHandlers } from '../slices/personalAssets/wmlStreamHandlers'
 import { thinkingJobsSlice, subscribeToThinkingJobs } from '../slices/thinkingJobs'
 import thinkingResults from '../slices/thinkingResults'
 
@@ -39,6 +40,8 @@ export const store = configureStore({
     },
     middleware: [thunk]
 })
+
+registerPersonalAssetsWmlStreamHandlers(store.dispatch)
 
 // Initialize subscriptions
 // Queue subscription to 'global' stream for contentHeaders

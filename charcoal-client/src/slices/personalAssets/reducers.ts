@@ -132,6 +132,7 @@ export const clearLastUpdateDiff = (state: PersonalAssetsPublic, _action: Payloa
 
 export const saveEdit = (state: PersonalAssetsPublic, action: PayloadAction<{ requestId: string }>) => {
     const instrumentationOptions = state.instrumentationOptionsForCurrentEdit
+    // Invoked before applyEdit send (optimistic pending); stream clearPending matches meta.key.
     state.pendingEdits = [
         ...state.pendingEdits,
         {
@@ -149,4 +150,16 @@ export const saveEdit = (state: PersonalAssetsPublic, action: PayloadAction<{ re
     delete state.edit.shortName
     delete state.edit.summary
     delete state.instrumentationOptionsForCurrentEdit
+}
+
+/** Roll back optimistic pending when applyEdit fails; no-op if stream already cleared the row. */
+export const revertSaveEdit = (state: PersonalAssetsPublic, action: PayloadAction<{ requestId: string }>) => {
+    const index = state.pendingEdits.findIndex(({ meta }) => meta.key === action.payload.requestId)
+    if (index === -1) {
+        return
+    }
+    const snapshot = state.pendingEdits[index].edit
+    state.pendingEdits = state.pendingEdits.filter(({ meta }) => meta.key !== action.payload.requestId)
+    const editForm = new StandardForm(state.edit)
+    state.edit = editForm.merge(new StandardForm(snapshot)).toJSON()
 }

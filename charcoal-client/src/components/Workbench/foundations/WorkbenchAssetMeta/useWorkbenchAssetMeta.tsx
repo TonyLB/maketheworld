@@ -18,6 +18,11 @@ import {
     type WorkbenchAssetMetaWorking
 } from '../workbenchMutations'
 import { useWorkbenchAsset } from '../useWorkbenchAsset'
+import {
+    assetMetaSessionSnapshot,
+    logWorkbenchSession,
+    WORKBENCH_ASSET_META_SESSION_INSTRUMENTATION_KEY
+} from '../workbenchSessionInstrumentation'
 import type {
     WorkbenchAssetMetaProviderProps,
     WorkbenchAssetMetaSession
@@ -42,6 +47,7 @@ const WorkbenchAssetMetaContext = createContext<WorkbenchAssetMetaContextValue |
 
 export const WorkbenchAssetMetaProvider = ({
     flushDelayMs = 1000,
+    instrumentation,
     onSuperseded,
     children
 }: WorkbenchAssetMetaProviderProps): React.ReactElement => {
@@ -69,6 +75,20 @@ export const WorkbenchAssetMetaProvider = ({
     const scheduleDebouncedFlushRef = useRef<(() => void) | undefined>(undefined)
     const prevCommittedRef = useRef<WorkbenchAssetMetaWorking | undefined>(undefined)
     const skipCommittedSyncRef = useRef(true)
+    const instrumentationRef = useRef(instrumentation)
+    instrumentationRef.current = instrumentation
+
+    const logSession = useCallback(
+        (event: string, detail: Record<string, unknown>) => {
+            logWorkbenchSession(
+                WORKBENCH_ASSET_META_SESSION_INSTRUMENTATION_KEY,
+                instrumentationRef.current,
+                event,
+                { assetId: localStandardForm.universalKey, ...detail }
+            )
+        },
+        [localStandardForm.universalKey]
+    )
 
     const notifySuperseded = useCallback(() => {
         if (onSuperseded) {
@@ -96,35 +116,57 @@ export const WorkbenchAssetMetaProvider = ({
                 update: (draft) => {
                     const flushed = applyAssetMetaFlush(draft, { working: current })
                     lastFlushRef.current = flushed
+                    logSession('dispatchFlushApplied', {
+                        lastFlush: assetMetaSessionSnapshot(flushed)
+                    })
                     return draft
                 }
             })
         },
-        [updateStandard]
+        [updateStandard, logSession]
     )
 
     const performFlush = useCallback(() => {
         const current = workingRef.current
         const received = lastReceivedRef.current
         if (!current || !received) {
+            logSession('performFlushSkipped', { reason: 'noWorkingOrLastReceived' })
             return
         }
 
         if (assetMetaWorkingEquals(received, current)) {
+            logSession('performFlushSkipped', {
+                reason: 'workingMatchesLastReceived',
+                working: assetMetaSessionSnapshot(current),
+                lastReceived: assetMetaSessionSnapshot(received)
+            })
             return
         }
 
         const flushed = prepareAssetMetaForFlush(current)
         if (assetMetaWorkingEquals(received, flushed)) {
+            logSession('performFlushSkipped', {
+                reason: 'flushedMatchesLastReceived',
+                flushed: assetMetaSessionSnapshot(flushed),
+                lastReceived: assetMetaSessionSnapshot(received)
+            })
             return
         }
 
+        logSession('performFlushDispatch', {
+            working: assetMetaSessionSnapshot(current),
+            lastReceived: assetMetaSessionSnapshot(received),
+            flushed: assetMetaSessionSnapshot(flushed)
+        })
         dispatchFlush(current)
 
         const nextReceived = cloneAssetMetaWorking(flushed)
         lastReceivedRef.current = nextReceived
         setLastReceived(nextReceived)
-    }, [dispatchFlush])
+        logSession('performFlushAdvancedLastReceived', {
+            lastReceived: assetMetaSessionSnapshot(nextReceived)
+        })
+    }, [dispatchFlush, logSession])
 
     const scheduleDebouncedFlush = useCallback(() => {
         cancelPendingFlush()
@@ -153,7 +195,8 @@ export const WorkbenchAssetMetaProvider = ({
         skipCommittedSyncRef.current = true
         prevCommittedRef.current = undefined
         lastFlushRef.current = undefined
-    }, [localStandardForm.universalKey])
+        logSession('sessionReset', { reason: 'assetUniversalKeyChange' })
+    }, [localStandardForm.universalKey, logSession])
 
     useEffect(() => {
         const received = cloneAssetMetaWorking(committed)
@@ -183,6 +226,10 @@ export const WorkbenchAssetMetaProvider = ({
 
         if (skipCommittedSyncRef.current) {
             skipCommittedSyncRef.current = false
+            logSession('committedSyncSkipped', {
+                reason: 'initialOrAssetKeyChange',
+                committed: assetMetaSessionSnapshot(committed)
+            })
             return
         }
 
@@ -195,17 +242,34 @@ export const WorkbenchAssetMetaProvider = ({
 
         const incoming = cloneAssetMetaWorking(committed)
         const lastFlush = lastFlushRef.current
+        const lastReceived = lastReceivedRef.current
+        const working = workingRef.current
 
         if (lastFlush && assetMetaWorkingEquals(incoming, lastFlush)) {
+            logSession('committedEchoSkipped', {
+                incoming: assetMetaSessionSnapshot(incoming),
+                lastFlush: assetMetaSessionSnapshot(lastFlush),
+                working: assetMetaSessionSnapshot(working),
+                lastReceived: assetMetaSessionSnapshot(lastReceived)
+            })
             return
         }
+
+        logSession('reconcileStart', {
+            incoming: assetMetaSessionSnapshot(incoming),
+            lastFlush: assetMetaSessionSnapshot(lastFlush),
+            working: assetMetaSessionSnapshot(working),
+            lastReceived: assetMetaSessionSnapshot(lastReceived),
+            incomingEqualsLastFlush:
+                lastFlush !== undefined && assetMetaWorkingEquals(incoming, lastFlush)
+        })
 
         cancelPendingFlush()
 
         const result = reconcileCommittedAssetMeta({
             committedBase: localStandardForm,
-            lastReceived: lastReceivedRef.current,
-            working: workingRef.current
+            lastReceived,
+            working
         })
 
         const workingChanged =
@@ -228,6 +292,14 @@ export const WorkbenchAssetMetaProvider = ({
             setLastReceived(result.lastReceived)
         }
 
+        logSession('reconcileDone', {
+            superseded: result.superseded,
+            workingChanged,
+            lastReceivedChanged,
+            working: assetMetaSessionSnapshot(result.working),
+            lastReceived: assetMetaSessionSnapshot(result.lastReceived)
+        })
+
         if (result.superseded) {
             notifySuperseded()
         }
@@ -240,7 +312,8 @@ export const WorkbenchAssetMetaProvider = ({
         localStandardForm,
         cancelPendingFlush,
         scheduleDebouncedFlush,
-        notifySuperseded
+        notifySuperseded,
+        logSession
     ])
 
     const updateAssetMeta = useCallback(
