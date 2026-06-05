@@ -42,6 +42,10 @@ Effective overlay filter order (every selector read):
 
 TTL asymmetry (3m pending / 5m confirmed), idle-tab behavior, and why selector-time `now` is intentional are documented in [../dataSource/AGENT.implementation.md](../dataSource/AGENT.implementation.md) (**Selector-time TTL**). Merge correctness does **not** depend on dispatched cleanup or background timers --- selectors are the primary backstop; `pendingHygieneCheck` and lazy `saveEdit` trim are secondary hygiene.
 
+### Client sync invariants
+
+Derived selectors (`getLocalStandardForm`, `getStandardForm`, `getEffectivePendingEdits`) must satisfy **referential stability (I1)** and sit in the **layer ordering (I4)** documented in [../AGENT.client-sync-invariants.md](../AGENT.client-sync-invariants.md). Regression tests live in `selectors.test.ts`.
+
 ---
 
 ## Core Purpose

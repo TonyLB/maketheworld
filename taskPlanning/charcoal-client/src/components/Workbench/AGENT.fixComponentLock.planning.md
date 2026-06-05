@@ -1,6 +1,6 @@
 # Workbench component navigation freeze (Area -> Room)
 
-**Status:** Phase 1 complete (bisect + interim E3). **Next: Phase 2** --- document client sync **invariants** and add **regression tests** that encode them. Phase 3 implements fixes as invariant satisfaction (not ad hoc patches). E3 (`debounce={true}`) remains interim mitigation until Phase 3 acceptance (restore `debounce={false}`).
+**Status:** Phase 2 complete (invariants doc + regression tests). **Next: Phase 3** --- implement invariant satisfaction (E5/E6/I3). E3 (`debounce={true}`) remains interim mitigation until Phase 3 acceptance (restore `debounce={false}`).
 
 This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -9,6 +9,7 @@ This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../A
 1. Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md) for durability, checkbox conventions, and when to delete this plan.
 2. Read area dev notes: [`taskPlanning/charcoal-client/AGENT.development.md`](../../../AGENT.development.md) (Vitest commands).
 3. Read subsystem context (steady-state architecture; link from Phase 2 docs, do not duplicate long-term):
+   - [`charcoal-client/src/slices/AGENT.client-sync-invariants.md`](../../../../../charcoal-client/src/slices/AGENT.client-sync-invariants.md) --- **I1-I5** requirements, I4 layer diagram, verification commands
    - [`charcoal-client/src/components/Workbench/AGENT.md`](../../../../../charcoal-client/src/components/Workbench/AGENT.md) --- `useWorkbenchComponent` session model
    - [`charcoal-client/src/slices/personalAssets/AGENT.md`](../../../../../charcoal-client/src/slices/personalAssets/AGENT.md) --- effective pending overlay, `getLocalStandardForm`
    - [`charcoal-client/src/slices/wmlDataSource/AGENT.md`](../../../../../charcoal-client/src/slices/wmlDataSource/AGENT.md) --- `confirmedRequestIds`, `afterProcessEnvelope`
@@ -93,8 +94,8 @@ With `workbench-component-session` enabled (including CPU throttle):
 | Step | Description | Status |
 | --- | --- | --- |
 | 1 | Reproduce, bisect, interim mitigation (Phase 1) | Done |
-| 2 | Document invariants + regression tests (Phase 2) | **Next** |
-| 3 | Implement invariant satisfaction (Phase 3) | Not started |
+| 2 | Document invariants + regression tests (Phase 2) | Done |
+| 3 | Implement invariant satisfaction (Phase 3) | **Next** |
 | 4 | Tests/docs/cleanup, restore `debounce={false}`, close out (Phase 4-5) | Not started |
 
 ---
@@ -109,19 +110,19 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
   - [X] E2: skipped (E3 succeeded).
   - [X] E3: `debounce={true}` interim mitigation; Area -> Room navigates.
 
-- [ ] **Phase 2 --- Invariants, documentation, regression tests** *(before implementation patches)*
-  - [ ] Draft invariant section for durable docs (I1-I5 above); link from this plan; decide target files (`personalAssets/AGENT.md`, `Workbench/AGENT.md`, or new short cross-cutting doc).
-  - [ ] **I1 test:** same store, two selector reads, unchanged semantics -> same `getLocalStandardForm` / `getStandardForm` reference (fixed `now` where TTL applies).
-  - [ ] **I1 test:** effective confirmed ids stable when `confirmedRequestIds` storage unchanged (may fail until Phase 3 --- documents expected behavior).
-  - [ ] **I3/I5 test:** `StandardRenderEditor` or `DefaultRenderEditor` mount with stable mock store -> bounded renders / no runaway `updateComponent` (may use `@testing-library/react` + render count or act guard).
-  - [ ] Optional: document collaboration path **I4** as a diagram or numbered list in durable docs (no code change required for pass).
-  - [ ] Skip ad hoc console instrumentation unless a **new** hypothesis appears; prefer tests over `[slate-sync]` logs.
+- [X] **Phase 2 --- Invariants, documentation, regression tests** *(before implementation patches)*
+  - [X] Draft invariant section for durable docs (I1-I5 above); link from this plan; target: [`AGENT.client-sync-invariants.md`](../../../../../charcoal-client/src/slices/AGENT.client-sync-invariants.md) with links from `personalAssets/AGENT.md`, `Workbench/AGENT.md`, `wmlDataSource/AGENT.md`.
+  - [X] **I1 test:** same store, two selector reads, unchanged semantics -> same `getLocalStandardForm` / `getStandardForm` reference (`it.fails` in `selectors.test.ts` until Phase 3).
+  - [X] **I1 test:** effective confirmed ids stable when `confirmedRequestIds` storage unchanged (`it.fails` in `selectors.test.ts` + `wmlDataSource/index.test.ts` until Phase 3).
+  - [X] **I3/I5 test:** `StandardRenderEditor`, `DefaultRenderEditor`, and `SituationFacetRenderFieldsView` bounded-mount tests (`DefaultRenderEditor.test.tsx`, `StandardRenderEditor.test.tsx`).
+  - [X] Optional: document collaboration path **I4** as diagram + numbered list in [`AGENT.client-sync-invariants.md`](../../../../../charcoal-client/src/slices/AGENT.client-sync-invariants.md).
+  - [X] Skip ad hoc console instrumentation unless a **new** hypothesis appears; prefer tests over `[slate-sync]` logs.
 
 - [ ] **Phase 3 --- Implement invariant satisfaction** *(each change maps to I1-I5; record in **Experiment inventory**)*
   - [ ] E5 / I1: Stabilize `confirmedRequestIds` for Reselect (memoized selector or equivalent).
   - [ ] E6 / I1: Structural sharing or `deepEqual` at `useWorkbenchAsset` selector boundary if still needed after E5.
   - [ ] I3: Domain-stable `standard` guard in `useStandardRenderEditorHook` (mirror render `.equals()` pattern).
-  - [ ] Run Phase 2 tests --- should pass.
+  - [ ] Run Phase 2 tests --- I1 `it.fails` cases flip to `it` and pass; all other Phase 2 tests remain green.
   - [ ] **Acceptance:** restore `debounce={false}` on `DefaultRenderEditor`; manual Area -> Room + Phase 2 I5-style test still bounded.
   - [ ] E4 only if effective-overlay semantic bug suspected (unlikely).
 
@@ -165,13 +166,18 @@ npm run test:single -- src/slices/personalAssets/selectors.test.ts
 npm run test:single -- src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.test.tsx
 ```
 
-**After Phase 2 (add paths as tests land):**
+**Phase 2 invariant tests:**
 
 ```bash
-# Example placeholders --- update when files exist:
+cd charcoal-client
 npm run test:single -- src/slices/personalAssets/selectors.test.ts
+npm run test:single -- src/slices/wmlDataSource/index.test.ts
 npm run test:single -- src/components/Workbench/foundations/StandardRender/StandardRenderEditor.test.tsx
+npm run test:single -- src/components/Workbench/foundations/DefaultRenderEditor.test.tsx
+npm run test:single -- src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.test.tsx
 ```
+
+I1 tests use `it.fails` until Phase 3 E5/E6; flip to `it` when fixes land.
 
 **After Phase 3:**
 
@@ -185,7 +191,7 @@ npm run test:single -- src/slices/personalAssets/pendingHygiene.test.ts
 - [X] Area -> Room does not freeze (with E3 interim).
 - [ ] Area -> Room does not freeze with `debounce={false}` after Phase 3.
 - [ ] No doubled shortName / overlay on edit-save-confirm path.
-- [ ] Invariants I1-I5 documented in durable docs outside this plan.
+- [X] Invariants I1-I5 documented in durable docs outside this plan ([`AGENT.client-sync-invariants.md`](../../../../../charcoal-client/src/slices/AGENT.client-sync-invariants.md)).
 
 ---
 

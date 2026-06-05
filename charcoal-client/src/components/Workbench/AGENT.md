@@ -83,6 +83,8 @@ UI primitives (StandardLiteralEditor, StandardRenderEditor)
 
 `StandardRenderEditor` uses a local Slate buffer so parent `value` does not overwrite in-progress typing while Redux is stale. Under a session, commits go into **`working`**; only **`flushToStandardForm`** hits Redux.
 
+**Client sync invariants:** Session reconcile must react to semantic changes only (**I2**). Slate props must not churn reference when domain is unchanged (**I3**). Session field editors must mount with bounded render work on an unchanged store (**I5**). See [../../slices/AGENT.client-sync-invariants.md](../../slices/AGENT.client-sync-invariants.md) and `DefaultRenderEditor.test.tsx` / `StandardRenderEditor.test.tsx`.
+
 ### Testing
 
 Import session test utilities from [`foundations/WorkbenchComponent/testing/harness.tsx`](./foundations/WorkbenchComponent/testing/harness.tsx) and [`testing/mock.ts`](./foundations/WorkbenchComponent/testing/mock.ts), or [`foundations/WorkbenchAssetMeta/testing/harness.tsx`](./foundations/WorkbenchAssetMeta/testing/harness.tsx) for asset-meta sessions --- not from the production barrel. See [Development Notes](#development-notes) and [charcoal-client/AGENT.testing.md](../../AGENT.testing.md).

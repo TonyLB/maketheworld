@@ -129,6 +129,34 @@ describe('wmlDataSource slice', () => {
       }
       expect(getWMLConfirmedRequestIds(state, 'ASSET#test', now)).toEqual(['fresh'])
     })
+
+    // Flip to it(...) when E5 lands (Phase 3).
+    it.fails('returns same reference on double read with unchanged storage and fixed now (I1)', () => {
+      const now = CONFIRMED_TTL_MS
+      const state = {
+        wmlDataSource: {
+          publicData: {
+            subscribedStreams: {
+              'ASSET#test': {
+                materializedView: {
+                  universalKey: 'ASSET#test' as any,
+                  components: [],
+                  metaData: []
+                },
+                recentEvents: [],
+                confirmedRequestIds: [
+                  { id: 'req-a', seenAt: now - 1 },
+                  { id: 'req-b', seenAt: now - 2 }
+                ]
+              }
+            }
+          }
+        }
+      }
+      const first = getWMLConfirmedRequestIds(state, 'ASSET#test', now)
+      const second = getWMLConfirmedRequestIds(state, 'ASSET#test', now)
+      expect(second).toBe(first)
+    })
   })
 
 })

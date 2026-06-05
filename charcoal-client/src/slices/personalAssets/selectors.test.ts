@@ -9,8 +9,39 @@ import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import type { PersonalAssetsPublic } from './baseClasses'
+import type { RootState } from '../../store'
 
 const EMPTY_BASE: StandardFormData = { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
+
+type WmlSubscribedStream = {
+  materializedView?: StandardFormData
+  recentEvents: unknown[]
+  confirmedRequestIds?: { id: string; seenAt: number }[]
+}
+
+/** Minimal root slices for selector tests; wrapped selectors expect full RootState. */
+type SelectorTestState = {
+  personalAssets: {
+    byId: Record<string, { publicData: PersonalAssetsPublic }>
+  }
+  wmlDataSource: {
+    publicData: {
+      subscribedStreams: Record<string, WmlSubscribedStream>
+    }
+  }
+}
+
+const asRootState = (state: SelectorTestState): RootState => state as RootState
+
+const minimalPublicData = (overrides: Partial<PersonalAssetsPublic> = {}): PersonalAssetsPublic => ({
+  edit: EMPTY_BASE,
+  pendingEdits: [],
+  inherited: EMPTY_BASE,
+  importData: {},
+  properties: {},
+  loadedImages: {},
+  ...overrides
+})
 
 const wmlToJSON = (wml: string): StandardFormData => {
   const schema = new Schema()
@@ -19,11 +50,11 @@ const wmlToJSON = (wml: string): StandardFormData => {
 }
 
 const localRoomShortName = (
-  state: { personalAssets: { byId: Record<string, { publicData: PersonalAssetsPublic }> }; wmlDataSource: unknown },
+  state: SelectorTestState,
   assetId: string,
   roomId: ComponentUUID
 ): string | undefined => {
-  const local = new StandardForm(getLocalStandardForm(assetId)(state)!)
+  const local = new StandardForm(getLocalStandardForm(assetId)(asRootState(state))!)
   const room = local.byUniversalId[roomId]
   if (!(room instanceof StandardRoom)) {
     return undefined
@@ -39,7 +70,7 @@ describe('personalAssets selectors', () => {
         personalAssets: { byId: {} },
         wmlDataSource: { publicData: { subscribedStreams: {} } }
       }
-      expect(getBase('ASSET#test')(state)).toBeUndefined()
+      expect(getBase('ASSET#test')(asRootState(state))).toBeUndefined()
     })
 
     it('should return EMPTY_BASE fallback when wmlDataSource has no materializedView', () => {
@@ -47,17 +78,13 @@ describe('personalAssets selectors', () => {
         personalAssets: {
           byId: {
             'ASSET#test': {
-              publicData: {
-                edit: EMPTY_BASE,
-                pendingEdits: [],
-                inherited: EMPTY_BASE
-              }
+              publicData: minimalPublicData()
             }
           }
         },
         wmlDataSource: { publicData: { subscribedStreams: {} } }
       }
-      expect(getBase('ASSET#test')(state)).toEqual(EMPTY_BASE)
+      expect(getBase('ASSET#test')(asRootState(state))).toEqual(EMPTY_BASE)
     })
 
     it('should return materializedView from wmlDataSource when subscribed', () => {
@@ -70,11 +97,7 @@ describe('personalAssets selectors', () => {
         personalAssets: {
           byId: {
             'ASSET#test': {
-              publicData: {
-                edit: EMPTY_BASE,
-                pendingEdits: [],
-                inherited: EMPTY_BASE
-              }
+              publicData: minimalPublicData()
             }
           }
         },
@@ -89,7 +112,7 @@ describe('personalAssets selectors', () => {
           }
         }
       }
-      expect(getBase('ASSET#test')(state)).toBe(view)
+      expect(getBase('ASSET#test')(asRootState(state))).toBe(view)
     })
   })
 
@@ -109,11 +132,10 @@ describe('personalAssets selectors', () => {
         personalAssets: {
           byId: {
             'ASSET#test': {
-              publicData: {
+              publicData: minimalPublicData({
                 edit: editData,
-                pendingEdits: [],
                 inherited: view
-              }
+              })
             }
           }
         },
@@ -128,10 +150,10 @@ describe('personalAssets selectors', () => {
           }
         }
       }
-      const local = getLocalStandardForm('ASSET#test')(state)
+      const local = getLocalStandardForm('ASSET#test')(asRootState(state))
       expect(local).toBeDefined()
       expect(local.universalKey).toBe('ASSET#test')
-      const standard = getStandardForm('ASSET#test')(state)
+      const standard = getStandardForm('ASSET#test')(asRootState(state))
       expect(standard).toBeDefined()
       expect(standard.universalKey).toBe('ASSET#test')
     })
@@ -172,18 +194,11 @@ describe('personalAssets selectors', () => {
     const stateWithPending = (
       pendingEdits: PersonalAssetsPublic['pendingEdits'],
       confirmedRequestIds: { id: string; seenAt: number }[] = []
-    ) => ({
+    ): SelectorTestState => ({
       personalAssets: {
         byId: {
           [ASSET_ID]: {
-            publicData: {
-              edit: EMPTY_BASE,
-              pendingEdits,
-              inherited: EMPTY_BASE,
-              importData: {},
-              properties: {},
-              loadedImages: {}
-            }
+            publicData: minimalPublicData({ pendingEdits })
           }
         }
       },
@@ -225,7 +240,7 @@ describe('personalAssets selectors', () => {
         [pendingRow('req-a', NOW), pendingRow('req-b', NOW)],
         [{ id: 'req-a', seenAt: NOW - 1 }]
       )
-      const effective = getEffectivePendingEdits(ASSET_ID)(state)
+      const effective = getEffectivePendingEdits(ASSET_ID)(asRootState(state))
       expect(effective).toHaveLength(1)
       expect(effective![0].meta.key).toBe('req-b')
     })
@@ -248,14 +263,9 @@ describe('personalAssets selectors', () => {
         personalAssets: {
           byId: {
             [ASSET_ID]: {
-              publicData: {
-                edit: EMPTY_BASE,
-                pendingEdits: [pendingRow('req-a', NOW)],
-                inherited: EMPTY_BASE,
-                importData: {},
-                properties: {},
-                loadedImages: {}
-              }
+              publicData: minimalPublicData({
+                pendingEdits: [pendingRow('req-a', NOW)]
+              })
             }
           }
         },
@@ -272,6 +282,41 @@ describe('personalAssets selectors', () => {
         }
       }
       expect(localRoomShortName(state, ASSET_ID, VORTEX_ID)).toBe('Cliff Base')
+    })
+
+    describe('referential stability (I1)', () => {
+      const stabilityState = () =>
+        stateWithPending(
+          [pendingRow('req-a', NOW), pendingRow('req-b', NOW)],
+          [{ id: 'req-a', seenAt: NOW - 1 }]
+        )
+
+      // Flip to it(...) when E5/E6 land (Phase 3).
+      it.fails('getLocalStandardForm returns same reference on unchanged store semantics', () => {
+        const state = stabilityState()
+        const sel = getLocalStandardForm(ASSET_ID)
+        const first = sel(asRootState(state))
+        const second = sel(asRootState(state))
+        expect(second).toBe(first)
+      })
+
+      // Flip to it(...) when E5/E6 land (Phase 3).
+      it.fails('getStandardForm returns same reference on unchanged store semantics', () => {
+        const state = stabilityState()
+        const sel = getStandardForm(ASSET_ID)
+        const first = sel(asRootState(state))
+        const second = sel(asRootState(state))
+        expect(second).toBe(first)
+      })
+
+      // Flip to it(...) when E5 lands (Phase 3).
+      it.fails('getEffectivePendingEdits returns same reference on unchanged store semantics', () => {
+        const state = stabilityState()
+        const sel = getEffectivePendingEdits(ASSET_ID)
+        const first = sel(asRootState(state))
+        const second = sel(asRootState(state))
+        expect(second).toBe(first)
+      })
     })
   })
 })
