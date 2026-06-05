@@ -137,7 +137,7 @@ async function setupStoreWithStreamSubscriber(options: {
     await store.dispatch(initThunk({
         internalData: initial.internalData,
         publicData: store.getState().testDataSource.publicData
-    }) as any)
+    } as any) as any)
     return { store, result, sliceSelector }
 }
 
@@ -303,7 +303,7 @@ describe('dataSource slice', () => {
                         activeStreamKeys: [],
                         subscribedStreams: {}
                     }
-                })
+                } as any)
 
                 const dispatch = vi.fn((thunk: any) => (
                     typeof thunk === 'function' ? thunk(dispatch, vi.fn()) : thunk
@@ -311,7 +311,7 @@ describe('dataSource slice', () => {
 
                 const result = await action(dispatch, vi.fn())
 
-                expect(result.publicData.subscribedStreams.newStream).toEqual({
+                expect(result.publicData?.subscribedStreams?.newStream).toEqual({
                     materializedView: { type: 'Snapshot', value: 0 },
                     recentEvents: [],
                     confirmedRequestIds: []
@@ -375,13 +375,12 @@ describe('dataSource slice', () => {
                         RequestIds: ['req-A']
                     }
                 })
-                const now = 2500
                 let confirmedAtCallback: string[] = []
                 let sliceResult!: ReturnType<typeof createDataSourceSlice<TestSnapshot, TestUpdate>>
                 const { store, result } = await setupStoreWithStreamSubscriber({
                     requestIdTracking: { headerField: 'RequestIds' },
                     afterProcessEnvelope: (dispatch, getState, envelope) => {
-                        confirmedAtCallback = sliceResult.getConfirmedRequestIds!(getState(), envelope.streamKey, now)
+                        confirmedAtCallback = sliceResult.getConfirmedRequestIds!(getState(), envelope.streamKey)
                     }
                 })
                 sliceResult = result
@@ -389,7 +388,7 @@ describe('dataSource slice', () => {
                 StreamEventPubSub.publish(payload)
 
                 expect(confirmedAtCallback).toEqual(['req-A'])
-                expect(result.getConfirmedRequestIds!(store.getState(), 'stream1', now)).toEqual(['req-A'])
+                expect(result.getConfirmedRequestIds!(store.getState(), 'stream1')).toEqual(['req-A'])
                 expect(store.getState().testDataSource.publicData.subscribedStreams.stream1.materializedView).toEqual({
                     type: 'Snapshot',
                     value: 1

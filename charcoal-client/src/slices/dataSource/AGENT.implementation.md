@@ -193,7 +193,7 @@ All event processing is deterministic:
 - ❌ No side effects in reducers - only state transformations
 - ✅ Testable with simple inputs and outputs
 
-**Exception (selectors, not reducers):** Opt-in **requestIdTracking** and cross-slice pending selectors may call `Date.now()` at read time for TTL filtering. See [Selector-time TTL (intentional impurity)](#selector-time-ttl-intentional-impurity) below and the carve-out in [AGENT.md](./AGENT.md) **Pure Functions**.
+**requestIdTracking selectors:** Confirmed-id selectors (`getConfirmedRequestIds`, `getWMLConfirmedRequestIds`) and cross-slice pending selectors (`getEffectivePendingEdits`) are **pure** reads of Redux storage. TTL eviction is **dispatched** cleanup only --- see [Dispatched correlation cleanup](#dispatched-correlation-cleanup) below.
 
 **Why**: Easier testing, debugging, and reasoning about behavior.
 
@@ -433,14 +433,14 @@ Opt-in on `createDataSourceSlice` for slices whose backend streams carry client-
 requestIdTracking?: {
   /** Which extended header field(s) to read. Default: 'both'. */
   headerField?: 'RequestIds' | 'RequestId' | 'both'
-  /** Selector TTL for confirmed ids (default 5 minutes); applied at read time, not in reducer */
+  /** TTL for dispatched pruneStaleConfirmedRequestIds (default 5 minutes); not applied in selectors */
   confirmedTtlMs?: number
 }
 ```
 
 When enabled, per `subscribedStreams[streamKey]` store `confirmedRequestIds: Array<{ id: string; seenAt: number }>`. New streams initialized via `createSubscribeAction` get `confirmedRequestIds: []`.
 
-**TTL constants** (shared with `personalAssets` effective-pending):
+**TTL constants** (used by dispatched storage GC, shared with `personalAssets`):
 
 | Constant | Value | Module |
 | --- | --- | --- |
@@ -449,19 +449,22 @@ When enabled, per `subscribedStreams[streamKey]` store `confirmedRequestIds: Arr
 
 **Confirmed-id selector** (only when `requestIdTracking` is set on the factory):
 
-- Pure helper: `selectConfirmedRequestIdStrings(rows, now, confirmedTtlMs?)` in [`requestIdTracking.ts`](./requestIdTracking.ts) --- returns `string[]` of ids where `now - seenAt < confirmedTtlMs` (default `CONFIRMED_TTL_MS`; strict `<`, not `<=`). **Referential stability (I1):** when `rows` storage reference, `now`, and `confirmedTtlMs` are unchanged between reads, returns the same `string[]` reference (WeakMap cache keyed by rows ref; `STABLE_EMPTY_CONFIRMED_IDS` for empty results). See [../AGENT.client-sync-invariants.md](../AGENT.client-sync-invariants.md).
-- Factory export: `getConfirmedRequestIds(state, streamKey, now?)` on the `createDataSourceSlice` return value (not `publicSelectors` --- needs `streamKey` and injectable `now`). Uses `requestIdTracking.confirmedTtlMs ?? CONFIRMED_TTL_MS`. Omitted when tracking is disabled.
+- Pure helper: `storedConfirmedRequestIdStrings(rows)` in [`requestIdTracking.ts`](./requestIdTracking.ts) --- maps storage rows to `string[]` (all stored ids; no `Date.now()`). Returns `STABLE_EMPTY_CONFIRMED_IDS` when empty for I1 referential stability. See [../AGENT.client-sync-invariants.md](../AGENT.client-sync-invariants.md).
+- Factory export: `getConfirmedRequestIds(state, streamKey)` on the `createDataSourceSlice` return value (Reselect over storage rows; not `publicSelectors` --- needs `streamKey`). Omitted when tracking is disabled.
+- wmlDataSource wrapper: `getWMLConfirmedRequestIds(state, assetId)` in [../wmlDataSource/selectors.ts](../wmlDataSource/selectors.ts).
 
 **Implementation modules:**
 
 | Module | Role |
 | --- | --- |
-| [`requestIdTracking.ts`](./requestIdTracking.ts) | TTL constants; `extractConfirmedIdsFromHeader`, `appendConfirmedRequestIds`, `selectConfirmedRequestIdStrings` |
-| [`reducers.ts`](./reducers.ts) | `buildStreamUpdate` appends ids in the same `processEnvelope` pass as aggregator |
+| [`requestIdTracking.ts`](./requestIdTracking.ts) | TTL constants; `extractConfirmedIdsFromHeader`, `appendConfirmedRequestIds`, `storedConfirmedRequestIdStrings`; storage GC helpers `prunePendingEditsStorage`, `pruneStaleConfirmedRequestIdRows` |
+| [`reducers.ts`](./reducers.ts) | `buildStreamUpdate` appends ids in the same `processEnvelope` pass as aggregator; `pruneStaleConfirmedRequestIds` when tracking enabled |
 | [`index.ts`](./index.ts) | Conditional `getConfirmedRequestIds`; re-exports `PENDING_TTL_MS`, `CONFIRMED_TTL_MS`, `STABLE_EMPTY_CONFIRMED_IDS` |
 | [`index.api.ts`](./index.api.ts) | Subscribe init includes `confirmedRequestIds: []` when tracking enabled |
 
 **`seenAt`:** Envelope `timestamp` from the dispatched action (not `Date.now()`), matching the pure-timestamp pattern used by `performCleanup`.
+
+**Dispatched storage GC:** When `requestIdTracking` is enabled, `pruneStaleConfirmedRequestIds` removes stale rows from `confirmedRequestIds` storage (injectable `now`, default `requestIdTracking.confirmedTtlMs ?? CONFIRMED_TTL_MS`). Skips any id present in `pendingKeys` (oscillation invariant). Periodic cleanup is orchestrated by `personalAssets.pruneStaleRequestCorrelation`, dispatched on `LifeLinePubSub` `PeriodicTick` (~30s during connected session). See [Dispatched correlation cleanup](#dispatched-correlation-cleanup).
 
 **Normalization (storage always `{ id, seenAt }[]`):**
 
@@ -479,32 +482,42 @@ When enabled, per `subscribedStreams[streamKey]` store `confirmedRequestIds: Arr
 
 **Authoritative producer inventory:** [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**Stream correlation ids**).
 
-### Selector-time TTL (intentional impurity)
+### Dispatched correlation cleanup
 
-Merge correctness for pending overlays depends on **read-time** filtering, not dispatched cleanup, stream handler ordering, or background timers. Stale physical rows may remain in Redux storage; selectors define the effective view.
+Pending/confirmed correlation uses **pure selectors** for the effective overlay and **dispatched actions** for TTL eviction. Stale physical rows may remain in Redux storage briefly; selectors read storage as-is (confirmed-id filter only on pending overlay).
 
-**Why `Date.now()` in selectors:** `getConfirmedRequestIds(state, streamKey, now?)` and `selectEffectivePendingEdits(pendingEdits, confirmedIds, now)` default `now` to `Date.now()`. This is an intentional carve-out from reducer purity --- TTL is evaluated when UI/selectors read, not when events arrive. Reducers still use envelope `timestamp` for `seenAt` and `meta.time` from optimistic enqueue for pending age; client `now` compares against both at select time.
+**TTL owners:**
 
-**Memoization:** Selectors re-evaluate TTL on each read; acceptable for small per-asset arrays. Tests inject fixed `now` (see [`personalAssets/selectors.test.ts`](../personalAssets/selectors.test.ts), [`reducers.test.ts`](./reducers.test.ts)).
+| Path | Trigger | Role |
+| --- | --- | --- |
+| `pendingHygieneCheck` | wml `afterProcessEnvelope` (event-driven) | Primary confirm path: clear pending by confirmed/header RequestIds, TTL-trim stale pending rows |
+| `saveEdit` / `trimStalePendingEdits` | Optimistic enqueue + lazy trim | Secondary storage hygiene on pending rows |
+| `pruneStaleRequestCorrelation` | `LifeLinePubSub` `PeriodicTick` (~30s) | GC for zombie rows (failed WS, missed hygiene, idle tab) |
 
-**Idle tab:** TTL advances on the next read after idle; no timer required. A pending overlay can drop from the effective view after 3 minutes even if the tab was backgrounded --- by design. Slow or failed stream confirm past 3 minutes produces a missing-edit symptom, not doubling.
+**Oscillation invariant:** Physical cleanup must **never** prune a `confirmedRequestId` while a `pendingEdit` with the same `meta.key` still exists in storage. Otherwise a pure id-based selector filter could lose suppression and re-expose a pending overlay.
 
-**Rejected as correctness dependencies:** Timer-based eviction and reducer-side TTL pruning. Both exist only as secondary hygiene (`pendingHygieneCheck`, lazy trim on `saveEdit`).
+**Per-asset cleanup order** (in `pruneStaleRequestCorrelation`):
+
+1. Clear pending rows whose `meta.key` is in confirmed storage (belt-and-suspenders for missed `pendingHygieneCheck`).
+2. Trim pending rows older than `PENDING_TTL_MS`.
+3. Trim confirmed rows older than `CONFIRMED_TTL_MS`, skipping any id that still has a matching pending row.
 
 **Constants and asymmetry:**
 
 | Constant | Value | Applied in |
 | --- | --- | --- |
-| `PENDING_TTL_MS` | 3 minutes | `getEffectivePendingEdits` (personalAssets); lazy purge on `saveEdit` |
-| `CONFIRMED_TTL_MS` | 5 minutes | `getConfirmedRequestIds` / `getWMLConfirmedRequestIds` |
+| `PENDING_TTL_MS` | 3 minutes | Dispatched pending trim (`trimStalePendingEdits`, `saveEdit`, `pruneStaleRequestCorrelation`) |
+| `CONFIRMED_TTL_MS` | 5 minutes | Dispatched `pruneStaleConfirmedRequestIds` |
 
-Confirmed ids outlive the pending overlay cap (5m > 3m) so a physical pending row that lingers in storage is still suppressed by confirmed filtering for an extra window after the pending age cap alone would apply.
+Confirmed ids outlive the pending cap (5m > 3m) so a physical pending row that lingers in storage is still suppressed by confirmed filtering for an extra window after pending age trim alone would apply.
 
-**Cross-link:** Reducer purity norms and this carve-out are summarized in [AGENT.md](./AGENT.md) **Pure Functions**.
+**Idle tab:** Eviction happens on the next envelope hygiene, save enqueue, or periodic tick --- not on selector read. Slow or failed stream confirm past TTL produces a missing-edit symptom, not doubling.
+
+**Cross-link:** Selector purity and dispatched TTL are summarized in [AGENT.md](./AGENT.md) **Pure Functions**.
 
 ### Characterization tests (requestIdTracking)
 
-All cases implemented in [`reducers.test.ts`](./reducers.test.ts) (`processEnvelope requestIdTracking`) and [`index.test.ts`](./index.test.ts) (case 9 subscribe init). Selector TTL tests in `reducers.test.ts` (`selectConfirmedRequestIds / getConfirmedRequestIds`):
+All cases implemented in [`reducers.test.ts`](./reducers.test.ts) (`processEnvelope requestIdTracking`) and [`index.test.ts`](./index.test.ts) (case 9 subscribe init). Selector tests in `reducers.test.ts` (`storedConfirmedRequestIdStrings / getConfirmedRequestIds`); TTL eviction tests in `pruneStaleRequestCorrelation.test.ts` and `periodicCleanupSubscriber.test.ts`:
 
 | # | Case | Setup | Action | Assert |
 | --- | --- | --- | --- | --- |
@@ -519,7 +532,7 @@ All cases implemented in [`reducers.test.ts`](./reducers.test.ts) (`processEnvel
 | 9 | Subscribe init | factory subscribe new stream | (integration) | new stream has `confirmedRequestIds: []` when tracking enabled |
 | 10 | Append across events | existing `[{ id: 'old', seenAt: 1 }]` | second event `RequestIds: ['new']` | array is `[old, new]` (no eager prune in reducer) |
 
-**Selector tests:** `getConfirmedRequestIds` / `selectConfirmedRequestIdStrings` exclude ids where `now - seenAt >= confirmedTtlMs`; tests inject fixed `now`. Stale rows may remain in storage; selector read is authoritative for the effective confirmed set.
+**Selector tests:** `getConfirmedRequestIds` / `storedConfirmedRequestIdStrings` return all storage ids (including stale rows not yet pruned). TTL exclusion is tested on `pruneStaleConfirmedRequestIds` and `pruneStaleRequestCorrelation` with injectable `now`.
 
 ---
 

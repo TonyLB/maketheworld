@@ -13,8 +13,7 @@ import {
 
 export type GetConfirmedRequestIds = (
   state: any,
-  streamKey: string,
-  now?: number
+  streamKey: string
 ) => string[]
 
 type AfterProcessEnvelopeConsumer = (
@@ -64,7 +63,8 @@ export const {
 } = wmlDataSourceSelectors
 
 export const {
-  processEnvelope
+  processEnvelope,
+  pruneStaleConfirmedRequestIds
 } = wmlDataSourceActions
 
 export * from './selectors'

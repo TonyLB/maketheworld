@@ -5,7 +5,7 @@ import { createSelector } from '@reduxjs/toolkit';
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize';
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes';
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
-import { PENDING_TTL_MS, STABLE_EMPTY_CONFIRMED_IDS } from '../dataSource'
+import { STABLE_EMPTY_CONFIRMED_IDS } from '../dataSource'
 
 /** Augmented public data includes cross-slice fields injected by augmentPublicDataForSelect. */
 export type PersonalAssetsPublicAugmented = PersonalAssetsPublic & {
@@ -15,15 +15,10 @@ export type PersonalAssetsPublicAugmented = PersonalAssetsPublic & {
 
 export function selectEffectivePendingEdits(
     pendingEdits: PersonalAssetsPublic['pendingEdits'],
-    confirmedIds: string[],
-    now: number
+    confirmedIds: string[]
 ): PersonalAssetsPublic['pendingEdits'] {
     const confirmedSet = new Set(confirmedIds)
-    return pendingEdits.filter(
-        ({ meta }) =>
-            !confirmedSet.has(meta.key) &&
-            now - meta.time < PENDING_TTL_MS
-    )
+    return pendingEdits.filter(({ meta }) => !confirmedSet.has(meta.key))
 }
 
 const EMPTY_BASE: StandardFormData = { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
@@ -59,7 +54,7 @@ const getConfirmedRequestIds = (state: PersonalAssetsPublic & { key: string }): 
 const getEffectivePendingEdits = createSelector(
     getPendingEdits,
     getConfirmedRequestIds,
-    (pendingEdits, confirmedIds) => selectEffectivePendingEdits(pendingEdits, confirmedIds, Date.now())
+    (pendingEdits, confirmedIds) => selectEffectivePendingEdits(pendingEdits, confirmedIds)
 )
 
 const getLocalStandardForm = createSelector(

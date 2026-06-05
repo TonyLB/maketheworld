@@ -24,7 +24,7 @@ import {
 } from './reducers'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
-import { socketDispatchPromise } from '../lifeLine'
+import { LifeLinePubSub, isPeriodicTickLifeLineMessage, socketDispatchPromise } from '../lifeLine'
 import { isStandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import type { WMLStreamingEventHeader } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
@@ -42,6 +42,7 @@ import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList
 import type { ScopedInstrumentationOptions } from '../../testing/scopedInstrumentation'
 import { getWMLBase, getWMLConfirmedRequestIds } from '../wmlDataSource/selectors'
 import { registerWmlAfterProcessEnvelopeConsumer } from '../wmlDataSource'
+import { createPruneStaleRequestCorrelation, type PruneStaleRequestCorrelationDeps } from './pruneStaleRequestCorrelation'
 import type { StreamEventDeserializedPayload } from '../dataSource/streamEventPubSub'
 import { createSelector } from '@reduxjs/toolkit'
 import { derivePerspectiveForRoom } from '../../lib/perspectiveFromOrigins'
@@ -426,6 +427,24 @@ registerWmlAfterProcessEnvelopeConsumer((dispatch: any, _getState: any, payload:
         return
     }
     dispatch(pendingHygieneCheck(payload.streamKey, payload))
+})
+
+export const pruneStaleRequestCorrelation = createPruneStaleRequestCorrelation({
+    publicActions: publicActions as PruneStaleRequestCorrelationDeps['publicActions'],
+    getPendingEdits
+})
+
+let periodicCleanupDispatch: ((action: any) => any) | undefined
+
+export const registerPeriodicCleanupSubscriber = (dispatch: (action: any) => any): void => {
+    periodicCleanupDispatch = dispatch
+}
+
+LifeLinePubSub.subscribe(({ payload }) => {
+    if (!isPeriodicTickLifeLineMessage(payload)) {
+        return
+    }
+    periodicCleanupDispatch?.(pruneStaleRequestCorrelation({ now: payload.now }))
 })
 
 // type PersonalAssetsSlice = multipleSSMSlice<PersonalAssetsNodes>

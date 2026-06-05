@@ -6,7 +6,7 @@ import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/data
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import type { ScopedInstrumentationOptions } from '../../testing/scopedInstrumentation'
 import { unique } from '../../lib/lists'
-import { PENDING_TTL_MS } from '../dataSource'
+import { PENDING_TTL_MS, prunePendingEditsStorage } from '../dataSource'
 
 export const setLoadedImage = (state: PersonalAssetsPublic, action: PayloadAction<{ itemId: string; file: File }>) => {
     state.loadedImages[action.payload.itemId] = {
@@ -127,9 +127,12 @@ export const clearPendingEditsByRequestIds = (state: PersonalAssetsPublic, actio
     state.pendingEdits = state.pendingEdits.filter(({ meta }) => !RequestIds.includes(meta.key))
 }
 
-export const trimStalePendingEdits = (state: PersonalAssetsPublic, action: PayloadAction<{ now?: number }>) => {
+export const trimStalePendingEdits = (state: PersonalAssetsPublic, action: PayloadAction<{ now?: number; confirmedIds?: string[] }>) => {
     const now = action.payload.now ?? Date.now()
-    state.pendingEdits = state.pendingEdits.filter(({ meta }) => now - meta.time < PENDING_TTL_MS)
+    state.pendingEdits = prunePendingEditsStorage(state.pendingEdits, {
+        now,
+        confirmedIds: action.payload.confirmedIds
+    })
 }
 
 export const clearLastUpdateDiff = (state: PersonalAssetsPublic, _action: PayloadAction<void>) => {

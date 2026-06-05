@@ -8,10 +8,11 @@ import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import type { DataSourceEventSerializer, EventPayload, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
-import { applyEvents, performCleanup, processEnvelope } from './reducers'
-import { CONFIRMED_TTL_MS, selectConfirmedRequestIdStrings } from './requestIdTracking'
+import { applyEvents, performCleanup, processEnvelope, pruneStaleConfirmedRequestIds } from './reducers'
+import { createSelector } from '@reduxjs/toolkit'
+import { CONFIRMED_TTL_MS, storedConfirmedRequestIdStrings } from './requestIdTracking'
 
-export { PENDING_TTL_MS, CONFIRMED_TTL_MS, STABLE_EMPTY_CONFIRMED_IDS } from './requestIdTracking'
+export { PENDING_TTL_MS, CONFIRMED_TTL_MS, STABLE_EMPTY_CONFIRMED_IDS, storedConfirmedRequestIdStrings, prunePendingEditsStorage } from './requestIdTracking'
 import type { ISSMHoldCondition } from '../stateSeekingMachine/baseClasses'
 
 //
@@ -177,7 +178,14 @@ export const createDataSourceSlice = <
                 performCleanupWithConfig,
                 applyEventsWithAggregator,
                 requestIdTracking
-            )
+            ),
+            ...(requestIdTracking
+                ? {
+                    pruneStaleConfirmedRequestIds: pruneStaleConfirmedRequestIds(
+                        requestIdTracking.confirmedTtlMs ?? CONFIRMED_TTL_MS
+                    )
+                }
+                : {})
         },
         publicSelectors: {
             getActiveStreamKeys: (state) => state.activeStreamKeys,
@@ -260,14 +268,12 @@ export const createDataSourceSlice = <
         unsubscribeFromStreams,
         ...(requestIdTracking
             ? {
-                getConfirmedRequestIds: (
-                    state: any,
-                    streamKey: string,
-                    now: number = Date.now()
-                ) => selectConfirmedRequestIdStrings(
-                    sliceSelector(state).publicData.subscribedStreams[streamKey]?.confirmedRequestIds,
-                    now,
-                    requestIdTracking.confirmedTtlMs ?? CONFIRMED_TTL_MS
+                getConfirmedRequestIds: createSelector(
+                    [
+                        (state: any, streamKey: string) =>
+                            sliceSelector(state).publicData.subscribedStreams[streamKey]?.confirmedRequestIds
+                    ],
+                    (rows) => storedConfirmedRequestIdStrings(rows)
                 )
             }
             : {})

@@ -17,7 +17,7 @@ personalAssets sits between the [Workbench](../components/Workbench/AGENT.md) (f
 - **pendingEdits**: In-flight outbound edits. Each row is enqueued **optimistically** when `saveEdit` runs (before `applyEdit` is sent); confirmed when a stream Content Update clears it by `RequestId`.
 - **inherited**: Standard form data inherited from imports (from other assets).
 - **StandardForm / StandardFormData**: WML representation; see [Standard Form](../../../packages/mtw-wml/ts/standardize/AGENT.md).
-- **Local vs merged StandardForm**: **`getLocalStandardForm`** (base + edit + **effective** pending overlay) holds this asset's **edit-layer** WML --- `ref={0}` top-level import stubs, negative refs, etc. Effective pending excludes rows whose `meta.key` is in wmlDataSource confirmed RequestIds and rows older than 3 minutes (`getEffectivePendingEdits`); raw `pendingEdits` remains for the saving indicator. Workbench **Purge** and site-local disassociate simulation use the **local** form only. **`getStandardForm`** merges inherited import ancestry with local edits for **display**. See [consistency AGENT.md](../components/Workbench/foundations/consistency/AGENT.md#stored-wml-vs-displayed-ui).
+- **Local vs merged StandardForm**: **`getLocalStandardForm`** (base + edit + **effective** pending overlay) holds this asset's **edit-layer** WML --- `ref={0}` top-level import stubs, negative refs, etc. Effective pending excludes rows whose `meta.key` is in wmlDataSource confirmed RequestIds (`getEffectivePendingEdits`); raw `pendingEdits` remains for the saving indicator. Workbench **Purge** and site-local disassociate simulation use the **local** form only. **`getStandardForm`** merges inherited import ancestry with local edits for **display**. See [consistency AGENT.md](../components/Workbench/foundations/consistency/AGENT.md#stored-wml-vs-displayed-ui).
 - **Terminology (avoid overloaded "local")**:
 
 | Term | Meaning |
@@ -35,12 +35,19 @@ personalAssets sits between the [Workbench](../components/Workbench/AGENT.md) (f
 | **Raw** `pendingEdits` | Stored in slice | Saving indicator (`pendingEdits.length > 0`), `revertSaveEdit`, physical storage trim |
 | **Effective** overlay | `getEffectivePendingEdits` selector | `getLocalStandardForm` merge correctness |
 
-Effective overlay filter order (every selector read):
+Effective overlay filter (every selector read):
 
-1. Exclude rows whose `meta.key` is in wmlDataSource confirmed RequestIds (`getWMLConfirmedRequestIds`, 5m selector TTL)
-2. Exclude rows where `now - meta.time >= PENDING_TTL_MS` (3 minutes; `meta.time` set at optimistic `saveEdit` enqueue)
+1. Exclude rows whose `meta.key` is in wmlDataSource confirmed RequestIds (`getWMLConfirmedRequestIds`)
 
-TTL asymmetry (3m pending / 5m confirmed), idle-tab behavior, and why selector-time `now` is intentional are documented in [../dataSource/AGENT.implementation.md](../dataSource/AGENT.implementation.md) (**Selector-time TTL**). Merge correctness does **not** depend on dispatched cleanup or background timers --- selectors are the primary backstop; `pendingHygieneCheck` and lazy `saveEdit` trim are secondary hygiene.
+Age eviction is **not** selector-time. Stale pending rows are removed by dispatched storage GC (`pendingHygieneCheck`, lazy `saveEdit` trim, `pruneStaleRequestCorrelation` on `PeriodicTick`). TTL constants and cleanup order are documented in [../dataSource/AGENT.implementation.md](../dataSource/AGENT.implementation.md) (**Dispatched correlation cleanup**).
+
+**TTL ownership:**
+
+| Concern | Owner |
+| --- | --- |
+| Suppress pending overlay while stream confirms | **Event-driven** `pendingHygieneCheck` + **pure** confirmed-id filter in `getEffectivePendingEdits` |
+| Drop zombie rows (failed WS, missed hygiene, idle tab) | **Periodic** `pruneStaleRequestCorrelation` on `LifeLinePubSub` `PeriodicTick` (~30s) |
+| Referential stability (I1) | Pure Reselect chains over stored state |
 
 ### Client sync invariants
 
@@ -100,6 +107,8 @@ Manage per-asset editing state and lifecycle so the Workbench can:
 - `updateStandard(key)(payload)` - **Thunk**. Apply edits; orchestrates base from getWMLBase, dispatches to reducer
 - `saveEdit(key)` - **Thunk**. Enqueues `edit` to `pendingEdits` (optimistic), sends `applyEdit` with client `requestId`, reverts on wire failure if the pending row still exists
 - `pendingHygieneCheck(assetId, envelope)` - Thunk. Post-envelope hygiene: clear pending by confirmed/header RequestIds, TTL-trim, Merge Conflict toast (invoked via wml `afterProcessEnvelope`)
+- `pruneStaleRequestCorrelation({ now? })` - Thunk. Periodic GC orchestration: per asset, clear pending by stored confirmed ids + age trim, then prune stale confirmed rows (oscillation-safe). Dispatched on `LifeLinePubSub` `PeriodicTick` via module-init subscriber in [index.ts](./index.ts).
+- `registerPeriodicCleanupSubscriber(dispatch)` - Binds Redux `dispatch` for the `PeriodicTick` subscriber (called from [store/index.ts](../../store/index.ts) at init; avoids circular import with the store).
 - `addImportToDraft(draft, { fromAsset, uuid, tag })` - Pure helper (re-exported from [addImportToDraft.ts](./addImportToDraft.ts)). Mutates a draft to add or update an imported component. Callers combine it with `updateStandard` from `useWorkbenchAsset` (or the `updateStandard` thunk) and optional `getTopLevelAddToReferenceList` / custom descriptors to place the new reference. See Usage Patterns.
 - `assureDefaultSituationFromPrimitives(draft, fromAsset?)` - Pure helper: ensures draft has SITUATION#DEFAULT imported from primitives; mutates draft, returns true if it made a change. See below.
 - `getStandardForm(key)(state)`, `getLocalStandardForm(key)(state)`, `getBase(key)(state)`, `getEffectivePendingEdits(key)(state)`, `getPendingEdits(key)(state)` - Selectors (key-scoped); `getPendingEdits` is raw storage, `getEffectivePendingEdits` is for merge views
@@ -108,7 +117,7 @@ Manage per-asset editing state and lifecycle so the Workbench can:
 
 - `updateStandard` - Merges payload.update diffs into edit; uses `payload.base` (from thunk)
 - `clearPendingEditsByRequestIds` - Filters pendingEdits by RequestIds
-- `trimStalePendingEdits` - Removes pending rows older than `PENDING_TTL_MS` (lazy storage trim)
+- `trimStalePendingEdits` - Removes pending rows matching optional `confirmedIds`, then rows older than `PENDING_TTL_MS` (lazy storage trim; payload `{ now?, confirmedIds? }`)
 - `saveEdit` - TTL-trims stale pending rows, moves edit to pendingEdits, clears edit (invoked **before** `applyEdit` send)
 - `revertSaveEdit` - On `applyEdit` wire failure: if a pending row for `requestId` still exists, remove it and merge its snapshot back into `edit`; no-op if stream already cleared the row
 
@@ -141,7 +150,7 @@ Defined in [assureDefaultSituationFromPrimitives.ts](./assureDefaultSituationFro
 
 - **multipleSSM** config in [index.ts](./index.ts): `augmentPublicDataForSelect` injects cross-slice fields before selectors run:
   - `base: getWMLBase(state, key) ?? EMPTY_BASE`
-  - `confirmedRequestIds: getWMLConfirmedRequestIds(state, key)` (effective confirmed set with 5m selector TTL; stable `string[]` ref per I1 --- downstream Reselect chain depends on it)
+  - `confirmedRequestIds: getWMLConfirmedRequestIds(state, key)` (storage-derived ids; stable `string[]` ref per I1 via Reselect + `STABLE_EMPTY_CONFIRMED_IDS` --- downstream Reselect chain depends on it)
 - **EMPTY_BASE**: Fallback when wmlDataSource has no materializedView yet
 
 ---
@@ -160,7 +169,8 @@ Defined in [assureDefaultSituationFromPrimitives.ts](./assureDefaultSituationFro
 
 - **Subscribe/unsubscribe ownership**: wmlDataSource owns mtw.wml subscribe/unsubscribe. personalAssets triggers via `subscribeToStreams([id])` / `unsubscribeFromStreams([id])`; personalAssets does **not** send subscribe/unsubscribe messages itself.
 - **No per-asset StreamEventPubSub subscription**: personalAssets does **not** register its own `StreamEventPubSub` listener for mtw.wml. The former `subscribeFirst` ordering band-aid and store-init stream handler are removed; pending hygiene runs exclusively via wml `afterProcessEnvelope`.
-- **Post-envelope hygiene**: wml `afterProcessEnvelope` dispatches `pendingHygieneCheck` after `processEnvelope` commits (clears raw pending, TTL-trim, toast). Selector-time `getEffectivePendingEdits` remains the correctness backstop. Lazy TTL trim on `saveEdit` enqueue is secondary storage hygiene.
+- **Post-envelope hygiene**: wml `afterProcessEnvelope` dispatches `pendingHygieneCheck` after `processEnvelope` commits (clears raw pending by confirmed/header RequestIds, TTL-trim, toast). This is the **primary** confirm path. Lazy TTL trim on `saveEdit` enqueue is secondary storage hygiene.
+- **Periodic GC**: `LifeLinePubSub` `PeriodicTick` (lifeLine SSM, ~30s) dispatches `pruneStaleRequestCorrelation` for belt-and-suspenders storage cleanup across personalAssets and wmlDataSource.
 
 ### Deprecated: Image properties (fetch)
 

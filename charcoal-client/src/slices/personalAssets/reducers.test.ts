@@ -615,12 +615,12 @@ describe('personalAsset slice reducers', () => {
                     { meta: { key: 'stale', time: NOW - PENDING_TTL_MS }, edit: { universalKey: 'ASSET#test', components: [], metaData: [] } },
                     { meta: { key: 'fresh', time: NOW - PENDING_TTL_MS + 1 }, edit: { universalKey: 'ASSET#test', components: [], metaData: [] } }
                 ]
-            } as PersonalAssetsPublic, (draft) => {
+            } as unknown as PersonalAssetsPublic, (draft) => {
                 trimStalePendingEdits(draft, {
                     type: 'trimStalePendingEdits',
                     payload: { now: NOW }
                 })
-            }) as PersonalAssetsPublic
+            }) as unknown as PersonalAssetsPublic
             expect(state.pendingEdits).toHaveLength(1)
             expect(state.pendingEdits[0].meta.key).toBe('fresh')
         })
@@ -633,13 +633,31 @@ describe('personalAsset slice reducers', () => {
             const state = produce({
                 edit: { universalKey: 'ASSET#test', components: [], metaData: [] },
                 pendingEdits
-            } as PersonalAssetsPublic, (draft) => {
+            } as unknown as PersonalAssetsPublic, (draft) => {
                 trimStalePendingEdits(draft, {
                     type: 'trimStalePendingEdits',
                     payload: { now: NOW }
                 })
-            }) as PersonalAssetsPublic
+            }) as unknown as PersonalAssetsPublic
             expect(state.pendingEdits).toHaveLength(2)
+        })
+
+        it('clears pending rows matching confirmedIds before age trim', () => {
+            const state = produce({
+                edit: { universalKey: 'ASSET#test', components: [], metaData: [] },
+                pendingEdits: [
+                    { meta: { key: 'confirmed', time: NOW - 1 }, edit: { universalKey: 'ASSET#test', components: [], metaData: [] } },
+                    { meta: { key: 'unconfirmed-stale', time: NOW - PENDING_TTL_MS }, edit: { universalKey: 'ASSET#test', components: [], metaData: [] } },
+                    { meta: { key: 'fresh', time: NOW - 1 }, edit: { universalKey: 'ASSET#test', components: [], metaData: [] } }
+                ]
+            } as unknown as PersonalAssetsPublic, (draft) => {
+                trimStalePendingEdits(draft, {
+                    type: 'trimStalePendingEdits',
+                    payload: { now: NOW, confirmedIds: ['confirmed'] }
+                })
+            }) as unknown as PersonalAssetsPublic
+            expect(state.pendingEdits).toHaveLength(1)
+            expect(state.pendingEdits[0].meta.key).toBe('fresh')
         })
     })
 
@@ -653,10 +671,10 @@ describe('personalAsset slice reducers', () => {
                     { meta: { key: 'stale', time: NOW - PENDING_TTL_MS }, edit },
                     { meta: { key: 'fresh', time: NOW - PENDING_TTL_MS + 1 }, edit }
                 ]
-            } as PersonalAssetsPublic
+            } as unknown as PersonalAssetsPublic
             const next = produce(state, (draft) => {
                 saveEdit(draft, { type: 'saveEdit', payload: { requestId: 'req-new' } })
-            }) as PersonalAssetsPublic
+            }) as unknown as PersonalAssetsPublic
             expect(next.pendingEdits.map((p) => p.meta.key)).toEqual(['fresh', 'req-new'])
         })
     })
