@@ -39,7 +39,7 @@ import { deepEqual } from '../../lib/objects'
 import { AssetUUID, ComponentUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import type { ScopedInstrumentationOptions } from '../../testing/scopedInstrumentation'
-import { getWMLBase } from '../wmlDataSource/selectors'
+import { getWMLBase, getWMLConfirmedRequestIds } from '../wmlDataSource/selectors'
 import { createSelector } from '@reduxjs/toolkit'
 import { derivePerspectiveForRoom } from '../../lib/perspectiveFromOrigins'
 import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
@@ -106,7 +106,11 @@ export const {
         }
     },
     sliceSelector: ({ personalAssets }) => (personalAssets),
-    augmentPublicDataForSelect: (state, key, publicData) => ({ ...publicData, base: getWMLBase(state, key) ?? EMPTY_BASE }),
+    augmentPublicDataForSelect: (state, key, publicData) => ({
+        ...publicData,
+        base: getWMLBase(state, key) ?? EMPTY_BASE,
+        confirmedRequestIds: getWMLConfirmedRequestIds(state, key)
+    }),
     publicReducers: {
         setLoadedImage: setLoadedImageReducer,
         updateStandard: updateStandardReducer,
@@ -221,7 +225,8 @@ export const {
     getSerialized,
     getError,
     getAll,
-    getPendingEdits
+    getPendingEdits,
+    getEffectivePendingEdits
 } = selectors
 
 /**

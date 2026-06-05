@@ -670,11 +670,13 @@ describe('personalAsset slice reducers', () => {
 
     const augmentedState = (
         state: PersonalAssetsPublic,
-        base: StandardFormData
-    ): PersonalAssetsPublic & { base: StandardFormData; key: string } => ({
+        base: StandardFormData,
+        options?: { confirmedRequestIds?: string[] }
+    ): PersonalAssetsPublic & { base: StandardFormData; key: string; confirmedRequestIds?: string[] } => ({
         ...state,
         base,
-        key: ''
+        key: '',
+        ...(options?.confirmedRequestIds ? { confirmedRequestIds: options.confirmedRequestIds } : {})
     })
 
     /** Console diagnostics for Phase 0 flush characterization (visible when test runs). */
@@ -773,10 +775,11 @@ describe('personalAsset slice reducers', () => {
         const localRoomShortName = (
             state: PersonalAssetsPublic,
             base: StandardFormData,
-            roomId: ComponentUUID
+            roomId: ComponentUUID,
+            options?: { confirmedRequestIds?: string[] }
         ): string | undefined => {
             const local = new StandardForm(
-                publicSelectors.getLocalStandardForm({ ...state, base, key: '' } as PersonalAssetsPublic & { base: StandardFormData; key: string })
+                publicSelectors.getLocalStandardForm(augmentedState(state, base, options))
             )
             const room = local.byUniversalId[roomId]
             if (!(room instanceof StandardRoom)) {
@@ -941,14 +944,11 @@ describe('personalAsset slice reducers', () => {
         const localRoomShortName = (
             state: PersonalAssetsPublic,
             base: StandardFormData,
-            roomId: ComponentUUID
+            roomId: ComponentUUID,
+            options?: { confirmedRequestIds?: string[] }
         ): string | undefined => {
             const local = new StandardForm(
-                publicSelectors.getLocalStandardForm({
-                    ...state,
-                    base,
-                    key: ''
-                } as PersonalAssetsPublic & { base: StandardFormData; key: string })
+                publicSelectors.getLocalStandardForm(augmentedState(state, base, options))
             )
             const room = local.byUniversalId[roomId]
             if (!(room instanceof StandardRoom)) {
@@ -1077,7 +1077,7 @@ describe('personalAsset slice reducers', () => {
             expect(afterLocal).toBe('Cliff Base')
         })
 
-        it('base updated before clearPending doubles local shortName (ordering bug)', () => {
+        it('base updated before clearPending doubles local shortName without confirmed ids (pre-fix path)', () => {
             const state = minimalPersonalAssetsState({
                 inherited: wmlToJSON(`
                     <Asset uuid=(assetC)>
@@ -1100,6 +1100,25 @@ describe('personalAsset slice reducers', () => {
                 })
             }) as PersonalAssetsPublic
             expect(localRoomShortName(clearedAfter, baseWithShortName, VORTEX_ID)).toBe('Cliff Base')
+        })
+
+        it('base updated with confirmed id suppresses pending overlay (no double)', () => {
+            const state = minimalPersonalAssetsState({
+                inherited: wmlToJSON(`
+                    <Asset uuid=(assetC)>
+                        <Room uuid=(vortex) from=(ASSET#primitives) ref={0} />
+                    </Asset>
+                `),
+                edit: editWithVortexShortName
+            })
+            const enqueued = produce(state, (draft) => {
+                saveEdit(draft, { type: 'saveEdit', payload: { requestId: 'req-a' } })
+            }) as PersonalAssetsPublic
+            expect(
+                localRoomShortName(enqueued, baseWithShortName, VORTEX_ID, {
+                    confirmedRequestIds: ['req-a']
+                })
+            ).toBe('Cliff Base')
         })
 
         it('stream-first clear after optimistic enqueue leaves base-only local view', () => {

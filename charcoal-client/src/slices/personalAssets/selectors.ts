@@ -5,9 +5,26 @@ import { createSelector } from '@reduxjs/toolkit';
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize';
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes';
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
+import { PENDING_TTL_MS } from '../dataSource'
 
-/** Augmented public data includes base derived from wmlDataSource (injected by augmentPublicDataForSelect). */
-export type PersonalAssetsPublicAugmented = PersonalAssetsPublic & { base: StandardFormData };
+/** Augmented public data includes cross-slice fields injected by augmentPublicDataForSelect. */
+export type PersonalAssetsPublicAugmented = PersonalAssetsPublic & {
+    base: StandardFormData
+    confirmedRequestIds?: string[]
+}
+
+export function selectEffectivePendingEdits(
+    pendingEdits: PersonalAssetsPublic['pendingEdits'],
+    confirmedIds: string[],
+    now: number
+): PersonalAssetsPublic['pendingEdits'] {
+    const confirmedSet = new Set(confirmedIds)
+    return pendingEdits.filter(
+        ({ meta }) =>
+            !confirmedSet.has(meta.key) &&
+            now - meta.time < PENDING_TTL_MS
+    )
+}
 
 const EMPTY_BASE: StandardFormData = { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
 
@@ -23,6 +40,7 @@ export type PublicSelectors = {
     getSerialized: (state: PersonalAssetsPublic) => boolean | undefined;
     getEdit: (state: PersonalAssetsPublic) => PersonalAssetsPublic["edit"];
     getPendingEdits: (state: PersonalAssetsPublic) => PersonalAssetsPublic["pendingEdits"];
+    getEffectivePendingEdits: (state: PersonalAssetsPublic & { key: string }) => PersonalAssetsPublic["pendingEdits"];
     getInstrumentationOptionsForCurrentEdit: (state: PersonalAssetsPublic) => ScopedInstrumentationOptions | undefined;
 }
 
@@ -34,13 +52,23 @@ const getInstrumentationOptionsForCurrentEdit = ({ instrumentationOptionsForCurr
 
 const getInherited = ({ inherited }: PersonalAssetsPublic) => (inherited)
 
+const getConfirmedRequestIds = (state: PersonalAssetsPublic & { key: string }): string[] =>
+    (state as unknown as PersonalAssetsPublicAugmented).confirmedRequestIds ?? []
+
+/** Effective overlay for merge views; raw getPendingEdits remains for storage / saving indicator. */
+const getEffectivePendingEdits = createSelector(
+    getPendingEdits,
+    getConfirmedRequestIds,
+    (pendingEdits, confirmedIds) => selectEffectivePendingEdits(pendingEdits, confirmedIds, Date.now())
+)
+
 const getLocalStandardForm = createSelector(
     getBase,
-    getPendingEdits,
+    getEffectivePendingEdits,
     getEdit,
-    (base, pendingEdits, edit) => {
+    (base, effectivePendingEdits, edit) => {
         const baseStandardized = new StandardForm(base)
-        const combined = [...pendingEdits.map(({ edit }) => (edit)), edit].reduce<StandardForm>((previous, standardForm) => {
+        const combined = [...effectivePendingEdits.map(({ edit }) => (edit)), edit].reduce<StandardForm>((previous, standardForm) => {
             try {
                 const standardized = new StandardForm(standardForm)
                 return previous.merge(standardized)
@@ -98,6 +126,7 @@ export const publicSelectors: PublicSelectors = {
     getLoadedImages,
     getSerialized,
     getPendingEdits,
+    getEffectivePendingEdits,
     getEdit,
     getInstrumentationOptionsForCurrentEdit
 }

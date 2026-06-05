@@ -17,12 +17,12 @@ personalAssets sits between the [Workbench](../components/Workbench/AGENT.md) (f
 - **pendingEdits**: In-flight outbound edits. Each row is enqueued **optimistically** when `saveEdit` runs (before `applyEdit` is sent); confirmed when a stream Content Update clears it by `RequestId`.
 - **inherited**: Standard form data inherited from imports (from other assets).
 - **StandardForm / StandardFormData**: WML representation; see [Standard Form](../../../packages/mtw-wml/ts/standardize/AGENT.md).
-- **Local vs merged StandardForm**: **`getLocalStandardForm`** (base + edit + pendingEdits) holds this asset's **edit-layer** WML --- `ref={0}` top-level import stubs, negative refs, etc. Workbench **Purge** and site-local disassociate simulation use the **local** form only. **`getStandardForm`** merges inherited import ancestry with local edits for **display**. See [consistency AGENT.md](../components/Workbench/foundations/consistency/AGENT.md#stored-wml-vs-displayed-ui).
+- **Local vs merged StandardForm**: **`getLocalStandardForm`** (base + edit + **effective** pending overlay) holds this asset's **edit-layer** WML --- `ref={0}` top-level import stubs, negative refs, etc. Effective pending excludes rows whose `meta.key` is in wmlDataSource confirmed RequestIds and rows older than 3 minutes (`getEffectivePendingEdits`); raw `pendingEdits` remains for the saving indicator. Workbench **Purge** and site-local disassociate simulation use the **local** form only. **`getStandardForm`** merges inherited import ancestry with local edits for **display**. See [consistency AGENT.md](../components/Workbench/foundations/consistency/AGENT.md#stored-wml-vs-displayed-ui).
 - **Terminology (avoid overloaded "local")**:
 
 | Term | Meaning |
 | --- | --- |
-| **Edit-layer** | `getLocalStandardForm` / `updateLocal` baseline: this asset's WML only (`base + pendingEdits + edit`), no `inherited` folded in. |
+| **Edit-layer** | `getLocalStandardForm` / `updateLocal` baseline: this asset's WML only (`base + effectivePendingEdits + edit`), no `inherited` folded in. |
 | **Merged view** | `getStandardForm`: `inherited.merge(localStandardForm)` --- display and component session **`committed` / `working`**. |
 | **Session working copy** | In-memory `working` in `useWorkbenchComponent` / `useWorkbenchAssetMeta` --- not the same as edit-layer or `updateLocal`. |
 
@@ -84,7 +84,7 @@ Manage per-asset editing state and lifecycle so the Workbench can:
 - `receiveWMLEvent(key)({ header, content })` - Thunk. Handle mtw.wml events: clear pendingEdits by RequestIds, show Merge Conflict toast
 - `addImportToDraft(draft, { fromAsset, uuid, tag })` - Pure helper (re-exported from [addImportToDraft.ts](./addImportToDraft.ts)). Mutates a draft to add or update an imported component. Callers combine it with `updateStandard` from `useWorkbenchAsset` (or the `updateStandard` thunk) and optional `getTopLevelAddToReferenceList` / custom descriptors to place the new reference. See Usage Patterns.
 - `assureDefaultSituationFromPrimitives(draft, fromAsset?)` - Pure helper: ensures draft has SITUATION#DEFAULT imported from primitives; mutates draft, returns true if it made a change. See below.
-- `getStandardForm(key)(state)`, `getLocalStandardForm(key)(state)`, `getBase(key)(state)` - Selectors (key-scoped)
+- `getStandardForm(key)(state)`, `getLocalStandardForm(key)(state)`, `getBase(key)(state)`, `getEffectivePendingEdits(key)(state)`, `getPendingEdits(key)(state)` - Selectors (key-scoped); `getPendingEdits` is raw storage, `getEffectivePendingEdits` is for merge views
 
 **Reducers** (from [reducers.ts](./reducers.ts)):
 

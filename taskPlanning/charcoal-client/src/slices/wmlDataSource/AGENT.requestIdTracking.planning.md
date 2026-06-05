@@ -1,6 +1,6 @@
 # RequestId tracking and pending-edit derivation (wmlDataSource + personalAssets)
 
-**Status:** Phase 2 complete. **Next:** Phase 3 (`personalAssets` effective-pending derivation).
+**Status:** Phase 3 complete. **Next:** Phase 4 (hygiene, band-aid rollback, verification).
 
 Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md) once for durability rules (this file is task-scoped; delete after merge). Client test commands: [`taskPlanning/charcoal-client/AGENT.development.md`](../../../AGENT.development.md).
 
@@ -73,7 +73,7 @@ Confirmed ids outlive effective pending overlay (5m > 3m) so a physical pending 
 | 0 | Header contract + client DataSource factory design | Complete |
 | 1 | Confirmed RequestId storage in `createDataSourceSlice` | Complete |
 | 2 | `wmlDataSource` enable + selectors | Complete |
-| 3 | `personalAssets` effective-pending derivation | Not started |
+| 3 | `personalAssets` effective-pending derivation | Complete |
 | 4 | Hygiene, band-aid rollback (inventory A/B), verification | Not started |
 | 5 | Durable docs + retire this plan | Not started |
 
@@ -342,10 +342,10 @@ Mark pending work `[ ]` and completed work `[X]`. Mark nested bullets `[X]` as e
 
 ### Phase 3 --- personalAssets effective pending derivation
 
-- [ ] Add `getEffectivePendingEdits` cross-slice selector (confirmed filter, then **3m** `meta.time` filter)
-- [ ] Change `getLocalStandardForm` to use effective pending
-- [ ] Selector tests: base updated + raw pending present + confirmed id -> effective empty (no double); pending older than 3m excluded; inject fixed `now`
-- [ ] Add tests in [`selectors.test.ts`](../../../../charcoal-client/src/slices/personalAssets/selectors.test.ts) if present
+- [X] Add `getEffectivePendingEdits` cross-slice selector (confirmed filter, then **3m** `meta.time` filter)
+- [X] Change `getLocalStandardForm` to use effective pending
+- [X] Selector tests: base updated + raw pending present + confirmed id -> effective empty (no double); pending older than 3m excluded; inject fixed `now`
+- [X] Add tests in [`selectors.test.ts`](../../../../charcoal-client/src/slices/personalAssets/selectors.test.ts) if present
 
 ### Phase 4 --- Hygiene, band-aid rollback, and verification
 
