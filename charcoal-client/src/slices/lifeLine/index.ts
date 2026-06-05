@@ -1,3 +1,4 @@
+import './periodicTick'
 import { LifeLineData, LifeLineNodes } from './baseClasses'
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
 import {
@@ -26,6 +27,13 @@ export type {
 } from './index.api'
 
 export { isTerminalConversationStep } from '@tonylb/mtw-interfaces/ts/ephemera'
+export {
+    isPeriodicTickLifeLineMessage,
+    PERIODIC_TICK_DEFAULT_INTERVAL_MS,
+    startPeriodicTickPublisher,
+    stopPeriodicTickPublisher,
+} from './periodicTick'
+export type { PeriodicTickLifeLineMessage } from './periodicTick'
 
 const lifeLinePromiseCache = new PromiseCache<LifeLineData>()
 
@@ -44,6 +52,7 @@ export const {
             incrementalBackoff: 0.5,
             pingInterval: null,
             refreshTimeout: null,
+            periodicTickInterval: null,
             messageSubscription: null,
             coordinationSubscription: null
         },
@@ -65,6 +74,7 @@ export const {
                 incrementalBackoff: 0.5,
                 pingInterval: null,
                 refreshTimeout: null,
+                periodicTickInterval: null,
                 messageSubscription: null,
                 coordinationSubscription: null
             },

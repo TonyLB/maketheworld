@@ -11,10 +11,9 @@ import {
 import { AppDispatch, AppGetState, RootState } from '../../store'
 
 import { LifeLinePubSubData } from './lifeLine'
-import { PubSub } from '../../lib/pubSub'
+import { LifeLinePubSub } from './lifeLinePubSub'
 
 import delayPromise from '../../lib/delayPromise'
-
 import { cacheMessages } from '../messages'
 import { receiveMessages as perceptionCacheReceiveMessages } from '../perceptionCache'
 
@@ -31,8 +30,9 @@ import { getSessionId, updateConnection } from '../settings'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import { anonymousAPIPromise, isAnonymousAPIResultAccessTokenFailure, isAnonymousAPIResultAccessTokenSuccess } from '../../anonymousAPI'
 import { CoordinationClientSessionInitializedMessage } from '@tonylb/mtw-interfaces/ts/coordination'
+import { startPeriodicTickPublisher, stopPeriodicTickPublisher } from './periodicTick'
 
-export const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
+export { LifeLinePubSub } from './lifeLinePubSub'
 
 export const refreshTokenCondition: LifeLineCondition = ({}, getState) => {
     const state = getState()
@@ -58,13 +58,15 @@ export const disconnectWebSocket: LifeLineAction = ({ internalData: { pingInterv
     if (refreshTimeout) {
         clearTimeout(refreshTimeout)
     }
+    stopPeriodicTickPublisher()
     if (webSocket) {
         webSocket.close()
     }
     return {
         internalData: {
             pingInterval: null,
-            refreshTimeout: null
+            refreshTimeout: null,
+            periodicTickInterval: null,
         },
         publicData: {
             webSocket: null
@@ -191,10 +193,12 @@ export const establishWebSocket: LifeLineAction = (arg) => async (dispatch, getS
                 dispatch(internalStateChange({ newState: 'STALE' }))
                 dispatch(heartbeat)
             }, 3600000 )
+            const periodicTickInterval = startPeriodicTickPublisher()
             resolve({
                 internalData: {
                     pingInterval,
                     refreshTimeout,
+                    periodicTickInterval,
                     incrementalBackoff: 0.5
                 },
                 publicData: {
