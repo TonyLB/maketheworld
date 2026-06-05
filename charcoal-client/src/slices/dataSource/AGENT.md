@@ -161,9 +161,11 @@ Events may arrive out of chronological order due to network conditions. The patt
 ### **Pure Functions**
 
 All event processing logic uses pure functions that depend only on their inputs:
-- No `Date.now()` calls - timestamps come from event payloads
+- Reducers do not call `Date.now()` --- timestamps come from event payloads
 - Deterministic behavior for testing and debugging
 - Easy to reason about and maintain
+
+**Carve-out:** Opt-in **requestIdTracking** confirmed-id selectors and cross-slice pending selectors (e.g. `getEffectivePendingEdits`) may call `Date.now()` at read time for TTL filtering. Correctness depends on selector-time expiry, not reducer-side eviction. See [AGENT.implementation.md](./AGENT.implementation.md) **Selector-time TTL (intentional impurity)**.
 
 ### **Type Safety**
 
@@ -182,6 +184,7 @@ createDataSourceSlice<
 See these implementations using this pattern:
 
 - **Content Headers**: `../contentHeaders/` - First implementation for asset header data
+- **WML DataSource**: `../wmlDataSource/` - `mtw.wml` per-asset streams; reference implementation for `requestIdTracking` + `afterProcessEnvelope` (cross-slice pending hygiene with personalAssets)
 - **Thinking Jobs**: `../thinkingJobs/` - `mtw.ephemera.thinking.scheduling` / stream `global` (`Job Completed` + snapshot replay)
 - **More Coming**: Character data, room data, etc.
 

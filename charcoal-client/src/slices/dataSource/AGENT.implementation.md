@@ -189,9 +189,11 @@ const processEnvelope = (aggregator, serializer, ...) =>
 #### **2. Pure Functions Throughout**
 
 All event processing is deterministic:
-- ❌ No `Date.now()` - timestamps come from action payloads
-- ❌ No side effects - only state transformations
+- ❌ No `Date.now()` in reducers - timestamps come from action payloads
+- ❌ No side effects in reducers - only state transformations
 - ✅ Testable with simple inputs and outputs
+
+**Exception (selectors, not reducers):** Opt-in **requestIdTracking** and cross-slice pending selectors may call `Date.now()` at read time for TTL filtering. See [Selector-time TTL (intentional impurity)](#selector-time-ttl-intentional-impurity) below and the carve-out in [AGENT.md](./AGENT.md) **Pure Functions**.
 
 **Why**: Easier testing, debugging, and reasoning about behavior.
 
@@ -423,7 +425,7 @@ Quick reference for what each file does:
 
 ## requestIdTracking (opt-in factory extension)
 
-**Status:** Phase 1 complete (TTL constants, confirmed-id selector, full characterization test suite). `wmlDataSource` enables tracking with `headerField: 'RequestIds'`; cross-slice consumers use `getWMLConfirmedRequestIds` in [../wmlDataSource/selectors.ts](../wmlDataSource/selectors.ts).
+**Status:** Production. `wmlDataSource` is the only enabled consumer today (`headerField: 'RequestIds'`). Cross-slice consumers use `getWMLConfirmedRequestIds` in [../wmlDataSource/selectors.ts](../wmlDataSource/selectors.ts).
 
 Opt-in on `createDataSourceSlice` for slices whose backend streams carry client-action correlation ids on the **envelope header** (not LifeLine RPC).
 
@@ -438,7 +440,7 @@ requestIdTracking?: {
 
 When enabled, per `subscribedStreams[streamKey]` store `confirmedRequestIds: Array<{ id: string; seenAt: number }>`. New streams initialized via `createSubscribeAction` get `confirmedRequestIds: []`.
 
-**TTL constants** (shared with `personalAssets` effective-pending in Phase 3):
+**TTL constants** (shared with `personalAssets` effective-pending):
 
 | Constant | Value | Module |
 | --- | --- | --- |
@@ -473,11 +475,34 @@ When enabled, per `subscribedStreams[streamKey]` store `confirmedRequestIds: Arr
 
 **Not in scope:** LifeLine `socketDispatchPromise` / `ReturnValue` correlation (see [`../lifeLine/AGENT.md`](../lifeLine/AGENT.md)).
 
-**Slices today:** Only `wmlDataSource` will enable tracking in Phase 2 (`headerField: 'RequestIds'`). Other `createDataSourceSlice` instances (`contentHeaders`, `libraryDataSource`, `thinkingJobs`) may enable when producers set stream-header `RequestId`.
+**Slices today:** Only `wmlDataSource` enables tracking (`headerField: 'RequestIds'`). Other `createDataSourceSlice` instances (`contentHeaders`, `libraryDataSource`, `thinkingJobs`) may enable when producers set stream-header `RequestId`.
 
 **Authoritative producer inventory:** [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**Stream correlation ids**).
 
-### Characterization tests (Phase 1)
+### Selector-time TTL (intentional impurity)
+
+Merge correctness for pending overlays depends on **read-time** filtering, not dispatched cleanup, stream handler ordering, or background timers. Stale physical rows may remain in Redux storage; selectors define the effective view.
+
+**Why `Date.now()` in selectors:** `getConfirmedRequestIds(state, streamKey, now?)` and `selectEffectivePendingEdits(pendingEdits, confirmedIds, now)` default `now` to `Date.now()`. This is an intentional carve-out from reducer purity --- TTL is evaluated when UI/selectors read, not when events arrive. Reducers still use envelope `timestamp` for `seenAt` and `meta.time` from optimistic enqueue for pending age; client `now` compares against both at select time.
+
+**Memoization:** Selectors re-evaluate TTL on each read; acceptable for small per-asset arrays. Tests inject fixed `now` (see [`personalAssets/selectors.test.ts`](../personalAssets/selectors.test.ts), [`reducers.test.ts`](./reducers.test.ts)).
+
+**Idle tab:** TTL advances on the next read after idle; no timer required. A pending overlay can drop from the effective view after 3 minutes even if the tab was backgrounded --- by design. Slow or failed stream confirm past 3 minutes produces a missing-edit symptom, not doubling.
+
+**Rejected as correctness dependencies:** Timer-based eviction and reducer-side TTL pruning. Both exist only as secondary hygiene (`pendingHygieneCheck`, lazy trim on `saveEdit`).
+
+**Constants and asymmetry:**
+
+| Constant | Value | Applied in |
+| --- | --- | --- |
+| `PENDING_TTL_MS` | 3 minutes | `getEffectivePendingEdits` (personalAssets); lazy purge on `saveEdit` |
+| `CONFIRMED_TTL_MS` | 5 minutes | `getConfirmedRequestIds` / `getWMLConfirmedRequestIds` |
+
+Confirmed ids outlive the pending overlay cap (5m > 3m) so a physical pending row that lingers in storage is still suppressed by confirmed filtering for an extra window after the pending age cap alone would apply.
+
+**Cross-link:** Reducer purity norms and this carve-out are summarized in [AGENT.md](./AGENT.md) **Pure Functions**.
+
+### Characterization tests (requestIdTracking)
 
 All cases implemented in [`reducers.test.ts`](./reducers.test.ts) (`processEnvelope requestIdTracking`) and [`index.test.ts`](./index.test.ts) (case 9 subscribe init). Selector TTL tests in `reducers.test.ts` (`selectConfirmedRequestIds / getConfirmedRequestIds`):
 
@@ -500,7 +525,7 @@ All cases implemented in [`reducers.test.ts`](./reducers.test.ts) (`processEnvel
 
 ## afterProcessEnvelope (opt-in factory extension)
 
-**Status:** Phase 4a complete (factory hook + `wmlDataSource` consumer). `personalAssets` registers `pendingHygieneCheck` via `registerWmlAfterProcessEnvelopeConsumer` at module load (avoids import cycle).
+**Status:** Production. `wmlDataSource` is the only consumer today. `personalAssets` registers `pendingHygieneCheck` via `registerWmlAfterProcessEnvelopeConsumer` at module load (avoids import cycle).
 
 Opt-in on `createDataSourceSlice` for cross-slice work that must run **after** the owning slice's `processEnvelope` reducer commits (parallel to `onReady`, but per-stream-event rather than at INITIALIZE).
 
@@ -523,7 +548,7 @@ afterProcessEnvelope?: (
 
 **Consumer (wired):** `wmlDataSource` invokes a delegate registered by `personalAssets` (`registerWmlAfterProcessEnvelopeConsumer` in [`wmlDataSource/index.ts`](../wmlDataSource/index.ts); registration in [`personalAssets/index.ts`](../personalAssets/index.ts)). The callback dispatches `pendingHygieneCheck(streamKey, payload)` when `streamKey` is a valid asset UUID. Other `createDataSourceSlice` instances omit the hook.
 
-### Characterization tests (Phase 4a)
+### Characterization tests (afterProcessEnvelope)
 
 Implemented in [`index.test.ts`](./index.test.ts) (`afterProcessEnvelope` describe):
 
@@ -569,4 +594,4 @@ Implemented in [`index.test.ts`](./index.test.ts) (`afterProcessEnvelope` descri
 
 ---
 
-*Last Updated: 2025-10-11*
+*Last Updated: 2026-06-05*

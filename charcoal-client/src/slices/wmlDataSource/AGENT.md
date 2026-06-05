@@ -19,7 +19,7 @@ The **wmlDataSource** slice is the single source of truth for the canonical back
 - **Snapshot**: Initial state delivered on subscribe; may be inline `{ wml: string }` or domain-shaped sidecar `{ wml: { sidecarUrl } }`. The serializer fetches sidecar URLs when configured with a DataSourceEnvironment.
 - **Content Update**: Incremental update; aggregator merges the delta onto the current materializedView.
 - **Merge Conflict**: Event is received but does not update materializedView; personalAssets shows toast via `pendingHygieneCheck` (post-envelope hygiene).
-- **RequestIds (stream confirmation)**: Content Update and Merge Conflict may carry non-empty `RequestIds` in the envelope header when a client `applyEdit` resolves. This slice records them in `subscribedStreams[assetId].confirmedRequestIds` (`requestIdTracking` enabled with `headerField: 'RequestIds'`). Content Update merges the delta and appends ids; Merge Conflict appends ids without changing `materializedView`. Use `getWMLConfirmedRequestIds(state, assetId, now?)` for the effective confirmed set (5-minute selector TTL at read time; see [../dataSource/AGENT.implementation.md](../dataSource/AGENT.implementation.md) **requestIdTracking**). Cross-slice consumers (e.g. `personalAssets` `getEffectivePendingEdits` in [../personalAssets/selectors.ts](../personalAssets/selectors.ts)) should use that selector, not raw storage. **`afterProcessEnvelope`**: after each `processEnvelope`, invokes `personalAssets.pendingHygieneCheck` (registered at module load) to clear raw pending, TTL-trim, and show Merge Conflict toast. Producer contract: [`lambda/wml/AGENT.event.md`](../../../../lambda/wml/AGENT.event.md); cross-data-source inventory: [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**Stream correlation ids**).
+- **RequestIds (stream confirmation)**: Content Update and Merge Conflict may carry non-empty `RequestIds` in the envelope header when a client `applyEdit` resolves. This slice records them in `subscribedStreams[assetId].confirmedRequestIds` (`requestIdTracking` enabled with `headerField: 'RequestIds'`). Content Update merges the delta and appends ids; Merge Conflict appends ids without changing `materializedView`. Use `getWMLConfirmedRequestIds(state, assetId, now?)` for the effective confirmed set (5-minute selector TTL at read time; see [../dataSource/AGENT.implementation.md](../dataSource/AGENT.implementation.md) **requestIdTracking** and **Selector-time TTL**). Cross-slice consumers (e.g. `personalAssets` `getEffectivePendingEdits` in [../personalAssets/selectors.ts](../personalAssets/selectors.ts)) should use that selector, not raw storage. **`afterProcessEnvelope`**: after each `processEnvelope`, invokes a delegate registered by personalAssets at module load (`registerWmlAfterProcessEnvelopeConsumer` in [index.ts](./index.ts)) to dispatch `pendingHygieneCheck` --- clears raw pending, TTL-trim, and Merge Conflict toast. Registration avoids a direct `wmlDataSource` <-> `personalAssets` import cycle. Producer contract: [`lambda/wml/AGENT.event.md`](../../../../lambda/wml/AGENT.event.md); cross-data-source inventory: [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**Stream correlation ids**).
 
 ---
 
@@ -32,6 +32,7 @@ Uses `createDataSourceSlice` with `dataSourceKey: 'mtw.wml'`:
 - **Aggregator**: WMLAggregator (createEmpty, applyUpdate for Content Update; Merge Conflict leaves view unchanged)
 - **Serializer**: WMLDataSourceEventSerializer with `createBrowserDataSourceEnvironment()`; handles sidecar resolution internally
 - **requestIdTracking**: `{ headerField: 'RequestIds' }` --- persists confirmed correlation ids per subscribed stream
+- **afterProcessEnvelope**: delegates to `registerWmlAfterProcessEnvelopeConsumer` callback; personalAssets registers `pendingHygieneCheck` at module load (valid asset UUID `streamKey` only)
 
 ### Relationship to personalAssets
 
@@ -52,7 +53,8 @@ Uses `createDataSourceSlice` with `dataSourceKey: 'mtw.wml'`:
 ### Cross-References
 
 - **personalAssets**: [../personalAssets/AGENT.md](../personalAssets/AGENT.md) - Triggers subscribe/unsubscribe; derives base from getWMLBase
-- **dataSource implementation**: [packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) - Sidecar resolution, Snapshot envelope conventions
+- **dataSource implementation (client)**: [../dataSource/AGENT.implementation.md](../dataSource/AGENT.implementation.md) - `requestIdTracking`, `afterProcessEnvelope`, Selector-time TTL
+- **dataSource implementation (backend)**: [packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) - Sidecar resolution, Snapshot envelope conventions
 
 ---
 

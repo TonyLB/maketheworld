@@ -28,6 +28,20 @@ personalAssets sits between the [Workbench](../components/Workbench/AGENT.md) (f
 
 - **updateStandard (thunk vs reducer)**: The public `updateStandard(key)(payload)` in [index.ts](./index.ts) is a **thunk** that orchestrates base from getWMLBase and dispatches. The reducer `updateStandard` in [reducers.ts](./reducers.ts) is internal; it receives base via the action payload.
 
+### Raw `pendingEdits` vs effective overlay
+
+| View | Source | Used for |
+| --- | --- | --- |
+| **Raw** `pendingEdits` | Stored in slice | Saving indicator (`pendingEdits.length > 0`), `revertSaveEdit`, physical storage trim |
+| **Effective** overlay | `getEffectivePendingEdits` selector | `getLocalStandardForm` merge correctness |
+
+Effective overlay filter order (every selector read):
+
+1. Exclude rows whose `meta.key` is in wmlDataSource confirmed RequestIds (`getWMLConfirmedRequestIds`, 5m selector TTL)
+2. Exclude rows where `now - meta.time >= PENDING_TTL_MS` (3 minutes; `meta.time` set at optimistic `saveEdit` enqueue)
+
+TTL asymmetry (3m pending / 5m confirmed), idle-tab behavior, and why selector-time `now` is intentional are documented in [../dataSource/AGENT.implementation.md](../dataSource/AGENT.implementation.md) (**Selector-time TTL**). Merge correctness does **not** depend on dispatched cleanup or background timers --- selectors are the primary backstop; `pendingHygieneCheck` and lazy `saveEdit` trim are secondary hygiene.
+
 ---
 
 ## Core Purpose
@@ -121,7 +135,9 @@ Defined in [assureDefaultSituationFromPrimitives.ts](./assureDefaultSituationFro
 
 ### Configuration
 
-- **multipleSSM** config in [index.ts](./index.ts): `augmentPublicDataForSelect` injects `base: getWMLBase(state, key) ?? EMPTY_BASE` before selectors run
+- **multipleSSM** config in [index.ts](./index.ts): `augmentPublicDataForSelect` injects cross-slice fields before selectors run:
+  - `base: getWMLBase(state, key) ?? EMPTY_BASE`
+  - `confirmedRequestIds: getWMLConfirmedRequestIds(state, key)` (effective confirmed set with 5m selector TTL)
 - **EMPTY_BASE**: Fallback when wmlDataSource has no materializedView yet
 
 ---
@@ -131,7 +147,7 @@ Defined in [assureDefaultSituationFromPrimitives.ts](./assureDefaultSituationFro
 ### Dependencies
 
 - **wmlDataSource** ([../wmlDataSource/](../wmlDataSource/)): Owns `materializedView` (backend WML); personalAssets derives base via `getWMLBase`
-- **multipleSSM** ([../stateSeekingMachine/multipleSSM.ts](../stateSeekingMachine/multipleSSM.ts)): SSM factory; `augmentPublicDataForSelect` for base injection
+- **multipleSSM** ([../stateSeekingMachine/multipleSSM.ts](../stateSeekingMachine/multipleSSM.ts)): SSM factory; `augmentPublicDataForSelect` for `base` and `confirmedRequestIds` injection
 - **lifeLine** ([../lifeLine.ts](../lifeLine.ts)): socketDispatch for applyEdit
 - **player** slice: `getAssetZone` for Draft vs published (readonly)
 - **StandardForm** ([packages/mtw-wml/ts/standardize/](../../../packages/mtw-wml/ts/standardize/AGENT.md)): Merge, diff, toJSON
@@ -139,6 +155,7 @@ Defined in [assureDefaultSituationFromPrimitives.ts](./assureDefaultSituationFro
 ### WML dataSource integration
 
 - **Subscribe/unsubscribe ownership**: wmlDataSource owns mtw.wml subscribe/unsubscribe. personalAssets triggers via `subscribeToStreams([id])` / `unsubscribeFromStreams([id])`; personalAssets does **not** send subscribe/unsubscribe messages itself.
+- **No per-asset StreamEventPubSub subscription**: personalAssets does **not** register its own `StreamEventPubSub` listener for mtw.wml. The former `subscribeFirst` ordering band-aid and store-init stream handler are removed; pending hygiene runs exclusively via wml `afterProcessEnvelope`.
 - **Post-envelope hygiene**: wml `afterProcessEnvelope` dispatches `pendingHygieneCheck` after `processEnvelope` commits (clears raw pending, TTL-trim, toast). Selector-time `getEffectivePendingEdits` remains the correctness backstop. Lazy TTL trim on `saveEdit` enqueue is secondary storage hygiene.
 
 ### Deprecated: Image properties (fetch)
