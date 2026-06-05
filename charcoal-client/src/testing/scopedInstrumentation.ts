@@ -16,5 +16,6 @@ export interface ScopedInstrumentationOptions {
 /** Instrumentation keys for discoverability and to avoid string typos. Add keys here when adding new scoped instrumentation. */
 export const INSTRUMENTATION_KEYS = {
     WORKBENCH_COMPONENT_SESSION: 'workbench-component-session',
-    WORKBENCH_ASSET_META_SESSION: 'workbench-asset-meta-session'
+    WORKBENCH_ASSET_META_SESSION: 'workbench-asset-meta-session',
+    WML_STREAM_SYNC: 'wml-stream-sync'
 } as const

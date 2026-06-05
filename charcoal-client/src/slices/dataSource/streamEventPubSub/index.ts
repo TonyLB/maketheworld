@@ -16,6 +16,14 @@ import {
     type SerializableObject,
     type StreamingEventHeader
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import {
+    isWmlStreamSyncEnabled,
+    logWmlStreamSync,
+    replayAtFromRawUpdate,
+    requestIdsFromHeader
+} from '../../../testing/wmlStreamSyncInstrumentation'
+
+const WML_DATA_SOURCE_KEY = 'mtw.wml'
 
 /**
  * Payload published by StreamEventPubSub after deserialization.
@@ -75,14 +83,61 @@ function startLifeLineBridge(): void {
         const { dataSourceKey, streamKey, timestamp } = payload
         const deserializer = deserializerRegistry.get(dataSourceKey)
         if (!deserializer) return
+        const wmlSyncTrace = dataSourceKey === WML_DATA_SOURCE_KEY && isWmlStreamSyncEnabled()
+        if (wmlSyncTrace) {
+            const headerType = typeof payload.eventType === 'string' ? payload.eventType : ''
+            logWmlStreamSync('ingest', {
+                phase: 'lifelineReceived',
+                dataSourceKey,
+                streamKey,
+                headerType,
+                timestamp,
+                replayAt: replayAtFromRawUpdate(payload.update, headerType),
+                requestIds: payload.RequestIds ?? requestIdsFromHeader({ type: headerType } as StreamingEventHeader & Record<string, unknown>)
+            })
+        }
         void (async () => {
             try {
+                if (wmlSyncTrace) {
+                    logWmlStreamSync('ingest', {
+                        phase: 'deserializeStart',
+                        dataSourceKey,
+                        streamKey,
+                        headerType: typeof payload.eventType === 'string' ? payload.eventType : '',
+                        timestamp
+                    })
+                }
+                const deserializeStartMs = wmlSyncTrace ? performance.now() : 0
                 const coreFormat = fromWebSocketFormat(payload)
                 const content = await deserializer.deserialize({
                     content: coreFormat.update as any,
                     header: coreFormat.header as any
                 })
-                if (!content) return
+                if (wmlSyncTrace) {
+                    logWmlStreamSync('ingest', {
+                        phase: 'deserializeDone',
+                        dataSourceKey,
+                        streamKey,
+                        headerType: coreFormat.header.type,
+                        timestamp,
+                        replayAt: replayAtFromRawUpdate(coreFormat.update as { type?: string; [key: string]: unknown }, coreFormat.header.type),
+                        requestIds: requestIdsFromHeader(coreFormat.header as StreamingEventHeader & Record<string, unknown>),
+                        deserializeMs: Math.round(performance.now() - deserializeStartMs)
+                    })
+                }
+                if (!content) {
+                    if (wmlSyncTrace) {
+                        logWmlStreamSync('ingest', {
+                            phase: 'droppedNull',
+                            dataSourceKey,
+                            streamKey,
+                            headerType: coreFormat.header.type,
+                            timestamp,
+                            requestIds: requestIdsFromHeader(coreFormat.header as StreamingEventHeader & Record<string, unknown>)
+                        })
+                    }
+                    return
+                }
                 const header = { ...coreFormat.header }
                 if (Object.prototype.hasOwnProperty.call(coreFormat.update, 'zone')) {
                     ;(header as Record<string, unknown>).zone = (coreFormat.update as Record<string, unknown>).zone
@@ -94,7 +149,28 @@ function startLifeLineBridge(): void {
                     header,
                     content
                 })
+                if (wmlSyncTrace) {
+                    logWmlStreamSync('ingest', {
+                        phase: 'published',
+                        dataSourceKey,
+                        streamKey,
+                        headerType: header.type,
+                        timestamp,
+                        replayAt: replayAtFromRawUpdate(coreFormat.update as { type?: string; [key: string]: unknown }, header.type),
+                        requestIds: requestIdsFromHeader(header as StreamingEventHeader & Record<string, unknown>)
+                    })
+                }
             } catch (err) {
+                if (wmlSyncTrace) {
+                    logWmlStreamSync('ingest', {
+                        phase: 'failed',
+                        dataSourceKey,
+                        streamKey,
+                        headerType: typeof payload.eventType === 'string' ? payload.eventType : '',
+                        timestamp,
+                        error: err instanceof Error ? err.message : String(err)
+                    })
+                }
                 console.warn(
                     `[StreamEventPubSub] Failed to deserialize for dataSourceKey=${dataSourceKey}, streamKey=${streamKey}:`,
                     err

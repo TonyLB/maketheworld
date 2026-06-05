@@ -5,8 +5,10 @@ import type { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSo
 import type { DataSourcePublic, RecentEventEnvelope, RequestIdTrackingConfig } from './baseClasses'
 import type { StreamEventDeserializedPayload } from './streamEventPubSub'
 import { appendConfirmedRequestIds, extractConfirmedIdsFromHeader, pruneStaleConfirmedRequestIdRows } from './requestIdTracking'
+import { logWmlProcessEnvelope } from '../../testing/wmlStreamSyncInstrumentation'
 
 const SNAPSHOT_HEADER_TYPE = 'Snapshot'
+const WML_DATA_SOURCE_KEY = 'mtw.wml'
 
 /** publicData fields touched by pruneStaleConfirmedRequestIds */
 type PruneConfirmedRequestIdsState = Pick<
@@ -202,6 +204,20 @@ export const processEnvelope = <
             stream,
             requestIdTracking
         )
+        if (dataSourceKey === WML_DATA_SOURCE_KEY) {
+            const latestCachedTimestamp = cleanedRecentEvents.length > 0
+                ? Math.max(...cleanedRecentEvents.map(e => e.timestamp))
+                : 0
+            logWmlProcessEnvelope({
+                path: 'snapshot',
+                streamKey,
+                incomingTimestamp: snapshotTimestamp,
+                latestCachedTimestamp,
+                eventsAfterSnapshotCount: eventsAfterSnapshot.length,
+                recentEvents: newRecentEvents,
+                materializedView: newMaterializedView
+            })
+        }
     } else {
         // Event path - content is already internal
         const event = content as UpdatePayload
@@ -227,6 +243,16 @@ export const processEnvelope = <
                 stream,
                 requestIdTracking
             )
+            if (dataSourceKey === WML_DATA_SOURCE_KEY) {
+                logWmlProcessEnvelope({
+                    path: 'event-in-order',
+                    streamKey,
+                    incomingTimestamp: eventTimestamp,
+                    latestCachedTimestamp: latestTimestamp,
+                    recentEvents: newRecentEvents,
+                    materializedView: newMaterializedView
+                })
+            }
         } else {
             const snapshotEvents = cleanedRecentEvents.filter((e): e is RecentEventEnvelope<SnapshotPayload, Header> => e.header.type === SNAPSHOT_HEADER_TYPE)
             const baselineSnapshot = snapshotEvents.length > 0
@@ -262,6 +288,16 @@ export const processEnvelope = <
                 stream,
                 requestIdTracking
             )
+            if (dataSourceKey === WML_DATA_SOURCE_KEY) {
+                logWmlProcessEnvelope({
+                    path: 'event-reagg',
+                    streamKey,
+                    incomingTimestamp: eventTimestamp,
+                    latestCachedTimestamp: latestTimestamp,
+                    recentEvents: newRecentEvents,
+                    materializedView: newMaterializedView
+                })
+            }
         }
     }
 }

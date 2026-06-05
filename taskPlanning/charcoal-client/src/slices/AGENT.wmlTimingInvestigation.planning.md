@@ -1,6 +1,6 @@
 # WML subscribe merge investigation (charcoal-client)
 
-**Status:** In progress. **Next step:** Phase 1 --- add gated instrumentation (`wml-stream-sync`) and reproduce reload bug with console + Redux evidence.
+**Status:** In progress. **Next step:** Phase 2 --- enable `wml-stream-sync`, reproduce reload bug, record findings in **Discoveries**.
 
 This plan is task-scoped. Archive or delete it after the bug is fixed and instrumentation is removed; move any lasting norms into slice `AGENT.md` files next to code.
 
@@ -86,7 +86,7 @@ npm run test:single -- src/slices/wmlDataSource/index.test.ts
 | Phase | Description | Status |
 | --- | --- | --- |
 | 0 | Investigation / hypothesis (no code) | Done |
-| 1 | Add gated `wml-stream-sync` instrumentation | Not started |
+| 1 | Add gated `wml-stream-sync` instrumentation | Done |
 | 2 | Reproduce with logs; record findings in **Discoveries** | Not started |
 | 3 | Fix root cause (code or contract) | Not started |
 | 4 | Regression test(s) | Not started |
@@ -136,18 +136,18 @@ Track **every** temporary log/gate added for this task. Phase 5 must remove or r
 
 | ID | Activation key | File(s) | What it logs | Added | Removed |
 | --- | --- | --- | --- | --- | --- |
-| *(none yet)* | `wml-stream-sync` | *(planned)* | See **Planned instrumentation** below | --- | --- |
+| wml-stream-sync | `wml-stream-sync` | [`scopedInstrumentation.ts`](../../../../charcoal-client/src/testing/scopedInstrumentation.ts), [`wmlStreamSyncInstrumentation.ts`](../../../../charcoal-client/src/testing/wmlStreamSyncInstrumentation.ts), [`streamEventPubSub/index.ts`](../../../../charcoal-client/src/slices/dataSource/streamEventPubSub/index.ts), [`dataSource/reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts), [`personalAssets/index.ts`](../../../../charcoal-client/src/slices/personalAssets/index.ts) | `ingest` phases, `processEnvelope`, `afterEnvelope` (see table below) | 2026-06-05 | --- |
 
-**Activation (when implemented):**
+**Activation:**
 
 ```javascript
 sessionStorage.setItem('mtw-instrumentation', '["wml-stream-sync"]')
 // disable: sessionStorage.removeItem('mtw-instrumentation')
 ```
 
-Also add `WML_STREAM_SYNC: 'wml-stream-sync'` to [`charcoal-client/src/testing/scopedInstrumentation.ts`](../../../../charcoal-client/src/testing/scopedInstrumentation.ts) when instrumentation lands.
+`WML_STREAM_SYNC` is in [`charcoal-client/src/testing/scopedInstrumentation.ts`](../../../../charcoal-client/src/testing/scopedInstrumentation.ts).
 
-### Planned instrumentation (not yet in code)
+### Instrumentation sites (implemented)
 
 Follow [`charcoal-client/AGENT.testing.instrumentation.md`](../../../../charcoal-client/AGENT.testing.instrumentation.md): use `console.log`, log WML digests not raw JSON, gate on `wml-stream-sync`.
 
@@ -182,12 +182,12 @@ Follow [`charcoal-client/AGENT.testing.instrumentation.md`](../../../../charcoal
 
 Mark pending work `[ ]` and completed work `[X]` (including nested bullets as you finish them).
 
-- [ ] **Phase 1 --- Instrumentation**
-  - [ ] Add `WML_STREAM_SYNC` to `scopedInstrumentation.ts`
-  - [ ] Implement ingest timeline in `streamEventPubSub` (gate on `mtw.wml` + activation key)
-  - [ ] Implement `processEnvelope` trace in `reducers.ts` (gate on `mtw.wml` via passed config or header check in wrapper --- prefer minimal coupling)
-  - [ ] Implement `afterEnvelope` trace in `personalAssets` consumer
-  - [ ] Update **Instrumentation registry** table with file paths and dates
+- [X] **Phase 1 --- Instrumentation**
+  - [X] Add `WML_STREAM_SYNC` to `scopedInstrumentation.ts`
+  - [X] Implement ingest timeline in `streamEventPubSub` (gate on `mtw.wml` + activation key)
+  - [X] Implement `processEnvelope` trace in `reducers.ts` (gate on `mtw.wml` via passed config or header check in wrapper --- prefer minimal coupling)
+  - [X] Implement `afterEnvelope` trace in `personalAssets` consumer
+  - [X] Update **Instrumentation registry** table with file paths and dates
 - [ ] **Phase 2 --- Reproduce and record**
   - [ ] Enable `sessionStorage` activation **before** edit/save/reload (see **Manual smoke testing constraints**)
   - [ ] Create fresh edit (import + shortName + render + save); reload **immediately** while case is live

@@ -41,6 +41,12 @@ import { AssetUUID, ComponentUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import type { ScopedInstrumentationOptions } from '../../testing/scopedInstrumentation'
 import { getWMLBase, getWMLConfirmedRequestIds } from '../wmlDataSource/selectors'
+import {
+    envelopeContext,
+    isWmlStreamSyncEnabled,
+    logWmlStreamSync,
+    positionGraphNodesFromForm
+} from '../../testing/wmlStreamSyncInstrumentation'
 import { registerWmlAfterProcessEnvelopeConsumer } from '../wmlDataSource'
 import { createPruneStaleRequestCorrelation, type PruneStaleRequestCorrelationDeps } from './pruneStaleRequestCorrelation'
 import type { StreamEventDeserializedPayload } from '../dataSource/streamEventPubSub'
@@ -422,9 +428,34 @@ export const requestLLMGeneration = ({ assetId, roomId }: { assetId: AssetUUID, 
 
 }
 
-registerWmlAfterProcessEnvelopeConsumer((dispatch: any, _getState: any, payload: StreamEventDeserializedPayload) => {
+registerWmlAfterProcessEnvelopeConsumer((dispatch: any, getState: any, payload: StreamEventDeserializedPayload) => {
     if (!isSchemaAssetUUID(payload.streamKey)) {
         return
+    }
+    if (isWmlStreamSyncEnabled()) {
+        const assetId = payload.streamKey
+        const state = getState()
+        const publicData = state?.personalAssets?.[assetId]?.publicData
+        const base = getWMLBase(state, assetId)
+        const augmented = publicData
+            ? {
+                ...publicData,
+                key: assetId,
+                base: base ?? EMPTY_BASE,
+                confirmedRequestIds: getWMLConfirmedRequestIds(state, assetId)
+            }
+            : undefined
+        logWmlStreamSync('afterEnvelope', {
+            ...envelopeContext(payload),
+            baseComponentCount: base?.components?.length ?? 0,
+            positionGraphNodes: positionGraphNodesFromForm(base),
+            effectivePendingCount: augmented
+                ? publicSelectors.getEffectivePendingEdits(augmented).length
+                : 0,
+            localFormComponentCount: augmented
+                ? publicSelectors.getLocalStandardForm(augmented).components.length
+                : 0
+        })
     }
     dispatch(pendingHygieneCheck(payload.streamKey, payload))
 })

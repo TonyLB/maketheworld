@@ -50,6 +50,30 @@ Disable: `sessionStorage.removeItem('mtw-instrumentation')`.
 
 Implementation: [`workbenchSessionInstrumentation.ts`](src/components/Workbench/foundations/workbenchSessionInstrumentation.ts).
 
+### WML stream sync (subscribe / merge investigation)
+
+**Temporary** instrumentation for the reload merge bug investigation. Remove in Phase 5 of [`taskPlanning/charcoal-client/src/slices/AGENT.wmlTimingInvestigation.planning.md`](../taskPlanning/charcoal-client/src/slices/AGENT.wmlTimingInvestigation.planning.md).
+
+Logs are gated by activation key `wml-stream-sync`. Prefix: `[wml-stream-sync] <event>` with a single object payload.
+
+**Enable without rebuild** (browser console, then reproduce the bug):
+
+```javascript
+sessionStorage.setItem('mtw-instrumentation', '["wml-stream-sync"]')
+```
+
+Disable: `sessionStorage.removeItem('mtw-instrumentation')`.
+
+**Events:**
+
+| Event | Site | Notes |
+| --- | --- | --- |
+| `ingest` | `streamEventPubSub` | `phase`: `lifelineReceived`, `deserializeStart`, `deserializeDone`, `published`, `droppedNull`, `failed`; includes `replayAt` on Snapshot, `deserializeMs`, `requestIds` |
+| `processEnvelope` | `dataSource/reducers.ts` | `path`: `snapshot`, `event-in-order`, `event-reagg`; `recentEventsSummary`, `positionGraphNodes`, truncated `materializedViewDigest` |
+| `afterEnvelope` | `personalAssets` consumer | Post-`processEnvelope`, pre-`pendingHygieneCheck`; `baseComponentCount`, `effectivePendingCount`, `localFormComponentCount` |
+
+Implementation: [`wmlStreamSyncInstrumentation.ts`](src/testing/wmlStreamSyncInstrumentation.ts). Activation key: `INSTRUMENTATION_KEYS.WML_STREAM_SYNC` in [`scopedInstrumentation.ts`](src/testing/scopedInstrumentation.ts).
+
 ### Scoped instrumentation via options threading (updateStandard)
 
 Thread `options.instrumentation` through the `updateStandard` flow so that instrumentation can be scoped by call-tree. The plumbing is permanent: `UpdateStandardPayload` includes optional `options?: ScopedInstrumentationOptions`; the thunk passes `options` through; the reducer receives it. When debugging a specific flow, pass `options: { instrumentation: ['key'] }` at the call site; add the key to `INSTRUMENTATION_KEYS` in `src/testing/scopedInstrumentation.ts`; add logging in the reducer (or other instrumented sites) gated by `payload.options?.instrumentation?.includes(yourKey)`. Activation and logging are temporary and removed when the bug is fixed; the plumbing remains for future debugging.
