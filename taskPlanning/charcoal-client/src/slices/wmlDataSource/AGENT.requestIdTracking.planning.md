@@ -70,7 +70,7 @@ Confirmed ids outlive effective pending overlay (5m > 3m) so a physical pending 
 
 | Phase | Description | Status |
 | --- | --- | --- |
-| 0 | Header contract + client DataSource factory design | Not started |
+| 0 | Header contract + client DataSource factory design | In progress (audit done) |
 | 1 | Confirmed RequestId storage in `createDataSourceSlice` | Not started |
 | 2 | `wmlDataSource` enable + selectors | Not started |
 | 3 | `personalAssets` effective-pending derivation | Not started |
@@ -115,8 +115,8 @@ Prefer an **opt-in factory option** on `createDataSourceSlice`, e.g.:
 
 ```typescript
 requestIdTracking?: {
-  /** Header field name; default 'RequestIds' */
-  headerField?: 'RequestIds'
+  /** Which extended header field(s) to read. Default: 'both'. */
+  headerField?: 'RequestIds' | 'RequestId' | 'both'
   /** Selector TTL for confirmed ids (default 5 minutes); applied at read time, not in reducer */
   confirmedTtlMs?: number
 }
@@ -128,11 +128,19 @@ When enabled, per `subscribedStreams[streamKey]` store:
 confirmedRequestIds: Array<{ id: string; seenAt: number }>
 ```
 
-**Recording rule (no event-type allowlist):** In `processEnvelope`, after the aggregator runs, if the header has a **non-empty** `RequestIds` array, append each id with `seenAt`. The header field is the contract --- producers attach `RequestIds` only when a client-originated applyEdit (or equivalent) is resolved. Today that is **`Content Update`** and **`Merge Conflict`** on `mtw.wml`; other types (Snapshot, Zone Changed, etc.) omit the field or send `[]`. Future event types with `RequestIds` are picked up automatically without factory config changes.
+**Normalization (storage always `{ id, seenAt }[]`):**
 
-**Why not filter by `header.type`:** Merge Conflict must record ids even though `materializedView` is unchanged. Content Update records ids and merges the delta. Both share the same rule: `RequestIds.length > 0`. An allowlist would duplicate producer knowledge and risk missing a type (e.g. conflict) that must suppress pending without updating base.
+| `headerField` | Record in `processEnvelope` when |
+| --- | --- |
+| `RequestIds` | `Array.isArray(v) && v.length > 0` -> append each string |
+| `RequestId` | `typeof v === 'string' && v.length > 0` -> append one id |
+| `both` (default) | Non-empty `RequestIds` and/or non-empty `RequestId`; dedupe within the pass |
 
-**Phase 0 audit (optional, not runtime):** One-time grep to confirm only intended producers set `RequestIds`; note in durable docs. Not a tracked allowlist in code.
+**Recording rule (no event-type allowlist):** In `processEnvelope`, after the aggregator runs, record ids from the configured header field(s) when non-empty. The header field is the contract --- producers attach correlation ids only when a client-originated action is resolved. On **`mtw.wml`**, non-empty `RequestIds` today means applyEdit carried `RequestId` (`Content Update` / `Merge Conflict`); other types omit or send `[]`. Assets/ephemera scheduling types reserve singular `RequestId` on the wire but producers omit until wired.
+
+**Why not filter by `header.type`:** Merge Conflict must record ids even though `materializedView` is unchanged. Content Update records ids and merges the delta. Both share the same rule: non-empty header field. An allowlist would duplicate producer knowledge and risk missing a type (e.g. conflict) that must suppress pending without updating base.
+
+**Phase 0 audit (completed 2026-06-05):** Cross-data-source grep of `RequestId`/`RequestIds` under `lambda/`, `packages/mtw-interfaces`, `charcoal-client/src/slices`. Authoritative inventory: [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**Stream correlation ids**). Conclusion: only **`mtw.wml` `processApplyEdit`** sets non-empty stream-header correlation ids today (`RequestIds`); LifeLine RPC uses singular `RequestId` separately (out of factory scope). Not a runtime allowlist in code.
 
 Export generic selectors, e.g. `getConfirmedRequestIds(state, streamKey, now?)` returning ids whose `seenAt` is within `CONFIRMED_TTL_MS` (default 5 minutes). Apply TTL **in the selector** on every read; do not rely on reducer-side eviction for correctness.
 
@@ -264,16 +272,16 @@ Mark pending work `[ ]` and completed work `[X]`. Mark nested bullets `[X]` as e
 
 ### Phase 0 --- Header contract and factory spike
 
-- [ ] Optional audit: grep `RequestIds` under `lambda/wml`, `packages/mtw-interfaces`, `charcoal-client` --- confirm producers only set non-empty arrays when resolving client edits (document in durable docs; **not** a runtime event-type allowlist)
+- [X] Optional audit: grep `RequestId`/`RequestIds` across backend data sources + client slices --- confirm stream-header producers; document in durable docs (**not** a runtime event-type allowlist). See Design note B **Phase 0 audit** and patterns **Stream correlation ids**.
 - [ ] Spike: extend `StreamEventDeserializedPayload` typing strategy (generic `Header` param vs narrow helpers for known data sources)
-- [ ] Spike: `DataSourceSliceConfig.requestIdTracking` shape; record confirmed ids when `header.RequestIds?.length > 0` (same `processEnvelope` pass as aggregator)
+- [ ] Spike: `DataSourceSliceConfig.requestIdTracking` shape; record confirmed ids from configured `headerField` when non-empty (same `processEnvelope` pass as aggregator)
 - [ ] Write reducer-level characterization test plan (confirm id + base update in one `processEnvelope` action; Merge Conflict records id without view change)
 
 ### Phase 1 --- DataSource factory: confirmed RequestId storage
 
 - [ ] Add shared TTL constants (`PENDING_TTL_MS` = 3m, `CONFIRMED_TTL_MS` = 5m)
 - [ ] Extend `DataSourcePublic.subscribedStreams[streamKey]` with `confirmedRequestIds` (only when tracking enabled)
-- [ ] Append `{ id, seenAt }` in `processEnvelope` when `header.RequestIds` is a non-empty array (any event type; storage append)
+- [ ] Append `{ id, seenAt }` in `processEnvelope` when configured header field(s) are non-empty (any event type; storage append; normalize RequestId vs RequestIds)
 - [ ] Export confirmed-RequestId selector with **dynamic 5m TTL** at read time (`now` injectable for tests)
 - [ ] Unit tests in [`charcoal-client/src/slices/dataSource/reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts): Content Update adds ids; selector excludes ids older than 5m; unrelated stream keys isolated; Merge Conflict adds ids without view change
 

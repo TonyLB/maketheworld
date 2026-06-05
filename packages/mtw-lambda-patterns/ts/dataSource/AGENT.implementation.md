@@ -193,7 +193,33 @@ The DataSource provides two publishing APIs. Both use the same wire format and s
 - **In-memory:** Those properties are **merged into the `header` field.** CoreExternalFormat has two fields only: `header` (required, full: base four + extended properties) and `update`. There are no top-level `dataSourceKey`, `streamKey`, `timestamp`, or `RequestId`; those exist only on `header`. Producers put extended fields in the header fragment; the DataSource sets `coreFormat.header` (full). Serializers should not duplicate envelope fields in content. When serializing, the format layer derives `Detail.extendedHeader` from `coreFormat.header`; when deserializing, it merges `Detail.extendedHeader` into `coreFormat.header`.
 - **Consumers:** Read **`coreFormat.header`** (e.g. `event.header.RequestIds`); extended properties are already merged. No backward compatibility for an unextended header; we always have a full header in memory. When both a wire `eventType` and a payload `type` are present, `eventType` (and therefore `header.type`) is authoritative for routing; payload `type` is preserved for contract compatibility only.
 - **Adding a new envelope field:** Define (or extend) the concrete extended header type and typeguard in the **data source** that uses it; ensure the DataSource passes it in the header fragment. No changes to the format layer logic.
-- **Example (mtw.wml):** The mtw.wml data source uses an extended header type `WMLStreamingEventHeader` with `RequestIds?: string[]` for Content Update and Merge Conflict events. Producers pass `RequestIds` in the header fragment when calling `streamEvent`; the serializer does not put `RequestIds` in the content (payload purity). Consumers read `event.header.RequestIds`; the subscriptions handler sources top-level `RequestIds` in the WebSocket message from the event header.
+- **Example (mtw.wml):** The mtw.wml data source uses an extended header type `WMLStreamingEventHeader` with `RequestIds?: string[]` for Content Update and Merge Conflict events. Producers pass `RequestIds` in the header fragment when calling `streamEvent`; the serializer does not put `RequestIds` in the content (payload purity). Consumers read `event.header.RequestIds`; the subscriptions handler sources top-level `RequestIds` in the WebSocket message from the event header. Non-empty `RequestIds` means a client-originated applyEdit was resolved; empty `[]` or omitted means no pending confirmation (see **Stream correlation ids** below).
+
+**Stream correlation ids (RequestId / RequestIds)**
+
+Two correlation channels exist; do not conflate them:
+
+| Channel | Wire shape | Client handler | Client DataSource `requestIdTracking`? |
+| --- | --- | --- | --- |
+| **Stream extended header** | `header.RequestIds[]` or `header.RequestId` on `StreamEvent` | `createDataSourceSlice` `processEnvelope` | **Yes** (opt-in per slice) |
+| **LifeLine RPC** | Top-level `RequestId` on immediate `ReturnValue` / `Error` / `Success` | `socketDispatchPromise`, `socketDispatchConversation` | **No** (LifeLine owns this) |
+
+Ephemera `handleApiStateChange`, assets `returnValue`, and thinking `fetchThinkingResult` use the **RPC channel**. The client DataSource factory records ids from **stream headers only**.
+
+**Field shapes:** Extended headers may use `RequestIds` (string array, mtw.wml) or `RequestId` (string). Both merge to the WebSocket top level via [`formatTransform.ts`](./formatTransform.ts). Semantic rule for stream-header recording: **non-empty** = resolved client-originated action; **empty array or omitted** = ignore (no confirmation). Do not filter by `header.type` in client reducers; the header field is the contract.
+
+**Per-data-source inventory (stream-header producers, production code):**
+
+| dataSourceKey | Non-empty producer today | Header field | Notes |
+| --- | --- | --- | --- |
+| `mtw.wml` | Yes: `processApplyEdit` in `lambda/wml/dataSource/mtw-wml.ts` | `RequestIds` | Non-empty when Apply Edit payload had `RequestId`; `Content Update` and `Merge Conflict`. Primitives bootstrap sends `RequestIds: []`. Zone/snapshot/purge omit field. |
+| `mtw.assets.contentHeaders` | No | `RequestId` (reserved) | Producers set `header: { type }` only; wire types in `mtw-interfaces/ts/subscriptions.ts` anticipate `RequestId`. |
+| `mtw.assets.library` | No | `RequestId` (reserved) | Same |
+| `mtw.assets.players` | No | `RequestId` (reserved) | Same |
+| `mtw.ephemera.thinking.scheduling` | No | `RequestId` (reserved) | `Job Completed` header has type only |
+| Other ephemera/assets stream publishers | No | --- | Field omitted |
+
+**Client factory (charcoal-client):** Opt-in `requestIdTracking` on `createDataSourceSlice` normalizes stream-header ids into `confirmedRequestIds: { id, seenAt }[]` regardless of wire shape. Config: `headerField?: 'RequestIds' | 'RequestId' | 'both'` (default `both`). See [`charcoal-client/src/slices/dataSource/AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md).
 
 **Payload/contract/messageBus:** `StreamingEventPayload`, `StreamingEventPayloadContract`, and lambda `StreamingEventMessage` types keep `header: StreamingEventHeader` so structure guards and bus contracts stay payload-agnostic; any extended header is still assignable to the base type at runtime.
 

@@ -421,6 +421,41 @@ Quick reference for what each file does:
 
 ---
 
+## requestIdTracking (opt-in factory extension)
+
+**Status:** Design documented (Phase 0 audit); implementation in Phase 1 of the requestId tracking initiative.
+
+Opt-in on `createDataSourceSlice` for slices whose backend streams carry client-action correlation ids on the **envelope header** (not LifeLine RPC).
+
+```typescript
+requestIdTracking?: {
+  /** Which extended header field(s) to read. Default: 'both'. */
+  headerField?: 'RequestIds' | 'RequestId' | 'both'
+  /** Selector TTL for confirmed ids (default 5 minutes); applied at read time, not in reducer */
+  confirmedTtlMs?: number
+}
+```
+
+When enabled, per `subscribedStreams[streamKey]` store `confirmedRequestIds: Array<{ id: string; seenAt: number }>`.
+
+**Normalization (storage always `{ id, seenAt }[]`):**
+
+| `headerField` | Record in `processEnvelope` when |
+| --- | --- |
+| `RequestIds` | `Array.isArray(v) && v.length > 0` -> append each string |
+| `RequestId` | `typeof v === 'string' && v.length > 0` -> append one id |
+| `both` (default) | Non-empty `RequestIds` array and/or non-empty `RequestId` string; dedupe within the pass |
+
+**Recording rule:** No runtime `header.type` allowlist. Non-empty header field = resolved client-originated action; empty `[]` or omitted = no confirmation.
+
+**Not in scope:** LifeLine `socketDispatchPromise` / `ReturnValue` correlation (see [`../lifeLine/AGENT.md`](../lifeLine/AGENT.md)).
+
+**Slices today:** Only `wmlDataSource` will enable tracking in Phase 2 (`headerField: 'RequestIds'`). Other `createDataSourceSlice` instances (`contentHeaders`, `libraryDataSource`, `thinkingJobs`) may enable when producers set stream-header `RequestId`.
+
+**Authoritative producer inventory:** [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**Stream correlation ids**).
+
+---
+
 ## Quick Reference: Common Tasks
 
 ### **Creating a New Instance**

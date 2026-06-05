@@ -89,12 +89,25 @@ The WML Lambda receives events from multiple sources:
   - Triggered by: Move Asset operations, canonization (including steps issued by **`promoteToCanon`**). **Decanonization** is not exposed on an operator path; reset demos by removing the asset instead.
 
 - `Content Update` - WML content successfully edited
-  - Includes: StandardForm schema (serialized to WML string), `RequestIds` for client pending-edit clearance
+  - Includes: StandardForm schema (serialized to WML string)
+  - Header `RequestIds`: non-empty only when the triggering Apply Edit carried `RequestId` (client optimistic save)
   - Triggered by: Apply Edit operations via DataSource
 
 - `Merge Conflict` - Edit application failed
-  - Includes: error message, `RequestIds` for client pending-edit clearance
+  - Includes: error message
+  - Header `RequestIds`: same rule as Content Update (confirms failed client edit; suppresses pending overlay)
   - Triggered by: Apply Edit merge failures via DataSource
+
+**Stream-header `RequestIds` contract** (`lambda/wml/dataSource/mtw-wml.ts`):
+
+| Publisher | Event type | `RequestIds` |
+| --- | --- | --- |
+| `processApplyEdit` (payload has `RequestId`) | `Content Update`, `Merge Conflict` | `[payload.RequestId]` |
+| `processApplyEdit` (no `RequestId` on payload) | `Content Update`, `Merge Conflict` | `[]` |
+| `processS3StructureFinding` (primitives bootstrap) | `Content Update` | `[]` (not client edit resolution) |
+| move / canonize / snapshot / purge handlers | Zone Changed, Snapshot Created, Asset Purged | omitted |
+
+Consumers must treat absent or empty `RequestIds` as "no client pending confirmation." Cross-data-source stream correlation inventory: [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**Stream correlation ids**).
 
 ### Internal Event Orchestration
 

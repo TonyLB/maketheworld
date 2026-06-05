@@ -18,6 +18,7 @@ The **wmlDataSource** slice is the single source of truth for the canonical back
 - **Snapshot**: Initial state delivered on subscribe; may be inline `{ wml: string }` or domain-shaped sidecar `{ wml: { sidecarUrl } }`. The serializer fetches sidecar URLs when configured with a DataSourceEnvironment.
 - **Content Update**: Incremental update; aggregator merges the delta onto the current materializedView.
 - **Merge Conflict**: Event is received but does not update materializedView; personalAssets handles toast logic via its LifeLine listener.
+- **RequestIds (stream confirmation)**: Content Update and Merge Conflict may carry non-empty `RequestIds` in the envelope header when a client `applyEdit` resolves. Today personalAssets consumes these via `receiveWMLEvent`; planned `requestIdTracking` on this slice will persist confirmed ids for cross-slice pending derivation. Producer contract: [`lambda/wml/AGENT.event.md`](../../../../lambda/wml/AGENT.event.md); cross-data-source inventory: [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**Stream correlation ids**).
 
 ---
 
