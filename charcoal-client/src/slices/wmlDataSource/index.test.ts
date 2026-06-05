@@ -130,8 +130,7 @@ describe('wmlDataSource slice', () => {
       expect(getWMLConfirmedRequestIds(state, 'ASSET#test', now)).toEqual(['fresh'])
     })
 
-    // Flip to it(...) when E5 lands (Phase 3).
-    it.fails('returns same reference on double read with unchanged storage and fixed now (I1)', () => {
+    it('returns same reference on double read with unchanged storage and fixed now (I1)', () => {
       const now = CONFIRMED_TTL_MS
       const state = {
         wmlDataSource: {

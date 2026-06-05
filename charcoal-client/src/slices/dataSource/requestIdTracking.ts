@@ -48,11 +48,37 @@ export const appendConfirmedRequestIds = (
     ...ids.map((id) => ({ id, seenAt }))
 ]
 
+/** Stable empty result for I1 referential stability when no ids pass TTL filter. */
+export const STABLE_EMPTY_CONFIRMED_IDS: string[] = []
+
+type ConfirmedIdsCacheEntry = { now: number; ttl: number; result: string[] }
+const confirmedIdsCacheByRows = new WeakMap<ConfirmedRequestId[], ConfirmedIdsCacheEntry>()
+
+const computeConfirmedRequestIdStrings = (
+    rows: ConfirmedRequestId[],
+    now: number,
+    confirmedTtlMs: number
+): string[] =>
+    rows
+        .filter(({ seenAt }) => now - seenAt < confirmedTtlMs)
+        .map(({ id }) => id)
+
 export const selectConfirmedRequestIdStrings = (
     rows: ConfirmedRequestId[] | undefined,
     now: number,
     confirmedTtlMs: number = CONFIRMED_TTL_MS
-): string[] =>
-    (rows ?? [])
-        .filter(({ seenAt }) => now - seenAt < confirmedTtlMs)
-        .map(({ id }) => id)
+): string[] => {
+    if (!rows) {
+        return STABLE_EMPTY_CONFIRMED_IDS
+    }
+
+    const cached = confirmedIdsCacheByRows.get(rows)
+    if (cached && cached.now === now && cached.ttl === confirmedTtlMs) {
+        return cached.result
+    }
+
+    const computed = computeConfirmedRequestIdStrings(rows, now, confirmedTtlMs)
+    const result = computed.length === 0 ? STABLE_EMPTY_CONFIRMED_IDS : computed
+    confirmedIdsCacheByRows.set(rows, { now, ttl: confirmedTtlMs, result })
+    return result
+}

@@ -1,6 +1,6 @@
 # Workbench component navigation freeze (Area -> Room)
 
-**Status:** Phase 2 complete (invariants doc + regression tests). **Next: Phase 3** --- implement invariant satisfaction (E5/E6/I3). E3 (`debounce={true}`) remains interim mitigation until Phase 3 acceptance (restore `debounce={false}`).
+**Status:** Phase 3 E5/I3 complete (I1 selector stability + Slate domain guard); automated regression tests green. **Next:** Phase 3 acceptance --- restore `debounce={false}` on `DefaultRenderEditor` and manual Area -> Room check. E3 (`debounce={true}`) remains interim mitigation until acceptance.
 
 This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -95,7 +95,7 @@ With `workbench-component-session` enabled (including CPU throttle):
 | --- | --- | --- |
 | 1 | Reproduce, bisect, interim mitigation (Phase 1) | Done |
 | 2 | Document invariants + regression tests (Phase 2) | Done |
-| 3 | Implement invariant satisfaction (Phase 3) | **Next** |
+| 3 | Implement invariant satisfaction (Phase 3) | E5/I3 done; acceptance pending |
 | 4 | Tests/docs/cleanup, restore `debounce={false}`, close out (Phase 4-5) | Not started |
 
 ---
@@ -119,10 +119,10 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
   - [X] Skip ad hoc console instrumentation unless a **new** hypothesis appears; prefer tests over `[slate-sync]` logs.
 
 - [ ] **Phase 3 --- Implement invariant satisfaction** *(each change maps to I1-I5; record in **Experiment inventory**)*
-  - [ ] E5 / I1: Stabilize `confirmedRequestIds` for Reselect (memoized selector or equivalent).
-  - [ ] E6 / I1: Structural sharing or `deepEqual` at `useWorkbenchAsset` selector boundary if still needed after E5.
-  - [ ] I3: Domain-stable `standard` guard in `useStandardRenderEditorHook` (mirror render `.equals()` pattern).
-  - [ ] Run Phase 2 tests --- I1 `it.fails` cases flip to `it` and pass; all other Phase 2 tests remain green.
+  - [X] E5 / I1: Stabilize `confirmedRequestIds` for Reselect (memoized selector or equivalent).
+  - [X] E6 / I1: Skipped --- E5 sufficient; I1 selector tests pass without `deepEqual` at `useWorkbenchAsset`.
+  - [X] I3: Domain-stable `standard` guard in `useStandardRenderEditorHook` (mirror render `.equals()` pattern).
+  - [X] Run Phase 2 tests --- I1 `it.fails` cases flipped to `it` and pass; all other Phase 2 tests remain green.
   - [ ] **Acceptance:** restore `debounce={false}` on `DefaultRenderEditor`; manual Area -> Room + Phase 2 I5-style test still bounded.
   - [ ] E4 only if effective-overlay semantic bug suspected (unlikely).
 
@@ -144,6 +144,9 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 | --- | --- | --- | --- | --- | --- | --- |
 | E1 | 2026-06-05 | Bypass `DefaultRenderEditor` in `RoomEditor.tsx` | [`RoomEditor.tsx`](../../../../../charcoal-client/src/components/Workbench/RoomEdit/RoomEditor.tsx) | N/A (reverted) | **Confirmed H1; reverted** | Bisect only. |
 | E3 | 2026-06-05 | `debounce={true}` on situation render fields | [`DefaultRenderEditor.tsx`](../../../../../charcoal-client/src/components/Workbench/foundations/DefaultRenderEditor.tsx) | Restore `debounce={false}` | **Kept (interim)** | Symptom mitigation until Phase 3 acceptance. |
+| E5 | 2026-06-05 | Referential cache in `selectConfirmedRequestIdStrings` | [`requestIdTracking.ts`](../../../../../charcoal-client/src/slices/dataSource/requestIdTracking.ts), [`personalAssets/selectors.ts`](../../../../../charcoal-client/src/slices/personalAssets/selectors.ts) | Revert cache in `requestIdTracking.ts` | **Confirmed** | I1 selector tests pass; E6 not needed. |
+| Slate guard | 2026-06-05 | Domain `.equals()` for `standard` in `useStandardRenderEditorHook` | [`StandardRenderEditor.tsx`](../../../../../charcoal-client/src/components/Workbench/foundations/StandardRender/StandardRenderEditor.tsx) | Revert guard | **Confirmed** | Belt-and-suspenders I3; editor churn tests pass. |
+| E6 | 2026-06-05 | `deepEqual` at `useWorkbenchAsset` selector boundary | N/A | N/A | **Skipped** | E5 alone satisfied I1. |
 
 ### Experiment templates (Phase 3)
 
@@ -177,9 +180,9 @@ npm run test:single -- src/components/Workbench/foundations/DefaultRenderEditor.
 npm run test:single -- src/components/Workbench/foundations/WorkbenchComponent/useWorkbenchComponent.test.tsx
 ```
 
-I1 tests use `it.fails` until Phase 3 E5/E6; flip to `it` when fixes land.
+I1 tests are enforced (`it`, not `it.fails`) as of E5 (2026-06-05).
 
-**After Phase 3:**
+**After Phase 3 (automated):**
 
 ```bash
 npm run test:single -- src/slices/personalAssets/pendingHygiene.test.ts

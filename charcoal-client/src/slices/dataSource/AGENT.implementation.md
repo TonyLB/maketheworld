@@ -449,7 +449,7 @@ When enabled, per `subscribedStreams[streamKey]` store `confirmedRequestIds: Arr
 
 **Confirmed-id selector** (only when `requestIdTracking` is set on the factory):
 
-- Pure helper: `selectConfirmedRequestIdStrings(rows, now, confirmedTtlMs?)` in [`requestIdTracking.ts`](./requestIdTracking.ts) --- returns `string[]` of ids where `now - seenAt < confirmedTtlMs` (default `CONFIRMED_TTL_MS`; strict `<`, not `<=`).
+- Pure helper: `selectConfirmedRequestIdStrings(rows, now, confirmedTtlMs?)` in [`requestIdTracking.ts`](./requestIdTracking.ts) --- returns `string[]` of ids where `now - seenAt < confirmedTtlMs` (default `CONFIRMED_TTL_MS`; strict `<`, not `<=`). **Referential stability (I1):** when `rows` storage reference, `now`, and `confirmedTtlMs` are unchanged between reads, returns the same `string[]` reference (WeakMap cache keyed by rows ref; `STABLE_EMPTY_CONFIRMED_IDS` for empty results). See [../AGENT.client-sync-invariants.md](../AGENT.client-sync-invariants.md).
 - Factory export: `getConfirmedRequestIds(state, streamKey, now?)` on the `createDataSourceSlice` return value (not `publicSelectors` --- needs `streamKey` and injectable `now`). Uses `requestIdTracking.confirmedTtlMs ?? CONFIRMED_TTL_MS`. Omitted when tracking is disabled.
 
 **Implementation modules:**
@@ -458,7 +458,7 @@ When enabled, per `subscribedStreams[streamKey]` store `confirmedRequestIds: Arr
 | --- | --- |
 | [`requestIdTracking.ts`](./requestIdTracking.ts) | TTL constants; `extractConfirmedIdsFromHeader`, `appendConfirmedRequestIds`, `selectConfirmedRequestIdStrings` |
 | [`reducers.ts`](./reducers.ts) | `buildStreamUpdate` appends ids in the same `processEnvelope` pass as aggregator |
-| [`index.ts`](./index.ts) | Conditional `getConfirmedRequestIds`; re-exports `PENDING_TTL_MS`, `CONFIRMED_TTL_MS` |
+| [`index.ts`](./index.ts) | Conditional `getConfirmedRequestIds`; re-exports `PENDING_TTL_MS`, `CONFIRMED_TTL_MS`, `STABLE_EMPTY_CONFIRMED_IDS` |
 | [`index.api.ts`](./index.api.ts) | Subscribe init includes `confirmedRequestIds: []` when tracking enabled |
 
 **`seenAt`:** Envelope `timestamp` from the dispatched action (not `Date.now()`), matching the pure-timestamp pattern used by `performCleanup`.

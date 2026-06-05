@@ -157,19 +157,18 @@ When storage semantics are unchanged **and** `now` is unchanged between reads, d
 ## I2 and I3 in practice
 
 - **I2:** [`reconcileCommittedComponent`](../components/Workbench/foundations/workbenchMutations.ts) compares `prev.equals(committed)` before merging external updates. Referential churn in `getStandardForm` alone must not drive reconcile.
-- **I3:** [`useStandardRenderEditorHook`](../components/Workbench/foundations/StandardRender/StandardRenderEditor.tsx) sync guard uses `.equals()` for `value` but reference equality (`===`) for `standard`. Domain-stable `standard` is required when `debounce={false}` under a session provider.
+- **I3:** [`useStandardRenderEditorHook`](../components/Workbench/foundations/StandardRender/StandardRenderEditor.tsx) sync guard uses `.equals()` for both `value` and `standard` (belt-and-suspenders when upstream refs still churn).
 
 ---
 
-## Known violations (pre-Phase-3)
+## Phase 3 fixes (2026-06-05)
 
-| Invariant | Violation |
+| Invariant | Fix |
 | --- | --- |
-| **I1** | `getWMLConfirmedRequestIds` / `selectConfirmedRequestIdStrings` allocates a new `string[]` each read -> `getEffectivePendingEdits` may recompute -> new `StandardFormData` from `toJSON()` every read. |
-| **I3** | `useStandardRenderEditorHook` uses `standard === lastStandardRef`, not domain stability; with `debounce={false}`, resync drives immediate `updateComponent`. |
-| **I5** | Area -> Room with `debounce={false}` freezes tab (infinite render loop). Interim E3 (`debounce={true}` on `DefaultRenderEditor`) breaks the feedback edge only. |
+| **I1** | `selectConfirmedRequestIdStrings` in [`dataSource/requestIdTracking.ts`](./dataSource/requestIdTracking.ts) returns stable `string[]` refs when storage rows ref + `now` + TTL unchanged; `STABLE_EMPTY_CONFIRMED_IDS` for empty results. |
+| **I3** | `useStandardRenderEditorHook` uses `lastStandardRef.current.equals(standard)` instead of reference equality. |
 
-Planned fixes (task plan): E5/E6 for I1, domain-stable `standard` guard for I3, restore `debounce={false}` after acceptance.
+**Remaining (acceptance):** restore `debounce={false}` on `DefaultRenderEditor` and confirm Area -> Room does not freeze (I5 manual check). Interim E3 (`debounce={true}`) still in tree until that acceptance step.
 
 ---
 
@@ -183,4 +182,4 @@ npm run test:single -- src/components/Workbench/foundations/StandardRender/Stand
 npm run test:single -- src/components/Workbench/foundations/DefaultRenderEditor.test.tsx
 ```
 
-I1 tests marked `it.fails` encode Phase 3 E5/E6 targets; flip to `it` when those land. I3/I5 editor tests assert bounded work in bounded churn iterations; the full Area -> Room freeze remains a manual acceptance check until Phase 3 restores `debounce={false}`.
+I1 referential-stability tests in `selectors.test.ts` and `wmlDataSource/index.test.ts` are enforced (`it`). I3/I5 editor tests assert bounded work in bounded churn iterations. Manual Area -> Room with `debounce={false}` remains the final acceptance check after E3 is reverted.

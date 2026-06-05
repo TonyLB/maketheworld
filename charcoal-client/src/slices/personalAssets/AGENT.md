@@ -141,7 +141,7 @@ Defined in [assureDefaultSituationFromPrimitives.ts](./assureDefaultSituationFro
 
 - **multipleSSM** config in [index.ts](./index.ts): `augmentPublicDataForSelect` injects cross-slice fields before selectors run:
   - `base: getWMLBase(state, key) ?? EMPTY_BASE`
-  - `confirmedRequestIds: getWMLConfirmedRequestIds(state, key)` (effective confirmed set with 5m selector TTL)
+  - `confirmedRequestIds: getWMLConfirmedRequestIds(state, key)` (effective confirmed set with 5m selector TTL; stable `string[]` ref per I1 --- downstream Reselect chain depends on it)
 - **EMPTY_BASE**: Fallback when wmlDataSource has no materializedView yet
 
 ---

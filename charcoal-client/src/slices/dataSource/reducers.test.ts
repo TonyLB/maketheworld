@@ -913,6 +913,17 @@ describe('dataSource reducers', () => {
             expect(selectConfirmedRequestIdStrings(undefined, 0)).toEqual([])
         })
 
+        it('returns same reference on double read with unchanged storage and fixed now (I1)', () => {
+            const now = CONFIRMED_TTL_MS
+            const rows = [
+                { id: 'req-a', seenAt: now - 1 },
+                { id: 'req-b', seenAt: now - 2 }
+            ]
+            const first = selectConfirmedRequestIdStrings(rows, now)
+            const second = selectConfirmedRequestIdStrings(rows, now)
+            expect(second).toBe(first)
+        })
+
         it('filters stale storage rows via getConfirmedRequestIds while fresh ids remain', () => {
             const staleSeenAt = 0
             const freshSeenAt = CONFIRMED_TTL_MS - 1

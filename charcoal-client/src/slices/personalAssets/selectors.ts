@@ -5,7 +5,7 @@ import { createSelector } from '@reduxjs/toolkit';
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize';
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes';
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
-import { PENDING_TTL_MS } from '../dataSource'
+import { PENDING_TTL_MS, STABLE_EMPTY_CONFIRMED_IDS } from '../dataSource'
 
 /** Augmented public data includes cross-slice fields injected by augmentPublicDataForSelect. */
 export type PersonalAssetsPublicAugmented = PersonalAssetsPublic & {
@@ -53,7 +53,7 @@ const getInstrumentationOptionsForCurrentEdit = ({ instrumentationOptionsForCurr
 const getInherited = ({ inherited }: PersonalAssetsPublic) => (inherited)
 
 const getConfirmedRequestIds = (state: PersonalAssetsPublic & { key: string }): string[] =>
-    (state as unknown as PersonalAssetsPublicAugmented).confirmedRequestIds ?? []
+    (state as unknown as PersonalAssetsPublicAugmented).confirmedRequestIds ?? STABLE_EMPTY_CONFIRMED_IDS
 
 /** Effective overlay for merge views; raw getPendingEdits remains for storage / saving indicator. */
 const getEffectivePendingEdits = createSelector(

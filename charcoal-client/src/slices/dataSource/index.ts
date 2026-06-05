@@ -11,7 +11,7 @@ import type { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSo
 import { applyEvents, performCleanup, processEnvelope } from './reducers'
 import { CONFIRMED_TTL_MS, selectConfirmedRequestIdStrings } from './requestIdTracking'
 
-export { PENDING_TTL_MS, CONFIRMED_TTL_MS } from './requestIdTracking'
+export { PENDING_TTL_MS, CONFIRMED_TTL_MS, STABLE_EMPTY_CONFIRMED_IDS } from './requestIdTracking'
 import type { ISSMHoldCondition } from '../stateSeekingMachine/baseClasses'
 
 //

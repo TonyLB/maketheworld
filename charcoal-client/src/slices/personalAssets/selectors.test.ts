@@ -291,8 +291,7 @@ describe('personalAssets selectors', () => {
           [{ id: 'req-a', seenAt: NOW - 1 }]
         )
 
-      // Flip to it(...) when E5/E6 land (Phase 3).
-      it.fails('getLocalStandardForm returns same reference on unchanged store semantics', () => {
+      it('getLocalStandardForm returns same reference on unchanged store semantics', () => {
         const state = stabilityState()
         const sel = getLocalStandardForm(ASSET_ID)
         const first = sel(asRootState(state))
@@ -300,8 +299,7 @@ describe('personalAssets selectors', () => {
         expect(second).toBe(first)
       })
 
-      // Flip to it(...) when E5/E6 land (Phase 3).
-      it.fails('getStandardForm returns same reference on unchanged store semantics', () => {
+      it('getStandardForm returns same reference on unchanged store semantics', () => {
         const state = stabilityState()
         const sel = getStandardForm(ASSET_ID)
         const first = sel(asRootState(state))
@@ -309,8 +307,7 @@ describe('personalAssets selectors', () => {
         expect(second).toBe(first)
       })
 
-      // Flip to it(...) when E5 lands (Phase 3).
-      it.fails('getEffectivePendingEdits returns same reference on unchanged store semantics', () => {
+      it('getEffectivePendingEdits returns same reference on unchanged store semantics', () => {
         const state = stabilityState()
         const sel = getEffectivePendingEdits(ASSET_ID)
         const first = sel(asRootState(state))
