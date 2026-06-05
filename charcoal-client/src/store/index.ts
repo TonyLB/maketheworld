@@ -9,7 +9,7 @@ import activeCharacters from '../slices/activeCharacters'
 import ephemera from '../slices/ephemera'
 import lifeLine from '../slices/lifeLine'
 import ssmHeartbeat from '../slices/stateSeekingMachine/ssmHeartbeat'
-import personalAssets from '../slices/personalAssets'
+import personalAssets, { registerPeriodicCleanupSubscriber } from '../slices/personalAssets'
 import perceptionCache from '../slices/perceptionCache'
 import { contentHeadersSlice, subscribeToContentHeaders } from '../slices/contentHeaders'
 import { libraryDataSourceSlice, subscribeToLibrary } from '../slices/libraryDataSource'
@@ -45,6 +45,7 @@ export const store = configureStore({
 // This can be called immediately - the state machine will process it when ready
 store.dispatch(subscribeToContentHeaders(['global']) as any)
 store.dispatch(subscribeToThinkingJobs() as any)
+registerPeriodicCleanupSubscriber(store.dispatch)
 
 // Note: Library subscription is handled on-demand when user navigates to Library page
 // See components/Library/index.tsx for subscription logic

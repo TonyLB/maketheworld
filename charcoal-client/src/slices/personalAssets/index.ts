@@ -24,7 +24,7 @@ import {
 } from './reducers'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
-import { socketDispatchPromise } from '../lifeLine'
+import { LifeLinePubSub, isPeriodicTickLifeLineMessage, socketDispatchPromise } from '../lifeLine'
 import { isStandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import type { WMLStreamingEventHeader } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
@@ -432,6 +432,19 @@ registerWmlAfterProcessEnvelopeConsumer((dispatch: any, _getState: any, payload:
 export const pruneStaleRequestCorrelation = createPruneStaleRequestCorrelation({
     publicActions: publicActions as PruneStaleRequestCorrelationDeps['publicActions'],
     getPendingEdits
+})
+
+let periodicCleanupDispatch: ((action: any) => any) | undefined
+
+export const registerPeriodicCleanupSubscriber = (dispatch: (action: any) => any): void => {
+    periodicCleanupDispatch = dispatch
+}
+
+LifeLinePubSub.subscribe(({ payload }) => {
+    if (!isPeriodicTickLifeLineMessage(payload)) {
+        return
+    }
+    periodicCleanupDispatch?.(pruneStaleRequestCorrelation({ now: payload.now }))
 })
 
 // type PersonalAssetsSlice = multipleSSMSlice<PersonalAssetsNodes>

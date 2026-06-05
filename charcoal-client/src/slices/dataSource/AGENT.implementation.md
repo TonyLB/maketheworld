@@ -463,7 +463,7 @@ When enabled, per `subscribedStreams[streamKey]` store `confirmedRequestIds: Arr
 
 **`seenAt`:** Envelope `timestamp` from the dispatched action (not `Date.now()`), matching the pure-timestamp pattern used by `performCleanup`.
 
-**Dispatched storage GC (Phase 1):** When `requestIdTracking` is enabled, `pruneStaleConfirmedRequestIds` removes stale rows from `confirmedRequestIds` storage (injectable `now`, default `CONFIRMED_TTL_MS`). Skips any id present in `pendingKeys` (oscillation invariant). Selector-time TTL on `getConfirmedRequestIds` / `selectConfirmedRequestIdStrings` remains load-bearing until Phase 3 removes it; periodic cleanup is orchestrated by `personalAssets.pruneStaleRequestCorrelation` (Phase 2 wires it to `LifeLinePubSub` `PeriodicTick`).
+**Dispatched storage GC:** When `requestIdTracking` is enabled, `pruneStaleConfirmedRequestIds` removes stale rows from `confirmedRequestIds` storage (injectable `now`, default `CONFIRMED_TTL_MS`). Skips any id present in `pendingKeys` (oscillation invariant). Selector-time TTL on `getConfirmedRequestIds` / `selectConfirmedRequestIdStrings` remains load-bearing until Phase 3 removes it; periodic cleanup is orchestrated by `personalAssets.pruneStaleRequestCorrelation`, dispatched on `LifeLinePubSub` `PeriodicTick` (~30s during connected session).
 
 **Normalization (storage always `{ id, seenAt }[]`):**
 

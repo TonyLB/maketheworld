@@ -40,15 +40,3 @@ export function stopPeriodicTickPublisher(): void {
     }
     activeInterval = null
 }
-
-function registerPeriodicTickSmokeSubscriber(): void {
-    LifeLinePubSub.subscribe(({ payload }) => {
-        if (!isPeriodicTickLifeLineMessage(payload)) {
-            return
-        }
-        // Phase 0 smoke: remove before Phase 2 lands pruneStaleRequestCorrelation
-        console.log('[PeriodicTick]', payload.now)
-    })
-}
-
-registerPeriodicTickSmokeSubscriber()

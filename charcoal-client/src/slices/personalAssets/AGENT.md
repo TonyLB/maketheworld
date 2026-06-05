@@ -100,7 +100,8 @@ Manage per-asset editing state and lifecycle so the Workbench can:
 - `updateStandard(key)(payload)` - **Thunk**. Apply edits; orchestrates base from getWMLBase, dispatches to reducer
 - `saveEdit(key)` - **Thunk**. Enqueues `edit` to `pendingEdits` (optimistic), sends `applyEdit` with client `requestId`, reverts on wire failure if the pending row still exists
 - `pendingHygieneCheck(assetId, envelope)` - Thunk. Post-envelope hygiene: clear pending by confirmed/header RequestIds, TTL-trim, Merge Conflict toast (invoked via wml `afterProcessEnvelope`)
-- `pruneStaleRequestCorrelation({ now? })` - Thunk. Periodic GC orchestration (Phase 1): per asset, clear pending by stored confirmed ids + age trim, then prune stale confirmed rows (oscillation-safe). Not yet wired to `LifeLinePubSub` `PeriodicTick` (Phase 2).
+- `pruneStaleRequestCorrelation({ now? })` - Thunk. Periodic GC orchestration: per asset, clear pending by stored confirmed ids + age trim, then prune stale confirmed rows (oscillation-safe). Dispatched on `LifeLinePubSub` `PeriodicTick` via module-init subscriber in [index.ts](./index.ts).
+- `registerPeriodicCleanupSubscriber(dispatch)` - Binds Redux `dispatch` for the `PeriodicTick` subscriber (called from [store/index.ts](../../store/index.ts) at init; avoids circular import with the store).
 - `addImportToDraft(draft, { fromAsset, uuid, tag })` - Pure helper (re-exported from [addImportToDraft.ts](./addImportToDraft.ts)). Mutates a draft to add or update an imported component. Callers combine it with `updateStandard` from `useWorkbenchAsset` (or the `updateStandard` thunk) and optional `getTopLevelAddToReferenceList` / custom descriptors to place the new reference. See Usage Patterns.
 - `assureDefaultSituationFromPrimitives(draft, fromAsset?)` - Pure helper: ensures draft has SITUATION#DEFAULT imported from primitives; mutates draft, returns true if it made a change. See below.
 - `getStandardForm(key)(state)`, `getLocalStandardForm(key)(state)`, `getBase(key)(state)`, `getEffectivePendingEdits(key)(state)`, `getPendingEdits(key)(state)` - Selectors (key-scoped); `getPendingEdits` is raw storage, `getEffectivePendingEdits` is for merge views
@@ -162,7 +163,7 @@ Defined in [assureDefaultSituationFromPrimitives.ts](./assureDefaultSituationFro
 - **Subscribe/unsubscribe ownership**: wmlDataSource owns mtw.wml subscribe/unsubscribe. personalAssets triggers via `subscribeToStreams([id])` / `unsubscribeFromStreams([id])`; personalAssets does **not** send subscribe/unsubscribe messages itself.
 - **No per-asset StreamEventPubSub subscription**: personalAssets does **not** register its own `StreamEventPubSub` listener for mtw.wml. The former `subscribeFirst` ordering band-aid and store-init stream handler are removed; pending hygiene runs exclusively via wml `afterProcessEnvelope`.
 - **Post-envelope hygiene**: wml `afterProcessEnvelope` dispatches `pendingHygieneCheck` after `processEnvelope` commits (clears raw pending, TTL-trim, toast). Selector-time `getEffectivePendingEdits` remains the correctness backstop until Phase 3. Lazy TTL trim on `saveEdit` enqueue is secondary storage hygiene.
-- **Periodic GC (Phase 1)**: `pruneStaleRequestCorrelation` dispatches storage cleanup across personalAssets and wmlDataSource; subscriber wiring on `PeriodicTick` lands in Phase 2.
+- **Periodic GC**: `LifeLinePubSub` `PeriodicTick` (lifeLine SSM, ~30s) dispatches `pruneStaleRequestCorrelation` for storage cleanup across personalAssets and wmlDataSource. Selector-time TTL on `getEffectivePendingEdits` / `getWMLConfirmedRequestIds` remains until Phase 3.
 
 ### Deprecated: Image properties (fetch)
 

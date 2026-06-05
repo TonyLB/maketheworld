@@ -22,7 +22,7 @@ Inbound WebSocket payloads and client-local synthetic messages share this **`Pub
 
 **Activation:** lifeLine SSM only --- started in **`establishWebSocket`** `onopen` (alongside `pingInterval`), stopped in **`disconnectWebSocket`** via `stopPeriodicTickPublisher()`. Handle stored on **`LifeLineInternal.periodicTickInterval`**. Not activated from app root or `useSSM.ts`.
 
-**Subscribers:** Long-lived `LifeLinePubSub.subscribe` with `isPeriodicTickLifeLineMessage` guard. Phase 0 includes a noop smoke subscriber at module init; Phase 2 will dispatch periodic GC (`pruneStaleRequestCorrelation`).
+**Subscribers:** Long-lived `LifeLinePubSub.subscribe` with `isPeriodicTickLifeLineMessage` guard. Periodic GC subscriber lives in [personalAssets/index.ts](../personalAssets/index.ts) (`registerPeriodicCleanupSubscriber` + store init binding); dispatches `pruneStaleRequestCorrelation` using `payload.now`.
 
 **Tests:** [`periodicTick.test.ts`](periodicTick.test.ts).
 
