@@ -166,9 +166,8 @@ When storage semantics are unchanged **and** `now` is unchanged between reads, d
 | Invariant | Fix |
 | --- | --- |
 | **I1** | `selectConfirmedRequestIdStrings` in [`dataSource/requestIdTracking.ts`](./dataSource/requestIdTracking.ts) returns stable `string[]` refs when storage rows ref + `now` + TTL unchanged; `STABLE_EMPTY_CONFIRMED_IDS` for empty results. |
-| **I3** | `useStandardRenderEditorHook` uses `lastStandardRef.current.equals(standard)` instead of reference equality. |
-
-**Remaining (acceptance):** restore `debounce={false}` on `DefaultRenderEditor` and confirm Area -> Room does not freeze (I5 manual check). Interim E3 (`debounce={true}`) still in tree until that acceptance step.
+| **I3** | `useStandardRenderEditorHook` uses reference-or-domain check (`===` then `.equals()`) for `value` and `standard`. |
+| **I5** | Area -> Room with `debounce={false}` accepted (automated bounded-mount tests + manual navigation, 2026-06-05). E3 interim mitigation superseded. |
 
 ---
 
@@ -182,4 +181,4 @@ npm run test:single -- src/components/Workbench/foundations/StandardRender/Stand
 npm run test:single -- src/components/Workbench/foundations/DefaultRenderEditor.test.tsx
 ```
 
-I1 referential-stability tests in `selectors.test.ts` and `wmlDataSource/index.test.ts` are enforced (`it`). I3/I5 editor tests assert bounded work in bounded churn iterations. Manual Area -> Room with `debounce={false}` remains the final acceptance check after E3 is reverted.
+I1 referential-stability tests in `selectors.test.ts` and `wmlDataSource/index.test.ts` are enforced (`it`). I3/I5 editor tests assert bounded work in bounded churn iterations. Area -> Room with `debounce={false}` verified manually (2026-06-05).

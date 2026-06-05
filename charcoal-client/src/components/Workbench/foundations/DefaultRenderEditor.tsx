@@ -138,12 +138,11 @@ export const DefaultRenderEditor: FunctionComponent = () => {
         return null
     }
 
-    // E3 (fixComponentLock): debounce was false; immediate Slate persist caused render loop (H1).
     return (
         <SituationFacetRenderFieldsView
             payload={payload}
             readonly={sessionReadonly}
-            debounce={true}
+            debounce={false}
             onDisplayNameChange={handleDisplayNameChange}
             onSummaryChange={handleSummaryChange}
             onDescriptionChange={handleDescriptionChange}

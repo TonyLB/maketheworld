@@ -1,6 +1,6 @@
 # Workbench component navigation freeze (Area -> Room)
 
-**Status:** Phase 3 E5/I3 complete (I1 selector stability + Slate domain guard); automated regression tests green. **Next:** Phase 3 acceptance --- restore `debounce={false}` on `DefaultRenderEditor` and manual Area -> Room check. E3 (`debounce={true}`) remains interim mitigation until acceptance.
+**Status:** Phase 3 complete (E5/I3, E3 superseded, manual Area -> Room OK). **Next:** Phase 4 --- promote docs and close out.
 
 This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -95,7 +95,7 @@ With `workbench-component-session` enabled (including CPU throttle):
 | --- | --- | --- |
 | 1 | Reproduce, bisect, interim mitigation (Phase 1) | Done |
 | 2 | Document invariants + regression tests (Phase 2) | Done |
-| 3 | Implement invariant satisfaction (Phase 3) | E5/I3 done; acceptance pending |
+| 3 | Implement invariant satisfaction (Phase 3) | Done |
 | 4 | Tests/docs/cleanup, restore `debounce={false}`, close out (Phase 4-5) | Not started |
 
 ---
@@ -118,21 +118,26 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
   - [X] Optional: document collaboration path **I4** as diagram + numbered list in [`AGENT.client-sync-invariants.md`](../../../../../charcoal-client/src/slices/AGENT.client-sync-invariants.md).
   - [X] Skip ad hoc console instrumentation unless a **new** hypothesis appears; prefer tests over `[slate-sync]` logs.
 
-- [ ] **Phase 3 --- Implement invariant satisfaction** *(each change maps to I1-I5; record in **Experiment inventory**)*
+- [X] **Phase 3 --- Implement invariant satisfaction** *(each change maps to I1-I5; record in **Experiment inventory**)*
   - [X] E5 / I1: Stabilize `confirmedRequestIds` for Reselect (memoized selector or equivalent).
   - [X] E6 / I1: Skipped --- E5 sufficient; I1 selector tests pass without `deepEqual` at `useWorkbenchAsset`.
   - [X] I3: Domain-stable `standard` guard in `useStandardRenderEditorHook` (mirror render `.equals()` pattern).
   - [X] Run Phase 2 tests --- I1 `it.fails` cases flipped to `it` and pass; all other Phase 2 tests remain green.
-  - [ ] **Acceptance:** restore `debounce={false}` on `DefaultRenderEditor`; manual Area -> Room + Phase 2 I5-style test still bounded.
-  - [ ] E4 only if effective-overlay semantic bug suspected (unlikely).
+  - [X] **Acceptance:** restore `debounce={false}` on `DefaultRenderEditor`; manual Area -> Room + Phase 2 I5-style test still bounded.
+    - [X] `debounce={false}` restored on [`DefaultRenderEditor.tsx`](../../../../../charcoal-client/src/components/Workbench/foundations/DefaultRenderEditor.tsx).
+    - [X] I5-style automated tests pass (`DefaultRenderEditor.test.tsx`, `StandardRenderEditor.test.tsx`).
+    - [X] Manual Area -> Room (Draft asset, Participants Room link) --- OK (2026-06-05).
+  - [X] E4 only if effective-overlay semantic bug suspected (unlikely) --- skipped.
 
 - [ ] **Phase 4 --- Promote docs, retire interim mitigation**
   - [ ] Merge invariant text from Phase 2 draft into durable docs; remove duplication from this plan.
-  - [ ] Mark E3 **Superseded** if `debounce={false}` restored; else document why `debounce={true}` remains with invariant reference.
+  - [X] Mark E3 **Superseded** if `debounce={false}` restored; else document why `debounce={true}` remains with invariant reference.
   - [ ] Extend verification commands below with new test paths from Phase 2.
 
 - [ ] **Phase 5 --- Close out**
   - [ ] Manual: Area -> Room without freeze; edit-save-confirm path without doubled overlay.
+    - [X] Area -> Room without freeze (`debounce={false}`).
+    - [ ] Edit-save-confirm path without doubled overlay.
   - [ ] Run full verification suite.
   - [ ] Delete this task plan (git retains history).
 
@@ -143,7 +148,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark each nested line as 
 | ID | Date | Change summary | Files / location | Rollback steps | Outcome | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | E1 | 2026-06-05 | Bypass `DefaultRenderEditor` in `RoomEditor.tsx` | [`RoomEditor.tsx`](../../../../../charcoal-client/src/components/Workbench/RoomEdit/RoomEditor.tsx) | N/A (reverted) | **Confirmed H1; reverted** | Bisect only. |
-| E3 | 2026-06-05 | `debounce={true}` on situation render fields | [`DefaultRenderEditor.tsx`](../../../../../charcoal-client/src/components/Workbench/foundations/DefaultRenderEditor.tsx) | Restore `debounce={false}` | **Kept (interim)** | Symptom mitigation until Phase 3 acceptance. |
+| E3 | 2026-06-05 | `debounce={true}` on situation render fields | [`DefaultRenderEditor.tsx`](../../../../../charcoal-client/src/components/Workbench/foundations/DefaultRenderEditor.tsx) | Restore `debounce={false}` | **Superseded** | Interim mitigation; `debounce={false}` restored after E5/I3; automated + manual Area -> Room OK. |
 | E5 | 2026-06-05 | Referential cache in `selectConfirmedRequestIdStrings` | [`requestIdTracking.ts`](../../../../../charcoal-client/src/slices/dataSource/requestIdTracking.ts), [`personalAssets/selectors.ts`](../../../../../charcoal-client/src/slices/personalAssets/selectors.ts) | Revert cache in `requestIdTracking.ts` | **Confirmed** | I1 selector tests pass; E6 not needed. |
 | Slate guard | 2026-06-05 | Domain `.equals()` for `standard` in `useStandardRenderEditorHook` | [`StandardRenderEditor.tsx`](../../../../../charcoal-client/src/components/Workbench/foundations/StandardRender/StandardRenderEditor.tsx) | Revert guard | **Confirmed** | Belt-and-suspenders I3; editor churn tests pass. |
 | E6 | 2026-06-05 | `deepEqual` at `useWorkbenchAsset` selector boundary | N/A | N/A | **Skipped** | E5 alone satisfied I1. |
@@ -192,7 +197,7 @@ npm run test:single -- src/slices/personalAssets/pendingHygiene.test.ts
 **Manual:**
 
 - [X] Area -> Room does not freeze (with E3 interim).
-- [ ] Area -> Room does not freeze with `debounce={false}` after Phase 3.
+- [X] Area -> Room does not freeze with `debounce={false}` after Phase 3 (manual; 2026-06-05).
 - [ ] No doubled shortName / overlay on edit-save-confirm path.
 - [X] Invariants I1-I5 documented in durable docs outside this plan ([`AGENT.client-sync-invariants.md`](../../../../../charcoal-client/src/slices/AGENT.client-sync-invariants.md)).
 
@@ -202,7 +207,7 @@ npm run test:single -- src/slices/personalAssets/pendingHygiene.test.ts
 
 - **In scope:** Client sync invariants, Workbench session + derived selectors, effective pending / `confirmedRequestIds`, regression tests for referential stability and editor mount bounds.
 - **Out of scope:** Lambda/WML stream protocol changes unless invariant **I4** doc exposes a server-side gap.
-- **Interim:** Ship with E3 in tree until Phase 3 acceptance; do not treat E3 as architectural resolution.
+- **Interim:** E3 superseded; architectural fix is E5/I3 (see experiment inventory).
 
 ---
 
