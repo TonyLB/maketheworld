@@ -1,8 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createDataSourceSlice, DataSourceSliceConfig } from './index'
+import { createSubscribeAction } from './index.api'
 import type { StreamEventDeserializedPayload } from './streamEventPubSub'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+
+const { socketDispatchPromiseMock } = vi.hoisted(() => ({
+    socketDispatchPromiseMock: vi.fn()
+}))
+
+vi.mock('../lifeLine', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../lifeLine')>()
+    return {
+        ...actual,
+        getStatus: vi.fn(() => 'CONNECTED'),
+        socketDispatchPromise: socketDispatchPromiseMock
+    }
+})
 
 // Capture the processEnvelope (action creator) passed to createInitializeAction
 let capturedProcessEnvelope: ((payload: StreamEventDeserializedPayload) => any) | null = null
@@ -168,6 +182,72 @@ describe('dataSource slice', () => {
             // Should not throw and should create valid slice
             expect(slice).toBeDefined()
             expect(slice.reducer).toBeDefined()
+        })
+
+        describe('requestIdTracking', () => {
+            beforeEach(() => {
+                vi.clearAllMocks()
+                socketDispatchPromiseMock.mockReturnValue((() => Promise.resolve({})) as any)
+            })
+
+            it('exports getConfirmedRequestIds when requestIdTracking is enabled', () => {
+                const result = createDataSourceSlice({
+                    name: 'testDataSource',
+                    dataSourceKey: 'test.dataSource',
+                    aggregator: mockAggregator,
+                    eventSerializer: mockSerializer,
+                    sliceSelector: (state) => state.testDataSource,
+                    requestIdTracking: { headerField: 'RequestIds' }
+                })
+
+                expect(result.getConfirmedRequestIds).toBeDefined()
+                expect(typeof result.getConfirmedRequestIds).toBe('function')
+            })
+
+            it('does not export getConfirmedRequestIds when requestIdTracking is disabled', () => {
+                const result = createDataSourceSlice({
+                    name: 'testDataSource',
+                    dataSourceKey: 'test.dataSource',
+                    aggregator: mockAggregator,
+                    eventSerializer: mockSerializer,
+                    sliceSelector: (state) => state.testDataSource
+                })
+
+                expect(result.getConfirmedRequestIds).toBeUndefined()
+            })
+
+            it('initializes confirmedRequestIds on subscribe when tracking is enabled', async () => {
+                const subscribeAction = createSubscribeAction(
+                    'test.dataSource',
+                    (streamKey) => mockAggregator.createEmpty(streamKey),
+                    { headerField: 'RequestIds' }
+                )
+
+                const action = subscribeAction({
+                    internalData: {
+                        incrementalBackoff: 0.5,
+                        subscribeStreamKeys: ['newStream'],
+                        unsubscribeStreamKeys: [],
+                        streamEventSubscription: 'sub-1'
+                    },
+                    publicData: {
+                        activeStreamKeys: [],
+                        subscribedStreams: {}
+                    }
+                })
+
+                const dispatch = vi.fn((thunk: any) => (
+                    typeof thunk === 'function' ? thunk(dispatch, vi.fn()) : thunk
+                ))
+
+                const result = await action(dispatch, vi.fn())
+
+                expect(result.publicData.subscribedStreams.newStream).toEqual({
+                    materializedView: { type: 'Snapshot', value: 0 },
+                    recentEvents: [],
+                    confirmedRequestIds: []
+                })
+            })
         })
 
         describe('processEnvelope action creator', () => {

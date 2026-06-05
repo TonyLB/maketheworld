@@ -423,7 +423,7 @@ Quick reference for what each file does:
 
 ## requestIdTracking (opt-in factory extension)
 
-**Status:** Design documented (Phase 0 audit); implementation in Phase 1 of the requestId tracking initiative.
+**Status:** Phase 1 complete (TTL constants, confirmed-id selector, full characterization test suite). Phase 2 enables tracking on `wmlDataSource`.
 
 Opt-in on `createDataSourceSlice` for slices whose backend streams carry client-action correlation ids on the **envelope header** (not LifeLine RPC).
 
@@ -436,7 +436,30 @@ requestIdTracking?: {
 }
 ```
 
-When enabled, per `subscribedStreams[streamKey]` store `confirmedRequestIds: Array<{ id: string; seenAt: number }>`.
+When enabled, per `subscribedStreams[streamKey]` store `confirmedRequestIds: Array<{ id: string; seenAt: number }>`. New streams initialized via `createSubscribeAction` get `confirmedRequestIds: []`.
+
+**TTL constants** (shared with `personalAssets` effective-pending in Phase 3):
+
+| Constant | Value | Module |
+| --- | --- | --- |
+| `PENDING_TTL_MS` | 3 minutes | [`requestIdTracking.ts`](./requestIdTracking.ts) (re-exported from [`index.ts`](./index.ts)) |
+| `CONFIRMED_TTL_MS` | 5 minutes | same |
+
+**Confirmed-id selector** (only when `requestIdTracking` is set on the factory):
+
+- Pure helper: `selectConfirmedRequestIdStrings(rows, now, confirmedTtlMs?)` in [`requestIdTracking.ts`](./requestIdTracking.ts) --- returns `string[]` of ids where `now - seenAt < confirmedTtlMs` (default `CONFIRMED_TTL_MS`; strict `<`, not `<=`).
+- Factory export: `getConfirmedRequestIds(state, streamKey, now?)` on the `createDataSourceSlice` return value (not `publicSelectors` --- needs `streamKey` and injectable `now`). Uses `requestIdTracking.confirmedTtlMs ?? CONFIRMED_TTL_MS`. Omitted when tracking is disabled.
+
+**Implementation modules:**
+
+| Module | Role |
+| --- | --- |
+| [`requestIdTracking.ts`](./requestIdTracking.ts) | TTL constants; `extractConfirmedIdsFromHeader`, `appendConfirmedRequestIds`, `selectConfirmedRequestIdStrings` |
+| [`reducers.ts`](./reducers.ts) | `buildStreamUpdate` appends ids in the same `processEnvelope` pass as aggregator |
+| [`index.ts`](./index.ts) | Conditional `getConfirmedRequestIds`; re-exports `PENDING_TTL_MS`, `CONFIRMED_TTL_MS` |
+| [`index.api.ts`](./index.api.ts) | Subscribe init includes `confirmedRequestIds: []` when tracking enabled |
+
+**`seenAt`:** Envelope `timestamp` from the dispatched action (not `Date.now()`), matching the pure-timestamp pattern used by `performCleanup`.
 
 **Normalization (storage always `{ id, seenAt }[]`):**
 
@@ -446,13 +469,32 @@ When enabled, per `subscribedStreams[streamKey]` store `confirmedRequestIds: Arr
 | `RequestId` | `typeof v === 'string' && v.length > 0` -> append one id |
 | `both` (default) | Non-empty `RequestIds` array and/or non-empty `RequestId` string; dedupe within the pass |
 
-**Recording rule:** No runtime `header.type` allowlist. Non-empty header field = resolved client-originated action; empty `[]` or omitted = no confirmation.
+**Recording rule:** No runtime `header.type` allowlist. Non-empty header field = resolved client-originated action; empty `[]` or omitted = no confirmation. Merge Conflict records ids even when `materializedView` is unchanged.
 
 **Not in scope:** LifeLine `socketDispatchPromise` / `ReturnValue` correlation (see [`../lifeLine/AGENT.md`](../lifeLine/AGENT.md)).
 
 **Slices today:** Only `wmlDataSource` will enable tracking in Phase 2 (`headerField: 'RequestIds'`). Other `createDataSourceSlice` instances (`contentHeaders`, `libraryDataSource`, `thinkingJobs`) may enable when producers set stream-header `RequestId`.
 
 **Authoritative producer inventory:** [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**Stream correlation ids**).
+
+### Characterization tests (Phase 1)
+
+All cases implemented in [`reducers.test.ts`](./reducers.test.ts) (`processEnvelope requestIdTracking`) and [`index.test.ts`](./index.test.ts) (case 9 subscribe init). Selector TTL tests in `reducers.test.ts` (`selectConfirmedRequestIds / getConfirmedRequestIds`):
+
+| # | Case | Setup | Action | Assert |
+| --- | --- | --- | --- | --- |
+| 1 | Content Update + ids | tracking on; base view `['a']` | `processEnvelope` with successful update + `RequestIds: ['req-A']` | `materializedView` includes delta; `confirmedRequestIds` has `req-A` with `seenAt === timestamp` |
+| 2 | Merge Conflict + ids | tracking on; base view `['a']` | failing aggregator + `RequestIds: ['req-B']` | `materializedView` still `['a']`; `confirmedRequestIds` has `req-B` |
+| 3 | Empty / omitted ids | tracking on; existing confirmed rows | event with `RequestIds: []` or omitted | `confirmedRequestIds` unchanged; view per aggregator |
+| 4 | `headerField: 'RequestIds'` | tracking with field mode | header with only `RequestId: 'x'` | no new rows |
+| 5 | `headerField: 'RequestId'` | tracking with field mode | header with only `RequestId: 'x'` | one row `x` |
+| 6 | `headerField: 'both'` + dedupe | both fields set | `RequestIds: ['a']`, `RequestId: 'a'` | one row `a` (not duplicated) |
+| 7 | Stream key isolation | two subscribed streams | confirm id on `stream1` only | `stream2.confirmedRequestIds` untouched |
+| 8 | Tracking disabled | no `requestIdTracking` config | event with `RequestIds` | no `confirmedRequestIds` key on stream |
+| 9 | Subscribe init | factory subscribe new stream | (integration) | new stream has `confirmedRequestIds: []` when tracking enabled |
+| 10 | Append across events | existing `[{ id: 'old', seenAt: 1 }]` | second event `RequestIds: ['new']` | array is `[old, new]` (no eager prune in reducer) |
+
+**Selector tests:** `getConfirmedRequestIds` / `selectConfirmedRequestIdStrings` exclude ids where `now - seenAt >= confirmedTtlMs`; tests inject fixed `now`. Stale rows may remain in storage; selector read is authoritative for the effective confirmed set.
 
 ---
 

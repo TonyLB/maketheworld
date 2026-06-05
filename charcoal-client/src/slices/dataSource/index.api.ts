@@ -4,7 +4,7 @@ import { socketDispatchPromise, getStatus } from '../lifeLine'
 import { StreamEventPubSub, makeStreamEventGuardForDataSource } from './streamEventPubSub'
 import delayPromise from '../../lib/delayPromise'
 import { ISSMHoldCondition } from '../stateSeekingMachine/baseClasses'
-import { DataSourceInternal, DataSourcePublic } from './baseClasses'
+import { DataSourceInternal, DataSourcePublic, type RequestIdTrackingConfig } from './baseClasses'
 
 //
 // Condition to check if LifeLine is connected
@@ -93,7 +93,8 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
 //
 export const createSubscribeAction = <SnapshotPayload, UpdatePayload>(
     dataSourceKey: string,
-    createEmptyView: (streamKey: string) => SnapshotPayload
+    createEmptyView: (streamKey: string) => SnapshotPayload,
+    requestIdTracking?: RequestIdTrackingConfig
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
     return ({ internalData, publicData }) => async (dispatch) => {
         const { subscribeStreamKeys, streamEventSubscription } = internalData
@@ -123,7 +124,8 @@ export const createSubscribeAction = <SnapshotPayload, UpdatePayload>(
                 if (!newSubscribedStreams[streamKey]) {
                     newSubscribedStreams[streamKey] = {
                         materializedView: createEmptyView(streamKey),
-                        recentEvents: []
+                        recentEvents: [],
+                        ...(requestIdTracking ? { confirmedRequestIds: [] as const } : {})
                     }
                 }
                 if (!newActiveStreamKeys.includes(streamKey)) {

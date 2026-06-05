@@ -1,10 +1,62 @@
 import { PayloadAction } from '@reduxjs/toolkit'
 import type { EventPayload, SerializableObject, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
-import type { RecentEventEnvelope } from './baseClasses'
+import type { RecentEventEnvelope, RequestIdTrackingConfig } from './baseClasses'
 import type { StreamEventDeserializedPayload } from './streamEventPubSub'
+import { appendConfirmedRequestIds, extractConfirmedIdsFromHeader } from './requestIdTracking'
 
 const SNAPSHOT_HEADER_TYPE = 'Snapshot'
+
+type StreamStateUpdate<
+    SnapshotPayload extends SerializableObject,
+    UpdatePayload extends EventPayload,
+    Header extends StreamingEventHeader
+> = {
+    materializedView: SnapshotPayload
+    recentEvents: Array<RecentEventEnvelope<UpdatePayload | SnapshotPayload, Header>>
+    confirmedRequestIds?: Array<{ id: string; seenAt: number }>
+}
+
+const buildStreamUpdate = <
+    SnapshotPayload extends SerializableObject,
+    UpdatePayload extends EventPayload,
+    Header extends StreamingEventHeader
+>(
+    materializedView: SnapshotPayload,
+    recentEvents: Array<RecentEventEnvelope<UpdatePayload | SnapshotPayload, Header>>,
+    header: Header,
+    timestamp: number,
+    existingStream: {
+        confirmedRequestIds?: Array<{ id: string; seenAt: number }>
+    },
+    requestIdTracking?: RequestIdTrackingConfig
+): StreamStateUpdate<SnapshotPayload, UpdatePayload, Header> => {
+    const update: StreamStateUpdate<SnapshotPayload, UpdatePayload, Header> = {
+        materializedView,
+        recentEvents
+    }
+
+    if (!requestIdTracking) {
+        return update
+    }
+
+    const ids = extractConfirmedIdsFromHeader(
+        header as Header & Record<string, unknown>,
+        requestIdTracking.headerField ?? 'both'
+    )
+
+    if (ids.length > 0) {
+        update.confirmedRequestIds = appendConfirmedRequestIds(
+            existingStream.confirmedRequestIds,
+            ids,
+            timestamp
+        )
+    } else if (existingStream.confirmedRequestIds !== undefined) {
+        update.confirmedRequestIds = existingStream.confirmedRequestIds
+    }
+
+    return update
+}
 
 //
 // Helper function: Apply multiple update events to a baseline snapshot (reduce pattern)
@@ -102,7 +154,8 @@ export const processEnvelope = <
     dataSourceKey: string,
     aggregator: DataSourceAggregator<SnapshotPayload, UpdatePayload>,
     performCleanupWithConfig: ReturnType<typeof performCleanup<SnapshotPayload, UpdatePayload, Header>>,
-    applyEventsWithAggregator: ReturnType<typeof applyEvents<SnapshotPayload, UpdatePayload, Header>>
+    applyEventsWithAggregator: ReturnType<typeof applyEvents<SnapshotPayload, UpdatePayload, Header>>,
+    requestIdTracking?: RequestIdTrackingConfig
 ) => (
     state: any,
     action: PayloadAction<StreamEventDeserializedPayload>
@@ -134,10 +187,14 @@ export const processEnvelope = <
         const updateEventsAfterSnapshot = eventsAfterSnapshot.filter((e): e is RecentEventEnvelope<UpdatePayload, Header> => e.header.type !== SNAPSHOT_HEADER_TYPE)
         const newMaterializedView = applyEventsWithAggregator(snapshot, updateEventsAfterSnapshot)
 
-        state.subscribedStreams[streamKey] = {
-            materializedView: newMaterializedView,
-            recentEvents: newRecentEvents
-        }
+        state.subscribedStreams[streamKey] = buildStreamUpdate(
+            newMaterializedView,
+            newRecentEvents,
+            streamingHeader,
+            snapshotTimestamp,
+            stream,
+            requestIdTracking
+        )
     } else {
         // Event path - content is already internal
         const event = content as UpdatePayload
@@ -155,10 +212,14 @@ export const processEnvelope = <
             const newMaterializedView = result.success ? result.snapshot : stream.materializedView
             const newRecentEvents = [...cleanedRecentEvents, newEnvelope]
 
-            state.subscribedStreams[streamKey] = {
-                materializedView: newMaterializedView,
-                recentEvents: newRecentEvents
-            }
+            state.subscribedStreams[streamKey] = buildStreamUpdate(
+                newMaterializedView,
+                newRecentEvents,
+                streamingHeader,
+                eventTimestamp,
+                stream,
+                requestIdTracking
+            )
         } else {
             const snapshotEvents = cleanedRecentEvents.filter((e): e is RecentEventEnvelope<SnapshotPayload, Header> => e.header.type === SNAPSHOT_HEADER_TYPE)
             const baselineSnapshot = snapshotEvents.length > 0
@@ -186,10 +247,14 @@ export const processEnvelope = <
                 ? [baselineSnapshotEvent, ...sortedEventsWithoutBaseline]
                 : sortedEvents
 
-            state.subscribedStreams[streamKey] = {
-                materializedView: newMaterializedView,
-                recentEvents: newRecentEvents
-            }
+            state.subscribedStreams[streamKey] = buildStreamUpdate(
+                newMaterializedView,
+                newRecentEvents,
+                streamingHeader,
+                eventTimestamp,
+                stream,
+                requestIdTracking
+            )
         }
     }
 }

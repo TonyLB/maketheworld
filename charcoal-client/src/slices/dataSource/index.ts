@@ -1,5 +1,5 @@
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
-import { DataSourceNodes, DataSourcePublic, DataSourceInternal, DataSourceData } from './baseClasses'
+import { DataSourceNodes, DataSourcePublic, DataSourceInternal, DataSourceData, type RequestIdTrackingConfig } from './baseClasses'
 
 export { createBrowserDataSourceEnvironment } from './browserEnvironment'
 import { registerDeserializer } from './streamEventPubSub'
@@ -9,6 +9,9 @@ import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import type { DataSourceEventSerializer, EventPayload, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { applyEvents, performCleanup, processEnvelope } from './reducers'
+import { CONFIRMED_TTL_MS, selectConfirmedRequestIdStrings } from './requestIdTracking'
+
+export { PENDING_TTL_MS, CONFIRMED_TTL_MS } from './requestIdTracking'
 import type { ISSMHoldCondition } from '../stateSeekingMachine/baseClasses'
 
 //
@@ -28,6 +31,7 @@ export interface DataSourceSliceConfig<
     promiseCache?: PromiseCache<DataSourceData<SnapshotPayload, UpdatePayload>>  // Optional promise cache for state machine coordination
     onReady?: (dispatch: any, getState: any, sliceActions: any) => void  // Optional callback when slice reaches READY state (after INITIALIZE completes). Receives dispatch, getState, and slice actions for subscription management.
     holdCondition?: ISSMHoldCondition<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>  // Optional additional hold condition (checked alongside lifelineCondition)
+    requestIdTracking?: RequestIdTrackingConfig  // Opt-in: persist confirmed stream-header correlation ids per subscribed stream
 }
 
 //
@@ -42,7 +46,7 @@ export const createDataSourceSlice = <
 >(
     config: DataSourceSliceConfig<SnapshotPayload, UpdatePayload, ExternalUpdatePayload, ExternalSnapshotPayload>
 ) => {
-    const { name, dataSourceKey, aggregator, eventSerializer, sliceSelector, promiseCache: providedPromiseCache, holdCondition } = config
+    const { name, dataSourceKey, aggregator, eventSerializer, sliceSelector, promiseCache: providedPromiseCache, holdCondition, requestIdTracking } = config
 
     // Create a promise cache if one wasn't provided
     const promiseCache = providedPromiseCache ?? new PromiseCache<DataSourceData<SnapshotPayload, UpdatePayload>>()
@@ -54,7 +58,8 @@ export const createDataSourceSlice = <
     // Create the subscribe and unsubscribe actions using factories
     const subscribeAction = createSubscribeAction<SnapshotPayload, UpdatePayload>(
         dataSourceKey,
-        (streamKey) => aggregator.createEmpty(streamKey)
+        (streamKey) => aggregator.createEmpty(streamKey),
+        requestIdTracking
     )
     const unsubscribeAction = createUnsubscribeAction<SnapshotPayload, UpdatePayload>(
         dataSourceKey
@@ -168,7 +173,8 @@ export const createDataSourceSlice = <
                 dataSourceKey,
                 aggregator,
                 performCleanupWithConfig,
-                applyEventsWithAggregator
+                applyEventsWithAggregator,
+                requestIdTracking
             )
         },
         publicSelectors: {
@@ -248,6 +254,19 @@ export const createDataSourceSlice = <
     return {
         ...result,
         subscribeToStreams,
-        unsubscribeFromStreams
+        unsubscribeFromStreams,
+        ...(requestIdTracking
+            ? {
+                getConfirmedRequestIds: (
+                    state: any,
+                    streamKey: string,
+                    now: number = Date.now()
+                ) => selectConfirmedRequestIdStrings(
+                    sliceSelector(state).publicData.subscribedStreams[streamKey]?.confirmedRequestIds,
+                    now,
+                    requestIdTracking.confirmedTtlMs ?? CONFIRMED_TTL_MS
+                )
+            }
+            : {})
     }
 }

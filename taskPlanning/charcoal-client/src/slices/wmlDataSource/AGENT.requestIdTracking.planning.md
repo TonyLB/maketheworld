@@ -1,6 +1,6 @@
 # RequestId tracking and pending-edit derivation (wmlDataSource + personalAssets)
 
-**Status:** Not started. **Next:** Phase 0 (header contract + factory design spike) before implementation.
+**Status:** Phase 1 complete. **Next:** Phase 2 (`wmlDataSource` enable + slice selectors).
 
 Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md) once for durability rules (this file is task-scoped; delete after merge). Client test commands: [`taskPlanning/charcoal-client/AGENT.development.md`](../../../AGENT.development.md).
 
@@ -70,8 +70,8 @@ Confirmed ids outlive effective pending overlay (5m > 3m) so a physical pending 
 
 | Phase | Description | Status |
 | --- | --- | --- |
-| 0 | Header contract + client DataSource factory design | In progress (audit done) |
-| 1 | Confirmed RequestId storage in `createDataSourceSlice` | Not started |
+| 0 | Header contract + client DataSource factory design | Complete |
+| 1 | Confirmed RequestId storage in `createDataSourceSlice` | Complete |
 | 2 | `wmlDataSource` enable + selectors | Not started |
 | 3 | `personalAssets` effective-pending derivation | Not started |
 | 4 | Hygiene, band-aid rollback (inventory A/B), verification | Not started |
@@ -107,7 +107,7 @@ npm run test:single -- src/slices/dataSource/reducers.test.ts
 
 `WMLStreamingEventHeader = StreamingEventHeader & { RequestIds?: string[] }`. Producers pass `RequestIds` in the header fragment; serializers keep them out of content. Subscriptions merge extended header fields to the WebSocket top level.
 
-**Gap:** the **client DataSource slice** does not yet **persist** confirmed RequestIds or expose them to cross-slice selectors. `StreamEventDeserializedPayload.header` is typed loosely (`[key: string]: unknown`), which forced casts in [`wmlStreamHandlers.ts`](../../../../charcoal-client/src/slices/personalAssets/wmlStreamHandlers.ts).
+**Gap:** the **client DataSource slice** does not yet **persist** confirmed RequestIds or expose them to cross-slice selectors. `StreamEventDeserializedPayload.header` is typed loosely (`[key: string]: unknown`), which forced casts in [`wmlStreamHandlers.ts`](../../../../charcoal-client/src/slices/personalAssets/wmlStreamHandlers.ts). **Typing fix (chosen):** Design note **F** --- hybrid generic-at-factory-boundary strategy; implement during Phase 1 factory work.
 
 ### B. Generalize in the DataSource factory (not wml-only one-off)
 
@@ -145,6 +145,8 @@ confirmedRequestIds: Array<{ id: string; seenAt: number }>
 Export generic selectors, e.g. `getConfirmedRequestIds(state, streamKey, now?)` returning ids whose `seenAt` is within `CONFIRMED_TTL_MS` (default 5 minutes). Apply TTL **in the selector** on every read; do not rely on reducer-side eviction for correctness.
 
 **Storage vs selector:** `processEnvelope` may append to `confirmedRequestIds` without eagerly pruning stale rows (optional lazy trim on dispatch is secondary hygiene only). `recentEvents` retention (30s cleanup) and RequestId TTL (5m) serve different purposes; document both in a shared constants module (e.g. `PENDING_TTL_MS`, `CONFIRMED_TTL_MS`).
+
+**Phase 0 spike landed (2026-06-05):** Types in [`baseClasses.ts`](../../../../charcoal-client/src/slices/dataSource/baseClasses.ts); normalization in [`requestIdTracking.ts`](../../../../charcoal-client/src/slices/dataSource/requestIdTracking.ts); recording via `buildStreamUpdate` in [`reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts) (same pass as aggregator); subscribe init in [`index.api.ts`](../../../../charcoal-client/src/slices/dataSource/index.api.ts). **`seenAt`** = envelope `timestamp` (not `Date.now()`). Spike tests + Phase 1 characterization checklist: [`dataSource/AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) (**requestIdTracking**).
 
 ### C. Cross-slice selector (personalAssets)
 
@@ -197,6 +199,53 @@ Correctness must not depend on dispatch order, stream handlers, or background ti
 - Use `meta.time` from enqueue, not time of first `updateStandard`.
 - Selectors that call `Date.now()` re-evaluate TTL each render; fine for small lists; tests must inject `now`.
 - Optional reducer-side prune of `confirmedRequestIds` / `pendingEdits` arrays is hygiene only, not required for correctness.
+
+### F. `StreamEventDeserializedPayload` typing (Phase 0 spike, chosen 2026-06-05)
+
+**Decision:** Hybrid --- keep the PubSub bus loosely typed; thread extended `Header` through the DataSource factory and per-slice subscribe guards. Aligns with `ResolvedStreamingEnvelope<Content, Header>` and `DataSourceEventSerializer<..., Header>` in mtw-lambda-patterns.
+
+**Layers:**
+
+| Layer | Type | Role |
+| --- | --- | --- |
+| **StreamEventPubSub** | Base `StreamEventDeserializedPayload` (default `Header = StreamingEventHeader`, `content: unknown`) | Heterogeneous bus; LifeLine bridge publishes all data sources through one PubSub instance |
+| **Subscribe guard** | Per-slice `HeaderGuard<H>` (e.g. `WMLStreamingEventHeader` from mtw-interfaces) via extended `makeStreamEventGuardForDataSource` | Narrows payload before dispatch; replaces ad hoc `as WMLStreamingEventHeader` casts |
+| **Factory / reducer** | `createDataSourceSlice<..., Header>`; `processEnvelope` action is `PayloadAction<StreamEventDeserializedPayload<Header, UpdatePayload \| SnapshotPayload>>` | Typed access to extended header fields (`RequestIds`, future `RequestId`) inside reducer and `requestIdTracking` |
+| **Cross-slice consumers** | Import per-data-source header types + guards from mtw-interfaces | e.g. `personalAssets` reads confirmed ids via wmlDataSource selectors, not by re-parsing loose headers |
+
+**Concrete shape (implement in Phase 1):**
+
+```typescript
+// streamEventPubSub/index.ts
+export type StreamEventDeserializedPayload<
+  Header extends StreamingEventHeader = StreamingEventHeader,
+  Content = unknown
+> = {
+  dataSourceKey: string
+  streamKey: string
+  timestamp: number
+  header: Header
+  content: Content
+}
+
+// Guard factory accepts optional header guard (default: dataSourceKey match only)
+export function makeStreamEventGuardForDataSource<H extends StreamingEventHeader>(
+  dataSourceKey: string,
+  headerGuard?: HeaderGuard<H>
+): (envelope: ResolvedStreamingEnvelope<unknown, StreamingEventHeader>) =>
+  envelope is ResolvedStreamingEnvelope<unknown, H>
+```
+
+**Out of scope for this spike (deferred):** Discriminated-union payload so `header.type` narrows `content` --- see [`AGENT.development.md`](../../../../AGENT.development.md) (*DataSource client slice: envelope payload discriminated union*). RequestId tracking only needs typed extended header fields, not full content narrowing.
+
+**Implementation touchpoints (Phase 1):**
+
+- [`streamEventPubSub/index.ts`](../../../../charcoal-client/src/slices/dataSource/streamEventPubSub/index.ts) --- generic payload alias; extend guard factory
+- [`createDataSourceSlice`](../../../../charcoal-client/src/slices/dataSource/index.ts) / [`reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts) --- `Header` type param; typed `processEnvelope`
+- [`wmlDataSource/index.ts`](../../../../charcoal-client/src/slices/wmlDataSource/index.ts) --- pass `WMLStreamingEventHeader` (from serializer) at slice creation
+- [`wmlStreamHandlers.ts`](../../../../charcoal-client/src/slices/personalAssets/wmlStreamHandlers.ts) --- switch to guard when touched (Phase 4 band-aid removal or earlier if convenient)
+
+**Rejected alternative:** Per-data-source narrow helper types only (Option B) without factory generics --- would leave `requestIdTracking` reading `(header as Record<string, unknown>)` and duplicate casts at every consumer.
 
 ---
 
@@ -273,17 +322,17 @@ Mark pending work `[ ]` and completed work `[X]`. Mark nested bullets `[X]` as e
 ### Phase 0 --- Header contract and factory spike
 
 - [X] Optional audit: grep `RequestId`/`RequestIds` across backend data sources + client slices --- confirm stream-header producers; document in durable docs (**not** a runtime event-type allowlist). See Design note B **Phase 0 audit** and patterns **Stream correlation ids**.
-- [ ] Spike: extend `StreamEventDeserializedPayload` typing strategy (generic `Header` param vs narrow helpers for known data sources)
-- [ ] Spike: `DataSourceSliceConfig.requestIdTracking` shape; record confirmed ids from configured `headerField` when non-empty (same `processEnvelope` pass as aggregator)
-- [ ] Write reducer-level characterization test plan (confirm id + base update in one `processEnvelope` action; Merge Conflict records id without view change)
+- [X] Spike: extend `StreamEventDeserializedPayload` typing strategy --- **chosen hybrid** (loose PubSub bus + generic `Header` at factory boundary + per-slice header guards). See Design note **F**.
+- [X] Spike: `DataSourceSliceConfig.requestIdTracking` shape; record confirmed ids from configured `headerField` when non-empty (same `processEnvelope` pass as aggregator)
+- [X] Write reducer-level characterization test plan (confirm id + base update in one `processEnvelope` action; Merge Conflict records id without view change) --- see [`dataSource/AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) (**Characterization tests (Phase 1)**)
 
 ### Phase 1 --- DataSource factory: confirmed RequestId storage
 
-- [ ] Add shared TTL constants (`PENDING_TTL_MS` = 3m, `CONFIRMED_TTL_MS` = 5m)
-- [ ] Extend `DataSourcePublic.subscribedStreams[streamKey]` with `confirmedRequestIds` (only when tracking enabled)
-- [ ] Append `{ id, seenAt }` in `processEnvelope` when configured header field(s) are non-empty (any event type; storage append; normalize RequestId vs RequestIds)
-- [ ] Export confirmed-RequestId selector with **dynamic 5m TTL** at read time (`now` injectable for tests)
-- [ ] Unit tests in [`charcoal-client/src/slices/dataSource/reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts): Content Update adds ids; selector excludes ids older than 5m; unrelated stream keys isolated; Merge Conflict adds ids without view change
+- [X] Add shared TTL constants (`PENDING_TTL_MS` = 3m, `CONFIRMED_TTL_MS` = 5m)
+- [X] Extend `DataSourcePublic.subscribedStreams[streamKey]` with `confirmedRequestIds` (only when tracking enabled) --- landed in Phase 0 spike
+- [X] Append `{ id, seenAt }` in `processEnvelope` when configured header field(s) are non-empty (any event type; storage append; normalize RequestId vs RequestIds) --- landed in Phase 0 spike
+- [X] Export confirmed-RequestId selector with **dynamic 5m TTL** at read time (`now` injectable for tests)
+- [X] Unit tests in [`charcoal-client/src/slices/dataSource/reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts): cases 3-10 from characterization table; selector excludes ids older than 5m; unrelated stream keys isolated (cases 1-2 done in spike)
 
 ### Phase 2 --- Enable on `wmlDataSource`
 
@@ -314,8 +363,10 @@ Complete [Recorded changes](#recorded-changes-2026-06-04-working-tree) category 
 
 ### Phase 5 --- Durable docs and cleanup
 
-- [ ] Update [`personalAssets/AGENT.md`](../../../../charcoal-client/src/slices/personalAssets/AGENT.md) --- pending derivation, confirmed RequestIds source, eager clear no longer required for correctness
-- [ ] Update [`dataSource/AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) --- `requestIdTracking` option
+- [ ] Update [`personalAssets/AGENT.md`](../../../../charcoal-client/src/slices/personalAssets/AGENT.md) --- `getEffectivePendingEdits` vs raw `pendingEdits`; `getLocalStandardForm` uses effective pending; confirmed set from wmlDataSource; eager clear / band-aid no longer required for merge correctness (short pointer to implementation doc for TTL rationale)
+- [ ] Update [`wmlDataSource/AGENT.md`](../../../../charcoal-client/src/slices/wmlDataSource/AGENT.md) --- `requestIdTracking` enabled; confirmed-id selector as cross-slice source (link to implementation doc)
+- [ ] Update [`dataSource/AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) --- `requestIdTracking` option (recording, selectors, tests)
+- [ ] In same file, **requestIdTracking** section: add durable **Selector-time TTL (intentional impurity)** note --- correctness at read (not wall-clock-driven UI expiry); why select-time `now` is acceptable vs Redux purity/memoization norms; idle-tab behavior; backend `seenAt` vs client `now` / `meta.time`; rejected timer/reducer-eviction as correctness deps; carve-out from reducer "no `Date.now()`" rule (cross-link [`dataSource/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.md) Pure Functions if needed)
 - [ ] Delete this task plan (git retains history)
 
 ---
