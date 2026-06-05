@@ -423,7 +423,7 @@ Quick reference for what each file does:
 
 ## requestIdTracking (opt-in factory extension)
 
-**Status:** Phase 1 complete (TTL constants, confirmed-id selector, full characterization test suite). Phase 2 enables tracking on `wmlDataSource`.
+**Status:** Phase 1 complete (TTL constants, confirmed-id selector, full characterization test suite). `wmlDataSource` enables tracking with `headerField: 'RequestIds'`; cross-slice consumers use `getWMLConfirmedRequestIds` in [../wmlDataSource/selectors.ts](../wmlDataSource/selectors.ts).
 
 Opt-in on `createDataSourceSlice` for slices whose backend streams carry client-action correlation ids on the **envelope header** (not LifeLine RPC).
 

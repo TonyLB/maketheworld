@@ -1,6 +1,6 @@
 # RequestId tracking and pending-edit derivation (wmlDataSource + personalAssets)
 
-**Status:** Phase 1 complete. **Next:** Phase 2 (`wmlDataSource` enable + slice selectors).
+**Status:** Phase 2 complete. **Next:** Phase 3 (`personalAssets` effective-pending derivation).
 
 Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md) once for durability rules (this file is task-scoped; delete after merge). Client test commands: [`taskPlanning/charcoal-client/AGENT.development.md`](../../../AGENT.development.md).
 
@@ -72,7 +72,7 @@ Confirmed ids outlive effective pending overlay (5m > 3m) so a physical pending 
 | --- | --- | --- |
 | 0 | Header contract + client DataSource factory design | Complete |
 | 1 | Confirmed RequestId storage in `createDataSourceSlice` | Complete |
-| 2 | `wmlDataSource` enable + selectors | Not started |
+| 2 | `wmlDataSource` enable + selectors | Complete |
 | 3 | `personalAssets` effective-pending derivation | Not started |
 | 4 | Hygiene, band-aid rollback (inventory A/B), verification | Not started |
 | 5 | Durable docs + retire this plan | Not started |
@@ -336,9 +336,9 @@ Mark pending work `[ ]` and completed work `[X]`. Mark nested bullets `[X]` as e
 
 ### Phase 2 --- Enable on `wmlDataSource`
 
-- [ ] Pass `requestIdTracking` config in [`charcoal-client/src/slices/wmlDataSource/index.ts`](../../../../charcoal-client/src/slices/wmlDataSource/index.ts)
-- [ ] Add [`selectors.ts`](../../../../charcoal-client/src/slices/wmlDataSource/selectors.ts) exports wrapping factory selector
-- [ ] Update [`charcoal-client/src/slices/wmlDataSource/AGENT.md`](../../../../charcoal-client/src/slices/wmlDataSource/AGENT.md) (steady-state behavior)
+- [X] Pass `requestIdTracking` config in [`charcoal-client/src/slices/wmlDataSource/index.ts`](../../../../charcoal-client/src/slices/wmlDataSource/index.ts)
+- [X] Add [`selectors.ts`](../../../../charcoal-client/src/slices/wmlDataSource/selectors.ts) exports wrapping factory selector
+- [X] Update [`charcoal-client/src/slices/wmlDataSource/AGENT.md`](../../../../charcoal-client/src/slices/wmlDataSource/AGENT.md) (steady-state behavior)
 
 ### Phase 3 --- personalAssets effective pending derivation
 

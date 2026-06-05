@@ -10,7 +10,22 @@ import {
   WMLDataSourceEventSerializer
 } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 
+export type GetConfirmedRequestIds = (
+  state: any,
+  streamKey: string,
+  now?: number
+) => string[]
+
 // Create the slice using the generic factory
+const wmlDataSourceFactory = createDataSourceSlice({
+  name: 'wmlDataSource',
+  dataSourceKey: 'mtw.wml',
+  aggregator: new WMLAggregator(),
+  eventSerializer: new WMLDataSourceEventSerializer(createBrowserDataSourceEnvironment()),
+  sliceSelector: (state: any) => state.wmlDataSource,
+  requestIdTracking: { headerField: 'RequestIds' }
+})
+
 export const {
   slice: wmlDataSourceSlice,
   selectors: wmlDataSourceSelectors,
@@ -18,13 +33,13 @@ export const {
   iterateAllSSMs: iterateWmlDataSource,
   subscribeToStreams: subscribeToWmlDataSource,
   unsubscribeFromStreams: unsubscribeFromWmlDataSource
-} = createDataSourceSlice({
-  name: 'wmlDataSource',
-  dataSourceKey: 'mtw.wml',
-  aggregator: new WMLAggregator(),
-  eventSerializer: new WMLDataSourceEventSerializer(createBrowserDataSourceEnvironment()),
-  sliceSelector: (state: any) => state.wmlDataSource
-})
+} = wmlDataSourceFactory
+
+const factoryGetConfirmedRequestIds = wmlDataSourceFactory.getConfirmedRequestIds
+if (!factoryGetConfirmedRequestIds) {
+  throw new Error('wmlDataSource: getConfirmedRequestIds requires requestIdTracking')
+}
+export const getConfirmedRequestIds: GetConfirmedRequestIds = factoryGetConfirmedRequestIds
 
 export const {
   getActiveStreamKeys,
