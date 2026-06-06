@@ -1,6 +1,6 @@
 # WML subscribe merge investigation (charcoal-client)
 
-**Status:** In progress. **Next step:** Phase 4 --- automated ledger-sequencing regression tests in [`reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts); Phase 3 manual reload verify passed (2026-06-06).
+**Status:** In progress. **Next step:** Phase 5 --- remove `wml-stream-sync` instrumentation and archive this plan; Phase 4 regression suite landed (2026-06-06).
 
 **Deferred (separate task):** [`AGENT.extendedHeaderRequestIdFix.planning.md`](AGENT.extendedHeaderRequestIdFix.planning.md) --- wire `extendedHeader.RequestIds` vs client `header.RequestIds` (not this bug's root cause).
 
@@ -93,7 +93,7 @@ npm run test:single -- src/slices/wmlDataSource/index.test.ts
 | 2.5 | Instrument `performCleanup`; confirm cleanup role on subscribe reload | Done |
 | 2.6 | Ledger redesign + durable design (non-destructive CPs; abandon 30s window) | Done |
 | 3 | Implement fix per Phase 2.6 design | Done |
-| 4 | Ledger sequencing regression tests (generic `reducers.test.ts`) | Not started |
+| 4 | Ledger sequencing regression tests (generic `reducers.test.ts`) | Done |
 | 5 | Remove instrumentation; update durable docs if needed | Not started |
 
 ---
@@ -285,6 +285,10 @@ Implemented Phase 2.6 contract in [`reducers.ts`](../../../../charcoal-client/sr
 **Wall-clock:** 2026-06-06 session (post-Phase 3 implementation). **Result:** **Could not repro** reload failure --- Workbench showed full merged asset (Area + imported Room in graph/editors) immediately after reload, without waiting for snapshot timeout/regeneration.
 
 **Verdict:** Phase 3 non-destructive ledger fix appears effective for the subscribe OOO sidecar + replay CU scenario documented in **Discoveries** (2026-06-05 failure repros). Proceed to Phase 4 automated regressions on **ledger sequencing** (not WML topology).
+
+### 2026-06-06 --- Phase 4 ledger sequencing regression tests
+
+**Automated verify:** `describe('subscribe reload sequencing regressions')` in [`reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts) groups Phase 3 tests under R1/R3/R4/R5 and adds **R2** long-gap multi-CU scenario (updates @ 1000/50000/120000, sidecar `S` @ `createdAt=500`, `replayAt=80000`). Baseline trio green: `reducers.test.ts` 40 tests, `index.test.ts` 15, `wmlDataSource/index.test.ts` 13.
 
 ### 2026-06-05 --- Phase 2.6 design session (ledger re-envisioning)
 
@@ -649,10 +653,10 @@ Phase 3 added tests that already cover much of R1, R3, R4, R5. Phase 4 should **
 
 ### Exit criteria
 
-- [ ] Named regression `describe` in `reducers.test.ts` documents R1--R5
-- [ ] R2 long-gap multi-CU test added
-- [ ] Baseline trio green
-- [ ] This plan **Recommended order** Phase 4 bullets checked off
+- [X] Named regression `describe` in `reducers.test.ts` documents R1--R5
+- [X] R2 long-gap multi-CU test added
+- [X] Baseline trio green
+- [X] This plan **Recommended order** Phase 4 bullets checked off
 
 ---
 
@@ -686,10 +690,10 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets as yo
   - [X] `CompactedCheckpoint` type + non-destructive `performCleanup` + invalidation + unified rebase in [`reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts)
   - [X] Update [`reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts) (CU before sidecar `S`; OOO update; CP threshold/invalidation)
   - [X] Manual verify: reload -> full merged UI without waiting for next snapshot
-- [ ] **Phase 4 --- Ledger sequencing regression tests**
-  - [ ] Add `describe('subscribe reload sequencing regressions')` in [`reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts); group Phase 3 tests under R1/R3/R4/R5 (see **Phase 4**)
-  - [ ] Add **R2** long-gap multi-CU test (replay bundle >>30s span, then sidecar `S` with `replayAt`; assert no envelope loss + correct merge)
-  - [ ] Run baseline slice tests (see **Verification**)
+- [X] **Phase 4 --- Ledger sequencing regression tests**
+  - [X] Add `describe('subscribe reload sequencing regressions')` in [`reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts); group Phase 3 tests under R1/R3/R4/R5 (see **Phase 4**)
+  - [X] Add **R2** long-gap multi-CU test (replay bundle >>30s span, then sidecar `S` with `replayAt`; assert no envelope loss + correct merge)
+  - [X] Run baseline slice tests (see **Verification**)
 - [ ] **Phase 5 --- Cleanup**
   - [ ] Complete **Instrumentation registry** cleanup checklist
   - [ ] Confirm Phase 2.6 durable doc updates are complete (no duplicate contract notes left only in this plan)

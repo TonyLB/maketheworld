@@ -194,6 +194,8 @@ Events may arrive out of chronological order due to network conditions or async 
 4. **No destructive compaction**: CPs supplement the ledger; update envelopes are never folded away before an authoritative Snapshot rebase.
 5. **Authoritative snapshot rebase**: A late authoritative Snapshot prunes superseded rows and establishes the correct baseline regardless of prior provisional merges.
 
+Automated regressions for subscribe-reload sequencing (R1--R5) live in [`reducers.test.ts`](./reducers.test.ts) under `describe('subscribe reload sequencing regressions')`.
+
 ### **Anti-patterns**
 
 Avoid when extending the merge engine:

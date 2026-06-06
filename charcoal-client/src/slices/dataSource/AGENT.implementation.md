@@ -311,8 +311,9 @@ Test event processing logic in isolation:
 - Mock aggregator and serializer
 - Test with controlled timestamps
 - Cover in-order, out-of-order, and error cases
+- **`describe('subscribe reload sequencing regressions')`** guards R1--R5 subscribe-reload ledger sequencing (OOO sidecar before replay CUs, long-gap replay bundle, `replayAt` prune boundary, `rowCursor` prune, non-destructive `performCleanup` / CP insertion)
 
-**Run**: `npm test -- src/slices/dataSource/reducers.test.ts`
+**Run**: `npm run test:single -- src/slices/dataSource/reducers.test.ts` (from `charcoal-client/`)
 
 #### **Integration Tests (`index.test.ts`)**
 
