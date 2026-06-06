@@ -1,6 +1,6 @@
 # WML subscribe merge investigation (charcoal-client)
 
-**Status:** In progress. **Next step:** Phase 2.6 --- document operational modes and produce a coherent subscribe-replay design before implementation (Phase 3).
+**Status:** In progress. **Next step:** Finish Phase 2.6 durable docs, then Phase 3 --- implement non-destructive ledger + `CompactedCheckpoint` redesign in [`reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts) (design choices recorded below).
 
 **Deferred (separate task):** [`AGENT.extendedHeaderRequestIdFix.planning.md`](AGENT.extendedHeaderRequestIdFix.planning.md) --- wire `extendedHeader.RequestIds` vs client `header.RequestIds` (not this bug's root cause).
 
@@ -91,7 +91,7 @@ npm run test:single -- src/slices/wmlDataSource/index.test.ts
 | 1 | Add gated `wml-stream-sync` instrumentation | Done |
 | 2 | Reproduce with logs; record findings in **Discoveries** | Done |
 | 2.5 | Instrument `performCleanup`; confirm cleanup role on subscribe reload | Done |
-| 2.6 | Operational modes + durable design (subscribe replay vs live stream) | Not started |
+| 2.6 | Ledger redesign + durable design (non-destructive CPs; abandon 30s window) | In progress (design choices recorded; durable docs pending) |
 | 3 | Implement fix per Phase 2.6 design | Not started |
 | 4 | Regression test(s) | Not started |
 | 5 | Remove instrumentation; update durable docs if needed | Not started |
@@ -246,161 +246,213 @@ Snapshot `applyEvents(sidecar, updatesAfter)` re-applies only **non-Snapshot** e
 | H4 | **Confirmed** | Direct `performCleanup` logs + synthetic row @ `1780700533578` + placement CU gone from ledger. |
 | H3 | **Rejected** (placement) | Placement loss is ledger consolidation, not `StandardForm.merge` failure on topology delta. |
 
-**Phase 3 scope (explicit):** both **ingest queue** (hold replay CUs until subscribe Snapshot published) and **cleanup policy** (defer consolidation during subscribe recovery) per **Failure model** --- but implement only after **Phase 2.6** design names modes and invariants explicitly (avoid ad-hoc patches).
+**Phase 3 scope (historical):** originally ingest queue + cleanup deferral. **Superseded by Phase 2.6 redesign** (2026-06-05): single merge algorithm, non-destructive ledger, no subscribe/live mode split. See **Discoveries** (Phase 2.6 design session) and **Phase 2.6** below.
 
-### 2026-06-05 --- Root cause (design level): mode mismatch
+### 2026-06-05 --- Root cause (design level): destructive ledger compaction
 
-Investigation conclusion (post Phase 2.5): the bug is not a mysterious cleanup defect. The **dataSource** slice implements a **live-stream merge engine** whose documented contract ([`AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) **Contract and Guarantees**) fits **steady-state streaming** well. **Subscribe reload** is a different **operational mode**: bulk delivery of a sidecar Snapshot plus replay Content Updates whose backend timestamps may span **minutes**, reordered by async sidecar deserialize. The same reducer path (out-of-order reagg, 30s ledger consolidation, snapshot-path re-apply) runs in both modes without a mode switch --- violating the subscribe invariant (**authoritative snapshot first**, replay ledger intact until rebase). See **Phase 2.6** for durable doc and design work to address this coherently.
+Investigation conclusion (post Phase 2.5): the bug is **destructive** `performCleanup` --- folding replay Content Updates into synthetic `Snapshot` rows and **removing** individual envelopes before the authoritative sidecar Snapshot rebases. Out-of-order sidecar delivery is a stress case, not a separate protocol. **Phase 2.6 redesign** replaces destructive synthetics with non-destructive **`CompactedCheckpoint`** rows and retains all update envelopes until an authoritative snapshot supersedes them (memory bounding via backend snapshots only; dynamic management out of scope).
+
+### 2026-06-05 --- Phase 2.6 design session (ledger re-envisioning)
+
+**Abandoned requirements** (were never correct or never necessary):
+
+| Former assumption | Why abandoned |
+| --- | --- |
+| Events arrive within 30 seconds of their timestamp | False for subscribe replay (events are intentionally old). Not required for correctness. |
+| `performCleanup` bounds `recentEvents` memory via 30s timestamp window | Unsafe: client cannot know delivery is complete; OOO updates after an authoritative snapshot still require retained envelopes. Memory bounding is **authoritative backend snapshots only** (dynamic strategies out of scope). |
+| Live stream vs subscribe replay need separate reducer modes | **Collapsed:** one algorithm handles both when the ledger is non-destructive and OOO authoritative snapshot rebase is supported. |
+
+**Three ledger roles** (must not conflate):
+
+| Role | Authority | Purpose |
+| --- | --- | --- |
+| **Authoritative Snapshot** | Backend only | Freeze point; merge baseline; may incorporate events before its timestamp. Only source that can assert "stream processed through boundary X." |
+| **Update envelope** | Per-event | Canonical replay log since latest authoritative snapshot. Never removed by checkpoint logic. |
+| **CompactedCheckpoint (CP)** | Client-derived hint | Non-destructive merge cache: "given current ledger, merged state through timestamp T is D." Accelerates OOO re-aggregation near ledger tail; **not** a snapshot substitute. |
+
+**Recorded design choices:**
+
+1. **CP metadata:** CP has a `timestamp` like every other `recentEvents` row. It aggregates every **Update** with `timestamp <=` that value (inclusive).
+2. **Invalidation (updates):** Any new information at timestamp `x` invalidates every CP with `timestamp >= x`. Example: OOO `e` between `d` and `f` drops `CP2`; rebuild from `CP1 + d + e + f + ...`.
+3. **Authoritative snapshot rebase + prune (OQ1, OQ2):** On authoritative `S`, **prune** from `recentEvents` every row (prior snapshots, updates, CPs) with `timestamp <= replayCursor(S)` where `replayCursor = replayAt ?? createdAt` (backend `resolveReplayCursorTimestamp`). Pruning supersedes separate CP invalidation rules for that rebase. Recompute `materializedView` from `S +` updates with `timestamp > replayCursor(S)`. OOO `S` predating events: `[a,b,c,CP1,d,e,f]` + late `S` -> prune superseded rows, merge `S +` surviving updates. **No ingest gate required for final correctness** (provisional UI: OQ7).
+4. **CP creation (`performCleanup` repurposed):** No envelope removal. Fixed **`desirableMedian`** (start constant, maybe dynamic later). When **update envelope** count since latest CP exceeds **`1.5 * desirableMedian`**, insert a new CP **`desirableMedian` updates** past the previous CP anchor (count updates only, not CP or Snapshot rows). CP timestamp = timestamp of the last update included in that aggregation.
+5. **Type discrimination:** New header/type for CP --- **not** `header.type === 'Snapshot'`. Extend `recentEvents` union typing accordingly.
+6. **Subscribe vs live:** Not a meaningful distinction in the **dataSource merge engine**; same process by design.
+
+**Target merge algorithm (single path):**
+
+```text
+On any envelope (Update or authoritative Snapshot):
+  1. Append to recentEvents
+  2. If authoritative Snapshot S: prune all rows with timestamp <= replayCursor(S);
+     skip CP invalidation (prune removes them). Else if Update at x: drop CPs with timestamp >= x
+  3. Optionally insert CP via performCleanup threshold (updates only; never removes rows)
+  4. Recompute materializedView:
+       baseline = latest authoritative Snapshot (by envelope timestamp)
+       replayCursor = replayAt ?? createdAt on that snapshot
+       else latest valid CP; else createEmpty
+       apply Updates with timestamp > replayCursor, sorted by (timestamp, eventId)
+       (use latest valid CP as shortcut when valid)
+```
+
+**Anti-patterns (still avoid):**
+
+- Destructive consolidation that removes update envelopes
+- CP rows masquerading as `Snapshot` header type
+- Expanding a global 30s window to "fix" replay
+- WML-only merge forks when the fix belongs in generic `dataSource/reducers.ts`
 
 ---
 
 ## Failure model (abstract)
 
-Use this as the mental model for Phase 3; details stay in **Discoveries** above.
+Use as mental model for Phase 3; mechanism detail in **Discoveries**. **Fix direction superseded** by Phase 2.6 ledger redesign (below); root cause summary retained.
 
-**Invariant the client needs on subscribe reload:**
-
-> **Authoritative snapshot first** --- the sidecar Snapshot must become the merge baseline before any replay Content Update for that stream is applied (or must be the sole baseline used when it lands).
-
-**Three layers (where things break):**
+**What broke (mechanism):**
 
 ```text
   WebSocket          streamEventPubSub          processEnvelope (reducer)
-  (delivery)         (async deserialize)        (merge + cleanup)
+  (delivery)         (async deserialize)        (merge + destructive cleanup)
        |                      |                          |
-       |    fire-and-forget     |   assumes snapshot in    |
-       |    sidecar slow       |   recentEvents OR empty  |
-       +----------------------+--------------------------+
+       |    fire-and-forget     |   CUs merge on empty/    |
+       |    sidecar slow       |   thin baseline; cleanup   |
+       +----------------------+-- REMOVES replay envelopes -+
 ```
 
-1. **Ingest (`streamEventPubSub`):** Snapshot and CUs deserialize in parallel. Sidecar fetch is slow; inline CUs are fast -> **CUs can hit the reducer first** even when Network lists Snapshot first.
-2. **Reducer event path:** Out-of-order **re-aggregation** works only if a **trustworthy snapshot** is already in `recentEvents`. Otherwise baseline is `createEmpty` or a **synthetic** cleanup snapshot built from wrong prior merges.
-3. **Reducer snapshot path:** Intended recovery: `materializedView = applyEvents(sidecar, updates with timestamp > snapshot)`. But **`performCleanup` runs first**, using `max(recentEvents, incoming)` as "now". When replay CUs arrived early and timestamps span >30s, cleanup **folds early replay CUs into synthetic** and removes them from the list sidecar re-apply uses.
+1. **Ingest:** Sidecar Snapshot deserializes slowly; inline CUs reach reducer first (delivery reordering).
+2. **Reducer event path:** CUs merge on `createEmpty` or thin provisional baseline; optional CPs on wrong prefix.
+3. **Reducer + `performCleanup` (old):** 30s destructive consolidation **removes** replay envelopes (e.g. placement CU) before sidecar rebase; snapshot-path `applyEvents` cannot re-apply them.
 
-**Why "diff only" UI:**
+**Why "diff only" UI:** thin provisional `materializedView` from wrong baseline; placement envelope gone from ledger before authoritative `S` lands.
 
-- User sees **edit deltas merged onto a thin baseline** (one room, partial graph), not **sidecar full asset + replay**.
-- Waiting for **next snapshot** fixes it because a **fresh sidecar** bypasses the broken chain (same as happy-path session).
+**Fix direction (Phase 3 --- per Phase 2.6 design decisions):**
 
-**Fix directions (Phase 3 --- implement per Phase 2.6 design):**
-
-| Priority | Target | Idea (candidate; finalize in Phase 2.6) |
+| Priority | Target | Change |
 | --- | --- | --- |
-| 1 | [`streamEventPubSub/index.ts`](../../../../charcoal-client/src/slices/dataSource/streamEventPubSub/index.ts) | Per-`streamKey` queue: hold replay CUs until subscribe Snapshot for that stream has **published** (or serialize deserialize). |
-| 2 | [`dataSource/reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts) | Subscribe-replay mode: skip or defer `performCleanup` until after authoritative Snapshot rebase; preserve replay envelopes for sidecar merge. |
-| 3 | (Optional) | Read `replayAt` for merge boundary (H5 secondary). |
+| 1 | [`dataSource/reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts) | Remove destructive 30s consolidation; add `CompactedCheckpoint` type; invalidation + non-destructive CP insertion in `performCleanup`; unified rebase for OOO updates and OOO authoritative snapshots. |
+| 2 | [`dataSource/baseClasses.ts`](../../../../charcoal-client/src/slices/dataSource/baseClasses.ts) + tests | Extend `recentEvents` union typing; update [`reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts). |
+| 3 | Durable docs | Replace abandoned contract assumptions in [`AGENT.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.md) / [`AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md). |
+| 4 | (Product layer, optional) | Provisional UI gating (OQ7) --- do not feed thin pre-`S` `materializedView` to Workbench `committed` |
 
-**Out-of-order handling is not worthless** --- it was never designed for "replay deltas applied minutes (timestamp-space) ahead of a subscribe snapshot that is still fetching." That is the gap. **Phase 2.6** documents both modes and the invariants each requires before we patch.
+**Not required for correctness:** per-`streamKey` ingest queue, subscribe/live mode flags, 30s window deferral.
 
 ---
 
-## Phase 2.6 --- Operational modes and durable design
+## Phase 2.6 --- Ledger redesign and durable design
 
-Phase 2.5 confirmed **mechanism** (cleanup consolidation + snapshot-path recovery gap). Phase 2.6 captures **design intent**: what modes the client must support, why the current single-mode docs are insufficient, and a coherent target design --- so Phase 3 implementation is not a brittle stack of special cases.
+Phase 2.5 confirmed **mechanism** (destructive cleanup removes replay envelopes). Phase 2.6 **re-envisions** the ledger: non-destructive **`CompactedCheckpoint`** rows, abandoned 30s window, single merge path for subscribe reload and live streaming. Design choices recorded in **Discoveries** (2026-06-05 Phase 2.6 design session).
 
 ### Why this phase exists
 
-Current durable docs ([`dataSource/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.md), [`dataSource/AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md)) describe one implicit workload:
+Current durable docs ([`dataSource/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.md), [`dataSource/AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md)) encode **abandoned** assumptions:
 
-- Events arrive **as generated** during live subscription
-- Timestamps in the rolling window stay **close together**
-- Out-of-order means **delivery** reordering within a short horizon
-- `performCleanup` bounds **live-stream** ledger memory
+- Events arrive within 30 seconds of their timestamp
+- `performCleanup` safely bounds `recentEvents` memory
+- Synthetic `Snapshot` rows are internal ledger compaction
 
-They do **not** explicitly describe **subscribe replay** (browser reload, reconnect, initial subscribe burst): sidecar Snapshot + batch replay CUs, backend timestamps minutes apart, deserialize latency reordering Snapshot vs inline CUs. That mode violates documented assumptions without being named --- leading to "correct" live-stream behavior producing wrong subscribe results.
+Investigation showed subscribe reload fails because **destructive** compaction removes envelopes the authoritative snapshot rebase needs --- not because subscribe requires a separate reducer mode.
 
-**Goal:** update durable docs and produce a **mode-aware design** that Phase 3 implements once, not ad-hoc exemptions discovered one bug at a time.
+**Goal:** record the new contract in durable docs; implement once in generic `reducers.ts`.
 
-### Two operational modes (working definitions)
+### New contract invariants (single merge path)
 
-| | **Live stream** | **Subscribe replay** |
+1. **Update envelopes are canonical** --- never removed by CP logic; may be **pruned on authoritative snapshot rebase** when `timestamp <= replayCursor(S)`.
+2. **Authoritative Snapshots** --- backend freeze points; `replayCursor = replayAt ?? createdAt` is the merge/prune boundary (same as backend [`resolveReplayCursorTimestamp`](../../../../packages/mtw-lambda-patterns/ts/dataSource/index.ts)).
+3. **CompactedCheckpoints** --- optional, invalidatable merge caches; timestamp `T` = merged state through all updates with `timestamp <= T`; supplement the ledger, do not replace events.
+4. **Invalidation (updates):** new information at `x` -> drop every CP with `timestamp >= x`.
+5. **Authoritative snapshot rebase:** prune all ledger rows with `timestamp <= replayCursor(S)` (prior snapshots, updates, CPs).
+6. **CP creation:** `performCleanup` inserts CPs only; when updates since latest CP exceed `1.5 * desirableMedian`, add CP `desirableMedian` updates past previous anchor (`desirableMedian` per-slice optional config, default 10).
+7. **Memory bounding** --- authoritative backend snapshots + post-rebase pruning (out of scope: dynamic client strategies).
+
+**Subscribe vs live:** not separate merge modes. Subscribe reload is a workload that stresses OOO authoritative snapshot + long timestamp spans; the same algorithm handles it when the ledger is non-destructive.
+
+**Provisional UI (product layer, optional --- OQ7):** Yes --- essentially **do not display** (and do not let `useWorkbenchComponent` treat as `committed`) streaming `materializedView` that is likely provisional until authoritative sidecar `S` finishes loading and rebases. Today `getWMLBase` -> personalAssets `base` -> `getStandardForm` -> session `committed` with no "rebased yet" guard; thin pre-`S` merges can drive Workbench. Merge engine stays unified; gating is a selector/SSM flag (e.g. `hasAuthoritativeRebase` per stream). **Freeze risk:** see **OQ7 --- updates-only backends** below --- gate must not wait forever on a snapshot that will never arrive.
+
+### Design questions D1--D6 (evaluation)
+
+| # | Original question | Status | Resolution |
+| --- | --- | --- | --- |
+| D1 | How does ingest detect subscribe replay vs live? | **Superseded** | No phase detection required for merge correctness. |
+| D2 | Ingest queue vs reducer hold buffer? | **Superseded** | No hold buffer required for correctness; optional for provisional UI only. |
+| D3 | Cleanup policy during subscribe? | **Superseded** | Destructive cleanup removed entirely; `performCleanup` = CP insertion threshold only. |
+| D4 | When does 30s consolidation resume? | **Superseded** | 30s window abandoned; CP uses `desirableMedian` threshold. |
+| D5 | Synthetics during subscribe? | **Superseded** | Synthetic `Snapshot` rows eliminated; replaced by typed `CompactedCheckpoint` + invalidation rules. |
+| D6 | All `dataSource` slices vs WML-first? | **Resolved** | **Generic pattern** in [`dataSource/reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts) --- all slices using `createDataSourceSlice` inherit the fix. |
+
+### Outstanding questions OQ1--OQ7 (resolutions)
+
+| # | Question | Status | Resolution |
+| --- | --- | --- | --- |
+| OQ1 | Authoritative snapshot CP invalidation | **Resolved** (with OQ2) | Post-rebase **prune** removes CPs and superseded rows; no separate invalidation rule needed beyond prune + update-path `CP >= x`. |
+| OQ2 | Post-rebase envelope pruning | **Resolved** | On authoritative `S`, prune **all** `recentEvents` rows with `timestamp <= replayCursor(S)` (`replayAt ?? createdAt`). Keeps updates strictly after the snapshot watermark only. |
+| OQ3 | Same-timestamp tie-break | **Resolved** (wire note) | Sort by **`(timestamp, eventId)`** ascending, matching backend Dynamo `DataCategory: EVENT#${timestamp}::${eventId}` ([`formatTransform.ts`](../../../../packages/mtw-lambda-patterns/ts/dataSource/formatTransform.ts)). **Gap:** `eventId` is not on the WebSocket payload today ([`toWebSocketFormat`](../../../../packages/mtw-lambda-patterns/ts/dataSource/formatTransform.ts) omits it); backend `getRecentEvents` also sorts by timestamp only. Phase 3: store `eventId` on `RecentEventEnvelope` when available; follow-up may require plumbing `eventId` through stream delivery for full parity. |
+| OQ4 | `desirableMedian` value and home | **Resolved** | Optional **`createDataSourceSlice` config** (not required); **default 10**. Per-slice override when a data source needs a different threshold. |
+| OQ5 | `performCleanup` rename | **Resolved** | **Defer rename** --- function still prunes ledger rows on authoritative snapshot arrival; also inserts CPs. Document repurposing in AGENT.md. |
+| OQ6 | `replayAt` merge boundary | **Resolved** | **Required** for frontend parity with backend: use `replayCursor = replayAt ?? createdAt` for apply-after and prune-`<=` boundaries ([`mtw-lambda-patterns` AGENT.md](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.md) **Snapshot metadata**). Persist `replayAt` on authoritative snapshot ledger rows (from deserialized snapshot payload). Closes H5 for merge semantics. |
+| OQ7 | Provisional UI gating | **Resolved** (optional implement) | **Yes** --- do not expose provisional pre-rebase `materializedView` to Workbench display / session `committed` while sidecar snapshot is still loading (particularly). Product-layer guard on `getWMLBase` / personalAssets / SSM; **not** a merge-engine mode split. **Must** account for updates-only backends (below). |
+
+#### OQ7 --- updates-only backends (freeze risk)
+
+Naive gating --- "hide base until first authoritative Snapshot in `recentEvents`" --- can **freeze the UI indefinitely** when a DataSource legitimately delivers **only updates** and never sends a Snapshot for that stream or subscribe session.
+
+**Backend cases (today):**
+
+| Pattern | Snapshot on subscribe? | Examples |
 | --- | --- | --- |
-| **When** | Steady subscription after initial sync; edits streaming in | Subscribe response, reconnect, browser reload --- (re)establish stream state |
-| **Delivery** | One event at a time, roughly "now" | **Burst**: Snapshot + N replay Content Updates |
-| **Timestamp span** | Events cluster near each other | Replay CUs reflect **edit session** time (can be >> 30s apart) |
-| **Reorder risk** | Network / handler race (small) | Sidecar fetch slow vs inline CUs fast; **Snapshot may deserialize last** |
-| **Baseline** | Latest snapshot in ledger or incremental merge | **Authoritative sidecar Snapshot** must rebase before replay apply |
-| **Ledger hygiene** | 30s consolidation appropriate | Consolidation **before rebase** can destroy replay envelopes snapshot merge needs |
-| **Current code** | Performs well (happy-path reload) | Fails when ingest + cleanup run live-stream logic on replay burst |
+| **`replayable: true`** | Yes --- `initializeSubscription` delivers Snapshot + replay | `mtw.wml`, `mtw.ephemera.thinking.scheduling` |
+| **`replayable: false`** | **No** --- live EventBridge/bus events only | `mtw.assets`, many `mtw.ephemera.*` bus-only sources ([`lambda/assets/dataSource`](../../../../lambda/assets/dataSource/index.ts), ephemera perception/actions/objects, etc.) |
 
-These are **client operational modes**, not separate backend protocols --- the backend already sends Snapshot + replay; the client must recognize the lifecycle phase.
+For **non-replayable** slices, `materializedView` is built incrementally from updates alone (`createEmpty` + merge). There will **never** be an authoritative Snapshot row to clear a `hasAuthoritativeRebase`-style gate. Workbench (or any consumer) would stay on loading/empty `committed` forever.
 
-### Invariants to document (per mode)
+**Edge cases even on replayable sources:**
 
-**Live stream (existing, clarify in docs):**
+- Mid-session subscribe after missing Initialize Subscription snapshot (reconnect race, partial delivery).
+- Future or misconfigured backend that streams updates without a matching snapshot for a stream key.
+- Streams that were already live before client subscribed (updates only from subscribe moment forward).
 
-- Out-of-order delivery recoverable from latest trustworthy Snapshot in `recentEvents`
-- 30-second rolling window on **event timestamps** bounds memory
-- `materializedView` updated incrementally; synthetic snapshots are internal ledger compaction
+**Guard design requirements (when implementing OQ7):**
 
-**Subscribe replay (new, must add):**
+1. **Scope gating to streams that expect a subscribe snapshot** --- e.g. replayable DataSources where Initialize Subscription is part of the contract, or **WML-only** first (narrowest blast radius for this bug).
+2. **Do not gate on "any Snapshot ever" for generic `getWMLBase`-style selectors** shared across all `createDataSourceSlice` instances unless each slice declares `expectsSubscribeSnapshot` (or equivalent) in factory config.
+3. **Fallback unblock:** if updates have been applied and no Snapshot arrives within a bounded window (or after subscribe SSM reaches a terminal "synced without snapshot" state), treat current `materializedView` as displayable --- merge engine already produces best-effort state from updates-only.
+4. **Distinguish "provisional thin pre-rebase" from "updates-only steady state":** gate only when ledger shows **updates without any authoritative Snapshot** *and* snapshot is still **expected** (sidecar deserialize in flight, subscribe-replay window), not when the DataSource is defined as updates-only.
 
-1. **Authoritative snapshot first** --- no replay Content Update reaches `processEnvelope` until subscribe Snapshot for that `streamKey` has **published** (ingest gate), *or* reducer treats pre-snapshot replay as queued state (design choice in 2.6).
-2. **Replay ledger intact until rebase** --- `performCleanup` must not consolidate replay CUs into synthetic snapshots **before** sidecar snapshot merge completes (policy choice: defer all cleanup until rebase vs subscribe-phase flag).
-3. **Snapshot-path recovery contract** --- after rebase, `applyEvents(sidecar, replayUpdates)` must see **individual** replay envelopes (or an explicit alternate representation of consolidated replay --- design must not silently drop synthetic content).
-4. **Timestamp-span tolerance** --- replay bundle may exceed 30s in backend time; subscribe mode cannot use live-stream window semantics blindly.
+**Recommended first implementation:** WML Workbench path only (`wmlDataSource` + personalAssets), gated while subscribe sidecar Snapshot is pending --- not a global `dataSource` display lock.
 
-Optional (H5): **`replayAt`** as merge boundary alongside `createdAt` --- document in mode spec if included.
+**Remaining implementation follow-up (from OQ3):** plumb `eventId` onto client stream envelopes if not derivable from existing header fields.
 
 ### Durable documents to update (Phase 2.6 deliverables)
 
-Track completion here; content lands in slice `AGENT.md` files (survives task plan archive).
-
 | Document | Update |
 | --- | --- |
-| [`dataSource/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.md) | Name **live stream** vs **subscribe replay** modes; scope "What It Does" to both; link to implementation contract |
-| [`dataSource/AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) | Expand **Contract and Guarantees**: assumptions per mode; when 30s window applies; subscribe invariants; sidecar-first ingest |
-| [`dataSource/streamEventPubSub/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/streamEventPubSub/AGENT.md) | Subscribe ingest ordering, per-`streamKey` gate design (once chosen) |
-| [`wmlDataSource/AGENT.md`](../../../../charcoal-client/src/slices/wmlDataSource/AGENT.md) | WML-specific subscribe/reload notes if any (sidecar, replay bundle) |
-| [`AGENT.client-sync-invariants.md`](../../../../charcoal-client/src/slices/AGENT.client-sync-invariants.md) | Cross-slice invariant: authoritative snapshot before replay apply (I4 layer) if not already stated |
+| [`dataSource/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.md) | Replace 30s window / synthetic snapshot language; document three ledger roles; CP purpose (OOO perf, not memory) |
+| [`dataSource/AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) | Rewrite **Contract and Guarantees**; event processing algorithm with CP invalidation + OOO snapshot rebase; remove abandoned assumptions |
+| [`dataSource/baseClasses.ts`](../../../../charcoal-client/src/slices/dataSource/baseClasses.ts) | (Phase 3) `CompactedCheckpoint` in `recentEvents` union |
+| [`wmlDataSource/AGENT.md`](../../../../charcoal-client/src/slices/wmlDataSource/AGENT.md) | Sidecar subscribe notes; provisional-UI gating if adopted (**OQ7 freeze risk** for updates-only sources) |
+| [`AGENT.client-sync-invariants.md`](../../../../charcoal-client/src/slices/AGENT.client-sync-invariants.md) | Layer 2: `materializedView` authoritative after rebase; provisional state before first `S` if documented; do not gate updates-only DataSources |
 
-This task plan holds the **design draft** and checklist until docs are merged; Phase 5 removes duplication from here.
+**No longer required:** [`streamEventPubSub/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/streamEventPubSub/AGENT.md) ingest-gate design. **OQ7** is product-layer (wmlDataSource/personalAssets), not streamEventPubSub ordering.
 
-### Target design (draft --- refine in Phase 2.6)
+### Phase 3 implementation checklist (from design)
 
-**Principle:** one reducer, **explicit mode or phase** per stream --- not unrelated `if (wml)` branches scattered across ingest and reducer.
-
-**Candidate architecture (to validate in 2.6):**
-
-```text
-  streamEventPubSub                    processEnvelope
-  ----------------                     ----------------
-  Detect subscribe burst               Know stream phase:
-  (Snapshot pending for streamKey?)    live | subscribe-replay | rebased
-       |                                      |
-  Hold CUs until Snapshot published    subscribe-replay:
-       |                                 - skip/defer performCleanup
-       v                                 - on Snapshot: rebase + apply all replay
-  Publish Snapshot, then queued CUs    live:
-       |                                 - existing path unchanged
-       v
-  Transition stream to live
-```
-
-**Design questions for Phase 2.6 (resolve before Phase 3 code):**
-
-| # | Question |
-| --- | --- |
-| D1 | How does ingest detect **subscribe replay phase** vs live? (First Snapshot after subscribe? Explicit flag from subscribe action? Absence of prior `recentEvents`?) |
-| D2 | Per-`streamKey` CU queue in `streamEventPubSub` only, or reducer-side hold buffer? |
-| D3 | Cleanup policy: **disable** during subscribe-replay, **defer until after first authoritative Snapshot**, or widen window using `replayAt` / snapshot timestamp? |
-| D4 | After rebase, transition to live mode --- when does 30s consolidation resume? |
-| D5 | Does snapshot-path re-apply need to treat **synthetic** snapshots differently during subscribe, or prevent synthetics entirely until live? |
-| D6 | Single design for all `dataSource` slices or WML-first with generic hook? |
-
-**Anti-patterns to avoid (document in 2.6):**
-
-- Snapshot-path-only cleanup skip without ingest ordering fix (replay span >30s can still consolidate on event path after rebase if ordering fixed only partially)
-- WML-only hardcoding without generic subscribe-replay phase in the pattern
-- Expanding 30s window globally to "fix" replay ( breaks live-stream memory bound)
+- [ ] Add `CompactedCheckpoint` header type; extend `RecentEventEnvelope` / `recentEvents` union
+- [ ] Remove destructive 30s consolidation from `performCleanup`; implement CP insertion threshold
+- [ ] Implement CP invalidation on update at `x` (`CP.timestamp >= x`)
+- [ ] Implement authoritative Snapshot handling: prune `recentEvents` at `replayCursor(S)`; rebase `materializedView` from `S` + updates after `replayCursor`
+- [ ] Use `replayAt ?? createdAt` for snapshot merge/prune boundary; persist `replayAt` on snapshot ledger rows
+- [ ] Sort updates by `(timestamp, eventId)`; add `eventId` to envelope type when available
+- [ ] Add optional `desirableMedian` to `createDataSourceSlice` config (default 10)
+- [ ] Unify `processEnvelope` snapshot and event paths around shared recompute helper
+- [ ] Update [`reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts): subscribe OOO (`CU` before `S`), OOO update mid-ledger, CP creation threshold, CP invalidation
+- [ ] Migrate durable docs (table above)
 
 ### Exit criteria for Phase 2.6
 
-- [ ] **Mode definitions** and per-mode invariants written in [`dataSource/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.md) and [`AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md)
-- [ ] **Design questions D1--D6** answered in this plan (or linked short design note); one recommended approach chosen with rationale
-- [ ] **Target architecture** diagram/checklist agreed --- maps to concrete Phase 3 tasks (ingest, reducer, tests)
-- [ ] **streamEventPubSub** and **client-sync-invariants** docs updated if ingest gate affects cross-slice contracts
-- [ ] Phase 3 **Recommended order** bullets updated from design (replace placeholder "ingest queue + cleanup exemption" with spec-driven tasks)
+- [X] **Design choices** recorded (Discoveries + this section)
+- [X] **D1--D6** evaluated (five superseded, D6 resolved)
+- [X] **Outstanding questions OQ1--OQ7** listed and **resolved** (OQ3 wire-format follow-up noted)
+- [X] **Phase 3 checklist** derived from design (replaces ingest gate + mode flags)
+- [ ] **Durable doc updates** merged into slice `AGENT.md` files (can complete alongside Phase 3)
 
 ---
 
@@ -516,7 +568,7 @@ Follow [`charcoal-client/AGENT.testing.instrumentation.md`](../../../../charcoal
 | H2 | Snapshot `processEnvelope` runs with replay CUs already merged on wrong baseline; sidecar re-apply incomplete | **Confirmed** --- Phase 2 and Phase 2.5 repros; placement CU processed before Snapshot `deserializeDone`. |
 | H3 | Placement CU applies but `StandardForm.merge` does not update `positionGraph.nodes` | **Rejected** --- placement loss is cleanup consolidation / ledger truncation, not merge failure on topology delta. |
 | H4 | `performCleanup` consolidation drops replay CUs before sidecar snapshot merge | **Confirmed** --- Phase 2.5: synthetic @ `1780700533578`, placement `1780700532599` absent from ledger; snapshot re-apply skips synthetic Snapshot rows. |
-| H5 | Stale sidecar at subscribe; replay CU excluded by timestamp semantics | **Open / secondary** --- failure repro explained by H2+H4 without sidecar byte inspection; `replayAt` still unused on client. |
+| H5 | Stale sidecar at subscribe; replay CU excluded by timestamp semantics | **Addressed in Phase 2.6 design** --- client will use `replayAt ?? createdAt` for merge/prune boundary (OQ6); failure repro explained by H2+H4 without proving stale sidecar bytes. |
 
 ---
 
@@ -540,14 +592,15 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets as yo
   - [X] Update **Instrumentation registry** with cleanup log site and date
   - [X] Optional: one confirmatory reload; append **Discoveries** with cleanup lines tied to subscribe Snapshot / replay CUs
   - [X] Record answers to **Phase 2.5 questions** (why cleanup runs; which events consolidated; caller path snapshot vs event)
-- [ ] **Phase 2.6 --- Operational modes and durable design**
-  - [ ] Document **live stream** vs **subscribe replay** modes and per-mode invariants in [`dataSource/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.md) and [`AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md)
-  - [ ] Answer design questions **D1--D6** (see **Phase 2.6**); record chosen approach in this plan
-  - [ ] Update [`streamEventPubSub/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/streamEventPubSub/AGENT.md) and [`AGENT.client-sync-invariants.md`](../../../../charcoal-client/src/slices/AGENT.client-sync-invariants.md) as needed
-  - [ ] Derive Phase 3 implementation checklist from design (ingest gate, reducer phase/cleanup policy, transition to live)
-  - [ ] Complete **Phase 2.6 exit criteria**
+- [ ] **Phase 2.6 --- Ledger redesign and durable design**
+  - [X] Record design choices, D1--D6 evaluation, outstanding questions OQ1--OQ7 (see **Phase 2.6**)
+  - [X] Derive Phase 3 implementation checklist (non-destructive CPs; no ingest gate / mode flags)
+  - [X] Resolve **OQ1--OQ7** (recorded in **Phase 2.6**; OQ3 `eventId` wire plumbing may extend into Phase 3)
+  - [ ] Update [`dataSource/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.md) and [`AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) (may land with Phase 3)
+  - [ ] Complete **Phase 2.6 exit criteria** (durable docs)
 - [ ] **Phase 3 --- Implement (per Phase 2.6 design)**
-  - [ ] Implement subscribe-replay handling per approved design (not ad-hoc patches)
+  - [ ] `CompactedCheckpoint` type + non-destructive `performCleanup` + invalidation + unified rebase in [`reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts)
+  - [ ] Update [`reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts) (CU before sidecar `S`; OOO update; CP threshold/invalidation)
   - [ ] Manual verify: reload -> full merged UI without waiting for next snapshot
 - [ ] **Phase 4 --- Tests**
   - [ ] Add reducer or integration test: CU before sidecar snapshot completes; assert final `materializedView` includes placement (including `positionGraph.nodes` if applicable)
@@ -576,8 +629,9 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets as yo
 
 **Phase 2.6 (design before implementation):**
 
-1. Complete **Phase 2.6 exit criteria** (durable docs + design questions D1--D6).
-2. Review **Two operational modes** table against team expectations before Phase 3 code.
+1. Design choices and D1--D6 evaluation recorded in this plan.
+2. OQ1--OQ7 resolved in **Phase 2.6** (see resolutions table).
+3. Complete durable doc updates (may ship with Phase 3).
 
 **Automated (after fix):**
 
@@ -599,4 +653,4 @@ npm run test:single -- src/slices/wmlDataSource/index.test.ts
 
 - Backend subscribe delivers Snapshot with **`createdAt`** envelope time and **`replayAt`** in payload; replay queries Dynamo strictly after **`replayAt`**. Client merge boundary today uses **`createdAt` only** --- optional follow-up (H5 secondary).
 - **`extendedHeader.RequestIds`:** separate deferred task --- [`AGENT.extendedHeaderRequestIdFix.planning.md`](AGENT.extendedHeaderRequestIdFix.planning.md). Not root cause of thin `materializedView` on reload; track via GitHub Issue after WML timing fix ships.
-- Do not duplicate full `dataSource` algorithm docs here; link [`AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) **Event Processing** and **Sidecar Snapshot Handling** sections. **Phase 2.6** owns expanding those docs for subscribe replay mode.
+- Do not duplicate full `dataSource` algorithm docs here; link [`AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) **Event Processing** and **Sidecar Snapshot Handling** sections. **Phase 2.6** owns rewriting those docs for the non-destructive CP ledger model.
