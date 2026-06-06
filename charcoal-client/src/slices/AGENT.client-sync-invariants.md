@@ -6,7 +6,8 @@ Subsystem docs (steady-state architecture; link here rather than duplicating):
 
 - [personalAssets/AGENT.md](./personalAssets/AGENT.md) -- effective pending overlay, `getLocalStandardForm`
 - [wmlDataSource/AGENT.md](./wmlDataSource/AGENT.md) -- `confirmedRequestIds`, `getWMLConfirmedRequestIds`
-- [dataSource/AGENT.implementation.md](./dataSource/AGENT.implementation.md) -- dispatched correlation cleanup, `requestIdTracking`
+- [dataSource/AGENT.md](./dataSource/AGENT.md) -- event ledger model (authoritative Snapshot, update envelopes, CompactedCheckpoint)
+- [dataSource/AGENT.implementation.md](./dataSource/AGENT.implementation.md) -- dispatched correlation cleanup, `requestIdTracking`, merge algorithm
 - [Workbench/AGENT.md](../components/Workbench/AGENT.md) -- `useWorkbenchComponent` session model
 
 Regression tests: see **Verification** at the end of this doc.
@@ -121,7 +122,7 @@ The table below is the **interim contract** until derived hops implement Memoiza
 Collaboration and display flow (left to right):
 
 1. **Stream** -- mtw.wml Snapshot / Content Update / Merge Conflict envelopes
-2. **wmlDataSource base** -- `materializedView` per subscribed asset (`getWMLBase`)
+2. **wmlDataSource base** -- `materializedView` per subscribed asset (`getWMLBase`). **Authoritative after** authoritative Snapshot rebase on subscribe (`replayCursor = replayAt ?? createdAt`). Before rebase, value may be **provisional** (thin pre-sidecar merges from OOO replay CUs); optional product-layer gating for Workbench display --- merge engine stays unified in [dataSource/AGENT.md](./dataSource/AGENT.md). Do **not** apply snapshot-expectation gating to updates-only DataSources (`replayable: false`).
 3. **Effective pending filter** -- exclude confirmed RequestIds (`getWMLConfirmedRequestIds`); output `getEffectivePendingEdits`
 4. **Local form** -- `base + effectivePendingEdits + edit` via `getLocalStandardForm` (edit-layer WML)
 5. **Merged display** -- `inherited.merge(local)` via `getStandardForm`

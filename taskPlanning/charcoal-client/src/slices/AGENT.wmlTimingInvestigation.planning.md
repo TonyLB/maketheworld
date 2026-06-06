@@ -1,6 +1,6 @@
 # WML subscribe merge investigation (charcoal-client)
 
-**Status:** In progress. **Next step:** Finish Phase 2.6 durable docs, then Phase 3 --- implement non-destructive ledger + `CompactedCheckpoint` redesign in [`reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts) (design choices recorded below).
+**Status:** In progress. **Next step:** Phase 3 --- implement non-destructive ledger + `CompactedCheckpoint` redesign in [`reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts) per durable docs in [`dataSource/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.md) and [`AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md).
 
 **Deferred (separate task):** [`AGENT.extendedHeaderRequestIdFix.planning.md`](AGENT.extendedHeaderRequestIdFix.planning.md) --- wire `extendedHeader.RequestIds` vs client `header.RequestIds` (not this bug's root cause).
 
@@ -91,7 +91,7 @@ npm run test:single -- src/slices/wmlDataSource/index.test.ts
 | 1 | Add gated `wml-stream-sync` instrumentation | Done |
 | 2 | Reproduce with logs; record findings in **Discoveries** | Done |
 | 2.5 | Instrument `performCleanup`; confirm cleanup role on subscribe reload | Done |
-| 2.6 | Ledger redesign + durable design (non-destructive CPs; abandon 30s window) | In progress (design choices recorded; durable docs pending) |
+| 2.6 | Ledger redesign + durable design (non-destructive CPs; abandon 30s window) | Done |
 | 3 | Implement fix per Phase 2.6 design | Not started |
 | 4 | Regression test(s) | Not started |
 | 5 | Remove instrumentation; update durable docs if needed | Not started |
@@ -252,6 +252,19 @@ Snapshot `applyEvents(sidecar, updatesAfter)` re-applies only **non-Snapshot** e
 
 Investigation conclusion (post Phase 2.5): the bug is **destructive** `performCleanup` --- folding replay Content Updates into synthetic `Snapshot` rows and **removing** individual envelopes before the authoritative sidecar Snapshot rebases. Out-of-order sidecar delivery is a stress case, not a separate protocol. **Phase 2.6 redesign** replaces destructive synthetics with non-destructive **`CompactedCheckpoint`** rows and retains all update envelopes until an authoritative snapshot supersedes them (memory bounding via backend snapshots only; dynamic management out of scope).
 
+### 2026-06-06 --- CP placement refinement (tail-anchored)
+
+**CP creation placement** updated: place CP **`desirableMedian / 2` updates back from the live end** of `recentEvents`, not `desirableMedian` forward from the freshest CP. Rationale: after mass CP invalidation (e.g. late authoritative Snapshot), a single near-tail CP is more useful than hugging the snapshot with a large uncovered gap; intermediate CPs are not required. Recorded in [`dataSource/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.md) invariant 6 and [`AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) **Event Processing**.
+
+### 2026-06-06 --- Phase 2.6 durable docs landed
+
+Migrated Phase 2.6 ledger contract into slice `AGENT.md` files (normative target; code alignment in Phase 3):
+
+- [`dataSource/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.md) --- event ledger model, replayCursor, OOO handling, anti-patterns
+- [`dataSource/AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) --- Contract and Guarantees, Event Processing algorithm, Performance/Memory; implementation status banner until Phase 3
+- [`wmlDataSource/AGENT.md`](../../../../charcoal-client/src/slices/wmlDataSource/AGENT.md) --- subscribe sidecar OOO, provisional UI (OQ7 freeze-risk note)
+- [`AGENT.client-sync-invariants.md`](../../../../charcoal-client/src/slices/AGENT.client-sync-invariants.md) --- I4 layer 2 provisional vs authoritative `materializedView`
+
 ### 2026-06-05 --- Phase 2.6 design session (ledger re-envisioning)
 
 **Abandoned requirements** (were never correct or never necessary):
@@ -275,7 +288,7 @@ Investigation conclusion (post Phase 2.5): the bug is **destructive** `performCl
 1. **CP metadata:** CP has a `timestamp` like every other `recentEvents` row. It aggregates every **Update** with `timestamp <=` that value (inclusive).
 2. **Invalidation (updates):** Any new information at timestamp `x` invalidates every CP with `timestamp >= x`. Example: OOO `e` between `d` and `f` drops `CP2`; rebuild from `CP1 + d + e + f + ...`.
 3. **Authoritative snapshot rebase + prune (OQ1, OQ2):** On authoritative `S`, **prune** from `recentEvents` every row (prior snapshots, updates, CPs) with `timestamp <= replayCursor(S)` where `replayCursor = replayAt ?? createdAt` (backend `resolveReplayCursorTimestamp`). Pruning supersedes separate CP invalidation rules for that rebase. Recompute `materializedView` from `S +` updates with `timestamp > replayCursor(S)`. OOO `S` predating events: `[a,b,c,CP1,d,e,f]` + late `S` -> prune superseded rows, merge `S +` surviving updates. **No ingest gate required for final correctness** (provisional UI: OQ7).
-4. **CP creation (`performCleanup` repurposed):** No envelope removal. Fixed **`desirableMedian`** (start constant, maybe dynamic later). When **update envelope** count since latest CP exceeds **`1.5 * desirableMedian`**, insert a new CP **`desirableMedian` updates** past the previous CP anchor (count updates only, not CP or Snapshot rows). CP timestamp = timestamp of the last update included in that aggregation.
+4. **CP creation (`performCleanup` repurposed):** No envelope removal. Fixed **`desirableMedian`** (start constant, maybe dynamic later). When the ledger tail warrants a cache (update envelope count exceeds **`1.5 * desirableMedian`** since latest authoritative Snapshot, or no near-tail CP after mass invalidation), insert a CP **`desirableMedian / 2` updates back from the live end** of `recentEvents` --- not `desirableMedian` forward from the freshest CP (count updates only, not CP or Snapshot rows). CP timestamp = timestamp of the last update included in that aggregation. Intermediate CPs between snapshot and live end are unnecessary; CP value is only near the live end.
 5. **Type discrimination:** New header/type for CP --- **not** `header.type === 'Snapshot'`. Extend `recentEvents` union typing accordingly.
 6. **Subscribe vs live:** Not a meaningful distinction in the **dataSource merge engine**; same process by design.
 
@@ -286,7 +299,8 @@ On any envelope (Update or authoritative Snapshot):
   1. Append to recentEvents
   2. If authoritative Snapshot S: prune all rows with timestamp <= replayCursor(S);
      skip CP invalidation (prune removes them). Else if Update at x: drop CPs with timestamp >= x
-  3. Optionally insert CP via performCleanup threshold (updates only; never removes rows)
+  3. Optionally insert CP via performCleanup (updates only; never removes rows):
+       when tail update count > 1.5 * desirableMedian, place CP desirableMedian/2 updates back from live end
   4. Recompute materializedView:
        baseline = latest authoritative Snapshot (by envelope timestamp)
        replayCursor = replayAt ?? createdAt on that snapshot
@@ -361,7 +375,7 @@ Investigation showed subscribe reload fails because **destructive** compaction r
 3. **CompactedCheckpoints** --- optional, invalidatable merge caches; timestamp `T` = merged state through all updates with `timestamp <= T`; supplement the ledger, do not replace events.
 4. **Invalidation (updates):** new information at `x` -> drop every CP with `timestamp >= x`.
 5. **Authoritative snapshot rebase:** prune all ledger rows with `timestamp <= replayCursor(S)` (prior snapshots, updates, CPs).
-6. **CP creation:** `performCleanup` inserts CPs only; when updates since latest CP exceed `1.5 * desirableMedian`, add CP `desirableMedian` updates past previous anchor (`desirableMedian` per-slice optional config, default 10).
+6. **CP creation:** `performCleanup` inserts CPs only; when tail warrants a cache, place CP `desirableMedian / 2` updates back from live end (not forward from freshest CP; `desirableMedian` per-slice optional config, default 10).
 7. **Memory bounding** --- authoritative backend snapshots + post-rebase pruning (out of scope: dynamic client strategies).
 
 **Subscribe vs live:** not separate merge modes. Subscribe reload is a workload that stresses OOO authoritative snapshot + long timestamp spans; the same algorithm handles it when the ledger is non-destructive.
@@ -452,7 +466,7 @@ For **non-replayable** slices, `materializedView` is built incrementally from up
 - [X] **D1--D6** evaluated (five superseded, D6 resolved)
 - [X] **Outstanding questions OQ1--OQ7** listed and **resolved** (OQ3 wire-format follow-up noted)
 - [X] **Phase 3 checklist** derived from design (replaces ingest gate + mode flags)
-- [ ] **Durable doc updates** merged into slice `AGENT.md` files (can complete alongside Phase 3)
+- [X] **Durable doc updates** merged into slice `AGENT.md` files (2026-06-06)
 
 ---
 
@@ -592,12 +606,12 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets as yo
   - [X] Update **Instrumentation registry** with cleanup log site and date
   - [X] Optional: one confirmatory reload; append **Discoveries** with cleanup lines tied to subscribe Snapshot / replay CUs
   - [X] Record answers to **Phase 2.5 questions** (why cleanup runs; which events consolidated; caller path snapshot vs event)
-- [ ] **Phase 2.6 --- Ledger redesign and durable design**
+- [X] **Phase 2.6 --- Ledger redesign and durable design**
   - [X] Record design choices, D1--D6 evaluation, outstanding questions OQ1--OQ7 (see **Phase 2.6**)
   - [X] Derive Phase 3 implementation checklist (non-destructive CPs; no ingest gate / mode flags)
   - [X] Resolve **OQ1--OQ7** (recorded in **Phase 2.6**; OQ3 `eventId` wire plumbing may extend into Phase 3)
-  - [ ] Update [`dataSource/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.md) and [`AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) (may land with Phase 3)
-  - [ ] Complete **Phase 2.6 exit criteria** (durable docs)
+  - [X] Update [`dataSource/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.md) and [`AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) (2026-06-06)
+  - [X] Complete **Phase 2.6 exit criteria** (durable docs)
 - [ ] **Phase 3 --- Implement (per Phase 2.6 design)**
   - [ ] `CompactedCheckpoint` type + non-destructive `performCleanup` + invalidation + unified rebase in [`reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts)
   - [ ] Update [`reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts) (CU before sidecar `S`; OOO update; CP threshold/invalidation)

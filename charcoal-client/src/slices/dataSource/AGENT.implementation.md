@@ -156,6 +156,10 @@ The heavy lifting (event processing, aggregation logic, serialization) is alread
 
 This section helps you understand and extend the generic `dataSource` pattern.
 
+### **Implementation status**
+
+The **normative contract** in this guide (non-destructive ledger, `CompactedCheckpoint`, `replayCursor` pruning) reflects the Phase 2.6 design. **`reducers.ts` still implements the legacy 30-second destructive cleanup** until Phase 3 of [`taskPlanning/charcoal-client/src/slices/AGENT.wmlTimingInvestigation.planning.md`](../../../taskPlanning/charcoal-client/src/slices/AGENT.wmlTimingInvestigation.planning.md) lands. Remove this banner when code and tests align with the algorithm below.
+
 ### **Architecture Overview**
 
 The pattern is split across several files with clear responsibilities:
@@ -211,17 +215,18 @@ Uses `singleSSM` pattern for all subscription lifecycle:
 The pattern operates under specific assumptions and provides corresponding guarantees:
 
 **Assumptions** (what the pattern expects):
-- Events arrive within 30 seconds of their timestamp
-- Events include accurate backend-generated timestamps
-- Aggregator is deterministic (same events in same order → same result)
+- Events include accurate backend-generated timestamps (and `eventId` when available for tie-break)
+- Aggregator is deterministic (same events in same order -> same result)
+- Authoritative Snapshots may arrive out of order relative to replay Content Updates (subscribe sidecar deserialize latency)
 
 **Guarantees** (what the pattern promises):
-- Eventually consistent state despite out-of-order delivery
-- Bounded memory usage (30-second rolling window per stream)
-- Correct chronological ordering based on event timestamps
-- Efficient processing for common in-order case (O(1) fast path)
+- Eventually consistent `materializedView` despite out-of-order delivery and subscribe replay
+- Update envelopes retained until authoritative Snapshot rebase (CP invalidation affects caches only, not canonical updates)
+- Memory bounded by **authoritative backend Snapshots + post-rebase pruning** (dynamic client strategies out of scope)
+- Correct chronological ordering based on event timestamps and `(timestamp, eventId)` tie-break
+- Efficient processing for the common in-order case (O(1) fast path)
 
-**Why This Matters**: Violating assumptions (e.g., extreme delays, missing timestamps) may break guarantees. When developing the pattern or backend integration, keep these contracts in mind.
+**Why This Matters**: Violating assumptions (e.g., missing timestamps, non-deterministic aggregators) may break guarantees. Subscribe replay with long timestamp spans is expected workload, not a contract violation. See [AGENT.md](./AGENT.md) **Event ledger model**.
 
 #### **5. Header/Content Envelope Shape**
 
@@ -238,17 +243,38 @@ When extending the pattern, you'll likely work in these areas:
 
 #### **Event Processing (`reducers.ts`)**
 
-Three main functions handle event processing:
+Three main functions handle event processing (target design; see **Implementation status** above):
 
-1. **`applyEvents`**: Helper to apply multiple updates in order
-2. **`performCleanup`**: Manages 30-second rolling window (uses `header.type` for snapshot vs update discrimination)
-3. **`processEnvelope`**: Handles incoming snapshots and events; branches on `header.type === 'Snapshot'` to apply (in-order fast path, out-of-order re-aggregation). Content is pre-deserialized by StreamEventPubSub.
+1. **`applyEvents`**: Helper to apply multiple updates in order. Updates are sorted by `(timestamp, eventId)` ascending (backend parity with `DataCategory: EVENT#${timestamp}::${eventId}`). `eventId` plumbing on client envelopes is a Phase 3 follow-up when not derivable from existing header fields.
+2. **`performCleanup`**: **Repurposed** (name retained): inserts non-destructive `CompactedCheckpoint` rows when the ledger tail warrants a cache (update envelope count exceeds `1.5 * desirableMedian` since the latest authoritative Snapshot, or no near-tail CP exists after mass invalidation). **Placement:** `desirableMedian / 2` updates back from the live end of `recentEvents` --- not `desirableMedian` forward from the freshest CP. Never removes update envelopes. Participates in authoritative Snapshot rebase via ledger prune (see algorithm). CP uses a distinct header type --- not `header.type === 'Snapshot'`.
+3. **`processEnvelope`**: Unified envelope handler for authoritative Snapshots and updates. Content is pre-deserialized by StreamEventPubSub. Target: shared recompute helper for both paths instead of duplicated snapshot/event branches.
 
-**Critical Algorithm**: Out-of-order event handling
-- **Fast path**: New event is later than all cached events → apply directly
-- **Re-aggregation path**: New event is earlier → re-aggregate from latest snapshot
+**Target merge algorithm** (single path for subscribe reload and live streaming):
 
-**See**: `AGENT.planning.md` lines 872-1006 for detailed algorithm explanation.
+```text
+On any envelope (Update or authoritative Snapshot):
+  1. Append to recentEvents
+  2. If authoritative Snapshot S: prune all rows with timestamp <= replayCursor(S)
+     Else if Update at x: drop CPs with timestamp >= x
+  3. Optionally insert CP via performCleanup (updates only; never removes rows):
+       when tail update count > 1.5 * desirableMedian, place CP desirableMedian/2 updates back from live end
+  4. Recompute materializedView:
+       baseline = latest authoritative Snapshot (by envelope timestamp)
+       replayCursor = replayAt ?? createdAt on that snapshot
+       else latest valid CP; else createEmpty
+       apply Updates with timestamp > replayCursor, sorted by (timestamp, eventId)
+       (use latest valid CP as shortcut when valid)
+```
+
+**Out-of-order paths:**
+- **Fast path**: New update is later than all cached events -> apply directly to `materializedView`.
+- **Re-aggregation path**: New update is earlier -> recompute via algorithm step 4 (baseline from latest authoritative Snapshot or valid CP).
+
+**Type discrimination:** `recentEvents` union extends to include `CompactedCheckpoint` envelopes (Phase 3: [`baseClasses.ts`](./baseClasses.ts)). Authoritative Snapshots persist `replayAt` from deserialized snapshot payload when present.
+
+**Backend parity:** `replayCursor = replayAt ?? createdAt` matches [`resolveReplayCursorTimestamp`](../../../packages/mtw-lambda-patterns/ts/dataSource/index.ts) and backend [Snapshot metadata](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.md).
+
+User-facing ledger overview: [AGENT.md](./AGENT.md) **Event ledger model**.
 
 #### **State Machine Actions (`index.api.ts`)**
 
@@ -274,6 +300,8 @@ Main factory function that:
 - Defines state machine template
 - Wires up actions and reducers
 - Returns slice, selectors, and public actions
+
+**Optional config (Phase 3):** `desirableMedian?: number` --- tail-anchored CP spacing (`desirableMedian / 2` updates back from live end when threshold exceeded); default `10`. Per-slice override when a data source needs a different spacing.
 
 **Extension Point**: Add new public reducers or selectors here.
 
@@ -359,21 +387,21 @@ console.log('Event timeline:', events?.map(e => e.timestamp).sort())
 
 #### **Memory Usage**
 
-The 30-second window bounds memory per stream:
-- Each stream: ~30s of events
-- Cleanup happens automatically on each event
-- Old events consolidated into synthetic snapshots
+Memory per stream is bounded by **authoritative backend Snapshots** and **post-rebase pruning**:
+- On authoritative Snapshot `S`, prune all `recentEvents` rows with `timestamp <= replayCursor(S)`
+- Update envelopes are never removed by CP logic; only rebase pruning and CP invalidation (caches only)
+- Dynamic client memory strategies are out of scope; rely on backend snapshot frequency
 
-**Optimization**: If memory is critical, reduce window size in `performCleanup`.
+`CompactedCheckpoint` rows are **merge caches for OOO re-aggregation performance**, not a memory-bounding mechanism.
 
 #### **Re-Aggregation Cost**
 
 Out-of-order events trigger re-aggregation:
-- Cost: O(n) where n = events in window
-- Bounded by 30-second window
-- Common case (in-order) is O(1)
+- Cost: O(n) where n = surviving update envelopes in the ledger tail (after prune)
+- CP shortcuts reduce work near the tail when valid
+- Common case (in-order update) is O(1)
 
-**Optimization**: If aggregation is expensive, consider batch processing in aggregator.
+**Optimization**: If aggregation is expensive, consider batch processing in aggregator or tune `desirableMedian` for CP frequency.
 
 ### **Integration with Backend**
 
@@ -462,7 +490,7 @@ When enabled, per `subscribedStreams[streamKey]` store `confirmedRequestIds: Arr
 | [`index.ts`](./index.ts) | Conditional `getConfirmedRequestIds`; re-exports `PENDING_TTL_MS`, `CONFIRMED_TTL_MS`, `STABLE_EMPTY_CONFIRMED_IDS` |
 | [`index.api.ts`](./index.api.ts) | Subscribe init includes `confirmedRequestIds: []` when tracking enabled |
 
-**`seenAt`:** Envelope `timestamp` from the dispatched action (not `Date.now()`), matching the pure-timestamp pattern used by `performCleanup`.
+**`seenAt`:** Envelope `timestamp` from the dispatched action (not `Date.now()`), matching the pure-timestamp pattern used by event processing reducers.
 
 **Dispatched storage GC:** When `requestIdTracking` is enabled, `pruneStaleConfirmedRequestIds` removes stale rows from `confirmedRequestIds` storage (injectable `now`, default `requestIdTracking.confirmedTtlMs ?? CONFIRMED_TTL_MS`). Skips any id present in `pendingKeys` (oscillation invariant). Periodic cleanup is orchestrated by `personalAssets.pruneStaleRequestCorrelation`, dispatched on `LifeLinePubSub` `PeriodicTick` (~30s during connected session). See [Dispatched correlation cleanup](#dispatched-correlation-cleanup).
 
@@ -591,7 +619,7 @@ Implemented in [`index.test.ts`](./index.test.ts) (`afterProcessEnvelope` descri
 
 ### **Understanding Out-of-Order Handling**
 → Read `reducers.ts` `processEnvelope` function
-→ See `AGENT.planning.md` lines 872-1006 for algorithm details
+→ See **Event Processing (`reducers.ts`)** in this document and [AGENT.md](./AGENT.md) **Event ledger model**
 
 ### **Modifying State Machine Flow**
 → Edit state machine template in `index.ts`
@@ -607,4 +635,4 @@ Implemented in [`index.test.ts`](./index.test.ts) (`afterProcessEnvelope` descri
 
 ---
 
-*Last Updated: 2026-06-05*
+*Last Updated: 2026-06-06*
