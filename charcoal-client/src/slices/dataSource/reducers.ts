@@ -11,13 +11,6 @@ import {
 } from './baseClasses'
 import type { StreamEventDeserializedPayload } from './streamEventPubSub'
 import { appendConfirmedRequestIds, extractConfirmedIdsFromHeader, pruneStaleConfirmedRequestIdRows } from './requestIdTracking'
-import {
-    logWmlPerformCleanup,
-    logWmlProcessEnvelope,
-    type WmlPerformCleanupContext
-} from '../../testing/wmlStreamSyncInstrumentation'
-
-const WML_DATA_SOURCE_KEY = 'mtw.wml'
 
 type LedgerEnvelope<
     SnapshotPayload extends SerializableObject,
@@ -386,8 +379,7 @@ export const performCleanup = <
     dataSourceKey: string
 ) => (
     recentEvents: Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>>,
-    streamKey: string,
-    instrumentation?: WmlPerformCleanupContext
+    streamKey: string
 ): Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>> => {
     const latestSnapshot = findLatestAuthoritativeSnapshot(recentEvents)
     let snapshotIndex = -1
@@ -411,20 +403,10 @@ export const performCleanup = <
         (tailUpdateCount > 0 && !nearTailCp && tailUpdateCount > Math.floor(desirableMedian / 2))
 
     if (!shouldInsert) {
-        if (instrumentation) {
-            logWmlPerformCleanup({
-                caller: instrumentation.caller,
-                headerType: instrumentation.headerType,
-                streamKey,
-                tailUpdateCount,
-                desirableMedian,
-                action: 'no-op'
-            })
-        }
         return recentEvents
     }
 
-    const result = insertCompactedCheckpoint(
+    return insertCompactedCheckpoint(
         recentEvents,
         snapshotIndex,
         latestSnapshot,
@@ -434,21 +416,6 @@ export const performCleanup = <
         desirableMedian,
         aggregator
     )
-
-    const cpRow = result.find(row => isCompactedCheckpointHeader(row.header))
-    if (instrumentation) {
-        logWmlPerformCleanup({
-            caller: instrumentation.caller,
-            headerType: instrumentation.headerType,
-            streamKey,
-            tailUpdateCount,
-            desirableMedian,
-            action: 'inserted-cp',
-            cpTimestamp: cpRow?.timestamp
-        })
-    }
-
-    return result
 }
 
 export const processEnvelope = <
@@ -477,15 +444,8 @@ export const processEnvelope = <
         }
 
         const streamingHeader = header as Header
-        const cleanupInstrumentation: WmlPerformCleanupContext | undefined = dataSourceKey === WML_DATA_SOURCE_KEY
-            ? {
-                caller: header.type === SNAPSHOT_HEADER_TYPE ? 'snapshot' : 'event',
-                headerType: header.type
-            }
-            : undefined
 
         let recentEvents: Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>>
-        let usedFastPath = false
         let newMaterializedView: SnapshotPayload
 
         if (header.type === SNAPSHOT_HEADER_TYPE && isAuthoritativeSnapshotHeader(header)) {
@@ -499,7 +459,7 @@ export const processEnvelope = <
 
             recentEvents = pruneLedgerBeforeAuthoritativeSnapshot(stream.recentEvents, snapshotEvent)
             recentEvents = sortLedgerChronologically([...recentEvents, snapshotEvent])
-            recentEvents = performCleanupWithConfig(recentEvents, streamKey, cleanupInstrumentation)
+            recentEvents = performCleanupWithConfig(recentEvents, streamKey)
             newMaterializedView = recompute(recentEvents, streamKey)
 
             state.subscribedStreams[streamKey] = buildStreamUpdate(
@@ -510,25 +470,6 @@ export const processEnvelope = <
                 stream,
                 requestIdTracking
             )
-
-            if (dataSourceKey === WML_DATA_SOURCE_KEY) {
-                const replayCursor = resolveReplayCursor(snapshotEvent)
-                const updatesAfterCursor = recentEvents.filter(
-                    row => isUpdateEnvelopeHeader(row.header) && row.timestamp > replayCursor
-                )
-                logWmlProcessEnvelope({
-                    path: 'snapshot',
-                    streamKey,
-                    incomingTimestamp: timestamp,
-                    replayCursor,
-                    latestCachedTimestamp: recentEvents.length > 0
-                        ? Math.max(...recentEvents.map(e => e.timestamp))
-                        : 0,
-                    eventsAfterSnapshotCount: updatesAfterCursor.length,
-                    recentEvents,
-                    materializedView: newMaterializedView
-                })
-            }
         } else {
             const event = content as UpdatePayload
             const priorEvents: Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>> = stream.recentEvents
@@ -545,13 +486,12 @@ export const processEnvelope = <
 
             recentEvents = [...priorEvents, newEnvelope]
             recentEvents = invalidateCompactedCheckpointsAt(recentEvents, timestamp)
-            recentEvents = performCleanupWithConfig(recentEvents, streamKey, cleanupInstrumentation)
+            recentEvents = performCleanupWithConfig(recentEvents, streamKey)
             recentEvents = sortLedgerChronologically(recentEvents)
 
             if (isInOrder) {
                 const result = aggregator.applyUpdate(stream.materializedView, { header: streamingHeader, content: event })
                 newMaterializedView = result.success ? result.snapshot : stream.materializedView
-                usedFastPath = true
             } else {
                 newMaterializedView = recompute(recentEvents, streamKey)
             }
@@ -564,17 +504,6 @@ export const processEnvelope = <
                 stream,
                 requestIdTracking
             )
-
-            if (dataSourceKey === WML_DATA_SOURCE_KEY) {
-                logWmlProcessEnvelope({
-                    path: usedFastPath ? 'event-in-order' : 'event-reagg',
-                    streamKey,
-                    incomingTimestamp: timestamp,
-                    latestCachedTimestamp: latestPriorTimestamp,
-                    recentEvents,
-                    materializedView: newMaterializedView
-                })
-            }
         }
     }
 }

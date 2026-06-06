@@ -169,7 +169,7 @@ describe('dataSource reducers', () => {
 
     // Subscribe reload sequencing regressions (H2/H4: destructive cleanup removed replay
     // envelopes before sidecar rebase). R1-R5 map to failure modes in
-    // taskPlanning/charcoal-client/src/slices/AGENT.wmlTimingInvestigation.planning.md Phase 4.
+    // dataSource/AGENT.implementation.md Testing (subscribe reload sequencing regressions).
     describe('subscribe reload sequencing regressions', () => {
         const applyEventsWithAggregator = applyEvents(mockAggregator)
         const performCleanupWithConfig = performCleanup(mockAggregator, applyEventsWithAggregator, 10, 'test.dataSource')

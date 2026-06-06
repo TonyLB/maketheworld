@@ -1,6 +1,6 @@
 # extendedHeader RequestIds client fix (charcoal-client)
 
-**Status:** Deferred. **Blocked by:** [WML subscribe merge investigation](AGENT.wmlTimingInvestigation.planning.md) (land timing fix first). **Next step:** Log GitHub Issue from this plan; implement when scheduled.
+**Status:** Deferred. **Next step:** Log GitHub Issue from this plan; implement when scheduled. WML subscribe merge fix shipped 2026-06-06.
 
 This plan is task-scoped. Archive or delete after the fix ships and any lasting contract notes move into durable docs.
 
@@ -43,7 +43,6 @@ Restore **RequestId correlation** on `mtw.wml` StreamEvents when the WebSocket m
 | Confirmed id storage | [`requestIdTracking.ts`](../../../../charcoal-client/src/slices/dataSource/requestIdTracking.ts) `extractConfirmedIdsFromHeader` | `confirmedRequestIds` stays `[]` |
 | Stream update | [`reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts) `buildStreamUpdate` | Same |
 | Pending hygiene | [`personalAssets/index.ts`](../../../../charcoal-client/src/slices/personalAssets/index.ts) `pendingHygieneCheck` | `headerIds` empty; pending rows not cleared by stream confirm |
-| Investigation logs | [`wmlStreamSyncInstrumentation.ts`](../../../../charcoal-client/src/testing/wmlStreamSyncInstrumentation.ts) | `requestIds: undefined` in console |
 
 **Redux evidence:** `recentEvents[].header.extendedHeader.RequestIds` populated; `confirmedRequestIds: []`.
 
@@ -65,14 +64,13 @@ Restore **RequestId correlation** on `mtw.wml` StreamEvents when the WebSocket m
 **In scope:**
 
 - Client normalization: single helper to read RequestIds from header (flat + `extendedHeader` nested).
-- Wire all consumers: `requestIdTracking`, instrumentation, any direct `header.RequestIds` reads on WML envelopes.
+- Wire all consumers: `requestIdTracking`, any direct `header.RequestIds` reads on WML envelopes.
 - Tests with **nested** `extendedHeader.RequestIds` shape (parity with production Network).
 - Document expected WS shape in [`dataSource/AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) or [`wmlDataSource/AGENT.md`](../../../../charcoal-client/src/slices/wmlDataSource/AGENT.md) if contract is clarified.
 
 **Out of scope (investigate separately if needed):**
 
 - Whether feedback/subscription pipeline should **flatten** `extendedHeader` to top-level `RequestIds` before send (backend/contract fix).
-- WML subscribe merge ordering ([`AGENT.wmlTimingInvestigation.planning.md`](AGENT.wmlTimingInvestigation.planning.md)).
 
 ---
 
@@ -117,7 +115,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets as yo
 1. Add `extractRequestIdsFromStreamingHeader(header)` in [`requestIdTracking.ts`](../../../../charcoal-client/src/slices/dataSource/requestIdTracking.ts) (or shared util):
    - Read `header.RequestIds` / `header.RequestId` (existing).
    - If empty, read `(header as any).extendedHeader?.RequestIds` (array) and `extendedHeader?.RequestId` (singular).
-2. Use helper in `extractConfirmedIdsFromHeader`, `pendingHygieneCheck`, `wmlStreamSyncInstrumentation.requestIdsFromHeader`.
+2. Use helper in `extractConfirmedIdsFromHeader`, `pendingHygieneCheck`.
 3. Add tests: nested `extendedHeader` on envelope; assert `confirmedRequestIds` and hygiene clear pending.
 
 ### Option B --- Wire producer alignment
@@ -137,7 +135,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets as yo
   - [ ] Link Issue in this plan **Progress** / status line
 - [ ] **Phase 2 --- Fix**
   - [ ] Implement `extractRequestIdsFromStreamingHeader` (or extend existing extractors)
-  - [ ] Update `requestIdTracking`, `pendingHygieneCheck`, instrumentation
+  - [ ] Update `requestIdTracking`, `pendingHygieneCheck`
   - [ ] Add tests with nested `extendedHeader.RequestIds` wire shape
   - [ ] Run baseline tests (see **Verification**)
 - [ ] **Phase 3 --- Contract (optional)**
@@ -189,6 +187,5 @@ npm run test:single -- src/slices/wmlDataSource/index.test.ts
 
 ## Coordination notes
 
-- **Defer** until [WML timing investigation](AGENT.wmlTimingInvestigation.planning.md) Phase 3--5 complete unless pending-hygiene symptoms block timing verification.
-- If both land in same PR, keep commits/review slices separate (timing vs RequestId plumbing).
+- If both RequestId fix and other WML work land in same PR, keep commits/review slices separate.
 - Dynamo/EventBridge formats intentionally use `extendedHeader`; WebSocket docs say extended fields merge at top level --- clarify which rule applies to live WS messages.
