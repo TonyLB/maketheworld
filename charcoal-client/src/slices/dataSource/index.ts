@@ -1,5 +1,5 @@
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
-import { DataSourceNodes, DataSourcePublic, DataSourceInternal, DataSourceData, type RequestIdTrackingConfig } from './baseClasses'
+import { DataSourceNodes, DataSourcePublic, DataSourceInternal, DataSourceData, DEFAULT_DESIRABLE_MEDIAN, type RequestIdTrackingConfig } from './baseClasses'
 
 export { createBrowserDataSourceEnvironment } from './browserEnvironment'
 import { registerDeserializer, type StreamEventDeserializedPayload } from './streamEventPubSub'
@@ -35,6 +35,8 @@ export interface DataSourceSliceConfig<
     requestIdTracking?: RequestIdTrackingConfig  // Opt-in: persist confirmed stream-header correlation ids per subscribed stream
     /** Runs after dispatch(processEnvelope(payload)) in the StreamEventPubSub subscriber; getState() reflects committed reducer state. */
     afterProcessEnvelope?: (dispatch: any, getState: any, payload: StreamEventDeserializedPayload) => void
+    /** Tail-anchored CompactedCheckpoint spacing; default DEFAULT_DESIRABLE_MEDIAN (10). */
+    desirableMedian?: number
 }
 
 //
@@ -49,7 +51,7 @@ export const createDataSourceSlice = <
 >(
     config: DataSourceSliceConfig<SnapshotPayload, UpdatePayload, ExternalUpdatePayload, ExternalSnapshotPayload>
 ) => {
-    const { name, dataSourceKey, aggregator, eventSerializer, sliceSelector, promiseCache: providedPromiseCache, holdCondition, requestIdTracking } = config
+    const { name, dataSourceKey, aggregator, eventSerializer, sliceSelector, promiseCache: providedPromiseCache, holdCondition, requestIdTracking, desirableMedian = DEFAULT_DESIRABLE_MEDIAN } = config
 
     // Create a promise cache if one wasn't provided
     const promiseCache = providedPromiseCache ?? new PromiseCache<DataSourceData<SnapshotPayload, UpdatePayload>>()
@@ -158,7 +160,7 @@ export const createDataSourceSlice = <
 
     // Create curried helper functions from reducers.ts
     const applyEventsWithAggregator = applyEvents(aggregator)
-    const performCleanupWithConfig = performCleanup(aggregator, applyEventsWithAggregator)
+    const performCleanupWithConfig = performCleanup(aggregator, applyEventsWithAggregator, desirableMedian, dataSourceKey)
     
     // Create the slice using singleSSM
     const result = singleSSM<DataSourceNodes<SnapshotPayload, UpdatePayload>, {

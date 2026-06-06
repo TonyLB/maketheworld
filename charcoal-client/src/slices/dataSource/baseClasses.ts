@@ -14,14 +14,25 @@ export interface DataSourceInternal {
     streamEventSubscription?: string;  // Subscription ID for StreamEventPubSub
 }
 
+export const SNAPSHOT_HEADER_TYPE = 'Snapshot'
+export const COMPACTED_CHECKPOINT_HEADER_TYPE = 'CompactedCheckpoint'
+export const DEFAULT_DESIRABLE_MEDIAN = 10
+
 /**
  * Stored envelope for one entry in recentEvents. Generic in Payload and Header so slices
  * can use extended header types (e.g. WMLStreamingEventHeader) for type-safe narrowing.
+ *
+ * Content union: UpdatePayload | SnapshotPayload for all row types; CompactedCheckpoint rows
+ * store merged SnapshotPayload in content.
  */
 export type RecentEventEnvelope<Payload, Header extends StreamingEventHeader = StreamingEventHeader> = {
     header: Header;
     content: Payload;
     timestamp: number;
+    /** Authoritative snapshot replay watermark (sidecar); persisted from wire payload when present */
+    replayAt?: number;
+    /** Tie-break for sort parity with backend EVENT#${timestamp}::${eventId} when available */
+    eventId?: string;
 }
 
 export type RequestIdTrackingHeaderField = 'RequestIds' | 'RequestId' | 'both'

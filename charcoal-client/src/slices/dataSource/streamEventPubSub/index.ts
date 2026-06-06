@@ -27,6 +27,8 @@ export type StreamEventDeserializedPayload = {
     timestamp: number
     header: StreamingEventHeader & { type: string; zone?: string; [key: string]: unknown }
     content: unknown
+    /** Snapshot sidecar replay watermark from wire update.replayAt when present */
+    replayAt?: number
 }
 
 const deserializerRegistry = new Map<
@@ -35,6 +37,17 @@ const deserializerRegistry = new Map<
 >()
 
 let lifeLineSubscriptionId: string | undefined
+
+const replayAtFromSnapshotUpdate = (
+    update: { type?: string; [key: string]: unknown } | undefined,
+    headerType: string
+): number | undefined => {
+    if (headerType !== 'Snapshot' || !update) {
+        return undefined
+    }
+    const replayAt = update.replayAt
+    return typeof replayAt === 'number' ? replayAt : undefined
+}
 
 /**
  * Register a deserializer for a data source key.
@@ -82,17 +95,24 @@ function startLifeLineBridge(): void {
                     content: coreFormat.update as any,
                     header: coreFormat.header as any
                 })
-                if (!content) return
+                if (!content) {
+                    return
+                }
                 const header = { ...coreFormat.header }
                 if (Object.prototype.hasOwnProperty.call(coreFormat.update, 'zone')) {
                     ;(header as Record<string, unknown>).zone = (coreFormat.update as Record<string, unknown>).zone
                 }
+                const replayAt = replayAtFromSnapshotUpdate(
+                    coreFormat.update as { type?: string; [key: string]: unknown },
+                    header.type
+                )
                 StreamEventPubSub.publish({
                     dataSourceKey,
                     streamKey,
                     timestamp,
                     header,
-                    content
+                    content,
+                    ...(replayAt !== undefined ? { replayAt } : {})
                 })
             } catch (err) {
                 console.warn(
