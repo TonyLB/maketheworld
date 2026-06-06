@@ -2,32 +2,28 @@ import { PayloadAction } from '@reduxjs/toolkit'
 import type { Draft } from 'immer'
 import type { EventPayload, SerializableObject, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
-import type { DataSourcePublic, RecentEventEnvelope, RequestIdTrackingConfig } from './baseClasses'
+import {
+    COMPACTED_CHECKPOINT_HEADER_TYPE,
+    SNAPSHOT_HEADER_TYPE,
+    type DataSourcePublic,
+    type RecentEventEnvelope,
+    type RequestIdTrackingConfig
+} from './baseClasses'
 import type { StreamEventDeserializedPayload } from './streamEventPubSub'
 import { appendConfirmedRequestIds, extractConfirmedIdsFromHeader, pruneStaleConfirmedRequestIdRows } from './requestIdTracking'
 import {
     logWmlPerformCleanup,
     logWmlProcessEnvelope,
-    type WmlPerformCleanupBaselineSource,
     type WmlPerformCleanupContext
 } from '../../testing/wmlStreamSyncInstrumentation'
 
-const SNAPSHOT_HEADER_TYPE = 'Snapshot'
 const WML_DATA_SOURCE_KEY = 'mtw.wml'
 
-const baselineSourceFromSnapshotEvents = <
+type LedgerEnvelope<
     SnapshotPayload extends SerializableObject,
+    UpdatePayload extends EventPayload,
     Header extends StreamingEventHeader
->(
-    snapshotEvents: Array<RecentEventEnvelope<SnapshotPayload, Header>>
-): WmlPerformCleanupBaselineSource => {
-    if (snapshotEvents.length === 0) {
-        return 'empty'
-    }
-    const lastSnapshot = snapshotEvents[snapshotEvents.length - 1]
-    const dataSourceKey = (lastSnapshot.header as Record<string, unknown>).dataSourceKey
-    return dataSourceKey === '' ? 'synthetic-prior' : 'snapshot-in-oldEvents'
-}
+> = RecentEventEnvelope<UpdatePayload | SnapshotPayload, Header>
 
 /** publicData fields touched by pruneStaleConfirmedRequestIds */
 type PruneConfirmedRequestIdsState = Pick<
@@ -43,6 +39,141 @@ type StreamStateUpdate<
     materializedView: SnapshotPayload
     recentEvents: Array<RecentEventEnvelope<UpdatePayload | SnapshotPayload, Header>>
     confirmedRequestIds?: Array<{ id: string; seenAt: number }>
+}
+
+export const isAuthoritativeSnapshotHeader = (header: StreamingEventHeader): boolean =>
+    header.type === SNAPSHOT_HEADER_TYPE &&
+    typeof header.dataSourceKey === 'string' &&
+    header.dataSourceKey.length > 0
+
+export const isCompactedCheckpointHeader = (header: StreamingEventHeader): boolean =>
+    header.type === COMPACTED_CHECKPOINT_HEADER_TYPE
+
+export const isUpdateEnvelopeHeader = (header: StreamingEventHeader): boolean =>
+    !isAuthoritativeSnapshotHeader(header) && !isCompactedCheckpointHeader(header)
+
+/** Parity with resolveReplayCursorTimestamp in packages/mtw-lambda-patterns/ts/dataSource/index.ts (do not import index here -- pulls lambda-only deps into the client bundle). */
+export const resolveReplayCursor = (
+    envelope: Pick<RecentEventEnvelope<unknown, StreamingEventHeader>, 'timestamp' | 'replayAt'>
+): number =>
+    envelope.replayAt ?? envelope.timestamp
+
+export const rowCursor = <
+    SnapshotPayload extends SerializableObject,
+    UpdatePayload extends EventPayload,
+    Header extends StreamingEventHeader
+>(
+    row: LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>
+): number =>
+    isAuthoritativeSnapshotHeader(row.header)
+        ? resolveReplayCursor(row)
+        : row.timestamp
+
+export const sortUpdateEnvelopes = <
+    UpdatePayload extends EventPayload,
+    Header extends StreamingEventHeader
+>(
+    events: Array<RecentEventEnvelope<UpdatePayload, Header>>
+): Array<RecentEventEnvelope<UpdatePayload, Header>> =>
+    [...events].sort((a, b) => compareLedgerRows(a, b))
+
+const ledgerRowKindOrder = (header: StreamingEventHeader): number => {
+    if (isAuthoritativeSnapshotHeader(header)) {
+        return 0
+    }
+    if (isCompactedCheckpointHeader(header)) {
+        return 1
+    }
+    return 2
+}
+
+const compareLedgerRows = <
+    SnapshotPayload extends SerializableObject,
+    UpdatePayload extends EventPayload,
+    Header extends StreamingEventHeader
+>(
+    a: LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>,
+    b: LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>
+): number => {
+    if (a.timestamp !== b.timestamp) {
+        return a.timestamp - b.timestamp
+    }
+    const kindDiff = ledgerRowKindOrder(a.header) - ledgerRowKindOrder(b.header)
+    if (kindDiff !== 0) {
+        return kindDiff
+    }
+    return (a.eventId ?? '').localeCompare(b.eventId ?? '')
+}
+
+export const sortLedgerChronologically = <
+    SnapshotPayload extends SerializableObject,
+    UpdatePayload extends EventPayload,
+    Header extends StreamingEventHeader
+>(
+    recentEvents: Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>>
+): Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>> =>
+    [...recentEvents].sort(compareLedgerRows)
+
+export const invalidateCompactedCheckpointsAt = <
+    SnapshotPayload extends SerializableObject,
+    UpdatePayload extends EventPayload,
+    Header extends StreamingEventHeader
+>(
+    recentEvents: Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>>,
+    timestamp: number
+): Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>> =>
+    recentEvents.filter(row => !isCompactedCheckpointHeader(row.header) || row.timestamp < timestamp)
+
+export const pruneLedgerBeforeAuthoritativeSnapshot = <
+    SnapshotPayload extends SerializableObject,
+    UpdatePayload extends EventPayload,
+    Header extends StreamingEventHeader
+>(
+    recentEvents: Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>>,
+    incomingSnapshot: RecentEventEnvelope<SnapshotPayload, Header>
+): Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>> => {
+    const cutoff = resolveReplayCursor(incomingSnapshot)
+    return recentEvents.filter(row => rowCursor(row) > cutoff)
+}
+
+export const findLatestAuthoritativeSnapshot = <
+    SnapshotPayload extends SerializableObject,
+    UpdatePayload extends EventPayload,
+    Header extends StreamingEventHeader
+>(
+    recentEvents: Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>>
+): RecentEventEnvelope<SnapshotPayload, Header> | null => {
+    let latest: RecentEventEnvelope<SnapshotPayload, Header> | null = null
+    for (const row of recentEvents) {
+        if (!isAuthoritativeSnapshotHeader(row.header)) {
+            continue
+        }
+        const snapshotRow = row as RecentEventEnvelope<SnapshotPayload, Header>
+        if (!latest || snapshotRow.timestamp > latest.timestamp) {
+            latest = snapshotRow
+        }
+    }
+    return latest
+}
+
+export const findLatestValidCompactedCheckpoint = <
+    SnapshotPayload extends SerializableObject,
+    UpdatePayload extends EventPayload,
+    Header extends StreamingEventHeader
+>(
+    recentEvents: Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>>
+): RecentEventEnvelope<SnapshotPayload, Header> | null => {
+    let latest: RecentEventEnvelope<SnapshotPayload, Header> | null = null
+    for (const row of recentEvents) {
+        if (!isCompactedCheckpointHeader(row.header)) {
+            continue
+        }
+        const cpRow = row as RecentEventEnvelope<SnapshotPayload, Header>
+        if (!latest || cpRow.timestamp > latest.timestamp) {
+            latest = cpRow
+        }
+    }
+    return latest
 }
 
 const buildStreamUpdate = <
@@ -86,11 +217,6 @@ const buildStreamUpdate = <
     return update
 }
 
-//
-// Helper function: Apply multiple update events to a baseline snapshot (reduce pattern)
-// Note: Only accepts UpdatePayload events, not snapshots
-// Curried: First apply aggregator, then apply to (baselineSnapshot, events)
-//
 export const applyEvents = <
     SnapshotPayload extends SerializableObject,
     UpdatePayload extends EventPayload,
@@ -101,20 +227,114 @@ export const applyEvents = <
     baselineSnapshot: SnapshotPayload,
     events: Array<RecentEventEnvelope<UpdatePayload, Header>>
 ): SnapshotPayload => {
-    return events.reduce((snapshot, { header, content }) => {
+    const sorted = sortUpdateEnvelopes(events)
+    return sorted.reduce((snapshot, { header, content }) => {
         const result = aggregator.applyUpdate(snapshot, { header, content })
         return result.success ? result.snapshot : snapshot
     }, baselineSnapshot)
 }
 
-//
-// Helper function: Perform 30-second cleanup (consolidate old events into snapshot)
-// Returns cleaned up recentEvents array
-// Takes incomingTimestamp to ensure cleanup accounts for the event being processed
-// Uses header.type === 'Snapshot' for discrimination; no content-based type guards.
-// Curried: First apply config, then apply to (recentEvents, incomingTimestamp, streamKey)
-//
-export const performCleanup = <
+const countUpdatesSinceSnapshot = <
+    SnapshotPayload extends SerializableObject,
+    UpdatePayload extends EventPayload,
+    Header extends StreamingEventHeader
+>(
+    recentEvents: Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>>,
+    snapshotIndex: number
+): number =>
+    recentEvents.slice(snapshotIndex + 1).filter(row => isUpdateEnvelopeHeader(row.header)).length
+
+const updateRowsAfterSnapshot = <
+    SnapshotPayload extends SerializableObject,
+    UpdatePayload extends EventPayload,
+    Header extends StreamingEventHeader
+>(
+    recentEvents: Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>>,
+    snapshotIndex: number
+): Array<RecentEventEnvelope<UpdatePayload, Header>> =>
+    recentEvents
+        .slice(snapshotIndex + 1)
+        .filter((row): row is RecentEventEnvelope<UpdatePayload, Header> => isUpdateEnvelopeHeader(row.header))
+
+const hasNearTailCompactedCheckpoint = <
+    SnapshotPayload extends SerializableObject,
+    UpdatePayload extends EventPayload,
+    Header extends StreamingEventHeader
+>(
+    recentEvents: Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>>,
+    snapshotIndex: number,
+    desirableMedian: number
+): boolean => {
+    const updates = updateRowsAfterSnapshot(recentEvents, snapshotIndex)
+    if (updates.length === 0) {
+        return false
+    }
+    const backCount = Math.max(1, Math.floor(desirableMedian / 2))
+    const tailStartIndex = Math.max(0, updates.length - backCount)
+    const tailStartTimestamp = updates[tailStartIndex].timestamp
+    return recentEvents.some(
+        row => isCompactedCheckpointHeader(row.header) && row.timestamp >= tailStartTimestamp
+    )
+}
+
+const insertCompactedCheckpoint = <
+    SnapshotPayload extends SerializableObject,
+    UpdatePayload extends EventPayload,
+    Header extends StreamingEventHeader
+>(
+    recentEvents: Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>>,
+    snapshotIndex: number,
+    snapshotRow: RecentEventEnvelope<SnapshotPayload, Header> | null,
+    applyEventsWithAggregator: ReturnType<typeof applyEvents<SnapshotPayload, UpdatePayload, Header>>,
+    streamKey: string,
+    dataSourceKey: string,
+    desirableMedian: number,
+    aggregator: DataSourceAggregator<SnapshotPayload, UpdatePayload>
+): Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>> => {
+    const updates = updateRowsAfterSnapshot(recentEvents, snapshotIndex)
+    if (updates.length === 0) {
+        return recentEvents
+    }
+
+    const backCount = Math.max(1, Math.floor(desirableMedian / 2))
+    const targetUpdateIndex = Math.max(0, updates.length - 1 - backCount)
+    const targetUpdate = updates[targetUpdateIndex]
+    const updatesToAggregate = updates.slice(0, targetUpdateIndex + 1)
+
+    const priorCp = findLatestValidCompactedCheckpoint(recentEvents)
+    let baseline: SnapshotPayload
+    let baselineCursor: number
+
+    if (snapshotRow) {
+        baseline = snapshotRow.content
+        baselineCursor = resolveReplayCursor(snapshotRow)
+    } else if (priorCp && priorCp.timestamp < targetUpdate.timestamp) {
+        baseline = priorCp.content
+        baselineCursor = priorCp.timestamp
+    } else {
+        baseline = aggregator.createEmpty(streamKey)
+        baselineCursor = 0
+    }
+
+    const applicableUpdates = updatesToAggregate.filter(row => row.timestamp > baselineCursor)
+    const cpContent = applyEventsWithAggregator(baseline, applicableUpdates)
+
+    const cpRow: RecentEventEnvelope<SnapshotPayload, Header> = {
+        header: {
+            dataSourceKey,
+            streamKey,
+            timestamp: targetUpdate.timestamp,
+            type: COMPACTED_CHECKPOINT_HEADER_TYPE
+        } as Header,
+        content: cpContent,
+        timestamp: targetUpdate.timestamp
+    }
+
+    const withoutCheckpoints = recentEvents.filter(row => !isCompactedCheckpointHeader(row.header))
+    return sortLedgerChronologically([...withoutCheckpoints, cpRow])
+}
+
+export const recomputeMaterializedViewFromLedger = <
     SnapshotPayload extends SerializableObject,
     UpdatePayload extends EventPayload,
     Header extends StreamingEventHeader = StreamingEventHeader
@@ -122,88 +342,115 @@ export const performCleanup = <
     aggregator: DataSourceAggregator<SnapshotPayload, UpdatePayload>,
     applyEventsWithAggregator: ReturnType<typeof applyEvents<SnapshotPayload, UpdatePayload, Header>>
 ) => (
-    recentEvents: Array<RecentEventEnvelope<UpdatePayload | SnapshotPayload, Header>>,
-    incomingTimestamp: number,
-    streamKey: string,
-    instrumentation?: WmlPerformCleanupContext
-): Array<RecentEventEnvelope<UpdatePayload | SnapshotPayload, Header>> => {
-        // Use the latest timestamp (including incoming event) as "now" (pure function - no Date.now())
-        // If recentEvents is empty, the spread becomes no-op and Math.max(incomingTimestamp) = incomingTimestamp
-        const latestTimestamp = Math.max(...recentEvents.map(e => e.timestamp), incomingTimestamp)
-        const thirtySecondsAgo = latestTimestamp - 30000
+    recentEvents: Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>>,
+    streamKey: string
+): SnapshotPayload => {
+    const latestSnapshot = findLatestAuthoritativeSnapshot(recentEvents)
+    const latestCp = findLatestValidCompactedCheckpoint(recentEvents)
 
-        // Separate old and recent events
-        const oldEvents = recentEvents.filter(e => e.timestamp <= thirtySecondsAgo)
-        const stillRecentEvents = recentEvents.filter(e => e.timestamp > thirtySecondsAgo)
+    let baseline: SnapshotPayload
+    let replayCursor: number
 
-        if (oldEvents.length === 0) {
-            if (instrumentation) {
-                logWmlPerformCleanup({
-                    caller: instrumentation.caller,
-                    headerType: instrumentation.headerType,
-                    streamKey,
-                    incomingTimestamp,
-                    latestTimestamp,
-                    thirtySecondsAgo,
-                    oldEvents,
-                    stillRecentEvents,
-                    action: 'no-op'
-                })
-            }
-            // No cleanup needed
-            return recentEvents
-        }
-
-        // Find the most recent snapshot in oldEvents (or use empty as baseline)
-        const snapshotEvents = oldEvents.filter((e): e is RecentEventEnvelope<SnapshotPayload, Header> => e.header.type === SNAPSHOT_HEADER_TYPE)
-        const baselineSource = baselineSourceFromSnapshotEvents(snapshotEvents)
-        const baselineSnapshot = snapshotEvents.length > 0
-            ? snapshotEvents[snapshotEvents.length - 1].content
-            : aggregator.createEmpty(streamKey)
-
-        // Find events after the baseline snapshot (header.type !== 'Snapshot')
-        const baselineTimestamp = snapshotEvents.length > 0 ? snapshotEvents[snapshotEvents.length - 1].timestamp : 0
-        const eventsAfterBaseline = oldEvents
-            .filter(e => e.timestamp > baselineTimestamp && e.header.type !== SNAPSHOT_HEADER_TYPE)
-            .sort((a, b) => a.timestamp - b.timestamp)
-            .filter((e): e is RecentEventEnvelope<UpdatePayload, Header> => e.header.type !== SNAPSHOT_HEADER_TYPE)
-
-    // Consolidate by applying events to baseline
-    const consolidatedSnapshot = applyEventsWithAggregator(baselineSnapshot, eventsAfterBaseline)
-
-    // Create synthetic snapshot event at 30-second boundary (placeholder header; not used for aggregation)
-    const syntheticSnapshot: RecentEventEnvelope<SnapshotPayload, Header> = {
-        header: { dataSourceKey: '', streamKey: '', timestamp: thirtySecondsAgo, type: SNAPSHOT_HEADER_TYPE } as Header,
-        content: consolidatedSnapshot,
-        timestamp: thirtySecondsAgo
+    if (latestSnapshot) {
+        baseline = latestSnapshot.content
+        replayCursor = resolveReplayCursor(latestSnapshot)
+    } else if (latestCp) {
+        baseline = latestCp.content
+        replayCursor = latestCp.timestamp
+    } else {
+        baseline = aggregator.createEmpty(streamKey)
+        replayCursor = 0
     }
 
+    if (latestSnapshot && latestCp && latestCp.timestamp > replayCursor) {
+        baseline = latestCp.content
+        replayCursor = latestCp.timestamp
+    }
+
+    const updateEvents = recentEvents.filter(
+        (row): row is RecentEventEnvelope<UpdatePayload, Header> =>
+            isUpdateEnvelopeHeader(row.header) && row.timestamp > replayCursor
+    )
+
+    return applyEventsWithAggregator(baseline, updateEvents)
+}
+
+export const performCleanup = <
+    SnapshotPayload extends SerializableObject,
+    UpdatePayload extends EventPayload,
+    Header extends StreamingEventHeader = StreamingEventHeader
+>(
+    aggregator: DataSourceAggregator<SnapshotPayload, UpdatePayload>,
+    applyEventsWithAggregator: ReturnType<typeof applyEvents<SnapshotPayload, UpdatePayload, Header>>,
+    desirableMedian: number,
+    dataSourceKey: string
+) => (
+    recentEvents: Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>>,
+    streamKey: string,
+    instrumentation?: WmlPerformCleanupContext
+): Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>> => {
+    const latestSnapshot = findLatestAuthoritativeSnapshot(recentEvents)
+    let snapshotIndex = -1
+    if (latestSnapshot) {
+        snapshotIndex = recentEvents.findIndex(
+            row => isAuthoritativeSnapshotHeader(row.header) && row.timestamp === latestSnapshot.timestamp
+        )
+    }
+
+    const tailUpdateCount = snapshotIndex >= 0
+        ? countUpdatesSinceSnapshot(recentEvents, snapshotIndex)
+        : recentEvents.filter(row => isUpdateEnvelopeHeader(row.header)).length
+
+    const threshold = 1.5 * desirableMedian
+    const nearTailCp = snapshotIndex >= 0
+        ? hasNearTailCompactedCheckpoint(recentEvents, snapshotIndex, desirableMedian)
+        : recentEvents.some(row => isCompactedCheckpointHeader(row.header))
+
+    const shouldInsert =
+        tailUpdateCount > threshold ||
+        (tailUpdateCount > 0 && !nearTailCp && tailUpdateCount > Math.floor(desirableMedian / 2))
+
+    if (!shouldInsert) {
+        if (instrumentation) {
+            logWmlPerformCleanup({
+                caller: instrumentation.caller,
+                headerType: instrumentation.headerType,
+                streamKey,
+                tailUpdateCount,
+                desirableMedian,
+                action: 'no-op'
+            })
+        }
+        return recentEvents
+    }
+
+    const result = insertCompactedCheckpoint(
+        recentEvents,
+        snapshotIndex,
+        latestSnapshot,
+        applyEventsWithAggregator,
+        streamKey,
+        dataSourceKey,
+        desirableMedian,
+        aggregator
+    )
+
+    const cpRow = result.find(row => isCompactedCheckpointHeader(row.header))
     if (instrumentation) {
         logWmlPerformCleanup({
             caller: instrumentation.caller,
             headerType: instrumentation.headerType,
             streamKey,
-            incomingTimestamp,
-            latestTimestamp,
-            thirtySecondsAgo,
-            oldEvents,
-            stillRecentEvents,
-            action: 'consolidated',
-            syntheticTimestamp: thirtySecondsAgo,
-            baselineSource
+            tailUpdateCount,
+            desirableMedian,
+            action: 'inserted-cp',
+            cpTimestamp: cpRow?.timestamp
         })
     }
 
-    // Return cleaned up recentEvents with synthetic snapshot + recent events
-    return [syntheticSnapshot, ...stillRecentEvents]
+    return result
 }
 
-//
-// Reducer: Process incoming snapshot or event envelope with pre-resolved internal content.
-// Expects content to already be deserialized (the thunk handles resolution before dispatch).
-// Branches on header.type === 'Snapshot' to apply aggregator logic.
-// Curried: First apply config, then return the reducer (state, action) => void
-//
 export const processEnvelope = <
     SnapshotPayload extends SerializableObject,
     UpdatePayload extends EventPayload,
@@ -215,152 +462,116 @@ export const processEnvelope = <
     performCleanupWithConfig: ReturnType<typeof performCleanup<SnapshotPayload, UpdatePayload, Header>>,
     applyEventsWithAggregator: ReturnType<typeof applyEvents<SnapshotPayload, UpdatePayload, Header>>,
     requestIdTracking?: RequestIdTrackingConfig
-) => (
-    state: any,
-    action: PayloadAction<StreamEventDeserializedPayload>
 ) => {
-    const { streamKey, timestamp, header, content } = action.payload
+    const recompute = recomputeMaterializedViewFromLedger(aggregator, applyEventsWithAggregator)
 
-    // Check if stream is subscribed
-    const stream = state.subscribedStreams[streamKey]
-    if (!stream) {
-        return
-    }
+    return (
+        state: any,
+        action: PayloadAction<StreamEventDeserializedPayload>
+    ) => {
+        const { streamKey, timestamp, header, content, replayAt } = action.payload
 
-    const streamingHeader = header as Header
-
-    // NOTE: We pass InternalPayload and Header as separate type params; the action payload is
-    // StreamEventDeserializedPayload, which is not a discriminated union on
-    // header.type. So we cannot use an envelope type guard to narrow content—we must cast.
-    // Future refactor: define the payload as a discriminated union so header.type narrows content.
-    if (header.type === SNAPSHOT_HEADER_TYPE) {
-        // Snapshot path - content is already internal
-        const snapshot = content as SnapshotPayload
-        const snapshotTimestamp = timestamp
-        const cleanupInstrumentation = dataSourceKey === WML_DATA_SOURCE_KEY
-            ? { caller: 'snapshot' as const, headerType: header.type }
-            : undefined
-        const cleanedRecentEvents = performCleanupWithConfig(
-            stream.recentEvents,
-            snapshotTimestamp,
-            streamKey,
-            cleanupInstrumentation
-        )
-        const eventsAfterSnapshot = cleanedRecentEvents.filter(e => e.timestamp > snapshotTimestamp)
-
-        const snapshotEvent: RecentEventEnvelope<SnapshotPayload, Header> = { header: streamingHeader, content: snapshot, timestamp: snapshotTimestamp }
-        const newRecentEvents = [snapshotEvent, ...eventsAfterSnapshot]
-
-        const updateEventsAfterSnapshot = eventsAfterSnapshot.filter((e): e is RecentEventEnvelope<UpdatePayload, Header> => e.header.type !== SNAPSHOT_HEADER_TYPE)
-        const newMaterializedView = applyEventsWithAggregator(snapshot, updateEventsAfterSnapshot)
-
-        state.subscribedStreams[streamKey] = buildStreamUpdate(
-            newMaterializedView,
-            newRecentEvents,
-            streamingHeader,
-            snapshotTimestamp,
-            stream,
-            requestIdTracking
-        )
-        if (dataSourceKey === WML_DATA_SOURCE_KEY) {
-            const latestCachedTimestamp = cleanedRecentEvents.length > 0
-                ? Math.max(...cleanedRecentEvents.map(e => e.timestamp))
-                : 0
-            logWmlProcessEnvelope({
-                path: 'snapshot',
-                streamKey,
-                incomingTimestamp: snapshotTimestamp,
-                latestCachedTimestamp,
-                eventsAfterSnapshotCount: eventsAfterSnapshot.length,
-                recentEvents: newRecentEvents,
-                materializedView: newMaterializedView
-            })
+        const stream = state.subscribedStreams[streamKey]
+        if (!stream) {
+            return
         }
-    } else {
-        // Event path - content is already internal
-        const event = content as UpdatePayload
-        const eventTimestamp = timestamp
-        const cleanupInstrumentation = dataSourceKey === WML_DATA_SOURCE_KEY
-            ? { caller: 'event' as const, headerType: header.type }
+
+        const streamingHeader = header as Header
+        const cleanupInstrumentation: WmlPerformCleanupContext | undefined = dataSourceKey === WML_DATA_SOURCE_KEY
+            ? {
+                caller: header.type === SNAPSHOT_HEADER_TYPE ? 'snapshot' : 'event',
+                headerType: header.type
+            }
             : undefined
-        const cleanedRecentEvents = performCleanupWithConfig(
-            stream.recentEvents,
-            eventTimestamp,
-            streamKey,
-            cleanupInstrumentation
-        )
-        const latestTimestamp = cleanedRecentEvents.length > 0
-            ? Math.max(...cleanedRecentEvents.map(e => e.timestamp))
-            : 0
 
-        const isInOrder = eventTimestamp >= latestTimestamp
-        const newEnvelope: RecentEventEnvelope<UpdatePayload, Header> = { header: streamingHeader, content: event, timestamp: eventTimestamp }
+        let recentEvents: Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>>
+        let usedFastPath = false
+        let newMaterializedView: SnapshotPayload
 
-        if (isInOrder) {
-            const result = aggregator.applyUpdate(stream.materializedView, { header: streamingHeader, content: event })
-            const newMaterializedView = result.success ? result.snapshot : stream.materializedView
-            const newRecentEvents = [...cleanedRecentEvents, newEnvelope]
+        if (header.type === SNAPSHOT_HEADER_TYPE && isAuthoritativeSnapshotHeader(header)) {
+            const snapshot = content as SnapshotPayload
+            const snapshotEvent: RecentEventEnvelope<SnapshotPayload, Header> = {
+                header: streamingHeader,
+                content: snapshot,
+                timestamp,
+                ...(replayAt !== undefined ? { replayAt } : {})
+            }
+
+            recentEvents = pruneLedgerBeforeAuthoritativeSnapshot(stream.recentEvents, snapshotEvent)
+            recentEvents = sortLedgerChronologically([...recentEvents, snapshotEvent])
+            recentEvents = performCleanupWithConfig(recentEvents, streamKey, cleanupInstrumentation)
+            newMaterializedView = recompute(recentEvents, streamKey)
 
             state.subscribedStreams[streamKey] = buildStreamUpdate(
                 newMaterializedView,
-                newRecentEvents,
+                recentEvents,
                 streamingHeader,
-                eventTimestamp,
+                timestamp,
                 stream,
                 requestIdTracking
             )
+
             if (dataSourceKey === WML_DATA_SOURCE_KEY) {
+                const replayCursor = resolveReplayCursor(snapshotEvent)
+                const updatesAfterCursor = recentEvents.filter(
+                    row => isUpdateEnvelopeHeader(row.header) && row.timestamp > replayCursor
+                )
                 logWmlProcessEnvelope({
-                    path: 'event-in-order',
+                    path: 'snapshot',
                     streamKey,
-                    incomingTimestamp: eventTimestamp,
-                    latestCachedTimestamp: latestTimestamp,
-                    recentEvents: newRecentEvents,
+                    incomingTimestamp: timestamp,
+                    replayCursor,
+                    latestCachedTimestamp: recentEvents.length > 0
+                        ? Math.max(...recentEvents.map(e => e.timestamp))
+                        : 0,
+                    eventsAfterSnapshotCount: updatesAfterCursor.length,
+                    recentEvents,
                     materializedView: newMaterializedView
                 })
             }
         } else {
-            const snapshotEvents = cleanedRecentEvents.filter((e): e is RecentEventEnvelope<SnapshotPayload, Header> => e.header.type === SNAPSHOT_HEADER_TYPE)
-            const baselineSnapshot = snapshotEvents.length > 0
-                ? snapshotEvents[snapshotEvents.length - 1].content
-                : aggregator.createEmpty(streamKey)
-            const baselineTimestamp = snapshotEvents.length > 0
-                ? snapshotEvents[snapshotEvents.length - 1].timestamp
+            const event = content as UpdatePayload
+            const priorEvents: Array<LedgerEnvelope<SnapshotPayload, UpdatePayload, Header>> = stream.recentEvents
+            const latestPriorTimestamp = priorEvents.length > 0
+                ? Math.max(...priorEvents.map(e => e.timestamp))
                 : 0
+            const isInOrder = timestamp >= latestPriorTimestamp
 
-            const allEvents: Array<RecentEventEnvelope<UpdatePayload | SnapshotPayload, Header>> = [
-                ...cleanedRecentEvents,
-                newEnvelope
-            ]
-            const sortedEvents = allEvents.sort((a, b) => a.timestamp - b.timestamp)
-            const sortedUpdateEvents = sortedEvents.filter((e): e is RecentEventEnvelope<UpdatePayload, Header> =>
-                e.header.type !== SNAPSHOT_HEADER_TYPE && e.timestamp > baselineTimestamp
-            )
+            const newEnvelope: RecentEventEnvelope<UpdatePayload, Header> = {
+                header: streamingHeader,
+                content: event,
+                timestamp
+            }
 
-            const newMaterializedView = applyEventsWithAggregator(baselineSnapshot, sortedUpdateEvents)
-            const baselineSnapshotEvent = snapshotEvents.length > 0 ? snapshotEvents[snapshotEvents.length - 1] : null
-            const sortedEventsWithoutBaseline = baselineSnapshotEvent
-                ? sortedEvents.filter(e => !(e.header.type === SNAPSHOT_HEADER_TYPE && e.timestamp === baselineTimestamp))
-                : sortedEvents
-            const newRecentEvents = baselineSnapshotEvent
-                ? [baselineSnapshotEvent, ...sortedEventsWithoutBaseline]
-                : sortedEvents
+            recentEvents = [...priorEvents, newEnvelope]
+            recentEvents = invalidateCompactedCheckpointsAt(recentEvents, timestamp)
+            recentEvents = performCleanupWithConfig(recentEvents, streamKey, cleanupInstrumentation)
+            recentEvents = sortLedgerChronologically(recentEvents)
+
+            if (isInOrder) {
+                const result = aggregator.applyUpdate(stream.materializedView, { header: streamingHeader, content: event })
+                newMaterializedView = result.success ? result.snapshot : stream.materializedView
+                usedFastPath = true
+            } else {
+                newMaterializedView = recompute(recentEvents, streamKey)
+            }
 
             state.subscribedStreams[streamKey] = buildStreamUpdate(
                 newMaterializedView,
-                newRecentEvents,
+                recentEvents,
                 streamingHeader,
-                eventTimestamp,
+                timestamp,
                 stream,
                 requestIdTracking
             )
+
             if (dataSourceKey === WML_DATA_SOURCE_KEY) {
                 logWmlProcessEnvelope({
-                    path: 'event-reagg',
+                    path: usedFastPath ? 'event-in-order' : 'event-reagg',
                     streamKey,
-                    incomingTimestamp: eventTimestamp,
-                    latestCachedTimestamp: latestTimestamp,
-                    recentEvents: newRecentEvents,
+                    incomingTimestamp: timestamp,
+                    latestCachedTimestamp: latestPriorTimestamp,
+                    recentEvents,
                     materializedView: newMaterializedView
                 })
             }

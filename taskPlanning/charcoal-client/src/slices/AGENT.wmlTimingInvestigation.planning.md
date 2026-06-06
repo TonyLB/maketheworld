@@ -1,6 +1,6 @@
 # WML subscribe merge investigation (charcoal-client)
 
-**Status:** In progress. **Next step:** Phase 3 --- implement non-destructive ledger + `CompactedCheckpoint` redesign in [`reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts) per durable docs in [`dataSource/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.md) and [`AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md).
+**Status:** In progress. **Next step:** Phase 4 --- automated ledger-sequencing regression tests in [`reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts); Phase 3 manual reload verify passed (2026-06-06).
 
 **Deferred (separate task):** [`AGENT.extendedHeaderRequestIdFix.planning.md`](AGENT.extendedHeaderRequestIdFix.planning.md) --- wire `extendedHeader.RequestIds` vs client `header.RequestIds` (not this bug's root cause).
 
@@ -92,8 +92,8 @@ npm run test:single -- src/slices/wmlDataSource/index.test.ts
 | 2 | Reproduce with logs; record findings in **Discoveries** | Done |
 | 2.5 | Instrument `performCleanup`; confirm cleanup role on subscribe reload | Done |
 | 2.6 | Ledger redesign + durable design (non-destructive CPs; abandon 30s window) | Done |
-| 3 | Implement fix per Phase 2.6 design | Not started |
-| 4 | Regression test(s) | Not started |
+| 3 | Implement fix per Phase 2.6 design | Done |
+| 4 | Ledger sequencing regression tests (generic `reducers.test.ts`) | Not started |
 | 5 | Remove instrumentation; update durable docs if needed | Not started |
 
 ---
@@ -258,12 +258,33 @@ Investigation conclusion (post Phase 2.5): the bug is **destructive** `performCl
 
 ### 2026-06-06 --- Phase 2.6 durable docs landed
 
-Migrated Phase 2.6 ledger contract into slice `AGENT.md` files (normative target; code alignment in Phase 3):
+Migrated Phase 2.6 ledger contract into slice `AGENT.md` files (normative target; code aligned in Phase 3):
 
 - [`dataSource/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.md) --- event ledger model, replayCursor, OOO handling, anti-patterns
-- [`dataSource/AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) --- Contract and Guarantees, Event Processing algorithm, Performance/Memory; implementation status banner until Phase 3
+- [`dataSource/AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) --- Contract and Guarantees, Event Processing algorithm, Performance/Memory
 - [`wmlDataSource/AGENT.md`](../../../../charcoal-client/src/slices/wmlDataSource/AGENT.md) --- subscribe sidecar OOO, provisional UI (OQ7 freeze-risk note)
 - [`AGENT.client-sync-invariants.md`](../../../../charcoal-client/src/slices/AGENT.client-sync-invariants.md) --- I4 layer 2 provisional vs authoritative `materializedView`
+
+### 2026-06-06 --- Phase 3 implementation (non-destructive ledger)
+
+Implemented Phase 2.6 contract in [`reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts):
+
+- **`CompactedCheckpoint`** header type; optional `replayAt` / `eventId` on `RecentEventEnvelope`; `replayAt` on `StreamEventDeserializedPayload`
+- **Removed** destructive 30s synthetic Snapshot consolidation
+- **`performCleanup`** inserts non-destructive CPs only (tail threshold via `desirableMedian`, default 10)
+- **Authoritative snapshot rebase:** prune existing ledger with `rowCursor(row) > replayCursor(S)`, then append `S`; merge/reapply uses `replayCursor = replayAt ?? createdAt`
+- **Unified** `recomputeMaterializedViewFromLedger` + CP invalidation on OOO updates
+- **Instrumentation:** `performCleanup` logs `inserted-cp` / `no-op`; snapshot `processEnvelope` logs `replayCursor`
+
+**Automated verify:** baseline trio passed (`reducers.test.ts` 39 tests including subscribe OOO + replayAt prune + CP threshold/invalidation; `index.test.ts`; `wmlDataSource/index.test.ts`).
+
+**Manual reload verify:** passed (2026-06-06) --- import Room + shortName + render, save, reload; full merged Workbench UI without waiting for next snapshot; could not repro thin pre-sidecar state.
+
+### 2026-06-06 --- Phase 3 manual smoke test (happy path)
+
+**Wall-clock:** 2026-06-06 session (post-Phase 3 implementation). **Result:** **Could not repro** reload failure --- Workbench showed full merged asset (Area + imported Room in graph/editors) immediately after reload, without waiting for snapshot timeout/regeneration.
+
+**Verdict:** Phase 3 non-destructive ledger fix appears effective for the subscribe OOO sidecar + replay CU scenario documented in **Discoveries** (2026-06-05 failure repros). Proceed to Phase 4 automated regressions on **ledger sequencing** (not WML topology).
 
 ### 2026-06-05 --- Phase 2.6 design session (ledger re-envisioning)
 
@@ -449,16 +470,16 @@ For **non-replayable** slices, `materializedView` is built incrementally from up
 
 ### Phase 3 implementation checklist (from design)
 
-- [ ] Add `CompactedCheckpoint` header type; extend `RecentEventEnvelope` / `recentEvents` union
-- [ ] Remove destructive 30s consolidation from `performCleanup`; implement CP insertion threshold
-- [ ] Implement CP invalidation on update at `x` (`CP.timestamp >= x`)
-- [ ] Implement authoritative Snapshot handling: prune `recentEvents` at `replayCursor(S)`; rebase `materializedView` from `S` + updates after `replayCursor`
-- [ ] Use `replayAt ?? createdAt` for snapshot merge/prune boundary; persist `replayAt` on snapshot ledger rows
-- [ ] Sort updates by `(timestamp, eventId)`; add `eventId` to envelope type when available
-- [ ] Add optional `desirableMedian` to `createDataSourceSlice` config (default 10)
-- [ ] Unify `processEnvelope` snapshot and event paths around shared recompute helper
-- [ ] Update [`reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts): subscribe OOO (`CU` before `S`), OOO update mid-ledger, CP creation threshold, CP invalidation
-- [ ] Migrate durable docs (table above)
+- [X] Add `CompactedCheckpoint` header type; extend `RecentEventEnvelope` / `recentEvents` union
+- [X] Remove destructive 30s consolidation from `performCleanup`; implement CP insertion threshold
+- [X] Implement CP invalidation on update at `x` (`CP.timestamp >= x`)
+- [X] Implement authoritative Snapshot handling: prune `recentEvents` at `replayCursor(S)` via `rowCursor(row)`; prune-before-append; rebase `materializedView` from `S` + updates after `replayCursor`
+- [X] Use `replayAt ?? createdAt` for snapshot merge/prune boundary; persist `replayAt` on snapshot ledger rows
+- [X] Sort updates by `(timestamp, eventId)`; add `eventId` to envelope type when available
+- [X] Add optional `desirableMedian` to `createDataSourceSlice` config (default 10)
+- [X] Unify `processEnvelope` snapshot and event paths around shared recompute helper
+- [X] Update [`reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts): subscribe OOO (`CU` before `S`), OOO update mid-ledger, CP creation threshold, CP invalidation
+- [X] Migrate durable docs (table above)
 
 ### Exit criteria for Phase 2.6
 
@@ -562,7 +583,7 @@ Follow [`charcoal-client/AGENT.testing.instrumentation.md`](../../../../charcoal
 | --- | --- | --- |
 | [`streamEventPubSub/index.ts`](../../../../charcoal-client/src/slices/dataSource/streamEventPubSub/index.ts) | `[wml-stream-sync] ingest` | `phase` (`lifelineReceived` / `deserializeStart` / `deserializeDone` / `published` / `droppedNull` / `failed`), `dataSourceKey`, `streamKey`, `header.type`, envelope `timestamp`, `replayAt` (from raw update when Snapshot), `deserializeMs`, `RequestIds` |
 | [`dataSource/reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts) `processEnvelope` | `[wml-stream-sync] processEnvelope` | `path` (`snapshot` / `event-in-order` / `event-reagg`), `incomingTimestamp`, `latestCachedTimestamp`, `eventsAfterSnapshotCount`, `recentEventsSummary` (`{ type, timestamp, requestIds }[]`), `positionGraphNodes` (from `AREA#*` in materialized view if present), truncated WML digest of `materializedView` |
-| [`dataSource/reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts) `performCleanup` | `[wml-stream-sync] performCleanup` | `caller` (`snapshot` / `event`), `headerType`, `streamKey`, `incomingTimestamp`, `latestTimestamp`, `thirtySecondsAgo`, `oldEventsSummary`, `stillRecentSummary`, `action` (`no-op` / `consolidated`), `syntheticTimestamp`, `baselineSource` (`empty` / `snapshot-in-oldEvents` / `synthetic-prior`) |
+| [`dataSource/reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts) `performCleanup` | `[wml-stream-sync] performCleanup` | `caller` (`snapshot` / `event`), `headerType`, `streamKey`, `tailUpdateCount`, `desirableMedian`, `action` (`no-op` / `inserted-cp`), `cpTimestamp` when inserted |
 | [`personalAssets/index.ts`](../../../../charcoal-client/src/slices/personalAssets/index.ts) `registerWmlAfterProcessEnvelopeConsumer` | `[wml-stream-sync] afterEnvelope` | same envelope ids; `baseComponentCount`, `positionGraphNodes`, `effectivePendingCount`, `localFormComponentCount` |
 
 **Cleanup checklist (Phase 5):**
@@ -583,6 +604,55 @@ Follow [`charcoal-client/AGENT.testing.instrumentation.md`](../../../../charcoal
 | H3 | Placement CU applies but `StandardForm.merge` does not update `positionGraph.nodes` | **Rejected** --- placement loss is cleanup consolidation / ledger truncation, not merge failure on topology delta. |
 | H4 | `performCleanup` consolidation drops replay CUs before sidecar snapshot merge | **Confirmed** --- Phase 2.5: synthetic @ `1780700533578`, placement `1780700532599` absent from ledger; snapshot re-apply skips synthetic Snapshot rows. |
 | H5 | Stale sidecar at subscribe; replay CU excluded by timestamp semantics | **Addressed in Phase 2.6 design** --- client will use `replayAt ?? createdAt` for merge/prune boundary (OQ6); failure repro explained by H2+H4 without proving stale sidecar bytes. |
+
+---
+
+## Phase 4 --- Ledger sequencing regression tests
+
+**Goal:** Lock the **generic merge-engine** behavior that caused the reload bug --- not WML-specific topology. H3 rejected `positionGraph.nodes` as root cause; missing graph nodes in repros was a **symptom** of early replay CUs removed from `recentEvents` before sidecar rebase (H2 + H4).
+
+**Home:** [`reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts) with the mock aggregator (same as Phase 3). **Do not** require `wmlDataSource` integration or `StandardForm` / `positionGraph` assertions for this task.
+
+### Failure modes to guard (mapped to investigation)
+
+| ID | Sequencing problem | What regressed before Phase 3 | Test must assert |
+| --- | --- | --- | --- |
+| **R1** | Replay CUs reach reducer **before** authoritative sidecar `S` | Destructive cleanup or wrong merge left thin `materializedView` | After processing CUs then `S` (with `replayAt`), **every** replay update envelope still in `recentEvents`; `materializedView` equals sidecar baseline + all updates with `timestamp > replayCursor(S)` |
+| **R2** | Replay bundle spans **long timestamp gap** (>>30s between earliest and latest CU) | 30s window consolidated early CUs while `latestTimestamp` came from newest CU | Same as R1 with **3+ updates** and large gaps; **no** update envelope removal; **no** synthetic `Snapshot` with `dataSourceKey: ''` |
+| **R3** | Sidecar `S` arrives with **`replayAt > createdAt`** | Prune/merge used envelope `createdAt` only; wrong replay set | Updates with `timestamp <= replayAt` pruned on rebase; updates strictly after `replayAt` kept and merged; incoming `S` present (prune-before-append) |
+| **R4** | Prior authoritative snapshot in ledger with **`rowCursor` above envelope `timestamp`** | Blind `row.timestamp` prune kept stale snapshot rows | `pruneLedgerBeforeAuthoritativeSnapshot` uses `rowCursor(row) > replayCursor(S)` (unit test --- partially done in Phase 3) |
+| **R5** | `performCleanup` runs during subscribe window | CP logic must **not** remove update envelopes | Update count unchanged when below CP threshold; when CP inserts, all update rows still present (Phase 3 covers --- keep in regression group) |
+
+### Phase 3 coverage (already landed --- fold into regression group)
+
+Phase 3 added tests that already cover much of R1, R3, R4, R5. Phase 4 should **group and name** them, not duplicate blindly:
+
+- `should retain replay updates when sidecar Snapshot arrives OOO with replayAt` --- R1, R3
+- `should prune replay updates at or before replayCursor on authoritative snapshot` --- R3
+- `pruneLedgerBeforeAuthoritativeSnapshot uses rowCursor for prior snapshots` --- R4
+- `should perform cleanup without removing update envelopes` / performCleanup CP tests --- R5
+- `should not create synthetic Snapshot rows with empty dataSourceKey` --- anti-pattern guard
+
+### Phase 4 deliverables
+
+1. **Add** `describe('subscribe reload sequencing regressions', ...)` in [`reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts) --- move or reference Phase 3 tests above; header comment cites H2/H4 and **R1--R5**.
+2. **Add** at least one **multi-update long-gap** scenario (**R2**) not fully exercised by Phase 3:
+   - Process e.g. updates @ T=1000, 50000, 120000 (stand in for placement + field edits), then authoritative `S` @ `createdAt=500`, `replayAt=80000`.
+   - Assert: three update rows survive in `recentEvents`; `materializedView` includes sidecar baseline + updates after `replayAt` only.
+3. **Run** baseline trio (see **Verification**); record pass in this plan when complete.
+
+**Explicitly out of scope for Phase 4:**
+
+- `positionGraph.nodes` or WML placement topology (coincidental diagnostic in manual repro)
+- `wmlDataSource/index.test.ts` unless a future task wants aggregator-level smoke (optional, not required here)
+- Ingest-order / `streamEventPubSub` queue tests (ingest gate superseded; reducer ledger is the fix surface)
+
+### Exit criteria
+
+- [ ] Named regression `describe` in `reducers.test.ts` documents R1--R5
+- [ ] R2 long-gap multi-CU test added
+- [ ] Baseline trio green
+- [ ] This plan **Recommended order** Phase 4 bullets checked off
 
 ---
 
@@ -612,12 +682,13 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets as yo
   - [X] Resolve **OQ1--OQ7** (recorded in **Phase 2.6**; OQ3 `eventId` wire plumbing may extend into Phase 3)
   - [X] Update [`dataSource/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.md) and [`AGENT.implementation.md`](../../../../charcoal-client/src/slices/dataSource/AGENT.implementation.md) (2026-06-06)
   - [X] Complete **Phase 2.6 exit criteria** (durable docs)
-- [ ] **Phase 3 --- Implement (per Phase 2.6 design)**
-  - [ ] `CompactedCheckpoint` type + non-destructive `performCleanup` + invalidation + unified rebase in [`reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts)
-  - [ ] Update [`reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts) (CU before sidecar `S`; OOO update; CP threshold/invalidation)
-  - [ ] Manual verify: reload -> full merged UI without waiting for next snapshot
-- [ ] **Phase 4 --- Tests**
-  - [ ] Add reducer or integration test: CU before sidecar snapshot completes; assert final `materializedView` includes placement (including `positionGraph.nodes` if applicable)
+- [X] **Phase 3 --- Implement (per Phase 2.6 design)**
+  - [X] `CompactedCheckpoint` type + non-destructive `performCleanup` + invalidation + unified rebase in [`reducers.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.ts)
+  - [X] Update [`reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts) (CU before sidecar `S`; OOO update; CP threshold/invalidation)
+  - [X] Manual verify: reload -> full merged UI without waiting for next snapshot
+- [ ] **Phase 4 --- Ledger sequencing regression tests**
+  - [ ] Add `describe('subscribe reload sequencing regressions')` in [`reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts); group Phase 3 tests under R1/R3/R4/R5 (see **Phase 4**)
+  - [ ] Add **R2** long-gap multi-CU test (replay bundle >>30s span, then sidecar `S` with `replayAt`; assert no envelope loss + correct merge)
   - [ ] Run baseline slice tests (see **Verification**)
 - [ ] **Phase 5 --- Cleanup**
   - [ ] Complete **Instrumentation registry** cleanup checklist
@@ -647,14 +718,15 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets as yo
 2. OQ1--OQ7 resolved in **Phase 2.6** (see resolutions table).
 3. Complete durable doc updates (may ship with Phase 3).
 
-**Automated (after fix):**
+**Automated (Phase 4 regression suite):**
+
+Primary home: [`reducers.test.ts`](../../../../charcoal-client/src/slices/dataSource/reducers.test.ts) --- `describe('subscribe reload sequencing regressions')` (see **Phase 4**).
 
 ```bash
 cd charcoal-client
 npm run test:single -- src/slices/dataSource/reducers.test.ts
 npm run test:single -- src/slices/dataSource/index.test.ts
 npm run test:single -- src/slices/wmlDataSource/index.test.ts
-# add path(s) for new regression test(s) when written
 ```
 
 **Manual (after fix):**

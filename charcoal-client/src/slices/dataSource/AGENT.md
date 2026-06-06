@@ -2,7 +2,7 @@
 
 **Purpose**: Generic Redux slice pattern for managing real-time subscriptions to backend data sources with intelligent caching and materialized view management.
 
-**Status**: Production Ready (lifecycle, WebSocket integration, requestIdTracking). Event ledger redesign (non-destructive `CompactedCheckpoint` model) is documented here; see [AGENT.implementation.md](./AGENT.implementation.md) **Implementation status** for code alignment.
+**Status**: Production Ready (lifecycle, WebSocket integration, requestIdTracking, non-destructive event ledger with `CompactedCheckpoint` and `replayCursor` rebase). See [AGENT.implementation.md](./AGENT.implementation.md) **Event Processing**.
 
 ## What It Does
 
@@ -164,11 +164,11 @@ Each subscribed stream stores `recentEvents`: a chronological ledger of envelope
 
 **Contract invariants:**
 
-1. Update envelopes are canonical --- never removed by CP logic; may be pruned on authoritative Snapshot rebase when `timestamp <= replayCursor(S)`.
+1. Update envelopes are canonical --- never removed by CP logic; may be pruned on authoritative Snapshot rebase when `rowCursor(row) <= replayCursor(S)`.
 2. Authoritative Snapshots are backend freeze points; `replayCursor = replayAt ?? createdAt` is the merge and prune boundary (parity with backend [`resolveReplayCursorTimestamp`](../../../packages/mtw-lambda-patterns/ts/dataSource/index.ts)).
 3. CompactedCheckpoints are optional, invalidatable merge caches; timestamp `T` = merged state through all updates with `timestamp <= T`.
 4. **Invalidation (updates):** new information at timestamp `x` drops every CP with `timestamp >= x`.
-5. **Authoritative snapshot rebase:** on authoritative `S`, prune all ledger rows with `timestamp <= replayCursor(S)` (prior snapshots, updates, CPs).
+5. **Authoritative snapshot rebase:** on authoritative `S`, prune **existing** ledger rows where `rowCursor(row) <= replayCursor(S)` (`rowCursor` uses `replayAt ?? timestamp` for snapshot rows, `timestamp` for updates/CPs), then append `S`.
 6. **CP creation:** `performCleanup` inserts CPs only. When the ledger tail warrants a cache (update envelope count exceeds `1.5 * desirableMedian` since the latest authoritative Snapshot, or no near-tail CP exists after mass invalidation), place the CP **`desirableMedian / 2` updates back from the live end** of `recentEvents` --- not `desirableMedian` updates forward from the freshest CP. CP timestamp = timestamp of the last update included in that aggregation. Intermediate CPs between snapshot and live end are unnecessary; CP value is only near the live end (e.g. after a late Snapshot invalidates prior CPs, a single CP lands near the tail rather than hugging the snapshot with a large uncovered gap). `desirableMedian` is optional per-slice config (default 10).
 7. **Memory bounding** --- authoritative backend Snapshots plus post-rebase pruning (dynamic client strategies out of scope).
 

@@ -156,10 +156,6 @@ The heavy lifting (event processing, aggregation logic, serialization) is alread
 
 This section helps you understand and extend the generic `dataSource` pattern.
 
-### **Implementation status**
-
-The **normative contract** in this guide (non-destructive ledger, `CompactedCheckpoint`, `replayCursor` pruning) reflects the Phase 2.6 design. **`reducers.ts` still implements the legacy 30-second destructive cleanup** until Phase 3 of [`taskPlanning/charcoal-client/src/slices/AGENT.wmlTimingInvestigation.planning.md`](../../../taskPlanning/charcoal-client/src/slices/AGENT.wmlTimingInvestigation.planning.md) lands. Remove this banner when code and tests align with the algorithm below.
-
 ### **Architecture Overview**
 
 The pattern is split across several files with clear responsibilities:
@@ -252,25 +248,27 @@ Three main functions handle event processing (target design; see **Implementatio
 **Target merge algorithm** (single path for subscribe reload and live streaming):
 
 ```text
-On any envelope (Update or authoritative Snapshot):
+On authoritative Snapshot S:
+  1. Prune existing ledger: keep rows where rowCursor(row) > replayCursor(S)
+  2. Append S (with replayAt persisted when present); sort ledger chronologically
+  3. Optionally insert CP via performCleanup (never removes rows)
+  4. Recompute materializedView via recomputeMaterializedViewFromLedger
+
+On Update at x:
   1. Append to recentEvents
-  2. If authoritative Snapshot S: prune all rows with timestamp <= replayCursor(S)
-     Else if Update at x: drop CPs with timestamp >= x
-  3. Optionally insert CP via performCleanup (updates only; never removes rows):
-       when tail update count > 1.5 * desirableMedian, place CP desirableMedian/2 updates back from live end
-  4. Recompute materializedView:
-       baseline = latest authoritative Snapshot (by envelope timestamp)
-       replayCursor = replayAt ?? createdAt on that snapshot
-       else latest valid CP; else createEmpty
-       apply Updates with timestamp > replayCursor, sorted by (timestamp, eventId)
-       (use latest valid CP as shortcut when valid)
+  2. Drop CPs with timestamp >= x
+  3. Optionally insert CP via performCleanup
+  4. Recompute (fast path: incremental applyUpdate when strictly in-order)
+
+rowCursor(row): authoritative snapshot -> replayAt ?? timestamp; update/CP -> timestamp
+replayCursor(S): replayAt ?? createdAt (resolveReplayCursorTimestamp)
 ```
 
 **Out-of-order paths:**
 - **Fast path**: New update is later than all cached events -> apply directly to `materializedView`.
 - **Re-aggregation path**: New update is earlier -> recompute via algorithm step 4 (baseline from latest authoritative Snapshot or valid CP).
 
-**Type discrimination:** `recentEvents` union extends to include `CompactedCheckpoint` envelopes (Phase 3: [`baseClasses.ts`](./baseClasses.ts)). Authoritative Snapshots persist `replayAt` from deserialized snapshot payload when present.
+**Type discrimination:** `recentEvents` union includes `CompactedCheckpoint` envelopes ([`baseClasses.ts`](./baseClasses.ts): `COMPACTED_CHECKPOINT_HEADER_TYPE`). Authoritative Snapshots persist `replayAt` from wire payload on ledger rows when present.
 
 **Backend parity:** `replayCursor = replayAt ?? createdAt` matches [`resolveReplayCursorTimestamp`](../../../packages/mtw-lambda-patterns/ts/dataSource/index.ts) and backend [Snapshot metadata](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.md).
 
@@ -388,7 +386,7 @@ console.log('Event timeline:', events?.map(e => e.timestamp).sort())
 #### **Memory Usage**
 
 Memory per stream is bounded by **authoritative backend Snapshots** and **post-rebase pruning**:
-- On authoritative Snapshot `S`, prune all `recentEvents` rows with `timestamp <= replayCursor(S)`
+- On authoritative Snapshot `S`, prune **existing** ledger rows where `rowCursor(row) <= replayCursor(S)`, then append `S`
 - Update envelopes are never removed by CP logic; only rebase pruning and CP invalidation (caches only)
 - Dynamic client memory strategies are out of scope; rely on backend snapshot frequency
 

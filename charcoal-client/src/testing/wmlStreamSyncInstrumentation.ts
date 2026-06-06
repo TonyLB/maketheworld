@@ -140,8 +140,6 @@ export const positionGraphNodesFromForm = (data: StandardFormData | undefined): 
 
 export type WmlPerformCleanupCaller = 'snapshot' | 'event'
 
-export type WmlPerformCleanupBaselineSource = 'empty' | 'snapshot-in-oldEvents' | 'synthetic-prior'
-
 export type WmlPerformCleanupContext = {
     caller: WmlPerformCleanupCaller
     headerType?: string
@@ -154,6 +152,7 @@ export const logWmlProcessEnvelope = <Payload, Header extends StreamingEventHead
     streamKey: string
     incomingTimestamp: number
     latestCachedTimestamp: number
+    replayCursor?: number
     eventsAfterSnapshotCount?: number
     recentEvents: Array<RecentEventEnvelope<Payload, Header>>
     materializedView: unknown
@@ -167,6 +166,7 @@ export const logWmlProcessEnvelope = <Payload, Header extends StreamingEventHead
         streamKey: params.streamKey,
         incomingTimestamp: params.incomingTimestamp,
         latestCachedTimestamp: params.latestCachedTimestamp,
+        ...(params.replayCursor !== undefined ? { replayCursor: params.replayCursor } : {}),
         ...(params.eventsAfterSnapshotCount !== undefined
             ? { eventsAfterSnapshotCount: params.eventsAfterSnapshotCount }
             : {}),
@@ -176,18 +176,14 @@ export const logWmlProcessEnvelope = <Payload, Header extends StreamingEventHead
     })
 }
 
-export const logWmlPerformCleanup = <Payload, Header extends StreamingEventHeader>(params: {
+export const logWmlPerformCleanup = (params: {
     caller: WmlPerformCleanupCaller
     headerType?: string
     streamKey: string
-    incomingTimestamp: number
-    latestTimestamp: number
-    thirtySecondsAgo: number
-    oldEvents: Array<RecentEventEnvelope<Payload, Header>>
-    stillRecentEvents: Array<RecentEventEnvelope<Payload, Header>>
-    action: 'no-op' | 'consolidated'
-    syntheticTimestamp?: number
-    baselineSource?: WmlPerformCleanupBaselineSource
+    tailUpdateCount: number
+    desirableMedian: number
+    action: 'no-op' | 'inserted-cp'
+    cpTimestamp?: number
 }): void => {
     if (!isWmlStreamSyncEnabled()) {
         return
@@ -196,14 +192,10 @@ export const logWmlPerformCleanup = <Payload, Header extends StreamingEventHeade
         caller: params.caller,
         ...(params.headerType !== undefined ? { headerType: params.headerType } : {}),
         streamKey: params.streamKey,
-        incomingTimestamp: params.incomingTimestamp,
-        latestTimestamp: params.latestTimestamp,
-        thirtySecondsAgo: params.thirtySecondsAgo,
-        oldEventsSummary: summarizeRecentEvents(params.oldEvents),
-        stillRecentSummary: summarizeRecentEvents(params.stillRecentEvents),
+        tailUpdateCount: params.tailUpdateCount,
+        desirableMedian: params.desirableMedian,
         action: params.action,
-        ...(params.syntheticTimestamp !== undefined ? { syntheticTimestamp: params.syntheticTimestamp } : {}),
-        ...(params.baselineSource !== undefined ? { baselineSource: params.baselineSource } : {})
+        ...(params.cpTimestamp !== undefined ? { cpTimestamp: params.cpTimestamp } : {})
     })
 }
 

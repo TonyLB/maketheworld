@@ -35,6 +35,8 @@ export type StreamEventDeserializedPayload = {
     timestamp: number
     header: StreamingEventHeader & { type: string; zone?: string; [key: string]: unknown }
     content: unknown
+    /** Snapshot sidecar replay watermark from wire update.replayAt when present */
+    replayAt?: number
 }
 
 const deserializerRegistry = new Map<
@@ -142,12 +144,17 @@ function startLifeLineBridge(): void {
                 if (Object.prototype.hasOwnProperty.call(coreFormat.update, 'zone')) {
                     ;(header as Record<string, unknown>).zone = (coreFormat.update as Record<string, unknown>).zone
                 }
+                const replayAt = replayAtFromRawUpdate(
+                    coreFormat.update as { type?: string; [key: string]: unknown },
+                    header.type
+                )
                 StreamEventPubSub.publish({
                     dataSourceKey,
                     streamKey,
                     timestamp,
                     header,
-                    content
+                    content,
+                    ...(replayAt !== undefined ? { replayAt } : {})
                 })
                 if (wmlSyncTrace) {
                     logWmlStreamSync('ingest', {

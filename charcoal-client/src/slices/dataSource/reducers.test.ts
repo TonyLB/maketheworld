@@ -1,7 +1,17 @@
 import { describe, it, expect } from 'vitest'
 import produce from 'immer'
 import { createDataSourceSlice } from './index'
-import { applyEvents, performCleanup, processEnvelope, pruneStaleConfirmedRequestIds } from './reducers'
+import {
+    applyEvents,
+    performCleanup,
+    processEnvelope,
+    pruneLedgerBeforeAuthoritativeSnapshot,
+    pruneStaleConfirmedRequestIds,
+    recomputeMaterializedViewFromLedger,
+    rowCursor,
+    invalidateCompactedCheckpointsAt
+} from './reducers'
+import { COMPACTED_CHECKPOINT_HEADER_TYPE, SNAPSHOT_HEADER_TYPE } from './baseClasses'
 import {
     CONFIRMED_TTL_MS,
     storedConfirmedRequestIdStrings
@@ -115,81 +125,122 @@ describe('dataSource reducers', () => {
     
     describe('performCleanup', () => {
         const applyEventsWithAggregator = applyEvents(mockAggregator)
-        const performCleanupWithConfig = performCleanup(mockAggregator, applyEventsWithAggregator)
-        
-        it('should keep all events when nothing is old', () => {
+        const performCleanupWithConfig = performCleanup(mockAggregator, applyEventsWithAggregator, 10, 'test.dataSource')
+
+        it('should not remove events when tail is below CP threshold', () => {
             const recentEvents = [
                 testEnvelope({ type: 'Snapshot' as const, items: ['a'] }, 50000),
-                testEnvelope({ type: 'Item Added' as const, item: 'b' }, 60000)
+                testUpdateEnvelope({ type: 'Item Added' as const, item: 'b' }, 60000)
             ]
 
-            const result = performCleanupWithConfig(recentEvents, 70000, 'stream1')
+            const result = performCleanupWithConfig(recentEvents, 'stream1')
 
-            // 30 seconds ago from 70000 is 40000, so all events are recent
             expect(result).toHaveLength(2)
-            expect(result[0].content).toEqual({ type: 'Snapshot', items: ['a'] })
-            expect(result[1].content).toEqual({ type: 'Item Added', item: 'b' })
+            expect(result.every(e => e.header.type !== COMPACTED_CHECKPOINT_HEADER_TYPE)).toBe(true)
         })
 
-        it('should consolidate old events into synthetic snapshot', () => {
+        it('should insert CompactedCheckpoint without removing update envelopes', () => {
             const recentEvents = [
                 testEnvelope({ type: 'Snapshot' as const, items: [] }, 10000),
-                testEnvelope({ type: 'Item Added' as const, item: 'a' }, 20000),
-                testEnvelope({ type: 'Item Added' as const, item: 'b' }, 30000),
-                testEnvelope({ type: 'Item Added' as const, item: 'c' }, 50000)
+                ...Array.from({ length: 16 }, (_, index) =>
+                    testUpdateEnvelope({ type: 'Item Added' as const, item: `u${index}` }, 20000 + index * 1000)
+                )
             ]
 
-            const result = performCleanupWithConfig(recentEvents, 60000, 'stream1')
+            const result = performCleanupWithConfig(recentEvents, 'stream1')
+            const updates = result.filter(e => e.header.type === 'Item Added')
+            const checkpoints = result.filter(e => e.header.type === COMPACTED_CHECKPOINT_HEADER_TYPE)
 
-            // 30 seconds ago from 60000 is 30000
-            // Events at 10000, 20000, 30000 are old (<=30000)
-            // Event at 50000 is recent (>30000)
-            // Should consolidate old events into synthetic snapshot at 30000
-            expect(result).toHaveLength(2)
-
-            // First event should be synthetic snapshot at 30-second boundary
-            expect(result[0].timestamp).toBe(30000)
-            expect(result[0].content).toEqual({ type: 'Snapshot', items: ['a', 'b'] })
-
-            // Second event should be the recent event
-            expect(result[1].timestamp).toBe(50000)
-            expect(result[1].content).toEqual({ type: 'Item Added', item: 'c' })
+            expect(updates).toHaveLength(16)
+            expect(checkpoints).toHaveLength(1)
+            expect(checkpoints[0].header.dataSourceKey).toBe('test.dataSource')
         })
 
-        it('should use createEmpty when no snapshot in old events', () => {
+        it('should not create synthetic Snapshot rows with empty dataSourceKey', () => {
             const recentEvents = [
-                testEnvelope({ type: 'Item Added' as const, item: 'a' }, 10000),
-                testEnvelope({ type: 'Item Added' as const, item: 'b' }, 20000),
-                testEnvelope({ type: 'Item Added' as const, item: 'c' }, 50000)
+                testEnvelope({ type: 'Snapshot' as const, items: [] }, 10000),
+                ...Array.from({ length: 16 }, (_, index) =>
+                    testUpdateEnvelope({ type: 'Item Added' as const, item: `u${index}` }, 20000 + index * 1000)
+                )
             ]
 
-            const result = performCleanupWithConfig(recentEvents, 60000, 'stream1')
+            const result = performCleanupWithConfig(recentEvents, 'stream1')
 
-            // Should create empty baseline and consolidate old events
-            expect(result).toHaveLength(2)
-            expect(result[0].content).toEqual({ type: 'Snapshot', items: ['a', 'b'] })
-            expect(result[1].content).toEqual({ type: 'Item Added', item: 'c' })
+            expect(result.some(e =>
+                e.header.type === SNAPSHOT_HEADER_TYPE &&
+                (e.header as { dataSourceKey?: string }).dataSourceKey === ''
+            )).toBe(false)
+        })
+    })
+
+    describe('ledger helpers', () => {
+        const applyEventsWithAggregator = applyEvents(mockAggregator)
+        const recompute = recomputeMaterializedViewFromLedger(mockAggregator, applyEventsWithAggregator)
+
+        it('pruneLedgerBeforeAuthoritativeSnapshot uses rowCursor for prior snapshots', () => {
+            const priorSnapshot = {
+                ...testEnvelope({ type: 'Snapshot' as const, items: ['old'] }, 100),
+                replayAt: 140
+            }
+            const incomingSnapshot = {
+                ...testEnvelope({ type: 'Snapshot' as const, items: ['new'] }, 120),
+                replayAt: 150
+            }
+            const updateAt160 = testUpdateEnvelope({ type: 'Item Added' as const, item: 'kept' }, 160)
+
+            expect(rowCursor(priorSnapshot)).toBe(140)
+
+            const pruned = pruneLedgerBeforeAuthoritativeSnapshot(
+                [priorSnapshot, testUpdateEnvelope({ type: 'Item Added' as const, item: 'gone' }, 140), updateAt160],
+                incomingSnapshot
+            )
+
+            expect(pruned).toEqual([updateAt160])
         })
 
-        it('should handle incoming timestamp as latest when greater than all events', () => {
+        it('invalidates CompactedCheckpoint rows at or after OOO update timestamp', () => {
+            const cp = {
+                header: { dataSourceKey: 'test', streamKey: 'stream1', timestamp: 30000, type: COMPACTED_CHECKPOINT_HEADER_TYPE },
+                content: { type: 'Snapshot' as const, items: ['a', 'b'] },
+                timestamp: 30000
+            }
             const recentEvents = [
-                testEnvelope({ type: 'Snapshot' as const, items: [] }, 10000)
+                testEnvelope({ type: 'Snapshot' as const, items: ['a'] }, 10000),
+                testUpdateEnvelope({ type: 'Item Added' as const, item: 'b' }, 20000),
+                cp,
+                testUpdateEnvelope({ type: 'Item Added' as const, item: 'c' }, 40000)
             ]
 
-            const result = performCleanupWithConfig(recentEvents, 100000, 'stream1')
+            const result = invalidateCompactedCheckpointsAt(recentEvents as any, 25000)
 
-            // 30 seconds ago from 100000 is 70000
-            // Event at 10000 is old
-            // Should consolidate to synthetic snapshot
-            expect(result).toHaveLength(1)
-            expect(result[0].timestamp).toBe(70000)
-            expect(result[0].content).toEqual({ type: 'Snapshot', items: [] })
+            expect(result.some(e => e.header.type === COMPACTED_CHECKPOINT_HEADER_TYPE)).toBe(false)
+            expect(result).toHaveLength(3)
+        })
+
+        it('recomputeMaterializedViewFromLedger applies CP shortcut after authoritative snapshot', () => {
+            const snapshot = {
+                ...testEnvelope({ type: 'Snapshot' as const, items: ['base'] }, 100),
+                replayAt: 100
+            }
+            const cp = {
+                header: { dataSourceKey: 'test', streamKey: 'stream1', timestamp: 20000, type: COMPACTED_CHECKPOINT_HEADER_TYPE },
+                content: { type: 'Snapshot' as const, items: ['base', 'mid'] },
+                timestamp: 20000
+            }
+            const recentEvents = [
+                snapshot,
+                testUpdateEnvelope({ type: 'Item Added' as const, item: 'mid' }, 20000),
+                cp,
+                testUpdateEnvelope({ type: 'Item Added' as const, item: 'tail' }, 30000)
+            ]
+
+            expect(recompute(recentEvents as any, 'stream1').items).toEqual(['base', 'mid', 'tail'])
         })
     })
     
     describe('processEnvelope (snapshot path)', () => {
         const applyEventsWithAggregator = applyEvents(mockAggregator)
-        const performCleanupWithConfig = performCleanup(mockAggregator, applyEventsWithAggregator)
+        const performCleanupWithConfig = performCleanup(mockAggregator, applyEventsWithAggregator, 10, 'test.dataSource')
         const processEnvelopeReducer = processEnvelope(
             'test.dataSource',
             mockAggregator,
@@ -287,7 +338,7 @@ describe('dataSource reducers', () => {
 
     describe('processEnvelope (event path)', () => {
         const applyEventsWithAggregator = applyEvents(mockAggregator)
-        const performCleanupWithConfig = performCleanup(mockAggregator, applyEventsWithAggregator)
+        const performCleanupWithConfig = performCleanup(mockAggregator, applyEventsWithAggregator, 10, 'test.dataSource')
         const processEnvelopeReducer = processEnvelope(
             'test.dataSource',
             mockAggregator,
@@ -418,7 +469,7 @@ describe('dataSource reducers', () => {
             expect(newState.subscribedStreams['stream1'].materializedView.items).toEqual(['a', 'b', 'c'])
         })
         
-        it('should perform cleanup before processing events', () => {
+        it('should perform cleanup without removing update envelopes', () => {
             const initialPublicData = {
                 subscribedStreams: {
                     'stream1': {
@@ -436,7 +487,7 @@ describe('dataSource reducers', () => {
                 payload: {
                     dataSourceKey: 'test.dataSource',
                     streamKey: 'stream1',
-                    timestamp: 70000,  // Much later
+                    timestamp: 70000,
                     header: { dataSourceKey: 'test.dataSource', streamKey: 'stream1', timestamp: 70000, type: 'Item Added' },
                     content: { type: 'Item Added' as const, item: 'c' }
                 }
@@ -446,13 +497,83 @@ describe('dataSource reducers', () => {
                 processEnvelopeReducer(draft, action as any)
             })
             
-            // Old events should have been cleaned up
-            // 30 seconds ago from 70000 is 40000, so all events (10000, 20000, 30000) are old
-            // Should have synthetic snapshot + new event
-            expect(newState.subscribedStreams['stream1'].recentEvents.length).toBeLessThan(4)
-            
-            // Materialized view should still have all items
+            const updateRows = newState.subscribedStreams['stream1'].recentEvents.filter(
+                (e: { header: { type: string } }) => e.header.type === 'Item Added'
+            )
+            expect(updateRows).toHaveLength(3)
             expect(newState.subscribedStreams['stream1'].materializedView.items).toEqual(['a', 'b', 'c'])
+        })
+
+        it('should retain replay updates when sidecar Snapshot arrives OOO with replayAt', () => {
+            const initialPublicData = {
+                subscribedStreams: {
+                    stream1: {
+                        materializedView: { type: 'Snapshot' as const, items: ['b', 'c'] },
+                        recentEvents: [
+                            testUpdateEnvelope({ type: 'Item Added' as const, item: 'b' }, 200),
+                            testUpdateEnvelope({ type: 'Item Added' as const, item: 'c' }, 250)
+                        ]
+                    }
+                }
+            }
+
+            const action = {
+                payload: {
+                    dataSourceKey: 'test.dataSource',
+                    streamKey: 'stream1',
+                    timestamp: 100,
+                    replayAt: 150,
+                    header: { dataSourceKey: 'test.dataSource', streamKey: 'stream1', timestamp: 100, type: 'Snapshot' },
+                    content: { type: 'Snapshot' as const, items: ['base'] }
+                }
+            }
+
+            const newState = produce(initialPublicData, (draft) => {
+                processEnvelopeReducer(draft, action as any)
+            })
+
+            expect(newState.subscribedStreams.stream1.materializedView.items).toEqual(['base', 'b', 'c'])
+            expect(newState.subscribedStreams.stream1.recentEvents).toHaveLength(3)
+            expect(newState.subscribedStreams.stream1.recentEvents.filter(
+                (e: { header: { type: string } }) => e.header.type === 'Item Added'
+            )).toHaveLength(2)
+            expect(newState.subscribedStreams.stream1.recentEvents.find(
+                (e: { header: { type: string } }) => e.header.type === 'Snapshot'
+            )?.replayAt).toBe(150)
+        })
+
+        it('should prune replay updates at or before replayCursor on authoritative snapshot', () => {
+            const initialPublicData = {
+                subscribedStreams: {
+                    stream1: {
+                        materializedView: { type: 'Snapshot' as const, items: ['gone', 'kept'] },
+                        recentEvents: [
+                            testUpdateEnvelope({ type: 'Item Added' as const, item: 'gone' }, 140),
+                            testUpdateEnvelope({ type: 'Item Added' as const, item: 'kept' }, 160)
+                        ]
+                    }
+                }
+            }
+
+            const action = {
+                payload: {
+                    dataSourceKey: 'test.dataSource',
+                    streamKey: 'stream1',
+                    timestamp: 100,
+                    replayAt: 150,
+                    header: { dataSourceKey: 'test.dataSource', streamKey: 'stream1', timestamp: 100, type: 'Snapshot' },
+                    content: { type: 'Snapshot' as const, items: ['base'] }
+                }
+            }
+
+            const newState = produce(initialPublicData, (draft) => {
+                processEnvelopeReducer(draft, action as any)
+            })
+
+            expect(newState.subscribedStreams.stream1.materializedView.items).toEqual(['base', 'kept'])
+            expect(newState.subscribedStreams.stream1.recentEvents.some(
+                (e: { content: { item?: string } }) => e.content?.item === 'gone'
+            )).toBe(false)
         })
         
         it('should ignore update events with timestamp earlier than most recent snapshot', () => {
@@ -489,10 +610,10 @@ describe('dataSource reducers', () => {
             // But these are NOT applied because they're before the baseline!
             // The newRecentEvents includes: [snapshot@50000, ...sortedEvents]
             
-            // Recent events should have snapshot + the old event (even though it's before snapshot)
+            // Recent events sorted chronologically: old event before snapshot envelope time
             expect(newState.subscribedStreams['stream1'].recentEvents).toHaveLength(2)
-            expect(newState.subscribedStreams['stream1'].recentEvents[0].timestamp).toBe(50000)  // Snapshot first
-            expect(newState.subscribedStreams['stream1'].recentEvents[1].timestamp).toBe(40000)  // Old event (not applied)
+            expect(newState.subscribedStreams['stream1'].recentEvents[0].timestamp).toBe(40000)
+            expect(newState.subscribedStreams['stream1'].recentEvents[1].timestamp).toBe(50000)
             
             // Materialized view should be unchanged - only events AFTER snapshot are applied
             // The old event is NOT applied to the materialized view
@@ -518,7 +639,7 @@ describe('dataSource reducers', () => {
         }
 
         const applyEventsWithAggregator = applyEvents(conflictAwareAggregator)
-        const performCleanupWithConfig = performCleanup(conflictAwareAggregator, applyEventsWithAggregator)
+        const performCleanupWithConfig = performCleanup(conflictAwareAggregator, applyEventsWithAggregator, 10, 'test.dataSource')
 
         const createProcessEnvelopeReducer = (requestIdTracking?: RequestIdTrackingConfig) => processEnvelope(
             'test.dataSource',
