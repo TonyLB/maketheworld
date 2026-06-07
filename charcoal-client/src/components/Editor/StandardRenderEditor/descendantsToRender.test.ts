@@ -104,7 +104,7 @@ describe('descendantsToRender', () => {
 
     // Test Whitespace Handling
     describe('Whitespace Handling', () => {
-        it('should replace space at end of last line (only) with Space tag', () => {
+        it('should replace paragraph-edge spaces with Space tags before br and at document end', () => {
             const standard = new StandardForm('<Asset uuid=(base)><Feature key=(testFeature) /></Asset>')
             const items: Descendant[] = [{
                 type: 'paragraph',
@@ -124,6 +124,7 @@ describe('descendantsToRender', () => {
             }]
             expect(descendantsToRender(standard)(items).toJSON()).toEqual([
                 'This is a test.',
+                { data: { tag: 'Space' }, children: [] },
                 { data: { tag: 'br' }, children: [] },
                 'With ',
                 { data: { tag: 'Link', to: 'testFeature', text: 'link' }, children: [] },

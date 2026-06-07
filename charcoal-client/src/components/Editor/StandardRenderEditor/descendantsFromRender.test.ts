@@ -211,6 +211,34 @@ describe('descendantsFromRender', () => {
                 { type: 'paragraph', children: [{ text: 'bar' }] }
             ])
         })
+
+        it('should map Space before br to trailing space on preceding paragraph', () => {
+            const render = new StandardRender([
+                'Line one',
+                { data: { tag: 'Space' }, children: [] },
+                { data: { tag: 'br' }, children: [] },
+                'Line two'
+            ])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([
+                { type: 'paragraph', children: [{ text: 'Line one ' }] },
+                { type: 'paragraph', children: [{ text: 'Line two' }] }
+            ])
+        })
+
+        it('should map Space after br to leading space on following paragraph', () => {
+            const render = new StandardRender([
+                'Line one',
+                { data: { tag: 'br' }, children: [] },
+                { data: { tag: 'Space' }, children: [] },
+                'Line two'
+            ])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([
+                { type: 'paragraph', children: [{ text: 'Line one' }] },
+                { type: 'paragraph', children: [{ text: ' Line two' }] }
+            ])
+        })
     })
 
     // Test Line Break Handling

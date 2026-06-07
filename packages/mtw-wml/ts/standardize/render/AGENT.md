@@ -41,25 +41,28 @@ Represents line break elements.
 Represents explicit spacing elements.
 - **Properties**: None (structural element)
 
-**⚠️ CRITICAL**: `<Space />` elements are **boundary markers** and can only appear at the very beginning or end of a RenderTree, never in the middle. See [Space Element Positioning](#space-element-positioning) for details.
-
-**Pending change (authoring whitespace fix):** `<Space />` will also be allowed **immediately adjacent to `<br />`** for paragraph-edge authoring round-trip (trailing space before a line break; leading space after). Storage and parse/merge semantics change in Phase 2b; player-facing display via `RenderTreeContent` is unchanged (Space nodes already render as nothing). See [`taskPlanning/charcoal-client/src/components/AGENT.standardRenderWhitespaceBug.planning.md`](../../../../taskPlanning/charcoal-client/src/components/AGENT.standardRenderWhitespaceBug.planning.md).
+**⚠️ CRITICAL**: `<Space />` elements are **explicit spacing markers** and may only appear at allowed positions in a RenderTree (never between arbitrary mid-line strings). See [Space Element Positioning](#space-element-positioning) for details.
 
 ## Space Element Positioning
 
 ### Rules for `<Space />` Elements
 
-`<Space />` tags represent **explicit boundary spacing** and follow strict positioning rules:
+`<Space />` tags represent **intentional spacing** that must survive WML parse and merge:
 
-1. **Leading `<Space />`**: Only at the very beginning of content
+1. **Document-leading `<Space />`**: At the very beginning of content
    - Indicates content should start with explicit spacing
    - Example: `<Space />Hello World` → renders as " Hello World"
 
-2. **Trailing `<Space />`**: Only at the very end of content
+2. **Document-trailing `<Space />`**: At the very end of content
    - Indicates content should end with explicit spacing  
    - Example: `Hello World<Space />` → renders as "Hello World "
 
-3. **Internal spacing**: Always represented as literal spaces, never as `<Space />` tags
+3. **Paragraph-edge `<Space />`**: Immediately adjacent to `<br />`
+   - Trailing space before a line break: `Line one<Space /><br />Line two`
+   - Leading space after a line break: `Line one<br /><Space />Line two`
+   - Literal whitespace next to `<br />` is stripped on parse; use `<Space />` for authoring round-trip
+
+4. **Internal spacing** (not at document boundary and not adjacent to `<br />`): Always represented as literal spaces, never as `<Space />` tags
    - Merge operations normalize internal spacing to literal characters
    - Example: `Hello<Space />World` → becomes "Hello World" during merge
 
@@ -140,8 +143,8 @@ The merge operation follows these rules:
 1. **String Concatenation**: Adjacent strings are joined with normalized whitespace
 2. **Element Preservation**: Non-string elements (links, breaks, spaces) are preserved
 3. **Whitespace Normalization**: Multiple spaces and breaks are normalized
-4. **Space Tag Conversion**: Internal `<Space />` tags are converted to literal spaces during merge
-5. **Semantic Restoration**: Constructor automatically restores boundary `<Space />` tags
+4. **Space Tag Conversion**: Internal `<Space />` tags (not document-boundary, not br-adjacent) are converted to literal spaces during merge
+5. **Semantic Restoration**: Constructor automatically restores document-boundary `<Space />` tags; merge promotes paragraph-edge literal spaces adjacent to `<br />` to `<Space />` tags
 6. **Conflict Detection**: Incompatible changes throw `MergeConflictError`
 
 ### Diff Operations

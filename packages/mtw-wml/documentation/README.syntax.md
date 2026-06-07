@@ -150,6 +150,14 @@ row will be compressed down to a single space between elements. Any spaces direc
 at the beginning or end of an enclosing element, will be ignored. If an enclosing element *should* begin or end
 with a space, use the explicit `<Space />` tag.
 
+For **paragraph-edge spacing** in authoring fields (trailing space before Enter, leading space on the next line),
+literal whitespace next to `<br />` is also ignored on parse. Use `<Space />` immediately adjacent to the break:
+
+```
+<Description>Line one<Space /><br />Line two</Description>
+<Description>Line one<br /><Space />Line two</Description>
+```
+
 Therefore, the following three items render exactly the same:
 ```
 <Description>Test One Two Three</Description>

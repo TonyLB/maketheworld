@@ -82,6 +82,7 @@ describe('compressWhitespace', () => {
         ])).toEqual([
             { data: { tag: 'String', value: 'Test' }, children: [] },
             { data: { tag: 'br' }, children: [] },
+            { data: { tag: 'Space' }, children: [] },
             { data: { tag: 'String', value: 'Second line' }, children: [] }
         ])
     })
@@ -97,6 +98,7 @@ describe('compressWhitespace', () => {
             { data: { tag: 'String', value: 'Second line' }, children: [] }
         ])).toEqual([
             { data: { tag: 'String', value: 'Test' }, children: [] },
+            { data: { tag: 'Space' }, children: [] },
             { data: { tag: 'br' }, children: [] },
             { data: { tag: 'String', value: 'Second line' }, children: [] }
         ])

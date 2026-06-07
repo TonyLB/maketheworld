@@ -106,6 +106,15 @@ const standardRenderAdd = (base: RenderTree, incoming: RenderTree): RenderTree =
                     ]
                 }
                 if (renderElement.data.tag === 'br') {
+                    if (lastElement.endsWith(' ')) {
+                        const trimmed = lastElement.trimEnd()
+                        return [
+                            ...previous.slice(0, -1),
+                            ...(trimmed ? [trimmed] : []),
+                            { data: { tag: 'Space' }, children: [] },
+                            renderElement
+                        ]
+                    }
                     return [...previous.slice(0, -1), lastElement.trimEnd(), renderElement]
                 }
                 if (renderElement.data.tag === 'Space') {
@@ -115,9 +124,22 @@ const standardRenderAdd = (base: RenderTree, incoming: RenderTree): RenderTree =
             }
             if (typeof renderElement === 'string') {
                 if (lastElement.data.tag === 'br') {
+                    if (renderElement.startsWith(' ')) {
+                        return [
+                            ...previous.slice(0, -1),
+                            lastElement,
+                            { data: { tag: 'Space' }, children: [] },
+                            renderElement.trimStart()
+                        ]
+                    }
                     return [...previous.slice(0, -1), lastElement, renderElement.trimStart()]
                 }
                 if (lastElement.data.tag === 'Space') {
+                    const elementBeforeSpace = previous.length >= 2 ? previous[previous.length - 2] : undefined
+                    const spaceAfterBr = typeof elementBeforeSpace === 'object' && elementBeforeSpace.data.tag === 'br'
+                    if (spaceAfterBr) {
+                        return [...previous, renderElement.trimStart()]
+                    }
                     return [...previous.slice(0, -1), ` ${renderElement.trimStart()}`]
                 }
             }
@@ -129,10 +151,10 @@ const standardRenderAdd = (base: RenderTree, incoming: RenderTree): RenderTree =
                     return previous
                 }
                 if (lastElement.data.tag === 'br' && renderElement.data.tag === 'Space') {
-                    return previous
+                    return [...previous, renderElement]
                 }
                 if (lastElement.data.tag === 'Space' && renderElement.data.tag === 'br') {
-                    return [...previous.slice(0, -1), renderElement]
+                    return [...previous, renderElement]
                 }
             }
             return [...previous, renderElement]

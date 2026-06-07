@@ -64,7 +64,7 @@ describe('StandardRenderSimple', () => {
         const merged = base.merge(StandardRenderSimple.create([{ data: { tag: 'Space' }, children: [] }, { data: { tag: 'br' }, children: [] }, 'Test']))
         expect(merged).toBeDefined()
         if (merged) {
-            expect(merged.toJSON()).toEqual(StandardRenderSimple.create(['Test', { data: { tag: 'br' }, children: [] }, 'Test']).toJSON())
+            expect(merged.toJSON()).toEqual(StandardRenderSimple.create(['Test', { data: { tag: 'br' }, children: [] }, { data: { tag: 'Space' }, children: [] }, { data: { tag: 'br' }, children: [] }, 'Test']).toJSON())
         }
     })
 
@@ -73,7 +73,7 @@ describe('StandardRenderSimple', () => {
         const merged = base.merge(StandardRenderSimple.create([' Test']))
         expect(merged).toBeDefined()
         if (merged) {
-            expect(merged.toJSON()).toEqual(StandardRenderSimple.create(['Test', { data: { tag: 'br' }, children: [] }, 'Test']).toJSON())
+            expect(merged.toJSON()).toEqual(StandardRenderSimple.create(['Test', { data: { tag: 'Space' }, children: [] }, { data: { tag: 'br' }, children: [] }, { data: { tag: 'Space' }, children: [] }, 'Test']).toJSON())
         }
     })
 
@@ -772,6 +772,15 @@ describe('Whitespace preservation (target semantics)', () => {
             expect(merged).toBeDefined()
             if (merged) {
                 expect(merged.toJSON()).toEqual(['Line one', spaceTag, brTag, 'Line two'])
+            }
+        })
+
+        it('should promote leading string space after br to Space tag on merge', () => {
+            const base = StandardRenderSimple.create(['Line one', brTag, ' Line two'])
+            const merged = base.merge(StandardRenderSimple.create([]))
+            expect(merged).toBeDefined()
+            if (merged) {
+                expect(merged.toJSON()).toEqual(['Line one', brTag, spaceTag, 'Line two'])
             }
         })
 

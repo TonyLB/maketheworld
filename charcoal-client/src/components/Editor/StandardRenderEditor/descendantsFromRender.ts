@@ -42,11 +42,25 @@ const trimParagraphBoundaries = (
 const isSpacerElement = (el: RenderTree[number]): boolean =>
     typeof el !== 'string' && isSchemaSpacer(el.data)
 
+const isBreakElement = (el: RenderTree[number] | undefined): boolean =>
+    Boolean(el && typeof el !== 'string' && isSchemaLineBreak(el.data))
+
 const hasSubstantiveContent = (renderTree: RenderTree): boolean =>
     renderTree.some((el) =>
         (typeof el === 'string' && el.trim().length > 0) ||
         (typeof el !== 'string' && isSchemaLink(el.data))
     )
+
+const appendTrailingSpaceToParagraph = (children: CustomParagraphContents[]): CustomParagraphContents[] => {
+    if (children.length === 0) {
+        return [{ text: ' ' }]
+    }
+    const last = children[children.length - 1]
+    if ('text' in last) {
+        return [...children.slice(0, -1), { text: last.text + ' ' }]
+    }
+    return [...children, { text: ' ' }]
+}
 
 /** Reducer: append an item to the list, merging with the last element when both are text (single-whitespace). */
 export const compactAppend = (list: CustomParagraphContents[], item: CustomParagraphContents): CustomParagraphContents[] => {
@@ -78,17 +92,25 @@ export const descendantsFromRender = (render: StandardRender, options: { standar
 
     let paragraphs: CustomParagraphElement[] = []
     let currentChildren: CustomParagraphContents[] = []
+    let preserveLeadingOnCurrentParagraph = false
+    let preserveTrailingOnNextPush = false
 
     const pushParagraph = (isFinalFlush: boolean) => {
         const trimmed = trimParagraphBoundaries(currentChildren, {
-            preserveLeading: paragraphs.length === 0 && preserveLeadingOnFirstParagraph,
-            preserveTrailing: isFinalFlush && preserveTrailingOnLastParagraph
+            preserveLeading: (paragraphs.length === 0 && preserveLeadingOnFirstParagraph) || preserveLeadingOnCurrentParagraph,
+            preserveTrailing: (isFinalFlush && preserveTrailingOnLastParagraph) || preserveTrailingOnNextPush
         })
         paragraphs = [...paragraphs, { type: 'paragraph', children: trimmed.length > 0 ? trimmed : [{ text: '' }] }]
         currentChildren = []
+        preserveLeadingOnCurrentParagraph = false
+        preserveTrailingOnNextPush = false
     }
 
-    for (const el of renderTree) {
+    for (let index = 0; index < renderTree.length; index++) {
+        const el = renderTree[index]
+        const nextEl = renderTree[index + 1]
+        const prevEl = index > 0 ? renderTree[index - 1] : undefined
+
         if (typeof el === 'string') {
             if (currentChildren.length === 0) {
                 currentChildren = [{ text: singleSpace(el).trimStart() }]
@@ -102,9 +124,22 @@ export const descendantsFromRender = (render: StandardRender, options: { standar
             continue
         }
         if (isSchemaSpacer(el.data)) {
+            const spaceBeforeBr = isBreakElement(nextEl)
+            const spaceAfterBr = isBreakElement(prevEl)
+            const isDocStartSpacer = paragraphs.length === 0 && currentChildren.length === 0 && preserveLeadingOnFirstParagraph
+
+            if (spaceBeforeBr) {
+                currentChildren = appendTrailingSpaceToParagraph(currentChildren)
+                preserveTrailingOnNextPush = true
+                continue
+            }
+            if (spaceAfterBr || isDocStartSpacer) {
+                preserveLeadingOnCurrentParagraph = true
+                currentChildren = [{ text: ' ' }]
+                continue
+            }
             if (currentChildren.length === 0) {
-                const isDocStartSpacer = paragraphs.length === 0 && preserveLeadingOnFirstParagraph
-                currentChildren = [{ text: isDocStartSpacer ? ' ' : singleSpace(' ').trimStart() }]
+                currentChildren = [{ text: singleSpace(' ').trimStart() }]
             } else {
                 currentChildren = compactAppend(currentChildren, { text: ' ' })
             }
@@ -115,7 +150,9 @@ export const descendantsFromRender = (render: StandardRender, options: { standar
             currentChildren = [...currentChildren, {
                 type: linkTarget instanceof StandardFeature ? 'featureLink' : 'knowledgeLink',
                 to: el.data.to,
-                children: [{ text: el.children.filter((child) => typeof child === 'string').join('') }]
+                children: [{
+                    text: el.children.filter((child) => typeof child === 'string').join('') || el.data.text
+                }]
             } as CustomFeatureLinkElement | CustomKnowledgeLinkElement]
             continue
         }
