@@ -162,9 +162,28 @@ describe('descendantsFromRender', () => {
         it('should handle leading and trailing spaces', () => {
             const render = new StandardRender(['  Hello World  '])
             const result = descendantsFromRender(render, { standard: standardForm })
+            // Constructor promotes edge whitespace to document-boundary Space tags; inbound preserves them.
             expect(result).toEqual([{
                 type: 'paragraph',
-                children: [{ text: 'Hello World' }] // No leading/trailing space at paragraph boundaries
+                children: [{ text: ' Hello World ' }]
+            }])
+        })
+
+        it('should map document-end Space tag to trailing paragraph space', () => {
+            const render = new StandardRender(['Hello', { data: { tag: 'Space' }, children: [] }])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{ text: 'Hello ' }]
+            }])
+        })
+
+        it('should map document-start Space tag to leading paragraph space', () => {
+            const render = new StandardRender([{ data: { tag: 'Space' }, children: [] }, 'Hello'])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{ text: ' Hello' }]
             }])
         })
 

@@ -28,8 +28,25 @@ const trimTrailingFromParagraphContents = (children: CustomParagraphContents[]):
     return children
 }
 
-const trimParagraphBoundaries = (children: CustomParagraphContents[]): CustomParagraphContents[] =>
-    trimTrailingFromParagraphContents(trimLeadingFromParagraphContents(children))
+type TrimBoundaryOptions = { preserveLeading?: boolean; preserveTrailing?: boolean }
+
+const trimParagraphBoundaries = (
+    children: CustomParagraphContents[],
+    options: TrimBoundaryOptions = {}
+): CustomParagraphContents[] => {
+    const { preserveLeading = false, preserveTrailing = false } = options
+    const afterLeading = preserveLeading ? children : trimLeadingFromParagraphContents(children)
+    return preserveTrailing ? afterLeading : trimTrailingFromParagraphContents(afterLeading)
+}
+
+const isSpacerElement = (el: RenderTree[number]): boolean =>
+    typeof el !== 'string' && isSchemaSpacer(el.data)
+
+const hasSubstantiveContent = (renderTree: RenderTree): boolean =>
+    renderTree.some((el) =>
+        (typeof el === 'string' && el.trim().length > 0) ||
+        (typeof el !== 'string' && isSchemaLink(el.data))
+    )
 
 /** Reducer: append an item to the list, merging with the last element when both are text (single-whitespace). */
 export const compactAppend = (list: CustomParagraphContents[], item: CustomParagraphContents): CustomParagraphContents[] => {
@@ -54,11 +71,19 @@ export const descendantsFromRender = (render: StandardRender, options: { standar
         return [{ type: 'paragraph', children: [{ text: '' }] }]
     }
     const renderTree: RenderTree = payload.plain.toJSON()
+    const hasContent = hasSubstantiveContent(renderTree)
+    const preserveLeadingOnFirstParagraph = hasContent && renderTree.length > 0 && isSpacerElement(renderTree[0])
+    const preserveTrailingOnLastParagraph =
+        hasContent && renderTree.length > 0 && isSpacerElement(renderTree[renderTree.length - 1])
+
     let paragraphs: CustomParagraphElement[] = []
     let currentChildren: CustomParagraphContents[] = []
 
-    const pushParagraph = () => {
-        const trimmed = trimParagraphBoundaries(currentChildren)
+    const pushParagraph = (isFinalFlush: boolean) => {
+        const trimmed = trimParagraphBoundaries(currentChildren, {
+            preserveLeading: paragraphs.length === 0 && preserveLeadingOnFirstParagraph,
+            preserveTrailing: isFinalFlush && preserveTrailingOnLastParagraph
+        })
         paragraphs = [...paragraphs, { type: 'paragraph', children: trimmed.length > 0 ? trimmed : [{ text: '' }] }]
         currentChildren = []
     }
@@ -73,12 +98,13 @@ export const descendantsFromRender = (render: StandardRender, options: { standar
             continue
         }
         if (isSchemaLineBreak(el.data)) {
-            pushParagraph()
+            pushParagraph(false)
             continue
         }
         if (isSchemaSpacer(el.data)) {
             if (currentChildren.length === 0) {
-                currentChildren = [{ text: singleSpace(' ').trimStart() }]
+                const isDocStartSpacer = paragraphs.length === 0 && preserveLeadingOnFirstParagraph
+                currentChildren = [{ text: isDocStartSpacer ? ' ' : singleSpace(' ').trimStart() }]
             } else {
                 currentChildren = compactAppend(currentChildren, { text: ' ' })
             }
@@ -100,7 +126,7 @@ export const descendantsFromRender = (render: StandardRender, options: { standar
         return [{ type: 'paragraph', children: [{ text: '' }] }]
     }
     // Always flush the current paragraph so a trailing <br /> (empty paragraph in Slate) round-trips correctly.
-    pushParagraph()
+    pushParagraph(true)
     return paragraphs
 }
 

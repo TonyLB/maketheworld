@@ -1,6 +1,6 @@
 # StandardRenderEditor trailing whitespace bug
 
-**Status:** Phase 1 complete -- pipeline traced, display vs storage decided. Next step: **Phase 2a** (Track A inbound fix) and **Phase 2b** (WML Space+br + client conversion).
+**Status:** Phase 2a complete -- Track A document-boundary `<Space />` inbound round-trip fixed. Next step: **Phase 2b** (WML Space+br + client conversion for paragraph boundaries).
 
 ## Purpose
 
@@ -71,7 +71,7 @@ Leading space on line two:
 | WML parse | [`compressWhitespace.ts`](../../../packages/mtw-wml/ts/schema/utils/schemaOutput/compressWhitespace.ts) | B | `trimEnd`/`trimStart` adjacent to `br`; strip `Space` before `br` |
 | Merge | [`standardRenderAdd`](../../../packages/mtw-wml/ts/standardize/render/index.ts) | A + B | `trimEnd`/`trimStart` adjacent to `br`; drop `{ Space, br }` / `{ br, Space }` pairs |
 | Constructor | [`StandardRenderSimpleBase`](../../../packages/mtw-wml/ts/standardize/render/index.ts) | A | Promotes document-end/start string tails to `<Space />` (keep; extend awareness of Space+br) |
-| Inbound (Render -> Slate) | [`descendantsFromRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsFromRender.ts) | A + B | `trimParagraphBoundaries` on every paragraph |
+| Inbound (Render -> Slate) | [`descendantsFromRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsFromRender.ts) | A (fixed) + B | Track A: boundary-aware trim preserves doc-start/end `{ Space }`; Track B: still strips Space adjacent to `{ br }` |
 | Outbound (Slate -> Render) | [`descendantsToRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsToRender.ts) | A + B | Must emit `{ Space }` before/after `{ br }` when Slate paragraph has edge space |
 | Tests | [`compressWhitespace.test.ts`](../../../packages/mtw-wml/ts/schema/utils/schemaOutput/compressWhitespace.test.ts), [`index.test.ts`](../../../packages/mtw-wml/ts/standardize/render/index.test.ts), [`descendantsFromRender.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsFromRender.test.ts) | A + B | Encode old "strip break-adjacent space" policy |
 
@@ -90,7 +90,7 @@ Leading space on line two:
 | --- | --- | --- |
 | 0 | Baseline green; failing tests for Track A and Track B | Complete |
 | 1 | Confirm layer stack; decide display vs storage normalization | Complete |
-| 2a | **Track A:** document-end `<Space />` editor round-trip | Not started |
+| 2a | **Track A:** document-end `<Space />` editor round-trip | Complete |
 | 2b | **Track B:** WML `<Space /><br />` semantics + full pipeline | Not started |
 | 3 | Manual Workbench verification; durable docs | Not started |
 
@@ -238,9 +238,9 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets when 
   - [X] Decide display vs storage normalization for Space+br.
   - [X] Record findings under **Diagnosis record**.
 
-- [ ] **Phase 2a -- Track A (document boundary)**
-  - [ ] Fix `descendantsFromRender` / confirm `descendantsToRender` for document-end `<Space />`.
-  - [ ] Tests green for single-paragraph trailing space.
+- [X] **Phase 2a -- Track A (document boundary)**
+  - [X] Fix `descendantsFromRender` / confirm `descendantsToRender` for document-end `<Space />`.
+  - [X] Tests green for single-paragraph trailing space.
 
 - [ ] **Phase 2b -- Track B (Space + br)**
   - [ ] Relax `compressWhitespace` and `standardRenderAdd`.
@@ -339,6 +339,35 @@ Legacy WML tests in [`compressWhitespace.test.ts`](../../../packages/mtw-wml/ts/
 
 - **Files changed (Phase 0):** `whitespacePreservation.test.ts` (new), `compressWhitespace.test.ts`, `index.test.ts`, `StandardRenderEditor.test.tsx`, this plan, `AGENT.testing.slate.md`
 - **Files changed (Phase 1):** this plan, [`render/AGENT.md`](../../../packages/mtw-wml/ts/standardize/render/AGENT.md) (pending-change note)
+
+### Phase 2a implementation (2026-06-07)
+
+**Approach:** Pre-scan the render tree for document-start/end `{ Space }` tags (with a substantive-content guard so space-only renders like `[Space, Space]` still yield an empty paragraph). `pushParagraph` now passes `preserveLeading` / `preserveTrailing` into `trimParagraphBoundaries` for the first and final paragraphs only. Document-start Spacer on empty `currentChildren` maps to `{ text: ' ' }` without `trimStart`.
+
+**Files changed:**
+
+- [`descendantsFromRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsFromRender.ts) -- boundary-aware trim
+- [`descendantsFromRender.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsFromRender.test.ts) -- doc-boundary Space cases; updated constructor-promoted edge-space expectation
+- [`AGENT.testing.slate.md`](../../../charcoal-client/AGENT.testing.slate.md) -- Track A status
+- this plan
+
+**No change:** [`descendantsToRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsToRender.ts) (outbound Track A already passed).
+
+**Target-semantics tests after Phase 2a:**
+
+| File | Pass | Fail |
+| --- | --- | --- |
+| [`whitespacePreservation.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts) | 6 (Track A) | 7 (Track B) |
+| [`StandardRenderEditor.test.tsx`](../../../charcoal-client/src/components/Workbench/foundations/StandardRender/StandardRenderEditor.test.tsx) (parent echo) | 4 | 0 |
+| Legacy `StandardRenderEditor/` (81 tests total) | 74 | 7 (Track B target-semantics only) |
+
+**Track A layer status (post-2a):**
+
+| Layer | Track A |
+| --- | --- |
+| Client inbound (`descendantsFromRender`) | Pass |
+| Client full round-trip | Pass |
+| Sync loop (parent echo) | Pass |
 
 ## Verification
 
