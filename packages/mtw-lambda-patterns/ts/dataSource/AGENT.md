@@ -147,6 +147,12 @@ Replayable snapshots carry two timestamps with different roles:
 
 **`snapshotContentGenerator`**: Domain payloads do not need to include `replayAt`. If the generator omits it, the framework sets `replayAt` to the same instant as `createdAt` for that generation, which matches typical inline snapshots. When the materialized body corresponds to an earlier authoritative time (notably WML sidecars keyed off `Meta::Snapshot`), the generator should return **`replayAt`** alongside the domain fields; see [`lambda/wml/dataSource/snapshotContent.ts`](../../../../lambda/wml/dataSource/snapshotContent.ts).
 
+**Wire placement:** `replayAt` is **envelope metadata**, not domain content.
+
+- On wire: extended header (`extendedHeader.replayAt` on SNS, DynamoDB, and EventBridge; merged into the flat WebSocket header after `fromWebSocketFormat`).
+- Subscribe replay: [`deliverReplayData`](./index.ts) puts `replayAt` on `coreFormat.header` and strips `createdAt`, `replayAt`, and `expiresAt` from `update`.
+- Client ingress: header-only extraction in [`charcoal-client/src/slices/dataSource/streamEventPubSub/AGENT.md`](../../../../charcoal-client/src/slices/dataSource/streamEventPubSub/AGENT.md). See also [AGENT.implementation.md](./AGENT.implementation.md) (**Serialization: extendedHeader**).
+
 #### Replay subscribe diagnostics (optional)
 Replayable DataSources can emit structured subscribe/replay diagnostics from `initializeSubscription` using:
 

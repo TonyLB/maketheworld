@@ -1,6 +1,6 @@
 # replayAt wire refactor and consolidation (charcoal-client + mtw-lambda-patterns)
 
-**Status:** Phase 1 complete (deployed). **Deploy strategy:** **B (atomic)** --- client and backend landed together; header-only ingress, no `update.replayAt` reads. **Next step:** Phase 2 durable doc pass (or Phase 4 manual subscribe-reload smoke).
+**Status:** Phase 2 complete. **Deploy strategy:** **B (atomic)** --- client and backend landed together; header-only ingress, no `update.replayAt` reads. **Next step:** Phase 4 manual subscribe-reload smoke (or optional Phase 3 shared helper).
 
 This plan is task-scoped. Archive or delete after the refactor ships and lasting contract notes move into durable docs.
 
@@ -134,7 +134,7 @@ npm test -- ts/dataSource/formatTransform.test.ts
 | --- | --- | --- |
 | 0 | Discovery + deploy strategy (Strategy B) | Done |
 | 1 | Coordinated implementation (backend `deliverReplayData` + client header-only ingress + tests) | Done |
-| 2 | Durable doc updates + legacy type cleanup | Not started |
+| 2 | Durable doc updates + legacy type cleanup | Done |
 | 3 | Optional: shared `resolveReplayCursorTimestamp` export | Not started |
 | 4 | Manual subscribe-reload smoke (sidecar OOO) | Not started |
 | 5 | Archive task plan | Not started |
@@ -223,10 +223,10 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets as yo
   - [X] Client: wire-shape tests in `streamEventPubSub/index.test.ts`
   - [X] Confirm R1--R5 reducer tests pass; run full verification (below)
   - [X] Deploy client + backend together
-- [ ] **Phase 2 --- Docs and cleanup**
-  - [ ] Update `dataSource/AGENT.implementation.md` ingress section
-  - [ ] Cross-link patterns wire contract for `replayAt`
-  - [ ] Annotate or trim `SnapshotUpdateWithSidecar` legacy fields
+- [X] **Phase 2 --- Docs and cleanup**
+  - [X] Update `dataSource/AGENT.implementation.md` ingress section
+  - [X] Cross-link patterns wire contract for `replayAt`
+  - [X] Annotate or trim `SnapshotUpdateWithSidecar` legacy fields
 - [ ] **Phase 3 --- Shared helper (optional)**
   - [ ] Extract `resolveReplayCursorTimestamp` to client-safe module
   - [ ] Replace duplicate in `reducers.ts`

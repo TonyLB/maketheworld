@@ -182,6 +182,8 @@ Snapshot events from the backend may contain inline payloads or domain-shaped si
 
 **Replay cursor:** Snapshots carry **`createdAt`** (envelope timestamp) and optionally **`replayAt`** (replay watermark for sidecar content). The client uses **`replayCursor = replayAt ?? createdAt`** for merge-after and prune-`<=` boundaries --- not envelope `timestamp` alone when they differ. See backend [Snapshot metadata: `createdAt` and `replayAt`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.md).
 
+On the wire, `replayAt` arrives on the Snapshot **header** (not in `update`); StreamEventPubSub lifts it before deserialize. Ingress detail: [AGENT.implementation.md](./AGENT.implementation.md) (**Snapshot metadata on wire (ingress)**).
+
 On authoritative Snapshot arrival (including late sidecar delivery after replay Content Updates), the reducer prunes superseded ledger rows at `replayCursor` and recomputes `materializedView` from the sidecar baseline plus surviving updates.
 
 ### **Out-of-Order Event Handling**
