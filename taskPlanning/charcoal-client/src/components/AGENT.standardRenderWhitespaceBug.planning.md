@@ -1,6 +1,6 @@
 # StandardRenderEditor trailing whitespace bug
 
-**Status:** Phase 2d.2 complete -- Track C client outbound/inbound wired to `<DoubleBR />`. **Next step:** Phase 2d.3 -- Track D `<DoubleSpace />` client pipeline.
+**Status:** Phase 2d.3 complete -- Track D client outbound/inbound wired to `<DoubleSpace />`. **Next step:** Phase 2d.4 -- diff/merge verification fixtures.
 
 ## Purpose
 
@@ -192,7 +192,7 @@ const slateC = [
 | 2a | **Track A:** document-end `<Space />` editor round-trip | Complete |
 | 2b | **Track B:** WML `<Space /><br />` semantics + full pipeline | Complete |
 | 2c | **Track C:** consecutive `<br />` / empty middle paragraph authoring round-trip | Complete (superseded by 2d; exploratory tangent) |
-| 2d | **Atomic tags:** `<DoubleSpace />` (Track D) + `<DoubleBR />` (Track C); full pipeline | In progress (2d.2 Track C client complete; 2d.3 next) |
+| 2d | **Atomic tags:** `<DoubleSpace />` (Track D) + `<DoubleBR />` (Track C); full pipeline | In progress (2d.3 Track D client complete; 2d.4 next) |
 | 3 | Manual Workbench verification; durable docs | Not started |
 
 ## Links
@@ -244,7 +244,7 @@ npm run test -- ts/schema/utils/schemaOutput/compressWhitespace.test.ts
 - [X] Trailing space after inline link on last line. -- document-end outbound covered by `descendantsToRender.test.ts`; non-final link+space fails in `whitespacePreservation.test.ts` Track B round-trip.
 - [X] Load WML with document-end `<Space />`; confirm inbound editable space. -- WML schema load/print pass (`index.test.ts`); inbound fails (`descendantsFromRender` strips Space).
 - [X] `debounce={false}` vs default -- when does loss appear? -- Loss on **inbound** when parent echoes `StandardRender` with `<Space />`; outbound fires immediately under `debounce={false}` (Workbench session). Debounce timing is not root cause.
-- [ ] Track D: double space mid-line (`"Hello  world"`). -- `withConstrainedWhitespace` collapses before sync; WML/merge/inbound not yet tested (Phase 2d).
+- [X] Track D: double space mid-line (`"Hello  world"`). -- `withConstrainedWhitespace` caps at 2; client outbound promotes closed `\s{2}` to `{ DoubleSpace }`; inbound maps back to two literal spaces (`whitespacePreservation.test.ts` Track D green).
 
 ### Round-trip tests to add (should fail before fix)
 
@@ -379,10 +379,10 @@ Recommended order:
 
 #### 2d.3 -- Track D `<DoubleSpace />` pipeline
 
-- [ ] `withConstrainedWhitespace` -- cap at 2 literal spaces (not collapse all `\s{2,}` to 1).
-- [ ] Outbound: promote `\s{2}` between string/link chunks to `{ DoubleSpace }` (constructor/merge path).
-- [ ] Inbound: `{ DoubleSpace }` -> two literal spaces in Slate; link-adjacent cases.
-- [ ] [`whitespacePreservation.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts) Track D round-trip + parent echo.
+- [X] `withConstrainedWhitespace` -- cap at 2 literal spaces (not collapse all `\s{2,}` to 1).
+- [X] Outbound: promote `\s{2}` between string/link chunks to `{ DoubleSpace }` (constructor/merge path).
+- [X] Inbound: `{ DoubleSpace }` -> two literal spaces in Slate; link-adjacent cases.
+- [X] [`whitespacePreservation.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts) Track D round-trip + parent echo.
 
 #### 2d.4 -- Diff / merge verification
 
@@ -433,7 +433,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets when 
 - [ ] **Phase 2d -- Atomic whitespace tags (`DoubleSpace`, `DoubleBR`)**
   - [X] **2d.1** Schema boilerplate: mtw-base types, taggedMessages converters, StandardRender payload classes, merge/diff/compress + parse alias normalize.
   - [X] **2d.2** Migrate Track C storage/print to `<DoubleBR />` (outbound, inbound, tests, docs); legacy `<br /><br />` parse.
-  - [ ] **2d.3** Track D `<DoubleSpace />` pipeline (Slate cap-at-2, outbound/inbound, whitespacePreservation tests).
+  - [X] **2d.3** Track D `<DoubleSpace />` pipeline (Slate cap-at-2, outbound/inbound, whitespacePreservation tests).
   - [ ] **2d.4** Diff/merge round-trip fixtures (slot vs compaction cases).
   - [ ] **2d.5** Display collapse (`RenderTreeContent`, optional `messageParsing`) for `DoubleSpace` / `DoubleBR` and legacy interim shapes; durable docs + interaction fixtures.
 
@@ -739,6 +739,43 @@ const slate = [
 | WML schema load/print | Pass |
 | Client outbound (`descendantsToRender`) | Pass (`DoubleBR` for empty middle) |
 | Client inbound (`descendantsFromRender`) | Pass (`DoubleBR` + legacy `br, br`) |
+| Client full round-trip | Pass |
+
+### Phase 2d.3 implementation (2026-06-07)
+
+**Approach:** Client-only slice. `withConstrainedWhitespace` caps `\s{3+}` at two (preserves `\s{2}` insertion-slot shape). Outbound splits closed-boundary `\s{2}` runs in text nodes and at text/link boundaries into explicit `{ DoubleSpace }` seeds before merge. Inbound maps `{ DoubleSpace }` to two literal spaces via `appendRawText` (bypasses `singleSpace` collapse); `preserveRawTextAppend` flag ensures the following string chunk merges without collapsing the slot.
+
+**Files changed:**
+
+- [`constrainedWhitespace.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/constrainedWhitespace.ts) -- cap at 2, not collapse all `\s{2,}`
+- [`constrainedWhitespace.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/constrainedWhitespace.test.ts) (new)
+- [`descendantsToRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsToRender.ts) -- `textToRenderSeeds` / `mergeRenderSeeds` for interior and link-adjacent promotion
+- [`descendantsFromRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsFromRender.ts) -- `isSchemaDoubleSpace` handler, `appendRawText`, `preserveRawTextAppend`
+- [`whitespacePreservation.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts), [`descendantsToRender.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsToRender.test.ts), [`descendantsFromRender.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsFromRender.test.ts), [`StandardRenderEditor.test.tsx`](../../../charcoal-client/src/components/Workbench/foundations/StandardRender/StandardRenderEditor.test.tsx)
+- [`AGENT.testing.slate.md`](../../../charcoal-client/AGENT.testing.slate.md), this plan
+
+**No change:** WML layer (2d.1 complete); diff/merge fixtures (2d.4); `RenderTreeContent` display collapse (2d.5).
+
+**Target-semantics tests after Phase 2d.3:**
+
+| File | Pass | Fail |
+| --- | --- | --- |
+| `whitespacePreservation.test.ts` (client) | 24 (Tracks A+B+C+D) | 0 |
+| Legacy `StandardRenderEditor/` | 103 | 0 |
+| `StandardRenderEditor.test.tsx` (parent echo) | 5 | 0 |
+| `compressWhitespace.test.ts` (WML) | 20 | 0 |
+| `index.test.ts` (WML) | 72 | 0 |
+
+**Track D layer status (post-2d.3):**
+
+| Layer | Track D |
+| --- | --- |
+| Slate normalize (`withConstrainedWhitespace`) | Pass (cap `\s{3+}` at 2) |
+| WML `compressWhitespace` | Pass (explicit `DoubleSpace`; literal `\s{2}` not promoted on parse) |
+| WML merge (`standardRenderAdd`) | Pass (`DoubleSpace` opaque) |
+| WML schema load/print | Pass |
+| Client outbound (`descendantsToRender`) | Pass (closed `\s{2}` -> `{ DoubleSpace }`) |
+| Client inbound (`descendantsFromRender`) | Pass (`{ DoubleSpace }` -> two literal spaces) |
 | Client full round-trip | Pass |
 
 ## Verification

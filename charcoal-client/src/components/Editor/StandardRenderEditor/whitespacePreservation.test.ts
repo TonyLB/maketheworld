@@ -10,6 +10,7 @@ import { CustomBlock } from '../baseClasses'
 const spaceTag = { data: { tag: 'Space' as const }, children: [] as [] }
 const brTag = { data: { tag: 'br' as const }, children: [] as [] }
 const doubleBRTag = { data: { tag: 'DoubleBR' as const }, children: [] as [] }
+const doubleSpaceTag = { data: { tag: 'DoubleSpace' as const }, children: [] as [] }
 
 describe('Whitespace preservation (target semantics)', () => {
     const standardForm = new StandardForm(deIndentWML(`
@@ -238,6 +239,103 @@ describe('Whitespace preservation (target semantics)', () => {
                     { type: 'paragraph', children: [{ text: '' }] },
                     { type: 'paragraph', children: [{ text: 'Last' }] }
                 ])
+            })
+        })
+    })
+
+    describe('Track D -- mid-line insertion slot (DoubleSpace)', () => {
+        describe('outbound (Slate -> StandardRender)', () => {
+            it('should emit DoubleSpace for closed double space between words', () => {
+                const slate: Descendant[] = [{ type: 'paragraph', children: [{ text: 'Hello  world' }] }]
+                const json = toRender(slate as CustomBlock[]).toJSON()
+                expect(json).toEqual(['Hello', doubleSpaceTag, 'world'])
+            })
+
+            it('should emit DoubleSpace between text and link when text ends with double space', () => {
+                const slate: Descendant[] = [{
+                    type: 'paragraph',
+                    children: [
+                        { text: 'Hello  ' },
+                        { type: 'featureLink', to: 'feature1', children: [{ text: 'link' }] },
+                        { text: 'world' }
+                    ]
+                }]
+                const json = toRender(slate as CustomBlock[]).toJSON()
+                expect(json).toEqual([
+                    'Hello',
+                    doubleSpaceTag,
+                    { data: { tag: 'Link', to: 'feature1', text: 'link' }, children: [] },
+                    'world'
+                ])
+            })
+
+            it('should emit DoubleSpace between link and text when text starts with double space', () => {
+                const slate: Descendant[] = [{
+                    type: 'paragraph',
+                    children: [
+                        { text: 'Hello ' },
+                        { type: 'featureLink', to: 'feature1', children: [{ text: 'link' }] },
+                        { text: '  world' }
+                    ]
+                }]
+                const json = toRender(slate as CustomBlock[]).toJSON()
+                expect(json).toEqual([
+                    'Hello ',
+                    { data: { tag: 'Link', to: 'feature1', text: 'link' }, children: [] },
+                    doubleSpaceTag,
+                    'world'
+                ])
+            })
+        })
+
+        describe('inbound (StandardRender -> Slate)', () => {
+            it('should map DoubleSpace to two literal spaces between words', () => {
+                const render = new StandardRender(['Hello', doubleSpaceTag, 'world'])
+                const result = fromRender(render)
+                expect(result).toEqual([{
+                    type: 'paragraph',
+                    children: [{ text: 'Hello  world' }]
+                }])
+            })
+
+            it('should map DoubleSpace adjacent to link', () => {
+                const render = new StandardRender([
+                    'Hello',
+                    doubleSpaceTag,
+                    { data: { tag: 'Link', to: 'feature1', text: 'link' }, children: [] },
+                    'world'
+                ])
+                const result = fromRender(render)
+                expect(result).toEqual([{
+                    type: 'paragraph',
+                    children: [
+                        { text: 'Hello  ' },
+                        { type: 'featureLink', to: 'feature1', children: [{ text: 'link' }] },
+                        { text: 'world' }
+                    ]
+                }])
+            })
+        })
+
+        describe('full round-trip', () => {
+            it('should preserve mid-line double space', () => {
+                const slate: Descendant[] = [{ type: 'paragraph', children: [{ text: 'Hello  world' }] }]
+                const { render, back } = roundTrip(slate)
+                expect(render.toJSON()).toEqual(['Hello', doubleSpaceTag, 'world'])
+                expect(back).toEqual([{
+                    type: 'paragraph',
+                    children: [{ text: 'Hello  world' }]
+                }])
+            })
+
+            it('should not emit DoubleSpace for single interior space', () => {
+                const slate: Descendant[] = [{ type: 'paragraph', children: [{ text: 'Hello world' }] }]
+                const { render, back } = roundTrip(slate)
+                expect(render.toJSON()).toEqual(['Hello world'])
+                expect(back).toEqual([{
+                    type: 'paragraph',
+                    children: [{ text: 'Hello world' }]
+                }])
             })
         })
     })

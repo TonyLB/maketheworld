@@ -197,4 +197,50 @@ describe('StandardRenderEditor', () => {
             children: [{ text: 'Hello ' }]
         }])
     })
+
+    it('preserves mid-line double space when parent echoes DoubleSpace (debounce=false)', () => {
+        const onChange = vi.fn()
+        const standardForm = new StandardForm({
+            universalKey: 'ASSET#test',
+            components: [],
+            metaData: []
+        })
+        mockWorkbenchReturn.standardForm = standardForm
+        mockWorkbenchReturn.localStandardForm = standardForm
+
+        const initialValue = new StandardRender(['Hello world'])
+        const echoedValue = new StandardRender([
+            'Hello',
+            { data: { tag: 'DoubleSpace' }, children: [] },
+            'world'
+        ])
+
+        const { rerender } = render(
+            <StandardRenderEditor
+                value={initialValue}
+                onChange={onChange}
+                debounce={false}
+                tag="Summary"
+            />
+        )
+
+        expect(onChange).toHaveBeenCalledTimes(0)
+
+        rerender(
+            <StandardRenderEditor
+                value={echoedValue}
+                onChange={onChange}
+                debounce={false}
+                tag="Summary"
+            />
+        )
+
+        expect(onChange).toHaveBeenCalledTimes(0)
+
+        const slateAfterEcho = descendantsFromRender(echoedValue, { standard: standardForm })
+        expect(slateAfterEcho).toEqual([{
+            type: 'paragraph',
+            children: [{ text: 'Hello  world' }]
+        }])
+    })
 })

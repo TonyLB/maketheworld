@@ -3,7 +3,7 @@ import { StandardRender, PlainClass } from "@tonylb/mtw-wml/ts/standardize/rende
 import { CustomBlock, CustomFeatureLinkElement, CustomKnowledgeLinkElement } from "../baseClasses"
 import { CustomParagraphContents, CustomParagraphElement } from "../baseClasses"
 import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature"
-import { isSchemaDoubleBR, isSchemaLineBreak, isSchemaLink, isSchemaSpacer } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { isSchemaDoubleBR, isSchemaDoubleSpace, isSchemaLineBreak, isSchemaLink, isSchemaSpacer } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 
 const singleSpace = (s: string) => s.replace(/\s+/g, ' ')
@@ -62,6 +62,18 @@ const appendTrailingSpaceToParagraph = (children: CustomParagraphContents[]): Cu
     return [...children, { text: ' ' }]
 }
 
+/** Append text without collapsing whitespace runs (for DoubleSpace round-trip). */
+export const appendRawText = (list: CustomParagraphContents[], text: string): CustomParagraphContents[] => {
+    if (list.length === 0) {
+        return [{ text }]
+    }
+    const last = list[list.length - 1]
+    if ('text' in last) {
+        return [...list.slice(0, -1), { text: last.text + text }]
+    }
+    return [...list, { text }]
+}
+
 /** Reducer: append an item to the list, merging with the last element when both are text (single-whitespace). */
 export const compactAppend = (list: CustomParagraphContents[], item: CustomParagraphContents): CustomParagraphContents[] => {
     if ('text' in item) {
@@ -94,6 +106,7 @@ export const descendantsFromRender = (render: StandardRender, options: { standar
     let currentChildren: CustomParagraphContents[] = []
     let preserveLeadingOnCurrentParagraph = false
     let preserveTrailingOnNextPush = false
+    let preserveRawTextAppend = false
 
     const pushParagraph = (isFinalFlush: boolean) => {
         const trimmed = trimParagraphBoundaries(currentChildren, {
@@ -104,6 +117,7 @@ export const descendantsFromRender = (render: StandardRender, options: { standar
         currentChildren = []
         preserveLeadingOnCurrentParagraph = false
         preserveTrailingOnNextPush = false
+        preserveRawTextAppend = false
     }
 
     for (let index = 0; index < renderTree.length; index++) {
@@ -114,6 +128,9 @@ export const descendantsFromRender = (render: StandardRender, options: { standar
         if (typeof el === 'string') {
             if (currentChildren.length === 0) {
                 currentChildren = [{ text: singleSpace(el).trimStart() }]
+            } else if (preserveRawTextAppend) {
+                currentChildren = appendRawText(currentChildren, el)
+                preserveRawTextAppend = false
             } else {
                 currentChildren = compactAppend(currentChildren, { text: el })
             }
@@ -126,6 +143,11 @@ export const descendantsFromRender = (render: StandardRender, options: { standar
         if (isSchemaDoubleBR(el.data)) {
             pushParagraph(false)
             pushParagraph(false)
+            continue
+        }
+        if (isSchemaDoubleSpace(el.data)) {
+            currentChildren = appendRawText(currentChildren, '  ')
+            preserveRawTextAppend = true
             continue
         }
         if (isSchemaSpacer(el.data)) {
@@ -151,6 +173,7 @@ export const descendantsFromRender = (render: StandardRender, options: { standar
             continue
         }
         if (isSchemaLink(el.data)) {
+            preserveRawTextAppend = false
             const linkTarget = options.standard.byId[el.data.to]
             currentChildren = [...currentChildren, {
                 type: linkTarget instanceof StandardFeature ? 'featureLink' : 'knowledgeLink',

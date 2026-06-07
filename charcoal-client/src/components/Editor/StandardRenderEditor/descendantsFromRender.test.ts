@@ -452,6 +452,37 @@ describe('descendantsFromRender', () => {
             ])
         })
 
+        it('should handle DoubleSpace as two literal spaces in Slate', () => {
+            const render = new StandardRender([
+                'Hello',
+                { data: { tag: 'DoubleSpace' }, children: [] },
+                'world'
+            ])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{ text: 'Hello  world' }]
+            }])
+        })
+
+        it('should handle DoubleSpace adjacent to link', () => {
+            const render = new StandardRender([
+                'Hello',
+                { data: { tag: 'DoubleSpace' }, children: [] },
+                { data: { tag: 'Link', to: 'feature1', text: 'link' }, children: ['link'] },
+                'world'
+            ])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [
+                    { text: 'Hello  ' },
+                    { type: 'featureLink', to: 'feature1', children: [{ text: 'link' }] },
+                    { text: 'world' }
+                ]
+            }])
+        })
+
         it('should handle render with only spaces', () => {
             const render = new StandardRender([
                 { data: { tag: 'Space' }, children: [] },

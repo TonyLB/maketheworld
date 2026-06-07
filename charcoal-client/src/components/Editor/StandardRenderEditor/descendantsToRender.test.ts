@@ -201,6 +201,34 @@ describe('descendantsToRender', () => {
         })
     })
 
+    describe('DoubleSpace (Track D)', () => {
+        it('should emit DoubleSpace for mid-line double space', () => {
+            const standard = new StandardForm('<Asset uuid=(base) />')
+            const items: Descendant[] = [{ type: 'paragraph', children: [{ text: 'Hello  world' }] }]
+            expect(descendantsToRender(standard)(items).toJSON()).toEqual([
+                'Hello',
+                { data: { tag: 'DoubleSpace' }, children: [] },
+                'world'
+            ])
+        })
+
+        it('should emit DoubleSpace before link when text ends with double space', () => {
+            const standard = new StandardForm('<Asset uuid=(base)><Feature key=(feature1) /></Asset>')
+            const items: Descendant[] = [{
+                type: 'paragraph',
+                children: [
+                    { text: 'Hello  ' },
+                    { type: 'featureLink', to: 'feature1', children: [{ text: 'link' }] }
+                ]
+            }]
+            expect(descendantsToRender(standard)(items).toJSON()).toEqual([
+                'Hello',
+                { data: { tag: 'DoubleSpace' }, children: [] },
+                { data: { tag: 'Link', to: 'feature1', text: 'link' }, children: [] }
+            ])
+        })
+    })
+
     // Test Mixed Content
     describe('Mixed Content', () => {
         it('should handle complex mixed content with links and formatting', () => {
