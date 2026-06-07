@@ -1,16 +1,17 @@
 # StandardRenderEditor trailing whitespace bug
 
-**Status:** Phase 2c complete -- Track C consecutive `<br />` / empty middle paragraph round-trips through WML and editor (cap at two consecutive breaks). **Next step:** Phase 3 (manual Workbench verification; archive after verify).
+**Status:** Phase 2c complete -- Track C empty middle paragraph round-trips via interim `br, br` cap-at-2. **Next step:** Phase 2d -- atomic `<DoubleSpace />` / `<DoubleBR />` tags (Track D mid-line insertion slot + migrate Track C off adjacent `<br />`); then Phase 3 verify.
 
 ## Purpose
 
-Fix Workbench authoring so **`StandardRenderEditor` preserves in-progress editing state** (whitespace and paragraph structure) instead of erasing it on sync. Three related problems, three tracks:
+Fix Workbench authoring so **`StandardRenderEditor` preserves in-progress editing state** (whitespace and paragraph structure) instead of erasing it on sync. Four related problems, four tracks:
 
 | Track | User scenario | Root issue |
 | --- | --- | --- |
 | **A -- Document boundary** | Trailing/leading space on the **only** paragraph, or at the **start/end of the whole field** | Editor inbound trim breaks existing `<Space />` round-trip |
 | **B -- Paragraph boundary** | Trailing space at end of a **non-final** paragraph; leading space at start of a paragraph after Enter | WML **cannot represent** this today; literal whitespace before/after `<br />` is stripped on parse, and `<Space /><br />` is compressed away |
 | **C -- Empty paragraph** | User presses Enter at end of paragraph A to insert empty paragraph B between A and C | Consecutive `<br />` collapse to one in merge/parse; outbound never emits `br, br` for empty middle paragraphs ([`descendantsToRender.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsToRender.test.ts) encodes the loss) |
+| **D -- Mid-line insertion slot** | User creates `"Hello  world"` (double space between words) to insert a word between existing chunks | WML cannot represent `\s{2}` durably with literal markup; adjacent `<Space /><Space />` is **ambiguous in merge/diff** (join compaction vs structural slot); editor collapses `\s{2,}` today |
 
 **Product framing:** Current `<Space />` + `<br />` rules optimize **finished text** (displayed output where space before a line break is rarely meaningful). Authoring is **in-progress text**, where that space is **essential** for smooth editing. We should relax storage/parsing rules so intentional paragraph-edge spaces persist through save/reload, without restoring the removed "visible whitespace" editor decoration.
 
@@ -20,6 +21,22 @@ Fix Workbench authoring so **`StandardRenderEditor` preserves in-progress editin
 - Same loss on a **non-final** paragraph (line one of a multi-paragraph Description).
 - May affect trailing space after inline links on the last line.
 - Empty paragraph inserted between two non-empty paragraphs (Enter at end of A) disappears on save/sync (Track C).
+- Double space between words mid-line (e.g. `"Hello  world"` while inserting `"there"`) disappears on sync or save (Track D).
+
+## Unified editing-slot rule (Tracks C and D)
+
+Authoring whitespace at a **boundary** serves one of two roles:
+
+| Boundary shape | Role | Storage token | Track |
+| --- | --- | --- | --- |
+| **Closed** -- whitespace **between two filled regions** (content -- slot -- content) | Hold open an empty interval for the cursor | **`<DoubleBR />`** (paragraph); **`<DoubleSpace />`** (mid-line) | C; D |
+| **Open** -- whitespace at an **edge** with nothing filled on one side yet | Foothold to start typing | **`<br />`** or **`<Space />`** (one) | A/B; D (single trailing space) |
+
+**Phase 2d decision:** Do **not** encode closed-boundary slots as **two adjacent tags of the same kind** (`Space, Space` or `br, br`). WML edits are fragment merges without an intent discriminator; adjacency forces context-sensitive merge rules (e.g. `["Hello", Space]` + `[Space, "world"]` must compact to `["Hello world"]`, but `["Hello"]` + `[DoubleSpace, "world"]` must not). **Atomic tags** make edit syntax unambiguous.
+
+**Interim (Phase 2c):** Track C shipped with cap-at-2 consecutive `<br />`. Phase 2d migrates storage/print to `<DoubleBR />` (parse accepts legacy `<br /><br />` and normalizes).
+
+**Product rationale (Track D):** Users should not need special typing order to insert words. Preserving natural `\s{2}` mid-line editing states is part of UI trust.
 
 ## Whitespace preservation model (target semantics)
 
@@ -31,8 +48,9 @@ Slate uses **paragraph blocks**, not `\n` in text nodes. Enter creates a second 
 | Leading space, **first** paragraph | `[{ para: ' Hello' }]` | `{ tag: 'Space' }`, `'Hello'` | Track A; `<Space />` at **document start** |
 | Trailing space, **before** next paragraph | `[{ para: 'Line one ' }, { para: 'Line two' }]` | `'Line one'`, `{ tag: 'Space' }`, `{ tag: 'br' }`, `'Line two'` | Track B; **must** be explicit `<Space />` before `<br />` -- literal `'Line one '` does not survive WML parse |
 | Leading space, **after** previous paragraph | `[{ para: 'Line one' }, { para: ' Line two' }]` | `'Line one'`, `{ tag: 'br' }`, `{ tag: 'Space' }`, `'Line two'` | Track B; `<Space />` immediately **after** `<br />` |
-| Internal space mid-line | `'Hello world'` | literal space in string | Unchanged |
-| **Empty paragraph between content** | `[{ para: 'A' }, { para: '' }, { para: 'C' }]` | `'A'`, `{ tag: 'br' }`, `{ tag: 'br' }`, `'C'` | Track C; up to **two consecutive** `<br />` preserved; third+ compress to two |
+| Internal space mid-line (single) | `'Hello world'` | literal space in string | Unchanged |
+| **Mid-line insertion slot** | `[{ para: 'Hello  world' }]` | `'Hello'`, `{ tag: 'DoubleSpace' }`, `'world'` | Track D; `<DoubleSpace />` between string/link chunks |
+| **Empty paragraph between content** | `[{ para: 'A' }, { para: '' }, { para: 'C' }]` | `'A'`, `{ tag: 'DoubleBR' }`, `'C'` | Track C; **target** after 2d (interim 2c: `br, br`) |
 
 ### Why Track B needs WML changes (not just editor trim removal)
 
@@ -63,15 +81,17 @@ Leading space on line two:
 
 ### What stays normalized
 
-- Collapse runs of 2+ whitespace characters to one (`withConstrainedWhitespace`, merge between strings).
+- Cap runs of 3+ **literal** whitespace characters in Slate at **two** (`withConstrainedWhitespace`); `\s{2}` is the insertion-slot shape in the editor.
 - No restored visible-whitespace decoration in the editor UI.
-- Multiple consecutive `<Space />` before/after `<br />` should still compress to **one** (mirror existing multi-Spacer rules, but keep a single Spacer).
+- Multiple consecutive `<Space />` **immediately before/after `<br />`** compress to **one** (Track B unchanged).
+- **Display only:** collapse `<DoubleSpace />` and `<DoubleBR />` to single-space / single-break visible output for player-facing prose (storage preserves atoms; see [Display vs storage](#display-vs-storage-decision-phase-1)).
+- **Do not** use adjacent `<Space /><Space />` or `<br /><br />` in new storage/print (legacy aliases normalize on parse to atomic tags).
 
 ### Why Track C needs storage/display split (discovered post-2b)
 
 **Display / finished prose:** Collapsing `br, br` to a single break rarely changes what players see (empty lines between content are invisible in most render paths).
 
-**Authoring / in-progress edit:** Pressing Enter at the end of paragraph A to create paragraph B **between** A and C is exactly `br, br` in WML terms. Inbound already maps `[br, br]` to three Slate paragraphs ([`descendantsFromRender.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsFromRender.test.ts)); outbound and storage collapse prevent the edit from sticking.
+**Authoring / in-progress edit:** Pressing Enter at the end of paragraph A to create paragraph B **between** A and C requires a storable empty-middle-paragraph token. Phase 2c used `br, br`; **Phase 2d target** is `<DoubleBR />` (see [atomic tags section](#why-atomic-tags-doublespace--doublebr----phase-2d)).
 
 **Loss layers today:**
 
@@ -82,7 +102,63 @@ Leading space on line two:
 | Parse compress | [`compressWhitespaceRun`](../../../packages/mtw-wml/ts/schema/utils/schemaOutput/compressWhitespace.ts) | Contiguous whitespace run emits at most one `br` |
 | Inbound | [`descendantsFromRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsFromRender.ts) | **Ready** -- preserves multiple `br` if present in tree |
 
-**Phase 2c decision (confirmed):** **Storage** preserves up to **two consecutive `<br />`** in authoring fields (`Description`, `Summary`, `DisplayName`); three or more consecutive `<br />` compress to two. **Display** may still collapse at `RenderTreeContent` / `messageParsing` if desired. Same pattern as Track B Space+br.
+**Phase 2c decision (interim, shipped):** Cap-at-2 consecutive `<br />` preserved authoring round-trip. **Superseded in Phase 2d** by `<DoubleBR />` for merge/diff clarity (legacy `<br /><br />` normalizes on parse).
+
+### Why atomic tags (`<DoubleSpace />`, `<DoubleBR />`) -- Phase 2d
+
+**Problem (adjacent tags):** All edits merge WML fragments. The same spacer tokens mean different things depending on merge context:
+
+| Merge | Expected result |
+| --- | --- |
+| `["Hello", Space]` + `[Space, "world"]` | `["Hello world"]` (join compaction) |
+| `["Hello"]` + `[DoubleSpace, "world"]` | `["Hello", DoubleSpace, "world"]` (structural slot) |
+
+Adjacent `<Space /><Space />` cannot express that distinction in edit syntax. Diff from `["Hello world"]` to a double slot can produce a Replace whose match side promotes to `<Space />world`; merging that incorrectly against a trailing `Space` on the base **collapses** the slot.
+
+**Solution:** One tag per closed-boundary slot. Diff from `["Hello world"]` to `["Hello", DoubleSpace, "world"]` naturally yields `{ remove: [' world'], add: [DoubleSpace, 'world'] }`, which serializes to:
+
+```xml
+<Replace><Space />world</Replace><With><DoubleSpace />world</With>
+```
+
+(Match leading space promoted by [`StandardRenderSimpleBase`](../../../packages/mtw-wml/ts/standardize/render/index.ts) constructor; `DoubleSpace` is **not** in the `Space` peel equivalence class in diff.)
+
+**Target WML examples:**
+
+```xml
+<Description>Hello<DoubleSpace />world</Description>
+<Description>First<DoubleBR />Last</Description>
+```
+
+**Slate round-trip targets:**
+
+```typescript
+// Track D
+const slateD = [{ type: 'paragraph', children: [{ text: 'Hello  world' }] }]
+// outbound -> ['Hello', DoubleSpace, 'world']
+// inbound -> slateD unchanged
+
+// Track C (after DoubleBR migration)
+const slateC = [
+  { type: 'paragraph', children: [{ text: 'First' }] },
+  { type: 'paragraph', children: [{ text: '' }] },
+  { type: 'paragraph', children: [{ text: 'Last' }] }
+]
+// outbound -> ['First', DoubleBR, 'Last']
+```
+
+**Loss layers today (Track D -- unchanged until 2d):**
+
+| Layer | File | Behavior |
+| --- | --- | --- |
+| Slate normalize | [`constrainedWhitespace.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/constrainedWhitespace.ts) | `\s{2,}` collapses to one |
+| Tags | schema / render | `DoubleSpace`, `DoubleBR` do not exist |
+| Merge / diff | [`standardRenderAdd`](../../../packages/mtw-wml/ts/standardize/render/index.ts) | `Space`+`Space` dropped; no `DoubleSpace` |
+| Outbound / inbound | client converters | `\s{2}` not promoted to atomic tag |
+
+**Spike (confirm before implementation):** WML schema test that `<Description>Hello  world</Description>` (two literal spaces) does **not** preserve `\s{2}` on parse/print -- confirms explicit tag required.
+
+**Merge/diff tests (required in 2d):** `base.merge(base.diff(target)).equals(target)` for slot transitions; compaction case `["Hello", Space].merge([Space, "world"])` stays single-space and does **not** emit `DoubleSpace`.
 
 ## Where trimming happens today
 
@@ -94,8 +170,11 @@ Leading space on line two:
 | Inbound (Render -> Slate) | [`descendantsFromRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsFromRender.ts) | A (fixed) + B | Track A: boundary-aware trim preserves doc-start/end `{ Space }`; Track B: still strips Space adjacent to `{ br }` |
 | Outbound (Slate -> Render) | [`descendantsToRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsToRender.ts) | A + B | Must emit `{ Space }` before/after `{ br }` when Slate paragraph has edge space |
 | Tests | [`compressWhitespace.test.ts`](../../../packages/mtw-wml/ts/schema/utils/schemaOutput/compressWhitespace.test.ts), [`index.test.ts`](../../../packages/mtw-wml/ts/standardize/render/index.test.ts), [`descendantsFromRender.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsFromRender.test.ts) | A + B | Encode old "strip break-adjacent space" policy |
+| Slate normalize | [`constrainedWhitespace.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/constrainedWhitespace.ts) | D | Collapse `\s{2,}` to one; cap at 2 in 2d |
+| Tags / merge / diff | schema, [`standardRenderAdd`](../../../packages/mtw-wml/ts/standardize/render/index.ts), diff | C + D | No `DoubleSpace` / `DoubleBR`; interim `br, br`; `Space`+`Space` dropped |
+| Inbound | [`descendantsFromRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsFromRender.ts) | D | No `DoubleSpace` mapping |
 
-**Working theory:** Hypothesis B (serialization / WML round-trip) for both tracks. Legacy Slate plugins (hypothesis A) are secondary.
+**Working theory:** Hypothesis B (serialization / WML round-trip) for all tracks. Legacy Slate plugins (hypothesis A) are secondary for A--C; Track D also requires Slate normalize change (cap at 2).
 
 ## Hypotheses (investigate both)
 
@@ -113,6 +192,7 @@ Leading space on line two:
 | 2a | **Track A:** document-end `<Space />` editor round-trip | Complete |
 | 2b | **Track B:** WML `<Space /><br />` semantics + full pipeline | Complete |
 | 2c | **Track C:** consecutive `<br />` / empty middle paragraph authoring round-trip | Complete |
+| 2d | **Atomic tags:** `<DoubleSpace />` (Track D) + `<DoubleBR />` (migrate Track C); full pipeline | Not started |
 | 3 | Manual Workbench verification; durable docs | Not started |
 
 ## Links
@@ -122,12 +202,14 @@ Leading space on line two:
 | [`taskPlanning/AGENT.md`](../../AGENT.md) | Task-plan conventions |
 | [`taskPlanning/charcoal-client/AGENT.development.md`](../../AGENT.development.md) | Vitest commands |
 | [`README.taggedMessage.md`](../../../packages/mtw-wml/ts/README.taggedMessage.md) | Tagged-message whitespace rules |
-| [`packages/mtw-wml/ts/standardize/render/AGENT.md`](../../../packages/mtw-wml/ts/standardize/render/AGENT.md) | `<Space />` rules (to update for Space+br) |
+| [`packages/mtw-wml/ts/standardize/render/AGENT.md`](../../../packages/mtw-wml/ts/standardize/render/AGENT.md) | `<Space />` / atomic double tags (Phase 2d) |
 | [`compressWhitespace.ts`](../../../packages/mtw-wml/ts/schema/utils/schemaOutput/compressWhitespace.ts) | Parse-time trim/compress |
 | [`descendantsFromRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsFromRender.ts) | Inbound conversion |
 | [`descendantsToRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsToRender.ts) | Outbound conversion |
 | [`StandardRenderEditor.tsx`](../../../charcoal-client/src/components/Workbench/foundations/StandardRender/StandardRenderEditor.tsx) | Editor sync loop |
-| [`whitespacePreservation.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts) | Target-semantics round-trip tests (Track A + B) |
+| [`whitespacePreservation.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts) | Target-semantics round-trip tests (Tracks A--D) |
+| [`constrainedWhitespace.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/constrainedWhitespace.ts) | Slate `\s{2,}` normalize (Track D -- cap at 2) |
+| `@tonylb/mtw-base` schema / renderTree | New `DoubleSpace`, `DoubleBR` tag types (Phase 2d boilerplate) |
 | [`StandardRenderEditor.test.tsx`](../../../charcoal-client/src/components/Workbench/foundations/StandardRender/StandardRenderEditor.test.tsx) | Parent-echo sync test |
 
 ## Getting Started
@@ -139,7 +221,9 @@ Read [`taskPlanning/AGENT.md`](../../AGENT.md) once.
 3. **Read editor sync loop** -- [`useStandardRenderEditorHook`](../../../charcoal-client/src/components/Workbench/foundations/StandardRender/StandardRenderEditor.tsx).
 4. **Testing** -- [`taskPlanning/charcoal-client/AGENT.development.md`](../../AGENT.development.md), [`charcoal-client/AGENT.testing.slate.md`](../../../charcoal-client/AGENT.testing.slate.md).
 
-5. **Baseline verification**
+5. **Baseline verification** (after 2d tag land, extend with DoubleSpace/DoubleBR tests)
+
+For Phase 2d implementation, also read the **Phase 2d planning** section under Diagnosis record and [`render/AGENT.md`](../../../packages/mtw-wml/ts/standardize/render/AGENT.md) before editing merge/diff.
 
 ```bash
 cd charcoal-client
@@ -160,6 +244,7 @@ npm run test -- ts/schema/utils/schemaOutput/compressWhitespace.test.ts
 - [X] Trailing space after inline link on last line. -- document-end outbound covered by `descendantsToRender.test.ts`; non-final link+space fails in `whitespacePreservation.test.ts` Track B round-trip.
 - [X] Load WML with document-end `<Space />`; confirm inbound editable space. -- WML schema load/print pass (`index.test.ts`); inbound fails (`descendantsFromRender` strips Space).
 - [X] `debounce={false}` vs default -- when does loss appear? -- Loss on **inbound** when parent echoes `StandardRender` with `<Space />`; outbound fires immediately under `debounce={false}` (Workbench session). Debounce timing is not root cause.
+- [ ] Track D: double space mid-line (`"Hello  world"`). -- `withConstrainedWhitespace` collapses before sync; WML/merge/inbound not yet tested (Phase 2d).
 
 ### Round-trip tests to add (should fail before fix)
 
@@ -198,6 +283,31 @@ const slate = [
 // expect ['Line one', { tag: 'br' }, { tag: 'Space' }, 'Line two']
 ```
 
+**Track D -- mid-line insertion slot (`DoubleSpace`):**
+
+```typescript
+const slate = [{ type: 'paragraph', children: [{ text: 'Hello  world' }] }]
+const render = descendantsToRender(standard)(slate)
+// expect render.toJSON() like ['Hello', { tag: 'DoubleSpace' }, 'world']
+const back = descendantsFromRender(render, { standard })
+// expect back[0].children[0].text === 'Hello  world'
+// WML: Hello<DoubleSpace />world survives parse -> print
+// diff(['Hello world'], target).merge(base) === target
+// Spike: <Description>Hello  world</Description> literal markup does NOT preserve \s{2}
+```
+
+**Track C migration -- `DoubleBR` (replaces interim `br, br` in storage/print):**
+
+```typescript
+const slate = [
+  { type: 'paragraph', children: [{ text: 'First' }] },
+  { type: 'paragraph', children: [{ text: '' }] },
+  { type: 'paragraph', children: [{ text: 'Last' }] }
+]
+// expect outbound ['First', { tag: 'DoubleBR' }, 'Last']
+// parse: First<br /><br />Last normalizes to First<DoubleBR />Last
+```
+
 ### Trace layers
 
 - [X] Track A: `descendantsFromRender` trim vs outbound `<Space />` from `descendantsToRender`. -- Outbound pass; inbound `trimParagraphBoundaries` + two additional strip points (see Phase 1 trace).
@@ -208,10 +318,12 @@ const slate = [
 
 1. **No visible whitespace decoration** in the editor.
 2. **`<Space />` at document boundaries** -- unchanged semantics for field start/end.
-3. **`<Space />` adjacent to `<br />`** -- **new** allowed positions for Track B (authoring/storage); update [`render/AGENT.md`](../../../packages/mtw-wml/ts/standardize/render/AGENT.md) accordingly.
-4. **Do not rely on literal whitespace in WML markup** next to `<br />` -- always serialize to `<Space />`.
-5. **Keep `\s{2,}` collapse** in the editor; compress multiple `<Space />` before/after `<br />` to one in WML.
-6. **Gateway / lambda** -- grep for break-adjacent trim assumptions if Track B touches shared render paths.
+3. **`<Space />` adjacent to `<br />`** -- Track B (authoring/storage); see [`render/AGENT.md`](../../../packages/mtw-wml/ts/standardize/render/AGENT.md).
+4. **`<DoubleSpace />`** -- closed-boundary mid-line insertion slot between string/link chunks (Track D). **Not** two adjacent `<Space />` tags.
+5. **`<DoubleBR />`** -- closed-boundary empty middle paragraph between content strings (Track C target). **Not** two adjacent `<br />` in new storage/print (legacy normalizes on parse).
+6. **Do not rely on literal multi-space in WML markup** -- use `<DoubleSpace />`; literal `Hello  world` in Description does not survive parse.
+7. **Cap `\s{3,}` at two** in Slate (`withConstrainedWhitespace`); `\s{2}` is the editor insertion-slot shape. **Display** collapses `DoubleSpace` / `DoubleBR` for player-facing prose; **storage** keeps atoms.
+8. **Gateway / lambda** -- grep shared render paths if tag surface expands.
 
 ## Fix direction (draft -- confirm after Phase 1)
 
@@ -243,6 +355,46 @@ Recommended order: **WML semantics before client conversion**, so editor outboun
 ### Display (optional, Phase 1 decision)
 
 9. If player-facing render should omit space-before-break, add normalization at **render/display** only, not in stored WML.
+
+### Track D + DoubleBR migration (Phase 2d -- atomic whitespace tags)
+
+**Prerequisite insight:** Fragment merges must disambiguate join-compaction from structural slots without an intent flag. Atomic tags are the encoding; diff/subtract need **no** insertion-slot special cases beyond treating `DoubleSpace` / `DoubleBR` as opaque elements (do **not** add `DoubleSpace` to the `Space` string-peel equivalence in diff).
+
+Recommended order:
+
+#### 2d.1 -- Schema tag boilerplate (tedious but mechanical)
+
+- [ ] Add `DoubleSpace` and `DoubleBR` to **`@tonylb/mtw-base`** schema / renderTree types (`isSchemaDoubleSpace`, `isSchemaDoubleBR`, legal tagged-message contents).
+- [ ] [`taggedMessages.ts`](../../../packages/mtw-wml/ts/schema/converters/taggedMessages.ts) -- parse + print converters.
+- [ ] [`StandardRenderDoubleSpace`](../../../packages/mtw-wml/ts/standardize/render/) / `StandardRenderDoubleBR` payload classes; wire [`render/index.ts`](../../../packages/mtw-wml/ts/standardize/render/index.ts) `payloadFactory`, `standardRenderAdd`, subtract, diff (opaque merge -- no compaction with adjacent `Space` / `br`).
+- [ ] [`compressWhitespace.ts`](../../../packages/mtw-wml/ts/schema/utils/schemaOutput/compressWhitespace.ts) -- preserve atomic tags; **normalize legacy** `<Space /><Space />` -> `DoubleSpace`, `<br /><br />` -> `DoubleBR` on parse (cap one double unit).
+- [ ] Spike test: literal `Hello  world` in Description does not round-trip `\s{2}`.
+
+#### 2d.2 -- Migrate Track C to `<DoubleBR />`
+
+- [ ] Outbound: empty middle paragraph emits `{ DoubleBR }` not `br, br`.
+- [ ] Inbound: `{ DoubleBR }` -> three Slate paragraphs (replace `br, br` handling).
+- [ ] Update Phase 2c tests + docs to target `DoubleBR`; keep legacy `<br /><br />` parse fixtures.
+- [ ] Remove or simplify cap-at-2 consecutive `br` logic where superseded by atomic tag.
+
+#### 2d.3 -- Track D `<DoubleSpace />` pipeline
+
+- [ ] `withConstrainedWhitespace` -- cap at 2 literal spaces (not collapse all `\s{2,}` to 1).
+- [ ] Outbound: promote `\s{2}` between string/link chunks to `{ DoubleSpace }` (constructor/merge path).
+- [ ] Inbound: `{ DoubleSpace }` -> two literal spaces in Slate; link-adjacent cases.
+- [ ] [`whitespacePreservation.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts) Track D round-trip + parent echo.
+
+#### 2d.4 -- Diff / merge verification
+
+- [ ] `base.merge(base.diff(target)).equals(target)` for `['Hello world']` <-> `['Hello', DoubleSpace, 'world']`.
+- [ ] Compaction: `['Hello', Space]` + merge fragment `[Space, 'world']` -> single space (no `DoubleSpace`).
+- [ ] WML Replace round-trip: diff renders as `<Replace><Space />world</Replace><With><DoubleSpace />world</With>` (match leading space via constructor promotion).
+
+#### 2d.5 -- Display + docs
+
+- [ ] [`RenderTreeContent.tsx`](../../../charcoal-client/src/components/Message/RenderTreeContent.tsx) -- **single display pass** for player-facing prose: collapse `DoubleSpace` / `DoubleBR`; handle interim stored `br, br` until fully migrated; optional `messageParsing` if manual verify requires it. Storage unchanged.
+- [ ] Update [`render/AGENT.md`](../../../packages/mtw-wml/ts/standardize/render/AGENT.md), [`README.syntax.md`](../../../packages/mtw-wml/documentation/README.syntax.md), [`README.taggedMessage.md`](../../../packages/mtw-wml/ts/README.taggedMessage.md), [`AGENT.testing.slate.md`](../../../charcoal-client/AGENT.testing.slate.md).
+- [ ] Interaction fixtures: `DoubleSpace` near `br` / Track B `Space`; `DoubleBR` with Track B paragraph-edge spaces.
 
 ## Recommended order
 
@@ -276,10 +428,17 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets when 
   - [X] Fix `descendantsToRender` to emit one `br` per Slate paragraph boundary including empty middle paragraphs (via merge fix; no code change needed).
   - [X] Update legacy `descendantsToRender.test.ts` empty-paragraph expectation; confirm inbound unchanged.
   - [X] Update durable docs (`render/AGENT.md`, syntax README) for consecutive `<br />` authoring rule (cap at 2).
-  - [ ] Optional: display-only collapse in `RenderTreeContent` / `messageParsing` (out of scope unless manual verify shows player-visible regressions).
+  - Display-only collapse deferred to **Phase 2d.5** (covers interim `br, br`, `DoubleBR`, and `DoubleSpace` in one pass).
+
+- [ ] **Phase 2d -- Atomic whitespace tags (`DoubleSpace`, `DoubleBR`)**
+  - [ ] **2d.1** Schema boilerplate: mtw-base types, taggedMessages converters, StandardRender payload classes, merge/diff/compress + legacy alias normalize.
+  - [ ] **2d.2** Migrate Track C storage/print to `<DoubleBR />` (outbound, inbound, tests, docs); legacy `<br /><br />` parse.
+  - [ ] **2d.3** Track D `<DoubleSpace />` pipeline (Slate cap-at-2, outbound/inbound, whitespacePreservation tests).
+  - [ ] **2d.4** Diff/merge round-trip fixtures (slot vs compaction cases).
+  - [ ] **2d.5** Display collapse (`RenderTreeContent`, optional `messageParsing`) for `DoubleSpace` / `DoubleBR` and legacy interim shapes; durable docs + interaction fixtures.
 
 - [ ] **Phase 3 -- Verify and close**
-  - [ ] Manual Workbench checks (see Verification).
+  - [ ] Manual Workbench checks (see Verification); confirm player-facing display after 2d.5 collapse.
   - [ ] Archive this plan per [`taskPlanning/AGENT.md`](../../AGENT.md).
 
 ## Diagnosis record
@@ -354,6 +513,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets when 
 | **Parse-time `compressWhitespace`** | Relax for authoring fields (Description/Summary/DisplayName) in Phase 2b | Must align with storage decision; currently strips Space+br on parse finalize |
 | **Messaging parse** (`messageParsing: true` in [`messaging.ts`](../../../packages/mtw-wml/ts/schema/converters/messaging.ts)) | **Out of scope** | Workbench descriptions do not flow through message parsing; no change unless a future trace shows otherwise |
 | **`schemaOutputToString`** (labels) | No change | Used for display names; Space+br patterns unlikely; both Space and br map to `' '` if encountered |
+| **`DoubleSpace` / `DoubleBR` display (Phase 2d)** | **Collapse** in player-facing render | Storage keeps atoms; display shows finished-prose spacing (one visible space / normal break) |
 
 ### Root cause and fix order
 
@@ -461,11 +621,11 @@ const slate = [
 
 **Recommended order:** WML storage (`standardRenderAdd`, `compressWhitespace`) then client outbound; inbound likely already correct.
 
-### Phase 2c implementation (2026-06-07)
+### Phase 2c implementation (2026-06-07) -- interim `br, br`; migrate to `DoubleBR` in 2d
 
 **Approach (WML first, cap at 2):** `compressWhitespaceRun` walks whitespace runs left-to-right, emitting up to two `{ br }` tags with Track B Space rules (one Space per gap; multiple Spacers compress to one). `standardRenderAdd` allows `br`+`br` but drops a third consecutive `br`. Client outbound unchanged -- per-paragraph `br` seed in `descendantsToRender` plus merge fix yields `br, br` for empty middle paragraphs. Inbound unchanged.
 
-**Cap-at-2 rationale:** One empty middle paragraph (Track C) requires exactly `br, br` between content strings. Three or more consecutive `<br />` would represent two or more consecutive empty paragraphs -- not needed for Workbench authoring; mirrors multi-Spacer compress-to-one rule.
+**Interim note:** Delivers Track C round-trip but leaves merge/diff adjacency ambiguity. Phase 2d replaces storage/print with `<DoubleBR />` while keeping legacy `<br /><br />` parse alias.
 
 **Files changed:**
 
@@ -498,7 +658,28 @@ const slate = [
 | Client inbound (`descendantsFromRender`) | Pass (unchanged) |
 | Client full round-trip | Pass |
 
-**Deferred:** Leading empty paragraph at document start; display-only collapse in `RenderTreeContent`; 3+ consecutive empty paragraphs between content (capped on save).
+**Deferred:** Leading empty paragraph at document start; 3+ consecutive empty paragraphs between content (capped on save). Display-only collapse moved to Phase 2d.5 (was optional under 2c).
+
+### Phase 2d planning (2026-06-07, revised -- atomic tags)
+
+**Trigger:** Unified editing-slot rule + merge/diff review. Adjacent duplicate tags (`Space, Space`, `br, br`) are **ambiguous in WML fragment merges** -- the same tokens compact or preserve depending on base shape, with no intent discriminator in edit syntax.
+
+**Decision:** Introduce atomic **`<DoubleSpace />`** (Track D mid-line insertion slot) and **`<DoubleBR />`** (Track C empty middle paragraph). Slate/RenderTree translate to/from these at boundaries; WML storage and edits use single-element atoms.
+
+**Why not cap-at-2 adjacent tags (supersedes earlier 2d draft):**
+
+| Approach | Diff example | Problem |
+| --- | --- | --- |
+| Adjacent `Space, Space` | Replace `world` / `Space+world` | Merge collapses slot |
+| `DoubleSpace` | Replace `Space+world` / `DoubleSpace+world` (after prefix peel) | Unambiguous atom |
+
+**Phase 2c interim:** Shipped `br, br` cap-at-2; 2d migrates print/storage to `DoubleBR` with legacy parse alias.
+
+**Diff / WML print:** `{ remove: [' world'], add: [DoubleSpace, 'world'] }` serializes to `<Replace><Space />world</Replace><With><DoubleSpace />world</With>` via existing leading-space promotion on match fragments -- no Replace-specific hack.
+
+**Display:** Collapse `DoubleSpace` / `DoubleBR` in player-facing paths only; storage keeps atoms for authoring round-trip.
+
+**Recommended order:** 2d.1 boilerplate -> 2d.2 DoubleBR migration -> 2d.3 DoubleSpace pipeline -> 2d.4 diff fixtures -> 2d.5 display + docs.
 
 ## Verification
 
@@ -517,7 +698,9 @@ Manual:
 1. **Track A:** single paragraph `"Hello "`, blur, reload -- space visible; WML ends with `<Space />`.
 2. **Track B:** `"Line one "`, Enter, `"Line two"`, blur, reload -- space visible at end of line one; WML shows `<Space /><br />` (or equivalent).
 3. **Track B:** leading space at start of second paragraph persists; WML shows `<br /><Space />`.
-4. **Track C:** `"First"`, Enter (empty middle para), `"Last"`, blur, reload -- three paragraphs; WML shows `<br /><br />` between strings.
+4. **Track C:** `"First"`, Enter (empty middle para), `"Last"`, blur, reload -- three paragraphs; WML shows `<DoubleBR />` between strings (legacy `<br /><br />` still parses).
+5. **Track D:** `"Hello world"`, insert second space to make `"Hello  world"`, blur, reload -- double space visible in editor; WML shows `<DoubleSpace />`; player display shows single space between words.
+6. **Diff sanity:** edit producing `<Replace><Space />world</Replace><With><DoubleSpace />world</With>` merges back to `"Hello  world"` in editor.
 
 Grep sanity:
 
