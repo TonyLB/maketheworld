@@ -22,10 +22,10 @@ The serialization refactor established these principles (authority and typing on
 
 The DataSource pattern uses two different delivery mechanisms depending on the context:
 
-- **Live Events** (`streamEvent`): New changes are published to EventBridge for fan-out to all current subscribers
-- **Replay Events** (`initializeSubscription`): Historical data is delivered directly to a specific session via SNS Feedback (when replay is enabled)
+- **Live Events** (`streamEvent`): New changes are published to EventBridge for fan-out to all current subscribers. The subscriptions lambda deserializes with `fromEventBridgeFormat` and sends **`toWebSocketFormat`** (flat extended header fields at the message top level).
+- **Replay Events** (`initializeSubscription`): Historical data is delivered directly to a specific session via SNS Feedback (when replay is enabled). SNS bodies use **`toSNSFeedbackFormat`** (nested `extendedHeader`). The feedback lambda deserializes with `fromSNSFeedbackFormat` and sends **`toWebSocketFormat`** before WebSocket delivery --- same flat client contract as live events. See [`lambda/feedback/AGENT.md`](../../../../lambda/feedback/AGENT.md).
 
-This dual approach ensures efficient delivery while maintaining the correct scope for each type of event.
+This dual approach ensures efficient delivery while maintaining the correct scope for each type of event. **Client ingress** (`fromWebSocketFormat`) always sees canonical flat WebSocket StreamEvents on both paths.
 
 ### **Replay Content**: The method delivers:
 1. **Current Snapshot**: The most recent materialized state for the stream
@@ -103,7 +103,7 @@ Full pipeline as implemented in code and formatTransform:
 4. **messageBus** – Lambda builds `StreamingEventMessage` with `header` from `coreFormat.header`, `getContent` returning the deserialized payload, and sends to messageBus.
 5. **DataSource processing** – Patterns subscribe() applies envelope type guard, then passes narrowed events to DataSource `receiveEvents`.
 
-Replay path: DataSource `deliverReplayData` builds CoreExternalFormat (snapshot and replay events) with `{ header, update }` and uses `toSNSFeedbackFormat` (and optionally toWebSocketFormat) for delivery; no EventBridge on that path. Snapshot subscribe replay puts `replayAt` on `coreFormat.header` when present (SNS wire: `extendedHeader.replayAt`); metadata fields `createdAt`, `replayAt`, and `expiresAt` are stripped from `update` before send. SNS Feedback and WebSocket both carry `eventType` as a projection of `header.type` so that downstream consumers and replay handlers can discriminate on envelope metadata rather than payload `type`.
+Replay path: DataSource `deliverReplayData` builds CoreExternalFormat (snapshot and replay events) with `{ header, update }` and publishes **`toSNSFeedbackFormat`** to the feedback topic (no EventBridge on that path). The feedback lambda normalizes to flat WebSocket via `fromSNSFeedbackFormat` then `toWebSocketFormat`. Snapshot subscribe replay puts `replayAt` on `coreFormat.header` when present (SNS wire: `extendedHeader.replayAt` until feedback transform); metadata fields `createdAt`, `replayAt`, and `expiresAt` are stripped from `update` before send. SNS Feedback and WebSocket both carry `eventType` as a projection of `header.type` so that downstream consumers and replay handlers can discriminate on envelope metadata rather than payload `type`.
 
 **Snapshot and CoreExternalFormat:** Snapshot records (e.g. Dynamo `Meta::Snapshot` rows) and replay delivery payloads are expressed as CoreExternalFormat envelopes: the same `{ header, update }` shape as streaming events. The header carries `type: 'Snapshot'` and the base four fields; `update` is the snapshot body (external payload). Existing `wireFormatsFromCoreFormat` and all format transforms (`toDynamoDBFormat`, `toSNSFeedbackFormat`, `toWebSocketFormat`, etc.) apply to snapshot envelopes without change.
 
