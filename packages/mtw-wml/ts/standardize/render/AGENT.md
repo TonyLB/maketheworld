@@ -43,6 +43,8 @@ Represents explicit spacing elements.
 
 **⚠️ CRITICAL**: `<Space />` elements are **boundary markers** and can only appear at the very beginning or end of a RenderTree, never in the middle. See [Space Element Positioning](#space-element-positioning) for details.
 
+**Pending change (authoring whitespace fix):** `<Space />` will also be allowed **immediately adjacent to `<br />`** for paragraph-edge authoring round-trip (trailing space before a line break; leading space after). Storage and parse/merge semantics change in Phase 2b; player-facing display via `RenderTreeContent` is unchanged (Space nodes already render as nothing). See [`taskPlanning/charcoal-client/src/components/AGENT.standardRenderWhitespaceBug.planning.md`](../../../../taskPlanning/charcoal-client/src/components/AGENT.standardRenderWhitespaceBug.planning.md).
+
 ## Space Element Positioning
 
 ### Rules for `<Space />` Elements

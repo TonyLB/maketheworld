@@ -16,6 +16,10 @@
 
 **Cross-Reference**: See [AGENT.testing.md](./AGENT.testing.md) for general testing standards and setup.
 
+### Whitespace preservation (target semantics)
+
+[`whitespacePreservation.test.ts`](src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts) is the **executable spec** for document-boundary and paragraph-boundary (Space+br) round-trip semantics. It covers Track A (doc-start/end `<Space />`) and Track B (Space immediately before/after `<br />`). Legacy tests in `descendantsFromRender.test.ts` and `descendantsToRender.test.ts` still encode the old strip policy until Phase 2 lands. Phase 1 diagnosis: [`taskPlanning/charcoal-client/src/components/AGENT.standardRenderWhitespaceBug.planning.md`](../taskPlanning/charcoal-client/src/components/AGENT.standardRenderWhitespaceBug.planning.md).
+
 ## Core Challenges of Testing Slate Components
 
 ### **1. Slate's Type System Requirements**

@@ -1,6 +1,6 @@
 # StandardRenderEditor trailing whitespace bug
 
-**Status:** Phase 0 complete -- failing tests added. Next step: **Phase 1** -- trace pipeline, decide display vs storage normalization for Space+br.
+**Status:** Phase 1 complete -- pipeline traced, display vs storage decided. Next step: **Phase 2a** (Track A inbound fix) and **Phase 2b** (WML Space+br + client conversion).
 
 ## Purpose
 
@@ -56,7 +56,7 @@ Leading space on line two:
 <Description>Line one<br /><Space />Line two</Description>
 ```
 
-**Open question (decide in Phase 1):** Should **display/render** paths still collapse `<Space /><br />` for player-facing output (finished text), while **storage** preserves it for authoring? If yes, document where normalization runs vs where round-trip fidelity is required.
+**Phase 1 decision:** **Storage** preserves single `<Space />` adjacent to `<br />`; **display** needs no new normalization layer (see [Display vs storage decision](#display-vs-storage-decision-phase-1)).
 
 ### What stays normalized
 
@@ -89,7 +89,7 @@ Leading space on line two:
 | Phase | Goal | Status |
 | --- | --- | --- |
 | 0 | Baseline green; failing tests for Track A and Track B | Complete |
-| 1 | Confirm layer stack; decide display vs storage normalization | Not started |
+| 1 | Confirm layer stack; decide display vs storage normalization | Complete |
 | 2a | **Track A:** document-end `<Space />` editor round-trip | Not started |
 | 2b | **Track B:** WML `<Space /><br />` semantics + full pipeline | Not started |
 | 3 | Manual Workbench verification; durable docs | Not started |
@@ -133,12 +133,12 @@ npm run test -- ts/schema/utils/schemaOutput/compressWhitespace.test.ts
 
 ### Reproduce
 
-- [ ] Track A: trailing space, single paragraph (`"Hello "`).
-- [ ] Track B: trailing space, non-final paragraph (two Slate paragraphs).
-- [ ] Track B: leading space on second paragraph after Enter.
-- [ ] Trailing space after inline link on last line.
-- [ ] Load WML with document-end `<Space />`; confirm inbound editable space.
-- [ ] `debounce={false}` vs default -- when does loss appear?
+- [X] Track A: trailing space, single paragraph (`"Hello "`). -- `whitespacePreservation.test.ts` outbound pass; inbound/round-trip fail.
+- [X] Track B: trailing space, non-final paragraph (two Slate paragraphs). -- outbound/inbound/round-trip fail in `whitespacePreservation.test.ts`.
+- [X] Track B: leading space on second paragraph after Enter. -- same.
+- [X] Trailing space after inline link on last line. -- document-end outbound covered by `descendantsToRender.test.ts`; non-final link+space fails in `whitespacePreservation.test.ts` Track B round-trip.
+- [X] Load WML with document-end `<Space />`; confirm inbound editable space. -- WML schema load/print pass (`index.test.ts`); inbound fails (`descendantsFromRender` strips Space).
+- [X] `debounce={false}` vs default -- when does loss appear? -- Loss on **inbound** when parent echoes `StandardRender` with `<Space />`; outbound fires immediately under `debounce={false}` (Workbench session). Debounce timing is not root cause.
 
 ### Round-trip tests to add (should fail before fix)
 
@@ -179,9 +179,9 @@ const slate = [
 
 ### Trace layers
 
-- [ ] Track A: `descendantsFromRender` trim vs outbound `<Space />` from `descendantsToRender`.
-- [ ] Track B: `compressWhitespace` + `standardRenderAdd` vs in-memory RenderTree.
-- [ ] Rule out Slate normalize for single trailing space.
+- [X] Track A: `descendantsFromRender` trim vs outbound `<Space />` from `descendantsToRender`. -- Outbound pass; inbound `trimParagraphBoundaries` + two additional strip points (see Phase 1 trace).
+- [X] Track B: `compressWhitespace` + `standardRenderAdd` vs in-memory RenderTree. -- Schema load/print pass; merge/compress fail; client outbound/inbound fail.
+- [X] Rule out Slate normalize for single trailing space. -- `withConstrainedWhitespace` only collapses `\s{2,}`; no `renderLeaf`/`decorate` in StandardRenderEditor paths (grep clean).
 
 ## Design constraints
 
@@ -233,10 +233,10 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets when 
   - [X] Add failing Track B round-trip tests (editor + WML `Space`+`br`).
   - [X] Optionally add failing `StandardRenderEditor` parent-echo test.
 
-- [ ] **Phase 1 -- Diagnose and decide**
-  - [ ] Trace Track A vs Track B through full pipeline.
-  - [ ] Decide display vs storage normalization for Space+br.
-  - [ ] Record findings under **Diagnosis record**.
+- [X] **Phase 1 -- Diagnose and decide**
+  - [X] Trace Track A vs Track B through full pipeline.
+  - [X] Decide display vs storage normalization for Space+br.
+  - [X] Record findings under **Diagnosis record**.
 
 - [ ] **Phase 2a -- Track A (document boundary)**
   - [ ] Fix `descendantsFromRender` / confirm `descendantsToRender` for document-end `<Space />`.
@@ -254,18 +254,18 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets when 
 
 ## Diagnosis record
 
-### Phase 0 results (preliminary)
+### Phase 1 verification (2026-06-07)
 
-**Baseline (all green before new tests):**
+**Baseline (legacy tests, all green):**
 
 | Suite | Result |
 | --- | --- |
-| `charcoal-client` `StandardRenderEditor/` (4 files, 66 tests) | Pass |
-| `StandardRenderEditor.test.tsx` (3 tests) | Pass |
-| `mtw-wml` `render/index.test.ts` (56 tests) | Pass |
-| `mtw-wml` `compressWhitespace.test.ts` (11 tests) | Pass |
+| `charcoal-client` `StandardRenderEditor/` (5 files, 68 legacy tests) | Pass |
+| `StandardRenderEditor.test.tsx` (3 legacy sync-storm tests) | Pass |
+| `mtw-wml` `render/index.test.ts` (57 legacy tests) | Pass |
+| `mtw-wml` `compressWhitespace.test.ts` (11 legacy tests) | Pass |
 
-**New tests added** (describe `Whitespace preservation (target semantics)` unless noted):
+**Target-semantics tests** (describe `Whitespace preservation (target semantics)` unless noted):
 
 | File | Pass | Fail |
 | --- | --- | --- |
@@ -274,27 +274,71 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets when 
 | [`compressWhitespace.test.ts`](../../../packages/mtw-wml/ts/schema/utils/schemaOutput/compressWhitespace.test.ts) | 0 | 3 |
 | [`index.test.ts`](../../../packages/mtw-wml/ts/standardize/render/index.test.ts) | 4 (Track A WML + Track B schema load/print) | 3 (merge) |
 
-**Failure matrix by track and layer:**
+**Failure matrix by track and layer (confirmed):**
 
 | Layer | Track A | Track B |
 | --- | --- | --- |
+| Slate plugins (`withConstrainedWhitespace`) | Pass | Pass |
 | Client outbound (`descendantsToRender`) | Pass | Fail |
 | Client inbound (`descendantsFromRender`) | Fail | Fail |
 | Client full round-trip | Fail | Fail |
 | WML `compressWhitespace` | N/A | Fail |
 | WML merge (`standardRenderAdd`) | N/A | Fail |
 | WML schema load/print | Pass | Pass |
+| Lambda / gateways | N/A | No `compressWhitespace` or `standardRenderAdd` usage (grep clean) |
 
-**Preliminary conclusions for Phase 1:**
+### Phase 1 pipeline trace
 
-- **Track A:** WML storage and outbound serialization already handle document-end/start `<Space />`. The bug is **`descendantsFromRender` inbound trim** (`trimParagraphBoundaries`).
-- **Track B:** WML **schema load/print** already preserves `<Space />` adjacent to `<br />` in RenderTree, but **`compressWhitespace`** and **`standardRenderAdd` merge** strip Space+br pairs. Client outbound does not emit Space before/after br for non-final paragraphs.
-- **Fix order confirmed:** Track B needs WML merge/compress relaxation before client conversion can round-trip; Track A is primarily a client inbound fix.
+#### Track A -- document boundary
 
-- **Root cause:** *(Phase 1)*
-- **Path (A / B / both):** Both -- hypothesis B (WML + editor round-trip)
-- **Display vs storage decision:** *(Phase 1)*
+| Step | File / function | Result | Notes |
+| --- | --- | --- | --- |
+| Slate input | [`constrainedWhitespace.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/constrainedWhitespace.ts) | Pass | Collapses `\s{2,}` only; single edge space preserved |
+| Outbound | [`descendantsToRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsToRender.ts) + [`StandardRenderSimpleBase`](../../../packages/mtw-wml/ts/standardize/render/index.ts) constructor | Pass | Promotes doc-start/end literal space to `{ Space }` |
+| Sync loop | [`StandardRenderEditor.tsx`](../../../charcoal-client/src/components/Workbench/foundations/StandardRender/StandardRenderEditor.tsx) `useStandardRenderEditorHook` | Fail on echo | Loss when parent re-pushes `StandardRender` with `<Space />`; not debounce-related |
+| WML storage | [`index.test.ts`](../../../packages/mtw-wml/ts/standardize/render/index.test.ts) Track A schema tests | Pass | `<Space />` at field edges round-trips |
+| Inbound (bug) | [`descendantsFromRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsFromRender.ts) | Fail | Three strip points: |
+| | `trimParagraphBoundaries` (lines 31-32, 60-61) | | Strips leading/trailing space on every flushed paragraph |
+| | `singleSpace(el).trimStart()` on first string (line 69) | | Strips leading literal space at paragraph start |
+| | `singleSpace(' ').trimStart()` on doc-start `{ Space }` (line 81) | | Converts document-start Spacer to empty string |
+
+#### Track B -- paragraph boundary (Space adjacent to br)
+
+| Step | File / function | Result | Notes |
+| --- | --- | --- | --- |
+| Outbound (bug) | [`descendantsToRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsToRender.ts) | Fail | Inserts `{ br }` between paragraphs (line 31) but never emits `{ Space }` for paragraph-edge spaces |
+| WML merge (bug) | [`standardRenderAdd`](../../../packages/mtw-wml/ts/standardize/render/index.ts) (lines 108-136) | Fail | `trimEnd` before `br`, `trimStart` after `br`; drops `{ Space, br }` and `{ br, Space }` pairs |
+| WML parse (bug) | [`compressWhitespace.ts`](../../../packages/mtw-wml/ts/schema/utils/schemaOutput/compressWhitespace.ts) | Fail | Phase 1 collapses mixed `Space`+`br` to `{ br }` only; phase 2 trims strings adjacent to `br` |
+| Parse entry points | [`prose.ts`](../../../packages/mtw-wml/ts/schema/converters/prose.ts), [`components.ts`](../../../packages/mtw-wml/ts/schema/converters/components.ts), [`taggedMessages.ts`](../../../packages/mtw-wml/ts/schema/converters/taggedMessages.ts) | -- | All call `compressWhitespace` on Description/Summary/DisplayName children |
+| Schema load/print | [`index.test.ts`](../../../packages/mtw-wml/ts/standardize/render/index.test.ts) Track B schema tests | Pass | Tree with `Space`+`br` survives if already present |
+| Inbound (bug) | [`descendantsFromRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsFromRender.ts) | Fail | Same `trimParagraphBoundaries`; no mapping of `{ Space }` before/after `{ br }` to paragraph-edge Slate text |
+
+**Slate hypothesis ruled out:** No `renderLeaf` or `decorate` in StandardRenderEditor or Workbench StandardRender paths (grep clean). `withConstrainedWhitespace` does not strip single trailing/leading spaces.
+
+### Display vs storage decision (Phase 1)
+
+| Concern | Decision | Rationale |
+| --- | --- | --- |
+| **Storage (WML / StandardRender)** | **Preserve** single `{ Space }` immediately before or after `{ br }` | Authoring round-trip requires storable representation; literal paragraph-edge space cannot survive WML parse |
+| **Display (player-facing prose)** | **No new normalization layer in Phase 2** | [`RenderTreeContent.tsx`](../../../charcoal-client/src/components/Message/RenderTreeContent.tsx) returns `null` for `{ Space }` nodes (lines 27-28); space-before-break is already invisible to players |
+| **Parse-time `compressWhitespace`** | Relax for authoring fields (Description/Summary/DisplayName) in Phase 2b | Must align with storage decision; currently strips Space+br on parse finalize |
+| **Messaging parse** (`messageParsing: true` in [`messaging.ts`](../../../packages/mtw-wml/ts/schema/converters/messaging.ts)) | **Out of scope** | Workbench descriptions do not flow through message parsing; no change unless a future trace shows otherwise |
+| **`schemaOutputToString`** (labels) | No change | Used for display names; Space+br patterns unlikely; both Space and br map to `' '` if encountered |
+
+### Root cause and fix order
+
+- **Root cause:** Hypothesis B (WML + editor round-trip), both tracks. Track A: inbound `descendantsFromRender` strips document-boundary `<Space />` that outbound and WML already preserve. Track B: WML merge/compress strips Space+br pairs; client outbound does not emit Space at paragraph boundaries; inbound has same trim as Track A.
+- **Path (A / B / both):** Both -- hypothesis B confirmed; Slate plugins ruled out.
+- **Fix order:** Phase 2b WML (`compressWhitespace`, `standardRenderAdd`) before client conversion for Track B; Phase 2a client inbound fix for Track A (can proceed independently of WML for single-paragraph cases, but shares `descendantsFromRender` changes with Track B).
+
+### Legacy tests to update in Phase 2
+
+[`descendantsFromRender.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsFromRender.test.ts) `Whitespace Handling` and `Mixed Content` encode the old strip-all-paragraph-edge-space policy. Phase 2 must update expectations alongside [`whitespacePreservation.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts).
+
+Legacy WML tests in [`compressWhitespace.test.ts`](../../../packages/mtw-wml/ts/schema/utils/schemaOutput/compressWhitespace.test.ts) and [`index.test.ts`](../../../packages/mtw-wml/ts/standardize/render/index.test.ts) (`should compress any number of Spacers before linebreak`, `should reduce multiple instances of line breaks and whitespace to a single line break`, etc.) encode old Space+br elimination; Phase 2b updates these alongside target-semantics tests.
+
 - **Files changed (Phase 0):** `whitespacePreservation.test.ts` (new), `compressWhitespace.test.ts`, `index.test.ts`, `StandardRenderEditor.test.tsx`, this plan, `AGENT.testing.slate.md`
+- **Files changed (Phase 1):** this plan, [`render/AGENT.md`](../../../packages/mtw-wml/ts/standardize/render/AGENT.md) (pending-change note)
 
 ## Verification
 
