@@ -3,38 +3,43 @@ import { SchemaTag, SchemaTaggedMessageLegalContents } from "@tonylb/mtw-base/ts
 import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaLineBreakTag, SchemaSpacerTag } from "@tonylb/mtw-base/ts/schema/renderTree"
 
-type WhitespaceRunState = {
-    seenBr: boolean
-    spaceBeforeBr: boolean
-    spaceAfterBr: boolean
-}
+const MAX_CONSECUTIVE_BR = 2
 
 const compressWhitespaceRun = (run: (SchemaSpacerTag | SchemaLineBreakTag)[]): GenericTree<SchemaTag> => {
     if (run.length === 0) {
         return []
     }
-    const { seenBr, spaceBeforeBr, spaceAfterBr } = run.reduce<WhitespaceRunState>(
-        (state, tag) => {
-            if (isSchemaLineBreak(tag)) {
-                return { ...state, seenBr: true }
-            }
-            if (isSchemaSpacer(tag)) {
-                return state.seenBr
-                    ? { ...state, spaceAfterBr: true }
-                    : { ...state, spaceBeforeBr: true }
-            }
-            return state
-        },
-        { seenBr: false, spaceBeforeBr: false, spaceAfterBr: false }
-    )
-    if (!seenBr) {
-        return spaceBeforeBr ? [{ data: { tag: 'Space' }, children: [] }] : []
+    const result: GenericTree<SchemaTag> = []
+    let pendingSpace = false
+    let brCount = 0
+
+    const flushPendingSpace = () => {
+        if (pendingSpace) {
+            result.push({ data: { tag: 'Space' }, children: [] })
+            pendingSpace = false
+        }
     }
-    return [
-        ...(spaceBeforeBr ? [{ data: { tag: 'Space' as const }, children: [] as [] }] : []),
-        { data: { tag: 'br' as const }, children: [] },
-        ...(spaceAfterBr ? [{ data: { tag: 'Space' as const }, children: [] as [] }] : []),
-    ]
+
+    run.forEach((tag) => {
+        if (isSchemaLineBreak(tag)) {
+            if (brCount >= MAX_CONSECUTIVE_BR) {
+                return
+            }
+            flushPendingSpace()
+            result.push({ data: { tag: 'br' }, children: [] })
+            brCount += 1
+        }
+        else if (isSchemaSpacer(tag)) {
+            pendingSpace = true
+        }
+    })
+
+    if (brCount === 0) {
+        return pendingSpace ? [{ data: { tag: 'Space' }, children: [] }] : []
+    }
+
+    flushPendingSpace()
+    return result
 }
 
 export function compressWhitespace (tags: GenericTree<SchemaTag>, options?: { messageParsing: boolean }): GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag>

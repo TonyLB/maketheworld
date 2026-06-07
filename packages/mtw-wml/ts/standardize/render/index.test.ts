@@ -810,4 +810,50 @@ describe('Whitespace preservation (target semantics)', () => {
             `))
         })
     })
+
+    describe('Track C -- consecutive br (empty middle paragraph)', () => {
+        it('should preserve br+br on merge', () => {
+            const base = StandardRenderSimple.create(['First', brTag])
+            const merged = base.merge(StandardRenderSimple.create([brTag, 'Last']))
+            expect(merged).toBeDefined()
+            if (merged) {
+                expect(merged.toJSON()).toEqual(['First', brTag, brTag, 'Last'])
+            }
+        })
+
+        it('should cap at two consecutive br on merge', () => {
+            const base = StandardRenderSimple.create(['First', brTag, brTag])
+            const merged = base.merge(StandardRenderSimple.create([brTag, 'Last']))
+            expect(merged).toBeDefined()
+            if (merged) {
+                expect(merged.toJSON()).toEqual(['First', brTag, brTag, 'Last'])
+            }
+        })
+
+        it('should preserve two br on schema load and round-trip', () => {
+            const schema = new Schema()
+            schema.loadWML(`First<br /><br />Last`)
+            const render = StandardRenderSimple.create(schema.schema)
+            expect(render.toJSON()).toEqual(['First', brTag, brTag, 'Last'])
+            expect(schemaToWML(render.schema)).toEqual(deIndentWML(`
+                First
+                <br />
+                <br />
+                Last
+            `))
+        })
+
+        it('should cap three br on schema load to two', () => {
+            const schema = new Schema()
+            schema.loadWML(`<Description>First<br /><br /><br />Last</Description>`)
+            const render = StandardRenderSimple.create(schema.schema[0].children)
+            expect(render.toJSON()).toEqual(['First', brTag, brTag, 'Last'])
+            expect(schemaToWML(render.schema)).toEqual(deIndentWML(`
+                First
+                <br />
+                <br />
+                Last
+            `))
+        })
+    })
 })

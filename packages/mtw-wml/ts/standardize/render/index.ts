@@ -145,7 +145,11 @@ const standardRenderAdd = (base: RenderTree, incoming: RenderTree): RenderTree =
             }
             if (typeof lastElement === 'object' && typeof renderElement === 'object') {
                 if (lastElement.data.tag === 'br' && renderElement.data.tag === 'br') {
-                    return previous
+                    const priorElement = previous[previous.length - 2]
+                    const priorIsBr = previous.length >= 2
+                        && typeof priorElement === 'object'
+                        && priorElement.data.tag === 'br'
+                    return priorIsBr ? previous : [...previous, renderElement]
                 }
                 if (lastElement.data.tag === 'Space' && renderElement.data.tag === 'Space') {
                     return previous

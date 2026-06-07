@@ -1,6 +1,6 @@
 # StandardRenderEditor trailing whitespace bug
 
-**Status:** Phase 2b complete -- Track B paragraph-boundary `<Space />` adjacent to `<br />` round-trips through WML and editor. **Phase 2c** discovered (consecutive `<br />` / empty middle paragraphs). Next step: **Phase 3** (manual Workbench verification for Tracks A/B; archive after 2c or defer 2c).
+**Status:** Phase 2c complete -- Track C consecutive `<br />` / empty middle paragraph round-trips through WML and editor (cap at two consecutive breaks). **Next step:** Phase 3 (manual Workbench verification; archive after verify).
 
 ## Purpose
 
@@ -32,7 +32,7 @@ Slate uses **paragraph blocks**, not `\n` in text nodes. Enter creates a second 
 | Trailing space, **before** next paragraph | `[{ para: 'Line one ' }, { para: 'Line two' }]` | `'Line one'`, `{ tag: 'Space' }`, `{ tag: 'br' }`, `'Line two'` | Track B; **must** be explicit `<Space />` before `<br />` -- literal `'Line one '` does not survive WML parse |
 | Leading space, **after** previous paragraph | `[{ para: 'Line one' }, { para: ' Line two' }]` | `'Line one'`, `{ tag: 'br' }`, `{ tag: 'Space' }`, `'Line two'` | Track B; `<Space />` immediately **after** `<br />` |
 | Internal space mid-line | `'Hello world'` | literal space in string | Unchanged |
-| **Empty paragraph between content** | `[{ para: 'A' }, { para: '' }, { para: 'C' }]` | `'A'`, `{ tag: 'br' }`, `{ tag: 'br' }`, `'C'` | Track C; one `<br />` per Slate paragraph boundary; **do not** collapse consecutive `<br />` in authoring storage |
+| **Empty paragraph between content** | `[{ para: 'A' }, { para: '' }, { para: 'C' }]` | `'A'`, `{ tag: 'br' }`, `{ tag: 'br' }`, `'C'` | Track C; up to **two consecutive** `<br />` preserved; third+ compress to two |
 
 ### Why Track B needs WML changes (not just editor trim removal)
 
@@ -82,7 +82,7 @@ Leading space on line two:
 | Parse compress | [`compressWhitespaceRun`](../../../packages/mtw-wml/ts/schema/utils/schemaOutput/compressWhitespace.ts) | Contiguous whitespace run emits at most one `br` |
 | Inbound | [`descendantsFromRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsFromRender.ts) | **Ready** -- preserves multiple `br` if present in tree |
 
-**Phase 2c decision (draft):** **Storage** preserves consecutive `<br />` in authoring fields (`Description`, `Summary`, `DisplayName`); **display** may still collapse at `RenderTreeContent` / `messageParsing` if desired. Same pattern as Track B Space+br.
+**Phase 2c decision (confirmed):** **Storage** preserves up to **two consecutive `<br />`** in authoring fields (`Description`, `Summary`, `DisplayName`); three or more consecutive `<br />` compress to two. **Display** may still collapse at `RenderTreeContent` / `messageParsing` if desired. Same pattern as Track B Space+br.
 
 ## Where trimming happens today
 
@@ -112,7 +112,7 @@ Leading space on line two:
 | 1 | Confirm layer stack; decide display vs storage normalization | Complete |
 | 2a | **Track A:** document-end `<Space />` editor round-trip | Complete |
 | 2b | **Track B:** WML `<Space /><br />` semantics + full pipeline | Complete |
-| 2c | **Track C:** consecutive `<br />` / empty middle paragraph authoring round-trip | Not started |
+| 2c | **Track C:** consecutive `<br />` / empty middle paragraph authoring round-trip | Complete |
 | 3 | Manual Workbench verification; durable docs | Not started |
 
 ## Links
@@ -269,13 +269,13 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets when 
   - [X] Wire `descendantsToRender` / `descendantsFromRender`.
   - [X] Update durable WML docs.
 
-- [ ] **Phase 2c -- Track C (consecutive br / empty paragraph)**
-  - [ ] Add failing round-trip test: `[{ para: 'A' }, { para: '' }, { para: 'C' }]` survives outbound/inbound and WML `A<br /><br />C`.
-  - [ ] Stop collapsing `br` + `br` in `standardRenderAdd` for authoring merge paths (audit subtract/diff).
-  - [ ] Update `compressWhitespaceRun` to preserve multiple `br` in a contiguous run (or flush per-paragraph semantics -- confirm design during implementation).
-  - [ ] Fix `descendantsToRender` to emit one `br` per Slate paragraph boundary including empty middle paragraphs.
-  - [ ] Update legacy `descendantsToRender.test.ts` empty-paragraph expectation; confirm inbound unchanged.
-  - [ ] Update durable docs (`render/AGENT.md`, syntax README) for consecutive `<br />` authoring rule.
+- [X] **Phase 2c -- Track C (consecutive br / empty paragraph)**
+  - [X] Add failing round-trip test: `[{ para: 'A' }, { para: '' }, { para: 'C' }]` survives outbound/inbound and WML `A<br /><br />C`.
+  - [X] Stop collapsing `br` + `br` in `standardRenderAdd` for authoring merge paths (audit subtract/diff).
+  - [X] Update `compressWhitespaceRun` to preserve up to two `br` in a contiguous run (cap at 2; additional consecutive breaks compress).
+  - [X] Fix `descendantsToRender` to emit one `br` per Slate paragraph boundary including empty middle paragraphs (via merge fix; no code change needed).
+  - [X] Update legacy `descendantsToRender.test.ts` empty-paragraph expectation; confirm inbound unchanged.
+  - [X] Update durable docs (`render/AGENT.md`, syntax README) for consecutive `<br />` authoring rule (cap at 2).
   - [ ] Optional: display-only collapse in `RenderTreeContent` / `messageParsing` (out of scope unless manual verify shows player-visible regressions).
 
 - [ ] **Phase 3 -- Verify and close**
@@ -461,6 +461,45 @@ const slate = [
 
 **Recommended order:** WML storage (`standardRenderAdd`, `compressWhitespace`) then client outbound; inbound likely already correct.
 
+### Phase 2c implementation (2026-06-07)
+
+**Approach (WML first, cap at 2):** `compressWhitespaceRun` walks whitespace runs left-to-right, emitting up to two `{ br }` tags with Track B Space rules (one Space per gap; multiple Spacers compress to one). `standardRenderAdd` allows `br`+`br` but drops a third consecutive `br`. Client outbound unchanged -- per-paragraph `br` seed in `descendantsToRender` plus merge fix yields `br, br` for empty middle paragraphs. Inbound unchanged.
+
+**Cap-at-2 rationale:** One empty middle paragraph (Track C) requires exactly `br, br` between content strings. Three or more consecutive `<br />` would represent two or more consecutive empty paragraphs -- not needed for Workbench authoring; mirrors multi-Spacer compress-to-one rule.
+
+**Files changed:**
+
+- [`compressWhitespace.ts`](../../../packages/mtw-wml/ts/schema/utils/schemaOutput/compressWhitespace.ts), [`compressWhitespace.test.ts`](../../../packages/mtw-wml/ts/schema/utils/schemaOutput/compressWhitespace.test.ts)
+- [`render/index.ts`](../../../packages/mtw-wml/ts/standardize/render/index.ts), [`render/index.test.ts`](../../../packages/mtw-wml/ts/standardize/render/index.test.ts)
+- [`whitespacePreservation.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts), [`descendantsToRender.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsToRender.test.ts)
+- [`render/AGENT.md`](../../../packages/mtw-wml/ts/standardize/render/AGENT.md), [`README.syntax.md`](../../../packages/mtw-wml/documentation/README.syntax.md), [`README.taggedMessage.md`](../../../packages/mtw-wml/ts/README.taggedMessage.md), [`AGENT.testing.slate.md`](../../../charcoal-client/AGENT.testing.slate.md)
+- this plan
+
+**No change:** [`descendantsToRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsToRender.ts), [`descendantsFromRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsFromRender.ts)
+
+**Target-semantics tests after Phase 2c:**
+
+| File | Pass | Fail |
+| --- | --- | --- |
+| [`whitespacePreservation.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts) | 16 (Track A + B + C) | 0 |
+| [`StandardRenderEditor.test.tsx`](../../../charcoal-client/src/components/Workbench/foundations/StandardRender/StandardRenderEditor.test.tsx) (parent echo) | 4 | 0 |
+| [`compressWhitespace.test.ts`](../../../packages/mtw-wml/ts/schema/utils/schemaOutput/compressWhitespace.test.ts) | 17 | 0 |
+| [`index.test.ts`](../../../packages/mtw-wml/ts/standardize/render/index.test.ts) | 68 | 0 |
+| Legacy `StandardRenderEditor/` (86 tests total) | 86 | 0 |
+
+**Track C layer status (post-2c):**
+
+| Layer | Track C |
+| --- | --- |
+| WML `compressWhitespace` | Pass (cap at 2) |
+| WML merge (`standardRenderAdd`) | Pass (cap at 2) |
+| WML schema load/print | Pass |
+| Client outbound (`descendantsToRender` + merge) | Pass |
+| Client inbound (`descendantsFromRender`) | Pass (unchanged) |
+| Client full round-trip | Pass |
+
+**Deferred:** Leading empty paragraph at document start; display-only collapse in `RenderTreeContent`; 3+ consecutive empty paragraphs between content (capped on save).
+
 ## Verification
 
 ```bash
@@ -478,7 +517,7 @@ Manual:
 1. **Track A:** single paragraph `"Hello "`, blur, reload -- space visible; WML ends with `<Space />`.
 2. **Track B:** `"Line one "`, Enter, `"Line two"`, blur, reload -- space visible at end of line one; WML shows `<Space /><br />` (or equivalent).
 3. **Track B:** leading space at start of second paragraph persists; WML shows `<br /><Space />`.
-4. **Track C (after 2c):** `"First"`, Enter (empty middle para), `"Last"`, blur, reload -- three paragraphs; WML shows `<br /><br />` between strings.
+4. **Track C:** `"First"`, Enter (empty middle para), `"Last"`, blur, reload -- three paragraphs; WML shows `<br /><br />` between strings.
 
 Grep sanity:
 

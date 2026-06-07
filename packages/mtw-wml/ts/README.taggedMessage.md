@@ -45,7 +45,7 @@ Tags
 
 Tagged Message format has its own set of tags:
 - ***String***: Any text outside of a WML tag structure will be treated as a string.
-- ***Line Break***: `<br />` will create a line break in the text.
+- ***Line Break***: `<br />` will create a line break in the text. Up to two consecutive `<br />` tags are preserved in authoring storage (one empty middle paragraph); additional consecutive breaks compress to two.
 - ***Space***: `<Space />` tag will create whitespace even up against the edge of a
 surrounding tag (where whitespace is usually ignored).  So, `<Description><Space />Test</Description>
 returns the string ' Test', with a space added at the beginning. `<Space />` may also appear

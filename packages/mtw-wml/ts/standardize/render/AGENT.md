@@ -131,7 +131,7 @@ const result = base.merge(replace)
 StandardRender automatically normalizes content during operations:
 
 1. **Whitespace Handling**: Multiple spaces are collapsed to single spaces
-2. **Line Break Normalization**: Multiple line breaks are reduced to single breaks
+2. **Line Break Normalization**: At most **two consecutive** `<br />` tags are preserved in authoring storage (enough for one empty middle paragraph); three or more consecutive `<br />` compress to two. `<Space />` between breaks is not consecutive -- both breaks are preserved.
 3. **String Joining**: Adjacent strings are automatically joined
 4. **Link Preservation**: Links maintain their references and display text
 5. **Space Tag Restoration**: Leading/trailing spaces are automatically converted back to `<Space />` tags
@@ -142,7 +142,7 @@ The merge operation follows these rules:
 
 1. **String Concatenation**: Adjacent strings are joined with normalized whitespace
 2. **Element Preservation**: Non-string elements (links, breaks, spaces) are preserved
-3. **Whitespace Normalization**: Multiple spaces and breaks are normalized
+3. **Whitespace Normalization**: Multiple spaces compress to one; consecutive `<br />` cap at two
 4. **Space Tag Conversion**: Internal `<Space />` tags (not document-boundary, not br-adjacent) are converted to literal spaces during merge
 5. **Semantic Restoration**: Constructor automatically restores document-boundary `<Space />` tags; merge promotes paragraph-edge literal spaces adjacent to `<br />` to `<Space />` tags
 6. **Conflict Detection**: Incompatible changes throw `MergeConflictError`

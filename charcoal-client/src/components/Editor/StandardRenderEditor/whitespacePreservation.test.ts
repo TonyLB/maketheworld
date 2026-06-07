@@ -187,4 +187,47 @@ describe('Whitespace preservation (target semantics)', () => {
             })
         })
     })
+
+    describe('Track C -- empty middle paragraph', () => {
+        describe('outbound (Slate -> StandardRender)', () => {
+            it('should emit two br tags for empty middle paragraph', () => {
+                const slate: Descendant[] = [
+                    { type: 'paragraph', children: [{ text: 'First' }] },
+                    { type: 'paragraph', children: [{ text: '' }] },
+                    { type: 'paragraph', children: [{ text: 'Last' }] }
+                ]
+                const json = toRender(slate as CustomBlock[]).toJSON()
+                expect(json).toEqual(['First', brTag, brTag, 'Last'])
+            })
+        })
+
+        describe('inbound (StandardRender -> Slate)', () => {
+            it('should map consecutive br to empty middle paragraph', () => {
+                const render = new StandardRender(['First', brTag, brTag, 'Last'])
+                const result = fromRender(render)
+                expect(result).toEqual([
+                    { type: 'paragraph', children: [{ text: 'First' }] },
+                    { type: 'paragraph', children: [{ text: '' }] },
+                    { type: 'paragraph', children: [{ text: 'Last' }] }
+                ])
+            })
+        })
+
+        describe('full round-trip', () => {
+            it('should preserve empty middle paragraph', () => {
+                const slate: Descendant[] = [
+                    { type: 'paragraph', children: [{ text: 'First' }] },
+                    { type: 'paragraph', children: [{ text: '' }] },
+                    { type: 'paragraph', children: [{ text: 'Last' }] }
+                ]
+                const { render, back } = roundTrip(slate)
+                expect(render.toJSON()).toEqual(['First', brTag, brTag, 'Last'])
+                expect(back).toEqual([
+                    { type: 'paragraph', children: [{ text: 'First' }] },
+                    { type: 'paragraph', children: [{ text: '' }] },
+                    { type: 'paragraph', children: [{ text: 'Last' }] }
+                ])
+            })
+        })
+    })
 })

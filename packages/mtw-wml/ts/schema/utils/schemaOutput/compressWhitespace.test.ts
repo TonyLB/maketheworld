@@ -163,6 +163,58 @@ describe('compressWhitespace', () => {
                 { data: { tag: 'String', value: 'Line two' }, children: [] }
             ])
         })
+
+        describe('Track C -- consecutive br', () => {
+            const brTag = { data: { tag: 'br' as const }, children: [] as [] }
+            const spaceTag = { data: { tag: 'Space' as const }, children: [] as [] }
+
+            it('should preserve two consecutive br between strings', () => {
+                expect(compressWhitespace([
+                    { data: { tag: 'String', value: 'First' }, children: [] },
+                    brTag,
+                    brTag,
+                    { data: { tag: 'String', value: 'Last' }, children: [] }
+                ])).toEqual([
+                    { data: { tag: 'String', value: 'First' }, children: [] },
+                    brTag,
+                    brTag,
+                    { data: { tag: 'String', value: 'Last' }, children: [] }
+                ])
+            })
+
+            it('should cap three or more consecutive br at two', () => {
+                expect(compressWhitespace([
+                    { data: { tag: 'String', value: 'First' }, children: [] },
+                    brTag,
+                    brTag,
+                    brTag,
+                    { data: { tag: 'String', value: 'Last' }, children: [] }
+                ])).toEqual([
+                    { data: { tag: 'String', value: 'First' }, children: [] },
+                    brTag,
+                    brTag,
+                    { data: { tag: 'String', value: 'Last' }, children: [] }
+                ])
+            })
+
+            it('should preserve Space br Space br sequence (Track B interaction)', () => {
+                expect(compressWhitespace([
+                    { data: { tag: 'String', value: 'Line one' }, children: [] },
+                    spaceTag,
+                    brTag,
+                    spaceTag,
+                    brTag,
+                    { data: { tag: 'String', value: 'Line two' }, children: [] }
+                ])).toEqual([
+                    { data: { tag: 'String', value: 'Line one' }, children: [] },
+                    spaceTag,
+                    brTag,
+                    spaceTag,
+                    brTag,
+                    { data: { tag: 'String', value: 'Line two' }, children: [] }
+                ])
+            })
+        })
     })
 
 })

@@ -18,7 +18,7 @@
 
 ### Whitespace preservation (target semantics)
 
-[`whitespacePreservation.test.ts`](src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts) is the **executable spec** for document-boundary and paragraph-boundary (Space+br) round-trip semantics. **Track A** (doc-start/end `<Space />`) and **Track B** (Space immediately before/after `<br />`) are green. Complementary unit tests live in `descendantsFromRender.test.ts` and `descendantsToRender.test.ts`.
+[`whitespacePreservation.test.ts`](src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts) is the **executable spec** for document-boundary, paragraph-boundary (Space+br), and empty-middle-paragraph (consecutive `<br />`) round-trip semantics. **Track A** (doc-start/end `<Space />`), **Track B** (Space immediately before/after `<br />`), and **Track C** (up to two consecutive `<br />` for empty middle paragraph) are green. Complementary unit tests live in `descendantsFromRender.test.ts` and `descendantsToRender.test.ts`.
 
 ## Core Challenges of Testing Slate Components
 
