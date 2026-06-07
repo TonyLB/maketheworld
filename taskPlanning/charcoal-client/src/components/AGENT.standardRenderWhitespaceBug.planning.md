@@ -1,6 +1,6 @@
 # StandardRenderEditor trailing whitespace bug
 
-**Status:** Not started. Next step: add failing round-trip tests for **Track A** (document-end) and **Track B** (pre-`<br />`); confirm Track B requires WML semantic relaxation first.
+**Status:** Phase 0 complete -- failing tests added. Next step: **Phase 1** -- trace pipeline, decide display vs storage normalization for Space+br.
 
 ## Purpose
 
@@ -88,7 +88,7 @@ Leading space on line two:
 
 | Phase | Goal | Status |
 | --- | --- | --- |
-| 0 | Baseline green; failing tests for Track A and Track B | Not started |
+| 0 | Baseline green; failing tests for Track A and Track B | Complete |
 | 1 | Confirm layer stack; decide display vs storage normalization | Not started |
 | 2a | **Track A:** document-end `<Space />` editor round-trip | Not started |
 | 2b | **Track B:** WML `<Space /><br />` semantics + full pipeline | Not started |
@@ -106,6 +106,8 @@ Leading space on line two:
 | [`descendantsFromRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsFromRender.ts) | Inbound conversion |
 | [`descendantsToRender.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsToRender.ts) | Outbound conversion |
 | [`StandardRenderEditor.tsx`](../../../charcoal-client/src/components/Workbench/foundations/StandardRender/StandardRenderEditor.tsx) | Editor sync loop |
+| [`whitespacePreservation.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts) | Target-semantics round-trip tests (Track A + B) |
+| [`StandardRenderEditor.test.tsx`](../../../charcoal-client/src/components/Workbench/foundations/StandardRender/StandardRenderEditor.test.tsx) | Parent-echo sync test |
 
 ## Getting Started
 
@@ -225,11 +227,11 @@ Recommended order: **WML semantics before client conversion**, so editor outboun
 
 Mark pending work `[ ]` and completed work `[X]` (including nested bullets when used).
 
-- [ ] **Phase 0 -- Reproduce**
-  - [ ] Run baseline verification; confirm green.
-  - [ ] Add failing Track A round-trip tests (editor + WML if applicable).
-  - [ ] Add failing Track B round-trip tests (editor + WML `Space`+`br`).
-  - [ ] Optionally add failing `StandardRenderEditor` parent-echo test.
+- [X] **Phase 0 -- Reproduce**
+  - [X] Run baseline verification; confirm green.
+  - [X] Add failing Track A round-trip tests (editor + WML if applicable).
+  - [X] Add failing Track B round-trip tests (editor + WML `Space`+`br`).
+  - [X] Optionally add failing `StandardRenderEditor` parent-echo test.
 
 - [ ] **Phase 1 -- Diagnose and decide**
   - [ ] Trace Track A vs Track B through full pipeline.
@@ -252,12 +254,47 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets when 
 
 ## Diagnosis record
 
-*(Fill in during Phase 1.)*
+### Phase 0 results (preliminary)
 
-- **Root cause:**
-- **Path (A / B / both):**
-- **Display vs storage decision:**
-- **Files changed:**
+**Baseline (all green before new tests):**
+
+| Suite | Result |
+| --- | --- |
+| `charcoal-client` `StandardRenderEditor/` (4 files, 66 tests) | Pass |
+| `StandardRenderEditor.test.tsx` (3 tests) | Pass |
+| `mtw-wml` `render/index.test.ts` (56 tests) | Pass |
+| `mtw-wml` `compressWhitespace.test.ts` (11 tests) | Pass |
+
+**New tests added** (describe `Whitespace preservation (target semantics)` unless noted):
+
+| File | Pass | Fail |
+| --- | --- | --- |
+| [`whitespacePreservation.test.ts`](../../../charcoal-client/src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts) | 2 (Track A outbound) | 11 |
+| [`StandardRenderEditor.test.tsx`](../../../charcoal-client/src/components/Workbench/foundations/StandardRender/StandardRenderEditor.test.tsx) (parent echo) | 3 (existing) | 1 |
+| [`compressWhitespace.test.ts`](../../../packages/mtw-wml/ts/schema/utils/schemaOutput/compressWhitespace.test.ts) | 0 | 3 |
+| [`index.test.ts`](../../../packages/mtw-wml/ts/standardize/render/index.test.ts) | 4 (Track A WML + Track B schema load/print) | 3 (merge) |
+
+**Failure matrix by track and layer:**
+
+| Layer | Track A | Track B |
+| --- | --- | --- |
+| Client outbound (`descendantsToRender`) | Pass | Fail |
+| Client inbound (`descendantsFromRender`) | Fail | Fail |
+| Client full round-trip | Fail | Fail |
+| WML `compressWhitespace` | N/A | Fail |
+| WML merge (`standardRenderAdd`) | N/A | Fail |
+| WML schema load/print | Pass | Pass |
+
+**Preliminary conclusions for Phase 1:**
+
+- **Track A:** WML storage and outbound serialization already handle document-end/start `<Space />`. The bug is **`descendantsFromRender` inbound trim** (`trimParagraphBoundaries`).
+- **Track B:** WML **schema load/print** already preserves `<Space />` adjacent to `<br />` in RenderTree, but **`compressWhitespace`** and **`standardRenderAdd` merge** strip Space+br pairs. Client outbound does not emit Space before/after br for non-final paragraphs.
+- **Fix order confirmed:** Track B needs WML merge/compress relaxation before client conversion can round-trip; Track A is primarily a client inbound fix.
+
+- **Root cause:** *(Phase 1)*
+- **Path (A / B / both):** Both -- hypothesis B (WML + editor round-trip)
+- **Display vs storage decision:** *(Phase 1)*
+- **Files changed (Phase 0):** `whitespacePreservation.test.ts` (new), `compressWhitespace.test.ts`, `index.test.ts`, `StandardRenderEditor.test.tsx`, this plan, `AGENT.testing.slate.md`
 
 ## Verification
 

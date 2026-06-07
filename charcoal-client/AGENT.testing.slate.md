@@ -12,7 +12,7 @@
 - **Custom Elements**: Extended Slate element types for our use cases
 - **Leaf rendering**: We use Slate's default leaf renderer (no custom `renderLeaf`); add a custom one only if you need leaf-level formatting (e.g. bold/highlight).
 - **Editor Plugins**: Functions that enhance Slate editor behavior
-- **StandardRender to Slate**: The render tree is reduced directly to paragraph elements (CustomBlock[]). Paragraph boundaries are trimmed: no leading or trailing spaces at the start or end of a paragraph.
+- **StandardRender to Slate**: The render tree is reduced directly to paragraph elements (CustomBlock[]). Paragraph boundaries are trimmed: no leading or trailing spaces at the start or end of a paragraph. **This behavior is changing** -- see [`whitespacePreservation.test.ts`](src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts) for target semantics and [`taskPlanning/charcoal-client/src/components/AGENT.standardRenderWhitespaceBug.planning.md`](../taskPlanning/charcoal-client/src/components/AGENT.standardRenderWhitespaceBug.planning.md) for task status.
 
 **Cross-Reference**: See [AGENT.testing.md](./AGENT.testing.md) for general testing standards and setup.
 

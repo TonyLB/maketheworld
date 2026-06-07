@@ -11,6 +11,7 @@ import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 
 import { mockWorkbenchReturn, resetWorkbenchAssetMock } from '../WorkbenchComponent/testing/mock'
 import StandardRenderEditor from './StandardRenderEditor'
+import descendantsFromRender from '../../../Editor/StandardRenderEditor/descendantsFromRender'
 
 vi.mock('react-redux', () => ({
     useDispatch: () => vi.fn()
@@ -150,5 +151,50 @@ describe('StandardRenderEditor', () => {
             }
 
             expect(onChange).toHaveBeenCalledTimes(0)
+    })
+
+    it('preserves trailing space when parent echoes document-end Space (debounce=false)', () => {
+        const onChange = vi.fn()
+        const standardForm = new StandardForm({
+            universalKey: 'ASSET#test',
+            components: [],
+            metaData: []
+        })
+        mockWorkbenchReturn.standardForm = standardForm
+        mockWorkbenchReturn.localStandardForm = standardForm
+
+        const initialValue = new StandardRender(['Hello'])
+        const echoedValue = new StandardRender([
+            'Hello',
+            { data: { tag: 'Space' }, children: [] }
+        ])
+
+        const { rerender } = render(
+            <StandardRenderEditor
+                value={initialValue}
+                onChange={onChange}
+                debounce={false}
+                tag="Summary"
+            />
+        )
+
+        expect(onChange).toHaveBeenCalledTimes(0)
+
+        rerender(
+            <StandardRenderEditor
+                value={echoedValue}
+                onChange={onChange}
+                debounce={false}
+                tag="Summary"
+            />
+        )
+
+        expect(onChange).toHaveBeenCalledTimes(0)
+
+        const slateAfterEcho = descendantsFromRender(echoedValue, { standard: standardForm })
+        expect(slateAfterEcho).toEqual([{
+            type: 'paragraph',
+            children: [{ text: 'Hello ' }]
+        }])
     })
 })

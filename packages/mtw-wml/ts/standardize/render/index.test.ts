@@ -718,3 +718,87 @@ describe('StandardRender', () => {
         })
     })
 })
+
+describe('Whitespace preservation (target semantics)', () => {
+    const spaceTag = { data: { tag: 'Space' as const }, children: [] as [] }
+    const brTag = { data: { tag: 'br' as const }, children: [] as [] }
+
+    describe('Track A -- document boundary WML', () => {
+        it('should preserve trailing Space on schema load and round-trip', () => {
+            const schema = new Schema()
+            schema.loadWML(`Hello<Space />`)
+            const render = StandardRenderSimple.create(schema.schema)
+            expect(render.toJSON()).toEqual(['Hello', spaceTag])
+            expect(schemaToWML(render.schema)).toEqual(deIndentWML(`
+                Hello
+                <Space />
+            `))
+        })
+
+        it('should preserve leading Space on schema load and round-trip', () => {
+            const schema = new Schema()
+            schema.loadWML(`<Space />Hello`)
+            const render = StandardRenderSimple.create(schema.schema)
+            expect(render.toJSON()).toEqual([spaceTag, 'Hello'])
+            expect(schemaToWML(render.schema)).toEqual(deIndentWML(`
+                <Space />
+                Hello
+            `))
+        })
+    })
+
+    describe('Track B -- Space adjacent to br', () => {
+        it('should preserve Space before br on merge', () => {
+            const base = StandardRenderSimple.create(['Line one', spaceTag, brTag, 'Line two'])
+            const merged = base.merge(StandardRenderSimple.create([]))
+            expect(merged).toBeDefined()
+            if (merged) {
+                expect(merged.toJSON()).toEqual(['Line one', spaceTag, brTag, 'Line two'])
+            }
+        })
+
+        it('should preserve Space after br on merge', () => {
+            const base = StandardRenderSimple.create(['Line one', brTag, spaceTag, 'Line two'])
+            const merged = base.merge(StandardRenderSimple.create([]))
+            expect(merged).toBeDefined()
+            if (merged) {
+                expect(merged.toJSON()).toEqual(['Line one', brTag, spaceTag, 'Line two'])
+            }
+        })
+
+        it('should promote trailing string space before br to Space tag on merge', () => {
+            const base = StandardRenderSimple.create(['Line one ', brTag, 'Line two'])
+            const merged = base.merge(StandardRenderSimple.create([]))
+            expect(merged).toBeDefined()
+            if (merged) {
+                expect(merged.toJSON()).toEqual(['Line one', spaceTag, brTag, 'Line two'])
+            }
+        })
+
+        it('should preserve Space before br on schema load and round-trip', () => {
+            const schema = new Schema()
+            schema.loadWML(`Line one<Space /><br />Line two`)
+            const render = StandardRenderSimple.create(schema.schema)
+            expect(render.toJSON()).toEqual(['Line one', spaceTag, brTag, 'Line two'])
+            expect(schemaToWML(render.schema)).toEqual(deIndentWML(`
+                Line one
+                <Space />
+                <br />
+                Line two
+            `))
+        })
+
+        it('should preserve Space after br on schema load and round-trip', () => {
+            const schema = new Schema()
+            schema.loadWML(`Line one<br /><Space />Line two`)
+            const render = StandardRenderSimple.create(schema.schema)
+            expect(render.toJSON()).toEqual(['Line one', brTag, spaceTag, 'Line two'])
+            expect(schemaToWML(render.schema)).toEqual(deIndentWML(`
+                Line one
+                <br />
+                <Space />
+                Line two
+            `))
+        })
+    })
+})

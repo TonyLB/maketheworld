@@ -117,4 +117,50 @@ describe('compressWhitespace', () => {
         ])
     })
 
+    describe('Whitespace preservation (target semantics)', () => {
+        it('should preserve Space immediately before br', () => {
+            expect(compressWhitespace([
+                { data: { tag: 'String', value: 'Line one' }, children: [] },
+                { data: { tag: 'Space' }, children: [] },
+                { data: { tag: 'br' }, children: [] },
+                { data: { tag: 'String', value: 'Line two' }, children: [] }
+            ])).toEqual([
+                { data: { tag: 'String', value: 'Line one' }, children: [] },
+                { data: { tag: 'Space' }, children: [] },
+                { data: { tag: 'br' }, children: [] },
+                { data: { tag: 'String', value: 'Line two' }, children: [] }
+            ])
+        })
+
+        it('should preserve Space immediately after br', () => {
+            expect(compressWhitespace([
+                { data: { tag: 'String', value: 'Line one' }, children: [] },
+                { data: { tag: 'br' }, children: [] },
+                { data: { tag: 'Space' }, children: [] },
+                { data: { tag: 'String', value: 'Line two' }, children: [] }
+            ])).toEqual([
+                { data: { tag: 'String', value: 'Line one' }, children: [] },
+                { data: { tag: 'br' }, children: [] },
+                { data: { tag: 'Space' }, children: [] },
+                { data: { tag: 'String', value: 'Line two' }, children: [] }
+            ])
+        })
+
+        it('should compress multiple Spacers before br to a single Space', () => {
+            expect(compressWhitespace([
+                { data: { tag: 'String', value: 'Line one' }, children: [] },
+                { data: { tag: 'Space' }, children: [] },
+                { data: { tag: 'Space' }, children: [] },
+                { data: { tag: 'Space' }, children: [] },
+                { data: { tag: 'br' }, children: [] },
+                { data: { tag: 'String', value: 'Line two' }, children: [] }
+            ])).toEqual([
+                { data: { tag: 'String', value: 'Line one' }, children: [] },
+                { data: { tag: 'Space' }, children: [] },
+                { data: { tag: 'br' }, children: [] },
+                { data: { tag: 'String', value: 'Line two' }, children: [] }
+            ])
+        })
+    })
+
 })
