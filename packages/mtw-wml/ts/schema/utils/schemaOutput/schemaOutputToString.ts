@@ -1,6 +1,6 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { isSchemaDoubleBR, isSchemaDoubleSpace, isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 
 export const schemaOutputToString = <Extra extends {}>(tree: GenericTree<SchemaOutputTag>): string => {
     return tree.map(({ data }) => {
@@ -8,6 +8,12 @@ export const schemaOutputToString = <Extra extends {}>(tree: GenericTree<SchemaO
             return data.value
         }
         if (isSchemaSpacer(data) || isSchemaLineBreak(data)) {
+            return ' '
+        }
+        if (isSchemaDoubleSpace(data)) {
+            return '  '
+        }
+        if (isSchemaDoubleBR(data)) {
             return ' '
         }
         if (isSchemaLink(data)) {

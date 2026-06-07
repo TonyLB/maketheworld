@@ -66,6 +66,10 @@ Represents explicit spacing elements.
    - Merge operations normalize internal spacing to literal characters
    - Example: `Hello<Space />World` → becomes "Hello World" during merge
 
+5. **Mid-line insertion slot `<DoubleSpace />`**: Between string/link chunks when authoring needs a closed `\s{2}` interval (Track D). Opaque in merge/diff -- not in the `Space` string-peel equivalence class.
+
+6. **Empty middle paragraph `<DoubleBR />`**: Between content strings when authoring needs an empty paragraph between filled paragraphs (Track C). Opaque in merge/diff. Adjacent `<br /><br />` in WML source normalizes to `<DoubleBR />` on parse (author convenience).
+
 ### Why This Design?
 
 - **WML whitespace behavior**: WML is a whitespace-ignoring system where `<Description>     Some text</Description>` is equivalent to `<Description>Some text</Description>`. To represent meaningful spacing, we need explicit tags.
@@ -130,11 +134,12 @@ const result = base.merge(replace)
 
 StandardRender automatically normalizes content during operations:
 
-1. **Whitespace Handling**: Multiple spaces are collapsed to single spaces
-2. **Line Break Normalization**: At most **two consecutive** `<br />` tags are preserved in authoring storage (enough for one empty middle paragraph); three or more consecutive `<br />` compress to two. `<Space />` between breaks is not consecutive -- both breaks are preserved.
+1. **Whitespace Handling**: Multiple literal spaces compress to one; two or more `<Space />` between content (not br-adjacent) normalize to `<DoubleSpace />` on parse
+2. **Line Break Normalization**: Adjacent `<br />` on merge compact to one break; two or more consecutive `<br />` in parse normalize to `<DoubleBR />`. Storage/print uses atomic tags for empty middle paragraphs.
 3. **String Joining**: Adjacent strings are automatically joined
 4. **Link Preservation**: Links maintain their references and display text
 5. **Space Tag Restoration**: Leading/trailing spaces are automatically converted back to `<Space />` tags
+6. **Atomic tags**: `<DoubleSpace />` and `<DoubleBR />` pass through merge/diff as opaque elements
 
 ### Merge Logic
 
@@ -142,7 +147,7 @@ The merge operation follows these rules:
 
 1. **String Concatenation**: Adjacent strings are joined with normalized whitespace
 2. **Element Preservation**: Non-string elements (links, breaks, spaces) are preserved
-3. **Whitespace Normalization**: Multiple spaces compress to one; consecutive `<br />` cap at two
+3. **Whitespace Normalization**: Adjacent primitive `Space`/`br` pairs compact on merge; parse normalizes adjacent `<Space /><Space />` / `<br /><br />` to atomic tags
 4. **Space Tag Conversion**: Internal `<Space />` tags (not document-boundary, not br-adjacent) are converted to literal spaces during merge
 5. **Semantic Restoration**: Constructor automatically restores document-boundary `<Space />` tags; merge promotes paragraph-edge literal spaces adjacent to `<br />` to `<Space />` tags
 6. **Conflict Detection**: Incompatible changes throw `MergeConflictError`

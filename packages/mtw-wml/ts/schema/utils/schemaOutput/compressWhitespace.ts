@@ -1,44 +1,75 @@
 import { GenericTree, GenericTreeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaTag, SchemaTaggedMessageLegalContents } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
-import { isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaLineBreakTag, SchemaSpacerTag } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { isSchemaDoubleBR, isSchemaDoubleSpace, isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaDoubleBRTag, SchemaDoubleSpaceTag, SchemaLineBreakTag, SchemaSpacerTag } from "@tonylb/mtw-base/ts/schema/renderTree"
 
-const MAX_CONSECUTIVE_BR = 2
+type WhitespaceRunTag = SchemaSpacerTag | SchemaLineBreakTag | SchemaDoubleSpaceTag | SchemaDoubleBRTag
 
-const compressWhitespaceRun = (run: (SchemaSpacerTag | SchemaLineBreakTag)[]): GenericTree<SchemaTag> => {
+const isWhitespaceRunTag = (tag: SchemaTag): tag is WhitespaceRunTag => (
+    isSchemaSpacer(tag) || isSchemaLineBreak(tag) || isSchemaDoubleSpace(tag) || isSchemaDoubleBR(tag)
+)
+
+type SpaceFlushContext = 'before-br' | 'after-br' | 'mid-line'
+
+const compressWhitespaceRun = (run: WhitespaceRunTag[]): GenericTree<SchemaTag> => {
     if (run.length === 0) {
         return []
     }
-    const result: GenericTree<SchemaTag> = []
-    let pendingSpace = false
-    let brCount = 0
 
-    const flushPendingSpace = () => {
-        if (pendingSpace) {
-            result.push({ data: { tag: 'Space' }, children: [] })
-            pendingSpace = false
+    const result: GenericTree<SchemaTag> = []
+    let spaceCount = 0
+    let brCount = 0
+    let spacesAfterBr = false
+
+    const flushSpaces = (context: SpaceFlushContext) => {
+        if (spaceCount === 0) {
+            return
         }
+        if (context === 'mid-line' && spaceCount >= 2) {
+            result.push({ data: { tag: 'DoubleSpace' }, children: [] })
+        }
+        else if (spaceCount >= 1) {
+            result.push({ data: { tag: 'Space' }, children: [] })
+        }
+        spaceCount = 0
+        spacesAfterBr = false
+    }
+
+    const flushBr = () => {
+        if (brCount >= 2) {
+            result.push({ data: { tag: 'DoubleBR' }, children: [] })
+            spacesAfterBr = true
+        }
+        else if (brCount === 1) {
+            result.push({ data: { tag: 'br' }, children: [] })
+            spacesAfterBr = true
+        }
+        brCount = 0
     }
 
     run.forEach((tag) => {
-        if (isSchemaLineBreak(tag)) {
-            if (brCount >= MAX_CONSECUTIVE_BR) {
-                return
-            }
-            flushPendingSpace()
-            result.push({ data: { tag: 'br' }, children: [] })
+        if (isSchemaDoubleSpace(tag)) {
+            flushBr()
+            flushSpaces('mid-line')
+            result.push({ data: { tag: 'DoubleSpace' }, children: [] })
+        }
+        else if (isSchemaDoubleBR(tag)) {
+            flushSpaces(spacesAfterBr ? 'after-br' : 'mid-line')
+            flushBr()
+            result.push({ data: { tag: 'DoubleBR' }, children: [] })
+        }
+        else if (isSchemaLineBreak(tag)) {
+            flushSpaces('before-br')
             brCount += 1
         }
         else if (isSchemaSpacer(tag)) {
-            pendingSpace = true
+            flushBr()
+            spaceCount += 1
         }
     })
 
-    if (brCount === 0) {
-        return pendingSpace ? [{ data: { tag: 'Space' }, children: [] }] : []
-    }
-
-    flushPendingSpace()
+    flushBr()
+    flushSpaces(spacesAfterBr ? 'after-br' : 'mid-line')
     return result
 }
 
@@ -47,8 +78,8 @@ export function compressWhitespace (tags: GenericTree<SchemaTag>, options?: { me
     //
     // First, compress all explicit whitespace items that are adjacent
     //
-    const { accumulator, maybeCurrent } = tags.reduce<{ accumulator: GenericTree<SchemaTag>, maybeCurrent: (SchemaSpacerTag | SchemaLineBreakTag)[] }>((previous, { data: tag, children }) => {
-        if (isSchemaSpacer(tag) || isSchemaLineBreak(tag)) {
+    const { accumulator, maybeCurrent } = tags.reduce<{ accumulator: GenericTree<SchemaTag>, maybeCurrent: WhitespaceRunTag[] }>((previous, { data: tag, children }) => {
+        if (isWhitespaceRunTag(tag)) {
             return { ...previous, maybeCurrent: [...previous.maybeCurrent, tag] }
         }
         const flushedWhitespace = compressWhitespaceRun(previous.maybeCurrent)
@@ -66,10 +97,22 @@ export function compressWhitespace (tags: GenericTree<SchemaTag>, options?: { me
         const next = index < allTags.length - 1 ? allTags[index + 1].data : undefined
         if (isSchemaString(tag)) {
             let returnValue = tag.value
-            if (!previous || isSchemaSpacer(previous) || isSchemaLineBreak(previous) || (options?.messageParsing && isSchemaRoom(previous))) {
+            const trimStartNeighbor = !previous ||
+                isSchemaSpacer(previous) ||
+                isSchemaDoubleSpace(previous) ||
+                isSchemaLineBreak(previous) ||
+                isSchemaDoubleBR(previous) ||
+                (options?.messageParsing && isSchemaRoom(previous))
+            const trimEndNeighbor = !next ||
+                isSchemaSpacer(next) ||
+                isSchemaDoubleSpace(next) ||
+                isSchemaLineBreak(next) ||
+                isSchemaDoubleBR(next) ||
+                (options?.messageParsing && isSchemaRoom(next))
+            if (trimStartNeighbor) {
                 returnValue = returnValue.trimStart()
             }
-            if (!next || isSchemaSpacer(next) || isSchemaLineBreak(next) || (options?.messageParsing && isSchemaRoom(next))) {
+            if (trimEndNeighbor) {
                 returnValue = returnValue.trimEnd()
             }
             if (!returnValue) {

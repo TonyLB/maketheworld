@@ -2,6 +2,8 @@ import StandardRenderString from "./string"
 import StandardRenderLineBreak from "./lineBreak"
 import StandardRenderLink from "./link"
 import StandardRenderSpace from "./space"
+import StandardRenderDoubleSpace from "./doubleSpace"
+import StandardRenderDoubleBR from "./doubleBR"
 import { excludeUndefined } from "../../lib/lists"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
@@ -13,14 +15,14 @@ import { isRenderTreeNode, isSimpleRenderTree, RenderTree, RenderTreeNode, rende
 import { standardEditableFactory, StandardEditablePayload } from "../../generics/editable"
 import StandardReference from "../keys/reference"
 import { ReferenceFormat } from "../components/utils/references"
-import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { isSchemaDoubleBR, isSchemaDoubleSpace, isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { stripWrapperTag } from "../../schema/utils"
 
-export type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace
+export type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace | StandardRenderDoubleSpace | StandardRenderDoubleBR
 
 const renderTreeToSimpleElements = (data: RenderTree): StandardRenderSimpleElement[] => {
     return data.map((element) => {
-        if (typeof element === 'string' || isSchemaString(element.data)) {
+        if (typeof element === 'string' || (typeof element === 'object' && isSchemaString(element.data))) {
             return new StandardRenderString(element)
         }
         if (isSchemaLineBreak(element.data)) {
@@ -28,6 +30,12 @@ const renderTreeToSimpleElements = (data: RenderTree): StandardRenderSimpleEleme
         }
         if (isSchemaSpacer(element.data)) {
             return new StandardRenderSpace(element)
+        }
+        if (isSchemaDoubleSpace(element.data)) {
+            return new StandardRenderDoubleSpace(element)
+        }
+        if (isSchemaDoubleBR(element.data)) {
+            return new StandardRenderDoubleBR(element)
         }
         if (isSchemaLink(element.data)) {
             return new StandardRenderLink(element)
@@ -105,6 +113,9 @@ const standardRenderAdd = (base: RenderTree, incoming: RenderTree): RenderTree =
                             : `${lastElement}${renderElement}`
                     ]
                 }
+                if (typeof renderElement === 'object' && (isSchemaDoubleSpace(renderElement.data) || isSchemaDoubleBR(renderElement.data))) {
+                    return [...previous, renderElement]
+                }
                 if (renderElement.data.tag === 'br') {
                     if (lastElement.endsWith(' ')) {
                         const trimmed = lastElement.trimEnd()
@@ -123,6 +134,9 @@ const standardRenderAdd = (base: RenderTree, incoming: RenderTree): RenderTree =
                 return [...previous, renderElement]
             }
             if (typeof renderElement === 'string') {
+                if (typeof lastElement === 'object' && (isSchemaDoubleSpace(lastElement.data) || isSchemaDoubleBR(lastElement.data))) {
+                    return [...previous, renderElement]
+                }
                 if (lastElement.data.tag === 'br') {
                     if (renderElement.startsWith(' ')) {
                         return [
@@ -145,14 +159,26 @@ const standardRenderAdd = (base: RenderTree, incoming: RenderTree): RenderTree =
             }
             if (typeof lastElement === 'object' && typeof renderElement === 'object') {
                 if (lastElement.data.tag === 'br' && renderElement.data.tag === 'br') {
-                    const priorElement = previous[previous.length - 2]
-                    const priorIsBr = previous.length >= 2
-                        && typeof priorElement === 'object'
-                        && priorElement.data.tag === 'br'
-                    return priorIsBr ? previous : [...previous, renderElement]
+                    return previous
                 }
                 if (lastElement.data.tag === 'Space' && renderElement.data.tag === 'Space') {
                     return previous
+                }
+                if (lastElement.data.tag === 'DoubleBR' && renderElement.data.tag === 'br') {
+                    return previous
+                }
+                if (lastElement.data.tag === 'br' && renderElement.data.tag === 'DoubleBR') {
+                    return [...previous.slice(0, -1), renderElement]
+                }
+                if (lastElement.data.tag === 'DoubleSpace' && renderElement.data.tag === 'Space') {
+                    return previous
+                }
+                if (lastElement.data.tag === 'Space' && renderElement.data.tag === 'DoubleSpace') {
+                    return [...previous.slice(0, -1), renderElement]
+                }
+                if (isSchemaDoubleSpace(lastElement.data) || isSchemaDoubleBR(lastElement.data) ||
+                    isSchemaDoubleSpace(renderElement.data) || isSchemaDoubleBR(renderElement.data)) {
+                    return [...previous, renderElement]
                 }
                 if (lastElement.data.tag === 'br' && renderElement.data.tag === 'Space') {
                     return [...previous, renderElement]

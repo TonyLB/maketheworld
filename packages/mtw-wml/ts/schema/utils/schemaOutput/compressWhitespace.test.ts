@@ -114,7 +114,7 @@ describe('compressWhitespace', () => {
             { data: { tag: 'String', value: 'Second line' }, children: [] }
         ])).toEqual([
             { data: { tag: 'String', value: 'Test' }, children: [] },
-            { data: { tag: 'Space' }, children: [] },
+            { data: { tag: 'DoubleSpace' }, children: [] },
             { data: { tag: 'String', value: 'Second line' }, children: [] }
         ])
     })
@@ -164,11 +164,12 @@ describe('compressWhitespace', () => {
             ])
         })
 
-        describe('Track C -- consecutive br', () => {
+        describe('Track C -- DoubleBR (empty middle paragraph)', () => {
             const brTag = { data: { tag: 'br' as const }, children: [] as [] }
+            const doubleBRTag = { data: { tag: 'DoubleBR' as const }, children: [] as [] }
             const spaceTag = { data: { tag: 'Space' as const }, children: [] as [] }
 
-            it('should preserve two consecutive br between strings', () => {
+            it('should normalize two consecutive br between strings to DoubleBR', () => {
                 expect(compressWhitespace([
                     { data: { tag: 'String', value: 'First' }, children: [] },
                     brTag,
@@ -176,13 +177,12 @@ describe('compressWhitespace', () => {
                     { data: { tag: 'String', value: 'Last' }, children: [] }
                 ])).toEqual([
                     { data: { tag: 'String', value: 'First' }, children: [] },
-                    brTag,
-                    brTag,
+                    doubleBRTag,
                     { data: { tag: 'String', value: 'Last' }, children: [] }
                 ])
             })
 
-            it('should cap three or more consecutive br at two', () => {
+            it('should cap three or more consecutive br at one DoubleBR', () => {
                 expect(compressWhitespace([
                     { data: { tag: 'String', value: 'First' }, children: [] },
                     brTag,
@@ -191,8 +191,7 @@ describe('compressWhitespace', () => {
                     { data: { tag: 'String', value: 'Last' }, children: [] }
                 ])).toEqual([
                     { data: { tag: 'String', value: 'First' }, children: [] },
-                    brTag,
-                    brTag,
+                    doubleBRTag,
                     { data: { tag: 'String', value: 'Last' }, children: [] }
                 ])
             })
@@ -212,6 +211,48 @@ describe('compressWhitespace', () => {
                     spaceTag,
                     brTag,
                     { data: { tag: 'String', value: 'Line two' }, children: [] }
+                ])
+            })
+        })
+
+        describe('Phase 2d -- atomic tags (boilerplate)', () => {
+            const doubleSpaceTag = { data: { tag: 'DoubleSpace' as const }, children: [] as [] }
+            const doubleBRTag = { data: { tag: 'DoubleBR' as const }, children: [] as [] }
+
+            it('should normalize adjacent Space Space to DoubleSpace', () => {
+                expect(compressWhitespace([
+                    { data: { tag: 'String', value: 'Hello' }, children: [] },
+                    { data: { tag: 'Space' }, children: [] },
+                    { data: { tag: 'Space' }, children: [] },
+                    { data: { tag: 'String', value: 'world' }, children: [] }
+                ])).toEqual([
+                    { data: { tag: 'String', value: 'Hello' }, children: [] },
+                    doubleSpaceTag,
+                    { data: { tag: 'String', value: 'world' }, children: [] }
+                ])
+            })
+
+            it('should pass through DoubleSpace and DoubleBR unchanged', () => {
+                expect(compressWhitespace([
+                    { data: { tag: 'String', value: 'Hello' }, children: [] },
+                    doubleSpaceTag,
+                    { data: { tag: 'String', value: 'world' }, children: [] },
+                    doubleBRTag,
+                    { data: { tag: 'String', value: 'Last' }, children: [] }
+                ])).toEqual([
+                    { data: { tag: 'String', value: 'Hello' }, children: [] },
+                    doubleSpaceTag,
+                    { data: { tag: 'String', value: 'world' }, children: [] },
+                    doubleBRTag,
+                    { data: { tag: 'String', value: 'Last' }, children: [] }
+                ])
+            })
+
+            it('should not promote literal two-space string to DoubleSpace', () => {
+                expect(compressWhitespace([
+                    { data: { tag: 'String', value: 'Hello  world' }, children: [] }
+                ])).toEqual([
+                    { data: { tag: 'String', value: 'Hello  world' }, children: [] }
                 ])
             })
         })

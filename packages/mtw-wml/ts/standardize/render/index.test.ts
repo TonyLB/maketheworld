@@ -811,49 +811,96 @@ describe('Whitespace preservation (target semantics)', () => {
         })
     })
 
-    describe('Track C -- consecutive br (empty middle paragraph)', () => {
-        it('should preserve br+br on merge', () => {
+    describe('Track C -- DoubleBR (empty middle paragraph)', () => {
+        const doubleBRTag = { data: { tag: 'DoubleBR' as const }, children: [] as [] }
+
+        it('should compact br+br on merge to single br', () => {
             const base = StandardRenderSimple.create(['First', brTag])
             const merged = base.merge(StandardRenderSimple.create([brTag, 'Last']))
             expect(merged).toBeDefined()
             if (merged) {
-                expect(merged.toJSON()).toEqual(['First', brTag, brTag, 'Last'])
+                expect(merged.toJSON()).toEqual(['First', brTag, 'Last'])
             }
         })
 
-        it('should cap at two consecutive br on merge', () => {
-            const base = StandardRenderSimple.create(['First', brTag, brTag])
-            const merged = base.merge(StandardRenderSimple.create([brTag, 'Last']))
+        it('should preserve explicit DoubleBR on merge', () => {
+            const base = StandardRenderSimple.create(['First', doubleBRTag])
+            const merged = base.merge(StandardRenderSimple.create(['Last']))
             expect(merged).toBeDefined()
             if (merged) {
-                expect(merged.toJSON()).toEqual(['First', brTag, brTag, 'Last'])
+                expect(merged.toJSON()).toEqual(['First', doubleBRTag, 'Last'])
             }
         })
 
-        it('should preserve two br on schema load and round-trip', () => {
+        it('should normalize two br on schema load to DoubleBR and round-trip', () => {
             const schema = new Schema()
-            schema.loadWML(`First<br /><br />Last`)
-            const render = StandardRenderSimple.create(schema.schema)
-            expect(render.toJSON()).toEqual(['First', brTag, brTag, 'Last'])
+            schema.loadWML(`<Description>First<br /><br />Last</Description>`)
+            const render = StandardRenderSimple.create(schema.schema[0].children)
+            expect(render.toJSON()).toEqual(['First', doubleBRTag, 'Last'])
             expect(schemaToWML(render.schema)).toEqual(deIndentWML(`
                 First
-                <br />
-                <br />
+                <DoubleBR />
                 Last
             `))
         })
 
-        it('should cap three br on schema load to two', () => {
+        it('should cap three br on schema load to one DoubleBR', () => {
             const schema = new Schema()
             schema.loadWML(`<Description>First<br /><br /><br />Last</Description>`)
             const render = StandardRenderSimple.create(schema.schema[0].children)
-            expect(render.toJSON()).toEqual(['First', brTag, brTag, 'Last'])
+            expect(render.toJSON()).toEqual(['First', doubleBRTag, 'Last'])
             expect(schemaToWML(render.schema)).toEqual(deIndentWML(`
                 First
-                <br />
-                <br />
+                <DoubleBR />
                 Last
             `))
+        })
+    })
+
+    describe('Phase 2d -- atomic tags (boilerplate)', () => {
+        const doubleSpaceTag = { data: { tag: 'DoubleSpace' as const }, children: [] as [] }
+        const doubleBRTag = { data: { tag: 'DoubleBR' as const }, children: [] as [] }
+
+        it('should round-trip DoubleSpace on schema load and print', () => {
+            const schema = new Schema()
+            schema.loadWML(`Hello<DoubleSpace />world`)
+            const render = StandardRenderSimple.create(schema.schema)
+            expect(render.toJSON()).toEqual(['Hello', doubleSpaceTag, 'world'])
+            expect(schemaToWML(render.schema)).toEqual(deIndentWML(`
+                Hello
+                <DoubleSpace />
+                world
+            `))
+        })
+
+        it('should round-trip DoubleBR on schema load and print', () => {
+            const schema = new Schema()
+            schema.loadWML(`First<DoubleBR />Last`)
+            const render = StandardRenderSimple.create(schema.schema)
+            expect(render.toJSON()).toEqual(['First', doubleBRTag, 'Last'])
+            expect(schemaToWML(render.schema)).toEqual(deIndentWML(`
+                First
+                <DoubleBR />
+                Last
+            `))
+        })
+
+        it('should compact Space+Space on merge to single Space', () => {
+            const base = StandardRenderSimple.create([spaceTag])
+            const merged = base.merge(StandardRenderSimple.create([spaceTag]))
+            expect(merged).toBeDefined()
+            if (merged) {
+                expect(merged.toJSON()).toEqual([spaceTag])
+            }
+        })
+
+        it('should preserve explicit DoubleSpace on merge', () => {
+            const base = StandardRenderSimple.create(['Hello', doubleSpaceTag])
+            const merged = base.merge(StandardRenderSimple.create(['world']))
+            expect(merged).toBeDefined()
+            if (merged) {
+                expect(merged.toJSON()).toEqual(['Hello', doubleSpaceTag, 'world'])
+            }
         })
     })
 })

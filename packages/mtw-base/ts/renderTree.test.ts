@@ -1,4 +1,4 @@
-import { isRenderTreeNode, isRenderTree } from './renderTree';
+import { isRenderTreeNode, isRenderTree, renderTreeToString } from './renderTree';
 import { SchemaOutputTag } from './schema';
 
 describe('renderTree tests', () => {
@@ -72,6 +72,18 @@ describe('renderTree tests', () => {
                 }
             ];
             expect(isRenderTree(tree)).toBe(false);
+        });
+    });
+
+    describe('renderTreeToString', () => {
+        it('should map DoubleSpace and DoubleBR to plain string representation', () => {
+            expect(renderTreeToString([
+                'Hello',
+                { data: { tag: 'DoubleSpace' }, children: [] },
+                'world',
+                { data: { tag: 'DoubleBR' }, children: [] },
+                'Last'
+            ])).toBe('Hello  world\n\nLast')
         });
     });
 });

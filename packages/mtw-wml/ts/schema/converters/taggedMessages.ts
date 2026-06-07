@@ -1,4 +1,4 @@
-import { isSchemaLink, isSchemaString, SchemaLineBreakTag, SchemaLinkTag, SchemaSpacerTag } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { isSchemaLink, isSchemaString, SchemaDoubleBRTag, SchemaDoubleSpaceTag, SchemaLineBreakTag, SchemaLinkTag, SchemaSpacerTag } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
@@ -12,6 +12,8 @@ import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
 const taggedMessageTemplates = {
     br: {},
     Space: {},
+    DoubleSpace: {},
+    DoubleBR: {},
     Link: {
         to: { required: true, type: ParsePropertyTypes.Key }
     }
@@ -28,6 +30,18 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
         initialize: ({ parseOpen }): SchemaSpacerTag => ({
             tag: 'Space',
             ...validateProperties(taggedMessageTemplates.Space)(parseOpen)
+        })
+    },
+    DoubleSpace: {
+        initialize: ({ parseOpen }): SchemaDoubleSpaceTag => ({
+            tag: 'DoubleSpace',
+            ...validateProperties(taggedMessageTemplates.DoubleSpace)(parseOpen)
+        })
+    },
+    DoubleBR: {
+        initialize: ({ parseOpen }): SchemaDoubleBRTag => ({
+            tag: 'DoubleBR',
+            ...validateProperties(taggedMessageTemplates.DoubleBR)(parseOpen)
         })
     },
     Link: {
@@ -70,5 +84,7 @@ export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
     ),
     br: () => ([{ printMode: PrintMode.naive, output: '<br />' }]),
     Space: () => ([{ printMode: PrintMode.naive, output: '<Space />' }]),
+    DoubleSpace: () => ([{ printMode: PrintMode.naive, output: '<DoubleSpace />' }]),
+    DoubleBR: () => ([{ printMode: PrintMode.naive, output: '<DoubleBR />' }]),
     Whitespace: () => ([{ printMode: PrintMode.naive, output: ' ' }])
 }

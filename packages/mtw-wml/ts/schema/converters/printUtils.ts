@@ -1,5 +1,5 @@
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaLineBreak, isSchemaSpacer, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { isSchemaDoubleBR, isSchemaDoubleSpace, isSchemaLineBreak, isSchemaSpacer, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { PrintMapResult, PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
 
 export const indentSpacing = (indent: number): string => {
@@ -14,8 +14,12 @@ export const areAdjacent = (a: SchemaTag, b: SchemaTag) => {
         (isSchemaString(b) && b.value.match(/^\s/)) ||
         isSchemaLineBreak(a) ||
         isSchemaSpacer(a) ||
+        isSchemaDoubleSpace(a) ||
+        isSchemaDoubleBR(a) ||
         isSchemaLineBreak(b) ||
-        isSchemaSpacer(b)
+        isSchemaSpacer(b) ||
+        isSchemaDoubleSpace(b) ||
+        isSchemaDoubleBR(b)
     )
     return !spaces
 }

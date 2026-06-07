@@ -18,7 +18,9 @@
 
 ### Whitespace preservation (target semantics)
 
-[`whitespacePreservation.test.ts`](src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts) is the **executable spec** for document-boundary, paragraph-boundary (Space+br), and empty-middle-paragraph (consecutive `<br />`) round-trip semantics. **Track A** (doc-start/end `<Space />`), **Track B** (Space immediately before/after `<br />`), and **Track C** (up to two consecutive `<br />` for empty middle paragraph) are green. Complementary unit tests live in `descendantsFromRender.test.ts` and `descendantsToRender.test.ts`.
+For **mid-line insertion slots** (double space between words while editing), use `<DoubleSpace />` between string/link chunks. Literal `Hello  world` in markup does not preserve `\s{2}` on parse.
+
+[`whitespacePreservation.test.ts`](src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts) is the **executable spec** for document-boundary, paragraph-boundary (Space+br), empty-middle-paragraph (DoubleBR), and mid-line insertion slot (DoubleSpace) round-trip semantics. **Track A** (doc-start/end `<Space />`) and **Track B** (Space immediately before/after `<br />`) are green in client tests. **Phase 2d.1** landed WML atomic tags; **Track C** client round-trip is red until **2d.2** (DoubleBR outbound/inbound). **Track D** pending **2d.3**. Complementary unit tests live in `descendantsFromRender.test.ts` and `descendantsToRender.test.ts`.
 
 ## Core Challenges of Testing Slate Components
 

@@ -23,6 +23,8 @@ export type SchemaTagType =
     'Summary' |
     'br' |
     'Space' |
+    'DoubleSpace' |
+    'DoubleBR' |
     'Link' |
     'ShortName' |
     'Instructions' |
@@ -68,6 +70,8 @@ export const isLegalSchemaTag = (value: any): value is SchemaTagType => (
         'Summary',
         'br',
         'Space',
+        'DoubleSpace',
+        'DoubleBR',
         'Link',
         'ShortName',
         'Instructions',

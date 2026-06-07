@@ -1,6 +1,6 @@
 # StandardRenderEditor trailing whitespace bug
 
-**Status:** Phase 2c complete -- Track C empty middle paragraph round-trips via interim `br, br` cap-at-2. **Next step:** Phase 2d -- atomic `<DoubleSpace />` / `<DoubleBR />` tags (Track D mid-line insertion slot + migrate Track C off adjacent `<br />`); then Phase 3 verify.
+**Status:** Phase 2d.1 complete -- atomic `<DoubleSpace />` / `<DoubleBR />` tags in WML layer (mtw-base + mtw-wml). **Next step:** Phase 2d.2 -- client DoubleBR outbound/inbound; Track C client tests red until then.
 
 ## Purpose
 
@@ -191,8 +191,8 @@ const slateC = [
 | 1 | Confirm layer stack; decide display vs storage normalization | Complete |
 | 2a | **Track A:** document-end `<Space />` editor round-trip | Complete |
 | 2b | **Track B:** WML `<Space /><br />` semantics + full pipeline | Complete |
-| 2c | **Track C:** consecutive `<br />` / empty middle paragraph authoring round-trip | Complete |
-| 2d | **Atomic tags:** `<DoubleSpace />` (Track D) + `<DoubleBR />` (migrate Track C); full pipeline | Not started |
+| 2c | **Track C:** consecutive `<br />` / empty middle paragraph authoring round-trip | Complete (superseded by 2d; exploratory tangent) |
+| 2d | **Atomic tags:** `<DoubleSpace />` (Track D) + `<DoubleBR />` (Track C); full pipeline | In progress (2d.1 WML boilerplate complete) |
 | 3 | Manual Workbench verification; durable docs | Not started |
 
 ## Links
@@ -431,7 +431,7 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets when 
   - Display-only collapse deferred to **Phase 2d.5** (covers interim `br, br`, `DoubleBR`, and `DoubleSpace` in one pass).
 
 - [ ] **Phase 2d -- Atomic whitespace tags (`DoubleSpace`, `DoubleBR`)**
-  - [ ] **2d.1** Schema boilerplate: mtw-base types, taggedMessages converters, StandardRender payload classes, merge/diff/compress + legacy alias normalize.
+  - [X] **2d.1** Schema boilerplate: mtw-base types, taggedMessages converters, StandardRender payload classes, merge/diff/compress + parse alias normalize.
   - [ ] **2d.2** Migrate Track C storage/print to `<DoubleBR />` (outbound, inbound, tests, docs); legacy `<br /><br />` parse.
   - [ ] **2d.3** Track D `<DoubleSpace />` pipeline (Slate cap-at-2, outbound/inbound, whitespacePreservation tests).
   - [ ] **2d.4** Diff/merge round-trip fixtures (slot vs compaction cases).
@@ -680,6 +680,32 @@ const slate = [
 **Display:** Collapse `DoubleSpace` / `DoubleBR` in player-facing paths only; storage keeps atoms for authoring round-trip.
 
 **Recommended order:** 2d.1 boilerplate -> 2d.2 DoubleBR migration -> 2d.3 DoubleSpace pipeline -> 2d.4 diff fixtures -> 2d.5 display + docs.
+
+### Phase 2d.1 implementation (2026-06-07)
+
+**Approach:** Add `DoubleSpace` and `DoubleBR` end-to-end in `@tonylb/mtw-base` and `packages/mtw-wml`. Retire Phase 2c cap-at-2 `br, br` merge/compress (2c was exploratory; superseded, not authoritative legacy). Parse-time alias: adjacent `<br /><br />` / `<Space /><Space />` in Description/Summary normalize to atomic tags during `compressWhitespaceRun`. Merge: adjacent primitive `Space`/`br` pairs compact; explicit atoms opaque.
+
+**Files changed:**
+
+- `packages/mtw-base/ts/schema/renderTree.ts`, `schema/index.ts`, `schema/tagType.ts`, `renderTree.ts` + tests
+- `packages/mtw-wml/ts/schema/converters/taggedMessages.ts`, `printUtils.ts`
+- `packages/mtw-wml/ts/schema/utils/schemaOutput/compressWhitespace.ts`, `compressWhitespace.test.ts`, `schemaOutputToString.ts`
+- `packages/mtw-wml/ts/standardize/render/doubleSpace.ts`, `doubleBR.ts`, `index.ts`, `index.test.ts`
+- Durable docs: `render/AGENT.md`, `README.taggedMessage.md`, `README.syntax.md`, `AGENT.testing.slate.md`
+- this plan
+
+**No change:** charcoal-client converters (`descendantsToRender` / `descendantsFromRender`) -- deferred to 2d.2/2d.3.
+
+**Target-semantics tests after Phase 2d.1:**
+
+| File | Pass | Fail |
+| --- | --- | --- |
+| `compressWhitespace.test.ts` | 22 | 0 |
+| `index.test.ts` (WML) | 72 | 0 |
+| `whitespacePreservation.test.ts` (client) | 13 (Tracks A+B) | 3 (Track C -- expected until 2d.2) |
+| Legacy `StandardRenderEditor/` | 83 | 3 (Track C) |
+
+**Track C client gap (intentional):** Client outbound still relies on merge `br+br`; WML merge now compacts to single `br`. 2d.2 restores Track C via explicit `{ DoubleBR }` outbound.
 
 ## Verification
 

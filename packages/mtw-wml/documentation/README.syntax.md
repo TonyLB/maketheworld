@@ -158,10 +158,10 @@ literal whitespace next to `<br />` is also ignored on parse. Use `<Space />` im
 <Description>Line one<br /><Space />Line two</Description>
 ```
 
-For **empty middle paragraphs** in authoring fields (Enter at end of one paragraph to insert a blank line before the next), up to **two consecutive `<br />`** are preserved between content strings. Additional consecutive breaks compress to two:
+For **empty middle paragraphs** in authoring fields (Enter at end of one paragraph to insert a blank line before the next), use `<DoubleBR />` between content strings. Adjacent `<br /><br />` in source normalizes to `<DoubleBR />` on parse:
 
 ```
-<Description>First<br /><br />Last</Description>
+<Description>First<DoubleBR />Last</Description>
 ```
 
 Therefore, the following three items render exactly the same:
