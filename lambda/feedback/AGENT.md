@@ -7,7 +7,7 @@ The Feedback Lambda is a utility service that processes SNS messages and deliver
 ### Key Concepts
 - **Targets**: JSON array of connection or session identifiers in the format `CONNECTION#${string}` or `SESSION#${string}`
 - **TargetResolver**: Utility class that expands `SESSION#` targets to all associated connections
-- **ConnectionIds**: Legacy format still supported for backward compatibility
+- **Dual protocol**: SNS `Type` attribute selects handler --- `StreamEvent` uses formatTransform (SNS -> CoreExternalFormat -> WebSocket); `Success` / `Error` are RPC-style passthrough (not CoreExternalFormat)
 
 ## Core Purpose
 
@@ -16,9 +16,9 @@ The Feedback Lambda is a utility service that processes SNS messages and deliver
 **Key Responsibilities**:
 - Parse SNS messages with `Targets` attribute
 - Resolve session targets to individual connections
-- Deliver messages to all target connections
+- For **StreamEvent**: normalize SNS Feedback wire to canonical flat WebSocket (`fromSNSFeedbackFormat` -> `toWebSocketFormat`)
+- For **Success** / **Error**: passthrough or build RPC ack payloads with `RequestId`
 - Handle connection errors gracefully
-- Maintain backward compatibility with legacy `ConnectionIds` format
 
 ## Technical Details
 
@@ -114,8 +114,9 @@ Targets: {
 
 ### Current State
 - **Migration Complete**: Successfully migrated from `ConnectionIds` to `Targets` format
-- **Backward Compatible**: Still supports legacy `ConnectionIds` messages
+- **StreamEvent alignment**: Replay StreamEvents use `streamEventSnsMessageToWebSocketData` (`fromSNSFeedbackFormat` -> `toWebSocketFormat`) before WebSocket send
 - **Session Support**: Full support for `SESSION#` target expansion
+- **Tests**: [`app.test.ts`](./app.test.ts) covers StreamEvent transform and Success/Error passthrough
 
 ### Known Limitations
 - **Connection Validation**: Relies on WebSocket API for connection validity
