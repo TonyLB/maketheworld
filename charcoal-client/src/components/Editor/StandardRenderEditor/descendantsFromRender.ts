@@ -3,7 +3,7 @@ import { StandardRender, PlainClass } from "@tonylb/mtw-wml/ts/standardize/rende
 import { CustomBlock, CustomFeatureLinkElement, CustomKnowledgeLinkElement } from "../baseClasses"
 import { CustomParagraphContents, CustomParagraphElement } from "../baseClasses"
 import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature"
-import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { isSchemaDoubleBR, isSchemaLineBreak, isSchemaLink, isSchemaSpacer } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 
 const singleSpace = (s: string) => s.replace(/\s+/g, ' ')
@@ -120,6 +120,11 @@ export const descendantsFromRender = (render: StandardRender, options: { standar
             continue
         }
         if (isSchemaLineBreak(el.data)) {
+            pushParagraph(false)
+            continue
+        }
+        if (isSchemaDoubleBR(el.data)) {
+            pushParagraph(false)
             pushParagraph(false)
             continue
         }

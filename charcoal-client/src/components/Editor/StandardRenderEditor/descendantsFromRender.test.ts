@@ -438,6 +438,20 @@ describe('descendantsFromRender', () => {
             ])
         })
 
+        it('should handle DoubleBR between content as empty middle paragraph', () => {
+            const render = new StandardRender([
+                'First',
+                { data: { tag: 'DoubleBR' }, children: [] },
+                'Last'
+            ])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([
+                { type: 'paragraph', children: [{ text: 'First' }] },
+                { type: 'paragraph', children: [{ text: '' }] },
+                { type: 'paragraph', children: [{ text: 'Last' }] }
+            ])
+        })
+
         it('should handle render with only spaces', () => {
             const render = new StandardRender([
                 { data: { tag: 'Space' }, children: [] },

@@ -9,6 +9,7 @@ import { CustomBlock } from '../baseClasses'
 
 const spaceTag = { data: { tag: 'Space' as const }, children: [] as [] }
 const brTag = { data: { tag: 'br' as const }, children: [] as [] }
+const doubleBRTag = { data: { tag: 'DoubleBR' as const }, children: [] as [] }
 
 describe('Whitespace preservation (target semantics)', () => {
     const standardForm = new StandardForm(deIndentWML(`
@@ -190,19 +191,29 @@ describe('Whitespace preservation (target semantics)', () => {
 
     describe('Track C -- empty middle paragraph', () => {
         describe('outbound (Slate -> StandardRender)', () => {
-            it('should emit two br tags for empty middle paragraph', () => {
+            it('should emit DoubleBR for empty middle paragraph', () => {
                 const slate: Descendant[] = [
                     { type: 'paragraph', children: [{ text: 'First' }] },
                     { type: 'paragraph', children: [{ text: '' }] },
                     { type: 'paragraph', children: [{ text: 'Last' }] }
                 ]
                 const json = toRender(slate as CustomBlock[]).toJSON()
-                expect(json).toEqual(['First', brTag, brTag, 'Last'])
+                expect(json).toEqual(['First', doubleBRTag, 'Last'])
             })
         })
 
         describe('inbound (StandardRender -> Slate)', () => {
-            it('should map consecutive br to empty middle paragraph', () => {
+            it('should map DoubleBR to empty middle paragraph', () => {
+                const render = new StandardRender(['First', doubleBRTag, 'Last'])
+                const result = fromRender(render)
+                expect(result).toEqual([
+                    { type: 'paragraph', children: [{ text: 'First' }] },
+                    { type: 'paragraph', children: [{ text: '' }] },
+                    { type: 'paragraph', children: [{ text: 'Last' }] }
+                ])
+            })
+
+            it('should map consecutive br to empty middle paragraph (legacy in-memory)', () => {
                 const render = new StandardRender(['First', brTag, brTag, 'Last'])
                 const result = fromRender(render)
                 expect(result).toEqual([
@@ -221,7 +232,7 @@ describe('Whitespace preservation (target semantics)', () => {
                     { type: 'paragraph', children: [{ text: 'Last' }] }
                 ]
                 const { render, back } = roundTrip(slate)
-                expect(render.toJSON()).toEqual(['First', brTag, brTag, 'Last'])
+                expect(render.toJSON()).toEqual(['First', doubleBRTag, 'Last'])
                 expect(back).toEqual([
                     { type: 'paragraph', children: [{ text: 'First' }] },
                     { type: 'paragraph', children: [{ text: '' }] },

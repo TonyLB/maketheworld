@@ -195,8 +195,7 @@ describe('descendantsToRender', () => {
             ]
             expect(descendantsToRender(standard)(items).toJSON()).toEqual([
                 'First',
-                { data: { tag: 'br' }, children: [] },
-                { data: { tag: 'br' }, children: [] },
+                { data: { tag: 'DoubleBR' }, children: [] },
                 'Last'
             ])
         })
