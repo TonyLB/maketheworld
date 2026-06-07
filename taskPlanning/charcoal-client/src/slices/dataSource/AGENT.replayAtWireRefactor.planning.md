@@ -1,6 +1,6 @@
 # replayAt wire refactor and consolidation (charcoal-client + mtw-lambda-patterns)
 
-**Status:** Not started. **Deploy strategy:** **B (atomic)** --- client and backend land together; header-only ingress, no `update.replayAt` reads. **Next step:** Phase 1 --- coordinated backend + client implementation in one PR.
+**Status:** Phase 1 complete (deployed). **Deploy strategy:** **B (atomic)** --- client and backend landed together; header-only ingress, no `update.replayAt` reads. **Next step:** Phase 2 durable doc pass (or Phase 4 manual subscribe-reload smoke).
 
 This plan is task-scoped. Archive or delete after the refactor ships and lasting contract notes move into durable docs.
 
@@ -63,8 +63,8 @@ Client parity today: `resolveReplayCursor` in [`reducers.ts`](../../../../../cha
 | `snapshotContentGenerator` return | Mixed with domain fields; framework strips to metadata ([`index.ts`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/index.ts) `generateSnapshot`) |
 | Internal `SnapshotType` | Sibling metadata alongside domain payload |
 | Dynamo `Meta::Snapshot` | **`snapshotHeader.replayAt`** (canonical storage) |
-| Subscribe replay wire (`deliverReplayData`) | **`update.replayAt`** --- header has base four only |
-| Client ingress (`streamEventPubSub`) | Reads **`update.replayAt` only**; lifts to `StreamEventDeserializedPayload.replayAt` |
+| Subscribe replay wire (`deliverReplayData`) | **`extendedHeader.replayAt`** (via header in CoreExternalFormat) --- domain-only `update` |
+| Client ingress (`streamEventPubSub`) | Reads **header only** (`header.replayAt` or nested `extendedHeader.replayAt`); lifts to `StreamEventDeserializedPayload.replayAt` |
 | Client ledger (`RecentEventEnvelope`) | Sibling of `header` / `content` / `timestamp` (good internal shape) |
 
 **Canonical wire target** (aligned with Dynamo + header-authoritative envelope model in [`AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md)):
@@ -133,7 +133,7 @@ npm test -- ts/dataSource/formatTransform.test.ts
 | Phase | Description | Status |
 | --- | --- | --- |
 | 0 | Discovery + deploy strategy (Strategy B) | Done |
-| 1 | Coordinated implementation (backend `deliverReplayData` + client header-only ingress + tests) | Not started |
+| 1 | Coordinated implementation (backend `deliverReplayData` + client header-only ingress + tests) | Done |
 | 2 | Durable doc updates + legacy type cleanup | Not started |
 | 3 | Optional: shared `resolveReplayCursorTimestamp` export | Not started |
 | 4 | Manual subscribe-reload smoke (sidecar OOO) | Not started |
@@ -216,13 +216,13 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets as yo
 
 - [X] **Kickoff --- Deploy strategy**
   - [X] Strategy B (atomic) --- coordinated client + backend land
-- [ ] **Phase 1 --- Coordinated implementation (one PR)**
-  - [ ] Backend: `deliverReplayData` puts `replayAt` on header; domain-only `update`
-  - [ ] Backend: tests in `packages/mtw-lambda-patterns/ts/dataSource/index.test.ts`
-  - [ ] Client: `extractReplayAtFromSnapshotHeader`; remove `replayAtFromSnapshotUpdate`
-  - [ ] Client: wire-shape tests in `streamEventPubSub/index.test.ts`
-  - [ ] Confirm R1--R5 reducer tests pass; run full verification (below)
-  - [ ] Deploy client + backend together
+- [X] **Phase 1 --- Coordinated implementation (one PR)**
+  - [X] Backend: `deliverReplayData` puts `replayAt` on header; domain-only `update`
+  - [X] Backend: tests in `packages/mtw-lambda-patterns/ts/dataSource/index.test.ts`
+  - [X] Client: `extractReplayAtFromSnapshotHeader`; remove `replayAtFromSnapshotUpdate`
+  - [X] Client: wire-shape tests in `streamEventPubSub/index.test.ts`
+  - [X] Confirm R1--R5 reducer tests pass; run full verification (below)
+  - [X] Deploy client + backend together
 - [ ] **Phase 2 --- Docs and cleanup**
   - [ ] Update `dataSource/AGENT.implementation.md` ingress section
   - [ ] Cross-link patterns wire contract for `replayAt`
@@ -282,7 +282,7 @@ rg 'deliverReplayData' packages/mtw-lambda-patterns/ts/dataSource/index.ts
 
 2. **Shared util with RequestIds plan:** Should `extractReplayAtFromSnapshotHeader` and `extractRequestIdsFromStreamingHeader` live in the same module (e.g. `envelopeMetadata.ts`)? **Tradeoff:** patterns package is shared but client must not import lambda `index.ts`.
 
-3. **`type` in update after metadata strip:** Does domain `update` still need `type: 'Snapshot'`, or is `eventType` / `header.type` sufficient? **Action:** grep before stripping in `deliverReplayData`.
+3. **`type` in update after metadata strip (resolved):** Domain `update` may still carry `type: 'Snapshot'` when present on the snapshot payload (same as `storeSnapshotToStore`); envelope discrimination uses `header.type` / `eventType`.
 
 4. **Non-WML replayable DataSources:** `mtw.ephemera.thinking.scheduling` uses generator-returned `replayAt`. Confirm no client slice consumes it today; same ingress helper applies if added later.
 
