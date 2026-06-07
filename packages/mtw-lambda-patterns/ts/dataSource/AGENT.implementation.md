@@ -22,10 +22,10 @@ The serialization refactor established these principles (authority and typing on
 
 The DataSource pattern uses two different delivery mechanisms depending on the context:
 
-- **Live Events** (`streamEvent`): New changes are published to EventBridge for fan-out to all current subscribers
-- **Replay Events** (`initializeSubscription`): Historical data is delivered directly to a specific session via SNS Feedback (when replay is enabled)
+- **Live Events** (`streamEvent`): New changes are published to EventBridge for fan-out to all current subscribers. The subscriptions lambda deserializes with `fromEventBridgeFormat` and sends **`toWebSocketFormat`** (flat extended header fields at the message top level).
+- **Replay Events** (`initializeSubscription`): Historical data is delivered directly to a specific session via SNS Feedback (when replay is enabled). SNS bodies use **`toSNSFeedbackFormat`** (nested `extendedHeader`). The feedback lambda deserializes with `fromSNSFeedbackFormat` and sends **`toWebSocketFormat`** before WebSocket delivery --- same flat client contract as live events. See [`lambda/feedback/AGENT.md`](../../../../lambda/feedback/AGENT.md).
 
-This dual approach ensures efficient delivery while maintaining the correct scope for each type of event.
+This dual approach ensures efficient delivery while maintaining the correct scope for each type of event. **Client ingress** (`fromWebSocketFormat`) always sees canonical flat WebSocket StreamEvents on both paths.
 
 ### **Replay Content**: The method delivers:
 1. **Current Snapshot**: The most recent materialized state for the stream
@@ -103,7 +103,7 @@ Full pipeline as implemented in code and formatTransform:
 4. **messageBus** – Lambda builds `StreamingEventMessage` with `header` from `coreFormat.header`, `getContent` returning the deserialized payload, and sends to messageBus.
 5. **DataSource processing** – Patterns subscribe() applies envelope type guard, then passes narrowed events to DataSource `receiveEvents`.
 
-Replay path: DataSource `deliverReplayData` builds CoreExternalFormat (snapshot and replay events) with `{ header, update }` and uses `toSNSFeedbackFormat` (and optionally toWebSocketFormat) for delivery; no EventBridge on that path. Snapshot subscribe replay puts `replayAt` on `coreFormat.header` when present (SNS wire: `extendedHeader.replayAt`); metadata fields `createdAt`, `replayAt`, and `expiresAt` are stripped from `update` before send. SNS Feedback and WebSocket both carry `eventType` as a projection of `header.type` so that downstream consumers and replay handlers can discriminate on envelope metadata rather than payload `type`.
+Replay path: DataSource `deliverReplayData` builds CoreExternalFormat (snapshot and replay events) with `{ header, update }` and publishes **`toSNSFeedbackFormat`** to the feedback topic (no EventBridge on that path). The feedback lambda normalizes to flat WebSocket via `fromSNSFeedbackFormat` then `toWebSocketFormat`. Snapshot subscribe replay puts `replayAt` on `coreFormat.header` when present (SNS wire: `extendedHeader.replayAt` until feedback transform); metadata fields `createdAt`, `replayAt`, and `expiresAt` are stripped from `update` before send. SNS Feedback and WebSocket both carry `eventType` as a projection of `header.type` so that downstream consumers and replay handlers can discriminate on envelope metadata rather than payload `type`.
 
 **Snapshot and CoreExternalFormat:** Snapshot records (e.g. Dynamo `Meta::Snapshot` rows) and replay delivery payloads are expressed as CoreExternalFormat envelopes: the same `{ header, update }` shape as streaming events. The header carries `type: 'Snapshot'` and the base four fields; `update` is the snapshot body (external payload). Existing `wireFormatsFromCoreFormat` and all format transforms (`toDynamoDBFormat`, `toSNSFeedbackFormat`, `toWebSocketFormat`, etc.) apply to snapshot envelopes without change.
 
@@ -188,7 +188,7 @@ The DataSource provides two publishing APIs. Both use the same wire format and s
 - **Wire event type projection:** In addition to `extendedHeader`, context transforms project `header.type` onto a small, transport-specific top-level field so that external consumers can discriminate on envelope metadata:
   - **EventBridge** uses `DetailType` / `detail-type` as the canonical wire event type.
   - **DynamoDB** persists `eventType` on each event row as the preferred discriminator when reconstructing `header.type` during replay; legacy rows without `eventType` fall back to `update.type`.
-  - **SNS Feedback** includes `eventType` on the flat SNS message body so the feedback lambda and any downstream consumers can discriminate without inspecting `update.type`.
+  - **SNS Feedback** includes `eventType` on the flat SNS message body. The feedback lambda deserializes StreamEvent bodies via `fromSNSFeedbackFormat` and re-serializes with `toWebSocketFormat` before WebSocket delivery (same flat contract as the subscriptions lambda).
   - **WebSocket** includes `eventType` on the flat WebSocket message so clients can route on envelope metadata instead of payload `type`.
 - **In-memory:** Those properties are **merged into the `header` field.** CoreExternalFormat has two fields only: `header` (required, full: base four + extended properties) and `update`. There are no top-level `dataSourceKey`, `streamKey`, `timestamp`, or `RequestId`; those exist only on `header`. Producers put extended fields in the header fragment; the DataSource sets `coreFormat.header` (full). Serializers should not duplicate envelope fields in content. When serializing, the format layer derives `Detail.extendedHeader` from `coreFormat.header`; when deserializing, it merges `Detail.extendedHeader` into `coreFormat.header`.
 - **Consumers:** Read **`coreFormat.header`** (e.g. `event.header.RequestIds`); extended properties are already merged. No backward compatibility for an unextended header; we always have a full header in memory. When both a wire `eventType` and a payload `type` are present, `eventType` (and therefore `header.type`) is authoritative for routing; payload `type` is preserved for contract compatibility only.

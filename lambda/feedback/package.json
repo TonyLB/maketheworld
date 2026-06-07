@@ -12,6 +12,7 @@
   "author": "Tony Lower-Basch",
   "license": "MIT",
   "dependencies": {
+    "@tonylb/mtw-lambda-patterns": "file:../../packages/mtw-lambda-patterns",
     "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
     "@tonylb/mtw-sessions": "file:../../packages/mtw-sessions"
   },

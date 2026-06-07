@@ -185,21 +185,23 @@ describe('streamEventPubSub', () => {
             expect(callback.mock.calls[0][0].payload.replayAt).toBe(150)
         })
 
-        it('case C: lifts replayAt from nested extendedHeader on Snapshot', async () => {
+        it('case C: flat RequestIds on Content Update wire message populate header.RequestIds', async () => {
+            mockDeserializer.deserialize.mockResolvedValue({ type: 'Content Update', wml: '<Asset />' })
             const callback = vi.fn()
             StreamEventPubSub.subscribe(callback)
 
             publishWireMessage({
                 ...baseWireMessage,
-                eventType: 'Snapshot',
-                extendedHeader: { replayAt: 150 }
+                eventType: 'Content Update',
+                update: { wml: '<Asset />' },
+                RequestIds: ['req-wire-flat']
             })
 
             await vi.waitFor(() => {
                 expect(callback).toHaveBeenCalled()
             })
 
-            expect(callback.mock.calls[0][0].payload.replayAt).toBe(150)
+            expect(callback.mock.calls[0][0].payload.header.RequestIds).toEqual(['req-wire-flat'])
         })
 
         it('case E: does not lift replayAt from update on non-Snapshot events', async () => {

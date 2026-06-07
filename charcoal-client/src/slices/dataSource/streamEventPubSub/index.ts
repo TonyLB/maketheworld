@@ -27,7 +27,7 @@ export type StreamEventDeserializedPayload = {
     timestamp: number
     header: StreamingEventHeader & { type: string; zone?: string; [key: string]: unknown }
     content: unknown
-    /** Snapshot replay watermark from wire header (or nested extendedHeader) when present */
+    /** Snapshot replay watermark from wire header when present (flat, via toWebSocketFormat) */
     replayAt?: number
 }
 
@@ -39,21 +39,13 @@ const deserializerRegistry = new Map<
 let lifeLineSubscriptionId: string | undefined
 
 const extractReplayAtFromSnapshotHeader = (
-    header: { type: string; replayAt?: unknown; extendedHeader?: unknown; [key: string]: unknown }
+    header: { type: string; replayAt?: unknown; [key: string]: unknown }
 ): number | undefined => {
     if (header.type !== 'Snapshot') {
         return undefined
     }
-    const direct = header.replayAt
-    if (typeof direct === 'number') {
-        return direct
-    }
-    const nested = header.extendedHeader
-    if (nested != null && typeof nested === 'object' && 'replayAt' in nested) {
-        const replayAt = (nested as { replayAt?: unknown }).replayAt
-        return typeof replayAt === 'number' ? replayAt : undefined
-    }
-    return undefined
+    const replayAt = header.replayAt
+    return typeof replayAt === 'number' ? replayAt : undefined
 }
 
 /**

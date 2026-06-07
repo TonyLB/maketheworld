@@ -1,8 +1,19 @@
+import { fromSNSFeedbackFormat, toWebSocketFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { apiClient } from "./clients"
 import { TargetResolver, isResolvableTarget } from '@tonylb/mtw-sessions/ts/targetResolver'
 import internalCache from './internalCache'
 
 const targetResolver = new TargetResolver(internalCache)
+
+/**
+ * Replay StreamEvents arrive as SNS Feedback format (nested extendedHeader).
+ * Normalize to canonical flat WebSocket format before delivery (same as subscriptions lambda).
+ */
+export const streamEventSnsMessageToWebSocketData = (snsMessageJson: string): string => {
+    const snsFormat = JSON.parse(snsMessageJson)
+    const coreFormat = fromSNSFeedbackFormat(snsFormat)
+    return JSON.stringify(toWebSocketFormat(coreFormat))
+}
 
 export const handler = async (event) => {
 
@@ -61,9 +72,7 @@ export const handler = async (event) => {
                 }))))
                 break
             case 'StreamEvent':
-                // DataSource subscription messages - already in correct format
-                // Message structure: { messageType: 'StreamEvent', dataSourceKey, streamKey, timestamp, update }
-                const StreamEventData = JSON.stringify(JSON.parse(Sns.Message))
+                const StreamEventData = streamEventSnsMessageToWebSocketData(Sns.Message)
                 await Promise.all(connectionIds.map((ConnectionId) => (apiClient.send({
                     ConnectionId,
                     Data: StreamEventData

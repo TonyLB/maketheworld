@@ -16,7 +16,7 @@ StreamEventPubSub centralizes that logic: one subscription to LifeLinePubSub, on
 
 - **Deserializer registry**: Map of `dataSourceKey` -> `DataSourceEventSerializer`. Slices register via `registerDeserializer` when created.
 - **LifeLine bridge**: On module load, subscribes to LifeLinePubSub, filters `messageType === 'StreamEvent'` and `isSubscriptionClientMessage`, transforms via `fromWebSocketFormat`, deserializes via registry lookup, publishes to StreamEventPubSub.
-- **Snapshot `replayAt` ingress**: For Snapshot events only, `extractReplayAtFromSnapshotHeader` reads `replayAt` from the wire header (`header.replayAt`, or nested `header.extendedHeader.replayAt` after SNS feedback passthrough). Never read from `update.replayAt`. Extraction runs before deserialize; lifted to `StreamEventDeserializedPayload.replayAt` for ledger merge. Nested `extendedHeader` normalization is the expected subscribe-replay shape via feedback passthrough until/unless wire producers flatten extended header fields (coordinate with [`AGENT.extendedHeaderRequestIdFix.planning.md`](../../../../../taskPlanning/charcoal-client/src/slices/AGENT.extendedHeaderRequestIdFix.planning.md)).
+- **Snapshot `replayAt` ingress**: For Snapshot events only, `extractReplayAtFromSnapshotHeader` reads flat `header.replayAt` after `fromWebSocketFormat`. Never read from `update.replayAt`. Replay StreamEvents are normalized to flat WebSocket by the feedback lambda (`fromSNSFeedbackFormat` -> `toWebSocketFormat`); see [`lambda/feedback/AGENT.md`](../../../../../lambda/feedback/AGENT.md).
 - **Fire-and-forget async**: Deserialization is async (sidecar fetches for WML). The bridge runs deserialize in a fire-and-forget `void (async () => {...})()` so it does not block the LifeLine callback.
 
 ---

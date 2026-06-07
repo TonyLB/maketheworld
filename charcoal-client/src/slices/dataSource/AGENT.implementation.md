@@ -299,7 +299,7 @@ Subscribe replay and live Snapshot StreamEvents carry envelope metadata on the *
 
 | Topic | Steady-state rule |
 | --- | --- |
-| Wire location | **`replayAt` on extended header only** --- `header.replayAt` after `fromWebSocketFormat`, or nested `header.extendedHeader.replayAt` on SNS feedback passthrough |
+| Wire location | **`replayAt` on extended header** --- flat `header.replayAt` after `fromWebSocketFormat` (feedback lambda emits canonical flat WebSocket for replay) |
 | Forbidden | **Never** read `update.replayAt` (non-Snapshot or legacy shapes) |
 | Timing | Extract **before** `deserialize`; sidecar fetch must not depend on update metadata |
 | Lift target | `StreamEventDeserializedPayload.replayAt` -> persisted on `RecentEventEnvelope.replayAt` in reducer |
