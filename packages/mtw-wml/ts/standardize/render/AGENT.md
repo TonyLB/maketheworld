@@ -141,6 +141,16 @@ StandardRender automatically normalizes content during operations:
 5. **Space Tag Restoration**: Leading/trailing spaces are automatically converted back to `<Space />` tags
 6. **Atomic tags**: `<DoubleSpace />` and `<DoubleBR />` pass through merge/diff as opaque elements
 
+### Display collapse (player-facing prose)
+
+Storage and authoring round-trips preserve atomic tags. **Player-facing display** collapses them in [`RenderTreeContent.tsx`](../../../../charcoal-client/src/components/Message/RenderTreeContent.tsx) via `collapseDisplayWhitespace`:
+
+- `<DoubleSpace />` renders as one visible space (editor may show two while authoring)
+- `<DoubleBR />` and legacy consecutive `<br />` render as one block break
+- `<Space />` remains invisible (unchanged from Phase 1)
+
+Do not collapse atoms in WML parse, `renderTreeToString`, or `schemaOutputToString` -- those paths serve storage, labels, and prompts.
+
 ### Merge Logic
 
 The merge operation follows these rules:

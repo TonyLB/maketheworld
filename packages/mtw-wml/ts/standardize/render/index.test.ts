@@ -903,4 +903,80 @@ describe('Whitespace preservation (target semantics)', () => {
             }
         })
     })
+
+    describe('Track D -- diff/merge round-trip', () => {
+        const doubleSpaceTag = { data: { tag: 'DoubleSpace' as const }, children: [] as [] }
+        const doubleBRTag = { data: { tag: 'DoubleBR' as const }, children: [] as [] }
+
+        const assertMergeDiffRoundTrip = (
+            baseTree: Parameters<typeof StandardRenderSimple.create>[0],
+            targetTree: Parameters<typeof StandardRenderSimple.create>[0]
+        ) => {
+            const base = new StandardRender(baseTree)
+            const target = new StandardRender(targetTree)
+            const diff = base.diff(target)
+            expect(diff).toBeDefined()
+            const merged = base.merge(diff!)
+            expect(merged?.equals(target)).toBe(true)
+        }
+
+        it('should round-trip diff when inserting DoubleSpace mid-line', () => {
+            assertMergeDiffRoundTrip(
+                ['Hello world'],
+                ['Hello', doubleSpaceTag, 'world']
+            )
+        })
+
+        it('should round-trip diff when removing DoubleSpace mid-line', () => {
+            assertMergeDiffRoundTrip(
+                ['Hello', doubleSpaceTag, 'world'],
+                ['Hello world']
+            )
+        })
+
+        it('should compact Hello+Space merge with Space+world to single space (not DoubleSpace)', () => {
+            const base = StandardRenderSimple.create(['Hello', spaceTag])
+            const merged = base.merge(StandardRenderSimple.create([spaceTag, 'world']))
+            expect(merged).toBeDefined()
+            if (merged) {
+                expect(merged.toJSON()).toEqual(['Hello world'])
+            }
+        })
+
+        it('should serialize diff to Replace Space/world With DoubleSpace/world', () => {
+            const base = StandardRenderSimple.create(['Hello world'])
+            const target = StandardRenderSimple.create(['Hello', doubleSpaceTag, 'world'])
+            const diff = base.diff(target)
+            const wrappedDiff = diff ? new StandardRender(diff) : undefined
+            expect(wrappedDiff?.toJSON()).toEqual({
+                tag: 'Replace',
+                match: [spaceTag, 'world'],
+                payload: [doubleSpaceTag, 'world']
+            })
+            expect(schemaToWML(wrappedDiff!.schema)).toEqual(deIndentWML(`
+                <Replace>
+                    <Space />
+                    world
+                </Replace>
+                <With>
+                    <DoubleSpace />
+                    world
+                </With>
+            `))
+        })
+
+        it('should round-trip diff when inserting DoubleBR empty middle paragraph', () => {
+            assertMergeDiffRoundTrip(
+                ['First', brTag, 'Last'],
+                ['First', doubleBRTag, 'Last']
+            )
+        })
+
+        it('should round-trip diff when removing DoubleBR empty middle paragraph', () => {
+            assertMergeDiffRoundTrip(
+                ['First', doubleBRTag, 'Last'],
+                ['First', brTag, 'Last']
+            )
+        })
+    })
 })

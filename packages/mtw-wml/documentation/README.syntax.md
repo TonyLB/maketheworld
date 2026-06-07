@@ -164,6 +164,14 @@ For **empty middle paragraphs** in authoring fields (Enter at end of one paragra
 <Description>First<DoubleBR />Last</Description>
 ```
 
+For **mid-line insertion slots** (double space between words while editing), use `<DoubleSpace />`:
+
+```
+<Description>Hello<DoubleSpace />world</Description>
+```
+
+**Storage vs display:** WML and the Workbench editor preserve `<DoubleSpace />` and `<DoubleBR />` for authoring round-trip. Player-facing prose (via `RenderTreeContent`) collapses them to finished-text spacing: one visible space and one line break respectively.
+
 Therefore, the following three items render exactly the same:
 ```
 <Description>Test One Two Three</Description>

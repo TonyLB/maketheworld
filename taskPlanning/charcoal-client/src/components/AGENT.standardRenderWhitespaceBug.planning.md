@@ -1,6 +1,6 @@
 # StandardRenderEditor trailing whitespace bug
 
-**Status:** Phase 2d.3 complete -- Track D client outbound/inbound wired to `<DoubleSpace />`. **Next step:** Phase 2d.4 -- diff/merge verification fixtures.
+**Status:** Phase 2d complete -- diff/merge fixtures (2d.4) and player-facing display collapse (2d.5) shipped. **Next step:** Phase 3 -- manual Workbench verification and plan archive.
 
 ## Purpose
 
@@ -192,7 +192,7 @@ const slateC = [
 | 2a | **Track A:** document-end `<Space />` editor round-trip | Complete |
 | 2b | **Track B:** WML `<Space /><br />` semantics + full pipeline | Complete |
 | 2c | **Track C:** consecutive `<br />` / empty middle paragraph authoring round-trip | Complete (superseded by 2d; exploratory tangent) |
-| 2d | **Atomic tags:** `<DoubleSpace />` (Track D) + `<DoubleBR />` (Track C); full pipeline | In progress (2d.3 Track D client complete; 2d.4 next) |
+| 2d | **Atomic tags:** `<DoubleSpace />` (Track D) + `<DoubleBR />` (Track C); full pipeline | Complete |
 | 3 | Manual Workbench verification; durable docs | Not started |
 
 ## Links
@@ -386,15 +386,15 @@ Recommended order:
 
 #### 2d.4 -- Diff / merge verification
 
-- [ ] `base.merge(base.diff(target)).equals(target)` for `['Hello world']` <-> `['Hello', DoubleSpace, 'world']`.
-- [ ] Compaction: `['Hello', Space]` + merge fragment `[Space, 'world']` -> single space (no `DoubleSpace`).
-- [ ] WML Replace round-trip: diff renders as `<Replace><Space />world</Replace><With><DoubleSpace />world</With>` (match leading space via constructor promotion).
+- [X] `base.merge(base.diff(target)).equals(target)` for `['Hello world']` <-> `['Hello', DoubleSpace, 'world']`.
+- [X] Compaction: `['Hello', Space]` + merge fragment `[Space, 'world']` -> single space (no `DoubleSpace`).
+- [X] WML Replace round-trip: diff renders as `<Replace><Space />world</Replace><With><DoubleSpace />world</With>` (match leading space via constructor promotion).
 
 #### 2d.5 -- Display + docs
 
-- [ ] [`RenderTreeContent.tsx`](../../../charcoal-client/src/components/Message/RenderTreeContent.tsx) -- **single display pass** for player-facing prose: collapse `DoubleSpace` / `DoubleBR`; handle interim stored `br, br` until fully migrated; optional `messageParsing` if manual verify requires it. Storage unchanged.
-- [ ] Update [`render/AGENT.md`](../../../packages/mtw-wml/ts/standardize/render/AGENT.md), [`README.syntax.md`](../../../packages/mtw-wml/documentation/README.syntax.md), [`README.taggedMessage.md`](../../../packages/mtw-wml/ts/README.taggedMessage.md), [`AGENT.testing.slate.md`](../../../charcoal-client/AGENT.testing.slate.md).
-- [ ] Interaction fixtures: `DoubleSpace` near `br` / Track B `Space`; `DoubleBR` with Track B paragraph-edge spaces.
+- [X] [`RenderTreeContent.tsx`](../../../charcoal-client/src/components/Message/RenderTreeContent.tsx) -- **single display pass** for player-facing prose: collapse `DoubleSpace` / `DoubleBR`; handle interim stored `br, br` until fully migrated; optional `messageParsing` if manual verify requires it. Storage unchanged.
+- [X] Update [`render/AGENT.md`](../../../packages/mtw-wml/ts/standardize/render/AGENT.md), [`README.syntax.md`](../../../packages/mtw-wml/documentation/README.syntax.md), [`README.taggedMessage.md`](../../../packages/mtw-wml/ts/README.taggedMessage.md), [`AGENT.testing.slate.md`](../../../charcoal-client/AGENT.testing.slate.md).
+- [X] Interaction fixtures: `DoubleSpace` near `br` / Track B `Space`; `DoubleBR` with Track B paragraph-edge spaces.
 
 ## Recommended order
 
@@ -430,12 +430,12 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets when 
   - [X] Update durable docs (`render/AGENT.md`, syntax README) for consecutive `<br />` authoring rule (cap at 2).
   - Display-only collapse deferred to **Phase 2d.5** (covers interim `br, br`, `DoubleBR`, and `DoubleSpace` in one pass).
 
-- [ ] **Phase 2d -- Atomic whitespace tags (`DoubleSpace`, `DoubleBR`)**
+- [X] **Phase 2d -- Atomic whitespace tags (`DoubleSpace`, `DoubleBR`)**
   - [X] **2d.1** Schema boilerplate: mtw-base types, taggedMessages converters, StandardRender payload classes, merge/diff/compress + parse alias normalize.
   - [X] **2d.2** Migrate Track C storage/print to `<DoubleBR />` (outbound, inbound, tests, docs); legacy `<br /><br />` parse.
   - [X] **2d.3** Track D `<DoubleSpace />` pipeline (Slate cap-at-2, outbound/inbound, whitespacePreservation tests).
-  - [ ] **2d.4** Diff/merge round-trip fixtures (slot vs compaction cases).
-  - [ ] **2d.5** Display collapse (`RenderTreeContent`, optional `messageParsing`) for `DoubleSpace` / `DoubleBR` and legacy interim shapes; durable docs + interaction fixtures.
+  - [X] **2d.4** Diff/merge round-trip fixtures (slot vs compaction cases).
+  - [X] **2d.5** Display collapse (`RenderTreeContent`, optional `messageParsing`) for `DoubleSpace` / `DoubleBR` and legacy interim shapes; durable docs + interaction fixtures.
 
 - [ ] **Phase 3 -- Verify and close**
   - [ ] Manual Workbench checks (see Verification); confirm player-facing display after 2d.5 collapse.
@@ -777,6 +777,41 @@ const slate = [
 | Client outbound (`descendantsToRender`) | Pass (closed `\s{2}` -> `{ DoubleSpace }`) |
 | Client inbound (`descendantsFromRender`) | Pass (`{ DoubleSpace }` -> two literal spaces) |
 | Client full round-trip | Pass |
+
+### Phase 2d.4 implementation (2026-06-07)
+
+**Approach:** WML-only test slice. Added `Track D -- diff/merge round-trip` fixtures in `index.test.ts` proving slot vs compaction algebra: `base.merge(base.diff(target)).equals(target)` for `Hello world` <-> `DoubleSpace`; explicit Hello+Space fragment compaction; WML Replace serialization; DoubleBR diff round-trip both directions. No production code changes required.
+
+**Files changed:**
+
+- [`index.test.ts`](../../../packages/mtw-wml/ts/standardize/render/index.test.ts) -- 6 new fixtures
+- this plan
+
+**Target-semantics tests after Phase 2d.4:**
+
+| File | Pass | Fail |
+| --- | --- | --- |
+| `index.test.ts` (WML) | 78 | 0 |
+
+### Phase 2d.5 implementation (2026-06-07)
+
+**Approach:** Client display-only slice. Added `collapseDisplayWhitespace` helper: `DoubleSpace` -> single visible space, `DoubleBR` and legacy consecutive `br` -> one block break; `Space` remains invisible. Wired into [`RenderTreeContent.tsx`](../../../charcoal-client/src/components/Message/RenderTreeContent.tsx). No `messageParsing` change (Workbench descriptions do not require it).
+
+**Files changed:**
+
+- [`collapseDisplayWhitespace.ts`](../../../charcoal-client/src/components/Message/collapseDisplayWhitespace.ts) (new)
+- [`RenderTreeContent.tsx`](../../../charcoal-client/src/components/Message/RenderTreeContent.tsx) -- display normalization pass
+- [`RenderTreeContent.test.tsx`](../../../charcoal-client/src/components/Message/RenderTreeContent.test.tsx) (new) -- core + interaction fixtures
+- Durable docs: `render/AGENT.md`, `README.taggedMessage.md`, `README.syntax.md`, `AGENT.testing.slate.md`
+- this plan
+
+**Target-semantics tests after Phase 2d.5:**
+
+| File | Pass | Fail |
+| --- | --- | --- |
+| `RenderTreeContent.test.tsx` | 7 | 0 |
+| `index.test.ts` (WML) | 78 | 0 |
+| `whitespacePreservation.test.ts` (client) | 24 | 0 |
 
 ## Verification
 

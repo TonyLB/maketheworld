@@ -22,6 +22,12 @@ For **mid-line insertion slots** (double space between words while editing), use
 
 [`whitespacePreservation.test.ts`](src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts) is the **executable spec** for document-boundary, paragraph-boundary (Space+br), empty-middle-paragraph (DoubleBR), and mid-line insertion slot (DoubleSpace) round-trip semantics. **Track A** (doc-start/end `<Space />`), **Track B** (Space immediately before/after `<br />`), **Track C** (empty middle paragraph via `<DoubleBR />`; client outbound emits and inbound consumes the atomic tag; legacy in-memory `br, br` still maps on inbound), and **Track D** (mid-line `\s{2}` via `<DoubleSpace />`; `withConstrainedWhitespace` caps `\s{3+}` at two) are green in client tests. Complementary unit tests live in `descendantsFromRender.test.ts`, `descendantsToRender.test.ts`, and `constrainedWhitespace.test.ts`.
 
+### Display collapse (player-facing prose)
+
+Editor round-trip tests prove **storage** semantics; player display is separate. [`RenderTreeContent.test.tsx`](src/components/Message/RenderTreeContent.test.tsx) is the **executable spec** for display collapse: `DoubleSpace` -> one visible space, `DoubleBR` and legacy consecutive `br` -> one block break, `Space` invisible. Implementation lives in [`collapseDisplayWhitespace.ts`](src/components/Message/collapseDisplayWhitespace.ts), wired from [`RenderTreeContent.tsx`](src/components/Message/RenderTreeContent.tsx).
+
+Interaction fixtures cover `DoubleSpace` near `br` / Track B `Space`, and `DoubleBR` with Track B paragraph-edge spaces.
+
 ## Core Challenges of Testing Slate Components
 
 ### **1. Slate's Type System Requirements**
