@@ -45,7 +45,7 @@ export const isCompactedCheckpointHeader = (header: StreamingEventHeader): boole
 export const isUpdateEnvelopeHeader = (header: StreamingEventHeader): boolean =>
     !isAuthoritativeSnapshotHeader(header) && !isCompactedCheckpointHeader(header)
 
-/** Parity with resolveReplayCursorTimestamp in packages/mtw-lambda-patterns/ts/dataSource/index.ts (do not import index here -- pulls lambda-only deps into the client bundle). */
+/** Intentional duplicate of resolveReplayCursorTimestamp (packages/mtw-lambda-patterns/ts/dataSource/index.ts): replayAt ?? createdAt. Ledger rows use timestamp (= wire header.timestamp = createdAt). Do not import index.ts -- pulls lambda-only deps into the client bundle. */
 export const resolveReplayCursor = (
     envelope: Pick<RecentEventEnvelope<unknown, StreamingEventHeader>, 'timestamp' | 'replayAt'>
 ): number =>

@@ -1,6 +1,6 @@
 # replayAt wire refactor and consolidation (charcoal-client + mtw-lambda-patterns)
 
-**Status:** Phase 2 complete. **Deploy strategy:** **B (atomic)** --- client and backend landed together; header-only ingress, no `update.replayAt` reads. **Next step:** Phase 4 manual subscribe-reload smoke (or optional Phase 3 shared helper).
+**Status:** Phase 3 skipped (intentional duplication of one-line `replayAt ?? createdAt` --- not worth shared-module extraction). **Deploy strategy:** **B (atomic)** --- client and backend landed together; header-only ingress, no `update.replayAt` reads. **Next step:** Phase 4 manual subscribe-reload smoke, then archive (Phase 5).
 
 This plan is task-scoped. Archive or delete after the refactor ships and lasting contract notes move into durable docs.
 
@@ -135,8 +135,8 @@ npm test -- ts/dataSource/formatTransform.test.ts
 | 0 | Discovery + deploy strategy (Strategy B) | Done |
 | 1 | Coordinated implementation (backend `deliverReplayData` + client header-only ingress + tests) | Done |
 | 2 | Durable doc updates + legacy type cleanup | Done |
-| 3 | Optional: shared `resolveReplayCursorTimestamp` export | Not started |
-| 4 | Manual subscribe-reload smoke (sidecar OOO) | Not started |
+| 3 | Optional: shared `resolveReplayCursorTimestamp` export | Skipped (duplication acceptable; see Phase 3 note) |
+| 4 | Manual subscribe-reload smoke (sidecar OOO) + grep gate | In progress (automated checks done; manual smoke pending) |
 | 5 | Archive task plan | Not started |
 
 ---
@@ -193,9 +193,9 @@ Optional: add `formatTransform.test.ts` snapshot fixture for `replayAt` as exten
 - Cross-link or extend patterns wire contract for `replayAt`.
 - Mark [`SnapshotUpdateWithSidecar`](../../../../../charcoal-client/src/slices/dataSource/baseClasses.ts) `@deprecated` or trim unused fields if grep shows no callers.
 
-### Phase 3 --- Shared helper (optional)
+### Phase 3 --- Shared helper (optional) --- **skipped**
 
-Export `resolveReplayCursorTimestamp` from a client-safe module so [`reducers.ts`](../../../../../charcoal-client/src/slices/dataSource/reducers.ts) can import instead of duplicating.
+**Decision (2026-06):** Do not extract. Client [`resolveReplayCursor`](../../../../../charcoal-client/src/slices/dataSource/reducers.ts) intentionally duplicates backend [`resolveReplayCursorTimestamp`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/index.ts) (`replayAt ?? createdAt` / `replayAt ?? timestamp`). One line, stable semantics, guarded by R1--R5 tests and durable docs. Shared extraction would still require a ledger adapter (`timestamp` vs `createdAt`) and adds module surface without meaningful safety gain; placing it in `mtw-interfaces` would invite circular package dependencies.
 
 ---
 
@@ -227,14 +227,15 @@ Mark pending work `[ ]` and completed work `[X]` (including nested bullets as yo
   - [X] Update `dataSource/AGENT.implementation.md` ingress section
   - [X] Cross-link patterns wire contract for `replayAt`
   - [X] Annotate or trim `SnapshotUpdateWithSidecar` legacy fields
-- [ ] **Phase 3 --- Shared helper (optional)**
-  - [ ] Extract `resolveReplayCursorTimestamp` to client-safe module
-  - [ ] Replace duplicate in `reducers.ts`
+- [X] **Phase 3 --- Shared helper (optional)** --- skipped
+  - [X] Decision: keep intentional duplication in `reducers.ts` (parity comment + R1--R5 tests)
+  - [X] Open question 7 resolved: duplication acceptable long-term
 - [ ] **Phase 4 --- Close**
-  - [ ] Manual subscribe-reload smoke (see **Verification**)
-  - [ ] Grep gate passes
-  - [ ] Update **Progress** table and status line
-  - [ ] Archive or delete this task plan
+  - [ ] Manual subscribe-reload smoke (see **Verification**) --- requires browser; pending operator
+  - [X] Grep gate passes (2026-06)
+  - [X] Automated verification passes (2026-06)
+  - [X] Update **Progress** table and status line
+  - [ ] Archive or delete this task plan (after manual smoke)
 
 ---
 
@@ -274,6 +275,13 @@ rg 'update\.replayAt|replayAtFromSnapshotUpdate' charcoal-client/src/slices/data
 rg 'deliverReplayData' packages/mtw-lambda-patterns/ts/dataSource/index.ts
 ```
 
+**Verification log (2026-06):**
+
+- Grep gate: no code reads `update.replayAt` or `replayAtFromSnapshotUpdate` (matches only in AGENT docs describing forbidden patterns).
+- Client: `reducers.test.ts` (40), `streamEventPubSub/index.test.ts` (13), `wmlDataSource/index.test.ts` (13) --- all pass.
+- Patterns: `index.test.ts` (92), `formatTransform.test.ts` (23) --- all pass.
+- Manual subscribe-reload smoke: **pending operator** (browser; steps in **Manual** section above).
+
 ---
 
 ## Open questions / unknowns
@@ -290,7 +298,7 @@ rg 'deliverReplayData' packages/mtw-lambda-patterns/ts/dataSource/index.ts
 
 6. **Nested `extendedHeader` long-term:** Is client normalization of `extendedHeader.replayAt` permanent (feedback passthrough), or should feedback flatten before WebSocket send (coordinate with RequestIds plan)?
 
-7. **Phase 3 necessity:** Is duplicating `resolveReplayCursor` in client acceptable long-term? Defer until Phase 1 lands.
+7. **Phase 3 necessity (resolved):** Yes --- duplicating `resolveReplayCursor` in client is acceptable long-term. Document parity in `reducers.ts` comment and durable AGENT docs; no shared module.
 
 ---
 
