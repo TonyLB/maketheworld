@@ -306,6 +306,8 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 
 `StandardRenderEditor` and `MarkEditor` use Slate for rich text; `StandardLiteralEditor` for plain text. Both integrate with `updateStandard` and `useDebouncedOnChange` for persistence when used outside a component session. Under `WorkbenchComponentProvider`, use **`debounce={false}`** on literal editors (or **`WorkbenchShortNameField`**) so only the session debounces flush to Redux.
 
+**Whitespace authoring:** `StandardRenderEditor` preserves document/paragraph-edge spaces and mid-line insertion slots (`DoubleSpace`, empty-middle `DoubleBR`) through save/reload. Player-facing descriptions collapse atomic tags on display. Semantics and tests: [AGENT.testing.slate.md](../../../AGENT.testing.slate.md) (client round-trip + display); WML storage rules: [render/AGENT.md](../../../../packages/mtw-wml/ts/standardize/render/AGENT.md).
+
 ### Best Practices
 
 - Use `useWorkbenchAsset` instead of `useLibraryAsset` when in Workbench context

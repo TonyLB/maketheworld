@@ -45,10 +45,14 @@ Tags
 
 Tagged Message format has its own set of tags:
 - ***String***: Any text outside of a WML tag structure will be treated as a string.
-- ***Line Break***: `<br />` will create a line break in the text.
+- ***Line Break***: `<br />` creates a line break. Adjacent `<br />` on merge compact to one; two or more consecutive `<br />` in parse (authoring fields) normalize to ***DoubleBR***.
 - ***Space***: `<Space />` tag will create whitespace even up against the edge of a
 surrounding tag (where whitespace is usually ignored).  So, `<Description><Space />Test</Description>
-returns the string ' Test', with a space added at the beginning.
+returns the string ' Test', with a space added at the beginning. `<Space />` may also appear
+immediately before or after `<br />` for paragraph-edge authoring (e.g. `Line one<Space /><br />Line two`).
+See [`documentation/README.syntax.md`](../documentation/README.syntax.md) (Whitespace section).
+- ***DoubleSpace***: `<DoubleSpace />` holds a mid-line insertion slot (two visible spaces between string/link chunks in authoring). Two or more consecutive `<Space />` between content strings normalize to one `<DoubleSpace />` on parse. Literal multi-space in strings does not round-trip; use the explicit tag. **Player display** collapses to one visible space; storage preserves the atom.
+- ***DoubleBR***: `<DoubleBR />` holds an empty middle paragraph between content strings in authoring. Storage/print uses this atom rather than adjacent `<br />`. **Player display** collapses to one line break; storage preserves the atom.
 - ***Link***: `<Link to=(test)>text</Link>` creates a named link to either a Feature or
 an Action.  Clicking on a Feature link will view the feature.  Clicking on an Action link
 will execute the action.

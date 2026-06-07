@@ -1,4 +1,4 @@
-import { isSchemaString, isSchemaLink, isSchemaWhitespace, isSchemaLineBreak, isSchemaSpacer } from './renderTree'
+import { isSchemaString, isSchemaLink, isSchemaWhitespace, isSchemaLineBreak, isSchemaSpacer, isSchemaDoubleSpace, isSchemaDoubleBR } from './renderTree'
 
 describe('renderTree typeguards', () => {
     describe('isSchemaString', () => {
@@ -73,6 +73,30 @@ describe('renderTree typeguards', () => {
         it('should return false for invalid SchemaSpacerTag', () => {
             const schema = { tag: 'Invalid' }
             expect(isSchemaSpacer(schema)).toBe(false)
+        })
+    })
+
+    describe('isSchemaDoubleSpace', () => {
+        it('should return true for valid SchemaDoubleSpaceTag', () => {
+            const schema = { tag: 'DoubleSpace' }
+            expect(isSchemaDoubleSpace(schema)).toBe(true)
+        })
+
+        it('should return false for invalid SchemaDoubleSpaceTag', () => {
+            const schema = { tag: 'Space' }
+            expect(isSchemaDoubleSpace(schema)).toBe(false)
+        })
+    })
+
+    describe('isSchemaDoubleBR', () => {
+        it('should return true for valid SchemaDoubleBRTag', () => {
+            const schema = { tag: 'DoubleBR' }
+            expect(isSchemaDoubleBR(schema)).toBe(true)
+        })
+
+        it('should return false for invalid SchemaDoubleBRTag', () => {
+            const schema = { tag: 'br' }
+            expect(isSchemaDoubleBR(schema)).toBe(false)
         })
     })
 })

@@ -15,6 +15,14 @@ export type SchemaSpacerTag = {
     tag: 'Space';
 } & SchemaBase
 
+export type SchemaDoubleSpaceTag = {
+    tag: 'DoubleSpace';
+} & SchemaBase
+
+export type SchemaDoubleBRTag = {
+    tag: 'DoubleBR';
+} & SchemaBase
+
 export type SchemaStringTag = {
     tag: 'String';
     value: string;
@@ -38,4 +46,10 @@ export const isSchemaLineBreak = (arg: any): arg is SchemaLineBreakTag => (
 )
 export const isSchemaSpacer = (arg: any): arg is SchemaSpacerTag => (
     checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag: 'Space' } })(arg)
+)
+export const isSchemaDoubleSpace = (arg: any): arg is SchemaDoubleSpaceTag => (
+    checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag: 'DoubleSpace' } })(arg)
+)
+export const isSchemaDoubleBR = (arg: any): arg is SchemaDoubleBRTag => (
+    checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag: 'DoubleBR' } })(arg)
 )

@@ -2,7 +2,7 @@ import { GenericTree } from "./genericTree";
 import { isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "./schema";
 
 import { isSchemaRemove, isSchemaReplace } from "./schema/edit";
-import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "./schema/renderTree";
+import { isSchemaDoubleBR, isSchemaDoubleSpace, isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "./schema/renderTree";
 import { excludeUndefined } from "./utils/lists";
 
 export type RenderTreeNode = string | {
@@ -56,7 +56,9 @@ export const schemaToRenderTree = (tree: GenericTree<SchemaTag> | RenderTree): R
         else if (
             isSchemaLink(node.data) ||
             isSchemaSpacer(node.data) ||
-            isSchemaLineBreak(node.data)
+            isSchemaLineBreak(node.data) ||
+            isSchemaDoubleSpace(node.data) ||
+            isSchemaDoubleBR(node.data)
         ) {
             return {
                 data: node.data, children: schemaToRenderTree(node.children)
@@ -80,8 +82,14 @@ export const renderTreeToString = (tree: RenderTree): string => {
         if (isSchemaSpacer(node.data)) {
             return " "
         }
+        if (isSchemaDoubleSpace(node.data)) {
+            return "  "
+        }
         if (isSchemaLineBreak(node.data)) {
             return "\n"
+        }
+        if (isSchemaDoubleBR(node.data)) {
+            return "\n\n"
         }
         return ''
     }).join("")

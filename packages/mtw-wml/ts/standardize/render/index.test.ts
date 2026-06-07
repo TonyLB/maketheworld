@@ -64,7 +64,7 @@ describe('StandardRenderSimple', () => {
         const merged = base.merge(StandardRenderSimple.create([{ data: { tag: 'Space' }, children: [] }, { data: { tag: 'br' }, children: [] }, 'Test']))
         expect(merged).toBeDefined()
         if (merged) {
-            expect(merged.toJSON()).toEqual(StandardRenderSimple.create(['Test', { data: { tag: 'br' }, children: [] }, 'Test']).toJSON())
+            expect(merged.toJSON()).toEqual(StandardRenderSimple.create(['Test', { data: { tag: 'br' }, children: [] }, { data: { tag: 'Space' }, children: [] }, { data: { tag: 'br' }, children: [] }, 'Test']).toJSON())
         }
     })
 
@@ -73,7 +73,7 @@ describe('StandardRenderSimple', () => {
         const merged = base.merge(StandardRenderSimple.create([' Test']))
         expect(merged).toBeDefined()
         if (merged) {
-            expect(merged.toJSON()).toEqual(StandardRenderSimple.create(['Test', { data: { tag: 'br' }, children: [] }, 'Test']).toJSON())
+            expect(merged.toJSON()).toEqual(StandardRenderSimple.create(['Test', { data: { tag: 'Space' }, children: [] }, { data: { tag: 'br' }, children: [] }, { data: { tag: 'Space' }, children: [] }, 'Test']).toJSON())
         }
     })
 
@@ -715,6 +715,268 @@ describe('StandardRender', () => {
             const render = new StandardRender([])
             const result = render.nestedSchema({ tag: 'Description' })
             expect(result).toEqual([])
+        })
+    })
+})
+
+describe('Whitespace preservation (target semantics)', () => {
+    const spaceTag = { data: { tag: 'Space' as const }, children: [] as [] }
+    const brTag = { data: { tag: 'br' as const }, children: [] as [] }
+
+    describe('Track A -- document boundary WML', () => {
+        it('should preserve trailing Space on schema load and round-trip', () => {
+            const schema = new Schema()
+            schema.loadWML(`Hello<Space />`)
+            const render = StandardRenderSimple.create(schema.schema)
+            expect(render.toJSON()).toEqual(['Hello', spaceTag])
+            expect(schemaToWML(render.schema)).toEqual(deIndentWML(`
+                Hello
+                <Space />
+            `))
+        })
+
+        it('should preserve leading Space on schema load and round-trip', () => {
+            const schema = new Schema()
+            schema.loadWML(`<Space />Hello`)
+            const render = StandardRenderSimple.create(schema.schema)
+            expect(render.toJSON()).toEqual([spaceTag, 'Hello'])
+            expect(schemaToWML(render.schema)).toEqual(deIndentWML(`
+                <Space />
+                Hello
+            `))
+        })
+    })
+
+    describe('Track B -- Space adjacent to br', () => {
+        it('should preserve Space before br on merge', () => {
+            const base = StandardRenderSimple.create(['Line one', spaceTag, brTag, 'Line two'])
+            const merged = base.merge(StandardRenderSimple.create([]))
+            expect(merged).toBeDefined()
+            if (merged) {
+                expect(merged.toJSON()).toEqual(['Line one', spaceTag, brTag, 'Line two'])
+            }
+        })
+
+        it('should preserve Space after br on merge', () => {
+            const base = StandardRenderSimple.create(['Line one', brTag, spaceTag, 'Line two'])
+            const merged = base.merge(StandardRenderSimple.create([]))
+            expect(merged).toBeDefined()
+            if (merged) {
+                expect(merged.toJSON()).toEqual(['Line one', brTag, spaceTag, 'Line two'])
+            }
+        })
+
+        it('should promote trailing string space before br to Space tag on merge', () => {
+            const base = StandardRenderSimple.create(['Line one ', brTag, 'Line two'])
+            const merged = base.merge(StandardRenderSimple.create([]))
+            expect(merged).toBeDefined()
+            if (merged) {
+                expect(merged.toJSON()).toEqual(['Line one', spaceTag, brTag, 'Line two'])
+            }
+        })
+
+        it('should promote leading string space after br to Space tag on merge', () => {
+            const base = StandardRenderSimple.create(['Line one', brTag, ' Line two'])
+            const merged = base.merge(StandardRenderSimple.create([]))
+            expect(merged).toBeDefined()
+            if (merged) {
+                expect(merged.toJSON()).toEqual(['Line one', brTag, spaceTag, 'Line two'])
+            }
+        })
+
+        it('should preserve Space before br on schema load and round-trip', () => {
+            const schema = new Schema()
+            schema.loadWML(`Line one<Space /><br />Line two`)
+            const render = StandardRenderSimple.create(schema.schema)
+            expect(render.toJSON()).toEqual(['Line one', spaceTag, brTag, 'Line two'])
+            expect(schemaToWML(render.schema)).toEqual(deIndentWML(`
+                Line one
+                <Space />
+                <br />
+                Line two
+            `))
+        })
+
+        it('should preserve Space after br on schema load and round-trip', () => {
+            const schema = new Schema()
+            schema.loadWML(`Line one<br /><Space />Line two`)
+            const render = StandardRenderSimple.create(schema.schema)
+            expect(render.toJSON()).toEqual(['Line one', brTag, spaceTag, 'Line two'])
+            expect(schemaToWML(render.schema)).toEqual(deIndentWML(`
+                Line one
+                <br />
+                <Space />
+                Line two
+            `))
+        })
+    })
+
+    describe('Track C -- DoubleBR (empty middle paragraph)', () => {
+        const doubleBRTag = { data: { tag: 'DoubleBR' as const }, children: [] as [] }
+
+        it('should compact br+br on merge to single br', () => {
+            const base = StandardRenderSimple.create(['First', brTag])
+            const merged = base.merge(StandardRenderSimple.create([brTag, 'Last']))
+            expect(merged).toBeDefined()
+            if (merged) {
+                expect(merged.toJSON()).toEqual(['First', brTag, 'Last'])
+            }
+        })
+
+        it('should preserve explicit DoubleBR on merge', () => {
+            const base = StandardRenderSimple.create(['First', doubleBRTag])
+            const merged = base.merge(StandardRenderSimple.create(['Last']))
+            expect(merged).toBeDefined()
+            if (merged) {
+                expect(merged.toJSON()).toEqual(['First', doubleBRTag, 'Last'])
+            }
+        })
+
+        it('should normalize two br on schema load to DoubleBR and round-trip', () => {
+            const schema = new Schema()
+            schema.loadWML(`<Description>First<br /><br />Last</Description>`)
+            const render = StandardRenderSimple.create(schema.schema[0].children)
+            expect(render.toJSON()).toEqual(['First', doubleBRTag, 'Last'])
+            expect(schemaToWML(render.schema)).toEqual(deIndentWML(`
+                First
+                <DoubleBR />
+                Last
+            `))
+        })
+
+        it('should cap three br on schema load to one DoubleBR', () => {
+            const schema = new Schema()
+            schema.loadWML(`<Description>First<br /><br /><br />Last</Description>`)
+            const render = StandardRenderSimple.create(schema.schema[0].children)
+            expect(render.toJSON()).toEqual(['First', doubleBRTag, 'Last'])
+            expect(schemaToWML(render.schema)).toEqual(deIndentWML(`
+                First
+                <DoubleBR />
+                Last
+            `))
+        })
+    })
+
+    describe('Phase 2d -- atomic tags (boilerplate)', () => {
+        const doubleSpaceTag = { data: { tag: 'DoubleSpace' as const }, children: [] as [] }
+        const doubleBRTag = { data: { tag: 'DoubleBR' as const }, children: [] as [] }
+
+        it('should round-trip DoubleSpace on schema load and print', () => {
+            const schema = new Schema()
+            schema.loadWML(`Hello<DoubleSpace />world`)
+            const render = StandardRenderSimple.create(schema.schema)
+            expect(render.toJSON()).toEqual(['Hello', doubleSpaceTag, 'world'])
+            expect(schemaToWML(render.schema)).toEqual(deIndentWML(`
+                Hello
+                <DoubleSpace />
+                world
+            `))
+        })
+
+        it('should round-trip DoubleBR on schema load and print', () => {
+            const schema = new Schema()
+            schema.loadWML(`First<DoubleBR />Last`)
+            const render = StandardRenderSimple.create(schema.schema)
+            expect(render.toJSON()).toEqual(['First', doubleBRTag, 'Last'])
+            expect(schemaToWML(render.schema)).toEqual(deIndentWML(`
+                First
+                <DoubleBR />
+                Last
+            `))
+        })
+
+        it('should compact Space+Space on merge to single Space', () => {
+            const base = StandardRenderSimple.create([spaceTag])
+            const merged = base.merge(StandardRenderSimple.create([spaceTag]))
+            expect(merged).toBeDefined()
+            if (merged) {
+                expect(merged.toJSON()).toEqual([spaceTag])
+            }
+        })
+
+        it('should preserve explicit DoubleSpace on merge', () => {
+            const base = StandardRenderSimple.create(['Hello', doubleSpaceTag])
+            const merged = base.merge(StandardRenderSimple.create(['world']))
+            expect(merged).toBeDefined()
+            if (merged) {
+                expect(merged.toJSON()).toEqual(['Hello', doubleSpaceTag, 'world'])
+            }
+        })
+    })
+
+    describe('Track D -- diff/merge round-trip', () => {
+        const doubleSpaceTag = { data: { tag: 'DoubleSpace' as const }, children: [] as [] }
+        const doubleBRTag = { data: { tag: 'DoubleBR' as const }, children: [] as [] }
+
+        const assertMergeDiffRoundTrip = (
+            baseTree: Parameters<typeof StandardRenderSimple.create>[0],
+            targetTree: Parameters<typeof StandardRenderSimple.create>[0]
+        ) => {
+            const base = new StandardRender(baseTree)
+            const target = new StandardRender(targetTree)
+            const diff = base.diff(target)
+            expect(diff).toBeDefined()
+            const merged = base.merge(diff!)
+            expect(merged?.equals(target)).toBe(true)
+        }
+
+        it('should round-trip diff when inserting DoubleSpace mid-line', () => {
+            assertMergeDiffRoundTrip(
+                ['Hello world'],
+                ['Hello', doubleSpaceTag, 'world']
+            )
+        })
+
+        it('should round-trip diff when removing DoubleSpace mid-line', () => {
+            assertMergeDiffRoundTrip(
+                ['Hello', doubleSpaceTag, 'world'],
+                ['Hello world']
+            )
+        })
+
+        it('should compact Hello+Space merge with Space+world to single space (not DoubleSpace)', () => {
+            const base = StandardRenderSimple.create(['Hello', spaceTag])
+            const merged = base.merge(StandardRenderSimple.create([spaceTag, 'world']))
+            expect(merged).toBeDefined()
+            if (merged) {
+                expect(merged.toJSON()).toEqual(['Hello world'])
+            }
+        })
+
+        it('should serialize diff to Replace Space/world With DoubleSpace/world', () => {
+            const base = StandardRenderSimple.create(['Hello world'])
+            const target = StandardRenderSimple.create(['Hello', doubleSpaceTag, 'world'])
+            const diff = base.diff(target)
+            const wrappedDiff = diff ? new StandardRender(diff) : undefined
+            expect(wrappedDiff?.toJSON()).toEqual({
+                tag: 'Replace',
+                match: [spaceTag, 'world'],
+                payload: [doubleSpaceTag, 'world']
+            })
+            expect(schemaToWML(wrappedDiff!.schema)).toEqual(deIndentWML(`
+                <Replace>
+                    <Space />
+                    world
+                </Replace>
+                <With>
+                    <DoubleSpace />
+                    world
+                </With>
+            `))
+        })
+
+        it('should round-trip diff when inserting DoubleBR empty middle paragraph', () => {
+            assertMergeDiffRoundTrip(
+                ['First', brTag, 'Last'],
+                ['First', doubleBRTag, 'Last']
+            )
+        })
+
+        it('should round-trip diff when removing DoubleBR empty middle paragraph', () => {
+            assertMergeDiffRoundTrip(
+                ['First', doubleBRTag, 'Last'],
+                ['First', brTag, 'Last']
+            )
         })
     })
 })

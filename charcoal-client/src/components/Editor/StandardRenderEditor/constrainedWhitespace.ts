@@ -9,12 +9,12 @@ export const withConstrainedWhitespace = (editor: Editor): Editor => {
 
     editor.normalizeNode = ([node, path]) => {
         if (Text.isText(node)) {
-            const match = node.text.match(/\s{2,}/)
+            const match = node.text.match(/\s{3,}/)
             if (match && match[0] && typeof match.index === 'number') {
-                // Collapse run of 2+ spaces to one: keep first space, delete the rest (Slate Location = Point for text)
+                // Cap runs of 3+ whitespace at two (insertion-slot shape); delete excess beyond first two spaces
                 Transforms.delete(editor, {
-                    at: { path, offset: match.index + 1 },
-                    distance: match[0].length - 1
+                    at: { path, offset: match.index + 2 },
+                    distance: match[0].length - 2
                 })
                 return
             }

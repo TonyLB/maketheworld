@@ -162,9 +162,28 @@ describe('descendantsFromRender', () => {
         it('should handle leading and trailing spaces', () => {
             const render = new StandardRender(['  Hello World  '])
             const result = descendantsFromRender(render, { standard: standardForm })
+            // Constructor promotes edge whitespace to document-boundary Space tags; inbound preserves them.
             expect(result).toEqual([{
                 type: 'paragraph',
-                children: [{ text: 'Hello World' }] // No leading/trailing space at paragraph boundaries
+                children: [{ text: ' Hello World ' }]
+            }])
+        })
+
+        it('should map document-end Space tag to trailing paragraph space', () => {
+            const render = new StandardRender(['Hello', { data: { tag: 'Space' }, children: [] }])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{ text: 'Hello ' }]
+            }])
+        })
+
+        it('should map document-start Space tag to leading paragraph space', () => {
+            const render = new StandardRender([{ data: { tag: 'Space' }, children: [] }, 'Hello'])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{ text: ' Hello' }]
             }])
         })
 
@@ -190,6 +209,34 @@ describe('descendantsFromRender', () => {
             expect(result).toEqual([
                 { type: 'paragraph', children: [{ text: 'foo' }] },
                 { type: 'paragraph', children: [{ text: 'bar' }] }
+            ])
+        })
+
+        it('should map Space before br to trailing space on preceding paragraph', () => {
+            const render = new StandardRender([
+                'Line one',
+                { data: { tag: 'Space' }, children: [] },
+                { data: { tag: 'br' }, children: [] },
+                'Line two'
+            ])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([
+                { type: 'paragraph', children: [{ text: 'Line one ' }] },
+                { type: 'paragraph', children: [{ text: 'Line two' }] }
+            ])
+        })
+
+        it('should map Space after br to leading space on following paragraph', () => {
+            const render = new StandardRender([
+                'Line one',
+                { data: { tag: 'br' }, children: [] },
+                { data: { tag: 'Space' }, children: [] },
+                'Line two'
+            ])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([
+                { type: 'paragraph', children: [{ text: 'Line one' }] },
+                { type: 'paragraph', children: [{ text: ' Line two' }] }
             ])
         })
     })
@@ -389,6 +436,51 @@ describe('descendantsFromRender', () => {
                 { type: 'paragraph', children: [{ text: '' }] },
                 { type: 'paragraph', children: [{ text: '' }] }
             ])
+        })
+
+        it('should handle DoubleBR between content as empty middle paragraph', () => {
+            const render = new StandardRender([
+                'First',
+                { data: { tag: 'DoubleBR' }, children: [] },
+                'Last'
+            ])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([
+                { type: 'paragraph', children: [{ text: 'First' }] },
+                { type: 'paragraph', children: [{ text: '' }] },
+                { type: 'paragraph', children: [{ text: 'Last' }] }
+            ])
+        })
+
+        it('should handle DoubleSpace as two literal spaces in Slate', () => {
+            const render = new StandardRender([
+                'Hello',
+                { data: { tag: 'DoubleSpace' }, children: [] },
+                'world'
+            ])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{ text: 'Hello  world' }]
+            }])
+        })
+
+        it('should handle DoubleSpace adjacent to link', () => {
+            const render = new StandardRender([
+                'Hello',
+                { data: { tag: 'DoubleSpace' }, children: [] },
+                { data: { tag: 'Link', to: 'feature1', text: 'link' }, children: ['link'] },
+                'world'
+            ])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [
+                    { text: 'Hello  ' },
+                    { type: 'featureLink', to: 'feature1', children: [{ text: 'link' }] },
+                    { text: 'world' }
+                ]
+            }])
         })
 
         it('should handle render with only spaces', () => {

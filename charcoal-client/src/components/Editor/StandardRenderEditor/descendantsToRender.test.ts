@@ -104,7 +104,7 @@ describe('descendantsToRender', () => {
 
     // Test Whitespace Handling
     describe('Whitespace Handling', () => {
-        it('should replace space at end of last line (only) with Space tag', () => {
+        it('should replace paragraph-edge spaces with Space tags before br and at document end', () => {
             const standard = new StandardForm('<Asset uuid=(base)><Feature key=(testFeature) /></Asset>')
             const items: Descendant[] = [{
                 type: 'paragraph',
@@ -124,6 +124,7 @@ describe('descendantsToRender', () => {
             }]
             expect(descendantsToRender(standard)(items).toJSON()).toEqual([
                 'This is a test.',
+                { data: { tag: 'Space' }, children: [] },
                 { data: { tag: 'br' }, children: [] },
                 'With ',
                 { data: { tag: 'Link', to: 'testFeature', text: 'link' }, children: [] },
@@ -194,8 +195,36 @@ describe('descendantsToRender', () => {
             ]
             expect(descendantsToRender(standard)(items).toJSON()).toEqual([
                 'First',
-                { data: { tag: 'br' }, children: [] },
+                { data: { tag: 'DoubleBR' }, children: [] },
                 'Last'
+            ])
+        })
+    })
+
+    describe('DoubleSpace (Track D)', () => {
+        it('should emit DoubleSpace for mid-line double space', () => {
+            const standard = new StandardForm('<Asset uuid=(base) />')
+            const items: Descendant[] = [{ type: 'paragraph', children: [{ text: 'Hello  world' }] }]
+            expect(descendantsToRender(standard)(items).toJSON()).toEqual([
+                'Hello',
+                { data: { tag: 'DoubleSpace' }, children: [] },
+                'world'
+            ])
+        })
+
+        it('should emit DoubleSpace before link when text ends with double space', () => {
+            const standard = new StandardForm('<Asset uuid=(base)><Feature key=(feature1) /></Asset>')
+            const items: Descendant[] = [{
+                type: 'paragraph',
+                children: [
+                    { text: 'Hello  ' },
+                    { type: 'featureLink', to: 'feature1', children: [{ text: 'link' }] }
+                ]
+            }]
+            expect(descendantsToRender(standard)(items).toJSON()).toEqual([
+                'Hello',
+                { data: { tag: 'DoubleSpace' }, children: [] },
+                { data: { tag: 'Link', to: 'feature1', text: 'link' }, children: [] }
             ])
         })
     })

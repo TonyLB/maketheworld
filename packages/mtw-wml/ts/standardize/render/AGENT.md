@@ -41,25 +41,71 @@ Represents line break elements.
 Represents explicit spacing elements.
 - **Properties**: None (structural element)
 
-**⚠️ CRITICAL**: `<Space />` elements are **boundary markers** and can only appear at the very beginning or end of a RenderTree, never in the middle. See [Space Element Positioning](#space-element-positioning) for details.
+**⚠️ CRITICAL**: `<Space />` elements are **explicit spacing markers** and may only appear at allowed positions in a RenderTree (never between arbitrary mid-line strings). See [Space Element Positioning](#space-element-positioning) for details.
 
 ## Space Element Positioning
 
 ### Rules for `<Space />` Elements
 
-`<Space />` tags represent **explicit boundary spacing** and follow strict positioning rules:
+`<Space />` tags represent **intentional spacing** that must survive WML parse and merge:
 
-1. **Leading `<Space />`**: Only at the very beginning of content
+1. **Document-leading `<Space />`**: At the very beginning of content
    - Indicates content should start with explicit spacing
    - Example: `<Space />Hello World` → renders as " Hello World"
 
-2. **Trailing `<Space />`**: Only at the very end of content
+2. **Document-trailing `<Space />`**: At the very end of content
    - Indicates content should end with explicit spacing  
    - Example: `Hello World<Space />` → renders as "Hello World "
 
-3. **Internal spacing**: Always represented as literal spaces, never as `<Space />` tags
+3. **Paragraph-edge `<Space />`**: Immediately adjacent to `<br />`
+   - Trailing space before a line break: `Line one<Space /><br />Line two`
+   - Leading space after a line break: `Line one<br /><Space />Line two`
+   - Literal whitespace next to `<br />` is stripped on parse; use `<Space />` for authoring round-trip
+
+4. **Internal spacing** (not at document boundary and not adjacent to `<br />`): Always represented as literal spaces, never as `<Space />` tags
    - Merge operations normalize internal spacing to literal characters
    - Example: `Hello<Space />World` → becomes "Hello World" during merge
+
+5. **Mid-line insertion slot `<DoubleSpace />`**: Between string/link chunks when authoring needs a closed `\s{2}` interval (Track D). Opaque in merge/diff -- not in the `Space` string-peel equivalence class.
+
+6. **Empty middle paragraph `<DoubleBR />`**: Between content strings when authoring needs an empty paragraph between filled paragraphs (Track C). Opaque in merge/diff. Adjacent `<br /><br />` in WML source normalizes to `<DoubleBR />` on parse (author convenience).
+
+### Authoring whitespace and editing slots
+
+Workbench **authoring** preserves in-progress whitespace and paragraph structure through WML **storage**; **player-facing display** collapses atomic tags to finished-prose spacing (see [Display collapse](#display-collapse-player-facing-prose)). `<Space />` and `<br />` rules optimize finished text; explicit tags exist so intentional edge spaces and insertion slots survive save/reload.
+
+#### Open vs closed boundaries
+
+| Boundary shape | Role | Storage token |
+| --- | --- | --- |
+| **Closed** -- whitespace between two filled regions (content -- slot -- content) | Hold open an empty interval for the cursor | `<DoubleSpace />` (mid-line); `<DoubleBR />` (paragraph) |
+| **Open** -- whitespace at an edge with nothing filled on one side yet | Foothold to start typing | `<Space />` or `<br />` (one) |
+
+Do **not** encode closed-boundary slots as two adjacent tags of the same kind (`Space, Space` or `br, br`). WML fragment merges have no intent flag; use **atomic tags** so edit syntax is unambiguous.
+
+#### Slot vs join compaction (merge/diff)
+
+| Merge | Expected result |
+| --- | --- |
+| `["Hello", Space]` + `[Space, "world"]` | `["Hello world"]` (join compaction) |
+| `["Hello"]` + `[DoubleSpace, "world"]` | `["Hello", DoubleSpace, "world"]` (structural slot) |
+
+`DoubleSpace` and `DoubleBR` are **opaque** in merge/diff -- not in the `Space` string-peel equivalence class. Diff from `["Hello world"]` to a mid-line slot serializes as `<Replace><Space />world</Replace><With><DoubleSpace />world</With>` (match-side space promoted by constructor).
+
+#### Slate round-trip (Workbench)
+
+Slate uses paragraph blocks; Enter creates a second `paragraph`. Client converters: [`descendantsToRender.ts`](../../../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsToRender.ts) (outbound), [`descendantsFromRender.ts`](../../../../../charcoal-client/src/components/Editor/StandardRenderEditor/descendantsFromRender.ts) (inbound), [`withConstrainedWhitespace`](../../../../../charcoal-client/src/components/Editor/StandardRenderEditor/constrainedWhitespace.ts) (caps `\s{3+}` at two in Slate). Executable specs: [`AGENT.testing.slate.md`](../../../../../charcoal-client/AGENT.testing.slate.md).
+
+| User intent | Slate (simplified) | RenderTree / WML |
+| --- | --- | --- |
+| Trailing space, last paragraph | `[{ para: 'Hello ' }]` | `'Hello'`, `{ Space }` |
+| Leading space, first paragraph | `[{ para: ' Hello' }]` | `{ Space }`, `'Hello'` |
+| Trailing space before next paragraph | `[{ para: 'Line one ' }, { para: 'Line two' }]` | `'Line one'`, `{ Space }`, `{ br }`, `'Line two'` |
+| Leading space after previous paragraph | `[{ para: 'Line one' }, { para: ' Line two' }]` | `'Line one'`, `{ br }`, `{ Space }`, `'Line two'` |
+| Mid-line insertion slot | `[{ para: 'Hello  world' }]` | `'Hello'`, `{ DoubleSpace }`, `'world'` |
+| Empty paragraph between content | `[{ para: 'A' }, { para: '' }, { para: 'C' }]` | `'A'`, `{ DoubleBR }`, `'C'` |
+
+Do not rely on literal multi-space in WML markup; use `<DoubleSpace />`. Legacy `<br /><br />` and adjacent `<Space /><Space />` in source normalize to atomic tags on parse.
 
 ### Why This Design?
 
@@ -125,11 +171,22 @@ const result = base.merge(replace)
 
 StandardRender automatically normalizes content during operations:
 
-1. **Whitespace Handling**: Multiple spaces are collapsed to single spaces
-2. **Line Break Normalization**: Multiple line breaks are reduced to single breaks
+1. **Whitespace Handling**: Multiple literal spaces compress to one; two or more `<Space />` between content (not br-adjacent) normalize to `<DoubleSpace />` on parse
+2. **Line Break Normalization**: Adjacent `<br />` on merge compact to one break; two or more consecutive `<br />` in parse normalize to `<DoubleBR />`. Storage/print uses atomic tags for empty middle paragraphs.
 3. **String Joining**: Adjacent strings are automatically joined
 4. **Link Preservation**: Links maintain their references and display text
 5. **Space Tag Restoration**: Leading/trailing spaces are automatically converted back to `<Space />` tags
+6. **Atomic tags**: `<DoubleSpace />` and `<DoubleBR />` pass through merge/diff as opaque elements
+
+### Display collapse (player-facing prose)
+
+Storage and authoring round-trips preserve atomic tags. **Player-facing display** collapses them in [`RenderTreeContent.tsx`](../../../../../charcoal-client/src/components/Message/RenderTreeContent.tsx) via `collapseDisplayWhitespace`:
+
+- `<DoubleSpace />` renders as one visible space (editor may show two while authoring)
+- `<DoubleBR />` and legacy consecutive `<br />` render as one block break
+- `<Space />` remains invisible (unchanged from Phase 1)
+
+Do not collapse atoms in WML parse, `renderTreeToString`, or `schemaOutputToString` -- those paths serve storage, labels, and prompts.
 
 ### Merge Logic
 
@@ -137,9 +194,9 @@ The merge operation follows these rules:
 
 1. **String Concatenation**: Adjacent strings are joined with normalized whitespace
 2. **Element Preservation**: Non-string elements (links, breaks, spaces) are preserved
-3. **Whitespace Normalization**: Multiple spaces and breaks are normalized
-4. **Space Tag Conversion**: Internal `<Space />` tags are converted to literal spaces during merge
-5. **Semantic Restoration**: Constructor automatically restores boundary `<Space />` tags
+3. **Whitespace Normalization**: Adjacent primitive `Space`/`br` pairs compact on merge; parse normalizes adjacent `<Space /><Space />` / `<br /><br />` to atomic tags
+4. **Space Tag Conversion**: Internal `<Space />` tags (not document-boundary, not br-adjacent) are converted to literal spaces during merge
+5. **Semantic Restoration**: Constructor automatically restores document-boundary `<Space />` tags; merge promotes paragraph-edge literal spaces adjacent to `<br />` to `<Space />` tags
 6. **Conflict Detection**: Incompatible changes throw `MergeConflictError`
 
 ### Diff Operations
@@ -157,6 +214,8 @@ const diff = original.diff(modified)
 const recreated = original.merge(diff)
 // Result: Same as modified
 ```
+
+Slot transitions (`Hello world` <-> `Hello` + `DoubleSpace` + `world`) and compaction (`Hello` + `Space` merged with `Space` + `world`) are covered in [`index.test.ts`](index.test.ts) (`Track D -- diff/merge round-trip`).
 
 ### Equality (`equals`)
 

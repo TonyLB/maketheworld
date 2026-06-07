@@ -12,9 +12,45 @@
 - **Custom Elements**: Extended Slate element types for our use cases
 - **Leaf rendering**: We use Slate's default leaf renderer (no custom `renderLeaf`); add a custom one only if you need leaf-level formatting (e.g. bold/highlight).
 - **Editor Plugins**: Functions that enhance Slate editor behavior
-- **StandardRender to Slate**: The render tree is reduced directly to paragraph elements (CustomBlock[]). Paragraph boundaries are trimmed: no leading or trailing spaces at the start or end of a paragraph.
+- **StandardRender to Slate**: The render tree is reduced directly to paragraph elements (CustomBlock[]). **Document-boundary** `<Space />` tags (field start/end) and **paragraph-boundary** `<Space />` tags (immediately before/after `<br />`) map to leading/trailing paragraph space and are preserved on inbound. See [`whitespacePreservation.test.ts`](src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts) for target semantics.
 
 **Cross-Reference**: See [AGENT.testing.md](./AGENT.testing.md) for general testing standards and setup.
+
+### Whitespace preservation (target semantics)
+
+For **mid-line insertion slots** (double space between words while editing), use `<DoubleSpace />` between string/link chunks. Literal `Hello  world` in markup does not preserve `\s{2}` on parse.
+
+[`whitespacePreservation.test.ts`](src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts) is the **executable spec** for document-boundary, paragraph-boundary (Space+br), empty-middle-paragraph (DoubleBR), and mid-line insertion slot (DoubleSpace) round-trip semantics. **Track A** (doc-start/end `<Space />`), **Track B** (Space immediately before/after `<br />`), **Track C** (empty middle paragraph via `<DoubleBR />`; client outbound emits and inbound consumes the atomic tag; legacy in-memory `br, br` still maps on inbound), and **Track D** (mid-line `\s{2}` via `<DoubleSpace />`; `withConstrainedWhitespace` caps `\s{3+}` at two) are green in client tests. Complementary unit tests live in `descendantsFromRender.test.ts`, `descendantsToRender.test.ts`, and `constrainedWhitespace.test.ts`.
+
+### Display collapse (player-facing prose)
+
+Editor round-trip tests prove **storage** semantics; player display is separate. [`RenderTreeContent.test.tsx`](src/components/Message/RenderTreeContent.test.tsx) is the **executable spec** for display collapse: `DoubleSpace` -> one visible space, `DoubleBR` and legacy consecutive `br` -> one block break, `Space` invisible. Implementation lives in [`collapseDisplayWhitespace.ts`](src/components/Message/collapseDisplayWhitespace.ts), wired from [`RenderTreeContent.tsx`](src/components/Message/RenderTreeContent.tsx).
+
+Interaction fixtures cover `DoubleSpace` near `br` / Track B `Space`, and `DoubleBR` with Track B paragraph-edge spaces.
+
+### Test suite map
+
+| Layer | File | Scope |
+| --- | --- | --- |
+| Client round-trip (executable spec) | [`whitespacePreservation.test.ts`](src/components/Editor/StandardRenderEditor/whitespacePreservation.test.ts) | Tracks A-D: doc boundary, Space+br, DoubleBR, DoubleSpace |
+| Client unit | `descendantsFromRender.test.ts`, `descendantsToRender.test.ts`, `constrainedWhitespace.test.ts` | Converter and Slate plugin details |
+| Client parent echo | [`StandardRenderEditor.test.tsx`](src/components/Workbench/foundations/StandardRender/StandardRenderEditor.test.tsx) | Sync loop: parent rerenders echoed `StandardRender`; slate shape survives |
+| Player display | [`RenderTreeContent.test.tsx`](src/components/Message/RenderTreeContent.test.tsx) | Display collapse for atomic tags |
+| WML merge/diff | [`packages/mtw-wml/ts/standardize/render/index.test.ts`](../../packages/mtw-wml/ts/standardize/render/index.test.ts) | `Whitespace preservation`, `Track D -- diff/merge round-trip` |
+| WML parse | [`compressWhitespace.test.ts`](../../packages/mtw-wml/ts/schema/utils/schemaOutput/compressWhitespace.test.ts) | Parse-time Space+br and atomic tag normalization |
+
+### Verification commands
+
+```bash
+cd charcoal-client
+npm run test:single -- src/components/Editor/StandardRenderEditor
+npm run test:single -- src/components/Workbench/foundations/StandardRender/StandardRenderEditor.test.tsx
+npm run test:single -- src/components/Message/RenderTreeContent.test.tsx
+
+cd ../packages/mtw-wml
+npm run test -- ts/standardize/render/index.test.ts
+npm run test -- ts/schema/utils/schemaOutput/compressWhitespace.test.ts
+```
 
 ## Core Challenges of Testing Slate Components
 

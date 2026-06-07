@@ -8,7 +8,7 @@ import { isSchemaEdit, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, is
 import { isSchemaDescription, isSchemaSummary, isSchemaDisplayName, SchemaDescriptionTag, SchemaDisplayNameTag, SchemaSummaryTag } from "./prose"
 import { isSchemaImage, SchemaImageTag } from "./image"
 import { isSchemaImport, SchemaImportTag } from "./metaData"
-import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString, SchemaLineBreakTag, SchemaLinkTag, SchemaSpacerTag, SchemaStringTag, SchemaWhitespaceTag } from "./renderTree"
+import { isSchemaDoubleBR, isSchemaDoubleSpace, isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString, SchemaDoubleBRTag, SchemaDoubleSpaceTag, SchemaLineBreakTag, SchemaLinkTag, SchemaSpacerTag, SchemaStringTag, SchemaWhitespaceTag } from "./renderTree"
 
 export type SchemaAssetLegalContents = SchemaCharacterTag | SchemaGrantTag | SchemaExitTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaImageTag | SchemaImportTag | SchemaMapTag | SchemaMarkTag | SchemaLensTag | SchemaRoomTag | SchemaMessageTag | SchemaMomentTag | SchemaGuidanceTag | SchemaSituationTag | SchemaAreaTag | SchemaShortNameTag | SchemaInstructionsTag | SchemaDefaultTag | SchemaSummaryTag
 
@@ -20,14 +20,16 @@ export const isSchemaCharacterContents = (item: SchemaTag): item is SchemaCharac
     isSchemaDisplayName(item) || isSchemaPronouns(item) || isSchemaImage(item) || isSchemaImport(item) || isSchemaShortName(item) || isSchemaRemove(item) || isSchemaReplace(item)
 )
 
-export type SchemaTaggedMessageIncomingContents = SchemaEditTag | SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaWhitespaceTag | SchemaReplaceTag
-export type SchemaTaggedMessageLegalContents = SchemaEditTag | SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaReplaceTag | SchemaShortNameTag
-export type SchemaOutputTag = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaEditTag
+export type SchemaTaggedMessageIncomingContents = SchemaEditTag | SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaDoubleSpaceTag | SchemaDoubleBRTag | SchemaWhitespaceTag | SchemaReplaceTag
+export type SchemaTaggedMessageLegalContents = SchemaEditTag | SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaDoubleSpaceTag | SchemaDoubleBRTag | SchemaReplaceTag | SchemaShortNameTag
+export type SchemaOutputTag = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaDoubleSpaceTag | SchemaDoubleBRTag | SchemaEditTag
 export const isSchemaOutputTag = (tag: any): tag is SchemaOutputTag => (
     isSchemaString(tag) ||
     isSchemaLink(tag) ||
     isSchemaLineBreak(tag) ||
     isSchemaSpacer(tag) ||
+    isSchemaDoubleSpace(tag) ||
+    isSchemaDoubleBR(tag) ||
     isSchemaRemove(tag) ||
     isSchemaReplace(tag) ||
     isSchemaReplaceMatch(tag) ||
@@ -47,6 +49,8 @@ export type SchemaTag = SchemaAssetTag |
     SchemaSummaryTag |
     SchemaLineBreakTag |
     SchemaSpacerTag |
+    SchemaDoubleSpaceTag |
+    SchemaDoubleBRTag |
     SchemaLinkTag |
     SchemaShortNameTag |
     SchemaInstructionsTag |
@@ -142,7 +146,7 @@ export const isSchemaComponentUUID = (value: string): value is ComponentUUID => 
 }
 
 export const isSchemaTaggedMessageLegalContents = (value: SchemaTag): value is SchemaTaggedMessageLegalContents => (
-    ['Remove', 'Replace', 'ReplaceMatch', 'ReplacePayload', 'String', 'Link', 'Space', 'br', 'ShortName'].includes(value.tag)
+    ['Remove', 'Replace', 'ReplaceMatch', 'ReplacePayload', 'String', 'Link', 'Space', 'DoubleSpace', 'br', 'DoubleBR', 'ShortName'].includes(value.tag)
 )
 
 export const isSchemaTag = (value: any): value is SchemaTag => {
@@ -156,6 +160,8 @@ export const isSchemaTag = (value: any): value is SchemaTag => {
         isSchemaSummary(value) ||
         isSchemaLineBreak(value) ||
         isSchemaSpacer(value) ||
+        isSchemaDoubleSpace(value) ||
+        isSchemaDoubleBR(value) ||
         isSchemaLink(value) ||
         isSchemaShortName(value) ||
         isSchemaInstructions(value) ||
