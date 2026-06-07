@@ -76,18 +76,6 @@ export type DataSourceRecord<SnapshotPayload, UpdatePayload, Header extends Stre
 export type DataSourceReturn<SnapshotPayload, UpdatePayload, Header extends StreamingEventHeader = StreamingEventHeader> = ISSMDataReturn<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload, Header>>
 export type DataSourceAction<SnapshotPayload, UpdatePayload, Header extends StreamingEventHeader = StreamingEventHeader> = ISSMAction<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload, Header>>
 
-//
-// Snapshot event shape from backend: may have inline payload or sidecarUrl.
-// When sidecarUrl is present, the client fetches from that URL and resolves before applying.
-//
-export type SnapshotUpdateWithSidecar = {
-    type: 'Snapshot';
-    payload?: unknown;
-    sidecarUrl?: string;
-    createdAt?: number;
-    expiresAt?: number;
-}
-
 export interface DataSourceNodes<SnapshotPayload, UpdatePayload, Header extends StreamingEventHeader = StreamingEventHeader> {
     INITIAL: ISSMHoldNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload, Header>>;
     INITIALIZE: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload, Header>>;

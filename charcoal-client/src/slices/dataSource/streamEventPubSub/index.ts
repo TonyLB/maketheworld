@@ -27,7 +27,7 @@ export type StreamEventDeserializedPayload = {
     timestamp: number
     header: StreamingEventHeader & { type: string; zone?: string; [key: string]: unknown }
     content: unknown
-    /** Snapshot sidecar replay watermark from wire update.replayAt when present */
+    /** Snapshot replay watermark from wire header (or nested extendedHeader) when present */
     replayAt?: number
 }
 
@@ -38,15 +38,22 @@ const deserializerRegistry = new Map<
 
 let lifeLineSubscriptionId: string | undefined
 
-const replayAtFromSnapshotUpdate = (
-    update: { type?: string; [key: string]: unknown } | undefined,
-    headerType: string
+const extractReplayAtFromSnapshotHeader = (
+    header: { type: string; replayAt?: unknown; extendedHeader?: unknown; [key: string]: unknown }
 ): number | undefined => {
-    if (headerType !== 'Snapshot' || !update) {
+    if (header.type !== 'Snapshot') {
         return undefined
     }
-    const replayAt = update.replayAt
-    return typeof replayAt === 'number' ? replayAt : undefined
+    const direct = header.replayAt
+    if (typeof direct === 'number') {
+        return direct
+    }
+    const nested = header.extendedHeader
+    if (nested != null && typeof nested === 'object' && 'replayAt' in nested) {
+        const replayAt = (nested as { replayAt?: unknown }).replayAt
+        return typeof replayAt === 'number' ? replayAt : undefined
+    }
+    return undefined
 }
 
 /**
@@ -91,6 +98,11 @@ function startLifeLineBridge(): void {
         void (async () => {
             try {
                 const coreFormat = fromWebSocketFormat(payload)
+                const header = { ...coreFormat.header }
+                if (Object.prototype.hasOwnProperty.call(coreFormat.update, 'zone')) {
+                    ;(header as Record<string, unknown>).zone = (coreFormat.update as Record<string, unknown>).zone
+                }
+                const replayAt = extractReplayAtFromSnapshotHeader(header)
                 const content = await deserializer.deserialize({
                     content: coreFormat.update as any,
                     header: coreFormat.header as any
@@ -98,14 +110,6 @@ function startLifeLineBridge(): void {
                 if (!content) {
                     return
                 }
-                const header = { ...coreFormat.header }
-                if (Object.prototype.hasOwnProperty.call(coreFormat.update, 'zone')) {
-                    ;(header as Record<string, unknown>).zone = (coreFormat.update as Record<string, unknown>).zone
-                }
-                const replayAt = replayAtFromSnapshotUpdate(
-                    coreFormat.update as { type?: string; [key: string]: unknown },
-                    header.type
-                )
                 StreamEventPubSub.publish({
                     dataSourceKey,
                     streamKey,

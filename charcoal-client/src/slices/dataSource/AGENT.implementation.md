@@ -232,6 +232,7 @@ The client mirrors the server-side header/content split:
 - StreamEventPubSub deserializes and publishes `StreamEventDeserializedPayload` with full `StreamingEventHeader` (dataSourceKey, streamKey, timestamp, type, optional zone).
 - `processEnvelope` receives payloads shaped as `StreamEventDeserializedPayload` (see [streamEventPubSub/index.ts](./streamEventPubSub/index.ts)).
 - Routing uses `header.type`; the slice calls `deserialize({ content, header })` for all message types; the serializer routes on `header.type` internally (e.g. Snapshot vs events).
+- Snapshot **`replayAt`** is read from the wire header at ingress only (see **Sidecar Snapshot Handling** > **Snapshot metadata on wire (ingress)** below); never from `update`.
 
 ### **Key Implementation Areas**
 
@@ -288,9 +289,28 @@ Three action factories manage lifecycle:
 
 Snapshot events may carry inline payloads or domain-shaped sidecar descriptors (e.g. a field whose value is `{ sidecarUrl: string }`). Resolution happens inside the serializer when it is configured with a `DataSourceEnvironment`:
 
-1. **StreamEventPubSub** subscribes to LifeLinePubSub, filters StreamEvents, looks up the deserializer by `dataSourceKey`, deserializes via `fromWebSocketFormat` + `eventSerializer.deserialize`, and publishes pre-deserialized payloads.
+1. **StreamEventPubSub** subscribes to LifeLinePubSub, filters StreamEvents, looks up the deserializer by `dataSourceKey`, extracts Snapshot `replayAt` from the wire header (`extractReplayAtFromSnapshotHeader`), then deserializes via `fromWebSocketFormat` + `eventSerializer.deserialize`, and publishes pre-deserialized payloads.
 2. **dataSource INITIALIZE** subscribes to StreamEventPubSub, filters by `dataSourceKey`, and passes payload directly to `processEnvelope` (content is already deserialized). Deserializers are registered via `registerDeserializer(dataSourceKey, eventSerializer)` when slices are created.
 3. **Reducer** (`reducers.ts`) expects pre-resolved internal content; deserialization happens in StreamEventPubSub before publish.
+
+##### **Snapshot metadata on wire (ingress)**
+
+Subscribe replay and live Snapshot StreamEvents carry envelope metadata on the **extended header**, not in domain `update`. StreamEventPubSub normalizes once at the client boundary; the ledger shape is unchanged.
+
+| Topic | Steady-state rule |
+| --- | --- |
+| Wire location | **`replayAt` on extended header only** --- `header.replayAt` after `fromWebSocketFormat`, or nested `header.extendedHeader.replayAt` on SNS feedback passthrough |
+| Forbidden | **Never** read `update.replayAt` (non-Snapshot or legacy shapes) |
+| Timing | Extract **before** `deserialize`; sidecar fetch must not depend on update metadata |
+| Lift target | `StreamEventDeserializedPayload.replayAt` -> persisted on `RecentEventEnvelope.replayAt` in reducer |
+| Ledger | Unchanged: `replayCursor = replayAt ?? timestamp` (wire `header.timestamp` = `createdAt`) |
+
+**Cross-references:**
+
+- Implementation: [`streamEventPubSub/index.ts`](./streamEventPubSub/index.ts) (`extractReplayAtFromSnapshotHeader`)
+- Module nav: [`streamEventPubSub/AGENT.md`](./streamEventPubSub/AGENT.md)
+- Backend contract: [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (Outbound replay path, **Serialization: extendedHeader**)
+- Semantics: [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.md) (**Snapshot metadata: `createdAt` and `replayAt`**)
 
 #### **Slice Factory (`index.ts`)**
 

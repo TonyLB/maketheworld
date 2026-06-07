@@ -447,8 +447,12 @@ describe('WML DataSource', () => {
                 schema: validEditWML
             })
 
-            // Verify no Content Update event was streamed
-            expect(mockStreamEvent).not.toHaveBeenCalled()
+            // Verify Merge Conflict event was streamed so client knows the edit failed; RequestIds in header
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                streamKey: 'ASSET#test-asset',
+                update: { error: 'WML processing failed' },
+                header: { type: 'Merge Conflict', RequestIds: ['test-request-789'] }
+            })
         })
 
         it('should handle streaming errors gracefully', async () => {

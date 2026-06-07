@@ -1364,6 +1364,65 @@ describe('DataSource', () => {
             })
             expect(snapshotCall.MessageAttributes.Targets.StringValue).toBe(JSON.stringify([sessionId]))
         })
+
+        it('should put replayAt on extendedHeader and not in update when snapshot has replayAt', async () => {
+            const sessionId = 'SESSION#test-session' as const
+            const streamKey = 'test-stream'
+            const createdAt = 100000000
+            const replayAt = 80000
+
+            jest.spyOn(dataSource, 'getSnapshotExternal').mockResolvedValue({
+                type: 'Snapshot',
+                id: 'test-id',
+                name: 'Test Snapshot',
+                value: 42,
+                createdAt,
+                replayAt,
+                expiresAt: 100005000
+            } as any)
+            mockDynamo.query.mockResolvedValue([])
+
+            await dataSource.initializeSubscription({ sessionId, streamKey })
+
+            expect(mockSns.send).toHaveBeenCalledTimes(1)
+            const snapshotMessage = JSON.parse(mockSns.send.mock.calls[0][0].Message)
+            expect(snapshotMessage.extendedHeader).toEqual({ replayAt })
+            expect(snapshotMessage.update.replayAt).toBeUndefined()
+            expect(snapshotMessage.update).toMatchObject({
+                type: 'Snapshot',
+                id: 'test-id',
+                name: 'Test Snapshot',
+                value: 42
+            })
+        })
+
+        it('should omit extendedHeader.replayAt when snapshot has no replayAt', async () => {
+            const sessionId = 'SESSION#test-session' as const
+            const streamKey = 'test-stream'
+
+            jest.spyOn(dataSource, 'getSnapshotExternal').mockResolvedValue({
+                type: 'Snapshot',
+                id: 'test-id',
+                name: 'Test Snapshot',
+                value: 42,
+                createdAt: 100000000,
+                expiresAt: 100005000
+            } as any)
+            mockDynamo.query.mockResolvedValue([])
+
+            await dataSource.initializeSubscription({ sessionId, streamKey })
+
+            expect(mockSns.send).toHaveBeenCalledTimes(1)
+            const snapshotMessage = JSON.parse(mockSns.send.mock.calls[0][0].Message)
+            expect(snapshotMessage.extendedHeader?.replayAt).toBeUndefined()
+            expect(snapshotMessage.update.replayAt).toBeUndefined()
+            expect(snapshotMessage.update).toMatchObject({
+                type: 'Snapshot',
+                id: 'test-id',
+                name: 'Test Snapshot',
+                value: 42
+            })
+        })
     })
 
     describe('type safety', () => {

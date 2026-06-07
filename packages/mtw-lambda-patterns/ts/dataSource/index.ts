@@ -597,14 +597,15 @@ export class DataSource<
         snapshot: SnapshotType<ExternalSnapshotPayload>;
         events: Array<{ update: ExternalUpdatePayload, timestamp: number, streamKey: string, type: string, extendedHeader?: unknown }>
     }): Promise<void> {
-        const { createdAt, expiresAt, ...externalSnapshotPayload } = snapshot
+        const { createdAt, replayAt, expiresAt, ...externalSnapshotPayload } = snapshot
 
         const snapshotCoreFormat: CoreExternalFormat = {
             header: {
                 dataSourceKey: this.dataSourceKey,
                 streamKey,
-                timestamp: snapshot.createdAt,
-                type: (externalSnapshotPayload as { type?: string }).type ?? 'Snapshot'
+                timestamp: createdAt,
+                type: (externalSnapshotPayload as { type?: string }).type ?? 'Snapshot',
+                ...(replayAt !== undefined ? { replayAt } : {})
             },
             update: externalSnapshotPayload as any
         }
