@@ -22,6 +22,14 @@ describe('component data gateway', () => {
             expect(cacheKeyComponents(key)).toEqual({ EphemeraId: ephemeraId, assetId })
         })
 
+        it('round-trips AREA# universal keys (topology referrer loads)', () => {
+            const areaId = 'AREA#WORLD' as const
+            const assetId = 'ASSET#primitives' as const
+            const key = componentPairCacheKey(areaId, assetId)
+            expect(key).toBe('ASSET#primitives::AREA#WORLD')
+            expect(cacheKeyComponents(key)).toEqual({ EphemeraId: areaId, assetId })
+        })
+
         it('throws on invalid cache key segments', () => {
             expect(() => cacheKeyComponents('not-a-key')).toThrow(/CacheKey error/)
             expect(() => cacheKeyComponents('onlyone')).toThrow(/CacheKey error/)

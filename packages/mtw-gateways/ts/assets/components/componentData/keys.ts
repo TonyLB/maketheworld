@@ -1,6 +1,3 @@
-import {
-    isEphemeraId,
-} from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetUUID, ComponentUUID, isSchemaAssetUUID, isSchemaComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
 /** Stable pair addressing primitive for normative component-body reads. */
@@ -17,7 +14,8 @@ export const generateCacheKey = componentPairCacheKey
 
 export const cacheKeyComponents = (cacheKey: string): { EphemeraId: ComponentUUID; assetId: AssetUUID } => {
     const [assetId, EphemeraId] = cacheKey.split('::')
-    if (!(EphemeraId && isEphemeraId(EphemeraId) && isSchemaComponentUUID(EphemeraId))) {
+    // ComponentData keys use schema ComponentUUID (includes AREA#, LENS#, etc.), not EphemeraId allowlist.
+    if (!(EphemeraId && isSchemaComponentUUID(EphemeraId))) {
         throw new Error(`CacheKey error in ComponentData internalCache (${cacheKey})`)
     }
     if (!assetId || typeof assetId !== 'string' || !isSchemaAssetUUID(assetId)) {

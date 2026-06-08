@@ -1,6 +1,6 @@
 import type { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { AssetUUID, ComponentUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
-import { tagFromEphemeraId } from '@tonylb/mtw-utilities/ts/graphStorage/cache'
+import { componentTagFromUniversalKey } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/abstract'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { isStandardComponentData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
@@ -25,7 +25,7 @@ export function standardComponentPairFromAssetDbGetItemsRow(
 ): { assetId: AssetUUID; component: StandardComponent; referencedBy?: PersistedReferencedByEntry[] } {
     const { DataCategory, AssetId: _assetId, referencedBy, ...rest } = value
     const assetId = DataCategory as AssetUUID
-    const componentData = { universalKey: EphemeraId, tag: tagFromEphemeraId(EphemeraId), ...rest }
+    const componentData = { universalKey: EphemeraId, tag: componentTagFromUniversalKey(EphemeraId), ...rest }
     if (!isStandardComponentData(componentData)) {
         throw new Error(`Invalid component data for EphemeraId: ${EphemeraId} and DataCategory: ${DataCategory}`)
     }
