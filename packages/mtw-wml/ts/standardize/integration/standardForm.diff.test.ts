@@ -668,34 +668,24 @@ describe('StandardForm', () => {
                 `))
             })
 
-            it('should produce non-empty diff when room gains local key and exit uses resolved target', () => {
+            it('should produce non-empty diff when room gains local key and link uses resolved target', () => {
                 const base = new StandardForm(`
                     <Asset uuid=(testAsset)>
+                        <Feature uuid=(feat1) key=(feat1) />
                         <Room uuid=(Room1)>
                             <Situation uuid=(DEFAULT)>
-                                <DisplayName>Test Room</DisplayName>
-                                <Description>Test Description</Description>
+                                <Description><Link to=(ROOM#feat1)>link</Link></Description>
                             </Situation>
-                            <Exit to=(ROOM#Room2)>out</Exit>
-                        </Room>
-                        <Room uuid=(Room2)>
-                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
-                            <Exit to=(ROOM#Room1)>text</Exit>
                         </Room>
                     </Asset>
                 `)
                 const incoming = new StandardForm(`
                     <Asset uuid=(testAsset)>
-                        <Room uuid=(Room1)>
+                        <Feature uuid=(feat1) key=(gardenFeature) />
+                        <Room uuid=(Room1) key=(main)>
                             <Situation uuid=(DEFAULT)>
-                                <DisplayName>Test Room</DisplayName>
-                                <Description>Test Description</Description>
+                                <Description><Link to=(gardenFeature)>link</Link></Description>
                             </Situation>
-                            <Exit to=(garden)>out</Exit>
-                        </Room>
-                        <Room uuid=(Room2) key=(garden)>
-                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
-                            <Exit to=(ROOM#Room1)>text</Exit>
                         </Room>
                     </Asset>
                 `)
@@ -754,6 +744,41 @@ describe('StandardForm', () => {
                 expect(featureDiff?.key).toBe('Feature1')
                 expect(schemaToWML([diff.schema])).toContain('<Replace><Key>Feature1</Key></Replace><With><Key>clockTower</Key></With>')
             })
+        })
+
+        it('should assure endpoint room stubs when removing an Area edge', () => {
+            const baseWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Area uuid=(region) key=(region)>
+                        <Room uuid=(highway) key=(highway) />
+                        <Exit uuid=(e1)>
+                            <From>highway</From>
+                            <To>ROOM#outside</To>
+                            <Forward>east</Forward>
+                            <Back>west</Back>
+                        </Exit>
+                    </Area>
+                </Asset>
+            `)
+            const incomingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Area uuid=(region) key=(region)>
+                        <Room uuid=(highway) key=(highway) />
+                    </Area>
+                </Asset>
+            `)
+            const diff = new StandardForm(baseWML).diff(new StandardForm(incomingWML))
+            expect(diff).toBeDefined()
+
+            const outsideStub = diff!._lookup('ROOM#outside')
+            expect(outsideStub).toBeDefined()
+            expect(outsideStub?.tag).toBe('Room')
+            expect(outsideStub?.universalKey).toBe('ROOM#outside')
+
+            const highwayStub = diff!._lookup('ROOM#highway')
+            expect(highwayStub).toBeDefined()
+            expect(highwayStub?.tag).toBe('Room')
+            expect(highwayStub?.universalKey).toBe('ROOM#highway')
         })
 
     })

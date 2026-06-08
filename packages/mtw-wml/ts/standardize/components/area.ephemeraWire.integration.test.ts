@@ -17,8 +17,8 @@ const areaData: StandardAreaData = {
 
 describe('StandardArea ephemeraWire integration', () => {
     it('constructs from JSON in ephemeraWire mode via factory', () => {
-        const assetResult = standardComponentFactory(areaData, { standardizeMode: 'asset' })
-        const wireResult = standardComponentFactory(areaData, { standardizeMode: 'ephemeraWire' })
+        const assetResult = standardComponentFactory(areaData)
+        const wireResult = standardComponentFactory(areaData)
 
         expect(assetResult.component).toBeInstanceOf(StandardArea)
         expect(wireResult.component).toBeInstanceOf(StandardArea)
@@ -34,8 +34,8 @@ describe('StandardArea ephemeraWire integration', () => {
             ],
         }
 
-        const assetResult = standardComponentFactory(node, { standardizeMode: 'asset' })
-        const wireResult = standardComponentFactory(node, { standardizeMode: 'ephemeraWire' })
+        const assetResult = standardComponentFactory(node)
+        const wireResult = standardComponentFactory(node)
 
         expect((assetResult.component as StandardArea).positionGraph.nodes.toJSON()).toEqual(
             (wireResult.component as StandardArea).positionGraph.nodes.toJSON()

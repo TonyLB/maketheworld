@@ -72,6 +72,214 @@ describe('StandardExitEdge', () => {
             </Exit>
         `))).toThrow(/requires uuid/)
     })
+
+    it('should construct uuid-only stub from JSON without from or to', () => {
+        const edge = new StandardExitEdge({
+            tag: 'Exit',
+            uuid: 'edge-a1b2c3d4',
+            payload: {},
+        })
+        expect(edge.toJSON()).toEqual({
+            tag: 'Exit',
+            uuid: 'edge-a1b2c3d4',
+            payload: {},
+        })
+    })
+
+    it('should parse and round-trip uuid-only stub WML', () => {
+        const stubWML = deIndentWML(`<Exit uuid=(edge-a1b2c3d4) />`)
+        const edge = new StandardExitEdge(treeFromWML(stubWML))
+        expect(edge.toJSON()).toEqual({
+            tag: 'Exit',
+            uuid: 'edge-a1b2c3d4',
+            payload: {},
+        })
+        expect(schemaToWML([edge.schema()])).toEqual(stubWML)
+    })
+
+    it('should parse and round-trip From-only edge with legalKey', () => {
+        const fromOnlyWML = deIndentWML(`
+            <Exit uuid=(highwayToTown)>
+                <From>highway</From>
+                <Forward>east</Forward>
+            </Exit>
+        `)
+        const edge = new StandardExitEdge(treeFromWML(fromOnlyWML))
+        expect(edge.toJSON()).toEqual({
+            tag: 'Exit',
+            uuid: 'highwayToTown',
+            from: { key: 'highway', tag: 'Room' },
+            payload: { forward: 'east' },
+        })
+        expect(schemaToWML([edge.schema()])).toEqual(schemaToWML(treeFromWML(fromOnlyWML)))
+    })
+
+    it('should parse and round-trip From-only edge with universal key', () => {
+        const fromOnlyWML = deIndentWML(`
+            <Exit uuid=(highwayToTown)>
+                <From>ROOM#highway</From>
+            </Exit>
+        `)
+        const edge = new StandardExitEdge(treeFromWML(fromOnlyWML))
+        expect(edge.toJSON()).toEqual({
+            tag: 'Exit',
+            uuid: 'highwayToTown',
+            from: 'ROOM#highway',
+            payload: {},
+        })
+        expect(schemaToWML([edge.schema()])).toEqual(schemaToWML(treeFromWML(fromOnlyWML)))
+    })
+
+    it('should parse and round-trip To-only edge', () => {
+        const toOnlyWML = deIndentWML(`
+            <Exit uuid=(edge1)>
+                <To>ROOM#townCenter</To>
+            </Exit>
+        `)
+        const edge = new StandardExitEdge(treeFromWML(toOnlyWML))
+        expect(edge.toJSON()).toEqual({
+            tag: 'Exit',
+            uuid: 'edge1',
+            to: 'ROOM#townCenter',
+            payload: {},
+        })
+        expect(schemaToWML([edge.schema()])).toEqual(schemaToWML(treeFromWML(toOnlyWML)))
+    })
+
+    it('should normalize empty From tag to absent endpoint', () => {
+        const emptyFromWML = deIndentWML(`<Exit uuid=(e1)><From /></Exit>`)
+        const stubWML = deIndentWML(`<Exit uuid=(e1) />`)
+        const edge = new StandardExitEdge(treeFromWML(emptyFromWML))
+        expect(edge.toJSON()).toEqual({
+            tag: 'Exit',
+            uuid: 'e1',
+            payload: {},
+        })
+        expect(schemaToWML([edge.schema()])).toEqual(schemaToWML(treeFromWML(stubWML)))
+    })
+
+    describe('merge / diff / invert with incomplete endpoints', () => {
+        const uuidOnlyStub = new StandardExitEdge({
+            tag: 'Exit',
+            uuid: 'edge-a1b2c3d4',
+            payload: {},
+        })
+
+        it('should merge uuid-only stub with plain To overlay', () => {
+            const overlay = new StandardExitEdge({
+                tag: 'Exit',
+                uuid: 'edge-a1b2c3d4',
+                to: 'ROOM#townCenter',
+                payload: {},
+            })
+            const merged = uuidOnlyStub.merge(overlay)
+            expect(merged?.toJSON()).toEqual({
+                tag: 'Exit',
+                uuid: 'edge-a1b2c3d4',
+                to: 'ROOM#townCenter',
+                payload: {},
+            })
+        })
+
+        it('should merge uuid-only stub with plain From overlay', () => {
+            const overlay = new StandardExitEdge({
+                tag: 'Exit',
+                uuid: 'edge-a1b2c3d4',
+                from: 'ROOM#highway',
+                payload: {},
+            })
+            const merged = uuidOnlyStub.merge(overlay)
+            expect(merged?.toJSON()).toEqual({
+                tag: 'Exit',
+                uuid: 'edge-a1b2c3d4',
+                from: 'ROOM#highway',
+                payload: {},
+            })
+        })
+
+        it('should merge from-only stub with Replace overlay on To (adopts envelope when base To unset)', () => {
+            const fromOnlyStub = new StandardExitEdge({
+                tag: 'Exit',
+                uuid: 'e1',
+                from: 'ROOM#highway',
+                payload: { forward: 'east' },
+            })
+            const overlay = new StandardExitEdge({
+                tag: 'Exit',
+                uuid: 'e1',
+                to: { tag: 'Replace', match: 'ROOM#old', payload: 'ROOM#new' },
+                payload: {},
+            })
+            const merged = fromOnlyStub.merge(overlay)
+            expect(merged?.toJSON()).toEqual({
+                tag: 'Exit',
+                uuid: 'e1',
+                from: 'ROOM#highway',
+                to: { tag: 'Replace', match: 'ROOM#old', payload: 'ROOM#new' },
+                payload: { forward: 'east' },
+            })
+        })
+
+        it('should merge from-only stub with WML Replace overlay on To (adopts envelope when base To unset)', () => {
+            const fromOnlyStub = new StandardExitEdge({
+                tag: 'Exit',
+                uuid: 'e1',
+                from: 'ROOM#highway',
+                payload: {},
+            })
+            const overlay = new StandardExitEdge(treeFromWML(deIndentWML(`
+                <Exit uuid=(e1)>
+                    <Replace><To>ROOM#old</To></Replace>
+                    <With><To>ROOM#new</To></With>
+                </Exit>
+            `)))
+            const merged = fromOnlyStub.merge(overlay)
+            expect(merged?.toJSON()).toEqual({
+                tag: 'Exit',
+                uuid: 'e1',
+                from: 'ROOM#highway',
+                to: { tag: 'Replace', match: 'ROOM#old', payload: 'ROOM#new' },
+                payload: {},
+            })
+        })
+
+        it('should diff uuid-only stub against edge with To added', () => {
+            const withTo = new StandardExitEdge({
+                tag: 'Exit',
+                uuid: 'edge-a1b2c3d4',
+                to: 'ROOM#townCenter',
+                payload: {},
+            })
+            const diff = uuidOnlyStub.diff(withTo)
+            expect(diff?.toJSON()).toEqual({
+                tag: 'Exit',
+                uuid: 'edge-a1b2c3d4',
+                to: 'ROOM#townCenter',
+                payload: {},
+            })
+        })
+
+        it('should invert uuid-only stub without throwing', () => {
+            const inverted = uuidOnlyStub.invert()
+            expect(inverted.toJSON()).toEqual({
+                tag: 'Exit',
+                uuid: 'edge-a1b2c3d4',
+                payload: {},
+            })
+        })
+
+        it('should round-trip merge(diff(incoming)) for uuid-only to partial edge', () => {
+            const withTo = new StandardExitEdge({
+                tag: 'Exit',
+                uuid: 'edge-a1b2c3d4',
+                to: 'ROOM#townCenter',
+                payload: {},
+            })
+            const diff = uuidOnlyStub.diff(withTo)
+            const remerged = uuidOnlyStub.merge(diff!)
+            expect(remerged?.toJSON()).toEqual(withTo.toJSON())
+        })
+    })
 })
 
 describe('ExitEdgeList', () => {
@@ -131,5 +339,77 @@ describe('ExitEdgeList', () => {
                 payload: {},
             }),
         ])).toThrow(/Conflicting endpoint values/)
+    })
+
+    describe('merge / diff / invert with incomplete endpoints', () => {
+        const uuidOnlyStub = new StandardExitEdge({
+            tag: 'Exit',
+            uuid: 'edge-a1b2c3d4',
+            payload: {},
+        })
+
+        it('should merge uuid-only stub with plain To overlay by uuid', () => {
+            const overlay = new StandardExitEdge({
+                tag: 'Exit',
+                uuid: 'edge-a1b2c3d4',
+                to: 'ROOM#townCenter',
+                payload: {},
+            })
+            const merged = new ExitEdgeList([uuidOnlyStub]).merge(new ExitEdgeList([overlay]))
+            expect(merged?.toJSON()).toEqual([{
+                tag: 'Exit',
+                uuid: 'edge-a1b2c3d4',
+                to: 'ROOM#townCenter',
+                payload: {},
+            }])
+        })
+
+        it('should merge from-only stub with Replace overlay on To by uuid (adopts envelope when base To unset)', () => {
+            const fromOnlyStub = new StandardExitEdge({
+                tag: 'Exit',
+                uuid: 'e1',
+                from: 'ROOM#highway',
+                payload: {},
+            })
+            const overlay = new StandardExitEdge({
+                tag: 'Exit',
+                uuid: 'e1',
+                to: { tag: 'Replace', match: 'ROOM#old', payload: 'ROOM#new' },
+                payload: {},
+            })
+            const merged = new ExitEdgeList([fromOnlyStub]).merge(new ExitEdgeList([overlay]))
+            expect(merged?.toJSON()).toEqual([{
+                tag: 'Exit',
+                uuid: 'e1',
+                from: 'ROOM#highway',
+                to: { tag: 'Replace', match: 'ROOM#old', payload: 'ROOM#new' },
+                payload: {},
+            }])
+        })
+
+        it('should diff list with uuid-only base against partial incoming', () => {
+            const withTo = new StandardExitEdge({
+                tag: 'Exit',
+                uuid: 'edge-a1b2c3d4',
+                to: 'ROOM#townCenter',
+                payload: {},
+            })
+            const diff = new ExitEdgeList([uuidOnlyStub]).diff(new ExitEdgeList([withTo]))
+            expect(diff?.toJSON()).toEqual([{
+                tag: 'Exit',
+                uuid: 'edge-a1b2c3d4',
+                to: 'ROOM#townCenter',
+                payload: {},
+            }])
+        })
+
+        it('should invert list containing uuid-only stub', () => {
+            const inverted = new ExitEdgeList([uuidOnlyStub]).invert()
+            expect(inverted.toJSON()).toEqual([{
+                tag: 'Exit',
+                uuid: 'edge-a1b2c3d4',
+                payload: {},
+            }])
+        })
     })
 })

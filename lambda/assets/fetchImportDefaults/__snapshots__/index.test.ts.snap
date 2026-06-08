@@ -6,20 +6,7 @@ Object {
     Object {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset uuid=(testFinal)>
-    <Room
-        uuid=(testImportFoo)
-        key=(testImportFoo)
-        origin=(ASSET#testImportAssetOne,ASSET#testFinal)
-    >
-        <ShortName>StubFoo</ShortName>
-    </Room>
-    <Room
-        uuid=(testNonImportTwo)
-        key=(testNonImportTwo)
-        origin=(ASSET#testFinal)
-    >
-        <Exit to=(testImportFoo)>test exit</Exit>
-    </Room>
+    
 </Asset>",
     },
   ],
@@ -33,28 +20,7 @@ Object {
     Object {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset uuid=(testFinal)>
-    <Room uuid=(stub) origin=(ASSET#testImportAssetThree) ref={0}>
-        <ShortName>AssetThreeStub</ShortName>
-    </Room>
-    <Room
-        uuid=(testStubOne)
-        origin=(ASSET#testImportAssetThree,ASSET#testImportAssetTwo)
-        ref={0}
-    >
-        <ShortName>Asset Three</ShortName>
-    </Room>
-    <Room
-        uuid=(testImportThree)
-        key=(testImportThree)
-        origin=(ASSET#testImportAssetThree,ASSET#testImportAssetTwo,ASSET#testFinal)
-    >
-        <Situation uuid=(DEFAULT) origin=(ASSET#testImportAssetTwo) ref={0} />
-        <Situation uuid=(DEFAULT)>
-            <Description>Asset Two</Description>
-        </Situation>
-        <Exit to=(ROOM#stub)>test exit</Exit>
-        <Exit to=(ROOM#testStubOne)>test exit</Exit>
-    </Room>
+    
 </Asset>",
     },
   ],
@@ -106,28 +72,7 @@ Object {
     Object {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset uuid=(testFinal)>
-    <Room
-        uuid=(testImportOne)
-        key=(testImportOne)
-        origin=(ASSET#testImportAssetOne,ASSET#testFinal)
-    >
-        <Situation
-            uuid=(DEFAULT)
-            origin=(ASSET#testImportAssetOne,ASSET#testFinal)
-            ref={0}
-        />
-        <Situation uuid=(DEFAULT) ref={2}>
-            <Description>OneTwo</Description>
-        </Situation>
-        <Exit to=(testImportStubOne)>test exit one</Exit>
-    </Room>
-    <Room
-        uuid=(testImportStubOne)
-        key=(testImportStubOne)
-        origin=(ASSET#testImportAssetOne,ASSET#testFinal)
-    >
-        <ShortName>StubTwo</ShortName>
-    </Room>
+    
 </Asset>",
     },
   ],
@@ -146,14 +91,6 @@ Object {
         <Situation uuid=(DEFAULT)>
             <Description>DescriptionOne</Description>
         </Situation>
-        <Exit to=(testNonImportStub)>test exit</Exit>
-    </Room>
-    <Room
-        uuid=(testNonImportStub)
-        key=(testNonImportStub)
-        origin=(ASSET#testFinal)
-    >
-        <ShortName>StubOne</ShortName>
     </Room>
 </Asset>",
     },

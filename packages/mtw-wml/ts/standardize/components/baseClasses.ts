@@ -9,9 +9,9 @@ import { StandardKey } from "../keys/key";
 import { StandardExplicitParent, StandardExplicitKey } from "../explicit";
 import { OrganizationContext } from "../schemaOrganization";
 import { StandardLiteral } from "../literal";
-
 export type StandardToJSONOptions = {
     stripUniversalKey?: boolean;
+    /** @deprecated Legacy schema-tree hook (no-op). */
     stripUIFields?: boolean;
 }
 

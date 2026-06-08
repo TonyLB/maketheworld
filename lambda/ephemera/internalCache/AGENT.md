@@ -12,6 +12,21 @@ Shared read surfaces from [`@tonylb/mtw-gateways`](../../../packages/mtw-gateway
 
 **Blueprint stack (hydrate consumers):** use **`internalCache.ComponentData.getAcrossAssets`** at the caller-supplied participation stack (pair-addressed reads). Steady-state hydrate calls **`internalCache.ComponentExamples.get(...)`** from [`ensureAuthoredCatalog`](../dataSource/renderCache/ensureAuthoredCatalog.ts) (orchestration resolve only in v1) --- not **`assembleComponentExamplesAtPerspective`**. Affordance-topology hydrate (**`ensureAffordanceTopology`** in [`affordanceCache`](../dataSource/affordanceCache/ensureAffordanceTopology.ts)) calls **`internalCache.ComponentTopology.get(...)`** on stale catalog reads only --- **not** on **`TopologyInvalidated`** receive (mirror **`handleExampleInvalidated`**). Ephemera does **not** register tier-1 **`ComponentVerticals`**; the aggregate slice uses an empty-hops stub because merge order is caller-supplied and vertical rows are unused in v1 assembly. See [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md), [`renderCache/AGENT.md`](../dataSource/renderCache/AGENT.md) (**On-demand authored examples**), and [`affordanceCache/AGENT.md`](../dataSource/affordanceCache/AGENT.md).
 
+### Area topology and affordance exits (steady state)
+
+Navigational exits on the affordances channel are **not** read from room blueprint **`StandardRoom.exits`** rows. The steady-state path:
+
+1. **Assets** emit skinny **`TopologyInvalidated`** on Area **`positionGraph`** / **`referencedBy`** changes ([`lambda/assets/componentTopology/AGENT.md`](../../../lambda/assets/componentTopology/AGENT.md)).
+2. **`affordanceCache`** bumps catalog version on receive; **`ensureAffordanceTopology`** (orchestration preflight or nav sync) pulls **`internalCache.ComponentTopology.get`** -> **`projectRoomExits`** ([`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md)).
+3. Hydrated **`Affordance::${perspectiveKey}`** rows embed **`ProjectedRoomTopology.exits`**.
+4. **`ComponentStackMerge.get`** reads that slice + **`ComponentAggregate`** **`shortName`** + ephemera-only roster / **`objects`** -> ephemeraWire **`StandardForm`** for terminal publish.
+
+**`ComponentStackMerge`** is a **compose memo only** --- called from perception on **`Affordances Pertain`**, not from bus ingress. It does **not** call **`ensureAffordanceTopology`** or **`ComponentTopology.get`**. The affordance path does **not** use **`mergeRoomExitsToJSON`** (that helper remains for **`ComponentRender`** / generation context only).
+
+**Navigation:** [`getRoomExitTargetsForCharacter`](../dataSource/actions/roomExitTargetsForCharacter.ts) calls **`ensureAffordanceTopology`** + **`AffordanceCache.getAffordanceRow`** synchronously --- no **`Affordances Requested`**, no **`PublishMessage`**.
+
+**Production note:** Room-local blueprint exits were cleared; Area **`positionGraph.edges`** restore is tracked in [`taskPlanning/packages/mtw-wml/ts/AGENT.topologyRelationsRefactor.planning.md`](../../../taskPlanning/packages/mtw-wml/ts/AGENT.topologyRelationsRefactor.planning.md) Phase 4.
+
 ### Per-invocation process state (not only deferred loads)
 
 Some handlers are **process-supporting** state for the current lambda run: they may **not** use `DeferredCache`, but they still live on the [`InternalCache`](index.ts) singleton and reset in [`InternalCache.clear()`](index.ts). Examples: [`Global`](global.ts) (`internalCache.Global`, **`CacheGlobalData`**) for connection/session keyed fields; [`OrchestrateMessages`](orchestrateMessages.ts) for in-memory message-group graphs.

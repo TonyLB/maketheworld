@@ -18,13 +18,11 @@ describe('StandardMessage integration', () => {
                             <Situation ref={0} uuid=(testRoomOneBase)>
                                 <Description>Test Room One</Description>
                             </Situation>
-                            <Exit to=(testRoomTwo)>two</Exit>
                         </Room>
                         <Room uuid=(testRoomTwo) key=(testRoomTwo)>
                             <Situation ref={0} uuid=(testRoomTwoBase)>
                                 <Description>Test Room Two</Description>
                             </Situation>
-                            <Exit to=(testRoomOne)>one</Exit>
                         </Room>
                     </Message>
                     <Room uuid=(testRoomOne) />
@@ -36,13 +34,11 @@ describe('StandardMessage integration', () => {
                             <Situation uuid=(testRoomOneBase) ref={0}>
                                 <Description>Test Room One</Description>
                             </Situation>
-                            <Exit to=(testRoomTwo)>two</Exit>
                         </Room>
                         <Room uuid=(testRoomTwo) key=(testRoomTwo)>
                             <Situation uuid=(testRoomTwoBase) ref={0}>
                                 <Description>Test Room Two</Description>
                             </Situation>
-                            <Exit to=(testRoomOne)>one</Exit>
                         </Room>
                         <Message uuid=(testMessage) key=(testMessage)>
                             <Room key=(testRoomOne) />

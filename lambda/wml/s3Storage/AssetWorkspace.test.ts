@@ -132,12 +132,8 @@ describe('AssetWorkspace (WML Lambda)', () => {
             const testWorkspace = new AssetWorkspace('ASSET#Test', 'Personal', 'Test')
             await testWorkspace.setWML(`
                 <Asset uuid=(Test)>
-                    <Room uuid=(room1)>
-                        <Exit to=(ROOM#room2)>welcome</Exit>
-                    </Room>
-                    <Room uuid=(room2)>
-                        <Exit to=(ROOM#room1)>vortex</Exit>
-                    </Room>
+                    <Room uuid=(room1)><ShortName>Room One</ShortName></Room>
+                    <Room uuid=(room2)><ShortName>Room Two</ShortName></Room>
                 </Asset>
             `)
             expect(testWorkspace.standard?.toJSON()).toMatchSnapshot()
@@ -243,8 +239,8 @@ describe('AssetWorkspace (WML Lambda)', () => {
             const testWorkspace = new AssetWorkspace('ASSET#Test', 'Library')
             const testSource = `
                 <Asset uuid=(Test)>
-                    <Room uuid=(room1)><Exit to=(ROOM#room2)>welcome</Exit></Room>
-                    <Room uuid=(room2)><Exit to=(ROOM#room1)>vortex</Exit></Room>
+                    <Room uuid=(room1)><ShortName>Room One</ShortName></Room>
+                    <Room uuid=(room2)><ShortName>Room Two</ShortName></Room>
                 </Asset>
             `
             await testWorkspace.setWML(testSource)
@@ -292,8 +288,8 @@ describe('AssetWorkspace (WML Lambda)', () => {
             const testWorkspace = new AssetWorkspace('ASSET#Test', 'Library')
             const testSource = `
                 <Asset uuid=(Test)>
-                    <Room uuid=(room1)><Exit to=(ROOM#room2)>welcome</Exit></Room>
-                    <Room uuid=(room2)><Exit to=(ROOM#room1)>vortex</Exit></Room>
+                    <Room uuid=(room1)><ShortName>Room One</ShortName></Room>
+                    <Room uuid=(room2)><ShortName>Room Two</ShortName></Room>
                 </Asset>
             `
             await testWorkspace.setWML(testSource)

@@ -203,7 +203,7 @@ describe('StandardForm', () => {
                             },
                             {
                                 data: { tag: 'Remove' },
-                                children: [{ data: { tag: 'Exit', to: 'testDestination' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }]
+                                children: [{ data: { tag: 'Feature', key: 'removedFeat' }, children: [] }]
                             }]
                         },
                         { data: { tag: 'Remove' }, children: [{ data: { tag: 'Room', key: 'testRoomRemove', uuid: 'ROOM#testRoomRemove' }, children: [] }] },
@@ -223,6 +223,7 @@ describe('StandardForm', () => {
                             tag: 'Room',
                             key: 'testRoom',
                             universalKey: 'ROOM#testRoom',
+                            shortName: undefined,
                             situations: [{
                                 reference: 'SITUATION#DEFAULT',
                                 payload: {
@@ -233,19 +234,29 @@ describe('StandardForm', () => {
                                     }
                                 }
                             }],
-                            exits: [{
-                                reference: { tag: 'Room', key: 'testDestination', ref: -1 },
-                                payload: { tag: 'Remove', match: 'out' }
+                            features: [{
+                                tag: 'Feature',
+                                key: 'removedFeat',
+                                ref: -1,
+                                universalKey: undefined,
                             }]
                         },
                         {
                             tag: 'Situation',
+                            key: undefined,
                             universalKey: 'SITUATION#DEFAULT',
+                        },
+                        {
+                            tag: 'Feature',
+                            key: 'removedFeat',
+                            shortName: undefined,
+                            universalKey: undefined,
                         },
                         {
                             tag: 'Room',
                             key: 'testRoomRemove',
                             universalKey: 'ROOM#testRoomRemove',
+                            shortName: undefined,
                         }
                     ]
                 })

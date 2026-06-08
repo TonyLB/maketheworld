@@ -7,15 +7,15 @@ Non-replayable derived **Assets** DataSource that publishes skinny **`TopologyIn
 Notify downstream consumers when room topology may have changed (**`mtw.ephemera.affordanceCache`** catalog bump + orchestration fan-out, shipped M4):
 
 - **Area** `positionGraph` **nodes** / **edges** edits
-- **Room** blueprint **`exits`** during **D6** dual-read
-- **`referencedBy`** target patches from **`cacheAsset`** (**D10**) on **`ROOM#`** endpoints
+- **`referencedBy`** / partition row changes on **`ROOM#`** endpoints from **`cacheAsset`** and asset purge from **`decacheAsset`**
 
 ## Invalidation sources
 
 | Source | Mechanism |
 | --- | --- |
-| `mtw.assets` **Component Updated / Removed** | Subscribe; `detectTopologyInvalidations` on **Area** / **Room** |
-| `cacheAsset` inverse index | `emitTopologyInvalidatedForRoomTargets` after **`referencedBy`** writes |
+| `mtw.assets` **Component Updated / Removed** | Subscribe; `detectTopologyInvalidations` on **Area** **`positionGraph`** |
+| `cacheAsset` | `emitTopologyInvalidatedForRoomTargets` when Edge-type **`referencedBy`** changes on **`ROOM#`** targets in **`diff._components`** |
+| `decacheAsset` | `emitTopologyInvalidatedForRoomTargets` when **`ROOM#`** partition rows are deleted (branch C; overlay purge removes edge topology contribution) |
 
 ## Event shape
 
@@ -29,7 +29,7 @@ Steady-state exit projection at a perspective is assembled by **`@tonylb/mtw-gat
 
 ## Related
 
-- Parent initiative: [`taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md`](../../../taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md)
-- Persisted inverse index: [`../dataSource/caching/AGENT.diff.md`](../dataSource/caching/AGENT.diff.md) (**D10** `referencedBy` pass)
+- Steady-state topology docs: [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md), [`lambda/ephemera/internalCache/AGENT.md`](../../../lambda/ephemera/internalCache/AGENT.md) (**Area topology and affordance exits**)
+- Persisted inverse index: [`../dataSource/caching/AGENT.diff.md`](../dataSource/caching/AGENT.diff.md) (single-pass **`referencedBy`** on **`diff._components`**)
 - Precedent: [`../componentExamples/AGENT.md`](../componentExamples/AGENT.md)
 - Downstream consumer: [`lambda/ephemera/dataSource/affordanceCache/AGENT.md`](../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md)

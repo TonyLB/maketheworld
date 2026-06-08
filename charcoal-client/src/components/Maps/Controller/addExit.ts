@@ -1,17 +1,5 @@
-import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
-import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import { UpdateStandardPayload } from "../../../slices/personalAssets/reducers";
-import { StandardExitFacet } from "@tonylb/mtw-wml/ts/standardize/keys/facets/exit";
-
-const schemaOutputLowerCase = (tree: GenericTree<SchemaOutputTag>): GenericTree<SchemaOutputTag> => (
-    tree.map(({ data, children }) => ({
-        data: isSchemaString(data) ? { ...data, value: data.value.toLowerCase() } : data,
-        children: schemaOutputLowerCase(children)
-    }))
-)
 
 export const addExitFactory = ({ standardForm, editable, addImport, updateStandard }: {
     standardForm: StandardForm,
@@ -19,33 +7,13 @@ export const addExitFactory = ({ standardForm, editable, addImport, updateStanda
     addImport: (key: `ROOM#${string}`) => void,
     updateStandard: (action: UpdateStandardPayload) => void
 }) => ({ to, from }: { to: `ROOM#${string}`; from: `ROOM#${string}` }) => {
-    const destinationComponent = standardForm.byUniversalId[to]
-    const exitName = (destinationComponent && destinationComponent instanceof StandardRoom)
-        ? destinationComponent.shortName?._payload?.plain?.toJSON()?.toLowerCase() ?? ''
-        : ''
-    if (!(editable.byUniversalId[to])) {
-        addImport(to)
-    }
-    if (!(from in standardForm)) {
-        addImport(from)
-    }
-
-    //
-    // Use updateStandard to add the exit to the source room
-    //
-    updateStandard({
-        type: 'update',
-        update: (standard) => {
-            const draft = standard._clone()
-            const sourceComponent = draft.byUniversalId[from]
-            if (sourceComponent && sourceComponent instanceof StandardRoom) {
-                const newExitFacet = new StandardExitFacet({
-                    reference: { tag: 'Room', universalKey: to },
-                    payload: exitName || undefined
-                })
-                sourceComponent.exits.items.push(newExitFacet)
-            }
-            return draft
-        }
-    })
+    // Room-local exit authoring was removed in asset mode (M6). Topology edges belong on
+    // Area positionGraph.edges; use the Workbench Area editor instead. Map exit drag tools
+    // remain visible for UX continuity but do not mutate the Redux asset draft.
+    void standardForm
+    void editable
+    void addImport
+    void updateStandard
+    void to
+    void from
 }

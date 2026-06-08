@@ -1,6 +1,20 @@
 import { MessageBus, isErrorMessage, isReturnValueMessage } from "../messageBus/baseClasses"
 
-export const extractReturnValue = (messageBus: MessageBus) => {
+const isRestApiGatewayResponse = (body: Record<string, any>): boolean => (
+    typeof body.statusCode === 'number' && typeof body.body === 'string'
+)
+
+/** WebSocket service routes (e.g. `connections`) require `{ statusCode, body }` for route-response integration. */
+const isWebSocketServiceRoute = (event: any): boolean => {
+    const { routeKey, resourcePath } = event?.requestContext || {}
+    return (
+        typeof routeKey === 'string' &&
+        routeKey !== '$disconnect' &&
+        typeof resourcePath !== 'string'
+    )
+}
+
+export const extractReturnValue = (messageBus: MessageBus, event?: any) => {
     const errorMessages = messageBus._stream
         .map(({ payload }) => (payload))
         .filter(isErrorMessage)
@@ -23,8 +37,21 @@ export const extractReturnValue = (messageBus: MessageBus) => {
         return
     }
 
-    return returnValueMessages.reduce((previous, { body }) => ({
+    const body = returnValueMessages.reduce((previous, { body: messageBody }) => ({
         ...previous,
-        ...body
+        ...messageBody
     }), {} as Record<string, any>)
+
+    if (isRestApiGatewayResponse(body)) {
+        return body
+    }
+
+    if (isWebSocketServiceRoute(event)) {
+        return {
+            statusCode: 200,
+            body: JSON.stringify(body)
+        }
+    }
+
+    return body
 }

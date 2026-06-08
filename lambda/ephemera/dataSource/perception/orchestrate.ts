@@ -51,7 +51,7 @@ function placeholderRoomFullWml(roomId: EphemeraRoomId, bodyText: string): strin
     const form = new StandardForm([
         { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
         roomRow,
-    ])
+    ], { standardizeMode: 'ephemeraWire' })
     return schemaToWML([form.schema])
 }
 

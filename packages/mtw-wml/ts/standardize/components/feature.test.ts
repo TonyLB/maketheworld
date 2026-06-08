@@ -1,6 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardFeatureData } from "./dataTypes/feature"
+import { StandardForm } from '../index'
 import StandardFeature from './feature'
 import { mergeTest } from "./utils/testing"
 import StandardReference from "../keys/reference"
@@ -331,7 +332,7 @@ describe('StandardFeature class', () => {
         `))
     })
 
-    it('rejects Render under Feature in asset mode', () => {
+    it('parses Render on bare StandardFeature (asset policy is on StandardForm)', () => {
         const wml = deIndentWML(`
             <Feature key=(fountain)>
                 <Render>
@@ -341,7 +342,23 @@ describe('StandardFeature class', () => {
                 </Render>
             </Feature>
         `)
-        expect(() => new StandardFeature(wml)).toThrow()
+        const testFeature = new StandardFeature(wml)
+        expect(testFeature.render).toBeDefined()
+    })
+
+    it('rejects Render under Feature on asset StandardForm', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Feature key=(fountain) uuid=(fountain)>
+                    <Render>
+                        <DisplayName>Fountain</DisplayName>
+                        <Summary>Sparkling water</Summary>
+                        <Description>A marble fountain.</Description>
+                    </Render>
+                </Feature>
+            </Asset>
+        `)
+        expect(() => new StandardForm(wml)).toThrow(/Feature render is not allowed in asset mode/)
     })
     
 })

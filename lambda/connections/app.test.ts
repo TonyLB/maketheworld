@@ -134,9 +134,12 @@ describe('connections app checkSession', () => {
             streamEvent: expect.any(Function)
         }))
         expect(response).toEqual({
-            messageType: 'Registration',
-            CharacterId: 'CHARACTER#abc',
-            RequestId: 'request-1'
+            statusCode: 200,
+            body: JSON.stringify({
+                messageType: 'Registration',
+                CharacterId: 'CHARACTER#abc',
+                RequestId: 'request-1'
+            })
         })
     })
 

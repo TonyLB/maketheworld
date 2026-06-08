@@ -33,7 +33,6 @@ describe('fetchImportsMessage', () => {
                         DescriptionOne
                     </Description>
                 </Situation>
-                <Exit to=(testNonImportStub)>test exit</Exit>
             </Room>
             <Room uuid=(testNonImportStub) key=(testNonImportStub)>
                 <ShortName>StubOne</ShortName>
@@ -44,14 +43,11 @@ describe('fetchImportsMessage', () => {
                         Two
                     </Description>
                 </Situation>
-                <Exit to=(testImportStubOne)>test exit one</Exit>
             </Room>
             <Room uuid=(testImportStubOne) key=(testImportStubOne)  from=(ASSET#testImportAssetOne) />
             <Room uuid=(testImportFoo) key=(testImportFoo) from=(ASSET#testImportAssetOne) />
             <Room uuid=(testImportTwo) key=(testImportTwo) />
-            <Room uuid=(testNonImportTwo) key=(testNonImportTwo)>
-                <Exit to=(testImportFoo)>test exit</Exit>
-            </Room>
+            <Room uuid=(testNonImportTwo) key=(testNonImportTwo) />
             <Room uuid=(testImportThree) key=(testImportThree) from=(ASSET#testImportAssetTwo) />
             <Room uuid=(testRoomWithFeatures) key=(testRoomWithFeatures) from=(ASSET#testImportAssetFour)>
                 <Situation uuid=(DEFAULT)>
@@ -89,14 +85,11 @@ describe('fetchImportsMessage', () => {
                         Asset Two
                     </Description>
                 </Situation>
-                <Exit to=(stub)>test exit</Exit>
             </Room>
             <Room uuid=(testStubOne) key=(stub) from=(ASSET#testImportAssetThree) />
         </Asset>`)
         const testImportThree = new StandardForm(`<Asset uuid=(testImportAssetThree)>
-            <Room uuid=(testImportThree) key=(basicOne)>
-                <Exit to=(stub)>test exit</Exit>
-            </Room>
+            <Room uuid=(testImportThree) key=(basicOne) />
             <Room uuid=(testStubOne) key=(basicTwo)>
                 <ShortName>Asset Three</ShortName>
             </Room>

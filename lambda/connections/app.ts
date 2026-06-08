@@ -9,5 +9,5 @@ export const handler = async (event: any) => {
     messageBus.clear()
     await routeConnectionsIngress(event)
     await messageBus.flush()
-    return extractReturnValue(messageBus)
+    return extractReturnValue(messageBus, event)
 }

@@ -6,7 +6,7 @@ This document describes the **abstract concept** of Component types in WML and t
 
 **⚠️ IMPORTANT**: This document describes the **target architecture and design goals** for Components in WML. The current implementation in this directory may not fully match all concepts described here, as the system is in active migration toward these requirements. For current implementation details, see [`AGENT.implementation.md`](./AGENT.implementation.md). For practical usage examples, see [`AGENT.usage.md`](./AGENT.usage.md).
 
-**`standardizeMode` (blueprint vs ephemera wire):** Tag-set and parse behavior for asset WML vs ephemera wire WML is controlled by **`standardizeMode`** (`WmlStandardizeMode`) and threads through **`StandardForm`**, **`processComponents`**, and **`fromSchema`**. **`StandardForm`** and factory-generated **`Standard*`** classes accept the same optional second constructor argument **`StandardFormConstructionOptions`** (e.g. `{ standardizeMode: 'ephemeraWire' }`) when the first argument is WML text or a schema node. See [`standardize/AGENT.md`](../AGENT.md), section **Payload vocabulary vs semantic mode (`standardizeMode`)**.
+**`standardizeMode` (blueprint vs ephemera wire):** Lives on **`StandardForm`** only; drives **`validateAssetWirePolicy()`** and serialization metadata. Component payloads are mode-blind and always parse wire tags they understand. See [`standardize/AGENT.md`](../AGENT.md), section **Payload vocabulary vs semantic mode (`standardizeMode`)**.
 
 ## Getting Started
 
@@ -231,6 +231,10 @@ This semantic separation ensures that references can be passed between contexts 
 **Conversion happens at API boundaries** - components should expose manipulation types in their public API, while using serialization types internally for storage.
 
 See `dataTypes/AGENT.md` for detailed documentation of this distinction.
+
+## Topology and exits
+
+Navigational topology is owned by **Area** **`positionGraph.edges`**, not **Room** blueprint rows. Asset authoring **forbids** room-local **`<Exit to=`** under **Room**; runtime **`StandardRoom.exits`** on ephemeraWire forms is synthesized from Area edges via **`projectRoomExits`**. See [`AGENT.implementation.md`](./AGENT.implementation.md) (**StandardRoom**, **StandardArea**), [`../keys/edges/AGENT.edges.md`](../keys/edges/AGENT.edges.md), and [`../../documentation/README.syntax.md`](../../documentation/README.syntax.md).
 
 ## Related Documentation
 

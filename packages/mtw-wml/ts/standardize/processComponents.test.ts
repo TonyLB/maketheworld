@@ -139,7 +139,7 @@ describe("processComponents", () => {
         expect(topLevelKeys).not.toContain('testGlobal')
     })
 
-    it('should pass standardizeMode to component factory for ephemeraWire Object under Room', () => {
+    it('should parse Object under Room via processComponents (mode-blind)', () => {
         const testSource = `
             <Asset uuid=(Test)>
                 <Room key=(main) uuid=(main)>
@@ -155,30 +155,9 @@ describe("processComponents", () => {
             componentOrder,
             schema: schema.schema,
             assetUUID: 'ASSET#Test',
-            standardizeMode: 'ephemeraWire',
         })
         const room = result.components.find((component) => component.tag === 'Room') as StandardRoom
         expect(room.objects).toEqual([{ uuid: 'OBJECT#skates', shortName: 'roller skates' }])
-    })
-
-    it('should reject Object under Room when standardizeMode is asset', () => {
-        const testSource = `
-            <Asset uuid=(Test)>
-                <Room key=(main) uuid=(main)>
-                    <Object uuid=(skates)>
-                        <ShortName>roller skates</ShortName>
-                    </Object>
-                </Room>
-            </Asset>
-        `
-        const schema = new Schema()
-        schema.loadWML(testSource)
-        expect(() => processComponents({
-            componentOrder,
-            schema: schema.schema,
-            assetUUID: 'ASSET#Test',
-            standardizeMode: 'asset',
-        })).toThrow(/Unconsumed child tags: Object/)
     })
 
     it('should combine descriptions in rooms and features', () => {
@@ -254,46 +233,6 @@ describe("processComponents", () => {
         ])
     })
 
-    it('should combine exits in rooms', () => {
-        const test = `
-            <Asset uuid=(Test)>
-                <Room key=(test)>
-                    <Situation uuid=(DEFAULT)>
-                        <Description>
-                            One
-                            <br />
-                        </Description>
-                    </Situation>
-                </Room>
-                <Room key=(testTwo) />
-                <Room key=(test)>
-                    <Exit to=(testTwo)>Test Exit</Exit>
-                </Room>
-                <Room key=(testTwo)>
-                    <Exit to=(test)>Test Return</Exit>
-                </Room>
-            </Asset>
-        `
-        const schema = new Schema()
-        schema.loadWML(test)
-        const result = processComponents({
-            componentOrder,
-            schema: schema.schema,
-        })
-
-        expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
-            deIndentWML(`
-                <Room key=(test)>
-                    <Situation uuid=(DEFAULT)><Description>One<br /></Description></Situation>
-                </Room>
-            `),
-            `<Situation uuid=(DEFAULT) />`,
-            `<Room key=(testTwo) />`,
-            `<Room key=(test)><Exit to=(testTwo)>Test Exit</Exit></Room>`,
-            `<Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>`,
-        ])
-    })
-
     it('should combine render in nested rooms', () => {
         const test = `
             <Asset uuid=(Test)>
@@ -314,12 +253,9 @@ describe("processComponents", () => {
                                 Two
                             </Description>
                         </Situation>
-                        <Exit to=(testTwo)>Test Exit</Exit>
                     </Room>
                 </Message>
-                <Room key=(testTwo)>
-                    <Exit to=(test)>Test Return</Exit>
-                </Room>
+                <Room key=(testTwo) />
             </Asset>
         `
         const schema = new Schema()
@@ -346,11 +282,10 @@ describe("processComponents", () => {
             deIndentWML(`
                 <Room key=(test)>
                     <Situation uuid=(DEFAULT)><Description>Two</Description></Situation>
-                    <Exit to=(testTwo)>Test Exit</Exit>
                 </Room>
             `),
             `<Situation uuid=(DEFAULT) />`,
-            `<Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>`,
+            `<Room key=(testTwo) />`,
         ])
     })
 
@@ -422,7 +357,6 @@ describe("processComponents", () => {
                     <Room key=(testRoom)>
                         <Situation uuid=(DEFAULT)><Description>Test</Description></Situation>
                         <Position {0, 100} />
-                        <Exit to=(testTwo)>Test Exit</Exit>
                     </Room>
                 </Map>
                 <Room key=(testTwo) />
@@ -441,7 +375,6 @@ describe("processComponents", () => {
             deIndentWML(`
                 <Room key=(testRoom)>
                     <Situation uuid=(DEFAULT)><Description>Test</Description></Situation>
-                    <Exit to=(testTwo)>Test Exit</Exit>
                 </Room>
             `),
             `<Situation uuid=(DEFAULT) />`,

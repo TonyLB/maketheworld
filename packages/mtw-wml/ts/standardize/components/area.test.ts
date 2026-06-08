@@ -62,7 +62,7 @@ describe('StandardArea class', () => {
         expect(instance.shortName?.toJSON()).toEqual('Downtown')
     })
 
-    it('should reject legacy Exit to= under Area (D29)', () => {
+    it('should reject legacy Exit to= under Area', () => {
         const node: GenericTreeNode<SchemaTag> = {
             data: { tag: 'Area', key: 'test' },
             children: [
@@ -74,7 +74,7 @@ describe('StandardArea class', () => {
         expect(() => instance.fromSchema(node)).toThrow(/rejects to= attribute/)
     })
 
-    it('should ingest D29 Exit into positionGraph.edges', () => {
+    it('should ingest area exit endpoint tags into positionGraph.edges', () => {
         const node: GenericTreeNode<SchemaTag> = {
             data: { tag: 'Area', key: 'region' },
             children: [
@@ -132,6 +132,39 @@ describe('StandardArea class', () => {
         })
         const merged = base.merge(incoming)! as StandardArea
         expect((merged.positionGraph.edges.toJSON()[0] as StandardExitEdgeData).to).toEqual('ROOM#ghi')
+    })
+
+    it('should merge uuid-only stub with To overlay through StandardArea', () => {
+        const base = new StandardArea({
+            tag: 'Area',
+            key: 'region',
+            positionGraph: {
+                edges: [{
+                    tag: 'Exit',
+                    uuid: 'edge-a1b2c3d4',
+                    payload: {},
+                }],
+            },
+        })
+        const incoming = new StandardArea({
+            tag: 'Area',
+            key: 'region',
+            positionGraph: {
+                edges: [{
+                    tag: 'Exit',
+                    uuid: 'edge-a1b2c3d4',
+                    to: 'ROOM#townCenter',
+                    payload: {},
+                }],
+            },
+        })
+        const merged = base.merge(incoming)! as StandardArea
+        expect(merged.positionGraph.edges.toJSON()).toEqual([{
+            tag: 'Exit',
+            uuid: 'edge-a1b2c3d4',
+            to: 'ROOM#townCenter',
+            payload: {},
+        }])
     })
 
     it('should reject self-reference in positionGraph.nodes from JSON', () => {
@@ -297,7 +330,50 @@ describe('StandardArea class', () => {
         expect(keys.filter((k) => k.referenceType === 'Dependency')).toHaveLength(1)
     })
 
-    describe('D4 positionGraph edge validation', () => {
+    it('should expose Edge referencedKeys for Remove envelope endpoints', () => {
+        const testArea = new StandardArea({
+            tag: 'Area',
+            key: 'region',
+            positionGraph: {
+                nodes: [{ tag: 'Room', key: 'highway', universalKey: 'ROOM#highway' }],
+                edges: [{
+                    tag: 'Exit',
+                    uuid: 'highwayToOutside',
+                    from: { tag: 'Remove', match: 'ROOM#highway' },
+                    to: { tag: 'Remove', match: 'ROOM#outside' },
+                    payload: {},
+                }],
+            },
+        })
+        const edgeKeys = testArea._payload.referencedKeys().filter((k) => k.referenceType === 'Edge')
+        expect(edgeKeys).toHaveLength(2)
+        expect(edgeKeys.some((k) => k.reference.universalKey === 'ROOM#highway')).toBe(true)
+        expect(edgeKeys.some((k) => k.reference.universalKey === 'ROOM#outside')).toBe(true)
+    })
+
+    it('should expose Edge referencedKeys for both Replace match and payload endpoints', () => {
+        const testArea = new StandardArea({
+            tag: 'Area',
+            key: 'region',
+            positionGraph: {
+                nodes: [{ tag: 'Room', key: 'highway', universalKey: 'ROOM#highway' }],
+                edges: [{
+                    tag: 'Exit',
+                    uuid: 'highwayToTown',
+                    from: 'ROOM#highway',
+                    to: { tag: 'Replace', match: 'ROOM#townCenter', payload: 'ROOM#ghi' },
+                    payload: { forward: 'east' },
+                }],
+            },
+        })
+        const edgeKeys = testArea._payload.referencedKeys().filter((k) => k.referenceType === 'Edge')
+        expect(edgeKeys).toHaveLength(3)
+        expect(edgeKeys.some((k) => k.reference.universalKey === 'ROOM#highway')).toBe(true)
+        expect(edgeKeys.some((k) => k.reference.universalKey === 'ROOM#townCenter')).toBe(true)
+        expect(edgeKeys.some((k) => k.reference.universalKey === 'ROOM#ghi')).toBe(true)
+    })
+
+    describe('participant endpoint rule', () => {
         it('should accept edge when both endpoints are in nodes', () => {
             expect(() => new StandardArea({
                 tag: 'Area',
@@ -335,8 +411,8 @@ describe('StandardArea class', () => {
             })).not.toThrow()
         })
 
-        it('should reject edge when neither endpoint is in nodes from JSON', () => {
-            expect(() => new StandardArea({
+        it('should accept edge when neither endpoint is in nodes from JSON', () => {
+            const area = new StandardArea({
                 tag: 'Area',
                 key: 'region',
                 positionGraph: {
@@ -349,10 +425,11 @@ describe('StandardArea class', () => {
                         payload: {},
                     }],
                 },
-            })).toThrow(/requires at least one endpoint in positionGraph.nodes \(D4\)/)
+            })
+            expect(area.positionGraph.edges.toJSON()).toHaveLength(1)
         })
 
-        it('should reject edge when neither endpoint is in nodes from schema', () => {
+        it('should accept edge when neither endpoint is in nodes from schema', () => {
             const node: GenericTreeNode<SchemaTag> = {
                 data: { tag: 'Area', key: 'region' },
                 children: [
@@ -367,10 +444,11 @@ describe('StandardArea class', () => {
                 ],
             }
             const instance = new StandardArea(undefined as any)
-            expect(() => instance.fromSchema(node)).toThrow(/requires at least one endpoint in positionGraph.nodes \(D4\)/)
+            instance.fromSchema(node)
+            expect(instance.positionGraph.edges.toJSON()).toHaveLength(1)
         })
 
-        it('should reject merge when incoming edge has no endpoint in nodes', () => {
+        it('should accept merge when incoming edge has no endpoint in nodes', () => {
             const base = new StandardArea({
                 tag: 'Area',
                 key: 'region',
@@ -398,7 +476,43 @@ describe('StandardArea class', () => {
                     }],
                 },
             })
-            expect(() => base.merge(incoming)).toThrow(/requires at least one endpoint in positionGraph.nodes \(D4\)/)
+            const merged = base.merge(incoming)! as StandardArea
+            expect(merged.positionGraph.edges.toJSON()).toHaveLength(2)
+        })
+
+        it('should accept uuid-only edge from JSON', () => {
+            const area = new StandardArea({
+                tag: 'Area',
+                key: 'region',
+                positionGraph: {
+                    edges: [{
+                        tag: 'Exit',
+                        uuid: 'edge-a1b2c3d4',
+                        payload: {},
+                    }],
+                },
+            })
+            expect(area.positionGraph.edges.toJSON()).toEqual([{
+                tag: 'Exit',
+                uuid: 'edge-a1b2c3d4',
+                payload: {},
+            }])
+        })
+
+        it('should accept uuid-only edge from schema', () => {
+            const node: GenericTreeNode<SchemaTag> = {
+                data: { tag: 'Area', key: 'region' },
+                children: [
+                    { data: { tag: 'Exit', uuid: 'edge-a1b2c3d4' }, children: [] },
+                ],
+            }
+            const instance = new StandardArea(undefined as any)
+            instance.fromSchema(node)
+            expect(instance.positionGraph.edges.toJSON()).toEqual([{
+                tag: 'Exit',
+                uuid: 'edge-a1b2c3d4',
+                payload: {},
+            }])
         })
     })
 

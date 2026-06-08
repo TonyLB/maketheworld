@@ -30,12 +30,43 @@ if (diff) {
 2. **Generate Diff**: Compare the two StandardForm objects to identify differences
 3. **Classify Changes**: Categorize changes where needed for DB operations (removals vs updates)
 4. **Apply Updates**: Process each change type with appropriate database operations
-5. **`referencedBy` inverse pass (D10)**: After forward component writes, recompute **`referencedBy`** on **`(targetUniversalKey, ASSET#assetId)`** for all targets referenced in **`fileAsset`** (not only **`diff._components`**). See [`referencedByPersistence.ts`](./referencedByPersistence.ts).
-6. **Stream Events (Unified)**: Stream all component changes as `"Component Updated"` events, and emit `"Component Removed"` events when components are deleted from the asset
+5. **`referencedBy` on main loop**: Each **`diff._components`** entry uses a three-way branch (full put / stub put / delete) and includes authoritative **`referencedBy`** from **`buildReferencedByPatchesForAsset(fileAsset)`**. See [`cacheAsset.ts`](./cacheAsset.ts). [`decacheAsset.ts`](./decacheAsset.ts) uses the same branch structure with **`emptyAsset`** (always branch C **`deleteItem`**; no **`referencedBy`** writes --- row deletion is sufficient).
+6. **Stream Events (Unified)**: Stream all component changes as `"Component Updated"` events, and emit `"Component Removed"` events when components are deleted from the asset (branch C only --- edge-only stubs do not emit Component Removed)
+
+## Three-way write branch
+
+Each `diff._components` entry with a `universalKey` is written using **`buildReferencedByPatchesForAsset(fileAsset)`** (once per cache run) and a three-way branch on **`fileComponent`** presence vs forward references. **`fileAsset._lookup(universalKey)`** answers whether there is a component line in the file --- **not** whether the partition row should be deleted.
+
+| Situation | In `diff._components`? | `fileComponent` | Still referenced in `fileAsset` forward graph? | Action |
+| --- | --- | --- | --- | --- |
+| **Local / imported body** | Yes | **Present** | Yes or no | **(A) full `putItem` + `referencedBy`** |
+| **Edge-only participation** | Yes (`assureComponents` stub) | Missing | **Yes** (`referencedBy` patch non-empty) | **(B) stub `putItem` + `referencedBy`** |
+| **Removal from asset** | Yes (inverted prior component) | Missing | **No** (`referencedBy` patch `[]`) | **(C) `deleteItem`** |
+
+```typescript
+const referencedBy = patches.get(universalKey) ?? []
+const fileComponent = fileAsset._lookup(universalKey)
+
+if (fileComponent) {
+  await putItem({ ...fileComponent.toJSON(), referencedBy, AssetId, DataCategory })
+  await bumpMetaCached(...)
+} else if (referencedBy.length > 0) {
+  await putItem({ tag, universalKey, referencedBy, AssetId, DataCategory })
+  await bumpMetaCached(...)
+} else {
+  await deleteItem({ AssetId, DataCategory })
+}
+```
+
+**`referencedBy` values** always come from **`fileAsset`** authoritative forward state (via `patches`), not from parsing Remove envelopes in the diff. Diff Remove refs only affect **which rows** appear in `diff._components` (via `referencedKeys()` / `assureComponents` on diffed components). See [`referencedBy.ts`](../../../../packages/mtw-gateways/ts/assets/components/componentData/referencedBy.ts) and [`AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) (exit endpoint **`references()`** coverage).
+
+**`decacheAsset`:** same branch structure with **`emptyAsset`** --- always branch **(C) `deleteItem`** for materialized partition rows; no **`referencedBy`** writes (row deletion is sufficient).
+
+**Topology invalidation:** [`cacheAsset.ts`](./cacheAsset.ts) and [`decacheAsset.ts`](./decacheAsset.ts) emit **`TopologyInvalidated`** via [`emitTopologyInvalidatedForRoomTargets`](../../componentTopology/index.ts) when Edge-type **`referencedBy`** changes on **`ROOM#`** targets (see [`componentTopology/AGENT.md`](../../componentTopology/AGENT.md)).
 
 ### Diff Types
 
-The diff analysis identifies two main categories of component changes for DB operations:
+The diff analysis identifies two main categories of component changes for DB operations (simplified; steady-state writes use the [three-way branch](#three-way-write-branch) above):
 
 #### Remove
 Components that have been removed from the asset:
@@ -287,6 +318,7 @@ await assetDB.optimisticUpdate({
 ## Related Documentation
 
 - **[Cache Asset AGENT.md](./AGENT.md)**: Main cache asset documentation
+- **[Assets event handling](../../AGENT.event.md)**: `Cache Consistency Finding` -> `cacheAsset` (diagnostics re-cache)
 - **[Assets Lambda README](../README.md)**: Overview of assets system
 - **[Ephemera System](../../ephemera/)**: Real-time state management
 - **[Internal Cache](../internalCache/)**: Caching system architecture 

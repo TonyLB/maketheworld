@@ -29,7 +29,6 @@ import { StandardKey } from "../keys/key";
 import { StandardExplicitParent, StandardExplicitKey, StandardExplicitKeyPlain, StandardExplicitKeyRemove, StandardExplicitKeyReplace } from "../explicit";
 import { splitTaggedChildren } from "../../schema/utils";
 import {
-    resolveStandardizeFromSchemaContext,
     type StandardFormConstructionOptions,
     type StandardizeFromSchemaContext,
 } from "../wmlStandardizeMode";
@@ -132,14 +131,7 @@ export const componentClassFactory = <
                 const node = typeof props === 'string'
                     ? nodeFromWML(props)
                     : props
-                this.fromSchema(
-                    node,
-                    resolveStandardizeFromSchemaContext(
-                        options?.standardizeMode !== undefined
-                            ? { standardizeMode: options.standardizeMode }
-                            : undefined,
-                    ),
-                )
+                this.fromSchema(node)
                 return
             }
             this._universalKey = props.universalKey
@@ -161,7 +153,6 @@ export const componentClassFactory = <
         // components that don't expose child schema to processComponents).
         //
         fromSchema(node: GenericTreeNode<SchemaTag>, context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
-            const resolvedContext = resolveStandardizeFromSchemaContext(context)
             if (!treeNodeTypeguard(isSchemaComponent)(node)) {
                 throw new Error(`Invalid schema node type in ${label} constructor call: ${node.data.tag}`)
             }
@@ -197,7 +188,7 @@ export const componentClassFactory = <
                 ...node,
                 children: childrenWithoutParentAndKey
             }
-            return this._payload.fromSchema(nodeWithoutParentAndKey, resolvedContext)
+            return this._payload.fromSchema(nodeWithoutParentAndKey, context)
         }
 
         _wrap(instance: GeneratedComponentClass): this {

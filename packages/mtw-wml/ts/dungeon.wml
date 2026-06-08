@@ -1,6 +1,29 @@
 <Asset uuid=(Dungeon)>
+    <Area key=(dungeonTopology)>
+        <Room key=(VORTEX) />
+        <Room key=(cave) />
+        <Room key=(curvingPassage) />
+        <Room key=(chamber) />
+        <Exit uuid=(e_vortex_cave)>
+            <From>VORTEX</From>
+            <To>cave</To>
+            <Forward>cave</Forward>
+            <Back>out</Back>
+        </Exit>
+        <Exit uuid=(e_cave_passage)>
+            <From>cave</From>
+            <To>curvingPassage</To>
+            <Forward>passage</Forward>
+            <Back>cave</Back>
+        </Exit>
+        <Exit uuid=(e_passage_chamber)>
+            <From>curvingPassage</From>
+            <To>chamber</To>
+            <Forward>chamber</Forward>
+            <Back>passage</Back>
+        </Exit>
+    </Area>
     <Room key=(VORTEX)>
-        <Exit to=(cave)>cave</Exit>
         <Situation ref={0} uuid=(example1)>
             <Description>
                 Natural rock formations rise in a jagged cliff-face. An asymmetric
@@ -19,17 +42,12 @@
         </Room>
         <Room key=(cave)>
             <Position {0, 150} />
-            <Exit to=(curvingPassage)>passage</Exit>
-            <Exit to=(VORTEX)>out</Exit>
         </Room>
         <Room key=(curvingPassage)>
             <Position {-150, 100} />
-            <Exit to=(cave)>cave</Exit>
-            <Exit to=(chamber)>chamber</Exit>
         </Room>
         <Room key=(chamber)>
             <Position {-150, 0} />
-            <Exit to=(curvingPassage)>passage</Exit>
         </Room>
     </Map>
     <Room key=(cave)>

@@ -6,10 +6,12 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
 import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
 import ComponentSelectorDialog from '../foundations/ComponentSelector/ComponentSelectorDialog'
 import {
+    exitEndpointSelectorIsExcluded,
     resolveEndpointLabel,
     literalPayloadValue,
     retargetEdgeEndpoint,
@@ -17,19 +19,21 @@ import {
 } from './areaEditMutations'
 
 export type ExitEdgeRowEditorProps = {
+    area: StandardArea
     edge: StandardExitEdge
     onUpdate: (edge: StandardExitEdge) => void
     onDelete: () => void
     disabled?: boolean
-    d4Error?: boolean
+    participantRuleWarning?: boolean
 }
 
 export const ExitEdgeRowEditor: FunctionComponent<ExitEdgeRowEditorProps> = ({
+    area,
     edge,
     onUpdate,
     onDelete,
     disabled = false,
-    d4Error = false
+    participantRuleWarning = false
 }) => {
     const { standardForm } = useWorkbenchAsset()
     const [selectorOpen, setSelectorOpen] = React.useState(false)
@@ -45,6 +49,11 @@ export const ExitEdgeRowEditor: FunctionComponent<ExitEdgeRowEditorProps> = ({
     )
     const forwardValue = useMemo(() => literalPayloadValue(edge, 'forward'), [edge])
     const backValue = useMemo(() => literalPayloadValue(edge, 'back'), [edge])
+
+    const selectorIsExcluded = useMemo(
+        () => exitEndpointSelectorIsExcluded(area, edge, selectorEndpoint),
+        [area, edge, selectorEndpoint]
+    )
 
     const openSelector = useCallback(
         (endpoint: 'from' | 'to') => {
@@ -82,19 +91,43 @@ export const ExitEdgeRowEditor: FunctionComponent<ExitEdgeRowEditorProps> = ({
     return (
         <Box
             sx={{
-                border: d4Error ? '1px solid #f44336' : '1px solid #e0e0e0',
+                border: participantRuleWarning ? '1px solid #f44336' : '1px solid #e0e0e0',
                 borderRadius: '8px',
                 marginBottom: '8px',
                 backgroundColor: 'white',
                 p: 1.5
             }}
         >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                    uuid: {edge.uuid}
+            <Box
+                sx={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto 1fr auto',
+                    gap: 1,
+                    alignItems: 'center'
+                }}
+            >
+                <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => openSelector('from')}
+                    disabled={disabled}
+                    sx={{ textTransform: 'none', minWidth: 0 }}
+                >
+                    From: {fromLabel}
+                </Button>
+                <Typography variant="body2" color="text.secondary" sx={{ px: 0.5 }}>
+                    &harr;
                 </Typography>
+                <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => openSelector('to')}
+                    disabled={disabled}
+                    sx={{ textTransform: 'none', minWidth: 0 }}
+                >
+                    To: {toLabel}
+                </Button>
                 <IconButton
-                    edge="end"
                     aria-label="delete exit edge"
                     onClick={onDelete}
                     disabled={disabled}
@@ -103,51 +136,28 @@ export const ExitEdgeRowEditor: FunctionComponent<ExitEdgeRowEditorProps> = ({
                 >
                     <DeleteIcon />
                 </IconButton>
-            </Box>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', mb: 1 }}>
-                <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => openSelector('from')}
-                    disabled={disabled}
-                    sx={{ textTransform: 'none', maxWidth: 200 }}
-                >
-                    From: {fromLabel}
-                </Button>
-                <Typography variant="body2" color="text.secondary">
-                    &rarr;
-                </Typography>
-                <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => openSelector('to')}
-                    disabled={disabled}
-                    sx={{ textTransform: 'none', maxWidth: 200 }}
-                >
-                    To: {toLabel}
-                </Button>
-            </Box>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                <TextField
-                    label="Forward"
-                    value={forwardValue}
-                    onChange={(e) => handleForwardChange(e.target.value)}
-                    disabled={disabled}
-                    size="small"
-                    sx={{ flex: '1 1 140px', minWidth: 120 }}
-                />
                 <TextField
                     label="Back"
                     value={backValue}
                     onChange={(e) => handleBackChange(e.target.value)}
                     disabled={disabled}
                     size="small"
-                    sx={{ flex: '1 1 140px', minWidth: 120 }}
+                    sx={{ minWidth: 0 }}
                 />
+                <Box />
+                <TextField
+                    label="Forward"
+                    value={forwardValue}
+                    onChange={(e) => handleForwardChange(e.target.value)}
+                    disabled={disabled}
+                    size="small"
+                    sx={{ minWidth: 0 }}
+                />
+                <Box />
             </Box>
-            {d4Error && (
+            {participantRuleWarning && (
                 <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
-                    At least one endpoint must be in Participants (D4).
+                    At least one endpoint must be in Participants.
                 </Typography>
             )}
             <ComponentSelectorDialog
@@ -155,6 +165,7 @@ export const ExitEdgeRowEditor: FunctionComponent<ExitEdgeRowEditorProps> = ({
                 onClose={() => setSelectorOpen(false)}
                 tag="Room"
                 onSelect={handleEndpointSelect}
+                isExcluded={selectorIsExcluded}
             />
         </Box>
     )

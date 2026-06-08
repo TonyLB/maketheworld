@@ -42,7 +42,7 @@ describe('StandardArea integration', () => {
             `))
         })
 
-        it('should render Area with portal edge (D4)', () => {
+        it('should render Area with portal edge (participant endpoint rule)', () => {
             const test = new StandardForm(`<Asset uuid=(Test)>
                 <Area uuid=(region) key=(region)>
                     <Room key=(highway) />
@@ -71,8 +71,8 @@ describe('StandardArea integration', () => {
             `))
         })
 
-        it('should reject Area edge with neither endpoint in nodes (D4)', () => {
-            expect(() => new StandardForm(`<Asset uuid=(Test)>
+        it('should accept Area edge with neither endpoint in nodes (stored, not a standardize error)', () => {
+            const test = new StandardForm(`<Asset uuid=(Test)>
                 <Area uuid=(region) key=(region)>
                     <Room key=(unrelated) />
                     <Exit uuid=(e1)>
@@ -80,7 +80,20 @@ describe('StandardArea integration', () => {
                         <To>townCenter</To>
                     </Exit>
                 </Area>
-            </Asset>`)).toThrow(/requires at least one endpoint in positionGraph.nodes \(D4\)/)
+            </Asset>`)
+            const area = test.byUniversalId['AREA#region'] as StandardArea
+            expect(area.positionGraph.edges.toJSON()).toHaveLength(1)
+            expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Area uuid=(region) key=(region)>
+                        <Room key=(unrelated) />
+                        <Exit uuid=(e1)>
+                            <From>highway</From>
+                            <To>townCenter</To>
+                        </Exit>
+                    </Area>
+                </Asset>
+            `))
         })
     })
 })

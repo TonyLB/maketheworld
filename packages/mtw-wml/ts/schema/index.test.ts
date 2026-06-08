@@ -870,7 +870,7 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
-    it('should correctly round-trip D29 Exit topology shape under Area', () => {
+    it('should correctly round-trip area exit endpoint tags under Area', () => {
         const testWML = deIndentWML(`
             <Asset uuid=(Test)>
                 <Area key=(coyoteHighway)>
@@ -880,6 +880,40 @@ describe('schemaToWML', () => {
                         <Forward>east</Forward>
                         <Back>west</Back>
                     </Exit>
+                </Area>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should correctly round-trip uuid-only stub under Area', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Area key=(region)><Exit uuid=(edge-a1b2c3d4) /></Area>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should correctly round-trip From-only edge under Area', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Area key=(region)>
+                    <Exit uuid=(highwayToTown)>
+                        <From>ROOM#highway</From>
+                        <Forward>east</Forward>
+                    </Exit>
+                </Area>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should correctly round-trip To-only edge under Area', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Area key=(region)>
+                    <Exit uuid=(edge1)><To>ROOM#townCenter</To></Exit>
                 </Area>
             </Asset>
         `)

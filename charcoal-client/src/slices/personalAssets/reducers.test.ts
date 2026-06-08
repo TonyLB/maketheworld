@@ -282,20 +282,15 @@ describe('personalAsset slice reducers', () => {
         // Merge-time retarget is covered in mtw-wml standardForm.keyChangesViaMerge.test.ts.
         //
         describe('local key assignment', () => {
-        it('should record only Key change in edit when room gains local key (exit display resolves via schema)', () => {
+        it('should record only Key change in edit when room gains local key (link display resolves via schema)', () => {
             const result = transformWML(
                 `
                 <Asset uuid=(testAsset)>
+                    <Feature uuid=(feat1) key=(feat1) />
                     <Room uuid=(Room1)>
                         <Situation uuid=(DEFAULT)>
-                            <DisplayName>Test Room</DisplayName>
-                            <Description>Test Description</Description>
+                            <Description><Link to=(ROOM#feat1)>link</Link></Description>
                         </Situation>
-                        <Exit to=(ROOM#Room2)>out</Exit>
-                    </Room>
-                    <Room uuid=(Room2)>
-                        <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
-                        <Exit to=(ROOM#Room1)>text</Exit>
                     </Room>
                 </Asset>
                 `,
@@ -305,31 +300,30 @@ describe('personalAsset slice reducers', () => {
                 {
                     type: 'update',
                     update: (draft: StandardForm) => {
-                        const componentToUpdate = draft.byUniversalId['ROOM#Room2']
+                        const componentToUpdate = draft.byUniversalId['FEATURE#feat1']
                         if (componentToUpdate) {
-                            componentToUpdate._key = new StandardExplicitKey('garden')
+                            componentToUpdate._key = new StandardExplicitKey('gardenFeature')
                         }
                         return draft
                     }
                 }
             )
             expect(result.edit).toEqual(deIndentWML(`
-                <Asset uuid=(testAsset)><Room uuid=(Room2) key=(garden) ref={0} /></Asset>
+                <Asset uuid=(testAsset)>
+                    <Feature uuid=(feat1) key=(feat1) ref={0}>
+                        <Replace><Key>feat1</Key></Replace><With><Key>gardenFeature</Key></With>
+                    </Feature>
+                </Asset>
             `))
             expect(result.standard).toEqual(deIndentWML(`
                 <Asset uuid=(testAsset)>
+                    <Feature uuid=(feat1) key=(gardenFeature) />
                     <Room uuid=(Room1)>
+                        <Situation uuid=(DEFAULT) ref={0} />
                         <Situation uuid=(DEFAULT)>
-                            <DisplayName>Test Room</DisplayName>
-                            <Description>Test Description</Description>
+                            <Description><Link to=(ROOM#feat1)>link</Link></Description>
                         </Situation>
-                        <Exit to=(garden)>out</Exit>
                     </Room>
-                    <Room uuid=(Room2) key=(garden)>
-                        <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
-                        <Exit to=(ROOM#Room1)>text</Exit>
-                    </Room>
-                    <Situation uuid=(DEFAULT) ref={0} />
                 </Asset>
             `))
             expect(result.calculated).toEqual(result.standard)

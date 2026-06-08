@@ -1,7 +1,6 @@
 import {
     DEFAULT_WML_STANDARDIZE_MODE,
     isWmlStandardizeMode,
-    resolveStandardizeFromSchemaContext,
     resolveStandardizeMode,
 } from './wmlStandardizeMode'
 
@@ -20,12 +19,5 @@ describe('wmlStandardizeMode', () => {
     it('resolveStandardizeMode uses default when omitted', () => {
         expect(resolveStandardizeMode(undefined)).toBe('asset')
         expect(resolveStandardizeMode('ephemeraWire')).toBe('ephemeraWire')
-    })
-
-    it('resolveStandardizeFromSchemaContext fills standardizeMode', () => {
-        expect(resolveStandardizeFromSchemaContext(undefined).standardizeMode).toBe('asset')
-        expect(
-            resolveStandardizeFromSchemaContext({ standardizeMode: 'ephemeraWire' }).standardizeMode
-        ).toBe('ephemeraWire')
     })
 })

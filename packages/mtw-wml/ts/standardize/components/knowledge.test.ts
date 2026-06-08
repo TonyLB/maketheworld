@@ -1,6 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
+import { StandardForm } from '../index'
 import StandardKnowledge from './knowledge'
 import { mergeTest } from "./utils/testing"
 import StandardReference from "../keys/reference"
@@ -267,7 +268,7 @@ describe('StandardKnowledge class', () => {
         `))
     })
 
-    it('rejects Render under Knowledge in asset mode', () => {
+    it('parses Render on bare StandardKnowledge (asset policy is on StandardForm)', () => {
         const wml = deIndentWML(`
             <Knowledge key=(lore)>
                 <Render>
@@ -277,7 +278,23 @@ describe('StandardKnowledge class', () => {
                 </Render>
             </Knowledge>
         `)
-        expect(() => new StandardKnowledge(wml)).toThrow()
+        const testKnowledge = new StandardKnowledge(wml)
+        expect(testKnowledge.render).toBeDefined()
     })
-    
+
+    it('rejects Render under Knowledge on asset StandardForm', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Knowledge key=(lore) uuid=(lore)>
+                    <Render>
+                        <DisplayName>Ancient lore</DisplayName>
+                        <Summary>Short summary</Summary>
+                        <Description>Full knowledge text.</Description>
+                    </Render>
+                </Knowledge>
+            </Asset>
+        `)
+        expect(() => new StandardForm(wml)).toThrow(/Knowledge render is not allowed in asset mode/)
+    })
+
 })

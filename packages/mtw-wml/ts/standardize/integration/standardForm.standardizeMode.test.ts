@@ -2,6 +2,7 @@ import { schemaToWML } from '../../schema'
 import { StandardForm } from '..'
 import { deIndentWML } from '../../schema/utils'
 import StandardRoom from '../components/room'
+import { ExitFacetList, StandardExitFacet } from '../keys/facets/exit'
 
 jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
     return {
@@ -40,7 +41,7 @@ describe('StandardForm.standardizeMode', () => {
         expect(sf.toJSON().standardizeMode).toBe('ephemeraWire')
     })
 
-    it('rejects Object under Room in asset mode (unconsumed tag)', () => {
+    it('rejects Object under Room in asset mode', () => {
         const wml = deIndentWML(`
             <Asset uuid=(Test)>
                 <Room key=(main) uuid=(main)>
@@ -50,10 +51,62 @@ describe('StandardForm.standardizeMode', () => {
                 </Room>
             </Asset>
         `)
-        expect(() => new StandardForm(wml)).toThrow(/Unconsumed child tags: Object/)
+        expect(() => new StandardForm(wml)).toThrow(/Room objects are not allowed in asset mode/)
     })
 
-    it('rejects Render under Room in asset mode (unconsumed tag)', () => {
+    it('serializes wire exits after in-memory mutation bypassing validate (mutation hazard)', () => {
+        const sf = new StandardForm(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(main) uuid=(main) />
+                <Room key=(target) uuid=(target) />
+            </Asset>
+        `))
+        const room = sf._lookup('ROOM#main') as StandardRoom
+        const mutated = room.clone() as StandardRoom
+        mutated._payload._exits = new ExitFacetList([
+            new StandardExitFacet({
+                reference: { tag: 'Room', key: 'target' },
+                payload: 'north',
+            }),
+        ])
+        const roomIndex = sf._components.findIndex((c) => c.universalKey === 'ROOM#main')
+        sf._components[roomIndex] = mutated
+        expect(schemaToWML([sf.schema])).toContain('<Exit')
+        expect((sf.toJSON().components.find((c) => c.tag === 'Room' && c.key === 'main') as { exits?: unknown }).exits).toBeDefined()
+    })
+
+    it('validate rejects asset form after in-memory wire mutation', () => {
+        const sf = new StandardForm(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(main) uuid=(main) />
+                <Room key=(target) uuid=(target) />
+            </Asset>
+        `))
+        const room = sf._lookup('ROOM#main') as StandardRoom
+        const mutated = room.clone() as StandardRoom
+        mutated._payload._exits = new ExitFacetList([
+            new StandardExitFacet({
+                reference: { tag: 'Room', key: 'target' },
+                payload: 'north',
+            }),
+        ])
+        const roomIndex = sf._components.findIndex((c) => c.universalKey === 'ROOM#main')
+        sf._components[roomIndex] = mutated
+        expect(() => sf.validate()).toThrow(/Room exits are not allowed in asset mode/)
+    })
+
+    it('rejects Exit under Room in asset mode', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(main) uuid=(main)>
+                    <Exit to=(north)>north</Exit>
+                </Room>
+            </Asset>
+        `)
+        expect(() => new StandardForm(wml)).toThrow(/Room exits are not allowed in asset mode/)
+    })
+
+    it('rejects Render under Room in asset mode', () => {
         const wml = deIndentWML(`
             <Asset uuid=(Test)>
                 <Room key=(main) uuid=(main)>
@@ -65,7 +118,7 @@ describe('StandardForm.standardizeMode', () => {
                 </Room>
             </Asset>
         `)
-        expect(() => new StandardForm(wml)).toThrow(/Unconsumed child tags: Render/)
+        expect(() => new StandardForm(wml)).toThrow(/Room render is not allowed in asset mode/)
     })
 
     /**

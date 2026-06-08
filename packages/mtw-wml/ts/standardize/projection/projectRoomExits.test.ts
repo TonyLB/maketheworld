@@ -65,7 +65,7 @@ describe('projectRoomExits', () => {
         ])
     })
 
-    it('projects one facet from in-graph room for portal edge (D4, D17)', () => {
+    it('projects one facet from in-graph room for portal edge (participant endpoint rule)', () => {
         const area = new StandardArea({
             tag: 'Area',
             key: 'region',
@@ -213,6 +213,83 @@ describe('projectRoomExits', () => {
         })
 
         expect(projectRoomExits(highway, [area]).items).toHaveLength(0)
+    })
+
+    describe('incomplete and non-participant edges (semantic filter boundary)', () => {
+        it('returns zero facets for uuid-only edge', () => {
+            const area = new StandardArea({
+                tag: 'Area',
+                key: 'region',
+                positionGraph: {
+                    nodes: [{ tag: 'Room', universalKey: highway }],
+                    edges: [{
+                        tag: 'Exit',
+                        uuid: 'edge-a1b2c3d4',
+                        payload: {},
+                    }],
+                },
+            })
+
+            expect(projectRoomExits(highway, [area]).items).toHaveLength(0)
+        })
+
+        it('returns zero facets for from-only edge', () => {
+            const area = new StandardArea({
+                tag: 'Area',
+                key: 'region',
+                positionGraph: {
+                    nodes: [{ tag: 'Room', universalKey: highway }],
+                    edges: [{
+                        tag: 'Exit',
+                        uuid: 'e1',
+                        from: highway,
+                        payload: { forward: 'east' },
+                    }],
+                },
+            })
+
+            expect(projectRoomExits(highway, [area]).items).toHaveLength(0)
+        })
+
+        it('returns zero facets for to-only edge', () => {
+            const area = new StandardArea({
+                tag: 'Area',
+                key: 'region',
+                positionGraph: {
+                    nodes: [{ tag: 'Room', universalKey: highway }],
+                    edges: [{
+                        tag: 'Exit',
+                        uuid: 'e1',
+                        to: highway,
+                        payload: { back: 'west' },
+                    }],
+                },
+            })
+
+            expect(projectRoomExits(highway, [area]).items).toHaveLength(0)
+        })
+
+        it('returns zero facets for participant room not touching orphan edge (projection does not enforce participant rule)', () => {
+            const area = new StandardArea({
+                tag: 'Area',
+                key: 'region',
+                positionGraph: {
+                    nodes: [{ tag: 'Room', universalKey: highway }],
+                    edges: [{
+                        tag: 'Exit',
+                        uuid: 'orphan',
+                        from: townCenter,
+                        to: outsideRoom,
+                        payload: { forward: 'east', back: 'west' },
+                    }],
+                },
+            })
+
+            expect(projectRoomExits(highway, [area]).items).toHaveLength(0)
+            expect(exitFacetTargets(projectRoomExits(townCenter, [area]))).toEqual([
+                { target: outsideRoom, label: 'east' },
+            ])
+        })
     })
 
     it('returns empty ExitFacetList when no edges touch the room', () => {

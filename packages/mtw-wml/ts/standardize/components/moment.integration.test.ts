@@ -19,7 +19,6 @@ describe('StandardMoment integration', () => {
                                 <Situation ref={0} uuid=(testRoomOneBase)>
                                     <Description>Test Room One</Description>
                                 </Situation>
-                                <Exit to=(testRoomTwo)>two</Exit>
                             </Room>
                         </Message>
                     </Moment>
@@ -32,7 +31,6 @@ describe('StandardMoment integration', () => {
                             <Situation uuid=(testRoomOneBase) ref={0}>
                                 <Description>Test Room One</Description>
                             </Situation>
-                            <Exit to=(testRoomTwo)>two</Exit>
                         </Room>
                         <Room uuid=(testRoomTwo) key=(testRoomTwo) />
                         <Moment uuid=(testMoment) key=(testMoment)>

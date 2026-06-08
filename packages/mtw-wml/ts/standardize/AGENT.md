@@ -126,19 +126,41 @@ particular context.
 
 ## Payload vocabulary vs semantic mode (`standardizeMode`)
 
-**Orthogonal to semantic modes above:** `StandardForm` also carries **`standardizeMode`** (`WmlStandardizeMode`: `'asset'` or `'ephemeraWire'`). That field controls which WML **tag set** applies when parsing and standardizing (blueprint vs ephemera wire), not whether the form is an edit bundle or an aggregate.
+**Orthogonal to semantic modes above:** `StandardForm` also carries **`standardizeMode`** (`WmlStandardizeMode`: `'asset'` or `'ephemeraWire'`). That field controls **asset wire policy** in **`validate()`**, not whether the form is an edit bundle or an aggregate.
 
 - **Public API:** Pass an optional second constructor argument, **`StandardFormConstructionOptions`**, e.g. `new StandardForm(wml, { standardizeMode: 'ephemeraWire' })`. Omitting it defaults to **`'asset'`** (`DEFAULT_WML_STANDARDIZE_MODE`).
 - **Persistence:** The resolved mode is stored on **`standardizeMode`**. **`toJSON()`** includes **`standardizeMode`** only when it is not **`'asset'`** (omission-over-empty). **`StandardFormData`** may include optional **`standardizeMode`**; constructor options and data field are resolved via **`StandardForm.resolveInitialStandardizeMode`** (data wins when both specify).
-- **Threading:** From the WML/schema path, mode flows **`processComponents`** → **`standardComponentFactory`** → generated component **`fromSchema(node, context?)`** → payload **`fromSchema`**. **`StandardizeFromSchemaContext`** carries **`standardizeMode`**. Facet payloads use the same context as an optional **third** argument: **`fromSchema(node, reference, context?)`** (the second argument remains the facet **`StandardReference`**).
+- **Components are mode-blind:** **`StandardRoom`**, **`StandardFeature`**, and **`StandardKnowledge`** always parse wire tags/JSON they understand (**`Exit`**, **`Object`**, **`Render`**, etc.). **`processComponents`** and **`standardComponentFactory`** do **not** receive **`standardizeMode`**.
+- **Policy boundary:** Asset wire rules apply only to **`StandardForm`** instances with **`standardizeMode === 'asset'`** after **`validate()`**. Freestanding **`new StandardRoom(...)`** / **`new StandardFeature(...)`** are outside that boundary (ephemera merge, gateways, unit tests).
 - **Clone / merge:** **`_clone()`** copies **`semanticMode`** and **`standardizeMode`**. **`merge()`** uses **`this._clone()`** as the base of the result, so the **receiver's** **`standardizeMode`** is kept (incoming's mode is not merged).
-- **`withStandardizeMode`:** Functional update of **`standardizeMode`**; prefer passing options at construction when parsing WML so **`fromSchema`** sees the correct mode.
+- **`withStandardizeMode`:** Functional update of **`standardizeMode`** on the form.
 
-**Ephemera-only tag (v1):** **`Object`** --- required **`uuid`** attribute and exactly one **`ShortName`** child (WML shape **`<Object uuid=(id)><ShortName>label</ShortName></Object>`**; you may also author **`uuid=(OBJECT#...)`**). The schema layer normalizes **`uuid`** to canonical **`OBJECT#...`** (bare **`id`** in WML becomes **`OBJECT#id`**); **`schemaToWML`** prints **`uuid=(id)`** again via the same strip pattern as **`Room`**. Parseable only inside a **`Room`**. **`StandardRoom`** collects **`objects`** as **`{ uuid, shortName }[]`** when **`standardizeMode === 'ephemeraWire'`**; in **`asset`** mode **`Object`** under **`Room`** is an unconsumed child and standardization **errors**. Ephemera **`Meta::Room.objects`** uses the **same** JSON shape (**`OBJECT#...`** **`uuid`** plus **`shortName`**). **`Object`** is not a **`StandardComponent`**; **`ComponentUUID`** / **`isSchemaComponentUUID`** are unchanged for this tag.
+### Asset wire policy (`validate()`)
+
+When **`standardizeMode === 'asset'`**, **`validate()`** runs **`validateAssetWirePolicy()`** (see **`assetWirePolicy.ts`**):
+
+| Component | Forbidden on asset forms |
+|-----------|--------------------------|
+| **`StandardRoom`** | non-empty **`exits`**, non-empty **`objects`**, defined **`render`** |
+| **`StandardFeature`** | defined **`render`** |
+| **`StandardKnowledge`** | defined **`render`** |
+
+**`validate()`** runs after WML/JSON/NDJSON construction, **`merge()`**, **`diff()`** finalize, and **`removeReferences()`**. It does **not** run after **`subset()`**, **`mapContents()`**, **`remapReferences()`**, or arbitrary **`_components`** assignment.
+
+### Mutation bypass risk
+
+- Valid asset forms are enforced by **`validate()`** on supported entry paths above.
+- Direct **`_payload`** / **`_components`** mutation without a subsequent **`validate()`** can leave wire fields in memory.
+- **`toJSON()`** and **`schema`** are faithful serializers, not sanitizers.
+- Persist paths must construct/merge through **`StandardForm`** APIs or call **`validate()`** after mutation.
+
+**`stripUIFields`** on **`StandardToJSONOptions`** is **deprecated** (legacy schema-tree hook; no-op).
+
+**Ephemera-only tag (v1):** **`Object`** --- required **`uuid`** attribute and exactly one **`ShortName`** child (WML shape **`<Object uuid=(id)><ShortName>label</ShortName></Object>`**; you may also author **`uuid=(OBJECT#...)`**). The schema layer normalizes **`uuid`** to canonical **`OBJECT#...`** (bare **`id`** in WML becomes **`OBJECT#id`**); **`schemaToWML`** prints **`uuid=(id)`** again via the same strip pattern as **`Room`**. Parseable only inside a **`Room`**. **`StandardRoom`** collects **`objects`** as **`{ uuid, shortName }[]`** when ingested; asset **`StandardForm`** rejects non-empty **`objects`** on **`validate()`**. Ephemera **`Meta::Room.objects`** uses the **same** JSON shape (**`OBJECT#...`** **`uuid`** plus **`shortName`**). **`Object`** is not a **`StandardComponent`**; **`ComponentUUID`** / **`isSchemaComponentUUID`** are unchanged for this tag.
 
 **Ephemera-only:** **`Render`** under **`Room`** (DisplayName / Summary / Description) is stored on **`StandardRoom`** as **`render`** in JSON with the same shape as **`SituationRoomFacetPayloadType`** (literal **`displayName`**, **`summary`** and **`description`** as render-tree editable data), not three plain strings.
 
-**Room prose:** In **`asset`** mode, prefer **Situation** facets on the Room for authored display name, summary, and description; wire mode surfaces resolved prose via **`render`** as above. **`StandardRoomData`** has **no** **`examples`** field. **Feature** and **Knowledge** use **`situations`** facets (same pattern as Room). See [`../AGENT.md`](../AGENT.md) (**Room** bullets under **Core Concepts**) and [`./components/AGENT.implementation.md`](./components/AGENT.implementation.md) (**StandardRoom**).
+**Room prose:** In asset authoring, prefer **Situation** facets on the Room for display name, summary, and description; ephemera wire surfaces resolved prose via **`render`**. **`StandardRoomData`** has **no** **`examples`** field. **Feature** and **Knowledge** use **`situations`** facets (same pattern as Room). See [`../AGENT.md`](../AGENT.md) (**Room** bullets under **Core Concepts**) and [`./components/AGENT.implementation.md`](./components/AGENT.implementation.md) (**StandardRoom**).
 
 ## Core Purpose
 
@@ -397,13 +419,13 @@ The cascade system uses a directed graph structure to define how component conne
 
 **Non-structural references** (connections that don't define structure):
 - `'Link'`: General reference links between components
-- `'Exit'`: Room-local exit connections (e.g., room-to-room exits under **Room**; subset **`ExitsAndShortName`**)
+- `'Exit'`: Legacy room-local exit facet connections (subset **`ExitsAndShortName`**). **Forbidden on asset room blueprints** (M6); may still appear on **ephemeraWire** composed forms. Live play exits are **Area-projected** --- see [`keys/edges/AGENT.edges.md`](./keys/edges/AGENT.edges.md).
 - `'Edge'`: Area topology exit endpoints (**`From`** / **`To`** on **`positionGraph.edges`**; subset **`Stub`** on target Room; distinct from room **`Exit`**)
 - `'Dependency'`: Component dependencies
 
 **Example**: Map editing cascade follows the pattern:
 1. Start at `'map'` node → follow `'Position'` connections → reach `'room'` nodes
-2. From `'room'` nodes → follow `'Exit'` connections → reach `'exitTarget'` nodes
+2. From `'room'` nodes → follow `'Exit'` connections → reach `'exitTarget'` nodes (legacy map/room-local facet refs; asset rooms no longer store exits)
 3. Each node specifies the `requestType` for components visited at that state
 
 **Example**: Area topology editing cascade:

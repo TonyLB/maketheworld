@@ -8,6 +8,11 @@ import {
     POSITION_GRAPH_NODE_TAGS,
     PositionGraphNodeTag
 } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/positionGraph'
+import {
+    assertEdgeSatisfiesParticipantRule,
+    edgeSatisfiesParticipantRule,
+    findEdgesViolatingParticipantRule,
+} from '@tonylb/mtw-wml/ts/standardize/components/areaTopologyValidation'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import { ExitEdgeList, StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
 import { referenceFromExitEndpoint } from '@tonylb/mtw-wml/ts/standardize/keys/edges/endpointReference'
@@ -59,28 +64,22 @@ export function removeNodeFromArea(area: StandardArea, ref: StandardReference): 
     return area.removeReferences([ref]) as StandardArea
 }
 
-export function edgeSatisfiesD4(area: StandardArea, edge: StandardExitEdge): boolean {
-    const nodeRefs = area.positionGraph.nodes.payload
-    const fromRef = referenceFromExitEndpoint(edge.from)
-    const toRef = referenceFromExitEndpoint(edge.to)
-    if (!fromRef || !toRef) {
-        return false
-    }
-    const fromInGraph = nodeRefs.some((node) => node.sameKey(fromRef))
-    const toInGraph = nodeRefs.some((node) => node.sameKey(toRef))
-    return fromInGraph || toInGraph
+export { assertEdgeSatisfiesParticipantRule, edgeSatisfiesParticipantRule }
+
+export function findEdgesMissingParticipantEndpoint(area: StandardArea): StandardExitEdge[] {
+    return findEdgesViolatingParticipantRule(area)
 }
 
-export function findEdgesViolatingD4(area: StandardArea): StandardExitEdge[] {
-    return area.positionGraph.edges.items.filter((edge) => !edgeSatisfiesD4(area, edge))
-}
-
-export function assertEdgeD4(area: StandardArea, edge: StandardExitEdge): void {
-    if (!edgeSatisfiesD4(area, edge)) {
-        throw new Error(
-            `Area Exit ${edge.uuid} requires at least one endpoint in positionGraph.nodes (D4)`
-        )
-    }
+export function addEmptyExitEdge(area: StandardArea, edgeUuid?: string): StandardExitEdge {
+    const uuid = edgeUuid ?? generateEdgeUuid()
+    const newEdge = new StandardExitEdge({
+        tag: 'Exit',
+        uuid,
+        payload: {}
+    })
+    const merged = area.positionGraph.edges.merge(new ExitEdgeList([newEdge])) ?? new ExitEdgeList([newEdge])
+    setAreaPositionGraphEdges(area, merged)
+    return newEdge
 }
 
 export function addEdgeToArea(
@@ -97,7 +96,6 @@ export function addEdgeToArea(
         to: { tag: 'Room', universalKey: toUniversalKey },
         payload: {}
     })
-    assertEdgeD4(area, newEdge)
     const merged = area.positionGraph.edges.merge(new ExitEdgeList([newEdge])) ?? new ExitEdgeList([newEdge])
     setAreaPositionGraphEdges(area, merged)
     return newEdge
@@ -119,7 +117,6 @@ export function updateEdgeInArea(
         return
     }
     const updated = update(items[index])
-    assertEdgeD4(area, updated)
     const newItems = [...items]
     newItems[index] = updated
     setAreaPositionGraphEdges(area, new ExitEdgeList(newItems))
@@ -178,6 +175,38 @@ export function resolveEndpointReferenceData(
     return ref?.toJSON()
 }
 
+function participantRoomKeys(area: StandardArea): Set<ComponentUUID> {
+    const keys = new Set<ComponentUUID>()
+    for (const node of area.positionGraph.nodes.payload) {
+        if (node.tag === 'Room' && node.universalKey) {
+            keys.add(node.universalKey as ComponentUUID)
+        }
+    }
+    return keys
+}
+
+/**
+ * When the other endpoint is resolved and not a participant, restrict this selector
+ * to participant rooms only (portal nudge). Otherwise return undefined (full Room list).
+ */
+export function exitEndpointSelectorIsExcluded(
+    area: StandardArea,
+    edge: StandardExitEdge,
+    endpoint: 'from' | 'to'
+): ((universalKey: ComponentUUID) => boolean) | undefined {
+    const otherEndpoint = endpoint === 'from' ? edge.to : edge.from
+    const otherRef = referenceFromExitEndpoint(otherEndpoint)
+    if (!otherRef) {
+        return undefined
+    }
+    const otherInGraph = area.positionGraph.nodes.payload.some((node) => node.sameKey(otherRef))
+    if (otherInGraph) {
+        return undefined
+    }
+    const participantKeys = participantRoomKeys(area)
+    return (universalKey: ComponentUUID) => !participantKeys.has(universalKey)
+}
+
 export function resolveEndpointLabel(
     edge: StandardExitEdge,
     endpoint: 'from' | 'to',
@@ -185,7 +214,7 @@ export function resolveEndpointLabel(
 ): string {
     const refData = resolveEndpointReferenceData(edge, endpoint)
     if (!refData) {
-        return 'Unknown'
+        return '(unset)'
     }
     const ref = new StandardReference(refData)
     const universalKey = ref.universalKey

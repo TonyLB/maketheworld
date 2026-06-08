@@ -3,7 +3,6 @@ import { Box } from '@mui/material'
 
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
 import DefaultRenderEditor from '../foundations/DefaultRenderEditor'
-import ExitEditor from './ExitEditor'
 import LensHeader from '../LensEdit/LensHeader'
 import FeatureListEditor from './FeatureListEditor'
 import RoomSituationsListEditor from './RoomSituationsListEditor'
@@ -88,7 +87,6 @@ export const RoomEditor: FunctionComponent = () => {
                             <WorkbenchShortNameField />
                             <Spacer />
                             <DefaultRenderEditor />
-                            <ExitEditor RoomId={universalKey} />
                             <FeatureListEditor RoomId={universalKey} />
                             <LensHeader
                                 RoomId={universalKey}
