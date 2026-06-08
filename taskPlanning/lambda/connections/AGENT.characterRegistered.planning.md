@@ -1,6 +1,6 @@
 # Character Registered vs Character Connected (`connections` presence split)
 
-**Status:** In progress. Next step: implement session orientation handlers (Phase 3) for `Character Registered` on render + affordance orchestration.
+**Status:** In progress. Next step: Phase 3a --- extend **`PerceptionThreads`** and terminal fan-in so session orientation uses **thread registration** for both **`Render Pertains`** and **`Affordances Pertain`** (no delivery plumbing through orchestration/cache).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../AGENT.md). This file is task-scoped; archive or delete after the initiative ships and durable docs are updated.
 
@@ -26,7 +26,7 @@ These outcomes must be **separate producer events** from `connections`, consumab
 
 | Event | Source | Stream key | When emitted | Primary ephemera consumer (target) |
 | --- | --- | --- | --- | --- |
-| **`Character Registered`** | `mtw.connections` | `CHARACTER#${characterId}` | Every successful `registercharacter` (already implemented) | **New:** `renderOrchestration` + `affordanceOrchestration` (+ `perception` fan-in) for **session orientation** |
+| **`Character Registered`** | `mtw.connections` | `CHARACTER#${characterId}` | Every successful `registercharacter` (already implemented) | **`renderOrchestration`** + **`affordanceOrchestration`** (orchestration kick); **`mtw.ephemera.perception`** (dual thread register + **`Render Pertains`** / **`Affordances Pertain`** terminal fan-in) for **session orientation** |
 | **`Character Connected`** | `mtw.connections.characters` | `CHARACTER#${characterId}` | Character aggregate session boundary `0 -> 1` only | **`mtw.ephemera.positions`** (world projection; existing) |
 | **`Character Disconnected`** | `mtw.connections.characters` | `CHARACTER#${characterId}` | Aggregate boundary `1 -> 0` (existing; verify parity when fixing connect gate) | **`mtw.ephemera.positions`** (existing) |
 
@@ -42,7 +42,7 @@ These outcomes must be **separate producer events** from `connections`, consumab
 ### Consumer invariants (ephemera)
 
 - **`mtw.ephemera.positions`** (`Character Connected` / `Character Disconnected`): **world-facing only** --- `CheckLocation` / `moveCharacter`, roster projection, room-side affordance refresh via existing `RoomUpdate` path. **Do not** treat this as the session RoomHeader bootstrap.
-- **Session orientation (new):** on **`Character Registered`**, resolve the character's current room from ephemera `Meta::Character`, kick **render** and **affordance** orchestration with delivery correlated to **`SESSION#${sessionId}`** (see [`publishMessage/index.ts`](../../../lambda/ephemera/publishMessage/index.ts) session targets). Register a **`mtw.ephemera.perception`** thread kind appropriate for terminal **`PublishMessage`** fan-in (new `threadKind` or documented reuse --- decide in implementation slice).
+- **Session orientation (new):** on **`Character Registered`**, resolve the character's current room from ephemera `Meta::Character`, compute perspective, then **register two perception threads** (render + affordance channels) with **`targets: [\`SESSION#${sessionId}\`]`** and **`characterId`** for viewer-specific affordance WML. Kick **render** and **affordance** orchestration with **room + perspective only** --- no delivery fields on orchestration/cache streams. Terminal **`PublishMessage`** correlates via **`(componentId, perspectiveKey)`** bucket lookup on **`Render Pertains`** ([`orchestrate.ts`](../../../lambda/ephemera/dataSource/perception/orchestrate.ts)) and **`Affordances Pertain`** ([`handleAffordancesPertain.ts`](../../../lambda/ephemera/dataSource/perception/handleAffordancesPertain.ts)). See Phase 3.
 - **Idempotency:** Both consumers tolerate duplicate events; session orientation may re-send headers to the same session; positions uses existing projection gates.
 
 ## Scope
@@ -89,7 +89,9 @@ npm test -- --watchAll=false dataSource/positions/ moveCharacter/index.test.ts
 
 ## Design decisions (resolve during implementation)
 
-- **Perception thread kind** for session orientation (`sessionCharacterRegistered` vs extending an existing kind with `targets: SESSION#...`).
+- **Perception thread kinds (agreed direction):** two new kinds --- **`sessionOrientationRender`** and **`sessionOrientationAffordances`** --- one row per channel in the same **`(roomId, perspectiveKey)`** bucket. Each carries **`targets: PublishTarget[]`** (session orientation uses **`SESSION#...`**), plus **`characterId`** (required for affordance **`ComponentStackMerge.get`**; render header WML is shared per perspective). **Do not** plumb `targets` / `sessionId` through **`Affordances Requested`**, **`Slice Ready`**, or **`Affordances Pertain`** payloads; that is the anti-pattern threads replace.
+- **Affordance steady-state roster path (unchanged in v1):** when no matching affordance thread row exists, **`handleAffordancesPertain`** keeps today's roster re-resolution (`resolveAffordanceTargetsForPerspective`). Session orientation is the first affordance path that **registers** before kicking orchestration; migrating roster refresh to threads is **out of scope** unless blocking.
+- **Render terminal path:** **`sessionOrientationRender`** fan-in in **`orchestrate.ts`** (Generating placeholder + terminal on **`Render Pertains`**, same lifecycle as **`roomHeaderBroadcast`**). Widen **`targets`** typing on thread registration commands from **`EphemeraCharacterId[]`** to **`PublishTarget[]`** where needed so **`SESSION#`** validates.
 - Whether **`moveCharacter`** should stop kicking passive render / imperative `Perception` header on **same-room** aggregate connect once orientation is owned by **`Character Registered`** (recommended follow-on to avoid double headers).
 - Whether **`Character Registered`** orientation runs on **every** registration (including second tab while character already in play) --- **default yes** (session bootstrap); aggregate connect remains suppressed for multi-session.
 
@@ -113,16 +115,35 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
   **Phase 2 note:** Ingress is wired (`ConnectionsCharacterRegistered` CloudWatch rule, `ConnectionsEventSerializer`, shared guards in [`connectionsCharacterRegistered/subscribedEvents.ts`](../../../lambda/ephemera/dataSource/connectionsCharacterRegistered/subscribedEvents.ts)). Orchestration `receiveEvents` intentionally no-ops until Phase 3 orientation handlers land.
 
 - [ ] Phase 3 --- Session orientation handlers (ephemera)
-  - [ ] Implement **`handleCharacterRegisteredOrientation`** (name TBD): load character room + assets, compute perspective, register **`mtw.ephemera.perception`** thread with **`targets: [\`SESSION#${sessionId}\`]`**, kick **`sendRenderRequested`** and affordance orchestration for that room/perspective.
-  - [ ] Wire terminal **`PublishMessage`** (render + affordance channels) through existing **`orchestrate.ts`** / **`handleAffordancesPertain`** patterns with **session-scoped targets**.
-  - [ ] Add tests: registration-only path delivers header targets to **`SESSION#...`**; **`Character Connected`** not required for orientation test case.
+
+  **Principle:** Perception threads capture delivery intent once at registration; orchestration and cache emit **`* Pertains`** with routing identity only (`roomId` / `componentId` + `perspectiveKey`). Terminal handlers look up the bucket and read **`registration.targets`** --- same model for render and affordance. **Do not** thread session targets through orchestration ingress or cache outbounds.
+
+  - [ ] **Phase 3a --- Perception thread model (both `* Pertains` terminal paths)**
+    - [ ] Add **`sessionOrientationRender`** and **`sessionOrientationAffordances`** to [`localApiEvents.ts`](../../../lambda/ephemera/dataSource/perception/localApiEvents.ts) (`PerceptionThreadRegisterCommand` discriminated union + validators): shared fields **`componentId`** (room), **`perspectiveKey`**, **`characterId`**, **`targets: PublishTarget[]`**, optional **`registrationId`** / **`messageGroupId`**.
+    - [ ] Extend [`perceptionThreads.ts`](../../../lambda/ephemera/internalCache/perceptionThreads.ts): thread body types, **`register`** / **`update`** / patch keys, type guards. Render kind: **`Initial | Generating | Terminal`** + **`messageId`** (correlated replace, mirror **`roomHeaderBroadcast`**). Affordance kind: **`Initial | Terminal`** only (affordance channel has no Generating replace pipeline per [multi-channel contract](../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md); fresh **`messageId`** per terminal row).
+    - [ ] Widen existing **`roomHeaderBroadcast`** (and related) **`targets`** fields to **`PublishTarget[]`** where session orientation reuse would otherwise force ad-hoc casts; keep **`isEphemeraCharacterId`** validation off **`SESSION#`** targets.
+    - [ ] **Render terminal:** in [`orchestrate.ts`](../../../lambda/ephemera/dataSource/perception/orchestrate.ts), fan-in **`sessionOrientationRender`** on **`Render Pertains`**, **`Generation Started`**, **`Orchestration Error`**, and **`Generation Deferred`** (parallel branches to **`roomHeaderBroadcast`**: **`metaData.roomChannel: 'render'`**, **`displayMode: 'header'`**, **`registration.targets`**, remove row after terminal).
+    - [ ] **Affordance terminal:** refactor [`handleAffordancesPertain.ts`](../../../lambda/ephemera/dataSource/perception/handleAffordancesPertain.ts) to **`list(roomId, perspectiveKey)`**, handle **`sessionOrientationAffordances`** rows first (compose via **`ComponentStackMerge.get(registration.characterId, roomId)`**, **`PublishMessage`** with **`registration.targets`**, **`metaData.roomChannel: 'affordances'`**, new **`messageId`** per row, **`remove`** thread after publish). **Fallback:** no matching affordance thread -> existing **`resolveAffordanceTargetsForPerspective`** + [`publishAffordancePerceptionForCharacters.ts`](../../../lambda/ephemera/dataSource/perception/publishAffordancePerceptionForCharacters.ts).
+    - [ ] Extend [`publishAffordancePerceptionForCharacters.ts`](../../../lambda/ephemera/dataSource/perception/publishAffordancePerceptionForCharacters.ts) (or thin helper) so thread path can pass **`PublishTarget[]`** separately from merge **`characterId`** (today **`targets`** === **`characterId`**).
+    - [ ] Unit tests: thread registration validators; **`orchestrate`** session render fan-in (Generating + terminal, **`SESSION#`** targets); **`handleAffordancesPertain`** with registered affordance thread vs roster fallback.
+
+  - [ ] **Phase 3b --- Orientation kick (orchestration ingress, no delivery plumbing)**
+    - [ ] Shared helper **`handleCharacterRegisteredOrientation`** (location TBD: e.g. [`connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts`](../../../lambda/ephemera/dataSource/connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts)): load character room from **`Meta::Character`**, assets, canon-filtered perspective ([`resolveCharacterRoomPerspectiveForRoom`](../../../lambda/ephemera/dataSource/perception/kickRoomHeaderBroadcast.ts)); no-op when room or perspective missing.
+    - [ ] Register **two** threads via **`sendPerceptionThreadRegistered`**: **`sessionOrientationRender`** + **`sessionOrientationAffordances`**, same bucket, **`targets: [\`SESSION#${sessionId}\`]`**, **`characterId`** from event.
+    - [ ] Kick **`sendRenderRequested`** and **`sendAffordancesRequested`** (reason TBD --- e.g. **`roster`** or dedicated **`sessionOrientation`**) with **`roomId` + `perspective` only**.
+    - [ ] Wire **`Character Registered`** branches in [`renderOrchestration/index.ts`](../../../lambda/ephemera/dataSource/renderOrchestration/index.ts) and [`affordanceOrchestration/index.ts`](../../../lambda/ephemera/dataSource/affordanceOrchestration/index.ts) **`receiveEvents`** (replace Phase 2 no-op).
+    - [ ] Unit tests: orientation helper registers two threads and enqueues both orchestration kicks; duplicate **`Character Registered`** tolerant.
+
+  - [ ] **Phase 3c --- Integration proof**
+    - [ ] Integration-style test: **`Character Registered`** alone (no **`Character Connected`**) delivers render + affordance **`PublishMessage`** rows to **`SESSION#...`** through full in-process bus path (thread register -> orchestration -> cache -> **`* Pertains`** -> perception terminal).
+    - [ ] Assert render row uses correlated **`messageId`** (Generating then terminal overwrite); affordance row uses **new** **`messageId`** (uncoupled channel).
 
 - [ ] Phase 4 --- Detangle docs and trim conflated behavior
   - [ ] Update [`lambda/connections/AGENT.md`](../../../lambda/connections/AGENT.md) --- separate producer outcomes, boundary semantics, consumer map.
   - [ ] Update [`documentation/dataSources/connections/index.md`](../../../documentation/dataSources/connections/index.md) --- add ephemera consumers for **`Character Registered`** vs **`Character Connected`**.
   - [ ] Update [`lambda/ephemera/AGENT.md`](../../../lambda/ephemera/AGENT.md) and [`lambda/ephemera/AGENT.event.md`](../../../lambda/ephemera/AGENT.event.md) --- positions = world; orientation = registration intake.
   - [ ] Update [`packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md`](../../../packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md) --- clarify **`Character Registered`** (session correlation) vs presence events (aggregate boundary).
-  - [ ] Optional: note in [`lambda/ephemera/dataSource/perception/AGENT.md`](../../../lambda/ephemera/dataSource/perception/AGENT.md) delivery-path table (new row for session orientation).
+  - [ ] Optional: note in [`lambda/ephemera/dataSource/perception/AGENT.md`](../../../lambda/ephemera/dataSource/perception/AGENT.md) delivery-path table (session orientation rows: **`sessionOrientationRender`** + **`sessionOrientationAffordances`**; affordance **`Affordances Pertain`** thread lookup).
   - [ ] Evaluate removing same-room header side effects from [`moveCharacter`](../../../lambda/ephemera/moveCharacter/index.ts) once orientation is verified (separate commit within this initiative if low risk).
 
 - [ ] Phase 5 --- End-to-end verification
@@ -163,7 +184,9 @@ npm test -- --watchAll=false \
 | Task plan authored | Done |
 | `Character Connected` gate fixed + tests | Done |
 | EventBridge + ephemera `Character Registered` ingress | Done |
-| Session orientation handlers (render + affordance + perception) | Not started |
+| Perception thread model (dual `* Pertains` fan-in) | Not started |
+| Session orientation kick + orchestration handlers | Not started |
+| Session orientation integration tests | Not started |
 | Documentation detangle | Not started |
 | E2E verified in deployed environment | Not started |
 
