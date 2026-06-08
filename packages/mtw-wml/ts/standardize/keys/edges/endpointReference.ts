@@ -26,6 +26,23 @@ const referenceFromStringBody = (value: string): StandardReference => {
 const referenceToJSON = (reference: StandardReference): StandardReferenceData =>
     reference.toJSON()
 
+const referenceFromSimpleBase = (
+    base: { toJSON: () => StandardReferenceData } | undefined
+): StandardReference | undefined => {
+    if (!base) {
+        return undefined
+    }
+    const plainValue = base.toJSON()
+    if (isStandardReferenceData(plainValue)) {
+        return new StandardReference(plainValue)
+    }
+    return undefined
+}
+
+const referenceFromPlainClass = (
+    plainClass: { plain?: { toJSON: () => StandardReferenceData } } | undefined
+): StandardReference | undefined => referenceFromSimpleBase(plainClass?.plain)
+
 export const createExitEndpointSimpleBase = (tagName: ExitEndpointTag) => {
     const endpointTagName = tagName
     return class ExitEndpointSimpleBase implements StandardEditablePayload<StandardReferenceData> {
@@ -308,22 +325,48 @@ export const createExitEndpointClasses = (tagName: ExitEndpointTag) => {
             return this
         }
 
+        references(): StandardReference[] {
+            if (this.isUnset()) {
+                return []
+            }
+            if (this._payload instanceof PlainClass) {
+                const ref = referenceFromPlainClass(this._payload)
+                return ref ? [ref] : []
+            }
+            if (this._payload instanceof RemoveClass) {
+                const match = (this._payload as InstanceType<typeof RemoveClass> & { match?: InstanceType<typeof SimpleBase> }).match
+                const ref = referenceFromSimpleBase(match)
+                return ref ? [ref] : []
+            }
+            if (this._payload instanceof ReplaceClass) {
+                const replacePayload = this._payload as InstanceType<typeof ReplaceClass> & {
+                    match?: InstanceType<typeof SimpleBase>
+                    payload?: InstanceType<typeof SimpleBase>
+                }
+                const refs: StandardReference[] = []
+                const matchRef = referenceFromSimpleBase(replacePayload.match)
+                const payloadRef = referenceFromSimpleBase(replacePayload.payload)
+                if (matchRef) {
+                    refs.push(matchRef)
+                }
+                if (payloadRef) {
+                    refs.push(payloadRef)
+                }
+                return refs
+            }
+            return []
+        }
+
         reference(): StandardReference | undefined {
             if (this.isUnset()) {
                 return undefined
             }
             if (this._payload instanceof PlainClass) {
-                const plainValue = this._payload.plain?.toJSON()
-                if (plainValue && isStandardReferenceData(plainValue)) {
-                    return new StandardReference(plainValue)
-                }
+                return referenceFromPlainClass(this._payload)
             }
             if (this._payload instanceof ReplaceClass) {
-                const payload = (this._payload as InstanceType<typeof ReplaceClass> & { payload?: InstanceType<typeof PlainClass> }).payload
-                const plainValue = payload?.plain?.toJSON()
-                if (plainValue && isStandardReferenceData(plainValue)) {
-                    return new StandardReference(plainValue)
-                }
+                const payload = (this._payload as InstanceType<typeof ReplaceClass> & { payload?: InstanceType<typeof SimpleBase> }).payload
+                return referenceFromSimpleBase(payload)
             }
             return undefined
         }
@@ -339,6 +382,9 @@ export const { StandardExitEndpoint: StandardExitFromEndpoint } = createExitEndp
 export const { StandardExitEndpoint: StandardExitToEndpoint } = createExitEndpointClasses('To')
 
 type StandardExitEndpointInstance = InstanceType<typeof StandardExitFromEndpoint>
+
+export const referencesFromExitEndpoint = (endpoint: StandardExitEndpointInstance): StandardReference[] =>
+    endpoint.references()
 
 export const referenceFromExitEndpoint = (endpoint: StandardExitEndpointInstance): StandardReference | undefined =>
     endpoint.reference()

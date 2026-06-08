@@ -746,5 +746,40 @@ describe('StandardForm', () => {
             })
         })
 
+        it('should assure endpoint room stubs when removing an Area edge', () => {
+            const baseWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Area uuid=(region) key=(region)>
+                        <Room uuid=(highway) key=(highway) />
+                        <Exit uuid=(e1)>
+                            <From>highway</From>
+                            <To>ROOM#outside</To>
+                            <Forward>east</Forward>
+                            <Back>west</Back>
+                        </Exit>
+                    </Area>
+                </Asset>
+            `)
+            const incomingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Area uuid=(region) key=(region)>
+                        <Room uuid=(highway) key=(highway) />
+                    </Area>
+                </Asset>
+            `)
+            const diff = new StandardForm(baseWML).diff(new StandardForm(incomingWML))
+            expect(diff).toBeDefined()
+
+            const outsideStub = diff!._lookup('ROOM#outside')
+            expect(outsideStub).toBeDefined()
+            expect(outsideStub?.tag).toBe('Room')
+            expect(outsideStub?.universalKey).toBe('ROOM#outside')
+
+            const highwayStub = diff!._lookup('ROOM#highway')
+            expect(highwayStub).toBeDefined()
+            expect(highwayStub?.tag).toBe('Room')
+            expect(highwayStub?.universalKey).toBe('ROOM#highway')
+        })
+
     })
 })

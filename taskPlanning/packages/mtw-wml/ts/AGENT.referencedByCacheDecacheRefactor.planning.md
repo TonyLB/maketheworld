@@ -1,6 +1,6 @@
 # `referencedBy` cache / decache refactor (single-pass persistence)
 
-**Status:** Not started. **Next:** Phase 1 --- fix exit endpoint `reference()` for Remove / Replace, then fold `referencedBy` into the main `cacheAsset` write loop and **disable** (not delete yet) the inverse second pass.
+**Status:** Phase 1 complete. **Next:** Phase 2 --- fold `referencedBy` into the main `cacheAsset` write loop and **disable** (not delete yet) the inverse second pass.
 
 This plan is task-scoped. Archive or delete it after the work ships; move lasting norms into package `AGENT.md` files next to code.
 
@@ -117,7 +117,7 @@ npm test -- --testPathPattern="cacheAsset|referencedBy|decacheAsset" --watchAll=
 
 | Phase | Description | Status |
 | --- | --- | --- |
-| **1** | Exit endpoint `reference()` + diff / `assureComponents` coverage | Not started |
+| **1** | Exit endpoint `reference()` + diff / `assureComponents` coverage | Complete |
 | **2** | First-pass `referencedBy` in `cacheAsset` | Not started |
 | **3** | Disable second pass; EventBridge proof (`mtw.diagnostics`) | Not started |
 | **4** | `decacheAsset` alignment + disable second call | Not started |
@@ -132,14 +132,14 @@ Mark pending work `[ ]` and completed work `[X]`. Mark nested bullets `[X]` as e
 
 ### Phase 1 --- Exit endpoint references (mtw-wml)
 
-- [ ] **Implement `reference()`** in [`endpointReference.ts`](../../../packages/mtw-wml/ts/standardize/keys/edges/endpointReference.ts):
-  - [ ] **Plain** endpoint -> `StandardReference` (unchanged).
-  - [ ] **Remove** endpoint -> ref from **match** (mirror Room Feature Remove in [`room.test.ts`](../../../packages/mtw-wml/ts/standardize/components/room.test.ts)).
-  - [ ] **Replace** endpoint -> refs from **both** match and payload (two refs when both resolve).
-- [ ] **Unit tests** for `reference()` / `referenceFromExitEndpoint` on Plain, Remove, Replace shapes.
-- [ ] **Area `referencedKeys()` tests:** edge add, edge remove (inverted / Remove envelope), endpoint Replace -> `referenceType: 'Edge'` entries include expected room ids.
-- [ ] **`StandardForm.diff` integration test:** removing an edge assures endpoint room stub(s) in `diff._components` via `assureComponents` (regression for the pushback case in planning discussion).
-- [ ] Document in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) one line: exit `reference()` includes edit envelopes for graph / subset / cache coverage (no new `D*` ids).
+- [X] **Implement `references()`** in [`endpointReference.ts`](../../../packages/mtw-wml/ts/standardize/keys/edges/endpointReference.ts) (+ export **`referencesFromExitEndpoint`**; **`reference()`** unchanged for effective/plain unwrap):
+  - [X] **Plain** endpoint -> `StandardReference` (unchanged).
+  - [X] **Remove** endpoint -> ref from **match** (mirror Room Feature Remove in [`room.test.ts`](../../../packages/mtw-wml/ts/standardize/components/room.test.ts)).
+  - [X] **Replace** endpoint -> refs from **both** match and payload (two refs when both resolve).
+- [X] **Unit tests** for `references()` / `referencesFromExitEndpoint` and `reference()` / `referenceFromExitEndpoint` on Plain, Remove, Replace shapes ([`endpointReference.test.ts`](../../../packages/mtw-wml/ts/standardize/keys/edges/endpointReference.test.ts)).
+- [X] **Area `referencedKeys()` tests:** edge add, edge remove (inverted / Remove envelope), endpoint Replace -> `referenceType: 'Edge'` entries include expected room ids.
+- [X] **`StandardForm.diff` integration test:** removing an edge assures endpoint room stub(s) in `diff._components` via `assureComponents` (regression for the pushback case in planning discussion).
+- [X] Document in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md): coverage vs effective `reference()` split (no new `D*` ids).
 
 ### Phase 2 --- First-pass `referencedBy` in `cacheAsset` (lambda/assets)
 

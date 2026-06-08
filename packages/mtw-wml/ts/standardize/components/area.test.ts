@@ -330,6 +330,49 @@ describe('StandardArea class', () => {
         expect(keys.filter((k) => k.referenceType === 'Dependency')).toHaveLength(1)
     })
 
+    it('should expose Edge referencedKeys for Remove envelope endpoints', () => {
+        const testArea = new StandardArea({
+            tag: 'Area',
+            key: 'region',
+            positionGraph: {
+                nodes: [{ tag: 'Room', key: 'highway', universalKey: 'ROOM#highway' }],
+                edges: [{
+                    tag: 'Exit',
+                    uuid: 'highwayToOutside',
+                    from: { tag: 'Remove', match: 'ROOM#highway' },
+                    to: { tag: 'Remove', match: 'ROOM#outside' },
+                    payload: {},
+                }],
+            },
+        })
+        const edgeKeys = testArea._payload.referencedKeys().filter((k) => k.referenceType === 'Edge')
+        expect(edgeKeys).toHaveLength(2)
+        expect(edgeKeys.some((k) => k.reference.universalKey === 'ROOM#highway')).toBe(true)
+        expect(edgeKeys.some((k) => k.reference.universalKey === 'ROOM#outside')).toBe(true)
+    })
+
+    it('should expose Edge referencedKeys for both Replace match and payload endpoints', () => {
+        const testArea = new StandardArea({
+            tag: 'Area',
+            key: 'region',
+            positionGraph: {
+                nodes: [{ tag: 'Room', key: 'highway', universalKey: 'ROOM#highway' }],
+                edges: [{
+                    tag: 'Exit',
+                    uuid: 'highwayToTown',
+                    from: 'ROOM#highway',
+                    to: { tag: 'Replace', match: 'ROOM#townCenter', payload: 'ROOM#ghi' },
+                    payload: { forward: 'east' },
+                }],
+            },
+        })
+        const edgeKeys = testArea._payload.referencedKeys().filter((k) => k.referenceType === 'Edge')
+        expect(edgeKeys).toHaveLength(3)
+        expect(edgeKeys.some((k) => k.reference.universalKey === 'ROOM#highway')).toBe(true)
+        expect(edgeKeys.some((k) => k.reference.universalKey === 'ROOM#townCenter')).toBe(true)
+        expect(edgeKeys.some((k) => k.reference.universalKey === 'ROOM#ghi')).toBe(true)
+    })
+
     describe('participant endpoint rule', () => {
         it('should accept edge when both endpoints are in nodes', () => {
             expect(() => new StandardArea({

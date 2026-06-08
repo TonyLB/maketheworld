@@ -62,7 +62,7 @@ In-asset authoring typically uses **legalKey** bodies (`highway`); emit prefers 
 | **Absent / unset** | `from` / `to` property omitted | `<From>` / `<To>` tag omitted | `undefined` |
 | **Empty tag** | (not stored) | `<From />` or `<To />` with no String body | Normalized to **absent** on Standardize parse |
 | **Plain value** | `StandardReferenceData` (legalKey object or universal string) | `<From>highway</From>` in-asset; `ROOM#highway` when key unknown | `StandardReference` |
-| **Edit envelope** | `{ tag: 'Remove' \| 'Replace', ... }` | `<Remove><From>...</From></Remove>` etc. | Per existing Replace rules |
+| **Edit envelope** | `{ tag: 'Remove' \| 'Replace', ... }` | `<Remove><From>...</From></Remove>` etc. | **`references()`** / **`referencesFromExitEndpoint`**: Remove **match**, Replace **match + payload** (graph / subset / cache `assureComponents` coverage). **`reference()`** / **`referenceFromExitEndpoint`**: effective plain unwrap only (Plain; Replace **payload**; Remove -> `undefined`) for projection and UI. |
 
 Incomplete edges (uuid-only or one-sided) omit unset endpoint tags on emit.
 

@@ -31,7 +31,7 @@ import {
 import StandardPositionGraph from "./positionGraph"
 import { POSITION_GRAPH_NODE_TAGS } from "./dataTypes/positionGraph"
 import { ExitEdgeList, StandardExitEdge, validateAreaExitSchemaNode } from "../keys/edges/exitEdge"
-import { referenceFromExitEndpoint } from "../keys/edges/endpointReference"
+import { referencesFromExitEndpoint } from "../keys/edges/endpointReference"
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 
 const POSITION_GRAPH_NODE_TAG_SET = new Set<string>(POSITION_GRAPH_NODE_TAGS)
@@ -202,12 +202,11 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
             ...this._positionGraph.nodes.payload.map((reference) => ({ referenceType: 'Dependency' as const, reference })),
         ]
         const edgeKeys: StandardComponentReferenceKey[] = this._positionGraph.edges.items.flatMap((edge) => {
-            const fromRef = referenceFromExitEndpoint(edge.from)
-            const toRef = referenceFromExitEndpoint(edge.to)
-            return [
-                ...(fromRef ? [{ referenceType: 'Edge' as const, reference: fromRef }] : []),
-                ...(toRef ? [{ referenceType: 'Edge' as const, reference: toRef }] : []),
+            const endpointRefs = [
+                ...referencesFromExitEndpoint(edge.from),
+                ...referencesFromExitEndpoint(edge.to),
             ]
+            return endpointRefs.map((reference) => ({ referenceType: 'Edge' as const, reference }))
         })
         return [...nodeKeys, ...edgeKeys]
     }
