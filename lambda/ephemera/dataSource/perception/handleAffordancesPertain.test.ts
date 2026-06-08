@@ -42,6 +42,49 @@ describe('handleAffordancesPertain', () => {
         }
     }
 
+    it('publishes affordance PerceptionMessage to SESSION# when sessionOrientationAffordances thread registered', async () => {
+        const sendSpy = jest.spyOn(messageBus, 'send')
+        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<AffordanceHeader />')
+        const rosterSpy = jest.spyOn(internalCache.RoomCharacterList, 'get')
+        const stackMergeSpy = jest.spyOn(internalCache.ComponentStackMerge, 'get')
+            .mockResolvedValue({ schema: {} } as any)
+
+        internalCache.PerceptionThreads.register({
+            threadKind: 'sessionOrientationAffordances',
+            componentId: passThroughFixtureRoomId,
+            perspectiveKey: passThroughFixturePerspectiveKey,
+            characterId: 'CHARACTER#Viewer',
+            targets: ['SESSION#test-session'],
+        })
+
+        await handleAffordancesPertain(makePayload(), messageBus)
+
+        const affordancePublishes = sendSpy.mock.calls.filter((c) => {
+            const m = c[0] as { type?: string; metaData?: { roomChannel?: string } }
+            return m?.type === 'PublishMessage' && m?.metaData?.roomChannel === 'affordances'
+        })
+        expect(affordancePublishes).toHaveLength(1)
+        const row = affordancePublishes[0][0] as {
+            targets?: string[];
+            messageId?: string;
+            wmlContent?: string;
+        }
+        expect(row.targets).toEqual(['SESSION#test-session'])
+        expect(row.wmlContent).toBe('<AffordanceHeader />')
+        expect(row.messageId).toMatch(/^MESSAGE#/)
+        expect(stackMergeSpy).toHaveBeenCalledTimes(1)
+        expect(stackMergeSpy).toHaveBeenCalledWith('CHARACTER#Viewer', passThroughFixtureRoomId)
+        expect(rosterSpy).not.toHaveBeenCalled()
+        expect(
+            internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
+        ).toEqual([])
+
+        stackMergeSpy.mockRestore()
+        schemaSpy.mockRestore()
+        sendSpy.mockRestore()
+        rosterSpy.mockRestore()
+    })
+
     it('publishes affordance PerceptionMessage for perspective-matched occupants only', async () => {
         const sendSpy = jest.spyOn(messageBus, 'send')
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<AffordanceHeader />')

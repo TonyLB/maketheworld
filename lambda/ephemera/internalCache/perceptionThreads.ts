@@ -4,7 +4,7 @@
  *
  * Multiple independent entries may share the same (componentId, perspectiveKey); each is a separate output request.
  */
-import { isEphemeraCharacterId, type EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isNonEmptyPublishTargetArray, type PublishTarget } from '../messageBus/baseClasses'
 import { v4 as uuidv4 } from 'uuid'
 import {
     isCharacterMoveWorldMessageSpec,
@@ -37,6 +37,22 @@ export type RoomHeaderBroadcastPerceptionThread = {
     cacheId?: string;
 }
 
+/** Session orientation render: Generating + terminal header fan-in (SESSION# targets on registration). */
+export type SessionOrientationRenderPerceptionThread = {
+    kind: 'sessionOrientationRender';
+    status: 'Initial' | 'Generating' | 'Terminal';
+    messageId?: string;
+    cacheId?: string;
+}
+
+/** Session orientation affordances: terminal only (no Generating replace pipeline). */
+export type SessionOrientationAffordancesPerceptionThread = {
+    kind: 'sessionOrientationAffordances';
+    status: 'Initial' | 'Terminal';
+    messageId?: string;
+    cacheId?: string;
+}
+
 /** Character move: header fan-in + Leave/Arrive WorldMessage specs on registration (see characterMoveDelivery). */
 export type CharacterMovePerceptionThread = {
     kind: 'characterMove';
@@ -51,6 +67,8 @@ export type PerceptionThread =
     | StubPerceptionThread
     | RoomDescriptionPerceptionThread
     | RoomHeaderBroadcastPerceptionThread
+    | SessionOrientationRenderPerceptionThread
+    | SessionOrientationAffordancesPerceptionThread
     | CharacterMovePerceptionThread
 
 export function isStubPerceptionThread(value: unknown): value is StubPerceptionThread {
@@ -103,6 +121,52 @@ export function isRoomHeaderBroadcastPerceptionThread(value: unknown): value is 
     return true
 }
 
+export function isSessionOrientationRenderPerceptionThread(
+    value: unknown
+): value is SessionOrientationRenderPerceptionThread {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (v.kind !== 'sessionOrientationRender') {
+        return false
+    }
+    const status = v.status
+    if (status !== 'Initial' && status !== 'Generating' && status !== 'Terminal') {
+        return false
+    }
+    if (v.messageId !== undefined && typeof v.messageId !== 'string') {
+        return false
+    }
+    if (v.cacheId !== undefined && typeof v.cacheId !== 'string') {
+        return false
+    }
+    return true
+}
+
+export function isSessionOrientationAffordancesPerceptionThread(
+    value: unknown
+): value is SessionOrientationAffordancesPerceptionThread {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (v.kind !== 'sessionOrientationAffordances') {
+        return false
+    }
+    const status = v.status
+    if (status !== 'Initial' && status !== 'Terminal') {
+        return false
+    }
+    if (v.messageId !== undefined && typeof v.messageId !== 'string') {
+        return false
+    }
+    if (v.cacheId !== undefined && typeof v.cacheId !== 'string') {
+        return false
+    }
+    return true
+}
+
 export function isCharacterMovePerceptionThread(value: unknown): value is CharacterMovePerceptionThread {
     if (!value || typeof value !== 'object') {
         return false
@@ -135,6 +199,8 @@ export function isPerceptionThread(value: unknown): value is PerceptionThread {
         isStubPerceptionThread(value)
         || isRoomDescriptionPerceptionThread(value)
         || isRoomHeaderBroadcastPerceptionThread(value)
+        || isSessionOrientationRenderPerceptionThread(value)
+        || isSessionOrientationAffordancesPerceptionThread(value)
         || isCharacterMovePerceptionThread(value)
     )
 }
@@ -158,6 +224,20 @@ export type RoomHeaderBroadcastPerceptionThreadPatch = {
     cacheId?: string;
 }
 
+export type SessionOrientationRenderPerceptionThreadPatch = {
+    threadKind: 'sessionOrientationRender';
+    status?: SessionOrientationRenderPerceptionThread['status'];
+    messageId?: string;
+    cacheId?: string;
+}
+
+export type SessionOrientationAffordancesPerceptionThreadPatch = {
+    threadKind: 'sessionOrientationAffordances';
+    status?: SessionOrientationAffordancesPerceptionThread['status'];
+    messageId?: string;
+    cacheId?: string;
+}
+
 export type CharacterMovePerceptionThreadPatch = {
     threadKind: 'characterMove';
     status?: CharacterMovePerceptionThread['status'];
@@ -167,17 +247,21 @@ export type CharacterMovePerceptionThreadPatch = {
     arriveDispatched?: boolean;
     leaveWorldMessage?: CharacterMoveWorldMessageSpec;
     arriveWorldMessage?: CharacterMoveWorldMessageSpec;
-    headerTargets?: EphemeraCharacterId[];
+    headerTargets?: PublishTarget[];
 }
 
 export type PerceptionThreadPatch =
     | RoomDescriptionPerceptionThreadPatch
     | RoomHeaderBroadcastPerceptionThreadPatch
+    | SessionOrientationRenderPerceptionThreadPatch
+    | SessionOrientationAffordancesPerceptionThreadPatch
     | CharacterMovePerceptionThreadPatch
     | StubPerceptionThreadPatch
 
 const ROOM_DESCRIPTION_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'cacheId'])
 const ROOM_HEADER_BROADCAST_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'cacheId'])
+const SESSION_ORIENTATION_RENDER_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'cacheId'])
+const SESSION_ORIENTATION_AFFORDANCES_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'cacheId'])
 const CHARACTER_MOVE_PATCH_KEYS = new Set<string>([
     'threadKind',
     'status',
@@ -248,6 +332,66 @@ export function isRoomHeaderBroadcastPerceptionThreadPatch(
     return true
 }
 
+export function isSessionOrientationRenderPerceptionThreadPatch(
+    value: unknown
+): value is SessionOrientationRenderPerceptionThreadPatch {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return false
+    }
+    const p = value as Record<string, unknown>
+    if (p.threadKind !== 'sessionOrientationRender') {
+        return false
+    }
+    for (const key of Object.keys(p)) {
+        if (!SESSION_ORIENTATION_RENDER_PATCH_KEYS.has(key)) {
+            return false
+        }
+    }
+    if ('status' in p && p.status !== undefined) {
+        const s = p.status
+        if (s !== 'Initial' && s !== 'Generating' && s !== 'Terminal') {
+            return false
+        }
+    }
+    if ('messageId' in p && p.messageId !== undefined && typeof p.messageId !== 'string') {
+        return false
+    }
+    if ('cacheId' in p && p.cacheId !== undefined && typeof p.cacheId !== 'string') {
+        return false
+    }
+    return true
+}
+
+export function isSessionOrientationAffordancesPerceptionThreadPatch(
+    value: unknown
+): value is SessionOrientationAffordancesPerceptionThreadPatch {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return false
+    }
+    const p = value as Record<string, unknown>
+    if (p.threadKind !== 'sessionOrientationAffordances') {
+        return false
+    }
+    for (const key of Object.keys(p)) {
+        if (!SESSION_ORIENTATION_AFFORDANCES_PATCH_KEYS.has(key)) {
+            return false
+        }
+    }
+    if ('status' in p && p.status !== undefined) {
+        const s = p.status
+        if (s !== 'Initial' && s !== 'Terminal') {
+            return false
+        }
+    }
+    if ('messageId' in p && p.messageId !== undefined && typeof p.messageId !== 'string') {
+        return false
+    }
+    if ('cacheId' in p && p.cacheId !== undefined && typeof p.cacheId !== 'string') {
+        return false
+    }
+    return true
+}
+
 export function isCharacterMovePerceptionThreadPatch(value: unknown): value is CharacterMovePerceptionThreadPatch {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         return false
@@ -285,13 +429,7 @@ export function isCharacterMovePerceptionThreadPatch(value: unknown): value is C
     if ('arriveWorldMessage' in p && p.arriveWorldMessage !== undefined && !isCharacterMoveWorldMessageSpec(p.arriveWorldMessage)) {
         return false
     }
-    if (
-        'headerTargets' in p
-        && p.headerTargets !== undefined
-        && (!Array.isArray(p.headerTargets)
-            || p.headerTargets.length === 0
-            || !p.headerTargets.every((t) => typeof t === 'string' && isEphemeraCharacterId(t)))
-    ) {
+    if ('headerTargets' in p && p.headerTargets !== undefined && !isNonEmptyPublishTargetArray(p.headerTargets)) {
         return false
     }
     return true
@@ -318,6 +456,12 @@ export function isPerceptionThreadPatch(value: unknown): value is PerceptionThre
     }
     if (p.threadKind === 'roomHeaderBroadcast') {
         return isRoomHeaderBroadcastPerceptionThreadPatch(value)
+    }
+    if (p.threadKind === 'sessionOrientationRender') {
+        return isSessionOrientationRenderPerceptionThreadPatch(value)
+    }
+    if (p.threadKind === 'sessionOrientationAffordances') {
+        return isSessionOrientationAffordancesPerceptionThreadPatch(value)
     }
     if (p.threadKind === 'characterMove') {
         return isCharacterMovePerceptionThreadPatch(value)
@@ -360,6 +504,36 @@ export function mergePerceptionThreadPatch(base: PerceptionThread, patch: Percep
             if (!isRoomHeaderBroadcastPerceptionThread(merged)) {
                 throw new Error(
                     'PerceptionThreads.mergePerceptionThreadPatch: merged roomHeaderBroadcast thread failed validation'
+                )
+            }
+            return merged
+        }
+        case 'sessionOrientationRender': {
+            if (base.kind !== 'sessionOrientationRender') {
+                throw new Error(
+                    'PerceptionThreads.mergePerceptionThreadPatch: sessionOrientationRender patch requires sessionOrientationRender thread'
+                )
+            }
+            const { threadKind: _, ...rest } = patch
+            const merged = { ...base, ...rest }
+            if (!isSessionOrientationRenderPerceptionThread(merged)) {
+                throw new Error(
+                    'PerceptionThreads.mergePerceptionThreadPatch: merged sessionOrientationRender thread failed validation'
+                )
+            }
+            return merged
+        }
+        case 'sessionOrientationAffordances': {
+            if (base.kind !== 'sessionOrientationAffordances') {
+                throw new Error(
+                    'PerceptionThreads.mergePerceptionThreadPatch: sessionOrientationAffordances patch requires sessionOrientationAffordances thread'
+                )
+            }
+            const { threadKind: _, ...rest } = patch
+            const merged = { ...base, ...rest }
+            if (!isSessionOrientationAffordancesPerceptionThread(merged)) {
+                throw new Error(
+                    'PerceptionThreads.mergePerceptionThreadPatch: merged sessionOrientationAffordances thread failed validation'
                 )
             }
             return merged
@@ -413,6 +587,22 @@ function assertRegistrationMatchesThread(entry: PerceptionThreadEntry): void {
         if (thread.kind !== 'roomHeaderBroadcast') {
             throw new Error(
                 'PerceptionThreads.update: registration.threadKind roomHeaderBroadcast does not match stored thread.kind'
+            )
+        }
+        return
+    }
+    if (registration.threadKind === 'sessionOrientationRender') {
+        if (thread.kind !== 'sessionOrientationRender') {
+            throw new Error(
+                'PerceptionThreads.update: registration.threadKind sessionOrientationRender does not match stored thread.kind'
+            )
+        }
+        return
+    }
+    if (registration.threadKind === 'sessionOrientationAffordances') {
+        if (thread.kind !== 'sessionOrientationAffordances') {
+            throw new Error(
+                'PerceptionThreads.update: registration.threadKind sessionOrientationAffordances does not match stored thread.kind'
             )
         }
         return
@@ -501,6 +691,12 @@ export default class PerceptionThreadsData {
             case 'roomHeaderBroadcast':
                 thread = { kind: 'roomHeaderBroadcast', status: 'Initial' }
                 break
+            case 'sessionOrientationRender':
+                thread = { kind: 'sessionOrientationRender', status: 'Initial' }
+                break
+            case 'sessionOrientationAffordances':
+                thread = { kind: 'sessionOrientationAffordances', status: 'Initial' }
+                break
             case 'characterMove':
                 thread = { kind: 'characterMove', status: 'Initial' }
                 break
@@ -554,6 +750,20 @@ export default class PerceptionThreadsData {
                 return true
             }
             case 'roomHeaderBroadcast': {
+                if (!isPerceptionThreadPatch(partial)) {
+                    throw new Error('PerceptionThreads.update: not a valid PerceptionThreadPatch')
+                }
+                entry.thread = mergePerceptionThreadPatch(entry.thread, partial)
+                return true
+            }
+            case 'sessionOrientationRender': {
+                if (!isPerceptionThreadPatch(partial)) {
+                    throw new Error('PerceptionThreads.update: not a valid PerceptionThreadPatch')
+                }
+                entry.thread = mergePerceptionThreadPatch(entry.thread, partial)
+                return true
+            }
+            case 'sessionOrientationAffordances': {
                 if (!isPerceptionThreadPatch(partial)) {
                     throw new Error('PerceptionThreads.update: not a valid PerceptionThreadPatch')
                 }

@@ -64,4 +64,51 @@ describe('isPerceptionThreadRegisterCommand', () => {
             } as unknown)
         ).toBe(false)
     })
+
+    it('accepts sessionOrientationRender with SESSION# targets', () => {
+        expect(
+            isPerceptionThreadRegisterCommand({
+                threadKind: 'sessionOrientationRender',
+                componentId: 'ROOM#r1',
+                perspectiveKey: 'pk',
+                characterId: 'CHARACTER#a',
+                targets: ['SESSION#session-1'],
+            })
+        ).toBe(true)
+    })
+
+    it('accepts sessionOrientationAffordances with SESSION# targets', () => {
+        expect(
+            isPerceptionThreadRegisterCommand({
+                threadKind: 'sessionOrientationAffordances',
+                componentId: 'ROOM#r1',
+                perspectiveKey: 'pk',
+                characterId: 'CHARACTER#a',
+                targets: ['SESSION#session-1'],
+            })
+        ).toBe(true)
+    })
+
+    it('rejects sessionOrientationRender with empty targets', () => {
+        expect(
+            isPerceptionThreadRegisterCommand({
+                threadKind: 'sessionOrientationRender',
+                componentId: 'ROOM#r1',
+                perspectiveKey: 'pk',
+                characterId: 'CHARACTER#a',
+                targets: [],
+            })
+        ).toBe(false)
+    })
+
+    it('rejects sessionOrientationAffordances without characterId', () => {
+        expect(
+            isPerceptionThreadRegisterCommand({
+                threadKind: 'sessionOrientationAffordances',
+                componentId: 'ROOM#r1',
+                perspectiveKey: 'pk',
+                targets: ['SESSION#session-1'],
+            })
+        ).toBe(false)
+    })
 })
