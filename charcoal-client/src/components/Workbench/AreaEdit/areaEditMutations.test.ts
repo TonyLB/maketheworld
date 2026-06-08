@@ -1,3 +1,4 @@
+import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
@@ -11,11 +12,13 @@ import {
     addNodeToArea,
     assertEdgeSatisfiesParticipantRule,
     edgeSatisfiesParticipantRule,
+    exitEndpointSelectorIsExcluded,
     filterNodesByTag,
     findEdgesMissingParticipantEndpoint,
     mergeNodesTagSlice,
     removeEdgeFromArea,
     removeNodeFromArea,
+    resolveEndpointLabel,
     retargetEdgeEndpoint,
     updateEdgeInArea,
     updateEdgePayloadLiteral
@@ -166,5 +169,78 @@ describe('areaEditMutations', () => {
         expect(violations).toHaveLength(1)
         expect(violations[0].uuid).toEqual('highwayToTown')
         expect(() => assertEdgeSatisfiesParticipantRule(withoutBoth, violations[0])).toThrow(/requires at least one endpoint in positionGraph.nodes/)
+    })
+
+    it('resolveEndpointLabel returns (unset) for absent endpoint', () => {
+        const form = new StandardForm(baseWML)
+        const area = getArea()
+        addEmptyExitEdge(area, 'stubEdge')
+        const edge = area.positionGraph.edges.items[0]
+        expect(resolveEndpointLabel(edge, 'from', form)).toEqual('(unset)')
+        expect(resolveEndpointLabel(edge, 'to', form)).toEqual('(unset)')
+    })
+
+    describe('exitEndpointSelectorIsExcluded', () => {
+        it('returns undefined for stub edge with both endpoints unset', () => {
+            const area = getArea()
+            addEmptyExitEdge(area, 'stubEdge')
+            const edge = area.positionGraph.edges.items[0]
+            expect(exitEndpointSelectorIsExcluded(area, edge, 'from')).toBeUndefined()
+            expect(exitEndpointSelectorIsExcluded(area, edge, 'to')).toBeUndefined()
+        })
+
+        it('returns undefined for To selector when From is participant', () => {
+            const area = getArea()
+            addEmptyExitEdge(area, 'stubEdge')
+            updateEdgeInArea(area, 'stubEdge', (e) => retargetEdgeEndpoint(e, 'from', 'ROOM#highway'))
+            const edge = area.positionGraph.edges.items[0]
+            expect(exitEndpointSelectorIsExcluded(area, edge, 'to')).toBeUndefined()
+        })
+
+        it('restricts From selector when To is non-participant', () => {
+            const form = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Area uuid=(AREA#district) key=(district)>
+                        <Room uuid=(ROOM#highway) />
+                    </Area>
+                    <Room uuid=(ROOM#highway) key=(highway)><ShortName>Highway</ShortName></Room>
+                    <Room uuid=(ROOM#outside) key=(outside)><ShortName>Outside</ShortName></Room>
+                </Asset>
+            `))
+            const area = form.byUniversalId['AREA#district']
+            if (!(area instanceof StandardArea)) {
+                throw new Error('Expected StandardArea')
+            }
+            addEmptyExitEdge(area, 'portalEdge')
+            updateEdgeInArea(area, 'portalEdge', (e) => retargetEdgeEndpoint(e, 'to', 'ROOM#outside'))
+            const edge = area.positionGraph.edges.items[0]
+            const isExcluded = exitEndpointSelectorIsExcluded(area, edge, 'from')
+            expect(isExcluded).toBeDefined()
+            expect(isExcluded!('ROOM#highway' as ComponentUUID)).toBe(false)
+            expect(isExcluded!('ROOM#outside' as ComponentUUID)).toBe(true)
+        })
+
+        it('restricts To selector when From is non-participant', () => {
+            const form = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Area uuid=(AREA#district) key=(district)>
+                        <Room uuid=(ROOM#highway) />
+                    </Area>
+                    <Room uuid=(ROOM#highway) key=(highway)><ShortName>Highway</ShortName></Room>
+                    <Room uuid=(ROOM#outside) key=(outside)><ShortName>Outside</ShortName></Room>
+                </Asset>
+            `))
+            const area = form.byUniversalId['AREA#district']
+            if (!(area instanceof StandardArea)) {
+                throw new Error('Expected StandardArea')
+            }
+            addEmptyExitEdge(area, 'portalEdge')
+            updateEdgeInArea(area, 'portalEdge', (e) => retargetEdgeEndpoint(e, 'from', 'ROOM#outside'))
+            const edge = area.positionGraph.edges.items[0]
+            const isExcluded = exitEndpointSelectorIsExcluded(area, edge, 'to')
+            expect(isExcluded).toBeDefined()
+            expect(isExcluded!('ROOM#highway' as ComponentUUID)).toBe(false)
+            expect(isExcluded!('ROOM#outside' as ComponentUUID)).toBe(true)
+        })
     })
 })

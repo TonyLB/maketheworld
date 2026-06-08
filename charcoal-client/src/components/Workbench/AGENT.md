@@ -153,7 +153,7 @@ Use asset-level paths when there is no parent session or domain topology require
 
 | Area | Pattern |
 | --- | --- |
-| Area exit topology | `ExitEdgeListEditor` + `areaEditMutations` (`addEmptyExitEdge` for uuid-only stubs; add/update do not throw on participant rule; warnings via `edgeSatisfiesParticipantRule`) |
+| Area exit topology | `ExitEdgeListEditor` + `areaEditMutations`: **Add exit edge** calls `addEmptyExitEdge` (uuid-only stub row); From/To edited independently per row (`ExitEdgeRowEditor`); absent endpoints display as `(unset)`; participant endpoint rule is warning-only (`participantRuleWarning` row border + `PositionGraphNodesEditor` alert); row `ComponentSelectorDialog` uses `exitEndpointSelectorIsExcluded` to nudge portal edges (restrict to participant rooms when the other endpoint is resolved and non-participant) |
 | Layered Room situation facets | `SituationFacetRenderFieldsEditor` (asset-mode per change) |
 | Character, Situation, Map editors | Not on component session yet |
 | Asset-mode reference list | `ReferenceListEditor` (`listContext` + `updateStandard`) |
@@ -338,7 +338,7 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 | `WorkbenchContainer.tsx` | Responsive layout, breadcrumbs, AssetSelector, theme |
 | `WorkbenchAssetEditor.tsx` | View routing (asset / component / componentLayer) |
 | `WorkbenchAssetEditForm.tsx` | Asset root: **`WorkbenchAssetMetaProvider`**, ShortName/Summary session fields, **`TopLevelEditor`** |
-| `AreaEdit/` | AreaEditor (`WorkbenchComponentProvider` + shortName; PositionGraphNodesEditor session reference lists; ExitEdgeListEditor) |
+| `AreaEdit/` | AreaEditor (`WorkbenchComponentProvider` + shortName; PositionGraphNodesEditor session reference lists; ExitEdgeListEditor stub add + per-row endpoint selectors) |
 | `RoomEdit/` | RoomEditor (component session for shortName; FeatureListEditor, Lens via LensEdit/LensHeader, **`RoomSituationsListEditor`** for non-DEFAULT situations). Room-local exits removed --- topology via **AreaEdit** / **`ExitEdgeListEditor`**. |
 | `FeatureEdit/` | FeatureEditor (component session; shortName + DEFAULT prose via session fields) |
 | `KnowledgeEdit/` | KnowledgeEditor (component session; shortName + DEFAULT prose via session fields) |

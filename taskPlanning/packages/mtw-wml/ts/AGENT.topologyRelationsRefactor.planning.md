@@ -1,6 +1,6 @@
 # Topology relations refactor (partial edges + invariant naming)
 
-**Status:** Phase 2 complete (client mutations + schema converter tests shipped). **Next step:** Phase 3 Workbench exit-edge editor refactor. Steady-state invariant names live in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md#topology-invariants).
+**Status:** Phase 3 complete (Workbench exit-edge editor refactor shipped). **Next step:** Phase 4 Coyote demo topology restore in production. Steady-state invariant names live in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md#topology-invariants).
 
 This plan is task-scoped. Archive or delete it after the work ships; move lasting norms into package `AGENT.md` files next to code.
 
@@ -122,8 +122,8 @@ rg 'edgeSatisfiesD4|assertEdgeD4|findEdgesViolatingD4|d4Error' packages/mtw-wml 
 | --- | --- | --- |
 | **1** | Invariant naming cleanup (`D*` -> glossary names) | Complete |
 | **2** | Partial / incomplete edges in WML + Standardize + edit algebra | Complete |
-| **3** | Workbench exit-edge editor refactor | Not started |
-| **4** | Restore Coyote demo topology in production | Not started (blocked on Phase 3) |
+| **3** | Workbench exit-edge editor refactor | Complete |
+| **4** | Restore Coyote demo topology in production | Not started |
 
 ---
 
@@ -157,16 +157,14 @@ Mark pending work `[ ]` and completed work `[X]`. Mark nested bullets `[X]` as e
 
 ### Phase 3 --- Workbench exit-edge editor
 
-- [ ] Fix add flow: **Add exit edge** calls `addEmptyExitEdge` and shows a new row (remove two-step wizard, or fix `ComponentSelectorDialog` so step 1 does not call `closeAddFlow` on select).
-- [ ] **Unset display:** [`ExitEdgeRowEditor`](../../../charcoal-client/src/components/Workbench/AreaEdit/ExitEdgeRowEditor.tsx) --- show `From: (unset)` / `To: (unset)` instead of `Unknown` when endpoint absent; keep independent selectors.
-- [ ] **Warnings, not blocks:** Participant rule violation styling (rename `d4Error` prop); do not disable save/add for incomplete or participant-less edges.
-- [ ] **Optional UX:** Restrict From/To selectors to Area participant rooms where that helps authors (portal edges may still need full asset Room list --- decide in implementation; document choice).
-- [ ] **Tests:** [`areaEditMutations.test.ts`](../../../charcoal-client/src/components/Workbench/AreaEdit/areaEditMutations.test.ts) for stub add + retarget; component test or RTL test for add button creating a visible row.
-- [ ] Update [`charcoal-client/src/components/Workbench/AGENT.md`](../../../charcoal-client/src/components/Workbench/AGENT.md) Area editor section if behavior description exists.
+- [X] Fix add flow: **Add exit edge** calls `addEmptyExitEdge` and shows a new row immediately. **Decision:** remove the two-step From/To wizard (`addStep`, `pendingFrom`, add-flow `ComponentSelectorDialog` pair in [`ExitEdgeListEditor`](../../../charcoal-client/src/components/Workbench/AreaEdit/ExitEdgeListEditor.tsx)); authors set endpoints on the new row via existing row selectors.
+- [X] **Unset display:** [`ExitEdgeRowEditor`](../../../charcoal-client/src/components/Workbench/AreaEdit/ExitEdgeRowEditor.tsx) --- show `From: (unset)` / `To: (unset)` instead of `Unknown` when endpoint absent; keep independent selectors.
+- [X] **Warnings, not blocks:** Participant rule violation styling (rename `d4Error` prop); do not disable save/add for incomplete or participant-less edges.
+- [X] **Endpoint selector scope (row edit):** In [`ExitEdgeRowEditor`](../../../charcoal-client/src/components/Workbench/AreaEdit/ExitEdgeRowEditor.tsx), filter `ComponentSelectorDialog` Room list by the **other** endpoint's participant status. **Decision:** when **To** is resolved and **not** in `positionGraph.nodes`, restrict **From** to participant rooms only; when **From** is resolved and **not** in `positionGraph.nodes`, restrict **To** to participant rooms only. When the other endpoint is unset or is a participant, show the full asset Room list (portal edges: one inside, one outside). Implement via a shared helper (e.g. `roomsForExitEndpointSelector(area, edge, endpoint)`).
+- [X] **Tests:** [`areaEditMutations.test.ts`](../../../charcoal-client/src/components/Workbench/AreaEdit/areaEditMutations.test.ts) for stub add + retarget; component test or RTL test for add button creating a visible row.
+- [X] Update [`charcoal-client/src/components/Workbench/AGENT.md`](../../../charcoal-client/src/components/Workbench/AGENT.md) Area editor section if behavior description exists.
 
 ### Phase 4 --- Restore demo topology (production)
-
-Blocked until Phase 3 makes Area exit authoring usable.
 
 - [ ] Re-author or migrate Coyote demo edges into **`AREA#WORLD`** **`positionGraph.edges`** in production (participant rooms + four bidirectional edges). Reference spec: [Production exit inventory (Coyote demo)](#production-exit-inventory-coyote-demo) below.
 - [ ] Ensure **`AREA#WORLD`** in **`ASSET#primitives`** lists participant rooms in **`positionGraph.nodes`**.
@@ -253,6 +251,27 @@ Full edge (unchanged normative shape):
     <Back>west</Back>
 </Exit>
 ```
+
+---
+
+## Design notes (Phase 3)
+
+### Add flow (decided)
+
+**Remove the two-step wizard.** **Add exit edge** calls `addEmptyExitEdge` in one `updateStandard` pass and renders the new row with unset From/To. Do not patch `ComponentSelectorDialog` close behavior for a wizard that no longer exists.
+
+### Endpoint selector scope (decided)
+
+Portal edges need one endpoint inside the Area (`positionGraph.nodes`) and one outside. To nudge authors without blocking storage:
+
+| Other endpoint state | Selector being opened | Room list |
+| --- | --- | --- |
+| Unset | From or To | Full asset `Room` list |
+| Participant (in `positionGraph.nodes`) | From or To | Full asset `Room` list |
+| Resolved, not a participant | **From** (other = To) | Participant rooms only |
+| Resolved, not a participant | **To** (other = From) | Participant rooms only |
+
+Authors can still create participant-less edges (warning styling); restrictions apply only to selector options, not to `updateEdgeInArea`.
 
 ---
 

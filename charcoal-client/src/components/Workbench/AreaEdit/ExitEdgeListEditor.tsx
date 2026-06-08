@@ -1,21 +1,19 @@
-import React, { FunctionComponent, useCallback, useMemo, useState } from 'react'
+import React, { FunctionComponent, useCallback, useMemo } from 'react'
 import Box from '@mui/material/Box'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemIcon from '@mui/material/ListItemIcon'
 import ListItemText from '@mui/material/ListItemText'
-import Typography from '@mui/material/Typography'
 import AddIcon from '@mui/icons-material/Add'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
 import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
 import { MakeTheWorldAccordion } from '../../UI'
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
-import ComponentSelectorDialog from '../foundations/ComponentSelector/ComponentSelectorDialog'
 import ExitEdgeRowEditor from './ExitEdgeRowEditor'
 import {
-    addEdgeToArea,
+    addEmptyExitEdge,
     edgeSatisfiesParticipantRule,
     removeEdgeFromArea,
     updateEdgeInArea
@@ -25,12 +23,8 @@ export type ExitEdgeListEditorProps = {
     AreaId: ComponentUUID
 }
 
-type AddEdgeStep = 'from' | 'to' | null
-
 export const ExitEdgeListEditor: FunctionComponent<ExitEdgeListEditorProps> = ({ AreaId }) => {
     const { readonly, standardForm, updateStandard } = useWorkbenchAsset()
-    const [addStep, setAddStep] = useState<AddEdgeStep>(null)
-    const [pendingFrom, setPendingFrom] = useState<ComponentUUID | null>(null)
 
     const area = useMemo(() => {
         const component = standardForm.byUniversalId[AreaId]
@@ -42,11 +36,6 @@ export const ExitEdgeListEditor: FunctionComponent<ExitEdgeListEditorProps> = ({
 
     const edges = useMemo(() => area?.positionGraph.edges.items ?? [], [area])
 
-    const hasNodes = useMemo(
-        () => Boolean(area && area.positionGraph.nodes.payload.length > 0),
-        [area]
-    )
-
     const edgeSummary = useMemo(() => {
         if (!edges.length) {
             return undefined
@@ -54,43 +43,21 @@ export const ExitEdgeListEditor: FunctionComponent<ExitEdgeListEditorProps> = ({
         return `${edges.length} edge${edges.length === 1 ? '' : 's'}`
     }, [edges])
 
-    const openAddFlow = useCallback(() => {
-        if (readonly || !hasNodes) {
+    const handleAddExitEdge = useCallback(() => {
+        if (readonly) {
             return
         }
-        setPendingFrom(null)
-        setAddStep('from')
-    }, [readonly, hasNodes])
-
-    const closeAddFlow = useCallback(() => {
-        setAddStep(null)
-        setPendingFrom(null)
-    }, [])
-
-    const handleAddFromSelect = useCallback((universalKey: ComponentUUID) => {
-        setPendingFrom(universalKey)
-        setAddStep('to')
-    }, [])
-
-    const handleAddToSelect = useCallback(
-        (toUniversalKey: ComponentUUID) => {
-            if (!pendingFrom) {
-                return
-            }
-            updateStandard({
-                type: 'update',
-                update: (draft) => {
-                    const base = draft.byUniversalId[AreaId]
-                    if (base instanceof StandardArea) {
-                        addEdgeToArea(base, pendingFrom, toUniversalKey)
-                    }
-                    return draft
+        updateStandard({
+            type: 'update',
+            update: (draft) => {
+                const base = draft.byUniversalId[AreaId]
+                if (base instanceof StandardArea) {
+                    addEmptyExitEdge(base)
                 }
-            })
-            closeAddFlow()
-        },
-        [AreaId, pendingFrom, updateStandard, closeAddFlow]
-    )
+                return draft
+            }
+        })
+    }, [AreaId, readonly, updateStandard])
 
     const updateEdge = useCallback(
         (edgeUuid: string, updatedEdge: StandardExitEdge) => {
@@ -140,47 +107,28 @@ export const ExitEdgeListEditor: FunctionComponent<ExitEdgeListEditorProps> = ({
                 {edges.map((edge) => (
                     <ListItem key={edge.uuid} disablePadding sx={{ display: 'block' }}>
                         <ExitEdgeRowEditor
+                            area={area}
                             edge={edge}
                             onUpdate={(updated) => updateEdge(edge.uuid, updated)}
                             onDelete={() => deleteEdge(edge.uuid)}
                             disabled={readonly}
-                            d4Error={!edgeSatisfiesParticipantRule(area, edge)}
+                            participantRuleWarning={!edgeSatisfiesParticipantRule(area, edge)}
                         />
                     </ListItem>
                 ))}
                 <ListItem disablePadding>
                     <ListItemButton
-                        onClick={openAddFlow}
-                        disabled={readonly || !hasNodes}
+                        onClick={handleAddExitEdge}
+                        disabled={readonly}
                         sx={{ justifyContent: 'center' }}
                     >
                         <ListItemIcon>
                             <AddIcon />
                         </ListItemIcon>
-                        <ListItemText
-                            primary="Add exit edge"
-                            secondary={!hasNodes ? 'Add participants before creating edges' : undefined}
-                        />
+                        <ListItemText primary="Add exit edge" />
                     </ListItemButton>
                 </ListItem>
             </List>
-            {!hasNodes && (
-                <Typography variant="body2" color="text.secondary" sx={{ px: 2, pb: 1 }}>
-                    Add at least one participant room before authoring topology edges.
-                </Typography>
-            )}
-            <ComponentSelectorDialog
-                open={addStep === 'from'}
-                onClose={closeAddFlow}
-                tag="Room"
-                onSelect={handleAddFromSelect}
-            />
-            <ComponentSelectorDialog
-                open={addStep === 'to'}
-                onClose={closeAddFlow}
-                tag="Room"
-                onSelect={handleAddToSelect}
-            />
         </MakeTheWorldAccordion>
     )
 }

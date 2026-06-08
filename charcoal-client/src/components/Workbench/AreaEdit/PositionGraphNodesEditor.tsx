@@ -95,7 +95,7 @@ export const PositionGraphNodesEditor: FunctionComponent<PositionGraphNodesEdito
         return null
     }, [AreaId, standardForm])
 
-    const d4Violations = useMemo(
+    const participantRuleViolations = useMemo(
         () => (area ? findEdgesMissingParticipantEndpoint(area) : []),
         [area]
     )
@@ -120,11 +120,11 @@ export const PositionGraphNodesEditor: FunctionComponent<PositionGraphNodesEdito
 
     return (
         <MakeTheWorldAccordion title="Participants" defaultExpanded summary={participantSummary}>
-            {d4Violations.length > 0 && (
+            {participantRuleViolations.length > 0 && (
                 <Alert severity="warning" sx={{ mb: 2 }}>
-                    {d4Violations.length} exit{d4Violations.length === 1 ? '' : 's'} no longer ha
-                    {d4Violations.length === 1 ? 's' : 've'} an endpoint in participants:{' '}
-                    {d4Violations.map((edge) => edge.uuid).join(', ')}
+                    {participantRuleViolations.length} exit{participantRuleViolations.length === 1 ? '' : 's'} no longer ha
+                    {participantRuleViolations.length === 1 ? 's' : 've'} an endpoint in participants:{' '}
+                    {participantRuleViolations.map((edge) => edge.uuid).join(', ')}
                 </Alert>
             )}
             {POSITION_GRAPH_NODE_TAGS.map((nodeTag) => (

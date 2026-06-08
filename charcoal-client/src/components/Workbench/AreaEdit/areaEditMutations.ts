@@ -175,6 +175,38 @@ export function resolveEndpointReferenceData(
     return ref?.toJSON()
 }
 
+function participantRoomKeys(area: StandardArea): Set<ComponentUUID> {
+    const keys = new Set<ComponentUUID>()
+    for (const node of area.positionGraph.nodes.payload) {
+        if (node.tag === 'Room' && node.universalKey) {
+            keys.add(node.universalKey as ComponentUUID)
+        }
+    }
+    return keys
+}
+
+/**
+ * When the other endpoint is resolved and not a participant, restrict this selector
+ * to participant rooms only (portal nudge). Otherwise return undefined (full Room list).
+ */
+export function exitEndpointSelectorIsExcluded(
+    area: StandardArea,
+    edge: StandardExitEdge,
+    endpoint: 'from' | 'to'
+): ((universalKey: ComponentUUID) => boolean) | undefined {
+    const otherEndpoint = endpoint === 'from' ? edge.to : edge.from
+    const otherRef = referenceFromExitEndpoint(otherEndpoint)
+    if (!otherRef) {
+        return undefined
+    }
+    const otherInGraph = area.positionGraph.nodes.payload.some((node) => node.sameKey(otherRef))
+    if (otherInGraph) {
+        return undefined
+    }
+    const participantKeys = participantRoomKeys(area)
+    return (universalKey: ComponentUUID) => !participantKeys.has(universalKey)
+}
+
 export function resolveEndpointLabel(
     edge: StandardExitEdge,
     endpoint: 'from' | 'to',
@@ -182,7 +214,7 @@ export function resolveEndpointLabel(
 ): string {
     const refData = resolveEndpointReferenceData(edge, endpoint)
     if (!refData) {
-        return 'Unknown'
+        return '(unset)'
     }
     const ref = new StandardReference(refData)
     const universalKey = ref.universalKey
