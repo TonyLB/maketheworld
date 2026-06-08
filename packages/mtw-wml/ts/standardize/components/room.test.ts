@@ -1,6 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardRoomData } from "./dataTypes/room"
+import { StandardForm } from '../index'
 import StandardRoom from './room'
 import { mergeTest } from "./utils/testing"
 import StandardReference from "../keys/reference"
@@ -28,13 +29,14 @@ describe('StandardRoom class', () => {
         expect(schemaToWML([testRoom.schema])).toEqual(testSource)
     })
 
-    it('should reject Exit under Room in asset mode WML', () => {
+    it('should parse Exit under Room in bare StandardRoom WML (asset policy is on StandardForm)', () => {
         const testSource = deIndentWML(`
             <Room key=(test)>
                 <Exit to=(testTwo)>Exit test</Exit>
             </Room>
         `)
-        expect(() => new StandardRoom(testSource)).toThrow(/Unconsumed child tags: Exit/)
+        const testRoom = new StandardRoom(testSource)
+        expect(testRoom.exits.length).toBe(1)
     })
 
     it('should construct StandardRoom from schema', () => {
@@ -84,7 +86,7 @@ describe('StandardRoom class', () => {
         expect(() => new StandardRoom(testSource)).toThrow(/Map/)
     })
 
-    it('should reject StandardRoomData with exits in asset mode', () => {
+    it('should reject StandardRoomData with exits on asset StandardForm', () => {
         const testRoomData: StandardRoomData = {
             key: 'test',
             tag: 'Room',
@@ -92,7 +94,11 @@ describe('StandardRoom class', () => {
             exits: [{ reference: { tag: 'Room', key: 'testTwo' }, payload: 'Exit test' }],
             features: [{ tag: 'Feature', key: 'testFeature' }]
         }
-        expect(() => new StandardRoom(testRoomData)).toThrow(/Room exits are not allowed in asset mode/)
+        expect(() => new StandardForm({
+            universalKey: 'ASSET#Test',
+            metaData: [],
+            components: [testRoomData],
+        })).toThrow(/Room exits are not allowed in asset mode/)
     })
 
     it('should construct StandardRoom from StandardRoomData with situations', () => {
@@ -177,12 +183,13 @@ describe('StandardRoom class', () => {
         `))
     })
 
-    it('should reject exits with universalKey targets in asset mode WML', () => {
-        expect(() => new StandardRoom(`
+    it('should parse exits with universalKey targets on bare StandardRoom', () => {
+        const testRoom = new StandardRoom(`
             <Room key=(testRoomOne)>
                 <Exit to=(ROOM#testRoomTwo)>exit</Exit>
             </Room>
-        `)).toThrow(/Unconsumed child tags: Exit/)
+        `)
+        expect(testRoom.exits.length).toBe(1)
     })
 
     // it('should map contents on exits correctly', () => {
@@ -1457,21 +1464,25 @@ describe('StandardRoom class', () => {
     })
 
     describe('asset mode exit forbid', () => {
-        it('should reject Area-shaped Exit under Room in asset mode', () => {
+        it('should accept Area-shaped Exit under Room on asset StandardForm (no room-local exits ingested)', () => {
             const testSource = deIndentWML(`
-                <Room key=(room1)>
-                    <Exit uuid=(highwayToTown)>
-                        <From>ROOM#highway</From>
-                        <To>ROOM#townCenter</To>
-                        <Forward>east</Forward>
-                        <Back>west</Back>
-                    </Exit>
-                </Room>
+                <Asset uuid=(Test)>
+                    <Room key=(room1) uuid=(room1)>
+                        <Exit uuid=(highwayToTown)>
+                            <From>ROOM#highway</From>
+                            <To>ROOM#townCenter</To>
+                            <Forward>east</Forward>
+                            <Back>west</Back>
+                        </Exit>
+                    </Room>
+                </Asset>
             `)
-            expect(() => new StandardRoom(testSource)).toThrow(/Unconsumed child tags: Exit/)
+            const form = new StandardForm(testSource)
+            const room = form._lookup('ROOM#room1') as StandardRoom
+            expect(room.exits.length).toBe(0)
         })
 
-        it('should ignore Area-shaped Exit under Room in ephemeraWire mode', () => {
+        it('should ignore Area-shaped Exit under Room on bare StandardRoom (unresolved to=)', () => {
             const testSource = deIndentWML(`
                 <Room key=(room1)>
                     <Exit uuid=(edge1)>
@@ -1482,34 +1493,8 @@ describe('StandardRoom class', () => {
                     </Exit>
                 </Room>
             `)
-            const testRoom = new StandardRoom(testSource, { standardizeMode: 'ephemeraWire' })
+            const testRoom = new StandardRoom(testSource)
             expect(testRoom.exits.length).toBe(0)
-        })
-    })
-
-    describe('stripEphemeraWirePayload', () => {
-        it('should clear exits, objects, and render without mutating source', () => {
-            const roomData: StandardRoomData = {
-                key: 'test',
-                tag: 'Room',
-                shortName: 'Test Room',
-                exits: [{ reference: { tag: 'Room', key: 'target' }, payload: 'north' }],
-                objects: [{ uuid: 'OBJECT#crate', shortName: 'crate' }],
-                render: {
-                    displayName: 'Parlor',
-                    summary: ['quiet'],
-                    description: ['prose'],
-                },
-            }
-            const room = new StandardRoom(roomData, { standardizeMode: 'ephemeraWire' })
-            const stripped = room._payload.stripEphemeraWirePayload()
-            expect(room.exits.length).toBe(1)
-            expect(room.objects.length).toBe(1)
-            expect(room.render).toBeDefined()
-            expect(stripped.exits.length).toBe(0)
-            expect(stripped.objects).toEqual([])
-            expect(stripped.render).toBeUndefined()
-            expect(stripped.shortName?.toJSON()).toEqual('Test Room')
         })
     })
 

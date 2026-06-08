@@ -74,7 +74,7 @@ Room-local exits use **`to=`** plus an optional description string. Area topolog
 </Exit>
 ```
 
-Both shapes parse at the schema layer; asset-mode validation of which shape is legal under **Room** vs **Area** is enforced in Standardize, not in the parser. **Room-local `to=` exits are not allowed in asset authoring** --- **`StandardRoom.fromSchema`** rejects unconsumed **Exit** under **Room** in **`asset`** mode. Legacy **`to=`** exits ingest only in **`ephemeraWire`** mode. **`StandardArea`** ingests D29 topology exits into **`positionGraph.edges`** (reject legacy **`to=`** under Area). Correct authoring for topology edges is under **Area** **`positionGraph.edges`**.
+Both shapes parse at the schema layer; asset-mode validation of which shape is legal under **Room** vs **Area** is enforced in Standardize, not in the parser. **Room-local `to=` exits are not allowed on asset `StandardForm` instances** --- **`StandardForm.validate()`** rejects non-empty **`exits`** when **`standardizeMode === 'asset'`**. Component payloads always parse legacy **`to=`** exits when **`StandardExitFacet`** can resolve them. **`StandardArea`** ingests D29 topology exits into **`positionGraph.edges`** (reject legacy **`to=`** under Area). Correct authoring for topology edges is under **Area** **`positionGraph.edges`**.
 
 ### Quoted Strings `"value"` - Literal Strings
 Used for string values that should be preserved exactly as written.

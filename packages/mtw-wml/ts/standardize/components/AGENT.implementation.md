@@ -136,16 +136,16 @@ Optional **`shortName`** is a first-class field on every **`StandardComponent`**
 - **Content Properties**: `shortName` (`StandardLiteral`); exits as **`ExitFacetList`**; **`situations`** as **`SituationProseFacetList`**; optional ephemera **`render`** (`SituationProseFacetPayload`-shaped JSON)
 - **Reference Properties**: **`lens`** (`SingleReference`), **`features`**, **`guidance`**, **`characters`** (`ReferenceList`). **No** serialized **`examples`** field on **`StandardRoomData`**. Room prose is **Situation** facets and optional ephemera **`render`**.
 - **Room prose (preferred)**: Author **Situation** facets; resolved wire prose on **`StandardRoom.render`**. See [`../../AGENT.md`](../../AGENT.md) (**Room** bullets) and [`../AGENT.md`](../AGENT.md) (**Room prose**).
-- **Ephemera wire**: Optional **`objects`** (`{ uuid: string; shortName: string }[]`) from **`<Object uuid=(...)><ShortName>...</ShortName></Object>`** children. **`uuid`** values are canonical **`OBJECT#...`** in memory (WML may use a bare key; see **`standardize/AGENT.md`**). The **`Object`** consumer is registered only when **`standardizeMode === 'ephemeraWire'`** on **`StandardizeFromSchemaContext`**; in **`asset`** mode those tags are **unconsumed** and **`fromSchema`** throws. See **`standardize/AGENT.md`** (**Payload vocabulary vs semantic mode**).
-- **fromSchema**: Uses the process-and-remainder pipeline. Consumers include ShortName, Exit, Lens, Feature, Situation (facet list), Guidance, Character, Position (no-op), Grant, DisplayName (no-ops for backward compatibility), plus **`Object`** and **`Render`** when **`ephemeraWire`**. Unconsumed **`<Example>`** (tag removed) fails parse. See [fromSchema: process-and-remainder pipeline](#fromschema-process-and-remainder-pipeline) below.
-- **Room-local exits (asset forbid):** Legacy **`<Exit to=(...)>`** under **Room** is **not** ingested in **`asset`** mode --- **`fromSchema`** throws unconsumed **Exit**. The Exit consumer runs only when **`standardizeMode === 'ephemeraWire'`**. Area topology exits (D29 shape) mis-placed under **Room** are consumed in ephemeraWire but not stored when **`StandardExitFacet`** cannot resolve **`to=`**.
-- **Asset export strip:** **`stripEphemeraWirePayload()`** on **`StandardRoomPayload`** clears **`_exits`**, **`_objects`**, and **`_render`**. **`StandardForm._formForAssetExport()`** clones the form and strips all components before **`schema`** / **`toJSON`** when **`standardizeMode === 'asset'`**. Direct **`room.schema`** on a mutated in-memory instance may still emit wire fields --- use **`StandardForm.schema`** / **`toJSON`** for persistence.
+- **Ephemera wire**: Optional **`objects`** (`{ uuid: string; shortName: string }[]`) from **`<Object uuid=(...)><ShortName>...</ShortName></Object>`** children. **`uuid`** values are canonical **`OBJECT#...`** in memory (WML may use a bare key; see **`standardize/AGENT.md`**). The **`Object`** consumer is always registered; asset **`StandardForm.validate()`** rejects non-empty **`objects`**. See **`standardize/AGENT.md`** (**Payload vocabulary vs semantic mode**).
+- **fromSchema**: Uses the process-and-remainder pipeline. Consumers include ShortName, Exit, Lens, Feature, Situation (facet list), Guidance, Character, Position (no-op), Grant, DisplayName (no-ops for backward compatibility), plus **`Object`** and **`Render`**. Unconsumed **`<Example>`** (tag removed) fails parse. See [fromSchema: process-and-remainder pipeline](#fromschema-process-and-remainder-pipeline) below.
+- **Room-local exits:** Legacy **`<Exit to=(...)>`** under **Room** is ingested into **`_exits`** when **`StandardExitFacet`** resolves **`to=`**. Area topology exits (D29 shape) mis-placed under **Room** are consumed but not stored when **`StandardExitFacet`** cannot resolve **`to=`**. Asset **`StandardForm.validate()`** rejects non-empty **`exits`**.
+- **Asset wire policy:** Enforced on **`StandardForm`** with **`standardizeMode === 'asset'`** via **`validateAssetWirePolicy()`**, not in payload **`fromSchema`**. **`toJSON()`** / **`schema`** serialize in-memory state faithfully; see **Mutation bypass risk** in **`standardize/AGENT.md`**.
 
 ### **StandardFeature** 🟢
 
 - **Purpose**: Represents features with a short-name and display prose via **Situation** facets
 - **Content Properties**: `shortName` (`StandardLiteral`); **`situations`** as **`SituationProseFacetList`** (shared payload with Room); optional ephemera **`render`** (`SituationProseFacetPayload`-shaped JSON)
-- **Asset export strip:** **`stripEphemeraWirePayload()`** clears **`_render`** (same orchestration as Room via **`StandardForm._formForAssetExport()`**).
+- **Asset wire policy:** **`validateAssetWirePolicy()`** rejects defined **`render`** on asset **`StandardForm`** instances.
 - **fromSchema**: `ShortName`, **`StandardizeConsumerFacetListSituation`**, inline `ref={0}` children; unconsumed **`<Example>`** fails parse
 
 ### **StandardKnowledge** 🟢
@@ -154,7 +154,7 @@ Same as **StandardFeature**: **`situations`** facet list, shared **`SituationPro
 
 - **Purpose**: Represents knowledge items with a short-name and display prose
 - **Content Properties**: `shortName` (`StandardLiteral`); **`situations`** as **`SituationProseFacetList`**; optional ephemera **`render`**
-- **Asset export strip:** **`stripEphemeraWirePayload()`** clears **`_render`**.
+- **Asset wire policy:** **`validateAssetWirePolicy()`** rejects defined **`render`** on asset **`StandardForm`** instances.
 - **fromSchema**: Same consumer pattern as Feature (Situation facets only; no Example dual-read)
 
 ### **StandardMessage** 🟢

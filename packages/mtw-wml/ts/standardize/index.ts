@@ -42,6 +42,7 @@ import { KeyLookup } from "./keyLookup"
 import { SchemaOrganization, createOrganizationContext } from "./schemaOrganization"
 import { renderReference } from "./components/utils/schema"
 import { RemoveClass as StandardExplicitKeyRemoveClass, ReplaceClass as StandardExplicitKeyReplaceClass } from "./explicit/key"
+import { validateAssetWirePolicy } from "./assetWirePolicy"
 import { resolveStandardizeMode, type StandardFormConstructionOptions, type WmlStandardizeMode } from "./wmlStandardizeMode"
 import { deepEqual } from "../lib/objects"
 import { defaultedEquals } from "./components/utils/defaultedEquals"
@@ -150,7 +151,7 @@ export class StandardForm {
 
             this._metaData = args.metaData.filter((node) => (!wrappedNodeTypeGuard(isSchemaImport)(node)))
             this._components = args.components.reduce<StandardComponent[]>((previous, standardData) => {
-                const { component } = standardComponentFactory(standardData, { standardizeMode: this.standardizeMode })
+                const { component } = standardComponentFactory(standardData)
                 if (component) {
                     return [
                         ...previous,
@@ -185,7 +186,7 @@ export class StandardForm {
             this._topLevel = (assetLine as any).topLevel ? new ReferenceList((assetLine as any).topLevel) : undefined
             
             this._components = args.filter(isStandardComponentInputData).reduce<StandardComponent[]>((previous, standardData: StandardComponentInputData & SerializeNDJSONMixin) => {
-                const { component } = standardComponentFactory(standardData, { standardizeMode: this.standardizeMode })
+                const { component } = standardComponentFactory(standardData)
                 if (component) {
                     component._from = standardData.from
                     return [...previous, component]
@@ -228,7 +229,6 @@ export class StandardForm {
                     componentOrder: COMPONENT_ORDER, 
                     schema: node.children,
                     assetUUID: this._universalKey,
-                    standardizeMode: this.standardizeMode,
                 })
                 const universalKeyMappings: StandardKey[] = componentFragments
                     .reduce<StandardKey[]>((previous, component) => {
@@ -516,23 +516,12 @@ export class StandardForm {
 
     get universalKey(): AssetUUID { return this._universalKey }
 
-    stripEphemeraWirePayload(): StandardForm {
-        const stripped = this._clone()
-        stripped._components = stripped._components.map((component) => component.stripEphemeraWirePayload())
-        return stripped
-    }
-
-    _formForAssetExport(): StandardForm {
-        return this.standardizeMode === 'asset' ? this.stripEphemeraWirePayload() : this._clone()
-    }
-
     toJSON(options?: StandardToJSONOptions): StandardFormData {
-        const exportForm = this._formForAssetExport()
-        const mapKeys = exportForm._components.map((component) => component.reference)
+        const mapKeys = this._components.map((component) => component.reference)
         const result: StandardFormData = {
-            universalKey: exportForm._universalKey,
-            metaData: exportForm.metaData,
-            components: exportForm._components.map((component) => (component.withMapping(mapKeys).remapReferences('universal').toJSON(options) as StandardComponentData))
+            universalKey: this._universalKey,
+            metaData: this.metaData,
+            components: this._components.map((component) => (component.withMapping(mapKeys).remapReferences('universal').toJSON(options) as StandardComponentData))
         }
         // Include Asset-level metadata in JSON (following omission-over-empty principle)
         if (this._shortName) {
@@ -568,7 +557,7 @@ export class StandardForm {
         const organization = this._getSchemaOrganization()
         const organizationContext = createOrganizationContext(organization)
 
-        const remapped = this._formForAssetExport()
+        const remapped = this._clone()
         const mapKeys = remapped._components.map((component) => component.reference)
         remapped._components = remapped._components.map((component) => (component.withMapping(mapKeys)))
 
@@ -667,7 +656,7 @@ export class StandardForm {
                 const key = reference.key
                 const universalKey = reference.universalKey
                 const defaultData = defaultComponentFromTag(tag, key, universalKey)
-                const { component } = standardComponentFactory(defaultData, { standardizeMode: this.standardizeMode })
+                const { component } = standardComponentFactory(defaultData)
                 if (component) {
                     return [...previous, component]
                 }
@@ -719,6 +708,9 @@ export class StandardForm {
         
         // Validate other explicit parent rules (parent exists, parent type validity)
         this._validateExplicitParents()
+        if (this.standardizeMode === 'asset') {
+            validateAssetWirePolicy(this._components)
+        }
     }
 
     private _validateExplicitParents(): void {
@@ -1524,6 +1516,5 @@ export type {
 export {
     DEFAULT_WML_STANDARDIZE_MODE,
     isWmlStandardizeMode,
-    resolveStandardizeFromSchemaContext,
     resolveStandardizeMode,
 } from './wmlStandardizeMode'

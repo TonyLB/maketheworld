@@ -21,7 +21,7 @@ import {
     shortNameToJSON,
     standardizeShortNameConsumer,
 } from "./shortNameField"
-import { resolveStandardizeFromSchemaContext, type StandardizeFromSchemaContext } from "../wmlStandardizeMode"
+import type { StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { renderReference } from "./utils/schema"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
@@ -31,19 +31,6 @@ import { StandardExplicitParent } from "../explicit"
 import { StandardFormSubsetRequest } from "../baseClasses"
 import { processWithConsumers, StandardizeConsumerFacetListSituation, StandardizeConsumerReferenceList, StandardizeConsumerSimple, type StandardizeConsumer } from "./fromSchemaPipeline"
 import { SingleReference } from "../keys/singleReference"
-
-const forbidRoomExitsInAssetMode = (
-    exits: StandardRoomInputData['exits'],
-    context?: StandardizeFromSchemaContext,
-): void => {
-    if (
-        exits &&
-        exits.length > 0 &&
-        resolveStandardizeFromSchemaContext(context).standardizeMode !== 'ephemeraWire'
-    ) {
-        throw new Error('Room exits are not allowed in asset mode')
-    }
-}
 
 export class StandardRoomPayload implements ComponentConstructorMethods<StandardRoomInputData, StandardRoomData> {
     _shortName?: StandardLiteral;
@@ -80,8 +67,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         }
     }
 
-    fromJSON(props: StandardRoomInputData, context?: StandardizeFromSchemaContext) {
-        forbidRoomExitsInAssetMode(props.exits, context)
+    fromJSON(props: StandardRoomInputData) {
         const { shortName } = props
         this._shortName = createShortNameFromJSON(shortName)
         this._exits = new ExitFacetList(props.exits ?? [])
@@ -118,73 +104,69 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
                 // Grant and DisplayName consumed as no-op so Room accepts WML that previously was silently ignored.
                 new StandardizeConsumerSimple(this, { tag: "Grant", update: () => {} }),
                 new StandardizeConsumerSimple(this, { tag: "DisplayName", update: () => {} }),
+                new StandardizeConsumerSimple(this, {
+                    tag: 'Exit',
+                    update(matched) {
+                        const parsedFacets = matched.map((exitNode) => {
+                            try {
+                                return new StandardExitFacet([exitNode])
+                            } catch {
+                                return undefined
+                            }
+                        }).filter(excludeUndefined)
+                        this._exits = new ExitFacetList(parsedFacets)
+                    },
+                }),
+                new StandardizeConsumerSimple(this, {
+                    tag: 'Object',
+                    update(matched) {
+                        this._objects = matched.map((objectNode) => {
+                            if (!isSchemaObject(objectNode.data)) {
+                                throw new Error('Expected Object schema node')
+                            }
+                            const shortNameNodes = objectNode.children.filter((c) => isSchemaShortName(c.data))
+                            if (shortNameNodes.length !== 1) {
+                                throw new Error('Object tag must contain exactly one ShortName child')
+                            }
+                            const textValue = shortNameNodes[0].children
+                                .map(({ data }) => data)
+                                .filter(isSchemaString)
+                                .map(({ value }) => value)
+                                .join('')
+                                .trim()
+                            if (!textValue) {
+                                throw new Error('Object ShortName must contain non-empty text after trim')
+                            }
+                            return { uuid: enforceTypedKey('OBJECT')(objectNode.data.uuid), shortName: textValue }
+                        })
+                    },
+                }),
+                new StandardizeConsumerSimple(this, {
+                    tag: 'Render',
+                    update(matched) {
+                        if (matched.length === 0) {
+                            return
+                        }
+                        if (matched.length > 1) {
+                            throw new Error('Room must contain at most one Render tag')
+                        }
+                        const renderNode = matched[0]
+                        if (!isSchemaRender(renderNode.data)) {
+                            throw new Error('Expected Render schema node')
+                        }
+                        const children = renderNode.children
+                        if (children.length !== 3) {
+                            throw new Error('Render tag must contain exactly three children: DisplayName, Summary, Description in order')
+                        }
+                        const payloadData = parseProseTripletChildren(children, { allowUnconsumed: false })
+                        const payload = new SituationProseFacetPayload(payloadData)
+                        if (!payload.hasNonEmptyDisplayName()) {
+                            throw new Error('Render DisplayName must contain non-empty text after trim')
+                        }
+                        this._render = payload
+                    },
+                }),
             ]
-            if (resolveStandardizeFromSchemaContext(context).standardizeMode === 'ephemeraWire') {
-                consumers.push(
-                    new StandardizeConsumerSimple(this, {
-                        tag: 'Exit',
-                        update(matched) {
-                            const parsedFacets = matched.map((exitNode) => {
-                                try {
-                                    return new StandardExitFacet([exitNode])
-                                } catch {
-                                    return undefined
-                                }
-                            }).filter(excludeUndefined)
-                            this._exits = new ExitFacetList(parsedFacets)
-                        },
-                    }),
-                    new StandardizeConsumerSimple(this, {
-                        tag: 'Object',
-                        update(matched) {
-                            this._objects = matched.map((objectNode) => {
-                                if (!isSchemaObject(objectNode.data)) {
-                                    throw new Error('Expected Object schema node')
-                                }
-                                const shortNameNodes = objectNode.children.filter((c) => isSchemaShortName(c.data))
-                                if (shortNameNodes.length !== 1) {
-                                    throw new Error('Object tag must contain exactly one ShortName child')
-                                }
-                                const textValue = shortNameNodes[0].children
-                                    .map(({ data }) => data)
-                                    .filter(isSchemaString)
-                                    .map(({ value }) => value)
-                                    .join('')
-                                    .trim()
-                                if (!textValue) {
-                                    throw new Error('Object ShortName must contain non-empty text after trim')
-                                }
-                                return { uuid: enforceTypedKey('OBJECT')(objectNode.data.uuid), shortName: textValue }
-                            })
-                        },
-                    }),
-                    new StandardizeConsumerSimple(this, {
-                        tag: 'Render',
-                        update(matched) {
-                            if (matched.length === 0) {
-                                return
-                            }
-                            if (matched.length > 1) {
-                                throw new Error('Room must contain at most one Render tag')
-                            }
-                            const renderNode = matched[0]
-                            if (!isSchemaRender(renderNode.data)) {
-                                throw new Error('Expected Render schema node')
-                            }
-                            const children = renderNode.children
-                            if (children.length !== 3) {
-                                throw new Error('Render tag must contain exactly three children: DisplayName, Summary, Description in order')
-                            }
-                            const payloadData = parseProseTripletChildren(children, { allowUnconsumed: false })
-                            const payload = new SituationProseFacetPayload(payloadData)
-                            if (!payload.hasNonEmptyDisplayName()) {
-                                throw new Error('Render DisplayName must contain non-empty text after trim')
-                            }
-                            this._render = payload
-                        },
-                    })
-                )
-            }
             const returnRemainder = processWithConsumers(this, consumers, node.children)
             return returnRemainder
         }
@@ -206,14 +188,6 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
     get features() { return this._features }
     get guidance() { return this._guidance }
     get characters() { return this._characters }
-
-    stripEphemeraWirePayload(): this {
-        const returnValue = new StandardRoomPayload(this)
-        returnValue._exits = new ExitFacetList([])
-        returnValue._objects = []
-        returnValue._render = undefined
-        return returnValue as this
-    }
 
     toJSON(_options?: StandardToJSONOptions): Omit<StandardRoomData, 'key' | 'universalKey'> {
         return {

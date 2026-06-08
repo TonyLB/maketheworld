@@ -56,7 +56,7 @@ describe('mapTranslate', () => {
                     <Room uuid=(Room3)><Position {200, 250} /></Room>
                 </Map>
             </Asset>
-        `)
+        `, { standardizeMode: 'ephemeraWire' })
         
         const result = mapTranslate({ 
             mapId: 'MAP#testMap', 

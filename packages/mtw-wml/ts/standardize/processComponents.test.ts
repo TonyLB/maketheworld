@@ -139,7 +139,7 @@ describe("processComponents", () => {
         expect(topLevelKeys).not.toContain('testGlobal')
     })
 
-    it('should pass standardizeMode to component factory for ephemeraWire Object under Room', () => {
+    it('should parse Object under Room via processComponents (mode-blind)', () => {
         const testSource = `
             <Asset uuid=(Test)>
                 <Room key=(main) uuid=(main)>
@@ -155,30 +155,9 @@ describe("processComponents", () => {
             componentOrder,
             schema: schema.schema,
             assetUUID: 'ASSET#Test',
-            standardizeMode: 'ephemeraWire',
         })
         const room = result.components.find((component) => component.tag === 'Room') as StandardRoom
         expect(room.objects).toEqual([{ uuid: 'OBJECT#skates', shortName: 'roller skates' }])
-    })
-
-    it('should reject Object under Room when standardizeMode is asset', () => {
-        const testSource = `
-            <Asset uuid=(Test)>
-                <Room key=(main) uuid=(main)>
-                    <Object uuid=(skates)>
-                        <ShortName>roller skates</ShortName>
-                    </Object>
-                </Room>
-            </Asset>
-        `
-        const schema = new Schema()
-        schema.loadWML(testSource)
-        expect(() => processComponents({
-            componentOrder,
-            schema: schema.schema,
-            assetUUID: 'ASSET#Test',
-            standardizeMode: 'asset',
-        })).toThrow(/Unconsumed child tags: Object/)
     })
 
     it('should combine descriptions in rooms and features', () => {

@@ -145,14 +145,13 @@ describe('mapTreeMemo', () => {
     })
 
     describe('room stub content', () => {
-        it('should include only ShortName and exits in room stubs', () => {
+        it('should include only ShortName in room stubs (asset mode omits room-local exits)', () => {
             const testWML = `
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Room uuid=(room1)>
                             <Position {100, 100} />
                             <ShortName>Room One</ShortName>
-                            <Exit to=(ROOM#room2)>to room two</Exit>
                             <Feature key=(feature1)>
                                 <ShortName>This should not be included</ShortName>
                             </Feature>
@@ -167,13 +166,9 @@ describe('mapTreeMemo', () => {
             const room1 = result.byUniversalId['ROOM#room1']
             expect(room1).toBeInstanceOf(StandardRoom)
             if (room1 instanceof StandardRoom) {
-                // Should have ShortName
                 expect(room1.shortName?.toJSON()).toBe('Room One')
-                
-                // Should have exits
-                expect(room1.exits).toHaveLength(1)
-                
-                // Stub should omit nested Feature (and legacy Example content): only ShortName + exits in serialized stub
+                expect(room1.exits).toHaveLength(0)
+                // Stub should omit nested Feature (and legacy Example content): only ShortName in serialized stub
                 expect(room1.features.payload).toHaveLength(0)
                 expect(room1.characters.payload).toHaveLength(0)
                 expect(schemaToWML([room1.schema])).not.toMatch(/<Example/)

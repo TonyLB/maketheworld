@@ -1,16 +1,15 @@
 /**
- * Discriminant for which WML **vocabulary and validation rules** apply when parsing
- * and standardizing WML into `StandardForm` and `StandardComponent` shapes.
+ * Discriminant for which WML **wire policy** applies on a `StandardForm` instance.
  *
  * This is **orthogonal** to `StandardFormSemanticMode` in `./baseClasses.ts`:
  * semantic mode describes *how a StandardForm is used* (direct asset, edits, aggregation).
- * Standardize mode describes *which tags are legal* for the payload (blueprint vs ephemera wire).
- * A single form may eventually carry both notions.
+ * Standardize mode describes whether asset wire rules run in `StandardForm.validate()`
+ * (`'asset'`) or are skipped (`'ephemeraWire'`).
  *
- * **Phase 1:** Plumbing only; behavior for `'asset'` and `'ephemeraWire'` matches pre-change
- * semantics until ephemera-only tags (e.g. `<Object>`) are implemented under `'ephemeraWire'`.
+ * **Components are mode-blind:** payloads always parse wire tags/JSON they understand.
+ * Freestanding `StandardRoom` / `StandardFeature` / etc. are outside the asset wire boundary.
  *
- * @see {@link ./AGENT.md#semantic-modes Semantic modes} for `StandardFormSemanticMode`
+ * @see {@link ./AGENT.md#payload-vocabulary-vs-semantic-mode-standardizemode Payload vocabulary vs semantic mode}
  */
 export type WmlStandardizeMode = 'asset' | 'ephemeraWire'
 
@@ -29,18 +28,11 @@ export type StandardFormConstructionOptions = {
 }
 
 /**
- * Resolved context for `fromSchema` on components and payloads (second parameter).
- * Facet payloads use this as an optional **third** argument after `reference`.
+ * Placeholder type for an optional `fromSchema` context parameter on components and payloads.
+ * Facet payloads use it as an optional **third** argument after `reference`.
+ * No fields are defined today; callers may pass `undefined`.
  */
-export type StandardizeFromSchemaContext = {
-    standardizeMode: WmlStandardizeMode
-}
+export type StandardizeFromSchemaContext = Record<string, never>
 
 export const resolveStandardizeMode = (mode?: WmlStandardizeMode): WmlStandardizeMode =>
     mode ?? DEFAULT_WML_STANDARDIZE_MODE
-
-export const resolveStandardizeFromSchemaContext = (
-    context?: StandardizeFromSchemaContext
-): StandardizeFromSchemaContext => ({
-    standardizeMode: resolveStandardizeMode(context?.standardizeMode),
-})

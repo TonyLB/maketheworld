@@ -29,7 +29,6 @@ import { StandardKey } from "../keys/key";
 import { StandardExplicitParent, StandardExplicitKey, StandardExplicitKeyPlain, StandardExplicitKeyRemove, StandardExplicitKeyReplace } from "../explicit";
 import { splitTaggedChildren } from "../../schema/utils";
 import {
-    resolveStandardizeFromSchemaContext,
     type StandardFormConstructionOptions,
     type StandardizeFromSchemaContext,
 } from "../wmlStandardizeMode";
@@ -49,13 +48,12 @@ export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
 }
 
 export interface ComponentConstructorMethods<DInput, DOutput> {
-    fromJSON(line: DInput, context?: StandardizeFromSchemaContext): void;
+    fromJSON(line: DInput): void;
     fromSchema(node: GenericTreeNode<SchemaTag>, context?: StandardizeFromSchemaContext): GenericTree<SchemaTag>;
     subset(options: StandardFormSubsetRequest): this;
     merge(incoming: this): this;
     toJSON(options?: StandardToJSONOptions): Omit<DOutput, 'key' | 'universalKey'>;
     schema(key?: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag>;
-    stripEphemeraWirePayload?(): this;
     nestedSchema?(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag>;
     tag: ComponentTag;
     referencedKeys(mapping: StandardReference[]): StandardComponentReferenceKey[];
@@ -133,14 +131,7 @@ export const componentClassFactory = <
                 const node = typeof props === 'string'
                     ? nodeFromWML(props)
                     : props
-                this.fromSchema(
-                    node,
-                    resolveStandardizeFromSchemaContext(
-                        options?.standardizeMode !== undefined
-                            ? { standardizeMode: options.standardizeMode }
-                            : undefined,
-                    ),
-                )
+                this.fromSchema(node)
                 return
             }
             this._universalKey = props.universalKey
@@ -150,14 +141,7 @@ export const componentClassFactory = <
             }
             this._from = (props as any).from
             this._origin = (props as any).origin
-            this._payload.fromJSON(
-                props,
-                resolveStandardizeFromSchemaContext(
-                    options?.standardizeMode !== undefined
-                        ? { standardizeMode: options.standardizeMode }
-                        : undefined,
-                ),
-            )
+            this._payload.fromJSON(props)
             // Backwards compatibility: silently ignore implicitParent if present in JSON
             // (it's no longer used, but old data may still contain it)
         }
@@ -169,7 +153,6 @@ export const componentClassFactory = <
         // components that don't expose child schema to processComponents).
         //
         fromSchema(node: GenericTreeNode<SchemaTag>, context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
-            const resolvedContext = resolveStandardizeFromSchemaContext(context)
             if (!treeNodeTypeguard(isSchemaComponent)(node)) {
                 throw new Error(`Invalid schema node type in ${label} constructor call: ${node.data.tag}`)
             }
@@ -205,7 +188,7 @@ export const componentClassFactory = <
                 ...node,
                 children: childrenWithoutParentAndKey
             }
-            return this._payload.fromSchema(nodeWithoutParentAndKey, resolvedContext)
+            return this._payload.fromSchema(nodeWithoutParentAndKey, context)
         }
 
         _wrap(instance: GeneratedComponentClass): this {
@@ -277,14 +260,6 @@ export const componentClassFactory = <
 
         clone(): StandardComponent {
             return this._wrap(new GeneratedComponentClass(this))
-        }
-
-        stripEphemeraWirePayload(): StandardComponent {
-            const cloned = this.clone() as GeneratedComponentClass
-            if (typeof cloned._payload.stripEphemeraWirePayload === 'function') {
-                cloned._payload = cloned._payload.stripEphemeraWirePayload()
-            }
-            return this._wrap(cloned)
         }
 
         mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent {

@@ -15,7 +15,7 @@ import {
     shortNameToJSON,
     standardizeShortNameConsumer,
 } from "./shortNameField"
-import { resolveStandardizeFromSchemaContext, type StandardizeFromSchemaContext } from "../wmlStandardizeMode"
+import type { StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import {
     processWithConsumers,
     StandardizeConsumerFacetListSituation,
@@ -62,36 +62,34 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
                     },
                 }),
             ]
-            if (resolveStandardizeFromSchemaContext(context).standardizeMode === 'ephemeraWire') {
-                consumers.push(
-                    new StandardizeConsumerSimple(this, {
-                        tag: 'Render',
-                        update(matched) {
-                            if (matched.length === 0) {
-                                return
-                            }
-                            if (matched.length > 1) {
-                                throw new Error('Feature must contain at most one Render tag')
-                            }
-                            const renderNode = matched[0]
-                            if (!isSchemaRender(renderNode.data)) {
-                                throw new Error('Expected Render schema node')
-                            }
-                            const children = renderNode.children
-                            if (children.length !== 3) {
-                                throw new Error('Render tag must contain exactly three children: DisplayName, Summary, Description in order')
-                            }
-                            const payloadData = parseProseTripletChildren(children, { allowUnconsumed: false })
-                            const payload = new SituationProseFacetPayload(payloadData)
-                            if (!payload.hasNonEmptyDisplayName()) {
-                                throw new Error('Render DisplayName must contain non-empty text after trim')
-                            }
-                            this._render = payload
-                        },
-                    })
-                )
-            }
-            consumers.push(new StandardizeConsumerInline())
+            consumers.push(
+                new StandardizeConsumerSimple(this, {
+                    tag: 'Render',
+                    update(matched) {
+                        if (matched.length === 0) {
+                            return
+                        }
+                        if (matched.length > 1) {
+                            throw new Error('Feature must contain at most one Render tag')
+                        }
+                        const renderNode = matched[0]
+                        if (!isSchemaRender(renderNode.data)) {
+                            throw new Error('Expected Render schema node')
+                        }
+                        const children = renderNode.children
+                        if (children.length !== 3) {
+                            throw new Error('Render tag must contain exactly three children: DisplayName, Summary, Description in order')
+                        }
+                        const payloadData = parseProseTripletChildren(children, { allowUnconsumed: false })
+                        const payload = new SituationProseFacetPayload(payloadData)
+                        if (!payload.hasNonEmptyDisplayName()) {
+                            throw new Error('Render DisplayName must contain non-empty text after trim')
+                        }
+                        this._render = payload
+                    },
+                }),
+                new StandardizeConsumerInline(),
+            )
             const returnRemainder = processWithConsumers(this, consumers, node.children)
             return returnRemainder
         }
@@ -102,12 +100,6 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
     get situations() { return this._situations }
     get render() {
         return this._render?.toJSON()
-    }
-
-    stripEphemeraWirePayload(): this {
-        const returnValue = new StandardFeaturePayload(this)
-        returnValue._render = undefined
-        return returnValue as this
     }
 
     toJSON(_options?: StandardToJSONOptions): Omit<StandardFeatureData, 'key' | 'universalKey'> {
