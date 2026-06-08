@@ -419,13 +419,13 @@ The cascade system uses a directed graph structure to define how component conne
 
 **Non-structural references** (connections that don't define structure):
 - `'Link'`: General reference links between components
-- `'Exit'`: Room-local exit connections (e.g., room-to-room exits under **Room**; subset **`ExitsAndShortName`**)
+- `'Exit'`: Legacy room-local exit facet connections (subset **`ExitsAndShortName`**). **Forbidden on asset room blueprints** (M6); may still appear on **ephemeraWire** composed forms. Live play exits are **Area-projected** --- see [`keys/edges/AGENT.edges.md`](./keys/edges/AGENT.edges.md).
 - `'Edge'`: Area topology exit endpoints (**`From`** / **`To`** on **`positionGraph.edges`**; subset **`Stub`** on target Room; distinct from room **`Exit`**)
 - `'Dependency'`: Component dependencies
 
 **Example**: Map editing cascade follows the pattern:
 1. Start at `'map'` node → follow `'Position'` connections → reach `'room'` nodes
-2. From `'room'` nodes → follow `'Exit'` connections → reach `'exitTarget'` nodes
+2. From `'room'` nodes → follow `'Exit'` connections → reach `'exitTarget'` nodes (legacy map/room-local facet refs; asset rooms no longer store exits)
 3. Each node specifies the `requestType` for components visited at that state
 
 **Example**: Area topology editing cascade:

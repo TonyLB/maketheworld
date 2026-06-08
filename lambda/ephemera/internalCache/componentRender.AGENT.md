@@ -73,7 +73,7 @@ componentRender.set('CHARACTER#player-uuid', 'ROOM#marketSquare-uuid', renderedF
 
 #### **Room Rendering**
 - **Metadata Assembly**: Combines room data from all accessible assets
-- **Exit Processing**: Merges exit facets across assets via **`ExitFacetList`**
+- **Exit Processing (render-channel legacy)**: Merges blueprint exit facets across assets via **`mergeRoomExitsToJSON`** / **`ExitFacetList`**. **Not** the affordance or navigation source --- live exits come from Area topology projection ([`../dataSource/affordanceCache/AGENT.md`](../dataSource/affordanceCache/AGENT.md), [`AGENT.md`](./AGENT.md) **Area topology and affordance exits**).
 - **Character Lists**: Includes characters currently in the room (resolved to **`StandardCharacterData`** children)
 - **Prose for perception**: **`renderCache`** (Dynamo) **`renderedContent`** only, converted to **`SituationRoomFacetPayloadType`** via **`situationRoomRenderPayloadFromCacheRenderedContent`**. When there is no cache record (or the payload is empty after mapping), Room output has **no** `<Render>` for prose. The room path does **not** call **`ExamplesData`** for prose and does **not** synthesize separate Example / Situation wire children for that prose.
 - **Short Name**: Merges short names from multiple assets

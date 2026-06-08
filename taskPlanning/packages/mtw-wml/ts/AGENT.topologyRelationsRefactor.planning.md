@@ -6,7 +6,7 @@ This plan is task-scoped. Archive or delete it after the work ships; move lastin
 
 **Framework:** [`taskPlanning/AGENT.md`](../../AGENT.md)
 
-**Parent initiative (coordination only):** [`AGENT.areaTopologyExits.planning.md`](../AGENT.areaTopologyExits.planning.md) --- Milestone 5 Workbench Area editor is shipped; this follow-up fixes authoring UX and relaxes storage rules without reopening runtime affordance / migration scope unless tests require it.
+**Parent initiative:** Area topology exits platform initiative **shipped** (Milestones 0-6 complete). Steady-state norms live in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md), ephemera affordance pipeline AGENT files, and related package docs. This follow-up fixes authoring UX and relaxes storage rules without reopening runtime affordance / migration scope unless tests require it.
 
 ---
 
@@ -57,7 +57,7 @@ Use these names in durable docs, comments, and user-facing copy. Do **not** intr
 | **Position graph shape** | `StandardArea.positionGraph` is `{ nodes, edges }`; Exit is the first edge union member. | D3 |
 | **Room wire projection** | Runtime `StandardRoom.exits` is synthesized from Area edges, not stored on the room blueprint row. | D16 |
 
-Full runtime / caching / migration decisions from the parent plan stay documented there until that plan is archived; this refactor only **renames** cross-cutting invariants we touch and **extends** storage rules for incomplete edges.
+Full runtime / caching decisions are documented in ephemera affordance AGENT files and [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md); this refactor only **renames** cross-cutting invariants we touch and **extends** storage rules for incomplete edges.
 
 ---
 
@@ -75,7 +75,7 @@ Full runtime / caching / migration decisions from the parent plan stay documente
 
 ### Out of scope (link only)
 
-- Room-local exit forbid and **`ExitEditor`** removal --- shipped in parent plan Milestone 6 ([`AGENT.areaTopologyExits.planning.md`](../AGENT.areaTopologyExits.planning.md)); Map drag UI remains no-op until Area authoring Phase 3+.
+- Room-local exit forbid and **`ExitEditor`** removal --- shipped (parent initiative M6); Map drag UI remains no-op until Area authoring Phase 3+.
 - Ephemera affordance pipeline changes beyond confirming projection still skips incomplete edges.
 - Map editor exit drag (legacy map path) --- separate from Area Workbench editor.
 - Second edge union member / `StandardEdgeEndpoint` extraction (noted in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) as future work).
@@ -89,7 +89,7 @@ Full runtime / caching / migration decisions from the parent plan stay documente
 3. **Area + edges (steady state):** [`packages/mtw-wml/ts/standardize/components/AGENT.implementation.md`](../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md), [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md)
 4. **Projection (semantic filter):** [`packages/mtw-wml/ts/standardize/projection/projectRoomExits.ts`](../../../packages/mtw-wml/ts/standardize/projection/projectRoomExits.ts)
 5. **Workbench Area editor:** [`charcoal-client/src/components/Workbench/AGENT.md`](../../../charcoal-client/src/components/Workbench/AGENT.md), [`AreaEdit/`](../../../charcoal-client/src/components/Workbench/AreaEdit/)
-6. **Parent topology initiative (context):** [`AGENT.areaTopologyExits.planning.md`](../AGENT.areaTopologyExits.planning.md)
+6. **Steady-state topology norms:** [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md), [`lambda/ephemera/internalCache/AGENT.md`](../../../lambda/ephemera/internalCache/AGENT.md) (exit provenance / affordance compose)
 
 **Test command authority:**
 
@@ -141,7 +141,6 @@ Mark pending work `[ ]` and completed work `[X]`. Mark nested bullets `[X]` as e
 - [ ] Rename client helpers: `edgeSatisfiesD4` -> `edgeSatisfiesParticipantRule` (or similar), `findEdgesViolatingD4` -> `findEdgesMissingParticipantEndpoint`, `assertEdgeD4` -> remove or restrict to optional strict paths; update [`areaEditMutations.ts`](../../../charcoal-client/src/components/Workbench/AreaEdit/areaEditMutations.ts) and tests.
 - [ ] Rename test `describe` / `it` strings that say `D4` / `D29` to glossary terms.
 - [ ] Add a short "Topology invariants" subsection to [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) (or [`standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md)) so the glossary survives deletion of this task plan.
-- [ ] Trim cross-references in parent [`AGENT.areaTopologyExits.planning.md`](../AGENT.areaTopologyExits.planning.md) only where they duplicate renamed steady-state docs (do not rewrite the whole parent plan).
 
 ### Phase 2 --- Incomplete edges in storage and manipulation
 
@@ -167,11 +166,44 @@ Mark pending work `[ ]` and completed work `[X]`. Mark nested bullets `[X]` as e
 
 ### Phase 4 --- Restore demo topology (production)
 
-Blocked until Phase 3 makes Area exit authoring usable. Not a gate for parent-plan Milestone 6 (room-local forbid).
+Blocked until Phase 3 makes Area exit authoring usable.
 
-- [ ] Re-author or migrate Coyote demo edges into **`AREA#WORLD`** **`positionGraph.edges`** in production (participant rooms + four bidirectional edges). Reference spec: [Production exit inventory (Coyote demo)](../AGENT.areaTopologyExits.planning.md#production-exit-inventory-coyote-demo) in [`AGENT.areaTopologyExits.planning.md`](../AGENT.areaTopologyExits.planning.md).
+- [ ] Re-author or migrate Coyote demo edges into **`AREA#WORLD`** **`positionGraph.edges`** in production (participant rooms + four bidirectional edges). Reference spec: [Production exit inventory (Coyote demo)](#production-exit-inventory-coyote-demo) below.
 - [ ] Ensure **`AREA#WORLD`** in **`ASSET#primitives`** lists participant rooms in **`positionGraph.nodes`**.
 - [ ] **Verify after restore:** [`projectRoomExits`](../../../packages/mtw-wml/ts/standardize/projection/projectRoomExits.ts) / affordances / nav labels match inventory (east, west, up, down, south, north).
+
+---
+
+## Production exit inventory (Coyote demo)
+
+**Current production state:** Room-local exits have been removed; Area topology edges are not yet authored. This section is the **reference spec** for restoring navigational connective tissue.
+
+**Scope:** Coyote demo topology. Canonical room ids (see [`AGENT.CoyoteGame.md`](../../../AGENT.CoyoteGame.md)): **`CLIFFBASE`** = **`ROOM#VORTEX`** (prompt seam label only).
+
+| Seam label | Canonical id |
+| --- | --- |
+| STRAIGHTAWAY | `ROOM#STRAIGHTAWAY` |
+| CLIFFBASE | `ROOM#VORTEX` |
+| CLIFFTOP | `ROOM#CLIFFTOP` |
+| CORNER | `ROOM#CORNER` |
+| BRIDGE | `ROOM#BRIDGE` |
+
+**Rooms in scope:** STRAIGHTAWAY, CLIFFBASE (VORTEX), CLIFFTOP, CORNER, BRIDGE.
+
+**Edges to restore** (4 edges, bidirectional --- **Forward** / **Back** are player-visible labels from **From** / **To**):
+
+| From (seam) | To (seam) | Forward | Back | Notes |
+| --- | --- | --- | --- | --- |
+| STRAIGHTAWAY | CLIFFBASE | east | west | Highway west -> east into cliff base |
+| CLIFFBASE | CLIFFTOP | up | down | Vertical cliff |
+| CLIFFBASE | CORNER | east | west | Highway east from cliff base to corner |
+| CORNER | BRIDGE | south | north | Turn south to bridge |
+
+**Target authoring shape (per edge):** one **`<Exit uuid=(...)>`** on parent **Area** **`positionGraph.edges`** with **`<From>`**, **`<To>`**, **`<Forward>`**, **`<Back>`** --- not room-local **`<Exit>`** under **`<Room>`**. See [Area exit endpoint tags](#invariant-glossary-steady-state-names) in the invariant glossary.
+
+**Restore design:** target **`AREA#WORLD`** in **`ASSET#primitives`** (`<Area uuid=(WORLD) />`). Assign stable edge **`uuid`** values at restore time. **Verify after restore:** **`projectRoomExits`** / affordances match the labels above (east, west, up, down, south, north) and nav resolution.
+
+**Spatial reference (non-normative):** [`AGENT.CoyoteGame.md`](../../../AGENT.CoyoteGame.md) --- STRAIGHTAWAY -> CLIFFBASE -> CORNER along highway; CLIFFTOP above CLIFFBASE; BRIDGE south of CORNER.
 
 ---
 
@@ -248,7 +280,7 @@ Manual Workbench check (Phase 3):
 
 **Phase 4 (after Phase 3):**
 
-1. Open **`AREA#WORLD`** (or target Area) in Workbench; confirm participant rooms and edges match [Coyote inventory](../AGENT.areaTopologyExits.planning.md#production-exit-inventory-coyote-demo).
+1. Open **`AREA#WORLD`** (or target Area) in Workbench; confirm participant rooms and edges match [Coyote inventory](#production-exit-inventory-coyote-demo).
 2. Enter play mode from a demo room; confirm exit chips and movement match expected labels and targets.
 
 ---
@@ -257,5 +289,4 @@ Manual Workbench check (Phase 3):
 
 1. Move the [Invariant glossary](#invariant-glossary-steady-state-names) into [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) (or linked steady-state doc).
 2. Document incomplete-edge rules and the projection filter boundary in the same place.
-3. Delete this planning file after Phase 3 (Phases 1-3 are the refactor scope). **Phase 4** (production topology restore) may complete after deletion --- track in parent [`AGENT.areaTopologyExits.planning.md`](../AGENT.areaTopologyExits.planning.md) or operator notes until Coyote graph is live.
-4. Keep parent [`AGENT.areaTopologyExits.planning.md`](../AGENT.areaTopologyExits.planning.md) until M6 completes separately.
+3. Delete this planning file after Phase 3 (Phases 1-3 are the refactor scope). **Phase 4** (production topology restore) may complete after deletion --- track in this file's [Production exit inventory](#production-exit-inventory-coyote-demo) section or operator notes until Coyote graph is live.

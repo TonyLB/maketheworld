@@ -4,7 +4,7 @@
 
 **M4 slice (landed).** Colocated **`Affordance::${perspectiveKey}`** rows, **`ensureAffordanceTopology`** hydrate preflight, **`TopologyInvalidated`** catalog bump, orchestration **`Slice Ready`** -> **`Affordances Pertain`** outbound.
 
-**Initiative:** [`taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md`](../../../../taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md). **Precedent:** [`../renderCache/AGENT.md`](../renderCache/AGENT.md).
+**Steady-state docs:** [`../../internalCache/AGENT.md`](../../internalCache/AGENT.md), [`packages/mtw-gateways/ts/assets/components/componentTopology/`](../../../../packages/mtw-gateways/ts/assets/components/componentTopology/), [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md). **Precedent:** [`../renderCache/AGENT.md`](../renderCache/AGENT.md).
 
 ## Getting Started
 
@@ -22,7 +22,7 @@ One Dynamo item per **`(ROOM#, perspectiveKey)`**:
 | `DataCategory` | `Affordance::${perspectiveKey}` |
 | `assetStack` | Participation order at hydrate time |
 | `catalogVersion` / `hydratedCatalogVersion` | Stale gate (mirror render **`Cache::`**) |
-| `topology` | Embedded **`ProjectedRoomTopology`** (`exits` JSON) |
+| `topology` | Embedded **`ProjectedRoomTopology`** --- **`exits`** as **`ExitFacetList`** JSON from **`projectRoomExits`** over merged Area **`positionGraph.edges`** at participation order (via **`ComponentTopology.get`** during hydrate) |
 
 ## CloudWatch instrumentation
 

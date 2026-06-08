@@ -61,4 +61,4 @@ After local Dynamo writes in **`mtw.ephemera.affordanceCache`**, call memo **`se
 ## Related
 
 - Topology assembly: [`ts/assets/components/componentTopology/`](../assets/components/componentTopology/)
-- Initiative: [`taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md`](../../../../taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md)
+- Steady-state: [`lambda/ephemera/dataSource/affordanceCache/AGENT.md`](../../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md), [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md)

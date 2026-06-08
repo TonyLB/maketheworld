@@ -13,7 +13,7 @@ Notify downstream consumers when room topology may have changed (**`mtw.ephemera
 
 | Source | Mechanism |
 | --- | --- |
-| `mtw.assets` **Component Updated / Removed** | Subscribe; `detectTopologyInvalidations` on **Area** / **Room** |
+| `mtw.assets` **Component Updated / Removed** | Subscribe; `detectTopologyInvalidations` on **Area** **`positionGraph`** |
 | `cacheAsset` inverse index | `emitTopologyInvalidatedForRoomTargets` after **`referencedBy`** writes |
 
 ## Event shape
@@ -28,7 +28,7 @@ Steady-state exit projection at a perspective is assembled by **`@tonylb/mtw-gat
 
 ## Related
 
-- Parent initiative: [`taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md`](../../../taskPlanning/packages/mtw-wml/AGENT.areaTopologyExits.planning.md)
+- Steady-state topology docs: [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md), [`lambda/ephemera/internalCache/AGENT.md`](../../../lambda/ephemera/internalCache/AGENT.md) (**Area topology and affordance exits**)
 - Persisted inverse index: [`../dataSource/caching/AGENT.diff.md`](../dataSource/caching/AGENT.diff.md) (**D10** `referencedBy` pass)
 - Precedent: [`../componentExamples/AGENT.md`](../componentExamples/AGENT.md)
 - Downstream consumer: [`lambda/ephemera/dataSource/affordanceCache/AGENT.md`](../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md)

@@ -56,9 +56,17 @@ WML (D29):
 
 **`referencedKeys()`:** **`From`** / **`To`** endpoints emit **`referenceType: 'Edge'`** (subset cascade -> Room **`Stub`**). See [`standardForm.subset.test.ts`](../../integration/standardForm.subset.test.ts).
 
+## Authoring vs runtime
+
+| Layer | Room **`exits`** |
+| --- | --- |
+| **Asset blueprint** | **Never stored.** Room-local **`<Exit to=`** is forbidden on asset **`StandardForm`** (constructor throw + **`validate()`**). |
+| **ephemeraWire wire** | **`StandardRoom.exits`** may carry legacy **`ExitFacetList`** on composed forms (affordance publish, nav). |
+| **Runtime projection** | Live navigable exits are synthesized from merged **Area** **`positionGraph.edges`**, not from per-asset room blueprint rows. |
+
 ## Runtime projection (D16)
 
-At ephemeraWire, room **`ExitFacetList`** is synthesized from merged Area edges, not from room blueprint rows. Pure projector: [`projectRoomExits`](../../projection/projectRoomExits.ts) (tests: [`projectRoomExits.test.ts`](../../projection/projectRoomExits.test.ts)). Gateways pull assembly: [`componentTopology`](../../../../../../packages/mtw-gateways/ts/assets/components/componentTopology/) via **`assembleRoomTopologyAtPerspective`** / **`createComponentTopologyCacheHandler`** (see [`packages/mtw-gateways/AGENT.md`](../../../../../../packages/mtw-gateways/AGENT.md)).
+At ephemeraWire, room **`ExitFacetList`** is synthesized from merged Area edges via [`projectRoomExits`](../../projection/projectRoomExits.ts) (tests: [`projectRoomExits.test.ts`](../../projection/projectRoomExits.test.ts)). Gateways pull assembly: [`componentTopology`](../../../../../../packages/mtw-gateways/ts/assets/components/componentTopology/) via **`createComponentTopologyCacheHandler`** on Ephemera **`internalCache`** (see [`packages/mtw-gateways/AGENT.md`](../../../../../../packages/mtw-gateways/AGENT.md), [`lambda/ephemera/internalCache/AGENT.md`](../../../../../../lambda/ephemera/internalCache/AGENT.md)).
 
 ## Future edge members
 

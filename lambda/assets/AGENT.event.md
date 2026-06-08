@@ -158,7 +158,7 @@ For Ephemera catalog, adjacency, and hydrate, see [`lambda/ephemera/dataSource/r
 
 ### 7. **mtw.assets.componentTopology** (Component topology invalidation)
 
-**Purpose**: Publishes **`TopologyInvalidated`** (no projected exit body) when **Area** `positionGraph` or **Room** exits (dual-read) change, and when **`cacheAsset`** patches **`referencedBy`** on **`ROOM#`** targets. Consumed by **`mtw.ephemera.affordanceCache`** (Milestone 4) for catalog version bumps; materialized topology rows refresh on affordance / nav read via hydrate-on-demand.
+**Purpose**: Publishes **`TopologyInvalidated`** (no projected exit body) when **Area** `positionGraph` (nodes / edges) changes and when **`cacheAsset`** patches **`referencedBy`** on **`ROOM#`** targets. Consumed by **`mtw.ephemera.affordanceCache`** for catalog version bumps; materialized topology rows refresh on affordance / nav read via hydrate-on-demand.
 
 **Type**: Non-replayable
 

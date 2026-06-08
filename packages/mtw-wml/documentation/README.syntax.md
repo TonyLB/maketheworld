@@ -58,12 +58,7 @@ Tags can have properties that convey information about them. WML supports severa
 ### Parentheses `(value)` - Key References
 Used for references to components or other keys. The value is treated as a key identifier.
 
-```
-<Room key=(mainHall)>
-<Exit to=(kitchen)>kitchen</Exit>
-```
-
-Room-local exits use **`to=`** plus an optional description string. Area topology edges (authoring) use a separate shape with **`uuid=`** and endpoint/label child tags (**D29**):
+**Canonical authoring (Area topology):** navigational edges live on **Area** **`positionGraph.edges`**, not under **Room**:
 
 ```
 <Exit uuid=(highwayToTown)>
@@ -74,7 +69,24 @@ Room-local exits use **`to=`** plus an optional description string. Area topolog
 </Exit>
 ```
 
-Both shapes parse at the schema layer; asset-mode validation of which shape is legal under **Room** vs **Area** is enforced in Standardize, not in the parser. **Room-local `to=` exits are not allowed on asset `StandardForm` instances** --- **`StandardForm.validate()`** rejects non-empty **`exits`** when **`standardizeMode === 'asset'`**. Component payloads always parse legacy **`to=`** exits when **`StandardExitFacet`** can resolve them. **`StandardArea`** ingests D29 topology exits into **`positionGraph.edges`** (reject legacy **`to=`** under Area). Correct authoring for topology edges is under **Area** **`positionGraph.edges`**.
+**Legacy room shape (ephemeraWire / parse only):** room-local **`<Exit to=(...)>`** still parses for wire round-trip but is **illegal in asset authoring**:
+
+```
+<Room key=(mainHall)>
+<Exit to=(kitchen)>kitchen</Exit>
+```
+
+Both shapes parse at the schema layer; which shape is legal under **Room** vs **Area** is enforced in Standardize, not in the parser.
+
+**Authoring vs wire vs runtime:**
+
+| Context | Room exits |
+| --- | --- |
+| **Asset `StandardForm`** | **Forbidden.** **`new StandardForm(wml, { standardizeMode: 'asset' })`** throws when WML contains **`<Exit to=`** under **Room**; **`validate()`** also rejects non-empty **`exits`**. |
+| **ephemeraWire `StandardForm`** | Legacy **`to=`** facets may appear on **`StandardRoom.exits`** in composed wire forms. |
+| **Play / affordances** | Live exit labels come from **Area** topology via **`projectRoomExits`**, not room blueprint rows. See [`AGENT.edges.md`](../ts/standardize/keys/edges/AGENT.edges.md). |
+
+**`StandardArea`** ingests topology exits into **`positionGraph.edges`** (reject legacy **`to=`** under Area).
 
 ### Quoted Strings `"value"` - Literal Strings
 Used for string values that should be preserved exactly as written.

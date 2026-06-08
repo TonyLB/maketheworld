@@ -232,6 +232,10 @@ This semantic separation ensures that references can be passed between contexts 
 
 See `dataTypes/AGENT.md` for detailed documentation of this distinction.
 
+## Topology and exits
+
+Navigational topology is owned by **Area** **`positionGraph.edges`**, not **Room** blueprint rows. Asset authoring **forbids** room-local **`<Exit to=`** under **Room**; runtime **`StandardRoom.exits`** on ephemeraWire forms is synthesized from Area edges via **`projectRoomExits`**. See [`AGENT.implementation.md`](./AGENT.implementation.md) (**StandardRoom**, **StandardArea**), [`../keys/edges/AGENT.edges.md`](../keys/edges/AGENT.edges.md), and [`../../documentation/README.syntax.md`](../../documentation/README.syntax.md).
+
 ## Related Documentation
 
 - [`AGENT.editAlgebra.md`](./AGENT.editAlgebra.md) - Mathematical properties of edit operations (two-tuple model, distributive property)
