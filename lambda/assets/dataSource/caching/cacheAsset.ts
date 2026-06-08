@@ -12,10 +12,6 @@ import {
     type PersistedReferencedByEntry,
 } from '@tonylb/mtw-gateways/ts/assets/components/componentData/referencedBy';
 import { invalidateExhaustivePartitionCache } from '../components/verticals/exhaustivePartitionLoader';
-import {
-    applyReferencedByPatchesForAsset,
-    targetsNeedingInverseReconcile,
-} from './referencedByPersistence';
 import { emitTopologyInvalidatedForRoomTargets } from '../../componentTopology'
 
 const isRoomId = (universalKey: ComponentUUID): boolean => universalKey.startsWith('ROOM#')
@@ -187,18 +183,19 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
             })
         }
 
-        const inverseTargets = targetsNeedingInverseReconcile(dbAsset, fileAsset)
-        const { patchedTargetIds, roomIdsForTopology } = await applyReferencedByPatchesForAsset({
-            assetUUID,
-            assetId,
-            fileAsset,
-            targetUniversalKeys: inverseTargets,
-        })
+        // TODO(referencedBy-refactor Phase 5): delete second pass; see
+        // taskPlanning/packages/mtw-wml/ts/AGENT.referencedByCacheDecacheRefactor.planning.md
+        // const inverseTargets = targetsNeedingInverseReconcile(dbAsset, fileAsset)
+        // const { patchedTargetIds, roomIdsForTopology } = await applyReferencedByPatchesForAsset({
+        //     assetUUID,
+        //     assetId,
+        //     fileAsset,
+        //     targetUniversalKeys: inverseTargets,
+        // })
 
-        const invalidateTargets = new Set<ComponentUUID>([
-            ...diff._components.map((c) => c.universalKey).filter((id): id is ComponentUUID => Boolean(id)),
-            ...patchedTargetIds,
-        ])
+        const invalidateTargets = new Set<ComponentUUID>(
+            diff._components.map((c) => c.universalKey).filter((id): id is ComponentUUID => Boolean(id))
+        )
         invalidateTargets.forEach((universalKey) => {
             if (isEphemeraId(universalKey)) {
                 internalCache.ComponentData.invalidate(universalKey, assetUUID)
@@ -206,12 +203,12 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
             }
         })
 
-        if (roomIdsForTopology.length > 0) {
-            await emitTopologyInvalidatedForRoomTargets({
-                roomIds: roomIdsForTopology,
-                editAssetId: assetUUID,
-            })
-        }
+        // if (roomIdsForTopology.length > 0) {
+        //     await emitTopologyInvalidatedForRoomTargets({
+        //         roomIds: roomIdsForTopology,
+        //         editAssetId: assetUUID,
+        //     })
+        // }
         
         // Stream component events with StandardComponent objects; Character events will be handled by mtw.assets.characters data source
         await Promise.all([

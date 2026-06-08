@@ -31,7 +31,7 @@ if (diff) {
 3. **Classify Changes**: Categorize changes where needed for DB operations (removals vs updates)
 4. **Apply Updates**: Process each change type with appropriate database operations
 5. **`referencedBy` on main loop (first pass)**: Each **`diff._components`** entry uses a three-way branch (full put / stub put / delete) and includes authoritative **`referencedBy`** from **`buildReferencedByPatchesForAsset(fileAsset)`**. See [`cacheAsset.ts`](./cacheAsset.ts).
-6. **`referencedBy` inverse pass (D10, temporary)**: After forward component writes, the second pass in [`referencedByPersistence.ts`](./referencedByPersistence.ts) still runs until Phase 3 disables it; it recomputes **`referencedBy`** on **`(targetUniversalKey, ASSET#assetId)`** for all targets referenced in **`fileAsset`** (not only **`diff._components`**).
+6. **`referencedBy` inverse pass (D10, disabled)**: The second pass in [`referencedByPersistence.ts`](./referencedByPersistence.ts) is **disabled** in [`cacheAsset.ts`](./cacheAsset.ts) (call commented out; module retained until Phase 5 deletion). **`referencedBy`** is written only in step 5 (first pass).
 7. **Stream Events (Unified)**: Stream all component changes as `"Component Updated"` events, and emit `"Component Removed"` events when components are deleted from the asset (branch C only --- edge-only stubs do not emit Component Removed)
 
 ### Diff Types

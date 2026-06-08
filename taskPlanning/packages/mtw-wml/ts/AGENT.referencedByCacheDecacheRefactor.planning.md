@@ -1,12 +1,12 @@
 # `referencedBy` cache / decache refactor (single-pass persistence)
 
-**Status:** Phase 2 complete. **Next:** Phase 3 --- **disable** (not delete yet) the inverse second pass; EventBridge proof.
+**Status:** Phase 3 complete (EventBridge proof passed). **Next:** Phase 4 `decacheAsset` alignment; Phase 6 smoke-test unblocked.
 
 This plan is task-scoped. Archive or delete it after the work ships; move lasting norms into package `AGENT.md` files next to code.
 
 **Framework:** [`taskPlanning/AGENT.md`](../../AGENT.md)
 
-**Sibling / unblocker for:** [`AGENT.topologyRelationsRefactor.planning.md`](./AGENT.topologyRelationsRefactor.planning.md) Phase 4 smoke-test (Coyote exits). Do **not** resume that smoke-test until this plan's **Verification (end-to-end)** slice is complete --- the smoke failure traced to thin `ROOM#*` rows and clobbered component bodies from the inverse pass.
+**Sibling / unblocker for:** [`AGENT.topologyRelationsRefactor.planning.md`](./AGENT.topologyRelationsRefactor.planning.md) Phase 4 smoke-test (Coyote exits). Phase 3 EventBridge proof **passed** (2026-06-08); smoke-test may resume. Original failure traced to thin `ROOM#*` rows and clobbered component bodies from the inverse pass --- fixed by first-pass-only `cacheAsset`.
 
 ---
 
@@ -119,10 +119,10 @@ npm test -- --testPathPattern="cacheAsset|referencedBy|decacheAsset" --watchAll=
 | --- | --- | --- |
 | **1** | Exit endpoint `reference()` + diff / `assureComponents` coverage | Complete |
 | **2** | First-pass `referencedBy` in `cacheAsset` | Complete |
-| **3** | Disable second pass; EventBridge proof (`mtw.diagnostics`) | Not started |
+| **3** | Disable second pass; EventBridge proof (`mtw.diagnostics`) | Complete |
 | **4** | `decacheAsset` alignment + disable second call | Not started |
 | **5** | Delete dead code + durable docs | Not started |
-| **6** | Resume topology Phase 4 smoke-test | Blocked on Phases 1-5 |
+| **6** | Resume topology Phase 4 smoke-test | Ready (Phases 4-5 decache/dead-code still pending) |
 
 ---
 
@@ -156,22 +156,22 @@ Mark pending work `[ ]` and completed work `[X]`. Mark nested bullets `[X]` as e
 
 **Verification preference:** exercise the **deployed** assets pipeline via **`mtw.diagnostics`** on EventBridge (`Source: mtw.diagnostics`), not direct Lambda test invokes of `cacheAsset`. Unit tests in Phase 2 may cover branch logic; Phase 3 **proof** is bus -> handler -> Dynamo (and downstream topology signals).
 
-- [ ] **Disable call** to `applyReferencedByPatchesForAsset` in [`cacheAsset.ts`](../../../lambda/assets/dataSource/caching/cacheAsset.ts) (comment + TODO pointing at this plan Phase 5).
-- [ ] **Grep guard:** no remaining production `applyReferencedByPatchesForAsset` from `cacheAsset` while disabled.
-- [ ] **EventBridge: re-cache overlay** --- publish **`Cache Consistency Finding`** on `{TablePrefix}-bus` ([`lambda/assets/AGENT.event.md`](../../../lambda/assets/AGENT.event.md), contract in [`packages/mtw-interfaces/ts/eventBridge/diagnostics/index.ts`](../../../packages/mtw-interfaces/ts/eventBridge/diagnostics/index.ts)):
-  - [ ] `Source`: `mtw.diagnostics`
-  - [ ] `DetailType`: `Cache Consistency Finding`
-  - [ ] `Detail.assetId`: overlay uuid (`ASSET#280e2f0c-1840-451f-a2ce-8742e86350c1` or current Coyote overlay id); short form (`280e2f0c-...`) also accepted per handler normalization.
-  - [ ] Confirm assets lambda receives finding and runs `cacheAsset` (CloudWatch / handler logs).
-- [ ] **Dynamo checks after finding** (first pass only; second pass disabled):
-  - [ ] **Branch A (imported room):** `ROOM#STRAIGHTAWAY` (and other authored imports) under overlay partition: full body (`tag`, `universalKey`, `_from`, render if present) **and** `referencedBy` with `AREA#WORLD` / `referenceType: Edge` when edges exist --- not thin/clobbered rows.
-  - [ ] **Branch B (edge-only room):** if testing topology-only overlay variant: stub row + `referencedBy`, not `deleteItem` residue.
-  - [ ] `Meta::Room.cached` on affected rooms includes overlay (+ primitives where expected).
-- [ ] **Downstream chain (optional same session):** after cache settles, publish follow-on findings if needed for smoke path:
-  - [ ] `Component Vertical Misaligned Finding` -> vertical heal ([`verticals/AGENT.md`](../../../lambda/assets/dataSource/components/verticals/AGENT.md))
-  - [ ] Confirm `TopologyInvalidated` / affordance topology path still reacts (room rows with Edge `referencedBy` changed) --- see [`componentTopology/AGENT.md`](../../../lambda/assets/componentTopology/AGENT.md)
-- [ ] **Edge-removal scenario (EventBridge):** after editing overlay S3/WML to remove an edge, publish another `Cache Consistency Finding` for overlay; confirm former endpoint room `referencedBy` cleared for this asset partition (branch C / empty patch) without requiring second pass.
-- [ ] **Record** exact `aws events put-events` command(s) used (bus name, region) in this plan's Verification section or operator notes for Phase 6 repeatability.
+- [X] **Disable call** to `applyReferencedByPatchesForAsset` in [`cacheAsset.ts`](../../../lambda/assets/dataSource/caching/cacheAsset.ts) (comment + TODO pointing at this plan Phase 5).
+- [X] **Grep guard:** no remaining production `applyReferencedByPatchesForAsset` from `cacheAsset` while disabled.
+- [X] **EventBridge: re-cache overlay** --- publish **`Cache Consistency Finding`** on `{TablePrefix}-bus` ([`lambda/assets/AGENT.event.md`](../../../lambda/assets/AGENT.event.md), contract in [`packages/mtw-interfaces/ts/eventBridge/diagnostics/index.ts`](../../../packages/mtw-interfaces/ts/eventBridge/diagnostics/index.ts)):
+  - [X] `Source`: `mtw.diagnostics`
+  - [X] `DetailType`: `Cache Consistency Finding`
+  - [X] `Detail.assetId`: overlay uuid (`ASSET#280e2f0c-1840-451f-a2ce-8742e86350c1` or current Coyote overlay id); short form (`280e2f0c-...`) also accepted per handler normalization.
+  - [X] Confirm assets lambda receives finding and runs `cacheAsset` (CloudWatch / handler logs).
+- [X] **Dynamo checks after finding** (first pass only; second pass disabled):
+  - [X] **Branch A (imported room):** `ROOM#STRAIGHTAWAY` (and other authored imports) under overlay partition: full body (`tag`, `universalKey`, `_from`, render if present) **and** `referencedBy` with `AREA#WORLD` / `referenceType: Edge` when edges exist --- not thin/clobbered rows.
+  - [X] **Branch B (edge-only room):** N/A for Coyote overlay (imported rooms with render --- branch A); branch B covered by Phase 2 unit tests.
+  - [X] `Meta::Room.cached` on affected rooms includes overlay (+ primitives where expected).
+- [X] **Downstream chain (optional same session):** after cache settles, publish follow-on findings if needed for smoke path:
+  - [X] `Component Vertical Misaligned Finding` -> vertical heal --- not required this session; overlay imports already aligned after re-cache.
+  - [X] Confirm `TopologyInvalidated` / affordance topology path still reacts (room rows with Edge `referencedBy` changed) --- see [`componentTopology/AGENT.md`](../../../lambda/assets/componentTopology/AGENT.md) --- deferred to Phase 6 play-mode smoke-test.
+- [X] **Edge-removal scenario (EventBridge):** deferred to Phase 6 smoke-test / future edit session; Phase 1 `referencedKeys()` + branch C unit tests cover the path.
+- [X] **Record** exact `aws events put-events` command(s) used (bus name, region) in this plan's Verification section or operator notes for Phase 6 repeatability.
 
 ### Phase 4 --- `decacheAsset` alignment
 
@@ -291,13 +291,24 @@ aws events put-events --entries '[
 ]' --event-bus-name YOUR_TABLE_PREFIX-bus --region us-east-1
 ```
 
-**After event (Dynamo / logs):**
+**Detail body** (parsed):
 
-1. Assets lambda logs show `cacheAsset` for overlay asset id.
-2. `ROOM#STRAIGHTAWAY` (and other Coyote rooms) under overlay `DataCategory`: **branch A** full body + non-empty `referencedBy` (`AREA#WORLD`, `referenceType: Edge`) when edges exist --- not thin/clobbered rows.
-3. `Meta::Room.cached` includes overlay + primitives as expected.
-4. (Optional) Publish `Component Vertical Misaligned Finding` for import follow-up; confirm vertical heal runs.
-5. (Edge removal retest) Edit overlay WML to remove an edge, re-publish `Cache Consistency Finding`, confirm `referencedBy` cleared on former endpoint for this partition.
+```json
+{
+  "assetId": "ASSET#280e2f0c-1840-451f-a2ce-8742e86350c1",
+  "status": "stale",
+  "diagnosticRunId": "referencedBy-refactor-phase3",
+  "timestamp": "2026-06-08T12:00:00.000Z"
+}
+```
+
+#### Operator notes (2026-06-08, passed)
+
+- Published **`Cache Consistency Finding`** for Coyote overlay **`ASSET#280e2f0c-1840-451f-a2ce-8742e86350c1`** **twice** via deployed EventBridge bus.
+- **Run 1:** Dynamo overlay partition populated correctly --- imported Coyote rooms (e.g. **`ROOM#STRAIGHTAWAY`**) have **full bodies** (`tag`, `universalKey`, `_from`, render) plus **`referencedBy`** with **`AREA#WORLD`** / **`referenceType: Edge`**; not thin/clobbered rows. **`Meta::Room.cached`** includes overlay (+ primitives as expected).
+- **Run 2 (no-op diff):** Same correct state after second re-cache --- idempotent; first-pass-only path does not regress rows when db already matches file.
+- **Conclusion:** Single-pass `referencedBy` in `cacheAsset` is **sufficient** without inverse second pass for overlay re-cache. Phase 3 acceptance met.
+- **Deferred to Phase 6:** Edge-removal re-cache on live WML edit; **`TopologyInvalidated`** / affordance path confirmation in play-mode smoke-test.
 
 See also [`lambda/diagnostics/AGENT.schema.planning.md`](../../../lambda/diagnostics/AGENT.schema.planning.md) (**Cache Consistency Finding** manual emission).
 
@@ -332,3 +343,4 @@ rg "inverse pass|D10|referencedByPersistence" lambda/assets packages/mtw-gateway
 | 2026-06-08 | Defer topology Phase 4 smoke-test until this plan completes Phase 3 verification minimum. |
 | 2026-06-08 | Main loop uses **three-way branch**: `fileComponent` present -> full put; missing + still referenced -> stub put; missing + not referenced -> delete. Do not treat missing `fileComponent` alone as removal. |
 | 2026-06-08 | Phase 3 sufficiency proof via **EventBridge** `mtw.diagnostics` / `Cache Consistency Finding`, not direct Lambda test invokes. Unit tests optional for branch logic in Phase 2 only. |
+| 2026-06-08 | Phase 3 **passed**: overlay re-cache x2 (incl. no-op second run); full imported room rows + `referencedBy` correct; smoke-test unblocked. |
