@@ -3,10 +3,14 @@ import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import internalCache from '../../internalCache'
+import { clearReferencedByForDecache } from './referencedByPersistence'
+import { emitTopologyInvalidatedForRoomTargets } from '../../componentTopology'
+import { invalidateExhaustivePartitionCache } from '../components/verticals/exhaustivePartitionLoader'
 
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     assetDB: {
         deleteItem: jest.fn(),
+        putItem: jest.fn(),
         query: jest.fn(),
         optimisticUpdate: jest.fn()
     }
@@ -20,12 +24,33 @@ jest.mock('../../internalCache', () => ({
         },
         AssetMetaData: {
             invalidate: jest.fn()
+        },
+        ComponentData: {
+            invalidate: jest.fn()
         }
     }
 }))
 
+jest.mock('./referencedByPersistence', () => ({
+    clearReferencedByForDecache: jest.fn().mockResolvedValue({
+        patchedTargetIds: [],
+        roomIdsForTopology: [],
+    }),
+}))
+
+jest.mock('../../componentTopology', () => ({
+    emitTopologyInvalidatedForRoomTargets: jest.fn().mockResolvedValue(undefined),
+}))
+
+jest.mock('../components/verticals/exhaustivePartitionLoader', () => ({
+    invalidateExhaustivePartitionCache: jest.fn(),
+}))
+
 const assetDBMock = jest.mocked(assetDB, { shallow: false })
 const internalCacheMock = jest.mocked(internalCache, { shallow: false })
+const clearReferencedByForDecacheMock = jest.mocked(clearReferencedByForDecache, { shallow: false })
+const emitTopologyInvalidatedForRoomTargetsMock = jest.mocked(emitTopologyInvalidatedForRoomTargets, { shallow: false })
+const invalidateExhaustivePartitionCacheMock = jest.mocked(invalidateExhaustivePartitionCache, { shallow: false })
 
 // Mock streamEvent function
 const mockStreamEvent = jest.fn()
@@ -149,5 +174,103 @@ describe('Decache Asset (Data Source)', () => {
 
         // Decache now derives from internal cache diff; query path is no longer used here
         expect(assetDBMock.query).not.toHaveBeenCalled()
+    })
+
+    describe('single-pass alignment (Phase 4)', () => {
+        it('does not call clearReferencedByForDecache second pass', async () => {
+            internalCacheMock.AssetData.get.mockResolvedValueOnce([
+                {
+                    AssetId: 'ASSET#Test',
+                    standardForm: new StandardForm(deIndentWML(`
+                        <Asset uuid=(Test)>
+                            <Room key=(VORTEX) uuid=(VORTEX) />
+                        </Asset>
+                    `))
+                }
+            ])
+
+            await decacheAsset({ assetId: 'Test', streamEvent: mockStreamEvent })
+
+            expect(clearReferencedByForDecacheMock).not.toHaveBeenCalled()
+        })
+
+        it('deleteItem for edge-only room stub without putItem recreation', async () => {
+            internalCacheMock.AssetData.get.mockResolvedValueOnce([
+                {
+                    AssetId: 'ASSET#test',
+                    standardForm: new StandardForm(deIndentWML(`
+                        <Asset uuid=(test)>
+                            <Area uuid=(region) key=(region)>
+                                <Room uuid=(highway) key=(highway) />
+                                <Exit uuid=(e1)>
+                                    <From>ROOM#highway</From>
+                                    <To>ROOM#outsideRoom</To>
+                                    <Forward>east</Forward>
+                                    <Back>west</Back>
+                                </Exit>
+                            </Area>
+                        </Asset>
+                    `))
+                }
+            ])
+
+            await decacheAsset({ assetId: 'test', streamEvent: mockStreamEvent })
+
+            expect(assetDBMock.putItem).not.toHaveBeenCalled()
+            expect(assetDBMock.deleteItem).toHaveBeenCalledWith({
+                AssetId: 'ROOM#outsideRoom',
+                DataCategory: 'ASSET#test',
+            })
+            expect(emitTopologyInvalidatedForRoomTargetsMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    roomIds: expect.arrayContaining(['ROOM#outsideRoom', 'ROOM#highway']),
+                    editAssetId: 'ASSET#test',
+                })
+            )
+        })
+
+        it('invalidates ComponentData and exhaustive partition cache for diff components', async () => {
+            internalCacheMock.AssetData.get.mockResolvedValueOnce([
+                {
+                    AssetId: 'ASSET#Test',
+                    standardForm: new StandardForm(deIndentWML(`
+                        <Asset uuid=(Test)>
+                            <Room key=(VORTEX) uuid=(VORTEX) />
+                            <Knowledge key=(knowledgeRoot) uuid=(knowledgeRoot) />
+                        </Asset>
+                    `))
+                }
+            ])
+
+            await decacheAsset({ assetId: 'Test', streamEvent: mockStreamEvent })
+
+            expect(internalCacheMock.ComponentData.invalidate).toHaveBeenCalledWith('ROOM#VORTEX', 'ASSET#Test')
+            expect(internalCacheMock.ComponentData.invalidate).toHaveBeenCalledWith('KNOWLEDGE#knowledgeRoot', 'ASSET#Test')
+            expect(invalidateExhaustivePartitionCacheMock).toHaveBeenCalledWith('ROOM#VORTEX')
+            expect(invalidateExhaustivePartitionCacheMock).toHaveBeenCalledWith('KNOWLEDGE#knowledgeRoot')
+        })
+
+        it('emits Component Removed only for branch-C removals', async () => {
+            internalCacheMock.AssetData.get.mockResolvedValueOnce([
+                {
+                    AssetId: 'ASSET#Test',
+                    standardForm: new StandardForm(deIndentWML(`
+                        <Asset uuid=(Test)>
+                            <Room key=(VORTEX) uuid=(VORTEX) />
+                        </Asset>
+                    `))
+                }
+            ])
+
+            await decacheAsset({ assetId: 'Test', streamEvent: mockStreamEvent })
+
+            const calls = mockStreamEvent.mock.calls.map(([arg]) => arg)
+            const updatedCalls = calls.filter((arg) => arg.header?.type === 'Component Updated')
+            const removedCalls = calls.filter((arg) => arg.header?.type === 'Component Removed')
+            expect(updatedCalls.length).toBe(1)
+            expect(removedCalls.length).toBe(1)
+            expect(updatedCalls[0].update.component.universalKey).toBe('ROOM#VORTEX')
+            expect(removedCalls[0].update.component.universalKey).toBe('ROOM#VORTEX')
+        })
     })
 })

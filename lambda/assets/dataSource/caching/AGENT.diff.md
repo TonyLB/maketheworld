@@ -30,7 +30,7 @@ if (diff) {
 2. **Generate Diff**: Compare the two StandardForm objects to identify differences
 3. **Classify Changes**: Categorize changes where needed for DB operations (removals vs updates)
 4. **Apply Updates**: Process each change type with appropriate database operations
-5. **`referencedBy` on main loop (first pass)**: Each **`diff._components`** entry uses a three-way branch (full put / stub put / delete) and includes authoritative **`referencedBy`** from **`buildReferencedByPatchesForAsset(fileAsset)`**. See [`cacheAsset.ts`](./cacheAsset.ts).
+5. **`referencedBy` on main loop (first pass)**: Each **`diff._components`** entry uses a three-way branch (full put / stub put / delete) and includes authoritative **`referencedBy`** from **`buildReferencedByPatchesForAsset(fileAsset)`**. See [`cacheAsset.ts`](./cacheAsset.ts). [`decacheAsset.ts`](./decacheAsset.ts) uses the same branch structure with **`emptyAsset`** (always branch C **`deleteItem`**; no **`referencedBy`** writes --- row deletion is sufficient).
 6. **`referencedBy` inverse pass (D10, disabled)**: The second pass in [`referencedByPersistence.ts`](./referencedByPersistence.ts) is **disabled** in [`cacheAsset.ts`](./cacheAsset.ts) (call commented out; module retained until Phase 5 deletion). **`referencedBy`** is written only in step 5 (first pass).
 7. **Stream Events (Unified)**: Stream all component changes as `"Component Updated"` events, and emit `"Component Removed"` events when components are deleted from the asset (branch C only --- edge-only stubs do not emit Component Removed)
 

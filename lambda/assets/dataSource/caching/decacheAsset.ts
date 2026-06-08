@@ -5,8 +5,12 @@ import internalCache from "../../internalCache"
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
 import { isEphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import { clearReferencedByForDecache } from './referencedByPersistence'
+import { tagFromEphemeraId } from '@tonylb/mtw-utilities/ts/graphStorage/cache'
+import { buildReferencedByPatchesForAsset } from '@tonylb/mtw-gateways/ts/assets/components/componentData/referencedBy'
+import { invalidateExhaustivePartitionCache } from '../components/verticals/exhaustivePartitionLoader'
 import { emitTopologyInvalidatedForRoomTargets } from '../../componentTopology'
+
+const isRoomId = (universalKey: ComponentUUID): boolean => universalKey.startsWith('ROOM#')
 
 /**
  * Remove asset content from DynamoDB storage
@@ -37,62 +41,113 @@ export const decacheAsset = async ({ assetId, streamEvent }: {
     const diff = dbAsset.diff(emptyAsset)
 
     if (diff) {
-        // For each removal in the diff, delete DB record, update metadata, and emit as both Component Updated and Component Removed
-        await Promise.all(diff._components.map(async (component) => {
-            if (!component.universalKey) {
-                return
-            }
-            const universalKey = component.universalKey
-            await Promise.all([
-                assetDB.deleteItem({ AssetId: universalKey, DataCategory: assetUUID }),
-                assetDB.optimisticUpdate({
-                    Key: {
-                        AssetId: universalKey,
-                        DataCategory: `Meta::${universalKey[0]}${universalKey.slice(1).split('#')[0].toLocaleLowerCase()}`,
-                    },
-                    updateKeys: ['cached'],
-                    updateReducer: (draft) => {
-                        if (!('cached' in draft)) {
-                            draft.cached = []
-                        }
-                        draft.cached = draft.cached.filter((id) => (id !== assetId))
-                    },
-                    deleteCondition: (draft) => (draft.cached.length === 0)
-                })
-            ])
+        // decache: empty forward graph -> patches are all []; always branch C (deleteItem)
+        const patches = buildReferencedByPatchesForAsset(emptyAsset)
+        const roomIdsForTopologyFirstPass: ComponentUUID[] = []
 
-            const componentUpdatedEvent: ComponentUpdatedEvent = { component }
-            const componentRemovedEvent: ComponentRemovedEvent = { component }
-            await Promise.all([
+        const uncacheMeta = (universalKey: ComponentUUID, tag: string) =>
+            assetDB.optimisticUpdate({
+                Key: {
+                    AssetId: universalKey,
+                    DataCategory: `Meta::${tag}`,
+                },
+                updateKeys: ['cached'],
+                updateReducer: (draft) => {
+                    if (!('cached' in draft)) {
+                        draft.cached = []
+                    }
+                    draft.cached = draft.cached.filter((id) => (id !== assetId))
+                },
+                deleteCondition: (draft) => (draft.cached.length === 0)
+            })
+
+        await Promise.all(
+            diff._components.map(async (component) => {
+                const universalKey = component.universalKey
+                if (!universalKey) {
+                    return
+                }
+                const referencedBy = patches.get(universalKey) ?? []
+                const fileComponent = emptyAsset._lookup(universalKey)
+
+                if (fileComponent) {
+                    // branch A - unreachable on decache (empty forward graph)
+                } else if (referencedBy.length > 0) {
+                    // branch B - unreachable on decache; no stub recreation
+                } else {
+                    const tag = component.tag ?? tagFromEphemeraId(universalKey)
+                    await Promise.all([
+                        assetDB.deleteItem({ AssetId: universalKey, DataCategory: assetUUID }),
+                        uncacheMeta(universalKey, tag),
+                    ])
+                }
+
+                if (isRoomId(universalKey)) {
+                    if (!fileComponent && referencedBy.length === 0) {
+                        roomIdsForTopologyFirstPass.push(universalKey)
+                    }
+                }
+            })
+        )
+
+        const { componentsUpdated, componentsRemoved } = diff._components
+            .filter((component) => (!!component.universalKey))
+            .reduce<{ componentsUpdated: ComponentUpdatedEvent[]; componentsRemoved: ComponentRemovedEvent[] }>((acc, component) => {
+                const universalKey = component.universalKey
+                if (!universalKey) {
+                    return acc
+                }
+                const referencedBy = patches.get(universalKey) ?? []
+                const fileComponent = emptyAsset._lookup(universalKey)
+                acc.componentsUpdated.push({ component })
+                if (!fileComponent && referencedBy.length === 0) {
+                    acc.componentsRemoved.push({ component })
+                }
+                return acc
+            }, { componentsUpdated: [], componentsRemoved: [] })
+
+        const uniqueRoomIdsForTopologyFirstPass = [...new Set(roomIdsForTopologyFirstPass)]
+        if (uniqueRoomIdsForTopologyFirstPass.length > 0) {
+            await emitTopologyInvalidatedForRoomTargets({
+                roomIds: uniqueRoomIdsForTopologyFirstPass,
+                editAssetId: assetUUID,
+            })
+        }
+
+        // TODO(referencedBy-refactor Phase 5): delete second pass; see
+        // taskPlanning/packages/mtw-wml/ts/AGENT.referencedByCacheDecacheRefactor.planning.md
+        // const { patchedTargetIds, roomIdsForTopology } = await clearReferencedByForDecache({
+        //     assetUUID,
+        //     assetId,
+        //     dbAsset,
+        // })
+
+        const invalidateTargets = new Set<ComponentUUID>(
+            diff._components.map((c) => c.universalKey).filter((id): id is ComponentUUID => Boolean(id))
+        )
+        invalidateTargets.forEach((universalKey) => {
+            if (isEphemeraId(universalKey)) {
+                internalCache.ComponentData.invalidate(universalKey, assetUUID)
+                invalidateExhaustivePartitionCache(universalKey)
+            }
+        })
+
+        await Promise.all([
+            ...componentsUpdated.map((componentUpdatedEvent) => (
                 streamEvent({
                     update: componentUpdatedEvent,
                     streamKey: assetId,
                     header: { type: 'Component Updated' },
-                }),
+                })
+            )),
+            ...componentsRemoved.map((componentRemovedEvent) => (
                 streamEvent({
                     update: componentRemovedEvent,
                     streamKey: assetId,
                     header: { type: 'Component Removed' },
-                }),
-            ])
-        }))
-
-        const { patchedTargetIds, roomIdsForTopology } = await clearReferencedByForDecache({
-            assetUUID,
-            assetId,
-            dbAsset,
-        })
-        patchedTargetIds.forEach((universalKey) => {
-            if (isEphemeraId(universalKey)) {
-                internalCache.ComponentData.invalidate(universalKey, assetUUID)
-            }
-        })
-        if (roomIdsForTopology.length > 0) {
-            await emitTopologyInvalidatedForRoomTargets({
-                roomIds: roomIdsForTopology,
-                editAssetId: assetUUID,
-            })
-        }
+                })
+            )),
+        ])
     }
 
     await assetDB.deleteItem({

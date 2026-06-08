@@ -1,6 +1,6 @@
 # Topology relations refactor (partial edges + invariant naming)
 
-**Status:** Phases 1-3 complete; Phase 4 **ready** --- referencedBy plan Phase 3 EventBridge proof **passed** (2026-06-08; overlay re-cache x2, full room rows + `referencedBy` correct). **Next:** Coyote exit inventory smoke-test, durable docs cleanup, delete this plan. ReferencedBy Phases 4-5 (`decacheAsset`, dead-code removal) proceed in parallel. Steady-state invariant names live in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md#topology-invariants).
+**Status:** Phases 1-3 complete; Phase 4 **ready** --- referencedBy plan Phases 3-4 **complete** (2026-06-08; overlay re-cache x2, `decacheAsset` aligned). **Next:** Coyote exit inventory smoke-test after referencedBy Phase 5 dead-code removal, durable docs cleanup, delete this plan. Steady-state invariant names live in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md#topology-invariants).
 
 This plan is task-scoped. Archive or delete it after the work ships; move lasting norms into package `AGENT.md` files next to code.
 
