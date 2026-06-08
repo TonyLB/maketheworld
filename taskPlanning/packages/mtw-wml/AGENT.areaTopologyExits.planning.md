@@ -1,10 +1,10 @@
 # Area topology exits (platform initiative)
 
-**Status:** In progress. **Milestone 0 (decisions)** complete; **Milestone 1** complete (WML + StandardArea asset mode); **Milestone 2** complete (persisted `referencedBy`); **Milestone 3** complete (projection library + gateways pull); **Milestone 4** complete (ephemera affordance pipeline); **Milestone 5** in progress (Workbench Area editor shipped; migration + client affordances merge remain).
+**Status:** In progress. **Milestone 0 (decisions)** complete; **Milestone 1** complete (WML + StandardArea asset mode); **Milestone 2** complete (persisted `referencedBy`); **Milestone 3** complete (projection library + gateways pull); **Milestone 4** complete (ephemera affordance pipeline); **Milestone 5** complete; **Milestone 6** next (forbid room-local exits + remove Room exit UI).
 
-**Next step:** **Milestone 5** --- production DB migration (**D23**, **D24**) and charcoal-client affordances merge (**D20**).
+**Next step:** **Milestone 6** --- forbid room-local **`<Exit>`** under **`<Room>`** in asset mode, remove **`ExitEditor`** from Workbench, retire room-local authoring tests. **Production topology restore** (Coyote demo edges in **`AREA#WORLD`**) moves to [`AGENT.topologyRelationsRefactor.planning.md`](ts/AGENT.topologyRelationsRefactor.planning.md) Phase 4 after Area exit authoring is usable.
 
-This plan is task-scoped. Archive or delete it after the initiative ships; move lasting norms into package `AGENT.md` files next to code.
+This plan is task-scoped. Delete it after the initiative ships; move lasting norms into package `AGENT.md` files next to code.
 
 **Framework:** [`taskPlanning/AGENT.md`](../../AGENT.md)
 
@@ -107,7 +107,7 @@ Mark decisions **`[X]`** in the **Status** column when normative. Milestone gate
 | **D4** | [X] | **Validation: one endpoint in graph** | For each **Exit** in **`positionGraph.edges`**: at least one of **`from`** or **`to`** must match a participant in **`positionGraph.nodes`** (same-key / same-universalKey as a node ref). **If neither endpoint is in `nodes`, standardization throws an error** (asset mode). One endpoint inside and one outside **`nodes`** is **allowed** (portal / border). |
 | **D5** | [X] | **Duplicates vs navigation ambiguity** | **Intentional (not a bug):** Multiple **`positionGraph.edges`** items (distinct **`uuid`**, distinct **Forward** / **Back** labels) may share the same **`(From, To)`** pair --- e.g. "door" vs "window" between the same two rooms. **Not ambiguous** in the data model. **Navigation (unchanged):** After projection, [`resolveExitLabelToTargetId`](../../../lambda/ephemera/dataSource/actions/discriminateIntent/exitResolution.ts) **`ambiguousMatch`** only when the player's normalized command matches **more than one distinct target room** from the current room; same label + same target dedupes to one resolution. Layered asset merge for edges: **D5b**. |
 | **D5b** | [X] | **Edge merge scope (`uuid`)** | Edges are **not** freestanding **`StandardComponent`**s, but **`uuid`** lets **`EdgeList.merge`** use **merge-by-`universalKey`** semantics **within one Area's `positionGraph`** when combining layered assets (e.g. canon defines **`<Exit uuid=(...)>`**, overlay **Replace**s **`<To>`** per **D29**). **Scope guard:** the same **`EXIT#...`** (or local uuid) in **different** Areas' **`positionGraph`s** is **not** the same edge --- edge identity is **local to the parent Area** / its **`positionGraph`**. Do not globalize edge uuids across Areas. |
-| **D6** | [X] | **Room `exits` in asset JSON (transition)** | **Dual-read** until production DB migrated (**D23**, **D24**): asset mode may still **ingest** room-local **`exits`** / **`<Exit>`** under **`<Room>`** (mapping into Area edges optional during dual-read). **ephemeraWire** projection unchanged. **Forbid** room-local exits in asset mode in **M6** after operator confirms migration (**D23** follow-up). |
+| **D6** | [X] | **Room `exits` in asset JSON (transition)** | **Dual-read** until **M6** forbid: asset mode may still **ingest** room-local **`exits`** / **`<Exit>`** under **`<Room>`**. **M6:** room-local exits **illegal** in asset authoring (no longer gated on Area-edge migration --- production room-local data already cleared). **ephemeraWire** projection unchanged. |
 | **D7** | [X] | **`Edge` reference type** | Add **`'Edge'`** to **`StandardComponentReferenceKey`** ([`baseClasses.ts`](../../../packages/mtw-wml/ts/standardize/components/baseClasses.ts)) for **Area `positionGraph.edges`** endpoint refs (**From** / **To**). **Do not** reuse **`'Position'`** (Map placement + structural parent tiers) or legacy **`'Exit'`** (room-local **`ExitsAndShortName`** subset). **Subset (normative):** cascade **`connectionType: 'Edge'`** -> target **Room** with **`requestType: 'Stub'`** (empty shell; no Situation/prose; **no** room-local exits copied). Mirror **Position** stub behavior only, not Map semantics. **SchemaOrganization:** treat **`Edge`** as **non-structural** (like **`Link`** / legacy **`Exit`** in [`standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md)) --- do **not** add to **Direct**/**Position** parent tiers; **nodes** stay **Direct** for participation. **Milestone 1:** wire **`StandardArea.referencedKeys()`**, subset tests, and any cascade docs/examples that today say **Exit** for room-to-room. |
 
 ### Blockers --- persisted `referencedBy`
@@ -138,17 +138,17 @@ Mark decisions **`[X]`** in the **Status** column when normative. Milestone gate
 
 | ID | Status | Decision | Notes / options |
 | --- | --- | --- | --- |
-| **D19** | [X] | **Workbench Area editor** | **Area** workbench surface (not edges-only): **`shortName`**, **`positionGraph.nodes`**, **`positionGraph.edges`**. **Edges:** select/update by **`uuid`**; retarget **`From`** / **`To`** in place; edit **`Forward`** / **`Back`**. **Room** editor: remove room-local exit authoring UI (**D23** follow-up timing --- after data migration, with asset-mode forbid). |
+| **D19** | [X] | **Workbench Area editor** | **Area** workbench surface (not edges-only): **`shortName`**, **`positionGraph.nodes`**, **`positionGraph.edges`**. **Edges:** select/update by **`uuid`**; retarget **`From`** / **`To`** in place; edit **`Forward`** / **`Back`**. **Room** editor: remove room-local exit authoring UI in **M6** (with asset-mode forbid). Area exit UX fixes tracked in [`AGENT.topologyRelationsRefactor.planning.md`](ts/AGENT.topologyRelationsRefactor.planning.md). |
 | **D20** | [X] | **Client merge** | Affordances channel still `render.merge(affordances)`; exits only on affordances projection |
-| **D21** | [X] | **RoomExit UI** | **Confirmed:** **`RoomExit`** chips unchanged if **D16** holds (same **`StandardExitFacet`** wire). |
+| **D21** | [X] | **RoomExit UI** | **Confirmed:** **`RoomExit`** chips unchanged if **D16** holds (same **`StandardExitFacet`** wire). **No manual parity smoke test** --- not planned; rely on **`projectRoomExits`** / ephemera projection tests (**D16**) and affordances-channel integration. |
 | **D22** | [X] | **Parse / LLM** | `movementExitLabels` stable if projection stable |
 
 ### Migration
 
 | ID | Status | Decision | Notes / options |
 | --- | --- | --- | --- |
-| **D23** | [X] | **Migration strategy** | **Dual-read** (**D6**): asset ingest keeps reading room-local **`<Exit>`** until production data is migrated. **In this initiative (manual step):** one-time migration of our single production DB --- move room-local exits into Area **`positionGraph.edges`**. **Follow-up (M6):** room-local exits **illegal** in asset authoring; strip-on-standardize or hard error; remove exit UI from Room edit component. **Not** big-bang code forbid before data migration. |
-| **D24** | [X] | **Canon / production** | **Operator:** Anthony runs the manual data migration and **confirms** completion before the **D23** follow-up forbid. Rollback via DB restore / re-run migration tooling (document in M5). |
+| **D23** | [X] | **Migration strategy** | **Original:** dual-read until production room-local exits migrated into Area **`positionGraph.edges`**, then M6 forbid. **Revised (2026):** production room-local exits already removed manually --- there is temporarily **no** navigational connective tissue between rooms. **M6 forbid** proceeds without waiting for Area-edge restore. **Restore topology (follow-up):** [`AGENT.topologyRelationsRefactor.planning.md`](ts/AGENT.topologyRelationsRefactor.planning.md) Phase 4 --- re-author or script demo edges into **`AREA#WORLD`** using [Production exit inventory](#production-exit-inventory-coyote-demo) once Area exit authoring works (Phases 1-3 of that plan). |
+| **D24** | [X] | **Canon / production** | **Operator:** room-local exits cleared from production DB (no **`positionGraph.edges`** yet). Full Area-edge restore is a separate follow-up after Workbench Area exit editing is usable; inventory below is the reference spec. |
 | **D25** | [X] | **Test matrix** | Add Area edge, **`projectRoomExits`**, and ephemera topology tests. **Retire** room-local exit **authoring** tests only when room-local authoring is removed (**D23** M6 follow-up) --- same gate as forbid, not earlier. |
 
 ### Ephemera --- `ComponentStackMerge` consolidation
@@ -192,8 +192,8 @@ Mark decisions **`[X]`** in the **Status** column when normative. Milestone gate
 | **2** Persisted `referencedBy` | **D8-D13** [X], **D31** [X]; **`cacheAsset`** + pair strip/carry + **`referencedByUnion`** on **`MergedComponentResult`** |
 | **3** Projection library + gateways pull | **D1-D6**, **D14-D17** [X]; **`projectRoomExits`**; **`mtw-gateways/ts/assets/components/componentTopology/`** (**`createComponentTopologyCacheHandler`**, primary) |
 | **4** Ephemera + assets caching integration | **D2**, **D11**, **D14-D18** [X], **D30** [X], **D32-D38** [X], Milestones **2-3**; **`affordanceOrchestration`** + **`affordanceCache`** + perception (**D37**) |
-| **5** Authoring + migration | **D19-D24** [X], Milestone **1**; manual DB migration (**D24**); Area workbench (**D19**) |
-| **6** Cleanup + durable docs | Prior milestones; **D23** follow-up (forbid room-local exits + UI); **D25** test retirement |
+| **5** Authoring | **D19-D24** [X], Milestone **1**; Area workbench first draft (**D19**); **D20** Phase C merge shipped; topology restore -> topology refactor Phase 4 |
+| **6** Cleanup + durable docs | Prior milestones; forbid room-local exits + UI (**D25** test retirement); delete this plan |
 
 ---
 
@@ -208,7 +208,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] **D4** --- at least one endpoint in **`nodes`**; **error** if neither.
   - [X] **D5** --- multi-edge same room pair + distinct labels is allowed; nav **ambiguousMatch** only on label -> multiple targets.
   - [X] **D5b** --- merge edges by **`uuid`** within one Area **`positionGraph`**; **`uuid`** not global across Areas.
-  - [X] **D6** --- dual-read room-local exits until DB migration; forbid in M6 (**D23**).
+  - [X] **D6** --- dual-read room-local exits until **M6** forbid (production room-local data already cleared; forbid no longer gated on Area-edge restore).
   - [X] **D7** --- new **`Edge`** `referenceType` for edge **From** / **To**; subset **Stub** via **`connectionType: 'Edge'`**; non-structural for org graph.
   - [X] **D18** --- **`componentTopology`** + **`affordanceOrchestration`** + **`affordanceCache`** pipeline (see [Caching architecture (D18)](#caching-architecture-d18)).
   - [X] **D8-D10** --- embed **`referencedBy`** on **`(target, ASSET#)`** forward rows; **`cacheAsset`** writer (see [Persisted `referencedBy` (D8-D10)](#persisted-referencedby-d8-d10)).
@@ -218,8 +218,8 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] **D14-D15** --- Area fan-out via **`referencedByUnion`** (edge endpoints only); **`mergeParticipationOrder`** for all folds (**D30**).
   - [X] **D16-D17** --- **`projectRoomExits`** wire shape; portal / outside endpoint nav rules.
   - [X] **D19-D22** --- Area workbench scope; client affordances merge; **RoomExit** confirmed; LLM labels stable with projection.
-  - [X] **D23-D25** --- dual-read + manual DB migration + post-migration forbid; operator-owned migration; test retirement gated on forbid.
-  - [X] Production room-local exit inventory (**D23**) --- see [Production exit inventory (Coyote demo)](#production-exit-inventory-coyote-demo).
+  - [X] **D23-D25** --- production room-local exits cleared; M6 forbid not gated on Area-edge restore; test retirement gated on forbid.
+  - [X] Production room-local exit inventory --- see [Production exit inventory (Coyote demo)](#production-exit-inventory-coyote-demo) (reference for restore).
 
 - [X] **Milestone 1 --- WML + StandardArea (asset mode)**
   - [X] **Schema (Area topology exits, D26 / D29):** one global **`<Exit>`** parse surface (no context-forked converters); legacy **`to=`** and new **`uuid=`** + child tags both parse; **D29** / **D6** rules enforced in **Standardize**, not schema parent context.
@@ -266,24 +266,26 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] **`StandardRoom` in ephemeraWire:** populate **`exits`** from hydrated topology slice; **`getRoomExitTargetsForCharacter`** shares slice path (**D34**).
   - [X] Close **D11** invalidation matrix in child plans; verify `roomChannel: 'affordances'`.
 
-- [ ] **Milestone 5 --- Authoring + migration**
-  - [X] Workbench **Area** editor (**D19**): **`shortName`**, **`nodes`**, **`edges`** (by **`uuid`**, retarget **From** / **To**, **Forward** / **Back**). See [`charcoal-client/src/components/Workbench/AreaEdit/`](../../../charcoal-client/src/components/Workbench/AreaEdit/).
-  - [ ] **Manual step (**D23**, **D24**):** migrate production DB --- room-local exits into Area **`positionGraph.edges`**; operator confirms before M6 forbid.
-  - [X] Inventory captured in plan ([Production exit inventory (Coyote demo)](#production-exit-inventory-coyote-demo)); migration script TBD.
-  - [ ] Charcoal-client: affordances merge (**D20**); **RoomExit** parity smoke (**D21**).
+- [X] **Milestone 5 --- Authoring**
+  - [X] Workbench **Area** editor first draft (**D19**): **`shortName`**, **`nodes`**, **`edges`** (by **`uuid`**, retarget **From** / **To**, **Forward** / **Back**). See [`charcoal-client/src/components/Workbench/AreaEdit/`](../../../charcoal-client/src/components/Workbench/AreaEdit/). Usable exit-edge authoring tracked in [`AGENT.topologyRelationsRefactor.planning.md`](ts/AGENT.topologyRelationsRefactor.planning.md).
+  - [X] Production room-local exits removed manually (**D24**); no Area **`positionGraph.edges`** yet --- temporary gap until topology restore (Phase 4 of topology refactor plan).
+  - [X] Inventory captured in plan ([Production exit inventory (Coyote demo)](#production-exit-inventory-coyote-demo)) as reference for restore.
+  - [X] Charcoal-client: affordances merge (**D20**) --- Phase C **`mergePerceivedRoomForms`** shipped ([`roomHeaderPhaseC.ts`](../../../charcoal-client/src/slices/messages/roomHeaderPhaseC.ts), [`VirtualMessageList`](../../../charcoal-client/src/components/Message/VirtualMessageList.tsx)); exits arrive via affordances channel from Area-projected topology, not client-side Area assembly.
 
-- [ ] **Milestone 6 --- Cleanup (**D23** follow-up, **D25**)**
-  - [ ] Forbid room-local **`<Exit>`** under **`<Room>`** in asset mode; remove dual-read ingest.
-  - [ ] Remove room-local exit UI from Room edit component (**D19**).
+- [ ] **Milestone 6 --- Cleanup (**D25**)**
+  - [ ] Forbid room-local **`<Exit>`** under **`<Room>`** in asset mode; remove dual-read ingest from **`StandardRoom`**.
+  - [ ] Remove room-local exit UI from Room edit component (**D19** --- **`ExitEditor`**).
   - [ ] Retire room-local exit **authoring** tests (**D25** --- same gate as forbid).
   - [ ] Durable docs: `mtw-wml` AGENT files, ephemera internalCache AGENT, multi-channel contract cross-links.
-  - [ ] Archive this plan.
+  - [ ] Delete this plan.
 
 ---
 
 ## Production exit inventory (Coyote demo)
 
-**Scope (**D23**, **D24**):** Single production DB; Coyote demo topology. Canonical room ids (see [`AGENT.CoyoteGame.md`](../../../AGENT.CoyoteGame.md)): **`CLIFFBASE`** = **`ROOM#VORTEX`** (prompt seam label only).
+**Current production state:** Room-local exits have been removed; Area topology edges are not yet authored. This section is the **reference spec** for restoring navigational connective tissue. **Restore work:** [`AGENT.topologyRelationsRefactor.planning.md`](ts/AGENT.topologyRelationsRefactor.planning.md) Phase 4 (after usable Area exit authoring).
+
+**Scope:** Coyote demo topology. Canonical room ids (see [`AGENT.CoyoteGame.md`](../../../AGENT.CoyoteGame.md)): **`CLIFFBASE`** = **`ROOM#VORTEX`** (prompt seam label only).
 
 | Seam label | Canonical id |
 | --- | --- |
@@ -306,7 +308,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
 
 **Target authoring shape (per edge, **D29**):** one **`<Exit uuid=(...)>`** on parent **Area** **`positionGraph.edges`** with **`<From>`**, **`<To>`**, **`<Forward>`**, **`<Back>`** --- not room-local **`<Exit>`** under **`<Room>`**.
 
-**Migration design TBD:** which **`AREA#`** owns **`nodes`** + these **`edges`** (likely one Area for the demo graph); assign stable edge **`uuid`** values at migrate time. **Normative topology root (bootstrap):** **`AREA#WORLD`** in **`ASSET#primitives`** (`<Area uuid=(WORLD) />`, empty stub until migrate); demo graph migration should target **`AREA#WORLD`**. **Verify after migrate:** **`projectRoomExits`** / affordances match today's labels (east, west, up, down, south, north) and nav pairs (**D16**, **D21**).
+**Restore design (follow-up):** target **`AREA#WORLD`** in **`ASSET#primitives`** (`<Area uuid=(WORLD) />`). Assign stable edge **`uuid`** values at restore time. **Verify after restore:** **`projectRoomExits`** / affordances match the labels below (east, west, up, down, south, north) and nav resolution (**D16**).
 
 **Spatial reference (non-normative):** [`AGENT.CoyoteGame.md`](../../../AGENT.CoyoteGame.md) --- STRAIGHTAWAY -> CLIFFBASE -> CORNER along highway; CLIFFTOP above CLIFFBASE; BRIDGE south of CORNER.
 
@@ -356,14 +358,8 @@ npm test -- --watchAll=false dataSource/caching/cacheAsset.test.ts dataSource/ca
 ```bash
 cd charcoal-client
 npm run test:single -- src/components/Workbench/AreaEdit/areaEditMutations.test.ts
+npm run test:single -- src/slices/messages/roomHeaderPhaseC.ts
 npm run test:single
-```
-
-**Client (after Milestone 5 affordances merge):**
-
-```bash
-cd charcoal-client
-npm test
 ```
 
 ---
@@ -378,8 +374,8 @@ npm test
 | M2 Persisted referencedBy | Done (see child plan) |
 | M3 Projection library + gateways `componentTopology/` | Done |
 | M4 Ephemera affordance pipeline (`affordanceOrchestration` + `affordanceCache` + perception) | Done |
-| M5 Authoring + migration | In progress (Workbench Area editor done; migration + D20 remain) |
-| M6 Cleanup + archive plan | Not started |
+| M5 Authoring | Done |
+| M6 Cleanup + delete plan | Next (forbid room-local + remove Room exit UI) |
 
 ---
 
@@ -436,11 +432,11 @@ Projection shows **`east`** in `highway` toward `townCenter` and **`west`** in `
 
 - **D17 (normative):** Portal edges (**D4**): one in-graph endpoint. Affordance from in-graph **R**; movement requires peer **`ROOM#`**.
 
-- **D19 (normative):** Workbench **Area** editor covers **`shortName`**, **`nodes`**, **`edges`**. Room editor drops exit UI after **D23** M6 forbid.
+- **D19 (normative):** Workbench **Area** editor covers **`shortName`**, **`nodes`**, **`edges`**. Room editor drops exit UI in **M6** forbid. Area exit UX improvements: [`AGENT.topologyRelationsRefactor.planning.md`](ts/AGENT.topologyRelationsRefactor.planning.md).
 
-- **D20-D22 (normative):** Exits on affordances channel only (**D20**); **RoomExit** UI unchanged (**D21**); stable **`movementExitLabels`** if projection stable (**D22**).
+- **D20-D22 (normative):** Exits on affordances channel only (**D20**); **RoomExit** UI unchanged by wire shape (**D21**, no manual smoke test); stable **`movementExitLabels`** if projection stable (**D22**).
 
-- **D23-D25 (normative):** Dual-read until manual DB migration (**D24** operator confirm); then M6 forbid + test retirement (**D25**).
+- **D23-D25 (normative):** Production room-local exits already cleared (**D24**). **M6** forbid + test retirement (**D25**) proceeds without Area-edge restore. Demo topology restore: topology refactor **Phase 4** + [inventory](#production-exit-inventory-coyote-demo).
 
 - **D30 (normative):** **`ComponentStackMerge`** uses **`ComponentAggregate`**; retire **`mergeRoomExitsToJSON`** on affordance path. See [ComponentStackMerge refactor (D30)](#componentstackmerge-refactor-d30).
 
