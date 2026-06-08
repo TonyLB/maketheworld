@@ -2,16 +2,26 @@ import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import internalCache from "../../internalCache";
 import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly";
 import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB";
+import { tagFromEphemeraId } from '@tonylb/mtw-utilities/ts/graphStorage/cache';
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types";
 import { AssetsEventUpdate, ComponentUpdatedEvent, ComponentRemovedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets';
 import { Zone, isEphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema';
+import {
+    buildReferencedByPatchesForAsset,
+    type PersistedReferencedByEntry,
+} from '@tonylb/mtw-gateways/ts/assets/components/componentData/referencedBy';
 import { invalidateExhaustivePartitionCache } from '../components/verticals/exhaustivePartitionLoader';
 import {
     applyReferencedByPatchesForAsset,
     targetsNeedingInverseReconcile,
 } from './referencedByPersistence';
 import { emitTopologyInvalidatedForRoomTargets } from '../../componentTopology'
+
+const isRoomId = (universalKey: ComponentUUID): boolean => universalKey.startsWith('ROOM#')
+
+const hasEdgeRef = (entries: PersistedReferencedByEntry[]): boolean =>
+    entries.some((entry) => entry.referenceType === 'Edge')
 
 /**
  * Cache asset content to DynamoDB storage
@@ -79,6 +89,26 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
     })()
     
     if (diff) {
+        const patches = buildReferencedByPatchesForAsset(fileAsset)
+        const roomIdsForTopologyFirstPass: ComponentUUID[] = []
+
+        const bumpMetaCached = (universalKey: ComponentUUID, tag: string) =>
+            assetDB.optimisticUpdate({
+                Key: {
+                    AssetId: universalKey,
+                    DataCategory: `Meta::${tag}`,
+                },
+                updateKeys: ['cached'],
+                updateReducer: (draft) => {
+                    if (!('cached' in draft)) {
+                        draft.cached = []
+                    }
+                    if (!draft.cached.includes(assetId)) {
+                        draft.cached = [...draft.cached, assetId]
+                    }
+                },
+            })
+
         const [metaResult] = await Promise.all([
             metaAssetWrite as Promise<{ zone?: string; player?: string }>,
             ...diff._components
@@ -87,36 +117,42 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
                     if (!universalKey) {
                         return
                     }
+                    const referencedBy = patches.get(universalKey) ?? []
                     const fileComponent = fileAsset._lookup(universalKey)
-                    if (!fileComponent) {
+
+                    if (fileComponent) {
+                        await Promise.all([
+                            assetDB.putItem({
+                                ...(fileComponent.toJSON()),
+                                referencedBy,
+                                AssetId: universalKey,
+                                DataCategory: assetUUID,
+                            }),
+                            bumpMetaCached(universalKey, component.tag),
+                        ])
+                    } else if (referencedBy.length > 0) {
+                        const tag = component.tag ?? tagFromEphemeraId(universalKey)
+                        await Promise.all([
+                            assetDB.putItem({
+                                tag,
+                                universalKey,
+                                referencedBy,
+                                AssetId: universalKey,
+                                DataCategory: assetUUID,
+                            }),
+                            bumpMetaCached(universalKey, tag),
+                        ])
+                    } else {
                         await assetDB.deleteItem({
                             AssetId: universalKey,
                             DataCategory: assetUUID
                         })
                     }
-                    else {
-                        await Promise.all([
-                            assetDB.putItem({
-                                ...(fileComponent.toJSON()),
-                                AssetId: universalKey,
-                                DataCategory: assetUUID,
-                            }),
-                            assetDB.optimisticUpdate({
-                                Key: {
-                                    AssetId: universalKey,
-                                    DataCategory: `Meta::${component.tag}`,    
-                                },
-                                updateKeys: ['cached'],
-                                updateReducer: (draft) => {
-                                    if (!('cached' in draft)) {
-                                        draft.cached = []
-                                    }
-                                    if (!draft.cached.includes(assetId)) {
-                                        draft.cached = [...draft.cached, assetId]
-                                    }
-                                },
-                            })
-                        ])
+
+                    if (isRoomId(universalKey)) {
+                        if (hasEdgeRef(referencedBy) || (!fileComponent && referencedBy.length === 0)) {
+                            roomIdsForTopologyFirstPass.push(universalKey)
+                        }
                     }
                 })
         ])
@@ -129,19 +165,28 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
                 if (!universalKey) {
                     return acc
                 }
+                const referencedBy = patches.get(universalKey) ?? []
                 const fileComponent = fileAsset._lookup(universalKey)
                 //
                 // If the component still exists in the incoming asset, treat as a content update.
-                // If it no longer exists, emit both Component Updated (for content-focused subscribers)
-                // and Component Removed (for presence-focused subscribers).
+                // If it no longer exists in the file and has no forward references, emit Component Removed.
+                // Edge-only stubs (branch B) still exist in the partition and must not emit Component Removed.
                 //
                 acc.componentsUpdated.push({ component })
-                if (!fileComponent) {
+                if (!fileComponent && referencedBy.length === 0) {
                     acc.componentsRemoved.push({ component })
                 }
                 return acc
             }, { componentsUpdated: [], componentsRemoved: [] })
-        
+
+        const uniqueRoomIdsForTopologyFirstPass = [...new Set(roomIdsForTopologyFirstPass)]
+        if (uniqueRoomIdsForTopologyFirstPass.length > 0) {
+            await emitTopologyInvalidatedForRoomTargets({
+                roomIds: uniqueRoomIdsForTopologyFirstPass,
+                editAssetId: assetUUID,
+            })
+        }
+
         const inverseTargets = targetsNeedingInverseReconcile(dbAsset, fileAsset)
         const { patchedTargetIds, roomIdsForTopology } = await applyReferencedByPatchesForAsset({
             assetUUID,

@@ -14,7 +14,8 @@ Notify downstream consumers when room topology may have changed (**`mtw.ephemera
 | Source | Mechanism |
 | --- | --- |
 | `mtw.assets` **Component Updated / Removed** | Subscribe; `detectTopologyInvalidations` on **Area** **`positionGraph`** |
-| `cacheAsset` inverse index | `emitTopologyInvalidatedForRoomTargets` after **`referencedBy`** writes |
+| `cacheAsset` first pass | `emitTopologyInvalidatedForRoomTargets` when Edge-type **`referencedBy`** changes on **`ROOM#`** targets in **`diff._components`** |
+| `cacheAsset` inverse index (temporary) | Second-pass `emitTopologyInvalidatedForRoomTargets` after **`referencedBy`** writes --- retained until Phase 3 disables the inverse pass |
 
 ## Event shape
 

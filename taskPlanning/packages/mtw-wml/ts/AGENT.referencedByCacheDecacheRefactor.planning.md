@@ -1,6 +1,6 @@
 # `referencedBy` cache / decache refactor (single-pass persistence)
 
-**Status:** Phase 1 complete. **Next:** Phase 2 --- fold `referencedBy` into the main `cacheAsset` write loop and **disable** (not delete yet) the inverse second pass.
+**Status:** Phase 2 complete. **Next:** Phase 3 --- **disable** (not delete yet) the inverse second pass; EventBridge proof.
 
 This plan is task-scoped. Archive or delete it after the work ships; move lasting norms into package `AGENT.md` files next to code.
 
@@ -118,7 +118,7 @@ npm test -- --testPathPattern="cacheAsset|referencedBy|decacheAsset" --watchAll=
 | Phase | Description | Status |
 | --- | --- | --- |
 | **1** | Exit endpoint `reference()` + diff / `assureComponents` coverage | Complete |
-| **2** | First-pass `referencedBy` in `cacheAsset` | Not started |
+| **2** | First-pass `referencedBy` in `cacheAsset` | Complete |
 | **3** | Disable second pass; EventBridge proof (`mtw.diagnostics`) | Not started |
 | **4** | `decacheAsset` alignment + disable second call | Not started |
 | **5** | Delete dead code + durable docs | Not started |
@@ -143,14 +143,14 @@ Mark pending work `[ ]` and completed work `[X]`. Mark nested bullets `[X]` as e
 
 ### Phase 2 --- First-pass `referencedBy` in `cacheAsset` (lambda/assets)
 
-- [ ] **Helper** (inline or extracted): given `fileAsset`, precompute `buildReferencedByPatchesForAsset(fileAsset)` once per cache run (reuse [`referencedBy.ts`](../../../packages/mtw-gateways/ts/assets/components/componentData/referencedBy.ts) --- do not reimplement). Per `universalKey`: `patches.get(universalKey) ?? []`.
-- [ ] **Main loop** ([`cacheAsset.ts`](../../../lambda/assets/dataSource/caching/cacheAsset.ts) `diff._components` map) --- replace today's binary `fileComponent ? put : delete` with the [three-way branch](#main-loop-three-way-write-branch):
-  - [ ] **(A) `fileComponent` present:** `putItem({ ...fileComponent.toJSON(), referencedBy, AssetId, DataCategory })` + `Meta::${tag}.cached` bump (usual case: local body, import + render, etc.).
-  - [ ] **(B) `fileComponent` missing, still referenced in `fileAsset`:** `referencedBy` patch non-empty (or equivalent forward-ref check) -> **stub** `putItem` (`tag`, `universalKey`, `referencedBy`, keys) + `Meta::${tag}.cached` bump --- **not** `deleteItem`. Edge-only topology overlay pattern.
-  - [ ] **(C) `fileComponent` missing, not referenced in `fileAsset`:** `referencedBy` patch empty -> **`deleteItem`** (component removed from this asset partition). This is the usual meaning of "missing from file" for inverted / removed diff entries.
-  - [ ] Do **not** use `fileComponent` missing alone as the delete signal; assured empty stubs and true removals both fail `_lookup` today.
-- [ ] **`TopologyInvalidated`:** emit when first pass writes / clears room `referencedBy` with `referenceType: 'Edge'` (parity with today's `roomIdsForTopology`).
-- [ ] **Unit tests (Phase 2, optional but recommended):** thin extensions to [`cacheAsset.test.ts`](../../../lambda/assets/dataSource/caching/cacheAsset.test.ts) for three-way branch logic only --- not the Phase 3 sufficiency proof (see Phase 3 EventBridge).
+- [X] **Helper** (inline or extracted): given `fileAsset`, precompute `buildReferencedByPatchesForAsset(fileAsset)` once per cache run (reuse [`referencedBy.ts`](../../../packages/mtw-gateways/ts/assets/components/componentData/referencedBy.ts) --- do not reimplement). Per `universalKey`: `patches.get(universalKey) ?? []`.
+- [X] **Main loop** ([`cacheAsset.ts`](../../../lambda/assets/dataSource/caching/cacheAsset.ts) `diff._components` map) --- replace today's binary `fileComponent ? put : delete` with the [three-way branch](#main-loop-three-way-write-branch):
+  - [X] **(A) `fileComponent` present:** `putItem({ ...fileComponent.toJSON(), referencedBy, AssetId, DataCategory })` + `Meta::${tag}.cached` bump (usual case: local body, import + render, etc.).
+  - [X] **(B) `fileComponent` missing, still referenced in `fileAsset`:** `referencedBy` patch non-empty (or equivalent forward-ref check) -> **stub** `putItem` (`tag`, `universalKey`, `referencedBy`, keys) + `Meta::${tag}.cached` bump --- **not** `deleteItem`. Edge-only topology overlay pattern.
+  - [X] **(C) `fileComponent` missing, not referenced in `fileAsset`:** `referencedBy` patch empty -> **`deleteItem`** (component removed from this asset partition). This is the usual meaning of "missing from file" for inverted / removed diff entries.
+  - [X] Do **not** use `fileComponent` missing alone as the delete signal; assured empty stubs and true removals both fail `_lookup` today.
+- [X] **`TopologyInvalidated`:** emit when first pass writes / clears room `referencedBy` with `referenceType: 'Edge'` (parity with today's `roomIdsForTopology`).
+- [X] **Unit tests (Phase 2, optional but recommended):** thin extensions to [`cacheAsset.test.ts`](../../../lambda/assets/dataSource/caching/cacheAsset.test.ts) for three-way branch logic only --- not the Phase 3 sufficiency proof (see Phase 3 EventBridge).
 
 ### Phase 3 --- Disable second pass; prove sufficiency (EventBridge)
 

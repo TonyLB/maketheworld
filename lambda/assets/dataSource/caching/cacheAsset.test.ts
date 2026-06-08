@@ -1,10 +1,7 @@
-import eventBridgeClient from '@tonylb/mtw-utilities/ts/eventBridge'
 import { cacheAsset } from './cacheAsset'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import internalCache from '../../internalCache'
-import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { emitTopologyInvalidatedForRoomTargets } from '../../componentTopology'
@@ -626,6 +623,153 @@ describe('Cache Asset (Data Source)', () => {
         })
     })
 
+    describe('referencedBy first pass (three-way branch)', () => {
+        it('includes referencedBy on full body puts (branch A)', async () => {
+            internalCacheMock.AssetData.get.mockResolvedValue([{
+                AssetId: 'ASSET#primitives',
+                standardForm: new StandardForm('<Asset uuid=(primitives) />')
+            }])
+            internalCacheMock.AssetMetaData.get.mockResolvedValue([{
+                AssetId: 'ASSET#primitives',
+                zone: 'Canon'
+            }])
+            standardFormMock = new StandardForm(`
+                <Asset uuid=(primitives)>
+                    <Room uuid=(VORTEX) />
+                </Asset>
+            `)
+
+            await cacheAsset({ assetId: 'primitives', streamEvent: mockStreamEvent })
+
+            const roomPut = assetDBMock.putItem.mock.calls.find(
+                (call) => call[0].AssetId === 'ROOM#VORTEX'
+            )?.[0]
+            expect(roomPut).toBeDefined()
+            expect(roomPut).toHaveProperty('referencedBy')
+            expect(Array.isArray(roomPut!.referencedBy)).toBe(true)
+        })
+
+        it('stub puts edge-only room targets without deleteItem (branch B)', async () => {
+            internalCacheMock.AssetData.get.mockResolvedValue([{
+                AssetId: 'ASSET#test',
+                standardForm: new StandardForm('<Asset uuid=(test) />')
+            }])
+            internalCacheMock.AssetMetaData.get.mockResolvedValue([{ AssetId: 'ASSET#test', zone: 'Canon' }])
+            standardFormMock = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Area uuid=(region) key=(region)>
+                        <Room uuid=(highway) key=(highway) />
+                        <Exit uuid=(e1)>
+                            <From>ROOM#highway</From>
+                            <To>ROOM#outsideRoom</To>
+                            <Forward>east</Forward>
+                            <Back>west</Back>
+                        </Exit>
+                    </Area>
+                </Asset>
+            `))
+            assetDBMock.getItem.mockResolvedValue({})
+
+            await cacheAsset({ assetId: 'test', streamEvent: mockStreamEvent })
+
+            const outsideStubPut = assetDBMock.putItem.mock.calls.find(
+                (call) => call[0].AssetId === 'ROOM#outsideRoom'
+            )?.[0]
+            expect(outsideStubPut).toBeDefined()
+            expect(outsideStubPut?.tag).toBe('Room')
+            expect(outsideStubPut?.universalKey).toBe('ROOM#outsideRoom')
+            expect(outsideStubPut?.referencedBy).toEqual(
+                expect.arrayContaining([
+                    { referrerUniversalKey: 'AREA#region', referenceType: 'Edge' },
+                ])
+            )
+            expect(assetDBMock.deleteItem).not.toHaveBeenCalledWith(
+                expect.objectContaining({ AssetId: 'ROOM#outsideRoom' })
+            )
+            expect(assetDBMock.optimisticUpdate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    Key: {
+                        AssetId: 'ROOM#outsideRoom',
+                        DataCategory: 'Meta::Room',
+                    },
+                })
+            )
+            expect(emitTopologyInvalidatedForRoomTargets).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    roomIds: expect.arrayContaining(['ROOM#outsideRoom']),
+                    editAssetId: 'ASSET#test',
+                })
+            )
+        })
+
+        it('deleteItem for true component removal (branch C)', async () => {
+            internalCacheMock.AssetData.get.mockResolvedValue([{
+                AssetId: 'ASSET#primitives',
+                standardForm: new StandardForm(`
+                    <Asset uuid=(primitives)>
+                        <Room uuid=(VORTEX) />
+                        <Knowledge uuid=(knowledgeRoot) />
+                    </Asset>
+                `)
+            }])
+            internalCacheMock.AssetMetaData.get.mockResolvedValue([{
+                AssetId: 'ASSET#primitives',
+                zone: 'Canon'
+            }])
+            standardFormMock = new StandardForm(`
+                <Asset uuid=(primitives)>
+                    <Room uuid=(VORTEX) />
+                </Asset>
+            `)
+
+            await cacheAsset({ assetId: 'primitives', streamEvent: mockStreamEvent })
+
+            expect(assetDBMock.deleteItem).toHaveBeenCalledWith({
+                AssetId: 'KNOWLEDGE#knowledgeRoot',
+                DataCategory: 'ASSET#primitives'
+            })
+            const knowledgePut = assetDBMock.putItem.mock.calls.find(
+                (call) => call[0].AssetId === 'KNOWLEDGE#knowledgeRoot'
+            )
+            expect(knowledgePut).toBeUndefined()
+        })
+
+        it('deleteItem for edge-only room when edge is removed (branch C)', async () => {
+            internalCacheMock.AssetData.get.mockResolvedValue([{
+                AssetId: 'ASSET#test',
+                standardForm: new StandardForm(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Area uuid=(region) key=(region)>
+                            <Room uuid=(highway) key=(highway) />
+                            <Exit uuid=(e1)>
+                                <From>ROOM#highway</From>
+                                <To>ROOM#outsideRoom</To>
+                                <Forward>east</Forward>
+                                <Back>west</Back>
+                            </Exit>
+                        </Area>
+                    </Asset>
+                `))
+            }])
+            internalCacheMock.AssetMetaData.get.mockResolvedValue([{ AssetId: 'ASSET#test', zone: 'Canon' }])
+            standardFormMock = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Area uuid=(region) key=(region)>
+                        <Room uuid=(highway) key=(highway) />
+                    </Area>
+                </Asset>
+            `))
+            assetDBMock.getItem.mockResolvedValue({})
+
+            await cacheAsset({ assetId: 'test', streamEvent: mockStreamEvent })
+
+            expect(assetDBMock.deleteItem).toHaveBeenCalledWith({
+                AssetId: 'ROOM#outsideRoom',
+                DataCategory: 'ASSET#test'
+            })
+        })
+    })
+
     describe('referencedBy inverse index (D10)', () => {
         it('patches referencedBy on room targets when Area edge changes without room body diff', async () => {
             const dbForm = new StandardForm('<Asset uuid=(test) />')
@@ -652,19 +796,20 @@ describe('Cache Asset (Data Source)', () => {
 
             await cacheAsset({ assetId: 'test', streamEvent: mockStreamEvent })
 
-            const inversePut = assetDBMock.putItem.mock.calls.find(
+            const roomPutsWithReferencedBy = assetDBMock.putItem.mock.calls.filter(
                 (call) =>
+                    call[0].AssetId?.startsWith('ROOM#') &&
                     call[0].referencedBy?.some(
                         (entry: { referrerUniversalKey: string }) =>
                             entry.referrerUniversalKey === 'AREA#region'
                     )
-            )?.[0]
-            expect(inversePut?.referencedBy).toEqual(
+            )
+            expect(roomPutsWithReferencedBy.length).toBeGreaterThanOrEqual(1)
+            expect(roomPutsWithReferencedBy[0][0].referencedBy).toEqual(
                 expect.arrayContaining([
                     { referrerUniversalKey: 'AREA#region', referenceType: 'Edge' },
                 ])
             )
-            expect(inversePut?.AssetId).toMatch(/^ROOM#/)
             expect(emitTopologyInvalidatedForRoomTargets).toHaveBeenCalledWith(
                 expect.objectContaining({
                     roomIds: expect.arrayContaining(['ROOM#outsideRoom']),
