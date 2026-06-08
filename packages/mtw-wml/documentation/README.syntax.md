@@ -62,10 +62,25 @@ Used for references to components or other keys. The value is treated as a key i
 
 ```
 <Exit uuid=(highwayToTown)>
-    <From>ROOM#highway</From>
-    <To>ROOM#townCenter</To>
+    <From>highway</From>
+    <To>townCenter</To>
     <Forward>east</Forward>
     <Back>west</Back>
+</Exit>
+```
+
+Endpoint bodies accept **ComponentUUID** (`ROOM#highway`) or **legalKey** (`highway`); emit prefers legalKey when the reference has one. See [Endpoint field states](../ts/standardize/keys/edges/AGENT.edges.md#endpoint-field-states) in [`AGENT.edges.md`](../ts/standardize/keys/edges/AGENT.edges.md).
+
+Incomplete edges (valid in asset storage; ignored by play projection until complete):
+
+```
+<Exit uuid=(edge-a1b2c3d4) />
+```
+
+```
+<Exit uuid=(highwayToTown)>
+    <From>highway</From>
+    <Forward>east</Forward>
 </Exit>
 ```
 

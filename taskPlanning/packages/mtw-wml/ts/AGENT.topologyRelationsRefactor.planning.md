@@ -1,6 +1,6 @@
 # Topology relations refactor (partial edges + invariant naming)
 
-**Status:** Phase 1 complete. **Next step:** Phase 2 --- incomplete edges in WML + Standardize + edit algebra. Steady-state invariant names live in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md#topology-invariants).
+**Status:** Phase 2 in progress (optional endpoints: types + WML parse/emit shipped). **Next step:** merge/diff overlays, StandardArea ingest relaxation, semantic-layer tests. Steady-state invariant names live in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md#topology-invariants).
 
 This plan is task-scoped. Archive or delete it after the work ships; move lasting norms into package `AGENT.md` files next to code.
 
@@ -121,7 +121,7 @@ rg 'edgeSatisfiesD4|assertEdgeD4|findEdgesViolatingD4|d4Error' packages/mtw-wml 
 | Phase | Description | Status |
 | --- | --- | --- |
 | **1** | Invariant naming cleanup (`D*` -> glossary names) | Complete |
-| **2** | Partial / incomplete edges in WML + Standardize + edit algebra | Not started |
+| **2** | Partial / incomplete edges in WML + Standardize + edit algebra | In progress |
 | **3** | Workbench exit-edge editor refactor | Not started |
 | **4** | Restore Coyote demo topology in production | Not started (blocked on Phase 3) |
 
@@ -144,10 +144,10 @@ Mark pending work `[ ]` and completed work `[X]`. Mark nested bullets `[X]` as e
 
 ### Phase 2 --- Incomplete edges in storage and manipulation
 
-- [ ] **Types:** Make `from` / `to` optional in [`StandardExitEdgeData`](../../../packages/mtw-wml/ts/standardize/keys/edges/dataTypes/exitEdge.ts) and `isStandardExitEdgeData` (absent vs empty vs Remove/Replace envelopes --- document the distinction).
-- [ ] **WML parse:** [`parseExitEdgeFromSchema`](../../../packages/mtw-wml/ts/standardize/keys/edges/edgeFactory.ts) --- require `uuid`; allow omitted `<From>` and/or `<To>`; keep rejecting legacy `to=` attribute and bare String body under Area Exit.
-- [ ] **WML emit:** `schema()` omits `<From>` / `<To>` children when unset; round-trip tests for uuid-only and one-sided edges.
-- [ ] **Endpoint wrappers:** [`endpointReference.ts`](../../../packages/mtw-wml/ts/standardize/keys/edges/endpointReference.ts) --- allow undefined / absent endpoints without throw on construct; `reference()` returns `undefined` when unset.
+- [X] **Types:** Make `from` / `to` optional in [`StandardExitEdgeData`](../../../packages/mtw-wml/ts/standardize/keys/edges/dataTypes/exitEdge.ts) and `isStandardExitEdgeData` (absent vs empty vs Remove/Replace envelopes --- document the distinction).
+- [X] **WML parse:** [`parseExitEdgeFromSchema`](../../../packages/mtw-wml/ts/standardize/keys/edges/edgeFactory.ts) --- require `uuid`; allow omitted `<From>` and/or `<To>`; keep rejecting legacy `to=` attribute and bare String body under Area Exit.
+- [X] **WML emit:** `schema()` omits `<From>` / `<To>` children when unset; round-trip tests for uuid-only and one-sided edges.
+- [X] **Endpoint wrappers (unset/absent):** [`endpointReference.ts`](../../../packages/mtw-wml/ts/standardize/keys/edges/endpointReference.ts) --- allow undefined / absent endpoints without throw on construct; `reference()` returns `undefined` when unset; empty `<From />` / `<To />` normalizes to absent.
 - [ ] **Merge / diff / invert:** Verify [`edgeFactory.ts`](../../../packages/mtw-wml/ts/standardize/keys/edges/edgeFactory.ts) and [`edgeListFactory.ts`](../../../packages/mtw-wml/ts/standardize/keys/edges/edgeListFactory.ts) with fixtures: stub + layered Replace on one endpoint; uuid-only + add To in overlay.
 - [ ] **StandardArea ingest:** [`area.ts`](../../../packages/mtw-wml/ts/standardize/components/area.ts) --- store incomplete edges; **remove throw** for participant endpoint rule from `fromSchema` / `fromJSON` / `merge` (or gate behind an explicit strict mode if a caller needs it --- default asset mode must not throw for incomplete or participant-less edges).
 - [ ] **Participant endpoint rule:** Keep as **pure helper** (e.g. `edgeSatisfiesParticipantRule(area, edge)`) for UI warnings and optional lint; not a standardize hard error.

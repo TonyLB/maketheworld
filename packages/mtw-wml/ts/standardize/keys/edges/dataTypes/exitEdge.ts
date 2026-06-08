@@ -10,8 +10,8 @@ export type ExitEdgePayloadData = {
 export type StandardExitEdgeData = {
     tag: 'Exit'
     uuid: string
-    from: StandardEditableData<StandardReferenceData>
-    to: StandardEditableData<StandardReferenceData>
+    from?: StandardEditableData<StandardReferenceData>
+    to?: StandardEditableData<StandardReferenceData>
     payload: ExitEdgePayloadData
 }
 
@@ -37,10 +37,17 @@ export const isStandardExitEdgeData = (arg: unknown): arg is StandardExitEdgeDat
         return false
     }
     const referenceEditable = editWrappedTypeguard(isStandardReferenceData)
-    return typeof (arg as StandardExitEdgeData).uuid === 'string'
-        && referenceEditable((arg as StandardExitEdgeData).from)
-        && referenceEditable((arg as StandardExitEdgeData).to)
-        && isExitEdgePayloadData((arg as StandardExitEdgeData).payload)
+    const data = arg as StandardExitEdgeData
+    if (typeof data.uuid !== 'string') {
+        return false
+    }
+    if ('from' in data && data.from !== undefined && !referenceEditable(data.from)) {
+        return false
+    }
+    if ('to' in data && data.to !== undefined && !referenceEditable(data.to)) {
+        return false
+    }
+    return isExitEdgePayloadData(data.payload)
 }
 
 export const isStandardExitEdgeEnvelope = (arg: unknown): arg is StandardEditableData<StandardExitEdgeData> => {

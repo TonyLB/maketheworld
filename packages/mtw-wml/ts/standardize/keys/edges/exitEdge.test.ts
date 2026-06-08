@@ -72,6 +72,91 @@ describe('StandardExitEdge', () => {
             </Exit>
         `))).toThrow(/requires uuid/)
     })
+
+    it('should construct uuid-only stub from JSON without from or to', () => {
+        const edge = new StandardExitEdge({
+            tag: 'Exit',
+            uuid: 'edge-a1b2c3d4',
+            payload: {},
+        })
+        expect(edge.toJSON()).toEqual({
+            tag: 'Exit',
+            uuid: 'edge-a1b2c3d4',
+            payload: {},
+        })
+    })
+
+    it('should parse and round-trip uuid-only stub WML', () => {
+        const stubWML = deIndentWML(`<Exit uuid=(edge-a1b2c3d4) />`)
+        const edge = new StandardExitEdge(treeFromWML(stubWML))
+        expect(edge.toJSON()).toEqual({
+            tag: 'Exit',
+            uuid: 'edge-a1b2c3d4',
+            payload: {},
+        })
+        expect(schemaToWML([edge.schema()])).toEqual(stubWML)
+    })
+
+    it('should parse and round-trip From-only edge with legalKey', () => {
+        const fromOnlyWML = deIndentWML(`
+            <Exit uuid=(highwayToTown)>
+                <From>highway</From>
+                <Forward>east</Forward>
+            </Exit>
+        `)
+        const edge = new StandardExitEdge(treeFromWML(fromOnlyWML))
+        expect(edge.toJSON()).toEqual({
+            tag: 'Exit',
+            uuid: 'highwayToTown',
+            from: { key: 'highway', tag: 'Room' },
+            payload: { forward: 'east' },
+        })
+        expect(schemaToWML([edge.schema()])).toEqual(schemaToWML(treeFromWML(fromOnlyWML)))
+    })
+
+    it('should parse and round-trip From-only edge with universal key', () => {
+        const fromOnlyWML = deIndentWML(`
+            <Exit uuid=(highwayToTown)>
+                <From>ROOM#highway</From>
+            </Exit>
+        `)
+        const edge = new StandardExitEdge(treeFromWML(fromOnlyWML))
+        expect(edge.toJSON()).toEqual({
+            tag: 'Exit',
+            uuid: 'highwayToTown',
+            from: 'ROOM#highway',
+            payload: {},
+        })
+        expect(schemaToWML([edge.schema()])).toEqual(schemaToWML(treeFromWML(fromOnlyWML)))
+    })
+
+    it('should parse and round-trip To-only edge', () => {
+        const toOnlyWML = deIndentWML(`
+            <Exit uuid=(edge1)>
+                <To>ROOM#townCenter</To>
+            </Exit>
+        `)
+        const edge = new StandardExitEdge(treeFromWML(toOnlyWML))
+        expect(edge.toJSON()).toEqual({
+            tag: 'Exit',
+            uuid: 'edge1',
+            to: 'ROOM#townCenter',
+            payload: {},
+        })
+        expect(schemaToWML([edge.schema()])).toEqual(schemaToWML(treeFromWML(toOnlyWML)))
+    })
+
+    it('should normalize empty From tag to absent endpoint', () => {
+        const emptyFromWML = deIndentWML(`<Exit uuid=(e1)><From /></Exit>`)
+        const stubWML = deIndentWML(`<Exit uuid=(e1) />`)
+        const edge = new StandardExitEdge(treeFromWML(emptyFromWML))
+        expect(edge.toJSON()).toEqual({
+            tag: 'Exit',
+            uuid: 'e1',
+            payload: {},
+        })
+        expect(schemaToWML([edge.schema()])).toEqual(schemaToWML(treeFromWML(stubWML)))
+    })
 })
 
 describe('ExitEdgeList', () => {

@@ -13,6 +13,36 @@ import { StandardReference, LookupMappings } from "../reference"
 import { StandardExitEdgeData, isStandardExitEdgeData, isStandardExitEdgeEnvelope } from "./dataTypes/exitEdge"
 import { StandardExitFromEndpoint, StandardExitToEndpoint } from "./endpointReference"
 import { ExitEdgePayload, createExitEdgePayloadFromSchemaChildren } from "./exitEdgePayload"
+import { StandardReferenceData } from "../dataTypes/reference"
+
+type ExitEndpointInstance = InstanceType<typeof StandardExitFromEndpoint>
+
+const parseOptionalExitEndpoint = (
+    matched: GenericTree<SchemaTag>,
+    EndpointClass: new (arg: unknown) => ExitEndpointInstance
+): StandardEditableData<StandardReferenceData> | undefined => {
+    if (matched.length === 0) {
+        return undefined
+    }
+    const endpoint = new EndpointClass(matched)
+    return endpoint.isUnset() ? undefined : endpoint.toJSON()
+}
+
+const exitEndpointToJSON = (endpoint: ExitEndpointInstance): StandardEditableData<StandardReferenceData> | undefined =>
+    endpoint.isUnset() ? undefined : endpoint.toJSON()
+
+const exitEdgeDataFromEndpoints = (props: {
+    uuid: string
+    from: ExitEndpointInstance
+    to: ExitEndpointInstance
+    payload: ExitEdgePayload
+}): StandardExitEdgeData => ({
+    tag: 'Exit',
+    uuid: props.uuid,
+    ...(exitEndpointToJSON(props.from) !== undefined ? { from: exitEndpointToJSON(props.from)! } : {}),
+    ...(exitEndpointToJSON(props.to) !== undefined ? { to: exitEndpointToJSON(props.to)! } : {}),
+    payload: props.payload.toJSON(),
+})
 
 export interface EdgeListItem {
     sameKey(other: EdgeListItem): boolean
@@ -68,18 +98,17 @@ const parseExitEdgeFromSchema = (schema: GenericTree<SchemaTag>): StandardExitEd
     const { matched: forwardMatched } = splitTaggedChildren({ children: exitNode.children, tag: 'Forward' })
     const { matched: backMatched } = splitTaggedChildren({ children: exitNode.children, tag: 'Back' })
 
-    if (fromMatched.length === 0) {
-        throw new Error('Area Exit requires From child tag')
-    }
-    if (toMatched.length === 0) {
-        throw new Error('Area Exit requires To child tag')
-    }
-
-    const from = new StandardExitFromEndpoint(fromMatched).toJSON()
-    const to = new StandardExitToEndpoint(toMatched).toJSON()
+    const from = parseOptionalExitEndpoint(fromMatched, StandardExitFromEndpoint)
+    const to = parseOptionalExitEndpoint(toMatched, StandardExitToEndpoint)
     const payload = createExitEdgePayloadFromSchemaChildren(forwardMatched, backMatched).toJSON()
 
-    return { tag: 'Exit', uuid, from, to, payload }
+    return {
+        tag: 'Exit',
+        uuid,
+        ...(from !== undefined ? { from } : {}),
+        ...(to !== undefined ? { to } : {}),
+        payload,
+    }
 }
 
 export const edgeClassFactory = (label: string) => {
@@ -217,13 +246,12 @@ export const edgeClassFactory = (label: string) => {
         }
 
         toJSON(): StandardEditableData<StandardExitEdgeData> {
-            return {
-                tag: 'Exit',
+            return exitEdgeDataFromEndpoints({
                 uuid: this._uuid,
-                from: this._from.toJSON(),
-                to: this._to.toJSON(),
-                payload: this._payload.toJSON(),
-            }
+                from: this._from,
+                to: this._to,
+                payload: this._payload,
+            })
         }
 
         schema(): GenericTreeNode<SchemaTag> {
@@ -258,13 +286,12 @@ export const edgeClassFactory = (label: string) => {
             if (!mergedFrom && !mergedTo && !mergedPayload) {
                 return undefined
             }
-            const result = new GeneratedExitEdgeClass({
-                tag: 'Exit',
+            const result = new GeneratedExitEdgeClass(exitEdgeDataFromEndpoints({
                 uuid: this._uuid,
-                from: (mergedFrom ?? this._from).toJSON(),
-                to: (mergedTo ?? this._to).toJSON(),
-                payload: (mergedPayload ?? this._payload).toJSON(),
-            })
+                from: mergedFrom ?? this._from,
+                to: mergedTo ?? this._to,
+                payload: mergedPayload ?? this._payload,
+            }))
             return this._wrap(result)
         }
 
@@ -281,46 +308,42 @@ export const edgeClassFactory = (label: string) => {
             if (!diffFrom && !diffTo && !diffPayload) {
                 return undefined
             }
-            const result = new GeneratedExitEdgeClass({
-                tag: 'Exit',
+            const result = new GeneratedExitEdgeClass(exitEdgeDataFromEndpoints({
                 uuid: this._uuid,
-                from: (diffFrom ?? this._from).toJSON(),
-                to: (diffTo ?? this._to).toJSON(),
-                payload: (diffPayload ?? this._payload).toJSON(),
-            })
+                from: diffFrom ?? this._from,
+                to: diffTo ?? this._to,
+                payload: diffPayload ?? this._payload,
+            }))
             return this._wrap(result)
         }
 
         invert(): GeneratedExitEdgeClass {
-            const result = new GeneratedExitEdgeClass({
-                tag: 'Exit',
+            const result = new GeneratedExitEdgeClass(exitEdgeDataFromEndpoints({
                 uuid: this._uuid,
-                from: this._from.invert().toJSON(),
-                to: this._to.invert().toJSON(),
-                payload: this._payload.invert().toJSON(),
-            })
+                from: this._from.invert(),
+                to: this._to.invert(),
+                payload: this._payload.invert(),
+            }))
             return this._wrap(result)
         }
 
         toFormat(format: ReferenceFormat): GeneratedExitEdgeClass {
-            const result = new GeneratedExitEdgeClass({
-                tag: 'Exit',
+            const result = new GeneratedExitEdgeClass(exitEdgeDataFromEndpoints({
                 uuid: this._uuid,
-                from: this._from.toFormat(format).toJSON(),
-                to: this._to.toFormat(format).toJSON(),
-                payload: this._payload.toFormat(format).toJSON(),
-            })
+                from: this._from.toFormat(format),
+                to: this._to.toFormat(format),
+                payload: this._payload.toFormat(format),
+            }))
             return this._wrap(result)
         }
 
         lookup(mappings: LookupMappings): GeneratedExitEdgeClass {
-            const result = new GeneratedExitEdgeClass({
-                tag: 'Exit',
+            const result = new GeneratedExitEdgeClass(exitEdgeDataFromEndpoints({
                 uuid: this._uuid,
-                from: this._from.lookup(mappings).toJSON(),
-                to: this._to.lookup(mappings).toJSON(),
-                payload: this._payload.lookup(mappings).toJSON(),
-            })
+                from: this._from.lookup(mappings),
+                to: this._to.lookup(mappings),
+                payload: this._payload.lookup(mappings),
+            }))
             return this._wrap(result)
         }
     }

@@ -11,8 +11,8 @@ Steady-state names for Area topology design rules. Use these in docs, comments, 
 | Steady-state name | Meaning (summary) |
 | --- | --- |
 | **Bidirectional topology** | Every Area exit edge is traversable in both directions; `Forward` from the From room, `Back` from the To room. |
-| **Edge list pattern** | `positionGraph.edges` is a uuid-keyed list of `{ uuid, from, to, payload }` items parallel to facets but not using `facetClassFactory`. |
-| **Area exit endpoint tags** | Area `<Exit>` uses `<From>` / `<To>` child tags (ComponentUUID string bodies), not `from=` / `to=` attributes; rejects legacy `to=` under Area. |
+| **Edge list pattern** | `positionGraph.edges` is a uuid-keyed list of `{ uuid, from?, to?, payload }` items parallel to facets but not using `facetClassFactory`. |
+| **Area exit endpoint tags** | Area `<Exit>` uses `<From>` / `<To>` child tags (ComponentUUID or legalKey string bodies), not `from=` / `to=` attributes; rejects legacy `to=` under Area. |
 | **Edge uuid identity** | Merge/diff/edit identity is the edge `uuid` within one Area, not the `(from, to)` pair. |
 | **Participant endpoint rule** | When **both** endpoints are resolved, at least one must match a ref in `positionGraph.nodes` for the edge to participate in topology semantics (portal: one inside, one outside is allowed). |
 | **Incomplete edge** | An edge with missing and/or unset `From` and/or `To` (may still carry `uuid` and labels). Valid in asset storage; ignored by semantic projection until complete. |
@@ -36,8 +36,8 @@ JSON shape (tagged union ready):
 {
   tag: 'Exit',
   uuid: string,
-  from: StandardEditableData<StandardReferenceData>,
-  to: StandardEditableData<StandardReferenceData>,
+  from?: StandardEditableData<StandardReferenceData>,
+  to?: StandardEditableData<StandardReferenceData>,
   payload: { forward?: StandardEditableData<string>, back?: StandardEditableData<string> }
 }
 ```
@@ -46,10 +46,34 @@ WML (area exit endpoint tags):
 
 ```xml
 <Exit uuid=(highwayToTown)>
-    <From>ROOM#highway</From>
-    <To>ROOM#townCenter</To>
+    <From>highway</From>
+    <To>townCenter</To>
     <Forward>east</Forward>
     <Back>west</Back>
+</Exit>
+```
+
+In-asset authoring typically uses **legalKey** bodies (`highway`); emit prefers legal key when the reference has one, otherwise `ROOM#...`. Parse accepts either form.
+
+### Endpoint field states
+
+| State | JSON | WML | `reference()` |
+| --- | --- | --- | --- |
+| **Absent / unset** | `from` / `to` property omitted | `<From>` / `<To>` tag omitted | `undefined` |
+| **Empty tag** | (not stored) | `<From />` or `<To />` with no String body | Normalized to **absent** on Standardize parse |
+| **Plain value** | `StandardReferenceData` (legalKey object or universal string) | `<From>highway</From>` in-asset; `ROOM#highway` when key unknown | `StandardReference` |
+| **Edit envelope** | `{ tag: 'Remove' \| 'Replace', ... }` | `<Remove><From>...</From></Remove>` etc. | Per existing Replace rules |
+
+Incomplete edges (uuid-only or one-sided) omit unset endpoint tags on emit.
+
+```xml
+<Exit uuid=(edge-a1b2c3d4) />
+```
+
+```xml
+<Exit uuid=(highwayToTown)>
+    <From>highway</From>
+    <Forward>east</Forward>
 </Exit>
 ```
 
@@ -66,8 +90,8 @@ WML (area exit endpoint tags):
 
 [`StandardArea`](../../components/area.ts) ingests `<Exit>` after participant node refs. Asset-mode validation:
 
-- **Area exit endpoint tags:** Reject `to=` attribute (legacy room shape); require `uuid`, `<From>`, `<To>`; reject bare String body (legacy description)
-- **Participant endpoint rule:** At least one of **`From`** / **`To`** must match a participant in **`positionGraph.nodes`** (`sameKey`); portal edges (one inside, one outside) allowed. Enforced on **`fromSchema`**, **`merge`**, and **`fromJSON`** when local nodes are present.
+- **Area exit endpoint tags:** Reject `to=` attribute (legacy room shape); require `uuid`; `<From>` / `<To>` optional when incomplete; reject bare String body (legacy description)
+- **Participant endpoint rule:** When **both** endpoints resolve, at least one must match a participant in **`positionGraph.nodes`** (`sameKey`); portal edges (one inside, one outside) allowed. Enforced on **`fromSchema`**, **`merge`**, and **`fromJSON`** when local nodes are present (skipped when either endpoint is unset).
 
 **`referencedKeys()`:** **`From`** / **`To`** endpoints emit **`referenceType: 'Edge'`** (subset cascade -> Room **`Stub`**). See [`standardForm.subset.test.ts`](../../integration/standardForm.subset.test.ts).
 

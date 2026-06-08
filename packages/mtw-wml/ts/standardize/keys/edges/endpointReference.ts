@@ -66,6 +66,9 @@ export const createExitEndpointSimpleBase = (tagName: ExitEndpointTag) => {
 
 const createEndpointPayloadFactory = (tagName: ExitEndpointTag, SimpleBase: ReturnType<typeof createExitEndpointSimpleBase>) =>
     (props: StandardReferenceData | GenericTree<SchemaTag>): InstanceType<typeof SimpleBase> | undefined => {
+        if (Array.isArray(props) && props.length === 0) {
+            return undefined
+        }
         if (typeof props === 'string' || (typeof props === 'object' && props !== null && !Array.isArray(props) && isStandardReferenceData(props))) {
             return new SimpleBase(props)
         }
@@ -78,7 +81,7 @@ const createEndpointPayloadFactory = (tagName: ExitEndpointTag, SimpleBase: Retu
                     .map(({ value }) => value)
                     .join('')
                 if (combinedValue === '') {
-                    throw new Error(`${tagName} endpoint must not be empty`)
+                    return undefined
                 }
                 return new SimpleBase(combinedValue)
             }
@@ -143,11 +146,14 @@ export const createExitEndpointClasses = (tagName: ExitEndpointTag) => {
     }, `StandardExit${tagName}Endpoint`)
 
     class StandardExitEndpoint {
-        _payload: InstanceType<typeof EditableClass>
+        _payload?: InstanceType<typeof EditableClass>
         _tagName: ExitEndpointTag
 
         constructor(arg: unknown, endpointTag: ExitEndpointTag = tagName) {
             this._tagName = endpointTag
+            if (arg === undefined || arg === null) {
+                return
+            }
             if (arg instanceof StandardExitEndpoint) {
                 this._payload = arg._payload
                 return
@@ -161,29 +167,39 @@ export const createExitEndpointClasses = (tagName: ExitEndpointTag) => {
             if (Array.isArray(convertedArg) && convertedArg.every(isSchemaTreeNode)) {
                 convertedArg = stripWrapperTag(convertedArg, tagName)
             }
+            if (Array.isArray(convertedArg) && convertedArg.length === 0) {
+                return
+            }
 
             const created = EditableClass.create(convertedArg as any)
             if (!created) {
-                throw new Error(`${tagName} endpoint must not be empty`)
+                return
             }
             this._payload = created
         }
 
+        isUnset(): boolean {
+            return this._payload === undefined
+        }
+
         get schema(): GenericTree<SchemaTag> {
-            const payloadSchema = this._payload.schema
+            if (this.isUnset()) {
+                return []
+            }
+            const payloadSchema = this._payload!.schema
             if (this._payload instanceof PlainClass) {
                 return [{ data: { tag: this._tagName }, children: payloadSchema }]
             }
             if (this._payload instanceof RemoveClass) {
-                const match = (this._payload as any).match
+                const match = (this._payload as InstanceType<typeof RemoveClass> & { match?: InstanceType<typeof PlainClass> }).match
                 return [{
                     data: { tag: 'Remove' as const },
                     children: [{ data: { tag: this._tagName }, children: match?.schema ?? [] }]
                 }]
             }
             if (this._payload instanceof ReplaceClass) {
-                const match = (this._payload as any).match
-                const payload = (this._payload as any).payload
+                const match = (this._payload as InstanceType<typeof ReplaceClass> & { match?: InstanceType<typeof PlainClass> }).match
+                const payload = (this._payload as InstanceType<typeof ReplaceClass> & { payload?: InstanceType<typeof PlainClass> }).payload
                 return [{
                     data: { tag: 'Replace' as const },
                     children: [
@@ -192,15 +208,27 @@ export const createExitEndpointClasses = (tagName: ExitEndpointTag) => {
                     ]
                 }]
             }
-            return this._payload.schema
+            return this._payload!.schema
         }
 
-        toJSON(): StandardEditableData<StandardReferenceData> {
-            return this._payload.toJSON()
+        toJSON(): StandardEditableData<StandardReferenceData> | undefined {
+            if (this.isUnset()) {
+                return undefined
+            }
+            return this._payload!.toJSON()
         }
 
         merge(incoming: StandardExitEndpoint): StandardExitEndpoint | undefined {
-            const merged = this._payload.merge(incoming._payload)
+            if (this.isUnset()) {
+                if (incoming.isUnset()) {
+                    return undefined
+                }
+                return new StandardExitEndpoint(incoming._payload, this._tagName)
+            }
+            if (incoming.isUnset()) {
+                return undefined
+            }
+            const merged = this._payload!.merge(incoming._payload!)
             if (merged) {
                 return new StandardExitEndpoint(merged, this._tagName)
             }
@@ -209,13 +237,29 @@ export const createExitEndpointClasses = (tagName: ExitEndpointTag) => {
 
         diff(incoming: StandardExitEndpoint | undefined): StandardExitEndpoint | undefined {
             if (!incoming) {
-                const inverted = this._payload.invert()
+                if (this.isUnset()) {
+                    return undefined
+                }
+                const inverted = this._payload!.invert()
                 if (inverted) {
                     return new StandardExitEndpoint(inverted, this._tagName)
                 }
                 return undefined
             }
-            const diffResult = this._payload.diff(incoming._payload)
+            if (this.isUnset()) {
+                if (incoming.isUnset()) {
+                    return undefined
+                }
+                const inverted = incoming._payload!.invert()
+                if (inverted) {
+                    return new StandardExitEndpoint(inverted, this._tagName)
+                }
+                return undefined
+            }
+            if (incoming.isUnset()) {
+                return this.diff(undefined)
+            }
+            const diffResult = this._payload!.diff(incoming._payload!)
             if (diffResult) {
                 return new StandardExitEndpoint(diffResult, this._tagName)
             }
@@ -223,7 +267,10 @@ export const createExitEndpointClasses = (tagName: ExitEndpointTag) => {
         }
 
         invert(): StandardExitEndpoint {
-            const inverted = this._payload.invert()
+            if (this.isUnset()) {
+                return new StandardExitEndpoint(undefined, this._tagName)
+            }
+            const inverted = this._payload!.invert()
             if (!inverted) {
                 throw new Error(`Cannot invert empty ${this._tagName} endpoint`)
             }
@@ -231,10 +278,16 @@ export const createExitEndpointClasses = (tagName: ExitEndpointTag) => {
         }
 
         equals(other: StandardExitEndpoint): boolean {
+            if (this.isUnset() && other.isUnset()) {
+                return true
+            }
             return JSON.stringify(this.toJSON()) === JSON.stringify(other.toJSON())
         }
 
         lookup(mappings: LookupMappings): StandardExitEndpoint {
+            if (this.isUnset()) {
+                return this
+            }
             if (this._payload instanceof PlainClass) {
                 const plainValue = this._payload.plain?.toJSON()
                 if (plainValue && isStandardReferenceData(plainValue)) {
@@ -246,6 +299,9 @@ export const createExitEndpointClasses = (tagName: ExitEndpointTag) => {
         }
 
         toFormat(format: import("../../components/utils/references").ReferenceFormat, mappings?: LookupMappings): StandardExitEndpoint {
+            if (this.isUnset()) {
+                return this
+            }
             if (this._payload instanceof PlainClass) {
                 const plainValue = this._payload.plain?.toJSON()
                 if (plainValue && isStandardReferenceData(plainValue)) {
@@ -257,6 +313,9 @@ export const createExitEndpointClasses = (tagName: ExitEndpointTag) => {
         }
 
         reference(): StandardReference | undefined {
+            if (this.isUnset()) {
+                return undefined
+            }
             if (this._payload instanceof PlainClass) {
                 const plainValue = this._payload.plain?.toJSON()
                 if (plainValue && isStandardReferenceData(plainValue)) {
