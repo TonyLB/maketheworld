@@ -254,46 +254,6 @@ describe("processComponents", () => {
         ])
     })
 
-    it('should combine exits in rooms', () => {
-        const test = `
-            <Asset uuid=(Test)>
-                <Room key=(test)>
-                    <Situation uuid=(DEFAULT)>
-                        <Description>
-                            One
-                            <br />
-                        </Description>
-                    </Situation>
-                </Room>
-                <Room key=(testTwo) />
-                <Room key=(test)>
-                    <Exit to=(testTwo)>Test Exit</Exit>
-                </Room>
-                <Room key=(testTwo)>
-                    <Exit to=(test)>Test Return</Exit>
-                </Room>
-            </Asset>
-        `
-        const schema = new Schema()
-        schema.loadWML(test)
-        const result = processComponents({
-            componentOrder,
-            schema: schema.schema,
-        })
-
-        expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
-            deIndentWML(`
-                <Room key=(test)>
-                    <Situation uuid=(DEFAULT)><Description>One<br /></Description></Situation>
-                </Room>
-            `),
-            `<Situation uuid=(DEFAULT) />`,
-            `<Room key=(testTwo) />`,
-            `<Room key=(test)><Exit to=(testTwo)>Test Exit</Exit></Room>`,
-            `<Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>`,
-        ])
-    })
-
     it('should combine render in nested rooms', () => {
         const test = `
             <Asset uuid=(Test)>
@@ -314,12 +274,9 @@ describe("processComponents", () => {
                                 Two
                             </Description>
                         </Situation>
-                        <Exit to=(testTwo)>Test Exit</Exit>
                     </Room>
                 </Message>
-                <Room key=(testTwo)>
-                    <Exit to=(test)>Test Return</Exit>
-                </Room>
+                <Room key=(testTwo) />
             </Asset>
         `
         const schema = new Schema()
@@ -346,11 +303,10 @@ describe("processComponents", () => {
             deIndentWML(`
                 <Room key=(test)>
                     <Situation uuid=(DEFAULT)><Description>Two</Description></Situation>
-                    <Exit to=(testTwo)>Test Exit</Exit>
                 </Room>
             `),
             `<Situation uuid=(DEFAULT) />`,
-            `<Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>`,
+            `<Room key=(testTwo) />`,
         ])
     })
 
@@ -422,7 +378,6 @@ describe("processComponents", () => {
                     <Room key=(testRoom)>
                         <Situation uuid=(DEFAULT)><Description>Test</Description></Situation>
                         <Position {0, 100} />
-                        <Exit to=(testTwo)>Test Exit</Exit>
                     </Room>
                 </Map>
                 <Room key=(testTwo) />
@@ -441,7 +396,6 @@ describe("processComponents", () => {
             deIndentWML(`
                 <Room key=(testRoom)>
                     <Situation uuid=(DEFAULT)><Description>Test</Description></Situation>
-                    <Exit to=(testTwo)>Test Exit</Exit>
                 </Room>
             `),
             `<Situation uuid=(DEFAULT) />`,

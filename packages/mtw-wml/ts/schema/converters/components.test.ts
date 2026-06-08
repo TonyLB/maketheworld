@@ -922,7 +922,7 @@ describe('Exit D29 topology shape', () => {
     })
 })
 
-describe('dual-read guard (D6)', () => {
+describe('schema round-trip for Exit under Room (parser)', () => {
     it('should round-trip legacy Exit to= under Room', () => {
         const testWML = deIndentWML(`
             <Asset uuid=(Test)><Room key=(room1)><Exit to=(room2)>out</Exit></Room></Asset>

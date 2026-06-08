@@ -120,41 +120,6 @@ describe('StandardForm', () => {
                 `))
             })
 
-            it('should retarget Exits to the renamed key via merge', () => {
-                const base = new StandardForm(`
-                    <Asset uuid=(test)>
-                        <Room uuid=(room1) key=(testRoomOne)>
-                            <Exit to=(testRoomTwo)>exit</Exit>
-                        </Room>
-                        <Room uuid=(room2) key=(testRoomTwo)>
-                            <Exit to=(testRoomOne)>enter</Exit>
-                        </Room>
-                    </Asset>
-                `)
-                
-                // Create edit with Key rename
-                const edit = new StandardForm(`
-                    <Asset uuid=(test)>
-                        <Room uuid=(room1) key=(testRoomOne) ref={0}>
-                            <Replace><Key>testRoomOne</Key></Replace>
-                            <With><Key>renamedRoom</Key></With>
-                        </Room>
-                    </Asset>
-                `)
-                
-                const merged = base.merge(edit)
-                expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
-                    <Asset uuid=(test)>
-                        <Room uuid=(room1) key=(renamedRoom)>
-                            <Exit to=(testRoomTwo)>exit</Exit>
-                        </Room>
-                        <Room uuid=(room2) key=(testRoomTwo)>
-                            <Exit to=(renamedRoom)>enter</Exit>
-                        </Room>
-                    </Asset>
-                `))
-            })
-
             it('should retarget Map Positions to the renamed key via merge', () => {
                 const base = new StandardForm(`
                     <Asset uuid=(test)>

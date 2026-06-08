@@ -668,34 +668,24 @@ describe('StandardForm', () => {
                 `))
             })
 
-            it('should produce non-empty diff when room gains local key and exit uses resolved target', () => {
+            it('should produce non-empty diff when room gains local key and link uses resolved target', () => {
                 const base = new StandardForm(`
                     <Asset uuid=(testAsset)>
+                        <Feature uuid=(feat1) key=(feat1) />
                         <Room uuid=(Room1)>
                             <Situation uuid=(DEFAULT)>
-                                <DisplayName>Test Room</DisplayName>
-                                <Description>Test Description</Description>
+                                <Description><Link to=(ROOM#feat1)>link</Link></Description>
                             </Situation>
-                            <Exit to=(ROOM#Room2)>out</Exit>
-                        </Room>
-                        <Room uuid=(Room2)>
-                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
-                            <Exit to=(ROOM#Room1)>text</Exit>
                         </Room>
                     </Asset>
                 `)
                 const incoming = new StandardForm(`
                     <Asset uuid=(testAsset)>
-                        <Room uuid=(Room1)>
+                        <Feature uuid=(feat1) key=(gardenFeature) />
+                        <Room uuid=(Room1) key=(main)>
                             <Situation uuid=(DEFAULT)>
-                                <DisplayName>Test Room</DisplayName>
-                                <Description>Test Description</Description>
+                                <Description><Link to=(gardenFeature)>link</Link></Description>
                             </Situation>
-                            <Exit to=(garden)>out</Exit>
-                        </Room>
-                        <Room uuid=(Room2) key=(garden)>
-                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
-                            <Exit to=(ROOM#Room1)>text</Exit>
                         </Room>
                     </Asset>
                 `)

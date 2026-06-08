@@ -104,6 +104,12 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
         return this._render?.toJSON()
     }
 
+    stripEphemeraWirePayload(): this {
+        const returnValue = new StandardKnowledgePayload(this)
+        returnValue._render = undefined
+        return returnValue as this
+    }
+
     toJSON(_options?: StandardToJSONOptions): Omit<StandardKnowledgeData, 'key' | 'universalKey'> {
         return {
             tag: 'Knowledge',

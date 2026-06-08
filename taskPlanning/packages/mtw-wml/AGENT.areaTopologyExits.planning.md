@@ -273,9 +273,9 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Charcoal-client: affordances merge (**D20**) --- Phase C **`mergePerceivedRoomForms`** shipped ([`roomHeaderPhaseC.ts`](../../../charcoal-client/src/slices/messages/roomHeaderPhaseC.ts), [`VirtualMessageList`](../../../charcoal-client/src/components/Message/VirtualMessageList.tsx)); exits arrive via affordances channel from Area-projected topology, not client-side Area assembly.
 
 - [ ] **Milestone 6 --- Cleanup (**D25**)**
-  - [ ] Forbid room-local **`<Exit>`** under **`<Room>`** in asset mode; remove dual-read ingest from **`StandardRoom`**.
-  - [ ] Remove room-local exit UI from Room edit component (**D19** --- **`ExitEditor`**).
-  - [ ] Retire room-local exit **authoring** tests (**D25** --- same gate as forbid).
+  - [X] Forbid room-local **`<Exit>`** under **`<Room>`** in asset mode; remove dual-read ingest from **`StandardRoom`**.
+  - [X] Remove room-local exit UI from Room edit component (**D19** --- **`ExitEditor`**).
+  - [X] Retire room-local exit **authoring** tests (**D25** --- same gate as forbid).
   - [ ] Durable docs: `mtw-wml` AGENT files, ephemera internalCache AGENT, multi-channel contract cross-links.
   - [ ] Delete this plan.
 

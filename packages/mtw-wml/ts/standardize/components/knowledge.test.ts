@@ -279,5 +279,21 @@ describe('StandardKnowledge class', () => {
         `)
         expect(() => new StandardKnowledge(wml)).toThrow()
     })
+
+    it('stripEphemeraWirePayload clears render without mutating source', () => {
+        const testKnowledgeData: StandardKnowledgeData = {
+            key: 'test',
+            tag: 'Knowledge',
+            render: {
+                displayName: 'Cached Name',
+                summary: ['Summary text'],
+                description: ['Description text'],
+            },
+        }
+        const testKnowledge = new StandardKnowledge(testKnowledgeData)
+        const stripped = testKnowledge._payload.stripEphemeraWirePayload()
+        expect(testKnowledge.render).toBeDefined()
+        expect(stripped.render).toBeUndefined()
+    })
     
 })

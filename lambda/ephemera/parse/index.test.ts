@@ -34,7 +34,7 @@ describe('parseCommand', () => {
                         <Character uuid=(CHARACTER#123) />
                     </Room>
                 </Asset>
-            `))
+            `, { standardizeMode: 'ephemeraWire' }))
         })
 
         it('should parse "look" command', async () => {
@@ -160,7 +160,7 @@ describe('parseCommand', () => {
                         <Character uuid=(CHARACTER#123) />
                     </Room>
                 </Asset>
-            `))
+            `, { standardizeMode: 'ephemeraWire' }))
         })
 
         it('should NOT parse "move" command with direction', async () => {
@@ -252,7 +252,7 @@ describe('parseCommand', () => {
                         <Character uuid=(CHARACTER#123) />
                     </Room>
                 </Asset>
-            `))
+            `, { standardizeMode: 'ephemeraWire' }))
         })
 
         it('should parse "home" command', async () => {
@@ -292,7 +292,7 @@ describe('parseCommand', () => {
                         <Character uuid=(CHARACTER#123) />
                     </Room>
                 </Asset>
-            `))
+            `, { standardizeMode: 'ephemeraWire' }))
         })
 
         it('should NOT parse "say" command yet', async () => {
@@ -400,7 +400,7 @@ describe('parseCommand', () => {
                         <Character uuid=(CHARACTER#123) />
                     </Room>
                 </Asset>
-            `))
+            `, { standardizeMode: 'ephemeraWire' }))
         })
 
         it('should handle empty command gracefully', async () => {
@@ -479,7 +479,7 @@ describe('parseCommand', () => {
                         <Character uuid=(CHARACTER#123) />
                     </Room>
                 </Asset>
-            `))
+            `, { standardizeMode: 'ephemeraWire' }))
         })
 
         it('should handle mixed case commands', async () => {

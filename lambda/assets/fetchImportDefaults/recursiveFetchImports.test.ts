@@ -41,7 +41,6 @@ describe('recursiveFetchImports', () => {
                         <Situation uuid=(DEFAULT)>
                             <Description>DescriptionOne</Description>
                         </Situation>
-                        <Exit to=(testNonImportStub)>test exit</Exit>
                     </Room>
                     <Room uuid=(testNonImportStub)>
                         <ShortName>StubOne</ShortName>
@@ -60,9 +59,8 @@ describe('recursiveFetchImports', () => {
                 <Asset uuid=(testFinal)>
                     <Room uuid=(testNonImport) key=(testNonImport)>
                         <Situation uuid=(DEFAULT)>
-                            <Description>DescriptionOne</Description>
+                            <Description><Link to=(ROOM#testNonImportStub)>stub</Link> DescriptionOne</Description>
                         </Situation>
-                        <Exit to=(ROOM#testNonImportStub)>test exit</Exit>
                     </Room>
                     <Room uuid=(testNonImportStub)>
                         <ShortName>StubOne</ShortName>
@@ -71,7 +69,6 @@ describe('recursiveFetchImports', () => {
                         <Situation uuid=(DEFAULT)>
                             <Description>Two</Description>
                         </Situation>
-                        <Exit to=(ROOM#testImportStubOne)>test exit one</Exit>
                     </Room>
                     <Room uuid=(testImportStubOne) from=(ASSET#testImportAssetOne) />
                 </Asset>
@@ -85,9 +82,10 @@ describe('recursiveFetchImports', () => {
                 <Room uuid=(testNonImport) key=(testNonImport) origin=(ASSET#testFinal)>
                     <Situation uuid=(DEFAULT) origin=(ASSET#testFinal) ref={0} />
                     <Situation uuid=(DEFAULT)>
-                        <Description>DescriptionOne</Description>
+                        <Description>
+                            <Link to=(ROOM#testNonImportStub)>stub</Link> DescriptionOne
+                        </Description>
                     </Situation>
-                    <Exit to=(ROOM#testNonImportStub)>test exit</Exit>
                 </Room>
             </Asset>
         `))
@@ -100,23 +98,21 @@ describe('recursiveFetchImports', () => {
                     <Room uuid=(testImportOne) key=(testImportOne) from=(ASSET#testImportAsset)>
                         <Situation uuid=(DEFAULT)>
                             <Description>
+                                <Link to=(ROOM#testImportStubOne)>stub</Link>
                                 Two
                             </Description>
                         </Situation>
-                        <Exit to=(ROOM#testImportStubOne)>test exit one</Exit>
                     </Room>
                     <Room uuid=(testImportStubOne) from=(ASSET#testImportAsset) />
                     <Room uuid=(testImportTwo) from=(ASSET#testImportAsset) />
-                    <Room uuid=(testNonImportTwo)>
-                        <Exit to=(ROOM#testImportTwo)>test exit</Exit>
-                    </Room>
+                    <Room uuid=(testNonImportTwo) />
                 </Asset>
             `),
             new StandardForm(`
                 <Asset uuid=(testImportAsset)>
                     <Room uuid=(testImportOne)>
                         <Situation uuid=(DEFAULT)>
-                            <Description>One</Description>
+                            <Description><Link to=(ROOM#testImportStubOne)>stub</Link> One</Description>
                         </Situation>
                     </Room>
                     <Room uuid=(testImportStubOne)>
@@ -150,9 +146,11 @@ describe('recursiveFetchImports', () => {
                             ref={0}
                         />
                         <Situation uuid=(DEFAULT) ref={2}>
-                            <Description>OneTwo</Description>
+                            <Description>
+                                <Link to=(ROOM#testImportStubOne)>stub</Link>
+                                One<Link to=(ROOM#testImportStubOne)>stub</Link> Two
+                            </Description>
                         </Situation>
-                        <Exit to=(ROOM#testImportStubOne)>test exit one</Exit>
                     </Room>
                 </Asset>
             `))
@@ -170,10 +168,10 @@ describe('recursiveFetchImports', () => {
                     <Room uuid=(testImport) from=(ASSET#testImportAssetTwo)>
                         <Situation uuid=(DEFAULT)>
                             <Description>
+                                <Link to=(ROOM#Stub1)>stub one</Link>
                                 Asset One
                             </Description>
                         </Situation>
-                        <Exit to=(Stub)>test exit one</Exit>
                     </Room>
                     <Room uuid=(Stub1) key=(Stub)><ShortName>Asset One</ShortName></Room>
                 </Asset>
@@ -181,7 +179,9 @@ describe('recursiveFetchImports', () => {
             new StandardForm(`
                 <Asset uuid=(testImportAssetTwo)>
                     <Room uuid=(testImport) key=(testImport)>
-                        <Exit to=(Stub)>test exit two</Exit>
+                        <Situation uuid=(DEFAULT)>
+                            <Description><Link to=(ROOM#Stub2)>stub two</Link></Description>
+                        </Situation>
                     </Room>
                     <Room uuid=(Stub2) key=(Stub)><ShortName>Asset Two</ShortName></Room>
                 </Asset>
@@ -201,12 +201,20 @@ describe('recursiveFetchImports', () => {
                         key=(testImport)
                         origin=(ASSET#testImportAssetTwo,ASSET#testImportAssetOne,ASSET#testFinal)
                     >
-                        <Situation uuid=(DEFAULT) origin=(ASSET#testImportAssetOne) ref={0} />
-                        <Situation uuid=(DEFAULT)>
-                            <Description>Asset One</Description>
+                        <Situation
+                            uuid=(DEFAULT)
+                            origin=(ASSET#testImportAssetTwo,ASSET#testImportAssetOne)
+                            ref={0}
+                        />
+                        <Situation uuid=(DEFAULT) ref={2}>
+                            <Description>
+                                <Link to=(ROOM#Stub2)>
+                                    stub two
+                                </Link><Link to=(ROOM#Stub1)>
+                                    stub one
+                                </Link> Asset One
+                            </Description>
                         </Situation>
-                        <Exit to=(ROOM#Stub2)>test exit two</Exit>
-                        <Exit to=(ROOM#Stub1)>test exit one</Exit>
                     </Room>
                 </Asset>
             `))
@@ -264,7 +272,9 @@ describe('recursiveFetchImports', () => {
             new StandardForm(`
                 <Asset uuid=(testImportAssetC)>
                     <Room uuid=(testImportRoom)>
-                        <Exit to=(ROOM#testImportRoomStub)>test exit</Exit>
+                        <Situation uuid=(DEFAULT)>
+                            <Description><Link to=(ROOM#testImportRoomStub)>stub</Link></Description>
+                        </Situation>
                     </Room>
                     <Room uuid=(testImportRoomStub) from=(ASSET#testImportAssetB) />
                 </Asset>
@@ -297,7 +307,12 @@ describe('recursiveFetchImports', () => {
                         key=(testImportRoom)
                         origin=(ASSET#testImportAssetC,ASSET#testFinal)
                     >
-                        <Exit to=(ROOM#testImportRoomStub)>test exit</Exit>
+                        <Situation uuid=(DEFAULT) origin=(ASSET#testImportAssetC) ref={0} />
+                        <Situation uuid=(DEFAULT)>
+                            <Description>
+                                <Link to=(ROOM#testImportRoomStub)>stub</Link>
+                            </Description>
+                        </Situation>
                     </Room>
                 </Asset>
             `))

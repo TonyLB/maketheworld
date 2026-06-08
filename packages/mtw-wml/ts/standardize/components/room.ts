@@ -21,7 +21,7 @@ import {
     shortNameToJSON,
     standardizeShortNameConsumer,
 } from "./shortNameField"
-import { resolveStandardizeFromSchemaContext, type StandardFormConstructionOptions, type StandardizeFromSchemaContext } from "../wmlStandardizeMode"
+import { resolveStandardizeFromSchemaContext, type StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { renderReference } from "./utils/schema"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
@@ -31,6 +31,19 @@ import { StandardExplicitParent } from "../explicit"
 import { StandardFormSubsetRequest } from "../baseClasses"
 import { processWithConsumers, StandardizeConsumerFacetListSituation, StandardizeConsumerReferenceList, StandardizeConsumerSimple, type StandardizeConsumer } from "./fromSchemaPipeline"
 import { SingleReference } from "../keys/singleReference"
+
+const forbidRoomExitsInAssetMode = (
+    exits: StandardRoomInputData['exits'],
+    context?: StandardizeFromSchemaContext,
+): void => {
+    if (
+        exits &&
+        exits.length > 0 &&
+        resolveStandardizeFromSchemaContext(context).standardizeMode !== 'ephemeraWire'
+    ) {
+        throw new Error('Room exits are not allowed in asset mode')
+    }
+}
 
 export class StandardRoomPayload implements ComponentConstructorMethods<StandardRoomInputData, StandardRoomData> {
     _shortName?: StandardLiteral;
@@ -67,7 +80,8 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         }
     }
 
-    fromJSON(props: StandardRoomInputData) {
+    fromJSON(props: StandardRoomInputData, context?: StandardizeFromSchemaContext) {
+        forbidRoomExitsInAssetMode(props.exits, context)
         const { shortName } = props
         this._shortName = createShortNameFromJSON(shortName)
         this._exits = new ExitFacetList(props.exits ?? [])
@@ -89,22 +103,6 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
             // Unconsumed children (e.g. unknown tags) cause processWithConsumers to throw. See AGENT.implementation.md (fromSchema: process-and-remainder pipeline).
             const consumers: StandardizeConsumer[] = [
                 standardizeShortNameConsumer(this),
-                new StandardizeConsumerSimple(this, {
-                    tag: "Exit",
-                    update(matched) {
-                        // D6 dual-read: legacy room-local exits (to=) ingest until M6 forbid.
-                        // Area topology exits (uuid + From/To/Forward/Back, no to=) may appear
-                        // under Room in transitional WML; consume the tag but skip storage.
-                        const parsedFacets = matched.map((exitNode) => {
-                            try {
-                                return new StandardExitFacet([exitNode])
-                            } catch {
-                                return undefined
-                            }
-                        }).filter(excludeUndefined)
-                        this._exits = new ExitFacetList(parsedFacets)
-                    },
-                }),
                 new StandardizeConsumerReferenceList(this, {
                     tag: "Lens",
                     update(list) {
@@ -123,6 +121,19 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
             ]
             if (resolveStandardizeFromSchemaContext(context).standardizeMode === 'ephemeraWire') {
                 consumers.push(
+                    new StandardizeConsumerSimple(this, {
+                        tag: 'Exit',
+                        update(matched) {
+                            const parsedFacets = matched.map((exitNode) => {
+                                try {
+                                    return new StandardExitFacet([exitNode])
+                                } catch {
+                                    return undefined
+                                }
+                            }).filter(excludeUndefined)
+                            this._exits = new ExitFacetList(parsedFacets)
+                        },
+                    }),
                     new StandardizeConsumerSimple(this, {
                         tag: 'Object',
                         update(matched) {
@@ -196,8 +207,15 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
     get guidance() { return this._guidance }
     get characters() { return this._characters }
 
-    toJSON(options?: StandardToJSONOptions): Omit<StandardRoomData, 'key' | 'universalKey'> {
-        const { stripUIFields: stripUI } = options ?? {}
+    stripEphemeraWirePayload(): this {
+        const returnValue = new StandardRoomPayload(this)
+        returnValue._exits = new ExitFacetList([])
+        returnValue._objects = []
+        returnValue._render = undefined
+        return returnValue as this
+    }
+
+    toJSON(_options?: StandardToJSONOptions): Omit<StandardRoomData, 'key' | 'universalKey'> {
         return {
             tag: 'Room',
             shortName: shortNameToJSON(this.shortName),
@@ -213,14 +231,10 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
     }
 
     schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
-        // Remap facets to use keys if mappings are provided
-        const remappedFacets = mappings 
+        const remappedFacets = mappings
             ? this._exits.items.map((facet) => facet.lookup(mappings).toFormat('key'))
             : this._exits.items.map((facet) => facet.toFormat('key'))
-        
         const exitSchemas = remappedFacets.map((facet) => {
-            // Use renderFacet() to generate schema with Exit tag
-            // Exit facets return newNode (not aggregatedNode) since they create new Exit tags
             const result = facet.renderFacet()
             return result.newNode ?? result.aggregatedNode
         }).filter(excludeUndefined) as GenericTreeNode<SchemaTag>[]
@@ -281,13 +295,8 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
             inlineRemainder = remainder
         }
         
-        // Process each exit facet
-        // Exit facets create new Exit nodes (not enhancements), so render directly
         const exitSchemas = this._exits.items.reduce<GenericTreeNode<SchemaTag>[]>((acc, facet) => {
-            // Render facet - Exit facets return newNode (not aggregatedNode)
-            // Pass lookup to renderFacet so it can resolve universal keys to local keys
             const result = facet.renderFacet(undefined, lookup)
-            
             if (result.newNode) {
                 acc.push(result.newNode)
             } else if (result.aggregatedNode) {
@@ -358,7 +367,6 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         const returnValue = new StandardRoomPayload()
         // Invert shortName if it exists (StandardLiteral has invert() from standardEditableFactory)
         returnValue._shortName = invertShortName(this._shortName)
-        // Invert exits using ExitFacetList.invert()
         returnValue._exits = this._exits.invert()
         returnValue._situations = this._situations.invert()
         // Invert each ReferenceList
@@ -539,13 +547,6 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
     get characters() { return this._payload.characters }
     get objects() { return this._payload.objects }
     get render() { return this._payload.render }
-
-    constructor(
-        props: string | StandardRoomInputData | GenericTreeNode<SchemaTag> | StandardRoom,
-        options?: StandardFormConstructionOptions,
-    ) {
-        super(props, options)
-    }
 
     override _wrap(instance: StandardComponent): this {
         return new StandardRoom(instance as StandardRoom) as this

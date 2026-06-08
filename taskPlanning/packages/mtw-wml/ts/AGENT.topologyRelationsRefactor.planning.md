@@ -75,7 +75,7 @@ Full runtime / caching / migration decisions from the parent plan stay documente
 
 ### Out of scope (link only)
 
-- Room-local exit forbid and **`ExitEditor`** removal --- [`AGENT.areaTopologyExits.planning.md`](../AGENT.areaTopologyExits.planning.md) Milestone 6 (can proceed in parallel with Phases 1-3 here).
+- Room-local exit forbid and **`ExitEditor`** removal --- shipped in parent plan Milestone 6 ([`AGENT.areaTopologyExits.planning.md`](../AGENT.areaTopologyExits.planning.md)); Map drag UI remains no-op until Area authoring Phase 3+.
 - Ephemera affordance pipeline changes beyond confirming projection still skips incomplete edges.
 - Map editor exit drag (legacy map path) --- separate from Area Workbench editor.
 - Second edge union member / `StandardEdgeEndpoint` extraction (noted in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) as future work).

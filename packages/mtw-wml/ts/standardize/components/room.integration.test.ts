@@ -195,42 +195,6 @@ describe('StandardRoom integration', () => {
             })
     })
 
-    describe('Exits', () => {
-            it('should combine exits in rooms', () => {
-                const test = new StandardForm(`<Asset uuid=(Test)>
-                    <Room uuid=(testRoom) key=(test)>
-                        <Situation ref={0} uuid=(testRoomBase) key=(base)>
-                            <Description>
-                                One
-                                <br />
-                            </Description>
-                        </Situation>
-                    </Room>
-                    <Room uuid=(testTwo) key=(testTwo) />
-                    <Room key=(test) ref={0}>
-                        <Exit to=(testTwo)>Test Exit</Exit>
-                    </Room>
-                    <Room key=(testTwo) ref={0}>
-                        <Exit to=(test)>Test Return</Exit>
-                    </Room>
-                </Asset>`)
-                expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
-                    <Asset uuid=(Test)>
-                        <Room uuid=(testRoom) key=(test)>
-                            <Situation key=(base) ref={0}>
-                                <Description>One<br /></Description>
-                            </Situation>
-                            <Exit to=(testTwo)>Test Exit</Exit>
-                        </Room>
-                        <Room uuid=(testTwo) key=(testTwo)>
-                            <Exit to=(test)>Test Return</Exit>
-                        </Room>
-                        <Situation uuid=(testRoomBase) key=(base) ref={0} />
-                    </Asset>
-                `))
-            })
-    })
-
     describe('Situation nesting', () => {
             it('should correctly return JSON for features nested in rooms', () => {
                 const test = new StandardForm(`<Asset uuid=(Test)>
@@ -432,12 +396,8 @@ describe('StandardRoom integration', () => {
                                     Two
                                 </Description>
                             </Situation>
-                            <Exit to=(testTwo)>Test Exit</Exit>
                         </Room>
                     </Message>
-                    <Room key=(testTwo) ref={0}>
-                        <Exit to=(test)>Test Return</Exit>
-                    </Room>
                 </Asset>`)
                 expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(Test)>
@@ -445,11 +405,8 @@ describe('StandardRoom integration', () => {
                             <Situation key=(base) ref={0}>
                                 <Description>One<br />Two</Description>
                             </Situation>
-                            <Exit to=(testTwo)>Test Exit</Exit>
                         </Room>
-                        <Room uuid=(testTwo) key=(testTwo)>
-                            <Exit to=(test)>Test Return</Exit>
-                        </Room>
+                        <Room uuid=(testTwo) key=(testTwo) />
                         <Message uuid=(testMessage) key=(testMessage)>
                             <Room key=(test) />
                             <Description>Test message</Description>

@@ -343,5 +343,23 @@ describe('StandardFeature class', () => {
         `)
         expect(() => new StandardFeature(wml)).toThrow()
     })
+
+    it('stripEphemeraWirePayload clears render without mutating source', () => {
+        const testFeatureData: StandardFeatureData = {
+            key: 'test',
+            tag: 'Feature',
+            shortName: 'Feature',
+            render: {
+                displayName: 'Cached Name',
+                summary: ['Summary text'],
+                description: ['Description text'],
+            },
+        }
+        const testFeature = new StandardFeature(testFeatureData)
+        const stripped = testFeature._payload.stripEphemeraWirePayload()
+        expect(testFeature.render).toBeDefined()
+        expect(stripped.render).toBeUndefined()
+        expect(stripped.shortName?.toJSON()).toEqual('Feature')
+    })
     
 })

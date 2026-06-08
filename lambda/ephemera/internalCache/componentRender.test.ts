@@ -338,7 +338,7 @@ describe('ComponentRender cache handler', () => {
                                 { reference: 'ROOM#TestRoomThree', payload: 'Not in Map' }
                             ],
                             tag: 'Room',
-                        })),
+                        }, { standardizeMode: 'ephemeraWire' })),
                         [`ASSET#Personal`]: componentEntry(new StandardRoom({ universalKey: 'ROOM#TestRoomOne', exits: [], tag: 'Room' })),
                     }
                 case 'ROOM#TestRoomTwo':
@@ -355,7 +355,7 @@ describe('ComponentRender cache handler', () => {
                                 { reference: 'ROOM#TestRoomOne', payload: 'First Room' }
                             ],
                             tag: 'Room',
-                        })),
+                        }, { standardizeMode: 'ephemeraWire' })),
                     }
             }
             throw new Error(`Invalid test EphemeraID: ${ephemeraId}`)

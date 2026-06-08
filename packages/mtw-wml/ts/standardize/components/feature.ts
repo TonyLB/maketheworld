@@ -104,6 +104,12 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
         return this._render?.toJSON()
     }
 
+    stripEphemeraWirePayload(): this {
+        const returnValue = new StandardFeaturePayload(this)
+        returnValue._render = undefined
+        return returnValue as this
+    }
+
     toJSON(_options?: StandardToJSONOptions): Omit<StandardFeatureData, 'key' | 'universalKey'> {
         return {
             tag: 'Feature',

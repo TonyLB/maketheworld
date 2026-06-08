@@ -18,21 +18,83 @@ exports[`large WML test should parse properly 1`] = `
       {
         "key": "key",
         "type": 0,
-        "value": "VORTEX",
+        "value": "dungeonTopology",
       },
     ],
-    "tag": "Room",
+    "tag": "Area",
     "type": 0,
   },
   {
     "properties": [
       {
-        "key": "to",
+        "key": "key",
+        "type": 0,
+        "value": "VORTEX",
+      },
+    ],
+    "tag": "Room",
+    "type": 1,
+  },
+  {
+    "properties": [
+      {
+        "key": "key",
         "type": 0,
         "value": "cave",
       },
     ],
+    "tag": "Room",
+    "type": 1,
+  },
+  {
+    "properties": [
+      {
+        "key": "key",
+        "type": 0,
+        "value": "curvingPassage",
+      },
+    ],
+    "tag": "Room",
+    "type": 1,
+  },
+  {
+    "properties": [
+      {
+        "key": "key",
+        "type": 0,
+        "value": "chamber",
+      },
+    ],
+    "tag": "Room",
+    "type": 1,
+  },
+  {
+    "properties": [
+      {
+        "key": "uuid",
+        "type": 0,
+        "value": "e_vortex_cave",
+      },
+    ],
     "tag": "Exit",
+    "type": 0,
+  },
+  {
+    "properties": [],
+    "tag": "From",
+    "type": 0,
+  },
+  {
+    "text": "VORTEX",
+    "type": 3,
+  },
+  {
+    "tag": "From",
+    "type": 2,
+  },
+  {
+    "properties": [],
+    "tag": "To",
     "type": 0,
   },
   {
@@ -40,8 +102,187 @@ exports[`large WML test should parse properly 1`] = `
     "type": 3,
   },
   {
+    "tag": "To",
+    "type": 2,
+  },
+  {
+    "properties": [],
+    "tag": "Forward",
+    "type": 0,
+  },
+  {
+    "text": "cave",
+    "type": 3,
+  },
+  {
+    "tag": "Forward",
+    "type": 2,
+  },
+  {
+    "properties": [],
+    "tag": "Back",
+    "type": 0,
+  },
+  {
+    "text": "out",
+    "type": 3,
+  },
+  {
+    "tag": "Back",
+    "type": 2,
+  },
+  {
     "tag": "Exit",
     "type": 2,
+  },
+  {
+    "properties": [
+      {
+        "key": "uuid",
+        "type": 0,
+        "value": "e_cave_passage",
+      },
+    ],
+    "tag": "Exit",
+    "type": 0,
+  },
+  {
+    "properties": [],
+    "tag": "From",
+    "type": 0,
+  },
+  {
+    "text": "cave",
+    "type": 3,
+  },
+  {
+    "tag": "From",
+    "type": 2,
+  },
+  {
+    "properties": [],
+    "tag": "To",
+    "type": 0,
+  },
+  {
+    "text": "curvingPassage",
+    "type": 3,
+  },
+  {
+    "tag": "To",
+    "type": 2,
+  },
+  {
+    "properties": [],
+    "tag": "Forward",
+    "type": 0,
+  },
+  {
+    "text": "passage",
+    "type": 3,
+  },
+  {
+    "tag": "Forward",
+    "type": 2,
+  },
+  {
+    "properties": [],
+    "tag": "Back",
+    "type": 0,
+  },
+  {
+    "text": "cave",
+    "type": 3,
+  },
+  {
+    "tag": "Back",
+    "type": 2,
+  },
+  {
+    "tag": "Exit",
+    "type": 2,
+  },
+  {
+    "properties": [
+      {
+        "key": "uuid",
+        "type": 0,
+        "value": "e_passage_chamber",
+      },
+    ],
+    "tag": "Exit",
+    "type": 0,
+  },
+  {
+    "properties": [],
+    "tag": "From",
+    "type": 0,
+  },
+  {
+    "text": "curvingPassage",
+    "type": 3,
+  },
+  {
+    "tag": "From",
+    "type": 2,
+  },
+  {
+    "properties": [],
+    "tag": "To",
+    "type": 0,
+  },
+  {
+    "text": "chamber",
+    "type": 3,
+  },
+  {
+    "tag": "To",
+    "type": 2,
+  },
+  {
+    "properties": [],
+    "tag": "Forward",
+    "type": 0,
+  },
+  {
+    "text": "chamber",
+    "type": 3,
+  },
+  {
+    "tag": "Forward",
+    "type": 2,
+  },
+  {
+    "properties": [],
+    "tag": "Back",
+    "type": 0,
+  },
+  {
+    "text": "passage",
+    "type": 3,
+  },
+  {
+    "tag": "Back",
+    "type": 2,
+  },
+  {
+    "tag": "Exit",
+    "type": 2,
+  },
+  {
+    "tag": "Area",
+    "type": 2,
+  },
+  {
+    "properties": [
+      {
+        "key": "key",
+        "type": 0,
+        "value": "VORTEX",
+      },
+    ],
+    "tag": "Room",
+    "type": 0,
   },
   {
     "properties": [
@@ -173,44 +414,6 @@ exports[`large WML test should parse properly 1`] = `
     "type": 1,
   },
   {
-    "properties": [
-      {
-        "key": "to",
-        "type": 0,
-        "value": "curvingPassage",
-      },
-    ],
-    "tag": "Exit",
-    "type": 0,
-  },
-  {
-    "text": "passage",
-    "type": 3,
-  },
-  {
-    "tag": "Exit",
-    "type": 2,
-  },
-  {
-    "properties": [
-      {
-        "key": "to",
-        "type": 0,
-        "value": "VORTEX",
-      },
-    ],
-    "tag": "Exit",
-    "type": 0,
-  },
-  {
-    "text": "out",
-    "type": 3,
-  },
-  {
-    "tag": "Exit",
-    "type": 2,
-  },
-  {
     "tag": "Room",
     "type": 2,
   },
@@ -237,44 +440,6 @@ exports[`large WML test should parse properly 1`] = `
     "type": 1,
   },
   {
-    "properties": [
-      {
-        "key": "to",
-        "type": 0,
-        "value": "cave",
-      },
-    ],
-    "tag": "Exit",
-    "type": 0,
-  },
-  {
-    "text": "cave",
-    "type": 3,
-  },
-  {
-    "tag": "Exit",
-    "type": 2,
-  },
-  {
-    "properties": [
-      {
-        "key": "to",
-        "type": 0,
-        "value": "chamber",
-      },
-    ],
-    "tag": "Exit",
-    "type": 0,
-  },
-  {
-    "text": "chamber",
-    "type": 3,
-  },
-  {
-    "tag": "Exit",
-    "type": 2,
-  },
-  {
     "tag": "Room",
     "type": 2,
   },
@@ -299,25 +464,6 @@ exports[`large WML test should parse properly 1`] = `
     ],
     "tag": "Position",
     "type": 1,
-  },
-  {
-    "properties": [
-      {
-        "key": "to",
-        "type": 0,
-        "value": "curvingPassage",
-      },
-    ],
-    "tag": "Exit",
-    "type": 0,
-  },
-  {
-    "text": "passage",
-    "type": 3,
-  },
-  {
-    "tag": "Exit",
-    "type": 2,
   },
   {
     "tag": "Room",
@@ -654,24 +800,6 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": "SITUATION#example5",
   },
   {
-    "exits": [
-      {
-        "payload": "passage",
-        "reference": {
-          "key": "curvingPassage",
-          "tag": "Room",
-          "universalKey": undefined,
-        },
-      },
-      {
-        "payload": "out",
-        "reference": {
-          "key": "VORTEX",
-          "tag": "Room",
-          "universalKey": undefined,
-        },
-      },
-    ],
     "key": "cave",
     "shortName": undefined,
     "situations": [
@@ -706,16 +834,6 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": undefined,
   },
   {
-    "exits": [
-      {
-        "payload": "passage",
-        "reference": {
-          "key": "curvingPassage",
-          "tag": "Room",
-          "universalKey": undefined,
-        },
-      },
-    ],
     "features": [
       {
         "key": "orc",
@@ -782,24 +900,6 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": undefined,
   },
   {
-    "exits": [
-      {
-        "payload": "cave",
-        "reference": {
-          "key": "cave",
-          "tag": "Room",
-          "universalKey": undefined,
-        },
-      },
-      {
-        "payload": "chamber",
-        "reference": {
-          "key": "chamber",
-          "tag": "Room",
-          "universalKey": undefined,
-        },
-      },
-    ],
     "key": "curvingPassage",
     "shortName": undefined,
     "situations": [
@@ -887,16 +987,91 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": undefined,
   },
   {
-    "exits": [
-      {
-        "payload": "cave",
-        "reference": {
+    "key": "dungeonTopology",
+    "positionGraph": {
+      "edges": [
+        {
+          "from": {
+            "key": "VORTEX",
+            "tag": "Room",
+            "universalKey": undefined,
+          },
+          "payload": {
+            "back": "out",
+            "forward": "cave",
+          },
+          "tag": "Exit",
+          "to": {
+            "key": "cave",
+            "tag": "Room",
+            "universalKey": undefined,
+          },
+          "uuid": "e_vortex_cave",
+        },
+        {
+          "from": {
+            "key": "cave",
+            "tag": "Room",
+            "universalKey": undefined,
+          },
+          "payload": {
+            "back": "cave",
+            "forward": "passage",
+          },
+          "tag": "Exit",
+          "to": {
+            "key": "curvingPassage",
+            "tag": "Room",
+            "universalKey": undefined,
+          },
+          "uuid": "e_cave_passage",
+        },
+        {
+          "from": {
+            "key": "curvingPassage",
+            "tag": "Room",
+            "universalKey": undefined,
+          },
+          "payload": {
+            "back": "passage",
+            "forward": "chamber",
+          },
+          "tag": "Exit",
+          "to": {
+            "key": "chamber",
+            "tag": "Room",
+            "universalKey": undefined,
+          },
+          "uuid": "e_passage_chamber",
+        },
+      ],
+      "nodes": [
+        {
+          "key": "VORTEX",
+          "tag": "Room",
+          "universalKey": undefined,
+        },
+        {
           "key": "cave",
           "tag": "Room",
           "universalKey": undefined,
         },
-      },
-    ],
+        {
+          "key": "curvingPassage",
+          "tag": "Room",
+          "universalKey": undefined,
+        },
+        {
+          "key": "chamber",
+          "tag": "Room",
+          "universalKey": undefined,
+        },
+      ],
+    },
+    "tag": "Area",
+    "universalKey": undefined,
+  },
+  {
     "key": "VORTEX",
     "shortName": undefined,
     "situations": [

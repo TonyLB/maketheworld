@@ -19,7 +19,6 @@ describe('StandardMap integration', () => {
                             <Situation ref={0} uuid=(testRoomOneBase)>
                                 <Description>Test Room One</Description>
                             </Situation>
-                            <Exit to=(testRoomTwo)>two</Exit>
                         </Room>
                         <Room uuid=(testRoomOne) key=(testRoomOne) />
                         <Room uuid=(testRoomTwo) key=(testRoomTwo)>
@@ -27,7 +26,6 @@ describe('StandardMap integration', () => {
                             <Situation ref={0} uuid=(testRoomTwoBase)>
                                 <Description>Test Room Two</Description>
                             </Situation>
-                            <Exit to=(testRoomOne)>one</Exit>
                         </Room>
                         <Room uuid=(testRoomThree) key=(testRoomThree) />
                         <Image key=(mapBackground) />
@@ -42,14 +40,12 @@ describe('StandardMap integration', () => {
                             <Situation uuid=(testRoomOneBase) ref={0}>
                                 <Description>Test Room One</Description>
                             </Situation>
-                            <Exit to=(testRoomTwo)>two</Exit>
                         </Room>
                         <Room uuid=(testRoomThree) key=(testRoomThree) />
                         <Room uuid=(testRoomTwo) key=(testRoomTwo)>
                             <Situation uuid=(testRoomTwoBase) ref={0}>
                                 <Description>Test Room Two</Description>
                             </Situation>
-                            <Exit to=(testRoomOne)>one</Exit>
                         </Room>
                         <Map uuid=(testMap) key=(testMap)>
                             <ShortName>Test map</ShortName>

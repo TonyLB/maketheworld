@@ -7,7 +7,6 @@ Non-replayable derived **Assets** DataSource that publishes skinny **`TopologyIn
 Notify downstream consumers when room topology may have changed (**`mtw.ephemera.affordanceCache`** catalog bump + orchestration fan-out, shipped M4):
 
 - **Area** `positionGraph` **nodes** / **edges** edits
-- **Room** blueprint **`exits`** during **D6** dual-read
 - **`referencedBy`** target patches from **`cacheAsset`** (**D10**) on **`ROOM#`** endpoints
 
 ## Invalidation sources

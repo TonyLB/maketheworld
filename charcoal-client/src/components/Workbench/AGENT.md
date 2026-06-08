@@ -154,7 +154,6 @@ Use asset-level paths when there is no parent session or domain topology require
 | Area | Pattern |
 | --- | --- |
 | Area exit topology | `ExitEdgeListEditor` + `areaEditMutations` |
-| Room exits | `ExitEditor` |
 | Layered Room situation facets | `SituationFacetRenderFieldsEditor` (asset-mode per change) |
 | Character, Situation, Map editors | Not on component session yet |
 | Asset-mode reference list | `ReferenceListEditor` (`listContext` + `updateStandard`) |
@@ -340,7 +339,7 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 | `WorkbenchAssetEditor.tsx` | View routing (asset / component / componentLayer) |
 | `WorkbenchAssetEditForm.tsx` | Asset root: **`WorkbenchAssetMetaProvider`**, ShortName/Summary session fields, **`TopLevelEditor`** |
 | `AreaEdit/` | AreaEditor (`WorkbenchComponentProvider` + shortName; PositionGraphNodesEditor session reference lists; ExitEdgeListEditor) |
-| `RoomEdit/` | RoomEditor (component session for shortName; ExitEditor, FeatureListEditor, Lens via LensEdit/LensHeader, **`RoomSituationsListEditor`** for non-DEFAULT situations) |
+| `RoomEdit/` | RoomEditor (component session for shortName; FeatureListEditor, Lens via LensEdit/LensHeader, **`RoomSituationsListEditor`** for non-DEFAULT situations). Room-local exits removed --- topology via **AreaEdit** / **`ExitEdgeListEditor`**. |
 | `FeatureEdit/` | FeatureEditor (component session; shortName + DEFAULT prose via session fields) |
 | `KnowledgeEdit/` | KnowledgeEditor (component session; shortName + DEFAULT prose via session fields) |
 | `foundations/WorkbenchComponent/WorkbenchShortNameField.tsx` | Context-only shortName field (`useWorkbenchComponent` session) |
@@ -411,7 +410,7 @@ Playing-mode exit chips ([`Message/RoomExit`](../Message/RoomExit.tsx), map ephe
 
 ### Technical Debt
 
-- **RoomEdit/ExitEditor**: May need further review for error handling, UX, accessibility (see [charcoal-client/AGENT.md](../../AGENT.md) Technical Debt)
+- **Map exit tools**: `addExit` is a no-op until Area authoring Phase 3+ (see topology refactor plan)
 - **Component Complexity**: Some components mix layout, navigation, and editing concerns
 - **Testing Coverage**: Expand tests for Workbench components; follow [AGENT.testing.md](../../AGENT.testing.md) for Vitest patterns. For `useWorkbenchComponent` session tests, import from [`foundations/WorkbenchComponent/testing/harness.tsx`](./foundations/WorkbenchComponent/testing/harness.tsx) (and [`testing/mock.ts`](./foundations/WorkbenchComponent/testing/mock.ts) for `seedWorkbenchAsset` / `updateStandardMock`); do not import test utilities from the production barrel.
 - **Non-Workbench authoring paths**: Maps, Library route editors, and other legacy `updateStandard` call sites outside the Workbench consistency layer; see [consistency AGENT.md](./foundations/consistency/AGENT.md) for Workbench norms.

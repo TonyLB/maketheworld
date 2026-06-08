@@ -516,12 +516,23 @@ export class StandardForm {
 
     get universalKey(): AssetUUID { return this._universalKey }
 
+    stripEphemeraWirePayload(): StandardForm {
+        const stripped = this._clone()
+        stripped._components = stripped._components.map((component) => component.stripEphemeraWirePayload())
+        return stripped
+    }
+
+    _formForAssetExport(): StandardForm {
+        return this.standardizeMode === 'asset' ? this.stripEphemeraWirePayload() : this._clone()
+    }
+
     toJSON(options?: StandardToJSONOptions): StandardFormData {
-        const mapKeys = this._components.map((component) => component.reference)
+        const exportForm = this._formForAssetExport()
+        const mapKeys = exportForm._components.map((component) => component.reference)
         const result: StandardFormData = {
-            universalKey: this._universalKey,
-            metaData: this.metaData,
-            components: this._components.map((component) => (component.withMapping(mapKeys).remapReferences('universal').toJSON(options) as StandardComponentData))
+            universalKey: exportForm._universalKey,
+            metaData: exportForm.metaData,
+            components: exportForm._components.map((component) => (component.withMapping(mapKeys).remapReferences('universal').toJSON(options) as StandardComponentData))
         }
         // Include Asset-level metadata in JSON (following omission-over-empty principle)
         if (this._shortName) {
@@ -557,7 +568,7 @@ export class StandardForm {
         const organization = this._getSchemaOrganization()
         const organizationContext = createOrganizationContext(organization)
 
-        const remapped = this._clone()
+        const remapped = this._formForAssetExport()
         const mapKeys = remapped._components.map((component) => component.reference)
         remapped._components = remapped._components.map((component) => (component.withMapping(mapKeys)))
 

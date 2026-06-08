@@ -16,7 +16,6 @@ describe('StandardRoom class', () => {
                 <ShortName>ShortName Test</ShortName>
                 <Feature key=(testFeature) />
                 <Situation uuid=(DEFAULT)><DisplayName>Base</DisplayName></Situation>
-                <Exit to=(testTwo)>Exit test</Exit>
             </Room>
         `)
         const testRoom = new StandardRoom(testSource)
@@ -24,9 +23,18 @@ describe('StandardRoom class', () => {
         expect(testRoom.features).toBeDefined()
         expect(testRoom.features!.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature' }])
         expect(testRoom.shortName?.schema).toEqual([{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }])
-        expect(testRoom.exits.toJSON()).toEqual([{ reference: { tag: 'Room', key: 'testTwo' }, payload: 'Exit test' }])
+        expect(testRoom.exits.length).toEqual(0)
         expect(testRoom.universalKey).toEqual('ROOM#123')
         expect(schemaToWML([testRoom.schema])).toEqual(testSource)
+    })
+
+    it('should reject Exit under Room in asset mode WML', () => {
+        const testSource = deIndentWML(`
+            <Room key=(test)>
+                <Exit to=(testTwo)>Exit test</Exit>
+            </Room>
+        `)
+        expect(() => new StandardRoom(testSource)).toThrow(/Unconsumed child tags: Exit/)
     })
 
     it('should construct StandardRoom from schema', () => {
@@ -36,7 +44,6 @@ describe('StandardRoom class', () => {
                 <ShortName>ShortName Test</ShortName>
                 <Feature key=(testFeature) />
                 <Situation uuid=(DEFAULT)><DisplayName>Base</DisplayName></Situation>
-                <Exit to=(testTwo)>Exit test</Exit>
             </Room>
         `)
         schema.loadWML(testSource)
@@ -48,7 +55,7 @@ describe('StandardRoom class', () => {
         expect(testRoom.situations.items[0].reference.universalKey).toBe('SITUATION#DEFAULT')
         expect(testRoom.situations.items[0].payload.toJSON()).toMatchObject({ displayName: 'Base' })
         expect(testRoom.shortName?.schema).toEqual([{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }])
-        expect(testRoom.exits.toJSON()).toEqual([{ reference: { tag: 'Room', key: 'testTwo' }, payload: 'Exit test' }])
+        expect(testRoom.exits.length).toEqual(0)
         expect(testRoom.universalKey).toEqual('ROOM#123')
         expect(schemaToWML([testRoom.schema])).toEqual(testSource)
     })
@@ -77,7 +84,7 @@ describe('StandardRoom class', () => {
         expect(() => new StandardRoom(testSource)).toThrow(/Map/)
     })
 
-    it('should construct StandardRoom from StandardRoomData', () => {
+    it('should reject StandardRoomData with exits in asset mode', () => {
         const testRoomData: StandardRoomData = {
             key: 'test',
             tag: 'Room',
@@ -85,13 +92,7 @@ describe('StandardRoom class', () => {
             exits: [{ reference: { tag: 'Room', key: 'testTwo' }, payload: 'Exit test' }],
             features: [{ tag: 'Feature', key: 'testFeature' }]
         }
-        const testRoom = new StandardRoom(testRoomData)
-        expect(testRoom.key).toEqual('test')
-        expect(testRoom.features).toBeDefined()
-        expect(testRoom.features!.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature' }])
-        expect(testRoom.shortName?.toJSON()).toEqual('ShortName Test')
-        expect(testRoom.exits.toJSON()).toEqual([{ reference: { tag: 'Room', key: 'testTwo' }, payload: 'Exit test' }])
-        expect(testRoom.toJSON()).toEqual(testRoomData)
+        expect(() => new StandardRoom(testRoomData)).toThrow(/Room exits are not allowed in asset mode/)
     })
 
     it('should construct StandardRoom from StandardRoomData with situations', () => {
@@ -176,14 +177,12 @@ describe('StandardRoom class', () => {
         `))
     })
 
-    it('should correctly parse exits with universalKey targets', () => {
-        const test = new StandardRoom(`
+    it('should reject exits with universalKey targets in asset mode WML', () => {
+        expect(() => new StandardRoom(`
             <Room key=(testRoomOne)>
                 <Exit to=(ROOM#testRoomTwo)>exit</Exit>
             </Room>
-        `)
-        expect(test.exits.toJSON()).toEqual([{ reference: 'ROOM#testRoomTwo', payload: 'exit' }])
-        expect(test.referencedKeys().map(({ reference, ...rest }) => ({ key: reference.standardKey.toJSON(), ...rest }))).toEqual([{ key: 'ROOM#testRoomTwo', referenceType: 'Exit' }])
+        `)).toThrow(/Unconsumed child tags: Exit/)
     })
 
     // it('should map contents on exits correctly', () => {
@@ -230,18 +229,13 @@ describe('StandardRoom class', () => {
             key: 'testRoomOne',
             universalKey: 'ROOM#Room1',
             guidance: [{ tag: 'Guidance', key: 'base', universalKey: 'GUIDANCE#Guide1' }],
-            exits: [{ reference: { tag: 'Room', key: 'testRoomTwo' }, payload: 'exit' }],
         })
         const remapped = test.withMapping([
             new StandardReference({ universalKey: 'ROOM#Room1', key: 'testRoomOne', tag: 'Room'}),
             new StandardReference({ universalKey: 'GUIDANCE#Guide1', key: 'base', tag: 'Guidance' }),
-            new StandardReference({ universalKey: 'ROOM#testRoomTwo', key: 'testRoomTwo', tag: 'Room' })
         ]).remapReferences('universal')
         expect(schemaToWML([remapped.schema])).toEqual(deIndentWML(`
-            <Room uuid=(Room1) key=(testRoomOne)>
-                <Guidance uuid=(Guide1) />
-                <Exit to=(testRoomTwo)>exit</Exit>
-            </Room>
+            <Room uuid=(Room1) key=(testRoomOne)><Guidance uuid=(Guide1) /></Room>
         `))
     })
 
@@ -828,7 +822,7 @@ describe('StandardRoom class', () => {
     })
 
     describe('invert method', () => {
-        it('should invert a room with shortName, exits, and reference lists', () => {
+        it('should invert a room with shortName, exits, and reference lists in ephemeraWire', () => {
             const roomData: StandardRoomData = {
                 key: 'test',
                 tag: 'Room',
@@ -837,7 +831,7 @@ describe('StandardRoom class', () => {
                 features: [{ tag: 'Feature', key: 'feat1' }],
                 characters: [{ tag: 'Character', key: 'char1' }]
             }
-            const room = new StandardRoom(roomData)
+            const room = new StandardRoom(roomData, { standardizeMode: 'ephemeraWire' })
             const inverted = room._payload.invert()
             
             // All fields should be inverted (Add → Remove)
@@ -879,7 +873,7 @@ describe('StandardRoom class', () => {
                 exits: [{ reference: { tag: 'Room', key: 'target' }, payload: 'Exit' }],
                 features: [{ tag: 'Feature', key: 'feat1' }],
             }
-            const room = new StandardRoom(roomData)
+            const room = new StandardRoom(roomData, { standardizeMode: 'ephemeraWire' })
             const doubleInverted = room._payload.invert().invert()
             
             // Double inversion should return to original (within merge equivalence)
@@ -1462,18 +1456,8 @@ describe('StandardRoom class', () => {
         })
     })
 
-    describe('dual-read guard (D6)', () => {
-        it('should ingest legacy Exit to= in asset mode', () => {
-            const testSource = deIndentWML(`
-                <Room key=(room1)>
-                    <Exit to=(target)>exit label</Exit>
-                </Room>
-            `)
-            const testRoom = new StandardRoom(testSource)
-            expect(testRoom.exits.toJSON()).toEqual([{ reference: { tag: 'Room', key: 'target' }, payload: 'exit label' }])
-        })
-
-        it('should ignore Area-shaped Exit under Room (no usable to)', () => {
+    describe('asset mode exit forbid', () => {
+        it('should reject Area-shaped Exit under Room in asset mode', () => {
             const testSource = deIndentWML(`
                 <Room key=(room1)>
                     <Exit uuid=(highwayToTown)>
@@ -1484,26 +1468,7 @@ describe('StandardRoom class', () => {
                     </Exit>
                 </Room>
             `)
-            const testRoom = new StandardRoom(testSource)
-            expect(testRoom.exits.length).toBe(0)
-            expect((testRoom.toJSON() as StandardRoomData).exits).toBeUndefined()
-            expect(testRoom.referencedKeys()).toEqual([])
-        })
-
-        it('should keep only legacy exits when mixed with Area-shaped Exit', () => {
-            const testSource = deIndentWML(`
-                <Room key=(room1)>
-                    <Exit to=(target)>legacy</Exit>
-                    <Exit uuid=(edge1)>
-                        <From>ROOM#a</From>
-                        <To>ROOM#b</To>
-                        <Forward>east</Forward>
-                        <Back>west</Back>
-                    </Exit>
-                </Room>
-            `)
-            const testRoom = new StandardRoom(testSource)
-            expect(testRoom.exits.toJSON()).toEqual([{ reference: { tag: 'Room', key: 'target' }, payload: 'legacy' }])
+            expect(() => new StandardRoom(testSource)).toThrow(/Unconsumed child tags: Exit/)
         })
 
         it('should ignore Area-shaped Exit under Room in ephemeraWire mode', () => {
@@ -1519,6 +1484,32 @@ describe('StandardRoom class', () => {
             `)
             const testRoom = new StandardRoom(testSource, { standardizeMode: 'ephemeraWire' })
             expect(testRoom.exits.length).toBe(0)
+        })
+    })
+
+    describe('stripEphemeraWirePayload', () => {
+        it('should clear exits, objects, and render without mutating source', () => {
+            const roomData: StandardRoomData = {
+                key: 'test',
+                tag: 'Room',
+                shortName: 'Test Room',
+                exits: [{ reference: { tag: 'Room', key: 'target' }, payload: 'north' }],
+                objects: [{ uuid: 'OBJECT#crate', shortName: 'crate' }],
+                render: {
+                    displayName: 'Parlor',
+                    summary: ['quiet'],
+                    description: ['prose'],
+                },
+            }
+            const room = new StandardRoom(roomData, { standardizeMode: 'ephemeraWire' })
+            const stripped = room._payload.stripEphemeraWirePayload()
+            expect(room.exits.length).toBe(1)
+            expect(room.objects.length).toBe(1)
+            expect(room.render).toBeDefined()
+            expect(stripped.exits.length).toBe(0)
+            expect(stripped.objects).toEqual([])
+            expect(stripped.render).toBeUndefined()
+            expect(stripped.shortName?.toJSON()).toEqual('Test Room')
         })
     })
 

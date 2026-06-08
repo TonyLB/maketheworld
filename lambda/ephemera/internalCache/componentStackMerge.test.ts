@@ -152,7 +152,7 @@ describe('ComponentStackMerge cache handler', () => {
                     payload: 'E door',
                 },
             ],
-        })
+        }, { standardizeMode: 'ephemeraWire' })
         const overlayRoom = new StandardRoom({
             universalKey: roomId,
             tag: 'Room',
@@ -162,7 +162,7 @@ describe('ComponentStackMerge cache handler', () => {
                     payload: 'F stair',
                 },
             ],
-        })
+        }, { standardizeMode: 'ephemeraWire' })
         const concatWouldIncludeD = mergeRoomExitsToJSON([baseRoom, overlayRoom])
         expect(concatWouldIncludeD).toHaveLength(3)
 

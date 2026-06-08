@@ -296,25 +296,23 @@ describe('StandardForm', () => {
             it('should apply edits on merge', () => {
                 const inherited = new StandardForm(`
                     <Asset uuid=(Test)>
-                        <Room uuid=(testRoomOne) key=(testRoomOne) />
-                        <Room uuid=(testRoomTwo) key=(testRoomTwo)>
-                            <Exit to=(testRoomOne)>out</Exit>
+                        <Room uuid=(testRoomOne) key=(testRoomOne)>
+                            <ShortName>Lobby</ShortName>
                         </Room>
                     </Asset>
                 `)
                 const test = new StandardForm(`
                     <Asset uuid=(Test)>
-                        <Room uuid=(testRoomTwo) key=(testRoomTwo) ref={0}>
-                            <Remove><Exit to=(testRoomOne)>out</Exit></Remove>
-                            <Exit to=(testRoomOne)>depart</Exit>
+                        <Room uuid=(testRoomOne) key=(testRoomOne) ref={0}>
+                            <Replace><ShortName>Lobby</ShortName></Replace>
+                            <With><ShortName>Foyer</ShortName></With>
                         </Room>
                     </Asset>
                 `)
                 expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
                     <Asset uuid=(Test)>
-                        <Room uuid=(testRoomOne) key=(testRoomOne) />
-                        <Room uuid=(testRoomTwo) key=(testRoomTwo)>
-                            <Exit to=(testRoomOne)>depart</Exit>
+                        <Room uuid=(testRoomOne) key=(testRoomOne)>
+                            <ShortName>Foyer</ShortName>
                         </Room>
                     </Asset>
                 `))

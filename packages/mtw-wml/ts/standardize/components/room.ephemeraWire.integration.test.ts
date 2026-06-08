@@ -172,6 +172,37 @@ describe('StandardRoom ephemeraWire integration', () => {
         expect(() => new StandardForm(wml, { standardizeMode: 'ephemeraWire' })).toThrow(/Room must contain at most one Render tag/)
     })
 
+    it('parses legacy Exit to= under Room in ephemeraWire', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(main) uuid=(main)>
+                    <Exit to=(target)>exit label</Exit>
+                </Room>
+                <Room key=(target) uuid=(target) />
+            </Asset>
+        `)
+        const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const room = sf._lookup('ROOM#main') as StandardRoom
+        expect(room.exits.toJSON()).toEqual([{ reference: { tag: 'Room', key: 'target' }, payload: 'exit label' }])
+    })
+
+    it('round-trips Exit under Room in ephemeraWire schema', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(main) uuid=(main)>
+                    <Exit to=(target)>north</Exit>
+                </Room>
+                <Room key=(target) uuid=(target) />
+            </Asset>
+        `)
+        const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const printed = schemaToWML([sf.schema])
+        expect(printed).toContain('<Exit to=(target)>north</Exit>')
+        const sfAgain = new StandardForm(printed, { standardizeMode: 'ephemeraWire' })
+        const roomAgain = sfAgain._lookup('ROOM#main') as StandardRoom
+        expect(roomAgain.exits.toJSON()).toEqual([{ reference: { tag: 'Room', key: 'target' }, payload: 'north' }])
+    })
+
     it('throws when Render DisplayName is whitespace-only inside Room', () => {
         const wml = deIndentWML(`
             <Asset uuid=(Test)>

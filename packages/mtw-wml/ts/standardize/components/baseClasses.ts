@@ -9,9 +9,9 @@ import { StandardKey } from "../keys/key";
 import { StandardExplicitParent, StandardExplicitKey } from "../explicit";
 import { OrganizationContext } from "../schemaOrganization";
 import { StandardLiteral } from "../literal";
-
 export type StandardToJSONOptions = {
     stripUniversalKey?: boolean;
+    /** @deprecated Legacy schema-tree hook (no-op); asset export uses stripEphemeraWirePayload on StandardForm. */
     stripUIFields?: boolean;
 }
 
@@ -40,6 +40,7 @@ export interface StandardComponent {
     explicitParent?: StandardExplicitParent;
     shortName?: StandardLiteral;
     clone(): StandardComponent;
+    stripEphemeraWirePayload(): StandardComponent;
     withMapping(mapping: StandardReference[]): StandardComponent;
     withKey(key: string): StandardComponent;
     withUniversalKey(key: string | undefined): StandardComponent;

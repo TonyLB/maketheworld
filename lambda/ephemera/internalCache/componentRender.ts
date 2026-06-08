@@ -228,7 +228,7 @@ export class ComponentRenderData {
                 ...characterComponents
             ];
 
-            return new StandardForm(formComponents)
+            return new StandardForm(formComponents, { standardizeMode: 'ephemeraWire' })
         }
         if (isEphemeraFeatureId(EphemeraId)) {
             const renderPayload = await this._resolveRenderPayloadFromDefaultCache(EphemeraId)
@@ -240,7 +240,7 @@ export class ComponentRenderData {
             return new StandardForm([
                 { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
                 featureRow,
-            ])
+            ], { standardizeMode: 'ephemeraWire' })
         }
         if (isEphemeraKnowledgeId(EphemeraId)) {
             const renderPayload = await this._resolveRenderPayloadFromDefaultCache(EphemeraId)
@@ -252,7 +252,7 @@ export class ComponentRenderData {
             return new StandardForm([
                 { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
                 knowledgeRow,
-            ])
+            ], { standardizeMode: 'ephemeraWire' })
         }
         if (isEphemeraMessageId(EphemeraId)) {
             const assets = allAssets
@@ -335,7 +335,7 @@ export class ComponentRenderData {
                     } : {}),
                     shortName: room.shortName
                 }))
-            ])
+            ], { standardizeMode: 'ephemeraWire' })
         }
         throw new Error('Illegal tag in ComponentDescription internalCache')
     }

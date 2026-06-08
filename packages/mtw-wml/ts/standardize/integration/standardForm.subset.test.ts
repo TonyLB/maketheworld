@@ -37,7 +37,6 @@ describe('StandardForm', () => {
                     </Knowledge>
                     <Room key=(testRoom)>
                         <ShortName>Test Room</ShortName>
-                        <Exit to=(testRoomTwo)>exit</Exit>
                     </Room>
                     <Room key=(testRoomTwo) />
                     <Feature uuid=(testFeature) key=(testFeature) />
@@ -50,10 +49,7 @@ describe('StandardForm', () => {
             //
             expect(schemaToWML([subset.schema])).toEqual(deIndentWML(`
                 <Asset uuid=(test)>
-                    <Room key=(testRoom)>
-                        <ShortName>Test Room</ShortName>
-                        <Exit to=(testRoomTwo)>exit</Exit>
-                    </Room>
+                    <Room key=(testRoom)><ShortName>Test Room</ShortName></Room>
                 </Asset>
             `))
         })
@@ -68,7 +64,6 @@ describe('StandardForm', () => {
                     </Knowledge>
                     <Room key=(testRoom)>
                         <ShortName>Test Room</ShortName>
-                        <Exit to=(testRoomTwo)>exit</Exit>
                     </Room>
                     <Room key=(testRoomTwo) />
                     <Feature uuid=(testFeature) key=(testFeature) />
@@ -117,7 +112,6 @@ describe('StandardForm', () => {
                         <Situation uuid=(DEFAULT) ref={0} key=(base)>
                             <Description><Link to=(FEATURE#testFeature)>link</Link></Description>
                         </Situation>
-                        <Exit to=(testRoomTwo)>exit</Exit>
                     </Room>
                     <Room key=(testRoomTwo) />
                     <Feature uuid=(testFeature) key=(testFeature) />
@@ -126,10 +120,7 @@ describe('StandardForm', () => {
             `)
             expect(schemaToWML([test.subset([{ requestType: 'ExitsAndShortName', keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })] }]).schema])).toEqual(deIndentWML(`
                 <Asset uuid=(test)>
-                    <Room key=(testRoom)>
-                        <ShortName>Test Room</ShortName>
-                        <Exit to=(testRoomTwo)>exit</Exit>
-                    </Room>
+                    <Room key=(testRoom)><ShortName>Test Room</ShortName></Room>
                 </Asset>
             `))
         })
@@ -148,7 +139,7 @@ describe('StandardForm', () => {
                         </Room>
                     </Map>
                 </Asset>
-            `)
+            `, { standardizeMode: 'ephemeraWire' })
             const results = test.subset([{
                 requestType: 'Full',
                 keys: [new StandardKey(`MAP#testMap`)],
@@ -446,10 +437,9 @@ describe('StandardForm', () => {
                         <Situation uuid=(DEFAULT) ref={0} key=(base)>
                             <Description><Link to=(testFeature)>link</Link></Description>
                         </Situation>
-                        <Exit to=(testRoomTwo)>exit</Exit>
                     </Room>
                     <Room key=(testRoomTwo)>
-                        <Exit to=(testRoomOne)>enter</Exit>
+                        <ShortName>Room Two</ShortName>
                     </Room>
                     <Feature key=(testFeature) />
                     <Knowledge key=(testKnowledge) />
@@ -473,11 +463,7 @@ describe('StandardForm', () => {
                 startNodes: ['room']
             }] }]).schema])).toEqual(deIndentWML(`
                 <Asset uuid=(test)>
-                    <Room key=(testRoom)>
-                        <ShortName>Test Room</ShortName>
-                        <Exit to=(testRoomTwo)>exit</Exit>
-                    </Room>
-                    <Room key=(testRoomTwo)><Exit to=(testRoomOne)>enter</Exit></Room>
+                    <Room key=(testRoom)><ShortName>Test Room</ShortName></Room>
                 </Asset>
             `))
         })
@@ -551,11 +537,9 @@ describe('StandardForm', () => {
                     </Map>
                     <Room key=(room1)>
                         <ShortName>Room One</ShortName>
-                        <Exit to=(room2)>to room two</Exit>
                     </Room>
                     <Room key=(room2)>
                         <ShortName>Room Two</ShortName>
-                        <Exit to=(room1)>to room one</Exit>
                     </Room>
                 </Asset>
             `)

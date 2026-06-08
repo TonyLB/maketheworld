@@ -1,6 +1,5 @@
 import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
-import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { referenceFromExitEndpoint } from '@tonylb/mtw-wml/ts/standardize/keys/edges/endpointReference'
 
@@ -67,18 +66,6 @@ export const detectTopologyInvalidations = ({
             return [{ scope: 'room', roomIds, areaId }]
         }
         return [{ scope: 'area', areaId }]
-    }
-
-    if (component.tag === 'Room' && component instanceof StandardRoom) {
-        const roomId = component.universalKey as ComponentUUID | undefined
-        if (!roomId) {
-            return []
-        }
-        const hasExitFacets = (component.exits?.items?.length ?? 0) > 0
-        if (!entityRemoved && !hasExitFacets) {
-            return []
-        }
-        return [{ scope: 'room', roomIds: [roomId] }]
     }
 
     return []

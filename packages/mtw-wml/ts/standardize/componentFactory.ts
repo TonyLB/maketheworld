@@ -59,7 +59,15 @@ export const standardComponentFactory = (
             return { component: new StandardSituation(arg), remainder: [] }
         }
         if (isStandardRoomInputData(arg)) {
-            return { component: new StandardRoom(arg), remainder: [] }
+            return {
+                component: new StandardRoom(
+                    arg,
+                    options?.standardizeMode !== undefined
+                        ? { standardizeMode: options.standardizeMode }
+                        : undefined,
+                ),
+                remainder: [],
+            }
         }
         if (isStandardFeatureData(arg)) {
             return { component: new StandardFeature(arg), remainder: [] }
