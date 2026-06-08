@@ -83,6 +83,26 @@ Practical meaning:
 - guest character generation and hydration exist,
 - and now support coyote-specific conditional behavior behind `coyoteGameEnabled`.
 
+### 4) Overlay asset topology (Area exit edges)
+
+Coyote **play-mode exit inventory** is authored in a **separate overlay asset** (not `ASSET#primitives`):
+
+- Import `AREA#WORLD` and Coyote rooms from primitives.
+- Author bidirectional exit edges on the imported `AREA#WORLD`.
+- `ASSET#primitives` stays component inventory only (empty `AREA#WORLD` stub + room stubs).
+- Runtime merges primitives stub + overlay via [`mergeAuthoritativeAcrossParticipationOrder`](packages/mtw-gateways/ts/assets/components/aggregate/assemble.ts).
+
+**Exit inventory** (edges on imported `AREA#WORLD` in the overlay). **`CLIFFBASE`** = **`ROOM#VORTEX`** (prompt seam label only; see [`AGENT.CoyoteGame.md`](AGENT.CoyoteGame.md)).
+
+| From | To | Forward | Back |
+| --- | --- | --- | --- |
+| `ROOM#STRAIGHTAWAY` | `ROOM#VORTEX` | east | west |
+| `ROOM#VORTEX` | `ROOM#CLIFFTOP` | up | down |
+| `ROOM#VORTEX` | `ROOM#CORNER` | east | west |
+| `ROOM#CORNER` | `ROOM#BRIDGE` | south | north |
+
+**Cache / persistence:** overlay partition rows are populated by **`cacheAsset`** (single-pass **`referencedBy`** on `diff._components`; see [`lambda/assets/dataSource/caching/AGENT.diff.md`](lambda/assets/dataSource/caching/AGENT.diff.md)). Re-cache via **`Cache Consistency Finding`** on EventBridge (`Source: mtw.diagnostics`) per [`lambda/assets/AGENT.event.md`](lambda/assets/AGENT.event.md).
+
 ## Related Data Shapes and Settings
 
 - `Meta::Player` stores `guestName` and `guestId`, which are consumed by ephemera.

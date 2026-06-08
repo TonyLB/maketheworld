@@ -1,6 +1,6 @@
 # Topology relations refactor (partial edges + invariant naming)
 
-**Status:** Phases 1-3 complete; Phase 4 **ready** --- referencedBy plan Phases 3-5 **complete** (2026-06-08; overlay re-cache x2, `decacheAsset` aligned, second pass deleted). **Next:** Coyote exit inventory smoke-test (referencedBy Phase 6 / topology Phase 4). Durable docs cleanup there, then delete this plan. Steady-state invariant names live in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md#topology-invariants).
+**Status:** Phases 1-3 complete; Phase 4 in progress --- durable docs cleanup; optional Coyote exit smoke-test deferred. Steady-state invariant names live in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md#topology-invariants). Overlay topology pattern and exit inventory: [`AGENT.CoyoteGame.implementation.md`](../../../AGENT.CoyoteGame.implementation.md).
 
 This plan is task-scoped. Archive or delete it after the work ships; move lasting norms into package `AGENT.md` files next to code.
 
@@ -123,7 +123,7 @@ rg 'edgeSatisfiesD4|assertEdgeD4|findEdgesViolatingD4|d4Error' packages/mtw-wml 
 | **1** | Invariant naming cleanup (`D*` -> glossary names) | Complete |
 | **2** | Partial / incomplete edges in WML + Standardize + edit algebra | Complete |
 | **3** | Workbench exit-edge editor refactor | Complete |
-| **4** | Smoke-test, durable docs cleanup, close task | Ready (referencedBy Phase 3 proof passed) |
+| **4** | Smoke-test (optional), durable docs cleanup, close task | In progress |
 
 ---
 
@@ -166,30 +166,21 @@ Mark pending work `[ ]` and completed work `[X]`. Mark nested bullets `[X]` as e
 
 ### Phase 4 --- Smoke-test, docs cleanup, close task
 
-**Prerequisite:** [`AGENT.referencedByCacheDecacheRefactor.planning.md`](./AGENT.referencedByCacheDecacheRefactor.planning.md) Phases 1-5 (single-pass `referencedBy`, second pass deleted). **Met 2026-06-08** --- overlay `Cache Consistency Finding` re-cache x2; Dynamo correct; `decacheAsset` aligned; [`referencedByPersistence.ts`](../../../lambda/assets/dataSource/caching/referencedByPersistence.ts) removed (see referencedBy plan Operator notes and Phase 5 decision log).
+**Prerequisite (cache / `referencedBy`):** Single-pass **`referencedBy`** on `diff._components` in **`cacheAsset`** / **`decacheAsset`** (shipped 2026-06-08). **Met** --- overlay `Cache Consistency Finding` re-cache x2; Dynamo correct; second pass removed. See [`AGENT.diff.md`](../../../lambda/assets/dataSource/caching/AGENT.diff.md) and [`AGENT.CoyoteGame.implementation.md`](../../../AGENT.CoyoteGame.implementation.md).
 
 - [X] **Author Coyote topology** in a **separate overlay asset** (not `ASSET#primitives`): import `AREA#WORLD` + Coyote rooms from primitives; author four bidirectional edges on imported `AREA#WORLD`. Canonize overlay when confident. `ASSET#primitives` stays component inventory only (empty `AREA#WORLD` stub + room stubs).
-- [ ] **Smoke-test** at merged stack perspective (`ASSET#primitives` + overlay asset in `mergeParticipationOrder`): enter play mode from each Coyote room; confirm exit chips and movement match [Coyote exit inventory (smoke-test)](#coyote-exit-inventory-smoke-test).
+- [ ] **Smoke-test (optional):** at merged stack perspective (`ASSET#primitives` + overlay asset in `mergeParticipationOrder`): enter play mode from each Coyote room; confirm exit chips and movement match exit inventory in [`AGENT.CoyoteGame.implementation.md`](../../../AGENT.CoyoteGame.implementation.md) (**Overlay asset topology**).
 - [ ] **Durable docs cleanup** --- move anything still only in this plan, then drop task-plan links:
-  - [ ] Coyote exit inventory and overlay-asset topology pattern -> [`AGENT.CoyoteGame.implementation.md`](../../../AGENT.CoyoteGame.implementation.md)
+  - [X] Coyote exit inventory and overlay-asset topology pattern -> [`AGENT.CoyoteGame.implementation.md`](../../../AGENT.CoyoteGame.implementation.md)
   - [ ] Replace task-plan links in [`AGENT.implementation.md`](../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) and [`lambda/ephemera/internalCache/AGENT.md`](../../../lambda/ephemera/internalCache/AGENT.md) with Coyote / edges steady-state pointers
   - [ ] Confirm [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) still covers topology invariants and incomplete-edge projection boundary; grep steady-state docs for lingering `D*`
 - [ ] **Delete this task plan** per [`taskPlanning/AGENT.md`](../../AGENT.md) (git retains history)
 
 ---
 
-## Coyote exit inventory (smoke-test)
+## Coyote exit inventory (smoke-test reference)
 
-Reference for Phase 4 play-mode check. **`CLIFFBASE`** = **`ROOM#VORTEX`** (prompt seam label only; see [`AGENT.CoyoteGame.md`](../../../AGENT.CoyoteGame.md)).
-
-| From | To | Forward | Back |
-| --- | --- | --- | --- |
-| `ROOM#STRAIGHTAWAY` | `ROOM#VORTEX` | east | west |
-| `ROOM#VORTEX` | `ROOM#CLIFFTOP` | up | down |
-| `ROOM#VORTEX` | `ROOM#CORNER` | east | west |
-| `ROOM#CORNER` | `ROOM#BRIDGE` | south | north |
-
-Edges live on imported **`AREA#WORLD`** in the overlay asset; runtime merges primitives stub + overlay via [`mergeAuthoritativeAcrossParticipationOrder`](../../../packages/mtw-gateways/ts/assets/components/aggregate/assemble.ts).
+Moved to [`AGENT.CoyoteGame.implementation.md`](../../../AGENT.CoyoteGame.implementation.md) (**Overlay asset topology**). Optional play-mode verification; not required to close partial/incomplete-edge authoring work in this plan.
 
 ---
 
