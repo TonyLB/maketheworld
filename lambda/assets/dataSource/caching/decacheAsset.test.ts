@@ -3,7 +3,6 @@ import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import internalCache from '../../internalCache'
-import { clearReferencedByForDecache } from './referencedByPersistence'
 import { emitTopologyInvalidatedForRoomTargets } from '../../componentTopology'
 import { invalidateExhaustivePartitionCache } from '../components/verticals/exhaustivePartitionLoader'
 
@@ -31,13 +30,6 @@ jest.mock('../../internalCache', () => ({
     }
 }))
 
-jest.mock('./referencedByPersistence', () => ({
-    clearReferencedByForDecache: jest.fn().mockResolvedValue({
-        patchedTargetIds: [],
-        roomIdsForTopology: [],
-    }),
-}))
-
 jest.mock('../../componentTopology', () => ({
     emitTopologyInvalidatedForRoomTargets: jest.fn().mockResolvedValue(undefined),
 }))
@@ -48,7 +40,6 @@ jest.mock('../components/verticals/exhaustivePartitionLoader', () => ({
 
 const assetDBMock = jest.mocked(assetDB, { shallow: false })
 const internalCacheMock = jest.mocked(internalCache, { shallow: false })
-const clearReferencedByForDecacheMock = jest.mocked(clearReferencedByForDecache, { shallow: false })
 const emitTopologyInvalidatedForRoomTargetsMock = jest.mocked(emitTopologyInvalidatedForRoomTargets, { shallow: false })
 const invalidateExhaustivePartitionCacheMock = jest.mocked(invalidateExhaustivePartitionCache, { shallow: false })
 
@@ -177,23 +168,6 @@ describe('Decache Asset (Data Source)', () => {
     })
 
     describe('single-pass alignment (Phase 4)', () => {
-        it('does not call clearReferencedByForDecache second pass', async () => {
-            internalCacheMock.AssetData.get.mockResolvedValueOnce([
-                {
-                    AssetId: 'ASSET#Test',
-                    standardForm: new StandardForm(deIndentWML(`
-                        <Asset uuid=(Test)>
-                            <Room key=(VORTEX) uuid=(VORTEX) />
-                        </Asset>
-                    `))
-                }
-            ])
-
-            await decacheAsset({ assetId: 'Test', streamEvent: mockStreamEvent })
-
-            expect(clearReferencedByForDecacheMock).not.toHaveBeenCalled()
-        })
-
         it('deleteItem for edge-only room stub without putItem recreation', async () => {
             internalCacheMock.AssetData.get.mockResolvedValueOnce([
                 {

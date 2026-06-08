@@ -14,8 +14,8 @@ Notify downstream consumers when room topology may have changed (**`mtw.ephemera
 | Source | Mechanism |
 | --- | --- |
 | `mtw.assets` **Component Updated / Removed** | Subscribe; `detectTopologyInvalidations` on **Area** **`positionGraph`** |
-| `cacheAsset` first pass | `emitTopologyInvalidatedForRoomTargets` when Edge-type **`referencedBy`** changes on **`ROOM#`** targets in **`diff._components`** |
-| `decacheAsset` first pass | `emitTopologyInvalidatedForRoomTargets` when **`ROOM#`** partition rows are deleted (branch C; overlay purge removes edge topology contribution) |
+| `cacheAsset` | `emitTopologyInvalidatedForRoomTargets` when Edge-type **`referencedBy`** changes on **`ROOM#`** targets in **`diff._components`** |
+| `decacheAsset` | `emitTopologyInvalidatedForRoomTargets` when **`ROOM#`** partition rows are deleted (branch C; overlay purge removes edge topology contribution) |
 
 ## Event shape
 
@@ -30,6 +30,6 @@ Steady-state exit projection at a perspective is assembled by **`@tonylb/mtw-gat
 ## Related
 
 - Steady-state topology docs: [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md), [`lambda/ephemera/internalCache/AGENT.md`](../../../lambda/ephemera/internalCache/AGENT.md) (**Area topology and affordance exits**)
-- Persisted inverse index: [`../dataSource/caching/AGENT.diff.md`](../dataSource/caching/AGENT.diff.md) (**D10** `referencedBy` pass)
+- Persisted inverse index: [`../dataSource/caching/AGENT.diff.md`](../dataSource/caching/AGENT.diff.md) (single-pass **`referencedBy`** on **`diff._components`**)
 - Precedent: [`../componentExamples/AGENT.md`](../componentExamples/AGENT.md)
 - Downstream consumer: [`lambda/ephemera/dataSource/affordanceCache/AGENT.md`](../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md)

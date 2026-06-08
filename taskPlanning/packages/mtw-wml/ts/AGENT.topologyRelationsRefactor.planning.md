@@ -1,6 +1,6 @@
 # Topology relations refactor (partial edges + invariant naming)
 
-**Status:** Phases 1-3 complete; Phase 4 **ready** --- referencedBy plan Phases 3-4 **complete** (2026-06-08; overlay re-cache x2, `decacheAsset` aligned). **Next:** Coyote exit inventory smoke-test after referencedBy Phase 5 dead-code removal, durable docs cleanup, delete this plan. Steady-state invariant names live in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md#topology-invariants).
+**Status:** Phases 1-3 complete; Phase 4 **ready** --- referencedBy plan Phases 3-5 **complete** (2026-06-08; overlay re-cache x2, `decacheAsset` aligned, second pass deleted). **Next:** Coyote exit inventory smoke-test (referencedBy Phase 6 / topology Phase 4). Durable docs cleanup there, then delete this plan. Steady-state invariant names live in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md#topology-invariants).
 
 This plan is task-scoped. Archive or delete it after the work ships; move lasting norms into package `AGENT.md` files next to code.
 
@@ -166,7 +166,7 @@ Mark pending work `[ ]` and completed work `[X]`. Mark nested bullets `[X]` as e
 
 ### Phase 4 --- Smoke-test, docs cleanup, close task
 
-**Prerequisite:** [`AGENT.referencedByCacheDecacheRefactor.planning.md`](./AGENT.referencedByCacheDecacheRefactor.planning.md) Phases 1-3 minimum (single-pass `referencedBy`, second pass disabled and verified). **Met 2026-06-08** --- overlay `Cache Consistency Finding` re-cache x2; Dynamo correct (see referencedBy plan Operator notes).
+**Prerequisite:** [`AGENT.referencedByCacheDecacheRefactor.planning.md`](./AGENT.referencedByCacheDecacheRefactor.planning.md) Phases 1-5 (single-pass `referencedBy`, second pass deleted). **Met 2026-06-08** --- overlay `Cache Consistency Finding` re-cache x2; Dynamo correct; `decacheAsset` aligned; [`referencedByPersistence.ts`](../../../lambda/assets/dataSource/caching/referencedByPersistence.ts) removed (see referencedBy plan Operator notes and Phase 5 decision log).
 
 - [X] **Author Coyote topology** in a **separate overlay asset** (not `ASSET#primitives`): import `AREA#WORLD` + Coyote rooms from primitives; author four bidirectional edges on imported `AREA#WORLD`. Canonize overlay when confident. `ASSET#primitives` stays component inventory only (empty `AREA#WORLD` stub + room stubs).
 - [ ] **Smoke-test** at merged stack perspective (`ASSET#primitives` + overlay asset in `mergeParticipationOrder`): enter play mode from each Coyote room; confirm exit chips and movement match [Coyote exit inventory (smoke-test)](#coyote-exit-inventory-smoke-test).

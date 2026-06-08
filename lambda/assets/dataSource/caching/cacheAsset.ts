@@ -183,16 +183,6 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
             })
         }
 
-        // TODO(referencedBy-refactor Phase 5): delete second pass; see
-        // taskPlanning/packages/mtw-wml/ts/AGENT.referencedByCacheDecacheRefactor.planning.md
-        // const inverseTargets = targetsNeedingInverseReconcile(dbAsset, fileAsset)
-        // const { patchedTargetIds, roomIdsForTopology } = await applyReferencedByPatchesForAsset({
-        //     assetUUID,
-        //     assetId,
-        //     fileAsset,
-        //     targetUniversalKeys: inverseTargets,
-        // })
-
         const invalidateTargets = new Set<ComponentUUID>(
             diff._components.map((c) => c.universalKey).filter((id): id is ComponentUUID => Boolean(id))
         )
@@ -203,13 +193,6 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
             }
         })
 
-        // if (roomIdsForTopology.length > 0) {
-        //     await emitTopologyInvalidatedForRoomTargets({
-        //         roomIds: roomIdsForTopology,
-        //         editAssetId: assetUUID,
-        //     })
-        // }
-        
         // Stream component events with StandardComponent objects; Character events will be handled by mtw.assets.characters data source
         await Promise.all([
             ...componentsUpdated.map((componentUpdatedEvent) => (

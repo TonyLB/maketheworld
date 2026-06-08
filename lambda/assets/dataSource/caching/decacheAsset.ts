@@ -114,14 +114,6 @@ export const decacheAsset = async ({ assetId, streamEvent }: {
             })
         }
 
-        // TODO(referencedBy-refactor Phase 5): delete second pass; see
-        // taskPlanning/packages/mtw-wml/ts/AGENT.referencedByCacheDecacheRefactor.planning.md
-        // const { patchedTargetIds, roomIdsForTopology } = await clearReferencedByForDecache({
-        //     assetUUID,
-        //     assetId,
-        //     dbAsset,
-        // })
-
         const invalidateTargets = new Set<ComponentUUID>(
             diff._components.map((c) => c.universalKey).filter((id): id is ComponentUUID => Boolean(id))
         )

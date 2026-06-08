@@ -770,7 +770,7 @@ describe('Cache Asset (Data Source)', () => {
         })
     })
 
-    describe('referencedBy inverse index (D10)', () => {
+    describe('referencedBy on diff._components', () => {
         it('patches referencedBy on room targets when Area edge changes without room body diff', async () => {
             const dbForm = new StandardForm('<Asset uuid=(test) />')
             internalCacheMock.AssetData.get.mockResolvedValue([{

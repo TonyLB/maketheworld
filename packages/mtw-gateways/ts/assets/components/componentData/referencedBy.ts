@@ -72,7 +72,7 @@ export const collectReferencedTargetsInAsset = (fileAsset: StandardForm): Compon
 }
 
 /**
- * Recompute persisted inverse index for one asset's file view (D10).
+ * Recompute persisted inverse index for one asset's file view.
  * Keys are target universal ids; values are colocated `referencedBy` lists.
  */
 export const buildReferencedByPatchesForAsset = (

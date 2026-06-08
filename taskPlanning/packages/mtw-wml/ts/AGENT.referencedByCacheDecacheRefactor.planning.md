@@ -1,12 +1,12 @@
 # `referencedBy` cache / decache refactor (single-pass persistence)
 
-**Status:** Phase 4 complete (`decacheAsset` aligned). **Next:** Phase 5 dead-code/docs, then Phase 6 topology smoke-test. **Finish this plan (Phases 5-6) before starting** [`AGENT.characterRegistered.planning.md`](../../lambda/connections/AGENT.characterRegistered.planning.md).
+**Status:** Phase 5 complete (dead code removed, durable docs updated). **Next:** Phase 6 topology smoke-test. **Finish this plan (Phase 6) before starting** [`AGENT.characterRegistered.planning.md`](../../lambda/connections/AGENT.characterRegistered.planning.md).
 
 This plan is task-scoped. Archive or delete it after the work ships; move lasting norms into package `AGENT.md` files next to code.
 
 **Framework:** [`taskPlanning/AGENT.md`](../../AGENT.md)
 
-**Sibling / unblocker for:** [`AGENT.topologyRelationsRefactor.planning.md`](./AGENT.topologyRelationsRefactor.planning.md) Phase 4 smoke-test (Coyote exits). Phases 3-4 complete (2026-06-08); smoke-test may resume after Phase 5 here. Original failure traced to thin `ROOM#*` rows and clobbered component bodies from the inverse pass --- fixed by first-pass-only `cacheAsset` and aligned `decacheAsset`.
+**Sibling / unblocker for:** [`AGENT.topologyRelationsRefactor.planning.md`](./AGENT.topologyRelationsRefactor.planning.md) Phase 4 smoke-test (Coyote exits). Phases 3-5 complete (2026-06-08); smoke-test may resume in Phase 6 here. Original failure traced to thin `ROOM#*` rows and clobbered component bodies from the inverse pass --- fixed by first-pass-only `cacheAsset` and aligned `decacheAsset`; second pass deleted in Phase 5.
 
 **Successor (blocked until this plan is done):** [`AGENT.characterRegistered.planning.md`](../../lambda/connections/AGENT.characterRegistered.planning.md) --- session orientation / RoomHeader delivery via `Character Registered`. Do **not** start that initiative until Phases 4-6 of **this** plan are complete.
 
@@ -124,8 +124,8 @@ npm test -- --testPathPattern="cacheAsset|referencedBy|decacheAsset" --watchAll=
 | **2** | First-pass `referencedBy` in `cacheAsset` | Complete |
 | **3** | Disable second pass; EventBridge proof (`mtw.diagnostics`) | Complete |
 | **4** | `decacheAsset` alignment + disable second call | Complete |
-| **5** | Delete dead code + durable docs | Not started |
-| **6** | Resume topology Phase 4 smoke-test (exits only; not room-affordance E2E) | Blocked on Phase 5 |
+| **5** | Delete dead code + durable docs | Complete |
+| **6** | Resume topology Phase 4 smoke-test (exits only; not room-affordance E2E) | Not started |
 
 ---
 
@@ -184,10 +184,10 @@ Mark pending work `[ ]` and completed work `[X]`. Mark nested bullets `[X]` as e
 
 ### Phase 5 --- Delete dead code + durable docs
 
-- [ ] Remove [`referencedByPersistence.ts`](../../../lambda/assets/dataSource/caching/referencedByPersistence.ts) and tests **only if** no callers remain; otherwise slim to shared helpers (`buildReferencedByPatchesForAsset` import stays in gateways).
-- [ ] Update [`AGENT.diff.md`](../../../lambda/assets/dataSource/caching/AGENT.diff.md): single-pass `referencedBy` on `diff._components`; remove "step 5 inverse pass" wording.
-- [ ] Update [`componentTopology/AGENT.md`](../../../lambda/assets/componentTopology/AGENT.md) invalidation source table.
-- [ ] Update **Recommended order** checkboxes in this file; set **Status** to done.
+- [X] Remove [`referencedByPersistence.ts`](../../../lambda/assets/dataSource/caching/referencedByPersistence.ts) and tests **only if** no callers remain; otherwise slim to shared helpers (`buildReferencedByPatchesForAsset` import stays in gateways).
+- [X] Update [`AGENT.diff.md`](../../../lambda/assets/dataSource/caching/AGENT.diff.md): single-pass `referencedBy` on `diff._components`; remove "step 5 inverse pass" wording.
+- [X] Update [`componentTopology/AGENT.md`](../../../lambda/assets/componentTopology/AGENT.md) invalidation source table.
+- [X] Update **Recommended order** checkboxes in this file; set **Status** to done.
 
 ### Phase 6 --- Resume topology smoke-test (sibling plan; closes **this** plan)
 
@@ -357,3 +357,4 @@ rg "inverse pass|D10|referencedByPersistence" lambda/assets packages/mtw-gateway
 | 2026-06-08 | Phase 3 **passed**: overlay re-cache x2 (incl. no-op second run); full imported room rows + `referencedBy` correct; smoke-test unblocked. |
 | 2026-06-08 | **Sequencing:** Complete Phases 4-6 here before [`AGENT.characterRegistered.planning.md`](../../lambda/connections/AGENT.characterRegistered.planning.md). Room-affordance / RoomHeader E2E is **out of scope** for closing **this** plan (exit smoke-test only in Phase 6). |
 | 2026-06-08 | Phase 4 **complete:** `decacheAsset` uses three-way branch with `emptyAsset` (always branch C `deleteItem`); `clearReferencedByForDecache` disabled; first-pass `TopologyInvalidated` + `ComponentData` / partition cache invalidation. No `referencedBy` writes on decache --- row deletion is sufficient. |
+| 2026-06-08 | Phase 5 **complete:** deleted [`referencedByPersistence.ts`](../../../lambda/assets/dataSource/caching/referencedByPersistence.ts) and tests; removed commented second-pass call sites; durable docs updated for single-pass `referencedBy` only. |

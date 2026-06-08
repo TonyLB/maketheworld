@@ -70,7 +70,7 @@ export const componentTopologyDataSource = new AssetsDataSource<
 
 componentTopologyDataSource.subscribe()
 
-/** Called from cacheAsset when referencedBy patches affect room targets (D10 + D11). */
+/** Called from cacheAsset / decacheAsset when room topology targets change via referencedBy or partition row deletion. */
 export const emitTopologyInvalidatedForRoomTargets = async ({
     roomIds,
     editAssetId,
