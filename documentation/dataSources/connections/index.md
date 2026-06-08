@@ -41,7 +41,8 @@ These presence transitions are emitted with **at least once** delivery; consumer
 Producer boundary semantics:
 
 - Emit intent is aggregate-session boundary crossing for a character: connect (`0 -> 1`) and disconnect (`1 -> 0`).
-- Producer checks pre-transition adjacency/session state to decide whether to emit `Character Connected` or `Character Disconnected`.
+- **Connect (`0 -> 1`):** registration reads pre-mutation `prior.sessions` via the `Meta::Character` `transactWrite` Update `successCallback` and passes `isFirstSessionForCharacter` on the in-process `Character Registered` envelope; the derived `mtw.connections.characters` lane emits `Character Connected` when that flag is `true`.
+- **Disconnect (`1 -> 0`):** teardown removes the session first; the derived lane reads post-teardown `Meta::Character.sessions` and emits `Character Disconnected` when the list is empty.
 - Registration and teardown state mutation is still applied even when a corresponding presence event is not emitted.
 - No cross-writer lock is used to suppress same-window duplicates; duplicate presence events are acceptable under at-least-once + concurrency semantics.
 

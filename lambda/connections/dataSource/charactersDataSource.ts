@@ -36,15 +36,7 @@ export const processConnectionsCharactersSubscribedEvents = async (
         if (header.type === "Character Registered") {
             const event = content as ConnectionsCharacterRegisteredEvent
             const characterId = event.characterId
-            const row = await connectionDB.getItem<{ sessions?: string[] }>({
-                Key: {
-                    ConnectionId: characterId,
-                    DataCategory: "Meta::Character"
-                },
-                ProjectionFields: ["sessions"]
-            })
-            const sessions = Array.isArray(row?.sessions) ? row?.sessions : []
-            if (sessions.length === 0) {
+            if (event.isFirstSessionForCharacter === true) {
                 await streamEvent({
                     streamKey: characterId,
                     header: { type: "Character Connected" },

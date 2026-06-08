@@ -97,11 +97,13 @@ npm test -- --watchAll=false dataSource/positions/ moveCharacter/index.test.ts
 
 Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each sub-step lands.
 
-- [ ] Phase 1 --- Fix `Character Connected` producer gate (`connections`)
-  - [ ] Capture **pre-mutation** session count in `registerCharacterMessage` (or equivalent authoritative boundary signal).
-  - [ ] Update [`charactersDataSource.ts`](../../../lambda/connections/dataSource/charactersDataSource.ts) to emit `Character Connected` on **`0 -> 1`** using that signal (remove broken post-mutation `sessions.length === 0` check).
-  - [ ] Fix [`charactersDataSource.test.ts`](../../../lambda/connections/dataSource/charactersDataSource.test.ts) to assert against **realistic post-registration Dynamo** where appropriate and boundary cases in unit tests.
-  - [ ] Confirm `Character Disconnected` gate still matches post-teardown semantics (unchanged contract).
+- [X] Phase 1 --- Fix `Character Connected` producer gate (`connections`)
+  - [X] Capture **pre-mutation** session count in `registerCharacterMessage` via `transactWrite` Update `successCallback` (`prior.sessions` -> `isFirstSessionForCharacter`).
+  - [X] Update [`charactersDataSource.ts`](../../../lambda/connections/dataSource/charactersDataSource.ts) to emit `Character Connected` on **`0 -> 1`** using that signal (remove broken post-mutation `sessions.length === 0` check).
+  - [X] Fix [`charactersDataSource.test.ts`](../../../lambda/connections/dataSource/charactersDataSource.test.ts) to assert against **realistic post-registration Dynamo** where appropriate and boundary cases in unit tests.
+  - [X] Confirm `Character Disconnected` gate still matches post-teardown semantics (unchanged contract).
+
+  **Phase 1 note:** `isFirstSessionForCharacter` is in-process metadata on `Character Registered` (not on external EventBridge wire). Idempotent re-register skips `successCallback` (Update `ignore`) so the flag stays `false`.
 
 - [ ] Phase 2 --- EventBridge + ephemera ingress for `Character Registered`
   - [ ] Add **`EphemeraFunction`** CloudWatch rule: `source: mtw.connections`, `detail-type: Character Registered` in [`template.yaml`](../../../template.yaml).
@@ -157,7 +159,7 @@ npm test -- --watchAll=false \
 | Milestone | Status |
 | --- | --- |
 | Task plan authored | Done |
-| `Character Connected` gate fixed + tests | Not started |
+| `Character Connected` gate fixed + tests | Done |
 | EventBridge + ephemera `Character Registered` ingress | Not started |
 | Session orientation handlers (render + affordance + perception) | Not started |
 | Documentation detangle | Not started |

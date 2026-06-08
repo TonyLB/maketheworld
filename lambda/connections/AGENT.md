@@ -52,6 +52,8 @@ When changing session storage, update this section so the trade-off stays visibl
 
 - Subscribed lifecycle inputs are `Character Registered` and `Session Disconnect` (from `mtw.connections`).
 - Presence emits are boundary-driven by character aggregate session count: connect boundary (`0 -> 1`) emits `Character Connected`; disconnect boundary (`1 -> 0`) emits `Character Disconnected`.
+- **Connect boundary signal:** registration captures pre-mutation `prior.sessions` in the `Meta::Character` `transactWrite` Update `successCallback` ([`registerCharacter/index.ts`](registerCharacter/index.ts)) and passes `isFirstSessionForCharacter` on the in-process `Character Registered` envelope. The derived lane ([`dataSource/charactersDataSource.ts`](dataSource/charactersDataSource.ts)) gates `Character Connected` on that flag --- not on a post-registration Dynamo read.
+- **Disconnect boundary signal:** teardown removes the session from `Meta::Character.sessions` before `Session Disconnect`; the derived lane reads post-teardown `sessions` (empty means `1 -> 0`).
 - Boundary checks decide emission, but adjacency/session mutation still proceeds on registration/teardown paths even when an emit is suppressed.
 - The producer intentionally does not add cross-writer locking to eliminate same-window duplicate emits; at-least-once delivery with duplicate-tolerant consumers is the contract.
 

@@ -163,6 +163,20 @@ describe('connections event guards', () => {
         })).toBe(true)
         expect(isCharacterRegisteredEvent({
             type: 'Character Registered',
+            characterId: 'CHARACTER#abc',
+            sessionId: 'session-1',
+            timestamp: '2026-01-01T00:00:00.000Z',
+            isFirstSessionForCharacter: true
+        })).toBe(true)
+        expect(isCharacterRegisteredEvent({
+            type: 'Character Registered',
+            characterId: 'CHARACTER#abc',
+            sessionId: 'session-1',
+            timestamp: '2026-01-01T00:00:00.000Z',
+            isFirstSessionForCharacter: 'true'
+        })).toBe(false)
+        expect(isCharacterRegisteredEvent({
+            type: 'Character Registered',
             characterId: 'ROOM#abc',
             sessionId: 'session-1',
             timestamp: '2026-01-01T00:00:00.000Z'

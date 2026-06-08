@@ -24,6 +24,8 @@ export type ConnectionsCharacterRegisteredEvent = {
     characterId: EphemeraCharacterId
     sessionId: string
     timestamp: string
+    /** In-process producer signal for aggregate connect boundary (0 -> 1); not on external EventBridge wire. */
+    isFirstSessionForCharacter?: boolean
 }
 
 export type ConnectionsEventUpdate =
@@ -107,7 +109,11 @@ export const isCharacterRegisteredEvent = (event: any): event is ConnectionsChar
         typeof event.sessionId === 'string' &&
         event.sessionId.length > 0 &&
         typeof event.timestamp === 'string' &&
-        event.timestamp.length > 0
+        event.timestamp.length > 0 &&
+        (
+            typeof event.isFirstSessionForCharacter === 'undefined' ||
+            typeof event.isFirstSessionForCharacter === 'boolean'
+        )
     )
 )
 

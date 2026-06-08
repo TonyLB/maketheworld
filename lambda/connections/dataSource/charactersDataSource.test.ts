@@ -48,7 +48,8 @@ describe("connectionsCharacters subscribed event processing", () => {
                 type: "Character Registered",
                 characterId,
                 sessionId: "session-a",
-                timestamp: "2026-01-01T00:00:00.000Z"
+                timestamp: "2026-01-01T00:00:00.000Z",
+                isFirstSessionForCharacter: false
             })
         ], streamEvent)
 
@@ -67,15 +68,8 @@ describe("connectionsCharacters subscribed event processing", () => {
         expect(streamEvent).toHaveBeenCalledTimes(0)
     })
 
-    it("emits Connected (duplicates allowed) when Meta::Character.sessions is empty", async () => {
+    it("emits Connected (duplicates allowed) when isFirstSessionForCharacter is true", async () => {
         const characterId = "CHARACTER#c2"
-        getItemMock.mockImplementation(async ({ Key }: any) => {
-            if (Key.ConnectionId === characterId) {
-                return { sessions: [] }
-            }
-            return { sessions: [] }
-        })
-
         const streamEvent = jest.fn(async (_params: any) => undefined)
 
         await processConnectionsCharactersSubscribedEvents([
@@ -83,13 +77,15 @@ describe("connectionsCharacters subscribed event processing", () => {
                 type: "Character Registered",
                 characterId,
                 sessionId: "session-x",
-                timestamp: "2026-01-01T00:00:00.000Z"
+                timestamp: "2026-01-01T00:00:00.000Z",
+                isFirstSessionForCharacter: true
             }),
             makeEnvelope("Character Registered", {
                 type: "Character Registered",
                 characterId,
                 sessionId: "session-x",
-                timestamp: "2026-01-01T00:00:00.000Z"
+                timestamp: "2026-01-01T00:00:00.000Z",
+                isFirstSessionForCharacter: true
             })
         ], streamEvent)
 
@@ -103,6 +99,42 @@ describe("connectionsCharacters subscribed event processing", () => {
                 sessionId: "session-x"
             })
         }))
+        expect(getItemMock).not.toHaveBeenCalled()
+    })
+
+    it("does not emit Connected when isFirstSessionForCharacter is false", async () => {
+        const characterId = "CHARACTER#c2b"
+        const streamEvent = jest.fn(async (_params: any) => undefined)
+
+        await processConnectionsCharactersSubscribedEvents([
+            makeEnvelope("Character Registered", {
+                type: "Character Registered",
+                characterId,
+                sessionId: "session-y",
+                timestamp: "2026-01-01T00:00:00.000Z",
+                isFirstSessionForCharacter: false
+            })
+        ], streamEvent)
+
+        expect(streamEvent).toHaveBeenCalledTimes(0)
+        expect(getItemMock).not.toHaveBeenCalled()
+    })
+
+    it("does not emit Connected when isFirstSessionForCharacter is absent", async () => {
+        const characterId = "CHARACTER#c2c"
+        const streamEvent = jest.fn(async (_params: any) => undefined)
+
+        await processConnectionsCharactersSubscribedEvents([
+            makeEnvelope("Character Registered", {
+                type: "Character Registered",
+                characterId,
+                sessionId: "session-z",
+                timestamp: "2026-01-01T00:00:00.000Z"
+            })
+        ], streamEvent)
+
+        expect(streamEvent).toHaveBeenCalledTimes(0)
+        expect(getItemMock).not.toHaveBeenCalled()
     })
 
     it("emits Disconnected only when teardown leaves Meta::Character.sessions empty", async () => {
@@ -125,6 +157,7 @@ describe("connectionsCharacters subscribed event processing", () => {
             })
         ], streamEvent)
 
+        // Post-teardown empty sessions list is the 1 -> 0 disconnect boundary signal.
         expect(streamEvent).toHaveBeenCalledTimes(1)
         expect(streamEvent.mock.calls[0][0]).toEqual(expect.objectContaining({
             streamKey: characterId,
@@ -137,4 +170,3 @@ describe("connectionsCharacters subscribed event processing", () => {
         }))
     })
 })
-

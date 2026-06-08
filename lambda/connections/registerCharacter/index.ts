@@ -35,6 +35,7 @@ export const registerCharacterMessage = async (params: {
     if (!sessionId) {
         throw new Error(`Unable to resolve session for connection: ${connectionId}`)
     }
+    let isFirstSessionForCharacter = false
     await exponentialBackoffWrapper(async () => {
         await connectionDB.transactWrite([
             {
@@ -52,6 +53,10 @@ export const registerCharacterMessage = async (params: {
                     updateKeys: ["sessions"],
                     updateReducer: (draft) => {
                         draft.sessions = unique(draft.sessions || [], [sessionId])
+                    },
+                    successCallback: (_output, prior) => {
+                        const preSessions = Array.isArray(prior?.sessions) ? prior.sessions : []
+                        isFirstSessionForCharacter = preSessions.length === 0
                     }
                 }
             }
@@ -65,7 +70,8 @@ export const registerCharacterMessage = async (params: {
             type: "Character Registered",
             characterId,
             sessionId,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            isFirstSessionForCharacter
         }
     })
 
