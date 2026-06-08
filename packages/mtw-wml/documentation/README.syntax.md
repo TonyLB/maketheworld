@@ -58,7 +58,7 @@ Tags can have properties that convey information about them. WML supports severa
 ### Parentheses `(value)` - Key References
 Used for references to components or other keys. The value is treated as a key identifier.
 
-**Canonical authoring (Area topology):** navigational edges live on **Area** **`positionGraph.edges`**, not under **Room**:
+**Canonical authoring (Area topology):** navigational edges live on **Area** **`positionGraph.edges`**, not under **Room**. Area exits use **area exit endpoint tags** (`<From>` / `<To>` child tags, not `to=` attributes). Validation rules: [Topology invariants](../ts/standardize/keys/edges/AGENT.edges.md#topology-invariants) in [`AGENT.edges.md`](../ts/standardize/keys/edges/AGENT.edges.md).
 
 ```
 <Exit uuid=(highwayToTown)>

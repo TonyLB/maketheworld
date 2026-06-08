@@ -62,7 +62,7 @@ describe('StandardArea class', () => {
         expect(instance.shortName?.toJSON()).toEqual('Downtown')
     })
 
-    it('should reject legacy Exit to= under Area (D29)', () => {
+    it('should reject legacy Exit to= under Area', () => {
         const node: GenericTreeNode<SchemaTag> = {
             data: { tag: 'Area', key: 'test' },
             children: [
@@ -74,7 +74,7 @@ describe('StandardArea class', () => {
         expect(() => instance.fromSchema(node)).toThrow(/rejects to= attribute/)
     })
 
-    it('should ingest D29 Exit into positionGraph.edges', () => {
+    it('should ingest area exit endpoint tags into positionGraph.edges', () => {
         const node: GenericTreeNode<SchemaTag> = {
             data: { tag: 'Area', key: 'region' },
             children: [
@@ -297,7 +297,7 @@ describe('StandardArea class', () => {
         expect(keys.filter((k) => k.referenceType === 'Dependency')).toHaveLength(1)
     })
 
-    describe('D4 positionGraph edge validation', () => {
+    describe('participant endpoint rule', () => {
         it('should accept edge when both endpoints are in nodes', () => {
             expect(() => new StandardArea({
                 tag: 'Area',
@@ -349,7 +349,7 @@ describe('StandardArea class', () => {
                         payload: {},
                     }],
                 },
-            })).toThrow(/requires at least one endpoint in positionGraph.nodes \(D4\)/)
+            })).toThrow(/requires at least one endpoint in positionGraph.nodes/)
         })
 
         it('should reject edge when neither endpoint is in nodes from schema', () => {
@@ -367,7 +367,7 @@ describe('StandardArea class', () => {
                 ],
             }
             const instance = new StandardArea(undefined as any)
-            expect(() => instance.fromSchema(node)).toThrow(/requires at least one endpoint in positionGraph.nodes \(D4\)/)
+            expect(() => instance.fromSchema(node)).toThrow(/requires at least one endpoint in positionGraph.nodes/)
         })
 
         it('should reject merge when incoming edge has no endpoint in nodes', () => {
@@ -398,7 +398,7 @@ describe('StandardArea class', () => {
                     }],
                 },
             })
-            expect(() => base.merge(incoming)).toThrow(/requires at least one endpoint in positionGraph.nodes \(D4\)/)
+            expect(() => base.merge(incoming)).toThrow(/requires at least one endpoint in positionGraph.nodes/)
         })
     })
 

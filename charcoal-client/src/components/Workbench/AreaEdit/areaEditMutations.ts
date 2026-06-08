@@ -59,7 +59,7 @@ export function removeNodeFromArea(area: StandardArea, ref: StandardReference): 
     return area.removeReferences([ref]) as StandardArea
 }
 
-export function edgeSatisfiesD4(area: StandardArea, edge: StandardExitEdge): boolean {
+export function edgeSatisfiesParticipantRule(area: StandardArea, edge: StandardExitEdge): boolean {
     const nodeRefs = area.positionGraph.nodes.payload
     const fromRef = referenceFromExitEndpoint(edge.from)
     const toRef = referenceFromExitEndpoint(edge.to)
@@ -71,14 +71,14 @@ export function edgeSatisfiesD4(area: StandardArea, edge: StandardExitEdge): boo
     return fromInGraph || toInGraph
 }
 
-export function findEdgesViolatingD4(area: StandardArea): StandardExitEdge[] {
-    return area.positionGraph.edges.items.filter((edge) => !edgeSatisfiesD4(area, edge))
+export function findEdgesMissingParticipantEndpoint(area: StandardArea): StandardExitEdge[] {
+    return area.positionGraph.edges.items.filter((edge) => !edgeSatisfiesParticipantRule(area, edge))
 }
 
-export function assertEdgeD4(area: StandardArea, edge: StandardExitEdge): void {
-    if (!edgeSatisfiesD4(area, edge)) {
+export function assertEdgeSatisfiesParticipantRule(area: StandardArea, edge: StandardExitEdge): void {
+    if (!edgeSatisfiesParticipantRule(area, edge)) {
         throw new Error(
-            `Area Exit ${edge.uuid} requires at least one endpoint in positionGraph.nodes (D4)`
+            `Area Exit ${edge.uuid} requires at least one endpoint in positionGraph.nodes`
         )
     }
 }
@@ -97,7 +97,7 @@ export function addEdgeToArea(
         to: { tag: 'Room', universalKey: toUniversalKey },
         payload: {}
     })
-    assertEdgeD4(area, newEdge)
+    assertEdgeSatisfiesParticipantRule(area, newEdge)
     const merged = area.positionGraph.edges.merge(new ExitEdgeList([newEdge])) ?? new ExitEdgeList([newEdge])
     setAreaPositionGraphEdges(area, merged)
     return newEdge
@@ -119,7 +119,7 @@ export function updateEdgeInArea(
         return
     }
     const updated = update(items[index])
-    assertEdgeD4(area, updated)
+    assertEdgeSatisfiesParticipantRule(area, updated)
     const newItems = [...items]
     newItems[index] = updated
     setAreaPositionGraphEdges(area, new ExitEdgeList(newItems))

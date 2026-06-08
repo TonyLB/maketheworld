@@ -870,7 +870,7 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
-    it('should correctly round-trip D29 Exit topology shape under Area', () => {
+    it('should correctly round-trip area exit endpoint tags under Area', () => {
         const testWML = deIndentWML(`
             <Asset uuid=(Test)>
                 <Area key=(coyoteHighway)>

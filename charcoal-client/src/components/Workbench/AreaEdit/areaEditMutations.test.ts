@@ -7,10 +7,10 @@ import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exit
 import {
     addEdgeToArea,
     addNodeToArea,
-    assertEdgeD4,
-    edgeSatisfiesD4,
+    assertEdgeSatisfiesParticipantRule,
+    edgeSatisfiesParticipantRule,
     filterNodesByTag,
-    findEdgesViolatingD4,
+    findEdgesMissingParticipantEndpoint,
     mergeNodesTagSlice,
     removeEdgeFromArea,
     removeNodeFromArea,
@@ -61,15 +61,15 @@ describe('areaEditMutations', () => {
         expect(withoutFeature.positionGraph.nodes.payload.some((ref) => ref.universalKey === 'FEATURE#new')).toBe(false)
     })
 
-    it('adds edge when D4 satisfied', () => {
+    it('adds edge when participant endpoint rule satisfied', () => {
         const area = getArea()
         addEdgeToArea(area, 'ROOM#highway', 'ROOM#town', 'highwayToTown')
         expect(area.positionGraph.edges.items).toHaveLength(1)
         expect(area.positionGraph.edges.items[0].uuid).toEqual('highwayToTown')
-        expect(edgeSatisfiesD4(area, area.positionGraph.edges.items[0])).toBe(true)
+        expect(edgeSatisfiesParticipantRule(area, area.positionGraph.edges.items[0])).toBe(true)
     })
 
-    it('rejects edge when D4 violated', () => {
+    it('rejects edge when participant endpoint rule violated', () => {
         const form = new StandardForm(deIndentWML(`
             <Asset uuid=(test)>
                 <Area uuid=(AREA#empty) key=(empty) />
@@ -81,7 +81,7 @@ describe('areaEditMutations', () => {
         if (!(area instanceof StandardArea)) {
             throw new Error('Expected StandardArea')
         }
-        expect(() => addEdgeToArea(area, 'ROOM#a', 'ROOM#b', 'orphan')).toThrow(/D4/)
+        expect(() => addEdgeToArea(area, 'ROOM#a', 'ROOM#b', 'orphan')).toThrow(/requires at least one endpoint in positionGraph.nodes/)
     })
 
     it('retargets To on same uuid and updates payload literals', () => {
@@ -107,16 +107,16 @@ describe('areaEditMutations', () => {
         expect(area.positionGraph.edges.items).toHaveLength(0)
     })
 
-    it('finds edges violating D4 after node removal', () => {
+    it('finds edges missing participant endpoint after node removal', () => {
         const area = getArea()
         addEdgeToArea(area, 'ROOM#highway', 'ROOM#town', 'highwayToTown')
         const highwayRef = new StandardReference({ tag: 'Room', universalKey: 'ROOM#highway' })
         const townRef = new StandardReference({ tag: 'Room', universalKey: 'ROOM#town' })
         const withoutHighway = removeNodeFromArea(area, highwayRef)
         const withoutBoth = removeNodeFromArea(withoutHighway, townRef)
-        const violations = findEdgesViolatingD4(withoutBoth)
+        const violations = findEdgesMissingParticipantEndpoint(withoutBoth)
         expect(violations).toHaveLength(1)
         expect(violations[0].uuid).toEqual('highwayToTown')
-        expect(() => assertEdgeD4(withoutBoth, violations[0])).toThrow(/D4/)
+        expect(() => assertEdgeSatisfiesParticipantRule(withoutBoth, violations[0])).toThrow(/requires at least one endpoint in positionGraph.nodes/)
     })
 })

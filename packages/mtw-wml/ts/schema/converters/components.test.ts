@@ -828,8 +828,8 @@ describe('Forward and Back tags', () => {
     })
 })
 
-describe('Exit D29 topology shape', () => {
-    it('should parse full normative D29 Exit block', () => {
+describe('Area exit endpoint tags', () => {
+    it('should parse full normative Exit block', () => {
         const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
             <Asset uuid=(Test)>
                 <Exit uuid=(straightawayToCliffbase)>
@@ -846,7 +846,7 @@ describe('Exit D29 topology shape', () => {
         expect(exitNode?.children.map(({ data }) => data.tag)).toEqual(['From', 'To', 'Forward', 'Back'])
     })
 
-    it('should round-trip full normative D29 Exit block', () => {
+    it('should round-trip full normative Exit block', () => {
         const testWML = deIndentWML(`
             <Asset uuid=(Test)>
                 <Exit uuid=(straightawayToCliffbase)>
@@ -953,7 +953,7 @@ describe('schema round-trip for Exit under Room (parser)', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
-    it('should round-trip D29 Exit topology shape under Room at schema layer', () => {
+    it('should round-trip area exit endpoint tags under Room at schema layer', () => {
         const testWML = deIndentWML(`
             <Asset uuid=(Test)>
                 <Room key=(room1)>

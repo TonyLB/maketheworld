@@ -12,7 +12,7 @@ import type { ComponentTag } from '../foundations/ReferenceList/ReferenceListEdi
 import {
     POSITION_GRAPH_NODE_TAGS,
     PositionGraphNodeTag,
-    findEdgesViolatingD4
+    findEdgesMissingParticipantEndpoint
 } from './areaEditMutations'
 import { areaPositionGraphNodesTagAccessor } from './areaPositionGraphNodesAccessors'
 
@@ -96,7 +96,7 @@ export const PositionGraphNodesEditor: FunctionComponent<PositionGraphNodesEdito
     }, [AreaId, standardForm])
 
     const d4Violations = useMemo(
-        () => (area ? findEdgesViolatingD4(area) : []),
+        () => (area ? findEdgesMissingParticipantEndpoint(area) : []),
         [area]
     )
 

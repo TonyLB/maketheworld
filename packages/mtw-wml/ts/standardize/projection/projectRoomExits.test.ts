@@ -65,7 +65,7 @@ describe('projectRoomExits', () => {
         ])
     })
 
-    it('projects one facet from in-graph room for portal edge (D4, D17)', () => {
+    it('projects one facet from in-graph room for portal edge (participant endpoint rule)', () => {
         const area = new StandardArea({
             tag: 'Area',
             key: 'region',

@@ -119,7 +119,7 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
             const fromInGraph = nodeRefs.some((node) => node.sameKey(fromRef))
             const toInGraph = nodeRefs.some((node) => node.sameKey(toRef))
             if (!fromInGraph && !toInGraph) {
-                throw new Error(`Area Exit ${edge.uuid} requires at least one endpoint in positionGraph.nodes (D4)`)
+                throw new Error(`Area Exit ${edge.uuid} requires at least one endpoint in positionGraph.nodes`)
             }
         }
     }

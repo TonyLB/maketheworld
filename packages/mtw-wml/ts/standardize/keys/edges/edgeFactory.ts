@@ -49,10 +49,10 @@ const parseExitEdgeFromSchema = (schema: GenericTree<SchemaTag>): StandardExitEd
 
     const uuid = exitNode.data.uuid
     if (exitNode.data.to) {
-        throw new Error('Area Exit rejects to= attribute; use From and To child tags (D29)')
+        throw new Error('Area Exit rejects to= attribute; use From and To child tags')
     }
     if (!uuid) {
-        throw new Error('Area Exit requires uuid attribute (D29)')
+        throw new Error('Area Exit requires uuid attribute')
     }
 
     const hasLegacyStringBody = exitNode.children.some(({ data }) => isSchemaString(data))
@@ -60,7 +60,7 @@ const parseExitEdgeFromSchema = (schema: GenericTree<SchemaTag>): StandardExitEd
         isSchemaFrom(data) || isSchemaTo(data) || isSchemaForward(data) || isSchemaBack(data)
     )
     if (hasLegacyStringBody && !hasTopologyChildren) {
-        throw new Error('Area Exit rejects legacy String body; use From, To, Forward, and Back (D29)')
+        throw new Error('Area Exit rejects legacy String body; use From, To, Forward, and Back')
     }
 
     const { matched: fromMatched } = splitTaggedChildren({ children: exitNode.children, tag: 'From' })
@@ -69,10 +69,10 @@ const parseExitEdgeFromSchema = (schema: GenericTree<SchemaTag>): StandardExitEd
     const { matched: backMatched } = splitTaggedChildren({ children: exitNode.children, tag: 'Back' })
 
     if (fromMatched.length === 0) {
-        throw new Error('Area Exit requires From child tag (D29)')
+        throw new Error('Area Exit requires From child tag')
     }
     if (toMatched.length === 0) {
-        throw new Error('Area Exit requires To child tag (D29)')
+        throw new Error('Area Exit requires To child tag')
     }
 
     const from = new StandardExitFromEndpoint(fromMatched).toJSON()

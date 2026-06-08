@@ -147,7 +147,7 @@ export const ExitEdgeRowEditor: FunctionComponent<ExitEdgeRowEditorProps> = ({
             </Box>
             {d4Error && (
                 <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
-                    At least one endpoint must be in Participants (D4).
+                    At least one endpoint must be in Participants.
                 </Typography>
             )}
             <ComponentSelectorDialog

@@ -1,6 +1,6 @@
 # Topology relations refactor (partial edges + invariant naming)
 
-**Status:** Not started. **Next step:** Phase 1 inventory --- grep for `D4`, `D27`, `D29`, and related decision IDs; agree on replacement names in the [Invariant glossary](#invariant-glossary-steady-state-names).
+**Status:** Phase 1 complete. **Next step:** Phase 2 --- incomplete edges in WML + Standardize + edit algebra. Steady-state invariant names live in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md#topology-invariants).
 
 This plan is task-scoped. Archive or delete it after the work ships; move lasting norms into package `AGENT.md` files next to code.
 
@@ -120,7 +120,7 @@ rg 'edgeSatisfiesD4|assertEdgeD4|findEdgesViolatingD4|d4Error' packages/mtw-wml 
 
 | Phase | Description | Status |
 | --- | --- | --- |
-| **1** | Invariant naming cleanup (`D*` -> glossary names) | Not started |
+| **1** | Invariant naming cleanup (`D*` -> glossary names) | Complete |
 | **2** | Partial / incomplete edges in WML + Standardize + edit algebra | Not started |
 | **3** | Workbench exit-edge editor refactor | Not started |
 | **4** | Restore Coyote demo topology in production | Not started (blocked on Phase 3) |
@@ -133,14 +133,14 @@ Mark pending work `[ ]` and completed work `[X]`. Mark nested bullets `[X]` as e
 
 ### Phase 1 --- Invariant naming cleanup
 
-- [ ] Run inventory greps; list files to touch (docs, error messages, tests, client helpers).
-- [ ] Update [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) to use [Invariant glossary](#invariant-glossary-steady-state-names) names only (no `D27` / `D29` / `D4` headings).
-- [ ] Update [`AGENT.implementation.md`](../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) **StandardArea** section similarly.
-- [ ] Update [`README.syntax.md`](../../../packages/mtw-wml/documentation/README.syntax.md) Area exit examples (plain language, link to `AGENT.edges.md`).
-- [ ] Replace `D*` in thrown errors in [`edgeFactory.ts`](../../../packages/mtw-wml/ts/standardize/keys/edges/edgeFactory.ts) and [`area.ts`](../../../packages/mtw-wml/ts/standardize/components/area.ts) with descriptive messages (no parenthetical IDs).
-- [ ] Rename client helpers: `edgeSatisfiesD4` -> `edgeSatisfiesParticipantRule` (or similar), `findEdgesViolatingD4` -> `findEdgesMissingParticipantEndpoint`, `assertEdgeD4` -> remove or restrict to optional strict paths; update [`areaEditMutations.ts`](../../../charcoal-client/src/components/Workbench/AreaEdit/areaEditMutations.ts) and tests.
-- [ ] Rename test `describe` / `it` strings that say `D4` / `D29` to glossary terms.
-- [ ] Add a short "Topology invariants" subsection to [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) (or [`standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md)) so the glossary survives deletion of this task plan.
+- [X] Run inventory greps; list files to touch (docs, error messages, tests, client helpers).
+- [X] Update [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) to use [Invariant glossary](#invariant-glossary-steady-state-names) names only (no `D27` / `D29` / `D4` headings).
+- [X] Update [`AGENT.implementation.md`](../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) **StandardArea** section similarly.
+- [X] Update [`README.syntax.md`](../../../packages/mtw-wml/documentation/README.syntax.md) Area exit examples (plain language, link to `AGENT.edges.md`).
+- [X] Replace `D*` in thrown errors in [`edgeFactory.ts`](../../../packages/mtw-wml/ts/standardize/keys/edges/edgeFactory.ts) and [`area.ts`](../../../packages/mtw-wml/ts/standardize/components/area.ts) with descriptive messages (no parenthetical IDs).
+- [X] Rename client helpers: `edgeSatisfiesD4` -> `edgeSatisfiesParticipantRule` (or similar), `findEdgesViolatingD4` -> `findEdgesMissingParticipantEndpoint`, `assertEdgeD4` -> remove or restrict to optional strict paths; update [`areaEditMutations.ts`](../../../charcoal-client/src/components/Workbench/AreaEdit/areaEditMutations.ts) and tests.
+- [X] Rename test `describe` / `it` strings that say `D4` / `D29` to glossary terms.
+- [X] Add a short "Topology invariants" subsection to [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) (or [`standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md)) so the glossary survives deletion of this task plan.
 
 ### Phase 2 --- Incomplete edges in storage and manipulation
 

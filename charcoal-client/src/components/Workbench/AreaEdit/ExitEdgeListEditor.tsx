@@ -16,7 +16,7 @@ import ComponentSelectorDialog from '../foundations/ComponentSelector/ComponentS
 import ExitEdgeRowEditor from './ExitEdgeRowEditor'
 import {
     addEdgeToArea,
-    edgeSatisfiesD4,
+    edgeSatisfiesParticipantRule,
     removeEdgeFromArea,
     updateEdgeInArea
 } from './areaEditMutations'
@@ -144,7 +144,7 @@ export const ExitEdgeListEditor: FunctionComponent<ExitEdgeListEditorProps> = ({
                             onUpdate={(updated) => updateEdge(edge.uuid, updated)}
                             onDelete={() => deleteEdge(edge.uuid)}
                             disabled={readonly}
-                            d4Error={!edgeSatisfiesD4(area, edge)}
+                            d4Error={!edgeSatisfiesParticipantRule(area, edge)}
                         />
                     </ListItem>
                 ))}
