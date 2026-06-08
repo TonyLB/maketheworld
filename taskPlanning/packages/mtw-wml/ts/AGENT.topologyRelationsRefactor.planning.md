@@ -1,6 +1,6 @@
 # Topology relations refactor (partial edges + invariant naming)
 
-**Status:** Phases 1-3 complete; Phase 4 in progress (Coyote topology authored in overlay asset). **Next:** smoke-test, durable docs cleanup, delete this plan. Steady-state invariant names live in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md#topology-invariants).
+**Status:** Phases 1-3 complete; Phase 4 **blocked** on [`AGENT.referencedByCacheDecacheRefactor.planning.md`](./AGENT.referencedByCacheDecacheRefactor.planning.md) (Coyote topology authored in overlay asset; smoke-test failed on thin/clobbered room rows from inverse `referencedBy` pass). **Next:** complete referencedBy cache refactor, then smoke-test, durable docs cleanup, delete this plan. Steady-state invariant names live in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md#topology-invariants).
 
 This plan is task-scoped. Archive or delete it after the work ships; move lasting norms into package `AGENT.md` files next to code.
 
@@ -123,7 +123,7 @@ rg 'edgeSatisfiesD4|assertEdgeD4|findEdgesViolatingD4|d4Error' packages/mtw-wml 
 | **1** | Invariant naming cleanup (`D*` -> glossary names) | Complete |
 | **2** | Partial / incomplete edges in WML + Standardize + edit algebra | Complete |
 | **3** | Workbench exit-edge editor refactor | Complete |
-| **4** | Smoke-test, durable docs cleanup, close task | In progress |
+| **4** | Smoke-test, durable docs cleanup, close task | Blocked (see [`AGENT.referencedByCacheDecacheRefactor.planning.md`](./AGENT.referencedByCacheDecacheRefactor.planning.md)) |
 
 ---
 
@@ -165,6 +165,8 @@ Mark pending work `[ ]` and completed work `[X]`. Mark nested bullets `[X]` as e
 - [X] Update [`charcoal-client/src/components/Workbench/AGENT.md`](../../../charcoal-client/src/components/Workbench/AGENT.md) Area editor section if behavior description exists.
 
 ### Phase 4 --- Smoke-test, docs cleanup, close task
+
+**Prerequisite:** [`AGENT.referencedByCacheDecacheRefactor.planning.md`](./AGENT.referencedByCacheDecacheRefactor.planning.md) Phases 1-3 minimum (single-pass `referencedBy`, second pass disabled and verified).
 
 - [X] **Author Coyote topology** in a **separate overlay asset** (not `ASSET#primitives`): import `AREA#WORLD` + Coyote rooms from primitives; author four bidirectional edges on imported `AREA#WORLD`. Canonize overlay when confident. `ASSET#primitives` stays component inventory only (empty `AREA#WORLD` stub + room stubs).
 - [ ] **Smoke-test** at merged stack perspective (`ASSET#primitives` + overlay asset in `mergeParticipationOrder`): enter play mode from each Coyote room; confirm exit chips and movement match [Coyote exit inventory (smoke-test)](#coyote-exit-inventory-smoke-test).
