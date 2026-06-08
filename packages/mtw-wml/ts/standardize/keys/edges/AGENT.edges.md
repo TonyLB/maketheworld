@@ -88,12 +88,22 @@ Incomplete edges (uuid-only or one-sided) omit unset endpoint tags on emit.
 
 ## StandardArea consumer
 
-[`StandardArea`](../../components/area.ts) ingests `<Exit>` after participant node refs. Asset-mode validation:
+[`StandardArea`](../../components/area.ts) ingests `<Exit>` after participant node refs. Asset-mode structural validation:
 
 - **Area exit endpoint tags:** Reject `to=` attribute (legacy room shape); require `uuid`; `<From>` / `<To>` optional when incomplete; reject bare String body (legacy description)
-- **Participant endpoint rule:** When **both** endpoints resolve, at least one must match a participant in **`positionGraph.nodes`** (`sameKey`); portal edges (one inside, one outside) allowed. Enforced on **`fromSchema`**, **`merge`**, and **`fromJSON`** when local nodes are present (skipped when either endpoint is unset).
+- **Storage:** Incomplete edges and fully resolved edges that violate the **participant endpoint rule** are **valid** in `StandardArea` ingest, merge, and JSON --- they are not standardize hard errors.
+- **Participant endpoint rule (warnings / lint):** When **both** endpoints resolve, at least one must match a participant in **`positionGraph.nodes`** (`sameKey`); portal edges (one inside, one outside) allowed. Use [`edgeSatisfiesParticipantRule`](../../components/areaTopologyValidation.ts) and [`findEdgesViolatingParticipantRule`](../../components/areaTopologyValidation.ts) for UI warnings or optional strict lint (`assertEdgeSatisfiesParticipantRule`). Incomplete edges do not violate this rule.
 
 **`referencedKeys()`:** **`From`** / **`To`** endpoints emit **`referenceType: 'Edge'`** (subset cascade -> Room **`Stub`**). See [`standardForm.subset.test.ts`](../../integration/standardForm.subset.test.ts).
+
+## Incomplete edges and projection
+
+[`projectRoomExits`](../../projection/projectRoomExits.ts) is the **semantic filter boundary** for navigable room exits. It emits an `ExitFacet` only when:
+
+1. The room matches a **resolved** `From` or `To` endpoint, **and**
+2. The peer ref and label (`Forward` / `Back`) satisfy existing projection rules.
+
+All other edges --- uuid-only stubs, one-sided edges, orphan edges (both endpoints resolved but neither in `positionGraph.nodes`), missing labels, non-`ROOM#` peers --- produce **zero facets** with no throw. Storage and authoring may hold incomplete data until the author finishes the edge.
 
 ## Authoring vs runtime
 

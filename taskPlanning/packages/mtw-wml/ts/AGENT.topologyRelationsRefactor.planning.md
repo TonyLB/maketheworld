@@ -148,10 +148,10 @@ Mark pending work `[ ]` and completed work `[X]`. Mark nested bullets `[X]` as e
 - [X] **WML parse:** [`parseExitEdgeFromSchema`](../../../packages/mtw-wml/ts/standardize/keys/edges/edgeFactory.ts) --- require `uuid`; allow omitted `<From>` and/or `<To>`; keep rejecting legacy `to=` attribute and bare String body under Area Exit.
 - [X] **WML emit:** `schema()` omits `<From>` / `<To>` children when unset; round-trip tests for uuid-only and one-sided edges.
 - [X] **Endpoint wrappers (unset/absent):** [`endpointReference.ts`](../../../packages/mtw-wml/ts/standardize/keys/edges/endpointReference.ts) --- allow undefined / absent endpoints without throw on construct; `reference()` returns `undefined` when unset; empty `<From />` / `<To />` normalizes to absent.
-- [ ] **Merge / diff / invert:** Verify [`edgeFactory.ts`](../../../packages/mtw-wml/ts/standardize/keys/edges/edgeFactory.ts) and [`edgeListFactory.ts`](../../../packages/mtw-wml/ts/standardize/keys/edges/edgeListFactory.ts) with fixtures: stub + layered Replace on one endpoint; uuid-only + add To in overlay.
-- [ ] **StandardArea ingest:** [`area.ts`](../../../packages/mtw-wml/ts/standardize/components/area.ts) --- store incomplete edges; **remove throw** for participant endpoint rule from `fromSchema` / `fromJSON` / `merge` (or gate behind an explicit strict mode if a caller needs it --- default asset mode must not throw for incomplete or participant-less edges).
-- [ ] **Participant endpoint rule:** Keep as **pure helper** (e.g. `edgeSatisfiesParticipantRule(area, edge)`) for UI warnings and optional lint; not a standardize hard error.
-- [ ] **Semantic layer (confirm only):** Document in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) that [`projectRoomExits`](../../../packages/mtw-wml/ts/standardize/projection/projectRoomExits.ts) is the filter boundary; add tests for uuid-only / missing-peer edges producing zero facets.
+- [X] **Merge / diff / invert:** Verify [`edgeFactory.ts`](../../../packages/mtw-wml/ts/standardize/keys/edges/edgeFactory.ts) and [`edgeListFactory.ts`](../../../packages/mtw-wml/ts/standardize/keys/edges/edgeListFactory.ts) with fixtures: stub + layered Replace on one endpoint; uuid-only + add To in overlay.
+- [X] **StandardArea ingest:** [`area.ts`](../../../packages/mtw-wml/ts/standardize/components/area.ts) --- store incomplete edges; **remove throw** for participant endpoint rule from `fromSchema` / `fromJSON` / `merge` (or gate behind an explicit strict mode if a caller needs it --- default asset mode must not throw for incomplete or participant-less edges).
+- [X] **Participant endpoint rule:** Keep as **pure helper** (e.g. `edgeSatisfiesParticipantRule(area, edge)`) for UI warnings and optional lint; not a standardize hard error.
+- [X] **Semantic layer (confirm only):** Document in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) that [`projectRoomExits`](../../../packages/mtw-wml/ts/standardize/projection/projectRoomExits.ts) is the filter boundary; add tests for uuid-only / missing-peer edges producing zero facets.
 - [ ] **Client mutations:** Add `addEmptyExitEdge(area, edgeUuid?)`; relax `addEdgeToArea` / `updateEdgeInArea` so they do not throw on participant rule; allow `retargetEdgeEndpoint` to set From or To on a stub.
 - [ ] **Schema converter tests:** Extend [`components.test.ts`](../../../packages/mtw-wml/ts/schema/converters/components.test.ts) and [`index.test.ts`](../../../packages/mtw-wml/ts/schema/index.test.ts) for partial topology shapes.
 
@@ -219,6 +219,10 @@ Blocked until Phase 3 makes Area exit authoring usable.
 | Workbench `updateStandard` | Add/update/remove stubs and partial edges freely. |
 | `projectRoomExits` / navigation | Skip edge unless room matches a resolved endpoint **and** peer + label satisfy existing rules. |
 | UI warnings | Participant endpoint rule and "unset endpoint" are visible to authors; not save gates. |
+
+### Endpoint diff on unset base (implementation note)
+
+`endpointReference.diff` when the base endpoint is unset now returns the incoming payload as the delta (not its invert), so `merge(base, diff(base, incoming))` round-trips for uuid-only -> partial edge transitions. Replace overlays on an unset endpoint adopt the envelope as-is (Replace cannot apply until a match value exists on the base).
 
 ### Participant endpoint rule (relaxed)
 

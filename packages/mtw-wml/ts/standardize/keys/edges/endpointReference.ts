@@ -250,11 +250,7 @@ export const createExitEndpointClasses = (tagName: ExitEndpointTag) => {
                 if (incoming.isUnset()) {
                     return undefined
                 }
-                const inverted = incoming._payload!.invert()
-                if (inverted) {
-                    return new StandardExitEndpoint(inverted, this._tagName)
-                }
-                return undefined
+                return new StandardExitEndpoint(incoming._payload, this._tagName)
             }
             if (incoming.isUnset()) {
                 return this.diff(undefined)

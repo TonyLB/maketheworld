@@ -100,35 +100,10 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
         }
     }
 
-    private validatePositionGraphEdges(options?: { strict?: boolean }): void {
-        const hasEdges = this._positionGraph.edges.items.length > 0
-        const hasNodes = this._positionGraph.nodes.payload.length > 0
-        if (!hasEdges) {
-            return
-        }
-        if (!options?.strict && !hasNodes) {
-            return
-        }
-        const nodeRefs = this._positionGraph.nodes.payload
-        for (const edge of this._positionGraph.edges.items) {
-            const fromRef = referenceFromExitEndpoint(edge.from)
-            const toRef = referenceFromExitEndpoint(edge.to)
-            if (!fromRef || !toRef) {
-                continue
-            }
-            const fromInGraph = nodeRefs.some((node) => node.sameKey(fromRef))
-            const toInGraph = nodeRefs.some((node) => node.sameKey(toRef))
-            if (!fromInGraph && !toInGraph) {
-                throw new Error(`Area Exit ${edge.uuid} requires at least one endpoint in positionGraph.nodes`)
-            }
-        }
-    }
-
     fromJSON(props: StandardAreaData) {
         this._shortName = createShortNameFromJSON(props.shortName)
         this._positionGraph = StandardPositionGraph.fromJSON(props.positionGraph)
         this.assertNoSelfAreaReference({ key: props.key, universalKey: props.universalKey })
-        this.validatePositionGraphEdges({ strict: false })
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
@@ -161,7 +136,6 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
             ]
             const returnRemainder = processWithConsumers(this, consumers, node.children)
             this.assertNoSelfAreaReference({ key: node.data.key, universalKey: node.data.uuid })
-            this.validatePositionGraphEdges({ strict: true })
             return returnRemainder
         }
         throw new Error('Schema mismatch in StandardArea constructor')
@@ -215,7 +189,6 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
         const returnValue = new StandardAreaPayload()
         returnValue._shortName = mergeShortName(this._shortName, incoming._shortName)
         returnValue._positionGraph = this._positionGraph.merge(incoming._positionGraph)
-        returnValue.validatePositionGraphEdges({ strict: true })
         return returnValue as this
     }
 
