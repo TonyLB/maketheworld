@@ -1,6 +1,6 @@
 # Topology relations refactor (partial edges + invariant naming)
 
-**Status:** Phase 3 complete (Workbench exit-edge editor refactor shipped). **Next step:** Phase 4 Coyote demo topology restore in production. Steady-state invariant names live in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md#topology-invariants).
+**Status:** Phases 1-3 complete; Phase 4 in progress (Coyote topology authored in overlay asset). **Next:** smoke-test, durable docs cleanup, delete this plan. Steady-state invariant names live in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md#topology-invariants).
 
 This plan is task-scoped. Archive or delete it after the work ships; move lasting norms into package `AGENT.md` files next to code.
 
@@ -123,7 +123,7 @@ rg 'edgeSatisfiesD4|assertEdgeD4|findEdgesViolatingD4|d4Error' packages/mtw-wml 
 | **1** | Invariant naming cleanup (`D*` -> glossary names) | Complete |
 | **2** | Partial / incomplete edges in WML + Standardize + edit algebra | Complete |
 | **3** | Workbench exit-edge editor refactor | Complete |
-| **4** | Restore Coyote demo topology in production | Not started |
+| **4** | Smoke-test, durable docs cleanup, close task | In progress |
 
 ---
 
@@ -164,44 +164,30 @@ Mark pending work `[ ]` and completed work `[X]`. Mark nested bullets `[X]` as e
 - [X] **Tests:** [`areaEditMutations.test.ts`](../../../charcoal-client/src/components/Workbench/AreaEdit/areaEditMutations.test.ts) for stub add + retarget; component test or RTL test for add button creating a visible row.
 - [X] Update [`charcoal-client/src/components/Workbench/AGENT.md`](../../../charcoal-client/src/components/Workbench/AGENT.md) Area editor section if behavior description exists.
 
-### Phase 4 --- Restore demo topology (production)
+### Phase 4 --- Smoke-test, docs cleanup, close task
 
-- [ ] Re-author or migrate Coyote demo edges into **`AREA#WORLD`** **`positionGraph.edges`** in production (participant rooms + four bidirectional edges). Reference spec: [Production exit inventory (Coyote demo)](#production-exit-inventory-coyote-demo) below.
-- [ ] Ensure **`AREA#WORLD`** in **`ASSET#primitives`** lists participant rooms in **`positionGraph.nodes`**.
-- [ ] **Verify after restore:** [`projectRoomExits`](../../../packages/mtw-wml/ts/standardize/projection/projectRoomExits.ts) / affordances / nav labels match inventory (east, west, up, down, south, north).
+- [X] **Author Coyote topology** in a **separate overlay asset** (not `ASSET#primitives`): import `AREA#WORLD` + Coyote rooms from primitives; author four bidirectional edges on imported `AREA#WORLD`. Canonize overlay when confident. `ASSET#primitives` stays component inventory only (empty `AREA#WORLD` stub + room stubs).
+- [ ] **Smoke-test** at merged stack perspective (`ASSET#primitives` + overlay asset in `mergeParticipationOrder`): enter play mode from each Coyote room; confirm exit chips and movement match [Coyote exit inventory (smoke-test)](#coyote-exit-inventory-smoke-test).
+- [ ] **Durable docs cleanup** --- move anything still only in this plan, then drop task-plan links:
+  - [ ] Coyote exit inventory and overlay-asset topology pattern -> [`AGENT.CoyoteGame.implementation.md`](../../../AGENT.CoyoteGame.implementation.md)
+  - [ ] Replace task-plan links in [`AGENT.implementation.md`](../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) and [`lambda/ephemera/internalCache/AGENT.md`](../../../lambda/ephemera/internalCache/AGENT.md) with Coyote / edges steady-state pointers
+  - [ ] Confirm [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) still covers topology invariants and incomplete-edge projection boundary; grep steady-state docs for lingering `D*`
+- [ ] **Delete this task plan** per [`taskPlanning/AGENT.md`](../../AGENT.md) (git retains history)
 
 ---
 
-## Production exit inventory (Coyote demo)
+## Coyote exit inventory (smoke-test)
 
-**Current production state:** Room-local exits have been removed; Area topology edges are not yet authored. This section is the **reference spec** for restoring navigational connective tissue.
+Reference for Phase 4 play-mode check. **`CLIFFBASE`** = **`ROOM#VORTEX`** (prompt seam label only; see [`AGENT.CoyoteGame.md`](../../../AGENT.CoyoteGame.md)).
 
-**Scope:** Coyote demo topology. Canonical room ids (see [`AGENT.CoyoteGame.md`](../../../AGENT.CoyoteGame.md)): **`CLIFFBASE`** = **`ROOM#VORTEX`** (prompt seam label only).
+| From | To | Forward | Back |
+| --- | --- | --- | --- |
+| `ROOM#STRAIGHTAWAY` | `ROOM#VORTEX` | east | west |
+| `ROOM#VORTEX` | `ROOM#CLIFFTOP` | up | down |
+| `ROOM#VORTEX` | `ROOM#CORNER` | east | west |
+| `ROOM#CORNER` | `ROOM#BRIDGE` | south | north |
 
-| Seam label | Canonical id |
-| --- | --- |
-| STRAIGHTAWAY | `ROOM#STRAIGHTAWAY` |
-| CLIFFBASE | `ROOM#VORTEX` |
-| CLIFFTOP | `ROOM#CLIFFTOP` |
-| CORNER | `ROOM#CORNER` |
-| BRIDGE | `ROOM#BRIDGE` |
-
-**Rooms in scope:** STRAIGHTAWAY, CLIFFBASE (VORTEX), CLIFFTOP, CORNER, BRIDGE.
-
-**Edges to restore** (4 edges, bidirectional --- **Forward** / **Back** are player-visible labels from **From** / **To**):
-
-| From (seam) | To (seam) | Forward | Back | Notes |
-| --- | --- | --- | --- | --- |
-| STRAIGHTAWAY | CLIFFBASE | east | west | Highway west -> east into cliff base |
-| CLIFFBASE | CLIFFTOP | up | down | Vertical cliff |
-| CLIFFBASE | CORNER | east | west | Highway east from cliff base to corner |
-| CORNER | BRIDGE | south | north | Turn south to bridge |
-
-**Target authoring shape (per edge):** one **`<Exit uuid=(...)>`** on parent **Area** **`positionGraph.edges`** with **`<From>`**, **`<To>`**, **`<Forward>`**, **`<Back>`** --- not room-local **`<Exit>`** under **`<Room>`**. See [Area exit endpoint tags](#invariant-glossary-steady-state-names) in the invariant glossary.
-
-**Restore design:** target **`AREA#WORLD`** in **`ASSET#primitives`** (`<Area uuid=(WORLD) />`). Assign stable edge **`uuid`** values at restore time. **Verify after restore:** **`projectRoomExits`** / affordances match the labels above (east, west, up, down, south, north) and nav resolution.
-
-**Spatial reference (non-normative):** [`AGENT.CoyoteGame.md`](../../../AGENT.CoyoteGame.md) --- STRAIGHTAWAY -> CLIFFBASE -> CORNER along highway; CLIFFTOP above CLIFFBASE; BRIDGE south of CORNER.
+Edges live on imported **`AREA#WORLD`** in the overlay asset; runtime merges primitives stub + overlay via [`mergeAuthoritativeAcrossParticipationOrder`](../../../packages/mtw-gateways/ts/assets/components/aggregate/assemble.ts).
 
 ---
 
@@ -301,15 +287,10 @@ Manual Workbench check (Phase 3):
 4. Confirm edge persists after navigation away and back (flush/debounce).
 5. Confirm incomplete edge does not appear as a playable exit in play mode (semantic filter).
 
-**Phase 4 (after Phase 3):**
-
-1. Open **`AREA#WORLD`** (or target Area) in Workbench; confirm participant rooms and edges match [Coyote inventory](#production-exit-inventory-coyote-demo).
-2. Enter play mode from a demo room; confirm exit chips and movement match expected labels and targets.
+**Phase 4:** See [Phase 4 smoke-test](#phase-4----smoke-test-docs-cleanup-close-task) checklist above.
 
 ---
 
 ## When this task finishes
 
-1. Move the [Invariant glossary](#invariant-glossary-steady-state-names) into [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) (or linked steady-state doc).
-2. Document incomplete-edge rules and the projection filter boundary in the same place.
-3. Delete this planning file after Phase 3 (Phases 1-3 are the refactor scope). **Phase 4** (production topology restore) may complete after deletion --- track in this file's [Production exit inventory](#production-exit-inventory-coyote-demo) section or operator notes until Coyote graph is live.
+Phase 4 closes the initiative: smoke-test passes, durable docs absorb any remaining task-only content, then delete this file per [`taskPlanning/AGENT.md`](../../AGENT.md). Phases 1-3 already moved the [invariant glossary](#invariant-glossary-steady-state-names) and incomplete-edge rules into [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md).
