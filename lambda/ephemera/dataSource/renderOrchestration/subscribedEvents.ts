@@ -3,6 +3,7 @@
  *
  * Part of mtw.ephemera.renderOrchestration (see ../AGENT.md).
  * Internal-only publish path uses dataSourceKey 'api.ephemera'; stream outbounds are defined in publishedEvents.ts.
+ * External ingress includes mtw.connections Character Registered (session orientation; handler Phase 3).
  */
 import {
     StreamingEventEnvelope,
@@ -19,6 +20,10 @@ import type {
     RenderOrchestrationIngressCommand,
     RenderRequestedCommand,
 } from './localApiEvents'
+import {
+    isConnectionsCharacterRegisteredEnvelope,
+    type ConnectionsCharacterRegisteredSubscribedContent,
+} from '../connectionsCharacterRegistered/subscribedEvents'
 
 export type RenderOrchestrationIngressHeader =
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Render Requested' }
@@ -61,11 +66,12 @@ export const isLookCommandRequestedActionsEnvelope = makeStreamingEnvelopeGuardF
     StreamingEventHeader & { dataSourceKey: 'mtw.ephemera.actions'; type: 'Look Command Requested' }
 >(isLookCommandRequestedHeader)
 
-/** Ingress (`api.ephemera` render), `mtw.ephemera.actions` `Look Command Requested`, and `State Changed` (passive fan-out). */
+/** Ingress (`api.ephemera` render), `mtw.ephemera.actions` `Look Command Requested`, `State Changed` (passive fan-out), and `mtw.connections` `Character Registered`. */
 export type RenderOrchestrationSubscribedContent =
     | RenderOrchestrationIngressCommand
     | StateChangedPayload
     | LookCommandRequestedPublishedPayload
+    | ConnectionsCharacterRegisteredSubscribedContent
 
 export const isRenderOrchestrationSubscribedEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
@@ -73,6 +79,7 @@ export const isRenderOrchestrationSubscribedEnvelope = (
     isRenderOrchestrationIngressEnvelope(envelope)
     || isEphemeraStateStateChangedEnvelope(envelope)
     || isLookCommandRequestedActionsEnvelope(envelope)
+    || isConnectionsCharacterRegisteredEnvelope(envelope)
 )
 
 type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }

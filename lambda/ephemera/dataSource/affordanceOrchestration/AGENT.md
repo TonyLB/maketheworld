@@ -25,8 +25,9 @@
 1. Subscribes to internal **`api.ephemera`** streaming envelopes with header type **`Affordances Requested`** (`sendAffordancesRequested` in [`subscribedEvents.ts`](subscribedEvents.ts)).
 2. Subscribes to **`mtw.ephemera.objects` `Objects Changed`** and fans out via [`fanOutAffordanceRefreshForRoom.ts`](fanOutAffordanceRefreshForRoom.ts) (direct **`orchestrateAffordanceRequest`**, mirror render **`State Changed`**).
 3. Subscribes to **`mtw.assets.componentTopology` `TopologyInvalidated`** (room-scoped only) and fans out via **`fanOutAffordanceRefreshForRoom`** with reason **`topology`** (area-scoped v1 no-op).
-4. Maps **`Affordances Requested`** ingress to **`AffordancesRequested`** and calls **`orchestrateAffordanceRequest`** ([`orchestrationHandler.ts`](orchestrationHandler.ts)) --- **`ensureAffordanceTopology`** when catalog stale or reason **`topology`**; emits **`Slice Ready`** / **`Orchestration Error`** via **`streamEvent`**.
-5. Defines **five outbound** payload types in [`publishedEvents.ts`](publishedEvents.ts). **v1-active:** **`Slice Ready`**, **`Orchestration Error`**. **Future LLM:** **`Enrichment Started`**, **`Enrichment Complete`**, **`Enrichment Deferred`** (contract encoded in skipped tests).
+4. Subscribes to **`mtw.connections` `Character Registered`** (session orientation ingress; handler Phase 3 --- guards in [`../connectionsCharacterRegistered/subscribedEvents.ts`](../connectionsCharacterRegistered/subscribedEvents.ts)).
+5. Maps **`Affordances Requested`** ingress to **`AffordancesRequested`** and calls **`orchestrateAffordanceRequest`** ([`orchestrationHandler.ts`](orchestrationHandler.ts)) --- **`ensureAffordanceTopology`** when catalog stale or reason **`topology`**; emits **`Slice Ready`** / **`Orchestration Error`** via **`streamEvent`**.
+6. Defines **five outbound** payload types in [`publishedEvents.ts`](publishedEvents.ts). **v1-active:** **`Slice Ready`**, **`Orchestration Error`**. **Future LLM:** **`Enrichment Started`**, **`Enrichment Complete`**, **`Enrichment Deferred`** (contract encoded in skipped tests).
 
 **External adapters (outside this DataSource):**
 
@@ -54,6 +55,10 @@ Handled in [`index.ts`](index.ts) **`receiveEvents`**: **`fanOutAffordanceRefres
 ### `mtw.assets.componentTopology` **`TopologyInvalidated`**
 
 Handled in [`index.ts`](index.ts) **`receiveEvents`**: room-scoped events fan out with reason **`topology`**; area-scoped events (no **`roomIds`**) are a v1 no-op (**D35**). **`affordanceCache`** catalog bump runs at message-bus priority **4** before orchestration fan-out at priority **5**.
+
+### `mtw.connections` **`Character Registered`**
+
+Subscribed via [`../connectionsCharacterRegistered/subscribedEvents.ts`](../connectionsCharacterRegistered/subscribedEvents.ts). Session-scoped RoomHeader orientation handler is Phase 3; ingress only until then.
 
 ## Stream outbounds (contract)
 

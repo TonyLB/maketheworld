@@ -32,6 +32,7 @@ import { sfnClient } from './clients'
 import { confirmGuestCharacter } from './guestCharacter'
 import { AssetsEventSerializer, ComponentExamplesEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { DiagnosticsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
+import { ConnectionsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
 import { ConnectionsCharactersEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
@@ -60,6 +61,7 @@ const eventDeserializers = {
     'mtw.assets': new AssetsEventSerializer(),
     'mtw.assets.componentExamples': new ComponentExamplesEventSerializer(),
     'mtw.diagnostics': new DiagnosticsEventSerializer(createNodeDataSourceEnvironment()),
+    'mtw.connections': new ConnectionsEventSerializer(createNodeDataSourceEnvironment()),
     'mtw.connections.characters': new ConnectionsCharactersEventSerializer(createNodeDataSourceEnvironment()),
 } as const
 

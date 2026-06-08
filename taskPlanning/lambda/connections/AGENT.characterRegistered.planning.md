@@ -1,6 +1,6 @@
 # Character Registered vs Character Connected (`connections` presence split)
 
-**Status:** In progress. Next step: fix the broken `Character Connected` producer gate in `lambda/connections`, then wire `mtw.connections` / `Character Registered` as an independent ephemera intake for session orientation (render + affordance RoomHeader delivery).
+**Status:** In progress. Next step: implement session orientation handlers (Phase 3) for `Character Registered` on render + affordance orchestration.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../AGENT.md). This file is task-scoped; archive or delete after the initiative ships and durable docs are updated.
 
@@ -105,10 +105,12 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 
   **Phase 1 note:** `isFirstSessionForCharacter` is in-process metadata on `Character Registered` (not on external EventBridge wire). Idempotent re-register skips `successCallback` (Update `ignore`) so the flag stays `false`.
 
-- [ ] Phase 2 --- EventBridge + ephemera ingress for `Character Registered`
-  - [ ] Add **`EphemeraFunction`** CloudWatch rule: `source: mtw.connections`, `detail-type: Character Registered` in [`template.yaml`](../../../template.yaml).
-  - [ ] Register **`ConnectionsEventSerializer`** on ephemera `eventDeserializers` in [`lambda/ephemera/app.ts`](../../../lambda/ephemera/app.ts) (if not already present for this source).
-  - [ ] Add subscribed-event guards for `mtw.connections` / `Character Registered` on **`renderOrchestration`** and **`affordanceOrchestration`** (new modules or extend [`subscribedEvents.ts`](../../../lambda/ephemera/dataSource/renderOrchestration/subscribedEvents.ts) / affordance analogue).
+- [X] Phase 2 --- EventBridge + ephemera ingress for `Character Registered`
+  - [X] Add **`EphemeraFunction`** CloudWatch rule: `source: mtw.connections`, `detail-type: Character Registered` in [`template.yaml`](../../../template.yaml).
+  - [X] Register **`ConnectionsEventSerializer`** on ephemera `eventDeserializers` in [`lambda/ephemera/app.ts`](../../../lambda/ephemera/app.ts) (if not already present for this source).
+  - [X] Add subscribed-event guards for `mtw.connections` / `Character Registered` on **`renderOrchestration`** and **`affordanceOrchestration`** (new modules or extend [`subscribedEvents.ts`](../../../lambda/ephemera/dataSource/renderOrchestration/subscribedEvents.ts) / affordance analogue).
+
+  **Phase 2 note:** Ingress is wired (`ConnectionsCharacterRegistered` CloudWatch rule, `ConnectionsEventSerializer`, shared guards in [`connectionsCharacterRegistered/subscribedEvents.ts`](../../../lambda/ephemera/dataSource/connectionsCharacterRegistered/subscribedEvents.ts)). Orchestration `receiveEvents` intentionally no-ops until Phase 3 orientation handlers land.
 
 - [ ] Phase 3 --- Session orientation handlers (ephemera)
   - [ ] Implement **`handleCharacterRegisteredOrientation`** (name TBD): load character room + assets, compute perspective, register **`mtw.ephemera.perception`** thread with **`targets: [\`SESSION#${sessionId}\`]`**, kick **`sendRenderRequested`** and affordance orchestration for that room/perspective.
@@ -160,7 +162,7 @@ npm test -- --watchAll=false \
 | --- | --- |
 | Task plan authored | Done |
 | `Character Connected` gate fixed + tests | Done |
-| EventBridge + ephemera `Character Registered` ingress | Not started |
+| EventBridge + ephemera `Character Registered` ingress | Done |
 | Session orientation handlers (render + affordance + perception) | Not started |
 | Documentation detangle | Not started |
 | E2E verified in deployed environment | Not started |
