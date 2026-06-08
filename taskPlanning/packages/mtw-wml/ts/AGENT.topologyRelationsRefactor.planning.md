@@ -1,6 +1,6 @@
 # Topology relations refactor (partial edges + invariant naming)
 
-**Status:** Phase 2 in progress (optional endpoints: types + WML parse/emit shipped). **Next step:** merge/diff overlays, StandardArea ingest relaxation, semantic-layer tests. Steady-state invariant names live in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md#topology-invariants).
+**Status:** Phase 2 complete (client mutations + schema converter tests shipped). **Next step:** Phase 3 Workbench exit-edge editor refactor. Steady-state invariant names live in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md#topology-invariants).
 
 This plan is task-scoped. Archive or delete it after the work ships; move lasting norms into package `AGENT.md` files next to code.
 
@@ -121,7 +121,7 @@ rg 'edgeSatisfiesD4|assertEdgeD4|findEdgesViolatingD4|d4Error' packages/mtw-wml 
 | Phase | Description | Status |
 | --- | --- | --- |
 | **1** | Invariant naming cleanup (`D*` -> glossary names) | Complete |
-| **2** | Partial / incomplete edges in WML + Standardize + edit algebra | In progress |
+| **2** | Partial / incomplete edges in WML + Standardize + edit algebra | Complete |
 | **3** | Workbench exit-edge editor refactor | Not started |
 | **4** | Restore Coyote demo topology in production | Not started (blocked on Phase 3) |
 
@@ -152,8 +152,8 @@ Mark pending work `[ ]` and completed work `[X]`. Mark nested bullets `[X]` as e
 - [X] **StandardArea ingest:** [`area.ts`](../../../packages/mtw-wml/ts/standardize/components/area.ts) --- store incomplete edges; **remove throw** for participant endpoint rule from `fromSchema` / `fromJSON` / `merge` (or gate behind an explicit strict mode if a caller needs it --- default asset mode must not throw for incomplete or participant-less edges).
 - [X] **Participant endpoint rule:** Keep as **pure helper** (e.g. `edgeSatisfiesParticipantRule(area, edge)`) for UI warnings and optional lint; not a standardize hard error.
 - [X] **Semantic layer (confirm only):** Document in [`AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) that [`projectRoomExits`](../../../packages/mtw-wml/ts/standardize/projection/projectRoomExits.ts) is the filter boundary; add tests for uuid-only / missing-peer edges producing zero facets.
-- [ ] **Client mutations:** Add `addEmptyExitEdge(area, edgeUuid?)`; relax `addEdgeToArea` / `updateEdgeInArea` so they do not throw on participant rule; allow `retargetEdgeEndpoint` to set From or To on a stub.
-- [ ] **Schema converter tests:** Extend [`components.test.ts`](../../../packages/mtw-wml/ts/schema/converters/components.test.ts) and [`index.test.ts`](../../../packages/mtw-wml/ts/schema/index.test.ts) for partial topology shapes.
+- [X] **Client mutations:** Add `addEmptyExitEdge(area, edgeUuid?)`; relax `addEdgeToArea` / `updateEdgeInArea` so they do not throw on participant rule; allow `retargetEdgeEndpoint` to set From or To on a stub.
+- [X] **Schema converter tests:** Extend [`components.test.ts`](../../../packages/mtw-wml/ts/schema/converters/components.test.ts) and [`index.test.ts`](../../../packages/mtw-wml/ts/schema/index.test.ts) for partial topology shapes.
 
 ### Phase 3 --- Workbench exit-edge editor
 
@@ -216,7 +216,7 @@ Blocked until Phase 3 makes Area exit authoring usable.
 | WML parse / emit | `<Exit uuid=(...)>` may omit `<From>` and/or `<To>`; may include `<Forward>` / `<Back>` alone. |
 | `StandardExitEdge` / `ExitEdgeList` | Item exists in list; merge/diff keyed by `uuid`; endpoint fields optional. |
 | `StandardArea` asset mode | Ingest and persist without throw. |
-| Workbench `updateStandard` | Add/update/remove stubs and partial edges freely. |
+| Workbench `updateStandard` | Add/update/remove stubs and partial edges freely. `addEmptyExitEdge` creates uuid-only stubs; `addEdgeToArea` / `updateEdgeInArea` do not throw on participant rule (warnings via `edgeSatisfiesParticipantRule` only). |
 | `projectRoomExits` / navigation | Skip edge unless room matches a resolved endpoint **and** peer + label satisfy existing rules. |
 | UI warnings | Participant endpoint rule and "unset endpoint" are visible to authors; not save gates. |
 

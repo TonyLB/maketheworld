@@ -922,6 +922,136 @@ describe('Area exit endpoint tags', () => {
     })
 })
 
+describe('partial area exit topology', () => {
+    const findExitUnderArea = (schema: ReturnType<typeof schemaFromParse>) => {
+        const areaNode = schema[0].children.find(({ data }) => data.tag === 'Area')
+        return areaNode?.children.find(({ data }) => data.tag === 'Exit')
+    }
+
+    const findExitUnderAsset = (schema: ReturnType<typeof schemaFromParse>) => {
+        return schema[0].children.find(({ data }) => data.tag === 'Exit')
+    }
+
+    it('should parse uuid-only stub under Area', () => {
+        const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Area key=(region)>
+                    <Exit uuid=(edge-a1b2c3d4) />
+                </Area>
+            </Asset>
+        `))))
+        const schema = schemaFromParse(testParse)
+        const exitNode = findExitUnderArea(schema)
+        expect(exitNode?.data).toEqual({ tag: 'Exit', uuid: 'edge-a1b2c3d4' })
+        expect(exitNode?.children).toHaveLength(0)
+    })
+
+    it('should round-trip uuid-only stub under Area', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Area key=(region)><Exit uuid=(edge-a1b2c3d4) /></Area>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should parse From-only edge with Forward', () => {
+        const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Exit uuid=(highwayToTown)>
+                    <From>ROOM#highway</From>
+                    <Forward>east</Forward>
+                </Exit>
+            </Asset>
+        `))))
+        const schema = schemaFromParse(testParse)
+        const exitNode = findExitUnderAsset(schema)
+        expect(exitNode?.children.map(({ data }) => data.tag)).toEqual(['From', 'Forward'])
+    })
+
+    it('should round-trip From-only edge with Forward', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Exit uuid=(highwayToTown)>
+                    <From>ROOM#highway</From>
+                    <Forward>east</Forward>
+                </Exit>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should parse To-only edge', () => {
+        const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Exit uuid=(edge1)>
+                    <To>ROOM#townCenter</To>
+                </Exit>
+            </Asset>
+        `))))
+        const schema = schemaFromParse(testParse)
+        const exitNode = findExitUnderAsset(schema)
+        expect(exitNode?.children.map(({ data }) => data.tag)).toEqual(['To'])
+    })
+
+    it('should round-trip To-only edge', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)><Exit uuid=(edge1)><To>ROOM#townCenter</To></Exit></Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should parse labels without endpoints', () => {
+        const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Exit uuid=(e1)>
+                    <Forward>east</Forward>
+                    <Back>west</Back>
+                </Exit>
+            </Asset>
+        `))))
+        const schema = schemaFromParse(testParse)
+        const exitNode = findExitUnderAsset(schema)
+        expect(exitNode?.children.map(({ data }) => data.tag)).toEqual(['Forward', 'Back'])
+    })
+
+    it('should round-trip labels without endpoints', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Exit uuid=(e1)>
+                    <Forward>east</Forward>
+                    <Back>west</Back>
+                </Exit>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should round-trip empty From tag', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)><Exit uuid=(e1)><From /></Exit></Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should parse and round-trip empty To tag', () => {
+        const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Exit uuid=(e1)><To /></Exit>
+            </Asset>
+        `))))
+        const schema = schemaFromParse(testParse)
+        const exitNode = findExitUnderAsset(schema)
+        const toNode = exitNode?.children.find(({ data }) => data.tag === 'To')
+        expect(toNode?.children.length).toBe(0)
+
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)><Exit uuid=(e1)><To /></Exit></Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+})
+
 describe('schema round-trip for Exit under Room (parser)', () => {
     it('should round-trip legacy Exit to= under Room', () => {
         const testWML = deIndentWML(`

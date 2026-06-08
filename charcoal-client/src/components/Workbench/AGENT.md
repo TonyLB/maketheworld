@@ -153,7 +153,7 @@ Use asset-level paths when there is no parent session or domain topology require
 
 | Area | Pattern |
 | --- | --- |
-| Area exit topology | `ExitEdgeListEditor` + `areaEditMutations` |
+| Area exit topology | `ExitEdgeListEditor` + `areaEditMutations` (`addEmptyExitEdge` for uuid-only stubs; add/update do not throw on participant rule; warnings via `edgeSatisfiesParticipantRule`) |
 | Layered Room situation facets | `SituationFacetRenderFieldsEditor` (asset-mode per change) |
 | Character, Situation, Map editors | Not on component session yet |
 | Asset-mode reference list | `ReferenceListEditor` (`listContext` + `updateStandard`) |

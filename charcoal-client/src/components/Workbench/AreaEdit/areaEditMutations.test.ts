@@ -4,8 +4,10 @@ import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
+import { referenceFromExitEndpoint } from '@tonylb/mtw-wml/ts/standardize/keys/edges/endpointReference'
 import {
     addEdgeToArea,
+    addEmptyExitEdge,
     addNodeToArea,
     assertEdgeSatisfiesParticipantRule,
     edgeSatisfiesParticipantRule,
@@ -69,7 +71,7 @@ describe('areaEditMutations', () => {
         expect(edgeSatisfiesParticipantRule(area, area.positionGraph.edges.items[0])).toBe(true)
     })
 
-    it('rejects edge when participant endpoint rule violated', () => {
+    it('stores edge when participant endpoint rule violated', () => {
         const form = new StandardForm(deIndentWML(`
             <Asset uuid=(test)>
                 <Area uuid=(AREA#empty) key=(empty) />
@@ -81,7 +83,53 @@ describe('areaEditMutations', () => {
         if (!(area instanceof StandardArea)) {
             throw new Error('Expected StandardArea')
         }
-        expect(() => addEdgeToArea(area, 'ROOM#a', 'ROOM#b', 'orphan')).toThrow(/requires at least one endpoint in positionGraph.nodes/)
+        addEdgeToArea(area, 'ROOM#a', 'ROOM#b', 'orphan')
+        expect(area.positionGraph.edges.items).toHaveLength(1)
+        expect(area.positionGraph.edges.items[0].uuid).toEqual('orphan')
+        expect(edgeSatisfiesParticipantRule(area, area.positionGraph.edges.items[0])).toBe(false)
+    })
+
+    it('addEmptyExitEdge creates uuid-only stub in graph', () => {
+        const area = getArea()
+        const edge = addEmptyExitEdge(area)
+        expect(area.positionGraph.edges.items).toHaveLength(1)
+        expect(edge.uuid).toBeTruthy()
+        expect(edge.toJSON()).toEqual({
+            tag: 'Exit',
+            uuid: edge.uuid,
+            payload: {},
+        })
+    })
+
+    it('addEmptyExitEdge accepts optional edgeUuid', () => {
+        const area = getArea()
+        const edge = addEmptyExitEdge(area, 'customStub')
+        expect(edge.uuid).toEqual('customStub')
+        expect(area.positionGraph.edges.items[0].uuid).toEqual('customStub')
+    })
+
+    it('retargets From on stub via updateEdgeInArea', () => {
+        const area = getArea()
+        addEmptyExitEdge(area, 'stubEdge')
+        updateEdgeInArea(area, 'stubEdge', (edge) => retargetEdgeEndpoint(edge, 'from', 'ROOM#highway'))
+        const edge = area.positionGraph.edges.items[0]
+        expect(referenceFromExitEndpoint(edge.from)?.universalKey).toEqual('ROOM#highway')
+        expect(referenceFromExitEndpoint(edge.to)).toBeUndefined()
+    })
+
+    it('retargets To on stub via updateEdgeInArea', () => {
+        const area = getArea()
+        addEmptyExitEdge(area, 'stubEdge')
+        updateEdgeInArea(area, 'stubEdge', (edge) => retargetEdgeEndpoint(edge, 'to', 'ROOM#town'))
+        const edge = area.positionGraph.edges.items[0]
+        expect(referenceFromExitEndpoint(edge.to)?.universalKey).toEqual('ROOM#town')
+        expect(referenceFromExitEndpoint(edge.from)).toBeUndefined()
+    })
+
+    it('excludes uuid-only stub from findEdgesMissingParticipantEndpoint', () => {
+        const area = getArea()
+        addEmptyExitEdge(area, 'stubEdge')
+        expect(findEdgesMissingParticipantEndpoint(area)).toHaveLength(0)
     })
 
     it('retargets To on same uuid and updates payload literals', () => {
