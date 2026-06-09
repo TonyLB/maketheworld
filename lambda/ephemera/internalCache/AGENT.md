@@ -25,7 +25,7 @@ Navigational exits on the affordances channel are **not** read from room bluepri
 
 **Navigation:** [`getRoomExitTargetsForCharacter`](../dataSource/actions/roomExitTargetsForCharacter.ts) calls **`ensureAffordanceTopology`** + **`AffordanceCache.getAffordanceRow`** synchronously --- no **`Affordances Requested`**, no **`PublishMessage`**.
 
-**Production note:** Room-local blueprint exits were cleared; Area **`positionGraph.edges`** restore is tracked in [`taskPlanning/packages/mtw-wml/ts/AGENT.topologyRelationsRefactor.planning.md`](../../../taskPlanning/packages/mtw-wml/ts/AGENT.topologyRelationsRefactor.planning.md) Phase 4.
+**Production note:** Room-local blueprint exits were cleared; navigable exits come from merged Area **`positionGraph.edges`** via **`projectRoomExits`**. Production Coyote topology uses the overlay-asset pattern in [`AGENT.CoyoteGame.implementation.md`](../../../AGENT.CoyoteGame.implementation.md) (**Overlay asset topology**; play-mode verified 2026-06-09). Edge authoring rules: [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md).
 
 ### Per-invocation process state (not only deferred loads)
 

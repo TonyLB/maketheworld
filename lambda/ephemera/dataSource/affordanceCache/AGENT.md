@@ -43,6 +43,8 @@ Catalog hydrate preflight logs structured lines filterable as **`[mtw.ephemera.a
 - **`mtw.assets.componentTopology` `TopologyInvalidated`** --- **`subscriptionPriority: 4`** (catalog bump before orchestration topology fan-out at priority 5)
 - **`mtw.ephemera.affordanceOrchestration`** stream outbounds (**`Slice Ready`**, etc.)
 
+**`publish`/`settle` migration (AFF-CACHE-4):** priority-4-before-5 ordering applies on the **`flush`** path only. When this DataSource migrates to `publish` ingress, catalog-before-orchestration must be preserved with **explicit sequencing** (await or single orchestrated publish), not subscription priority. See [`AGENT.publishSettledMigration.planning.md`](../../../../taskPlanning/packages/mtw-lambda-patterns/ts/messageBus/AGENT.publishSettledMigration.planning.md).
+
 ## Outbounds
 
 - **`Affordances Pertain`** --- lean routing + full **`affordanceRow`** / **`topology`** for perception terminal compose
