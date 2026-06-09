@@ -73,7 +73,7 @@ describe('handleAffordancesPertain', () => {
         expect(row.wmlContent).toBe('<AffordanceHeader />')
         expect(row.messageId).toMatch(/^MESSAGE#/)
         expect(stackMergeSpy).toHaveBeenCalledTimes(1)
-        expect(stackMergeSpy).toHaveBeenCalledWith('CHARACTER#Viewer', passThroughFixtureRoomId)
+        expect(stackMergeSpy).toHaveBeenCalledWith(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
         expect(rosterSpy).not.toHaveBeenCalled()
         expect(
             internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
@@ -123,7 +123,7 @@ describe('handleAffordancesPertain', () => {
         expect(row.wmlContent).toBe('<AffordanceHeader />')
         expect(row.messageId).toMatch(/^MESSAGE#/)
         expect(stackMergeSpy).toHaveBeenCalledTimes(1)
-        expect(stackMergeSpy).toHaveBeenCalledWith('CHARACTER#Match', passThroughFixtureRoomId)
+        expect(stackMergeSpy).toHaveBeenCalledWith(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
 
         stackMergeSpy.mockRestore()
         schemaSpy.mockRestore()
@@ -180,10 +180,13 @@ describe('handleAffordancesPertain', () => {
                 EphemeraId: characterId,
                 assets: ['match'],
             } as any))
-        jest.spyOn(internalCache.AffordanceRoomDeliverable, 'get')
+        const stackMergeSpy = jest.spyOn(internalCache.AffordanceRoomDeliverable, 'get')
             .mockResolvedValue({ schema: {} } as any)
 
         await handleAffordancesPertain(makePayload(), messageBus)
+
+        expect(stackMergeSpy).toHaveBeenCalledTimes(1)
+        expect(stackMergeSpy).toHaveBeenCalledWith(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
 
         const messageIds = sendSpy.mock.calls
             .filter((c) => {

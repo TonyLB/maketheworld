@@ -26,6 +26,7 @@ export async function publishRoomAffordancePerceptionMessages({
     const targets = await resolveAffordanceTargetsForPerspective(roomId, perspectiveKey)
     await publishAffordancePerceptionForCharacters({
         roomId,
+        perspectiveKey,
         characterIds: targets,
         messageBus,
         messageGroupId,

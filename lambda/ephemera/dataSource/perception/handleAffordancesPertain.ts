@@ -9,7 +9,7 @@ import { isSessionOrientationAffordancesPerceptionThread } from '../../internalC
 import { getCharacterRoomPerspectiveKey } from './kickRoomHeaderBroadcast'
 import {
     publishAffordancePerceptionForCharacters,
-    publishAffordancePerceptionForTargets,
+    publishAffordancePerceptionForPerspective,
 } from './publishAffordancePerceptionForCharacters'
 
 export async function resolveAffordanceTargetsForPerspective(
@@ -48,29 +48,44 @@ export async function handleAffordancesPertain(
     )
 
     if (affordanceThreads.length > 0) {
-        for (const entry of affordanceThreads) {
+        const deliveries = affordanceThreads.flatMap((entry) => {
             if (!isSessionOrientationAffordancesPerceptionThread(entry.thread)) {
-                continue
+                return []
             }
-            const { thread, registration, registrationId } = entry
+            const { thread, registration } = entry
             if (registration.threadKind !== 'sessionOrientationAffordances') {
-                continue
+                return []
             }
             if (thread.status === 'Terminal') {
-                continue
+                return []
             }
-            await publishAffordancePerceptionForTargets({
-                roomId,
-                viewerCharacterId: registration.characterId,
+            if (!registration.targets.length) {
+                return []
+            }
+            return [{
                 targets: registration.targets,
-                messageBus: bus,
                 messageGroupId: registration.messageGroupId,
-            })
-            internalCache.PerceptionThreads.remove({
-                componentId: roomId,
+                registrationId: entry.registrationId,
+            }]
+        })
+
+        if (deliveries.length > 0) {
+            await publishAffordancePerceptionForPerspective({
+                roomId,
                 perspectiveKey,
-                registrationId,
+                deliveries: deliveries.map(({ targets, messageGroupId }) => ({
+                    targets,
+                    messageGroupId,
+                })),
+                messageBus: bus,
             })
+            for (const { registrationId } of deliveries) {
+                internalCache.PerceptionThreads.remove({
+                    componentId: roomId,
+                    perspectiveKey,
+                    registrationId,
+                })
+            }
         }
         return
     }
@@ -78,6 +93,7 @@ export async function handleAffordancesPertain(
     const targets = await resolveAffordanceTargetsForPerspective(roomId, perspectiveKey)
     await publishAffordancePerceptionForCharacters({
         roomId,
+        perspectiveKey,
         characterIds: targets,
         messageBus: bus,
     })

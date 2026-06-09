@@ -1,53 +1,42 @@
 /**
  * Affordance-channel room header compose memo for terminal perception publish.
+ * Stack source: AffordanceCache row at the supplied perspectiveKey (not CharacterMeta).
  */
 import type { ComponentAggregateMergedCache } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { aggregatePerspectiveExplicit } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import type { AffordanceCacheData } from './affordanceCache'
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
-import CacheGlobalData from './global'
-import { unique } from '@tonylb/mtw-utilities/ts/lists'
-import {
-    EphemeraCharacterId,
-    EphemeraRoomId,
-    isEphemeraCharacterId,
-} from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
-import CacheCharacterMetaData, { CharacterMetaItem } from './characterMeta'
-import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import { CacheRoomCharacterListsData } from './roomCharacterLists'
-import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room'
 import type { RoomCharacterListItem } from './baseClasses'
 import { roomCharacterListToStandardCharacterData } from './roomWireMergeHelpers'
 
-/** Cache key for AffordanceRoomDeliverable (characterId, roomId). */
+/** Cache key for AffordanceRoomDeliverable (roomId, perspectiveKey). */
 export function generateAffordanceRoomDeliverableCacheKey(
-    CharacterId: EphemeraCharacterId | 'ANONYMOUS',
-    EphemeraRoomId: EphemeraRoomId
+    roomId: EphemeraRoomId,
+    perspectiveKey: string
 ): string {
-    return `${CharacterId}::${EphemeraRoomId}`
+    return `${roomId}::${perspectiveKey}`
 }
 
-/** True if `cacheKey` is an affordance deliverable key for `roomId` (suffix match; character id must not contain `::`). */
+/** True if `cacheKey` is an affordance deliverable key for `roomId` (prefix match). */
 export function affordanceRoomDeliverableCacheKeyForRoom(cacheKey: string, roomId: EphemeraRoomId): boolean {
-    return cacheKey.endsWith(`::${roomId}`)
+    return cacheKey.startsWith(`${roomId}::`)
 }
 
 /**
- * Per-invocation compose memo: builds affordance-channel room header StandardForm
- * (shortName via ComponentAggregate, exits via AffordanceCache, roster/objects via ephemera meta).
- * Called from perception on Affordances Pertain terminal publish only.
+ * Per-invocation compose memo keyed by (roomId, perspectiveKey): builds affordance-channel
+ * room header StandardForm (shortName via ComponentAggregate, exits via AffordanceCache,
+ * roster/objects via ephemera meta). Called from perception on Affordances Pertain only.
  */
 export class AffordanceRoomDeliverableData {
     _componentAggregate: ComponentAggregateMergedCache
     _affordanceCache: AffordanceCacheData
     _roomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>
-    _getAssets: () => Promise<string[]>
-    _characterMeta: (characterId: EphemeraCharacterId) => Promise<CharacterMetaItem>
     _getMetaRoom: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
     _Cache: DeferredCache<StandardForm>
     _Store: Record<string, StandardForm> = {}
@@ -56,15 +45,11 @@ export class AffordanceRoomDeliverableData {
         componentAggregate: ComponentAggregateMergedCache,
         affordanceCache: AffordanceCacheData,
         roomCharacterList: CacheRoomCharacterListsData,
-        globalCache: CacheGlobalData,
-        characterMeta: CacheCharacterMetaData,
         getMetaRoom: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
     ) {
         this._componentAggregate = componentAggregate
         this._affordanceCache = affordanceCache
         this._roomCharacterList = (RoomId) => roomCharacterList.get(RoomId)
-        this._getAssets = async () => (await globalCache.get('assets')) || []
-        this._characterMeta = (characterId) => characterMeta.get(characterId)
         this._getMetaRoom = getMetaRoom
         this._Cache = new DeferredCache<StandardForm>({
             callback: (key, description) => {
@@ -93,38 +78,31 @@ export class AffordanceRoomDeliverableData {
     }
 
     async _getPromiseFactory(
-        CharacterId: EphemeraCharacterId | 'ANONYMOUS',
-        EphemeraRoomId: EphemeraRoomId
+        roomId: EphemeraRoomId,
+        perspectiveKey: string
     ): Promise<StandardForm> {
-        const [globalAssets, { assets: characterAssets }] = await Promise.all([
-            this._getAssets(),
-            isEphemeraCharacterId(CharacterId) ? this._characterMeta(CharacterId) : Promise.resolve({ assets: [] }),
-        ])
-
-        const mergeParticipationOrder: AssetUUID[] = unique(globalAssets || [], characterAssets).map((key) => AssetKey(key))
-        const perspectiveKey = computePerspectiveKey(mergeParticipationOrder)
-
-        const perspective = aggregatePerspectiveExplicit({
-            universalKey: EphemeraRoomId,
-            mergeParticipationOrder,
-        })
-
-        const [aggregateResults, affordanceRow, roomCharacterList, meta] = await Promise.all([
-            this._componentAggregate.get([perspective]),
-            this._affordanceCache.getAffordanceRow(EphemeraRoomId, perspectiveKey),
-            this._roomCharacterList(EphemeraRoomId),
-            this._getMetaRoom(EphemeraRoomId),
+        const [affordanceRow, roomCharacterList, meta] = await Promise.all([
+            this._affordanceCache.getAffordanceRow(roomId, perspectiveKey),
+            this._roomCharacterList(roomId),
+            this._getMetaRoom(roomId),
         ])
 
         if (affordanceRow === undefined) {
             throw new Error(
-                `AFFORDANCE_TOPOLOGY_NOT_READY: ${EphemeraRoomId} at ${perspectiveKey} (call ensureAffordanceTopology first)`
+                `AFFORDANCE_TOPOLOGY_NOT_READY: ${roomId} at ${perspectiveKey} (call ensureAffordanceTopology first)`
             )
         }
 
+        const perspective = aggregatePerspectiveExplicit({
+            universalKey: roomId,
+            mergeParticipationOrder: affordanceRow.assetStack,
+        })
+
+        const aggregateResults = await this._componentAggregate.get([perspective])
+
         const mergedRoom = aggregateResults[0]?.merged
         if (!(mergedRoom instanceof StandardRoom)) {
-            throw new Error(`ComponentAggregate did not return StandardRoom for ${EphemeraRoomId}`)
+            throw new Error(`ComponentAggregate did not return StandardRoom for ${roomId}`)
         }
 
         const exits = affordanceRow.topology.exits
@@ -132,7 +110,7 @@ export class AffordanceRoomDeliverableData {
 
         const roomRow: StandardRoomData = {
             tag: 'Room',
-            universalKey: EphemeraRoomId,
+            universalKey: roomId,
             ...(exits.length ? { exits } : {}),
             characters: roomCharacterList.map((char) => char.EphemeraId),
             shortName: shortNameLiteral?.toJSON(),
@@ -155,11 +133,11 @@ export class AffordanceRoomDeliverableData {
         )
     }
 
-    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraRoomId: EphemeraRoomId): Promise<StandardForm> {
-        const cacheKey = generateAffordanceRoomDeliverableCacheKey(CharacterId, EphemeraRoomId)
+    async get(roomId: EphemeraRoomId, perspectiveKey: string): Promise<StandardForm> {
+        const cacheKey = generateAffordanceRoomDeliverableCacheKey(roomId, perspectiveKey)
         if (!this._Cache.isCached(cacheKey)) {
             this._Cache.add({
-                promiseFactory: async () => this._getPromiseFactory(CharacterId, EphemeraRoomId),
+                promiseFactory: async () => this._getPromiseFactory(roomId, perspectiveKey),
                 requiredKeys: [cacheKey],
                 transform: (fetch) => {
                     if (typeof fetch === 'undefined') {

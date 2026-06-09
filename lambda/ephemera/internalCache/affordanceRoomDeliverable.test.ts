@@ -31,6 +31,10 @@ const mockAffordanceRow = (
     })
 }
 
+const getForStack = async (roomId: EphemeraRoomId, assetStack: AssetUUID[]) => (
+    internalCache.AffordanceRoomDeliverable.get(roomId, computePerspectiveKey(assetStack))
+)
+
 describe('AffordanceRoomDeliverable cache handler', () => {
     beforeEach(() => {
         jest.clearAllMocks()
@@ -40,16 +44,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
     })
 
     it('builds structural room WML from aggregate shortName, affordance topology, and roster', async () => {
-        jest.spyOn(internalCache.Global, 'get').mockResolvedValue(['Base'])
-        jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
-            EphemeraId: 'CHARACTER#TESS',
-            Name: 'Tess',
-            assets: [],
-            RoomId: 'ROOM#VORTEX',
-            RoomStack: [],
-            HomeId: 'ROOM#VORTEX',
-            Pronouns: 'she/her',
-        })
+        const assetStack: AssetUUID[] = ['ASSET#Base']
         jest.spyOn(internalCache.ComponentAggregate, 'get').mockResolvedValue([
             {
                 universalKey: 'ROOM#ParityOne',
@@ -59,17 +54,17 @@ describe('AffordanceRoomDeliverable cache handler', () => {
                     shortName: 'Hall',
                     exits: [],
                 }),
-                mergeParticipationOrderApplied: ['ASSET#Base'],
+                mergeParticipationOrderApplied: assetStack,
             },
         ])
         jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockResolvedValue(
-            mockAffordanceRow('ROOM#ParityOne', ['ASSET#Base'], [])
+            mockAffordanceRow('ROOM#ParityOne', assetStack, [])
         )
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
             { EphemeraId: 'CHARACTER#TESS', DisplayName: 'Tess', Color: 'purple', SessionIds: [] },
         ])
 
-        const merged = await internalCache.AffordanceRoomDeliverable.get('CHARACTER#TESS', 'ROOM#ParityOne')
+        const merged = await getForStack('ROOM#ParityOne', assetStack)
 
         expect(schemaToWML([merged.schema])).toEqual(
             deIndentWML(`
@@ -85,16 +80,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
     })
 
     it('merges shortName via ComponentAggregate and exits from AffordanceCache across two assets', async () => {
-        jest.spyOn(internalCache.Global, 'get').mockResolvedValue(['Base'])
-        jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
-            EphemeraId: 'CHARACTER#TESS',
-            Name: 'Tess',
-            assets: ['Personal'],
-            RoomId: 'ROOM#VORTEX',
-            RoomStack: [],
-            HomeId: 'ROOM#VORTEX',
-            Pronouns: 'she/her',
-        })
+        const assetStack: AssetUUID[] = ['ASSET#Base', 'ASSET#Personal']
         jest.spyOn(internalCache.ComponentAggregate, 'get').mockResolvedValue([
             {
                 universalKey: 'ROOM#MergeTwo',
@@ -104,11 +90,11 @@ describe('AffordanceRoomDeliverable cache handler', () => {
                     shortName: 'NorthWingAnnex',
                     exits: [],
                 }),
-                mergeParticipationOrderApplied: ['ASSET#Base', 'ASSET#Personal'],
+                mergeParticipationOrderApplied: assetStack,
             },
         ])
         jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockResolvedValue(
-            mockAffordanceRow('ROOM#MergeTwo', ['ASSET#Base', 'ASSET#Personal'], [
+            mockAffordanceRow('ROOM#MergeTwo', assetStack, [
                 {
                     reference: { tag: 'Room' as const, universalKey: 'ROOM#DestNorth' },
                     payload: 'North door',
@@ -121,7 +107,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
         )
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([])
 
-        const merged = await internalCache.AffordanceRoomDeliverable.get('CHARACTER#TESS', 'ROOM#MergeTwo')
+        const merged = await getForStack('ROOM#MergeTwo', assetStack)
 
         expect(schemaToWML([merged.schema])).toEqual(
             deIndentWML(`
@@ -136,8 +122,67 @@ describe('AffordanceRoomDeliverable cache handler', () => {
         )
     })
 
+    it('uses affordanceRow.assetStack for ComponentAggregate merge participation order', async () => {
+        const roomId = 'ROOM#StackAlign' as const
+        const assetStack: AssetUUID[] = ['ASSET#Canon', 'ASSET#Personal']
+        const perspectiveKey = computePerspectiveKey(assetStack)
+        const aggregateGet = jest.spyOn(internalCache.ComponentAggregate, 'get').mockResolvedValue([
+            {
+                universalKey: roomId,
+                merged: new StandardRoom({
+                    universalKey: roomId,
+                    tag: 'Room',
+                    shortName: 'Aligned',
+                    exits: [],
+                }),
+                mergeParticipationOrderApplied: assetStack,
+            },
+        ])
+        jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockResolvedValue(
+            mockAffordanceRow(roomId, assetStack, [])
+        )
+        jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([])
+
+        await internalCache.AffordanceRoomDeliverable.get(roomId, perspectiveKey)
+
+        expect(aggregateGet).toHaveBeenCalledWith([
+            expect.objectContaining({
+                universalKey: roomId,
+                mergeParticipationOrder: assetStack,
+            }),
+        ])
+    })
+
+    it('cache-hits on repeated get(roomId, perspectiveKey)', async () => {
+        const roomId = 'ROOM#CacheHit' as const
+        const assetStack: AssetUUID[] = ['ASSET#Base']
+        const perspectiveKey = computePerspectiveKey(assetStack)
+        const aggregateGet = jest.spyOn(internalCache.ComponentAggregate, 'get').mockResolvedValue([
+            {
+                universalKey: roomId,
+                merged: new StandardRoom({
+                    universalKey: roomId,
+                    tag: 'Room',
+                    shortName: 'Once',
+                    exits: [],
+                }),
+                mergeParticipationOrderApplied: assetStack,
+            },
+        ])
+        jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockResolvedValue(
+            mockAffordanceRow(roomId, assetStack, [])
+        )
+        jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([])
+
+        await internalCache.AffordanceRoomDeliverable.get(roomId, perspectiveKey)
+        await internalCache.AffordanceRoomDeliverable.get(roomId, perspectiveKey)
+
+        expect(aggregateGet).toHaveBeenCalledTimes(1)
+    })
+
     it('uses projected AffordanceCache exits instead of mergeRoomExitsToJSON concat (D30 overlay)', async () => {
         const roomId = 'ROOM#Overlay' as const
+        const assetStack: AssetUUID[] = ['ASSET#Base', 'ASSET#Personal']
         const baseRoom = new StandardRoom({
             universalKey: roomId,
             tag: 'Room',
@@ -166,25 +211,15 @@ describe('AffordanceRoomDeliverable cache handler', () => {
         const concatWouldIncludeD = mergeRoomExitsToJSON([baseRoom, overlayRoom])
         expect(concatWouldIncludeD).toHaveLength(3)
 
-        jest.spyOn(internalCache.Global, 'get').mockResolvedValue(['Base'])
-        jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
-            EphemeraId: 'CHARACTER#TESS',
-            Name: 'Tess',
-            assets: ['Personal'],
-            RoomId: 'ROOM#VORTEX',
-            RoomStack: [],
-            HomeId: 'ROOM#VORTEX',
-            Pronouns: 'she/her',
-        })
         jest.spyOn(internalCache.ComponentAggregate, 'get').mockResolvedValue([
             {
                 universalKey: roomId,
                 merged: baseRoom.merge(overlayRoom) as StandardRoom,
-                mergeParticipationOrderApplied: ['ASSET#Base', 'ASSET#Personal'],
+                mergeParticipationOrderApplied: assetStack,
             },
         ])
         jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockResolvedValue(
-            mockAffordanceRow(roomId, ['ASSET#Base', 'ASSET#Personal'], [
+            mockAffordanceRow(roomId, assetStack, [
                 {
                     reference: { tag: 'Room' as const, universalKey: 'ROOM#DestE' },
                     payload: 'E door',
@@ -197,7 +232,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
         )
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([])
 
-        const merged = await internalCache.AffordanceRoomDeliverable.get('CHARACTER#TESS', roomId)
+        const merged = await getForStack(roomId, assetStack)
         const wml = schemaToWML([merged.schema])
 
         expect(wml).toContain('E door')
@@ -206,16 +241,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
     })
 
     it('includes Meta::Room.objects on the merged room', async () => {
-        jest.spyOn(internalCache.Global, 'get').mockResolvedValue(['Base'])
-        jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
-            EphemeraId: 'CHARACTER#TESS',
-            Name: 'Tess',
-            assets: [],
-            RoomId: 'ROOM#VORTEX',
-            RoomStack: [],
-            HomeId: 'ROOM#VORTEX',
-            Pronouns: 'she/her',
-        })
+        const assetStack: AssetUUID[] = ['ASSET#Base']
         jest.spyOn(internalCache.ComponentAggregate, 'get').mockResolvedValue([
             {
                 universalKey: 'ROOM#ObjRoom',
@@ -225,11 +251,11 @@ describe('AffordanceRoomDeliverable cache handler', () => {
                     shortName: 'Hall',
                     exits: [],
                 }),
-                mergeParticipationOrderApplied: ['ASSET#Base'],
+                mergeParticipationOrderApplied: assetStack,
             },
         ])
         jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockResolvedValue(
-            mockAffordanceRow('ROOM#ObjRoom', ['ASSET#Base'], [])
+            mockAffordanceRow('ROOM#ObjRoom', assetStack, [])
         )
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([])
 
@@ -240,7 +266,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
         }
         jest.spyOn(internalCache.ComponentEphemeraMeta, 'get').mockResolvedValue(metaRoom)
 
-        const merged = await internalCache.AffordanceRoomDeliverable.get('CHARACTER#TESS', 'ROOM#ObjRoom')
+        const merged = await getForStack('ROOM#ObjRoom', assetStack)
 
         const wml = schemaToWML([merged.schema])
         expect(wml).toContain('<Object uuid=(foo)')
@@ -248,49 +274,21 @@ describe('AffordanceRoomDeliverable cache handler', () => {
     })
 
     it('throws when AffordanceCache row is missing (no mergeRoomExitsToJSON fallback)', async () => {
-        jest.spyOn(internalCache.Global, 'get').mockResolvedValue(['Base'])
-        jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
-            EphemeraId: 'CHARACTER#TESS',
-            Name: 'Tess',
-            assets: [],
-            RoomId: 'ROOM#VORTEX',
-            RoomStack: [],
-            HomeId: 'ROOM#VORTEX',
-            Pronouns: 'she/her',
-        })
-        jest.spyOn(internalCache.ComponentAggregate, 'get').mockResolvedValue([
-            {
-                universalKey: 'ROOM#Missing',
-                merged: new StandardRoom({
-                    universalKey: 'ROOM#Missing',
-                    tag: 'Room',
-                    shortName: 'Hall',
-                    exits: [],
-                }),
-                mergeParticipationOrderApplied: ['ASSET#Base'],
-            },
-        ])
+        const roomId = 'ROOM#Missing' as const
+        const perspectiveKey = computePerspectiveKey(['ASSET#Base'])
         jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockResolvedValue(undefined)
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([])
 
         await expect(
-            (internalCache.AffordanceRoomDeliverable as any)._getPromiseFactory('CHARACTER#TESS', 'ROOM#Missing')
+            (internalCache.AffordanceRoomDeliverable as any)._getPromiseFactory(roomId, perspectiveKey)
         ).rejects.toThrow('AFFORDANCE_TOPOLOGY_NOT_READY')
     })
 
     it('invalidate(roomId) refetches that room only', async () => {
-        jest.spyOn(internalCache.Global, 'get').mockResolvedValue(['Base'])
-        jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
-            EphemeraId: 'CHARACTER#TESS',
-            Name: 'Tess',
-            assets: [],
-            RoomId: 'ROOM#VORTEX',
-            RoomStack: [],
-            HomeId: 'ROOM#VORTEX',
-            Pronouns: 'she/her',
-        })
         const roomA = 'ROOM#InvA' as const
         const roomB = 'ROOM#InvB' as const
+        const assetStack: AssetUUID[] = ['ASSET#Base']
+        const perspectiveKey = computePerspectiveKey(assetStack)
         const aggregateGet = jest.spyOn(internalCache.ComponentAggregate, 'get').mockImplementation(
             async (perspectives) => {
                 const roomId = perspectives[0].universalKey as EphemeraRoomId
@@ -302,26 +300,25 @@ describe('AffordanceRoomDeliverable cache handler', () => {
                         shortName: roomId === roomA ? 'Alpha' : 'Beta',
                         exits: [],
                     }),
-                    mergeParticipationOrderApplied: ['ASSET#Base'],
+                    mergeParticipationOrderApplied: assetStack,
                 }]
             }
         )
         jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockImplementation(
-            async (roomId, _perspectiveKey) => mockAffordanceRow(roomId, ['ASSET#Base'], [])
+            async (roomId, _perspectiveKey) => mockAffordanceRow(roomId, assetStack, [])
         )
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([])
 
-        const char = 'CHARACTER#TESS' as const
-        await internalCache.AffordanceRoomDeliverable.get(char, roomA)
-        await internalCache.AffordanceRoomDeliverable.get(char, roomB)
+        await internalCache.AffordanceRoomDeliverable.get(roomA, perspectiveKey)
+        await internalCache.AffordanceRoomDeliverable.get(roomB, perspectiveKey)
         const callsAfterWarm = aggregateGet.mock.calls.length
 
         internalCache.AffordanceRoomDeliverable.invalidate(roomA)
 
-        await internalCache.AffordanceRoomDeliverable.get(char, roomA)
+        await internalCache.AffordanceRoomDeliverable.get(roomA, perspectiveKey)
         expect(aggregateGet.mock.calls.length).toBe(callsAfterWarm + 1)
 
-        await internalCache.AffordanceRoomDeliverable.get(char, roomB)
+        await internalCache.AffordanceRoomDeliverable.get(roomB, perspectiveKey)
         expect(aggregateGet.mock.calls.length).toBe(callsAfterWarm + 1)
     })
 })

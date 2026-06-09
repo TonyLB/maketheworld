@@ -161,8 +161,6 @@ export class InternalCache {
             this.ComponentAggregate,
             this.AffordanceCache,
             this.RoomCharacterList,
-            this.Global,
-            this.CharacterMeta,
             (roomId) => this.ComponentEphemeraMeta.get(roomId)
         )
         this.GenerationContext = new GenerationContextData(this.ComponentData)
