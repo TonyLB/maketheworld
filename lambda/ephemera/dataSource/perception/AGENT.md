@@ -205,6 +205,7 @@ Run from repository root unless noted.
 | **Ephemera package (default)** | `cd lambda/ephemera && npm test` | After changes under `lambda/ephemera/`; full suite before merge when touching shared behavior |
 | **Imperative perception** | `cd lambda/ephemera && npx jest perception/index.test.ts` | Iterating on [`perception/index.ts`](../../perception/index.ts) |
 | **This DataSource** | `cd lambda/ephemera && npx jest dataSource/perception/` | Perception DataSource and unit tests |
+| **Session orientation (cross-layer)** | `cd lambda/ephemera && npx jest dataSource/characterRegisteredOrientation.integration.test.ts` | `sessionOrientationRender` + `sessionOrientationAffordances` terminal fan-in from `Character Registered` through orchestration and cache |
 | **Patterns package** | `cd packages/mtw-lambda-patterns && npm test` | After changing `InternalMessageBus` or DataSource base in `mtw-lambda-patterns` |
 
 **Contract tests:** Per [`AGENT.passThrough.contract.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests), add placeholder or skipped tests early with reasons; activate as behavior lands.

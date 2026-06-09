@@ -94,7 +94,7 @@ Order used for the pass-through slice (keeps contract tests and implementation a
 
 ## Tests and verification
 
-**Primary tests:** [`orchestrationHandler.test.ts`](orchestrationHandler.test.ts), [`findRender.test.ts`](findRender.test.ts), [`generateRoomPreview.test.ts`](generateRoomPreview.test.ts), [`passThroughContract.scaffold.test.ts`](passThroughContract.scaffold.test.ts). **Cross-layer:** [`passThroughOrchestrationToCache.integration.test.ts`](../passThroughOrchestrationToCache.integration.test.ts) (`orchestrateRenderRequest` + renderCache subscriber).
+**Primary tests:** [`orchestrationHandler.test.ts`](orchestrationHandler.test.ts), [`findRender.test.ts`](findRender.test.ts), [`generateRoomPreview.test.ts`](generateRoomPreview.test.ts), [`passThroughContract.scaffold.test.ts`](passThroughContract.scaffold.test.ts). **Cross-layer:** [`passThroughOrchestrationToCache.integration.test.ts`](../passThroughOrchestrationToCache.integration.test.ts) (`orchestrateRenderRequest` + renderCache subscriber); [`characterRegisteredOrientation.integration.test.ts`](../characterRegisteredOrientation.integration.test.ts) (`Character Registered` ingress -> render channel -> `SESSION#` terminal).
 
 **Hygiene (grep):** Under `dataSource/renderOrchestration/`, passive generation success must not call `publishPutCacheRecord` / `sendPutCacheRecord` / `defaultPublishPutCacheRecord` from `generateRoomPreview.ts`. Passive orchestration paths should not use `getRoomStateRenderHandle`, `sendMessage`, or `materializeRoomStateRender` for outcomes (see `orchestrationHandler.ts`, `findRender.ts`, `generateRoomPreview.ts`, `intakeErrors.ts`).
 

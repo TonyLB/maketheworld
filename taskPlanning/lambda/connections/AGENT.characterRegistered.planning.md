@@ -1,6 +1,6 @@
 # Character Registered vs Character Connected (`connections` presence split)
 
-**Status:** In progress. Next step: Phase 3c --- integration proof that **`Character Registered`** alone delivers render + affordance **`PublishMessage`** rows to **`SESSION#...`** through the full in-process bus path.
+**Status:** In progress. Next step: Phase 4 --- detangle docs and trim conflated behavior (`Character Registered` vs `Character Connected` steady-state documentation).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../AGENT.md). This file is task-scoped; archive or delete after the initiative ships and durable docs are updated.
 
@@ -138,9 +138,11 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 
   **Phase 3b note:** Double-subscribe, parallel kick. Each orchestration DataSource calls **`handleCharacterRegisteredOrientation`** with its own **`channel`** (`render` | `affordances`) so both threads register on the same registration event without double-registering from a monolithic helper. Target format: **`SESSION#${sessionId}`** where **`sessionId`** is the raw wire value (e.g. `session-1`). Affordance orchestration ingress uses **`reason: 'roster'`** for v1.
 
-  - [ ] **Phase 3c --- Integration proof**
-    - [ ] Integration-style test: **`Character Registered`** alone (no **`Character Connected`**) delivers render + affordance **`PublishMessage`** rows to **`SESSION#...`** through full in-process bus path (thread register -> orchestration -> cache -> **`* Pertains`** -> perception terminal).
-    - [ ] Assert render row uses correlated **`messageId`** (Generating then terminal overwrite); affordance row uses **new** **`messageId`** (uncoupled channel).
+  - [X] **Phase 3c --- Integration proof**
+    - [X] Integration-style test: **`Character Registered`** alone (no **`Character Connected`**) delivers render + affordance **`PublishMessage`** rows to **`SESSION#...`** through full in-process bus path (thread register -> orchestration -> cache -> **`* Pertains`** -> perception terminal).
+    - [X] Assert render row uses correlated **`messageId`** (Generating then terminal overwrite); affordance row uses **new** **`messageId`** (uncoupled channel).
+
+  **Phase 3c note:** [`characterRegisteredOrientation.integration.test.ts`](../../../lambda/ephemera/dataSource/characterRegisteredOrientation.integration.test.ts) wires real `renderOrchestration`, `renderCache`, `affordanceOrchestration`, `affordanceCache`, and `perception` DataSource subscribers on the process bus. Injects `mtw.connections` / `Character Registered` only (positions not imported). Asserts `SESSION#${sessionId}` targets, render Generating + terminal share `messageId`, affordance uses a distinct `messageId`.
 
 - [ ] Phase 4 --- Detangle docs and trim conflated behavior
   - [ ] Update [`lambda/connections/AGENT.md`](../../../lambda/connections/AGENT.md) --- separate producer outcomes, boundary semantics, consumer map.
@@ -190,7 +192,7 @@ npm test -- --watchAll=false \
 | EventBridge + ephemera `Character Registered` ingress | Done |
 | Perception thread model (dual `* Pertains` fan-in) | Done |
 | Session orientation kick + orchestration handlers | Done |
-| Session orientation integration tests | Not started |
+| Session orientation integration tests | Done |
 | Documentation detangle | Not started |
 | E2E verified in deployed environment | Not started |
 

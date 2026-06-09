@@ -7,6 +7,8 @@
  *
  * Each orchestration DataSource calls this with its own `channel` so both threads
  * register in parallel without double-registering from a monolithic helper.
+ *
+ * Cross-layer integration: ../characterRegisteredOrientation.integration.test.ts
  */
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { ConnectionsCharacterRegisteredEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
