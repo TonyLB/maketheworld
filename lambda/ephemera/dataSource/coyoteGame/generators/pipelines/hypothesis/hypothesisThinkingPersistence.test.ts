@@ -21,7 +21,6 @@ import {
     finalizeHypothesisThinkingOnRunFailure,
     mintHypothesisThinkingIds,
     sendCoyoteThinkingResult,
-    thinkingResultsLaneId,
     thinkingSegmentForFailedStepName,
     thinkingStreamKey,
 } from './hypothesisThinkingPersistence'
@@ -120,36 +119,24 @@ describe('hypothesisThinkingPersistence', () => {
     })
 
     describe('bootstrapHypothesisThinkingAtRunStart', () => {
-        const makeBus = () => {
-            const flush = jest.fn().mockResolvedValue(undefined)
-            return {
-                messageBus: {
-                    send: jest.fn(),
-                    flush,
-                },
-                flush,
-            }
-        }
+        const makeBus = () => ({
+            messageBus: {
+                publish: jest.fn(),
+            },
+        })
 
-        it('sends job create and schedules on one bootstrap lane then flushes', async () => {
-            const { messageBus, flush } = makeBus()
-            const ids = await bootstrapHypothesisThinkingAtRunStart({ messageBus })
+        it('publishes job create and schedules for production segments', () => {
+            const { messageBus } = makeBus()
+            const ids = bootstrapHypothesisThinkingAtRunStart({ messageBus })
 
             expect(ids.workItems.candidates).toBeDefined()
             expect(ids.workItems.planSelect).toBeDefined()
             expect(ids.workItems.narrativeBeats).toBeDefined()
 
             expect(sendPutThinkingJobCreate).toHaveBeenCalledTimes(1)
-            const jobCreateLane = sendPutThinkingJobCreate.mock.calls[0][3]
-            expect(jobCreateLane).toMatch(/^thinkingBootstrap:/)
+            expect(sendPutThinkingJobCreate.mock.calls[0]).toHaveLength(3)
 
             expect(sendPutThinkingSchedule).toHaveBeenCalledTimes(3)
-            for (const call of sendPutThinkingSchedule.mock.calls) {
-                expect(call[3]).toBe(jobCreateLane)
-            }
-
-            expect(flush).toHaveBeenCalledTimes(1)
-            expect(flush).toHaveBeenCalledWith(jobCreateLane)
 
             const streamKey = sendPutThinkingJobCreate.mock.calls[0][1]
             expect(streamKey).toBe(thinkingStreamKey(ids.generationId))
@@ -160,9 +147,9 @@ describe('hypothesisThinkingPersistence', () => {
             })
         })
 
-        it('scopes harness runUntil candidates to one work item and schedule', async () => {
+        it('scopes harness runUntil candidates to one work item and schedule', () => {
             const { messageBus } = makeBus()
-            await bootstrapHypothesisThinkingAtRunStart(
+            bootstrapHypothesisThinkingAtRunStart(
                 { messageBus },
                 { testOnly: 'candidates', harnessRunKind: 'runUntil' }
             )
@@ -173,9 +160,9 @@ describe('hypothesisThinkingPersistence', () => {
             expect(sendPutThinkingSchedule.mock.calls[0][2].segment).toBe('candidates')
         })
 
-        it('scopes harness runOnly planSelect to planSelect only', async () => {
+        it('scopes harness runOnly planSelect to planSelect only', () => {
             const { messageBus } = makeBus()
-            await bootstrapHypothesisThinkingAtRunStart(
+            bootstrapHypothesisThinkingAtRunStart(
                 { messageBus },
                 { testOnly: 'planSelect', harnessRunKind: 'runOnly' }
             )
@@ -188,9 +175,9 @@ describe('hypothesisThinkingPersistence', () => {
 
     describe('sendCoyoteThinkingResult', () => {
         const findThinkingResultMessage = (
-            send: jest.Mock
+            publish: jest.Mock
         ): StreamingEventMessage | undefined => {
-            for (const call of send.mock.calls) {
+            for (const call of publish.mock.calls) {
                 const msg = call[0] as StreamingEventMessage
                 if (
                     msg?.type === 'StreamingEvent' &&
@@ -204,7 +191,7 @@ describe('hypothesisThinkingPersistence', () => {
         }
 
         it('posts CoyoteGame Thinking Result envelope with load-bearing getContent', async () => {
-            const send = jest.fn()
+            const publish = jest.fn()
             const ids = mintHypothesisThinkingIds(['candidates'])
             const verbose = buildCandidatesThinkingResultVerbose({
                 roomObjectsByRoom: { 'ROOM#VORTEX': [] },
@@ -218,10 +205,9 @@ describe('hypothesisThinkingPersistence', () => {
             const workItemId = ids.workItems.candidates!
             const generationId = ids.generationId
             const streamKey = thinkingStreamKey(generationId)
-            const laneId = thinkingResultsLaneId(generationId)
 
             sendCoyoteThinkingResult(
-                { send },
+                { publish },
                 streamKey,
                 {
                     schemaVersion: 1,
@@ -231,13 +217,11 @@ describe('hypothesisThinkingPersistence', () => {
                     ok: true,
                     completedAt: '2026-05-15T12:00:00.000Z',
                     verbose,
-                },
-                laneId
+                }
             )
 
-            expect(send).toHaveBeenCalledTimes(1)
-            expect(send.mock.calls[0][1]).toBe(laneId)
-            const msg = findThinkingResultMessage(send)!
+            expect(publish).toHaveBeenCalledTimes(1)
+            const msg = findThinkingResultMessage(publish)!
             expect(msg.streamKey).toBe(streamKey)
             expect(msg.header.dataSourceKey).toBe(EPHEMERA_COYOTE_GAME_DATA_SOURCE_KEY)
             expect(msg.header.type).toBe(THINKING_RESULT_HEADER_TYPE)
@@ -258,9 +242,9 @@ describe('hypothesisThinkingPersistence', () => {
 
     describe('emitHypothesisThinkingResult', () => {
         const findThinkingResultMessage = (
-            send: jest.Mock
+            publish: jest.Mock
         ): StreamingEventMessage | undefined => {
-            for (const call of send.mock.calls) {
+            for (const call of publish.mock.calls) {
                 const msg = call[0] as StreamingEventMessage
                 if (
                     msg?.type === 'StreamingEvent' &&
@@ -273,22 +257,20 @@ describe('hypothesisThinkingPersistence', () => {
             return undefined
         }
 
-        it('sends Thinking Result then completed schedule and flushes thinkingResults lane', async () => {
-            const flush = jest.fn().mockResolvedValue(undefined)
-            const send = jest.fn()
+        it('publishes Thinking Result then completed schedule', () => {
+            const publish = jest.fn()
             const ids = mintHypothesisThinkingIds(['planSelect'])
-            const laneId = thinkingResultsLaneId(ids.generationId)
             const workItemId = ids.workItems.planSelect!
 
-            await emitHypothesisThinkingResult(
-                { messageBus: { send, flush } },
+            emitHypothesisThinkingResult(
+                { messageBus: { publish } },
                 ids,
                 'planSelect',
                 { ok: true, verbose: { planSelectOutput: { paragraphSummary: 'x', planIssues: [] } } }
             )
 
-            expect(send).toHaveBeenCalledTimes(1)
-            expect(findThinkingResultMessage(send)).toBeDefined()
+            expect(publish).toHaveBeenCalledTimes(1)
+            expect(findThinkingResultMessage(publish)).toBeDefined()
             expect(sendPutThinkingSchedule).toHaveBeenCalledTimes(1)
             expect(sendPutThinkingSchedule.mock.calls[0][1]).toBe(thinkingStreamKey(ids.generationId))
             expect(sendPutThinkingSchedule.mock.calls[0][2]).toMatchObject({
@@ -297,17 +279,15 @@ describe('hypothesisThinkingPersistence', () => {
                 segment: 'planSelect',
                 scheduleStatus: 'completed',
             })
-            expect(sendPutThinkingSchedule.mock.calls[0][3]).toBe(laneId)
-            expect(flush).toHaveBeenCalledTimes(1)
-            expect(flush).toHaveBeenCalledWith(laneId)
+            expect(sendPutThinkingSchedule.mock.calls[0]).toHaveLength(3)
         })
     })
 
     describe('finalizeHypothesisThinkingOnRunFailure', () => {
         const findThinkingResultMessage = (
-            send: jest.Mock
+            publish: jest.Mock
         ): StreamingEventMessage | undefined => {
-            for (const call of send.mock.calls) {
+            for (const call of publish.mock.calls) {
                 const msg = call[0] as StreamingEventMessage
                 if (
                     msg?.type === 'StreamingEvent' &&
@@ -320,9 +300,8 @@ describe('hypothesisThinkingPersistence', () => {
             return undefined
         }
 
-        it('emits planSelect failure result and job error on one lane with single flush', async () => {
-            const flush = jest.fn().mockResolvedValue(undefined)
-            const send = jest.fn()
+        it('publishes planSelect failure result and job error', async () => {
+            const publish = jest.fn()
             const ids = mintHypothesisThinkingIds(['candidates', 'planSelect'])
             const state = {
                 roomObjectsByRoom: { 'ROOM#VORTEX': [] },
@@ -340,8 +319,8 @@ describe('hypothesisThinkingPersistence', () => {
                 selectionBody: '```json\n{}\n```',
             }
 
-            await finalizeHypothesisThinkingOnRunFailure(
-                { messageBus: { send, flush } },
+            finalizeHypothesisThinkingOnRunFailure(
+                { messageBus: { publish } },
                 {
                     ids,
                     failedStepName: 'parsePlanSelectionHandoff',
@@ -351,17 +330,14 @@ describe('hypothesisThinkingPersistence', () => {
                 }
             )
 
-            const laneId = thinkingResultsLaneId(ids.generationId)
-            expect(send).toHaveBeenCalledTimes(1)
+            expect(publish).toHaveBeenCalledTimes(1)
             expect(sendPutThinkingJobError).toHaveBeenCalledTimes(1)
-            expect(sendPutThinkingJobError.mock.calls[0][3]).toBe(laneId)
+            expect(sendPutThinkingJobError.mock.calls[0]).toHaveLength(3)
             expect(
                 sendPutThinkingSchedule.mock.calls.filter((call) => call[2].scheduleStatus === 'completed')
             ).toHaveLength(0)
-            expect(flush).toHaveBeenCalledTimes(1)
-            expect(flush).toHaveBeenCalledWith(laneId)
 
-            const msg = findThinkingResultMessage(send)!
+            const msg = findThinkingResultMessage(publish)!
             const content = await msg.getContent()
             expect(isThinkingResultEvent(content)).toBe(true)
             if (isThinkingResultEvent(content)) {
@@ -378,13 +354,12 @@ describe('hypothesisThinkingPersistence', () => {
             })
         })
 
-        it('omits step result for loadRoomObjects but still marks job failed', async () => {
-            const flush = jest.fn().mockResolvedValue(undefined)
-            const send = jest.fn()
+        it('omits step result for loadRoomObjects but still marks job failed', () => {
+            const publish = jest.fn()
             const ids = mintHypothesisThinkingIds(['candidates', 'planSelect', 'narrativeBeats'])
 
-            await finalizeHypothesisThinkingOnRunFailure(
-                { messageBus: { send, flush } },
+            finalizeHypothesisThinkingOnRunFailure(
+                { messageBus: { publish } },
                 {
                     ids,
                     failedStepName: 'loadRoomObjects',
@@ -394,18 +369,17 @@ describe('hypothesisThinkingPersistence', () => {
                 }
             )
 
-            expect(send).not.toHaveBeenCalled()
+            expect(publish).not.toHaveBeenCalled()
             expect(sendPutThinkingJobError).toHaveBeenCalledTimes(1)
             expect(sendPutThinkingJobError.mock.calls[0][2]).not.toHaveProperty('lastFailedWorkItemId')
         })
 
         it('runOnly planSelect scopes failure emit to planSelect segment only', async () => {
-            const flush = jest.fn().mockResolvedValue(undefined)
-            const send = jest.fn()
+            const publish = jest.fn()
             const ids = mintHypothesisThinkingIds(['planSelect'])
 
-            await finalizeHypothesisThinkingOnRunFailure(
-                { messageBus: { send, flush } },
+            finalizeHypothesisThinkingOnRunFailure(
+                { messageBus: { publish } },
                 {
                     ids,
                     failedStepName: 'parsePlanSelectionHandoff',
@@ -416,7 +390,7 @@ describe('hypothesisThinkingPersistence', () => {
                 }
             )
 
-            const msg = findThinkingResultMessage(send)!
+            const msg = findThinkingResultMessage(publish)!
             const content = await msg.getContent()
             expect(isThinkingResultEvent(content)).toBe(true)
             if (isThinkingResultEvent(content)) {
@@ -503,7 +477,7 @@ describe('hypothesisThinkingPersistence', () => {
 
     describe('bus to persistThinkingResult', () => {
         it('receiveEvents persists Coyote Thinking Result with ok false from mock bus envelope', async () => {
-            const send = jest.fn()
+            const publish = jest.fn()
             const ids = mintHypothesisThinkingIds(['planSelect'])
             const generationId = ids.generationId
             const workItemId = ids.workItems.planSelect!
@@ -511,7 +485,7 @@ describe('hypothesisThinkingPersistence', () => {
             const completedAt = '2026-05-15T12:00:00.000Z'
 
             sendCoyoteThinkingResult(
-                { send },
+                { publish },
                 streamKey,
                 {
                     schemaVersion: 1,
@@ -523,11 +497,10 @@ describe('hypothesisThinkingPersistence', () => {
                     errorCode: 'plan_selection_handoff_parse_failed',
                     errorMessage: 'abort',
                     verbose: { failedStepName: 'parsePlanSelectionHandoff' },
-                },
-                thinkingResultsLaneId(generationId)
+                }
             )
 
-            const msg = send.mock.calls[0][0] as StreamingEventMessage
+            const msg = publish.mock.calls[0][0] as StreamingEventMessage
             const spy = jest.spyOn(persistModule, 'persistThinkingResult').mockResolvedValue('written')
             await ephemeraThinkingResultsDataSource.receiveEvents!({
                 events: [
@@ -552,7 +525,7 @@ describe('hypothesisThinkingPersistence', () => {
         })
 
         it('receiveEvents persists Coyote Thinking Result from mock bus envelope', async () => {
-            const send = jest.fn()
+            const publish = jest.fn()
             const ids = mintHypothesisThinkingIds(['candidates'])
             const generationId = ids.generationId
             const workItemId = ids.workItems.candidates!
@@ -560,7 +533,7 @@ describe('hypothesisThinkingPersistence', () => {
             const completedAt = '2026-05-15T12:00:00.000Z'
 
             sendCoyoteThinkingResult(
-                { send },
+                { publish },
                 streamKey,
                 {
                     schemaVersion: 1,
@@ -570,11 +543,10 @@ describe('hypothesisThinkingPersistence', () => {
                     ok: true,
                     completedAt,
                     verbose: { combined: { candidates: [], schemaVersion: 4 } },
-                },
-                thinkingResultsLaneId(generationId)
+                }
             )
 
-            const msg = send.mock.calls[0][0] as StreamingEventMessage
+            const msg = publish.mock.calls[0][0] as StreamingEventMessage
             const spy = jest.spyOn(persistModule, 'persistThinkingResult').mockResolvedValue('written')
             await ephemeraThinkingResultsDataSource.receiveEvents!({
                 events: [

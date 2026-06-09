@@ -165,10 +165,18 @@ export const isEphemeraApiSubscribedEnvelope = makeStreamingEnvelopeGuardFromHea
     EphemeraApiSubscribedHeader
 >(isEphemeraApiSubscribedHeader)
 
-type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }
+type SendBus = {
+    send: (payload: StreamingEventMessage, laneId?: string) => void
+    publish?: (payload: StreamingEventMessage) => void
+}
+
+type ThinkingCommandBus = {
+    publish?: (payload: StreamingEventMessage) => void
+    send?: (payload: StreamingEventMessage, laneId?: string) => void
+}
 
 function postApiEphemeraStreamingEvent(
-    bus: Bus,
+    bus: ThinkingCommandBus,
     streamKey: string,
     header: StreamingEventHeader,
     getContent: () => Promise<unknown>,
@@ -184,9 +192,15 @@ function postApiEphemeraStreamingEvent(
         timestamp,
     }
     if (laneId !== undefined && laneId !== '') {
+        if (bus.send === undefined) {
+            throw new Error('api.ephemera: laneId requires bus.send')
+        }
         bus.send(message, laneId)
     } else {
-        bus.send(message)
+        if (bus.publish === undefined) {
+            throw new Error('api.ephemera: omitting laneId requires bus.publish')
+        }
+        bus.publish(message)
     }
 }
 
@@ -197,7 +211,7 @@ const apiEphemeraSerializer = {
     }),
 }
 
-export function sendPutCacheRecord(bus: Bus, streamKey: string, content: PutCacheRecordCommand): void {
+export function sendPutCacheRecord(bus: SendBus, streamKey: string, content: PutCacheRecordCommand): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
         dataSourceKey: 'api.ephemera',
@@ -216,7 +230,7 @@ export function sendPutCacheRecord(bus: Bus, streamKey: string, content: PutCach
     })
 }
 
-export function sendDeleteCacheRecords(bus: Bus, streamKey: string, content: DeleteCacheRecordsCommand): void {
+export function sendDeleteCacheRecords(bus: SendBus, streamKey: string, content: DeleteCacheRecordsCommand): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
         dataSourceKey: 'api.ephemera',
@@ -238,7 +252,7 @@ export function sendDeleteCacheRecords(bus: Bus, streamKey: string, content: Del
 /**
  * Post **State Change** to the internal bus (`componentId` + `markState`).
  */
-export function sendStateChange(bus: Bus, streamKey: string, content: StateChangeCommand): void {
+export function sendStateChange(bus: SendBus, streamKey: string, content: StateChangeCommand): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
         dataSourceKey: 'api.ephemera',
@@ -261,7 +275,7 @@ export function sendStateChange(bus: Bus, streamKey: string, content: StateChang
  * Post **Objects Change** to the internal bus: `add` is `{ uuid: OBJECT#..., shortName }[]`,
  * `remove` is `OBJECT#...` ids. No ReturnValue for v1.
  */
-export function sendObjectsChange(bus: Bus, streamKey: string, content: ObjectsChangeCommand): void {
+export function sendObjectsChange(bus: SendBus, streamKey: string, content: ObjectsChangeCommand): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
         dataSourceKey: 'api.ephemera',
@@ -283,7 +297,7 @@ export function sendObjectsChange(bus: Bus, streamKey: string, content: ObjectsC
 /**
  * Post **Parse Requested** to the internal bus for mtw.ephemera.actions ingestion.
  */
-export function sendParseRequested(bus: Bus, streamKey: string, content: ParseRequestedCommand): void {
+export function sendParseRequested(bus: SendBus, streamKey: string, content: ParseRequestedCommand): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
         dataSourceKey: 'api.ephemera',
@@ -306,7 +320,7 @@ export function sendParseRequested(bus: Bus, streamKey: string, content: ParseRe
  * Post **Put Thinking Schedule** to the internal bus for `mtw.ephemera.thinking.scheduling` persistence.
  */
 export function sendPutThinkingSchedule(
-    bus: Bus,
+    bus: ThinkingCommandBus,
     streamKey: string,
     content: PutThinkingScheduleCommand,
     laneId?: string
@@ -325,7 +339,7 @@ export function sendPutThinkingSchedule(
  * Post **Put Thinking Job Create** to the internal bus (job bootstrap; consumer: thinking scheduling DataSource).
  */
 export function sendPutThinkingJobCreate(
-    bus: Bus,
+    bus: ThinkingCommandBus,
     streamKey: string,
     content: PutThinkingJobCreateCommand,
     laneId?: string
@@ -344,7 +358,7 @@ export function sendPutThinkingJobCreate(
  * Post **Put Thinking Job Error** to the internal bus (run-level job failure on `Meta::Job`).
  */
 export function sendPutThinkingJobError(
-    bus: Bus,
+    bus: ThinkingCommandBus,
     streamKey: string,
     content: PutThinkingJobErrorCommand,
     laneId?: string

@@ -19,7 +19,6 @@ import {
     finalizeAcmeOrderThinkingOnFailure,
     mintAcmeOrderThinkingIds,
     sendActionsThinkingResult,
-    thinkingResultsLaneId,
     thinkingStreamKey,
 } from './acmeOrderThinkingPersistence'
 
@@ -137,33 +136,24 @@ describe('acmeOrderThinkingPersistence', () => {
     })
 
     describe('bootstrapAcmeOrderThinkingAtRunStart', () => {
-        const makeBus = () => {
-            const flush = jest.fn().mockResolvedValue(undefined)
-            return {
-                messageBus: {
-                    send: jest.fn(),
-                    flush,
-                },
-                flush,
-            }
-        }
+        const makeBus = () => ({
+            messageBus: {
+                publish: jest.fn(),
+            },
+        })
 
-        it('sends job create and one schedule on one bootstrap lane then flushes', async () => {
-            const { messageBus, flush } = makeBus()
-            const ids = await bootstrapAcmeOrderThinkingAtRunStart({ messageBus })
+        it('publishes job create and one schedule via publish path', () => {
+            const { messageBus } = makeBus()
+            const ids = bootstrapAcmeOrderThinkingAtRunStart({ messageBus })
 
             expect(ids.workItems.acmeOrderEnrich).toBeDefined()
 
             expect(sendPutThinkingJobCreate).toHaveBeenCalledTimes(1)
-            const jobCreateLane = sendPutThinkingJobCreate.mock.calls[0][3]
-            expect(jobCreateLane).toMatch(/^thinkingBootstrap:/)
+            expect(sendPutThinkingJobCreate.mock.calls[0]).toHaveLength(3)
 
             expect(sendPutThinkingSchedule).toHaveBeenCalledTimes(1)
-            expect(sendPutThinkingSchedule.mock.calls[0][3]).toBe(jobCreateLane)
+            expect(sendPutThinkingSchedule.mock.calls[0]).toHaveLength(3)
             expect(sendPutThinkingSchedule.mock.calls[0][2].segment).toBe(ACME_ORDER_ENRICH_SEGMENT)
-
-            expect(flush).toHaveBeenCalledTimes(1)
-            expect(flush).toHaveBeenCalledWith(jobCreateLane)
 
             const streamKey = sendPutThinkingJobCreate.mock.calls[0][1]
             expect(streamKey).toBe(thinkingStreamKey(ids.generationId))
@@ -178,9 +168,9 @@ describe('acmeOrderThinkingPersistence', () => {
 
     describe('sendActionsThinkingResult', () => {
         const findThinkingResultMessage = (
-            send: jest.Mock
+            publish: jest.Mock
         ): StreamingEventMessage | undefined => {
-            for (const call of send.mock.calls) {
+            for (const call of publish.mock.calls) {
                 const msg = call[0] as StreamingEventMessage
                 if (
                     msg?.type === 'StreamingEvent' &&
@@ -194,16 +184,15 @@ describe('acmeOrderThinkingPersistence', () => {
         }
 
         it('posts Actions Thinking Result envelope with load-bearing getContent', async () => {
-            const send = jest.fn()
+            const publish = jest.fn()
             const ids = mintAcmeOrderThinkingIds()
             const verbose = { command: 'order rope', occupiedStableKeys: ['a'] }
             const workItemId = ids.workItems.acmeOrderEnrich
             const generationId = ids.generationId
             const streamKey = thinkingStreamKey(generationId)
-            const laneId = thinkingResultsLaneId(generationId)
 
             sendActionsThinkingResult(
-                { send },
+                { publish },
                 streamKey,
                 {
                     schemaVersion: 1,
@@ -213,13 +202,11 @@ describe('acmeOrderThinkingPersistence', () => {
                     ok: true,
                     completedAt: '2026-05-15T12:00:00.000Z',
                     verbose,
-                },
-                laneId
+                }
             )
 
-            expect(send).toHaveBeenCalledTimes(1)
-            expect(send.mock.calls[0][1]).toBe(laneId)
-            const msg = findThinkingResultMessage(send)!
+            expect(publish).toHaveBeenCalledTimes(1)
+            const msg = findThinkingResultMessage(publish)!
             expect(msg.streamKey).toBe(streamKey)
             expect(msg.header.dataSourceKey).toBe(EPHEMERA_ACTIONS_DATA_SOURCE_KEY)
             expect(msg.header.type).toBe(THINKING_RESULT_HEADER_TYPE)
@@ -239,9 +226,9 @@ describe('acmeOrderThinkingPersistence', () => {
 
     describe('emitAcmeOrderThinkingResult', () => {
         const findThinkingResultMessage = (
-            send: jest.Mock
+            publish: jest.Mock
         ): StreamingEventMessage | undefined => {
-            for (const call of send.mock.calls) {
+            for (const call of publish.mock.calls) {
                 const msg = call[0] as StreamingEventMessage
                 if (
                     msg?.type === 'StreamingEvent' &&
@@ -254,21 +241,19 @@ describe('acmeOrderThinkingPersistence', () => {
             return undefined
         }
 
-        it('sends Thinking Result then completed schedule and flushes thinkingResults lane', async () => {
-            const flush = jest.fn().mockResolvedValue(undefined)
-            const send = jest.fn()
+        it('publishes Thinking Result then completed schedule', () => {
+            const publish = jest.fn()
             const ids = mintAcmeOrderThinkingIds()
-            const laneId = thinkingResultsLaneId(ids.generationId)
             const workItemId = ids.workItems.acmeOrderEnrich
 
-            await emitAcmeOrderThinkingResult(
-                { messageBus: { send, flush } },
+            emitAcmeOrderThinkingResult(
+                { messageBus: { publish } },
                 ids,
                 { ok: true, verbose: { command: 'order rope', resultType: 'AcmeOrder' } }
             )
 
-            expect(send).toHaveBeenCalledTimes(1)
-            expect(findThinkingResultMessage(send)).toBeDefined()
+            expect(publish).toHaveBeenCalledTimes(1)
+            expect(findThinkingResultMessage(publish)).toBeDefined()
             expect(sendPutThinkingSchedule).toHaveBeenCalledTimes(1)
             expect(sendPutThinkingSchedule.mock.calls[0][1]).toBe(thinkingStreamKey(ids.generationId))
             expect(sendPutThinkingSchedule.mock.calls[0][2]).toMatchObject({
@@ -277,17 +262,15 @@ describe('acmeOrderThinkingPersistence', () => {
                 segment: ACME_ORDER_ENRICH_SEGMENT,
                 scheduleStatus: 'completed',
             })
-            expect(sendPutThinkingSchedule.mock.calls[0][3]).toBe(laneId)
-            expect(flush).toHaveBeenCalledTimes(1)
-            expect(flush).toHaveBeenCalledWith(laneId)
+            expect(sendPutThinkingSchedule.mock.calls[0]).toHaveLength(3)
         })
     })
 
     describe('finalizeAcmeOrderThinkingOnFailure', () => {
         const findThinkingResultMessage = (
-            send: jest.Mock
+            publish: jest.Mock
         ): StreamingEventMessage | undefined => {
-            for (const call of send.mock.calls) {
+            for (const call of publish.mock.calls) {
                 const msg = call[0] as StreamingEventMessage
                 if (
                     msg?.type === 'StreamingEvent' &&
@@ -300,9 +283,8 @@ describe('acmeOrderThinkingPersistence', () => {
             return undefined
         }
 
-        it('emits acmeOrderEnrich failure result and job error on one lane with single flush', async () => {
-            const flush = jest.fn().mockResolvedValue(undefined)
-            const send = jest.fn()
+        it('emits acmeOrderEnrich failure result and job error via publish', async () => {
+            const publish = jest.fn()
             const ids = mintAcmeOrderThinkingIds()
             const verbose = buildAcmeOrderEnrichFailureVerbose({
                 command: 'order rope',
@@ -310,8 +292,8 @@ describe('acmeOrderThinkingPersistence', () => {
                 placedObjectsCount: 25,
             })
 
-            await finalizeAcmeOrderThinkingOnFailure(
-                { messageBus: { send, flush } },
+            finalizeAcmeOrderThinkingOnFailure(
+                { messageBus: { publish } },
                 {
                     ids,
                     errorCode: 'acme_enrich_placed_objects_cap',
@@ -320,17 +302,14 @@ describe('acmeOrderThinkingPersistence', () => {
                 }
             )
 
-            const laneId = thinkingResultsLaneId(ids.generationId)
-            expect(send).toHaveBeenCalledTimes(1)
+            expect(publish).toHaveBeenCalledTimes(1)
             expect(sendPutThinkingJobError).toHaveBeenCalledTimes(1)
-            expect(sendPutThinkingJobError.mock.calls[0][3]).toBe(laneId)
+            expect(sendPutThinkingJobError.mock.calls[0]).toHaveLength(3)
             expect(
                 sendPutThinkingSchedule.mock.calls.filter((call) => call[2].scheduleStatus === 'completed')
             ).toHaveLength(0)
-            expect(flush).toHaveBeenCalledTimes(1)
-            expect(flush).toHaveBeenCalledWith(laneId)
 
-            const msg = findThinkingResultMessage(send)!
+            const msg = findThinkingResultMessage(publish)!
             const content = await msg.getContent()
             expect(isThinkingResultEvent(content)).toBe(true)
             if (isThinkingResultEvent(content)) {
@@ -355,7 +334,7 @@ describe('acmeOrderThinkingPersistence', () => {
 
     describe('bus to persistThinkingResult', () => {
         it('receiveEvents persists Actions Thinking Result with ok false from mock bus envelope', async () => {
-            const send = jest.fn()
+            const publish = jest.fn()
             const ids = mintAcmeOrderThinkingIds()
             const generationId = ids.generationId
             const workItemId = ids.workItems.acmeOrderEnrich
@@ -363,7 +342,7 @@ describe('acmeOrderThinkingPersistence', () => {
             const completedAt = '2026-05-15T12:00:00.000Z'
 
             sendActionsThinkingResult(
-                { send },
+                { publish },
                 streamKey,
                 {
                     schemaVersion: 1,
@@ -375,11 +354,10 @@ describe('acmeOrderThinkingPersistence', () => {
                     errorCode: 'acme_enrich_invoke_failed',
                     errorMessage: 'invoke failed',
                     verbose: { command: 'order rope' },
-                },
-                thinkingResultsLaneId(generationId)
+                }
             )
 
-            const msg = send.mock.calls[0][0] as StreamingEventMessage
+            const msg = publish.mock.calls[0][0] as StreamingEventMessage
             const spy = jest.spyOn(persistModule, 'persistThinkingResult').mockResolvedValue('written')
             await ephemeraThinkingResultsDataSource.receiveEvents!({
                 events: [
@@ -404,7 +382,7 @@ describe('acmeOrderThinkingPersistence', () => {
         })
 
         it('receiveEvents persists Actions Thinking Result from mock bus envelope', async () => {
-            const send = jest.fn()
+            const publish = jest.fn()
             const ids = mintAcmeOrderThinkingIds()
             const generationId = ids.generationId
             const workItemId = ids.workItems.acmeOrderEnrich
@@ -412,7 +390,7 @@ describe('acmeOrderThinkingPersistence', () => {
             const completedAt = '2026-05-15T12:00:00.000Z'
 
             sendActionsThinkingResult(
-                { send },
+                { publish },
                 streamKey,
                 {
                     schemaVersion: 1,
@@ -422,11 +400,10 @@ describe('acmeOrderThinkingPersistence', () => {
                     ok: true,
                     completedAt,
                     verbose: { command: 'order rope', resultType: 'AcmeOrder' },
-                },
-                thinkingResultsLaneId(generationId)
+                }
             )
 
-            const msg = send.mock.calls[0][0] as StreamingEventMessage
+            const msg = publish.mock.calls[0][0] as StreamingEventMessage
             const spy = jest.spyOn(persistModule, 'persistThinkingResult').mockResolvedValue('written')
             await ephemeraThinkingResultsDataSource.receiveEvents!({
                 events: [

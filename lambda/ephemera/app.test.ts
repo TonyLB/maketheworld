@@ -14,7 +14,9 @@ describe('app handler', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockMessageBus.clear.mockReturnValue(undefined)
-        mockMessageBus.flush.mockResolvedValue(undefined)
+        mockMessageBus.flush.mockResolvedValue(false)
+        mockMessageBus.settle.mockResolvedValue(false)
+        mockMessageBus.flushAndSettle.mockResolvedValue(undefined)
         mockMessageBus.send.mockReturnValue(undefined)
         mockThinkingResultsGet = jest.fn()
         ;(internalCache as unknown as { ThinkingResults: { get: jest.Mock } }).ThinkingResults = {

@@ -42,7 +42,7 @@ export type EnrichAcmeOrderInput = {
 export type EnrichAcmeOrderResult = ParseCommandAcmeOrderResult | ParseCommandErrorResult
 
 export type EnrichAcmeOrderDeps = {
-    messageBus?: Pick<MessageBus, 'send' | 'flush'>
+    messageBus?: Pick<MessageBus, 'publish'>
     invokeBedrockAcmeOrderEnrichImpl?: typeof invokeBedrockAcmeOrderEnrich
     countCoyotePlacedObjectsAcrossRoomsDeps?: Partial<CollectCoyoteOccupiedStableKeysDeps>
 }
@@ -103,15 +103,15 @@ export async function enrichAcmeOrder(
     const thinkingBus = deps.messageBus
     let thinkingIds: AcmeOrderThinkingIds | undefined
 
-    const finalizeThinking = async (
+    const finalizeThinking = (
         kind: AcmeOrderEnrichFailureKind,
         errorMessage: string,
         verboseFields: Partial<AcmeOrderEnrichThinkingVerboseInput>
-    ): Promise<void> => {
+    ): void => {
         if (thinkingBus === undefined || thinkingIds === undefined) {
             return
         }
-        await finalizeAcmeOrderThinkingOnFailure(
+        finalizeAcmeOrderThinkingOnFailure(
             { messageBus: thinkingBus },
             {
                 ids: thinkingIds,
@@ -126,7 +126,7 @@ export async function enrichAcmeOrder(
 
     try {
         if (thinkingBus !== undefined) {
-            thinkingIds = await bootstrapAcmeOrderThinkingAtRunStart({ messageBus: thinkingBus })
+            thinkingIds = bootstrapAcmeOrderThinkingAtRunStart({ messageBus: thinkingBus })
         }
 
         const commandPreview = input.command.trim().slice(0, 200)
@@ -150,7 +150,7 @@ export async function enrichAcmeOrder(
                 type: 'Error',
                 errorMessage: ACME_ORDER_TOO_MANY_PLACED_OBJECTS_MESSAGE,
             }
-            await finalizeThinking('placed_objects_cap', ACME_ORDER_TOO_MANY_PLACED_OBJECTS_MESSAGE, {
+            finalizeThinking('placed_objects_cap', ACME_ORDER_TOO_MANY_PLACED_OBJECTS_MESSAGE, {
                 placedObjectsCount: count,
                 result: capResult,
             })
@@ -255,9 +255,9 @@ export async function enrichAcmeOrder(
                     : 'invoke_failed'
                 const errorMessage = parseFailureReason
                     ?? (enrichInvoke.success ? 'Acme enrich failed' : enrichInvoke.errorMessage ?? 'invoke failed')
-                await finalizeThinking(failureKind, errorMessage, verboseFields)
+                finalizeThinking(failureKind, errorMessage, verboseFields)
             } else {
-                await emitAcmeOrderThinkingResult(
+                emitAcmeOrderThinkingResult(
                     { messageBus: thinkingBus },
                     thinkingIds,
                     {
@@ -273,7 +273,7 @@ export async function enrichAcmeOrder(
         return { result, enrichReasoningMarkdown, enrichRawBody }
     } catch (error) {
         if (thinkingBus !== undefined && thinkingIds !== undefined) {
-            await finalizeThinking('unknown', errorMessageFromUnknown(error), {})
+            finalizeThinking('unknown', errorMessageFromUnknown(error), {})
         }
         throw error
     }

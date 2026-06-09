@@ -48,12 +48,11 @@ const sendPutThinkingJobError = apiEphemera.sendPutThinkingJobError as jest.Mock
 >
 
 const mockMessageBus = () => ({
-    send: jest.fn(),
-    flush: jest.fn().mockResolvedValue(undefined),
+    publish: jest.fn(),
 })
 
-const findActionsThinkingResultMessages = (send: jest.Mock): StreamingEventMessage[] =>
-    send.mock.calls
+const findActionsThinkingResultMessages = (publish: jest.Mock): StreamingEventMessage[] =>
+    publish.mock.calls
         .map((call) => call[0] as StreamingEventMessage)
         .filter(
             (msg) =>
@@ -63,10 +62,10 @@ const findActionsThinkingResultMessages = (send: jest.Mock): StreamingEventMessa
         )
 
 const thinkingResultsOkFromBus = async (
-    send: jest.Mock
+    publish: jest.Mock
 ): Promise<Array<{ segment: string; ok: boolean; errorCode?: string }>> => {
     const results: Array<{ segment: string; ok: boolean; errorCode?: string }> = []
-    for (const msg of findActionsThinkingResultMessages(send)) {
+    for (const msg of findActionsThinkingResultMessages(publish)) {
         const content = await msg.getContent()
         if (isThinkingResultEvent(content)) {
             results.push({
@@ -1190,28 +1189,25 @@ describe('parseCommand LLM path', () => {
 
             expect(result.type).toBe('AcmeOrder')
             expect(sendPutThinkingJobCreate).toHaveBeenCalledTimes(1)
-            const bootstrapLane = sendPutThinkingJobCreate.mock.calls[0][3]
-            expect(bootstrapLane).toMatch(/^thinkingBootstrap:/)
-            expect(sendPutThinkingSchedule.mock.calls[0][3]).toBe(bootstrapLane)
+            expect(sendPutThinkingJobCreate.mock.calls[0]).toHaveLength(3)
+            expect(sendPutThinkingSchedule.mock.calls[0]).toHaveLength(3)
             expect(sendPutThinkingSchedule.mock.calls[0][2].scheduleStatus).toBe('scheduled')
             expect(sendPutThinkingSchedule.mock.calls[0][2].segment).toBe(ACME_ORDER_ENRICH_SEGMENT)
 
-            const generationId = sendPutThinkingJobCreate.mock.calls[0][2].generationId
-            const resultsLane = `thinkingResults:${generationId}`
-            expect(bus.flush).toHaveBeenNthCalledWith(1, bootstrapLane)
             expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
 
-            const thinkingResults = await thinkingResultsOkFromBus(bus.send)
+            const thinkingResults = await thinkingResultsOkFromBus(bus.publish)
             expect(thinkingResults).toEqual([{ segment: ACME_ORDER_ENRICH_SEGMENT, ok: true }])
-            expect(findActionsThinkingResultMessages(bus.send)).toHaveLength(1)
+            expect(findActionsThinkingResultMessages(bus.publish)).toHaveLength(1)
             expectCompletedSchedulePutsMatchBootstrap([ACME_ORDER_ENRICH_SEGMENT])
-            expect(sendPutThinkingSchedule.mock.calls.find(
+            const completedScheduleCall = sendPutThinkingSchedule.mock.calls.find(
                 (call) => call[2].scheduleStatus === 'completed'
-            )?.[3]).toBe(resultsLane)
-            expect(bus.flush).toHaveBeenNthCalledWith(2, resultsLane)
+            )
+            expect(completedScheduleCall).toBeDefined()
+            expect(completedScheduleCall).toHaveLength(3)
             expect(sendPutThinkingJobError).not.toHaveBeenCalled()
 
-            const content = await findActionsThinkingResultMessages(bus.send)[0]!.getContent()
+            const content = await findActionsThinkingResultMessages(bus.publish)[0]!.getContent()
             if (isThinkingResultEvent(content)) {
                 expect(content.verbose).toMatchObject({
                     command: 'mail order dynamite and a spring from acme',
@@ -1258,7 +1254,7 @@ describe('parseCommand LLM path', () => {
             expect(result.type).toBe('Error')
             expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
             expect(sendPutThinkingJobCreate).toHaveBeenCalledTimes(1)
-            const thinkingResults = await thinkingResultsOkFromBus(bus.send)
+            const thinkingResults = await thinkingResultsOkFromBus(bus.publish)
             expect(thinkingResults).toEqual([{
                 segment: ACME_ORDER_ENRICH_SEGMENT,
                 ok: false,
@@ -1303,7 +1299,7 @@ describe('parseCommand LLM path', () => {
                 }],
                 confidence: 0.75,
             })
-            const thinkingResults = await thinkingResultsOkFromBus(bus.send)
+            const thinkingResults = await thinkingResultsOkFromBus(bus.publish)
             expect(thinkingResults).toEqual([{
                 segment: ACME_ORDER_ENRICH_SEGMENT,
                 ok: false,
@@ -1335,7 +1331,7 @@ describe('parseCommand LLM path', () => {
             )
 
             expect(result.type).toBe('AcmeOrder')
-            const thinkingResults = await thinkingResultsOkFromBus(bus.send)
+            const thinkingResults = await thinkingResultsOkFromBus(bus.publish)
             expect(thinkingResults).toEqual([{
                 segment: ACME_ORDER_ENRICH_SEGMENT,
                 ok: false,
@@ -1344,7 +1340,7 @@ describe('parseCommand LLM path', () => {
             expect(sendPutThinkingJobError).toHaveBeenCalledTimes(1)
             expect(schedulePutsByStatus('completed')).toHaveLength(0)
 
-            const content = await findActionsThinkingResultMessages(bus.send)[0]!.getContent()
+            const content = await findActionsThinkingResultMessages(bus.publish)[0]!.getContent()
             if (isThinkingResultEvent(content)) {
                 expect(content.verbose).toMatchObject({
                     parseFailureReason: expect.any(String),
@@ -1390,7 +1386,7 @@ describe('parseCommand LLM path', () => {
 
             expect(result).toEqual({ type: 'AwaitRoadRunner', confidence: 0.88 })
             expect(sendPutThinkingJobCreate).not.toHaveBeenCalled()
-            expect(findActionsThinkingResultMessages(bus.send)).toHaveLength(0)
+            expect(findActionsThinkingResultMessages(bus.publish)).toHaveLength(0)
         })
     })
 

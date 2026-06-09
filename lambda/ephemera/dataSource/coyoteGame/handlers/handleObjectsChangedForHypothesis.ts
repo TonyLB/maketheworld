@@ -33,7 +33,7 @@ export async function handleObjectsChangedForHypothesis(
     raw: unknown,
     deps: {
         streamEvent: StreamEventFunction<CoyoteGamePublishedPayload, StreamingEventHeader>;
-        messageBus: Pick<MessageBus, 'send' | 'flush'>;
+        messageBus: Pick<MessageBus, 'publish'>;
     }
 ): Promise<void> {
     if (!isObjectsChangedPayload(raw)) {
@@ -61,79 +61,69 @@ export async function handleObjectsChangedForHypothesis(
 
     const targets = active.map((o) => o.EphemeraId)
 
-    /** Drain this lane so the Generating WorldMessage runs through publishMessage while hypothesis work proceeds. */
-    const hypothesisLaneId = `hypothesisLane:${hypothesisId}`
     hypothesisDebugLog('objects changed hypothesis trigger', {
         componentId: payload.componentId,
         addCount: payload.add.length,
         activeTargetsCount: targets.length,
         hypothesisId,
-        hypothesisLaneId,
     })
 
-    deps.messageBus.send(
-        {
-            type: 'PublishMessage',
-            targets,
-            displayProtocol: 'CoyoteGameHypothesisMessage',
-            message: ['Hypothesis: Generating...'],
-            messageId: stored.hypothesisId,
-            createdTime: stored.t0,
-        },
-        hypothesisLaneId
-    )
+    deps.messageBus.publish({
+        type: 'PublishMessage',
+        targets,
+        displayProtocol: 'CoyoteGameHypothesisMessage',
+        message: ['Hypothesis: Generating...'],
+        messageId: stored.hypothesisId,
+        createdTime: stored.t0,
+    })
 
-    const remainder = async (): Promise<void> => {
-        await deps.streamEvent({
-            streamKey: payload.componentId,
-            header: { type: 'Hypothesis Generation Started' },
-            update: {
-                type: 'Hypothesis Generation Started',
-                hypothesisId,
-                characterId,
-            },
-        })
-
-        await internalCache.CoyoteGame.invalidate('intent')
-        const intentRecord = await internalCache.CoyoteGame.get('intent')
-        // NOTE: intentRecord.walkthrough maps hop-2 internal prose (## Cartoon play-by-play).
-        // We filter those headings from terminal publish for now; semantic realignment is deferred.
-        const walkthrough = userFacingWalkthrough(intentRecord.walkthrough)
-        const renderTree: RenderTree =
-            walkthrough !== undefined
-                ? [walkthrough, COYOTE_RENDER_LINE_BREAK, intentRecord.intent]
-                : [intentRecord.intent]
-        hypothesisDebugLog('objects changed hypothesis final intent', {
+    await deps.streamEvent({
+        streamKey: payload.componentId,
+        header: { type: 'Hypothesis Generation Started' },
+        update: {
+            type: 'Hypothesis Generation Started',
             hypothesisId,
-            intent: intentRecord.intent,
-            hadStoredWalkthrough: intentRecord.walkthrough !== undefined,
-            includedWalkthrough: walkthrough !== undefined,
-            walkthroughFiltered: intentRecord.walkthrough !== undefined && walkthrough === undefined,
-            hasNarrativeBeatsStructured: intentRecord.narrativeBeatsStructured !== undefined,
-        })
+            characterId,
+        },
+    })
 
-        const t1 = Math.max(stored.t0 + 1, getCurrentTimestamp())
+    await internalCache.CoyoteGame.invalidate('intent')
+    const intentRecord = await internalCache.CoyoteGame.get('intent')
+    // NOTE: intentRecord.walkthrough maps hop-2 internal prose (## Cartoon play-by-play).
+    // We filter those headings from terminal publish for now; semantic realignment is deferred.
+    const walkthrough = userFacingWalkthrough(intentRecord.walkthrough)
+    const renderTree: RenderTree =
+        walkthrough !== undefined
+            ? [walkthrough, COYOTE_RENDER_LINE_BREAK, intentRecord.intent]
+            : [intentRecord.intent]
+    hypothesisDebugLog('objects changed hypothesis final intent', {
+        hypothesisId,
+        intent: intentRecord.intent,
+        hadStoredWalkthrough: intentRecord.walkthrough !== undefined,
+        includedWalkthrough: walkthrough !== undefined,
+        walkthroughFiltered: intentRecord.walkthrough !== undefined && walkthrough === undefined,
+        hasNarrativeBeatsStructured: intentRecord.narrativeBeatsStructured !== undefined,
+    })
 
-        await deps.streamEvent({
-            streamKey: payload.componentId,
-            header: { type: 'Hypothesis Generation Result' },
-            update: {
-                type: 'Hypothesis Generation Result',
-                hypothesisId,
-                characterId,
-                renderTree,
-            },
-        })
+    const t1 = Math.max(stored.t0 + 1, getCurrentTimestamp())
 
-        deps.messageBus.send({
-            type: 'PublishMessage',
-            targets,
-            displayProtocol: 'CoyoteGameHypothesisMessage',
-            message: renderTree,
-            messageId: stored.hypothesisId,
-            createdTime: t1,
-        })
-    }
+    await deps.streamEvent({
+        streamKey: payload.componentId,
+        header: { type: 'Hypothesis Generation Result' },
+        update: {
+            type: 'Hypothesis Generation Result',
+            hypothesisId,
+            characterId,
+            renderTree,
+        },
+    })
 
-    await Promise.all([deps.messageBus.flush(hypothesisLaneId), remainder()])
+    deps.messageBus.publish({
+        type: 'PublishMessage',
+        targets,
+        displayProtocol: 'CoyoteGameHypothesisMessage',
+        message: renderTree,
+        messageId: stored.hypothesisId,
+        createdTime: t1,
+    })
 }

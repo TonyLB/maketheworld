@@ -52,7 +52,7 @@ Task plan: [`taskPlanning/packages/mtw-lambda-patterns/ts/messageBus/AGENT.publi
 
 **Bucket-1 aggregation** (task plan **Bucket-1 deep dive**): flush batching was shielding, contract packaging, or orchestration -- not only traffic dedup. Fix axis per row: consumer idempotency (easy migrate), **producer coalescing** (`checkLocation`, `diagnostics`), **contract** (`mapSubscription` / `extractReturnValue`), or **Q9 defer buffer** (`publishMessage` orchestration). Do not assume all bucket-1 rows need consumer hardening.
 
-**Q9 defer buffer (locked):** orchestration outbound coalescing is **not** a second subscriber queue. **API:** `registerDeferral(tag, { onClear?, afterSettled })`; `clear()` runs `onClear`; `runDeferrals()` after `flushAndSettle` idle loop (not after every inline `settle()`). Per-need aggregator modules wrap registration at module load. **v1 contract:** `afterSettled` hooks are **IO-only** (no `publish`/`send`); one pass, no repeat loop. Avoid inline `await settle()` in aggregators for sequencing -- use shared entity + boundary drain; future repeat wrapper if boundary-phase bus enqueue is needed. See task plan **Q9**.
+**Q9 defer buffer (locked):** orchestration outbound coalescing is **not** a second subscriber queue. **API:** `registerDeferral(tag, { onClear?, afterSettled })`; `clear()` runs `onClear`; `runDeferrals()` after **boundary drain** (`flushAndSettle` idle loop), not after producer-side mid-invocation drain. Per-need aggregator modules wrap registration at module load. **v1 contract:** `afterSettled` hooks are **IO-only** (no `publish`/`send`); one pass, no repeat loop. Avoid producer-side mid-invocation drain in aggregators for sequencing -- use shared entity + boundary drain; future repeat wrapper if boundary-phase bus enqueue is needed. Drain scopes: task plan **Bus drain terminology** and **Q9**.
 
 ### `publish` / `settle` API
 
@@ -65,15 +65,15 @@ Implementation: [`index.ts`](./index.ts). The publish path is **independent** fr
 | `flush()` / `flush(laneId)` | `Promise<boolean>` | Legacy path unchanged except return type: `true` if at least one callback ran with a non-empty batch; `false` on no-op. Still uses `Promise.all` (may reject). |
 | `flushAndSettle(laneId?)` | `Promise<void>` | Outer loop: `Promise.all([flush, settle])` until both return `false`, then `await runDeferrals()`. Handles cross-seam ping-pong (`flush` -> `publish` -> `settle` -> `send` -> ...). |
 | `registerDeferral(tag, hooks)` | `void` | Registers `{ onClear?, afterSettled }`; throws on duplicate `tag`. Registrations persist across invocations. |
-| `runDeferrals()` | `Promise<void>` | `Promise.allSettled` over all `afterSettled` hooks; logs rejections; does not reject. Called only from `flushAndSettle` tail (not inline `settle`). |
+| `runDeferrals()` | `Promise<void>` | `Promise.allSettled` over all `afterSettled` hooks; logs rejections; does not reject. Called only from **boundary drain** (`flushAndSettle` tail), not from producer-side mid-invocation drain. |
 | `clear()` | `void` | Resets `_stream` and `_inFlight`; invokes each deferral's `onClear`. Does not cancel detached async work. |
 
 ```ts
 // Publish path (immediate scheduling)
 messageBus.publish({ type: 'SomeEvent', ... })
-await messageBus.settle()  // drain _inFlight; test teardown or inline drain
+await messageBus.settle()  // test harness drain only (Q6); not production handler bodies
 
-// Lambda boundary (hybrid migration)
+// Lambda boundary drain (hybrid migration)
 await messageBus.flushAndSettle()  // flush + settle loop, then runDeferrals()
 
 // Deferral registration (module load; first consumer P4 PUBLISH-MSG)

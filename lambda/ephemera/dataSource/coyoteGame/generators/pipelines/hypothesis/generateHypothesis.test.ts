@@ -136,8 +136,7 @@ describe('generateHypothesis', () => {
         getGameRooms,
         getRoomMeta,
         messageBus: {
-            send: jest.fn(),
-            flush: jest.fn().mockResolvedValue(undefined),
+            publish: jest.fn(),
         },
         ...extra,
     })

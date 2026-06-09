@@ -63,7 +63,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush },
+            messageBus: { send, flush, publish: jest.fn() },
             fixtures: simpleFixtures,
             generateHypothesisPipelineImpl: pipeline,
             now,
@@ -104,7 +104,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush },
+            messageBus: { send, flush, publish: jest.fn() },
             fixtures: simpleFixtures,
             generateHypothesisPipelineImpl: pipeline,
         })
@@ -176,7 +176,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush },
+            messageBus: { send, flush, publish: jest.fn() },
             fixtures: [simpleFixtures[0]],
             generateHypothesisPipelineImpl: pipeline,
             now,
@@ -221,7 +221,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         const runPromise = runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush },
+            messageBus: { send, flush, publish: jest.fn() },
             fixtures: simpleFixtures,
             generateHypothesisPipelineImpl: pipeline,
             testBatchSize: 2,
@@ -265,7 +265,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush },
+            messageBus: { send, flush, publish: jest.fn() },
             fixtures: [simpleFixtures[0]],
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {
@@ -314,7 +314,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush },
+            messageBus: { send, flush, publish: jest.fn() },
             fixtures: [affordanceFixture],
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {
@@ -352,7 +352,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush },
+            messageBus: { send, flush, publish: jest.fn() },
             fixtures: [simpleFixtures[0]],
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {
@@ -394,7 +394,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush },
+            messageBus: { send, flush, publish: jest.fn() },
             fixtures: [simpleFixtures[0]],
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {
@@ -420,7 +420,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush },
+            messageBus: { send, flush, publish: jest.fn() },
             fixtures: [simpleFixtures[0]],
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {
@@ -470,7 +470,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush },
+            messageBus: { send, flush, publish: jest.fn() },
             fixtures: fixturesWithInject,
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {
@@ -554,7 +554,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush },
+            messageBus: { send, flush, publish: jest.fn() },
             fixtures: fixturesWithInject,
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {
@@ -589,7 +589,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush },
+            messageBus: { send, flush, publish: jest.fn() },
             fixtures: simpleFixtures,
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: { mode: 'full', fixtureIndex1Based: 2 },
@@ -606,7 +606,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush },
+            messageBus: { send, flush, publish: jest.fn() },
             fixtures: simpleFixtures,
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: { mode: 'full', fixtureIndex1Based: 99 },
@@ -625,7 +625,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush },
+            messageBus: { send, flush, publish: jest.fn() },
             fixtures: simpleFixtures,
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {

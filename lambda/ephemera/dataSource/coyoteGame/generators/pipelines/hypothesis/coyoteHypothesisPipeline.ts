@@ -6,7 +6,7 @@ import type { CoyoteGameIntentRecord } from '../../../../../internalCache/coyote
 import type { MessageBus } from '../../../../../messageBus/baseClasses';
 
 /** Deferred require breaks internalCache -> generateHypothesis -> messageBus init cycle. */
-const getDefaultMessageBus = (): Pick<MessageBus, 'send' | 'flush'> =>
+const getDefaultMessageBus = (): Pick<MessageBus, 'publish'> =>
     require('../../../../../messageBus').default as MessageBus
 import {
     createPipelineContext,
@@ -65,7 +65,7 @@ export type GenerateHypothesisDeps = {
     getGameRooms: () => Promise<string[]>;
     getRoomMeta: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>;
     roomObjectsByRoomOverride?: CoyoteRoomObjectsByRoom;
-    messageBus?: Pick<MessageBus, 'send' | 'flush'>;
+    messageBus?: Pick<MessageBus, 'publish'>;
 };
 
 /** Phase alias aligned with slash / harness (`testOnly`). */

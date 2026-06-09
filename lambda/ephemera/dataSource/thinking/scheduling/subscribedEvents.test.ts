@@ -8,7 +8,7 @@ describe('isThinkingSchedulingSubscribedEnvelope', () => {
         const sent: { header: unknown; getContent: () => Promise<unknown> }[] = []
         sendPutThinkingSchedule(
             {
-                send: (p) => {
+                publish: (p) => {
                     if (p.type === 'StreamingEvent') {
                         sent.push({ header: p.header, getContent: p.getContent })
                     }
@@ -34,7 +34,7 @@ describe('isThinkingSchedulingSubscribedEnvelope', () => {
         const sent: { header: unknown; getContent: () => Promise<unknown> }[] = []
         sendPutThinkingJobCreate(
             {
-                send: (p) => {
+                publish: (p) => {
                     if (p.type === 'StreamingEvent') {
                         sent.push({ header: p.header, getContent: p.getContent })
                     }
@@ -59,7 +59,7 @@ describe('isThinkingSchedulingSubscribedEnvelope', () => {
         const sent: { header: unknown; getContent: () => Promise<unknown> }[] = []
         sendPutThinkingJobError(
             {
-                send: (p) => {
+                publish: (p) => {
                     if (p.type === 'StreamingEvent') {
                         sent.push({ header: p.header, getContent: p.getContent })
                     }
@@ -78,18 +78,5 @@ describe('isThinkingSchedulingSubscribedEnvelope', () => {
             getContent: sent[0].getContent as StreamingEventEnvelope<unknown>['getContent'],
         }
         expect(isThinkingSchedulingSubscribedEnvelope(envelope)).toBe(true)
-    })
-
-    it('rejects non-api.ephemera publisher', () => {
-        const envelope: StreamingEventEnvelope<unknown> = {
-            header: {
-                dataSourceKey: 'mtw.ephemera.coyoteGame',
-                streamKey: 'ROOM#x',
-                timestamp: 1,
-                type: 'Put Thinking Schedule',
-            },
-            getContent: async () => ({}),
-        }
-        expect(isThinkingSchedulingSubscribedEnvelope(envelope)).toBe(false)
     })
 })

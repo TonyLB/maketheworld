@@ -8,6 +8,7 @@ describe('mtw.ephemera.coyoteGame DataSource', () => {
         expect(ephemeraCoyoteGameDataSource.dataSourceKey).toBe('mtw.ephemera.coyoteGame')
         expect(ephemeraCoyoteGameDataSource.replayable).toBe(false)
         expect(ephemeraCoyoteGameDataSource.publisherStrategy).toBe('busOnly')
+        expect(ephemeraCoyoteGameDataSource.outboundBusDelivery).toBe('publish')
         expect(ephemeraCoyoteGameDataSource.subscribedEventTypeGuard).toBe(isCoyoteGameSubscribedEnvelope)
         expect(typeof ephemeraCoyoteGameDataSource.receiveEvents).toBe('function')
     })

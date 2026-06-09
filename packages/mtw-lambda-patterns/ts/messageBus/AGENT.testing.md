@@ -10,12 +10,12 @@ When code under test `await`s a dependency (for example a mocked long render) an
 
 ### `publish` / `settle` test teardown (Q6)
 
-When tests use `publish` or `_inFlight` handlers:
+When tests use `publish` or `_inFlight` handlers, use **test harness drain** (not production handler pattern):
 
 1. **`await messageBus.settle()`** (or **`await messageBus.flushAndSettle()`** while `send`/`flush` still exist) at end of test body or in **`afterEach`** before `clear()`.
 2. Then **`messageBus.clear()`** for isolation.
 
-Do not rely on `clear()` alone to drain async handler work; that drops `_inFlight` tracking while promises may still be running and causes cross-test flakes. See [`index.test.ts`](./index.test.ts) `describe('publish / settle / flushAndSettle')` for examples.
+Do not rely on `clear()` alone to drain async handler work; that drops `_inFlight` tracking while promises may still be running and causes cross-test flakes. Production code uses **boundary drain** (`flushAndSettle` at lambda exit), not `settle()` inside handlers. Terminology: task plan **Bus drain terminology**. See [`index.test.ts`](./index.test.ts) `describe('publish / settle / flushAndSettle')` for examples.
 
 ### Unit Testing Handlers
 - Test individual handlers in isolation
