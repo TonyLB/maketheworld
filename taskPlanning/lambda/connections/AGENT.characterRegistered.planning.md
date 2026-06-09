@@ -1,6 +1,6 @@
 # Character Registered vs Character Connected (`connections` presence split)
 
-**Status:** In progress. Next step: Phase 4 --- detangle docs and trim conflated behavior (`Character Registered` vs `Character Connected` steady-state documentation).
+**Status:** In progress. Next step: Phase 5 --- end-to-end verification in deployed environment.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../AGENT.md). This file is task-scoped; archive or delete after the initiative ships and durable docs are updated.
 
@@ -144,13 +144,15 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 
   **Phase 3c note:** [`characterRegisteredOrientation.integration.test.ts`](../../../lambda/ephemera/dataSource/characterRegisteredOrientation.integration.test.ts) wires real `renderOrchestration`, `renderCache`, `affordanceOrchestration`, `affordanceCache`, and `perception` DataSource subscribers on the process bus. Injects `mtw.connections` / `Character Registered` only (positions not imported). Asserts `SESSION#${sessionId}` targets, render Generating + terminal share `messageId`, affordance uses a distinct `messageId`.
 
-- [ ] Phase 4 --- Detangle docs and trim conflated behavior
-  - [ ] Update [`lambda/connections/AGENT.md`](../../../lambda/connections/AGENT.md) --- separate producer outcomes, boundary semantics, consumer map.
-  - [ ] Update [`documentation/dataSources/connections/index.md`](../../../documentation/dataSources/connections/index.md) --- add ephemera consumers for **`Character Registered`** vs **`Character Connected`**.
-  - [ ] Update [`lambda/ephemera/AGENT.md`](../../../lambda/ephemera/AGENT.md) and [`lambda/ephemera/AGENT.event.md`](../../../lambda/ephemera/AGENT.event.md) --- positions = world; orientation = registration intake.
-  - [ ] Update [`packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md`](../../../packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md) --- clarify **`Character Registered`** (session correlation) vs presence events (aggregate boundary).
-  - [ ] Optional: note in [`lambda/ephemera/dataSource/perception/AGENT.md`](../../../lambda/ephemera/dataSource/perception/AGENT.md) delivery-path table (session orientation rows: **`sessionOrientationRender`** + **`sessionOrientationAffordances`**; affordance **`Affordances Pertain`** thread lookup).
-  - [ ] Evaluate removing same-room header side effects from [`moveCharacter`](../../../lambda/ephemera/moveCharacter/index.ts) once orientation is verified (separate commit within this initiative if low risk).
+- [X] Phase 4 --- Detangle docs and trim conflated behavior
+  - [X] Update [`lambda/connections/AGENT.md`](../../../lambda/connections/AGENT.md) --- separate producer outcomes, boundary semantics, consumer map.
+  - [X] Update [`documentation/dataSources/connections/index.md`](../../../documentation/dataSources/connections/index.md) --- add ephemera consumers for **`Character Registered`** vs **`Character Connected`**.
+  - [X] Update [`lambda/ephemera/AGENT.md`](../../../lambda/ephemera/AGENT.md) and [`lambda/ephemera/AGENT.event.md`](../../../lambda/ephemera/AGENT.event.md) --- positions = world; orientation = registration intake.
+  - [X] Update [`packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md`](../../../packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md) --- clarify **`Character Registered`** (session correlation) vs presence events (aggregate boundary).
+  - [X] Optional: note in [`lambda/ephemera/dataSource/perception/AGENT.md`](../../../lambda/ephemera/dataSource/perception/AGENT.md) delivery-path table (session orientation rows: **`sessionOrientationRender`** + **`sessionOrientationAffordances`**; affordance **`Affordances Pertain`** thread lookup).
+  - [X] Evaluate removing same-room header side effects from [`moveCharacter`](../../../lambda/ephemera/moveCharacter/index.ts) once orientation is verified (separate commit within this initiative if low risk).
+
+  **Phase 4 note:** Gap-fill pass on durable docs (several targets were partially updated during Phases 1-3). Added dual-outcome consumer maps, ephemera session-orientation section, EventBridge Registered-vs-presence table, perception delivery-path clarifications, and `dataSource/AGENT.md` cross-links. Trimmed same-room `kickPassiveRender` + imperative `Perception` header from [`moveCharacter`](../../../lambda/ephemera/moveCharacter/index.ts); session RoomHeader bootstrap is owned by **`Character Registered`** orientation.
 
 - [ ] Phase 5 --- End-to-end verification
   - [ ] Deploy connections + ephemera; pick character after login; confirm RoomHeader (render + affordance) on client.
@@ -193,7 +195,7 @@ npm test -- --watchAll=false \
 | Perception thread model (dual `* Pertains` fan-in) | Done |
 | Session orientation kick + orchestration handlers | Done |
 | Session orientation integration tests | Done |
-| Documentation detangle | Not started |
+| Documentation detangle | Done |
 | E2E verified in deployed environment | Not started |
 
 ## Durable doc handoff (when done)

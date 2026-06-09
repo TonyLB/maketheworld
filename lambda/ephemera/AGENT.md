@@ -83,18 +83,30 @@ First external ingress: `mtw.connections.characters` (see [`packages/mtw-interfa
 
 Handlers (in [`dataSource/positions/handleConnectionsCharactersPresence.ts`](dataSource/positions/handleConnectionsCharactersPresence.ts)):
 
-- **`Character Connected`**: queues `CheckLocation` with `forceMove: true` and `arriveMessage: ' has connected.'`. The existing `moveCharacter` flow then performs the `Meta::Room.activeCharacters` add, arrival `WorldMessage`, and `CharacterInPlay` `EphemeraUpdate`. Per-session deduplication is upstream (`mtw.connections.characters` only emits `Character Connected` when `Meta::Character.sessions` was empty pre-mutation), so `suppressArrival: false` is correct here.
+- **`Character Connected`**: queues `CheckLocation` with `forceMove: true` and `arriveMessage: ' has connected.'`. The existing `moveCharacter` flow then performs the `Meta::Room.activeCharacters` add, arrival `WorldMessage`, and `CharacterInPlay` `EphemeraUpdate`. Per-session deduplication is upstream (`mtw.connections.characters` only emits `Character Connected` when `Meta::Character.sessions` was empty pre-mutation), so `suppressArrival: false` is correct here. This path is **world-facing only**; it does **not** deliver session-scoped RoomHeader bootstrap (see session orientation below).
 - **`Character Disconnected`**: runs an `optimisticUpdate` against the character's `Meta::Room.activeCharacters`, removing the character entry. If the projection actually changed (idempotency gate), the handler invalidates `ComponentEphemeraMeta` / `ComponentStackMerge`, refreshes `RoomCharacterList`, and emits the departure `WorldMessage` plus a `RoomUpdate`. Duplicate deliveries are no-ops because the second update finds nothing to remove.
 
-Ephemera no longer holds session adjacency authority: writes to `connections`-table session/character adjacency live in `lambda/connections` (see [`lambda/connections/AGENT.md`](../connections/AGENT.md)). Registration ingress authority is fully connections-owned (`service: connections`), and ephemera does not process `registercharacter` ingress.
+The lane is intentionally extensible: adding new position-affecting subscribers means registering a new header guard in [`dataSource/positions/subscribedEvents.ts`](dataSource/positions/subscribedEvents.ts) and a matching handler, not standing up a new DataSource.
 
-Operational guardrails for this integration:
+#### **Session orientation (`Character Registered`)**
 
-- Infrastructure subscription for `mtw.connections.characters` must remain deployed for consumer-side projection effects.
+Every successful `registercharacter` emits **`Character Registered`** on `mtw.connections`. Ephemera consumes it for **session-scoped RoomHeader delivery** to the logging-in client (`SESSION#${sessionId}` targets), distinct from the world/presence path above.
+
+Ingress: `mtw.connections` / `Character Registered` via `ConnectionsEventSerializer` in [`app.ts`](app.ts) and CloudWatch rule `ConnectionsCharacterRegistered` in [`template.yaml`](../../template.yaml). Subscribed by **`mtw.ephemera.renderOrchestration`** and **`mtw.ephemera.affordanceOrchestration`** (shared guards in [`dataSource/connectionsCharacterRegistered/subscribedEvents.ts`](dataSource/connectionsCharacterRegistered/subscribedEvents.ts)).
+
+Handlers: [`handleCharacterRegisteredOrientation`](dataSource/connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) resolves the character's current room from `Meta::Character`, registers two perception threads (`sessionOrientationRender` + `sessionOrientationAffordances`) with `targets: [SESSION#${sessionId}]`, and kicks render + affordance orchestration with room + perspective only. Terminal **`PublishMessage`** rows are emitted by **`mtw.ephemera.perception`** on **`Render Pertains`** / **`Affordances Pertain`** fan-in (see [`dataSource/perception/AGENT.md`](dataSource/perception/AGENT.md)).
+
+**Non-goals for this path:** does not update `Meta::Room.activeCharacters`, does not send room arrival `WorldMessage` to other occupants. Those remain the **`Character Connected`** / `mtw.ephemera.positions` responsibility.
+
+Ephemera no longer holds session adjacency authority: writes to `connections`-table session/character adjacency live in `lambda/connections` (see [`lambda/connections/AGENT.md`](../connections/AGENT.md)). Registration ingress authority is fully connections-owned (`service: connections`), and ephemera does not process `registercharacter` WebSocket ingress.
+
+Operational guardrails:
+
+- Infrastructure subscriptions for both `mtw.connections` / `Character Registered` and `mtw.connections.characters` must remain deployed.
 - Avoid dual-ingress and dual-consume paths: registration traffic should target only `service: connections`.
 - Verification query in ephemera logs: search for registration message payload markers (`message\":\"registercharacter\"`) and expect zero results over a representative window.
 
-The lane is intentionally extensible: adding new position-affecting subscribers means registering a new header guard in [`dataSource/positions/subscribedEvents.ts`](dataSource/positions/subscribedEvents.ts) and a matching handler, not standing up a new DataSource.
+Integration proof: [`dataSource/characterRegisteredOrientation.integration.test.ts`](dataSource/characterRegisteredOrientation.integration.test.ts).
 
 ## Current System Architecture
 

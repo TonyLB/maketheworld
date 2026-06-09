@@ -215,26 +215,29 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                     }
                 }
             ])
-            const kickedPassiveRender = await kickPassiveRenderRequestedForCharacterInRoom({
-                roomId: payload.roomId,
-                characterId: payload.characterId,
-                assets: characterMeta.assets || [],
-                messageBus,
-                useDefaultMessageBusLane: true,
-            })
+            const isSameRoomMove = payload.roomId === characterMeta.RoomId
+            if (!isSameRoomMove) {
+                const kickedPassiveRender = await kickPassiveRenderRequestedForCharacterInRoom({
+                    roomId: payload.roomId,
+                    characterId: payload.characterId,
+                    assets: characterMeta.assets || [],
+                    messageBus,
+                    useDefaultMessageBusLane: true,
+                })
+                if (!characterMoveKey && !kickedPassiveRender) {
+                    messageBus.send({
+                        type: 'Perception',
+                        characterId: payload.characterId,
+                        ephemeraId: payload.roomId,
+                        header: true,
+                        messageGroupId
+                    })
+                }
+            }
             messageBus.send({
                 type: 'RoomUpdate',
                 roomId: payload.roomId
             })
-            if (!characterMoveKey && !kickedPassiveRender) {
-                messageBus.send({
-                    type: 'Perception',
-                    characterId: payload.characterId,
-                    ephemeraId: payload.roomId,
-                    header: true,
-                    messageGroupId
-                })
-            }
             messageBus.send({
                 type: 'MapUpdate',
                 characterId: payload.characterId,

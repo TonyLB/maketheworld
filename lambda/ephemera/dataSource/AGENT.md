@@ -48,6 +48,9 @@ Side-effect **`import './dataSource/...'`** from [`../app.ts`](../app.ts) regist
 | **`mtw.ephemera.renderCache`** | [`renderCache/`](renderCache/) | Durable **`CACHE#...`** rows, invalidation, diagnostics heal, **`Render Pertains`**, orchestration handoff --- [`renderCache/AGENT.md`](renderCache/AGENT.md) |
 | **`mtw.ephemera.renderOrchestration`** | [`renderOrchestration/`](renderOrchestration/) | **`findRender`**, generation, six outbound types --- [`renderOrchestration/AGENT.md`](renderOrchestration/AGENT.md) |
 | **`mtw.ephemera.perception`** | [`perception/`](perception/) | Audience fan-in, **`PublishMessage`** --- [`perception/AGENT.md`](perception/AGENT.md) |
+| **`mtw.ephemera.positions`** | [`positions/`](positions/) | Character positions in play; `mtw.connections.characters` presence ingress --- [`../AGENT.md`](../AGENT.md) |
+| **`mtw.ephemera.affordanceOrchestration`** | [`affordanceOrchestration/`](affordanceOrchestration/) | Affordance orchestration, **`Affordances Requested`** --- [`affordanceOrchestration/AGENT.md`](affordanceOrchestration/AGENT.md) |
+| **`mtw.ephemera.affordanceCache`** | [`affordanceCache/`](affordanceCache/) | Affordance cache rows, **`Affordances Pertain`** --- [`affordanceCache/AGENT.md`](affordanceCache/AGENT.md) |
 | **`mtw.ephemera.state`** | [`state/`](state/) | **`Meta::Room.state`** marks merge, **`State Changed`** --- [`state/AGENT.md`](state/AGENT.md) |
 | **`mtw.ephemera.objects`** | [`objects/`](objects/) | **`Meta::Room.objects`** (**`EphemeraMetaRoomObject[]`**: **`uuid`**, **`shortName`**, optional **`stableKey`** machine correlation key (legacy rows may omit), optional trope fields **`tropeAffinities`** / **`tropeAffinitiesFailed`**) merge, **`Objects Changed`**, affordance fan-out --- [`objects/AGENT.md`](objects/AGENT.md) |
 | **`mtw.ephemera.actions`** | [`actions/`](actions/) ([`actions/index.ts`](actions/index.ts)) | **`Parse Requested`** ingress; **`Acme Order`** (**`stableKey`** per line after deterministic finalize), **`Character Navigate`**, **`Await RoadRunner`**, harnesses --- normative **`stableKey`** contract [**`actions/AGENT.md`**](actions/AGENT.md); movement is currently **event + imperative** until cutover to positions; [`publishedEvents.ts`](actions/publishedEvents.ts), [`parseCommand.ts`](actions/parseCommand.ts) |
@@ -57,7 +60,9 @@ Side-effect **`import './dataSource/...'`** from [`../app.ts`](../app.ts) regist
 
 **Virtual / cross-cutting:** **`api.ephemera`** is not a `DataSource` class but the **`dataSourceKey`** for internal command envelopes consumed by multiple subscribers above.
 
-**Deferred ownership note:** Movement and position authority is planned to converge under a future **`mtw.ephemera.positions`** DataSource (see task plan [`taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md`](../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md)). Until then, actions intentionally retains a temporary event-plus-imperative bridge for character navigation.
+**Cross-cutting (not a DataSource):** [`connectionsCharacterRegistered/`](connectionsCharacterRegistered/) --- shared EventBridge guards and [`handleCharacterRegisteredOrientation`](connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) for `mtw.connections` / `Character Registered` session orientation (subscribed by render + affordance orchestration).
+
+**Navigation note:** Character movement from player commands still flows through **`mtw.ephemera.actions`** (event + imperative bridge). Aggregate position projection from connections presence is owned by **`mtw.ephemera.positions`**.
 
 ---
 

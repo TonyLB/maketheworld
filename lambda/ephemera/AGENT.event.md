@@ -23,7 +23,8 @@ The Ephemera Lambda serves as the primary WebSocket handler for real-time client
 - **`$connect`**: Authenticates incoming WebSocket connections
 - **`$disconnect`**: Handles connection cleanup and character state updates
 - **`whoAmI`**: Returns authenticated player information
-- **`registercharacter`**: Associates connection with specific character for play
+
+Character registration (`registercharacter`) is **not** an ephemera WebSocket handler. Authoritative ingress is `service: connections` only (see [`lambda/connections/AGENT.md`](../connections/AGENT.md)). Ephemera consumes registration outcomes via EventBridge `mtw.connections` / `Character Registered` (session orientation; see [`AGENT.md`](AGENT.md#session-orientation-character-registered)).
 
 #### **Character Interaction Events**
 - **`action`**: Executes character actions in the game world
@@ -47,7 +48,8 @@ The Ephemera Lambda uses an internal message bus pattern to decouple complex eve
 #### **Connection Coordination Messages**
 - **`Connect`**: Associates WebSocket connections with player accounts
 - **`Disconnect`**: Cleans up connection state and updates character presence
-- **`RegisterCharacter`**: Links connections to specific characters for gameplay
+
+Registration is connections-owned (`registercharacter` on `service: connections`). Ephemera receives the cross-lambda outcome as EventBridge `Character Registered`, not an internal `RegisterCharacter` bus message.
 
 #### **Character State Management Messages**
 - **`MoveCharacter`**: Handles character movement between rooms
@@ -124,7 +126,7 @@ The Ephemera Lambda subscribes to events from other system components:
 - **Authorization Update**: Updates character access permissions
 - **Render cache invalidation (`mtw.assets.componentExamples` → `mtw.ephemera.renderCache`)**: Blueprint changes emit **`ExampleInvalidated`** from Assets; **`mtw.ephemera.renderCache`** bumps catalog rows. **`Ephemera RenderCache Finding`** from **`mtw.diagnostics`** is handled on the same DataSource (lazy catalog bump). Legacy **`ExampleUpdated`** / **`ExampleRemoved`** mirror via **`mtw.ephemera.examples`** is retired.
 - **Character Presence (mtw.connections.characters → mtw.ephemera.positions)**: `Character Connected` and `Character Disconnected` envelopes are consumed by the `mtw.ephemera.positions` DataSource (see [`dataSource/positions/`](dataSource/positions/)). `Character Connected` queues a `CheckLocation` (forceMove) so the existing `moveCharacter` flow drives the `Meta::Room.activeCharacters` add + arrival `WorldMessage` + `CharacterInPlay` `EphemeraUpdate`. `Character Disconnected` runs a conditional `Meta::Room.activeCharacters` projection; when the projection actually changes (idempotency gate), the handler refreshes `RoomCharacterList`, invalidates `ComponentEphemeraMeta` and `ComponentStackMerge`, and publishes the departure `WorldMessage` + `RoomUpdate`. Producer-side delivery is at-least-once; consumer idempotency is the projection gate.
-- **Session orientation (mtw.connections → render + affordance orchestration)**: `Character Registered` envelopes are deserialized in [`app.ts`](app.ts) via `ConnectionsEventSerializer` and subscribed by **`mtw.ephemera.renderOrchestration`** and **`mtw.ephemera.affordanceOrchestration`** (guards in [`dataSource/connectionsCharacterRegistered/subscribedEvents.ts`](dataSource/connectionsCharacterRegistered/subscribedEvents.ts)). Session-scoped RoomHeader delivery (`targets: SESSION#...`) is handled in Phase 3 orientation handlers; ingress is wired separately from the world/presence path above.
+- **Session orientation (mtw.connections → render + affordance orchestration)**: `Character Registered` envelopes are deserialized in [`app.ts`](app.ts) via `ConnectionsEventSerializer` and subscribed by **`mtw.ephemera.renderOrchestration`** and **`mtw.ephemera.affordanceOrchestration`** (guards in [`dataSource/connectionsCharacterRegistered/subscribedEvents.ts`](dataSource/connectionsCharacterRegistered/subscribedEvents.ts)). Session-scoped RoomHeader delivery (`targets: SESSION#...`) runs through [`handleCharacterRegisteredOrientation`](dataSource/connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) and terminal perception fan-in; wired separately from the world/presence path above. See [`AGENT.md`](AGENT.md#session-orientation-character-registered).
 
 #### **Asset Events**
 - **Asset Added/Removed**: Updates character access to new/removed content
