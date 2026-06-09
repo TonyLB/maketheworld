@@ -1,6 +1,6 @@
 # MessageBus: `publish`/`settle` migration (planning)
 
-**Status:** In progress (P2). Q1-Q9 are locked (P0.5 complete). **Phase P1** complete. Next step: **Phase P2** DataSource port (`publish`, `outboundBusDelivery`, Q7).
+**Status:** In progress (P2). Q1-Q9 are locked (P0.5 complete). **Phase P1** complete. **P2a** complete. Next step: **P2b** (per-DataSource `outboundBusDelivery: 'publish'`, coordinate with P3 lane hotspots).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -112,6 +112,7 @@ Representative atomic units (see **Migration inventory**):
 - [`hypothesisThinkingPersistence.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/hypothesisThinkingPersistence.ts) -- bootstrap / emit / finalize blocks (explicit `laneId` on each `send*` + matching `flush(laneId)`).
 - [`handleObjectsChangedForHypothesis.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handleObjectsChangedForHypothesis.ts) -- lane `send` **and** parallel `remainder()` (`streamEvent` + default-lane `send`) together.
 - [`orchestrationHandler.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts) + [`findRender.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts) -- terminal vs generation-lane split; `laneId: ''` force-default outbounds migrate with the whole orchestration slice.
+- [`affordanceOrchestration/orchestrationHandler.ts`](../../../../../lambda/ephemera/dataSource/affordanceOrchestration/orchestrationHandler.ts) + [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/affordanceOrchestration/publishedEvents.ts) send-helpers + fan-out -- **P3 slice immediately after render orchestration**; coordinate `affordanceCache` for AFF-CACHE-4.
 
 **`flush`-invoked handler calls `publish` mid-drain:** Subscribers see `activeFlushLane: undefined`. Safe when the atomic-unit rule is satisfied (no publish -> `send` cascade). Until then, treat as a migration hazard, not a reason to inherit lanes on `publish`.
 
@@ -291,7 +292,7 @@ Smaller lambdas last because ephemera concentration drove the migration; assets/
 
 **Decision: lane call sites migrate as atomic groups.**
 
-Authoritative starting list is under Q2 **atomic units** (hypothesisThinkingPersistence blocks, `handleObjectsChangedForHypothesis` + `remainder()`, orchestrationHandler + findRender, etc.). Extend the list when P0.5 triage or P3 work surfaces additional High/Medium rows. **Rule:** do not migrate a named-lane `flush` / inline drain to `publish` until every `send` reachable in that subgraph is also `publish` in the **same change** (Q2).
+Authoritative starting list is under Q2 **atomic units** (hypothesisThinkingPersistence blocks, `handleObjectsChangedForHypothesis` + `remainder()`, render `orchestrationHandler` + findRender, affordance `orchestrationHandler` + `publishedEvents` send-helpers, etc.). Extend the list when P0.5 triage or P3 work surfaces additional High/Medium rows. **P3 ordering:** migrate **`affordanceOrchestration`** immediately after **`renderOrchestration`** (same pass-through orchestration pattern; do not defer affordance orchestration to P4). **Rule:** do not migrate a named-lane `flush` / inline drain to `publish` until every `send` reachable in that subgraph is also `publish` in the **same change** (Q2).
 
 **Decision: per-lambda "fully migrated" = zero `messageBus.send` in production code.**
 
@@ -400,7 +401,7 @@ publishMessageCoalescer.registerDeferral(messageBus)
    - [`packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md) (virtual lanes section is what we are retiring on migrated paths)
    - [`packages/mtw-lambda-patterns/ts/messageBus/AGENT.testing.md`](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.testing.md)
 3. Read DataSource lane behavior: [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**Message bus lanes**).
-4. Read ephemera lane call-site context: [`lambda/ephemera/messageBus/AGENT.md`](../../../../../lambda/ephemera/messageBus/AGENT.md), [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md), [`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md).
+4. Read ephemera lane call-site context: [`lambda/ephemera/messageBus/AGENT.md`](../../../../../lambda/ephemera/messageBus/AGENT.md), [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md), [`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md), [`lambda/ephemera/dataSource/affordanceOrchestration/AGENT.md`](../../../../../lambda/ephemera/dataSource/affordanceOrchestration/AGENT.md) (render-orchestration analogue; **P3** slice immediately after render orchestration).
 5. **Command authority:** tests run via Jest from [`packages/mtw-lambda-patterns/package.json`](../../../../../packages/mtw-lambda-patterns/package.json) (`npm test`). If examples conflict elsewhere, use that package's scripts.
 6. Before locking Q4/Q5, run **Phase P0.5** (**Q4/Q5 positive audit**): build the triage matrix; do not guess across all call sites.
 7. Run baseline verification before engine edits (from `packages/mtw-lambda-patterns/`):
@@ -689,7 +690,7 @@ For each inventory row: evidence, risk, migration note. Q4/Q5 decisions apply to
 | PASS-THROUGH-INT | passThrough + characterRegistered integration tests | Q4 | **High** | Tier 2 index | Tests are ordering spec; gate each High row migration |
 | MOVE-CHAR | `moveCharacter/index.ts` | Q4 | **High** | Tier 1C; multi-tier sends | P4: migrate as atomic chain; `flushAndSettle` at boundaries during hybrid |
 | PERCEPTION | `perception/index.ts` + perception DS | Q4 | **High** | Tier 1C; StreamingEvent fan-out | P4: migrate chain with actions/render paths; integration tests |
-| ROOM-AFFORD | `roomUpdate` -> affordance pipeline | Q4 | **High** | Tier 1C; prio 4->5 edge | P3/P4: migrate affordance subgraph atomically; preserve cache-before-orchestration explicitly |
+| ROOM-AFFORD | `roomUpdate` -> affordance pipeline | Q4 | **High** | Tier 1C; prio 4->5 edge | P3 (after renderOrch): migrate affordance subgraph atomically with `affordanceOrchestration` slice; preserve cache-before-orchestration explicitly |
 | COMP-KICK | `ephemera/dataSource/index.ts` component kick | Q4 | **High** | Tier 1C StreamingEvent chain | P4: migrate with perception/renderOrch slice; passThrough tests |
 | ACTIONS-PARSE | `actions/index.ts` receiveEvents | Q4 | **High** | Tier 1C | P4: migrate parse response graph as atomic unit |
 | COYOTE-LANE | `handleObjectsChangedForHypothesis` | Q4/Q5 | **High** | Q2 atomic unit; lane flush | P3: migrate bootstrap/emit/finalize + remainder in one change |
@@ -756,8 +757,8 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Baseline: `npm test -- ts/messageBus/index.test.ts` passes (22 tests; P1 baseline + new publish/settle suite).
 
 - [ ] Phase P2 - `DataSource` port and outbound path (piecewise per Q7; closeout per Q2)
-  - [ ] P2a -- infrastructure: `DataSourceMessageBusPort` adds `publish` (keep `send` during migration); constructor `outboundBusDelivery?: 'send' | 'publish'` (default `'send'`); branch in `sendStreamingEventOnBus`.
-  - [ ] P2a -- extend package mocks with `publish: jest.fn()`; add tests for `'publish'` outbound path (Q7).
+  - [X] P2a -- infrastructure: `DataSourceMessageBusPort` adds `publish` (keep `send` during migration); constructor `outboundBusDelivery?: 'send' | 'publish'` (default `'send'`); branch in `sendStreamingEventOnBus`.
+  - [X] P2a -- extend package mocks with `publish: jest.fn()`; add tests for `'publish'` outbound path (Q7).
   - [ ] P2b -- per DataSource: set `outboundBusDelivery: 'publish'` with that directory's lane/send atomic migration (coordinate with P3/P4/P5); update that DS's package/lambda tests to assert `publish`.
   - [ ] P2c -- closeout when no production DataSource uses `'send'` outbound: remove `outboundBusDelivery`, port `send`, `_inboundFlushLaneStack`, `StreamEventParams.laneId`, and `send` branch in `sendStreamingEventOnBus`.
   - [ ] Run: `npm test -- ts/dataSource/index.test.ts` from `packages/mtw-lambda-patterns/` after each P2 slice.
@@ -766,13 +767,14 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [ ] Coyote hypothesis thinking persistence and handlers (files in **Migration inventory**; each bootstrap/emit/finalize block in one change).
   - [ ] Acme order thinking persistence (atomic with its `flush(laneId)` blocks).
   - [ ] Render orchestration: `orchestrationHandler` + `findRender` + look path (drop `laneId: ''`; no partial publish-with-remaining-`send`).
+  - [ ] Affordance orchestration: [`affordanceOrchestration/`](../../../../../lambda/ephemera/dataSource/affordanceOrchestration/) (`orchestrationHandler`, `publishedEvents` send-helpers, fan-out paths); migrate in **P3 immediately after render orchestration** (not P4). Coordinate with `affordanceCache` for AFF-CACHE-4 catalog-before-orchestration; re-run `passThroughAffordanceOrchestrationToCache.integration.test.ts`.
   - [ ] Coyote engine test harness lane flushes.
   - [ ] Ephemera `app.ts`: `flush()` -> `flushAndSettle()` at all boundary exits (Q1).
   - [ ] Targeted ephemera tests for touched paths (see **Verification**).
 
 - [ ] Phase P4 - remaining ephemera `send` sites
   - [ ] Ingress / EventBridge paths in [`lambda/ephemera/app.ts`](../../../../../lambda/ephemera/app.ts).
-  - [ ] Perception, actions, positions, self-healing, and other DataSource `send` call sites.
+  - [ ] Perception, actions, positions, self-healing, and other DataSource `send` call sites (excludes `affordanceOrchestration`; see P3).
   - [ ] Migrate bucket-1 rows per **Bucket-1 deep dive** fix axis (producer coalesce / contract / consumer / **Q9 defer**) before ingress moves to `publish`; Low rows may migrate without redesign; **PUBLISH-MSG** requires Q9 locked.
   - [ ] Confirm ephemera `app.ts` already uses `flushAndSettle()` from P3 (no further boundary change until P6).
 
@@ -833,6 +835,7 @@ From `lambda/ephemera/` (see [`lambda/ephemera/AGENT.testing.md`](../../../../..
 
 ```bash
 npm run test -- --watchAll=false dataSource/coyoteGame/generators/testHarness/runCoyoteEngineTestHarness.test.ts
+npm run test -- --watchAll=false dataSource/passThroughAffordanceOrchestrationToCache.integration.test.ts
 npm run test -- --watchAll=false dataSource/perception/index.test.ts
 npm run test -- --watchAll=false app.test.ts
 ```
@@ -859,7 +862,7 @@ rg 'messageBus\.(flush|flushAndSettle)\(' lambda/ --glob '**/app.ts' | wc -l
 | Open questions Q4-Q5 resolved (P0.5) | Done |
 | Open question Q9 (`registerDeferral` + phased scope) | Done |
 | Engine `publish`/`settle` + tests (P1) | Done |
-| DataSource port migration (P2) | Not started |
+| DataSource port migration (P2) | P2a done; P2b not started |
 | Ephemera lane hotspots (P3) | Not started |
 | Remaining ephemera migration (P4) | Not started |
 | Other lambdas (P5) | Not started |

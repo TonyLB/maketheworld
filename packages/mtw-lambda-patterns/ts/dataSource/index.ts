@@ -99,9 +99,10 @@ export type StreamEnvelopeFunction =
 
 export type DataSourcePublisherStrategy = 'eventBridge+bus' | 'busOnly'
 
-/** Minimal message bus surface for DataSource (lane-aware send). */
+/** Minimal message bus surface for DataSource (lane-aware send during migration; publish for steady-state outbound). */
 export type DataSourceMessageBusPort = {
     send(payload: unknown, laneId?: string): void
+    publish(payload: unknown): void
     subscribe(subscription: unknown): void
 }
 
@@ -129,6 +130,7 @@ export class DataSource<
     readonly feedbackTopicArn: string
     readonly replayable: boolean
     readonly publisherStrategy: DataSourcePublisherStrategy
+    readonly outboundBusDelivery: 'send' | 'publish'
     readonly subscriptionPriority: number
     readonly subscribedEventTypeGuard?: (envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>
     readonly receiveEvents?: (params: { 
@@ -152,6 +154,7 @@ export class DataSource<
         feedbackTopicArn,
         replayable = true,
         publisherStrategy = 'eventBridge+bus',
+        outboundBusDelivery = 'send',
         subscriptionPriority = 5,
         snapshotTimeoutMs = 5000,
         subscribedEventTypeGuard,
@@ -169,6 +172,7 @@ export class DataSource<
         feedbackTopicArn: string,
         replayable?: boolean,
         publisherStrategy?: DataSourcePublisherStrategy,
+        outboundBusDelivery?: 'send' | 'publish',
         subscriptionPriority?: number,
         snapshotTimeoutMs?: number,
         subscribedEventTypeGuard?: (envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>,
@@ -190,6 +194,7 @@ export class DataSource<
         this.feedbackTopicArn = feedbackTopicArn
         this.replayable = replayable
         this.publisherStrategy = publisherStrategy
+        this.outboundBusDelivery = outboundBusDelivery
         this.subscriptionPriority = subscriptionPriority
         this.subscribedEventTypeGuard = subscribedEventTypeGuard
         this.receiveEvents = receiveEvents
@@ -233,6 +238,10 @@ export class DataSource<
     }
 
     private sendStreamingEventOnBus(payload: StreamingEventPayloadContract, laneId?: string): void {
+        if (this.outboundBusDelivery === 'publish') {
+            this.messageBus.publish(payload)
+            return
+        }
         if (laneId !== undefined && laneId !== '') {
             this.messageBus.send(payload, laneId)
         } else {

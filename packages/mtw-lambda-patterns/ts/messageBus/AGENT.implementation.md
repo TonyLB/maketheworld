@@ -39,6 +39,8 @@ Task plan: [`taskPlanning/packages/mtw-lambda-patterns/ts/messageBus/AGENT.publi
 
 **During migration (`send`/`flush` coexist with `publish`/`settle`):**
 
+- **DataSource outbound (P2a):** [`DataSourceMessageBusPort`](../dataSource/index.ts) adds `publish`. Constructor `outboundBusDelivery?: 'send' | 'publish'` (default `'send'`) branches `sendStreamingEventOnBus`; per-DataSource flips to `'publish'` in P2b/P3+ with Q2 atomic units. See **Message bus lanes** in [`../dataSource/AGENT.implementation.md`](../dataSource/AGENT.implementation.md).
+
 | Topic | `flush` path (today) | `publish` path (P1+) |
 | --- | --- | --- |
 | Ordering | `priority` tiers; `Promise.all` within a tier | **`priority` ignored**; all matching subscribers scheduled **concurrently** |
