@@ -1,6 +1,8 @@
 import { affordanceOrchestrationDataSource } from './index'
 import * as orchestrationHandler from './orchestrationHandler'
 import * as fanOutAffordanceRefresh from './fanOutAffordanceRefreshForRoom'
+import * as orientationHandler from '../connectionsCharacterRegistered/handleCharacterRegisteredOrientation'
+import messageBus from '../../messageBus'
 
 describe('mtw.ephemera.affordanceOrchestration DataSource', () => {
     beforeEach(() => {
@@ -130,6 +132,42 @@ describe('mtw.ephemera.affordanceOrchestration DataSource', () => {
 
         expect(fanOutSpy).not.toHaveBeenCalled()
         fanOutSpy.mockRestore()
+    })
+
+    it('delegates mtw.connections Character Registered to handleCharacterRegisteredOrientation affordances channel', async () => {
+        const orientationSpy = jest
+            .spyOn(orientationHandler, 'handleCharacterRegisteredOrientation')
+            .mockResolvedValue(undefined)
+        const orchestrateSpy = jest.spyOn(orchestrationHandler, 'orchestrateAffordanceRequest').mockResolvedValue(undefined)
+        const payload = {
+            type: 'Character Registered' as const,
+            characterId: 'CHARACTER#c',
+            sessionId: 'session-1',
+            timestamp: '2026-01-01T00:00:00.000Z',
+        }
+        const events: any[] = [
+            {
+                header: {
+                    dataSourceKey: 'mtw.connections',
+                    streamKey: 'CHARACTER#c',
+                    timestamp: Date.now(),
+                    type: 'Character Registered',
+                },
+                getContent: () => Promise.resolve(payload),
+            },
+        ]
+
+        await affordanceOrchestrationDataSource.receiveEvents?.({
+            events,
+            streamEvent: jest.fn().mockResolvedValue(undefined),
+            streamEnvelope: jest.fn().mockResolvedValue(undefined),
+        })
+
+        expect(orientationSpy).toHaveBeenCalledTimes(1)
+        expect(orientationSpy).toHaveBeenCalledWith(messageBus, payload, 'affordances')
+        expect(orchestrateSpy).not.toHaveBeenCalled()
+        orientationSpy.mockRestore()
+        orchestrateSpy.mockRestore()
     })
 
     it('delegates mtw.ephemera.objects Objects Changed to fanOutAffordanceRefreshForRoom', async () => {

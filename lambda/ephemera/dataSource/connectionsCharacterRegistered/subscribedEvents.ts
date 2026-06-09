@@ -8,8 +8,8 @@
  *   - `mtw.ephemera.affordanceOrchestration` (see ../affordanceOrchestration/subscribedEvents.ts)
  *
  * Contrast `../positions/subscribedEvents.ts`, which owns `mtw.connections.characters`
- * presence for `mtw.ephemera.positions` only. Session orientation handlers (Phase 3)
- * will live under those orchestration modules, not here.
+ * presence for `mtw.ephemera.positions` only. Session orientation kick logic lives in
+ * `handleCharacterRegisteredOrientation.ts`; orchestration DataSources call it per channel.
  */
 import {
     StreamingEventHeader,

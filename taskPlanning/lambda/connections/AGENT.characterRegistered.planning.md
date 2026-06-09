@@ -1,6 +1,6 @@
 # Character Registered vs Character Connected (`connections` presence split)
 
-**Status:** In progress. Next step: Phase 3b --- **`handleCharacterRegisteredOrientation`**: register **`sessionOrientationRender`** + **`sessionOrientationAffordances`** threads and kick render + affordance orchestration on **`Character Registered`**.
+**Status:** In progress. Next step: Phase 3c --- integration proof that **`Character Registered`** alone delivers render + affordance **`PublishMessage`** rows to **`SESSION#...`** through the full in-process bus path.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../AGENT.md). This file is task-scoped; archive or delete after the initiative ships and durable docs are updated.
 
@@ -129,12 +129,14 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 
   **Phase 3a note:** Thread kinds **`sessionOrientationRender`** and **`sessionOrientationAffordances`** landed with **`PublishTarget[]`** registration (including **`SESSION#`**). Render fan-in mirrors **`roomHeaderBroadcast`**; affordance terminal uses thread lookup before roster fallback via **`publishAffordancePerceptionForTargets`**. Orientation kick on **`Character Registered`** deferred to Phase 3b.
 
-  - [ ] **Phase 3b --- Orientation kick (orchestration ingress, no delivery plumbing)**
-    - [ ] Shared helper **`handleCharacterRegisteredOrientation`** (location TBD: e.g. [`connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts`](../../../lambda/ephemera/dataSource/connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts)): load character room from **`Meta::Character`**, assets, canon-filtered perspective ([`resolveCharacterRoomPerspectiveForRoom`](../../../lambda/ephemera/dataSource/perception/kickRoomHeaderBroadcast.ts)); no-op when room or perspective missing.
-    - [ ] Register **two** threads via **`sendPerceptionThreadRegistered`**: **`sessionOrientationRender`** + **`sessionOrientationAffordances`**, same bucket, **`targets: [\`SESSION#${sessionId}\`]`**, **`characterId`** from event.
-    - [ ] Kick **`sendRenderRequested`** and **`sendAffordancesRequested`** (reason TBD --- e.g. **`roster`** or dedicated **`sessionOrientation`**) with **`roomId` + `perspective` only**.
-    - [ ] Wire **`Character Registered`** branches in [`renderOrchestration/index.ts`](../../../lambda/ephemera/dataSource/renderOrchestration/index.ts) and [`affordanceOrchestration/index.ts`](../../../lambda/ephemera/dataSource/affordanceOrchestration/index.ts) **`receiveEvents`** (replace Phase 2 no-op).
-    - [ ] Unit tests: orientation helper registers two threads and enqueues both orchestration kicks; duplicate **`Character Registered`** tolerant.
+  - [X] **Phase 3b --- Orientation kick (orchestration ingress, no delivery plumbing)**
+    - [X] Shared helper **`handleCharacterRegisteredOrientation`** ([`connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts`](../../../lambda/ephemera/dataSource/connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts)): load character room from **`Meta::Character`**, assets, canon-filtered perspective ([`resolveCharacterRoomPerspectiveForRoom`](../../../lambda/ephemera/dataSource/perception/kickRoomHeaderBroadcast.ts)); no-op when room or perspective missing.
+    - [X] Register **two** threads via **`sendPerceptionThreadRegistered`**: **`sessionOrientationRender`** + **`sessionOrientationAffordances`**, same bucket, **`targets: [\`SESSION#${sessionId}\`]`** (raw **`sessionId`** from wire), **`characterId`** from event.
+    - [X] Kick **`sendRenderRequested`** and **`sendAffordancesRequested`** (`reason: 'roster'`) with **`roomId` + `perspective` only**.
+    - [X] Wire **`Character Registered`** branches in [`renderOrchestration/index.ts`](../../../lambda/ephemera/dataSource/renderOrchestration/index.ts) and [`affordanceOrchestration/index.ts`](../../../lambda/ephemera/dataSource/affordanceOrchestration/index.ts) **`receiveEvents`** (replace Phase 2 no-op).
+    - [X] Unit tests: orientation helper registers two threads and enqueues both orchestration kicks; duplicate **`Character Registered`** tolerant.
+
+  **Phase 3b note:** Double-subscribe, parallel kick. Each orchestration DataSource calls **`handleCharacterRegisteredOrientation`** with its own **`channel`** (`render` | `affordances`) so both threads register on the same registration event without double-registering from a monolithic helper. Target format: **`SESSION#${sessionId}`** where **`sessionId`** is the raw wire value (e.g. `session-1`). Affordance orchestration ingress uses **`reason: 'roster'`** for v1.
 
   - [ ] **Phase 3c --- Integration proof**
     - [ ] Integration-style test: **`Character Registered`** alone (no **`Character Connected`**) delivers render + affordance **`PublishMessage`** rows to **`SESSION#...`** through full in-process bus path (thread register -> orchestration -> cache -> **`* Pertains`** -> perception terminal).
@@ -187,7 +189,7 @@ npm test -- --watchAll=false \
 | `Character Connected` gate fixed + tests | Done |
 | EventBridge + ephemera `Character Registered` ingress | Done |
 | Perception thread model (dual `* Pertains` fan-in) | Done |
-| Session orientation kick + orchestration handlers | Not started |
+| Session orientation kick + orchestration handlers | Done |
 | Session orientation integration tests | Not started |
 | Documentation detangle | Not started |
 | E2E verified in deployed environment | Not started |

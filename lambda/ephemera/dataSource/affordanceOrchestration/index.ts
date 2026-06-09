@@ -12,6 +12,8 @@
 import EphemeraDataSource from '../abstract'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isRoomScopedTopologyInvalidated } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/componentTopology'
+import { isConnectionsCharacterRegisteredEnvelope } from '../connectionsCharacterRegistered/subscribedEvents'
+import { handleCharacterRegisteredOrientation } from '../connectionsCharacterRegistered/handleCharacterRegisteredOrientation'
 import {
     isAffordanceOrchestrationIngressEnvelope,
     isAffordanceOrchestrationSubscribedEnvelope,
@@ -81,6 +83,11 @@ export const affordanceOrchestrationDataSource = new EphemeraDataSource<
                     messageBus,
                     streamEvent,
                 })
+                return
+            }
+            if (isConnectionsCharacterRegisteredEnvelope(event)) {
+                const payload = await event.getContent()
+                await handleCharacterRegisteredOrientation(messageBus, payload, 'affordances')
                 return
             }
             if (!isAffordanceOrchestrationIngressEnvelope(event)) {
