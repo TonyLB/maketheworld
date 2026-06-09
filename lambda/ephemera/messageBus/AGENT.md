@@ -14,6 +14,8 @@ Ephemera-specific usage (for example **`renderOrchestration`** ingress lane and 
 
 Lambda exit drains the **default** lane in [`../app.ts`](../app.ts) (`messageBus.flush()`). Named-lane work is flushed where orchestration schedules it (see **`generateRoomPreview`** / **`flushOrchestrationLane`**). Event-driven **`look`** also **`flush`es** its run-scoped perception lane inside [`../dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts`](../dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts) before the default-lane **`Render Requested`**.
 
+During the [`publish`/`settle` migration](#publishsettle-migration) below, `InternalMessageBus` also exposes `publish`, `settle`, `flushAndSettle`, and `registerDeferral` / `runDeferrals`. API and drain semantics: package [**publish / settle API**](../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#publish--settle-api). Ephemera lambda boundaries still call `messageBus.flush()` in [`../app.ts`](../app.ts) until those exits use `flushAndSettle()` for hybrid drain.
+
 ## `publish`/`settle` migration
 
 In progress: [`taskPlanning/.../AGENT.publishSettledMigration.planning.md`](../../../taskPlanning/packages/mtw-lambda-patterns/ts/messageBus/AGENT.publishSettledMigration.planning.md) (**Bucket-1 deep dive**). Legacy handlers use 1:1 type filters (Low triage risk) except bucket-1 batch handlers below.

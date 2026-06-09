@@ -18,6 +18,11 @@ export type InternalMessageBusCallbackProps<PayloadType> = {
     activeFlushLane: string | undefined;
 }
 
+export type DeferralRegistration = {
+    onClear?: () => void
+    afterSettled: () => Promise<void>
+}
+
 type UnconstrainedInternalMessageSubscription<PayloadType> = {
     tag: string;
     priority: number;
@@ -34,7 +39,7 @@ type ConstrainedInternalMessageSubscription<PayloadType, P extends PayloadType> 
 
 function assertSubscriptionCallback<PayloadType>(
     subscription: UnconstrainedInternalMessageSubscription<PayloadType> | ConstrainedInternalMessageSubscription<PayloadType, any>,
-    stage: 'subscribe' | 'flush'
+    stage: 'subscribe' | 'flush' | 'publish'
 ): void {
     if (typeof subscription.callback !== 'function') {
         const callbackType = typeof subscription.callback
@@ -47,6 +52,8 @@ function assertSubscriptionCallback<PayloadType>(
 export class InternalMessageBus<PayloadType> {
     _stream: InternalMessageItem<PayloadType>[] = []
     _subscriptions: (UnconstrainedInternalMessageSubscription<PayloadType> | ConstrainedInternalMessageSubscription<PayloadType, any>)[] = []
+    _inFlight: Map<Promise<void>, string> = new Map()
+    _deferrals: Map<string, DeferralRegistration> = new Map()
 
     send(payload: PayloadType): void;
     send(payload: PayloadType, laneId: string): void;
@@ -65,19 +72,86 @@ export class InternalMessageBus<PayloadType> {
         }
     }
 
+    publish(payload: PayloadType): void {
+        const matchingSubscriptions = this._subscriptions.filter(({ filter: filterFunc }) => filterFunc(payload))
+        for (const subscription of matchingSubscriptions) {
+            const { tag, callback } = subscription
+            if (typeof callback !== 'function') {
+                throw new TypeError(
+                    `InternalMessageBus publish error: subscription "${tag}" at priority ${subscription.priority} has non-function callback (${typeof callback}).`
+                )
+            }
+            const promise = callback({
+                payloads: [payload],
+                messageBus: this,
+                activeFlushLane: undefined
+            }).finally(() => {
+                this._inFlight.delete(promise)
+            })
+            this._inFlight.set(promise, tag)
+        }
+    }
+
     subscribe<P extends PayloadType>(props: UnconstrainedInternalMessageSubscription<PayloadType> | ConstrainedInternalMessageSubscription<PayloadType, P>): void {
         assertSubscriptionCallback(props, 'subscribe')
         this._subscriptions.push(props)
     }
 
-    flush(): Promise<void>;
-    flush(laneId: string): Promise<void>;
-    async flush(laneId?: string): Promise<void> {
-        const activeLane = laneId === undefined ? undefined : laneId
-        await this.flushLane(activeLane)
+    registerDeferral(tag: string, hooks: DeferralRegistration): void {
+        if (this._deferrals.has(tag)) {
+            throw new Error(`InternalMessageBus registerDeferral error: deferral "${tag}" is already registered.`)
+        }
+        this._deferrals.set(tag, hooks)
     }
 
-    private async flushLane(activeLane: string | undefined): Promise<void> {
+    async runDeferrals(): Promise<void> {
+        const entries = [...this._deferrals.entries()]
+        const results = await Promise.allSettled(entries.map(([, { afterSettled }]) => afterSettled()))
+        results.forEach((result, index) => {
+            if (result.status === 'rejected') {
+                const tag = entries[index][0]
+                console.error(`InternalMessageBus runDeferrals: deferral "${tag}" rejected:`, result.reason)
+            }
+        })
+    }
+
+    async settle(): Promise<boolean> {
+        let didWork = false
+        while (this._inFlight.size > 0) {
+            didWork = true
+            const snapshot = [...this._inFlight.entries()]
+            const results = await Promise.allSettled(snapshot.map(([promise]) => promise))
+            results.forEach((result, index) => {
+                if (result.status === 'rejected') {
+                    const tag = snapshot[index][1]
+                    console.error(`InternalMessageBus settle: subscription "${tag}" rejected:`, result.reason)
+                }
+            })
+        }
+        return didWork
+    }
+
+    flush(): Promise<boolean>;
+    flush(laneId: string): Promise<boolean>;
+    async flush(laneId?: string): Promise<boolean> {
+        const activeLane = laneId === undefined ? undefined : laneId
+        return this.flushLane(activeLane)
+    }
+
+    async flushAndSettle(laneId?: string): Promise<void> {
+        while (true) {
+            const [didFlush, didSettle] = await Promise.all([
+                laneId === undefined ? this.flush() : this.flush(laneId),
+                this.settle(),
+            ])
+            if (!didFlush && !didSettle) {
+                break
+            }
+        }
+        await this.runDeferrals()
+    }
+
+    private async flushLane(activeLane: string | undefined): Promise<boolean> {
         const priorities = [...(new Set(this._subscriptions.map(({ priority }) => (priority))))].sort()
         const priorityToProcess = priorities.find((priority) => (
             this._subscriptions
@@ -92,9 +166,10 @@ export class InternalMessageBus<PayloadType> {
                 .length > 0
         ))
         if (priorityToProcess === undefined) {
-            return
+            return false
         }
         const subscriptionsToProcess = this._subscriptions.filter(({ priority }) => (priority === priorityToProcess))
+        let didWork = false
         const processSubscription = async ({ tag, filter: filterFunc, callback }): Promise<void> => {
             if (typeof callback !== 'function') {
                 throw new TypeError(
@@ -107,6 +182,7 @@ export class InternalMessageBus<PayloadType> {
                 .filter(({ payload }) => (filterFunc(payload)))
             filteredMessages.forEach((message) => (message.processedBy.push(tag)))
             if (filteredMessages.length > 0) {
+                didWork = true
                 await callback({
                     payloads: filteredMessages.map(({ payload }) => (payload)),
                     messageBus: this,
@@ -115,10 +191,15 @@ export class InternalMessageBus<PayloadType> {
             }
         }
         await Promise.all(subscriptionsToProcess.map(processSubscription))
-        await this.flushLane(activeLane)
+        const childDidWork = await this.flushLane(activeLane)
+        return didWork || childDidWork
     }
 
     clear(): void {
         this._stream = []
+        this._inFlight.clear()
+        for (const { onClear } of this._deferrals.values()) {
+            onClear?.()
+        }
     }
 }

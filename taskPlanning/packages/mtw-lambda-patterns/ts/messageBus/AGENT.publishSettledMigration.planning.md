@@ -1,6 +1,6 @@
 # MessageBus: `publish`/`settle` migration (planning)
 
-**Status:** In progress (P1). Q1-Q9 are locked (P0.5 complete). Next step: **Phase P1** `InternalMessageBus` engine (`publish`, `settle`, `flushAndSettle`, deferral registry stub).
+**Status:** In progress (P2). Q1-Q9 are locked (P0.5 complete). **Phase P1** complete. Next step: **Phase P2** DataSource port (`publish`, `outboundBusDelivery`, Q7).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -744,16 +744,16 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Tier 3: complete triage matrix; every High/Medium row has a migration note.
   - [X] Lock Q4 and Q5 from audit findings (defaults for Low rows; explicit rules for High/Medium).
 
-- [ ] Phase P1 - `InternalMessageBus` engine
-  - [ ] Add `publish()`, `settle()`, `_inFlight`, `flushAndSettle()` (independent from `_stream` / `flushLane`).
-  - [ ] Refactor `flush()` / `flush(laneId)` to return `Promise<boolean>` per Q1.
-  - [ ] Implement `settle()` with inner quiescence loop, `Promise.allSettled` per snapshot, rejection logging, and `Promise<boolean>` per Q1/Q3.
-  - [ ] `publish` passes `activeFlushLane: undefined` per Q2; wrap handler promises with `tag` for Q3 log context.
-  - [ ] Implement `publish` subscriber scheduling per Q4: concurrent matching subscribers, no priority sort (not migration order).
-  - [ ] Extend `clear()` to reset `_stream` and `_inFlight` per Q6 and run deferral `onClear` per Q9.
-  - [ ] Add `registerDeferral` / `runDeferrals` stub per Q9 (empty registry OK in P1); first registrant **PUBLISH-MSG** coalescer in P4.
-  - [ ] Add tests: `flushAndSettle` cross-seam ping-pong, boolean no-op returns, single subscriber, concurrent subscribers, recursive publish during settle, **settle drains all handlers when one rejects** (Q3), **`clear()` drops `_inFlight` tracking** (Q6), coexistence with existing `send`/`flush` tests; **Q9** tests when defer API locks.
-  - [ ] Baseline: `npm test -- ts/messageBus/index.test.ts` passes.
+- [X] Phase P1 - `InternalMessageBus` engine
+  - [X] Add `publish()`, `settle()`, `_inFlight`, `flushAndSettle()` (independent from `_stream` / `flushLane`).
+  - [X] Refactor `flush()` / `flush(laneId)` to return `Promise<boolean>` per Q1.
+  - [X] Implement `settle()` with inner quiescence loop, `Promise.allSettled` per snapshot, rejection logging, and `Promise<boolean>` per Q1/Q3.
+  - [X] `publish` passes `activeFlushLane: undefined` per Q2; wrap handler promises with `tag` for Q3 log context.
+  - [X] Implement `publish` subscriber scheduling per Q4: concurrent matching subscribers, no priority sort (not migration order).
+  - [X] Extend `clear()` to reset `_stream` and `_inFlight` per Q6 and run deferral `onClear` per Q9.
+  - [X] Add `registerDeferral` / `runDeferrals` stub per Q9 (empty registry OK in P1); first registrant **PUBLISH-MSG** coalescer in P4.
+  - [X] Add tests: `flushAndSettle` cross-seam ping-pong, boolean no-op returns, single subscriber, concurrent subscribers, recursive publish during settle, **settle drains all handlers when one rejects** (Q3), **`clear()` drops `_inFlight` tracking** (Q6), coexistence with existing `send`/`flush` tests; **Q9** tests when defer API locks.
+  - [X] Baseline: `npm test -- ts/messageBus/index.test.ts` passes (22 tests; P1 baseline + new publish/settle suite).
 
 - [ ] Phase P2 - `DataSource` port and outbound path (piecewise per Q7; closeout per Q2)
   - [ ] P2a -- infrastructure: `DataSourceMessageBusPort` adds `publish` (keep `send` during migration); constructor `outboundBusDelivery?: 'send' | 'publish'` (default `'send'`); branch in `sendStreamingEventOnBus`.
@@ -808,6 +808,16 @@ From `packages/mtw-lambda-patterns/`:
 npm test -- ts/messageBus/index.test.ts
 ```
 
+### P1 engine (complete)
+
+From `packages/mtw-lambda-patterns/`:
+
+```bash
+npm test -- ts/messageBus/index.test.ts
+```
+
+22 tests pass (11 legacy flush/lane + 11 publish/settle/flushAndSettle/deferral).
+
 ### Package (always)
 
 From `packages/mtw-lambda-patterns/`:
@@ -848,7 +858,7 @@ rg 'messageBus\.(flush|flushAndSettle)\(' lambda/ --glob '**/app.ts' | wc -l
 | P0.5 Q4/Q5 positive audit + triage | Done |
 | Open questions Q4-Q5 resolved (P0.5) | Done |
 | Open question Q9 (`registerDeferral` + phased scope) | Done |
-| Engine `publish`/`settle` + tests (P1) | Not started |
+| Engine `publish`/`settle` + tests (P1) | Done |
 | DataSource port migration (P2) | Not started |
 | Ephemera lane hotspots (P3) | Not started |
 | Remaining ephemera migration (P4) | Not started |
