@@ -184,7 +184,7 @@ describe('Character Registered session orientation (integration)', () => {
         jest.spyOn(internalCache.RenderCache, 'get').mockResolvedValue([passThroughFixtureMinimalDynamoItem])
         jest.spyOn(internalCache.RenderCache, 'getExactMatch').mockResolvedValue(null)
         jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockResolvedValue(affordanceRow)
-        jest.spyOn(internalCache.ComponentStackMerge, 'get').mockResolvedValue({ schema: {} } as any)
+        jest.spyOn(internalCache.AffordanceRoomDeliverable, 'get').mockResolvedValue({ schema: {} } as any)
 
         getAffordanceRowMock.mockResolvedValue(affordanceRow)
         mockedPutCacheRecord.mockReset()

@@ -19,8 +19,8 @@ rather than relying on WML built from renderer-oriented `ComponentRender` output
   [`buildRoomDescriptionPrompt.ts`](../../../../../lambda/ephemera/generateExample/buildRoomDescriptionPrompt.ts)
 - Existing renderer-oriented source often used for context:
   [`componentRender.ts`](../../../../../lambda/ephemera/internalCache/componentRender.ts)
-- Structural room merge baseline:
-  [`componentStackMerge.ts`](../../../../../lambda/ephemera/internalCache/componentStackMerge.ts)
+- Shared WML merge helpers (render / generation context):
+  [`roomWireMergeHelpers.ts`](../../../../../lambda/ephemera/internalCache/roomWireMergeHelpers.ts)
 - Durable contract home for the new cache:
   [`lambda/ephemera/internalCache/generationContext/AGENT.md`](../../../../../lambda/ephemera/internalCache/generationContext/AGENT.md)
 

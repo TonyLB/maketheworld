@@ -768,7 +768,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             .mockResolvedValue(passThroughFixturePerspectiveKey)
         jest.spyOn(internalCache.CharacterMeta, 'get')
             .mockResolvedValue({ EphemeraId: 'CHARACTER#Match', assets: ['match'] } as any)
-        jest.spyOn(internalCache.ComponentStackMerge, 'get')
+        jest.spyOn(internalCache.AffordanceRoomDeliverable, 'get')
             .mockResolvedValue({ schema: {} } as any)
 
         const { roomId, perspective, perspectiveKey } = affordancePassThroughFixtureRouting
@@ -828,7 +828,7 @@ describe('mtw.ephemera.perception DataSource', () => {
 
     it('receiveEvents does not publish affordance PerceptionMessage on Objects Changed stream', async () => {
         const sendSpy = jest.spyOn(messageBus, 'send')
-        jest.spyOn(internalCache.ComponentStackMerge, 'get').mockResolvedValue({ schema: {} } as any)
+        jest.spyOn(internalCache.AffordanceRoomDeliverable, 'get').mockResolvedValue({ schema: {} } as any)
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
             { EphemeraId: 'CHARACTER#A', DisplayName: 'A', Color: 'blue', SessionIds: [] },
         ])

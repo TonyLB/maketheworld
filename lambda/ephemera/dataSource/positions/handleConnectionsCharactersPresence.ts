@@ -63,7 +63,7 @@ export const handleCharacterDisconnected = async (
         },
         successCallback: ({ activeCharacters }) => {
             internalCache.ComponentEphemeraMeta.invalidate(RoomId)
-            internalCache.ComponentStackMerge.invalidate(RoomId)
+            internalCache.AffordanceRoomDeliverable.invalidate(RoomId)
             internalCache.RoomCharacterList.set({ key: RoomId, value: activeCharacters ?? [] })
             if (removed) {
                 messageBus.send({

@@ -157,7 +157,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                         },
                         successCallback: ({ activeCharacters }: any, { activeCharacters: priorActiveCharacters }: any) => {
                             internalCache.ComponentEphemeraMeta.invalidate(characterMeta.RoomId)
-                            internalCache.ComponentStackMerge.invalidate(characterMeta.RoomId)
+                            internalCache.AffordanceRoomDeliverable.invalidate(characterMeta.RoomId)
                             internalCache.RoomCharacterList.set({ key: characterMeta.RoomId, value: activeCharacters })
                             if (priorActiveCharacters.find(({ EphemeraId }) => (EphemeraId === characterMeta.EphemeraId))) {
                                 if (!characterMoveKey && !payload.suppressDeparture) {
@@ -199,7 +199,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                         },
                         successCallback: ({ activeCharacters }) => {
                             internalCache.ComponentEphemeraMeta.invalidate(payload.roomId)
-                            internalCache.ComponentStackMerge.invalidate(payload.roomId)
+                            internalCache.AffordanceRoomDeliverable.invalidate(payload.roomId)
                             internalCache.RoomCharacterList.set({ key: payload.roomId, value: activeCharacters })
                 
                             if (!characterMoveKey && !payload.suppressArrival) {

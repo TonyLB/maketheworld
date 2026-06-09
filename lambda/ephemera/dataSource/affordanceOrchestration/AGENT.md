@@ -108,7 +108,7 @@ Expected: definition in [`publishRoomAffordancePerceptionMessages.ts`](../percep
 | **`roster`** | Skip when catalog already hydrated | Yes --- roster changed |
 | **`objects`** | Skip when catalog already hydrated | Yes --- **`objects`** changed |
 
-- **`ComponentStackMerge`** is **not** an ingress center --- terminal compose runs in perception on **`Affordances Pertain`** only ([`../perception/handleAffordancesPertain.ts`](../perception/handleAffordancesPertain.ts)).
+- **`AffordanceRoomDeliverable`** is **not** an ingress center --- terminal compose runs in perception on **`Affordances Pertain`** only ([`../perception/handleAffordancesPertain.ts`](../perception/handleAffordancesPertain.ts)).
 - **Two dispatch paths:** external triggers (**`RoomUpdate`**) enqueue **`Affordances Requested`**; in-DS subscribers (**`Objects Changed`**, **`TopologyInvalidated`**) call **`fanOutAffordanceRefreshForRoom`** -> **`orchestrateAffordanceRequest`** directly (mirror render **`State Changed`**).
 - **Outgoing types:** [`publishedEvents.ts`](publishedEvents.ts) (**`publisherStrategy: 'busOnly'`**); ephemera-local until a client boundary needs **`mtw-interfaces`**.
 

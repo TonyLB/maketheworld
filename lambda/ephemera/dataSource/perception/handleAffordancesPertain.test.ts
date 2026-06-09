@@ -46,7 +46,7 @@ describe('handleAffordancesPertain', () => {
         const sendSpy = jest.spyOn(messageBus, 'send')
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<AffordanceHeader />')
         const rosterSpy = jest.spyOn(internalCache.RoomCharacterList, 'get')
-        const stackMergeSpy = jest.spyOn(internalCache.ComponentStackMerge, 'get')
+        const stackMergeSpy = jest.spyOn(internalCache.AffordanceRoomDeliverable, 'get')
             .mockResolvedValue({ schema: {} } as any)
 
         internalCache.PerceptionThreads.register({
@@ -101,7 +101,7 @@ describe('handleAffordancesPertain', () => {
                 EphemeraId: characterId,
                 assets: characterId === 'CHARACTER#Match' ? ['match'] : ['other'],
             } as any))
-        const stackMergeSpy = jest.spyOn(internalCache.ComponentStackMerge, 'get')
+        const stackMergeSpy = jest.spyOn(internalCache.AffordanceRoomDeliverable, 'get')
             .mockResolvedValue({ schema: {} } as any)
 
         await handleAffordancesPertain(makePayload(), messageBus)
@@ -180,7 +180,7 @@ describe('handleAffordancesPertain', () => {
                 EphemeraId: characterId,
                 assets: ['match'],
             } as any))
-        jest.spyOn(internalCache.ComponentStackMerge, 'get')
+        jest.spyOn(internalCache.AffordanceRoomDeliverable, 'get')
             .mockResolvedValue({ schema: {} } as any)
 
         await handleAffordancesPertain(makePayload(), messageBus)

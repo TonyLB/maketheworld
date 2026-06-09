@@ -55,7 +55,7 @@ After local Dynamo writes in **`mtw.ephemera.affordanceCache`**, call memo **`se
 | Consumer | Read path |
 | --- | --- |
 | **`ensureAffordanceTopology`** | Hydrate preflight; persists rows via DataSource modules |
-| **`ComponentStackMerge.get`** | Compose **`exits`** into ephemeraWire on **`Affordances Pertain`** terminal publish (**D38**) |
+| **`AffordanceRoomDeliverable.get`** | Compose **`exits`** into ephemeraWire on **`Affordances Pertain`** terminal publish (**D38**) |
 | **Nav (D34)** | **`getRoomExitTargetsForCharacter`** --- **`ensureAffordanceTopology`** + **`getAffordanceRow`** (sync bypass; no bus orchestration) |
 
 ## Related

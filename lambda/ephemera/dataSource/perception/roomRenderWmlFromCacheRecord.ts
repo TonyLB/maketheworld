@@ -45,7 +45,7 @@ export function roomHeaderChannelWmlForRoomId(
 }
 
 /**
- * Render-channel WML for terminal **Render Pertains**: prose from `renderCache` only (no exits, roster, or ComponentStackMerge).
+ * Render-channel WML for terminal **Render Pertains**: prose from `renderCache` only (no exits, roster, or AffordanceRoomDeliverable).
  */
 export function roomRenderWmlFromCacheRecord(
     roomId: EphemeraRoomId,

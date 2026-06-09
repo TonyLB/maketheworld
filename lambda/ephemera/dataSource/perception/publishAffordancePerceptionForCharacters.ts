@@ -1,5 +1,5 @@
 /**
- * Shared affordance-channel PublishMessage emit: one row per character via ComponentStackMerge.
+ * Shared affordance-channel PublishMessage emit: one row per character via AffordanceRoomDeliverable.
  */
 import { v4 as uuidv4 } from 'uuid'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -26,7 +26,7 @@ export async function publishAffordancePerceptionForTargets({
     if (!targets.length) {
         return
     }
-    const merged = await internalCache.ComponentStackMerge.get(viewerCharacterId, roomId)
+    const merged = await internalCache.AffordanceRoomDeliverable.get(viewerCharacterId, roomId)
     const wmlContent = schemaToWML([merged.schema])
     messageBus.send({
         type: 'PublishMessage',

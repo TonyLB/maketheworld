@@ -30,14 +30,15 @@ provenance metadata. Add fields explicitly as generation inputs, not as copies o
 
 - Not a clone of `ComponentRender` room output
 - Not a container for delivery triplets (`displayName`, `summary`, `description`) from cached renders
-- Not a generic replacement for `ComponentStackMerge` or other rendering caches
+- Not a generic replacement for `AffordanceRoomDeliverable` or other rendering caches
 - Not "WML-first" semantics; WML on ingress is an optional parse path, not canonical meaning
 
 ## Relationship to neighboring systems
 
 - [`../componentRender.ts`](../componentRender.ts): renderer-facing merged room view (do not use as the
   passive default for generation context)
-- [`../componentStackMerge.ts`](../componentStackMerge.ts): structural room merge cache
+- [`../affordanceRoomDeliverable.ts`](../affordanceRoomDeliverable.ts): affordance-channel room deliverable compose (perception terminal only)
+- [`../roomWireMergeHelpers.ts`](../roomWireMergeHelpers.ts): shared WML merge helpers used by **`ComponentRender`** and **`GenerationContext`**
 - [`../../dataSource/renderOrchestration/generateRoomPreview.ts`](../../dataSource/renderOrchestration/generateRoomPreview.ts):
   **owns** passive slow-path context resolution: parses optional ingress `generationContextWml` when
   present and valid; otherwise loads this cache via `GenerationContext.get(roomId, assetStack)` and

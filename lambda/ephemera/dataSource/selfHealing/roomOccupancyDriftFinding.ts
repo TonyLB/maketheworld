@@ -120,7 +120,7 @@ export const handleRoomOccupancyDriftFinding = async ({ roomId, messageBus }: {
             },
             successCallback: ({ activeCharacters }) => {
                 internalCache.ComponentEphemeraMeta.invalidate(roomId)
-                internalCache.ComponentStackMerge.invalidate(roomId)
+                internalCache.AffordanceRoomDeliverable.invalidate(roomId)
                 internalCache.RoomCharacterList.set({ key: roomId, value: activeCharacters ?? [] })
                 messageBus.send({
                     type: 'RoomUpdate',

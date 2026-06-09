@@ -4,7 +4,7 @@ import internalCache from '../internalCache'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
-import { mergeRoomExitsToJSON } from './componentStackMerge'
+import { mergeRoomExitsToJSON } from './roomWireMergeHelpers'
 import { createAffordanceCacheRow } from '@tonylb/mtw-gateways/ts/ephemera/affordanceCache'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 
@@ -31,7 +31,7 @@ const mockAffordanceRow = (
     })
 }
 
-describe('ComponentStackMerge cache handler', () => {
+describe('AffordanceRoomDeliverable cache handler', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
@@ -69,7 +69,7 @@ describe('ComponentStackMerge cache handler', () => {
             { EphemeraId: 'CHARACTER#TESS', DisplayName: 'Tess', Color: 'purple', SessionIds: [] },
         ])
 
-        const merged = await internalCache.ComponentStackMerge.get('CHARACTER#TESS', 'ROOM#ParityOne')
+        const merged = await internalCache.AffordanceRoomDeliverable.get('CHARACTER#TESS', 'ROOM#ParityOne')
 
         expect(schemaToWML([merged.schema])).toEqual(
             deIndentWML(`
@@ -121,7 +121,7 @@ describe('ComponentStackMerge cache handler', () => {
         )
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([])
 
-        const merged = await internalCache.ComponentStackMerge.get('CHARACTER#TESS', 'ROOM#MergeTwo')
+        const merged = await internalCache.AffordanceRoomDeliverable.get('CHARACTER#TESS', 'ROOM#MergeTwo')
 
         expect(schemaToWML([merged.schema])).toEqual(
             deIndentWML(`
@@ -197,7 +197,7 @@ describe('ComponentStackMerge cache handler', () => {
         )
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([])
 
-        const merged = await internalCache.ComponentStackMerge.get('CHARACTER#TESS', roomId)
+        const merged = await internalCache.AffordanceRoomDeliverable.get('CHARACTER#TESS', roomId)
         const wml = schemaToWML([merged.schema])
 
         expect(wml).toContain('E door')
@@ -240,7 +240,7 @@ describe('ComponentStackMerge cache handler', () => {
         }
         jest.spyOn(internalCache.ComponentEphemeraMeta, 'get').mockResolvedValue(metaRoom)
 
-        const merged = await internalCache.ComponentStackMerge.get('CHARACTER#TESS', 'ROOM#ObjRoom')
+        const merged = await internalCache.AffordanceRoomDeliverable.get('CHARACTER#TESS', 'ROOM#ObjRoom')
 
         const wml = schemaToWML([merged.schema])
         expect(wml).toContain('<Object uuid=(foo)')
@@ -274,7 +274,7 @@ describe('ComponentStackMerge cache handler', () => {
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([])
 
         await expect(
-            (internalCache.ComponentStackMerge as any)._getPromiseFactory('CHARACTER#TESS', 'ROOM#Missing')
+            (internalCache.AffordanceRoomDeliverable as any)._getPromiseFactory('CHARACTER#TESS', 'ROOM#Missing')
         ).rejects.toThrow('AFFORDANCE_TOPOLOGY_NOT_READY')
     })
 
@@ -312,16 +312,16 @@ describe('ComponentStackMerge cache handler', () => {
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([])
 
         const char = 'CHARACTER#TESS' as const
-        await internalCache.ComponentStackMerge.get(char, roomA)
-        await internalCache.ComponentStackMerge.get(char, roomB)
+        await internalCache.AffordanceRoomDeliverable.get(char, roomA)
+        await internalCache.AffordanceRoomDeliverable.get(char, roomB)
         const callsAfterWarm = aggregateGet.mock.calls.length
 
-        internalCache.ComponentStackMerge.invalidate(roomA)
+        internalCache.AffordanceRoomDeliverable.invalidate(roomA)
 
-        await internalCache.ComponentStackMerge.get(char, roomA)
+        await internalCache.AffordanceRoomDeliverable.get(char, roomA)
         expect(aggregateGet.mock.calls.length).toBe(callsAfterWarm + 1)
 
-        await internalCache.ComponentStackMerge.get(char, roomB)
+        await internalCache.AffordanceRoomDeliverable.get(char, roomB)
         expect(aggregateGet.mock.calls.length).toBe(callsAfterWarm + 1)
     })
 })

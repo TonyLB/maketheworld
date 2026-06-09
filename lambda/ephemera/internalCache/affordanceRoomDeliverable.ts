@@ -1,92 +1,48 @@
+/**
+ * Affordance-channel room header compose memo for terminal perception publish.
+ */
 import type { ComponentAggregateMergedCache } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { aggregatePerspectiveExplicit } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import type { AffordanceCacheData } from './affordanceCache'
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import CacheGlobalData from './global'
-import { excludeUndefined, unique } from '@tonylb/mtw-utilities/ts/lists'
+import { unique } from '@tonylb/mtw-utilities/ts/lists'
 import {
     EphemeraCharacterId,
-    EphemeraFeatureId,
-    EphemeraKnowledgeId,
-    EphemeraMapId,
-    EphemeraMessageId,
     EphemeraRoomId,
     isEphemeraCharacterId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
-import { RoomCharacterListItem } from './baseClasses'
 import CacheCharacterMetaData, { CharacterMetaItem } from './characterMeta'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import { CacheRoomCharacterListsData } from './roomCharacterLists'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
-import { ExitFacetList } from '@tonylb/mtw-wml/ts/standardize/keys/facets/exit'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room'
-import { StandardCharacterData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/character'
+import type { RoomCharacterListItem } from './baseClasses'
+import { roomCharacterListToStandardCharacterData } from './roomWireMergeHelpers'
 
-/** Options shape accepted for cache keys (aligns with `ComponentRender` room keys; `priorRenderChain` is ignored for the key string). */
-export type EphemeraComponentCacheKeyOptions = {
-    priorRenderChain?: string[]
-    header?: boolean
-}
-
-export function generateEphemeraComponentCacheKey(
-    CharacterId: EphemeraCharacterId | 'ANONYMOUS',
-    EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraMapId | EphemeraMessageId,
-    options?: EphemeraComponentCacheKeyOptions
-): string {
-    return `${CharacterId}::${EphemeraId}::${options && 'header' in options && options.header ? 'true' : 'false'}`
-}
-
-/** Cache key for `ComponentStackMerge` only (room structural merge does not depend on `header`). */
-export function generateComponentStackMergeCacheKey(
+/** Cache key for AffordanceRoomDeliverable (characterId, roomId). */
+export function generateAffordanceRoomDeliverableCacheKey(
     CharacterId: EphemeraCharacterId | 'ANONYMOUS',
     EphemeraRoomId: EphemeraRoomId
 ): string {
     return `${CharacterId}::${EphemeraRoomId}`
 }
 
-/** True if `cacheKey` is a stack-merge key for `roomId` (suffix match; character id must not contain `::`). */
-export function componentStackMergeCacheKeyForRoom(cacheKey: string, roomId: EphemeraRoomId): boolean {
+/** True if `cacheKey` is an affordance deliverable key for `roomId` (suffix match; character id must not contain `::`). */
+export function affordanceRoomDeliverableCacheKeyForRoom(cacheKey: string, roomId: EphemeraRoomId): boolean {
     return cacheKey.endsWith(`::${roomId}`)
 }
 
-export function mergeRoomExitsToJSON(assetData: StandardRoom[]) {
-    const allExitFacets = assetData.map((asset) => asset.exits.items || []).flat(1)
-    return new ExitFacetList(allExitFacets).toJSON()
-}
-
-export function mergeRoomShortNameLiteral(assetData: StandardRoom[]): StandardLiteral | undefined {
-    return assetData
-        .map((component) => component.shortName)
-        .filter(excludeUndefined)
-        .reduce<StandardLiteral | undefined>(
-            (previous, current: StandardLiteral) => (previous ? previous.merge(current) : current),
-            undefined
-        )
-}
-
-export function roomCharacterListToStandardCharacterData(
-    roomCharacterList: RoomCharacterListItem[]
-): StandardCharacterData[] {
-    return roomCharacterList.map((char) => ({
-        tag: 'Character' as const,
-        universalKey: char.EphemeraId,
-        displayName: char.DisplayName ?? undefined,
-        image: char.fileURL
-            ? {
-                  data: { tag: 'Image' as const, key: '', fileURL: char.fileURL },
-                  children: [],
-              }
-            : undefined,
-    }))
-}
-
-/** Room structural merge cache; key is (characterId, roomId). A future migration toward (componentId, perspectiveKey) would align with render / perception perspectiveKey usage. */
-export class ComponentStackMergeData {
+/**
+ * Per-invocation compose memo: builds affordance-channel room header StandardForm
+ * (shortName via ComponentAggregate, exits via AffordanceCache, roster/objects via ephemera meta).
+ * Called from perception on Affordances Pertain terminal publish only.
+ */
+export class AffordanceRoomDeliverableData {
     _componentAggregate: ComponentAggregateMergedCache
     _affordanceCache: AffordanceCacheData
     _roomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>
@@ -127,7 +83,7 @@ export class ComponentStackMergeData {
     }
 
     invalidate(roomId: EphemeraRoomId): void {
-        const matches = (key: string) => componentStackMergeCacheKeyForRoom(key, roomId)
+        const matches = (key: string) => affordanceRoomDeliverableCacheKeyForRoom(key, roomId)
         this._Cache.invalidateWhere(matches)
         for (const key of Object.keys(this._Store)) {
             if (matches(key)) {
@@ -200,7 +156,7 @@ export class ComponentStackMergeData {
     }
 
     async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraRoomId: EphemeraRoomId): Promise<StandardForm> {
-        const cacheKey = generateComponentStackMergeCacheKey(CharacterId, EphemeraRoomId)
+        const cacheKey = generateAffordanceRoomDeliverableCacheKey(CharacterId, EphemeraRoomId)
         if (!this._Cache.isCached(cacheKey)) {
             this._Cache.add({
                 promiseFactory: async () => this._getPromiseFactory(CharacterId, EphemeraRoomId),
@@ -220,4 +176,4 @@ export class ComponentStackMergeData {
     }
 }
 
-export default ComponentStackMergeData
+export default AffordanceRoomDeliverableData

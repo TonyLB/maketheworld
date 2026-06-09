@@ -1,7 +1,7 @@
 import internalCache from '..'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
-import { mergeRoomShortNameLiteral } from '../componentStackMerge'
+import { mergeRoomShortNameLiteral } from '../roomWireMergeHelpers'
 import type { ComponentAcrossAssetsEntry } from '@tonylb/mtw-gateways/ts/assets/components/componentData'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 

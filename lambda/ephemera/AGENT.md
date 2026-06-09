@@ -70,7 +70,7 @@ Current supported occupancy-healing finding:
   - Scope is strictly `ephemera`-table reconciliation (D6 ownership boundary).
   - Rebuilds `Meta::Room.activeCharacters` from authoritative character room membership + live sessions.
   - Keeps replay idempotency (no-op when room occupancy already matches canonical shape).
-  - Enforces post-repair contract: `RoomCharacterList` refresh, `ComponentEphemeraMeta` + `ComponentStackMerge` invalidation, and `RoomUpdate` signaling.
+  - Enforces post-repair contract: `RoomCharacterList` refresh, `ComponentEphemeraMeta` + `AffordanceRoomDeliverable` invalidation, and `RoomUpdate` signaling.
   - Queues `CheckLocation` for occupancy entries lacking authoritative room assignment.
 
 #### **`mtw.ephemera.positions` (positions in play)**
@@ -84,7 +84,7 @@ First external ingress: `mtw.connections.characters` (see [`packages/mtw-interfa
 Handlers (in [`dataSource/positions/handleConnectionsCharactersPresence.ts`](dataSource/positions/handleConnectionsCharactersPresence.ts)):
 
 - **`Character Connected`**: queues `CheckLocation` with `forceMove: true` and `arriveMessage: ' has connected.'`. The existing `moveCharacter` flow then performs the `Meta::Room.activeCharacters` add, arrival `WorldMessage`, and `CharacterInPlay` `EphemeraUpdate`. Per-session deduplication is upstream (`mtw.connections.characters` only emits `Character Connected` when `Meta::Character.sessions` was empty pre-mutation), so `suppressArrival: false` is correct here. This path is **world-facing only**; it does **not** deliver session-scoped RoomHeader bootstrap (see session orientation below).
-- **`Character Disconnected`**: runs an `optimisticUpdate` against the character's `Meta::Room.activeCharacters`, removing the character entry. If the projection actually changed (idempotency gate), the handler invalidates `ComponentEphemeraMeta` / `ComponentStackMerge`, refreshes `RoomCharacterList`, and emits the departure `WorldMessage` plus a `RoomUpdate`. Duplicate deliveries are no-ops because the second update finds nothing to remove.
+- **`Character Disconnected`**: runs an `optimisticUpdate` against the character's `Meta::Room.activeCharacters`, removing the character entry. If the projection actually changed (idempotency gate), the handler invalidates `ComponentEphemeraMeta` / `AffordanceRoomDeliverable`, refreshes `RoomCharacterList`, and emits the departure `WorldMessage` plus a `RoomUpdate`. Duplicate deliveries are no-ops because the second update finds nothing to remove.
 
 The lane is intentionally extensible: adding new position-affecting subscribers means registering a new header guard in [`dataSource/positions/subscribedEvents.ts`](dataSource/positions/subscribedEvents.ts) and a matching handler, not standing up a new DataSource.
 
