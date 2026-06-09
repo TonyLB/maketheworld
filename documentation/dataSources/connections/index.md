@@ -20,6 +20,12 @@ Notes:
 - Ephemera registration bridge paths are removed; `service: ephemera` is no longer a valid registration ingress target.
 - Client request contract for websocket `service: connections` is now isolated as `ConnectionsAPIMessage` in `packages/mtw-interfaces/ts/connections.ts` (no longer piggybacked on ephemera request typings).
 
+Consumers:
+
+- **Ephemera session orientation (`Character Registered`)** at [`lambda/ephemera/dataSource/renderOrchestration/`](../../../lambda/ephemera/dataSource/renderOrchestration/) and [`lambda/ephemera/dataSource/affordanceOrchestration/`](../../../lambda/ephemera/dataSource/affordanceOrchestration/) (guards in [`connectionsCharacterRegistered/subscribedEvents.ts`](../../../lambda/ephemera/dataSource/connectionsCharacterRegistered/subscribedEvents.ts); kick helper [`handleCharacterRegisteredOrientation.ts`](../../../lambda/ephemera/dataSource/connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts)): delivers render + affordance RoomHeader material to **`characterId`** via perception threads (`sessionOrientationRender` + `sessionOrientationAffordances`). Terminal **`PublishMessage`** uses **`Target: CHARACTER#...`** on the wire. Distinct from the positions/world path below.
+
+Cross-lambda ordering: consumers must not assume `Character Connected` precedes `Character Registered` or vice versa.
+
 ## `mtw.connections.characters`
 
 **Source:** `mtw.connections.characters` (derived character-presence lane)
@@ -41,13 +47,14 @@ These presence transitions are emitted with **at least once** delivery; consumer
 Producer boundary semantics:
 
 - Emit intent is aggregate-session boundary crossing for a character: connect (`0 -> 1`) and disconnect (`1 -> 0`).
-- Producer checks pre-transition adjacency/session state to decide whether to emit `Character Connected` or `Character Disconnected`.
+- **Connect (`0 -> 1`):** registration reads pre-mutation `prior.sessions` via the `Meta::Character` `transactWrite` Update `successCallback` and passes `isFirstSessionForCharacter` on the in-process `Character Registered` envelope; the derived `mtw.connections.characters` lane emits `Character Connected` when that flag is `true`.
+- **Disconnect (`1 -> 0`):** teardown removes the session first; the derived lane reads post-teardown `Meta::Character.sessions` and emits `Character Disconnected` when the list is empty.
 - Registration and teardown state mutation is still applied even when a corresponding presence event is not emitted.
 - No cross-writer lock is used to suppress same-window duplicates; duplicate presence events are acceptable under at-least-once + concurrency semantics.
 
 Consumers:
 
-- **Ephemera projection (`mtw.ephemera.positions`)** at [`lambda/ephemera/dataSource/positions/`](../../../lambda/ephemera/dataSource/positions/) is the projection owner: `Character Connected` triggers `CheckLocation`/`MoveCharacter` (room arrival, `Meta::Room.activeCharacters` add); `Character Disconnected` runs a conditional `Meta::Room.activeCharacters` projection that gates departure `WorldMessage`/`RoomUpdate` on actual change. See [`lambda/ephemera/AGENT.md`](../../../lambda/ephemera/AGENT.md) and [`lambda/ephemera/AGENT.event.md`](../../../lambda/ephemera/AGENT.event.md).
+- **Ephemera projection (`mtw.ephemera.positions`)** at [`lambda/ephemera/dataSource/positions/`](../../../lambda/ephemera/dataSource/positions/) is the projection owner: `Character Connected` triggers `CheckLocation`/`MoveCharacter` (room arrival, `Meta::Room.activeCharacters` add); `Character Disconnected` runs a conditional `Meta::Room.activeCharacters` projection that gates departure `WorldMessage`/`RoomUpdate` on actual change. See [`lambda/ephemera/AGENT.md`](../../../lambda/ephemera/AGENT.md) and [`lambda/ephemera/AGENT.event.md`](../../../lambda/ephemera/AGENT.event.md). Session RoomHeader bootstrap is **not** this path; see `Character Registered` consumers under `mtw.connections` above.
 
 Operational guardrails:
 

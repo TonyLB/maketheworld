@@ -15,7 +15,7 @@ jest.mock('../../internalCache', () => ({
     __esModule: true,
     default: {
         ComponentEphemeraMeta: { invalidate: jest.fn() },
-        ComponentStackMerge: { invalidate: jest.fn() },
+        AffordanceRoomDeliverable: { invalidate: jest.fn() },
     },
 }))
 

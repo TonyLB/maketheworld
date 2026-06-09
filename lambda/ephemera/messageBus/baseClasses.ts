@@ -36,6 +36,21 @@ export const isPublishTargetSession = isEphemeraTaggedId<'SESSION'>('SESSION')
 export const isPublishTargetExcludeSession = isEphemeraTaggedId<'!SESSION'>('!SESSION')
 export const isPublishTargetGlobal = (key: string): key is PublishTargetGlobal => (key === 'GLOBAL')
 
+export const isPublishTarget = (key: string): key is PublishTarget => (
+    isPublishTargetRoom(key)
+    || isPublishTargetCharacter(key)
+    || isPublishTargetExcludeCharacter(key)
+    || isPublishTargetSession(key)
+    || isPublishTargetExcludeSession(key)
+    || isPublishTargetGlobal(key)
+)
+
+export const isNonEmptyPublishTargetArray = (value: unknown): value is PublishTarget[] => (
+    Array.isArray(value)
+    && value.length > 0
+    && value.every((t) => typeof t === 'string' && isPublishTarget(t))
+)
+
 export type PublishMessageBase = {
     type: 'PublishMessage';
     targets: PublishTarget[];

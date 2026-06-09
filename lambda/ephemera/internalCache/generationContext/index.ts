@@ -3,7 +3,7 @@ import type { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import type { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import type { ComponentDataCache } from '@tonylb/mtw-gateways/ts/assets/components/componentData'
-import { mergeRoomShortNameLiteral } from '../componentStackMerge'
+import { mergeRoomShortNameLiteral } from '../roomWireMergeHelpers'
 
 export type GenerationContextRoomShortName = {
     componentId: ComponentUUID;

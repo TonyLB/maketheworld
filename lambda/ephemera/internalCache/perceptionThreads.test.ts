@@ -3,10 +3,13 @@ import PerceptionThreadsData, {
     isPerceptionThread,
     isRoomDescriptionPerceptionThread,
     isRoomHeaderBroadcastPerceptionThread,
+    isSessionOrientationAffordancesPerceptionThread,
+    isSessionOrientationRenderPerceptionThread,
     isStubPerceptionThread,
     mergePerceptionThreadPatch,
     type RoomDescriptionPerceptionThread,
     type RoomHeaderBroadcastPerceptionThread,
+    type SessionOrientationRenderPerceptionThread,
 } from './perceptionThreads'
 import type { PerceptionThreadRegisterCommand } from '../dataSource/perception/localApiEvents'
 
@@ -36,6 +39,28 @@ const makeHeaderBroadcastRegistration = (
     componentId: 'ROOM#test',
     perspectiveKey: 'pk-one',
     targets: ['CHARACTER#a', 'CHARACTER#b'],
+    ...overrides,
+})
+
+const makeSessionOrientationRenderRegistration = (
+    overrides: Partial<Extract<PerceptionThreadRegisterCommand, { threadKind: 'sessionOrientationRender' }>> = {}
+): Extract<PerceptionThreadRegisterCommand, { threadKind: 'sessionOrientationRender' }> => ({
+    threadKind: 'sessionOrientationRender',
+    componentId: 'ROOM#test',
+    perspectiveKey: 'pk-one',
+    characterId: 'CHARACTER#viewer',
+    targets: ['SESSION#session-1'],
+    ...overrides,
+})
+
+const makeSessionOrientationAffordancesRegistration = (
+    overrides: Partial<Extract<PerceptionThreadRegisterCommand, { threadKind: 'sessionOrientationAffordances' }>> = {}
+): Extract<PerceptionThreadRegisterCommand, { threadKind: 'sessionOrientationAffordances' }> => ({
+    threadKind: 'sessionOrientationAffordances',
+    componentId: 'ROOM#test',
+    perspectiveKey: 'pk-one',
+    characterId: 'CHARACTER#viewer',
+    targets: ['SESSION#session-1'],
     ...overrides,
 })
 
@@ -237,6 +262,49 @@ describe('PerceptionThreadsData', () => {
         expect((listed[0].registration as { targets: string[] }).targets).toEqual(['CHARACTER#a', 'CHARACTER#b'])
     })
 
+    it('register sessionOrientationRender stores Initial thread and targets', () => {
+        cache.register(makeSessionOrientationRenderRegistration())
+        const listed = cache.list('ROOM#test', 'pk-one')
+        expect(listed).toHaveLength(1)
+        expect(listed[0].thread).toEqual({ kind: 'sessionOrientationRender', status: 'Initial' })
+        expect(listed[0].registration.threadKind).toBe('sessionOrientationRender')
+        expect((listed[0].registration as { targets: string[] }).targets).toEqual(['SESSION#session-1'])
+    })
+
+    it('update merges sessionOrientationRender thread', () => {
+        cache.register(makeSessionOrientationRenderRegistration())
+        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
+        const ok = cache.update(
+            { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
+            { threadKind: 'sessionOrientationRender', status: 'Generating', messageId: 'MESSAGE#s1' }
+        )
+        expect(ok).toBe(true)
+        expect(cache.list('ROOM#test', 'pk-one')[0].thread).toMatchObject({
+            kind: 'sessionOrientationRender',
+            status: 'Generating',
+            messageId: 'MESSAGE#s1',
+        })
+    })
+
+    it('register sessionOrientationAffordances stores Initial thread', () => {
+        cache.register(makeSessionOrientationAffordancesRegistration())
+        const listed = cache.list('ROOM#test', 'pk-one')
+        expect(listed).toHaveLength(1)
+        expect(listed[0].thread).toEqual({ kind: 'sessionOrientationAffordances', status: 'Initial' })
+        expect(listed[0].registration.threadKind).toBe('sessionOrientationAffordances')
+    })
+
+    it('update rejects Generating status on sessionOrientationAffordances', () => {
+        cache.register(makeSessionOrientationAffordancesRegistration())
+        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
+                { threadKind: 'sessionOrientationAffordances', status: 'Generating' } as unknown
+            )
+        ).toThrow('not a valid PerceptionThreadPatch')
+    })
+
     it('update merges roomHeaderBroadcast thread', () => {
         cache.register(makeHeaderBroadcastRegistration())
         const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
@@ -341,6 +409,25 @@ describe('isStubPerceptionThread / isRoomDescriptionPerceptionThread / isPercept
         const t = { kind: 'characterMove' as const, status: 'Initial' as const }
         expect(isCharacterMovePerceptionThread(t)).toBe(true)
         expect(isPerceptionThread(t)).toBe(true)
+    })
+
+    it('accepts sessionOrientationRender shape', () => {
+        const t: SessionOrientationRenderPerceptionThread = { kind: 'sessionOrientationRender', status: 'Initial' }
+        expect(isSessionOrientationRenderPerceptionThread(t)).toBe(true)
+        expect(isPerceptionThread(t)).toBe(true)
+    })
+
+    it('accepts sessionOrientationAffordances shape', () => {
+        const t = { kind: 'sessionOrientationAffordances' as const, status: 'Initial' as const }
+        expect(isSessionOrientationAffordancesPerceptionThread(t)).toBe(true)
+        expect(isPerceptionThread(t)).toBe(true)
+    })
+
+    it('rejects sessionOrientationAffordances with Generating status', () => {
+        expect(isSessionOrientationAffordancesPerceptionThread({
+            kind: 'sessionOrientationAffordances',
+            status: 'Generating',
+        })).toBe(false)
     })
 
     it('rejects wrong kind', () => {

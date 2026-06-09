@@ -275,17 +275,32 @@ describe('moveCharacter', () => {
             previousRoomId: 'ROOM#VORTEX',
             roomId: 'ROOM#VORTEX'
         })
-        expect(mockSendRenderRequested).toHaveBeenCalledTimes(1)
-        expect(mockSendRenderRequested).toHaveBeenCalledWith(
-            messageBusMock,
+        expect(mockSendRenderRequested).not.toHaveBeenCalled()
+        expect(messageBusSend.mock.calls.filter((c) => (c[0] as { type?: string })?.type === 'Perception')).toHaveLength(0)
+    })
+
+    it('does not kick room headers on same-room forceMove (orientation owns session bootstrap)', async () => {
+        wrapMocks(
+            [{ asset: 'primitives', RoomId: 'VORTEX' }],
             'ROOM#VORTEX',
-            {
-                componentId: 'ROOM#VORTEX',
-                perspective: { assetStack: ['ASSET#primitives', 'ASSET#TownCenter', 'ASSET#Dockside'] },
-                characterId: 'CHARACTER#Test',
-            },
-            { useDefaultMessageBusLane: true }
+            assetsIntersectingTestRooms
         )
+        await moveCharacter({
+            payloads: [{
+                type: 'MoveCharacter',
+                characterId: 'CHARACTER#Test',
+                roomId: 'ROOM#VORTEX',
+                arriveMessage: ' has connected.',
+                suppressSelfMessage: true,
+            }],
+            messageBus: messageBusMock,
+        })
+        expect(messageBusSend).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'EphemeraUpdate',
+            updates: [expect.objectContaining({ type: 'CharacterInPlay', Connected: true })],
+        }))
+        expect(mockSendRenderRequested).not.toHaveBeenCalled()
+        expect(messageBusSend.mock.calls.filter((c) => (c[0] as { type?: string })?.type === 'Perception')).toHaveLength(0)
     })
 
     it('kicks passive render with Canon-only perspective when character assets do not overlap', async () => {

@@ -86,7 +86,21 @@ Contracts for `Character Connected` and `Character Disconnected` on `mtw.connect
 
 **Footgun:** Because `sessionId` is present on the payload, it is tempting to assume it must equal "the session we are processing right now" or that matching it against local state is sufficient for correctness. At-least-once delivery, races, and duplicate events mean that assumption can silently become a **false authority**: consumers should drive side effects from **durable projections and conditionals** (for example room presence gates), not from correlating this field to whatever session id happens to be in scope.
 
-`Character Registered` on `mtw.connections` follows the same stream key convention as character-presence events (`CHARACTER#${characterId}`); registration ingress is connections-owned (see `lambda/connections/AGENT.md`).
+### Connections: Character Registered vs character presence
+
+Registration and aggregate presence are **separate producer outcomes** from `connections`, consumable **independently** by ephemera (any order, duplicate-tolerant). Do not conflate session RoomHeader bootstrap with world projection.
+
+| | `Character Registered` | `Character Connected` / `Character Disconnected` |
+| --- | --- | --- |
+| **Source** | `mtw.connections` | `mtw.connections.characters` (derived) |
+| **Frequency** | Every successful `registercharacter` | Aggregate session boundary `0 <-> 1` only |
+| **Stream key** | `CHARACTER#${characterId}` | `CHARACTER#${characterId}` |
+| **`sessionId` role** | Correlation only (registering session on the wire); delivery uses **`characterId`** via perception threads | Boundary-correlation only; **not** authority (see presence footguns below) |
+| **Delivery target** | **`CHARACTER#${characterId}`** (`PublishMessage` wire **`Target`**) | Per-character roster / room-side effects via positions projection |
+| **Ephemera consumer** | `renderOrchestration` + `affordanceOrchestration` -> `perception` (session orientation) | `mtw.ephemera.positions` (world projection) |
+| **Wire extras** | Internal `isFirstSessionForCharacter` (aggregate `0 -> 1` signal) is **in-process only** --- `ConnectionsEventSerializer` omits it on publish | N/A |
+
+Contracts: [`connections/index.ts`](./connections/index.ts) (`Character Registered`), [`connections/characters/index.ts`](./connections/characters/index.ts) (presence). Producer and consumer maps: `lambda/connections/AGENT.md`, `documentation/dataSources/connections/index.md`.
 
 ### Implementation Guidelines
 

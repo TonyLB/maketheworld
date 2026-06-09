@@ -3,6 +3,7 @@
  *
  * Part of mtw.ephemera.affordanceOrchestration (see ../AGENT.md).
  * Internal-only publish path uses dataSourceKey 'api.ephemera'; stream outbounds are defined in publishedEvents.ts.
+ * External ingress includes mtw.connections Character Registered (session orientation; handler Phase 3).
  */
 import {
     StreamingEventEnvelope,
@@ -22,6 +23,10 @@ import {
     isEphemeraObjectsObjectsChangedEnvelope,
     type ObjectsChangedPayload,
 } from '../objects/events'
+import {
+    isConnectionsCharacterRegisteredEnvelope,
+    type ConnectionsCharacterRegisteredSubscribedContent,
+} from '../connectionsCharacterRegistered/subscribedEvents'
 
 export type AffordanceOrchestrationIngressHeader =
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Affordances Requested' }
@@ -59,6 +64,7 @@ export type AffordanceOrchestrationSubscribedContent =
     | AffordanceOrchestrationIngressCommand
     | ObjectsChangedPayload
     | ComponentTopologyInvalidatedEvent
+    | ConnectionsCharacterRegisteredSubscribedContent
 
 export const isAffordanceOrchestrationSubscribedEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
@@ -66,6 +72,7 @@ export const isAffordanceOrchestrationSubscribedEnvelope = (
     isAffordanceOrchestrationIngressEnvelope(envelope)
         || isEphemeraObjectsObjectsChangedEnvelope(envelope)
         || isComponentTopologyInvalidatedEnvelope(envelope)
+        || isConnectionsCharacterRegisteredEnvelope(envelope)
 )
 
 type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }

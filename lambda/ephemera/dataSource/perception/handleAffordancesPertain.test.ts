@@ -13,10 +13,17 @@ import * as roomHeaderBroadcastModule from './kickRoomHeaderBroadcast'
 import { handleAffordancesPertain } from './handleAffordancesPertain'
 
 describe('handleAffordancesPertain', () => {
+    let logSpy: jest.SpiedFunction<typeof console.log>
+
     beforeEach(() => {
         jest.clearAllMocks()
         messageBus.clear()
         internalCache.clear()
+        logSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
+    })
+
+    afterEach(() => {
+        logSpy.mockRestore()
     })
 
     function makePayload() {
@@ -42,6 +49,58 @@ describe('handleAffordancesPertain', () => {
         }
     }
 
+    it('publishes affordance PerceptionMessage to CHARACTER# when sessionOrientationAffordances thread registered', async () => {
+        const sendSpy = jest.spyOn(messageBus, 'send')
+        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<AffordanceHeader />')
+        const rosterSpy = jest.spyOn(internalCache.RoomCharacterList, 'get')
+        const stackMergeSpy = jest.spyOn(internalCache.AffordanceRoomDeliverable, 'get')
+            .mockResolvedValue({ schema: {} } as any)
+
+        internalCache.PerceptionThreads.register({
+            threadKind: 'sessionOrientationAffordances',
+            componentId: passThroughFixtureRoomId,
+            perspectiveKey: passThroughFixturePerspectiveKey,
+            characterId: 'CHARACTER#Viewer',
+            targets: ['CHARACTER#Viewer'],
+        })
+
+        await handleAffordancesPertain(makePayload(), messageBus)
+
+        const affordancePublishes = sendSpy.mock.calls.filter((c) => {
+            const m = c[0] as { type?: string; metaData?: { roomChannel?: string } }
+            return m?.type === 'PublishMessage' && m?.metaData?.roomChannel === 'affordances'
+        })
+        expect(affordancePublishes).toHaveLength(1)
+        const row = affordancePublishes[0][0] as {
+            targets?: string[];
+            messageId?: string;
+            wmlContent?: string;
+        }
+        expect(row.targets).toEqual(['CHARACTER#Viewer'])
+        expect(row.wmlContent).toBe('<AffordanceHeader />')
+        expect(row.messageId).toMatch(/^MESSAGE#/)
+        expect(stackMergeSpy).toHaveBeenCalledTimes(1)
+        expect(stackMergeSpy).toHaveBeenCalledWith(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
+        expect(rosterSpy).not.toHaveBeenCalled()
+        expect(
+            internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
+        ).toEqual([])
+
+        expect(logSpy).toHaveBeenCalledWith(
+            '[mtw.ephemera.perception] handleAffordancesPertain',
+            expect.objectContaining({
+                deliveryPath: 'sessionOrientationAffordances',
+                publishedSessionOrientationAffordances: 1,
+                sessionOrientationThreadCount: 1,
+            })
+        )
+
+        stackMergeSpy.mockRestore()
+        schemaSpy.mockRestore()
+        sendSpy.mockRestore()
+        rosterSpy.mockRestore()
+    })
+
     it('publishes affordance PerceptionMessage for perspective-matched occupants only', async () => {
         const sendSpy = jest.spyOn(messageBus, 'send')
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<AffordanceHeader />')
@@ -58,7 +117,7 @@ describe('handleAffordancesPertain', () => {
                 EphemeraId: characterId,
                 assets: characterId === 'CHARACTER#Match' ? ['match'] : ['other'],
             } as any))
-        const stackMergeSpy = jest.spyOn(internalCache.ComponentStackMerge, 'get')
+        const stackMergeSpy = jest.spyOn(internalCache.AffordanceRoomDeliverable, 'get')
             .mockResolvedValue({ schema: {} } as any)
 
         await handleAffordancesPertain(makePayload(), messageBus)
@@ -80,7 +139,7 @@ describe('handleAffordancesPertain', () => {
         expect(row.wmlContent).toBe('<AffordanceHeader />')
         expect(row.messageId).toMatch(/^MESSAGE#/)
         expect(stackMergeSpy).toHaveBeenCalledTimes(1)
-        expect(stackMergeSpy).toHaveBeenCalledWith('CHARACTER#Match', passThroughFixtureRoomId)
+        expect(stackMergeSpy).toHaveBeenCalledWith(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
 
         stackMergeSpy.mockRestore()
         schemaSpy.mockRestore()
@@ -137,10 +196,13 @@ describe('handleAffordancesPertain', () => {
                 EphemeraId: characterId,
                 assets: ['match'],
             } as any))
-        jest.spyOn(internalCache.ComponentStackMerge, 'get')
+        const stackMergeSpy = jest.spyOn(internalCache.AffordanceRoomDeliverable, 'get')
             .mockResolvedValue({ schema: {} } as any)
 
         await handleAffordancesPertain(makePayload(), messageBus)
+
+        expect(stackMergeSpy).toHaveBeenCalledTimes(1)
+        expect(stackMergeSpy).toHaveBeenCalledWith(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
 
         const messageIds = sendSpy.mock.calls
             .filter((c) => {

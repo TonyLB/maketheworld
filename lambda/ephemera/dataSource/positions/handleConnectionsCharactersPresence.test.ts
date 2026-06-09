@@ -16,7 +16,7 @@ jest.mock('../../internalCache', () => ({
     default: {
         CharacterMeta: { get: jest.fn() },
         ComponentEphemeraMeta: { invalidate: jest.fn() },
-        ComponentStackMerge: { invalidate: jest.fn() },
+        AffordanceRoomDeliverable: { invalidate: jest.fn() },
         RoomCharacterList: { set: jest.fn() },
     },
 }))
@@ -84,7 +84,7 @@ describe('handleConnectionsCharactersPresence', () => {
             expect(optimisticUpdateCall.updateKeys).toEqual(['activeCharacters'])
 
             expect(internalCache.ComponentEphemeraMeta.invalidate).toHaveBeenCalledWith('ROOM#roomA')
-            expect(internalCache.ComponentStackMerge.invalidate).toHaveBeenCalledWith('ROOM#roomA')
+            expect(internalCache.AffordanceRoomDeliverable.invalidate).toHaveBeenCalledWith('ROOM#roomA')
             expect(internalCache.RoomCharacterList.set).toHaveBeenCalledWith({
                 key: 'ROOM#roomA',
                 value: [{ EphemeraId: 'CHARACTER#beta', DisplayName: 'Beta' }],
@@ -129,7 +129,7 @@ describe('handleConnectionsCharactersPresence', () => {
             expect(ephemeraDB.optimisticUpdate).toHaveBeenCalledTimes(1)
             // Cache invalidations still happen so a stale read does not leak the prior projection.
             expect(internalCache.ComponentEphemeraMeta.invalidate).toHaveBeenCalledWith('ROOM#roomA')
-            expect(internalCache.ComponentStackMerge.invalidate).toHaveBeenCalledWith('ROOM#roomA')
+            expect(internalCache.AffordanceRoomDeliverable.invalidate).toHaveBeenCalledWith('ROOM#roomA')
             expect(internalCache.RoomCharacterList.set).toHaveBeenCalledWith({
                 key: 'ROOM#roomA',
                 value: [{ EphemeraId: 'CHARACTER#beta', DisplayName: 'Beta' }],

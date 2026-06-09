@@ -32,6 +32,7 @@ import { sfnClient } from './clients'
 import { confirmGuestCharacter } from './guestCharacter'
 import { AssetsEventSerializer, ComponentExamplesEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { DiagnosticsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
+import { ConnectionsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
 import { ConnectionsCharactersEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
@@ -60,6 +61,7 @@ const eventDeserializers = {
     'mtw.assets': new AssetsEventSerializer(),
     'mtw.assets.componentExamples': new ComponentExamplesEventSerializer(),
     'mtw.diagnostics': new DiagnosticsEventSerializer(createNodeDataSourceEnvironment()),
+    'mtw.connections': new ConnectionsEventSerializer(createNodeDataSourceEnvironment()),
     'mtw.connections.characters': new ConnectionsCharactersEventSerializer(createNodeDataSourceEnvironment()),
 } as const
 
@@ -104,6 +106,16 @@ export const handler = async (event: any, context: any) => {
         
         if (deserializer) {
             const coreFormat = fromEventBridgeFormat(event)
+            if (event.source === 'mtw.connections' && event['detail-type'] === 'Character Registered') {
+                const update = coreFormat.update as { characterId?: string; sessionId?: string }
+                console.log('[mtw.ephemera] EventBridge ingest', {
+                    source: event.source,
+                    detailType: event['detail-type'],
+                    streamKey: coreFormat.header.streamKey,
+                    characterId: update?.characterId,
+                    sessionId: update?.sessionId,
+                })
+            }
             const envelope = coreFormatToStreamingEnvelope(coreFormat, () =>
                 (deserializer as any).deserialize({ content: coreFormat.update as any, header: coreFormat.header }) as Promise<any>
             )

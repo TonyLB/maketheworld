@@ -103,7 +103,7 @@ export const mergePersistMetaRoomObjects = async (
     })
 
     internalCache.ComponentEphemeraMeta.invalidate(args.roomId)
-    internalCache.ComponentStackMerge.invalidate(args.roomId)
+    internalCache.AffordanceRoomDeliverable.invalidate(args.roomId)
 
     if (persistedSnapshot) {
         return { ok: true, persisted: true, ...persistedSnapshot }
@@ -151,7 +151,7 @@ export const clearPersistMetaRoomObjects = async (
     })
 
     internalCache.ComponentEphemeraMeta.invalidate(args.roomId)
-    internalCache.ComponentStackMerge.invalidate(args.roomId)
+    internalCache.AffordanceRoomDeliverable.invalidate(args.roomId)
 
     if (persistedSnapshot) {
         return { ok: true, persisted: true, ...persistedSnapshot }

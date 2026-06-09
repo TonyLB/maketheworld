@@ -3,11 +3,10 @@ import type {
     ComponentDataCache,
 } from '@tonylb/mtw-gateways/ts/assets/components/componentData'
 import {
-    generateEphemeraComponentCacheKey,
     mergeRoomExitsToJSON,
     mergeRoomShortNameLiteral,
     roomCharacterListToStandardCharacterData,
-} from './componentStackMerge'
+} from './roomWireMergeHelpers'
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import type { EphemeraCacheDynamoItem } from '../dataSource/renderCache/baseClasses'
 import type { RenderCacheData } from './renderCache'
@@ -59,6 +58,20 @@ type MessageDescribeData = {
 }
 
 export type ComponentDescriptionItem = RoomDescribeData | MapDescribeData | MessageDescribeData
+
+/** Options shape for ComponentRender cache keys (`priorRenderChain` is ignored for the key string). */
+export type EphemeraComponentCacheKeyOptions = {
+    priorRenderChain?: string[]
+    header?: boolean
+}
+
+export function generateEphemeraComponentCacheKey(
+    CharacterId: EphemeraCharacterId | 'ANONYMOUS',
+    EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraMapId | EphemeraMessageId,
+    options?: EphemeraComponentCacheKeyOptions
+): string {
+    return `${CharacterId}::${EphemeraId}::${options && 'header' in options && options.header ? 'true' : 'false'}`
+}
 
 type ComponentDescriptionCache = {
     dependencies: string[]; // StateItemId removed - dependencies no longer tracked

@@ -45,7 +45,7 @@ import withPrimitives from '@tonylb/mtw-utilities/ts/dynamoDB/mixins/primitives'
 import withGetOperations from '@tonylb/mtw-utilities/ts/dynamoDB/mixins/get';
 import { DBHandlerBase } from '@tonylb/mtw-utilities/ts/dynamoDB/baseClasses';
 import ComponentRenderData from './componentRender';
-import ComponentStackMergeData from './componentStackMerge';
+import AffordanceRoomDeliverableData from './affordanceRoomDeliverable';
 import CacheCharacterPossibleMapsData from './characterPossibleMaps';
 import CachePlayerMetaData from './playerMeta';
 import CacheGlobalData from './global';
@@ -110,7 +110,7 @@ export class InternalCache {
     _invalidateAssetCallback: (EphemeraId: string) => void;
     
     ComponentRender: ComponentRenderData;
-    ComponentStackMerge: ComponentStackMergeData;
+    AffordanceRoomDeliverable: AffordanceRoomDeliverableData;
     GenerationContext: GenerationContextData;
     CharacterPossibleMaps: CacheCharacterPossibleMapsData;
 
@@ -157,12 +157,10 @@ export class InternalCache {
         this.ComponentTopology = createComponentTopologyCacheHandler({
             ComponentAggregate: this.ComponentAggregate,
         })
-        this.ComponentStackMerge = new ComponentStackMergeData(
+        this.AffordanceRoomDeliverable = new AffordanceRoomDeliverableData(
             this.ComponentAggregate,
             this.AffordanceCache,
             this.RoomCharacterList,
-            this.Global,
-            this.CharacterMeta,
             (roomId) => this.ComponentEphemeraMeta.get(roomId)
         )
         this.GenerationContext = new GenerationContextData(this.ComponentData)
@@ -197,7 +195,7 @@ export class InternalCache {
         this.AssetMetaData.clear()
 
         this.ComponentRender.clear()
-        this.ComponentStackMerge.clear()
+        this.AffordanceRoomDeliverable.clear()
         this.GenerationContext.clear()
         this.CharacterPossibleMaps.clear()
         this.Conversations.clear()
@@ -217,7 +215,7 @@ export class InternalCache {
             this.ThinkingJobs.flush(),
             this.AssetMetaData.flush(),
             this.ComponentRender.flush(),
-            this.ComponentStackMerge.flush(),
+            this.AffordanceRoomDeliverable.flush(),
             this.GenerationContext.flush(),
             this.RenderCache.flush(),
             this.AffordanceCache.flush(),

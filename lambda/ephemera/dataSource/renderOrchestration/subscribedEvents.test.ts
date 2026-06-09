@@ -126,4 +126,22 @@ describe('renderOrchestration subscribedEvents', () => {
         expect(isRenderOrchestrationSubscribedEnvelope(look as any)).toBe(true)
         expect(isLookCommandRequestedActionsEnvelope(look as any)).toBe(true)
     })
+
+    it('isRenderOrchestrationSubscribedEnvelope accepts mtw.connections Character Registered', () => {
+        const registered = {
+            header: {
+                dataSourceKey: 'mtw.connections',
+                streamKey: 'CHARACTER#alpha',
+                timestamp: Date.now(),
+                type: 'Character Registered',
+            },
+            getContent: () => Promise.resolve({
+                type: 'Character Registered',
+                characterId: 'CHARACTER#alpha',
+                sessionId: 'SESSION#1',
+                timestamp: '2026-06-08T12:00:00.000Z',
+            }),
+        }
+        expect(isRenderOrchestrationSubscribedEnvelope(registered as any)).toBe(true)
+    })
 })

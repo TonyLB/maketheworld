@@ -17,7 +17,7 @@ jest.mock('../../internalCache', () => ({
     __esModule: true,
     default: {
         ComponentEphemeraMeta: { invalidate: jest.fn() },
-        ComponentStackMerge: { invalidate: jest.fn() },
+        AffordanceRoomDeliverable: { invalidate: jest.fn() },
         RoomCharacterList: { set: jest.fn() },
     },
 }))
@@ -84,7 +84,7 @@ describe('handleRoomOccupancyDriftFinding', () => {
         expect(result).toEqual({ changed: true, checkLocationQueued: false })
         expect(ephemeraDB.optimisticUpdate).toHaveBeenCalledTimes(1)
         expect(internalCache.ComponentEphemeraMeta.invalidate).toHaveBeenCalledWith('ROOM#roomA')
-        expect(internalCache.ComponentStackMerge.invalidate).toHaveBeenCalledWith('ROOM#roomA')
+        expect(internalCache.AffordanceRoomDeliverable.invalidate).toHaveBeenCalledWith('ROOM#roomA')
         expect(internalCache.RoomCharacterList.set).toHaveBeenCalled()
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'RoomUpdate',

@@ -82,7 +82,7 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
             },
             successCallback: ({ activeCharacters }) => {
                 internalCache.ComponentEphemeraMeta.invalidate(RoomId)
-                internalCache.ComponentStackMerge.invalidate(RoomId)
+                internalCache.AffordanceRoomDeliverable.invalidate(RoomId)
                 internalCache.RoomCharacterList.set({
                     key: RoomId,
                     value: activeCharacters

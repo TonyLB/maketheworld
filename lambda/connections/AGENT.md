@@ -52,12 +52,32 @@ When changing session storage, update this section so the trade-off stays visibl
 
 - Subscribed lifecycle inputs are `Character Registered` and `Session Disconnect` (from `mtw.connections`).
 - Presence emits are boundary-driven by character aggregate session count: connect boundary (`0 -> 1`) emits `Character Connected`; disconnect boundary (`1 -> 0`) emits `Character Disconnected`.
+- **Connect boundary signal:** registration captures pre-mutation `prior.sessions` in the `Meta::Character` `transactWrite` Update `successCallback` ([`registerCharacter/index.ts`](registerCharacter/index.ts)) and passes `isFirstSessionForCharacter` on the in-process `Character Registered` envelope. The derived lane ([`dataSource/charactersDataSource.ts`](dataSource/charactersDataSource.ts)) gates `Character Connected` on that flag --- not on a post-registration Dynamo read.
+- **Disconnect boundary signal:** teardown removes the session from `Meta::Character.sessions` before `Session Disconnect`; the derived lane reads post-teardown `sessions` (empty means `1 -> 0`).
 - Boundary checks decide emission, but adjacency/session mutation still proceeds on registration/teardown paths even when an emit is suppressed.
 - The producer intentionally does not add cross-writer locking to eliminate same-window duplicate emits; at-least-once delivery with duplicate-tolerant consumers is the contract.
 
 **`Session Disconnect` publishing path:** `tearDownStaleSession` emits `Session Disconnect` through the `mtw.connections` DataSource `streamEvent` path when invoked from the app/DataSource lane (including `characterIds`), so the derived presence lane can decide `Character Connected` / `Character Disconnected` transitions without teardown reordering. A direct EventBridge fallback exists only for non-DataSource invocation contexts.
 
-**Presence consumer note:** `connections` is producer-only for the character presence lane; the consumer/projection owner is **`mtw.ephemera.positions`** in `lambda/ephemera/dataSource/positions/`. That lane subscribes to `Character Connected` / `Character Disconnected`, drives `Meta::Room.activeCharacters` updates, and gates arrival/departure messaging on actual projection change. See [`lambda/ephemera/AGENT.md`](../ephemera/AGENT.md) for the consumer-side contract.
+**Downstream consumer map (ephemera):** `connections` is producer-only; ephemera owns two **independent** consumer lanes. Cross-lambda consumers must not assume `Character Connected` always precedes `Character Registered` or vice versa (EventBridge at-least-once, retries). See [`documentation/dataSources/connections/index.md`](../../documentation/dataSources/connections/index.md).
+
+Two distinct product needs (separate producer events, separate ephemera owners):
+
+| Need | Audience | Steady-state intent |
+| --- | --- | --- |
+| **Character aggregate connect** (`0 -> 1` sessions on the character) | **The room** (and other occupants) | Project the character into `Meta::Room.activeCharacters`, optional arrival narrative, refresh affordance slices for roster/perspective groups already in the room |
+| **Session registers a character** (every `registercharacter`) | **The logging-in client** | Deliver render + affordance RoomHeader material so the player sees where their character is (`CHARACTER#`-targeted publish; `sessionId` on the event is correlation only) |
+
+| Event | Source | Ephemera consumer | Steady-state intent |
+| --- | --- | --- | --- |
+| **`Character Registered`** | `mtw.connections` | **`renderOrchestration`** + **`affordanceOrchestration`** (guards: [`connectionsCharacterRegistered/subscribedEvents.ts`](../ephemera/dataSource/connectionsCharacterRegistered/subscribedEvents.ts)); terminal delivery via **`perception`** to **`characterId`** | Session-scoped RoomHeader bootstrap for the logging-in client. **Not** world projection. |
+| **`Character Connected`** / **`Character Disconnected`** | `mtw.connections.characters` | **`mtw.ephemera.positions`** ([`dataSource/positions/`](../ephemera/dataSource/positions/)) | World projection: `Meta::Room.activeCharacters`, arrival/departure `WorldMessage`, `RoomUpdate`. **Not** session RoomHeader bootstrap. |
+
+**Session orientation mechanics (ephemera):** on **`Character Registered`**, [`handleCharacterRegisteredOrientation`](../ephemera/dataSource/connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) registers two perception threads (`sessionOrientationRender` + `sessionOrientationAffordances`) with **`targets: [characterId]`**, then kicks render and affordance orchestration with **room + perspective only**. Delivery intent lives on the thread rows; orchestration and cache emit **`* Pertains`** with routing identity only. Terminal **`PublishMessage`** rows are emitted by **`mtw.ephemera.perception`** on **`Render Pertains`** / **`Affordances Pertain`** fan-in. Both consumers tolerate duplicate events; orientation may re-send headers on every registration (including second tab).
+
+Integration proof: [`characterRegisteredOrientation.integration.test.ts`](../ephemera/dataSource/characterRegisteredOrientation.integration.test.ts) (`Character Registered` alone delivers render + affordance headers to **`CHARACTER#...`** without `Character Connected`). See [`lambda/ephemera/AGENT.md`](../ephemera/AGENT.md) for consumer-side contracts.
+
+**Known follow-ons (non-blocking):** trim duplicate affordance from **`Character Connected`** / **`RoomUpdate`** on first connect; optional client transcript / virtual-merge refactoring; bare-session **`Target`** stamping for true session-only deliveries (e.g. knowledge **`directResponse`**).
 
 **Operational guardrails (registration ingress):**
 

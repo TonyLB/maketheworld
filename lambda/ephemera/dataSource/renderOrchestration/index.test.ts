@@ -3,6 +3,7 @@ import { renderOrchestrationDataSource } from './index'
 import * as orchestrationHandler from './orchestrationHandler'
 import * as fanOutStateChanged from './fanOutStateChangedToPassiveRenders'
 import * as lookHandler from './handleLookCommandRequestedForRenderOrchestration'
+import * as orientationHandler from '../connectionsCharacterRegistered/handleCharacterRegisteredOrientation'
 
 describe('mtw.ephemera.renderOrchestration DataSource', () => {
     beforeEach(() => {
@@ -79,6 +80,42 @@ describe('mtw.ephemera.renderOrchestration DataSource', () => {
         )
         expect(orchestrateSpy).not.toHaveBeenCalled()
         lookSpy.mockRestore()
+        orchestrateSpy.mockRestore()
+    })
+
+    it('delegates mtw.connections Character Registered to handleCharacterRegisteredOrientation render channel', async () => {
+        const orientationSpy = jest
+            .spyOn(orientationHandler, 'handleCharacterRegisteredOrientation')
+            .mockResolvedValue(undefined)
+        const orchestrateSpy = jest.spyOn(orchestrationHandler, 'orchestrateRenderRequest').mockResolvedValue(undefined)
+        const payload = {
+            type: 'Character Registered' as const,
+            characterId: 'CHARACTER#c',
+            sessionId: 'session-1',
+            timestamp: '2026-01-01T00:00:00.000Z',
+        }
+        const events: any[] = [
+            {
+                header: {
+                    dataSourceKey: 'mtw.connections',
+                    streamKey: 'CHARACTER#c',
+                    timestamp: Date.now(),
+                    type: 'Character Registered',
+                },
+                getContent: () => Promise.resolve(payload),
+            },
+        ]
+
+        await renderOrchestrationDataSource.receiveEvents?.({
+            events,
+            streamEvent: jest.fn().mockResolvedValue(undefined),
+            streamEnvelope: jest.fn().mockResolvedValue(undefined),
+        })
+
+        expect(orientationSpy).toHaveBeenCalledTimes(1)
+        expect(orientationSpy).toHaveBeenCalledWith(messageBus, payload, 'render')
+        expect(orchestrateSpy).not.toHaveBeenCalled()
+        orientationSpy.mockRestore()
         orchestrateSpy.mockRestore()
     })
 

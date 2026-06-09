@@ -52,7 +52,7 @@ export async function clearPerspectivePointer(
             },
         })
         internalCache.ComponentEphemeraMeta.invalidate(hostId as EphemeraRoomId)
-        internalCache.ComponentStackMerge.invalidate(hostId as EphemeraRoomId)
+        internalCache.AffordanceRoomDeliverable.invalidate(hostId as EphemeraRoomId)
     }
 }
 

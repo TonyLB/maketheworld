@@ -108,4 +108,23 @@ describe('affordanceOrchestration subscribedEvents', () => {
             } as any)
         ).toBe(false)
     })
+
+    it('isAffordanceOrchestrationSubscribedEnvelope accepts mtw.connections Character Registered', () => {
+        expect(
+            isAffordanceOrchestrationSubscribedEnvelope({
+                header: {
+                    dataSourceKey: 'mtw.connections',
+                    streamKey: 'CHARACTER#alpha',
+                    timestamp: Date.now(),
+                    type: 'Character Registered',
+                },
+                getContent: () => Promise.resolve({
+                    type: 'Character Registered',
+                    characterId: 'CHARACTER#alpha',
+                    sessionId: 'SESSION#1',
+                    timestamp: '2026-06-08T12:00:00.000Z',
+                }),
+            } as any)
+        ).toBe(true)
+    })
 })

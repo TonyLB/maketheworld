@@ -225,6 +225,60 @@ describe('app handler', () => {
                 })
             )
         })
+
+        it('should route mtw.connections Character Registered to StreamingEvent', async () => {
+            const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
+            const event = {
+                source: 'mtw.connections',
+                'detail-type': 'Character Registered',
+                detail: {
+                    streamKey: 'CHARACTER#abc',
+                    timestamp: 1600000000000,
+                    type: 'Character Registered',
+                    characterId: 'CHARACTER#abc',
+                    sessionId: 'session-1',
+                },
+                time: '2026-06-08T12:00:00.000Z'
+            }
+
+            await handler(event, {})
+
+            expect(logSpy).toHaveBeenCalledWith(
+                '[mtw.ephemera] EventBridge ingest',
+                expect.objectContaining({
+                    source: 'mtw.connections',
+                    detailType: 'Character Registered',
+                    streamKey: 'CHARACTER#abc',
+                    characterId: 'CHARACTER#abc',
+                    sessionId: 'session-1',
+                })
+            )
+            logSpy.mockRestore()
+
+            expect(mockMessageBus.send).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    type: 'StreamingEvent',
+                    dataSourceKey: 'mtw.connections',
+                    streamKey: 'CHARACTER#abc',
+                    header: expect.objectContaining({
+                        type: 'Character Registered'
+                    })
+                })
+            )
+            const streamingEventCall = mockMessageBus.send.mock.calls.find(
+                (c) => c[0]?.type === 'StreamingEvent' && c[0]?.dataSourceKey === 'mtw.connections'
+            )
+            expect(streamingEventCall).toBeDefined()
+            const payload = streamingEventCall![0] as { getContent: () => Promise<unknown> }
+            const content = await payload.getContent()
+            expect(content).toMatchObject({
+                type: 'Character Registered',
+                characterId: 'CHARACTER#abc',
+                sessionId: 'session-1',
+            })
+            expect(content).not.toHaveProperty('isFirstSessionForCharacter')
+            expect(typeof (content as { timestamp?: string }).timestamp).toBe('string')
+        })
     })
 
     describe('ephemera API wire messages (api.ephemera)', () => {

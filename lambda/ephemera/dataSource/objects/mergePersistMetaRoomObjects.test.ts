@@ -12,7 +12,7 @@ jest.mock('../../internalCache', () => ({
             invalidate: jest.fn(),
             get: jest.fn(),
         },
-        ComponentStackMerge: {
+        AffordanceRoomDeliverable: {
             invalidate: jest.fn(),
         },
     },
@@ -22,8 +22,8 @@ const invalidateMock = internalCache.ComponentEphemeraMeta.invalidate as jest.Mo
     typeof internalCache.ComponentEphemeraMeta.invalidate
 >
 
-const stackMergeInvalidateMock = internalCache.ComponentStackMerge.invalidate as jest.MockedFunction<
-    typeof internalCache.ComponentStackMerge.invalidate
+const stackMergeInvalidateMock = internalCache.AffordanceRoomDeliverable.invalidate as jest.MockedFunction<
+    typeof internalCache.AffordanceRoomDeliverable.invalidate
 >
 
 const obj = (suffix: string, shortName: string): EphemeraMetaRoomObject => ({

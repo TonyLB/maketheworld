@@ -21,6 +21,16 @@ const connectionDBMock = jest.mocked(connectionDB)
 const getItemMock = connectionDBMock.getItem as unknown as jest.Mock<any>
 const transactWriteMock = connectionDBMock.transactWrite as unknown as jest.Mock<any>
 
+const invokeTransactWriteSuccessCallback = async (prior: { sessions?: string[] }) => {
+    transactWriteMock.mockImplementation(async (items: any[]) => {
+        const updateItem = items.find((item) => "Update" in item)
+        const successCallback = updateItem?.Update?.successCallback
+        if (successCallback) {
+            await successCallback({ sessions: prior.sessions ?? [] }, prior)
+        }
+    })
+}
+
 describe("registerCharacterMessage", () => {
     beforeEach(() => {
         jest.clearAllMocks()
@@ -30,7 +40,7 @@ describe("registerCharacterMessage", () => {
         getItemMock.mockResolvedValue({
             SessionId: "session-1"
         })
-        transactWriteMock.mockResolvedValue(undefined)
+        await invokeTransactWriteSuccessCallback({ sessions: [] })
         const streamEvent = jest.fn(async () => undefined)
 
         const response = await registerCharacterMessage({
@@ -70,7 +80,8 @@ describe("registerCharacterMessage", () => {
             update: expect.objectContaining({
                 type: "Character Registered",
                 characterId: "CHARACTER#abc",
-                sessionId: "session-1"
+                sessionId: "session-1",
+                isFirstSessionForCharacter: true
             })
         }))
         expect(response).toEqual({
@@ -78,6 +89,46 @@ describe("registerCharacterMessage", () => {
             CharacterId: "CHARACTER#abc",
             RequestId: "request-1"
         })
+    })
+
+    it("sets isFirstSessionForCharacter false when character already has sessions", async () => {
+        getItemMock.mockResolvedValue({
+            SessionId: "session-2"
+        })
+        await invokeTransactWriteSuccessCallback({ sessions: ["session-other"] })
+        const streamEvent = jest.fn(async () => undefined)
+
+        await registerCharacterMessage({
+            connectionId: "connection-1",
+            characterId: "CHARACTER#abc",
+            streamEvent
+        })
+
+        expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
+            update: expect.objectContaining({
+                isFirstSessionForCharacter: false
+            })
+        }))
+    })
+
+    it("leaves isFirstSessionForCharacter false when transactWrite successCallback does not run", async () => {
+        getItemMock.mockResolvedValue({
+            SessionId: "session-1"
+        })
+        transactWriteMock.mockResolvedValue(undefined)
+        const streamEvent = jest.fn(async () => undefined)
+
+        await registerCharacterMessage({
+            connectionId: "connection-1",
+            characterId: "CHARACTER#abc",
+            streamEvent
+        })
+
+        expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
+            update: expect.objectContaining({
+                isFirstSessionForCharacter: false
+            })
+        }))
     })
 
     it("throws when session cannot be resolved from connection", async () => {
@@ -91,4 +142,3 @@ describe("registerCharacterMessage", () => {
         })).rejects.toThrow("Unable to resolve session for connection: connection-missing")
     })
 })
-

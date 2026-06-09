@@ -14,7 +14,9 @@ import {
     isCharacterMovePerceptionThread,
     isRoomDescriptionPerceptionThread,
     isRoomHeaderBroadcastPerceptionThread,
+    isSessionOrientationRenderPerceptionThread,
 } from '../../internalCache/perceptionThreads'
+import type { PublishTarget } from '../../messageBus/baseClasses'
 import type { PerceptionThreadRegisterCharacterMoveCommand } from './localApiEvents'
 import { roomHeaderErrorPlaceholderWml, roomHeaderGeneratingPlaceholderWml } from './roomHeaderPlaceholderWml'
 import { roomHeaderWmlFromCacheRecord, roomRenderWmlFromCacheRecord } from './roomRenderWmlFromCacheRecord'
@@ -90,7 +92,7 @@ async function resolveFallbackRenderTargetsForPerspective(
 
 function headerTargetsForCharacterMove(
     registration: PerceptionThreadRegisterCharacterMoveCommand
-): EphemeraCharacterId[] {
+): PublishTarget[] {
     return registration.headerTargets?.length ? registration.headerTargets : [registration.characterId]
 }
 
@@ -191,6 +193,9 @@ async function handleRenderPertains(
     let publishedHeaderBroadcast = 0
     let skippedHeaderTerminal = 0
     let skippedHeaderEmptyTargets = 0
+    let publishedSessionOrientationRender = 0
+    let skippedSessionOrientationRenderTerminal = 0
+    let skippedSessionOrientationRenderEmptyTargets = 0
     let publishedCharacterMove = 0
     let skippedCharacterMoveTerminal = 0
     let skippedCharacterMoveEmptyTargets = 0
@@ -267,6 +272,49 @@ async function handleRenderPertains(
         }
         else {
             skippedHeaderEmptyTargets += 1
+        }
+
+        internalCache.PerceptionThreads.remove({
+            componentId: payload.componentId,
+            perspectiveKey: payload.perspectiveKey,
+            registrationId,
+        })
+    }
+
+    for (const entry of entries) {
+        if (!isSessionOrientationRenderPerceptionThread(entry.thread)) {
+            continue
+        }
+        const { thread, registration, registrationId } = entry
+        if (registration.threadKind !== 'sessionOrientationRender') {
+            continue
+        }
+        if (thread.status === 'Terminal') {
+            logTerminalDedupe('Render Pertains', payload.componentId, payload.perspectiveKey, registrationId)
+            skippedSessionOrientationRenderTerminal += 1
+            continue
+        }
+        const targets = registration.targets
+        const roomId = payload.componentId
+        const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
+        if (targets.length) {
+            bus.send({
+                type: 'PublishMessage',
+                targets,
+                displayProtocol: 'PerceptionMessage',
+                wmlContent: terminalHeaderWml,
+                metaData: {
+                    componentUUID: roomId,
+                    displayMode: 'header',
+                    roomChannel: 'render',
+                },
+                messageGroupId: registration.messageGroupId,
+                messageId,
+            })
+            publishedSessionOrientationRender += 1
+        }
+        else {
+            skippedSessionOrientationRenderEmptyTargets += 1
         }
 
         internalCache.PerceptionThreads.remove({
@@ -356,6 +404,9 @@ async function handleRenderPertains(
         publishedHeaderBroadcast,
         skippedHeaderTerminal,
         skippedHeaderEmptyTargets,
+        publishedSessionOrientationRender,
+        skippedSessionOrientationRenderTerminal,
+        skippedSessionOrientationRenderEmptyTargets,
         publishedCharacterMove,
         skippedCharacterMoveTerminal,
         skippedCharacterMoveEmptyTargets,
@@ -451,6 +502,41 @@ async function handleGenerationStarted(
     }
 
     for (const entry of entries) {
+        if (!isSessionOrientationRenderPerceptionThread(entry.thread)) {
+            continue
+        }
+        const { thread, registration, registrationId } = entry
+        if (registration.threadKind !== 'sessionOrientationRender') {
+            continue
+        }
+        if (thread.status === 'Terminal') {
+            logTerminalDedupe('Generation Started', payload.componentId, payload.perspectiveKey, registrationId)
+            continue
+        }
+        const roomId = payload.componentId
+        const messageId = `MESSAGE#${uuidv4()}`
+        bus.send({
+            type: 'PublishMessage',
+            targets: registration.targets,
+            displayProtocol: 'PerceptionMessage',
+            wmlContent: roomHeaderGeneratingPlaceholderWml(roomId),
+            metaData: {
+                componentUUID: roomId,
+                displayMode: 'header',
+                status: 'generating',
+                roomChannel: 'render',
+            },
+            messageGroupId: registration.messageGroupId,
+            messageId,
+        })
+
+        internalCache.PerceptionThreads.update(
+            { componentId: payload.componentId, perspectiveKey: payload.perspectiveKey, registrationId },
+            { threadKind: 'sessionOrientationRender', status: 'Generating', messageId }
+        )
+    }
+
+    for (const entry of entries) {
         if (!isCharacterMovePerceptionThread(entry.thread)) {
             continue
         }
@@ -541,6 +627,42 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
         }
         const { thread, registration, registrationId } = entry
         if (registration.threadKind !== 'roomHeaderBroadcast') {
+            continue
+        }
+        if (thread.status === 'Terminal') {
+            logTerminalDedupe(payload.type, payload.componentId, payload.perspectiveKey, registrationId)
+            continue
+        }
+
+        const roomId = payload.componentId
+        const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
+        bus.send({
+            type: 'PublishMessage',
+            targets: registration.targets,
+            displayProtocol: 'PerceptionMessage',
+            wmlContent: roomHeaderErrorPlaceholderWml(roomId),
+            metaData: {
+                componentUUID: roomId,
+                displayMode: 'header',
+                roomChannel: 'render',
+            },
+            messageGroupId: registration.messageGroupId,
+            messageId,
+        })
+
+        internalCache.PerceptionThreads.remove({
+            componentId: payload.componentId,
+            perspectiveKey: payload.perspectiveKey,
+            registrationId,
+        })
+    }
+
+    for (const entry of entries) {
+        if (!isSessionOrientationRenderPerceptionThread(entry.thread)) {
+            continue
+        }
+        const { thread, registration, registrationId } = entry
+        if (registration.threadKind !== 'sessionOrientationRender') {
             continue
         }
         if (thread.status === 'Terminal') {

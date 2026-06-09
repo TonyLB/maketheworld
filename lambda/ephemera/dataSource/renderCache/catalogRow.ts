@@ -121,9 +121,28 @@ export async function markCatalogHydratedAtVersion(
                 draft.hydratedCatalogVersion = incomingCatalogVersion
             }
         },
-        successCallback: () => {
+        successCallback: async (output: EphemeraCacheCatalogRow) => {
+            if (output.hydratedCatalogVersion !== incomingCatalogVersion) {
+                return
+            }
             wrote = true
-            internalCache.RenderCache.invalidate(componentId)
+            const prior = await internalCache.RenderCache.getCatalogRow(
+                componentId,
+                perspectiveKey
+            )
+            if (prior !== undefined) {
+                internalCache.RenderCache.setCatalogRow({
+                    row: {
+                        ...prior,
+                        hydratedCatalogVersion: incomingCatalogVersion,
+                    },
+                })
+                return
+            }
+            const full = await getCatalogRowFromDynamo(componentId, perspectiveKey)
+            if (full !== undefined) {
+                internalCache.RenderCache.setCatalogRow({ row: full })
+            }
         },
     })
 

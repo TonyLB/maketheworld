@@ -1,35 +1,43 @@
 /**
- * Shared affordance-channel PublishMessage emit: one row per character via ComponentStackMerge.
+ * Shared affordance-channel PublishMessage emit: one compose per perspective, one row per delivery.
  */
 import { v4 as uuidv4 } from 'uuid'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import internalCache from '../../internalCache'
-import type { MessageBus } from '../../messageBus/baseClasses'
+import type { MessageBus, PublishTarget } from '../../messageBus/baseClasses'
 import type { MessageGroupId } from '../../internalCache/orchestrateMessages'
 
-export type PublishAffordancePerceptionForCharactersArgs = {
+export type AffordancePerceptionDelivery = {
+    targets: readonly PublishTarget[];
+    messageGroupId?: MessageGroupId;
+}
+
+export type PublishAffordancePerceptionForPerspectiveArgs = {
     roomId: EphemeraRoomId;
-    characterIds: readonly EphemeraCharacterId[];
+    perspectiveKey: string;
+    deliveries: readonly AffordancePerceptionDelivery[];
     messageBus: MessageBus;
     messageGroupId?: MessageGroupId;
 }
 
-export async function publishAffordancePerceptionForCharacters({
+export async function publishAffordancePerceptionForPerspective({
     roomId,
-    characterIds,
+    perspectiveKey,
+    deliveries,
     messageBus,
     messageGroupId,
-}: PublishAffordancePerceptionForCharactersArgs): Promise<void> {
-    if (!characterIds.length) {
+}: PublishAffordancePerceptionForPerspectiveArgs): Promise<void> {
+    const nonEmpty = deliveries.filter((delivery) => delivery.targets.length > 0)
+    if (!nonEmpty.length) {
         return
     }
-    for (const characterId of characterIds) {
-        const merged = await internalCache.ComponentStackMerge.get(characterId, roomId)
-        const wmlContent = schemaToWML([merged.schema])
+    const merged = await internalCache.AffordanceRoomDeliverable.get(roomId, perspectiveKey)
+    const wmlContent = schemaToWML([merged.schema])
+    for (const { targets, messageGroupId: deliveryMessageGroupId } of nonEmpty) {
         messageBus.send({
             type: 'PublishMessage',
-            targets: [characterId],
+            targets: [...targets],
             displayProtocol: 'PerceptionMessage',
             wmlContent,
             metaData: {
@@ -37,8 +45,59 @@ export async function publishAffordancePerceptionForCharacters({
                 displayMode: 'header',
                 roomChannel: 'affordances',
             },
-            messageGroupId,
+            messageGroupId: deliveryMessageGroupId ?? messageGroupId,
             messageId: `MESSAGE#${uuidv4()}`,
         })
     }
+}
+
+export type PublishAffordancePerceptionForTargetsArgs = {
+    roomId: EphemeraRoomId;
+    perspectiveKey: string;
+    targets: readonly PublishTarget[];
+    messageBus: MessageBus;
+    messageGroupId?: MessageGroupId;
+}
+
+export async function publishAffordancePerceptionForTargets({
+    roomId,
+    perspectiveKey,
+    targets,
+    messageBus,
+    messageGroupId,
+}: PublishAffordancePerceptionForTargetsArgs): Promise<void> {
+    await publishAffordancePerceptionForPerspective({
+        roomId,
+        perspectiveKey,
+        deliveries: [{ targets }],
+        messageBus,
+        messageGroupId,
+    })
+}
+
+export type PublishAffordancePerceptionForCharactersArgs = {
+    roomId: EphemeraRoomId;
+    perspectiveKey: string;
+    characterIds: readonly EphemeraCharacterId[];
+    messageBus: MessageBus;
+    messageGroupId?: MessageGroupId;
+}
+
+export async function publishAffordancePerceptionForCharacters({
+    roomId,
+    perspectiveKey,
+    characterIds,
+    messageBus,
+    messageGroupId,
+}: PublishAffordancePerceptionForCharactersArgs): Promise<void> {
+    if (!characterIds.length) {
+        return
+    }
+    await publishAffordancePerceptionForPerspective({
+        roomId,
+        perspectiveKey,
+        deliveries: characterIds.map((characterId) => ({ targets: [characterId] })),
+        messageBus,
+        messageGroupId,
+    })
 }

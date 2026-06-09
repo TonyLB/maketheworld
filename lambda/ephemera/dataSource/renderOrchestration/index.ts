@@ -13,6 +13,8 @@ import {
     isStateChangedPayload,
 } from '../state/events'
 import { isLookCommandRequestedPublishedPayload } from '../actions/publishedEvents'
+import { isConnectionsCharacterRegisteredEnvelope } from '../connectionsCharacterRegistered/subscribedEvents'
+import { handleCharacterRegisteredOrientation } from '../connectionsCharacterRegistered/handleCharacterRegisteredOrientation'
 import {
     isLookCommandRequestedActionsEnvelope,
     isRenderOrchestrationIngressEnvelope,
@@ -64,6 +66,11 @@ export const renderOrchestrationDataSource = new EphemeraDataSource<never, Rende
                     return
                 }
                 await handleLookCommandRequestedForRenderOrchestration(messageBus, lookPayload)
+                return
+            }
+            if (isConnectionsCharacterRegisteredEnvelope(event)) {
+                const payload = await event.getContent()
+                await handleCharacterRegisteredOrientation(messageBus, payload, 'render')
                 return
             }
             if (!isRenderOrchestrationIngressEnvelope(event)) {

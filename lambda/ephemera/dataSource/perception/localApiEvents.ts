@@ -13,7 +13,7 @@ import {
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import { isRenderTree } from '@tonylb/mtw-base/ts/renderTree'
-import type { PublishTarget } from '../../messageBus/baseClasses'
+import { isNonEmptyPublishTargetArray, type PublishTarget } from '../../messageBus/baseClasses'
 import type { MessageGroupId } from '../../internalCache/orchestrateMessages'
 import type { EphemeraCacheComponentId } from '../renderCache/baseClasses'
 
@@ -43,7 +43,29 @@ export type PerceptionThreadRegisterRoomHeaderBroadcastCommand = {
     threadKind: 'roomHeaderBroadcast';
     componentId: EphemeraRoomId;
     perspectiveKey: string;
-    targets: EphemeraCharacterId[];
+    targets: PublishTarget[];
+    messageGroupId?: MessageGroupId;
+    registrationId?: string;
+}
+
+/** Session orientation render header fan-in (Character Registered; CHARACTER# targets). */
+export type PerceptionThreadRegisterSessionOrientationRenderCommand = {
+    threadKind: 'sessionOrientationRender';
+    componentId: EphemeraRoomId;
+    perspectiveKey: string;
+    characterId: EphemeraCharacterId;
+    targets: PublishTarget[];
+    messageGroupId?: MessageGroupId;
+    registrationId?: string;
+}
+
+/** Session orientation affordance header fan-in (Character Registered; CHARACTER# targets). */
+export type PerceptionThreadRegisterSessionOrientationAffordancesCommand = {
+    threadKind: 'sessionOrientationAffordances';
+    componentId: EphemeraRoomId;
+    perspectiveKey: string;
+    characterId: EphemeraCharacterId;
+    targets: PublishTarget[];
     messageGroupId?: MessageGroupId;
     registrationId?: string;
 }
@@ -69,7 +91,7 @@ export type PerceptionThreadRegisterCharacterMoveCommand = {
     arriveMessageGroupId: MessageGroupId;
     leaveWorldMessage?: CharacterMoveWorldMessageSpec;
     arriveWorldMessage?: CharacterMoveWorldMessageSpec;
-    headerTargets?: EphemeraCharacterId[];
+    headerTargets?: PublishTarget[];
     registrationId?: string;
 }
 
@@ -87,6 +109,8 @@ export type PerceptionThreadRegisterStubCommand = {
 export type PerceptionThreadRegisterCommand =
     | PerceptionThreadRegisterRoomDescriptionCommand
     | PerceptionThreadRegisterRoomHeaderBroadcastCommand
+    | PerceptionThreadRegisterSessionOrientationRenderCommand
+    | PerceptionThreadRegisterSessionOrientationAffordancesCommand
     | PerceptionThreadRegisterCharacterMoveCommand
     | PerceptionThreadRegisterStubCommand
 
@@ -128,6 +152,8 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
     if (
         v.threadKind !== 'roomDescription'
         && v.threadKind !== 'roomHeaderBroadcast'
+        && v.threadKind !== 'sessionOrientationRender'
+        && v.threadKind !== 'sessionOrientationAffordances'
         && v.threadKind !== 'characterMove'
         && v.threadKind !== 'stub'
     ) {
@@ -154,11 +180,14 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
             && isEphemeraCharacterId(v.characterId)
     }
     if (v.threadKind === 'roomHeaderBroadcast') {
-        if (!isEphemeraRoomId(v.componentId) || !Array.isArray(v.targets) || v.targets.length === 0) {
-            return false
-        }
-        return v.targets.every(
-            (t) => typeof t === 'string' && isEphemeraCharacterId(t)
+        return isEphemeraRoomId(v.componentId) && isNonEmptyPublishTargetArray(v.targets)
+    }
+    if (v.threadKind === 'sessionOrientationRender' || v.threadKind === 'sessionOrientationAffordances') {
+        return (
+            isEphemeraRoomId(v.componentId)
+            && typeof v.characterId === 'string'
+            && isEphemeraCharacterId(v.characterId)
+            && isNonEmptyPublishTargetArray(v.targets)
         )
     }
     if (v.threadKind === 'characterMove') {
@@ -186,12 +215,7 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
         if (v.arriveWorldMessage !== undefined && !isCharacterMoveWorldMessageSpec(v.arriveWorldMessage)) {
             return false
         }
-        if (
-            v.headerTargets !== undefined
-            && (!Array.isArray(v.headerTargets)
-                || v.headerTargets.length === 0
-                || !v.headerTargets.every((t) => typeof t === 'string' && isEphemeraCharacterId(t)))
-        ) {
+        if (v.headerTargets !== undefined && !isNonEmptyPublishTargetArray(v.headerTargets)) {
             return false
         }
         return true
