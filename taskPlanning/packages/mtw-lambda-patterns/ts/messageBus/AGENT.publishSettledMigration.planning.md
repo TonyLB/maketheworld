@@ -65,7 +65,7 @@ async flushAndSettle(laneId?: string): Promise<void> {
 }
 ```
 
-(`laneId` overload optional for inline lane drains during Phase P3; default-lane `flushAndSettle()` is the lambda `app.ts` contract.)
+(`laneId` overload optional for scoped `flush(laneId)` / `flushAndSettle(laneId)` during Phase P3 migration only; default-lane `flushAndSettle()` is the lambda `app.ts` **boundary drain** contract.)
 
 **`Promise<boolean>` on `flush` and `settle`:**
 
@@ -78,7 +78,7 @@ async flushAndSettle(laneId?: string): Promise<void> {
 
 **Lambda boundaries (`app.ts` and equivalent ingress exits):** Replace `await messageBus.flush()` with `await messageBus.flushAndSettle()` as soon as `flushAndSettle` exists. Safe before any `publish` call sites exist (`settle()` always `false`, one iteration). No per-lambda "only flush" or "only settle" exceptions at boundaries.
 
-**Scope:** `flushAndSettle()` without `laneId` drains the **default lane** (`flush()`) plus global `_inFlight` (`settle()`). Named-lane items remain the responsibility of inline `flush(laneId)` / `flushAndSettle(laneId)` until those paths migrate to `publish` (see **Migration inventory**).
+**Scope:** `flushAndSettle()` without `laneId` drains the **default lane** (`flush()`) plus global `_inFlight` (`settle()`). Named-lane items remain the responsibility of scoped `flush(laneId)` / `flushAndSettle(laneId)` at call sites until those paths migrate to `publish` (see **Migration inventory**).
 
 **Q9 follow-on (locked):** after the idle loop, `flushAndSettle` calls **`runDeferrals()`** for orchestration-class outbound coalescing (see Q9). Distinct from subscriber quiescence; P1 may ship an empty deferral registry stub.
 
@@ -103,13 +103,13 @@ Today, subscription callbacks receive [`InternalMessageBusCallbackProps`](../../
 
 `publish` is immediate; outbound lane routing via stack peek is a `send`/`flush` concern only. Do not plumb `activeFlushLane` through `publish` defensively.
 
-**Migration constraint (atomic units):** Avoid situations where a named-lane context migrates to `publish` while handlers in that subgraph still `send()` (or DataSource still `send`s via `streamEvent`) without explicit lane. Partial migration routes those `send`s to the **default** lane while inline `flushAndSettle(laneId)` only drains the **named** lane (Q1) -- a silent ordering break.
+**Migration constraint (atomic units):** Avoid situations where a named-lane context migrates to `publish` while handlers in that subgraph still `send()` (or DataSource still `send`s via `streamEvent`) without explicit lane. Partial migration routes those `send`s to the **default** lane while scoped `flushAndSettle(laneId)` only drains the **named** lane (Q1) -- a silent ordering break.
 
 Rule: **do not migrate a named-lane `flush` / `flushAndSettle(laneId)` call site to `publish` until every `send` reachable from handlers invoked in that subgraph is also `publish` in the same change.**
 
 Representative atomic units (see **Migration inventory**):
 
-- [`hypothesisThinkingPersistence.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/hypothesisThinkingPersistence.ts) -- bootstrap / emit / finalize blocks (explicit `laneId` on each `send*` + matching `flush(laneId)`).
+- [`hypothesisThinkingPersistence.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/hypothesisThinkingPersistence.ts) -- bootstrap / emit / finalize blocks (`send*` + scoped `flush(laneId)`); see **Lane flush intent at migration** -- concurrent `publish`, no producer-side mid-invocation drain.
 - [`handleObjectsChangedForHypothesis.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handleObjectsChangedForHypothesis.ts) -- lane `send` **and** parallel `remainder()` (`streamEvent` + default-lane `send`) together.
 - [`orchestrationHandler.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts) + [`findRender.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts) -- terminal vs generation-lane split; `laneId: ''` force-default outbounds migrate with the whole orchestration slice.
 - [`affordanceOrchestration/orchestrationHandler.ts`](../../../../../lambda/ephemera/dataSource/affordanceOrchestration/orchestrationHandler.ts) + [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/affordanceOrchestration/publishedEvents.ts) send-helpers + fan-out -- **P3 slice immediately after render orchestration**; coordinate `affordanceCache` for AFF-CACHE-4.
@@ -210,16 +210,16 @@ Under `send`/`flush`, priority ordering is enforced. Under `publish`, ordering i
 - Does **not** cancel underlying async work (Node has no promise cancellation); detached handlers may still complete, but a subsequent `settle()` on the cleared bus has nothing to await.
 - Keeps `clear()` a full bus reset for a new invocation scope (matches production: [`lambda/*/app.ts`](../../../../../lambda/ephemera/app.ts) calls `clear()` at handler entry).
 
-**Decision: test teardown -- `settle` (or `flushAndSettle`) before `clear()`.**
+**Decision: test harness drain before `clear()` (Q6).**
 
 When tests use `publish` / `_inFlight`:
 
-1. **`await messageBus.settle()`** (or **`await messageBus.flushAndSettle()`** while `send`/`flush` still exist) at end of test body or in **`afterEach`** before `clear()`.
+1. **Test harness drain:** **`await messageBus.settle()`** (or **`await messageBus.flushAndSettle()`** while `send`/`flush` still exist) at end of test body or in **`afterEach`** before `clear()`.
 2. Then **`messageBus.clear()`** for isolation (existing `beforeEach` / `afterEach` pattern).
 
-Do not rely on `clear()` alone to drain async handler work; that drops tracking while promises may still be running and causes cross-test flakes.
+Do not rely on `clear()` alone to drain async handler work; that drops tracking while promises may still be running and causes cross-test flakes. This is **not** producer-side mid-invocation drain (see **Bus drain terminology**).
 
-**Production lambda boundaries:** `clear()` at ingress start remains correct (empty bus). Boundary exit uses `flushAndSettle()` (Q1), not `clear()`.
+**Production lambda boundaries:** `clear()` at ingress start remains correct (empty bus). **Boundary drain** uses `flushAndSettle()` (Q1), not `clear()`.
 
 **Docs:** Note the teardown pattern in [`AGENT.testing.md`](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.testing.md) when P1 lands.
 
@@ -233,9 +233,9 @@ Do not rely on `clear()` alone to drain async handler work; that drops tracking 
 | --- | --- | --- |
 | `subscribe` | Yes | DataSource registers ingress in constructor |
 | `publish` | Yes | DataSource **produces** outbound `streamEvent` / `streamEnvelope` traffic |
-| `settle` | **No** | Drain is a **lambda boundary** (`flushAndSettle` / `settle` in `app.ts`), inline handler deps during lane migration, and test teardown (Q1, Q6) -- not DataSource lifecycle |
+| `settle` | **No** | **Boundary drain** and **test harness drain** only (`flushAndSettle` in `app.ts`; Q6 test teardown) -- not on `DataSourceMessageBusPort`; not producer-side mid-invocation drain in handler bodies |
 
-Handler deps (Coyote, thinking, etc.) continue to use `Pick<MessageBus, ...>` on the **full domain bus** where inline `flush` / future `publish` is needed -- not via the DataSource port type.
+Handler deps (Coyote, thinking, etc.) continue to use `Pick<MessageBus, ...>` on the **full domain bus** where `publish` (and during migration, legacy `flush` / scoped `flush(laneId)`) is needed -- not via the DataSource port type.
 
 **Decision: piecewise outbound migration via temporary `outboundBusDelivery`.**
 
@@ -292,7 +292,7 @@ Smaller lambdas last because ephemera concentration drove the migration; assets/
 
 **Decision: lane call sites migrate as atomic groups.**
 
-Authoritative starting list is under Q2 **atomic units** (hypothesisThinkingPersistence blocks, `handleObjectsChangedForHypothesis` + `remainder()`, render `orchestrationHandler` + findRender, affordance `orchestrationHandler` + `publishedEvents` send-helpers, etc.). Extend the list when P0.5 triage or P3 work surfaces additional High/Medium rows. **P3 ordering:** migrate **`affordanceOrchestration`** immediately after **`renderOrchestration`** (same pass-through orchestration pattern; do not defer affordance orchestration to P4). **Rule:** do not migrate a named-lane `flush` / inline drain to `publish` until every `send` reachable in that subgraph is also `publish` in the **same change** (Q2).
+Authoritative starting list is under Q2 **atomic units** (hypothesisThinkingPersistence blocks, `handleObjectsChangedForHypothesis` + `remainder()`, render `orchestrationHandler` + findRender, affordance `orchestrationHandler` + `publishedEvents` send-helpers, etc.). Extend the list when P0.5 triage or P3 work surfaces additional High/Medium rows. **P3 ordering:** migrate **`affordanceOrchestration`** immediately after **`renderOrchestration`** (same pass-through orchestration pattern; do not defer affordance orchestration to P4). **Rule:** do not migrate a named-lane scoped drain to `publish` until every `send` reachable in that subgraph is also `publish` in the **same change** (Q2).
 
 **Decision: per-lambda "fully migrated" = zero `messageBus.send` in production code.**
 
@@ -326,7 +326,7 @@ This migrates aggregation **off the bus as aggregation server** (batched `payloa
 
 **Why this fits without over-engineering:** the bus adds ~one registry + one drain call; each bucket-1 row owns its buffer rules. No keyed defer store on the bus; no second subscriber queue.
 
-**Critical timing (locked):** `afterSettled` runs **once per boundary `flushAndSettle`**, after the **full** idle loop exits -- **not** after every mid-handler drain. Boundary `afterSettled` flushes outbound coalesce after the whole invocation's bus graph is quiescent.
+**Critical timing (locked):** `afterSettled` runs **once per boundary drain** (`flushAndSettle`), after the **full** idle loop exits -- **not** after every producer-side mid-invocation drain. Boundary `afterSettled` flushes outbound coalesce after the whole invocation's bus graph is quiescent.
 
 **`afterSettled` callback contract (locked for current needs):** **IO-only** -- no `messageBus.publish()` or `messageBus.send()` from registrants. Current bucket-1 consumers fit: **PUBLISH-MSG** (`apiClient.send`), **DIAG-DEDUP** (EventBridge / sweep side effects outside the bus), boundary **`extractReturnValue`** (reads `_stream` already populated during handler phase). **CHECK-LOC** repair should stay in handler phase (or enqueue-only into an entity); do not `send` new bus messages from `afterSettled` in v1.
 
@@ -343,7 +343,7 @@ This migrates aggregation **off the bus as aggregation server** (batched `payloa
 1. **Hook API shape** -- **RESOLVED:** `registerDeferral(tag, { onClear?, afterSettled })` on bus; `clear()` runs `onClear`; `runDeferrals()` runs `afterSettled` after idle loop. Per-need aggregators wrap registration at module load (not explicit `app.ts` flush calls per coalescer). Name avoids "handler" collision with subscribe callbacks.
 2. **`flushAndSettle` integration** -- **RESOLVED (v1):** Q1 dual idle loop (`Promise.all([flush, settle])` until both no-op) **inside** `flushAndSettle`, **then** `await runDeferrals()`, **then** `extractReturnValue` / HTTP response. `runDeferrals()` is not a substitute for the flush/settle loop -- it runs only after subscriber-graph quiescence. `afterSettled` hooks are **IO-only**; **no** outer repeat loop on deferrals. Future: repeat wrapper if bus-enqueueing registrants are ever required (out of scope for P1-P5 triage rows).
 3. **`clear()` lifecycle** -- **RESOLVED:** Yes. `clear()` at ingress resets defer / aggregator buffers (symmetric with Q6 `_inFlight` reset). Registrations persist.
-4. **Aggregators that call `publish`** -- **RESOLVED:** Handler enqueues to entity, may `publish`, **returns** without mid-callback delivery; boundary idle loop drains all spawned handler work; `afterSettled` flushes coalesce. Child paths that share the same outbound batch enqueue to the **same** entity (no immediate send). **Avoid inline `await settle()` in production aggregators** -- it is a global drain (all `_inFlight`, not a subtree), fights Q4 concurrency, and duplicates boundary quiescence. If a handler "needs child results before continuing" in the same callback, **restructure** (child enqueues to shared entity; split subscriber; move continuation to child handler). If that need appears at **boundary** and implies bus enqueue after coalesce flush, that is the signal for the **future repeat wrapper** (idle loop + `afterSettled` until stable), not inline `settle()`. Inline `settle()` / `flushAndSettle()` remain valid for **tests** (Q6), **lambda boundaries**, and **lane migration** inline drains (Q2) -- not mid-handler aggregator sequencing.
+4. **Aggregators that call `publish`** -- **RESOLVED:** Handler enqueues to entity, may `publish`, **returns** without mid-callback delivery; **boundary drain** (`flushAndSettle` idle loop) drains all spawned handler work; `afterSettled` flushes coalesce. Child paths that share the same outbound batch enqueue to the **same** entity (no immediate send). **Avoid producer-side mid-invocation drain** (`await settle()` in production aggregators or handler bodies) -- global `_inFlight` quiescence fights Q4 concurrency and duplicates **boundary drain**. If a handler "needs child results before continuing" in the same callback, **restructure** (child enqueues to shared entity; split subscriber; move continuation to child handler). If that need appears at **boundary** and implies bus enqueue after coalesce flush, that is the signal for the **future repeat wrapper** (idle loop + `afterSettled` until stable), not producer-side `settle()`. **Test harness drain** and **boundary drain** are the only intended production/test uses of `settle` / `flushAndSettle` (see **Bus drain terminology**). **Lane migration:** do **not** replace scoped `flush(laneId)` with producer-side `settle()` by default; see **Lane flush intent at migration** (many lane flushes are anti-deferral only; `publish` + continue is often correct).
 5. **Scope of first implementation** -- **RESOLVED:** P1 ships bus `registerDeferral` / `runDeferrals` (empty registry OK; wired into `flushAndSettle` + `clear()`). P4 lands first real registrant: **PUBLISH-MSG** coalescer (blocks **PUBLISH-MSG** `publish` ingress until then). **CHECK-LOC** (P4 triage) and **DIAG-DEDUP** (P5 triage) add deferrals when their migration slices land -- not in P1 stub scope. **`extractReturnValue`** may remain explicit in `app.ts` or register as egress-only deferral (`afterSettled` only); decide in P4 ephemera boundary slice, not a Q9 blocker.
 6. **P6 steady state** -- **RESOLVED:** Keep `flushAndSettle` = Q1 loop-until-both-idle **then** `runDeferrals()` for the full hybrid period (P1-P5). Cross-seam `flush` <-> `publish`/`settle` ping-pong requires **both** arms until `send`/`flush` are globally deleted. At P6 closeout, deleting `flush` removes the flush arm from the implementation only; the operator still ends with `runDeferrals()`. Do not plan an intermediate "settle-only `flushAndSettle`" that drops the flush arm while legacy `send` paths remain.
 
@@ -387,11 +387,24 @@ publishMessageCoalescer.registerDeferral(messageBus)
 // handler body: coalescer.enqueue(...); no apiClient.send until afterSettled
 ```
 
-**Handler contract (orchestration aggregators):** enqueue during handler; **do not** deliver inside callback; **do not** `await settle()` mid-callback for sequencing; **do not** flush coalesce inside callback after `publish`. Return; let boundary idle loop + `afterSettled` deliver.
+**Handler contract (orchestration aggregators):** enqueue during handler; **do not** deliver inside callback; **do not** use producer-side mid-invocation drain for sequencing; **do not** flush coalesce inside callback after `publish`. Return; let **boundary drain** + `afterSettled` deliver.
 
 **Primary migration consumer:** **PUBLISH-MSG** (Tier 3 / Bucket-1 deep dive). **CHECK-LOC** and **DIAG-DEDUP** use producer coalescing/dedup patterns, not necessarily the same defer-outbound machinery.
 
 **Approach:** P1 implements engine + empty deferral registry. P4 implements **PUBLISH-MSG** coalescer + `publish` ingress. Per-slice deferral shape for CHECK-LOC / DIAG-DEDUP is decided in those slices (producer coalesce may need only `onClear` + handler-phase enqueue, or full `afterSettled` IO).
+
+#### Bus drain terminology (avoid "inline `settle()`")
+
+The phrase **"inline `settle()`"** conflates distinct scopes and has misled migration planning (e.g. treating `flush(laneId)` as a mandate for `await settle()` in handler bodies). Use these terms instead:
+
+| Term | Where | Role |
+| --- | --- | --- |
+| **Boundary drain** | Lambda exit (`app.ts` and equivalents): `await flushAndSettle()` then `runDeferrals()` / response assembly | **Required** once per invocation; drains subscriber graph + defer tail after all handler-phase `publish`/`send` |
+| **Test harness drain** | Unit/integration tests: `await settle()` or `await flushAndSettle()` before assertions or before `clear()` (Q6) | Makes async subscribers observable; prevents cross-test flakes; **not** production handler code |
+| **Producer-side mid-invocation drain** | Inside `receiveEvents`, pipeline orchestration, or aggregators: `await settle()`, `await flush()`, or `await flush(laneId)` to wait for child bus work before continuing | **Avoid** under steady-state `publish`/`settle`; use concurrent `publish` + boundary drain, Q9 defer, or explicit restructure when triage requires strict ordering |
+| **Scoped lane drain (legacy `send`/`flush`)** | `send` + `await flush(laneId)` on the old path | Flush-era anti-deferral or scoped sequencing; see **Lane flush intent at migration** -- do **not** default to producer-side `settle()` when migrating |
+
+**Steady-state contract:** handlers **`publish` and return**; **boundary drain** quiesces the invocation. Do not use producer-side mid-invocation drain as a stand-in for boundary drain or for legacy `flush(laneId)` unless triage documents a genuine strict-ordering requirement.
 
 ## Getting started
 
@@ -401,7 +414,7 @@ publishMessageCoalescer.registerDeferral(messageBus)
    - [`packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md) (virtual lanes section is what we are retiring on migrated paths)
    - [`packages/mtw-lambda-patterns/ts/messageBus/AGENT.testing.md`](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.testing.md)
 3. Read DataSource lane behavior: [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**Message bus lanes**).
-4. Read ephemera lane call-site context: [`lambda/ephemera/messageBus/AGENT.md`](../../../../../lambda/ephemera/messageBus/AGENT.md), [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md), [`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md), [`lambda/ephemera/dataSource/affordanceOrchestration/AGENT.md`](../../../../../lambda/ephemera/dataSource/affordanceOrchestration/AGENT.md) (render-orchestration analogue; **P3** slice immediately after render orchestration).
+4. Read ephemera lane call-site context: [`lambda/ephemera/messageBus/AGENT.md`](../../../../../lambda/ephemera/messageBus/AGENT.md), [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md), [`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md), [`lambda/ephemera/dataSource/affordanceOrchestration/AGENT.md`](../../../../../lambda/ephemera/dataSource/affordanceOrchestration/AGENT.md) (render-orchestration analogue; **P3** slice immediately after render orchestration). Read **Bus drain terminology** and **Lane flush intent at migration** before migrating scoped `flush(laneId)` sites.
 5. **Command authority:** tests run via Jest from [`packages/mtw-lambda-patterns/package.json`](../../../../../packages/mtw-lambda-patterns/package.json) (`npm test`). If examples conflict elsewhere, use that package's scripts.
 6. Before locking Q4/Q5, run **Phase P0.5** (**Q4/Q5 positive audit**): build the triage matrix; do not guess across all call sites.
 7. Run baseline verification before engine edits (from `packages/mtw-lambda-patterns/`):
@@ -409,6 +422,24 @@ publishMessageCoalescer.registerDeferral(messageBus)
 ```bash
 npm test -- ts/messageBus/index.test.ts
 ```
+
+## Lane flush intent at migration (P3+)
+
+When migrating scoped `flush(laneId)` call sites (legacy **scoped lane drain**), **do not assume** the flush proved that work had to run **strictly before** later code in the same handler (e.g. before Bedrock / LLM hops). Under the legacy `send`/`flush` model, an immediate named-lane flush often meant something weaker and more specific:
+
+**Anti-deferral, not a hard prerequisite.** Messages `send` on the **default lane** from inside a **late-priority** subscription callback (notably coyoteGame at priority **20**) are not processed until that callback **returns**. `flushLane` does not recurse into new default-lane items until the current priority tier's callbacks finish. Long non-bus work in that callback (LLM pipeline) therefore deferred default-lane persistence until **after** the LLM run. A dedicated lane plus immediate `flush(laneId)` was a **scoped lane drain** so thinking scheduling / results handlers ran **without** waiting for the LLM stretch -- **without** nesting a global `flush()` inside an outer `flushLane` (re-entrant default-lane drain is brittle and avoided).
+
+| Legacy pattern | Typical effect when nested in late-priority handler |
+| --- | --- |
+| `send` on default lane, no scoped lane drain | Bus subscriber runs **after** long in-callback work (e.g. entire LLM pipeline) |
+| `send` on named lane + `await flush(laneId)` | Scoped lane drain **before** that long work continues (wall-clock), not necessarily because later steps read Dynamo |
+| `send` on default lane + nested `flush()` mid-callback | Theoretically processes sooner; **not** a viable steady pattern (chaotic re-entry into global wave drain) |
+
+**Publish migration opens a third option:** `publish` schedules matching subscribers **immediately**; producer code can **continue** (including LLM) while persistence handlers run **concurrently**. **Boundary drain** still quiesces the invocation at exit; **no producer-side mid-invocation drain** for this class (Q9). Do **not** mechanically map `flush(laneId)` -> `await settle()` to preserve "guaranteed before LLM" ordering that was often only a flush-era side effect.
+
+**Coyote hypothesis thinking (canonical example):** [`hypothesisThinkingPersistence.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/hypothesisThinkingPersistence.ts) bootstrap / emit / finalize blocks use scoped lane drain so `mtw.ephemera.thinking.scheduling` / `thinking.results` are not deferred behind the full LLM pipeline. The pipeline keeps `generationId` / `workItemId`s in **memory** (`state.thinking`); Bedrock hops do not read thinking rows back from Dynamo to proceed. **Job / schedule / result persistence can run concurrently with LLM** under `publish`; the refactor is **easier** than reproducing artificial "strictly before Bedrock" ordering. Migrate with `publish` (drop `laneId`), **remove** scoped `flush(laneId)`, **do not** add producer-side `settle()`, and **do not** introduce direct persist bypasses solely to mimic pre-Bedrock wall-clock ordering unless product explicitly requires it.
+
+**When scoped lane flush *did* mean strict ordering:** Some sites (orchestration handoffs, cache-before-orchestration edges) may genuinely require child bus work before the producer continues. Those are the cases for explicit sequencing (AFF-CACHE-4, bucket-1 rows, Q9 defer where applicable) -- not the thinking-bootstrap anti-deferral pattern above. Triage each `flush(laneId)` row; do not treat all lane flushes as the same migration.
 
 ## Migration inventory (baseline grep)
 
@@ -693,7 +724,7 @@ For each inventory row: evidence, risk, migration note. Q4/Q5 decisions apply to
 | ROOM-AFFORD | `roomUpdate` -> affordance pipeline | Q4 | **High** | Tier 1C; prio 4->5 edge | P3 (after renderOrch): migrate affordance subgraph atomically with `affordanceOrchestration` slice; preserve cache-before-orchestration explicitly |
 | COMP-KICK | `ephemera/dataSource/index.ts` component kick | Q4 | **High** | Tier 1C StreamingEvent chain | P4: migrate with perception/renderOrch slice; passThrough tests |
 | ACTIONS-PARSE | `actions/index.ts` receiveEvents | Q4 | **High** | Tier 1C | P4: migrate parse response graph as atomic unit |
-| COYOTE-LANE | `handleObjectsChangedForHypothesis` | Q4/Q5 | **High** | Q2 atomic unit; lane flush | P3: migrate bootstrap/emit/finalize + remainder in one change |
+| COYOTE-LANE | `handleObjectsChangedForHypothesis` + `hypothesisThinkingPersistence` | Q4/Q5 | **High** | Q2 atomic unit; scoped lane drain anti-deferral (see **Lane flush intent at migration**) | P3: `publish` + drop lanes/scoped flush; thinking concurrent with LLM; **boundary drain** only |
 | PUBLISH-MSG | `publishMessage/index.ts` | Q5/Q9 | **High** | Orchestration: `messagesByConnectionId`, sort, `batchMessages`; client keys `MessageId` | P4: blocked on **Q9** -- defer buffer + post-`flushAndSettle` flush; aggregators enqueue only; child `publish` drained before defer flush |
 | COYOTE-20 | `coyoteGame` @ priority 20 | Q4 | **Medium** | `subscriptionPriority: 20` | P3: prio-20 is flush-only deferral; concurrent with tier-5 DS under `publish` --- confirm in coyote slice |
 | DISCONNECT-CHAIN | `disconnectMessage` (Unregister + Disconnect) | Q4 | **Medium** | Tier 1C prio 1 -> 15, 6 | P4: migrate whole disconnect subgraph or accept concurrent delivery + boundary drain |
@@ -764,7 +795,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [ ] Run: `npm test -- ts/dataSource/index.test.ts` from `packages/mtw-lambda-patterns/` after each P2 slice.
 
 - [ ] Phase P3 - ephemera lane hotspots (highest friction; **atomic units** per Q2)
-  - [ ] Coyote hypothesis thinking persistence and handlers (files in **Migration inventory**; each bootstrap/emit/finalize block in one change).
+  - [ ] Coyote hypothesis thinking persistence and handlers (files in **Migration inventory**; atomic unit per Q2). **Lane flush intent:** `publish` replaces `send`+scoped `flush(lane)`; no producer-side mid-invocation drain; persistence may run **concurrent** with LLM; **boundary drain** only; see **Bus drain terminology** and **Lane flush intent at migration**.
   - [ ] Acme order thinking persistence (atomic with its `flush(laneId)` blocks).
   - [ ] Render orchestration: `orchestrationHandler` + `findRender` + look path (drop `laneId: ''`; no partial publish-with-remaining-`send`).
   - [ ] Affordance orchestration: [`affordanceOrchestration/`](../../../../../lambda/ephemera/dataSource/affordanceOrchestration/) (`orchestrationHandler`, `publishedEvents` send-helpers, fan-out paths); migrate in **P3 immediately after render orchestration** (not P4). Coordinate with `affordanceCache` for AFF-CACHE-4 catalog-before-orchestration; re-run `passThroughAffordanceOrchestrationToCache.integration.test.ts`.
@@ -884,4 +915,4 @@ For implementers; steady-state architecture belongs in package `AGENT.md` after 
 | `clear()` | `_stream` only (today) | `_stream` + `_inFlight` reset (Q6); deferral `onClear` (Q9); tests: `settle` first |
 | Outbound coalesce (orchestration) | Implicit in batched handler callback | Defer buffer; `runDeferrals()` after `flushAndSettle` idle loop (Q9) |
 
-**Coexistence:** `publish`/`settle` and `send`/`flush` do not share queue or Promise-tracking machinery during migration. Cross-seam side effects are drained at lambda boundaries via `flushAndSettle()` (Q1). Orchestration outbound batching (e.g. `publishMessage`) uses a **defer buffer** finalization phase (Q9), distinct from `_inFlight` subscriber drain. Lane inheritance applies only to `flush`; named-lane subgraphs migrate as **atomic units** without publish -> `send` cascades (Q2).
+**Coexistence:** `publish`/`settle` and `send`/`flush` do not share queue or Promise-tracking machinery during migration. Cross-seam side effects are drained via **boundary drain** (`flushAndSettle()`, Q1). Orchestration outbound batching (e.g. `publishMessage`) uses a **defer buffer** finalization phase (Q9), distinct from `_inFlight` subscriber drain. Lane inheritance applies only to `flush`; named-lane subgraphs migrate as **atomic units** without publish -> `send` cascades (Q2). Scoped `flush(laneId)` at migration: interpret per **Lane flush intent at migration** -- often anti-deferral (concurrent `publish` OK), not a mandate for producer-side `settle()` or direct persist. See **Bus drain terminology**.
