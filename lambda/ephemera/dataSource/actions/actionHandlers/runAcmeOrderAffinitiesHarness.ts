@@ -17,7 +17,7 @@ import { parseCommand, parseCommandWithEnrichReasoning } from '../parseCommand'
 
 export type RunAcmeOrderAffinitiesHarnessDeps = {
     characterId: EphemeraCharacterId
-    messageBus: Pick<MessageBus, 'send' | 'flush'>
+    messageBus: Pick<MessageBus, 'send' | 'publish'>
     fixtures?: readonly AcmeOrderAffinitiesHarnessFixture[]
     /** Legacy override path for tests; internally converted to lightweight fixtures. */
     phrases?: readonly string[]

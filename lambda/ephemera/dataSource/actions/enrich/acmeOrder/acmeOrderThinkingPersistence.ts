@@ -46,7 +46,7 @@ export type AcmeOrderThinkingIds = {
 }
 
 export type AcmeOrderThinkingBootstrapDeps = {
-    messageBus: Pick<MessageBus, 'send' | 'flush'>
+    messageBus: Pick<MessageBus, 'publish'>
 }
 
 export type AcmeOrderThinkingResultDeps = AcmeOrderThinkingBootstrapDeps
@@ -107,10 +107,6 @@ export function errorMessageFromUnknown(error: unknown): string {
 
 export function thinkingStreamKey(generationId: string): string {
     return jobEphemeraId(generationId)
-}
-
-export function thinkingResultsLaneId(generationId: string): string {
-    return `thinkingResults:${generationId}`
 }
 
 export function mintAcmeOrderThinkingIds(): AcmeOrderThinkingIds {
@@ -199,8 +195,7 @@ export function buildAcmeOrderEnrichFailureVerbose(
 function postAcmeOrderThinkingResult(
     deps: AcmeOrderThinkingResultDeps,
     ids: AcmeOrderThinkingIds,
-    outcome: AcmeOrderThinkingResultOutcome,
-    laneId: string
+    outcome: AcmeOrderThinkingResultOutcome
 ): void {
     const workItemId = ids.workItems.acmeOrderEnrich
     const streamKey = thinkingStreamKey(ids.generationId)
@@ -215,14 +210,13 @@ function postAcmeOrderThinkingResult(
         ...(outcome.errorCode !== undefined ? { errorCode: outcome.errorCode } : {}),
         ...(outcome.errorMessage !== undefined ? { errorMessage: outcome.errorMessage } : {}),
     }
-    sendActionsThinkingResult(deps.messageBus, streamKey, event, laneId)
+    sendActionsThinkingResult(deps.messageBus, streamKey, event)
 }
 
 export function sendActionsThinkingResult(
-    bus: Pick<MessageBus, 'send'>,
+    bus: Pick<MessageBus, 'publish'>,
     streamKey: string,
-    event: ThinkingResultEvent,
-    laneId?: string
+    event: ThinkingResultEvent
 ): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
@@ -240,116 +234,80 @@ export function sendActionsThinkingResult(
         getContent: envelope.getContent,
         timestamp,
     }
-    if (laneId !== undefined && laneId !== '') {
-        bus.send(message, laneId)
-    } else {
-        bus.send(message)
-    }
+    bus.publish(message)
 }
 
-export async function emitAcmeOrderThinkingResult(
+export function emitAcmeOrderThinkingResult(
     deps: AcmeOrderThinkingResultDeps,
     ids: AcmeOrderThinkingIds,
     outcome: AcmeOrderThinkingResultOutcome
-): Promise<void> {
-    const laneId = thinkingResultsLaneId(ids.generationId)
+): void {
     const streamKey = thinkingStreamKey(ids.generationId)
-    postAcmeOrderThinkingResult(deps, ids, outcome, laneId)
+    postAcmeOrderThinkingResult(deps, ids, outcome)
     if (outcome.ok) {
-        sendPutThinkingSchedule(
-            deps.messageBus,
-            streamKey,
-            {
-                schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
-                generationId: ids.generationId,
-                workItemId: ids.workItems.acmeOrderEnrich,
-                segment: ACME_ORDER_ENRICH_SEGMENT,
-                scheduleStatus: 'completed',
-            },
-            laneId
-        )
+        sendPutThinkingSchedule(deps.messageBus, streamKey, {
+            schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+            generationId: ids.generationId,
+            workItemId: ids.workItems.acmeOrderEnrich,
+            segment: ACME_ORDER_ENRICH_SEGMENT,
+            scheduleStatus: 'completed',
+        })
     }
-    await deps.messageBus.flush(laneId)
 }
 
-export async function finalizeAcmeOrderThinkingOnFailure(
+export function finalizeAcmeOrderThinkingOnFailure(
     deps: AcmeOrderThinkingResultDeps,
     input: FinalizeAcmeOrderThinkingOnFailureInput
-): Promise<void> {
+): void {
     const { ids, errorCode, errorMessage, verbose } = input
     const streamKey = thinkingStreamKey(ids.generationId)
-    const laneId = thinkingResultsLaneId(ids.generationId)
     const bus = deps.messageBus
     const workItemId = ids.workItems.acmeOrderEnrich
 
-    postAcmeOrderThinkingResult(
-        deps,
-        ids,
-        {
-            ok: false,
-            verbose,
-            errorCode,
-            errorMessage,
-        },
-        laneId
-    )
+    postAcmeOrderThinkingResult(deps, ids, {
+        ok: false,
+        verbose,
+        errorCode,
+        errorMessage,
+    })
 
-    sendPutThinkingJobError(
-        bus,
-        streamKey,
-        {
-            schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
-            generationId: ids.generationId,
-            jobStatus: 'failed',
-            failedAt: new Date().toISOString(),
-            errorCode,
-            errorMessage,
-            lastFailedWorkItemId: workItemId,
-        },
-        laneId
-    )
-
-    await bus.flush(laneId)
+    sendPutThinkingJobError(bus, streamKey, {
+        schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+        generationId: ids.generationId,
+        jobStatus: 'failed',
+        failedAt: new Date().toISOString(),
+        errorCode,
+        errorMessage,
+        lastFailedWorkItemId: workItemId,
+    })
 }
 
-export async function bootstrapAcmeOrderThinkingAtRunStart(
+export function bootstrapAcmeOrderThinkingAtRunStart(
     deps: AcmeOrderThinkingBootstrapDeps
-): Promise<AcmeOrderThinkingIds> {
+): AcmeOrderThinkingIds {
     const ids = mintAcmeOrderThinkingIds()
     const streamKey = thinkingStreamKey(ids.generationId)
-    const bootstrapLaneId = `thinkingBootstrap:${uuidv4()}`
     const bus = deps.messageBus
     const createdAt = new Date().toISOString()
     const enqueuedAt = createdAt
     const workItemId = ids.workItems.acmeOrderEnrich
 
-    sendPutThinkingJobCreate(
-        bus,
-        streamKey,
-        {
-            schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
-            generationId: ids.generationId,
-            workItemIds: [workItemId],
-            jobStatus: 'running',
-            createdAt,
-        },
-        bootstrapLaneId
-    )
+    sendPutThinkingJobCreate(bus, streamKey, {
+        schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+        generationId: ids.generationId,
+        workItemIds: [workItemId],
+        jobStatus: 'running',
+        createdAt,
+    })
 
-    sendPutThinkingSchedule(
-        bus,
-        streamKey,
-        {
-            schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
-            generationId: ids.generationId,
-            workItemId,
-            segment: ACME_ORDER_ENRICH_SEGMENT,
-            scheduleStatus: 'scheduled',
-            enqueuedAt,
-        },
-        bootstrapLaneId
-    )
+    sendPutThinkingSchedule(bus, streamKey, {
+        schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+        generationId: ids.generationId,
+        workItemId,
+        segment: ACME_ORDER_ENRICH_SEGMENT,
+        scheduleStatus: 'scheduled',
+        enqueuedAt,
+    })
 
-    await bus.flush(bootstrapLaneId)
     return ids
 }

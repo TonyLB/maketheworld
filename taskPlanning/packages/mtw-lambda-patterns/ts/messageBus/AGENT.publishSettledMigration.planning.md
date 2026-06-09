@@ -1,6 +1,6 @@
 # MessageBus: `publish`/`settle` migration (planning)
 
-**Status:** In progress (P3). Q1-Q9 are locked (P0.5 complete). **Phase P1** complete. **P2a** complete. **P2b** started (`mtw.ephemera.coyoteGame`). **P3** Coyote hypothesis slice complete. Next step: Acme order thinking persistence (P3).
+**Status:** In progress (P3). Q1-Q9 are locked (P0.5 complete). **Phase P1** complete. **P2a** complete. **P2b** started (`mtw.ephemera.coyoteGame`). **P3** Coyote hypothesis slice complete. **P3** Acme order thinking persistence complete. Next step: render orchestration (P3).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -460,10 +460,8 @@ Refresh these counts when starting a migration phase; they are approximate snaps
 
 **Lane-scoped `flush(laneId)` (representative production files):**
 
-- [`hypothesisThinkingPersistence.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/hypothesisThinkingPersistence.ts)
 - [`handleObjectsChangedForHypothesis.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handleObjectsChangedForHypothesis.ts)
 - [`handleAwaitRoadRunnerForPlanOutcome.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handleAwaitRoadRunnerForPlanOutcome.ts)
-- [`acmeOrderThinkingPersistence.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/acmeOrder/acmeOrderThinkingPersistence.ts)
 - [`orchestrationHandler.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts) / [`handleLookCommandRequestedForRenderOrchestration.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts)
 - [`runCoyoteEngineTestHarness.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/runCoyoteEngineTestHarness.ts)
 - [`promoteToCanon.ts`](../../../../../lambda/wml/promoteToCanon.ts)
@@ -796,7 +794,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 
 - [ ] Phase P3 - ephemera lane hotspots (highest friction; **atomic units** per Q2)
   - [X] Coyote hypothesis thinking persistence and handlers (files in **Migration inventory**; atomic unit per Q2). **Lane flush intent:** `publish` replaces `send`+scoped `flush(lane)`; no producer-side mid-invocation drain; persistence may run **concurrent** with LLM; **boundary drain** only; see **Bus drain terminology** and **Lane flush intent at migration**. Migrated: `hypothesisThinkingPersistence.ts`, `handleObjectsChangedForHypothesis.ts`, `coyoteGame/index.ts` (`outboundBusDelivery: 'publish'`), `apiEphemera` thinking helpers (dual-path: `laneId` -> `send`, omit -> `publish`), ephemera `app.ts` `flushAndSettle` (4 sites).
-  - [ ] Acme order thinking persistence (atomic with its `flush(laneId)` blocks).
+  - [X] Acme order thinking persistence (atomic with its `flush(laneId)` blocks). **Coyote handoff:** same **Lane flush intent** recipe as hypothesis (`publish`, drop lanes/scoped `flush`, no producer-side `settle()`; persistence may run concurrent with enrich/Bedrock; **boundary drain** only -- `app.ts` `flushAndSettle` already landed). **Files:** [`acmeOrderThinkingPersistence.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/acmeOrder/acmeOrderThinkingPersistence.ts), `sendActionsThinkingResult`, callers in [`enrich/acmeOrder/index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/acmeOrder/index.ts) / [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts). Omit `laneId` on `sendPutThinking*` (dual-path in [`apiEphemera.ts`](../../../../../lambda/ephemera/dataSource/apiEphemera.ts): omit -> `publish`). **Simpler than Coyote:** persistence-only atomic unit (no mixed-lane handler); single segment `acmeOrderEnrich`; publisher `mtw.ephemera.actions` (not coyoteGame); **no** `mtw.ephemera.actions` `outboundBusDelivery` flip for thinking (direct `messageBus`, not `streamEvent`). **Tests:** `acmeOrderThinkingPersistence.test.ts`, `parseCommand.test.ts` thinking assertions; mirror Coyote publish-mock / drop flush-lane pattern. **Docs:** `thinking/AGENT.md` **Acme order** subsection when done.
   - [ ] Render orchestration: `orchestrationHandler` + `findRender` + look path (drop `laneId: ''`; no partial publish-with-remaining-`send`).
   - [ ] Affordance orchestration: [`affordanceOrchestration/`](../../../../../lambda/ephemera/dataSource/affordanceOrchestration/) (`orchestrationHandler`, `publishedEvents` send-helpers, fan-out paths); migrate in **P3 immediately after render orchestration** (not P4). Coordinate with `affordanceCache` for AFF-CACHE-4 catalog-before-orchestration; re-run `passThroughAffordanceOrchestrationToCache.integration.test.ts`.
   - [ ] Coyote engine test harness lane flushes.

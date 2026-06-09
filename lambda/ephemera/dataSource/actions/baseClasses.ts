@@ -393,5 +393,5 @@ export type ParseCommandDeps = {
     /** Deprecated compatibility flag; Acme enrich prompt is compact regardless of value. */
     debugAcmeOrderEnrichRationale?: boolean;
     /** When set, Acme enrich bootstrap/emit/finalize thinking jobs (see enrich/acmeOrder/acmeOrderThinkingPersistence). */
-    messageBus?: Pick<MessageBus, 'send' | 'flush'>;
+    messageBus?: Pick<MessageBus, 'publish'>;
 }
