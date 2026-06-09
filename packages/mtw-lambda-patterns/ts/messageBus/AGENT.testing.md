@@ -8,6 +8,15 @@ This guide provides testing strategies and examples for the MessageBus system. F
 
 When code under test `await`s a dependency (for example a mocked long render) and you need to assert **before** and **after** that await, use [`createAsyncGate`](../testing/asyncGate.ts) from `ts/testing/asyncGate.ts`: run the subject, assert pre-await side effects, call `resolve()`, then `await Promise.resolve()` (or similar) before post-await assertions. The same discipline applies when pairing with lane-scoped [`flush()` / `flush(laneId)`](./index.ts) so continuations and bus drains line up with your test steps.
 
+### `publish` / `settle` test teardown (Q6)
+
+When tests use `publish` or `_inFlight` handlers:
+
+1. **`await messageBus.settle()`** (or **`await messageBus.flushAndSettle()`** while `send`/`flush` still exist) at end of test body or in **`afterEach`** before `clear()`.
+2. Then **`messageBus.clear()`** for isolation.
+
+Do not rely on `clear()` alone to drain async handler work; that drops `_inFlight` tracking while promises may still be running and causes cross-test flakes. See [`index.test.ts`](./index.test.ts) `describe('publish / settle / flushAndSettle')` for examples.
+
 ### Unit Testing Handlers
 - Test individual handlers in isolation
 - Mock external dependencies (internalCache, AWS services)
