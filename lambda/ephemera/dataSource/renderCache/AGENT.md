@@ -208,9 +208,9 @@ Catalog and adjacency primitives are listed under **Authored cache (invalidate +
 | API | Memo target | Typical caller |
 | --- | --- | --- |
 | **`set(...)`** | **`CACHE#`** rows | **`putCacheRecord`**, pass-through **`Render Generated`** |
-| **`setCatalogRow({ row })`** | **`Cache::`** catalog row (+ per-component catalog list) | **`putCatalogRow`**, **`createCatalogRowForHydrate`** |
+| **`setCatalogRow({ row })`** | **`Cache::`** catalog row (+ per-component catalog list) | **`putCatalogRow`**, **`createCatalogRowForHydrate`**, **`markCatalogHydratedAtVersion`** success |
 | **`deleteCacheRecords`** | Remove **`CACHE#`** entries in memo | Hydrate diff, deletes |
-| **`invalidate(componentId)`** | All **`CACHE#`** and **`Cache::`** memo for the component | Catalog invalidation bump, **`markCatalogHydratedAtVersion`** success |
+| **`invalidate(componentId)`** | All **`CACHE#`** and **`Cache::`** memo for the component | Catalog invalidation bump |
 
 **`setCatalogRow`** fixes create-on-first-resolve when an earlier **`getCatalogRow`** memoized **`undefined`**, without evicting materialized **`CACHE#`** memo. **`invalidate`** remains appropriate when the catalog epoch changes and readers need a full refetch.
 

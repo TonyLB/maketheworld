@@ -48,7 +48,7 @@ export type PerceptionThreadRegisterRoomHeaderBroadcastCommand = {
     registrationId?: string;
 }
 
-/** Session orientation render header fan-in (Character Registered; SESSION# targets). */
+/** Session orientation render header fan-in (Character Registered; CHARACTER# targets). */
 export type PerceptionThreadRegisterSessionOrientationRenderCommand = {
     threadKind: 'sessionOrientationRender';
     componentId: EphemeraRoomId;
@@ -59,7 +59,7 @@ export type PerceptionThreadRegisterSessionOrientationRenderCommand = {
     registrationId?: string;
 }
 
-/** Session orientation affordance header fan-in (Character Registered; SESSION# targets). */
+/** Session orientation affordance header fan-in (Character Registered; CHARACTER# targets). */
 export type PerceptionThreadRegisterSessionOrientationAffordancesCommand = {
     threadKind: 'sessionOrientationAffordances';
     componentId: EphemeraRoomId;

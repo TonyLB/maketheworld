@@ -95,7 +95,8 @@ Registration and aggregate presence are **separate producer outcomes** from `con
 | **Source** | `mtw.connections` | `mtw.connections.characters` (derived) |
 | **Frequency** | Every successful `registercharacter` | Aggregate session boundary `0 <-> 1` only |
 | **Stream key** | `CHARACTER#${characterId}` | `CHARACTER#${characterId}` |
-| **`sessionId` role** | Identifies the registering session for `SESSION#...` delivery targets | Boundary-correlation only; **not** authority (see presence footguns below) |
+| **`sessionId` role** | Correlation only (registering session on the wire); delivery uses **`characterId`** via perception threads | Boundary-correlation only; **not** authority (see presence footguns below) |
+| **Delivery target** | **`CHARACTER#${characterId}`** (`PublishMessage` wire **`Target`**) | Per-character roster / room-side effects via positions projection |
 | **Ephemera consumer** | `renderOrchestration` + `affordanceOrchestration` -> `perception` (session orientation) | `mtw.ephemera.positions` (world projection) |
 | **Wire extras** | Internal `isFirstSessionForCharacter` (aggregate `0 -> 1` signal) is **in-process only** --- `ConnectionsEventSerializer` omits it on publish | N/A |
 

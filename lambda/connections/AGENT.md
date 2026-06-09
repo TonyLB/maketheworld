@@ -61,12 +61,23 @@ When changing session storage, update this section so the trade-off stays visibl
 
 **Downstream consumer map (ephemera):** `connections` is producer-only; ephemera owns two **independent** consumer lanes. Cross-lambda consumers must not assume `Character Connected` always precedes `Character Registered` or vice versa (EventBridge at-least-once, retries). See [`documentation/dataSources/connections/index.md`](../../documentation/dataSources/connections/index.md).
 
+Two distinct product needs (separate producer events, separate ephemera owners):
+
+| Need | Audience | Steady-state intent |
+| --- | --- | --- |
+| **Character aggregate connect** (`0 -> 1` sessions on the character) | **The room** (and other occupants) | Project the character into `Meta::Room.activeCharacters`, optional arrival narrative, refresh affordance slices for roster/perspective groups already in the room |
+| **Session registers a character** (every `registercharacter`) | **The logging-in client** | Deliver render + affordance RoomHeader material so the player sees where their character is (`CHARACTER#`-targeted publish; `sessionId` on the event is correlation only) |
+
 | Event | Source | Ephemera consumer | Steady-state intent |
 | --- | --- | --- | --- |
-| **`Character Registered`** | `mtw.connections` | **`renderOrchestration`** + **`affordanceOrchestration`** (guards: [`connectionsCharacterRegistered/subscribedEvents.ts`](../ephemera/dataSource/connectionsCharacterRegistered/subscribedEvents.ts)); terminal delivery via **`perception`** to `SESSION#${sessionId}` | Session-scoped RoomHeader bootstrap for the logging-in client. **Not** world projection. |
+| **`Character Registered`** | `mtw.connections` | **`renderOrchestration`** + **`affordanceOrchestration`** (guards: [`connectionsCharacterRegistered/subscribedEvents.ts`](../ephemera/dataSource/connectionsCharacterRegistered/subscribedEvents.ts)); terminal delivery via **`perception`** to **`characterId`** | Session-scoped RoomHeader bootstrap for the logging-in client. **Not** world projection. |
 | **`Character Connected`** / **`Character Disconnected`** | `mtw.connections.characters` | **`mtw.ephemera.positions`** ([`dataSource/positions/`](../ephemera/dataSource/positions/)) | World projection: `Meta::Room.activeCharacters`, arrival/departure `WorldMessage`, `RoomUpdate`. **Not** session RoomHeader bootstrap. |
 
-Integration proof: [`characterRegisteredOrientation.integration.test.ts`](../ephemera/dataSource/characterRegisteredOrientation.integration.test.ts) (`Character Registered` alone delivers render + affordance headers to `SESSION#...` without `Character Connected`). See [`lambda/ephemera/AGENT.md`](../ephemera/AGENT.md) for consumer-side contracts.
+**Session orientation mechanics (ephemera):** on **`Character Registered`**, [`handleCharacterRegisteredOrientation`](../ephemera/dataSource/connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) registers two perception threads (`sessionOrientationRender` + `sessionOrientationAffordances`) with **`targets: [characterId]`**, then kicks render and affordance orchestration with **room + perspective only**. Delivery intent lives on the thread rows; orchestration and cache emit **`* Pertains`** with routing identity only. Terminal **`PublishMessage`** rows are emitted by **`mtw.ephemera.perception`** on **`Render Pertains`** / **`Affordances Pertain`** fan-in. Both consumers tolerate duplicate events; orientation may re-send headers on every registration (including second tab).
+
+Integration proof: [`characterRegisteredOrientation.integration.test.ts`](../ephemera/dataSource/characterRegisteredOrientation.integration.test.ts) (`Character Registered` alone delivers render + affordance headers to **`CHARACTER#...`** without `Character Connected`). See [`lambda/ephemera/AGENT.md`](../ephemera/AGENT.md) for consumer-side contracts.
+
+**Known follow-ons (non-blocking):** trim duplicate affordance from **`Character Connected`** / **`RoomUpdate`** on first connect; optional client transcript / virtual-merge refactoring; bare-session **`Target`** stamping for true session-only deliveries (e.g. knowledge **`directResponse`**).
 
 **Operational guardrails (registration ingress):**
 

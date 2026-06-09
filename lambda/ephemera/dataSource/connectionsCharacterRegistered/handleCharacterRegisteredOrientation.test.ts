@@ -45,23 +45,29 @@ describe('resolveSessionOrientationContext', () => {
         expect(result).toBeNull()
     })
 
-    it('returns context with SESSION# target from raw sessionId', async () => {
+    it('returns context with CHARACTER# target for transcript delivery', async () => {
         const result = await resolveSessionOrientationContext(baseEvent, resolvedDeps())
         expect(result).toEqual({
             characterId,
             roomId,
             perspective,
             perspectiveKey,
-            targets: ['SESSION#session-1'],
+            targets: [characterId],
         })
     })
 })
 
 describe('handleCharacterRegisteredOrientation', () => {
     const messageBus = { send: jest.fn() } as any
+    let logSpy: jest.SpiedFunction<typeof console.log>
 
     beforeEach(() => {
         jest.clearAllMocks()
+        logSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
+    })
+
+    afterEach(() => {
+        logSpy.mockRestore()
     })
 
     it('no-ops when room is missing', async () => {
@@ -75,6 +81,16 @@ describe('handleCharacterRegisteredOrientation', () => {
 
         expect(threadSpy).not.toHaveBeenCalled()
         expect(renderSpy).not.toHaveBeenCalled()
+        expect(logSpy).toHaveBeenCalledWith(
+            '[mtw.ephemera.connectionsCharacterRegistered] sessionOrientation',
+            expect.objectContaining({
+                event: 'skip',
+                channel: 'render',
+                reason: 'no_room',
+                characterId,
+                sessionId: 'session-1',
+            })
+        )
         threadSpy.mockRestore()
         renderSpy.mockRestore()
     })
@@ -107,13 +123,13 @@ describe('handleCharacterRegisteredOrientation', () => {
             componentId: roomId,
             perspectiveKey,
             characterId,
-            targets: ['SESSION#session-1'],
+            targets: [characterId],
         })
         expect(renderSpy).toHaveBeenCalledTimes(1)
         expect(renderSpy).toHaveBeenCalledWith(messageBus, roomId, {
             componentId: roomId,
             perspective,
-        })
+        }, { useDefaultMessageBusLane: true })
         expect(affordanceSpy).not.toHaveBeenCalled()
         threadSpy.mockRestore()
         renderSpy.mockRestore()
@@ -133,15 +149,24 @@ describe('handleCharacterRegisteredOrientation', () => {
             componentId: roomId,
             perspectiveKey,
             characterId,
-            targets: ['SESSION#session-1'],
+            targets: [characterId],
         })
         expect(affordanceSpy).toHaveBeenCalledTimes(1)
         expect(affordanceSpy).toHaveBeenCalledWith(messageBus, roomId, {
             roomId,
             perspective,
             reason: 'roster',
-        })
+        }, { useDefaultMessageBusLane: true })
         expect(renderSpy).not.toHaveBeenCalled()
+        expect(logSpy).toHaveBeenCalledWith(
+            '[mtw.ephemera.connectionsCharacterRegistered] sessionOrientation',
+            expect.objectContaining({
+                event: 'kicked',
+                channel: 'affordances',
+                threadKind: 'sessionOrientationAffordances',
+                targets: [characterId],
+            })
+        )
         threadSpy.mockRestore()
         renderSpy.mockRestore()
         affordanceSpy.mockRestore()

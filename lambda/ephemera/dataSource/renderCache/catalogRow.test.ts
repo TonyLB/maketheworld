@@ -127,8 +127,9 @@ describe('catalogRow', () => {
         expect(renderCacheSetCatalogRow).toHaveBeenCalledWith({ row })
     })
 
-    it('markCatalogHydratedAtVersion writes when catalogVersion unchanged', async () => {
+    it('markCatalogHydratedAtVersion patches memo when catalogVersion unchanged', async () => {
         const row = catalogRow({ catalogVersion: 2, hydratedCatalogVersion: 0 })
+        renderCacheGetCatalogRow.mockResolvedValue(row)
         ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer, successCallback }) => {
             const draft = { ...row }
             updateReducer(draft)
@@ -142,7 +143,31 @@ describe('catalogRow', () => {
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith(
             expect.objectContaining({ checkKeys: ['catalogVersion'] })
         )
-        expect(renderCacheInvalidate).toHaveBeenCalledWith(componentId)
+        expect(renderCacheGetCatalogRow).toHaveBeenCalledWith(componentId, 'PERSPECTIVE#v1#abc')
+        expect(renderCacheSetCatalogRow).toHaveBeenCalledWith({
+            row: { ...row, hydratedCatalogVersion: 2 },
+        })
+        expect(renderCacheInvalidate).not.toHaveBeenCalled()
+    })
+
+    it('markCatalogHydratedAtVersion falls back to uncached Dynamo when memo miss', async () => {
+        const row = catalogRow({ catalogVersion: 2, hydratedCatalogVersion: 0 })
+        const ready = catalogRow({ catalogVersion: 2, hydratedCatalogVersion: 2 })
+        renderCacheGetCatalogRow.mockResolvedValue(undefined)
+        ephemeraDBMock.getItem.mockResolvedValue(ready)
+        ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer, successCallback }) => {
+            const draft = { ...row }
+            updateReducer(draft)
+            await successCallback?.(draft, row)
+            return draft
+        })
+
+        const wrote = await markCatalogHydratedAtVersion(componentId, 'PERSPECTIVE#v1#abc', 2)
+
+        expect(wrote).toBe(true)
+        expect(ephemeraDBMock.getItem).toHaveBeenCalled()
+        expect(renderCacheSetCatalogRow).toHaveBeenCalledWith({ row: ready })
+        expect(renderCacheInvalidate).not.toHaveBeenCalled()
     })
 
     it('markCatalogHydratedAtVersion returns false when catalog bumped mid-hydrate', async () => {
@@ -160,6 +185,7 @@ describe('catalogRow', () => {
         const wrote = await markCatalogHydratedAtVersion(componentId, 'PERSPECTIVE#v1#abc', 2)
 
         expect(wrote).toBe(false)
+        expect(renderCacheSetCatalogRow).not.toHaveBeenCalled()
         expect(renderCacheInvalidate).not.toHaveBeenCalled()
     })
 })

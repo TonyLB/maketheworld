@@ -75,7 +75,7 @@ Side-effect **`import './dataSource/...'`** from [`../app.ts`](../app.ts) regist
 
 ## Testing
 
-From [`lambda/ephemera/`](../): `npm test`. Integration: [`passThroughOrchestrationToCache.integration.test.ts`](passThroughOrchestrationToCache.integration.test.ts), [`passThroughAffordanceOrchestrationToCache.integration.test.ts`](passThroughAffordanceOrchestrationToCache.integration.test.ts), [`characterRegisteredOrientation.integration.test.ts`](characterRegisteredOrientation.integration.test.ts) (`Character Registered` -> `SESSION#` render + affordance).
+From [`lambda/ephemera/`](../): `npm test`. Integration: [`passThroughOrchestrationToCache.integration.test.ts`](passThroughOrchestrationToCache.integration.test.ts), [`passThroughAffordanceOrchestrationToCache.integration.test.ts`](passThroughAffordanceOrchestrationToCache.integration.test.ts), [`characterRegisteredOrientation.integration.test.ts`](characterRegisteredOrientation.integration.test.ts) (`Character Registered` -> `CHARACTER#` render + affordance).
 
 ---
 

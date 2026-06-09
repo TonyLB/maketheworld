@@ -227,6 +227,7 @@ describe('app handler', () => {
         })
 
         it('should route mtw.connections Character Registered to StreamingEvent', async () => {
+            const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
             const event = {
                 source: 'mtw.connections',
                 'detail-type': 'Character Registered',
@@ -241,6 +242,18 @@ describe('app handler', () => {
             }
 
             await handler(event, {})
+
+            expect(logSpy).toHaveBeenCalledWith(
+                '[mtw.ephemera] EventBridge ingest',
+                expect.objectContaining({
+                    source: 'mtw.connections',
+                    detailType: 'Character Registered',
+                    streamKey: 'CHARACTER#abc',
+                    characterId: 'CHARACTER#abc',
+                    sessionId: 'session-1',
+                })
+            )
+            logSpy.mockRestore()
 
             expect(mockMessageBus.send).toHaveBeenCalledWith(
                 expect.objectContaining({

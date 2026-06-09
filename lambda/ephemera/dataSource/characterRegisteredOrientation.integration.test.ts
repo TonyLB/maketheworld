@@ -1,6 +1,6 @@
 /**
  * Cross-layer integration: `mtw.connections` / `Character Registered` alone (no `Character Connected`)
- * delivers render + affordance `PublishMessage` rows to `SESSION#...` through real DataSource
+ * delivers render + affordance `PublishMessage` rows to `CHARACTER#...` through real DataSource
  * subscribers on the process message bus (orientation kick -> orchestration -> cache -> perception).
  *
  * Mocks: Dynamo/cache I/O, `publishMessage` write-through, `generateRoomPreview` (deterministic
@@ -86,7 +86,6 @@ const getAffordanceRowMock = getAffordanceRow as jest.MockedFunction<typeof getA
 const generateRoomPreviewMock = generateRoomPreview as jest.MockedFunction<typeof generateRoomPreview>
 
 const characterId = 'CHARACTER#viewer' as EphemeraCharacterId
-const sessionTarget = 'SESSION#session-1' as const
 
 const characterRegisteredEvent: ConnectionsCharacterRegisteredEvent = {
     type: 'Character Registered',
@@ -207,7 +206,7 @@ describe('Character Registered session orientation (integration)', () => {
         jest.restoreAllMocks()
     })
 
-    it('delivers correlated render and uncoupled affordance PublishMessage rows to SESSION# through full bus path', async () => {
+    it('delivers correlated render and uncoupled affordance PublishMessage rows to CHARACTER# through full bus path', async () => {
         const sendSpy = jest.spyOn(messageBus, 'send')
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<OrientationWml />')
 
@@ -215,19 +214,19 @@ describe('Character Registered session orientation (integration)', () => {
         await flushOrientationBus(passThroughFixtureRoomId)
 
         const publishes = publishMessagesFromSpy(sendSpy)
-        const sessionPublishes = publishes.filter((row) => row.targets?.[0] === sessionTarget)
+        const characterPublishes = publishes.filter((row) => row.targets?.[0] === characterId)
 
-        const renderGenerating = sessionPublishes.find((row) =>
+        const renderGenerating = characterPublishes.find((row) =>
             row.metaData?.roomChannel === 'render'
             && row.metaData?.displayMode === 'header'
             && row.metaData?.status === 'generating'
         )
-        const renderTerminal = sessionPublishes.find((row) =>
+        const renderTerminal = characterPublishes.find((row) =>
             row.metaData?.roomChannel === 'render'
             && row.metaData?.displayMode === 'header'
             && row.metaData?.status !== 'generating'
         )
-        const affordancePublish = sessionPublishes.find((row) => row.metaData?.roomChannel === 'affordances')
+        const affordancePublish = characterPublishes.find((row) => row.metaData?.roomChannel === 'affordances')
 
         expect(renderGenerating).toBeDefined()
         expect(renderTerminal).toBeDefined()
@@ -242,8 +241,11 @@ describe('Character Registered session orientation (integration)', () => {
         expect(affordancePublish!.wmlContent).toBe('<OrientationWml />')
 
         expect(
-            publishes.some((row) => row.targets?.some((target) => target.startsWith('CHARACTER#')))
-        ).toBe(false)
+            publishes.every((row) =>
+                !row.targets?.length
+                || row.targets.every((target) => target === characterId)
+            )
+        ).toBe(true)
 
         expect(
             internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)

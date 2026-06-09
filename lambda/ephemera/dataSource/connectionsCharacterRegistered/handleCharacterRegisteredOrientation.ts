@@ -2,7 +2,7 @@
  * Session orientation kick on `mtw.connections` / `Character Registered`.
  *
  * Resolves room + canon-filtered perspective from `Meta::Character`, registers a
- * channel-specific perception thread with `SESSION#` targets, and kicks orchestration
+ * channel-specific perception thread with `CHARACTER#` targets, and kicks orchestration
  * with routing identity only (no delivery fields on orchestration ingress).
  *
  * Each orchestration DataSource calls this with its own `channel` so both threads
@@ -22,6 +22,10 @@ import { sendPerceptionThreadRegistered } from '../perception/subscribedEvents'
 import { sendRenderRequested } from '../renderOrchestration/subscribedEvents'
 
 export type SessionOrientationChannel = 'render' | 'affordances'
+
+const LOG_PREFIX = '[mtw.ephemera.connectionsCharacterRegistered] sessionOrientation'
+
+export type SessionOrientationSkipReason = 'no_room' | 'no_perspective'
 
 export type SessionOrientationContext = {
     characterId: EphemeraCharacterId;
@@ -43,7 +47,7 @@ export async function resolveSessionOrientationContext(
     event: ConnectionsCharacterRegisteredEvent,
     deps?: ResolveSessionOrientationContextDeps
 ): Promise<SessionOrientationContext | null> {
-    const { characterId, sessionId } = event
+    const { characterId } = event
     const characterMetaGet = deps?.characterMetaGet ?? ((id: EphemeraCharacterId) => internalCache.CharacterMeta.get(id))
     const resolvePerspective = deps?.resolvePerspective ?? resolveCharacterRoomPerspectiveForRoom
 
@@ -59,7 +63,7 @@ export async function resolveSessionOrientationContext(
     }
 
     const { perspective, perspectiveKey } = resolved
-    const targets: PublishTarget[] = [`SESSION#${sessionId}`]
+    const targets: PublishTarget[] = [characterId]
 
     return {
         characterId,
@@ -70,18 +74,39 @@ export async function resolveSessionOrientationContext(
     }
 }
 
+async function resolveSessionOrientationSkipReason(
+    event: ConnectionsCharacterRegisteredEvent,
+    deps?: ResolveSessionOrientationContextDeps
+): Promise<SessionOrientationSkipReason> {
+    const characterMetaGet = deps?.characterMetaGet ?? ((id: EphemeraCharacterId) => internalCache.CharacterMeta.get(id))
+    const meta = await characterMetaGet(event.characterId)
+    if (!meta?.RoomId) {
+        return 'no_room'
+    }
+    return 'no_perspective'
+}
+
 export async function handleCharacterRegisteredOrientation(
     messageBus: MessageBus,
     event: ConnectionsCharacterRegisteredEvent,
     channel: SessionOrientationChannel,
     deps?: ResolveSessionOrientationContextDeps
 ): Promise<void> {
+    const { characterId, sessionId } = event
     const context = await resolveSessionOrientationContext(event, deps)
     if (!context) {
+        const reason = await resolveSessionOrientationSkipReason(event, deps)
+        console.log(LOG_PREFIX, {
+            event: 'skip',
+            channel,
+            characterId,
+            sessionId,
+            reason,
+        })
         return
     }
 
-    const { characterId, roomId, perspective, perspectiveKey, targets } = context
+    const { roomId, perspective, perspectiveKey, targets } = context
 
     if (channel === 'render') {
         sendPerceptionThreadRegistered(messageBus, roomId, {
@@ -94,6 +119,17 @@ export async function handleCharacterRegisteredOrientation(
         sendRenderRequested(messageBus, roomId, {
             componentId: roomId,
             perspective,
+        }, { useDefaultMessageBusLane: true })
+        console.log(LOG_PREFIX, {
+            event: 'kicked',
+            channel,
+            characterId,
+            sessionId,
+            roomId,
+            perspectiveKey,
+            targets,
+            threadKind: 'sessionOrientationRender',
+            orchestrationKick: 'Render Requested',
         })
         return
     }
@@ -109,5 +145,16 @@ export async function handleCharacterRegisteredOrientation(
         roomId,
         perspective,
         reason: 'roster',
+    }, { useDefaultMessageBusLane: true })
+    console.log(LOG_PREFIX, {
+        event: 'kicked',
+        channel,
+        characterId,
+        sessionId,
+        roomId,
+        perspectiveKey,
+        targets,
+        threadKind: 'sessionOrientationAffordances',
+        orchestrationKick: 'Affordances Requested',
     })
 }

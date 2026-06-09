@@ -401,11 +401,11 @@ describe('mtw.ephemera.perception DataSource', () => {
         sendSpy.mockRestore()
     })
 
-    it('sessionOrientationRender receives Generation Started then terminal Render Pertains with stable messageId and SESSION# targets', async () => {
+    it('sessionOrientationRender receives Generation Started then terminal Render Pertains with stable messageId and CHARACTER# targets', async () => {
         const sendSpy = jest.spyOn(messageBus, 'send')
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderTerminal />')
 
-        const targets = ['SESSION#test-session'] as const
+        const targets = ['CHARACTER#viewer'] as const
         sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
             threadKind: 'sessionOrientationRender',
             componentId: passThroughFixtureRoomId,
@@ -440,7 +440,7 @@ describe('mtw.ephemera.perception DataSource', () => {
                 && m?.metaData?.status === 'generating'
                 && Array.isArray(m.targets)
                 && m.targets.length === 1
-                && m.targets[0] === 'SESSION#test-session'
+                && m.targets[0] === 'CHARACTER#viewer'
             )
         })
         expect(genPublish).toBeDefined()
@@ -477,7 +477,7 @@ describe('mtw.ephemera.perception DataSource', () => {
                 m?.type === 'PublishMessage'
                 && m?.wmlContent === '<HeaderTerminal />'
                 && m?.metaData?.displayMode === 'header'
-                && m?.targets?.[0] === 'SESSION#test-session'
+                && m?.targets?.[0] === 'CHARACTER#viewer'
             )
         })
         expect(terminalPublish).toBeDefined()

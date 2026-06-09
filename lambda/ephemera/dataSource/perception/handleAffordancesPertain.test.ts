@@ -13,10 +13,17 @@ import * as roomHeaderBroadcastModule from './kickRoomHeaderBroadcast'
 import { handleAffordancesPertain } from './handleAffordancesPertain'
 
 describe('handleAffordancesPertain', () => {
+    let logSpy: jest.SpiedFunction<typeof console.log>
+
     beforeEach(() => {
         jest.clearAllMocks()
         messageBus.clear()
         internalCache.clear()
+        logSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
+    })
+
+    afterEach(() => {
+        logSpy.mockRestore()
     })
 
     function makePayload() {
@@ -42,7 +49,7 @@ describe('handleAffordancesPertain', () => {
         }
     }
 
-    it('publishes affordance PerceptionMessage to SESSION# when sessionOrientationAffordances thread registered', async () => {
+    it('publishes affordance PerceptionMessage to CHARACTER# when sessionOrientationAffordances thread registered', async () => {
         const sendSpy = jest.spyOn(messageBus, 'send')
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<AffordanceHeader />')
         const rosterSpy = jest.spyOn(internalCache.RoomCharacterList, 'get')
@@ -54,7 +61,7 @@ describe('handleAffordancesPertain', () => {
             componentId: passThroughFixtureRoomId,
             perspectiveKey: passThroughFixturePerspectiveKey,
             characterId: 'CHARACTER#Viewer',
-            targets: ['SESSION#test-session'],
+            targets: ['CHARACTER#Viewer'],
         })
 
         await handleAffordancesPertain(makePayload(), messageBus)
@@ -69,7 +76,7 @@ describe('handleAffordancesPertain', () => {
             messageId?: string;
             wmlContent?: string;
         }
-        expect(row.targets).toEqual(['SESSION#test-session'])
+        expect(row.targets).toEqual(['CHARACTER#Viewer'])
         expect(row.wmlContent).toBe('<AffordanceHeader />')
         expect(row.messageId).toMatch(/^MESSAGE#/)
         expect(stackMergeSpy).toHaveBeenCalledTimes(1)
@@ -78,6 +85,15 @@ describe('handleAffordancesPertain', () => {
         expect(
             internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
         ).toEqual([])
+
+        expect(logSpy).toHaveBeenCalledWith(
+            '[mtw.ephemera.perception] handleAffordancesPertain',
+            expect.objectContaining({
+                deliveryPath: 'sessionOrientationAffordances',
+                publishedSessionOrientationAffordances: 1,
+                sessionOrientationThreadCount: 1,
+            })
+        )
 
         stackMergeSpy.mockRestore()
         schemaSpy.mockRestore()

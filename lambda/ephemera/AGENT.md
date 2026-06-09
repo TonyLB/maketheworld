@@ -90,13 +90,17 @@ The lane is intentionally extensible: adding new position-affecting subscribers 
 
 #### **Session orientation (`Character Registered`)**
 
-Every successful `registercharacter` emits **`Character Registered`** on `mtw.connections`. Ephemera consumes it for **session-scoped RoomHeader delivery** to the logging-in client (`SESSION#${sessionId}` targets), distinct from the world/presence path above.
+Every successful `registercharacter` emits **`Character Registered`** on `mtw.connections`. Ephemera consumes it for **session-scoped RoomHeader delivery** to the logging-in character (`CHARACTER#` targets; `sessionId` on the event is correlation only), distinct from the world/presence path above.
 
 Ingress: `mtw.connections` / `Character Registered` via `ConnectionsEventSerializer` in [`app.ts`](app.ts) and CloudWatch rule `ConnectionsCharacterRegistered` in [`template.yaml`](../../template.yaml). Subscribed by **`mtw.ephemera.renderOrchestration`** and **`mtw.ephemera.affordanceOrchestration`** (shared guards in [`dataSource/connectionsCharacterRegistered/subscribedEvents.ts`](dataSource/connectionsCharacterRegistered/subscribedEvents.ts)).
 
-Handlers: [`handleCharacterRegisteredOrientation`](dataSource/connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) resolves the character's current room from `Meta::Character`, registers two perception threads (`sessionOrientationRender` + `sessionOrientationAffordances`) with `targets: [SESSION#${sessionId}]`, and kicks render + affordance orchestration with room + perspective only. Terminal **`PublishMessage`** rows are emitted by **`mtw.ephemera.perception`** on **`Render Pertains`** / **`Affordances Pertain`** fan-in (see [`dataSource/perception/AGENT.md`](dataSource/perception/AGENT.md)).
+Handlers: [`handleCharacterRegisteredOrientation`](dataSource/connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) resolves the character's current room from `Meta::Character`, registers two perception threads (`sessionOrientationRender` + `sessionOrientationAffordances`) with `targets: [characterId]`, and kicks render + affordance orchestration with room + perspective only. Terminal **`PublishMessage`** rows are emitted by **`mtw.ephemera.perception`** on **`Render Pertains`** / **`Affordances Pertain`** fan-in (see [`dataSource/perception/AGENT.md`](dataSource/perception/AGENT.md)).
+
+**Perception thread principle:** delivery intent is captured once at thread registration; orchestration and cache streams carry routing identity only (`roomId` / `componentId` + `perspectiveKey`). Do **not** plumb `targets` or `sessionId` through orchestration ingress or cache outbounds.
 
 **Non-goals for this path:** does not update `Meta::Room.activeCharacters`, does not send room arrival `WorldMessage` to other occupants. Those remain the **`Character Connected`** / `mtw.ephemera.positions` responsibility.
+
+**Known follow-ons (non-blocking):** trim duplicate affordance from **`Character Connected`** / **`RoomUpdate`** on first connect; optional client transcript / virtual-merge refactoring; bare-session **`Target`** stamping for true session-only deliveries (e.g. knowledge **`directResponse`**).
 
 Ephemera no longer holds session adjacency authority: writes to `connections`-table session/character adjacency live in `lambda/connections` (see [`lambda/connections/AGENT.md`](../connections/AGENT.md)). Registration ingress authority is fully connections-owned (`service: connections`), and ephemera does not process `registercharacter` WebSocket ingress.
 

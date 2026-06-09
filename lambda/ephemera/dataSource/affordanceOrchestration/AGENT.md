@@ -58,7 +58,7 @@ Handled in [`index.ts`](index.ts) **`receiveEvents`**: room-scoped events fan ou
 
 ### `mtw.connections` **`Character Registered`**
 
-Handled in [`index.ts`](index.ts) **`receiveEvents`**: [`handleCharacterRegisteredOrientation`](../connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) with channel **`affordances`** (parallel with render orchestration on the same event). Registers **`sessionOrientationAffordances`** thread with **`SESSION#${sessionId}`** targets, then **`sendAffordancesRequested`** (`reason: 'roster'`) with routing identity only.
+Handled in [`index.ts`](index.ts) **`receiveEvents`**: [`handleCharacterRegisteredOrientation`](../connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) with channel **`affordances`** (parallel with render orchestration on the same event). Registers **`sessionOrientationAffordances`** thread with **`characterId`** targets, then **`sendAffordancesRequested`** (`reason: 'roster'`) with routing identity only.
 
 ## Stream outbounds (contract)
 
@@ -82,7 +82,7 @@ Order for the affordance pass-through slice (aligned with render):
 
 ## Tests and verification
 
-**Primary tests:** [`publishedEvents.test.ts`](publishedEvents.test.ts), [`subscribedEvents.test.ts`](subscribedEvents.test.ts), [`orchestrationHandler.test.ts`](orchestrationHandler.test.ts), [`index.test.ts`](index.test.ts), [`fanOutAffordanceRefreshForRoom.test.ts`](fanOutAffordanceRefreshForRoom.test.ts), [`sendAffordanceRefreshRequestedForRoom.test.ts`](sendAffordanceRefreshRequestedForRoom.test.ts), [`passThroughContract.scaffold.test.ts`](passThroughContract.scaffold.test.ts), [`../passThroughAffordanceOrchestrationToCache.integration.test.ts`](../passThroughAffordanceOrchestrationToCache.integration.test.ts), [`../characterRegisteredOrientation.integration.test.ts`](../characterRegisteredOrientation.integration.test.ts) (`Character Registered` ingress -> affordance channel -> `SESSION#` terminal).
+**Primary tests:** [`publishedEvents.test.ts`](publishedEvents.test.ts), [`subscribedEvents.test.ts`](subscribedEvents.test.ts), [`orchestrationHandler.test.ts`](orchestrationHandler.test.ts), [`index.test.ts`](index.test.ts), [`fanOutAffordanceRefreshForRoom.test.ts`](fanOutAffordanceRefreshForRoom.test.ts), [`sendAffordanceRefreshRequestedForRoom.test.ts`](sendAffordanceRefreshRequestedForRoom.test.ts), [`passThroughContract.scaffold.test.ts`](passThroughContract.scaffold.test.ts), [`../passThroughAffordanceOrchestrationToCache.integration.test.ts`](../passThroughAffordanceOrchestrationToCache.integration.test.ts), [`../characterRegisteredOrientation.integration.test.ts`](../characterRegisteredOrientation.integration.test.ts) (`Character Registered` ingress -> affordance channel -> `CHARACTER#` terminal).
 
 From [`lambda/ephemera/`](../../):
 

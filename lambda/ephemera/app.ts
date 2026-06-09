@@ -106,6 +106,16 @@ export const handler = async (event: any, context: any) => {
         
         if (deserializer) {
             const coreFormat = fromEventBridgeFormat(event)
+            if (event.source === 'mtw.connections' && event['detail-type'] === 'Character Registered') {
+                const update = coreFormat.update as { characterId?: string; sessionId?: string }
+                console.log('[mtw.ephemera] EventBridge ingest', {
+                    source: event.source,
+                    detailType: event['detail-type'],
+                    streamKey: coreFormat.header.streamKey,
+                    characterId: update?.characterId,
+                    sessionId: update?.sessionId,
+                })
+            }
             const envelope = coreFormatToStreamingEnvelope(coreFormat, () =>
                 (deserializer as any).deserialize({ content: coreFormat.update as any, header: coreFormat.header }) as Promise<any>
             )

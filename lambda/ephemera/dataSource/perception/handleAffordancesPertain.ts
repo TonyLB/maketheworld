@@ -47,25 +47,31 @@ export async function handleAffordancesPertain(
         )
     )
 
+    let skippedSessionOrientationTerminal = 0
+    let skippedSessionOrientationEmptyTargets = 0
+    let publishedSessionOrientationAffordances = 0
+
     if (affordanceThreads.length > 0) {
         const deliveries = affordanceThreads.flatMap((entry) => {
             if (!isSessionOrientationAffordancesPerceptionThread(entry.thread)) {
                 return []
             }
-            const { thread, registration } = entry
+            const { thread, registration, registrationId } = entry
             if (registration.threadKind !== 'sessionOrientationAffordances') {
                 return []
             }
             if (thread.status === 'Terminal') {
+                skippedSessionOrientationTerminal += 1
                 return []
             }
             if (!registration.targets.length) {
+                skippedSessionOrientationEmptyTargets += 1
                 return []
             }
             return [{
                 targets: registration.targets,
                 messageGroupId: registration.messageGroupId,
-                registrationId: entry.registrationId,
+                registrationId,
             }]
         })
 
@@ -79,6 +85,7 @@ export async function handleAffordancesPertain(
                 })),
                 messageBus: bus,
             })
+            publishedSessionOrientationAffordances = deliveries.length
             for (const { registrationId } of deliveries) {
                 internalCache.PerceptionThreads.remove({
                     componentId: roomId,
@@ -87,14 +94,53 @@ export async function handleAffordancesPertain(
                 })
             }
         }
+
+        const summary = {
+            roomId,
+            perspectiveKey,
+            bucketSize: entries.length,
+            sessionOrientationThreadCount: affordanceThreads.length,
+            publishedSessionOrientationAffordances,
+            skippedSessionOrientationTerminal,
+            skippedSessionOrientationEmptyTargets,
+            deliveryPath: 'sessionOrientationAffordances' as const,
+            fallbackTargetsMatched: 0,
+            fallbackPublished: 0,
+        }
+        if (publishedSessionOrientationAffordances === 0) {
+            console.warn('[mtw.ephemera.perception] handleAffordancesPertain: session orientation threads present but no publish', summary)
+        }
+        else {
+            console.log('[mtw.ephemera.perception] handleAffordancesPertain', summary)
+        }
         return
     }
 
     const targets = await resolveAffordanceTargetsForPerspective(roomId, perspectiveKey)
+    const fallbackPublished = targets.length
     await publishAffordancePerceptionForCharacters({
         roomId,
         perspectiveKey,
         characterIds: targets,
         messageBus: bus,
     })
+
+    const summary = {
+        roomId,
+        perspectiveKey,
+        bucketSize: entries.length,
+        sessionOrientationThreadCount: 0,
+        publishedSessionOrientationAffordances: 0,
+        skippedSessionOrientationTerminal: 0,
+        skippedSessionOrientationEmptyTargets: 0,
+        deliveryPath: 'rosterFallback' as const,
+        fallbackTargetsMatched: targets.length,
+        fallbackPublished,
+    }
+    if (entries.length === 0 && targets.length === 0) {
+        console.warn('[mtw.ephemera.perception] handleAffordancesPertain: no threads and no roster matches', summary)
+    }
+    else {
+        console.log('[mtw.ephemera.perception] handleAffordancesPertain', summary)
+    }
 }
