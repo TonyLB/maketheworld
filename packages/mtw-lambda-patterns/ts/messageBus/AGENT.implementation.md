@@ -33,6 +33,25 @@ Ephemera and other lambdas use **virtual lanes** on a **single** `InternalMessag
 - **Performance:** each `flush` scans `_stream` for matching lanes; acceptable at typical Lambda scale; revisit if profiling says otherwise.
 - If **`send`** gains more per-send options, a single overload such as `send(payload, options?: { laneId?: string })` is an acceptable evolution from the positional second argument.
 
+## Migration: `publish` / `settle` (in progress)
+
+Task plan: [`taskPlanning/packages/mtw-lambda-patterns/ts/messageBus/AGENT.publishSettledMigration.planning.md`](../../../../taskPlanning/packages/mtw-lambda-patterns/ts/messageBus/AGENT.publishSettledMigration.planning.md). Steady-state docs here will replace this section at P6 closeout.
+
+**During migration (`send`/`flush` coexist with `publish`/`settle`):**
+
+| Topic | `flush` path (today) | `publish` path (P1+) |
+| --- | --- | --- |
+| Ordering | `priority` tiers; `Promise.all` within a tier | **`priority` ignored**; all matching subscribers scheduled **concurrently** |
+| Delivery shape | Batched `payloads` per subscriber | **`payloads: [singleItem]`** per matching subscriber per `publish` |
+| `priority` field on subscriptions | Enforced | Retained on type; meaningful **only for `flush`** until P6 |
+| Lambda boundary drain | `flush()` (today) -> `flushAndSettle()` (P1) | Q1 dual idle loop (`flush` + `settle` until both no-op), then `runDeferrals()` (Q9); P6 drops `flush` arm only when `send`/`flush` deleted |
+
+**High/Medium migration constraints** (triage matrix in task plan): affordance cache-before-orchestration must use explicit sequencing on the publish path (not flush priority); multi-DS ordering specs are the passThrough integration tests.
+
+**Bucket-1 aggregation** (task plan **Bucket-1 deep dive**): flush batching was shielding, contract packaging, or orchestration -- not only traffic dedup. Fix axis per row: consumer idempotency (easy migrate), **producer coalescing** (`checkLocation`, `diagnostics`), **contract** (`mapSubscription` / `extractReturnValue`), or **Q9 defer buffer** (`publishMessage` orchestration). Do not assume all bucket-1 rows need consumer hardening.
+
+**Q9 defer buffer (locked):** orchestration outbound coalescing is **not** a second subscriber queue. **API:** `registerDeferral(tag, { onClear?, afterSettled })`; `clear()` runs `onClear`; `runDeferrals()` after `flushAndSettle` idle loop (not after every inline `settle()`). Per-need aggregator modules wrap registration at module load. **v1 contract:** `afterSettled` hooks are **IO-only** (no `publish`/`send`); one pass, no repeat loop. Avoid inline `await settle()` in aggregators for sequencing -- use shared entity + boundary drain; future repeat wrapper if boundary-phase bus enqueue is needed. See task plan **Q9**.
+
 ## Generic InternalMessageBus Usage
 
 ### Basic Setup
