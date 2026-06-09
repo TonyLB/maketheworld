@@ -97,7 +97,7 @@ export const handler = async (event: any, context: any) => {
                 event.detail?.sessionId,
                 event.detail?.requestId
             )
-            await messageBus.flush()
+            await messageBus.flushAndSettle()
             return
         }
 
@@ -138,7 +138,7 @@ export const handler = async (event: any, context: any) => {
             })
         }
         // Flush messageBus and return after handling EventBridge events
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
         return
     }
 
@@ -156,7 +156,7 @@ export const handler = async (event: any, context: any) => {
                 break
             case 'Player Connected':
                 await confirmGuestCharacter(event.detail.player)
-                await messageBus.flush()
+                await messageBus.flushAndSettle()
                 return await extractReturnValue(messageBus)
         }
     }
@@ -322,7 +322,7 @@ export const handler = async (event: any, context: any) => {
     // Default-lane drain: terminal render-orchestration outbounds use `laneId: ''` from `publishOrchestration`.
     // Named `renderOrchestration:*` lanes are flushed in parallel with generation inside `generateRoomPreview`.
     // Event-driven `look` flushes its run-scoped perception lane only inside `renderOrchestration` (not here); the `Render Requested` for look is on the default lane and drains with this call.
-    await messageBus.flush()
+    await messageBus.flushAndSettle()
     return extractReturnValue(messageBus)
 
 }

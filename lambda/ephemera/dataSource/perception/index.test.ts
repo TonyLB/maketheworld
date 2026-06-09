@@ -44,7 +44,7 @@ describe('mtw.ephemera.perception DataSource', () => {
 
     it('registers subscription and flush completes without error when queue is empty', async () => {
         expect(ephemeraPerceptionDataSource.dataSourceKey).toBe('mtw.ephemera.perception')
-        await expect(messageBus.flush()).resolves.toBeUndefined()
+        await expect(messageBus.flush()).resolves.toBe(false)
     })
 
     it('receiveEvents emits PublishMessage for Character Perception Requested ingress', async () => {

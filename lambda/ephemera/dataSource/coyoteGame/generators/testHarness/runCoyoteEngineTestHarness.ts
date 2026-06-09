@@ -36,7 +36,7 @@ export type CoyoteEngineTestHarnessInvocation =
 
 export type RunCoyoteEngineTestHarnessDeps = {
     characterId: EphemeraCharacterId
-    messageBus: Pick<MessageBus, 'send' | 'flush'>
+    messageBus: Pick<MessageBus, 'send' | 'flush' | 'publish'>
     fixtures?: CoyoteEngineTestFixture[]
     testBatchSize?: number
     /** Override for tests; defaults to [`generateHypothesisWithStageResults`]. */

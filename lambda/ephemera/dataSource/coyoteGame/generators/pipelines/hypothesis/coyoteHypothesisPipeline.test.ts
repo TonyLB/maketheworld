@@ -21,10 +21,7 @@ import {
 
 import * as apiEphemera from '../../../../apiEphemera'
 import type { StreamingEventMessage } from '../../../../../messageBus/baseClasses'
-import {
-    EPHEMERA_COYOTE_GAME_DATA_SOURCE_KEY,
-    thinkingResultsLaneId,
-} from './hypothesisThinkingPersistence'
+import { EPHEMERA_COYOTE_GAME_DATA_SOURCE_KEY } from './hypothesisThinkingPersistence'
 
 import { COYOTE_ENGINE_TEST_FIXTURES } from '../../testHarness/coyoteEngineTestFixtures'
 import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
@@ -62,12 +59,11 @@ const sendPutThinkingJobError = apiEphemera.sendPutThinkingJobError as jest.Mock
 >
 
 const mockMessageBus = () => ({
-    send: jest.fn(),
-    flush: jest.fn().mockResolvedValue(undefined),
+    publish: jest.fn(),
 })
 
-const findCoyoteThinkingResultMessages = (send: jest.Mock): StreamingEventMessage[] =>
-    send.mock.calls
+const findCoyoteThinkingResultMessages = (publish: jest.Mock): StreamingEventMessage[] =>
+    publish.mock.calls
         .map((call) => call[0] as StreamingEventMessage)
         .filter(
             (msg) =>
@@ -76,9 +72,9 @@ const findCoyoteThinkingResultMessages = (send: jest.Mock): StreamingEventMessag
                 msg.header?.type === THINKING_RESULT_HEADER_TYPE
         )
 
-const thinkingResultSegmentsFromBus = async (send: jest.Mock): Promise<string[]> => {
+const thinkingResultSegmentsFromBus = async (publish: jest.Mock): Promise<string[]> => {
     const segments: string[] = []
-    for (const msg of findCoyoteThinkingResultMessages(send)) {
+    for (const msg of findCoyoteThinkingResultMessages(publish)) {
         const content = await msg.getContent()
         if (isThinkingResultEvent(content)) {
             segments.push(content.segment)
@@ -88,10 +84,10 @@ const thinkingResultSegmentsFromBus = async (send: jest.Mock): Promise<string[]>
 }
 
 const thinkingResultsOkFromBus = async (
-    send: jest.Mock
+    publish: jest.Mock
 ): Promise<Array<{ segment: string; ok: boolean }>> => {
     const results: Array<{ segment: string; ok: boolean }> = []
-    for (const msg of findCoyoteThinkingResultMessages(send)) {
+    for (const msg of findCoyoteThinkingResultMessages(publish)) {
         const content = await msg.getContent()
         if (isThinkingResultEvent(content)) {
             results.push({ segment: content.segment, ok: content.ok })
@@ -351,9 +347,7 @@ describe('runCoyoteHypothesisPipeline thinking bootstrap', () => {
         expect(sendPutThinkingJobCreate).toHaveBeenCalledTimes(1)
         expect(sendPutThinkingJobCreate.mock.calls[0][2].workItemIds).toHaveLength(3)
         expect(sendPutThinkingSchedule).toHaveBeenCalledTimes(3)
-        const lane = sendPutThinkingJobCreate.mock.calls[0][3]
-        expect(lane).toMatch(/^thinkingBootstrap:/)
-        expect(bus.flush).toHaveBeenCalledWith(lane)
+        expect(sendPutThinkingJobCreate.mock.calls[0]).toHaveLength(3)
         expect(sendPutThinkingJobError).toHaveBeenCalledTimes(1)
     })
 
@@ -492,18 +486,13 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         const result = await runCoyoteHypothesisPipeline({ ...pipelineDeps(), messageBus: bus })
         expect(result.kind).toBe('full')
 
-        const thinkingMsgs = findCoyoteThinkingResultMessages(bus.send)
+        const thinkingMsgs = findCoyoteThinkingResultMessages(bus.publish)
         expect(thinkingMsgs).toHaveLength(3)
-        expect(await thinkingResultSegmentsFromBus(bus.send)).toEqual([
+        expect(await thinkingResultSegmentsFromBus(bus.publish)).toEqual([
             'candidates',
             'planSelect',
             'narrativeBeats',
         ])
-
-        const generationId = sendPutThinkingJobCreate.mock.calls[0][2].generationId
-        const resultsLane = thinkingResultsLaneId(generationId)
-        const resultFlushCalls = bus.flush.mock.calls.filter((call) => call[0] === resultsLane)
-        expect(resultFlushCalls).toHaveLength(3)
 
         const candidatesContent = await thinkingMsgs[0].getContent()
         expect(isThinkingResultEvent(candidatesContent)).toBe(true)
@@ -524,8 +513,8 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
             { ...pipelineDeps(), messageBus: bus },
             { testOnly: 'candidates', harnessRunKind: 'runUntil' }
         )
-        expect(findCoyoteThinkingResultMessages(bus.send)).toHaveLength(1)
-        expect(await thinkingResultSegmentsFromBus(bus.send)).toEqual(['candidates'])
+        expect(findCoyoteThinkingResultMessages(bus.publish)).toHaveLength(1)
+        expect(await thinkingResultSegmentsFromBus(bus.publish)).toEqual(['candidates'])
         expectCompletedSchedulePutsMatchBootstrap(['candidates'])
     })
 
@@ -535,8 +524,8 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
             { ...pipelineDeps(), messageBus: bus },
             { testOnly: 'planSelect', harnessRunKind: 'runUntil' }
         )
-        expect(findCoyoteThinkingResultMessages(bus.send)).toHaveLength(2)
-        expect(await thinkingResultSegmentsFromBus(bus.send)).toEqual(['candidates', 'planSelect'])
+        expect(findCoyoteThinkingResultMessages(bus.publish)).toHaveLength(2)
+        expect(await thinkingResultSegmentsFromBus(bus.publish)).toEqual(['candidates', 'planSelect'])
         expectCompletedSchedulePutsMatchBootstrap(['candidates', 'planSelect'])
     })
 
@@ -562,8 +551,8 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
                 },
             }
         )
-        expect(findCoyoteThinkingResultMessages(bus.send)).toHaveLength(1)
-        expect(await thinkingResultSegmentsFromBus(bus.send)).toEqual(['planSelect'])
+        expect(findCoyoteThinkingResultMessages(bus.publish)).toHaveLength(1)
+        expect(await thinkingResultSegmentsFromBus(bus.publish)).toEqual(['planSelect'])
         expectCompletedSchedulePutsMatchBootstrap(['planSelect'])
     })
 
@@ -584,7 +573,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         const result = await runCoyoteHypothesisPipeline({ ...pipelineDeps(), messageBus: bus })
         expect(result.kind).toBe('stub')
 
-        expect(await thinkingResultsOkFromBus(bus.send)).toEqual([
+        expect(await thinkingResultsOkFromBus(bus.publish)).toEqual([
             { segment: 'candidates', ok: true },
             { segment: 'planSelect', ok: false },
         ])
@@ -599,7 +588,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
             jobStatus: 'failed',
             lastFailedWorkItemId: planSelectWorkItemId,
         })
-        expect(sendPutThinkingJobError.mock.calls[0][3]).toBe(thinkingResultsLaneId(generationId))
+        expect(sendPutThinkingJobError.mock.calls[0]).toHaveLength(3)
         expect(schedulePutsByStatus('completed')).toHaveLength(1)
         expect(schedulePutsByStatus('completed')[0].segment).toBe('candidates')
     })
@@ -613,7 +602,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         const result = await runCoyoteHypothesisPipeline({ ...pipelineDeps(), messageBus: bus })
         expect(result.kind).toBe('stub')
 
-        expect(await thinkingResultsOkFromBus(bus.send)).toEqual([{ segment: 'candidates', ok: false }])
+        expect(await thinkingResultsOkFromBus(bus.publish)).toEqual([{ segment: 'candidates', ok: false }])
 
         const generationId = sendPutThinkingJobCreate.mock.calls[0][2].generationId
         const candidatesWorkItemId = sendPutThinkingSchedule.mock.calls.find(
@@ -664,7 +653,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
                 }
             )
         ).rejects.toThrow(CoyoteHypothesisPipelineAbortError)
-        expect(await thinkingResultsOkFromBus(bus.send)).toEqual([{ segment: 'planSelect', ok: false }])
+        expect(await thinkingResultsOkFromBus(bus.publish)).toEqual([{ segment: 'planSelect', ok: false }])
         expect(sendPutThinkingJobError).toHaveBeenCalledTimes(1)
     })
 
@@ -674,7 +663,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         await expect(runCoyoteHypothesisPipeline({ ...pipelineDeps(), messageBus: bus })).rejects.toThrow(
             'network'
         )
-        expect(findCoyoteThinkingResultMessages(bus.send)).toHaveLength(0)
+        expect(findCoyoteThinkingResultMessages(bus.publish)).toHaveLength(0)
         expect(sendPutThinkingJobError).toHaveBeenCalledTimes(1)
         expect(sendPutThinkingJobError.mock.calls[0][2]).toMatchObject({
             jobStatus: 'failed',

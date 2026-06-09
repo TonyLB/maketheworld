@@ -1,6 +1,6 @@
 # MessageBus: `publish`/`settle` migration (planning)
 
-**Status:** In progress (P2). Q1-Q9 are locked (P0.5 complete). **Phase P1** complete. **P2a** complete. Next step: **P2b** (per-DataSource `outboundBusDelivery: 'publish'`, coordinate with P3 lane hotspots).
+**Status:** In progress (P3). Q1-Q9 are locked (P0.5 complete). **Phase P1** complete. **P2a** complete. **P2b** started (`mtw.ephemera.coyoteGame`). **P3** Coyote hypothesis slice complete. Next step: Acme order thinking persistence (P3).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -790,17 +790,17 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 - [ ] Phase P2 - `DataSource` port and outbound path (piecewise per Q7; closeout per Q2)
   - [X] P2a -- infrastructure: `DataSourceMessageBusPort` adds `publish` (keep `send` during migration); constructor `outboundBusDelivery?: 'send' | 'publish'` (default `'send'`); branch in `sendStreamingEventOnBus`.
   - [X] P2a -- extend package mocks with `publish: jest.fn()`; add tests for `'publish'` outbound path (Q7).
-  - [ ] P2b -- per DataSource: set `outboundBusDelivery: 'publish'` with that directory's lane/send atomic migration (coordinate with P3/P4/P5); update that DS's package/lambda tests to assert `publish`.
+  - [ ] P2b -- per DataSource: set `outboundBusDelivery: 'publish'` with that directory's lane/send atomic migration (coordinate with P3/P4/P5); update that DS's package/lambda tests to assert `publish`. **Done:** `mtw.ephemera.coyoteGame` (Coyote hypothesis P3 slice).
   - [ ] P2c -- closeout when no production DataSource uses `'send'` outbound: remove `outboundBusDelivery`, port `send`, `_inboundFlushLaneStack`, `StreamEventParams.laneId`, and `send` branch in `sendStreamingEventOnBus`.
   - [ ] Run: `npm test -- ts/dataSource/index.test.ts` from `packages/mtw-lambda-patterns/` after each P2 slice.
 
 - [ ] Phase P3 - ephemera lane hotspots (highest friction; **atomic units** per Q2)
-  - [ ] Coyote hypothesis thinking persistence and handlers (files in **Migration inventory**; atomic unit per Q2). **Lane flush intent:** `publish` replaces `send`+scoped `flush(lane)`; no producer-side mid-invocation drain; persistence may run **concurrent** with LLM; **boundary drain** only; see **Bus drain terminology** and **Lane flush intent at migration**.
+  - [X] Coyote hypothesis thinking persistence and handlers (files in **Migration inventory**; atomic unit per Q2). **Lane flush intent:** `publish` replaces `send`+scoped `flush(lane)`; no producer-side mid-invocation drain; persistence may run **concurrent** with LLM; **boundary drain** only; see **Bus drain terminology** and **Lane flush intent at migration**. Migrated: `hypothesisThinkingPersistence.ts`, `handleObjectsChangedForHypothesis.ts`, `coyoteGame/index.ts` (`outboundBusDelivery: 'publish'`), `apiEphemera` thinking helpers (dual-path: `laneId` -> `send`, omit -> `publish`), ephemera `app.ts` `flushAndSettle` (4 sites).
   - [ ] Acme order thinking persistence (atomic with its `flush(laneId)` blocks).
   - [ ] Render orchestration: `orchestrationHandler` + `findRender` + look path (drop `laneId: ''`; no partial publish-with-remaining-`send`).
   - [ ] Affordance orchestration: [`affordanceOrchestration/`](../../../../../lambda/ephemera/dataSource/affordanceOrchestration/) (`orchestrationHandler`, `publishedEvents` send-helpers, fan-out paths); migrate in **P3 immediately after render orchestration** (not P4). Coordinate with `affordanceCache` for AFF-CACHE-4 catalog-before-orchestration; re-run `passThroughAffordanceOrchestrationToCache.integration.test.ts`.
   - [ ] Coyote engine test harness lane flushes.
-  - [ ] Ephemera `app.ts`: `flush()` -> `flushAndSettle()` at all boundary exits (Q1).
+  - [X] Ephemera `app.ts`: `flush()` -> `flushAndSettle()` at all boundary exits (Q1). (Landed with Coyote hypothesis slice.)
   - [ ] Targeted ephemera tests for touched paths (see **Verification**).
 
 - [ ] Phase P4 - remaining ephemera `send` sites
@@ -893,8 +893,8 @@ rg 'messageBus\.(flush|flushAndSettle)\(' lambda/ --glob '**/app.ts' | wc -l
 | Open questions Q4-Q5 resolved (P0.5) | Done |
 | Open question Q9 (`registerDeferral` + phased scope) | Done |
 | Engine `publish`/`settle` + tests (P1) | Done |
-| DataSource port migration (P2) | P2a done; P2b not started |
-| Ephemera lane hotspots (P3) | Not started |
+| DataSource port migration (P2) | P2a done; P2b started (`coyoteGame`) |
+| Ephemera lane hotspots (P3) | Coyote hypothesis slice done |
 | Remaining ephemera migration (P4) | Not started |
 | Other lambdas (P5) | Not started |
 | Legacy removal + durable docs (P6) | Not started |

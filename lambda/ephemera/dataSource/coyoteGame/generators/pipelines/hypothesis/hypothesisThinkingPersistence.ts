@@ -42,7 +42,7 @@ export type HypothesisThinkingIds = {
 }
 
 export type HypothesisThinkingBootstrapDeps = {
-    messageBus: Pick<MessageBus, 'send' | 'flush'>
+    messageBus: Pick<MessageBus, 'publish'>
 }
 
 export type HypothesisThinkingResultDeps = HypothesisThinkingBootstrapDeps
@@ -130,10 +130,6 @@ export function deriveHypothesisFailureErrorCode(
 
 export function thinkingStreamKey(generationId: string): string {
     return jobEphemeraId(generationId)
-}
-
-export function thinkingResultsLaneId(generationId: string): string {
-    return `thinkingResults:${generationId}`
 }
 
 export function activeThinkingSegmentsForRun(harness?: HypothesisThinkingHarnessOptions): ThinkingSegment[] {
@@ -380,8 +376,7 @@ function postHypothesisThinkingResult(
     deps: HypothesisThinkingResultDeps,
     ids: HypothesisThinkingIds,
     segment: ThinkingSegment,
-    outcome: HypothesisThinkingResultOutcome,
-    laneId: string
+    outcome: HypothesisThinkingResultOutcome
 ): void {
     const workItemId = ids.workItems[segment]
     if (workItemId === undefined) {
@@ -399,14 +394,13 @@ function postHypothesisThinkingResult(
         ...(outcome.errorCode !== undefined ? { errorCode: outcome.errorCode } : {}),
         ...(outcome.errorMessage !== undefined ? { errorMessage: outcome.errorMessage } : {}),
     }
-    sendCoyoteThinkingResult(deps.messageBus, streamKey, event, laneId)
+    sendCoyoteThinkingResult(deps.messageBus, streamKey, event)
 }
 
 export function sendCoyoteThinkingResult(
-    bus: Pick<MessageBus, 'send'>,
+    bus: Pick<MessageBus, 'publish'>,
     streamKey: string,
-    event: ThinkingResultEvent,
-    laneId?: string
+    event: ThinkingResultEvent
 ): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
@@ -424,50 +418,38 @@ export function sendCoyoteThinkingResult(
         getContent: envelope.getContent,
         timestamp,
     }
-    if (laneId !== undefined && laneId !== '') {
-        bus.send(message, laneId)
-    } else {
-        bus.send(message)
-    }
+    bus.publish(message)
 }
 
-export async function emitHypothesisThinkingResult(
+export function emitHypothesisThinkingResult(
     deps: HypothesisThinkingResultDeps,
     ids: HypothesisThinkingIds,
     segment: ThinkingSegment,
     outcome: HypothesisThinkingResultOutcome
-): Promise<void> {
-    const laneId = thinkingResultsLaneId(ids.generationId)
+): void {
     const streamKey = thinkingStreamKey(ids.generationId)
-    postHypothesisThinkingResult(deps, ids, segment, outcome, laneId)
+    postHypothesisThinkingResult(deps, ids, segment, outcome)
     if (outcome.ok) {
         const workItemId = ids.workItems[segment]
         if (workItemId === undefined) {
             throw new Error(`HypothesisThinkingPersistence: missing workItemId for segment ${segment}`)
         }
-        sendPutThinkingSchedule(
-            deps.messageBus,
-            streamKey,
-            {
-                schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
-                generationId: ids.generationId,
-                workItemId,
-                segment,
-                scheduleStatus: 'completed',
-            },
-            laneId
-        )
+        sendPutThinkingSchedule(deps.messageBus, streamKey, {
+            schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+            generationId: ids.generationId,
+            workItemId,
+            segment,
+            scheduleStatus: 'completed',
+        })
     }
-    await deps.messageBus.flush(laneId)
 }
 
-export async function finalizeHypothesisThinkingOnRunFailure(
+export function finalizeHypothesisThinkingOnRunFailure(
     deps: HypothesisThinkingResultDeps,
     input: FinalizeHypothesisThinkingOnRunFailureInput
-): Promise<void> {
+): void {
     const { ids, failedStepName, error, state, thinkingHarness } = input
     const streamKey = thinkingStreamKey(ids.generationId)
-    const laneId = thinkingResultsLaneId(ids.generationId)
     const bus = deps.messageBus
     const errorCode = deriveHypothesisFailureErrorCode(failedStepName, state)
     const errorMessage = errorMessageFromUnknown(error)
@@ -477,49 +459,35 @@ export async function finalizeHypothesisThinkingOnRunFailure(
         segment !== undefined &&
         activeThinkingSegmentsForRun(thinkingHarness).includes(segment)
     ) {
-        postHypothesisThinkingResult(
-            deps,
-            ids,
-            segment,
-            {
-                ok: false,
-                verbose: buildHypothesisFailureVerbose(state, segment, failedStepName),
-                errorCode,
-                errorMessage,
-            },
-            laneId
-        )
+        postHypothesisThinkingResult(deps, ids, segment, {
+            ok: false,
+            verbose: buildHypothesisFailureVerbose(state, segment, failedStepName),
+            errorCode,
+            errorMessage,
+        })
     }
 
     const lastFailedWorkItemId =
         segment !== undefined ? ids.workItems[segment] : undefined
 
-    sendPutThinkingJobError(
-        bus,
-        streamKey,
-        {
-            schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
-            generationId: ids.generationId,
-            jobStatus: 'failed',
-            failedAt: new Date().toISOString(),
-            errorCode,
-            errorMessage,
-            ...(lastFailedWorkItemId !== undefined ? { lastFailedWorkItemId } : {}),
-        },
-        laneId
-    )
-
-    await bus.flush(laneId)
+    sendPutThinkingJobError(bus, streamKey, {
+        schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+        generationId: ids.generationId,
+        jobStatus: 'failed',
+        failedAt: new Date().toISOString(),
+        errorCode,
+        errorMessage,
+        ...(lastFailedWorkItemId !== undefined ? { lastFailedWorkItemId } : {}),
+    })
 }
 
-export async function bootstrapHypothesisThinkingAtRunStart(
+export function bootstrapHypothesisThinkingAtRunStart(
     deps: HypothesisThinkingBootstrapDeps,
     harness?: HypothesisThinkingHarnessOptions
-): Promise<HypothesisThinkingIds> {
+): HypothesisThinkingIds {
     const segments = activeThinkingSegmentsForRun(harness)
     const ids = mintHypothesisThinkingIds(segments)
     const streamKey = thinkingStreamKey(ids.generationId)
-    const bootstrapLaneId = `thinkingBootstrap:${uuidv4()}`
     const bus = deps.messageBus
     const createdAt = new Date().toISOString()
     const enqueuedAt = createdAt
@@ -532,39 +500,28 @@ export async function bootstrapHypothesisThinkingAtRunStart(
         return workItemId
     })
 
-    sendPutThinkingJobCreate(
-        bus,
-        streamKey,
-        {
-            schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
-            generationId: ids.generationId,
-            workItemIds,
-            jobStatus: 'running',
-            createdAt,
-        },
-        bootstrapLaneId
-    )
+    sendPutThinkingJobCreate(bus, streamKey, {
+        schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+        generationId: ids.generationId,
+        workItemIds,
+        jobStatus: 'running',
+        createdAt,
+    })
 
     for (const segment of segments) {
         const workItemId = ids.workItems[segment]
         if (workItemId === undefined) {
             throw new Error(`HypothesisThinkingPersistence: missing workItemId for segment ${segment}`)
         }
-        sendPutThinkingSchedule(
-            bus,
-            streamKey,
-            {
-                schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
-                generationId: ids.generationId,
-                workItemId,
-                segment,
-                scheduleStatus: 'scheduled',
-                enqueuedAt,
-            },
-            bootstrapLaneId
-        )
+        sendPutThinkingSchedule(bus, streamKey, {
+            schemaVersion: THINKING_SCHEMA_VERSION_INITIAL,
+            generationId: ids.generationId,
+            workItemId,
+            segment,
+            scheduleStatus: 'scheduled',
+            enqueuedAt,
+        })
     }
 
-    await bus.flush(bootstrapLaneId)
     return ids
 }

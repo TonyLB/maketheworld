@@ -33,9 +33,9 @@ Pipeline-local docs:
 [`handlers/handleObjectsChangedForHypothesis.ts`](handlers/handleObjectsChangedForHypothesis.ts):
 
 1. Accepts only object-add events in Coyote demo rooms.
-2. Sends placeholder `CoyoteGameHypothesisMessage` on `hypothesisLane:${messageId}`.
-3. Flushes lane while remainder invalidates and reloads `internalCache.CoyoteGame.get('intent')`.
-4. Publishes final hypothesis render tree and stream event payload.
+2. **`publish`es** placeholder `CoyoteGameHypothesisMessage` immediately (concurrent with remainder work).
+3. Invalidates and reloads `internalCache.CoyoteGame.get('intent')`, emits stream events via **`outboundBusDelivery: 'publish'`**.
+4. **`publish`es** final hypothesis render tree and stream event payload.
 
 Hypothesis generation chain:
 

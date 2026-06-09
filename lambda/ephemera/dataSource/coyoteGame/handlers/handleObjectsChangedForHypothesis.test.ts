@@ -40,8 +40,7 @@ describe('handleObjectsChangedForHypothesis', () => {
     })
 
     const busMocks = () => ({
-        send: jest.fn(),
-        flush: jest.fn().mockResolvedValue(undefined),
+        publish: jest.fn(),
     })
 
     it('no-ops when add is empty', async () => {
@@ -49,8 +48,7 @@ describe('handleObjectsChangedForHypothesis', () => {
         const messageBus = busMocks()
         await handleObjectsChangedForHypothesis(basePayload({ add: [], newObjects: [] }), { streamEvent, messageBus })
         expect(streamEvent).not.toHaveBeenCalled()
-        expect(messageBus.send).not.toHaveBeenCalled()
-        expect(messageBus.flush).not.toHaveBeenCalled()
+        expect(messageBus.publish).not.toHaveBeenCalled()
     })
 
     it('no-ops when room is not a Coyote demo room', async () => {
@@ -58,8 +56,7 @@ describe('handleObjectsChangedForHypothesis', () => {
         const messageBus = busMocks()
         await handleObjectsChangedForHypothesis(basePayload({ componentId: 'ROOM#OTHER' }), { streamEvent, messageBus })
         expect(streamEvent).not.toHaveBeenCalled()
-        expect(messageBus.send).not.toHaveBeenCalled()
-        expect(messageBus.flush).not.toHaveBeenCalled()
+        expect(messageBus.publish).not.toHaveBeenCalled()
     })
 
     it('no-ops when no active occupants (no sessions)', async () => {
@@ -70,8 +67,7 @@ describe('handleObjectsChangedForHypothesis', () => {
         const messageBus = busMocks()
         await handleObjectsChangedForHypothesis(basePayload(), { streamEvent, messageBus })
         expect(streamEvent).not.toHaveBeenCalled()
-        expect(messageBus.send).not.toHaveBeenCalled()
-        expect(messageBus.flush).not.toHaveBeenCalled()
+        expect(messageBus.publish).not.toHaveBeenCalled()
     })
 
     it('emits stream events and two CoyoteGameHypothesisMessage publishes with shared messageId', async () => {
@@ -88,14 +84,11 @@ describe('handleObjectsChangedForHypothesis', () => {
         expect(streamEvent.mock.calls[1][0].header.type).toBe('Hypothesis Generation Result')
         expect(streamEvent.mock.calls[1][0].update.type).toBe('Hypothesis Generation Result')
 
-        expect(messageBus.send).toHaveBeenCalledTimes(2)
-        const first = messageBus.send.mock.calls[0][0] as Record<string, unknown>
-        const firstLane = messageBus.send.mock.calls[0][1]
-        const second = messageBus.send.mock.calls[1][0] as Record<string, unknown>
+        expect(messageBus.publish).toHaveBeenCalledTimes(2)
+        const first = messageBus.publish.mock.calls[0][0] as Record<string, unknown>
+        const second = messageBus.publish.mock.calls[1][0] as Record<string, unknown>
         expect(first.displayProtocol).toBe('CoyoteGameHypothesisMessage')
         expect(first.message).toEqual(['Hypothesis: Generating...'])
-        expect(typeof firstLane).toBe('string')
-        expect(firstLane).toMatch(/^hypothesisLane:MESSAGE#/)
         expect(second.displayProtocol).toBe('CoyoteGameHypothesisMessage')
         expect(second.message).toEqual(['Hypothesis: Cached from CoyoteGame'])
         expect(first.messageId).toBe(second.messageId)
@@ -105,7 +98,6 @@ describe('handleObjectsChangedForHypothesis', () => {
 
         expect(coyoteInvalidateMock).toHaveBeenCalledWith('intent')
         expect(coyoteMock).toHaveBeenNthCalledWith(2, 'intent')
-        expect(messageBus.flush).toHaveBeenCalledWith(firstLane)
     })
 
     it('filters ## Cartoon play-by-play walkthrough from terminal publish payload', async () => {
@@ -119,7 +111,7 @@ describe('handleObjectsChangedForHypothesis', () => {
         const messageBus = busMocks()
         await handleObjectsChangedForHypothesis(basePayload(), { streamEvent, messageBus })
 
-        const terminal = messageBus.send.mock.calls[1][0] as Record<string, unknown>
+        const terminal = messageBus.publish.mock.calls[1][0] as Record<string, unknown>
         expect(terminal.message).toEqual(['Hypothesis: It looks like you launch.'])
         const terminalRenderTree = terminal.message as unknown[]
         expect(

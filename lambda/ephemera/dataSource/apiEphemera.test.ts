@@ -27,6 +27,9 @@ describe('apiEphemera', () => {
                 send: (payload: StreamingEventMessage, laneId?: string) => {
                     sent.push({ payload, laneId })
                 },
+                publish: (payload: StreamingEventMessage) => {
+                    sent.push({ payload })
+                },
             },
         }
     }
@@ -101,7 +104,7 @@ describe('apiEphemera', () => {
 
     it('sendPutCacheRecord getContent returns internal payload', async () => {
         const { sent } = makeBus()
-        sendPutCacheRecord({ send: (p) => sent.push({ payload: p }) }, 'ROOM#room-one', minimalPutRecord)
+        sendPutCacheRecord({ send: (p) => sent.push({ payload: p }), publish: jest.fn() }, 'ROOM#room-one', minimalPutRecord)
 
         const msg = message(sent[0])
         const internal = await msg.getContent()
@@ -118,7 +121,7 @@ describe('apiEphemera', () => {
 
     it('sendPutCacheRecord getContent includes optional conversationId when provided', async () => {
         const { sent } = makeBus()
-        sendPutCacheRecord({ send: (p) => sent.push({ payload: p }) }, 'ROOM#room-one', {
+        sendPutCacheRecord({ send: (p) => sent.push({ payload: p }), publish: jest.fn() }, 'ROOM#room-one', {
             ...minimalPutRecord,
             conversationId: 'conv-abc',
         })
@@ -254,10 +257,21 @@ describe('apiEphemera', () => {
         expect(sent[0].laneId).toBe('thinkingBootstrap:lane-1')
     })
 
+    it('sendPutThinkingSchedule without laneId calls bus.publish', () => {
+        const publish = jest.fn()
+        const bus = {
+            send: jest.fn(),
+            publish,
+        }
+        sendPutThinkingSchedule(bus, 'JOB#g1', minimalThinkingSchedule)
+        expect(publish).toHaveBeenCalledTimes(1)
+        expect(bus.send).not.toHaveBeenCalled()
+    })
+
     it('sendPutThinkingSchedule getContent includes optional enqueuedAt', async () => {
-        const { sent } = makeBus()
+        const { sent, bus } = makeBus()
         sendPutThinkingSchedule(
-            { send: (p) => sent.push({ payload: p }) },
+            bus,
             'JOB#g1',
             { ...minimalThinkingSchedule, enqueuedAt: '2026-01-01T00:00:00.000Z' }
         )
