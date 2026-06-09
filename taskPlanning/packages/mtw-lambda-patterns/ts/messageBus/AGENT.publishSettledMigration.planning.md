@@ -1,6 +1,6 @@
 # MessageBus: `publish`/`settle` migration (planning)
 
-**Status:** In progress (P0). Q1-Q3 are locked. Next step: resolve Q4-Q8, then Phase P1 engine work.
+**Status:** In progress (P0). Q1-Q3, Q6-Q8 are locked. Next step: **Phase P0.5** Q4/Q5 positive audit, then lock Q4-Q5, then Phase P1 engine work.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -42,7 +42,7 @@ This file is task-scoped. Archive or delete it when migration completes and last
 
 ## Open design questions
 
-Resolve these in Phase P0 (update this section with decisions as they land). Do not assume defaults in implementation until recorded here. **Q1-Q3 are locked**; Q4-Q8 remain open.
+Resolve these in Phase P0 (update this section with decisions as they land). Do not assume defaults in implementation until recorded here. **Q1-Q3, Q6-Q8 are locked**; Q4-Q5 remain open until **Phase P0.5** audit completes.
 
 ### Q1. Hybrid lambda boundary drain -- **RESOLVED**
 
@@ -112,18 +112,18 @@ Representative atomic units (see **Migration inventory**):
 
 **`flush`-invoked handler calls `publish` mid-drain:** Subscribers see `activeFlushLane: undefined`. Safe when the atomic-unit rule is satisfied (no publish -> `send` cascade). Until then, treat as a migration hazard, not a reason to inherit lanes on `publish`.
 
-**Decision: DataSource lane retirement (Phase P2, one commit).**
+**Decision: DataSource lane retirement (Phase P2 closeout).**
 
-When DataSource logic has **no remaining `send`** on the outbound path:
+Piecewise per-DataSource migration uses **`outboundBusDelivery`** (Q7); **closeout** (when no DataSource still uses `'send'` outbound) removes:
 
-- Remove `laneId` from [`StreamEventParams`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/index.ts) (including `laneId: ''` force-default sentinel -- moot without stack inheritance).
-- Replace `sendStreamingEventOnBus` with `messageBus.publish`.
-- Remove `_inboundFlushLaneStack` and lane merge in subscribe callbacks (`peekInboundFlushLane` / bound `streamEvent` wrapper).
-- Update `DataSourceMessageBusPort`: `publish` replaces `send` (see **Q7 partial** below).
+- `laneId` from [`StreamEventParams`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/index.ts) (including `laneId: ''` force-default sentinel -- moot without stack inheritance).
+- `send` from `DataSourceMessageBusPort` and the `outboundBusDelivery` flag.
+- `_inboundFlushLaneStack` and lane merge in subscribe callbacks (`peekInboundFlushLane` / bound `streamEvent` wrapper).
+- `sendStreamingEventOnBus` branch (publish-only).
 
 Ingress may still arrive via `send`/`flush` until later phases; outbound `publish` does not inherit inbound lane. Direct `messageBus.send` inside `receiveEvents` bodies (outside `streamEvent`) remains per-call-site migration.
 
-**Still tied to Q8:** Per-lambda "fully migrated" definition and ephemera-first ordering for lane hotspots.
+**Migration ordering:** Ephemera-first and per-lambda "fully migrated" definition (Q8).
 
 ### Q3. `settle` error semantics -- **RESOLVED**
 
@@ -153,6 +153,8 @@ Under `send`/`flush`, priority ordering is enforced. Under `publish`, the handof
 - **Question:** If two subscribers match the same payload, is concurrent invocation always correct, or do any existing handlers rely on serial delivery?
 - **Question:** Do we keep `priority` on subscriptions during migration (meaningful only for `flush`) or deprecate it in docs immediately?
 
+**Approach:** Do not prove-the-negative across all call sites. Build a **positive inventory** in **Phase P0.5** (see **Q4/Q5 positive audit**); lock Q4 defaults for High/Medium rows only. Low rows migrate with `publish` and rely on existing tests.
+
 ### Q5. Payload batching and stream persistence
 
 `flush` batches matching stream items per subscriber (`payloads` may be length > 1) and uses `processedBy` so multiple subscribers can process the same queued message across waves. `publish` delivers a **single-item** `payloads` array per matching subscriber immediately.
@@ -161,30 +163,108 @@ Under `send`/`flush`, priority ordering is enforced. Under `publish`, the handof
 - **Question:** Is there any production path that depends on a message remaining in `_stream` for a later subscriber wave under `flush`?
 - **Question:** Under `publish`, is "each matching subscriber gets an independent async invocation per publish" the guaranteed contract?
 
-### Q6. `clear()` interaction with `_inFlight`
+**Approach:** Same **Phase P0.5** audit. Classify callbacks into true aggregation vs per-item `map`; only bucket 1 (and unusual multi-event batches) need redesign before `publish`.
 
-`clear()` today empties `_stream` only.
+### Q6. `clear()` interaction with `_inFlight` -- **RESOLVED**
 
-- **Question:** Does `clear()` affect `_inFlight` promises (cancel, ignore, or leave running)?
-- **Question:** Is `clear()` still appropriate at test teardown when both `_stream` and `_inFlight` may be active?
+`clear()` today empties `_stream` only. After `publish`/`settle`, it must account for `_inFlight` as well.
 
-### Q7. `DataSource` port shape
+**Decision: `clear()` resets both `_stream` and `_inFlight`.**
+
+- `clear()` empties the send queue **and** clears the in-flight Promise set (bus no longer tracks those handlers).
+- Does **not** cancel underlying async work (Node has no promise cancellation); detached handlers may still complete, but a subsequent `settle()` on the cleared bus has nothing to await.
+- Keeps `clear()` a full bus reset for a new invocation scope (matches production: [`lambda/*/app.ts`](../../../../../lambda/ephemera/app.ts) calls `clear()` at handler entry).
+
+**Decision: test teardown -- `settle` (or `flushAndSettle`) before `clear()`.**
+
+When tests use `publish` / `_inFlight`:
+
+1. **`await messageBus.settle()`** (or **`await messageBus.flushAndSettle()`** while `send`/`flush` still exist) at end of test body or in **`afterEach`** before `clear()`.
+2. Then **`messageBus.clear()`** for isolation (existing `beforeEach` / `afterEach` pattern).
+
+Do not rely on `clear()` alone to drain async handler work; that drops tracking while promises may still be running and causes cross-test flakes.
+
+**Production lambda boundaries:** `clear()` at ingress start remains correct (empty bus). Boundary exit uses `flushAndSettle()` (Q1), not `clear()`.
+
+**Docs:** Note the teardown pattern in [`AGENT.testing.md`](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.testing.md) when P1 lands.
+
+### Q7. `DataSource` port shape -- **RESOLVED**
 
 [`DataSourceMessageBusPort`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/index.ts) currently exposes `send` and `subscribe` only.
 
-- **Question:** Does the port add `publish` and `settle`, or do DataSources call through a wider bus type?
-- **Question:** Does `sendStreamingEventOnBus` become `publish` immediately in Phase P2, or only after ingress paths publish?
-- **Question:** How do package-level DataSource tests mock the port during migration?
+**Decision: port adds `publish`, not `settle`.**
 
-**Partial (from Q2):** Phase P2 removes `send` and `laneId` from DataSource outbound in one commit; port exposes `publish` (not `send`). `sendStreamingEventOnBus` becomes `publish` in that same commit. Ingress may still use `send`/`flush` until lambda call sites migrate; outbound does not inherit lanes. Remaining Q7 bullets (whether port needs `settle`, test mock shape) stay open.
+| Surface | On `DataSourceMessageBusPort`? | Why |
+| --- | --- | --- |
+| `subscribe` | Yes | DataSource registers ingress in constructor |
+| `publish` | Yes | DataSource **produces** outbound `streamEvent` / `streamEnvelope` traffic |
+| `settle` | **No** | Drain is a **lambda boundary** (`flushAndSettle` / `settle` in `app.ts`), inline handler deps during lane migration, and test teardown (Q1, Q6) -- not DataSource lifecycle |
 
-### Q8. Migration ordering and lane hotspots
+Handler deps (Coyote, thinking, etc.) continue to use `Pick<MessageBus, ...>` on the **full domain bus** where inline `flush` / future `publish` is needed -- not via the DataSource port type.
+
+**Decision: piecewise outbound migration via temporary `outboundBusDelivery`.**
+
+Do not flip all DataSources to `publish` in one commit. In Phase P2 infrastructure:
+
+- Add constructor option `outboundBusDelivery?: 'send' | 'publish'` (default **`'send'`**).
+- `sendStreamingEventOnBus` branches: `'send'` keeps current path (including lane peek until that DS migrates); `'publish'` calls `messageBus.publish`.
+- **Per DataSource:** set `outboundBusDelivery: 'publish'` when migrating that directory (with Q2 atomic units for lane/send call sites in that subgraph).
+- **P2 closeout** (Q2): when grep shows no remaining `outboundBusDelivery: 'send'` (or default) in production DataSource constructors, remove the flag, port `send`, lane stack, and `StreamEventParams.laneId`.
+
+Ingress may stay on `send`/`flush` until later lambda phases; outbound piecewise migration does **not** require ingress to `publish` first.
+
+**Decision: package-level port mocks (no open question).**
+
+Today [`index.test.ts`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/index.test.ts) uses `{ send: jest.fn(), subscribe: jest.fn() }`. During migration:
+
+```ts
+mockMessageBus = {
+    send: jest.fn(),
+    publish: jest.fn(),
+    subscribe: jest.fn(),
+}
+```
+
+- Tests for **default / `'send'`** outbound: assert `mockMessageBus.send` (and lane second arg where still applicable); do not pass `outboundBusDelivery` or pass `'send'`.
+- Tests for **`'publish'`** outbound: construct DataSource with `outboundBusDelivery: 'publish'`; assert `mockMessageBus.publish` and **not** `send` for `streamEvent` paths.
+- **Subscribe-only** describes (callback wiring, `receiveEvents`, `activeFlushLane` merge): mock needs only `subscribe` until the test invokes `streamEvent` -- then include `send` or `publish` matching the DataSource under test.
+- Migrate assertions incrementally per test slice; delete `send` / lane expectations when the test's DataSource flips to `'publish'`.
+
+Optional convenience (not required for P2): a small `createMockDataSourceMessageBusPort()` factory in the test file returning the triple above. No real `InternalMessageBus` needed for unit tests.
+
+**Migration backlog grep:**
+
+```bash
+rg "new EphemeraDataSource|new DataSource|outboundBusDelivery" lambda/ packages/mtw-lambda-patterns/ts/dataSource/ --glob '*.ts' | rg -v '\.test\.' || true
+```
+
+### Q8. Migration ordering and lane hotspots -- **RESOLVED**
 
 Lane-scoped `flush(laneId)` is concentrated in ephemera thinking, Coyote, and render orchestration paths (see **Migration inventory**).
 
-- **Question:** Confirm ephemera-first ordering (engine + DataSource port, then lane hotspots, then remaining ephemera, then assets/wml/smaller lambdas)?
-- **Question:** Which lane call sites must migrate as atomic groups (e.g. bootstrap + results emit + `flush(laneId)` in one file)? *(Starting list under Q2 **atomic units**; confirm and extend in P0.)*
-- **Question:** Per-lambda definition of "fully migrated" -- zero `send` in production code only, or including tests/harnesses?
+**Decision: ephemera-first ordering.**
+
+| Order | Phase | Scope |
+| --- | --- | --- |
+| 1 | P1 | `InternalMessageBus` engine (`publish`, `settle`, `flushAndSettle`, Q1-Q3, Q6) |
+| 2 | P2a | DataSource port infrastructure (`publish`, `outboundBusDelivery`, Q7) |
+| 3 | P3 | Ephemera **lane hotspots** (highest friction; Q2 atomic units) |
+| 4 | P2b + P4 | Remaining ephemera DataSources and `send` sites; per-DS `outboundBusDelivery: 'publish'` with each slice |
+| 5 | P5 | assets, wml, connections, cognitoEvent, diagnostics |
+| 6 | P2c + P6 | DataSource outbound closeout; delete `send`/`flush` globally |
+
+Smaller lambdas last because ephemera concentration drove the migration; assets/wml still get `flushAndSettle()` at `app.ts` as soon as P1 lands (Q1).
+
+**Decision: lane call sites migrate as atomic groups.**
+
+Authoritative starting list is under Q2 **atomic units** (hypothesisThinkingPersistence blocks, `handleObjectsChangedForHypothesis` + `remainder()`, orchestrationHandler + findRender, etc.). Extend the list when P0.5 triage or P3 work surfaces additional High/Medium rows. **Rule:** do not migrate a named-lane `flush` / inline drain to `publish` until every `send` reachable in that subgraph is also `publish` in the **same change** (Q2).
+
+**Decision: per-lambda "fully migrated" = zero `messageBus.send` in production code.**
+
+- **Counts for lambda status:** `rg 'messageBus\.send\(' lambda/<name>/ --glob '*.ts' | rg -v '\.test\.'` returns no hits.
+- **Tests and harnesses** (e.g. `runCoyoteEngineTestHarness.ts`): migrate with each slice; they do **not** gate calling a lambda "fully migrated" for boundary semantics, but must be clean before **P6** global deletion of `send`/`flush`.
+- **`outboundBusDelivery`:** a lambda is not fully migrated while any production DataSource constructor in that lambda still defaults to `'send'` (Q7).
+- Aligns with Q1: a fully migrated lambda keeps `flushAndSettle()` at `app.ts` until P6 even when production `send` is zero (`flush()` no-ops).
 
 ## Getting started
 
@@ -196,7 +276,8 @@ Lane-scoped `flush(laneId)` is concentrated in ephemera thinking, Coyote, and re
 3. Read DataSource lane behavior: [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**Message bus lanes**).
 4. Read ephemera lane call-site context: [`lambda/ephemera/messageBus/AGENT.md`](../../../../../lambda/ephemera/messageBus/AGENT.md), [`lambda/ephemera/dataSource/thinking/AGENT.md`](../../../../../lambda/ephemera/dataSource/thinking/AGENT.md), [`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md).
 5. **Command authority:** tests run via Jest from [`packages/mtw-lambda-patterns/package.json`](../../../../../packages/mtw-lambda-patterns/package.json) (`npm test`). If examples conflict elsewhere, use that package's scripts.
-6. Run baseline verification before edits (from `packages/mtw-lambda-patterns/`):
+6. Before locking Q4/Q5, run **Phase P0.5** (**Q4/Q5 positive audit**): build the triage matrix; do not guess across all call sites.
+7. Run baseline verification before engine edits (from `packages/mtw-lambda-patterns/`):
 
 ```bash
 npm test -- ts/messageBus/index.test.ts
@@ -242,9 +323,140 @@ rg 'messageBus\.flush\(' lambda/ --glob '**/app.ts'
 rg 'messageBus\.flush\(' lambda/ --glob '*.ts' | rg -v '\.test\.ts' || true
 rg 'flush\(laneId|flush\([a-zA-Z]' lambda/ packages/mtw-lambda-patterns/ --glob '*.ts' || true
 
-# Batch-aggregation audit (starting point for Q5)
+# Batch-aggregation audit (starting point for Q5; see P0.5 for full classifier)
 rg 'payloads\.(forEach|map|reduce|length)' lambda/*/messageBus packages/mtw-lambda-patterns/ts/dataSource --glob '*.ts' || true
 ```
+
+## Q4/Q5 positive audit (Phase P0.5)
+
+Replace prove-the-negative reasoning with a **bounded positive inventory**: list places where Q4/Q5 mechanics **actually apply**, triage each row, then lock Q4/Q5 from **High/Medium** findings only. Low rows use default `publish` rules and existing tests.
+
+### Where risk actually concentrates
+
+| Concern | Real locus | Usually **not** a problem |
+| --- | --- | --- |
+| **Q4** multi-subscriber / ordering | Many DataSources share [`streamingEventStructureGuard`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/index.ts) (any `StreamingEvent`); same-priority callbacks run in `Promise.all` under `flush`; documented `subscriptionPriority` edges | Legacy [`lambda/ephemera/messageBus/index.ts`](../../../../../lambda/ephemera/messageBus/index.ts) / [`lambda/assets/messageBus/index.ts`](../../../../../lambda/assets/messageBus/index.ts) handlers (one discriminated `type` per subscription) |
+| **Q5** batch / persistence | Handlers that **combine** multiple `payloads` in one callback; multi-wave `send` chains across priorities; integration tests that assert drain order | Handlers that only `Promise.all(payloads.map(...))` (batch is throughput, not semantics) |
+
+### Tier 1 -- structural inventory (automated)
+
+**A. Subscription overlap (Q4)**
+
+List every `messageBus.subscribe` / `DataSource.subscribe()` with `tag`, `priority`, and filter scope. Flag subscribers whose filter can match the **same** payload as another.
+
+```bash
+# Subscribe registrations
+rg 'messageBus\.subscribe\(|\.subscribe\(\)' lambda/ packages/mtw-lambda-patterns/ts/dataSource/ --glob '*.ts' -l
+
+# Documented priority intent
+rg 'subscriptionPriority|priority:\s*\d+' lambda/ --glob '*.{ts,md}' | rg -v '\.test\.' || true
+```
+
+**Ephemera DataSource subscribers (seed list -- all use broad `StreamingEvent` structure guard unless noted):**
+
+| DataSource | Subscribe file | Priority (if non-default) |
+| --- | --- | --- |
+| `mtw.ephemera` | [`dataSource/index.ts`](../../../../../lambda/ephemera/dataSource/index.ts) | 5 (default) |
+| `mtw.ephemera.perception` | [`perception/index.ts`](../../../../../lambda/ephemera/dataSource/perception/index.ts) | 5 |
+| `mtw.ephemera.renderOrchestration` | [`renderOrchestration/index.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/index.ts) | 5 |
+| `mtw.ephemera.renderCache` | [`renderCache/index.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts) | 5 |
+| `mtw.ephemera.affordanceOrchestration` | [`affordanceOrchestration/index.ts`](../../../../../lambda/ephemera/dataSource/affordanceOrchestration/index.ts) | 5 |
+| `mtw.ephemera.affordanceCache` | [`affordanceCache/index.ts`](../../../../../lambda/ephemera/dataSource/affordanceCache/index.ts) | **4** (documented: before orchestration fan-out) |
+| `mtw.ephemera.coyoteGame` | [`coyoteGame/index.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/index.ts) | **20** |
+| `mtw.ephemera.actions` | [`actions/index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) | 5 |
+| `mtw.ephemera.positions` | [`positions/index.ts`](../../../../../lambda/ephemera/dataSource/positions/index.ts) | 5 |
+| `mtw.ephemera.thinking.scheduling` | [`thinking/scheduling/index.ts`](../../../../../lambda/ephemera/dataSource/thinking/scheduling/index.ts) | 5 |
+| `mtw.ephemera.thinking.results` | [`thinking/results/index.ts`](../../../../../lambda/ephemera/dataSource/thinking/results/index.ts) | 5 |
+| `mtw.ephemera.objects` | [`objects/index.ts`](../../../../../lambda/ephemera/dataSource/objects/index.ts) | 5 |
+| `mtw.ephemera.state` | [`state/index.ts`](../../../../../lambda/ephemera/dataSource/state/index.ts) | 5 |
+
+Also inventory other lambdas: [`assets/dataSource`](../../../../../lambda/assets/dataSource/index.ts), [`wml/dataSource`](../../../../../lambda/wml/dataSource/index.ts), [`connections/dataSource`](../../../../../lambda/connections/dataSource/index.ts), [`diagnostics/dataSource`](../../../../../lambda/diagnostics/dataSource/index.ts), [`cognitoEvent/dataSource`](../../../../../lambda/cognitoEvent/dataSource/index.ts).
+
+**B. Batch-semantics classifier (Q5)**
+
+| Bucket | Meaning | Action on `publish` migration |
+| --- | --- | --- |
+| **1 -- true aggregation** | Behavior changes if one batched `flush` becomes N `publish`s | Redesign or explicit batching before migrate |
+| **2 -- per-item parallel** | `Promise.all(payloads.map(...))` only | N `publish`s equivalent; migrate freely |
+| **3 -- DataSource envelope map** | `payloads.map` -> `receiveEvents` | Usually one ingress event per `send`; note multi-queued edge cases |
+
+```bash
+# Bucket 1 candidates (cross-payload logic)
+rg 'payloads\.(reduce|filter|flat)' lambda/ packages/mtw-lambda-patterns/ --glob '*.ts' | rg -v '\.test\.' || true
+
+# Bucket 2 (per-item; lower risk)
+rg 'Promise\.all\(payloads\.map' lambda/ --glob '*.ts' -l | rg -v '\.test\.' || true
+```
+
+**Seed bucket 1 (review first):**
+
+- [`lambda/assets/player/update.ts`](../../../../../lambda/assets/player/update.ts) -- `payloads.reduce` merges settings per player
+- [`lambda/ephemera/checkLocation/index.ts`](../../../../../lambda/ephemera/checkLocation/index.ts) -- cross-payload dedup / expansion across asset, room, player shapes
+
+**C. Cross-priority `send` chains (Q4 + Q5)**
+
+Handlers that `messageBus.send` **other message types** during a callback create multi-wave `flush` graphs. Inventory as chain graphs, not every `send` site.
+
+```bash
+rg 'messageBus\.send\(' lambda/ephemera --glob '*.ts' | rg -v '\.test\.' || true
+```
+
+**Seed chain graphs (review first):**
+
+- [`disconnectMessage/index.ts`](../../../../../lambda/ephemera/disconnectMessage/index.ts) -- `UnregisterCharacter` (priority 1) -> `PublishMessage` (15) + `RoomUpdate` (6)
+- [`parse/executeAction.ts`](../../../../../lambda/ephemera/parse/executeAction.ts)
+- [`moveCharacter/index.ts`](../../../../../lambda/ephemera/moveCharacter/index.ts)
+- [`perception/index.ts`](../../../../../lambda/ephemera/perception/index.ts)
+
+### Tier 2 -- tests and docs as ground truth
+
+List tests that register multiple DataSources and assert behavior across `messageBus.flush()` / lane drains. These are **known ordering specs** -- re-run after migration; do not re-derive from theory.
+
+```bash
+rg 'messageBus\.flush' lambda/ packages/mtw-lambda-patterns/ --glob '*.test.ts' -l
+rg 'passThrough|integration\.test' lambda/ephemera/dataSource --glob '*.ts' -l
+```
+
+**Seed integration / contract tests:**
+
+- [`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts)
+- [`passThroughAffordanceOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughAffordanceOrchestrationToCache.integration.test.ts)
+- [`characterRegisteredOrientation.integration.test.ts`](../../../../../lambda/ephemera/dataSource/characterRegisteredOrientation.integration.test.ts)
+- [`packages/mtw-lambda-patterns/ts/messageBus/index.test.ts`](../../../../../packages/mtw-lambda-patterns/ts/messageBus/index.test.ts) (engine priority / wave spec)
+
+**Seed documented priority intent:**
+
+- [`affordanceCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md) -- priority 4 before orchestration at 5
+- [`renderOrchestration/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md) -- terminal vs generation-lane / default-lane drain
+
+### Tier 3 -- triage matrix (fill during P0.5)
+
+For each inventory row: evidence, risk, migration note. Q4/Q5 decisions apply to **High/Medium** rows only.
+
+| ID | Location | Q4/Q5 | Risk | Evidence | Migration note |
+| --- | --- | --- | --- | --- | --- |
+| DS-OVERLAP-5 | All ephemera DataSources @ priority 5 | Q4 | **High** | Shared `streamingEventStructureGuard` | `publish` = concurrent; priority tiers among DataSources **lost** on new path |
+| AFF-CACHE-4 | `affordanceCache` @ priority 4 | Q4 | **High** | AGENT.md | Migrate with affordanceOrchestration slice |
+| COYOTE-20 | `coyoteGame` @ priority 20 | Q4 | **Medium** | Explicit `subscriptionPriority: 20` | Confirm no ordering dependency on running after default tier |
+| PLAYER-REDUCE | `assets/player/update.ts` | Q5 | **Medium** | `payloads.reduce` | Batch semantics or accept N publishes |
+| CHECK-LOC | `ephemera/checkLocation` | Q5 | **Medium** | Cross-payload dedup | Same |
+| LEGACY-TYPE | `lambda/*/messageBus/index.ts` handlers | Q4/Q5 | **Low** | 1:1 type filters | Per-item `map`; migrate with tests |
+| DISCONNECT-CHAIN | `disconnectMessage` | Q4 | **Medium** | prio 1 -> 15, 6 `send`s | Migrate whole chain or accept new ordering |
+| PASS-THROUGH-INT | passThrough integration tests | Q4 | **High** | Multi-DataSource + `flush` | Re-run after each slice; tests are spec |
+
+*(Extend table during P0.5; delete resolved rows or move notes into Q4/Q5 when locked.)*
+
+### Optional: observed overlap trace (ambiguous cases)
+
+One diagnostic test: register real ephemera DataSource subscriptions, `publish` (or `send` + `flush`) one representative `StreamingEvent` per family, log `{ tag, priority, header.type }` per callback. Produces an **observed** overlap matrix from the live subscription graph.
+
+### P0.5 outputs (inputs to locking Q4/Q5)
+
+1. Completed subscription overlap table (Tier 1A).
+2. Bucket-1 batch callback list (Tier 1B).
+3. Send-chain graph list (Tier 1C).
+4. Integration test index (Tier 2).
+5. Triage matrix with every **High/Medium** row having a migration note (Tier 3).
 
 ## Recommended order
 
@@ -254,24 +466,35 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Record Q1 decision in **Open design questions** (hybrid boundary: `flushAndSettle`, `Promise<boolean>` returns).
   - [X] Record Q2 decision in **Open design questions** (`activeFlushLane: undefined` on `publish`, atomic migration units, DataSource lane retirement in P2).
   - [X] Record Q3 decision in **Open design questions** (`allSettled`, log-and-continue, no bus error hook).
-  - [ ] Record decisions for Q4-Q8 in **Open design questions** (replace questions with locked answers as decided).
-  - [ ] Confirm migration ordering and per-lambda "fully migrated" definition (Q8).
+  - [X] Record Q6 decision in **Open design questions** (`clear` resets `_inFlight`; `settle` before `clear` in tests).
+  - [X] Record Q7 decision in **Open design questions** (port: `subscribe` + `publish`; `outboundBusDelivery`; package mock pattern).
+  - [X] Record Q8 decision in **Open design questions** (ephemera-first ordering, Q2 atomic units, production-only `send` for fully migrated).
+  - [ ] Record decisions for Q4-Q5 (after P0.5) in **Open design questions** (replace questions with locked answers as decided).
+
+- [ ] Phase P0.5 - Q4/Q5 positive audit (see **Q4/Q5 positive audit**)
+  - [ ] Tier 1A: subscription overlap table (legacy handlers + all DataSource `subscribe()`).
+  - [ ] Tier 1B: batch-semantics classifier; list bucket-1 (true aggregation) callbacks.
+  - [ ] Tier 1C: cross-priority `send` chain graphs from legacy handlers and DataSource bodies.
+  - [ ] Tier 2: index integration / passThrough tests and documented priority AGENT.md edges.
+  - [ ] Tier 3: complete triage matrix; every High/Medium row has a migration note.
+  - [ ] Lock Q4 and Q5 from audit findings (defaults for Low rows; explicit rules for High/Medium).
 
 - [ ] Phase P1 - `InternalMessageBus` engine
   - [ ] Add `publish()`, `settle()`, `_inFlight`, `flushAndSettle()` (independent from `_stream` / `flushLane`).
   - [ ] Refactor `flush()` / `flush(laneId)` to return `Promise<boolean>` per Q1.
   - [ ] Implement `settle()` with inner quiescence loop, `Promise.allSettled` per snapshot, rejection logging, and `Promise<boolean>` per Q1/Q3.
   - [ ] `publish` passes `activeFlushLane: undefined` per Q2; wrap handler promises with `tag` for Q3 log context.
-  - [ ] Implement per remaining P0 decisions (subscriber ordering, Q4).
-  - [ ] Add tests: `flushAndSettle` cross-seam ping-pong, boolean no-op returns, single subscriber, concurrent subscribers, recursive publish during settle, **settle drains all handlers when one rejects** (Q3), coexistence with existing `send`/`flush` tests.
+  - [ ] Implement `publish` subscriber ordering per locked Q4 (from P0.5).
+  - [ ] Extend `clear()` to reset `_stream` and `_inFlight` per Q6.
+  - [ ] Add tests: `flushAndSettle` cross-seam ping-pong, boolean no-op returns, single subscriber, concurrent subscribers, recursive publish during settle, **settle drains all handlers when one rejects** (Q3), **`clear()` drops `_inFlight` tracking** (Q6), coexistence with existing `send`/`flush` tests.
   - [ ] Baseline: `npm test -- ts/messageBus/index.test.ts` passes.
 
-- [ ] Phase P2 - `DataSource` port and outbound path (single commit per Q2)
-  - [ ] `DataSourceMessageBusPort`: `publish` replaces `send`; drop `laneId` second argument.
-  - [ ] `sendStreamingEventOnBus` -> `publish`; remove `_inboundFlushLaneStack` and subscribe callback lane push/pop.
-  - [ ] Remove `laneId` from `StreamEventParams` and bound `streamEvent` lane merge.
-  - [ ] Update [`packages/mtw-lambda-patterns/ts/dataSource/index.test.ts`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/index.test.ts) (drop `activeFlushLane` merge / `laneId` send tests; add `publish` port tests).
-  - [ ] Run: `npm test -- ts/dataSource/index.test.ts` from `packages/mtw-lambda-patterns/`.
+- [ ] Phase P2 - `DataSource` port and outbound path (piecewise per Q7; closeout per Q2)
+  - [ ] P2a -- infrastructure: `DataSourceMessageBusPort` adds `publish` (keep `send` during migration); constructor `outboundBusDelivery?: 'send' | 'publish'` (default `'send'`); branch in `sendStreamingEventOnBus`.
+  - [ ] P2a -- extend package mocks with `publish: jest.fn()`; add tests for `'publish'` outbound path (Q7).
+  - [ ] P2b -- per DataSource: set `outboundBusDelivery: 'publish'` with that directory's lane/send atomic migration (coordinate with P3/P4/P5); update that DS's package/lambda tests to assert `publish`.
+  - [ ] P2c -- closeout when no production DataSource uses `'send'` outbound: remove `outboundBusDelivery`, port `send`, `_inboundFlushLaneStack`, `StreamEventParams.laneId`, and `send` branch in `sendStreamingEventOnBus`.
+  - [ ] Run: `npm test -- ts/dataSource/index.test.ts` from `packages/mtw-lambda-patterns/` after each P2 slice.
 
 - [ ] Phase P3 - ephemera lane hotspots (highest friction; **atomic units** per Q2)
   - [ ] Coyote hypothesis thinking persistence and handlers (files in **Migration inventory**; each bootstrap/emit/finalize block in one change).
@@ -284,7 +507,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 - [ ] Phase P4 - remaining ephemera `send` sites
   - [ ] Ingress / EventBridge paths in [`lambda/ephemera/app.ts`](../../../../../lambda/ephemera/app.ts).
   - [ ] Perception, actions, positions, self-healing, and other DataSource `send` call sites.
-  - [ ] Handler batch-aggregation audit (Q5) for any subscribe callbacks before their ingress migrates.
+  - [ ] Migrate bucket-1 batch callbacks per P0.5 triage before their ingress moves to `publish`.
   - [ ] Confirm ephemera `app.ts` already uses `flushAndSettle()` from P3 (no further boundary change until P6).
 
 - [ ] Phase P5 - other lambdas
@@ -294,7 +517,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [ ] Each lambda `app.ts`: `flush()` -> `flushAndSettle()` (Q1).
 
 - [ ] Phase P6 - remove legacy machinery and close out
-  - [ ] Confirm `rg 'messageBus\.send\(' lambda/` zero production hits (definition per Q8).
+  - [ ] Confirm `rg 'messageBus\.send\(' lambda/` zero production hits and tests/harnesses migrated (Q8).
   - [ ] Delete `send`, `flush`, `flushLane`, lane queue cells, lane-related types, and `flushAndSettle` (or alias it to `settle()`) from `InternalMessageBus` in one commit.
   - [ ] Lambda boundaries: `flushAndSettle()` -> `settle()` (Q1 P6).
   - [ ] Remove lane docs from [`AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md); document `publish`/`settle` steady state in package and [`lambda/ephemera/messageBus/AGENT.md`](../../../../../lambda/ephemera/messageBus/AGENT.md).
@@ -302,6 +525,22 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [ ] Archive or delete this task plan.
 
 ## Verification
+
+### P0.5 audit (ephemera bus-ordering spec)
+
+From `lambda/ephemera/` after triage matrix is drafted; re-run when High/Medium rows migrate:
+
+```bash
+npm run test -- --watchAll=false dataSource/passThroughOrchestrationToCache.integration.test.ts
+npm run test -- --watchAll=false dataSource/passThroughAffordanceOrchestrationToCache.integration.test.ts
+npm run test -- --watchAll=false dataSource/characterRegisteredOrientation.integration.test.ts
+```
+
+From `packages/mtw-lambda-patterns/`:
+
+```bash
+npm test -- ts/messageBus/index.test.ts
+```
 
 ### Package (always)
 
@@ -337,7 +576,11 @@ rg 'messageBus\.(flush|flushAndSettle)\(' lambda/ --glob '**/app.ts' | wc -l
 | Q1 resolved (`flushAndSettle`, boolean drains) | Done |
 | Q2 resolved (`activeFlushLane`, atomic units, DataSource P2) | Done |
 | Q3 resolved (`allSettled`, log-and-continue, no error hook) | Done |
-| Open questions Q4-Q8 resolved (P0) | Not started |
+| Q6 resolved (`clear` + `_inFlight`; test `settle` before `clear`) | Done |
+| Q7 resolved (port `publish` only; `outboundBusDelivery`; mocks) | Done |
+| Q8 resolved (ephemera-first; atomic units; production `send` gate) | Done |
+| P0.5 Q4/Q5 positive audit + triage | Not started |
+| Open questions Q4-Q5 resolved (P0.5) | Not started |
 | Engine `publish`/`settle` + tests (P1) | Not started |
 | DataSource port migration (P2) | Not started |
 | Ephemera lane hotspots (P3) | Not started |
@@ -358,5 +601,6 @@ For implementers; steady-state architecture belongs in package `AGENT.md` after 
 | Tracking | `_stream`, `processedBy`, optional `laneId` | `_inFlight` Promise set |
 | `activeFlushLane` in callback | Set by `flush` / `flush(laneId)` | Always `undefined` (Q2) |
 | Handler errors | `flush`: `Promise.all` (may reject) | `settle`: `allSettled`, log, continue (Q3) |
+| `clear()` | `_stream` only (today) | `_stream` + `_inFlight` reset (Q6); tests: `settle` first |
 
 **Coexistence:** `publish`/`settle` and `send`/`flush` do not share queue or Promise-tracking machinery during migration. Cross-seam side effects are drained at lambda boundaries via `flushAndSettle()` (Q1). Lane inheritance applies only to `flush`; named-lane subgraphs migrate as **atomic units** without publish -> `send` cascades (Q2).
