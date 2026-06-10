@@ -1,30 +1,21 @@
-import { MessageBus, isErrorMessage, isReturnValueMessage } from "../messageBus/baseClasses"
+import { MessageBus } from "../messageBus/baseClasses"
+import { getCollectedError, getCollectedReturnValueBody } from "./collector"
 
-export const extractReturnValue = (messageBus: MessageBus) => {
-    const errorMessages = messageBus._stream
-        .map(({ payload }) => (payload))
-        .filter(isErrorMessage)
-
-    if (errorMessages.length > 0) {
-        const error = errorMessages[0]
+export const extractReturnValue = (_messageBus: MessageBus) => {
+    const collectedError = getCollectedError()
+    if (collectedError !== undefined) {
         return {
-            statusCode: error.body.statusCode || 400,
+            statusCode: collectedError.statusCode || 400,
             body: JSON.stringify({
-                error: error.body.error
+                error: collectedError.error
             })
         }
     }
 
-    const returnValueMessages = messageBus._stream
-        .map(({ payload }) => (payload))
-        .filter(isReturnValueMessage)
-
-    if (returnValueMessages.length === 0) {
+    const collectedBody = getCollectedReturnValueBody()
+    if (Object.keys(collectedBody).length === 0) {
         return
     }
 
-    return returnValueMessages.reduce((previous, { body }) => ({
-        ...previous,
-        ...body
-    }), {} as Record<string, any>)
+    return collectedBody as Record<string, any>
 }

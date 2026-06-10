@@ -20,6 +20,6 @@ export const handler = async (event) => {
         await routeDiagnosticsIngress(event)
     }
 
-    await messageBus.flush()
+    await messageBus.flushAndSettle()
     return extractReturnValue(messageBus)
 }
