@@ -21,7 +21,7 @@ Catalog hydrate preflight logs structured lines filterable as **`[mtw.ephemera.r
 
 ## Responsibilities
 
-- **Commands:** Validate `api.ephemera` envelopes, persist cache rows or delete them, update **`internalCache.RenderCache`**, publish **`Cache Updated`**, **`Cache Deleted`**, or **`Cache Error`** as appropriate (`index.ts`, `putCacheRecord.ts`, `deleteCacheRecord.ts`).
+- **Commands:** Validate `api.ephemera` envelopes, persist cache rows or delete them, update **`internalCache.RenderCache`**, publish **`Cache Updated`**, **`Cache Deleted`**, or **`Cache Error`** as appropriate (`index.ts`, `putCacheRecord.ts`, `deleteCacheRecord.ts`). Outbounds use **`outboundBusDelivery: 'publish'`** on the DataSource; boundary **`flushAndSettle`** at lambda exit quiesces concurrent subscribers (no producer-side scoped flush).
 - **Pass-through:** On orchestration stream events, apply contract rules in [`handleRenderOrchestrationInbound.ts`](handleRenderOrchestrationInbound.ts):
   - **`Current Cache Valid`** / **`Exact Match Found`**: orchestration sends **IDs only** + routing; this DataSource **refetches** via **`internalCache.RenderCache.get`**, then emits **`Render Pertains`** only (no Dynamo write).
   - **`Render Generated`**: orchestration signals generation-complete with **full** content and **no** durability promise; this DataSource performs the **single** `putCacheRecord`, then emits **`Render Pertains`** then **`Cache Updated`** (same pairing as the direct **`Put Cache Record`** command path).
