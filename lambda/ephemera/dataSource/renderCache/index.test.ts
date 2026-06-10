@@ -21,7 +21,8 @@ import {
     passThroughFixturePerspectiveKey,
     passThroughFixtureRoomId,
 } from '../passThroughContractFixtures'
-import { RENDER_ORCHESTRATION_DATA_SOURCE_KEY } from '../renderOrchestration/publishedEvents'
+import { RENDER_ORCHESTRATION_DATA_SOURCE_KEY, sendRenderOrchestrationPublish } from '../renderOrchestration/publishedEvents'
+import { RENDER_CACHE_DATA_SOURCE_KEY } from './baseClasses'
 
 jest.mock('./putCacheRecord', () => ({
     putCacheRecord: jest.fn(),
@@ -38,6 +39,7 @@ jest.mock('./handleRenderCacheFinding', () => ({
 
 const putCacheRecordMock = putCacheRecord as jest.MockedFunction<typeof putCacheRecord>
 const deleteCacheRecordMock = deleteCacheRecord as jest.MockedFunction<typeof deleteCacheRecord>
+const originalMessageBusPublish = messageBus.publish.bind(messageBus)
 
 describe('mtw.ephemera.renderCache DataSource', () => {
     const minimalPutRecord = {
@@ -56,6 +58,52 @@ describe('mtw.ephemera.renderCache DataSource', () => {
         jest.clearAllMocks()
         putCacheRecordMock.mockResolvedValue('CACHE#written')
         internalCache.RenderCache.clear()
+    })
+
+    function spyPublish() {
+        return jest.spyOn(messageBus, 'publish').mockImplementation((payload) => {
+            originalMessageBusPublish(payload)
+        })
+    }
+
+    it('uses publish outbound bus delivery', () => {
+        expect(ephemeraRenderCacheDataSource.outboundBusDelivery).toBe('publish')
+    })
+
+    it('publishes Cache Updated StreamingEvent on Put Cache Record command path', async () => {
+        const publishSpy = spyPublish()
+
+        sendPutCacheRecord(messageBus, 'ROOM#room-one', minimalPutRecord)
+        await messageBus.flushAndSettle()
+
+        expect(
+            publishSpy.mock.calls.some(
+                (call) =>
+                    call[0]?.type === 'StreamingEvent'
+                    && call[0]?.dataSourceKey === RENDER_CACHE_DATA_SOURCE_KEY
+                    && call[0]?.header?.type === 'Cache Updated'
+            )
+        ).toBe(true)
+        publishSpy.mockRestore()
+    })
+
+    it('publishes Render Pertains StreamingEvent on Current Cache Valid pass-through path', async () => {
+        const publishSpy = spyPublish()
+        jest.spyOn(internalCache.RenderCache, 'get').mockResolvedValue([passThroughFixtureMinimalDynamoItem])
+
+        sendRenderOrchestrationPublish(messageBus, passThroughFixtureRoomId, makePassThroughCurrentCacheValidPayload())
+        await messageBus.flushAndSettle()
+
+        expect(
+            publishSpy.mock.calls.some(
+                (call) =>
+                    call[0]?.type === 'StreamingEvent'
+                    && call[0]?.dataSourceKey === RENDER_CACHE_DATA_SOURCE_KEY
+                    && call[0]?.header?.type === 'Render Pertains'
+            )
+        ).toBe(true)
+        publishSpy.mockRestore()
+        jest.restoreAllMocks()
     })
 
     it('putCacheRecord then emits Cache Updated on the bus', async () => {
