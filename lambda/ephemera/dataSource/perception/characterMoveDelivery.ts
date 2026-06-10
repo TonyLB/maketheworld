@@ -24,12 +24,13 @@ export function sendCharacterMoveLeave(messageBus: MessageBus, key: CharacterMov
     if (!leave) {
         return
     }
-    messageBus.send({
+    messageBus.publish({
         type: 'PublishMessage',
         displayProtocol: 'WorldMessage',
         targets: leave.targets,
         message: leave.message,
         messageGroupId: entry.registration.leaveMessageGroupId,
+        deliveryMode: 'deferred',
     })
 }
 
@@ -45,11 +46,12 @@ export function sendCharacterMoveArrive(messageBus: MessageBus, key: CharacterMo
     if (!arrive) {
         return
     }
-    messageBus.send({
+    messageBus.publish({
         type: 'PublishMessage',
         displayProtocol: 'WorldMessage',
         targets: arrive.targets,
         message: arrive.message,
         messageGroupId: entry.registration.arriveMessageGroupId,
+        deliveryMode: 'deferred',
     })
 }

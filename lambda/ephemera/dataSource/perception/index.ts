@@ -24,6 +24,7 @@ export const ephemeraPerceptionDataSource = new EphemeraDataSource<
     dataSourceKey: 'mtw.ephemera.perception',
     replayable: false,
     publisherStrategy: 'busOnly',
+    outboundBusDelivery: 'publish',
     subscribedEventTypeGuard: isPerceptionSubscribedEnvelope,
     receiveEvents: async ({ events }) => {
         await Promise.all(events.map(async (event) => {

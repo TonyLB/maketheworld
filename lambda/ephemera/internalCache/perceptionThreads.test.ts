@@ -128,6 +128,23 @@ describe('PerceptionThreadsData', () => {
         })
     })
 
+    it('update stores createdTime on render-correlated thread kinds', () => {
+        const reg = makeRoomRegistration()
+        cache.register(reg)
+        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
+        const ok = cache.update(
+            { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
+            { threadKind: 'roomDescription', status: 'Generating', messageId: 'MESSAGE#m1', createdTime: 1000000000000 }
+        )
+        expect(ok).toBe(true)
+        expect(cache.list('ROOM#test', 'pk-one')[0].thread).toMatchObject({
+            kind: 'roomDescription',
+            status: 'Generating',
+            messageId: 'MESSAGE#m1',
+            createdTime: 1000000000000,
+        })
+    })
+
     it('update returns false when registrationId mismatches', () => {
         cache.register(makeRoomRegistration())
         const ok = cache.update(

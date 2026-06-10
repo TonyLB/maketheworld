@@ -79,6 +79,7 @@ import './renderCache/index'
 import './affordanceOrchestration/index'
 import './affordanceCache/index'
 
+const originalMessageBusPublish = messageBus.publish.bind(messageBus)
 const mockedPutCacheRecord = putCacheRecord as jest.MockedFunction<typeof putCacheRecord>
 const getAffordanceRowMock = getAffordanceRow as jest.MockedFunction<typeof getAffordanceRow>
 const generateRoomPreviewMock = generateRoomPreview as jest.MockedFunction<typeof generateRoomPreview>
@@ -128,8 +129,8 @@ type PublishMessagePayload = {
     };
 }
 
-function publishMessagesFromSpy(sendSpy: jest.SpyInstance): PublishMessagePayload[] {
-    return sendSpy.mock.calls
+function publishMessagesFromSpy(publishSpy: jest.SpyInstance): PublishMessagePayload[] {
+    return publishSpy.mock.calls
         .map((call) => call[0])
         .filter((payload): payload is PublishMessagePayload => isPublishMessage(payload))
 }
@@ -198,13 +199,15 @@ describe('Character Registered session orientation (integration)', () => {
     })
 
     it('delivers correlated render and uncoupled affordance PublishMessage rows to CHARACTER# through full bus path', async () => {
-        const sendSpy = jest.spyOn(messageBus, 'send')
+        const publishSpy = jest.spyOn(messageBus, 'publish').mockImplementation((payload) => {
+            originalMessageBusPublish(payload)
+        })
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<OrientationWml />')
 
         sendCharacterRegisteredEvent(characterRegisteredEvent)
         await flushOrientationBus()
 
-        const publishes = publishMessagesFromSpy(sendSpy)
+        const publishes = publishMessagesFromSpy(publishSpy)
         const characterPublishes = publishes.filter((row) => row.targets?.[0] === characterId)
 
         const renderGenerating = characterPublishes.find((row) =>
@@ -246,6 +249,6 @@ describe('Character Registered session orientation (integration)', () => {
         expect(mockedPutCacheRecord).toHaveBeenCalled()
 
         schemaSpy.mockRestore()
-        sendSpy.mockRestore()
+        publishSpy.mockRestore()
     })
 })

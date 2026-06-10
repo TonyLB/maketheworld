@@ -20,7 +20,7 @@ The perception system serves as the **message routing and display engine** that:
 
 **Which flows use fan-in versus imperative [`perceptionMessage`](./index.ts)** is the steady-state **[Delivery paths (correlated vs imperative)](../dataSource/perception/AGENT.md#delivery-paths-correlated-vs-imperative)** section in that doc. Start there when debugging or extending routing.
 
-This guide remains the map for **imperative** `perceptionMessage` behavior, triggers, and message shapes for paths that still use it. **v1 handler policy** (removed Message path; Knowledge and Map branches **gated off** by flags): [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md#imperative-perceptionmessage-baseline-v1). **Follow-on design** (default publish, etc.): [`../dataSource/perception/AGENT.development.md`](../dataSource/perception/AGENT.development.md).
+This guide remains the map for **imperative** `perceptionMessage` behavior, triggers, and message shapes for paths that still use it. **Bus delivery:** imperative outbounds and the ReturnValue tail use **`messageBus.publish`** (P4 COMP-KICK + PERCEPTION); character component requests publish **`Character Perception Requested`** ingress to the DataSource. **v1 handler policy** (removed Message path; Knowledge and Map branches **gated off** by flags): [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md#imperative-perceptionmessage-baseline-v1). **Follow-on design:** [`../dataSource/perception/AGENT.development.md`](../dataSource/perception/AGENT.development.md).
 
 ## Perception Event Triggers
 

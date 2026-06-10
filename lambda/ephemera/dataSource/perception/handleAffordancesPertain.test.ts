@@ -1,4 +1,8 @@
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
+jest.mock('../../publishMessage', () => ({
+    __esModule: true,
+    default: jest.fn().mockResolvedValue(undefined),
+}))
 
 import internalCache from '../../internalCache'
 import messageBus from '../../messageBus'
@@ -50,7 +54,7 @@ describe('handleAffordancesPertain', () => {
     }
 
     it('publishes affordance PerceptionMessage to CHARACTER# when sessionOrientationAffordances thread registered', async () => {
-        const sendSpy = jest.spyOn(messageBus, 'send')
+        const publishSpy = jest.spyOn(messageBus, 'publish')
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<AffordanceHeader />')
         const rosterSpy = jest.spyOn(internalCache.RoomCharacterList, 'get')
         const stackMergeSpy = jest.spyOn(internalCache.AffordanceRoomDeliverable, 'get')
@@ -66,7 +70,7 @@ describe('handleAffordancesPertain', () => {
 
         await handleAffordancesPertain(makePayload(), messageBus)
 
-        const affordancePublishes = sendSpy.mock.calls.filter((c) => {
+        const affordancePublishes = publishSpy.mock.calls.filter((c) => {
             const m = c[0] as { type?: string; metaData?: { roomChannel?: string } }
             return m?.type === 'PublishMessage' && m?.metaData?.roomChannel === 'affordances'
         })
@@ -97,12 +101,12 @@ describe('handleAffordancesPertain', () => {
 
         stackMergeSpy.mockRestore()
         schemaSpy.mockRestore()
-        sendSpy.mockRestore()
+        publishSpy.mockRestore()
         rosterSpy.mockRestore()
     })
 
     it('publishes affordance PerceptionMessage for perspective-matched occupants only', async () => {
-        const sendSpy = jest.spyOn(messageBus, 'send')
+        const publishSpy = jest.spyOn(messageBus, 'publish')
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<AffordanceHeader />')
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
             { EphemeraId: 'CHARACTER#Match', DisplayName: 'Match', Color: 'blue', SessionIds: [] },
@@ -122,7 +126,7 @@ describe('handleAffordancesPertain', () => {
 
         await handleAffordancesPertain(makePayload(), messageBus)
 
-        const affordancePublishes = sendSpy.mock.calls.filter((c) => {
+        const affordancePublishes = publishSpy.mock.calls.filter((c) => {
             const m = c[0] as { type?: string; metaData?: { roomChannel?: string; displayMode?: string; componentUUID?: string } }
             return m?.type === 'PublishMessage' && m?.metaData?.roomChannel === 'affordances'
         })
@@ -143,11 +147,11 @@ describe('handleAffordancesPertain', () => {
 
         stackMergeSpy.mockRestore()
         schemaSpy.mockRestore()
-        sendSpy.mockRestore()
+        publishSpy.mockRestore()
     })
 
     it('does not publish when no occupants match perspective key', async () => {
-        const sendSpy = jest.spyOn(messageBus, 'send')
+        const publishSpy = jest.spyOn(messageBus, 'publish')
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
             { EphemeraId: 'CHARACTER#A', DisplayName: 'A', Color: 'blue', SessionIds: [] },
         ])
@@ -158,32 +162,32 @@ describe('handleAffordancesPertain', () => {
 
         await handleAffordancesPertain(makePayload(), messageBus)
 
-        const affordancePublishes = sendSpy.mock.calls.filter((c) => {
+        const affordancePublishes = publishSpy.mock.calls.filter((c) => {
             const m = c[0] as { type?: string; metaData?: { roomChannel?: string } }
             return m?.type === 'PublishMessage' && m?.metaData?.roomChannel === 'affordances'
         })
         expect(affordancePublishes).toHaveLength(0)
 
-        sendSpy.mockRestore()
+        publishSpy.mockRestore()
     })
 
     it('does not publish when room has no occupants', async () => {
-        const sendSpy = jest.spyOn(messageBus, 'send')
+        const publishSpy = jest.spyOn(messageBus, 'publish')
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([])
 
         await handleAffordancesPertain(makePayload(), messageBus)
 
-        const affordancePublishes = sendSpy.mock.calls.filter((c) => {
+        const affordancePublishes = publishSpy.mock.calls.filter((c) => {
             const m = c[0] as { type?: string; metaData?: { roomChannel?: string } }
             return m?.type === 'PublishMessage' && m?.metaData?.roomChannel === 'affordances'
         })
         expect(affordancePublishes).toHaveLength(0)
 
-        sendSpy.mockRestore()
+        publishSpy.mockRestore()
     })
 
     it('uses distinct messageId per matching occupant', async () => {
-        const sendSpy = jest.spyOn(messageBus, 'send')
+        const publishSpy = jest.spyOn(messageBus, 'publish')
         jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<AffordanceHeader />')
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
             { EphemeraId: 'CHARACTER#One', DisplayName: 'One', Color: 'blue', SessionIds: [] },
@@ -204,7 +208,7 @@ describe('handleAffordancesPertain', () => {
         expect(stackMergeSpy).toHaveBeenCalledTimes(1)
         expect(stackMergeSpy).toHaveBeenCalledWith(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
 
-        const messageIds = sendSpy.mock.calls
+        const messageIds = publishSpy.mock.calls
             .filter((c) => {
                 const m = c[0] as { type?: string; metaData?: { roomChannel?: string } }
                 return m?.type === 'PublishMessage' && m?.metaData?.roomChannel === 'affordances'
@@ -213,6 +217,6 @@ describe('handleAffordancesPertain', () => {
         expect(messageIds).toHaveLength(2)
         expect(new Set(messageIds).size).toBe(2)
 
-        sendSpy.mockRestore()
+        publishSpy.mockRestore()
     })
 })
