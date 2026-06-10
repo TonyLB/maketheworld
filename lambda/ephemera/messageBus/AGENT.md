@@ -20,7 +20,7 @@ In progress: [`taskPlanning/.../AGENT.publishSettledMigration.planning.md`](../.
 
 | Handler | Fix axis | Notes |
 | --- | --- | --- |
-| [`publishMessage`](../publishMessage/index.ts) | **Q9 deferral** | Per-connection merge + sort; enqueue during handler; `registerDeferral` flush after boundary `flushAndSettle`; see task plan Q9 |
+| [`publishMessage`](../publishMessage/index.ts) | **Q9 selective delivery** | `immediate` (default) wire in handler; `deferred` -> coalescer + `afterSettled` **character move only**; Generating/terminal immediate + explicit `createdTime`; see task plan Q9 |
 | [`checkLocation`](../checkLocation/index.ts) | **Producer coalesce** | Per-invocation character dedup; `moveCharacter` not duplicate-safe |
 | [`mapSubscription`](../mapSubscription/index.ts) | **Contract** | `extractReturnValue` merge policy if multi-send per invocation |
 | [`ephemeraUpdate`](../ephemeraUpdate/index.ts), [`fetchEphemera`](../fetchEphemera/index.ts), [`perception`](../perception/index.ts) (ReturnValue) | **Easy migrate** | Downstream state/merge already converges; extra frames OK |

@@ -1,6 +1,6 @@
 # MessageBus: `publish`/`settle` migration (planning)
 
-**Status:** In progress (P4). Q1-Q9 are locked (P0.5 complete). **Phase P1** complete. **P2a** complete. **P2b** started (`mtw.ephemera.coyoteGame`, `mtw.ephemera.renderOrchestration`, `mtw.ephemera.affordanceOrchestration`). **P3** complete. **P4** EventBridge ingress complete. Next step: **PUBLISH-MSG** Q9 coalescer (first unchecked slice in **Recommended order**).
+**Status:** In progress (P4). Q1-Q9 are locked (P0.5 complete; Q9 **`deliveryMode`**: deferred **only** character-move). **Phase P1** complete. **P2a** complete. **P2b** started (`mtw.ephemera.coyoteGame`, `mtw.ephemera.renderOrchestration`, `mtw.ephemera.affordanceOrchestration`). **P3** complete. **P4** EventBridge ingress complete. Next step: **PUBLISH-MSG** dual-path handler + move-only deferred coalescer (first unchecked slice in **Recommended order**).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -19,7 +19,7 @@ This file is task-scoped. Archive or delete it when migration completes and last
 ### In scope
 
 - Add `publish()`, `settle()`, `_inFlight`, and `flushAndSettle()` to [`InternalMessageBus`](../../../../../packages/mtw-lambda-patterns/ts/messageBus/index.ts) (independent from `_stream` / `flushLane`).
-- **Q9:** `registerDeferral` / per-need aggregators for orchestration-class coalescing (see **Open design questions**); required before **PUBLISH-MSG** ingress migrates to `publish`.
+- **Q9:** `registerDeferral` / per-need aggregators; **PUBLISH-MSG** **`deliveryMode: 'deferred'`** only for **character move** (leave / header / arrive); default **`immediate`** everywhere else including Generating/terminal replace (see **Open design questions**).
 - Refactor `flush()` / `flush(laneId)` and `settle()` to return `Promise<boolean>` (`true` if that invocation did work, `false` if a no-op).
 - Unit tests for quiescence, concurrent handlers, handler-publishes-during-settle, and coexistence with unchanged `send`/`flush` tests.
 - Extend [`DataSource`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/index.ts) message-bus port and outbound paths as needed for migration.
@@ -303,9 +303,11 @@ Authoritative starting list is under Q2 **atomic units** (hypothesisThinkingPers
 
 ### Q9. Defer buffer (orchestration outbound coalescing) -- **RESOLVED**
 
-Under `flush`, orchestration-class handlers (notably [`publishMessage`](../../../../../lambda/ephemera/publishMessage/index.ts)) receive **batched** `payloads`, merge per-connection outbound work, sort by `CreatedTime`, and `batchMessages` before `apiClient.send`. Under `publish`, each matching subscriber gets **`payloads: [singleItem]`** per call (Q5); concurrent handler invocations no longer share one callback scope. Cross-invocation coalescing requires a **defer buffer**: accumulate outbound side effects during handler execution, deliver after invocation bus activity quiesces.
+Under `flush`, orchestration-class handlers (notably [`publishMessage`](../../../../../lambda/ephemera/publishMessage/index.ts)) receive **batched** `payloads`, merge per-connection outbound work, sort by `CreatedTime`, and `batchMessages` before `apiClient.send`. That batched **everything** in the wave -- broader than what most sends need. Under `publish`, each matching subscriber gets **`payloads: [singleItem]`** per call (Q5); concurrent handler invocations no longer share one callback scope.
 
-**This is not a second subscriber queue.** `_inFlight` + `settle()` already drain **subscription handler** work (including recursive `publish`). The defer buffer holds **outbound delivery** (websocket frames, and similar IO) that must not run at end of each per-item handler if coalescing and ordering are to survive migration. Deferred flush is a **finalization phase**, not another round of subscription matching.
+**Locked scope:** **`deliveryMode: 'deferred'`** is required for **one production pattern only -- character move** (multiple `MessageId`s, leave / header / arrive, ordered via `messageGroupId` / `OrchestrateMessages`). All other `PublishMessage` traffic uses **`immediate`** (default): wire in the handler after resolve/Dynamo. **Generating -> terminal** on the same `messageId` uses **immediate** plus **explicit monotonic `createdTime`** (revision contract), not defer -- see **Generating/terminal replace** below. See **PublishMessage: `deliveryMode`** and **Single-invocation render cascades**.
+
+**This is not a second subscriber queue.** `_inFlight` + `settle()` already drain **subscription handler** work (including recursive `publish`). The defer buffer holds **character-move** deferred wire rows until boundary `afterSettled`. **Immediate-mode** wire sends stay in the handler. Deferred flush is a **finalization phase**, not another round of subscription matching.
 
 #### Problem split (do not conflate)
 
@@ -319,7 +321,7 @@ Under `flush`, orchestration-class handlers (notably [`publishMessage`](../../..
 Avoid a bus-owned generic defer queue (`deferOutbound(key, item)`). Instead:
 
 - **`InternalMessageBus`** exposes a thin deferral registry: `registerDeferral(tag, { onClear?, afterSettled })`, `runDeferrals()`, and `clear()` invokes each registrant's `onClear` (default no-op). Registrations persist across invocations.
-- **Aggregation logic** lives in independent module-scoped entities (one per concern): `PublishMessageCoalescer`, checkLocation dedup state, diagnostics intake dedup, etc. Handlers call into those entities during execution; entities **enqueue only**, never deliver at end of per-item callback.
+- **Aggregation logic** lives in independent module-scoped entities (one per concern): `PublishMessageCoalescer` (deferred wire rows only), checkLocation dedup state, diagnostics intake dedup, etc. Deferred-mode handlers enqueue to the entity during execution; **`afterSettled`** (or handler phase for CHECK-LOC-style cases) performs IO. Immediate-mode `PublishMessage` does not use the coalescer.
 - **`flushAndSettle()`** tail (lambda boundary, after idle loop): `await runDeferrals()` then `extractReturnValue` (today: [`app.ts`](../../../../../lambda/ephemera/app.ts) does `flush()` then `extractReturnValue`).
 
 This migrates aggregation **off the bus as aggregation server** (batched `payloads` in one subscribe callback) **onto collaborators** that handlers and DataSources use explicitly. The bus still **dispatches** subscribers; it does not own merge/sort/`batchMessages` semantics.
@@ -332,7 +334,7 @@ This migrates aggregation **off the bus as aggregation server** (batched `payloa
 
 **No repeat loop (locked for v1):** one idle loop, then one `runDeferrals()`, then HTTP response assembly. A **future** extension if needs expand: wrap idle loop + `runDeferrals()` in an outer repeat until both are no-op (only if a registrant is allowed to enqueue bus work -- not planned for current migration slices). Document in implementation guide; do not build until a concrete registrant requires it.
 
-**Aggregator + `publish`:** handler enqueues to entity, calls `publish`, returns; idle loop drains children; `afterSettled` runs coalescer flush. Child paths that must share the same outbound batch must use the **same** entity (not immediate send).
+**Aggregator + `publish` (deferred mode only):** producer sets `deliveryMode: 'deferred'`; handler enqueues wire rows to the coalescer, returns; idle loop drains children; `afterSettled` runs coalescer flush. Child paths that must share the same deferred outbound batch must use the **same** coalescer entity.
 
 **`clear()` at ingress (locked):** symmetric with Q6 -- `messageBus.clear()` resets `_stream` / `_inFlight` **and** runs each deferral's `onClear` (ingress lifecycle). Deferral **registrations** persist; per-invocation buffer contents do not. Aggregators with owned buffers supply `onClear: () => reset()`; egress-only deferrals (e.g. `extractReturnValue`) may omit `onClear` or use a no-op.
 
@@ -343,9 +345,58 @@ This migrates aggregation **off the bus as aggregation server** (batched `payloa
 1. **Hook API shape** -- **RESOLVED:** `registerDeferral(tag, { onClear?, afterSettled })` on bus; `clear()` runs `onClear`; `runDeferrals()` runs `afterSettled` after idle loop. Per-need aggregators wrap registration at module load (not explicit `app.ts` flush calls per coalescer). Name avoids "handler" collision with subscribe callbacks.
 2. **`flushAndSettle` integration** -- **RESOLVED (v1):** Q1 dual idle loop (`Promise.all([flush, settle])` until both no-op) **inside** `flushAndSettle`, **then** `await runDeferrals()`, **then** `extractReturnValue` / HTTP response. `runDeferrals()` is not a substitute for the flush/settle loop -- it runs only after subscriber-graph quiescence. `afterSettled` hooks are **IO-only**; **no** outer repeat loop on deferrals. Future: repeat wrapper if bus-enqueueing registrants are ever required (out of scope for P1-P5 triage rows).
 3. **`clear()` lifecycle** -- **RESOLVED:** Yes. `clear()` at ingress resets defer / aggregator buffers (symmetric with Q6 `_inFlight` reset). Registrations persist.
-4. **Aggregators that call `publish`** -- **RESOLVED:** Handler enqueues to entity, may `publish`, **returns** without mid-callback delivery; **boundary drain** (`flushAndSettle` idle loop) drains all spawned handler work; `afterSettled` flushes coalesce. Child paths that share the same outbound batch enqueue to the **same** entity (no immediate send). **Avoid producer-side mid-invocation drain** (`await settle()` in production aggregators or handler bodies) -- global `_inFlight` quiescence fights Q4 concurrency and duplicates **boundary drain**. If a handler "needs child results before continuing" in the same callback, **restructure** (child enqueues to shared entity; split subscriber; move continuation to child handler). If that need appears at **boundary** and implies bus enqueue after coalesce flush, that is the signal for the **future repeat wrapper** (idle loop + `afterSettled` until stable), not producer-side `settle()`. **Test harness drain** and **boundary drain** are the only intended production/test uses of `settle` / `flushAndSettle` (see **Bus drain terminology**). **Lane migration:** do **not** replace scoped `flush(laneId)` with producer-side `settle()` by default; see **Lane flush intent at migration** (many lane flushes are anti-deferral only; `publish` + continue is often correct).
-5. **Scope of first implementation** -- **RESOLVED:** P1 ships bus `registerDeferral` / `runDeferrals` (empty registry OK; wired into `flushAndSettle` + `clear()`). P4 lands first real registrant: **PUBLISH-MSG** coalescer (blocks **PUBLISH-MSG** `publish` ingress until then). **CHECK-LOC** (P4 triage) and **DIAG-DEDUP** (P5 triage) add deferrals when their migration slices land -- not in P1 stub scope. **`extractReturnValue`** may remain explicit in `app.ts` or register as egress-only deferral (`afterSettled` only); decide in P4 ephemera boundary slice, not a Q9 blocker.
+4. **Aggregators that call `publish`** -- **RESOLVED:** For **`deliveryMode: 'deferred'`**, handler enqueues to coalescer, may `publish` children, **returns** without mid-callback wire delivery; **boundary drain** (`flushAndSettle` idle loop) drains spawned handler work; `afterSettled` flushes deferred rows. Child paths that share the same deferred batch enqueue to the **same** coalescer. **`deliveryMode: 'immediate'`** (default) sends wire in handler -- no coalescer. **Avoid producer-side mid-invocation drain** (`await settle()` in production aggregators or handler bodies) -- global `_inFlight` quiescence fights Q4 concurrency and duplicates **boundary drain**. If a handler "needs child results before continuing" in the same callback, **restructure** (child enqueues to shared entity; split subscriber; move continuation to child handler). If that need appears at **boundary** and implies bus enqueue after coalesce flush, that is the signal for the **future repeat wrapper** (idle loop + `afterSettled` until stable), not producer-side `settle()`. **Test harness drain** and **boundary drain** are the only intended production/test uses of `settle` / `flushAndSettle` (see **Bus drain terminology**). **Lane migration:** do **not** replace scoped `flush(laneId)` with producer-side `settle()` by default; see **Lane flush intent at migration** (many lane flushes are anti-deferral only; `publish` + continue is often correct).
+5. **Scope of first implementation** -- **RESOLVED:** P1 ships bus `registerDeferral` / `runDeferrals` (empty registry OK; wired into `flushAndSettle` + `clear()`). P4 lands **PUBLISH-MSG** dual-path handler + move-only deferred coalescer registrant. **Immediate** `publish` ingress can migrate broadly; **`deliveryMode: 'deferred'`** only on **MOVE-CHAR** / character-move perception legs (see producer table). **CHECK-LOC** (P4 triage) and **DIAG-DEDUP** (P5 triage) add deferrals when their migration slices land -- not in P1 stub scope. **`extractReturnValue`** may remain explicit in `app.ts` or register as egress-only deferral (`afterSettled` only); decide in P4 ephemera boundary slice, not a Q9 blocker.
 6. **P6 steady state** -- **RESOLVED:** Keep `flushAndSettle` = Q1 loop-until-both-idle **then** `runDeferrals()` for the full hybrid period (P1-P5). Cross-seam `flush` <-> `publish`/`settle` ping-pong requires **both** arms until `send`/`flush` are globally deleted. At P6 closeout, deleting `flush` removes the flush arm from the implementation only; the operator still ends with `runDeferrals()`. Do not plan an intermediate "settle-only `flushAndSettle`" that drops the flush arm while legacy `send` paths remain.
+7. **PublishMessage selective delivery (`immediate` vs `deferred`)** -- **RESOLVED:** Do **not** defer all `PublishMessage` websocket egress to boundary `afterSettled`. Under `flush`, the handler batched **every** queued payload in the wave -- that was accidental scope, not a universal contract. **`deferred` is for character move only** (cross-`MessageId` ordering on one connection). Everything else is **`immediate`**; Generating/terminal uses immediate plus explicit revision timestamps (item 8).
+
+8. **Generating/terminal replace (same `messageId`)** -- **RESOLVED:** **Not deferred.** Intended UX: show Generating placeholder on the client **as soon as** generation starts; terminal **replaces** that row when render completes (client revision model: latest `CreatedTime` per `MessageId`). Under today's hybrid path, render/perception cascades run **in one ephemera invocation** (bus `publish` for `StreamingEvent`s between DataSources; `send` for `PublishMessage` until migrated); boundary `flushAndSettle` batches all `PublishMessage`s into one `publishMessage` handler call -- so Generating and terminal often ship in **one websocket burst** and the placeholder **never appears**. Fix: **`deliveryMode: 'immediate'`** on both legs; on Generating assign `createdTime = T0`, store on perception thread; on terminal `createdTime = Math.max(T0 + 1, getCurrentTimestamp())`; add optional `createdTime` on `PublishPerceptionMessage` if not already on bus type. Coyote hypothesis WorldMessage path already uses explicit `createdTime` for the same pattern.
+
+#### Single-invocation render cascades (why immediate wire matters)
+
+Ephemera DataSources (`renderOrchestration`, `renderCache`, `perception`, ...) share one **`messageBus`** per lambda invocation (side-effect imports in [`app.ts`](../../../../../lambda/ephemera/app.ts)). A typical slow render path in **one** invocation:
+
+1. `renderOrchestration` publishes **`Generation Started`** (`streamEvent` -> `messageBus.publish`).
+2. Bedrock / generation runs **in-process** (same invocation, may take seconds).
+3. **`Render Generated`** -> `renderCache` -> **`Render Pertains`** -> `perception` -> `PublishMessage`.
+4. WebSocket / EventBridge ingress: **one** `flushAndSettle()` at lambda exit ([`app.ts`](../../../../../lambda/ephemera/app.ts) lines 141 / 323) -- no intermediate production `flush` on the main command path.
+
+| Bus API | When work runs | `PublishMessage` wire today |
+| --- | --- | --- |
+| `publish(StreamingEvent)` | Subscriber callbacks start immediately (`_inFlight`) | N/A |
+| `send(PublishMessage)` | Queued on `_stream` until `flush` in `flushAndSettle` | **All** queued rows in one `publishMessage` batch at boundary |
+
+So bus cascades do **not** split Generating and terminal across ephemera invocations; they **do** defer **all** `PublishMessage` wire egress to boundary flush until **`immediate`** delivery is implemented. Cross-lambda starts (EventBridge from assets, etc.) are **separate ingress events**, not mid-cascade handoffs inside ephemera.
+
+#### PublishMessage: `deliveryMode` (move-only deferral)
+
+Add to [`PublishMessageBase`](../../../../../lambda/ephemera/messageBus/baseClasses.ts):
+
+```ts
+/** Websocket egress timing. Default `immediate`. */
+deliveryMode?: 'immediate' | 'deferred'
+```
+
+| Mode | When | Handler behavior |
+| --- | --- | --- |
+| **`immediate`** (default) | **All** traffic except character-move burst (say/narrate/OOC, affordances, Generating/terminal, single-shot perception, ...) | Resolve targets, `publishMessageDynamoDB`, **`apiClient.send` per connection** in the same handler invocation. |
+| **`deferred`** | **Character move only** -- leave, render header, arrive (`messageGroupId` / `OrchestrateMessages` offsets across multiple `MessageId`s on one connection) | Resolve targets, `publishMessageDynamoDB`, **enqueue wire row** on `PublishMessageCoalescer`; **no** `apiClient.send` in handler. `afterSettled` sorts by `CreatedTime`, `batchMessages`, flushes. |
+
+**Producer contract (explicit opt-in to deferral):**
+
+| Producer / pattern | `deliveryMode` | Notes |
+| --- | --- | --- |
+| **Character move** -- [`moveCharacter`](../../../../../lambda/ephemera/moveCharacter/index.ts), [`characterMoveDelivery`](../../../../../lambda/ephemera/dataSource/perception/characterMoveDelivery.ts), character-move legs in [`orchestrate.ts`](../../../../../lambda/ephemera/dataSource/perception/orchestrate.ts) (leave / header / arrive with move `messageGroupId`s) | `'deferred'` | **Only** production use of defer. |
+| **Generating -> terminal** (same `messageId`, render/Coyote placeholders) | **`immediate`** | Explicit `createdTime`: `T0` on Generating, `Math.max(T0 + 1, now)` on terminal; store `T0` on perception thread. |
+| Everything else | omit or `'immediate'` | |
+
+Do **not** infer `deferred` from `messageGroupId` inside the handler -- producers set `deliveryMode` explicitly. (Optional future: lint that `deferred` appears only on character-move call sites.)
+
+**Dual-path handler:** Refactor [`publishMessage/index.ts`](../../../../../lambda/ephemera/publishMessage/index.ts) so target resolution, `OrchestrateMessages` offset math, and Dynamo persistence are **shared**; only the wire tail branches on `deliveryMode`. The coalescer holds **deferred rows only** (expect **character-move** traffic in practice). `registerDeferral` + `afterSettled` flush is still required for move under concurrent `publish`; coalescer is often empty when an invocation has no move.
+
+**Why build defer at all:** Migration needs a substitute for flush-era batching **on the move path only**; the dual-path handler is still the P4 **PUBLISH-MSG** slice. Narrow scope keeps the coalescer small and testable.
+
+**Migration:** P4 **PUBLISH-MSG** ships dual-path handler + coalescer. Annotate **MOVE-CHAR** / character-move perception producers with `deliveryMode: 'deferred'`; migrate all other `PublishMessage` `send` -> `publish` with **immediate**; wire Generating/terminal explicit `createdTime` in **COMP-KICK + PERCEPTION** (or adjacent slice). Tests: publishMessage unit tests (both modes); character-move order on deferred `afterSettled`; Generating then terminal visible across two immediate wire sends in integration tests.
 
 #### Locked API shape
 
@@ -381,17 +432,44 @@ async flushAndSettle(laneId?: string): Promise<void> {
     await this.runDeferrals()
 }
 
-// Ephemera: publishMessage coalescer (registers at module load)
+// Ephemera: publishMessage coalescer (registers at module load; deferred rows only)
 publishMessageCoalescer.registerDeferral(messageBus)
-// internally: { onClear: () => this.reset(), afterSettled: () => this.flush() }
-// handler body: coalescer.enqueue(...); no apiClient.send until afterSettled
+// internally: { onClear: () => this.reset(), afterSettled: () => this.flushDeferred() }
+
+// Producer (default immediate):
+messageBus.publish({
+    type: 'PublishMessage',
+    targets: [characterId],
+    displayProtocol: 'SayMessage',
+    // deliveryMode omitted -> immediate wire send in handler
+    ...
+})
+
+// Producer (character move -- only deferred use case):
+messageBus.publish({
+    type: 'PublishMessage',
+    displayProtocol: 'WorldMessage',
+    deliveryMode: 'deferred',
+    messageGroupId: leaveMessageGroupId,
+    ...
+})
+
+// Producer (Generating placeholder -- immediate + explicit revision time):
+messageBus.publish({
+    type: 'PublishMessage',
+    displayProtocol: 'PerceptionMessage',
+    messageId,
+    createdTime: generatingCreatedTime,
+    // deliveryMode omitted -> immediate; terminal uses createdTime: Math.max(generatingCreatedTime + 1, now)
+    ...
+})
 ```
 
-**Handler contract (orchestration aggregators):** enqueue during handler; **do not** deliver inside callback; **do not** use producer-side mid-invocation drain for sequencing; **do not** flush coalesce inside callback after `publish`. Return; let **boundary drain** + `afterSettled` deliver.
+**Handler contract (`publishMessage`):** branch on `deliveryMode`. **`immediate`:** resolve, persist, send wire in handler. **`deferred`:** resolve, persist, enqueue to coalescer only (character move); **do not** `apiClient.send` in handler. Return; let **boundary drain** + `afterSettled` deliver deferred move rows.
 
-**Primary migration consumer:** **PUBLISH-MSG** (Tier 3 / Bucket-1 deep dive). **CHECK-LOC** and **DIAG-DEDUP** use producer coalescing/dedup patterns, not necessarily the same defer-outbound machinery.
+**Primary migration consumer:** **PUBLISH-MSG** (Tier 3 / Bucket-1 deep dive). Deferred coalescer scope: **moveCharacter graph only**. **CHECK-LOC** and **DIAG-DEDUP** use producer coalescing/dedup patterns, not `PublishMessage` defer.
 
-**Approach:** P1 implements engine + empty deferral registry. P4 implements **PUBLISH-MSG** coalescer + `publish` ingress. Per-slice deferral shape for CHECK-LOC / DIAG-DEDUP is decided in those slices (producer coalesce may need only `onClear` + handler-phase enqueue, or full `afterSettled` IO).
+**Approach:** P1 implements engine + empty deferral registry. P4 implements **PUBLISH-MSG** dual-path handler + `deliveryMode` on bus type; **`deferred` on MOVE-CHAR / character-move perception only**; Generating/terminal immediate + `createdTime` in perception slice.
 
 #### Bus drain terminology (avoid "inline `settle()`")
 
@@ -599,7 +677,7 @@ rg 'Promise\.all\(payloads\.map' lambda/ --glob '*.ts' -l | rg -v '\.test\.' || 
 | PLAYER-REDUCE | [`lambda/assets/player/update.ts`](../../../../../lambda/assets/player/update.ts) | `payloads.reduce` groups PlayerSettings per player |
 | CHECK-LOC | [`lambda/ephemera/checkLocation/index.ts`](../../../../../lambda/ephemera/checkLocation/index.ts) | Cross-payload expansion (asset -> room -> character), dedup |
 | EPH-UPDATE | [`lambda/ephemera/ephemeraUpdate/index.ts`](../../../../../lambda/ephemera/ephemeraUpdate/index.ts) | Accumulates `updatesBySessionId`; one `apiClient.send` per session |
-| PUBLISH-MSG | [`lambda/ephemera/publishMessage/index.ts`](../../../../../lambda/ephemera/publishMessage/index.ts) | Accumulates `messagesByConnectionId`; `batchMessages` per connection |
+| PUBLISH-MSG | [`lambda/ephemera/publishMessage/index.ts`](../../../../../lambda/ephemera/publishMessage/index.ts) | Move: `messagesByConnectionId` + defer; else immediate wire (Generating/terminal: revision times) |
 | MAP-SUB | [`lambda/ephemera/mapSubscription/index.ts`](../../../../../lambda/ephemera/mapSubscription/index.ts) | Batches all `characterId`s into one `getItems` + single `ReturnValue` |
 | PERCEPTION-RV | [`lambda/ephemera/perception/index.ts`](../../../../../lambda/ephemera/perception/index.ts) | Single trailing `ReturnValue` Success for whole batch |
 | FETCH-EPH | [`lambda/ephemera/fetchEphemera/index.ts`](../../../../../lambda/ephemera/fetchEphemera/index.ts) | `payloads.length` gate; one `EphemeraUpdate` for all connected characters |
@@ -614,7 +692,7 @@ rg 'Promise\.all\(payloads\.map' lambda/ --glob '*.ts' -l | rg -v '\.test\.' || 
 | --- | --- | --- |
 | **Shielding** | Dedup / coalesce so downstream never saw duplicates | **Producer coalescing** (per-key Set in handler) or **consumer idempotency** (merge / keyed overwrite) |
 | **Contract packaging** | One HTTP / ReturnValue / websocket response from many bus messages | **Response assembly** at lambda boundary (`extractReturnValue` policy, explicit correlation) |
-| **Orchestration** | Sort, `CreatedTime` offsets, `messageGroupId`, frame-size `batchMessages` | **Defer buffer** (Q9): enqueue during handlers, flush after `flushAndSettle` idle loop; not fixed by "idempotent consumer" alone |
+| **Orchestration** | Sort, `CreatedTime` offsets, `messageGroupId`, frame-size `batchMessages` | **Character move:** Q9 defer coalescer; **Generating/terminal:** immediate wire + explicit revision `createdTime`; other traffic: immediate |
 
 **Idempotency levels** (duplicate delivery tolerance):
 
@@ -637,7 +715,7 @@ rg 'Promise\.all\(payloads\.map' lambda/ --glob '*.ts' -l | rg -v '\.test\.' || 
 | MAP-SUB | Contract packaging | Response shape | `extractReturnValue` overwrites keys; does not union `maps[]` | **No** when multiple bus messages share one invocation | P4: keep one handler batch per API op, or fix boundary merge (deep merge / array union) |
 | DIAG-DEDUP | Shielding | Side-effect once | Sweep emits new EventBridge rows per run | **No** | P5: **producer** dedup by `dedupeKey` across events in one invocation (not only within one `receiveEvents` array) |
 | CHECK-LOC | Shielding | Side-effect once | `moveCharacter` / affordance kicks use new `MessageId`s | **No** | P4: **producer** per-invocation `Set<characterId>` (or defer ingress); downstream move is not duplicate-safe |
-| PUBLISH-MSG | Orchestration + contract | Presentation identity + ordering | Client dedupes `(CreatedTime, MessageId)`; per-connection sort in handler | **No** | P4: **Q9 defer buffer** -- per-connection coalesce; flush after boundary `flushAndSettle` quiescence; handlers enqueue only (see Q9 aggregator + `publish` rules) |
+| PUBLISH-MSG | Orchestration + contract (move subset) | Presentation identity + ordering | Move: per-connection sort via defer; Generating/terminal: revision `(CreatedTime, MessageId)` | **Yes** (immediate default); **No** for move defer only | P4: **`immediate`** default; **`deferred`** + coalescer **character move only**; Generating/terminal **immediate** + explicit `createdTime` (Q9 items 7-8) |
 
 **Reading the table:** rows marked **Yes** or **Mostly yes** are places where downstream work already paid off (or flush was mostly traffic packaging). Rows marked **No** are where flush was **masking architecture debt** -- duplicate side effects, wrong response shape, or ordering -- not something fixed solely by teaching consumers to ignore duplicates.
 
@@ -645,7 +723,7 @@ rg 'Promise\.all\(payloads\.map' lambda/ --glob '*.ts' -l | rg -v '\.test\.' || 
 
 - Wrong **final state** -> consumer merge / idempotency.
 - Duplicate **side effects or UX** -> producer coalescing or serial execution.
-- Wrong **order or API response shape** -> contract / orchestration (boundary assembly, **Q9 defer buffer**, explicit awaits).
+- Wrong **order or API response shape** -> contract / orchestration (move: **Q9 defer**; Generating/terminal: **immediate** + `createdTime`; boundary assembly / explicit awaits).
 
 **Bucket-2 summary (14 handlers):** per-item `Promise.all(payloads.map(...))` only --- migrate freely. Includes moveCharacter, executeAction, disconnectMessage, roomUpdate, assets fetch/upload/decache/collaboration/fetchImports/returnValue, ephemera mapUpdate, characterEvents.
 
@@ -723,7 +801,7 @@ For each inventory row: evidence, risk, migration note. Q4/Q5 decisions apply to
 | COMP-KICK | `ephemera/dataSource/index.ts` component kick | Q4 | **High** | Tier 1C StreamingEvent chain | P4: migrate with perception/renderOrch slice; passThrough tests |
 | ACTIONS-PARSE | `actions/index.ts` receiveEvents | Q4 | **High** | Tier 1C | P4: migrate parse response graph as atomic unit |
 | COYOTE-LANE | `handleObjectsChangedForHypothesis` + `hypothesisThinkingPersistence` | Q4/Q5 | **High** | Q2 atomic unit; scoped lane drain anti-deferral (see **Lane flush intent at migration**) | P3: `publish` + drop lanes/scoped flush; thinking concurrent with LLM; **boundary drain** only |
-| PUBLISH-MSG | `publishMessage/index.ts` | Q5/Q9 | **High** | Orchestration: `messagesByConnectionId`, sort, `batchMessages`; client keys `MessageId` | P4: blocked on **Q9** -- defer buffer + post-`flushAndSettle` flush; aggregators enqueue only; child `publish` drained before defer flush |
+| PUBLISH-MSG | `publishMessage/index.ts` | Q5/Q9 | **High** | Dual-path: **immediate** default; **deferred** coalescer for **character move only** | P4: **`deliveryMode`** + dual-path handler; move-only defer; Generating/terminal immediate + `createdTime` |
 | COYOTE-20 | `coyoteGame` @ priority 20 | Q4 | **Medium** | `subscriptionPriority: 20` | P3: prio-20 is flush-only deferral; concurrent with tier-5 DS under `publish` --- confirm in coyote slice |
 | DISCONNECT-CHAIN | `disconnectMessage` (Unregister + Disconnect) | Q4 | **Medium** | Tier 1C prio 1 -> 15, 6 | P4: migrate whole disconnect subgraph or accept concurrent delivery + boundary drain |
 | EXECUTE-ACTION | `parse/executeAction.ts` | Q4 | **Medium** | Tier 1C prio 5 -> 4/10/15 | P4: migrate with actions DS slice |
@@ -804,13 +882,13 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 - [ ] Phase P4 - remaining ephemera `send` sites (piecewise **atomic units** per Q2; bucket-1 fix axes land **inside** the slice that owns the row -- not a separate pass after all DS work)
   - [X] Ingress / EventBridge paths in [`lambda/ephemera/app.ts`](../../../../../lambda/ephemera/app.ts). **Migrated:** deserialized EventBridge `StreamingEvent`, Initialize Subscription (`initSubscription.ts` -> `publish`), missing-deserializer `Error`, legacy `DisconnectCharacter`; WebSocket API routing unchanged. **Tests:** `app.test.ts` (14 tests), `characterRegisteredOrientation.integration.test.ts`, passThrough orchestration/affordance integration tests; package `ts/messageBus/index.test.ts` baseline.
   - [X] Confirm ephemera `app.ts` already uses `flushAndSettle()` from P3 (no further boundary change until P6).
-  - [ ] **PUBLISH-MSG** (bucket-1 **No**; Q9): [`publishMessage/index.ts`](../../../../../lambda/ephemera/publishMessage/index.ts) -- first real `registerDeferral` coalescer (`PublishMessageCoalescer`: per-connection merge, sort, `batchMessages`); handler enqueues only during subscribe callbacks; `afterSettled` IO (`apiClient.send`); migrate handler `send` -> enqueue + `publish` where needed. **Blocks** naive `publish` on most outbound chains until done. **Tests:** publishMessage unit tests; re-run passThrough + characterRegistered integration tests when downstream slices start using coalescer.
+  - [ ] **PUBLISH-MSG** (bucket-1 move subset; Q9): [`publishMessage/index.ts`](../../../../../lambda/ephemera/publishMessage/index.ts) + [`messageBus/baseClasses.ts`](../../../../../lambda/ephemera/messageBus/baseClasses.ts) -- `deliveryMode?: 'immediate' | 'deferred'` (default **`immediate`**); optional `createdTime` on `PublishPerceptionMessage`; dual-path handler (**immediate** wire; **deferred** -> move-only `PublishMessageCoalescer` + `afterSettled`). **`deferred` producers:** MOVE-CHAR + character-move perception legs only. **Tests:** both modes; move order on deferred flush; Generating visible before terminal with immediate + explicit times.
   - [ ] **CHECK-LOC** (bucket-1 **No**; Q5): [`checkLocation/index.ts`](../../../../../lambda/ephemera/checkLocation/index.ts) -- per-invocation `Set<characterId>` producer coalesce before repair; migrate handler to `publish`. **Triage:** CHECK-LOC-CHAIN. **Tests:** checkLocation tests.
   - [ ] **WebSocket / api.ephemera ingress** in [`app.ts`](../../../../../lambda/ephemera/app.ts): legacy handler `send`s (`ExecuteAction`, `Perception`, `UnregisterCharacter`, map subscribe, `ReturnValue`, etc.) and synthetic ingress (`sendParseRequested`, `sendStateChange`, `handleFetchThinkingResult`); extend [`apiEphemera.ts`](../../../../../lambda/ephemera/dataSource/apiEphemera.ts) dual-path (`omit laneId` -> `publish`) for remaining send-helpers. **Tests:** `app.test.ts` (action/command/api.ephemera blocks).
   - [ ] **ACTIONS-PARSE** (Q4 **High**; atomic unit): [`actions/index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) + [`parse/executeAction.ts`](../../../../../lambda/ephemera/parse/executeAction.ts) + parse response / ReturnValue paths; coordinate **P2b** if `mtw.ephemera.actions` flips `outboundBusDelivery: 'publish'`. **Tests:** actions DS tests, `parseCommand.test.ts`, executeAction tests.
   - [ ] **POSITIONS** (Q4 Medium; atomic unit): [`positions/handleConnectionsCharactersPresence.ts`](../../../../../lambda/ephemera/dataSource/positions/handleConnectionsCharactersPresence.ts) + disconnect / CheckLocation side effects (depends on **CHECK-LOC** coalesce or concurrent-safe boundary drain). **P2b:** `mtw.ephemera.positions` if `streamEvent` outbounds migrate. **Tests:** positions tests; characterRegistered integration if touched.
-  - [ ] **COMP-KICK + PERCEPTION** (Q4 **High**; atomic unit): [`dataSource/index.ts`](../../../../../lambda/ephemera/dataSource/index.ts) (asset kick StreamingEvents) + [`perception/`](../../../../../lambda/ephemera/dataSource/perception/) DS bodies (`characterPerception`, `characterMoveDelivery`, `publishAffordancePerceptionForCharacters`, orchestrate paths) + legacy [`perception/index.ts`](../../../../../lambda/ephemera/perception/index.ts); use **PUBLISH-MSG** coalescer for terminal PublishMessage outbounds. **P2b:** `mtw.ephemera.perception`. **Tests:** `perception/index.test.ts`, passThrough integration tests.
-  - [ ] **MOVE-CHAR** (Q4 **High**; atomic unit): [`moveCharacter/index.ts`](../../../../../lambda/ephemera/moveCharacter/index.ts) multi-tier send graph (EphemeraUpdate, PublishMessage, RoomUpdate, Perception, MapUpdate). **Tests:** moveCharacter tests.
+  - [ ] **COMP-KICK + PERCEPTION** (Q4 **High**; atomic unit): [`dataSource/index.ts`](../../../../../lambda/ephemera/dataSource/index.ts) (asset kick StreamingEvents) + [`perception/`](../../../../../lambda/ephemera/dataSource/perception/) DS bodies + legacy [`perception/index.ts`](../../../../../lambda/ephemera/perception/index.ts); **`deliveryMode: 'deferred'`** on character-move `PublishMessage`s only; **immediate** elsewhere; Generating/terminal **immediate** with explicit `createdTime` (`T0` / `max(T0+1, now)` on thread). **P2b:** `mtw.ephemera.perception`. **Tests:** `perception/index.test.ts`, passThrough integration tests.
+  - [ ] **MOVE-CHAR** (Q4 **High**; atomic unit): [`moveCharacter/index.ts`](../../../../../lambda/ephemera/moveCharacter/index.ts) multi-tier send graph; **`deliveryMode: 'deferred'`** on move-related `PublishMessage`s. **Tests:** moveCharacter tests.
   - [ ] **ROOM-AFFORD + disconnect chains** (Q4 Medium/**High**): [`roomUpdate/index.ts`](../../../../../lambda/ephemera/roomUpdate/index.ts) + [`disconnectMessage/index.ts`](../../../../../lambda/ephemera/disconnectMessage/index.ts) (DISCONNECT-UNREG, DISCONNECT-CHAR); affordance fan-out already P3 -- migrate remaining `send` on RoomUpdate -> affordance kick paths. **Tests:** roomUpdate / disconnectMessage tests.
   - [ ] **Easy / Low rows** (bucket-1 migrate freely): [`fetchEphemera/index.ts`](../../../../../lambda/ephemera/fetchEphemera/index.ts) (FETCH-EPH), [`ephemeraUpdate/index.ts`](../../../../../lambda/ephemera/ephemeraUpdate/index.ts) (EPH-UPDATE), [`state/handleApiStateChange.ts`](../../../../../lambda/ephemera/dataSource/state/handleApiStateChange.ts) where triage allows; **P2b** per DS as needed.
   - [ ] **SELF-HEALING** (after **CHECK-LOC**): [`selfHealing/roomOccupancyDriftFinding.ts`](../../../../../lambda/ephemera/dataSource/selfHealing/roomOccupancyDriftFinding.ts) (`RoomUpdate`, `CheckLocation` sends). **Tests:** selfHealing tests if present.
@@ -904,7 +982,7 @@ rg 'messageBus\.(flush|flushAndSettle)\(' lambda/ --glob '**/app.ts' | wc -l
 | Engine `publish`/`settle` + tests (P1) | Done |
 | DataSource port migration (P2) | P2a done; P2b started (`coyoteGame`, `renderOrchestration`, `affordanceOrchestration`) |
 | Ephemera lane hotspots (P3) | Done (Coyote hypothesis, Acme order, render/affordance orchestration, Coyote harness) |
-| Remaining ephemera migration (P4) | In progress (EventBridge ingress done; next: **PUBLISH-MSG** coalescer -- see **Recommended order** sub-slices) |
+| Remaining ephemera migration (P4) | In progress (EventBridge ingress done; next: **PUBLISH-MSG** dual-path handler + deferred coalescer -- see **Recommended order** sub-slices) |
 | Other lambdas (P5) | Not started |
 | Legacy removal + durable docs (P6) | Not started |
 
@@ -922,6 +1000,7 @@ For implementers; steady-state architecture belongs in package `AGENT.md` after 
 | `activeFlushLane` in callback | Set by `flush` / `flush(laneId)` | Always `undefined` (Q2) |
 | Handler errors | `flush`: `Promise.all` (may reject) | `settle`: `allSettled`, log, continue (Q3) |
 | `clear()` | `_stream` only (today) | `_stream` + `_inFlight` reset (Q6); deferral `onClear` (Q9); tests: `settle` first |
-| Outbound coalesce (orchestration) | Implicit in batched handler callback | Defer buffer; `runDeferrals()` after `flushAndSettle` idle loop (Q9) |
+| Outbound coalesce (orchestration) | Implicit in batched handler callback | **Character move:** `deferred` + coalescer + `runDeferrals()`; **all else:** `immediate` wire in handler (Q9) |
+| Generating/terminal UX | Bundled at boundary flush (placeholder often invisible) | **Immediate** wire + explicit `createdTime` revision pair (Q9 item 8) |
 
-**Coexistence:** `publish`/`settle` and `send`/`flush` do not share queue or Promise-tracking machinery during migration. Cross-seam side effects are drained via **boundary drain** (`flushAndSettle()`, Q1). Orchestration outbound batching (e.g. `publishMessage`) uses a **defer buffer** finalization phase (Q9), distinct from `_inFlight` subscriber drain. Lane inheritance applies only to `flush`; named-lane subgraphs migrate as **atomic units** without publish -> `send` cascades (Q2). Scoped `flush(laneId)` at migration: interpret per **Lane flush intent at migration** -- often anti-deferral (concurrent `publish` OK), not a mandate for producer-side `settle()` or direct persist. See **Bus drain terminology**.
+**Coexistence:** `publish`/`settle` and `send`/`flush` do not share queue or Promise-tracking machinery during migration. Cross-seam side effects are drained via **boundary drain** (`flushAndSettle()`, Q1). **`PublishMessage` `deferred`** is **character-move only**; coalescer + **`runDeferrals()`** when move rows were queued. Render cascades stay **one invocation** (see **Single-invocation render cascades**). Lane inheritance applies only to `flush`; named-lane subgraphs migrate as **atomic units** without publish -> `send` cascades (Q2). See **Bus drain terminology**.
