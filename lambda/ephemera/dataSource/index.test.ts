@@ -8,6 +8,7 @@ import getCurrentTimestamp from '../internalUtils/dateUtil'
 // Mock the messageBus
 jest.mock('../messageBus', () => ({
     send: jest.fn(),
+    publish: jest.fn(),
     flush: jest.fn(),
     subscribe: jest.fn()
 }))

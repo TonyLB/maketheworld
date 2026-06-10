@@ -72,6 +72,7 @@ Current supported occupancy-healing finding:
   - Keeps replay idempotency (no-op when room occupancy already matches canonical shape).
   - Enforces post-repair contract: `RoomCharacterList` refresh, `ComponentEphemeraMeta` + `AffordanceRoomDeliverable` invalidation, and `RoomUpdate` signaling.
   - Queues `CheckLocation` for occupancy entries lacking authoritative room assignment.
+  - Bus delivery: **`publish`** + boundary **`flushAndSettle`** (no producer-side drain).
 
 #### **`mtw.ephemera.positions` (positions in play)**
 

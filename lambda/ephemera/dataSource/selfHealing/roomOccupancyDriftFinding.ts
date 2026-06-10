@@ -122,7 +122,7 @@ export const handleRoomOccupancyDriftFinding = async ({ roomId, messageBus }: {
                 internalCache.ComponentEphemeraMeta.invalidate(roomId)
                 internalCache.AffordanceRoomDeliverable.invalidate(roomId)
                 internalCache.RoomCharacterList.set({ key: roomId, value: activeCharacters ?? [] })
-                messageBus.send({
+                messageBus.publish({
                     type: 'RoomUpdate',
                     roomId
                 })
@@ -131,7 +131,7 @@ export const handleRoomOccupancyDriftFinding = async ({ roomId, messageBus }: {
     }
 
     if (checkLocationQueued) {
-        messageBus.send({
+        messageBus.publish({
             type: 'CheckLocation',
             roomId
         })
