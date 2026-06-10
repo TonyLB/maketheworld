@@ -1,12 +1,13 @@
 /**
  * Send-helper for Initialize Subscription events. Used when ephemera receives
- * an EventBridge event from mtw.subscriptions and forwards it to the messageBus.
+ * an EventBridge event from mtw.subscriptions and forwards it to the messageBus
+ * via `publish` (P4 EventBridge ingress).
  */
 import type { StreamingEventMessage } from '../messageBus/baseClasses'
 import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 
-type Bus = { send: (payload: StreamingEventMessage) => void }
+type Bus = { publish: (payload: StreamingEventMessage) => void }
 
 const initSubscriptionSerializer = {
     serialize: ({
@@ -34,7 +35,7 @@ export function sendInitializeSubscription(
     }
     const payload = { sessionId, requestId }
     const envelope = createInternalOriginEnvelope(header, payload, initSubscriptionSerializer)
-    bus.send({
+    bus.publish({
         type: 'StreamingEvent',
         dataSourceKey: 'mtw.subscriptions',
         streamKey,

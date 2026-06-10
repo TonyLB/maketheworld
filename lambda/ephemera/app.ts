@@ -120,7 +120,7 @@ export const handler = async (event: any, context: any) => {
                 (deserializer as any).deserialize({ content: coreFormat.update as any, header: coreFormat.header }) as Promise<any>
             )
             const timestamp = envelope.header.timestamp ?? (event.time ? new Date(event.time).getTime() : getCurrentTimestamp())
-            messageBus.send({
+            messageBus.publish({
                 type: 'StreamingEvent',
                 dataSourceKey: envelope.header.dataSourceKey,
                 streamKey: envelope.header.streamKey,
@@ -130,7 +130,7 @@ export const handler = async (event: any, context: any) => {
             })
         } else {
             // No deserializer available - this is an error condition
-            messageBus.send({
+            messageBus.publish({
                 type: 'Error',
                 body: {
                     error: `No deserializer available for data source: ${event.source}`
@@ -148,7 +148,7 @@ export const handler = async (event: any, context: any) => {
             case 'Disconnect Character':
                 console.log(`Disconnect Character: ${JSON.stringify(event.detail, null, 4)}`)
                 if (event.detail.characterId) {
-                    messageBus.send({
+                    messageBus.publish({
                         type: 'DisconnectCharacter',
                         characterId: event.detail.characterId
                     })
@@ -319,9 +319,7 @@ export const handler = async (event: any, context: any) => {
         }
     }
 
-    // Default-lane drain: terminal render-orchestration outbounds use `laneId: ''` from `publishOrchestration`.
-    // Named `renderOrchestration:*` lanes are flushed in parallel with generation inside `generateRoomPreview`.
-    // Event-driven `look` flushes its run-scoped perception lane only inside `renderOrchestration` (not here); the `Render Requested` for look is on the default lane and drains with this call.
+    // Boundary drain: quiesces hybrid publish/settle + send/flush graph for this invocation.
     await messageBus.flushAndSettle()
     return extractReturnValue(messageBus)
 

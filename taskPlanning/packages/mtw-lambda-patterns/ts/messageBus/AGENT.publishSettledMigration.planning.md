@@ -1,6 +1,6 @@
 # MessageBus: `publish`/`settle` migration (planning)
 
-**Status:** In progress (P3). Q1-Q9 are locked (P0.5 complete). **Phase P1** complete. **P2a** complete. **P2b** started (`mtw.ephemera.coyoteGame`, `mtw.ephemera.renderOrchestration`, `mtw.ephemera.affordanceOrchestration`). **P3** Coyote hypothesis slice complete. **P3** Acme order thinking persistence complete. **P3** render orchestration complete. **P3** affordance orchestration complete. **P3** Coyote engine test harness lane flushes complete. Next step: Phase P4 remaining ephemera `send` sites.
+**Status:** In progress (P4). Q1-Q9 are locked (P0.5 complete). **Phase P1** complete. **P2a** complete. **P2b** started (`mtw.ephemera.coyoteGame`, `mtw.ephemera.renderOrchestration`, `mtw.ephemera.affordanceOrchestration`). **P3** complete. **P4** EventBridge ingress in [`lambda/ephemera/app.ts`](../../../../../lambda/ephemera/app.ts) complete. Next step: remaining P4 ephemera `send` sites (WebSocket API ingress, DataSources, bucket-1 handlers).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -802,10 +802,10 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Targeted ephemera tests for touched paths (see **Verification**). **Smoke-tested:** affordance P3 slice + **`runCoyoteEngineTestHarness.test.ts`** (14 tests); package baseline `ts/messageBus/index.test.ts`.
 
 - [ ] Phase P4 - remaining ephemera `send` sites
-  - [ ] Ingress / EventBridge paths in [`lambda/ephemera/app.ts`](../../../../../lambda/ephemera/app.ts).
+  - [X] Ingress / EventBridge paths in [`lambda/ephemera/app.ts`](../../../../../lambda/ephemera/app.ts). **Migrated:** deserialized EventBridge `StreamingEvent`, Initialize Subscription (`initSubscription.ts` -> `publish`), missing-deserializer `Error`, legacy `DisconnectCharacter`; WebSocket API routing unchanged. **Tests:** `app.test.ts` (14 tests), `characterRegisteredOrientation.integration.test.ts`, passThrough orchestration/affordance integration tests; package `ts/messageBus/index.test.ts` baseline.
   - [ ] Perception, actions, positions, self-healing, and other DataSource `send` call sites (excludes `affordanceOrchestration`; see P3).
   - [ ] Migrate bucket-1 rows per **Bucket-1 deep dive** fix axis (producer coalesce / contract / consumer / **Q9 defer**) before ingress moves to `publish`; Low rows may migrate without redesign; **PUBLISH-MSG** requires Q9 locked.
-  - [ ] Confirm ephemera `app.ts` already uses `flushAndSettle()` from P3 (no further boundary change until P6).
+  - [X] Confirm ephemera `app.ts` already uses `flushAndSettle()` from P3 (no further boundary change until P6).
 
 - [ ] Phase P5 - other lambdas
   - [ ] assets (`app.ts` + DataSources)
@@ -893,7 +893,7 @@ rg 'messageBus\.(flush|flushAndSettle)\(' lambda/ --glob '**/app.ts' | wc -l
 | Engine `publish`/`settle` + tests (P1) | Done |
 | DataSource port migration (P2) | P2a done; P2b started (`coyoteGame`, `renderOrchestration`, `affordanceOrchestration`) |
 | Ephemera lane hotspots (P3) | Done (Coyote hypothesis, Acme order, render/affordance orchestration, Coyote harness) |
-| Remaining ephemera migration (P4) | Not started |
+| Remaining ephemera migration (P4) | Started (EventBridge ingress in `app.ts` done) |
 | Other lambdas (P5) | Not started |
 | Legacy removal + durable docs (P6) | Not started |
 

@@ -119,6 +119,8 @@ Parallel to **`api.wml`** and **`api.assets`** in other lambdas: **`dataSourceKe
 
 ### **EventBridge Event Subscription**
 
+EventBridge ingress in [`app.ts`](app.ts) enqueues work via **`messageBus.publish`** (P4 migration); boundary **`flushAndSettle`** drains the hybrid publish/settle + send/flush graph before return. WebSocket API synthetic ingress (`api.ephemera` commands, legacy handler messages) still uses **`send`** until later P4 slices.
+
 The Ephemera Lambda subscribes to events from other system components:
 
 #### **EventBridge Events from Multiple Sources**
