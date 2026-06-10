@@ -14,6 +14,7 @@ import type { StateChangedPayload } from './events'
 export const ephemeraStateDataSource = new EphemeraDataSource<never, StateChangedPayload, StateChangeCommand>({
     dataSourceKey: 'mtw.ephemera.state',
     replayable: false,
+    outboundBusDelivery: 'publish',
     publisherStrategy: 'busOnly',
     subscribedEventTypeGuard: isEphemeraApiStateChangeEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {

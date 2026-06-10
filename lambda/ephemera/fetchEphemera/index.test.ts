@@ -41,7 +41,7 @@ describe('fetchPlayerEphemera', () => {
             }],
             messageBus
         })
-        expect(messageBus.send).toHaveBeenCalledWith({
+        expect(messageBus.publish).toHaveBeenCalledWith({
             type: 'EphemeraUpdate',
             updates: [{
                 type: 'CharacterInPlay',

@@ -29,7 +29,8 @@ In progress: [`taskPlanning/.../AGENT.publishSettledMigration.planning.md`](../.
 | [`disconnectMessage`](../disconnectMessage/index.ts) | **Easy migrate** (landed P4 DISCONNECT-CHAIN) | DISCONNECT-UNREG + DISCONNECT-CHAR: `PublishMessage`, `RoomUpdate`, `ReturnValue` -> `publish`; injected bus throughout (no singleton sends); immediate WorldMessage |
 | [`roomUpdate`](../roomUpdate/index.ts) | **Atomic with affordance P3** (landed P4 ROOM-AFFORD) | Handler has no direct bus calls; `RoomUpdate` ingress triggers `sendAffordanceRefreshRequestedForRoom` -> `publish`; disconnect/move/positions producers now `publish` RoomUpdate |
 | [`mapSubscription`](../mapSubscription/index.ts) | **Contract** | `extractReturnValue` merge policy if multi-send per invocation |
-| [`ephemeraUpdate`](../ephemeraUpdate/index.ts), [`fetchEphemera`](../fetchEphemera/index.ts), [`perception`](../perception/index.ts) (ReturnValue) | **Easy migrate** | Downstream state/merge already converges; extra frames OK |
+| [`fetchEphemera`](../fetchEphemera/index.ts), [`ephemeraUpdate`](../ephemeraUpdate/index.ts) | **Easy migrate** (landed P4 Easy / Low) | FETCH-EPH `EphemeraUpdate` outbound `publish`; EPH-UPDATE subscriber (producers already `publish`); client keyed by `CharacterId`; boundary drain only |
+| [`state/handleApiStateChange`](../dataSource/state/handleApiStateChange.ts) | **Easy migrate** (landed P4 Easy / Low) | ReturnValue `publish` via collector; `mtw.ephemera.state` `outboundBusDelivery: 'publish'` for State Changed outbounds |
 
 ## Testing
 

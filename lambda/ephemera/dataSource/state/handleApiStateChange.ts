@@ -25,7 +25,7 @@ export const handleApiStateChangeCommand = async (
         if (!rid) {
             return
         }
-        messageBus.send({
+        messageBus.publish({
             type: 'ReturnValue',
             body: {
                 messageType: 'Error',
@@ -39,7 +39,7 @@ export const handleApiStateChangeCommand = async (
         if (!rid) {
             return
         }
-        messageBus.send({
+        messageBus.publish({
             type: 'ReturnValue',
             body: {
                 messageType: 'EphemeraCommandSuccess',

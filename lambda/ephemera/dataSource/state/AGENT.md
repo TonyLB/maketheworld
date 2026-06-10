@@ -6,6 +6,8 @@ The `lambda/ephemera/dataSource/state` package owns the **runtime world-state mo
 
 **Persist merged marks:** [`mergePersistMetaRoomMarks.ts`](mergePersistMetaRoomMarks.ts) --- `mergeMarkState` / `mergePersistMetaRoomMarks` merge incoming `EphemeraCacheMarkState` onto stored `Meta::Room.state.marks` (or onto `computeDefaultMarksForRoom` when stored marks are empty), then `optimisticUpdate` `state` on `Meta::Room`. Wired from `mtw.ephemera.state` [`index.ts`](index.ts) via [`handleApiStateChange.ts`](handleApiStateChange.ts) on api.ephemera **State Change** (room `componentId` + `markState`). Default marks use server-side stack resolution (`resolveCanonAssetStackForRoom` inside `computeDefaultMarksForRoom`). Does not update cache pointer fields.
 
+**Message bus (P4):** [`handleApiStateChange.ts`](handleApiStateChange.ts) publishes correlated **ReturnValue** acks; **`streamEvent`** outbounds use **`publish`** via `outboundBusDelivery: 'publish'` on the DataSource. Boundary drain (`flushAndSettle` in [`app.ts`](../../app.ts)) quiesces the invocation. See [`taskPlanning/.../AGENT.publishSettledMigration.planning.md`](../../../../taskPlanning/packages/mtw-lambda-patterns/ts/messageBus/AGENT.publishSettledMigration.planning.md).
+
 **In scope here**
 
 - Authoritative **`Meta::Room.state`** (e.g. `state.marks`, optional `situationId`) as the room's current world-state snapshot.

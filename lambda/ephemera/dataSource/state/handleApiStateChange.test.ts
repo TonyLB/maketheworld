@@ -15,11 +15,12 @@ jest.mock('../../messageBus', () => ({
     __esModule: true,
     default: {
         send: jest.fn(),
+        publish: jest.fn(),
     },
 }))
 
 const mergePersistMetaRoomMarksMock = mergePersistMetaRoomMarks as jest.MockedFunction<typeof mergePersistMetaRoomMarks>
-const messageBusSendMock = messageBus.send as jest.MockedFunction<typeof messageBus.send>
+const messageBusPublishMock = messageBus.publish as jest.MockedFunction<typeof messageBus.publish>
 
 describe('handleApiStateChangeCommand', () => {
     const streamEvent = jest.fn().mockResolvedValue(undefined)
@@ -28,7 +29,7 @@ describe('handleApiStateChangeCommand', () => {
         mergePersistMetaRoomMarksMock.mockReset()
         mergePersistMetaRoomMarksMock.mockResolvedValue({ ok: true, persisted: false })
         streamEvent.mockClear()
-        messageBusSendMock.mockClear()
+        messageBusPublishMock.mockClear()
     })
 
     it('calls mergePersistMetaRoomMarks with roomId and incomingMarks', async () => {
@@ -70,7 +71,7 @@ describe('handleApiStateChangeCommand', () => {
             { streamEvent }
         )
         expect(mergePersistMetaRoomMarksMock).not.toHaveBeenCalled()
-        expect(messageBusSendMock).not.toHaveBeenCalled()
+        expect(messageBusPublishMock).not.toHaveBeenCalled()
     })
 
     it('sends Error ReturnValue for non-room id when requestId is set', async () => {
@@ -82,7 +83,7 @@ describe('handleApiStateChangeCommand', () => {
             },
             { streamEvent }
         )
-        expect(messageBusSendMock).toHaveBeenCalledWith({
+        expect(messageBusPublishMock).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
                 messageType: 'Error',
@@ -103,7 +104,7 @@ describe('handleApiStateChangeCommand', () => {
             { streamEvent }
         )
         expect(streamEvent).not.toHaveBeenCalled()
-        expect(messageBusSendMock).toHaveBeenCalledWith({
+        expect(messageBusPublishMock).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
                 messageType: 'EphemeraCommandSuccess',
@@ -143,7 +144,7 @@ describe('handleApiStateChangeCommand', () => {
                 newState,
             },
         })
-        expect(messageBusSendMock).not.toHaveBeenCalled()
+        expect(messageBusPublishMock).not.toHaveBeenCalled()
     })
 
     it('sends EphemeraCommandSuccess when requestId is set and merge persisted', async () => {
@@ -164,7 +165,7 @@ describe('handleApiStateChangeCommand', () => {
             },
             { streamEvent }
         )
-        expect(messageBusSendMock).toHaveBeenCalledWith({
+        expect(messageBusPublishMock).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
                 messageType: 'EphemeraCommandSuccess',
@@ -190,7 +191,7 @@ describe('handleApiStateChangeCommand', () => {
             },
             { streamEvent }
         )
-        expect(messageBusSendMock).toHaveBeenCalledWith({
+        expect(messageBusPublishMock).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
                 messageType: 'Error',
