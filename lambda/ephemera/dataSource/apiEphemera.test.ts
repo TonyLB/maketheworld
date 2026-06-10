@@ -3,6 +3,7 @@ import {
     sendDeleteCacheRecords,
     sendStateChange,
     sendObjectsChange,
+    sendParseRequested,
     sendPutThinkingSchedule,
     sendPutThinkingJobCreate,
     sendPutThinkingJobError,
@@ -104,7 +105,7 @@ describe('apiEphemera', () => {
 
     it('sendPutCacheRecord getContent returns internal payload', async () => {
         const { sent } = makeBus()
-        sendPutCacheRecord({ send: (p) => sent.push({ payload: p }), publish: jest.fn() }, 'ROOM#room-one', minimalPutRecord)
+        sendPutCacheRecord({ send: jest.fn(), publish: (p) => sent.push({ payload: p }) }, 'ROOM#room-one', minimalPutRecord)
 
         const msg = message(sent[0])
         const internal = await msg.getContent()
@@ -121,7 +122,7 @@ describe('apiEphemera', () => {
 
     it('sendPutCacheRecord getContent includes optional conversationId when provided', async () => {
         const { sent } = makeBus()
-        sendPutCacheRecord({ send: (p) => sent.push({ payload: p }), publish: jest.fn() }, 'ROOM#room-one', {
+        sendPutCacheRecord({ send: jest.fn(), publish: (p) => sent.push({ payload: p }) }, 'ROOM#room-one', {
             ...minimalPutRecord,
             conversationId: 'conv-abc',
         })
@@ -234,6 +235,84 @@ describe('apiEphemera', () => {
         }
         expect(isEphemeraApiSubscribedEnvelope(envelope)).toBe(true)
         expect(isEphemeraApiObjectsChangeEnvelope(envelope)).toBe(true)
+    })
+
+    describe('dual-path api.ephemera helpers', () => {
+        const minimalParseRequested = {
+            characterId: 'CHARACTER#123' as const,
+            command: 'look',
+        }
+
+        it('sendPutCacheRecord without laneId calls bus.publish', () => {
+            const publish = jest.fn()
+            const bus = { send: jest.fn(), publish }
+            sendPutCacheRecord(bus, 'ROOM#room-one', minimalPutRecord)
+            expect(publish).toHaveBeenCalledTimes(1)
+            expect(bus.send).not.toHaveBeenCalled()
+        })
+
+        it('sendDeleteCacheRecords without laneId calls bus.publish', () => {
+            const publish = jest.fn()
+            const bus = { send: jest.fn(), publish }
+            sendDeleteCacheRecords(bus, 'ROOM#room-one', minimalDeleteRecords)
+            expect(publish).toHaveBeenCalledTimes(1)
+            expect(bus.send).not.toHaveBeenCalled()
+        })
+
+        it('sendStateChange without laneId calls bus.publish', () => {
+            const publish = jest.fn()
+            const bus = { send: jest.fn(), publish }
+            sendStateChange(bus, 'ROOM#r3', {
+                componentId: 'ROOM#r3',
+                markState: { markValue: [] },
+            })
+            expect(publish).toHaveBeenCalledTimes(1)
+            expect(bus.send).not.toHaveBeenCalled()
+        })
+
+        it('sendObjectsChange without laneId calls bus.publish', () => {
+            const publish = jest.fn()
+            const bus = { send: jest.fn(), publish }
+            sendObjectsChange(bus, 'ROOM#obj', {
+                componentId: 'ROOM#obj',
+                add: [],
+                remove: [],
+            })
+            expect(publish).toHaveBeenCalledTimes(1)
+            expect(bus.send).not.toHaveBeenCalled()
+        })
+
+        it('sendParseRequested without laneId calls bus.publish', () => {
+            const publish = jest.fn()
+            const bus = { send: jest.fn(), publish }
+            sendParseRequested(bus, 'CHARACTER#123', minimalParseRequested)
+            expect(publish).toHaveBeenCalledTimes(1)
+            expect(bus.send).not.toHaveBeenCalled()
+        })
+
+        it('sendPutCacheRecord forwards laneId to bus.send', () => {
+            const { sent, bus } = makeBus()
+            sendPutCacheRecord(bus, 'ROOM#room-one', minimalPutRecord, 'test-lane')
+            expect(sent).toHaveLength(1)
+            expect(sent[0].laneId).toBe('test-lane')
+        })
+
+        it('sendStateChange forwards laneId to bus.send', () => {
+            const { sent, bus } = makeBus()
+            sendStateChange(bus, 'ROOM#r3', {
+                componentId: 'ROOM#r3',
+                markState: { markValue: [] },
+            }, 'test-lane')
+            expect(sent).toHaveLength(1)
+            expect(sent[0].laneId).toBe('test-lane')
+        })
+
+        it('sendParseRequested forwards laneId to bus.send', () => {
+            const { sent, bus } = makeBus()
+            sendParseRequested(bus, 'CHARACTER#123', minimalParseRequested, 'test-lane')
+            expect(sent).toHaveLength(1)
+            expect(sent[0].laneId).toBe('test-lane')
+        })
     })
 
     it('sendPutThinkingSchedule posts StreamingEvent with Put Thinking Schedule type', async () => {

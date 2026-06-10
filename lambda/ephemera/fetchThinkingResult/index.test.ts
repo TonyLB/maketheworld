@@ -10,7 +10,7 @@ jest.mock('../internalCache', () => ({
 jest.mock('../messageBus', () => ({
     __esModule: true,
     default: {
-        send: jest.fn(),
+        publish: jest.fn(),
     },
 }))
 
@@ -18,7 +18,7 @@ import internalCache from '../internalCache'
 import messageBus from '../messageBus'
 import { handleFetchThinkingResult } from './index'
 
-const mockSend = messageBus.send as jest.Mock
+const mockPublish = messageBus.publish as jest.Mock
 
 const mockGet = internalCache.ThinkingResults.get as jest.Mock
 
@@ -49,7 +49,7 @@ describe('handleFetchThinkingResult', () => {
         )
 
         expect(mockGet).toHaveBeenCalledWith('work-1')
-        expect(mockSend).toHaveBeenCalledWith({
+        expect(mockPublish).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
                 messageType: 'ThinkingResult',
@@ -71,7 +71,7 @@ describe('handleFetchThinkingResult', () => {
             messageBus
         )
 
-        expect(mockSend).toHaveBeenCalledWith({
+        expect(mockPublish).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
                 messageType: 'Error',
@@ -92,7 +92,7 @@ describe('handleFetchThinkingResult', () => {
         )
 
         expect(mockGet).not.toHaveBeenCalled()
-        expect(mockSend).toHaveBeenCalledWith({
+        expect(mockPublish).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
                 messageType: 'Error',
@@ -113,7 +113,7 @@ describe('handleFetchThinkingResult', () => {
         )
 
         expect(mockGet).not.toHaveBeenCalled()
-        expect(mockSend).toHaveBeenCalledWith({
+        expect(mockPublish).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
                 messageType: 'Error',
@@ -136,7 +136,7 @@ describe('handleFetchThinkingResult', () => {
             messageBus
         )
 
-        expect(mockSend).toHaveBeenCalledWith({
+        expect(mockPublish).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
                 messageType: 'Error',

@@ -1,8 +1,9 @@
-import { ReturnValueMessage, isReturnValueMessage, MessageBus } from "../messageBus/baseClasses"
+import { ReturnValueMessage, MessageBus } from "../messageBus/baseClasses"
 
 import internalCache from '../internalCache'
 
 import { apiClient } from '@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient'
+import { getCollectedReturnValueBody } from './collector'
 
 export const returnValueMessage = async ({ payloads }: { payloads: ReturnValueMessage[], messageBus?: MessageBus }): Promise<void> => {
     const ConnectionId = await internalCache.Global.get('ConnectionId')
@@ -17,15 +18,8 @@ export const returnValueMessage = async ({ payloads }: { payloads: ReturnValueMe
 
 export default returnValueMessage
 
-export const extractReturnValue = (messageBus: MessageBus) => {
-    const returnValueMessages = messageBus._stream
-        .map(({ payload }) => (payload))
-        .filter(isReturnValueMessage)
-
-    const body = returnValueMessages.reduce((previous, { body }) => ({
-        ...previous,
-        ...body
-    }), {} as Record<string, any>)
+export const extractReturnValue = (_messageBus?: MessageBus) => {
+    const body = getCollectedReturnValueBody()
 
     return {
         statusCode: 200,

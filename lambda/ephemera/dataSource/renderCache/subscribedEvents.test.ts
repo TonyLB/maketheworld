@@ -62,7 +62,7 @@ describe('renderCache subscribedEvents', () => {
                 perspectiveMatcher: { requiredAssetIds: ['ASSET#one'] as `ASSET#${string}`[], forbiddenAssetIds: [] },
             },
         })
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
         expect(captured).toBeDefined()
         expect(isPutOrDeleteCacheCommandEnvelope(captured)).toBe(true)
         expect(isRenderCacheSubscribedEnvelope(captured)).toBe(true)

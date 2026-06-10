@@ -33,6 +33,7 @@ import mapUpdateMessage from '../mapUpdate'
 import checkLocation from "../checkLocation"
 import characterEvent from "../characterEvents"
 import { executeActionMessage } from "../parse/executeAction"
+import { registerReturnValueCollector } from '../returnValue/collector'
 
 export const messageBus = new MessageBus()
 messageBus.subscribe({
@@ -122,5 +123,6 @@ messageBus.subscribe({
 
 publishMessageCoalescer.registerDeferral(messageBus)
 checkLocationCoalescer.registerDeferral(messageBus)
+registerReturnValueCollector(messageBus)
 
 export default messageBus

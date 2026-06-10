@@ -1,11 +1,19 @@
 jest.mock('@aws-sdk/client-sfn')
+jest.mock('./fetchEphemera', () => ({
+    fetchEphemeraForCharacter: jest.fn(),
+    fetchPlayerEphemera: jest.fn(),
+}))
 import { handler } from './app'
 import messageBus from './messageBus'
 import internalCache from './internalCache'
+import { fetchEphemeraForCharacter } from './fetchEphemera'
+import { collectReturnValues, resetReturnValueCollector } from './returnValue/collector'
 
 // Mock dependencies
 jest.mock('./messageBus')
 jest.mock('./internalCache')
+
+const mockFetchEphemeraForCharacter = fetchEphemeraForCharacter as jest.MockedFunction<typeof fetchEphemeraForCharacter>
 
 const mockMessageBus = messageBus as jest.Mocked<typeof messageBus>
 let mockThinkingResultsGet: jest.Mock
@@ -13,12 +21,17 @@ let mockThinkingResultsGet: jest.Mock
 describe('app handler', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        resetReturnValueCollector()
         mockMessageBus.clear.mockReturnValue(undefined)
         mockMessageBus.flush.mockResolvedValue(false)
         mockMessageBus.settle.mockResolvedValue(false)
         mockMessageBus.flushAndSettle.mockResolvedValue(undefined)
         mockMessageBus.send.mockReturnValue(undefined)
-        mockMessageBus.publish.mockReturnValue(undefined)
+        mockMessageBus.publish.mockImplementation((payload) => {
+            if (payload?.type === 'ReturnValue') {
+                collectReturnValues([payload])
+            }
+        })
         mockThinkingResultsGet = jest.fn()
         ;(internalCache as unknown as { ThinkingResults: { get: jest.Mock } }).ThinkingResults = {
             get: mockThinkingResultsGet,
@@ -26,7 +39,7 @@ describe('app handler', () => {
     })
 
     describe('action message handling', () => {
-        it('should route action messages to messageBus.send with ExecuteActionMessage', async () => {
+        it('should route action messages to messageBus.publish with ExecuteActionMessage', async () => {
             const actionMessage = {
                 message: 'action',
                 actionType: 'SayMessage',
@@ -45,13 +58,14 @@ describe('app handler', () => {
 
             await handler(event, {})
 
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'ExecuteAction',
                 action: actionMessage
             })
+            expect(mockMessageBus.flushAndSettle).toHaveBeenCalled()
         })
 
-        it('should route move action messages to messageBus.send with ExecuteActionMessage', async () => {
+        it('should route move action messages to messageBus.publish with ExecuteActionMessage', async () => {
             const actionMessage = {
                 message: 'action',
                 actionType: 'move',
@@ -71,13 +85,13 @@ describe('app handler', () => {
 
             await handler(event, {})
 
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'ExecuteAction',
                 action: actionMessage
             })
         })
 
-        it('should route look action messages to messageBus.send with ExecuteActionMessage', async () => {
+        it('should route look action messages to messageBus.publish with ExecuteActionMessage', async () => {
             const actionMessage = {
                 message: 'action',
                 actionType: 'look',
@@ -96,7 +110,7 @@ describe('app handler', () => {
 
             await handler(event, {})
 
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'ExecuteAction',
                 action: actionMessage
             })
@@ -120,7 +134,7 @@ describe('app handler', () => {
 
             await handler(event, {})
 
-            const parseRequestedCall = mockMessageBus.send.mock.calls.find(
+            const parseRequestedCall = mockMessageBus.publish.mock.calls.find(
                 ([payload]) => payload?.type === 'StreamingEvent'
                     && payload?.dataSourceKey === 'api.ephemera'
                     && payload?.header?.type === 'Parse Requested'
@@ -132,6 +146,7 @@ describe('app handler', () => {
                 characterId: 'CHARACTER#123',
                 command: 'look',
             })
+            expect(mockMessageBus.flushAndSettle).toHaveBeenCalled()
         })
 
         it('includes requestId in Parse Requested synthetic payload when present on wire request', async () => {
@@ -151,7 +166,7 @@ describe('app handler', () => {
 
             await handler(event, {})
 
-            const parseRequestedCall = mockMessageBus.send.mock.calls.find(
+            const parseRequestedCall = mockMessageBus.publish.mock.calls.find(
                 ([payload]) => payload?.type === 'StreamingEvent'
                     && payload?.dataSourceKey === 'api.ephemera'
                     && payload?.header?.type === 'Parse Requested'
@@ -163,6 +178,91 @@ describe('app handler', () => {
                 characterId: 'CHARACTER#123',
                 command: 'look',
                 requestId: 'req-parse-1',
+            })
+        })
+    })
+
+    describe('WebSocket wire routes', () => {
+        it('routes unregisterCharacter to UnregisterCharacter publish', async () => {
+            await handler(
+                {
+                    requestContext: { connectionId: 'test-connection' },
+                    body: JSON.stringify({
+                        message: 'unregistercharacter',
+                        CharacterId: 'CHARACTER#abc',
+                    }),
+                },
+                {}
+            )
+
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'UnregisterCharacter',
+                characterId: 'CHARACTER#abc',
+            })
+            expect(mockMessageBus.flushAndSettle).toHaveBeenCalled()
+        })
+
+        it('returns fetchEphemera snapshot via ReturnValue publish and extractReturnValue', async () => {
+            const ephemeraSnapshot = { CharacterId: 'CHARACTER#abc', Name: 'Test' }
+            mockFetchEphemeraForCharacter.mockResolvedValue(
+                ephemeraSnapshot as unknown as Awaited<ReturnType<typeof fetchEphemeraForCharacter>>
+            )
+
+            const response = await handler(
+                {
+                    requestContext: { connectionId: 'test-connection' },
+                    body: JSON.stringify({
+                        message: 'fetchEphemera',
+                        CharacterId: 'CHARACTER#abc',
+                    }),
+                },
+                {}
+            )
+
+            expect(mockFetchEphemeraForCharacter).toHaveBeenCalledWith({ CharacterId: 'CHARACTER#abc' })
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'ReturnValue',
+                body: ephemeraSnapshot,
+            })
+            expect(response).toBeDefined()
+            expect(JSON.parse(response!.body)).toEqual(ephemeraSnapshot)
+        })
+
+        it('routes link to Perception publish for feature targets', async () => {
+            await handler(
+                {
+                    requestContext: { connectionId: 'test-connection' },
+                    body: JSON.stringify({
+                        message: 'link',
+                        CharacterId: 'CHARACTER#abc',
+                        to: 'FEATURE#door',
+                    }),
+                },
+                {}
+            )
+
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'Perception',
+                characterId: 'CHARACTER#abc',
+                ephemeraId: 'FEATURE#door',
+            })
+        })
+
+        it('routes mapSubscribe to SubscribeToMaps publish', async () => {
+            await handler(
+                {
+                    requestContext: { connectionId: 'test-connection' },
+                    body: JSON.stringify({
+                        message: 'subscribeToMaps',
+                        CharacterId: 'CHARACTER#abc',
+                    }),
+                },
+                {}
+            )
+
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'SubscribeToMaps',
+                characterId: 'CHARACTER#abc',
             })
         })
     })
@@ -334,7 +434,7 @@ describe('app handler', () => {
                 },
                 {}
             )
-            expect(mockMessageBus.send).toHaveBeenCalledWith(
+            expect(mockMessageBus.publish).toHaveBeenCalledWith(
                 expect.objectContaining({
                     type: 'StreamingEvent',
                     dataSourceKey: 'api.ephemera',
@@ -345,6 +445,7 @@ describe('app handler', () => {
                     }),
                 })
             )
+            expect(mockMessageBus.flushAndSettle).toHaveBeenCalled()
         })
 
         it('includes requestId on State Change command content when RequestId is on the wire', async () => {
@@ -361,7 +462,7 @@ describe('app handler', () => {
                 },
                 {}
             )
-            const streamingEventCall = mockMessageBus.send.mock.calls.find(
+            const streamingEventCall = mockMessageBus.publish.mock.calls.find(
                 (c) => c[0]?.type === 'StreamingEvent' && c[0]?.dataSourceKey === 'api.ephemera'
             )
             expect(streamingEventCall).toBeDefined()
@@ -399,7 +500,7 @@ describe('app handler', () => {
             )
 
             expect(mockThinkingResultsGet).toHaveBeenCalledWith('work-1')
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'ReturnValue',
                 body: {
                     messageType: 'ThinkingResult',
@@ -407,6 +508,26 @@ describe('app handler', () => {
                     result,
                 },
             })
+        })
+
+        it('returns 400 for ephemeraStateChange with invalid wire markState', async () => {
+            const response = await handler(
+                {
+                    requestContext: { connectionId: 'test-connection' },
+                    body: JSON.stringify({
+                        message: 'ephemeraStateChange',
+                        RequestId: 'req-invalid',
+                        componentId: 'ROOM#x',
+                        markState: {},
+                    }),
+                },
+                {}
+            )
+
+            expect(response).toEqual(expect.objectContaining({ statusCode: 400 }))
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'ReturnValue' })
+            )
         })
 
         it('returns Error when fetchThinkingResult has no stored row', async () => {
@@ -424,7 +545,7 @@ describe('app handler', () => {
                 {}
             )
 
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'ReturnValue',
                 body: {
                     messageType: 'Error',
@@ -448,7 +569,7 @@ describe('app handler', () => {
             )
 
             expect(mockThinkingResultsGet).not.toHaveBeenCalled()
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'ReturnValue',
                 body: {
                     messageType: 'Error',

@@ -13,7 +13,7 @@ export const handleFetchThinkingResult = async (
     const requestId = request.RequestId
 
     if (!requestId) {
-        bus.send({
+        bus.publish({
             type: 'ReturnValue',
             body: {
                 messageType: 'Error',
@@ -25,7 +25,7 @@ export const handleFetchThinkingResult = async (
     }
 
     if (typeof request.workItemId !== 'string' || request.workItemId.length === 0) {
-        bus.send({
+        bus.publish({
             type: 'ReturnValue',
             body: {
                 messageType: 'Error',
@@ -40,7 +40,7 @@ export const handleFetchThinkingResult = async (
     const result = await internalCache.ThinkingResults.get(request.workItemId)
 
     if (result === null) {
-        bus.send({
+        bus.publish({
             type: 'ReturnValue',
             body: {
                 messageType: 'Error',
@@ -53,7 +53,7 @@ export const handleFetchThinkingResult = async (
     }
 
     if (!isThinkingResultEvent(result)) {
-        bus.send({
+        bus.publish({
             type: 'ReturnValue',
             body: {
                 messageType: 'Error',
@@ -65,7 +65,7 @@ export const handleFetchThinkingResult = async (
         return
     }
 
-    bus.send({
+    bus.publish({
         type: 'ReturnValue',
         body: {
             messageType: 'ThinkingResult',

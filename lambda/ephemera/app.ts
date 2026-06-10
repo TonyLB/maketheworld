@@ -164,7 +164,7 @@ export const handler = async (event: any, context: any) => {
         if (isEphemeraAPIMessage(request)) {
             if (isUnregisterCharacterAPIMessage(request)) {
                 if (request.CharacterId && isEphemeraCharacterId(request.CharacterId)) {
-                    messageBus.send({
+                    messageBus.publish({
                         type: 'UnregisterCharacter',
                         characterId: request.CharacterId
                     })
@@ -185,13 +185,13 @@ export const handler = async (event: any, context: any) => {
                     const ephemera = await fetchEphemeraForCharacter({
                         CharacterId: request.CharacterId
                     })
-                    messageBus.send({
+                    messageBus.publish({
                         type: 'ReturnValue',
                         body: ephemera
                     })
                 }
                 else {
-                    messageBus.send({
+                    messageBus.publish({
                         type: 'FetchPlayerEphemera'
                     })
                 }
@@ -216,7 +216,7 @@ export const handler = async (event: any, context: any) => {
             if (isMapSubscribeAPIMessage(request)) {
                 const characterId = request.CharacterId
                 if (isEphemeraCharacterId(characterId)) {
-                    messageBus.send({
+                    messageBus.publish({
                         type: 'SubscribeToMaps',
                         characterId
                     })
@@ -225,7 +225,7 @@ export const handler = async (event: any, context: any) => {
             if (isMapUnsubscribeAPIMessage(request)) {
                 const characterId = request.CharacterId
                 if (isEphemeraCharacterId(characterId)) {
-                    messageBus.send({
+                    messageBus.publish({
                         type: 'UnsubscribeFromMaps',
                         characterId
                     })
@@ -237,7 +237,7 @@ export const handler = async (event: any, context: any) => {
                 if (CharacterId && isEphemeraCharacterId(CharacterId)) {
 
                     if (isEphemeraFeatureId(request.to) || isEphemeraCharacterId(request.to)) {
-                        messageBus.send({
+                        messageBus.publish({
                             type: 'Perception',
                             characterId: CharacterId,
                             ephemeraId: request.to
@@ -245,7 +245,7 @@ export const handler = async (event: any, context: any) => {
                     }
                 }
                 if (isEphemeraKnowledgeId(request.to)) {
-                    messageBus.send({
+                    messageBus.publish({
                         type: 'Perception',
                         characterId: CharacterId,
                         ephemeraId: request.to,
@@ -274,7 +274,7 @@ export const handler = async (event: any, context: any) => {
             }
 
             if (isActionAPIMessage(request)) {
-                messageBus.send({
+                messageBus.publish({
                     type: 'ExecuteAction',
                     action: request
                 })
@@ -288,7 +288,7 @@ export const handler = async (event: any, context: any) => {
                 }
                 if (!isStateChangeCommand(cmd)) {
                     if (request.RequestId) {
-                        messageBus.send({
+                        messageBus.publish({
                             type: 'ReturnValue',
                             body: {
                                 messageType: 'Error',
