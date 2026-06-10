@@ -175,6 +175,7 @@ export const connectionsDataSource = new DataSource<
     dataSourceKey: 'mtw.connections',
     feedbackTopicArn: process.env.FEEDBACK_TOPIC ?? '',
     replayable: false,
+    outboundBusDelivery: 'publish',
     eventSerializer: connectionsEventSerializer,
     subscribedEventTypeGuard: isConnectionsIncomingEnvelope as any,
     receiveEvents: async ({ events }) => {
@@ -184,13 +185,13 @@ export const connectionsDataSource = new DataSource<
                 try {
                     const result = await handleApiConnectionsPayload(content)
                     if (typeof result !== 'undefined') {
-                        messageBus.send({
+                        messageBus.publish({
                             type: 'ReturnValue',
                             body: result as Record<string, any>
                         })
                     }
                 } catch (error) {
-                    messageBus.send({
+                    messageBus.publish({
                         type: 'Error',
                         body: {
                             error: error instanceof Error ? error.message : String(error),

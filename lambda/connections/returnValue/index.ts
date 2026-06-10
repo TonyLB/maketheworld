@@ -1,4 +1,5 @@
-import { MessageBus, isErrorMessage, isReturnValueMessage } from "../messageBus/baseClasses"
+import { MessageBus } from "../messageBus/baseClasses"
+import { getCollectedError, getCollectedReturnValueBody } from "./collector"
 
 const isRestApiGatewayResponse = (body: Record<string, any>): boolean => (
     typeof body.statusCode === 'number' && typeof body.body === 'string'
@@ -14,33 +15,23 @@ const isWebSocketServiceRoute = (event: any): boolean => {
     )
 }
 
-export const extractReturnValue = (messageBus: MessageBus, event?: any) => {
-    const errorMessages = messageBus._stream
-        .map(({ payload }) => (payload))
-        .filter(isErrorMessage)
-
-    if (errorMessages.length > 0) {
-        const error = errorMessages[0]
+export const extractReturnValue = (_messageBus: MessageBus, event?: any) => {
+    const collectedError = getCollectedError()
+    if (collectedError !== undefined) {
         return {
-            statusCode: error.body.statusCode || 400,
+            statusCode: collectedError.statusCode || 400,
             body: JSON.stringify({
-                error: error.body.error
+                error: collectedError.error
             })
         }
     }
 
-    const returnValueMessages = messageBus._stream
-        .map(({ payload }) => (payload))
-        .filter(isReturnValueMessage)
-
-    if (returnValueMessages.length === 0) {
+    const collectedBody = getCollectedReturnValueBody()
+    if (Object.keys(collectedBody).length === 0) {
         return
     }
 
-    const body = returnValueMessages.reduce((previous, { body: messageBody }) => ({
-        ...previous,
-        ...messageBody
-    }), {} as Record<string, any>)
+    const body = collectedBody as Record<string, any>
 
     if (isRestApiGatewayResponse(body)) {
         return body

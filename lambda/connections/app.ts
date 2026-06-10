@@ -8,6 +8,6 @@ import { extractReturnValue } from "./returnValue"
 export const handler = async (event: any) => {
     messageBus.clear()
     await routeConnectionsIngress(event)
-    await messageBus.flush()
+    await messageBus.flushAndSettle()
     return extractReturnValue(messageBus, event)
 }

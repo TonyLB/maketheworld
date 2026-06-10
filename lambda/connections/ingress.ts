@@ -70,7 +70,7 @@ export const routeConnectionsIngress = async (event: any) => {
         if (!isConnectionsSubscribedEnvelope(envelope as any)) {
             throw new Error('Invalid subscribed event for mtw.connections DataSource')
         }
-        messageBus.send({
+        messageBus.publish({
             type: 'StreamingEvent',
             dataSourceKey: envelope.header.dataSourceKey,
             streamKey: envelope.header.streamKey,

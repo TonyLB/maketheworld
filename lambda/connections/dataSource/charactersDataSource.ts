@@ -104,6 +104,7 @@ export const connectionsCharactersDataSource = new DataSource<
     dataSourceKey: "mtw.connections.characters",
     feedbackTopicArn: process.env.FEEDBACK_TOPIC ?? "",
     replayable: false,
+    outboundBusDelivery: 'publish',
     eventSerializer: connectionsCharactersEventSerializer,
     subscribedEventTypeGuard: isConnectionsCharactersSubscribedEnvelope as any,
     receiveEvents: async ({ events, streamEvent }) => {

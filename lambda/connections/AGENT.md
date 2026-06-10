@@ -35,8 +35,8 @@ When changing session storage, update this section so the trade-off stays visibl
   - API Gateway/WebSocket: `$disconnect`, `/validateInvitation`, `/signIn`, `/signUp`, `/accessToken`
   - API Gateway/WebSocket: `service: connections`, `message: registercharacter` (registration ingress authority)
   - direct invoke control messages: `dropConnection`, `checkSession`, `generateInvitation`
-- EventBridge finding intake (`source: mtw.diagnostics`, `detail-type: Stale SessionId Finding`) is adapted into streaming envelopes and sent onto the same shared bus, then routed through DataSource subscription wiring plus subscribed-event guards in [`dataSource/subscribedEvents.ts`](dataSource/subscribedEvents.ts).
-- API/direct-invoke responses now follow the established lambda pattern: API handlers emit bus `ReturnValue`/`Error` messages and ingress returns through [`returnValue/extractReturnValue`](returnValue/index.ts) after `messageBus.flush()`. The interim request-id promise correlation map (`pendingResponses`) was removed.
+- EventBridge finding intake (`source: mtw.diagnostics`, `detail-type: Stale SessionId Finding`) is adapted into streaming envelopes and published onto the same shared bus, then routed through DataSource subscription wiring plus subscribed-event guards in [`dataSource/subscribedEvents.ts`](dataSource/subscribedEvents.ts).
+- API/direct-invoke responses follow the established lambda pattern: API handlers `publish` bus `ReturnValue`/`Error` messages; [`returnValue/collector.ts`](returnValue/collector.ts) (priority **16**) collects them; ingress returns through [`returnValue/extractReturnValue`](returnValue/index.ts) after `messageBus.flushAndSettle()` (reads collectors only, not `_stream`). The interim request-id promise correlation map (`pendingResponses`) was removed.
 - Guard ownership split follows newer ephemera conventions:
   - [`dataSource/apiConnections.ts`](dataSource/apiConnections.ts): synthetic `api.connections` contracts/guards/helpers.
   - [`dataSource/subscribedEvents.ts`](dataSource/subscribedEvents.ts): external subscribed-source guards (`mtw.diagnostics`).
