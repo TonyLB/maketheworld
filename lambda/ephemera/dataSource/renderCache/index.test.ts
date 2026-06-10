@@ -75,7 +75,7 @@ describe('mtw.ephemera.renderCache DataSource', () => {
         })
 
         sendPutCacheRecord(messageBus, 'ROOM#room-one', minimalPutRecord)
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
 
         expect(putCacheRecordMock).toHaveBeenCalledTimes(1)
         expect(putCacheRecordMock).toHaveBeenCalledWith(
@@ -114,7 +114,7 @@ describe('mtw.ephemera.renderCache DataSource', () => {
             conversationId: 'conv-prototype-1',
         }
         sendPutCacheRecord(messageBus, 'ROOM#room-one', withConv)
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
 
         expect(received).toHaveLength(1)
         expect(isRenderCacheCacheUpdatedPayload(received[0])).toBe(true)
@@ -146,7 +146,7 @@ describe('mtw.ephemera.renderCache DataSource', () => {
         })
 
         sendPutCacheRecord(messageBus, 'ROOM#room-one', minimalPutRecord)
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
 
         expect(received).toHaveLength(1)
         expect(isRenderCacheCacheErrorPayload(received[0])).toBe(true)
@@ -179,7 +179,7 @@ describe('mtw.ephemera.renderCache DataSource', () => {
             componentId: 'ROOM#room-one' as const,
             dataCategories: ['CACHE#one', 'CACHE#two'],
         })
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
 
         expect(deleteCacheRecordMock).toHaveBeenCalledTimes(2)
         expect(deleteCacheRecordMock).toHaveBeenCalledWith('ROOM#room-one', 'CACHE#one')
