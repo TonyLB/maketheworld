@@ -29,7 +29,7 @@ const narrateOOCOrSpeech = async (
     }
 }
 
-export const executeAction = async (messageBus: Pick<MessageBus, 'send'>, request: ActionAPIMessage) => {
+export const executeAction = async (messageBus: Pick<MessageBus, 'send' | 'publish'>, request: ActionAPIMessage) => {
     switch(request.actionType) {
         case 'look': {
             const characterId = request.payload.CharacterId
@@ -73,7 +73,7 @@ export const executeAction = async (messageBus: Pick<MessageBus, 'send'>, reques
 }
 
 // Message bus handler for ExecuteAction messages
-export const executeActionMessage = async ({ payloads, messageBus }: { payloads: import('../messageBus/baseClasses').ExecuteActionMessage[], messageBus: Pick<MessageBus, 'send'> }) => {
+export const executeActionMessage = async ({ payloads, messageBus }: { payloads: import('../messageBus/baseClasses').ExecuteActionMessage[], messageBus: Pick<MessageBus, 'send' | 'publish'> }) => {
     await Promise.all(payloads.map(async (message) => {
         await executeAction(messageBus, message.action)
     }))

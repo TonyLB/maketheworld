@@ -29,9 +29,20 @@ Orchestration keeps **policy and multi-step lifecycle sequencing** out of neighb
 
 ## What passive orchestration does today
 
-1. Subscribes to internal `api.ephemera` streaming envelopes with header type **`Render Requested`**, to **`mtw.ephemera.state` `State Changed`** (fan-out, see [Passive state fan-out](#passive-state-fan-out-s--a-union-p)), to sibling **`mtw.ephemera.actions` `Look Command Requested`** (room full-look: [`handleLookCommandRequestedForRenderOrchestration.ts`](handleLookCommandRequestedForRenderOrchestration.ts) + [`subscribedEvents.ts`](subscribedEvents.ts) `isLookCommandRequestedActionsEnvelope`, with a run-scoped perception lane for send+flush ordering), and to **`mtw.connections` `Character Registered`** (session orientation render channel: [`../connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts`](../connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) registers **`sessionOrientationRender`** + kicks **`Render Requested`** with room + perspective only; guards in [`../connectionsCharacterRegistered/subscribedEvents.ts`](../connectionsCharacterRegistered/subscribedEvents.ts)).
-2. Maps `Render Requested` ingress to **`RenderRequested`** and runs **`orchestrateRenderRequest`** (`orchestrationHandler.ts`): intake (`requestIntake.ts`), optional **`Orchestration Error`** from `intakeErrors.ts`, then **`ensureAuthoredCatalog`** (catalog create + hydrate when stale), then **`findRender`**, then **`generateRoomPreview`** on cache miss when policy allows. The **look** path: **`Perception Thread Registered`** on the **same run-scoped** lane (prefix `lookCommand:perceptionThread:` plus `uuidv4()`), **`await messageBus.flush(thatLane)`** so the thread row exists, then **`sendRenderRequested`** on the **default** lane with **`useDefaultMessageBusLane: true`** (no `renderOrchestration:*` lane for that kick; the in-flight `flush` drains default-lane work).
-3. Publishes **six outbound** payload types on **`mtw.ephemera.renderOrchestration`** (union in [`publishedEvents.ts`](publishedEvents.ts)): **`Current Cache Valid`**, **`Exact Match Found`**, **`Generation Started`**, **`Render Generated`**, **`Orchestration Error`**, **`Generation Deferred`**.
+1. Subscribes to internal `api.ephemera` streaming envelopes with header type **`Render Requested`**, to **`mtw.ephemera.state` `State Changed`** (fan-out, see [Passive state fan-out](#passive-state-fan-out-s--a-union-p)), to sibling **`mtw.ephemera.actions` `Look Command Requested`** (room full-look: [`handleLookCommandRequestedForRenderOrchestration.ts`](handleLookCommandRequestedForRenderOrchestration.ts) + [`subscribedEvents.ts`](subscribedEvents.ts) `isLookCommandRequestedActionsEnvelope`), and to **`mtw.connections` `Character Registered`** (session orientation render channel: [`../connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts`](../connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) registers **`sessionOrientationRender`** then runs orchestration directly; guards in [`../connectionsCharacterRegistered/subscribedEvents.ts`](../connectionsCharacterRegistered/subscribedEvents.ts)).
+2. Maps `Render Requested` ingress to **`RenderRequested`** and runs **`orchestrateRenderRequest`** (`orchestrationHandler.ts`): intake (`requestIntake.ts`), optional **`Orchestration Error`** from `intakeErrors.ts`, then **`ensureAuthoredCatalog`** (catalog create + hydrate when stale), then **`findRender`**, then **`generateRoomPreview`** on cache miss when policy allows. **Look** and **session orientation render** register the perception thread via **`internalCache.PerceptionThreads.register`** in the handler, then **`await orchestrateRenderRequest({ payload, streamEvent })`** in the same `receiveEvents` invocation (same pattern as [Passive state fan-out](#passive-state-fan-out-s--a-union-p)); no bus **`Render Requested`** self-subscribe.
+3. Publishes **six outbound** payload types on **`mtw.ephemera.renderOrchestration`** (union in [`publishedEvents.ts`](publishedEvents.ts)): **`Current Cache Valid`**, **`Exact Match Found`**, **`Generation Started`**, **`Render Generated`**, **`Orchestration Error`**, **`Generation Deferred`**. Outbounds use **`outboundBusDelivery: 'publish'`** on the DataSource; boundary **`flushAndSettle`** at lambda exit quiesces concurrent subscribers (no producer-side scoped flush).
+
+### Ingress styles
+
+| Style | When | Examples |
+| --- | --- | --- |
+| **Direct `orchestrateRenderRequest`** | Producer is already inside renderOrchestration `receiveEvents` (or shares `streamEvent` in the same invocation) | Look command, session orientation render, state fan-out |
+| **Bus `Render Requested` kick** (`sendRenderRequested` -> `publish`) | External or cross-module producers not already in the orchestration handler graph | `kickRoomHeaderBroadcast`, legacy `executeAction` room look (P4), integration harnesses, future `api.ephemera` ingress from outside the DS |
+
+### Publish migration (generation anti-deferral)
+
+Slow-path generation previously used a **generation lane** plus **`flushOrchestrationLane`** so **`Generation Started`** reached renderCache and perception before the LLM blocked the invocation. Under **`publish`**, all outbounds publish immediately; **`Generation Started`** and LLM work run **concurrent** with subscribers; invocation quiescence is **boundary drain only** (`flushAndSettle`). Terminal dedupe for duplicate **`Generation Started`** remains a perception contract (see [Single-flight generation](#single-flight-generation)).
 
 ### Generation context (passive slow path)
 
@@ -114,7 +125,7 @@ From [`lambda/ephemera/`](../../): `npm test` (Jest).
 
 **Canonical track:** `orchestrateRenderRequest`, intake, `findRender`, `generateRoomPreview` in this package. Do **not** add a second orchestration stack elsewhere for the same concerns.
 
-**Tests:** Exercise passive orchestration via **`sendRenderRequested`** (see `subscribedEvents.ts`) and assert `StreamingEvent` shapes for **`mtw.ephemera.renderOrchestration`**. Do not reintroduce **`Render Preview Requested`**.
+**Tests:** Exercise passive orchestration via **`sendRenderRequested`** (external kicks; see `subscribedEvents.ts`) or direct **`orchestrateRenderRequest`** in integration tests, and assert `StreamingEvent` shapes for **`mtw.ephemera.renderOrchestration`**. Do not reintroduce **`Render Preview Requested`**.
 
 ## Current constraints
 

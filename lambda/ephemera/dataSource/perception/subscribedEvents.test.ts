@@ -59,10 +59,10 @@ describe('perception subscribedEvents', () => {
         expect(isCharacterPerceptionRequestedIngressEnvelope(rejected)).toBe(false)
     })
 
-    it('sendPerceptionThreadRegistered emits api.ephemera StreamingEvent envelope', async () => {
-        const sent: any[] = []
+    it('sendPerceptionThreadRegistered publishes api.ephemera StreamingEvent envelope', async () => {
+        const published: any[] = []
         sendPerceptionThreadRegistered(
-            { send: (payload) => sent.push(payload) },
+            { publish: (payload) => published.push(payload) },
             'ROOM#ROOM1',
             {
                 threadKind: 'roomDescription',
@@ -71,35 +71,17 @@ describe('perception subscribedEvents', () => {
                 characterId: 'CHARACTER#VIEWER',
             }
         )
-        expect(sent).toHaveLength(1)
-        expect(sent[0].type).toBe('StreamingEvent')
-        expect(sent[0].dataSourceKey).toBe('api.ephemera')
-        expect(sent[0].streamKey).toBe('ROOM#ROOM1')
-        expect(sent[0].header.type).toBe('Perception Thread Registered')
-        expect(await sent[0].getContent()).toMatchObject({
+        expect(published).toHaveLength(1)
+        expect(published[0].type).toBe('StreamingEvent')
+        expect(published[0].dataSourceKey).toBe('api.ephemera')
+        expect(published[0].streamKey).toBe('ROOM#ROOM1')
+        expect(published[0].header.type).toBe('Perception Thread Registered')
+        expect(await published[0].getContent()).toMatchObject({
             threadKind: 'roomDescription',
             componentId: 'ROOM#ROOM1',
             perspectiveKey: 'persp-a',
             characterId: 'CHARACTER#VIEWER',
         })
-    })
-
-    it('sendPerceptionThreadRegistered forwards optional bus lane for flush ordering', () => {
-        const sent: { payload: unknown; lane?: string }[] = []
-        const lane = 'perceptionLane:test'
-        sendPerceptionThreadRegistered(
-            { send: (payload, id) => sent.push({ payload, lane: id }) },
-            'ROOM#R',
-            {
-                threadKind: 'roomDescription',
-                componentId: 'ROOM#R',
-                perspectiveKey: 'p',
-                characterId: 'CHARACTER#C',
-            },
-            lane
-        )
-        expect(sent).toHaveLength(1)
-        expect(sent[0].lane).toBe(lane)
     })
 
     it('isPerceptionThreadRegisteredIngressEnvelope accepts Perception Thread Registered and rejects unrelated', () => {

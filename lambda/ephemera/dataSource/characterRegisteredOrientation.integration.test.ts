@@ -63,7 +63,6 @@ import {
     generateRoomPreview,
     type GenerateRoomPreviewOptions,
 } from './renderOrchestration/generateRoomPreview'
-import { renderOrchestrationIngressLaneId } from './renderOrchestration/subscribedEvents'
 import * as kickRoomHeaderBroadcastModule from './perception/kickRoomHeaderBroadcast'
 import {
     makePassThroughGenerationStartedPayload,
@@ -112,12 +111,10 @@ function sendCharacterRegisteredEvent(event: ConnectionsCharacterRegisteredEvent
     })
 }
 
-async function flushOrientationBus(roomId: string, rounds = 6): Promise<void> {
-    const renderLane = renderOrchestrationIngressLaneId(roomId)
-    const affordanceLane = affordanceOrchestrationIngressLaneId(roomId)
+async function flushOrientationBus(rounds = 6): Promise<void> {
+    const affordanceLane = affordanceOrchestrationIngressLaneId(passThroughFixtureRoomId)
     for (let i = 0; i < rounds; i += 1) {
-        await messageBus.flush()
-        await messageBus.flush(renderLane)
+        await messageBus.flushAndSettle()
         await messageBus.flush(affordanceLane)
     }
 }
@@ -194,9 +191,6 @@ describe('Character Registered session orientation (integration)', () => {
             options: GenerateRoomPreviewOptions
         ) => {
             await options.publishOrchestration(makePassThroughGenerationStartedPayload())
-            if (options.flushOrchestrationLane) {
-                await options.flushOrchestrationLane()
-            }
             await options.publishOrchestration(makePassThroughRenderGeneratedPayload())
             return 'success' as const
         })
@@ -211,7 +205,7 @@ describe('Character Registered session orientation (integration)', () => {
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<OrientationWml />')
 
         sendCharacterRegisteredEvent(characterRegisteredEvent)
-        await flushOrientationBus(passThroughFixtureRoomId)
+        await flushOrientationBus()
 
         const publishes = publishMessagesFromSpy(sendSpy)
         const characterPublishes = publishes.filter((row) => row.targets?.[0] === characterId)

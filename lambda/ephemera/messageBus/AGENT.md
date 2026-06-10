@@ -10,11 +10,9 @@ Partitioned drains (`flush()`, `flush(laneId)`), optional `send(payload, laneId)
 - [`ts/messageBus/index.ts`](../../../packages/mtw-lambda-patterns/ts/messageBus/index.ts) --- implementation
 - [**Message bus lanes** (DataSource `streamEvent`)](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) --- inbound lane inheritance for streaming outbounds
 
-Ephemera-specific usage (for example **`renderOrchestration`** ingress lane and terminal outbounds on the default lane) lives next to those DataSources; see [`../dataSource/renderOrchestration/`](../dataSource/renderOrchestration/).
+Ephemera-specific lane usage for unmigrated DataSources lives next to those packages (for example **`affordanceOrchestration`**). **`renderOrchestration`** migrated to **`publish`** + boundary drain in P3; see [`../dataSource/renderOrchestration/AGENT.md`](../dataSource/renderOrchestration/AGENT.md) (**Ingress styles**, **Publish migration**).
 
-Lambda exit drains the **default** lane in [`../app.ts`](../app.ts) (`messageBus.flush()`). Named-lane work is flushed where orchestration schedules it (see **`generateRoomPreview`** / **`flushOrchestrationLane`**). Event-driven **`look`** also **`flush`es** its run-scoped perception lane inside [`../dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts`](../dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts) before the default-lane **`Render Requested`**.
-
-During the [`publish`/`settle` migration](#publishsettle-migration) below, `InternalMessageBus` also exposes `publish`, `settle`, `flushAndSettle`, and `registerDeferral` / `runDeferrals`. API and drain semantics: package [**publish / settle API**](../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#publish--settle-api). Ephemera lambda boundaries still call `messageBus.flush()` in [`../app.ts`](../app.ts) until those exits use `flushAndSettle()` for hybrid drain.
+Lambda exit drains via **`flushAndSettle`** in [`../app.ts`](../app.ts). Named-lane work remains only on unmigrated paths until their P3/P4 slices land.
 
 ## `publish`/`settle` migration
 

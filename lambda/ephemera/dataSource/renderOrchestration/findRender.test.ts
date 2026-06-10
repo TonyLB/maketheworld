@@ -50,7 +50,6 @@ describe('dataSource/renderOrchestration/findRender', () => {
         perspectiveMatches,
         generateRoomPreview: jest.fn().mockResolvedValue('fail'),
         publishOrchestration: jest.fn().mockResolvedValue(undefined),
-        flushMessageBusLane: jest.fn().mockResolvedValue(undefined),
     })
 
     it('emits Current Cache Valid on valid pointer fast-path', async () => {
@@ -193,7 +192,7 @@ describe('dataSource/renderOrchestration/findRender', () => {
         expect(deps.generateRoomPreview).toHaveBeenCalledWith(
             expect.not.objectContaining({ generationContextWml: expect.anything() }),
             expect.objectContaining({
-                flushOrchestrationLane: expect.any(Function),
+                publishOrchestration: deps.publishOrchestration,
             })
         )
     })

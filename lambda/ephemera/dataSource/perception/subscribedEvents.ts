@@ -10,7 +10,7 @@ import {
     makeStreamingEnvelopeGuardFromHeaderGuard,
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import type { StreamingEventMessage } from '../../messageBus/baseClasses'
+import type { MessageBus, StreamingEventMessage } from '../../messageBus/baseClasses'
 import type { CharacterPerceptionRequestedCommand, PerceptionThreadRegisterCommand } from './localApiEvents'
 import { RENDER_CACHE_DATA_SOURCE_KEY, type RenderCacheRenderPertainsPayload } from '../renderCache/baseClasses'
 import {
@@ -106,7 +106,8 @@ export const isPerceptionSubscribedEnvelope = (
         || isPerceptionAffordancesPertainStreamEnvelope(envelope)
 )
 
-type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }
+type SendBus = Pick<MessageBus, 'send'>
+type PublishBus = Pick<MessageBus, 'publish'>
 
 const apiEphemeraSerializer = {
     serialize: ({ content, header }: { content: object; header: StreamingEventHeader }) => ({
@@ -117,7 +118,7 @@ const apiEphemeraSerializer = {
 
 /** streamKey should be the viewed character id (CHARACTER#...), i.e. command.ephemeraId. */
 export function sendCharacterPerceptionRequested(
-    bus: Bus,
+    bus: SendBus,
     streamKey: string,
     content: CharacterPerceptionRequestedCommand
 ): void {
@@ -141,13 +142,12 @@ export function sendCharacterPerceptionRequested(
 
 /**
  * streamKey should be componentId (ROOM# / FEATURE# / KNOWLEDGE#), matching render-style per-component keys.
- * Optional `laneId` scopes the message for `messageBus.flush(laneId)` ordering (e.g. event-driven look before render).
+ * External kicks only; same-DataSource handoffs register via `internalCache.PerceptionThreads.register` directly.
  */
 export function sendPerceptionThreadRegistered(
-    bus: Bus,
+    bus: PublishBus,
     streamKey: string,
     content: PerceptionThreadRegisterCommand,
-    laneId?: string
 ): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
@@ -157,17 +157,13 @@ export function sendPerceptionThreadRegistered(
         type: 'Perception Thread Registered',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
-    const message = {
-        type: 'StreamingEvent' as const,
+    const message: StreamingEventMessage = {
+        type: 'StreamingEvent',
         dataSourceKey: 'api.ephemera',
         streamKey,
         header: envelope.header,
         getContent: envelope.getContent,
         timestamp,
     }
-    if (laneId !== undefined && laneId !== '') {
-        bus.send(message, laneId)
-    } else {
-        bus.send(message)
-    }
+    bus.publish(message)
 }

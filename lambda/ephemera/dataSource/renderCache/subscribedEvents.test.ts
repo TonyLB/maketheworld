@@ -144,7 +144,7 @@ describe('renderCache subscribedEvents', () => {
             },
         })
         sendRenderOrchestrationPublish(messageBus, passThroughFixtureRoomId, makePassThroughCurrentCacheValidPayload())
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
         expect(captured).toBeDefined()
         expect(isRenderCacheSubscribedEnvelope(captured)).toBe(true)
     })

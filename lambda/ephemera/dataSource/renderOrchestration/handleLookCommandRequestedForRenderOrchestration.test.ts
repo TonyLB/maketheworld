@@ -1,6 +1,4 @@
-import type { MessageBus } from '../../messageBus/baseClasses'
-import * as perceptionSub from '../perception/subscribedEvents'
-import * as roSub from './subscribedEvents'
+import * as orchestrationHandler from './orchestrationHandler'
 import internalCache from '../../internalCache'
 import { resolveCanonAssetStackForRoom, resolveRoomAssetStackForRoom } from '../state/resolveAssetStackForRoom'
 import { filterRoomCanonStackByCharacterAssets } from './fanOutStateChangedToPassiveRenders'
@@ -17,19 +15,24 @@ jest.mock('../state/resolveAssetStackForRoom', () => ({
 jest.mock('./fanOutStateChangedToPassiveRenders', () => ({
     filterRoomCanonStackByCharacterAssets: jest.fn(),
 }))
+jest.mock('./orchestrationHandler', () => ({
+    orchestrateRenderRequest: jest.fn().mockResolvedValue(undefined),
+}))
 
 const internalCacheMock = jest.mocked(internalCache, true as any)
 const mockResolveCanonAssetStackForRoom = resolveCanonAssetStackForRoom as jest.MockedFunction<typeof resolveCanonAssetStackForRoom>
 const mockResolveRoomAssetStackForRoom = resolveRoomAssetStackForRoom as jest.MockedFunction<typeof resolveRoomAssetStackForRoom>
 const mockFilterRoomCanonStackByCharacterAssets = filterRoomCanonStackByCharacterAssets as jest.MockedFunction<typeof filterRoomCanonStackByCharacterAssets>
+const mockOrchestrateRenderRequest = orchestrationHandler.orchestrateRenderRequest as jest.MockedFunction<typeof orchestrationHandler.orchestrateRenderRequest>
 
 describe('handleLookCommandRequestedForRenderOrchestration', () => {
-    const send = jest.fn()
-    const flush = jest.fn<Promise<void>, [string]>().mockResolvedValue(undefined)
-    const bus = { send, flush } as unknown as MessageBus
+    const streamEvent = jest.fn().mockResolvedValue(undefined)
 
     beforeEach(() => {
         jest.clearAllMocks()
+        internalCacheMock.PerceptionThreads = {
+            register: jest.fn(),
+        } as unknown as typeof internalCacheMock.PerceptionThreads
         mockResolveRoomAssetStackForRoom.mockResolvedValue(['ASSET#A', 'ASSET#B'])
         mockResolveCanonAssetStackForRoom.mockResolvedValue(['ASSET#A', 'ASSET#B'])
         internalCacheMock.CharacterMeta = {
@@ -60,39 +63,32 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
         expect(result.perspectiveKey.length).toBeGreaterThan(0)
     })
 
-    it('flushes only the perception lane, then sendRenderRequested with useDefaultMessageBusLane', async () => {
-        const spt = jest.spyOn(perceptionSub, 'sendPerceptionThreadRegistered').mockImplementation(() => {})
-        const srr = jest.spyOn(roSub, 'sendRenderRequested').mockImplementation(() => {})
-
-        await handleLookCommandRequestedForRenderOrchestration(bus, {
+    it('registers roomDescription thread directly then calls orchestrateRenderRequest', async () => {
+        await handleLookCommandRequestedForRenderOrchestration({
             type: 'Look Command Requested',
             characterId: 'CHARACTER#C',
             roomId: 'ROOM#X',
             confidence: 1,
-        })
+        }, streamEvent)
 
-        expect(flush).toHaveBeenCalledTimes(1)
-        const flushedLane = flush.mock.calls[0][0]
-        expect(typeof flushedLane).toBe('string')
-        expect(flushedLane).not.toHaveLength(0)
-        expect(flushedLane).toMatch(/^lookCommand:perceptionThread:/)
-        expect(flush.mock.calls.map((c) => c[0]).join(';')).not.toMatch(/renderOrchestration:/)
-        expect(spt).toHaveBeenCalledWith(
-            bus,
-            'ROOM#X',
-            expect.objectContaining({ threadKind: 'roomDescription' }),
-            flushedLane
+        expect(internalCacheMock.PerceptionThreads.register).toHaveBeenCalledWith(
+            expect.objectContaining({
+                threadKind: 'roomDescription',
+                componentId: 'ROOM#X',
+                characterId: 'CHARACTER#C',
+            })
         )
-        expect(srr).toHaveBeenCalledWith(
-            bus,
-            'ROOM#X',
-            expect.objectContaining({ componentId: 'ROOM#X' }),
-            { useDefaultMessageBusLane: true }
+        expect(mockOrchestrateRenderRequest).toHaveBeenCalledWith(
+            expect.objectContaining({
+                streamEvent,
+                payload: expect.objectContaining({
+                    type: 'RenderRequested',
+                    componentId: 'ROOM#X',
+                    characterId: 'CHARACTER#C',
+                }),
+            })
         )
-        const renderCommand = srr.mock.calls[0][2] as Record<string, unknown>
-        expect(renderCommand.generationContextWml).toBeUndefined()
-
-        spt.mockRestore()
-        srr.mockRestore()
+        const renderPayload = mockOrchestrateRenderRequest.mock.calls[0][0].payload as Record<string, unknown>
+        expect(renderPayload.generationContextWml).toBeUndefined()
     })
 })

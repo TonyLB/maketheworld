@@ -12,7 +12,7 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { perspectiveMatches, computePerspectiveKey as defaultComputePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import type { MessageBus, RenderRequested } from '../../messageBus/baseClasses'
+import type { RenderRequested } from '../../messageBus/baseClasses'
 import { isEphemeraCacheDynamoItem, type EphemeraCacheDynamoItem, type EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import { markStatesEqual } from '../renderCache/utils/markState'
 import { isRenderResolveInputSuccess } from './baseClasses'
@@ -20,7 +20,6 @@ import { getIntakeOrchestrationErrorIfAny } from './intakeErrors'
 import { buildOrchestrationRouting } from './orchestrationRouting'
 import {
     publishRenderOrchestrationStreamEvent,
-    type PublishRenderOrchestrationStreamOptions,
     type RenderOrchestrationPublishedPayload,
 } from './publishedEvents'
 import { findRender } from './findRender'
@@ -84,12 +83,9 @@ export const defaultClearPerspectivePointer = async (roomId: EphemeraRoomId, per
 export const orchestrateRenderRequest = async (
     {
         payload,
-        messageBus,
         streamEvent,
     }: {
         payload: RenderRequested;
-        /** Used for lane-scoped flush alongside generation; stream publishing uses `streamEvent`. */
-        messageBus: MessageBus;
         streamEvent: StreamEventFunction<RenderOrchestrationPublishedPayload>;
     },
     _deps?: OrchestrationPipelineDependencies
@@ -130,7 +126,7 @@ export const orchestrateRenderRequest = async (
             ...routing,
             errorCode: intakeErr.errorCode,
             errorMessage: intakeErr.errorMessage,
-        }, { laneId: '' })
+        })
         return
     }
 
@@ -154,31 +150,8 @@ export const orchestrateRenderRequest = async (
         perspective: intake.perspective,
     })
 
-    /**
-     * Terminal / cache-resolution outbounds use the default lane so a single `flush()` at lambda boundary drains them.
-     * `Generation Started` uses an explicit lane passed from {@link findRender} slow-path (`generateRoomPreview`) so it can flush before long-running work.
-     */
-    const publishOrchestration = async (
-        content: RenderOrchestrationPublishedPayload,
-        laneOverride?: PublishRenderOrchestrationStreamOptions
-    ) => {
-        if (laneOverride !== undefined) {
-            await publishRenderOrchestrationStreamEvent(streamEvent, streamKey, content, laneOverride)
-            return
-        }
-        const useDefaultLane = (
-            content.type === 'Current Cache Valid'
-            || content.type === 'Exact Match Found'
-            || content.type === 'Render Generated'
-            || content.type === 'Orchestration Error'
-            || content.type === 'Generation Deferred'
-        )
-        await publishRenderOrchestrationStreamEvent(
-            streamEvent,
-            streamKey,
-            content,
-            useDefaultLane ? { laneId: '' } : undefined,
-        )
+    const publishOrchestration = async (content: RenderOrchestrationPublishedPayload) => {
+        await publishRenderOrchestrationStreamEvent(streamEvent, streamKey, content)
     }
 
     await findRender(intake, {
@@ -191,6 +164,5 @@ export const orchestrateRenderRequest = async (
         publishOrchestration,
         generateRoomPreview: orchDeps.generateRoomPreview,
         runWithSingleFlight: orchDeps.runWithSingleFlight,
-        flushMessageBusLane: (laneId: string) => messageBus.flush(laneId),
     })
 }
