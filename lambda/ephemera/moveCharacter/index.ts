@@ -132,7 +132,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                             }
                         },
                         successCallback: ({ RoomId }) => {
-                            messageBus.send({
+                            messageBus.publish({
                                 type: 'EphemeraUpdate',
                                 updates: [{
                                     type: 'CharacterInPlay',
@@ -161,15 +161,16 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                             internalCache.RoomCharacterList.set({ key: characterMeta.RoomId, value: activeCharacters })
                             if (priorActiveCharacters.find(({ EphemeraId }) => (EphemeraId === characterMeta.EphemeraId))) {
                                 if (!characterMoveKey && !payload.suppressDeparture) {
-                                    messageBus.send({
+                                    messageBus.publish({
                                         type: 'PublishMessage',
                                         targets: [characterMeta.RoomId, payload.characterId],
                                         displayProtocol: 'WorldMessage',
                                         message: [`${characterMeta.Name || 'Someone'}${payload.leaveMessage || ' has left.'}`],
-                                        messageGroupId: internalCache.OrchestrateMessages.before(messageGroupId)
+                                        messageGroupId: internalCache.OrchestrateMessages.before(messageGroupId),
+                                        deliveryMode: 'deferred',
                                     })
                                 }
-                                messageBus.send({
+                                messageBus.publish({
                                     type: 'RoomUpdate',
                                     roomId: characterMeta.RoomId
                                 })
@@ -203,12 +204,13 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                             internalCache.RoomCharacterList.set({ key: payload.roomId, value: activeCharacters })
                 
                             if (!characterMoveKey && !payload.suppressArrival) {
-                                messageBus.send({
+                                messageBus.publish({
                                     type: 'PublishMessage',
                                     targets: [payload.roomId, payload.suppressSelfMessage ? `!${payload.characterId}` : payload.characterId],
                                     displayProtocol: 'WorldMessage',
                                     message: [`${characterMeta.Name || 'Someone'}${payload.arriveMessage || ' has arrived.' }`],
-                                    messageGroupId: internalCache.OrchestrateMessages.after(messageGroupId)
+                                    messageGroupId: internalCache.OrchestrateMessages.after(messageGroupId),
+                                    deliveryMode: 'deferred',
                                 })
                             }
                         }
@@ -224,7 +226,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                     messageBus,
                 })
                 if (!characterMoveKey && !kickedPassiveRender) {
-                    messageBus.send({
+                    messageBus.publish({
                         type: 'Perception',
                         characterId: payload.characterId,
                         ephemeraId: payload.roomId,
@@ -233,11 +235,11 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                     })
                 }
             }
-            messageBus.send({
+            messageBus.publish({
                 type: 'RoomUpdate',
                 roomId: payload.roomId
             })
-            messageBus.send({
+            messageBus.publish({
                 type: 'MapUpdate',
                 characterId: payload.characterId,
                 previousRoomId: characterMeta.RoomId,

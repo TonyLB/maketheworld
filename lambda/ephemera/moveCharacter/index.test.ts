@@ -17,6 +17,7 @@ jest.mock('../dataSource/renderOrchestration/subscribedEvents', () => {
     }
 })
 import { sendRenderRequested } from '../dataSource/renderOrchestration/subscribedEvents'
+import * as kickRoomHeaderBroadcast from '../dataSource/perception/kickRoomHeaderBroadcast'
 
 import moveCharacter, { RoomStackItem } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
@@ -86,12 +87,12 @@ const wrapMocks = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRoomId, ass
 }
 
 describe('moveCharacter', () => {
-    const messageBusSend = jest.fn()
-    const messageBusMock = { send: messageBusSend } as unknown as MessageBus
+    const messageBusPublish = jest.fn()
+    const messageBusMock = { publish: messageBusPublish } as unknown as MessageBus
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
-        messageBusSend.mockClear()
+        messageBusPublish.mockClear()
         mockSendRenderRequested.mockClear()
         internalCacheMock.Global.get.mockImplementation((key) => (key === 'assets' ? Promise.resolve(['primitives', 'TownCenter']) : Promise.resolve('abcdef')) as any),
         internalCacheMock.CharacterSessions.get.mockResolvedValue(['abcdef'])
@@ -170,7 +171,7 @@ describe('moveCharacter', () => {
                 ]
             })
         }
-        expect(messageBusSend).toHaveBeenCalledWith({
+        expect(messageBusPublish).toHaveBeenCalledWith({
             type: 'EphemeraUpdate',
             updates: [{
                 type: 'CharacterInPlay',
@@ -180,16 +181,16 @@ describe('moveCharacter', () => {
                 connectionTargets: ['GLOBAL', 'SESSION#abcdef'],
             }]
         })
-        expect(messageBusSend).toHaveBeenCalledWith({
+        expect(messageBusPublish).toHaveBeenCalledWith({
             type: 'RoomUpdate',
             roomId: 'ROOM#VORTEX'
         })
-        expect(messageBusSend.mock.calls.filter((c) => (c[0] as { type?: string })?.type === 'Perception')).toHaveLength(0)
-        expect(messageBusSend).toHaveBeenCalledWith({
+        expect(messageBusPublish.mock.calls.filter((c) => (c[0] as { type?: string })?.type === 'Perception')).toHaveLength(0)
+        expect(messageBusPublish).toHaveBeenCalledWith({
             type: 'RoomUpdate',
             roomId: 'ROOM#TestTwo'
         })
-        expect(messageBusSend).toHaveBeenCalledWith({
+        expect(messageBusPublish).toHaveBeenCalledWith({
             type: 'MapUpdate',
             characterId: 'CHARACTER#Test',
             previousRoomId: 'ROOM#VORTEX',
@@ -246,8 +247,8 @@ describe('moveCharacter', () => {
                 ]
             })
         }
-        expect(messageBusSend).toHaveBeenCalledTimes(4)
-        expect(messageBusSend).toHaveBeenCalledWith({
+        expect(messageBusPublish).toHaveBeenCalledTimes(4)
+        expect(messageBusPublish).toHaveBeenCalledWith({
             type: 'EphemeraUpdate',
             updates: [{
                 type: 'CharacterInPlay',
@@ -257,25 +258,26 @@ describe('moveCharacter', () => {
                 connectionTargets: ['GLOBAL', 'SESSION#abcdef'],
             }]
         })
-        expect(messageBusSend).toHaveBeenCalledWith({
+        expect(messageBusPublish).toHaveBeenCalledWith({
             type: 'PublishMessage',
             targets: ['ROOM#VORTEX', '!CHARACTER#Test'],
             displayProtocol: 'WorldMessage',
             message: ['Test has connected.'],
-            messageGroupId: 'UUID#After'
+            messageGroupId: 'UUID#After',
+            deliveryMode: 'deferred',
         })
-        expect(messageBusSend).toHaveBeenCalledWith({
+        expect(messageBusPublish).toHaveBeenCalledWith({
             type: 'RoomUpdate',
             roomId: 'ROOM#VORTEX'
         })
-        expect(messageBusSend).toHaveBeenCalledWith({
+        expect(messageBusPublish).toHaveBeenCalledWith({
             type: 'MapUpdate',
             characterId: 'CHARACTER#Test',
             previousRoomId: 'ROOM#VORTEX',
             roomId: 'ROOM#VORTEX'
         })
         expect(mockSendRenderRequested).not.toHaveBeenCalled()
-        expect(messageBusSend.mock.calls.filter((c) => (c[0] as { type?: string })?.type === 'Perception')).toHaveLength(0)
+        expect(messageBusPublish.mock.calls.filter((c) => (c[0] as { type?: string })?.type === 'Perception')).toHaveLength(0)
     })
 
     it('does not kick room headers on same-room forceMove (orientation owns session bootstrap)', async () => {
@@ -294,12 +296,12 @@ describe('moveCharacter', () => {
             }],
             messageBus: messageBusMock,
         })
-        expect(messageBusSend).toHaveBeenCalledWith(expect.objectContaining({
+        expect(messageBusPublish).toHaveBeenCalledWith(expect.objectContaining({
             type: 'EphemeraUpdate',
             updates: [expect.objectContaining({ type: 'CharacterInPlay', Connected: true })],
         }))
         expect(mockSendRenderRequested).not.toHaveBeenCalled()
-        expect(messageBusSend.mock.calls.filter((c) => (c[0] as { type?: string })?.type === 'Perception')).toHaveLength(0)
+        expect(messageBusPublish.mock.calls.filter((c) => (c[0] as { type?: string })?.type === 'Perception')).toHaveLength(0)
     })
 
     it('kicks passive render with Canon-only perspective when character assets do not overlap', async () => {
@@ -322,6 +324,28 @@ describe('moveCharacter', () => {
                 characterId: 'CHARACTER#Test',
             },
         )
+    })
+
+    it('publishes deferred leave WorldMessage on fallback path when perspectiveKey is empty', async () => {
+        jest.spyOn(kickRoomHeaderBroadcast, 'getCharacterRoomPerspectiveKey').mockResolvedValue(null)
+        jest.spyOn(kickRoomHeaderBroadcast, 'kickPassiveRenderRequestedForCharacterInRoom').mockResolvedValue(false)
+        wrapMocks(
+            [{ asset: 'primitives', RoomId: 'VORTEX' }],
+            'ROOM#TestTwo',
+            assetsIntersectingTestRooms
+        )
+        await moveCharacter({
+            payloads: [{ type: 'MoveCharacter', characterId: 'CHARACTER#Test', roomId: 'ROOM#TestTwo' }],
+            messageBus: messageBusMock,
+        })
+        expect(messageBusPublish).toHaveBeenCalledWith({
+            type: 'PublishMessage',
+            targets: ['ROOM#VORTEX', 'CHARACTER#Test'],
+            displayProtocol: 'WorldMessage',
+            message: ['Test has left.'],
+            messageGroupId: 'UUID#Before',
+            deliveryMode: 'deferred',
+        })
     })
 
     it('should replace items in RoomStack when moved in same asset', async () => {

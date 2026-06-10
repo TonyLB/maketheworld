@@ -292,7 +292,7 @@ For complete testing pattern documentation including dependency injection, real-
 - **`app.ts`**: Main lambda handler with WebSocket routing and EventBridge processing
 - **`perception/index.ts`**: Core perception filtering and character presence detection
 - **`ephemeraUpdate/index.ts`**: Real-time state broadcasting to connected clients
-- **`moveCharacter/index.ts`**: Character movement coordination and room updates
+- **`moveCharacter/index.ts`**: Character movement coordination and room updates; bus outbounds use **`publish`** + boundary **`flushAndSettle`** (P4 MOVE-CHAR); fallback WorldMessage leave/arrive use **`deliveryMode: 'deferred'`**
 - **`executeAction/index.ts`**: Legacy action execution system (under review for removal)
 
 ## Related Documentation
