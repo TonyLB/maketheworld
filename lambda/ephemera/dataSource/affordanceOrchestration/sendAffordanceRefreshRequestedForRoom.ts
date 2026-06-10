@@ -11,9 +11,9 @@ import {
     resolveAffordanceRefreshGroupsForRoom,
     type ResolveAffordanceRefreshGroupsDependencies,
 } from './fanOutAffordanceRefreshForRoom'
-import { sendAffordancesRequested, type SendAffordancesRequestedOptions } from './subscribedEvents'
+import { sendAffordancesRequested } from './subscribedEvents'
 
-export type SendAffordanceRefreshRequestedForRoomOptions = SendAffordancesRequestedOptions & {
+export type SendAffordanceRefreshRequestedForRoomOptions = {
     deps?: ResolveAffordanceRefreshGroupsDependencies;
 }
 
@@ -22,7 +22,6 @@ export const sendAffordanceRefreshRequestedForRoom = async (
         roomId,
         reason,
         messageBus,
-        useDefaultMessageBusLane,
         deps,
     }: {
         roomId: EphemeraRoomId;
@@ -40,7 +39,6 @@ export const sendAffordanceRefreshRequestedForRoom = async (
                 perspective: { assetStack },
                 reason,
             },
-            useDefaultMessageBusLane ? { useDefaultMessageBusLane: true } : undefined
         )
     }
 }

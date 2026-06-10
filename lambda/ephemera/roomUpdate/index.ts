@@ -10,7 +10,6 @@ export const roomUpdateMessage = async ({ payloads, messageBus }: { payloads: Ro
                 roomId,
                 reason: 'roster',
                 messageBus,
-                useDefaultMessageBusLane: true,
             })
         })
     )

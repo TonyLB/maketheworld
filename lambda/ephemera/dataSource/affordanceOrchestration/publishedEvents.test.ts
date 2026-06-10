@@ -112,32 +112,19 @@ describe('isAffordanceOrchestrationPublishedStreamEnvelope', () => {
 })
 
 describe('sendAffordanceOrchestrationPublish', () => {
-    it('sends StreamingEvent with header.type matching payload.type', () => {
-        const bus = { send: jest.fn() }
+    it('publishes StreamingEvent with header.type matching payload.type', () => {
+        const bus = { publish: jest.fn() }
         const content: AffordanceOrchestrationPublishedPayload = {
             type: 'Slice Ready',
             ...routing,
         }
         sendAffordanceOrchestrationPublish(bus, passThroughFixtureRoomId, content)
-        expect(bus.send).toHaveBeenCalledTimes(1)
-        const arg = bus.send.mock.calls[0][0]
+        expect(bus.publish).toHaveBeenCalledTimes(1)
+        const arg = bus.publish.mock.calls[0][0]
         expect(arg.type).toBe('StreamingEvent')
         expect(arg.dataSourceKey).toBe('mtw.ephemera.affordanceOrchestration')
         expect(arg.header.type).toBe('Slice Ready')
         expect(arg.header.streamKey).toBe(passThroughFixtureRoomId)
-        expect(bus.send.mock.calls[0].length).toBe(1)
-    })
-
-    it('passes non-empty laneId as second send argument', () => {
-        const bus = { send: jest.fn() }
-        const content: AffordanceOrchestrationPublishedPayload = {
-            type: 'Orchestration Error',
-            ...routing,
-            errorCode: 'X',
-            errorMessage: 'y',
-        }
-        sendAffordanceOrchestrationPublish(bus, passThroughFixtureRoomId, content, 'lane-x')
-        expect(bus.send.mock.calls[0][1]).toBe('lane-x')
     })
 })
 
@@ -159,7 +146,7 @@ describe('publishAffordanceOrchestrationStreamEvent', () => {
 
 describe('streamEventFromMessageBus', () => {
     it('delegates to sendAffordanceOrchestrationPublish', async () => {
-        const bus = { send: jest.fn() }
+        const bus = { publish: jest.fn() }
         const streamEvent = streamEventFromMessageBus(bus)
         const content: AffordanceOrchestrationPublishedPayload = {
             type: 'Slice Ready',
@@ -170,8 +157,8 @@ describe('streamEventFromMessageBus', () => {
             streamKey: passThroughFixtureRoomId,
             header: { type: content.type },
         })
-        expect(bus.send).toHaveBeenCalledTimes(1)
-        const arg = bus.send.mock.calls[0][0]
+        expect(bus.publish).toHaveBeenCalledTimes(1)
+        const arg = bus.publish.mock.calls[0][0]
         expect(arg.type).toBe('StreamingEvent')
         expect(arg.dataSourceKey).toBe('mtw.ephemera.affordanceOrchestration')
     })

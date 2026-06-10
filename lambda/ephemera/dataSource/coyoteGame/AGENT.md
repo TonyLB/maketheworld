@@ -120,7 +120,7 @@ Product topology narrative (player-facing names) stays aligned in [`AGENT.Coyote
 
 Harness code is under [`generators/testHarness/`](generators/testHarness/):
 
-- Runner: [`generators/testHarness/runCoyoteEngineTestHarness.ts`](generators/testHarness/runCoyoteEngineTestHarness.ts)
+- Runner: [`generators/testHarness/runCoyoteEngineTestHarness.ts`](generators/testHarness/runCoyoteEngineTestHarness.ts) --- publishes fixture diagnostics via **`messageBus.publish`** and drains with **`flushAndSettle`** per fixture (no named lanes).
 - Fixtures: [`generators/testHarness/coyoteEngineTestFixtures.ts`](generators/testHarness/coyoteEngineTestFixtures.ts)
 
 Player-facing slash command (this harness only; not `/test affinities`): **`/test generation`**. Grammar (token order is fixed; phase aliases are case-insensitive):

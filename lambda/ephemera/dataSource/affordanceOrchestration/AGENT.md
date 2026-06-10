@@ -2,7 +2,7 @@
 
 ## Status
 
-**M4 orchestration + cache + perception terminal (landed).** This directory is the canonical home for the `mtw.ephemera.affordanceOrchestration` DataSource. Production adapters from **`RoomUpdate`** (reason: **`roster`**), **`mtw.ephemera.objects` `Objects Changed`** (reason: **`objects`**), and **`mtw.assets.componentTopology` `TopologyInvalidated`** (reason: **`topology`**) are wired. **`orchestrateAffordanceRequest`** calls **`ensureAffordanceTopology`** when needed and emits **`Slice Ready`** / **`Orchestration Error`**. Terminal **`PublishMessage`** is emitted by **`mtw.ephemera.perception`** on **`Affordances Pertain`** (**D38**, [`../perception/handleAffordancesPertain.ts`](../perception/handleAffordancesPertain.ts)).
+**M4 orchestration + cache + perception terminal (landed).** Pass-through migration to **`publish`** + boundary **`flushAndSettle`** is complete (P3). This directory is the canonical home for the `mtw.ephemera.affordanceOrchestration` DataSource. Production adapters from **`RoomUpdate`** (reason: **`roster`**), **`mtw.ephemera.objects` `Objects Changed`** (reason: **`objects`**), and **`mtw.assets.componentTopology` `TopologyInvalidated`** (reason: **`topology`**) are wired. **`orchestrateAffordanceRequest`** calls **`ensureAffordanceTopology`** when needed and emits **`Slice Ready`** / **`Orchestration Error`**. Terminal **`PublishMessage`** is emitted by **`mtw.ephemera.perception`** on **`Affordances Pertain`** (**D38**, [`../perception/handleAffordancesPertain.ts`](../perception/handleAffordancesPertain.ts)).
 
 **Steady-state docs:** [`../affordanceCache/AGENT.md`](../affordanceCache/AGENT.md), [`../../internalCache/AGENT.md`](../../internalCache/AGENT.md) (**Area topology and affordance exits**), [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md). **Precedent:** [`../renderOrchestration/AGENT.md`](../renderOrchestration/AGENT.md) (pass-through orchestration layer).
 
@@ -22,19 +22,26 @@
 
 ## What this layer does today
 
-1. Subscribes to internal **`api.ephemera`** streaming envelopes with header type **`Affordances Requested`** (`sendAffordancesRequested` in [`subscribedEvents.ts`](subscribedEvents.ts)).
+1. Subscribes to internal **`api.ephemera`** streaming envelopes with header type **`Affordances Requested`** (`sendAffordancesRequested` -> **`publish`** in [`subscribedEvents.ts`](subscribedEvents.ts)).
 2. Subscribes to **`mtw.ephemera.objects` `Objects Changed`** and fans out via [`fanOutAffordanceRefreshForRoom.ts`](fanOutAffordanceRefreshForRoom.ts) (direct **`orchestrateAffordanceRequest`**, mirror render **`State Changed`**).
-3. Subscribes to **`mtw.assets.componentTopology` `TopologyInvalidated`** (room-scoped only) and fans out via **`fanOutAffordanceRefreshForRoom`** with reason **`topology`** (area-scoped v1 no-op).
-4. Subscribes to **`mtw.connections` `Character Registered`** (session orientation affordance channel: [`../connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts`](../connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) registers **`sessionOrientationAffordances`** + kicks **`Affordances Requested`** with room + perspective only; guards in [`../connectionsCharacterRegistered/subscribedEvents.ts`](../connectionsCharacterRegistered/subscribedEvents.ts)).
+3. Subscribes to **`mtw.assets.componentTopology` `TopologyInvalidated`** (room-scoped only): **`await handleTopologyInvalidated`** (AFF-CACHE-4), then **`fanOutAffordanceRefreshForRoom`** with reason **`topology`** (area-scoped v1 no-op).
+4. Subscribes to **`mtw.connections` `Character Registered`** (session orientation affordance channel: [`../connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts`](../connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) registers **`sessionOrientationAffordances`**, then **`await orchestrateAffordanceRequest`** in the same `receiveEvents` invocation; guards in [`../connectionsCharacterRegistered/subscribedEvents.ts`](../connectionsCharacterRegistered/subscribedEvents.ts)).
 5. Maps **`Affordances Requested`** ingress to **`AffordancesRequested`** and calls **`orchestrateAffordanceRequest`** ([`orchestrationHandler.ts`](orchestrationHandler.ts)) --- **`ensureAffordanceTopology`** when catalog stale or reason **`topology`**; emits **`Slice Ready`** / **`Orchestration Error`** via **`streamEvent`**.
-6. Defines **five outbound** payload types in [`publishedEvents.ts`](publishedEvents.ts). **v1-active:** **`Slice Ready`**, **`Orchestration Error`**. **Future LLM:** **`Enrichment Started`**, **`Enrichment Complete`**, **`Enrichment Deferred`** (contract encoded in skipped tests).
+6. Defines **five outbound** payload types in [`publishedEvents.ts`](publishedEvents.ts). **v1-active:** **`Slice Ready`**, **`Orchestration Error`**. Outbounds use **`outboundBusDelivery: 'publish'`** on the DataSource; boundary **`flushAndSettle`** at lambda exit quiesces concurrent subscribers (no producer-side scoped flush).
+
+### Ingress styles
+
+| Style | When | Examples |
+| --- | --- | --- |
+| **Direct `orchestrateAffordanceRequest`** | Producer is already inside affordanceOrchestration `receiveEvents` (or shares `streamEvent` in the same invocation) | Session orientation affordances, Objects Changed fan-out, TopologyInvalidated fan-out |
+| **Bus `Affordances Requested` kick** (`sendAffordancesRequested` -> `publish`) | External or cross-module producers not already in the orchestration handler graph | `RoomUpdate` / `sendAffordanceRefreshRequestedForRoom`, integration harnesses |
 
 **External adapters (outside this DataSource):**
 
 | Trigger | Helper | Dispatch |
 | --- | --- | --- |
-| Internal bus **`type: 'RoomUpdate'`** | [`sendAffordanceRefreshRequestedForRoom.ts`](sendAffordanceRefreshRequestedForRoom.ts) | **`sendAffordancesRequested`** (reason: **`roster`**, default bus lane) |
-| **`mtw.assets.componentTopology` `TopologyInvalidated`** | [`index.ts`](index.ts) **`receiveEvents`** | **`fanOutAffordanceRefreshForRoom`** (reason: **`topology`**, room-scoped only) |
+| Internal bus **`type: 'RoomUpdate'`** | [`sendAffordanceRefreshRequestedForRoom.ts`](sendAffordanceRefreshRequestedForRoom.ts) | **`sendAffordancesRequested`** -> **`publish`** (reason: **`roster`**) |
+| **`mtw.assets.componentTopology` `TopologyInvalidated`** | [`index.ts`](index.ts) **`receiveEvents`** | **`handleTopologyInvalidated`** then **`fanOutAffordanceRefreshForRoom`** (reason: **`topology`**, room-scoped only) |
 
 Wiring: [`app.ts`](../../app.ts) side-effect imports `./dataSource/affordanceOrchestration` ([`index.ts`](index.ts)).
 
@@ -54,11 +61,11 @@ Handled in [`index.ts`](index.ts) **`receiveEvents`**: **`fanOutAffordanceRefres
 
 ### `mtw.assets.componentTopology` **`TopologyInvalidated`**
 
-Handled in [`index.ts`](index.ts) **`receiveEvents`**: room-scoped events fan out with reason **`topology`**; area-scoped events (no **`roomIds`**) are a v1 no-op (**D35**). **`affordanceCache`** catalog bump runs at message-bus priority **4** before orchestration fan-out at priority **5**.
+Handled in [`index.ts`](index.ts) **`receiveEvents`**: **`await handleTopologyInvalidated`** (AFF-CACHE-4), then room-scoped fan-out with reason **`topology`**; area-scoped events (no **`roomIds`**) are a v1 no-op (**D35**). **`affordanceCache`** may still receive the same event on its own subscription (idempotent catalog bump).
 
 ### `mtw.connections` **`Character Registered`**
 
-Handled in [`index.ts`](index.ts) **`receiveEvents`**: [`handleCharacterRegisteredOrientation`](../connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) with channel **`affordances`** (parallel with render orchestration on the same event). Registers **`sessionOrientationAffordances`** thread with **`characterId`** targets, then **`sendAffordancesRequested`** (`reason: 'roster'`) with routing identity only.
+Handled in [`index.ts`](index.ts) **`receiveEvents`**: [`handleCharacterRegisteredOrientation`](../connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) with channel **`affordances`** (parallel with render orchestration on the same event). Registers **`sessionOrientationAffordances`** thread with **`characterId`** targets, then **`await orchestrateAffordanceRequest`** with routing identity only.
 
 ## Stream outbounds (contract)
 

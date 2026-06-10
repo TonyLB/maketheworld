@@ -12,6 +12,7 @@
 import EphemeraDataSource from '../abstract'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isRoomScopedTopologyInvalidated } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/componentTopology'
+import { isTopologyInvalidatedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/componentTopology'
 import { isConnectionsCharacterRegisteredEnvelope } from '../connectionsCharacterRegistered/subscribedEvents'
 import { handleCharacterRegisteredOrientation } from '../connectionsCharacterRegistered/handleCharacterRegisteredOrientation'
 import {
@@ -22,6 +23,7 @@ import {
     type AffordanceOrchestrationSubscribedContent,
 } from './subscribedEvents'
 import { isComponentTopologyInvalidatedEnvelope } from '../affordanceCache/subscribedEvents'
+import { handleTopologyInvalidated } from '../affordanceCache/handleTopologyInvalidated'
 import { isAffordancesRequestedCommand } from './localApiEvents'
 import { orchestrateAffordanceRequest } from './orchestrationHandler'
 import { fanOutAffordanceRefreshForRoom } from './fanOutAffordanceRefreshForRoom'
@@ -51,22 +53,26 @@ export const affordanceOrchestrationDataSource = new EphemeraDataSource<
     dataSourceKey: 'mtw.ephemera.affordanceOrchestration',
     replayable: false,
     publisherStrategy: 'busOnly',
+    outboundBusDelivery: 'publish',
     subscribedEventTypeGuard: isAffordanceOrchestrationSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (event) => {
             if (isComponentTopologyInvalidatedEnvelope(event)) {
-                const raw = await event.getContent()
-                if (!isRoomScopedTopologyInvalidated(raw)) {
+                const invalidated = await event.getContent()
+                if (!isTopologyInvalidatedEvent(invalidated)) {
                     return
                 }
-                for (const roomIdRaw of raw.roomIds) {
+                if (!isRoomScopedTopologyInvalidated(invalidated)) {
+                    return
+                }
+                await handleTopologyInvalidated(invalidated)
+                for (const roomIdRaw of invalidated.roomIds) {
                     if (!isEphemeraRoomId(roomIdRaw)) {
                         continue
                     }
                     await fanOutAffordanceRefreshForRoom({
                         roomId: roomIdRaw,
                         reason: 'topology',
-                        messageBus,
                         streamEvent,
                     })
                 }
@@ -80,14 +86,13 @@ export const affordanceOrchestrationDataSource = new EphemeraDataSource<
                 await fanOutAffordanceRefreshForRoom({
                     roomId: raw.componentId,
                     reason: 'objects',
-                    messageBus,
                     streamEvent,
                 })
                 return
             }
             if (isConnectionsCharacterRegisteredEnvelope(event)) {
                 const payload = await event.getContent()
-                await handleCharacterRegisteredOrientation(messageBus, payload, 'affordances')
+                await handleCharacterRegisteredOrientation(messageBus, payload, 'affordances', undefined, streamEvent)
                 return
             }
             if (!isAffordanceOrchestrationIngressEnvelope(event)) {
@@ -99,7 +104,6 @@ export const affordanceOrchestrationDataSource = new EphemeraDataSource<
             }
             await orchestrateAffordanceRequest({
                 payload,
-                messageBus,
                 streamEvent,
             })
         }))

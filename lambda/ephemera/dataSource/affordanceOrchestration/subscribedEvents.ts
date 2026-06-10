@@ -12,7 +12,7 @@ import {
     makeStreamingEnvelopeGuardFromHeaderGuard,
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import type { StreamingEventMessage } from '../../messageBus/baseClasses'
+import type { MessageBus, StreamingEventMessage } from '../../messageBus/baseClasses'
 import type {
     AffordanceOrchestrationIngressCommand,
     AffordancesRequestedCommand,
@@ -75,12 +75,7 @@ export const isAffordanceOrchestrationSubscribedEnvelope = (
         || isConnectionsCharacterRegisteredEnvelope(envelope)
 )
 
-type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }
-
-/** Stable message-bus lane for an affordance-orchestration work unit; matches ingress {@link sendAffordancesRequested}. */
-export function affordanceOrchestrationIngressLaneId(streamKey: string): string {
-    return `affordanceOrchestration:${streamKey}`
-}
+type PublishBus = Pick<MessageBus, 'publish'>
 
 const apiEphemeraSerializer = {
     serialize: ({ content, header }: { content: object; header: StreamingEventHeader }) => ({
@@ -89,19 +84,14 @@ const apiEphemeraSerializer = {
     }),
 }
 
-export type SendAffordancesRequestedOptions = {
-    /**
-     * When set, the message is on the default bus lane so an in-flight `flush` picks it up.
-     * Otherwise uses {@link affordanceOrchestrationIngressLaneId}.
-     */
-    useDefaultMessageBusLane?: boolean
-}
-
+/**
+ * External / cross-module kick: publish `api.ephemera` `Affordances Requested` for affordanceOrchestration ingress.
+ * Same-DataSource handoffs (session orientation, Objects Changed fan-out) call {@link orchestrateAffordanceRequest} directly.
+ */
 export function sendAffordancesRequested(
-    bus: Bus,
+    bus: PublishBus,
     streamKey: string,
     content: AffordancesRequestedCommand,
-    options?: SendAffordancesRequestedOptions
 ): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
@@ -119,12 +109,5 @@ export function sendAffordancesRequested(
         getContent: envelope.getContent,
         timestamp,
     }
-    if (options?.useDefaultMessageBusLane) {
-        bus.send(message)
-    } else {
-        bus.send(
-            message,
-            affordanceOrchestrationIngressLaneId(streamKey),
-        )
-    }
+    bus.publish(message)
 }

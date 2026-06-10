@@ -1,8 +1,13 @@
 import { affordanceOrchestrationDataSource } from './index'
 import * as orchestrationHandler from './orchestrationHandler'
 import * as fanOutAffordanceRefresh from './fanOutAffordanceRefreshForRoom'
+import * as topologyInvalidatedHandler from '../affordanceCache/handleTopologyInvalidated'
 import * as orientationHandler from '../connectionsCharacterRegistered/handleCharacterRegisteredOrientation'
 import messageBus from '../../messageBus'
+
+jest.mock('../affordanceCache/handleTopologyInvalidated', () => ({
+    handleTopologyInvalidated: jest.fn().mockResolvedValue(undefined),
+}))
 
 describe('mtw.ephemera.affordanceOrchestration DataSource', () => {
     beforeEach(() => {
@@ -42,9 +47,15 @@ describe('mtw.ephemera.affordanceOrchestration DataSource', () => {
         orchestrateSpy.mockRestore()
     })
 
-    it('delegates mtw.assets.componentTopology TopologyInvalidated to fanOutAffordanceRefreshForRoom', async () => {
+    it('delegates mtw.assets.componentTopology TopologyInvalidated to fanOutAffordanceRefreshForRoom after catalog bump (AFF-CACHE-4)', async () => {
+        const topologySpy = jest.spyOn(topologyInvalidatedHandler, 'handleTopologyInvalidated').mockResolvedValue(undefined)
         const fanOutSpy = jest.spyOn(fanOutAffordanceRefresh, 'fanOutAffordanceRefreshForRoom').mockResolvedValue(undefined)
         const orchestrateSpy = jest.spyOn(orchestrationHandler, 'orchestrateAffordanceRequest').mockResolvedValue(undefined)
+        const invalidated = {
+            type: 'TopologyInvalidated' as const,
+            roomIds: ['ROOM#topo'],
+            editAssetId: 'ASSET#edit' as const,
+        }
         const events: any[] = [
             {
                 header: {
@@ -53,11 +64,7 @@ describe('mtw.ephemera.affordanceOrchestration DataSource', () => {
                     timestamp: Date.now(),
                     type: 'TopologyInvalidated',
                 },
-                getContent: () => Promise.resolve({
-                    type: 'TopologyInvalidated',
-                    roomIds: ['ROOM#topo'],
-                    editAssetId: 'ASSET#edit',
-                }),
+                getContent: () => Promise.resolve(invalidated),
             },
         ]
 
@@ -67,12 +74,15 @@ describe('mtw.ephemera.affordanceOrchestration DataSource', () => {
             streamEnvelope: jest.fn().mockResolvedValue(undefined),
         })
 
+        expect(topologySpy).toHaveBeenCalledWith(invalidated)
         expect(fanOutSpy).toHaveBeenCalledTimes(1)
         expect(fanOutSpy.mock.calls[0][0]).toMatchObject({
             roomId: 'ROOM#topo',
             reason: 'topology',
         })
+        expect(topologySpy.mock.invocationCallOrder[0]).toBeLessThan(fanOutSpy.mock.invocationCallOrder[0])
         expect(orchestrateSpy).not.toHaveBeenCalled()
+        topologySpy.mockRestore()
         fanOutSpy.mockRestore()
         orchestrateSpy.mockRestore()
     })
@@ -157,14 +167,16 @@ describe('mtw.ephemera.affordanceOrchestration DataSource', () => {
             },
         ]
 
+        const streamEvent = jest.fn().mockResolvedValue(undefined)
+
         await affordanceOrchestrationDataSource.receiveEvents?.({
             events,
-            streamEvent: jest.fn().mockResolvedValue(undefined),
+            streamEvent,
             streamEnvelope: jest.fn().mockResolvedValue(undefined),
         })
 
         expect(orientationSpy).toHaveBeenCalledTimes(1)
-        expect(orientationSpy).toHaveBeenCalledWith(messageBus, payload, 'affordances')
+        expect(orientationSpy).toHaveBeenCalledWith(messageBus, payload, 'affordances', undefined, streamEvent)
         expect(orchestrateSpy).not.toHaveBeenCalled()
         orientationSpy.mockRestore()
         orchestrateSpy.mockRestore()

@@ -48,10 +48,16 @@ function okPipeline(intentLine: string): GenerateHypothesisPipelineResult {
     }
 }
 
+function makeHarnessMessageBus() {
+    return {
+        publish: jest.fn(),
+        flushAndSettle: jest.fn().mockResolvedValue(undefined),
+    }
+}
+
 describe('runCoyoteEngineTestHarness', () => {
     it('publishes one WorldOOCMessage per fixture', async () => {
-        const send = jest.fn()
-        const flush = jest.fn().mockResolvedValue(undefined)
+        const { publish, flushAndSettle } = makeHarnessMessageBus()
         const pipeline = jest.fn().mockImplementation(async (): Promise<GenerateHypothesisPipelineResult> =>
             okPipeline('Hypothesis: It looks like you are trying to set a trap.')
         )
@@ -63,32 +69,27 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush, publish: jest.fn() },
+            messageBus: { publish, flushAndSettle },
             fixtures: simpleFixtures,
             generateHypothesisPipelineImpl: pipeline,
             now,
         })
 
-        expect(send).toHaveBeenCalledTimes(simpleFixtures.length)
-        expect(flush).toHaveBeenCalledTimes(simpleFixtures.length)
+        expect(publish).toHaveBeenCalledTimes(simpleFixtures.length)
+        expect(flushAndSettle).toHaveBeenCalledTimes(simpleFixtures.length)
         expect(pipeline).toHaveBeenCalledTimes(simpleFixtures.length)
-        const sendLanes = send.mock.calls.map((call) => call[1] as string)
-        const flushLanes = flush.mock.calls.map((call) => call[0] as string)
-        expect([...sendLanes].sort()).toEqual([...flushLanes].sort())
-        for (const call of send.mock.calls) {
+        for (const call of publish.mock.calls) {
             expect(call[0]).toMatchObject({
                 type: 'PublishMessage',
                 targets: ['CHARACTER#runner'],
                 displayProtocol: 'WorldOOCMessage',
             })
-            expect(typeof call[1]).toBe('string')
             expect(Array.isArray((call[0] as { message: RenderTree }).message)).toBe(true)
         }
     })
 
     it('continues on error and still publishes one line per fixture', async () => {
-        const send = jest.fn()
-        const flush = jest.fn().mockResolvedValue(undefined)
+        const { publish, flushAndSettle } = makeHarnessMessageBus()
         const pipeline = jest
             .fn()
             .mockResolvedValueOnce(okPipeline('Hypothesis: ok'))
@@ -104,14 +105,14 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush, publish: jest.fn() },
+            messageBus: { publish, flushAndSettle },
             fixtures: simpleFixtures,
             generateHypothesisPipelineImpl: pipeline,
         })
 
-        expect(send).toHaveBeenCalledTimes(simpleFixtures.length)
-        expect(flush).toHaveBeenCalledTimes(simpleFixtures.length)
-        const rendered = send.mock.calls.map((call) =>
+        expect(publish).toHaveBeenCalledTimes(simpleFixtures.length)
+        expect(flushAndSettle).toHaveBeenCalledTimes(simpleFixtures.length)
+        const rendered = publish.mock.calls.map((call) =>
             renderTreeToString((call[0] as { message: RenderTree }).message)
         )
         expect(rendered.some((msg) => msg.includes('error: Throttled'))).toBe(true)
@@ -122,8 +123,7 @@ describe('runCoyoteEngineTestHarness', () => {
     })
 
     it('includes fixture index, elapsed timing, and per-stage usage metrics lines', async () => {
-        const send = jest.fn()
-        const flush = jest.fn().mockResolvedValue(undefined)
+        const { publish, flushAndSettle } = makeHarnessMessageBus()
         const stageOneSeamBody = JSON.stringify({
             clusters: [{ clusterName: 'Cluster A', members: [{ stableKey: 'anvil-0' }] }],
         })
@@ -176,15 +176,14 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush, publish: jest.fn() },
+            messageBus: { publish, flushAndSettle },
             fixtures: [simpleFixtures[0]],
             generateHypothesisPipelineImpl: pipeline,
             now,
         })
 
-        expect(flush).toHaveBeenCalledTimes(1)
-        expect(flush.mock.calls[0][0]).toBe(send.mock.calls[0][1])
-        const message = (send.mock.calls[0][0] as { message: RenderTree }).message
+        expect(flushAndSettle).toHaveBeenCalledTimes(1)
+        const message = (publish.mock.calls[0][0] as { message: RenderTree }).message
         const flat = renderTreeToString(message)
         expect(flat).toContain('1/1 fixture-01')
         expect(flat).toContain('Hypothesis: It looks like you are trying to launch a boulder.')
@@ -202,8 +201,7 @@ describe('runCoyoteEngineTestHarness', () => {
     })
 
     it('respects testBatchSize concurrency limit', async () => {
-        const send = jest.fn()
-        const flush = jest.fn().mockResolvedValue(undefined)
+        const { publish, flushAndSettle } = makeHarnessMessageBus()
         let inFlight = 0
         let maxInFlight = 0
         const resolvers: Array<() => void> = []
@@ -221,7 +219,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         const runPromise = runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush, publish: jest.fn() },
+            messageBus: { publish, flushAndSettle },
             fixtures: simpleFixtures,
             generateHypothesisPipelineImpl: pipeline,
             testBatchSize: 2,
@@ -244,13 +242,12 @@ describe('runCoyoteEngineTestHarness', () => {
         }
 
         await runPromise
-        expect(send).toHaveBeenCalledTimes(simpleFixtures.length)
-        expect(flush).toHaveBeenCalledTimes(simpleFixtures.length)
+        expect(publish).toHaveBeenCalledTimes(simpleFixtures.length)
+        expect(flushAndSettle).toHaveBeenCalledTimes(simpleFixtures.length)
     })
 
     it('partial runUntil passes harness options as the second argument to the pipeline impl', async () => {
-        const send = jest.fn()
-        const flush = jest.fn().mockResolvedValue(undefined)
+        const { publish, flushAndSettle } = makeHarnessMessageBus()
         const pipeline = jest.fn().mockResolvedValue({
             kind: 'harnessPartial',
             testOnly: 'candidates',
@@ -265,7 +262,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush, publish: jest.fn() },
+            messageBus: { publish, flushAndSettle },
             fixtures: [simpleFixtures[0]],
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {
@@ -282,8 +279,7 @@ describe('runCoyoteEngineTestHarness', () => {
     })
 
     it('partial runUntil candidates passes affordance-rich room objects unchanged', async () => {
-        const send = jest.fn()
-        const flush = jest.fn().mockResolvedValue(undefined)
+        const { publish, flushAndSettle } = makeHarnessMessageBus()
         const affordanceFixture: CoyoteEngineTestFixture = {
             id: 'fixture-affordance',
             roomObjectsByRoom: {
@@ -314,7 +310,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush, publish: jest.fn() },
+            messageBus: { publish, flushAndSettle },
             fixtures: [affordanceFixture],
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {
@@ -336,8 +332,7 @@ describe('runCoyoteEngineTestHarness', () => {
     })
 
     it('partial harness partial result labels skipped stages as (not run) and prints harness banner', async () => {
-        const send = jest.fn()
-        const flush = jest.fn().mockResolvedValue(undefined)
+        const { publish, flushAndSettle } = makeHarnessMessageBus()
         const pipeline = jest.fn().mockResolvedValue({
             kind: 'harnessPartial',
             testOnly: 'candidates',
@@ -352,7 +347,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush, publish: jest.fn() },
+            messageBus: { publish, flushAndSettle },
             fixtures: [simpleFixtures[0]],
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {
@@ -362,7 +357,7 @@ describe('runCoyoteEngineTestHarness', () => {
             },
         })
 
-        const rendered = renderTreeToString((send.mock.calls[0][0] as { message: RenderTree }).message)
+        const rendered = renderTreeToString((publish.mock.calls[0][0] as { message: RenderTree }).message)
         expect(rendered).toContain('harness: runUntil candidates')
         expect(rendered).toContain('usagePlanSelection: (not run)')
         expect(rendered).toContain('usageNarrativeBeat: (not run)')
@@ -372,8 +367,7 @@ describe('runCoyoteEngineTestHarness', () => {
     })
 
     it('partial runUntil planSelect falls back to planSelectionResult body for selectionBody', async () => {
-        const send = jest.fn()
-        const flush = jest.fn().mockResolvedValue(undefined)
+        const { publish, flushAndSettle } = makeHarnessMessageBus()
         const pipeline = jest.fn().mockResolvedValue({
             kind: 'harnessPartial',
             testOnly: 'planSelect',
@@ -394,7 +388,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush, publish: jest.fn() },
+            messageBus: { publish, flushAndSettle },
             fixtures: [simpleFixtures[0]],
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {
@@ -404,7 +398,7 @@ describe('runCoyoteEngineTestHarness', () => {
             },
         })
 
-        const rendered = renderTreeToString((send.mock.calls[0][0] as { message: RenderTree }).message)
+        const rendered = renderTreeToString((publish.mock.calls[0][0] as { message: RenderTree }).message)
         expect(rendered).toContain(
             'selectionBody:\n{"paragraphSummary":"winner","planIssues":[{"code":"DIRECTION_AMBIGUOUS","summary":"winner"}]}'
         )
@@ -414,13 +408,12 @@ describe('runCoyoteEngineTestHarness', () => {
     })
 
     it('runOnly planSelect without inject publishes OOC error and does not call the pipeline', async () => {
-        const send = jest.fn()
-        const flush = jest.fn().mockResolvedValue(undefined)
+        const { publish, flushAndSettle } = makeHarnessMessageBus()
         const pipeline = jest.fn()
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush, publish: jest.fn() },
+            messageBus: { publish, flushAndSettle },
             fixtures: [simpleFixtures[0]],
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {
@@ -432,15 +425,14 @@ describe('runCoyoteEngineTestHarness', () => {
         })
 
         expect(pipeline).not.toHaveBeenCalled()
-        expect(send).toHaveBeenCalledTimes(1)
-        const ooc = (send.mock.calls[0][0] as { message: string[] }).message
+        expect(publish).toHaveBeenCalledTimes(1)
+        const ooc = (publish.mock.calls[0][0] as { message: string[] }).message
         expect(ooc[0]).toContain('planSelect')
         expect(ooc[0]).toContain('does not yet supply')
     })
 
     it('runOnly planSelect with inject calls pipeline with injected combined state', async () => {
-        const send = jest.fn()
-        const flush = jest.fn().mockResolvedValue(undefined)
+        const { publish, flushAndSettle } = makeHarnessMessageBus()
         const pipeline = jest.fn().mockResolvedValue({
             kind: 'harnessPartial',
             testOnly: 'planSelect',
@@ -470,7 +462,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush, publish: jest.fn() },
+            messageBus: { publish, flushAndSettle },
             fixtures: fixturesWithInject,
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {
@@ -494,8 +486,7 @@ describe('runCoyoteEngineTestHarness', () => {
     })
 
     it('runOnly narrativeBeats with inject calls pipeline with structured planSelect output', async () => {
-        const send = jest.fn()
-        const flush = jest.fn().mockResolvedValue(undefined)
+        const { publish, flushAndSettle } = makeHarnessMessageBus()
         const pipeline = jest.fn().mockResolvedValue({
             kind: 'harnessPartial',
             testOnly: 'narrativeBeats',
@@ -554,7 +545,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush, publish: jest.fn() },
+            messageBus: { publish, flushAndSettle },
             fixtures: fixturesWithInject,
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {
@@ -581,51 +572,48 @@ describe('runCoyoteEngineTestHarness', () => {
     })
 
     it('full mode with fixtureIndex1Based runs one fixture', async () => {
-        const send = jest.fn()
-        const flush = jest.fn().mockResolvedValue(undefined)
+        const { publish, flushAndSettle } = makeHarnessMessageBus()
         const pipeline = jest.fn().mockImplementation(async (): Promise<GenerateHypothesisPipelineResult> =>
             okPipeline('Hypothesis: single')
         )
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush, publish: jest.fn() },
+            messageBus: { publish, flushAndSettle },
             fixtures: simpleFixtures,
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: { mode: 'full', fixtureIndex1Based: 2 },
         })
 
         expect(pipeline).toHaveBeenCalledTimes(1)
-        expect(send).toHaveBeenCalledTimes(1)
+        expect(publish).toHaveBeenCalledTimes(1)
     })
 
     it('invalid full-mode fixture index sends OOC error and does not call the pipeline', async () => {
-        const send = jest.fn()
-        const flush = jest.fn().mockResolvedValue(undefined)
+        const { publish, flushAndSettle } = makeHarnessMessageBus()
         const pipeline = jest.fn()
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush, publish: jest.fn() },
+            messageBus: { publish, flushAndSettle },
             fixtures: simpleFixtures,
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: { mode: 'full', fixtureIndex1Based: 99 },
         })
 
         expect(pipeline).not.toHaveBeenCalled()
-        expect(send).toHaveBeenCalledTimes(1)
-        const payload = send.mock.calls[0][0] as { message: string[] }
+        expect(publish).toHaveBeenCalledTimes(1)
+        const payload = publish.mock.calls[0][0] as { message: string[] }
         expect(payload.message[0]).toContain('fixture index must be an integer')
     })
 
     it('invalid partial fixture index sends a single OOC error and does not call the pipeline', async () => {
-        const send = jest.fn()
-        const flush = jest.fn().mockResolvedValue(undefined)
+        const { publish, flushAndSettle } = makeHarnessMessageBus()
         const pipeline = jest.fn()
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send, flush, publish: jest.fn() },
+            messageBus: { publish, flushAndSettle },
             fixtures: simpleFixtures,
             generateHypothesisPipelineImpl: pipeline,
             harnessInvocation: {
@@ -637,8 +625,8 @@ describe('runCoyoteEngineTestHarness', () => {
         })
 
         expect(pipeline).not.toHaveBeenCalled()
-        expect(send).toHaveBeenCalledTimes(1)
-        const payload = send.mock.calls[0][0] as { message: string[] }
+        expect(publish).toHaveBeenCalledTimes(1)
+        const payload = publish.mock.calls[0][0] as { message: string[] }
         expect(payload.message[0]).toContain('fixture index must be an integer')
     })
 })
