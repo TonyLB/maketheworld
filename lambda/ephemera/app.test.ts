@@ -18,6 +18,7 @@ describe('app handler', () => {
         mockMessageBus.settle.mockResolvedValue(false)
         mockMessageBus.flushAndSettle.mockResolvedValue(undefined)
         mockMessageBus.send.mockReturnValue(undefined)
+        mockMessageBus.publish.mockReturnValue(undefined)
         mockThinkingResultsGet = jest.fn()
         ;(internalCache as unknown as { ThinkingResults: { get: jest.Mock } }).ThinkingResults = {
             get: mockThinkingResultsGet,
@@ -167,7 +168,7 @@ describe('app handler', () => {
     })
 
     describe('EventBridge messages (single path: fromEventBridgeFormat -> deserialize)', () => {
-        it('should use fromEventBridgeFormat and pass coreFormat.update + header to deserialize, then send StreamingEvent', async () => {
+        it('should use fromEventBridgeFormat and pass coreFormat.update + header to deserialize, then publish StreamingEvent', async () => {
             const event = {
                 source: 'mtw.assets',
                 'detail-type': 'Asset Decached',
@@ -180,7 +181,7 @@ describe('app handler', () => {
 
             await handler(event, {})
 
-            expect(mockMessageBus.send).toHaveBeenCalledWith(
+            expect(mockMessageBus.publish).toHaveBeenCalledWith(
                 expect.objectContaining({
                     type: 'StreamingEvent',
                     dataSourceKey: 'mtw.assets',
@@ -192,7 +193,7 @@ describe('app handler', () => {
                     })
                 })
             )
-            const streamingEventCall = mockMessageBus.send.mock.calls.find(
+            const streamingEventCall = mockMessageBus.publish.mock.calls.find(
                 (c) => c[0]?.type === 'StreamingEvent'
             )
             expect(streamingEventCall).toBeDefined()
@@ -217,7 +218,7 @@ describe('app handler', () => {
 
             await handler(event, {})
 
-            expect(mockMessageBus.send).toHaveBeenCalledWith(
+            expect(mockMessageBus.publish).toHaveBeenCalledWith(
                 expect.objectContaining({
                     type: 'StreamingEvent',
                     dataSourceKey: 'mtw.diagnostics',
@@ -226,6 +227,42 @@ describe('app handler', () => {
                     })
                 })
             )
+        })
+
+        it('should publish Initialize Subscription events from mtw.subscriptions', async () => {
+            const event = {
+                source: 'mtw.subscriptions',
+                'detail-type': 'Initialize Subscription - mtw.ephemera.thinking.scheduling',
+                detail: {
+                    streamKey: 'global',
+                    sessionId: 'SESSION#abc',
+                    requestId: 'req-init-1',
+                },
+            }
+
+            await handler(event, {})
+
+            expect(mockMessageBus.publish).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    type: 'StreamingEvent',
+                    dataSourceKey: 'mtw.subscriptions',
+                    streamKey: 'global',
+                    header: expect.objectContaining({
+                        type: 'Initialize Subscription - mtw.ephemera.thinking.scheduling',
+                    }),
+                })
+            )
+            const initCall = mockMessageBus.publish.mock.calls.find(
+                ([payload]) => (payload as { dataSourceKey?: string }).dataSourceKey === 'mtw.subscriptions'
+            )
+            expect(initCall).toBeDefined()
+            const payload = initCall![0] as { getContent: () => Promise<unknown> }
+            const content = await payload.getContent()
+            expect(content).toEqual({
+                sessionId: 'SESSION#abc',
+                requestId: 'req-init-1',
+            })
+            expect(mockMessageBus.flushAndSettle).toHaveBeenCalled()
         })
 
         it('should route mtw.connections Character Registered to StreamingEvent', async () => {
@@ -257,7 +294,7 @@ describe('app handler', () => {
             )
             logSpy.mockRestore()
 
-            expect(mockMessageBus.send).toHaveBeenCalledWith(
+            expect(mockMessageBus.publish).toHaveBeenCalledWith(
                 expect.objectContaining({
                     type: 'StreamingEvent',
                     dataSourceKey: 'mtw.connections',
@@ -267,7 +304,7 @@ describe('app handler', () => {
                     })
                 })
             )
-            const streamingEventCall = mockMessageBus.send.mock.calls.find(
+            const streamingEventCall = mockMessageBus.publish.mock.calls.find(
                 (c) => c[0]?.type === 'StreamingEvent' && c[0]?.dataSourceKey === 'mtw.connections'
             )
             expect(streamingEventCall).toBeDefined()

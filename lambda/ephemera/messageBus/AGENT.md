@@ -12,7 +12,7 @@ Partitioned drains (`flush()`, `flush(laneId)`), optional `send(payload, laneId)
 
 Ephemera-specific lane usage for unmigrated DataSources lives next to those packages. **`renderOrchestration`** and **`affordanceOrchestration`** migrated to **`publish`** + boundary drain in P3; see [`../dataSource/renderOrchestration/AGENT.md`](../dataSource/renderOrchestration/AGENT.md) and [`../dataSource/affordanceOrchestration/AGENT.md`](../dataSource/affordanceOrchestration/AGENT.md) (**Ingress styles**, **Publish migration**).
 
-Lambda exit drains via **`flushAndSettle`** in [`../app.ts`](../app.ts). Named-lane work remains only on unmigrated paths until their P3/P4 slices land.
+Lambda exit drains via **`flushAndSettle`** in [`../app.ts`](../app.ts). **EventBridge ingress** (deserialized `StreamingEvent`, Initialize Subscription, legacy `DisconnectCharacter`) uses **`publish`** (P4); WebSocket API routing in `app.ts` remains on **`send`**. Named-lane work remains only on unmigrated paths until their P3/P4 slices land.
 
 ## `publish`/`settle` migration
 
