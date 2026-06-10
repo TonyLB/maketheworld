@@ -17,7 +17,7 @@ import { parseCommand, parseCommandWithEnrichReasoning } from '../parseCommand'
 
 export type RunAcmeOrderAffinitiesHarnessDeps = {
     characterId: EphemeraCharacterId
-    messageBus: Pick<MessageBus, 'send' | 'publish'>
+    messageBus: Pick<MessageBus, 'publish'>
     fixtures?: readonly AcmeOrderAffinitiesHarnessFixture[]
     /** Legacy override path for tests; internally converted to lightweight fixtures. */
     phrases?: readonly string[]
@@ -98,7 +98,7 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
         ?? (deps.phrases ? coercePhrasesToFixtures(deps.phrases) : ACME_ORDER_AFFINITIES_HARNESS_FIXTURES)
     const selectedOrErr = selectHarnessFixtures(allFixtures, deps.harnessInvocation)
     if ('error' in selectedOrErr) {
-        deps.messageBus.send({
+        deps.messageBus.publish({
             type: 'PublishMessage',
             targets: [deps.characterId],
             displayProtocol: 'WorldOOCMessage',
@@ -120,7 +120,7 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
 
     if (fixtures.length === 0) {
         tree.push('(no phrases)')
-        deps.messageBus.send({
+        deps.messageBus.publish({
             type: 'PublishMessage',
             targets: [deps.characterId],
             displayProtocol: 'WorldOOCMessage',
@@ -212,7 +212,7 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
         tree.push(formatParseResultJson(result))
     }
 
-    deps.messageBus.send({
+    deps.messageBus.publish({
         type: 'PublishMessage',
         targets: [deps.characterId],
         displayProtocol: 'WorldOOCMessage',

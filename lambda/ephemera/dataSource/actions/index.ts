@@ -113,7 +113,7 @@ type ResponseContext = {
 const respondImperativelyForIntent = async ({ characterId, parseResult }: ResponseContext): Promise<void> => {
     if (isParseCommandErrorResult(parseResult)) {
         const line = parseErrorMessageForPlayer(parseResult.errorMessage)
-        messageBus.send({
+        messageBus.publish({
             type: 'PublishMessage',
             targets: [characterId],
             displayProtocol: 'WorldOOCMessage',
@@ -122,7 +122,7 @@ const respondImperativelyForIntent = async ({ characterId, parseResult }: Respon
     }
     else if (isParseCommandCoyoteEngineTestResult(parseResult)) {
         if (!COYOTE_ENGINE_TEST_HARNESS_ENABLED) {
-            messageBus.send({
+            messageBus.publish({
                 type: 'PublishMessage',
                 targets: [characterId],
                 displayProtocol: 'WorldOOCMessage',
@@ -141,7 +141,7 @@ const respondImperativelyForIntent = async ({ characterId, parseResult }: Respon
     }
     else if (isParseCommandCoyoteAffinitiesTestResult(parseResult)) {
         if (!COYOTE_AFFINITIES_TEST_HARNESS_ENABLED) {
-            messageBus.send({
+            messageBus.publish({
                 type: 'PublishMessage',
                 targets: [characterId],
                 displayProtocol: 'WorldOOCMessage',
@@ -159,7 +159,7 @@ const respondImperativelyForIntent = async ({ characterId, parseResult }: Respon
         }
     }
     else if (isParseCommandUnimplementedResult(parseResult)) {
-        messageBus.send({
+        messageBus.publish({
             type: 'PublishMessage',
             targets: [characterId],
             displayProtocol: 'WorldOOCMessage',
@@ -169,7 +169,7 @@ const respondImperativelyForIntent = async ({ characterId, parseResult }: Respon
         })
     }
     else if (isParseCommandPromptInjectionAttemptResult(parseResult)) {
-        messageBus.send({
+        messageBus.publish({
             type: 'PublishMessage',
             targets: [characterId],
             displayProtocol: 'WorldOOCMessage',
@@ -179,7 +179,7 @@ const respondImperativelyForIntent = async ({ characterId, parseResult }: Respon
         })
     }
     else if (isParseCommandMultipleCommandsResult(parseResult)) {
-        messageBus.send({
+        messageBus.publish({
             type: 'PublishMessage',
             targets: [characterId],
             displayProtocol: 'WorldOOCMessage',
@@ -187,14 +187,14 @@ const respondImperativelyForIntent = async ({ characterId, parseResult }: Respon
         })
     }
     else if (isParseCommandHelpResult(parseResult)) {
-        messageBus.send({
+        messageBus.publish({
             type: 'PublishMessage',
             targets: [characterId],
             displayProtocol: 'CoyoteGameHelpMessage',
         })
     }
     else if (isParseCommandUnknownResult(parseResult)) {
-        messageBus.send({
+        messageBus.publish({
             type: 'PublishMessage',
             targets: [characterId],
             displayProtocol: 'WorldOOCMessage',
@@ -221,7 +221,7 @@ const publishStreamEventsForIntent = async (
     if (isParseCommandNavigationResult(parseResult)) {
         const { fromRoomId, toRoomIds } = roomExitContext
         if (!fromRoomId) {
-            messageBus.send({
+            messageBus.publish({
                 type: 'PublishMessage',
                 targets: [characterId],
                 displayProtocol: 'WorldOOCMessage',
@@ -229,7 +229,7 @@ const publishStreamEventsForIntent = async (
             })
         }
         else if (!toRoomIds.includes(parseResult.targetId)) {
-            messageBus.send({
+            messageBus.publish({
                 type: 'PublishMessage',
                 targets: [characterId],
                 displayProtocol: 'WorldOOCMessage',
@@ -247,7 +247,7 @@ const publishStreamEventsForIntent = async (
                     toRoomId: parseResult.targetId,
                 },
             })
-            messageBus.send({
+            messageBus.publish({
                 type: 'MoveCharacter',
                 characterId,
                 roomId: parseResult.targetId,
@@ -257,7 +257,7 @@ const publishStreamEventsForIntent = async (
     else if (isParseCommandLookRoomResult(parseResult)) {
         const { fromRoomId } = roomExitContext
         if (!fromRoomId) {
-            messageBus.send({
+            messageBus.publish({
                 type: 'PublishMessage',
                 targets: [characterId],
                 displayProtocol: 'WorldOOCMessage',
@@ -289,7 +289,7 @@ const publishStreamEventsForIntent = async (
                 confidence: parseResult.confidence,
             },
         })
-        messageBus.send({
+        messageBus.publish({
             type: 'PublishMessage',
             targets: [characterId],
             displayProtocol: 'WorldMessage',
@@ -309,7 +309,7 @@ const publishStreamEventsForIntent = async (
                 confidence: parseResult.confidence,
             },
         })
-        messageBus.send({
+        messageBus.publish({
             type: 'PublishMessage',
             targets: [characterId],
             displayProtocol: 'WorldOOCMessage',
@@ -326,6 +326,7 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
     dataSourceKey: 'mtw.ephemera.actions',
     replayable: false,
     publisherStrategy: 'busOnly',
+    outboundBusDelivery: 'publish',
     subscribedEventTypeGuard: isActionsSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (event) => {
@@ -333,7 +334,7 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
             if (!isEphemeraCharacterId(content.characterId)) {
                 return
             }
-            messageBus.send({
+            messageBus.publish({
                 type: 'PublishMessage',
                 targets: [content.characterId],
                 displayProtocol: 'CommandTranscriptMessage',
@@ -364,7 +365,7 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
             }) => Promise<void>)
 
             if (content.requestId) {
-                messageBus.send({
+                messageBus.publish({
                     type: 'ReturnValue',
                     body: {
                         messageType: 'Success',

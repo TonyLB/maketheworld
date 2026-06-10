@@ -9,7 +9,7 @@ jest.mock('../../../messageBus')
 const mockMessageBus = messageBus as jest.Mocked<typeof messageBus>
 
 function findPublishMessagePayload() {
-    for (const call of mockMessageBus.send.mock.calls) {
+    for (const call of mockMessageBus.publish.mock.calls) {
         const payload = call[0]
         if (isPublishMessage(payload)) {
             return payload
@@ -26,7 +26,7 @@ const harnessValidOrderLine = {
 describe('runAcmeOrderAffinitiesHarness', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        mockMessageBus.send.mockReturnValue(undefined)
+        mockMessageBus.publish.mockReturnValue(undefined)
         mockMessageBus.flush = jest.fn().mockResolvedValue(undefined)
     })
 
@@ -60,8 +60,8 @@ describe('runAcmeOrderAffinitiesHarness', () => {
         expect(parseCommandImpl.mock.calls[0][0]).toEqual({ command: 'order one' })
         expect(parseCommandImpl.mock.calls[1][0]).toEqual({ command: 'order two' })
 
-        expect(mockMessageBus.send).toHaveBeenCalledTimes(1)
-        const payload = mockMessageBus.send.mock.calls[0][0]
+        expect(mockMessageBus.publish).toHaveBeenCalledTimes(1)
+        const payload = mockMessageBus.publish.mock.calls[0][0]
         if (!isPublishMessage(payload)) {
             throw new Error('expected PublishMessage')
         }
@@ -89,7 +89,7 @@ describe('runAcmeOrderAffinitiesHarness', () => {
             now: () => 0,
         })
 
-        const payload = mockMessageBus.send.mock.calls[0][0]
+        const payload = mockMessageBus.publish.mock.calls[0][0]
         if (!isPublishMessage(payload)) {
             throw new Error('expected PublishMessage')
         }
@@ -122,7 +122,7 @@ describe('runAcmeOrderAffinitiesHarness', () => {
 
         expect(parseCommandImpl).toHaveBeenCalledTimes(1)
         expect(parseCommandImpl.mock.calls[0][0]).toEqual({ command: 'order two' })
-        const payload = mockMessageBus.send.mock.calls[0][0]
+        const payload = mockMessageBus.publish.mock.calls[0][0]
         if (!isPublishMessage(payload)) {
             throw new Error('expected PublishMessage')
         }
@@ -149,8 +149,8 @@ describe('runAcmeOrderAffinitiesHarness', () => {
 
         expect(parseCommandImpl).not.toHaveBeenCalled()
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
-        expect(mockMessageBus.send).toHaveBeenCalledTimes(1)
-        const payload = mockMessageBus.send.mock.calls[0][0]
+        expect(mockMessageBus.publish).toHaveBeenCalledTimes(1)
+        const payload = mockMessageBus.publish.mock.calls[0][0]
         if (!isPublishMessage(payload)) {
             throw new Error('expected PublishMessage')
         }
@@ -263,7 +263,7 @@ describe('runAcmeOrderAffinitiesHarness', () => {
             now: () => 0,
         })
 
-        const payload = mockMessageBus.send.mock.calls[0][0]
+        const payload = mockMessageBus.publish.mock.calls[0][0]
         if (!isPublishMessage(payload)) {
             throw new Error('expected PublishMessage')
         }
@@ -309,7 +309,7 @@ describe('runAcmeOrderAffinitiesHarness', () => {
 
         expect(parseCommandImpl).toHaveBeenCalledTimes(1)
         expect(parseCommandImpl.mock.calls[0][0]).toEqual({ command: 'order paint' })
-        const payload = mockMessageBus.send.mock.calls[0][0]
+        const payload = mockMessageBus.publish.mock.calls[0][0]
         if (!isPublishMessage(payload)) {
             throw new Error('expected PublishMessage')
         }

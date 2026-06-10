@@ -58,9 +58,13 @@ const mockedRunCoyoteEngineTestHarness = jest.mocked(runCoyoteEngineTestHarness)
 const mockedRunAcmeOrderAffinitiesHarness = jest.mocked(runAcmeOrderAffinitiesHarness)
 
 describe('ephemeraActionsDataSource', () => {
+    it('uses publish outbound bus delivery', () => {
+        expect(ephemeraActionsDataSource.outboundBusDelivery).toBe('publish')
+    })
+
     beforeEach(() => {
         jest.clearAllMocks()
-        mockMessageBus.send.mockReturnValue(undefined)
+        mockMessageBus.publish.mockReturnValue(undefined)
         mockSendPerceptionThreadRegistered.mockClear()
         mockSendRenderRequested.mockClear()
         mockedRunCoyoteEngineTestHarness.mockResolvedValue(undefined)
@@ -96,20 +100,20 @@ describe('ephemeraActionsDataSource', () => {
             streamEnvelope: jest.fn(async () => {}),
         })
 
-        expect(mockMessageBus.send).toHaveBeenCalledTimes(3)
-        expect(mockMessageBus.send).toHaveBeenNthCalledWith(1, {
+        expect(mockMessageBus.publish).toHaveBeenCalledTimes(3)
+        expect(mockMessageBus.publish).toHaveBeenNthCalledWith(1, {
             type: 'PublishMessage',
             targets: ['CHARACTER#123'],
             displayProtocol: 'CommandTranscriptMessage',
             message: ['look'],
         })
-        expect(mockMessageBus.send).toHaveBeenNthCalledWith(2, {
+        expect(mockMessageBus.publish).toHaveBeenNthCalledWith(2, {
             type: 'PublishMessage',
             targets: ['CHARACTER#123'],
             displayProtocol: 'WorldOOCMessage',
             message: ['Parse error'],
         })
-        expect(mockMessageBus.send).toHaveBeenNthCalledWith(3, {
+        expect(mockMessageBus.publish).toHaveBeenNthCalledWith(3, {
             type: 'ReturnValue',
             body: {
                 messageType: 'Success',
@@ -142,7 +146,7 @@ describe('ephemeraActionsDataSource', () => {
             streamEnvelope: jest.fn(async () => {}),
         })
 
-        expect(mockMessageBus.send).toHaveBeenCalledWith({
+        expect(mockMessageBus.publish).toHaveBeenCalledWith({
             type: 'PublishMessage',
             targets: ['CHARACTER#123'],
             displayProtocol: 'WorldOOCMessage',
@@ -173,7 +177,7 @@ describe('ephemeraActionsDataSource', () => {
             streamEnvelope: jest.fn(async () => {}),
         })
 
-        expect(mockMessageBus.send).toHaveBeenCalledWith({
+        expect(mockMessageBus.publish).toHaveBeenCalledWith({
             type: 'PublishMessage',
             targets: ['CHARACTER#123'],
             displayProtocol: 'WorldOOCMessage',
@@ -204,7 +208,7 @@ describe('ephemeraActionsDataSource', () => {
             streamEnvelope: jest.fn(async () => {}),
         })
 
-        expect(mockMessageBus.send).toHaveBeenCalledWith({
+        expect(mockMessageBus.publish).toHaveBeenCalledWith({
             type: 'PublishMessage',
             targets: ['CHARACTER#123'],
             displayProtocol: 'WorldOOCMessage',
@@ -230,14 +234,14 @@ describe('ephemeraActionsDataSource', () => {
             streamEnvelope: jest.fn(async () => {}),
         })
 
-        expect(mockMessageBus.send).toHaveBeenCalledTimes(2)
-        expect(mockMessageBus.send).toHaveBeenNthCalledWith(1, {
+        expect(mockMessageBus.publish).toHaveBeenCalledTimes(2)
+        expect(mockMessageBus.publish).toHaveBeenNthCalledWith(1, {
             type: 'PublishMessage',
             targets: ['CHARACTER#123'],
             displayProtocol: 'CommandTranscriptMessage',
             message: ['look'],
         })
-        expect(mockMessageBus.send).toHaveBeenNthCalledWith(2, {
+        expect(mockMessageBus.publish).toHaveBeenNthCalledWith(2, {
             type: 'PublishMessage',
             targets: ['CHARACTER#123'],
             displayProtocol: 'WorldOOCMessage',
@@ -286,7 +290,7 @@ describe('ephemeraActionsDataSource', () => {
                     toRoomId: dest,
                 },
             })
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'MoveCharacter',
                 characterId: 'CHARACTER#123',
                 roomId: dest,
@@ -297,7 +301,7 @@ describe('ephemeraActionsDataSource', () => {
                 }),
                 { messageBus: mockMessageBus }
             )
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'ReturnValue',
                 body: {
                     messageType: 'Success',
@@ -332,13 +336,13 @@ describe('ephemeraActionsDataSource', () => {
                 streamEnvelope: jest.fn(async () => {}),
             })
 
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldOOCMessage',
                 message: ['You are not in a room, so you cannot go anywhere.'],
             })
-            expect(mockMessageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({
                 type: 'MoveCharacter',
             }))
         })
@@ -368,13 +372,13 @@ describe('ephemeraActionsDataSource', () => {
                 streamEnvelope: jest.fn(async () => {}),
             })
 
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldOOCMessage',
                 message: ['There is no exit to that place from here.'],
             })
-            expect(mockMessageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({
                 type: 'MoveCharacter',
             }))
         })
@@ -408,7 +412,7 @@ describe('ephemeraActionsDataSource', () => {
                 streamEnvelope: jest.fn(async () => {}),
             })
 
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldOOCMessage',
@@ -455,7 +459,7 @@ describe('ephemeraActionsDataSource', () => {
             })
             expect(mockSendPerceptionThreadRegistered).not.toHaveBeenCalled()
             expect(mockSendRenderRequested).not.toHaveBeenCalled()
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'ReturnValue',
                 body: {
                     messageType: 'Success',
@@ -589,7 +593,7 @@ describe('ephemeraActionsDataSource', () => {
                     confidence: 0.9,
                 },
             })
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldMessage',
@@ -702,7 +706,7 @@ describe('ephemeraActionsDataSource', () => {
                     confidence: 0.88,
                 },
             })
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldMessage',
@@ -807,7 +811,7 @@ describe('ephemeraActionsDataSource', () => {
                     confidence: 0.9,
                 },
             })
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldOOCMessage',
@@ -837,7 +841,7 @@ describe('ephemeraActionsDataSource', () => {
                 streamEnvelope: jest.fn(async () => {}),
             })
 
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldOOCMessage',
@@ -938,7 +942,7 @@ describe('ephemeraActionsDataSource', () => {
             })
 
             expect(mockedRunAcmeOrderAffinitiesHarness).not.toHaveBeenCalled()
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldOOCMessage',
@@ -1009,7 +1013,7 @@ describe('ephemeraActionsDataSource', () => {
             })
 
             expect(mockedRunCoyoteEngineTestHarness).not.toHaveBeenCalled()
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldOOCMessage',
@@ -1039,7 +1043,7 @@ describe('ephemeraActionsDataSource', () => {
                 streamEnvelope: jest.fn(async () => {}),
             })
 
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldOOCMessage',
@@ -1074,19 +1078,19 @@ describe('ephemeraActionsDataSource', () => {
             })
 
             expect(streamEvent).not.toHaveBeenCalled()
-            expect(mockMessageBus.send).toHaveBeenNthCalledWith(1, {
+            expect(mockMessageBus.publish).toHaveBeenNthCalledWith(1, {
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'CommandTranscriptMessage',
                 message: ['order explosives and then order bandages'],
             })
-            expect(mockMessageBus.send).toHaveBeenNthCalledWith(2, {
+            expect(mockMessageBus.publish).toHaveBeenNthCalledWith(2, {
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldOOCMessage',
                 message: [MULTIPLE_COMMANDS_PLAYER_MESSAGE],
             })
-            expect(mockMessageBus.send).toHaveBeenNthCalledWith(3, {
+            expect(mockMessageBus.publish).toHaveBeenNthCalledWith(3, {
                 type: 'ReturnValue',
                 body: {
                     messageType: 'Success',
@@ -1121,18 +1125,18 @@ describe('ephemeraActionsDataSource', () => {
             })
 
             expect(streamEvent).not.toHaveBeenCalled()
-            expect(mockMessageBus.send).toHaveBeenNthCalledWith(1, {
+            expect(mockMessageBus.publish).toHaveBeenNthCalledWith(1, {
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'CommandTranscriptMessage',
                 message: ['help me'],
             })
-            expect(mockMessageBus.send).toHaveBeenNthCalledWith(2, {
+            expect(mockMessageBus.publish).toHaveBeenNthCalledWith(2, {
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'CoyoteGameHelpMessage',
             })
-            expect(mockMessageBus.send).toHaveBeenNthCalledWith(3, {
+            expect(mockMessageBus.publish).toHaveBeenNthCalledWith(3, {
                 type: 'ReturnValue',
                 body: {
                     messageType: 'Success',
@@ -1164,7 +1168,7 @@ describe('ephemeraActionsDataSource', () => {
                 streamEnvelope: jest.fn(async () => {}),
             })
 
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldOOCMessage',
