@@ -19,15 +19,15 @@ import {
 const getAffordanceRowMock = getAffordanceRow as jest.MockedFunction<typeof getAffordanceRow>
 const ensureTopologyMock = ensureAffordanceTopology as jest.MockedFunction<typeof ensureAffordanceTopology>
 
-const makeBus = (): MessageBusType & { send: jest.Mock; flush: jest.Mock } => (
+const makeBus = (): MessageBusType & { publish: jest.Mock; flushAndSettle: jest.Mock } => (
     {
-        send: jest.fn(),
-        flush: jest.fn().mockResolvedValue(undefined),
-    } as unknown as MessageBusType & { send: jest.Mock; flush: jest.Mock }
+        publish: jest.fn(),
+        flushAndSettle: jest.fn().mockResolvedValue(undefined),
+    } as unknown as MessageBusType & { publish: jest.Mock; flushAndSettle: jest.Mock }
 )
 
-const findOrchestrationStreamingEvent = (send: jest.Mock): { getContent: () => Promise<unknown> } | undefined => {
-    for (const call of send.mock.calls) {
+const findOrchestrationStreamingEvent = (publish: jest.Mock): { getContent: () => Promise<unknown> } | undefined => {
+    for (const call of publish.mock.calls) {
         const msg = call[0] as { type?: string; dataSourceKey?: string; getContent?: () => Promise<unknown> }
         if (msg?.type === 'StreamingEvent' && msg?.dataSourceKey === AFFORDANCE_ORCHESTRATION_DATA_SOURCE_KEY && msg.getContent) {
             return msg as { getContent: () => Promise<unknown> }
@@ -74,9 +74,9 @@ describe('affordanceOrchestration stream outcomes (v1 emission)', () => {
     it('success path emits Slice Ready on mtw.ephemera.affordanceOrchestration', async () => {
         const messageBus = makeBus()
         await orchestrateAffordanceRequest(
-            { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
+            { payload: basePayload, streamEvent: streamEventFromMessageBus(messageBus) },
         )
-        const evt = findOrchestrationStreamingEvent(messageBus.send)
+        const evt = findOrchestrationStreamingEvent(messageBus.publish)
         expect(evt).toBeDefined()
         const content = await evt!.getContent()
         expect(content).toMatchObject({ type: 'Slice Ready', roomId: 'ROOM#one' })
@@ -86,9 +86,9 @@ describe('affordanceOrchestration stream outcomes (v1 emission)', () => {
         ensureTopologyMock.mockRejectedValue(new Error('hydrate failed'))
         const messageBus = makeBus()
         await orchestrateAffordanceRequest(
-            { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
+            { payload: basePayload, streamEvent: streamEventFromMessageBus(messageBus) },
         )
-        const evt = findOrchestrationStreamingEvent(messageBus.send)
+        const evt = findOrchestrationStreamingEvent(messageBus.publish)
         expect(evt).toBeDefined()
         const content = await evt!.getContent()
         expect(content).toMatchObject({ type: 'Orchestration Error' })

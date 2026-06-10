@@ -82,10 +82,9 @@ describe('passThrough affordanceOrchestration -> affordanceCache (integration)',
                 perspective,
                 reason: 'topology',
             },
-            messageBus,
             streamEvent: streamEventFromMessageBus(messageBus),
         })
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
 
         expect(received).toHaveLength(1)
         expect(received[0]).toMatchObject({

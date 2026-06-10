@@ -8,7 +8,6 @@ import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import internalCache from '../../internalCache'
-import type { MessageBus } from '../../messageBus/baseClasses'
 import type { CharacterMetaItem } from '../../internalCache/characterMeta'
 import type { RoomCharacterListItem } from '../../internalCache/baseClasses'
 import {
@@ -81,12 +80,10 @@ export const fanOutAffordanceRefreshForRoom = async (
     {
         roomId,
         reason,
-        messageBus,
         streamEvent,
     }: {
         roomId: EphemeraRoomId;
         reason: AffordanceOrchestrationReason;
-        messageBus: MessageBus;
         streamEvent: StreamEventFunction<AffordanceOrchestrationPublishedPayload>;
     },
     deps?: FanOutAffordanceRefreshDependencies
@@ -108,7 +105,6 @@ export const fanOutAffordanceRefreshForRoom = async (
                         perspective: { assetStack },
                         reason,
                     },
-                    messageBus,
                     streamEvent,
                 },
             )

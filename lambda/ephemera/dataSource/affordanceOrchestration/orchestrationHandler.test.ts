@@ -33,7 +33,6 @@ describe('orchestrateAffordanceRequest', () => {
                 perspective: { assetStack: ['ASSET#a'] },
                 reason: 'roster',
             },
-            messageBus: { send: jest.fn() } as any,
             streamEvent,
         })
 
@@ -64,7 +63,6 @@ describe('orchestrateAffordanceRequest', () => {
                 perspective: { assetStack: ['ASSET#a'] },
                 reason: 'topology',
             },
-            messageBus: { send: jest.fn() } as any,
             streamEvent,
         })
 

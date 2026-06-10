@@ -33,7 +33,6 @@ describe('roomUpdateMessage', () => {
             roomId,
             reason: 'roster',
             messageBus,
-            useDefaultMessageBusLane: true,
         })
 
         const roomUpdateWireCalls = busSendSpy.mock.calls.filter(

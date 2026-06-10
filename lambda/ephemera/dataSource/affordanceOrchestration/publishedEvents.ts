@@ -7,7 +7,7 @@ import type { StreamingEventEnvelope, StreamingEventHeader } from '@tonylb/mtw-l
 import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { isPerspective, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { isEphemeraRoomId, type EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { StreamingEventMessage } from '../../messageBus/baseClasses'
+import type { MessageBus, StreamingEventMessage } from '../../messageBus/baseClasses'
 
 export const AFFORDANCE_ORCHESTRATION_DATA_SOURCE_KEY = 'mtw.ephemera.affordanceOrchestration' as const
 
@@ -173,12 +173,7 @@ export const isAffordanceOrchestrationPublishedStreamEnvelope = (
     && isAffordanceOrchestrationPublishedHeaderType(envelope.header.type)
 )
 
-type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }
-
-export type PublishAffordanceOrchestrationStreamOptions = {
-    /** Non-empty: that lane. Empty string: default lane. Omit: inherit DataSource inbound flush lane in `receiveEvents`. */
-    laneId?: string
-}
+type PublishBus = Pick<MessageBus, 'publish'>
 
 const orchestrationPublishSerializer = {
     serialize: ({ content, header }: { content: object; header: StreamingEventHeader }) => ({
@@ -191,27 +186,28 @@ export async function publishAffordanceOrchestrationStreamEvent(
     streamEvent: StreamEventFunction<AffordanceOrchestrationPublishedPayload>,
     streamKey: string,
     content: AffordanceOrchestrationPublishedPayload,
-    options?: PublishAffordanceOrchestrationStreamOptions,
 ): Promise<void> {
     await streamEvent({
         update: content,
         streamKey,
         header: { type: content.type },
-        ...(options?.laneId !== undefined ? { laneId: options.laneId } : {}),
     })
 }
 
-export function streamEventFromMessageBus(bus: Bus): StreamEventFunction<AffordanceOrchestrationPublishedPayload> {
+/**
+ * Test / harness adapter: implements `streamEvent` by delegating to {@link sendAffordanceOrchestrationPublish}
+ * so assertions can keep using `messageBus.publish` for `StreamingEvent` payloads.
+ */
+export function streamEventFromMessageBus(bus: PublishBus): StreamEventFunction<AffordanceOrchestrationPublishedPayload> {
     return async (params) => {
-        sendAffordanceOrchestrationPublish(bus, params.streamKey, params.update, params.laneId)
+        sendAffordanceOrchestrationPublish(bus, params.streamKey, params.update)
     }
 }
 
 export function sendAffordanceOrchestrationPublish(
-    bus: Bus,
+    bus: PublishBus,
     streamKey: string,
     content: AffordanceOrchestrationPublishedPayload,
-    laneId?: string,
 ): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
@@ -229,9 +225,5 @@ export function sendAffordanceOrchestrationPublish(
         getContent: envelope.getContent,
         timestamp,
     }
-    if (laneId !== undefined && laneId !== '') {
-        bus.send(message, laneId)
-    } else {
-        bus.send(message)
-    }
+    bus.publish(message)
 }

@@ -58,7 +58,6 @@ import internalCache from '../internalCache'
 import { isPublishMessage } from '../messageBus/baseClasses'
 import { getAffordanceRow } from './affordanceCache/catalogRow'
 import { putCacheRecord } from './renderCache/putCacheRecord'
-import { affordanceOrchestrationIngressLaneId } from './affordanceOrchestration/subscribedEvents'
 import {
     generateRoomPreview,
     type GenerateRoomPreviewOptions,
@@ -112,10 +111,8 @@ function sendCharacterRegisteredEvent(event: ConnectionsCharacterRegisteredEvent
 }
 
 async function flushOrientationBus(rounds = 6): Promise<void> {
-    const affordanceLane = affordanceOrchestrationIngressLaneId(passThroughFixtureRoomId)
     for (let i = 0; i < rounds; i += 1) {
         await messageBus.flushAndSettle()
-        await messageBus.flush(affordanceLane)
     }
 }
 

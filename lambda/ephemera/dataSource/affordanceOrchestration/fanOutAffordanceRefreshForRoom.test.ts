@@ -49,13 +49,11 @@ describe('fanOutAffordanceRefreshForRoom', () => {
         const orchestrateFn = jest.fn().mockResolvedValue(undefined)
         const deps = baseDeps()
         const streamEvent = jest.fn().mockResolvedValue(undefined)
-        const messageBus = {} as any
 
         await fanOutAffordanceRefreshForRoom(
             {
                 roomId,
                 reason: 'objects',
-                messageBus,
                 streamEvent,
             },
             { ...deps, orchestrateAffordanceRequestFn: orchestrateFn }
@@ -83,7 +81,6 @@ describe('fanOutAffordanceRefreshForRoom', () => {
             {
                 roomId,
                 reason: 'roster',
-                messageBus: {} as any,
                 streamEvent: jest.fn().mockResolvedValue(undefined),
             },
             { ...deps, orchestrateAffordanceRequestFn: orchestrateFn }

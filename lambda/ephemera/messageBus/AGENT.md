@@ -10,7 +10,7 @@ Partitioned drains (`flush()`, `flush(laneId)`), optional `send(payload, laneId)
 - [`ts/messageBus/index.ts`](../../../packages/mtw-lambda-patterns/ts/messageBus/index.ts) --- implementation
 - [**Message bus lanes** (DataSource `streamEvent`)](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) --- inbound lane inheritance for streaming outbounds
 
-Ephemera-specific lane usage for unmigrated DataSources lives next to those packages (for example **`affordanceOrchestration`**). **`renderOrchestration`** migrated to **`publish`** + boundary drain in P3; see [`../dataSource/renderOrchestration/AGENT.md`](../dataSource/renderOrchestration/AGENT.md) (**Ingress styles**, **Publish migration**).
+Ephemera-specific lane usage for unmigrated DataSources lives next to those packages. **`renderOrchestration`** and **`affordanceOrchestration`** migrated to **`publish`** + boundary drain in P3; see [`../dataSource/renderOrchestration/AGENT.md`](../dataSource/renderOrchestration/AGENT.md) and [`../dataSource/affordanceOrchestration/AGENT.md`](../dataSource/affordanceOrchestration/AGENT.md) (**Ingress styles**, **Publish migration**).
 
 Lambda exit drains via **`flushAndSettle`** in [`../app.ts`](../app.ts). Named-lane work remains only on unmigrated paths until their P3/P4 slices land.
 

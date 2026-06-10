@@ -17,9 +17,10 @@ import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import internalCache from '../../internalCache'
 import type { PublishTarget } from '../../messageBus/baseClasses'
 import type { MessageBus } from '../../messageBus/baseClasses'
-import { sendAffordancesRequested } from '../affordanceOrchestration/subscribedEvents'
 import { resolveCharacterRoomPerspectiveForRoom } from '../perception/kickRoomHeaderBroadcast'
 import { sendPerceptionThreadRegistered } from '../perception/subscribedEvents'
+import { orchestrateAffordanceRequest } from '../affordanceOrchestration/orchestrationHandler'
+import type { AffordanceOrchestrationPublishedPayload } from '../affordanceOrchestration/publishedEvents'
 import { orchestrateRenderRequest } from '../renderOrchestration/orchestrationHandler'
 import type { RenderOrchestrationPublishedPayload } from '../renderOrchestration/publishedEvents'
 
@@ -93,7 +94,7 @@ export async function handleCharacterRegisteredOrientation(
     event: ConnectionsCharacterRegisteredEvent,
     channel: SessionOrientationChannel,
     deps?: ResolveSessionOrientationContextDeps,
-    streamEvent?: StreamEventFunction<RenderOrchestrationPublishedPayload>,
+    streamEvent?: StreamEventFunction<RenderOrchestrationPublishedPayload> | StreamEventFunction<AffordanceOrchestrationPublishedPayload>,
 ): Promise<void> {
     const { characterId, sessionId } = event
     const context = await resolveSessionOrientationContext(event, deps)
@@ -128,7 +129,7 @@ export async function handleCharacterRegisteredOrientation(
                 componentId: roomId,
                 perspective,
             },
-            streamEvent,
+            streamEvent: streamEvent as StreamEventFunction<RenderOrchestrationPublishedPayload>,
         })
         console.log(LOG_PREFIX, {
             event: 'kicked',
@@ -151,11 +152,18 @@ export async function handleCharacterRegisteredOrientation(
         characterId,
         targets,
     })
-    sendAffordancesRequested(messageBus, roomId, {
-        roomId,
-        perspective,
-        reason: 'roster',
-    }, { useDefaultMessageBusLane: true })
+    if (!streamEvent) {
+        throw new Error('sessionOrientation affordances channel requires streamEvent')
+    }
+    await orchestrateAffordanceRequest({
+        payload: {
+            type: 'AffordancesRequested',
+            roomId,
+            perspective,
+            reason: 'roster',
+        },
+        streamEvent: streamEvent as StreamEventFunction<AffordanceOrchestrationPublishedPayload>,
+    })
     console.log(LOG_PREFIX, {
         event: 'kicked',
         channel,
@@ -165,6 +173,6 @@ export async function handleCharacterRegisteredOrientation(
         perspectiveKey,
         targets,
         threadKind: 'sessionOrientationAffordances',
-        orchestrationKick: 'Affordances Requested',
+        orchestrationKick: 'orchestrateAffordanceRequest',
     })
 }

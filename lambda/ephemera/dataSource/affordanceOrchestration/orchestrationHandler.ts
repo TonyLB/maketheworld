@@ -3,7 +3,6 @@
  */
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { computePerspectiveKey as defaultComputePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
-import type { MessageBus } from '../../messageBus/baseClasses'
 import { ensureAffordanceTopology } from '../affordanceCache/ensureAffordanceTopology'
 import { isCatalogRowStale } from '../affordanceCache/catalogGuards'
 import { getAffordanceRow } from '../affordanceCache/catalogRow'
@@ -27,11 +26,9 @@ const reasonNeedsTopologyHydrate = (
 export const orchestrateAffordanceRequest = async (
     {
         payload,
-        messageBus: _messageBus,
         streamEvent,
     }: {
         payload: AffordancesRequested;
-        messageBus: MessageBus;
         streamEvent: StreamEventFunction<AffordanceOrchestrationPublishedPayload>;
     },
     deps?: OrchestrationHandlerDependencies

@@ -27,13 +27,12 @@ describe('sendAffordanceRefreshRequestedForRoom', () => {
 
     it('sendAffordancesRequested once per distinct perspective with correct reason', async () => {
         const sendSpy = jest.spyOn(subscribedEvents, 'sendAffordancesRequested').mockImplementation(() => {})
-        const messageBus = { send: jest.fn() } as any
+        const messageBus = { publish: jest.fn() } as any
 
         await sendAffordanceRefreshRequestedForRoom({
             roomId,
             reason: 'roster',
             messageBus,
-            useDefaultMessageBusLane: true,
             deps: baseDeps(),
         })
 
@@ -41,7 +40,6 @@ describe('sendAffordanceRefreshRequestedForRoom', () => {
         for (const call of sendSpy.mock.calls) {
             expect(call[1]).toBe(roomId)
             expect(call[2]).toMatchObject({ roomId, reason: 'roster' })
-            expect(call[3]).toEqual({ useDefaultMessageBusLane: true })
         }
         const perspectiveKeys = sendSpy.mock.calls.map((c) =>
             computePerspectiveKey(c[2].perspective.assetStack)
@@ -56,7 +54,7 @@ describe('sendAffordanceRefreshRequestedForRoom', () => {
         await sendAffordanceRefreshRequestedForRoom({
             roomId,
             reason: 'objects',
-            messageBus: { send: jest.fn() } as any,
+            messageBus: { publish: jest.fn() } as any,
             deps: {
                 ...baseDeps(),
                 roomCharacterListGet: jest.fn().mockResolvedValue([]),
