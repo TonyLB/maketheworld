@@ -1,11 +1,14 @@
 import { DisconnectCharacterMessage, MessageBus, UnregisterCharacterMessage } from "../messageBus/baseClasses"
 
 import { connectionDB, exponentialBackoffWrapper, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import messageBus from "../messageBus"
 import internalCache from "../internalCache"
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 
-export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characterId: EphemeraCharacterId) => {
+export const atomicallyRemoveCharacterAdjacency = async (
+    connectionId: string,
+    characterId: EphemeraCharacterId,
+    { messageBus }: { messageBus: MessageBus }
+) => {
     return exponentialBackoffWrapper(async () => {
         const [currentConnections, characterFetch] = await Promise.all([
             internalCache.CharacterSessions.get(characterId).then((sessions) => (internalCache.SessionConnections.get(sessions ?? []))),
@@ -36,7 +39,7 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
                     deleteCondition: ({ connections = [] }) => (connections.length === 0),
                     successCallback: ({ connections }) => {
                         if (connections.length === 0) {
-                            // messageBus.send({
+                            // messageBus.publish({
                             //     type: 'EphemeraUpdate',
                             //     updates: [{
                             //         type: 'CharacterInPlay',
@@ -45,13 +48,13 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
                             //         connectionTargets: ['GLOBAL', `!SESSION#${sessionId}`]
                             //     }]
                             // })
-                            messageBus.send({
+                            messageBus.publish({
                                 type: 'PublishMessage',
                                 targets: [RoomId, `!${characterId}`],
                                 displayProtocol: 'WorldMessage',
                                 message: [`${Name || 'Someone'} has disconnected.`]
                             })
-                            messageBus.send({
+                            messageBus.publish({
                                 type: 'RoomUpdate',
                                 roomId: RoomId
                             })
@@ -93,14 +96,14 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
     }, { retryErrors: ['TransactionCanceledException']})
 }
 
-export const unregisterCharacterMessage = async ({ payloads }: { payloads: UnregisterCharacterMessage[], messageBus?: MessageBus }): Promise<void> => {
+export const unregisterCharacterMessage = async ({ payloads, messageBus }: { payloads: UnregisterCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
     const connectionId = await internalCache.Global.get("ConnectionId")
     const RequestId = await internalCache.Global.get("RequestId")
     if (connectionId) {
         await Promise.all(
             payloads.map(async ({ characterId }) => {
-                await atomicallyRemoveCharacterAdjacency(connectionId, characterId)
-                messageBus.send({
+                await atomicallyRemoveCharacterAdjacency(connectionId, characterId, { messageBus })
+                messageBus.publish({
                     type: 'ReturnValue',
                     body: {
                         messageType: 'Unregistration',
@@ -114,20 +117,20 @@ export const unregisterCharacterMessage = async ({ payloads }: { payloads: Unreg
 
 }
 
-export const disconnectCharacterMessage = async ({ payloads }: { payloads: DisconnectCharacterMessage[], messageBus?: MessageBus }): Promise<void> => {
+export const disconnectCharacterMessage = async ({ payloads, messageBus }: { payloads: DisconnectCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
 
     await Promise.all(
         payloads.map(async ({ characterId }) => {
             const characterFetch = await internalCache.CharacterMeta.get(characterId)
             const { RoomId, Name } = characterFetch || {}
             if (RoomId) {
-                messageBus.send({
+                messageBus.publish({
                     type: 'PublishMessage',
                     targets: [RoomId, `!${characterId}`],
                     displayProtocol: 'WorldMessage',
                     message: [`${Name || 'Someone'} has disconnected.`]
                 })
-                messageBus.send({
+                messageBus.publish({
                     type: 'RoomUpdate',
                     roomId: RoomId
                 })

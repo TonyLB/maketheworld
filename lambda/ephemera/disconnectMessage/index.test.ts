@@ -4,15 +4,11 @@ import {
     ephemeraDB,
 } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
-jest.mock('../messageBus')
-import messageBus from '../messageBus'
-
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
 
 const connectionDBMock = connectionDB as jest.Mocked<typeof connectionDB>
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
-const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
 // @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
 
@@ -23,6 +19,8 @@ import {
 } from '.'
 
 describe('disconnectMessage handlers', () => {
+    const messageBus = { publish: jest.fn() } as any
+
     beforeEach(() => {
         jest.clearAllMocks()
         internalCacheMock.Global.get.mockImplementation(async (arg) => {
@@ -50,13 +48,13 @@ describe('disconnectMessage handlers', () => {
                 messageBus,
             })
 
-            expect(messageBusMock.send).toHaveBeenCalledWith({
+            expect(messageBus.publish).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['ROOM#TestABC', '!CHARACTER#ABC'],
                 displayProtocol: 'WorldMessage',
                 message: ['Tess has disconnected.'],
             })
-            expect(messageBusMock.send).toHaveBeenCalledWith({
+            expect(messageBus.publish).toHaveBeenCalledWith({
                 type: 'RoomUpdate',
                 roomId: 'ROOM#TestABC',
             })
@@ -70,7 +68,7 @@ describe('disconnectMessage handlers', () => {
                 messageBus,
             })
 
-            expect(messageBusMock.send).not.toHaveBeenCalled()
+            expect(messageBus.publish).not.toHaveBeenCalled()
         })
     })
 
@@ -97,13 +95,50 @@ describe('disconnectMessage handlers', () => {
             })
 
             expect(connectionDBMock.transactWrite).toHaveBeenCalled()
-            expect(messageBusMock.send).toHaveBeenCalledWith({
+            expect(messageBus.publish).toHaveBeenCalledWith({
                 type: 'ReturnValue',
                 body: {
                     messageType: 'Unregistration',
                     CharacterId: 'CHARACTER#ABC',
                     RequestId: 'Request123',
                 },
+            })
+        })
+
+        it('publishes WorldMessage and RoomUpdate when the last connection is removed', async () => {
+            internalCacheMock.CharacterSessions.get.mockResolvedValue(['SESSION#1'])
+            internalCacheMock.SessionConnections.get.mockResolvedValue(['TestConnection'])
+            internalCacheMock.CharacterMeta.get.mockResolvedValue({
+                EphemeraId: 'CHARACTER#ABC',
+                Name: 'Tess',
+                RoomId: 'ROOM#TestABC',
+                RoomStack: [],
+                Color: 'purple',
+                HomeId: 'ROOM#VORTEX',
+                assets: [],
+                Pronouns: 'they/them',
+            } as any)
+            connectionDBMock.transactWrite.mockImplementation(async (transactions: any[]) => {
+                const updateTransaction = transactions.find((t: any) => t.Update)
+                updateTransaction?.Update?.successCallback?.({ connections: [] })
+                return undefined
+            })
+            ephemeraDBMock.optimisticUpdate.mockResolvedValue(undefined as any)
+
+            await unregisterCharacterMessage({
+                payloads: [{ type: 'UnregisterCharacter', characterId: 'CHARACTER#ABC' }],
+                messageBus,
+            })
+
+            expect(messageBus.publish).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['ROOM#TestABC', '!CHARACTER#ABC'],
+                displayProtocol: 'WorldMessage',
+                message: ['Tess has disconnected.'],
+            })
+            expect(messageBus.publish).toHaveBeenCalledWith({
+                type: 'RoomUpdate',
+                roomId: 'ROOM#TestABC',
             })
         })
     })
@@ -123,7 +158,7 @@ describe('disconnectMessage handlers', () => {
                 Pronouns: 'they/them',
             } as any)
 
-            await atomicallyRemoveCharacterAdjacency('TestConnection', 'CHARACTER#ABC')
+            await atomicallyRemoveCharacterAdjacency('TestConnection', 'CHARACTER#ABC', { messageBus })
 
             expect(connectionDBMock.transactWrite).not.toHaveBeenCalled()
             expect(ephemeraDBMock.optimisticUpdate).not.toHaveBeenCalled()
