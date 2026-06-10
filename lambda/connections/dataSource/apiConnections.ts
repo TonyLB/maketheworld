@@ -31,7 +31,7 @@ export const isApiConnectionsEnvelope = makeStreamingEnvelopeGuardFromHeaderGuar
     ConnectionsApiSubscribedHeader
 >(isApiConnectionsHeader)
 
-type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }
+type Bus = { publish: (payload: StreamingEventMessage) => void }
 
 const apiConnectionsSerializer = {
     serialize: ({ content }: { content: ConnectionsAPIPayload; header: { type: string } }) => ({ ...content })
@@ -39,8 +39,7 @@ const apiConnectionsSerializer = {
 
 export const sendApiConnectionsEvent = (
     bus: Bus,
-    content: ConnectionsAPIPayload,
-    laneId?: string
+    content: ConnectionsAPIPayload
 ) => {
     const timestamp = Date.now()
     const envelope = createInternalOriginEnvelope(
@@ -53,12 +52,12 @@ export const sendApiConnectionsEvent = (
         content,
         apiConnectionsSerializer
     )
-    bus.send({
+    bus.publish({
         type: 'StreamingEvent',
         dataSourceKey: 'api.connections',
         streamKey: 'ingress',
         header: envelope.header,
         getContent: envelope.getContent,
         timestamp
-    }, laneId)
+    })
 }

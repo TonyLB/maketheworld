@@ -1,6 +1,6 @@
 # MessageBus: `publish`/`settle` migration (planning)
 
-**Status:** In progress (P5). Q1-Q9 are locked (P0.5 complete; Q9 **`deliveryMode`**: deferred **only** character-move). **Phase P1** complete. **P2a** complete. **P2b** ephemera + assets + **wml** complete (`mtw.wml` with direct `promoteToCanon` orchestration). **P3** complete. **P4** complete (including **P4 ephemera closeout grep** -- zero production `messageBus.send` in `lambda/ephemera/`). **P5 assets** complete (**ASSETS closeout grep**). **P5 wml** complete (**WML closeout grep**). Next step: **P5 diagnostics** (see Recommended order).
+**Status:** In progress (P5). Q1-Q9 are locked (P0.5 complete; Q9 **`deliveryMode`**: deferred **only** character-move). **Phase P1** complete. **P2a** complete. **P2b** ephemera + assets + **wml** + **connections** complete. **P3** complete. **P4** complete (including **P4 ephemera closeout grep** -- zero production `messageBus.send` in `lambda/ephemera/`). **P5 assets** complete (**ASSETS closeout grep**). **P5 wml** complete (**WML closeout grep**). **P5 connections** complete (**CONNECTIONS closeout grep**; cognitoEvent boundary folded in). Next step: **P5 diagnostics** (see Recommended order).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -870,7 +870,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 - [ ] Phase P2 - `DataSource` port and outbound path (piecewise per Q7; closeout per Q2)
   - [X] P2a -- infrastructure: `DataSourceMessageBusPort` adds `publish` (keep `send` during migration); constructor `outboundBusDelivery?: 'send' | 'publish'` (default `'send'`); branch in `sendStreamingEventOnBus`.
   - [X] P2a -- extend package mocks with `publish: jest.fn()`; add tests for `'publish'` outbound path (Q7).
-  - [X] P2b -- per DataSource: set `outboundBusDelivery: 'publish'` with that directory's lane/send atomic migration (coordinate with P3/P4/P5); update that DS's package/lambda tests to assert `publish`. **Done (ephemera):** `mtw.ephemera.coyoteGame` (Coyote hypothesis P3 slice), `mtw.ephemera.renderOrchestration` (render orchestration P3 slice), `mtw.ephemera.affordanceOrchestration` (affordance orchestration P3 slice), `mtw.ephemera.actions` (ACTIONS-PARSE P4 slice), `mtw.ephemera.perception` (**COMP-KICK + PERCEPTION** P4 slice), `mtw.ephemera.renderCache` (**RENDER-CACHE** P4 slice), `mtw.ephemera.affordanceCache` (**AFFORDANCE-CACHE** P4 slice), `mtw.ephemera.state` (**Easy / Low rows** P4 slice), `mtw.ephemera.objects` + `mtw.ephemera.thinking.scheduling` (**P4 ephemera closeout grep**). **Done (assets P5):** `mtw.assets`, `mtw.assets.contentHeaders`, `mtw.assets.library`, `mtw.assets.players`, `mtw.assets.characters`, `mtw.assets.componentTopology`, `mtw.assets.componentExamples`, `mtw.assets.components.verticals`. **Done (wml P5):** `mtw.wml`. **Pending:** diagnostics, connections, cognitoEvent (P5) per slice.
+  - [X] P2b -- per DataSource: set `outboundBusDelivery: 'publish'` with that directory's lane/send atomic migration (coordinate with P3/P4/P5); update that DS's package/lambda tests to assert `publish`. **Done (ephemera):** `mtw.ephemera.coyoteGame` (Coyote hypothesis P3 slice), `mtw.ephemera.renderOrchestration` (render orchestration P3 slice), `mtw.ephemera.affordanceOrchestration` (affordance orchestration P3 slice), `mtw.ephemera.actions` (ACTIONS-PARSE P4 slice), `mtw.ephemera.perception` (**COMP-KICK + PERCEPTION** P4 slice), `mtw.ephemera.renderCache` (**RENDER-CACHE** P4 slice), `mtw.ephemera.affordanceCache` (**AFFORDANCE-CACHE** P4 slice), `mtw.ephemera.state` (**Easy / Low rows** P4 slice), `mtw.ephemera.objects` + `mtw.ephemera.thinking.scheduling` (**P4 ephemera closeout grep**). **Done (assets P5):** `mtw.assets`, `mtw.assets.contentHeaders`, `mtw.assets.library`, `mtw.assets.players`, `mtw.assets.characters`, `mtw.assets.componentTopology`, `mtw.assets.componentExamples`, `mtw.assets.components.verticals`. **Done (wml P5):** `mtw.wml`. **Done (connections P5):** `mtw.connections`, `mtw.connections.characters`. **Pending:** diagnostics (P5) per slice.
   - [ ] P2c -- closeout when no production DataSource uses `'send'` outbound: remove `outboundBusDelivery`, port `send`, `_inboundFlushLaneStack`, `StreamEventParams.laneId`, and `send` branch in `sendStreamingEventOnBus`.
   - [ ] Run: `npm test -- ts/dataSource/index.test.ts` from `packages/mtw-lambda-patterns/` after each P2 slice.
 
@@ -932,13 +932,15 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
     - [ ] **P2b** `outboundBusDelivery: 'publish'` on `mtw.diagnostics` if applicable.
     - [ ] **DIAGNOSTICS closeout grep:** `rg 'messageBus\.send\(' lambda/diagnostics/ --glob '*.ts' | rg -v '\.test\.ts'` zero production hits.
 
-  - [ ] **CONNECTIONS** (small slice): [`lambda/connections/`](../../../../../lambda/connections/)
-    - [ ] [`ingress.ts`](../../../../../lambda/connections/ingress.ts), [`dataSource/index.ts`](../../../../../lambda/connections/dataSource/index.ts): `send` -> `publish`.
-    - [ ] [`app.ts`](../../../../../lambda/connections/app.ts): boundary `flush()` -> `flushAndSettle()`.
-    - [ ] **P2b** on `mtw.connections` + `mtw.connections.characters` DataSources as needed.
-    - [ ] **CONNECTIONS closeout grep:** `rg 'messageBus\.send\(' lambda/connections/ --glob '*.ts' | rg -v '\.test\.ts'` zero production hits.
+  - [X] **CONNECTIONS** (small slice): [`lambda/connections/`](../../../../../lambda/connections/)
+    - [X] [`ingress.ts`](../../../../../lambda/connections/ingress.ts), [`dataSource/apiConnections.ts`](../../../../../lambda/connections/dataSource/apiConnections.ts), [`dataSource/index.ts`](../../../../../lambda/connections/dataSource/index.ts): `send` -> `publish`.
+    - [X] [`app.ts`](../../../../../lambda/connections/app.ts): boundary `flush()` -> `flushAndSettle()`.
+    - [X] **P2b** on `mtw.connections` + `mtw.connections.characters` DataSources.
+    - [X] **Boundary assembly:** [`returnValue/collector.ts`](../../../../../lambda/connections/returnValue/collector.ts) ReturnValue + Error collectors (priority **16**); `extractReturnValue` reads collectors only.
+    - [X] **CONNECTIONS closeout grep:** `rg 'messageBus\.send\(' lambda/connections/ --glob '*.ts' | rg -v '\.test\.ts'` zero production hits.
+    - [X] **Tests:** `returnValue/collector.test.ts`, `app.test.ts` (40 tests); package `ts/dataSource/index.test.ts` + `ts/messageBus/index.test.ts` baseline.
 
-  - [ ] **COGNITOEVENT** (boundary only; fold into **CONNECTIONS** pass or land immediately before P6): [`lambda/cognitoEvent/app.ts`](../../../../../lambda/cognitoEvent/app.ts) `flush()` -> `flushAndSettle()` (no production `messageBus.send` today).
+  - [X] **COGNITOEVENT** (boundary only; folded into **CONNECTIONS** pass): [`lambda/cognitoEvent/app.ts`](../../../../../lambda/cognitoEvent/app.ts) `flush()` -> `flushAndSettle()` (no production `messageBus.send` today).
 
   - [ ] **P5 global grep gate:** `rg 'messageBus\.send\(' lambda/ --glob '*.ts' | rg -v '\.test\.ts'` zero production hits (tests/harnesses may remain until P6).
 
@@ -1040,10 +1042,10 @@ Run lambda-local tests from each `lambda/<name>/` package for touched paths (no 
 | Open questions Q4-Q5 resolved (P0.5) | Done |
 | Open question Q9 (`registerDeferral` + phased scope) | Done |
 | Engine `publish`/`settle` + tests (P1) | Done |
-| DataSource port migration (P2) | P2a done; P2b ephemera + assets + wml complete; diagnostics/connections/cognitoEvent pending (P5) |
+| DataSource port migration (P2) | P2a done; P2b ephemera + assets + wml + connections complete; diagnostics pending (P5) |
 | Ephemera lane hotspots (P3) | Done (Coyote hypothesis, Acme order, render/affordance orchestration, Coyote harness) |
 | Remaining ephemera migration (P4) | Done (**P4 ephemera closeout grep**: zero production `messageBus.send` in `lambda/ephemera/`) |
-| Other lambdas (P5) | Assets + **wml** done (**WML closeout grep**); next: **diagnostics** -> **connections** + **cognitoEvent** (see Recommended order) |
+| Other lambdas (P5) | Assets + **wml** + **connections** + **cognitoEvent** done (**CONNECTIONS closeout grep**); next: **diagnostics** (see Recommended order) |
 | Legacy removal + durable docs (P6) | Not started |
 
 ## Behavioral reference (handoff summary)

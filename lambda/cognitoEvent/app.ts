@@ -13,6 +13,6 @@ export const handler = async (event) => {
 
     messageBus.clear()
     await routeCognitoIngress(event)
-    await messageBus.flush()
+    await messageBus.flushAndSettle()
     return event
 }
