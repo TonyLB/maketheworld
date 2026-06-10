@@ -1,6 +1,5 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
-import { v4 as uuidv4 } from 'uuid'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { CoyoteGameIntentRecord } from '../../../../internalCache/coyoteGame'
 import { COYOTE_RENDER_LINE_BREAK } from '../../utilities/coyoteRenderTree'
@@ -36,7 +35,7 @@ export type CoyoteEngineTestHarnessInvocation =
 
 export type RunCoyoteEngineTestHarnessDeps = {
     characterId: EphemeraCharacterId
-    messageBus: Pick<MessageBus, 'send' | 'flush' | 'publish'>
+    messageBus: Pick<MessageBus, 'publish' | 'flushAndSettle'>
     fixtures?: CoyoteEngineTestFixture[]
     testBatchSize?: number
     /** Override for tests; defaults to [`generateHypothesisWithStageResults`]. */
@@ -409,17 +408,13 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
     const invocation = normalizeHarnessInvocation(deps.harnessInvocation)
     const selectedOrErr = selectHarnessFixtures(allFixtures, invocation)
     if ('error' in selectedOrErr) {
-        const laneId = uuidv4()
-        deps.messageBus.send(
-            {
-                type: 'PublishMessage',
-                targets: [deps.characterId],
-                displayProtocol: 'WorldOOCMessage',
-                message: [selectedOrErr.error],
-            },
-            laneId
-        )
-        await deps.messageBus.flush(laneId)
+        deps.messageBus.publish({
+            type: 'PublishMessage',
+            targets: [deps.characterId],
+            displayProtocol: 'WorldOOCMessage',
+            message: [selectedOrErr.error],
+        })
+        await deps.messageBus.flushAndSettle()
         return
     }
     const fixtures = selectedOrErr
@@ -443,7 +438,6 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
         index: number,
         effectiveFixtureIndex1Based: number
     ): Promise<void> => {
-        const laneId = uuidv4()
         const startMs = now()
         try {
             const baseDeps = {
@@ -460,16 +454,13 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                     fixtures: allFixtures,
                 })
                 if ('error' in built) {
-                    deps.messageBus.send(
-                        {
-                            type: 'PublishMessage',
-                            targets: [deps.characterId],
-                            displayProtocol: 'WorldOOCMessage',
-                            message: [built.error],
-                        },
-                        laneId
-                    )
-                    await deps.messageBus.flush(laneId)
+                    deps.messageBus.publish({
+                        type: 'PublishMessage',
+                        targets: [deps.characterId],
+                        displayProtocol: 'WorldOOCMessage',
+                        message: [built.error],
+                    })
+                    await deps.messageBus.flushAndSettle()
                     return
                 }
                 const pipeline = await runPipeline(baseDeps, built)
@@ -530,15 +521,12 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                     errorMessage: pipelineErrorMessage(pipeline),
                     harnessBannerLines,
                 })
-                deps.messageBus.send(
-                    {
-                        type: 'PublishMessage',
-                        targets: [deps.characterId],
-                        displayProtocol: 'WorldOOCMessage',
-                        message,
-                    },
-                    laneId
-                )
+                deps.messageBus.publish({
+                    type: 'PublishMessage',
+                    targets: [deps.characterId],
+                    displayProtocol: 'WorldOOCMessage',
+                    message,
+                })
             }
             else {
                 const pipeline = await runPipeline(baseDeps)
@@ -576,15 +564,12 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                     narrativeBeatsJsonBlock,
                     errorMessage: pipelineErrorMessage(pipeline),
                 })
-                deps.messageBus.send(
-                    {
-                        type: 'PublishMessage',
-                        targets: [deps.characterId],
-                        displayProtocol: 'WorldOOCMessage',
-                        message,
-                    },
-                    laneId
-                )
+                deps.messageBus.publish({
+                    type: 'PublishMessage',
+                    targets: [deps.characterId],
+                    displayProtocol: 'WorldOOCMessage',
+                    message,
+                })
             }
         }
         catch (error) {
@@ -611,17 +596,14 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                 errorMessage,
                 harnessBannerLines,
             })
-            deps.messageBus.send(
-                {
-                    type: 'PublishMessage',
-                    targets: [deps.characterId],
-                    displayProtocol: 'WorldOOCMessage',
-                    message,
-                },
-                laneId
-            )
+            deps.messageBus.publish({
+                type: 'PublishMessage',
+                targets: [deps.characterId],
+                displayProtocol: 'WorldOOCMessage',
+                message,
+            })
         }
-        await deps.messageBus.flush(laneId)
+        await deps.messageBus.flushAndSettle()
     }
 
     const worker = async (): Promise<void> => {
