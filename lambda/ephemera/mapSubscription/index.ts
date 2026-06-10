@@ -36,7 +36,7 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
 
         if (sessionIsValid && validCharacters.length) {
             const snapshots = validCharacters.map((characterId) => (emptyMapSnapshotForCharacter(characterId)))
-            messageBus.send({
+            messageBus.publish({
                 type: 'ReturnValue',
                 body: {
                     messageType: 'SubscribeToMaps',
@@ -46,7 +46,7 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
             })
         }
         else {
-            messageBus.send({
+            messageBus.publish({
                 type: 'ReturnValue',
                 body: {
                     messageType: 'Error',
@@ -58,7 +58,7 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
 
     }
     else {
-        messageBus.send({
+        messageBus.publish({
             type: 'ReturnValue',
             body: {
                 messageType: 'Error',
@@ -73,7 +73,7 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
 export const mapUnsubscribeMessage = async ({ payloads, messageBus }: { payloads: MapUnsubscribeMessage[], messageBus: MessageBus }): Promise<void> => {
     const RequestId = await internalCache.Global.get('RequestId')
     void payloads
-    messageBus.send({
+    messageBus.publish({
         type: 'ReturnValue',
         body: {
             messageType: 'UnsubscribeFromMaps',

@@ -11,7 +11,7 @@ const internalCacheMock = jest.mocked(internalCache, true)
 
 describe('mapSubscription stub window', () => {
     const messageBus = {
-        send: jest.fn()
+        publish: jest.fn()
     } as any
 
     beforeEach(() => {
@@ -31,12 +31,44 @@ describe('mapSubscription stub window', () => {
         })
 
         expect(connectionDBMock.transactWrite).not.toHaveBeenCalled()
-        expect(messageBus.send).toHaveBeenCalledWith({
+        expect(messageBus.publish).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
                 messageType: 'SubscribeToMaps',
                 RequestId: 'req-1',
                 maps: [{ characterId: 'CHARACTER#one', maps: [] }]
+            }
+        })
+    })
+
+    it('batches multiple payloads into one ReturnValue with combined maps', async () => {
+        internalCacheMock.Global.get
+            .mockImplementationOnce(async () => ('req-batch'))
+            .mockImplementationOnce(async () => ('session-1'))
+        connectionDBMock.getItems.mockResolvedValue([
+            { DataCategory: 'CHARACTER#one' },
+            { DataCategory: 'CHARACTER#two' },
+        ] as any)
+        connectionDBMock.getItem.mockResolvedValue({ DataCategory: 'SESSION#session-1' } as any)
+
+        await mapSubscriptionMessage({
+            payloads: [
+                { type: 'SubscribeToMaps', characterId: 'CHARACTER#one' },
+                { type: 'SubscribeToMaps', characterId: 'CHARACTER#two' },
+            ],
+            messageBus
+        })
+
+        expect(messageBus.publish).toHaveBeenCalledTimes(1)
+        expect(messageBus.publish).toHaveBeenCalledWith({
+            type: 'ReturnValue',
+            body: {
+                messageType: 'SubscribeToMaps',
+                RequestId: 'req-batch',
+                maps: [
+                    { characterId: 'CHARACTER#one', maps: [] },
+                    { characterId: 'CHARACTER#two', maps: [] },
+                ]
             }
         })
     })
@@ -50,7 +82,7 @@ describe('mapSubscription stub window', () => {
         })
 
         expect(connectionDBMock.optimisticUpdate).not.toHaveBeenCalled()
-        expect(messageBus.send).toHaveBeenCalledWith({
+        expect(messageBus.publish).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
                 messageType: 'UnsubscribeFromMaps',
