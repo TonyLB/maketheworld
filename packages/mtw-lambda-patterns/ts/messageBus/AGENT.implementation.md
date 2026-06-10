@@ -52,7 +52,7 @@ Task plan: [`taskPlanning/packages/mtw-lambda-patterns/ts/messageBus/AGENT.publi
 
 **Bucket-1 aggregation** (task plan **Bucket-1 deep dive**): flush batching was shielding, contract packaging, or orchestration -- not only traffic dedup. Fix axis per row: consumer idempotency (easy migrate), **producer coalescing** (`checkLocation`, `diagnostics`), **contract** (`mapSubscription` / `extractReturnValue`), or **Q9 defer buffer** (`publishMessage` orchestration). Do not assume all bucket-1 rows need consumer hardening.
 
-**Q9 defer buffer (locked):** orchestration outbound coalescing is **not** a second subscriber queue. **API:** `registerDeferral(tag, { onClear?, afterSettled })`; `clear()` runs `onClear`; `runDeferrals()` after **boundary drain** (`flushAndSettle` idle loop), not after producer-side mid-invocation drain. Per-need aggregator modules wrap registration at module load. **PublishMessage (P4):** `deliveryMode?: 'immediate' | 'deferred'` (default **`immediate`**) -- **`deferred` only for character move** (coalescer + `afterSettled`); Generating/terminal uses immediate wire + explicit `createdTime` revision pair; see task plan Q9 items 7-8 and **Single-invocation render cascades**. **v1 contract:** `afterSettled` hooks are **IO-only** (no `publish`/`send`); one pass, no repeat loop. Avoid producer-side mid-invocation drain in aggregators for sequencing -- use shared entity + boundary drain; future repeat wrapper if boundary-phase bus enqueue is needed. Drain scopes: task plan **Bus drain terminology** and **Q9**.
+**Q9 defer buffer (locked):** orchestration outbound coalescing is **not** a second subscriber queue. **API:** `registerDeferral(tag, { onClear?, afterSettled })`; `clear()` runs `onClear`; `runDeferrals()` after **boundary drain** (`flushAndSettle` idle loop), not after producer-side mid-invocation drain. Per-need aggregator modules wrap registration at module load. **PublishMessage (P4, landed):** ephemera [`publishMessage/coalescer.ts`](../../../../lambda/ephemera/publishMessage/coalescer.ts) registers `'publishMessage'` deferral on [`lambda/ephemera/messageBus/index.ts`](../../../../lambda/ephemera/messageBus/index.ts). `deliveryMode?: 'immediate' | 'deferred'` (default **`immediate`**) on [`PublishMessageBase`](../../../../lambda/ephemera/messageBus/baseClasses.ts) -- **`deferred` only for character move** at producers (coalescer + `afterSettled`); Generating/terminal uses immediate wire + explicit `createdTime` revision pair; see task plan Q9 items 7-8 and **Single-invocation render cascades**. **v1 contract:** `afterSettled` hooks are **IO-only** (no `publish`/`send`); one pass, no repeat loop. Avoid producer-side mid-invocation drain in aggregators for sequencing -- use shared entity + boundary drain; future repeat wrapper if boundary-phase bus enqueue is needed. Drain scopes: task plan **Bus drain terminology** and **Q9**.
 
 ### `publish` / `settle` API
 
@@ -76,11 +76,8 @@ await messageBus.settle()  // test harness drain only (Q6); not production handl
 // Lambda boundary drain (hybrid migration)
 await messageBus.flushAndSettle()  // flush + settle loop, then runDeferrals()
 
-// Deferral registration (module load; P4 PUBLISH-MSG -- deferred rows only)
-messageBus.registerDeferral('publishMessage', {
-    onClear: () => coalescer.reset(),
-    afterSettled: () => coalescer.flushDeferred(),
-})
+// Deferral registration (module load; see lambda/ephemera/publishMessage/coalescer.ts)
+publishMessageCoalescer.registerDeferral(messageBus)
 // PublishMessage: deliveryMode 'immediate' (default) -> wire in handler; 'deferred' -> coalescer.enqueue
 ```
 

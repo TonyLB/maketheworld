@@ -20,7 +20,7 @@ In progress: [`taskPlanning/.../AGENT.publishSettledMigration.planning.md`](../.
 
 | Handler | Fix axis | Notes |
 | --- | --- | --- |
-| [`publishMessage`](../publishMessage/index.ts) | **Q9 selective delivery** | `immediate` (default) wire in handler; `deferred` -> coalescer + `afterSettled` **character move only**; Generating/terminal immediate + explicit `createdTime`; see task plan Q9 |
+| [`publishMessage`](../publishMessage/index.ts) | **Q9 selective delivery** (landed P4) | `deliveryMode` on [`PublishMessageBase`](./baseClasses.ts): `immediate` (default) wire in handler; `deferred` -> [`publishMessage/coalescer.ts`](../publishMessage/coalescer.ts) + `afterSettled` via `registerDeferral` in [`index.ts`](./index.ts) (**character move only** at producers). Generating/terminal: immediate + explicit `createdTime` on perception payloads. |
 | [`checkLocation`](../checkLocation/index.ts) | **Producer coalesce** | Per-invocation character dedup; `moveCharacter` not duplicate-safe |
 | [`mapSubscription`](../mapSubscription/index.ts) | **Contract** | `extractReturnValue` merge policy if multi-send per invocation |
 | [`ephemeraUpdate`](../ephemeraUpdate/index.ts), [`fetchEphemera`](../fetchEphemera/index.ts), [`perception`](../perception/index.ts) (ReturnValue) | **Easy migrate** | Downstream state/merge already converges; extra frames OK |
