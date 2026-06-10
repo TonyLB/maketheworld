@@ -44,7 +44,7 @@ export const fetchPlayerEphemera = async ({ payloads, messageBus }: { payloads: 
         const returnItems = Items
             .map(serialize)
 
-        messageBus.send({
+        messageBus.publish({
             type: 'EphemeraUpdate',
             updates: returnItems.map((item) => ({ ...item, Connected: true, connectionTargets: [`CONNECTION#${connectionId}`] })) as any
         })

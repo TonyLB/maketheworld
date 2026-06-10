@@ -260,17 +260,6 @@ export const handler = async (event: any, context: any) => {
                     command: request.command,
                     ...(request.RequestId ? { requestId: request.RequestId } : {}),
                 })
-                // Legacy reference (Phase 1 intentionally disables direct imperative parse/execute):
-                // const parsedAction = await parseCommand({
-                //     CharacterId: request.CharacterId,
-                //     command: request.command
-                // })
-                // if (parsedAction) {
-                //     messageBus.send({
-                //         type: 'ExecuteAction',
-                //         action: parsedAction
-                //     })
-                // }
             }
 
             if (isActionAPIMessage(request)) {

@@ -65,12 +65,12 @@ Stable contracts (hop-level detail and parser authority: [`generators/pipelines/
 
 ## Await RoadRunner (outcome path)
 
-[`handlers/handleAwaitRoadRunnerForPlanOutcome.ts`](handlers/handleAwaitRoadRunnerForPlanOutcome.ts):
+[`handlers/handleAwaitRoadRunnerForPlanOutcome.ts`](handlers/handleAwaitRoadRunnerForPlanOutcome.ts) (migrated P4 COYOTE-PLAN; mirrors hypothesis handler):
 
 1. Targets active characters across all Coyote game rooms.
-2. Sends `Outcome: Generating...` on `outcomeLane:${messageId}`.
-3. Flushes lane while remainder invalidates and reloads `internalCache.CoyoteGame.get('outcome')`.
-4. Publishes final world message and stream event payload.
+2. `publish` Generating placeholder (`WorldMessage`, shared `messageId`, `createdTime: t0`).
+3. `streamEvent` Plan Outcome Generation Started; invalidate and reload `internalCache.CoyoteGame.get('outcome')` (concurrent with boundary drain).
+4. `streamEvent` Plan Outcome Generation Result; `publish` terminal `WorldMessage` (`createdTime: max(t0+1, now)`). Immediate wire; no named lane or producer-side drain.
 
 Outcome generation chain (reads the same durable **intent** row as hypothesis, including optional **`gimmick`** and **`tropeSequence`** for prompt context only):
 

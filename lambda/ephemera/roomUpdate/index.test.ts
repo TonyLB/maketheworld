@@ -20,13 +20,13 @@ describe('roomUpdateMessage', () => {
         const sendSpy = jest
             .spyOn(sendAffordanceRefresh, 'sendAffordanceRefreshRequestedForRoom')
             .mockResolvedValue(undefined)
-        const busSendSpy = jest.spyOn(messageBus, 'send')
+        const busPublishSpy = jest.spyOn(messageBus, 'publish')
 
         await roomUpdateMessage({
             payloads: [{ type: 'RoomUpdate', roomId }],
             messageBus,
         })
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
 
         expect(sendSpy).toHaveBeenCalledTimes(1)
         expect(sendSpy).toHaveBeenCalledWith({
@@ -35,12 +35,12 @@ describe('roomUpdateMessage', () => {
             messageBus,
         })
 
-        const roomUpdateWireCalls = busSendSpy.mock.calls.filter(
+        const roomUpdateWireCalls = busPublishSpy.mock.calls.filter(
             (c) => c[0]?.type === 'PublishMessage' && (c[0] as any).displayProtocol === 'RoomUpdate'
         )
         expect(roomUpdateWireCalls).toHaveLength(0)
 
-        const affordanceCalls = busSendSpy.mock.calls.filter(
+        const affordanceCalls = busPublishSpy.mock.calls.filter(
             (c) =>
                 c[0]?.type === 'PublishMessage'
                 && (c[0] as any).displayProtocol === 'PerceptionMessage'
@@ -49,6 +49,6 @@ describe('roomUpdateMessage', () => {
         expect(affordanceCalls).toHaveLength(0)
 
         sendSpy.mockRestore()
-        busSendSpy.mockRestore()
+        busPublishSpy.mockRestore()
     })
 })

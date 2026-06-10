@@ -72,6 +72,7 @@ Current supported occupancy-healing finding:
   - Keeps replay idempotency (no-op when room occupancy already matches canonical shape).
   - Enforces post-repair contract: `RoomCharacterList` refresh, `ComponentEphemeraMeta` + `AffordanceRoomDeliverable` invalidation, and `RoomUpdate` signaling.
   - Queues `CheckLocation` for occupancy entries lacking authoritative room assignment.
+  - Bus delivery: **`publish`** + boundary **`flushAndSettle`** (no producer-side drain).
 
 #### **`mtw.ephemera.positions` (positions in play)**
 
@@ -292,7 +293,7 @@ For complete testing pattern documentation including dependency injection, real-
 - **`app.ts`**: Main lambda handler with WebSocket routing and EventBridge processing
 - **`perception/index.ts`**: Core perception filtering and character presence detection
 - **`ephemeraUpdate/index.ts`**: Real-time state broadcasting to connected clients
-- **`moveCharacter/index.ts`**: Character movement coordination and room updates
+- **`moveCharacter/index.ts`**: Character movement coordination and room updates; bus outbounds use **`publish`** + boundary **`flushAndSettle`** (P4 MOVE-CHAR); fallback WorldMessage leave/arrive use **`deliveryMode: 'deferred'`**
 - **`executeAction/index.ts`**: Legacy action execution system (under review for removal)
 
 ## Related Documentation

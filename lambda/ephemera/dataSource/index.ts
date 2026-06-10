@@ -27,7 +27,7 @@ const processComponentUpdated = async (evt: Extract<EphemeraIncomingEvent, { hea
 const processCanonUpdated = async (evt: Extract<EphemeraIncomingEvent, { header: { type: 'Canon Updated' } }>): Promise<void> => {
     const content = await evt.getContent()
     if (!content) return
-    messageBus.send({
+    messageBus.publish({
         type: 'CanonSet',
         assetIds: content.assetIds.filter(isEphemeraAssetId)
     })
@@ -40,9 +40,9 @@ const processZoneUpdated = async (evt: Extract<EphemeraIncomingEvent, { header: 
     const assetId = evt.header.streamKey as string
     if (isEphemeraAssetId(assetId)) {
         if (toZone === 'Canon' && fromZone !== 'Canon') {
-            messageBus.send({ type: 'CanonAdd', assetId })
+            messageBus.publish({ type: 'CanonAdd', assetId })
         } else if (fromZone === 'Canon' && toZone !== 'Canon') {
-            messageBus.send({ type: 'CanonRemove', assetId })
+            messageBus.publish({ type: 'CanonRemove', assetId })
         }
     }
 }

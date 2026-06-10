@@ -11,7 +11,6 @@ import {
     isMapUpdateMessage,
     isMapUnsubscribe,
     isUnregisterCharacterMessage,
-    isCanonUpdateMessage,
     isCheckLocation,
     isDisconnectCharacterMessage,
     isCharacterEventMessage,

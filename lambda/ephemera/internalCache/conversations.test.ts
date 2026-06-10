@@ -62,8 +62,8 @@ describe('ConversationsData', () => {
     })
 
     it('roomStateRender sendMessage publishes RenderReady via passiveBusDelivery and get() messageBus override', async () => {
-        const send = jest.fn()
-        const bus = { send } as unknown as MessageBus
+        const publish = jest.fn()
+        const bus = { publish } as unknown as MessageBus
         const cache = new ConversationsData(
             makeGlobals() as unknown as any,
             { send: jest.fn() } as unknown as MessageBus
@@ -92,7 +92,7 @@ describe('ConversationsData', () => {
             cacheId: previewTerminalCacheId,
             cacheRecord: previewTerminalCacheRecord,
         })
-        expect(send).toHaveBeenCalledWith(expect.objectContaining({
+        expect(publish).toHaveBeenCalledWith(expect.objectContaining({
             type: 'RenderReady',
             cacheId: previewTerminalCacheId,
         }))

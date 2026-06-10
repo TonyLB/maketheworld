@@ -25,6 +25,7 @@ jest.mock('../../internalCache', () => ({
 describe('handleRoomOccupancyDriftFinding', () => {
     const messageBus = {
         send: jest.fn(),
+        publish: jest.fn(),
     } as any
 
     beforeEach(() => {
@@ -57,7 +58,7 @@ describe('handleRoomOccupancyDriftFinding', () => {
 
         expect(result).toEqual({ changed: false, checkLocationQueued: false })
         expect(ephemeraDB.optimisticUpdate).not.toHaveBeenCalled()
-        expect(messageBus.send).not.toHaveBeenCalled()
+        expect(messageBus.publish).not.toHaveBeenCalled()
     })
 
     it('repairs drifting occupancy and refreshes cache + room update signal', async () => {
@@ -86,7 +87,7 @@ describe('handleRoomOccupancyDriftFinding', () => {
         expect(internalCache.ComponentEphemeraMeta.invalidate).toHaveBeenCalledWith('ROOM#roomA')
         expect(internalCache.AffordanceRoomDeliverable.invalidate).toHaveBeenCalledWith('ROOM#roomA')
         expect(internalCache.RoomCharacterList.set).toHaveBeenCalled()
-        expect(messageBus.send).toHaveBeenCalledWith({
+        expect(messageBus.publish).toHaveBeenCalledWith({
             type: 'RoomUpdate',
             roomId: 'ROOM#roomA',
         })
@@ -111,7 +112,7 @@ describe('handleRoomOccupancyDriftFinding', () => {
         })
 
         expect(result.checkLocationQueued).toBe(true)
-        expect(messageBus.send).toHaveBeenCalledWith({
+        expect(messageBus.publish).toHaveBeenCalledWith({
             type: 'CheckLocation',
             roomId: 'ROOM#roomA',
         })

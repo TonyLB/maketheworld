@@ -19,6 +19,7 @@ export const ephemeraObjectsDataSource = new EphemeraDataSource<never, ObjectsCh
     dataSourceKey: 'mtw.ephemera.objects',
     replayable: false,
     publisherStrategy: 'busOnly',
+    outboundBusDelivery: 'publish',
     subscribedEventTypeGuard: isObjectsSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (event) => {

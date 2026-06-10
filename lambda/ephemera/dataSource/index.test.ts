@@ -8,6 +8,7 @@ import getCurrentTimestamp from '../internalUtils/dateUtil'
 // Mock the messageBus
 jest.mock('../messageBus', () => ({
     send: jest.fn(),
+    publish: jest.fn(),
     flush: jest.fn(),
     subscribe: jest.fn()
 }))
@@ -97,7 +98,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
-            expect(mockMessageBus.send).not.toHaveBeenCalled()
+            expect(mockMessageBus.publish).not.toHaveBeenCalled()
         })
 
         it('should not send Perception message when component universalKey is missing', async () => {
@@ -125,7 +126,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
-            expect(mockMessageBus.send).not.toHaveBeenCalled()
+            expect(mockMessageBus.publish).not.toHaveBeenCalled()
         })
     })
 
@@ -149,7 +150,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'CanonSet',
                 assetIds: ['ASSET#canon1', 'ASSET#canon2', 'ASSET#canon3']
             })
@@ -174,7 +175,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'CanonSet',
                 assetIds: ['ASSET#canon1', 'ASSET#canon2']
             })
@@ -199,7 +200,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'CanonSet',
                 assetIds: []
             })
@@ -227,7 +228,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'CanonAdd',
                 assetId: 'ASSET#test-asset'
             })
@@ -253,7 +254,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'CanonRemove',
                 assetId: 'ASSET#test-asset'
             })
@@ -279,7 +280,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
-            expect(mockMessageBus.send).not.toHaveBeenCalled()
+            expect(mockMessageBus.publish).not.toHaveBeenCalled()
         })
 
         it('should not send messages for non-ephemera asset IDs', async () => {
@@ -302,7 +303,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
-            expect(mockMessageBus.send).not.toHaveBeenCalled()
+            expect(mockMessageBus.publish).not.toHaveBeenCalled()
         })
     })
 
@@ -357,16 +358,16 @@ describe('Ephemera DataSource receiveEvents', () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
-            expect(mockMessageBus.send).toHaveBeenCalledTimes(2)
+            expect(mockMessageBus.publish).toHaveBeenCalledTimes(2)
             expect(kickRoomHeaderBroadcastForRoom).toHaveBeenCalledWith({
                 roomId: 'ROOM#test-room',
                 messageBus: mockMessageBus,
             })
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'CanonSet',
                 assetIds: ['ASSET#canon1', 'ASSET#canon2']
             })
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'CanonAdd',
                 assetId: 'ASSET#zone-asset'
             })
