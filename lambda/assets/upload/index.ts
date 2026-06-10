@@ -60,7 +60,7 @@ export const uploadURLMessage = async ({ payloads, messageBus }: { payloads: Upl
                         .filter(({ fileExtension }) => (fileExtension))
                         .map(({ key, contentType, fileExtension = '' }) => (presignedUploadURL({ s3Client, prefix: 'IMAGE', key, contentType, fileExtension })))
                 ])
-                messageBus.send({
+                messageBus.publish({
                     type: 'ReturnValue',
                     body: {
                         messageType: 'UploadURL',

@@ -54,6 +54,7 @@ describe('CharactersDataSource', () => {
     describe('Constructor', () => {
         it('should create instance with correct configuration', () => {
             expect(dataSource.dataSourceKey).toBe('mtw.assets.characters')
+            expect(dataSource.outboundBusDelivery).toBe('publish')
             expect(dataSource.replayable).toBe(true)
             expect(dataSource.primaryKeyName).toBe('AssetId')
         })

@@ -83,7 +83,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             assetId: 'ASSET#stub',
             universalKeysProcessed: 0,
         })
-        jest.mocked(messageBus.send).mockReset()
+        jest.mocked(messageBus.publish).mockReset()
         // Mock assetDB.query for diagnostic tests
         assetDBMock.query.mockResolvedValue([] as any)
     })
@@ -92,6 +92,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
         it('should create instance with correct configuration', () => {
             expect(assetsDataSource.dataSourceKey).toBe('mtw.assets')
             expect(assetsDataSource.replayable).toBe(false)
+            expect(assetsDataSource.outboundBusDelivery).toBe('publish')
             expect(assetsDataSource.getSerializer()).toBeDefined()
         })
     })
@@ -627,7 +628,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             })
 
             expect(healPlayerMock).toHaveBeenCalledWith('api-player')
-            expect(messageBus.send).toHaveBeenCalledWith({
+            expect(messageBus.publish).toHaveBeenCalledWith({
                 type: 'ReturnValue',
                 body: { Characters: [], Assets: [], guestName: '', guestId: '' }
             })
@@ -663,7 +664,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 assetId: 'ASSET#a',
                 componentUniversalKeys: undefined,
             })
-            expect(messageBus.send).toHaveBeenCalledWith({
+            expect(messageBus.publish).toHaveBeenCalledWith({
                 type: 'ReturnValue',
                 body: { assetId: 'ASSET#a', universalKeysProcessed: 2 },
             })

@@ -64,7 +64,7 @@ export const isPlayersSubscribedHeader: HeaderGuard<PlayersSubscribedHeader> = (
 
 export const isPlayersSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<PlayersSubscribedContent, PlayersSubscribedHeader>(isPlayersSubscribedHeader)
 
-type Bus = { send: (payload: StreamingEventMessage) => void }
+type Bus = { publish: (payload: StreamingEventMessage) => void }
 
 const apiAssetsSerializer = { serialize: ({ content, header }: { content: object; header: StreamingEventHeader }) => ({ type: header.type, ...content }) }
 
@@ -77,7 +77,7 @@ export function sendPlayerSettingsUpdated(bus: Bus, streamKey: string, content: 
         type: 'Player Settings Updated',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiAssetsSerializer)
-    bus.send({
+    bus.publish({
         type: 'StreamingEvent',
         dataSourceKey: 'api.assets',
         streamKey,

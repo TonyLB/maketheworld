@@ -10,6 +10,7 @@ import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 describe('componentTopology DataSource', () => {
     it('registers as non-replayable mtw.assets.componentTopology', () => {
         expect(componentTopologyDataSource.dataSourceKey).toBe('mtw.assets.componentTopology')
+        expect(componentTopologyDataSource.outboundBusDelivery).toBe('publish')
         expect(componentTopologyDataSource.replayable).toBe(false)
     })
 

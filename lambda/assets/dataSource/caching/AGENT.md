@@ -132,19 +132,8 @@ The `cacheAsset` function uses a sophisticated diff analysis system to identify 
 #### Legacy Step Function Support
 ```typescript
 // For backward compatibility during transition
-// Note: This creates internal format events for messageBus
-messageBus.send({
-    type: 'StreamingEvent',
-    dataSourceKey: 'mtw.assets',
-    event: {
-        streamKey: `ASSET#${assetId}`,
-        update: {
-            type: 'Content Update',
-            AssetId: `ASSET#${assetId}`
-        }
-    },
-    timestamp: Date.now()
-})
+// Note: app.ts publishes internal-format StreamingEvent via messageBus.publish
+// See lambda/assets/messageBus/AGENT.md and app.ts cacheAsset branch
 ```
 
 ### Best Practices

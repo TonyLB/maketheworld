@@ -37,6 +37,7 @@ export class AssetsDataSource<
         }) => Promise<void>;
         eventSerializer?: any; // Pass through to parent DataSource
         aggregator?: DataSourceAggregator<SnapshotPayload, UpdatePayload>;
+        outboundBusDelivery?: 'send' | 'publish';
     }) {
         super({
             dynamo: assetDB,

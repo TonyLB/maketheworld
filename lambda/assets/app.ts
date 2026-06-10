@@ -72,7 +72,7 @@ export const handler = async (event, context) => {
                         type: 'HealPlayer',
                         player: event.player
                     })
-                    await messageBus.flush()
+                    await messageBus.flushAndSettle()
                 }
                 return await extractReturnValue(messageBus)
             case 'HealComponentVertical':
@@ -84,7 +84,7 @@ export const handler = async (event, context) => {
                             ? { componentUniversalKeys: event.componentUniversalKeys }
                             : {}),
                     })
-                    await messageBus.flush()
+                    await messageBus.flushAndSettle()
                 }
                 return await extractReturnValue(messageBus)
             case 'cacheAsset': {
@@ -105,7 +105,7 @@ export const handler = async (event, context) => {
                 }
                 const identitySerializer = { serialize: ({ content: c }: { content: typeof content }) => c }
                 const envelope = createInternalOriginEnvelope(header, content, identitySerializer)
-                messageBus.send({
+                messageBus.publish({
                     type: 'StreamingEvent',
                     dataSourceKey: 'mtw.wml',
                     streamKey,
@@ -113,7 +113,7 @@ export const handler = async (event, context) => {
                     getContent: envelope.getContent,
                     timestamp
                 })
-                await messageBus.flush()
+                await messageBus.flushAndSettle()
                 return {}
             }
             case 'createBackupEntry':
@@ -126,7 +126,7 @@ export const handler = async (event, context) => {
             type: 'HealPlayer',
             player: event.player
         })
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
         return await extractReturnValue(messageBus)
     }
 
@@ -138,7 +138,7 @@ export const handler = async (event, context) => {
                 ? { componentUniversalKeys: event.componentUniversalKeys }
                 : {}),
         })
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
         return await extractReturnValue(messageBus)
     }
 
@@ -161,7 +161,7 @@ export const handler = async (event, context) => {
                 const envelope = coreFormatToStreamingEnvelope<WMLEventUpdate | DiagnosticsEventUpdate | CognitoEventUpdate | null>(coreFormat, () =>
                     deserializer.deserialize({ content: coreFormat.update as any, header: coreFormat.header })
                 )
-                messageBus.send({
+                messageBus.publish({
                     type: 'StreamingEvent',
                     dataSourceKey: envelope.header.dataSourceKey,
                     streamKey: envelope.header.streamKey,
@@ -171,7 +171,7 @@ export const handler = async (event, context) => {
                 })
             } else {
                 // No deserializer available - this is an error condition
-                messageBus.send({
+                messageBus.publish({
                     type: 'Error',
                     body: {
                         error: `No deserializer available for data source: ${event.source}`
@@ -180,7 +180,7 @@ export const handler = async (event, context) => {
             }
         }
         // Flush messageBus and return after handling EventBridge events
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
         return
     }
 
@@ -220,7 +220,7 @@ export const handler = async (event, context) => {
             }
         }
         if (isFetchImportsAPIMessage(request)) {
-            messageBus.send({
+            messageBus.publish({
                 type: 'FetchImports',
                 importsFromAsset: [{
                     assetId: request.assetId,
@@ -229,14 +229,14 @@ export const handler = async (event, context) => {
             })
         }
         if (isFetchAssetAPIMessage(request)) {
-            messageBus.send({
+            messageBus.publish({
                 type: 'FetchAsset',
                 fileName: request.fileName,
                 AssetId: request.AssetId
             })
         }
         if (isUploadAssetLinkAPIMessage(request)) {
-            messageBus.send({
+            messageBus.publish({
                 type: 'UploadURL',
                 assetType: request.tag,
                 images: request.images
@@ -259,7 +259,7 @@ export const handler = async (event, context) => {
                     ...(request.RequestId ? { RequestId: request.RequestId } : {})
                 }
                 sendPlayerSettingsUpdated(messageBus, player, content)
-                messageBus.send({
+                messageBus.publish({
                     type: 'PlayerSettings',
                     player,
                     RequestId: request.RequestId,
@@ -282,13 +282,13 @@ export const handler = async (event, context) => {
             }
         }
         if (isAssetCollaborationStatusAPIMessage(request)) {
-            messageBus.send({
+            messageBus.publish({
                 type: 'CollaborationStatus',
                 RequestId: request.RequestId
             })
         }
     }
-    await messageBus.flush()
+    await messageBus.flushAndSettle()
     return await extractReturnValue(messageBus)
 
 }

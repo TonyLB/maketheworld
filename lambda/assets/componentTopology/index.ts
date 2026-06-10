@@ -24,6 +24,7 @@ export const componentTopologyDataSource = new AssetsDataSource<
     ComponentTopologySubscribedContent
 >({
     dataSourceKey: 'mtw.assets.componentTopology',
+    outboundBusDelivery: 'publish',
     replayable: false,
     subscribedEventTypeGuard: isComponentTopologySubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {

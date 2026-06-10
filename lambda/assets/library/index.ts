@@ -113,6 +113,7 @@ export const libraryDataSource = new AssetsDataSource<
     LibrarySnapshotExternal
 >({
     dataSourceKey: 'mtw.assets.library',
+    outboundBusDelivery: 'publish',
     replayable: true, // Support client subscriptions with historical data
     eventSerializer: new LibraryEventSerializer(),
     snapshotContentGenerator: generateLibrarySnapshot,
@@ -131,7 +132,7 @@ export const libraryDataSource = new AssetsDataSource<
                 }
             } catch (error) {
                 console.error(`Error processing library event for asset ${assetId}:`, error)
-                messageBus.send({
+                messageBus.publish({
                     type: 'Error',
                     body: {
                         error: `Failed to process library event for asset ${assetId}: ${error instanceof Error ? error.message : String(error)}`,

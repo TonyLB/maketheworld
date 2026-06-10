@@ -34,7 +34,7 @@ export const isApiAssetsEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     AssetsApiSubscribedHeader
 >(isApiAssetsHeader)
 
-type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }
+type Bus = { publish: (payload: StreamingEventMessage) => void }
 
 const apiAssetsSerializer = {
     serialize: ({ content }: { content: AssetsAPIPayload; header: { type: string } }) => ({ ...content })
@@ -43,7 +43,6 @@ const apiAssetsSerializer = {
 export const sendApiAssetsEvent = (
     bus: Bus,
     content: AssetsAPIPayload,
-    laneId?: string
 ) => {
     const timestamp = Date.now()
     const envelope = createInternalOriginEnvelope(
@@ -56,12 +55,12 @@ export const sendApiAssetsEvent = (
         content,
         apiAssetsSerializer
     )
-    bus.send({
+    bus.publish({
         type: 'StreamingEvent',
         dataSourceKey: 'api.assets',
         streamKey: 'ingress',
         header: envelope.header,
         getContent: envelope.getContent,
         timestamp
-    }, laneId)
+    })
 }
