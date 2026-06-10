@@ -27,6 +27,7 @@ export const ephemeraAffordanceCacheDataSource = new EphemeraDataSource<
     replayable: false,
     subscriptionPriority: 4,
     publisherStrategy: 'busOnly',
+    outboundBusDelivery: 'publish',
     subscribedEventTypeGuard: isAffordanceCacheSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(

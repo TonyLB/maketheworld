@@ -2,7 +2,7 @@
 
 ## Status
 
-**M4 slice (landed).** Colocated **`Affordance::${perspectiveKey}`** rows, **`ensureAffordanceTopology`** hydrate preflight, **`TopologyInvalidated`** catalog bump, orchestration **`Slice Ready`** -> **`Affordances Pertain`** outbound.
+**M4 slice (landed).** Colocated **`Affordance::${perspectiveKey}`** rows, **`ensureAffordanceTopology`** hydrate preflight, **`TopologyInvalidated`** catalog bump, orchestration **`Slice Ready`** -> **`Affordances Pertain`** outbound. Pass-through migration to **`publish`** + boundary **`flushAndSettle`** is complete (P4 **AFFORDANCE-CACHE**).
 
 **Steady-state docs:** [`../../internalCache/AGENT.md`](../../internalCache/AGENT.md), [`packages/mtw-gateways/ts/assets/components/componentTopology/`](../../../../packages/mtw-gateways/ts/assets/components/componentTopology/), [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md). **Precedent:** [`../renderCache/AGENT.md`](../renderCache/AGENT.md).
 
@@ -11,7 +11,7 @@
 1. **Child plan** --- affordance pipeline diagram and **D33** row shape.
 2. **Gateway module** --- [`packages/mtw-gateways/ts/ephemera/affordanceCache/`](../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/) ([`AGENT.md`](../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/AGENT.md)).
 3. **InternalCache** --- [`internalCache/affordanceCache.ts`](../../internalCache/affordanceCache.ts).
-4. **Tests** --- `npm test -- --watchAll=false dataSource/affordanceCache/`.
+4. **Tests** --- `npm test -- --watchAll=false dataSource/affordanceCache/`; contract: [`passThroughContract.scaffold.test.ts`](passThroughContract.scaffold.test.ts); cross-layer: [`../passThroughAffordanceOrchestrationToCache.integration.test.ts`](../passThroughAffordanceOrchestrationToCache.integration.test.ts).
 
 ## Row shape (D33)
 
@@ -49,6 +49,8 @@ Catalog hydrate preflight logs structured lines filterable as **`[mtw.ephemera.a
 
 - **`Affordances Pertain`** --- lean routing + full **`affordanceRow`** / **`topology`** for perception terminal compose
 - **`Cache Error`** --- slice not ready after orchestration handoff
+
+Outbounds use **`outboundBusDelivery: 'publish'`** on the DataSource ([`index.ts`](index.ts), [`publishedEvents.ts`](publishedEvents.ts)); boundary **`flushAndSettle`** at lambda exit quiesces concurrent subscribers (no producer-side scoped flush).
 
 ## Navigation sync (D34, shipped)
 

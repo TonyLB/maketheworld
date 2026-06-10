@@ -17,7 +17,7 @@
 | Layer | Owns | Does not own |
 | --- | --- | --- |
 | **`affordanceOrchestration`** | Ingress normalization; intake; **`ensureAffordanceTopology`** call; stream outbounds; future LLM slow path | Dynamo writes; **`PublishMessage`**; ephemeraWire compose |
-| **`affordanceCache`** | Invalidation; colocated **`Affordance::`** persist; **`Affordances Pertain`** | Terminal publish |
+| **`affordanceCache`** | Invalidation; colocated **`Affordance::`** persist; **`Affordances Pertain`** (`outboundBusDelivery: 'publish'`, P4) | Terminal publish |
 | **`perception`** | Terminal **`PublishMessage`** on **`Affordances Pertain`** | Topology pull; hydrate policy |
 
 ## What this layer does today
