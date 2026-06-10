@@ -7,7 +7,7 @@ import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dat
 import { isPerspective, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { isEphemeraRoomId, type EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { ProjectedRoomTopology } from '@tonylb/mtw-gateways/ts/assets/components/componentTopology/result'
-import type { StreamingEventMessage } from '../../messageBus/baseClasses'
+import type { MessageBus, StreamingEventMessage } from '../../messageBus/baseClasses'
 import type { AffordanceCacheRow } from './baseClasses'
 
 export const AFFORDANCE_CACHE_DATA_SOURCE_KEY = 'mtw.ephemera.affordanceCache' as const
@@ -80,7 +80,7 @@ export const isAffordanceCachePublishedStreamEnvelope = (
     && (AFFORDANCE_CACHE_PUBLISHED_EVENT_TYPES as readonly string[]).includes(envelope.header.type)
 )
 
-type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }
+type PublishBus = Pick<MessageBus, 'publish'>
 
 const affordanceCachePublishSerializer = {
     serialize: ({ content, header }: { content: object; header: StreamingEventHeader }) => ({
@@ -89,11 +89,32 @@ const affordanceCachePublishSerializer = {
     }),
 }
 
-export function sendAffordanceCachePublish(
-    bus: Bus,
+export async function publishAffordanceCacheStreamEvent(
+    streamEvent: StreamEventFunction<AffordanceCacheUpdatePayload>,
     streamKey: string,
     content: AffordanceCacheUpdatePayload,
-    laneId?: string,
+): Promise<void> {
+    await streamEvent({
+        update: content,
+        streamKey,
+        header: { type: content.type },
+    })
+}
+
+/**
+ * Test / harness adapter: implements `streamEvent` by delegating to {@link sendAffordanceCachePublish}
+ * so assertions can keep using `messageBus.publish` for `StreamingEvent` payloads.
+ */
+export function streamEventFromMessageBus(bus: PublishBus): StreamEventFunction<AffordanceCacheUpdatePayload> {
+    return async (params) => {
+        sendAffordanceCachePublish(bus, params.streamKey, params.update)
+    }
+}
+
+export function sendAffordanceCachePublish(
+    bus: PublishBus,
+    streamKey: string,
+    content: AffordanceCacheUpdatePayload,
 ): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
@@ -111,27 +132,5 @@ export function sendAffordanceCachePublish(
         getContent: envelope.getContent,
         timestamp,
     }
-    if (laneId !== undefined && laneId !== '') {
-        bus.send(message, laneId)
-    } else {
-        bus.send(message)
-    }
-}
-
-export type PublishAffordanceCacheStreamOptions = {
-    laneId?: string;
-}
-
-export async function publishAffordanceCacheStreamEvent(
-    streamEvent: StreamEventFunction<AffordanceCacheUpdatePayload>,
-    streamKey: string,
-    content: AffordanceCacheUpdatePayload,
-    options?: PublishAffordanceCacheStreamOptions,
-): Promise<void> {
-    await streamEvent({
-        update: content,
-        streamKey,
-        header: { type: content.type },
-        ...(options?.laneId !== undefined ? { laneId: options.laneId } : {}),
-    })
+    bus.publish(message)
 }
