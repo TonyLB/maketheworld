@@ -55,6 +55,8 @@ export type PublishMessageBase = {
     type: 'PublishMessage';
     targets: PublishTarget[];
     messageGroupId?: MessageGroupId;
+    /** Websocket egress timing. Default `immediate`. */
+    deliveryMode?: 'immediate' | 'deferred';
 }
 
 export type PublishWorldMessage = PublishMessageBase & {
@@ -125,6 +127,8 @@ export type PublishPerceptionMessage = {
     metaData: import('@tonylb/mtw-interfaces/ts/messages').PerceptionMessageMetaData;
     /** When set, publishMessage uses this RowId so a later terminal message overwrites the same client row. */
     messageId?: string;
+    /** When set, overrides default CreatedTime ordering for this payload. */
+    createdTime?: number;
 } & PublishMessageBase
 
 export type PublishMessage = PublishWorldMessage |

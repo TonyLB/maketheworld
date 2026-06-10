@@ -19,6 +19,7 @@ import {
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
+import { publishMessageCoalescer } from '../publishMessage/coalescer'
 import ephemeraUpdate from '../ephemeraUpdate'
 import { unregisterCharacterMessage, disconnectCharacterMessage } from '../disconnectMessage'
 import { fetchPlayerEphemera } from '../fetchEphemera'
@@ -118,5 +119,6 @@ messageBus.subscribe({
     callback: executeActionMessage
 })
 
+publishMessageCoalescer.registerDeferral(messageBus)
 
 export default messageBus

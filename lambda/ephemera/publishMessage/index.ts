@@ -1,44 +1,16 @@
 import { v4 as uuidv4 } from 'uuid'
-import { isCharacterMessage, isPublishWorldLineMessage, isPublishCommandTranscriptMessage, PublishMessage, MessageBus, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isPerceptionPublishMessage, isPublishTargetSession, isPublishTargetExcludeSession, isPublishCoyoteGameHelpMessage, isPublishCoyoteGameHypothesisMessage } from "../messageBus/baseClasses"
+import { isCharacterMessage, isPublishWorldLineMessage, isPublishCommandTranscriptMessage, PublishMessage, MessageBus, PublishTarget, isPerceptionPublishMessage, isPublishCoyoteGameHelpMessage, isPublishCoyoteGameHypothesisMessage } from "../messageBus/baseClasses"
 import getCurrentTimestamp from '../internalUtils/dateUtil'
 import { unique } from '@tonylb/mtw-utilities/ts/lists'
 import internalCache from '../internalCache'
 import { messageDeltaDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import { RoomCharacterListItem } from '../internalCache/baseClasses'
 import { apiClient } from '../apiClient'
-import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { TargetResolver, ResolvableTarget } from '@tonylb/mtw-sessions/ts/targetResolver'
 import { CacheCharacterSessionsData } from '../internalCache/characterSessions'
 import { CacheSessionConnectionsData } from '@tonylb/mtw-sessions/ts/sessionCache'
 import CacheRoomCharacterListsData from '../internalCache/roomCharacterLists'
-
-const batchMessages = (messages: any[] = [])  => {
-    //
-    // API Gateway Websockets deliver a maximum of 32KB per data frame (with a maximum of 128k across multiple frames,
-    // but I don't think that's needed for an application with a large number of individually small messages)
-    //
-    const MAX_BATCH_SIZE = 20000
-    const lengthOfMessage = (message) => (JSON.stringify(message).length)
-    const { batchedMessages = [], currentBatch = [] } = messages.reduce((previous, message) => {
-        const newLength = lengthOfMessage(message)
-        const proposedLength = previous.currentLength + newLength
-        if (proposedLength > MAX_BATCH_SIZE) {
-            return {
-                batchedMessages: [...previous.batchedMessages, previous.currentBatch],
-                currentBatch: [message],
-                currentLength: newLength
-            }
-        }
-        else {
-            return {
-                batchedMessages: previous.batchedMessages,
-                currentBatch: [...previous.currentBatch, message],
-                currentLength: proposedLength
-            }
-        }
-    }, { batchedMessages: [], currentBatch: [], currentLength: 0 })
-    return currentBatch.length ? [...batchedMessages, currentBatch] : batchedMessages
-}
+import { batchMessages, normalizeConnectionId } from './batchMessages'
+import { publishMessageCoalescer } from './coalescer'
 
 const publishMessageDynamoDB = async <T extends { MessageId: string; CreatedTime: number; Targets: string[] }>({ MessageId, CreatedTime, Targets, ...rest }: T): Promise<void> => {
     await Promise.all(Targets
@@ -183,77 +155,89 @@ class PublishMessageTargetResolver extends TargetResolver {
     }
 }
 
+const flushImmediateMessages = async (messagesByConnectionId: Record<string, any[]>): Promise<void> => {
+    await Promise.all(
+        Object.entries(messagesByConnectionId)
+            .map(async ([ConnectionId, messageList]) => {
+                const sortedMessages = messageList
+                    .sort(({ CreatedTime: a }, { CreatedTime: b }) => ( a - b ))
+                return Promise.all(sortedMessages.length
+                    ? batchMessages(sortedMessages).map((messageBatch) => (
+                        apiClient.send(
+                            normalizeConnectionId(ConnectionId),
+                            {
+                                messageType: 'Messages',
+                                messages: messageBatch
+                            }
+                        )
+                    ))
+                    : []
+                )
+            })
+    )
+}
+
 export const publishMessage = async ({ payloads }: { payloads: PublishMessage[], messageBus?: MessageBus }): Promise<void> => {
     const baseTime = getCurrentTimestamp()
     const mapper = new PublishMessageTargetResolver(internalCache)
 
     let dbPromises: Promise<void>[] = []
-    //
-    // TODO: Constrain messageByConnectionId to appropriate message type
-    //
     let messagesByConnectionId: Record<string, any[]> = {}
 
     const offsetsByMessageId = internalCache.OrchestrateMessages.allOffsets()
     const pastOffsets = Math.max(-1, ...Object.values(offsetsByMessageId)) + 1
 
-    const pushToQueues = async <T extends { Targets: PublishTarget[]; CreatedTime: number; MessageId: string; }>({ Targets, ...rest }: T) => {
+    const enqueueWireRow = (connectionId: string, row: Record<string, unknown>, deferred: boolean) => {
+        if (deferred) {
+            publishMessageCoalescer.enqueue(connectionId, row as { CreatedTime: number })
+        }
+        else {
+            if (!(connectionId in messagesByConnectionId)) {
+                messagesByConnectionId[connectionId] = []
+            }
+            messagesByConnectionId[connectionId].push(row)
+        }
+    }
+
+    const pushToQueues = async <T extends { Targets: PublishTarget[]; CreatedTime: number; MessageId: string; }>(
+        { Targets, ...rest }: T,
+        deferred: boolean
+    ) => {
         if (Targets.length) {
-            //
-            // Character targets (from CHARACTER or ROOM) that are not excluded by a character or room level exclusion
-            //
             const characterTargets = await mapper.resolveToCharacterTargets(Targets)
-            //
-            // Low-level exclusions that might override character targets
-            //
             const sessionOrConnectionExclusions = Targets.filter((target) => (target.startsWith('!SESSION#') || target.startsWith('!CONNECTION#')))
-            //
-            // Any target defined as a Session or Connection and not excluded by any exclusion target
-            //
             const sessionOrConnectionTargets = Targets.filter((target) => (target.startsWith('SESSION#') || target.startsWith('CONNECTION#') || target.startsWith('!')))
+
             dbPromises.push(publishMessageDynamoDB({
                 Targets: characterTargets,
                 ...rest
             }))
-            //
-            // Queue all messages that are to characters
-            //
+
             await Promise.all(characterTargets.map(async (target) => {
                 const connections = await mapper.resolvePublishTargets([...sessionOrConnectionExclusions, target])
                 connections.forEach((connectionId) => {
-                    if (!(connectionId in messagesByConnectionId)) {
-                        messagesByConnectionId[connectionId] = []
-                    }
-                    messagesByConnectionId[connectionId].push({
+                    enqueueWireRow(connectionId, {
                         Target: target,
                         ...rest
-                    })
+                    }, deferred)
                 })
             }))
-            //
-            // Queue all messages that are to sessions or connections, and have not been delivered to a character
-            // at that address already
-            //
+
             const bareSessionTargets = await mapper.resolvePublishTargets(sessionOrConnectionTargets)
             bareSessionTargets.forEach((connectionId) => {
-                if (!(connectionId in messagesByConnectionId)) {
-                    messagesByConnectionId[connectionId] = []
-                }
-                messagesByConnectionId[connectionId].push(rest)
+                enqueueWireRow(connectionId, rest, deferred)
             })
-            
         }
         else {
             const connectionId = await internalCache.Global.get("ConnectionId")
             if (connectionId) {
-                if (!(connectionId in messagesByConnectionId)) {
-                    messagesByConnectionId[connectionId] = []
-                }
-                messagesByConnectionId[connectionId].push(rest)
+                enqueueWireRow(connectionId, rest, deferred)
             }
         }
     }
 
     await Promise.all(payloads.map(async (payload, index) => {
+        const deferred = payload.deliveryMode === 'deferred'
         const computedCreatedTime = baseTime + (payload.messageGroupId ? offsetsByMessageId[payload.messageGroupId] ?? pastOffsets + index : pastOffsets + index)
         if (isPublishWorldLineMessage(payload) || isPublishCoyoteGameHypothesisMessage(payload) || isPublishCommandTranscriptMessage(payload)) {
             const CreatedTime = payload.createdTime !== undefined ? payload.createdTime : computedCreatedTime
@@ -264,7 +248,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 CreatedTime,
                 Message: payload.message,
                 DisplayProtocol: payload.displayProtocol,
-            })
+            }, deferred)
         }
         //
         // Character name on the wire matches MessageCharacterInfo (`DisplayName` in
@@ -282,17 +266,18 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 CharacterId: payload.characterId,
                 Color: payload.color,
                 fileURL
-            })
+            }, deferred)
         }
         if (isPerceptionPublishMessage(payload)) {
+            const CreatedTime = payload.createdTime !== undefined ? payload.createdTime : computedCreatedTime
             await pushToQueues({
                 Targets: payload.targets,
                 MessageId: payload.messageId ?? `MESSAGE#${uuidv4()}`,
-                CreatedTime: computedCreatedTime,
+                CreatedTime,
                 DisplayProtocol: payload.displayProtocol,
                 wmlContent: payload.wmlContent,
                 metaData: payload.metaData
-            })
+            }, deferred)
         }
         if (isPublishCoyoteGameHelpMessage(payload)) {
             const CreatedTime = payload.createdTime !== undefined ? payload.createdTime : computedCreatedTime
@@ -301,30 +286,13 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 MessageId: payload.messageId ?? `MESSAGE#${uuidv4()}`,
                 CreatedTime,
                 DisplayProtocol: payload.displayProtocol,
-            })
+            }, deferred)
         }
     }))
 
     await Promise.all([
         ...dbPromises,
-        ...(Object.entries(messagesByConnectionId)
-            .map(async ([ConnectionId, messageList]) => {
-                const sortedMessages = messageList
-                    .sort(({ CreatedTime: a }, { CreatedTime: b }) => ( a - b ))
-                return Promise.all(sortedMessages.length
-                    ? batchMessages(sortedMessages).map((messageBatch) => (
-                        apiClient.send(
-                            ConnectionId.startsWith('CONNECTION#') ? ConnectionId.slice(11) : ConnectionId,
-                            {
-                                messageType: 'Messages',
-                                messages: messageBatch
-                            }
-                        )
-                    ))
-                    : []
-                )
-            })
-        )
+        flushImmediateMessages(messagesByConnectionId),
     ])
 }
 
