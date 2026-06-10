@@ -26,7 +26,7 @@ export const handleCharacterConnected = async (
     event: ConnectionsCharactersConnectedEvent,
     { messageBus }: { messageBus: MessageBus }
 ): Promise<void> => {
-    messageBus.send({
+    messageBus.publish({
         type: 'CheckLocation',
         characterId: event.characterId,
         forceMove: true,
@@ -66,13 +66,13 @@ export const handleCharacterDisconnected = async (
             internalCache.AffordanceRoomDeliverable.invalidate(RoomId)
             internalCache.RoomCharacterList.set({ key: RoomId, value: activeCharacters ?? [] })
             if (removed) {
-                messageBus.send({
+                messageBus.publish({
                     type: 'PublishMessage',
                     targets: [RoomId, `!${event.characterId}`],
                     displayProtocol: 'WorldMessage',
                     message: [`${Name || 'Someone'} has disconnected.`]
                 })
-                messageBus.send({
+                messageBus.publish({
                     type: 'RoomUpdate',
                     roomId: RoomId
                 })

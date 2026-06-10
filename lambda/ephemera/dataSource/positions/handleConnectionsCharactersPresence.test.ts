@@ -22,7 +22,7 @@ jest.mock('../../internalCache', () => ({
 }))
 
 describe('handleConnectionsCharactersPresence', () => {
-    const messageBus = { send: jest.fn() } as any
+    const messageBus = { publish: jest.fn() } as any
 
     beforeEach(() => {
         jest.clearAllMocks()
@@ -37,8 +37,8 @@ describe('handleConnectionsCharactersPresence', () => {
                 timestamp: '2026-05-08T12:00:00.000Z',
             }, { messageBus })
 
-            expect(messageBus.send).toHaveBeenCalledTimes(1)
-            expect(messageBus.send).toHaveBeenCalledWith({
+            expect(messageBus.publish).toHaveBeenCalledTimes(1)
+            expect(messageBus.publish).toHaveBeenCalledWith({
                 type: 'CheckLocation',
                 characterId: 'CHARACTER#alpha',
                 forceMove: true,
@@ -90,13 +90,13 @@ describe('handleConnectionsCharactersPresence', () => {
                 value: [{ EphemeraId: 'CHARACTER#beta', DisplayName: 'Beta' }],
             })
 
-            expect(messageBus.send).toHaveBeenCalledWith({
+            expect(messageBus.publish).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['ROOM#roomA', '!CHARACTER#alpha'],
                 displayProtocol: 'WorldMessage',
                 message: ['Alpha has disconnected.'],
             })
-            expect(messageBus.send).toHaveBeenCalledWith({
+            expect(messageBus.publish).toHaveBeenCalledWith({
                 type: 'RoomUpdate',
                 roomId: 'ROOM#roomA',
             })
@@ -135,8 +135,8 @@ describe('handleConnectionsCharactersPresence', () => {
                 value: [{ EphemeraId: 'CHARACTER#beta', DisplayName: 'Beta' }],
             })
 
-            expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'PublishMessage' }))
-            expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RoomUpdate' }))
+            expect(messageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'PublishMessage' }))
+            expect(messageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RoomUpdate' }))
         })
 
         it('returns early without DB calls when CharacterMeta has no RoomId', async () => {
@@ -153,7 +153,7 @@ describe('handleConnectionsCharactersPresence', () => {
             }, { messageBus })
 
             expect(ephemeraDB.optimisticUpdate).not.toHaveBeenCalled()
-            expect(messageBus.send).not.toHaveBeenCalled()
+            expect(messageBus.publish).not.toHaveBeenCalled()
         })
     })
 })
