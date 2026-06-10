@@ -11,7 +11,7 @@ import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId, EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import type { MessageBus, PublishTarget } from '../../messageBus/baseClasses'
+import type { PublishTarget } from '../../messageBus/baseClasses'
 import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
 import type { RenderOrchestrationPublishedPayload } from './publishedEvents'
 import type { StateChangedPayload } from '../state/events'
@@ -130,11 +130,9 @@ type PassiveFanOutWorkItem = {
 export const fanOutStateChangedToPassiveRenders = async (
     {
         stateChanged,
-        messageBus,
         streamEvent,
     }: {
         stateChanged: StateChangedPayload;
-        messageBus: MessageBus;
         streamEvent: StreamEventFunction<RenderOrchestrationPublishedPayload>;
     },
     deps?: FanOutStateChangedDependencies
@@ -235,7 +233,6 @@ export const fanOutStateChangedToPassiveRenders = async (
                         targets,
                         ...(allowGenerationFalse ? { allowGeneration: false as const } : {}),
                     },
-                    messageBus,
                     streamEvent,
                 },
                 { getMetaRoom: getMetaRoomMerged }

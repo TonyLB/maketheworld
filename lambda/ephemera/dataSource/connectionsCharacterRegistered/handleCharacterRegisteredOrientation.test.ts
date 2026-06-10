@@ -1,12 +1,24 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { ConnectionsCharacterRegisteredEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
+import internalCache from '../../internalCache'
 import {
     handleCharacterRegisteredOrientation,
     resolveSessionOrientationContext,
 } from './handleCharacterRegisteredOrientation'
 import * as affordanceSubscribedEvents from '../affordanceOrchestration/subscribedEvents'
 import * as perceptionSubscribedEvents from '../perception/subscribedEvents'
-import * as renderSubscribedEvents from '../renderOrchestration/subscribedEvents'
+import * as orchestrationHandler from '../renderOrchestration/orchestrationHandler'
+
+jest.mock('../../internalCache', () => ({
+    __esModule: true,
+    default: {
+        PerceptionThreads: {
+            register: jest.fn(),
+        },
+    },
+}))
+
+const internalCacheMock = jest.mocked(internalCache, true)
 
 const characterId = 'CHARACTER#c1' as EphemeraCharacterId
 const roomId = 'ROOM#r1' as EphemeraRoomId
@@ -27,6 +39,8 @@ const resolvedDeps = () => ({
     }),
     resolvePerspective: jest.fn().mockResolvedValue({ perspective, perspectiveKey }),
 })
+
+const streamEvent = jest.fn().mockResolvedValue(undefined)
 
 describe('resolveSessionOrientationContext', () => {
     it('returns null when CharacterMeta has no RoomId', async () => {
@@ -58,7 +72,7 @@ describe('resolveSessionOrientationContext', () => {
 })
 
 describe('handleCharacterRegisteredOrientation', () => {
-    const messageBus = { send: jest.fn() } as any
+    const messageBus = { send: jest.fn(), publish: jest.fn() } as any
     let logSpy: jest.SpiedFunction<typeof console.log>
 
     beforeEach(() => {
@@ -71,16 +85,15 @@ describe('handleCharacterRegisteredOrientation', () => {
     })
 
     it('no-ops when room is missing', async () => {
-        const threadSpy = jest.spyOn(perceptionSubscribedEvents, 'sendPerceptionThreadRegistered').mockImplementation(() => {})
-        const renderSpy = jest.spyOn(renderSubscribedEvents, 'sendRenderRequested').mockImplementation(() => {})
+        const orchestrateSpy = jest.spyOn(orchestrationHandler, 'orchestrateRenderRequest').mockResolvedValue(undefined)
 
         await handleCharacterRegisteredOrientation(messageBus, baseEvent, 'render', {
             characterMetaGet: jest.fn().mockResolvedValue(undefined),
             resolvePerspective: jest.fn(),
-        })
+        }, streamEvent)
 
-        expect(threadSpy).not.toHaveBeenCalled()
-        expect(renderSpy).not.toHaveBeenCalled()
+        expect(internalCacheMock.PerceptionThreads.register).not.toHaveBeenCalled()
+        expect(orchestrateSpy).not.toHaveBeenCalled()
         expect(logSpy).toHaveBeenCalledWith(
             '[mtw.ephemera.connectionsCharacterRegistered] sessionOrientation',
             expect.objectContaining({
@@ -91,8 +104,7 @@ describe('handleCharacterRegisteredOrientation', () => {
                 sessionId: 'session-1',
             })
         )
-        threadSpy.mockRestore()
-        renderSpy.mockRestore()
+        orchestrateSpy.mockRestore()
     })
 
     it('no-ops when perspective is missing', async () => {
@@ -110,35 +122,35 @@ describe('handleCharacterRegisteredOrientation', () => {
         affordanceSpy.mockRestore()
     })
 
-    it('render channel registers sessionOrientationRender and kicks Render Requested without targets', async () => {
-        const threadSpy = jest.spyOn(perceptionSubscribedEvents, 'sendPerceptionThreadRegistered').mockImplementation(() => {})
-        const renderSpy = jest.spyOn(renderSubscribedEvents, 'sendRenderRequested').mockImplementation(() => {})
+    it('render channel registers sessionOrientationRender and calls orchestrateRenderRequest', async () => {
+        const orchestrateSpy = jest.spyOn(orchestrationHandler, 'orchestrateRenderRequest').mockResolvedValue(undefined)
         const affordanceSpy = jest.spyOn(affordanceSubscribedEvents, 'sendAffordancesRequested').mockImplementation(() => {})
 
-        await handleCharacterRegisteredOrientation(messageBus, baseEvent, 'render', resolvedDeps())
+        await handleCharacterRegisteredOrientation(messageBus, baseEvent, 'render', resolvedDeps(), streamEvent)
 
-        expect(threadSpy).toHaveBeenCalledTimes(1)
-        expect(threadSpy).toHaveBeenCalledWith(messageBus, roomId, {
+        expect(internalCacheMock.PerceptionThreads.register).toHaveBeenCalledWith({
             threadKind: 'sessionOrientationRender',
             componentId: roomId,
             perspectiveKey,
             characterId,
             targets: [characterId],
         })
-        expect(renderSpy).toHaveBeenCalledTimes(1)
-        expect(renderSpy).toHaveBeenCalledWith(messageBus, roomId, {
-            componentId: roomId,
-            perspective,
-        }, { useDefaultMessageBusLane: true })
+        expect(orchestrateSpy).toHaveBeenCalledWith({
+            payload: {
+                type: 'RenderRequested',
+                componentId: roomId,
+                perspective,
+            },
+            streamEvent,
+        })
         expect(affordanceSpy).not.toHaveBeenCalled()
-        threadSpy.mockRestore()
-        renderSpy.mockRestore()
+        orchestrateSpy.mockRestore()
         affordanceSpy.mockRestore()
     })
 
     it('affordances channel registers sessionOrientationAffordances and kicks Affordances Requested', async () => {
         const threadSpy = jest.spyOn(perceptionSubscribedEvents, 'sendPerceptionThreadRegistered').mockImplementation(() => {})
-        const renderSpy = jest.spyOn(renderSubscribedEvents, 'sendRenderRequested').mockImplementation(() => {})
+        const orchestrateSpy = jest.spyOn(orchestrationHandler, 'orchestrateRenderRequest').mockResolvedValue(undefined)
         const affordanceSpy = jest.spyOn(affordanceSubscribedEvents, 'sendAffordancesRequested').mockImplementation(() => {})
 
         await handleCharacterRegisteredOrientation(messageBus, baseEvent, 'affordances', resolvedDeps())
@@ -157,7 +169,7 @@ describe('handleCharacterRegisteredOrientation', () => {
             perspective,
             reason: 'roster',
         }, { useDefaultMessageBusLane: true })
-        expect(renderSpy).not.toHaveBeenCalled()
+        expect(orchestrateSpy).not.toHaveBeenCalled()
         expect(logSpy).toHaveBeenCalledWith(
             '[mtw.ephemera.connectionsCharacterRegistered] sessionOrientation',
             expect.objectContaining({
@@ -168,21 +180,19 @@ describe('handleCharacterRegisteredOrientation', () => {
             })
         )
         threadSpy.mockRestore()
-        renderSpy.mockRestore()
+        orchestrateSpy.mockRestore()
         affordanceSpy.mockRestore()
     })
 
-    it('tolerates duplicate Character Registered by sending again', async () => {
-        const threadSpy = jest.spyOn(perceptionSubscribedEvents, 'sendPerceptionThreadRegistered').mockImplementation(() => {})
-        const renderSpy = jest.spyOn(renderSubscribedEvents, 'sendRenderRequested').mockImplementation(() => {})
+    it('tolerates duplicate Character Registered by orchestrating again', async () => {
+        const orchestrateSpy = jest.spyOn(orchestrationHandler, 'orchestrateRenderRequest').mockResolvedValue(undefined)
         const deps = resolvedDeps()
 
-        await handleCharacterRegisteredOrientation(messageBus, baseEvent, 'render', deps)
-        await handleCharacterRegisteredOrientation(messageBus, baseEvent, 'render', deps)
+        await handleCharacterRegisteredOrientation(messageBus, baseEvent, 'render', deps, streamEvent)
+        await handleCharacterRegisteredOrientation(messageBus, baseEvent, 'render', deps, streamEvent)
 
-        expect(threadSpy).toHaveBeenCalledTimes(2)
-        expect(renderSpy).toHaveBeenCalledTimes(2)
-        threadSpy.mockRestore()
-        renderSpy.mockRestore()
+        expect(internalCacheMock.PerceptionThreads.register).toHaveBeenCalledTimes(2)
+        expect(orchestrateSpy).toHaveBeenCalledTimes(2)
+        orchestrateSpy.mockRestore()
     })
 })

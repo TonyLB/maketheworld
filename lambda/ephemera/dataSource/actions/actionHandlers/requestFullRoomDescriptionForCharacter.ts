@@ -10,7 +10,7 @@ import { sendPerceptionThreadRegistered } from '../../perception/subscribedEvent
 import { sendRenderRequested } from '../../renderOrchestration/subscribedEvents'
 import type { RenderRequestedCommand } from '../../renderOrchestration/localApiEvents'
 
-type MessageBusLike = { send: (payload: StreamingEventMessage, laneId?: string) => void }
+type MessageBusLike = { publish: (payload: StreamingEventMessage) => void }
 
 export type PreparedFullRoomDescriptionRender = {
     roomId: EphemeraRoomId;

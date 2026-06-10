@@ -74,8 +74,6 @@ export type GenerateRoomPreviewOptions = {
     runWithSingleFlight?: RunWithSingleFlight;
     /** mtw.ephemera.renderOrchestration stream outbounds (from `streamEvent` via orchestration; required for this entry point). */
     publishOrchestration: (content: RenderOrchestrationPublishedPayload) => void | Promise<void>;
-    /** When set, run together with post-`Generation Started` work so the orchestration lane can flush in parallel. */
-    flushOrchestrationLane?: () => Promise<void>;
 }
 
 /** Control return from `generateRoomPreview`. */
@@ -119,7 +117,6 @@ export const generateRoomPreview = async (
         getExactMatch = (input) => internalCache.RenderCache.getExactMatch(input),
         runWithSingleFlight: runWithSingleFlightOpt,
         publishOrchestration,
-        flushOrchestrationLane,
     }: GenerateRoomPreviewOptions
 ): Promise<GenerateRoomPreviewGenerationReturn> => {
     const perspective = { assetStack: assetStack as AssetUUID[] }
@@ -217,10 +214,6 @@ export const generateRoomPreview = async (
                 return 'success'
             }
 
-            if (flushOrchestrationLane) {
-                const [, result] = await Promise.all([flushOrchestrationLane(), runAfterGenerationStarted()])
-                return result
-            }
             return await runAfterGenerationStarted()
         },
         retrieval: async (): Promise<GenerateRoomPreviewGenerationReturn> => {

@@ -1,14 +1,13 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { perspectiveMatches, computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { v4 as uuidv4 } from 'uuid'
 import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import { isAuthoritativeCacheRow } from '../renderCache/catalogGuards'
 import { getCatalogRow } from '../renderCache/catalogRow'
 import type { generateRoomPreview } from './generateRoomPreview'
 import type { RunWithSingleFlight } from './singleFlightRenderGeneration'
 import { buildOrchestrationRouting } from './orchestrationRouting'
-import type { PublishRenderOrchestrationStreamOptions, RenderOrchestrationPublishedPayload } from './publishedEvents'
+import type { RenderOrchestrationPublishedPayload } from './publishedEvents'
 import {
     RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
     type RenderResolveInputSuccess,
@@ -32,12 +31,7 @@ export type FindRenderDependencies = {
     /** Optional: tests pass {@link passThroughSingleFlight}; production uses default from `generateRoomPreview`. */
     runWithSingleFlight?: RunWithSingleFlight;
     /** mtw.ephemera.renderOrchestration stream outbounds (six-type pass-through contract). */
-    publishOrchestration: (
-        content: RenderOrchestrationPublishedPayload,
-        lane?: PublishRenderOrchestrationStreamOptions
-    ) => void | Promise<void>;
-    /** Scoped flush for generation lane (see slow-path `generateRoomPreview`). */
-    flushMessageBusLane: (laneId: string) => Promise<void>;
+    publishOrchestration: (content: RenderOrchestrationPublishedPayload) => void | Promise<void>;
 }
 
 /**
@@ -107,7 +101,6 @@ export const findRender = async (
         return
     }
 
-    const generationLaneId = uuidv4()
     await deps.generateRoomPreview(
         {
             roomId: resolve.roomId,
@@ -115,17 +108,9 @@ export const findRender = async (
             assetStack: resolve.perspective.assetStack,
         },
         {
-            publishOrchestration: async (content) => {
-                if (content.type === 'Generation Started') {
-                    await deps.publishOrchestration(content, { laneId: generationLaneId })
-                }
-                else {
-                    await deps.publishOrchestration(content)
-                }
-            },
+            publishOrchestration: deps.publishOrchestration,
             getExactMatch: deps.getExactMatch,
             runWithSingleFlight: deps.runWithSingleFlight,
-            flushOrchestrationLane: () => deps.flushMessageBusLane(generationLaneId),
         },
     )
 }

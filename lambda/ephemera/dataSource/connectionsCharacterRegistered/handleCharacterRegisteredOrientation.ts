@@ -11,6 +11,7 @@
  * Cross-layer integration: ../characterRegisteredOrientation.integration.test.ts
  */
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { ConnectionsCharacterRegisteredEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
 import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import internalCache from '../../internalCache'
@@ -19,7 +20,8 @@ import type { MessageBus } from '../../messageBus/baseClasses'
 import { sendAffordancesRequested } from '../affordanceOrchestration/subscribedEvents'
 import { resolveCharacterRoomPerspectiveForRoom } from '../perception/kickRoomHeaderBroadcast'
 import { sendPerceptionThreadRegistered } from '../perception/subscribedEvents'
-import { sendRenderRequested } from '../renderOrchestration/subscribedEvents'
+import { orchestrateRenderRequest } from '../renderOrchestration/orchestrationHandler'
+import type { RenderOrchestrationPublishedPayload } from '../renderOrchestration/publishedEvents'
 
 export type SessionOrientationChannel = 'render' | 'affordances'
 
@@ -90,7 +92,8 @@ export async function handleCharacterRegisteredOrientation(
     messageBus: MessageBus,
     event: ConnectionsCharacterRegisteredEvent,
     channel: SessionOrientationChannel,
-    deps?: ResolveSessionOrientationContextDeps
+    deps?: ResolveSessionOrientationContextDeps,
+    streamEvent?: StreamEventFunction<RenderOrchestrationPublishedPayload>,
 ): Promise<void> {
     const { characterId, sessionId } = event
     const context = await resolveSessionOrientationContext(event, deps)
@@ -109,17 +112,24 @@ export async function handleCharacterRegisteredOrientation(
     const { roomId, perspective, perspectiveKey, targets } = context
 
     if (channel === 'render') {
-        sendPerceptionThreadRegistered(messageBus, roomId, {
+        if (!streamEvent) {
+            throw new Error('sessionOrientation render channel requires streamEvent')
+        }
+        internalCache.PerceptionThreads.register({
             threadKind: 'sessionOrientationRender',
             componentId: roomId,
             perspectiveKey,
             characterId,
             targets,
         })
-        sendRenderRequested(messageBus, roomId, {
-            componentId: roomId,
-            perspective,
-        }, { useDefaultMessageBusLane: true })
+        await orchestrateRenderRequest({
+            payload: {
+                type: 'RenderRequested',
+                componentId: roomId,
+                perspective,
+            },
+            streamEvent,
+        })
         console.log(LOG_PREFIX, {
             event: 'kicked',
             channel,
@@ -129,7 +139,7 @@ export async function handleCharacterRegisteredOrientation(
             perspectiveKey,
             targets,
             threadKind: 'sessionOrientationRender',
-            orchestrationKick: 'Render Requested',
+            orchestrationKick: 'orchestrateRenderRequest',
         })
         return
     }

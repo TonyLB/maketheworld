@@ -49,6 +49,7 @@ export const renderOrchestrationDataSource = new EphemeraDataSource<never, Rende
     dataSourceKey: 'mtw.ephemera.renderOrchestration',
     replayable: false,
     publisherStrategy: 'busOnly',
+    outboundBusDelivery: 'publish',
     subscribedEventTypeGuard: isRenderOrchestrationSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (event) => {
@@ -57,7 +58,7 @@ export const renderOrchestrationDataSource = new EphemeraDataSource<never, Rende
                 if (!isStateChangedPayload(raw)) {
                     return
                 }
-                await fanOutStateChangedToPassiveRenders({ stateChanged: raw, messageBus, streamEvent })
+                await fanOutStateChangedToPassiveRenders({ stateChanged: raw, streamEvent })
                 return
             }
             if (isLookCommandRequestedActionsEnvelope(event)) {
@@ -65,12 +66,12 @@ export const renderOrchestrationDataSource = new EphemeraDataSource<never, Rende
                 if (!isLookCommandRequestedPublishedPayload(lookPayload)) {
                     return
                 }
-                await handleLookCommandRequestedForRenderOrchestration(messageBus, lookPayload)
+                await handleLookCommandRequestedForRenderOrchestration(lookPayload, streamEvent)
                 return
             }
             if (isConnectionsCharacterRegisteredEnvelope(event)) {
                 const payload = await event.getContent()
-                await handleCharacterRegisteredOrientation(messageBus, payload, 'render')
+                await handleCharacterRegisteredOrientation(messageBus, payload, 'render', undefined, streamEvent)
                 return
             }
             if (!isRenderOrchestrationIngressEnvelope(event)) {
@@ -82,7 +83,6 @@ export const renderOrchestrationDataSource = new EphemeraDataSource<never, Rende
             }
             await orchestrateRenderRequest({
                 payload,
-                messageBus,
                 streamEvent,
             })
         }))

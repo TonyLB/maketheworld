@@ -2,41 +2,24 @@ import {
     isLookCommandRequestedActionsEnvelope,
     isRenderOrchestrationIngressEnvelope,
     isRenderOrchestrationSubscribedEnvelope,
-    renderOrchestrationIngressLaneId,
     sendRenderRequested,
 } from './subscribedEvents'
 
 describe('renderOrchestration subscribedEvents', () => {
-    it('sendRenderRequested emits api.ephemera StreamingEvent envelope on renderOrchestration lane', async () => {
-        const calls: { payload: any; lane?: string }[] = []
-        sendRenderRequested({ send: (payload, lane) => calls.push({ payload, lane }) }, 'ROOM#one', {
+    it('sendRenderRequested publishes api.ephemera StreamingEvent envelope', async () => {
+        const publish = jest.fn()
+        sendRenderRequested({ publish }, 'ROOM#one', {
             componentId: 'ROOM#one',
             perspective: { assetStack: ['ASSET#one'] },
             allowGeneration: false,
         })
-        expect(calls).toHaveLength(1)
-        expect(calls[0].lane).toBe(renderOrchestrationIngressLaneId('ROOM#one'))
-        const sent = calls.map((c) => c.payload)
-        expect(sent[0].header.type).toBe('Render Requested')
-        expect(await sent[0].getContent()).toMatchObject({
+        expect(publish).toHaveBeenCalledTimes(1)
+        const sent = publish.mock.calls[0][0]
+        expect(sent.header.type).toBe('Render Requested')
+        expect(await sent.getContent()).toMatchObject({
             componentId: 'ROOM#one',
             allowGeneration: false,
         })
-    })
-
-    it('sendRenderRequested with useDefaultMessageBusLane does not set a named lane', () => {
-        const calls: { payload: unknown; lane?: string }[] = []
-        sendRenderRequested(
-            { send: (payload, lane) => calls.push({ payload, lane }) },
-            'ROOM#one',
-            {
-                componentId: 'ROOM#one',
-                perspective: { assetStack: ['ASSET#one'] },
-            },
-            { useDefaultMessageBusLane: true }
-        )
-        expect(calls).toHaveLength(1)
-        expect(calls[0].lane).toBeUndefined()
     })
 
     it('isRenderOrchestrationIngressEnvelope accepts Render Requested and rejects unrelated', () => {

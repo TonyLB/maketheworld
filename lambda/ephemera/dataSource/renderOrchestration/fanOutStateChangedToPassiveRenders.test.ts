@@ -146,7 +146,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
         const streamEvent = jest.fn().mockResolvedValue(undefined)
 
         await fanOutStateChangedToPassiveRenders(
-            { stateChanged, messageBus, streamEvent },
+            { stateChanged, streamEvent },
             {
                 orchestrateRenderRequestFn,
                 resolveRoomAssetStackForRoom,
@@ -204,7 +204,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
         const streamEvent = jest.fn().mockResolvedValue(undefined)
 
         await fanOutStateChangedToPassiveRenders(
-            { stateChanged, messageBus, streamEvent },
+            { stateChanged, streamEvent },
             {
                 orchestrateRenderRequestFn,
                 resolveRoomAssetStackForRoom,
@@ -236,7 +236,6 @@ describe('fanOutStateChangedToPassiveRenders', () => {
         await fanOutStateChangedToPassiveRenders(
             {
                 stateChanged: baseStateChanged(),
-                messageBus: { send: jest.fn() } as any,
                 streamEvent: jest.fn().mockResolvedValue(undefined),
             },
             {
@@ -273,7 +272,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
         const streamEvent = jest.fn().mockResolvedValue(undefined)
 
         await fanOutStateChangedToPassiveRenders(
-            { stateChanged, messageBus, streamEvent },
+            { stateChanged, streamEvent },
             {
                 orchestrateRenderRequestFn,
                 resolveRoomAssetStackForRoom,
@@ -317,7 +316,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
         const streamEvent = jest.fn().mockResolvedValue(undefined)
 
         await fanOutStateChangedToPassiveRenders(
-            { stateChanged, messageBus, streamEvent },
+            { stateChanged, streamEvent },
             {
                 orchestrateRenderRequestFn,
                 resolveRoomAssetStackForRoom,
@@ -372,7 +371,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
         const streamEvent = jest.fn().mockResolvedValue(undefined)
 
         await fanOutStateChangedToPassiveRenders(
-            { stateChanged, messageBus, streamEvent },
+            { stateChanged, streamEvent },
             {
                 orchestrateRenderRequestFn,
                 resolveRoomAssetStackForRoom,

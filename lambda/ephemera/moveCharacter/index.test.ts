@@ -204,7 +204,6 @@ describe('moveCharacter', () => {
                 characterId: 'CHARACTER#Test',
                 perspective: { assetStack: ['ASSET#TownCenter'] },
             }),
-            { useDefaultMessageBusLane: true }
         )
     })
 
@@ -322,7 +321,6 @@ describe('moveCharacter', () => {
                 perspective: { assetStack: ['ASSET#TownCenter'] },
                 characterId: 'CHARACTER#Test',
             },
-            { useDefaultMessageBusLane: true }
         )
     })
 

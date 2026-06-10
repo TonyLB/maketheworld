@@ -111,7 +111,7 @@ describe('passThrough orchestration -> renderCache (integration)', () => {
         }
 
         await orchestrateRenderRequest(
-            { payload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
+            { payload, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue(fixtureMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue(passThroughFixturePerspectiveKey),
@@ -121,7 +121,7 @@ describe('passThrough orchestration -> renderCache (integration)', () => {
                 markStatesEqual: jest.fn().mockReturnValue(true),
             }
         )
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
 
         expect(mockedPutCacheRecord).not.toHaveBeenCalled()
         expect(received).toHaveLength(1)
@@ -183,7 +183,7 @@ describe('passThrough orchestration -> renderCache (integration)', () => {
         }
 
         await orchestrateRenderRequest(
-            { payload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
+            { payload, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({
                     ...fixtureMetaRoom,
@@ -197,7 +197,7 @@ describe('passThrough orchestration -> renderCache (integration)', () => {
                 generateRoomPreview,
             }
         )
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
 
         expect(generateRoomPreview).toHaveBeenCalled()
         expect(mockedPutCacheRecord).toHaveBeenCalledTimes(1)
@@ -252,7 +252,7 @@ describe('passThrough orchestration -> renderCache (integration)', () => {
         }
 
         await orchestrateRenderRequest(
-            { payload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
+            { payload, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({
                     ...fixtureMetaRoom,
@@ -265,7 +265,7 @@ describe('passThrough orchestration -> renderCache (integration)', () => {
                 markStatesEqual: jest.fn(),
             }
         )
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
 
         expect(mockedPutCacheRecord).not.toHaveBeenCalled()
         expect(received).toHaveLength(1)

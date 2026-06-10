@@ -63,7 +63,7 @@ describe('renderCache receives renderOrchestration stream', () => {
             })
 
             sendRenderOrchestrationPublish(messageBus, passThroughFixtureRoomId, makePassThroughCurrentCacheValidPayload())
-            await messageBus.flush()
+            await messageBus.flushAndSettle()
 
             expect(received).toHaveLength(1)
             expect(received[0]).toMatchObject({
@@ -94,7 +94,7 @@ describe('renderCache receives renderOrchestration stream', () => {
             })
 
             sendRenderOrchestrationPublish(messageBus, passThroughFixtureRoomId, makePassThroughExactMatchFoundPayload())
-            await messageBus.flush()
+            await messageBus.flushAndSettle()
 
             expect(received).toHaveLength(1)
             expect(received[0]).toMatchObject({
@@ -142,7 +142,7 @@ describe('renderCache receives renderOrchestration stream', () => {
 
             const payload = makePassThroughRenderGeneratedPayload()
             sendRenderOrchestrationPublish(messageBus, passThroughFixtureRoomId, payload)
-            await messageBus.flush()
+            await messageBus.flushAndSettle()
 
             expect(mockedPutCacheRecord).toHaveBeenCalledTimes(1)
             expect(mockedPutCacheRecord).toHaveBeenCalledWith(
@@ -190,7 +190,7 @@ describe('renderCache receives renderOrchestration stream', () => {
         })
 
         sendRenderOrchestrationPublish(messageBus, passThroughFixtureRoomId, makePassThroughOrchestrationErrorPayload())
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
 
         expect(readiness).toHaveLength(0)
     })
@@ -212,7 +212,7 @@ describe('renderCache receives renderOrchestration stream', () => {
         })
 
         sendRenderOrchestrationPublish(messageBus, passThroughFixtureRoomId, makePassThroughGenerationDeferredPayload())
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
 
         expect(readiness).toHaveLength(0)
     })
@@ -234,7 +234,7 @@ describe('renderCache receives renderOrchestration stream', () => {
         })
 
         sendRenderOrchestrationPublish(messageBus, passThroughFixtureRoomId, makePassThroughGenerationStartedPayload())
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
 
         expect(readiness).toHaveLength(0)
     })

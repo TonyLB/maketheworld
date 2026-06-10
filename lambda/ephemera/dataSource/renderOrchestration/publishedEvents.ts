@@ -16,7 +16,7 @@ import {
     isEphemeraCacheDynamoItem,
     type EphemeraCacheDynamoItem,
 } from '../renderCache/baseClasses'
-import type { RenderComponentId, StreamingEventMessage } from '../../messageBus/baseClasses'
+import type { MessageBus, RenderComponentId, StreamingEventMessage } from '../../messageBus/baseClasses'
 
 export const RENDER_ORCHESTRATION_DATA_SOURCE_KEY = 'mtw.ephemera.renderOrchestration' as const
 
@@ -220,12 +220,7 @@ export const isRenderOrchestrationPublishedStreamEnvelope = (
     && isRenderOrchestrationPublishedHeaderType(envelope.header.type)
 )
 
-type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }
-
-export type PublishRenderOrchestrationStreamOptions = {
-    /** Non-empty: that lane. Empty string: default lane. Omit: inherit DataSource inbound flush lane in `receiveEvents`. */
-    laneId?: string
-}
+type PublishBus = Pick<MessageBus, 'publish'>
 
 const orchestrationPublishSerializer = {
     serialize: ({ content, header }: { content: object; header: StreamingEventHeader }) => ({
@@ -241,23 +236,21 @@ export async function publishRenderOrchestrationStreamEvent(
     streamEvent: StreamEventFunction<RenderOrchestrationPublishedPayload>,
     streamKey: string,
     content: RenderOrchestrationPublishedPayload,
-    options?: PublishRenderOrchestrationStreamOptions,
 ): Promise<void> {
     await streamEvent({
         update: content,
         streamKey,
         header: { type: content.type },
-        ...(options?.laneId !== undefined ? { laneId: options.laneId } : {}),
     })
 }
 
 /**
  * Test / harness adapter: implements `streamEvent` by delegating to {@link sendRenderOrchestrationPublish}
- * so assertions can keep using `messageBus.send` for `StreamingEvent` payloads.
+ * so assertions can keep using `messageBus.publish` for `StreamingEvent` payloads.
  */
-export function streamEventFromMessageBus(bus: Bus): StreamEventFunction<RenderOrchestrationPublishedPayload> {
+export function streamEventFromMessageBus(bus: PublishBus): StreamEventFunction<RenderOrchestrationPublishedPayload> {
     return async (params) => {
-        sendRenderOrchestrationPublish(bus, params.streamKey, params.update, params.laneId)
+        sendRenderOrchestrationPublish(bus, params.streamKey, params.update)
     }
 }
 
@@ -265,10 +258,9 @@ export function streamEventFromMessageBus(bus: Bus): StreamEventFunction<RenderO
  * Publish a render-orchestration outbound on the process message bus (same envelope shape as other DataSource stream events).
  */
 export function sendRenderOrchestrationPublish(
-    bus: Bus,
+    bus: PublishBus,
     streamKey: string,
     content: RenderOrchestrationPublishedPayload,
-    laneId?: string,
 ): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
@@ -286,9 +278,5 @@ export function sendRenderOrchestrationPublish(
         getContent: envelope.getContent,
         timestamp,
     }
-    if (laneId !== undefined && laneId !== '') {
-        bus.send(message, laneId)
-    } else {
-        bus.send(message)
-    }
+    bus.publish(message)
 }

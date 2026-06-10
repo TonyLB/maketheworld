@@ -63,20 +63,21 @@ describe('mtw.ephemera.renderOrchestration DataSource', () => {
             },
         ]
 
+        const streamEvent = jest.fn().mockResolvedValue(undefined)
         await renderOrchestrationDataSource.receiveEvents?.({
             events,
-            streamEvent: jest.fn().mockResolvedValue(undefined),
+            streamEvent,
             streamEnvelope: jest.fn().mockResolvedValue(undefined),
         })
 
         expect(lookSpy).toHaveBeenCalledTimes(1)
         expect(lookSpy).toHaveBeenCalledWith(
-            messageBus,
             expect.objectContaining({
                 type: 'Look Command Requested',
                 characterId: 'CHARACTER#c',
                 roomId: 'ROOM#r',
-            })
+            }),
+            streamEvent,
         )
         expect(orchestrateSpy).not.toHaveBeenCalled()
         lookSpy.mockRestore()
@@ -106,14 +107,15 @@ describe('mtw.ephemera.renderOrchestration DataSource', () => {
             },
         ]
 
+        const streamEvent = jest.fn().mockResolvedValue(undefined)
         await renderOrchestrationDataSource.receiveEvents?.({
             events,
-            streamEvent: jest.fn().mockResolvedValue(undefined),
+            streamEvent,
             streamEnvelope: jest.fn().mockResolvedValue(undefined),
         })
 
         expect(orientationSpy).toHaveBeenCalledTimes(1)
-        expect(orientationSpy).toHaveBeenCalledWith(messageBus, payload, 'render')
+        expect(orientationSpy).toHaveBeenCalledWith(messageBus, payload, 'render', undefined, streamEvent)
         expect(orchestrateSpy).not.toHaveBeenCalled()
         orientationSpy.mockRestore()
         orchestrateSpy.mockRestore()

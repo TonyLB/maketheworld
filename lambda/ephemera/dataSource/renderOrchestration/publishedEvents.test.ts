@@ -169,32 +169,20 @@ describe('isRenderOrchestrationPublishedStreamEnvelope', () => {
 })
 
 describe('sendRenderOrchestrationPublish', () => {
-    it('sends StreamingEvent with header.type matching payload.type', () => {
-        const bus = { send: jest.fn() }
+    it('publishes StreamingEvent with header.type matching payload.type', () => {
+        const bus = { publish: jest.fn() }
         const content: RenderOrchestrationPublishedPayload = {
             type: 'Current Cache Valid',
             ...routing,
             cacheId: minimalCacheId,
         }
         sendRenderOrchestrationPublish(bus, passThroughFixtureRoomId, content)
-        expect(bus.send).toHaveBeenCalledTimes(1)
-        const arg = bus.send.mock.calls[0][0]
+        expect(bus.publish).toHaveBeenCalledTimes(1)
+        const arg = bus.publish.mock.calls[0][0]
         expect(arg.type).toBe('StreamingEvent')
         expect(arg.dataSourceKey).toBe('mtw.ephemera.renderOrchestration')
         expect(arg.header.type).toBe('Current Cache Valid')
         expect(arg.header.streamKey).toBe(passThroughFixtureRoomId)
-        expect(bus.send.mock.calls[0].length).toBe(1)
-    })
-
-    it('passes non-empty laneId as second send argument', () => {
-        const bus = { send: jest.fn() }
-        const content: RenderOrchestrationPublishedPayload = {
-            type: 'Generation Started',
-            ...routing,
-            phase: 'generating',
-        }
-        sendRenderOrchestrationPublish(bus, passThroughFixtureRoomId, content, 'lane-x')
-        expect(bus.send.mock.calls[0][1]).toBe('lane-x')
     })
 })
 
@@ -213,27 +201,11 @@ describe('publishRenderOrchestrationStreamEvent', () => {
             header: { type: 'Exact Match Found' },
         })
     })
-
-    it('forwards laneId option to streamEvent when set', async () => {
-        const streamEvent = jest.fn().mockResolvedValue(undefined)
-        const content: RenderOrchestrationPublishedPayload = {
-            type: 'Exact Match Found',
-            ...routing,
-            cacheId: minimalCacheId,
-        }
-        await publishRenderOrchestrationStreamEvent(streamEvent, passThroughFixtureRoomId, content, { laneId: '' })
-        expect(streamEvent).toHaveBeenCalledWith({
-            update: content,
-            streamKey: passThroughFixtureRoomId,
-            header: { type: 'Exact Match Found' },
-            laneId: '',
-        })
-    })
 })
 
 describe('streamEventFromMessageBus', () => {
     it('delegates to sendRenderOrchestrationPublish', async () => {
-        const bus = { send: jest.fn() }
+        const bus = { publish: jest.fn() }
         const streamEvent = streamEventFromMessageBus(bus)
         const content: RenderOrchestrationPublishedPayload = {
             type: 'Current Cache Valid',
@@ -245,26 +217,9 @@ describe('streamEventFromMessageBus', () => {
             streamKey: passThroughFixtureRoomId,
             header: { type: content.type },
         })
-        expect(bus.send).toHaveBeenCalledTimes(1)
-        const arg = bus.send.mock.calls[0][0]
+        expect(bus.publish).toHaveBeenCalledTimes(1)
+        const arg = bus.publish.mock.calls[0][0]
         expect(arg.type).toBe('StreamingEvent')
         expect(arg.dataSourceKey).toBe('mtw.ephemera.renderOrchestration')
-    })
-
-    it('forwards params.laneId to send', async () => {
-        const bus = { send: jest.fn() }
-        const streamEvent = streamEventFromMessageBus(bus)
-        const content: RenderOrchestrationPublishedPayload = {
-            type: 'Current Cache Valid',
-            ...routing,
-            cacheId: minimalCacheId,
-        }
-        await streamEvent({
-            update: content,
-            streamKey: passThroughFixtureRoomId,
-            header: { type: content.type },
-            laneId: 'z-lane',
-        })
-        expect(bus.send.mock.calls[0][1]).toBe('z-lane')
     })
 })

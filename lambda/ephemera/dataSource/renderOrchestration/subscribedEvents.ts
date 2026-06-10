@@ -12,7 +12,7 @@ import {
     makeStreamingEnvelopeGuardFromHeaderGuard,
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import type { StreamingEventMessage } from '../../messageBus/baseClasses'
+import type { MessageBus, StreamingEventMessage } from '../../messageBus/baseClasses'
 import { isEphemeraStateStateChangedEnvelope } from '../state/events'
 import type { StateChangedPayload } from '../state/events'
 import type { LookCommandRequestedPublishedPayload } from '../actions/publishedEvents'
@@ -82,12 +82,7 @@ export const isRenderOrchestrationSubscribedEnvelope = (
     || isConnectionsCharacterRegisteredEnvelope(envelope)
 )
 
-type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }
-
-/** Stable message-bus lane for a render-orchestration work unit; matches ingress {@link sendRenderRequested}. */
-export function renderOrchestrationIngressLaneId(streamKey: string): string {
-    return `renderOrchestration:${streamKey}`
-}
+type PublishBus = Pick<MessageBus, 'publish'>
 
 const apiEphemeraSerializer = {
     serialize: ({ content, header }: { content: object; header: StreamingEventHeader }) => ({
@@ -96,18 +91,14 @@ const apiEphemeraSerializer = {
     }),
 }
 
-export type SendRenderRequestedOptions = {
-    /**
-     * When set, the message is on the default bus lane so an in-flight `flush` picks it up (e.g. event-driven look after flushing its run-scoped perception lane). Otherwise uses {@link renderOrchestrationIngressLaneId}.
-     */
-    useDefaultMessageBusLane?: boolean
-}
-
+/**
+ * External / cross-module kick: publish `api.ephemera` `Render Requested` for renderOrchestration ingress.
+ * Same-DataSource handoffs (look, session orientation) call {@link orchestrateRenderRequest} directly.
+ */
 export function sendRenderRequested(
-    bus: Bus,
+    bus: PublishBus,
     streamKey: string,
     content: RenderRequestedCommand,
-    options?: SendRenderRequestedOptions
 ): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
@@ -117,20 +108,13 @@ export function sendRenderRequested(
         type: 'Render Requested',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
-    const message = {
-        type: 'StreamingEvent' as const,
+    const message: StreamingEventMessage = {
+        type: 'StreamingEvent',
         dataSourceKey: 'api.ephemera',
         streamKey,
         header: envelope.header,
         getContent: envelope.getContent,
         timestamp,
     }
-    if (options?.useDefaultMessageBusLane) {
-        bus.send(message)
-    } else {
-        bus.send(
-            message,
-            renderOrchestrationIngressLaneId(streamKey),
-        )
-    }
+    bus.publish(message)
 }
