@@ -245,7 +245,7 @@ if (!object) {
 ### **Global Handlers**
 - **`Global`**: Caches global system data
 - **`OrchestrateMessages`**: Caches message orchestration data
-- **`PerceptionThreads`**: In-memory fan-in aggregation for **`mtw.ephemera.perception`**; [`perceptionThreads.ts`](perceptionThreads.ts), [`perceptionThreads.test.ts`](perceptionThreads.test.ts); **`stub`**, **`roomDescription`**, **`roomHeaderBroadcast`**, **`sessionOrientationRender`**, **`sessionOrientationAffordances`**, **`characterMove`** thread variants; **`register`** / **`list`** / **`update`** / **`remove(registrationId)`**; **`clear()`** only (no **`flush()`**). See [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md) (**Normative decisions and obligations**).
+- **`PerceptionThreads`**: In-memory fan-in aggregation for **`mtw.ephemera.perception`**; [`perceptionThreads.ts`](perceptionThreads.ts), [`perceptionThreads.test.ts`](perceptionThreads.test.ts); **`stub`**, **`roomDescription`**, **`roomHeaderBroadcast`**, **`sessionOrientationRender`**, **`sessionOrientationAffordances`**, **`characterMove`** thread variants; render-correlated kinds store optional **`createdTime`** (Generating **`T0`** for terminal revision ordering); **`register`** / **`list`** / **`update`** / **`remove(registrationId)`**; **`clear()`** only (no **`flush()`**). See [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md) (**Normative decisions and obligations**).
 - **`Graph`**: Caches graph relationships
 
 ## Integration Points

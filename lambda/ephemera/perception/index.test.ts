@@ -1,4 +1,12 @@
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
+jest.mock('uuid', () => ({
+    v4: jest.fn(() => 'test-uuid'),
+}))
+const mockGetCurrentTimestamp = jest.fn(() => 1000000000000)
+jest.mock('../internalUtils/dateUtil', () => ({
+    __esModule: true,
+    default: () => mockGetCurrentTimestamp(),
+}))
 jest.mock('../publishMessage', () => ({
     __esModule: true,
     default: jest.fn().mockResolvedValue(undefined),
@@ -7,17 +15,20 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 import messageBus from '../messageBus'
 import '../dataSource/perception'
+import publishMessage from '../publishMessage'
 
 import type { EphemeraCacheDynamoItem } from '../dataSource/renderCache/baseClasses'
 import { roomHeaderChannelWmlForRoomId, roomRenderChannelWmlForRoomId } from '../dataSource/perception/roomRenderWmlFromCacheRecord'
 import perceptionMessage, { sendRoomGeneratingHeader } from '.'
+
+const publishMessageMock = publishMessage as jest.MockedFunction<typeof publishMessage>
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
 describe('Perception message', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        jest.resetAllMocks()
+        mockGetCurrentTimestamp.mockReturnValue(1000000000000)
         messageBus.clear()
     })
 
@@ -44,8 +55,6 @@ describe('Perception message', () => {
             Pronouns: 'she/her',
         })
 
-        const sendSpy = jest.spyOn(messageBus, 'send')
-
         await perceptionMessage({
             payloads: [
                 {
@@ -57,7 +66,7 @@ describe('Perception message', () => {
             messageBus,
             internalCacheOverride: mockInternalCache,
         })
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
 
         expect(ephemeraDBMock.getItem).toHaveBeenCalledWith({
             Key: {
@@ -66,23 +75,27 @@ describe('Perception message', () => {
             },
             ProjectionFields: ['Name', 'Pronouns', 'fileURL', 'Color'],
         })
-        expect(sendSpy).toHaveBeenCalledWith({
-            type: 'PublishMessage',
-            displayProtocol: 'PerceptionMessage',
-            targets: ['CHARACTER#TESS'],
-            wmlContent: `<Asset uuid=(render)>
+        expect(publishMessageMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                payloads: [
+                    expect.objectContaining({
+                        type: 'PublishMessage',
+                        displayProtocol: 'PerceptionMessage',
+                        targets: ['CHARACTER#TESS'],
+                        wmlContent: `<Asset uuid=(render)>
     <Character uuid=(CHARACTER#TESS)>
         <DisplayName>Tess</DisplayName>
         <Pronouns>she/her</Pronouns>
         
     </Character>
 </Asset>`,
-            metaData: {
-                componentUUID: 'CHARACTER#TESS',
-            },
-            messageGroupId: undefined,
-        })
-        sendSpy.mockRestore()
+                        metaData: {
+                            componentUUID: 'CHARACTER#TESS',
+                        },
+                    }),
+                ],
+            })
+        )
     })
 
     describe('PerceptionRoomMessage', () => {
@@ -109,8 +122,6 @@ describe('Perception message', () => {
                 ComponentRender: { get: jest.fn() },
             } as any
 
-            const sendSpy = jest.spyOn(messageBus, 'send')
-
             await perceptionMessage({
                 payloads: [
                     {
@@ -123,25 +134,29 @@ describe('Perception message', () => {
                 messageBus,
                 internalCacheOverride: mockInternalCache,
             })
-            await messageBus.flush()
+            await messageBus.flushAndSettle()
 
             expect(mockInternalCache.ComponentRender.get).not.toHaveBeenCalled()
             expect(renderCacheGet).toHaveBeenCalledWith(roomId)
             const expectedWml = roomHeaderChannelWmlForRoomId(roomId, [sampleCacheRow])
-            expect(sendSpy).toHaveBeenCalledWith({
-                type: 'PublishMessage',
-                targets: ['CHARACTER#TESS'],
-                displayProtocol: 'PerceptionMessage',
-                wmlContent: expectedWml,
-                metaData: {
-                    componentUUID: roomId,
-                    displayMode: 'header',
-                    roomChannel: 'render',
-                },
-                messageGroupId: undefined,
-            })
+            expect(publishMessageMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    payloads: [
+                        expect.objectContaining({
+                            type: 'PublishMessage',
+                            targets: ['CHARACTER#TESS'],
+                            displayProtocol: 'PerceptionMessage',
+                            wmlContent: expectedWml,
+                            metaData: {
+                                componentUUID: roomId,
+                                displayMode: 'header',
+                                roomChannel: 'render',
+                            },
+                        }),
+                    ],
+                })
+            )
             expect(expectedWml).not.toMatch(/<Exit\b/i)
-            sendSpy.mockRestore()
         })
 
         it('uses empty-cache prose when RenderCache has no rows', async () => {
@@ -151,7 +166,6 @@ describe('Perception message', () => {
                 RoomCharacterList: { get: jest.fn() },
                 ComponentRender: { get: jest.fn() },
             } as any
-            const sendSpy = jest.spyOn(messageBus, 'send')
             const expectedWml = roomRenderChannelWmlForRoomId(roomId, [])
 
             await perceptionMessage({
@@ -161,20 +175,23 @@ describe('Perception message', () => {
                 messageBus,
                 internalCacheOverride: mockInternalCache,
             })
-            await messageBus.flush()
+            await messageBus.flushAndSettle()
 
-            expect(sendSpy).toHaveBeenCalledWith(
+            expect(publishMessageMock).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    wmlContent: expectedWml,
-                    metaData: expect.objectContaining({ displayMode: 'full' }),
+                    payloads: [
+                        expect.objectContaining({
+                            wmlContent: expectedWml,
+                            metaData: expect.objectContaining({ displayMode: 'full' }),
+                        }),
+                    ],
                 })
             )
-            sendSpy.mockRestore()
         })
     })
 
     describe('sendRoomGeneratingHeader', () => {
-        const messageBusMock = { send: jest.fn() } as any
+        const messageBusMock = { publish: jest.fn() } as any
 
         it('should send a PerceptionMessage with generating status for room headers', () => {
             sendRoomGeneratingHeader({
@@ -184,11 +201,12 @@ describe('Perception message', () => {
                 messageGroupId: 'UUID#group',
             })
 
-            expect(messageBusMock.send).toHaveBeenCalledWith({
-                type: 'PublishMessage',
-                targets: ['CHARACTER#TESS'],
-                displayProtocol: 'PerceptionMessage',
-                wmlContent: `<Asset uuid=(render)>
+            expect(messageBusMock.publish).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    type: 'PublishMessage',
+                    targets: ['CHARACTER#TESS'],
+                    displayProtocol: 'PerceptionMessage',
+                    wmlContent: `<Asset uuid=(render)>
     <Room uuid=(ROOM#TEST)>
         <Render>
             <DisplayName>Generating...</DisplayName>
@@ -197,14 +215,17 @@ describe('Perception message', () => {
         </Render>
     </Room>
 </Asset>`,
-                metaData: {
-                    componentUUID: 'ROOM#TEST',
-                    displayMode: 'header',
-                    status: 'generating',
-                    roomChannel: 'render',
-                },
-                messageGroupId: 'UUID#group',
-            })
+                    metaData: {
+                        componentUUID: 'ROOM#TEST',
+                        displayMode: 'header',
+                        status: 'generating',
+                        roomChannel: 'render',
+                    },
+                    messageGroupId: 'UUID#group',
+                    createdTime: 1000000000000,
+                })
+            )
+            expect((messageBusMock.publish as jest.Mock).mock.calls[0][0].messageId).toBe('MESSAGE#test-uuid')
         })
 
         it('should be a no-op when characterIds is empty', () => {
@@ -215,7 +236,7 @@ describe('Perception message', () => {
                 messageBus: messageBusMock,
             })
 
-            expect(messageBusMock.send).not.toHaveBeenCalled()
+            expect(messageBusMock.publish).not.toHaveBeenCalled()
         })
     })
 })

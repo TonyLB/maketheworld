@@ -12,7 +12,7 @@ describe('perception subscribedEvents', () => {
     it('sendCharacterPerceptionRequested emits api.ephemera StreamingEvent envelope', async () => {
         const sent: any[] = []
         sendCharacterPerceptionRequested(
-            { send: (payload) => sent.push(payload) },
+            { publish: (payload) => sent.push(payload) },
             'CHARACTER#VIEWED',
             {
                 characterId: 'CHARACTER#VIEWER',

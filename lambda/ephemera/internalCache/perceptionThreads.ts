@@ -26,6 +26,7 @@ export type RoomDescriptionPerceptionThread = {
     kind: 'roomDescription';
     status: 'Initial' | 'Generating' | 'Terminal';
     messageId?: string;
+    createdTime?: number;
     cacheId?: string;
 }
 
@@ -34,6 +35,7 @@ export type RoomHeaderBroadcastPerceptionThread = {
     kind: 'roomHeaderBroadcast';
     status: 'Initial' | 'Generating' | 'Terminal';
     messageId?: string;
+    createdTime?: number;
     cacheId?: string;
 }
 
@@ -42,6 +44,7 @@ export type SessionOrientationRenderPerceptionThread = {
     kind: 'sessionOrientationRender';
     status: 'Initial' | 'Generating' | 'Terminal';
     messageId?: string;
+    createdTime?: number;
     cacheId?: string;
 }
 
@@ -94,6 +97,9 @@ export function isRoomDescriptionPerceptionThread(value: unknown): value is Room
     if (v.messageId !== undefined && typeof v.messageId !== 'string') {
         return false
     }
+    if (v.createdTime !== undefined && typeof v.createdTime !== 'number') {
+        return false
+    }
     if (v.cacheId !== undefined && typeof v.cacheId !== 'string') {
         return false
     }
@@ -113,6 +119,9 @@ export function isRoomHeaderBroadcastPerceptionThread(value: unknown): value is 
         return false
     }
     if (v.messageId !== undefined && typeof v.messageId !== 'string') {
+        return false
+    }
+    if (v.createdTime !== undefined && typeof v.createdTime !== 'number') {
         return false
     }
     if (v.cacheId !== undefined && typeof v.cacheId !== 'string') {
@@ -136,6 +145,9 @@ export function isSessionOrientationRenderPerceptionThread(
         return false
     }
     if (v.messageId !== undefined && typeof v.messageId !== 'string') {
+        return false
+    }
+    if (v.createdTime !== undefined && typeof v.createdTime !== 'number') {
         return false
     }
     if (v.cacheId !== undefined && typeof v.cacheId !== 'string') {
@@ -210,6 +222,7 @@ export type RoomDescriptionPerceptionThreadPatch = {
     threadKind: 'roomDescription';
     status?: RoomDescriptionPerceptionThread['status'];
     messageId?: string;
+    createdTime?: number;
     cacheId?: string;
 }
 
@@ -221,6 +234,7 @@ export type RoomHeaderBroadcastPerceptionThreadPatch = {
     threadKind: 'roomHeaderBroadcast';
     status?: RoomHeaderBroadcastPerceptionThread['status'];
     messageId?: string;
+    createdTime?: number;
     cacheId?: string;
 }
 
@@ -228,6 +242,7 @@ export type SessionOrientationRenderPerceptionThreadPatch = {
     threadKind: 'sessionOrientationRender';
     status?: SessionOrientationRenderPerceptionThread['status'];
     messageId?: string;
+    createdTime?: number;
     cacheId?: string;
 }
 
@@ -258,9 +273,9 @@ export type PerceptionThreadPatch =
     | CharacterMovePerceptionThreadPatch
     | StubPerceptionThreadPatch
 
-const ROOM_DESCRIPTION_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'cacheId'])
-const ROOM_HEADER_BROADCAST_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'cacheId'])
-const SESSION_ORIENTATION_RENDER_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'cacheId'])
+const ROOM_DESCRIPTION_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'createdTime', 'cacheId'])
+const ROOM_HEADER_BROADCAST_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'createdTime', 'cacheId'])
+const SESSION_ORIENTATION_RENDER_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'createdTime', 'cacheId'])
 const SESSION_ORIENTATION_AFFORDANCES_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'cacheId'])
 const CHARACTER_MOVE_PATCH_KEYS = new Set<string>([
     'threadKind',
@@ -296,6 +311,9 @@ export function isRoomDescriptionPerceptionThreadPatch(value: unknown): value is
     if ('messageId' in p && p.messageId !== undefined && typeof p.messageId !== 'string') {
         return false
     }
+    if ('createdTime' in p && p.createdTime !== undefined && typeof p.createdTime !== 'number') {
+        return false
+    }
     if ('cacheId' in p && p.cacheId !== undefined && typeof p.cacheId !== 'string') {
         return false
     }
@@ -326,6 +344,9 @@ export function isRoomHeaderBroadcastPerceptionThreadPatch(
     if ('messageId' in p && p.messageId !== undefined && typeof p.messageId !== 'string') {
         return false
     }
+    if ('createdTime' in p && p.createdTime !== undefined && typeof p.createdTime !== 'number') {
+        return false
+    }
     if ('cacheId' in p && p.cacheId !== undefined && typeof p.cacheId !== 'string') {
         return false
     }
@@ -354,6 +375,9 @@ export function isSessionOrientationRenderPerceptionThreadPatch(
         }
     }
     if ('messageId' in p && p.messageId !== undefined && typeof p.messageId !== 'string') {
+        return false
+    }
+    if ('createdTime' in p && p.createdTime !== undefined && typeof p.createdTime !== 'number') {
         return false
     }
     if ('cacheId' in p && p.cacheId !== undefined && typeof p.cacheId !== 'string') {

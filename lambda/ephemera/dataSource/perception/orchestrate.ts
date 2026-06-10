@@ -28,6 +28,7 @@ import {
     isRenderOrchestrationOrchestrationErrorPayload,
 } from '../renderOrchestration/publishedEvents'
 import { getCharacterRoomPerspectiveKey } from './kickRoomHeaderBroadcast'
+import getCurrentTimestamp from '../../internalUtils/dateUtil'
 
 /**
  * TEMPORARY: Word joiner (U+2060) as non-whitespace display title so WML round-trips.
@@ -96,6 +97,11 @@ function headerTargetsForCharacterMove(
     return registration.headerTargets?.length ? registration.headerTargets : [registration.characterId]
 }
 
+function terminalCreatedTime(thread: { createdTime?: number }): number {
+    const t0 = thread.createdTime ?? getCurrentTimestamp()
+    return Math.max(t0 + 1, getCurrentTimestamp())
+}
+
 function publishCharacterMoveLeaveIfNeeded(
     bus: MessageBus,
     entry: ReturnType<typeof internalCache.PerceptionThreads.list>[number],
@@ -111,12 +117,13 @@ function publishCharacterMoveLeaveIfNeeded(
     }
     const leave = registration.leaveWorldMessage
     if (leave) {
-        bus.send({
+        bus.publish({
             type: 'PublishMessage',
             displayProtocol: 'WorldMessage',
             targets: leave.targets,
             message: leave.message,
             messageGroupId: registration.leaveMessageGroupId,
+            deliveryMode: 'deferred',
         })
     }
     internalCache.PerceptionThreads.update(
@@ -140,12 +147,13 @@ function publishCharacterMoveArriveIfNeeded(
     }
     const arrive = registration.arriveWorldMessage
     if (arrive) {
-        bus.send({
+        bus.publish({
             type: 'PublishMessage',
             displayProtocol: 'WorldMessage',
             targets: arrive.targets,
             message: arrive.message,
             messageGroupId: registration.arriveMessageGroupId,
+            deliveryMode: 'deferred',
         })
     }
     internalCache.PerceptionThreads.update(
@@ -216,7 +224,7 @@ async function handleRenderPertains(
         const characterId = registration.characterId
 
         const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
-        bus.send({
+        bus.publish({
             type: 'PublishMessage',
             targets: [characterId],
             displayProtocol: 'PerceptionMessage',
@@ -228,6 +236,7 @@ async function handleRenderPertains(
             },
             messageGroupId: registration.messageGroupId,
             messageId,
+            createdTime: terminalCreatedTime(thread),
         })
         publishedRoomDescription += 1
 
@@ -255,7 +264,7 @@ async function handleRenderPertains(
         const roomId = payload.componentId
         const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
         if (targets.length) {
-            bus.send({
+            bus.publish({
                 type: 'PublishMessage',
                 targets,
                 displayProtocol: 'PerceptionMessage',
@@ -267,6 +276,7 @@ async function handleRenderPertains(
                 },
                 messageGroupId: registration.messageGroupId,
                 messageId,
+                createdTime: terminalCreatedTime(thread),
             })
             publishedHeaderBroadcast += 1
         }
@@ -298,7 +308,7 @@ async function handleRenderPertains(
         const roomId = payload.componentId
         const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
         if (targets.length) {
-            bus.send({
+            bus.publish({
                 type: 'PublishMessage',
                 targets,
                 displayProtocol: 'PerceptionMessage',
@@ -310,6 +320,7 @@ async function handleRenderPertains(
                 },
                 messageGroupId: registration.messageGroupId,
                 messageId,
+                createdTime: terminalCreatedTime(thread),
             })
             publishedSessionOrientationRender += 1
         }
@@ -342,7 +353,7 @@ async function handleRenderPertains(
         const roomId = payload.componentId
         const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
         if (targets.length) {
-            bus.send({
+            bus.publish({
                 type: 'PublishMessage',
                 targets,
                 displayProtocol: 'PerceptionMessage',
@@ -354,6 +365,7 @@ async function handleRenderPertains(
                 },
                 messageGroupId: registration.messageGroupId,
                 messageId,
+                deliveryMode: 'deferred',
             })
             publishedCharacterMove += 1
         }
@@ -378,7 +390,7 @@ async function handleRenderPertains(
         )
         fallbackTargetsMatched = fallbackTargets.length
         if (fallbackTargets.length) {
-            bus.send({
+            bus.publish({
                 type: 'PublishMessage',
                 targets: fallbackTargets,
                 displayProtocol: 'PerceptionMessage',
@@ -445,7 +457,8 @@ async function handleGenerationStarted(
 
         const messageId = `MESSAGE#${uuidv4()}`
         const roomId = payload.componentId
-        bus.send({
+        const t0 = getCurrentTimestamp()
+        bus.publish({
             type: 'PublishMessage',
             targets: [characterId],
             displayProtocol: 'PerceptionMessage',
@@ -458,11 +471,12 @@ async function handleGenerationStarted(
             },
             messageGroupId: registration.messageGroupId,
             messageId,
+            createdTime: t0,
         })
 
         internalCache.PerceptionThreads.update(
             { componentId: payload.componentId, perspectiveKey: payload.perspectiveKey, registrationId },
-            { threadKind: 'roomDescription', status: 'Generating', messageId }
+            { threadKind: 'roomDescription', status: 'Generating', messageId, createdTime: t0 }
         )
     }
 
@@ -480,7 +494,8 @@ async function handleGenerationStarted(
         }
         const roomId = payload.componentId
         const messageId = `MESSAGE#${uuidv4()}`
-        bus.send({
+        const t0 = getCurrentTimestamp()
+        bus.publish({
             type: 'PublishMessage',
             targets: registration.targets,
             displayProtocol: 'PerceptionMessage',
@@ -493,11 +508,12 @@ async function handleGenerationStarted(
             },
             messageGroupId: registration.messageGroupId,
             messageId,
+            createdTime: t0,
         })
 
         internalCache.PerceptionThreads.update(
             { componentId: payload.componentId, perspectiveKey: payload.perspectiveKey, registrationId },
-            { threadKind: 'roomHeaderBroadcast', status: 'Generating', messageId }
+            { threadKind: 'roomHeaderBroadcast', status: 'Generating', messageId, createdTime: t0 }
         )
     }
 
@@ -515,7 +531,8 @@ async function handleGenerationStarted(
         }
         const roomId = payload.componentId
         const messageId = `MESSAGE#${uuidv4()}`
-        bus.send({
+        const t0 = getCurrentTimestamp()
+        bus.publish({
             type: 'PublishMessage',
             targets: registration.targets,
             displayProtocol: 'PerceptionMessage',
@@ -528,11 +545,12 @@ async function handleGenerationStarted(
             },
             messageGroupId: registration.messageGroupId,
             messageId,
+            createdTime: t0,
         })
 
         internalCache.PerceptionThreads.update(
             { componentId: payload.componentId, perspectiveKey: payload.perspectiveKey, registrationId },
-            { threadKind: 'sessionOrientationRender', status: 'Generating', messageId }
+            { threadKind: 'sessionOrientationRender', status: 'Generating', messageId, createdTime: t0 }
         )
     }
 
@@ -552,7 +570,7 @@ async function handleGenerationStarted(
         const roomId = payload.componentId
         const targets = headerTargetsForCharacterMove(registration)
         const messageId = `MESSAGE#${uuidv4()}`
-        bus.send({
+        bus.publish({
             type: 'PublishMessage',
             targets,
             displayProtocol: 'PerceptionMessage',
@@ -565,6 +583,7 @@ async function handleGenerationStarted(
             },
             messageGroupId: registration.messageGroupId,
             messageId,
+            deliveryMode: 'deferred',
         })
 
         internalCache.PerceptionThreads.update(
@@ -600,7 +619,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
 
         const roomId = payload.componentId
         const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
-        bus.send({
+        bus.publish({
             type: 'PublishMessage',
             targets: [characterId],
             displayProtocol: 'PerceptionMessage',
@@ -612,6 +631,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
             },
             messageGroupId: registration.messageGroupId,
             messageId,
+            createdTime: terminalCreatedTime(thread),
         })
 
         internalCache.PerceptionThreads.remove({
@@ -636,7 +656,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
 
         const roomId = payload.componentId
         const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
-        bus.send({
+        bus.publish({
             type: 'PublishMessage',
             targets: registration.targets,
             displayProtocol: 'PerceptionMessage',
@@ -648,6 +668,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
             },
             messageGroupId: registration.messageGroupId,
             messageId,
+            createdTime: terminalCreatedTime(thread),
         })
 
         internalCache.PerceptionThreads.remove({
@@ -672,7 +693,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
 
         const roomId = payload.componentId
         const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
-        bus.send({
+        bus.publish({
             type: 'PublishMessage',
             targets: registration.targets,
             displayProtocol: 'PerceptionMessage',
@@ -684,6 +705,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
             },
             messageGroupId: registration.messageGroupId,
             messageId,
+            createdTime: terminalCreatedTime(thread),
         })
 
         internalCache.PerceptionThreads.remove({
@@ -710,7 +732,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
         const roomId = payload.componentId
         const targets = headerTargetsForCharacterMove(registration)
         const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
-        bus.send({
+        bus.publish({
             type: 'PublishMessage',
             targets,
             displayProtocol: 'PerceptionMessage',
@@ -722,6 +744,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
             },
             messageGroupId: registration.messageGroupId,
             messageId,
+            deliveryMode: 'deferred',
         })
         publishCharacterMoveArriveIfNeeded(bus, entry, payload.componentId, payload.perspectiveKey)
 

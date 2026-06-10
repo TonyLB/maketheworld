@@ -6,8 +6,10 @@ import {
     isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraRoomId
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
+import { v4 as uuidv4 } from 'uuid'
 import { sendCharacterPerceptionRequested } from "../dataSource/perception/subscribedEvents"
 import { roomHeaderGeneratingPlaceholderWml } from "../dataSource/perception/roomHeaderPlaceholderWml"
+import getCurrentTimestamp from "../internalUtils/dateUtil"
 import { kickRoomHeaderBroadcastForRoom } from "../dataSource/perception/kickRoomHeaderBroadcast"
 import { roomHeaderChannelWmlForRoomId, roomRenderChannelWmlForRoomId } from "../dataSource/perception/roomRenderWmlFromCacheRecord"
 
@@ -60,7 +62,7 @@ export const perceptionMessage = async ({
                     ? roomHeaderChannelWmlForRoomId(payload.ephemeraId, cacheRecords)
                     : roomRenderChannelWmlForRoomId(payload.ephemeraId, cacheRecords)
                 for (const characterId of characterList) {
-                    messageBus.send({
+                    messageBus.publish({
                         type: 'PublishMessage',
                         targets: [characterId],
                         displayProtocol: 'PerceptionMessage',
@@ -88,7 +90,7 @@ export const perceptionMessage = async ({
                 const internalCache = getCache()
                 if (isEphemeraFeatureId(ephemeraId) && isEphemeraCharacterId(characterId)) {
                     const featureDescribe = await internalCache.ComponentRender.get(characterId, ephemeraId)
-                    messageBus.send({
+                    messageBus.publish({
                         type: 'PublishMessage',
                         targets: [characterId],
                         displayProtocol: 'PerceptionMessage',
@@ -108,7 +110,7 @@ export const perceptionMessage = async ({
                     //
                     const targets = (isEphemeraCharacterId(characterId) && !payload.directResponse) ? [characterId] : [`SESSION#${await internalCache.Global.get('SessionId')}` as const]
                     const knowledgeDescribe = await internalCache.ComponentRender.get(characterId, ephemeraId)
-                    messageBus.send({
+                    messageBus.publish({
                         type: 'PublishMessage',
                         targets,
                         displayProtocol: 'PerceptionMessage',
@@ -128,7 +130,7 @@ export const perceptionMessage = async ({
                 const internalCache = getCache()
                 const mapDescribe = await internalCache.ComponentRender.get(characterId, payload.ephemeraId)
                 if ((!payload.mustIncludeRoomId) || mapDescribe.byUniversalId[payload.mustIncludeRoomId]) {
-                    messageBus.send({
+                    messageBus.publish({
                         type: `EphemeraUpdate`,
                         updates: [{
                             type: 'MapUpdate',
@@ -144,7 +146,7 @@ export const perceptionMessage = async ({
         }
     }))
 
-    messageBus.send({
+    messageBus.publish({
         type: 'ReturnValue',
         body: {
             messageType: "Success"
@@ -165,7 +167,7 @@ export const sendRoomGeneratingHeader = ({ roomId, characterIds, messageBus, mes
     }
     const wmlContent = roomHeaderGeneratingPlaceholderWml(roomId)
 
-    messageBus.send({
+    messageBus.publish({
         type: 'PublishMessage',
         targets: characterIds,
         displayProtocol: 'PerceptionMessage',
@@ -176,7 +178,9 @@ export const sendRoomGeneratingHeader = ({ roomId, characterIds, messageBus, mes
             status: 'generating',
             roomChannel: 'render',
         },
-        messageGroupId
+        messageGroupId,
+        messageId: `MESSAGE#${uuidv4()}`,
+        createdTime: getCurrentTimestamp(),
     })
 }
 

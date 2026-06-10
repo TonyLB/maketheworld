@@ -106,7 +106,6 @@ export const isPerceptionSubscribedEnvelope = (
         || isPerceptionAffordancesPertainStreamEnvelope(envelope)
 )
 
-type SendBus = Pick<MessageBus, 'send'>
 type PublishBus = Pick<MessageBus, 'publish'>
 
 const apiEphemeraSerializer = {
@@ -118,7 +117,7 @@ const apiEphemeraSerializer = {
 
 /** streamKey should be the viewed character id (CHARACTER#...), i.e. command.ephemeraId. */
 export function sendCharacterPerceptionRequested(
-    bus: SendBus,
+    bus: PublishBus,
     streamKey: string,
     content: CharacterPerceptionRequestedCommand
 ): void {
@@ -130,7 +129,7 @@ export function sendCharacterPerceptionRequested(
         type: 'Character Perception Requested',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
-    bus.send({
+    bus.publish({
         type: 'StreamingEvent',
         dataSourceKey: 'api.ephemera',
         streamKey,

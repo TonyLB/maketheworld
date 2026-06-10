@@ -35,7 +35,7 @@ export async function publishAffordancePerceptionForPerspective({
     const merged = await internalCache.AffordanceRoomDeliverable.get(roomId, perspectiveKey)
     const wmlContent = schemaToWML([merged.schema])
     for (const { targets, messageGroupId: deliveryMessageGroupId } of nonEmpty) {
-        messageBus.send({
+        messageBus.publish({
             type: 'PublishMessage',
             targets: [...targets],
             displayProtocol: 'PerceptionMessage',

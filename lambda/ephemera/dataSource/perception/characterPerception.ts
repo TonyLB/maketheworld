@@ -46,7 +46,7 @@ export async function handleCharacterPerceptionRequested(
     </Character>
 </Asset>`
 
-    messageBus.send({
+    messageBus.publish({
         type: 'PublishMessage',
         targets: [characterId],
         displayProtocol: 'PerceptionMessage',
