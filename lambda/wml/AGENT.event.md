@@ -113,13 +113,15 @@ Consumers must treat absent or empty `RequestIds` as "no client pending confirma
 
 **MessageBus Architecture**:
 - Type-safe internal event bus using `@tonylb/mtw-lambda-patterns`
+- Ingress and coordination helpers use **`publish`**; lambda boundaries use **`flushAndSettle()`**
 - Supports `ReturnValue`, `Error`, and `StreamingEvent` message types
-- DataSource subscriptions enable event-driven processing
+- `ReturnValue` / `Error` collected at priority 16; `extractReturnValue` reads collectors only
+- DataSource subscriptions enable event-driven processing; `mtw.wml` uses `outboundBusDelivery: 'publish'`
 
 **Event Processing Flow**:
-1. **Incoming EventBridge Events** → Deserialized → Published to messageBus → DataSource processing
-2. **Direct API Calls** → Business logic → Events published to messageBus → DataSource streaming to EventBridge
-3. **Internal Coordination** → MessageBus enables cross-concern coordination without tight coupling
+1. **Incoming EventBridge Events** → Deserialized → `publish` to messageBus → DataSource processing → boundary `flushAndSettle`
+2. **Direct API Calls** → `publish` coordination events → DataSource `receiveEvents` → `streamEvent` outbounds → boundary `flushAndSettle`
+3. **Operator promoteToCanon** → direct `coordinateMoveAsset` / `coordinateCanonizeAsset` (no bus loop between steps) → boundary `flushAndSettle`
 
 ## Integration Patterns
 
@@ -149,11 +151,11 @@ Consumers must treat absent or empty `RequestIds` as "no client pending confirma
 
 ### Internal event handling
 
-**Incoming api.wml events** (API → send-helper → messageBus → receiveEvents):
+**Incoming api.wml events** (API → publish-helper → messageBus → receiveEvents):
 - `Apply Edit` - WML edit application
 - `Move Asset` - Asset zone transitions
 - `Purge Asset` - Asset purge (Draft/Archive)
-- **`Canonize Asset`** - Runs when coordination enqueues it (operator **`promoteToCanon`** issues **`Move Asset`** to Library when needed, then **`Canonize Asset`**; future **community publishing** flows may enqueue the same primitives from product UX---see [AGENT.collaboration.md](../../AGENT.collaboration.md) and [AGENT.collaboration.publishing.md](../../AGENT.collaboration.publishing.md)). This is **not** a separate bootstrapping-only S3 path; authoritative updates still go through `mtw-wml` as for other zone operations.
+- **`Canonize Asset`** - Runs when coordination delivers it via bus ingress or direct **`coordinateCanonizeAsset`** (operator **`promoteToCanon`** uses the direct path); future **community publishing** flows may enqueue the same primitives from product UX---see [AGENT.collaboration.md](../../AGENT.collaboration.md) and [AGENT.collaboration.publishing.md](../../AGENT.collaboration.publishing.md)). This is **not** a separate bootstrapping-only S3 path; authoritative updates still go through `mtw-wml` as for other zone operations.
 - **Decanonize** - Handler reserved; no operator or EventBridge trigger (demo reset: remove the asset).
 - **Create Snapshot** - Reserved for reactivation. See [packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md](../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (Snapshot envelope conventions).
 
@@ -163,7 +165,7 @@ Consumers must treat absent or empty `RequestIds` as "no client pending confirma
 
 **Invocation:** Trusted operator surfaces only (for example Lambda test console or WebSocket payload with `message: 'promoteToCanon'`). Additional IAM or env gating is a separate concern; this doc describes event flow only.
 
-**Mechanics:** [`lambda/wml/promoteToCanon.ts`](./promoteToCanon.ts) plans a minimal sequence (`planPromoteToCanonSteps`): if the asset is not already in **Library**, enqueue **`Move Asset`** toward **Library**, then **`Canonize Asset`** (Library → Canon inside [`dataSource/mtw-wml.ts`](./dataSource/mtw-wml.ts)). Each step is sent on the messageBus and flushed before the next; the runner **re-reads zone and player** from **`AssetWorkspace.fromUUID`** between steps so work is skipped if already done (**state-based idempotency**; no `idempotencyKey` on the message). If the asset is **already Canon**, no coordination is sent and no redundant **`Zone Changed`** is published.
+**Mechanics:** [`lambda/wml/promoteToCanon.ts`](./promoteToCanon.ts) plans a minimal sequence (`planPromoteToCanonSteps`): if the asset is not already in **Library**, run **`coordinateMoveAsset`** toward **Library**, then **`coordinateCanonizeAsset`** (Library → Canon via shared helpers in [`dataSource/mtw-wml.ts`](./dataSource/mtw-wml.ts)). Each step is awaited directly (no bus self-subscribe loop); the runner **re-reads zone and player** from **`AssetWorkspace.fromUUID`** between steps so work is skipped if already done (**state-based idempotency**; no `idempotencyKey` on the message). Boundary **`flushAndSettle()`** drains outbound subscriber work before the lambda returns. If the asset is **already Canon**, no coordination runs and no redundant **`Zone Changed`** is published.
 
 **Player (Draft/Personal `fromZone`):** Internal **`Move Asset`** payloads include **`player`** from that refetch so **[`s3Storage` `changeZone`](./s3Storage/index.ts)** can pass it into **`fetchAndDecideRepair`**. Without it, moves **from** **Draft** or **Personal** can fail (`AssetWorkspace` requires **`player`** in those zones). The direct **`moveAsset`** handler forwards **`request.player`** into **`changeZone`** the same way (`MoveAssetRequest` in [`dataSource/localApiEvents.ts`](./dataSource/localApiEvents.ts)).
 
