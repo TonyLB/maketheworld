@@ -1,19 +1,14 @@
 /**
- * Promote-to-Canon coordination: step resolution and bus runner for the `promoteToCanon` API message.
+ * Promote-to-Canon coordination: step resolution and direct domain runner for the `promoteToCanon` API message.
  */
 import type { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { v4 as uuidv4 } from 'uuid'
-import { sendCanonizeAsset, sendMoveAsset } from './dataSource/subscribedEvents'
-import type { StreamingEventMessage } from './messageBus/baseClasses'
+import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
+import type { MoveAssetRequest } from './dataSource/localApiEvents'
+import type { WmlStreamEventFn } from './dataSource/mtw-wml'
 
 export type PromoteToCanonStep =
     | { kind: 'moveAsset'; fromZone: Zone; toZone: 'Library' }
     | { kind: 'canonize' }
-
-type WmlCoordinationBus = {
-    send: (payload: StreamingEventMessage, laneId?: string) => void
-    flush: (laneId?: string) => Promise<void>
-}
 
 const MAX_PROMOTE_TO_CANON_ITERATIONS = 8
 
@@ -23,7 +18,13 @@ export type PromoteToCanonAssetContext = { zone: Zone; player?: string }
 /** Refetch authoritative context between coordination steps. */
 export type GetPromoteToCanonContext = () => Promise<PromoteToCanonAssetContext>
 
-/** Ordered coordination steps for promote-to-Canon (caller must flush between each send). */
+export type PromoteToCanonDeps = {
+    streamEvent: WmlStreamEventFn
+    coordinateMoveAsset: (assetId: AssetUUID, request: MoveAssetRequest, streamEvent: WmlStreamEventFn) => Promise<void>
+    coordinateCanonizeAsset: (assetId: AssetUUID, streamEvent: WmlStreamEventFn) => Promise<void>
+}
+
+/** Ordered coordination steps for promote-to-Canon. */
 export function planPromoteToCanonSteps(currentZone: Zone): PromoteToCanonStep[] {
     if (currentZone === 'Canon') {
         return []
@@ -38,18 +39,16 @@ export function planPromoteToCanonSteps(currentZone: Zone): PromoteToCanonStep[]
 }
 
 /**
- * Enqueue one step at a time and flush after each so mtw-wml never batches competing handlers per asset.
- * Re-reads zone after each flush so only remaining work is enqueued (state-based idempotency).
- *
- * Uses a dedicated message-bus lane so `flush(laneId)` drains only this promotion's coordination
- * (and outbounds that inherit the inbound flush lane), not unrelated default-lane traffic.
+ * Run one coordination step at a time via direct domain helpers (no bus self-subscribe loop).
+ * Re-reads zone after each step so only remaining work runs (state-based idempotency).
  */
-export async function runPromoteToCanonOnBus(
-    bus: WmlCoordinationBus,
+export async function runPromoteToCanon(
     streamKey: string,
-    getContext: GetPromoteToCanonContext
+    getContext: GetPromoteToCanonContext,
+    deps: PromoteToCanonDeps
 ): Promise<void> {
-    const laneId = `promoteToCanon:${streamKey}:${uuidv4()}`
+    const assetId = streamKey as AssetUUID
+    const { streamEvent, coordinateMoveAsset, coordinateCanonizeAsset } = deps
     for (let i = 0; i < MAX_PROMOTE_TO_CANON_ITERATIONS; i++) {
         const { zone: currentZone, player } = await getContext()
         const steps = planPromoteToCanonSteps(currentZone)
@@ -58,20 +57,21 @@ export async function runPromoteToCanonOnBus(
         }
         const step = steps[0]
         if (step.kind === 'moveAsset') {
-            sendMoveAsset(
-                bus,
-                streamKey,
+            await coordinateMoveAsset(
+                assetId,
                 {
                     fromZone: step.fromZone,
                     toZone: step.toZone,
                     player,
                 },
-                laneId
+                streamEvent
             )
         } else {
-            sendCanonizeAsset(bus, streamKey, {}, laneId)
+            await coordinateCanonizeAsset(assetId, streamEvent)
         }
-        await bus.flush(laneId)
     }
     throw new Error(`promoteToCanon exceeded ${MAX_PROMOTE_TO_CANON_ITERATIONS} coordination iterations for ${streamKey}`)
 }
+
+/** @deprecated Use runPromoteToCanon with PromoteToCanonDeps */
+export const runPromoteToCanonOnBus = runPromoteToCanon

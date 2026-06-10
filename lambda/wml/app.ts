@@ -4,7 +4,8 @@ import { S3Client } from "@aws-sdk/client-s3";
 import messageBus from "./messageBus";
 import { extractReturnValue } from "./returnValue/index";
 import { sendApplyEdit, sendMoveAsset, sendPurgeAsset } from './dataSource/subscribedEvents';
-import { runPromoteToCanonOnBus } from './promoteToCanon';
+import { runPromoteToCanon } from './promoteToCanon';
+import { coordinateCanonizeAsset, coordinateMoveAsset, wmlDataSource } from './dataSource/mtw-wml';
 import { AssetWorkspace } from './s3Storage/AssetWorkspace';
 import type { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { sendInitializeSubscription } from './dataSource/initSubscription';
@@ -26,6 +27,9 @@ const eventDeserializers = {
     // Add other data source deserializers here as needed
 }
 
+const promoteToCanonStreamEvent = (params: Parameters<typeof wmlDataSource.streamEvent>[0]) =>
+    wmlDataSource.streamEvent(params)
+
 export const handler = async (event: any, context: any) => {
 
     // Parse WebSocket API Gateway events
@@ -45,7 +49,7 @@ export const handler = async (event: any, context: any) => {
         if (event.source === 'mtw.subscriptions' && event["detail-type"] === 'Initialize Subscription - mtw.wml') {
             const streamKey = event.detail.streamKey || ''
             sendInitializeSubscription(messageBus, 'mtw.wml', streamKey, event.detail.sessionId, event.detail.requestId)
-            await messageBus.flush()
+            await messageBus.flushAndSettle()
             return
         }
 
@@ -58,7 +62,7 @@ export const handler = async (event: any, context: any) => {
             const envelope = coreFormatToStreamingEnvelope(coreFormat, () =>
                 deserializer.deserialize({ content: coreFormat.update as any, header: coreFormat.header })
             )
-            messageBus.send({
+            messageBus.publish({
                 type: 'StreamingEvent',
                 dataSourceKey: envelope.header.dataSourceKey,
                 streamKey: envelope.header.streamKey,
@@ -68,7 +72,7 @@ export const handler = async (event: any, context: any) => {
             })
         } else {
             // No deserializer available - this is an error condition
-            messageBus.send({
+            messageBus.publish({
                 type: 'Error',
                 body: {
                     error: `No deserializer available for data source: ${event.source}`
@@ -76,7 +80,7 @@ export const handler = async (event: any, context: any) => {
             })
         }
         // Flush messageBus and return after handling EventBridge events
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
         return
     }
 
@@ -118,7 +122,7 @@ export const handler = async (event: any, context: any) => {
                 zone: request.zone
             }
             sendApplyEdit(messageBus, request.AssetId, content)
-            await messageBus.flush()
+            await messageBus.flushAndSettle()
             return await extractReturnValue(messageBus)
         }
         case 'moveAsset': {
@@ -130,7 +134,7 @@ export const handler = async (event: any, context: any) => {
                 subFolder: request.subFolder
             }
             sendMoveAsset(messageBus, request.AssetId, content)
-            await messageBus.flush()
+            await messageBus.flushAndSettle()
             return await extractReturnValue(messageBus)
         }
         case 'purgeAsset': {
@@ -140,7 +144,7 @@ export const handler = async (event: any, context: any) => {
                 requireExists: request.requireExists
             }
             sendPurgeAsset(messageBus, request.AssetId, content)
-            await messageBus.flush()
+            await messageBus.flushAndSettle()
             return await extractReturnValue(messageBus)
         }
         case 'promoteToCanon': {
@@ -157,18 +161,23 @@ export const handler = async (event: any, context: any) => {
                     }),
                 }
             }
-            await runPromoteToCanonOnBus(messageBus, request.AssetId, async () => {
+            await runPromoteToCanon(request.AssetId, async () => {
                 const w = await AssetWorkspace.fromUUID(request.AssetId, { preferDynamo: false, allowS3Fallback: true })
                 if (!w) {
                     throw new Error(`Asset not found during promoteToCanon: ${request.AssetId}`)
                 }
                 return { zone: w.zone as Zone, player: w.player }
+            }, {
+                streamEvent: promoteToCanonStreamEvent,
+                coordinateMoveAsset,
+                coordinateCanonizeAsset,
             })
+            await messageBus.flushAndSettle()
             return await extractReturnValue(messageBus)
         }
     }
 
     // Flush messageBus and return after handling either WebSocket or direct Lambda calls
-    await messageBus.flush()
+    await messageBus.flushAndSettle()
     return await extractReturnValue(messageBus)
 }

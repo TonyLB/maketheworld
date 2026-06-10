@@ -1,6 +1,6 @@
 # MessageBus: `publish`/`settle` migration (planning)
 
-**Status:** In progress (P5). Q1-Q9 are locked (P0.5 complete; Q9 **`deliveryMode`**: deferred **only** character-move). **Phase P1** complete. **P2a** complete. **P2b** ephemera + assets complete (`mtw.ephemera.*` DataSources; assets: `mtw.assets`, `contentHeaders`, `library`, `players`, `characters`, `componentTopology`, `componentExamples`, `components.verticals`). **P3** complete. **P4** complete (including **P4 ephemera closeout grep** -- zero production `messageBus.send` in `lambda/ephemera/`). **P5 assets** complete (**ASSETS closeout grep** -- zero production `messageBus.send` in `lambda/assets/`). Next step: **P5 wml** (lane atomic unit; one Plan-mode run per lambda below).
+**Status:** In progress (P5). Q1-Q9 are locked (P0.5 complete; Q9 **`deliveryMode`**: deferred **only** character-move). **Phase P1** complete. **P2a** complete. **P2b** ephemera + assets + **wml** complete (`mtw.wml` with direct `promoteToCanon` orchestration). **P3** complete. **P4** complete (including **P4 ephemera closeout grep** -- zero production `messageBus.send` in `lambda/ephemera/`). **P5 assets** complete (**ASSETS closeout grep**). **P5 wml** complete (**WML closeout grep**). Next step: **P5 diagnostics** (see Recommended order).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -870,7 +870,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 - [ ] Phase P2 - `DataSource` port and outbound path (piecewise per Q7; closeout per Q2)
   - [X] P2a -- infrastructure: `DataSourceMessageBusPort` adds `publish` (keep `send` during migration); constructor `outboundBusDelivery?: 'send' | 'publish'` (default `'send'`); branch in `sendStreamingEventOnBus`.
   - [X] P2a -- extend package mocks with `publish: jest.fn()`; add tests for `'publish'` outbound path (Q7).
-  - [X] P2b -- per DataSource: set `outboundBusDelivery: 'publish'` with that directory's lane/send atomic migration (coordinate with P3/P4/P5); update that DS's package/lambda tests to assert `publish`. **Done (ephemera):** `mtw.ephemera.coyoteGame` (Coyote hypothesis P3 slice), `mtw.ephemera.renderOrchestration` (render orchestration P3 slice), `mtw.ephemera.affordanceOrchestration` (affordance orchestration P3 slice), `mtw.ephemera.actions` (ACTIONS-PARSE P4 slice), `mtw.ephemera.perception` (**COMP-KICK + PERCEPTION** P4 slice), `mtw.ephemera.renderCache` (**RENDER-CACHE** P4 slice), `mtw.ephemera.affordanceCache` (**AFFORDANCE-CACHE** P4 slice), `mtw.ephemera.state` (**Easy / Low rows** P4 slice), `mtw.ephemera.objects` + `mtw.ephemera.thinking.scheduling` (**P4 ephemera closeout grep**). **Done (assets P5):** `mtw.assets`, `mtw.assets.contentHeaders`, `mtw.assets.library`, `mtw.assets.players`, `mtw.assets.characters`, `mtw.assets.componentTopology`, `mtw.assets.componentExamples`, `mtw.assets.components.verticals`. **Pending:** wml, diagnostics, connections, cognitoEvent (P5) per slice.
+  - [X] P2b -- per DataSource: set `outboundBusDelivery: 'publish'` with that directory's lane/send atomic migration (coordinate with P3/P4/P5); update that DS's package/lambda tests to assert `publish`. **Done (ephemera):** `mtw.ephemera.coyoteGame` (Coyote hypothesis P3 slice), `mtw.ephemera.renderOrchestration` (render orchestration P3 slice), `mtw.ephemera.affordanceOrchestration` (affordance orchestration P3 slice), `mtw.ephemera.actions` (ACTIONS-PARSE P4 slice), `mtw.ephemera.perception` (**COMP-KICK + PERCEPTION** P4 slice), `mtw.ephemera.renderCache` (**RENDER-CACHE** P4 slice), `mtw.ephemera.affordanceCache` (**AFFORDANCE-CACHE** P4 slice), `mtw.ephemera.state` (**Easy / Low rows** P4 slice), `mtw.ephemera.objects` + `mtw.ephemera.thinking.scheduling` (**P4 ephemera closeout grep**). **Done (assets P5):** `mtw.assets`, `mtw.assets.contentHeaders`, `mtw.assets.library`, `mtw.assets.players`, `mtw.assets.characters`, `mtw.assets.componentTopology`, `mtw.assets.componentExamples`, `mtw.assets.components.verticals`. **Done (wml P5):** `mtw.wml`. **Pending:** diagnostics, connections, cognitoEvent (P5) per slice.
   - [ ] P2c -- closeout when no production DataSource uses `'send'` outbound: remove `outboundBusDelivery`, port `send`, `_inboundFlushLaneStack`, `StreamEventParams.laneId`, and `send` branch in `sendStreamingEventOnBus`.
   - [ ] Run: `npm test -- ts/dataSource/index.test.ts` from `packages/mtw-lambda-patterns/` after each P2 slice.
 
@@ -915,13 +915,15 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
     - [X] **ASSETS closeout grep:** `rg 'messageBus\.send\(' lambda/assets/ --glob '*.ts' | rg -v '\.test\.ts'` zero production hits.
     - [X] **Tests:** assets unit tests for touched paths (187 tests); package `ts/dataSource/index.test.ts` + `ts/messageBus/index.test.ts` baseline.
 
-  - [ ] **WML** (separate slice; lane atomic unit -- do not batch with assets): [`lambda/wml/`](../../../../../lambda/wml/)
-    - [ ] **WML-DUP-SUB:** remove duplicate `.subscribe()` in [`mtw-wml.ts`](../../../../../lambda/wml/dataSource/mtw-wml.ts) vs [`index.ts`](../../../../../lambda/wml/dataSource/index.ts) (Tier 1A defect).
-    - [ ] [`app.ts`](../../../../../lambda/wml/app.ts): ingress `send` -> `publish`; boundary `flush()` -> `flushAndSettle()` (6 sites).
-    - [ ] [`dataSource/subscribedEvents.ts`](../../../../../lambda/wml/dataSource/subscribedEvents.ts), [`initSubscription.ts`](../../../../../lambda/wml/dataSource/initSubscription.ts): coordination helpers `send` -> `publish` (dual-path or full publish per call site).
-    - [ ] **promoteToCanon** (Q2 atomic unit): [`promoteToCanon.ts`](../../../../../lambda/wml/promoteToCanon.ts) + [`subscribedEvents.ts`](../../../../../lambda/wml/dataSource/subscribedEvents.ts) lane `send` + scoped `flush(laneId)` -> `publish` together; drop named lane / mid-invocation scoped flush; boundary drain only (same recipe as Coyote P3).
-    - [ ] **P2b** `outboundBusDelivery: 'publish'` on `mtw.wml` DataSource.
-    - [ ] **WML closeout grep:** `rg 'messageBus\.send\(' lambda/wml/ --glob '*.ts' | rg -v '\.test\.ts'` zero production hits.
+  - [X] **WML** (separate slice; lane atomic unit -- do not batch with assets): [`lambda/wml/`](../../../../../lambda/wml/)
+    - [X] **WML-DUP-SUB:** remove duplicate `.subscribe()` in [`mtw-wml.ts`](../../../../../lambda/wml/dataSource/mtw-wml.ts) vs [`index.ts`](../../../../../lambda/wml/dataSource/index.ts) (Tier 1A defect).
+    - [X] [`app.ts`](../../../../../lambda/wml/app.ts): ingress `send` -> `publish`; boundary `flush()` -> `flushAndSettle()` (7 sites incl. `promoteToCanon`).
+    - [X] [`dataSource/subscribedEvents.ts`](../../../../../lambda/wml/dataSource/subscribedEvents.ts), [`initSubscription.ts`](../../../../../lambda/wml/dataSource/initSubscription.ts): coordination helpers `send` -> `publish` (full publish).
+    - [X] **promoteToCanon** (Q2 atomic unit): Q9 restructure -- [`promoteToCanon.ts`](../../../../../lambda/wml/promoteToCanon.ts) direct `coordinateMoveAsset` / `coordinateCanonizeAsset` (extracted from [`mtw-wml.ts`](../../../../../lambda/wml/dataSource/mtw-wml.ts)); drop bus self-subscribe loop, named lanes, and producer-side drain; boundary `flushAndSettle` only.
+    - [X] **P2b** `outboundBusDelivery: 'publish'` on `mtw.wml` DataSource.
+    - [X] **Boundary assembly:** [`returnValue/collector.ts`](../../../../../lambda/wml/returnValue/collector.ts) + `extractReturnValue` reads collectors only.
+    - [X] **WML closeout grep:** `rg 'messageBus\.send\(' lambda/wml/ --glob '*.ts' | rg -v '\.test\.ts'` zero production hits.
+    - [X] **Tests:** `promoteToCanon.test.ts`, `returnValue/collector.test.ts`, `dataSource/mtw-wml.test.ts`; package `ts/dataSource/index.test.ts` + `ts/messageBus/index.test.ts` baseline.
 
   - [ ] **DIAGNOSTICS** (separate slice; **DIAG-DEDUP** design): [`lambda/diagnostics/`](../../../../../lambda/diagnostics/)
     - [ ] [`dataSource/index.ts`](../../../../../lambda/diagnostics/dataSource/index.ts): **producer** dedup by `dedupeKey` across all events in one invocation (not only within one `receiveEvents` batch); then `send` -> `publish` for sweep / EventBridge side effects.
@@ -1038,10 +1040,10 @@ Run lambda-local tests from each `lambda/<name>/` package for touched paths (no 
 | Open questions Q4-Q5 resolved (P0.5) | Done |
 | Open question Q9 (`registerDeferral` + phased scope) | Done |
 | Engine `publish`/`settle` + tests (P1) | Done |
-| DataSource port migration (P2) | P2a done; P2b ephemera + assets complete; wml/diagnostics/connections/cognitoEvent pending (P5) |
+| DataSource port migration (P2) | P2a done; P2b ephemera + assets + wml complete; diagnostics/connections/cognitoEvent pending (P5) |
 | Ephemera lane hotspots (P3) | Done (Coyote hypothesis, Acme order, render/affordance orchestration, Coyote harness) |
 | Remaining ephemera migration (P4) | Done (**P4 ephemera closeout grep**: zero production `messageBus.send` in `lambda/ephemera/`) |
-| Other lambdas (P5) | Assets done (**ASSETS closeout grep**); next: **wml** -> **diagnostics** -> **connections** + **cognitoEvent** (see Recommended order) |
+| Other lambdas (P5) | Assets + **wml** done (**WML closeout grep**); next: **diagnostics** -> **connections** + **cognitoEvent** (see Recommended order) |
 | Legacy removal + durable docs (P6) | Not started |
 
 ## Behavioral reference (handoff summary)

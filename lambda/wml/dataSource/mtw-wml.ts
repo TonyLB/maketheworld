@@ -27,7 +27,11 @@ import {
     isDiagnosticsEnvelope,
 } from './subscribedEvents'
 
-type StreamEventFn = (params: { update: WMLEventUpdate; streamKey: string; header: { type: string; RequestIds?: string[] } }) => Promise<void>
+export type WmlStreamEventFn = (params: {
+    update: WMLEventUpdate
+    streamKey: string
+    header: { type: string; RequestIds?: string[] }
+}) => Promise<void>
 
 // Single-flight factory for WML edits - ensures sequential processing per asset
 const wmlEditSingleFlight = singleFlightFactory({
@@ -39,9 +43,80 @@ const wmlEditSingleFlight = singleFlightFactory({
     timeoutMs: 10000 // 10 second timeout for WML edits
 })
 
+export const coordinateMoveAsset = async (
+    AssetId: AssetUUID,
+    payload: MoveAssetRequest,
+    streamEvent: WmlStreamEventFn
+): Promise<void> => {
+    if (!isSchemaAssetUUID(AssetId)) {
+        console.error(`Invalid AssetId format: ${AssetId}`)
+        return
+    }
+    try {
+        const result = await wmlEditSingleFlight({
+            category: 'wml-edit',
+            argumentHash: AssetId,
+            computation: async () => {
+                return await moveAsset(AssetId, payload)
+            }
+        }) as { success: boolean }
+        if (result.success) {
+            try {
+                await streamEvent({
+                    update: {
+                        fromZone: payload.fromZone,
+                        toZone: payload.toZone,
+                        ...(payload.player ? { player: payload.player } : {}),
+                        ...(payload.subFolder ? { subFolder: payload.subFolder } : {})
+                    },
+                    streamKey: AssetId,
+                    header: { type: 'Zone Changed' }
+                })
+            } catch (streamError) {
+                console.error(`Error streaming zone changed event for ${AssetId}:`, streamError)
+            }
+        }
+    } catch (error) {
+        console.error(`Error processing moveAsset for ${AssetId}:`, error)
+    }
+}
+
+export const coordinateCanonizeAsset = async (
+    AssetId: AssetUUID,
+    streamEvent: WmlStreamEventFn
+): Promise<void> => {
+    if (!isSchemaAssetUUID(AssetId)) {
+        console.error(`Invalid AssetId format: ${AssetId}`)
+        return
+    }
+    const moveRequest: MoveAssetRequest = { fromZone: 'Library', toZone: 'Canon' }
+    try {
+        const result = await wmlEditSingleFlight({
+            category: 'wml-edit',
+            argumentHash: AssetId,
+            computation: async () => {
+                return await moveAsset(AssetId, moveRequest)
+            }
+        }) as { success: boolean }
+        if (result.success) {
+            try {
+                await streamEvent({
+                    update: { fromZone: moveRequest.fromZone, toZone: moveRequest.toZone },
+                    streamKey: AssetId,
+                    header: { type: 'Zone Changed' }
+                })
+            } catch (streamError) {
+                console.error(`Error streaming zone changed event for ${AssetId}:`, streamError)
+            }
+        }
+    } catch (error) {
+        console.error(`Error processing canonize for ${AssetId}:`, error)
+    }
+}
+
 const processApplyEdit = async (
     event: StreamingEventEnvelope<ApplyEditRequest> & { header: StreamingEventHeader & { streamKey: string } },
-    streamEvent: StreamEventFn
+    streamEvent: WmlStreamEventFn
 ): Promise<void> => {
     const payload = await event.getContent()
     if (!payload) return
@@ -101,47 +176,16 @@ const processApplyEdit = async (
 
 const processMoveAsset = async (
     event: StreamingEventEnvelope<MoveAssetRequest> & { header: StreamingEventHeader & { streamKey: string } },
-    streamEvent: StreamEventFn
+    streamEvent: WmlStreamEventFn
 ): Promise<void> => {
     const payload = await event.getContent()
     if (!payload) return
-    const AssetId = event.header.streamKey
-    if (!isSchemaAssetUUID(AssetId)) {
-        console.error(`Invalid AssetId format: ${AssetId}`)
-        return
-    }
-    try {
-        const result = await wmlEditSingleFlight({
-            category: 'wml-edit',
-            argumentHash: AssetId,
-            computation: async () => {
-                return await moveAsset(AssetId, payload)
-            }
-        }) as any
-        if (result.success) {
-            try {
-                await streamEvent({
-                    update: {
-                        fromZone: payload.fromZone,
-                        toZone: payload.toZone,
-                        ...(payload.player ? { player: payload.player } : {}),
-                        ...(payload.subFolder ? { subFolder: payload.subFolder } : {})
-                    },
-                    streamKey: AssetId,
-                    header: { type: 'Zone Changed' }
-                })
-            } catch (streamError) {
-                console.error(`Error streaming zone changed event for ${AssetId}:`, streamError)
-            }
-        }
-    } catch (error) {
-        console.error(`Error processing moveAsset for ${AssetId}:`, error)
-    }
+    await coordinateMoveAsset(event.header.streamKey as AssetUUID, payload, streamEvent)
 }
 
 const processCanonizeDecanonize = async (
     event: StreamingEventEnvelope<CoordinationEventUpdate> & { header: StreamingEventHeader & { streamKey: string } },
-    streamEvent: StreamEventFn
+    streamEvent: WmlStreamEventFn
 ): Promise<void> => {
     const payload = await event.getContent()
     if (!payload) return
@@ -153,14 +197,21 @@ const processCanonizeDecanonize = async (
     try {
         let moveRequest: MoveAssetRequest
         if (isCoordinationCanonizeEvent(payload)) {
-            moveRequest = { fromZone: 'Library', toZone: 'Canon' }
+            await coordinateCanonizeAsset(AssetId, streamEvent)
+            return
         } else if (isCoordinationDecanonizeEvent(payload)) {
             moveRequest = { fromZone: 'Canon', toZone: 'Library' }
         } else {
             console.error(`Unknown coordination event type: ${JSON.stringify(payload)}`)
             return
         }
-        const result = await moveAsset(AssetId, moveRequest)
+        const result = await wmlEditSingleFlight({
+            category: 'wml-edit',
+            argumentHash: AssetId,
+            computation: async () => {
+                return await moveAsset(AssetId, moveRequest)
+            }
+        }) as { success: boolean }
         if (result.success) {
             try {
                 await streamEvent({
@@ -179,7 +230,7 @@ const processCanonizeDecanonize = async (
 
 const processCreateSnapshot = async (
     event: StreamingEventEnvelope<CreateSnapshotRequest> & { header: StreamingEventHeader & { streamKey: string } },
-    streamEvent: StreamEventFn
+    streamEvent: WmlStreamEventFn
 ): Promise<void> => {
     const AssetId = event.header.streamKey
     if (!isSchemaAssetUUID(AssetId)) {
@@ -220,7 +271,7 @@ const processCreateSnapshot = async (
 
 const processPurgeAsset = async (
     event: StreamingEventEnvelope<PurgeAssetRequest> & { header: StreamingEventHeader & { streamKey: string } },
-    streamEvent: StreamEventFn
+    streamEvent: WmlStreamEventFn
 ): Promise<void> => {
     const payload = await event.getContent()
     if (!payload) return
@@ -265,7 +316,7 @@ const PRIMITIVES_ASSET_ID = 'ASSET#primitives'
 
 const processS3StructureFinding = async (
     event: StreamingEventEnvelope<DiagnosticsEventUpdate>,
-    streamEvent: StreamEventFn
+    streamEvent: WmlStreamEventFn
 ): Promise<void> => {
     const payload = await event.getContent()
     if (!payload || !isS3StructureFindingEvent(payload)) return
@@ -301,6 +352,7 @@ const processS3StructureFinding = async (
 export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, CoordinationEventUpdate | DiagnosticsEventUpdate, WMLEventExternal>({
     dataSourceKey: 'mtw.wml',
     replayable: true, // Required for initializeSubscription (sidecar snapshot on subscribe)
+    outboundBusDelivery: 'publish',
     snapshotContentGenerator: async (streamKey: string) => generateWmlSnapshotContent(streamKey as AssetUUID),
     subscribedEventTypeGuard: isWMLSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent, streamEnvelope }) => {
@@ -332,8 +384,5 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, CoordinationE
     },
     eventSerializer: new WMLEventSerializer(createNodeDataSourceEnvironment())
 })
-
-// Subscribe the DataSource to the messageBus for event processing
-wmlDataSource.subscribe()
 
 export default wmlDataSource
