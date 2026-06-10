@@ -25,9 +25,11 @@ jest.mock('../clients', () => ({
 jest.mock('../messageBus', () => ({
     default: {
         send: jest.fn(),
+        publish: jest.fn(),
         subscribe: jest.fn()
     },
     send: jest.fn(),
+    publish: jest.fn(),
     subscribe: jest.fn()
 }))
 
@@ -49,6 +51,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
     describe('Constructor', () => {
         it('should create instance with correct configuration', () => {
             expect(libraryDataSource.dataSourceKey).toBe('mtw.assets.library')
+            expect(libraryDataSource.outboundBusDelivery).toBe('publish')
             expect(libraryDataSource.replayable).toBe(true)
             expect(libraryDataSource.primaryKeyName).toBe('AssetId')
         })

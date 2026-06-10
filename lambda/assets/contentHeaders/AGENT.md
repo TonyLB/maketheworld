@@ -33,6 +33,7 @@ The Content Headers data source serves as a specialized view of the assets syste
 - **Type**: Replayable DataSource with single `global` stream
 - **Event Subscription**: Subscribes to `mtw.assets` `Component Updated` events
 - **Event Publishing**: Publishes filtered metadata events for Import Navigator consumption
+- **Message bus (P5):** `streamEvent` outbounds use **`publish`** via `outboundBusDelivery: 'publish'`; ingress `Error` uses **`publish`**; boundary **`flushAndSettle`** in [`../app.ts`](../app.ts). See [`../messageBus/AGENT.md`](../messageBus/AGENT.md).
 
 ### Event Types
 

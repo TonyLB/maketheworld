@@ -33,7 +33,7 @@ const handleContentUpdate = async (
 ): Promise<void> => {
     const assetId = event.header.streamKey as AssetUUID
     if (!assetId) {
-        messageBus.send({ type: 'Error', body: { error: 'Invalid AssetId in Content Update event', statusCode: 400 } })
+        messageBus.publish({ type: 'Error', body: { error: 'Invalid AssetId in Content Update event', statusCode: 400 } })
         return
     }
     try {
@@ -52,7 +52,7 @@ const handleContentUpdate = async (
         })
     } catch (error) {
         console.error(`Error caching asset ${assetId}:`, error)
-        messageBus.send({
+        messageBus.publish({
             type: 'Error',
             body: { error: `Failed to cache asset ${assetId}: ${error instanceof Error ? error.message : String(error)}`, statusCode: 500 }
         })
@@ -103,7 +103,7 @@ const handleAssetPurged = async (
     if (!content) return
     const assetId = event.header.streamKey as AssetUUID
     if (!assetId) {
-        messageBus.send({ type: 'Error', body: { error: 'Invalid AssetId in Asset Purged event', statusCode: 400 } })
+        messageBus.publish({ type: 'Error', body: { error: 'Invalid AssetId in Asset Purged event', statusCode: 400 } })
         return
     }
     try {
@@ -145,7 +145,7 @@ const handleCacheConsistencyFinding = async (
         await cacheAsset({ assetId, streamEvent })
     } catch (error) {
         console.error(`Error caching asset ${assetId} from Cache Consistency Finding:`, error)
-        messageBus.send({
+        messageBus.publish({
             type: 'Error',
             body: { error: `Failed to cache asset ${assetId}: ${error instanceof Error ? error.message : String(error)}`, statusCode: 500 }
         })
@@ -180,7 +180,7 @@ const handleApiHealPlayer = async (
         return
     }
     const result = await healPlayer(content.player)
-    messageBus.send({
+    messageBus.publish({
         type: 'ReturnValue',
         body: result as Record<string, any>
     })
@@ -200,7 +200,7 @@ const handleApiHealComponentVertical = async (
         assetId: content.assetId,
         componentUniversalKeys: content.componentUniversalKeys as EphemeraId[] | undefined,
     })
-    messageBus.send({
+    messageBus.publish({
         type: 'ReturnValue',
         body: result as Record<string, any>,
     })
@@ -222,6 +222,7 @@ const handleApiHealComponentVertical = async (
 //
 export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, AssetsSubscribedContent>({
     dataSourceKey: 'mtw.assets',
+    outboundBusDelivery: 'publish',
     replayable: false, // Non-replayable - focuses on event streaming and processing
     eventSerializer: new AssetsEventSerializer(), // Handle all asset event serialization (component and asset-level)
     // No snapshotContentGenerator needed for non-replayable data sources

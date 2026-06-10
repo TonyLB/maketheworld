@@ -26,7 +26,7 @@ export const fetchAssetMessage = async ({ payloads, messageBus }: { payloads: Fe
                     AssetId: (typeof payload.AssetId === 'string' && isSchemaAssetUUID(payload.AssetId)) ? payload.AssetId : undefined
                 })
             ])
-            messageBus.send({
+            messageBus.publish({
                 type: 'ReturnValue',
                 body: { messageType: "FetchURL", url: presignedURL }
             })    

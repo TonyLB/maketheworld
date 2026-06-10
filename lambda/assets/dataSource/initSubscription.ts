@@ -6,7 +6,7 @@ import type { StreamingEventMessage } from '../messageBus/baseClasses'
 import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 
-type Bus = { send: (payload: StreamingEventMessage) => void }
+type Bus = { publish: (payload: StreamingEventMessage) => void }
 
 const initSubscriptionSerializer = { serialize: ({ content, header }: { content: { sessionId: string; requestId: string }; header: StreamingEventHeader }) => ({ type: header.type, ...content }) }
 
@@ -26,7 +26,7 @@ export function sendInitializeSubscription(
     }
     const payload = { sessionId, requestId }
     const envelope = createInternalOriginEnvelope(header, payload, initSubscriptionSerializer)
-    bus.send({
+    bus.publish({
         type: 'StreamingEvent',
         dataSourceKey: 'mtw.subscriptions',
         streamKey,

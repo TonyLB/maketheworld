@@ -31,9 +31,11 @@ jest.mock('../clients', () => ({
 jest.mock('../messageBus', () => ({
     default: {
         send: jest.fn(),
+        publish: jest.fn(),
         subscribe: jest.fn()
     },
     send: jest.fn(),
+    publish: jest.fn(),
     subscribe: jest.fn()
 }))
 jest.mock('../internalCache', () => ({
@@ -67,6 +69,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
     describe('Constructor', () => {
         it('should create instance with correct configuration', () => {
             expect(contentHeadersDataSource.dataSourceKey).toBe('mtw.assets.contentHeaders')
+            expect(contentHeadersDataSource.outboundBusDelivery).toBe('publish')
             expect(contentHeadersDataSource.replayable).toBe(true)
             expect(contentHeadersDataSource.primaryKeyName).toBe('AssetId')
         })
@@ -350,7 +353,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     streamEvent: mockStreamEvent
                 })
 
-                expect(messageBus.send).toHaveBeenCalledWith({
+                expect(messageBus.publish).toHaveBeenCalledWith({
                     type: 'Error',
                     body: {
                         error: 'Could not determine zone for asset ASSET#asset123',

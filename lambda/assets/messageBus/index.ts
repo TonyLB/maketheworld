@@ -12,9 +12,11 @@ import { uploadURLMessage } from "../upload"
 import { fetchImportsMessage } from "../fetchImportDefaults"
 import playerSettingMessage from "../player/update"
 import returnValueMessage from "../returnValue"
+import { registerReturnValueCollector } from "../returnValue/collector"
 import collaborationStatusMessage from "../collaborationStatus"
 
 export const messageBus = new MessageBus()
+registerReturnValueCollector(messageBus)
 
 messageBus.subscribe({
     tag: 'FetchImports',

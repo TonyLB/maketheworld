@@ -138,6 +138,7 @@ export const contentHeadersDataSource = new AssetsDataSource<
     ContentHeadersSnapshotExternal
 >({
     dataSourceKey: 'mtw.assets.contentHeaders',
+    outboundBusDelivery: 'publish',
     replayable: true, // Support client subscriptions with historical data
     eventSerializer: new ContentHeadersEventSerializer(),
     snapshotContentGenerator: generateContentHeadersSnapshot,
@@ -191,7 +192,7 @@ export const contentHeadersDataSource = new AssetsDataSource<
                 const zone = await getAssetZone(assetId as AssetUUID)
                 if (!zone) {
                     console.warn(`Could not determine zone for asset ${assetId}, skipping content header update`)
-                    messageBus.send({
+                    messageBus.publish({
                         type: 'Error',
                         body: {
                             error: `Could not determine zone for asset ${assetId}`,
@@ -214,7 +215,7 @@ export const contentHeadersDataSource = new AssetsDataSource<
                 }
             } catch (error) {
                 console.error(`Error processing events for asset ${assetId}:`, error)
-                messageBus.send({
+                messageBus.publish({
                     type: 'Error',
                     body: {
                         error: `Failed to process events for asset ${assetId}: ${error instanceof Error ? error.message : String(error)}`,

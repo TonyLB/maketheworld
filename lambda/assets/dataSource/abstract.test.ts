@@ -31,9 +31,11 @@ jest.mock('../clients', () => ({
 jest.mock('../messageBus', () => ({
     default: {
         send: jest.fn(),
+        publish: jest.fn(),
         subscribe: jest.fn()
     },
     send: jest.fn(),
+    publish: jest.fn(),
     subscribe: jest.fn()
 }))
 
@@ -129,6 +131,27 @@ describe('AssetsDataSource', () => {
             })
             expect(sendCall.getContent).toBeDefined()
             expect(await sendCall.getContent()).toEqual(expect.objectContaining(update))
+        })
+
+        it('should publish events to messageBus when outboundBusDelivery is publish', async () => {
+            const publishDataSource = new AssetsDataSource({
+                dataSourceKey: 'mtw.assets.test.publish',
+                outboundBusDelivery: 'publish',
+            })
+            const update: TestUpdatePayload = {
+                type: 'TestUpdate',
+                action: 'created',
+                data: 'test data',
+            }
+
+            await publishDataSource.streamEvent({
+                update,
+                streamKey: 'test-stream',
+                header: { type: 'TestUpdate' },
+            })
+
+            expect(messageBus.publish).toHaveBeenCalled()
+            expect(messageBus.send).not.toHaveBeenCalled()
         })
     })
 

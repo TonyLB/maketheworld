@@ -29,6 +29,7 @@ export const componentVerticalsDataSource = new AssetsDataSource<
     ComponentVerticalsSubscribedContent
 >({
     dataSourceKey: 'mtw.assets.components.verticals',
+    outboundBusDelivery: 'publish',
     replayable: false,
     subscribedEventTypeGuard: isComponentVerticalsSubscribedEnvelope,
     receiveEvents: async ({ events }) => {
