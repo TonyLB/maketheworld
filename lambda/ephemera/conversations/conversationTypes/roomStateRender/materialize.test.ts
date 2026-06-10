@@ -36,9 +36,9 @@ describe('materializeRoomStateRender', () => {
             perspectiveMatcher: { requiredAssetIds: ['ASSET#base'], forbiddenAssetIds: [] },
         }
 
-        const makeBus = (): MessageBus => ({ send: jest.fn() } as unknown as MessageBus)
+        const makeBus = (): MessageBus => ({ publish: jest.fn() } as unknown as MessageBus)
 
-        it('sends RenderReady when resolved with cacheId and cacheRecord', async () => {
+        it('publishes RenderReady when resolved with cacheId and cacheRecord', async () => {
             const messageBus = makeBus()
             const handle = materializeRoomStateRender(baseRecord, { messageBus })
             await handle.sendMessage({
@@ -47,7 +47,7 @@ describe('materializeRoomStateRender', () => {
                 cacheId: 'CACHE#valid',
                 cacheRecord: baseCacheRecord,
             })
-            expect(messageBus.send).toHaveBeenCalledWith(
+            expect(messageBus.publish).toHaveBeenCalledWith(
                 expect.objectContaining({
                     type: 'RenderReady',
                     cacheId: 'CACHE#valid',
@@ -55,14 +55,14 @@ describe('materializeRoomStateRender', () => {
             )
         })
 
-        it('sends RenderInvalidate on invalidate', async () => {
+        it('publishes RenderInvalidate on invalidate', async () => {
             const messageBus = makeBus()
             const handle = materializeRoomStateRender(baseRecord, { messageBus })
             await handle.sendMessage({
                 type: 'invalidate',
                 reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
             })
-            expect(messageBus.send).toHaveBeenCalledWith(
+            expect(messageBus.publish).toHaveBeenCalledWith(
                 expect.objectContaining({
                     type: 'RenderInvalidate',
                     reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
@@ -70,7 +70,7 @@ describe('materializeRoomStateRender', () => {
             )
         })
 
-        it('sends RenderError for META_ROOM_MARKS_MISSING', async () => {
+        it('publishes RenderError for META_ROOM_MARKS_MISSING', async () => {
             const messageBus = makeBus()
             const handle = materializeRoomStateRender(baseRecord, { messageBus })
             await handle.sendMessage({
@@ -78,7 +78,7 @@ describe('materializeRoomStateRender', () => {
                 errorCode: 'META_ROOM_MARKS_MISSING',
                 errorMessage: 'RenderRequested requires Meta::Room.state.marks for ROOM#one',
             })
-            expect(messageBus.send).toHaveBeenCalledWith(
+            expect(messageBus.publish).toHaveBeenCalledWith(
                 expect.objectContaining({
                     type: 'RenderError',
                     errorCode: 'META_ROOM_MARKS_MISSING',
@@ -88,7 +88,7 @@ describe('materializeRoomStateRender', () => {
             )
         })
 
-        it('sends RenderError for other failures', async () => {
+        it('publishes RenderError for other failures', async () => {
             const messageBus = makeBus()
             const handle = materializeRoomStateRender(baseRecord, { messageBus })
             await handle.sendMessage({
@@ -96,7 +96,7 @@ describe('materializeRoomStateRender', () => {
                 errorCode: 'CONTEXT_REQUIRED',
                 errorMessage: 'Generation context required',
             })
-            expect(messageBus.send).toHaveBeenCalledWith(
+            expect(messageBus.publish).toHaveBeenCalledWith(
                 expect.objectContaining({
                     type: 'RenderError',
                     errorCode: 'CONTEXT_REQUIRED',
@@ -106,7 +106,7 @@ describe('materializeRoomStateRender', () => {
             )
         })
 
-        it('does not send when resolved is missing cacheId and logs', async () => {
+        it('does not publish when resolved is missing cacheId and logs', async () => {
             const messageBus = makeBus()
             const err = jest.spyOn(console, 'error').mockImplementation(() => {})
             const handle = materializeRoomStateRender(baseRecord, { messageBus })
@@ -114,7 +114,7 @@ describe('materializeRoomStateRender', () => {
                 type: 'resolved',
                 renderedContent: baseCacheRecord.renderedContent,
             })
-            expect(messageBus.send).not.toHaveBeenCalled()
+            expect(messageBus.publish).not.toHaveBeenCalled()
             expect(err).toHaveBeenCalled()
             err.mockRestore()
         })

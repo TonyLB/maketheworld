@@ -14,7 +14,7 @@ On Ephemera, the **`generateRoomPreview`** **conversation** module and **`Conver
 
 **`internalCache.Conversations.get`** is a **runtime composite read**: `{ record, handle } | undefined`. **`record`** is that storable row. **`handle`** is a discriminated union on **`kind`** (see [`conversationTypes/compositeRead.ts`](conversationTypes/compositeRead.ts)):
 
-- **`roomStateRender`** rows: **`kind: 'conversationCompositeReadRoomStateRender'`** with **`sendMessage`** --- built by **`materializeRoomStateRender`** ([`conversationTypes/roomStateRender/materialize.ts`](conversationTypes/roomStateRender/materialize.ts)). Terminals map to **`RenderReady`** / related message-bus shapes when **`routing.passiveBusDelivery`** is set.
+- **`roomStateRender`** rows: **`kind: 'conversationCompositeReadRoomStateRender'`** with **`sendMessage`** --- built by **`materializeRoomStateRender`** ([`conversationTypes/roomStateRender/materialize.ts`](conversationTypes/roomStateRender/materialize.ts)). Terminals **`publish`** **`RenderReady`** / related message-bus shapes when **`routing.passiveBusDelivery`** is set.
 - **Unknown `type` values** (until enriched): **`kind: 'conversationCompositeReadStub'`** --- no `sendMessage`.
 
 Use **`isConversationCompositeReadHandleRoomStateRender`** / **`isConversationCompositeReadHandleStub`** before relying on **`sendMessage`**.

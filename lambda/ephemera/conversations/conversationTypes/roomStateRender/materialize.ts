@@ -15,7 +15,7 @@ export type MaterializeRoomStateRenderDeps = {
 
 /**
  * Live handle: progress steps are reserved for future streaming; terminal {@link RenderResolveOutput}
- * is mapped in {@link enrichRenderResolveForPassive} and sent on `messageBus` when
+ * is mapped in {@link enrichRenderResolveForPassive} and published on `messageBus` when
  * `record.routing.passiveBusDelivery` is set.
  */
 export function materializeRoomStateRender(
@@ -38,7 +38,7 @@ export function materializeRoomStateRender(
         }
         const message = enrichRenderResolveForPassive(payload, arg)
         if (message !== undefined) {
-            deps.messageBus.send(message)
+            deps.messageBus.publish(message)
         }
     }
 

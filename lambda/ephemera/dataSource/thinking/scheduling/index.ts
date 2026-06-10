@@ -26,6 +26,7 @@ export const ephemeraThinkingSchedulingDataSource = new EphemeraDataSource<
 >({
     dataSourceKey: 'mtw.ephemera.thinking.scheduling',
     replayable: true,
+    outboundBusDelivery: 'publish',
     snapshotContentGenerator: generateThinkingCompletedJobsSnapshot,
     eventSerializer: new ThinkingEventSerializer(),
     subscribedEventTypeGuard: isThinkingSchedulingSubscribedEnvelope,

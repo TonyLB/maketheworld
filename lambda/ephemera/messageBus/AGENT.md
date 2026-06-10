@@ -10,9 +10,9 @@ Partitioned drains (`flush()`, `flush(laneId)`), optional `send(payload, laneId)
 - [`ts/messageBus/index.ts`](../../../packages/mtw-lambda-patterns/ts/messageBus/index.ts) --- implementation
 - [**Message bus lanes** (DataSource `streamEvent`)](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) --- inbound lane inheritance for streaming outbounds
 
-Ephemera-specific lane usage for unmigrated DataSources lives next to those packages. **`renderOrchestration`**, **`affordanceOrchestration`**, **`renderCache`**, **`affordanceCache`**, **`actions`**, and **`perception`** migrated to **`publish`** + boundary drain (P3/P4); see [`../dataSource/renderOrchestration/AGENT.md`](../dataSource/renderOrchestration/AGENT.md), [`../dataSource/affordanceOrchestration/AGENT.md`](../dataSource/affordanceOrchestration/AGENT.md), [`../dataSource/renderCache/AGENT.md`](../dataSource/renderCache/AGENT.md), [`../dataSource/affordanceCache/AGENT.md`](../dataSource/affordanceCache/AGENT.md), [`../dataSource/actions/AGENT.md`](../dataSource/actions/AGENT.md), and [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md).
+Ephemera production **`messageBus.send`** call sites are **zero** (P4 closeout). All DataSources with **`streamEvent`** outbounds use **`outboundBusDelivery: 'publish'`**; boundary drain is **`flushAndSettle`** in [`../app.ts`](../app.ts). Legacy **`send`/`flush`** machinery remains in the package until P6.
 
-Lambda exit drains via **`flushAndSettle`** in [`../app.ts`](../app.ts). **EventBridge ingress** (deserialized `StreamingEvent`, Initialize Subscription, legacy `DisconnectCharacter`) and **WebSocket API ingress** (imperative handler triggers, `api.ephemera` synthetic events, ingress `ReturnValue`) use **`publish`** (P4). Named-lane work remains only on unmigrated paths until their P3/P4 slices land.
+Lambda exit drains via **`flushAndSettle`** in [`../app.ts`](../app.ts). **EventBridge ingress** (deserialized `StreamingEvent`, Initialize Subscription, legacy `DisconnectCharacter`) and **WebSocket API ingress** (imperative handler triggers, `api.ephemera` synthetic events, ingress `ReturnValue`) use **`publish`** (P4).
 
 ## `publish`/`settle` migration
 
@@ -32,6 +32,9 @@ In progress: [`taskPlanning/.../AGENT.publishSettledMigration.planning.md`](../.
 | [`mapSubscription`](../mapSubscription/index.ts) | **Contract** (landed P4 MAP-SUB) | `ReturnValue` -> `publish`; one ReturnValue per handler invocation (ingress 1:1 per API op); handler batch aggregation unchanged |
 | [`fetchEphemera`](../fetchEphemera/index.ts), [`ephemeraUpdate`](../ephemeraUpdate/index.ts) | **Easy migrate** (landed P4 Easy / Low) | FETCH-EPH `EphemeraUpdate` outbound `publish`; EPH-UPDATE subscriber (producers already `publish`); client keyed by `CharacterId`; boundary drain only |
 | [`state/handleApiStateChange`](../dataSource/state/handleApiStateChange.ts) | **Easy migrate** (landed P4 Easy / Low) | ReturnValue `publish` via collector; `mtw.ephemera.state` `outboundBusDelivery: 'publish'` for State Changed outbounds |
+| [`dataSource/index.ts`](../dataSource/index.ts) (root `mtw.ephemera` DS) | **Easy migrate** (landed P4 closeout) | Canon Updated / Zone Updated ingress: `CanonSet` / `CanonAdd` / `CanonRemove` -> `publish`; no `outboundBusDelivery` flip (no `streamEvent` outbounds); component kick already `publish` |
+| [`materializeRoomStateRender`](../conversations/conversationTypes/roomStateRender/materialize.ts) | **Easy migrate** (landed P4 closeout) | Terminal `RenderReady` / `RenderInvalidate` / `RenderError` -> `publish`; conversation-backed flows only (passive orchestration uses `streamEvent` on renderOrchestration) |
+| [`objects`](../dataSource/objects/index.ts), [`thinking.scheduling`](../dataSource/thinking/scheduling/index.ts) | **P2b** (landed P4 closeout) | `outboundBusDelivery: 'publish'` on `Objects Changed` and `Job Completed` `streamEvent` outbounds |
 
 ## Testing
 

@@ -29,7 +29,7 @@ Future headers on this DataSource (if any) stay **object-domain** specific; **pr
 
 **Coyote Acme orders (enriched catalog lines):** When **`mtw.ephemera.actions`** publishes **`Acme Order`** ([`../actions/publishedEvents.ts`](../actions/publishedEvents.ts)), [`handleAcmeOrderAddObjects`](handleApiObjectsChange.ts) merges **`orders`** into the character's current room **`Meta::Room.objects`**, passing through **`stableKey`** (Coyote correlation key after deterministic finalize upstream), **`shortName`**, and trope fields **`tropeAffinities`** / **`tropeAffinitiesFailed`** per published line (same semantic fields as **`EphemeraMetaRoomObject`** other than **`uuid`**, assigned at merge time). General **`Objects Change`** **`add`** remains **`EphemeraMetaRoomObject[]`**; each entry must include a non-empty **`stableKey`**; callers may omit optional trope fields.
 
-**Registration:** [`index.ts`](index.ts) --- **`EphemeraDataSource`**, **`publisherStrategy: 'busOnly'`**, **`replayable: false`** (no EventBridge-visible replay contract for this DataSource in v1; same posture as **`mtw.ephemera.state`**).
+**Registration:** [`index.ts`](index.ts) --- **`EphemeraDataSource`**, **`publisherStrategy: 'busOnly'`**, **`replayable: false`**, **`outboundBusDelivery: 'publish'`** (no EventBridge-visible replay contract for this DataSource in v1; same posture as **`mtw.ephemera.state`**). Outbounds use **`publish`** via the DataSource; boundary **`flushAndSettle`** at lambda exit quiesces concurrent subscribers.
 
 ## Ordering vs `mtw.ephemera.state`
 
