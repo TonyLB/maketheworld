@@ -1,10 +1,12 @@
 # `mtw.ephemera.actions`
 
-**Status:** Shipped --- bus-only **`EphemeraDataSource`** (**`replayable: false`**). Registered from [`../../app.ts`](../../app.ts) via **`import './dataSource/actions'`**.
+**Status:** Shipped --- bus-only **`EphemeraDataSource`** (**`replayable: false`**, **`outboundBusDelivery: 'publish'`**). Registered from [`../../app.ts`](../../app.ts) via **`import './dataSource/actions'`**.
 
 **Ingress:** **`api.ephemera`** **`Parse Requested`** (player command routing). See [`../apiEphemera.ts`](../apiEphemera.ts).
 
-**Outbound (room look):** In-room **`LookRoom`** results **`streamEvent`** a **`Look Command Requested`** payload (see [`publishedEvents.ts`](publishedEvents.ts)). **`mtw.ephemera.renderOrchestration`** subscribes as a sibling; [`handleLookCommandRequestedForRenderOrchestration`](../renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts) runs **`Perception Thread Registered`**, flushes the same run-scoped lane, then sends default-lane **`Render Requested`** (docs in [`../renderOrchestration/AGENT.md`](../renderOrchestration/AGENT.md)).
+**Outbound (room look):** In-room **`LookRoom`** results **`streamEvent`** a **`Look Command Requested`** payload (see [`publishedEvents.ts`](publishedEvents.ts)). **`mtw.ephemera.renderOrchestration`** subscribes and orchestrates via **`publish`** + boundary **`flushAndSettle`** (docs in [`../renderOrchestration/AGENT.md`](../renderOrchestration/AGENT.md)).
+
+**Bus delivery:** Imperative **`PublishMessage`**, **`MoveCharacter`**, and correlated **`ReturnValue`** use **`messageBus.publish`**; quiescence at lambda boundary only (no producer-side drain). Legacy [`executeAction`](../../parse/executeAction.ts) uses the same **`publish`** path.
 
 ## Role
 
@@ -30,7 +32,7 @@ Post-discrimination enrichment flows live under [`enrich/`](./enrich/), with Acm
 
 - Current movement behavior in actions is intentionally **event + imperative** for parity:
   - actions emits `Character Navigate` (`characterId`, `fromRoomId`, `toRoomId`) for downstream/event-first workflows.
-  - actions also sends `MoveCharacter` imperatively so movement executes immediately in current runtime.
+  - actions also publishes `MoveCharacter` imperatively so movement executes in current runtime.
 - This dual-path behavior is transitional and scoped to the movement-affordance task.
 - Event-only movement execution ownership is deferred to **`mtw.ephemera.positions`**.
 

@@ -7,7 +7,12 @@ import { sendPerceptionThreadRegistered } from '../dataSource/perception/subscri
 import { sendRenderRequested } from '../dataSource/renderOrchestration/subscribedEvents'
 
 // Mock dependencies
-jest.mock('../messageBus')
+jest.mock('../messageBus', () => ({
+    __esModule: true,
+    default: {
+        publish: jest.fn(),
+    },
+}))
 jest.mock('../internalCache')
 jest.mock('../lib/characterColor', () => ({
     defaultColorFromCharacterId: jest.fn(() => 'blue')
@@ -39,7 +44,7 @@ const mockSendRenderRequested = sendRenderRequested as jest.MockedFunction<typeo
 describe('executeAction', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        MockMessageBus.send.mockClear()
+        MockMessageBus.publish.mockClear()
         internalCacheMock.CharacterMeta.get.mockClear()
         mockSendPerceptionThreadRegistered.mockClear()
         mockSendRenderRequested.mockClear()
@@ -92,7 +97,7 @@ describe('executeAction', () => {
             )
             const renderCommand = mockSendRenderRequested.mock.calls[0][2] as Record<string, unknown>
             expect(renderCommand.generationContextWml).toBeUndefined()
-            expect(MockMessageBus.send).not.toHaveBeenCalledWith(
+            expect(MockMessageBus.publish).not.toHaveBeenCalledWith(
                 expect.objectContaining({ type: 'Perception' })
             )
         })
@@ -109,7 +114,7 @@ describe('executeAction', () => {
 
             await executeAction(MockMessageBus, request)
 
-            expect(MockMessageBus.send).toHaveBeenCalledWith({
+            expect(MockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'Perception',
                 characterId: 'CHARACTER#123',
                 ephemeraId: 'FEATURE#789'
@@ -131,7 +136,7 @@ describe('executeAction', () => {
 
             await executeAction(MockMessageBus, request)
 
-            expect(MockMessageBus.send).toHaveBeenCalledWith({
+            expect(MockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'MoveCharacter',
                 characterId: 'CHARACTER#123',
                 roomId: 'ROOM#789',
@@ -151,7 +156,7 @@ describe('executeAction', () => {
 
             await executeAction(MockMessageBus, request)
 
-            expect(MockMessageBus.send).toHaveBeenCalledWith({
+            expect(MockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'MoveCharacter',
                 characterId: 'CHARACTER#123',
                 roomId: 'ROOM#789',
@@ -182,7 +187,7 @@ describe('executeAction', () => {
             await executeAction(MockMessageBus, request)
 
             expect(internalCacheMock.CharacterMeta.get).toHaveBeenCalledWith('CHARACTER#123')
-            expect(MockMessageBus.send).toHaveBeenCalledWith({
+            expect(MockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'MoveCharacter',
                 characterId: 'CHARACTER#123',
                 roomId: 'ROOM#HOME',
@@ -211,7 +216,7 @@ describe('executeAction', () => {
             await executeAction(MockMessageBus, request)
 
             expect(internalCacheMock.CharacterMeta.get).toHaveBeenCalledWith('CHARACTER#123')
-            expect(MockMessageBus.send).toHaveBeenCalledWith({
+            expect(MockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'MoveCharacter',
                 characterId: 'CHARACTER#123',
                 roomId: undefined,
@@ -244,7 +249,7 @@ describe('executeAction', () => {
             await executeAction(MockMessageBus, request)
 
             expect(internalCacheMock.CharacterMeta.get).toHaveBeenCalledWith('CHARACTER#123')
-            expect(MockMessageBus.send).toHaveBeenCalledWith({
+            expect(MockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['ROOM#456'],
                 displayProtocol: 'SayMessage',
@@ -253,7 +258,7 @@ describe('executeAction', () => {
                 name: 'TestCharacter',
                 color: 'blue'
             })
-            expect(MockMessageBus.send).toHaveBeenCalledWith({
+            expect(MockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'ReturnValue',
                 body: { messageType: 'Success' }
             })
@@ -284,7 +289,7 @@ describe('executeAction', () => {
             await executeAction(MockMessageBus, request)
 
             expect(internalCacheMock.CharacterMeta.get).toHaveBeenCalledWith('CHARACTER#123')
-            expect(MockMessageBus.send).toHaveBeenCalledWith({
+            expect(MockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['ROOM#456'],
                 displayProtocol: 'NarrateMessage',
@@ -293,7 +298,7 @@ describe('executeAction', () => {
                 name: 'TestCharacter',
                 color: 'blue'
             })
-            expect(MockMessageBus.send).toHaveBeenCalledWith({
+            expect(MockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'ReturnValue',
                 body: { messageType: 'Success' }
             })
@@ -324,7 +329,7 @@ describe('executeAction', () => {
             await executeAction(MockMessageBus, request)
 
             expect(internalCacheMock.CharacterMeta.get).toHaveBeenCalledWith('CHARACTER#123')
-            expect(MockMessageBus.send).toHaveBeenCalledWith({
+            expect(MockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['ROOM#456'],
                 displayProtocol: 'OOCMessage',
@@ -333,7 +338,7 @@ describe('executeAction', () => {
                 name: 'TestCharacter',
                 color: 'blue'
             })
-            expect(MockMessageBus.send).toHaveBeenCalledWith({
+            expect(MockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'ReturnValue',
                 body: { messageType: 'Success' }
             })
@@ -365,7 +370,7 @@ describe('executeAction', () => {
 
             await executeAction(MockMessageBus, request)
 
-            expect(MockMessageBus.send).toHaveBeenCalledWith({
+            expect(MockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['ROOM#456'],
                 displayProtocol: 'SayMessage',
@@ -400,7 +405,7 @@ describe('executeAction', () => {
 
             // The current implementation only sends messages when RoomId exists
             // When RoomId is undefined, no messages are sent
-            expect(MockMessageBus.send).not.toHaveBeenCalled()
+            expect(MockMessageBus.publish).not.toHaveBeenCalled()
         })
     })
 
@@ -416,7 +421,7 @@ describe('executeAction', () => {
             await expect(executeAction(MockMessageBus, request)).resolves.not.toThrow()
             
             // Should not send any messages
-            expect(MockMessageBus.send).not.toHaveBeenCalled()
+            expect(MockMessageBus.publish).not.toHaveBeenCalled()
         })
     })
 })

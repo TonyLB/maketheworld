@@ -110,6 +110,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 - [ ] Phase 6 - migration and cleanup
   - [ ] Remove/retire legacy imperative parse path once branch parity is acceptable.
   - [ ] Update durable docs in code-adjacent `AGENT.md` files.
+  - [X] Bus delivery (`send` -> `publish`, `outboundBusDelivery: 'publish'`) migrated under [`AGENT.publishSettledMigration.planning.md`](../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.publishSettledMigration.planning.md) **ACTIONS-PARSE** slice (does not retire legacy `executeAction` path).
   - [ ] Delete this plan when completed (or archive if still actively referenced).
 
 ## Material decisions to confirm early
