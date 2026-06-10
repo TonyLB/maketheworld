@@ -12,6 +12,7 @@ import { MessageBus } from '../messageBus/baseClasses'
 import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
 import { RoomStackItem } from '../moveCharacter'
 import checkLocation from '.'
+import { checkLocationCoalescer } from './coalescer'
 import { Graph } from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph'
 
 // @ts-ignore
@@ -37,10 +38,14 @@ const wrapMocks = (fromRoomStack: RoomStackItem[], assets: string[]): void => {
 }
 
 describe('checkLocation', () => {
-    const messageBusMock = { send: jest.fn() } as unknown as jest.Mocked<MessageBus>
+    const messageBusMock = {
+        send: jest.fn(),
+        publish: jest.fn(),
+    } as unknown as jest.Mocked<MessageBus>
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
+        checkLocationCoalescer.reset()
         internalCacheMock.Global.get.mockResolvedValue(['primitives', 'TownCenter'])
     })
 
@@ -97,7 +102,7 @@ describe('checkLocation', () => {
                     { asset: 'TownCenter', RoomId: 'TownSquare' }
                 ]
             })
-        expect(messageBusMock.send).toHaveBeenCalledWith({
+        expect(messageBusMock.publish).toHaveBeenCalledWith({
             type: 'MoveCharacter',
             characterId: 'CHARACTER#Test',
             roomId: 'ROOM#TownSquare',
@@ -142,7 +147,7 @@ describe('checkLocation', () => {
                     { asset: 'draftTwo', RoomId: 'Oubliette' }
                 ]
             })
-        expect(messageBusMock.send).toHaveBeenCalledTimes(0)
+        expect(messageBusMock.publish).toHaveBeenCalledTimes(0)
     })
 
     it('should move on forceMove even when stack remains valid', async () => {
@@ -184,7 +189,7 @@ describe('checkLocation', () => {
                     { asset: 'draftTwo', RoomId: 'Oubliette' }
                 ]
             })
-        expect(messageBusMock.send).toHaveBeenCalledWith({
+        expect(messageBusMock.publish).toHaveBeenCalledWith({
             type: 'MoveCharacter',
             characterId: 'CHARACTER#Test',
             roomId: 'ROOM#Oubliette',
@@ -231,7 +236,7 @@ describe('checkLocation', () => {
                     { asset: 'draftTwo', RoomId: 'Oubliette' }
                 ]
             })
-        expect(messageBusMock.send).toHaveBeenCalledWith({
+        expect(messageBusMock.publish).toHaveBeenCalledWith({
             type: 'MoveCharacter',
             characterId: 'CHARACTER#Test',
             roomId: 'ROOM#Oubliette',
@@ -279,7 +284,7 @@ describe('checkLocation', () => {
                     { asset: 'draftOne', RoomId: 'Laboratory' }
                 ]
             })
-        expect(messageBusMock.send).toHaveBeenCalledWith({
+        expect(messageBusMock.publish).toHaveBeenCalledWith({
             type: 'MoveCharacter',
             characterId: 'CHARACTER#Test',
             roomId: 'ROOM#Laboratory',
@@ -348,7 +353,7 @@ describe('checkLocation', () => {
                     { asset: 'draftOne', RoomId: 'Laboratory' }
                 ]
             })
-        expect(messageBusMock.send).toHaveBeenCalledWith({
+        expect(messageBusMock.publish).toHaveBeenCalledWith({
             type: 'MoveCharacter',
             characterId: 'CHARACTER#Test',
             roomId: 'ROOM#Laboratory',
@@ -356,5 +361,45 @@ describe('checkLocation', () => {
             arriveMessage: ' has appeared.',
             suppressSelfMessage: true
         })
+    })
+
+    it('should repair each character only once when duplicate payloads are batched', async () => {
+        wrapMocks(
+            [
+                { asset: 'primitives', RoomId: 'VORTEX' },
+                { asset: 'TownCenter', RoomId: 'TownSquare' },
+                { asset: 'draftOne', RoomId: 'Laboratory' },
+                { asset: 'draftTwo', RoomId: 'Oubliette' }
+            ],
+            []
+        )
+        await checkLocation({
+            payloads: [
+                { type: 'CheckLocation', characterId: 'CHARACTER#Test' },
+                { type: 'CheckLocation', characterId: 'CHARACTER#Test' },
+            ],
+            messageBus: messageBusMock
+        })
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
+        expect(messageBusMock.publish).toHaveBeenCalledTimes(1)
+    })
+
+    it('should repair each character only once when concurrent handler invocations overlap', async () => {
+        wrapMocks(
+            [
+                { asset: 'primitives', RoomId: 'VORTEX' },
+                { asset: 'TownCenter', RoomId: 'TownSquare' },
+                { asset: 'draftOne', RoomId: 'Laboratory' },
+                { asset: 'draftTwo', RoomId: 'Oubliette' }
+            ],
+            []
+        )
+        const payload = { type: 'CheckLocation' as const, characterId: 'CHARACTER#Test' as const }
+        await Promise.all([
+            checkLocation({ payloads: [payload], messageBus: messageBusMock }),
+            checkLocation({ payloads: [payload], messageBus: messageBusMock }),
+        ])
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
+        expect(messageBusMock.publish).toHaveBeenCalledTimes(1)
     })
 })

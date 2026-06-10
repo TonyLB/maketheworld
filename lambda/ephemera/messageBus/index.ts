@@ -20,6 +20,7 @@ import {
 
 import publishMessage from '../publishMessage'
 import { publishMessageCoalescer } from '../publishMessage/coalescer'
+import { checkLocationCoalescer } from '../checkLocation/coalescer'
 import ephemeraUpdate from '../ephemeraUpdate'
 import { unregisterCharacterMessage, disconnectCharacterMessage } from '../disconnectMessage'
 import { fetchPlayerEphemera } from '../fetchEphemera'
@@ -120,5 +121,6 @@ messageBus.subscribe({
 })
 
 publishMessageCoalescer.registerDeferral(messageBus)
+checkLocationCoalescer.registerDeferral(messageBus)
 
 export default messageBus
